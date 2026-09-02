@@ -41,6 +41,9 @@ importers:
       '@chronelle/db':
         specifier: workspace:*
         version: link:../../packages/db
+      '@chronelle/object-model':
+        specifier: workspace:*
+        version: link:../../packages/object-model
       '@chronelle/schemas':
         specifier: workspace:*
         version: link:../../packages/schemas
@@ -89,6 +92,18 @@ importers:
       zod:
         specifier: 4.5.4
         version: 4.5.4
+
+  packages/object-model:
+    dependencies:
+      '@chronelle/authorization':
+        specifier: workspace:*
+        version: link:../authorization
+      '@chronelle/db':
+        specifier: workspace:*
+        version: link:../db
+      drizzle-orm:
+        specifier: 0.45.2
+        version: 0.45.2(postgres@3.4.9)
 
   packages/schemas:
     dependencies:

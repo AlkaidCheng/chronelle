@@ -32,8 +32,11 @@ export interface WorkspaceAccessQuery {
   readonly workspaceId: string;
 }
 
+export type WorkspaceRoleQuery = Omit<WorkspaceAccessQuery, "evaluatedAt">;
+
 export interface AuthorizationStore {
   findResourceRoles(query: ResourceRoleQuery): Promise<readonly Role[] | null>;
+  findWorkspaceRole(query: WorkspaceRoleQuery): Promise<Role | null>;
   hasWorkspaceAccess(query: WorkspaceAccessQuery): Promise<boolean>;
 }
 
@@ -87,6 +90,20 @@ export class AuthorizationService {
     resource: ResourceRef,
   ): Promise<void> {
     if (!(await this.can(principal, action, resource))) {
+      throw new AuthorizationDeniedError();
+    }
+  }
+
+  async canCreateInWorkspace(principal: UserPrincipal): Promise<boolean> {
+    const role = await this.#store.findWorkspaceRole({
+      userId: principal.userId,
+      workspaceId: principal.workspaceId,
+    });
+    return role !== null && roleAllows(role, "edit");
+  }
+
+  async assertCanCreateInWorkspace(principal: UserPrincipal): Promise<void> {
+    if (!(await this.canCreateInWorkspace(principal))) {
       throw new AuthorizationDeniedError();
     }
   }

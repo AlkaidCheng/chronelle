@@ -1,0 +1,210 @@
+import type {
+  ObjectType,
+  RelationType,
+  ReminderStatus,
+  TaskStatus,
+} from "@chronelle/db";
+import type { UserPrincipal } from "@chronelle/authorization";
+
+export type JsonObject = Record<string, unknown>;
+
+export interface MutationContext {
+  readonly principal: UserPrincipal;
+  readonly requestId: string;
+}
+
+export interface CanonicalObjectResource {
+  readonly archivedAt: Date | null;
+  readonly createdAt: Date;
+  readonly createdBy: string;
+  readonly customProperties: JsonObject;
+  readonly deletedAt: Date | null;
+  readonly displayName: string;
+  readonly id: string;
+  readonly metadata: JsonObject;
+  readonly objectType: ObjectType;
+  readonly permissionScopeId: string;
+  readonly updatedAt: Date;
+  readonly version: number;
+  readonly workspaceId: string;
+}
+
+export interface EventResource extends CanonicalObjectResource {
+  readonly endsAt: Date | null;
+  readonly isAllDay: boolean;
+  readonly objectType: "event";
+  readonly startsAt: Date | null;
+  readonly timezone: string | null;
+}
+
+export interface TaskResource extends CanonicalObjectResource {
+  readonly completedAt: Date | null;
+  readonly dueAt: Date | null;
+  readonly objectType: "task";
+  readonly status: TaskStatus;
+}
+
+export interface ExpenseResource extends CanonicalObjectResource {
+  readonly amount: string;
+  readonly currency: string;
+  readonly objectType: "expense";
+  readonly occurredAt: Date;
+}
+
+export interface ReminderResource extends CanonicalObjectResource {
+  readonly objectType: "reminder";
+  readonly remindAt: Date;
+  readonly status: ReminderStatus;
+}
+
+export interface DocumentResource extends CanonicalObjectResource {
+  readonly checksumSha256: string;
+  readonly encryptionMode: string;
+  readonly mimeType: string;
+  readonly objectType: "document";
+  readonly originalFilename: string;
+  readonly sizeBytes: bigint;
+  readonly storageKey: string;
+  readonly storageProvider: string;
+}
+
+export type EventPlanningResource =
+  | EventResource
+  | TaskResource
+  | ExpenseResource
+  | ReminderResource
+  | DocumentResource;
+
+export interface CreateObjectFields {
+  readonly customProperties?: JsonObject | undefined;
+  readonly displayName: string;
+  readonly metadata?: JsonObject | undefined;
+  readonly permissionScopeId?: string | undefined;
+}
+
+export interface CreateEventInput extends CreateObjectFields {
+  readonly endsAt?: Date | null | undefined;
+  readonly isAllDay?: boolean | undefined;
+  readonly startsAt?: Date | null | undefined;
+  readonly timezone?: string | null | undefined;
+}
+
+export interface CreateTaskInput extends CreateObjectFields {
+  readonly completedAt?: Date | null | undefined;
+  readonly dueAt?: Date | null | undefined;
+  readonly status?: TaskStatus | undefined;
+}
+
+export interface CreateExpenseInput extends CreateObjectFields {
+  readonly amount: string;
+  readonly currency: string;
+  readonly occurredAt: Date;
+}
+
+export interface CreateReminderInput extends CreateObjectFields {
+  readonly remindAt: Date;
+  readonly status?: ReminderStatus | undefined;
+}
+
+export interface UpdateObjectFields {
+  readonly customProperties?: JsonObject | undefined;
+  readonly displayName?: string | undefined;
+  readonly expectedVersion: number;
+  readonly metadata?: JsonObject | undefined;
+}
+
+export interface UpdateEventInput extends UpdateObjectFields {
+  readonly endsAt?: Date | null | undefined;
+  readonly isAllDay?: boolean | undefined;
+  readonly startsAt?: Date | null | undefined;
+  readonly timezone?: string | null | undefined;
+}
+
+export interface UpdateTaskInput extends UpdateObjectFields {
+  readonly completedAt?: Date | null | undefined;
+  readonly dueAt?: Date | null | undefined;
+  readonly status?: TaskStatus | undefined;
+}
+
+export interface UpdateExpenseInput extends UpdateObjectFields {
+  readonly amount?: string | undefined;
+  readonly currency?: string | undefined;
+  readonly occurredAt?: Date | undefined;
+}
+
+export interface UpdateReminderInput extends UpdateObjectFields {
+  readonly remindAt?: Date | undefined;
+  readonly status?: ReminderStatus | undefined;
+}
+
+export interface ObjectDeletionResource {
+  readonly deletedAt: Date;
+  readonly id: string;
+  readonly version: number;
+}
+
+export interface ObjectRelationResource {
+  readonly createdAt: Date;
+  readonly createdBy: string;
+  readonly deletedAt: Date | null;
+  readonly id: string;
+  readonly metadata: JsonObject;
+  readonly relationType: RelationType;
+  readonly sourceObjectId: string;
+  readonly targetObjectId: string;
+  readonly workspaceId: string;
+}
+
+export interface CreateObjectRelationInput {
+  readonly metadata?: JsonObject | undefined;
+  readonly relationType: RelationType;
+  readonly sourceObjectId: string;
+  readonly targetObjectId: string;
+}
+
+export interface RelationDeletionResource {
+  readonly deletedAt: Date;
+  readonly id: string;
+}
+
+export interface EventDetailProjection {
+  readonly documents: readonly DocumentResource[];
+  readonly event: EventResource;
+  readonly events: readonly EventResource[];
+  readonly expenses: readonly ExpenseResource[];
+  readonly reminders: readonly ReminderResource[];
+  readonly tasks: readonly TaskResource[];
+}
+
+export interface EventResourceProjection {
+  readonly items: readonly EventResource[];
+  readonly sourceEventId: string;
+}
+
+export interface TaskResourceProjection {
+  readonly items: readonly TaskResource[];
+  readonly sourceEventId: string;
+}
+
+export interface ExpenseResourceProjection {
+  readonly items: readonly ExpenseResource[];
+  readonly sourceEventId: string;
+}
+
+export interface ReminderResourceProjection {
+  readonly items: readonly ReminderResource[];
+  readonly sourceEventId: string;
+}
+
+export interface TimelineItem {
+  readonly canonicalObjectId: string;
+  readonly displayName: string;
+  readonly objectType: "event" | "task" | "expense" | "reminder";
+  readonly occursAt: Date;
+  readonly version: number;
+}
+
+export interface TimelineProjection {
+  readonly items: readonly TimelineItem[];
+  readonly sourceEventId: string;
+}

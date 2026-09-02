@@ -33,6 +33,7 @@ describe("AuthorizationService", () => {
   it("accepts any applicable role that permits the action", async () => {
     const store: AuthorizationStore = {
       findResourceRoles: vi.fn().mockResolvedValue(["viewer", "editor"]),
+      findWorkspaceRole: vi.fn().mockResolvedValue("owner"),
       hasWorkspaceAccess: vi.fn().mockResolvedValue(true),
     };
     const authorization = new AuthorizationService(store);
@@ -46,6 +47,7 @@ describe("AuthorizationService", () => {
     const findResourceRoles = vi.fn();
     const store: AuthorizationStore = {
       findResourceRoles,
+      findWorkspaceRole: vi.fn(),
       hasWorkspaceAccess: vi.fn(),
     };
     const authorization = new AuthorizationService(store);
@@ -62,6 +64,7 @@ describe("AuthorizationService", () => {
   it("uses one generic error for missing and unauthorized resources", async () => {
     const store: AuthorizationStore = {
       findResourceRoles: vi.fn().mockResolvedValue(null),
+      findWorkspaceRole: vi.fn().mockResolvedValue(null),
       hasWorkspaceAccess: vi.fn().mockResolvedValue(false),
     };
     const authorization = new AuthorizationService(store);
@@ -69,5 +72,29 @@ describe("AuthorizationService", () => {
     await expect(
       authorization.assertCan(principal, "view", resource),
     ).rejects.toEqual(new AuthorizationDeniedError());
+  });
+
+  it("allows workspace owners and editors to create root objects", async () => {
+    const findWorkspaceRole = vi
+      .fn()
+      .mockResolvedValueOnce("owner")
+      .mockResolvedValueOnce("editor")
+      .mockResolvedValueOnce("viewer");
+    const store: AuthorizationStore = {
+      findResourceRoles: vi.fn(),
+      findWorkspaceRole,
+      hasWorkspaceAccess: vi.fn(),
+    };
+    const authorization = new AuthorizationService(store);
+
+    await expect(authorization.canCreateInWorkspace(principal)).resolves.toBe(
+      true,
+    );
+    await expect(authorization.canCreateInWorkspace(principal)).resolves.toBe(
+      true,
+    );
+    await expect(authorization.canCreateInWorkspace(principal)).resolves.toBe(
+      false,
+    );
   });
 });
