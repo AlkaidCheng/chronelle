@@ -206,6 +206,10 @@ describe.sequential("DrizzleAuthorizationStore", () => {
         workspaceId: fixture.workspaceId,
       }),
     ).resolves.toBe(false);
+
+    await expect(
+      authorization.listAccessibleWorkspaceIds(viewerId),
+    ).resolves.toEqual([fixture.workspaceId]);
   });
 
   it("applies a direct editor grant without granting share access", async () => {

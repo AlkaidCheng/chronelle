@@ -134,6 +134,11 @@ an event plan. Event detail, to-do, calendar, timeline, itinerary, expense, and
 reminder endpoints are authorized read-time projections over those same object
 IDs. See [`docs/api.md`](docs/api.md) for routes and examples.
 
+Owners can share a root Event directly with an existing Chronelle user as
+Owner, Editor, or Viewer. Child resources inherit through the Event's canonical
+permission scope, not through their relationship. A versioned scope change can
+make one child private while leaving both the object and relationship intact.
+
 ## Event-planning workspace
 
 The web client provides development sign-in, an event list, event editing,
@@ -141,7 +146,10 @@ to-dos, calendar, timeline, itinerary, expenses, and reminders. Creating a
 schedule item creates one canonical Event. Its ID is preserved in the calendar,
 timeline, and itinerary projections, and an edit invalidates every affected
 view. Optimistic-concurrency conflicts show a refresh action instead of
-silently overwriting newer data.
+silently overwriting newer data. The Sharing view manages Owner and Viewer
+access, lists inheriting resources, and can stop inheritance. A workspace
+selector exposes workspaces reached through active grants; Viewer panels remain
+read-only and inaccessible references render without protected details.
 
 ## Development commands
 

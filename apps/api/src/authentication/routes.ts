@@ -15,6 +15,10 @@ export interface DevelopmentAuthenticationRouteDependencies {
   readonly identity: WorkspaceIdentityService;
 }
 
+export interface SessionRouteDependencies {
+  readonly identity: WorkspaceIdentityService;
+}
+
 export function registerDevelopmentAuthenticationRoute(
   app: FastifyInstance,
   dependencies: DevelopmentAuthenticationRouteDependencies,
@@ -49,7 +53,10 @@ export function registerDevelopmentAuthenticationRoute(
   });
 }
 
-export function registerSessionRoute(app: FastifyInstance): void {
+export function registerSessionRoute(
+  app: FastifyInstance,
+  dependencies: SessionRouteDependencies,
+): void {
   app.get(
     "/api/auth/session",
     { preHandler: app.authenticate },
@@ -58,6 +65,11 @@ export function registerSessionRoute(app: FastifyInstance): void {
         throw new UnauthenticatedError();
       }
       const session = request.identitySession;
+      const availableWorkspaces =
+        await dependencies.identity.listAccessibleWorkspaces(
+          session.user.id,
+          session.workspace.id,
+        );
 
       return sessionResponseSchema.parse({
         principal: session.principal,
@@ -70,6 +82,10 @@ export function registerSessionRoute(app: FastifyInstance): void {
           id: session.workspace.id,
           displayName: session.workspace.displayName,
         },
+        availableWorkspaces: availableWorkspaces.map((workspace) => ({
+          id: workspace.id,
+          displayName: workspace.displayName,
+        })),
       });
     },
   );

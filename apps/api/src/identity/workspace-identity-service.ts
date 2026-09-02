@@ -12,7 +12,7 @@ import type {
   AuthorizationService,
   UserPrincipal,
 } from "@chronelle/authorization";
-import { and, eq } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 
 import type { AuthIdentity } from "../authentication/auth-provider.js";
 import { UnauthenticatedError, WorkspaceUnavailableError } from "../errors.js";
@@ -140,6 +140,31 @@ export class WorkspaceIdentityService {
     }
 
     return this.#toSession(user, workspace);
+  }
+
+  async listAccessibleWorkspaces(
+    userId: string,
+    activeWorkspaceId: string,
+  ): Promise<readonly WorkspaceRow[]> {
+    const availableWorkspaceIds =
+      await this.#authorization.listAccessibleWorkspaceIds(userId);
+    const availableWorkspaces =
+      availableWorkspaceIds.length === 0
+        ? []
+        : await this.#database
+            .select()
+            .from(workspaces)
+            .where(inArray(workspaces.id, availableWorkspaceIds));
+    availableWorkspaces.sort((first, second) => {
+      if (first.id === activeWorkspaceId) {
+        return -1;
+      }
+      if (second.id === activeWorkspaceId) {
+        return 1;
+      }
+      return first.displayName.localeCompare(second.displayName);
+    });
+    return availableWorkspaces;
   }
 
   async #findUser(

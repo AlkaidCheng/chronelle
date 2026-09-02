@@ -3,14 +3,19 @@ import {
   developmentSignInResponseSchema,
   eventDetailResponseSchema,
   eventListResponseSchema,
+  eventPlanningResourceResponseSchema,
   eventResourceProjectionResponseSchema,
   eventResponseSchema,
   expenseResourceProjectionResponseSchema,
   expenseResponseSchema,
+  objectAccessResponseSchema,
   relationResponseSchema,
   reminderResourceProjectionResponseSchema,
   reminderResponseSchema,
   sessionResponseSchema,
+  shareListResponseSchema,
+  shareResponseSchema,
+  shareRevocationResponseSchema,
   taskResourceProjectionResponseSchema,
   taskResponseSchema,
   timelineResponseSchema,
@@ -19,6 +24,7 @@ import {
   type EventCreatePayload,
   type EventDetailResponse,
   type EventListResponse,
+  type EventPlanningResourceResponse,
   type EventResourceProjectionResponse,
   type EventResponse,
   type EventUpdatePayload,
@@ -26,12 +32,18 @@ import {
   type ExpenseResourceProjectionResponse,
   type ExpenseResponse,
   type ExpenseUpdatePayload,
+  type ObjectAccessResponse,
+  type PermissionScopeUpdatePayload,
   type RelationCreatePayload,
   type ReminderCreatePayload,
   type ReminderResourceProjectionResponse,
   type ReminderResponse,
   type ReminderUpdatePayload,
   type SessionResponse,
+  type ShareCreatePayload,
+  type ShareListResponse,
+  type ShareResponse,
+  type ShareRevocationResponse,
   type TaskCreatePayload,
   type TaskResourceProjectionResponse,
   type TaskResponse,
@@ -179,6 +191,42 @@ export class ChronelleApiClient {
 
   getEventDetail(id: string): Promise<EventDetailResponse> {
     return this.#request(`/api/events/${id}/detail`, eventDetailResponseSchema);
+  }
+
+  getObjectAccess(id: string): Promise<ObjectAccessResponse> {
+    return this.#request(
+      `/api/objects/${id}/access`,
+      objectAccessResponseSchema,
+    );
+  }
+
+  listShares(id: string): Promise<ShareListResponse> {
+    return this.#request(`/api/objects/${id}/shares`, shareListResponseSchema);
+  }
+
+  shareResource(input: ShareCreatePayload): Promise<ShareResponse> {
+    return this.#request(
+      "/api/shares",
+      shareResponseSchema,
+      jsonRequest(input, "POST"),
+    );
+  }
+
+  revokeShare(id: string): Promise<ShareRevocationResponse> {
+    return this.#request(`/api/shares/${id}`, shareRevocationResponseSchema, {
+      method: "DELETE",
+    });
+  }
+
+  updatePermissionScope(
+    id: string,
+    input: PermissionScopeUpdatePayload,
+  ): Promise<EventPlanningResourceResponse> {
+    return this.#request(
+      `/api/objects/${id}/permission-scope`,
+      eventPlanningResourceResponseSchema,
+      jsonRequest(input, "PATCH"),
+    );
   }
 
   getEventTodos(id: string): Promise<TaskResourceProjectionResponse> {

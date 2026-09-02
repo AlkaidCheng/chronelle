@@ -251,6 +251,7 @@ export const eventDetailResponseSchema = z.object({
   expenses: z.array(expenseResponseSchema),
   reminders: z.array(reminderResponseSchema),
   documents: z.array(documentResponseSchema),
+  lockedRelationCount: z.number().int().nonnegative(),
 });
 
 export const eventResourceProjectionResponseSchema = z.object({

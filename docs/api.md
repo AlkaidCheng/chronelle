@@ -60,10 +60,39 @@ the domain service. Relationships provide context but never permission.
 Every projection is computed from active relationships and canonical rows. It
 does not create projection-owned data. Every included resource is separately
 authorized; an inaccessible referenced object is omitted rather than leaked.
+Event detail includes `lockedRelationCount`, which lets clients render a
+generic private-item notice without exposing identities or business fields.
+
+## Access and sharing
+
+| Method   | Path                            | Behavior                              |
+| -------- | ------------------------------- | ------------------------------------- |
+| `GET`    | `/objects/:id/access`           | List the caller's allowed actions     |
+| `GET`    | `/objects/:id/shares`           | List active direct grants             |
+| `POST`   | `/shares`                       | Create or replace a direct user grant |
+| `DELETE` | `/shares/:id`                   | Revoke a direct grant                 |
+| `PATCH`  | `/objects/:id/permission-scope` | Change inheritance with a version     |
+
+`POST /shares` accepts `resourceId`, `principalEmail`, and an Owner, Editor, or
+Viewer `role`. The recipient must already have a Chronelle identity. Repeating
+the request for the same resource and user replaces the active role rather
+than creating a duplicate grant. Only callers with Share permission can read
+or mutate grants; user lookup happens after that authorization check.
+
+The permission-scope patch accepts `permissionScopeId` and
+`expectedVersion`. Setting the scope to the object's own ID stops inheritance.
+Selecting another scope requires a self-scoped Event in the same workspace and
+Share permission on both resources. Stale versions return `version_conflict`.
+
+The session response includes `availableWorkspaces`. It contains the personal
+workspace plus workspaces reached through live direct grants. Revoking the last
+grant makes that workspace unavailable on the next request.
 
 ## Mutation contract
 
 Each mutation validates input, authenticates the caller, authorizes the
 resource, checks an expected version where applicable, writes inside a
 transaction, and appends one audit event in that transaction. Missing and
-unauthorized protected resources both return `resource_unavailable` with HTTP 404.
+unauthorized protected resources both return `resource_unavailable` with HTTP 404. Sharing writes `resource.shared`, revocation writes
+`resource.share_revoked`, and scope changes write
+`object.permission_scope_updated`.

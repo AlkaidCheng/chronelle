@@ -8,6 +8,7 @@ import {
 import { and, eq, gt, inArray, isNull, or } from "drizzle-orm";
 
 import type {
+  AccessibleWorkspaceQuery,
   AuthorizationStore,
   ResourceRoleQuery,
   WorkspaceAccessQuery,
@@ -130,6 +131,45 @@ export class DrizzleAuthorizationStore implements AuthorizationStore {
       .limit(1);
 
     return grant.length > 0;
+  }
+
+  async listAccessibleWorkspaceIds(
+    query: AccessibleWorkspaceQuery,
+  ): Promise<readonly string[]> {
+    const [memberships, grants] = await Promise.all([
+      this.#database
+        .select({ workspaceId: workspaceMembers.workspaceId })
+        .from(workspaceMembers)
+        .where(eq(workspaceMembers.userId, query.userId)),
+      this.#database
+        .selectDistinct({ workspaceId: resourceGrants.workspaceId })
+        .from(resourceGrants)
+        .innerJoin(
+          objects,
+          and(
+            eq(objects.workspaceId, resourceGrants.workspaceId),
+            eq(objects.id, resourceGrants.resourceId),
+          ),
+        )
+        .where(
+          and(
+            eq(resourceGrants.principalType, "user"),
+            eq(resourceGrants.principalId, query.userId),
+            or(
+              isNull(resourceGrants.expiresAt),
+              gt(resourceGrants.expiresAt, query.evaluatedAt),
+            ),
+            isNull(objects.deletedAt),
+          ),
+        ),
+    ]);
+
+    return [
+      ...new Set([
+        ...memberships.map(({ workspaceId }) => workspaceId),
+        ...grants.map(({ workspaceId }) => workspaceId),
+      ]),
+    ];
   }
 
   async findWorkspaceRole(query: WorkspaceRoleQuery): Promise<Role | null> {

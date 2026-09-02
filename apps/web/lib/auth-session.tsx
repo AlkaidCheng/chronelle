@@ -12,16 +12,21 @@ import {
 
 const storageKey = "chronelle.development-session";
 
+interface AuthCredential extends ApiCredential {
+  readonly homeWorkspaceId: string;
+}
+
 interface AuthSessionContextValue {
-  readonly credential: ApiCredential | null;
+  readonly credential: AuthCredential | null;
   readonly isHydrated: boolean;
   readonly signOut: () => void;
   readonly startSession: (credential: ApiCredential) => void;
+  readonly switchWorkspace: (workspaceId: string) => void;
 }
 
 const AuthSessionContext = createContext<AuthSessionContextValue | null>(null);
 
-function readCredential(): ApiCredential | null {
+function readCredential(): AuthCredential | null {
   const stored = window.sessionStorage.getItem(storageKey);
   if (stored === null) {
     return null;
@@ -39,6 +44,11 @@ function readCredential(): ApiCredential | null {
     ) {
       return {
         accessToken: value.accessToken,
+        homeWorkspaceId:
+          "homeWorkspaceId" in value &&
+          typeof value.homeWorkspaceId === "string"
+            ? value.homeWorkspaceId
+            : value.workspaceId,
         workspaceId: value.workspaceId,
       };
     }
@@ -54,7 +64,7 @@ export function AuthSessionProvider({
 }: {
   readonly children: ReactNode;
 }) {
-  const [credential, setCredential] = useState<ApiCredential | null>(null);
+  const [credential, setCredential] = useState<AuthCredential | null>(null);
   const [isHydrated, setIsHydrated] = useState(false);
 
   useEffect(() => {
@@ -71,11 +81,28 @@ export function AuthSessionProvider({
         setCredential(null);
       },
       startSession: (nextCredential) => {
+        const storedCredential = {
+          ...nextCredential,
+          homeWorkspaceId: nextCredential.workspaceId,
+        };
         window.sessionStorage.setItem(
           storageKey,
-          JSON.stringify(nextCredential),
+          JSON.stringify(storedCredential),
         );
-        setCredential(nextCredential);
+        setCredential(storedCredential);
+      },
+      switchWorkspace: (workspaceId) => {
+        setCredential((current) => {
+          if (current === null) {
+            return null;
+          }
+          const nextCredential = { ...current, workspaceId };
+          window.sessionStorage.setItem(
+            storageKey,
+            JSON.stringify(nextCredential),
+          );
+          return nextCredential;
+        });
       },
     }),
     [credential, isHydrated],

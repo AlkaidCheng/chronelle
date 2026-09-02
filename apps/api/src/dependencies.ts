@@ -1,6 +1,7 @@
 import {
   AuthorizationService,
   DrizzleAuthorizationStore,
+  ResourceGrantService,
 } from "@chronelle/authorization";
 import type { DatabaseConnection } from "@chronelle/db";
 import {
@@ -15,11 +16,13 @@ import { WorkspaceIdentityService } from "./identity/workspace-identity-service.
 
 export interface AppDependencies {
   readonly authProvider: AuthProvider;
+  readonly authorization: AuthorizationService;
   readonly developmentAuth?: DevelopmentAuthProvider;
   readonly identity: WorkspaceIdentityService;
   readonly objects: EventPlanningObjectService;
   readonly projections: EventPlanningProjectionService;
   readonly relations: ObjectRelationService;
+  readonly shares: ResourceGrantService;
 }
 
 export function createAppDependencies(
@@ -33,9 +36,11 @@ export function createAppDependencies(
 
   return {
     authProvider,
+    authorization,
     identity: new WorkspaceIdentityService(connection.db, authorization),
     objects,
     relations: new ObjectRelationService(connection.db, authorization),
+    shares: new ResourceGrantService(connection.db, authorization),
     projections: new EventPlanningProjectionService(connection.db, objects),
   };
 }

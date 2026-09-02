@@ -11,7 +11,7 @@ const userSchema = z.object({
   email: z.email().nullable(),
 });
 
-const workspaceSchema = z.object({
+export const workspaceSummarySchema = z.object({
   id: z.uuid(),
   displayName: z.string(),
 });
@@ -21,7 +21,7 @@ export const developmentSignInResponseSchema = z.object({
   tokenType: z.literal("Bearer"),
   expiresAt: z.iso.datetime(),
   user: userSchema,
-  workspace: workspaceSchema,
+  workspace: workspaceSummarySchema,
 });
 
 export const sessionResponseSchema = z.object({
@@ -31,7 +31,8 @@ export const sessionResponseSchema = z.object({
     workspaceId: z.uuid(),
   }),
   user: userSchema,
-  workspace: workspaceSchema,
+  workspace: workspaceSummarySchema,
+  availableWorkspaces: z.array(workspaceSummarySchema),
 });
 
 export const apiErrorResponseSchema = z.object({

@@ -62,9 +62,11 @@ type TaskFilter = "all" | "open" | "done";
 const taskColumn = createColumnHelper<TaskResponse>();
 
 export function TasksPanel({
+  canEdit,
   eventId,
   tasks,
 }: {
+  readonly canEdit: boolean;
   readonly eventId: string;
   readonly tasks: readonly TaskResponse[];
 }) {
@@ -100,7 +102,7 @@ export function TasksPanel({
                   : `Complete ${task.displayName}`
               }
               className={`task-check${isDone ? " checked" : ""}`}
-              disabled={update.isPending}
+              disabled={!canEdit || update.isPending}
               onClick={() =>
                 update.mutate({
                   id: task.id,
@@ -141,18 +143,19 @@ export function TasksPanel({
       }),
       taskColumn.display({
         id: "actions",
-        cell: ({ row }) => (
-          <button
-            className="button button-quiet button-small"
-            onClick={() => setEditingId(row.original.id)}
-            type="button"
-          >
-            Edit
-          </button>
-        ),
+        cell: ({ row }) =>
+          canEdit ? (
+            <button
+              className="button button-quiet button-small"
+              onClick={() => setEditingId(row.original.id)}
+              type="button"
+            >
+              Edit
+            </button>
+          ) : null,
       }),
     ],
-    [update],
+    [canEdit, update],
   );
   const table = useReactTable({
     columns,
@@ -167,7 +170,7 @@ export function TasksPanel({
         description="Canonical tasks, sorted by due date and updated wherever they appear."
         title="To-dos"
       />
-      <TaskForm eventId={eventId} />
+      {canEdit ? <TaskForm eventId={eventId} /> : null}
       <fieldset className="filter-row">
         <legend>Filter tasks</legend>
         {(["open", "all", "done"] as const).map((value) => (
@@ -233,7 +236,7 @@ export function TasksPanel({
           </table>
         </div>
       )}
-      {editingTask === undefined ? null : (
+      {!canEdit || editingTask === undefined ? null : (
         <div className="editor-drawer">
           <div className="drawer-heading">
             <h3>Edit task</h3>
@@ -251,9 +254,11 @@ export function TasksPanel({
 }
 
 export function CalendarPanel({
+  canEdit,
   eventId,
   items,
 }: {
+  readonly canEdit: boolean;
   readonly eventId: string;
   readonly items: readonly EventResponse[];
 }) {
@@ -265,18 +270,20 @@ export function CalendarPanel({
     <section className="planning-panel">
       <PanelHeading
         action={
-          <button
-            className="button button-secondary"
-            onClick={() => setIsAdding((value) => !value)}
-            type="button"
-          >
-            {isAdding ? "Close" : "Add schedule item"}
-          </button>
+          canEdit ? (
+            <button
+              className="button button-secondary"
+              onClick={() => setIsAdding((value) => !value)}
+              type="button"
+            >
+              {isAdding ? "Close" : "Add schedule item"}
+            </button>
+          ) : undefined
         }
         description="Scheduled Events shown directly from their canonical start and end times."
         title="Calendar"
       />
-      {isAdding ? (
+      {isAdding && canEdit ? (
         <div className="editor-drawer open-drawer">
           <ScheduledEventForm
             eventId={eventId}
@@ -320,18 +327,20 @@ export function CalendarPanel({
                 </p>
                 <CanonicalId id={item.id} />
               </div>
-              <button
-                className="button button-quiet button-small"
-                onClick={() => setEditingId(item.id)}
-                type="button"
-              >
-                Edit
-              </button>
+              {canEdit ? (
+                <button
+                  className="button button-quiet button-small"
+                  onClick={() => setEditingId(item.id)}
+                  type="button"
+                >
+                  Edit
+                </button>
+              ) : null}
             </article>
           ))}
         </div>
       )}
-      {editingEvent === undefined ? null : (
+      {!canEdit || editingEvent === undefined ? null : (
         <div className="editor-drawer">
           <div className="drawer-heading">
             <h3>Edit schedule item</h3>
@@ -424,9 +433,11 @@ export function ItineraryPanel({
 }
 
 export function ExpensesPanel({
+  canEdit,
   eventId,
   expenses,
 }: {
+  readonly canEdit: boolean;
   readonly eventId: string;
   readonly expenses: readonly ExpenseResponse[];
 }) {
@@ -449,7 +460,7 @@ export function ExpensesPanel({
         description="Historical transactions stay independent from the plans they support."
         title="Expenses"
       />
-      <ExpenseForm eventId={eventId} />
+      {canEdit ? <ExpenseForm eventId={eventId} /> : null}
       {totals.length > 0 ? (
         <div className="total-row">
           <span>Total recorded</span>
@@ -481,18 +492,20 @@ export function ExpensesPanel({
               <strong className="money-value">
                 {formatMoney(expense.amount, expense.currency)}
               </strong>
-              <button
-                className="button button-quiet button-small"
-                onClick={() => setEditingId(expense.id)}
-                type="button"
-              >
-                Edit
-              </button>
+              {canEdit ? (
+                <button
+                  className="button button-quiet button-small"
+                  onClick={() => setEditingId(expense.id)}
+                  type="button"
+                >
+                  Edit
+                </button>
+              ) : null}
             </article>
           ))}
         </div>
       )}
-      {editingExpense === undefined ? null : (
+      {!canEdit || editingExpense === undefined ? null : (
         <div className="editor-drawer">
           <div className="drawer-heading">
             <h3>Edit expense</h3>
@@ -510,9 +523,11 @@ export function ExpensesPanel({
 }
 
 export function RemindersPanel({
+  canEdit,
   eventId,
   reminders,
 }: {
+  readonly canEdit: boolean;
   readonly eventId: string;
   readonly reminders: readonly ReminderResponse[];
 }) {
@@ -527,7 +542,7 @@ export function RemindersPanel({
         description="Canonical alerts tied to the Event permission scope."
         title="Reminders"
       />
-      <ReminderForm eventId={eventId} />
+      {canEdit ? <ReminderForm eventId={eventId} /> : null}
       {update.isError ? (
         <ErrorNotice
           error={update.error}
@@ -566,7 +581,7 @@ export function RemindersPanel({
                 {reminder.status}
               </span>
               <div className="row-actions">
-                {reminder.status === "pending" ? (
+                {canEdit && reminder.status === "pending" ? (
                   <button
                     className="button button-secondary button-small"
                     disabled={update.isPending}
@@ -584,19 +599,21 @@ export function RemindersPanel({
                     Dismiss
                   </button>
                 ) : null}
-                <button
-                  className="button button-quiet button-small"
-                  onClick={() => setEditingId(reminder.id)}
-                  type="button"
-                >
-                  Edit
-                </button>
+                {canEdit ? (
+                  <button
+                    className="button button-quiet button-small"
+                    onClick={() => setEditingId(reminder.id)}
+                    type="button"
+                  >
+                    Edit
+                  </button>
+                ) : null}
               </div>
             </article>
           ))}
         </div>
       )}
-      {editingReminder === undefined ? null : (
+      {!canEdit || editingReminder === undefined ? null : (
         <div className="editor-drawer">
           <div className="drawer-heading">
             <h3>Edit reminder</h3>

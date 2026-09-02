@@ -1,6 +1,6 @@
 import { AuthorizationDeniedError } from "@chronelle/authorization";
 import type { UserPrincipal } from "@chronelle/authorization";
-import { objectRelations, type Database } from "@chronelle/db";
+import { objectRelations, objects, type Database } from "@chronelle/db";
 import { and, eq, isNull } from "drizzle-orm";
 
 import type { EventPlanningObjectService } from "./object-service.js";
@@ -62,15 +62,22 @@ export class EventPlanningProjectionService {
 
     return {
       event,
-      events: included.filter((resource) => isResource(resource, "event")),
-      tasks: included.filter((resource) => isResource(resource, "task")),
-      expenses: included.filter((resource) => isResource(resource, "expense")),
-      reminders: included.filter((resource) =>
+      events: included.resources.filter((resource) =>
+        isResource(resource, "event"),
+      ),
+      tasks: included.resources.filter((resource) =>
+        isResource(resource, "task"),
+      ),
+      expenses: included.resources.filter((resource) =>
+        isResource(resource, "expense"),
+      ),
+      reminders: included.resources.filter((resource) =>
         isResource(resource, "reminder"),
       ),
-      documents: included.filter((resource) =>
+      documents: included.resources.filter((resource) =>
         isResource(resource, "document"),
       ),
+      lockedRelationCount: included.lockedRelationCount,
     };
   }
 
@@ -217,10 +224,21 @@ export class EventPlanningProjectionService {
   async #getIncludedResources(
     principal: UserPrincipal,
     eventId: string,
-  ): Promise<EventPlanningResource[]> {
+  ): Promise<{
+    readonly lockedRelationCount: number;
+    readonly resources: EventPlanningResource[];
+  }> {
     const relations = await this.#database
       .select({ targetObjectId: objectRelations.targetObjectId })
       .from(objectRelations)
+      .innerJoin(
+        objects,
+        and(
+          eq(objects.workspaceId, objectRelations.workspaceId),
+          eq(objects.id, objectRelations.targetObjectId),
+          isNull(objects.deletedAt),
+        ),
+      )
       .where(
         and(
           eq(objectRelations.workspaceId, principal.workspaceId),
@@ -242,8 +260,12 @@ export class EventPlanningProjectionService {
         }
       }),
     );
-    return resources.filter(
+    const visibleResources = resources.filter(
       (resource): resource is EventPlanningResource => resource !== null,
     );
+    return {
+      resources: visibleResources,
+      lockedRelationCount: resources.length - visibleResources.length,
+    };
   }
 }

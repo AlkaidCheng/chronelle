@@ -113,6 +113,11 @@ export interface UpdateObjectFields {
   readonly metadata?: JsonObject | undefined;
 }
 
+export interface UpdatePermissionScopeInput {
+  readonly expectedVersion: number;
+  readonly permissionScopeId: string;
+}
+
 export interface UpdateEventInput extends UpdateObjectFields {
   readonly endsAt?: Date | null | undefined;
   readonly isAllDay?: boolean | undefined;
@@ -174,6 +179,7 @@ export interface EventDetailProjection {
   readonly expenses: readonly ExpenseResource[];
   readonly reminders: readonly ReminderResource[];
   readonly tasks: readonly TaskResource[];
+  readonly lockedRelationCount: number;
 }
 
 export interface EventResourceProjection {
