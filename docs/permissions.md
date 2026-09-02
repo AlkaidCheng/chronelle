@@ -36,6 +36,10 @@ Object references never grant access. APIs, projections, searches, attachment
 URLs, and relation traversal must independently authorize every protected
 resource they return.
 
+The Event collection is also a protected query. It selects candidates only in
+the active workspace and applies `can(principal, view, event)` to every returned
+Event. A relationship or workspace ID alone cannot make an Event appear.
+
 Creating a relationship requires Edit on its source and View on its target.
 Listing relationships first authorizes the requested object, then omits links
 whose other endpoint is unavailable to the caller. Removing a relationship
