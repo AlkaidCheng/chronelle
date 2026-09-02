@@ -24,7 +24,10 @@ import type { FastifyInstance } from "fastify";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { buildApp } from "../src/app.js";
-import { createDevelopmentAppDependencies } from "../src/dependencies.js";
+import {
+  createAppDependencies,
+  createDevelopmentAppDependencies,
+} from "../src/dependencies.js";
 import type { AuthProvider } from "../src/authentication/auth-provider.js";
 
 const migrationDirectory = resolve(
@@ -170,10 +173,9 @@ describe.sequential("development authentication API", () => {
     };
 
     await app.close();
-    app = buildApp({
-      authProvider: replacementProvider,
-      identity: dependencies.identity,
-    });
+    app = buildApp(
+      createAppDependencies(testDatabase.connection, replacementProvider),
+    );
 
     const sessionResponse = await app.inject({
       method: "GET",
