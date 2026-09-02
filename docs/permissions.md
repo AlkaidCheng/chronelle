@@ -20,6 +20,13 @@ V1 will support direct grants and inheritance from one canonical permission
 scope. A resource can inherit or stop inheritance. It will not support explicit
 deny precedence or field-level grants.
 
+The persistence kernel stores exactly one `permission_scope_id` per canonical
+object. Its composite foreign key requires the scope and resource to share a
+workspace. A self-scope stops inheritance. Direct V1A grants target users who
+may be outside the resource workspace so an owner can share one Event without
+granting workspace membership. The grant's resource must still belong to its
+declared workspace, which prevents a forged cross-workspace resource link.
+
 Object references never grant access. APIs, projections, searches, attachment
 URLs, and relation traversal must independently authorize every protected
 resource they return.

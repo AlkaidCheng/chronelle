@@ -4,6 +4,10 @@ Chronelle starts as a TypeScript modular monolith in a pnpm workspace. The web
 and API applications deploy independently while domain contracts and database
 infrastructure remain explicit shared packages.
 
+The first product slice is event planning. Canonical `Event`, `Task`,
+`Expense`, `Reminder`, and `Document` records will support event detail,
+to-do, calendar, timeline, itinerary, expense, and reminder projections.
+
 ## Non-negotiable invariant
 
 An object has one canonical identity, can appear in many contexts, has one
@@ -19,12 +23,28 @@ the common `objects` table holds identity and lifecycle fields.
 - `apps/web` owns HTTP rendering and browser interaction.
 - `apps/api` owns transport concerns and composes application modules.
 - `packages/schemas` owns contracts shared across process boundaries.
-- `packages/db` owns ordered migration execution and integrity checks.
+- `packages/db` owns ordered migration execution, Drizzle query mappings,
+  UUIDv7 generation, database connections, and persistence integrity tests.
 - `infrastructure/migrations` owns immutable PostgreSQL schema changes.
 
-The facade intentionally does not create empty packages for future concepts.
 Authorization, object-model, storage, and API-client packages will appear with
-the first behavior that needs them.
+the first behavior that needs them. The persistence kernel does not introduce
+repositories before application services establish concrete query needs.
+
+## Persistence kernel
+
+PostgreSQL owns schema constraints through immutable SQL migrations. Drizzle
+maps the accepted schema for typed queries but does not generate or execute
+migrations.
+
+Every typed domain row references one canonical object through its workspace,
+object ID, and fixed object type. Composite foreign keys prevent relations,
+permission scopes, and grants from joining resources across workspaces.
+Relationships never cascade-delete their endpoint objects. Audit events are
+append-only at the database boundary.
+
+The application generates UUIDv7 identifiers before persistence. This keeps
+IDs sortable without relying on database-version-specific UUID functions.
 
 ## Runtime boundaries
 
