@@ -5,10 +5,12 @@ import { resolve } from "node:path";
 import postgres from "postgres";
 import { z } from "zod";
 
+import { databaseUrlSchema } from "./config.js";
+
 const migrationFilenamePattern = /^\d{4}_[a-z0-9_]+\.sql$/;
 
 const databaseEnvironmentSchema = z.object({
-  DATABASE_URL: z.url(),
+  DATABASE_URL: databaseUrlSchema,
 });
 
 export interface MigrationFile {
