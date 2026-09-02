@@ -15,6 +15,36 @@ pnpm dev
 The web app is served at <http://localhost:3000>. The API health endpoint is
 served at <http://localhost:4000/api/health>.
 
+The API reads `.env` from the repository root. Development authentication is
+fail-closed: `ENABLE_DEVELOPMENT_AUTH=true` must be set explicitly before the
+development sign-in endpoint is registered.
+`DEVELOPMENT_AUTH_SESSION_TTL_MINUTES` controls the lifetime of its in-memory
+sessions. These sessions disappear when the API restarts and are not suitable
+for a deployed environment.
+
+## Development sign-in
+
+Create or reuse a development identity and its personal workspace:
+
+```bash
+curl --request POST http://localhost:4000/api/auth/development/sign-in \
+  --header 'content-type: application/json' \
+  --data '{"email":"alex@example.com","displayName":"Alex"}'
+```
+
+The response includes an opaque access token. Pass it as a bearer token to read
+the active session:
+
+```bash
+curl http://localhost:4000/api/auth/session \
+  --header 'authorization: Bearer REPLACE_WITH_ACCESS_TOKEN'
+```
+
+Use `x-workspace-id` to select a non-default workspace. Selection succeeds only
+when the user is a member or holds an active grant to a live resource in that
+workspace. Concurrent first sign-ins reuse one user and one personal workspace;
+every sign-in still records its own audit event.
+
 ## Services
 
 Docker Compose starts PostgreSQL on the configured `POSTGRES_PORT`. Application
@@ -43,8 +73,9 @@ pnpm check
 ```
 
 Tests are organized by workspace under `test/`. Database integration tests in
-`packages/db` create isolated, disposable databases and apply migrations from
-scratch. PostgreSQL must be running before `pnpm test` or `pnpm check`.
+`packages/db`, `packages/authorization`, and `apps/api` create isolated,
+disposable databases and apply migrations from scratch. PostgreSQL must be
+running before `pnpm test` or `pnpm check`.
 
 `TEST_DATABASE_URL` is an administrative connection used only by the test
 harness. Its role must be allowed to create and drop databases. The local

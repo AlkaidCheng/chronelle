@@ -16,6 +16,13 @@ PostgreSQL enforces that each typed row belongs to an object of the same type in
 the same workspace. A typed row cannot exist independently of its canonical
 object.
 
+## Personal workspaces
+
+`workspaces.personal_owner_id` identifies a user's personal workspace. The
+column is nullable for future collaborative workspaces, unique when populated,
+and constrained so the personal owner is also the workspace creator. First
+sign-in creates the corresponding owner membership in the same transaction.
+
 ## Initial typed objects
 
 - `Event` stores the minimum scheduling facts needed for planning projections:
