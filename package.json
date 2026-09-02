@@ -10,15 +10,15 @@
     "pnpm": ">=11.25.0 <12"
   },
   "scripts": {
-    "build": "pnpm --filter @chronelle/schemas build && pnpm --filter @chronelle/db build && pnpm --filter @chronelle/authorization build && pnpm --filter @chronelle/object-model build && pnpm --filter @chronelle/api build && pnpm --filter @chronelle/web build",
+    "build": "pnpm --filter @chronelle/schemas build && pnpm --filter @chronelle/db build && pnpm --filter @chronelle/authorization build && pnpm --filter @chronelle/object-model build && pnpm --filter @chronelle/api-client build && pnpm --filter @chronelle/api build && pnpm --filter @chronelle/web build",
     "check": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm test && pnpm build",
     "db:migrate": "pnpm --filter @chronelle/db migrate",
-    "dev": "pnpm --filter @chronelle/schemas build && pnpm --filter @chronelle/object-model build && pnpm --parallel --filter @chronelle/api --filter @chronelle/web dev",
+    "dev": "pnpm --filter @chronelle/schemas build && pnpm --filter @chronelle/object-model build && pnpm --filter @chronelle/api-client build && pnpm --parallel --filter @chronelle/api --filter @chronelle/web dev",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "lint": "biome lint apps packages",
-    "test": "pnpm --filter @chronelle/schemas test && pnpm --filter @chronelle/db test && pnpm --filter @chronelle/authorization test && pnpm --filter @chronelle/object-model test && pnpm --filter @chronelle/api test && pnpm --filter @chronelle/web test",
-    "typecheck": "pnpm --filter @chronelle/schemas typecheck && pnpm --filter @chronelle/db typecheck && pnpm --filter @chronelle/authorization typecheck && pnpm --filter @chronelle/object-model typecheck && pnpm --filter @chronelle/api typecheck && pnpm --filter @chronelle/web typecheck"
+    "test": "pnpm --filter @chronelle/schemas test && pnpm --filter @chronelle/db test && pnpm --filter @chronelle/authorization test && pnpm --filter @chronelle/object-model test && pnpm --filter @chronelle/api-client test && pnpm --filter @chronelle/api test && pnpm --filter @chronelle/web test",
+    "typecheck": "pnpm --filter @chronelle/schemas typecheck && pnpm --filter @chronelle/db typecheck && pnpm --filter @chronelle/authorization typecheck && pnpm --filter @chronelle/object-model typecheck && pnpm --filter @chronelle/api-client typecheck && pnpm --filter @chronelle/api typecheck && pnpm --filter @chronelle/web typecheck"
   },
   "devDependencies": {
     "@types/node": "26.4.0",

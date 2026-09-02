@@ -5,11 +5,13 @@ WORKDIR /app
 
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml tsconfig.base.json ./
 COPY apps/web/package.json apps/web/package.json
+COPY packages/api-client/package.json packages/api-client/package.json
 COPY packages/schemas/package.json packages/schemas/package.json
-COPY packages/db/package.json packages/db/package.json
 RUN pnpm install --frozen-lockfile
 
 COPY apps/web apps/web
+COPY packages/api-client packages/api-client
+COPY packages/schemas packages/schemas
 RUN pnpm --filter @chronelle/web build
 
 FROM node:24-alpine AS runtime

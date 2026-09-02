@@ -40,6 +40,11 @@ These fields make the first capabilities executable without freezing a richer
 event-planning schema. Additional details can use `custom_properties` until a
 stable system-level meaning justifies a typed migration.
 
+The current browser workspace intentionally exposes only these fields. Richer
+venue, participant, budgeting, notification, and itinerary attributes remain a
+future object-model decision rather than being embedded in projection-specific
+client records.
+
 ## Relationships and projections
 
 `object_relations` connects canonical identities and carries contextual

@@ -260,6 +260,42 @@ export class EventPlanningObjectService {
     return this.#getObjectWithAction(principal, objectId, "view");
   }
 
+  async listEvents(principal: UserPrincipal): Promise<EventResource[]> {
+    const candidates = await this.#database
+      .select({ id: objects.id })
+      .from(objects)
+      .where(
+        and(
+          eq(objects.workspaceId, principal.workspaceId),
+          eq(objects.objectType, "event"),
+          eq(objects.permissionScopeId, objects.id),
+          isNull(objects.deletedAt),
+        ),
+      );
+
+    const visibleEvents = await Promise.all(
+      candidates.map(async ({ id }) => {
+        try {
+          return await this.getEvent(principal, id);
+        } catch (error) {
+          if (error instanceof AuthorizationDeniedError) {
+            return null;
+          }
+          throw error;
+        }
+      }),
+    );
+
+    return visibleEvents
+      .filter((event): event is EventResource => event !== null)
+      .sort(
+        (first, second) =>
+          (first.startsAt?.getTime() ?? Number.POSITIVE_INFINITY) -
+            (second.startsAt?.getTime() ?? Number.POSITIVE_INFINITY) ||
+          first.id.localeCompare(second.id),
+      );
+  }
+
   async getEvent(
     principal: UserPrincipal,
     objectId: string,

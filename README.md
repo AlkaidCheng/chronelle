@@ -15,6 +15,7 @@ The implemented architecture is documented in
 ## Stack
 
 - Next.js, React, and strict TypeScript for the responsive web client
+- TanStack Query and TanStack Table for server state and planning tables
 - Fastify and Zod for the typed REST API boundary
 - PostgreSQL with immutable SQL migrations and Drizzle query mappings
 - pnpm workspaces in a modular monorepo
@@ -27,6 +28,7 @@ apps/
   api/                  Fastify API application
   web/                  Next.js web application
 packages/
+  api-client/           Typed, runtime-validated REST client
   authorization/        Central policy and PostgreSQL permission lookup
   db/                   Migration runner, typed schema, IDs, and DB tests
   object-model/         Canonical object, relation, and projection services
@@ -36,8 +38,8 @@ infrastructure/
 docs/                   Implementation-facing documentation
 ```
 
-API-client and UI packages will be introduced when the first working slice
-gives each package concrete behavior.
+Presentation components stay with the web application until another client
+creates a concrete reason for a shared UI package.
 
 ## Prerequisites
 
@@ -74,6 +76,10 @@ pnpm dev
 
 The web app listens on <http://localhost:3000>. The API health endpoint is
 available at <http://localhost:4000/api/health>.
+
+Open <http://localhost:3000/sign-in> to create a development session, then use
+the Events workspace to build an event plan. The web server forwards `/api`
+requests to `API_INTERNAL_URL`, which defaults to the local API.
 
 Stop local infrastructure without deleting its named database volume:
 
@@ -127,6 +133,15 @@ Expenses, and Reminders. First-class relationship endpoints compose them into
 an event plan. Event detail, to-do, calendar, timeline, itinerary, expense, and
 reminder endpoints are authorized read-time projections over those same object
 IDs. See [`docs/api.md`](docs/api.md) for routes and examples.
+
+## Event-planning workspace
+
+The web client provides development sign-in, an event list, event editing,
+to-dos, calendar, timeline, itinerary, expenses, and reminders. Creating a
+schedule item creates one canonical Event. Its ID is preserved in the calendar,
+timeline, and itinerary projections, and an edit invalidates every affected
+view. Optimistic-concurrency conflicts show a refresh action instead of
+silently overwriting newer data.
 
 ## Development commands
 

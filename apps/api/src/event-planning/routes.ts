@@ -17,6 +17,7 @@ import type {
 import {
   eventCreateRequestSchema,
   eventDetailResponseSchema,
+  eventListResponseSchema,
   eventPlanningResourceResponseSchema,
   eventResourceProjectionResponseSchema,
   eventResponseSchema,
@@ -127,6 +128,15 @@ export function registerEventPlanningRoutes(
   app: FastifyInstance,
   dependencies: EventPlanningRouteDependencies,
 ): void {
+  app.get("/api/events", { preHandler: app.authenticate }, async (request) => {
+    const events = await dependencies.objects.listEvents(
+      requirePrincipal(request),
+    );
+    return eventListResponseSchema.parse({
+      items: events.map(serializeResource),
+    });
+  });
+
   registerTypedObjectRoutes<CreateEventInput, UpdateEventInput>(app, {
     collectionPath: "events",
     createSchema: eventCreateRequestSchema,

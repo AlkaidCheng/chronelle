@@ -167,6 +167,10 @@ export const eventResponseSchema = z.object({
   isAllDay: z.boolean(),
 });
 
+export const eventListResponseSchema = z.object({
+  items: z.array(eventResponseSchema),
+});
+
 export const taskResponseSchema = z.object({
   ...canonicalObjectResponseShape,
   objectType: z.literal("task"),
@@ -283,16 +287,42 @@ export const timelineResponseSchema = z.object({
 });
 
 export type EventCreateRequest = z.infer<typeof eventCreateRequestSchema>;
+export type EventCreatePayload = z.input<typeof eventCreateRequestSchema>;
 export type EventUpdateRequest = z.infer<typeof eventUpdateRequestSchema>;
+export type EventUpdatePayload = z.input<typeof eventUpdateRequestSchema>;
 export type TaskCreateRequest = z.infer<typeof taskCreateRequestSchema>;
+export type TaskCreatePayload = z.input<typeof taskCreateRequestSchema>;
 export type TaskUpdateRequest = z.infer<typeof taskUpdateRequestSchema>;
+export type TaskUpdatePayload = z.input<typeof taskUpdateRequestSchema>;
 export type ExpenseCreateRequest = z.infer<typeof expenseCreateRequestSchema>;
+export type ExpenseCreatePayload = z.input<typeof expenseCreateRequestSchema>;
 export type ExpenseUpdateRequest = z.infer<typeof expenseUpdateRequestSchema>;
+export type ExpenseUpdatePayload = z.input<typeof expenseUpdateRequestSchema>;
 export type ReminderCreateRequest = z.infer<typeof reminderCreateRequestSchema>;
+export type ReminderCreatePayload = z.input<typeof reminderCreateRequestSchema>;
 export type ReminderUpdateRequest = z.infer<typeof reminderUpdateRequestSchema>;
+export type ReminderUpdatePayload = z.input<typeof reminderUpdateRequestSchema>;
 export type RelationCreateRequest = z.infer<typeof relationCreateRequestSchema>;
+export type RelationCreatePayload = z.input<typeof relationCreateRequestSchema>;
 export type EventPlanningResourceResponse = z.infer<
   typeof eventPlanningResourceResponseSchema
+>;
+export type EventResponse = z.infer<typeof eventResponseSchema>;
+export type EventListResponse = z.infer<typeof eventListResponseSchema>;
+export type TaskResponse = z.infer<typeof taskResponseSchema>;
+export type ExpenseResponse = z.infer<typeof expenseResponseSchema>;
+export type ReminderResponse = z.infer<typeof reminderResponseSchema>;
+export type EventResourceProjectionResponse = z.infer<
+  typeof eventResourceProjectionResponseSchema
+>;
+export type TaskResourceProjectionResponse = z.infer<
+  typeof taskResourceProjectionResponseSchema
+>;
+export type ExpenseResourceProjectionResponse = z.infer<
+  typeof expenseResourceProjectionResponseSchema
+>;
+export type ReminderResourceProjectionResponse = z.infer<
+  typeof reminderResourceProjectionResponseSchema
 >;
 export type EventDetailResponse = z.infer<typeof eventDetailResponseSchema>;
 export type TimelineResponse = z.infer<typeof timelineResponseSchema>;

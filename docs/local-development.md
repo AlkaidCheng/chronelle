@@ -15,6 +15,11 @@ pnpm dev
 The web app is served at <http://localhost:3000>. The API health endpoint is
 served at <http://localhost:4000/api/health>.
 
+Open <http://localhost:3000/sign-in> and enter a name and email to create the
+local identity, then create an Event from the workspace. The browser talks only
+to the web origin. The Next.js route handler forwards `/api` to
+`API_INTERNAL_URL`, which defaults to `http://localhost:4000`.
+
 The API reads `.env` from the repository root. Development authentication is
 fail-closed: `ENABLE_DEVELOPMENT_AUTH=true` must be set explicitly before the
 development sign-in endpoint is registered.

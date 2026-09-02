@@ -1,15 +1,18 @@
-import { createElement } from "react";
-import { renderToStaticMarkup } from "react-dom/server";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+
+const navigation = vi.hoisted(() => ({
+  redirect: vi.fn(() => {
+    throw new Error("NEXT_REDIRECT");
+  }),
+}));
+
+vi.mock("next/navigation", () => ({ redirect: navigation.redirect }));
 
 import Home from "../app/page";
 
 describe("Home", () => {
-  it("renders the Chronelle product foundation", () => {
-    const markup = renderToStaticMarkup(createElement(Home));
-
-    expect(markup).toContain("Chronelle");
-    expect(markup).toContain("Your life, connected across time.");
-    expect(markup).toContain("Canonical objects");
+  it("opens the event workspace", () => {
+    expect(() => Home()).toThrow("NEXT_REDIRECT");
+    expect(navigation.redirect).toHaveBeenCalledWith("/events");
   });
 });

@@ -8,6 +8,7 @@ operating outside the identity's personal workspace.
 
 | Method   | Path                             | Behavior                            |
 | -------- | -------------------------------- | ----------------------------------- |
+| `GET`    | `/events`                        | List visible root Events            |
 | `POST`   | `/events`                        | Create an Event                     |
 | `POST`   | `/tasks`                         | Create a Task                       |
 | `POST`   | `/expenses`                      | Create an Expense                   |
@@ -24,6 +25,12 @@ workspace. The caller must be allowed to edit that scope.
 Patch input always includes the last observed positive `expectedVersion`. A
 successful update increments the version. A stale update returns HTTP 409 with
 the `version_conflict` code.
+
+The Event collection query examines self-scoped planning roots in the active
+workspace and applies the same `view` authorization decision to every candidate
+before returning it. Directly shared Events can appear without workspace
+membership; child schedule items, unrelated Events, and soft-deleted Events are
+omitted.
 
 ## Relationships
 

@@ -5,7 +5,7 @@ and API applications deploy independently while domain contracts and database
 infrastructure remain explicit shared packages.
 
 The first product slice is event planning. Canonical `Event`, `Task`,
-`Expense`, `Reminder`, and `Document` records will support event detail,
+`Expense`, `Reminder`, and `Document` records support event detail,
 to-do, calendar, timeline, itinerary, expense, and reminder projections.
 
 ## Non-negotiable invariant
@@ -21,6 +21,8 @@ the common `objects` table holds identity and lifecycle fields.
 ## Current module boundaries
 
 - `apps/web` owns HTTP rendering and browser interaction.
+- `packages/api-client` owns authenticated REST transport, response validation,
+  and normalized client errors.
 - `apps/api` owns thin HTTP transport, authentication-provider composition,
   request principal resolution, and personal-workspace bootstrap.
 - `packages/authorization` owns the central permission policy and its
@@ -32,9 +34,9 @@ the common `objects` table holds identity and lifecycle fields.
   UUIDv7 generation, database connections, and persistence integrity tests.
 - `infrastructure/migrations` owns immutable PostgreSQL schema changes.
 
-Storage and API-client packages will appear with the first behavior that needs
-them. Each package must hide a concrete domain decision; transport-only
-forwarding layers are not added in advance.
+The storage package will appear with the first secure-document behavior that
+needs it. Each package must hide a concrete domain decision; shared UI remains
+inside `apps/web` until more than one application needs it.
 
 ## Persistence kernel
 
@@ -91,6 +93,31 @@ versioned soft deletion. Unauthorized and missing resources share one public
 response to avoid existence leaks.
 
 React components do not contain authorization or domain business logic.
+
+## Web client boundary
+
+The Next.js application renders a responsive workspace and forwards same-origin
+`/api` requests to the Fastify process through a narrow route handler. The
+upstream origin is server-only configuration, so browser code does not contain
+deployment topology or cross-origin policy.
+
+`ChronelleApiClient` attaches the active credential and workspace, validates
+every successful response against the shared Zod contract, and turns API errors
+into one typed error. An expiring development credential is kept in
+`sessionStorage`; no authentication provider rules enter the domain layer.
+
+TanStack Query owns remote state and invalidation. Event detail, calendar,
+timeline, itinerary, expenses, reminders, and to-dos retain separate query
+results, but every item carries the canonical object ID returned by the API.
+Mutations invalidate all projections for the source Event. Forms use the latest
+returned version, and HTTP 409 conflicts remain visible until the user refreshes
+the current canonical value.
+
+Creating an included planning resource currently uses two independently
+audited API mutations: create the scoped canonical object, then create its
+`includes` relationship. If the second request fails, the object remains valid
+but unlinked. A future application command can make this interaction atomic
+when recovery and product behavior are defined.
 
 PostgreSQL is the canonical data store. Object files will be accessed through a
 storage interface and stored outside PostgreSQL. Provider adapters will keep
