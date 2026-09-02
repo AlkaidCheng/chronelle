@@ -43,7 +43,12 @@ pnpm check
 ```
 
 Tests are organized by workspace under `test/`. Database integration tests in
-future slices will use an isolated database and apply migrations from scratch.
+`packages/db` create isolated, disposable databases and apply migrations from
+scratch. PostgreSQL must be running before `pnpm test` or `pnpm check`.
+
+`TEST_DATABASE_URL` is an administrative connection used only by the test
+harness. Its role must be allowed to create and drop databases. The local
+Compose role has the required permission.
 
 ## Migrations
 
@@ -56,3 +61,8 @@ Apply pending migrations:
 ```bash
 pnpm db:migrate
 ```
+
+The migration runner applies the SQL files in lexical order, records their
+SHA-256 checksums, and rejects a file that changed after being applied. Drizzle
+schema definitions map these tables for typed queries; SQL remains the migration
+authority.
