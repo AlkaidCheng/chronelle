@@ -21,15 +21,18 @@ the common `objects` table holds identity and lifecycle fields.
 ## Current module boundaries
 
 - `apps/web` owns HTTP rendering and browser interaction.
-- `apps/api` owns transport concerns and composes application modules.
+- `apps/api` owns transport, authentication-provider composition, request
+  principal resolution, and personal-workspace bootstrap.
+- `packages/authorization` owns the central permission policy and its
+  PostgreSQL-backed access lookup.
 - `packages/schemas` owns contracts shared across process boundaries.
 - `packages/db` owns ordered migration execution, Drizzle query mappings,
   UUIDv7 generation, database connections, and persistence integrity tests.
 - `infrastructure/migrations` owns immutable PostgreSQL schema changes.
 
-Authorization, object-model, storage, and API-client packages will appear with
-the first behavior that needs them. The persistence kernel does not introduce
-repositories before application services establish concrete query needs.
+Object-model, storage, and API-client packages will appear with the first
+behavior that needs them. Each package must hide a concrete domain decision;
+transport-only forwarding layers are not added in advance.
 
 ## Persistence kernel
 
@@ -48,10 +51,28 @@ IDs sortable without relying on database-version-specific UUID functions.
 
 ## Runtime boundaries
 
-The Fastify API is the only planned entry point to application mutations. Each
-mutation will validate, authenticate, authorize, check concurrency, transact,
-write an audit event, and return a typed response. React components will not
-contain authorization or domain business logic.
+The Fastify API resolves each bearer credential through an `AuthProvider`, then
+maps the resulting external identity to a Chronelle user and active workspace.
+The development adapter issues random opaque tokens, stores only token digests,
+and is registered only when explicitly enabled. A production adapter can
+replace it without changing workspace or authorization services.
+
+The first sign-in transaction creates one user, one personal workspace, one
+owner membership, and one audit event. A unique personal-owner constraint makes
+this idempotent under concurrent requests.
+
+`AuthorizationService.can(principal, action, resource)` is the only object
+permission decision. It considers workspace membership, a direct grant, and
+the resource's one canonical permission scope. It ignores relationships,
+expired grants, and deleted resources. Workspace selection uses the same store
+to require membership or an active grant.
+
+Application mutations use `runAuditedMutation`, which appends one audit event
+inside the same database transaction. An invalid audit record therefore rolls
+back the business change. Later object services will add validation,
+authorization, and expected-version checks before entering this boundary.
+
+React components do not contain authorization or domain business logic.
 
 PostgreSQL is the canonical data store. Object files will be accessed through a
 storage interface and stored outside PostgreSQL. Provider adapters will keep

@@ -1,7 +1,9 @@
 import postgres from "postgres";
 
-import { connectDatabase, type DatabaseConnection } from "../src/client.js";
-import { createId } from "../src/ids.js";
+import { connectDatabase, type DatabaseConnection } from "./client.js";
+import { createId } from "./ids.js";
+
+export { applyMigrations } from "./migrations.js";
 
 const defaultTestDatabaseUrl =
   "postgresql://chronelle:chronelle_dev@localhost:5432/postgres";

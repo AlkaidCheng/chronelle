@@ -4,14 +4,17 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "pnpm --filter @chronelle/schemas build && tsc -p tsconfig.build.json",
-    "dev": "pnpm --filter @chronelle/schemas build && tsx watch src/server.ts",
+    "build": "pnpm --filter @chronelle/schemas build && pnpm --filter @chronelle/authorization build && tsc -p tsconfig.build.json",
+    "dev": "pnpm --filter @chronelle/schemas build && pnpm --filter @chronelle/authorization build && tsx watch src/server.ts",
     "start": "node dist/server.js",
-    "test": "pnpm --filter @chronelle/schemas build && vitest run",
-    "typecheck": "pnpm --filter @chronelle/schemas build && tsc -p tsconfig.json --noEmit"
+    "test": "pnpm --filter @chronelle/schemas build && pnpm --filter @chronelle/authorization build && vitest run",
+    "typecheck": "pnpm --filter @chronelle/schemas build && pnpm --filter @chronelle/authorization build && tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
+    "@chronelle/authorization": "workspace:*",
+    "@chronelle/db": "workspace:*",
     "@chronelle/schemas": "workspace:*",
+    "drizzle-orm": "0.45.2",
     "fastify": "5.12.1",
     "zod": "4.5.4"
   }

@@ -35,9 +35,18 @@ importers:
 
   apps/api:
     dependencies:
+      '@chronelle/authorization':
+        specifier: workspace:*
+        version: link:../../packages/authorization
+      '@chronelle/db':
+        specifier: workspace:*
+        version: link:../../packages/db
       '@chronelle/schemas':
         specifier: workspace:*
         version: link:../../packages/schemas
+      drizzle-orm:
+        specifier: 0.45.2
+        version: 0.45.2(postgres@3.4.9)
       fastify:
         specifier: 5.12.1
         version: 5.12.1
@@ -56,6 +65,15 @@ importers:
       react-dom:
         specifier: 19.2.8
         version: 19.2.8(react@19.2.8)
+
+  packages/authorization:
+    dependencies:
+      '@chronelle/db':
+        specifier: workspace:*
+        version: link:../db
+      drizzle-orm:
+        specifier: 0.45.2
+        version: 0.45.2(postgres@3.4.9)
 
   packages/db:
     dependencies:

@@ -4,10 +4,10 @@ Chronelle is a life-journey platform for connecting the people, places, plans,
 events, travel, finances, documents, collections, and memories that make up a
 person's life.
 
-This repository contains a runnable Next.js web surface, a Fastify API health
-endpoint, shared runtime-validated schemas, and the canonical PostgreSQL
-persistence kernel for the event-planning vertical slice. Authentication and
-application services build on this foundation in subsequent pull requests.
+This repository contains a runnable Next.js web surface, a Fastify API,
+provider-independent identity, centralized object authorization, shared
+runtime-validated schemas, and the canonical PostgreSQL persistence kernel for
+the event-planning vertical slice.
 
 The implemented architecture is documented in
 [`docs/architecture.md`](docs/architecture.md).
@@ -27,6 +27,7 @@ apps/
   api/                  Fastify API application
   web/                  Next.js web application
 packages/
+  authorization/        Central policy and PostgreSQL permission lookup
   db/                   Migration runner, typed schema, IDs, and DB tests
   schemas/              Shared runtime and TypeScript contracts
 infrastructure/
@@ -53,6 +54,11 @@ cp .env.example .env
 
 The checked-in values are local-only defaults. Production credentials must be
 provided through managed secret storage.
+
+`ENABLE_DEVELOPMENT_AUTH=true` enables the local in-memory identity adapter.
+Its opaque sessions expire and are lost when the API restarts. A production
+deployment must compose a production identity provider instead of enabling
+this adapter.
 
 ## Install and run
 
@@ -89,6 +95,29 @@ if an already-applied migration has changed.
 The first migration creates the common object layer plus typed `Event`, `Task`,
 `Expense`, `Reminder`, and `Document` tables. SQL owns database constraints;
 Drizzle maps the accepted schema for typed application queries.
+
+The second migration adds the unique personal-workspace owner link and an
+index for principal-side grant lookup.
+
+## Development authentication
+
+Create a development session and personal workspace:
+
+```bash
+curl --request POST http://localhost:4000/api/auth/development/sign-in \
+  --header 'content-type: application/json' \
+  --data '{"displayName":"Alex Example","email":"alex@example.com"}'
+```
+
+Use the returned token to resolve the current session:
+
+```bash
+curl http://localhost:4000/api/auth/session \
+  --header 'authorization: Bearer <access-token>'
+```
+
+Pass `x-workspace-id` to select another workspace. Selection succeeds only for
+a workspace where the user has membership or an active resource grant.
 
 ## Development commands
 
