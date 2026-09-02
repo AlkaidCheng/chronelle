@@ -1,0 +1,18 @@
+{
+  "name": "@chronelle/api",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "pnpm --filter @chronelle/schemas build && tsc -p tsconfig.build.json",
+    "dev": "pnpm --filter @chronelle/schemas build && tsx watch src/server.ts",
+    "start": "node dist/server.js",
+    "test": "pnpm --filter @chronelle/schemas build && vitest run",
+    "typecheck": "pnpm --filter @chronelle/schemas build && tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@chronelle/schemas": "workspace:*",
+    "fastify": "5.12.1",
+    "zod": "4.5.4"
+  }
+}

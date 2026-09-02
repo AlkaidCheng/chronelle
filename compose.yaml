@@ -1,0 +1,26 @@
+name: chronelle
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-chronelle}
+      POSTGRES_USER: ${POSTGRES_USER:-chronelle}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-chronelle_dev}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - chronelle-postgres:/var/lib/postgresql/data
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U ${POSTGRES_USER:-chronelle} -d ${POSTGRES_DB:-chronelle}",
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+volumes:
+  chronelle-postgres:

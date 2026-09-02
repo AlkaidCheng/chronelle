@@ -1,0 +1,33 @@
+{
+  "name": "chronelle",
+  "version": "0.0.0",
+  "private": true,
+  "description": "A connected platform for the people, places, plans, and memories that make up a life.",
+  "license": "MIT",
+  "packageManager": "pnpm@11.25.0",
+  "engines": {
+    "node": ">=24.0.0 <27",
+    "pnpm": ">=11.25.0 <12"
+  },
+  "scripts": {
+    "build": "pnpm --filter @chronelle/schemas build && pnpm --filter @chronelle/db build && pnpm --filter @chronelle/api build && pnpm --filter @chronelle/web build",
+    "check": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm test && pnpm build",
+    "db:migrate": "pnpm --filter @chronelle/db migrate",
+    "dev": "pnpm --filter @chronelle/schemas build && pnpm --parallel --filter @chronelle/api --filter @chronelle/web dev",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "lint": "biome lint apps packages",
+    "test": "pnpm --filter @chronelle/schemas test && pnpm --filter @chronelle/db test && pnpm --filter @chronelle/api test && pnpm --filter @chronelle/web test",
+    "typecheck": "pnpm --filter @chronelle/schemas typecheck && pnpm --filter @chronelle/db typecheck && pnpm --filter @chronelle/api typecheck && pnpm --filter @chronelle/web typecheck"
+  },
+  "devDependencies": {
+    "@types/node": "24.13.0",
+    "@types/react": "19.2.18",
+    "@types/react-dom": "19.2.5",
+    "@biomejs/biome": "2.5.11",
+    "prettier": "3.9.6",
+    "tsx": "4.23.13",
+    "typescript": "6.0.3",
+    "vitest": "4.1.11"
+  }
+}

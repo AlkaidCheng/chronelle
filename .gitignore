@@ -1,0 +1,42 @@
+# Dependencies and package-manager state
+node_modules/
+.pnpm-store/
+
+# Builds, coverage, and tool caches
+.next/
+dist/
+coverage/
+*.tsbuildinfo
+.eslintcache
+
+# Local runtime data
+.chronelle/
+storage/
+postgres-data/
+
+# Secrets and local configuration
+.env
+.env.*
+!.env.example
+*.local.json
+
+# Editors and operating systems
+.DS_Store
+.idea/
+.vscode/
+
+# Coding-agent and LLM workspace state
+AGENTS*.md
+CLAUDE*.md
+CODEX*.md
+GEMINI*.md
+.agents/
+.aider/
+.claude/
+.cline/
+.codex/
+.continue/
+.cursor/
+.gemini/
+.roo/
+.windsurf/

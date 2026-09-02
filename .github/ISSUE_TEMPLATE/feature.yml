@@ -1,0 +1,25 @@
+name: Feature request
+description: Propose a concrete Chronelle capability.
+title: "[feature] "
+labels:
+  - feature
+body:
+  - type: textarea
+    id: need
+    attributes:
+      label: User need
+      description: What should a person be able to accomplish?
+    validations:
+      required: true
+  - type: textarea
+    id: outcome
+    attributes:
+      label: Expected outcome
+      description: Describe the smallest useful behavior and its limits.
+    validations:
+      required: true
+  - type: textarea
+    id: architecture
+    attributes:
+      label: Canonical object impact
+      description: Note any object, relationship, projection, or permission implications.
