@@ -29,14 +29,15 @@ apps/
 packages/
   authorization/        Central policy and PostgreSQL permission lookup
   db/                   Migration runner, typed schema, IDs, and DB tests
+  object-model/         Canonical object, relation, and projection services
   schemas/              Shared runtime and TypeScript contracts
 infrastructure/
   migrations/           Ordered SQL migrations
 docs/                   Implementation-facing documentation
 ```
 
-Additional authorization, object-model, API-client, and UI packages will be
-introduced when the first working slice gives each package concrete behavior.
+API-client and UI packages will be introduced when the first working slice
+gives each package concrete behavior.
 
 ## Prerequisites
 
@@ -118,6 +119,14 @@ curl http://localhost:4000/api/auth/session \
 
 Pass `x-workspace-id` to select another workspace. Selection succeeds only for
 a workspace where the user has membership or an active resource grant.
+
+## Event-planning API
+
+The API can create, read, update, and soft-delete canonical Events, Tasks,
+Expenses, and Reminders. First-class relationship endpoints compose them into
+an event plan. Event detail, to-do, calendar, timeline, itinerary, expense, and
+reminder endpoints are authorized read-time projections over those same object
+IDs. See [`docs/api.md`](docs/api.md) for routes and examples.
 
 ## Development commands
 

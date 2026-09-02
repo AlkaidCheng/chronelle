@@ -45,6 +45,19 @@ when the user is a member or holds an active grant to a live resource in that
 workspace. Concurrent first sign-ins reuse one user and one personal workspace;
 every sign-in still records its own audit event.
 
+Use that bearer token to create the root of an event plan:
+
+```bash
+curl --request POST http://localhost:4000/api/events \
+  --header 'authorization: Bearer REPLACE_WITH_ACCESS_TOKEN' \
+  --header 'content-type: application/json' \
+  --data '{"displayName":"Launch night","timezone":"America/Los_Angeles"}'
+```
+
+Create child resources with the Event ID as `permissionScopeId`, then connect
+them with `POST /api/objects/:eventId/relations`. See
+[`api.md`](api.md) for the complete first-slice route map.
+
 ## Services
 
 Docker Compose starts PostgreSQL on the configured `POSTGRES_PORT`. Application
