@@ -1,9 +1,11 @@
 import { afterEach, describe, expect, it } from "vitest";
 
 import { healthStatusSchema } from "@chronelle/schemas";
+import { connectDatabase } from "@chronelle/db";
 import type { FastifyInstance } from "fastify";
 
 import { buildApp } from "../src/app.js";
+import { createDevelopmentAppDependencies } from "../src/dependencies.js";
 
 const apps: FastifyInstance[] = [];
 
@@ -13,7 +15,11 @@ afterEach(async () => {
 
 describe("GET /api/health", () => {
   it("returns the typed service status", async () => {
-    const app = buildApp();
+    const database = connectDatabase(
+      "postgresql://chronelle:chronelle_dev@localhost:5432/unused",
+    );
+    const app = buildApp(createDevelopmentAppDependencies(database));
+    app.addHook("onClose", async () => database.close());
     apps.push(app);
 
     const response = await app.inject({
