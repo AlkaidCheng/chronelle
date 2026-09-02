@@ -6,7 +6,8 @@ import {
 import type { FastifyInstance } from "fastify";
 
 import type { WorkspaceIdentityService } from "../identity/workspace-identity-service.js";
-import { InvalidRequestError, UnauthenticatedError } from "../errors.js";
+import { UnauthenticatedError } from "../errors.js";
+import { parseRequest } from "../request-validation.js";
 import type { DevelopmentAuthProvider } from "./development-auth-provider.js";
 
 export interface DevelopmentAuthenticationRouteDependencies {
@@ -19,13 +20,8 @@ export function registerDevelopmentAuthenticationRoute(
   dependencies: DevelopmentAuthenticationRouteDependencies,
 ): void {
   app.post("/api/auth/development/sign-in", async (request) => {
-    const parsedInput = developmentSignInRequestSchema.safeParse(request.body);
-    if (!parsedInput.success) {
-      throw new InvalidRequestError();
-    }
-    const credential = dependencies.developmentAuth.issueCredential(
-      parsedInput.data,
-    );
+    const input = parseRequest(developmentSignInRequestSchema, request.body);
+    const credential = dependencies.developmentAuth.issueCredential(input);
 
     try {
       const session = await dependencies.identity.signIn(

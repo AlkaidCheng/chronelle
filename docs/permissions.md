@@ -21,6 +21,10 @@ membership, a direct resource grant, or a grant on the resource's canonical
 permission scope. Expired grants and grants targeting deleted objects do not
 apply. It does not support explicit deny precedence or field-level grants.
 
+Owner and Editor workspace members can create self-scoped objects. Creating an
+inheriting object requires Edit on the selected permission scope. Viewer access
+never permits creation or mutation.
+
 The persistence kernel stores exactly one `permission_scope_id` per canonical
 object. Its composite foreign key requires the scope and resource to share a
 workspace. A self-scope stops inheritance. Direct V1A grants target users who
@@ -31,6 +35,11 @@ declared workspace, which prevents a forged cross-workspace resource link.
 Object references never grant access. APIs, projections, searches, attachment
 URLs, and relation traversal must independently authorize every protected
 resource they return.
+
+Creating a relationship requires Edit on its source and View on its target.
+Listing relationships first authorizes the requested object, then omits links
+whose other endpoint is unavailable to the caller. Removing a relationship
+requires Edit on its source and leaves both objects intact.
 
 `permission_scope_id = id` stops inheritance. Any other value selects exactly
 one object in the same workspace as the inheritance source. Relation rows are

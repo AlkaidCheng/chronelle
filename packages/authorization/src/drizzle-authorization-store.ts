@@ -11,6 +11,7 @@ import type {
   AuthorizationStore,
   ResourceRoleQuery,
   WorkspaceAccessQuery,
+  WorkspaceRoleQuery,
 } from "./authorization.js";
 
 export class DrizzleAuthorizationStore implements AuthorizationStore {
@@ -129,5 +130,20 @@ export class DrizzleAuthorizationStore implements AuthorizationStore {
       .limit(1);
 
     return grant.length > 0;
+  }
+
+  async findWorkspaceRole(query: WorkspaceRoleQuery): Promise<Role | null> {
+    const [membership] = await this.#database
+      .select({ role: workspaceMembers.role })
+      .from(workspaceMembers)
+      .where(
+        and(
+          eq(workspaceMembers.workspaceId, query.workspaceId),
+          eq(workspaceMembers.userId, query.userId),
+        ),
+      )
+      .limit(1);
+
+    return membership?.role ?? null;
   }
 }

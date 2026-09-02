@@ -25,6 +25,13 @@ export interface RequestContextDependencies {
   readonly identity: WorkspaceIdentityService;
 }
 
+export function requirePrincipal(request: FastifyRequest): UserPrincipal {
+  if (request.principal === null) {
+    throw new UnauthenticatedError();
+  }
+  return request.principal;
+}
+
 function readBearerToken(authorizationHeader: string | undefined): string {
   const match = /^Bearer ([^\s]+)$/.exec(authorizationHeader ?? "");
   if (match?.[1] === undefined) {

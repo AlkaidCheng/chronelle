@@ -45,7 +45,7 @@ stable system-level meaning justifies a typed migration.
 `object_relations` connects canonical identities and carries contextual
 metadata. The initial relation vocabulary is:
 
-- an Event `includes` a scheduled Event, Task, or Expense;
+- an Event `includes` a scheduled Event, Task, Expense, Reminder, or Document;
 - a Reminder `reminds_about` an Event or Task;
 - a Document is `attached_to` an Event, Task, or Expense;
 - any two compatible resources may be `related_to` each other.
@@ -53,13 +53,18 @@ metadata. The initial relation vocabulary is:
 Removing a relationship removes only that contextual link. Database foreign
 keys explicitly prevent a relation deletion from cascading to either endpoint.
 
-Event detail, calendar, timeline, and itinerary queries resolve the same Event
-IDs at read time. Event detail and to-do queries resolve the same Task IDs.
-These projections own layout and filter state, never copied business fields.
+Event detail, calendar, timeline, itinerary, expense, reminder, and to-do
+queries resolve canonical objects at read time. Each resource keeps the same ID
+and version in every response. These projections own ordering and selection,
+never copied business fields.
 
 ## Lifecycle
 
-Objects begin at version 1. Application updates will require an expected
-version, increment it atomically, and report conflicts rather than overwrite a
-newer value. Ordinary deletion sets `deleted_at`; permanent purge is a separate
-future workflow.
+Objects begin at version 1. Application updates require `expectedVersion`,
+increment it atomically, and return HTTP 409 rather than overwrite a newer
+value. Ordinary deletion also checks the expected version and sets
+`deleted_at`; permanent purge is a separate future workflow. Reads and
+projections exclude soft-deleted objects.
+
+An Expense amount is stored as its own historical fact. Relating an Expense to
+another object neither derives nor synchronizes the amount with that object.

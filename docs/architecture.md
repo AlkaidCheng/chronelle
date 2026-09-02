@@ -21,18 +21,20 @@ the common `objects` table holds identity and lifecycle fields.
 ## Current module boundaries
 
 - `apps/web` owns HTTP rendering and browser interaction.
-- `apps/api` owns transport, authentication-provider composition, request
-  principal resolution, and personal-workspace bootstrap.
+- `apps/api` owns thin HTTP transport, authentication-provider composition,
+  request principal resolution, and personal-workspace bootstrap.
 - `packages/authorization` owns the central permission policy and its
   PostgreSQL-backed access lookup.
+- `packages/object-model` owns canonical Event, Task, Expense, and Reminder
+  lifecycle behavior, relationships, and event-plan projections.
 - `packages/schemas` owns contracts shared across process boundaries.
 - `packages/db` owns ordered migration execution, Drizzle query mappings,
   UUIDv7 generation, database connections, and persistence integrity tests.
 - `infrastructure/migrations` owns immutable PostgreSQL schema changes.
 
-Object-model, storage, and API-client packages will appear with the first
-behavior that needs them. Each package must hide a concrete domain decision;
-transport-only forwarding layers are not added in advance.
+Storage and API-client packages will appear with the first behavior that needs
+them. Each package must hide a concrete domain decision; transport-only
+forwarding layers are not added in advance.
 
 ## Persistence kernel
 
@@ -69,8 +71,24 @@ to require membership or an active grant.
 
 Application mutations use `runAuditedMutation`, which appends one audit event
 inside the same database transaction. An invalid audit record therefore rolls
-back the business change. Later object services will add validation,
-authorization, and expected-version checks before entering this boundary.
+back the business change. Object services validate state, authorize access,
+and atomically enforce the expected object version before writing typed data.
+
+## Event-planning vertical slice
+
+Fastify routes validate requests and delegate to three domain services:
+
+- `EventPlanningObjectService` manages canonical and typed rows as one unit.
+- `ObjectRelationService` manages compatible, metadata-bearing links without
+  owning either endpoint.
+- `EventPlanningProjectionService` resolves event detail and focused views at
+  read time, authorizing every returned object.
+
+The projection service stores no calendar, itinerary, timeline, or to-do
+copies. Updating one canonical child changes every later projection response.
+Deleting a relation only unlinks its endpoints; deleting an object is a
+versioned soft deletion. Unauthorized and missing resources share one public
+response to avoid existence leaks.
 
 React components do not contain authorization or domain business logic.
 

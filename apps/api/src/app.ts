@@ -3,7 +3,14 @@ import Fastify, {
   type FastifyServerOptions,
 } from "fastify";
 
+import { AuthorizationDeniedError } from "@chronelle/authorization";
 import { createId } from "@chronelle/db";
+import {
+  InvalidObjectStateError,
+  InvalidRelationError,
+  ObjectConflictError,
+  RelationConflictError,
+} from "@chronelle/object-model";
 import { healthStatusSchema } from "@chronelle/schemas";
 
 import {
@@ -12,6 +19,7 @@ import {
 } from "./authentication/routes.js";
 import type { AppDependencies } from "./dependencies.js";
 import { HttpError } from "./errors.js";
+import { registerEventPlanningRoutes } from "./event-planning/routes.js";
 import { registerRequestContext } from "./request-context.js";
 
 export function buildApp(
@@ -26,6 +34,32 @@ export function buildApp(
         error: { code: error.code, message: error.message },
       });
     }
+    if (error instanceof AuthorizationDeniedError) {
+      return reply.status(404).send({
+        error: {
+          code: "resource_unavailable",
+          message: "The requested resource is unavailable.",
+        },
+      });
+    }
+    if (error instanceof ObjectConflictError) {
+      return reply.status(409).send({
+        error: { code: "version_conflict", message: error.message },
+      });
+    }
+    if (error instanceof RelationConflictError) {
+      return reply.status(409).send({
+        error: { code: "relation_conflict", message: error.message },
+      });
+    }
+    if (
+      error instanceof InvalidObjectStateError ||
+      error instanceof InvalidRelationError
+    ) {
+      return reply.status(400).send({
+        error: { code: "invalid_request", message: error.message },
+      });
+    }
 
     request.log.error({ error }, "Unhandled request error");
     return reply.status(500).send({
@@ -38,6 +72,7 @@ export function buildApp(
 
   registerRequestContext(app, dependencies);
   registerSessionRoute(app);
+  registerEventPlanningRoutes(app, dependencies);
   if (dependencies.developmentAuth !== undefined) {
     registerDevelopmentAuthenticationRoute(app, {
       developmentAuth: dependencies.developmentAuth,
