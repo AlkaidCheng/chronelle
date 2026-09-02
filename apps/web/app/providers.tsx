@@ -1,0 +1,30 @@
+"use client";
+
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { type ReactNode, useState } from "react";
+
+import { ApiClientProvider } from "../lib/api-context";
+import { AuthSessionProvider } from "../lib/auth-session";
+
+export function Providers({ children }: { readonly children: ReactNode }) {
+  const [queryClient] = useState(
+    () =>
+      new QueryClient({
+        defaultOptions: {
+          queries: {
+            refetchOnWindowFocus: false,
+            retry: 1,
+            staleTime: 15_000,
+          },
+        },
+      }),
+  );
+
+  return (
+    <QueryClientProvider client={queryClient}>
+      <AuthSessionProvider>
+        <ApiClientProvider>{children}</ApiClientProvider>
+      </AuthSessionProvider>
+    </QueryClientProvider>
+  );
+}
