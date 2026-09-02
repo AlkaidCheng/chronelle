@@ -12,7 +12,7 @@ import { CalendarIcon } from "./icons";
 import { ErrorNotice, LoadingState } from "./feedback";
 
 export function WorkspaceShell({ children }: { readonly children: ReactNode }) {
-  const { credential, isHydrated, signOut } = useAuthSession();
+  const { credential, isHydrated, signOut, switchWorkspace } = useAuthSession();
   const queryClient = useQueryClient();
   const router = useRouter();
   const pathname = usePathname();
@@ -33,7 +33,24 @@ export function WorkspaceShell({ children }: { readonly children: ReactNode }) {
       signOut();
       router.replace("/sign-in");
     }
-  }, [queryClient, router, session.error, signOut]);
+    if (
+      session.error instanceof ApiClientError &&
+      session.error.code === "workspace_unavailable" &&
+      credential !== null &&
+      credential.workspaceId !== credential.homeWorkspaceId
+    ) {
+      queryClient.clear();
+      switchWorkspace(credential.homeWorkspaceId);
+      router.replace("/events");
+    }
+  }, [
+    credential,
+    queryClient,
+    router,
+    session.error,
+    signOut,
+    switchWorkspace,
+  ]);
 
   if (!isHydrated || credential === null || session.isPending) {
     return (
@@ -55,6 +72,16 @@ export function WorkspaceShell({ children }: { readonly children: ReactNode }) {
   }
 
   const currentSession = session.data;
+  const activeWorkspaceId = credential.workspaceId;
+  function changeWorkspace(workspaceId: string) {
+    if (workspaceId === activeWorkspaceId) {
+      return;
+    }
+    queryClient.clear();
+    switchWorkspace(workspaceId);
+    router.replace("/events");
+  }
+
   return (
     <div className="workspace-shell">
       <aside className="sidebar">
@@ -71,6 +98,20 @@ export function WorkspaceShell({ children }: { readonly children: ReactNode }) {
             Events
           </Link>
         </nav>
+        <label className="workspace-switcher" htmlFor="desktop-workspace">
+          <span>Workspace</span>
+          <select
+            id="desktop-workspace"
+            onChange={(event) => changeWorkspace(event.target.value)}
+            value={activeWorkspaceId}
+          >
+            {currentSession.availableWorkspaces.map((workspace) => (
+              <option key={workspace.id} value={workspace.id}>
+                {workspace.displayName}
+              </option>
+            ))}
+          </select>
+        </label>
         <div className="sidebar-footer">
           <div className="profile-mark" aria-hidden="true">
             {currentSession.user.displayName.slice(0, 1).toUpperCase()}
@@ -100,7 +141,20 @@ export function WorkspaceShell({ children }: { readonly children: ReactNode }) {
             <span className="brand-mark">C</span>
             <span>Chronelle</span>
           </Link>
-          <span>{currentSession.workspace.displayName}</span>
+          <label className="mobile-workspace-switcher">
+            <span className="visually-hidden">Workspace</span>
+            <select
+              aria-label="Workspace"
+              onChange={(event) => changeWorkspace(event.target.value)}
+              value={activeWorkspaceId}
+            >
+              {currentSession.availableWorkspaces.map((workspace) => (
+                <option key={workspace.id} value={workspace.id}>
+                  {workspace.displayName}
+                </option>
+              ))}
+            </select>
+          </label>
         </header>
         {children}
       </div>

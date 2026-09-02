@@ -9,6 +9,7 @@ import {
   CalendarIcon,
   CheckIcon,
   ClockIcon,
+  LockIcon,
   WalletIcon,
 } from "../../components/icons";
 import { formatDateTime, formatMoney, shortId } from "../../lib/format";
@@ -22,6 +23,7 @@ import {
   TimelinePanel,
 } from "./planning-panels";
 import { EventEditorForm } from "./resource-forms";
+import { SharingPanel } from "./sharing-panel";
 
 const tabs = [
   { id: "overview", label: "Overview" },
@@ -31,6 +33,7 @@ const tabs = [
   { id: "itinerary", label: "Itinerary" },
   { id: "expenses", label: "Expenses" },
   { id: "reminders", label: "Reminders" },
+  { id: "sharing", label: "Sharing" },
 ] as const;
 
 type TabId = (typeof tabs)[number]["id"];
@@ -92,6 +95,7 @@ export function EventWorkspace({ eventId }: { readonly eventId: string }) {
   }
 
   const detail = queries.detail.data;
+  const access = queries.access.data;
   const todos = queries.todos.data;
   const calendar = queries.calendar.data;
   const timeline = queries.timeline.data;
@@ -99,6 +103,7 @@ export function EventWorkspace({ eventId }: { readonly eventId: string }) {
   const expenses = queries.expenses.data;
   const reminders = queries.reminders.data;
   if (
+    access === undefined ||
     detail === undefined ||
     todos === undefined ||
     calendar === undefined ||
@@ -111,6 +116,11 @@ export function EventWorkspace({ eventId }: { readonly eventId: string }) {
   }
 
   const event = detail.event;
+  const canEdit = access.actions.includes("edit");
+  const canShare = access.actions.includes("share");
+  const visibleTabs = tabs.filter((tab) => tab.id !== "sharing" || canShare);
+  const shownTab =
+    activeTab === "sharing" && !canShare ? "overview" : activeTab;
   const openTasks = todos.items.filter(
     (task) => task.status !== "done" && task.status !== "cancelled",
   );
@@ -156,15 +166,21 @@ export function EventWorkspace({ eventId }: { readonly eventId: string }) {
                   }`}
             </p>
           </div>
-          <button
-            className="button button-secondary"
-            onClick={() => setIsEditingEvent((value) => !value)}
-            type="button"
-          >
-            {isEditingEvent ? "Close editor" : "Edit event"}
-          </button>
+          {canEdit ? (
+            <button
+              className="button button-secondary"
+              onClick={() => setIsEditingEvent((value) => !value)}
+              type="button"
+            >
+              {isEditingEvent ? "Close editor" : "Edit event"}
+            </button>
+          ) : (
+            <span className="read-only-badge">
+              <LockIcon /> Viewer access
+            </span>
+          )}
         </div>
-        {isEditingEvent ? (
+        {isEditingEvent && canEdit ? (
           <div className="event-editor surface">
             <EventEditorForm
               event={event}
@@ -176,10 +192,10 @@ export function EventWorkspace({ eventId }: { readonly eventId: string }) {
       </header>
 
       <nav aria-label="Event views" className="tab-list">
-        {tabs.map((tab) => (
+        {visibleTabs.map((tab) => (
           <button
-            aria-current={activeTab === tab.id ? "page" : undefined}
-            className={activeTab === tab.id ? "active" : ""}
+            aria-current={shownTab === tab.id ? "page" : undefined}
+            className={shownTab === tab.id ? "active" : ""}
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
             type="button"
@@ -190,7 +206,7 @@ export function EventWorkspace({ eventId }: { readonly eventId: string }) {
       </nav>
 
       <div className="event-view">
-        {activeTab === "overview" ? (
+        {shownTab === "overview" ? (
           <section className="planning-panel overview-panel">
             <div className="overview-intro">
               <span className="object-label">At a glance</span>
@@ -200,6 +216,21 @@ export function EventWorkspace({ eventId }: { readonly eventId: string }) {
                 Changes flow across the workspace without copied records.
               </p>
             </div>
+            {detail.lockedRelationCount > 0 ? (
+              <div className="locked-reference surface-subtle">
+                <LockIcon />
+                <div>
+                  <strong>Private related items</strong>
+                  <p>
+                    {detail.lockedRelationCount} related
+                    {detail.lockedRelationCount === 1
+                      ? " item is"
+                      : " items are"}{" "}
+                    outside your permission scope.
+                  </p>
+                </div>
+              </div>
+            ) : null}
             <div className="overview-grid">
               <OverviewCard
                 count={String(openTasks.length)}
@@ -242,23 +273,36 @@ export function EventWorkspace({ eventId }: { readonly eventId: string }) {
             </div>
           </section>
         ) : null}
-        {activeTab === "todos" ? (
-          <TasksPanel eventId={eventId} tasks={todos.items} />
+        {shownTab === "todos" ? (
+          <TasksPanel canEdit={canEdit} eventId={eventId} tasks={todos.items} />
         ) : null}
-        {activeTab === "calendar" ? (
-          <CalendarPanel eventId={eventId} items={calendar.items} />
+        {shownTab === "calendar" ? (
+          <CalendarPanel
+            canEdit={canEdit}
+            eventId={eventId}
+            items={calendar.items}
+          />
         ) : null}
-        {activeTab === "timeline" ? (
-          <TimelinePanel timeline={timeline} />
-        ) : null}
-        {activeTab === "itinerary" ? (
+        {shownTab === "timeline" ? <TimelinePanel timeline={timeline} /> : null}
+        {shownTab === "itinerary" ? (
           <ItineraryPanel items={itinerary.items} />
         ) : null}
-        {activeTab === "expenses" ? (
-          <ExpensesPanel eventId={eventId} expenses={expenses.items} />
+        {shownTab === "expenses" ? (
+          <ExpensesPanel
+            canEdit={canEdit}
+            eventId={eventId}
+            expenses={expenses.items}
+          />
         ) : null}
-        {activeTab === "reminders" ? (
-          <RemindersPanel eventId={eventId} reminders={reminders.items} />
+        {shownTab === "reminders" ? (
+          <RemindersPanel
+            canEdit={canEdit}
+            eventId={eventId}
+            reminders={reminders.items}
+          />
+        ) : null}
+        {shownTab === "sharing" && canShare ? (
+          <SharingPanel detail={detail} eventId={eventId} />
         ) : null}
       </div>
     </main>

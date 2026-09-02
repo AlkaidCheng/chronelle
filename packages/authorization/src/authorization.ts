@@ -32,12 +32,20 @@ export interface WorkspaceAccessQuery {
   readonly workspaceId: string;
 }
 
+export interface AccessibleWorkspaceQuery {
+  readonly evaluatedAt: Date;
+  readonly userId: string;
+}
+
 export type WorkspaceRoleQuery = Omit<WorkspaceAccessQuery, "evaluatedAt">;
 
 export interface AuthorizationStore {
   findResourceRoles(query: ResourceRoleQuery): Promise<readonly Role[] | null>;
   findWorkspaceRole(query: WorkspaceRoleQuery): Promise<Role | null>;
   hasWorkspaceAccess(query: WorkspaceAccessQuery): Promise<boolean>;
+  listAccessibleWorkspaceIds(
+    query: AccessibleWorkspaceQuery,
+  ): Promise<readonly string[]>;
 }
 
 export class AuthorizationDeniedError extends Error {
@@ -71,8 +79,16 @@ export class AuthorizationService {
     action: AuthorizationAction,
     resource: ResourceRef,
   ): Promise<boolean> {
+    const actions = await this.allowedActions(principal, resource);
+    return actions.includes(action);
+  }
+
+  async allowedActions(
+    principal: UserPrincipal,
+    resource: ResourceRef,
+  ): Promise<readonly AuthorizationAction[]> {
     if (principal.workspaceId !== resource.workspaceId) {
-      return false;
+      return [];
     }
 
     const roles = await this.#store.findResourceRoles({
@@ -81,7 +97,13 @@ export class AuthorizationService {
       userId: principal.userId,
     });
 
-    return roles?.some((role) => roleAllows(role, action)) ?? false;
+    if (roles === null) {
+      return [];
+    }
+
+    return authorizationActions.filter((action) =>
+      roles.some((role) => roleAllows(role, action)),
+    );
   }
 
   async assertCan(
@@ -116,6 +138,13 @@ export class AuthorizationService {
       evaluatedAt: this.#clock(),
       userId,
       workspaceId,
+    });
+  }
+
+  async listAccessibleWorkspaceIds(userId: string): Promise<readonly string[]> {
+    return this.#store.listAccessibleWorkspaceIds({
+      evaluatedAt: this.#clock(),
+      userId,
     });
   }
 }

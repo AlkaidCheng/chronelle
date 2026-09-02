@@ -50,6 +50,17 @@ when the user is a member or holds an active grant to a live resource in that
 workspace. Concurrent first sign-ins reuse one user and one personal workspace;
 every sign-in still records its own audit event.
 
+To exercise sharing locally, sign in once with two different email addresses.
+Create an Event as the first user, open its Sharing tab, and grant Viewer or
+Owner access to the second email. Sign back in as the second user and select the
+shared workspace from the shell. The development adapter resolves recipients
+only after their first sign-in; it does not send invitations or email.
+
+An owner can make an included resource private from the Sharing tab. The
+relationship stays intact, but a Viewer will see only a generic private-item
+notice. Revoking the Viewer's last grant removes the shared workspace from the
+next session response and returns the browser to its personal workspace.
+
 Use that bearer token to create the root of an event plan:
 
 ```bash

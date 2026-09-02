@@ -27,10 +27,18 @@ never permits creation or mutation.
 
 The persistence kernel stores exactly one `permission_scope_id` per canonical
 object. Its composite foreign key requires the scope and resource to share a
-workspace. A self-scope stops inheritance. Direct V1A grants target users who
+workspace. A self-scope stops inheritance. Direct V1 grants target users who
 may be outside the resource workspace so an owner can share one Event without
 granting workspace membership. The grant's resource must still belong to its
 declared workspace, which prevents a forged cross-workspace resource link.
+
+Resource owners can create, list, and revoke direct grants through the same
+authorization boundary. The browser offers Owner and Viewer; the API also
+accepts Editor. A development recipient is resolved by normalized email and
+must have signed in once so a canonical user exists. Revocation removes the
+active grant row and records an immutable `resource.share_revoked` audit event,
+so access disappears on the next request while the administrative history
+remains available in the audit log.
 
 Object references never grant access. APIs, projections, searches, attachment
 URLs, and relation traversal must independently authorize every protected
@@ -48,6 +56,12 @@ requires Edit on its source and leaves both objects intact.
 `permission_scope_id = id` stops inheritance. Any other value selects exactly
 one object in the same workspace as the inheritance source. Relation rows are
 never consulted when evaluating access.
+
+Changing a permission scope is an Owner operation and uses the object's
+optimistic version. V1 permits an object to become self-scoped or to inherit
+from a self-scoped Event in the same workspace. Event detail omits inaccessible
+related resources and returns only a generic locked-relation count; object
+identities, types, and business fields are not exposed.
 
 The active workspace is request context, not a grant. A user can select a
 workspace only through membership or an active grant to a non-deleted resource

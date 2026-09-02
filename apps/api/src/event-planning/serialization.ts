@@ -104,6 +104,7 @@ export function serializeEventDetail(projection: EventDetailProjection) {
     expenses: projection.expenses.map(serializeResource),
     reminders: projection.reminders.map(serializeResource),
     documents: projection.documents.map(serializeResource),
+    lockedRelationCount: projection.lockedRelationCount,
   };
 }
 

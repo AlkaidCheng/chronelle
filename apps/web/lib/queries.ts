@@ -6,8 +6,10 @@ import type {
   EventUpdatePayload,
   ExpenseCreatePayload,
   ExpenseUpdatePayload,
+  PermissionScopeUpdatePayload,
   ReminderCreatePayload,
   ReminderUpdatePayload,
+  ShareCreatePayload,
   TaskCreatePayload,
   TaskUpdatePayload,
 } from "@chronelle/schemas";
@@ -31,6 +33,8 @@ export const queryKeys = {
   itinerary: (eventId: string) => ["event", eventId, "itinerary"] as const,
   expenses: (eventId: string) => ["event", eventId, "expenses"] as const,
   reminders: (eventId: string) => ["event", eventId, "reminders"] as const,
+  access: (eventId: string) => ["event", eventId, "access"] as const,
+  shares: (eventId: string) => ["event", eventId, "shares"] as const,
   session: ["session"] as const,
 };
 
@@ -110,6 +114,11 @@ export function useEventWorkspaceQueries(eventId: string) {
         queryFn: () => client.getEventReminders(eventId),
         queryKey: queryKeys.reminders(eventId),
       },
+      {
+        enabled: credential !== null,
+        queryFn: () => client.getObjectAccess(eventId),
+        queryKey: queryKeys.access(eventId),
+      },
     ],
   });
 
@@ -119,9 +128,20 @@ export function useEventWorkspaceQueries(eventId: string) {
     expenses: results[5],
     itinerary: results[4],
     reminders: results[6],
+    access: results[7],
     timeline: results[3],
     todos: results[1],
   };
+}
+
+export function useSharesQuery(eventId: string, enabled: boolean) {
+  const client = useApiClient();
+  const { credential } = useAuthSession();
+  return useQuery({
+    enabled: enabled && credential !== null,
+    queryFn: () => client.listShares(eventId),
+    queryKey: queryKeys.shares(eventId),
+  });
 }
 
 function useEventInvalidation(eventId: string) {
@@ -155,6 +175,48 @@ export function useUpdateEvent(eventId: string) {
   return useMutation({
     mutationFn: ({ id, input }: { id: string; input: EventUpdatePayload }) =>
       client.updateEvent(id, input),
+    onSuccess: invalidate,
+  });
+}
+
+export function useShareResource(eventId: string) {
+  const client = useApiClient();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (input: Omit<ShareCreatePayload, "resourceId">) =>
+      client.shareResource({ ...input, resourceId: eventId }),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({
+        queryKey: queryKeys.shares(eventId),
+      });
+    },
+  });
+}
+
+export function useRevokeShare(eventId: string) {
+  const client = useApiClient();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (grantId: string) => client.revokeShare(grantId),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({
+        queryKey: queryKeys.shares(eventId),
+      });
+    },
+  });
+}
+
+export function useUpdatePermissionScope(eventId: string) {
+  const client = useApiClient();
+  const invalidate = useEventInvalidation(eventId);
+  return useMutation({
+    mutationFn: ({
+      id,
+      input,
+    }: {
+      id: string;
+      input: PermissionScopeUpdatePayload;
+    }) => client.updatePermissionScope(id, input),
     onSuccess: invalidate,
   });
 }

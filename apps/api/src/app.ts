@@ -3,7 +3,11 @@ import Fastify, {
   type FastifyServerOptions,
 } from "fastify";
 
-import { AuthorizationDeniedError } from "@chronelle/authorization";
+import {
+  AuthorizationDeniedError,
+  InvalidShareError,
+  PrincipalUnavailableError,
+} from "@chronelle/authorization";
 import { createId } from "@chronelle/db";
 import {
   InvalidObjectStateError,
@@ -21,6 +25,7 @@ import type { AppDependencies } from "./dependencies.js";
 import { HttpError } from "./errors.js";
 import { registerEventPlanningRoutes } from "./event-planning/routes.js";
 import { registerRequestContext } from "./request-context.js";
+import { registerSharingRoutes } from "./sharing/routes.js";
 
 export function buildApp(
   dependencies: AppDependencies,
@@ -40,6 +45,16 @@ export function buildApp(
           code: "resource_unavailable",
           message: "The requested resource is unavailable.",
         },
+      });
+    }
+    if (error instanceof PrincipalUnavailableError) {
+      return reply.status(404).send({
+        error: { code: "principal_unavailable", message: error.message },
+      });
+    }
+    if (error instanceof InvalidShareError) {
+      return reply.status(400).send({
+        error: { code: "invalid_share", message: error.message },
       });
     }
     if (error instanceof ObjectConflictError) {
@@ -71,8 +86,9 @@ export function buildApp(
   });
 
   registerRequestContext(app, dependencies);
-  registerSessionRoute(app);
+  registerSessionRoute(app, { identity: dependencies.identity });
   registerEventPlanningRoutes(app, dependencies);
+  registerSharingRoutes(app, dependencies);
   if (dependencies.developmentAuth !== undefined) {
     registerDevelopmentAuthenticationRoute(app, {
       developmentAuth: dependencies.developmentAuth,

@@ -63,6 +63,12 @@ queries resolve canonical objects at read time. Each resource keeps the same ID
 and version in every response. These projections own ordering and selection,
 never copied business fields.
 
+A related child normally uses its root Event ID as `permission_scope_id`, so a
+grant on the Event applies through one level of inheritance. Changing the child
+to its own ID makes it private without deleting the object or its `includes`
+relationship. That change increments the same canonical version used by every
+projection.
+
 ## Lifecycle
 
 Objects begin at version 1. Application updates require `expectedVersion`,

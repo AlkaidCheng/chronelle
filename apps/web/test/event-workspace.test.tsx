@@ -1,6 +1,12 @@
 // @vitest-environment jsdom
 
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -57,6 +63,7 @@ describe("EventWorkspace", () => {
   });
 
   afterEach(() => {
+    cleanup();
     vi.unstubAllGlobals();
     window.sessionStorage.clear();
   });
@@ -73,6 +80,13 @@ describe("EventWorkspace", () => {
           expenses: [],
           reminders: [],
           documents: [],
+          lockedRelationCount: 0,
+        });
+      }
+      if (path === `/api/objects/${eventId}/access`) {
+        return jsonResponse({
+          resourceId: eventId,
+          actions: ["view", "comment", "edit", "share", "delete"],
         });
       }
       if (path === `/api/events/${eventId}/todos`) {
@@ -187,6 +201,193 @@ describe("EventWorkspace", () => {
         "/api/events",
         expect.objectContaining({ method: "POST" }),
       );
+    });
+  });
+
+  it("renders a shared Event as read-only without leaking private relations", async () => {
+    const task = {
+      ...rootEvent,
+      id: "019d6e7d-0000-7000-8000-000000000013",
+      objectType: "task",
+      displayName: "Confirm guest list",
+      permissionScopeId: eventId,
+      startsAt: undefined,
+      endsAt: undefined,
+      timezone: undefined,
+      isAllDay: undefined,
+      status: "todo",
+      dueAt: "2026-10-10T18:00:00.000Z",
+      completedAt: null,
+    } as const;
+    const fetch = vi.fn<typeof globalThis.fetch>(async (input) => {
+      const path = requestPath(input);
+      if (path === `/api/events/${eventId}/detail`) {
+        return jsonResponse({
+          event: rootEvent,
+          events: [],
+          tasks: [task],
+          expenses: [],
+          reminders: [],
+          documents: [],
+          lockedRelationCount: 1,
+        });
+      }
+      if (path === `/api/objects/${eventId}/access`) {
+        return jsonResponse({ resourceId: eventId, actions: ["view"] });
+      }
+      if (path === `/api/events/${eventId}/todos`) {
+        return jsonResponse({ sourceEventId: eventId, items: [task] });
+      }
+      if (
+        path === `/api/events/${eventId}/calendar` ||
+        path === `/api/events/${eventId}/itinerary` ||
+        path === `/api/events/${eventId}/expenses` ||
+        path === `/api/events/${eventId}/reminders`
+      ) {
+        return jsonResponse({ sourceEventId: eventId, items: [] });
+      }
+      if (path === `/api/events/${eventId}/timeline`) {
+        return jsonResponse({
+          sourceEventId: eventId,
+          items: [
+            {
+              canonicalObjectId: task.id,
+              objectType: "task",
+              displayName: task.displayName,
+              occursAt: task.dueAt,
+              version: task.version,
+            },
+          ],
+        });
+      }
+      return jsonResponse(
+        { error: { code: "not_found", message: `No mock for ${path}` } },
+        404,
+      );
+    });
+    vi.stubGlobal("fetch", fetch);
+    const user = userEvent.setup();
+
+    render(
+      <Providers>
+        <EventWorkspace eventId={eventId} />
+      </Providers>,
+    );
+
+    expect(await screen.findByText("Viewer access")).toBeVisible();
+    expect(screen.queryByRole("button", { name: "Edit event" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Sharing" })).toBeNull();
+    expect(screen.getByText("Private related items")).toBeVisible();
+    expect(
+      screen.getByText("1 related item is outside your permission scope."),
+    ).toBeVisible();
+
+    await user.click(screen.getByRole("button", { name: "To-dos" }));
+    expect(screen.getByText("Confirm guest list")).toBeVisible();
+    expect(
+      screen.getByRole("button", { name: "Complete Confirm guest list" }),
+    ).toBeDisabled();
+    expect(screen.queryByLabelText("Task")).toBeNull();
+
+    await user.click(screen.getByRole("button", { name: "Calendar" }));
+    expect(
+      screen.queryByRole("button", { name: "Add schedule item" }),
+    ).toBeNull();
+  });
+
+  it("shares an Event with an existing development user", async () => {
+    const grantId = "019d6e7d-0000-7000-8000-000000000020";
+    const collaboratorId = "019d6e7d-0000-7000-8000-000000000021";
+    let shares: unknown[] = [];
+    const fetch = vi.fn<typeof globalThis.fetch>(async (input, init) => {
+      const path = requestPath(input);
+      if (path === `/api/events/${eventId}/detail`) {
+        return jsonResponse({
+          event: rootEvent,
+          events: [],
+          tasks: [],
+          expenses: [],
+          reminders: [],
+          documents: [],
+          lockedRelationCount: 0,
+        });
+      }
+      if (path === `/api/objects/${eventId}/access`) {
+        return jsonResponse({
+          resourceId: eventId,
+          actions: ["view", "comment", "edit", "share", "delete"],
+        });
+      }
+      if (
+        path === `/api/events/${eventId}/todos` ||
+        path === `/api/events/${eventId}/calendar` ||
+        path === `/api/events/${eventId}/itinerary` ||
+        path === `/api/events/${eventId}/expenses` ||
+        path === `/api/events/${eventId}/reminders` ||
+        path === `/api/events/${eventId}/timeline`
+      ) {
+        return jsonResponse({ sourceEventId: eventId, items: [] });
+      }
+      if (path === `/api/objects/${eventId}/shares`) {
+        return jsonResponse({ items: shares });
+      }
+      if (path === "/api/shares" && init?.method === "POST") {
+        const body = JSON.parse(String(init.body)) as {
+          principalEmail: string;
+          resourceId: string;
+          role: string;
+        };
+        const grant = {
+          id: grantId,
+          workspaceId,
+          resourceId: body.resourceId,
+          principal: {
+            id: collaboratorId,
+            displayName: "Event Viewer",
+            email: body.principalEmail,
+          },
+          role: body.role,
+          grantedBy: userId,
+          createdAt: "2026-09-02T20:05:00.000Z",
+          expiresAt: null,
+        };
+        shares = [grant];
+        return jsonResponse(grant, 201);
+      }
+      return jsonResponse(
+        { error: { code: "not_found", message: `No mock for ${path}` } },
+        404,
+      );
+    });
+    vi.stubGlobal("fetch", fetch);
+    const user = userEvent.setup();
+
+    render(
+      <Providers>
+        <EventWorkspace eventId={eventId} />
+      </Providers>,
+    );
+
+    await user.click(await screen.findByRole("button", { name: "Sharing" }));
+    expect(screen.getByRole("option", { name: "Viewer" })).toBeVisible();
+    expect(screen.getByRole("option", { name: "Owner" })).toBeVisible();
+    expect(screen.queryByRole("option", { name: "Editor" })).toBeNull();
+    await user.type(
+      screen.getByLabelText("Collaborator email"),
+      "viewer@example.com",
+    );
+    await user.click(screen.getByRole("button", { name: "Share event" }));
+
+    expect(await screen.findByText("viewer@example.com")).toBeVisible();
+    expect(screen.getByText("Event Viewer")).toBeVisible();
+    const shareRequest = fetch.mock.calls.find(
+      ([url, request]) => url === "/api/shares" && request?.method === "POST",
+    );
+    expect(shareRequest).toBeDefined();
+    expect(JSON.parse(String(shareRequest?.[1]?.body))).toEqual({
+      principalEmail: "viewer@example.com",
+      resourceId: eventId,
+      role: "viewer",
     });
   });
 });

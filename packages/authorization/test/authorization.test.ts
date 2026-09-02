@@ -35,6 +35,7 @@ describe("AuthorizationService", () => {
       findResourceRoles: vi.fn().mockResolvedValue(["viewer", "editor"]),
       findWorkspaceRole: vi.fn().mockResolvedValue("owner"),
       hasWorkspaceAccess: vi.fn().mockResolvedValue(true),
+      listAccessibleWorkspaceIds: vi.fn().mockResolvedValue([]),
     };
     const authorization = new AuthorizationService(store);
 
@@ -49,6 +50,7 @@ describe("AuthorizationService", () => {
       findResourceRoles,
       findWorkspaceRole: vi.fn(),
       hasWorkspaceAccess: vi.fn(),
+      listAccessibleWorkspaceIds: vi.fn(),
     };
     const authorization = new AuthorizationService(store);
 
@@ -66,6 +68,7 @@ describe("AuthorizationService", () => {
       findResourceRoles: vi.fn().mockResolvedValue(null),
       findWorkspaceRole: vi.fn().mockResolvedValue(null),
       hasWorkspaceAccess: vi.fn().mockResolvedValue(false),
+      listAccessibleWorkspaceIds: vi.fn().mockResolvedValue([]),
     };
     const authorization = new AuthorizationService(store);
 
@@ -84,6 +87,7 @@ describe("AuthorizationService", () => {
       findResourceRoles: vi.fn(),
       findWorkspaceRole,
       hasWorkspaceAccess: vi.fn(),
+      listAccessibleWorkspaceIds: vi.fn(),
     };
     const authorization = new AuthorizationService(store);
 
@@ -96,5 +100,19 @@ describe("AuthorizationService", () => {
     await expect(authorization.canCreateInWorkspace(principal)).resolves.toBe(
       false,
     );
+  });
+
+  it("returns the complete action set for the strongest applicable role", async () => {
+    const store: AuthorizationStore = {
+      findResourceRoles: vi.fn().mockResolvedValue(["viewer", "owner"]),
+      findWorkspaceRole: vi.fn(),
+      hasWorkspaceAccess: vi.fn(),
+      listAccessibleWorkspaceIds: vi.fn(),
+    };
+    const authorization = new AuthorizationService(store);
+
+    await expect(
+      authorization.allowedActions(principal, resource),
+    ).resolves.toEqual(["view", "comment", "edit", "share", "delete"]);
   });
 });

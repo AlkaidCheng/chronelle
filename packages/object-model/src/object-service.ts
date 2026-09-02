@@ -40,6 +40,7 @@ import type {
   UpdateExpenseInput,
   UpdateObjectFields,
   UpdateReminderInput,
+  UpdatePermissionScopeInput,
   UpdateTaskInput,
 } from "./types.js";
 
@@ -540,6 +541,82 @@ export class EventPlanningObjectService {
     );
 
     return { id: objectId, version, deletedAt };
+  }
+
+  async updatePermissionScope(
+    context: MutationContext,
+    objectId: string,
+    input: UpdatePermissionScopeInput,
+  ): Promise<EventPlanningResource> {
+    const current = await this.#getObjectWithAction(
+      context.principal,
+      objectId,
+      "share",
+    );
+    if (current.permissionScopeId === input.permissionScopeId) {
+      throw new InvalidObjectStateError(
+        "permissionScopeId must change the current permission scope.",
+      );
+    }
+
+    if (input.permissionScopeId !== objectId) {
+      const scope = await this.#getObjectWithAction(
+        context.principal,
+        input.permissionScopeId,
+        "share",
+      );
+      if (
+        scope.objectType !== "event" ||
+        scope.permissionScopeId !== scope.id
+      ) {
+        throw new InvalidObjectStateError(
+          "permissionScopeId must reference a self-scoped Event.",
+        );
+      }
+    }
+
+    const updatedAt = this.#clock();
+    await runAuditedMutation(this.#database, async (transaction) => {
+      const [updated] = await transaction
+        .update(objects)
+        .set({
+          permissionScopeId: input.permissionScopeId,
+          updatedAt,
+          version: sql`${objects.version} + 1`,
+        })
+        .where(
+          and(
+            eq(objects.workspaceId, context.principal.workspaceId),
+            eq(objects.id, objectId),
+            eq(objects.version, input.expectedVersion),
+            isNull(objects.deletedAt),
+          ),
+        )
+        .returning({ version: objects.version });
+      if (updated === undefined) {
+        throw new ObjectConflictError();
+      }
+
+      return {
+        value: undefined,
+        audit: {
+          workspaceId: context.principal.workspaceId,
+          actorType: "user",
+          actorId: context.principal.userId,
+          action: "object.permission_scope_updated",
+          resourceId: objectId,
+          requestId: context.requestId,
+          metadata: {
+            permissionScopeId: input.permissionScopeId,
+            previousPermissionScopeId: current.permissionScopeId,
+            previousVersion: input.expectedVersion,
+            version: updated.version,
+          },
+        },
+      };
+    });
+
+    return this.#getObjectUnchecked(context.principal.workspaceId, objectId);
   }
 
   async #createObject(

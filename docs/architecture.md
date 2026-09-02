@@ -25,8 +25,8 @@ the common `objects` table holds identity and lifecycle fields.
   and normalized client errors.
 - `apps/api` owns thin HTTP transport, authentication-provider composition,
   request principal resolution, and personal-workspace bootstrap.
-- `packages/authorization` owns the central permission policy and its
-  PostgreSQL-backed access lookup.
+- `packages/authorization` owns the central permission policy, audited direct
+  grant lifecycle, and PostgreSQL-backed access lookup.
 - `packages/object-model` owns canonical Event, Task, Expense, and Reminder
   lifecycle behavior, relationships, and event-plan projections.
 - `packages/schemas` owns contracts shared across process boundaries.
@@ -78,13 +78,15 @@ and atomically enforce the expected object version before writing typed data.
 
 ## Event-planning vertical slice
 
-Fastify routes validate requests and delegate to three domain services:
+Fastify routes validate requests and delegate to four domain services:
 
 - `EventPlanningObjectService` manages canonical and typed rows as one unit.
 - `ObjectRelationService` manages compatible, metadata-bearing links without
   owning either endpoint.
 - `EventPlanningProjectionService` resolves event detail and focused views at
   read time, authorizing every returned object.
+- `ResourceGrantService` creates, lists, and revokes user grants only after the
+  central policy permits Share on the canonical resource.
 
 The projection service stores no calendar, itinerary, timeline, or to-do
 copies. Updating one canonical child changes every later projection response.
@@ -105,6 +107,10 @@ deployment topology or cross-origin policy.
 every successful response against the shared Zod contract, and turns API errors
 into one typed error. An expiring development credential is kept in
 `sessionStorage`; no authentication provider rules enter the domain layer.
+The workspace shell can switch between the user's personal workspace and
+workspaces discovered through active resource grants. If the active workspace
+is revoked, the shell clears protected query state and returns to the personal
+workspace.
 
 TanStack Query owns remote state and invalidation. Event detail, calendar,
 timeline, itinerary, expenses, reminders, and to-dos retain separate query
@@ -112,6 +118,12 @@ results, but every item carries the canonical object ID returned by the API.
 Mutations invalidate all projections for the source Event. Forms use the latest
 returned version, and HTTP 409 conflicts remain visible until the user refreshes
 the current canonical value.
+
+The Event Sharing view is capability-driven: only principals with Share see
+grant administration, while Viewers receive read-only planning panels. Owners
+can stop a child object's inheritance with a versioned permission-scope
+mutation. Locked relationships render as a generic count; inaccessible IDs,
+types, and fields never enter the client response.
 
 Creating an included planning resource currently uses two independently
 audited API mutations: create the scoped canonical object, then create its
