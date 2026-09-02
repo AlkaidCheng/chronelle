@@ -4,8 +4,13 @@ import postgres, { type Sql } from "postgres";
 import { databaseUrlSchema } from "./config.js";
 import * as schema from "./schema.js";
 
+export type Database = PostgresJsDatabase<typeof schema>;
+export type DatabaseTransaction = Parameters<
+  Parameters<Database["transaction"]>[0]
+>[0];
+
 export interface DatabaseConnection {
-  readonly db: PostgresJsDatabase<typeof schema>;
+  readonly db: Database;
   readonly sql: Sql;
   close(): Promise<void>;
 }

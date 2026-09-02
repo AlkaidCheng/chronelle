@@ -19,7 +19,7 @@ import {
   workspaces,
   type ObjectType,
 } from "../src/schema.js";
-import { createTestDatabase, type TestDatabase } from "./test-database.js";
+import { createTestDatabase, type TestDatabase } from "../src/testing.js";
 
 const migrationDirectory = resolve(
   import.meta.dirname,
@@ -116,7 +116,7 @@ describe.sequential("persistence kernel", () => {
         { DATABASE_URL: testDatabase.databaseUrl },
         migrationDirectory,
       ),
-    ).resolves.toBe(1);
+    ).resolves.toBe(2);
     await expect(
       applyMigrations(
         { DATABASE_URL: testDatabase.databaseUrl },
@@ -235,6 +235,41 @@ describe.sequential("persistence kernel", () => {
         workspaceId: fixture.workspaceId,
       }),
       "23503",
+    );
+  });
+
+  it("enforces one correctly owned personal workspace per user", async () => {
+    await applyMigrations(
+      { DATABASE_URL: testDatabase.databaseUrl },
+      migrationDirectory,
+    );
+    const first = await createWorkspaceFixture("personal-first");
+    const second = await createWorkspaceFixture("personal-second");
+
+    await expectPostgresError(
+      testDatabase.connection.db.insert(workspaces).values({
+        id: createId(),
+        displayName: "Mismatched personal workspace",
+        createdBy: first.userId,
+        personalOwnerId: second.userId,
+      }),
+      "23514",
+    );
+
+    await testDatabase.connection.db.insert(workspaces).values({
+      id: createId(),
+      displayName: "Personal workspace",
+      createdBy: first.userId,
+      personalOwnerId: first.userId,
+    });
+    await expectPostgresError(
+      testDatabase.connection.db.insert(workspaces).values({
+        id: createId(),
+        displayName: "Duplicate personal workspace",
+        createdBy: first.userId,
+        personalOwnerId: first.userId,
+      }),
+      "23505",
     );
   });
 

@@ -87,6 +87,7 @@ export const workspaces = pgTable("workspaces", {
   id: uuid("id").primaryKey(),
   displayName: text("display_name").notNull(),
   createdBy: uuid("created_by").notNull(),
+  personalOwnerId: uuid("personal_owner_id"),
   createdAt: createCreatedAtColumn(),
   updatedAt: createUpdatedAtColumn(),
 });
