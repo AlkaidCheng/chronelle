@@ -10,6 +10,7 @@ import {
   apiErrorResponseSchema,
   developmentSignInResponseSchema,
   eventDetailResponseSchema,
+  eventListResponseSchema,
   eventResourceProjectionResponseSchema,
   eventResponseSchema,
   expenseResourceProjectionResponseSchema,
@@ -170,6 +171,17 @@ describe.sequential("event-planning API", () => {
       expect(response.statusCode).toBe(201);
       relations.push(relationResponseSchema.parse(response.json()));
     }
+
+    const eventListResponse = await app.inject({
+      method: "GET",
+      url: "/api/events",
+      headers: ownerHeaders,
+    });
+    expect(
+      eventListResponseSchema
+        .parse(eventListResponse.json())
+        .items.map(({ id }) => id),
+    ).toEqual([event.id]);
 
     const detailResponse = await app.inject({
       method: "GET",
@@ -416,6 +428,37 @@ describe.sequential("event-planning API", () => {
     });
 
     const viewerHeaders = headers(viewer, owner.workspace.id);
+    const ownerListResponse = await app.inject({
+      method: "GET",
+      url: "/api/events",
+      headers: ownerHeaders,
+    });
+    expect(
+      eventListResponseSchema
+        .parse(ownerListResponse.json())
+        .items.map(({ id }) => id),
+    ).toContain(event.id);
+
+    const viewerListResponse = await app.inject({
+      method: "GET",
+      url: "/api/events",
+      headers: viewerHeaders,
+    });
+    expect(
+      eventListResponseSchema
+        .parse(viewerListResponse.json())
+        .items.map(({ id }) => id),
+    ).toEqual([event.id]);
+
+    const unrelatedListResponse = await app.inject({
+      method: "GET",
+      url: "/api/events",
+      headers: headers(unrelated),
+    });
+    expect(
+      eventListResponseSchema.parse(unrelatedListResponse.json()).items,
+    ).toEqual([]);
+
     for (const objectId of [event.id, task.id]) {
       const response = await app.inject({
         method: "GET",
