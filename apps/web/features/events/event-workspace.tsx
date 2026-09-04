@@ -1,7 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { type ReactNode, useState } from "react";
+import {
+  type KeyboardEvent as ReactKeyboardEvent,
+  type ReactNode,
+  useRef,
+  useState,
+} from "react";
 
 import { ErrorNotice, LoadingState } from "../../components/feedback";
 import {
@@ -68,6 +73,7 @@ export function EventWorkspace({ eventId }: { readonly eventId: string }) {
   const queries = useEventWorkspaceQueries(eventId);
   const [activeTab, setActiveTab] = useState<TabId>("overview");
   const [isEditingEvent, setIsEditingEvent] = useState(false);
+  const tabButtons = useRef(new Map<TabId, HTMLButtonElement>());
   const allQueries = Object.values(queries);
   const firstError = allQueries.find((query) => query.isError)?.error;
 
@@ -124,6 +130,32 @@ export function EventWorkspace({ eventId }: { readonly eventId: string }) {
   const visibleTabs = tabs.filter((tab) => tab.id !== "sharing" || canShare);
   const shownTab =
     activeTab === "sharing" && !canShare ? "overview" : activeTab;
+  function handleTabKeyDown(
+    event: ReactKeyboardEvent<HTMLButtonElement>,
+    tabId: TabId,
+  ) {
+    const currentIndex = visibleTabs.findIndex((tab) => tab.id === tabId);
+    let nextIndex: number | null = null;
+    if (event.key === "ArrowRight") {
+      nextIndex = (currentIndex + 1) % visibleTabs.length;
+    } else if (event.key === "ArrowLeft") {
+      nextIndex = (currentIndex - 1 + visibleTabs.length) % visibleTabs.length;
+    } else if (event.key === "Home") {
+      nextIndex = 0;
+    } else if (event.key === "End") {
+      nextIndex = visibleTabs.length - 1;
+    }
+    if (nextIndex === null) {
+      return;
+    }
+
+    event.preventDefault();
+    const nextTab = visibleTabs[nextIndex];
+    if (nextTab !== undefined) {
+      setActiveTab(nextTab.id);
+      tabButtons.current.get(nextTab.id)?.focus();
+    }
+  }
   const openTasks = todos.items.filter(
     (task) => task.status !== "done" && task.status !== "cancelled",
   );
@@ -194,21 +226,38 @@ export function EventWorkspace({ eventId }: { readonly eventId: string }) {
         ) : null}
       </header>
 
-      <nav aria-label="Event views" className="tab-list">
+      <div aria-label="Event views" className="tab-list" role="tablist">
         {visibleTabs.map((tab) => (
           <button
-            aria-current={shownTab === tab.id ? "page" : undefined}
+            aria-controls={`event-panel-${tab.id}`}
+            aria-selected={shownTab === tab.id}
             className={shownTab === tab.id ? "active" : ""}
+            id={`event-tab-${tab.id}`}
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
+            onKeyDown={(event) => handleTabKeyDown(event, tab.id)}
+            ref={(element) => {
+              if (element === null) {
+                tabButtons.current.delete(tab.id);
+              } else {
+                tabButtons.current.set(tab.id, element);
+              }
+            }}
+            role="tab"
+            tabIndex={shownTab === tab.id ? 0 : -1}
             type="button"
           >
             {tab.label}
           </button>
         ))}
-      </nav>
+      </div>
 
-      <div className="event-view">
+      <div
+        aria-labelledby={`event-tab-${shownTab}`}
+        className="event-view"
+        id={`event-panel-${shownTab}`}
+        role="tabpanel"
+      >
         {shownTab === "overview" ? (
           <section className="planning-panel overview-panel">
             <div className="overview-intro">

@@ -18,13 +18,15 @@
     "format:check": "prettier --check .",
     "lint": "biome lint apps packages",
     "test": "pnpm --filter @chronelle/schemas test && pnpm --filter @chronelle/db test && pnpm --filter @chronelle/authorization test && pnpm --filter @chronelle/storage test && pnpm --filter @chronelle/object-model test && pnpm --filter @chronelle/api-client test && pnpm --filter @chronelle/api test && pnpm --filter @chronelle/web test",
+    "test:e2e": "pnpm build && pnpm db:migrate && playwright test",
     "typecheck": "pnpm --filter @chronelle/schemas typecheck && pnpm --filter @chronelle/db typecheck && pnpm --filter @chronelle/authorization typecheck && pnpm --filter @chronelle/storage typecheck && pnpm --filter @chronelle/object-model typecheck && pnpm --filter @chronelle/api-client typecheck && pnpm --filter @chronelle/api typecheck && pnpm --filter @chronelle/web typecheck"
   },
   "devDependencies": {
+    "@biomejs/biome": "2.5.11",
+    "@playwright/test": "1.62.0",
     "@types/node": "26.4.0",
     "@types/react": "19.2.18",
     "@types/react-dom": "19.2.5",
-    "@biomejs/biome": "2.5.11",
     "prettier": "3.9.6",
     "tsx": "4.23.13",
     "typescript": "7.0.2",

@@ -191,7 +191,16 @@ describe("EventWorkspace", () => {
     expect(
       await screen.findByRole("heading", { name: "Launch night" }),
     ).toBeVisible();
-    await user.click(screen.getByRole("button", { name: "Calendar" }));
+    const overviewTab = screen.getByRole("tab", { name: "Overview" });
+    expect(overviewTab).toHaveAttribute("aria-selected", "true");
+    overviewTab.focus();
+    await user.keyboard("{ArrowRight}");
+    expect(screen.getByRole("tab", { name: "To-dos" })).toHaveAttribute(
+      "aria-selected",
+      "true",
+    );
+    expect(screen.getByRole("tabpanel")).toHaveAccessibleName("To-dos");
+    await user.click(screen.getByRole("tab", { name: "Calendar" }));
     await user.click(screen.getByRole("button", { name: "Add schedule item" }));
     await user.type(screen.getByLabelText("Schedule item"), "Guest arrival");
     fireEvent.change(screen.getByLabelText("Starts"), {
@@ -204,13 +213,13 @@ describe("EventWorkspace", () => {
     ).toBeVisible();
     expect(screen.getByText("ID 00000011")).toBeVisible();
 
-    await user.click(screen.getByRole("button", { name: "Itinerary" }));
+    await user.click(screen.getByRole("tab", { name: "Itinerary" }));
     expect(
       screen.getByRole("heading", { name: "Guest arrival" }),
     ).toBeVisible();
     expect(screen.getByText("ID 00000011")).toBeVisible();
 
-    await user.click(screen.getByRole("button", { name: "Timeline" }));
+    await user.click(screen.getByRole("tab", { name: "Timeline" }));
     expect(
       screen.getByRole("heading", { name: "Guest arrival" }),
     ).toBeVisible();
@@ -307,19 +316,19 @@ describe("EventWorkspace", () => {
       screen.getByText("1 related item is outside your permission scope."),
     ).toBeVisible();
 
-    await user.click(screen.getByRole("button", { name: "To-dos" }));
+    await user.click(screen.getByRole("tab", { name: "To-dos" }));
     expect(screen.getByText("Confirm guest list")).toBeVisible();
     expect(
       screen.getByRole("button", { name: "Complete Confirm guest list" }),
     ).toBeDisabled();
     expect(screen.queryByLabelText("Task")).toBeNull();
 
-    await user.click(screen.getByRole("button", { name: "Calendar" }));
+    await user.click(screen.getByRole("tab", { name: "Calendar" }));
     expect(
       screen.queryByRole("button", { name: "Add schedule item" }),
     ).toBeNull();
 
-    await user.click(screen.getByRole("button", { name: "Files" }));
+    await user.click(screen.getByRole("tab", { name: "Files" }));
     expect(await screen.findByText("run-of-show.pdf")).toBeVisible();
     expect(screen.getByText("Read-only files")).toBeVisible();
     expect(screen.getByRole("button", { name: "Download" })).toBeVisible();
@@ -400,7 +409,7 @@ describe("EventWorkspace", () => {
       </Providers>,
     );
 
-    await user.click(await screen.findByRole("button", { name: "Files" }));
+    await user.click(await screen.findByRole("tab", { name: "Files" }));
     expect(await screen.findByText("run-of-show.pdf")).toBeVisible();
     expect(screen.getByLabelText("Choose a private file")).toBeVisible();
     expect(
@@ -497,7 +506,7 @@ describe("EventWorkspace", () => {
       </Providers>,
     );
 
-    await user.click(await screen.findByRole("button", { name: "Sharing" }));
+    await user.click(await screen.findByRole("tab", { name: "Sharing" }));
     expect(screen.getByRole("option", { name: "Viewer" })).toBeVisible();
     expect(screen.getByRole("option", { name: "Owner" })).toBeVisible();
     expect(screen.queryByRole("option", { name: "Editor" })).toBeNull();

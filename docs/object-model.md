@@ -65,6 +65,12 @@ queries resolve canonical objects at read time. Each resource keeps the same ID
 and version in every response. These projections own ordering and selection,
 never copied business fields.
 
+Search is another read-time projection over `objects`, backed by a partial
+PostgreSQL full-text index on active display names. A search result is not a
+stored search document: it carries the same canonical ID, type, permission
+scope, version, and update time as the object row. Object-type filtering changes
+selection only and never creates another container.
+
 An attachment is one canonical Document plus one `attached_to` relationship.
 The Document uses its parent's canonical permission scope, so a file attached
 to an Event or inheriting child follows the same Event grant. A self-scoped

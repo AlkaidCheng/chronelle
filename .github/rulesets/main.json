@@ -38,6 +38,9 @@
           },
           {
             "context": "containers"
+          },
+          {
+            "context": "browser"
           }
         ],
         "strict_required_status_checks_policy": true
