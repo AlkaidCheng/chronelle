@@ -345,6 +345,18 @@ export class EventPlanningObjectService {
     return this.#requireType(resource, "reminder");
   }
 
+  async getDocument(
+    principal: UserPrincipal,
+    objectId: string,
+  ): Promise<DocumentResource> {
+    const resource = await this.#getObjectWithAction(
+      principal,
+      objectId,
+      "view",
+    );
+    return this.#requireType(resource, "document");
+  }
+
   async updateEvent(
     context: MutationContext,
     objectId: string,

@@ -68,6 +68,49 @@ export interface DocumentResource extends CanonicalObjectResource {
   readonly storageProvider: string;
 }
 
+export interface DocumentAttachmentResource {
+  readonly document: DocumentResource;
+  readonly relationId: string;
+}
+
+export interface DocumentAttachmentList {
+  readonly items: readonly DocumentAttachmentResource[];
+  readonly lockedAttachmentCount: number;
+}
+
+export interface DocumentUploadAuthorizationInput {
+  readonly checksumSha256: string;
+  readonly mimeType: string;
+  readonly originalFilename: string;
+  readonly parentObjectId: string;
+  readonly sizeBytes: number;
+}
+
+export interface DocumentUploadAuthorizationResource {
+  readonly id: string;
+  readonly upload: {
+    readonly expiresAt: Date;
+    readonly headers: Readonly<Record<string, string>>;
+    readonly method: "PUT";
+    readonly url: string;
+  };
+}
+
+export interface DocumentDownloadAuthorizationResource {
+  readonly download: {
+    readonly expiresAt: Date;
+    readonly headers: Readonly<Record<string, string>>;
+    readonly method: "GET";
+    readonly url: string;
+  };
+}
+
+export interface DocumentDownloadResource {
+  readonly bytes: Uint8Array;
+  readonly mimeType: string;
+  readonly originalFilename: string;
+}
+
 export type EventPlanningResource =
   | EventResource
   | TaskResource

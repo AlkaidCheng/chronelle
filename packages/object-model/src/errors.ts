@@ -25,3 +25,17 @@ export class RelationConflictError extends Error {
     this.name = "RelationConflictError";
   }
 }
+
+export class InvalidDocumentUploadError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "InvalidDocumentUploadError";
+  }
+}
+
+export class DocumentTransferUnavailableError extends Error {
+  constructor() {
+    super("The document transfer is unavailable.");
+    this.name = "DocumentTransferUnavailableError";
+  }
+}

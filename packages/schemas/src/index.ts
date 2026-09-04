@@ -11,6 +11,23 @@ export {
 } from "./authentication.js";
 export { healthStatusSchema, type HealthStatus } from "./health.js";
 export {
+  documentAttachmentListResponseSchema,
+  documentAttachmentResponseSchema,
+  documentDownloadAuthorizationResponseSchema,
+  documentTransferTokenParamsSchema,
+  documentUploadAuthorizationRequestSchema,
+  documentUploadAuthorizationResponseSchema,
+  documentUploadFinalizationRequestSchema,
+  maximumDocumentSizeBytes,
+  type DocumentAttachmentListResponse,
+  type DocumentAttachmentResponse,
+  type DocumentDownloadAuthorizationResponse,
+  type DocumentUploadAuthorizationPayload,
+  type DocumentUploadAuthorizationRequest,
+  type DocumentUploadAuthorizationResponse,
+  type DocumentUploadFinalizationRequest,
+} from "./documents.js";
+export {
   documentResponseSchema,
   eventCreateRequestSchema,
   eventDetailResponseSchema,
@@ -48,6 +65,7 @@ export {
   type EventResponse,
   type EventUpdateRequest,
   type EventUpdatePayload,
+  type DocumentResponse,
   type ExpenseCreateRequest,
   type ExpenseCreatePayload,
   type ExpenseResourceProjectionResponse,

@@ -11,7 +11,7 @@ coverage/
 
 # Local runtime data
 .chronelle/
-storage/
+/storage/
 postgres-data/
 
 # Secrets and local configuration

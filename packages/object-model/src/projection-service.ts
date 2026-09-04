@@ -5,6 +5,7 @@ import { and, eq, isNull } from "drizzle-orm";
 
 import type { EventPlanningObjectService } from "./object-service.js";
 import type {
+  DocumentResource,
   EventDetailProjection,
   EventPlanningResource,
   EventResource,
@@ -58,7 +59,18 @@ export class EventPlanningProjectionService {
     eventId: string,
   ): Promise<EventDetailProjection> {
     const event = await this.#objects.getEvent(principal, eventId);
-    const included = await this.#getIncludedResources(principal, eventId);
+    const [included, attached] = await Promise.all([
+      this.#getIncludedResources(principal, eventId),
+      this.#getAttachedDocuments(principal, eventId),
+    ]);
+    const documents = new Map(
+      [
+        ...included.resources.filter((resource) =>
+          isResource(resource, "document"),
+        ),
+        ...attached.resources,
+      ].map((document) => [document.id, document]),
+    );
 
     return {
       event,
@@ -74,10 +86,9 @@ export class EventPlanningProjectionService {
       reminders: included.resources.filter((resource) =>
         isResource(resource, "reminder"),
       ),
-      documents: included.resources.filter((resource) =>
-        isResource(resource, "document"),
-      ),
-      lockedRelationCount: included.lockedRelationCount,
+      documents: [...documents.values()],
+      lockedRelationCount:
+        included.lockedRelationCount + attached.lockedRelationCount,
     };
   }
 
@@ -248,10 +259,62 @@ export class EventPlanningProjectionService {
         ),
       );
 
+    return this.#resolveVisibleResources(
+      principal,
+      relations.map(({ targetObjectId }) => targetObjectId),
+    );
+  }
+
+  async #getAttachedDocuments(
+    principal: UserPrincipal,
+    eventId: string,
+  ): Promise<{
+    readonly lockedRelationCount: number;
+    readonly resources: DocumentResource[];
+  }> {
+    const relations = await this.#database
+      .select({ sourceObjectId: objectRelations.sourceObjectId })
+      .from(objectRelations)
+      .innerJoin(
+        objects,
+        and(
+          eq(objects.workspaceId, objectRelations.workspaceId),
+          eq(objects.id, objectRelations.sourceObjectId),
+          eq(objects.objectType, "document"),
+          isNull(objects.deletedAt),
+        ),
+      )
+      .where(
+        and(
+          eq(objectRelations.workspaceId, principal.workspaceId),
+          eq(objectRelations.targetObjectId, eventId),
+          eq(objectRelations.relationType, "attached_to"),
+          isNull(objectRelations.deletedAt),
+        ),
+      );
+    const resolved = await this.#resolveVisibleResources(
+      principal,
+      relations.map(({ sourceObjectId }) => sourceObjectId),
+    );
+    return {
+      resources: resolved.resources.filter((resource) =>
+        isResource(resource, "document"),
+      ),
+      lockedRelationCount: resolved.lockedRelationCount,
+    };
+  }
+
+  async #resolveVisibleResources(
+    principal: UserPrincipal,
+    objectIds: readonly string[],
+  ): Promise<{
+    readonly lockedRelationCount: number;
+    readonly resources: EventPlanningResource[];
+  }> {
     const resources = await Promise.all(
-      relations.map(async ({ targetObjectId }) => {
+      objectIds.map(async (objectId) => {
         try {
-          return await this.#objects.getObject(principal, targetObjectId);
+          return await this.#objects.getObject(principal, objectId);
         } catch (error) {
           if (error instanceof AuthorizationDeniedError) {
             return null;

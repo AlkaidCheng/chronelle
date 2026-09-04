@@ -1,0 +1,428 @@
+import { createHash } from "node:crypto";
+import { mkdtemp, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join, resolve } from "node:path";
+
+import { auditEvents } from "@chronelle/db";
+import {
+  applyMigrations,
+  createTestDatabase,
+  type TestDatabase,
+} from "@chronelle/db/testing";
+import {
+  apiErrorResponseSchema,
+  developmentSignInResponseSchema,
+  documentAttachmentListResponseSchema,
+  documentAttachmentResponseSchema,
+  documentDownloadAuthorizationResponseSchema,
+  documentUploadAuthorizationResponseSchema,
+  eventDetailResponseSchema,
+  eventResponseSchema,
+  expenseResponseSchema,
+  relationDeletionResponseSchema,
+  shareResponseSchema,
+  taskResponseSchema,
+} from "@chronelle/schemas";
+import { and, eq, like } from "drizzle-orm";
+import type { FastifyInstance, InjectOptions } from "fastify";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
+
+import { buildApp } from "../src/app.js";
+import { createDevelopmentAppDependencies } from "../src/dependencies.js";
+
+const migrationDirectory = resolve(
+  import.meta.dirname,
+  "../../../infrastructure/migrations",
+);
+
+let testDatabase: TestDatabase;
+let app: FastifyInstance;
+let storageRoot: string;
+let currentTime: Date;
+let testResourcesReady = false;
+
+beforeEach(async () => {
+  testResourcesReady = false;
+  storageRoot = await mkdtemp(join(tmpdir(), "chronelle-documents-"));
+  currentTime = new Date("2026-10-01T12:00:00Z");
+  testDatabase = await createTestDatabase();
+  await applyMigrations(
+    { DATABASE_URL: testDatabase.databaseUrl },
+    migrationDirectory,
+  );
+  app = buildApp(
+    createDevelopmentAppDependencies(testDatabase.connection, {
+      clock: () => currentTime,
+      documentTransferTtlMs: 60_000,
+      localStorageRoot: storageRoot,
+    }),
+  );
+  testResourcesReady = true;
+});
+
+afterEach(async () => {
+  try {
+    if (testResourcesReady) {
+      await app.close();
+      await testDatabase.close();
+    }
+  } finally {
+    testResourcesReady = false;
+    await rm(storageRoot, { force: true, recursive: true });
+  }
+});
+
+async function signIn(email: string, displayName: string) {
+  const response = await app.inject({
+    method: "POST",
+    url: "/api/auth/development/sign-in",
+    payload: { email, displayName },
+  });
+  expect(response.statusCode).toBe(200);
+  return developmentSignInResponseSchema.parse(response.json());
+}
+
+function headers(
+  session: Awaited<ReturnType<typeof signIn>>,
+  workspaceId = session.workspace.id,
+) {
+  return {
+    authorization: `Bearer ${session.accessToken}`,
+    "x-workspace-id": workspaceId,
+  };
+}
+
+async function request(
+  session: Awaited<ReturnType<typeof signIn>>,
+  workspaceId: string,
+  options: Omit<InjectOptions, "headers">,
+) {
+  return app.inject({ ...options, headers: headers(session, workspaceId) });
+}
+
+function fileMetadata(bytes: Buffer, originalFilename: string) {
+  return {
+    checksumSha256: createHash("sha256").update(bytes).digest("hex"),
+    mimeType: "application/pdf",
+    originalFilename,
+    sizeBytes: bytes.byteLength,
+  };
+}
+
+async function attachFile(
+  session: Awaited<ReturnType<typeof signIn>>,
+  workspaceId: string,
+  parentObjectId: string,
+  originalFilename: string,
+) {
+  const bytes = Buffer.from(`private:${originalFilename}`);
+  const authorizationResponse = await request(session, workspaceId, {
+    method: "POST",
+    url: "/api/documents/upload-url",
+    payload: { parentObjectId, ...fileMetadata(bytes, originalFilename) },
+  });
+  expect(authorizationResponse.statusCode).toBe(201);
+  const authorization = documentUploadAuthorizationResponseSchema.parse(
+    authorizationResponse.json(),
+  );
+  expect(authorization.upload.url).toMatch(
+    /^\/api\/document-transfers\/upload\/[A-Za-z0-9_-]+$/,
+  );
+  expect(JSON.stringify(authorization)).not.toContain("storageKey");
+
+  const uploadResponse = await app.inject({
+    method: "PUT",
+    url: authorization.upload.url,
+    headers: authorization.upload.headers,
+    payload: bytes,
+  });
+  expect(uploadResponse.statusCode).toBe(204);
+
+  const replayResponse = await app.inject({
+    method: "PUT",
+    url: authorization.upload.url,
+    headers: authorization.upload.headers,
+    payload: bytes,
+  });
+  expect(replayResponse.statusCode).toBe(404);
+
+  const finalizationResponse = await request(session, workspaceId, {
+    method: "POST",
+    url: "/api/documents",
+    payload: { uploadAuthorizationId: authorization.id },
+  });
+  expect(finalizationResponse.statusCode).toBe(201);
+  return {
+    attachment: documentAttachmentResponseSchema.parse(
+      finalizationResponse.json(),
+    ),
+    bytes,
+  };
+}
+
+describe.sequential("document attachment API", () => {
+  it("serves canonical private attachments through inherited permissions", async () => {
+    const owner = await signIn("owner@example.com", "Event Owner");
+    const viewer = await signIn("viewer@example.com", "Event Viewer");
+    const unrelated = await signIn("unrelated@example.com", "Other User");
+    const workspaceId = owner.workspace.id;
+
+    const eventResponse = await request(owner, workspaceId, {
+      method: "POST",
+      url: "/api/events",
+      payload: { displayName: "Launch event" },
+    });
+    const event = eventResponseSchema.parse(eventResponse.json());
+    const taskResponse = await request(owner, workspaceId, {
+      method: "POST",
+      url: "/api/tasks",
+      payload: {
+        displayName: "Confirm venue",
+        permissionScopeId: event.id,
+      },
+    });
+    const task = taskResponseSchema.parse(taskResponse.json());
+    const expenseResponse = await request(owner, workspaceId, {
+      method: "POST",
+      url: "/api/expenses",
+      payload: {
+        amount: "500.0000",
+        currency: "USD",
+        displayName: "Venue deposit",
+        occurredAt: "2026-09-15T12:00:00Z",
+        permissionScopeId: event.id,
+      },
+    });
+    const expense = expenseResponseSchema.parse(expenseResponse.json());
+
+    for (const targetObjectId of [task.id, expense.id]) {
+      const relationResponse = await request(owner, workspaceId, {
+        method: "POST",
+        url: `/api/objects/${event.id}/relations`,
+        payload: { relationType: "includes", targetObjectId },
+      });
+      expect(relationResponse.statusCode).toBe(201);
+    }
+    const shareResponse = await request(owner, workspaceId, {
+      method: "POST",
+      url: "/api/shares",
+      payload: {
+        principalEmail: "viewer@example.com",
+        resourceId: event.id,
+        role: "viewer",
+      },
+    });
+    expect(shareResponse.statusCode).toBe(201);
+    shareResponseSchema.parse(shareResponse.json());
+
+    const eventFile = await attachFile(
+      owner,
+      workspaceId,
+      event.id,
+      "run-of-show.pdf",
+    );
+    const taskFile = await attachFile(
+      owner,
+      workspaceId,
+      task.id,
+      "venue-terms.pdf",
+    );
+    const expenseFile = await attachFile(
+      owner,
+      workspaceId,
+      expense.id,
+      "deposit-receipt.pdf",
+    );
+    expect(taskFile.attachment.document.permissionScopeId).toBe(event.id);
+    expect(expenseFile.attachment.document.permissionScopeId).toBe(event.id);
+
+    const detailResponse = await request(owner, workspaceId, {
+      method: "GET",
+      url: `/api/events/${event.id}/detail`,
+    });
+    expect(
+      eventDetailResponseSchema
+        .parse(detailResponse.json())
+        .documents.map((document) => document.id),
+    ).toEqual([eventFile.attachment.document.id]);
+
+    for (const parentObjectId of [event.id, task.id, expense.id]) {
+      const ownerListResponse = await request(owner, workspaceId, {
+        method: "GET",
+        url: `/api/objects/${parentObjectId}/documents`,
+      });
+      const viewerListResponse = await request(viewer, workspaceId, {
+        method: "GET",
+        url: `/api/objects/${parentObjectId}/documents`,
+      });
+      expect(
+        documentAttachmentListResponseSchema.parse(ownerListResponse.json())
+          .items,
+      ).toHaveLength(1);
+      expect(
+        documentAttachmentListResponseSchema.parse(viewerListResponse.json())
+          .items,
+      ).toHaveLength(1);
+    }
+
+    const downloadAuthorizationResponse = await request(viewer, workspaceId, {
+      method: "GET",
+      url: `/api/documents/${eventFile.attachment.document.id}/download-url`,
+    });
+    expect(downloadAuthorizationResponse.statusCode).toBe(200);
+    const downloadAuthorization =
+      documentDownloadAuthorizationResponseSchema.parse(
+        downloadAuthorizationResponse.json(),
+      );
+    expect(downloadAuthorization.download.url).toMatch(
+      /^\/api\/document-transfers\/download\/[A-Za-z0-9_-]+$/,
+    );
+
+    const unrelatedDownloadResponse = await request(unrelated, workspaceId, {
+      method: "GET",
+      url: `/api/documents/${eventFile.attachment.document.id}/download-url`,
+    });
+    expect(unrelatedDownloadResponse.statusCode).toBe(404);
+
+    const downloadResponse = await app.inject({
+      method: "GET",
+      url: downloadAuthorization.download.url,
+    });
+    expect(downloadResponse.statusCode).toBe(200);
+    expect(downloadResponse.rawPayload).toEqual(eventFile.bytes);
+    expect(downloadResponse.headers["cache-control"]).toBe("private, no-store");
+    expect(downloadResponse.headers["content-disposition"]).toContain(
+      "run-of-show.pdf",
+    );
+
+    const replayDownloadResponse = await app.inject({
+      method: "GET",
+      url: downloadAuthorization.download.url,
+    });
+    expect(replayDownloadResponse.statusCode).toBe(404);
+
+    const viewerUploadResponse = await request(viewer, workspaceId, {
+      method: "POST",
+      url: "/api/documents/upload-url",
+      payload: {
+        parentObjectId: event.id,
+        ...fileMetadata(Buffer.from("denied"), "denied.pdf"),
+      },
+    });
+    expect(viewerUploadResponse.statusCode).toBe(404);
+
+    const viewerUnlinkResponse = await request(viewer, workspaceId, {
+      method: "DELETE",
+      url: `/api/relations/${eventFile.attachment.relationId}`,
+    });
+    expect(viewerUnlinkResponse.statusCode).toBe(404);
+
+    const unlinkResponse = await request(owner, workspaceId, {
+      method: "DELETE",
+      url: `/api/relations/${eventFile.attachment.relationId}`,
+    });
+    expect(unlinkResponse.statusCode).toBe(200);
+    relationDeletionResponseSchema.parse(unlinkResponse.json());
+
+    const unlinkedListResponse = await request(owner, workspaceId, {
+      method: "GET",
+      url: `/api/objects/${event.id}/documents`,
+    });
+    expect(
+      documentAttachmentListResponseSchema.parse(unlinkedListResponse.json())
+        .items,
+    ).toEqual([]);
+    const canonicalDocumentResponse = await request(owner, workspaceId, {
+      method: "GET",
+      url: `/api/objects/${eventFile.attachment.document.id}`,
+    });
+    expect(canonicalDocumentResponse.statusCode).toBe(200);
+    expect(canonicalDocumentResponse.json()).toMatchObject({
+      id: eventFile.attachment.document.id,
+      objectType: "document",
+    });
+    expect(canonicalDocumentResponse.json()).not.toHaveProperty("storageKey");
+
+    const documentAuditActions = (
+      await testDatabase.connection.db
+        .select({ action: auditEvents.action })
+        .from(auditEvents)
+        .where(
+          and(
+            eq(auditEvents.workspaceId, workspaceId),
+            like(auditEvents.action, "document.%"),
+          ),
+        )
+    ).map(({ action }) => action);
+    expect(documentAuditActions).toEqual(
+      expect.arrayContaining([
+        "document.upload_authorized",
+        "document.uploaded",
+        "document.created",
+        "document.download_authorized",
+        "document.downloaded",
+      ]),
+    );
+  });
+
+  it("rejects expired, incomplete, mismatched, and traversal uploads", async () => {
+    const owner = await signIn("planner@example.com", "Event Planner");
+    const eventResponse = await request(owner, owner.workspace.id, {
+      method: "POST",
+      url: "/api/events",
+      payload: { displayName: "Private event" },
+    });
+    const event = eventResponseSchema.parse(eventResponse.json());
+    const bytes = Buffer.from("expected bytes");
+    const authorizationResponse = await request(owner, owner.workspace.id, {
+      method: "POST",
+      url: "/api/documents/upload-url",
+      payload: {
+        parentObjectId: event.id,
+        ...fileMetadata(bytes, "brief.pdf"),
+      },
+    });
+    const authorization = documentUploadAuthorizationResponseSchema.parse(
+      authorizationResponse.json(),
+    );
+
+    const prematureFinalizationResponse = await request(
+      owner,
+      owner.workspace.id,
+      {
+        method: "POST",
+        url: "/api/documents",
+        payload: { uploadAuthorizationId: authorization.id },
+      },
+    );
+    expect(prematureFinalizationResponse.statusCode).toBe(404);
+
+    const mismatchedResponse = await app.inject({
+      method: "PUT",
+      url: authorization.upload.url,
+      headers: authorization.upload.headers,
+      payload: Buffer.from("different"),
+    });
+    expect(mismatchedResponse.statusCode).toBe(400);
+
+    currentTime = new Date(currentTime.getTime() + 61_000);
+    const expiredResponse = await app.inject({
+      method: "PUT",
+      url: authorization.upload.url,
+      headers: authorization.upload.headers,
+      payload: bytes,
+    });
+    expect(expiredResponse.statusCode).toBe(404);
+    expect(apiErrorResponseSchema.parse(expiredResponse.json())).toMatchObject({
+      error: { code: "transfer_unavailable" },
+    });
+
+    const traversalResponse = await app.inject({
+      method: "PUT",
+      url: "/api/document-transfers/upload/..%2F..%2Fsecret",
+      headers: { "content-type": "application/octet-stream" },
+      payload: bytes,
+    });
+    expect(traversalResponse.statusCode).toBeGreaterThanOrEqual(400);
+  });
+});

@@ -198,7 +198,6 @@ export const documentResponseSchema = z.object({
   ...canonicalObjectResponseShape,
   objectType: z.literal("document"),
   storageProvider: z.string(),
-  storageKey: z.string(),
   originalFilename: z.string(),
   mimeType: z.string(),
   sizeBytes: z.string().regex(/^\d+$/),
@@ -313,6 +312,7 @@ export type EventListResponse = z.infer<typeof eventListResponseSchema>;
 export type TaskResponse = z.infer<typeof taskResponseSchema>;
 export type ExpenseResponse = z.infer<typeof expenseResponseSchema>;
 export type ReminderResponse = z.infer<typeof reminderResponseSchema>;
+export type DocumentResponse = z.infer<typeof documentResponseSchema>;
 export type EventResourceProjectionResponse = z.infer<
   typeof eventResourceProjectionResponseSchema
 >;
