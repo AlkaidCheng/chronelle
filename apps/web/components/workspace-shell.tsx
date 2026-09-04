@@ -8,7 +8,7 @@ import { type ReactNode, useEffect } from "react";
 
 import { useAuthSession } from "../lib/auth-session";
 import { useSessionQuery } from "../lib/queries";
-import { CalendarIcon } from "./icons";
+import { CalendarIcon, SearchIcon } from "./icons";
 import { ErrorNotice, LoadingState } from "./feedback";
 
 export function WorkspaceShell({ children }: { readonly children: ReactNode }) {
@@ -84,6 +84,9 @@ export function WorkspaceShell({ children }: { readonly children: ReactNode }) {
 
   return (
     <div className="workspace-shell">
+      <a className="skip-link" href="#workspace-content">
+        Skip to content
+      </a>
       <aside className="sidebar">
         <Link className="brand" href="/events">
           <span className="brand-mark">C</span>
@@ -96,6 +99,13 @@ export function WorkspaceShell({ children }: { readonly children: ReactNode }) {
           >
             <CalendarIcon />
             Events
+          </Link>
+          <Link
+            className={pathname.startsWith("/search") ? "active" : ""}
+            href="/search"
+          >
+            <SearchIcon />
+            Search
           </Link>
         </nav>
         <label className="workspace-switcher" htmlFor="desktop-workspace">
@@ -156,7 +166,9 @@ export function WorkspaceShell({ children }: { readonly children: ReactNode }) {
             </select>
           </label>
         </header>
-        {children}
+        <div id="workspace-content" tabIndex={-1}>
+          {children}
+        </div>
       </div>
     </div>
   );

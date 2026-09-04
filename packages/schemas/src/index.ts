@@ -11,6 +11,15 @@ export {
 } from "./authentication.js";
 export { healthStatusSchema, type HealthStatus } from "./health.js";
 export {
+  objectSearchQuerySchema,
+  objectSearchResponseSchema,
+  objectSearchResultSchema,
+  type ObjectSearchQuery,
+  type ObjectSearchQueryInput,
+  type ObjectSearchResponse,
+  type ObjectSearchResult,
+} from "./search.js";
+export {
   documentAttachmentListResponseSchema,
   documentAttachmentResponseSchema,
   documentDownloadAuthorizationResponseSchema,

@@ -103,7 +103,7 @@ describe.sequential("development authentication API", () => {
     ]);
     expect(
       new Set(persistedAuditEvents.map(({ requestId }) => requestId)).size,
-    ).toBe(3);
+    ).toBe(4);
     expect(
       persistedAuditEvents.every(
         ({ actorId, actorType, resourceId, workspaceId }) =>

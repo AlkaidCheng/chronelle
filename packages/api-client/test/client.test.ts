@@ -53,6 +53,37 @@ const documentAttachment = {
 } as const;
 
 describe("ChronelleApiClient", () => {
+  it("encodes typed object search filters", async () => {
+    const searchResult = {
+      id: event.id,
+      displayName: event.displayName,
+      objectType: event.objectType,
+      permissionScopeId: event.permissionScopeId,
+      updatedAt: event.updatedAt,
+      version: event.version,
+    };
+    const fetch = vi.fn<typeof globalThis.fetch>().mockResolvedValue(
+      new Response(JSON.stringify({ items: [searchResult] }), {
+        headers: { "content-type": "application/json" },
+        status: 200,
+      }),
+    );
+    const client = new ChronelleApiClient({
+      fetch,
+      getCredential: () => ({
+        accessToken: "opaque-session",
+        workspaceId: event.workspaceId,
+      }),
+    });
+
+    await expect(
+      client.searchObjects({ limit: 10, objectType: "event", query: "launch" }),
+    ).resolves.toEqual({ items: [searchResult] });
+    expect(fetch.mock.calls[0]?.[0]).toBe(
+      "/api/search?query=launch&limit=10&objectType=event",
+    );
+  });
+
   it("adds the active identity and workspace to protected requests", async () => {
     const fetch = vi.fn<typeof globalThis.fetch>().mockResolvedValue(
       new Response(JSON.stringify({ items: [event] }), {

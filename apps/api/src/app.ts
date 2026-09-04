@@ -33,6 +33,7 @@ import { registerDocumentRoutes } from "./documents/routes.js";
 import { HttpError } from "./errors.js";
 import { registerEventPlanningRoutes } from "./event-planning/routes.js";
 import { registerRequestContext } from "./request-context.js";
+import { registerSearchRoutes } from "./search/routes.js";
 import { registerSharingRoutes } from "./sharing/routes.js";
 
 export function buildApp(
@@ -118,6 +119,7 @@ export function buildApp(
   registerSessionRoute(app, { identity: dependencies.identity });
   registerDocumentRoutes(app, dependencies);
   registerEventPlanningRoutes(app, dependencies);
+  registerSearchRoutes(app, dependencies);
   registerSharingRoutes(app, dependencies);
   if (dependencies.developmentAuth !== undefined) {
     registerDevelopmentAuthenticationRoute(app, {

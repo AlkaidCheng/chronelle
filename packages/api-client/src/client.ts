@@ -13,6 +13,7 @@ import {
   expenseResourceProjectionResponseSchema,
   expenseResponseSchema,
   objectAccessResponseSchema,
+  objectSearchResponseSchema,
   relationDeletionResponseSchema,
   relationResponseSchema,
   reminderResourceProjectionResponseSchema,
@@ -43,6 +44,8 @@ import {
   type ExpenseResponse,
   type ExpenseUpdatePayload,
   type ObjectAccessResponse,
+  type ObjectSearchQueryInput,
+  type ObjectSearchResponse,
   type PermissionScopeUpdatePayload,
   type RelationCreatePayload,
   type ReminderCreatePayload,
@@ -136,6 +139,20 @@ export class ChronelleApiClient {
 
   listEvents(): Promise<EventListResponse> {
     return this.#request("/api/events", eventListResponseSchema);
+  }
+
+  searchObjects(input: ObjectSearchQueryInput): Promise<ObjectSearchResponse> {
+    const parameters = new URLSearchParams({ query: input.query });
+    if (input.limit !== undefined) {
+      parameters.set("limit", String(input.limit));
+    }
+    if (input.objectType !== undefined) {
+      parameters.set("objectType", input.objectType);
+    }
+    return this.#request(
+      `/api/search?${parameters.toString()}`,
+      objectSearchResponseSchema,
+    );
   }
 
   createEvent(input: EventCreatePayload): Promise<EventResponse> {

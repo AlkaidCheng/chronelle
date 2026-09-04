@@ -7,6 +7,7 @@ import type {
   EventUpdatePayload,
   ExpenseCreatePayload,
   ExpenseUpdatePayload,
+  ObjectSearchQueryInput,
   PermissionScopeUpdatePayload,
   ReminderCreatePayload,
   ReminderUpdatePayload,
@@ -34,6 +35,7 @@ export const queryKeys = {
   itinerary: (eventId: string) => ["event", eventId, "itinerary"] as const,
   expenses: (eventId: string) => ["event", eventId, "expenses"] as const,
   reminders: (eventId: string) => ["event", eventId, "reminders"] as const,
+  search: (input: ObjectSearchQueryInput) => ["search", input] as const,
   access: (eventId: string) => ["event", eventId, "access"] as const,
   shares: (eventId: string) => ["event", eventId, "shares"] as const,
   attachments: (parentObjectId: string) =>
@@ -74,6 +76,21 @@ export function useEventsQuery() {
     enabled: credential !== null,
     queryFn: () => client.listEvents(),
     queryKey: queryKeys.events,
+  });
+}
+
+export function useObjectSearch(input: ObjectSearchQueryInput | null) {
+  const client = useApiClient();
+  const { credential } = useAuthSession();
+  return useQuery({
+    enabled: credential !== null && input !== null,
+    queryFn: () => {
+      if (input === null) {
+        throw new Error("Search input is required.");
+      }
+      return client.searchObjects(input);
+    },
+    queryKey: input === null ? ["search", "idle"] : queryKeys.search(input),
   });
 }
 
