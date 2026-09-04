@@ -1,6 +1,10 @@
 import {
   apiErrorResponseSchema,
   developmentSignInResponseSchema,
+  documentAttachmentListResponseSchema,
+  documentAttachmentResponseSchema,
+  documentDownloadAuthorizationResponseSchema,
+  documentUploadAuthorizationResponseSchema,
   eventDetailResponseSchema,
   eventListResponseSchema,
   eventPlanningResourceResponseSchema,
@@ -9,6 +13,7 @@ import {
   expenseResourceProjectionResponseSchema,
   expenseResponseSchema,
   objectAccessResponseSchema,
+  relationDeletionResponseSchema,
   relationResponseSchema,
   reminderResourceProjectionResponseSchema,
   reminderResponseSchema,
@@ -21,6 +26,11 @@ import {
   timelineResponseSchema,
   type DevelopmentSignInRequest,
   type DevelopmentSignInResponse,
+  type DocumentAttachmentListResponse,
+  type DocumentAttachmentResponse,
+  type DocumentDownloadAuthorizationResponse,
+  type DocumentUploadAuthorizationPayload,
+  type DocumentUploadAuthorizationResponse,
   type EventCreatePayload,
   type EventDetailResponse,
   type EventListResponse,
@@ -63,6 +73,13 @@ export interface ChronelleApiClientOptions {
   readonly getCredential?: () => ApiCredential | null;
 }
 
+export interface DocumentFileInput {
+  arrayBuffer(): Promise<ArrayBuffer>;
+  readonly name: string;
+  readonly size: number;
+  readonly type: string;
+}
+
 export class ApiClientError extends Error {
   readonly code: string;
   readonly status: number;
@@ -81,6 +98,16 @@ function jsonRequest(body: unknown, method: string): RequestInit {
     headers: { "content-type": "application/json" },
     method,
   };
+}
+
+function sha256Hex(bytes: ArrayBuffer): Promise<string> {
+  return globalThis.crypto.subtle
+    .digest("SHA-256", bytes)
+    .then((digest) =>
+      Array.from(new Uint8Array(digest), (byte) =>
+        byte.toString(16).padStart(2, "0"),
+      ).join(""),
+    );
 }
 
 export class ChronelleApiClient {
@@ -179,6 +206,87 @@ export class ChronelleApiClient {
       reminderResponseSchema,
       jsonRequest(input, "PATCH"),
     );
+  }
+
+  listDocumentAttachments(
+    parentObjectId: string,
+  ): Promise<DocumentAttachmentListResponse> {
+    return this.#request(
+      `/api/objects/${parentObjectId}/documents`,
+      documentAttachmentListResponseSchema,
+    );
+  }
+
+  authorizeDocumentUpload(
+    input: DocumentUploadAuthorizationPayload,
+  ): Promise<DocumentUploadAuthorizationResponse> {
+    return this.#request(
+      "/api/documents/upload-url",
+      documentUploadAuthorizationResponseSchema,
+      jsonRequest(input, "POST"),
+    );
+  }
+
+  finalizeDocumentUpload(
+    uploadAuthorizationId: string,
+  ): Promise<DocumentAttachmentResponse> {
+    return this.#request(
+      "/api/documents",
+      documentAttachmentResponseSchema,
+      jsonRequest({ uploadAuthorizationId }, "POST"),
+    );
+  }
+
+  async attachDocument(
+    parentObjectId: string,
+    file: DocumentFileInput,
+  ): Promise<DocumentAttachmentResponse> {
+    const bytes = await file.arrayBuffer();
+    const authorization = await this.authorizeDocumentUpload({
+      checksumSha256: await sha256Hex(bytes),
+      mimeType: file.type || "application/octet-stream",
+      originalFilename: file.name,
+      parentObjectId,
+      sizeBytes: file.size,
+    });
+    await this.#transfer(authorization.upload.url, {
+      body: bytes,
+      headers: authorization.upload.headers,
+      method: authorization.upload.method,
+    });
+    return this.finalizeDocumentUpload(authorization.id);
+  }
+
+  authorizeDocumentDownload(
+    documentId: string,
+  ): Promise<DocumentDownloadAuthorizationResponse> {
+    return this.#request(
+      `/api/documents/${documentId}/download-url`,
+      documentDownloadAuthorizationResponseSchema,
+    );
+  }
+
+  async downloadDocument(documentId: string): Promise<Blob> {
+    const authorization = await this.authorizeDocumentDownload(documentId);
+    const response = await this.#fetch(
+      this.#resolveUrl(authorization.download.url),
+      {
+        headers: authorization.download.headers,
+        method: authorization.download.method,
+      },
+    );
+    if (!response.ok) {
+      await this.#throwResponseError(response);
+    }
+    return response.blob();
+  }
+
+  deleteRelation(id: string): Promise<void> {
+    return this.#request(
+      `/api/relations/${id}`,
+      relationDeletionResponseSchema,
+      { method: "DELETE" },
+    ).then(() => undefined);
   }
 
   createRelation(sourceObjectId: string, input: RelationCreatePayload) {
@@ -313,14 +421,7 @@ export class ChronelleApiClient {
       );
     }
     if (!response.ok) {
-      const error = apiErrorResponseSchema.safeParse(body);
-      throw new ApiClientError(
-        response.status,
-        error.success ? error.data.error.code : "request_failed",
-        error.success
-          ? error.data.error.message
-          : "The request could not be completed.",
-      );
+      this.#throwParsedResponseError(response.status, body);
     }
     const parsed = schema.safeParse(body);
     if (!parsed.success) {
@@ -331,5 +432,50 @@ export class ChronelleApiClient {
       );
     }
     return parsed.data;
+  }
+
+  #resolveUrl(url: string): string {
+    return /^https?:\/\//u.test(url) ? url : `${this.#baseUrl}${url}`;
+  }
+
+  async #transfer(url: string, request: RequestInit): Promise<void> {
+    let response: Response;
+    try {
+      response = await this.#fetch(this.#resolveUrl(url), request);
+    } catch {
+      throw new ApiClientError(
+        0,
+        "network_error",
+        "The document transfer could not be completed.",
+      );
+    }
+    if (!response.ok) {
+      await this.#throwResponseError(response);
+    }
+  }
+
+  async #throwResponseError(response: Response): Promise<never> {
+    let body: unknown;
+    try {
+      body = await response.json();
+    } catch {
+      throw new ApiClientError(
+        response.status,
+        "request_failed",
+        "The document transfer could not be completed.",
+      );
+    }
+    return this.#throwParsedResponseError(response.status, body);
+  }
+
+  #throwParsedResponseError(status: number, body: unknown): never {
+    const error = apiErrorResponseSchema.safeParse(body);
+    throw new ApiClientError(
+      status,
+      error.success ? error.data.error.code : "request_failed",
+      error.success
+        ? error.data.error.message
+        : "The request could not be completed.",
+    );
   }
 }

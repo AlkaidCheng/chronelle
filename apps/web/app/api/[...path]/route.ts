@@ -32,11 +32,21 @@ async function forward(
     redirect: "manual",
   });
 
+  const responseHeaders = new Headers();
+  for (const name of [
+    "cache-control",
+    "content-disposition",
+    "content-length",
+    "content-type",
+  ]) {
+    const value = response.headers.get(name);
+    if (value !== null) {
+      responseHeaders.set(name, value);
+    }
+  }
+
   return new Response(response.body, {
-    headers: {
-      "content-type":
-        response.headers.get("content-type") ?? "application/json",
-    },
+    headers: responseHeaders,
     status: response.status,
   });
 }
@@ -44,4 +54,5 @@ async function forward(
 export const GET = forward;
 export const POST = forward;
 export const PATCH = forward;
+export const PUT = forward;
 export const DELETE = forward;

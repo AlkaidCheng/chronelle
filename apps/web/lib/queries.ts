@@ -1,5 +1,6 @@
 "use client";
 
+import type { DocumentFileInput } from "@chronelle/api-client";
 import type {
   DevelopmentSignInRequest,
   EventCreatePayload,
@@ -35,6 +36,8 @@ export const queryKeys = {
   reminders: (eventId: string) => ["event", eventId, "reminders"] as const,
   access: (eventId: string) => ["event", eventId, "access"] as const,
   shares: (eventId: string) => ["event", eventId, "shares"] as const,
+  attachments: (parentObjectId: string) =>
+    ["object", parentObjectId, "documents"] as const,
   session: ["session"] as const,
 };
 
@@ -156,6 +159,56 @@ function useEventInvalidation(eventId: string) {
 
 export function useRefreshEvent(eventId: string) {
   return useEventInvalidation(eventId);
+}
+
+export function useDocumentAttachments(parentObjectId: string) {
+  const client = useApiClient();
+  const { credential } = useAuthSession();
+  return useQuery({
+    enabled: credential !== null,
+    queryFn: () => client.listDocumentAttachments(parentObjectId),
+    queryKey: queryKeys.attachments(parentObjectId),
+  });
+}
+
+export function useAttachDocument(eventId: string, parentObjectId: string) {
+  const client = useApiClient();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (file: DocumentFileInput) =>
+      client.attachDocument(parentObjectId, file),
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.attachments(parentObjectId),
+        }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.detail(eventId) }),
+      ]);
+    },
+  });
+}
+
+export function useDownloadDocument() {
+  const client = useApiClient();
+  return useMutation({
+    mutationFn: (documentId: string) => client.downloadDocument(documentId),
+  });
+}
+
+export function useUnlinkDocument(eventId: string, parentObjectId: string) {
+  const client = useApiClient();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (relationId: string) => client.deleteRelation(relationId),
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.attachments(parentObjectId),
+        }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.detail(eventId) }),
+      ]);
+    },
+  });
 }
 
 export function useCreateEvent() {

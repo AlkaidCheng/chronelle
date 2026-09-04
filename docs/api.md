@@ -63,6 +63,35 @@ authorized; an inaccessible referenced object is omitted rather than leaked.
 Event detail includes `lockedRelationCount`, which lets clients render a
 generic private-item notice without exposing identities or business fields.
 
+## Private documents
+
+| Method | Path                                  | Behavior                              |
+| ------ | ------------------------------------- | ------------------------------------- |
+| `POST` | `/documents/upload-url`               | Authorize one parent-bound upload     |
+| `PUT`  | `/document-transfers/upload/:token`   | Transfer the authorized private bytes |
+| `POST` | `/documents`                          | Finalize one canonical Document       |
+| `GET`  | `/objects/:id/documents`              | List visible attached Documents       |
+| `GET`  | `/documents/:id/download-url`         | Authorize one private download        |
+| `GET`  | `/document-transfers/download/:token` | Download authorized private bytes     |
+
+Upload authorization accepts `parentObjectId`, `originalFilename`, `mimeType`,
+`sizeBytes`, and a lowercase SHA-256 checksum. The parent must be an Event,
+Task, or Expense that the caller can edit. Files are limited to 25 MiB. The
+returned PUT authorization is short-lived and consumed once; the transfer must
+match the declared size and checksum. `POST /documents` then accepts its
+`uploadAuthorizationId` and creates the canonical Document plus `attached_to`
+relationship in one audited transaction.
+
+The attachment list returns the relation ID, public Document metadata, and a
+generic `lockedAttachmentCount`. Delete that relation through the normal
+relationship endpoint to unlink the file without deleting its Document.
+
+Download authorization requires View on the Document and returns a short-lived
+one-time GET authorization. The local adapter rechecks permission when the
+transfer is consumed and responds with `Cache-Control: private, no-store`.
+Neither Document responses nor transfer responses expose a storage key or
+permanent public URL.
+
 ## Access and sharing
 
 | Method   | Path                            | Behavior                              |
@@ -92,7 +121,8 @@ grant makes that workspace unavailable on the next request.
 
 Each mutation validates input, authenticates the caller, authorizes the
 resource, checks an expected version where applicable, writes inside a
-transaction, and appends one audit event in that transaction. Missing and
+transaction, and appends an audit event in that transaction. File transfer
+authorization and consumption are also audited mutations. Missing and
 unauthorized protected resources both return `resource_unavailable` with HTTP 404. Sharing writes `resource.shared`, revocation writes
 `resource.share_revoked`, and scope changes write
 `object.permission_scope_updated`.

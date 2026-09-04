@@ -22,6 +22,36 @@ const event = {
   isAllDay: false,
 } as const;
 
+const documentId = "019d6e7d-0000-7000-8000-000000000010";
+const uploadAuthorizationId = "019d6e7d-0000-7000-8000-000000000011";
+const relationId = "019d6e7d-0000-7000-8000-000000000012";
+
+const documentAttachment = {
+  relationId,
+  document: {
+    id: documentId,
+    workspaceId: event.workspaceId,
+    objectType: "document",
+    displayName: "brief.txt",
+    createdBy: event.createdBy,
+    permissionScopeId: event.id,
+    createdAt: event.createdAt,
+    updatedAt: event.updatedAt,
+    version: 1,
+    archivedAt: null,
+    deletedAt: null,
+    customProperties: {},
+    metadata: {},
+    originalFilename: "brief.txt",
+    mimeType: "text/plain",
+    sizeBytes: "5",
+    checksumSha256:
+      "2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824",
+    storageProvider: "local-filesystem",
+    encryptionMode: "filesystem-permissions",
+  },
+} as const;
+
 describe("ChronelleApiClient", () => {
   it("adds the active identity and workspace to protected requests", async () => {
     const fetch = vi.fn<typeof globalThis.fetch>().mockResolvedValue(
@@ -104,5 +134,121 @@ describe("ChronelleApiClient", () => {
       code: "invalid_response",
       status: 502,
     });
+  });
+
+  it("uploads bytes through an opaque transfer without forwarding the session", async () => {
+    const fetch = vi
+      .fn<typeof globalThis.fetch>()
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            id: uploadAuthorizationId,
+            upload: {
+              expiresAt: "2026-09-02T20:05:00.000Z",
+              headers: { "content-type": "application/octet-stream" },
+              method: "PUT",
+              url: "/api/document-transfers/upload/opaque-upload-token",
+            },
+          }),
+          { headers: { "content-type": "application/json" }, status: 201 },
+        ),
+      )
+      .mockResolvedValueOnce(new Response(null, { status: 204 }))
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify(documentAttachment), {
+          headers: { "content-type": "application/json" },
+          status: 201,
+        }),
+      );
+    const client = new ChronelleApiClient({
+      baseUrl: "https://chronelle.example",
+      fetch,
+      getCredential: () => ({
+        accessToken: "opaque-session",
+        workspaceId: event.workspaceId,
+      }),
+    });
+    const bytes = new TextEncoder().encode("hello");
+
+    await expect(
+      client.attachDocument(event.id, {
+        arrayBuffer: async () => bytes.buffer,
+        name: "brief.txt",
+        size: bytes.byteLength,
+        type: "text/plain",
+      }),
+    ).resolves.toEqual(documentAttachment);
+
+    const [authorizationUrl, authorizationRequest] = fetch.mock.calls[0] ?? [];
+    expect(authorizationUrl).toBe(
+      "https://chronelle.example/api/documents/upload-url",
+    );
+    expect(JSON.parse(String(authorizationRequest?.body))).toMatchObject({
+      checksumSha256: documentAttachment.document.checksumSha256,
+      originalFilename: "brief.txt",
+      parentObjectId: event.id,
+      sizeBytes: 5,
+    });
+
+    const [uploadUrl, uploadRequest] = fetch.mock.calls[1] ?? [];
+    const uploadHeaders = new Headers(uploadRequest?.headers);
+    expect(uploadUrl).toBe(
+      "https://chronelle.example/api/document-transfers/upload/opaque-upload-token",
+    );
+    expect(uploadRequest?.method).toBe("PUT");
+    expect(uploadRequest?.body).toEqual(bytes.buffer);
+    expect(uploadHeaders.get("authorization")).toBeNull();
+    expect(uploadHeaders.get("x-workspace-id")).toBeNull();
+
+    const [finalizationUrl, finalizationRequest] = fetch.mock.calls[2] ?? [];
+    expect(finalizationUrl).toBe("https://chronelle.example/api/documents");
+    expect(finalizationRequest?.method).toBe("POST");
+    expect(new Headers(finalizationRequest?.headers).get("authorization")).toBe(
+      "Bearer opaque-session",
+    );
+  });
+
+  it("downloads private bytes only after obtaining a fresh authorization", async () => {
+    const fetch = vi
+      .fn<typeof globalThis.fetch>()
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            download: {
+              expiresAt: "2026-09-02T20:05:00.000Z",
+              headers: {},
+              method: "GET",
+              url: "/api/document-transfers/download/opaque-download-token",
+            },
+          }),
+          { headers: { "content-type": "application/json" }, status: 200 },
+        ),
+      )
+      .mockResolvedValueOnce(
+        new Response("private file", {
+          headers: { "content-type": "text/plain" },
+          status: 200,
+        }),
+      );
+    const client = new ChronelleApiClient({
+      fetch,
+      getCredential: () => ({
+        accessToken: "opaque-session",
+        workspaceId: event.workspaceId,
+      }),
+    });
+
+    const result = await client.downloadDocument(documentId);
+
+    await expect(result.text()).resolves.toBe("private file");
+    expect(fetch.mock.calls[0]?.[0]).toBe(
+      `/api/documents/${documentId}/download-url`,
+    );
+    expect(fetch.mock.calls[1]?.[0]).toBe(
+      "/api/document-transfers/download/opaque-download-token",
+    );
+    expect(
+      new Headers(fetch.mock.calls[1]?.[1]?.headers).get("authorization"),
+    ).toBeNull();
   });
 });

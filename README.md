@@ -18,6 +18,7 @@ The implemented architecture is documented in
 - TanStack Query and TanStack Table for server state and planning tables
 - Fastify and Zod for the typed REST API boundary
 - PostgreSQL with immutable SQL migrations and Drizzle query mappings
+- Provider-neutral private storage with a safe local filesystem adapter
 - pnpm workspaces in a modular monorepo
 - Vitest, Biome, Prettier, and container builds in CI
 
@@ -33,6 +34,7 @@ packages/
   db/                   Migration runner, typed schema, IDs, and DB tests
   object-model/         Canonical object, relation, and projection services
   schemas/              Shared runtime and TypeScript contracts
+  storage/              Private-object storage port and local adapter
 infrastructure/
   migrations/           Ordered SQL migrations
 docs/                   Implementation-facing documentation
@@ -106,6 +108,9 @@ Drizzle maps the accepted schema for typed application queries.
 The second migration adds the unique personal-workspace owner link and an
 index for principal-side grant lookup.
 
+The third migration adds durable, expiring document-transfer authorizations.
+Only credential hashes are persisted; file bytes remain outside PostgreSQL.
+
 ## Development authentication
 
 Create a development session and personal workspace:
@@ -150,6 +155,13 @@ silently overwriting newer data. The Sharing view manages Owner and Viewer
 access, lists inheriting resources, and can stop inheritance. A workspace
 selector exposes workspaces reached through active grants; Viewer panels remain
 read-only and inaccessible references render without protected details.
+
+The Files view attaches private files to Events, Tasks, and Expenses. Uploads
+and downloads use short-lived, one-time transfer authorizations. Finalization
+creates one canonical Document and an `attached_to` relationship; unlinking
+removes only that relationship. Local files live below `LOCAL_STORAGE_ROOT`
+with restrictive permissions, and public API responses never expose storage
+keys or permanent URLs.
 
 ## Development commands
 

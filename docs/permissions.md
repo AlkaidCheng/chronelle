@@ -44,6 +44,19 @@ Object references never grant access. APIs, projections, searches, attachment
 URLs, and relation traversal must independently authorize every protected
 resource they return.
 
+Document upload authorization requires Edit on the Event, Task, or Expense
+being attached to. The resulting Document inherits that parent's canonical
+permission scope. Finalization rechecks Edit so a revoked user cannot turn an
+earlier upload into a canonical object. Listing attachments requires View on
+the parent and separately authorizes every Document; inaccessible attachments
+contribute only to a generic count.
+
+Download authorization requires View on the canonical Document. Local
+downloads use an opaque, expiring, one-time bearer credential and recheck View
+when bytes are requested, so revoking a grant invalidates an already-issued
+download. Viewers can download inherited files but cannot upload, replace, or
+unlink them. Storage keys and permanent public URLs are never returned.
+
 The Event collection is also a protected query. It selects candidates only in
 the active workspace and applies `can(principal, view, event)` to every returned
 Event. A relationship or workspace ID alone cannot make an Event appear.

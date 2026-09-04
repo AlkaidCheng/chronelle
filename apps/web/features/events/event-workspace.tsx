@@ -10,6 +10,7 @@ import {
   CheckIcon,
   ClockIcon,
   LockIcon,
+  PaperclipIcon,
   WalletIcon,
 } from "../../components/icons";
 import { formatDateTime, formatMoney, shortId } from "../../lib/format";
@@ -22,6 +23,7 @@ import {
   TasksPanel,
   TimelinePanel,
 } from "./planning-panels";
+import { DocumentsPanel } from "./documents-panel";
 import { EventEditorForm } from "./resource-forms";
 import { SharingPanel } from "./sharing-panel";
 
@@ -33,6 +35,7 @@ const tabs = [
   { id: "itinerary", label: "Itinerary" },
   { id: "expenses", label: "Expenses" },
   { id: "reminders", label: "Reminders" },
+  { id: "files", label: "Files" },
   { id: "sharing", label: "Sharing" },
 ] as const;
 
@@ -256,6 +259,12 @@ export function EventWorkspace({ eventId }: { readonly eventId: string }) {
                 label="Reminders"
                 onOpen={() => setActiveTab("reminders")}
               />
+              <OverviewCard
+                count={String(detail.documents.length)}
+                icon={<PaperclipIcon />}
+                label="Event files"
+                onOpen={() => setActiveTab("files")}
+              />
             </div>
             <div className="next-up surface-subtle">
               <ClockIcon />
@@ -299,6 +308,14 @@ export function EventWorkspace({ eventId }: { readonly eventId: string }) {
             canEdit={canEdit}
             eventId={eventId}
             reminders={reminders.items}
+          />
+        ) : null}
+        {shownTab === "files" ? (
+          <DocumentsPanel
+            canEdit={canEdit}
+            event={event}
+            expenses={expenses.items}
+            tasks={todos.items}
           />
         ) : null}
         {shownTab === "sharing" && canShare ? (

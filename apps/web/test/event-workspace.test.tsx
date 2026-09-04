@@ -19,6 +19,8 @@ const workspaceId = "019d6e7d-0000-7000-8000-000000000001";
 const userId = "019d6e7d-0000-7000-8000-000000000002";
 const eventId = "019d6e7d-0000-7000-8000-000000000010";
 const scheduledEventId = "019d6e7d-0000-7000-8000-000000000011";
+const documentId = "019d6e7d-0000-7000-8000-000000000030";
+const documentRelationId = "019d6e7d-0000-7000-8000-000000000031";
 
 const rootEvent = {
   id: eventId,
@@ -38,6 +40,23 @@ const rootEvent = {
   endsAt: "2026-10-16T03:00:00.000Z",
   timezone: "America/Los_Angeles",
   isAllDay: false,
+} as const;
+
+const documentAttachment = {
+  relationId: documentRelationId,
+  document: {
+    ...rootEvent,
+    id: documentId,
+    objectType: "document",
+    displayName: "run-of-show.pdf",
+    originalFilename: "run-of-show.pdf",
+    mimeType: "application/pdf",
+    sizeBytes: "4096",
+    checksumSha256:
+      "2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824",
+    storageProvider: "local-filesystem",
+    encryptionMode: "filesystem-permissions",
+  },
 } as const;
 
 function jsonResponse(body: unknown, status = 200): Response {
@@ -260,6 +279,12 @@ describe("EventWorkspace", () => {
           ],
         });
       }
+      if (path === `/api/objects/${eventId}/documents`) {
+        return jsonResponse({
+          items: [documentAttachment],
+          lockedAttachmentCount: 0,
+        });
+      }
       return jsonResponse(
         { error: { code: "not_found", message: `No mock for ${path}` } },
         404,
@@ -293,6 +318,110 @@ describe("EventWorkspace", () => {
     expect(
       screen.queryByRole("button", { name: "Add schedule item" }),
     ).toBeNull();
+
+    await user.click(screen.getByRole("button", { name: "Files" }));
+    expect(await screen.findByText("run-of-show.pdf")).toBeVisible();
+    expect(screen.getByText("Read-only files")).toBeVisible();
+    expect(screen.getByRole("button", { name: "Download" })).toBeVisible();
+    expect(screen.queryByLabelText("Choose a private file")).toBeNull();
+    expect(screen.queryByRole("button", { name: "Unlink" })).toBeNull();
+  });
+
+  it("lets an owner choose attachment targets and unlink without deleting", async () => {
+    const task = {
+      ...rootEvent,
+      id: "019d6e7d-0000-7000-8000-000000000032",
+      objectType: "task",
+      displayName: "Confirm venue",
+      startsAt: undefined,
+      endsAt: undefined,
+      timezone: undefined,
+      isAllDay: undefined,
+      status: "todo",
+      dueAt: null,
+      completedAt: null,
+    } as const;
+    let attachments = [documentAttachment];
+    const fetch = vi.fn<typeof globalThis.fetch>(async (input, init) => {
+      const path = requestPath(input);
+      if (path === `/api/events/${eventId}/detail`) {
+        return jsonResponse({
+          event: rootEvent,
+          events: [],
+          tasks: [task],
+          expenses: [],
+          reminders: [],
+          documents: [documentAttachment.document],
+          lockedRelationCount: 0,
+        });
+      }
+      if (path === `/api/objects/${eventId}/access`) {
+        return jsonResponse({
+          resourceId: eventId,
+          actions: ["view", "comment", "edit", "share", "delete"],
+        });
+      }
+      if (path === `/api/events/${eventId}/todos`) {
+        return jsonResponse({ sourceEventId: eventId, items: [task] });
+      }
+      if (
+        path === `/api/events/${eventId}/calendar` ||
+        path === `/api/events/${eventId}/itinerary` ||
+        path === `/api/events/${eventId}/expenses` ||
+        path === `/api/events/${eventId}/reminders` ||
+        path === `/api/events/${eventId}/timeline`
+      ) {
+        return jsonResponse({ sourceEventId: eventId, items: [] });
+      }
+      if (path === `/api/objects/${eventId}/documents`) {
+        return jsonResponse({ items: attachments, lockedAttachmentCount: 0 });
+      }
+      if (
+        path === `/api/relations/${documentRelationId}` &&
+        init?.method === "DELETE"
+      ) {
+        attachments = [];
+        return jsonResponse({
+          id: documentRelationId,
+          deletedAt: "2026-09-02T20:10:00.000Z",
+        });
+      }
+      return jsonResponse(
+        { error: { code: "not_found", message: `No mock for ${path}` } },
+        404,
+      );
+    });
+    vi.stubGlobal("fetch", fetch);
+    const user = userEvent.setup();
+
+    render(
+      <Providers>
+        <EventWorkspace eventId={eventId} />
+      </Providers>,
+    );
+
+    await user.click(await screen.findByRole("button", { name: "Files" }));
+    expect(await screen.findByText("run-of-show.pdf")).toBeVisible();
+    expect(screen.getByLabelText("Choose a private file")).toBeVisible();
+    expect(
+      screen.getByRole("option", { name: "Event: Launch night" }),
+    ).toBeVisible();
+    expect(
+      screen.getByRole("option", { name: "Task: Confirm venue" }),
+    ).toBeVisible();
+
+    await user.click(screen.getByRole("button", { name: "Unlink" }));
+
+    await waitFor(() => {
+      expect(
+        fetch.mock.calls.some(
+          ([url, request]) =>
+            url === `/api/relations/${documentRelationId}` &&
+            request?.method === "DELETE",
+        ),
+      ).toBe(true);
+    });
+    expect(await screen.findByText("No files attached")).toBeVisible();
   });
 
   it("shares an Event with an existing development user", async () => {
