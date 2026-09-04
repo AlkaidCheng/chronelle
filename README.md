@@ -18,9 +18,10 @@ The implemented architecture is documented in
 - TanStack Query and TanStack Table for server state and planning tables
 - Fastify and Zod for the typed REST API boundary
 - PostgreSQL with immutable SQL migrations and Drizzle query mappings
+- PostgreSQL full-text search with per-result authorization
 - Provider-neutral private storage with a safe local filesystem adapter
 - pnpm workspaces in a modular monorepo
-- Vitest, Biome, Prettier, and container builds in CI
+- Vitest, Playwright, Biome, Prettier, and container builds in CI
 
 ## Repository layout
 
@@ -32,7 +33,7 @@ packages/
   api-client/           Typed, runtime-validated REST client
   authorization/        Central policy and PostgreSQL permission lookup
   db/                   Migration runner, typed schema, IDs, and DB tests
-  object-model/         Canonical object, relation, and projection services
+  object-model/         Canonical object, relation, projection, and search services
   schemas/              Shared runtime and TypeScript contracts
   storage/              Private-object storage port and local adapter
 infrastructure/
@@ -67,11 +68,17 @@ this adapter.
 
 ## Install and run
 
-Start PostgreSQL, install dependencies, apply migrations, and run both apps:
+Install dependencies once:
+
+```bash
+pnpm install
+```
+
+Then use the three-command development workflow to start PostgreSQL, apply any
+pending migrations, and run both apps:
 
 ```bash
 docker compose up -d
-pnpm install
 pnpm db:migrate
 pnpm dev
 ```
@@ -110,6 +117,9 @@ index for principal-side grant lookup.
 
 The third migration adds durable, expiring document-transfer authorizations.
 Only credential hashes are persisted; file bytes remain outside PostgreSQL.
+
+The fourth migration adds a partial PostgreSQL full-text index for active
+canonical object names.
 
 ## Development authentication
 
@@ -163,6 +173,11 @@ removes only that relationship. Local files live below `LOCAL_STORAGE_ROOT`
 with restrictive permissions, and public API responses never expose storage
 keys or permanent URLs.
 
+The Search view queries canonical object names with an optional object-type
+filter. Results are restricted to the active workspace and independently
+authorized before the API returns them. Search stores no projection copy and
+does not expose a count of protected matches.
+
 ## Development commands
 
 Run API and web development servers:
@@ -184,6 +199,38 @@ defaults.
 Individual checks are available as `pnpm format:check`, `pnpm lint`,
 `pnpm typecheck`, `pnpm test`, and `pnpm build`.
 
+Install the pinned Chromium build once, then run the real-browser release gate
+against the PostgreSQL service:
+
+```bash
+pnpm exec playwright install chromium
+pnpm test:e2e
+```
+
+The browser gate runs the same canonical Event creation and search path at
+desktop and narrow-mobile widths. It also checks tab-keyboard behavior, the
+skip link, and horizontal overflow. CI installs Chromium and runs this gate in
+a dedicated required job.
+
+The API suite contains a fresh-database release test for the complete event
+slice. It covers canonical projections, Owner and Viewer behavior, hidden
+relations, search isolation, version conflicts, soft deletion, private
+attachments across an API restart, and audit request IDs.
+
+## Known V1A limitations
+
+- Development authentication is in-memory and is not a production identity
+  provider.
+- Search covers canonical display names and one object-type filter within a
+  500-candidate window; pagination and richer filters are deferred.
+- PostgreSQL RLS is deferred until the runtime uses a separate least-privilege
+  database role and transaction-local workspace context. Application
+  authorization and workspace constraints remain mandatory.
+- Local filesystem storage is the development adapter; Tencent COS remains a
+  provider implementation milestone.
+- Reminder delivery providers, invitations, anonymous links, recurrence, and
+  the travel object slice remain deferred.
+
 ## Containers and delivery
 
 Build either application from the repository root:
@@ -193,10 +240,11 @@ docker build -f apps/api/Dockerfile -t chronelle-api .
 docker build -f apps/web/Dockerfile -t chronelle-web .
 ```
 
-CI validates formatting, lint, types, tests, application builds, and both
-containers. Version tags publish API and web images to GitHub Container
-Registry; a runtime deployment target is intentionally not selected yet.
+CI validates formatting, lint, types, tests, application builds, the responsive
+browser smoke path, and both containers. Version tags publish API and web images
+to GitHub Container Registry; a runtime deployment target is intentionally not
+selected yet.
 
-Repository policy requires pull-request review and passing `quality` and
-`containers` checks for `main`. When host-side branch rules are unavailable,
+Repository policy requires pull-request review and passing `quality`, `browser`,
+and `containers` checks for `main`. When host-side branch rules are unavailable,
 maintainers enforce the same policy through the review workflow.

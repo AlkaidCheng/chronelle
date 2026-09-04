@@ -32,6 +32,24 @@ before returning it. Directly shared Events can appear without workspace
 membership; child schedule items, unrelated Events, and soft-deleted Events are
 omitted.
 
+## Search
+
+| Method | Path      | Behavior                                   |
+| ------ | --------- | ------------------------------------------ |
+| `GET`  | `/search` | Search authorized active canonical objects |
+
+`GET /search` requires a `query` of 2-120 characters containing at least one
+letter or number. `objectType` may select `event`, `task`, `expense`,
+`reminder`, or `document`; `limit` defaults to 20 and is capped at 50. The
+response contains compact canonical object fields and no pre-authorization
+total.
+
+PostgreSQL full-text search selects active candidates only in the request
+workspace. Each candidate then passes through
+`can(principal, view, resource)` before it can enter the response. The current
+V1A candidate window is 500 matches; pagination and richer structured filters
+are deferred.
+
 ## Relationships
 
 | Method   | Path                     | Behavior                             |

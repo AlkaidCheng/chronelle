@@ -1,0 +1,32 @@
+import type { CanonicalObjectSearchService } from "@chronelle/object-model";
+import {
+  objectSearchQuerySchema,
+  objectSearchResponseSchema,
+} from "@chronelle/schemas";
+import type { FastifyInstance } from "fastify";
+
+import { requirePrincipal } from "../request-context.js";
+import { parseRequest } from "../request-validation.js";
+
+export interface SearchRouteDependencies {
+  readonly search: CanonicalObjectSearchService;
+}
+
+export function registerSearchRoutes(
+  app: FastifyInstance,
+  dependencies: SearchRouteDependencies,
+): void {
+  app.get("/api/search", { preHandler: app.authenticate }, async (request) => {
+    const input = parseRequest(objectSearchQuerySchema, request.query);
+    const items = await dependencies.search.search(
+      requirePrincipal(request),
+      input,
+    );
+    return objectSearchResponseSchema.parse({
+      items: items.map((item) => ({
+        ...item,
+        updatedAt: item.updatedAt.toISOString(),
+      })),
+    });
+  });
+}

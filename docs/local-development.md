@@ -2,12 +2,18 @@
 
 ## Setup
 
-Use Node.js 24 or newer, pnpm 11.25, and Docker. From the repository root:
+Use Node.js 24 or newer, pnpm 11.25, and Docker. Install dependencies once from
+the repository root:
 
 ```bash
 cp .env.example .env
-docker compose up -d
 pnpm install
+```
+
+The repeatable three-command workflow is:
+
+```bash
+docker compose up -d
 pnpm db:migrate
 pnpm dev
 ```
@@ -81,6 +87,10 @@ Create child resources with the Event ID as `permissionScopeId`, then connect
 them with `POST /api/objects/:eventId/relations`. See
 [`api.md`](api.md) for the complete first-slice route map.
 
+The Search view uses `GET /api/search`. Search responses contain only active
+objects in the selected workspace that pass the central View decision. Use the
+object-type selector to exercise the structured filter.
+
 ## Services
 
 Docker Compose starts PostgreSQL on the configured `POSTGRES_PORT`. Application
@@ -116,6 +126,22 @@ running before `pnpm test` or `pnpm check`.
 `TEST_DATABASE_URL` is an administrative connection used only by the test
 harness. Its role must be allowed to create and drop databases. The local
 Compose role has the required permission.
+
+The final API integration test starts from a newly migrated disposable
+database, exercises the complete event-planning slice, rebuilds the Fastify app
+against the same database and storage root, then verifies persisted data and a
+previously authorized private download.
+
+Install the pinned Playwright browser once and run the responsive browser gate:
+
+```bash
+pnpm exec playwright install chromium
+pnpm test:e2e
+```
+
+`pnpm test:e2e` builds both applications, applies pending migrations, starts
+the production entry points, and runs the canonical Event creation and search
+path in desktop and narrow-mobile Chromium projects.
 
 ## Migrations
 

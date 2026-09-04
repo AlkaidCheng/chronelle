@@ -28,8 +28,8 @@ the common `objects` table holds identity and lifecycle fields.
 - `packages/authorization` owns the central permission policy, audited direct
   grant lifecycle, and PostgreSQL-backed access lookup.
 - `packages/object-model` owns canonical Event, Task, Expense, and Reminder
-  lifecycle behavior, relationships, document workflows, and event-plan
-  projections.
+  lifecycle behavior, relationships, document workflows, event-plan
+  projections, and authorized object search.
 - `packages/schemas` owns contracts shared across process boundaries.
 - `packages/storage` owns the provider-neutral private storage port and the
   local filesystem development adapter.
@@ -96,13 +96,16 @@ are consumed once.
 
 ## Event-planning vertical slice
 
-Fastify routes validate requests and delegate to four domain services:
+Fastify routes validate requests and delegate to five domain services:
 
 - `EventPlanningObjectService` manages canonical and typed rows as one unit.
 - `ObjectRelationService` manages compatible, metadata-bearing links without
   owning either endpoint.
 - `EventPlanningProjectionService` resolves event detail and focused views at
   read time, authorizing every returned object.
+- `CanonicalObjectSearchService` queries the active workspace's PostgreSQL
+  full-text index and applies the same View decision to every candidate before
+  returning a compact canonical result.
 - `ResourceGrantService` creates, lists, and revokes user grants only after the
   central policy permits Share on the canonical resource.
 
@@ -112,7 +115,28 @@ Deleting a relation only unlinks its endpoints; deleting an object is a
 versioned soft deletion. Unauthorized and missing resources share one public
 response to avoid existence leaks.
 
+Search stores no second object representation. Results contain the canonical
+ID, type, display name, permission scope, version, and update time read from
+`objects`. The V1A query supports a name phrase, one optional object-type
+filter, and a bounded result count. It intentionally omits totals because a
+count before authorization could reveal protected matches.
+
 React components do not contain authorization or domain business logic.
+
+## Workspace isolation and RLS
+
+Application queries constrain rows by the authenticated workspace, composite
+foreign keys prevent cross-workspace references, and every protected result is
+checked by `AuthorizationService`. Adversarial integration tests cover forged
+workspace selection, relation traversal, projections, search, and files.
+
+PostgreSQL RLS is deferred until the API uses a separate least-privilege runtime
+role and binds each request workspace to a transaction-local database setting.
+The current pooled connection uses the migration owner and does not wrap every
+read in a request transaction. Enabling policies in that model would either be
+bypassable by the owner or risk workspace state leaking between pooled
+statements. Fine-grained permission logic will remain in the application after
+RLS is added.
 
 ## Web client boundary
 
@@ -142,6 +166,12 @@ grant administration, while Viewers receive read-only planning panels. Owners
 can stop a child object's inheritance with a versioned permission-scope
 mutation. Locked relationships render as a generic count; inaccessible IDs,
 types, and fields never enter the client response.
+
+The workspace includes a dedicated Search view. Its typed filter is sent to the
+API; the browser never filters an unrestricted object collection. Event tabs
+use the ARIA `tablist`, `tab`, and `tabpanel` roles with arrow, Home, and End
+keyboard navigation. The shell provides a keyboard-visible skip link, and
+narrow-screen layouts keep forms and result actions in a single usable column.
 
 Creating an included planning resource currently uses two independently
 audited API mutations: create the scoped canonical object, then create its

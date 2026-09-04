@@ -18,5 +18,8 @@ The third migration stores short-lived document transfer authorizations as
 hashed, one-time credentials. It binds each transfer to one canonical resource,
 workspace, actor, storage key, and validated file metadata.
 
+The fourth migration adds the partial PostgreSQL full-text index used to search
+active canonical object names.
+
 Never edit a migration after it has been applied to a shared database. Add the
 next ordered migration instead.

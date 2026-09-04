@@ -69,3 +69,43 @@ jobs:
           context: .
           file: apps/web/Dockerfile
           push: false
+
+  browser:
+    name: browser
+    needs: quality
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_DB: chronelle
+          POSTGRES_USER: chronelle
+          POSTGRES_PASSWORD: chronelle_dev
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U chronelle -d chronelle"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      CI: "true"
+      DATABASE_URL: postgresql://chronelle:chronelle_dev@localhost:5432/chronelle
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Install pnpm
+        uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6.0.9
+        with:
+          version: 11.25.0
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          cache: pnpm
+          node-version: 24
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Install Chromium
+        run: pnpm exec playwright install --with-deps chromium
+      - name: Run browser release gate
+        run: pnpm test:e2e

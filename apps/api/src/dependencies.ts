@@ -5,6 +5,7 @@ import {
 } from "@chronelle/authorization";
 import type { DatabaseConnection } from "@chronelle/db";
 import {
+  CanonicalObjectSearchService,
   DocumentService,
   EventPlanningObjectService,
   EventPlanningProjectionService,
@@ -28,6 +29,7 @@ export interface AppDependencies {
   readonly objects: EventPlanningObjectService;
   readonly projections: EventPlanningProjectionService;
   readonly relations: ObjectRelationService;
+  readonly search: CanonicalObjectSearchService;
   readonly shares: ResourceGrantService;
 }
 
@@ -69,6 +71,7 @@ export function createAppDependencies(
     identity: new WorkspaceIdentityService(connection.db, authorization),
     objects,
     relations: new ObjectRelationService(connection.db, authorization),
+    search: new CanonicalObjectSearchService(connection.db, authorization),
     shares: new ResourceGrantService(connection.db, authorization),
     projections: new EventPlanningProjectionService(connection.db, objects),
   };

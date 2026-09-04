@@ -61,6 +61,12 @@ The Event collection is also a protected query. It selects candidates only in
 the active workspace and applies `can(principal, view, event)` to every returned
 Event. A relationship or workspace ID alone cannot make an Event appear.
 
+Search follows the same rule. It selects only active candidates from the
+authenticated workspace, calls `can(principal, view, resource)` for each one,
+and returns no total computed from unauthorized rows. Object-type filters do
+not weaken that decision. A directly shared Event and its inheriting children
+can appear; a related self-scoped object cannot.
+
 Creating a relationship requires Edit on its source and View on its target.
 Listing relationships first authorizes the requested object, then omits links
 whose other endpoint is unavailable to the caller. Removing a relationship
@@ -82,6 +88,10 @@ inside it. Resource authorization additionally requires the resource workspace
 to match that active workspace. Missing and unauthorized resources use the same
 external error shape so forged IDs do not reveal existence.
 
-PostgreSQL row-level security is planned as defense in depth for workspace
-isolation. Fine-grained authorization remains in the application layer so its
+PostgreSQL row-level security remains deferred defense in depth. The current
+pooled connection uses one table-owning role and does not bind every protected
+query to a transaction-local workspace setting. Policies in that model would
+be bypassable or could reuse session state across requests. RLS will be enabled
+with a separate least-privilege runtime role and transaction-scoped workspace
+context. Fine-grained authorization remains in the application layer so its
 decisions are testable and consistent across clients.

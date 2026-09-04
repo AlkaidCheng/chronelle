@@ -215,6 +215,21 @@ export interface RelationDeletionResource {
   readonly id: string;
 }
 
+export interface ObjectSearchInput {
+  readonly limit: number;
+  readonly objectType?: ObjectType | undefined;
+  readonly query: string;
+}
+
+export interface ObjectSearchResultResource {
+  readonly displayName: string;
+  readonly id: string;
+  readonly objectType: ObjectType;
+  readonly permissionScopeId: string;
+  readonly updatedAt: Date;
+  readonly version: number;
+}
+
 export interface EventDetailProjection {
   readonly documents: readonly DocumentResource[];
   readonly event: EventResource;
