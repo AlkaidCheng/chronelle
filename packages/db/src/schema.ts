@@ -43,6 +43,10 @@ export const actorTypes = [
 ] as const;
 export type ActorType = (typeof actorTypes)[number];
 
+export const documentTransferOperations = ["upload", "download"] as const;
+export type DocumentTransferOperation =
+  (typeof documentTransferOperations)[number];
+
 export const taskStatuses = [
   "todo",
   "in_progress",
@@ -231,6 +235,37 @@ export const documents = pgTable("documents", {
   encryptionMode: text("encryption_mode").notNull().default("provider"),
 });
 
+export const documentTransferAuthorizations = pgTable(
+  "document_transfer_authorizations",
+  {
+    id: uuid("id").primaryKey(),
+    workspaceId: uuid("workspace_id").notNull(),
+    operation: text("operation").$type<DocumentTransferOperation>().notNull(),
+    tokenHash: text("token_hash").notNull(),
+    resourceId: uuid("resource_id").notNull(),
+    storageProvider: text("storage_provider").notNull(),
+    storageKey: text("storage_key").notNull(),
+    originalFilename: text("original_filename").notNull(),
+    mimeType: text("mime_type").notNull(),
+    sizeBytes: bigint("size_bytes", { mode: "bigint" }).notNull(),
+    checksumSha256: text("checksum_sha256").notNull(),
+    authorizedBy: uuid("authorized_by").notNull(),
+    createdAt: createCreatedAtColumn(),
+    expiresAt: timestamp("expires_at", {
+      mode: "date",
+      withTimezone: true,
+    }).notNull(),
+    consumedAt: timestamp("consumed_at", {
+      mode: "date",
+      withTimezone: true,
+    }),
+    finalizedAt: timestamp("finalized_at", {
+      mode: "date",
+      withTimezone: true,
+    }),
+  },
+);
+
 export type UserRow = typeof users.$inferSelect;
 export type NewUserRow = typeof users.$inferInsert;
 export type WorkspaceRow = typeof workspaces.$inferSelect;
@@ -255,3 +290,7 @@ export type ReminderRow = typeof reminders.$inferSelect;
 export type NewReminderRow = typeof reminders.$inferInsert;
 export type DocumentRow = typeof documents.$inferSelect;
 export type NewDocumentRow = typeof documents.$inferInsert;
+export type DocumentTransferAuthorizationRow =
+  typeof documentTransferAuthorizations.$inferSelect;
+export type NewDocumentTransferAuthorizationRow =
+  typeof documentTransferAuthorizations.$inferInsert;

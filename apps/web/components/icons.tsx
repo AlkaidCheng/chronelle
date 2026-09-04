@@ -97,3 +97,30 @@ export function LockIcon({ className }: IconProps) {
     </svg>
   );
 }
+
+export function PaperclipIcon({ className }: IconProps) {
+  return (
+    <svg
+      aria-hidden="true"
+      className={className}
+      fill="none"
+      viewBox="0 0 24 24"
+    >
+      <path d="m9.5 12.5 5.8-5.8a3.2 3.2 0 0 1 4.5 4.5l-8.2 8.2a5 5 0 0 1-7.1-7.1l8-8" />
+      <path d="m7.5 14.5 7.8-7.8" />
+    </svg>
+  );
+}
+
+export function DownloadIcon({ className }: IconProps) {
+  return (
+    <svg
+      aria-hidden="true"
+      className={className}
+      fill="none"
+      viewBox="0 0 24 24"
+    >
+      <path d="M12 4v11M8 11l4 4 4-4M5 20h14" />
+    </svg>
+  );
+}

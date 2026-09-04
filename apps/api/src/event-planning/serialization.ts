@@ -70,7 +70,6 @@ export function serializeResource(resource: EventPlanningResource) {
         ...canonical,
         objectType: "document" as const,
         storageProvider: resource.storageProvider,
-        storageKey: resource.storageKey,
         originalFilename: resource.originalFilename,
         mimeType: resource.mimeType,
         sizeBytes: resource.sizeBytes.toString(),

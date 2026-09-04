@@ -7,6 +7,7 @@ import {
   expenseCreateRequestSchema,
   relationCreateRequestSchema,
 } from "../src/event-planning.js";
+import { documentUploadAuthorizationRequestSchema } from "../src/documents.js";
 
 describe("event-planning schemas", () => {
   it("normalizes typed creation input", () => {
@@ -47,6 +48,25 @@ describe("event-planning schemas", () => {
       eventPlanningResourceResponseSchema.safeParse({
         id: "00000000-0000-7000-8000-000000000001",
         objectType: "event",
+      }).success,
+    ).toBe(false);
+  });
+
+  it("validates attachment metadata at the transport boundary", () => {
+    const valid = {
+      checksumSha256: "a".repeat(64),
+      mimeType: "application/pdf",
+      originalFilename: "ticket.pdf",
+      parentObjectId: "00000000-0000-7000-8000-000000000001",
+      sizeBytes: 1024,
+    };
+    expect(documentUploadAuthorizationRequestSchema.parse(valid)).toEqual(
+      valid,
+    );
+    expect(
+      documentUploadAuthorizationRequestSchema.safeParse({
+        ...valid,
+        originalFilename: "../ticket.pdf",
       }).success,
     ).toBe(false);
   });

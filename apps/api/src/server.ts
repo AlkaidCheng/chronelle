@@ -21,6 +21,12 @@ const runtimeEnvironmentSchema = z.object({
     .positive()
     .default(720),
   ENABLE_DEVELOPMENT_AUTH: z.stringbool().default(false),
+  DOCUMENT_TRANSFER_TTL_SECONDS: z.coerce
+    .number()
+    .int()
+    .positive()
+    .default(300),
+  LOCAL_STORAGE_ROOT: z.string().min(1).default(".chronelle/storage"),
 });
 
 const runtimeEnvironment = runtimeEnvironmentSchema.parse(process.env);
@@ -28,10 +34,13 @@ if (!runtimeEnvironment.ENABLE_DEVELOPMENT_AUTH) {
   throw new Error("No authentication provider is enabled.");
 }
 const database = connectDatabase(runtimeEnvironment.DATABASE_URL);
-const dependencies = createDevelopmentAppDependencies(
-  database,
-  runtimeEnvironment.DEVELOPMENT_AUTH_SESSION_TTL_MINUTES * 60_000,
-);
+const dependencies = createDevelopmentAppDependencies(database, {
+  developmentSessionTtlMs:
+    runtimeEnvironment.DEVELOPMENT_AUTH_SESSION_TTL_MINUTES * 60_000,
+  documentTransferTtlMs:
+    runtimeEnvironment.DOCUMENT_TRANSFER_TTL_SECONDS * 1_000,
+  localStorageRoot: runtimeEnvironment.LOCAL_STORAGE_ROOT,
+});
 const app = buildApp(dependencies, { logger: true });
 
 app.addHook("onClose", async () => {

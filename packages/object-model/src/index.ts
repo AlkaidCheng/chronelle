@@ -1,4 +1,5 @@
 export * from "./errors.js";
+export { DocumentService } from "./document-service.js";
 export { EventPlanningObjectService } from "./object-service.js";
 export {
   isCompatibleRelation,

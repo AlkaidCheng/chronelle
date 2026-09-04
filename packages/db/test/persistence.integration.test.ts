@@ -116,7 +116,7 @@ describe.sequential("persistence kernel", () => {
         { DATABASE_URL: testDatabase.databaseUrl },
         migrationDirectory,
       ),
-    ).resolves.toBe(2);
+    ).resolves.toBe(3);
     await expect(
       applyMigrations(
         { DATABASE_URL: testDatabase.databaseUrl },
@@ -135,6 +135,7 @@ describe.sequential("persistence kernel", () => {
     expect(installedTables.map(({ tablename }) => tablename)).toEqual([
       "audit_events",
       "chronelle_schema_migrations",
+      "document_transfer_authorizations",
       "documents",
       "events",
       "expenses",

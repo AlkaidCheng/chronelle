@@ -28,15 +28,17 @@ the common `objects` table holds identity and lifecycle fields.
 - `packages/authorization` owns the central permission policy, audited direct
   grant lifecycle, and PostgreSQL-backed access lookup.
 - `packages/object-model` owns canonical Event, Task, Expense, and Reminder
-  lifecycle behavior, relationships, and event-plan projections.
+  lifecycle behavior, relationships, document workflows, and event-plan
+  projections.
 - `packages/schemas` owns contracts shared across process boundaries.
+- `packages/storage` owns the provider-neutral private storage port and the
+  local filesystem development adapter.
 - `packages/db` owns ordered migration execution, Drizzle query mappings,
   UUIDv7 generation, database connections, and persistence integrity tests.
 - `infrastructure/migrations` owns immutable PostgreSQL schema changes.
 
-The storage package will appear with the first secure-document behavior that
-needs it. Each package must hide a concrete domain decision; shared UI remains
-inside `apps/web` until more than one application needs it.
+Each package must hide a concrete domain decision; shared UI remains inside
+`apps/web` until more than one application needs it.
 
 ## Persistence kernel
 
@@ -75,6 +77,22 @@ Application mutations use `runAuditedMutation`, which appends one audit event
 inside the same database transaction. An invalid audit record therefore rolls
 back the business change. Object services validate state, authorize access,
 and atomically enforce the expected object version before writing typed data.
+
+Document bytes cross a `StorageProvider` port. The local adapter stores opaque
+workspace-scoped keys below a configured private root, validates every resolved
+path, creates directories and files with restrictive permissions, and verifies
+size and SHA-256 before finalization. Its transfer URLs are API-relative and
+opaque; a Tencent COS adapter can instead return signed provider URLs without
+changing document-domain behavior.
+
+Transfer credentials are random bearer secrets. PostgreSQL stores only their
+hashes plus operation, resource, expected file metadata, expiry, consumption,
+and finalization state. Upload authorization requires Edit on the parent.
+Finalization reauthorizes that parent and atomically creates the canonical
+Document, typed metadata, `attached_to` relationship, and audit event.
+Download authorization requires View on the Document, and the local transfer
+endpoint rechecks that permission before returning bytes. Tokens expire and
+are consumed once.
 
 ## Event-planning vertical slice
 
@@ -131,6 +149,6 @@ audited API mutations: create the scoped canonical object, then create its
 but unlinked. A future application command can make this interaction atomic
 when recovery and product behavior are defined.
 
-PostgreSQL is the canonical data store. Object files will be accessed through a
-storage interface and stored outside PostgreSQL. Provider adapters will keep
+PostgreSQL is the canonical data store. Object files are accessed through the
+storage interface and stored outside PostgreSQL. Provider adapters keep
 CloudBase identity and Tencent COS concerns out of the domain layer.

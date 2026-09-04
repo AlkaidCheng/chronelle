@@ -14,5 +14,9 @@ development identity bootstrap and an index for active principal-side grant
 lookups. A nullable unique owner reference permits shared workspaces while
 ensuring each user can have at most one personal workspace.
 
+The third migration stores short-lived document transfer authorizations as
+hashed, one-time credentials. It binds each transfer to one canonical resource,
+workspace, actor, storage key, and validated file metadata.
+
 Never edit a migration after it has been applied to a shared database. Add the
 next ordered migration instead.

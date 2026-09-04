@@ -33,8 +33,10 @@ sign-in creates the corresponding owner membership in the same transaction.
   an independent historical fact.
 - `Reminder` stores reminder time and delivery state. V1A supports durable
   reminder intent and in-product alerts; delivery providers remain deferred.
-- `Document` stores private object-storage metadata. File bytes never enter
-  PostgreSQL.
+- `Document` stores private object-storage metadata: provider, opaque storage
+  key, original filename, MIME type, byte size, SHA-256 checksum, and the
+  provider's encryption mode. File bytes never enter PostgreSQL, and storage
+  keys never enter public API responses.
 
 These fields make the first capabilities executable without freezing a richer
 event-planning schema. Additional details can use `custom_properties` until a
@@ -62,6 +64,19 @@ Event detail, calendar, timeline, itinerary, expense, reminder, and to-do
 queries resolve canonical objects at read time. Each resource keeps the same ID
 and version in every response. These projections own ordering and selection,
 never copied business fields.
+
+An attachment is one canonical Document plus one `attached_to` relationship.
+The Document uses its parent's canonical permission scope, so a file attached
+to an Event or inheriting child follows the same Event grant. A self-scoped
+Task or Expense gives its attachment that resource as the scope. Unlinking
+soft-deletes only the relationship; the canonical Document metadata and stored
+bytes remain for a future retention or reattachment workflow.
+
+`document_transfer_authorizations` is operational state, not a business
+object. It binds a hashed one-time credential to one upload or download,
+resource, storage key, expected metadata, actor, and expiry. Upload rows also
+record consumption and finalization so the same authorization cannot create
+two Documents.
 
 A related child normally uses its root Event ID as `permission_scope_id`, so a
 grant on the Event applies through one level of inheritance. Changing the child

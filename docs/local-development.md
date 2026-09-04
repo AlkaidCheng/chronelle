@@ -27,6 +27,13 @@ development sign-in endpoint is registered.
 sessions. These sessions disappear when the API restarts and are not suitable
 for a deployed environment.
 
+Private development attachments are stored below `LOCAL_STORAGE_ROOT`, which
+defaults to `.chronelle/storage` and is ignored by Git. Keep this root private
+and outside any directory served by a web server. The adapter creates folders
+with mode `0700` and files with mode `0600`. `DOCUMENT_TRANSFER_TTL_SECONDS`
+sets the lifetime of one-time upload and download authorizations; the default
+is five minutes.
+
 ## Development sign-in
 
 Create or reuse a development identity and its personal workspace:

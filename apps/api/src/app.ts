@@ -10,18 +10,26 @@ import {
 } from "@chronelle/authorization";
 import { createId } from "@chronelle/db";
 import {
+  DocumentTransferUnavailableError,
+  InvalidDocumentUploadError,
   InvalidObjectStateError,
   InvalidRelationError,
   ObjectConflictError,
   RelationConflictError,
 } from "@chronelle/object-model";
 import { healthStatusSchema } from "@chronelle/schemas";
+import {
+  StorageObjectConflictError,
+  StorageObjectUnavailableError,
+  UnsafeStorageKeyError,
+} from "@chronelle/storage";
 
 import {
   registerDevelopmentAuthenticationRoute,
   registerSessionRoute,
 } from "./authentication/routes.js";
 import type { AppDependencies } from "./dependencies.js";
+import { registerDocumentRoutes } from "./documents/routes.js";
 import { HttpError } from "./errors.js";
 import { registerEventPlanningRoutes } from "./event-planning/routes.js";
 import { registerRequestContext } from "./request-context.js";
@@ -68,8 +76,29 @@ export function buildApp(
       });
     }
     if (
+      error instanceof DocumentTransferUnavailableError ||
+      error instanceof StorageObjectUnavailableError
+    ) {
+      return reply.status(404).send({
+        error: {
+          code: "transfer_unavailable",
+          message: "The document transfer is unavailable.",
+        },
+      });
+    }
+    if (error instanceof StorageObjectConflictError) {
+      return reply.status(409).send({
+        error: {
+          code: "storage_conflict",
+          message: "The document transfer conflicts with stored content.",
+        },
+      });
+    }
+    if (
       error instanceof InvalidObjectStateError ||
-      error instanceof InvalidRelationError
+      error instanceof InvalidRelationError ||
+      error instanceof InvalidDocumentUploadError ||
+      error instanceof UnsafeStorageKeyError
     ) {
       return reply.status(400).send({
         error: { code: "invalid_request", message: error.message },
@@ -87,6 +116,7 @@ export function buildApp(
 
   registerRequestContext(app, dependencies);
   registerSessionRoute(app, { identity: dependencies.identity });
+  registerDocumentRoutes(app, dependencies);
   registerEventPlanningRoutes(app, dependencies);
   registerSharingRoutes(app, dependencies);
   if (dependencies.developmentAuth !== undefined) {

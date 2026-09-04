@@ -10,13 +10,14 @@
     }
   },
   "scripts": {
-    "build": "pnpm --filter @chronelle/authorization build && tsc -p tsconfig.build.json",
-    "test": "pnpm --filter @chronelle/authorization build && vitest run",
-    "typecheck": "pnpm --filter @chronelle/authorization build && tsc -p tsconfig.json --noEmit"
+    "build": "pnpm --filter @chronelle/authorization build && pnpm --filter @chronelle/storage build && tsc -p tsconfig.build.json",
+    "test": "pnpm --filter @chronelle/authorization build && pnpm --filter @chronelle/storage build && vitest run",
+    "typecheck": "pnpm --filter @chronelle/authorization build && pnpm --filter @chronelle/storage build && tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
     "@chronelle/authorization": "workspace:*",
     "@chronelle/db": "workspace:*",
+    "@chronelle/storage": "workspace:*",
     "drizzle-orm": "0.45.2"
   }
 }
