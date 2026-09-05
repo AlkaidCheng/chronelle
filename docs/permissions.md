@@ -24,14 +24,16 @@ authorization service.
 
 ## Initial roles
 
-- Owner can view, comment, edit, share, and soft-delete a resource.
+- Owner can view, comment, edit, share, soft-delete, and recover a resource.
 - Editor can view, comment, and edit a resource.
 - Viewer can view a resource.
 
 The implemented policy accepts the strongest applicable role from workspace
 membership, a direct resource grant, or a grant on the resource's canonical
-permission scope. Expired grants and grants targeting deleted objects do not
-apply. It does not support explicit deny precedence or field-level grants.
+permission scope. Expired grants do not apply. Normal access excludes grants
+targeting deleted objects; the explicit Owner-only recovery policy resolves
+tombstones without enabling normal reads. It does not support explicit deny
+precedence or field-level grants. See [Recovery](recovery.md).
 
 Owner and Editor workspace members can create self-scoped objects. Creating an
 inheriting object requires Edit on the selected permission scope. Viewer access
@@ -95,8 +97,8 @@ related resources and returns only a generic locked-relation count; object
 identities, types, and business fields are not exposed.
 
 The active workspace is request context, not a grant. A user can select a
-workspace only through membership or an active grant to a non-deleted resource
-inside it. Resource authorization additionally requires the resource workspace
+workspace only through membership or an active grant to a non-deleted resource,
+or an active Owner grant to a tombstone for recovery. Resource authorization additionally requires the resource workspace
 to match that active workspace. Missing and unauthorized resources use the same
 external error shape so forged IDs do not reveal existence.
 

@@ -39,6 +39,7 @@ export const revisionSummarySchema = z.object({
   objectId: z.uuid(),
   objectVersion: versionSchema,
   mutationKind: z.enum([
+    "recovered",
     "restored",
     "baseline",
     "created",

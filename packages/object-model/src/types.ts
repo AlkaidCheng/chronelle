@@ -69,6 +69,7 @@ export interface DocumentResource extends CanonicalObjectResource {
 }
 
 export interface DocumentAttachmentResource {
+  readonly relationVersion: number;
   readonly document: DocumentResource;
   readonly relationId: string;
 }
@@ -192,6 +193,7 @@ export interface ObjectDeletionResource {
 }
 
 export interface ObjectRelationResource {
+  readonly version: number;
   readonly createdAt: Date;
   readonly createdBy: string;
   readonly deletedAt: Date | null;
@@ -211,6 +213,7 @@ export interface CreateObjectRelationInput {
 }
 
 export interface RelationDeletionResource {
+  readonly version: number;
   readonly deletedAt: Date;
   readonly id: string;
 }

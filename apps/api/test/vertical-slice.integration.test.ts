@@ -455,7 +455,7 @@ describe.sequential("event-planning vertical slice", () => {
 
     const unlinkResponse = await request(owner, workspaceId, {
       method: "DELETE",
-      url: `/api/relations/${privateRelation.id}`,
+      url: `/api/relations/${privateRelation.id}?expectedVersion=${privateRelation.version}`,
     });
     expect(unlinkResponse.statusCode).toBe(200);
     const unlinkedTaskResponse = await request(owner, workspaceId, {

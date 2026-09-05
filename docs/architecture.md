@@ -199,7 +199,12 @@ audit events, and command receipt commit together. A user/workspace-scoped comma
 ID serializes duplicate requests and replays the original creation result after
 reauthorization. A retry never reverses later edits or restores an unlinked
 relationship. Existing standalone create and relation routes remain available.
-Restoration, trash, and undo/redo remain planned capabilities.
+Trash uses an authorization-owned Owner predicate over canonical tombstones.
+Object recovery advances the existing object and revision ledger; independent
+link recovery advances only the relation generation and audit. Both use the
+workspace security fence. The browser presents version-pinned confirmation
+dialogs separately from content restoration. See [Recovery](recovery.md).
+Undo/Redo remains a planned capability.
 
 PostgreSQL is the canonical data store. Object files are accessed through the
 storage interface and stored outside PostgreSQL. Provider adapters keep

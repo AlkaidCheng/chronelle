@@ -26,12 +26,39 @@ describe("roleAllows", () => {
     expect(roleAllows("editor", "share")).toBe(false);
     expect(roleAllows("viewer", "view")).toBe(true);
     expect(roleAllows("viewer", "edit")).toBe(false);
+    expect(roleAllows("owner", "recover")).toBe(true);
+    expect(roleAllows("editor", "recover")).toBe(false);
+    expect(roleAllows("viewer", "recover")).toBe(false);
   });
 });
 
 describe("AuthorizationService", () => {
+  it("uses the tombstone-aware Owner policy only for recovery, never for normal reads", async () => {
+    const store: AuthorizationStore = {
+      findRecoveryRole: vi.fn().mockResolvedValue("owner"),
+      findResourceRoles: vi.fn().mockResolvedValue(null),
+      findWorkspaceRole: vi.fn(),
+      hasWorkspaceAccess: vi.fn(),
+      listAccessibleWorkspaceIds: vi.fn(),
+    };
+    const authorization = new AuthorizationService(store);
+    await expect(
+      authorization.can(principal, "recover", resource),
+    ).resolves.toBe(true);
+    await expect(authorization.can(principal, "view", resource)).resolves.toBe(
+      false,
+    );
+    await expect(
+      authorization.can(principal, "recover", {
+        ...resource,
+        workspaceId: "other",
+      }),
+    ).resolves.toBe(false);
+    expect(store.findRecoveryRole).toHaveBeenCalledTimes(1);
+  });
   it("accepts any applicable role that permits the action", async () => {
     const store: AuthorizationStore = {
+      findRecoveryRole: vi.fn().mockResolvedValue(null),
       findResourceRoles: vi.fn().mockResolvedValue(["viewer", "editor"]),
       findWorkspaceRole: vi.fn().mockResolvedValue("owner"),
       hasWorkspaceAccess: vi.fn().mockResolvedValue(true),
@@ -47,6 +74,7 @@ describe("AuthorizationService", () => {
   it("denies a cross-workspace reference before querying the store", async () => {
     const findResourceRoles = vi.fn();
     const store: AuthorizationStore = {
+      findRecoveryRole: vi.fn().mockResolvedValue(null),
       findResourceRoles,
       findWorkspaceRole: vi.fn(),
       hasWorkspaceAccess: vi.fn(),
@@ -65,6 +93,7 @@ describe("AuthorizationService", () => {
 
   it("uses one generic error for missing and unauthorized resources", async () => {
     const store: AuthorizationStore = {
+      findRecoveryRole: vi.fn().mockResolvedValue(null),
       findResourceRoles: vi.fn().mockResolvedValue(null),
       findWorkspaceRole: vi.fn().mockResolvedValue(null),
       hasWorkspaceAccess: vi.fn().mockResolvedValue(false),
@@ -84,6 +113,7 @@ describe("AuthorizationService", () => {
       .mockResolvedValueOnce("editor")
       .mockResolvedValueOnce("viewer");
     const store: AuthorizationStore = {
+      findRecoveryRole: vi.fn().mockResolvedValue(null),
       findResourceRoles: vi.fn(),
       findWorkspaceRole,
       hasWorkspaceAccess: vi.fn(),
@@ -104,6 +134,7 @@ describe("AuthorizationService", () => {
 
   it("returns the complete action set for the strongest applicable role", async () => {
     const store: AuthorizationStore = {
+      findRecoveryRole: vi.fn().mockResolvedValue(null),
       findResourceRoles: vi.fn().mockResolvedValue(["viewer", "owner"]),
       findWorkspaceRole: vi.fn(),
       hasWorkspaceAccess: vi.fn(),
@@ -113,6 +144,13 @@ describe("AuthorizationService", () => {
 
     await expect(
       authorization.allowedActions(principal, resource),
-    ).resolves.toEqual(["view", "comment", "edit", "share", "delete"]);
+    ).resolves.toEqual([
+      "view",
+      "comment",
+      "edit",
+      "share",
+      "delete",
+      "recover",
+    ]);
   });
 });

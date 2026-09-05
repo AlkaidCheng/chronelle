@@ -33,6 +33,7 @@ function serializeAttachment(attachment: DocumentAttachmentResource) {
   return {
     document: serializeResource(attachment.document),
     relationId: attachment.relationId,
+    relationVersion: attachment.relationVersion,
   };
 }
 

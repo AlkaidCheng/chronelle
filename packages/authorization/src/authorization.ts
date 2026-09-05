@@ -6,6 +6,7 @@ export const authorizationActions = [
   "edit",
   "share",
   "delete",
+  "recover",
 ] as const;
 export type AuthorizationAction = (typeof authorizationActions)[number];
 
@@ -40,6 +41,7 @@ export interface AccessibleWorkspaceQuery {
 export type WorkspaceRoleQuery = Omit<WorkspaceAccessQuery, "evaluatedAt">;
 
 export interface AuthorizationStore {
+  findRecoveryRole(query: ResourceRoleQuery): Promise<"owner" | null>;
   findResourceRoles(query: ResourceRoleQuery): Promise<readonly Role[] | null>;
   findWorkspaceRole(query: WorkspaceRoleQuery): Promise<Role | null>;
   hasWorkspaceAccess(query: WorkspaceAccessQuery): Promise<boolean>;
@@ -79,6 +81,16 @@ export class AuthorizationService {
     action: AuthorizationAction,
     resource: ResourceRef,
   ): Promise<boolean> {
+    if (action === "recover") {
+      if (principal.workspaceId !== resource.workspaceId) return false;
+      return (
+        (await this.#store.findRecoveryRole({
+          evaluatedAt: this.#clock(),
+          resource,
+          userId: principal.userId,
+        })) === "owner"
+      );
+    }
     const actions = await this.allowedActions(principal, resource);
     return actions.includes(action);
   }

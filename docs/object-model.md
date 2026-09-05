@@ -98,6 +98,12 @@ value. Ordinary deletion also checks the expected version and sets
 `deleted_at`; permanent purge is a separate future workflow. Reads and
 projections exclude soft-deleted objects.
 
+Owner recovery clears only the tombstone and advances the canonical version,
+recording a `recovered` snapshot and audit. Current content, scope, grants, files,
+and links stay unchanged. Relations have an independent `version` for unlink
+and recovery, with immutable endpoints and collision-safe reactivation.
+See [Recovery](recovery.md) for lifecycle and scope ordering.
+
 Every supported object mutation appends a schema-versioned, immutable typed
 snapshot in `object_revisions`, linked to the same canonical ID and version.
 Existing objects receive only an explicit baseline of their available state.

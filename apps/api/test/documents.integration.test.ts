@@ -166,6 +166,115 @@ async function attachFile(
 }
 
 describe.sequential("document attachment API", () => {
+  it("recovers private file identity and independently removed attachment links", async () => {
+    const owner = await signIn("owner@example.com", "Owner");
+    const stranger = await signIn("stranger@example.com", "Stranger");
+    const event = eventResponseSchema.parse(
+      (
+        await request(owner, owner.workspace.id, {
+          method: "POST",
+          url: "/api/events",
+          payload: { displayName: "Context" },
+        })
+      ).json(),
+    );
+    const { attachment, bytes } = await attachFile(
+      owner,
+      owner.workspace.id,
+      event.id,
+      "recovery.pdf",
+    );
+    const document = attachment.document;
+    const originalDownload = documentDownloadAuthorizationResponseSchema.parse(
+      (
+        await request(owner, owner.workspace.id, {
+          url: `/api/documents/${document.id}/download-url`,
+        })
+      ).json(),
+    );
+    expect(
+      (
+        await request(owner, owner.workspace.id, {
+          method: "DELETE",
+          url: `/api/relations/${attachment.relationId}?expectedVersion=1`,
+        })
+      ).statusCode,
+    ).toBe(200);
+    expect(
+      (
+        await request(owner, owner.workspace.id, {
+          method: "DELETE",
+          url: `/api/objects/${document.id}?expectedVersion=1`,
+        })
+      ).statusCode,
+    ).toBe(200);
+    expect(
+      (
+        await request(owner, owner.workspace.id, {
+          url: `/api/documents/${document.id}/download-url`,
+        })
+      ).statusCode,
+    ).toBe(404);
+    expect(
+      (await app.inject({ url: originalDownload.download.url })).statusCode,
+    ).toBe(404);
+    expect(
+      (
+        await request(stranger, owner.workspace.id, {
+          url: `/api/objects/${document.id}/recovery-preview`,
+        })
+      ).statusCode,
+    ).not.toBe(200);
+    const recovered = await request(owner, owner.workspace.id, {
+      method: "POST",
+      url: `/api/objects/${document.id}/recover`,
+      payload: { expectedVersion: 2 },
+    });
+    expect(recovered.statusCode).toBe(200);
+    expect(recovered.json()).toMatchObject({
+      ...document,
+      version: 3,
+      updatedAt: expect.any(String),
+    });
+    expect(recovered.body).not.toContain("storageKey");
+    const attachments = await request(owner, owner.workspace.id, {
+      url: `/api/objects/${event.id}/documents`,
+    });
+    expect(attachments.json().items).toEqual([]);
+    const removed = await request(owner, owner.workspace.id, {
+      url: `/api/objects/${event.id}/removed-relations`,
+    });
+    expect(removed.json().items).toMatchObject([
+      { relation: { id: attachment.relationId, version: 2 } },
+    ]);
+    expect(
+      (
+        await request(owner, owner.workspace.id, {
+          method: "POST",
+          url: `/api/relations/${attachment.relationId}/recover`,
+          payload: { expectedVersion: 2 },
+        })
+      ).statusCode,
+    ).toBe(200);
+    const download = documentDownloadAuthorizationResponseSchema.parse(
+      (
+        await request(owner, owner.workspace.id, {
+          url: `/api/documents/${document.id}/download-url`,
+        })
+      ).json(),
+    );
+    expect(
+      (await app.inject({ url: download.download.url })).rawPayload,
+    ).toEqual(bytes);
+    expect(
+      (
+        await request(stranger, owner.workspace.id, {
+          url: `/api/documents/${document.id}/download-url`,
+        })
+      ).statusCode,
+    ).not.toBe(200);
+  });
+
   it("restores a Document caption without replaying its scope or file identity", async () => {
     const owner = await signIn("owner@example.com", "Owner");
     const eventResponse = await request(owner, owner.workspace.id, {
@@ -414,13 +523,13 @@ describe.sequential("document attachment API", () => {
 
     const viewerUnlinkResponse = await request(viewer, workspaceId, {
       method: "DELETE",
-      url: `/api/relations/${eventFile.attachment.relationId}`,
+      url: `/api/relations/${eventFile.attachment.relationId}?expectedVersion=${eventFile.attachment.relationVersion}`,
     });
     expect(viewerUnlinkResponse.statusCode).toBe(404);
 
     const unlinkResponse = await request(owner, workspaceId, {
       method: "DELETE",
-      url: `/api/relations/${eventFile.attachment.relationId}`,
+      url: `/api/relations/${eventFile.attachment.relationId}?expectedVersion=${eventFile.attachment.relationVersion}`,
     });
     expect(unlinkResponse.statusCode).toBe(200);
     relationDeletionResponseSchema.parse(unlinkResponse.json());

@@ -28,6 +28,7 @@ const relationId = "019d6e7d-0000-7000-8000-000000000012";
 
 const documentAttachment = {
   relationId,
+  relationVersion: 1,
   document: {
     id: documentId,
     workspaceId: event.workspaceId,
@@ -53,6 +54,46 @@ const documentAttachment = {
 } as const;
 
 describe("ChronelleApiClient", () => {
+  it("sends versioned deletion and recovery requests without duplicating object data", async () => {
+    const fetch = vi
+      .fn<typeof globalThis.fetch>()
+      .mockResolvedValueOnce(
+        Response.json({ id: event.id, version: 2, deletedAt: event.updatedAt }),
+      )
+      .mockResolvedValueOnce(
+        Response.json({
+          id: relationId,
+          version: 4,
+          deletedAt: event.updatedAt,
+        }),
+      )
+      .mockResolvedValueOnce(Response.json({ ...event, version: 3 }))
+      .mockResolvedValueOnce(Response.json({ items: [], nextBeforeId: null }));
+    const client = new ChronelleApiClient({
+      fetch,
+      getCredential: () => ({
+        accessToken: "test-session",
+        workspaceId: event.workspaceId,
+      }),
+    });
+    await client.deleteObject(event.id, 1);
+    await client.deleteRelation(relationId, 3);
+    await client.recoverObject(event.id, { expectedVersion: 2 });
+    await client.listTrash({
+      objectType: "event",
+      limit: 1,
+      beforeId: event.id,
+    });
+    expect(fetch.mock.calls.map(([url]) => url)).toEqual([
+      `/api/objects/${event.id}?expectedVersion=1`,
+      `/api/relations/${relationId}?expectedVersion=3`,
+      `/api/objects/${event.id}/recover`,
+      `/api/trash?objectType=event&limit=1&beforeId=${event.id}`,
+    ]);
+    expect(JSON.parse(String(fetch.mock.calls[2]?.[1]?.body))).toEqual({
+      expectedVersion: 2,
+    });
+  });
   it("encodes comparison versions and sends only the restore precondition", async () => {
     const fetch = vi
       .fn<typeof globalThis.fetch>()

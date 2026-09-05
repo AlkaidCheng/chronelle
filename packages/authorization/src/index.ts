@@ -1,5 +1,6 @@
 export * from "./authorization.js";
 export { withStableAuthorization } from "./authorization-transaction.js";
+export { recoveryAccessPredicate } from "./recovery-policy.js";
 export { DrizzleAuthorizationStore } from "./drizzle-authorization-store.js";
 export {
   InvalidShareError,

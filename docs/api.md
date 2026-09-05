@@ -86,6 +86,22 @@ if (page.nextBeforeVersion !== null) {
 }
 ```
 
+## Trash and recovery
+
+| Method | Path                                  | Behavior                                            |
+| ------ | ------------------------------------- | --------------------------------------------------- |
+| GET    | `/api/trash?limit=20&objectType=task` | List authorized Owner tombstones                    |
+| GET    | `/api/objects/:id/recovery-preview`   | Preview current deleted version and scope readiness |
+| POST   | `/api/objects/:id/recover`            | Recover with Owner and `expectedVersion`            |
+| GET    | `/api/objects/:id/removed-relations`  | List authorized removed incoming/outgoing links     |
+| POST   | `/api/relations/:id/recover`          | Recover a link with `expectedVersion`               |
+
+List responses use `items` and `nextBeforeId`; send the latter as `beforeId`
+to continue. Trash additionally accepts exact `scopeId`. A preview does not
+reserve a version or grant permission for a later mutation. Both recovery POST
+bodies contain only `{ expectedVersion }`.
+See [Recovery](recovery.md) for authorization, pagination, and rollout semantics.
+
 ## Canonical objects
 
 | Method   | Path                             | Behavior                            |
@@ -134,16 +150,21 @@ are deferred.
 
 ## Relationships
 
-| Method   | Path                     | Behavior                             |
-| -------- | ------------------------ | ------------------------------------ |
-| `POST`   | `/objects/:id/relations` | Relate the source object to a target |
-| `GET`    | `/objects/:id/relations` | List visible active relationships    |
-| `DELETE` | `/relations/:id`         | Soft-delete only the relationship    |
+| Method   | Path                               | Behavior                                    |
+| -------- | ---------------------------------- | ------------------------------------------- |
+| `POST`   | `/objects/:id/relations`           | Relate the source object to a target        |
+| `GET`    | `/objects/:id/relations`           | List visible active relationships           |
+| `DELETE` | `/relations/:id?expectedVersion=N` | Soft-delete only the versioned relationship |
 
 The create body contains `relationType`, `targetObjectId`, and optional
 `metadata`. The initial vocabulary is `includes`, `reminds_about`,
 `attached_to`, and `related_to`. Endpoint-type compatibility is enforced in
 the domain service. Relationships provide context but never permission.
+
+Relation responses include their independent `version`. Attachment responses
+include `relationVersion` alongside `relationId`; it is not the Document's
+version. Use `client.deleteRelation(relationId, relationVersion)` to remove a
+link. A stale expected version returns HTTP 409.
 
 ## Event projections
 

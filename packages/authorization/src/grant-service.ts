@@ -165,7 +165,7 @@ export class ResourceGrantService {
     principal: UserPrincipal,
     resourceId: string,
   ): Promise<readonly ResourceGrantResource[]> {
-    await this.#assertCanShare(principal, resourceId);
+    await this.#assertCanManageGrants(principal, resourceId);
     const grants = await this.#database
       .select({
         id: resourceGrants.id,
@@ -228,7 +228,6 @@ export class ResourceGrantService {
             and(
               eq(objects.workspaceId, resourceGrants.workspaceId),
               eq(objects.id, resourceGrants.resourceId),
-              isNull(objects.deletedAt),
             ),
           )
           .where(
@@ -241,7 +240,7 @@ export class ResourceGrantService {
         if (grant === undefined) {
           throw new AuthorizationDeniedError();
         }
-        await authorization.assertCan(context.principal, "share", {
+        await authorization.assertCan(context.principal, "recover", {
           id: grant.resourceId,
           workspaceId: context.principal.workspaceId,
         });
@@ -278,11 +277,11 @@ export class ResourceGrantService {
     );
   }
 
-  async #assertCanShare(
+  async #assertCanManageGrants(
     principal: UserPrincipal,
     resourceId: string,
   ): Promise<void> {
-    await this.#authorization.assertCan(principal, "share", {
+    await this.#authorization.assertCan(principal, "recover", {
       id: resourceId,
       workspaceId: principal.workspaceId,
     });

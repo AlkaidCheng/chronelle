@@ -223,6 +223,7 @@ export const objectDeletionResponseSchema = z.object({
 });
 
 export const relationResponseSchema = z.object({
+  version: z.number().int().positive(),
   id: objectIdSchema,
   workspaceId: objectIdSchema,
   sourceObjectId: objectIdSchema,
@@ -239,6 +240,7 @@ export const relationListResponseSchema = z.object({
 });
 
 export const relationDeletionResponseSchema = z.object({
+  version: z.number().int().positive(),
   id: objectIdSchema,
   deletedAt: dateTimeResponseSchema,
 });

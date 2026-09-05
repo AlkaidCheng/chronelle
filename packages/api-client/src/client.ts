@@ -1,5 +1,13 @@
 import {
   apiErrorResponseSchema,
+  objectDeletionResponseSchema,
+  relationListResponseSchema,
+  recoveryPreviewSchema,
+  trashListResponseSchema,
+  removedRelationListResponseSchema,
+  type TrashQueryInput,
+  type RecoveryRequest,
+  type RemovedRelationQueryInput,
   developmentSignInResponseSchema,
   documentAttachmentListResponseSchema,
   documentAttachmentResponseSchema,
@@ -379,9 +387,66 @@ export class ChronelleApiClient {
     return response.blob();
   }
 
-  deleteRelation(id: string): Promise<void> {
+  deleteObject(id: string, expectedVersion: number) {
     return this.#request(
-      `/api/relations/${id}`,
+      `/api/objects/${id}?expectedVersion=${expectedVersion}`,
+      objectDeletionResponseSchema,
+      { method: "DELETE" },
+    );
+  }
+
+  listTrash(input: TrashQueryInput = {}) {
+    const query = new URLSearchParams();
+    for (const [key, value] of Object.entries(input)) {
+      if (value !== undefined) query.set(key, String(value));
+    }
+    return this.#request(`/api/trash?${query}`, trashListResponseSchema);
+  }
+
+  previewObjectRecovery(id: string) {
+    return this.#request(
+      `/api/objects/${id}/recovery-preview`,
+      recoveryPreviewSchema,
+    );
+  }
+
+  recoverObject(id: string, input: RecoveryRequest) {
+    return this.#request(
+      `/api/objects/${id}/recover`,
+      eventPlanningResourceResponseSchema,
+      jsonRequest(input, "POST"),
+    );
+  }
+
+  listObjectRelations(id: string) {
+    return this.#request(
+      `/api/objects/${id}/relations`,
+      relationListResponseSchema,
+    );
+  }
+
+  listRemovedRelations(id: string, input: RemovedRelationQueryInput = {}) {
+    const query = new URLSearchParams();
+    for (const [key, value] of Object.entries(input)) {
+      if (value !== undefined) query.set(key, String(value));
+    }
+    return this.#request(
+      `/api/objects/${id}/removed-relations?${query}`,
+      removedRelationListResponseSchema,
+    );
+  }
+
+  recoverRelation(id: string, input: RecoveryRequest) {
+    return this.#request(
+      `/api/relations/${id}/recover`,
+      relationResponseSchema,
+      jsonRequest(input, "POST"),
+    );
+  }
+
+  deleteRelation(id: string, expectedVersion: number): Promise<void> {
+    return this.#request(
+      `/api/relations/${id}?expectedVersion=${expectedVersion}`,
       relationDeletionResponseSchema,
       { method: "DELETE" },
     ).then(() => undefined);

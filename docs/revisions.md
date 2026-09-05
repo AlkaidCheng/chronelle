@@ -174,5 +174,7 @@ API and web together with old writers stopped; older history clients reject
 the added `restored` action and must reload or upgrade. Mixed API versions do not
 share the permission-ordering guarantee.
 
-Trash, deleted-object recovery, relation restoration, and Undo/Redo remain
-separate capabilities. Content restore never clears tombstones or replays links.
+Deleted-object recovery appends a `recovered` revision and matching audit, without
+a source revision or content replay. See [Trash and recovery](recovery.md).
+Content restore never clears tombstones or replays links. Undo/Redo remains
+a separate planned capability.

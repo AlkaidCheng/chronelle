@@ -111,7 +111,7 @@ describe.sequential("atomic Event context commands", () => {
     expect(edited.statusCode).toBe(200);
     const unlinked = await app.inject({
       method: "DELETE",
-      url: `/api/relations/${result.relationId}`,
+      url: `/api/relations/${result.relationId}?expectedVersion=1`,
       headers: headers(owner),
     });
     expect(unlinked.statusCode).toBe(200);

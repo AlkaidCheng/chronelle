@@ -1,7 +1,9 @@
 import {
   AuthorizationDeniedError,
+  withStableAuthorization,
+  AuthorizationService,
+  DrizzleAuthorizationStore,
   type AuthorizationAction,
-  type AuthorizationService,
   type UserPrincipal,
 } from "@chronelle/authorization";
 import {
@@ -14,9 +16,15 @@ import {
   type ObjectType,
   type RelationType,
 } from "@chronelle/db";
-import { and, eq, isNull, or } from "drizzle-orm";
+import { and, desc, eq, isNotNull, isNull, lt, or, sql } from "drizzle-orm";
+import type { RemovedRelationQuery } from "@chronelle/schemas";
+import { alias } from "drizzle-orm/pg-core";
 
-import { InvalidRelationError, RelationConflictError } from "./errors.js";
+import {
+  InvalidRelationError,
+  RelationConflictError,
+  ObjectConflictError,
+} from "./errors.js";
 import type {
   CreateObjectRelationInput,
   MutationContext,
@@ -173,60 +181,209 @@ export class ObjectRelationService {
   async softDelete(
     context: MutationContext,
     relationId: string,
+    expectedVersion: number,
   ): Promise<RelationDeletionResource> {
-    const [relation] = await this.#database
-      .select()
-      .from(objectRelations)
-      .where(
-        and(
-          eq(objectRelations.workspaceId, context.principal.workspaceId),
-          eq(objectRelations.id, relationId),
-          isNull(objectRelations.deletedAt),
-        ),
-      )
-      .limit(1);
-    if (relation === undefined) {
-      throw new AuthorizationDeniedError();
-    }
-    await this.#authorization.assertCan(context.principal, "edit", {
-      id: relation.sourceObjectId,
-      workspaceId: context.principal.workspaceId,
-    });
-
     const deletedAt = this.#clock();
-    return runAuditedMutation(this.#database, async (transaction) => {
-      const [deleted] = await transaction
-        .update(objectRelations)
-        .set({ deletedAt })
-        .where(
-          and(
-            eq(objectRelations.workspaceId, context.principal.workspaceId),
-            eq(objectRelations.id, relationId),
-            isNull(objectRelations.deletedAt),
-          ),
-        )
-        .returning({ id: objectRelations.id });
-      if (deleted === undefined) {
-        throw new AuthorizationDeniedError();
-      }
+    const relation = await this.#changeLifecycle(
+      context,
+      relationId,
+      expectedVersion,
+      deletedAt,
+    );
+    return { id: relation.id, version: relation.version, deletedAt };
+  }
 
-      return {
-        value: { id: deleted.id, deletedAt },
-        audit: {
-          workspaceId: context.principal.workspaceId,
-          actorType: "user",
-          actorId: context.principal.userId,
-          action: "relation.deleted",
-          resourceId: relation.sourceObjectId,
-          requestId: context.requestId,
-          metadata: {
-            relationId,
-            relationType: relation.relationType,
-            targetObjectId: relation.targetObjectId,
-          },
+  async recover(
+    context: MutationContext,
+    relationId: string,
+    expectedVersion: number,
+  ) {
+    return this.#changeLifecycle(context, relationId, expectedVersion, null);
+  }
+
+  async listRemoved(
+    principal: UserPrincipal,
+    objectId: string,
+    input: RemovedRelationQuery,
+  ) {
+    return this.#database.transaction(
+      async (transaction) => {
+        const authorization = new AuthorizationService(
+          new DrizzleAuthorizationStore(transaction),
+        );
+        await authorization.assertCan(principal, "view", {
+          id: objectId,
+          workspaceId: principal.workspaceId,
+        });
+        const source = alias(objects, "source");
+        const visible: {
+          relation: ObjectRelationResource;
+          sourceDisplayName: string;
+          targetDisplayName: string;
+        }[] = [];
+        let beforeId = input.beforeId;
+        while (visible.length <= input.limit) {
+          const candidates = await transaction
+            .select({
+              relation: objectRelations,
+              sourceDisplayName: source.displayName,
+              targetDisplayName: objects.displayName,
+            })
+            .from(objectRelations)
+            .innerJoin(
+              source,
+              and(
+                eq(source.id, objectRelations.sourceObjectId),
+                eq(source.workspaceId, objectRelations.workspaceId),
+                isNull(source.deletedAt),
+              ),
+            )
+            .innerJoin(
+              objects,
+              and(
+                eq(objects.id, objectRelations.targetObjectId),
+                eq(objects.workspaceId, objectRelations.workspaceId),
+                isNull(objects.deletedAt),
+              ),
+            )
+            .where(
+              and(
+                eq(objectRelations.workspaceId, principal.workspaceId),
+                or(
+                  eq(objectRelations.sourceObjectId, objectId),
+                  eq(objectRelations.targetObjectId, objectId),
+                ),
+                isNotNull(objectRelations.deletedAt),
+                beforeId === undefined
+                  ? undefined
+                  : lt(objectRelations.id, beforeId),
+              ),
+            )
+            .orderBy(desc(objectRelations.id))
+            .limit(100);
+          for (const candidate of candidates) {
+            if (
+              (await authorization.can(principal, "edit", {
+                id: candidate.relation.sourceObjectId,
+                workspaceId: principal.workspaceId,
+              })) &&
+              (await authorization.can(principal, "view", {
+                id: candidate.relation.targetObjectId,
+                workspaceId: principal.workspaceId,
+              }))
+            )
+              visible.push(candidate);
+            if (visible.length > input.limit) break;
+          }
+          if (candidates.length < 100) break;
+          beforeId = candidates.at(-1)?.relation.id;
+        }
+        const items = visible.slice(0, input.limit);
+        return {
+          items,
+          nextBeforeId:
+            visible.length > input.limit
+              ? (items.at(-1)?.relation.id ?? null)
+              : null,
+        };
+      },
+      { isolationLevel: "repeatable read", accessMode: "read only" },
+    );
+  }
+
+  async #changeLifecycle(
+    context: MutationContext,
+    relationId: string,
+    expectedVersion: number,
+    deletedAt: Date | null,
+  ) {
+    try {
+      return await withStableAuthorization(
+        this.#database,
+        context.principal.workspaceId,
+        async (transaction, authorization) => {
+          const [relation] = await transaction
+            .select()
+            .from(objectRelations)
+            .where(
+              and(
+                eq(objectRelations.workspaceId, context.principal.workspaceId),
+                eq(objectRelations.id, relationId),
+              ),
+            )
+            .limit(1);
+          if (relation === undefined) throw new AuthorizationDeniedError();
+          await authorization.assertCan(context.principal, "edit", {
+            id: relation.sourceObjectId,
+            workspaceId: context.principal.workspaceId,
+          });
+          if (deletedAt === null) {
+            await authorization.assertCan(context.principal, "view", {
+              id: relation.targetObjectId,
+              workspaceId: context.principal.workspaceId,
+            });
+          }
+          if (relation.version !== expectedVersion)
+            throw new ObjectConflictError();
+          if ((relation.deletedAt === null) === (deletedAt === null)) {
+            throw new InvalidRelationError(
+              "The relationship is already in the requested state.",
+            );
+          }
+          return runAuditedMutation(transaction, async (transaction) => {
+            const [saved] = await transaction
+              .update(objectRelations)
+              .set({
+                deletedAt,
+                version: sql`${objectRelations.version} + 1`,
+              })
+              .where(
+                and(
+                  eq(
+                    objectRelations.workspaceId,
+                    context.principal.workspaceId,
+                  ),
+                  eq(objectRelations.id, relationId),
+                  eq(objectRelations.version, expectedVersion),
+                ),
+              )
+              .returning();
+            if (saved === undefined) throw new ObjectConflictError();
+            return {
+              value: saved,
+              audit: {
+                workspaceId: context.principal.workspaceId,
+                actorType: "user",
+                actorId: context.principal.userId,
+                action:
+                  deletedAt === null
+                    ? "relation.recovered"
+                    : "relation.deleted",
+                resourceId: relation.sourceObjectId,
+                requestId: context.requestId,
+                metadata: {
+                  relationId,
+                  relationType: relation.relationType,
+                  targetObjectId: relation.targetObjectId,
+                  previousVersion: expectedVersion,
+                  version: saved.version,
+                },
+              },
+            };
+          });
         },
-      };
-    });
+      );
+    } catch (error) {
+      if (
+        error instanceof Error &&
+        typeof error.cause === "object" &&
+        error.cause !== null &&
+        "code" in error.cause &&
+        error.cause.code === "23505"
+      )
+        throw new RelationConflictError();
+      throw error;
+    }
   }
 
   async #getObjectType(

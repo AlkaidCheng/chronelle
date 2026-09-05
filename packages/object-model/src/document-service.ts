@@ -321,7 +321,7 @@ export class DocumentService {
           transferAuthorizationId: authorization.id,
         },
       );
-      return { document, relationId };
+      return { document, relationId, relationVersion: 1 };
     });
   }
 
@@ -334,6 +334,7 @@ export class DocumentService {
       .select({
         documentId: objectRelations.sourceObjectId,
         relationId: objectRelations.id,
+        relationVersion: objectRelations.version,
       })
       .from(objectRelations)
       .innerJoin(
@@ -355,11 +356,12 @@ export class DocumentService {
       );
 
     const attachments = await Promise.all(
-      relations.map(async ({ documentId, relationId }) => {
+      relations.map(async ({ documentId, relationId, relationVersion }) => {
         try {
           return {
             document: await this.#objects.getDocument(principal, documentId),
             relationId,
+            relationVersion,
           };
         } catch (error) {
           if (error instanceof AuthorizationDeniedError) {
