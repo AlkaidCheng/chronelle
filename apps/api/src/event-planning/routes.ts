@@ -9,6 +9,7 @@ import type {
   EventPlanningResource,
   MutationContext,
   ObjectRelationService,
+  EventContextService,
   UpdateEventInput,
   UpdateExpenseInput,
   UpdateReminderInput,
@@ -42,6 +43,8 @@ import {
   taskResponseSchema,
   taskUpdateRequestSchema,
   timelineResponseSchema,
+  eventContextCreateRequestSchema,
+  eventContextCreateResponseSchema,
 } from "@chronelle/schemas";
 import type { FastifyInstance, FastifyRequest } from "fastify";
 import type { z } from "zod";
@@ -62,6 +65,7 @@ export interface EventPlanningRouteDependencies {
   readonly objects: EventPlanningObjectService;
   readonly projections: EventPlanningProjectionService;
   readonly relations: ObjectRelationService;
+  readonly eventContexts: EventContextService;
 }
 
 interface TypedObjectRouteDefinition<CreateInput, UpdateInput> {
@@ -128,6 +132,22 @@ export function registerEventPlanningRoutes(
   app: FastifyInstance,
   dependencies: EventPlanningRouteDependencies,
 ): void {
+  app.post(
+    "/api/events/:id/resources",
+    { preHandler: app.authenticate },
+    async (request, reply) => {
+      const { id } = parseRequest(objectIdParamsSchema, request.params);
+      const input = parseRequest(eventContextCreateRequestSchema, request.body);
+      const result = await dependencies.eventContexts.create(
+        mutationContext(request),
+        id,
+        input,
+      );
+      return reply
+        .code(201)
+        .send(eventContextCreateResponseSchema.parse(result));
+    },
+  );
   app.get("/api/events", { preHandler: app.authenticate }, async (request) => {
     const events = await dependencies.objects.listEvents(
       requirePrincipal(request),

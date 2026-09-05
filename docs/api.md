@@ -4,6 +4,62 @@ The API accepts JSON and returns JSON under `/api`. Protected routes require a
 development or production-provider bearer token. Send `x-workspace-id` when
 operating outside the identity's personal workspace.
 
+## Atomic Event resource creation
+
+Use `POST /api/events/:id/resources` with `commandId`, `resource`, and optional
+`relationMetadata`. The resource has an `objectType` of `event`, `task`, `expense`,
+or `reminder` and the corresponding create fields, excluding `permissionScopeId`.
+The server assigns the Event scope. The response is `{ resource, relationId }`.
+
+Standalone create and relation methods remain compatible. To make one inclusion
+retry-safe, replace this two-request call site:
+
+```ts
+const task = await client.createTask({
+  displayName: "Confirm venue",
+  permissionScopeId: eventId,
+});
+await client.createRelation(eventId, {
+  relationType: "includes",
+  targetObjectId: task.id,
+});
+```
+
+with one command, retaining `commandId` for retries until its outcome is known:
+
+```ts
+const commandId = crypto.randomUUID();
+const result = await client.createEventResource(eventId, {
+  commandId,
+  resource: { objectType: "task", displayName: "Confirm venue" },
+  relationMetadata: { section: "Logistics" },
+});
+```
+
+Matching retries return the original HTTP 201 result; changed input with the
+same command ID returns HTTP 409 `command_conflict`. Replays reauthorize current
+access, create no duplicate objects, and never reverse later edits or unlinks.
+
+## Object history
+
+Authenticated callers with current View permission can list revision summaries
+with `GET /api/objects/:id/revisions?limit=25` and fetch typed historical content
+with `GET /api/objects/:id/revisions/:version`. Pass the returned
+`nextBeforeVersion` as `beforeVersion` to continue; `null` ends pagination.
+The limit is 1-100. No total counts, security metadata, or private storage keys
+are returned. See [Object revisions](revisions.md) for authorization semantics.
+
+```ts
+const page = await client.listObjectRevisions(objectId, { limit: 10 });
+const revision = await client.getObjectRevision(objectId, 1);
+if (page.nextBeforeVersion !== null) {
+  const older = await client.listObjectRevisions(objectId, {
+    limit: 10,
+    beforeVersion: page.nextBeforeVersion,
+  });
+}
+```
+
 ## Canonical objects
 
 | Method   | Path                             | Behavior                            |

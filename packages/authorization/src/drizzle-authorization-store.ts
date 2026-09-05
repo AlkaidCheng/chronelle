@@ -3,6 +3,7 @@ import {
   resourceGrants,
   workspaceMembers,
   type Database,
+  type DatabaseTransaction,
   type Role,
 } from "@chronelle/db";
 import { and, eq, gt, inArray, isNull, or } from "drizzle-orm";
@@ -16,9 +17,9 @@ import type {
 } from "./authorization.js";
 
 export class DrizzleAuthorizationStore implements AuthorizationStore {
-  readonly #database: Database;
+  readonly #database: Database | DatabaseTransaction;
 
-  constructor(database: Database) {
+  constructor(database: Database | DatabaseTransaction) {
     this.#database = database;
   }
 

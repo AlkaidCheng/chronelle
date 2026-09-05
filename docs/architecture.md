@@ -73,10 +73,13 @@ the resource's one canonical permission scope. It ignores relationships,
 expired grants, and deleted resources. Workspace selection uses the same store
 to require membership or an active grant.
 
-Application mutations use `runAuditedMutation`, which appends one audit event
-inside the same database transaction. An invalid audit record therefore rolls
-back the business change. Object services validate state, authorize access,
-and atomically enforce the expected object version before writing typed data.
+Application mutations append audit events inside the business transaction.
+Canonical object mutations additionally capture immutable typed revisions there,
+and return the captured state. `runAuditedMutation` serves operations that do not
+change canonical content, such as grant and transfer lifecycles. Failure to record
+either required ledger entry rolls back the business change. Object services
+validate state, authorize access, and atomically enforce the expected version.
+See [Object revisions](revisions.md) for snapshot, history, and baseline contracts.
 
 Document bytes cross a `StorageProvider` port. The local adapter stores opaque
 workspace-scoped keys below a configured private root, validates every resolved
@@ -96,7 +99,7 @@ are consumed once.
 
 ## Event-planning vertical slice
 
-Fastify routes validate requests and delegate to five domain services:
+Fastify routes validate requests and delegate to domain services:
 
 - `EventPlanningObjectService` manages canonical and typed rows as one unit.
 - `ObjectRelationService` manages compatible, metadata-bearing links without
@@ -108,6 +111,10 @@ Fastify routes validate requests and delegate to five domain services:
   returning a compact canonical result.
 - `ResourceGrantService` creates, lists, and revokes user grants only after the
   central policy permits Share on the canonical resource.
+- `ObjectRevisionService` returns authorized history summaries and selected
+  typed snapshots under a consistent database read transaction.
+- `EventContextService` coordinates canonical creation and inclusion in one
+  retry-safe transaction, reusing the object and relationship services.
 
 The projection service stores no calendar, itinerary, timeline, or to-do
 copies. Updating one canonical child changes every later projection response.
@@ -180,12 +187,13 @@ use the ARIA `tablist`, `tab`, and `tabpanel` roles with arrow, Home, and End
 keyboard navigation. The shell provides a keyboard-visible skip link, and
 narrow-screen layouts keep forms and result actions in a single usable column.
 
-Creating an included planning resource currently uses two independently
-audited API mutations: create the scoped canonical object, then create its
-`includes` relationship. If the second request fails, the object remains valid
-but unlinked. Atomic, idempotent create-in-context commands are a prerequisite
-for treating this interaction as one recoverable action. Durable revisions,
-restoration, trash, and undo/redo remain planned backend capabilities.
+Creating an included planning resource uses one create-in-context command. The
+canonical object, typed row, `includes` relationship, revision, both business
+audit events, and command receipt commit together. A user/workspace-scoped command
+ID serializes duplicate requests and replays the original creation result after
+reauthorization. A retry never reverses later edits or restores an unlinked
+relationship. Existing standalone create and relation routes remain available.
+Restoration, trash, and undo/redo remain planned capabilities.
 
 PostgreSQL is the canonical data store. Object files are accessed through the
 storage interface and stored outside PostgreSQL. Provider adapters keep

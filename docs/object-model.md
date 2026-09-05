@@ -98,5 +98,16 @@ value. Ordinary deletion also checks the expected version and sets
 `deleted_at`; permanent purge is a separate future workflow. Reads and
 projections exclude soft-deleted objects.
 
+Every supported object mutation appends a schema-versioned, immutable typed
+snapshot in `object_revisions`, linked to the same canonical ID and version.
+Existing objects receive only an explicit baseline of their available state.
+See [Object revisions](revisions.md) for serialization and history contracts.
+
 An Expense amount is stored as its own historical fact. Relating an Expense to
 another object neither derives nor synchronizes the amount with that object.
+
+`event_context_commands` is an immutable receipt keyed by workspace, user, and
+command ID. It records the normalized request hash, original request ID, Event,
+created object, and relationship IDs. It stores no second copy of content: a
+retry obtains its response from the object's creation revision after current
+authorization. Editing or unlinking the resource never changes this receipt.

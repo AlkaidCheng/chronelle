@@ -10,6 +10,8 @@ export {
   type SessionResponse,
 } from "./authentication.js";
 export { healthStatusSchema, type HealthStatus } from "./health.js";
+export * from "./revisions.js";
+export * from "./event-context.js";
 export {
   objectSearchQuerySchema,
   objectSearchResponseSchema,

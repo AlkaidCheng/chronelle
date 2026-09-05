@@ -18,7 +18,7 @@ export interface AuditedMutationResult<Value> {
 }
 
 export async function runAuditedMutation<Value>(
-  database: Database,
+  database: Database | DatabaseTransaction,
   mutation: (
     transaction: DatabaseTransaction,
   ) => Promise<AuditedMutationResult<Value>>,

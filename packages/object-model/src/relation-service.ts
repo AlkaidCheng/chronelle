@@ -10,6 +10,7 @@ import {
   objects,
   runAuditedMutation,
   type Database,
+  type DatabaseTransaction,
   type ObjectType,
   type RelationType,
 } from "@chronelle/db";
@@ -56,10 +57,10 @@ function isCompatibleRelation(
 export class ObjectRelationService {
   readonly #authorization: AuthorizationService;
   readonly #clock: () => Date;
-  readonly #database: Database;
+  readonly #database: Database | DatabaseTransaction;
 
   constructor(
-    database: Database,
+    database: Database | DatabaseTransaction,
     authorization: AuthorizationService,
     clock: () => Date = () => new Date(),
   ) {

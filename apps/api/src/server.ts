@@ -3,6 +3,7 @@ import { existsSync } from "node:fs";
 import { z } from "zod";
 
 import { connectDatabase } from "@chronelle/db";
+import { assertRevisionBaseline } from "@chronelle/object-model";
 
 import { buildApp } from "./app.js";
 import { createDevelopmentAppDependencies } from "./dependencies.js";
@@ -54,6 +55,7 @@ for (const signal of ["SIGINT", "SIGTERM"] as const) {
 }
 
 try {
+  await assertRevisionBaseline(database.db);
   await app.listen({
     host: runtimeEnvironment.API_HOST,
     port: runtimeEnvironment.API_PORT,

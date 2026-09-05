@@ -29,6 +29,8 @@ import {
   InvalidDocumentUploadError,
 } from "./errors.js";
 import type { EventPlanningObjectService } from "./object-service.js";
+import { readObjectState } from "./object-state.js";
+import { recordObjectRevision } from "./object-revisions.js";
 import type {
   DocumentAttachmentList,
   DocumentAttachmentResource,
@@ -250,7 +252,7 @@ export class DocumentService {
     const finalizedAt = this.#clock();
     const permissionScopeId = parent.permissionScopeId;
 
-    await runAuditedMutation(this.#database, async (transaction) => {
+    return this.#database.transaction(async (transaction) => {
       const [finalized] = await transaction
         .update(documentTransferAuthorizations)
         .set({
@@ -296,29 +298,31 @@ export class DocumentService {
         createdBy: context.principal.userId,
       });
 
-      return {
-        value: undefined,
-        audit: {
-          workspaceId: context.principal.workspaceId,
-          actorType: "user",
+      const document = await readObjectState(
+        transaction,
+        context.principal.workspaceId,
+        documentId,
+      );
+      if (document.objectType !== "document")
+        throw new Error("Expected a Document state.");
+      await recordObjectRevision(
+        transaction,
+        document,
+        {
           actorId: context.principal.userId,
-          action: "document.created",
-          resourceId: documentId,
+          actorType: "user",
           requestId: context.requestId,
-          metadata: {
-            parentObjectId: parent.id,
-            permissionScopeId,
-            relationId,
-            transferAuthorizationId: authorization.id,
-          },
         },
-      };
+        "created",
+        {
+          parentObjectId: parent.id,
+          permissionScopeId,
+          relationId,
+          transferAuthorizationId: authorization.id,
+        },
+      );
+      return { document, relationId };
     });
-
-    return {
-      document: await this.#objects.getDocument(context.principal, documentId),
-      relationId,
-    };
   }
 
   async listAttachments(

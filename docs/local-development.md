@@ -1,5 +1,11 @@
 # Local Development
 
+When upgrading a database with existing objects, stop all API writers, run
+`pnpm db:migrate` and `pnpm db:baseline-revisions`, then restart the API. The
+server refuses startup if current object versions lack snapshots. A fresh empty
+database requires no baseline rows. See [Object revisions](revisions.md) for the
+deployment barrier and rollback limits.
+
 ## Setup
 
 Use Node.js 24 or newer, pnpm 11.25, and Docker. Install dependencies once from
@@ -83,8 +89,9 @@ curl --request POST http://localhost:4000/api/events \
   --data '{"displayName":"Launch night","timezone":"America/Los_Angeles"}'
 ```
 
-Create child resources with the Event ID as `permissionScopeId`, then connect
-them with `POST /api/objects/:eventId/relations`. See
+Create and include a child atomically with `POST /api/events/:eventId/resources`
+and a stable `commandId` for retries. The backend assigns its canonical Event
+scope. Standalone creation and independent linking are also supported. See
 [`api.md`](api.md) for the complete first-slice route map.
 
 The Search view uses `GET /api/search`. Search responses contain only active

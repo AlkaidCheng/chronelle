@@ -141,6 +141,9 @@ importers:
       '@chronelle/db':
         specifier: workspace:*
         version: link:../db
+      '@chronelle/schemas':
+        specifier: workspace:*
+        version: link:../schemas
       '@chronelle/storage':
         specifier: workspace:*
         version: link:../storage

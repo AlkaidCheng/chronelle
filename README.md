@@ -108,6 +108,12 @@ pnpm db:migrate
 The runner records each filename and SHA-256 checksum. It refuses to continue
 if an already-applied migration has changed.
 
+For an existing database, stop all API writers and run `pnpm db:baseline-revisions`
+after migration and before restart. The command captures the available state of
+existing live and deleted objects without inventing earlier history. Startup
+checks that every current object version has a snapshot. See
+[Object revisions](docs/revisions.md) for the deployment barrier and history API.
+
 The first migration creates the common object layer plus typed `Event`, `Task`,
 `Expense`, `Reminder`, and `Document` tables. SQL owns database constraints;
 Drizzle maps the accepted schema for typed application queries.

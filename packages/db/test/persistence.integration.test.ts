@@ -116,7 +116,7 @@ describe.sequential("persistence kernel", () => {
         { DATABASE_URL: testDatabase.databaseUrl },
         migrationDirectory,
       ),
-    ).resolves.toBe(4);
+    ).resolves.toBe(6);
     await expect(
       applyMigrations(
         { DATABASE_URL: testDatabase.databaseUrl },
@@ -137,9 +137,11 @@ describe.sequential("persistence kernel", () => {
       "chronelle_schema_migrations",
       "document_transfer_authorizations",
       "documents",
+      "event_context_commands",
       "events",
       "expenses",
       "object_relations",
+      "object_revisions",
       "objects",
       "reminders",
       "resource_grants",

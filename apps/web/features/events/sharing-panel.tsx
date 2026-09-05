@@ -71,7 +71,9 @@ export function SharingPanel({
           <h2>Sharing</h2>
           <p>
             Grant access to this Event and its inheriting resources. A
-            relationship alone never grants access.
+            relationship alone never grants access. Collaborators can also read
+            earlier saved versions of resources they can currently view,
+            including versions saved before this invitation.
           </p>
         </div>
         <ShareIcon />

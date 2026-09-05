@@ -10,11 +10,13 @@
     }
   },
   "scripts": {
-    "build": "pnpm --filter @chronelle/authorization build && pnpm --filter @chronelle/storage build && tsc -p tsconfig.build.json",
-    "test": "pnpm --filter @chronelle/authorization build && pnpm --filter @chronelle/storage build && vitest run",
-    "typecheck": "pnpm --filter @chronelle/authorization build && pnpm --filter @chronelle/storage build && tsc -p tsconfig.json --noEmit"
+    "baseline-revisions": "node dist/baseline-cli.js",
+    "build": "pnpm --filter @chronelle/schemas build && pnpm --filter @chronelle/authorization build && pnpm --filter @chronelle/storage build && tsc -p tsconfig.build.json",
+    "test": "pnpm --filter @chronelle/schemas build && pnpm --filter @chronelle/authorization build && pnpm --filter @chronelle/storage build && vitest run",
+    "typecheck": "pnpm --filter @chronelle/schemas build && pnpm --filter @chronelle/authorization build && pnpm --filter @chronelle/storage build && tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
+    "@chronelle/schemas": "workspace:*",
     "@chronelle/authorization": "workspace:*",
     "@chronelle/db": "workspace:*",
     "@chronelle/storage": "workspace:*",
