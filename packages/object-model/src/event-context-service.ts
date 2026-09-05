@@ -1,5 +1,3 @@
-import { createHash } from "node:crypto";
-
 import {
   AuthorizationService,
   DrizzleAuthorizationStore,
@@ -20,19 +18,7 @@ import { EventPlanningObjectService } from "./object-service.js";
 import { ObjectRelationService } from "./relation-service.js";
 import { serializeResource } from "./serialization.js";
 import type { MutationContext } from "./types.js";
-
-function canonicalJson(value: unknown): unknown {
-  if (value instanceof Date) return value.toISOString();
-  if (Array.isArray(value)) return value.map(canonicalJson);
-  if (value !== null && typeof value === "object") {
-    return Object.fromEntries(
-      Object.entries(value)
-        .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
-        .map(([key, entry]) => [key, canonicalJson(entry)]),
-    );
-  }
-  return value;
-}
+import { hashCommand } from "./command-hash.js";
 
 export class EventContextService {
   readonly #database: Database;
@@ -48,17 +34,11 @@ export class EventContextService {
     input: EventContextCreateRequest,
   ) {
     const { principal } = context;
-    const requestHash = createHash("sha256")
-      .update(
-        JSON.stringify(
-          canonicalJson({
-            eventId,
-            resource: input.resource,
-            relationMetadata: input.relationMetadata ?? {},
-          }),
-        ),
-      )
-      .digest("hex");
+    const requestHash = hashCommand({
+      eventId,
+      resource: input.resource,
+      relationMetadata: input.relationMetadata ?? {},
+    });
     return this.#database.transaction(async (transaction) => {
       const lockKey = `${principal.workspaceId}:${principal.userId}:${input.commandId}`;
       await transaction.execute(
