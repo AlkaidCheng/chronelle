@@ -298,6 +298,7 @@ h3 {
   justify-content: space-between;
   min-height: 100vh;
   padding: 46px clamp(38px, 6vw, 88px);
+  overflow: clip;
   position: relative;
 }
 

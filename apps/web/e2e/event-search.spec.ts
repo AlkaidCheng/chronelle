@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import { expect, test } from "@playwright/test";
 
 test("creates and retrieves one canonical Event at responsive widths", async ({
@@ -8,17 +9,26 @@ test("creates and retrieves one canonical Event at responsive widths", async ({
 
   await page.goto("/sign-in");
   await page.getByLabel("Name").fill(`${projectLabel} planner`);
-  await page.getByLabel("Email").fill(`${projectLabel}-planner@example.test`);
+  await page
+    .getByLabel("Email")
+    .fill(`${projectLabel}-planner-${randomUUID()}@example.test`);
   const continueButton = page.getByRole("button", { name: "Continue" });
   await expect(continueButton).toBeEnabled();
+  expect(
+    await page.evaluate(
+      () =>
+        document.documentElement.scrollWidth <=
+        document.documentElement.clientWidth,
+    ),
+  ).toBe(true);
   await continueButton.click();
   await expect(page).toHaveURL(/\/events$/u);
 
   await page.getByLabel("Event name").fill(eventName);
   await page.getByRole("button", { name: "Create event" }).click();
+  await expect(page).toHaveURL(/\/events\/[0-9a-f-]+$/u);
   await expect(page.getByRole("heading", { name: eventName })).toBeVisible();
   const eventUrl = page.url();
-  expect(eventUrl).toMatch(/\/events\/[0-9a-f-]+$/u);
 
   const overviewTab = page.getByRole("tab", { name: "Overview" });
   await overviewTab.focus();
@@ -39,7 +49,9 @@ test("creates and retrieves one canonical Event at responsive widths", async ({
   await expect(skipLink).toBeVisible();
   expect(
     await page.evaluate(
-      () => document.documentElement.scrollWidth <= window.innerWidth,
+      () =>
+        document.documentElement.scrollWidth <=
+        document.documentElement.clientWidth,
     ),
   ).toBe(true);
 
