@@ -17,6 +17,7 @@ import { type ReactNode, useMemo, useState } from "react";
 
 import { EmptyState, ErrorNotice } from "../../components/feedback";
 import { CheckIcon } from "../../components/icons";
+import { HistoryButton } from "../history/history-button";
 import { formatDateTime, formatMoney, shortId } from "../../lib/format";
 import {
   useRefreshEvent,
@@ -143,16 +144,23 @@ export function TasksPanel({
       }),
       taskColumn.display({
         id: "actions",
-        cell: ({ row }) =>
-          canEdit ? (
-            <button
-              className="button button-quiet button-small"
-              onClick={() => setEditingId(row.original.id)}
-              type="button"
-            >
-              Edit
-            </button>
-          ) : null,
+        cell: ({ row }) => (
+          <div className="row-actions">
+            {canEdit ? (
+              <button
+                className="button button-quiet button-small"
+                onClick={() => setEditingId(row.original.id)}
+                type="button"
+              >
+                Edit
+              </button>
+            ) : null}
+            <HistoryButton
+              objectId={row.original.id}
+              displayName={row.original.displayName}
+            />
+          </div>
+        ),
       }),
     ],
     [canEdit, update],
@@ -336,6 +344,10 @@ export function CalendarPanel({
                   Edit
                 </button>
               ) : null}
+              <HistoryButton
+                objectId={item.id}
+                displayName={item.displayName}
+              />
             </article>
           ))}
         </div>
@@ -385,6 +397,10 @@ export function TimelinePanel({
                 <span className="object-label">{item.objectType}</span>
                 <h3>{item.displayName}</h3>
                 <CanonicalId id={item.canonicalObjectId} />
+                <HistoryButton
+                  objectId={item.canonicalObjectId}
+                  displayName={item.displayName}
+                />
               </div>
             </li>
           ))}
@@ -423,6 +439,10 @@ export function ItineraryPanel({
                 </time>
                 <h3>{item.displayName}</h3>
                 <CanonicalId id={item.id} />
+                <HistoryButton
+                  objectId={item.id}
+                  displayName={item.displayName}
+                />
               </div>
             </li>
           ))}
@@ -492,6 +512,10 @@ export function ExpensesPanel({
               <strong className="money-value">
                 {formatMoney(expense.amount, expense.currency)}
               </strong>
+              <HistoryButton
+                objectId={expense.id}
+                displayName={expense.displayName}
+              />
               {canEdit ? (
                 <button
                   className="button button-quiet button-small"
@@ -581,6 +605,10 @@ export function RemindersPanel({
                 {reminder.status}
               </span>
               <div className="row-actions">
+                <HistoryButton
+                  objectId={reminder.id}
+                  displayName={reminder.displayName}
+                />
                 {canEdit && reminder.status === "pending" ? (
                   <button
                     className="button button-secondary button-small"

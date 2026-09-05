@@ -27,6 +27,12 @@ import {
   timelineResponseSchema,
   revisionListResponseSchema,
   revisionResponseSchema,
+  revisionComparisonResponseSchema,
+  revisionRestorePreviewSchema,
+  type RevisionComparisonQuery,
+  type RevisionComparisonResponse,
+  type RevisionRestorePreview,
+  type RevisionRestoreRequest,
   eventContextCreateResponseSchema,
   type EventContextCreatePayload,
   type EventContextCreateResponse,
@@ -166,6 +172,42 @@ export class ChronelleApiClient {
     return this.#request(
       `/api/objects/${id}/revisions/${version}`,
       revisionResponseSchema,
+    );
+  }
+
+  compareObjectRevisions(
+    id: string,
+    input: RevisionComparisonQuery,
+  ): Promise<RevisionComparisonResponse> {
+    const query = new URLSearchParams({
+      fromVersion: String(input.fromVersion),
+      toVersion: String(input.toVersion),
+    });
+    return this.#request(
+      `/api/objects/${id}/revisions/compare?${query}`,
+      revisionComparisonResponseSchema,
+    );
+  }
+
+  previewObjectRestoration(
+    id: string,
+    version: number,
+  ): Promise<RevisionRestorePreview> {
+    return this.#request(
+      `/api/objects/${id}/revisions/${version}/restore-preview`,
+      revisionRestorePreviewSchema,
+    );
+  }
+
+  restoreObjectRevision(
+    id: string,
+    version: number,
+    input: RevisionRestoreRequest,
+  ): Promise<EventPlanningResourceResponse> {
+    return this.#request(
+      `/api/objects/${id}/revisions/${version}/restore`,
+      eventPlanningResourceResponseSchema,
+      jsonRequest(input, "POST"),
     );
   }
 

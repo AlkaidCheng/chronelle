@@ -1,5 +1,6 @@
 import {
   AuthorizationDeniedError,
+  withStableAuthorization,
   type AuthorizationAction,
   type AuthorizationService,
   type UserPrincipal,
@@ -507,46 +508,53 @@ export class EventPlanningObjectService {
     objectId: string,
     expectedVersion: number,
   ): Promise<ObjectDeletionResource> {
-    await this.#getObjectWithAction(context.principal, objectId, "delete");
     const deletedAt = this.#clock();
 
-    const resource = await this.#database.transaction(async (transaction) => {
-      const [updated] = await transaction
-        .update(objects)
-        .set({
-          deletedAt,
-          updatedAt: deletedAt,
-          version: sql`${objects.version} + 1`,
-        })
-        .where(
-          and(
-            eq(objects.workspaceId, context.principal.workspaceId),
-            eq(objects.id, objectId),
-            eq(objects.version, expectedVersion),
-            isNull(objects.deletedAt),
-          ),
-        )
-        .returning({ version: objects.version });
-      if (updated === undefined) {
-        throw new ObjectConflictError();
-      }
+    const resource = await withStableAuthorization(
+      this.#database,
+      context.principal.workspaceId,
+      async (transaction, authorization) => {
+        await authorization.assertCan(context.principal, "delete", {
+          id: objectId,
+          workspaceId: context.principal.workspaceId,
+        });
+        const [updated] = await transaction
+          .update(objects)
+          .set({
+            deletedAt,
+            updatedAt: deletedAt,
+            version: sql`${objects.version} + 1`,
+          })
+          .where(
+            and(
+              eq(objects.workspaceId, context.principal.workspaceId),
+              eq(objects.id, objectId),
+              eq(objects.version, expectedVersion),
+              isNull(objects.deletedAt),
+            ),
+          )
+          .returning({ version: objects.version });
+        if (updated === undefined) {
+          throw new ObjectConflictError();
+        }
 
-      const resource = await readObjectState(
-        transaction,
-        context.principal.workspaceId,
-        objectId,
-      );
-      return recordObjectRevision(
-        transaction,
-        resource,
-        {
-          actorId: context.principal.userId,
-          actorType: "user",
-          requestId: context.requestId,
-        },
-        "deleted",
-      );
-    });
+        const resource = await readObjectState(
+          transaction,
+          context.principal.workspaceId,
+          objectId,
+        );
+        return recordObjectRevision(
+          transaction,
+          resource,
+          {
+            actorId: context.principal.userId,
+            actorType: "user",
+            requestId: context.requestId,
+          },
+          "deleted",
+        );
+      },
+    );
 
     return { id: objectId, version: resource.version, deletedAt };
   }
@@ -556,78 +564,90 @@ export class EventPlanningObjectService {
     objectId: string,
     input: UpdatePermissionScopeInput,
   ): Promise<EventPlanningResource> {
-    const current = await this.#getObjectWithAction(
-      context.principal,
-      objectId,
-      "share",
-    );
-    if (current.version !== input.expectedVersion)
-      throw new ObjectConflictError();
-    if (current.permissionScopeId === input.permissionScopeId) {
-      throw new InvalidObjectStateError(
-        "permissionScopeId must change the current permission scope.",
-      );
-    }
-
-    if (input.permissionScopeId !== objectId) {
-      const scope = await this.#getObjectWithAction(
-        context.principal,
-        input.permissionScopeId,
-        "share",
-      );
-      if (
-        scope.objectType !== "event" ||
-        scope.permissionScopeId !== scope.id
-      ) {
-        throw new InvalidObjectStateError(
-          "permissionScopeId must reference a self-scoped Event.",
+    return withStableAuthorization(
+      this.#database,
+      context.principal.workspaceId,
+      async (transaction, authorization) => {
+        await authorization.assertCan(context.principal, "share", {
+          id: objectId,
+          workspaceId: context.principal.workspaceId,
+        });
+        const current = await readObjectState(
+          transaction,
+          context.principal.workspaceId,
+          objectId,
         );
-      }
-    }
+        if (current.version !== input.expectedVersion)
+          throw new ObjectConflictError();
+        if (current.permissionScopeId === input.permissionScopeId) {
+          throw new InvalidObjectStateError(
+            "permissionScopeId must change the current permission scope.",
+          );
+        }
 
-    const updatedAt = this.#clock();
-    return this.#database.transaction(async (transaction) => {
-      const [updated] = await transaction
-        .update(objects)
-        .set({
-          permissionScopeId: input.permissionScopeId,
-          updatedAt,
-          version: sql`${objects.version} + 1`,
-        })
-        .where(
-          and(
-            eq(objects.workspaceId, context.principal.workspaceId),
-            eq(objects.id, objectId),
-            eq(objects.version, input.expectedVersion),
-            isNull(objects.deletedAt),
-          ),
-        )
-        .returning({ version: objects.version });
-      if (updated === undefined) {
-        throw new ObjectConflictError();
-      }
+        if (input.permissionScopeId !== objectId) {
+          await authorization.assertCan(context.principal, "share", {
+            id: input.permissionScopeId,
+            workspaceId: context.principal.workspaceId,
+          });
+          const scope = await readObjectState(
+            transaction,
+            context.principal.workspaceId,
+            input.permissionScopeId,
+          );
+          if (
+            scope.objectType !== "event" ||
+            scope.permissionScopeId !== scope.id
+          ) {
+            throw new InvalidObjectStateError(
+              "permissionScopeId must reference a self-scoped Event.",
+            );
+          }
+        }
 
-      const resource = await readObjectState(
-        transaction,
-        context.principal.workspaceId,
-        objectId,
-      );
-      return recordObjectRevision(
-        transaction,
-        resource,
-        {
-          actorId: context.principal.userId,
-          actorType: "user",
-          requestId: context.requestId,
-        },
-        "permission_scope_updated",
-        {
-          permissionScopeId: input.permissionScopeId,
-          previousPermissionScopeId: current.permissionScopeId,
-          previousVersion: input.expectedVersion,
-        },
-      );
-    });
+        const updatedAt = this.#clock();
+        const [updated] = await transaction
+          .update(objects)
+          .set({
+            permissionScopeId: input.permissionScopeId,
+            updatedAt,
+            version: sql`${objects.version} + 1`,
+          })
+          .where(
+            and(
+              eq(objects.workspaceId, context.principal.workspaceId),
+              eq(objects.id, objectId),
+              eq(objects.version, input.expectedVersion),
+              isNull(objects.deletedAt),
+            ),
+          )
+          .returning({ version: objects.version });
+        if (updated === undefined) {
+          throw new ObjectConflictError();
+        }
+
+        const resource = await readObjectState(
+          transaction,
+          context.principal.workspaceId,
+          objectId,
+        );
+        return recordObjectRevision(
+          transaction,
+          resource,
+          {
+            actorId: context.principal.userId,
+            actorType: "user",
+            requestId: context.requestId,
+          },
+          "permission_scope_updated",
+          {
+            permissionScopeId: input.permissionScopeId,
+            previousPermissionScopeId: current.permissionScopeId,
+            previousVersion: input.expectedVersion,
+          },
+        );
+      },
+    );
   }
 
   async #createObject(

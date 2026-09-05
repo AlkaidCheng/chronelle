@@ -31,6 +31,7 @@ import {
 import { DocumentsPanel } from "./documents-panel";
 import { EventEditorForm } from "./resource-forms";
 import { SharingPanel } from "./sharing-panel";
+import { HistoryButton } from "../history/history-button";
 
 const tabs = [
   { id: "overview", label: "Overview" },
@@ -206,6 +207,7 @@ export function EventWorkspace({ eventId }: { readonly eventId: string }) {
                   }`}
             </p>
           </div>
+          <HistoryButton objectId={event.id} displayName={event.displayName} />
           {canEdit ? (
             <button
               className="button button-secondary"

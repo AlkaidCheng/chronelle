@@ -114,6 +114,12 @@ existing live and deleted objects without inventing earlier history. Startup
 checks that every current object version has a snapshot. See
 [Object revisions](docs/revisions.md) for the deployment barrier and history API.
 
+History actions provide paginated versions, typed comparisons, and confirmed
+content restoration. Restoring advances the canonical version while preserving
+current permissions and immutable financial/file facts. See the
+[restore policy](docs/revisions.md#content-restoration) before deploying the
+restoration migration; API and web must be upgraded together.
+
 The first migration creates the common object layer plus typed `Event`, `Task`,
 `Expense`, `Reminder`, and `Document` tables. SQL owns database constraints;
 Drizzle maps the accepted schema for typed application queries.

@@ -11,6 +11,7 @@ import {
   EventPlanningProjectionService,
   ObjectRelationService,
   ObjectRevisionService,
+  ObjectRestorationService,
   EventContextService,
 } from "@chronelle/object-model";
 import {
@@ -32,6 +33,7 @@ export interface AppDependencies {
   readonly projections: EventPlanningProjectionService;
   readonly relations: ObjectRelationService;
   readonly revisions: ObjectRevisionService;
+  readonly restoration: ObjectRestorationService;
   readonly eventContexts: EventContextService;
   readonly search: CanonicalObjectSearchService;
   readonly shares: ResourceGrantService;
@@ -76,6 +78,7 @@ export function createAppDependencies(
     objects,
     relations: new ObjectRelationService(connection.db, authorization),
     revisions: new ObjectRevisionService(connection.db),
+    restoration: new ObjectRestorationService(connection.db),
     eventContexts: new EventContextService(connection.db),
     search: new CanonicalObjectSearchService(connection.db, authorization),
     shares: new ResourceGrantService(connection.db, authorization),

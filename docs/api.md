@@ -42,6 +42,32 @@ access, create no duplicate objects, and never reverse later edits or unlinks.
 
 ## Object history
 
+| Method | Path                                                           | Behavior                                                |
+| ------ | -------------------------------------------------------------- | ------------------------------------------------------- |
+| GET    | `/api/objects/:id/revisions/compare?fromVersion=N&toVersion=M` | Compare public content with current View                |
+| GET    | `/api/objects/:id/revisions/:version/restore-preview`          | Preview eligible content against current state          |
+| POST   | `/api/objects/:id/revisions/:version/restore`                  | Restore content with current Edit and `expectedVersion` |
+
+History can be inspected and restored through the typed client:
+
+```ts
+const comparison = await client.compareObjectRevisions(objectId, {
+  fromVersion: 1,
+  toVersion: 2,
+});
+const preview = await client.previewObjectRestoration(objectId, 1);
+// Show preview.changes and require confirmation before this call.
+const restored = await client.restoreObjectRevision(objectId, 1, {
+  expectedVersion: preview.currentVersion,
+});
+```
+
+Retain the preview's version for confirmation; never silently replace it after
+a concurrent edit. The restore response is the updated canonical resource.
+Stale versions return 409 `version_conflict`; unauthorized or missing resources
+return 404. Snapshots and extra body fields are rejected. See
+[Object revisions](revisions.md) for content eligibility and deployment limits.
+
 Authenticated callers with current View permission can list revision summaries
 with `GET /api/objects/:id/revisions?limit=25` and fetch typed historical content
 with `GET /api/objects/:id/revisions/:version`. Pass the returned

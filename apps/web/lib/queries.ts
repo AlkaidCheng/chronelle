@@ -189,7 +189,7 @@ function useEventInvalidation(eventId: string) {
   };
 }
 
-function useCanonicalInvalidation() {
+export function useCanonicalInvalidation() {
   const queryClient = useQueryClient();
   return () =>
     queryClient.invalidateQueries({

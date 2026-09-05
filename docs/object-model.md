@@ -103,6 +103,11 @@ snapshot in `object_revisions`, linked to the same canonical ID and version.
 Existing objects receive only an explicit baseline of their available state.
 See [Object revisions](revisions.md) for serialization and history contracts.
 
+Content restore advances the live version and appends a `restored` revision
+referencing an earlier revision of the same object through `source_revision_id`.
+Per-type policies preserve Expense transaction facts, Reminder delivery status,
+Document file metadata, and all security/lifecycle fields.
+
 An Expense amount is stored as its own historical fact. Relating an Expense to
 another object neither derives nor synchronizes the amount with that object.
 

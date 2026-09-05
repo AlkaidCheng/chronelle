@@ -1,6 +1,6 @@
 # Object revisions
 
-Every supported object create, content update, permission-scope change, and soft
+Every supported object create, content update, restoration, permission-scope change, and soft
 deletion appends one immutable snapshot. This includes Document creation during
 upload finalization. Canonical and typed state, the revision, and its audit event
 commit or roll back together. Mutation responses use the same transaction's
@@ -50,6 +50,70 @@ History authorization and retrieval share one repeatable-read, read-only
 transaction. A request already authorized in that database snapshot may finish
 while a concurrent revocation commits; subsequent requests see the revocation.
 This is not permission to restore or replay historical security state.
+
+## History interface and comparisons
+
+History is available on Events, Tasks, Expenses, Reminders, and Documents. One
+shared drawer stays open when restoration moves a resource out of a filtered
+view. It loads 20 summaries at a time, showing version, action, time, and the
+actor's current display name when available. Actor IDs provide durable
+attribution; display names are not historical snapshots.
+
+Choose two loaded versions for a typed comparison, or preview a revision against
+current content. Custom properties are compared by top-level key, distinguishing
+missing values from nulls and ignoring object-key ordering. Security fields and
+storage details are never comparison inputs or output values.
+
+## Content restoration
+
+`GET /api/objects/:id/revisions/:version/restore-preview` shows current and
+historical values, flags preserved fields, and returns the current version.
+Viewers can inspect it but cannot restore.
+`POST /api/objects/:id/revisions/:version/restore` accepts only
+`{ expectedVersion }`, requires current Edit, and applies eligible historical
+content as version current + 1 of the same canonical object.
+
+| Object    | Restorable content                  | Preserved typed facts                                                                       |
+| --------- | ----------------------------------- | ------------------------------------------------------------------------------------------- |
+| All types | Name and custom properties          | Identity, permissions, relations, lifecycle state, system metadata                          |
+| Event     | Start, end, time zone, all-day flag | Common exclusions                                                                           |
+| Task      | Status, due time, completion time   | Common exclusions                                                                           |
+| Expense   | Common content only                 | Amount, currency, transaction date                                                          |
+| Reminder  | Reminder time                       | Delivery status                                                                             |
+| Document  | Common content only                 | Original filename, MIME type, size, checksum, file bytes, provider, encryption, storage key |
+
+Expense corrections use the explicit Expense editor. Generic restore does not
+rewrite financial facts, re-arm Reminder delivery, or replace Document files.
+Unknown snapshot schemas, deleted states, and requests with no eligible changes
+are rejected.
+
+A `restored` revision references its earlier source through
+`source_revision_id`, enforced against the same canonical object in PostgreSQL.
+Its typed `*.restored` audit records the source revision, source version, and
+previous current version. Later history remains readable. A failed write rolls
+back canonical state, typed fields, revision, and audit together.
+
+Confirmation is pinned to the displayed preview. Stale versions return HTTP 409
+without writing; refreshing requires fresh confirmation. Retrying an uncertain
+successful response with the consumed version also conflicts instead of creating
+another revision. Open drafts are preserved and need explicit reconciliation
+after canonical refresh. Drafts and confirmation do not survive page reloads.
+
+## Permission ordering for restoration
+
+`withStableAuthorization` locks the workspace row using `FOR NO KEY UPDATE`
+before checking permission. Restores, grant creation/replacement/revocation,
+scope changes, and soft deletion all participate. If a permission mutation wins
+the lock, restore sees its committed state. If restore wins, it commits before
+the waiting permission mutation. Ordinary content edits still compete through
+optimistic versions.
+
+This serializes those operations within one workspace, not across workspaces.
+The lock permits foreign-key key-share locks, avoiding an unnecessary conflict
+with unrelated object/audit inserts. Administrative SQL and future membership
+or other authorization writers must follow this application protocol. Existing
+membership creation only bootstraps new workspaces. Grant expiry is evaluated
+after lock acquisition.
 
 ## Atomic creation in an Event
 
@@ -104,5 +168,11 @@ writes and baseline capture can take time on a large database; schedule an outag
 and retain a tested backup. Downgrading to an API that does not record revisions
 is unsafe without a coordinated database restore.
 
-History display, typed comparisons, restoration, Trash, and Undo/Redo are separate
-capabilities. Snapshot availability alone does not make those actions safe.
+Migration `0007_add_revision_restoration.sql` adds restore provenance and ledger
+guards without changing existing revisions or requiring new baselines. Deploy
+API and web together with old writers stopped; older history clients reject
+the added `restored` action and must reload or upgrade. Mixed API versions do not
+share the permission-ordering guarantee.
+
+Trash, deleted-object recovery, relation restoration, and Undo/Redo remain
+separate capabilities. Content restore never clears tombstones or replays links.

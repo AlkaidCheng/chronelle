@@ -53,6 +53,55 @@ const documentAttachment = {
 } as const;
 
 describe("ChronelleApiClient", () => {
+  it("encodes comparison versions and sends only the restore precondition", async () => {
+    const fetch = vi
+      .fn<typeof globalThis.fetch>()
+      .mockResolvedValueOnce(
+        Response.json({
+          objectId: event.id,
+          fromVersion: 1,
+          toVersion: 2,
+          changes: [],
+        }),
+      )
+      .mockResolvedValueOnce(
+        Response.json({
+          objectId: event.id,
+          sourceRevisionId: documentId,
+          sourceVersion: 1,
+          currentVersion: 2,
+          canRestore: true,
+          changes: [],
+          preservedFields: [],
+        }),
+      )
+      .mockResolvedValueOnce(Response.json({ ...event, version: 3 }));
+    const client = new ChronelleApiClient({
+      fetch,
+      getCredential: () => ({
+        accessToken: "test-session",
+        workspaceId: event.workspaceId,
+      }),
+    });
+    await client.compareObjectRevisions(event.id, {
+      fromVersion: 1,
+      toVersion: 2,
+    });
+    await client.previewObjectRestoration(event.id, 1);
+    expect(
+      (await client.restoreObjectRevision(event.id, 1, { expectedVersion: 2 }))
+        .version,
+    ).toBe(3);
+    expect(fetch.mock.calls.map(([url]) => url)).toEqual([
+      `/api/objects/${event.id}/revisions/compare?fromVersion=1&toVersion=2`,
+      `/api/objects/${event.id}/revisions/1/restore-preview`,
+      `/api/objects/${event.id}/revisions/1/restore`,
+    ]);
+    expect(fetch.mock.calls[2]?.[1]).toMatchObject({
+      method: "POST",
+      body: '{"expectedVersion":2}',
+    });
+  });
   it("preserves a supplied create command ID and validates the committed result", async () => {
     const fetch = vi
       .fn<typeof globalThis.fetch>()

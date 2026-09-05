@@ -1,5 +1,15 @@
 # Local Development
 
+History actions open a paginated drawer from planning objects and Documents.
+Compare two versions, preview historical content, and confirm restoration only
+after reviewing eligible fields. Open drafts are preserved. A conflict requires
+refreshing the preview and confirming again.
+
+Migration `0007_add_revision_restoration.sql` adds restoration. Stop old API
+writers, run `pnpm db:migrate`, and deploy the updated API and web together.
+Complete revision chains need no new baseline. The browser gate exercises
+confirmation, keyboard focus, responsive layout, drafts, and reload persistence.
+
 When upgrading a database with existing objects, stop all API writers, run
 `pnpm db:migrate` and `pnpm db:baseline-revisions`, then restart the API. The
 server refuses startup if current object versions lack snapshots. A fresh empty

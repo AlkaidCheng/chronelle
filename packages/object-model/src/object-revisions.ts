@@ -26,6 +26,7 @@ export async function recordObjectRevision<
   actor: RevisionActor,
   mutationKind: RevisionKind,
   metadata: Record<string, unknown> = {},
+  sourceRevisionId: string | null = null,
 ): Promise<Resource> {
   if (mutationKind !== "created" && mutationKind !== "baseline") {
     const [previous] = await transaction
@@ -61,7 +62,11 @@ export async function recordObjectRevision<
       ...actor,
       action,
       resourceId: resource.id,
-      metadata: { ...metadata, version: resource.version },
+      metadata: {
+        ...metadata,
+        version: resource.version,
+        ...(sourceRevisionId !== null && { sourceRevisionId }),
+      },
     })
     .returning({ createdAt: auditEvents.createdAt });
   if (audit === undefined)
@@ -73,6 +78,7 @@ export async function recordObjectRevision<
     objectId: resource.id,
     objectVersion: resource.version,
     mutationKind,
+    sourceRevisionId,
     ...actor,
     auditEventId,
     snapshotSchemaVersion: 1,
