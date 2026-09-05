@@ -120,6 +120,13 @@ current permissions and immutable financial/file facts. See the
 [restore policy](docs/revisions.md#content-restoration) before deploying the
 restoration migration; API and web must be upgraded together.
 
+Workspace Trash provides Owner-authorized deleted-object previews and recovery.
+Event Actions distinguish unlinking a context from deleting a canonical object;
+Removed links restores independently removed relationships. Migration 0008 adds
+relation versions and requires API/web deployment together with old writers
+stopped. See [Trash and recovery](docs/recovery.md) for the new versioned relation
+contract and recovery guarantees.
+
 The first migration creates the common object layer plus typed `Event`, `Task`,
 `Expense`, `Reminder`, and `Document` tables. SQL owns database constraints;
 Drizzle maps the accepted schema for typed application queries.

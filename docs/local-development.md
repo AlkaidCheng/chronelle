@@ -16,6 +16,16 @@ server refuses startup if current object versions lack snapshots. A fresh empty
 database requires no baseline rows. See [Object revisions](revisions.md) for the
 deployment barrier and rollback limits.
 
+Trash is available in workspace navigation. Use an Event or resource's Actions
+to remove its context link or move the canonical object to Trash. Preview and
+confirm recovery in Trash; recover independently removed links from the Event's
+Removed links tab. Current Owners can revoke direct grants while an object is
+trashed. See [Recovery](recovery.md) for scope-first recovery and limitations.
+
+Migration `0008_add_trash_recovery.sql` adds relation versions and recovery.
+Stop old API writers, migrate, and upgrade API/web together: unversioned relation
+DELETE requests and older history clients are incompatible.
+
 ## Setup
 
 Use Node.js 24 or newer, pnpm 11.25, and Docker. Install dependencies once from
