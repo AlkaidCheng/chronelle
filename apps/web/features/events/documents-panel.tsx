@@ -14,6 +14,7 @@ import {
 } from "../../components/feedback";
 import { DownloadIcon, LockIcon, PaperclipIcon } from "../../components/icons";
 import { formatBytes, shortId } from "../../lib/format";
+import { HistoryButton } from "../history/history-button";
 import {
   useAttachDocument,
   useDocumentAttachments,
@@ -220,6 +221,10 @@ export function DocumentsPanel({
                       </code>
                     </div>
                     <div className="attachment-actions">
+                      <HistoryButton
+                        objectId={file.id}
+                        displayName={file.originalFilename}
+                      />
                       <button
                         className="button button-secondary button-small"
                         disabled={download.isPending}

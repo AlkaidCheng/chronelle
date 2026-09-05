@@ -5,6 +5,7 @@ import { type ReactNode, useState } from "react";
 
 import { ApiClientProvider } from "../lib/api-context";
 import { AuthSessionProvider } from "../lib/auth-session";
+import { HistoryProvider } from "../features/history/history-provider";
 
 export function Providers({ children }: { readonly children: ReactNode }) {
   const [queryClient] = useState(
@@ -23,7 +24,9 @@ export function Providers({ children }: { readonly children: ReactNode }) {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthSessionProvider>
-        <ApiClientProvider>{children}</ApiClientProvider>
+        <ApiClientProvider>
+          <HistoryProvider>{children}</HistoryProvider>
+        </ApiClientProvider>
       </AuthSessionProvider>
     </QueryClientProvider>
   );

@@ -6,6 +6,12 @@ and fetch within one consistent database snapshot; revoked access applies to
 subsequent requests. Deleted resources remain unavailable through normal history
 endpoints. See [Object revisions](revisions.md) for disclosure and redaction rules.
 
+Comparisons and previews require current View. Content restore requires current
+Edit and the expected version, and never replays grants, scopes, or lifecycle
+state. Restores and permission mutations acquire the same workspace transaction
+lock before authorization. A revocation or scope change that wins the lock is
+observed by the waiting restore. Administrative SQL must follow this protocol.
+
 Authorization is an application-layer service with one operation:
 
 ```text

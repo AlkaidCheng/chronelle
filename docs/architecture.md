@@ -81,6 +81,12 @@ either required ledger entry rolls back the business change. Object services
 validate state, authorize access, and atomically enforce the expected version.
 See [Object revisions](revisions.md) for snapshot, history, and baseline contracts.
 
+`ObjectRestorationService` owns typed comparison, preview, and content
+restoration. Its allowlist preserves security state and immutable typed facts.
+The authorization package owns a workspace transaction boundary shared by
+restore and security mutations. One shared web History drawer presents this
+capability without owning canonical state or open editor drafts.
+
 Document bytes cross a `StorageProvider` port. The local adapter stores opaque
 workspace-scoped keys below a configured private root, validates every resolved
 path, creates directories and files with restrictive permissions, and verifies
