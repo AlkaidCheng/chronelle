@@ -15,11 +15,11 @@ import {
 import { DownloadIcon, LockIcon, PaperclipIcon } from "../../components/icons";
 import { formatBytes, shortId } from "../../lib/format";
 import { HistoryButton } from "../history/history-button";
+import { LifecycleButton } from "../recovery/lifecycle-provider";
 import {
   useAttachDocument,
   useDocumentAttachments,
   useDownloadDocument,
-  useUnlinkDocument,
 } from "../../lib/queries";
 
 interface AttachmentTarget {
@@ -71,7 +71,6 @@ export function DocumentsPanel({
   const attachments = useDocumentAttachments(parentObjectId);
   const attach = useAttachDocument(parentObjectId);
   const download = useDownloadDocument();
-  const unlink = useUnlinkDocument();
 
   useEffect(() => {
     if (!targets.some((target) => target.id === parentObjectId)) {
@@ -92,7 +91,7 @@ export function DocumentsPanel({
     });
   }
 
-  const firstError = attach.error ?? download.error ?? unlink.error;
+  const firstError = attach.error ?? download.error;
 
   return (
     <section className="planning-panel documents-panel">
@@ -240,14 +239,15 @@ export function DocumentsPanel({
                         {isDownloading ? "Preparing..." : "Download"}
                       </button>
                       {canEdit ? (
-                        <button
-                          className="button button-quiet button-small"
-                          disabled={unlink.isPending}
-                          onClick={() => unlink.mutate(attachment.relationId)}
-                          type="button"
-                        >
-                          Unlink
-                        </button>
+                        <LifecycleButton
+                          target={{
+                            ...file,
+                            relation: {
+                              id: attachment.relationId,
+                              version: attachment.relationVersion,
+                            },
+                          }}
+                        />
                       ) : null}
                     </div>
                   </article>

@@ -7,6 +7,7 @@ import {
   type Role,
 } from "@chronelle/db";
 import { and, eq, gt, inArray, isNull, or } from "drizzle-orm";
+import { recoveryAccessPredicate } from "./recovery-policy.js";
 
 import type {
   AccessibleWorkspaceQuery,
@@ -21,6 +22,27 @@ export class DrizzleAuthorizationStore implements AuthorizationStore {
 
   constructor(database: Database | DatabaseTransaction) {
     this.#database = database;
+  }
+
+  async findRecoveryRole(query: ResourceRoleQuery): Promise<"owner" | null> {
+    const [resource] = await this.#database
+      .select({ id: objects.id })
+      .from(objects)
+      .where(
+        and(
+          eq(objects.id, query.resource.id),
+          recoveryAccessPredicate(
+            {
+              type: "user",
+              userId: query.userId,
+              workspaceId: query.resource.workspaceId,
+            },
+            query.evaluatedAt,
+          ),
+        ),
+      )
+      .limit(1);
+    return resource === undefined ? null : "owner";
   }
 
   async findResourceRoles(
@@ -126,7 +148,7 @@ export class DrizzleAuthorizationStore implements AuthorizationStore {
             isNull(resourceGrants.expiresAt),
             gt(resourceGrants.expiresAt, query.evaluatedAt),
           ),
-          isNull(objects.deletedAt),
+          or(isNull(objects.deletedAt), eq(resourceGrants.role, "owner")),
         ),
       )
       .limit(1);
@@ -160,7 +182,7 @@ export class DrizzleAuthorizationStore implements AuthorizationStore {
               isNull(resourceGrants.expiresAt),
               gt(resourceGrants.expiresAt, query.evaluatedAt),
             ),
-            isNull(objects.deletedAt),
+            or(isNull(objects.deletedAt), eq(resourceGrants.role, "owner")),
           ),
         ),
     ]);

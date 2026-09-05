@@ -44,6 +44,7 @@ const rootEvent = {
 
 const documentAttachment = {
   relationId: documentRelationId,
+  relationVersion: 1,
   document: {
     ...rootEvent,
     id: documentId,
@@ -391,6 +392,20 @@ describe("EventWorkspace", () => {
   });
 
   it("lets an owner choose attachment targets and unlink without deleting", async () => {
+    Object.defineProperties(HTMLDialogElement.prototype, {
+      showModal: {
+        configurable: true,
+        value(this: HTMLDialogElement) {
+          this.setAttribute("open", "");
+        },
+      },
+      close: {
+        configurable: true,
+        value(this: HTMLDialogElement) {
+          this.removeAttribute("open");
+        },
+      },
+    });
     const task = {
       ...rootEvent,
       id: "019d6e7d-0000-7000-8000-000000000032",
@@ -418,7 +433,10 @@ describe("EventWorkspace", () => {
           lockedRelationCount: 0,
         });
       }
-      if (path === `/api/objects/${eventId}/access`) {
+      if (
+        path === `/api/objects/${eventId}/access` ||
+        path === `/api/objects/${documentId}/access`
+      ) {
         return jsonResponse({
           resourceId: eventId,
           actions: ["view", "comment", "edit", "share", "delete"],
@@ -440,12 +458,13 @@ describe("EventWorkspace", () => {
         return jsonResponse({ items: attachments, lockedAttachmentCount: 0 });
       }
       if (
-        path === `/api/relations/${documentRelationId}` &&
+        path === `/api/relations/${documentRelationId}?expectedVersion=1` &&
         init?.method === "DELETE"
       ) {
         attachments = [];
         return jsonResponse({
           id: documentRelationId,
+          version: 2,
           deletedAt: "2026-09-02T20:10:00.000Z",
         });
       }
@@ -473,13 +492,20 @@ describe("EventWorkspace", () => {
       screen.getByRole("option", { name: "Task: Confirm venue" }),
     ).toBeVisible();
 
-    await user.click(screen.getByRole("button", { name: "Unlink" }));
+    await user.click(
+      screen.getByRole("button", { name: "Actions for run-of-show.pdf" }),
+    );
+    await user.click(
+      await screen.findByRole("button", { name: "Remove context link" }),
+    );
+    await user.click(screen.getByRole("checkbox", { name: /I understand/ }));
+    await user.click(screen.getByRole("button", { name: "Confirm removal" }));
 
     await waitFor(() => {
       expect(
         fetch.mock.calls.some(
           ([url, request]) =>
-            url === `/api/relations/${documentRelationId}` &&
+            url === `/api/relations/${documentRelationId}?expectedVersion=1` &&
             request?.method === "DELETE",
         ),
       ).toBe(true);

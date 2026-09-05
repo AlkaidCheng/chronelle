@@ -1910,7 +1910,7 @@ a.search-result:hover {
   }
 
   .workspace-nav {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     width: 100%;
   }
 
@@ -2231,7 +2231,53 @@ a.search-result:hover {
 .history-preview .check-field {
   margin: 20px 0;
 }
+.recovery-dialog {
+  background: var(--surface, #fff);
+  color: var(--ink);
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  padding: 28px;
+  width: min(660px, calc(100vw - 32px));
+  max-height: calc(100dvh - 48px);
+  overflow: auto;
+  overflow-wrap: anywhere;
+}
+.recovery-dialog::backdrop {
+  background: rgb(20 30 25 / 45%);
+}
+.recovery-options,
+.trash-grants li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.trash-grants {
+  list-style: none;
+  padding: 0;
+}
+.trash-filter {
+  max-width: 280px;
+  margin: 24px 0;
+}
+.trash-list h2 {
+  font-size: 1.05rem;
+}
+.recovery-list article {
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+.recovery-list article > div {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
 @media (max-width: 560px) {
+  .recovery-list article {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .recovery-list > article > .button {
+    grid-column: 1;
+  }
   .history-drawer {
     padding: 20px 16px;
   }

@@ -32,6 +32,7 @@ import {
   objectIdParamsSchema,
   relationCreateRequestSchema,
   relationDeletionResponseSchema,
+  relationDeletionQuerySchema,
   relationListResponseSchema,
   relationResponseSchema,
   reminderCreateRequestSchema,
@@ -272,9 +273,14 @@ export function registerEventPlanningRoutes(
     { preHandler: app.authenticate },
     async (request) => {
       const { id } = parseRequest(objectIdParamsSchema, request.params);
+      const { expectedVersion } = parseRequest(
+        relationDeletionQuerySchema,
+        request.query,
+      );
       const deletion = await dependencies.relations.softDelete(
         mutationContext(request),
         id,
+        expectedVersion,
       );
       return relationDeletionResponseSchema.parse(
         serializeRelationDeletion(deletion),

@@ -296,7 +296,7 @@ describe.sequential("event-planning API", () => {
 
     const relationDeleteResponse = await app.inject({
       method: "DELETE",
-      url: `/api/relations/${relations[1]?.id}`,
+      url: `/api/relations/${relations[1]?.id}?expectedVersion=${relations[1]?.version}`,
       headers: ownerHeaders,
     });
     expect(relationDeleteResponse.statusCode).toBe(200);

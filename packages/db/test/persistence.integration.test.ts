@@ -116,7 +116,7 @@ describe.sequential("persistence kernel", () => {
         { DATABASE_URL: testDatabase.databaseUrl },
         migrationDirectory,
       ),
-    ).resolves.toBe(7);
+    ).resolves.toBe(8);
     await expect(
       applyMigrations(
         { DATABASE_URL: testDatabase.databaseUrl },
@@ -371,7 +371,7 @@ describe.sequential("persistence kernel", () => {
     );
     await testDatabase.connection.db
       .update(objectRelations)
-      .set({ deletedAt: new Date() })
+      .set({ deletedAt: new Date(), version: 2 })
       .where(eq(objectRelations.id, relationId));
     const replacementRelationId = createId();
     await testDatabase.connection.db.insert(objectRelations).values({

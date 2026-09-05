@@ -37,6 +37,7 @@ import { registerRequestContext } from "./request-context.js";
 import { registerSearchRoutes } from "./search/routes.js";
 import { registerSharingRoutes } from "./sharing/routes.js";
 import { registerRevisionRoutes } from "./revisions/routes.js";
+import { registerRecoveryRoutes } from "./recovery/routes.js";
 
 export function buildApp(
   dependencies: AppDependencies,
@@ -129,6 +130,7 @@ export function buildApp(
   registerSearchRoutes(app, dependencies);
   registerSharingRoutes(app, dependencies);
   registerRevisionRoutes(app, dependencies);
+  registerRecoveryRoutes(app, dependencies);
   if (dependencies.developmentAuth !== undefined) {
     registerDevelopmentAuthenticationRoute(app, {
       developmentAuth: dependencies.developmentAuth,

@@ -32,6 +32,8 @@ import { DocumentsPanel } from "./documents-panel";
 import { EventEditorForm } from "./resource-forms";
 import { SharingPanel } from "./sharing-panel";
 import { HistoryButton } from "../history/history-button";
+import { LifecycleButton } from "../recovery/lifecycle-provider";
+import { RemovedLinksPanel } from "../recovery/removed-links-panel";
 
 const tabs = [
   { id: "overview", label: "Overview" },
@@ -43,6 +45,7 @@ const tabs = [
   { id: "reminders", label: "Reminders" },
   { id: "files", label: "Files" },
   { id: "sharing", label: "Sharing" },
+  { id: "removed-links", label: "Removed links" },
 ] as const;
 
 type TabId = (typeof tabs)[number]["id"];
@@ -135,6 +138,7 @@ export function EventWorkspace({ eventId }: { readonly eventId: string }) {
     reminders: queries.reminders,
     files: undefined,
     sharing: undefined,
+    "removed-links": undefined,
   }[shownTab];
   function handleTabKeyDown(
     event: ReactKeyboardEvent<HTMLButtonElement>,
@@ -208,6 +212,7 @@ export function EventWorkspace({ eventId }: { readonly eventId: string }) {
             </p>
           </div>
           <HistoryButton objectId={event.id} displayName={event.displayName} />
+          {canEdit ? <LifecycleButton target={event} /> : null}
           {canEdit ? (
             <button
               className="button button-secondary"
@@ -396,6 +401,9 @@ export function EventWorkspace({ eventId }: { readonly eventId: string }) {
             ) : null}
             {shownTab === "sharing" && canShare ? (
               <SharingPanel detail={detail} eventId={eventId} />
+            ) : null}
+            {shownTab === "removed-links" ? (
+              <RemovedLinksPanel objectId={eventId} />
             ) : null}
           </>
         )}

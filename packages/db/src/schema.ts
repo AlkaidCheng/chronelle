@@ -130,6 +130,7 @@ export const objects = pgTable("objects", {
 });
 
 export const objectRelations = pgTable("object_relations", {
+  version: integer("version").notNull().default(1),
   id: uuid("id").primaryKey(),
   workspaceId: uuid("workspace_id").notNull(),
   sourceObjectId: uuid("source_object_id").notNull(),
@@ -169,6 +170,7 @@ export const auditEvents = pgTable("audit_events", {
 });
 
 export const revisionKinds = [
+  "recovered",
   "restored",
   "baseline",
   "created",

@@ -18,6 +18,7 @@ import { type ReactNode, useMemo, useState } from "react";
 import { EmptyState, ErrorNotice } from "../../components/feedback";
 import { CheckIcon } from "../../components/icons";
 import { HistoryButton } from "../history/history-button";
+import { LifecycleButton } from "../recovery/lifecycle-provider";
 import { formatDateTime, formatMoney, shortId } from "../../lib/format";
 import {
   useRefreshEvent,
@@ -159,11 +160,14 @@ export function TasksPanel({
               objectId={row.original.id}
               displayName={row.original.displayName}
             />
+            {canEdit ? (
+              <LifecycleButton target={{ ...row.original, eventId }} />
+            ) : null}
           </div>
         ),
       }),
     ],
-    [canEdit, update],
+    [canEdit, update, eventId],
   );
   const table = useReactTable({
     columns,
@@ -348,6 +352,9 @@ export function CalendarPanel({
                 objectId={item.id}
                 displayName={item.displayName}
               />
+              {canEdit ? (
+                <LifecycleButton target={{ ...item, eventId }} />
+              ) : null}
             </article>
           ))}
         </div>
@@ -517,6 +524,9 @@ export function ExpensesPanel({
                 displayName={expense.displayName}
               />
               {canEdit ? (
+                <LifecycleButton target={{ ...expense, eventId }} />
+              ) : null}
+              {canEdit ? (
                 <button
                   className="button button-quiet button-small"
                   onClick={() => setEditingId(expense.id)}
@@ -609,6 +619,9 @@ export function RemindersPanel({
                   objectId={reminder.id}
                   displayName={reminder.displayName}
                 />
+                {canEdit ? (
+                  <LifecycleButton target={{ ...reminder, eventId }} />
+                ) : null}
                 {canEdit && reminder.status === "pending" ? (
                   <button
                     className="button button-secondary button-small"

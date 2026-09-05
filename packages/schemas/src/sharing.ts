@@ -10,6 +10,7 @@ export const authorizationActionSchema = z.enum([
   "edit",
   "share",
   "delete",
+  "recover",
 ]);
 
 export const shareCreateRequestSchema = z.object({

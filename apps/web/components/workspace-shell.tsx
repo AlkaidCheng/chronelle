@@ -107,6 +107,12 @@ export function WorkspaceShell({ children }: { readonly children: ReactNode }) {
             <SearchIcon />
             Search
           </Link>
+          <Link
+            className={pathname.startsWith("/trash") ? "active" : ""}
+            href="/trash"
+          >
+            Trash
+          </Link>
         </nav>
         <label className="workspace-switcher" htmlFor="desktop-workspace">
           <span>Workspace</span>

@@ -17,6 +17,7 @@ import {
 import { useAuthSession } from "../../lib/auth-session";
 
 const actionNames = {
+  recovered: "Recovered from trash",
   created: "Created",
   updated: "Edited",
   baseline: "Baseline captured",

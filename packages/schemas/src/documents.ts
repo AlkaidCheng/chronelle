@@ -55,6 +55,7 @@ export const documentUploadFinalizationRequestSchema = z.object({
 });
 
 export const documentAttachmentResponseSchema = z.object({
+  relationVersion: z.number().int().positive(),
   document: documentResponseSchema,
   relationId: objectIdSchema,
 });

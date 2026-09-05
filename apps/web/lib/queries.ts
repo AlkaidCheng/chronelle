@@ -102,6 +102,7 @@ type EventView =
   | "expenses"
   | "reminders"
   | "files"
+  | "removed-links"
   | "sharing";
 
 export function useEventWorkspaceQueries(
@@ -194,7 +195,7 @@ export function useCanonicalInvalidation() {
   return () =>
     queryClient.invalidateQueries({
       predicate: (query) =>
-        ["event", "events", "object", "search"].includes(
+        ["event", "events", "object", "search", "trash"].includes(
           String(query.queryKey[0]),
         ),
     });
@@ -228,15 +229,6 @@ export function useDownloadDocument() {
   const client = useApiClient();
   return useMutation({
     mutationFn: (documentId: string) => client.downloadDocument(documentId),
-  });
-}
-
-export function useUnlinkDocument() {
-  const client = useApiClient();
-  const invalidate = useCanonicalInvalidation();
-  return useMutation({
-    mutationFn: (relationId: string) => client.deleteRelation(relationId),
-    onSuccess: invalidate,
   });
 }
 
