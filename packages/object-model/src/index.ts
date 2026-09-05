@@ -10,6 +10,7 @@ export { CanonicalObjectSearchService } from "./search-service.js";
 export * from "./types.js";
 export { serializeResource } from "./serialization.js";
 export { ObjectRevisionService } from "./revision-service.js";
+export { ObjectRestorationService } from "./restoration-service.js";
 export { EventContextService } from "./event-context-service.js";
 export {
   assertRevisionBaseline,

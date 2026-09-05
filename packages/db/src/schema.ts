@@ -169,6 +169,7 @@ export const auditEvents = pgTable("audit_events", {
 });
 
 export const revisionKinds = [
+  "restored",
   "baseline",
   "created",
   "updated",
@@ -178,6 +179,7 @@ export const revisionKinds = [
 export type RevisionKind = (typeof revisionKinds)[number];
 
 export const objectRevisions = pgTable("object_revisions", {
+  sourceRevisionId: uuid("source_revision_id"),
   id: uuid("id").primaryKey(),
   workspaceId: uuid("workspace_id").notNull(),
   objectId: uuid("object_id").notNull(),

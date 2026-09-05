@@ -3,7 +3,12 @@ import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 
-import { auditEvents, objectRevisions } from "@chronelle/db";
+import {
+  auditEvents,
+  objectRevisions,
+  objects,
+  documents,
+} from "@chronelle/db";
 import {
   applyMigrations,
   createTestDatabase,
@@ -161,6 +166,65 @@ async function attachFile(
 }
 
 describe.sequential("document attachment API", () => {
+  it("restores a Document caption without replaying its scope or file identity", async () => {
+    const owner = await signIn("owner@example.com", "Owner");
+    const eventResponse = await request(owner, owner.workspace.id, {
+      method: "POST",
+      url: "/api/events",
+      payload: { displayName: "Context" },
+    });
+    const event = eventResponseSchema.parse(eventResponse.json());
+    const { attachment } = await attachFile(
+      owner,
+      owner.workspace.id,
+      event.id,
+      "original.pdf",
+    );
+    const document = attachment.document;
+    // Seed a later content state before a versioned scope mutation captures it.
+    await testDatabase.connection.db
+      .update(objects)
+      .set({ displayName: "Current caption" })
+      .where(eq(objects.id, document.id));
+    await testDatabase.connection.db
+      .update(documents)
+      .set({
+        storageKey: "private/current.pdf",
+        originalFilename: "current.pdf",
+      })
+      .where(eq(documents.objectId, document.id));
+    const scope = await request(owner, owner.workspace.id, {
+      method: "PATCH",
+      url: `/api/objects/${document.id}/permission-scope`,
+      payload: { expectedVersion: 1, permissionScopeId: document.id },
+    });
+    expect(scope.statusCode).toBe(200);
+    const preview = await request(owner, owner.workspace.id, {
+      url: `/api/objects/${document.id}/revisions/1/restore-preview`,
+    });
+    expect(preview.statusCode).toBe(200);
+    expect(preview.body).not.toContain("private/current.pdf");
+    expect(preview.body).not.toContain("storageKey");
+    const restored = await request(owner, owner.workspace.id, {
+      method: "POST",
+      url: `/api/objects/${document.id}/revisions/1/restore`,
+      payload: { expectedVersion: 2 },
+    });
+    expect(restored.statusCode).toBe(200);
+    expect(restored.json()).toMatchObject({
+      id: document.id,
+      displayName: "original.pdf",
+      originalFilename: "current.pdf",
+      permissionScopeId: document.id,
+      version: 3,
+    });
+    const [file] = await testDatabase.connection.db
+      .select()
+      .from(documents)
+      .where(eq(documents.objectId, document.id));
+    expect(file?.storageKey).toBe("private/current.pdf");
+    expect(restored.body).not.toContain("storageKey");
+  });
   it("serves canonical private attachments through inherited permissions", async () => {
     const owner = await signIn("owner@example.com", "Event Owner");
     const viewer = await signIn("viewer@example.com", "Event Viewer");

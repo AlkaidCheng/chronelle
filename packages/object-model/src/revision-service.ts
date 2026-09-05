@@ -4,7 +4,7 @@ import {
   DrizzleAuthorizationStore,
   type UserPrincipal,
 } from "@chronelle/authorization";
-import { objectRevisions, type Database } from "@chronelle/db";
+import { objectRevisions, users, type Database } from "@chronelle/db";
 import {
   revisionSnapshotSchema,
   type RevisionListQuery,
@@ -18,8 +18,10 @@ const summaryFields = {
   mutationKind: objectRevisions.mutationKind,
   actorType: objectRevisions.actorType,
   actorId: objectRevisions.actorId,
+  actorDisplayName: users.displayName,
   createdAt: objectRevisions.createdAt,
   snapshotSchemaVersion: objectRevisions.snapshotSchemaVersion,
+  sourceRevisionId: objectRevisions.sourceRevisionId,
 };
 
 export class ObjectRevisionService {
@@ -42,6 +44,13 @@ export class ObjectRevisionService {
         const rows = await transaction
           .select(summaryFields)
           .from(objectRevisions)
+          .leftJoin(
+            users,
+            and(
+              eq(users.id, objectRevisions.actorId),
+              eq(objectRevisions.actorType, "user"),
+            ),
+          )
           .where(
             and(
               eq(objectRevisions.workspaceId, principal.workspaceId),
@@ -81,6 +90,13 @@ export class ObjectRevisionService {
         const [row] = await transaction
           .select({ ...summaryFields, snapshot: objectRevisions.snapshot })
           .from(objectRevisions)
+          .leftJoin(
+            users,
+            and(
+              eq(users.id, objectRevisions.actorId),
+              eq(objectRevisions.actorType, "user"),
+            ),
+          )
           .where(
             and(
               eq(objectRevisions.workspaceId, principal.workspaceId),

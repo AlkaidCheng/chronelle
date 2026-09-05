@@ -1,10 +1,19 @@
-import type { ObjectRevisionService } from "@chronelle/object-model";
+import {
+  serializeResource,
+  type ObjectRevisionService,
+  type ObjectRestorationService,
+} from "@chronelle/object-model";
 import {
   objectIdParamsSchema,
   revisionListQuerySchema,
   revisionListResponseSchema,
   revisionParamsSchema,
   revisionResponseSchema,
+  revisionComparisonQuerySchema,
+  revisionComparisonResponseSchema,
+  revisionRestorePreviewSchema,
+  revisionRestoreRequestSchema,
+  eventPlanningResourceResponseSchema,
 } from "@chronelle/schemas";
 import type { FastifyInstance } from "fastify";
 
@@ -13,8 +22,63 @@ import { parseRequest } from "../request-validation.js";
 
 export function registerRevisionRoutes(
   app: FastifyInstance,
-  dependencies: { readonly revisions: ObjectRevisionService },
+  dependencies: {
+    readonly revisions: ObjectRevisionService;
+    readonly restoration: ObjectRestorationService;
+  },
 ): void {
+  app.get(
+    "/api/objects/:id/revisions/compare",
+    { preHandler: app.authenticate },
+    async (request) => {
+      const { id } = parseRequest(objectIdParamsSchema, request.params);
+      const query = parseRequest(revisionComparisonQuerySchema, request.query);
+      return revisionComparisonResponseSchema.parse(
+        await dependencies.restoration.compare(
+          requirePrincipal(request),
+          id,
+          query,
+        ),
+      );
+    },
+  );
+  app.get(
+    "/api/objects/:id/revisions/:version/restore-preview",
+    { preHandler: app.authenticate },
+    async (request) => {
+      const { id, version } = parseRequest(
+        revisionParamsSchema,
+        request.params,
+      );
+      return revisionRestorePreviewSchema.parse(
+        await dependencies.restoration.preview(
+          requirePrincipal(request),
+          id,
+          version,
+        ),
+      );
+    },
+  );
+  app.post(
+    "/api/objects/:id/revisions/:version/restore",
+    { preHandler: app.authenticate },
+    async (request) => {
+      const { id, version } = parseRequest(
+        revisionParamsSchema,
+        request.params,
+      );
+      const input = parseRequest(revisionRestoreRequestSchema, request.body);
+      const resource = await dependencies.restoration.restore(
+        { principal: requirePrincipal(request), requestId: request.id },
+        id,
+        version,
+        input,
+      );
+      return eventPlanningResourceResponseSchema.parse(
+        serializeResource(resource),
+      );
+    },
+  );
   app.get(
     "/api/objects/:id/revisions",
     { preHandler: app.authenticate },

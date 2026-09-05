@@ -39,6 +39,7 @@ export const revisionSummarySchema = z.object({
   objectId: z.uuid(),
   objectVersion: versionSchema,
   mutationKind: z.enum([
+    "restored",
     "baseline",
     "created",
     "updated",
@@ -47,8 +48,10 @@ export const revisionSummarySchema = z.object({
   ]),
   actorType: z.enum(["user", "assistant", "service_account", "system"]),
   actorId: z.uuid().nullable(),
+  actorDisplayName: z.string().nullable().default(null),
   createdAt: z.iso.datetime(),
   snapshotSchemaVersion: z.number().int().positive(),
+  sourceRevisionId: z.uuid().nullable().default(null),
 });
 export const revisionListResponseSchema = z.object({
   items: z.array(revisionSummarySchema),
@@ -62,3 +65,59 @@ export type RevisionListQuery = z.output<typeof revisionListQuerySchema>;
 export type RevisionListQueryInput = z.input<typeof revisionListQuerySchema>;
 export type RevisionListResponse = z.output<typeof revisionListResponseSchema>;
 export type RevisionResponse = z.output<typeof revisionResponseSchema>;
+export type RevisionSnapshot = z.output<typeof revisionSnapshotSchema>;
+
+export const revisionComparisonQuerySchema = z
+  .object({
+    fromVersion: z.coerce.number().pipe(versionSchema),
+    toVersion: z.coerce.number().pipe(versionSchema),
+  })
+  .strict();
+
+export const revisionFieldChangeSchema = z.object({
+  field: z.string(),
+  label: z.string(),
+  valueType: z.enum(["text", "datetime", "boolean", "json", "decimal"]),
+  before: z.unknown(),
+  after: z.unknown(),
+  beforePresent: z.boolean(),
+  afterPresent: z.boolean(),
+  restorable: z.boolean(),
+});
+
+export const revisionComparisonResponseSchema = z.object({
+  objectId: z.uuid(),
+  fromVersion: versionSchema,
+  toVersion: versionSchema,
+  changes: z.array(revisionFieldChangeSchema),
+});
+
+export const revisionRestorePreviewSchema = z.object({
+  objectId: z.uuid(),
+  sourceRevisionId: z.uuid(),
+  sourceVersion: versionSchema,
+  currentVersion: versionSchema,
+  canRestore: z.boolean(),
+  changes: z.array(revisionFieldChangeSchema),
+  preservedFields: z.array(z.string()),
+});
+
+export const revisionRestoreRequestSchema = z
+  .object({
+    expectedVersion: versionSchema,
+  })
+  .strict();
+
+export type RevisionComparisonQuery = z.output<
+  typeof revisionComparisonQuerySchema
+>;
+export type RevisionFieldChange = z.output<typeof revisionFieldChangeSchema>;
+export type RevisionComparisonResponse = z.output<
+  typeof revisionComparisonResponseSchema
+>;
+export type RevisionRestorePreview = z.output<
+  typeof revisionRestorePreviewSchema
+>;
+export type RevisionRestoreRequest = z.output<
+  typeof revisionRestoreRequestSchema
+>;
