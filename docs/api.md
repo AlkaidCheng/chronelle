@@ -1,5 +1,25 @@
 # Event-planning API
 
+## Object history
+
+Authenticated callers with current View permission can list revision summaries
+with `GET /api/objects/:id/revisions?limit=25` and fetch typed historical content
+with `GET /api/objects/:id/revisions/:version`. Pass the returned
+`nextBeforeVersion` as `beforeVersion` to continue; `null` ends pagination.
+The limit is 1-100. No total counts, security metadata, or private storage keys
+are returned. See [Object revisions](revisions.md) for authorization semantics.
+
+```ts
+const page = await client.listObjectRevisions(objectId, { limit: 10 });
+const revision = await client.getObjectRevision(objectId, 1);
+if (page.nextBeforeVersion !== null) {
+  const older = await client.listObjectRevisions(objectId, {
+    limit: 10,
+    beforeVersion: page.nextBeforeVersion,
+  });
+}
+```
+
 The API accepts JSON and returns JSON under `/api`. Protected routes require a
 development or production-provider bearer token. Send `x-workspace-id` when
 operating outside the identity's personal workspace.

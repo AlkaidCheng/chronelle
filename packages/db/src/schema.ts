@@ -168,6 +168,30 @@ export const auditEvents = pgTable("audit_events", {
   createdAt: createCreatedAtColumn(),
 });
 
+export const revisionKinds = [
+  "baseline",
+  "created",
+  "updated",
+  "permission_scope_updated",
+  "deleted",
+] as const;
+export type RevisionKind = (typeof revisionKinds)[number];
+
+export const objectRevisions = pgTable("object_revisions", {
+  id: uuid("id").primaryKey(),
+  workspaceId: uuid("workspace_id").notNull(),
+  objectId: uuid("object_id").notNull(),
+  objectVersion: integer("object_version").notNull(),
+  mutationKind: text("mutation_kind").$type<RevisionKind>().notNull(),
+  actorType: text("actor_type").$type<ActorType>().notNull(),
+  actorId: uuid("actor_id"),
+  requestId: uuid("request_id").notNull(),
+  auditEventId: uuid("audit_event_id").notNull(),
+  snapshotSchemaVersion: integer("snapshot_schema_version").notNull(),
+  snapshot: jsonb("snapshot").$type<Record<string, unknown>>().notNull(),
+  createdAt: createCreatedAtColumn(),
+});
+
 export const events = pgTable("events", {
   objectId: uuid("object_id").primaryKey(),
   workspaceId: uuid("workspace_id").notNull(),

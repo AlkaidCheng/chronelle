@@ -1,5 +1,11 @@
 # Local Development
 
+When upgrading a database with existing objects, stop all API writers, run
+`pnpm db:migrate` and `pnpm db:baseline-revisions`, then restart the API. The
+server refuses startup if current object versions lack snapshots. A fresh empty
+database requires no baseline rows. See [Object revisions](revisions.md) for the
+deployment barrier and rollback limits.
+
 ## Setup
 
 Use Node.js 24 or newer, pnpm 11.25, and Docker. Install dependencies once from

@@ -73,10 +73,13 @@ the resource's one canonical permission scope. It ignores relationships,
 expired grants, and deleted resources. Workspace selection uses the same store
 to require membership or an active grant.
 
-Application mutations use `runAuditedMutation`, which appends one audit event
-inside the same database transaction. An invalid audit record therefore rolls
-back the business change. Object services validate state, authorize access,
-and atomically enforce the expected object version before writing typed data.
+Application mutations append audit events inside the business transaction.
+Canonical object mutations additionally capture immutable typed revisions there,
+and return the captured state. `runAuditedMutation` serves operations that do not
+change canonical content, such as grant and transfer lifecycles. Failure to record
+either required ledger entry rolls back the business change. Object services
+validate state, authorize access, and atomically enforce the expected version.
+See [Object revisions](revisions.md) for snapshot, history, and baseline contracts.
 
 Document bytes cross a `StorageProvider` port. The local adapter stores opaque
 workspace-scoped keys below a configured private root, validates every resolved
@@ -184,8 +187,8 @@ Creating an included planning resource currently uses two independently
 audited API mutations: create the scoped canonical object, then create its
 `includes` relationship. If the second request fails, the object remains valid
 but unlinked. Atomic, idempotent create-in-context commands are a prerequisite
-for treating this interaction as one recoverable action. Durable revisions,
-restoration, trash, and undo/redo remain planned backend capabilities.
+for treating this interaction as one recoverable action. Durable object revisions
+are recorded; restoration, trash, and undo/redo remain planned capabilities.
 
 PostgreSQL is the canonical data store. Object files are accessed through the
 storage interface and stored outside PostgreSQL. Provider adapters keep

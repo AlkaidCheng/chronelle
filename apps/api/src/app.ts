@@ -35,6 +35,7 @@ import { registerEventPlanningRoutes } from "./event-planning/routes.js";
 import { registerRequestContext } from "./request-context.js";
 import { registerSearchRoutes } from "./search/routes.js";
 import { registerSharingRoutes } from "./sharing/routes.js";
+import { registerRevisionRoutes } from "./revisions/routes.js";
 
 export function buildApp(
   dependencies: AppDependencies,
@@ -121,6 +122,7 @@ export function buildApp(
   registerEventPlanningRoutes(app, dependencies);
   registerSearchRoutes(app, dependencies);
   registerSharingRoutes(app, dependencies);
+  registerRevisionRoutes(app, dependencies);
   if (dependencies.developmentAuth !== undefined) {
     registerDevelopmentAuthenticationRoute(app, {
       developmentAuth: dependencies.developmentAuth,

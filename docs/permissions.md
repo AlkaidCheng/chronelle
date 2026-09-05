@@ -1,5 +1,11 @@
 # Permissions
 
+Revision history uses current View permission, including content saved before a
+collaborator was invited. It never uses saved permissions. History reads authorize
+and fetch within one consistent database snapshot; revoked access applies to
+subsequent requests. Deleted resources remain unavailable through normal history
+endpoints. See [Object revisions](revisions.md) for disclosure and redaction rules.
+
 Authorization is an application-layer service with one operation:
 
 ```text

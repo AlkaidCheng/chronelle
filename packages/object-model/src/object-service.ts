@@ -6,23 +6,21 @@ import {
 } from "@chronelle/authorization";
 import {
   createId,
-  documents,
   events,
   expenses,
   objects,
   reminders,
-  runAuditedMutation,
   tasks,
   type Database,
   type DatabaseTransaction,
-  type ObjectRow,
   type ObjectType,
 } from "@chronelle/db";
 import { and, eq, isNull, sql } from "drizzle-orm";
 
 import { InvalidObjectStateError, ObjectConflictError } from "./errors.js";
+import { readObjectState } from "./object-state.js";
+import { recordObjectRevision } from "./object-revisions.js";
 import type {
-  CanonicalObjectResource,
   CreateEventInput,
   CreateExpenseInput,
   CreateObjectFields,
@@ -123,24 +121,6 @@ function assertExpenseState(
   assertValidDate(occurredAt, "occurredAt");
 }
 
-function canonicalFields(row: ObjectRow): CanonicalObjectResource {
-  return {
-    id: row.id,
-    workspaceId: row.workspaceId,
-    objectType: row.objectType,
-    displayName: row.displayName,
-    createdBy: row.createdBy,
-    permissionScopeId: row.permissionScopeId,
-    createdAt: row.createdAt,
-    updatedAt: row.updatedAt,
-    version: row.version,
-    archivedAt: row.archivedAt,
-    deletedAt: row.deletedAt,
-    customProperties: row.customProperties,
-    metadata: row.metadata,
-  };
-}
-
 export class EventPlanningObjectService {
   readonly #authorization: AuthorizationService;
   readonly #clock: () => Date;
@@ -165,7 +145,7 @@ export class EventPlanningObjectService {
     const timezone = input.timezone ?? null;
     assertEventState(startsAt, endsAt, timezone);
 
-    const objectId = await this.#createObject(
+    const resource = await this.#createObject(
       context,
       "event",
       input,
@@ -180,7 +160,7 @@ export class EventPlanningObjectService {
         });
       },
     );
-    return this.#getEventUnchecked(context.principal.workspaceId, objectId);
+    return this.#requireType(resource, "event");
   }
 
   async createTask(
@@ -192,7 +172,7 @@ export class EventPlanningObjectService {
     const completedAt = input.completedAt ?? null;
     assertTaskState(status, dueAt, completedAt);
 
-    const objectId = await this.#createObject(
+    const resource = await this.#createObject(
       context,
       "task",
       input,
@@ -206,7 +186,7 @@ export class EventPlanningObjectService {
         });
       },
     );
-    return this.#getTaskUnchecked(context.principal.workspaceId, objectId);
+    return this.#requireType(resource, "task");
   }
 
   async createExpense(
@@ -215,7 +195,7 @@ export class EventPlanningObjectService {
   ): Promise<ExpenseResource> {
     assertExpenseState(input.amount, input.currency, input.occurredAt);
 
-    const objectId = await this.#createObject(
+    const resource = await this.#createObject(
       context,
       "expense",
       input,
@@ -229,7 +209,7 @@ export class EventPlanningObjectService {
         });
       },
     );
-    return this.#getExpenseUnchecked(context.principal.workspaceId, objectId);
+    return this.#requireType(resource, "expense");
   }
 
   async createReminder(
@@ -238,7 +218,7 @@ export class EventPlanningObjectService {
   ): Promise<ReminderResource> {
     assertValidDate(input.remindAt, "remindAt");
 
-    const objectId = await this.#createObject(
+    const resource = await this.#createObject(
       context,
       "reminder",
       input,
@@ -251,7 +231,7 @@ export class EventPlanningObjectService {
         });
       },
     );
-    return this.#getReminderUnchecked(context.principal.workspaceId, objectId);
+    return this.#requireType(resource, "reminder");
   }
 
   async getObject(
@@ -373,26 +353,31 @@ export class EventPlanningObjectService {
       input.timezone === undefined ? current.timezone : input.timezone;
     assertEventState(startsAt, endsAt, timezone);
 
-    await this.#updateObject(context, current, input, async (transaction) => {
-      const changes = {
-        ...(input.startsAt !== undefined && { startsAt: input.startsAt }),
-        ...(input.endsAt !== undefined && { endsAt: input.endsAt }),
-        ...(input.timezone !== undefined && { timezone: input.timezone }),
-        ...(input.isAllDay !== undefined && { isAllDay: input.isAllDay }),
-      };
-      if (Object.keys(changes).length > 0) {
-        await transaction
-          .update(events)
-          .set(changes)
-          .where(
-            and(
-              eq(events.workspaceId, context.principal.workspaceId),
-              eq(events.objectId, objectId),
-            ),
-          );
-      }
-    });
-    return this.#getEventUnchecked(context.principal.workspaceId, objectId);
+    const resource = await this.#updateObject(
+      context,
+      current,
+      input,
+      async (transaction) => {
+        const changes = {
+          ...(input.startsAt !== undefined && { startsAt: input.startsAt }),
+          ...(input.endsAt !== undefined && { endsAt: input.endsAt }),
+          ...(input.timezone !== undefined && { timezone: input.timezone }),
+          ...(input.isAllDay !== undefined && { isAllDay: input.isAllDay }),
+        };
+        if (Object.keys(changes).length > 0) {
+          await transaction
+            .update(events)
+            .set(changes)
+            .where(
+              and(
+                eq(events.workspaceId, context.principal.workspaceId),
+                eq(events.objectId, objectId),
+              ),
+            );
+        }
+      },
+    );
+    return this.#requireType(resource, "event");
   }
 
   async updateTask(
@@ -410,27 +395,32 @@ export class EventPlanningObjectService {
       input.completedAt === undefined ? current.completedAt : input.completedAt;
     assertTaskState(status, dueAt, completedAt);
 
-    await this.#updateObject(context, current, input, async (transaction) => {
-      const changes = {
-        ...(input.status !== undefined && { status: input.status }),
-        ...(input.dueAt !== undefined && { dueAt: input.dueAt }),
-        ...(input.completedAt !== undefined && {
-          completedAt: input.completedAt,
-        }),
-      };
-      if (Object.keys(changes).length > 0) {
-        await transaction
-          .update(tasks)
-          .set(changes)
-          .where(
-            and(
-              eq(tasks.workspaceId, context.principal.workspaceId),
-              eq(tasks.objectId, objectId),
-            ),
-          );
-      }
-    });
-    return this.#getTaskUnchecked(context.principal.workspaceId, objectId);
+    const resource = await this.#updateObject(
+      context,
+      current,
+      input,
+      async (transaction) => {
+        const changes = {
+          ...(input.status !== undefined && { status: input.status }),
+          ...(input.dueAt !== undefined && { dueAt: input.dueAt }),
+          ...(input.completedAt !== undefined && {
+            completedAt: input.completedAt,
+          }),
+        };
+        if (Object.keys(changes).length > 0) {
+          await transaction
+            .update(tasks)
+            .set(changes)
+            .where(
+              and(
+                eq(tasks.workspaceId, context.principal.workspaceId),
+                eq(tasks.objectId, objectId),
+              ),
+            );
+        }
+      },
+    );
+    return this.#requireType(resource, "task");
   }
 
   async updateExpense(
@@ -447,27 +437,32 @@ export class EventPlanningObjectService {
     const occurredAt = input.occurredAt ?? current.occurredAt;
     assertExpenseState(amount, currency, occurredAt);
 
-    await this.#updateObject(context, current, input, async (transaction) => {
-      const changes = {
-        ...(input.amount !== undefined && { amount: input.amount }),
-        ...(input.currency !== undefined && { currency: input.currency }),
-        ...(input.occurredAt !== undefined && {
-          occurredAt: input.occurredAt,
-        }),
-      };
-      if (Object.keys(changes).length > 0) {
-        await transaction
-          .update(expenses)
-          .set(changes)
-          .where(
-            and(
-              eq(expenses.workspaceId, context.principal.workspaceId),
-              eq(expenses.objectId, objectId),
-            ),
-          );
-      }
-    });
-    return this.#getExpenseUnchecked(context.principal.workspaceId, objectId);
+    const resource = await this.#updateObject(
+      context,
+      current,
+      input,
+      async (transaction) => {
+        const changes = {
+          ...(input.amount !== undefined && { amount: input.amount }),
+          ...(input.currency !== undefined && { currency: input.currency }),
+          ...(input.occurredAt !== undefined && {
+            occurredAt: input.occurredAt,
+          }),
+        };
+        if (Object.keys(changes).length > 0) {
+          await transaction
+            .update(expenses)
+            .set(changes)
+            .where(
+              and(
+                eq(expenses.workspaceId, context.principal.workspaceId),
+                eq(expenses.objectId, objectId),
+              ),
+            );
+        }
+      },
+    );
+    return this.#requireType(resource, "expense");
   }
 
   async updateReminder(
@@ -482,24 +477,29 @@ export class EventPlanningObjectService {
     const remindAt = input.remindAt ?? current.remindAt;
     assertValidDate(remindAt, "remindAt");
 
-    await this.#updateObject(context, current, input, async (transaction) => {
-      const changes = {
-        ...(input.remindAt !== undefined && { remindAt: input.remindAt }),
-        ...(input.status !== undefined && { status: input.status }),
-      };
-      if (Object.keys(changes).length > 0) {
-        await transaction
-          .update(reminders)
-          .set(changes)
-          .where(
-            and(
-              eq(reminders.workspaceId, context.principal.workspaceId),
-              eq(reminders.objectId, objectId),
-            ),
-          );
-      }
-    });
-    return this.#getReminderUnchecked(context.principal.workspaceId, objectId);
+    const resource = await this.#updateObject(
+      context,
+      current,
+      input,
+      async (transaction) => {
+        const changes = {
+          ...(input.remindAt !== undefined && { remindAt: input.remindAt }),
+          ...(input.status !== undefined && { status: input.status }),
+        };
+        if (Object.keys(changes).length > 0) {
+          await transaction
+            .update(reminders)
+            .set(changes)
+            .where(
+              and(
+                eq(reminders.workspaceId, context.principal.workspaceId),
+                eq(reminders.objectId, objectId),
+              ),
+            );
+        }
+      },
+    );
+    return this.#requireType(resource, "reminder");
   }
 
   async softDelete(
@@ -507,52 +507,48 @@ export class EventPlanningObjectService {
     objectId: string,
     expectedVersion: number,
   ): Promise<ObjectDeletionResource> {
-    const current = await this.#getObjectWithAction(
-      context.principal,
-      objectId,
-      "delete",
-    );
+    await this.#getObjectWithAction(context.principal, objectId, "delete");
     const deletedAt = this.#clock();
 
-    const version = await runAuditedMutation(
-      this.#database,
-      async (transaction) => {
-        const [updated] = await transaction
-          .update(objects)
-          .set({
-            deletedAt,
-            updatedAt: deletedAt,
-            version: sql`${objects.version} + 1`,
-          })
-          .where(
-            and(
-              eq(objects.workspaceId, context.principal.workspaceId),
-              eq(objects.id, objectId),
-              eq(objects.version, expectedVersion),
-              isNull(objects.deletedAt),
-            ),
-          )
-          .returning({ version: objects.version });
-        if (updated === undefined) {
-          throw new ObjectConflictError();
-        }
+    const resource = await this.#database.transaction(async (transaction) => {
+      const [updated] = await transaction
+        .update(objects)
+        .set({
+          deletedAt,
+          updatedAt: deletedAt,
+          version: sql`${objects.version} + 1`,
+        })
+        .where(
+          and(
+            eq(objects.workspaceId, context.principal.workspaceId),
+            eq(objects.id, objectId),
+            eq(objects.version, expectedVersion),
+            isNull(objects.deletedAt),
+          ),
+        )
+        .returning({ version: objects.version });
+      if (updated === undefined) {
+        throw new ObjectConflictError();
+      }
 
-        return {
-          value: updated.version,
-          audit: {
-            workspaceId: context.principal.workspaceId,
-            actorType: "user",
-            actorId: context.principal.userId,
-            action: `${current.objectType}.deleted`,
-            resourceId: objectId,
-            requestId: context.requestId,
-            metadata: { version: updated.version },
-          },
-        };
-      },
-    );
+      const resource = await readObjectState(
+        transaction,
+        context.principal.workspaceId,
+        objectId,
+      );
+      return recordObjectRevision(
+        transaction,
+        resource,
+        {
+          actorId: context.principal.userId,
+          actorType: "user",
+          requestId: context.requestId,
+        },
+        "deleted",
+      );
+    });
 
-    return { id: objectId, version, deletedAt };
+    return { id: objectId, version: resource.version, deletedAt };
   }
 
   async updatePermissionScope(
@@ -588,7 +584,7 @@ export class EventPlanningObjectService {
     }
 
     const updatedAt = this.#clock();
-    await runAuditedMutation(this.#database, async (transaction) => {
+    return this.#database.transaction(async (transaction) => {
       const [updated] = await transaction
         .update(objects)
         .set({
@@ -609,26 +605,27 @@ export class EventPlanningObjectService {
         throw new ObjectConflictError();
       }
 
-      return {
-        value: undefined,
-        audit: {
-          workspaceId: context.principal.workspaceId,
-          actorType: "user",
+      const resource = await readObjectState(
+        transaction,
+        context.principal.workspaceId,
+        objectId,
+      );
+      return recordObjectRevision(
+        transaction,
+        resource,
+        {
           actorId: context.principal.userId,
-          action: "object.permission_scope_updated",
-          resourceId: objectId,
+          actorType: "user",
           requestId: context.requestId,
-          metadata: {
-            permissionScopeId: input.permissionScopeId,
-            previousPermissionScopeId: current.permissionScopeId,
-            previousVersion: input.expectedVersion,
-            version: updated.version,
-          },
         },
-      };
+        "permission_scope_updated",
+        {
+          permissionScopeId: input.permissionScopeId,
+          previousPermissionScopeId: current.permissionScopeId,
+          previousVersion: input.expectedVersion,
+        },
+      );
     });
-
-    return this.#getObjectUnchecked(context.principal.workspaceId, objectId);
   }
 
   async #createObject(
@@ -636,7 +633,7 @@ export class EventPlanningObjectService {
     objectType: ObjectType,
     input: CreateObjectFields,
     insertTyped: TypedInsert,
-  ): Promise<string> {
+  ): Promise<EventPlanningResource> {
     if (input.permissionScopeId === undefined) {
       await this.#authorization.assertCanCreateInWorkspace(context.principal);
     } else {
@@ -648,7 +645,7 @@ export class EventPlanningObjectService {
 
     const objectId = createId();
     const permissionScopeId = input.permissionScopeId ?? objectId;
-    return runAuditedMutation(this.#database, async (transaction) => {
+    return this.#database.transaction(async (transaction) => {
       await transaction.insert(objects).values({
         id: objectId,
         workspaceId: context.principal.workspaceId,
@@ -661,18 +658,22 @@ export class EventPlanningObjectService {
       });
       await insertTyped(transaction, objectId);
 
-      return {
-        value: objectId,
-        audit: {
-          workspaceId: context.principal.workspaceId,
-          actorType: "user",
+      const resource = await readObjectState(
+        transaction,
+        context.principal.workspaceId,
+        objectId,
+      );
+      return recordObjectRevision(
+        transaction,
+        resource,
+        {
           actorId: context.principal.userId,
-          action: `${objectType}.created`,
-          resourceId: objectId,
+          actorType: "user",
           requestId: context.requestId,
-          metadata: { permissionScopeId },
         },
-      };
+        "created",
+        { permissionScopeId },
+      );
     });
   }
 
@@ -681,9 +682,11 @@ export class EventPlanningObjectService {
     current: EventPlanningResource,
     input: UpdateObjectFields,
     updateTyped: TypedUpdate,
-  ): Promise<void> {
+  ): Promise<EventPlanningResource> {
     const updatedAt = this.#clock();
-    await runAuditedMutation(this.#database, async (transaction) => {
+    if (current.version !== input.expectedVersion)
+      throw new ObjectConflictError();
+    return this.#database.transaction(async (transaction) => {
       const [updated] = await transaction
         .update(objects)
         .set({
@@ -712,21 +715,22 @@ export class EventPlanningObjectService {
       }
       await updateTyped(transaction);
 
-      return {
-        value: undefined,
-        audit: {
-          workspaceId: context.principal.workspaceId,
-          actorType: "user",
+      const resource = await readObjectState(
+        transaction,
+        context.principal.workspaceId,
+        current.id,
+      );
+      return recordObjectRevision(
+        transaction,
+        resource,
+        {
           actorId: context.principal.userId,
-          action: `${current.objectType}.updated`,
-          resourceId: current.id,
+          actorType: "user",
           requestId: context.requestId,
-          metadata: {
-            previousVersion: input.expectedVersion,
-            version: updated.version,
-          },
         },
-      };
+        "updated",
+        { previousVersion: input.expectedVersion },
+      );
     });
   }
 
@@ -739,199 +743,13 @@ export class EventPlanningObjectService {
       id: objectId,
       workspaceId: principal.workspaceId,
     });
-    return this.#getObjectUnchecked(principal.workspaceId, objectId);
-  }
-
-  async #getObjectUnchecked(
-    workspaceId: string,
-    objectId: string,
-  ): Promise<EventPlanningResource> {
-    const [row] = await this.#database
-      .select()
-      .from(objects)
-      .where(
-        and(
-          eq(objects.workspaceId, workspaceId),
-          eq(objects.id, objectId),
-          isNull(objects.deletedAt),
-        ),
-      )
-      .limit(1);
-    if (row === undefined) {
-      throw new AuthorizationDeniedError();
-    }
-
-    switch (row.objectType) {
-      case "event":
-        return this.#getEventUnchecked(workspaceId, objectId, row);
-      case "task":
-        return this.#getTaskUnchecked(workspaceId, objectId, row);
-      case "expense":
-        return this.#getExpenseUnchecked(workspaceId, objectId, row);
-      case "reminder":
-        return this.#getReminderUnchecked(workspaceId, objectId, row);
-      case "document":
-        return this.#getDocumentUnchecked(workspaceId, objectId, row);
-    }
-  }
-
-  async #getEventUnchecked(
-    workspaceId: string,
-    objectId: string,
-    objectRow?: ObjectRow,
-  ): Promise<EventResource> {
-    const row = objectRow ?? (await this.#getObjectRow(workspaceId, objectId));
-    const [event] = await this.#database
-      .select()
-      .from(events)
-      .where(
-        and(eq(events.workspaceId, workspaceId), eq(events.objectId, objectId)),
-      )
-      .limit(1);
-    if (event === undefined || row.objectType !== "event") {
-      throw new AuthorizationDeniedError();
-    }
-    return {
-      ...canonicalFields(row),
-      objectType: "event",
-      startsAt: event.startsAt,
-      endsAt: event.endsAt,
-      timezone: event.timezone,
-      isAllDay: event.isAllDay,
-    };
-  }
-
-  async #getTaskUnchecked(
-    workspaceId: string,
-    objectId: string,
-    objectRow?: ObjectRow,
-  ): Promise<TaskResource> {
-    const row = objectRow ?? (await this.#getObjectRow(workspaceId, objectId));
-    const [task] = await this.#database
-      .select()
-      .from(tasks)
-      .where(
-        and(eq(tasks.workspaceId, workspaceId), eq(tasks.objectId, objectId)),
-      )
-      .limit(1);
-    if (task === undefined || row.objectType !== "task") {
-      throw new AuthorizationDeniedError();
-    }
-    return {
-      ...canonicalFields(row),
-      objectType: "task",
-      status: task.status,
-      dueAt: task.dueAt,
-      completedAt: task.completedAt,
-    };
-  }
-
-  async #getExpenseUnchecked(
-    workspaceId: string,
-    objectId: string,
-    objectRow?: ObjectRow,
-  ): Promise<ExpenseResource> {
-    const row = objectRow ?? (await this.#getObjectRow(workspaceId, objectId));
-    const [expense] = await this.#database
-      .select()
-      .from(expenses)
-      .where(
-        and(
-          eq(expenses.workspaceId, workspaceId),
-          eq(expenses.objectId, objectId),
-        ),
-      )
-      .limit(1);
-    if (expense === undefined || row.objectType !== "expense") {
-      throw new AuthorizationDeniedError();
-    }
-    return {
-      ...canonicalFields(row),
-      objectType: "expense",
-      amount: expense.amount,
-      currency: expense.currency,
-      occurredAt: expense.occurredAt,
-    };
-  }
-
-  async #getReminderUnchecked(
-    workspaceId: string,
-    objectId: string,
-    objectRow?: ObjectRow,
-  ): Promise<ReminderResource> {
-    const row = objectRow ?? (await this.#getObjectRow(workspaceId, objectId));
-    const [reminder] = await this.#database
-      .select()
-      .from(reminders)
-      .where(
-        and(
-          eq(reminders.workspaceId, workspaceId),
-          eq(reminders.objectId, objectId),
-        ),
-      )
-      .limit(1);
-    if (reminder === undefined || row.objectType !== "reminder") {
-      throw new AuthorizationDeniedError();
-    }
-    return {
-      ...canonicalFields(row),
-      objectType: "reminder",
-      remindAt: reminder.remindAt,
-      status: reminder.status,
-    };
-  }
-
-  async #getDocumentUnchecked(
-    workspaceId: string,
-    objectId: string,
-    objectRow?: ObjectRow,
-  ): Promise<DocumentResource> {
-    const row = objectRow ?? (await this.#getObjectRow(workspaceId, objectId));
-    const [document] = await this.#database
-      .select()
-      .from(documents)
-      .where(
-        and(
-          eq(documents.workspaceId, workspaceId),
-          eq(documents.objectId, objectId),
-        ),
-      )
-      .limit(1);
-    if (document === undefined || row.objectType !== "document") {
-      throw new AuthorizationDeniedError();
-    }
-    return {
-      ...canonicalFields(row),
-      objectType: "document",
-      storageProvider: document.storageProvider,
-      storageKey: document.storageKey,
-      originalFilename: document.originalFilename,
-      mimeType: document.mimeType,
-      sizeBytes: document.sizeBytes,
-      checksumSha256: document.checksumSha256,
-      encryptionMode: document.encryptionMode,
-    };
-  }
-
-  async #getObjectRow(
-    workspaceId: string,
-    objectId: string,
-  ): Promise<ObjectRow> {
-    const [row] = await this.#database
-      .select()
-      .from(objects)
-      .where(
-        and(
-          eq(objects.workspaceId, workspaceId),
-          eq(objects.id, objectId),
-          isNull(objects.deletedAt),
-        ),
-      )
-      .limit(1);
-    if (row === undefined) {
-      throw new AuthorizationDeniedError();
-    }
-    return row;
+    const resource = await readObjectState(
+      this.#database,
+      principal.workspaceId,
+      objectId,
+    );
+    if (resource.deletedAt !== null) throw new AuthorizationDeniedError();
+    return resource;
   }
 
   #requireType<Type extends EventPlanningResource["objectType"]>(

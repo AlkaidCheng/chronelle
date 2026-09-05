@@ -3,7 +3,7 @@ import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 
-import { auditEvents } from "@chronelle/db";
+import { auditEvents, objectRevisions } from "@chronelle/db";
 import {
   applyMigrations,
   createTestDatabase,
@@ -235,6 +235,43 @@ describe.sequential("document attachment API", () => {
     );
     expect(taskFile.attachment.document.permissionScopeId).toBe(event.id);
     expect(expenseFile.attachment.document.permissionScopeId).toBe(event.id);
+
+    const documentId = eventFile.attachment.document.id;
+    const [revision] = await testDatabase.connection.db
+      .select()
+      .from(objectRevisions)
+      .where(eq(objectRevisions.objectId, documentId));
+    expect(revision).toMatchObject({
+      mutationKind: "created",
+      objectVersion: 1,
+      snapshotSchemaVersion: 1,
+    });
+    expect(revision?.snapshot.storageKey).toEqual(expect.any(String));
+    expect(revision?.snapshot.sizeBytes).toBe(
+      eventFile.attachment.document.sizeBytes,
+    );
+    const history = await request(viewer, workspaceId, {
+      method: "GET",
+      url: `/api/objects/${documentId}/revisions/1`,
+    });
+    expect(history.statusCode).toBe(200);
+    expect(history.json().snapshot).toMatchObject({
+      id: documentId,
+      sizeBytes: eventFile.attachment.document.sizeBytes,
+    });
+    for (const field of [
+      "storageKey",
+      "storageProvider",
+      "metadata",
+      "permissionScopeId",
+      "encryptionMode",
+    ])
+      expect(history.json().snapshot).not.toHaveProperty(field);
+    const deniedHistory = await request(unrelated, workspaceId, {
+      method: "GET",
+      url: `/api/objects/${documentId}/revisions/1`,
+    });
+    expect(deniedHistory.statusCode).toBe(404);
 
     const detailResponse = await request(owner, workspaceId, {
       method: "GET",

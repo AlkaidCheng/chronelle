@@ -25,6 +25,10 @@ import {
   taskResourceProjectionResponseSchema,
   taskResponseSchema,
   timelineResponseSchema,
+  revisionListResponseSchema,
+  revisionResponseSchema,
+  type RevisionListResponse,
+  type RevisionResponse,
   type DevelopmentSignInRequest,
   type DevelopmentSignInResponse,
   type DocumentAttachmentListResponse,
@@ -139,6 +143,27 @@ export class ChronelleApiClient {
 
   listEvents(): Promise<EventListResponse> {
     return this.#request("/api/events", eventListResponseSchema);
+  }
+
+  listObjectRevisions(
+    id: string,
+    input: { readonly limit?: number; readonly beforeVersion?: number } = {},
+  ): Promise<RevisionListResponse> {
+    const query = new URLSearchParams();
+    if (input.limit !== undefined) query.set("limit", String(input.limit));
+    if (input.beforeVersion !== undefined)
+      query.set("beforeVersion", String(input.beforeVersion));
+    return this.#request(
+      `/api/objects/${id}/revisions?${query.toString()}`,
+      revisionListResponseSchema,
+    );
+  }
+
+  getObjectRevision(id: string, version: number): Promise<RevisionResponse> {
+    return this.#request(
+      `/api/objects/${id}/revisions/${version}`,
+      revisionResponseSchema,
+    );
   }
 
   searchObjects(input: ObjectSearchQueryInput): Promise<ObjectSearchResponse> {
