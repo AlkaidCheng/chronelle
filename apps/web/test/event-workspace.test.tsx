@@ -87,6 +87,55 @@ describe("EventWorkspace", () => {
     window.sessionStorage.clear();
   });
 
+  it("keeps the event editor and navigation available when a projection fails", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn<typeof globalThis.fetch>(async (input) => {
+        const path = requestPath(input);
+        if (path.endsWith("/detail"))
+          return jsonResponse({
+            event: rootEvent,
+            events: [],
+            tasks: [],
+            expenses: [],
+            reminders: [],
+            documents: [],
+            lockedRelationCount: 0,
+          });
+        if (path.endsWith("/access"))
+          return jsonResponse({
+            resourceId: eventId,
+            actions: ["view", "edit"],
+          });
+        if (path.endsWith("/timeline"))
+          return jsonResponse({ sourceEventId: eventId, items: [] });
+        return jsonResponse(
+          {
+            error: {
+              code: "service_unavailable",
+              message: "This view is temporarily unavailable.",
+            },
+          },
+          503,
+        );
+      }),
+    );
+    const user = userEvent.setup();
+    render(<EventWorkspace eventId={eventId} />, { wrapper: Providers });
+    await user.click(await screen.findByRole("button", { name: "Edit event" }));
+    fireEvent.change(screen.getByLabelText("Name"), {
+      target: { value: "My event draft" },
+    });
+    await user.click(screen.getByRole("tab", { name: "Calendar" }));
+    expect(
+      await screen.findByRole("alert", {}, { timeout: 3000 }),
+    ).toHaveTextContent("This view is temporarily unavailable.");
+    expect(screen.getByLabelText("Name")).toHaveValue("My event draft");
+    await user.click(screen.getByRole("tab", { name: "Overview" }));
+    expect(await screen.findByText("Your event, connected.")).toBeVisible();
+    expect(screen.getByLabelText("Name")).toHaveValue("My event draft");
+  });
+
   it("creates one scheduled Event and shows its identity in every projection", async () => {
     let scheduledEvent: EventResponse | null = null;
     const fetch = vi.fn<typeof globalThis.fetch>(async (input, init) => {
@@ -193,6 +242,14 @@ describe("EventWorkspace", () => {
     ).toBeVisible();
     const overviewTab = screen.getByRole("tab", { name: "Overview" });
     expect(overviewTab).toHaveAttribute("aria-selected", "true");
+    await screen.findByText("Your event, connected.");
+    expect(
+      fetch.mock.calls.map(([input]) => requestPath(input)).sort(),
+    ).toEqual([
+      `/api/events/${eventId}/detail`,
+      `/api/events/${eventId}/timeline`,
+      `/api/objects/${eventId}/access`,
+    ]);
     overviewTab.focus();
     await user.keyboard("{ArrowRight}");
     expect(screen.getByRole("tab", { name: "To-dos" })).toHaveAttribute(
@@ -201,7 +258,9 @@ describe("EventWorkspace", () => {
     );
     expect(screen.getByRole("tabpanel")).toHaveAccessibleName("To-dos");
     await user.click(screen.getByRole("tab", { name: "Calendar" }));
-    await user.click(screen.getByRole("button", { name: "Add schedule item" }));
+    await user.click(
+      await screen.findByRole("button", { name: "Add schedule item" }),
+    );
     await user.type(screen.getByLabelText("Schedule item"), "Guest arrival");
     fireEvent.change(screen.getByLabelText("Starts"), {
       target: { value: "2026-10-15T17:30" },

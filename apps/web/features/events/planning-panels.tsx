@@ -72,7 +72,7 @@ export function TasksPanel({
 }) {
   const [filter, setFilter] = useState<TaskFilter>("open");
   const [editingId, setEditingId] = useState<string | null>(null);
-  const update = useUpdateTask(eventId);
+  const update = useUpdateTask();
   const refresh = useRefreshEvent(eventId);
   const filteredTasks = useMemo(
     () =>
@@ -532,7 +532,7 @@ export function RemindersPanel({
   readonly reminders: readonly ReminderResponse[];
 }) {
   const [editingId, setEditingId] = useState<string | null>(null);
-  const update = useUpdateReminder(eventId);
+  const update = useUpdateReminder();
   const refresh = useRefreshEvent(eventId);
   const editingReminder = reminders.find(({ id }) => id === editingId);
 

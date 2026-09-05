@@ -67,3 +67,28 @@ export function ErrorNotice({ error, onRefresh }: ErrorNoticeProps) {
     </div>
   );
 }
+
+export function DraftNotice({
+  onLoadLatest,
+}: {
+  readonly onLoadLatest: () => void;
+}) {
+  return (
+    <div className="notice notice-conflict" role="status">
+      <div>
+        <strong>A newer version is available</strong>
+        <p>
+          Your draft is preserved. Load the latest version to discard this draft
+          and continue editing.
+        </p>
+      </div>
+      <button
+        className="button button-secondary button-small"
+        onClick={onLoadLatest}
+        type="button"
+      >
+        Discard draft and load latest
+      </button>
+    </div>
+  );
+}
