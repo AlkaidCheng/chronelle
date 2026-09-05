@@ -68,9 +68,9 @@ export function DocumentsPanel({
   const targetInputId = useId();
   const fileInputId = useId();
   const attachments = useDocumentAttachments(parentObjectId);
-  const attach = useAttachDocument(event.id, parentObjectId);
+  const attach = useAttachDocument(parentObjectId);
   const download = useDownloadDocument();
-  const unlink = useUnlinkDocument(event.id, parentObjectId);
+  const unlink = useUnlinkDocument();
 
   useEffect(() => {
     if (!targets.some((target) => target.id === parentObjectId)) {

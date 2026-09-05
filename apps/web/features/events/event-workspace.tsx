@@ -70,14 +70,14 @@ function OverviewCard({
 }
 
 export function EventWorkspace({ eventId }: { readonly eventId: string }) {
-  const queries = useEventWorkspaceQueries(eventId);
   const [activeTab, setActiveTab] = useState<TabId>("overview");
+  const queries = useEventWorkspaceQueries(eventId, activeTab);
   const [isEditingEvent, setIsEditingEvent] = useState(false);
   const tabButtons = useRef(new Map<TabId, HTMLButtonElement>());
-  const allQueries = Object.values(queries);
-  const firstError = allQueries.find((query) => query.isError)?.error;
+  const essentialQueries = [queries.detail, queries.access];
+  const firstError = essentialQueries.find((query) => query.isError)?.error;
 
-  if (allQueries.some((query) => query.isPending)) {
+  if (essentialQueries.some((query) => query.isPending)) {
     return (
       <main className="centered-page workspace-loading">
         <LoadingState label="Connecting your event plan" />
@@ -94,7 +94,7 @@ export function EventWorkspace({ eventId }: { readonly eventId: string }) {
         <ErrorNotice
           error={firstError}
           onRefresh={() => {
-            for (const query of allQueries) {
+            for (const query of essentialQueries) {
               void query.refetch();
             }
           }}
@@ -111,16 +111,7 @@ export function EventWorkspace({ eventId }: { readonly eventId: string }) {
   const itinerary = queries.itinerary.data;
   const expenses = queries.expenses.data;
   const reminders = queries.reminders.data;
-  if (
-    access === undefined ||
-    detail === undefined ||
-    todos === undefined ||
-    calendar === undefined ||
-    timeline === undefined ||
-    itinerary === undefined ||
-    expenses === undefined ||
-    reminders === undefined
-  ) {
+  if (access === undefined || detail === undefined) {
     return null;
   }
 
@@ -130,6 +121,20 @@ export function EventWorkspace({ eventId }: { readonly eventId: string }) {
   const visibleTabs = tabs.filter((tab) => tab.id !== "sharing" || canShare);
   const shownTab =
     activeTab === "sharing" && !canShare ? "overview" : activeTab;
+  if (shownTab !== activeTab) {
+    setActiveTab(shownTab);
+  }
+  const activeProjection = {
+    overview: queries.timeline,
+    todos: queries.todos,
+    calendar: queries.calendar,
+    timeline: queries.timeline,
+    itinerary: queries.itinerary,
+    expenses: queries.expenses,
+    reminders: queries.reminders,
+    files: undefined,
+    sharing: undefined,
+  }[shownTab];
   function handleTabKeyDown(
     event: ReactKeyboardEvent<HTMLButtonElement>,
     tabId: TabId,
@@ -156,24 +161,24 @@ export function EventWorkspace({ eventId }: { readonly eventId: string }) {
       tabButtons.current.get(nextTab.id)?.focus();
     }
   }
-  const openTasks = todos.items.filter(
+  const openTasks = detail.tasks.filter(
     (task) => task.status !== "done" && task.status !== "cancelled",
   );
   const expenseCurrencies = new Set(
-    expenses.items.map((expense) => expense.currency),
+    detail.expenses.map((expense) => expense.currency),
   );
   const expenseSummary =
-    expenseCurrencies.size === 1 && expenses.items[0] !== undefined
+    expenseCurrencies.size === 1 && detail.expenses[0] !== undefined
       ? formatMoney(
           String(
-            expenses.items.reduce(
+            detail.expenses.reduce(
               (sum, expense) => sum + Number(expense.amount),
               0,
             ),
           ),
-          expenses.items[0].currency,
+          detail.expenses[0].currency,
         )
-      : `${expenses.items.length} transaction${expenses.items.length === 1 ? "" : "s"}`;
+      : `${detail.expenses.length} transaction${detail.expenses.length === 1 ? "" : "s"}`;
 
   return (
     <main className="event-workspace">
@@ -219,7 +224,6 @@ export function EventWorkspace({ eventId }: { readonly eventId: string }) {
           <div className="event-editor surface">
             <EventEditorForm
               event={event}
-              eventId={eventId}
               onCancel={() => setIsEditingEvent(false)}
             />
           </div>
@@ -258,118 +262,141 @@ export function EventWorkspace({ eventId }: { readonly eventId: string }) {
         id={`event-panel-${shownTab}`}
         role="tabpanel"
       >
-        {shownTab === "overview" ? (
-          <section className="planning-panel overview-panel">
-            <div className="overview-intro">
-              <span className="object-label">At a glance</span>
-              <h2>Your event, connected.</h2>
-              <p>
-                Each card is a view over the canonical objects in this event.
-                Changes flow across the workspace without copied records.
-              </p>
-            </div>
-            {detail.lockedRelationCount > 0 ? (
-              <div className="locked-reference surface-subtle">
-                <LockIcon />
-                <div>
-                  <strong>Private related items</strong>
+        {activeProjection?.isPending ? (
+          <LoadingState label="Loading this view" />
+        ) : activeProjection?.isError ? (
+          <ErrorNotice
+            error={activeProjection.error}
+            onRefresh={() => void activeProjection.refetch()}
+          />
+        ) : (
+          <>
+            {shownTab === "overview" && timeline !== undefined ? (
+              <section className="planning-panel overview-panel">
+                <div className="overview-intro">
+                  <span className="object-label">At a glance</span>
+                  <h2>Your event, connected.</h2>
                   <p>
-                    {detail.lockedRelationCount} related
-                    {detail.lockedRelationCount === 1
-                      ? " item is"
-                      : " items are"}{" "}
-                    outside your permission scope.
+                    Each card is a view over the canonical objects in this
+                    event. Changes flow across the workspace without copied
+                    records.
                   </p>
                 </div>
-              </div>
+                {detail.lockedRelationCount > 0 ? (
+                  <div className="locked-reference surface-subtle">
+                    <LockIcon />
+                    <div>
+                      <strong>Private related items</strong>
+                      <p>
+                        {detail.lockedRelationCount} related
+                        {detail.lockedRelationCount === 1
+                          ? " item is"
+                          : " items are"}{" "}
+                        outside your permission scope.
+                      </p>
+                    </div>
+                  </div>
+                ) : null}
+                <div className="overview-grid">
+                  <OverviewCard
+                    count={String(openTasks.length)}
+                    icon={<CheckIcon />}
+                    label="Open to-dos"
+                    onOpen={() => setActiveTab("todos")}
+                  />
+                  <OverviewCard
+                    count={String(
+                      detail.events.filter((item) => item.startsAt !== null)
+                        .length,
+                    )}
+                    icon={<CalendarIcon />}
+                    label="Scheduled items"
+                    onOpen={() => setActiveTab("calendar")}
+                  />
+                  <OverviewCard
+                    count={expenseSummary}
+                    icon={<WalletIcon />}
+                    label="Recorded expenses"
+                    onOpen={() => setActiveTab("expenses")}
+                  />
+                  <OverviewCard
+                    count={String(detail.reminders.length)}
+                    icon={<BellIcon />}
+                    label="Reminders"
+                    onOpen={() => setActiveTab("reminders")}
+                  />
+                  <OverviewCard
+                    count={String(detail.documents.length)}
+                    icon={<PaperclipIcon />}
+                    label="Event files"
+                    onOpen={() => setActiveTab("files")}
+                  />
+                </div>
+                <div className="next-up surface-subtle">
+                  <ClockIcon />
+                  <div>
+                    <span className="object-label">Next on the timeline</span>
+                    {timeline.items[0] === undefined ? (
+                      <p>
+                        Add a dated task, schedule item, expense, or reminder.
+                      </p>
+                    ) : (
+                      <>
+                        <h3>{timeline.items[0].displayName}</h3>
+                        <p>{formatDateTime(timeline.items[0].occursAt)}</p>
+                      </>
+                    )}
+                  </div>
+                </div>
+              </section>
             ) : null}
-            <div className="overview-grid">
-              <OverviewCard
-                count={String(openTasks.length)}
-                icon={<CheckIcon />}
-                label="Open to-dos"
-                onOpen={() => setActiveTab("todos")}
+            {shownTab === "todos" && todos !== undefined ? (
+              <TasksPanel
+                canEdit={canEdit}
+                eventId={eventId}
+                tasks={todos.items}
               />
-              <OverviewCard
-                count={String(calendar.items.length)}
-                icon={<CalendarIcon />}
-                label="Scheduled items"
-                onOpen={() => setActiveTab("calendar")}
+            ) : null}
+            {shownTab === "calendar" && calendar !== undefined ? (
+              <CalendarPanel
+                canEdit={canEdit}
+                eventId={eventId}
+                items={calendar.items}
               />
-              <OverviewCard
-                count={expenseSummary}
-                icon={<WalletIcon />}
-                label="Recorded expenses"
-                onOpen={() => setActiveTab("expenses")}
+            ) : null}
+            {shownTab === "timeline" && timeline !== undefined ? (
+              <TimelinePanel timeline={timeline} />
+            ) : null}
+            {shownTab === "itinerary" && itinerary !== undefined ? (
+              <ItineraryPanel items={itinerary.items} />
+            ) : null}
+            {shownTab === "expenses" && expenses !== undefined ? (
+              <ExpensesPanel
+                canEdit={canEdit}
+                eventId={eventId}
+                expenses={expenses.items}
               />
-              <OverviewCard
-                count={String(reminders.items.length)}
-                icon={<BellIcon />}
-                label="Reminders"
-                onOpen={() => setActiveTab("reminders")}
+            ) : null}
+            {shownTab === "reminders" && reminders !== undefined ? (
+              <RemindersPanel
+                canEdit={canEdit}
+                eventId={eventId}
+                reminders={reminders.items}
               />
-              <OverviewCard
-                count={String(detail.documents.length)}
-                icon={<PaperclipIcon />}
-                label="Event files"
-                onOpen={() => setActiveTab("files")}
+            ) : null}
+            {shownTab === "files" ? (
+              <DocumentsPanel
+                canEdit={canEdit}
+                event={event}
+                expenses={detail.expenses}
+                tasks={detail.tasks}
               />
-            </div>
-            <div className="next-up surface-subtle">
-              <ClockIcon />
-              <div>
-                <span className="object-label">Next on the timeline</span>
-                {timeline.items[0] === undefined ? (
-                  <p>Add a dated task, schedule item, expense, or reminder.</p>
-                ) : (
-                  <>
-                    <h3>{timeline.items[0].displayName}</h3>
-                    <p>{formatDateTime(timeline.items[0].occursAt)}</p>
-                  </>
-                )}
-              </div>
-            </div>
-          </section>
-        ) : null}
-        {shownTab === "todos" ? (
-          <TasksPanel canEdit={canEdit} eventId={eventId} tasks={todos.items} />
-        ) : null}
-        {shownTab === "calendar" ? (
-          <CalendarPanel
-            canEdit={canEdit}
-            eventId={eventId}
-            items={calendar.items}
-          />
-        ) : null}
-        {shownTab === "timeline" ? <TimelinePanel timeline={timeline} /> : null}
-        {shownTab === "itinerary" ? (
-          <ItineraryPanel items={itinerary.items} />
-        ) : null}
-        {shownTab === "expenses" ? (
-          <ExpensesPanel
-            canEdit={canEdit}
-            eventId={eventId}
-            expenses={expenses.items}
-          />
-        ) : null}
-        {shownTab === "reminders" ? (
-          <RemindersPanel
-            canEdit={canEdit}
-            eventId={eventId}
-            reminders={reminders.items}
-          />
-        ) : null}
-        {shownTab === "files" ? (
-          <DocumentsPanel
-            canEdit={canEdit}
-            event={event}
-            expenses={expenses.items}
-            tasks={todos.items}
-          />
-        ) : null}
-        {shownTab === "sharing" && canShare ? (
-          <SharingPanel detail={detail} eventId={eventId} />
-        ) : null}
+            ) : null}
+            {shownTab === "sharing" && canShare ? (
+              <SharingPanel detail={detail} eventId={eventId} />
+            ) : null}
+          </>
+        )}
       </div>
     </main>
   );

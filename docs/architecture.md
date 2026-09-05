@@ -157,9 +157,16 @@ workspace.
 TanStack Query owns remote state and invalidation. Event detail, calendar,
 timeline, itinerary, expenses, reminders, and to-dos retain separate query
 results, but every item carries the canonical object ID returned by the API.
-Mutations invalidate all projections for the source Event. Forms use the latest
-returned version, and HTTP 409 conflicts remain visible until the user refreshes
-the current canonical value.
+Canonical mutations invalidate cached event contexts, object attachments, and
+search results across the active session, since one object can appear in many
+contexts. Only active queries refetch immediately; inactive views become stale
+and reload when opened. The Event overview fetches detail, access, and timeline;
+other projections load on demand, with errors confined to the affected tab.
+
+An open editor pins its source object and version. Background updates preserve
+the draft and require explicit discard-and-reload before saving against a newer
+version. HTTP 409 conflicts preserve the draft as well. Inputs are disabled during
+save, and a successful save advances the editor's source version.
 
 The Event Sharing view is capability-driven: only principals with Share see
 grant administration, while Viewers receive read-only planning panels. Owners
@@ -176,8 +183,9 @@ narrow-screen layouts keep forms and result actions in a single usable column.
 Creating an included planning resource currently uses two independently
 audited API mutations: create the scoped canonical object, then create its
 `includes` relationship. If the second request fails, the object remains valid
-but unlinked. A future application command can make this interaction atomic
-when recovery and product behavior are defined.
+but unlinked. Atomic, idempotent create-in-context commands are a prerequisite
+for treating this interaction as one recoverable action. Durable revisions,
+restoration, trash, and undo/redo remain planned backend capabilities.
 
 PostgreSQL is the canonical data store. Object files are accessed through the
 storage interface and stored outside PostgreSQL. Provider adapters keep

@@ -94,7 +94,21 @@ export function useObjectSearch(input: ObjectSearchQueryInput | null) {
   });
 }
 
-export function useEventWorkspaceQueries(eventId: string) {
+type EventView =
+  | "overview"
+  | "todos"
+  | "calendar"
+  | "timeline"
+  | "itinerary"
+  | "expenses"
+  | "reminders"
+  | "files"
+  | "sharing";
+
+export function useEventWorkspaceQueries(
+  eventId: string,
+  activeView: EventView,
+) {
   const client = useApiClient();
   const { credential } = useAuthSession();
   const results = useQueries({
@@ -105,32 +119,34 @@ export function useEventWorkspaceQueries(eventId: string) {
         queryKey: queryKeys.detail(eventId),
       },
       {
-        enabled: credential !== null,
+        enabled: credential !== null && activeView === "todos",
         queryFn: () => client.getEventTodos(eventId),
         queryKey: queryKeys.todos(eventId),
       },
       {
-        enabled: credential !== null,
+        enabled: credential !== null && activeView === "calendar",
         queryFn: () => client.getEventCalendar(eventId),
         queryKey: queryKeys.calendar(eventId),
       },
       {
-        enabled: credential !== null,
+        enabled:
+          credential !== null &&
+          (activeView === "overview" || activeView === "timeline"),
         queryFn: () => client.getEventTimeline(eventId),
         queryKey: queryKeys.timeline(eventId),
       },
       {
-        enabled: credential !== null,
+        enabled: credential !== null && activeView === "itinerary",
         queryFn: () => client.getEventItinerary(eventId),
         queryKey: queryKeys.itinerary(eventId),
       },
       {
-        enabled: credential !== null,
+        enabled: credential !== null && activeView === "expenses",
         queryFn: () => client.getEventExpenses(eventId),
         queryKey: queryKeys.expenses(eventId),
       },
       {
-        enabled: credential !== null,
+        enabled: credential !== null && activeView === "reminders",
         queryFn: () => client.getEventReminders(eventId),
         queryKey: queryKeys.reminders(eventId),
       },
@@ -174,6 +190,17 @@ function useEventInvalidation(eventId: string) {
   };
 }
 
+function useCanonicalInvalidation() {
+  const queryClient = useQueryClient();
+  return () =>
+    queryClient.invalidateQueries({
+      predicate: (query) =>
+        ["event", "events", "object", "search"].includes(
+          String(query.queryKey[0]),
+        ),
+    });
+}
+
 export function useRefreshEvent(eventId: string) {
   return useEventInvalidation(eventId);
 }
@@ -188,20 +215,13 @@ export function useDocumentAttachments(parentObjectId: string) {
   });
 }
 
-export function useAttachDocument(eventId: string, parentObjectId: string) {
+export function useAttachDocument(parentObjectId: string) {
   const client = useApiClient();
-  const queryClient = useQueryClient();
+  const invalidate = useCanonicalInvalidation();
   return useMutation({
     mutationFn: (file: DocumentFileInput) =>
       client.attachDocument(parentObjectId, file),
-    onSuccess: async () => {
-      await Promise.all([
-        queryClient.invalidateQueries({
-          queryKey: queryKeys.attachments(parentObjectId),
-        }),
-        queryClient.invalidateQueries({ queryKey: queryKeys.detail(eventId) }),
-      ]);
-    },
+    onSuccess: invalidate,
   });
 }
 
@@ -212,36 +232,27 @@ export function useDownloadDocument() {
   });
 }
 
-export function useUnlinkDocument(eventId: string, parentObjectId: string) {
+export function useUnlinkDocument() {
   const client = useApiClient();
-  const queryClient = useQueryClient();
+  const invalidate = useCanonicalInvalidation();
   return useMutation({
     mutationFn: (relationId: string) => client.deleteRelation(relationId),
-    onSuccess: async () => {
-      await Promise.all([
-        queryClient.invalidateQueries({
-          queryKey: queryKeys.attachments(parentObjectId),
-        }),
-        queryClient.invalidateQueries({ queryKey: queryKeys.detail(eventId) }),
-      ]);
-    },
+    onSuccess: invalidate,
   });
 }
 
 export function useCreateEvent() {
   const client = useApiClient();
-  const queryClient = useQueryClient();
+  const invalidate = useCanonicalInvalidation();
   return useMutation({
     mutationFn: (input: EventCreatePayload) => client.createEvent(input),
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: queryKeys.events });
-    },
+    onSuccess: invalidate,
   });
 }
 
-export function useUpdateEvent(eventId: string) {
+export function useUpdateEvent() {
   const client = useApiClient();
-  const invalidate = useEventInvalidation(eventId);
+  const invalidate = useCanonicalInvalidation();
   return useMutation({
     mutationFn: ({ id, input }: { id: string; input: EventUpdatePayload }) =>
       client.updateEvent(id, input),
@@ -252,33 +263,37 @@ export function useUpdateEvent(eventId: string) {
 export function useShareResource(eventId: string) {
   const client = useApiClient();
   const queryClient = useQueryClient();
+  const invalidate = useCanonicalInvalidation();
   return useMutation({
     mutationFn: (input: Omit<ShareCreatePayload, "resourceId">) =>
       client.shareResource({ ...input, resourceId: eventId }),
     onSuccess: async () => {
-      await queryClient.invalidateQueries({
-        queryKey: queryKeys.shares(eventId),
-      });
+      await Promise.all([
+        invalidate(),
+        queryClient.invalidateQueries({ queryKey: queryKeys.session }),
+      ]);
     },
   });
 }
 
-export function useRevokeShare(eventId: string) {
+export function useRevokeShare() {
   const client = useApiClient();
   const queryClient = useQueryClient();
+  const invalidate = useCanonicalInvalidation();
   return useMutation({
     mutationFn: (grantId: string) => client.revokeShare(grantId),
     onSuccess: async () => {
-      await queryClient.invalidateQueries({
-        queryKey: queryKeys.shares(eventId),
-      });
+      await Promise.all([
+        invalidate(),
+        queryClient.invalidateQueries({ queryKey: queryKeys.session }),
+      ]);
     },
   });
 }
 
-export function useUpdatePermissionScope(eventId: string) {
+export function useUpdatePermissionScope() {
   const client = useApiClient();
-  const invalidate = useEventInvalidation(eventId);
+  const invalidate = useCanonicalInvalidation();
   return useMutation({
     mutationFn: ({
       id,
@@ -303,7 +318,7 @@ async function includeResource(
 
 export function useCreateScheduledEvent(eventId: string) {
   const client = useApiClient();
-  const invalidate = useEventInvalidation(eventId);
+  const invalidate = useCanonicalInvalidation();
   return useMutation({
     mutationFn: (input: Omit<EventCreatePayload, "permissionScopeId">) =>
       includeResource(
@@ -321,7 +336,7 @@ export function useCreateScheduledEvent(eventId: string) {
 
 export function useCreateTask(eventId: string) {
   const client = useApiClient();
-  const invalidate = useEventInvalidation(eventId);
+  const invalidate = useCanonicalInvalidation();
   return useMutation({
     mutationFn: (input: Omit<TaskCreatePayload, "permissionScopeId">) =>
       includeResource(
@@ -337,9 +352,9 @@ export function useCreateTask(eventId: string) {
   });
 }
 
-export function useUpdateTask(eventId: string) {
+export function useUpdateTask() {
   const client = useApiClient();
-  const invalidate = useEventInvalidation(eventId);
+  const invalidate = useCanonicalInvalidation();
   return useMutation({
     mutationFn: ({ id, input }: { id: string; input: TaskUpdatePayload }) =>
       client.updateTask(id, input),
@@ -349,7 +364,7 @@ export function useUpdateTask(eventId: string) {
 
 export function useCreateExpense(eventId: string) {
   const client = useApiClient();
-  const invalidate = useEventInvalidation(eventId);
+  const invalidate = useCanonicalInvalidation();
   return useMutation({
     mutationFn: (input: Omit<ExpenseCreatePayload, "permissionScopeId">) =>
       includeResource(
@@ -365,9 +380,9 @@ export function useCreateExpense(eventId: string) {
   });
 }
 
-export function useUpdateExpense(eventId: string) {
+export function useUpdateExpense() {
   const client = useApiClient();
-  const invalidate = useEventInvalidation(eventId);
+  const invalidate = useCanonicalInvalidation();
   return useMutation({
     mutationFn: ({ id, input }: { id: string; input: ExpenseUpdatePayload }) =>
       client.updateExpense(id, input),
@@ -377,7 +392,7 @@ export function useUpdateExpense(eventId: string) {
 
 export function useCreateReminder(eventId: string) {
   const client = useApiClient();
-  const invalidate = useEventInvalidation(eventId);
+  const invalidate = useCanonicalInvalidation();
   return useMutation({
     mutationFn: (input: Omit<ReminderCreatePayload, "permissionScopeId">) =>
       includeResource(
@@ -393,9 +408,9 @@ export function useCreateReminder(eventId: string) {
   });
 }
 
-export function useUpdateReminder(eventId: string) {
+export function useUpdateReminder() {
   const client = useApiClient();
-  const invalidate = useEventInvalidation(eventId);
+  const invalidate = useCanonicalInvalidation();
   return useMutation({
     mutationFn: ({ id, input }: { id: string; input: ReminderUpdatePayload }) =>
       client.updateReminder(id, input),

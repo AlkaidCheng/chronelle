@@ -8,8 +8,9 @@ import type {
 } from "@chronelle/schemas";
 import { type FormEvent, useEffect, useId, useState } from "react";
 
-import { ErrorNotice } from "../../components/feedback";
+import { DraftNotice, ErrorNotice } from "../../components/feedback";
 import { fromDateTimeInput, toDateTimeInput } from "../../lib/format";
+import { useEditSource } from "../../lib/use-edit-source";
 import {
   useCreateExpense,
   useCreateReminder,
@@ -23,17 +24,24 @@ import {
 } from "../../lib/queries";
 
 interface FormActionsProps {
+  readonly disabled?: boolean;
   readonly isPending: boolean;
   readonly onCancel?: (() => void) | undefined;
   readonly submitLabel: string;
 }
 
-function FormActions({ isPending, onCancel, submitLabel }: FormActionsProps) {
+function FormActions({
+  disabled = false,
+  isPending,
+  onCancel,
+  submitLabel,
+}: FormActionsProps) {
   return (
     <div className="form-actions">
       {onCancel === undefined ? null : (
         <button
           className="button button-quiet"
+          disabled={isPending}
           onClick={onCancel}
           type="button"
         >
@@ -42,7 +50,7 @@ function FormActions({ isPending, onCancel, submitLabel }: FormActionsProps) {
       )}
       <button
         className="button button-primary"
-        disabled={isPending}
+        disabled={disabled || isPending}
         type="submit"
       >
         {isPending ? "Saving..." : submitLabel}
@@ -52,17 +60,17 @@ function FormActions({ isPending, onCancel, submitLabel }: FormActionsProps) {
 }
 
 export function EventEditorForm({
-  event,
-  eventId,
+  event: latestEvent,
   onCancel,
 }: {
   readonly event: EventResponse;
-  readonly eventId: string;
   readonly onCancel?: (() => void) | undefined;
 }) {
+  const draft = useEditSource(latestEvent);
+  const event = draft.source ?? latestEvent;
   const nameId = useId();
-  const update = useUpdateEvent(eventId);
-  const refresh = useRefreshEvent(eventId);
+  const update = useUpdateEvent();
+  const refresh = useRefreshEvent(event.id);
   const [displayName, setDisplayName] = useState(event.displayName);
   const [startsAt, setStartsAt] = useState(toDateTimeInput(event.startsAt));
   const [endsAt, setEndsAt] = useState(toDateTimeInput(event.endsAt));
@@ -77,6 +85,7 @@ export function EventEditorForm({
 
   function handleSubmit(formEvent: FormEvent<HTMLFormElement>) {
     formEvent.preventDefault();
+    if (draft.hasNewerVersion || update.isPending) return;
     update.mutate(
       {
         id: event.id,
@@ -89,7 +98,12 @@ export function EventEditorForm({
           timezone: event.timezone,
         },
       },
-      onCancel === undefined ? undefined : { onSuccess: onCancel },
+      {
+        onSuccess: (saved) => {
+          draft.accept(saved);
+          onCancel?.();
+        },
+      },
     );
   }
 
@@ -100,6 +114,7 @@ export function EventEditorForm({
         <input
           id={nameId}
           maxLength={240}
+          disabled={update.isPending}
           onChange={(input) => setDisplayName(input.target.value)}
           required
           value={displayName}
@@ -109,6 +124,7 @@ export function EventEditorForm({
         <label className="field">
           <span>Starts</span>
           <input
+            disabled={update.isPending}
             onChange={(input) => setStartsAt(input.target.value)}
             type="datetime-local"
             value={startsAt}
@@ -118,6 +134,7 @@ export function EventEditorForm({
           <span>Ends</span>
           <input
             min={startsAt}
+            disabled={update.isPending}
             onChange={(input) => setEndsAt(input.target.value)}
             type="datetime-local"
             value={endsAt}
@@ -127,6 +144,7 @@ export function EventEditorForm({
       <label className="check-field">
         <input
           checked={isAllDay}
+          disabled={update.isPending}
           onChange={(input) => setIsAllDay(input.target.checked)}
           type="checkbox"
         />
@@ -141,16 +159,25 @@ export function EventEditorForm({
         />
       ) : null}
       <FormActions
+        disabled={draft.hasNewerVersion}
         isPending={update.isPending}
         onCancel={onCancel}
         submitLabel="Save event"
       />
+      {draft.hasNewerVersion ? (
+        <DraftNotice
+          onLoadLatest={() => {
+            draft.loadLatest();
+            update.reset();
+          }}
+        />
+      ) : null}
     </form>
   );
 }
 
 export function ScheduledEventForm({
-  event,
+  event: latestEvent,
   eventId,
   onCancel,
 }: {
@@ -158,8 +185,10 @@ export function ScheduledEventForm({
   readonly eventId: string;
   readonly onCancel?: (() => void) | undefined;
 }) {
+  const draft = useEditSource(latestEvent);
+  const event = draft.source;
   const create = useCreateScheduledEvent(eventId);
-  const update = useUpdateEvent(eventId);
+  const update = useUpdateEvent();
   const refresh = useRefreshEvent(eventId);
   const [displayName, setDisplayName] = useState(event?.displayName ?? "");
   const [startsAt, setStartsAt] = useState(
@@ -175,6 +204,7 @@ export function ScheduledEventForm({
 
   function handleSubmit(formEvent: FormEvent<HTMLFormElement>) {
     formEvent.preventDefault();
+    if (draft.hasNewerVersion || mutation.isPending) return;
     const input = {
       displayName,
       endsAt: fromDateTimeInput(endsAt),
@@ -200,7 +230,12 @@ export function ScheduledEventForm({
         id: event.id,
         input: { ...input, expectedVersion: event.version },
       },
-      onCancel === undefined ? undefined : { onSuccess: onCancel },
+      {
+        onSuccess: (saved) => {
+          draft.accept(saved);
+          onCancel?.();
+        },
+      },
     );
   }
 
@@ -211,6 +246,7 @@ export function ScheduledEventForm({
         <span>Schedule item</span>
         <input
           maxLength={240}
+          disabled={mutation.isPending}
           onChange={(input) => setDisplayName(input.target.value)}
           placeholder="Guest arrival"
           required
@@ -221,6 +257,7 @@ export function ScheduledEventForm({
         <label className="field">
           <span>Starts</span>
           <input
+            disabled={mutation.isPending}
             onChange={(input) => setStartsAt(input.target.value)}
             required
             type="datetime-local"
@@ -231,6 +268,7 @@ export function ScheduledEventForm({
           <span>Ends</span>
           <input
             min={startsAt}
+            disabled={mutation.isPending}
             onChange={(input) => setEndsAt(input.target.value)}
             type="datetime-local"
             value={endsAt}
@@ -250,10 +288,19 @@ export function ScheduledEventForm({
         />
       ) : null}
       <FormActions
+        disabled={draft.hasNewerVersion}
         isPending={mutation.isPending}
         onCancel={onCancel}
         submitLabel={event === undefined ? "Add to schedule" : "Save item"}
       />
+      {draft.hasNewerVersion ? (
+        <DraftNotice
+          onLoadLatest={() => {
+            draft.loadLatest();
+            mutation.reset();
+          }}
+        />
+      ) : null}
     </form>
   );
 }
@@ -261,14 +308,16 @@ export function ScheduledEventForm({
 export function TaskForm({
   eventId,
   onCancel,
-  task,
+  task: latestTask,
 }: {
   readonly eventId: string;
   readonly onCancel?: (() => void) | undefined;
   readonly task?: TaskResponse | undefined;
 }) {
+  const draft = useEditSource(latestTask);
+  const task = draft.source;
   const create = useCreateTask(eventId);
-  const update = useUpdateTask(eventId);
+  const update = useUpdateTask();
   const refresh = useRefreshEvent(eventId);
   const [displayName, setDisplayName] = useState(task?.displayName ?? "");
   const [dueAt, setDueAt] = useState(toDateTimeInput(task?.dueAt ?? null));
@@ -280,6 +329,7 @@ export function TaskForm({
 
   function handleSubmit(formEvent: FormEvent<HTMLFormElement>) {
     formEvent.preventDefault();
+    if (draft.hasNewerVersion || mutation.isPending) return;
     const input = { displayName, dueAt: fromDateTimeInput(dueAt) };
     if (task === undefined) {
       create.mutate(input, {
@@ -296,7 +346,12 @@ export function TaskForm({
         id: task.id,
         input: { ...input, expectedVersion: task.version },
       },
-      onCancel === undefined ? undefined : { onSuccess: onCancel },
+      {
+        onSuccess: (saved) => {
+          draft.accept(saved);
+          onCancel?.();
+        },
+      },
     );
   }
 
@@ -307,6 +362,7 @@ export function TaskForm({
         <span>Task</span>
         <input
           maxLength={240}
+          disabled={mutation.isPending}
           onChange={(input) => setDisplayName(input.target.value)}
           placeholder="Confirm the guest list"
           required
@@ -316,6 +372,7 @@ export function TaskForm({
       <label className="field">
         <span>Due</span>
         <input
+          disabled={mutation.isPending}
           onChange={(input) => setDueAt(input.target.value)}
           type="datetime-local"
           value={dueAt}
@@ -334,25 +391,36 @@ export function TaskForm({
         />
       ) : null}
       <FormActions
+        disabled={draft.hasNewerVersion}
         isPending={mutation.isPending}
         onCancel={onCancel}
         submitLabel={task === undefined ? "Add task" : "Save task"}
       />
+      {draft.hasNewerVersion ? (
+        <DraftNotice
+          onLoadLatest={() => {
+            draft.loadLatest();
+            mutation.reset();
+          }}
+        />
+      ) : null}
     </form>
   );
 }
 
 export function ExpenseForm({
   eventId,
-  expense,
+  expense: latestExpense,
   onCancel,
 }: {
   readonly eventId: string;
   readonly expense?: ExpenseResponse | undefined;
   readonly onCancel?: (() => void) | undefined;
 }) {
+  const draft = useEditSource(latestExpense);
+  const expense = draft.source;
   const create = useCreateExpense(eventId);
-  const update = useUpdateExpense(eventId);
+  const update = useUpdateExpense();
   const refresh = useRefreshEvent(eventId);
   const [displayName, setDisplayName] = useState(expense?.displayName ?? "");
   const [amount, setAmount] = useState(expense?.amount ?? "");
@@ -372,6 +440,7 @@ export function ExpenseForm({
 
   function handleSubmit(formEvent: FormEvent<HTMLFormElement>) {
     formEvent.preventDefault();
+    if (draft.hasNewerVersion || mutation.isPending) return;
     const timestamp = fromDateTimeInput(occurredAt);
     if (timestamp === null) {
       return;
@@ -392,7 +461,12 @@ export function ExpenseForm({
         id: expense.id,
         input: { ...input, expectedVersion: expense.version },
       },
-      onCancel === undefined ? undefined : { onSuccess: onCancel },
+      {
+        onSuccess: (saved) => {
+          draft.accept(saved);
+          onCancel?.();
+        },
+      },
     );
   }
 
@@ -403,6 +477,7 @@ export function ExpenseForm({
         <span>Expense</span>
         <input
           maxLength={240}
+          disabled={mutation.isPending}
           onChange={(input) => setDisplayName(input.target.value)}
           placeholder="Venue deposit"
           required
@@ -414,6 +489,7 @@ export function ExpenseForm({
           <span>Amount</span>
           <input
             inputMode="decimal"
+            disabled={mutation.isPending}
             onChange={(input) => setAmount(input.target.value)}
             pattern="-?\d{1,15}(\.\d{1,4})?"
             placeholder="0.00"
@@ -426,6 +502,7 @@ export function ExpenseForm({
           <input
             maxLength={3}
             minLength={3}
+            disabled={mutation.isPending}
             onChange={(input) => setCurrency(input.target.value.toUpperCase())}
             pattern="[A-Za-z]{3}"
             required
@@ -436,6 +513,7 @@ export function ExpenseForm({
       <label className="field">
         <span>Date</span>
         <input
+          disabled={mutation.isPending}
           onChange={(input) => setOccurredAt(input.target.value)}
           required
           type="datetime-local"
@@ -455,10 +533,19 @@ export function ExpenseForm({
         />
       ) : null}
       <FormActions
+        disabled={draft.hasNewerVersion}
         isPending={mutation.isPending}
         onCancel={onCancel}
         submitLabel={expense === undefined ? "Record expense" : "Save expense"}
       />
+      {draft.hasNewerVersion ? (
+        <DraftNotice
+          onLoadLatest={() => {
+            draft.loadLatest();
+            mutation.reset();
+          }}
+        />
+      ) : null}
     </form>
   );
 }
@@ -466,14 +553,16 @@ export function ExpenseForm({
 export function ReminderForm({
   eventId,
   onCancel,
-  reminder,
+  reminder: latestReminder,
 }: {
   readonly eventId: string;
   readonly onCancel?: (() => void) | undefined;
   readonly reminder?: ReminderResponse | undefined;
 }) {
+  const draft = useEditSource(latestReminder);
+  const reminder = draft.source;
   const create = useCreateReminder(eventId);
-  const update = useUpdateReminder(eventId);
+  const update = useUpdateReminder();
   const refresh = useRefreshEvent(eventId);
   const [displayName, setDisplayName] = useState(reminder?.displayName ?? "");
   const [remindAt, setRemindAt] = useState(
@@ -487,6 +576,7 @@ export function ReminderForm({
 
   function handleSubmit(formEvent: FormEvent<HTMLFormElement>) {
     formEvent.preventDefault();
+    if (draft.hasNewerVersion || mutation.isPending) return;
     const timestamp = fromDateTimeInput(remindAt);
     if (timestamp === null) {
       return;
@@ -507,7 +597,12 @@ export function ReminderForm({
         id: reminder.id,
         input: { ...input, expectedVersion: reminder.version },
       },
-      onCancel === undefined ? undefined : { onSuccess: onCancel },
+      {
+        onSuccess: (saved) => {
+          draft.accept(saved);
+          onCancel?.();
+        },
+      },
     );
   }
 
@@ -518,6 +613,7 @@ export function ReminderForm({
         <span>Reminder</span>
         <input
           maxLength={240}
+          disabled={mutation.isPending}
           onChange={(input) => setDisplayName(input.target.value)}
           placeholder="Send final headcount"
           required
@@ -527,6 +623,7 @@ export function ReminderForm({
       <label className="field">
         <span>Alert at</span>
         <input
+          disabled={mutation.isPending}
           onChange={(input) => setRemindAt(input.target.value)}
           required
           type="datetime-local"
@@ -546,10 +643,19 @@ export function ReminderForm({
         />
       ) : null}
       <FormActions
+        disabled={draft.hasNewerVersion}
         isPending={mutation.isPending}
         onCancel={onCancel}
         submitLabel={reminder === undefined ? "Add reminder" : "Save reminder"}
       />
+      {draft.hasNewerVersion ? (
+        <DraftNotice
+          onLoadLatest={() => {
+            draft.loadLatest();
+            mutation.reset();
+          }}
+        />
+      ) : null}
     </form>
   );
 }

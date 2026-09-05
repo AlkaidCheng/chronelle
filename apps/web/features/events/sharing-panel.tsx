@@ -44,8 +44,8 @@ export function SharingPanel({
 }) {
   const shares = useSharesQuery(eventId, true);
   const share = useShareResource(eventId);
-  const revoke = useRevokeShare(eventId);
-  const updateScope = useUpdatePermissionScope(eventId);
+  const revoke = useRevokeShare();
+  const updateScope = useUpdatePermissionScope();
   const refresh = useRefreshEvent(eventId);
   const [principalEmail, setPrincipalEmail] = useState("");
   const [role, setRole] = useState<SharedRole>("viewer");

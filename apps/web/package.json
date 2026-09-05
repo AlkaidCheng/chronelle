@@ -6,7 +6,7 @@
   "scripts": {
     "build": "pnpm --filter @chronelle/api-client build && next build",
     "dev": "pnpm --filter @chronelle/api-client build && next dev",
-    "start": "node .next/standalone/apps/web/server.js",
+    "start": "node scripts/start-standalone.mjs",
     "test": "pnpm --filter @chronelle/api-client build && vitest run",
     "typecheck": "pnpm --filter @chronelle/api-client build && tsc -p tsconfig.json --noEmit"
   },
