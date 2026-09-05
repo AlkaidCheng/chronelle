@@ -192,10 +192,15 @@ describe("EventWorkspace", () => {
       ) {
         return jsonResponse({ sourceEventId: eventId, items: [] });
       }
-      if (path === "/api/events" && init?.method === "POST") {
-        const body = JSON.parse(String(init.body)) as {
-          displayName: string;
-          startsAt: string;
+      if (
+        path === `/api/events/${eventId}/resources` &&
+        init?.method === "POST"
+      ) {
+        const { resource: body } = JSON.parse(String(init.body)) as {
+          resource: {
+            displayName: string;
+            startsAt: string;
+          };
         };
         scheduledEvent = {
           ...rootEvent,
@@ -205,20 +210,10 @@ describe("EventWorkspace", () => {
           startsAt: body.startsAt,
           endsAt: null,
         };
-        return jsonResponse(scheduledEvent, 201);
-      }
-      if (path === `/api/objects/${eventId}/relations`) {
         return jsonResponse(
           {
-            id: "019d6e7d-0000-7000-8000-000000000012",
-            workspaceId,
-            sourceObjectId: eventId,
-            relationType: "includes",
-            targetObjectId: scheduledEventId,
-            metadata: {},
-            createdBy: userId,
-            createdAt: "2026-09-02T20:01:00.000Z",
-            deletedAt: null,
+            resource: scheduledEvent,
+            relationId: "019d6e7d-0000-7000-8000-000000000012",
           },
           201,
         );
@@ -285,7 +280,7 @@ describe("EventWorkspace", () => {
     expect(screen.getByText("ID 00000011")).toBeVisible();
     await waitFor(() => {
       expect(fetch).toHaveBeenCalledWith(
-        "/api/events",
+        `/api/events/${eventId}/resources`,
         expect.objectContaining({ method: "POST" }),
       );
     });

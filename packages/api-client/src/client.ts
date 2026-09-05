@@ -27,6 +27,9 @@ import {
   timelineResponseSchema,
   revisionListResponseSchema,
   revisionResponseSchema,
+  eventContextCreateResponseSchema,
+  type EventContextCreatePayload,
+  type EventContextCreateResponse,
   type RevisionListResponse,
   type RevisionResponse,
   type DevelopmentSignInRequest,
@@ -184,6 +187,17 @@ export class ChronelleApiClient {
     return this.#request(
       "/api/events",
       eventResponseSchema,
+      jsonRequest(input, "POST"),
+    );
+  }
+
+  createEventResource(
+    eventId: string,
+    input: EventContextCreatePayload,
+  ): Promise<EventContextCreateResponse> {
+    return this.#request(
+      `/api/events/${eventId}/resources`,
+      eventContextCreateResponseSchema,
       jsonRequest(input, "POST"),
     );
   }

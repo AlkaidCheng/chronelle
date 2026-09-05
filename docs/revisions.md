@@ -51,6 +51,33 @@ transaction. A request already authorized in that database snapshot may finish
 while a concurrent revocation commits; subsequent requests see the revocation.
 This is not permission to restore or replay historical security state.
 
+## Atomic creation in an Event
+
+`POST /api/events/:id/resources` creates an Event, Task, Expense, or Reminder and
+its `includes` relationship in one transaction. The parent must be a self-scoped
+Event the caller can Edit. The service assigns that Event as the child's scope.
+Document creation uses the separate authorized upload/finalization workflow.
+
+Supply a UUID `commandId` and retain it until the outcome is known. The receipt
+is scoped by user and workspace; a PostgreSQL transaction lock serializes matching
+commands. A matching retry returns HTTP 201 with the original creation result,
+not the current live state. Altered input with the same ID returns HTTP 409
+`command_conflict`. Object-key ordering does not change the normalized request
+hash; changed values do. Current Edit on the parent and View on the created
+object are required for replay. Deleted or inaccessible resources fail closed.
+
+The receipt refers to the creation revision and relation; it duplicates no
+business content. Retries append no extra audits or snapshots and never undo
+later edits or revive a removed relationship. A failed object, relation, revision,
+audit, or receipt write rolls back the entire command. The original request ID
+correlates its object-created and relation-created audit events.
+
+Browser create forms retain a command ID for unchanged retries while mounted,
+and start a fresh command after success or changed input. Reloading or leaving
+the editor loses that in-memory retry identity; durable offline draft and command
+storage is not implemented. API clients needing recovery across restarts must
+retain their own command ID. Receipts are retained indefinitely for now.
+
 ## Upgrading an existing database
 
 Stop every API writer, apply the migrations, and capture baselines before

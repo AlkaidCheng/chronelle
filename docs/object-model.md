@@ -105,3 +105,9 @@ See [Object revisions](revisions.md) for serialization and history contracts.
 
 An Expense amount is stored as its own historical fact. Relating an Expense to
 another object neither derives nor synchronizes the amount with that object.
+
+`event_context_commands` is an immutable receipt keyed by workspace, user, and
+command ID. It records the normalized request hash, original request ID, Event,
+created object, and relationship IDs. It stores no second copy of content: a
+retry obtains its response from the object's creation revision after current
+authorization. Editing or unlinking the resource never changes this receipt.

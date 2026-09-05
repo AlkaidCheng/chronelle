@@ -192,6 +192,24 @@ export const objectRevisions = pgTable("object_revisions", {
   createdAt: createCreatedAtColumn(),
 });
 
+export const eventContextCommands = pgTable(
+  "event_context_commands",
+  {
+    workspaceId: uuid("workspace_id").notNull(),
+    userId: uuid("user_id").notNull(),
+    commandId: uuid("command_id").notNull(),
+    requestId: uuid("request_id").notNull(),
+    requestHash: text("request_hash").notNull(),
+    contextObjectId: uuid("context_object_id").notNull(),
+    objectId: uuid("object_id").notNull(),
+    relationId: uuid("relation_id").notNull(),
+    createdAt: createCreatedAtColumn(),
+  },
+  (table) => [
+    primaryKey({ columns: [table.workspaceId, table.userId, table.commandId] }),
+  ],
+);
+
 export const events = pgTable("events", {
   objectId: uuid("object_id").primaryKey(),
   workspaceId: uuid("workspace_id").notNull(),

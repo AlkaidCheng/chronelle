@@ -99,7 +99,7 @@ are consumed once.
 
 ## Event-planning vertical slice
 
-Fastify routes validate requests and delegate to five domain services:
+Fastify routes validate requests and delegate to domain services:
 
 - `EventPlanningObjectService` manages canonical and typed rows as one unit.
 - `ObjectRelationService` manages compatible, metadata-bearing links without
@@ -111,6 +111,10 @@ Fastify routes validate requests and delegate to five domain services:
   returning a compact canonical result.
 - `ResourceGrantService` creates, lists, and revokes user grants only after the
   central policy permits Share on the canonical resource.
+- `ObjectRevisionService` returns authorized history summaries and selected
+  typed snapshots under a consistent database read transaction.
+- `EventContextService` coordinates canonical creation and inclusion in one
+  retry-safe transaction, reusing the object and relationship services.
 
 The projection service stores no calendar, itinerary, timeline, or to-do
 copies. Updating one canonical child changes every later projection response.
@@ -183,12 +187,13 @@ use the ARIA `tablist`, `tab`, and `tabpanel` roles with arrow, Home, and End
 keyboard navigation. The shell provides a keyboard-visible skip link, and
 narrow-screen layouts keep forms and result actions in a single usable column.
 
-Creating an included planning resource currently uses two independently
-audited API mutations: create the scoped canonical object, then create its
-`includes` relationship. If the second request fails, the object remains valid
-but unlinked. Atomic, idempotent create-in-context commands are a prerequisite
-for treating this interaction as one recoverable action. Durable object revisions
-are recorded; restoration, trash, and undo/redo remain planned capabilities.
+Creating an included planning resource uses one create-in-context command. The
+canonical object, typed row, `includes` relationship, revision, both business
+audit events, and command receipt commit together. A user/workspace-scoped command
+ID serializes duplicate requests and replays the original creation result after
+reauthorization. A retry never reverses later edits or restores an unlinked
+relationship. Existing standalone create and relation routes remain available.
+Restoration, trash, and undo/redo remain planned capabilities.
 
 PostgreSQL is the canonical data store. Object files are accessed through the
 storage interface and stored outside PostgreSQL. Provider adapters keep

@@ -53,6 +53,63 @@ const documentAttachment = {
 } as const;
 
 describe("ChronelleApiClient", () => {
+  it("preserves a supplied create command ID and validates the committed result", async () => {
+    const fetch = vi
+      .fn<typeof globalThis.fetch>()
+      .mockImplementation(async () =>
+        Response.json({ resource: event, relationId }),
+      );
+    const client = new ChronelleApiClient({
+      fetch,
+      getCredential: () => ({
+        accessToken: "test-session",
+        workspaceId: event.workspaceId,
+      }),
+    });
+    const input = {
+      commandId: uploadAuthorizationId,
+      resource: {
+        objectType: "event" as const,
+        displayName: event.displayName,
+      },
+    };
+    await expect(client.createEventResource(event.id, input)).resolves.toEqual({
+      resource: event,
+      relationId,
+    });
+    await client.createEventResource(event.id, input);
+    expect(fetch.mock.calls.map(([url]) => url)).toEqual(
+      Array(2).fill(`/api/events/${event.id}/resources`),
+    );
+    for (const [, request] of fetch.mock.calls)
+      expect(JSON.parse(String(request?.body))).toEqual(input);
+  });
+
+  it("encodes bounded history pages and rejects malformed snapshots", async () => {
+    const fetch = vi
+      .fn<typeof globalThis.fetch>()
+      .mockResolvedValueOnce(
+        Response.json({ items: [], nextBeforeVersion: null }),
+      )
+      .mockResolvedValueOnce(Response.json({ snapshot: { id: event.id } }));
+    const client = new ChronelleApiClient({
+      fetch,
+      getCredential: () => ({
+        accessToken: "test-session",
+        workspaceId: event.workspaceId,
+      }),
+    });
+    await expect(
+      client.listObjectRevisions(event.id, { limit: 5, beforeVersion: 9 }),
+    ).resolves.toEqual({ items: [], nextBeforeVersion: null });
+    expect(fetch.mock.calls[0]?.[0]).toBe(
+      `/api/objects/${event.id}/revisions?limit=5&beforeVersion=9`,
+    );
+    await expect(client.getObjectRevision(event.id, 1)).rejects.toThrow();
+    expect(fetch.mock.calls[1]?.[0]).toBe(
+      `/api/objects/${event.id}/revisions/1`,
+    );
+  });
   it("encodes typed object search filters", async () => {
     const searchResult = {
       id: event.id,

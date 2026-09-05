@@ -124,10 +124,10 @@ function assertExpenseState(
 export class EventPlanningObjectService {
   readonly #authorization: AuthorizationService;
   readonly #clock: () => Date;
-  readonly #database: Database;
+  readonly #database: Database | DatabaseTransaction;
 
   constructor(
-    database: Database,
+    database: Database | DatabaseTransaction,
     authorization: AuthorizationService,
     clock: () => Date = () => new Date(),
   ) {
@@ -561,6 +561,8 @@ export class EventPlanningObjectService {
       objectId,
       "share",
     );
+    if (current.version !== input.expectedVersion)
+      throw new ObjectConflictError();
     if (current.permissionScopeId === input.permissionScopeId) {
       throw new InvalidObjectStateError(
         "permissionScopeId must change the current permission scope.",

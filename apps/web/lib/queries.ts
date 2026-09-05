@@ -4,17 +4,16 @@ import type { DocumentFileInput } from "@chronelle/api-client";
 import type {
   DevelopmentSignInRequest,
   EventCreatePayload,
+  EventContextCreatePayload,
   EventUpdatePayload,
-  ExpenseCreatePayload,
   ExpenseUpdatePayload,
   ObjectSearchQueryInput,
   PermissionScopeUpdatePayload,
-  ReminderCreatePayload,
   ReminderUpdatePayload,
   ShareCreatePayload,
-  TaskCreatePayload,
   TaskUpdatePayload,
 } from "@chronelle/schemas";
+import { useRef } from "react";
 import {
   useMutation,
   useQueries,
@@ -306,50 +305,49 @@ export function useUpdatePermissionScope() {
   });
 }
 
-async function includeResource(
+type ContextResource = EventContextCreatePayload["resource"];
+
+function useCreateInContext<Type extends ContextResource["objectType"]>(
   eventId: string,
-  create: () => Promise<{ readonly id: string }>,
-  createRelation: (eventId: string, targetObjectId: string) => Promise<unknown>,
+  objectType: Type,
 ) {
-  const resource = await create();
-  await createRelation(eventId, resource.id);
-  return resource;
+  type Input = Omit<
+    Extract<ContextResource, { objectType: Type }>,
+    "objectType"
+  >;
+  const client = useApiClient();
+  const { credential } = useAuthSession();
+  const invalidate = useCanonicalInvalidation();
+  const attempt = useRef<{ key: string; commandId: string } | null>(null);
+  return useMutation({
+    mutationFn: async (input: Input) => {
+      const resource = { ...input, objectType } as Extract<
+        ContextResource,
+        { objectType: Type }
+      >;
+      const key = JSON.stringify({ credential, eventId, resource });
+      if (attempt.current?.key !== key) {
+        attempt.current = { key, commandId: crypto.randomUUID() };
+      }
+      const result = await client.createEventResource(eventId, {
+        commandId: attempt.current.commandId,
+        resource,
+      });
+      return result.resource;
+    },
+    onSuccess: async () => {
+      await invalidate();
+      attempt.current = null;
+    },
+  });
 }
 
 export function useCreateScheduledEvent(eventId: string) {
-  const client = useApiClient();
-  const invalidate = useCanonicalInvalidation();
-  return useMutation({
-    mutationFn: (input: Omit<EventCreatePayload, "permissionScopeId">) =>
-      includeResource(
-        eventId,
-        () => client.createEvent({ ...input, permissionScopeId: eventId }),
-        (sourceId, targetObjectId) =>
-          client.createRelation(sourceId, {
-            relationType: "includes",
-            targetObjectId,
-          }),
-      ),
-    onSuccess: invalidate,
-  });
+  return useCreateInContext(eventId, "event");
 }
 
 export function useCreateTask(eventId: string) {
-  const client = useApiClient();
-  const invalidate = useCanonicalInvalidation();
-  return useMutation({
-    mutationFn: (input: Omit<TaskCreatePayload, "permissionScopeId">) =>
-      includeResource(
-        eventId,
-        () => client.createTask({ ...input, permissionScopeId: eventId }),
-        (sourceId, targetObjectId) =>
-          client.createRelation(sourceId, {
-            relationType: "includes",
-            targetObjectId,
-          }),
-      ),
-    onSuccess: invalidate,
-  });
+  return useCreateInContext(eventId, "task");
 }
 
 export function useUpdateTask() {
@@ -363,21 +361,7 @@ export function useUpdateTask() {
 }
 
 export function useCreateExpense(eventId: string) {
-  const client = useApiClient();
-  const invalidate = useCanonicalInvalidation();
-  return useMutation({
-    mutationFn: (input: Omit<ExpenseCreatePayload, "permissionScopeId">) =>
-      includeResource(
-        eventId,
-        () => client.createExpense({ ...input, permissionScopeId: eventId }),
-        (sourceId, targetObjectId) =>
-          client.createRelation(sourceId, {
-            relationType: "includes",
-            targetObjectId,
-          }),
-      ),
-    onSuccess: invalidate,
-  });
+  return useCreateInContext(eventId, "expense");
 }
 
 export function useUpdateExpense() {
@@ -391,21 +375,7 @@ export function useUpdateExpense() {
 }
 
 export function useCreateReminder(eventId: string) {
-  const client = useApiClient();
-  const invalidate = useCanonicalInvalidation();
-  return useMutation({
-    mutationFn: (input: Omit<ReminderCreatePayload, "permissionScopeId">) =>
-      includeResource(
-        eventId,
-        () => client.createReminder({ ...input, permissionScopeId: eventId }),
-        (sourceId, targetObjectId) =>
-          client.createRelation(sourceId, {
-            relationType: "includes",
-            targetObjectId,
-          }),
-      ),
-    onSuccess: invalidate,
-  });
+  return useCreateInContext(eventId, "reminder");
 }
 
 export function useUpdateReminder() {

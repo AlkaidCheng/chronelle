@@ -15,6 +15,7 @@ import {
   InvalidObjectStateError,
   InvalidRelationError,
   ObjectConflictError,
+  CommandConflictError,
   RelationConflictError,
 } from "@chronelle/object-model";
 import { healthStatusSchema } from "@chronelle/schemas";
@@ -66,6 +67,11 @@ export function buildApp(
       return reply.status(400).send({
         error: { code: "invalid_share", message: error.message },
       });
+    }
+    if (error instanceof CommandConflictError) {
+      return reply
+        .status(409)
+        .send({ error: { code: "command_conflict", message: error.message } });
     }
     if (error instanceof ObjectConflictError) {
       return reply.status(409).send({

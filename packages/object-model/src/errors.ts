@@ -5,6 +5,13 @@ export class ObjectConflictError extends Error {
   }
 }
 
+export class CommandConflictError extends Error {
+  constructor() {
+    super("The command ID was already used with different input.");
+    this.name = "CommandConflictError";
+  }
+}
+
 export class InvalidObjectStateError extends Error {
   constructor(message: string) {
     super(message);
