@@ -9,7 +9,9 @@ test("creates and retrieves one canonical Event at responsive widths", async ({
   await page.goto("/sign-in");
   await page.getByLabel("Name").fill(`${projectLabel} planner`);
   await page.getByLabel("Email").fill(`${projectLabel}-planner@example.test`);
-  await page.getByRole("button", { name: "Continue" }).click();
+  const continueButton = page.getByRole("button", { name: "Continue" });
+  await expect(continueButton).toBeEnabled();
+  await continueButton.click();
   await expect(page).toHaveURL(/\/events$/u);
 
   await page.getByLabel("Event name").fill(eventName);

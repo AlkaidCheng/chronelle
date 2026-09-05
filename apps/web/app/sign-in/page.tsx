@@ -80,7 +80,7 @@ export default function SignInPage() {
           {signIn.isError ? <ErrorNotice error={signIn.error} /> : null}
           <button
             className="button button-primary button-wide"
-            disabled={signIn.isPending}
+            disabled={!auth.isHydrated || signIn.isPending}
             type="submit"
           >
             {signIn.isPending ? "Opening workspace..." : "Continue"}
