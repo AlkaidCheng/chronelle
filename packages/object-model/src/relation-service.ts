@@ -87,58 +87,68 @@ export class ObjectRelationService {
       );
     }
 
-    const sourceType = await this.#getObjectType(
-      context.principal,
-      input.sourceObjectId,
-      "edit",
-    );
-    const targetType = await this.#getObjectType(
-      context.principal,
-      input.targetObjectId,
-      "view",
-    );
-    if (!isCompatibleRelation(sourceType, input.relationType, targetType)) {
-      throw new InvalidRelationError(
-        "The relationship is not valid for these object types.",
-      );
-    }
+    return withStableAuthorization(
+      this.#database,
+      context.principal.workspaceId,
+      async (transaction, authorization) => {
+        const sourceType = await this.#getObjectType(
+          transaction,
+          authorization,
+          context.principal,
+          input.sourceObjectId,
+          "edit",
+        );
+        const targetType = await this.#getObjectType(
+          transaction,
+          authorization,
+          context.principal,
+          input.targetObjectId,
+          "view",
+        );
+        if (!isCompatibleRelation(sourceType, input.relationType, targetType)) {
+          throw new InvalidRelationError(
+            "The relationship is not valid for these object types.",
+          );
+        }
 
-    const relationId = createId();
-    return runAuditedMutation(this.#database, async (transaction) => {
-      const [relation] = await transaction
-        .insert(objectRelations)
-        .values({
-          id: relationId,
-          workspaceId: context.principal.workspaceId,
-          sourceObjectId: input.sourceObjectId,
-          relationType: input.relationType,
-          targetObjectId: input.targetObjectId,
-          metadata: input.metadata ?? {},
-          createdBy: context.principal.userId,
-        })
-        .onConflictDoNothing()
-        .returning();
-      if (relation === undefined) {
-        throw new RelationConflictError();
-      }
+        const relationId = createId();
+        return runAuditedMutation(transaction, async (transaction) => {
+          const [relation] = await transaction
+            .insert(objectRelations)
+            .values({
+              id: relationId,
+              workspaceId: context.principal.workspaceId,
+              sourceObjectId: input.sourceObjectId,
+              relationType: input.relationType,
+              targetObjectId: input.targetObjectId,
+              metadata: input.metadata ?? {},
+              createdBy: context.principal.userId,
+            })
+            .onConflictDoNothing()
+            .returning();
+          if (relation === undefined) {
+            throw new RelationConflictError();
+          }
 
-      return {
-        value: relation,
-        audit: {
-          workspaceId: context.principal.workspaceId,
-          actorType: "user",
-          actorId: context.principal.userId,
-          action: "relation.created",
-          resourceId: input.sourceObjectId,
-          requestId: context.requestId,
-          metadata: {
-            relationId,
-            relationType: input.relationType,
-            targetObjectId: input.targetObjectId,
-          },
-        },
-      };
-    });
+          return {
+            value: relation,
+            audit: {
+              workspaceId: context.principal.workspaceId,
+              actorType: "user",
+              actorId: context.principal.userId,
+              action: "relation.created",
+              resourceId: input.sourceObjectId,
+              requestId: context.requestId,
+              metadata: {
+                relationId,
+                relationType: input.relationType,
+                targetObjectId: input.targetObjectId,
+              },
+            },
+          };
+        });
+      },
+    );
   }
 
   async listForObject(
@@ -387,15 +397,17 @@ export class ObjectRelationService {
   }
 
   async #getObjectType(
+    transaction: DatabaseTransaction,
+    authorization: AuthorizationService,
     principal: UserPrincipal,
     objectId: string,
     action: AuthorizationAction,
   ): Promise<ObjectType> {
-    await this.#authorization.assertCan(principal, action, {
+    await authorization.assertCan(principal, action, {
       id: objectId,
       workspaceId: principal.workspaceId,
     });
-    const [object] = await this.#database
+    const [object] = await transaction
       .select({ objectType: objects.objectType })
       .from(objects)
       .where(

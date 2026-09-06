@@ -102,8 +102,10 @@ authorizing objects. All members require current Edit and an expected object
 version. Typed services, revision writes, stack CAS, command records, and the
 receipt audit commit together. A failure anywhere rolls the entire command back.
 Command writes serialize within a workspace, including across users, following
-the existing security-writer protocol. Direct object writers retain their CAS;
-a racing edit makes the command fail without partial effects.
+the existing security-writer protocol. Direct object writers use that same
+fence and retain their version checks; a racing edit makes the command fail
+without partial effects. Context creation uses the workspace fence to serialize
+matching retries as well as permission changes, without a separate command lock.
 
 Migration `0009_add_reversible_commands.sql` adds:
 

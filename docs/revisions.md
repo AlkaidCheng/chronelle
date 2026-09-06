@@ -102,11 +102,12 @@ after canonical refresh. Drafts and confirmation do not survive page reloads.
 ## Permission ordering for restoration
 
 `withStableAuthorization` locks the workspace row using `FOR NO KEY UPDATE`
-before checking permission. Restores, grant creation/replacement/revocation,
+before checking permission. Canonical writes, context/link creation, document
+finalization and local download consumption, restores, grant mutations,
 scope changes, and soft deletion all participate. If a permission mutation wins
 the lock, restore sees its committed state. If restore wins, it commits before
-the waiting permission mutation. Ordinary content edits still compete through
-optimistic versions.
+the waiting permission mutation. Ordinary content edits also check optimistic
+versions after acquiring the fence. Storage I/O stays outside the lock.
 
 This serializes those operations within one workspace, not across workspaces.
 The lock permits foreign-key key-share locks, avoiding an unnecessary conflict

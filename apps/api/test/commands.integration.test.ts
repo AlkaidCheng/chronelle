@@ -214,7 +214,7 @@ describe("reversible content commands", () => {
     expect((await state(collaborator, owner.workspace.id)).version).toBe(1);
   });
 
-  it("rejects a racing direct writer at object CAS and preserves stack state", async () => {
+  it("rejects undo after a racing direct writer and preserves stack state", async () => {
     const owner = await signIn();
     const event = await create(owner);
     const command = await forward(owner, [edit(event.id, 1, "Command edit")]);
@@ -250,7 +250,7 @@ describe("reversible content commands", () => {
       await expect
         .poll(async () => {
           const [row] = await database.connection
-            .sql`SELECT count(*)::int AS count FROM pg_stat_activity WHERE datname = current_database() AND wait_event_type = 'Lock' AND query ILIKE '%update%objects%'`;
+            .sql`SELECT count(*)::int AS count FROM pg_stat_activity WHERE datname = current_database() AND wait_event_type = 'Lock' AND query ILIKE '%workspaces%'`;
           return row?.count ?? 0;
         })
         .toBeGreaterThan(0);
