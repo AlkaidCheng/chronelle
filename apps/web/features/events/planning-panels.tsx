@@ -19,7 +19,8 @@ import { EmptyState, ErrorNotice } from "../../components/feedback";
 import { CheckIcon } from "../../components/icons";
 import { HistoryButton } from "../history/history-button";
 import { LifecycleButton } from "../recovery/lifecycle-provider";
-import { formatDateTime, formatMoney, shortId } from "../../lib/format";
+import { formatDateTime, shortId } from "../../lib/format";
+import { formatMoney, sumMoneyByCurrency } from "../../lib/money";
 import {
   useRefreshEvent,
   useUpdateReminder,
@@ -469,16 +470,7 @@ export function ExpensesPanel({
   readonly expenses: readonly ExpenseResponse[];
 }) {
   const [editingId, setEditingId] = useState<string | null>(null);
-  const totals = useMemo(() => {
-    const values = new Map<string, number>();
-    for (const expense of expenses) {
-      values.set(
-        expense.currency,
-        (values.get(expense.currency) ?? 0) + Number(expense.amount),
-      );
-    }
-    return [...values.entries()];
-  }, [expenses]);
+  const totals = useMemo(() => sumMoneyByCurrency(expenses), [expenses]);
   const editingExpense = expenses.find(({ id }) => id === editingId);
 
   return (
@@ -491,13 +483,16 @@ export function ExpensesPanel({
       {totals.length > 0 ? (
         <div className="total-row">
           <span>Total recorded</span>
-          <strong>
-            {totals
-              .map(([currency, amount]) =>
-                formatMoney(String(amount), currency),
-              )
-              .join(" + ")}
-          </strong>
+          <dl aria-label="Totals by currency" className="money-totals">
+            {totals.map(({ amount, currency }) => (
+              <div key={currency}>
+                <dt>{currency}</dt>
+                <dd>
+                  <strong>{formatMoney(amount, currency)}</strong>
+                </dd>
+              </div>
+            ))}
+          </dl>
         </div>
       ) : null}
       {expenses.length === 0 ? (

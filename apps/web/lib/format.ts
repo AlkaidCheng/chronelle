@@ -21,17 +21,6 @@ export function formatDateTime(value: string | null): string {
   }).format(new Date(value));
 }
 
-export function formatMoney(amount: string, currency: string): string {
-  const numericAmount = Number(amount);
-  if (!Number.isFinite(numericAmount)) {
-    return `${currency} ${amount}`;
-  }
-  return new Intl.NumberFormat(undefined, {
-    currency,
-    style: "currency",
-  }).format(numericAmount);
-}
-
 export function shortId(id: string): string {
   return id.slice(-8);
 }
