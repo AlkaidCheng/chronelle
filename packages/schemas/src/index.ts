@@ -118,3 +118,4 @@ export {
   type ShareResponse,
   type ShareRevocationResponse,
 } from "./sharing.js";
+export * from "./commands.js";

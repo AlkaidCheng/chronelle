@@ -17,3 +17,4 @@ export {
   assertRevisionBaseline,
   baselineObjectRevisions,
 } from "./revision-baseline.js";
+export { ReversibleCommandService } from "./command-service.js";

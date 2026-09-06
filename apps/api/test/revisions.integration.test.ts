@@ -319,7 +319,7 @@ describe.sequential("object revisions", () => {
     for (const query of [
       "UPDATE object_revisions SET mutation_kind = 'baseline'",
       "DELETE FROM object_revisions",
-      "TRUNCATE object_revisions",
+      "TRUNCATE object_revisions CASCADE",
     ])
       await expect(database.connection.sql.unsafe(query)).rejects.toMatchObject(
         { code: "55000" },

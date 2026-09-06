@@ -46,3 +46,9 @@ export class DocumentTransferUnavailableError extends Error {
     this.name = "DocumentTransferUnavailableError";
   }
 }
+export class CommandStackConflictError extends Error {
+  constructor() {
+    super("The command history changed. Refresh before trying again.");
+    this.name = "CommandStackConflictError";
+  }
+}

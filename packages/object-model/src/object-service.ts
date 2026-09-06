@@ -751,7 +751,10 @@ export class EventPlanningObjectService {
           requestId: context.requestId,
         },
         "updated",
-        { previousVersion: input.expectedVersion },
+        {
+          previousVersion: input.expectedVersion,
+          ...(context.command !== undefined && { command: context.command }),
+        },
       );
     });
   }

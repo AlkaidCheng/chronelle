@@ -11,6 +11,11 @@ export type JsonObject = Record<string, unknown>;
 export interface MutationContext {
   readonly principal: UserPrincipal;
   readonly requestId: string;
+  readonly command?: {
+    readonly id: string;
+    readonly operationId: string;
+    readonly direction: "execute" | "undo" | "redo";
+  };
 }
 
 export interface CanonicalObjectResource {

@@ -16,6 +16,7 @@ import {
   InvalidRelationError,
   ObjectConflictError,
   CommandConflictError,
+  CommandStackConflictError,
   RelationConflictError,
 } from "@chronelle/object-model";
 import { healthStatusSchema } from "@chronelle/schemas";
@@ -38,6 +39,7 @@ import { registerSearchRoutes } from "./search/routes.js";
 import { registerSharingRoutes } from "./sharing/routes.js";
 import { registerRevisionRoutes } from "./revisions/routes.js";
 import { registerRecoveryRoutes } from "./recovery/routes.js";
+import { registerCommandRoutes } from "./commands/routes.js";
 
 export function buildApp(
   dependencies: AppDependencies,
@@ -67,6 +69,11 @@ export function buildApp(
     if (error instanceof InvalidShareError) {
       return reply.status(400).send({
         error: { code: "invalid_share", message: error.message },
+      });
+    }
+    if (error instanceof CommandStackConflictError) {
+      return reply.status(409).send({
+        error: { code: "command_stack_conflict", message: error.message },
       });
     }
     if (error instanceof CommandConflictError) {
@@ -131,6 +138,7 @@ export function buildApp(
   registerSharingRoutes(app, dependencies);
   registerRevisionRoutes(app, dependencies);
   registerRecoveryRoutes(app, dependencies);
+  registerCommandRoutes(app, dependencies);
   if (dependencies.developmentAuth !== undefined) {
     registerDevelopmentAuthenticationRoute(app, {
       developmentAuth: dependencies.developmentAuth,
