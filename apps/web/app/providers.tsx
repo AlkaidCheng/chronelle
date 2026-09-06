@@ -1,14 +1,27 @@
 "use client";
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { type ReactNode, useState } from "react";
+import { type ReactNode, useEffect, useState } from "react";
 
 import { ApiClientProvider } from "../lib/api-context";
-import { AuthSessionProvider } from "../lib/auth-session";
+import { AuthSessionProvider, useAuthSession } from "../lib/auth-session";
 import { HistoryProvider } from "../features/history/history-provider";
 import { LifecycleProvider } from "../features/recovery/lifecycle-provider";
 
 export function Providers({ children }: { readonly children: ReactNode }) {
+  return (
+    <AuthSessionProvider>
+      <SessionBoundary>{children}</SessionBoundary>
+    </AuthSessionProvider>
+  );
+}
+
+function SessionBoundary({ children }: { readonly children: ReactNode }) {
+  const { generation } = useAuthSession();
+  return <SessionProviders key={generation}>{children}</SessionProviders>;
+}
+
+function SessionProviders({ children }: { readonly children: ReactNode }) {
   const [queryClient] = useState(
     () =>
       new QueryClient({
@@ -22,15 +35,15 @@ export function Providers({ children }: { readonly children: ReactNode }) {
       }),
   );
 
+  useEffect(() => () => queryClient.clear(), [queryClient]);
+
   return (
     <QueryClientProvider client={queryClient}>
-      <AuthSessionProvider>
-        <ApiClientProvider>
-          <HistoryProvider>
-            <LifecycleProvider>{children}</LifecycleProvider>
-          </HistoryProvider>
-        </ApiClientProvider>
-      </AuthSessionProvider>
+      <ApiClientProvider>
+        <HistoryProvider>
+          <LifecycleProvider>{children}</LifecycleProvider>
+        </HistoryProvider>
+      </ApiClientProvider>
     </QueryClientProvider>
   );
 }

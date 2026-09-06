@@ -1,13 +1,7 @@
 "use client";
 
 import { ChronelleApiClient } from "@chronelle/api-client";
-import {
-  createContext,
-  type ReactNode,
-  useContext,
-  useMemo,
-  useRef,
-} from "react";
+import { createContext, type ReactNode, useContext, useMemo } from "react";
 
 import { useAuthSession } from "./auth-session";
 
@@ -18,16 +12,15 @@ export function ApiClientProvider({
 }: {
   readonly children: ReactNode;
 }) {
-  const { credential } = useAuthSession();
-  const credentialRef = useRef(credential);
-  credentialRef.current = credential;
+  const { credential, signal } = useAuthSession();
 
   const client = useMemo(
     () =>
       new ChronelleApiClient({
-        getCredential: () => credentialRef.current,
+        getCredential: () => credential,
+        signal,
       }),
-    [],
+    [credential, signal],
   );
 
   return (
