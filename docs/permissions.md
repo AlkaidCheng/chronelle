@@ -8,9 +8,12 @@ endpoints. See [Object revisions](revisions.md) for disclosure and redaction rul
 
 Comparisons and previews require current View. Content restore requires current
 Edit and the expected version, and never replays grants, scopes, or lifecycle
-state. Restores and permission mutations acquire the same workspace transaction
-lock before authorization. A revocation or scope change that wins the lock is
-observed by the waiting restore. Administrative SQL must follow this protocol.
+state. Canonical creation and updates, context and relationship creation,
+restoration, recovery, and permission mutations acquire the same workspace
+transaction lock before their final authorization decision. A revocation or
+scope change that wins the lock is observed by waiting mutations. Version
+checks remain necessary for drafts read before acquiring the lock.
+Administrative SQL and future membership writers must follow this protocol.
 
 Authorization is an application-layer service with one operation:
 
@@ -76,6 +79,21 @@ downloads use an opaque, expiring, one-time bearer credential and recheck View
 when bytes are requested, so revoking a grant invalidates an already-issued
 download. Viewers can download inherited files but cannot upload, replace, or
 unlink them. Storage keys and permanent public URLs are never returned.
+
+Storage I/O runs outside the workspace lock. Upload/download authorization
+records are written only after permission is rechecked under that lock.
+Finalization rechecks Edit and reads the parent's current permission scope
+before creating the Document. Local download consumption rechecks View and
+expiry after reading the file, before committing the consumption and its
+audit event. Revocation that commits during storage I/O prevents completion.
+A download already authorized and consumed may finish sending its bytes;
+revocation does not retract a response already in progress.
+
+The lock is per workspace, so unrelated workspaces can still write concurrently.
+Within one workspace, protected mutations serialize. This deliberately favors
+correct ordering; measure contention before introducing finer-grained locks.
+Remote signed transfers retain their storage provider's expiry/revocation
+semantics and require separate adapter validation.
 
 The Event collection is also a protected query. It selects candidates only in
 the active workspace and applies `can(principal, view, event)` to every returned

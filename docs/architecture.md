@@ -90,7 +90,10 @@ See [Object revisions](revisions.md) for snapshot, history, and baseline contrac
 `ObjectRestorationService` owns typed comparison, preview, and content
 restoration. Its allowlist preserves security state and immutable typed facts.
 The authorization package owns a workspace transaction boundary shared by
-restore and security mutations. One shared web History drawer presents this
+canonical mutations, context/link creation, document finalization and local
+download consumption, restoration, and security mutations. Slow storage I/O
+stays outside that boundary; permissions are rechecked before the final write.
+One shared web History drawer presents this
 capability without owning canonical state or open editor drafts.
 
 Document bytes cross a `StorageProvider` port. The local adapter stores opaque
@@ -179,7 +182,7 @@ results, but every item carries the canonical object ID returned by the API.
 Canonical mutations invalidate cached event contexts, object attachments, and
 search results across the active session, since one object can appear in many
 contexts. Only active queries refetch immediately; inactive views become stale
-and reload when opened. The Event overview fetches detail, access, and timeline;
+and reload when opened. The Event overview fetches detail and access;
 other projections load on demand, with errors confined to the affected tab.
 
 An open editor pins its source object and version. Background updates preserve
@@ -210,7 +213,8 @@ Object recovery advances the existing object and revision ledger; independent
 link recovery advances only the relation generation and audit. Both use the
 workspace security fence. The browser presents version-pinned confirmation
 dialogs separately from content restoration. See [Recovery](recovery.md).
-Undo/Redo remains a planned capability.
+The Event/Task Undo/Redo API is implemented; editor controls and lifecycle/link
+inverses remain planned.
 
 PostgreSQL is the canonical data store. Object files are accessed through the
 storage interface and stored outside PostgreSQL. Provider adapters keep
