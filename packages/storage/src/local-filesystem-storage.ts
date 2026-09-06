@@ -25,32 +25,16 @@ import type {
   UploadAuthorizationInput,
   StorageInventoryEntry,
 } from "./types.js";
-
-const safeKeySegmentPattern = /^[A-Za-z0-9][A-Za-z0-9._-]*$/;
+import { assertSafeStorageKey } from "./storage-key.js";
 
 function checksum(bytes: Uint8Array): string {
   return createHash("sha256").update(bytes).digest("hex");
 }
 
 export function resolveStoragePath(root: string, storageKey: string): string {
-  const segments = storageKey.split("/");
-  if (
-    storageKey.length === 0 ||
-    isAbsolute(storageKey) ||
-    storageKey.includes("\\") ||
-    segments.some(
-      (segment) =>
-        segment === "" ||
-        segment === "." ||
-        segment === ".." ||
-        !safeKeySegmentPattern.test(segment),
-    )
-  ) {
-    throw new UnsafeStorageKeyError();
-  }
-
+  assertSafeStorageKey(storageKey);
   const resolvedRoot = resolve(root);
-  const objectPath = resolve(resolvedRoot, ...segments);
+  const objectPath = resolve(resolvedRoot, ...storageKey.split("/"));
   const relativePath = relative(resolvedRoot, objectPath);
   if (
     relativePath.length === 0 ||
