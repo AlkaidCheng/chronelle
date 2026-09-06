@@ -71,6 +71,19 @@ with mode `0700` and files with mode `0600`. `DOCUMENT_TRANSFER_TTL_SECONDS`
 sets the lifetime of one-time upload and download authorizations; the default
 is five minutes.
 
+Local uploads require a trusted, application-owned POSIX filesystem with hard-link
+support. In-progress files live in private `.upload-*` staging directories and
+cannot be addressed through storage keys. Completed files are published without
+overwriting an existing object. An interrupted upload can be retried using its
+unconsumed, unexpired authorization; a published upload retry must match the
+authorized size and checksum.
+
+An abrupt process exit can leave staging files. Do not remove staging entries
+while writers are active or automatically replace incomplete final files from
+an older installation. Retention and reconciliation require a separate policy.
+File data is flushed before publication; power-loss durability of directory
+entries and hostile local writers are outside this adapter's guarantees.
+
 The Owner-only [storage inventory](storage-reconciliation.md) is available after
 the private storage root exists. A missing workspace document directory returns
 an empty report without creating files. A missing root returns unavailable;
