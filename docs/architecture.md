@@ -178,11 +178,42 @@ deployment topology or cross-origin policy.
 `ChronelleApiClient` attaches the active credential and workspace, validates
 every successful response against the shared Zod contract, and turns API errors
 into one typed error. An expiring development credential is kept in
-`sessionStorage`; no authentication provider rules enter the domain layer.
+`sessionStorage` when available, with an in-memory fallback; no authentication
+provider rules enter the domain layer.
 The workspace shell can switch between the user's personal workspace and
 workspaces discovered through active resource grants. If the active workspace
 is revoked, the shell clears protected query state and returns to the personal
 workspace.
+
+Each sign-in, sign-out, or workspace change synchronously aborts the previous
+session lifetime and remounts its query cache, API client, and UI subtree. The
+generation is an opaque counter, not a credential. A return to the same workspace
+creates a fresh lifetime: old requests, drawers, and drafts cannot become active
+again. Selecting the already active workspace is a no-op. Browser-storage errors
+do not block these in-memory transitions.
+
+The typed client pins credentials for each request and the complete attachment
+workflow, checks the lifetime after asynchronous boundaries, and forwards
+cancellation to both API and signed-transfer fetches. Signed transfers carry only
+their issued headers, never the application's bearer credential. Query functions
+pass TanStack Query's [cancellation signal](https://tanstack.com/query/latest/docs/framework/react/guides/query-cancellation)
+through `client.withSignal(signal)`, which combines caller cancellation with the
+client's optional session-lifetime `signal`:
+
+```typescript
+const client = new ChronelleApiClient({
+  getCredential: () => credential,
+  signal: sessionController.signal,
+});
+const events = await client.withSignal(querySignal).listEvents();
+```
+
+Cancellation rejects abandoned results even when a transport ignores its signal.
+It is not a server-side rollback: a submitted mutation may already have committed,
+and an issued signed URL remains valid until expiry. Existing command IDs and
+version preconditions remain stable for uncertain retries within one active
+session; abandoned mutations are not automatically replayed in another session.
+Backend authorization remains authoritative for every request.
 
 TanStack Query owns remote state and invalidation. Event detail, calendar,
 timeline, itinerary, expenses, reminders, and to-dos retain separate query
