@@ -18,3 +18,10 @@ export class UnsafeStorageKeyError extends Error {
     this.name = "UnsafeStorageKeyError";
   }
 }
+
+export class StorageInventoryUnavailableError extends Error {
+  constructor() {
+    super("The storage inventory could not be completed.");
+    this.name = "StorageInventoryUnavailableError";
+  }
+}

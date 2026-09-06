@@ -25,15 +25,19 @@ import {
   InvalidRelationError,
   ObjectConflictError,
   RelationConflictError,
+  StorageInventoryBusyError,
 } from "@chronelle/object-model";
 import {
   StorageObjectConflictError,
   StorageObjectUnavailableError,
   UnsafeStorageKeyError,
+  StorageInventoryUnavailableError,
 } from "@chronelle/storage";
 import { HttpError, InvalidRequestError } from "./errors.js";
 
 const domainErrors = [
+  [StorageInventoryBusyError, 429, "inventory_busy"],
+  [StorageInventoryUnavailableError, 503, "inventory_unavailable"],
   [PrincipalUnavailableError, 404, "principal_unavailable"],
   [InvalidShareError, 400, "invalid_share"],
   [CommandStackConflictError, 409, "command_stack_conflict"],
