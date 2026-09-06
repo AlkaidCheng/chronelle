@@ -1,6 +1,11 @@
 name: CI
 
 on:
+  workflow_call:
+    inputs:
+      retain_images:
+        type: boolean
+        default: false
   pull_request:
   push:
     branches:
@@ -62,13 +67,41 @@ jobs:
         with:
           context: .
           file: apps/api/Dockerfile
+          load: true
           push: false
+          tags: chronelle-api:validation
+          labels: org.opencontainers.image.revision=${{ github.sha }}
       - name: Build web container
         uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a # v7.3.0
         with:
           context: .
           file: apps/web/Dockerfile
+          load: true
           push: false
+          tags: chronelle-web:validation
+          labels: org.opencontainers.image.revision=${{ github.sha }}
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24
+      - name: Check runtime containers
+        env:
+          API_IMAGE: chronelle-api:validation
+          WEB_IMAGE: chronelle-web:validation
+          EXPECTED_REVISION: ${{ github.sha }}
+        run: node infrastructure/scripts/check-containers.mjs
+      - name: Save validated images
+        if: inputs.retain_images
+        run: docker save --output runtime-images.tar chronelle-api:validation chronelle-web:validation
+      - name: Retain validated images
+        if: inputs.retain_images
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: runtime-images-${{ github.sha }}
+          path: runtime-images.tar
+          if-no-files-found: error
+          retention-days: 1
+          compression-level: 0
 
   browser:
     name: browser

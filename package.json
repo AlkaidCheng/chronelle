@@ -11,15 +11,17 @@
   },
   "scripts": {
     "build": "pnpm --filter @chronelle/schemas build && pnpm --filter @chronelle/db build && pnpm --filter @chronelle/authorization build && pnpm --filter @chronelle/storage build && pnpm --filter @chronelle/object-model build && pnpm --filter @chronelle/api-client build && pnpm --filter @chronelle/api build && pnpm --filter @chronelle/web build",
-    "check": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm test && pnpm build",
+    "check": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm test:infrastructure && pnpm test && pnpm build",
     "db:migrate": "pnpm --filter @chronelle/db migrate",
     "db:baseline-revisions": "pnpm --filter @chronelle/object-model build && pnpm --filter @chronelle/object-model baseline-revisions",
     "dev": "pnpm --filter @chronelle/schemas build && pnpm --filter @chronelle/object-model build && pnpm --filter @chronelle/api-client build && pnpm --parallel --filter @chronelle/api --filter @chronelle/web dev",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "lint": "biome lint apps packages",
+    "lint": "biome lint apps packages infrastructure",
     "test": "pnpm --filter @chronelle/schemas test && pnpm --filter @chronelle/db test && pnpm --filter @chronelle/authorization test && pnpm --filter @chronelle/storage test && pnpm --filter @chronelle/object-model test && pnpm --filter @chronelle/api-client test && pnpm --filter @chronelle/api test && pnpm --filter @chronelle/web test",
     "test:e2e": "pnpm build && pnpm db:migrate && pnpm --filter @chronelle/object-model baseline-revisions && playwright test",
+    "test:infrastructure": "tsc -p infrastructure/tsconfig.json && node --check infrastructure/scripts/check-containers.mjs && node --check infrastructure/scripts/inspect-runtime.mjs && vitest run --config infrastructure/vitest.config.mts",
+    "test:containers": "node infrastructure/scripts/check-containers.mjs",
     "typecheck": "pnpm --filter @chronelle/schemas typecheck && pnpm --filter @chronelle/db typecheck && pnpm --filter @chronelle/authorization typecheck && pnpm --filter @chronelle/storage typecheck && pnpm --filter @chronelle/object-model typecheck && pnpm --filter @chronelle/api-client typecheck && pnpm --filter @chronelle/api typecheck && pnpm --filter @chronelle/web typecheck"
   },
   "devDependencies": {
@@ -31,6 +33,7 @@
     "prettier": "3.9.6",
     "tsx": "4.23.13",
     "typescript": "7.0.2",
-    "vitest": "4.1.11"
+    "vitest": "4.1.11",
+    "yaml": "2.9.0"
   }
 }

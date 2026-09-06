@@ -8,6 +8,8 @@ node_modules
 coverage
 .env
 .env.*
+**/.env
+**/.env.*
 !.env.example
 .DS_Store
 .chronelle
@@ -25,3 +27,7 @@ test-results
 .gemini
 .roo
 .windsurf
+**/.agents
+**/.claude
+**/.codex
+**/.git

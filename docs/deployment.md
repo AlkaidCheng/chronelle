@@ -66,9 +66,97 @@ the internal API address. `API_INTERNAL_URL` is a runtime server variable, not
 a `NEXT_PUBLIC_*` value. It must name a trusted HTTP(S) API origin.
 
 The image includes the standalone server, static bundles, and the app-router
-icon/manifest routes. Local worktrees, attachment storage, test output, and
-agent directories are excluded from the build context. CI builds the image;
-the browser release gate starts the same standalone entry point on the host.
+icon/manifest routes. Local worktrees, attachment storage, test output, nested
+environment files, and agent directories are excluded from the build context.
+The browser release gate starts the same standalone entry point on the host.
+
+## Private container stack
+
+The preview stack starts PostgreSQL, applies migrations and revision baselines,
+then starts the API and web images. It publishes only the web port on loopback.
+API and database ports remain private on an internal Docker network. Only the
+web service also joins an ingress bridge for its loopback publication. The API
+image contains compiled workspace packages, production dependencies, and SQL
+migrations. Neither image includes application source/tests or development
+tooling. Upstream production packages retain their distributed runtime files;
+dependency-local agent settings are excluded from the API artifact.
+
+Build both images from the repository root:
+
+```bash
+docker build -f apps/api/Dockerfile -t chronelle-api:local .
+docker build -f apps/web/Dockerfile -t chronelle-web:local .
+```
+
+Set a unique, URL-safe `POSTGRES_PASSWORD` in the private `.env` file, using
+letters, digits, underscores, or hyphens. Set `ENABLE_DEVELOPMENT_AUTH=true`
+only for trusted preview testing. The stack fails closed if auth is not enabled.
+Start it from the repository root:
+
+```bash
+docker compose --env-file .env -f infrastructure/compose.preview.yaml up -d --wait
+```
+
+Open `http://localhost:3000/sign-in`. `WEB_PORT` changes the loopback port.
+`API_IMAGE` and `WEB_IMAGE` can name versioned or digest-pinned images.
+The API entry point inside its image is `node dist/server.js`; host workspace
+start commands are unchanged. Migration and baseline commands run separately
+from the API server, using compiled code rather than a TypeScript runner.
+
+Both application containers use UID 1000, a read-only root filesystem, dropped
+capabilities, and no-new-privileges. Documents live in a named volume owned by
+that user; the web cache and temporary files use tmpfs. Health checks verify
+HTTP availability, not continuous database or storage readiness. Do not mount
+an untrusted storage tree or expose development sign-in outside the trusted
+boundary. Separate runtime database roles remain a public-launch prerequisite.
+
+Stop API writers before upgrading an existing stack:
+
+```bash
+docker compose --env-file .env -f infrastructure/compose.preview.yaml stop web api
+docker compose --env-file .env -f infrastructure/compose.preview.yaml run --rm migrate
+docker compose --env-file .env -f infrastructure/compose.preview.yaml up -d --wait
+```
+
+Back up the database and matching document volume before upgrades. Keep the
+same password and project name for an existing database. Ordinary `down`
+preserves named volumes; do not add `--volumes` to a persistent preview stack.
+
+## Release validation and publication
+
+After building the local images, run the disposable container gate:
+
+```bash
+API_IMAGE=chronelle-api:local WEB_IMAGE=chronelle-web:local pnpm test:containers
+```
+
+It creates a unique Compose project with synthetic credentials and an empty
+database, inspects runtime contents and ownership, checks private networking,
+round-trips an authorized attachment through the web proxy, rejects unauthorized
+downloads, verifies persistence after API restart, and completes an accepted web
+request after SIGTERM. Next.js finishes cleanup with exit code 143; the idle API
+closes its database pool and exits with code 0. Sustained-load request draining
+and the deployment's termination deadline still need validation on the final target.
+It removes only its disposable containers, network, and volumes on completion
+or failure. Docker Engine with Compose and Node.js 24 or newer are required.
+
+Tag and manual releases call the same CI workflow from the triggering revision.
+Manual runs default to `dry_run=true`: they validate, transfer, load, and verify
+the images without registry login or pushes. Set `dry_run=false` explicitly to
+publish a manual release. Version-tag pushes publish after validation succeeds.
+Registry write permission belongs only to the publishing job, which depends on
+successful quality, browser, and running-container gates. The container job
+retains the tested images as a one-day artifact; publishing loads that artifact
+and verifies each image's revision label instead of building again. Missing or
+expired artifacts fail the release and require a fresh validation run.
+
+Images receive `sha-<full-commit-sha>` tags and, for a tag-triggered release,
+the triggering version tag. Existing short SHA tags are not updated. Prefer
+image digests for deployments: tags can be reassigned, and publishing the API
+and web images is not an atomic registry operation. A failed push can leave
+one validated image published without its counterpart; retry the publishing
+job while the validated artifact exists. This workflow does not deploy services
+or certify development authentication for public use.
 
 ## Runtime protections and limits
 

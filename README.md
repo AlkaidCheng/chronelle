@@ -266,14 +266,16 @@ public production launch.
 Build either application from the repository root:
 
 ```bash
-docker build -f apps/api/Dockerfile -t chronelle-api .
-docker build -f apps/web/Dockerfile -t chronelle-web .
+docker build -f apps/api/Dockerfile -t chronelle-api:local .
+docker build -f apps/web/Dockerfile -t chronelle-web:local .
 ```
 
 CI validates formatting, lint, types, tests, application builds, the responsive
-browser smoke path, and both containers. Version tags publish API and web images
-to GitHub Container Registry; a runtime deployment target is intentionally not
-selected yet.
+browser smoke path, and running containers with a disposable private database.
+Version tags and manual releases run these same gates before publishing the
+tested images to GitHub Container Registry. Full commit SHA tags identify the
+validated source; publication does not rebuild images. A runtime deployment
+target is intentionally not selected yet.
 
 Repository policy requires pull-request review and passing `quality`, `browser`,
 and `containers` checks for `main`. When host-side branch rules are unavailable,
