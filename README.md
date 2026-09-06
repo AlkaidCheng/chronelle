@@ -196,6 +196,10 @@ removes only that relationship. Local files live below `LOCAL_STORAGE_ROOT`
 with restrictive permissions, and public API responses never expose storage
 keys or permanent URLs.
 
+Workspace owners can request a [read-only storage inventory](docs/storage-reconciliation.md)
+that counts canonical/history references, pending uploads, and unreferenced files.
+It retains every file and returns no storage keys or cleanup instructions.
+
 The Search view queries canonical object names with an optional object-type
 filter. Results are restricted to the active workspace and independently
 authorized before the API returns them. Search stores no projection copy and

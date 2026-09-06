@@ -71,6 +71,11 @@ with mode `0700` and files with mode `0600`. `DOCUMENT_TRANSFER_TTL_SECONDS`
 sets the lifetime of one-time upload and download authorizations; the default
 is five minutes.
 
+The Owner-only [storage inventory](storage-reconciliation.md) is available after
+the private storage root exists. A missing workspace document directory returns
+an empty report without creating files. A missing root returns unavailable;
+the inventory never creates or repairs the configured storage tree.
+
 ## Development sign-in
 
 Create or reuse a development identity and its personal workspace:
