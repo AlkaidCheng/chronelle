@@ -1,19 +1,268 @@
 import { NextRequest } from "next/server";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { GET, PATCH } from "../app/api/[...path]/route";
+import { GET, PATCH, PUT } from "../app/api/[...path]/route";
 
-afterEach(() => vi.unstubAllGlobals());
+afterEach(() => {
+  vi.unstubAllGlobals();
+  vi.restoreAllMocks();
+});
 
 describe("same-origin API proxy", () => {
-  it("forwards the authenticated request without caching protected data", async () => {
+  it.each(["..", ".", "../events", "events\\plan"])(
+    "rejects a decoded path segment %s before dispatch",
+    async (segment) => {
+      const fetch = vi.fn<typeof globalThis.fetch>();
+      vi.stubGlobal("fetch", fetch);
+      const response = await GET(
+        new NextRequest("http://localhost:3000/api/events"),
+        { params: Promise.resolve({ path: [segment] }) },
+      );
+      expect(response.status).toBe(400);
+      expect(fetch).not.toHaveBeenCalled();
+    },
+  );
+
+  it("rejects an aborted request before contacting the upstream", async () => {
+    const client = new AbortController();
+    client.abort();
+    const fetch = vi.fn<typeof globalThis.fetch>();
+    vi.stubGlobal("fetch", fetch);
+    const response = await GET(
+      new NextRequest("http://localhost:3000/api/events", {
+        signal: client.signal,
+      }),
+      { params: Promise.resolve({ path: ["events"] }) },
+    );
+    expect(response.status).toBe(408);
+    expect(fetch).not.toHaveBeenCalled();
+  });
+
+  it("cancels oversized chunked transfers before dispatch", async () => {
+    const cancel = vi.fn();
+    const chunk = new Uint8Array(1024 * 1024);
+    const body = new ReadableStream<Uint8Array>({
+      pull(controller) {
+        controller.enqueue(chunk);
+      },
+      cancel,
+    });
+    const fetch = vi.fn<typeof globalThis.fetch>();
+    vi.stubGlobal("fetch", fetch);
+    const response = await PUT(
+      new NextRequest(
+        "http://localhost:3000/api/document-transfers/upload/token",
+        { method: "PUT", body },
+      ),
+      {
+        params: Promise.resolve({
+          path: ["document-transfers", "upload", "token"],
+        }),
+      },
+    );
+    expect(response.status).toBe(413);
+    expect(cancel).toHaveBeenCalledOnce();
+    expect(body.locked).toBe(false);
+    expect(fetch).not.toHaveBeenCalled();
+  });
+
+  it("keeps the ordinary limit on non-upload routes even for binary content", async () => {
+    const fetch = vi.fn<typeof globalThis.fetch>();
+    vi.stubGlobal("fetch", fetch);
+    const response = await PUT(
+      new NextRequest("http://localhost:3000/api/documents", {
+        method: "PUT",
+        body: new Uint8Array(1024 * 1024 + 1),
+        headers: { "content-type": "application/octet-stream" },
+      }),
+      { params: Promise.resolve({ path: ["documents"] }) },
+    );
+    expect(response.status).toBe(413);
+    expect(fetch).not.toHaveBeenCalled();
+  });
+
+  it("normalizes incoming stream failures without revealing exception details", async () => {
+    const fetch = vi.fn<typeof globalThis.fetch>();
+    vi.stubGlobal("fetch", fetch);
+    const body = new ReadableStream<Uint8Array>({
+      start(controller) {
+        controller.error(new Error("private stream details"));
+      },
+    });
+    const response = await PATCH(
+      new NextRequest("http://localhost:3000/api/events/plan", {
+        method: "PATCH",
+        body,
+      }),
+      { params: Promise.resolve({ path: ["events", "plan"] }) },
+    );
+    expect(response.status).toBe(400);
+    expect(await response.text()).not.toContain("private stream details");
+    expect(fetch).not.toHaveBeenCalled();
+  });
+  it.each([undefined, "1", String(1024 * 1024 + 1)])(
+    "rejects oversized bodies with declared length %s before dispatch",
+    async (declaredLength) => {
+      const fetch = vi
+        .fn<typeof globalThis.fetch>()
+        .mockResolvedValue(Response.json({ ok: true }));
+      vi.stubGlobal("fetch", fetch);
+      const headers = new Headers({ "content-type": "application/json" });
+      if (declaredLength !== undefined)
+        headers.set("content-length", declaredLength);
+      const response = await PATCH(
+        new NextRequest("http://localhost:3000/api/events/plan", {
+          method: "PATCH",
+          headers,
+          body: new Uint8Array(1024 * 1024 + 1),
+        }),
+        { params: Promise.resolve({ path: ["events", "plan"] }) },
+      );
+      expect(response.status).toBe(413);
+      expect(response.headers.get("cache-control")).toBe("private, no-store");
+      expect(fetch).not.toHaveBeenCalled();
+    },
+  );
+
+  it.each(["2", "-1", "invalid", "1, 1"])(
+    "rejects mismatched or invalid content length %s",
+    async (length) => {
+      const fetch = vi
+        .fn<typeof globalThis.fetch>()
+        .mockResolvedValue(Response.json({ ok: true }));
+      vi.stubGlobal("fetch", fetch);
+      const response = await PATCH(
+        new NextRequest("http://localhost:3000/api/events/plan", {
+          method: "PATCH",
+          headers: { "content-length": length },
+          body: "x",
+        }),
+        { params: Promise.resolve({ path: ["events", "plan"] }) },
+      );
+      expect(response.status).toBe(400);
+      expect(fetch).not.toHaveBeenCalled();
+    },
+  );
+
+  it("cancels stalled incoming bodies when the request deadline expires", async () => {
+    const deadline = new AbortController();
+    const timeout = vi
+      .spyOn(AbortSignal, "timeout")
+      .mockReturnValue(deadline.signal);
+    const fetch = vi.fn<typeof globalThis.fetch>();
+    vi.stubGlobal("fetch", fetch);
+    const cancel = vi.fn();
+    const body = new ReadableStream<Uint8Array>({ cancel });
+    const request = new NextRequest("http://localhost:3000/api/events/plan", {
+      method: "PATCH",
+      body,
+    });
+    const pending = PATCH(request, {
+      params: Promise.resolve({ path: ["events", "plan"] }),
+    });
+    await vi.waitFor(() => expect(body.locked).toBe(true));
+    deadline.abort(new DOMException("Deadline", "TimeoutError"));
+    const response = await pending;
+    expect(response.status).toBe(504);
+    expect(timeout).toHaveBeenCalledWith(30_000);
+    expect(cancel).toHaveBeenCalledOnce();
+    expect(fetch).not.toHaveBeenCalled();
+    expect(body.locked).toBe(false);
+  });
+
+  it("cancels stalled incoming bodies on client disconnect without waiting for stream cleanup", async () => {
+    const client = new AbortController();
+    const cancel = vi.fn(() => new Promise<void>(() => {}));
+    const body = new ReadableStream<Uint8Array>({ cancel });
+    const fetch = vi.fn<typeof globalThis.fetch>();
+    vi.stubGlobal("fetch", fetch);
+    const pending = PATCH(
+      new NextRequest("http://localhost:3000/api/events/plan", {
+        method: "PATCH",
+        body,
+        signal: client.signal,
+      }),
+      { params: Promise.resolve({ path: ["events", "plan"] }) },
+    );
+    await vi.waitFor(() => expect(body.locked).toBe(true));
+    client.abort();
+    expect((await pending).status).toBe(408);
+    expect(cancel).toHaveBeenCalledOnce();
+    expect(fetch).not.toHaveBeenCalled();
+    expect(body.locked).toBe(false);
+  });
+
+  it("preserves chunked binary uploads above the ordinary body limit", async () => {
+    const chunks = [
+      new Uint8Array(700_000).fill(7),
+      new Uint8Array(700_000).fill(9),
+    ];
+    const body = new ReadableStream<Uint8Array>({
+      start(controller) {
+        for (const chunk of chunks) controller.enqueue(chunk);
+        controller.close();
+      },
+    });
     const fetch = vi
       .fn<typeof globalThis.fetch>()
-      .mockResolvedValue(
-        Response.json(
-          { version: 2 },
-          { headers: { "cache-control": "public, max-age=3600" } },
-        ),
-      );
+      .mockResolvedValue(new Response(null, { status: 204 }));
+    vi.stubGlobal("fetch", fetch);
+    const response = await PUT(
+      new NextRequest(
+        "http://localhost:3000/api/document-transfers/upload/token",
+        {
+          method: "PUT",
+          body,
+          headers: { "content-type": "application/octet-stream" },
+        },
+      ),
+      {
+        params: Promise.resolve({
+          path: ["document-transfers", "upload", "token"],
+        }),
+      },
+    );
+    expect(response.status).toBe(204);
+    const forwarded = await new Response(
+      fetch.mock.calls[0]?.[1]?.body,
+    ).arrayBuffer();
+    expect(forwarded.byteLength).toBe(1_400_000);
+    expect(Buffer.from(forwarded).equals(Buffer.concat(chunks))).toBe(true);
+  });
+
+  it("propagates cancellation during upstream work", async () => {
+    const deadline = new AbortController();
+    vi.spyOn(AbortSignal, "timeout").mockReturnValue(deadline.signal);
+    const fetch = vi.fn<typeof globalThis.fetch>().mockImplementation(
+      (_url, options) =>
+        new Promise((_resolve, reject) => {
+          options?.signal?.addEventListener(
+            "abort",
+            () => reject(options.signal?.reason),
+            { once: true },
+          );
+        }),
+    );
+    vi.stubGlobal("fetch", fetch);
+    const pending = GET(new NextRequest("http://localhost:3000/api/events"), {
+      params: Promise.resolve({ path: ["events"] }),
+    });
+    await vi.waitFor(() => expect(fetch).toHaveBeenCalledOnce());
+    deadline.abort();
+    expect((await pending).status).toBe(504);
+    expect(fetch.mock.calls[0]?.[1]?.signal?.aborted).toBe(true);
+  });
+  it("forwards the authenticated request without caching protected data", async () => {
+    const fetch = vi.fn<typeof globalThis.fetch>().mockResolvedValue(
+      Response.json(
+        { version: 2 },
+        {
+          headers: {
+            "cache-control": "public, max-age=3600",
+            "x-request-id": "server-generated-id",
+          },
+        },
+      ),
+    );
     vi.stubGlobal("fetch", fetch);
     const request = new NextRequest("http://localhost:3000/api/events/plan", {
       method: "PATCH",
@@ -41,6 +290,7 @@ describe("same-origin API proxy", () => {
     expect(options?.signal).toBeInstanceOf(AbortSignal);
     expect(response.headers.get("cache-control")).toBe("private, no-store");
     expect(await response.json()).toEqual({ version: 2 });
+    expect(response.headers.get("x-request-id")).toBe("server-generated-id");
   });
   it("returns a safe structured error when the upstream is unavailable", async () => {
     vi.stubGlobal(
@@ -69,6 +319,8 @@ describe("same-origin API proxy", () => {
           headers: {
             "content-type": "application/octet-stream",
             "content-disposition": "attachment; filename=plan.txt",
+            "content-length": "8",
+            "content-encoding": "gzip",
           },
         }),
       ),
@@ -81,5 +333,7 @@ describe("same-origin API proxy", () => {
       "attachment; filename=plan.txt",
     );
     expect(await response.text()).toBe("private file");
+    expect(response.headers.has("content-length")).toBe(false);
+    expect(response.headers.has("content-encoding")).toBe(false);
   });
 });

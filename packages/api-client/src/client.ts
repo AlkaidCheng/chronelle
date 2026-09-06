@@ -19,6 +19,7 @@ import {
   documentAttachmentResponseSchema,
   documentDownloadAuthorizationResponseSchema,
   documentUploadAuthorizationResponseSchema,
+  maximumDocumentSizeBytes,
   eventDetailResponseSchema,
   eventListResponseSchema,
   eventPlanningResourceResponseSchema,
@@ -381,7 +382,28 @@ export class ChronelleApiClient {
     parentObjectId: string,
     file: DocumentFileInput,
   ): Promise<DocumentAttachmentResponse> {
+    if (!Number.isSafeInteger(file.size) || file.size < 0) {
+      throw new ApiClientError(
+        400,
+        "invalid_request",
+        "The file size is invalid.",
+      );
+    }
+    if (file.size > maximumDocumentSizeBytes) {
+      throw new ApiClientError(
+        413,
+        "payload_too_large",
+        "The file exceeds the 25 MiB attachment limit.",
+      );
+    }
     const bytes = await file.arrayBuffer();
+    if (bytes.byteLength !== file.size) {
+      throw new ApiClientError(
+        400,
+        "invalid_request",
+        "The file size changed before upload.",
+      );
+    }
     const authorization = await this.authorizeDocumentUpload({
       checksumSha256: await sha256Hex(bytes),
       mimeType: file.type || "application/octet-stream",

@@ -52,7 +52,7 @@ export function registerDocumentRoutes(
 ): void {
   app.addContentTypeParser(
     "application/octet-stream",
-    { bodyLimit: maximumDocumentSizeBytes, parseAs: "buffer" },
+    { parseAs: "buffer" },
     (_request, body, done) => done(null, body),
   );
 
