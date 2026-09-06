@@ -23,6 +23,7 @@ import {
 
 import { useApiClient } from "./api-context";
 import { useAuthSession } from "./auth-session";
+import type { EventView } from "./event-views";
 
 export const queryKeys = {
   events: ["events"] as const,
@@ -93,18 +94,6 @@ export function useObjectSearch(input: ObjectSearchQueryInput | null) {
   });
 }
 
-type EventView =
-  | "overview"
-  | "todos"
-  | "calendar"
-  | "timeline"
-  | "itinerary"
-  | "expenses"
-  | "reminders"
-  | "files"
-  | "removed-links"
-  | "sharing";
-
 export function useEventWorkspaceQueries(
   eventId: string,
   activeView: EventView,
@@ -129,9 +118,7 @@ export function useEventWorkspaceQueries(
         queryKey: queryKeys.calendar(eventId),
       },
       {
-        enabled:
-          credential !== null &&
-          (activeView === "overview" || activeView === "timeline"),
+        enabled: credential !== null && activeView === "timeline",
         queryFn: () => client.getEventTimeline(eventId),
         queryKey: queryKeys.timeline(eventId),
       },

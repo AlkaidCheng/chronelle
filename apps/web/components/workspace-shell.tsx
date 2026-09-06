@@ -8,7 +8,7 @@ import { type ReactNode, useEffect } from "react";
 
 import { useAuthSession } from "../lib/auth-session";
 import { useSessionQuery } from "../lib/queries";
-import { CalendarIcon, SearchIcon } from "./icons";
+import { CalendarIcon, SearchIcon, SignOutIcon, TrashIcon } from "./icons";
 import { ErrorNotice, LoadingState } from "./feedback";
 
 export function WorkspaceShell({ children }: { readonly children: ReactNode }) {
@@ -73,6 +73,11 @@ export function WorkspaceShell({ children }: { readonly children: ReactNode }) {
 
   const currentSession = session.data;
   const activeWorkspaceId = credential.workspaceId;
+  function leaveWorkspace() {
+    queryClient.clear();
+    signOut();
+    router.replace("/sign-in");
+  }
   function changeWorkspace(workspaceId: string) {
     if (workspaceId === activeWorkspaceId) {
       return;
@@ -94,6 +99,7 @@ export function WorkspaceShell({ children }: { readonly children: ReactNode }) {
         </Link>
         <nav aria-label="Workspace navigation" className="workspace-nav">
           <Link
+            aria-current={pathname.startsWith("/events") ? "page" : undefined}
             className={pathname.startsWith("/events") ? "active" : ""}
             href="/events"
           >
@@ -101,6 +107,7 @@ export function WorkspaceShell({ children }: { readonly children: ReactNode }) {
             Events
           </Link>
           <Link
+            aria-current={pathname.startsWith("/search") ? "page" : undefined}
             className={pathname.startsWith("/search") ? "active" : ""}
             href="/search"
           >
@@ -108,9 +115,11 @@ export function WorkspaceShell({ children }: { readonly children: ReactNode }) {
             Search
           </Link>
           <Link
+            aria-current={pathname.startsWith("/trash") ? "page" : undefined}
             className={pathname.startsWith("/trash") ? "active" : ""}
             href="/trash"
           >
+            <TrashIcon />
             Trash
           </Link>
         </nav>
@@ -139,38 +148,65 @@ export function WorkspaceShell({ children }: { readonly children: ReactNode }) {
           <button
             aria-label="Sign out"
             className="icon-button"
-            onClick={() => {
-              queryClient.clear();
-              signOut();
-              router.replace("/sign-in");
-            }}
+            onClick={leaveWorkspace}
             title="Sign out"
             type="button"
           >
-            -&gt;
+            <SignOutIcon />
           </button>
         </div>
       </aside>
       <div className="workspace-main">
+        <header className="workspace-topbar">
+          <span>{currentSession.workspace.displayName}</span>
+          <span className="environment-label">Development workspace</span>
+        </header>
         <header className="mobile-header">
           <Link className="brand" href="/events">
             <span className="brand-mark">C</span>
             <span>Chronelle</span>
           </Link>
-          <label className="mobile-workspace-switcher">
-            <span className="visually-hidden">Workspace</span>
-            <select
-              aria-label="Workspace"
-              onChange={(event) => changeWorkspace(event.target.value)}
-              value={activeWorkspaceId}
-            >
-              {currentSession.availableWorkspaces.map((workspace) => (
-                <option key={workspace.id} value={workspace.id}>
-                  {workspace.displayName}
-                </option>
-              ))}
-            </select>
-          </label>
+          <details
+            className="mobile-account"
+            onKeyDown={(event) => {
+              if (event.key === "Escape") {
+                event.currentTarget.open = false;
+                event.currentTarget.querySelector("summary")?.focus();
+              }
+            }}
+          >
+            <summary aria-label="Account and workspace">
+              <span className="profile-mark" aria-hidden="true">
+                {currentSession.user.displayName.slice(0, 1).toUpperCase()}
+              </span>
+            </summary>
+            <div className="account-popover">
+              <strong>{currentSession.user.displayName}</strong>
+              <span className="environment-label">Development workspace</span>
+              <label className="mobile-workspace-switcher">
+                <span className="visually-hidden">Workspace</span>
+                <select
+                  aria-label="Workspace"
+                  onChange={(event) => changeWorkspace(event.target.value)}
+                  value={activeWorkspaceId}
+                >
+                  {currentSession.availableWorkspaces.map((workspace) => (
+                    <option key={workspace.id} value={workspace.id}>
+                      {workspace.displayName}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <button
+                className="button button-secondary button-wide"
+                onClick={leaveWorkspace}
+                type="button"
+              >
+                <SignOutIcon />
+                Sign out
+              </button>
+            </div>
+          </details>
         </header>
         <div id="workspace-content" tabIndex={-1}>
           {children}

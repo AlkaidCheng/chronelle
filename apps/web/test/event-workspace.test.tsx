@@ -76,6 +76,7 @@ function requestPath(input: URL | RequestInfo): string {
 
 describe("EventWorkspace", () => {
   beforeEach(() => {
+    window.history.replaceState(null, "", "/events/plan");
     window.sessionStorage.setItem(
       "chronelle.development-session",
       JSON.stringify({ accessToken: "test-session", workspaceId }),
@@ -243,7 +244,6 @@ describe("EventWorkspace", () => {
       fetch.mock.calls.map(([input]) => requestPath(input)).sort(),
     ).toEqual([
       `/api/events/${eventId}/detail`,
-      `/api/events/${eventId}/timeline`,
       `/api/objects/${eventId}/access`,
     ]);
     overviewTab.focus();
@@ -288,6 +288,7 @@ describe("EventWorkspace", () => {
   });
 
   it("renders a shared Event as read-only without leaking private relations", async () => {
+    window.history.replaceState(null, "", "/events/plan?view=sharing");
     const task = {
       ...rootEvent,
       id: "019d6e7d-0000-7000-8000-000000000013",

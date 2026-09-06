@@ -256,6 +256,13 @@ attachments across an API restart, and audit request IDs.
 
 ## Containers and delivery
 
+The web experience includes responsive event collections, grid/list layouts,
+date and name filters, bookmarkable planning views, and mobile account controls.
+See [Web experience](docs/web-experience.md) for behavior and accessibility, and
+[Deployment](docs/deployment.md) for exact standalone/container commands.
+The UI is deployable for trusted previews; unverified development sign-in blocks
+public production launch.
+
 Build either application from the repository root:
 
 ```bash

@@ -24,6 +24,7 @@ test("creates and retrieves one canonical Event at responsive widths", async ({
   await continueButton.click();
   await expect(page).toHaveURL(/\/events$/u);
 
+  await page.getByRole("button", { name: "New event" }).click();
   await page.getByLabel("Event name").fill(eventName);
   await page.getByRole("button", { name: "Create event" }).click();
   await expect(page).toHaveURL(/\/events\/[0-9a-f-]+$/u);

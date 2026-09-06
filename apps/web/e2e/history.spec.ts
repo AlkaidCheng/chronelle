@@ -12,6 +12,7 @@ test("compares and restores history while preserving an open draft", async ({
   await page.getByLabel("Name").fill("Workshop planner");
   await page.getByLabel("Email").fill(`history-${randomUUID()}@example.test`);
   await page.getByRole("button", { name: "Continue" }).click();
+  await page.getByRole("button", { name: "New event" }).click();
   await page.getByLabel("Event name").fill(original);
   await page.getByRole("button", { name: "Create event" }).click();
   await expect(page).toHaveURL(/\/events\/[0-9a-f-]+$/u);

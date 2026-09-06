@@ -2,12 +2,15 @@ import type { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    background_color: "#f4f0e8",
+    background_color: "#f6f7f4",
     description: "Your life, connected across time.",
     display: "standalone",
+    icons: [
+      { src: "/icon.svg", sizes: "any", type: "image/svg+xml", purpose: "any" },
+    ],
     name: "Chronelle",
     short_name: "Chronelle",
     start_url: "/",
-    theme_color: "#f4f0e8",
+    theme_color: "#203e32",
   };
 }

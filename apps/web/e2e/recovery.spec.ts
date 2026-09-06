@@ -10,6 +10,7 @@ test("recovers canonical objects and independent context links", async ({
   await page.getByLabel("Name").fill("Recovery planner");
   await page.getByLabel("Email").fill(`recovery-${randomUUID()}@example.test`);
   await page.getByRole("button", { name: "Continue" }).click();
+  await page.getByRole("button", { name: "New event" }).click();
   await page.getByLabel("Event name").fill("Recovery workshop");
   await page.getByRole("button", { name: "Create event" }).click();
   await expect(page).toHaveURL(/\/events\/[0-9a-f-]+$/u);
