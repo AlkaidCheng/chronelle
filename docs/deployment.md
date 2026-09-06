@@ -322,6 +322,11 @@ before public launch.
 
 ## Public launch gate
 
+The optional [Tencent COS adapter](storage.md) requires a private bucket,
+least-privilege credentials, browser CORS, and API egress. The supplied private
+Compose stack uses local storage and intentionally does not enable that egress.
+Simulated COS tests do not replace validation on the deployed bucket.
+
 Before exposing the application publicly:
 
 1. Implement and test a production identity adapter, email/identity verification,
@@ -337,5 +342,5 @@ Before exposing the application publicly:
    shared Viewer access, uploads/downloads, recovery, and API outage behavior
    on the actual deployment target.
 
-No cloud account, domain, infrastructure, or deployment is created by this UI
-release. Tencent-compatible provider boundaries remain unchanged.
+No cloud account, domain, infrastructure, or deployment is created by the
+application.

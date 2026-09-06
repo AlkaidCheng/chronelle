@@ -108,7 +108,11 @@ Download authorization requires View on the canonical Document. Local
 downloads use an opaque, expiring, one-time bearer credential and recheck View
 when bytes are requested, so revoking a grant invalidates an already-issued
 download. Viewers can download inherited files but cannot upload, replace, or
-unlink them. Storage keys and permanent public URLs are never returned.
+unlink them. No permanent public URLs are returned. Direct COS URLs contain
+opaque storage keys and remain bearer capabilities until expiry, even after
+an application grant is revoked. Every new URL request rechecks current View;
+COS enforces the already-issued capability, not the application's current grant.
+See [Storage](storage.md) for deployment and audit requirements.
 
 Storage I/O runs outside the workspace lock. Upload/download authorization
 records are written only after permission is rechecked under that lock.
