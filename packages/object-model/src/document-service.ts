@@ -2,6 +2,7 @@ import { createHash, randomBytes } from "node:crypto";
 
 import {
   AuthorizationDeniedError,
+  withStableAuthorization,
   type AuthorizationAction,
   type AuthorizationService,
   type UserPrincipal,
@@ -119,37 +120,47 @@ export class DocumentService {
       storageKey,
     });
 
-    await runAuditedMutation(this.#database, async (transaction) => {
-      await transaction.insert(documentTransferAuthorizations).values({
-        id,
-        workspaceId: context.principal.workspaceId,
-        operation: "upload",
-        tokenHash: hashCredential(credential),
-        resourceId: input.parentObjectId,
-        storageProvider: this.#storage.providerId,
-        storageKey,
-        originalFilename: input.originalFilename,
-        mimeType: input.mimeType,
-        sizeBytes: BigInt(input.sizeBytes),
-        checksumSha256: input.checksumSha256,
-        authorizedBy: context.principal.userId,
-        createdAt,
-        expiresAt,
-      });
-
-      return {
-        value: undefined,
-        audit: {
+    await withStableAuthorization(
+      this.#database,
+      context.principal.workspaceId,
+      async (transaction, authorization) => {
+        await authorization.assertCan(context.principal, "edit", {
+          id: input.parentObjectId,
           workspaceId: context.principal.workspaceId,
-          actorType: "user",
-          actorId: context.principal.userId,
-          action: "document.upload_authorized",
-          resourceId: input.parentObjectId,
-          requestId: context.requestId,
-          metadata: { transferAuthorizationId: id },
-        },
-      };
-    });
+        });
+        return runAuditedMutation(transaction, async (transaction) => {
+          await transaction.insert(documentTransferAuthorizations).values({
+            id,
+            workspaceId: context.principal.workspaceId,
+            operation: "upload",
+            tokenHash: hashCredential(credential),
+            resourceId: input.parentObjectId,
+            storageProvider: this.#storage.providerId,
+            storageKey,
+            originalFilename: input.originalFilename,
+            mimeType: input.mimeType,
+            sizeBytes: BigInt(input.sizeBytes),
+            checksumSha256: input.checksumSha256,
+            authorizedBy: context.principal.userId,
+            createdAt,
+            expiresAt,
+          });
+
+          return {
+            value: undefined,
+            audit: {
+              workspaceId: context.principal.workspaceId,
+              actorType: "user",
+              actorId: context.principal.userId,
+              action: "document.upload_authorized",
+              resourceId: input.parentObjectId,
+              requestId: context.requestId,
+              metadata: { transferAuthorizationId: id },
+            },
+          };
+        });
+      },
+    );
 
     return { id, upload: { ...upload, method: "PUT" } };
   }
@@ -220,7 +231,7 @@ export class DocumentService {
       context.principal,
       uploadAuthorizationId,
     );
-    const parent = await this.#getAttachmentParent(
+    await this.#getAttachmentParent(
       context.principal,
       authorization.resourceId,
       "edit",
@@ -250,79 +261,92 @@ export class DocumentService {
     const documentId = createId();
     const relationId = createId();
     const finalizedAt = this.#clock();
-    const permissionScopeId = parent.permissionScopeId;
+    return withStableAuthorization(
+      this.#database,
+      context.principal.workspaceId,
+      async (transaction, currentAuthorization) => {
+        await currentAuthorization.assertCan(context.principal, "edit", {
+          id: authorization.resourceId,
+          workspaceId: context.principal.workspaceId,
+        });
+        const parent = await readObjectState(
+          transaction,
+          context.principal.workspaceId,
+          authorization.resourceId,
+        );
+        if (!isAttachmentParent(parent)) throw new AuthorizationDeniedError();
+        const permissionScopeId = parent.permissionScopeId;
+        const [finalized] = await transaction
+          .update(documentTransferAuthorizations)
+          .set({
+            consumedAt: authorization.consumedAt ?? finalizedAt,
+            finalizedAt,
+          })
+          .where(
+            and(
+              eq(documentTransferAuthorizations.id, authorization.id),
+              isNull(documentTransferAuthorizations.finalizedAt),
+            ),
+          )
+          .returning({ id: documentTransferAuthorizations.id });
+        if (finalized === undefined) {
+          throw new DocumentTransferUnavailableError();
+        }
 
-    return this.#database.transaction(async (transaction) => {
-      const [finalized] = await transaction
-        .update(documentTransferAuthorizations)
-        .set({
-          consumedAt: authorization.consumedAt ?? finalizedAt,
-          finalizedAt,
-        })
-        .where(
-          and(
-            eq(documentTransferAuthorizations.id, authorization.id),
-            isNull(documentTransferAuthorizations.finalizedAt),
-          ),
-        )
-        .returning({ id: documentTransferAuthorizations.id });
-      if (finalized === undefined) {
-        throw new DocumentTransferUnavailableError();
-      }
-
-      await transaction.insert(objects).values({
-        id: documentId,
-        workspaceId: context.principal.workspaceId,
-        objectType: "document",
-        displayName: authorization.originalFilename,
-        createdBy: context.principal.userId,
-        permissionScopeId,
-      });
-      await transaction.insert(documents).values({
-        objectId: documentId,
-        workspaceId: context.principal.workspaceId,
-        storageProvider: authorization.storageProvider,
-        storageKey: authorization.storageKey,
-        originalFilename: authorization.originalFilename,
-        mimeType: authorization.mimeType,
-        sizeBytes: authorization.sizeBytes,
-        checksumSha256: authorization.checksumSha256,
-        encryptionMode: this.#storage.encryptionMode,
-      });
-      await transaction.insert(objectRelations).values({
-        id: relationId,
-        workspaceId: context.principal.workspaceId,
-        sourceObjectId: documentId,
-        relationType: "attached_to",
-        targetObjectId: parent.id,
-        createdBy: context.principal.userId,
-      });
-
-      const document = await readObjectState(
-        transaction,
-        context.principal.workspaceId,
-        documentId,
-      );
-      if (document.objectType !== "document")
-        throw new Error("Expected a Document state.");
-      await recordObjectRevision(
-        transaction,
-        document,
-        {
-          actorId: context.principal.userId,
-          actorType: "user",
-          requestId: context.requestId,
-        },
-        "created",
-        {
-          parentObjectId: parent.id,
+        await transaction.insert(objects).values({
+          id: documentId,
+          workspaceId: context.principal.workspaceId,
+          objectType: "document",
+          displayName: authorization.originalFilename,
+          createdBy: context.principal.userId,
           permissionScopeId,
-          relationId,
-          transferAuthorizationId: authorization.id,
-        },
-      );
-      return { document, relationId, relationVersion: 1 };
-    });
+        });
+        await transaction.insert(documents).values({
+          objectId: documentId,
+          workspaceId: context.principal.workspaceId,
+          storageProvider: authorization.storageProvider,
+          storageKey: authorization.storageKey,
+          originalFilename: authorization.originalFilename,
+          mimeType: authorization.mimeType,
+          sizeBytes: authorization.sizeBytes,
+          checksumSha256: authorization.checksumSha256,
+          encryptionMode: this.#storage.encryptionMode,
+        });
+        await transaction.insert(objectRelations).values({
+          id: relationId,
+          workspaceId: context.principal.workspaceId,
+          sourceObjectId: documentId,
+          relationType: "attached_to",
+          targetObjectId: parent.id,
+          createdBy: context.principal.userId,
+        });
+
+        const document = await readObjectState(
+          transaction,
+          context.principal.workspaceId,
+          documentId,
+        );
+        if (document.objectType !== "document")
+          throw new Error("Expected a Document state.");
+        await recordObjectRevision(
+          transaction,
+          document,
+          {
+            actorId: context.principal.userId,
+            actorType: "user",
+            requestId: context.requestId,
+          },
+          "created",
+          {
+            parentObjectId: parent.id,
+            permissionScopeId,
+            relationId,
+            transferAuthorizationId: authorization.id,
+          },
+        );
+        return { document, relationId, relationVersion: 1 };
+      },
+    );
   }
 
   async listAttachments(
@@ -412,37 +436,47 @@ export class DocumentService {
       storageKey: document.storageKey,
     });
 
-    await runAuditedMutation(this.#database, async (transaction) => {
-      await transaction.insert(documentTransferAuthorizations).values({
-        id,
-        workspaceId: context.principal.workspaceId,
-        operation: "download",
-        tokenHash: hashCredential(credential),
-        resourceId: document.id,
-        storageProvider: document.storageProvider,
-        storageKey: document.storageKey,
-        originalFilename: document.originalFilename,
-        mimeType: document.mimeType,
-        sizeBytes: document.sizeBytes,
-        checksumSha256: document.checksumSha256,
-        authorizedBy: context.principal.userId,
-        createdAt,
-        expiresAt,
-      });
-
-      return {
-        value: undefined,
-        audit: {
+    await withStableAuthorization(
+      this.#database,
+      context.principal.workspaceId,
+      async (transaction, authorization) => {
+        await authorization.assertCan(context.principal, "view", {
+          id: document.id,
           workspaceId: context.principal.workspaceId,
-          actorType: "user",
-          actorId: context.principal.userId,
-          action: "document.download_authorized",
-          resourceId: document.id,
-          requestId: context.requestId,
-          metadata: { transferAuthorizationId: id },
-        },
-      };
-    });
+        });
+        return runAuditedMutation(transaction, async (transaction) => {
+          await transaction.insert(documentTransferAuthorizations).values({
+            id,
+            workspaceId: context.principal.workspaceId,
+            operation: "download",
+            tokenHash: hashCredential(credential),
+            resourceId: document.id,
+            storageProvider: document.storageProvider,
+            storageKey: document.storageKey,
+            originalFilename: document.originalFilename,
+            mimeType: document.mimeType,
+            sizeBytes: document.sizeBytes,
+            checksumSha256: document.checksumSha256,
+            authorizedBy: context.principal.userId,
+            createdAt,
+            expiresAt,
+          });
+
+          return {
+            value: undefined,
+            audit: {
+              workspaceId: context.principal.workspaceId,
+              actorType: "user",
+              actorId: context.principal.userId,
+              action: "document.download_authorized",
+              resourceId: document.id,
+              requestId: context.requestId,
+              metadata: { transferAuthorizationId: id },
+            },
+          };
+        });
+      },
+    );
 
     return { download: { ...download, method: "GET" } };
   }
@@ -457,18 +491,16 @@ export class DocumentService {
       "download",
       now,
     );
-    await this.#authorization.assertCan(
-      {
-        type: "user",
-        userId: authorization.authorizedBy,
-        workspaceId: authorization.workspaceId,
-      },
-      "view",
-      {
-        id: authorization.resourceId,
-        workspaceId: authorization.workspaceId,
-      },
-    );
+    const principal: UserPrincipal = {
+      type: "user",
+      userId: authorization.authorizedBy,
+      workspaceId: authorization.workspaceId,
+    };
+    const resource = {
+      id: authorization.resourceId,
+      workspaceId: authorization.workspaceId,
+    };
+    await this.#authorization.assertCan(principal, "view", resource);
     const storage = this.#requireTransferProvider(authorization);
     const bytes = await storage.readObject(authorization.storageKey);
     if (
@@ -478,36 +510,44 @@ export class DocumentService {
       throw new DocumentTransferUnavailableError();
     }
 
-    await runAuditedMutation(this.#database, async (transaction) => {
-      const [consumed] = await transaction
-        .update(documentTransferAuthorizations)
-        .set({ consumedAt: now })
-        .where(
-          and(
-            eq(documentTransferAuthorizations.id, authorization.id),
-            eq(documentTransferAuthorizations.operation, "download"),
-            isNull(documentTransferAuthorizations.consumedAt),
-            gt(documentTransferAuthorizations.expiresAt, now),
-          ),
-        )
-        .returning({ id: documentTransferAuthorizations.id });
-      if (consumed === undefined) {
-        throw new DocumentTransferUnavailableError();
-      }
+    await withStableAuthorization(
+      this.#database,
+      principal.workspaceId,
+      async (transaction, currentAuthorization) => {
+        await currentAuthorization.assertCan(principal, "view", resource);
+        const consumedAt = this.#clock();
+        return runAuditedMutation(transaction, async (transaction) => {
+          const [consumed] = await transaction
+            .update(documentTransferAuthorizations)
+            .set({ consumedAt })
+            .where(
+              and(
+                eq(documentTransferAuthorizations.id, authorization.id),
+                eq(documentTransferAuthorizations.operation, "download"),
+                isNull(documentTransferAuthorizations.consumedAt),
+                gt(documentTransferAuthorizations.expiresAt, consumedAt),
+              ),
+            )
+            .returning({ id: documentTransferAuthorizations.id });
+          if (consumed === undefined) {
+            throw new DocumentTransferUnavailableError();
+          }
 
-      return {
-        value: undefined,
-        audit: {
-          workspaceId: authorization.workspaceId,
-          actorType: "user",
-          actorId: authorization.authorizedBy,
-          action: "document.downloaded",
-          resourceId: authorization.resourceId,
-          requestId,
-          metadata: { transferAuthorizationId: authorization.id },
-        },
-      };
-    });
+          return {
+            value: undefined,
+            audit: {
+              workspaceId: authorization.workspaceId,
+              actorType: "user",
+              actorId: authorization.authorizedBy,
+              action: "document.downloaded",
+              resourceId: authorization.resourceId,
+              requestId,
+              metadata: { transferAuthorizationId: authorization.id },
+            },
+          };
+        });
+      },
+    );
 
     return {
       bytes,

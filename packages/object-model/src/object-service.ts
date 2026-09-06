@@ -656,47 +656,50 @@ export class EventPlanningObjectService {
     input: CreateObjectFields,
     insertTyped: TypedInsert,
   ): Promise<EventPlanningResource> {
-    if (input.permissionScopeId === undefined) {
-      await this.#authorization.assertCanCreateInWorkspace(context.principal);
-    } else {
-      await this.#authorization.assertCan(context.principal, "edit", {
-        id: input.permissionScopeId,
-        workspaceId: context.principal.workspaceId,
-      });
-    }
-
     const objectId = createId();
     const permissionScopeId = input.permissionScopeId ?? objectId;
-    return this.#database.transaction(async (transaction) => {
-      await transaction.insert(objects).values({
-        id: objectId,
-        workspaceId: context.principal.workspaceId,
-        objectType,
-        displayName: input.displayName,
-        createdBy: context.principal.userId,
-        permissionScopeId,
-        customProperties: input.customProperties ?? {},
-        metadata: input.metadata ?? {},
-      });
-      await insertTyped(transaction, objectId);
+    return withStableAuthorization(
+      this.#database,
+      context.principal.workspaceId,
+      async (transaction, authorization) => {
+        if (input.permissionScopeId === undefined) {
+          await authorization.assertCanCreateInWorkspace(context.principal);
+        } else {
+          await authorization.assertCan(context.principal, "edit", {
+            id: input.permissionScopeId,
+            workspaceId: context.principal.workspaceId,
+          });
+        }
+        await transaction.insert(objects).values({
+          id: objectId,
+          workspaceId: context.principal.workspaceId,
+          objectType,
+          displayName: input.displayName,
+          createdBy: context.principal.userId,
+          permissionScopeId,
+          customProperties: input.customProperties ?? {},
+          metadata: input.metadata ?? {},
+        });
+        await insertTyped(transaction, objectId);
 
-      const resource = await readObjectState(
-        transaction,
-        context.principal.workspaceId,
-        objectId,
-      );
-      return recordObjectRevision(
-        transaction,
-        resource,
-        {
-          actorId: context.principal.userId,
-          actorType: "user",
-          requestId: context.requestId,
-        },
-        "created",
-        { permissionScopeId },
-      );
-    });
+        const resource = await readObjectState(
+          transaction,
+          context.principal.workspaceId,
+          objectId,
+        );
+        return recordObjectRevision(
+          transaction,
+          resource,
+          {
+            actorId: context.principal.userId,
+            actorType: "user",
+            requestId: context.requestId,
+          },
+          "created",
+          { permissionScopeId },
+        );
+      },
+    );
   }
 
   async #updateObject(
@@ -708,55 +711,63 @@ export class EventPlanningObjectService {
     const updatedAt = this.#clock();
     if (current.version !== input.expectedVersion)
       throw new ObjectConflictError();
-    return this.#database.transaction(async (transaction) => {
-      const [updated] = await transaction
-        .update(objects)
-        .set({
-          ...(input.displayName !== undefined && {
-            displayName: input.displayName,
-          }),
-          ...(input.customProperties !== undefined && {
-            customProperties: input.customProperties,
-          }),
-          ...(input.metadata !== undefined && { metadata: input.metadata }),
-          updatedAt,
-          version: sql`${objects.version} + 1`,
-        })
-        .where(
-          and(
-            eq(objects.workspaceId, context.principal.workspaceId),
-            eq(objects.id, current.id),
-            eq(objects.objectType, current.objectType),
-            eq(objects.version, input.expectedVersion),
-            isNull(objects.deletedAt),
-          ),
-        )
-        .returning({ version: objects.version });
-      if (updated === undefined) {
-        throw new ObjectConflictError();
-      }
-      await updateTyped(transaction);
+    return withStableAuthorization(
+      this.#database,
+      context.principal.workspaceId,
+      async (transaction, authorization) => {
+        await authorization.assertCan(context.principal, "edit", {
+          id: current.id,
+          workspaceId: context.principal.workspaceId,
+        });
+        const [updated] = await transaction
+          .update(objects)
+          .set({
+            ...(input.displayName !== undefined && {
+              displayName: input.displayName,
+            }),
+            ...(input.customProperties !== undefined && {
+              customProperties: input.customProperties,
+            }),
+            ...(input.metadata !== undefined && { metadata: input.metadata }),
+            updatedAt,
+            version: sql`${objects.version} + 1`,
+          })
+          .where(
+            and(
+              eq(objects.workspaceId, context.principal.workspaceId),
+              eq(objects.id, current.id),
+              eq(objects.objectType, current.objectType),
+              eq(objects.version, input.expectedVersion),
+              isNull(objects.deletedAt),
+            ),
+          )
+          .returning({ version: objects.version });
+        if (updated === undefined) {
+          throw new ObjectConflictError();
+        }
+        await updateTyped(transaction);
 
-      const resource = await readObjectState(
-        transaction,
-        context.principal.workspaceId,
-        current.id,
-      );
-      return recordObjectRevision(
-        transaction,
-        resource,
-        {
-          actorId: context.principal.userId,
-          actorType: "user",
-          requestId: context.requestId,
-        },
-        "updated",
-        {
-          previousVersion: input.expectedVersion,
-          ...(context.command !== undefined && { command: context.command }),
-        },
-      );
-    });
+        const resource = await readObjectState(
+          transaction,
+          context.principal.workspaceId,
+          current.id,
+        );
+        return recordObjectRevision(
+          transaction,
+          resource,
+          {
+            actorId: context.principal.userId,
+            actorType: "user",
+            requestId: context.requestId,
+          },
+          "updated",
+          {
+            previousVersion: input.expectedVersion,
+            ...(context.command !== undefined && { command: context.command }),
+          },
+        );
+      },
+    );
   }
 
   async #getObjectWithAction(

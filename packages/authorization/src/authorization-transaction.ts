@@ -11,7 +11,7 @@ import {
 } from "./authorization.js";
 import { DrizzleAuthorizationStore } from "./drizzle-authorization-store.js";
 
-/** Order security mutations and restoration within a workspace before authorizing. */
+/** Order protected mutations within a workspace before evaluating current permissions. */
 export async function withStableAuthorization<Value>(
   database: Database | DatabaseTransaction,
   workspaceId: string,
