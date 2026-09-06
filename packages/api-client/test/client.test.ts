@@ -54,6 +54,53 @@ const documentAttachment = {
 } as const;
 
 describe("ChronelleApiClient", () => {
+  it.each([-1, Number.NaN, Number.POSITIVE_INFINITY, 1.5])(
+    "rejects invalid reported file size %s before reading",
+    async (size) => {
+      const fetch = vi.fn<typeof globalThis.fetch>();
+      const read = vi.fn().mockResolvedValue(new ArrayBuffer(0));
+      const client = new ChronelleApiClient({ fetch });
+      await expect(
+        client.attachDocument(event.id, {
+          name: "file.bin",
+          type: "application/octet-stream",
+          size,
+          arrayBuffer: read,
+        }),
+      ).rejects.toMatchObject({ status: 400, code: "invalid_request" });
+      expect(read).not.toHaveBeenCalled();
+      expect(fetch).not.toHaveBeenCalled();
+    },
+  );
+
+  it("rejects a file whose bytes do not match its reported size before authorization", async () => {
+    const fetch = vi.fn<typeof globalThis.fetch>();
+    const client = new ChronelleApiClient({ fetch });
+    await expect(
+      client.attachDocument(event.id, {
+        name: "file.bin",
+        type: "application/octet-stream",
+        size: 1,
+        arrayBuffer: async () => new ArrayBuffer(2),
+      }),
+    ).rejects.toMatchObject({ status: 400, code: "invalid_request" });
+    expect(fetch).not.toHaveBeenCalled();
+  });
+  it("rejects oversized files before reading, hashing, or requesting a transfer", async () => {
+    const fetch = vi.fn<typeof globalThis.fetch>();
+    const read = vi.fn().mockResolvedValue(new ArrayBuffer(0));
+    const client = new ChronelleApiClient({ fetch });
+    await expect(
+      client.attachDocument(event.id, {
+        name: "large.bin",
+        type: "application/octet-stream",
+        size: 25 * 1024 * 1024 + 1,
+        arrayBuffer: read,
+      }),
+    ).rejects.toMatchObject({ status: 413, code: "payload_too_large" });
+    expect(read).not.toHaveBeenCalled();
+    expect(fetch).not.toHaveBeenCalled();
+  });
   it("preserves command IDs and stack preconditions across typed execute, undo, and redo requests", async () => {
     const commandId = documentId;
     const receipt = {
