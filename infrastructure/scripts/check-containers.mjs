@@ -1,11 +1,9 @@
 import assert from "node:assert/strict";
-import { execFile } from "node:child_process";
 import { createHash, randomUUID } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { request as httpRequest } from "node:http";
-import { promisify } from "node:util";
+import { composeArguments, runDocker } from "./container-process.mjs";
 
-const execute = promisify(execFile);
 const project = `chronelle-check-${randomUUID()}`;
 const environment = {
   ...process.env,
@@ -16,26 +14,9 @@ const environment = {
   RUNTIME_DATABASE_PASSWORD: randomUUID(),
   WEB_PORT: "0",
 };
-const composeArgs = [
-  "compose",
-  "--env-file",
-  "/dev/null",
-  "--file",
-  "infrastructure/compose.preview.yaml",
-  "--project-name",
-  project,
-];
+const composeArgs = composeArguments(project);
 async function docker(...args) {
-  try {
-    const { stdout } = await execute("docker", args, {
-      env: environment,
-      timeout: 180_000,
-      maxBuffer: 2 * 1024 * 1024,
-    });
-    return stdout.trim();
-  } catch (error) {
-    throw new Error(error.stderr?.trim() || `Docker ${args[0]} failed.`);
-  }
+  return (await runDocker(environment, args)).toString("utf8").trim();
 }
 const compose = (...args) => docker(...composeArgs, ...args);
 const inspect = async (id) => JSON.parse(await docker("inspect", id))[0];
