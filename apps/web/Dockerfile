@@ -23,7 +23,10 @@ WORKDIR /app
 
 COPY --from=build /app/apps/web/.next/standalone ./
 COPY --from=build /app/apps/web/.next/static ./apps/web/.next/static
+RUN mkdir -p apps/web/.next/cache && chown node:node apps/web/.next/cache
 
 USER node
 EXPOSE 3000
+HEALTHCHECK --interval=10s --timeout=3s --start-period=10s --retries=3 \
+  CMD node -e "fetch('http://127.0.0.1:' + (process.env.PORT || 3000) + '/sign-in', {signal: AbortSignal.timeout(2000)}).then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"
 CMD ["node", "apps/web/server.js"]
