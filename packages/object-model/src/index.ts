@@ -18,3 +18,7 @@ export {
   baselineObjectRevisions,
 } from "./revision-baseline.js";
 export { ReversibleCommandService } from "./command-service.js";
+export {
+  StorageInventoryService,
+  StorageInventoryBusyError,
+} from "./storage-inventory-service.js";

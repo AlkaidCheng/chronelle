@@ -33,6 +33,25 @@ describe("roleAllows", () => {
 });
 
 describe("AuthorizationService", () => {
+  it.each(["owner", "editor", "viewer", null] as const)(
+    "restricts workspace inventory authority for role %s",
+    async (role) => {
+      const store: AuthorizationStore = {
+        findRecoveryRole: vi.fn(),
+        findResourceRoles: vi.fn().mockResolvedValue(["owner"]),
+        findWorkspaceRole: vi.fn().mockResolvedValue(role),
+        hasWorkspaceAccess: vi.fn(),
+        listAccessibleWorkspaceIds: vi.fn(),
+      };
+      const check = new AuthorizationService(store).assertWorkspaceOwner(
+        principal,
+      );
+      if (role === "owner") await expect(check).resolves.toBeUndefined();
+      else await expect(check).rejects.toBeInstanceOf(AuthorizationDeniedError);
+      expect(store.findWorkspaceRole).toHaveBeenCalledWith(principal);
+      expect(store.findResourceRoles).not.toHaveBeenCalled();
+    },
+  );
   it("uses the tombstone-aware Owner policy only for recovery, never for normal reads", async () => {
     const store: AuthorizationStore = {
       findRecoveryRole: vi.fn().mockResolvedValue("owner"),

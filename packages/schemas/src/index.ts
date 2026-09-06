@@ -120,3 +120,4 @@ export {
   type ShareRevocationResponse,
 } from "./sharing.js";
 export * from "./commands.js";
+export * from "./storage-inventory.js";
