@@ -74,16 +74,37 @@ the browser release gate starts the same standalone entry point on the host.
 
 - Terminate TLS at the deployment ingress and enable HSTS there after HTTPS
   is confirmed. Keep PostgreSQL, storage, and API listeners private.
-- Do not cache authenticated routes or `/api` at the CDN. The API proxy sends
+- Do not cache authenticated routes or `/api` at the CDN. Both API and proxy send
   `Cache-Control: private, no-store`, preserves download disposition, forwards
   only selected headers, and does not follow upstream redirects.
-- The upstream fetch has a 30-second deadline. Unreachable upstreams produce a
-  structured 503 without internal addresses or exception details. A timed-out
-  mutation may already have committed: retain existing command/version retry
-  semantics; do not automatically resubmit it as a fresh operation.
-- Set request-size limits at ingress consistent with the API's attachment
-  limits. The current proxy buffers request bodies; large-upload streaming and
-  ingress-specific tuning are follow-ups.
+- The proxy preserves response content type, attachment disposition, and request
+  ID. It leaves response framing to the web server, omitting upstream encoding
+  and length headers because fetch can decompress the response body.
+- The proxy starts one 30-second deadline at route entry, covering incoming
+  body reads and upstream work, including streamed responses. A deadline before
+  response headers produces 504; an observed client cancellation produces 408;
+  unreachable upstreams produce 503. Errors omit internal addresses and exception
+  details. After headers are sent, cancellation terminates the response stream.
+  A dispatched mutation may already have committed: retain existing command IDs
+  and expected versions, refresh state, and do not retry as a fresh operation.
+- API and proxy permit 1 MiB ordinary request bodies and 25 MiB only on the file
+  upload route. The proxy counts actual bytes, validates declared length, and
+  cancels rejected or abandoned bodies before forwarding. Buffers grow with
+  received bytes; declared sizes alone do not allocate them. Browser uploads
+  reject oversized files before reading/hashing. This remains bounded buffering,
+  not direct upload streaming or a global memory/concurrency budget.
+- Enforce matching byte, header, connection, concurrency, and slow-client limits
+  at ingress. The API sets a 30-second Node request-receipt timeout; its enforcement
+  follows Node's connection-check schedule and does not cancel database work.
+  Framework/ingress buffering and rate limits require deployment validation.
+- API request logs contain generated request IDs, method, route template, status,
+  and duration. They omit raw URLs, query strings, credentials, payloads, filenames,
+  and arbitrary exception details. HTTP parser failures log only status. Ordinary
+  API responses return `x-request-id`, which the proxy preserves for correlation.
+  Configure the same privacy policy at ingress and in error-reporting integrations;
+  existing logs require their own retention/access review. Startup failures emit
+  a stable error code without exception text; inspect configuration through a
+  controlled diagnostic workflow rather than enabling raw request logging.
 - Response headers prevent framing, MIME sniffing, referrer leakage, embedded
   plugin content, and off-origin form submissions. The CSP is deliberately
   limited; it is not a complete script-execution policy. A nonce-based script

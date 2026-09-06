@@ -145,6 +145,14 @@ count before authorization could reveal protected matches.
 
 React components do not contain authorization or domain business logic.
 
+The API transport boundary owns safe error envelopes, request metadata logs,
+private cache headers, and parser limits. Shared HTTP limits live in schemas;
+the same-origin proxy counts incoming bytes and applies one deadline across
+body receipt and upstream work. Request buffers grow only as bytes arrive and
+responses remain streamed. These transport checks do not replace authorization,
+mutation transactions, or ingress concurrency controls. See [API](api.md) and
+[Deployment](deployment.md) for error, cancellation, and observability contracts.
+
 ## Workspace isolation and RLS
 
 Application queries constrain rows by the authenticated workspace, composite

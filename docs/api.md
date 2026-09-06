@@ -1,8 +1,37 @@
 # Event-planning API
 
-The API accepts JSON and returns JSON under `/api`. Protected routes require a
-development or production-provider bearer token. Send `x-workspace-id` when
-operating outside the identity's personal workspace.
+Most `/api` routes accept and return JSON; document transfers carry file bytes.
+Protected routes require a development or production-provider bearer token.
+Send `x-workspace-id` when operating outside the identity's personal workspace.
+
+## HTTP limits and errors
+
+Ordinary request bodies are limited to 1 MiB. Only
+`PUT /api/document-transfers/upload/:token` permits up to 25 MiB. The API checks
+body limits independently of the web proxy. Invalid JSON, malformed URLs, and
+invalid body lengths return 400; oversized bodies return 413
+`payload_too_large`; unsupported content types return 415
+`unsupported_media_type`. Unknown routes return a generic 404 without echoing
+the URL. Domain conflict and authorization codes remain unchanged.
+
+Responses use `{ error: { code, message } }` for failures and
+`Cache-Control: private, no-store` for API data. Ordinary responses include a
+server-generated `x-request-id`; incoming request IDs are not trusted. Raw HTTP
+parser failures before routing return safe 400/408/431 responses without
+reflecting request bytes.
+
+The same-origin proxy enforces counted body lengths and a 30-second deadline
+from route entry, including upload receipt and the upstream response. Before
+response headers, a deadline returns 504 `request_timeout`, an observed client
+abort returns 408 `request_aborted`, and an unreachable upstream returns 503
+`service_unavailable`. After headers, a failed stream terminates. A timeout or
+disconnect after dispatch does not prove a mutation rolled back; refresh and
+retain the original command ID/version preconditions when resolving retries.
+
+The typed client's `attachDocument` rejects oversized files before reading or
+hashing and verifies that received bytes match the reported size. These client
+checks are an early usability guard, not the authorization boundary. See
+[Deployment](deployment.md) for logging, ingress limits, and preview constraints.
 
 ## Reversible content commands
 
