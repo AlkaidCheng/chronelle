@@ -24,17 +24,31 @@ async function forward(
   }
 
   const hasBody = request.method !== "GET" && request.method !== "HEAD";
-  const response = await fetch(destination, {
-    ...(hasBody && { body: await request.arrayBuffer() }),
-    cache: "no-store",
-    headers,
-    method: request.method,
-    redirect: "manual",
-  });
+  let response: Response;
+  try {
+    response = await fetch(destination, {
+      ...(hasBody && { body: await request.arrayBuffer() }),
+      cache: "no-store",
+      headers,
+      method: request.method,
+      redirect: "manual",
+      signal: AbortSignal.any([request.signal, AbortSignal.timeout(30_000)]),
+    });
+  } catch {
+    return Response.json(
+      {
+        error: {
+          code: "service_unavailable",
+          message:
+            "Chronelle could not reach the server. Check your connection and try again.",
+        },
+      },
+      { status: 503, headers: { "cache-control": "private, no-store" } },
+    );
+  }
 
   const responseHeaders = new Headers();
   for (const name of [
-    "cache-control",
     "content-disposition",
     "content-length",
     "content-type",
@@ -44,6 +58,7 @@ async function forward(
       responseHeaders.set(name, value);
     }
   }
+  responseHeaders.set("cache-control", "private, no-store");
 
   return new Response(response.body, {
     headers: responseHeaders,

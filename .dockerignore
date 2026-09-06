@@ -10,6 +10,11 @@ coverage
 .env.*
 !.env.example
 .DS_Store
+.chronelle
+**/.chronelle
+.pnpm-store
+test-results
+**/test-results
 .agents
 .aider
 .claude
