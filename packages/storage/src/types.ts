@@ -40,6 +40,17 @@ export interface StorageProvider {
   ): Promise<StorageTransferAuthorization>;
 
   inspectObject(storageKey: string): Promise<StoredObjectMetadata>;
+
+  /** Enumerates immediate entries without following links or reading content. */
+  listObjects?(
+    prefix: string,
+    signal: AbortSignal,
+  ): AsyncIterable<StorageInventoryEntry>;
+}
+
+export interface StorageInventoryEntry {
+  readonly storageKey: string;
+  readonly kind: "file" | "unsupported";
 }
 
 export interface StorageTransferProvider extends StorageProvider {
