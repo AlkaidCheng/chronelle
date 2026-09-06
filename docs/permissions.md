@@ -24,6 +24,12 @@ authorization service.
 
 ## Initial roles
 
+Execute, Undo, and Redo require current Edit on every command member under the
+workspace authorization fence. Stack state is scoped by authenticated user and
+workspace; heads without current Edit are omitted. Idempotent receipt replay
+requires current View on every affected object and never returns saved content.
+No inverse replays permissions or security metadata. See [Commands](commands.md).
+
 - Owner can view, comment, edit, share, soft-delete, and recover a resource.
 - Editor can view, comment, and edit a resource.
 - Viewer can view a resource.

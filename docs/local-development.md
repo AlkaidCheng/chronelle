@@ -28,6 +28,11 @@ DELETE requests and older history clients are incompatible.
 
 ## Setup
 
+Migration `0009_add_reversible_commands.sql` adds the optional Event/Task command
+API. Run `pnpm db:migrate` before deploying that API; no new baseline is needed.
+Existing web editors remain unchanged and do not yet record reversible commands.
+See [Commands](commands.md) for typed client examples and retry handling.
+
 Use Node.js 24 or newer, pnpm 11.25, and Docker. Install dependencies once from
 the repository root:
 

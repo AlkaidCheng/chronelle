@@ -23,3 +23,8 @@ active canonical object names.
 
 Never edit a migration after it has been applied to a shared database. Add the
 next ordered migration instead.
+
+Migration 0009 adds bounded user/workspace command stacks, immutable command
+identities, canonical revision references, and idempotency receipts. It is
+additive and needs no snapshot backfill. See [Commands](../../docs/commands.md)
+for rollout and retention constraints.

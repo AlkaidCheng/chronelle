@@ -12,6 +12,10 @@ the event-planning vertical slice.
 The implemented architecture is documented in
 [`docs/architecture.md`](docs/architecture.md).
 
+The API supports [reversible Event/Task content commands](docs/commands.md),
+including atomic edits and conflict-safe Undo/Redo. Web command controls and
+reversible trash/link actions are not yet implemented.
+
 ## Stack
 
 - Next.js, React, and strict TypeScript for the responsive web client
