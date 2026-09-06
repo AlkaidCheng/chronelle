@@ -73,7 +73,8 @@ The browser release gate starts the same standalone entry point on the host.
 ## Private container stack
 
 The preview stack starts PostgreSQL, applies migrations and revision baselines,
-then starts the API and web images. It publishes only the web port on loopback.
+configures the restricted runtime login, then starts the API and web images.
+It publishes only the web port on loopback.
 API and database ports remain private on an internal Docker network. Only the
 web service also joins an ingress bridge for its loopback publication. The API
 image contains compiled workspace packages, production dependencies, and SQL
@@ -89,7 +90,9 @@ docker build -f apps/web/Dockerfile -t chronelle-web:local .
 ```
 
 Set a unique, URL-safe `POSTGRES_PASSWORD` in the private `.env` file, using
-letters, digits, underscores, or hyphens. Set `ENABLE_DEVELOPMENT_AUTH=true`
+letters, digits, underscores, or hyphens. Also set a distinct
+`RUNTIME_DATABASE_PASSWORD`, 24-128 characters from that same alphabet, for the
+API's `chronelle_runtime` login. Set `ENABLE_DEVELOPMENT_AUTH=true`
 only for trusted preview testing. The stack fails closed if auth is not enabled.
 Start it from the repository root:
 
@@ -108,19 +111,74 @@ capabilities, and no-new-privileges. Documents live in a named volume owned by
 that user; the web cache and temporary files use tmpfs. Health checks verify
 HTTP availability, not continuous database or storage readiness. Do not mount
 an untrusted storage tree or expose development sign-in outside the trusted
-boundary. Separate runtime database roles remain a public-launch prerequisite.
+boundary. The API receives only its runtime database credential, not the owner
+password used by migrations and administrative provisioning.
 
 Stop API writers before upgrading an existing stack:
 
 ```bash
 docker compose --env-file .env -f infrastructure/compose.preview.yaml stop web api
 docker compose --env-file .env -f infrastructure/compose.preview.yaml run --rm migrate
+docker compose --env-file .env -f infrastructure/compose.preview.yaml run --rm runtime-role
 docker compose --env-file .env -f infrastructure/compose.preview.yaml up -d --wait
 ```
 
 Back up the database and matching document volume before upgrades. Keep the
 same password and project name for an existing database. Ordinary `down`
 preserves named volumes; do not add `--volumes` to a persistent preview stack.
+
+### Database privilege boundary
+
+`infrastructure/database/runtime-role.sql` is a version-controlled administrative
+policy, separate from application schema migrations. It is applied transactionally
+after migrations/baselines and before the API starts. The one-shot `runtime-role`
+container uses PostgreSQL's client and mounts the policy read-only. Deploy this
+SQL file alongside the Compose file, even when using registry-hosted images.
+
+The policy requires a dedicated Chronelle database: it revokes public schema,
+table, function, sequence, and database privileges before granting the runtime
+login its explicit operations. Do not apply it to a database shared with other
+applications. Existing runtime roles with elevated attributes, role memberships,
+owned objects, role-specific session settings, or external cluster grants
+(including parameter privileges) are refused. An existing safe login is
+reconfigured and its password updated; stop API writers before rotating this
+secret, then recreate the API container so it receives the new value.
+Never pass the owner credential
+to API processes or use the runtime credential to run migrations.
+
+Runtime can read and create application records, update mutable state, and
+delete revoked resource grants. Audit events, revision snapshots, and command
+history are read/insert only. The migration ledger is inaccessible. Runtime
+cannot create schema or temporary objects, disable integrity triggers, truncate
+tables, or permanently delete canonical objects/relations. Table and column ACL
+drift in the public schema is reset. Default privileges apply to objects created
+by the provisioning administrator, which must also run migrations; its new
+tables/functions receive no automatic runtime grant. Other schemas and object
+creators are outside this policy. Add explicit grants whenever a schema migration
+needs new operations.
+
+Provisioning outside Compose uses a database administrator's `PGHOST`, `PGPORT`,
+`PGDATABASE`, `PGUSER`, and `PGPASSWORD` environment settings, plus the separate
+`RUNTIME_DATABASE_PASSWORD`. An optional `CHRONELLE_RUNTIME_ROLE` must be
+`chronelle_runtime` or that prefix plus an underscore and lowercase alphanumeric
+suffix, up to 63 characters total. Run with startup files disabled:
+
+```bash
+psql -X --no-password --file infrastructure/database/runtime-role.sql
+```
+
+Inject credentials through private environment/secret configuration; do not
+echo them or enable query/parameter tracing during provisioning. The script
+does not modify cluster authentication rules, server log policy, or roles outside
+the configured runtime login. Managed database administrator capabilities and
+secret rotation must be verified on the deployment target.
+
+These privileges limit a compromised API account's administrative reach. They do
+not enforce per-user or per-workspace access inside PostgreSQL: every request
+still needs application authorization, and RLS remains a separate defense-in-depth
+task. Database owners and administrators remain trusted and can bypass this
+boundary. Backup/restore, retention, production storage, and identity are separate
+release requirements.
 
 ## Release validation and publication
 
@@ -131,7 +189,9 @@ API_IMAGE=chronelle-api:local WEB_IMAGE=chronelle-web:local pnpm test:containers
 ```
 
 It creates a unique Compose project with synthetic credentials and an empty
-database, inspects runtime contents and ownership, checks private networking,
+database, inspects runtime contents and ownership, checks private networking and
+restricted database privileges, exercises typed planning, context commands,
+Undo/Redo, restoration, trash recovery and sharing/revocation,
 round-trips an authorized attachment through the web proxy, rejects unauthorized
 downloads, verifies persistence after API restart, and completes an accepted web
 request after SIGTERM. Next.js finishes cleanup with exit code 143; the idle API

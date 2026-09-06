@@ -10,6 +10,27 @@ const ci = workflow("ci.yml");
 const release = workflow("publish-containers.yml");
 
 describe("container release boundary", () => {
+  it("separates runtime credentials from migration and provisioning", () => {
+    const { services } = parse(
+      readFileSync(
+        resolve(root, "infrastructure/compose.preview.yaml"),
+        "utf8",
+      ),
+    );
+    expect(services.api.environment.DATABASE_URL).toBe(
+      `postgresql://chronelle_runtime:\${RUNTIME_DATABASE_PASSWORD:?Set RUNTIME_DATABASE_PASSWORD}@postgres:5432/chronelle`,
+    );
+    expect(services.api.environment).not.toHaveProperty("POSTGRES_PASSWORD");
+    expect(services.api.environment).not.toHaveProperty("PGPASSWORD");
+    expect(services.migrate.environment.DATABASE_URL).toContain("chronelle:");
+    expect(services.api.depends_on["runtime-role"].condition).toBe(
+      "service_completed_successfully",
+    );
+    expect(services["runtime-role"].depends_on.migrate.condition).toBe(
+      "service_completed_successfully",
+    );
+  });
+
   it("makes manual release validation non-publishing by default", () => {
     expect(release.on.workflow_dispatch.inputs.dry_run).toMatchObject({
       type: "boolean",
@@ -49,7 +70,7 @@ describe("container release boundary", () => {
     ]);
     expect(preview.services.web.networks).toEqual(["default", "ingress"]);
     expect(preview.networks.default.internal).toBe(true);
-    expect(preview.services.api.depends_on.migrate.condition).toBe(
+    expect(preview.services.api.depends_on["runtime-role"].condition).toBe(
       "service_completed_successfully",
     );
     expect(preview.services.migrate.healthcheck.disable).toBe(true);

@@ -160,13 +160,14 @@ foreign keys prevent cross-workspace references, and every protected result is
 checked by `AuthorizationService`. Adversarial integration tests cover forged
 workspace selection, relation traversal, projections, search, and files.
 
-PostgreSQL RLS is deferred until the API uses a separate least-privilege runtime
-role and binds each request workspace to a transaction-local database setting.
-The current pooled connection uses the migration owner and does not wrap every
-read in a request transaction. Enabling policies in that model would either be
-bypassable by the owner or risk workspace state leaking between pooled
-statements. Fine-grained permission logic will remain in the application after
-RLS is added.
+The private container stack separates the runtime login from the migration
+owner and applies an explicit PostgreSQL table-privilege policy. See
+[Database privilege boundary](deployment.md#database-privilege-boundary).
+Host development defaults still use the owner account. PostgreSQL RLS remains
+deferred until every protected query binds the request workspace to a
+transaction-local setting; session-level settings could leak between pooled
+requests. Table privileges do not replace per-resource authorization.
+Fine-grained permission logic will remain in the application after RLS is added.
 
 ## Web client boundary
 
