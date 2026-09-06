@@ -60,8 +60,8 @@ try {
     host: runtimeEnvironment.API_HOST,
     port: runtimeEnvironment.API_PORT,
   });
-} catch (error) {
-  app.log.error(error);
+} catch {
+  app.log.error({ code: "startup_failed" }, "The API could not start.");
   await app.close();
   process.exitCode = 1;
 }

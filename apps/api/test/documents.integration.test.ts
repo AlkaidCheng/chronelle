@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { mkdtemp, rm } from "node:fs/promises";
+import { mkdtemp, readdir, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 
@@ -8,6 +8,7 @@ import {
   objectRevisions,
   objects,
   documents,
+  documentTransferAuthorizations,
 } from "@chronelle/db";
 import {
   applyMigrations,
@@ -27,6 +28,7 @@ import {
   relationDeletionResponseSchema,
   shareResponseSchema,
   taskResponseSchema,
+  maximumDocumentSizeBytes,
 } from "@chronelle/schemas";
 import { and, eq, like } from "drizzle-orm";
 import type { FastifyInstance, InjectOptions } from "fastify";
@@ -166,6 +168,97 @@ async function attachFile(
 }
 
 describe.sequential("document attachment API", () => {
+  it("rejects oversized bytes without consuming the upload credential or writing storage and ledgers", async () => {
+    const owner = await signIn("owner@example.com", "Owner");
+    const event = eventResponseSchema.parse(
+      (
+        await request(owner, owner.workspace.id, {
+          method: "POST",
+          url: "/api/events",
+          payload: { displayName: "File limit" },
+        })
+      ).json(),
+    );
+    const authorization = documentUploadAuthorizationResponseSchema.parse(
+      (
+        await request(owner, owner.workspace.id, {
+          method: "POST",
+          url: "/api/documents/upload-url",
+          payload: {
+            parentObjectId: event.id,
+            ...fileMetadata(Buffer.alloc(0), "empty.pdf"),
+          },
+        })
+      ).json(),
+    );
+    const db = testDatabase.connection.db;
+    const beforeTransfers = await db
+      .select()
+      .from(documentTransferAuthorizations);
+    const beforeAudit = await db.select().from(auditEvents);
+    const response = await app.inject({
+      method: "PUT",
+      url: authorization.upload.url,
+      headers: authorization.upload.headers,
+      payload: Buffer.alloc(maximumDocumentSizeBytes + 1),
+    });
+    expect(response.statusCode).toBe(413);
+    expect(response.json()).toMatchObject({
+      error: { code: "payload_too_large" },
+    });
+    expect(await db.select().from(documentTransferAuthorizations)).toEqual(
+      beforeTransfers,
+    );
+    expect(await db.select().from(auditEvents)).toEqual(beforeAudit);
+    expect(await db.select().from(documents)).toEqual([]);
+    expect(await readdir(storageRoot)).toEqual([]);
+  });
+
+  it("accepts the maximum attachment size and finalizes its canonical metadata", async () => {
+    const owner = await signIn("owner@example.com", "Owner");
+    const event = eventResponseSchema.parse(
+      (
+        await request(owner, owner.workspace.id, {
+          method: "POST",
+          url: "/api/events",
+          payload: { displayName: "Large attachment" },
+        })
+      ).json(),
+    );
+    const bytes = Buffer.alloc(maximumDocumentSizeBytes, 7);
+    const metadata = fileMetadata(bytes, "large.pdf");
+    const authorization = documentUploadAuthorizationResponseSchema.parse(
+      (
+        await request(owner, owner.workspace.id, {
+          method: "POST",
+          url: "/api/documents/upload-url",
+          payload: { parentObjectId: event.id, ...metadata },
+        })
+      ).json(),
+    );
+    expect(
+      (
+        await app.inject({
+          method: "PUT",
+          url: authorization.upload.url,
+          headers: authorization.upload.headers,
+          payload: bytes,
+        })
+      ).statusCode,
+    ).toBe(204);
+    const finalized = await request(owner, owner.workspace.id, {
+      method: "POST",
+      url: "/api/documents",
+      payload: { uploadAuthorizationId: authorization.id },
+    });
+    expect(finalized.statusCode).toBe(201);
+    expect(
+      documentAttachmentResponseSchema.parse(finalized.json()).document,
+    ).toMatchObject({
+      sizeBytes: String(maximumDocumentSizeBytes),
+      checksumSha256: metadata.checksumSha256,
+    });
+  });
   it("recovers private file identity and independently removed attachment links", async () => {
     const owner = await signIn("owner@example.com", "Owner");
     const stranger = await signIn("stranger@example.com", "Stranger");

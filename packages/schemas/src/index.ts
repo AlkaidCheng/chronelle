@@ -10,6 +10,7 @@ export {
   type SessionResponse,
 } from "./authentication.js";
 export { healthStatusSchema, type HealthStatus } from "./health.js";
+export { maximumApiBodySizeBytes, apiRequestTimeoutMs } from "./http.js";
 export * from "./revisions.js";
 export * from "./recovery.js";
 export * from "./event-context.js";
