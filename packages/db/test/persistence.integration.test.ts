@@ -116,7 +116,7 @@ describe.sequential("persistence kernel", () => {
         { DATABASE_URL: testDatabase.databaseUrl },
         migrationDirectory,
       ),
-    ).resolves.toBe(8);
+    ).resolves.toBe(9);
     await expect(
       applyMigrations(
         { DATABASE_URL: testDatabase.databaseUrl },
@@ -135,6 +135,9 @@ describe.sequential("persistence kernel", () => {
     expect(installedTables.map(({ tablename }) => tablename)).toEqual([
       "audit_events",
       "chronelle_schema_migrations",
+      "command_changes",
+      "command_receipts",
+      "command_stacks",
       "document_transfer_authorizations",
       "documents",
       "event_context_commands",
@@ -145,6 +148,7 @@ describe.sequential("persistence kernel", () => {
       "objects",
       "reminders",
       "resource_grants",
+      "reversible_commands",
       "tasks",
       "users",
       "workspace_members",

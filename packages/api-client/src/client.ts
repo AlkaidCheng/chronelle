@@ -1,4 +1,10 @@
 import {
+  commandReceiptSchema,
+  commandStateResponseSchema,
+  type CommandExecutePayload,
+  type CommandTransitionRequest,
+  type CommandReceipt,
+  type CommandStateResponse,
   apiErrorResponseSchema,
   objectDeletionResponseSchema,
   relationListResponseSchema,
@@ -151,6 +157,34 @@ export class ChronelleApiClient {
       developmentSignInResponseSchema,
       jsonRequest(input, "POST"),
       false,
+    );
+  }
+
+  getCommandState(): Promise<CommandStateResponse> {
+    return this.#request("/api/commands", commandStateResponseSchema);
+  }
+
+  executeCommand(input: CommandExecutePayload): Promise<CommandReceipt> {
+    return this.#request(
+      "/api/commands",
+      commandReceiptSchema,
+      jsonRequest(input, "POST"),
+    );
+  }
+
+  undoCommand(input: CommandTransitionRequest): Promise<CommandReceipt> {
+    return this.#request(
+      "/api/commands/undo",
+      commandReceiptSchema,
+      jsonRequest(input, "POST"),
+    );
+  }
+
+  redoCommand(input: CommandTransitionRequest): Promise<CommandReceipt> {
+    return this.#request(
+      "/api/commands/redo",
+      commandReceiptSchema,
+      jsonRequest(input, "POST"),
     );
   }
 

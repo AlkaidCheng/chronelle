@@ -4,6 +4,14 @@ The API accepts JSON and returns JSON under `/api`. Protected routes require a
 development or production-provider bearer token. Send `x-workspace-id` when
 operating outside the identity's personal workspace.
 
+## Reversible content commands
+
+`GET /api/commands` reads the current user's workspace stack. `POST /api/commands`
+applies a bounded batch of Event/Task content edits; `POST /api/commands/undo` and
+`POST /api/commands/redo` transition its pinned head. Every mutation requires an
+operation ID and expected stack version. See [Commands](commands.md) for typed
+examples, object preconditions, idempotency, and explicit eligibility limits.
+
 ## Atomic Event resource creation
 
 Use `POST /api/events/:id/resources` with `commandId`, `resource`, and optional

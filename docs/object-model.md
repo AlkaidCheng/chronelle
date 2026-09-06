@@ -49,6 +49,12 @@ client records.
 
 ## Relationships and projections
 
+Reversible commands reference before/after versions in `object_revisions` and
+keep canonical identity unchanged. They store no duplicate typed content. Undo
+and Redo each advance the live version and append another snapshot. The current
+allowlist covers Event/Task content, not security state or historical financial
+facts. See [Reversible content commands](commands.md).
+
 `object_relations` connects canonical identities and carries contextual
 metadata. The initial relation vocabulary is:
 

@@ -54,6 +54,77 @@ const documentAttachment = {
 } as const;
 
 describe("ChronelleApiClient", () => {
+  it("preserves command IDs and stack preconditions across typed execute, undo, and redo requests", async () => {
+    const commandId = documentId;
+    const receipt = {
+      operationId: commandId,
+      commandId,
+      direction: "execute",
+      stackVersion: 1,
+      objects: [{ id: event.id, version: 2 }],
+    };
+    const fetch = vi
+      .fn<typeof globalThis.fetch>()
+      .mockResolvedValueOnce(
+        Response.json({ version: 0, undo: null, redo: null }),
+      )
+      .mockResolvedValueOnce(Response.json(receipt))
+      .mockResolvedValueOnce(Response.json({ ...receipt, direction: "undo" }))
+      .mockResolvedValueOnce(Response.json({ ...receipt, direction: "redo" }));
+    const client = new ChronelleApiClient({
+      fetch,
+      getCredential: () => ({
+        accessToken: "test-session",
+        workspaceId: event.workspaceId,
+      }),
+    });
+    expect(await client.getCommandState()).toEqual({
+      version: 0,
+      undo: null,
+      redo: null,
+    });
+    const command = {
+      operationId: commandId,
+      expectedStackVersion: 0,
+      edits: [
+        {
+          objectType: "event" as const,
+          objectId: event.id,
+          patch: { expectedVersion: 1, displayName: "Updated" },
+        },
+      ],
+    };
+    expect(await client.executeCommand(command)).toEqual(receipt);
+    const undo = {
+      operationId: relationId,
+      commandId,
+      expectedStackVersion: 1,
+    };
+    const redo = {
+      ...undo,
+      operationId: uploadAuthorizationId,
+      expectedStackVersion: 2,
+    };
+    await client.undoCommand(undo);
+    await client.redoCommand(redo);
+    expect(fetch.mock.calls.map(([url]) => url)).toEqual([
+      "/api/commands",
+      "/api/commands",
+      "/api/commands/undo",
+      "/api/commands/redo",
+    ]);
+    for (const [index, input] of [
+      [1, command],
+      [2, undo],
+      [3, redo],
+    ] as const) {
+      expect(JSON.parse(String(fetch.mock.calls[index]?.[1]?.body))).toEqual(
+        input,
+      );
+      const sentHeaders = new Headers(fetch.mock.calls[index]?.[1]?.headers);
+      expect(sentHeaders.get("x-workspace-id")).toBe(event.workspaceId);
+    }
+  });
   it("sends versioned deletion and recovery requests without duplicating object data", async () => {
     const fetch = vi
       .fn<typeof globalThis.fetch>()

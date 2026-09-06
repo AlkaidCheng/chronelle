@@ -57,6 +57,12 @@ IDs sortable without relying on database-version-specific UUID functions.
 
 ## Runtime boundaries
 
+`ReversibleCommandService` owns an explicit, bounded Event/Task content command
+boundary. It references canonical revisions, applies compound edits through the
+typed services, and persists user/workspace Undo/Redo stacks and idempotent
+receipts in the same transaction. Existing mutation endpoints remain independent.
+See [Reversible content commands](commands.md) for eligibility and rollout.
+
 The Fastify API resolves each bearer credential through an `AuthProvider`, then
 maps the resulting external identity to a Chronelle user and active workspace.
 The development adapter issues random opaque tokens, stores only token digests,

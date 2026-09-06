@@ -214,6 +214,81 @@ export const eventContextCommands = pgTable(
   ],
 );
 
+export const commandStacks = pgTable(
+  "command_stacks",
+  {
+    workspaceId: uuid("workspace_id").notNull(),
+    userId: uuid("user_id").notNull(),
+    version: integer("version").notNull().default(0),
+    undoIds: uuid("undo_ids")
+      .array()
+      .notNull()
+      .default(sql`'{}'`),
+    redoIds: uuid("redo_ids")
+      .array()
+      .notNull()
+      .default(sql`'{}'`),
+    expectedVersions: jsonb("expected_versions")
+      .$type<Record<string, number>>()
+      .notNull()
+      .default(sql`'{}'::jsonb`),
+  },
+  (table) => [primaryKey({ columns: [table.workspaceId, table.userId] })],
+);
+
+export const reversibleCommands = pgTable(
+  "reversible_commands",
+  {
+    workspaceId: uuid("workspace_id").notNull(),
+    userId: uuid("user_id").notNull(),
+    id: uuid("id").notNull(),
+    createdAt: createCreatedAtColumn(),
+  },
+  (table) => [
+    primaryKey({ columns: [table.workspaceId, table.userId, table.id] }),
+  ],
+);
+
+export const commandChanges = pgTable(
+  "command_changes",
+  {
+    workspaceId: uuid("workspace_id").notNull(),
+    userId: uuid("user_id").notNull(),
+    commandId: uuid("command_id").notNull(),
+    objectId: uuid("object_id").notNull(),
+    beforeVersion: integer("before_version").notNull(),
+    afterVersion: integer("after_version").notNull(),
+  },
+  (table) => [
+    primaryKey({
+      columns: [
+        table.workspaceId,
+        table.userId,
+        table.commandId,
+        table.objectId,
+      ],
+    }),
+  ],
+);
+
+export const commandReceipts = pgTable(
+  "command_receipts",
+  {
+    workspaceId: uuid("workspace_id").notNull(),
+    userId: uuid("user_id").notNull(),
+    operationId: uuid("operation_id").notNull(),
+    commandId: uuid("command_id").notNull(),
+    requestHash: text("request_hash").notNull(),
+    auditEventId: uuid("audit_event_id").notNull(),
+    receipt: jsonb("receipt").$type<Record<string, unknown>>().notNull(),
+  },
+  (table) => [
+    primaryKey({
+      columns: [table.workspaceId, table.userId, table.operationId],
+    }),
+  ],
+);
+
 export const events = pgTable("events", {
   objectId: uuid("object_id").primaryKey(),
   workspaceId: uuid("workspace_id").notNull(),
