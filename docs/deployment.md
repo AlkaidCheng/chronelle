@@ -200,6 +200,41 @@ and the deployment's termination deadline still need validation on the final tar
 It removes only its disposable containers, network, and volumes on completion
 or failure. Docker Engine with Compose and Node.js 24 or newer are required.
 
+The same gate runs a database-and-files recovery drill after stopping the
+fixture's API and web writers. It captures a PostgreSQL custom-format dump and
+the matching document volume, then restores into a second UUID-owned Compose
+project with distinct, empty volumes. A deliberately truncated dump must fail
+without leaving partial schema or data; the complete dump is restored in one
+transaction. The normal migration and revision-baseline startup runs afterward.
+
+The drill compares every public table before and after restore and startup,
+including canonical IDs, typed records, relations, grants, audit events,
+revisions, deleted objects, and the migration ledger. Restored files retain
+private modes and runtime ownership. Through the web proxy, it verifies the
+same identities and history, Viewer reads without writes, denied unrelated
+access, live downloads, and recovery of a trashed binary attachment. Restoring
+an Event revision and recovering the Document append history without changing
+prior audit/revision rows or the source database. Development sessions must be
+created again after restart.
+
+This is a synthetic release test, not a backup service or an operator restore
+command. Archives remain in process memory, with a 16 MiB output limit and a
+three-minute timeout per Docker command. No archive is accepted from an
+external path or retained as a release artifact. Only archives created by the
+drill are trusted for SQL execution and file extraction. Cleanup removes only
+the two disposable projects, never a persistent preview stack. Abruptly killing
+the runner or losing the Docker daemon can leave its temporary resources behind.
+
+Production recovery still requires encrypted, access-controlled off-host
+backups, monitored scheduling and retention, credential/key recovery, and
+deployment-scale restore timing. Database roles and ownership are provisioned
+by the target environment, not imported by this drill; PostgreSQL role/ACL
+recovery needs its own operational procedure. Stop all writers to obtain a
+matching database/file pair unless the storage deployment provides a verified
+snapshot protocol. A logical database dump alone does not make file storage
+consistent. Live Tencent COS backup/version retention and point-in-time
+recovery are not exercised here.
+
 Tag and manual releases call the same CI workflow from the triggering revision.
 Manual runs default to `dry_run=true`: they validate, transfer, load, and verify
 the images without registry login or pushes. Set `dry_run=false` explicitly to
