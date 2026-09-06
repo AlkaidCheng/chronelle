@@ -4,6 +4,13 @@ Most `/api` routes accept and return JSON; document transfers carry file bytes.
 Protected routes require a development or production-provider bearer token.
 Send `x-workspace-id` when operating outside the identity's personal workspace.
 
+Protected database reads evaluate permissions and assemble data in the same
+snapshot. A read in progress may finish with the earlier authorized version
+after a concurrent revocation, but cannot combine that access with later private
+content. Subsequent reads use current policy; separate requests are not a shared
+snapshot. Response schemas and mutation/version preconditions are unchanged.
+See [Consistent reads](permissions.md#consistent-reads).
+
 ## HTTP limits and errors
 
 Ordinary request bodies are limited to 1 MiB. Only
