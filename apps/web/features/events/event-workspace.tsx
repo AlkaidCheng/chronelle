@@ -11,6 +11,7 @@ import {
 import { ErrorNotice, LoadingState } from "../../components/feedback";
 import {
   BellIcon,
+  ArrowIcon,
   CalendarIcon,
   CheckIcon,
   ClockIcon,
@@ -34,21 +35,13 @@ import { SharingPanel } from "./sharing-panel";
 import { HistoryButton } from "../history/history-button";
 import { LifecycleButton } from "../recovery/lifecycle-provider";
 import { RemovedLinksPanel } from "../recovery/removed-links-panel";
-
-const tabs = [
-  { id: "overview", label: "Overview" },
-  { id: "todos", label: "To-dos" },
-  { id: "calendar", label: "Calendar" },
-  { id: "timeline", label: "Timeline" },
-  { id: "itinerary", label: "Itinerary" },
-  { id: "expenses", label: "Expenses" },
-  { id: "reminders", label: "Reminders" },
-  { id: "files", label: "Files" },
-  { id: "sharing", label: "Sharing" },
-  { id: "removed-links", label: "Removed links" },
-] as const;
-
-type TabId = (typeof tabs)[number]["id"];
+import {
+  eventViews as tabs,
+  type EventView as TabId,
+} from "../../lib/event-views";
+import { useEventView } from "../../lib/use-event-view";
+import { useClock } from "../../lib/use-clock";
+import { nextPlanningItem } from "../../lib/upcoming-plan";
 
 function OverviewCard({
   count,
@@ -67,14 +60,15 @@ function OverviewCard({
       <span>{label}</span>
       <strong>{count}</strong>
       <span aria-hidden="true" className="card-arrow">
-        -&gt;
+        <ArrowIcon />
       </span>
     </button>
   );
 }
 
 export function EventWorkspace({ eventId }: { readonly eventId: string }) {
-  const [activeTab, setActiveTab] = useState<TabId>("overview");
+  const [activeTab, setActiveTab] = useEventView();
+  const now = useClock();
   const queries = useEventWorkspaceQueries(eventId, activeTab);
   const [isEditingEvent, setIsEditingEvent] = useState(false);
   const tabButtons = useRef(new Map<TabId, HTMLButtonElement>());
@@ -125,11 +119,9 @@ export function EventWorkspace({ eventId }: { readonly eventId: string }) {
   const visibleTabs = tabs.filter((tab) => tab.id !== "sharing" || canShare);
   const shownTab =
     activeTab === "sharing" && !canShare ? "overview" : activeTab;
-  if (shownTab !== activeTab) {
-    setActiveTab(shownTab);
-  }
+  const nextItem = nextPlanningItem(detail, now);
   const activeProjection = {
-    overview: queries.timeline,
+    overview: undefined,
     todos: queries.todos,
     calendar: queries.calendar,
     timeline: queries.timeline,
@@ -198,7 +190,7 @@ export function EventWorkspace({ eventId }: { readonly eventId: string }) {
         </div>
         <div className="event-title-row">
           <div>
-            <p className="eyebrow">Event workspace</p>
+            <p className="eyebrow">Your event plan</p>
             <h1>{event.displayName}</h1>
             <p className="event-date">
               <CalendarIcon />
@@ -211,21 +203,26 @@ export function EventWorkspace({ eventId }: { readonly eventId: string }) {
                   }`}
             </p>
           </div>
-          <HistoryButton objectId={event.id} displayName={event.displayName} />
-          {canEdit ? <LifecycleButton target={event} /> : null}
-          {canEdit ? (
-            <button
-              className="button button-secondary"
-              onClick={() => setIsEditingEvent((value) => !value)}
-              type="button"
-            >
-              {isEditingEvent ? "Close editor" : "Edit event"}
-            </button>
-          ) : (
-            <span className="read-only-badge">
-              <LockIcon /> Viewer access
-            </span>
-          )}
+          <div className="event-actions">
+            <HistoryButton
+              objectId={event.id}
+              displayName={event.displayName}
+            />
+            {canEdit ? <LifecycleButton target={event} /> : null}
+            {canEdit ? (
+              <button
+                className="button button-secondary"
+                onClick={() => setIsEditingEvent((value) => !value)}
+                type="button"
+              >
+                {isEditingEvent ? "Close editor" : "Edit event"}
+              </button>
+            ) : (
+              <span className="read-only-badge">
+                <LockIcon /> Viewer access
+              </span>
+            )}
+          </div>
         </div>
         {isEditingEvent && canEdit ? (
           <div className="event-editor surface">
@@ -237,6 +234,20 @@ export function EventWorkspace({ eventId }: { readonly eventId: string }) {
         ) : null}
       </header>
 
+      <label className="mobile-view-select compact-field">
+        <span>Event view</span>
+        <select
+          aria-label="Event view"
+          value={shownTab}
+          onChange={(event) => setActiveTab(event.target.value as TabId)}
+        >
+          {visibleTabs.map((tab) => (
+            <option value={tab.id} key={tab.id}>
+              {tab.label}
+            </option>
+          ))}
+        </select>
+      </label>
       <div aria-label="Event views" className="tab-list" role="tablist">
         {visibleTabs.map((tab) => (
           <button
@@ -278,15 +289,14 @@ export function EventWorkspace({ eventId }: { readonly eventId: string }) {
           />
         ) : (
           <>
-            {shownTab === "overview" && timeline !== undefined ? (
+            {shownTab === "overview" ? (
               <section className="planning-panel overview-panel">
                 <div className="overview-intro">
                   <span className="object-label">At a glance</span>
                   <h2>Your event, connected.</h2>
                   <p>
-                    Each card is a view over the canonical objects in this
-                    event. Changes flow across the workspace without copied
-                    records.
+                    A little structure, a clearer plan. Pick a view to keep the
+                    details moving.
                   </p>
                 </div>
                 {detail.lockedRelationCount > 0 ? (
@@ -342,15 +352,16 @@ export function EventWorkspace({ eventId }: { readonly eventId: string }) {
                 <div className="next-up surface-subtle">
                   <ClockIcon />
                   <div>
-                    <span className="object-label">Next on the timeline</span>
-                    {timeline.items[0] === undefined ? (
+                    <span className="object-label">Next up</span>
+                    {nextItem === undefined ? (
                       <p>
-                        Add a dated task, schedule item, expense, or reminder.
+                        Nothing upcoming. Add a schedule item, a task with a due
+                        date, or a reminder when you are ready.
                       </p>
                     ) : (
                       <>
-                        <h3>{timeline.items[0].displayName}</h3>
-                        <p>{formatDateTime(timeline.items[0].occursAt)}</p>
+                        <h3>{nextItem.displayName}</h3>
+                        <p>{formatDateTime(nextItem.occursAt)}</p>
                       </>
                     )}
                   </div>

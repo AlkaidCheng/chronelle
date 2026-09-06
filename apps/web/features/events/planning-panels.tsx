@@ -179,7 +179,7 @@ export function TasksPanel({
   return (
     <section className="planning-panel">
       <PanelHeading
-        description="Canonical tasks, sorted by due date and updated wherever they appear."
+        description="Keep the next steps clear. Tasks are sorted by due date and stay in sync across your plans."
         title="To-dos"
       />
       {canEdit ? <TaskForm eventId={eventId} /> : null}
@@ -292,7 +292,7 @@ export function CalendarPanel({
             </button>
           ) : undefined
         }
-        description="Scheduled Events shown directly from their canonical start and end times."
+        description="See what is happening and when. Schedule changes stay in sync with your itinerary."
         title="Calendar"
       />
       {isAdding && canEdit ? (
@@ -384,12 +384,12 @@ export function TimelinePanel({
   return (
     <section className="planning-panel">
       <PanelHeading
-        description="One chronological projection across scheduled work, costs, reminders, and Events."
+        description="The full picture, in order: your schedule, tasks, expenses, and reminders."
         title="Timeline"
       />
       {timeline.items.length === 0 ? (
         <EmptyState
-          description="Dated planning objects will appear here automatically."
+          description="Add dates to your plans and they will appear here automatically."
           title="No timeline entries"
         />
       ) : (
@@ -430,7 +430,7 @@ export function ItineraryPanel({
       />
       {items.length === 0 ? (
         <EmptyState
-          description="Calendar items appear here without creating itinerary copies."
+          description="Add items to your calendar to build a running order for the day."
           title="No itinerary yet"
         />
       ) : (
@@ -573,7 +573,7 @@ export function RemindersPanel({
   return (
     <section className="planning-panel">
       <PanelHeading
-        description="Canonical alerts tied to the Event permission scope."
+        description="Keep track of what needs a nudge. Reminders are recorded here; notifications are not sent yet."
         title="Reminders"
       />
       {canEdit ? <ReminderForm eventId={eventId} /> : null}

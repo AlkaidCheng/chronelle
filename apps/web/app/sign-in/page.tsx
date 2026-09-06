@@ -39,8 +39,8 @@ export default function SignInPage() {
           <p className="eyebrow eyebrow-light">Life, thoughtfully connected</p>
           <h1>Make every plan part of your story.</h1>
           <p>
-            Bring schedules, work, costs, and timely reminders together around
-            one canonical event.
+            The people, plans, and little details that make life yours. Bring
+            them together, one event at a time.
           </p>
         </div>
         <p className="sign-in-footnote">Development access</p>
@@ -48,11 +48,12 @@ export default function SignInPage() {
       <section className="sign-in-form-wrap">
         <form className="sign-in-form" onSubmit={handleSubmit}>
           <div>
+            <span className="preview-label">Development preview</span>
             <p className="eyebrow">Welcome to Chronelle</p>
             <h2>Open your workspace</h2>
             <p className="form-intro">
-              Enter a development identity. Chronelle will create or reopen its
-              personal workspace.
+              Try your planning workspace with a test name and email. Use the
+              same email to return to your plans.
             </p>
           </div>
           <label className="field">
@@ -86,8 +87,9 @@ export default function SignInPage() {
             {signIn.isPending ? "Opening workspace..." : "Continue"}
           </button>
           <p className="privacy-note">
-            This local adapter uses an expiring in-memory session. It is not a
-            production identity provider.
+            For trusted testing only. Email ownership is not verified, so anyone
+            with an email can access that development identity. Do not use real
+            personal data.
           </p>
         </form>
       </section>
