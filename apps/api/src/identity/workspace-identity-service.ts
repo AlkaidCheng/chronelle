@@ -8,9 +8,9 @@ import {
   type UserRow,
   type WorkspaceRow,
 } from "@chronelle/db";
-import type {
-  AuthorizationService,
-  UserPrincipal,
+import {
+  withReadAuthorization,
+  type UserPrincipal,
 } from "@chronelle/authorization";
 import { and, eq, inArray } from "drizzle-orm";
 
@@ -24,12 +24,10 @@ export interface IdentitySession {
 }
 
 export class WorkspaceIdentityService {
-  readonly #authorization: AuthorizationService;
   readonly #database: Database;
 
-  constructor(database: Database, authorization: AuthorizationService) {
+  constructor(database: Database) {
     this.#database = database;
-    this.#authorization = authorization;
   }
 
   async signIn(
@@ -112,59 +110,69 @@ export class WorkspaceIdentityService {
     identity: AuthIdentity,
     requestedWorkspaceId?: string,
   ): Promise<IdentitySession> {
-    const user = await this.#findUser(this.#database, identity);
-    if (user === undefined) {
-      throw new UnauthenticatedError();
-    }
-
-    const personalWorkspace = await this.#findPersonalWorkspace(
+    return withReadAuthorization(
       this.#database,
-      user.id,
+      async (transaction, authorization) => {
+        const user = await this.#findUser(transaction, identity);
+        if (user === undefined) {
+          throw new UnauthenticatedError();
+        }
+
+        const personalWorkspace = await this.#findPersonalWorkspace(
+          transaction,
+          user.id,
+        );
+        if (personalWorkspace === undefined) {
+          throw new UnauthenticatedError();
+        }
+
+        const workspaceId = requestedWorkspaceId ?? personalWorkspace.id;
+        if (!(await authorization.canAccessWorkspace(user.id, workspaceId))) {
+          throw new WorkspaceUnavailableError();
+        }
+
+        const [workspace] = await transaction
+          .select()
+          .from(workspaces)
+          .where(eq(workspaces.id, workspaceId))
+          .limit(1);
+        if (workspace === undefined) {
+          throw new WorkspaceUnavailableError();
+        }
+
+        return this.#toSession(user, workspace);
+      },
     );
-    if (personalWorkspace === undefined) {
-      throw new UnauthenticatedError();
-    }
-
-    const workspaceId = requestedWorkspaceId ?? personalWorkspace.id;
-    if (!(await this.#authorization.canAccessWorkspace(user.id, workspaceId))) {
-      throw new WorkspaceUnavailableError();
-    }
-
-    const [workspace] = await this.#database
-      .select()
-      .from(workspaces)
-      .where(eq(workspaces.id, workspaceId))
-      .limit(1);
-    if (workspace === undefined) {
-      throw new WorkspaceUnavailableError();
-    }
-
-    return this.#toSession(user, workspace);
   }
 
   async listAccessibleWorkspaces(
     userId: string,
     activeWorkspaceId: string,
   ): Promise<readonly WorkspaceRow[]> {
-    const availableWorkspaceIds =
-      await this.#authorization.listAccessibleWorkspaceIds(userId);
-    const availableWorkspaces =
-      availableWorkspaceIds.length === 0
-        ? []
-        : await this.#database
-            .select()
-            .from(workspaces)
-            .where(inArray(workspaces.id, availableWorkspaceIds));
-    availableWorkspaces.sort((first, second) => {
-      if (first.id === activeWorkspaceId) {
-        return -1;
-      }
-      if (second.id === activeWorkspaceId) {
-        return 1;
-      }
-      return first.displayName.localeCompare(second.displayName);
-    });
-    return availableWorkspaces;
+    return withReadAuthorization(
+      this.#database,
+      async (transaction, authorization) => {
+        const availableWorkspaceIds =
+          await authorization.listAccessibleWorkspaceIds(userId);
+        const availableWorkspaces =
+          availableWorkspaceIds.length === 0
+            ? []
+            : await transaction
+                .select()
+                .from(workspaces)
+                .where(inArray(workspaces.id, availableWorkspaceIds));
+        availableWorkspaces.sort((first, second) => {
+          if (first.id === activeWorkspaceId) {
+            return -1;
+          }
+          if (second.id === activeWorkspaceId) {
+            return 1;
+          }
+          return first.displayName.localeCompare(second.displayName);
+        });
+        return availableWorkspaces;
+      },
+    );
   }
 
   async #findUser(

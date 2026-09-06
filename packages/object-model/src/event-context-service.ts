@@ -44,10 +44,10 @@ export class EventContextService {
           id: eventId,
           workspaceId: principal.workspaceId,
         });
-        const objects = new EventPlanningObjectService(
-          transaction,
+        const objects = new EventPlanningObjectService({
+          database: transaction,
           authorization,
-        );
+        });
         const event = await objects.getEvent(principal, eventId);
         if (event.permissionScopeId !== event.id)
           throw new InvalidObjectStateError(
@@ -106,10 +106,10 @@ export class EventContextService {
               return objects.createReminder(context, fields);
           }
         })();
-        const relation = await new ObjectRelationService(
-          transaction,
+        const relation = await new ObjectRelationService({
+          database: transaction,
           authorization,
-        ).create(context, {
+        }).create(context, {
           sourceObjectId: eventId,
           targetObjectId: resource.id,
           relationType: "includes",

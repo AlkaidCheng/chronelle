@@ -58,7 +58,7 @@ export function createAppDependencies(
   const authorization = new AuthorizationService(
     new DrizzleAuthorizationStore(connection.db),
   );
-  const objects = new EventPlanningObjectService(connection.db, authorization);
+  const objects = new EventPlanningObjectService(connection.db);
   const storage =
     options.storage ??
     new LocalFilesystemStorageProvider({
@@ -78,17 +78,17 @@ export function createAppDependencies(
         transferTtlMs: options.documentTransferTtlMs,
       },
     ),
-    identity: new WorkspaceIdentityService(connection.db, authorization),
+    identity: new WorkspaceIdentityService(connection.db),
     objects,
-    relations: new ObjectRelationService(connection.db, authorization),
+    relations: new ObjectRelationService(connection.db),
     revisions: new ObjectRevisionService(connection.db),
     restoration: new ObjectRestorationService(connection.db),
     recovery: new ObjectRecoveryService(connection.db),
     eventContexts: new EventContextService(connection.db),
     commands: new ReversibleCommandService(connection.db),
-    search: new CanonicalObjectSearchService(connection.db, authorization),
-    shares: new ResourceGrantService(connection.db, authorization),
-    projections: new EventPlanningProjectionService(connection.db, objects),
+    search: new CanonicalObjectSearchService(connection.db),
+    shares: new ResourceGrantService(connection.db),
+    projections: new EventPlanningProjectionService(connection.db),
   };
 }
 

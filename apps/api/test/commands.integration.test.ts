@@ -5,11 +5,7 @@ import {
   createTestDatabase,
   type TestDatabase,
 } from "@chronelle/db/testing";
-import {
-  withStableAuthorization,
-  AuthorizationService,
-  DrizzleAuthorizationStore,
-} from "@chronelle/authorization";
+import { withStableAuthorization } from "@chronelle/authorization";
 import { EventPlanningObjectService } from "@chronelle/object-model";
 import {
   commandReceiptSchema,
@@ -220,26 +216,30 @@ describe("reversible content commands", () => {
     const command = await forward(owner, [edit(event.id, 1, "Command edit")]);
     const held = Promise.withResolvers<void>();
     const release = Promise.withResolvers<void>();
-    const direct = database.connection.db.transaction(async (transaction) => {
-      const objects = new EventPlanningObjectService(
-        transaction,
-        new AuthorizationService(new DrizzleAuthorizationStore(transaction)),
-      );
-      await objects.updateEvent(
-        {
-          principal: {
-            userId: owner.user.id,
-            workspaceId: owner.workspace.id,
-            type: "user",
+    const direct = withStableAuthorization(
+      database.connection.db,
+      owner.workspace.id,
+      async (transaction, authorization) => {
+        const objects = new EventPlanningObjectService({
+          database: transaction,
+          authorization,
+        });
+        await objects.updateEvent(
+          {
+            principal: {
+              userId: owner.user.id,
+              workspaceId: owner.workspace.id,
+              type: "user",
+            },
+            requestId: createId(),
           },
-          requestId: createId(),
-        },
-        event.id,
-        { expectedVersion: 2, displayName: "Direct edit" },
-      );
-      held.resolve();
-      await release.promise;
-    });
+          event.id,
+          { expectedVersion: 2, displayName: "Direct edit" },
+        );
+        held.resolve();
+        await release.promise;
+      },
+    );
     await held.promise;
     const waiting = transition(owner, "undo", {
       operationId: createId(),

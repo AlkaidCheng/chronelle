@@ -1,5 +1,4 @@
 import type {
-  AuthorizationService,
   GrantMutationContext,
   ResourceGrantResource,
   ResourceGrantService,
@@ -22,7 +21,6 @@ import { requirePrincipal } from "../request-context.js";
 import { parseRequest } from "../request-validation.js";
 
 export interface SharingRouteDependencies {
-  readonly authorization: AuthorizationService;
   readonly objects: EventPlanningObjectService;
   readonly shares: ResourceGrantService;
 }
@@ -49,10 +47,9 @@ export function registerSharingRoutes(
     async (request) => {
       const { id } = parseRequest(objectIdParamsSchema, request.params);
       const principal = requirePrincipal(request);
-      await dependencies.objects.getObject(principal, id);
-      const actions = await dependencies.authorization.allowedActions(
+      const actions = await dependencies.objects.getAllowedActions(
         principal,
-        { id, workspaceId: principal.workspaceId },
+        id,
       );
       return objectAccessResponseSchema.parse({ resourceId: id, actions });
     },

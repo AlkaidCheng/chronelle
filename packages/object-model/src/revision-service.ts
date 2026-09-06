@@ -1,7 +1,6 @@
 import {
   AuthorizationDeniedError,
-  AuthorizationService,
-  DrizzleAuthorizationStore,
+  withReadAuthorization,
   type UserPrincipal,
 } from "@chronelle/authorization";
 import { objectRevisions, users, type Database } from "@chronelle/db";
@@ -32,11 +31,9 @@ export class ObjectRevisionService {
     objectId: string,
     input: RevisionListQuery,
   ) {
-    return this.database.transaction(
-      async (transaction) => {
-        const authorization = new AuthorizationService(
-          new DrizzleAuthorizationStore(transaction),
-        );
+    return withReadAuthorization(
+      this.database,
+      async (transaction, authorization) => {
         await authorization.assertCan(principal, "view", {
           id: objectId,
           workspaceId: principal.workspaceId,
@@ -73,16 +70,13 @@ export class ObjectRevisionService {
               : null,
         };
       },
-      { isolationLevel: "repeatable read", accessMode: "read only" },
     );
   }
 
   async get(principal: UserPrincipal, objectId: string, version: number) {
-    return this.database.transaction(
-      async (transaction) => {
-        const authorization = new AuthorizationService(
-          new DrizzleAuthorizationStore(transaction),
-        );
+    return withReadAuthorization(
+      this.database,
+      async (transaction, authorization) => {
         await authorization.assertCan(principal, "view", {
           id: objectId,
           workspaceId: principal.workspaceId,
@@ -114,7 +108,6 @@ export class ObjectRevisionService {
           snapshot: revisionSnapshotSchema.parse(row.snapshot),
         };
       },
-      { isolationLevel: "repeatable read", accessMode: "read only" },
     );
   }
 }

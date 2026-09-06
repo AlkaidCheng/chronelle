@@ -1,7 +1,7 @@
 import {
   AuthorizationDeniedError,
-  AuthorizationService,
-  DrizzleAuthorizationStore,
+  withReadAuthorization,
+  type AuthorizationService,
   withStableAuthorization,
   type UserPrincipal,
 } from "@chronelle/authorization";
@@ -299,18 +299,15 @@ export class ObjectRestorationService {
       authorization: AuthorizationService,
     ) => Promise<Value>,
   ) {
-    return this.#database.transaction(
-      async (transaction) => {
-        const authorization = new AuthorizationService(
-          new DrizzleAuthorizationStore(transaction),
-        );
+    return withReadAuthorization(
+      this.#database,
+      async (transaction, authorization) => {
         await authorization.assertCan(principal, "view", {
           id: objectId,
           workspaceId: principal.workspaceId,
         });
         return read(transaction, authorization);
       },
-      { isolationLevel: "repeatable read", accessMode: "read only" },
     );
   }
 }

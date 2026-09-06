@@ -1,7 +1,6 @@
 import {
   AuthorizationDeniedError,
-  AuthorizationService,
-  DrizzleAuthorizationStore,
+  withReadAuthorization,
   recoveryAccessPredicate,
   withStableAuthorization,
   type UserPrincipal,
@@ -34,49 +33,44 @@ export class ObjectRecoveryService {
   }
 
   async list(principal: UserPrincipal, input: TrashQuery) {
-    return this.#database.transaction(
-      async (transaction) => {
-        const rows = await transaction
-          .select(trashFields)
-          .from(objects)
-          .where(
-            and(
-              recoveryAccessPredicate(principal, new Date()),
-              isNotNull(objects.deletedAt),
-              input.objectType === undefined
-                ? undefined
-                : eq(objects.objectType, input.objectType),
-              input.scopeId === undefined
-                ? undefined
-                : eq(objects.permissionScopeId, input.scopeId),
-              input.beforeId === undefined
-                ? undefined
-                : lt(objects.id, input.beforeId),
-            ),
-          )
-          .orderBy(desc(objects.id))
-          .limit(input.limit + 1);
-        const items = rows.slice(0, input.limit).map((row) => {
-          if (row.deletedAt === null)
-            throw new InvalidObjectStateError("Expected a deleted object.");
-          return { ...row, deletedAt: row.deletedAt.toISOString() };
-        });
-        return {
-          items,
-          nextBeforeId:
-            rows.length > input.limit ? (items.at(-1)?.id ?? null) : null,
-        };
-      },
-      { isolationLevel: "repeatable read", accessMode: "read only" },
-    );
+    return withReadAuthorization(this.#database, async (transaction) => {
+      const rows = await transaction
+        .select(trashFields)
+        .from(objects)
+        .where(
+          and(
+            recoveryAccessPredicate(principal, new Date()),
+            isNotNull(objects.deletedAt),
+            input.objectType === undefined
+              ? undefined
+              : eq(objects.objectType, input.objectType),
+            input.scopeId === undefined
+              ? undefined
+              : eq(objects.permissionScopeId, input.scopeId),
+            input.beforeId === undefined
+              ? undefined
+              : lt(objects.id, input.beforeId),
+          ),
+        )
+        .orderBy(desc(objects.id))
+        .limit(input.limit + 1);
+      const items = rows.slice(0, input.limit).map((row) => {
+        if (row.deletedAt === null)
+          throw new InvalidObjectStateError("Expected a deleted object.");
+        return { ...row, deletedAt: row.deletedAt.toISOString() };
+      });
+      return {
+        items,
+        nextBeforeId:
+          rows.length > input.limit ? (items.at(-1)?.id ?? null) : null,
+      };
+    });
   }
 
   async preview(principal: UserPrincipal, objectId: string) {
-    return this.#database.transaction(
-      async (transaction) => {
-        const authorization = new AuthorizationService(
-          new DrizzleAuthorizationStore(transaction),
-        );
+    return withReadAuthorization(
+      this.#database,
+      async (transaction, authorization) => {
         await authorization.assertCan(principal, "recover", {
           id: objectId,
           workspaceId: principal.workspaceId,
@@ -104,7 +98,6 @@ export class ObjectRecoveryService {
           blockedReason,
         };
       },
-      { isolationLevel: "repeatable read", accessMode: "read only" },
     );
   }
 

@@ -3,6 +3,7 @@ import { createHash, randomBytes } from "node:crypto";
 import {
   AuthorizationDeniedError,
   withStableAuthorization,
+  withReadAuthorization,
   type AuthorizationAction,
   type AuthorizationService,
   type UserPrincipal,
@@ -29,7 +30,7 @@ import {
   DocumentTransferUnavailableError,
   InvalidDocumentUploadError,
 } from "./errors.js";
-import type { EventPlanningObjectService } from "./object-service.js";
+import { EventPlanningObjectService } from "./object-service.js";
 import { readObjectState } from "./object-state.js";
 import { recordObjectRevision } from "./object-revisions.js";
 import type {
@@ -353,63 +354,73 @@ export class DocumentService {
     principal: UserPrincipal,
     parentObjectId: string,
   ): Promise<DocumentAttachmentList> {
-    await this.#getAttachmentParent(principal, parentObjectId, "view");
-    const relations = await this.#database
-      .select({
-        documentId: objectRelations.sourceObjectId,
-        relationId: objectRelations.id,
-        relationVersion: objectRelations.version,
-      })
-      .from(objectRelations)
-      .innerJoin(
-        objects,
-        and(
-          eq(objects.workspaceId, objectRelations.workspaceId),
-          eq(objects.id, objectRelations.sourceObjectId),
-          eq(objects.objectType, "document"),
-          isNull(objects.deletedAt),
-        ),
-      )
-      .where(
-        and(
-          eq(objectRelations.workspaceId, principal.workspaceId),
-          eq(objectRelations.relationType, "attached_to"),
-          eq(objectRelations.targetObjectId, parentObjectId),
-          isNull(objectRelations.deletedAt),
-        ),
-      );
+    return withReadAuthorization(
+      this.#database,
+      async (transaction, authorization) => {
+        const reader = new EventPlanningObjectService({
+          database: transaction,
+          authorization,
+        });
+        const parent = await reader.getObject(principal, parentObjectId);
+        if (!isAttachmentParent(parent)) throw new AuthorizationDeniedError();
+        const relations = await transaction
+          .select({
+            documentId: objectRelations.sourceObjectId,
+            relationId: objectRelations.id,
+            relationVersion: objectRelations.version,
+          })
+          .from(objectRelations)
+          .innerJoin(
+            objects,
+            and(
+              eq(objects.workspaceId, objectRelations.workspaceId),
+              eq(objects.id, objectRelations.sourceObjectId),
+              eq(objects.objectType, "document"),
+              isNull(objects.deletedAt),
+            ),
+          )
+          .where(
+            and(
+              eq(objectRelations.workspaceId, principal.workspaceId),
+              eq(objectRelations.relationType, "attached_to"),
+              eq(objectRelations.targetObjectId, parentObjectId),
+              isNull(objectRelations.deletedAt),
+            ),
+          );
 
-    const attachments = await Promise.all(
-      relations.map(async ({ documentId, relationId, relationVersion }) => {
-        try {
-          return {
-            document: await this.#objects.getDocument(principal, documentId),
-            relationId,
-            relationVersion,
-          };
-        } catch (error) {
-          if (error instanceof AuthorizationDeniedError) {
-            return null;
-          }
-          throw error;
-        }
-      }),
+        const attachments = await Promise.all(
+          relations.map(async ({ documentId, relationId, relationVersion }) => {
+            try {
+              return {
+                document: await reader.getDocument(principal, documentId),
+                relationId,
+                relationVersion,
+              };
+            } catch (error) {
+              if (error instanceof AuthorizationDeniedError) {
+                return null;
+              }
+              throw error;
+            }
+          }),
+        );
+        const visible = attachments
+          .filter(
+            (attachment): attachment is DocumentAttachmentResource =>
+              attachment !== null,
+          )
+          .sort(
+            (first, second) =>
+              second.document.createdAt.getTime() -
+                first.document.createdAt.getTime() ||
+              first.document.id.localeCompare(second.document.id),
+          );
+        return {
+          items: visible,
+          lockedAttachmentCount: attachments.length - visible.length,
+        };
+      },
     );
-    const visible = attachments
-      .filter(
-        (attachment): attachment is DocumentAttachmentResource =>
-          attachment !== null,
-      )
-      .sort(
-        (first, second) =>
-          second.document.createdAt.getTime() -
-            first.document.createdAt.getTime() ||
-          first.document.id.localeCompare(second.document.id),
-      );
-    return {
-      items: visible,
-      lockedAttachmentCount: attachments.length - visible.length,
-    };
   }
 
   async authorizeDownload(
