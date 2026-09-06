@@ -104,6 +104,7 @@ export interface ChronelleApiClientOptions {
   readonly baseUrl?: string;
   readonly fetch?: typeof globalThis.fetch;
   readonly getCredential?: () => ApiCredential | null;
+  readonly signal?: AbortSignal | undefined;
 }
 
 export interface DocumentFileInput {
@@ -147,11 +148,50 @@ export class ChronelleApiClient {
   readonly #baseUrl: string;
   readonly #fetch: typeof globalThis.fetch;
   readonly #getCredential: () => ApiCredential | null;
+  readonly #signal: AbortSignal | undefined;
 
   constructor(options: ChronelleApiClientOptions = {}) {
     this.#baseUrl = options.baseUrl?.replace(/\/$/, "") ?? "";
     this.#fetch = options.fetch ?? globalThis.fetch.bind(globalThis);
     this.#getCredential = options.getCredential ?? (() => null);
+    this.#signal = options.signal;
+  }
+
+  /** Bind a request to both its caller's cancellation and the session lifetime. */
+  withSignal(signal: AbortSignal): ChronelleApiClient {
+    return this.#createScopedClient(signal);
+  }
+
+  #captureCredential(): ApiCredential | null {
+    this.#signal?.throwIfAborted();
+    const credential = this.#getCredential();
+    return credential === null ? null : { ...credential };
+  }
+
+  #assertCurrent(credential: ApiCredential | null): void {
+    const current = this.#captureCredential();
+    if (
+      current?.accessToken !== credential?.accessToken ||
+      current?.workspaceId !== credential?.workspaceId
+    ) {
+      throw new DOMException("The client session changed.", "AbortError");
+    }
+  }
+
+  #createScopedClient(signal?: AbortSignal): ChronelleApiClient {
+    const credential = this.#captureCredential();
+    return new ChronelleApiClient({
+      baseUrl: this.#baseUrl,
+      fetch: this.#fetch,
+      getCredential: () => {
+        this.#assertCurrent(credential);
+        return credential;
+      },
+      signal:
+        signal && this.#signal
+          ? AbortSignal.any([signal, this.#signal])
+          : (signal ?? this.#signal),
+    });
   }
 
   signIn(input: DevelopmentSignInRequest): Promise<DevelopmentSignInResponse> {
@@ -405,7 +445,9 @@ export class ChronelleApiClient {
         "The file exceeds the 25 MiB attachment limit.",
       );
     }
+    const client = this.#createScopedClient();
     const bytes = await file.arrayBuffer();
+    client.#captureCredential();
     if (bytes.byteLength !== file.size) {
       throw new ApiClientError(
         400,
@@ -413,19 +455,19 @@ export class ChronelleApiClient {
         "The file size changed before upload.",
       );
     }
-    const authorization = await this.authorizeDocumentUpload({
+    const authorization = await client.authorizeDocumentUpload({
       checksumSha256: await sha256Hex(bytes),
       mimeType: file.type || "application/octet-stream",
       originalFilename: file.name,
       parentObjectId,
       sizeBytes: file.size,
     });
-    await this.#transfer(authorization.upload.url, {
+    await client.#transfer(authorization.upload.url, {
       body: bytes,
       headers: authorization.upload.headers,
       method: authorization.upload.method,
     });
-    return this.finalizeDocumentUpload(authorization.id);
+    return client.finalizeDocumentUpload(authorization.id);
   }
 
   authorizeDocumentDownload(
@@ -438,18 +480,17 @@ export class ChronelleApiClient {
   }
 
   async downloadDocument(documentId: string): Promise<Blob> {
-    const authorization = await this.authorizeDocumentDownload(documentId);
-    const response = await this.#fetch(
-      this.#resolveUrl(authorization.download.url),
-      {
-        headers: authorization.download.headers,
-        method: authorization.download.method,
-      },
-    );
-    if (!response.ok) {
-      await this.#throwResponseError(response);
+    const client = this.#createScopedClient();
+    const authorization = await client.authorizeDocumentDownload(documentId);
+    const response = await client.#transfer(authorization.download.url, {
+      headers: authorization.download.headers,
+      method: authorization.download.method,
+    });
+    try {
+      return await response.blob();
+    } finally {
+      client.#captureCredential();
     }
-    return response.blob();
   }
 
   deleteObject(id: string, expectedVersion: number) {
@@ -610,9 +651,9 @@ export class ChronelleApiClient {
     request: RequestInit = {},
     authorized = true,
   ): Promise<Result> {
+    const credential = this.#captureCredential();
     const headers = new Headers(request.headers);
     if (authorized) {
-      const credential = this.#getCredential();
       if (credential === null) {
         throw new ApiClientError(
           401,
@@ -629,25 +670,30 @@ export class ChronelleApiClient {
       response = await this.#fetch(`${this.#baseUrl}${path}`, {
         ...request,
         headers,
+        signal: this.#signal ?? null,
       });
     } catch {
+      this.#assertCurrent(credential);
       throw new ApiClientError(
         0,
         "network_error",
         "The Chronelle API could not be reached.",
       );
     }
+    this.#assertCurrent(credential);
 
     let body: unknown;
     try {
       body = await response.json();
     } catch {
+      this.#assertCurrent(credential);
       throw new ApiClientError(
         response.status,
         "invalid_response",
         "The Chronelle API returned an unreadable response.",
       );
     }
+    this.#assertCurrent(credential);
     if (!response.ok) {
       this.#throwParsedResponseError(response.status, body);
     }
@@ -666,20 +712,31 @@ export class ChronelleApiClient {
     return /^https?:\/\//u.test(url) ? url : `${this.#baseUrl}${url}`;
   }
 
-  async #transfer(url: string, request: RequestInit): Promise<void> {
+  async #transfer(url: string, request: RequestInit): Promise<Response> {
+    const credential = this.#captureCredential();
     let response: Response;
     try {
-      response = await this.#fetch(this.#resolveUrl(url), request);
+      response = await this.#fetch(this.#resolveUrl(url), {
+        ...request,
+        signal: this.#signal ?? null,
+      });
     } catch {
+      this.#assertCurrent(credential);
       throw new ApiClientError(
         0,
         "network_error",
         "The document transfer could not be completed.",
       );
     }
+    this.#assertCurrent(credential);
     if (!response.ok) {
-      await this.#throwResponseError(response);
+      try {
+        await this.#throwResponseError(response);
+      } finally {
+        this.#assertCurrent(credential);
+      }
     }
+    return response;
   }
 
   async #throwResponseError(response: Response): Promise<never> {
