@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto";
 import {
+  link,
   mkdir,
   mkdtemp,
   readFile,
@@ -8,7 +9,7 @@ import {
   writeFile,
 } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { join, resolve } from "node:path";
+import { dirname, join, resolve } from "node:path";
 import { AuthorizationService } from "@chronelle/authorization";
 import {
   auditEvents,
@@ -218,6 +219,41 @@ function principal(session: Session) {
 }
 
 describe.sequential("workspace storage inventory", () => {
+  it("retains canonical files with abandoned publication links without leaking their keys", async () => {
+    const session = await signIn();
+    const attachment = await attach(session, (await createEvent(session)).id);
+    const db = database.connection.db;
+    const [document] = await db
+      .select()
+      .from(documents)
+      .where(eq(documents.objectId, attachment.document.id));
+    if (!document) throw new Error("Missing document fixture");
+    const path = join(root, document.storageKey);
+    const abandonedDirectory = join(dirname(path), ".upload-abandoned");
+    const abandonedPath = join(abandonedDirectory, "content");
+    await mkdir(abandonedDirectory, { mode: 0o700 });
+    await link(path, abandonedPath);
+    const audits = await db.select().from(auditEvents).orderBy(auditEvents.id);
+
+    const response = await request(session);
+
+    expect(response.statusCode).toBe(200);
+    expect(storageInventoryResponseSchema.parse(response.json())).toMatchObject(
+      {
+        consistency: "observational",
+        retentionPolicy: "retain-all",
+        references: { canonical: 1, missingCanonical: 1 },
+        entries: { canonical: 0, unsupported: 2, unreferenced: 0 },
+      },
+    );
+    expect(await readFile(path)).toEqual(await readFile(abandonedPath));
+    expect(await db.select().from(auditEvents).orderBy(auditEvents.id)).toEqual(
+      audits,
+    );
+    for (const secret of [document.storageKey, document.objectId, ".upload-"])
+      expect(response.body).not.toContain(secret);
+  });
+
   it.each(["duplicate", "wrong-prefix"])(
     "rejects invalid provider enumeration: %s",
     async (kind) => {

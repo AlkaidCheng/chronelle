@@ -31,8 +31,9 @@ import {
   maximumDocumentSizeBytes,
 } from "@chronelle/schemas";
 import { and, eq, like } from "drizzle-orm";
+import { LocalFilesystemStorageProvider } from "@chronelle/storage";
 import type { FastifyInstance, InjectOptions } from "fastify";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { buildApp } from "../src/app.js";
 import { createDevelopmentAppDependencies } from "../src/dependencies.js";
@@ -45,6 +46,7 @@ const migrationDirectory = resolve(
 let testDatabase: TestDatabase;
 let app: FastifyInstance;
 let storageRoot: string;
+let storage: LocalFilesystemStorageProvider;
 let currentTime: Date;
 let testResourcesReady = false;
 
@@ -57,17 +59,19 @@ beforeEach(async () => {
     { DATABASE_URL: testDatabase.databaseUrl },
     migrationDirectory,
   );
+  storage = new LocalFilesystemStorageProvider({ root: storageRoot });
   app = buildApp(
     createDevelopmentAppDependencies(testDatabase.connection, {
       clock: () => currentTime,
       documentTransferTtlMs: 60_000,
-      localStorageRoot: storageRoot,
+      storage,
     }),
   );
   testResourcesReady = true;
 });
 
 afterEach(async () => {
+  vi.restoreAllMocks();
   try {
     if (testResourcesReady) {
       await app.close();
@@ -168,6 +172,92 @@ async function attachFile(
 }
 
 describe.sequential("document attachment API", () => {
+  it("retries a published upload after restart without duplicating documents or audit", async () => {
+    const owner = await signIn("owner@example.com", "Owner");
+    const event = eventResponseSchema.parse(
+      (
+        await request(owner, owner.workspace.id, {
+          method: "POST",
+          url: "/api/events",
+          payload: { displayName: "Retryable attachment" },
+        })
+      ).json(),
+    );
+    const bytes = Buffer.from("complete private upload");
+    const authorization = documentUploadAuthorizationResponseSchema.parse(
+      (
+        await request(owner, owner.workspace.id, {
+          method: "POST",
+          url: "/api/documents/upload-url",
+          payload: {
+            parentObjectId: event.id,
+            ...fileMetadata(bytes, "plan.pdf"),
+          },
+        })
+      ).json(),
+    );
+    const db = testDatabase.connection.db;
+    const beforeTransfers = await db
+      .select()
+      .from(documentTransferAuthorizations);
+    const beforeAudit = await db.select().from(auditEvents);
+    const write = storage.writeObject.bind(storage);
+    vi.spyOn(storage, "writeObject").mockImplementationOnce(async (...args) => {
+      await write(...args);
+      throw new Error("Upload acknowledgement interrupted");
+    });
+    const upload = {
+      method: "PUT" as const,
+      url: authorization.upload.url,
+      headers: authorization.upload.headers,
+      payload: bytes,
+    };
+    expect((await app.inject(upload)).statusCode).toBe(500);
+    expect(await db.select().from(documentTransferAuthorizations)).toEqual(
+      beforeTransfers,
+    );
+    expect(await db.select().from(auditEvents)).toEqual(beforeAudit);
+    expect(await db.select().from(documents)).toEqual([]);
+
+    await app.close();
+    app = buildApp(
+      createDevelopmentAppDependencies(testDatabase.connection, {
+        clock: () => currentTime,
+        documentTransferTtlMs: 60_000,
+        localStorageRoot: storageRoot,
+      }),
+    );
+    expect((await app.inject(upload)).statusCode).toBe(204);
+    expect((await app.inject(upload)).statusCode).toBe(404);
+    const renewed = await signIn("owner@example.com", "Owner");
+    const finalized = await request(renewed, renewed.workspace.id, {
+      method: "POST",
+      url: "/api/documents",
+      payload: { uploadAuthorizationId: authorization.id },
+    });
+    expect(finalized.statusCode).toBe(201);
+    const attachment = documentAttachmentResponseSchema.parse(finalized.json());
+    expect(await db.select().from(documents)).toHaveLength(1);
+    const uploaded = await db
+      .select()
+      .from(auditEvents)
+      .where(eq(auditEvents.action, "document.uploaded"));
+    expect(uploaded).toHaveLength(1);
+    expect(uploaded[0]?.metadata).toMatchObject({
+      transferAuthorizationId: authorization.id,
+    });
+    const download = documentDownloadAuthorizationResponseSchema.parse(
+      (
+        await request(renewed, renewed.workspace.id, {
+          url: `/api/documents/${attachment.document.id}/download-url`,
+        })
+      ).json(),
+    );
+    expect(
+      (await app.inject({ url: download.download.url })).rawPayload,
+    ).toEqual(bytes);
+  });
+
   it("rejects oversized bytes without consuming the upload credential or writing storage and ledgers", async () => {
     const owner = await signIn("owner@example.com", "Owner");
     const event = eventResponseSchema.parse(

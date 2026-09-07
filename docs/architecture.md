@@ -129,6 +129,15 @@ size and SHA-256 before finalization. Its transfer URLs are API-relative and
 opaque; a Tencent COS adapter can instead return signed provider URLs without
 changing document-domain behavior.
 
+Local writes use a private sibling staging directory. The adapter flushes and
+closes the file before linking it to the final key, so readers see either no
+object or complete bytes. Publication never replaces an existing key; matching
+size/checksum retries are idempotent and conflicting content is rejected.
+Normal completion or failure removes only that attempt's staging directory.
+An interrupted process can leave an unaddressable staging orphan; retention
+and orphan reconciliation remain separate operations. The local root must be
+trusted and support same-filesystem hard links.
+
 Transfer credentials are random bearer secrets. PostgreSQL stores only their
 hashes plus operation, resource, expected file metadata, expiry, consumption,
 and finalization state. Upload authorization requires Edit on the parent.

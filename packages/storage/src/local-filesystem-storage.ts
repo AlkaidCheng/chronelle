@@ -1,6 +1,15 @@
 import { createHash } from "node:crypto";
-import { lstat, mkdir, opendir, readFile, writeFile } from "node:fs/promises";
-import { dirname, isAbsolute, relative, resolve } from "node:path";
+import {
+  link,
+  lstat,
+  mkdir,
+  mkdtemp,
+  opendir,
+  readFile,
+  rm,
+  writeFile,
+} from "node:fs/promises";
+import { dirname, isAbsolute, join, relative, resolve } from "node:path";
 
 import {
   StorageObjectConflictError,
@@ -101,20 +110,33 @@ export class LocalFilesystemStorageProvider implements StorageTransferProvider {
     expected: StoredObjectMetadata,
   ): Promise<void> {
     const objectPath = resolveStoragePath(this.#root, storageKey);
-    await mkdir(dirname(objectPath), { mode: 0o700, recursive: true });
+    const directory = dirname(objectPath);
+    await mkdir(directory, { mode: 0o700, recursive: true });
+    const stagingDirectory = await mkdtemp(join(directory, ".upload-"));
     try {
-      await writeFile(objectPath, bytes, { flag: "wx", mode: 0o600 });
-    } catch (error) {
-      if ((error as NodeJS.ErrnoException).code !== "EEXIST") {
-        throw error;
+      const stagedPath = join(stagingDirectory, "content");
+      await writeFile(stagedPath, bytes, {
+        flag: "wx",
+        flush: true,
+        mode: 0o600,
+      });
+      try {
+        // Publish complete bytes without replacing a competing writer's object.
+        await link(stagedPath, objectPath);
+      } catch (error) {
+        if ((error as NodeJS.ErrnoException).code !== "EEXIST") {
+          throw error;
+        }
+        const existing = await this.inspectObject(storageKey);
+        if (
+          existing.sizeBytes !== expected.sizeBytes ||
+          existing.checksumSha256 !== expected.checksumSha256
+        ) {
+          throw new StorageObjectConflictError();
+        }
       }
-      const existing = await this.inspectObject(storageKey);
-      if (
-        existing.sizeBytes !== expected.sizeBytes ||
-        existing.checksumSha256 !== expected.checksumSha256
-      ) {
-        throw new StorageObjectConflictError();
-      }
+    } finally {
+      await rm(stagingDirectory, { force: true, recursive: true });
     }
   }
 
