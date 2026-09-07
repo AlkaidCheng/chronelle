@@ -6,7 +6,11 @@ import {
   useQuery,
   useQueryClient,
 } from "@tanstack/react-query";
-import type { RecoveryRequest, TrashQueryInput } from "@chronelle/schemas";
+import type {
+  RecoveryRequest,
+  TrashQueryInput,
+  RemovedRelationQueryInput,
+} from "@chronelle/schemas";
 import { useApiClient } from "./api-context";
 import { useAuthSession } from "./auth-session";
 import { queryKeys, useCanonicalInvalidation } from "./queries";
@@ -58,17 +62,22 @@ export function useRecoverObject(objectId: string) {
   });
 }
 
-export function useRemovedRelations(objectId: string) {
+export function useRemovedRelations(
+  objectId: string,
+  input: Pick<RemovedRelationQueryInput, "relationType"> = {},
+) {
   const client = useApiClient();
   return useInfiniteQuery({
-    queryKey: ["object", objectId, "removed-relations"],
+    queryKey: ["object", objectId, "removed-relations", input],
+    gcTime: 0,
     initialPageParam: undefined as string | undefined,
     queryFn: ({ pageParam, signal }) =>
       client.withSignal(signal).listRemovedRelations(objectId, {
+        ...input,
         limit: 20,
-        ...(pageParam === undefined ? {} : { beforeId: pageParam }),
+        ...(pageParam === undefined ? {} : { cursor: pageParam }),
       }),
-    getNextPageParam: (page) => page.nextBeforeId ?? undefined,
+    getNextPageParam: (page) => page.nextCursor ?? undefined,
   });
 }
 

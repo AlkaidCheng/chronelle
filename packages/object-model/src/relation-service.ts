@@ -1,7 +1,6 @@
 import {
   AuthorizationDeniedError,
   withStableAuthorization,
-  withReadAuthorization,
   type AuthorizationDatabase,
   type AuthorizationService,
   type AuthorizationAction,
@@ -16,13 +15,16 @@ import {
   type ObjectType,
   type RelationType,
 } from "@chronelle/db";
-import { and, desc, eq, isNotNull, isNull, lt, or, sql } from "drizzle-orm";
+import { and, eq, isNull, sql } from "drizzle-orm";
 import type {
   RelationListQueryInput,
   RemovedRelationQuery,
 } from "@chronelle/schemas";
-import { alias } from "drizzle-orm/pg-core";
-import { listRelationPage, type RelationPage } from "./relation-list.js";
+import {
+  listRelationPage,
+  listRemovedRelationPage,
+  type RelationPage,
+} from "./relation-list.js";
 
 import {
   InvalidRelationError,
@@ -188,89 +190,7 @@ export class ObjectRelationService {
     objectId: string,
     input: RemovedRelationQuery,
   ) {
-    return withReadAuthorization(
-      this.#database,
-      async (transaction, authorization) => {
-        await authorization.assertCan(principal, "view", {
-          id: objectId,
-          workspaceId: principal.workspaceId,
-        });
-        const source = alias(objects, "source");
-        const visible: {
-          relation: ObjectRelationResource;
-          sourceDisplayName: string;
-          targetDisplayName: string;
-        }[] = [];
-        let beforeId = input.beforeId;
-        while (visible.length <= input.limit) {
-          const candidates = await transaction
-            .select({
-              relation: objectRelations,
-              sourceDisplayName: source.displayName,
-              targetDisplayName: objects.displayName,
-            })
-            .from(objectRelations)
-            .innerJoin(
-              source,
-              and(
-                eq(source.id, objectRelations.sourceObjectId),
-                eq(source.workspaceId, objectRelations.workspaceId),
-                isNull(source.deletedAt),
-              ),
-            )
-            .innerJoin(
-              objects,
-              and(
-                eq(objects.id, objectRelations.targetObjectId),
-                eq(objects.workspaceId, objectRelations.workspaceId),
-                isNull(objects.deletedAt),
-              ),
-            )
-            .where(
-              and(
-                eq(objectRelations.workspaceId, principal.workspaceId),
-                or(
-                  eq(objectRelations.sourceObjectId, objectId),
-                  eq(objectRelations.targetObjectId, objectId),
-                ),
-                isNotNull(objectRelations.deletedAt),
-                beforeId === undefined
-                  ? undefined
-                  : lt(objectRelations.id, beforeId),
-              ),
-            )
-            .orderBy(desc(objectRelations.id))
-            .limit(100);
-          const actions = await authorization.allowedActionsMany(
-            principal,
-            candidates
-              .flatMap(({ relation }) => [
-                relation.sourceObjectId,
-                relation.targetObjectId,
-              ])
-              .map((id) => ({ id, workspaceId: principal.workspaceId })),
-          );
-          for (const [index, candidate] of candidates.entries()) {
-            if (
-              actions[index * 2]?.includes("edit") &&
-              actions[index * 2 + 1]?.includes("view")
-            )
-              visible.push(candidate);
-            if (visible.length > input.limit) break;
-          }
-          if (candidates.length < 100) break;
-          beforeId = candidates.at(-1)?.relation.id;
-        }
-        const items = visible.slice(0, input.limit);
-        return {
-          items,
-          nextBeforeId:
-            visible.length > input.limit
-              ? (items.at(-1)?.relation.id ?? null)
-              : null,
-        };
-      },
-    );
+    return listRemovedRelationPage(this.#database, principal, objectId, input);
   }
 
   async #changeLifecycle(

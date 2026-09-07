@@ -36,6 +36,7 @@ test("recovers canonical objects and independent context links", async ({
     authorization: `Bearer ${(await session.json()).accessToken}`,
   };
   const eventId = new URL(eventUrl).pathname.split("/").at(-1);
+  const additionalLinks: string[] = [];
   for (let index = 0; index < 21; index++) {
     const added = await request.post(`/api/events/${eventId}/resources`, {
       headers,
@@ -48,6 +49,7 @@ test("recovers canonical objects and independent context links", async ({
       },
     });
     expect(added.status()).toBe(201);
+    additionalLinks.push((await added.json()).relationId);
   }
   const unfiltered = await request.get(`/api/objects/${eventId}/relations`, {
     headers,
@@ -87,8 +89,43 @@ test("recovers canonical objects and independent context links", async ({
   );
   await page.keyboard.press("Escape");
   await expect(row).not.toBeVisible();
+  for (const relationId of additionalLinks) {
+    const removed = await request.delete(
+      `/api/relations/${relationId}?expectedVersion=1`,
+      { headers },
+    );
+    expect(removed.status()).toBe(200);
+  }
   await page.getByRole("tab", { name: "Removed links" }).click();
-  await page.getByRole("button", { name: "Preview link recovery" }).click();
+  await page.getByLabel("Link type").selectOption("includes");
+  const removedLink = page
+    .getByRole("article")
+    .filter({ hasText: "Reserve room" });
+  await expect(
+    page.getByRole("button", { name: "Preview link recovery" }),
+  ).toHaveCount(20);
+  await expect(removedLink).not.toBeVisible();
+  await page
+    .getByLabel("Link type")
+    .evaluate((element) =>
+      element.scrollIntoView({ block: "center", behavior: "instant" }),
+    );
+  await page.screenshot({
+    path: testInfo.outputPath("removed-links-filters.png"),
+  });
+  await page.getByRole("button", { name: "Load more removed links" }).click();
+  await expect(removedLink).toBeVisible();
+  expect(
+    await page.evaluate(
+      () =>
+        document.documentElement.scrollWidth <=
+        document.documentElement.clientWidth,
+    ),
+  ).toBe(true);
+  await page.screenshot({ path: testInfo.outputPath("removed-links.png") });
+  await removedLink
+    .getByRole("button", { name: "Preview link recovery" })
+    .click();
   dialog = page.getByRole("dialog");
   await dialog.getByRole("checkbox").check();
   await dialog.getByRole("button", { name: "Confirm link recovery" }).click();
