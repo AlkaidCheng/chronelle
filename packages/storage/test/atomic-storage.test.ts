@@ -23,7 +23,8 @@ vi.mock("node:fs/promises", async (importOriginal) => {
 
 const filesystem =
   await vi.importActual<typeof import("node:fs/promises")>("node:fs/promises");
-const key = "workspaces/workspace/documents/document";
+const prefix = "workspaces/workspace/documents";
+const key = `${prefix}/document`;
 const bytes = new TextEncoder().encode("complete private document");
 function metadata(content: Uint8Array) {
   return {
@@ -36,6 +37,16 @@ const expected = metadata(bytes);
 describe("atomic local object publication", () => {
   let root: string;
   let provider: LocalFilesystemStorageProvider;
+
+  async function collectInventory() {
+    const entries = [];
+    for await (const entry of provider.listObjects(
+      prefix,
+      new AbortController().signal,
+    ))
+      entries.push(entry);
+    return entries;
+  }
 
   beforeEach(async () => {
     root = await mkdtemp(join(tmpdir(), "chronelle-publication-"));
@@ -73,14 +84,79 @@ describe("atomic local object publication", () => {
       await expect(
         provider.readObject(relative(root, stagedPath)),
       ).rejects.toBeInstanceOf(UnsafeStorageKeyError);
+      await expect(collectInventory()).resolves.toEqual([
+        {
+          storageKey: relative(root, dirname(stagedPath)),
+          kind: "unsupported",
+        },
+      ]);
     } finally {
       resume.resolve();
       await pending;
     }
     await expect(provider.inspectObject(key)).resolves.toEqual(expected);
+    await expect(collectInventory()).resolves.toEqual([
+      { storageKey: key, kind: "file" },
+    ]);
     expect(vi.mocked(writeFile).mock.calls[0]?.[2]).toMatchObject({
       flush: true,
     });
+  });
+
+  it("reports publication links as unsupported until owned staging cleanup completes", async () => {
+    const published = Promise.withResolvers<void>();
+    const resume = Promise.withResolvers<void>();
+    vi.mocked(link).mockImplementationOnce(async (source, destination) => {
+      await filesystem.link(source, destination);
+      published.resolve();
+      await resume.promise;
+    });
+    const pending = provider.writeObject(key, bytes, expected);
+    try {
+      await published.promise;
+      await expect(provider.inspectObject(key)).resolves.toEqual(expected);
+      const entries = await collectInventory();
+      expect(entries).toHaveLength(2);
+      expect(entries).toContainEqual({ storageKey: key, kind: "unsupported" });
+      expect(entries.every((entry) => entry.kind === "unsupported")).toBe(true);
+    } finally {
+      resume.resolve();
+      await pending;
+    }
+    await expect(collectInventory()).resolves.toEqual([
+      { storageKey: key, kind: "file" },
+    ]);
+  });
+
+  it("retains abandoned publication links after a matching retry", async () => {
+    const objectPath = resolveStoragePath(root, key);
+    const abandonedDirectory = join(dirname(objectPath), ".upload-abandoned");
+    const abandonedPath = join(abandonedDirectory, "content");
+    await filesystem.mkdir(abandonedDirectory, {
+      recursive: true,
+      mode: 0o700,
+    });
+    await filesystem.writeFile(abandonedPath, bytes, { mode: 0o600 });
+    await filesystem.link(abandonedPath, objectPath);
+
+    await provider.writeObject(key, bytes, expected);
+
+    await expect(provider.inspectObject(key)).resolves.toEqual(expected);
+    expect(await filesystem.readFile(abandonedPath)).toEqual(
+      Buffer.from(bytes),
+    );
+    expect((await filesystem.stat(objectPath)).nlink).toBe(2);
+    const entries = await collectInventory();
+    expect(entries).toHaveLength(2);
+    expect(entries).toEqual(
+      expect.arrayContaining([
+        { storageKey: key, kind: "unsupported" },
+        {
+          storageKey: relative(root, abandonedDirectory),
+          kind: "unsupported",
+        },
+      ]),
+    );
   });
 
   it("allows a clean retry after a write fails partway through", async () => {

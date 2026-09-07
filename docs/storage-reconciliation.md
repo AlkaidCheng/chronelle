@@ -56,6 +56,20 @@ database and filesystem observations are not atomic. Concurrent uploads or
 finalization can change classifications during a scan. Recheck after writers are
 quiescent when investigating a discrepancy.
 
+Local uploads keep in-progress bytes in private `.upload-*` directories. Inventory
+counts these directories as unsupported without opening them. Between publication
+and staging cleanup, the completed final file has multiple hard links and is also
+unsupported. After normal cleanup, that file is eligible for reference
+classification. A scan racing with cleanup can return `503 inventory_unavailable`
+if an observed entry disappears before inspection; retry after writers settle.
+
+An interrupted process can leave the staging link behind. Matching upload retries
+preserve it because they remove only their own staging directory. Inventory then
+continues to count the final file as unsupported, and a canonical reference to it
+as missing, even when its bytes are intact. Neither a retry nor an inventory scan
+repairs or removes abandoned links. Investigate these observations under the
+retention policy before changing files.
+
 This report is not a deletion manifest. Every category is retained. It performs
 no file writes, database mutations, audit writes, purge, or automatic repair.
 A future retention workflow needs an explicit retention policy and fresh
