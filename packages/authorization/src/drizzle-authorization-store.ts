@@ -1,19 +1,22 @@
 import {
   objects,
   resourceGrants,
+  roles as resourceRoles,
   workspaceMembers,
   type Database,
   type DatabaseTransaction,
   type Role,
 } from "@chronelle/db";
-import { and, eq, gt, inArray, isNull, or } from "drizzle-orm";
+import { and, eq, gt, inArray, isNull, or, sql, type SQL } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { recoveryAccessPredicate } from "./recovery-policy.js";
+import { roleAllows } from "./authorization.js";
 
 import type {
   AccessibleWorkspaceQuery,
   AuthorizationStore,
   ResourceRolesQuery,
+  ResourceAccessQuery,
   WorkspaceAccessQuery,
   WorkspaceRoleQuery,
 } from "./authorization.js";
@@ -25,6 +28,28 @@ export class DrizzleAuthorizationStore implements AuthorizationStore {
 
   constructor(database: Database | DatabaseTransaction) {
     this.#database = database;
+  }
+
+  resourcePredicate(query: ResourceAccessQuery): SQL {
+    if (query.action === "recover") {
+      return recoveryAccessPredicate(
+        { type: "user", userId: query.userId, workspaceId: query.workspaceId },
+        query.evaluatedAt,
+      );
+    }
+    const roles = this.#resourceRoles(query);
+    const allowedRoles = resourceRoles.filter((role) =>
+      roleAllows(role, query.action),
+    );
+    return sql`(${and(
+      eq(objects.workspaceId, query.workspaceId),
+      isNull(objects.deletedAt),
+      or(
+        ...Object.values(roles).map((role) =>
+          inArray(sql`(${role})`, allowedRoles),
+        ),
+      ),
+    )})`;
   }
 
   async findRecoverableResourceIds(
@@ -63,16 +88,10 @@ export class DrizzleAuthorizationStore implements AuthorizationStore {
   async findResourceRoles(
     query: ResourceRolesQuery,
   ): Promise<ReadonlyMap<string, readonly Role[]>> {
-    const scope = alias(objects, "permission_scope");
-    const direct = alias(resourceGrants, "direct_grant");
-    const inherited = alias(resourceGrants, "scope_grant");
-    const activeGrant = (grant: typeof direct | typeof inherited) =>
-      and(
-        eq(grant.workspaceId, query.workspaceId),
-        eq(grant.principalType, "user"),
-        eq(grant.principalId, query.userId),
-        or(isNull(grant.expiresAt), gt(grant.expiresAt, query.evaluatedAt)),
-      );
+    const resourceRoles = this.#resourceRoles(query);
+    const membership = resourceRoles.membership.as("membership_role");
+    const direct = resourceRoles.direct.as("direct_role");
+    const inherited = resourceRoles.inherited.as("inherited_role");
     const roles = new Map<string, readonly Role[]>();
     for (
       let start = 0;
@@ -82,42 +101,22 @@ export class DrizzleAuthorizationStore implements AuthorizationStore {
       const rows = await this.#database
         .select({
           id: objects.id,
-          membership: workspaceMembers.role,
+          membership: membership.role,
           direct: direct.role,
           inherited: inherited.role,
         })
         .from(objects)
-        .leftJoin(
-          workspaceMembers,
-          and(
-            eq(workspaceMembers.workspaceId, objects.workspaceId),
-            eq(workspaceMembers.userId, query.userId),
-          ),
-        )
-        .leftJoin(
-          scope,
-          and(
-            eq(scope.workspaceId, objects.workspaceId),
-            eq(scope.id, objects.permissionScopeId),
-            isNull(scope.deletedAt),
-          ),
-        )
-        .leftJoin(
-          direct,
-          and(activeGrant(direct), eq(direct.resourceId, objects.id)),
-        )
-        .leftJoin(
-          inherited,
-          and(activeGrant(inherited), eq(inherited.resourceId, scope.id)),
-        )
+        .leftJoinLateral(membership, sql`true`)
+        .leftJoinLateral(direct, sql`true`)
+        .leftJoinLateral(inherited, sql`true`)
         .where(
           and(
             eq(objects.workspaceId, query.workspaceId),
+            isNull(objects.deletedAt),
             inArray(
               objects.id,
               query.resourceIds.slice(start, start + maximumBatchSize),
             ),
-            isNull(objects.deletedAt),
           ),
         );
       for (const row of rows) {
@@ -130,6 +129,55 @@ export class DrizzleAuthorizationStore implements AuthorizationStore {
       }
     }
     return roles;
+  }
+
+  #resourceRoles(query: WorkspaceAccessQuery) {
+    const scope = alias(objects, "permission_scope");
+    const direct = alias(resourceGrants, "direct_grant");
+    const inherited = alias(resourceGrants, "scope_grant");
+    const activeGrant = (grant: typeof direct | typeof inherited) =>
+      and(
+        eq(grant.workspaceId, query.workspaceId),
+        eq(grant.principalType, "user"),
+        eq(grant.principalId, query.userId),
+        or(isNull(grant.expiresAt), gt(grant.expiresAt, query.evaluatedAt)),
+      );
+    const membership = this.#database
+      .select({ role: workspaceMembers.role })
+      .from(workspaceMembers)
+      .where(
+        and(
+          eq(workspaceMembers.workspaceId, query.workspaceId),
+          eq(workspaceMembers.userId, query.userId),
+        ),
+      );
+    const directRole = this.#database
+      .select({ role: direct.role })
+      .from(direct)
+      .where(and(activeGrant(direct), eq(direct.resourceId, objects.id)));
+    const inheritedRole = this.#database
+      .select({ role: inherited.role })
+      .from(inherited)
+      .innerJoin(
+        scope,
+        and(
+          eq(scope.workspaceId, inherited.workspaceId),
+          eq(scope.id, inherited.resourceId),
+          isNull(scope.deletedAt),
+        ),
+      )
+      .where(
+        and(
+          activeGrant(inherited),
+          eq(inherited.resourceId, objects.permissionScopeId),
+        ),
+      );
+    // Batch joins and scalar predicates reuse identical role queries.
+    return {
+      membership,
+      direct: directRole,
+      inherited: inheritedRole,
+    };
   }
 
   async hasWorkspaceAccess(query: WorkspaceAccessQuery): Promise<boolean> {

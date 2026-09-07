@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
+import { sql } from "drizzle-orm";
 
 import {
   AuthorizationDeniedError,
@@ -33,10 +34,31 @@ describe("roleAllows", () => {
 });
 
 describe("AuthorizationService", () => {
+  it("binds query predicates to the same principal and evaluation clock", () => {
+    const evaluatedAt = new Date("2030-01-01T00:00:00Z");
+    const predicate = sql`false`;
+    const store: AuthorizationStore = {
+      resourcePredicate: vi.fn().mockReturnValue(predicate),
+      findRecoverableResourceIds: vi.fn(),
+      findResourceRoles: vi.fn(),
+      findWorkspaceRole: vi.fn(),
+      hasWorkspaceAccess: vi.fn(),
+      listAccessibleWorkspaceIds: vi.fn(),
+    };
+    const policy = new AuthorizationService(store, () => evaluatedAt);
+    expect(policy.resourcePredicate(principal, "view")).toBe(predicate);
+    expect(store.resourcePredicate).toHaveBeenCalledExactlyOnceWith({
+      action: "view",
+      evaluatedAt,
+      userId: principal.userId,
+      workspaceId: principal.workspaceId,
+    });
+  });
   it("preserves input order while deduplicating same-workspace policy reads", async () => {
     const evaluatedAt = new Date("2030-01-01T00:00:00Z");
     const clock = vi.fn(() => evaluatedAt);
     const store: AuthorizationStore = {
+      resourcePredicate: vi.fn(),
       findRecoverableResourceIds: vi
         .fn()
         .mockResolvedValue(new Set([resource.id])),
@@ -90,6 +112,7 @@ describe("AuthorizationService", () => {
   it("propagates a failed policy read without returning partial decisions", async () => {
     const failure = new Error("Policy storage unavailable");
     const store: AuthorizationStore = {
+      resourcePredicate: vi.fn(),
       findRecoverableResourceIds: vi.fn().mockRejectedValue(failure),
       findResourceRoles: vi.fn().mockRejectedValue(failure),
       findWorkspaceRole: vi.fn(),
@@ -109,6 +132,7 @@ describe("AuthorizationService", () => {
     "restricts workspace inventory authority for role %s",
     async (role) => {
       const store: AuthorizationStore = {
+        resourcePredicate: vi.fn(),
         findRecoverableResourceIds: vi.fn(),
         findResourceRoles: vi
           .fn()
@@ -128,6 +152,7 @@ describe("AuthorizationService", () => {
   );
   it("uses the tombstone-aware Owner policy only for recovery, never for normal reads", async () => {
     const store: AuthorizationStore = {
+      resourcePredicate: vi.fn(),
       findRecoverableResourceIds: vi
         .fn()
         .mockResolvedValue(new Set([resource.id])),
@@ -153,6 +178,7 @@ describe("AuthorizationService", () => {
   });
   it("accepts any applicable role that permits the action", async () => {
     const store: AuthorizationStore = {
+      resourcePredicate: vi.fn(),
       findRecoverableResourceIds: vi.fn(),
       findResourceRoles: vi
         .fn()
@@ -171,6 +197,7 @@ describe("AuthorizationService", () => {
   it("denies a cross-workspace reference before querying the store", async () => {
     const findResourceRoles = vi.fn();
     const store: AuthorizationStore = {
+      resourcePredicate: vi.fn(),
       findRecoverableResourceIds: vi.fn(),
       findResourceRoles,
       findWorkspaceRole: vi.fn(),
@@ -190,6 +217,7 @@ describe("AuthorizationService", () => {
 
   it("uses one generic error for missing and unauthorized resources", async () => {
     const store: AuthorizationStore = {
+      resourcePredicate: vi.fn(),
       findRecoverableResourceIds: vi.fn(),
       findResourceRoles: vi.fn().mockResolvedValue(new Map()),
       findWorkspaceRole: vi.fn().mockResolvedValue(null),
@@ -210,6 +238,7 @@ describe("AuthorizationService", () => {
       .mockResolvedValueOnce("editor")
       .mockResolvedValueOnce("viewer");
     const store: AuthorizationStore = {
+      resourcePredicate: vi.fn(),
       findRecoverableResourceIds: vi.fn(),
       findResourceRoles: vi.fn(),
       findWorkspaceRole,
@@ -231,6 +260,7 @@ describe("AuthorizationService", () => {
 
   it("returns the complete action set for the strongest applicable role", async () => {
     const store: AuthorizationStore = {
+      resourcePredicate: vi.fn(),
       findRecoverableResourceIds: vi.fn(),
       findResourceRoles: vi
         .fn()

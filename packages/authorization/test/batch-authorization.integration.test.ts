@@ -259,6 +259,18 @@ describe.sequential("batch policy parity", () => {
             expect(await policy.canMany(principal, action, resources)).toEqual(
               expected,
             );
+            const selected = await transaction
+              .select({ id: objects.id })
+              .from(objects)
+              .where(policy.resourcePredicate(principal, action));
+            const expectedIds = new Set(
+              resources
+                .filter((_, index) => expected[index])
+                .map(({ id }) => id),
+            );
+            expect(selected.map(({ id }) => id).sort()).toEqual(
+              [...expectedIds].sort(),
+            );
             for (const [index, resource] of resources.entries()) {
               expect(await policy.can(principal, action, resource)).toBe(
                 expected[index],
