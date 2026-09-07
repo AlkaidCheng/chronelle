@@ -1,4 +1,3 @@
-import { Buffer } from "node:buffer";
 import type { UserPrincipal } from "@chronelle/authorization";
 import {
   objectSearchCursorPayloadSchema,
@@ -7,6 +6,7 @@ import {
 } from "@chronelle/schemas";
 
 import { InvalidObjectStateError } from "./errors.js";
+import { decodeCursor, encodeCursor } from "./cursor.js";
 import type { ObjectSearchInput } from "./types.js";
 
 type SearchPosition = Pick<
@@ -27,7 +27,7 @@ export function encodeSearchCursor(
     objectType: input.objectType ?? null,
     ...position,
   };
-  return Buffer.from(JSON.stringify(payload)).toString("base64url");
+  return encodeCursor(payload);
 }
 
 export function decodeSearchCursor(
@@ -39,12 +39,7 @@ export function decodeSearchCursor(
     const token = objectSearchQuerySchema.shape.cursor
       .unwrap()
       .parse(input.cursor);
-    const bytes = Buffer.from(token, "base64url");
-    if (bytes.toString("base64url") !== token)
-      throw new Error("Invalid encoding");
-    const payload = objectSearchCursorPayloadSchema.parse(
-      JSON.parse(bytes.toString("utf8")),
-    );
+    const payload = objectSearchCursorPayloadSchema.parse(decodeCursor(token));
     if (
       payload.userId === principal.userId &&
       payload.workspaceId === principal.workspaceId &&

@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { cursorTimestampSchema, cursorTokenSchema } from "./pagination.js";
 
 const objectTypeSchema = z.enum([
   "event",
@@ -9,12 +10,7 @@ const objectTypeSchema = z.enum([
 ]);
 
 export const objectSearchQuerySchema = z.object({
-  cursor: z
-    .string()
-    .min(1)
-    .max(2048)
-    .regex(/^[A-Za-z0-9_-]+$/)
-    .optional(),
+  cursor: cursorTokenSchema.max(2048).optional(),
   limit: z.coerce.number().int().min(1).max(50).default(20),
   objectType: objectTypeSchema.optional(),
   query: z
@@ -48,10 +44,7 @@ export const objectSearchCursorPayloadSchema = z.strictObject({
   objectType: objectTypeSchema.nullable(),
   id: z.uuid(),
   rank: z.number().min(0).max(3.4028234663852886e38),
-  // PostgreSQL timestamps have no year zero.
-  updatedAt: z.iso
-    .datetime({ precision: 6 })
-    .refine((value) => !value.startsWith("0000-")),
+  updatedAt: cursorTimestampSchema,
 });
 
 export type ObjectSearchCursorPayload = z.infer<
