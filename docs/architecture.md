@@ -175,6 +175,15 @@ has no fixed private-candidate cutoff and returns no totals. See
 
 React components do not contain authorization or domain business logic.
 
+The Event collection also applies the evaluator's SQL View predicate before
+LIMIT. Its focused query function stays behind `EventPlanningObjectService`;
+no second public service or general query framework is introduced. It selects
+at most `limit + 1` authorized positions, then hydrates only the returned page
+through the canonical typed-state mapper in the same read-only snapshot.
+Nonempty pages use three service statements, including snapshot configuration.
+Name/period filters and date/name/updated keyset ordering run in PostgreSQL.
+The API, typed client, and Events screen share the [collection contract](api.md#event-collection).
+
 The API transport boundary owns safe error envelopes, request metadata logs,
 private cache headers, and parser limits. Shared HTTP limits live in schemas;
 the same-origin proxy counts incoming bytes and applies one deadline across

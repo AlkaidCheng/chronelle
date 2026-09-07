@@ -53,9 +53,12 @@ transaction control.
 - Search: two statements (snapshot setup and one visibility-filtered query),
   returning at most the requested page size plus one visible row. The
   sparse-access fixture places 550 private matches before shared matches.
-- Root Event listing: `2 + ceil(C / 1000) + ceil(V / 1000)` statements, where
-  `C` is the candidate count and `V` the visible count. An empty candidate set
-  requires only snapshot setup and candidate selection.
+- Root Event page: three statements (snapshot setup, authorized positions,
+  bounded typed-state hydration), or two for an empty page. Fixtures with
+  1, 100, 1,000, and 1,001 children made self-scoped retain this budget. At
+  1,003 visible roots, a default read hydrates 20 rather than all 1,003 records.
+  This compares one bounded page with the former complete response, not the
+  cost of enumerating the entire collection.
 
 Role queries return at most one row per requested object, using existing unique
 membership and grant constraints. Only authorized IDs proceed to typed-state
@@ -65,7 +68,7 @@ are tested alongside direct, inherited, membership, and recovery access.
 ## Limits
 
 Current role lookup uses shared queries for membership, direct, and inherited
-roles. Batch evaluation joins them; search uses their scalar expressions.
+roles. Batch evaluation joins them; search and Event pages use their scalar expressions.
 This avoids a second workspace-wide object scan in collection predicates;
 query-count budgets are unchanged for other retrieval paths.
 
@@ -74,5 +77,6 @@ Returned state still uses memory proportional to visible objects, and a large
 read holds its snapshot connection across all chunks. Search limits returned
 rows after authorization, not the total database work needed to find and rank
 matches. No authorization cache, new index, or migration is introduced.
-Removed-link scans remain iterative. Focused projection queries and pagination
-for Event, relation, and recovery lists require separate work.
+Event pages likewise bound hydration and response rows, not candidate filtering
+or sorting. Removed-link scans remain iterative. Focused projection queries and
+pagination for relation and recovery lists require separate work.

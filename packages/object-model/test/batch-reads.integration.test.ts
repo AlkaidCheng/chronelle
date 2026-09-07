@@ -160,9 +160,10 @@ describe.sequential("batched canonical reads", () => {
         .where(inArray(objects.id, ids));
       queryCount = 0;
       const roots = await reader.listEvents({ ...principal, userId: ownerId });
-      expect(queryCount).toBe(2 + 2 * Math.ceil((count + 2) / 1000));
-      expect(roots).toHaveLength(count + 2);
-      expect(roots.some(({ id }) => id === hiddenId)).toBe(true);
+      expect(queryCount).toBe(3);
+      expect(roots.items).toHaveLength(Math.min(count + 2, 20));
+      expect(roots.items.some(({ id }) => id === hiddenId)).toBe(true);
+      expect(roots.nextCursor === null).toBe(count + 2 <= 20);
 
       await db
         .update(objects)

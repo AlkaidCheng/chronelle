@@ -131,6 +131,14 @@ matches, select **Load more results** to request another visible page. The
 count shows loaded canonical objects, not a workspace total. Changing search
 filters starts a separate query; reloading the page discards pagination state.
 
+The Events screen loads 20 canonical records at a time. **Load more events**
+continues the current collection; its count means loaded records, not a total.
+The name filter is debounced, and all name/period filters and sort modes apply
+to the full accessible collection on the server. **Refresh events** discards
+loaded pages and starts a new period reference time. A failed continuation can
+be retried without discarding earlier cards. Grid/list layout stays local to
+the browser; Event data and ordering remain server-owned.
+
 ## Services
 
 Docker Compose starts PostgreSQL on the configured `POSTGRES_PORT`. Application

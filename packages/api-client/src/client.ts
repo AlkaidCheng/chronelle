@@ -65,6 +65,7 @@ import {
   type EventCreatePayload,
   type EventDetailResponse,
   type EventListResponse,
+  type EventListQueryInput,
   type EventPlanningResourceResponse,
   type EventResourceProjectionResponse,
   type EventResponse,
@@ -202,8 +203,13 @@ export class ChronelleApiClient {
     );
   }
 
-  listEvents(): Promise<EventListResponse> {
-    return this.#request("/api/events", eventListResponseSchema);
+  listEvents(input: EventListQueryInput = {}): Promise<EventListResponse> {
+    const parameters = new URLSearchParams();
+    for (const [key, value] of Object.entries(input)) {
+      if (value !== undefined) parameters.set(key, String(value));
+    }
+    const query = parameters.size === 0 ? "" : `?${parameters.toString()}`;
+    return this.#request(`/api/events${query}`, eventListResponseSchema);
   }
 
   listObjectRevisions(

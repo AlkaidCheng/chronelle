@@ -74,9 +74,16 @@ never copied business fields.
 `EventPlanningObjectService.listVisibleObjects(principal, ids)` resolves a
 collection through the same authorization policy as `getObject()`. It omits
 unavailable IDs, preserves input order and duplicates, and loads visible typed
-states in bounded batches within one snapshot. Event collections, detail
-projections, and attachment lists reuse it. The low-level `readObjectStates()`
+states in bounded batches within one snapshot. Detail projections and
+attachment lists reuse it. The low-level `readObjectStates()`
 also supports tombstones for recovery; callers must authorize it explicitly.
+
+The Event collection is a read-time projection: its pages hydrate existing
+typed Event rows, not new collection records. Only active self-scoped Events are collection roots;
+an inheriting itinerary Event remains in its canonical parent's projections.
+Changing a name, schedule, or update time changes subsequent collection reads
+and can move a record across page boundaries. The client deduplicates IDs when
+accumulating pages, without creating another business identity.
 
 Search is another read-time projection over `objects`, backed by a partial
 PostgreSQL full-text index on active display names. A search result is not a

@@ -8,7 +8,7 @@ Protected database reads evaluate permissions and assemble data in the same
 snapshot. A read in progress may finish with the earlier authorized version
 after a concurrent revocation, but cannot combine that access with later private
 content. Subsequent reads use current policy; separate requests are not a shared
-snapshot. Response schemas and mutation/version preconditions are unchanged.
+snapshot. Mutation/version preconditions remain unchanged.
 See [Consistent reads](permissions.md#consistent-reads).
 
 ## HTTP limits and errors
@@ -47,6 +47,72 @@ applies a bounded batch of Event/Task content edits; `POST /api/commands/undo` a
 `POST /api/commands/redo` transition its pinned head. Every mutation requires an
 operation ID and expected stack version. See [Commands](commands.md) for typed
 examples, object preconditions, idempotency, and explicit eligibility limits.
+
+## Event collection
+
+`GET /api/events` returns `{ items, nextCursor, asOf }`. It lists active,
+self-scoped Events in the selected workspace with current View permission.
+Scoped itinerary Events remain in their parent's projections. Permission and
+content are read in one snapshot; private candidates cannot consume the limit.
+
+| Parameter | Values and default                                          |
+| --------- | ----------------------------------------------------------- |
+| `limit`   | 1-50, default 20                                            |
+| `query`   | Trimmed name substring, up to 240 characters, default empty |
+| `filter`  | `all` (default), `upcoming`, `past`, or `unscheduled`       |
+| `sort`    | `date` (default), `name`, or `updated`                      |
+| `cursor`  | Previous `nextCursor`; omit to start a new collection read  |
+
+Name matching is case-insensitive; `%`, `_`, and backslash are literal
+characters, not wildcard syntax. `unscheduled` means no start time. A scheduled
+Event is past when its end (or start if there is no end) precedes `asOf`;
+`upcoming` includes ongoing Events and the exact boundary. The first page's
+reference time is retained across its continuation pages. It never sets the
+authorization clock: every request rechecks current access and grant expiry.
+
+Date order is start ascending, undated last, then folded name and ID. Name order
+is folded name then ID. Updated order is update time descending then ID. Names
+use PostgreSQL `lower(display_name) COLLATE "C"`, not browser locale collation.
+Cursor timestamps retain database microseconds even though resource timestamps
+are serialized in milliseconds.
+
+Previously one call returned the whole accessible collection:
+
+```ts
+const { items } = await client.listEvents();
+```
+
+It now returns at most 20 items by default. To enumerate a filtered collection,
+keep its options and follow `nextCursor` until null:
+
+```ts
+const options = {
+  query: "gathering",
+  filter: "upcoming",
+  sort: "name",
+  limit: 25,
+} as const;
+let page = await client.listEvents(options);
+consume(page.items);
+while (page.nextCursor !== null) {
+  page = await client.listEvents({ ...options, cursor: page.nextCursor });
+  consume(page.items);
+}
+```
+
+Deploy the API and web client together. Update any external callers that assumed
+one complete response; no database migration is needed. Invalid options or
+malformed/mismatched cursors return 400 `invalid_request`. Cursors are bounded
+to 4096 characters and bind the user, workspace, normalized query, filter, and
+sort. A caller may change page size. Tokens are positions, not credentials or
+permanent links, and contain only already-visible sort values.
+
+Each page is a separate snapshot. Deleting a boundary does not prevent
+continuation, but renames, rescheduling, or other edits can move records across
+pages. This is not a point-in-time export: deduplicate IDs when accumulating
+pages, and restart without a cursor to refresh the collection and period clock.
+There is no total count. Database filtering/sorting may scan many candidates;
+returned rows and typed-object hydration are bounded, not total database work.
 
 ## Atomic Event resource creation
 

@@ -17,6 +17,8 @@ import {
   type ObjectType,
 } from "@chronelle/db";
 import { and, eq, inArray, isNull, sql } from "drizzle-orm";
+import type { EventListQueryInput } from "@chronelle/schemas";
+import { listEventPage, type EventPage } from "./event-list.js";
 
 import { InvalidObjectStateError, ObjectConflictError } from "./errors.js";
 import { readObjectState, readObjectStates } from "./object-state.js";
@@ -294,41 +296,11 @@ export class EventPlanningObjectService {
     );
   }
 
-  async listEvents(principal: UserPrincipal): Promise<EventResource[]> {
-    return withReadAuthorization(
-      this.#database,
-      async (transaction, authorization) => {
-        const reader = new EventPlanningObjectService({
-          database: transaction,
-          authorization,
-        });
-        const candidates = await transaction
-          .select({ id: objects.id })
-          .from(objects)
-          .where(
-            and(
-              eq(objects.workspaceId, principal.workspaceId),
-              eq(objects.objectType, "event"),
-              eq(objects.permissionScopeId, objects.id),
-              isNull(objects.deletedAt),
-            ),
-          );
-
-        const visibleEvents = await reader.listVisibleObjects(
-          principal,
-          candidates.map(({ id }) => id),
-        );
-
-        return visibleEvents
-          .map((event) => this.#requireType(event, "event"))
-          .sort(
-            (first, second) =>
-              (first.startsAt?.getTime() ?? Number.POSITIVE_INFINITY) -
-                (second.startsAt?.getTime() ?? Number.POSITIVE_INFINITY) ||
-              first.id.localeCompare(second.id),
-          );
-      },
-    );
+  listEvents(
+    principal: UserPrincipal,
+    input: EventListQueryInput = {},
+  ): Promise<EventPage> {
+    return listEventPage(this.#database, principal, input);
   }
 
   async getEvent(

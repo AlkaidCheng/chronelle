@@ -137,7 +137,7 @@ the active workspace and applies the canonical View decision to every returned
 Event. A relationship or workspace ID alone cannot make an Event appear.
 
 Search follows the same rule. It selects only active candidates from the
-authenticated workspace, evaluates their View permissions in batches,
+authenticated workspace, applies their View permissions before LIMIT,
 and returns no total computed from unauthorized rows. Object-type filters do
 not weaken that decision. A directly shared Event and its inheriting children
 can appear; a related self-scoped object cannot.
@@ -175,13 +175,14 @@ that operation, and a failed chunk rejects the entire read. An empty or entirely
 cross-workspace input needs no policy query. Scope inheritance remains one hop;
 neither relation traversal nor recursive grant inheritance is introduced.
 
-Event lists, detail projections, attachments, and relation lists use these
+Detail projections, attachments, and relation lists use these
 batch decisions. Removed-link lists evaluate both endpoint capabilities per
 candidate chunk and may visit multiple candidate pages. Batching does not
 bound their total response size or scan work.
 
-Search uses `authorization.resourcePredicate(principal, "view")` directly in
-its SQL query before ordering and limiting results. This predicate targets
+Search and the Event collection use the evaluator's
+`resourcePredicate(principal, "view")` in SQL before ordering and limiting
+results. This predicate targets
 the canonical `objects` table, includes workspace and active-object checks,
 and uses scalar forms of the same role queries and action rules as `can()` and
 `canMany()`. Batch reads join those queries so PostgreSQL can reuse shared scopes.
@@ -189,6 +190,13 @@ It must be used inside the same read boundary as the selected content. Its
 Recover action retains the separate tombstone policy. Search cursors carry
 positions, not grants: every page evaluates current access in a fresh read
 snapshot, and a changed or forged position cannot reveal inaccessible rows.
+
+Event pages select authorized IDs and hydrate their typed state in the same
+snapshot. The cursor's `asOf` fixes only the past/upcoming classification;
+grant expiration always uses the current read's independent authorization
+clock. Collection filtering and pagination never grant access or expose private
+totals. A cursor remains usable after its boundary is deleted, but only returns
+currently visible active records.
 
 See [Authorization performance](authorization-performance.md) for measured
 query counts, latency, and the workload limitations.

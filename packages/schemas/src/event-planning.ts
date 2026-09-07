@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { cursorTokenSchema } from "./pagination.js";
 
 const jsonObjectSchema = z.record(z.string(), z.unknown());
 const objectIdSchema = z.uuid();
@@ -169,6 +170,8 @@ export const eventResponseSchema = z.object({
 
 export const eventListResponseSchema = z.object({
   items: z.array(eventResponseSchema),
+  nextCursor: cursorTokenSchema.nullable(),
+  asOf: dateTimeResponseSchema,
 });
 
 export const taskResponseSchema = z.object({

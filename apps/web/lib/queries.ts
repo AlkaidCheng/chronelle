@@ -6,6 +6,8 @@ import type {
   EventCreatePayload,
   EventContextCreatePayload,
   EventUpdatePayload,
+  EventListQueryInput,
+  EventListResponse,
   ExpenseUpdatePayload,
   ObjectSearchQueryInput,
   ObjectSearchResponse,
@@ -72,23 +74,49 @@ export function useSessionQuery() {
   });
 }
 
-export function useEventsQuery() {
+export function useEventsQuery(input: Omit<EventListQueryInput, "cursor">) {
   const client = useApiClient();
   const { credential } = useAuthSession();
-  return useQuery({
+  const queryClient = useQueryClient();
+  const queryKey = [
+    ...queryKeys.events,
+    input,
+    credential?.homeWorkspaceId,
+    credential?.workspaceId,
+  ];
+  const result = useInfiniteQuery({
     enabled: credential !== null,
-    queryFn: () => client.listEvents(),
-    queryKey: queryKeys.events,
+    initialPageParam: undefined as string | undefined,
+    queryFn: ({ pageParam }) =>
+      client.listEvents({
+        ...input,
+        ...(pageParam === undefined ? {} : { cursor: pageParam }),
+      }),
+    getNextPageParam: (page) => page.nextCursor ?? undefined,
+    queryKey,
+    select: selectEventItems,
   });
+  return {
+    ...result,
+    refresh: () => queryClient.resetQueries({ queryKey, exact: true }),
+  };
+}
+
+function pageItems<T extends { readonly id: string }>(
+  pages: readonly { readonly items: readonly T[] }[],
+): T[] {
+  const items = new Map(
+    pages.flatMap((page) => page.items.map((item) => [item.id, item] as const)),
+  );
+  return [...items.values()];
+}
+
+function selectEventItems(data: InfiniteData<EventListResponse>) {
+  return { items: pageItems(data.pages), asOf: data.pages[0]?.asOf };
 }
 
 function selectSearchItems(data: InfiniteData<ObjectSearchResponse>) {
-  const items = new Map(
-    data.pages.flatMap((page) =>
-      page.items.map((item) => [item.id, item] as const),
-    ),
-  );
-  return { items: [...items.values()] };
+  return { items: pageItems(data.pages) };
 }
 
 export function useObjectSearch(

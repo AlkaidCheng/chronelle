@@ -1,6 +1,6 @@
 "use client";
 
-import type { EventResponse } from "@chronelle/schemas";
+import type { EventResponse, EventListQuery } from "@chronelle/schemas";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { type FormEvent, useEffect, useRef, useState } from "react";
@@ -19,13 +19,7 @@ import {
 } from "../../components/icons";
 import { formatDateTime, fromDateTimeInput } from "../../lib/format";
 import { useCreateEvent, useEventsQuery } from "../../lib/queries";
-import {
-  type EventFilter,
-  type EventSort,
-  eventPeriod,
-  selectEvents,
-} from "../../lib/event-collection";
-import { useClock } from "../../lib/use-clock";
+import { eventPeriod } from "../../lib/event-collection";
 
 function EventCard({
   event,
@@ -137,13 +131,21 @@ function CreateEventForm({
 }
 
 export function EventList() {
-  const events = useEventsQuery();
   const router = useRouter();
-  const now = useClock();
   const [isCreating, setIsCreating] = useState(false);
   const [query, setQuery] = useState("");
-  const [filter, setFilter] = useState<EventFilter>("all");
-  const [sort, setSort] = useState<EventSort>("date");
+  const [debouncedQuery, setDebouncedQuery] = useState("");
+  const [filter, setFilter] = useState<EventListQuery["filter"]>("all");
+  const [sort, setSort] = useState<EventListQuery["sort"]>("date");
+  useEffect(() => {
+    const timer = window.setTimeout(() => setDebouncedQuery(query.trim()), 250);
+    return () => window.clearTimeout(timer);
+  }, [query]);
+  const events = useEventsQuery({ query: debouncedQuery, filter, sort });
+  const changingQuery = query.trim() !== debouncedQuery;
+  const items = changingQuery ? [] : (events.data?.items ?? []);
+  const now = Date.parse(events.data?.asOf ?? "");
+  const filtered = debouncedQuery !== "" || filter !== "all";
   const [layout, setLayout] = useState<"grid" | "list">("grid");
   const createButton = useRef<HTMLButtonElement>(null);
   useEffect(() => {
@@ -154,12 +156,6 @@ export function EventList() {
       /* Layout remains usable when browser storage is unavailable. */
     }
   }, []);
-  const items = selectEvents(events.data?.items ?? [], {
-    query,
-    filter,
-    sort,
-    now,
-  });
 
   function changeLayout(value: "grid" | "list") {
     setLayout(value);
@@ -238,7 +234,9 @@ export function EventList() {
             <span className="visually-hidden">Sort events</span>
             <select
               value={sort}
-              onChange={(event) => setSort(event.target.value as EventSort)}
+              onChange={(event) =>
+                setSort(event.target.value as EventListQuery["sort"])
+              }
             >
               <option value="date">Event date</option>
               <option value="updated">Recently updated</option>
@@ -263,6 +261,14 @@ export function EventList() {
               <ListIcon />
             </button>
           </fieldset>
+          <button
+            className="button button-quiet"
+            type="button"
+            disabled={events.isFetching || changingQuery}
+            onClick={() => void events.refresh()}
+          >
+            Refresh events
+          </button>
         </div>
         <div className="collection-heading">
           <fieldset className="filter-row" aria-label="Filter events">
@@ -289,28 +295,41 @@ export function EventList() {
             className="collection-count"
             role="status"
           >
-            {events.data
-              ? `${items.length} of ${events.data.items.length} events`
+            {events.data && !changingQuery
+              ? `${items.length} ${items.length === 1 ? "event" : "events"} loaded`
               : ""}
           </p>
         </div>
         <div className="visually-hidden">
           <h2 id="event-list-heading">All events</h2>
         </div>
-        {events.isPending ? <LoadingState label="Loading events" /> : null}
+        {events.isPending || changingQuery ? (
+          <LoadingState label="Loading events" />
+        ) : null}
         {events.isError ? (
           <ErrorNotice
             error={events.error}
-            onRefresh={() => void events.refetch()}
+            onRefresh={() =>
+              void (events.isFetchNextPageError
+                ? events.fetchNextPage()
+                : events.refresh())
+            }
           />
         ) : null}
-        {events.data?.items.length === 0 ? (
+        {!changingQuery &&
+        !events.isError &&
+        events.data?.items.length === 0 &&
+        !filtered ? (
           <EmptyState
             description="Choose New event to start a gathering, a project, or a day worth planning. Add the details as they take shape."
             title="Your first event starts here"
           />
         ) : null}
-        {events.data && events.data.items.length > 0 && items.length === 0 ? (
+        {!changingQuery &&
+        !events.isError &&
+        events.data &&
+        items.length === 0 &&
+        filtered ? (
           <div className="collection-empty">
             <EmptyState
               title="No matching events"
@@ -333,6 +352,18 @@ export function EventList() {
             <EventCard event={event} now={now} key={event.id} />
           ))}
         </div>
+        {!changingQuery && events.hasNextPage ? (
+          <button
+            className="button button-secondary"
+            type="button"
+            disabled={events.isFetching}
+            onClick={() => void events.fetchNextPage()}
+          >
+            {events.isFetchingNextPage
+              ? "Loading more events..."
+              : "Load more events"}
+          </button>
+        ) : null}
       </section>
     </main>
   );

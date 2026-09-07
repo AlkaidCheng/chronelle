@@ -40,7 +40,7 @@ test("organizes events and keeps navigation usable across reloads and screen siz
   await page.getByLabel("Email").fill(email);
   await page.getByRole("button", { name: "Continue" }).click();
   await expect(page.getByRole("status", { name: "Event count" })).toHaveText(
-    "4 of 4 events",
+    "4 events loaded",
   );
   await expect(
     page.getByRole("link", { name: "Events", exact: true }),
@@ -58,7 +58,7 @@ test("organizes events and keeps navigation usable across reloads and screen siz
   );
   await page.getByRole("button", { name: "Upcoming & ongoing" }).click();
   await expect(page.getByRole("status", { name: "Event count" })).toHaveText(
-    "2 of 4 events",
+    "2 events loaded",
   );
   await page.getByLabel("Filter events by name").fill("missing event");
   await expect(
@@ -66,7 +66,7 @@ test("organizes events and keeps navigation usable across reloads and screen siz
   ).toBeVisible();
   await page.getByRole("button", { name: "Clear filters" }).click();
   await expect(page.getByRole("status", { name: "Event count" })).toHaveText(
-    "4 of 4 events",
+    "4 events loaded",
   );
   await page.getByLabel("Sort events").selectOption("name");
   await page.getByRole("button", { name: "New event" }).click();
