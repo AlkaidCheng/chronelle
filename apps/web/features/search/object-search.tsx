@@ -153,7 +153,9 @@ export function ObjectSearch() {
       >
         <div className="section-title-row">
           <h2 id="search-results-heading">Results</h2>
-          <span aria-live="polite">{search.data?.items.length ?? 0}</span>
+          <span aria-live="polite">
+            {search.data?.items.length ?? 0} loaded
+          </span>
         </div>
         {search.isPending && submittedInput !== null ? (
           <LoadingState label="Searching workspace" />
@@ -161,7 +163,11 @@ export function ObjectSearch() {
         {search.isError ? (
           <ErrorNotice
             error={search.error}
-            onRefresh={() => void search.refetch()}
+            onRefresh={() =>
+              void (search.isFetchNextPageError
+                ? search.fetchNextPage()
+                : search.refetch())
+            }
           />
         ) : null}
         {submittedInput === null ? (
@@ -181,6 +187,18 @@ export function ObjectSearch() {
             <SearchResultCard key={result.id} result={result} />
           ))}
         </div>
+        {search.hasNextPage ? (
+          <button
+            className="button button-secondary"
+            disabled={search.isFetching}
+            onClick={() => void search.fetchNextPage()}
+            type="button"
+          >
+            {search.isFetchingNextPage
+              ? "Loading more..."
+              : "Load more results"}
+          </button>
+        ) : null}
       </section>
     </main>
   );

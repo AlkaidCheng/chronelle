@@ -183,14 +183,32 @@ omitted.
 `GET /search` requires a `query` of 2-120 characters containing at least one
 letter or number. `objectType` may select `event`, `task`, `expense`,
 `reminder`, or `document`; `limit` defaults to 20 and is capped at 50. The
-response contains compact canonical object fields and no pre-authorization
-total.
+response is `{ items, nextCursor }`, with compact canonical object fields and
+no total. `nextCursor` is `null` when no more visible matches exist in this
+page's snapshot. To continue, send it unchanged as `cursor` with the same query
+and object type. Page size may change between requests.
 
-PostgreSQL full-text search selects active candidates only in the request
-workspace. Each candidate then passes through
-`can(principal, view, resource)` before it can enter the response. The current
-V1A candidate window is 500 matches; pagination and richer structured filters
-are deferred.
+The central View policy filters active canonical objects in the selected
+workspace before PostgreSQL sorts and limits them. There is no fixed
+private-candidate window. Ordering is relevance descending, update time
+descending, then ID ascending. Each query fetches at most `limit + 1` visible
+rows; the extra row determines whether another page exists.
+
+Cursors are opaque, versioned base64url positions bounded to 2,048 characters.
+They bind the normalized query, type filter, user, and workspace, and preserve
+PostgreSQL timestamp precision. Invalid or mismatched cursors return
+`400 invalid_request`. They are neither secrets nor authorization credentials:
+changing a position cannot bypass the current permission decision. Clients
+must not decode or construct them.
+
+Each page uses a fresh consistent read snapshot. Grant revocation and soft
+deletion take effect on subsequent requests; deleting a boundary row does not
+break continuation. Unchanged matches with tied sort fields paginate without
+duplicates, but edits that move an object's relevance or update time can move
+it across a cursor. Restart without a cursor to obtain a fresh ordering. The
+web client deduplicates canonical IDs across loaded pages; pagination is not a
+long-lived snapshot or an export-completeness guarantee. Deploy the API and
+typed client together because the response now requires `nextCursor`.
 
 ## Relationships
 

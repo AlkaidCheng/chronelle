@@ -168,19 +168,27 @@ await withReadAuthorization(database, async (transaction, authorization) => {
 });
 ```
 
-The store joins workspace membership, direct grants, and the active canonical
-scope for at most 1,000 distinct same-workspace IDs per statement. Larger inputs
+The store joins workspace membership, direct grants, and active canonical
+scope grants for at most 1,000 distinct same-workspace IDs per statement. Larger inputs
 use sequential chunks on the owning transaction. No permission decision survives
 that operation, and a failed chunk rejects the entire read. An empty or entirely
 cross-workspace input needs no policy query. Scope inheritance remains one hop;
 neither relation traversal nor recursive grant inheritance is introduced.
 
-Event lists, detail projections, attachments, search, and relation lists use
-these batch decisions. Removed-link lists evaluate both endpoint capabilities
-per candidate chunk. Candidate limits and pagination contracts are unchanged:
-search still examines at most 500 candidates before visibility filtering, and
-removed-link scans may visit multiple candidate pages. Batching does not bound
-total response size or total scan work.
+Event lists, detail projections, attachments, and relation lists use these
+batch decisions. Removed-link lists evaluate both endpoint capabilities per
+candidate chunk and may visit multiple candidate pages. Batching does not
+bound their total response size or scan work.
+
+Search uses `authorization.resourcePredicate(principal, "view")` directly in
+its SQL query before ordering and limiting results. This predicate targets
+the canonical `objects` table, includes workspace and active-object checks,
+and uses scalar forms of the same role queries and action rules as `can()` and
+`canMany()`. Batch reads join those queries so PostgreSQL can reuse shared scopes.
+It must be used inside the same read boundary as the selected content. Its
+Recover action retains the separate tombstone policy. Search cursors carry
+positions, not grants: every page evaluates current access in a fresh read
+snapshot, and a changed or forged position cannot reveal inaccessible rows.
 
 See [Authorization performance](authorization-performance.md) for measured
 query counts, latency, and the workload limitations.

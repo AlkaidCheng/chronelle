@@ -11,7 +11,8 @@ and teardown are excluded; evaluating and checking every result is included.
 Drizzle's query logger counts executed statements without logging parameters.
 
 The baseline was measured against commit `b09ea83` using sequential `can()`
-calls. The batched workload calls `canMany()` once with the same resource set.
+calls. The batch measurements below describe the joined role lookup accepted
+at `6f1a978`, calling `canMany()` once with the same resource set.
 These are local integration measurements, not production throughput or an SLA.
 
 | Objects | Baseline policy queries | Batch policy queries | Baseline median | Batch median |
@@ -23,6 +24,11 @@ These are local integration measurements, not production throughput or an SLA.
 At 1,001 objects, the batch fixture executes two policy statements (14.18 ms
 median). Larger inputs are chunked sequentially; no per-resource asynchronous
 fan-out is used. Single-resource checks use the same query and role matrix.
+
+With shared role-query definitions used by both batch joins and scalar search
+predicates, a subsequent run measured 1.32/3.14/13.83 ms at 1/100/1,000 objects
+and 16.14 ms at 1,001 objects. Statement counts remain 1/1/1/2. These small
+timing differences are not a claim of a batch latency improvement.
 
 Run the reproducible policy fixture against the configured test database:
 
@@ -44,7 +50,9 @@ transaction control.
 - Event detail with `N` visible children and one hidden child, no attachments:
   `5 + ceil((N + 1) / 1000) + ceil(N / 1000)` statements.
 - Active relations for that Event: `3 + ceil((N + 1) / 1000)` statements.
-- Search: three statements for up to the existing 500 candidates.
+- Search: two statements (snapshot setup and one visibility-filtered query),
+  returning at most the requested page size plus one visible row. The
+  sparse-access fixture places 550 private matches before shared matches.
 - Root Event listing: `2 + ceil(C / 1000) + ceil(V / 1000)` statements, where
   `C` is the candidate count and `V` the visible count. An empty candidate set
   requires only snapshot setup and candidate selection.
@@ -56,10 +64,15 @@ are tested alongside direct, inherited, membership, and recovery access.
 
 ## Limits
 
+Current role lookup uses shared queries for membership, direct, and inherited
+roles. Batch evaluation joins them; search uses their scalar expressions.
+This avoids a second workspace-wide object scan in collection predicates;
+query-count budgets are unchanged for other retrieval paths.
+
 Batching bounds IDs and parameters per statement, not total response size.
 Returned state still uses memory proportional to visible objects, and a large
-read holds its snapshot connection across all chunks. No authorization cache,
-new index, migration, REST contract, or pagination behavior is introduced.
-Search still limits candidates before visibility filtering. Removed-link scans
-remain iterative. Focused projection queries and visibility-aware pagination
-require separate work.
+read holds its snapshot connection across all chunks. Search limits returned
+rows after authorization, not the total database work needed to find and rank
+matches. No authorization cache, new index, or migration is introduced.
+Removed-link scans remain iterative. Focused projection queries and pagination
+for Event, relation, and recovery lists require separate work.

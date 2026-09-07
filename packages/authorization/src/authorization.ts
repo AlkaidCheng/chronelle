@@ -1,4 +1,5 @@
 import type { Role } from "@chronelle/db";
+import type { SQL } from "drizzle-orm";
 
 export const authorizationActions = [
   "view",
@@ -34,6 +35,10 @@ export interface WorkspaceAccessQuery {
   readonly workspaceId: string;
 }
 
+export interface ResourceAccessQuery extends WorkspaceAccessQuery {
+  readonly action: AuthorizationAction;
+}
+
 export interface AccessibleWorkspaceQuery {
   readonly evaluatedAt: Date;
   readonly userId: string;
@@ -42,6 +47,7 @@ export interface AccessibleWorkspaceQuery {
 export type WorkspaceRoleQuery = Omit<WorkspaceAccessQuery, "evaluatedAt">;
 
 export interface AuthorizationStore {
+  resourcePredicate(query: ResourceAccessQuery): SQL;
   findRecoverableResourceIds(
     query: ResourceRolesQuery,
   ): Promise<ReadonlySet<string>>;
@@ -88,6 +94,19 @@ export class AuthorizationService {
   ): Promise<boolean> {
     const [allowed] = await this.canMany(principal, action, [resource]);
     return allowed ?? false;
+  }
+
+  /** Filter canonical objects using this evaluator's principal, policy, and expiry instant. */
+  resourcePredicate(
+    principal: UserPrincipal,
+    action: AuthorizationAction,
+  ): SQL {
+    return this.#store.resourcePredicate({
+      action,
+      evaluatedAt: this.#clock(),
+      userId: principal.userId,
+      workspaceId: principal.workspaceId,
+    });
   }
 
   /** Evaluate resources in input order, including duplicates and unavailable references. */

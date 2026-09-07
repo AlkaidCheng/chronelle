@@ -4,9 +4,10 @@ import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import {
   AuthorizationService,
-  type UserPrincipal,
+  withReadAuthorization,
 } from "@chronelle/authorization";
 import { objectRelations, resourceGrants, workspaces } from "@chronelle/db";
+import { CanonicalObjectSearchService } from "@chronelle/object-model";
 import {
   applyMigrations,
   createTestDatabase,
@@ -524,34 +525,85 @@ describe.sequential("authorized read snapshots", () => {
     const privateEvent = await create(owner, "events", {
       displayName: "Confidential search content",
     });
-    const canMany = AuthorizationService.prototype.canMany;
-    let interleaved = false;
-    vi.spyOn(AuthorizationService.prototype, "canMany").mockImplementation(
-      async function (
-        this: AuthorizationService,
-        principal: UserPrincipal,
-        action,
-        resources,
-      ) {
-        if (
-          !interleaved &&
-          principal.userId === reader.user.id &&
-          resources.some((resource) => resource.id === privateEvent.id)
-        ) {
-          interleaved = true;
-          await rename(owner, "events", privateEvent.id);
-          await share(owner, privateEvent.id);
-        }
-        return canMany.call(this, principal, action, resources);
+    await withReadAuthorization(
+      database.connection.db,
+      async (transaction, authorization) => {
+        // Establish the read snapshot before a separate HTTP writer commits.
+        await transaction
+          .select({ id: workspaces.id })
+          .from(workspaces)
+          .limit(1);
+        await rename(owner, "events", privateEvent.id);
+        await share(owner, privateEvent.id);
+        const search = new CanonicalObjectSearchService({
+          database: transaction,
+          authorization,
+        });
+        const page = await search.search(
+          {
+            type: "user",
+            userId: reader.user.id,
+            workspaceId: owner.workspace.id,
+          },
+          { query: "Confidential", limit: 20 },
+        );
+        expect(page).toEqual({ items: [], nextCursor: null });
       },
     );
     const response = await app.inject({
       method: "GET",
-      url: "/api/search?query=Confidential",
+      url: "/api/search?query=Private",
       headers: headers(reader, owner.workspace.id),
     });
-    expect(interleaved).toBe(true);
     expect(response.statusCode).toBe(200);
-    expect(response.json().items).toEqual([]);
+    expect(response.json().items).toMatchObject([
+      { id: privateEvent.id, displayName: "Private content" },
+    ]);
+  });
+
+  it("returns visible search pages and rejects invalid cursor contexts at the HTTP boundary", async () => {
+    const { owner, reader } = await fixture();
+    const second = await create(owner);
+    await share(owner, second.id);
+    const requestHeaders = headers(reader, owner.workspace.id);
+    const first = await app.inject({
+      method: "GET",
+      url: "/api/search?query=Shared&limit=1",
+      headers: requestHeaders,
+    });
+    expect(first.statusCode).toBe(200);
+    expect(first.json().items).toHaveLength(1);
+    const cursor = first.json().nextCursor;
+    expect(typeof cursor).toBe("string");
+    const next = await app.inject({
+      method: "GET",
+      url: `/api/search?query=Shared&limit=1&cursor=${cursor}`,
+      headers: requestHeaders,
+    });
+    expect(next.statusCode).toBe(200);
+    expect(next.json().items).toHaveLength(1);
+    expect(next.json().items[0].id).not.toBe(first.json().items[0].id);
+    expect(next.json().nextCursor).toBeNull();
+    for (const url of [
+      "/api/search?query=Shared&cursor=invalid",
+      `/api/search?query=Shared&cursor=${"a".repeat(2049)}`,
+      `/api/search?query=Other&cursor=${cursor}`,
+      `/api/search?query=Shared&objectType=task&cursor=${cursor}`,
+    ]) {
+      const response = await app.inject({
+        method: "GET",
+        url,
+        headers: requestHeaders,
+      });
+      expect(response.statusCode).toBe(400);
+      expect(response.json().error.code).toBe("invalid_request");
+      expect(response.body).not.toContain(cursor);
+    }
+    const switched = await app.inject({
+      method: "GET",
+      url: `/api/search?query=Shared&cursor=${cursor}`,
+      headers: headers(reader),
+    });
+    expect(switched.statusCode).toBe(400);
   });
 });

@@ -82,7 +82,11 @@ Search is another read-time projection over `objects`, backed by a partial
 PostgreSQL full-text index on active display names. A search result is not a
 stored search document: it carries the same canonical ID, type, permission
 scope, version, and update time as the object row. Object-type filtering changes
-selection only and never creates another container.
+selection only and never creates another container. Search pages are ordered
+by relevance descending, update time descending, then canonical ID ascending.
+The cursor preserves database timestamp precision even though public resource
+timestamps are serialized as JavaScript dates. Removing the boundary object
+does not invalidate the remaining keyset position.
 
 An attachment is one canonical Document plus one `attached_to` relationship.
 The Document uses its parent's canonical permission scope, so a file attached

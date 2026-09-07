@@ -16,6 +16,8 @@ export * from "./recovery.js";
 export * from "./event-context.js";
 export {
   objectSearchQuerySchema,
+  objectSearchCursorPayloadSchema,
+  type ObjectSearchCursorPayload,
   objectSearchResponseSchema,
   objectSearchResultSchema,
   type ObjectSearchQuery,

@@ -149,9 +149,9 @@ describe.sequential("batched canonical reads", () => {
         principal,
         { query: "Scheduled", limit: 50 },
       );
-      expect(queryCount).toBe(3);
-      expect(results.every(({ id }) => ids.includes(id))).toBe(true);
-      expect(results).toHaveLength(Math.min(count, 50));
+      expect(queryCount).toBe(2);
+      expect(results.items.every(({ id }) => ids.includes(id))).toBe(true);
+      expect(results.items).toHaveLength(Math.min(count, 50));
 
       // Scope changes make the same canonical rows independent root Events.
       await db

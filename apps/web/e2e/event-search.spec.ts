@@ -78,3 +78,63 @@ test("creates and retrieves one canonical Event at responsive widths", async ({
   await expect(page).toHaveURL(eventUrl);
   await expect(page.getByRole("heading", { name: eventName })).toBeVisible();
 });
+
+test("loads additional search results with keyboard navigation and resets filters", async ({
+  page,
+  request,
+}, testInfo) => {
+  const errors: string[] = [];
+  page.on("pageerror", (error) => errors.push(error.message));
+  const email = `search-pages-${randomUUID()}@example.test`;
+  const identity = await request.post("/api/auth/development/sign-in", {
+    data: { email, displayName: "Search planner" },
+  });
+  expect(identity.ok()).toBe(true);
+  const session = await identity.json();
+  const headers = { authorization: `Bearer ${session.accessToken}` };
+  for (let index = 0; index < 23; index += 1) {
+    const created = await request.post("/api/events", {
+      headers,
+      data: { displayName: `Searchable plan ${index}` },
+    });
+    expect(created.status()).toBe(201);
+  }
+  await page.goto("/sign-in");
+  await page.getByLabel("Name").fill("Search planner");
+  await page.getByLabel("Email").fill(email);
+  await page.getByRole("button", { name: "Continue" }).click();
+  await page.getByRole("link", { name: "Search", exact: true }).click();
+  await page.getByLabel("Keywords").fill("Searchable");
+  await page.getByRole("button", { name: "Search", exact: true }).click();
+  await expect(page.getByText("20 loaded", { exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Load more results" }).focus();
+  await page.keyboard.press("Enter");
+  await expect(page.getByText("23 loaded", { exact: true })).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Load more results" }),
+  ).toHaveCount(0);
+  const links = page.getByRole("link", { name: /Searchable plan/u });
+  await expect(links).toHaveCount(23);
+  const hrefs = await links.evaluateAll((nodes) =>
+    nodes.map((node) => node.getAttribute("href")),
+  );
+  expect(new Set(hrefs).size).toBe(23);
+  expect(
+    await page.evaluate(
+      () =>
+        document.documentElement.scrollWidth <=
+        document.documentElement.clientWidth,
+    ),
+  ).toBe(true);
+  await page.screenshot({
+    path: testInfo.outputPath("search-pages.png"),
+    fullPage: true,
+  });
+  await page.getByLabel("Type").selectOption("task");
+  await page.getByRole("button", { name: "Search", exact: true }).click();
+  await expect(
+    page.getByRole("heading", { name: "No accessible objects found" }),
+  ).toBeVisible();
+  await expect(links).toHaveCount(0);
+  expect(errors).toEqual([]);
+});

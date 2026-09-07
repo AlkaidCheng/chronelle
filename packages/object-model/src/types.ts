@@ -224,9 +224,15 @@ export interface RelationDeletionResource {
 }
 
 export interface ObjectSearchInput {
+  readonly cursor?: string | undefined;
   readonly limit: number;
   readonly objectType?: ObjectType | undefined;
   readonly query: string;
+}
+
+export interface ObjectSearchPage {
+  readonly items: readonly ObjectSearchResultResource[];
+  readonly nextCursor: string | null;
 }
 
 export interface ObjectSearchResultResource {

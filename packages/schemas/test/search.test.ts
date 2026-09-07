@@ -25,4 +25,16 @@ describe("object search schemas", () => {
       objectSearchQuerySchema.safeParse({ limit: 51, query: "launch" }).success,
     ).toBe(false);
   });
+
+  it("bounds the optional cursor before decoding", () => {
+    expect(
+      objectSearchQuerySchema.parse({ query: "launch", cursor: "abc_123-XYZ" })
+        .cursor,
+    ).toBe("abc_123-XYZ");
+    for (const cursor of ["", "a".repeat(2049), "with padding=", 123]) {
+      expect(
+        objectSearchQuerySchema.safeParse({ query: "launch", cursor }).success,
+      ).toBe(false);
+    }
+  });
 });
