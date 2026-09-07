@@ -8,7 +8,7 @@ import type {
 } from "@chronelle/schemas";
 import { type FormEvent, useEffect, useId, useState } from "react";
 
-import { DraftNotice, ErrorNotice } from "../../components/feedback";
+import { EditorControls } from "./editor-controls";
 import { fromDateTimeInput, toDateTimeInput } from "../../lib/format";
 import { useEditSource } from "../../lib/use-edit-source";
 import {
@@ -22,42 +22,6 @@ import {
   useUpdateReminder,
   useUpdateTask,
 } from "../../lib/queries";
-
-interface FormActionsProps {
-  readonly disabled?: boolean;
-  readonly isPending: boolean;
-  readonly onCancel?: (() => void) | undefined;
-  readonly submitLabel: string;
-}
-
-function FormActions({
-  disabled = false,
-  isPending,
-  onCancel,
-  submitLabel,
-}: FormActionsProps) {
-  return (
-    <div className="form-actions">
-      {onCancel === undefined ? null : (
-        <button
-          className="button button-quiet"
-          disabled={isPending}
-          onClick={onCancel}
-          type="button"
-        >
-          Cancel
-        </button>
-      )}
-      <button
-        className="button button-primary"
-        disabled={disabled || isPending}
-        type="submit"
-      >
-        {isPending ? "Saving..." : submitLabel}
-      </button>
-    </div>
-  );
-}
 
 export function EventEditorForm({
   event: latestEvent,
@@ -150,28 +114,13 @@ export function EventEditorForm({
         />
         <span>All-day event</span>
       </label>
-      {update.isError ? (
-        <ErrorNotice
-          error={update.error}
-          onRefresh={() => {
-            void refresh().then(() => update.reset());
-          }}
-        />
-      ) : null}
-      <FormActions
-        disabled={draft.hasNewerVersion}
-        isPending={update.isPending}
+      <EditorControls
+        draft={draft}
+        mutation={update}
         onCancel={onCancel}
+        onRefresh={refresh}
         submitLabel="Save event"
       />
-      {draft.hasNewerVersion ? (
-        <DraftNotice
-          onLoadLatest={() => {
-            draft.loadLatest();
-            update.reset();
-          }}
-        />
-      ) : null}
     </form>
   );
 }
@@ -275,32 +224,13 @@ export function ScheduledEventForm({
           />
         </label>
       </div>
-      {mutation.isError ? (
-        <ErrorNotice
-          error={mutation.error}
-          onRefresh={
-            event === undefined
-              ? undefined
-              : () => {
-                  void refresh().then(() => mutation.reset());
-                }
-          }
-        />
-      ) : null}
-      <FormActions
-        disabled={draft.hasNewerVersion}
-        isPending={mutation.isPending}
+      <EditorControls
+        draft={draft}
+        mutation={mutation}
         onCancel={onCancel}
+        onRefresh={event === undefined ? undefined : refresh}
         submitLabel={event === undefined ? "Add to schedule" : "Save item"}
       />
-      {draft.hasNewerVersion ? (
-        <DraftNotice
-          onLoadLatest={() => {
-            draft.loadLatest();
-            mutation.reset();
-          }}
-        />
-      ) : null}
     </form>
   );
 }
@@ -378,32 +308,13 @@ export function TaskForm({
           value={dueAt}
         />
       </label>
-      {mutation.isError ? (
-        <ErrorNotice
-          error={mutation.error}
-          onRefresh={
-            task === undefined
-              ? undefined
-              : () => {
-                  void refresh().then(() => mutation.reset());
-                }
-          }
-        />
-      ) : null}
-      <FormActions
-        disabled={draft.hasNewerVersion}
-        isPending={mutation.isPending}
+      <EditorControls
+        draft={draft}
+        mutation={mutation}
         onCancel={onCancel}
+        onRefresh={task === undefined ? undefined : refresh}
         submitLabel={task === undefined ? "Add task" : "Save task"}
       />
-      {draft.hasNewerVersion ? (
-        <DraftNotice
-          onLoadLatest={() => {
-            draft.loadLatest();
-            mutation.reset();
-          }}
-        />
-      ) : null}
     </form>
   );
 }
@@ -520,32 +431,13 @@ export function ExpenseForm({
           value={occurredAt}
         />
       </label>
-      {mutation.isError ? (
-        <ErrorNotice
-          error={mutation.error}
-          onRefresh={
-            expense === undefined
-              ? undefined
-              : () => {
-                  void refresh().then(() => mutation.reset());
-                }
-          }
-        />
-      ) : null}
-      <FormActions
-        disabled={draft.hasNewerVersion}
-        isPending={mutation.isPending}
+      <EditorControls
+        draft={draft}
+        mutation={mutation}
         onCancel={onCancel}
+        onRefresh={expense === undefined ? undefined : refresh}
         submitLabel={expense === undefined ? "Record expense" : "Save expense"}
       />
-      {draft.hasNewerVersion ? (
-        <DraftNotice
-          onLoadLatest={() => {
-            draft.loadLatest();
-            mutation.reset();
-          }}
-        />
-      ) : null}
     </form>
   );
 }
@@ -630,32 +522,13 @@ export function ReminderForm({
           value={remindAt}
         />
       </label>
-      {mutation.isError ? (
-        <ErrorNotice
-          error={mutation.error}
-          onRefresh={
-            reminder === undefined
-              ? undefined
-              : () => {
-                  void refresh().then(() => mutation.reset());
-                }
-          }
-        />
-      ) : null}
-      <FormActions
-        disabled={draft.hasNewerVersion}
-        isPending={mutation.isPending}
+      <EditorControls
+        draft={draft}
+        mutation={mutation}
         onCancel={onCancel}
+        onRefresh={reminder === undefined ? undefined : refresh}
         submitLabel={reminder === undefined ? "Add reminder" : "Save reminder"}
       />
-      {draft.hasNewerVersion ? (
-        <DraftNotice
-          onLoadLatest={() => {
-            draft.loadLatest();
-            mutation.reset();
-          }}
-        />
-      ) : null}
     </form>
   );
 }

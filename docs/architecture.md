@@ -318,9 +318,17 @@ disabled views refetch when selected, not on every mutation. An already-started
 request may finish into its session-owned cache after a tab switch; session
 changes still cancel outstanding work and discard that cache.
 
-An open editor pins its source object and version. Background updates preserve
-the draft and require explicit discard-and-reload before saving against a newer
-version. HTTP 409 conflicts preserve the draft as well. Inputs are disabled during
+An open editor pins its source object and version. Event, scheduled Event,
+Task, Expense, and Reminder forms compose the same save/cancel and conflict
+controls. Refresh invalidates server reads
+before resetting the mutation error; only explicit discard accepts the latest
+source. Each form owns its typed fields, create/reset defaults, and submit
+payload. These client controls do not replace backend authorization or version
+checks.
+
+Background updates preserve the draft and require explicit discard-and-reload
+before saving against a newer version. HTTP 409 conflicts preserve the draft as
+well. Inputs are disabled during
 save, and a successful save advances the editor's source version.
 
 The Event Sharing view is capability-driven: only principals with Share see
