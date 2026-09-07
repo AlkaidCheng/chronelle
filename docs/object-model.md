@@ -71,6 +71,13 @@ queries resolve canonical objects at read time. Each resource keeps the same ID
 and version in every response. These projections own ordering and selection,
 never copied business fields.
 
+`EventPlanningObjectService.listVisibleObjects(principal, ids)` resolves a
+collection through the same authorization policy as `getObject()`. It omits
+unavailable IDs, preserves input order and duplicates, and loads visible typed
+states in bounded batches within one snapshot. Event collections, detail
+projections, and attachment lists reuse it. The low-level `readObjectStates()`
+also supports tombstones for recovery; callers must authorize it explicitly.
+
 Search is another read-time projection over `objects`, backed by a partial
 PostgreSQL full-text index on active display names. A search result is not a
 stored search document: it carries the same canonical ID, type, permission
