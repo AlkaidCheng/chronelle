@@ -6,11 +6,11 @@ import type {
   ReminderResponse,
   TaskResponse,
 } from "@chronelle/schemas";
-import { type FormEvent, useEffect, useId, useState } from "react";
+import { type FormEvent, useId } from "react";
 
 import { EditorControls } from "./editor-controls";
 import { fromDateTimeInput, toDateTimeInput } from "../../lib/format";
-import { useEditSource } from "../../lib/use-edit-source";
+import { useEditorDraft } from "../../lib/use-editor-draft";
 import {
   useCreateExpense,
   useCreateReminder,
@@ -30,22 +30,17 @@ export function EventEditorForm({
   readonly event: EventResponse;
   readonly onCancel?: (() => void) | undefined;
 }) {
-  const draft = useEditSource(latestEvent);
+  const draft = useEditorDraft(latestEvent, (event) => ({
+    displayName: event?.displayName ?? "",
+    startsAt: toDateTimeInput(event?.startsAt ?? null),
+    endsAt: toDateTimeInput(event?.endsAt ?? null),
+    isAllDay: event?.isAllDay ?? false,
+  }));
   const event = draft.source ?? latestEvent;
   const nameId = useId();
   const update = useUpdateEvent();
   const refresh = useRefreshEvent(event.id);
-  const [displayName, setDisplayName] = useState(event.displayName);
-  const [startsAt, setStartsAt] = useState(toDateTimeInput(event.startsAt));
-  const [endsAt, setEndsAt] = useState(toDateTimeInput(event.endsAt));
-  const [isAllDay, setIsAllDay] = useState(event.isAllDay);
-
-  useEffect(() => {
-    setDisplayName(event.displayName);
-    setStartsAt(toDateTimeInput(event.startsAt));
-    setEndsAt(toDateTimeInput(event.endsAt));
-    setIsAllDay(event.isAllDay);
-  }, [event]);
+  const { displayName, startsAt, endsAt, isAllDay } = draft.fields;
 
   function handleSubmit(formEvent: FormEvent<HTMLFormElement>) {
     formEvent.preventDefault();
@@ -79,7 +74,9 @@ export function EventEditorForm({
           id={nameId}
           maxLength={240}
           disabled={update.isPending}
-          onChange={(input) => setDisplayName(input.target.value)}
+          onChange={(input) =>
+            draft.change({ displayName: input.target.value })
+          }
           required
           value={displayName}
         />
@@ -89,7 +86,7 @@ export function EventEditorForm({
           <span>Starts</span>
           <input
             disabled={update.isPending}
-            onChange={(input) => setStartsAt(input.target.value)}
+            onChange={(input) => draft.change({ startsAt: input.target.value })}
             type="datetime-local"
             value={startsAt}
           />
@@ -99,7 +96,7 @@ export function EventEditorForm({
           <input
             min={startsAt}
             disabled={update.isPending}
-            onChange={(input) => setEndsAt(input.target.value)}
+            onChange={(input) => draft.change({ endsAt: input.target.value })}
             type="datetime-local"
             value={endsAt}
           />
@@ -109,7 +106,7 @@ export function EventEditorForm({
         <input
           checked={isAllDay}
           disabled={update.isPending}
-          onChange={(input) => setIsAllDay(input.target.checked)}
+          onChange={(input) => draft.change({ isAllDay: input.target.checked })}
           type="checkbox"
         />
         <span>All-day event</span>
@@ -134,22 +131,16 @@ export function ScheduledEventForm({
   readonly eventId: string;
   readonly onCancel?: (() => void) | undefined;
 }) {
-  const draft = useEditSource(latestEvent);
+  const draft = useEditorDraft(latestEvent, (event) => ({
+    displayName: event?.displayName ?? "",
+    startsAt: toDateTimeInput(event?.startsAt ?? null),
+    endsAt: toDateTimeInput(event?.endsAt ?? null),
+  }));
   const event = draft.source;
   const create = useCreateScheduledEvent(eventId);
   const update = useUpdateEvent();
   const refresh = useRefreshEvent(eventId);
-  const [displayName, setDisplayName] = useState(event?.displayName ?? "");
-  const [startsAt, setStartsAt] = useState(
-    toDateTimeInput(event?.startsAt ?? null),
-  );
-  const [endsAt, setEndsAt] = useState(toDateTimeInput(event?.endsAt ?? null));
-
-  useEffect(() => {
-    setDisplayName(event?.displayName ?? "");
-    setStartsAt(toDateTimeInput(event?.startsAt ?? null));
-    setEndsAt(toDateTimeInput(event?.endsAt ?? null));
-  }, [event]);
+  const { displayName, startsAt, endsAt } = draft.fields;
 
   function handleSubmit(formEvent: FormEvent<HTMLFormElement>) {
     formEvent.preventDefault();
@@ -166,9 +157,7 @@ export function ScheduledEventForm({
     if (event === undefined) {
       create.mutate(input, {
         onSuccess: () => {
-          setDisplayName("");
-          setStartsAt("");
-          setEndsAt("");
+          draft.change({ displayName: "", startsAt: "", endsAt: "" });
           onCancel?.();
         },
       });
@@ -196,7 +185,9 @@ export function ScheduledEventForm({
         <input
           maxLength={240}
           disabled={mutation.isPending}
-          onChange={(input) => setDisplayName(input.target.value)}
+          onChange={(input) =>
+            draft.change({ displayName: input.target.value })
+          }
           placeholder="Guest arrival"
           required
           value={displayName}
@@ -207,7 +198,7 @@ export function ScheduledEventForm({
           <span>Starts</span>
           <input
             disabled={mutation.isPending}
-            onChange={(input) => setStartsAt(input.target.value)}
+            onChange={(input) => draft.change({ startsAt: input.target.value })}
             required
             type="datetime-local"
             value={startsAt}
@@ -218,7 +209,7 @@ export function ScheduledEventForm({
           <input
             min={startsAt}
             disabled={mutation.isPending}
-            onChange={(input) => setEndsAt(input.target.value)}
+            onChange={(input) => draft.change({ endsAt: input.target.value })}
             type="datetime-local"
             value={endsAt}
           />
@@ -244,18 +235,15 @@ export function TaskForm({
   readonly onCancel?: (() => void) | undefined;
   readonly task?: TaskResponse | undefined;
 }) {
-  const draft = useEditSource(latestTask);
+  const draft = useEditorDraft(latestTask, (task) => ({
+    displayName: task?.displayName ?? "",
+    dueAt: toDateTimeInput(task?.dueAt ?? null),
+  }));
   const task = draft.source;
   const create = useCreateTask(eventId);
   const update = useUpdateTask();
   const refresh = useRefreshEvent(eventId);
-  const [displayName, setDisplayName] = useState(task?.displayName ?? "");
-  const [dueAt, setDueAt] = useState(toDateTimeInput(task?.dueAt ?? null));
-
-  useEffect(() => {
-    setDisplayName(task?.displayName ?? "");
-    setDueAt(toDateTimeInput(task?.dueAt ?? null));
-  }, [task]);
+  const { displayName, dueAt } = draft.fields;
 
   function handleSubmit(formEvent: FormEvent<HTMLFormElement>) {
     formEvent.preventDefault();
@@ -264,8 +252,7 @@ export function TaskForm({
     if (task === undefined) {
       create.mutate(input, {
         onSuccess: () => {
-          setDisplayName("");
-          setDueAt("");
+          draft.change({ displayName: "", dueAt: "" });
           onCancel?.();
         },
       });
@@ -293,7 +280,9 @@ export function TaskForm({
         <input
           maxLength={240}
           disabled={mutation.isPending}
-          onChange={(input) => setDisplayName(input.target.value)}
+          onChange={(input) =>
+            draft.change({ displayName: input.target.value })
+          }
           placeholder="Confirm the guest list"
           required
           value={displayName}
@@ -303,7 +292,7 @@ export function TaskForm({
         <span>Due</span>
         <input
           disabled={mutation.isPending}
-          onChange={(input) => setDueAt(input.target.value)}
+          onChange={(input) => draft.change({ dueAt: input.target.value })}
           type="datetime-local"
           value={dueAt}
         />
@@ -328,26 +317,19 @@ export function ExpenseForm({
   readonly expense?: ExpenseResponse | undefined;
   readonly onCancel?: (() => void) | undefined;
 }) {
-  const draft = useEditSource(latestExpense);
+  const draft = useEditorDraft(latestExpense, (expense) => ({
+    displayName: expense?.displayName ?? "",
+    amount: expense?.amount ?? "",
+    currency: expense?.currency ?? "USD",
+    occurredAt: toDateTimeInput(
+      expense?.occurredAt ?? new Date().toISOString(),
+    ),
+  }));
   const expense = draft.source;
   const create = useCreateExpense(eventId);
   const update = useUpdateExpense();
   const refresh = useRefreshEvent(eventId);
-  const [displayName, setDisplayName] = useState(expense?.displayName ?? "");
-  const [amount, setAmount] = useState(expense?.amount ?? "");
-  const [currency, setCurrency] = useState(expense?.currency ?? "USD");
-  const [occurredAt, setOccurredAt] = useState(
-    toDateTimeInput(expense?.occurredAt ?? new Date().toISOString()),
-  );
-
-  useEffect(() => {
-    setDisplayName(expense?.displayName ?? "");
-    setAmount(expense?.amount ?? "");
-    setCurrency(expense?.currency ?? "USD");
-    setOccurredAt(
-      toDateTimeInput(expense?.occurredAt ?? new Date().toISOString()),
-    );
-  }, [expense]);
+  const { displayName, amount, currency, occurredAt } = draft.fields;
 
   function handleSubmit(formEvent: FormEvent<HTMLFormElement>) {
     formEvent.preventDefault();
@@ -360,8 +342,7 @@ export function ExpenseForm({
     if (expense === undefined) {
       create.mutate(input, {
         onSuccess: () => {
-          setDisplayName("");
-          setAmount("");
+          draft.change({ displayName: "", amount: "" });
           onCancel?.();
         },
       });
@@ -389,7 +370,9 @@ export function ExpenseForm({
         <input
           maxLength={240}
           disabled={mutation.isPending}
-          onChange={(input) => setDisplayName(input.target.value)}
+          onChange={(input) =>
+            draft.change({ displayName: input.target.value })
+          }
           placeholder="Venue deposit"
           required
           value={displayName}
@@ -401,7 +384,7 @@ export function ExpenseForm({
           <input
             inputMode="decimal"
             disabled={mutation.isPending}
-            onChange={(input) => setAmount(input.target.value)}
+            onChange={(input) => draft.change({ amount: input.target.value })}
             pattern="-?\d{1,15}(\.\d{1,4})?"
             placeholder="0.00"
             required
@@ -414,7 +397,9 @@ export function ExpenseForm({
             maxLength={3}
             minLength={3}
             disabled={mutation.isPending}
-            onChange={(input) => setCurrency(input.target.value.toUpperCase())}
+            onChange={(input) =>
+              draft.change({ currency: input.target.value.toUpperCase() })
+            }
             pattern="[A-Za-z]{3}"
             required
             value={currency}
@@ -425,7 +410,7 @@ export function ExpenseForm({
         <span>Date</span>
         <input
           disabled={mutation.isPending}
-          onChange={(input) => setOccurredAt(input.target.value)}
+          onChange={(input) => draft.change({ occurredAt: input.target.value })}
           required
           type="datetime-local"
           value={occurredAt}
@@ -451,20 +436,15 @@ export function ReminderForm({
   readonly onCancel?: (() => void) | undefined;
   readonly reminder?: ReminderResponse | undefined;
 }) {
-  const draft = useEditSource(latestReminder);
+  const draft = useEditorDraft(latestReminder, (reminder) => ({
+    displayName: reminder?.displayName ?? "",
+    remindAt: toDateTimeInput(reminder?.remindAt ?? null),
+  }));
   const reminder = draft.source;
   const create = useCreateReminder(eventId);
   const update = useUpdateReminder();
   const refresh = useRefreshEvent(eventId);
-  const [displayName, setDisplayName] = useState(reminder?.displayName ?? "");
-  const [remindAt, setRemindAt] = useState(
-    toDateTimeInput(reminder?.remindAt ?? null),
-  );
-
-  useEffect(() => {
-    setDisplayName(reminder?.displayName ?? "");
-    setRemindAt(toDateTimeInput(reminder?.remindAt ?? null));
-  }, [reminder]);
+  const { displayName, remindAt } = draft.fields;
 
   function handleSubmit(formEvent: FormEvent<HTMLFormElement>) {
     formEvent.preventDefault();
@@ -477,8 +457,7 @@ export function ReminderForm({
     if (reminder === undefined) {
       create.mutate(input, {
         onSuccess: () => {
-          setDisplayName("");
-          setRemindAt("");
+          draft.change({ displayName: "", remindAt: "" });
           onCancel?.();
         },
       });
@@ -506,7 +485,9 @@ export function ReminderForm({
         <input
           maxLength={240}
           disabled={mutation.isPending}
-          onChange={(input) => setDisplayName(input.target.value)}
+          onChange={(input) =>
+            draft.change({ displayName: input.target.value })
+          }
           placeholder="Send final headcount"
           required
           value={displayName}
@@ -516,7 +497,7 @@ export function ReminderForm({
         <span>Alert at</span>
         <input
           disabled={mutation.isPending}
-          onChange={(input) => setRemindAt(input.target.value)}
+          onChange={(input) => draft.change({ remindAt: input.target.value })}
           required
           type="datetime-local"
           value={remindAt}
