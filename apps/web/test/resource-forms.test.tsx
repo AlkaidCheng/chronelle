@@ -167,60 +167,91 @@ describe("versioned editor drafts", () => {
     },
   );
 
-  it("disables inputs and duplicate submissions while saving", async () => {
-    let finishSave: ((response: Response) => void) | undefined;
-    const fetch = vi.fn<typeof globalThis.fetch>(
-      () =>
-        new Promise<Response>((resolve) => {
-          finishSave = resolve;
-        }),
-    );
-    vi.stubGlobal("fetch", fetch);
-    const user = userEvent.setup();
-    const view = render(
-      <EventEditorForm event={eventResource(1, "Initial")} />,
-      { wrapper: Providers },
-    );
-    await user.click(screen.getByRole("button", { name: "Save event" }));
-    for (const input of view.container.querySelectorAll("input"))
-      expect(input).toBeDisabled();
-    const form = view.container.querySelector("form");
-    if (form === null || finishSave === undefined)
-      throw new Error("Save was not started.");
-    fireEvent.submit(form);
-    expect(fetch).toHaveBeenCalledTimes(1);
-    await act(() => finishSave?.(Response.json(eventResource(2, "Initial"))));
-    await waitFor(() => expect(screen.getByLabelText("Name")).toBeEnabled());
-  });
-
-  it("retains the draft after a server-side version conflict", async () => {
-    vi.stubGlobal(
-      "fetch",
-      vi.fn<typeof globalThis.fetch>(async () =>
-        Response.json(
-          {
-            error: {
-              code: "version_conflict",
-              message: "This object was updated by another request.",
+  it.each(forms)(
+    "disables $name inputs and duplicate submissions while saving",
+    async (editor) => {
+      let finishSave: ((response: Response) => void) | undefined;
+      const fetch = vi.fn<typeof globalThis.fetch>(
+        () =>
+          new Promise<Response>((resolve) => {
+            finishSave = resolve;
+          }),
+      );
+      vi.stubGlobal("fetch", fetch);
+      const user = userEvent.setup();
+      const view = render(editor.render(1, "Initial"), { wrapper: Providers });
+      const submit = view.container.querySelector<HTMLButtonElement>(
+        "button[type=submit]",
+      );
+      if (submit === null) throw new Error("Submit button not found.");
+      await user.click(submit);
+      for (const input of view.container.querySelectorAll("input"))
+        expect(input).toBeDisabled();
+      const form = view.container.querySelector("form");
+      if (form === null || finishSave === undefined)
+        throw new Error("Save was not started.");
+      fireEvent.submit(form);
+      expect(fetch).toHaveBeenCalledTimes(1);
+      await act(() =>
+        finishSave?.(
+          Response.json(
+            {
+              error: { code: "version_conflict", message: "Changed elsewhere" },
             },
-          },
-          { status: 409 },
+            { status: 409 },
+          ),
         ),
-      ),
-    );
-    const user = userEvent.setup();
-    render(<EventEditorForm event={eventResource(1, "Initial")} />, {
-      wrapper: Providers,
-    });
-    fireEvent.change(screen.getByLabelText("Name"), {
-      target: { value: "My draft" },
-    });
-    await user.click(screen.getByRole("button", { name: "Save event" }));
-    expect(await screen.findByRole("alert")).toHaveTextContent(
-      "A newer version is available",
-    );
-    expect(screen.getByLabelText("Name")).toHaveValue("My draft");
-  });
+      );
+      await waitFor(() =>
+        expect(screen.getByLabelText(editor.field)).toBeEnabled(),
+      );
+    },
+  );
+
+  it.each(forms)(
+    "retains the $name draft after a server-side version conflict",
+    async (form) => {
+      vi.stubGlobal(
+        "fetch",
+        vi.fn<typeof globalThis.fetch>(async () =>
+          Response.json(
+            {
+              error: {
+                code: "version_conflict",
+                message: "This object was updated by another request.",
+              },
+            },
+            { status: 409 },
+          ),
+        ),
+      );
+      const user = userEvent.setup();
+      const view = render(form.render(1, "Initial"), {
+        wrapper: Providers,
+      });
+      fireEvent.change(screen.getByLabelText(form.field), {
+        target: { value: "My draft" },
+      });
+      const submit = view.container.querySelector<HTMLButtonElement>(
+        "button[type=submit]",
+      );
+      if (submit === null) throw new Error("Submit button not found.");
+      await user.click(submit);
+      expect(await screen.findByRole("alert")).toHaveTextContent(
+        "A newer version is available",
+      );
+      expect(screen.getByLabelText(form.field)).toHaveValue("My draft");
+      await user.click(screen.getByRole("button", { name: "Refresh latest" }));
+      await waitFor(() => expect(screen.queryByRole("alert")).toBeNull());
+      expect(screen.getByLabelText(form.field)).toHaveValue("My draft");
+      view.rerender(form.render(2, "Saved elsewhere"));
+      await user.click(
+        screen.getByRole("button", { name: "Discard draft and load latest" }),
+      );
+      expect(screen.getByLabelText(form.field)).toHaveValue("Saved elsewhere");
+      expect(submit).toBeEnabled();
+    },
+  );
 
   it("uses the accepted save version for the next edit without a parent rerender", async () => {
     const versions: number[] = [];
