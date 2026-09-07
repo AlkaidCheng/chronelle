@@ -283,6 +283,25 @@ describe.sequential("event-planning API", () => {
       },
     ]);
 
+    for (const projection of ["itinerary", "timeline"] as const) {
+      const response = await app.inject({
+        method: "GET",
+        url: `/api/events/${event.id}/${projection}`,
+        headers: ownerHeaders,
+      });
+      expect(response.statusCode).toBe(200);
+      expect(response.json().items).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            [projection === "timeline" ? "canonicalObjectId" : "id"]:
+              itineraryItem.id,
+            displayName: "VIP guest arrival",
+            version: 2,
+          }),
+        ]),
+      );
+    }
+
     const staleUpdateResponse = await app.inject({
       method: "PATCH",
       url: `/api/events/${itineraryItem.id}`,
@@ -478,6 +497,40 @@ describe.sequential("event-planning API", () => {
     );
     expect(viewerDetail.tasks.map(({ id }) => id)).toEqual([task.id]);
     expect(viewerDetail.expenses).toEqual([]);
+    expect(viewerDetail.lockedRelationCount).toBe(1);
+
+    for (const projection of [
+      "todos",
+      "calendar",
+      "itinerary",
+      "timeline",
+      "expenses",
+      "reminders",
+    ]) {
+      const response = await app.inject({
+        method: "GET",
+        url: `/api/events/${event.id}/${projection}`,
+        headers: viewerHeaders,
+      });
+      expect(response.statusCode).toBe(200);
+      expect(response.body).not.toContain(independentExpense.id);
+      expect(response.body).not.toContain("Private adjustment");
+      expect(response.json().items).toHaveLength(
+        projection === "todos" ? 1 : 0,
+      );
+      for (const inaccessibleHeaders of [
+        headers(unrelated),
+        headers(unrelated, owner.workspace.id),
+        headers(viewer),
+      ]) {
+        const denied = await app.inject({
+          method: "GET",
+          url: `/api/events/${event.id}/${projection}`,
+          headers: inaccessibleHeaders,
+        });
+        expect(denied.statusCode).toBe(404);
+      }
+    }
 
     const viewerRelationsResponse = await app.inject({
       method: "GET",
@@ -533,5 +586,24 @@ describe.sequential("event-planning API", () => {
       },
     });
     expect(crossWorkspaceResponse.statusCode).toBe(404);
+    await testDatabase.connection.db
+      .update(resourceGrants)
+      .set({ expiresAt: new Date() })
+      .where(eq(resourceGrants.resourceId, event.id));
+    for (const projection of [
+      "todos",
+      "calendar",
+      "itinerary",
+      "timeline",
+      "expenses",
+      "reminders",
+    ]) {
+      const response = await app.inject({
+        method: "GET",
+        url: `/api/events/${event.id}/${projection}`,
+        headers: viewerHeaders,
+      });
+      expect(response.statusCode).toBe(404);
+    }
   });
 });

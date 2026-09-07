@@ -391,6 +391,14 @@ authorized; an inaccessible referenced object is omitted rather than leaked.
 Event detail includes `lockedRelationCount`, which lets clients render a
 generic private-item notice without exposing identities or business fields.
 
+Focused endpoints select only their relevant `includes` target types and do not
+load attachments. Calendar and itinerary omit Events without a start time;
+timeline omits undated Events and Tasks. To-dos retain undated Tasks after dated
+ones. Equal timestamps are ordered by canonical ID (descending for Expenses).
+The detail endpoint retains all its collections and locked-reference count.
+Response shapes, permission checks, and canonical versions are identical across
+these reads; no client migration is required.
+
 ## Private documents
 
 | Method | Path                                  | Behavior                              |
