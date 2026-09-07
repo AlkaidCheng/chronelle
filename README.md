@@ -24,7 +24,7 @@ reversible trash/link actions are not yet implemented.
 - PostgreSQL with immutable SQL migrations and Drizzle query mappings
 - PostgreSQL full-text search with authorization before cursor pagination
 - Bounded Event pages with server-side name/period filters and stable sorting
-- Provider-neutral private storage with a safe local filesystem adapter
+- Provider-neutral private storage with local filesystem and Tencent COS adapters
 - pnpm workspaces in a modular monorepo
 - Vitest, Playwright, Biome, Prettier, and container builds in CI
 
@@ -40,7 +40,7 @@ packages/
   db/                   Migration runner, typed schema, IDs, and DB tests
   object-model/         Canonical object, relation, projection, and search services
   schemas/              Shared runtime and TypeScript contracts
-  storage/              Private-object storage port and local adapter
+  storage/              Private-object storage port and local/COS adapters
 infrastructure/
   migrations/           Ordered SQL migrations
   database/             Administrative runtime privilege policy
@@ -193,11 +193,13 @@ selector exposes workspaces reached through active grants; Viewer panels remain
 read-only and inaccessible references render without protected details.
 
 The Files view attaches private files to Events, Tasks, and Expenses. Uploads
-and downloads use short-lived, one-time transfer authorizations. Finalization
+and downloads use short-lived transfer authorizations. Finalization
 creates one canonical Document and an `attached_to` relationship; unlinking
 removes only that relationship. Local files live below `LOCAL_STORAGE_ROOT`
-with restrictive permissions, and public API responses never expose storage
-keys or permanent URLs.
+with restrictive permissions and one-time API transfer endpoints. The optional
+Tencent COS adapter uses direct signed URLs, reusable until expiry, without
+changing canonical document behavior. Neither adapter creates permanent public
+URLs. See [Storage](docs/storage.md) for configuration and validation requirements.
 
 Workspace owners can request a [read-only storage inventory](docs/storage-reconciliation.md)
 that counts canonical/history references, pending uploads, and unreferenced files.
@@ -258,8 +260,8 @@ attachments across an API restart, and audit request IDs.
 - PostgreSQL RLS is deferred until the runtime uses a separate least-privilege
   database role and transaction-local workspace context. Application
   authorization and workspace constraints remain mandatory.
-- Local filesystem storage is the development adapter; Tencent COS remains a
-  provider implementation milestone.
+- Tencent COS has a signed-transfer adapter and simulated integration tests;
+  live bucket/IAM/CORS validation and production storage operations are pending.
 - Reminder delivery providers, invitations, anonymous links, recurrence, and
   the travel object slice remain deferred.
 

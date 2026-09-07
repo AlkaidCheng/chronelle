@@ -89,6 +89,11 @@ the private storage root exists. A missing workspace document directory returns
 an empty report without creating files. A missing root returns unavailable;
 the inventory never creates or repairs the configured storage tree.
 
+`DOCUMENT_STORAGE_PROVIDER` defaults to `local-filesystem`. The optional
+`tencent-cos` adapter uses direct signed transfers; see [Storage](storage.md)
+for server-side environment variables, bucket constraints, and the live
+deployment validation gate. No cloud credentials are needed for local tests.
+
 ## Development sign-in
 
 Create or reuse a development identity and its personal workspace:

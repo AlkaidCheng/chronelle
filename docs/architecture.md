@@ -126,8 +126,9 @@ Document bytes cross a `StorageProvider` port. The local adapter stores opaque
 workspace-scoped keys below a configured private root, validates every resolved
 path, creates directories and files with restrictive permissions, and verifies
 size and SHA-256 before finalization. Its transfer URLs are API-relative and
-opaque; a Tencent COS adapter can instead return signed provider URLs without
-changing document-domain behavior.
+opaque. The Tencent COS adapter returns short-lived signed provider URLs and
+inspects actual object bytes without changing document-domain behavior. Provider
+configuration and operational limits are described in [Storage](storage.md).
 
 Local writes use a private sibling staging directory. The adapter flushes and
 closes the file before linking it to the final key, so readers see either no
@@ -144,8 +145,9 @@ and finalization state. Upload authorization requires Edit on the parent.
 Finalization reauthorizes that parent and atomically creates the canonical
 Document, typed metadata, `attached_to` relationship, and audit event.
 Download authorization requires View on the Document, and the local transfer
-endpoint rechecks that permission before returning bytes. Tokens expire and
-are consumed once.
+endpoint rechecks that permission before returning bytes. Local tokens expire
+and are consumed once. Direct COS URLs remain reusable bearer capabilities
+until expiry; provider access logs record actual transfers.
 
 ## Event-planning vertical slice
 

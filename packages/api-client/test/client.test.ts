@@ -757,7 +757,10 @@ describe("ChronelleApiClient", () => {
     });
   });
 
-  it("uploads bytes through an opaque transfer without forwarding the session", async () => {
+  it.each([
+    "/api/document-transfers/upload/opaque-upload-token",
+    "https://chronelle-test-1250000000.cos.ap-guangzhou.myqcloud.com/object?q-signature=test",
+  ])("uploads to %s without forwarding the session", async (transferUrl) => {
     const fetch = vi
       .fn<typeof globalThis.fetch>()
       .mockResolvedValueOnce(
@@ -768,7 +771,7 @@ describe("ChronelleApiClient", () => {
               expiresAt: "2026-09-02T20:05:00.000Z",
               headers: { "content-type": "application/octet-stream" },
               method: "PUT",
-              url: "/api/document-transfers/upload/opaque-upload-token",
+              url: transferUrl,
             },
           }),
           { headers: { "content-type": "application/json" }, status: 201 },
@@ -814,7 +817,7 @@ describe("ChronelleApiClient", () => {
     const [uploadUrl, uploadRequest] = fetch.mock.calls[1] ?? [];
     const uploadHeaders = new Headers(uploadRequest?.headers);
     expect(uploadUrl).toBe(
-      "https://chronelle.example/api/document-transfers/upload/opaque-upload-token",
+      new URL(transferUrl, "https://chronelle.example").href,
     );
     expect(uploadRequest?.method).toBe("PUT");
     expect(uploadRequest?.body).toEqual(bytes.buffer);
@@ -829,7 +832,10 @@ describe("ChronelleApiClient", () => {
     );
   });
 
-  it("downloads private bytes only after obtaining a fresh authorization", async () => {
+  it.each([
+    "/api/document-transfers/download/opaque-download-token",
+    "https://chronelle-test-1250000000.cos.ap-guangzhou.myqcloud.com/object?q-signature=test",
+  ])("downloads from %s after fresh authorization", async (transferUrl) => {
     const fetch = vi
       .fn<typeof globalThis.fetch>()
       .mockResolvedValueOnce(
@@ -839,7 +845,7 @@ describe("ChronelleApiClient", () => {
               expiresAt: "2026-09-02T20:05:00.000Z",
               headers: {},
               method: "GET",
-              url: "/api/document-transfers/download/opaque-download-token",
+              url: transferUrl,
             },
           }),
           { headers: { "content-type": "application/json" }, status: 200 },
@@ -865,9 +871,7 @@ describe("ChronelleApiClient", () => {
     expect(fetch.mock.calls[0]?.[0]).toBe(
       `/api/documents/${documentId}/download-url`,
     );
-    expect(fetch.mock.calls[1]?.[0]).toBe(
-      "/api/document-transfers/download/opaque-download-token",
-    );
+    expect(fetch.mock.calls[1]?.[0]).toBe(transferUrl);
     expect(
       new Headers(fetch.mock.calls[1]?.[1]?.headers).get("authorization"),
     ).toBeNull();
