@@ -388,26 +388,25 @@ export class DocumentService {
             ),
           );
 
-        const attachments = await Promise.all(
-          relations.map(async ({ documentId, relationId, relationVersion }) => {
-            try {
-              return {
-                document: await reader.getDocument(principal, documentId),
-                relationId,
-                relationVersion,
-              };
-            } catch (error) {
-              if (error instanceof AuthorizationDeniedError) {
-                return null;
-              }
-              throw error;
-            }
-          }),
+        const resources = await reader.listVisibleObjects(
+          principal,
+          relations.map(({ documentId }) => documentId),
         );
-        const visible = attachments
-          .filter(
-            (attachment): attachment is DocumentAttachmentResource =>
-              attachment !== null,
+        const documentsById = new Map(
+          resources.map((resource) => [resource.id, resource]),
+        );
+        const visible = relations
+          .flatMap(
+            ({
+              documentId,
+              relationId,
+              relationVersion,
+            }): DocumentAttachmentResource[] => {
+              const document = documentsById.get(documentId);
+              return document?.objectType === "document"
+                ? [{ document, relationId, relationVersion }]
+                : [];
+            },
           )
           .sort(
             (first, second) =>
@@ -417,7 +416,7 @@ export class DocumentService {
           );
         return {
           items: visible,
-          lockedAttachmentCount: attachments.length - visible.length,
+          lockedAttachmentCount: relations.length - visible.length,
         };
       },
     );

@@ -50,13 +50,13 @@ export class CanonicalObjectSearchService {
           .orderBy(desc(rank), desc(objects.updatedAt), asc(objects.id))
           .limit(maximumCandidateCount);
 
-        const visibility = await Promise.all(
-          candidates.map(({ id }) =>
-            authorization.can(principal, "view", {
-              id,
-              workspaceId: principal.workspaceId,
-            }),
-          ),
+        const visibility = await authorization.canMany(
+          principal,
+          "view",
+          candidates.map(({ id }) => ({
+            id,
+            workspaceId: principal.workspaceId,
+          })),
         );
 
         return candidates

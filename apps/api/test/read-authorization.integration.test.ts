@@ -124,19 +124,22 @@ function afterAuthorization(
   resourceId: string,
   write: () => Promise<void>,
 ) {
-  const assertCan = AuthorizationService.prototype.assertCan;
+  const canMany = AuthorizationService.prototype.canMany;
   let interleaved = false;
-  vi.spyOn(AuthorizationService.prototype, "assertCan").mockImplementation(
-    async function (this: AuthorizationService, principal, action, resource) {
-      await assertCan.call(this, principal, action, resource);
+  vi.spyOn(AuthorizationService.prototype, "canMany").mockImplementation(
+    async function (this: AuthorizationService, principal, action, resources) {
+      const allowed = await canMany.call(this, principal, action, resources);
       if (
         !interleaved &&
         principal.userId === userId &&
-        resource.id === resourceId
+        resources.some(
+          (resource, index) => resource.id === resourceId && allowed[index],
+        )
       ) {
         interleaved = true;
         await write();
       }
+      return allowed;
     },
   );
   return () => expect(interleaved).toBe(true);
@@ -521,25 +524,25 @@ describe.sequential("authorized read snapshots", () => {
     const privateEvent = await create(owner, "events", {
       displayName: "Confidential search content",
     });
-    const can = AuthorizationService.prototype.can;
+    const canMany = AuthorizationService.prototype.canMany;
     let interleaved = false;
-    vi.spyOn(AuthorizationService.prototype, "can").mockImplementation(
+    vi.spyOn(AuthorizationService.prototype, "canMany").mockImplementation(
       async function (
         this: AuthorizationService,
         principal: UserPrincipal,
         action,
-        resource,
+        resources,
       ) {
         if (
           !interleaved &&
           principal.userId === reader.user.id &&
-          resource.id === privateEvent.id
+          resources.some((resource) => resource.id === privateEvent.id)
         ) {
           interleaved = true;
           await rename(owner, "events", privateEvent.id);
           await share(owner, privateEvent.id);
         }
-        return can.call(this, principal, action, resource);
+        return canMany.call(this, principal, action, resources);
       },
     );
     const response = await app.inject({
