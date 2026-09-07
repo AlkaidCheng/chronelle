@@ -183,10 +183,11 @@ its document collections and generic locked-reference count.
 
 This narrows candidate retrieval, not the size of each relevant collection.
 The canonical-state reader still uses its shared typed-table joins; focused
-projections do not have a second object decoder. The web shell still requests
-full detail for overview, file, and sharing controls, then loads the selected
-projection on demand. Narrowing that initial detail dependency and paginating
-large projections are separate changes.
+projections do not have a second object decoder. The web shell reads the
+canonical Event and its access actions independently. Full detail is enabled
+only for Overview, Files, and Sharing; focused tabs request their own projection
+without traversing the full detail response. Large projections remain
+unpaginated.
 
 Search stores no second object representation. Results contain the canonical
 ID, type, display name, permission scope, version, and update time read from
@@ -308,8 +309,14 @@ results, but every item carries the canonical object ID returned by the API.
 Canonical mutations invalidate cached event contexts, object attachments, and
 search results across the active session, since one object can appear in many
 contexts. Only active queries refetch immediately; inactive views become stale
-and reload when opened. The Event overview fetches detail and access;
-other projections load on demand, with errors confined to the affected tab.
+and reload when opened. Event views wait for the browser URL before enabling
+view-specific reads, including during hydration of a bookmarked tab. Overview
+mounts its summary calculations and clock only while visible. Full-detail and
+projection errors stay in their tab, leaving the header editor and navigation
+available. Mutations invalidate the canonical Event and all affected contexts;
+disabled views refetch when selected, not on every mutation. An already-started
+request may finish into its session-owned cache after a tab switch; session
+changes still cancel outstanding work and discard that cache.
 
 An open editor pins its source object and version. Background updates preserve
 the draft and require explicit discard-and-reload before saving against a newer

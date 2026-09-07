@@ -87,11 +87,21 @@ test("organizes events and keeps navigation usable across reloads and screen siz
   });
   await page.getByRole("tab", { name: "Calendar", exact: true }).click();
   await expect(page).toHaveURL(/\?view=calendar$/u);
+  const viewRequests: string[] = [];
+  page.on("request", (request) => {
+    const pathname = new URL(request.url()).pathname;
+    if (pathname.startsWith("/api/events/")) viewRequests.push(pathname);
+  });
   await page.reload();
   await expect(page.getByRole("tab", { name: "Calendar" })).toHaveAttribute(
     "aria-selected",
     "true",
   );
+  await expect(
+    page.getByRole("heading", { name: "Nothing scheduled" }),
+  ).toBeVisible();
+  expect(viewRequests.some((path) => path.endsWith("/calendar"))).toBe(true);
+  expect(viewRequests.some((path) => path.endsWith("/detail"))).toBe(false);
   await page.getByRole("tab", { name: "To-dos" }).click();
   await page.goBack();
   await expect(page.getByRole("tab", { name: "Calendar" })).toHaveAttribute(
@@ -101,6 +111,10 @@ test("organizes events and keeps navigation usable across reloads and screen siz
   await page.getByRole("button", { name: "Edit event", exact: true }).click();
   await page.getByLabel("Name", { exact: true }).fill("Unsaved event draft");
   await page.getByRole("tab", { name: "Overview" }).click();
+  await expect(
+    page.getByRole("heading", { name: "Your event, connected." }),
+  ).toBeVisible();
+  expect(viewRequests.some((path) => path.endsWith("/detail"))).toBe(true);
   await expect(page.getByLabel("Name", { exact: true })).toHaveValue(
     "Unsaved event draft",
   );

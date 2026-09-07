@@ -375,6 +375,16 @@ Event detail projections retain their separate contracts.
 
 ## Event projections
 
+The typed client can read just the canonical Event for a header or editor:
+
+```typescript
+const event = await client.getEvent(eventId);
+```
+
+This uses the existing `GET /api/events/:id` route and validates its response.
+It does not load related collections; `getEventDetail(eventId)` provides those
+when a view needs them.
+
 | Method | Path                    | Result                                     |
 | ------ | ----------------------- | ------------------------------------------ |
 | `GET`  | `/events/:id/detail`    | Event plus related typed collections       |
