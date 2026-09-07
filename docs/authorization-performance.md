@@ -49,7 +49,11 @@ transaction control.
   input returns immediately without opening a transaction.
 - Event detail with `N` visible children and one hidden child, no attachments:
   `5 + ceil((N + 1) / 1000) + ceil(N / 1000)` statements.
-- Active relations for that Event: `3 + ceil((N + 1) / 1000)` statements.
+- Active relation page: three statements (snapshot setup, starting-object
+  authorization, visible links), fetching at most `limit + 1` rows. The default
+  response includes 20 links, with a continuation, instead of the entire list.
+  The shared View predicate checks opposite endpoints in a bounded lateral
+  lookup; no second application-side authorization pass is needed.
 - Search: two statements (snapshot setup and one visibility-filtered query),
   returning at most the requested page size plus one visible row. The
   sparse-access fixture places 550 private matches before shared matches.
@@ -78,5 +82,8 @@ read holds its snapshot connection across all chunks. Search limits returned
 rows after authorization, not the total database work needed to find and rank
 matches. No authorization cache, new index, or migration is introduced.
 Event pages likewise bound hydration and response rows, not candidate filtering
-or sorting. Removed-link scans remain iterative. Focused projection queries and
-pagination for relation and recovery lists require separate work.
+or sorting. Active relation pages bound transfer and response memory, not all
+candidate scanning or sorting. Database statistics still affect lookup plans;
+the endpoint boundary avoids repeated workspace-wide policy evaluation from a
+flattened join. Removed-link scans remain iterative. Focused projection queries
+and recovery-list bounds require separate work.

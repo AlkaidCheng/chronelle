@@ -66,6 +66,12 @@ metadata. The initial relation vocabulary is:
 Removing a relationship removes only that contextual link. Database foreign
 keys explicitly prevent a relation deletion from cascading to either endpoint.
 
+Active relation pages select existing links by immutable ID descending, with
+optional direction, type, and opposite-endpoint filters. Both endpoint View
+decisions and the returned metadata belong to one read-only snapshot. The
+lifecycle dialog locates its exact Event inclusion, rather than treating the
+first page as the complete list; its cache is keyed by both endpoint identities.
+
 Event detail, calendar, timeline, itinerary, expense, reminder, and to-do
 queries resolve canonical objects at read time. Each resource keeps the same ID
 and version in every response. These projections own ordering and selection,

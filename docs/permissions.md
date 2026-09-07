@@ -175,7 +175,7 @@ that operation, and a failed chunk rejects the entire read. An empty or entirely
 cross-workspace input needs no policy query. Scope inheritance remains one hop;
 neither relation traversal nor recursive grant inheritance is introduced.
 
-Detail projections, attachments, and relation lists use these
+Detail projections and attachments use these
 batch decisions. Removed-link lists evaluate both endpoint capabilities per
 candidate chunk and may visit multiple candidate pages. Batching does not
 bound their total response size or scan work.
@@ -197,6 +197,14 @@ grant expiration always uses the current read's independent authorization
 clock. Collection filtering and pagination never grant access or expose private
 totals. A cursor remains usable after its boundary is deleted, but only returns
 currently visible active records.
+
+Active relation pages authorize the starting object and use the same SQL View
+predicate for the opposite endpoint before limiting links. Incoming sources
+are protected exactly like outgoing targets. All checks share the metadata
+snapshot and evaluation clock. Relation filters and cursor positions never
+grant access, and neither hidden metadata nor hidden-link counts are returned.
+Each continuation rechecks current permissions, including expiry and stopped
+inheritance; a deleted or revoked starting object cannot be read using a cursor.
 
 See [Authorization performance](authorization-performance.md) for measured
 query counts, latency, and the workload limitations.

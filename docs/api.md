@@ -294,6 +294,52 @@ include `relationVersion` alongside `relationId`; it is not the Document's
 version. Use `client.deleteRelation(relationId, relationVersion)` to remove a
 link. A stale expected version returns HTTP 409.
 
+Active relation lists return `{ items, nextCursor }`, ordered by immutable
+relation ID descending. `limit` defaults to 20 and accepts 1-50. Optional filters
+are `direction` (`both`, the default, `incoming`, or `outgoing`),
+`relationType` (the vocabulary above), and `otherObjectId` (the opposite
+canonical endpoint's UUID). Every returned link requires current View on both
+endpoints. Hidden links do not consume page slots or expose counts, metadata,
+or cursor positions. An unavailable starting object returns 404; an unavailable
+opposite endpoint produces no match.
+
+Callers that previously treated one response as the complete list must follow
+`nextCursor` until it is `null`. Send the token unchanged as `cursor` with the
+same object, filters, user, and workspace; the page size may change. Tokens are
+bounded to 4,096 characters. Invalid or mismatched positions return 400.
+
+Before:
+
+```ts
+const allLinks = (await client.listObjectRelations(eventId)).items;
+```
+
+After:
+
+```ts
+const page = await client.listObjectRelations(eventId, { limit: 20 });
+if (page.nextCursor !== null) {
+  const next = await client.listObjectRelations(eventId, {
+    limit: 20,
+    cursor: page.nextCursor,
+  });
+}
+// One active source/type/target link is unique; this lookup needs no continuation.
+const inclusion = await client.listObjectRelations(eventId, {
+  direction: "outgoing",
+  relationType: "includes",
+  otherObjectId: taskId,
+  limit: 1,
+});
+```
+
+`ObjectRelationService.listForObject(principal, objectId, options?)` likewise
+returns a page instead of an array. Deploy API and client together; no database
+migration is needed. Every page uses a new authorization snapshot, not a
+long-lived export snapshot. Deleted boundaries remain usable, while new or
+recovered links before the boundary require a refresh. Removed-link lists and
+Event detail projections retain their separate contracts.
+
 ## Event projections
 
 | Method | Path                    | Result                                     |
