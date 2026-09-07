@@ -19,7 +19,7 @@ import { EmptyState, ErrorNotice } from "../../components/feedback";
 import { CheckIcon } from "../../components/icons";
 import { HistoryButton } from "../history/history-button";
 import { LifecycleButton } from "../recovery/lifecycle-provider";
-import { formatDateTime, shortId } from "../../lib/format";
+import { formatDatePart, formatDateTime, shortId } from "../../lib/format";
 import { formatMoney, sumMoneyByCurrency } from "../../lib/money";
 import {
   useRefreshEvent,
@@ -314,19 +314,9 @@ export function CalendarPanel({
           {items.map((item) => (
             <article className="calendar-item" key={item.id}>
               <time dateTime={item.startsAt ?? undefined}>
-                <strong>
-                  {item.startsAt === null
-                    ? "-"
-                    : new Intl.DateTimeFormat(undefined, {
-                        day: "2-digit",
-                      }).format(new Date(item.startsAt))}
-                </strong>
+                <strong>{formatDatePart(item.startsAt, "day")}</strong>
                 <span>
-                  {item.startsAt === null
-                    ? "TBD"
-                    : new Intl.DateTimeFormat(undefined, { month: "short" })
-                        .format(new Date(item.startsAt))
-                        .toUpperCase()}
+                  {formatDatePart(item.startsAt, "month").toUpperCase()}
                 </span>
               </time>
               <div>
@@ -588,16 +578,8 @@ export function RemindersPanel({
           {reminders.map((reminder) => (
             <article key={reminder.id}>
               <div className="reminder-time">
-                <span>
-                  {new Intl.DateTimeFormat(undefined, {
-                    month: "short",
-                  }).format(new Date(reminder.remindAt))}
-                </span>
-                <strong>
-                  {new Intl.DateTimeFormat(undefined, {
-                    day: "2-digit",
-                  }).format(new Date(reminder.remindAt))}
-                </strong>
+                <span>{formatDatePart(reminder.remindAt, "month")}</span>
+                <strong>{formatDatePart(reminder.remindAt, "day")}</strong>
               </div>
               <div>
                 <span className="object-label">

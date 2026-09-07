@@ -337,6 +337,13 @@ before saving against a newer version. HTTP 409 conflicts preserve the draft as
 well. Inputs are disabled during save, and a successful save advances the
 editor's source version.
 
+Date badges in Events, Calendar, and Reminders share day/month formatting and
+unscheduled placeholders. Display and datetime-local input conversion use the
+browser's locale and timezone; they do not reinterpret an Event in its stored
+timezone. Formatters resolve runtime defaults on each call. Month casing stays
+with each view. Typed submit handlers retain their resource-specific payloads
+and creation resets; shared draft state and controls own the common lifecycle.
+
 The Event Sharing view is capability-driven: only principals with Share see
 grant administration, while Viewers receive read-only planning panels. Owners
 can stop a child object's inheritance with a versioned permission-scope
