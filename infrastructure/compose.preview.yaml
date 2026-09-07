@@ -1,0 +1,72 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: chronelle
+      POSTGRES_USER: chronelle
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD for the private preview}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "chronelle", "-d", "chronelle"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
+  migrate:
+    image: ${API_IMAGE:-chronelle-api:local}
+    healthcheck:
+      disable: true
+    command:
+      - sh
+      - -ec
+      - node node_modules/@chronelle/db/dist/cli.js && node node_modules/@chronelle/object-model/dist/baseline-cli.js
+    environment:
+      DATABASE_URL: postgresql://chronelle:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}@postgres:5432/chronelle
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  api:
+    image: ${API_IMAGE:-chronelle-api:local}
+    environment:
+      DATABASE_URL: postgresql://chronelle:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}@postgres:5432/chronelle
+      ENABLE_DEVELOPMENT_AUTH: ${ENABLE_DEVELOPMENT_AUTH:-false}
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    tmpfs: [/tmp]
+    volumes:
+      - documents:/app/.chronelle/storage
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+
+  web:
+    image: ${WEB_IMAGE:-chronelle-web:local}
+    networks: [default, ingress]
+    environment:
+      API_INTERNAL_URL: http://api:4000
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    tmpfs:
+      - /tmp
+      - /app/apps/web/.next/cache:uid=1000,gid=1000,mode=0700
+    ports:
+      - "127.0.0.1:${WEB_PORT:-3000}:3000"
+    depends_on:
+      api:
+        condition: service_healthy
+
+networks:
+  default:
+    internal: true
+  ingress:
+
+volumes:
+  postgres-data:
+  documents:

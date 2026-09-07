@@ -1,10 +1,11 @@
 import { createHash } from "node:crypto";
-import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { lstat, mkdir, opendir, readFile, writeFile } from "node:fs/promises";
 import { dirname, isAbsolute, relative, resolve } from "node:path";
 
 import {
   StorageObjectConflictError,
   StorageObjectUnavailableError,
+  StorageInventoryUnavailableError,
   UnsafeStorageKeyError,
 } from "./errors.js";
 import type {
@@ -13,6 +14,7 @@ import type {
   StoredObjectMetadata,
   StorageTransferAuthorization,
   UploadAuthorizationInput,
+  StorageInventoryEntry,
 } from "./types.js";
 
 const safeKeySegmentPattern = /^[A-Za-z0-9][A-Za-z0-9._-]*$/;
@@ -131,5 +133,59 @@ export class LocalFilesystemStorageProvider implements StorageTransferProvider {
   async inspectObject(storageKey: string): Promise<StoredObjectMetadata> {
     const bytes = await this.readObject(storageKey);
     return { checksumSha256: checksum(bytes), sizeBytes: bytes.byteLength };
+  }
+
+  async *listObjects(
+    prefix: string,
+    signal: AbortSignal,
+  ): AsyncIterable<StorageInventoryEntry> {
+    const directoryPath = resolveStoragePath(this.#root, prefix);
+    try {
+      const paths = [this.#root];
+      let parentPath = this.#root;
+      for (const segment of prefix.split("/")) {
+        parentPath = resolve(parentPath, segment);
+        paths.push(parentPath);
+      }
+      const ancestors = [];
+      for (const path of paths) {
+        signal.throwIfAborted();
+        const metadata = await lstat(path).catch(
+          (error: NodeJS.ErrnoException) => {
+            if (error.code === "ENOENT" && path !== this.#root) return null;
+            throw error;
+          },
+        );
+        if (metadata === null) return;
+        if (!metadata.isDirectory())
+          throw new StorageInventoryUnavailableError();
+        ancestors.push({ path, dev: metadata.dev, ino: metadata.ino });
+      }
+
+      const directory = await opendir(directoryPath);
+      for await (const entry of directory) {
+        signal.throwIfAborted();
+        const metadata = await lstat(resolve(directoryPath, entry.name));
+        yield {
+          storageKey: `${prefix}/${entry.name}`,
+          kind:
+            metadata.isFile() && metadata.nlink === 1 ? "file" : "unsupported",
+        };
+      }
+      // Detect replacement during enumeration; the storage root must be trusted.
+      for (const ancestor of ancestors) {
+        signal.throwIfAborted();
+        const metadata = await lstat(ancestor.path);
+        if (
+          !metadata.isDirectory() ||
+          metadata.dev !== ancestor.dev ||
+          metadata.ino !== ancestor.ino
+        ) {
+          throw new StorageInventoryUnavailableError();
+        }
+      }
+    } catch {
+      throw new StorageInventoryUnavailableError();
+    }
   }
 }

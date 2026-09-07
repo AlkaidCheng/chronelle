@@ -124,6 +124,13 @@ correct ordering; measure contention before introducing finer-grained locks.
 Remote signed transfers retain their storage provider's expiry/revocation
 semantics and require separate adapter validation.
 
+The [storage inventory](storage-reconciliation.md) requires Owner workspace
+membership through `AuthorizationService.assertWorkspaceOwner`. A resource Owner
+grant does not confer this authority. Ownership is checked before starting,
+inside the read-only reference snapshot, and after storage I/O. Only aggregate
+counts are returned, including canonical trash and history references; no object
+identities or file keys are disclosed.
+
 The Event collection is also a protected query. It selects candidates only in
 the active workspace and applies `can(principal, view, event)` to every returned
 Event. A relationship or workspace ID alone cannot make an Event appear.

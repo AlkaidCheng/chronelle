@@ -142,6 +142,11 @@ export class AuthorizationService {
     }
   }
 
+  async assertWorkspaceOwner(principal: UserPrincipal): Promise<void> {
+    const role = await this.#store.findWorkspaceRole(principal);
+    if (role !== "owner") throw new AuthorizationDeniedError();
+  }
+
   async canAccessWorkspace(
     userId: string,
     workspaceId: string,

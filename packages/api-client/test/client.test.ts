@@ -54,6 +54,47 @@ const documentAttachment = {
 } as const;
 
 describe("ChronelleApiClient", () => {
+  it("requests a typed workspace inventory and rejects partial responses", async () => {
+    const report = {
+      workspaceId: event.workspaceId,
+      storageProvider: "local-filesystem",
+      startedAt: event.createdAt,
+      completedAt: event.createdAt,
+      consistency: "observational",
+      retentionPolicy: "retain-all",
+      references: {
+        canonical: 0,
+        historicalOnly: 0,
+        missingCanonical: 0,
+        missingHistoricalOnly: 0,
+      },
+      entries: {
+        canonical: 0,
+        historicalOnly: 0,
+        pendingUpload: 0,
+        expiredUpload: 0,
+        unreferenced: 0,
+        unsupported: 0,
+      },
+    };
+    const fetch = vi
+      .fn<typeof globalThis.fetch>()
+      .mockResolvedValueOnce(Response.json(report))
+      .mockResolvedValueOnce(Response.json({ entries: report.entries }));
+    const client = new ChronelleApiClient({
+      fetch,
+      getCredential: () => ({
+        accessToken: "test-session",
+        workspaceId: event.workspaceId,
+      }),
+    });
+    await expect(client.getStorageInventory()).resolves.toEqual(report);
+    expect(fetch.mock.calls[0]?.[0]).toBe("/api/workspace/storage-inventory");
+    const headers = new Headers(fetch.mock.calls[0]?.[1]?.headers);
+    expect(headers.get("x-workspace-id")).toBe(event.workspaceId);
+    expect(headers.get("authorization")).toBe("Bearer test-session");
+    await expect(client.getStorageInventory()).rejects.toThrow();
+  });
   it.each([-1, Number.NaN, Number.POSITIVE_INFINITY, 1.5])(
     "rejects invalid reported file size %s before reading",
     async (size) => {

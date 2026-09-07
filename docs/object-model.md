@@ -90,6 +90,11 @@ resource, storage key, expected metadata, actor, and expiry. Upload rows also
 record consumption and finalization so the same authorization cannot create
 two Documents.
 
+The [storage inventory](storage-reconciliation.md) reads these references without
+creating another object or projection table. It includes all Document lifecycle
+states and document revision keys. A consumed upload remains recoverable after
+expiry; an expired authorization alone does not authorize file removal.
+
 A related child normally uses its root Event ID as `permission_scope_id`, so a
 grant on the Event applies through one level of inheritance. Changing the child
 to its own ID makes it private without deleting the object or its `includes`

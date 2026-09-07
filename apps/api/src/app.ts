@@ -19,6 +19,7 @@ import { registerSharingRoutes } from "./sharing/routes.js";
 import { registerRevisionRoutes } from "./revisions/routes.js";
 import { registerRecoveryRoutes } from "./recovery/routes.js";
 import { registerCommandRoutes } from "./commands/routes.js";
+import { registerStorageInventoryRoutes } from "./storage-inventory/routes.js";
 
 export function buildApp(
   dependencies: AppDependencies,
@@ -36,6 +37,7 @@ export function buildApp(
   registerRevisionRoutes(app, dependencies);
   registerRecoveryRoutes(app, dependencies);
   registerCommandRoutes(app, dependencies);
+  registerStorageInventoryRoutes(app, dependencies);
   if (dependencies.developmentAuth !== undefined) {
     registerDevelopmentAuthenticationRoute(app, {
       developmentAuth: dependencies.developmentAuth,

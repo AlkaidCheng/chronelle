@@ -19,15 +19,23 @@ COPY packages/db packages/db
 COPY packages/schemas packages/schemas
 COPY packages/storage packages/storage
 RUN pnpm --filter @chronelle/api build
+RUN pnpm --filter @chronelle/api deploy --prod --legacy /runtime
+RUN find /runtime/node_modules -type d -name .claude -prune -exec rm -rf '{}' +
 
 FROM node:24-alpine AS runtime
 
 ENV NODE_ENV=production
+ENV CHRONELLE_MIGRATIONS_DIR=/app/migrations
 WORKDIR /app
-COPY --from=build /app /app
+COPY --from=build /runtime/dist ./dist
+COPY --from=build /runtime/node_modules ./node_modules
+COPY --from=build /runtime/package.json ./package.json
+COPY infrastructure/migrations ./migrations
 
 RUN mkdir -p /app/.chronelle/storage && chown -R node:node /app/.chronelle
 
 USER node
 EXPOSE 4000
-CMD ["node", "apps/api/dist/server.js"]
+HEALTHCHECK --interval=10s --timeout=3s --start-period=10s --retries=3 \
+  CMD node -e "fetch('http://127.0.0.1:' + (process.env.API_PORT || 4000) + '/api/health', {signal: AbortSignal.timeout(2000)}).then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"
+CMD ["node", "dist/server.js"]

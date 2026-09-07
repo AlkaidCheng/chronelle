@@ -1,4 +1,6 @@
 import {
+  storageInventoryResponseSchema,
+  type StorageInventoryResponse,
   commandReceiptSchema,
   commandStateResponseSchema,
   type CommandExecutePayload,
@@ -191,6 +193,13 @@ export class ChronelleApiClient {
 
   getSession(): Promise<SessionResponse> {
     return this.#request("/api/auth/session", sessionResponseSchema);
+  }
+
+  getStorageInventory(): Promise<StorageInventoryResponse> {
+    return this.#request(
+      "/api/workspace/storage-inventory",
+      storageInventoryResponseSchema,
+    );
   }
 
   listEvents(): Promise<EventListResponse> {
