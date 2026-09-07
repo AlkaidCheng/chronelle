@@ -369,10 +369,13 @@ describe("ChronelleApiClient", () => {
       version: event.version,
     };
     const fetch = vi.fn<typeof globalThis.fetch>().mockResolvedValue(
-      new Response(JSON.stringify({ items: [searchResult] }), {
-        headers: { "content-type": "application/json" },
-        status: 200,
-      }),
+      new Response(
+        JSON.stringify({ items: [searchResult], nextCursor: null }),
+        {
+          headers: { "content-type": "application/json" },
+          status: 200,
+        },
+      ),
     );
     const client = new ChronelleApiClient({
       fetch,
@@ -383,10 +386,15 @@ describe("ChronelleApiClient", () => {
     });
 
     await expect(
-      client.searchObjects({ limit: 10, objectType: "event", query: "launch" }),
-    ).resolves.toEqual({ items: [searchResult] });
+      client.searchObjects({
+        limit: 10,
+        objectType: "event",
+        query: "launch",
+        cursor: "cursor_position",
+      }),
+    ).resolves.toEqual({ items: [searchResult], nextCursor: null });
     expect(fetch.mock.calls[0]?.[0]).toBe(
-      "/api/search?query=launch&limit=10&objectType=event",
+      "/api/search?query=launch&cursor=cursor_position&limit=10&objectType=event",
     );
   });
 

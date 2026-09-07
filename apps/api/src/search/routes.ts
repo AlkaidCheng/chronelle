@@ -18,12 +18,13 @@ export function registerSearchRoutes(
 ): void {
   app.get("/api/search", { preHandler: app.authenticate }, async (request) => {
     const input = parseRequest(objectSearchQuerySchema, request.query);
-    const items = await dependencies.search.search(
+    const page = await dependencies.search.search(
       requirePrincipal(request),
       input,
     );
     return objectSearchResponseSchema.parse({
-      items: items.map((item) => ({
+      nextCursor: page.nextCursor,
+      items: page.items.map((item) => ({
         ...item,
         updatedAt: item.updatedAt.toISOString(),
       })),

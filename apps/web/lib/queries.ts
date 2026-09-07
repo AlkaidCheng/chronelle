@@ -8,6 +8,7 @@ import type {
   EventUpdatePayload,
   ExpenseUpdatePayload,
   ObjectSearchQueryInput,
+  ObjectSearchResponse,
   PermissionScopeUpdatePayload,
   ReminderUpdatePayload,
   ShareCreatePayload,
@@ -19,6 +20,8 @@ import {
   useQueries,
   useQuery,
   useQueryClient,
+  useInfiniteQuery,
+  type InfiniteData,
 } from "@tanstack/react-query";
 
 import { useApiClient } from "./api-context";
@@ -79,18 +82,39 @@ export function useEventsQuery() {
   });
 }
 
-export function useObjectSearch(input: ObjectSearchQueryInput | null) {
+function selectSearchItems(data: InfiniteData<ObjectSearchResponse>) {
+  const items = new Map(
+    data.pages.flatMap((page) =>
+      page.items.map((item) => [item.id, item] as const),
+    ),
+  );
+  return { items: [...items.values()] };
+}
+
+export function useObjectSearch(
+  input: Omit<ObjectSearchQueryInput, "cursor"> | null,
+) {
   const client = useApiClient();
   const { credential } = useAuthSession();
-  return useQuery({
+  return useInfiniteQuery({
     enabled: credential !== null && input !== null,
-    queryFn: () => {
+    initialPageParam: undefined as string | undefined,
+    queryFn: ({ pageParam }) => {
       if (input === null) {
         throw new Error("Search input is required.");
       }
-      return client.searchObjects(input);
+      return client.searchObjects({
+        ...input,
+        ...(pageParam === undefined ? {} : { cursor: pageParam }),
+      });
     },
-    queryKey: input === null ? ["search", "idle"] : queryKeys.search(input),
+    getNextPageParam: (page) => page.nextCursor ?? undefined,
+    queryKey: [
+      ...(input === null ? ["search", "idle"] : queryKeys.search(input)),
+      credential?.homeWorkspaceId,
+      credential?.workspaceId,
+    ],
+    select: selectSearchItems,
   });
 }
 

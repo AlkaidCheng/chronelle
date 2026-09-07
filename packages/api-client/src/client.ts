@@ -265,6 +265,9 @@ export class ChronelleApiClient {
 
   searchObjects(input: ObjectSearchQueryInput): Promise<ObjectSearchResponse> {
     const parameters = new URLSearchParams({ query: input.query });
+    if (input.cursor !== undefined) {
+      parameters.set("cursor", input.cursor);
+    }
     if (input.limit !== undefined) {
       parameters.set("limit", String(input.limit));
     }
