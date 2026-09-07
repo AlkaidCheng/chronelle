@@ -17,6 +17,40 @@ import {
 const workspaceId = "019d6e7d-0000-7000-8000-000000000001";
 const sharedWorkspaceId = "019d6e7d-0000-7000-8000-000000000002";
 const credential = { accessToken: "test-session", workspaceId };
+const asOf = "2026-09-07T00:00:00.000000Z";
+const event = {
+  id: "019d6e7d-0000-7000-8000-000000000003",
+  workspaceId,
+  objectType: "event",
+  displayName: "Private event",
+  createdBy: workspaceId,
+  permissionScopeId: "019d6e7d-0000-7000-8000-000000000003",
+  createdAt: "2026-09-02T20:00:00.000Z",
+  updatedAt: "2026-09-02T20:00:00.000Z",
+  version: 1,
+  archivedAt: null,
+  deletedAt: null,
+  customProperties: {},
+  metadata: {},
+  startsAt: null,
+  endsAt: null,
+  timezone: "UTC",
+  isAllDay: false,
+};
+const page = (items: (typeof event)[] = [], nextCursor: string | null = null) =>
+  Response.json({ items, nextCursor, asOf });
+const collections = [
+  {
+    name: "Events",
+    useCollection: (query: string) =>
+      useEventsQuery({ query, sort: "name", limit: 1 }),
+  },
+  {
+    name: "Search",
+    useCollection: (query: string) =>
+      useObjectSearch({ query, objectType: "event", limit: 1 }),
+  },
+];
 
 afterEach(() => {
   cleanup();
@@ -57,10 +91,10 @@ describe("client session isolation", () => {
     );
     vi.stubGlobal(
       "fetch",
-      vi.fn(async () => Response.json({ items: [] })),
+      vi.fn(async () => page()),
     );
     const { result, unmount } = renderHook(
-      () => ({ auth: useAuthSession(), events: useEventsQuery() }),
+      () => ({ auth: useAuthSession(), events: useEventsQuery({}) }),
       {
         wrapper: ({ children }: { children: ReactNode }) => (
           <StrictMode>
@@ -85,13 +119,13 @@ describe("client session isolation", () => {
     const fetch = vi
       .fn<typeof globalThis.fetch>()
       .mockReturnValueOnce(pending.promise)
-      .mockImplementation(async () => Response.json({ items: [] }));
+      .mockImplementation(async () => page());
     vi.stubGlobal("fetch", fetch);
     const { result } = renderHook(
       () => ({
         auth: useAuthSession(),
         cache: useQueryClient(),
-        events: useEventsQuery(),
+        events: useEventsQuery({}),
       }),
       { wrapper: Providers },
     );
@@ -104,34 +138,8 @@ describe("client session isolation", () => {
     await waitFor(() => expect(result.current.events.isSuccess).toBe(true));
     expect(result.current.cache).not.toBe(original);
     expect(originalSignal?.aborted).toBe(true);
-    await act(async () =>
-      pending.resolve(
-        Response.json({
-          items: [
-            {
-              id: "019d6e7d-0000-7000-8000-000000000003",
-              workspaceId,
-              objectType: "event",
-              displayName: "Private event",
-              createdBy: workspaceId,
-              permissionScopeId: "019d6e7d-0000-7000-8000-000000000003",
-              createdAt: "2026-09-02T20:00:00.000Z",
-              updatedAt: "2026-09-02T20:00:00.000Z",
-              version: 1,
-              archivedAt: null,
-              deletedAt: null,
-              customProperties: {},
-              metadata: {},
-              startsAt: null,
-              endsAt: null,
-              timezone: "UTC",
-              isAllDay: false,
-            },
-          ],
-        }),
-      ),
-    );
-    expect(result.current.events.data).toEqual({ items: [] });
+    await act(async () => pending.resolve(page([event])));
+    expect(result.current.events.data).toEqual({ items: [], asOf });
     expect(original.getQueryCache().getAll()).toHaveLength(0);
     expect(fetch).toHaveBeenCalledTimes(3);
     expect(
@@ -144,35 +152,107 @@ describe("client session isolation", () => {
     ).not.toContain(credential.accessToken);
   });
 
-  it("cancels an abandoned search without ending the session", async () => {
-    window.sessionStorage.setItem(
-      "chronelle.development-session",
-      JSON.stringify(credential),
-    );
-    const pending = Promise.withResolvers<Response>();
-    const fetch = vi
-      .fn<typeof globalThis.fetch>()
-      .mockReturnValueOnce(pending.promise)
-      .mockImplementation(async () => Response.json({ items: [] }));
-    vi.stubGlobal("fetch", fetch);
-    const { result, rerender } = renderHook(
-      ({ query }) => ({
-        auth: useAuthSession(),
-        search: useObjectSearch({ query }),
-      }),
-      {
-        initialProps: { query: "first" },
-        wrapper: Providers,
-      },
-    );
-    await waitFor(() => expect(fetch).toHaveBeenCalledTimes(1));
-    rerender({ query: "second" });
-    await waitFor(() => expect(result.current.search.isSuccess).toBe(true));
-    expect(fetch.mock.calls[0]?.[1]?.signal?.aborted).toBe(true);
-    expect(result.current.auth.signal.aborted).toBe(false);
-    await act(async () => pending.resolve(Response.json({ items: [] })));
-    expect(fetch).toHaveBeenCalledTimes(2);
-  });
+  it.each(collections)(
+    "cancels abandoned $name filters without ending the session",
+    async ({ useCollection }) => {
+      window.sessionStorage.setItem(
+        "chronelle.development-session",
+        JSON.stringify(credential),
+      );
+      const pending = Promise.withResolvers<Response>();
+      const fetch = vi
+        .fn<typeof globalThis.fetch>()
+        .mockReturnValueOnce(pending.promise)
+        .mockImplementation(async () => page());
+      vi.stubGlobal("fetch", fetch);
+      const { result, rerender } = renderHook(
+        ({ query }) => ({
+          auth: useAuthSession(),
+          search: useCollection(query),
+        }),
+        {
+          initialProps: { query: "first" },
+          wrapper: Providers,
+        },
+      );
+      await waitFor(() => expect(fetch).toHaveBeenCalledTimes(1));
+      rerender({ query: "second" });
+      await waitFor(() => expect(result.current.search.isSuccess).toBe(true));
+      expect(fetch.mock.calls[0]?.[1]?.signal?.aborted).toBe(true);
+      expect(result.current.auth.signal.aborted).toBe(false);
+      await act(async () => pending.resolve(page([event])));
+      expect(result.current.search.data?.items).toEqual([]);
+      expect(fetch).toHaveBeenCalledTimes(2);
+    },
+  );
+
+  it.each(collections)(
+    "discards a delayed $name continuation across workspace changes",
+    async ({ useCollection }) => {
+      window.sessionStorage.setItem(
+        "chronelle.development-session",
+        JSON.stringify(credential),
+      );
+      const pending = Promise.withResolvers<Response>();
+      const fetch = vi
+        .fn<typeof globalThis.fetch>()
+        .mockResolvedValueOnce(page([event], "private_cursor"))
+        .mockReturnValueOnce(pending.promise)
+        .mockImplementation(async () => page());
+      vi.stubGlobal("fetch", fetch);
+      const { result } = renderHook(
+        () => ({
+          auth: useAuthSession(),
+          cache: useQueryClient(),
+          collection: useCollection("Private"),
+        }),
+        { wrapper: Providers },
+      );
+      await waitFor(() =>
+        expect(result.current.collection.hasNextPage).toBe(true),
+      );
+      const previous = result.current.cache;
+      let continuation!: Promise<unknown>;
+      act(() => {
+        continuation = result.current.collection.fetchNextPage();
+      });
+      await waitFor(() => expect(fetch).toHaveBeenCalledTimes(2));
+      const nextRequest = new URL(
+        String(fetch.mock.calls[1]?.[0]),
+        "http://example.test",
+      );
+      expect(nextRequest.searchParams.get("cursor")).toBe("private_cursor");
+      expect(nextRequest.searchParams.get("query")).toBe("Private");
+      expect(nextRequest.searchParams.get("limit")).toBe("1");
+      expect(result.current.collection.data?.items).toHaveLength(1);
+      act(() => result.current.auth.switchWorkspace(sharedWorkspaceId));
+      await waitFor(() =>
+        expect(result.current.collection.isSuccess).toBe(true),
+      );
+      expect(fetch.mock.calls[1]?.[1]?.signal?.aborted).toBe(true);
+      expect(result.current.collection.data?.items).toEqual([]);
+      act(() => result.current.auth.switchWorkspace(workspaceId));
+      await waitFor(() =>
+        expect(result.current.collection.isSuccess).toBe(true),
+      );
+      await act(async () => {
+        pending.resolve(page([{ ...event, id: sharedWorkspaceId }]));
+        await continuation;
+      });
+      expect(result.current.collection.data?.items).toEqual([]);
+      expect(result.current.collection.hasNextPage).toBe(false);
+      expect(previous.getQueryCache().getAll()).toHaveLength(0);
+      expect(result.current.cache).not.toBe(previous);
+      expect(fetch).toHaveBeenCalledTimes(4);
+      for (const [url] of fetch.mock.calls.slice(2)) {
+        expect(
+          new URL(String(url), "http://example.test").searchParams.has(
+            "cursor",
+          ),
+        ).toBe(false);
+      }
+    },
+  );
 
   it("rejects a late mutation and its retained client after sign-out and sign-in", async () => {
     window.sessionStorage.setItem(

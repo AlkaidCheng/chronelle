@@ -10,6 +10,7 @@ import {
   apiErrorResponseSchema,
   objectDeletionResponseSchema,
   relationListResponseSchema,
+  type RelationListQueryInput,
   recoveryPreviewSchema,
   trashListResponseSchema,
   removedRelationListResponseSchema,
@@ -65,6 +66,7 @@ import {
   type EventCreatePayload,
   type EventDetailResponse,
   type EventListResponse,
+  type EventListQueryInput,
   type EventPlanningResourceResponse,
   type EventResourceProjectionResponse,
   type EventResponse,
@@ -242,8 +244,13 @@ export class ChronelleApiClient {
     );
   }
 
-  listEvents(): Promise<EventListResponse> {
-    return this.#request("/api/events", eventListResponseSchema);
+  listEvents(input: EventListQueryInput = {}): Promise<EventListResponse> {
+    const parameters = new URLSearchParams();
+    for (const [key, value] of Object.entries(input)) {
+      if (value !== undefined) parameters.set(key, String(value));
+    }
+    const query = parameters.size === 0 ? "" : `?${parameters.toString()}`;
+    return this.#request(`/api/events${query}`, eventListResponseSchema);
   }
 
   listObjectRevisions(
@@ -305,6 +312,9 @@ export class ChronelleApiClient {
 
   searchObjects(input: ObjectSearchQueryInput): Promise<ObjectSearchResponse> {
     const parameters = new URLSearchParams({ query: input.query });
+    if (input.cursor !== undefined) {
+      parameters.set("cursor", input.cursor);
+    }
     if (input.limit !== undefined) {
       parameters.set("limit", String(input.limit));
     }
@@ -524,9 +534,13 @@ export class ChronelleApiClient {
     );
   }
 
-  listObjectRelations(id: string) {
+  listObjectRelations(id: string, input: RelationListQueryInput = {}) {
+    const query = new URLSearchParams();
+    for (const [key, value] of Object.entries(input)) {
+      if (value !== undefined) query.set(key, String(value));
+    }
     return this.#request(
-      `/api/objects/${id}/relations`,
+      `/api/objects/${id}/relations?${query}`,
       relationListResponseSchema,
     );
   }

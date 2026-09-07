@@ -1,4 +1,5 @@
 import type { NextConfig } from "next";
+import { baseContentSecurityPolicy } from "./lib/content-security-policy";
 
 const nextConfig: NextConfig = {
   agentRules: false,
@@ -15,8 +16,7 @@ const nextConfig: NextConfig = {
           { key: "Referrer-Policy", value: "no-referrer" },
           {
             key: "Content-Security-Policy",
-            value:
-              "frame-ancestors 'none'; object-src 'none'; base-uri 'self'; form-action 'self'",
+            value: baseContentSecurityPolicy,
           },
         ],
       },

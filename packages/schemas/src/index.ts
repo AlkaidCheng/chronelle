@@ -14,8 +14,12 @@ export { maximumApiBodySizeBytes, apiRequestTimeoutMs } from "./http.js";
 export * from "./revisions.js";
 export * from "./recovery.js";
 export * from "./event-context.js";
+export * from "./event-list.js";
+export * from "./relation-list.js";
 export {
   objectSearchQuerySchema,
+  objectSearchCursorPayloadSchema,
+  type ObjectSearchCursorPayload,
   objectSearchResponseSchema,
   objectSearchResultSchema,
   type ObjectSearchQuery,

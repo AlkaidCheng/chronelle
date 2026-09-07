@@ -9,6 +9,7 @@ import {
 } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
+import { AuthorizationService } from "@chronelle/authorization";
 import {
   auditEvents,
   createId,
@@ -35,7 +36,7 @@ import {
   LocalFilesystemStorageProvider,
   type StorageProvider,
 } from "@chronelle/storage";
-import { and, desc, eq } from "drizzle-orm";
+import { and, desc, eq, sql } from "drizzle-orm";
 import type { FastifyInstance, InjectOptions } from "fastify";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { buildApp } from "../src/app.js";
@@ -490,6 +491,82 @@ describe.sequential("workspace storage inventory", () => {
     expect(response.json()).toMatchObject({
       error: { code: "resource_unavailable" },
     });
+  });
+
+  it("keeps reference classification in the authorization snapshot during finalization", async () => {
+    const session = await signIn();
+    const event = await createEvent(session);
+    const upload = await authorizeUpload(session, event.id);
+    await uploadBytes(upload);
+    const assertOwner = AuthorizationService.prototype.assertWorkspaceOwner;
+    let checks = 0;
+    vi.spyOn(
+      AuthorizationService.prototype,
+      "assertWorkspaceOwner",
+    ).mockImplementation(async function (this: AuthorizationService, caller) {
+      await assertOwner.call(this, caller);
+      if (++checks === 2) await finalize(session, upload.id);
+    });
+
+    const response = await request(session);
+    expect(response.statusCode).toBe(200);
+    expect(checks).toBe(3);
+    expect(storageInventoryResponseSchema.parse(response.json())).toMatchObject(
+      {
+        references: { canonical: 0, historicalOnly: 0 },
+        entries: { canonical: 0, pendingUpload: 1 },
+      },
+    );
+    const refreshed = await request(session);
+    expect(refreshed.statusCode).toBe(200);
+    expect(
+      storageInventoryResponseSchema.parse(refreshed.json()),
+    ).toMatchObject({
+      references: { canonical: 1, historicalOnly: 0 },
+      entries: { canonical: 1, pendingUpload: 0 },
+    });
+  });
+
+  it("closes the read-only reference transaction before enumerating storage", async () => {
+    const session = await signIn();
+    const db = database.connection.db;
+    const transaction = db.transaction.bind(db);
+    let isTransactionOpen = false;
+    let transactionSettings: unknown;
+    vi.spyOn(db, "transaction").mockImplementation(
+      async (operation, config) => {
+        isTransactionOpen = true;
+        try {
+          return await transaction(async (scope) => {
+            const value = await operation(scope);
+            [transactionSettings] = await scope.execute(sql`
+              select current_setting('transaction_isolation') as isolation,
+                     current_setting('transaction_read_only') as read_only,
+                     current_setting('statement_timeout') as timeout
+            `);
+            return value;
+          }, config);
+        } finally {
+          isTransactionOpen = false;
+        }
+      },
+    );
+    const list = vi
+      .spyOn(provider, "listObjects")
+      .mockImplementation(async function* () {
+        expect(isTransactionOpen).toBe(false);
+        yield { storageKey: storageKey(session), kind: "file" };
+      });
+    const inventory = await new StorageInventoryService(db, provider).get(
+      principal(session),
+    );
+    expect(transactionSettings).toEqual({
+      isolation: "repeatable read",
+      read_only: "on",
+      timeout: "5s",
+    });
+    expect(list).toHaveBeenCalledOnce();
+    expect(inventory.entries.unreferenced).toBe(1);
   });
 
   it.each([

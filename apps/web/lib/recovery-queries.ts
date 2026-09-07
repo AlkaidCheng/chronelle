@@ -92,25 +92,35 @@ export interface LifecycleTarget {
 
 export function useLifecycleActions(target: LifecycleTarget) {
   const client = useApiClient();
+  const { credential } = useAuthSession();
   const invalidate = useRecoveryInvalidation();
   const objectAccess = useQuery({
     queryKey: queryKeys.access(target.id),
+    enabled: credential !== null,
     queryFn: ({ signal }) =>
       client.withSignal(signal).getObjectAccess(target.id),
   });
   const contextAccess = useQuery({
     queryKey: queryKeys.access(target.eventId ?? target.id),
-    enabled: target.eventId !== undefined,
+    enabled: credential !== null && target.eventId !== undefined,
     queryFn: ({ signal }) =>
       client.withSignal(signal).getObjectAccess(target.eventId ?? target.id),
   });
   const relations = useQuery({
-    queryKey: ["object", target.eventId, "relations"],
-    enabled: target.eventId !== undefined,
+    queryKey: ["object", target.eventId, "inclusion", target.id],
+    enabled:
+      credential !== null &&
+      target.eventId !== undefined &&
+      target.relation === undefined,
     queryFn: ({ signal }) =>
       client
         .withSignal(signal)
-        .listObjectRelations(target.eventId ?? target.id),
+        .listObjectRelations(target.eventId ?? target.id, {
+          direction: "outgoing",
+          relationType: "includes",
+          otherObjectId: target.id,
+          limit: 1,
+        }),
   });
   const remove = useMutation({
     mutationFn: ({ id, version }: { id: string; version: number }) =>

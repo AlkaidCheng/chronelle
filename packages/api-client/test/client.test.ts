@@ -580,10 +580,13 @@ describe("ChronelleApiClient", () => {
       version: event.version,
     };
     const fetch = vi.fn<typeof globalThis.fetch>().mockResolvedValue(
-      new Response(JSON.stringify({ items: [searchResult] }), {
-        headers: { "content-type": "application/json" },
-        status: 200,
-      }),
+      new Response(
+        JSON.stringify({ items: [searchResult], nextCursor: null }),
+        {
+          headers: { "content-type": "application/json" },
+          status: 200,
+        },
+      ),
     );
     const client = new ChronelleApiClient({
       fetch,
@@ -594,19 +597,31 @@ describe("ChronelleApiClient", () => {
     });
 
     await expect(
-      client.searchObjects({ limit: 10, objectType: "event", query: "launch" }),
-    ).resolves.toEqual({ items: [searchResult] });
+      client.searchObjects({
+        limit: 10,
+        objectType: "event",
+        query: "launch",
+        cursor: "cursor_position",
+      }),
+    ).resolves.toEqual({ items: [searchResult], nextCursor: null });
     expect(fetch.mock.calls[0]?.[0]).toBe(
-      "/api/search?query=launch&limit=10&objectType=event",
+      "/api/search?query=launch&cursor=cursor_position&limit=10&objectType=event",
     );
   });
 
   it("adds the active identity and workspace to protected requests", async () => {
     const fetch = vi.fn<typeof globalThis.fetch>().mockResolvedValue(
-      new Response(JSON.stringify({ items: [event] }), {
-        headers: { "content-type": "application/json" },
-        status: 200,
-      }),
+      new Response(
+        JSON.stringify({
+          items: [event],
+          nextCursor: null,
+          asOf: event.updatedAt,
+        }),
+        {
+          headers: { "content-type": "application/json" },
+          status: 200,
+        },
+      ),
     );
     const client = new ChronelleApiClient({
       baseUrl: "http://api.example.test/",
@@ -617,12 +632,70 @@ describe("ChronelleApiClient", () => {
       }),
     });
 
-    await expect(client.listEvents()).resolves.toEqual({ items: [event] });
+    await expect(client.listEvents()).resolves.toEqual({
+      items: [event],
+      nextCursor: null,
+      asOf: event.updatedAt,
+    });
     const [url, request] = fetch.mock.calls[0] ?? [];
     const headers = new Headers(request?.headers);
     expect(url).toBe("http://api.example.test/api/events");
     expect(headers.get("authorization")).toBe("Bearer opaque-session");
     expect(headers.get("x-workspace-id")).toBe(event.workspaceId);
+  });
+
+  it("encodes event page positions and collection options", async () => {
+    const fetch = vi
+      .fn<typeof globalThis.fetch>()
+      .mockResolvedValue(
+        Response.json({ items: [], nextCursor: null, asOf: event.updatedAt }),
+      );
+    const client = new ChronelleApiClient({
+      fetch,
+      getCredential: () => ({
+        accessToken: "opaque-session",
+        workspaceId: event.workspaceId,
+      }),
+    });
+    await client.listEvents({
+      cursor: "opaque-position",
+      limit: 7,
+      query: "tea & cake",
+      filter: "upcoming",
+      sort: "name",
+    });
+    expect(fetch.mock.calls[0]?.[0]).toBe(
+      "/api/events?cursor=opaque-position&limit=7&query=tea+%26+cake&filter=upcoming&sort=name",
+    );
+  });
+
+  it("encodes relation filters and continuation while requiring page metadata", async () => {
+    const fetch = vi
+      .fn<typeof globalThis.fetch>()
+      .mockResolvedValueOnce(
+        Response.json({ items: [], nextCursor: "next_position" }),
+      )
+      .mockResolvedValueOnce(Response.json({ items: [] }));
+    const client = new ChronelleApiClient({
+      fetch,
+      getCredential: () => ({
+        accessToken: "opaque-session",
+        workspaceId: event.workspaceId,
+      }),
+    });
+    await expect(
+      client.listObjectRelations(event.id, {
+        cursor: "opaque_position",
+        limit: 1,
+        direction: "outgoing",
+        relationType: "includes",
+        otherObjectId: event.id,
+      }),
+    ).resolves.toEqual({ items: [], nextCursor: "next_position" });
+    expect(fetch.mock.calls[0]?.[0]).toBe(
+      `/api/objects/${event.id}/relations?cursor=opaque_position&limit=1&direction=outgoing&relationType=includes&otherObjectId=${event.id}`,
+    );
+    await expect(client.listObjectRelations(event.id)).rejects.toThrow();
   });
 
   it("returns typed conflict details for optimistic concurrency failures", async () => {

@@ -43,7 +43,7 @@ test("round-trips a private upload above the ordinary request limit", async ({
   });
   expect(created.status()).toBe(201);
   const event = await created.json();
-  const bytes = Buffer.alloc(1024 * 1024 + 32, 7);
+  const bytes = Buffer.alloc(12 * 1024 * 1024 + 32, 7);
   const issued = await request.post("/api/documents/upload-url", {
     headers,
     data: {

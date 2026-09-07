@@ -6,8 +6,11 @@ import type {
   EventCreatePayload,
   EventContextCreatePayload,
   EventUpdatePayload,
+  EventListQueryInput,
+  EventListResponse,
   ExpenseUpdatePayload,
   ObjectSearchQueryInput,
+  ObjectSearchResponse,
   PermissionScopeUpdatePayload,
   ReminderUpdatePayload,
   ShareCreatePayload,
@@ -19,6 +22,8 @@ import {
   useQueries,
   useQuery,
   useQueryClient,
+  useInfiniteQuery,
+  type InfiniteData,
 } from "@tanstack/react-query";
 
 import { useApiClient } from "./api-context";
@@ -67,28 +72,75 @@ export function useSessionQuery() {
   });
 }
 
-export function useEventsQuery() {
+export function useEventsQuery(input: Omit<EventListQueryInput, "cursor">) {
   const client = useApiClient();
   const { credential } = useAuthSession();
-  return useQuery({
+  const queryClient = useQueryClient();
+  const queryKey = [
+    ...queryKeys.events,
+    input,
+    credential?.homeWorkspaceId,
+    credential?.workspaceId,
+  ];
+  const result = useInfiniteQuery({
     enabled: credential !== null,
-    queryFn: ({ signal }) => client.withSignal(signal).listEvents(),
-    queryKey: queryKeys.events,
+    initialPageParam: undefined as string | undefined,
+    queryFn: ({ pageParam, signal }) =>
+      client.withSignal(signal).listEvents({
+        ...input,
+        ...(pageParam === undefined ? {} : { cursor: pageParam }),
+      }),
+    getNextPageParam: (page) => page.nextCursor ?? undefined,
+    queryKey,
+    select: selectEventItems,
   });
+  return {
+    ...result,
+    refresh: () => queryClient.resetQueries({ queryKey, exact: true }),
+  };
 }
 
-export function useObjectSearch(input: ObjectSearchQueryInput | null) {
+function pageItems<T extends { readonly id: string }>(
+  pages: readonly { readonly items: readonly T[] }[],
+): T[] {
+  const items = new Map(
+    pages.flatMap((page) => page.items.map((item) => [item.id, item] as const)),
+  );
+  return [...items.values()];
+}
+
+function selectEventItems(data: InfiniteData<EventListResponse>) {
+  return { items: pageItems(data.pages), asOf: data.pages[0]?.asOf };
+}
+
+function selectSearchItems(data: InfiniteData<ObjectSearchResponse>) {
+  return { items: pageItems(data.pages) };
+}
+
+export function useObjectSearch(
+  input: Omit<ObjectSearchQueryInput, "cursor"> | null,
+) {
   const client = useApiClient();
   const { credential } = useAuthSession();
-  return useQuery({
+  return useInfiniteQuery({
     enabled: credential !== null && input !== null,
-    queryFn: ({ signal }) => {
+    initialPageParam: undefined as string | undefined,
+    queryFn: ({ pageParam, signal }) => {
       if (input === null) {
         throw new Error("Search input is required.");
       }
-      return client.withSignal(signal).searchObjects(input);
+      return client.withSignal(signal).searchObjects({
+        ...input,
+        ...(pageParam === undefined ? {} : { cursor: pageParam }),
+      });
     },
-    queryKey: input === null ? ["search", "idle"] : queryKeys.search(input),
+    getNextPageParam: (page) => page.nextCursor ?? undefined,
+    queryKey: [
+      ...(input === null ? ["search", "idle"] : queryKeys.search(input)),
+      credential?.homeWorkspaceId,
+      credential?.workspaceId,
+    ],
+    select: selectSearchItems,
   });
 }
 

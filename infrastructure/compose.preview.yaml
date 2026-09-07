@@ -30,10 +30,37 @@ services:
       postgres:
         condition: service_healthy
 
+  runtime-role:
+    image: postgres:17-alpine
+    user: postgres
+    entrypoint:
+      [
+        "psql",
+        "-X",
+        "--no-password",
+        "--file",
+        "/configuration/runtime-role.sql",
+      ]
+    environment:
+      PGHOST: postgres
+      PGPORT: 5432
+      PGDATABASE: chronelle
+      PGUSER: chronelle
+      PGPASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}
+      RUNTIME_DATABASE_PASSWORD: ${RUNTIME_DATABASE_PASSWORD:?Set RUNTIME_DATABASE_PASSWORD}
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    volumes:
+      - ./database/runtime-role.sql:/configuration/runtime-role.sql:ro
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+
   api:
     image: ${API_IMAGE:-chronelle-api:local}
     environment:
-      DATABASE_URL: postgresql://chronelle:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}@postgres:5432/chronelle
+      DATABASE_URL: postgresql://chronelle_runtime:${RUNTIME_DATABASE_PASSWORD:?Set RUNTIME_DATABASE_PASSWORD}@postgres:5432/chronelle
       ENABLE_DEVELOPMENT_AUTH: ${ENABLE_DEVELOPMENT_AUTH:-false}
     read_only: true
     cap_drop: [ALL]
@@ -42,7 +69,7 @@ services:
     volumes:
       - documents:/app/.chronelle/storage
     depends_on:
-      migrate:
+      runtime-role:
         condition: service_completed_successfully
 
   web:

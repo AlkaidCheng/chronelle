@@ -66,16 +66,40 @@ metadata. The initial relation vocabulary is:
 Removing a relationship removes only that contextual link. Database foreign
 keys explicitly prevent a relation deletion from cascading to either endpoint.
 
+Active relation pages select existing links by immutable ID descending, with
+optional direction, type, and opposite-endpoint filters. Both endpoint View
+decisions and the returned metadata belong to one read-only snapshot. The
+lifecycle dialog locates its exact Event inclusion, rather than treating the
+first page as the complete list; its cache is keyed by both endpoint identities.
+
 Event detail, calendar, timeline, itinerary, expense, reminder, and to-do
 queries resolve canonical objects at read time. Each resource keeps the same ID
 and version in every response. These projections own ordering and selection,
 never copied business fields.
 
+`EventPlanningObjectService.listVisibleObjects(principal, ids)` resolves a
+collection through the same authorization policy as `getObject()`. It omits
+unavailable IDs, preserves input order and duplicates, and loads visible typed
+states in bounded batches within one snapshot. Detail projections and
+attachment lists reuse it. The low-level `readObjectStates()`
+also supports tombstones for recovery; callers must authorize it explicitly.
+
+The Event collection is a read-time projection: its pages hydrate existing
+typed Event rows, not new collection records. Only active self-scoped Events are collection roots;
+an inheriting itinerary Event remains in its canonical parent's projections.
+Changing a name, schedule, or update time changes subsequent collection reads
+and can move a record across page boundaries. The client deduplicates IDs when
+accumulating pages, without creating another business identity.
+
 Search is another read-time projection over `objects`, backed by a partial
 PostgreSQL full-text index on active display names. A search result is not a
 stored search document: it carries the same canonical ID, type, permission
 scope, version, and update time as the object row. Object-type filtering changes
-selection only and never creates another container.
+selection only and never creates another container. Search pages are ordered
+by relevance descending, update time descending, then canonical ID ascending.
+The cursor preserves database timestamp precision even though public resource
+timestamps are serialized as JavaScript dates. Removing the boundary object
+does not invalidate the remaining keyset position.
 
 An attachment is one canonical Document plus one `attached_to` relationship.
 The Document uses its parent's canonical permission scope, so a file attached

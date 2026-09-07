@@ -4,6 +4,13 @@ Most `/api` routes accept and return JSON; document transfers carry file bytes.
 Protected routes require a development or production-provider bearer token.
 Send `x-workspace-id` when operating outside the identity's personal workspace.
 
+Protected database reads evaluate permissions and assemble data in the same
+snapshot. A read in progress may finish with the earlier authorized version
+after a concurrent revocation, but cannot combine that access with later private
+content. Subsequent reads use current policy; separate requests are not a shared
+snapshot. Mutation/version preconditions remain unchanged.
+See [Consistent reads](permissions.md#consistent-reads).
+
 ## HTTP limits and errors
 
 Ordinary request bodies are limited to 1 MiB. Only
@@ -40,6 +47,72 @@ applies a bounded batch of Event/Task content edits; `POST /api/commands/undo` a
 `POST /api/commands/redo` transition its pinned head. Every mutation requires an
 operation ID and expected stack version. See [Commands](commands.md) for typed
 examples, object preconditions, idempotency, and explicit eligibility limits.
+
+## Event collection
+
+`GET /api/events` returns `{ items, nextCursor, asOf }`. It lists active,
+self-scoped Events in the selected workspace with current View permission.
+Scoped itinerary Events remain in their parent's projections. Permission and
+content are read in one snapshot; private candidates cannot consume the limit.
+
+| Parameter | Values and default                                          |
+| --------- | ----------------------------------------------------------- |
+| `limit`   | 1-50, default 20                                            |
+| `query`   | Trimmed name substring, up to 240 characters, default empty |
+| `filter`  | `all` (default), `upcoming`, `past`, or `unscheduled`       |
+| `sort`    | `date` (default), `name`, or `updated`                      |
+| `cursor`  | Previous `nextCursor`; omit to start a new collection read  |
+
+Name matching is case-insensitive; `%`, `_`, and backslash are literal
+characters, not wildcard syntax. `unscheduled` means no start time. A scheduled
+Event is past when its end (or start if there is no end) precedes `asOf`;
+`upcoming` includes ongoing Events and the exact boundary. The first page's
+reference time is retained across its continuation pages. It never sets the
+authorization clock: every request rechecks current access and grant expiry.
+
+Date order is start ascending, undated last, then folded name and ID. Name order
+is folded name then ID. Updated order is update time descending then ID. Names
+use PostgreSQL `lower(display_name) COLLATE "C"`, not browser locale collation.
+Cursor timestamps retain database microseconds even though resource timestamps
+are serialized in milliseconds.
+
+Previously one call returned the whole accessible collection:
+
+```ts
+const { items } = await client.listEvents();
+```
+
+It now returns at most 20 items by default. To enumerate a filtered collection,
+keep its options and follow `nextCursor` until null:
+
+```ts
+const options = {
+  query: "gathering",
+  filter: "upcoming",
+  sort: "name",
+  limit: 25,
+} as const;
+let page = await client.listEvents(options);
+consume(page.items);
+while (page.nextCursor !== null) {
+  page = await client.listEvents({ ...options, cursor: page.nextCursor });
+  consume(page.items);
+}
+```
+
+Deploy the API and web client together. Update any external callers that assumed
+one complete response; no database migration is needed. Invalid options or
+malformed/mismatched cursors return 400 `invalid_request`. Cursors are bounded
+to 4096 characters and bind the user, workspace, normalized query, filter, and
+sort. A caller may change page size. Tokens are positions, not credentials or
+permanent links, and contain only already-visible sort values.
+
+Each page is a separate snapshot. Deleting a boundary does not prevent
+continuation, but renames, rescheduling, or other edits can move records across
+pages. This is not a point-in-time export: deduplicate IDs when accumulating
+pages, and restart without a cursor to refresh the collection and period clock.
+There is no total count. Database filtering/sorting may scan many candidates;
+returned rows and typed-object hydration are bounded, not total database work.
 
 ## Atomic Event resource creation
 
@@ -176,14 +249,32 @@ omitted.
 `GET /search` requires a `query` of 2-120 characters containing at least one
 letter or number. `objectType` may select `event`, `task`, `expense`,
 `reminder`, or `document`; `limit` defaults to 20 and is capped at 50. The
-response contains compact canonical object fields and no pre-authorization
-total.
+response is `{ items, nextCursor }`, with compact canonical object fields and
+no total. `nextCursor` is `null` when no more visible matches exist in this
+page's snapshot. To continue, send it unchanged as `cursor` with the same query
+and object type. Page size may change between requests.
 
-PostgreSQL full-text search selects active candidates only in the request
-workspace. Each candidate then passes through
-`can(principal, view, resource)` before it can enter the response. The current
-V1A candidate window is 500 matches; pagination and richer structured filters
-are deferred.
+The central View policy filters active canonical objects in the selected
+workspace before PostgreSQL sorts and limits them. There is no fixed
+private-candidate window. Ordering is relevance descending, update time
+descending, then ID ascending. Each query fetches at most `limit + 1` visible
+rows; the extra row determines whether another page exists.
+
+Cursors are opaque, versioned base64url positions bounded to 2,048 characters.
+They bind the normalized query, type filter, user, and workspace, and preserve
+PostgreSQL timestamp precision. Invalid or mismatched cursors return
+`400 invalid_request`. They are neither secrets nor authorization credentials:
+changing a position cannot bypass the current permission decision. Clients
+must not decode or construct them.
+
+Each page uses a fresh consistent read snapshot. Grant revocation and soft
+deletion take effect on subsequent requests; deleting a boundary row does not
+break continuation. Unchanged matches with tied sort fields paginate without
+duplicates, but edits that move an object's relevance or update time can move
+it across a cursor. Restart without a cursor to obtain a fresh ordering. The
+web client deduplicates canonical IDs across loaded pages; pagination is not a
+long-lived snapshot or an export-completeness guarantee. Deploy the API and
+typed client together because the response now requires `nextCursor`.
 
 ## Relationships
 
@@ -202,6 +293,52 @@ Relation responses include their independent `version`. Attachment responses
 include `relationVersion` alongside `relationId`; it is not the Document's
 version. Use `client.deleteRelation(relationId, relationVersion)` to remove a
 link. A stale expected version returns HTTP 409.
+
+Active relation lists return `{ items, nextCursor }`, ordered by immutable
+relation ID descending. `limit` defaults to 20 and accepts 1-50. Optional filters
+are `direction` (`both`, the default, `incoming`, or `outgoing`),
+`relationType` (the vocabulary above), and `otherObjectId` (the opposite
+canonical endpoint's UUID). Every returned link requires current View on both
+endpoints. Hidden links do not consume page slots or expose counts, metadata,
+or cursor positions. An unavailable starting object returns 404; an unavailable
+opposite endpoint produces no match.
+
+Callers that previously treated one response as the complete list must follow
+`nextCursor` until it is `null`. Send the token unchanged as `cursor` with the
+same object, filters, user, and workspace; the page size may change. Tokens are
+bounded to 4,096 characters. Invalid or mismatched positions return 400.
+
+Before:
+
+```ts
+const allLinks = (await client.listObjectRelations(eventId)).items;
+```
+
+After:
+
+```ts
+const page = await client.listObjectRelations(eventId, { limit: 20 });
+if (page.nextCursor !== null) {
+  const next = await client.listObjectRelations(eventId, {
+    limit: 20,
+    cursor: page.nextCursor,
+  });
+}
+// One active source/type/target link is unique; this lookup needs no continuation.
+const inclusion = await client.listObjectRelations(eventId, {
+  direction: "outgoing",
+  relationType: "includes",
+  otherObjectId: taskId,
+  limit: 1,
+});
+```
+
+`ObjectRelationService.listForObject(principal, objectId, options?)` likewise
+returns a page instead of an array. Deploy API and client together; no database
+migration is needed. Every page uses a new authorization snapshot, not a
+long-lived export snapshot. Deleted boundaries remain usable, while new or
+recovered links before the boundary require a refresh. Removed-link lists and
+Event detail projections retain their separate contracts.
 
 ## Event projections
 

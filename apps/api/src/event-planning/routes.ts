@@ -19,6 +19,7 @@ import {
   eventCreateRequestSchema,
   eventDetailResponseSchema,
   eventListResponseSchema,
+  eventListQuerySchema,
   eventPlanningResourceResponseSchema,
   eventResourceProjectionResponseSchema,
   eventResponseSchema,
@@ -34,6 +35,7 @@ import {
   relationDeletionResponseSchema,
   relationDeletionQuerySchema,
   relationListResponseSchema,
+  relationListQuerySchema,
   relationResponseSchema,
   reminderCreateRequestSchema,
   reminderResourceProjectionResponseSchema,
@@ -152,9 +154,11 @@ export function registerEventPlanningRoutes(
   app.get("/api/events", { preHandler: app.authenticate }, async (request) => {
     const events = await dependencies.objects.listEvents(
       requirePrincipal(request),
+      parseRequest(eventListQuerySchema, request.query),
     );
     return eventListResponseSchema.parse({
-      items: events.map(serializeResource),
+      ...events,
+      items: events.items.map(serializeResource),
     });
   });
 
@@ -245,9 +249,11 @@ export function registerEventPlanningRoutes(
       const relations = await dependencies.relations.listForObject(
         requirePrincipal(request),
         id,
+        parseRequest(relationListQuerySchema, request.query),
       );
       return relationListResponseSchema.parse({
-        items: relations.map(serializeRelation),
+        items: relations.items.map(serializeRelation),
+        nextCursor: relations.nextCursor,
       });
     },
   );

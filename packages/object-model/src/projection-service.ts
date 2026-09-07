@@ -1,9 +1,14 @@
-import { AuthorizationDeniedError } from "@chronelle/authorization";
+import { withReadAuthorization } from "@chronelle/authorization";
 import type { UserPrincipal } from "@chronelle/authorization";
-import { objectRelations, objects, type Database } from "@chronelle/db";
+import {
+  objectRelations,
+  objects,
+  type Database,
+  type DatabaseTransaction,
+} from "@chronelle/db";
 import { and, eq, isNull } from "drizzle-orm";
 
-import type { EventPlanningObjectService } from "./object-service.js";
+import { EventPlanningObjectService } from "./object-service.js";
 import type {
   DocumentResource,
   EventDetailProjection,
@@ -47,49 +52,56 @@ function isResource<Type extends EventPlanningResource["objectType"]>(
 
 export class EventPlanningProjectionService {
   readonly #database: Database;
-  readonly #objects: EventPlanningObjectService;
 
-  constructor(database: Database, objectsService: EventPlanningObjectService) {
+  constructor(database: Database) {
     this.#database = database;
-    this.#objects = objectsService;
   }
 
   async getDetail(
     principal: UserPrincipal,
     eventId: string,
   ): Promise<EventDetailProjection> {
-    const event = await this.#objects.getEvent(principal, eventId);
-    const [included, attached] = await Promise.all([
-      this.#getIncludedResources(principal, eventId),
-      this.#getAttachedDocuments(principal, eventId),
-    ]);
-    const documents = new Map(
-      [
-        ...included.resources.filter((resource) =>
-          isResource(resource, "document"),
-        ),
-        ...attached.resources,
-      ].map((document) => [document.id, document]),
-    );
+    return withReadAuthorization(
+      this.#database,
+      async (transaction, authorization) => {
+        const reader = new EventPlanningObjectService({
+          database: transaction,
+          authorization,
+        });
+        const event = await reader.getEvent(principal, eventId);
+        const [included, attached] = await Promise.all([
+          this.#getIncludedResources(transaction, reader, principal, eventId),
+          this.#getAttachedDocuments(transaction, reader, principal, eventId),
+        ]);
+        const documents = new Map(
+          [
+            ...included.resources.filter((resource) =>
+              isResource(resource, "document"),
+            ),
+            ...attached.resources,
+          ].map((document) => [document.id, document]),
+        );
 
-    return {
-      event,
-      events: included.resources.filter((resource) =>
-        isResource(resource, "event"),
-      ),
-      tasks: included.resources.filter((resource) =>
-        isResource(resource, "task"),
-      ),
-      expenses: included.resources.filter((resource) =>
-        isResource(resource, "expense"),
-      ),
-      reminders: included.resources.filter((resource) =>
-        isResource(resource, "reminder"),
-      ),
-      documents: [...documents.values()],
-      lockedRelationCount:
-        included.lockedRelationCount + attached.lockedRelationCount,
-    };
+        return {
+          event,
+          events: included.resources.filter((resource) =>
+            isResource(resource, "event"),
+          ),
+          tasks: included.resources.filter((resource) =>
+            isResource(resource, "task"),
+          ),
+          expenses: included.resources.filter((resource) =>
+            isResource(resource, "expense"),
+          ),
+          reminders: included.resources.filter((resource) =>
+            isResource(resource, "reminder"),
+          ),
+          documents: [...documents.values()],
+          lockedRelationCount:
+            included.lockedRelationCount + attached.lockedRelationCount,
+        };
+      },
+    );
   }
 
   async getTodos(
@@ -233,13 +245,15 @@ export class EventPlanningProjectionService {
   }
 
   async #getIncludedResources(
+    transaction: DatabaseTransaction,
+    reader: EventPlanningObjectService,
     principal: UserPrincipal,
     eventId: string,
   ): Promise<{
     readonly lockedRelationCount: number;
     readonly resources: EventPlanningResource[];
   }> {
-    const relations = await this.#database
+    const relations = await transaction
       .select({ targetObjectId: objectRelations.targetObjectId })
       .from(objectRelations)
       .innerJoin(
@@ -260,19 +274,22 @@ export class EventPlanningProjectionService {
       );
 
     return this.#resolveVisibleResources(
+      reader,
       principal,
       relations.map(({ targetObjectId }) => targetObjectId),
     );
   }
 
   async #getAttachedDocuments(
+    transaction: DatabaseTransaction,
+    reader: EventPlanningObjectService,
     principal: UserPrincipal,
     eventId: string,
   ): Promise<{
     readonly lockedRelationCount: number;
     readonly resources: DocumentResource[];
   }> {
-    const relations = await this.#database
+    const relations = await transaction
       .select({ sourceObjectId: objectRelations.sourceObjectId })
       .from(objectRelations)
       .innerJoin(
@@ -293,6 +310,7 @@ export class EventPlanningProjectionService {
         ),
       );
     const resolved = await this.#resolveVisibleResources(
+      reader,
       principal,
       relations.map(({ sourceObjectId }) => sourceObjectId),
     );
@@ -305,30 +323,17 @@ export class EventPlanningProjectionService {
   }
 
   async #resolveVisibleResources(
+    reader: EventPlanningObjectService,
     principal: UserPrincipal,
     objectIds: readonly string[],
   ): Promise<{
     readonly lockedRelationCount: number;
     readonly resources: EventPlanningResource[];
   }> {
-    const resources = await Promise.all(
-      objectIds.map(async (objectId) => {
-        try {
-          return await this.#objects.getObject(principal, objectId);
-        } catch (error) {
-          if (error instanceof AuthorizationDeniedError) {
-            return null;
-          }
-          throw error;
-        }
-      }),
-    );
-    const visibleResources = resources.filter(
-      (resource): resource is EventPlanningResource => resource !== null,
-    );
+    const resources = await reader.listVisibleObjects(principal, objectIds);
     return {
-      resources: visibleResources,
-      lockedRelationCount: resources.length - visibleResources.length,
+      resources,
+      lockedRelationCount: objectIds.length - resources.length,
     };
   }
 }

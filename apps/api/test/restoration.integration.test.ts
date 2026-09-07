@@ -568,10 +568,10 @@ describe.sequential("content restoration", () => {
               .delete(resourceGrants)
               .where(eq(resourceGrants.resourceId, event.id));
           } else {
-            await new EventPlanningObjectService(
-              transaction,
+            await new EventPlanningObjectService({
+              database: transaction,
               authorization,
-            ).updatePermissionScope(
+            }).updatePermissionScope(
               {
                 principal: {
                   type: "user",

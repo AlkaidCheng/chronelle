@@ -6,6 +6,7 @@ import {
   render,
   screen,
   waitFor,
+  within,
 } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -88,6 +89,75 @@ describe("EventWorkspace", () => {
     vi.unstubAllGlobals();
     window.sessionStorage.clear();
   });
+
+  it.each([false, true])(
+    "shows exact expense rows and separate currency totals (mixed: %s)",
+    async (mixed) => {
+      const entries = [
+        { amount: "999999999999999.9999", currency: "USD" },
+        { amount: "-0.0001", currency: "USD" },
+        ...(mixed ? [{ amount: "3.0003", currency: "EUR" }] : []),
+      ];
+      const expenses = entries.map((entry, index) => ({
+        ...rootEvent,
+        ...entry,
+        id: `019d6e7d-0000-7000-8000-${String(index + 40).padStart(12, "0")}`,
+        objectType: "expense",
+        displayName: `Transaction ${index + 1}`,
+        occurredAt: rootEvent.createdAt,
+      }));
+      vi.stubGlobal(
+        "fetch",
+        vi.fn<typeof globalThis.fetch>(async (input) => {
+          const path = requestPath(input);
+          if (path.endsWith("/detail"))
+            return jsonResponse({
+              event: rootEvent,
+              events: [],
+              tasks: [],
+              expenses,
+              reminders: [],
+              documents: [],
+              lockedRelationCount: 0,
+            });
+          if (path.endsWith("/access"))
+            return jsonResponse({ resourceId: eventId, actions: ["view"] });
+          if (path.endsWith("/expenses"))
+            return jsonResponse({ sourceEventId: eventId, items: expenses });
+          return jsonResponse(
+            { error: { code: "not_found", message: "Unavailable" } },
+            404,
+          );
+        }),
+      );
+      const user = userEvent.setup();
+      render(
+        <Providers>
+          <EventWorkspace eventId={eventId} />
+        </Providers>,
+      );
+
+      const summary = await screen.findByRole("button", { name: /expenses/i });
+      expect(summary).toHaveTextContent(
+        mixed ? "3 transactions" : "$999,999,999,999,999.9998",
+      );
+      await user.click(summary);
+      const totals = await screen.findByLabelText("Totals by currency");
+      expect(within(totals).getByText("USD")).toBeVisible();
+      expect(
+        within(totals).getByText("$999,999,999,999,999.9998"),
+      ).toBeVisible();
+      if (mixed) {
+        expect(within(totals).getByText("EUR")).toBeVisible();
+        expect(within(totals).getByText("\u20ac3.0003")).toBeVisible();
+      }
+      expect(screen.getByText("$999,999,999,999,999.9999")).toBeVisible();
+      expect(screen.getByText("-$0.0001")).toBeVisible();
+      expect(
+        screen.queryByRole("button", { name: "Record expense" }),
+      ).toBeNull();
+    },
+  );
 
   it("keeps the event editor and navigation available when a projection fails", async () => {
     vi.stubGlobal(

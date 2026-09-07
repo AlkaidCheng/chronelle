@@ -1,4 +1,5 @@
 import type { Role } from "@chronelle/db";
+import type { SQL } from "drizzle-orm";
 
 export const authorizationActions = [
   "view",
@@ -21,16 +22,21 @@ export interface ResourceRef {
   readonly workspaceId: string;
 }
 
-export interface ResourceRoleQuery {
+export interface ResourceRolesQuery {
   readonly evaluatedAt: Date;
-  readonly resource: ResourceRef;
+  readonly resourceIds: readonly string[];
   readonly userId: string;
+  readonly workspaceId: string;
 }
 
 export interface WorkspaceAccessQuery {
   readonly evaluatedAt: Date;
   readonly userId: string;
   readonly workspaceId: string;
+}
+
+export interface ResourceAccessQuery extends WorkspaceAccessQuery {
+  readonly action: AuthorizationAction;
 }
 
 export interface AccessibleWorkspaceQuery {
@@ -41,8 +47,13 @@ export interface AccessibleWorkspaceQuery {
 export type WorkspaceRoleQuery = Omit<WorkspaceAccessQuery, "evaluatedAt">;
 
 export interface AuthorizationStore {
-  findRecoveryRole(query: ResourceRoleQuery): Promise<"owner" | null>;
-  findResourceRoles(query: ResourceRoleQuery): Promise<readonly Role[] | null>;
+  resourcePredicate(query: ResourceAccessQuery): SQL;
+  findRecoverableResourceIds(
+    query: ResourceRolesQuery,
+  ): Promise<ReadonlySet<string>>;
+  findResourceRoles(
+    query: ResourceRolesQuery,
+  ): Promise<ReadonlyMap<string, readonly Role[]>>;
   findWorkspaceRole(query: WorkspaceRoleQuery): Promise<Role | null>;
   hasWorkspaceAccess(query: WorkspaceAccessQuery): Promise<boolean>;
   listAccessibleWorkspaceIds(
@@ -81,41 +92,89 @@ export class AuthorizationService {
     action: AuthorizationAction,
     resource: ResourceRef,
   ): Promise<boolean> {
-    if (action === "recover") {
-      if (principal.workspaceId !== resource.workspaceId) return false;
-      return (
-        (await this.#store.findRecoveryRole({
-          evaluatedAt: this.#clock(),
-          resource,
-          userId: principal.userId,
-        })) === "owner"
-      );
+    const [allowed] = await this.canMany(principal, action, [resource]);
+    return allowed ?? false;
+  }
+
+  /** Filter canonical objects using this evaluator's principal, policy, and expiry instant. */
+  resourcePredicate(
+    principal: UserPrincipal,
+    action: AuthorizationAction,
+  ): SQL {
+    return this.#store.resourcePredicate({
+      action,
+      evaluatedAt: this.#clock(),
+      userId: principal.userId,
+      workspaceId: principal.workspaceId,
+    });
+  }
+
+  /** Evaluate resources in input order, including duplicates and unavailable references. */
+  async canMany(
+    principal: UserPrincipal,
+    action: AuthorizationAction,
+    resources: readonly ResourceRef[],
+  ): Promise<readonly boolean[]> {
+    if (action !== "recover") {
+      const actions = await this.allowedActionsMany(principal, resources);
+      return actions.map((allowed) => allowed.includes(action));
     }
-    const actions = await this.allowedActions(principal, resource);
-    return actions.includes(action);
+    const resourceIds = this.#resourceIds(principal, resources);
+    if (resourceIds.length === 0) return resources.map(() => false);
+    const recoverable = await this.#store.findRecoverableResourceIds({
+      evaluatedAt: this.#clock(),
+      resourceIds,
+      userId: principal.userId,
+      workspaceId: principal.workspaceId,
+    });
+    return resources.map(
+      (resource) =>
+        resource.workspaceId === principal.workspaceId &&
+        recoverable.has(resource.id),
+    );
   }
 
   async allowedActions(
     principal: UserPrincipal,
     resource: ResourceRef,
   ): Promise<readonly AuthorizationAction[]> {
-    if (principal.workspaceId !== resource.workspaceId) {
-      return [];
-    }
+    const [actions] = await this.allowedActionsMany(principal, [resource]);
+    return actions ?? [];
+  }
 
+  /** Normal resource capabilities in input order; tombstones have no normal capabilities. */
+  async allowedActionsMany(
+    principal: UserPrincipal,
+    resources: readonly ResourceRef[],
+  ): Promise<readonly (readonly AuthorizationAction[])[]> {
+    const resourceIds = this.#resourceIds(principal, resources);
+    if (resourceIds.length === 0) return resources.map(() => []);
     const roles = await this.#store.findResourceRoles({
       evaluatedAt: this.#clock(),
-      resource,
+      resourceIds,
       userId: principal.userId,
+      workspaceId: principal.workspaceId,
     });
+    return resources.map((resource) => {
+      if (resource.workspaceId !== principal.workspaceId) return [];
+      const applicable = roles.get(resource.id) ?? [];
+      return authorizationActions.filter((action) =>
+        applicable.some((role) => roleAllows(role, action)),
+      );
+    });
+  }
 
-    if (roles === null) {
-      return [];
-    }
-
-    return authorizationActions.filter((action) =>
-      roles.some((role) => roleAllows(role, action)),
-    );
+  #resourceIds(
+    principal: UserPrincipal,
+    resources: readonly ResourceRef[],
+  ): string[] {
+    return [
+      ...new Set(
+        resources
+          .filter((resource) => resource.workspaceId === principal.workspaceId)
+          .map((resource) => resource.id),
+      ),
+    ];
   }
 
   async assertCan(

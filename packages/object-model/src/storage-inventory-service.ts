@@ -2,6 +2,7 @@ import {
   AuthorizationDeniedError,
   AuthorizationService,
   DrizzleAuthorizationStore,
+  withReadAuthorization,
   type UserPrincipal,
 } from "@chronelle/authorization";
 import {
@@ -146,12 +147,10 @@ export class StorageInventoryService {
     prefix: string,
     observedAt: Date,
   ) {
-    return this.database.transaction(
-      async (transaction) => {
+    return withReadAuthorization(
+      this.database,
+      async (transaction, authorization) => {
         await transaction.execute(sql`set local statement_timeout = '5s'`);
-        const authorization = new AuthorizationService(
-          new DrizzleAuthorizationStore(transaction),
-        );
         await authorization.assertWorkspaceOwner(principal);
         const canonicalRows = await transaction
           .selectDistinct({ key: documents.storageKey })
@@ -239,7 +238,6 @@ export class StorageInventoryService {
           throw new StorageInventoryUnavailableError();
         return { canonical, historical, uploads };
       },
-      { isolationLevel: "repeatable read", accessMode: "read only" },
     );
   }
 }

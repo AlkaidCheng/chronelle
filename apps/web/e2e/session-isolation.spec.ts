@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { expect, test } from "@playwright/test";
 
-test("isolates a delayed collection across workspace changes and sign-out", async ({
+test("isolates a delayed collection page across workspace changes and sign-out", async ({
   page,
   request,
 }, testInfo) => {
@@ -19,15 +19,20 @@ test("isolates a delayed collection across workspace changes and sign-out", asyn
   expect(secondIdentity.ok()).toBe(true);
   const first = await firstIdentity.json();
   const second = await secondIdentity.json();
-  const privateEvent = await request.post("/api/events", {
-    headers: { authorization: `Bearer ${first.accessToken}` },
-    data: { displayName: "Personal collection item", timezone: "UTC" },
-  });
+  for (let index = 0; index < 21; index += 1) {
+    const privateEvent = await request.post("/api/events", {
+      headers: { authorization: `Bearer ${first.accessToken}` },
+      data: {
+        displayName: `Personal collection item ${index}`,
+        timezone: "UTC",
+      },
+    });
+    expect(privateEvent.status()).toBe(201);
+  }
   const sharedEvent = await request.post("/api/events", {
     headers: { authorization: `Bearer ${second.accessToken}` },
     data: { displayName: "Shared collection item", timezone: "UTC" },
   });
-  expect(privateEvent.status()).toBe(201);
   expect(sharedEvent.status()).toBe(201);
   const shared = await sharedEvent.json();
   const grant = await request.post("/api/shares", {
@@ -42,7 +47,7 @@ test("isolates a delayed collection across workspace changes and sign-out", asyn
   const release = Promise.withResolvers<void>();
   const delivered = Promise.withResolvers<void>();
   await page.route(
-    "**/api/events",
+    (url) => url.pathname === "/api/events" && url.searchParams.has("cursor"),
     async (route) => {
       if (route.request().headers()["x-workspace-id"] !== first.workspace.id) {
         await route.continue();
@@ -62,6 +67,10 @@ test("isolates a delayed collection across workspace changes and sign-out", asyn
     await page.getByLabel("Name", { exact: true }).fill("Session planner");
     await page.getByLabel("Email").fill(email);
     await page.getByRole("button", { name: "Continue" }).click();
+    await expect(page.getByRole("status", { name: "Event count" })).toHaveText(
+      "20 events loaded",
+    );
+    await page.getByRole("button", { name: "Load more events" }).click();
     await delayed.promise;
     if (testInfo.project.name === "chromium-mobile") {
       await page.getByLabel("Account and workspace").click();
@@ -75,7 +84,7 @@ test("isolates a delayed collection across workspace changes and sign-out", asyn
     release.resolve();
     await delivered.promise;
     await expect(page.getByRole("status", { name: "Event count" })).toHaveText(
-      "1 of 1 events",
+      "1 event loaded",
     );
     await expect(
       page.getByRole("link", { name: /Personal collection item/u }),
@@ -93,7 +102,7 @@ test("isolates a delayed collection across workspace changes and sign-out", asyn
       page.getByRole("link", { name: /collection item/u }),
     ).toHaveCount(0);
     await expect(page.getByRole("status", { name: "Event count" })).toHaveText(
-      "0 of 0 events",
+      "0 events loaded",
     );
     expect(errors).toEqual([]);
   } finally {

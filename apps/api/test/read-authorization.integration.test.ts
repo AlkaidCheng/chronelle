@@ -1,0 +1,806 @@
+import { resolve } from "node:path";
+import { createHash } from "node:crypto";
+import { mkdtemp, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import {
+  AuthorizationService,
+  withReadAuthorization,
+} from "@chronelle/authorization";
+import { objectRelations, resourceGrants, workspaces } from "@chronelle/db";
+import {
+  CanonicalObjectSearchService,
+  EventPlanningObjectService,
+} from "@chronelle/object-model";
+import {
+  applyMigrations,
+  createTestDatabase,
+  type TestDatabase,
+} from "@chronelle/db/testing";
+import {
+  developmentSignInResponseSchema,
+  documentUploadAuthorizationResponseSchema,
+  eventPlanningResourceResponseSchema,
+  relationResponseSchema,
+  shareResponseSchema,
+} from "@chronelle/schemas";
+import { eq } from "drizzle-orm";
+import type { FastifyInstance } from "fastify";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { buildApp } from "../src/app.js";
+import { createDevelopmentAppDependencies } from "../src/dependencies.js";
+
+let database: TestDatabase;
+let app: FastifyInstance;
+let storageRoot: string;
+
+beforeEach(async () => {
+  database = await createTestDatabase();
+  await applyMigrations(
+    { DATABASE_URL: database.databaseUrl },
+    resolve(import.meta.dirname, "../../../infrastructure/migrations"),
+  );
+  storageRoot = await mkdtemp(resolve(tmpdir(), "chronelle-read-snapshot-"));
+  app = buildApp(
+    createDevelopmentAppDependencies(database.connection, {
+      localStorageRoot: storageRoot,
+    }),
+  );
+});
+
+afterEach(async () => {
+  vi.restoreAllMocks();
+  await app?.close();
+  await database?.close();
+  if (storageRoot) await rm(storageRoot, { recursive: true, force: true });
+});
+
+async function signIn(email: string) {
+  const response = await app.inject({
+    method: "POST",
+    url: "/api/auth/development/sign-in",
+    payload: { email, displayName: "Planner" },
+  });
+  expect(response.statusCode).toBe(200);
+  return developmentSignInResponseSchema.parse(response.json());
+}
+type Session = Awaited<ReturnType<typeof signIn>>;
+const headers = (session: Session, workspaceId = session.workspace.id) => ({
+  authorization: `Bearer ${session.accessToken}`,
+  "x-workspace-id": workspaceId,
+});
+
+async function create(
+  session: Session,
+  collection = "events",
+  fields: Record<string, unknown> = {},
+) {
+  const response = await app.inject({
+    method: "POST",
+    url: `/api/${collection}`,
+    headers: headers(session),
+    payload: { displayName: "Shared content", ...fields },
+  });
+  expect(response.statusCode).toBe(201);
+  return eventPlanningResourceResponseSchema.parse(response.json());
+}
+
+async function share(owner: Session, resourceId: string, role = "viewer") {
+  const response = await app.inject({
+    method: "POST",
+    url: "/api/shares",
+    headers: headers(owner),
+    payload: { resourceId, principalEmail: "reader@example.com", role },
+  });
+  expect(response.statusCode).toBe(201);
+  return shareResponseSchema.parse(response.json());
+}
+
+async function fixture(role = "viewer") {
+  const owner = await signIn("owner@example.com");
+  const reader = await signIn("reader@example.com");
+  const event = await create(owner);
+  const grant = await share(owner, event.id, role);
+  return { owner, reader, event, grant };
+}
+
+async function revoke(owner: Session, grantId: string) {
+  const response = await app.inject({
+    method: "DELETE",
+    url: `/api/shares/${grantId}`,
+    headers: headers(owner),
+  });
+  expect(response.statusCode).toBe(200);
+}
+
+async function rename(owner: Session, collection: string, id: string) {
+  const response = await app.inject({
+    method: "PATCH",
+    url: `/api/${collection}/${id}`,
+    headers: headers(owner),
+    payload: { expectedVersion: 1, displayName: "Private content" },
+  });
+  expect(response.statusCode).toBe(200);
+}
+
+/** Commit the writer after the real policy check, before the read resumes. */
+function afterAuthorization(
+  userId: string,
+  resourceId: string,
+  write: () => Promise<void>,
+) {
+  const canMany = AuthorizationService.prototype.canMany;
+  let interleaved = false;
+  vi.spyOn(AuthorizationService.prototype, "canMany").mockImplementation(
+    async function (this: AuthorizationService, principal, action, resources) {
+      const allowed = await canMany.call(this, principal, action, resources);
+      if (
+        !interleaved &&
+        principal.userId === userId &&
+        resources.some(
+          (resource, index) => resource.id === resourceId && allowed[index],
+        )
+      ) {
+        interleaved = true;
+        await write();
+      }
+      return allowed;
+    },
+  );
+  return () => expect(interleaved).toBe(true);
+}
+
+describe.sequential("authorized read snapshots", () => {
+  it("validates active relation pages and binds cursors at the HTTP boundary", async () => {
+    const { owner, reader, event } = await fixture();
+    const links = [];
+    for (let index = 0; index < 3; index++) {
+      const child = await create(owner, "events", {
+        permissionScopeId: event.id,
+      });
+      const response = await app.inject({
+        method: "POST",
+        url: `/api/objects/${event.id}/relations`,
+        headers: headers(owner),
+        payload: { relationType: "includes", targetObjectId: child.id },
+      });
+      expect(response.statusCode).toBe(201);
+      links.push(relationResponseSchema.parse(response.json()));
+    }
+    const url = `/api/objects/${event.id}/relations`;
+    const first = await app.inject({
+      method: "GET",
+      url: `${url}?limit=1`,
+      headers: headers(owner),
+    });
+    expect(first.statusCode).toBe(200);
+    const cursor = first.json().nextCursor;
+    expect(cursor).toEqual(expect.any(String));
+    expect(first.json().items).toHaveLength(1);
+    const next = await app.inject({
+      method: "GET",
+      url: `${url}?cursor=${cursor}`,
+      headers: headers(owner),
+    });
+    expect(next.statusCode).toBe(200);
+    expect(next.json().items.map(({ id }: { id: string }) => id)).toEqual(
+      links
+        .slice(0, 2)
+        .reverse()
+        .map(({ id }) => id),
+    );
+    expect(next.json().nextCursor).toBeNull();
+    for (const query of [
+      "limit=0",
+      "limit=51",
+      "direction=sideways",
+      "relationType=anything",
+      "otherObjectId=bad",
+      "cursor=a",
+      "cursor=e30",
+      "cursor=a=",
+      `cursor=${"a".repeat(4097)}`,
+      `cursor=${cursor}&direction=outgoing`,
+    ]) {
+      const response = await app.inject({
+        method: "GET",
+        url: `${url}?${query}`,
+        headers: headers(owner),
+      });
+      expect(response.statusCode, query).toBe(400);
+    }
+    expect(
+      (
+        await app.inject({
+          method: "GET",
+          url: `${url}?cursor=${cursor}`,
+          headers: headers(reader, owner.workspace.id),
+        })
+      ).statusCode,
+    ).toBe(400);
+    const oldest = links[0];
+    if (!oldest) throw new Error("Expected an inclusion");
+    const exact = await app.inject({
+      method: "GET",
+      headers: headers(reader, owner.workspace.id),
+      url: `${url}?direction=outgoing&relationType=includes&otherObjectId=${oldest.targetObjectId}&limit=1`,
+    });
+    expect(exact.json()).toMatchObject({
+      items: [{ id: oldest.id }],
+      nextCursor: null,
+    });
+  });
+
+  it("does not authorize a private endpoint using a grant added after the snapshot", async () => {
+    const { owner, reader, event } = await fixture();
+    const child = await create(owner);
+    const linked = await app.inject({
+      method: "POST",
+      url: `/api/objects/${child.id}/relations`,
+      headers: headers(owner),
+      payload: {
+        relationType: "related_to",
+        targetObjectId: event.id,
+        metadata: { note: "Private note" },
+      },
+    });
+    const relation = relationResponseSchema.parse(linked.json());
+    const assertInterleaved = afterAuthorization(
+      reader.user.id,
+      event.id,
+      async () => {
+        await database.connection.db
+          .update(objectRelations)
+          .set({ metadata: { note: "Shared note" }, version: 2 })
+          .where(eq(objectRelations.id, relation.id));
+        await share(owner, child.id);
+      },
+    );
+    const request = {
+      method: "GET" as const,
+      url: `/api/objects/${event.id}/relations?direction=incoming`,
+      headers: headers(reader, owner.workspace.id),
+    };
+    const first = await app.inject(request);
+    assertInterleaved();
+    expect(first.statusCode).toBe(200);
+    expect(first.json()).toEqual({ items: [], nextCursor: null });
+    const next = await app.inject(request);
+    expect(next.json().items).toMatchObject([
+      { id: relation.id, metadata: { note: "Shared note" } },
+    ]);
+  });
+
+  it("validates Event collection options and cursor contexts at the HTTP boundary", async () => {
+    const { owner, reader, event } = await fixture();
+    await create(owner, "events", { displayName: "Shared second event" });
+    const first = await app.inject({
+      method: "GET",
+      url: "/api/events?limit=1&sort=name&query=Shared",
+      headers: headers(owner),
+    });
+    expect(first.statusCode).toBe(200);
+    expect(first.json().items).toHaveLength(1);
+    const cursor = first.json().nextCursor as string;
+    expect(cursor).toEqual(expect.any(String));
+    const rest = await app.inject({
+      method: "GET",
+      url: `/api/events?limit=1&sort=name&query=Shared&cursor=${cursor}`,
+      headers: headers(owner),
+    });
+    expect(rest.statusCode).toBe(200);
+    expect(rest.json()).toMatchObject({
+      asOf: first.json().asOf,
+      nextCursor: null,
+    });
+    expect(rest.json().items[0].id).not.toBe(first.json().items[0].id);
+    for (const query of [
+      "limit=0",
+      "limit=51",
+      "limit=1.5",
+      "filter=invalid",
+      "sort=invalid",
+      `query=${"x".repeat(241)}`,
+      `cursor=${"a".repeat(4097)}`,
+      "cursor=e30",
+      `cursor=${cursor}`,
+    ]) {
+      const response = await app.inject({
+        method: "GET",
+        url: `/api/events?${query}`,
+        headers: headers(owner),
+      });
+      expect(response.statusCode, query).toBe(400);
+      expect(response.json()).toMatchObject({
+        error: { code: "invalid_request" },
+      });
+    }
+    const mismatch = await app.inject({
+      method: "GET",
+      url: `/api/events?limit=1&sort=name&query=Shared&cursor=${cursor}`,
+      headers: headers(reader, owner.workspace.id),
+    });
+    expect(mismatch.statusCode).toBe(400);
+    const visible = await app.inject({
+      method: "GET",
+      url: "/api/events?query=Shared",
+      headers: headers(reader, owner.workspace.id),
+    });
+    expect(visible.json().items.map((item: { id: string }) => item.id)).toEqual(
+      [event.id],
+    );
+    expect(visible.json().nextCursor).toBeNull();
+  });
+  it("keeps access actions consistent with the visible object", async () => {
+    const { owner, reader, event, grant } = await fixture();
+    const assertInterleaved = afterAuthorization(reader.user.id, event.id, () =>
+      revoke(owner, grant.id),
+    );
+    const response = await app.inject({
+      method: "GET",
+      url: `/api/objects/${event.id}/access`,
+      headers: headers(reader, owner.workspace.id),
+    });
+    assertInterleaved();
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toEqual({
+      resourceId: event.id,
+      actions: ["view"],
+    });
+  });
+
+  it("keeps event collection membership and content in one snapshot", async () => {
+    const { owner, reader, event, grant } = await fixture();
+    await withReadAuthorization(
+      database.connection.db,
+      async (transaction, authorization) => {
+        await transaction
+          .select({ id: workspaces.id })
+          .from(workspaces)
+          .limit(1);
+        await revoke(owner, grant.id);
+        await rename(owner, "events", event.id);
+        const page = await new EventPlanningObjectService({
+          database: transaction,
+          authorization,
+        }).listEvents({
+          type: "user",
+          userId: reader.user.id,
+          workspaceId: owner.workspace.id,
+        });
+        expect(page.items).toMatchObject([
+          { id: event.id, version: 1, displayName: "Shared content" },
+        ]);
+      },
+    );
+    const response = await app.inject({
+      method: "GET",
+      url: "/api/events",
+      headers: headers(reader, owner.workspace.id),
+    });
+    // Revoking the last grant also removes workspace selection eligibility.
+    expect(response.statusCode).toBe(404);
+    expect(response.json()).toMatchObject({
+      error: { code: "workspace_unavailable" },
+    });
+  });
+
+  it("keeps attachment traversal in the parent's authorized snapshot", async () => {
+    const { owner, reader, event, grant } = await fixture();
+    const bytes = Buffer.from("Private attachment bytes");
+    const authorized = await app.inject({
+      method: "POST",
+      url: "/api/documents/upload-url",
+      headers: headers(owner),
+      payload: {
+        parentObjectId: event.id,
+        originalFilename: "attachment.txt",
+        mimeType: "text/plain",
+        sizeBytes: bytes.length,
+        checksumSha256: createHash("sha256").update(bytes).digest("hex"),
+      },
+    });
+    expect(authorized.statusCode).toBe(201);
+    const upload = documentUploadAuthorizationResponseSchema.parse(
+      authorized.json(),
+    );
+    expect(
+      (
+        await app.inject({
+          method: "PUT",
+          url: upload.upload.url,
+          headers: { "content-type": "application/octet-stream" },
+          payload: bytes,
+        })
+      ).statusCode,
+    ).toBe(204);
+    const finalized = await app.inject({
+      method: "POST",
+      url: "/api/documents",
+      headers: headers(owner),
+      payload: { uploadAuthorizationId: upload.id },
+    });
+    expect(finalized.statusCode).toBe(201);
+    const assertInterleaved = afterAuthorization(reader.user.id, event.id, () =>
+      revoke(owner, grant.id),
+    );
+    const response = await app.inject({
+      method: "GET",
+      url: `/api/objects/${event.id}/documents`,
+      headers: headers(reader, owner.workspace.id),
+    });
+    assertInterleaved();
+    expect(response.statusCode).toBe(200);
+    expect(response.json().items).toHaveLength(1);
+    expect(response.json().lockedAttachmentCount).toBe(0);
+  });
+
+  it.each(["self-scope", "deleted-scope", "expired-grant"])(
+    "filters endpoints after %s without stale policy",
+    async (change) => {
+      const { owner, reader, event, grant } = await fixture();
+      const child = await create(owner, "tasks", {
+        permissionScopeId: event.id,
+      });
+      await app.inject({
+        method: "POST",
+        url: `/api/objects/${event.id}/relations`,
+        headers: headers(owner),
+        payload: { relationType: "includes", targetObjectId: child.id },
+      });
+      const anchor = await create(owner);
+      await share(owner, anchor.id);
+      if (change === "self-scope") {
+        expect(
+          (
+            await app.inject({
+              method: "PATCH",
+              url: `/api/objects/${child.id}/permission-scope`,
+              headers: headers(owner),
+              payload: { expectedVersion: 1, permissionScopeId: child.id },
+            })
+          ).statusCode,
+        ).toBe(200);
+      } else if (change === "deleted-scope") {
+        expect(
+          (
+            await app.inject({
+              method: "DELETE",
+              url: `/api/objects/${event.id}?expectedVersion=1`,
+              headers: headers(owner),
+            })
+          ).statusCode,
+        ).toBe(200);
+      } else {
+        await database.connection.db
+          .update(resourceGrants)
+          .set({
+            createdAt: new Date("1999-01-01T00:00:00Z"),
+            expiresAt: new Date("2000-01-01T00:00:00Z"),
+          })
+          .where(eq(resourceGrants.id, grant.id));
+      }
+      const readerHeaders = headers(reader, owner.workspace.id);
+      expect(
+        (
+          await app.inject({
+            method: "GET",
+            url: `/api/objects/${child.id}`,
+            headers: readerHeaders,
+          })
+        ).statusCode,
+      ).toBe(404);
+      const search = await app.inject({
+        method: "GET",
+        url: "/api/search?query=Shared&objectType=task",
+        headers: readerHeaders,
+      });
+      expect(search.statusCode).toBe(200);
+      expect(search.json().items).toEqual([]);
+      const detail = await app.inject({
+        method: "GET",
+        url: `/api/events/${event.id}/detail`,
+        headers: readerHeaders,
+      });
+      if (change === "self-scope") {
+        expect(detail.statusCode).toBe(200);
+        expect(detail.json()).toMatchObject({
+          tasks: [],
+          lockedRelationCount: 1,
+        });
+        const relations = await app.inject({
+          method: "GET",
+          url: `/api/objects/${event.id}/relations`,
+          headers: readerHeaders,
+        });
+        expect(relations.json().items).toEqual([]);
+      } else {
+        expect(detail.statusCode).toBe(404);
+      }
+      expect(
+        (
+          await app.inject({
+            method: "GET",
+            url: `/api/objects/${child.id}`,
+            headers: headers(reader),
+          })
+        ).statusCode,
+      ).toBe(404);
+    },
+  );
+
+  it("does not combine earlier workspace access with a later workspace name", async () => {
+    const { owner, reader, grant } = await fixture();
+    const canAccess = AuthorizationService.prototype.canAccessWorkspace;
+    let interleaved = false;
+    vi.spyOn(
+      AuthorizationService.prototype,
+      "canAccessWorkspace",
+    ).mockImplementation(async function (
+      this: AuthorizationService,
+      userId,
+      workspaceId,
+    ) {
+      const allowed = await canAccess.call(this, userId, workspaceId);
+      if (
+        !interleaved &&
+        userId === reader.user.id &&
+        workspaceId === owner.workspace.id
+      ) {
+        interleaved = true;
+        await revoke(owner, grant.id);
+        await database.connection.db
+          .update(workspaces)
+          .set({ displayName: "Private workspace name" })
+          .where(eq(workspaces.id, workspaceId));
+      }
+      return allowed;
+    });
+    const response = await app.inject({
+      method: "GET",
+      url: "/api/auth/session",
+      headers: headers(reader, owner.workspace.id),
+    });
+    expect(interleaved).toBe(true);
+    expect(response.statusCode).toBe(200);
+    expect(response.json().workspace.displayName).toBe(
+      owner.workspace.displayName,
+    );
+    expect(
+      response
+        .json()
+        .availableWorkspaces.map((workspace: { id: string }) => workspace.id),
+    ).not.toContain(owner.workspace.id);
+  });
+
+  it.each(["objects", "events"])(
+    "keeps %s content at the version authorized before revocation",
+    async (collection) => {
+      const { owner, reader, event, grant } = await fixture();
+      const assertInterleaved = afterAuthorization(
+        reader.user.id,
+        event.id,
+        async () => {
+          await revoke(owner, grant.id);
+          await rename(owner, "events", event.id);
+        },
+      );
+      const response = await app.inject({
+        method: "GET",
+        url: `/api/${collection}/${event.id}`,
+        headers: headers(reader, owner.workspace.id),
+      });
+      assertInterleaved();
+      expect(response.statusCode).toBe(200);
+      expect(response.json()).toMatchObject({
+        id: event.id,
+        version: 1,
+        displayName: "Shared content",
+      });
+      expect(
+        (
+          await app.inject({
+            method: "GET",
+            url: `/api/${collection}/${event.id}`,
+            headers: headers(reader, owner.workspace.id),
+          })
+        ).statusCode,
+      ).toBe(404);
+    },
+  );
+
+  it.each(["detail", "calendar", "itinerary", "timeline"])(
+    "keeps the %s projection in its parent's authorized snapshot",
+    async (projection) => {
+      const { owner, reader, event, grant } = await fixture();
+      const child = await create(owner, "events", {
+        permissionScopeId: event.id,
+        startsAt: "2030-10-01T12:00:00Z",
+      });
+      const linked = await app.inject({
+        method: "POST",
+        url: `/api/objects/${event.id}/relations`,
+        headers: headers(owner),
+        payload: { relationType: "includes", targetObjectId: child.id },
+      });
+      expect(linked.statusCode).toBe(201);
+      const assertInterleaved = afterAuthorization(
+        reader.user.id,
+        event.id,
+        async () => {
+          await revoke(owner, grant.id);
+          await rename(owner, "events", child.id);
+        },
+      );
+      const response = await app.inject({
+        method: "GET",
+        url: `/api/events/${event.id}/${projection}`,
+        headers: headers(reader, owner.workspace.id),
+      });
+      assertInterleaved();
+      expect(response.statusCode).toBe(200);
+      const body = response.json();
+      expect(projection === "detail" ? body.events : body.items).toMatchObject([
+        { displayName: "Shared content", version: 1 },
+      ]);
+    },
+  );
+
+  it("keeps relation metadata in the authorized snapshot", async () => {
+    const { owner, reader, event, grant } = await fixture();
+    const child = await create(owner);
+    await share(owner, child.id);
+    const response = await app.inject({
+      method: "POST",
+      url: `/api/objects/${event.id}/relations`,
+      headers: headers(owner),
+      payload: {
+        relationType: "includes",
+        targetObjectId: child.id,
+        metadata: { note: "Shared note" },
+      },
+    });
+    const relation = relationResponseSchema.parse(response.json());
+    const assertInterleaved = afterAuthorization(
+      reader.user.id,
+      event.id,
+      async () => {
+        await revoke(owner, grant.id);
+        await database.connection.db
+          .update(objectRelations)
+          .set({ metadata: { note: "Private note" }, version: 2 })
+          .where(eq(objectRelations.id, relation.id));
+      },
+    );
+    const listed = await app.inject({
+      method: "GET",
+      url: `/api/objects/${event.id}/relations`,
+      headers: headers(reader, owner.workspace.id),
+    });
+    assertInterleaved();
+    expect(listed.statusCode).toBe(200);
+    expect(listed.json().items).toMatchObject([
+      { id: relation.id, metadata: { note: "Shared note" } },
+    ]);
+  });
+
+  it("does not reveal grants added after the reader loses ownership", async () => {
+    const { owner, reader, event, grant } = await fixture("owner");
+    await signIn("additional@example.com");
+    const assertInterleaved = afterAuthorization(
+      reader.user.id,
+      event.id,
+      async () => {
+        await revoke(owner, grant.id);
+        const response = await app.inject({
+          method: "POST",
+          url: "/api/shares",
+          headers: headers(owner),
+          payload: {
+            resourceId: event.id,
+            principalEmail: "additional@example.com",
+            role: "viewer",
+          },
+        });
+        expect(response.statusCode).toBe(201);
+      },
+    );
+    const response = await app.inject({
+      method: "GET",
+      url: `/api/objects/${event.id}/shares`,
+      headers: headers(reader, owner.workspace.id),
+    });
+    assertInterleaved();
+    expect(response.statusCode).toBe(200);
+    expect(response.json().items).toMatchObject([
+      { id: grant.id, principal: { email: "reader@example.com" } },
+    ]);
+    expect(response.json().items).toHaveLength(1);
+  });
+
+  it("does not authorize earlier private search content using a later grant", async () => {
+    const { owner, reader } = await fixture();
+    const privateEvent = await create(owner, "events", {
+      displayName: "Confidential search content",
+    });
+    await withReadAuthorization(
+      database.connection.db,
+      async (transaction, authorization) => {
+        // Establish the read snapshot before a separate HTTP writer commits.
+        await transaction
+          .select({ id: workspaces.id })
+          .from(workspaces)
+          .limit(1);
+        await rename(owner, "events", privateEvent.id);
+        await share(owner, privateEvent.id);
+        const search = new CanonicalObjectSearchService({
+          database: transaction,
+          authorization,
+        });
+        const page = await search.search(
+          {
+            type: "user",
+            userId: reader.user.id,
+            workspaceId: owner.workspace.id,
+          },
+          { query: "Confidential", limit: 20 },
+        );
+        expect(page).toEqual({ items: [], nextCursor: null });
+      },
+    );
+    const response = await app.inject({
+      method: "GET",
+      url: "/api/search?query=Private",
+      headers: headers(reader, owner.workspace.id),
+    });
+    expect(response.statusCode).toBe(200);
+    expect(response.json().items).toMatchObject([
+      { id: privateEvent.id, displayName: "Private content" },
+    ]);
+  });
+
+  it("returns visible search pages and rejects invalid cursor contexts at the HTTP boundary", async () => {
+    const { owner, reader } = await fixture();
+    const second = await create(owner);
+    await share(owner, second.id);
+    const requestHeaders = headers(reader, owner.workspace.id);
+    const first = await app.inject({
+      method: "GET",
+      url: "/api/search?query=Shared&limit=1",
+      headers: requestHeaders,
+    });
+    expect(first.statusCode).toBe(200);
+    expect(first.json().items).toHaveLength(1);
+    const cursor = first.json().nextCursor;
+    expect(typeof cursor).toBe("string");
+    const next = await app.inject({
+      method: "GET",
+      url: `/api/search?query=Shared&limit=1&cursor=${cursor}`,
+      headers: requestHeaders,
+    });
+    expect(next.statusCode).toBe(200);
+    expect(next.json().items).toHaveLength(1);
+    expect(next.json().items[0].id).not.toBe(first.json().items[0].id);
+    expect(next.json().nextCursor).toBeNull();
+    for (const url of [
+      "/api/search?query=Shared&cursor=invalid",
+      `/api/search?query=Shared&cursor=${"a".repeat(2049)}`,
+      `/api/search?query=Other&cursor=${cursor}`,
+      `/api/search?query=Shared&objectType=task&cursor=${cursor}`,
+    ]) {
+      const response = await app.inject({
+        method: "GET",
+        url,
+        headers: requestHeaders,
+      });
+      expect(response.statusCode).toBe(400);
+      expect(response.json().error.code).toBe("invalid_request");
+      expect(response.body).not.toContain(cursor);
+    }
+    const switched = await app.inject({
+      method: "GET",
+      url: `/api/search?query=Shared&cursor=${cursor}`,
+      headers: headers(reader),
+    });
+    expect(switched.statusCode).toBe(400);
+  });
+});

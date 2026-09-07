@@ -13,6 +13,7 @@ const environment = {
   WEB_IMAGE: process.env.WEB_IMAGE ?? "chronelle-web:validation",
   ENABLE_DEVELOPMENT_AUTH: "true",
   POSTGRES_PASSWORD: randomUUID(),
+  RUNTIME_DATABASE_PASSWORD: randomUUID(),
   WEB_PORT: "0",
 };
 const composeArgs = [
@@ -96,6 +97,27 @@ try {
       ),
     );
   }
+  const apiEnvironment = containers.api.Config.Env;
+  const apiDatabaseUrl = new URL(
+    apiEnvironment.find((value) => value.startsWith("DATABASE_URL=")).slice(13),
+  );
+  assert.equal(apiDatabaseUrl.username, "chronelle_runtime");
+  assert(
+    !apiEnvironment.some((value) =>
+      value.includes(environment.POSTGRES_PASSWORD),
+    ),
+  );
+  console.log(
+    await compose(
+      "exec",
+      "-T",
+      "api",
+      "node",
+      "--input-type=module",
+      "-e",
+      readFileSync(new URL("./inspect-database.mjs", import.meta.url), "utf8"),
+    ),
+  );
   const network = Object.keys(containers.api.NetworkSettings.Networks);
   assert.equal(network.length, 1);
   assert.equal((await inspect(network[0])).Internal, true);
@@ -145,6 +167,103 @@ try {
     headers,
     201,
   );
+  const resources = [];
+  for (const resource of [
+    { objectType: "task", displayName: "Confirm venue" },
+    {
+      objectType: "expense",
+      displayName: "Venue deposit",
+      amount: "125.0000",
+      currency: "USD",
+      occurredAt: "2026-09-01T12:00:00Z",
+    },
+    {
+      objectType: "reminder",
+      displayName: "Check venue",
+      remindAt: "2030-10-01T12:00:00Z",
+    },
+  ]) {
+    resources.push(
+      await json(
+        `/api/events/${event.id}/resources`,
+        {
+          commandId: randomUUID(),
+          resource,
+        },
+        headers,
+        201,
+      ),
+    );
+  }
+  const task = resources[0].resource;
+  let receipt = await json(
+    "/api/commands",
+    {
+      operationId: randomUUID(),
+      expectedStackVersion: 0,
+      edits: [
+        {
+          objectType: "task",
+          objectId: task.id,
+          patch: {
+            expectedVersion: task.version,
+            displayName: "Venue confirmed",
+          },
+        },
+      ],
+    },
+    headers,
+  );
+  for (const direction of ["undo", "redo"]) {
+    receipt = await json(
+      `/api/commands/${direction}`,
+      {
+        operationId: randomUUID(),
+        commandId: receipt.commandId,
+        expectedStackVersion: receipt.stackVersion,
+      },
+      headers,
+    );
+  }
+  const restored = await json(
+    `/api/objects/${task.id}/revisions/1/restore`,
+    {
+      expectedVersion: receipt.objects[0].version,
+    },
+    headers,
+  );
+  assert.equal(restored.displayName, task.displayName);
+  const deleted = await (
+    await request(
+      `/api/objects/${task.id}?expectedVersion=${restored.version}`,
+      {
+        method: "DELETE",
+        headers,
+      },
+    )
+  ).json();
+  const recovered = await json(
+    `/api/objects/${task.id}/recover`,
+    { expectedVersion: deleted.version },
+    headers,
+  );
+  assert.equal(recovered.id, task.id);
+  const relationId = resources[0].relationId;
+  await request(`/api/relations/${relationId}?expectedVersion=1`, {
+    method: "DELETE",
+    headers,
+  });
+  await json(
+    `/api/relations/${relationId}/recover`,
+    { expectedVersion: 2 },
+    headers,
+  );
+  const detail = await (
+    await request(`/api/events/${event.id}/detail`, { headers })
+  ).json();
+  assert.equal(detail.tasks[0].id, task.id);
+  assert.equal(detail.expenses[0].id, resources[1].resource.id);
+  assert.equal(detail.reminders[0].id, resources[2].resource.id);
   const bytes = Buffer.from("Private runtime attachment");
   const issued = await json(
     "/api/documents/upload-url",
@@ -179,6 +298,30 @@ try {
     downloadPath,
     { headers: { authorization: `Bearer ${stranger.accessToken}` } },
     404,
+  );
+  const grant = await json(
+    "/api/shares",
+    {
+      principalEmail: "unrelated@example.test",
+      resourceId: event.id,
+      role: "viewer",
+    },
+    headers,
+    201,
+  );
+  const viewerHeaders = {
+    authorization: `Bearer ${stranger.accessToken}`,
+    "x-workspace-id": signIn.workspace.id,
+  };
+  await request(`/api/events/${event.id}/detail`, { headers: viewerHeaders });
+  await request(`/api/shares/${grant.id}`, { method: "DELETE", headers });
+  await request(
+    `/api/events/${event.id}/detail`,
+    { headers: viewerHeaders },
+    404,
+  );
+  console.log(
+    "Typed planning, context commands, undo/redo, restoration, recovery, and grant revocation passed with the runtime role.",
   );
   console.log(
     await compose(

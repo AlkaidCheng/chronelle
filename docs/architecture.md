@@ -87,6 +87,32 @@ either required ledger entry rolls back the business change. Object services
 validate state, authorize access, and atomically enforce the expected version.
 See [Object revisions](revisions.md) for snapshot, history, and baseline contracts.
 
+`withReadAuthorization` owns read transaction configuration and constructs an
+evaluator bound to that transaction. Service constructors accept a database
+connection; composed object/relation services instead receive an explicit
+`{ database: transaction, authorization }` context from the owning boundary.
+This keeps nested projection reads on one connection without starting savepoints
+or opening independent snapshots. A bare transaction is rejected because a
+savepoint cannot establish a new isolation level. Mutation composition supplies
+the same context under `withStableAuthorization`, retaining the outer writer's
+lock, isolation level, and uncommitted state. Contexts must not escape their
+callback or pair a transaction with an unrelated evaluator.
+
+Read responses represent one authorized database snapshot per service operation,
+not a revocation barrier at response delivery. See [Permissions](permissions.md)
+for expiry, workspace resolution, and in-flight read semantics. The implementation
+uses PostgreSQL's [repeatable-read isolation](https://www.postgresql.org/docs/17/transaction-iso.html#XACT-REPEATABLE-READ);
+it does not copy permission policy into projections or controllers.
+
+Collection reads use the authorization package's `canMany()` and
+`allowedActionsMany()` methods. Single-resource checks delegate to the same
+implementation. The database store batches role lookup, while object-model owns
+batched typed-state loading through `listVisibleObjects()` and `readObjectStates()`.
+No controller, projection, or React component implements role precedence.
+Statements handle at most 1,000 IDs at a time and share the owning snapshot;
+there is no cross-request permission cache. See
+[Authorization performance](authorization-performance.md) for query budgets.
+
 `ObjectRestorationService` owns typed comparison, preview, and content
 restoration. Its allowlist preserves security state and immutable typed facts.
 The authorization package owns a workspace transaction boundary shared by
@@ -139,11 +165,32 @@ response to avoid existence leaks.
 
 Search stores no second object representation. Results contain the canonical
 ID, type, display name, permission scope, version, and update time read from
-`objects`. The V1A query supports a name phrase, one optional object-type
-filter, and a bounded result count. It intentionally omits totals because a
-count before authorization could reveal protected matches.
+`objects`. The query supports a name phrase, one optional object-type filter,
+and visibility-aware keyset pagination. The authorization evaluator supplies a
+SQL predicate using the same role expressions, action policy, and evaluation
+instant as individual and batched reads. PostgreSQL filters active authorized
+objects before sorting and fetching at most the page limit plus one. Search
+has no fixed private-candidate cutoff and returns no totals. See
+[the search contract](api.md#search) for cursor behavior and consistency limits.
 
 React components do not contain authorization or domain business logic.
+
+The Event collection also applies the evaluator's SQL View predicate before
+LIMIT. Its focused query function stays behind `EventPlanningObjectService`;
+no second public service or general query framework is introduced. It selects
+at most `limit + 1` authorized positions, then hydrates only the returned page
+through the canonical typed-state mapper in the same read-only snapshot.
+Nonempty pages use three service statements, including snapshot configuration.
+Name/period filters and date/name/updated keyset ordering run in PostgreSQL.
+The API, typed client, and Events screen share the [collection contract](api.md#event-collection).
+
+Active relation listing stays behind `ObjectRelationService`, with a focused
+page query. It first authorizes the starting object, then uses a bounded lateral
+lookup for the opposite canonical endpoint and the central SQL View predicate.
+This keeps endpoint equality inside the policy lookup even with poor table
+statistics. Visibility precedes the outer page limit, and metadata comes from
+the same snapshot. Three service statements return at most 50 links; database
+scan and sort work is not constant-time. See [Relationships](api.md#relationships).
 
 The API transport boundary owns safe error envelopes, request metadata logs,
 private cache headers, and parser limits. Shared HTTP limits live in schemas;
@@ -160,13 +207,14 @@ foreign keys prevent cross-workspace references, and every protected result is
 checked by `AuthorizationService`. Adversarial integration tests cover forged
 workspace selection, relation traversal, projections, search, and files.
 
-PostgreSQL RLS is deferred until the API uses a separate least-privilege runtime
-role and binds each request workspace to a transaction-local database setting.
-The current pooled connection uses the migration owner and does not wrap every
-read in a request transaction. Enabling policies in that model would either be
-bypassable by the owner or risk workspace state leaking between pooled
-statements. Fine-grained permission logic will remain in the application after
-RLS is added.
+The private container stack separates the runtime login from the migration
+owner and applies an explicit PostgreSQL table-privilege policy. See
+[Database privilege boundary](deployment.md#database-privilege-boundary).
+Host development defaults still use the owner account. PostgreSQL RLS remains
+deferred until every protected query binds the request workspace to a
+transaction-local setting; session-level settings could leak between pooled
+requests. Table privileges do not replace per-resource authorization.
+Fine-grained permission logic will remain in the application after RLS is added.
 
 ## Web client boundary
 
@@ -174,6 +222,14 @@ The Next.js application renders a responsive workspace and forwards same-origin
 `/api` requests to the Fastify process through a narrow route handler. The
 upstream origin is server-only configuration, so browser code does not contain
 deployment topology or cross-origin policy.
+
+The web request boundary issues per-response script nonces and the root layout
+renders HTML dynamically. Document responses cannot be cached; static bundles
+retain immutable caching. The production script policy blocks unapproved
+parser scripts, inline handlers, and string evaluation while allowing the
+nonced framework runtime and its descendants. This boundary does not authenticate
+requests or change canonical permissions. See [Deployment](deployment.md#script-content-security-policy)
+for the rendering tradeoff and remaining public-launch requirements.
 
 `ChronelleApiClient` attaches the active credential and workspace, validates
 every successful response against the shared Zod contract, and turns API errors
@@ -191,6 +247,12 @@ generation is an opaque counter, not a credential. A return to the same workspac
 creates a fresh lifetime: old requests, drawers, and drafts cannot become active
 again. Selecting the already active workspace is a no-op. Browser-storage errors
 do not block these in-memory transitions.
+
+Loaded pages and continuation cursors belong to that session lifetime. Returning
+to a workspace starts from its first page. Event and Search filters, ordering,
+and canonical item deduplication remain unchanged; each page request receives
+its own query cancellation signal. Lifecycle actions retain an exact inclusion
+lookup, so links beyond the first page remain removable.
 
 The typed client pins credentials for each request and the complete attachment
 workflow, checks the lifetime after asynchronous boundaries, and forwards

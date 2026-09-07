@@ -140,7 +140,18 @@ scope. Standalone creation and independent linking are also supported. See
 
 The Search view uses `GET /api/search`. Search responses contain only active
 objects in the selected workspace that pass the central View decision. Use the
-object-type selector to exercise the structured filter.
+object-type selector to exercise the structured filter. With more than 20
+matches, select **Load more results** to request another visible page. The
+count shows loaded canonical objects, not a workspace total. Changing search
+filters starts a separate query; reloading the page discards pagination state.
+
+The Events screen loads 20 canonical records at a time. **Load more events**
+continues the current collection; its count means loaded records, not a total.
+The name filter is debounced, and all name/period filters and sort modes apply
+to the full accessible collection on the server. **Refresh events** discards
+loaded pages and starts a new period reference time. A failed continuation can
+be retried without discarding earlier cards. Grid/list layout stays local to
+the browser; Event data and ordering remain server-owned.
 
 ## Services
 
@@ -175,8 +186,14 @@ disposable databases and apply migrations from scratch. PostgreSQL must be
 running before `pnpm test` or `pnpm check`.
 
 `TEST_DATABASE_URL` is an administrative connection used only by the test
-harness. Its role must be allowed to create and drop databases. The local
-Compose role has the required permission.
+harness. Use a disposable test cluster and its administrative role, never a
+production connection. Database privilege tests also create, alter, and remove
+uniquely named test roles, including tests that reject elevated role attributes.
+The local Compose superuser has the required permission. Install PostgreSQL's
+`psql` client (17 recommended) on the host and put it on `PATH`; these tests
+execute the same provisioning SQL as the private container stack. Role operations
+are cluster-wide, even when application tables live in disposable databases;
+the harness restricts these operations to its uniquely named test roles.
 
 The final API integration test starts from a newly migrated disposable
 database, exercises the complete event-planning slice, rebuilds the Fastify app
