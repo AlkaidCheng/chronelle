@@ -47,8 +47,11 @@ canonical reference.
 ## Consistency and retention
 
 The report explicitly returns `consistency: "observational"` and
-`retentionPolicy: "retain-all"`. Reference queries share a read-only repeatable-read
-database snapshot. Storage enumeration follows after that transaction closes;
+`retentionPolicy: "retain-all"`. Reference queries and their owner check share
+the authorization package's read-only repeatable-read boundary. The snapshot
+keeps reference classification consistent with that check even if another request
+finalizes an upload before the reference queries finish. A later inventory sees
+the finalized document. Storage enumeration follows after that transaction closes;
 database and filesystem observations are not atomic. Concurrent uploads or
 finalization can change classifications during a scan. Recheck after writers are
 quiescent when investigating a discrepancy.

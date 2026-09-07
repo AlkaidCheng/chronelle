@@ -30,7 +30,8 @@ authorization service.
 `withReadAuthorization` binds policy checks and database retrieval to one
 repeatable-read, read-only transaction. Object detail and access actions, Event
 lists and projections, relation and attachment traversal, search, grant lists,
-history, restoration previews, Trash, and command-state reads use this boundary.
+history, restoration previews, Trash, command state, and inventory reference
+queries use this boundary.
 Nested readers share the same transaction and evaluator, including all members
 of a projection. No permission decision is cached across requests.
 
