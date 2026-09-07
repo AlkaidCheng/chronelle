@@ -110,6 +110,20 @@ relationship stays intact, but a Viewer will see only a generic private-item
 notice. Revoking the Viewer's last grant removes the shared workspace from the
 next session response and returns the browser to its personal workspace.
 
+Sign-out, sign-in, and workspace changes discard the previous query cache, open
+drawers, and unsaved drafts, and cancel its pending reads and document transfers.
+Save work before switching. A mutation already received by the API may still
+commit; cancellation does not undo it. Refresh after returning to inspect the
+canonical result before submitting a new operation.
+
+If browser storage is unavailable, development sign-in and workspace switching
+still work in memory. A reload may lose that session. If removal of an existing
+stored credential fails, sign-out clears the current UI but cannot guarantee
+that the stored credential will not be read again on reload. Clear site data
+before reusing a shared browser. Development sign-out does not revoke server
+tokens; production authentication, revocation, and credential storage remain a
+separate launch requirement.
+
 Use that bearer token to create the root of an event plan:
 
 ```bash

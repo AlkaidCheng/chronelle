@@ -51,11 +51,9 @@ export const queryKeys = {
 export function useDevelopmentSignIn() {
   const client = useApiClient();
   const { startSession } = useAuthSession();
-  const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (input: DevelopmentSignInRequest) => client.signIn(input),
     onSuccess: async (session) => {
-      queryClient.clear();
       startSession({
         accessToken: session.accessToken,
         workspaceId: session.workspace.id,
@@ -69,7 +67,7 @@ export function useSessionQuery() {
   const { credential } = useAuthSession();
   return useQuery({
     enabled: credential !== null,
-    queryFn: () => client.getSession(),
+    queryFn: ({ signal }) => client.withSignal(signal).getSession(),
     queryKey: queryKeys.session,
   });
 }
@@ -87,8 +85,8 @@ export function useEventsQuery(input: Omit<EventListQueryInput, "cursor">) {
   const result = useInfiniteQuery({
     enabled: credential !== null,
     initialPageParam: undefined as string | undefined,
-    queryFn: ({ pageParam }) =>
-      client.listEvents({
+    queryFn: ({ pageParam, signal }) =>
+      client.withSignal(signal).listEvents({
         ...input,
         ...(pageParam === undefined ? {} : { cursor: pageParam }),
       }),
@@ -127,11 +125,11 @@ export function useObjectSearch(
   return useInfiniteQuery({
     enabled: credential !== null && input !== null,
     initialPageParam: undefined as string | undefined,
-    queryFn: ({ pageParam }) => {
+    queryFn: ({ pageParam, signal }) => {
       if (input === null) {
         throw new Error("Search input is required.");
       }
-      return client.searchObjects({
+      return client.withSignal(signal).searchObjects({
         ...input,
         ...(pageParam === undefined ? {} : { cursor: pageParam }),
       });
@@ -156,42 +154,50 @@ export function useEventWorkspaceQueries(
     queries: [
       {
         enabled: credential !== null,
-        queryFn: () => client.getEventDetail(eventId),
+        queryFn: ({ signal }) =>
+          client.withSignal(signal).getEventDetail(eventId),
         queryKey: queryKeys.detail(eventId),
       },
       {
         enabled: credential !== null && activeView === "todos",
-        queryFn: () => client.getEventTodos(eventId),
+        queryFn: ({ signal }) =>
+          client.withSignal(signal).getEventTodos(eventId),
         queryKey: queryKeys.todos(eventId),
       },
       {
         enabled: credential !== null && activeView === "calendar",
-        queryFn: () => client.getEventCalendar(eventId),
+        queryFn: ({ signal }) =>
+          client.withSignal(signal).getEventCalendar(eventId),
         queryKey: queryKeys.calendar(eventId),
       },
       {
         enabled: credential !== null && activeView === "timeline",
-        queryFn: () => client.getEventTimeline(eventId),
+        queryFn: ({ signal }) =>
+          client.withSignal(signal).getEventTimeline(eventId),
         queryKey: queryKeys.timeline(eventId),
       },
       {
         enabled: credential !== null && activeView === "itinerary",
-        queryFn: () => client.getEventItinerary(eventId),
+        queryFn: ({ signal }) =>
+          client.withSignal(signal).getEventItinerary(eventId),
         queryKey: queryKeys.itinerary(eventId),
       },
       {
         enabled: credential !== null && activeView === "expenses",
-        queryFn: () => client.getEventExpenses(eventId),
+        queryFn: ({ signal }) =>
+          client.withSignal(signal).getEventExpenses(eventId),
         queryKey: queryKeys.expenses(eventId),
       },
       {
         enabled: credential !== null && activeView === "reminders",
-        queryFn: () => client.getEventReminders(eventId),
+        queryFn: ({ signal }) =>
+          client.withSignal(signal).getEventReminders(eventId),
         queryKey: queryKeys.reminders(eventId),
       },
       {
         enabled: credential !== null,
-        queryFn: () => client.getObjectAccess(eventId),
+        queryFn: ({ signal }) =>
+          client.withSignal(signal).getObjectAccess(eventId),
         queryKey: queryKeys.access(eventId),
       },
     ],
@@ -214,7 +220,7 @@ export function useSharesQuery(eventId: string, enabled: boolean) {
   const { credential } = useAuthSession();
   return useQuery({
     enabled: enabled && credential !== null,
-    queryFn: () => client.listShares(eventId),
+    queryFn: ({ signal }) => client.withSignal(signal).listShares(eventId),
     queryKey: queryKeys.shares(eventId),
   });
 }
@@ -249,7 +255,8 @@ export function useDocumentAttachments(parentObjectId: string) {
   const { credential } = useAuthSession();
   return useQuery({
     enabled: credential !== null,
-    queryFn: () => client.listDocumentAttachments(parentObjectId),
+    queryFn: ({ signal }) =>
+      client.withSignal(signal).listDocumentAttachments(parentObjectId),
     queryKey: queryKeys.attachments(parentObjectId),
   });
 }
@@ -347,7 +354,6 @@ function useCreateInContext<Type extends ContextResource["objectType"]>(
     "objectType"
   >;
   const client = useApiClient();
-  const { credential } = useAuthSession();
   const invalidate = useCanonicalInvalidation();
   const attempt = useRef<{ key: string; commandId: string } | null>(null);
   return useMutation({
@@ -356,7 +362,7 @@ function useCreateInContext<Type extends ContextResource["objectType"]>(
         ContextResource,
         { objectType: Type }
       >;
-      const key = JSON.stringify({ credential, eventId, resource });
+      const key = JSON.stringify({ eventId, resource });
       if (attempt.current?.key !== key) {
         attempt.current = { key, commandId: crypto.randomUUID() };
       }

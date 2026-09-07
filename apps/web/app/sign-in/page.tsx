@@ -22,10 +22,7 @@ export default function SignInPage() {
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    signIn.mutate(
-      { displayName, email },
-      { onSuccess: () => router.push("/events") },
-    );
+    signIn.mutate({ displayName, email });
   }
 
   return (

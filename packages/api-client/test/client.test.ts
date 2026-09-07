@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { ChronelleApiClient } from "../src/index.js";
+import { type ApiCredential, ChronelleApiClient } from "../src/index.js";
 
 const event = {
   id: "019d6e7d-0000-7000-8000-000000000001",
@@ -54,6 +54,217 @@ const documentAttachment = {
 } as const;
 
 describe("ChronelleApiClient", () => {
+  it.each(["session", "query"] as const)(
+    "forwards %s cancellation without converting it to a network error",
+    async (source) => {
+      const lifetime = new AbortController();
+      const query = new AbortController();
+      const fetch = vi.fn<typeof globalThis.fetch>(async (_url, request) => {
+        const signal = request?.signal;
+        expect(signal).toBeDefined();
+        (source === "session" ? lifetime : query).abort();
+        signal?.throwIfAborted();
+        return Response.json({ items: [] });
+      });
+      const client = new ChronelleApiClient({
+        fetch,
+        signal: lifetime.signal,
+        getCredential: () => ({
+          accessToken: "test-session",
+          workspaceId: event.workspaceId,
+        }),
+      });
+      const scoped = client.withSignal(query.signal);
+      await expect(scoped.listEvents()).rejects.toMatchObject({
+        name: "AbortError",
+      });
+      expect(fetch).toHaveBeenCalledTimes(1);
+      await expect(scoped.listEvents()).rejects.toMatchObject({
+        name: "AbortError",
+      });
+      expect(fetch).toHaveBeenCalledTimes(1);
+    },
+  );
+
+  it.each(["read", "mutation"] as const)(
+    "rejects a late %s body even when the transport ignores cancellation",
+    async (operation) => {
+      const lifetime = new AbortController();
+      const response = Response.json(
+        operation === "read" ? { items: [event] } : event,
+      );
+      const readBody = response.json.bind(response);
+      vi.spyOn(response, "json").mockImplementation(async () => {
+        lifetime.abort();
+        return readBody();
+      });
+      const client = new ChronelleApiClient({
+        signal: lifetime.signal,
+        fetch: vi.fn<typeof globalThis.fetch>().mockResolvedValue(response),
+        getCredential: () => ({
+          accessToken: "test-session",
+          workspaceId: event.workspaceId,
+        }),
+      });
+      const result =
+        operation === "read"
+          ? client.listEvents()
+          : client.updateEvent(event.id, {
+              expectedVersion: 1,
+              displayName: "Updated",
+            });
+      await expect(result).rejects.toMatchObject({ name: "AbortError" });
+    },
+  );
+
+  it("detects in-place credential changes while a response is pending", async () => {
+    const credential = {
+      accessToken: "test-session",
+      workspaceId: event.workspaceId,
+    };
+    const client = new ChronelleApiClient({
+      getCredential: () => credential,
+      fetch: async () => {
+        credential.accessToken = "replacement-session";
+        return Response.json({ items: [event] });
+      },
+    });
+    await expect(client.listEvents()).rejects.toMatchObject({
+      name: "AbortError",
+    });
+  });
+
+  it.each(["authorization", "transfer"] as const)(
+    "stops upload after a session change during %s",
+    async (stage) => {
+      let credential: ApiCredential = {
+        accessToken: "test-session",
+        workspaceId: event.workspaceId,
+      };
+      const fetch = vi
+        .fn<typeof globalThis.fetch>()
+        .mockImplementationOnce(async () => {
+          if (stage === "authorization")
+            credential = { ...credential, accessToken: "replacement-session" };
+          return Response.json({
+            id: uploadAuthorizationId,
+            upload: {
+              url: "https://storage.example.test/upload",
+              method: "PUT",
+              headers: {},
+              expiresAt: "2026-09-02T20:05:00.000Z",
+            },
+          });
+        })
+        .mockImplementationOnce(async () => {
+          credential = { ...credential, workspaceId: documentId };
+          return new Response(null, { status: 204 });
+        });
+      const client = new ChronelleApiClient({
+        fetch,
+        getCredential: () => credential,
+      });
+      await expect(
+        client.attachDocument(event.id, {
+          name: "brief.txt",
+          type: "text/plain",
+          size: 0,
+          arrayBuffer: async () => new ArrayBuffer(0),
+        }),
+      ).rejects.toMatchObject({ name: "AbortError" });
+      expect(fetch).toHaveBeenCalledTimes(stage === "authorization" ? 1 : 2);
+      expect(fetch.mock.calls.some(([url]) => url === "/api/documents")).toBe(
+        false,
+      );
+      if (stage === "transfer") {
+        const headers = new Headers(fetch.mock.calls[1]?.[1]?.headers);
+        expect(headers.has("authorization")).toBe(false);
+        expect(headers.has("x-workspace-id")).toBe(false);
+      }
+    },
+  );
+
+  it("does not expose a downloaded blob after its session ends", async () => {
+    const lifetime = new AbortController();
+    const response = new Response("private file");
+    const readBlob = response.blob.bind(response);
+    vi.spyOn(response, "blob").mockImplementation(async () => {
+      lifetime.abort();
+      return readBlob();
+    });
+    const fetch = vi
+      .fn<typeof globalThis.fetch>()
+      .mockResolvedValueOnce(
+        Response.json({
+          document: documentAttachment.document,
+          download: {
+            url: "https://storage.example.test/download",
+            method: "GET",
+            headers: {},
+            expiresAt: "2026-09-02T20:05:00.000Z",
+          },
+        }),
+      )
+      .mockResolvedValueOnce(response);
+    const client = new ChronelleApiClient({
+      fetch,
+      signal: lifetime.signal,
+      getCredential: () => ({
+        accessToken: "test-session",
+        workspaceId: event.workspaceId,
+      }),
+    });
+    await expect(client.downloadDocument(documentId)).rejects.toMatchObject({
+      name: "AbortError",
+    });
+    expect(fetch.mock.calls[1]?.[1]?.signal).toBe(lifetime.signal);
+    const headers = new Headers(fetch.mock.calls[1]?.[1]?.headers);
+    expect(headers.has("authorization")).toBe(false);
+    expect(headers.has("x-workspace-id")).toBe(false);
+  });
+
+  it("rejects a late response after its workspace changes", async () => {
+    let credential: ApiCredential = {
+      accessToken: "test-session",
+      workspaceId: event.workspaceId,
+    };
+    const fetch = vi.fn<typeof globalThis.fetch>(async () => {
+      credential = { ...credential, workspaceId: documentId };
+      return Response.json({ items: [event] });
+    });
+    const client = new ChronelleApiClient({
+      fetch,
+      getCredential: () => credential,
+    });
+    await expect(client.listEvents()).rejects.toMatchObject({
+      name: "AbortError",
+    });
+  });
+
+  it("does not authorize an upload under a session changed while reading the file", async () => {
+    let credential: ApiCredential = {
+      accessToken: "test-session",
+      workspaceId: event.workspaceId,
+    };
+    const fetch = vi.fn<typeof globalThis.fetch>();
+    const client = new ChronelleApiClient({
+      fetch,
+      getCredential: () => credential,
+    });
+    await expect(
+      client.attachDocument(event.id, {
+        name: "brief.txt",
+        type: "text/plain",
+        size: 0,
+        arrayBuffer: async () => {
+          credential = { ...credential, accessToken: "replacement-session" };
+          return new ArrayBuffer(0);
+        },
+      }),
+    ).rejects.toMatchObject({ name: "AbortError" });
+    expect(fetch).not.toHaveBeenCalled();
+  });
+
   it("requests a typed workspace inventory and rejects partial responses", async () => {
     const report = {
       workspaceId: event.workspaceId,

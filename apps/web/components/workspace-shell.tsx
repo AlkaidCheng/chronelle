@@ -1,7 +1,6 @@
 "use client";
 
 import { ApiClientError } from "@chronelle/api-client";
-import { useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { type ReactNode, useEffect } from "react";
@@ -13,7 +12,6 @@ import { ErrorNotice, LoadingState } from "./feedback";
 
 export function WorkspaceShell({ children }: { readonly children: ReactNode }) {
   const { credential, isHydrated, signOut, switchWorkspace } = useAuthSession();
-  const queryClient = useQueryClient();
   const router = useRouter();
   const pathname = usePathname();
   const session = useSessionQuery();
@@ -29,7 +27,6 @@ export function WorkspaceShell({ children }: { readonly children: ReactNode }) {
       session.error instanceof ApiClientError &&
       session.error.status === 401
     ) {
-      queryClient.clear();
       signOut();
       router.replace("/sign-in");
     }
@@ -39,18 +36,10 @@ export function WorkspaceShell({ children }: { readonly children: ReactNode }) {
       credential !== null &&
       credential.workspaceId !== credential.homeWorkspaceId
     ) {
-      queryClient.clear();
       switchWorkspace(credential.homeWorkspaceId);
       router.replace("/events");
     }
-  }, [
-    credential,
-    queryClient,
-    router,
-    session.error,
-    signOut,
-    switchWorkspace,
-  ]);
+  }, [credential, router, session.error, signOut, switchWorkspace]);
 
   if (!isHydrated || credential === null || session.isPending) {
     return (
@@ -74,7 +63,6 @@ export function WorkspaceShell({ children }: { readonly children: ReactNode }) {
   const currentSession = session.data;
   const activeWorkspaceId = credential.workspaceId;
   function leaveWorkspace() {
-    queryClient.clear();
     signOut();
     router.replace("/sign-in");
   }
@@ -82,7 +70,6 @@ export function WorkspaceShell({ children }: { readonly children: ReactNode }) {
     if (workspaceId === activeWorkspaceId) {
       return;
     }
-    queryClient.clear();
     switchWorkspace(workspaceId);
     router.replace("/events");
   }

@@ -2,6 +2,7 @@
 import { act, cleanup, renderHook, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { Providers } from "../app/providers";
+import { useAuthSession } from "../lib/auth-session";
 import {
   useLifecycleActions,
   type LifecycleTarget,
@@ -122,6 +123,47 @@ it("does not reuse another target's inclusion from the same Event cache", async 
       String(url).includes(`otherObjectId=${secondId}`),
     ),
   ).toBe(true);
+});
+
+it("cancels an abandoned exact lookup without ending the session", async () => {
+  const respond = fetch.getMockImplementation();
+  if (!respond) throw new Error("The response fixture is required.");
+  const pending = Promise.withResolvers<void>();
+  fetch.mockImplementation(async (...args) => {
+    const response = await respond(...args);
+    if (String(args[0]).includes(`otherObjectId=${taskId}`))
+      await pending.promise;
+    return response;
+  });
+  const { result, rerender } = renderHook(
+    (input: LifecycleTarget) => ({
+      auth: useAuthSession(),
+      lifecycle: useLifecycleActions(input),
+    }),
+    { wrapper: Providers, initialProps: target },
+  );
+  await waitFor(() =>
+    expect(
+      fetch.mock.calls.some(([url]) =>
+        String(url).includes(`otherObjectId=${taskId}`),
+      ),
+    ).toBe(true),
+  );
+  const request = fetch.mock.calls.find(([url]) =>
+    String(url).includes(`otherObjectId=${taskId}`),
+  );
+  rerender({ ...target, id: secondId });
+  await waitFor(() =>
+    expect(result.current.lifecycle.relations.isSuccess).toBe(true),
+  );
+  expect(request?.[1]?.signal?.aborted).toBe(true);
+  expect(result.current.auth.signal.aborted).toBe(false);
+  await act(async () => pending.resolve());
+  expect(result.current.lifecycle.inclusion).toBeUndefined();
+  expect(result.current.lifecycle.relations.data).toEqual({
+    items: [],
+    nextCursor: null,
+  });
 });
 
 it.each([

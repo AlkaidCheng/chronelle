@@ -4,9 +4,11 @@ import type { ApiCredential } from "@chronelle/api-client";
 import {
   createContext,
   type ReactNode,
+  useCallback,
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 
@@ -19,6 +21,8 @@ interface AuthCredential extends ApiCredential {
 interface AuthSessionContextValue {
   readonly credential: AuthCredential | null;
   readonly isHydrated: boolean;
+  readonly generation: number;
+  readonly signal: AbortSignal;
   readonly signOut: () => void;
   readonly startSession: (credential: ApiCredential) => void;
   readonly switchWorkspace: (workspaceId: string) => void;
@@ -27,12 +31,9 @@ interface AuthSessionContextValue {
 const AuthSessionContext = createContext<AuthSessionContextValue | null>(null);
 
 function readCredential(): AuthCredential | null {
-  const stored = window.sessionStorage.getItem(storageKey);
-  if (stored === null) {
-    return null;
-  }
-
   try {
+    const stored = window.sessionStorage.getItem(storageKey);
+    if (stored === null) return null;
     const value: unknown = JSON.parse(stored);
     if (
       typeof value === "object" &&
@@ -52,11 +53,20 @@ function readCredential(): AuthCredential | null {
         workspaceId: value.workspaceId,
       };
     }
-    window.sessionStorage.removeItem(storageKey);
   } catch {
-    window.sessionStorage.removeItem(storageKey);
+    // Browser storage is optional; the active session can remain in memory.
   }
+  persistCredential(null);
   return null;
+}
+
+function persistCredential(credential: AuthCredential | null): void {
+  try {
+    if (credential === null) window.sessionStorage.removeItem(storageKey);
+    else window.sessionStorage.setItem(storageKey, JSON.stringify(credential));
+  } catch {
+    // Storage denial must not prevent an in-memory session transition.
+  }
 }
 
 export function AuthSessionProvider({
@@ -64,48 +74,64 @@ export function AuthSessionProvider({
 }: {
   readonly children: ReactNode;
 }) {
-  const [credential, setCredential] = useState<AuthCredential | null>(null);
-  const [isHydrated, setIsHydrated] = useState(false);
+  const [session, setSession] = useState(() => ({
+    credential: null as AuthCredential | null,
+    controller: new AbortController(),
+    generation: 0,
+    isHydrated: false,
+  }));
+  const sessionRef = useRef(session);
+
+  const replaceSession = useCallback((credential: AuthCredential | null) => {
+    sessionRef.current.controller.abort();
+    const next = {
+      credential,
+      controller: new AbortController(),
+      generation: sessionRef.current.generation + 1,
+      isHydrated: true,
+    };
+    sessionRef.current = next;
+    setSession(next);
+  }, []);
 
   useEffect(() => {
-    setCredential(readCredential());
-    setIsHydrated(true);
-  }, []);
+    replaceSession(readCredential());
+    return () => sessionRef.current.controller.abort();
+  }, [replaceSession]);
 
   const value = useMemo<AuthSessionContextValue>(
     () => ({
-      credential,
-      isHydrated,
+      credential: session.credential,
+      isHydrated: session.isHydrated,
+      generation: session.generation,
+      signal: session.controller.signal,
       signOut: () => {
-        window.sessionStorage.removeItem(storageKey);
-        setCredential(null);
+        if (session.controller.signal.aborted) return;
+        replaceSession(null);
+        persistCredential(null);
       },
       startSession: (nextCredential) => {
+        if (session.controller.signal.aborted) return;
         const storedCredential = {
           ...nextCredential,
           homeWorkspaceId: nextCredential.workspaceId,
         };
-        window.sessionStorage.setItem(
-          storageKey,
-          JSON.stringify(storedCredential),
-        );
-        setCredential(storedCredential);
+        replaceSession(storedCredential);
+        persistCredential(storedCredential);
       },
       switchWorkspace: (workspaceId) => {
-        setCredential((current) => {
-          if (current === null) {
-            return null;
-          }
-          const nextCredential = { ...current, workspaceId };
-          window.sessionStorage.setItem(
-            storageKey,
-            JSON.stringify(nextCredential),
-          );
-          return nextCredential;
-        });
+        if (
+          session.controller.signal.aborted ||
+          session.credential === null ||
+          session.credential.workspaceId === workspaceId
+        )
+          return;
+        const nextCredential = { ...session.credential, workspaceId };
+        replaceSession(nextCredential);
+        persistCredential(nextCredential);
       },
     }),
-    [credential, isHydrated],
+    [session, replaceSession],
   );
 
   return (

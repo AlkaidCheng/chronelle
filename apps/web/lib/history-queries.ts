@@ -14,8 +14,8 @@ export function useObjectHistory(objectId: string) {
     queryKey: ["object", objectId, "history"],
     enabled: credential !== null,
     initialPageParam: undefined as number | undefined,
-    queryFn: ({ pageParam }) =>
-      client.listObjectRevisions(objectId, {
+    queryFn: ({ pageParam, signal }) =>
+      client.withSignal(signal).listObjectRevisions(objectId, {
         limit: 20,
         ...(pageParam === undefined ? {} : { beforeVersion: pageParam }),
       }),
@@ -33,10 +33,10 @@ export function useRevisionComparison(
   return useQuery({
     queryKey: ["object", objectId, "comparison", fromVersion, toVersion],
     enabled: credential !== null && fromVersion !== null && toVersion !== null,
-    queryFn: () => {
+    queryFn: ({ signal }) => {
       if (fromVersion === null || toVersion === null)
         throw new Error("Select both revisions.");
-      return client.compareObjectRevisions(objectId, {
+      return client.withSignal(signal).compareObjectRevisions(objectId, {
         fromVersion,
         toVersion,
       });
@@ -50,9 +50,11 @@ export function useRestorePreview(objectId: string, version: number | null) {
   return useQuery({
     queryKey: ["object", objectId, "restore-preview", version],
     enabled: credential !== null && version !== null,
-    queryFn: () => {
+    queryFn: ({ signal }) => {
       if (version === null) throw new Error("Select a revision.");
-      return client.previewObjectRestoration(objectId, version);
+      return client
+        .withSignal(signal)
+        .previewObjectRestoration(objectId, version);
     },
     staleTime: 0,
   });
