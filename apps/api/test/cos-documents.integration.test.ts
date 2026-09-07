@@ -7,9 +7,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
   auditEvents,
+  createId,
   documents,
   documentTransferAuthorizations,
   objectRevisions,
+  workspaceMembers,
 } from "@chronelle/db";
 import {
   applyMigrations,
@@ -24,6 +26,7 @@ import {
   eventDetailResponseSchema,
   eventResponseSchema,
   shareResponseSchema,
+  storageInventoryResponseSchema,
 } from "@chronelle/schemas";
 import { buildApp } from "../src/app.js";
 import { createDevelopmentAppDependencies } from "../src/dependencies.js";
@@ -104,6 +107,34 @@ function finalize(id: string, headers = ownerHeaders) {
     },
     headers,
   );
+}
+
+async function listStoredKeys(
+  parameters: COS.GetBucketParams,
+): Promise<COS.GetBucketResult> {
+  const prefix = parameters.Prefix ?? "";
+  return {
+    statusCode: 200,
+    headers: {},
+    Name: parameters.Bucket,
+    Prefix: encodeURIComponent(prefix),
+    Marker: encodeURIComponent(parameters.Marker ?? ""),
+    Delimiter: "%2F",
+    EncodingType: "url",
+    MaxKeys: "1000",
+    IsTruncated: "false",
+    Contents: [...content.entries()]
+      .filter(([key]) => key.startsWith(`/${prefix}`))
+      .map(([key, stored]) => ({
+        Key: encodeURIComponent(key.slice(1)),
+        LastModified: currentTime.toISOString(),
+        ETag: '"fixture"',
+        Size: String(stored.length),
+        StorageClass: "STANDARD",
+        Owner: { ID: "owner" },
+      })),
+    CommonPrefixes: [],
+  } as COS.GetBucketResult;
 }
 
 beforeEach(async () => {
@@ -322,5 +353,145 @@ describe.sequential("COS attachment API with simulated cloud transport", () => {
     expect((await finalize(authorization.id)).statusCode).toBe(404);
     expect(inspection).not.toHaveBeenCalled();
     expect(await testDb().select().from(documents)).toEqual([]);
+  });
+});
+
+describe.sequential("COS inventory API with simulated cloud transport", () => {
+  const inventory = {
+    method: "GET" as const,
+    url: "/api/workspace/storage-inventory",
+  };
+
+  it("retains trashed documents and pending uploads without reading bytes or exposing keys", async () => {
+    const authorization = await authorize();
+    const key = new URL(authorization.upload.url).pathname;
+    content.set(key, bytes);
+    const attachment = documentAttachmentResponseSchema.parse(
+      (await finalize(authorization.id)).json(),
+    );
+    expect(
+      (
+        await request({
+          method: "DELETE",
+          url: `/api/objects/${attachment.document.id}?expectedVersion=1`,
+        })
+      ).statusCode,
+    ).toBe(200);
+    const pending = await authorize();
+    content.set(new URL(pending.upload.url).pathname, bytes);
+    const prefix = `workspaces/${ownerHeaders["x-workspace-id"]}/documents/`;
+    content.set(`/${prefix}${createId()}`, bytes);
+    content.set(`/workspaces/${createId()}/documents/${createId()}`, bytes);
+    const list = vi
+      .spyOn(COS.prototype, "getBucket")
+      .mockImplementation(listStoredKeys);
+    const signer = vi.spyOn(COS.prototype, "getObjectUrl");
+    inspection.mockClear();
+    const snapshot = async () => ({
+      documents: await testDb()
+        .select()
+        .from(documents)
+        .orderBy(documents.objectId),
+      revisions: await testDb()
+        .select()
+        .from(objectRevisions)
+        .orderBy(objectRevisions.id),
+      audits: await testDb().select().from(auditEvents).orderBy(auditEvents.id),
+      content: [...content.entries()],
+    });
+    const before = await snapshot();
+
+    const response = await request(inventory);
+
+    expect(response.statusCode).toBe(200);
+    expect(response.headers["cache-control"]).toBe("private, no-store");
+    expect(storageInventoryResponseSchema.parse(response.json())).toMatchObject(
+      {
+        storageProvider: "tencent-cos",
+        consistency: "observational",
+        retentionPolicy: "retain-all",
+        references: { canonical: 1, missingCanonical: 0 },
+        entries: {
+          canonical: 1,
+          pendingUpload: 1,
+          unreferenced: 1,
+          unsupported: 0,
+        },
+      },
+    );
+    expect(list).toHaveBeenCalledExactlyOnceWith(
+      expect.objectContaining({ Prefix: prefix }),
+    );
+    expect(await snapshot()).toEqual(before);
+    expect(inspection).not.toHaveBeenCalled();
+    expect(signer).not.toHaveBeenCalled();
+    for (const secret of [
+      key.slice(1),
+      attachment.document.id,
+      metadata.originalFilename,
+      "test-secret",
+    ])
+      expect(response.body).not.toContain(secret);
+  });
+
+  it("denies unrelated users and shared Viewers before cloud listing", async () => {
+    const list = vi
+      .spyOn(COS.prototype, "getBucket")
+      .mockImplementation(listStoredKeys);
+    expect((await request(inventory, viewerHeaders)).statusCode).toBe(404);
+    await share("viewer");
+    expect((await request(inventory, viewerHeaders)).statusCode).toBe(404);
+    const other = await signIn("other@example.com");
+    expect(
+      (
+        await request(inventory, {
+          ...ownerHeaders,
+          authorization: `Bearer ${other.accessToken}`,
+        })
+      ).statusCode,
+    ).toBe(404);
+    expect(list).not.toHaveBeenCalled();
+  });
+
+  it("suppresses the report when workspace ownership is revoked during cloud I/O", async () => {
+    vi.spyOn(COS.prototype, "getBucket").mockImplementationOnce(
+      async (parameters) => {
+        await testDb()
+          .update(workspaceMembers)
+          .set({ role: "viewer" })
+          .where(
+            eq(
+              workspaceMembers.workspaceId,
+              ownerHeaders["x-workspace-id"] ?? "",
+            ),
+          );
+        return listStoredKeys(parameters);
+      },
+    );
+    const response = await request(inventory);
+    expect(response.statusCode).toBe(404);
+    expect(response.body).not.toContain("entries");
+  });
+
+  it("discards partial counts when a later cloud page fails", async () => {
+    const prefix = `workspaces/${ownerHeaders["x-workspace-id"]}/documents/`;
+    const key = `${prefix}${createId()}`;
+    content.set(`/${key}`, bytes);
+    const list = vi
+      .spyOn(COS.prototype, "getBucket")
+      .mockImplementationOnce(async (parameters) => ({
+        ...(await listStoredKeys(parameters)),
+        IsTruncated: "true",
+        NextMarker: encodeURIComponent(key),
+      }))
+      .mockRejectedValueOnce(new Error("private cloud credential or path"));
+    const response = await request(inventory);
+    expect(response.statusCode).toBe(503);
+    expect(response.json()).toMatchObject({
+      error: { code: "inventory_unavailable" },
+    });
+    expect(list).toHaveBeenCalledTimes(2);
+    for (const secret of ["entries", key, "credential", "private cloud"])
+      expect(response.body).not.toContain(secret);
   });
 });

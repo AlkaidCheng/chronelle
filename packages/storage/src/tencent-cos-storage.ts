@@ -1,14 +1,91 @@
 import { createHash } from "node:crypto";
 import COS from "cos-nodejs-sdk-v5";
-import { StorageObjectUnavailableError } from "./errors.js";
+import {
+  StorageInventoryUnavailableError,
+  StorageObjectUnavailableError,
+} from "./errors.js";
 import { assertSafeStorageKey } from "./storage-key.js";
 import type {
   DownloadAuthorizationInput,
   StorageProvider,
+  StorageInventoryEntry,
   StoredObjectMetadata,
   StorageTransferAuthorization,
   UploadAuthorizationInput,
 } from "./types.js";
+
+const inventoryPageSize = 1000;
+
+function decodeListValue(value: unknown): string {
+  if (typeof value !== "string") throw new StorageInventoryUnavailableError();
+  return decodeURIComponent(value);
+}
+
+function compareKeys(left: string, right: string): number {
+  return Buffer.compare(Buffer.from(left), Buffer.from(right));
+}
+
+function parseInventoryPage(
+  page: COS.GetBucketResult,
+  bucket: string,
+  prefix: string,
+  marker: string,
+) {
+  if (
+    page.statusCode !== 200 ||
+    page.Name !== bucket ||
+    page.EncodingType !== "url" ||
+    decodeListValue(page.Prefix) !== prefix ||
+    decodeListValue(page.Marker) !== marker ||
+    !("Delimiter" in page) ||
+    decodeListValue(page.Delimiter) !== "/" ||
+    Number(page.MaxKeys) !== inventoryPageSize ||
+    !["true", "false"].includes(page.IsTruncated) ||
+    !Array.isArray(page.Contents) ||
+    !Array.isArray(page.CommonPrefixes) ||
+    page.Contents.length + page.CommonPrefixes.length > inventoryPageSize
+  )
+    throw new StorageInventoryUnavailableError();
+
+  const entries: StorageInventoryEntry[] = [
+    ...page.Contents.map((object) => ({
+      storageKey: decodeListValue(object.Key),
+      kind: "file" as const,
+    })),
+    ...page.CommonPrefixes.map((directory) => ({
+      storageKey: decodeListValue(directory.Prefix),
+      kind: "unsupported" as const,
+    })),
+  ];
+  const seen = new Set<string>();
+  let lastKey = marker;
+  for (const entry of entries) {
+    const name = entry.storageKey.slice(prefix.length);
+    const immediate =
+      entry.kind === "file"
+        ? !name.includes("/")
+        : name.length > 1 &&
+          name.endsWith("/") &&
+          !name.slice(0, -1).includes("/");
+    if (
+      !entry.storageKey.startsWith(prefix) ||
+      !immediate ||
+      compareKeys(entry.storageKey, marker) <= 0 ||
+      seen.has(entry.storageKey)
+    )
+      throw new StorageInventoryUnavailableError();
+    seen.add(entry.storageKey);
+    if (compareKeys(entry.storageKey, lastKey) > 0) lastKey = entry.storageKey;
+  }
+  const nextMarker =
+    page.IsTruncated === "true" ? decodeListValue(page.NextMarker) : undefined;
+  if (
+    nextMarker !== undefined &&
+    (entries.length === 0 || nextMarker !== lastKey)
+  )
+    throw new StorageInventoryUnavailableError();
+  return { entries, nextMarker };
+}
 
 export interface TencentCosStorageOptions {
   readonly bucket: string;
@@ -175,6 +252,45 @@ export class TencentCosStorageProvider implements StorageProvider {
       }
     }
     return { sizeBytes, checksumSha256: hash.digest("hex") };
+  }
+
+  async *listObjects(
+    prefix: string,
+    signal: AbortSignal,
+  ): AsyncIterable<StorageInventoryEntry> {
+    assertSafeStorageKey(prefix);
+    const objectPrefix = `${prefix}/`;
+    let marker = "";
+    try {
+      signal.throwIfAborted();
+      await this.#assertBucketPolicy();
+      while (true) {
+        signal.throwIfAborted();
+        const page = await this.#client.getBucket({
+          ...this.#bucket(),
+          Prefix: objectPrefix,
+          Marker: marker,
+          Delimiter: "/",
+          EncodingType: "url",
+          MaxKeys: inventoryPageSize,
+        });
+        signal.throwIfAborted();
+        const { entries, nextMarker } = parseInventoryPage(
+          page,
+          this.#options.bucket,
+          objectPrefix,
+          marker,
+        );
+        for (const entry of entries) {
+          signal.throwIfAborted();
+          yield entry;
+        }
+        if (nextMarker === undefined) return;
+        marker = nextMarker;
+      }
+    } catch {
+      throw new StorageInventoryUnavailableError();
+    }
   }
 
   #bucket() {
