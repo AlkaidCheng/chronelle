@@ -222,6 +222,14 @@ The Next.js application renders a responsive workspace and forwards same-origin
 upstream origin is server-only configuration, so browser code does not contain
 deployment topology or cross-origin policy.
 
+The web request boundary issues per-response script nonces and the root layout
+renders HTML dynamically. Document responses cannot be cached; static bundles
+retain immutable caching. The production script policy blocks unapproved
+parser scripts, inline handlers, and string evaluation while allowing the
+nonced framework runtime and its descendants. This boundary does not authenticate
+requests or change canonical permissions. See [Deployment](deployment.md#script-content-security-policy)
+for the rendering tradeoff and remaining public-launch requirements.
+
 `ChronelleApiClient` attaches the active credential and workspace, validates
 every successful response against the shared Zod contract, and turns API errors
 into one typed error. An expiring development credential is kept in

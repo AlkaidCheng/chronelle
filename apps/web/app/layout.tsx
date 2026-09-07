@@ -5,6 +5,8 @@ import "./styles.css";
 import "./collections.css";
 import { Providers } from "./providers";
 
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
   description:
     "A thoughtful home for your events, plans, and everyday details.",

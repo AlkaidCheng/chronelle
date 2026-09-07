@@ -194,9 +194,36 @@ or certify development authentication for public use.
   a stable error code without exception text; inspect configuration through a
   controlled diagnostic workflow rather than enabling raw request logging.
 - Response headers prevent framing, MIME sniffing, referrer leakage, embedded
-  plugin content, and off-origin form submissions. The CSP is deliberately
-  limited; it is not a complete script-execution policy. A nonce-based script
-  policy needs validation with Next.js before public launch.
+  plugin content, and off-origin form submissions. The script policy below
+  applies to HTML documents, including not-found pages.
+
+## Script Content Security Policy
+
+Each document response receives a fresh 128-bit random nonce. Next.js applies
+that nonce to its framework, page, and inline hydration scripts. Production
+uses `script-src 'nonce-...' 'strict-dynamic'` and `script-src-attr 'none'`:
+initial scripts need the nonce, and trusted scripts can load their descendants.
+Unapproved parser scripts, inline handlers, and string evaluation are blocked.
+Only the development server permits `unsafe-eval` for framework debugging.
+Caller-supplied nonce and policy headers are overwritten, including on prefetch
+requests. There is no script `unsafe-inline` allowance.
+
+The root layout forces dynamic rendering. HTML is private and non-cacheable;
+do not add static export, page caching, or a CDN HTML cache without redesigning
+the nonce contract. This adds server-rendering work per document request compared
+with a static shell. JavaScript/CSS bundles retain Next.js immutable caching.
+The framework owns cache headers; dynamic HTML errors stay non-cacheable and
+missing static assets return non-executable plain text. API routes and private
+transfers retain their existing body limits and cache policy, outside the page
+middleware.
+
+This follows the [Next.js nonce integration](https://nextjs.org/docs/app/guides/content-security-policy)
+and is defense in depth, not a substitute for escaping or authorization. It does
+not establish connection/style origin policies, TLS, provider trust, or token
+revocation. Future external scripts must use a reviewed nonce-aware integration;
+do not relax production policy with `unsafe-inline` or `unsafe-eval`. Revalidate
+the policy through the actual ingress and run an independent security review
+before public launch.
 
 ## Public launch gate
 
@@ -209,7 +236,8 @@ Before exposing the application publicly:
    database/storage credentials. Run the authorization and attachment suites
    against the deployed topology.
 3. Configure TLS, ingress limits, origin policies, monitoring, alerting, and
-   secrets management. Validate the script CSP and conduct a security review.
+   secrets management. Revalidate the script CSP through ingress and conduct a
+   security review.
 4. Run `pnpm check`, `pnpm test:e2e`, both container builds, and smoke-test sign-in,
    shared Viewer access, uploads/downloads, recovery, and API outage behavior
    on the actual deployment target.
