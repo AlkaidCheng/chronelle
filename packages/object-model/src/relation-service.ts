@@ -1,8 +1,9 @@
 import {
   AuthorizationDeniedError,
   withStableAuthorization,
-  AuthorizationService,
-  DrizzleAuthorizationStore,
+  withReadAuthorization,
+  type AuthorizationDatabase,
+  type AuthorizationService,
   type AuthorizationAction,
   type UserPrincipal,
 } from "@chronelle/authorization";
@@ -11,7 +12,6 @@ import {
   objectRelations,
   objects,
   runAuditedMutation,
-  type Database,
   type DatabaseTransaction,
   type ObjectType,
   type RelationType,
@@ -63,17 +63,14 @@ function isCompatibleRelation(
 }
 
 export class ObjectRelationService {
-  readonly #authorization: AuthorizationService;
   readonly #clock: () => Date;
-  readonly #database: Database | DatabaseTransaction;
+  readonly #database: AuthorizationDatabase;
 
   constructor(
-    database: Database | DatabaseTransaction,
-    authorization: AuthorizationService,
+    database: AuthorizationDatabase,
     clock: () => Date = () => new Date(),
   ) {
     this.#database = database;
-    this.#authorization = authorization;
     this.#clock = clock;
   }
 
@@ -155,37 +152,42 @@ export class ObjectRelationService {
     principal: UserPrincipal,
     objectId: string,
   ): Promise<readonly ObjectRelationResource[]> {
-    await this.#authorization.assertCan(principal, "view", {
-      id: objectId,
-      workspaceId: principal.workspaceId,
-    });
-    const relations = await this.#database
-      .select()
-      .from(objectRelations)
-      .where(
-        and(
-          eq(objectRelations.workspaceId, principal.workspaceId),
-          isNull(objectRelations.deletedAt),
-          or(
-            eq(objectRelations.sourceObjectId, objectId),
-            eq(objectRelations.targetObjectId, objectId),
-          ),
-        ),
-      );
-
-    const visibility = await Promise.all(
-      relations.map((relation) => {
-        const otherObjectId =
-          relation.sourceObjectId === objectId
-            ? relation.targetObjectId
-            : relation.sourceObjectId;
-        return this.#authorization.can(principal, "view", {
-          id: otherObjectId,
+    return withReadAuthorization(
+      this.#database,
+      async (transaction, authorization) => {
+        await authorization.assertCan(principal, "view", {
+          id: objectId,
           workspaceId: principal.workspaceId,
         });
-      }),
+        const relations = await transaction
+          .select()
+          .from(objectRelations)
+          .where(
+            and(
+              eq(objectRelations.workspaceId, principal.workspaceId),
+              isNull(objectRelations.deletedAt),
+              or(
+                eq(objectRelations.sourceObjectId, objectId),
+                eq(objectRelations.targetObjectId, objectId),
+              ),
+            ),
+          );
+
+        const visibility = await Promise.all(
+          relations.map((relation) => {
+            const otherObjectId =
+              relation.sourceObjectId === objectId
+                ? relation.targetObjectId
+                : relation.sourceObjectId;
+            return authorization.can(principal, "view", {
+              id: otherObjectId,
+              workspaceId: principal.workspaceId,
+            });
+          }),
+        );
+        return relations.filter((_, index) => visibility[index]);
+      },
     );
-    return relations.filter((_, index) => visibility[index]);
   }
 
   async softDelete(
@@ -216,11 +218,9 @@ export class ObjectRelationService {
     objectId: string,
     input: RemovedRelationQuery,
   ) {
-    return this.#database.transaction(
-      async (transaction) => {
-        const authorization = new AuthorizationService(
-          new DrizzleAuthorizationStore(transaction),
-        );
+    return withReadAuthorization(
+      this.#database,
+      async (transaction, authorization) => {
         await authorization.assertCan(principal, "view", {
           id: objectId,
           workspaceId: principal.workspaceId,
@@ -297,7 +297,6 @@ export class ObjectRelationService {
               : null,
         };
       },
-      { isolationLevel: "repeatable read", accessMode: "read only" },
     );
   }
 

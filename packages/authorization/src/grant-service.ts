@@ -11,10 +11,12 @@ import { and, asc, eq, gt, isNull, or } from "drizzle-orm";
 
 import {
   AuthorizationDeniedError,
-  type AuthorizationService,
   type UserPrincipal,
 } from "./authorization.js";
-import { withStableAuthorization } from "./authorization-transaction.js";
+import {
+  withStableAuthorization,
+  withReadAuthorization,
+} from "./authorization-transaction.js";
 
 export class PrincipalUnavailableError extends Error {
   constructor() {
@@ -62,17 +64,11 @@ export interface RevokedGrantResource {
 }
 
 export class ResourceGrantService {
-  readonly #authorization: AuthorizationService;
   readonly #clock: () => Date;
   readonly #database: Database;
 
-  constructor(
-    database: Database,
-    authorization: AuthorizationService,
-    clock: () => Date = () => new Date(),
-  ) {
+  constructor(database: Database, clock: () => Date = () => new Date()) {
     this.#database = database;
-    this.#authorization = authorization;
     this.#clock = clock;
   }
 
@@ -165,48 +161,57 @@ export class ResourceGrantService {
     principal: UserPrincipal,
     resourceId: string,
   ): Promise<readonly ResourceGrantResource[]> {
-    await this.#assertCanManageGrants(principal, resourceId);
-    const grants = await this.#database
-      .select({
-        id: resourceGrants.id,
-        workspaceId: resourceGrants.workspaceId,
-        resourceId: resourceGrants.resourceId,
-        role: resourceGrants.role,
-        grantedBy: resourceGrants.grantedBy,
-        createdAt: resourceGrants.createdAt,
-        expiresAt: resourceGrants.expiresAt,
-        principalId: users.id,
-        principalDisplayName: users.displayName,
-        principalEmail: users.email,
-      })
-      .from(resourceGrants)
-      .innerJoin(users, eq(users.id, resourceGrants.principalId))
-      .where(
-        and(
-          eq(resourceGrants.workspaceId, principal.workspaceId),
-          eq(resourceGrants.resourceId, resourceId),
-          or(
-            isNull(resourceGrants.expiresAt),
-            gt(resourceGrants.expiresAt, this.#clock()),
-          ),
-        ),
-      )
-      .orderBy(asc(resourceGrants.createdAt), asc(resourceGrants.id));
+    return withReadAuthorization(
+      this.#database,
+      async (transaction, authorization) => {
+        const evaluatedAt = this.#clock();
+        await authorization.assertCan(principal, "recover", {
+          id: resourceId,
+          workspaceId: principal.workspaceId,
+        });
+        const grants = await transaction
+          .select({
+            id: resourceGrants.id,
+            workspaceId: resourceGrants.workspaceId,
+            resourceId: resourceGrants.resourceId,
+            role: resourceGrants.role,
+            grantedBy: resourceGrants.grantedBy,
+            createdAt: resourceGrants.createdAt,
+            expiresAt: resourceGrants.expiresAt,
+            principalId: users.id,
+            principalDisplayName: users.displayName,
+            principalEmail: users.email,
+          })
+          .from(resourceGrants)
+          .innerJoin(users, eq(users.id, resourceGrants.principalId))
+          .where(
+            and(
+              eq(resourceGrants.workspaceId, principal.workspaceId),
+              eq(resourceGrants.resourceId, resourceId),
+              or(
+                isNull(resourceGrants.expiresAt),
+                gt(resourceGrants.expiresAt, evaluatedAt),
+              ),
+            ),
+          )
+          .orderBy(asc(resourceGrants.createdAt), asc(resourceGrants.id));
 
-    return grants.map((grant) => ({
-      id: grant.id,
-      workspaceId: grant.workspaceId,
-      resourceId: grant.resourceId,
-      role: grant.role,
-      grantedBy: grant.grantedBy,
-      createdAt: grant.createdAt,
-      expiresAt: grant.expiresAt,
-      principal: {
-        id: grant.principalId,
-        displayName: grant.principalDisplayName,
-        email: grant.principalEmail,
+        return grants.map((grant) => ({
+          id: grant.id,
+          workspaceId: grant.workspaceId,
+          resourceId: grant.resourceId,
+          role: grant.role,
+          grantedBy: grant.grantedBy,
+          createdAt: grant.createdAt,
+          expiresAt: grant.expiresAt,
+          principal: {
+            id: grant.principalId,
+            displayName: grant.principalDisplayName,
+            email: grant.principalEmail,
+          },
+        }));
       },
-    }));
+    );
   }
 
   async revoke(
@@ -275,15 +280,5 @@ export class ResourceGrantService {
         });
       },
     );
-  }
-
-  async #assertCanManageGrants(
-    principal: UserPrincipal,
-    resourceId: string,
-  ): Promise<void> {
-    await this.#authorization.assertCan(principal, "recover", {
-      id: resourceId,
-      workspaceId: principal.workspaceId,
-    });
   }
 }

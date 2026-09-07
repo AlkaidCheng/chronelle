@@ -25,6 +25,36 @@ Authentication establishes identity. It does not decide what that identity can
 access. Human requests and future share-link or AI tool calls use the same
 authorization service.
 
+## Consistent reads
+
+`withReadAuthorization` binds policy checks and database retrieval to one
+repeatable-read, read-only transaction. Object detail and access actions, Event
+lists and projections, relation and attachment traversal, search, grant lists,
+history, restoration previews, Trash, command state, and inventory reference
+queries use this boundary.
+Nested readers share the same transaction and evaluator, including all members
+of a projection. No permission decision is cached across requests.
+
+Grant expiry is evaluated at a fixed application-clock instant for each read
+boundary. A read already authorized in its snapshot may finish after revocation,
+scope changes, deletion, or expiry. It can return only the state visible in that
+snapshot, not subsequent private edits or newly added grant recipients. A later
+read evaluates the current policy. This does not retract bytes already sent or
+promise one snapshot across separate HTTP requests.
+
+Identity resolution and workspace listing each use their own read boundary.
+The selected workspace is still context, not authority: protected resource
+services check access again in their own transaction. A session response may
+therefore contain an earlier authorized active workspace while a newer workspace
+list omits it. That earlier workspace metadata is never refreshed after its
+authorization boundary has closed.
+
+These reads do not take the workspace mutation lock or span storage/network I/O.
+They hold a database connection until the callback completes. Keep callbacks
+short; snapshot isolation does not bound query count, collection size, or pool
+wait time. Protected writes continue to use `withStableAuthorization` and version
+checks, not read-only snapshots.
+
 ## Initial roles
 
 Execute, Undo, and Redo require current Edit on every command member under the

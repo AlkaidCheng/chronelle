@@ -87,6 +87,23 @@ either required ledger entry rolls back the business change. Object services
 validate state, authorize access, and atomically enforce the expected version.
 See [Object revisions](revisions.md) for snapshot, history, and baseline contracts.
 
+`withReadAuthorization` owns read transaction configuration and constructs an
+evaluator bound to that transaction. Service constructors accept a database
+connection; composed object/relation services instead receive an explicit
+`{ database: transaction, authorization }` context from the owning boundary.
+This keeps nested projection reads on one connection without starting savepoints
+or opening independent snapshots. A bare transaction is rejected because a
+savepoint cannot establish a new isolation level. Mutation composition supplies
+the same context under `withStableAuthorization`, retaining the outer writer's
+lock, isolation level, and uncommitted state. Contexts must not escape their
+callback or pair a transaction with an unrelated evaluator.
+
+Read responses represent one authorized database snapshot per service operation,
+not a revocation barrier at response delivery. See [Permissions](permissions.md)
+for expiry, workspace resolution, and in-flight read semantics. The implementation
+uses PostgreSQL's [repeatable-read isolation](https://www.postgresql.org/docs/17/transaction-iso.html#XACT-REPEATABLE-READ);
+it does not copy permission policy into projections or controllers.
+
 `ObjectRestorationService` owns typed comparison, preview, and content
 restoration. Its allowlist preserves security state and immutable typed facts.
 The authorization package owns a workspace transaction boundary shared by

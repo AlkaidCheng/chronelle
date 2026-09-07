@@ -1,7 +1,7 @@
 import {
   AuthorizationDeniedError,
-  AuthorizationService,
-  DrizzleAuthorizationStore,
+  withReadAuthorization,
+  type AuthorizationService,
   withStableAuthorization,
   type UserPrincipal,
 } from "@chronelle/authorization";
@@ -42,11 +42,9 @@ export class ReversibleCommandService {
   constructor(private readonly database: Database) {}
 
   async getState(principal: UserPrincipal): Promise<CommandStateResponse> {
-    return this.database.transaction(
-      async (transaction) => {
-        const authorization = new AuthorizationService(
-          new DrizzleAuthorizationStore(transaction),
-        );
+    return withReadAuthorization(
+      this.database,
+      async (transaction, authorization) => {
         const stack = await readCommandStack(transaction, principal);
         const redo = await this.readHead(
           transaction,
@@ -67,7 +65,6 @@ export class ReversibleCommandService {
           redo: redo?.available ? redo : null,
         };
       },
-      { isolationLevel: "repeatable read", accessMode: "read only" },
     );
   }
 
@@ -283,7 +280,10 @@ export class ReversibleCommandService {
     context: MutationContext,
     edits: CommandEdit[],
   ) {
-    const objects = new EventPlanningObjectService(transaction, authorization);
+    const objects = new EventPlanningObjectService({
+      database: transaction,
+      authorization,
+    });
     const versions: CommandReceipt["objects"] = [];
     for (const edit of edits) {
       const resource =

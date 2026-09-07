@@ -15,11 +15,15 @@ import {
   createTestDatabase,
   type TestDatabase,
 } from "@chronelle/db/testing";
-import { eq } from "drizzle-orm";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { eq, sql } from "drizzle-orm";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { AuthorizationService } from "../src/authorization.js";
 import { DrizzleAuthorizationStore } from "../src/drizzle-authorization-store.js";
+import {
+  withReadAuthorization,
+  withStableAuthorization,
+} from "../src/authorization-transaction.js";
 
 const migrationDirectory = resolve(
   import.meta.dirname,
@@ -46,6 +50,8 @@ beforeEach(async () => {
 });
 
 afterEach(async () => {
+  vi.useRealTimers();
+  vi.restoreAllMocks();
   if (testDatabaseReady) {
     await testDatabase.close();
   }
@@ -102,6 +108,147 @@ async function createObject(
 }
 
 describe.sequential("DrizzleAuthorizationStore", () => {
+  it("uses one read-only snapshot and releases it on failure", async () => {
+    const fixture = await createWorkspace(
+      testDatabase.connection.db,
+      "snapshot",
+    );
+    const objectId = await createObject(
+      testDatabase.connection.db,
+      fixture,
+      "Shared name",
+    );
+    await withReadAuthorization(
+      testDatabase.connection.db,
+      async (transaction, authorization) => {
+        const settings = await transaction.execute(
+          sql`SELECT current_setting('transaction_isolation') AS isolation, current_setting('transaction_read_only') AS read_only`,
+        );
+        expect(settings[0]).toMatchObject({
+          isolation: "repeatable read",
+          read_only: "on",
+        });
+        await testDatabase.connection.db
+          .update(objects)
+          .set({ displayName: "Later name" })
+          .where(eq(objects.id, objectId));
+        const [row] = await transaction
+          .select()
+          .from(objects)
+          .where(eq(objects.id, objectId));
+        expect(row?.displayName).toBe("Shared name");
+        await withReadAuthorization(
+          { database: transaction, authorization },
+          async (nested, policy) => {
+            expect(nested).toBe(transaction);
+            expect(policy).toBe(authorization);
+          },
+        );
+      },
+    );
+    await expect(
+      withReadAuthorization(testDatabase.connection.db, (transaction) =>
+        transaction
+          .update(objects)
+          .set({ displayName: "Forbidden write" })
+          .where(eq(objects.id, objectId))
+          .execute(),
+      ),
+    ).rejects.toMatchObject({ cause: { code: "25006" } });
+    const [row] = await testDatabase.connection.db
+      .select()
+      .from(objects)
+      .where(eq(objects.id, objectId));
+    expect(row?.displayName).toBe("Later name");
+    await expect(
+      withReadAuthorization(testDatabase.connection.db, async () => {
+        throw new Error("Read failed");
+      }),
+    ).rejects.toThrow("Read failed");
+    await expect(
+      withReadAuthorization(
+        testDatabase.connection.db,
+        async () => "available",
+      ),
+    ).resolves.toBe("available");
+  });
+
+  it("rejects bare nested transactions and composes with a protected writer", async () => {
+    const fixture = await createWorkspace(testDatabase.connection.db, "nested");
+    await testDatabase.connection.db.transaction(async (transaction) => {
+      await expect(
+        withReadAuthorization(transaction, async () => undefined),
+      ).rejects.toThrow("explicit transaction context");
+    });
+    await withStableAuthorization(
+      testDatabase.connection.db,
+      fixture.workspaceId,
+      async (transaction, authorization) => {
+        await withReadAuthorization(
+          { database: transaction, authorization },
+          async (nested) => {
+            const settings = await nested.execute(
+              sql`SELECT current_setting('transaction_isolation') AS isolation, current_setting('transaction_read_only') AS read_only`,
+            );
+            expect(settings[0]).toMatchObject({
+              isolation: "read committed",
+              read_only: "off",
+            });
+          },
+        );
+      },
+    );
+  });
+
+  it("evaluates expiration at one instant per snapshot without caching later requests", async () => {
+    const fixture = await createWorkspace(
+      testDatabase.connection.db,
+      "expiration",
+    );
+    const viewerId = await createUser(
+      testDatabase.connection.db,
+      "expiration-viewer",
+    );
+    const objectId = await createObject(
+      testDatabase.connection.db,
+      fixture,
+      "Expiring event",
+    );
+    await testDatabase.connection.db.insert(resourceGrants).values({
+      id: createId(),
+      workspaceId: fixture.workspaceId,
+      resourceId: objectId,
+      principalId: viewerId,
+      role: "viewer",
+      grantedBy: fixture.ownerId,
+      expiresAt: new Date("2030-09-02T12:00:01Z"),
+    });
+    const principal = {
+      type: "user" as const,
+      userId: viewerId,
+      workspaceId: fixture.workspaceId,
+    };
+    const resource = { id: objectId, workspaceId: fixture.workspaceId };
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(evaluatedAt);
+    await withReadAuthorization(
+      testDatabase.connection.db,
+      async (_transaction, authorization) => {
+        expect(await authorization.can(principal, "view", resource)).toBe(true);
+        vi.setSystemTime(new Date("2030-09-02T12:00:02Z"));
+        expect(await authorization.can(principal, "view", resource)).toBe(true);
+      },
+    );
+    await withReadAuthorization(
+      testDatabase.connection.db,
+      async (_transaction, authorization) => {
+        expect(await authorization.can(principal, "view", resource)).toBe(
+          false,
+        );
+      },
+    );
+  });
+
   it("applies membership roles and hides cross-workspace resources", async () => {
     const first = await createWorkspace(
       testDatabase.connection.db,

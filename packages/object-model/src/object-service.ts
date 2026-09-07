@@ -1,8 +1,9 @@
 import {
   AuthorizationDeniedError,
   withStableAuthorization,
+  withReadAuthorization,
+  type AuthorizationDatabase,
   type AuthorizationAction,
-  type AuthorizationService,
   type UserPrincipal,
 } from "@chronelle/authorization";
 import {
@@ -12,7 +13,6 @@ import {
   objects,
   reminders,
   tasks,
-  type Database,
   type DatabaseTransaction,
   type ObjectType,
 } from "@chronelle/db";
@@ -123,17 +123,14 @@ function assertExpenseState(
 }
 
 export class EventPlanningObjectService {
-  readonly #authorization: AuthorizationService;
   readonly #clock: () => Date;
-  readonly #database: Database | DatabaseTransaction;
+  readonly #database: AuthorizationDatabase;
 
   constructor(
-    database: Database | DatabaseTransaction,
-    authorization: AuthorizationService,
+    database: AuthorizationDatabase,
     clock: () => Date = () => new Date(),
   ) {
     this.#database = database;
-    this.#authorization = authorization;
     this.#clock = clock;
   }
 
@@ -242,40 +239,66 @@ export class EventPlanningObjectService {
     return this.#getObjectWithAction(principal, objectId, "view");
   }
 
-  async listEvents(principal: UserPrincipal): Promise<EventResource[]> {
-    const candidates = await this.#database
-      .select({ id: objects.id })
-      .from(objects)
-      .where(
-        and(
-          eq(objects.workspaceId, principal.workspaceId),
-          eq(objects.objectType, "event"),
-          eq(objects.permissionScopeId, objects.id),
-          isNull(objects.deletedAt),
-        ),
-      );
-
-    const visibleEvents = await Promise.all(
-      candidates.map(async ({ id }) => {
-        try {
-          return await this.getEvent(principal, id);
-        } catch (error) {
-          if (error instanceof AuthorizationDeniedError) {
-            return null;
-          }
-          throw error;
-        }
-      }),
+  async getAllowedActions(principal: UserPrincipal, objectId: string) {
+    return withReadAuthorization(
+      this.#database,
+      async (transaction, authorization) => {
+        const reader = new EventPlanningObjectService({
+          database: transaction,
+          authorization,
+        });
+        await reader.getObject(principal, objectId);
+        return authorization.allowedActions(principal, {
+          id: objectId,
+          workspaceId: principal.workspaceId,
+        });
+      },
     );
+  }
 
-    return visibleEvents
-      .filter((event): event is EventResource => event !== null)
-      .sort(
-        (first, second) =>
-          (first.startsAt?.getTime() ?? Number.POSITIVE_INFINITY) -
-            (second.startsAt?.getTime() ?? Number.POSITIVE_INFINITY) ||
-          first.id.localeCompare(second.id),
-      );
+  async listEvents(principal: UserPrincipal): Promise<EventResource[]> {
+    return withReadAuthorization(
+      this.#database,
+      async (transaction, authorization) => {
+        const reader = new EventPlanningObjectService({
+          database: transaction,
+          authorization,
+        });
+        const candidates = await transaction
+          .select({ id: objects.id })
+          .from(objects)
+          .where(
+            and(
+              eq(objects.workspaceId, principal.workspaceId),
+              eq(objects.objectType, "event"),
+              eq(objects.permissionScopeId, objects.id),
+              isNull(objects.deletedAt),
+            ),
+          );
+
+        const visibleEvents = await Promise.all(
+          candidates.map(async ({ id }) => {
+            try {
+              return await reader.getEvent(principal, id);
+            } catch (error) {
+              if (error instanceof AuthorizationDeniedError) {
+                return null;
+              }
+              throw error;
+            }
+          }),
+        );
+
+        return visibleEvents
+          .filter((event): event is EventResource => event !== null)
+          .sort(
+            (first, second) =>
+              (first.startsAt?.getTime() ?? Number.POSITIVE_INFINITY) -
+                (second.startsAt?.getTime() ?? Number.POSITIVE_INFINITY) ||
+              first.id.localeCompare(second.id),
+          );
+      },
+    );
   }
 
   async getEvent(
@@ -775,17 +798,22 @@ export class EventPlanningObjectService {
     objectId: string,
     action: AuthorizationAction,
   ): Promise<EventPlanningResource> {
-    await this.#authorization.assertCan(principal, action, {
-      id: objectId,
-      workspaceId: principal.workspaceId,
-    });
-    const resource = await readObjectState(
+    return withReadAuthorization(
       this.#database,
-      principal.workspaceId,
-      objectId,
+      async (transaction, authorization) => {
+        await authorization.assertCan(principal, action, {
+          id: objectId,
+          workspaceId: principal.workspaceId,
+        });
+        const resource = await readObjectState(
+          transaction,
+          principal.workspaceId,
+          objectId,
+        );
+        if (resource.deletedAt !== null) throw new AuthorizationDeniedError();
+        return resource;
+      },
     );
-    if (resource.deletedAt !== null) throw new AuthorizationDeniedError();
-    return resource;
   }
 
   #requireType<Type extends EventPlanningResource["objectType"]>(
