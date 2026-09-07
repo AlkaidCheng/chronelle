@@ -1,11 +1,10 @@
 import assert from "node:assert/strict";
-import { execFile } from "node:child_process";
 import { createHash, randomUUID } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { request as httpRequest } from "node:http";
-import { promisify } from "node:util";
+import { composeArguments, runDocker } from "./container-process.mjs";
+import { checkRecovery } from "./check-recovery.mjs";
 
-const execute = promisify(execFile);
 const project = `chronelle-check-${randomUUID()}`;
 const environment = {
   ...process.env,
@@ -16,26 +15,9 @@ const environment = {
   RUNTIME_DATABASE_PASSWORD: randomUUID(),
   WEB_PORT: "0",
 };
-const composeArgs = [
-  "compose",
-  "--env-file",
-  "/dev/null",
-  "--file",
-  "infrastructure/compose.preview.yaml",
-  "--project-name",
-  project,
-];
+const composeArgs = composeArguments(project);
 async function docker(...args) {
-  try {
-    const { stdout } = await execute("docker", args, {
-      env: environment,
-      timeout: 180_000,
-      maxBuffer: 2 * 1024 * 1024,
-    });
-    return stdout.trim();
-  } catch (error) {
-    throw new Error(error.stderr?.trim() || `Docker ${args[0]} failed.`);
-  }
+  return (await runDocker(environment, args)).toString("utf8").trim();
 }
 const compose = (...args) => docker(...composeArgs, ...args);
 const inspect = async (id) => JSON.parse(await docker("inspect", id))[0];
@@ -124,7 +106,7 @@ try {
   const bindings = containers.web.NetworkSettings.Ports["3000/tcp"];
   assert.equal(bindings.length, 1);
   assert.equal(bindings[0].HostIp, "127.0.0.1");
-  const base = `http://127.0.0.1:${bindings[0].HostPort}`;
+  let base = `http://127.0.0.1:${bindings[0].HostPort}`;
   const request = async (path, options = {}, status = 200) => {
     const response = await fetch(new URL(path, base), {
       ...options,
@@ -265,29 +247,32 @@ try {
   assert.equal(detail.expenses[0].id, resources[1].resource.id);
   assert.equal(detail.reminders[0].id, resources[2].resource.id);
   const bytes = Buffer.from("Private runtime attachment");
-  const issued = await json(
-    "/api/documents/upload-url",
-    {
-      parentObjectId: event.id,
-      originalFilename: "private.txt",
-      mimeType: "text/plain",
-      sizeBytes: bytes.length,
-      checksumSha256: createHash("sha256").update(bytes).digest("hex"),
-    },
-    headers,
-    201,
-  );
-  await request(
-    issued.upload.url,
-    { method: "PUT", body: bytes, headers: issued.upload.headers },
-    204,
-  );
-  const attachment = await json(
-    "/api/documents",
-    { uploadAuthorizationId: issued.id },
-    headers,
-    201,
-  );
+  const upload = async (content, filename) => {
+    const issued = await json(
+      "/api/documents/upload-url",
+      {
+        parentObjectId: event.id,
+        originalFilename: filename,
+        mimeType: "application/octet-stream",
+        sizeBytes: content.length,
+        checksumSha256: createHash("sha256").update(content).digest("hex"),
+      },
+      headers,
+      201,
+    );
+    await request(
+      issued.upload.url,
+      { method: "PUT", body: content, headers: issued.upload.headers },
+      204,
+    );
+    return json(
+      "/api/documents",
+      { uploadAuthorizationId: issued.id },
+      headers,
+      201,
+    );
+  };
+  const attachment = await upload(bytes, "private.txt");
   const downloadPath = `/api/documents/${attachment.document.id}/download-url`;
   await request(downloadPath, {}, 401);
   const stranger = await json("/api/auth/development/sign-in", {
@@ -347,6 +332,41 @@ try {
     "Sign-in, canonical writes, private transfers, and restart persistence passed.",
   );
 
+  await request(`/api/events/${event.id}`, {
+    method: "PATCH",
+    headers: { ...headers, "content-type": "application/json" },
+    body: JSON.stringify({
+      expectedVersion: event.version,
+      displayName: "Recovery check",
+    }),
+  });
+  await json(
+    "/api/shares",
+    {
+      resourceId: event.id,
+      principalEmail: "unrelated@example.test",
+      role: "viewer",
+    },
+    headers,
+    201,
+  );
+  const trashedBytes = Buffer.from([...Array(256).keys(), 0, 10, 32]);
+  const trashedAttachment = await upload(trashedBytes, "recoverable.bin");
+  const trashedId = trashedAttachment.document.id;
+  const trashed = await (
+    await request(
+      `/api/objects/${trashedId}?expectedVersion=${trashedAttachment.document.version}`,
+      { method: "DELETE", headers },
+    )
+  ).json();
+  const revisionPath = `/api/objects/${event.id}/revisions`;
+  const expectedHistory = await (
+    await request(revisionPath, { headers })
+  ).json();
+  const expectedEvent = await (
+    await request(`/api/events/${event.id}`, { headers })
+  ).json();
+
   const body = JSON.stringify({
     displayName: "Request completed during shutdown",
   });
@@ -400,6 +420,106 @@ try {
   console.log(
     "Private networking, health, read-only code, and graceful shutdown passed.",
   );
+  await checkRecovery(environment, containers, async (restoredBase) => {
+    base = restoredBase;
+    await request(`/api/events/${event.id}`, { headers }, 401);
+    const restoredSession = await json(
+      "/api/auth/development/sign-in",
+      identity,
+    );
+    assert.equal(restoredSession.user.id, signIn.user.id);
+    assert.equal(restoredSession.workspace.id, signIn.workspace.id);
+    headers = { authorization: `Bearer ${restoredSession.accessToken}` };
+    assert.deepEqual(
+      await (await request(`/api/events/${event.id}`, { headers })).json(),
+      expectedEvent,
+    );
+    assert.deepEqual(
+      await (await request(revisionPath, { headers })).json(),
+      expectedHistory,
+    );
+
+    const outsider = await json("/api/auth/development/sign-in", {
+      email: "outsider@example.test",
+      displayName: "Unrelated planner",
+    });
+    const outsiderHeaders = {
+      authorization: `Bearer ${outsider.accessToken}`,
+      "x-workspace-id": signIn.workspace.id,
+    };
+    await request(`/api/events/${event.id}`, { headers: outsiderHeaders }, 404);
+    await request(downloadPath, { headers: outsiderHeaders }, 404);
+    const viewer = await json("/api/auth/development/sign-in", {
+      email: "unrelated@example.test",
+      displayName: "Viewer",
+    });
+    const viewerHeaders = {
+      authorization: `Bearer ${viewer.accessToken}`,
+      "x-workspace-id": signIn.workspace.id,
+    };
+    await request(`/api/events/${event.id}`, { headers: viewerHeaders });
+    await request(
+      `/api/events/${event.id}`,
+      {
+        method: "PATCH",
+        headers: { ...viewerHeaders, "content-type": "application/json" },
+        body: JSON.stringify({
+          expectedVersion: expectedEvent.version,
+          displayName: "Forbidden",
+        }),
+      },
+      404,
+    );
+    const liveDownload = await (
+      await request(downloadPath, { headers: viewerHeaders })
+    ).json();
+    assert.deepEqual(
+      Buffer.from(
+        await (await request(liveDownload.download.url)).arrayBuffer(),
+      ),
+      bytes,
+    );
+    const trashPage = await (await request("/api/trash", { headers })).json();
+    assert(trashPage.items.some((entry) => entry.id === trashedId));
+    const trashedDownloadPath = `/api/documents/${trashedId}/download-url`;
+    await request(trashedDownloadPath, { headers }, 404);
+    await request(
+      `/api/objects/${trashedId}/recover`,
+      {
+        method: "POST",
+        headers: { ...viewerHeaders, "content-type": "application/json" },
+        body: JSON.stringify({ expectedVersion: trashed.version }),
+      },
+      404,
+    );
+    const recovered = await json(
+      `/api/objects/${trashedId}/recover`,
+      { expectedVersion: trashed.version },
+      headers,
+    );
+    assert.equal(recovered.id, trashedId);
+    assert.equal(recovered.version, trashed.version + 1);
+    const recoveredDownload = await (
+      await request(trashedDownloadPath, { headers })
+    ).json();
+    assert.deepEqual(
+      Buffer.from(
+        await (await request(recoveredDownload.download.url)).arrayBuffer(),
+      ),
+      trashedBytes,
+    );
+    const restoredEvent = await json(
+      `/api/objects/${event.id}/revisions/1/restore`,
+      { expectedVersion: expectedEvent.version },
+      headers,
+    );
+    assert.equal(restoredEvent.id, event.id);
+    assert.equal(restoredEvent.displayName, event.displayName);
+    assert.equal(restoredEvent.version, expectedEvent.version + 1);
+    console.log(
+      "Restored identities, history, grants, private downloads, and trash recovery passed.",
+    );
+  });
 } finally {
   if (projectStarted) {
     await compose("down", "--volumes", "--remove-orphans", "--timeout", "10");
