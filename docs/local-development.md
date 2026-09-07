@@ -126,7 +126,10 @@ scope. Standalone creation and independent linking are also supported. See
 
 The Search view uses `GET /api/search`. Search responses contain only active
 objects in the selected workspace that pass the central View decision. Use the
-object-type selector to exercise the structured filter.
+object-type selector to exercise the structured filter. With more than 20
+matches, select **Load more results** to request another visible page. The
+count shows loaded canonical objects, not a workspace total. Changing search
+filters starts a separate query; reloading the page discards pagination state.
 
 ## Services
 

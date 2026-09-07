@@ -22,7 +22,7 @@ reversible trash/link actions are not yet implemented.
 - TanStack Query and TanStack Table for server state and planning tables
 - Fastify and Zod for the typed REST API boundary
 - PostgreSQL with immutable SQL migrations and Drizzle query mappings
-- PostgreSQL full-text search with per-result authorization
+- PostgreSQL full-text search with authorization before cursor pagination
 - Provider-neutral private storage with a safe local filesystem adapter
 - pnpm workspaces in a modular monorepo
 - Vitest, Playwright, Biome, Prettier, and container builds in CI
@@ -248,8 +248,9 @@ attachments across an API restart, and audit request IDs.
 
 - Development authentication is in-memory and is not a production identity
   provider.
-- Search covers canonical display names and one object-type filter within a
-  500-candidate window; pagination and richer filters are deferred.
+- Search covers canonical display names and one object-type filter with
+  visibility-aware cursor pagination. Richer filters and pagination for Event,
+  relation, and recovery collections remain deferred.
 - PostgreSQL RLS is deferred until the runtime uses a separate least-privilege
   database role and transaction-local workspace context. Application
   authorization and workspace constraints remain mandatory.

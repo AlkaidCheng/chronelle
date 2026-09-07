@@ -165,9 +165,13 @@ response to avoid existence leaks.
 
 Search stores no second object representation. Results contain the canonical
 ID, type, display name, permission scope, version, and update time read from
-`objects`. The V1A query supports a name phrase, one optional object-type
-filter, and a bounded result count. It intentionally omits totals because a
-count before authorization could reveal protected matches.
+`objects`. The query supports a name phrase, one optional object-type filter,
+and visibility-aware keyset pagination. The authorization evaluator supplies a
+SQL predicate using the same role expressions, action policy, and evaluation
+instant as individual and batched reads. PostgreSQL filters active authorized
+objects before sorting and fetching at most the page limit plus one. Search
+has no fixed private-candidate cutoff and returns no totals. See
+[the search contract](api.md#search) for cursor behavior and consistency limits.
 
 React components do not contain authorization or domain business logic.
 
