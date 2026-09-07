@@ -97,6 +97,13 @@ test("compares and restores history while preserving an open draft", async ({
         document.documentElement.clientWidth,
     ),
   ).toBe(true);
+  const trigger = page.getByRole("button", { name: `History for ${original}` });
+  await trigger.click();
+  await expect(dialog).toBeVisible();
+  await trigger.evaluate((element) => element.remove());
+  await page.keyboard.press("Escape");
+  await expect(dialog).not.toBeVisible();
+  await expect(page.locator("#workspace-content")).toBeFocused();
   await page.reload();
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(original);
   expect(errors).toEqual([]);

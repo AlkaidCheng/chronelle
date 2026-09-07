@@ -1,7 +1,7 @@
 "use client";
 
-import { type ReactNode, useEffect, useId, useRef } from "react";
-import { useAuthSession } from "../../lib/auth-session";
+import { type ReactNode, useId } from "react";
+import { useSessionDialog } from "../../lib/use-session-dialog";
 
 export function RecoveryDialog({
   title,
@@ -12,28 +12,8 @@ export function RecoveryDialog({
   readonly onClose: () => void;
   readonly children: ReactNode;
 }) {
-  const dialog = useRef<HTMLDialogElement>(null);
+  const dialog = useSessionDialog(onClose);
   const heading = useId();
-  const { credential } = useAuthSession();
-  const identity = useRef(credential);
-  useEffect(() => {
-    const element = dialog.current;
-    const trigger = document.activeElement;
-    element?.showModal();
-    return () => {
-      element?.close();
-      if (trigger instanceof HTMLElement && trigger.isConnected)
-        trigger.focus();
-      else document.getElementById("workspace-content")?.focus();
-    };
-  }, []);
-  useEffect(() => {
-    if (
-      credential?.workspaceId !== identity.current?.workspaceId ||
-      credential?.accessToken !== identity.current?.accessToken
-    )
-      onClose();
-  }, [credential, onClose]);
   return (
     <dialog
       ref={dialog}

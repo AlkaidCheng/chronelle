@@ -360,6 +360,11 @@ Object recovery advances the existing object and revision ledger; independent
 link recovery advances only the relation generation and audit. Both use the
 workspace security fence. The browser presents version-pinned confirmation
 dialogs separately from content restoration. See [Recovery](recovery.md).
+History and recovery share a native-dialog lifecycle hook. Opening captures
+the trigger; closing returns focus to that trigger or to the workspace content
+when the trigger was removed. Both dialogs close when the access token or
+workspace changes. Their content, labels, and cancel actions remain local to
+each feature; this client lifecycle does not replace backend authorization.
 The Event/Task Undo/Redo API is implemented; editor controls and lifecycle/link
 inverses remain planned.
 
