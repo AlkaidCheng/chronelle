@@ -238,7 +238,7 @@ describe.sequential("Trash and recovery", () => {
           headers: headers(collaborator, owner.workspace.id),
         })
       ).json(),
-    ).toEqual({ items: [], nextBeforeId: null });
+    ).toEqual({ items: [], nextCursor: null });
     expect((await recover(owner, event.id)).statusCode).toBe(200);
     expect(
       (await recover(collaborator, privateTask.id, 2, owner.workspace.id))
@@ -417,7 +417,7 @@ describe.sequential("Trash and recovery", () => {
             headers: headers(collaborator, owner.workspace.id),
           })
         ).json(),
-      ).toEqual({ items: [], nextBeforeId: null });
+      ).toEqual({ items: [], nextCursor: null });
       expect(
         (await recover(collaborator, event.id, 2, owner.workspace.id))
           .statusCode,
@@ -455,7 +455,7 @@ describe.sequential("Trash and recovery", () => {
     const two = trashListResponseSchema.parse(
       (
         await app.inject({
-          url: `/api/trash?objectType=task&scopeId=${event.id}&limit=1&beforeId=${one.nextBeforeId}`,
+          url: `/api/trash?objectType=task&scopeId=${event.id}&limit=1&cursor=${one.nextCursor}`,
           headers: headers(owner),
         })
       ).json(),
@@ -463,7 +463,30 @@ describe.sequential("Trash and recovery", () => {
     expect(
       new Set([...one.items, ...two.items].map((item) => item.id)).size,
     ).toBe(2);
-    expect(two.nextBeforeId).toBeNull();
+    expect(two.nextCursor).toBeNull();
+    for (const query of [
+      `cursor=${one.nextCursor}`,
+      `objectType=event&scopeId=${event.id}&cursor=${one.nextCursor}`,
+      `objectType=task&scopeId=${first.id}&cursor=${one.nextCursor}`,
+      "cursor=e30",
+      "cursor=bad!",
+      `beforeId=${first.id}`,
+    ]) {
+      expect(
+        (
+          await app.inject({
+            url: `/api/trash?${query}`,
+            headers: headers(owner),
+          })
+        ).statusCode,
+      ).toBe(400);
+    }
+    const foreignCursor = await app.inject({
+      url: `/api/trash?objectType=task&scopeId=${event.id}&cursor=${one.nextCursor}`,
+      headers: headers(stranger),
+    });
+    expect(foreignCursor.statusCode).toBe(400);
+    expect(foreignCursor.body).not.toContain(first.displayName);
     expect((await recover(stranger, first.id)).statusCode).toBe(404);
     expect(
       (

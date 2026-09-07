@@ -71,9 +71,16 @@ already authorized in that snapshot may finish during a concurrent revocation;
 mutations reauthorize after acquiring the workspace lock. Administrative and
 future membership writers must follow the same lock protocol.
 
-Trash accepts `limit` (1-100, default 20) and `beforeId`; return `nextBeforeId`
-unchanged as the next request's cursor. It also supports `objectType` and exact
-`scopeId` filters.
+Trash accepts `limit` (1-100, default 20), `cursor`, `objectType`, and exact
+`scopeId` filters. Return `nextCursor` unchanged to continue, or stop when it is
+null. The opaque cursor belongs to one user, workspace, object type, and scope
+filter. Start a fresh first page when that context changes; page size may change
+between requests. Malformed or mismatched cursors return 400. Tokens convey no
+permission: each page evaluates current Owner membership and direct/inherited
+grants, including their expiry, before SQL LIMIT. Revocation can produce an empty
+terminal page. There are two service statements (snapshot setup and selection),
+and at most `limit + 1` authorized rows are read into the application. Database
+filtering work is not constant-time.
 
 Removed links accept `limit` (1-50, default 20), optional `relationType`, and
 `cursor`; return `nextCursor` unchanged to continue. The opaque cursor is bound
@@ -89,16 +96,18 @@ this does not guarantee constant-time queries or constant database reads.
 Both lists sort by descending sortable ID (creation order), not deletion time.
 Requests do not share a frozen snapshot: permission changes or recovery can
 remove entries between pages. Refresh to see newly removed links above an earlier
-cursor. The Removed links panel supports filtering, loading more, and refreshing;
-changing filters cancels pending retrieval and starts at the first page.
+cursor. Trash and Removed links support filtering, loading more, and refreshing;
+changing filters cancels pending retrieval and starts at the first page. Inactive
+filter pages are discarded; identity/workspace changes use the existing isolated
+session cache. Continuation errors retain loaded entries and offer refresh.
 
 ## Deployment
 
-Removed-link pagination replaces `beforeId`/`nextBeforeId` with
-`cursor`/`nextCursor` and lowers its maximum page size from 100 to 50. Deploy the
-API, typed client, and web together; old query keys are rejected rather than
-ignored. No database migration is needed for this pagination change. Trash's
-contract is unchanged.
+Both recovery lists use `cursor`/`nextCursor`; clients using
+`beforeId`/`nextBeforeId` must migrate. Trash keeps its maximum page size of 100;
+Removed links allows at most 50. Deploy or roll back the API, typed client, and
+web together; old query keys are rejected rather than ignored. No database
+migration is needed for these pagination contracts.
 
 Stop all old API writers, apply `0008_add_trash_recovery.sql` with
 `pnpm db:migrate`, and deploy API and web together. It adds relation versions,

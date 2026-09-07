@@ -15,7 +15,7 @@ export const relationDeletionQuerySchema = z
 export const trashQuerySchema = z
   .object({
     limit: z.coerce.number().int().min(1).max(100).default(20),
-    beforeId: z.uuid().optional(),
+    cursor: cursorTokenSchema.optional(),
     objectType: z
       .enum(["event", "task", "expense", "reminder", "document"])
       .optional(),
@@ -36,7 +36,13 @@ export const trashItemSchema = z.object({
 });
 export const trashListResponseSchema = z.object({
   items: z.array(trashItemSchema),
-  nextBeforeId: z.uuid().nullable(),
+  nextCursor: cursorTokenSchema.nullable(),
+});
+/** Internal position only; current recovery permission is checked per page. */
+export const trashCursorSchema = z.strictObject({
+  formatVersion: z.literal(1),
+  context: z.string().regex(/^[a-f0-9]{64}$/),
+  id: z.uuid(),
 });
 export const recoveryPreviewSchema = z.object({
   object: trashItemSchema,

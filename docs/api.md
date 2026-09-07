@@ -206,9 +206,20 @@ if (page.nextBeforeVersion !== null) {
 | GET    | `/api/objects/:id/removed-relations`  | List authorized removed incoming/outgoing links     |
 | POST   | `/api/relations/:id/recover`          | Recover a link with `expectedVersion`               |
 
-Trash responses use `items` and `nextBeforeId`; send the latter as `beforeId`
-to continue. Trash additionally accepts exact `scopeId` and `limit` (1-100,
-default 20).
+Trash responses use `items` and `nextCursor`; send the latter as `cursor` to
+continue until it is null. Requests accept `objectType`, exact `scopeId`, and
+`limit` (1-100, default 20). Cursors belong to one user, workspace, object-type
+filter, and scope filter. Every page checks current recovery permission before
+limiting results. Malformed or mismatched cursors return 400; the former
+`beforeId` query key is rejected. Deploy API, client, and web together.
+
+```typescript
+const options = { objectType: "task", scopeId: eventId, limit: 20 } as const;
+const firstTrashPage = await client.listTrash(options);
+if (firstTrashPage.nextCursor !== null) {
+  await client.listTrash({ ...options, cursor: firstTrashPage.nextCursor });
+}
+```
 
 Removed-link responses use `items` and `nextCursor`. Requests accept `limit`
 (1-50, default 20), optional `relationType`, and `cursor`. Cursors belong to one
