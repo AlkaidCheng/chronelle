@@ -170,7 +170,7 @@ describe.sequential("Trash and recovery", () => {
     });
     expect(first.statusCode).toBe(200);
     const second = await app.inject({
-      url: `/api/objects/${event.id}/removed-relations?limit=1&beforeId=${first.json().nextBeforeId}`,
+      url: `/api/objects/${event.id}/removed-relations?limit=1&cursor=${first.json().nextCursor}`,
       headers: headers(collaborator, owner.workspace.id),
     });
     expect(
@@ -179,7 +179,27 @@ describe.sequential("Trash and recovery", () => {
         second.json().items[0].relation.id,
       ].sort(),
     ).toEqual([outgoing.id, incoming.id].sort());
-    expect(second.json().nextBeforeId).toBeNull();
+    expect(second.json().nextCursor).toBeNull();
+    const filtered = await app.inject({
+      url: `/api/objects/${event.id}/removed-relations?relationType=includes&limit=1`,
+      headers: headers(collaborator, owner.workspace.id),
+    });
+    expect(filtered.statusCode).toBe(200);
+    expect(filtered.json().items).toHaveLength(1);
+    for (const query of [
+      "limit=51",
+      "cursor=bad!",
+      "cursor=e30",
+      "relationType=unknown",
+      `beforeId=${outgoing.id}`,
+      `relationType=includes&cursor=${first.json().nextCursor}`,
+    ]) {
+      const response = await app.inject({
+        url: `/api/objects/${event.id}/removed-relations?${query}`,
+        headers: headers(collaborator, owner.workspace.id),
+      });
+      expect(response.statusCode).toBe(400);
+    }
     expect(first.body + second.body).not.toContain(privateTask.id);
     expect(first.body + second.body).not.toContain(privateTask.displayName);
     expect(

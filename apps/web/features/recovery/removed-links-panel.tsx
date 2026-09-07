@@ -1,7 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import type { RemovedRelationListResponse } from "@chronelle/schemas";
+import {
+  relationTypeSchema,
+  type RemovedRelationListResponse,
+} from "@chronelle/schemas";
 import {
   EmptyState,
   ErrorNotice,
@@ -16,11 +19,21 @@ import { RecoveryDialog } from "./recovery-dialog";
 type RemovedLink = RemovedRelationListResponse["items"][number];
 
 export function RemovedLinksPanel({ objectId }: { readonly objectId: string }) {
-  const removed = useRemovedRelations(objectId);
+  const [relationType, setRelationType] = useState("");
+  const removed = useRemovedRelations(objectId, {
+    relationType:
+      relationType === "" ? undefined : relationTypeSchema.parse(relationType),
+  });
   const [selected, setSelected] = useState<RemovedLink | null>(null);
   const [confirmed, setConfirmed] = useState(false);
   const recover = useRecoverRelation();
-  const items = removed.data?.pages.flatMap((page) => page.items) ?? [];
+  const items = [
+    ...new Map(
+      removed.data?.pages
+        .flatMap((page) => page.items)
+        .map((item) => [item.relation.id, item]) ?? [],
+    ).values(),
+  ];
   function close() {
     setSelected(null);
     setConfirmed(false);
@@ -38,6 +51,36 @@ export function RemovedLinksPanel({ objectId }: { readonly objectId: string }) {
           </p>
         </div>
       </header>
+      <div className="panel-heading">
+        <label className="field">
+          <span>Link type</span>
+          <select
+            value={relationType}
+            onChange={(event) => {
+              setRelationType(event.target.value);
+              close();
+            }}
+          >
+            <option value="">All link types</option>
+            {relationTypeSchema.options.map((type) => (
+              <option key={type} value={type}>
+                {type.replaceAll("_", " ")}
+              </option>
+            ))}
+          </select>
+        </label>
+        <button
+          className="button button-secondary"
+          type="button"
+          disabled={removed.isFetching}
+          onClick={() => {
+            close();
+            void removed.refetch();
+          }}
+        >
+          Refresh links
+        </button>
+      </div>
       {removed.isPending ? (
         <LoadingState label="Loading removed links" />
       ) : null}
@@ -78,10 +121,12 @@ export function RemovedLinksPanel({ objectId }: { readonly objectId: string }) {
         <button
           className="button button-secondary"
           type="button"
-          disabled={removed.isFetchingNextPage}
+          disabled={removed.isFetching}
           onClick={() => void removed.fetchNextPage()}
         >
-          Load more removed links
+          {removed.isFetchingNextPage
+            ? "Loading links..."
+            : "Load more removed links"}
         </button>
       ) : null}
       {selected === null ? null : (

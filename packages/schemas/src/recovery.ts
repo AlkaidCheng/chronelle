@@ -1,5 +1,7 @@
 import { z } from "zod";
 import { relationResponseSchema } from "./event-planning.js";
+import { cursorTokenSchema } from "./pagination.js";
+import { relationTypeSchema } from "./relation-list.js";
 
 const versionSchema = z.number().int().positive().max(2_147_483_647);
 export const recoveryRequestSchema = z
@@ -20,9 +22,10 @@ export const trashQuerySchema = z
     scopeId: z.uuid().optional(),
   })
   .strict();
-export const removedRelationQuerySchema = trashQuerySchema.pick({
-  limit: true,
-  beforeId: true,
+export const removedRelationQuerySchema = z.strictObject({
+  limit: z.coerce.number().int().min(1).max(50).default(20),
+  cursor: cursorTokenSchema.optional(),
+  relationType: relationTypeSchema.optional(),
 });
 export const trashItemSchema = z.object({
   id: z.uuid(),
@@ -48,7 +51,7 @@ export const removedRelationListResponseSchema = z.object({
       targetDisplayName: z.string(),
     }),
   ),
-  nextBeforeId: z.uuid().nullable(),
+  nextCursor: cursorTokenSchema.nullable(),
 });
 export type RecoveryRequest = z.infer<typeof recoveryRequestSchema>;
 export type TrashQuery = z.output<typeof trashQuerySchema>;

@@ -1,5 +1,9 @@
 import { resolve } from "node:path";
-import { AuthorizationDeniedError } from "@chronelle/authorization";
+import * as schema from "@chronelle/db";
+import {
+  AuthorizationDeniedError,
+  AuthorizationService,
+} from "@chronelle/authorization";
 import {
   createId,
   events,
@@ -16,7 +20,8 @@ import {
   type TestDatabase,
 } from "@chronelle/db/testing";
 import { eq, inArray } from "drizzle-orm";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { drizzle } from "drizzle-orm/postgres-js";
+import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { decodeCursor, encodeCursor } from "../src/cursor.js";
 import { InvalidObjectStateError } from "../src/errors.js";
 import { ObjectRelationService } from "../src/relation-service.js";
@@ -343,5 +348,254 @@ describe.sequential("active relation pagination", () => {
     await expect(reader.listForObject(principal, rootId)).rejects.toThrow(
       AuthorizationDeniedError,
     );
+  });
+});
+
+async function removedFixture(count = 25, hiddenCount = 550) {
+  const result = await fixture(count, hiddenCount);
+  const db = database.connection.db;
+  const active = await result.reader.listForObject(
+    result.owner,
+    result.rootId,
+    { limit: 1 },
+  );
+  await db
+    .update(resourceGrants)
+    .set({ role: "editor" })
+    .where(eq(resourceGrants.id, result.grantId));
+  await db
+    .update(objectRelations)
+    .set({ deletedAt: new Date(), version: 2 })
+    .where(eq(objectRelations.workspaceId, result.principal.workspaceId));
+  return { ...result, activeCursor: active.nextCursor };
+}
+
+describe.sequential("removed relation pagination", () => {
+  it("returns no entries or cursor for an entirely inaccessible history", async () => {
+    const { reader, principal, rootId } = await removedFixture(0, 550);
+    expect(await reader.listRemoved(principal, rootId, { limit: 20 })).toEqual({
+      items: [],
+      nextCursor: null,
+    });
+  });
+
+  it("does not hydrate inaccessible history to fill a page", async () => {
+    const { principal, rootId, visible } = await removedFixture(2, 550);
+    const queries: { sql: string; params: unknown[] }[] = [];
+    const reader = new ObjectRelationService(
+      drizzle(database.connection.sql, {
+        schema,
+        logger: {
+          logQuery: (sql, params) => {
+            queries.push({ sql, params });
+          },
+        },
+      }),
+    );
+    const permissionReads = vi.spyOn(
+      AuthorizationService.prototype,
+      "allowedActionsMany",
+    );
+    try {
+      const page = await reader.listRemoved(principal, rootId, { limit: 1 });
+      expect(page.items.map(({ relation }) => relation.id)).toEqual([
+        visible[0]?.id,
+      ]);
+      expect(permissionReads.mock.calls.length).toBeLessThanOrEqual(1);
+      // Snapshot configuration, parent permission, and one authorized page.
+      expect(queries).toHaveLength(3);
+      expect(queries.at(-1)?.sql).toContain("inner join lateral");
+      expect(queries.at(-1)?.params.at(-1)).toBe(2);
+    } finally {
+      permissionReads.mockRestore();
+    }
+  });
+
+  it("walks visible pages and applies type filters before limiting results", async () => {
+    const { reader, principal, rootId, visible, hidden } =
+      await removedFixture();
+    for (const relationType of [undefined, "includes", "related_to"] as const) {
+      const found: string[] = [];
+      let cursor: string | undefined;
+      do {
+        const page = await reader.listRemoved(principal, rootId, {
+          limit: 7,
+          relationType,
+          cursor,
+        });
+        expect(page.items.length).toBeGreaterThan(0);
+        expect(page.items.length).toBeLessThanOrEqual(7);
+        expect(Object.keys(page).sort()).toEqual(["items", "nextCursor"]);
+        const serialized = JSON.stringify(page);
+        expect(serialized).not.toContain("Private link");
+        expect(hidden.some(({ id }) => serialized.includes(id))).toBe(false);
+        found.push(...page.items.map(({ relation }) => relation.id));
+        cursor = page.nextCursor ?? undefined;
+      } while (cursor !== undefined && found.length < 30);
+      expect(found).toEqual(
+        visible
+          .filter(
+            (link) =>
+              relationType === undefined || link.relationType === relationType,
+          )
+          .map(({ id }) => id),
+      );
+      expect(cursor).toBeUndefined();
+    }
+  });
+
+  it("rechecks edit permission on incoming sources and view permission on targets", async () => {
+    const { reader, principal, rootId, visible, grantId, owner } =
+      await removedFixture(4, 0);
+    const db = database.connection.db;
+    const first = await reader.listRemoved(principal, rootId, { limit: 1 });
+    await db
+      .update(resourceGrants)
+      .set({ role: "viewer" })
+      .where(eq(resourceGrants.id, grantId));
+    expect(
+      (
+        await reader.listRemoved(principal, rootId, {
+          limit: 20,
+          cursor: first.nextCursor ?? undefined,
+        })
+      ).items,
+    ).toEqual([]);
+    const incoming = visible.find(
+      (link) =>
+        link.targetObjectId === rootId &&
+        link.id !== first.items[0]?.relation.id,
+    );
+    if (!incoming) throw new Error("Expected an incoming link");
+    const id = createId();
+    await db.insert(resourceGrants).values({
+      id,
+      workspaceId: principal.workspaceId,
+      resourceId: incoming.sourceObjectId,
+      principalId: principal.userId,
+      grantedBy: owner.userId,
+      role: "editor",
+    });
+    const page = await reader.listRemoved(principal, rootId, { limit: 20 });
+    expect(page.items.map(({ relation }) => relation.id)).toEqual([
+      incoming.id,
+    ]);
+    await db
+      .update(resourceGrants)
+      .set({ createdAt: new Date(0), expiresAt: new Date(1) })
+      .where(eq(resourceGrants.id, id));
+    expect(
+      (await reader.listRemoved(principal, rootId, { limit: 20 })).items,
+    ).toEqual([]);
+    await db
+      .update(objects)
+      .set({ deletedAt: new Date() })
+      .where(eq(objects.id, rootId));
+    await expect(
+      reader.listRemoved(principal, rootId, { limit: 20 }),
+    ).rejects.toThrow(AuthorizationDeniedError);
+  });
+
+  it("hides stopped inheritance and deleted endpoints without leaking names", async () => {
+    const { reader, principal, rootId, visible } = await removedFixture(4, 0);
+    const db = database.connection.db;
+    const ids = visible.map((link) =>
+      link.sourceObjectId === rootId
+        ? link.targetObjectId
+        : link.sourceObjectId,
+    );
+    const [stopped, deleted] = ids;
+    if (!stopped || !deleted) throw new Error("Expected endpoints");
+    await db
+      .update(objects)
+      .set({ permissionScopeId: stopped, displayName: "Private endpoint" })
+      .where(eq(objects.id, stopped));
+    await db
+      .update(objects)
+      .set({ deletedAt: new Date(), displayName: "Deleted endpoint" })
+      .where(eq(objects.id, deleted));
+    const page = await reader.listRemoved(principal, rootId, { limit: 20 });
+    expect(page.items.map(({ relation }) => relation.id)).toEqual(
+      visible.slice(2).map(({ id }) => id),
+    );
+    expect(JSON.stringify(page)).not.toMatch(
+      /Private endpoint|Deleted endpoint/,
+    );
+  });
+
+  it("continues past a recovered boundary without changing canonical objects", async () => {
+    const { reader, owner, rootId, visible } = await removedFixture(3, 0);
+    const first = await reader.listRemoved(owner, rootId, { limit: 1 });
+    const boundary = first.items[0]?.relation;
+    if (!boundary) throw new Error("Expected boundary");
+    await reader.recover(
+      { principal: owner, requestId: createId() },
+      boundary.id,
+      boundary.version,
+    );
+    const rest = await reader.listRemoved(owner, rootId, {
+      limit: 20,
+      cursor: first.nextCursor ?? undefined,
+    });
+    expect(rest.items.map(({ relation }) => relation.id)).toEqual(
+      visible.slice(1).map(({ id }) => id),
+    );
+    expect(rest.nextCursor).toBeNull();
+    const endpoints = await database.connection.db
+      .select()
+      .from(objects)
+      .where(
+        inArray(objects.id, [boundary.sourceObjectId, boundary.targetObjectId]),
+      );
+    expect(
+      endpoints.every(
+        (object) => object.deletedAt === null && object.version === 1,
+      ),
+    ).toBe(true);
+  });
+
+  it("binds positions to identity, object, collection and filter without granting access", async () => {
+    const { reader, owner, principal, rootId, ids, activeCursor, grantId } =
+      await removedFixture(3, 0);
+    const page = await reader.listRemoved(principal, rootId, { limit: 1 });
+    if (!page.nextCursor || !activeCursor || !ids[0])
+      throw new Error("Expected cursors");
+    const cursor = page.nextCursor;
+    for (const [actor, objectId, relationType] of [
+      [owner, rootId, undefined],
+      [{ ...principal, workspaceId: createId() }, rootId, undefined],
+      [principal, ids[0], undefined],
+      [principal, rootId, "includes"],
+    ] as const) {
+      await expect(
+        reader.listRemoved(actor, objectId, {
+          limit: 20,
+          cursor,
+          relationType,
+        }),
+      ).rejects.toThrow(InvalidObjectStateError);
+    }
+    const decoded = decodeCursor(cursor) as Record<string, unknown>;
+    for (const token of [
+      "a",
+      "e30",
+      activeCursor,
+      encodeCursor({ ...decoded, formatVersion: 2 }),
+      encodeCursor({ ...decoded, id: "bad" }),
+      encodeCursor({ ...decoded, extra: true }),
+    ]) {
+      await expect(
+        reader.listRemoved(principal, rootId, { limit: 20, cursor: token }),
+      ).rejects.toThrow(InvalidObjectStateError);
+    }
+    await database.connection.db
+      .delete(resourceGrants)
+      .where(eq(resourceGrants.id, grantId));
+    await expect(
+      reader.listRemoved(principal, rootId, {
+        limit: 20,
+        cursor: encodeCursor({ ...decoded, id: createId() }),
+      }),
+    ).rejects.toThrow(AuthorizationDeniedError);
   });
 });

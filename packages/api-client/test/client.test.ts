@@ -424,6 +424,32 @@ describe("ChronelleApiClient", () => {
       expect(sentHeaders.get("x-workspace-id")).toBe(event.workspaceId);
     }
   });
+  it("forwards removed-link filters, cursors and cancellation", async () => {
+    const fetch = vi
+      .fn<typeof globalThis.fetch>()
+      .mockResolvedValue(Response.json({ items: [], nextCursor: "next_page" }));
+    const controller = new AbortController();
+    const client = new ChronelleApiClient({
+      fetch,
+      getCredential: () => ({
+        accessToken: "test-session",
+        workspaceId: event.workspaceId,
+      }),
+    });
+    const page = await client
+      .withSignal(controller.signal)
+      .listRemovedRelations(event.id, {
+        limit: 2,
+        relationType: "includes",
+        cursor: "current_page",
+      });
+    expect(page.nextCursor).toBe("next_page");
+    expect(fetch.mock.calls[0]?.[0]).toBe(
+      `/api/objects/${event.id}/removed-relations?limit=2&relationType=includes&cursor=current_page`,
+    );
+    controller.abort();
+    expect(fetch.mock.calls[0]?.[1]?.signal?.aborted).toBe(true);
+  });
   it("sends versioned deletion and recovery requests without duplicating object data", async () => {
     const fetch = vi
       .fn<typeof globalThis.fetch>()
