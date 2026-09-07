@@ -150,6 +150,126 @@ function afterAuthorization(
 }
 
 describe.sequential("authorized read snapshots", () => {
+  it("validates active relation pages and binds cursors at the HTTP boundary", async () => {
+    const { owner, reader, event } = await fixture();
+    const links = [];
+    for (let index = 0; index < 3; index++) {
+      const child = await create(owner, "events", {
+        permissionScopeId: event.id,
+      });
+      const response = await app.inject({
+        method: "POST",
+        url: `/api/objects/${event.id}/relations`,
+        headers: headers(owner),
+        payload: { relationType: "includes", targetObjectId: child.id },
+      });
+      expect(response.statusCode).toBe(201);
+      links.push(relationResponseSchema.parse(response.json()));
+    }
+    const url = `/api/objects/${event.id}/relations`;
+    const first = await app.inject({
+      method: "GET",
+      url: `${url}?limit=1`,
+      headers: headers(owner),
+    });
+    expect(first.statusCode).toBe(200);
+    const cursor = first.json().nextCursor;
+    expect(cursor).toEqual(expect.any(String));
+    expect(first.json().items).toHaveLength(1);
+    const next = await app.inject({
+      method: "GET",
+      url: `${url}?cursor=${cursor}`,
+      headers: headers(owner),
+    });
+    expect(next.statusCode).toBe(200);
+    expect(next.json().items.map(({ id }: { id: string }) => id)).toEqual(
+      links
+        .slice(0, 2)
+        .reverse()
+        .map(({ id }) => id),
+    );
+    expect(next.json().nextCursor).toBeNull();
+    for (const query of [
+      "limit=0",
+      "limit=51",
+      "direction=sideways",
+      "relationType=anything",
+      "otherObjectId=bad",
+      "cursor=a",
+      "cursor=e30",
+      "cursor=a=",
+      `cursor=${"a".repeat(4097)}`,
+      `cursor=${cursor}&direction=outgoing`,
+    ]) {
+      const response = await app.inject({
+        method: "GET",
+        url: `${url}?${query}`,
+        headers: headers(owner),
+      });
+      expect(response.statusCode, query).toBe(400);
+    }
+    expect(
+      (
+        await app.inject({
+          method: "GET",
+          url: `${url}?cursor=${cursor}`,
+          headers: headers(reader, owner.workspace.id),
+        })
+      ).statusCode,
+    ).toBe(400);
+    const oldest = links[0];
+    if (!oldest) throw new Error("Expected an inclusion");
+    const exact = await app.inject({
+      method: "GET",
+      headers: headers(reader, owner.workspace.id),
+      url: `${url}?direction=outgoing&relationType=includes&otherObjectId=${oldest.targetObjectId}&limit=1`,
+    });
+    expect(exact.json()).toMatchObject({
+      items: [{ id: oldest.id }],
+      nextCursor: null,
+    });
+  });
+
+  it("does not authorize a private endpoint using a grant added after the snapshot", async () => {
+    const { owner, reader, event } = await fixture();
+    const child = await create(owner);
+    const linked = await app.inject({
+      method: "POST",
+      url: `/api/objects/${child.id}/relations`,
+      headers: headers(owner),
+      payload: {
+        relationType: "related_to",
+        targetObjectId: event.id,
+        metadata: { note: "Private note" },
+      },
+    });
+    const relation = relationResponseSchema.parse(linked.json());
+    const assertInterleaved = afterAuthorization(
+      reader.user.id,
+      event.id,
+      async () => {
+        await database.connection.db
+          .update(objectRelations)
+          .set({ metadata: { note: "Shared note" }, version: 2 })
+          .where(eq(objectRelations.id, relation.id));
+        await share(owner, child.id);
+      },
+    );
+    const request = {
+      method: "GET" as const,
+      url: `/api/objects/${event.id}/relations?direction=incoming`,
+      headers: headers(reader, owner.workspace.id),
+    };
+    const first = await app.inject(request);
+    assertInterleaved();
+    expect(first.statusCode).toBe(200);
+    expect(first.json()).toEqual({ items: [], nextCursor: null });
+    const next = await app.inject(request);
+    expect(next.json().items).toMatchObject([
+      { id: relation.id, metadata: { note: "Shared note" } },
+    ]);
+  });
+
   it("validates Event collection options and cursor contexts at the HTTP boundary", async () => {
     const { owner, reader, event } = await fixture();
     await create(owner, "events", { displayName: "Shared second event" });

@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { cursorTokenSchema } from "./pagination.js";
+import { relationTypeSchema } from "./relation-list.js";
 
 const jsonObjectSchema = z.record(z.string(), z.unknown());
 const objectIdSchema = z.uuid();
@@ -23,12 +24,6 @@ const reminderStatusSchema = z.enum([
   "triggered",
   "dismissed",
   "cancelled",
-]);
-const relationTypeSchema = z.enum([
-  "includes",
-  "reminds_about",
-  "attached_to",
-  "related_to",
 ]);
 
 const createObjectShape = {
@@ -240,6 +235,7 @@ export const relationResponseSchema = z.object({
 
 export const relationListResponseSchema = z.object({
   items: z.array(relationResponseSchema),
+  nextCursor: cursorTokenSchema.nullable(),
 });
 
 export const relationDeletionResponseSchema = z.object({
