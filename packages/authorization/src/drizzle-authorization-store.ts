@@ -7,15 +7,18 @@ import {
   type Role,
 } from "@chronelle/db";
 import { and, eq, gt, inArray, isNull, or } from "drizzle-orm";
+import { alias } from "drizzle-orm/pg-core";
 import { recoveryAccessPredicate } from "./recovery-policy.js";
 
 import type {
   AccessibleWorkspaceQuery,
   AuthorizationStore,
-  ResourceRoleQuery,
+  ResourceRolesQuery,
   WorkspaceAccessQuery,
   WorkspaceRoleQuery,
 } from "./authorization.js";
+
+const maximumBatchSize = 1000;
 
 export class DrizzleAuthorizationStore implements AuthorizationStore {
   readonly #database: Database | DatabaseTransaction;
@@ -24,93 +27,109 @@ export class DrizzleAuthorizationStore implements AuthorizationStore {
     this.#database = database;
   }
 
-  async findRecoveryRole(query: ResourceRoleQuery): Promise<"owner" | null> {
-    const [resource] = await this.#database
-      .select({ id: objects.id })
-      .from(objects)
-      .where(
-        and(
-          eq(objects.id, query.resource.id),
-          recoveryAccessPredicate(
-            {
-              type: "user",
-              userId: query.userId,
-              workspaceId: query.resource.workspaceId,
-            },
-            query.evaluatedAt,
+  async findRecoverableResourceIds(
+    query: ResourceRolesQuery,
+  ): Promise<ReadonlySet<string>> {
+    const ids = new Set<string>();
+    for (
+      let start = 0;
+      start < query.resourceIds.length;
+      start += maximumBatchSize
+    ) {
+      const resources = await this.#database
+        .select({ id: objects.id })
+        .from(objects)
+        .where(
+          and(
+            inArray(
+              objects.id,
+              query.resourceIds.slice(start, start + maximumBatchSize),
+            ),
+            recoveryAccessPredicate(
+              {
+                type: "user",
+                userId: query.userId,
+                workspaceId: query.workspaceId,
+              },
+              query.evaluatedAt,
+            ),
           ),
-        ),
-      )
-      .limit(1);
-    return resource === undefined ? null : "owner";
+        );
+      for (const resource of resources) ids.add(resource.id);
+    }
+    return ids;
   }
 
   async findResourceRoles(
-    query: ResourceRoleQuery,
-  ): Promise<readonly Role[] | null> {
-    const [resource] = await this.#database
-      .select({
-        id: objects.id,
-        permissionScopeId: objects.permissionScopeId,
-      })
-      .from(objects)
-      .where(
-        and(
-          eq(objects.workspaceId, query.resource.workspaceId),
-          eq(objects.id, query.resource.id),
-          isNull(objects.deletedAt),
-        ),
-      )
-      .limit(1);
-
-    if (resource === undefined) {
-      return null;
-    }
-
-    const scopeIds =
-      resource.permissionScopeId === resource.id
-        ? [resource.id]
-        : [resource.id, resource.permissionScopeId];
-    const [memberships, grants] = await Promise.all([
-      this.#database
-        .select({ role: workspaceMembers.role })
-        .from(workspaceMembers)
-        .where(
+    query: ResourceRolesQuery,
+  ): Promise<ReadonlyMap<string, readonly Role[]>> {
+    const scope = alias(objects, "permission_scope");
+    const direct = alias(resourceGrants, "direct_grant");
+    const inherited = alias(resourceGrants, "scope_grant");
+    const activeGrant = (grant: typeof direct | typeof inherited) =>
+      and(
+        eq(grant.workspaceId, query.workspaceId),
+        eq(grant.principalType, "user"),
+        eq(grant.principalId, query.userId),
+        or(isNull(grant.expiresAt), gt(grant.expiresAt, query.evaluatedAt)),
+      );
+    const roles = new Map<string, readonly Role[]>();
+    for (
+      let start = 0;
+      start < query.resourceIds.length;
+      start += maximumBatchSize
+    ) {
+      const rows = await this.#database
+        .select({
+          id: objects.id,
+          membership: workspaceMembers.role,
+          direct: direct.role,
+          inherited: inherited.role,
+        })
+        .from(objects)
+        .leftJoin(
+          workspaceMembers,
           and(
-            eq(workspaceMembers.workspaceId, query.resource.workspaceId),
+            eq(workspaceMembers.workspaceId, objects.workspaceId),
             eq(workspaceMembers.userId, query.userId),
           ),
         )
-        .limit(1),
-      this.#database
-        .select({ role: resourceGrants.role })
-        .from(resourceGrants)
-        .innerJoin(
-          objects,
+        .leftJoin(
+          scope,
           and(
-            eq(objects.workspaceId, resourceGrants.workspaceId),
-            eq(objects.id, resourceGrants.resourceId),
+            eq(scope.workspaceId, objects.workspaceId),
+            eq(scope.id, objects.permissionScopeId),
+            isNull(scope.deletedAt),
           ),
+        )
+        .leftJoin(
+          direct,
+          and(activeGrant(direct), eq(direct.resourceId, objects.id)),
+        )
+        .leftJoin(
+          inherited,
+          and(activeGrant(inherited), eq(inherited.resourceId, scope.id)),
         )
         .where(
           and(
-            eq(resourceGrants.workspaceId, query.resource.workspaceId),
-            eq(resourceGrants.principalType, "user"),
-            eq(resourceGrants.principalId, query.userId),
-            inArray(resourceGrants.resourceId, scopeIds),
-            or(
-              isNull(resourceGrants.expiresAt),
-              gt(resourceGrants.expiresAt, query.evaluatedAt),
+            eq(objects.workspaceId, query.workspaceId),
+            inArray(
+              objects.id,
+              query.resourceIds.slice(start, start + maximumBatchSize),
             ),
             isNull(objects.deletedAt),
           ),
-        ),
-    ]);
-
-    return [
-      ...memberships.map(({ role }) => role),
-      ...grants.map(({ role }) => role),
-    ];
+        );
+      for (const row of rows) {
+        roles.set(
+          row.id,
+          [row.membership, row.direct, row.inherited].filter(
+            (role): role is Role => role !== null,
+          ),
+        );
+      }
+    }
+    return roles;
   }
 
   async hasWorkspaceAccess(query: WorkspaceAccessQuery): Promise<boolean> {

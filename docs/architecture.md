@@ -104,6 +104,15 @@ for expiry, workspace resolution, and in-flight read semantics. The implementati
 uses PostgreSQL's [repeatable-read isolation](https://www.postgresql.org/docs/17/transaction-iso.html#XACT-REPEATABLE-READ);
 it does not copy permission policy into projections or controllers.
 
+Collection reads use the authorization package's `canMany()` and
+`allowedActionsMany()` methods. Single-resource checks delegate to the same
+implementation. The database store batches role lookup, while object-model owns
+batched typed-state loading through `listVisibleObjects()` and `readObjectStates()`.
+No controller, projection, or React component implements role precedence.
+Statements handle at most 1,000 IDs at a time and share the owning snapshot;
+there is no cross-request permission cache. See
+[Authorization performance](authorization-performance.md) for query budgets.
+
 `ObjectRestorationService` owns typed comparison, preview, and content
 restoration. Its allowlist preserves security state and immutable typed facts.
 The authorization package owns a workspace transaction boundary shared by

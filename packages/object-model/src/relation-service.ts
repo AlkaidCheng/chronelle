@@ -173,16 +173,18 @@ export class ObjectRelationService {
             ),
           );
 
-        const visibility = await Promise.all(
+        const visibility = await authorization.canMany(
+          principal,
+          "view",
           relations.map((relation) => {
             const otherObjectId =
               relation.sourceObjectId === objectId
                 ? relation.targetObjectId
                 : relation.sourceObjectId;
-            return authorization.can(principal, "view", {
+            return {
               id: otherObjectId,
               workspaceId: principal.workspaceId,
-            });
+            };
           }),
         );
         return relations.filter((_, index) => visibility[index]);
@@ -271,16 +273,19 @@ export class ObjectRelationService {
             )
             .orderBy(desc(objectRelations.id))
             .limit(100);
-          for (const candidate of candidates) {
+          const actions = await authorization.allowedActionsMany(
+            principal,
+            candidates
+              .flatMap(({ relation }) => [
+                relation.sourceObjectId,
+                relation.targetObjectId,
+              ])
+              .map((id) => ({ id, workspaceId: principal.workspaceId })),
+          );
+          for (const [index, candidate] of candidates.entries()) {
             if (
-              (await authorization.can(principal, "edit", {
-                id: candidate.relation.sourceObjectId,
-                workspaceId: principal.workspaceId,
-              })) &&
-              (await authorization.can(principal, "view", {
-                id: candidate.relation.targetObjectId,
-                workspaceId: principal.workspaceId,
-              }))
+              actions[index * 2]?.includes("edit") &&
+              actions[index * 2 + 1]?.includes("view")
             )
               visible.push(candidate);
             if (visible.length > input.limit) break;

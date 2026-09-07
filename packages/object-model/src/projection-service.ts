@@ -1,7 +1,4 @@
-import {
-  AuthorizationDeniedError,
-  withReadAuthorization,
-} from "@chronelle/authorization";
+import { withReadAuthorization } from "@chronelle/authorization";
 import type { UserPrincipal } from "@chronelle/authorization";
 import {
   objectRelations,
@@ -333,24 +330,10 @@ export class EventPlanningProjectionService {
     readonly lockedRelationCount: number;
     readonly resources: EventPlanningResource[];
   }> {
-    const resources = await Promise.all(
-      objectIds.map(async (objectId) => {
-        try {
-          return await reader.getObject(principal, objectId);
-        } catch (error) {
-          if (error instanceof AuthorizationDeniedError) {
-            return null;
-          }
-          throw error;
-        }
-      }),
-    );
-    const visibleResources = resources.filter(
-      (resource): resource is EventPlanningResource => resource !== null,
-    );
+    const resources = await reader.listVisibleObjects(principal, objectIds);
     return {
-      resources: visibleResources,
-      lockedRelationCount: resources.length - visibleResources.length,
+      resources,
+      lockedRelationCount: objectIds.length - resources.length,
     };
   }
 }

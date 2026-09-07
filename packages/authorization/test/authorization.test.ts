@@ -33,12 +33,86 @@ describe("roleAllows", () => {
 });
 
 describe("AuthorizationService", () => {
+  it("preserves input order while deduplicating same-workspace policy reads", async () => {
+    const evaluatedAt = new Date("2030-01-01T00:00:00Z");
+    const clock = vi.fn(() => evaluatedAt);
+    const store: AuthorizationStore = {
+      findRecoverableResourceIds: vi
+        .fn()
+        .mockResolvedValue(new Set([resource.id])),
+      findResourceRoles: vi
+        .fn()
+        .mockResolvedValue(new Map([[resource.id, ["viewer"]]])),
+      findWorkspaceRole: vi.fn(),
+      hasWorkspaceAccess: vi.fn(),
+      listAccessibleWorkspaceIds: vi.fn(),
+    };
+    const policy = new AuthorizationService(store, clock);
+    const missing = { ...resource, id: "00000000-0000-7000-8000-000000000005" };
+    const foreign = { ...resource, workspaceId: "other" };
+    const resources = [foreign, resource, missing, resource];
+    expect(await policy.canMany(principal, "view", resources)).toEqual([
+      false,
+      true,
+      false,
+      true,
+    ]);
+    expect(clock).toHaveBeenCalledTimes(1);
+    expect(store.findResourceRoles).toHaveBeenCalledExactlyOnceWith({
+      evaluatedAt,
+      resourceIds: [resource.id, missing.id],
+      userId: principal.userId,
+      workspaceId: principal.workspaceId,
+    });
+    expect(await policy.canMany(principal, "recover", resources)).toEqual([
+      false,
+      true,
+      false,
+      true,
+    ]);
+    expect(store.findRecoverableResourceIds).toHaveBeenCalledExactlyOnceWith({
+      evaluatedAt,
+      resourceIds: [resource.id, missing.id],
+      userId: principal.userId,
+      workspaceId: principal.workspaceId,
+    });
+    vi.clearAllMocks();
+    expect(await policy.canMany(principal, "view", [])).toEqual([]);
+    expect(await policy.canMany(principal, "recover", [foreign])).toEqual([
+      false,
+    ]);
+    expect(await policy.allowedActionsMany(principal, [foreign])).toEqual([[]]);
+    expect(store.findResourceRoles).not.toHaveBeenCalled();
+    expect(store.findRecoverableResourceIds).not.toHaveBeenCalled();
+    expect(clock).not.toHaveBeenCalled();
+  });
+
+  it("propagates a failed policy read without returning partial decisions", async () => {
+    const failure = new Error("Policy storage unavailable");
+    const store: AuthorizationStore = {
+      findRecoverableResourceIds: vi.fn().mockRejectedValue(failure),
+      findResourceRoles: vi.fn().mockRejectedValue(failure),
+      findWorkspaceRole: vi.fn(),
+      hasWorkspaceAccess: vi.fn(),
+      listAccessibleWorkspaceIds: vi.fn(),
+    };
+    const policy = new AuthorizationService(store);
+    await expect(policy.canMany(principal, "view", [resource])).rejects.toBe(
+      failure,
+    );
+    await expect(policy.canMany(principal, "recover", [resource])).rejects.toBe(
+      failure,
+    );
+  });
+
   it.each(["owner", "editor", "viewer", null] as const)(
     "restricts workspace inventory authority for role %s",
     async (role) => {
       const store: AuthorizationStore = {
-        findRecoveryRole: vi.fn(),
-        findResourceRoles: vi.fn().mockResolvedValue(["owner"]),
+        findRecoverableResourceIds: vi.fn(),
+        findResourceRoles: vi
+          .fn()
+          .mockResolvedValue(new Map([[resource.id, ["owner"]]])),
         findWorkspaceRole: vi.fn().mockResolvedValue(role),
         hasWorkspaceAccess: vi.fn(),
         listAccessibleWorkspaceIds: vi.fn(),
@@ -54,8 +128,10 @@ describe("AuthorizationService", () => {
   );
   it("uses the tombstone-aware Owner policy only for recovery, never for normal reads", async () => {
     const store: AuthorizationStore = {
-      findRecoveryRole: vi.fn().mockResolvedValue("owner"),
-      findResourceRoles: vi.fn().mockResolvedValue(null),
+      findRecoverableResourceIds: vi
+        .fn()
+        .mockResolvedValue(new Set([resource.id])),
+      findResourceRoles: vi.fn().mockResolvedValue(new Map()),
       findWorkspaceRole: vi.fn(),
       hasWorkspaceAccess: vi.fn(),
       listAccessibleWorkspaceIds: vi.fn(),
@@ -73,12 +149,14 @@ describe("AuthorizationService", () => {
         workspaceId: "other",
       }),
     ).resolves.toBe(false);
-    expect(store.findRecoveryRole).toHaveBeenCalledTimes(1);
+    expect(store.findRecoverableResourceIds).toHaveBeenCalledTimes(1);
   });
   it("accepts any applicable role that permits the action", async () => {
     const store: AuthorizationStore = {
-      findRecoveryRole: vi.fn().mockResolvedValue(null),
-      findResourceRoles: vi.fn().mockResolvedValue(["viewer", "editor"]),
+      findRecoverableResourceIds: vi.fn(),
+      findResourceRoles: vi
+        .fn()
+        .mockResolvedValue(new Map([[resource.id, ["viewer", "editor"]]])),
       findWorkspaceRole: vi.fn().mockResolvedValue("owner"),
       hasWorkspaceAccess: vi.fn().mockResolvedValue(true),
       listAccessibleWorkspaceIds: vi.fn().mockResolvedValue([]),
@@ -93,7 +171,7 @@ describe("AuthorizationService", () => {
   it("denies a cross-workspace reference before querying the store", async () => {
     const findResourceRoles = vi.fn();
     const store: AuthorizationStore = {
-      findRecoveryRole: vi.fn().mockResolvedValue(null),
+      findRecoverableResourceIds: vi.fn(),
       findResourceRoles,
       findWorkspaceRole: vi.fn(),
       hasWorkspaceAccess: vi.fn(),
@@ -112,8 +190,8 @@ describe("AuthorizationService", () => {
 
   it("uses one generic error for missing and unauthorized resources", async () => {
     const store: AuthorizationStore = {
-      findRecoveryRole: vi.fn().mockResolvedValue(null),
-      findResourceRoles: vi.fn().mockResolvedValue(null),
+      findRecoverableResourceIds: vi.fn(),
+      findResourceRoles: vi.fn().mockResolvedValue(new Map()),
       findWorkspaceRole: vi.fn().mockResolvedValue(null),
       hasWorkspaceAccess: vi.fn().mockResolvedValue(false),
       listAccessibleWorkspaceIds: vi.fn().mockResolvedValue([]),
@@ -132,7 +210,7 @@ describe("AuthorizationService", () => {
       .mockResolvedValueOnce("editor")
       .mockResolvedValueOnce("viewer");
     const store: AuthorizationStore = {
-      findRecoveryRole: vi.fn().mockResolvedValue(null),
+      findRecoverableResourceIds: vi.fn(),
       findResourceRoles: vi.fn(),
       findWorkspaceRole,
       hasWorkspaceAccess: vi.fn(),
@@ -153,8 +231,10 @@ describe("AuthorizationService", () => {
 
   it("returns the complete action set for the strongest applicable role", async () => {
     const store: AuthorizationStore = {
-      findRecoveryRole: vi.fn().mockResolvedValue(null),
-      findResourceRoles: vi.fn().mockResolvedValue(["viewer", "owner"]),
+      findRecoverableResourceIds: vi.fn(),
+      findResourceRoles: vi
+        .fn()
+        .mockResolvedValue(new Map([[resource.id, ["viewer", "owner"]]])),
       findWorkspaceRole: vi.fn(),
       hasWorkspaceAccess: vi.fn(),
       listAccessibleWorkspaceIds: vi.fn(),

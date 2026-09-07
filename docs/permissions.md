@@ -133,11 +133,11 @@ counts are returned, including canonical trash and history references; no object
 identities or file keys are disclosed.
 
 The Event collection is also a protected query. It selects candidates only in
-the active workspace and applies `can(principal, view, event)` to every returned
+the active workspace and applies the canonical View decision to every returned
 Event. A relationship or workspace ID alone cannot make an Event appear.
 
 Search follows the same rule. It selects only active candidates from the
-authenticated workspace, calls `can(principal, view, resource)` for each one,
+authenticated workspace, evaluates their View permissions in batches,
 and returns no total computed from unauthorized rows. Object-type filters do
 not weaken that decision. A directly shared Event and its inheriting children
 can appear; a related self-scoped object cannot.
@@ -150,6 +150,40 @@ requires Edit on its source and leaves both objects intact.
 `permission_scope_id = id` stops inheritance. Any other value selects exactly
 one object in the same workspace as the inheritance source. Relation rows are
 never consulted when evaluating access.
+
+### Batch evaluation
+
+`can()` and `canMany()` share the same policy implementation. `canMany()` returns
+one boolean per input reference, in the same order, including duplicate,
+missing, and cross-workspace references. `allowedActionsMany()` returns the
+corresponding capability arrays; deleted objects have no normal capabilities.
+Recovery uses the existing tombstone-aware Owner predicate, including grants on
+a deleted scope. It is not interchangeable with normal View access.
+
+```ts
+await withReadAuthorization(database, async (transaction, authorization) => {
+  const visible = await authorization.canMany(principal, "view", resources);
+  const actions = await authorization.allowedActionsMany(principal, resources);
+  // Retrieve visible content using transaction within this callback.
+});
+```
+
+The store joins workspace membership, direct grants, and the active canonical
+scope for at most 1,000 distinct same-workspace IDs per statement. Larger inputs
+use sequential chunks on the owning transaction. No permission decision survives
+that operation, and a failed chunk rejects the entire read. An empty or entirely
+cross-workspace input needs no policy query. Scope inheritance remains one hop;
+neither relation traversal nor recursive grant inheritance is introduced.
+
+Event lists, detail projections, attachments, search, and relation lists use
+these batch decisions. Removed-link lists evaluate both endpoint capabilities
+per candidate chunk. Candidate limits and pagination contracts are unchanged:
+search still examines at most 500 candidates before visibility filtering, and
+removed-link scans may visit multiple candidate pages. Batching does not bound
+total response size or total scan work.
+
+See [Authorization performance](authorization-performance.md) for measured
+query counts, latency, and the workload limitations.
 
 Changing a permission scope is an Owner operation and uses the object's
 optimistic version. V1 permits an object to become self-scoped or to inherit
