@@ -19,6 +19,7 @@ import {
   eventCreateRequestSchema,
   eventDetailResponseSchema,
   eventListResponseSchema,
+  eventListQuerySchema,
   eventPlanningResourceResponseSchema,
   eventResourceProjectionResponseSchema,
   eventResponseSchema,
@@ -152,9 +153,11 @@ export function registerEventPlanningRoutes(
   app.get("/api/events", { preHandler: app.authenticate }, async (request) => {
     const events = await dependencies.objects.listEvents(
       requirePrincipal(request),
+      parseRequest(eventListQuerySchema, request.query),
     );
     return eventListResponseSchema.parse({
-      items: events.map(serializeResource),
+      ...events,
+      items: events.items.map(serializeResource),
     });
   });
 

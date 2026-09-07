@@ -7,7 +7,10 @@ import {
   withReadAuthorization,
 } from "@chronelle/authorization";
 import { objectRelations, resourceGrants, workspaces } from "@chronelle/db";
-import { CanonicalObjectSearchService } from "@chronelle/object-model";
+import {
+  CanonicalObjectSearchService,
+  EventPlanningObjectService,
+} from "@chronelle/object-model";
 import {
   applyMigrations,
   createTestDatabase,
@@ -147,6 +150,66 @@ function afterAuthorization(
 }
 
 describe.sequential("authorized read snapshots", () => {
+  it("validates Event collection options and cursor contexts at the HTTP boundary", async () => {
+    const { owner, reader, event } = await fixture();
+    await create(owner, "events", { displayName: "Shared second event" });
+    const first = await app.inject({
+      method: "GET",
+      url: "/api/events?limit=1&sort=name&query=Shared",
+      headers: headers(owner),
+    });
+    expect(first.statusCode).toBe(200);
+    expect(first.json().items).toHaveLength(1);
+    const cursor = first.json().nextCursor as string;
+    expect(cursor).toEqual(expect.any(String));
+    const rest = await app.inject({
+      method: "GET",
+      url: `/api/events?limit=1&sort=name&query=Shared&cursor=${cursor}`,
+      headers: headers(owner),
+    });
+    expect(rest.statusCode).toBe(200);
+    expect(rest.json()).toMatchObject({
+      asOf: first.json().asOf,
+      nextCursor: null,
+    });
+    expect(rest.json().items[0].id).not.toBe(first.json().items[0].id);
+    for (const query of [
+      "limit=0",
+      "limit=51",
+      "limit=1.5",
+      "filter=invalid",
+      "sort=invalid",
+      `query=${"x".repeat(241)}`,
+      `cursor=${"a".repeat(4097)}`,
+      "cursor=e30",
+      `cursor=${cursor}`,
+    ]) {
+      const response = await app.inject({
+        method: "GET",
+        url: `/api/events?${query}`,
+        headers: headers(owner),
+      });
+      expect(response.statusCode, query).toBe(400);
+      expect(response.json()).toMatchObject({
+        error: { code: "invalid_request" },
+      });
+    }
+    const mismatch = await app.inject({
+      method: "GET",
+      url: `/api/events?limit=1&sort=name&query=Shared&cursor=${cursor}`,
+      headers: headers(reader, owner.workspace.id),
+    });
+    expect(mismatch.statusCode).toBe(400);
+    const visible = await app.inject({
+      method: "GET",
+      url: "/api/events?query=Shared",
+      headers: headers(reader, owner.workspace.id),
+    });
+    expect(visible.json().items.map((item: { id: string }) => item.id)).toEqual(
+      [event.id],
+    );
+    expect(visible.json().nextCursor).toBeNull();
+  });
   it("keeps access actions consistent with the visible object", async () => {
     const { owner, reader, event, grant } = await fixture();
     const assertInterleaved = afterAuthorization(reader.user.id, event.id, () =>
@@ -167,12 +230,26 @@ describe.sequential("authorized read snapshots", () => {
 
   it("keeps event collection membership and content in one snapshot", async () => {
     const { owner, reader, event, grant } = await fixture();
-    const assertInterleaved = afterAuthorization(
-      reader.user.id,
-      event.id,
-      async () => {
+    await withReadAuthorization(
+      database.connection.db,
+      async (transaction, authorization) => {
+        await transaction
+          .select({ id: workspaces.id })
+          .from(workspaces)
+          .limit(1);
         await revoke(owner, grant.id);
         await rename(owner, "events", event.id);
+        const page = await new EventPlanningObjectService({
+          database: transaction,
+          authorization,
+        }).listEvents({
+          type: "user",
+          userId: reader.user.id,
+          workspaceId: owner.workspace.id,
+        });
+        expect(page.items).toMatchObject([
+          { id: event.id, version: 1, displayName: "Shared content" },
+        ]);
       },
     );
     const response = await app.inject({
@@ -180,11 +257,11 @@ describe.sequential("authorized read snapshots", () => {
       url: "/api/events",
       headers: headers(reader, owner.workspace.id),
     });
-    assertInterleaved();
-    expect(response.statusCode).toBe(200);
-    expect(response.json().items).toMatchObject([
-      { id: event.id, version: 1, displayName: "Shared content" },
-    ]);
+    // Revoking the last grant also removes workspace selection eligibility.
+    expect(response.statusCode).toBe(404);
+    expect(response.json()).toMatchObject({
+      error: { code: "workspace_unavailable" },
+    });
   });
 
   it("keeps attachment traversal in the parent's authorized snapshot", async () => {

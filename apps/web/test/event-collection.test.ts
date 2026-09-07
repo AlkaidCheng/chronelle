@@ -4,7 +4,7 @@ import type {
   TaskResponse,
 } from "@chronelle/schemas";
 import { describe, expect, it } from "vitest";
-import { eventPeriod, selectEvents } from "../lib/event-collection";
+import { eventPeriod } from "../lib/event-collection";
 import { nextPlanningItem } from "../lib/upcoming-plan";
 
 const now = Date.parse("2026-09-06T12:00:00.000Z");
@@ -37,59 +37,6 @@ const task: TaskResponse = {
 };
 
 describe("event collection", () => {
-  it("preserves canonical identities and source order while filtering and sorting", () => {
-    const undated = {
-      ...event,
-      id: "undated",
-      displayName: "An idea",
-      startsAt: null,
-    };
-    const past = {
-      ...event,
-      id: "past",
-      displayName: "Garden lunch",
-      startsAt: "2026-09-01T12:00:00.000Z",
-    };
-    const source = [event, undated, past];
-    const selected = selectEvents(source, {
-      query: " GARDEN ",
-      filter: "all",
-      sort: "date",
-      now,
-    });
-    expect(selected).toEqual([past, event]);
-    expect(selected[1]).toBe(event);
-    expect(source).toEqual([event, undated, past]);
-    expect(
-      selectEvents(source, {
-        query: "",
-        filter: "unscheduled",
-        sort: "date",
-        now,
-      }),
-    ).toEqual([undated]);
-    expect(
-      selectEvents(source, {
-        query: "missing",
-        filter: "all",
-        sort: "name",
-        now,
-      }),
-    ).toEqual([]);
-    expect(
-      selectEvents(source, { query: "", filter: "all", sort: "name", now })[0],
-    ).toBe(undated);
-    const edited = { ...past, updatedAt: "2026-09-08T12:00:00.000Z" };
-    expect(
-      selectEvents([event, edited], {
-        query: "",
-        filter: "all",
-        sort: "updated",
-        now,
-      })[0],
-    ).toBe(edited);
-  });
-
   it("includes ongoing events and the exact time boundary", () => {
     expect(
       eventPeriod(
