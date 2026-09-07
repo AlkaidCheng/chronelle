@@ -33,6 +33,7 @@ import type { EventView } from "./event-views";
 export const queryKeys = {
   events: ["events"] as const,
   event: (eventId: string) => ["event", eventId] as const,
+  eventResource: (eventId: string) => ["event", eventId, "resource"] as const,
   detail: (eventId: string) => ["event", eventId, "detail"] as const,
   todos: (eventId: string) => ["event", eventId, "todos"] as const,
   calendar: (eventId: string) => ["event", eventId, "calendar"] as const,
@@ -146,14 +147,23 @@ export function useObjectSearch(
 
 export function useEventWorkspaceQueries(
   eventId: string,
-  activeView: EventView,
+  activeView: EventView | null,
 ) {
   const client = useApiClient();
   const { credential } = useAuthSession();
+  const event = useQuery({
+    enabled: credential !== null,
+    queryFn: ({ signal }) => client.withSignal(signal).getEvent(eventId),
+    queryKey: queryKeys.eventResource(eventId),
+  });
   const results = useQueries({
     queries: [
       {
-        enabled: credential !== null,
+        enabled:
+          credential !== null &&
+          (activeView === "overview" ||
+            activeView === "files" ||
+            activeView === "sharing"),
         queryFn: ({ signal }) =>
           client.withSignal(signal).getEventDetail(eventId),
         queryKey: queryKeys.detail(eventId),
@@ -204,6 +214,7 @@ export function useEventWorkspaceQueries(
   });
 
   return {
+    event,
     calendar: results[2],
     detail: results[0],
     expenses: results[5],

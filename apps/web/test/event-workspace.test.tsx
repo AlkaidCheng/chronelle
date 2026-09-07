@@ -90,6 +90,50 @@ describe("EventWorkspace", () => {
     window.sessionStorage.clear();
   });
 
+  it.each([
+    "todos",
+    "calendar",
+    "timeline",
+    "itinerary",
+    "expenses",
+    "reminders",
+  ])(
+    "opens a focused %s deep link without loading event detail",
+    async (view) => {
+      window.history.replaceState(null, "", `/events/plan?view=${view}`);
+      const fetch = vi.fn<typeof globalThis.fetch>(async (input) => {
+        const path = requestPath(input);
+        if (path === `/api/events/${eventId}`) return jsonResponse(rootEvent);
+        if (path.endsWith("/access"))
+          return jsonResponse({
+            resourceId: eventId,
+            actions: ["view", "edit"],
+          });
+        if (path === `/api/events/${eventId}/${view}`)
+          return jsonResponse({ sourceEventId: eventId, items: [] });
+        return jsonResponse(
+          { error: { code: "not_found", message: "Unexpected request" } },
+          404,
+        );
+      });
+      vi.stubGlobal("fetch", fetch);
+      render(<EventWorkspace eventId={eventId} />, { wrapper: Providers });
+      expect(
+        await screen.findByRole("heading", { name: rootEvent.displayName }),
+      ).toBeVisible();
+      await waitFor(() =>
+        expect(
+          fetch.mock.calls.map(([input]) => requestPath(input)).sort(),
+        ).toEqual([
+          `/api/events/${eventId}`,
+          `/api/events/${eventId}/${view}`,
+          `/api/objects/${eventId}/access`,
+        ]),
+      );
+      expect(screen.queryByRole("alert")).toBeNull();
+    },
+  );
+
   it.each([false, true])(
     "shows exact expense rows and separate currency totals (mixed: %s)",
     async (mixed) => {
@@ -110,6 +154,7 @@ describe("EventWorkspace", () => {
         "fetch",
         vi.fn<typeof globalThis.fetch>(async (input) => {
           const path = requestPath(input);
+          if (path === `/api/events/${eventId}`) return jsonResponse(rootEvent);
           if (path.endsWith("/detail"))
             return jsonResponse({
               event: rootEvent,
@@ -159,11 +204,48 @@ describe("EventWorkspace", () => {
     },
   );
 
+  it("keeps the event editor and navigation available when event detail fails", async () => {
+    window.history.replaceState(null, "", "/events/plan?view=calendar");
+    const fetch = vi.fn<typeof globalThis.fetch>(async (input) => {
+      const path = requestPath(input);
+      if (path === `/api/events/${eventId}`) return jsonResponse(rootEvent);
+      if (path.endsWith("/access"))
+        return jsonResponse({ resourceId: eventId, actions: ["view", "edit"] });
+      if (path.endsWith("/calendar"))
+        return jsonResponse({ sourceEventId: eventId, items: [] });
+      return jsonResponse(
+        {
+          error: {
+            code: "service_unavailable",
+            message: "Overview unavailable",
+          },
+        },
+        503,
+      );
+    });
+    vi.stubGlobal("fetch", fetch);
+    const user = userEvent.setup();
+    render(<EventWorkspace eventId={eventId} />, { wrapper: Providers });
+    await user.click(await screen.findByRole("button", { name: "Edit event" }));
+    fireEvent.change(screen.getByLabelText("Name"), {
+      target: { value: "Unsaved plan" },
+    });
+    await user.click(screen.getByRole("tab", { name: "Overview" }));
+    expect(
+      await screen.findByRole("alert", {}, { timeout: 3000 }),
+    ).toHaveTextContent("Overview unavailable");
+    expect(screen.getByLabelText("Name")).toHaveValue("Unsaved plan");
+    await user.click(screen.getByRole("tab", { name: "Calendar" }));
+    expect(screen.queryByRole("alert")).toBeNull();
+    expect(screen.getByLabelText("Name")).toHaveValue("Unsaved plan");
+  });
+
   it("keeps the event editor and navigation available when a projection fails", async () => {
     vi.stubGlobal(
       "fetch",
       vi.fn<typeof globalThis.fetch>(async (input) => {
         const path = requestPath(input);
+        if (path === `/api/events/${eventId}`) return jsonResponse(rootEvent);
         if (path.endsWith("/detail"))
           return jsonResponse({
             event: rootEvent,
@@ -212,6 +294,7 @@ describe("EventWorkspace", () => {
     let scheduledEvent: EventResponse | null = null;
     const fetch = vi.fn<typeof globalThis.fetch>(async (input, init) => {
       const path = requestPath(input);
+      if (path === `/api/events/${eventId}`) return jsonResponse(rootEvent);
       if (path === `/api/events/${eventId}/detail`) {
         return jsonResponse({
           event: rootEvent,
@@ -313,6 +396,7 @@ describe("EventWorkspace", () => {
     expect(
       fetch.mock.calls.map(([input]) => requestPath(input)).sort(),
     ).toEqual([
+      `/api/events/${eventId}`,
       `/api/events/${eventId}/detail`,
       `/api/objects/${eventId}/access`,
     ]);
@@ -355,6 +439,23 @@ describe("EventWorkspace", () => {
         expect.objectContaining({ method: "POST" }),
       );
     });
+    expect(
+      fetch.mock.calls.filter(([input]) =>
+        requestPath(input).endsWith("/detail"),
+      ),
+    ).toHaveLength(1);
+    await user.click(screen.getByRole("tab", { name: "Overview" }));
+    await screen.findByText("Your event, connected.");
+    await waitFor(() =>
+      expect(
+        fetch.mock.calls.filter(([input]) =>
+          requestPath(input).endsWith("/detail"),
+        ),
+      ).toHaveLength(2),
+    );
+    expect(
+      screen.getByRole("button", { name: /Scheduled items/ }),
+    ).toHaveTextContent("1");
   });
 
   it("renders a shared Event as read-only without leaking private relations", async () => {
@@ -375,6 +476,7 @@ describe("EventWorkspace", () => {
     } as const;
     const fetch = vi.fn<typeof globalThis.fetch>(async (input) => {
       const path = requestPath(input);
+      if (path === `/api/events/${eventId}`) return jsonResponse(rootEvent);
       if (path === `/api/events/${eventId}/detail`) {
         return jsonResponse({
           event: rootEvent,
@@ -493,6 +595,7 @@ describe("EventWorkspace", () => {
     let attachments = [documentAttachment];
     const fetch = vi.fn<typeof globalThis.fetch>(async (input, init) => {
       const path = requestPath(input);
+      if (path === `/api/events/${eventId}`) return jsonResponse(rootEvent);
       if (path === `/api/events/${eventId}/detail`) {
         return jsonResponse({
           event: rootEvent,
@@ -590,6 +693,7 @@ describe("EventWorkspace", () => {
     let shares: unknown[] = [];
     const fetch = vi.fn<typeof globalThis.fetch>(async (input, init) => {
       const path = requestPath(input);
+      if (path === `/api/events/${eventId}`) return jsonResponse(rootEvent);
       if (path === `/api/events/${eventId}/detail`) {
         return jsonResponse({
           event: rootEvent,
