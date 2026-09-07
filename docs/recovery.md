@@ -71,15 +71,34 @@ already authorized in that snapshot may finish during a concurrent revocation;
 mutations reauthorize after acquiring the workspace lock. Administrative and
 future membership writers must follow the same lock protocol.
 
-Both list APIs accept `limit` (1–100, default 20) and `beforeId`; return
-`nextBeforeId` unchanged as the next request's cursor. IDs sort by creation, not
-deletion time. Trash also supports `objectType` and exact `scopeId` filters.
-Removed links scan indexed batches of 100 and apply central authorization before
-returning entries. Large, mostly inaccessible link histories can require many
-checks; there is no claim of constant-time pagination. Load testing and a shared
-set-based endpoint policy are future work.
+Trash accepts `limit` (1-100, default 20) and `beforeId`; return `nextBeforeId`
+unchanged as the next request's cursor. It also supports `objectType` and exact
+`scopeId` filters.
+
+Removed links accept `limit` (1-50, default 20), optional `relationType`, and
+`cursor`; return `nextCursor` unchanged to continue. The opaque cursor is bound
+to the user, workspace, parent object, and link-type filter. Changing these
+requires a fresh first page. Malformed or mismatched cursors return 400. A cursor
+is a position, not an authorization credential: each page rechecks current
+parent View, source Edit, and target View in one snapshot. Centralized SQL
+authorization excludes inaccessible or deleted endpoints before the page limit,
+so the application reads at most `limit + 1` authorized links without repeated
+candidate batches. Database filtering work can still grow with private history;
+this does not guarantee constant-time queries or constant database reads.
+
+Both lists sort by descending sortable ID (creation order), not deletion time.
+Requests do not share a frozen snapshot: permission changes or recovery can
+remove entries between pages. Refresh to see newly removed links above an earlier
+cursor. The Removed links panel supports filtering, loading more, and refreshing;
+changing filters cancels pending retrieval and starts at the first page.
 
 ## Deployment
+
+Removed-link pagination replaces `beforeId`/`nextBeforeId` with
+`cursor`/`nextCursor` and lowers its maximum page size from 100 to 50. Deploy the
+API, typed client, and web together; old query keys are rejected rather than
+ignored. No database migration is needed for this pagination change. Trash's
+contract is unchanged.
 
 Stop all old API writers, apply `0008_add_trash_recovery.sql` with
 `pnpm db:migrate`, and deploy API and web together. It adds relation versions,

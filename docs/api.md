@@ -206,10 +206,32 @@ if (page.nextBeforeVersion !== null) {
 | GET    | `/api/objects/:id/removed-relations`  | List authorized removed incoming/outgoing links     |
 | POST   | `/api/relations/:id/recover`          | Recover a link with `expectedVersion`               |
 
-List responses use `items` and `nextBeforeId`; send the latter as `beforeId`
-to continue. Trash additionally accepts exact `scopeId`. A preview does not
-reserve a version or grant permission for a later mutation. Both recovery POST
-bodies contain only `{ expectedVersion }`.
+Trash responses use `items` and `nextBeforeId`; send the latter as `beforeId`
+to continue. Trash additionally accepts exact `scopeId` and `limit` (1-100,
+default 20).
+
+Removed-link responses use `items` and `nextCursor`. Requests accept `limit`
+(1-50, default 20), optional `relationType`, and `cursor`. Cursors belong to one
+user, workspace, parent object, and link-type filter; reuse them only with that
+same context. Each page rechecks current permissions. A malformed or mismatched
+cursor returns 400. The former `beforeId` query key is no longer accepted.
+
+```typescript
+const first = await client.listRemovedRelations(eventId, {
+  limit: 20,
+  relationType: "includes",
+});
+if (first.nextCursor !== null) {
+  const next = await client.listRemovedRelations(eventId, {
+    limit: 20,
+    relationType: "includes",
+    cursor: first.nextCursor,
+  });
+}
+```
+
+A preview does not reserve a version or grant permission for a later mutation.
+Both recovery POST bodies contain only `{ expectedVersion }`.
 See [Recovery](recovery.md) for authorization, pagination, and rollout semantics.
 
 ## Canonical objects
