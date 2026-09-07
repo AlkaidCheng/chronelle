@@ -6,7 +6,7 @@ import {
   type Database,
   type DatabaseTransaction,
 } from "@chronelle/db";
-import { and, eq, isNull } from "drizzle-orm";
+import { and, eq, inArray, isNull } from "drizzle-orm";
 
 import { EventPlanningObjectService } from "./object-service.js";
 import type {
@@ -15,11 +15,8 @@ import type {
   EventPlanningResource,
   EventResource,
   EventResourceProjection,
-  ExpenseResource,
   ExpenseResourceProjection,
-  ReminderResource,
   ReminderResourceProjection,
-  TaskResource,
   TaskResourceProjection,
   TimelineItem,
   TimelineProjection,
@@ -48,6 +45,36 @@ function isResource<Type extends EventPlanningResource["objectType"]>(
   objectType: Type,
 ): resource is Extract<EventPlanningResource, { objectType: Type }> {
   return resource.objectType === objectType;
+}
+
+type TimelineResource = Exclude<EventPlanningResource, DocumentResource>;
+function timelineItem(resource: TimelineResource): TimelineItem[] {
+  let occursAt: Date | null;
+  switch (resource.objectType) {
+    case "event":
+      occursAt = resource.startsAt;
+      break;
+    case "task":
+      occursAt = resource.dueAt;
+      break;
+    case "expense":
+      occursAt = resource.occurredAt;
+      break;
+    case "reminder":
+      occursAt = resource.remindAt;
+      break;
+  }
+  return occursAt === null
+    ? []
+    : [
+        {
+          canonicalObjectId: resource.id,
+          objectType: resource.objectType,
+          displayName: resource.displayName,
+          occursAt,
+          version: resource.version,
+        },
+      ];
 }
 
 export class EventPlanningProjectionService {
@@ -108,8 +135,10 @@ export class EventPlanningProjectionService {
     principal: UserPrincipal,
     eventId: string,
   ): Promise<TaskResourceProjection> {
-    const detail = await this.getDetail(principal, eventId);
-    const items = [...detail.tasks].sort((first, second) =>
+    const resources = await this.#getProjectionResources(principal, eventId, [
+      "task",
+    ]);
+    const items = resources.sort((first, second) =>
       compareDates(first.dueAt, second.dueAt, first.id, second.id),
     );
     return { sourceEventId: eventId, items };
@@ -119,10 +148,12 @@ export class EventPlanningProjectionService {
     principal: UserPrincipal,
     eventId: string,
   ): Promise<EventResourceProjection> {
-    const detail = await this.getDetail(principal, eventId);
+    const resources = await this.#getProjectionResources(principal, eventId, [
+      "event",
+    ]);
     return {
       sourceEventId: eventId,
-      items: this.#scheduledEvents(detail.events),
+      items: this.#scheduledEvents(resources),
     };
   }
 
@@ -130,19 +161,17 @@ export class EventPlanningProjectionService {
     principal: UserPrincipal,
     eventId: string,
   ): Promise<EventResourceProjection> {
-    const detail = await this.getDetail(principal, eventId);
-    return {
-      sourceEventId: eventId,
-      items: this.#scheduledEvents(detail.events),
-    };
+    return this.getCalendar(principal, eventId);
   }
 
   async getExpenses(
     principal: UserPrincipal,
     eventId: string,
   ): Promise<ExpenseResourceProjection> {
-    const detail = await this.getDetail(principal, eventId);
-    const items = [...detail.expenses].sort((first, second) =>
+    const resources = await this.#getProjectionResources(principal, eventId, [
+      "expense",
+    ]);
+    const items = resources.sort((first, second) =>
       compareDates(second.occurredAt, first.occurredAt, second.id, first.id),
     );
     return { sourceEventId: eventId, items };
@@ -152,8 +181,10 @@ export class EventPlanningProjectionService {
     principal: UserPrincipal,
     eventId: string,
   ): Promise<ReminderResourceProjection> {
-    const detail = await this.getDetail(principal, eventId);
-    const items = [...detail.reminders].sort((first, second) =>
+    const resources = await this.#getProjectionResources(principal, eventId, [
+      "reminder",
+    ]);
+    const items = resources.sort((first, second) =>
       compareDates(first.remindAt, second.remindAt, first.id, second.id),
     );
     return { sourceEventId: eventId, items };
@@ -163,13 +194,13 @@ export class EventPlanningProjectionService {
     principal: UserPrincipal,
     eventId: string,
   ): Promise<TimelineProjection> {
-    const detail = await this.getDetail(principal, eventId);
-    const items: TimelineItem[] = [
-      ...this.#timelineEvents(detail.events),
-      ...this.#timelineTasks(detail.tasks),
-      ...this.#timelineExpenses(detail.expenses),
-      ...this.#timelineReminders(detail.reminders),
-    ];
+    const resources = await this.#getProjectionResources(principal, eventId, [
+      "event",
+      "task",
+      "expense",
+      "reminder",
+    ]);
+    const items = resources.flatMap(timelineItem);
     items.sort((first, second) =>
       compareDates(
         first.occursAt,
@@ -192,56 +223,34 @@ export class EventPlanningProjectionService {
       );
   }
 
-  #timelineEvents(events: readonly EventResource[]): TimelineItem[] {
-    return events.flatMap((event) =>
-      event.startsAt === null
-        ? []
-        : [
-            {
-              canonicalObjectId: event.id,
-              objectType: "event" as const,
-              displayName: event.displayName,
-              occursAt: event.startsAt,
-              version: event.version,
-            },
-          ],
+  async #getProjectionResources<Type extends TimelineResource["objectType"]>(
+    principal: UserPrincipal,
+    eventId: string,
+    objectTypes: readonly Type[],
+  ): Promise<Extract<EventPlanningResource, { objectType: Type }>[]> {
+    return withReadAuthorization(
+      this.#database,
+      async (transaction, authorization) => {
+        const reader = new EventPlanningObjectService({
+          database: transaction,
+          authorization,
+        });
+        await reader.getEvent(principal, eventId);
+        const included = await this.#getIncludedResources(
+          transaction,
+          reader,
+          principal,
+          eventId,
+          objectTypes,
+        );
+        return included.resources.filter(
+          (
+            resource,
+          ): resource is Extract<EventPlanningResource, { objectType: Type }> =>
+            objectTypes.some((type) => resource.objectType === type),
+        );
+      },
     );
-  }
-
-  #timelineTasks(tasks: readonly TaskResource[]): TimelineItem[] {
-    return tasks.flatMap((task) =>
-      task.dueAt === null
-        ? []
-        : [
-            {
-              canonicalObjectId: task.id,
-              objectType: "task" as const,
-              displayName: task.displayName,
-              occursAt: task.dueAt,
-              version: task.version,
-            },
-          ],
-    );
-  }
-
-  #timelineExpenses(expenses: readonly ExpenseResource[]): TimelineItem[] {
-    return expenses.map((expense) => ({
-      canonicalObjectId: expense.id,
-      objectType: "expense",
-      displayName: expense.displayName,
-      occursAt: expense.occurredAt,
-      version: expense.version,
-    }));
-  }
-
-  #timelineReminders(reminders: readonly ReminderResource[]): TimelineItem[] {
-    return reminders.map((reminder) => ({
-      canonicalObjectId: reminder.id,
-      objectType: "reminder",
-      displayName: reminder.displayName,
-      occursAt: reminder.remindAt,
-      version: reminder.version,
-    }));
   }
 
   async #getIncludedResources(
@@ -249,6 +258,7 @@ export class EventPlanningProjectionService {
     reader: EventPlanningObjectService,
     principal: UserPrincipal,
     eventId: string,
+    objectTypes?: readonly TimelineResource["objectType"][],
   ): Promise<{
     readonly lockedRelationCount: number;
     readonly resources: EventPlanningResource[];
@@ -262,6 +272,9 @@ export class EventPlanningProjectionService {
           eq(objects.workspaceId, objectRelations.workspaceId),
           eq(objects.id, objectRelations.targetObjectId),
           isNull(objects.deletedAt),
+          objectTypes === undefined
+            ? undefined
+            : inArray(objects.objectType, [...objectTypes]),
         ),
       )
       .where(
