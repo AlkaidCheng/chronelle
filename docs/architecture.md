@@ -174,6 +174,20 @@ Deleting a relation only unlinks its endpoints; deleting an object is a
 versioned soft deletion. Unauthorized and missing resources share one public
 response to avoid existence leaks.
 
+Focused projection endpoints select active `includes` targets of the requested
+types before batched authorization and canonical-state retrieval. They do not
+traverse `attached_to` links. Calendar and itinerary share scheduled-Event
+selection; timeline maps the four dated planning types to one compact descriptor.
+All reads remain in one authorization snapshot. The full detail endpoint retains
+its document collections and generic locked-reference count.
+
+This narrows candidate retrieval, not the size of each relevant collection.
+The canonical-state reader still uses its shared typed-table joins; focused
+projections do not have a second object decoder. The web shell still requests
+full detail for overview, file, and sharing controls, then loads the selected
+projection on demand. Narrowing that initial detail dependency and paginating
+large projections are separate changes.
+
 Search stores no second object representation. Results contain the canonical
 ID, type, display name, permission scope, version, and update time read from
 `objects`. The query supports a name phrase, one optional object-type filter,

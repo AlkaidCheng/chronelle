@@ -4,6 +4,8 @@ import * as schema from "@chronelle/db";
 import {
   createId,
   events,
+  tasks,
+  documents,
   objects,
   objectRelations,
   resourceGrants,
@@ -16,9 +18,9 @@ import {
   createTestDatabase,
   type TestDatabase,
 } from "@chronelle/db/testing";
-import { eq, inArray } from "drizzle-orm";
+import { eq, inArray, or } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/postgres-js";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 
 import { EventPlanningObjectService } from "../src/object-service.js";
 import { EventPlanningProjectionService } from "../src/projection-service.js";
@@ -144,6 +146,116 @@ describe.sequential("batched canonical reads", () => {
       expect(detail.lockedRelationCount).toBe(1);
       expect(JSON.stringify(detail)).not.toContain(hiddenId);
 
+      const unrelatedIds = Array.from({ length: count }, () => createId());
+      const documentIds = Array.from({ length: count }, () => createId());
+      await db.insert(objects).values([
+        ...unrelatedIds.map((id) => ({
+          id,
+          workspaceId,
+          objectType: "task" as const,
+          permissionScopeId: rootId,
+          displayName: "Unrelated task",
+          createdBy: ownerId,
+          metadata: { note: "x".repeat(1024) },
+        })),
+        ...documentIds.map((id) => ({
+          id,
+          workspaceId,
+          objectType: "document" as const,
+          permissionScopeId: rootId,
+          displayName: "Unrelated attachment",
+          createdBy: ownerId,
+        })),
+      ]);
+      await db
+        .insert(tasks)
+        .values(unrelatedIds.map((objectId) => ({ objectId, workspaceId })));
+      await db.insert(documents).values(
+        documentIds.map((objectId) => ({
+          objectId,
+          workspaceId,
+          storageProvider: "local",
+          storageKey: objectId,
+          originalFilename: "notes.txt",
+          mimeType: "text/plain",
+          sizeBytes: 1n,
+          checksumSha256: "0".repeat(64),
+          encryptionMode: "none",
+        })),
+      );
+      await db.insert(objectRelations).values([
+        ...unrelatedIds.map((targetObjectId) => ({
+          id: createId(),
+          workspaceId,
+          sourceObjectId: rootId,
+          targetObjectId,
+          relationType: "includes" as const,
+          createdBy: ownerId,
+        })),
+        ...documentIds.map((sourceObjectId) => ({
+          id: createId(),
+          workspaceId,
+          sourceObjectId,
+          targetObjectId: rootId,
+          relationType: "attached_to" as const,
+          createdBy: ownerId,
+        })),
+      ]);
+      const hydration = vi.spyOn(
+        EventPlanningObjectService.prototype,
+        "listVisibleObjects",
+      );
+      queryCount = 0;
+      const heapBefore = process.memoryUsage().heapUsed;
+      const calendar = await projections.getCalendar(principal, rootId);
+      const heapDelta = process.memoryUsage().heapUsed - heapBefore;
+      const projectionQueries = queryCount;
+      const hydratedIds = hydration.mock.calls.flatMap((call) => [...call[1]]);
+      hydration.mockRestore();
+      console.info(
+        JSON.stringify({
+          count,
+          projectionQueries,
+          candidateIds: hydratedIds.length,
+          responseBytes: Buffer.byteLength(JSON.stringify(calendar)),
+          heapDelta,
+        }),
+      );
+      expect(calendar.items.map(({ id }) => id)).toEqual([...ids].sort());
+      expect(hydratedIds.sort()).toEqual([...ids, hiddenId].sort());
+      expect(projectionQueries).toBe(
+        4 + Math.ceil((count + 1) / 1000) + Math.ceil(count / 1000),
+      );
+      expect(await projections.getItinerary(principal, rootId)).toEqual(
+        calendar,
+      );
+      expect(
+        (await projections.getTodos(principal, rootId)).items.map(
+          ({ id }) => id,
+        ),
+      ).toEqual([...unrelatedIds].sort());
+      expect(
+        (await projections.getTimeline(principal, rootId)).items.map(
+          ({ canonicalObjectId }) => canonicalObjectId,
+        ),
+      ).toEqual([...ids].sort());
+      expect((await projections.getExpenses(principal, rootId)).items).toEqual(
+        [],
+      );
+      expect((await projections.getReminders(principal, rootId)).items).toEqual(
+        [],
+      );
+
+      await db
+        .update(objectRelations)
+        .set({ deletedAt: new Date(), version: 2 })
+        .where(
+          or(
+            inArray(objectRelations.targetObjectId, unrelatedIds),
+            inArray(objectRelations.sourceObjectId, documentIds),
+          ),
+        );
+
       queryCount = 0;
       const relations = await new ObjectRelationService(measured).listForObject(
         principal,
@@ -193,6 +305,9 @@ describe.sequential("batched canonical reads", () => {
         version: 2,
       });
       expect(await reader.listVisibleObjects(principal, ids)).toEqual([]);
+      expect((await projections.getCalendar(principal, rootId)).items).toEqual(
+        [],
+      );
       queryCount = 0;
       expect(await reader.listVisibleObjects(principal, [])).toEqual([]);
       expect(queryCount).toBe(0);
