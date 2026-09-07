@@ -3,6 +3,7 @@ import {
   recoveryRequestSchema,
   relationDeletionQuerySchema,
   trashQuerySchema,
+  trashListResponseSchema,
   removedRelationQuerySchema,
   removedRelationListResponseSchema,
 } from "../src/recovery.js";
@@ -28,10 +29,29 @@ describe("recovery contracts", () => {
   });
   it("bounds and validates filtered trash pagination", () => {
     expect(trashQuerySchema.parse({})).toEqual({ limit: 20 });
+    expect(
+      trashQuerySchema.parse({
+        limit: "100",
+        cursor: "trash_page",
+        objectType: "task",
+      }),
+    ).toEqual({ limit: 100, cursor: "trash_page", objectType: "task" });
+    expect(trashListResponseSchema.safeParse({ items: [] }).success).toBe(
+      false,
+    );
+    expect(
+      trashListResponseSchema.parse({ items: [], nextCursor: null }),
+    ).toEqual({ items: [], nextCursor: null });
     for (const input of [
       { limit: 0 },
       { limit: 101 },
-      { beforeId: "bad" },
+      { limit: 1.5 },
+      { cursor: "" },
+      { cursor: "a=" },
+      { cursor: "a".repeat(4097) },
+      { scopeId: "bad" },
+      { objectType: "flight" },
+      { beforeId: "019d6e7d-0000-7000-8000-000000000001" },
       { includeAll: true },
     ]) {
       expect(trashQuerySchema.safeParse(input).success).toBe(false);

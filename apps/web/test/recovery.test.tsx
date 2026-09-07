@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
 import {
+  act,
   cleanup,
   render,
   screen,
@@ -18,6 +19,7 @@ import {
 } from "vitest";
 import { Providers } from "../app/providers";
 import { TrashWorkspace } from "../features/recovery/trash-workspace";
+import { useAuthSession } from "../lib/auth-session";
 
 const id = "019d6e7d-0000-7000-8000-000000000001";
 const workspaceId = "019d6e7d-0000-7000-8000-000000000002";
@@ -106,7 +108,7 @@ beforeEach(() => {
       });
     }
     if (url.endsWith("/shares")) return Response.json({ items: [] });
-    return Response.json({ items: [deleted], nextBeforeId: null });
+    return Response.json({ items: [deleted], nextCursor: null });
   });
   vi.stubGlobal("fetch", fetch);
 });
@@ -200,4 +202,145 @@ it("uses typed filters in the Trash request", async () => {
       ),
     ).toBe(true),
   );
+});
+
+function entry(index: number) {
+  return {
+    ...deleted,
+    id: `019d6e7d-0000-7000-8000-${String(index).padStart(12, "0")}`,
+    displayName: `Deleted plan ${index}`,
+  };
+}
+
+it("loads cursor pages once per object and resets inactive filters", async () => {
+  fetch.mockImplementation(async (input) => {
+    const url = new URL(String(input), "http://localhost");
+    if (url.searchParams.has("objectType"))
+      return Response.json({ items: [entry(3)], nextCursor: null });
+    return Response.json(
+      url.searchParams.has("cursor")
+        ? { items: [entry(1), entry(2)], nextCursor: null }
+        : { items: [entry(1)], nextCursor: "second_page" },
+    );
+  });
+  const user = userEvent.setup();
+  render(
+    <Providers>
+      <TrashWorkspace />
+    </Providers>,
+  );
+  await screen.findByText("Deleted plan 1");
+  await user.click(
+    screen.getByRole("button", { name: "Load more deleted objects" }),
+  );
+  await screen.findByText("Deleted plan 2");
+  expect(screen.getAllByText("Deleted plan 1")).toHaveLength(1);
+  expect(
+    fetch.mock.calls.some(([url]) =>
+      String(url).includes("cursor=second_page"),
+    ),
+  ).toBe(true);
+  await user.selectOptions(screen.getByLabelText("Object type"), "event");
+  await screen.findByText("Deleted plan 3");
+  expect(screen.queryByText("Deleted plan 1")).toBeNull();
+  const filtered = fetch.mock.calls.filter(([url]) =>
+    String(url).includes("objectType=event"),
+  );
+  expect(filtered.every(([url]) => !String(url).includes("cursor="))).toBe(
+    true,
+  );
+  await user.selectOptions(screen.getByLabelText("Object type"), "");
+  await screen.findByText("Deleted plan 1");
+  expect(screen.queryByText("Deleted plan 2")).toBeNull();
+});
+
+it.each(["filter", "workspace"])(
+  "cancels a pending page when the %s changes and ignores its late result",
+  async (change) => {
+    let resolvePage: ((response: Response) => void) | undefined;
+    let signal: AbortSignal | null | undefined;
+    fetch.mockImplementation(async (input, options) => {
+      const url = new URL(String(input), "http://localhost");
+      if (url.searchParams.has("cursor")) {
+        signal = options?.signal;
+        return new Promise<Response>((resolve) => {
+          resolvePage = resolve;
+        });
+      }
+      const switched =
+        new Headers(options?.headers).get("x-workspace-id") !== workspaceId;
+      return Response.json(
+        switched || url.searchParams.has("objectType")
+          ? { items: [entry(3)], nextCursor: null }
+          : { items: [entry(1)], nextCursor: "second_page" },
+      );
+    });
+    function SwitchWorkspace() {
+      const { switchWorkspace } = useAuthSession();
+      return (
+        <button
+          type="button"
+          onClick={() =>
+            switchWorkspace("019d6e7d-0000-7000-8000-000000000004")
+          }
+        >
+          Switch workspace
+        </button>
+      );
+    }
+    const user = userEvent.setup();
+    render(
+      <Providers>
+        <SwitchWorkspace />
+        <TrashWorkspace />
+      </Providers>,
+    );
+    await screen.findByText("Deleted plan 1");
+    await user.click(
+      screen.getByRole("button", { name: "Load more deleted objects" }),
+    );
+    await waitFor(() => expect(resolvePage).toBeDefined());
+    if (change === "filter")
+      await user.selectOptions(screen.getByLabelText("Object type"), "event");
+    else
+      await user.click(
+        screen.getByRole("button", { name: "Switch workspace" }),
+      );
+    await screen.findByText("Deleted plan 3");
+    expect(signal?.aborted).toBe(true);
+    await act(async () => {
+      resolvePage?.(Response.json({ items: [entry(2)], nextCursor: null }));
+    });
+    expect(screen.queryByText("Deleted plan 2")).toBeNull();
+    expect(screen.queryByText("Deleted plan 1")).toBeNull();
+  },
+);
+
+it("retains loaded Trash on a continuation error and refreshes current access", async () => {
+  fetch.mockImplementation(async (input) =>
+    String(input).includes("cursor=")
+      ? Response.json(
+          { error: { code: "unavailable", message: "Try again." } },
+          { status: 503 },
+        )
+      : Response.json({ items: [entry(1)], nextCursor: "second_page" }),
+  );
+  const user = userEvent.setup();
+  render(
+    <Providers>
+      <TrashWorkspace />
+    </Providers>,
+  );
+  await screen.findByText("Deleted plan 1");
+  await user.click(
+    screen.getByRole("button", { name: "Load more deleted objects" }),
+  );
+  await screen.findByRole("alert", {}, { timeout: 3000 });
+  expect(screen.getByText("Deleted plan 1")).toBeVisible();
+  fetch.mockImplementation(async () =>
+    Response.json({ items: [], nextCursor: null }),
+  );
+  await user.click(screen.getByRole("button", { name: "Refresh Trash" }));
+  await screen.findByText("No recoverable objects");
+  expect(screen.queryByText("Deleted plan 1")).toBeNull();
 });

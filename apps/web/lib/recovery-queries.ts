@@ -26,19 +26,20 @@ function useRecoveryInvalidation() {
   };
 }
 
-export function useTrash(input: TrashQueryInput) {
+export function useTrash(input: Omit<TrashQueryInput, "cursor">) {
   const client = useApiClient();
   const { credential } = useAuthSession();
   return useInfiniteQuery({
     queryKey: ["trash", input],
+    gcTime: 0,
     enabled: credential !== null,
     initialPageParam: undefined as string | undefined,
     queryFn: ({ pageParam, signal }) =>
       client.withSignal(signal).listTrash({
         ...input,
-        ...(pageParam === undefined ? {} : { beforeId: pageParam }),
+        ...(pageParam === undefined ? {} : { cursor: pageParam }),
       }),
-    getNextPageParam: (page) => page.nextBeforeId ?? undefined,
+    getNextPageParam: (page) => page.nextCursor ?? undefined,
   });
 }
 

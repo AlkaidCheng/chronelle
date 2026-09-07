@@ -1,7 +1,7 @@
+import { createHash } from "node:crypto";
 import {
   AuthorizationDeniedError,
   withReadAuthorization,
-  recoveryAccessPredicate,
   withStableAuthorization,
   type UserPrincipal,
 } from "@chronelle/authorization";
@@ -10,12 +10,31 @@ import {
   type Database,
   type DatabaseTransaction,
 } from "@chronelle/db";
-import type { RecoveryRequest, TrashQuery } from "@chronelle/schemas";
+import {
+  trashCursorSchema,
+  trashQuerySchema,
+  type RecoveryRequest,
+  type TrashQueryInput,
+} from "@chronelle/schemas";
 import { and, desc, eq, isNotNull, lt, sql } from "drizzle-orm";
 import { InvalidObjectStateError, ObjectConflictError } from "./errors.js";
 import { readObjectState } from "./object-state.js";
 import { recordObjectRevision } from "./object-revisions.js";
 import type { MutationContext } from "./types.js";
+import { decodeCursor, encodeCursor } from "./cursor.js";
+
+function readPosition(token: string | undefined, context: string) {
+  if (token === undefined) return undefined;
+  try {
+    const cursor = trashCursorSchema.parse(decodeCursor(token));
+    if (cursor.context === context) return cursor;
+  } catch {
+    // Invalid encoding, shape, and context have the same public failure.
+  }
+  throw new InvalidObjectStateError(
+    "The Trash cursor is invalid for this query.",
+  );
+}
 
 const trashFields = {
   id: objects.id,
@@ -32,39 +51,56 @@ export class ObjectRecoveryService {
     this.#database = database;
   }
 
-  async list(principal: UserPrincipal, input: TrashQuery) {
-    return withReadAuthorization(this.#database, async (transaction) => {
-      const rows = await transaction
-        .select(trashFields)
-        .from(objects)
-        .where(
-          and(
-            recoveryAccessPredicate(principal, new Date()),
-            isNotNull(objects.deletedAt),
-            input.objectType === undefined
-              ? undefined
-              : eq(objects.objectType, input.objectType),
-            input.scopeId === undefined
-              ? undefined
-              : eq(objects.permissionScopeId, input.scopeId),
-            input.beforeId === undefined
-              ? undefined
-              : lt(objects.id, input.beforeId),
-          ),
-        )
-        .orderBy(desc(objects.id))
-        .limit(input.limit + 1);
-      const items = rows.slice(0, input.limit).map((row) => {
-        if (row.deletedAt === null)
-          throw new InvalidObjectStateError("Expected a deleted object.");
-        return { ...row, deletedAt: row.deletedAt.toISOString() };
-      });
-      return {
-        items,
-        nextBeforeId:
-          rows.length > input.limit ? (items.at(-1)?.id ?? null) : null,
-      };
-    });
+  async list(principal: UserPrincipal, options: TrashQueryInput = {}) {
+    const input = trashQuerySchema.parse(options);
+    const context = createHash("sha256")
+      .update(
+        JSON.stringify([
+          "trash",
+          principal.userId,
+          principal.workspaceId,
+          input.objectType ?? null,
+          input.scopeId ?? null,
+        ]),
+      )
+      .digest("hex");
+    const cursor = readPosition(input.cursor, context);
+    return withReadAuthorization(
+      this.#database,
+      async (transaction, authorization) => {
+        const rows = await transaction
+          .select(trashFields)
+          .from(objects)
+          .where(
+            and(
+              authorization.resourcePredicate(principal, "recover"),
+              isNotNull(objects.deletedAt),
+              input.objectType === undefined
+                ? undefined
+                : eq(objects.objectType, input.objectType),
+              input.scopeId === undefined
+                ? undefined
+                : eq(objects.permissionScopeId, input.scopeId),
+              cursor === undefined ? undefined : lt(objects.id, cursor.id),
+            ),
+          )
+          .orderBy(desc(objects.id))
+          .limit(input.limit + 1);
+        const items = rows.slice(0, input.limit).map((row) => {
+          if (row.deletedAt === null)
+            throw new InvalidObjectStateError("Expected a deleted object.");
+          return { ...row, deletedAt: row.deletedAt.toISOString() };
+        });
+        const last = items.at(-1);
+        return {
+          items,
+          nextCursor:
+            rows.length > input.limit && last !== undefined
+              ? encodeCursor({ formatVersion: 1, context, id: last.id })
+              : null,
+        };
+      },
+    );
   }
 
   async preview(principal: UserPrincipal, objectId: string) {

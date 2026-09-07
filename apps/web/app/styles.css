@@ -2342,7 +2342,7 @@ a.search-result:hover {
 }
 .trash-filter {
   max-width: 280px;
-  margin: 24px 0;
+  margin: 0;
 }
 .trash-list h2 {
   font-size: 1.05rem;

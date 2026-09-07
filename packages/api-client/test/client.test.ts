@@ -464,7 +464,7 @@ describe("ChronelleApiClient", () => {
         }),
       )
       .mockResolvedValueOnce(Response.json({ ...event, version: 3 }))
-      .mockResolvedValueOnce(Response.json({ items: [], nextBeforeId: null }));
+      .mockResolvedValueOnce(Response.json({ items: [], nextCursor: null }));
     const client = new ChronelleApiClient({
       fetch,
       getCredential: () => ({
@@ -478,13 +478,14 @@ describe("ChronelleApiClient", () => {
     await client.listTrash({
       objectType: "event",
       limit: 1,
-      beforeId: event.id,
+      cursor: "trash_page",
+      scopeId: event.id,
     });
     expect(fetch.mock.calls.map(([url]) => url)).toEqual([
       `/api/objects/${event.id}?expectedVersion=1`,
       `/api/relations/${relationId}?expectedVersion=3`,
       `/api/objects/${event.id}/recover`,
-      `/api/trash?objectType=event&limit=1&beforeId=${event.id}`,
+      `/api/trash?objectType=event&limit=1&cursor=trash_page&scopeId=${event.id}`,
     ]);
     expect(JSON.parse(String(fetch.mock.calls[2]?.[1]?.body))).toEqual({
       expectedVersion: 2,

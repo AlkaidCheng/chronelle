@@ -23,7 +23,13 @@ export function TrashWorkspace() {
     limit: 20,
     ...(filter === undefined ? {} : { objectType: filter }),
   });
-  const items = trash.data?.pages.flatMap((page) => page.items) ?? [];
+  const items = [
+    ...new Map(
+      trash.data?.pages
+        .flatMap((page) => page.items)
+        .map((item) => [item.id, item]) ?? [],
+    ).values(),
+  ];
   return (
     <main className="workspace-page">
       <header className="page-heading">
@@ -34,26 +40,40 @@ export function TrashWorkspace() {
           shared Owner scope. Nothing here is permanently erased.
         </p>
       </header>
-      <label className="field trash-filter">
-        <span>Object type</span>
-        <select
-          value={filter ?? ""}
-          onChange={(event) =>
-            setFilter(
-              event.target.value === ""
-                ? undefined
-                : (event.target.value as TrashQueryInput["objectType"]),
-            )
-          }
+      <div className="panel-heading">
+        <label className="field trash-filter">
+          <span>Object type</span>
+          <select
+            value={filter ?? ""}
+            onChange={(event) => {
+              setSelectedId(null);
+              setFilter(
+                event.target.value === ""
+                  ? undefined
+                  : (event.target.value as TrashQueryInput["objectType"]),
+              );
+            }}
+          >
+            <option value="">All types</option>
+            <option value="event">Events</option>
+            <option value="task">To-dos</option>
+            <option value="expense">Expenses</option>
+            <option value="reminder">Reminders</option>
+            <option value="document">Documents</option>
+          </select>
+        </label>
+        <button
+          className="button button-secondary"
+          type="button"
+          disabled={trash.isFetching}
+          onClick={() => {
+            setSelectedId(null);
+            void trash.refetch();
+          }}
         >
-          <option value="">All types</option>
-          <option value="event">Events</option>
-          <option value="task">To-dos</option>
-          <option value="expense">Expenses</option>
-          <option value="reminder">Reminders</option>
-          <option value="document">Documents</option>
-        </select>
-      </label>
+          Refresh Trash
+        </button>
+      </div>
       {trash.isPending ? <LoadingState label="Loading Trash" /> : null}
       {trash.isError ? (
         <ErrorNotice
@@ -94,10 +114,12 @@ export function TrashWorkspace() {
         <button
           className="button button-secondary"
           type="button"
-          disabled={trash.isFetchingNextPage}
+          disabled={trash.isFetching}
           onClick={() => void trash.fetchNextPage()}
         >
-          Load more deleted objects
+          {trash.isFetchingNextPage
+            ? "Loading deleted objects..."
+            : "Load more deleted objects"}
         </button>
       ) : null}
       {selectedId === null ? null : (
