@@ -14,7 +14,7 @@ import {
   useRestoreRevision,
   useRevisionComparison,
 } from "../../lib/history-queries";
-import { useAuthSession } from "../../lib/auth-session";
+import { useSessionDialog } from "../../lib/use-session-dialog";
 
 const actionNames = {
   recovered: "Recovered from trash",
@@ -189,11 +189,9 @@ export function HistoryDrawer({
   readonly displayName: string;
   readonly onClose: () => void;
 }) {
-  const dialog = useRef<HTMLDialogElement>(null);
+  const dialog = useSessionDialog(onClose);
   const headingId = useId();
   const history = useObjectHistory(objectId);
-  const { credential } = useAuthSession();
-  const sessionIdentity = useRef(credential);
   const [from, setFrom] = useState<number | null>(null);
   const [to, setTo] = useState<number | null>(null);
   const [restoreVersion, setRestoreVersion] = useState<number | null>(null);
@@ -206,24 +204,6 @@ export function HistoryDrawer({
   useEffect(() => {
     if (isComparing) comparisonRegion.current?.focus();
   }, [isComparing]);
-
-  useEffect(() => {
-    const element = dialog.current;
-    const trigger = document.activeElement;
-    element?.showModal();
-    return () => {
-      element?.close();
-      if (trigger instanceof HTMLElement && trigger.isConnected)
-        trigger.focus();
-    };
-  }, []);
-  useEffect(() => {
-    if (
-      credential?.workspaceId !== sessionIdentity.current?.workspaceId ||
-      credential?.accessToken !== sessionIdentity.current?.accessToken
-    )
-      onClose();
-  }, [credential, onClose]);
 
   return (
     <dialog
