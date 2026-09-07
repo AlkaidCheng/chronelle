@@ -1420,7 +1420,7 @@ a.search-result:hover {
 }
 
 .money-grid {
-  grid-template-columns: minmax(120px, 1fr) 90px;
+  grid-template-columns: minmax(0, 1fr) 90px;
 }
 
 .form-actions {
@@ -1740,14 +1740,18 @@ a.search-result:hover {
 }
 
 .total-row {
+  align-items: baseline;
   background: var(--forest-light);
   border-radius: 10px;
   color: var(--forest);
+  flex-wrap: wrap;
+  gap: 12px;
   margin: 10px 0 20px;
   padding: 14px 16px;
 }
 
-.total-row span {
+.total-row span,
+.money-totals dt {
   font-size: 0.7rem;
   font-weight: 750;
   text-transform: uppercase;
@@ -1763,6 +1767,29 @@ a.search-result:hover {
   font-family: Georgia, "Times New Roman", serif;
   font-size: 1.1rem;
   font-weight: 500;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.money-totals {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 20px;
+  margin: 0;
+  min-width: 0;
+}
+
+.money-totals > div {
+  align-items: baseline;
+  display: flex;
+  gap: 8px;
+  min-width: 0;
+}
+
+.money-totals dd {
+  margin: 0;
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .reminder-list article {
@@ -2156,11 +2183,15 @@ a.search-result:hover {
     grid-template-columns: auto minmax(0, 1fr);
   }
 
-  .resource-list .money-value,
   .resource-list > article > .status-chip,
   .resource-list .row-actions,
   .resource-list > article > .button {
     grid-column: 2;
+    justify-self: start;
+  }
+
+  .resource-list .money-value {
+    grid-column: 1 / -1;
     justify-self: start;
   }
 

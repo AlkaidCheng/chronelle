@@ -30,6 +30,25 @@ Display dates and date-entry controls use the browser's local timezone. Stored
 timezone and all-day attributes are retained; specialized all-day and
 event-timezone display are a follow-up.
 
+## Expense amounts
+
+Expense rows and totals retain all nonzero digits of the stored four-decimal
+amount. Currency formatting uses the browser's locale and the currency's usual
+minimum fractional digits; it does not round away finer stored precision. For
+example, USD 1.0001 displays as $1.0001 in an English-US locale.
+
+Overview shows an exact sum when visible transactions share one currency,
+otherwise their transaction count. The Expenses view labels a separate total
+for each currency. Only authorized, returned transactions contribute; there
+are no exchange rates or cross-currency grand totals. A total can exceed the
+per-transaction database range without losing precision.
+
+The monetary helpers use fixed-scale integer addition and native ECMA-402
+decimal-string formatting. Stored amounts and edit values remain decimal
+strings. Aggregates are presentation data, not new canonical records, and do
+not modify historical Expense facts. The supported modern-browser runtime
+must support exact decimal-string input to Intl.NumberFormat.
+
 ## Design boundaries
 
 The interface uses restrained green accents, warm neutral surfaces, system

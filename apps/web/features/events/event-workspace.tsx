@@ -19,7 +19,8 @@ import {
   PaperclipIcon,
   WalletIcon,
 } from "../../components/icons";
-import { formatDateTime, formatMoney, shortId } from "../../lib/format";
+import { formatDateTime, shortId } from "../../lib/format";
+import { formatMoney, sumMoneyByCurrency } from "../../lib/money";
 import { useEventWorkspaceQueries } from "../../lib/queries";
 import {
   CalendarPanel,
@@ -161,20 +162,11 @@ export function EventWorkspace({ eventId }: { readonly eventId: string }) {
   const openTasks = detail.tasks.filter(
     (task) => task.status !== "done" && task.status !== "cancelled",
   );
-  const expenseCurrencies = new Set(
-    detail.expenses.map((expense) => expense.currency),
-  );
+  const expenseTotals = sumMoneyByCurrency(detail.expenses);
+  const firstTotal = expenseTotals[0];
   const expenseSummary =
-    expenseCurrencies.size === 1 && detail.expenses[0] !== undefined
-      ? formatMoney(
-          String(
-            detail.expenses.reduce(
-              (sum, expense) => sum + Number(expense.amount),
-              0,
-            ),
-          ),
-          detail.expenses[0].currency,
-        )
+    expenseTotals.length === 1 && firstTotal !== undefined
+      ? formatMoney(firstTotal.amount, firstTotal.currency)
       : `${detail.expenses.length} transaction${detail.expenses.length === 1 ? "" : "s"}`;
 
   return (
