@@ -52,7 +52,7 @@ the authorization package's read-only repeatable-read boundary. The snapshot
 keeps reference classification consistent with that check even if another request
 finalizes an upload before the reference queries finish. A later inventory sees
 the finalized document. Storage enumeration follows after that transaction closes;
-database and filesystem observations are not atomic. Concurrent uploads or
+database and storage observations are not atomic. Concurrent uploads or
 finalization can change classifications during a scan. Recheck after writers are
 quiescent when investigating a discrepancy.
 
@@ -88,14 +88,15 @@ Additional requests receive `429 inventory_busy`. This is not a distributed rate
 limiter. Each reference query and the combined distinct-key set are capped at
 10,000; enumeration is capped at 10,000 immediate entries. SQL statements have a
 five-second timeout. Enumeration checks a ten-second abort signal between I/O
-operations; a blocked filesystem syscall may take longer to settle.
+operations; a blocked filesystem syscall or in-flight cloud request may take
+longer to settle.
 
 Unsupported providers, unreadable or unknown-version document revisions, limits,
 cancellation, and storage errors return `503 inventory_unavailable`, with no
 partial counts or internal error details. These conditions require investigation,
 not removal. A generic `404 resource_unavailable` hides unauthorized workspaces.
 
-The local adapter supports inventory. Other adapters must explicitly implement
+The local and Tencent COS adapters support inventory. Other adapters must implement
 the optional `StorageProvider.listObjects` capability; there is no local fallback.
 The configured local root must already exist and be private. A missing workspace
 document directory is empty; a missing storage root is unavailable. Symbolic
@@ -105,5 +106,17 @@ race-proof traversal against a hostile process with the same filesystem access;
 the storage root and its ancestors must remain under trusted administration.
 Nested directories are reported as unsupported entries, not recursively scanned.
 
-This adds no cloud provisioning, COS inventory, production backup encryption,
+COS enumeration uses a flat document prefix, with at most 1000 entries per page.
+Nested prefixes are unsupported and are not traversed. The adapter rejects
+unexpected scope, malformed encodings, duplicate keys, and missing or inconsistent
+continuation markers. The application retains the same 10,000-entry cap and
+post-enumeration owner check; no local fallback is used for a configured COS store.
+No object bodies or signed transfer URLs are fetched to produce the report.
+
+COS listings can lag recent writes, and listing an archived object does not prove
+it can be downloaded immediately. Counts are not a content-integrity or encryption
+check. See [COS storage](storage.md#read-only-inventory) for required listing IAM
+permissions, consistency limits, and live deployment validation.
+
+This adds no cloud provisioning, production backup encryption,
 retention duration, or public-launch authorization.

@@ -1,6 +1,7 @@
 # Private document storage
 
-`StorageProvider` issues upload/download capabilities and inspects stored bytes.
+`StorageProvider` issues upload/download capabilities, inspects stored bytes, and
+optionally enumerates storage entries for read-only inventory.
 Document identity, permissions, attachment relationships, revisions, and audit
 events belong to the application. Selecting a provider changes file transport,
 not the canonical object model. Files are limited to 25 MiB.
@@ -43,6 +44,10 @@ keys, not COS versions, so enabling versioning requires a separate model change.
 Grant the runtime identity only the required bucket configuration reads
 (`cos:GetBucketACL`, `cos:GetBucketVersioning`) and object uploads/downloads
 (`cos:PutObject`, `cos:GetObject`) under `workspaces/*/documents/*` in this bucket.
+Inventory also needs `cos:GetBucket` listing permission, constrained to the
+application's document prefixes. Validate the resource and prefix conditions
+against the deployment's CAM policy; object GET permission does not authorize
+bucket listing. The API never returns listing credentials or raw keys.
 Verify the exact IAM policy, including private object ACL and KMS requirements,
 against the configured account before deployment. Do not use administrator
 credentials or grant object deletion, bucket mutation, or wildcard actions.
@@ -95,8 +100,31 @@ by the application.
   Keep configuration stable, and design an explicit migration before switching
   any populated store.
 - Failed/abandoned uploads may leave private, unreferenced objects. No automatic
-  purge is implemented. Retention, orphan inventory, encrypted backups, and restore
+  purge is implemented. Retention, encrypted backups, and restore
   procedures require deployment policy and evidence before deletion is enabled.
+
+## Read-only inventory
+
+Both adapters support the existing workspace-owner
+[storage inventory](storage-reconciliation.md). COS lists only the active
+workspace's document prefix, using a flat delimiter and at most 1000 entries per
+request. It reads bucket policy and listing metadata, not object contents or
+checksums. Nested prefixes remain unsupported entries and are never traversed.
+Listing requires no additional REST endpoint, database migration, or client input.
+
+The adapter validates response scope, encoding, page bounds, and continuation
+progress. Missing/malformed pages, denied cloud calls, cancellation, or an
+application limit produce an unavailable report without partial counts.
+Cancellation is checked between SDK calls and entries; an in-flight SDK request
+can take longer than the inventory's ten-second observation window to settle.
+
+COS [listing is eventually consistent](https://www.tencentcloud.com/document/product/436/30614).
+Recent writes may be absent even after a completed listing. Inventory retains its
+observational, retain-all contract: an absent entry is not proof of missing bytes,
+and neither counts nor a successful scan authorize repair or deletion. Listing
+does not verify content integrity, encryption, or immediate download availability
+for archived storage classes. Current workspace ownership is checked again after
+the cloud calls complete.
 
 ## Validation
 
@@ -104,13 +132,17 @@ by the application.
 signature-binding tests, and PostgreSQL API tests for inherited access, denied
 writes, corrupted/missing files, expiry, duplicate finalization, and permission
 revocation during inspection. COS network responses in those tests are simulated.
+Inventory tests exercise pagination, encoded keys, malformed responses, cancellation,
+owner-only access, retained trash, pending uploads, and revocation during listing.
 The container and browser gates exercise the default local provider.
 
 Before enabling COS, use synthetic files in an explicitly designated test prefix
 to verify actual IAM permissions, anonymous denial, browser CORS, zero-byte and
 25 MiB transfers, byte-for-byte downloads, expiry, overwrite/replay rejection,
 encryption, credential rotation, audit logging, and revoked-user denial of new
-authorizations. Verify that public ACL/versioning changes fail closed in a
+authorizations. Include a multi-page inventory and a recent-write observation,
+verify listing IAM prefix restrictions, and confirm that denied or interrupted
+listings expose no partial counts. Verify that public ACL/versioning changes fail closed in a
 disposable bucket, not a populated one. Retain evidence without signed URLs or
 credentials. Live COS validation is a required deployment gate, not established
 by the simulated tests. Development authentication still blocks public launch.
