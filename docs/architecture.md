@@ -184,6 +184,14 @@ Nonempty pages use three service statements, including snapshot configuration.
 Name/period filters and date/name/updated keyset ordering run in PostgreSQL.
 The API, typed client, and Events screen share the [collection contract](api.md#event-collection).
 
+Active relation listing stays behind `ObjectRelationService`, with a focused
+page query. It first authorizes the starting object, then uses a bounded lateral
+lookup for the opposite canonical endpoint and the central SQL View predicate.
+This keeps endpoint equality inside the policy lookup even with poor table
+statistics. Visibility precedes the outer page limit, and metadata comes from
+the same snapshot. Three service statements return at most 50 links; database
+scan and sort work is not constant-time. See [Relationships](api.md#relationships).
+
 The API transport boundary owns safe error envelopes, request metadata logs,
 private cache headers, and parser limits. Shared HTTP limits live in schemas;
 the same-origin proxy counts incoming bytes and applies one deadline across

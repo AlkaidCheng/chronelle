@@ -104,9 +104,17 @@ describe.sequential("batched canonical reads", () => {
         })),
       );
       let queryCount = 0;
+      let pageQuery = "";
+      let pageParams: unknown[] = [];
       const measured = drizzle(database.connection.sql, {
         schema,
-        logger: { logQuery: () => queryCount++ },
+        logger: {
+          logQuery: (query, params) => {
+            queryCount++;
+            pageQuery = query;
+            pageParams = params;
+          },
+        },
       });
       const reader = new EventPlanningObjectService(measured);
       const projections = new EventPlanningProjectionService(measured);
@@ -141,8 +149,12 @@ describe.sequential("batched canonical reads", () => {
         principal,
         rootId,
       );
-      expect(queryCount).toBe(3 + Math.ceil((count + 1) / 1000));
-      expect(relations).toHaveLength(count);
+      expect(queryCount).toBe(3);
+      expect(relations.items).toHaveLength(Math.min(count, 20));
+      expect(relations.nextCursor === null).toBe(count <= 20);
+      expect(JSON.stringify(relations)).not.toContain(hiddenId);
+      expect(pageQuery).toContain("inner join lateral");
+      expect(pageParams.at(-1)).toBe(21);
 
       queryCount = 0;
       const results = await new CanonicalObjectSearchService(measured).search(

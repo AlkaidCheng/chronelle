@@ -35,6 +35,7 @@ import {
   relationDeletionResponseSchema,
   relationDeletionQuerySchema,
   relationListResponseSchema,
+  relationListQuerySchema,
   relationResponseSchema,
   reminderCreateRequestSchema,
   reminderResourceProjectionResponseSchema,
@@ -248,9 +249,11 @@ export function registerEventPlanningRoutes(
       const relations = await dependencies.relations.listForObject(
         requirePrincipal(request),
         id,
+        parseRequest(relationListQuerySchema, request.query),
       );
       return relationListResponseSchema.parse({
-        items: relations.map(serializeRelation),
+        items: relations.items.map(serializeRelation),
+        nextCursor: relations.nextCursor,
       });
     },
   );

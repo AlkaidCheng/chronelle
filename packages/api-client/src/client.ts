@@ -10,6 +10,7 @@ import {
   apiErrorResponseSchema,
   objectDeletionResponseSchema,
   relationListResponseSchema,
+  type RelationListQueryInput,
   recoveryPreviewSchema,
   trashListResponseSchema,
   removedRelationListResponseSchema,
@@ -492,9 +493,13 @@ export class ChronelleApiClient {
     );
   }
 
-  listObjectRelations(id: string) {
+  listObjectRelations(id: string, input: RelationListQueryInput = {}) {
+    const query = new URLSearchParams();
+    for (const [key, value] of Object.entries(input)) {
+      if (value !== undefined) query.set(key, String(value));
+    }
     return this.#request(
-      `/api/objects/${id}/relations`,
+      `/api/objects/${id}/relations?${query}`,
       relationListResponseSchema,
     );
   }

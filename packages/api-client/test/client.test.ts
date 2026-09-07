@@ -458,6 +458,35 @@ describe("ChronelleApiClient", () => {
     );
   });
 
+  it("encodes relation filters and continuation while requiring page metadata", async () => {
+    const fetch = vi
+      .fn<typeof globalThis.fetch>()
+      .mockResolvedValueOnce(
+        Response.json({ items: [], nextCursor: "next_position" }),
+      )
+      .mockResolvedValueOnce(Response.json({ items: [] }));
+    const client = new ChronelleApiClient({
+      fetch,
+      getCredential: () => ({
+        accessToken: "opaque-session",
+        workspaceId: event.workspaceId,
+      }),
+    });
+    await expect(
+      client.listObjectRelations(event.id, {
+        cursor: "opaque_position",
+        limit: 1,
+        direction: "outgoing",
+        relationType: "includes",
+        otherObjectId: event.id,
+      }),
+    ).resolves.toEqual({ items: [], nextCursor: "next_position" });
+    expect(fetch.mock.calls[0]?.[0]).toBe(
+      `/api/objects/${event.id}/relations?cursor=opaque_position&limit=1&direction=outgoing&relationType=includes&otherObjectId=${event.id}`,
+    );
+    await expect(client.listObjectRelations(event.id)).rejects.toThrow();
+  });
+
   it("returns typed conflict details for optimistic concurrency failures", async () => {
     const fetch = vi.fn<typeof globalThis.fetch>().mockResolvedValue(
       new Response(

@@ -17,8 +17,12 @@ import {
   type RelationType,
 } from "@chronelle/db";
 import { and, desc, eq, isNotNull, isNull, lt, or, sql } from "drizzle-orm";
-import type { RemovedRelationQuery } from "@chronelle/schemas";
+import type {
+  RelationListQueryInput,
+  RemovedRelationQuery,
+} from "@chronelle/schemas";
 import { alias } from "drizzle-orm/pg-core";
+import { listRelationPage, type RelationPage } from "./relation-list.js";
 
 import {
   InvalidRelationError,
@@ -151,45 +155,9 @@ export class ObjectRelationService {
   async listForObject(
     principal: UserPrincipal,
     objectId: string,
-  ): Promise<readonly ObjectRelationResource[]> {
-    return withReadAuthorization(
-      this.#database,
-      async (transaction, authorization) => {
-        await authorization.assertCan(principal, "view", {
-          id: objectId,
-          workspaceId: principal.workspaceId,
-        });
-        const relations = await transaction
-          .select()
-          .from(objectRelations)
-          .where(
-            and(
-              eq(objectRelations.workspaceId, principal.workspaceId),
-              isNull(objectRelations.deletedAt),
-              or(
-                eq(objectRelations.sourceObjectId, objectId),
-                eq(objectRelations.targetObjectId, objectId),
-              ),
-            ),
-          );
-
-        const visibility = await authorization.canMany(
-          principal,
-          "view",
-          relations.map((relation) => {
-            const otherObjectId =
-              relation.sourceObjectId === objectId
-                ? relation.targetObjectId
-                : relation.sourceObjectId;
-            return {
-              id: otherObjectId,
-              workspaceId: principal.workspaceId,
-            };
-          }),
-        );
-        return relations.filter((_, index) => visibility[index]);
-      },
-    );
+    input: RelationListQueryInput = {},
+  ): Promise<RelationPage> {
+    return listRelationPage(this.#database, principal, objectId, input);
   }
 
   async softDelete(
