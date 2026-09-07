@@ -221,10 +221,14 @@ or an active Owner grant to a tombstone for recovery. Resource authorization add
 to match that active workspace. Missing and unauthorized resources use the same
 external error shape so forged IDs do not reveal existence.
 
-PostgreSQL row-level security remains deferred defense in depth. The current
-pooled connection uses one table-owning role and does not bind every protected
-query to a transaction-local workspace setting. Policies in that model would
-be bypassable or could reuse session state across requests. RLS will be enabled
-with a separate least-privilege runtime role and transaction-scoped workspace
-context. Fine-grained authorization remains in the application layer so its
-decisions are testable and consistent across clients.
+The [private container stack](deployment.md#database-privilege-boundary) uses a
+separate runtime login with explicit table privileges; owner credentials stay
+with migrations and provisioning. Audit/history tables are read/insert only,
+and runtime cannot alter schema, disable triggers, or permanently delete objects.
+The host development defaults still use the owner account.
+
+PostgreSQL row-level security remains deferred defense in depth. Protected
+queries do not yet consistently bind a transaction-local workspace setting;
+session state could leak between pooled requests. Runtime table privileges are
+not per-user or per-workspace authorization. Fine-grained authorization remains
+in the application layer so its decisions are consistent across clients.

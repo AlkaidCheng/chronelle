@@ -172,8 +172,14 @@ disposable databases and apply migrations from scratch. PostgreSQL must be
 running before `pnpm test` or `pnpm check`.
 
 `TEST_DATABASE_URL` is an administrative connection used only by the test
-harness. Its role must be allowed to create and drop databases. The local
-Compose role has the required permission.
+harness. Use a disposable test cluster and its administrative role, never a
+production connection. Database privilege tests also create, alter, and remove
+uniquely named test roles, including tests that reject elevated role attributes.
+The local Compose superuser has the required permission. Install PostgreSQL's
+`psql` client (17 recommended) on the host and put it on `PATH`; these tests
+execute the same provisioning SQL as the private container stack. Role operations
+are cluster-wide, even when application tables live in disposable databases;
+the harness restricts these operations to its uniquely named test roles.
 
 The final API integration test starts from a newly migrated disposable
 database, exercises the complete event-planning slice, rebuilds the Fastify app

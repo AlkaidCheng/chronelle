@@ -43,6 +43,7 @@ packages/
   storage/              Private-object storage port and local adapter
 infrastructure/
   migrations/           Ordered SQL migrations
+  database/             Administrative runtime privilege policy
 docs/                   Implementation-facing documentation
 ```
 
@@ -54,6 +55,7 @@ creates a concrete reason for a shared UI package.
 - Node.js 24 or newer, below Node.js 27
 - pnpm 11.25
 - Docker with Docker Compose
+- PostgreSQL `psql` client 17 for the database privilege tests
 
 ## Environment
 
