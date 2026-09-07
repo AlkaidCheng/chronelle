@@ -54,6 +54,30 @@ const documentAttachment = {
 } as const;
 
 describe("ChronelleApiClient", () => {
+  it("reads and validates one canonical Event with the current credential", async () => {
+    const fetch = vi.fn<typeof globalThis.fetch>(async () =>
+      Response.json(event),
+    );
+    const client = new ChronelleApiClient({
+      fetch,
+      getCredential: () => ({
+        accessToken: "test-session",
+        workspaceId: event.workspaceId,
+      }),
+    });
+    expect(await client.getEvent(event.id)).toEqual(event);
+    expect(fetch).toHaveBeenCalledWith(
+      `/api/events/${event.id}`,
+      expect.objectContaining({ headers: expect.any(Headers) }),
+    );
+    expect(
+      new Headers(fetch.mock.calls[0]?.[1]?.headers).get("x-workspace-id"),
+    ).toBe(event.workspaceId);
+    fetch.mockResolvedValueOnce(
+      Response.json({ ...event, version: "invalid" }),
+    );
+    await expect(client.getEvent(event.id)).rejects.toThrow();
+  });
   it.each(["session", "query"] as const)(
     "forwards %s cancellation without converting it to a network error",
     async (source) => {

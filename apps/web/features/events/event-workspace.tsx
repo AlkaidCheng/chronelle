@@ -3,24 +3,13 @@
 import Link from "next/link";
 import {
   type KeyboardEvent as ReactKeyboardEvent,
-  type ReactNode,
   useRef,
   useState,
 } from "react";
 
 import { ErrorNotice, LoadingState } from "../../components/feedback";
-import {
-  BellIcon,
-  ArrowIcon,
-  CalendarIcon,
-  CheckIcon,
-  ClockIcon,
-  LockIcon,
-  PaperclipIcon,
-  WalletIcon,
-} from "../../components/icons";
+import { CalendarIcon, LockIcon } from "../../components/icons";
 import { formatDateTime, shortId } from "../../lib/format";
-import { formatMoney, sumMoneyByCurrency } from "../../lib/money";
 import { useEventWorkspaceQueries } from "../../lib/queries";
 import {
   CalendarPanel,
@@ -41,42 +30,17 @@ import {
   type EventView as TabId,
 } from "../../lib/event-views";
 import { useEventView } from "../../lib/use-event-view";
-import { useClock } from "../../lib/use-clock";
-import { nextPlanningItem } from "../../lib/upcoming-plan";
-
-function OverviewCard({
-  count,
-  icon,
-  label,
-  onOpen,
-}: {
-  readonly count: string;
-  readonly icon: ReactNode;
-  readonly label: string;
-  readonly onOpen: () => void;
-}) {
-  return (
-    <button className="overview-card" onClick={onOpen} type="button">
-      <span className="overview-icon">{icon}</span>
-      <span>{label}</span>
-      <strong>{count}</strong>
-      <span aria-hidden="true" className="card-arrow">
-        <ArrowIcon />
-      </span>
-    </button>
-  );
-}
+import { EventOverview } from "./event-overview";
 
 export function EventWorkspace({ eventId }: { readonly eventId: string }) {
   const [activeTab, setActiveTab] = useEventView();
-  const now = useClock();
   const queries = useEventWorkspaceQueries(eventId, activeTab);
   const [isEditingEvent, setIsEditingEvent] = useState(false);
   const tabButtons = useRef(new Map<TabId, HTMLButtonElement>());
-  const essentialQueries = [queries.detail, queries.access];
+  const essentialQueries = [queries.event, queries.access];
   const firstError = essentialQueries.find((query) => query.isError)?.error;
 
-  if (essentialQueries.some((query) => query.isPending)) {
+  if (activeTab === null || essentialQueries.some((query) => query.isPending)) {
     return (
       <main className="centered-page workspace-loading">
         <LoadingState label="Connecting your event plan" />
@@ -110,27 +74,26 @@ export function EventWorkspace({ eventId }: { readonly eventId: string }) {
   const itinerary = queries.itinerary.data;
   const expenses = queries.expenses.data;
   const reminders = queries.reminders.data;
-  if (access === undefined || detail === undefined) {
+  const event = queries.event.data;
+  if (access === undefined || event === undefined) {
     return null;
   }
 
-  const event = detail.event;
   const canEdit = access.actions.includes("edit");
   const canShare = access.actions.includes("share");
   const visibleTabs = tabs.filter((tab) => tab.id !== "sharing" || canShare);
   const shownTab =
     activeTab === "sharing" && !canShare ? "overview" : activeTab;
-  const nextItem = nextPlanningItem(detail, now);
   const activeProjection = {
-    overview: undefined,
+    overview: queries.detail,
     todos: queries.todos,
     calendar: queries.calendar,
     timeline: queries.timeline,
     itinerary: queries.itinerary,
     expenses: queries.expenses,
     reminders: queries.reminders,
-    files: undefined,
-    sharing: undefined,
+    files: queries.detail,
+    sharing: queries.detail,
     "removed-links": undefined,
   }[shownTab];
   function handleTabKeyDown(
@@ -159,15 +122,6 @@ export function EventWorkspace({ eventId }: { readonly eventId: string }) {
       tabButtons.current.get(nextTab.id)?.focus();
     }
   }
-  const openTasks = detail.tasks.filter(
-    (task) => task.status !== "done" && task.status !== "cancelled",
-  );
-  const expenseTotals = sumMoneyByCurrency(detail.expenses);
-  const firstTotal = expenseTotals[0];
-  const expenseSummary =
-    expenseTotals.length === 1 && firstTotal !== undefined
-      ? formatMoney(firstTotal.amount, firstTotal.currency)
-      : `${detail.expenses.length} transaction${detail.expenses.length === 1 ? "" : "s"}`;
 
   return (
     <main className="event-workspace">
@@ -281,84 +235,8 @@ export function EventWorkspace({ eventId }: { readonly eventId: string }) {
           />
         ) : (
           <>
-            {shownTab === "overview" ? (
-              <section className="planning-panel overview-panel">
-                <div className="overview-intro">
-                  <span className="object-label">At a glance</span>
-                  <h2>Your event, connected.</h2>
-                  <p>
-                    A little structure, a clearer plan. Pick a view to keep the
-                    details moving.
-                  </p>
-                </div>
-                {detail.lockedRelationCount > 0 ? (
-                  <div className="locked-reference surface-subtle">
-                    <LockIcon />
-                    <div>
-                      <strong>Private related items</strong>
-                      <p>
-                        {detail.lockedRelationCount} related
-                        {detail.lockedRelationCount === 1
-                          ? " item is"
-                          : " items are"}{" "}
-                        outside your permission scope.
-                      </p>
-                    </div>
-                  </div>
-                ) : null}
-                <div className="overview-grid">
-                  <OverviewCard
-                    count={String(openTasks.length)}
-                    icon={<CheckIcon />}
-                    label="Open to-dos"
-                    onOpen={() => setActiveTab("todos")}
-                  />
-                  <OverviewCard
-                    count={String(
-                      detail.events.filter((item) => item.startsAt !== null)
-                        .length,
-                    )}
-                    icon={<CalendarIcon />}
-                    label="Scheduled items"
-                    onOpen={() => setActiveTab("calendar")}
-                  />
-                  <OverviewCard
-                    count={expenseSummary}
-                    icon={<WalletIcon />}
-                    label="Recorded expenses"
-                    onOpen={() => setActiveTab("expenses")}
-                  />
-                  <OverviewCard
-                    count={String(detail.reminders.length)}
-                    icon={<BellIcon />}
-                    label="Reminders"
-                    onOpen={() => setActiveTab("reminders")}
-                  />
-                  <OverviewCard
-                    count={String(detail.documents.length)}
-                    icon={<PaperclipIcon />}
-                    label="Event files"
-                    onOpen={() => setActiveTab("files")}
-                  />
-                </div>
-                <div className="next-up surface-subtle">
-                  <ClockIcon />
-                  <div>
-                    <span className="object-label">Next up</span>
-                    {nextItem === undefined ? (
-                      <p>
-                        Nothing upcoming. Add a schedule item, a task with a due
-                        date, or a reminder when you are ready.
-                      </p>
-                    ) : (
-                      <>
-                        <h3>{nextItem.displayName}</h3>
-                        <p>{formatDateTime(nextItem.occursAt)}</p>
-                      </>
-                    )}
-                  </div>
-                </div>
-              </section>
+            {shownTab === "overview" && detail !== undefined ? (
+              <EventOverview detail={detail} onOpen={setActiveTab} />
             ) : null}
             {shownTab === "todos" && todos !== undefined ? (
               <TasksPanel
@@ -394,7 +272,7 @@ export function EventWorkspace({ eventId }: { readonly eventId: string }) {
                 reminders={reminders.items}
               />
             ) : null}
-            {shownTab === "files" ? (
+            {shownTab === "files" && detail !== undefined ? (
               <DocumentsPanel
                 canEdit={canEdit}
                 event={event}
@@ -402,7 +280,7 @@ export function EventWorkspace({ eventId }: { readonly eventId: string }) {
                 tasks={detail.tasks}
               />
             ) : null}
-            {shownTab === "sharing" && canShare ? (
+            {shownTab === "sharing" && canShare && detail !== undefined ? (
               <SharingPanel detail={detail} eventId={eventId} />
             ) : null}
             {shownTab === "removed-links" ? (

@@ -105,6 +105,7 @@ describe("canonical cache invalidation", () => {
     );
     const keys = [
       queryKeys.events,
+      queryKeys.eventResource(eventId),
       queryKeys.detail(eventId),
       queryKeys.todos(eventId),
       queryKeys.detail(otherEventId),

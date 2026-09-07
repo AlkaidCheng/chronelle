@@ -31,7 +31,7 @@ export function useEventView() {
   const view = useSyncExternalStore(
     subscribe,
     snapshot,
-    () => "overview" as EventView,
+    (): EventView | null => null,
   );
   return [view, selectView] as const;
 }

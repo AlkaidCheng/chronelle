@@ -580,6 +580,10 @@ export class ChronelleApiClient {
     );
   }
 
+  getEvent(id: string): Promise<EventResponse> {
+    return this.#request(`/api/events/${id}`, eventResponseSchema);
+  }
+
   getEventDetail(id: string): Promise<EventDetailResponse> {
     return this.#request(`/api/events/${id}/detail`, eventDetailResponseSchema);
   }
