@@ -21,6 +21,17 @@ export function formatDateTime(value: string | null): string {
   }).format(new Date(value));
 }
 
+export function formatDatePart(
+  value: string | null,
+  part: "month" | "day",
+): string {
+  if (value === null) return part === "month" ? "TBD" : "-";
+  return new Intl.DateTimeFormat(
+    undefined,
+    part === "month" ? { month: "short" } : { day: "2-digit" },
+  ).format(new Date(value));
+}
+
 export function shortId(id: string): string {
   return id.slice(-8);
 }

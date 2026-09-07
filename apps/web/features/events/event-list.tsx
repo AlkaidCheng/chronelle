@@ -17,7 +17,11 @@ import {
   PlusIcon,
   SearchIcon,
 } from "../../components/icons";
-import { formatDateTime, fromDateTimeInput } from "../../lib/format";
+import {
+  formatDatePart,
+  formatDateTime,
+  fromDateTimeInput,
+} from "../../lib/format";
 import { useCreateEvent, useEventsQuery } from "../../lib/queries";
 import { eventPeriod } from "../../lib/event-collection";
 
@@ -31,20 +35,8 @@ function EventCard({
   return (
     <Link className="event-card" href={`/events/${event.id}`}>
       <div className="event-date-mark">
-        <span>
-          {event.startsAt === null
-            ? "TBD"
-            : new Intl.DateTimeFormat(undefined, { month: "short" })
-                .format(new Date(event.startsAt))
-                .toUpperCase()}
-        </span>
-        <strong>
-          {event.startsAt === null
-            ? "-"
-            : new Intl.DateTimeFormat(undefined, { day: "2-digit" }).format(
-                new Date(event.startsAt),
-              )}
-        </strong>
+        <span>{formatDatePart(event.startsAt, "month").toUpperCase()}</span>
+        <strong>{formatDatePart(event.startsAt, "day")}</strong>
       </div>
       <div className="event-card-copy">
         <span className={`object-label period-${eventPeriod(event, now)}`}>
