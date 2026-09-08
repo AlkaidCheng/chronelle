@@ -24,6 +24,9 @@ import {
   documentUploadAuthorizationResponseSchema,
   maximumDocumentSizeBytes,
   eventDetailResponseSchema,
+  eventLayoutResponseSchema,
+  type EventLayoutResponse,
+  type EventLayoutUpdate,
   eventListResponseSchema,
   eventPlanningResourceResponseSchema,
   eventResourceProjectionResponseSchema,
@@ -582,6 +585,21 @@ export class ChronelleApiClient {
 
   getEvent(id: string): Promise<EventResponse> {
     return this.#request(`/api/events/${id}`, eventResponseSchema);
+  }
+
+  getEventLayout(id: string): Promise<EventLayoutResponse> {
+    return this.#request(`/api/events/${id}/layout`, eventLayoutResponseSchema);
+  }
+
+  updateEventLayout(
+    id: string,
+    input: EventLayoutUpdate,
+  ): Promise<EventLayoutResponse> {
+    return this.#request(
+      `/api/events/${id}/layout`,
+      eventLayoutResponseSchema,
+      jsonRequest(input, "PATCH"),
+    );
   }
 
   getEventDetail(id: string): Promise<EventDetailResponse> {

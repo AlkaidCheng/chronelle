@@ -28,6 +28,12 @@ DELETE requests and older history clients are incompatible.
 
 ## Setup
 
+Migration `0011_add_event_page_layouts.sql` adds independently versioned Event
+page configuration. Run `pnpm db:migrate` and reapply runtime role provisioning
+before deploying the API and web. Existing Events start with an empty layout;
+their business data remains available through Browse event data. See
+[Event pages](event-pages.md) for the layout API and sandbox behavior.
+
 Migration `0010_add_event_calendar_dates.sql` adds nullable `date` columns and
 schedule integrity checks. Stop old API writers, run `pnpm db:migrate`, and
 deploy API and web together. Timeline clients must accept nullable `occursAt`

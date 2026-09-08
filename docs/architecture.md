@@ -382,3 +382,8 @@ inverses remain planned.
 PostgreSQL is the canonical data store. Object files are accessed through the
 storage interface and stored outside PostgreSQL. Provider adapters keep
 CloudBase identity and Tencent COS concerns out of the domain layer.
+
+[Event pages](event-pages.md) store presentation separately in append-only
+`event_page_revisions`. The owning Event supplies the permission boundary;
+layout versions are independent from canonical object versions. Components
+query existing protected projections and never own copies of business records.

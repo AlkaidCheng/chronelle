@@ -137,6 +137,9 @@ describe("runtime database privileges", () => {
     "UPDATE object_revisions SET object_version = 99",
     "UPDATE event_context_commands SET request_hash = repeat('0', 64)",
     "UPDATE command_receipts SET request_hash = repeat('0', 64)",
+    "UPDATE event_page_revisions SET pages = '[]'",
+    "DELETE FROM event_page_revisions",
+    "TRUNCATE event_page_revisions",
     "SELECT * FROM chronelle_schema_migrations",
     "SET session_replication_role = replica",
   ])("denies administrative or destructive SQL: %s", async (statement) => {

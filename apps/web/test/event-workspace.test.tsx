@@ -79,7 +79,7 @@ function requestPath(input: URL | RequestInfo): string {
 
 describe("EventWorkspace", () => {
   beforeEach(() => {
-    window.history.replaceState(null, "", "/events/plan");
+    window.history.replaceState(null, "", "/events/plan?view=overview");
     window.sessionStorage.setItem(
       "chronelle.development-session",
       JSON.stringify({ accessToken: "test-session", workspaceId }),
@@ -403,6 +403,9 @@ describe("EventWorkspace", () => {
       `/api/objects/${eventId}/access`,
     ]);
     overviewTab.focus();
+    await user.keyboard("{Home}");
+    expect(overviewTab).toHaveFocus();
+    expect(overviewTab).toHaveAttribute("aria-selected", "true");
     await user.keyboard("{ArrowRight}");
     expect(screen.getByRole("tab", { name: "To-dos" })).toHaveAttribute(
       "aria-selected",

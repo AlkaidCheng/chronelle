@@ -236,3 +236,8 @@ queries do not yet consistently bind a transaction-local workspace setting;
 session state could leak between pooled requests. Runtime table privileges are
 not per-user or per-workspace authorization. Fine-grained authorization remains
 in the application layer so its decisions are consistent across clients.
+
+Event page layouts use View/Edit on the owning Event through the same policy
+evaluator. A component is not a grant to its projected records: each projection
+continues to authorize its canonical objects. Layout saves use stable workspace
+authorization, an expected layout version, and an atomic audit/history write.

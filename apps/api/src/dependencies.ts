@@ -14,6 +14,7 @@ import {
   ObjectRestorationService,
   ObjectRecoveryService,
   EventContextService,
+  EventLayoutService,
   ReversibleCommandService,
   StorageInventoryService,
 } from "@chronelle/object-model";
@@ -39,6 +40,7 @@ export interface AppDependencies {
   readonly restoration: ObjectRestorationService;
   readonly recovery: ObjectRecoveryService;
   readonly eventContexts: EventContextService;
+  readonly eventLayouts: EventLayoutService;
   readonly commands: ReversibleCommandService;
   readonly search: CanonicalObjectSearchService;
   readonly shares: ResourceGrantService;
@@ -87,6 +89,7 @@ export function createAppDependencies(
     restoration: new ObjectRestorationService(connection.db),
     recovery: new ObjectRecoveryService(connection.db),
     eventContexts: new EventContextService(connection.db),
+    eventLayouts: new EventLayoutService(connection.db),
     commands: new ReversibleCommandService(connection.db),
     search: new CanonicalObjectSearchService(connection.db),
     storageInventory: new StorageInventoryService(connection.db, storage, {

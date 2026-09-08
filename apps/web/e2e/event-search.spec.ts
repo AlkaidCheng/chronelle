@@ -31,6 +31,8 @@ test("creates and retrieves one canonical Event at responsive widths", async ({
   await expect(page.getByRole("heading", { name: eventName })).toBeVisible();
   const eventUrl = page.url();
 
+  await page.getByRole("button", { name: "Browse event data" }).click();
+
   const overviewTab = page.getByRole("tab", { name: "Overview" });
   await overviewTab.focus();
   await page.keyboard.press("ArrowRight");

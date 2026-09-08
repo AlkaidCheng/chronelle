@@ -20,7 +20,7 @@ function snapshot(): EventView {
 function selectView(view: EventView) {
   if (snapshot() === view) return;
   const url = new URL(window.location.href);
-  if (view === "overview") url.searchParams.delete("view");
+  if (view === "pages") url.searchParams.delete("view");
   else url.searchParams.set("view", view);
   window.history.pushState(null, "", url);
   window.dispatchEvent(new Event(viewChange));

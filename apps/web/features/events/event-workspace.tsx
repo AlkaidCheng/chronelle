@@ -32,6 +32,7 @@ import {
 } from "../../lib/event-views";
 import { useEventView } from "../../lib/use-event-view";
 import { EventOverview } from "./event-overview";
+import { EventPages } from "./event-pages";
 
 export function EventWorkspace({ eventId }: { readonly eventId: string }) {
   const [activeTab, setActiveTab] = useEventView();
@@ -82,10 +83,13 @@ export function EventWorkspace({ eventId }: { readonly eventId: string }) {
 
   const canEdit = access.actions.includes("edit");
   const canShare = access.actions.includes("share");
-  const visibleTabs = tabs.filter((tab) => tab.id !== "sharing" || canShare);
+  const visibleTabs = tabs.filter(
+    (tab) => tab.id !== "pages" && (tab.id !== "sharing" || canShare),
+  );
   const shownTab =
     activeTab === "sharing" && !canShare ? "overview" : activeTab;
   const activeProjection = {
+    pages: undefined,
     overview: queries.detail,
     todos: queries.todos,
     calendar: queries.calendar,
@@ -173,115 +177,132 @@ export function EventWorkspace({ eventId }: { readonly eventId: string }) {
         ) : null}
       </header>
 
-      <label className="mobile-view-select compact-field">
-        <span>Event view</span>
-        <select
-          aria-label="Event view"
-          value={shownTab}
-          onChange={(event) => setActiveTab(event.target.value as TabId)}
+      <div className="event-pages-tools">
+        <button
+          type="button"
+          className="button button-quiet"
+          onClick={() =>
+            setActiveTab(shownTab === "pages" ? "overview" : "pages")
+          }
         >
-          {visibleTabs.map((tab) => (
-            <option value={tab.id} key={tab.id}>
-              {tab.label}
-            </option>
-          ))}
-        </select>
-      </label>
-      <div aria-label="Event views" className="tab-list" role="tablist">
-        {visibleTabs.map((tab) => (
-          <button
-            aria-controls={`event-panel-${tab.id}`}
-            aria-selected={shownTab === tab.id}
-            className={shownTab === tab.id ? "active" : ""}
-            id={`event-tab-${tab.id}`}
-            key={tab.id}
-            onClick={() => setActiveTab(tab.id)}
-            onKeyDown={(event) => handleTabKeyDown(event, tab.id)}
-            ref={(element) => {
-              if (element === null) {
-                tabButtons.current.delete(tab.id);
-              } else {
-                tabButtons.current.set(tab.id, element);
-              }
-            }}
-            role="tab"
-            tabIndex={shownTab === tab.id ? 0 : -1}
-            type="button"
-          >
-            {tab.label}
-          </button>
-        ))}
+          {shownTab === "pages" ? "Browse event data" : "Back to pages"}
+        </button>
       </div>
+      {shownTab === "pages" ? (
+        <EventPages key={eventId} eventId={eventId} canEdit={canEdit} />
+      ) : (
+        <>
+          <label className="mobile-view-select compact-field">
+            <span>Event view</span>
+            <select
+              aria-label="Event view"
+              value={shownTab}
+              onChange={(event) => setActiveTab(event.target.value as TabId)}
+            >
+              {visibleTabs.map((tab) => (
+                <option value={tab.id} key={tab.id}>
+                  {tab.label}
+                </option>
+              ))}
+            </select>
+          </label>
+          <div aria-label="Event views" className="tab-list" role="tablist">
+            {visibleTabs.map((tab) => (
+              <button
+                aria-controls={`event-panel-${tab.id}`}
+                aria-selected={shownTab === tab.id}
+                className={shownTab === tab.id ? "active" : ""}
+                id={`event-tab-${tab.id}`}
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                onKeyDown={(event) => handleTabKeyDown(event, tab.id)}
+                ref={(element) => {
+                  if (element === null) {
+                    tabButtons.current.delete(tab.id);
+                  } else {
+                    tabButtons.current.set(tab.id, element);
+                  }
+                }}
+                role="tab"
+                tabIndex={shownTab === tab.id ? 0 : -1}
+                type="button"
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
 
-      <div
-        aria-labelledby={`event-tab-${shownTab}`}
-        className="event-view"
-        id={`event-panel-${shownTab}`}
-        role="tabpanel"
-      >
-        {activeProjection?.isPending ? (
-          <LoadingState label="Loading this view" />
-        ) : activeProjection?.isError ? (
-          <ErrorNotice
-            error={activeProjection.error}
-            onRefresh={() => void activeProjection.refetch()}
-          />
-        ) : (
-          <>
-            {shownTab === "overview" && detail !== undefined ? (
-              <EventOverview detail={detail} onOpen={setActiveTab} />
-            ) : null}
-            {shownTab === "todos" && todos !== undefined ? (
-              <TasksPanel
-                canEdit={canEdit}
-                eventId={eventId}
-                tasks={todos.items}
+          <div
+            aria-labelledby={`event-tab-${shownTab}`}
+            className="event-view"
+            id={`event-panel-${shownTab}`}
+            role="tabpanel"
+          >
+            {activeProjection?.isPending ? (
+              <LoadingState label="Loading this view" />
+            ) : activeProjection?.isError ? (
+              <ErrorNotice
+                error={activeProjection.error}
+                onRefresh={() => void activeProjection.refetch()}
               />
-            ) : null}
-            {shownTab === "calendar" && calendar !== undefined ? (
-              <CalendarPanel
-                canEdit={canEdit}
-                eventId={eventId}
-                items={calendar.items}
-              />
-            ) : null}
-            {shownTab === "timeline" && timeline !== undefined ? (
-              <TimelinePanel timeline={timeline} />
-            ) : null}
-            {shownTab === "itinerary" && itinerary !== undefined ? (
-              <ItineraryPanel items={itinerary.items} />
-            ) : null}
-            {shownTab === "expenses" && expenses !== undefined ? (
-              <ExpensesPanel
-                canEdit={canEdit}
-                eventId={eventId}
-                expenses={expenses.items}
-              />
-            ) : null}
-            {shownTab === "reminders" && reminders !== undefined ? (
-              <RemindersPanel
-                canEdit={canEdit}
-                eventId={eventId}
-                reminders={reminders.items}
-              />
-            ) : null}
-            {shownTab === "files" && detail !== undefined ? (
-              <DocumentsPanel
-                canEdit={canEdit}
-                event={event}
-                expenses={detail.expenses}
-                tasks={detail.tasks}
-              />
-            ) : null}
-            {shownTab === "sharing" && canShare && detail !== undefined ? (
-              <SharingPanel detail={detail} eventId={eventId} />
-            ) : null}
-            {shownTab === "removed-links" ? (
-              <RemovedLinksPanel objectId={eventId} />
-            ) : null}
-          </>
-        )}
-      </div>
+            ) : (
+              <>
+                {shownTab === "overview" && detail !== undefined ? (
+                  <EventOverview detail={detail} onOpen={setActiveTab} />
+                ) : null}
+                {shownTab === "todos" && todos !== undefined ? (
+                  <TasksPanel
+                    canEdit={canEdit}
+                    eventId={eventId}
+                    tasks={todos.items}
+                  />
+                ) : null}
+                {shownTab === "calendar" && calendar !== undefined ? (
+                  <CalendarPanel
+                    canEdit={canEdit}
+                    eventId={eventId}
+                    items={calendar.items}
+                  />
+                ) : null}
+                {shownTab === "timeline" && timeline !== undefined ? (
+                  <TimelinePanel timeline={timeline} />
+                ) : null}
+                {shownTab === "itinerary" && itinerary !== undefined ? (
+                  <ItineraryPanel items={itinerary.items} />
+                ) : null}
+                {shownTab === "expenses" && expenses !== undefined ? (
+                  <ExpensesPanel
+                    canEdit={canEdit}
+                    eventId={eventId}
+                    expenses={expenses.items}
+                  />
+                ) : null}
+                {shownTab === "reminders" && reminders !== undefined ? (
+                  <RemindersPanel
+                    canEdit={canEdit}
+                    eventId={eventId}
+                    reminders={reminders.items}
+                  />
+                ) : null}
+                {shownTab === "files" && detail !== undefined ? (
+                  <DocumentsPanel
+                    canEdit={canEdit}
+                    event={event}
+                    expenses={detail.expenses}
+                    tasks={detail.tasks}
+                  />
+                ) : null}
+                {shownTab === "sharing" && canShare && detail !== undefined ? (
+                  <SharingPanel detail={detail} eventId={eventId} />
+                ) : null}
+                {shownTab === "removed-links" ? (
+                  <RemovedLinksPanel objectId={eventId} />
+                ) : null}
+              </>
+            )}
+          </div>
+        </>
+      )}
     </main>
   );
 }

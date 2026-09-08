@@ -124,6 +124,7 @@ export {
   type ShareRevocationResponse,
 } from "./sharing.js";
 export * from "./commands.js";
+export * from "./event-pages.js";
 export * from "./storage-inventory.js";
 export {
   calendarDateSchema,

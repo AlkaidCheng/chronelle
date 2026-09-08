@@ -390,6 +390,21 @@ export const documentTransferAuthorizations = pgTable(
   },
 );
 
+export const eventPageRevisions = pgTable(
+  "event_page_revisions",
+  {
+    workspaceId: uuid("workspace_id").notNull(),
+    eventId: uuid("event_id").notNull(),
+    version: integer("version").notNull(),
+    pages: jsonb("pages").$type<unknown[]>().notNull(),
+    auditEventId: uuid("audit_event_id").notNull(),
+    createdAt: createCreatedAtColumn(),
+  },
+  (table) => [
+    primaryKey({ columns: [table.workspaceId, table.eventId, table.version] }),
+  ],
+);
+
 export type UserRow = typeof users.$inferSelect;
 export type NewUserRow = typeof users.$inferInsert;
 export type WorkspaceRow = typeof workspaces.$inferSelect;

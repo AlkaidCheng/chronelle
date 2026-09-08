@@ -13,6 +13,7 @@ import type { AppDependencies } from "./dependencies.js";
 import { registerDocumentRoutes } from "./documents/routes.js";
 import { httpServerOptions, registerHttpBoundary } from "./http-boundary.js";
 import { registerEventPlanningRoutes } from "./event-planning/routes.js";
+import { registerEventPageRoutes } from "./event-pages/routes.js";
 import { registerRequestContext } from "./request-context.js";
 import { registerSearchRoutes } from "./search/routes.js";
 import { registerSharingRoutes } from "./sharing/routes.js";
@@ -32,6 +33,7 @@ export function buildApp(
   registerSessionRoute(app, { identity: dependencies.identity });
   registerDocumentRoutes(app, dependencies);
   registerEventPlanningRoutes(app, dependencies);
+  registerEventPageRoutes(app, dependencies);
   registerSearchRoutes(app, dependencies);
   registerSharingRoutes(app, dependencies);
   registerRevisionRoutes(app, dependencies);
