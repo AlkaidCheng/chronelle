@@ -243,18 +243,20 @@ defaults.
 Individual checks are available as `pnpm format:check`, `pnpm lint`,
 `pnpm typecheck`, `pnpm test`, and `pnpm build`.
 
-Install the pinned Chromium build once, then run the real-browser release gate
+Install the pinned browser builds once, then run the real-browser release gate
 against the PostgreSQL service:
 
 ```bash
-pnpm exec playwright install chromium
+pnpm exec playwright install chromium webkit
 pnpm test:e2e
 ```
 
 The browser gate runs the same canonical Event creation and search path at
 desktop and narrow-mobile widths. It also checks tab-keyboard behavior, the
-skip link, and horizontal overflow. CI installs Chromium and runs this gate in
-a dedicated required job.
+skip link, and horizontal overflow. Targeted desktop/mobile WebKit cases cover
+Event scheduling, date formatting, and creation-dialog focus. CI installs both
+engines and runs this gate in a dedicated required job. Engine emulation does not
+replace manual screen-reader or physical-device testing.
 
 The API suite contains a fresh-database release test for the complete event
 slice. It covers canonical projections, Owner and Viewer behavior, hidden

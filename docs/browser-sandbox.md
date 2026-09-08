@@ -22,7 +22,8 @@ needed only to build the file. Moving the file does not transfer saved edits.
 - Create Events in a focused dialog without moving the collection. Turn on Set
   dates to choose a single day or a multi-day range, then use Done to collapse
   the calendar. Month and year open independent selection grids; arrow keys move
-  between days. Add times is optional. Event IDs are available
+  between days. Page Up/Down changes months, or years with Shift, without
+  selecting a date. Add times is optional. Event IDs are available
   in Details, not displayed as persistent header badges.
 - Compare Overview, Calendar, Timeline, and Itinerary projections of the same
   canonical sample objects. Search the sample workspace.
@@ -30,15 +31,17 @@ needed only to build the file. Moving the file does not transfer saved edits.
   adapter, but this is not authentication or a security boundary.
 - Reset fictional data with confirmation. Reset cannot be undone.
 
-Real sign-in, sharing, file transfers, recovery, history, trash mutations,
-undo/redo, and reminder delivery require the full application. Unsupported
+Real sign-in, sharing, file transfers, object recovery/history, trash mutations,
+object undo/redo, and reminder delivery require the full application. Unsupported
 mutations return an explicit error. Empty history and trash screens are only
 layout previews. Sample collections are bounded and unpaginated.
 
-Event subpages with manually added, movable components are a separate planned
-change. The current sandbox still exposes the fixed planning views. Event date
-controls are shared with the full application; Task, Expense, and Reminder time
-inputs retain their existing controls.
+Event pages support manually added, movable components, confirmed removal,
+saved layout history, and session-local layout undo/redo. These change only the
+arrangement; planning records stay intact. Browse event data opens the secondary
+planning views. See [Event pages](event-pages.md) for limits and recovery behavior.
+Event date controls are shared with the full application; Task, Expense, and
+Reminder time inputs retain their existing controls.
 
 ## Persistence and isolation
 
@@ -69,8 +72,9 @@ it starts no web server. Store tests cover canonical projections, persistence,
 stale versions, storage failures, and unsupported operations. These checks do not
 establish production authorization, database integrity, or backup recovery.
 Scheduling checks cover dialog focus and background isolation, independent
-month/year changes, leap-day keyboard selection, optional dates and times, date
-ranges, Details disclosure, and date-only reloads in another timezone.
+month/year changes, month-end and leap-day keyboard selection, optional dates and
+times, selected versus hover ranges, Details disclosure, and date-only reloads in
+another timezone.
 Chromium checks do not establish screen-reader, Safari, or
 Firefox compatibility.
 

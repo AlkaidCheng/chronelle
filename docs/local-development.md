@@ -231,16 +231,24 @@ database, exercises the complete event-planning slice, rebuilds the Fastify app
 against the same database and storage root, then verifies persisted data and a
 previously authorized private download.
 
-Install the pinned Playwright browser once and run the responsive browser gate:
+Install the pinned Playwright browsers once and run the responsive browser gate:
 
 ```bash
-pnpm exec playwright install chromium
+pnpm exec playwright install chromium webkit
 pnpm test:e2e
 ```
 
 `pnpm test:e2e` builds both applications, applies pending migrations, starts
 the production entry points, and runs the canonical Event creation and search
-path in desktop and narrow-mobile Chromium projects.
+path in desktop and narrow-mobile Chromium projects. Targeted WebKit projects
+cover Event scheduling, date formatting, and creation-dialog keyboard focus at
+desktop and mobile widths. On Linux, use `playwright install --with-deps` to
+install the required system libraries as well.
+
+The macOS WebKit keyboard case uses Option-Tab to include native buttons in
+focus navigation. It does not change system keyboard preferences. This is
+distinct from date-grid arrow and Page Up/Down navigation, which is the same
+in each engine.
 
 ## Migrations
 

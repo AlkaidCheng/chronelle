@@ -30,6 +30,32 @@ Display dates and date-entry controls use the browser's local timezone. Stored
 timezone and all-day attributes are retained; specialized all-day and
 event-timezone display are a follow-up.
 
+## Date and dialog navigation
+
+The Event date picker has independent month and year controls. Arrow keys move
+by day or week; Home/End move to the week's edges. Page Up/Down moves one month,
+or one year with Shift, clamping to the last available day in the target month.
+Navigation stays within years 0001-9999 and does not change the selection until
+Enter, Space, or a pointer click. One day in the grid participates in Tab order.
+
+Selected grid cells expose the actual date range, not a tentative hover preview.
+Weekday headers have full accessible names, and a polite status reports the
+displayed month/year. Keyboard focus moves with the rendered calendar rather
+than waiting for a later animation frame. The form body scrolls independently;
+programmatic date scrolling cannot move or clip the dialog header and actions.
+
+New event focuses its opener before showing the native dialog, including on
+browsers that do not focus buttons on pointer clicks. Closing a session-bound
+dialog returns focus to its opener; if it cannot receive focus, the workspace
+content is the fallback. Session changes still close dialogs.
+
+The production browser gate includes desktop and mobile WebKit checks for Event
+date formatting, schedule editing, keyboard selection, and creation-dialog focus.
+These are engine tests, not verification on physical Apple devices or with a
+screen reader. Manual Safari/VoiceOver and other assistive-technology review
+remain necessary. The offline sandbox gate continues to use Chromium: WebKit's
+emulated offline mode fails to load local files before the application runs.
+
 ## Expense amounts
 
 Expense rows and totals retain all nonzero digits of the stored four-decimal
