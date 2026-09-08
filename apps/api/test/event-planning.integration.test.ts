@@ -80,6 +80,136 @@ function headers(
 }
 
 describe.sequential("event-planning API", () => {
+  it("preserves date precision through projection, edits, history and restoration", async () => {
+    const owner = await signIn("dates@example.test", "Planner");
+    const auth = headers(owner);
+    const created = await app.inject({
+      method: "POST",
+      url: "/api/events",
+      headers: auth,
+      payload: {
+        displayName: "Summer vacation",
+        startsOn: "2030-07-03",
+        endsOn: "2030-07-12",
+        timezone: "America/Los_Angeles",
+      },
+    });
+    expect(created.statusCode).toBe(201);
+    const event = eventResponseSchema.parse(created.json());
+    expect(event).toMatchObject({
+      startsOn: "2030-07-03",
+      endsOn: "2030-07-12",
+      startsAt: null,
+      endsAt: null,
+    });
+    const child = await app.inject({
+      method: "POST",
+      url: `/api/events/${event.id}/resources`,
+      headers: auth,
+      payload: {
+        commandId: createId(),
+        resource: {
+          objectType: "event",
+          displayName: "Mountain stay",
+          startsOn: "2030-07-04",
+          endsOn: "2030-07-06",
+        },
+      },
+    });
+    expect(child.statusCode).toBe(201);
+    for (const view of ["calendar", "itinerary"]) {
+      const response = await app.inject({
+        method: "GET",
+        url: `/api/events/${event.id}/${view}`,
+        headers: auth,
+      });
+      expect(response.statusCode).toBe(200);
+      expect(response.json().items[0]).toMatchObject({
+        id: child.json().resource.id,
+        startsOn: "2030-07-04",
+        startsAt: null,
+      });
+    }
+    const timeline = await app.inject({
+      method: "GET",
+      url: `/api/events/${event.id}/timeline`,
+      headers: auth,
+    });
+    expect(timeline.json().items[0]).toMatchObject({
+      occursAt: null,
+      occursOn: "2030-07-04",
+    });
+    const patch = { expectedVersion: 1, endsOn: "2030-07-14" };
+    expect(
+      (
+        await app.inject({
+          method: "PATCH",
+          url: `/api/events/${event.id}`,
+          headers: auth,
+          payload: patch,
+        })
+      ).statusCode,
+    ).toBe(200);
+    expect(
+      (
+        await app.inject({
+          method: "PATCH",
+          url: `/api/events/${event.id}`,
+          headers: auth,
+          payload: patch,
+        })
+      ).statusCode,
+    ).toBe(409);
+    const restored = await app.inject({
+      method: "POST",
+      url: `/api/objects/${event.id}/revisions/1/restore`,
+      headers: auth,
+      payload: { expectedVersion: 2 },
+    });
+    expect(restored.statusCode).toBe(200);
+    expect(restored.json()).toMatchObject({
+      startsOn: "2030-07-03",
+      endsOn: "2030-07-12",
+      version: 3,
+    });
+    const audit = await testDatabase.connection
+      .sql`SELECT action FROM audit_events WHERE resource_id=${event.id}`;
+    expect(audit.map((row) => row.action)).toEqual(
+      expect.arrayContaining([
+        "event.created",
+        "event.updated",
+        "event.restored",
+      ]),
+    );
+    const outsider = await signIn(
+      "outsider-dates@example.test",
+      "Other planner",
+    );
+    expect(
+      (
+        await app.inject({
+          method: "GET",
+          url: `/api/events/${event.id}`,
+          headers: headers(outsider),
+        })
+      ).statusCode,
+    ).toBe(404);
+    for (const payload of [
+      { startsOn: "2030-02-30" },
+      { startsOn: "2030-07-03", endsOn: "2030-07-01" },
+      { startsOn: "2030-07-03", startsAt: "2030-07-03T00:00:00Z" },
+    ])
+      expect(
+        (
+          await app.inject({
+            method: "POST",
+            url: "/api/events",
+            headers: auth,
+            payload: { displayName: "Invalid", ...payload },
+          })
+        ).statusCode,
+      ).toBe(400);
+  });
   it("projects canonical event resources and preserves lifecycle invariants", async () => {
     const owner = await signIn("planner@example.com", "Event Planner");
     const ownerHeaders = headers(owner);

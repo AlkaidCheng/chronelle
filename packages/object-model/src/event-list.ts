@@ -38,6 +38,8 @@ export interface EventPage {
   readonly asOf: string;
 }
 
+const schedulePosition = sql`coalesce(${events.startsAt}, ${events.startsOn}::timestamp AT TIME ZONE 'UTC')`;
+
 const foldedName = sql<string>`lower(${objects.displayName}) COLLATE "C"`;
 
 function eventOrder(
@@ -71,15 +73,15 @@ function eventOrder(
       const time = sql`${cursor?.startsAt}::timestamptz`;
       const after =
         cursor?.startsAt === null
-          ? and(isNull(events.startsAt), afterName)
+          ? and(isNull(schedulePosition), afterName)
           : or(
-              isNull(events.startsAt),
-              gt(events.startsAt, time),
-              and(eq(events.startsAt, time), afterName),
+              isNull(schedulePosition),
+              gt(schedulePosition, time),
+              and(eq(schedulePosition, time), afterName),
             );
       return {
         order: [
-          sql`${events.startsAt} ASC NULLS LAST`,
+          sql`${schedulePosition} ASC NULLS LAST`,
           asc(foldedName),
           asc(objects.id),
         ],
@@ -91,13 +93,23 @@ function eventOrder(
 
 function periodPredicate(filter: EventListQuery["filter"], asOf: string) {
   if (filter === "all") return undefined;
-  if (filter === "unscheduled") return isNull(events.startsAt);
+  if (filter === "unscheduled") return isNull(schedulePosition);
   const end = sql`coalesce(${events.endsAt}, ${events.startsAt})`;
-  return and(
-    isNotNull(events.startsAt),
-    filter === "past"
-      ? sql`${end} < ${asOf}::timestamptz`
-      : sql`${end} >= ${asOf}::timestamptz`,
+  const calendarEnd = sql`coalesce(${events.endsOn}, ${events.startsOn})`;
+  const today = sql`(${asOf}::timestamptz AT TIME ZONE coalesce(${events.timezone}, 'UTC'))::date`;
+  return or(
+    and(
+      isNotNull(events.startsOn),
+      filter === "past"
+        ? sql`${calendarEnd} < ${today}`
+        : sql`${calendarEnd} >= ${today}`,
+    ),
+    and(
+      isNotNull(events.startsAt),
+      filter === "past"
+        ? sql`${end} < ${asOf}::timestamptz`
+        : sql`${end} >= ${asOf}::timestamptz`,
+    ),
   );
 }
 
@@ -148,7 +160,7 @@ export async function listEventPage(
         // API dates use milliseconds; keyset positions retain database precision.
         startsAt: sql<
           string | null
-        >`to_char(${events.startsAt} AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"')`,
+        >`to_char(${schedulePosition} AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"')`,
         updatedAt: sql<string>`to_char(${objects.updatedAt} AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"')`,
       })
       .from(objects)

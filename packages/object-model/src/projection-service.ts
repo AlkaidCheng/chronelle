@@ -49,6 +49,17 @@ function isResource<Type extends EventPlanningResource["objectType"]>(
 
 type TimelineResource = Exclude<EventPlanningResource, DocumentResource>;
 function timelineItem(resource: TimelineResource): TimelineItem[] {
+  if (resource.objectType === "event" && resource.startsOn !== null)
+    return [
+      {
+        canonicalObjectId: resource.id,
+        objectType: "event",
+        displayName: resource.displayName,
+        occursAt: null,
+        occursOn: resource.startsOn,
+        version: resource.version,
+      },
+    ];
   let occursAt: Date | null;
   switch (resource.objectType) {
     case "event":
@@ -203,8 +214,12 @@ export class EventPlanningProjectionService {
     const items = resources.flatMap(timelineItem);
     items.sort((first, second) =>
       compareDates(
-        first.occursAt,
-        second.occursAt,
+        first.occursOn
+          ? new Date(`${first.occursOn}T00:00:00Z`)
+          : first.occursAt,
+        second.occursOn
+          ? new Date(`${second.occursOn}T00:00:00Z`)
+          : second.occursAt,
         first.canonicalObjectId,
         second.canonicalObjectId,
       ),
@@ -214,12 +229,18 @@ export class EventPlanningProjectionService {
 
   #scheduledEvents(events: readonly EventResource[]): EventResource[] {
     return events
-      .filter(
-        (event): event is EventResource & { startsAt: Date } =>
-          event.startsAt !== null,
-      )
+      .filter((event) => event.startsAt !== null || event.startsOn !== null)
       .sort((first, second) =>
-        compareDates(first.startsAt, second.startsAt, first.id, second.id),
+        compareDates(
+          first.startsOn
+            ? new Date(`${first.startsOn}T00:00:00Z`)
+            : first.startsAt,
+          second.startsOn
+            ? new Date(`${second.startsOn}T00:00:00Z`)
+            : second.startsAt,
+          first.id,
+          second.id,
+        ),
       );
   }
 

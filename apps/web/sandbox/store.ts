@@ -1,4 +1,5 @@
 import {
+  eventCalendarDatesSchema,
   eventContextCreateRequestSchema,
   eventCreateRequestSchema,
   eventListQuerySchema,
@@ -10,6 +11,7 @@ import {
   objectSearchQuerySchema,
   relationResponseSchema,
   type EventPlanningResourceResponse as Resource,
+  type TimelineResponse,
 } from "@chronelle/schemas";
 import { eventPeriod } from "../lib/event-collection";
 
@@ -152,6 +154,20 @@ function parseState(raw: string): State {
     .array()
     .max(200)
     .parse(value.objects);
+  for (const object of objects)
+    if (object.objectType === "event") {
+      eventCalendarDatesSchema.parse(object);
+      if (
+        object.startsOn !== null &&
+        (object.startsAt !== null || object.endsAt !== null)
+      )
+        throw new Error("Calendar dates cannot include timestamps.");
+      if (
+        object.endsAt !== null &&
+        (object.startsAt === null || object.endsAt < object.startsAt)
+      )
+        throw new Error("Invalid event interval.");
+    }
   const relations = relationResponseSchema
     .array()
     .max(400)
@@ -369,7 +385,9 @@ export class SandboxStore {
           ? a.displayName.localeCompare(b.displayName)
           : query.sort === "updated"
             ? b.updatedAt.localeCompare(a.updatedAt)
-            : (a.startsAt ?? "z").localeCompare(b.startsAt ?? "z"),
+            : (a.startsOn ?? a.startsAt ?? "z").localeCompare(
+                b.startsOn ?? b.startsAt ?? "z",
+              ),
       );
       return { items, nextCursor: null, asOf: new Date(now).toISOString() };
     }
@@ -397,7 +415,11 @@ export class SandboxStore {
       );
       const events = children
         .filter((child) => child.objectType === "event")
-        .sort((a, b) => (a.startsAt ?? "z").localeCompare(b.startsAt ?? "z"));
+        .sort((a, b) =>
+          (a.startsOn ?? a.startsAt ?? "z").localeCompare(
+            b.startsOn ?? b.startsAt ?? "z",
+          ),
+        );
       const tasks = children.filter((child) => child.objectType === "task");
       const expenses = children.filter(
         (child) => child.objectType === "expense",
@@ -428,7 +450,19 @@ export class SandboxStore {
         return {
           sourceEventId: id,
           items: children
-            .flatMap((child) => {
+            .flatMap<TimelineResponse["items"][number]>((child) => {
+              if (child.objectType === "document") return [];
+              if (child.objectType === "event" && child.startsOn)
+                return [
+                  {
+                    canonicalObjectId: child.id,
+                    objectType: child.objectType,
+                    displayName: child.displayName,
+                    occursAt: null,
+                    occursOn: child.startsOn,
+                    version: child.version,
+                  },
+                ];
               const occursAt =
                 child.objectType === "event"
                   ? child.startsAt
@@ -446,12 +480,17 @@ export class SandboxStore {
                       objectType: child.objectType,
                       displayName: child.displayName,
                       occursAt,
+                      occursOn: null,
                       version: child.version,
                     },
                   ]
                 : [];
             })
-            .sort((a, b) => a.occursAt.localeCompare(b.occursAt)),
+            .sort((a, b) =>
+              (a.occursOn ?? a.occursAt ?? "").localeCompare(
+                b.occursOn ?? b.occursAt ?? "",
+              ),
+            ),
         };
     }
   }

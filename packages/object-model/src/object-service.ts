@@ -17,7 +17,10 @@ import {
   type ObjectType,
 } from "@chronelle/db";
 import { and, eq, inArray, isNull, sql } from "drizzle-orm";
-import type { EventListQueryInput } from "@chronelle/schemas";
+import {
+  eventCalendarDatesSchema,
+  type EventListQueryInput,
+} from "@chronelle/schemas";
 import { listEventPage, type EventPage } from "./event-list.js";
 
 import { InvalidObjectStateError, ObjectConflictError } from "./errors.js";
@@ -64,7 +67,17 @@ function assertEventState(
   startsAt: Date | null,
   endsAt: Date | null,
   timezone: string | null,
+  startsOn: string | null,
+  endsOn: string | null,
 ): void {
+  if (!eventCalendarDatesSchema.safeParse({ startsOn, endsOn }).success)
+    throw new InvalidObjectStateError(
+      "Calendar dates must be valid and ordered.",
+    );
+  if (startsOn !== null && (startsAt !== null || endsAt !== null))
+    throw new InvalidObjectStateError(
+      "Use calendar dates or timestamps, not both.",
+    );
   if (startsAt !== null) {
     assertValidDate(startsAt, "startsAt");
   }
@@ -143,7 +156,9 @@ export class EventPlanningObjectService {
     const startsAt = input.startsAt ?? null;
     const endsAt = input.endsAt ?? null;
     const timezone = input.timezone ?? null;
-    assertEventState(startsAt, endsAt, timezone);
+    const startsOn = input.startsOn ?? null;
+    const endsOn = input.endsOn ?? null;
+    assertEventState(startsAt, endsAt, timezone, startsOn, endsOn);
 
     const resource = await this.#createObject(
       context,
@@ -155,6 +170,8 @@ export class EventPlanningObjectService {
           workspaceId: context.principal.workspaceId,
           startsAt,
           endsAt,
+          startsOn,
+          endsOn,
           timezone,
           isAllDay: input.isAllDay ?? false,
         });
@@ -377,7 +394,10 @@ export class EventPlanningObjectService {
     const endsAt = input.endsAt === undefined ? current.endsAt : input.endsAt;
     const timezone =
       input.timezone === undefined ? current.timezone : input.timezone;
-    assertEventState(startsAt, endsAt, timezone);
+    const startsOn =
+      input.startsOn === undefined ? current.startsOn : input.startsOn;
+    const endsOn = input.endsOn === undefined ? current.endsOn : input.endsOn;
+    assertEventState(startsAt, endsAt, timezone, startsOn, endsOn);
 
     const resource = await this.#updateObject(
       context,
@@ -385,6 +405,8 @@ export class EventPlanningObjectService {
       input,
       async (transaction) => {
         const changes = {
+          ...(input.startsOn !== undefined && { startsOn: input.startsOn }),
+          ...(input.endsOn !== undefined && { endsOn: input.endsOn }),
           ...(input.startsAt !== undefined && { startsAt: input.startsAt }),
           ...(input.endsAt !== undefined && { endsAt: input.endsAt }),
           ...(input.timezone !== undefined && { timezone: input.timezone }),

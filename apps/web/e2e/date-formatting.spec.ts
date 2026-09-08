@@ -2,6 +2,73 @@ import { randomUUID } from "node:crypto";
 import { eventResponseSchema } from "@chronelle/schemas";
 import { expect, test } from "@playwright/test";
 
+test("creates a date-only range and switches to multi-day exact times", async ({
+  page,
+  request,
+}) => {
+  const email = `schedule-${randomUUID()}@example.test`;
+  const identity = await request.post("/api/auth/development/sign-in", {
+    data: { email, displayName: "Event planner" },
+  });
+  expect(identity.status()).toBe(200);
+  const session = await identity.json();
+  const headers = { authorization: `Bearer ${session.accessToken}` };
+  await page.goto("/sign-in");
+  await page.getByLabel("Name", { exact: true }).fill("Event planner");
+  await page.getByLabel("Email").fill(email);
+  await page.getByRole("button", { name: "Continue" }).click();
+  await page.getByRole("button", { name: "New event", exact: true }).click();
+  await page.getByLabel("Event name", { exact: true }).fill("Summer vacation");
+  await page.getByLabel("Date precision").selectOption("dates");
+  await page.getByLabel("Start date", { exact: true }).fill("2030-07-03");
+  await page
+    .getByLabel("End date (optional)", { exact: true })
+    .fill("2030-07-12");
+  await page.getByRole("button", { name: "Create event", exact: true }).click();
+  await expect(
+    page.getByRole("heading", { name: "Summer vacation", exact: true }),
+  ).toBeVisible();
+  await expect(page).toHaveURL(/\/events\/[0-9a-f-]{36}(?:\?.*)?$/);
+  const id = new URL(page.url()).pathname.split("/").at(-1);
+  const read = async () => {
+    const response = await request.get(`/api/events/${id}`, { headers });
+    expect(response.status()).toBe(200);
+    return eventResponseSchema.parse(await response.json());
+  };
+  expect(await read()).toMatchObject({
+    startsOn: "2030-07-03",
+    endsOn: "2030-07-12",
+    startsAt: null,
+    endsAt: null,
+  });
+  await expect(page.getByLabel("Object ID", { exact: true })).toBeHidden();
+  await page.reload();
+  await page.getByRole("button", { name: "Edit event", exact: true }).click();
+  await page.getByLabel("Date precision").selectOption("timed");
+  await page.getByLabel("Start time", { exact: true }).fill("09:30");
+  await page.getByLabel("End time (optional)", { exact: true }).fill("18:00");
+  await page.getByRole("button", { name: "Save event", exact: true }).click();
+  await expect(
+    page.getByRole("button", { name: "Edit event", exact: true }),
+  ).toBeVisible();
+  const timed = await read();
+  expect(timed).toMatchObject({ id, startsOn: null, endsOn: null, version: 2 });
+  expect(
+    Date.parse(timed.endsAt ?? "") - Date.parse(timed.startsAt ?? ""),
+  ).toBeGreaterThan(8 * 86_400_000);
+  await page.reload();
+  await page.getByRole("button", { name: "Edit event", exact: true }).click();
+  await expect(page.getByLabel("Start date", { exact: true })).toHaveValue(
+    "2030-07-03",
+  );
+  await expect(
+    page.getByLabel("End date (optional)", { exact: true }),
+  ).toHaveValue("2030-07-12");
+  await expect(page.getByLabel("Start time", { exact: true })).toHaveValue(
+    "09:30",
+  );
+});
+
 for (const display of [
   {
     locale: "en-US",

@@ -19,6 +19,8 @@ const typedFields: Record<
   Record<string, ContentField>
 > = {
   event: {
+    startsOn: field("Start date", "text"),
+    endsOn: field("End date", "text"),
     startsAt: field("Starts", "datetime"),
     endsAt: field("Ends", "datetime"),
     timezone: field("Time zone", "text"),

@@ -17,12 +17,14 @@ import {
   PlusIcon,
   SearchIcon,
 } from "../../components/icons";
-import {
-  formatDatePart,
-  formatDateTime,
-  fromDateTimeInput,
-} from "../../lib/format";
 import { useCreateEvent, useEventsQuery } from "../../lib/queries";
+import { EventScheduleFields } from "./event-schedule-fields";
+import {
+  readEventSchedule,
+  eventSchedulePayload,
+  formatEventSchedule,
+  formatEventDatePart,
+} from "../../lib/event-schedule";
 import { eventPeriod } from "../../lib/event-collection";
 
 function EventCard({
@@ -35,8 +37,8 @@ function EventCard({
   return (
     <Link className="event-card" href={`/events/${event.id}`}>
       <div className="event-date-mark">
-        <span>{formatDatePart(event.startsAt, "month").toUpperCase()}</span>
-        <strong>{formatDatePart(event.startsAt, "day")}</strong>
+        <span>{formatEventDatePart(event, "month").toUpperCase()}</span>
+        <strong>{formatEventDatePart(event, "day")}</strong>
       </div>
       <div className="event-card-copy">
         <span className={`object-label period-${eventPeriod(event, now)}`}>
@@ -47,7 +49,7 @@ function EventCard({
               : "Date to be decided"}
         </span>
         <h2>{event.displayName}</h2>
-        <p>{formatDateTime(event.startsAt)}</p>
+        <p>{formatEventSchedule(event)}</p>
       </div>
       <span aria-hidden="true" className="card-arrow">
         <ArrowIcon />
@@ -63,7 +65,8 @@ function CreateEventForm({
 }) {
   const createEvent = useCreateEvent();
   const [displayName, setDisplayName] = useState("");
-  const [startsAt, setStartsAt] = useState("");
+  const [schedule, setSchedule] = useState(readEventSchedule);
+  const [scheduleError, setScheduleError] = useState("");
   const nameInput = useRef<HTMLInputElement>(null);
   useEffect(() => {
     nameInput.current?.focus();
@@ -71,16 +74,26 @@ function CreateEventForm({
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    let timing: ReturnType<typeof eventSchedulePayload>;
+    try {
+      timing = eventSchedulePayload(schedule);
+      setScheduleError("");
+    } catch (error) {
+      setScheduleError(
+        error instanceof Error ? error.message : "Check the schedule.",
+      );
+      return;
+    }
     createEvent.mutate(
       {
         displayName,
-        startsAt: fromDateTimeInput(startsAt),
+        ...timing,
         timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
       },
       {
         onSuccess: (created) => {
           setDisplayName("");
-          setStartsAt("");
+          setSchedule(readEventSchedule());
           onCreated(created.id);
         },
       },
@@ -101,15 +114,14 @@ function CreateEventForm({
           value={displayName}
         />
       </div>
-      <div className="compact-field">
-        <label htmlFor="event-start">Starts (optional)</label>
-        <input
-          id="event-start"
-          onChange={(event) => setStartsAt(event.target.value)}
-          type="datetime-local"
-          value={startsAt}
-        />
-      </div>
+      <EventScheduleFields
+        value={schedule}
+        onChange={(change) =>
+          setSchedule((current) => ({ ...current, ...change }))
+        }
+        disabled={createEvent.isPending}
+      />
+      {scheduleError && <p role="alert">{scheduleError}</p>}
       <button
         className="button button-primary"
         disabled={createEvent.isPending}

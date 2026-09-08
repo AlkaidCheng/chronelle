@@ -35,6 +35,8 @@ export interface CanonicalObjectResource {
 }
 
 export interface EventResource extends CanonicalObjectResource {
+  readonly startsOn: string | null;
+  readonly endsOn: string | null;
   readonly endsAt: Date | null;
   readonly isAllDay: boolean;
   readonly objectType: "event";
@@ -132,6 +134,8 @@ export interface CreateObjectFields {
 }
 
 export interface CreateEventInput extends CreateObjectFields {
+  readonly startsOn?: string | null | undefined;
+  readonly endsOn?: string | null | undefined;
   readonly endsAt?: Date | null | undefined;
   readonly isAllDay?: boolean | undefined;
   readonly startsAt?: Date | null | undefined;
@@ -168,6 +172,8 @@ export interface UpdatePermissionScopeInput {
 }
 
 export interface UpdateEventInput extends UpdateObjectFields {
+  readonly startsOn?: string | null | undefined;
+  readonly endsOn?: string | null | undefined;
   readonly endsAt?: Date | null | undefined;
   readonly isAllDay?: boolean | undefined;
   readonly startsAt?: Date | null | undefined;
@@ -278,7 +284,8 @@ export interface TimelineItem {
   readonly canonicalObjectId: string;
   readonly displayName: string;
   readonly objectType: "event" | "task" | "expense" | "reminder";
-  readonly occursAt: Date;
+  readonly occursAt: Date | null;
+  readonly occursOn?: string | null;
   readonly version: number;
 }
 

@@ -177,6 +177,49 @@ async function share(session: Session, id: string, role = "editor") {
 }
 
 describe("reversible content commands", () => {
+  it("reverses date precision changes without inventing occurrence times", async () => {
+    const owner = await signIn();
+    const event = await create(owner, "events", {
+      startsAt: "2030-07-03T12:00:00Z",
+      endsAt: "2030-07-12T18:00:00Z",
+    });
+    await forward(owner, [
+      {
+        objectId: event.id,
+        objectType: "event",
+        patch: {
+          expectedVersion: 1,
+          startsAt: null,
+          endsAt: null,
+          startsOn: "2030-07-03",
+          endsOn: "2030-07-12",
+        },
+      },
+    ]);
+    expect(await get(owner, event.id)).toMatchObject({
+      version: 2,
+      startsAt: null,
+      endsAt: null,
+      startsOn: "2030-07-03",
+      endsOn: "2030-07-12",
+    });
+    await inverse(owner, "undo");
+    expect(await get(owner, event.id)).toMatchObject({
+      version: 3,
+      startsAt: "2030-07-03T12:00:00.000Z",
+      endsAt: "2030-07-12T18:00:00.000Z",
+      startsOn: null,
+      endsOn: null,
+    });
+    await inverse(owner, "redo");
+    expect(await get(owner, event.id)).toMatchObject({
+      version: 4,
+      startsAt: null,
+      endsAt: null,
+      startsOn: "2030-07-03",
+      endsOn: "2030-07-12",
+    });
+  });
   it("protects a collaborator's later edit even when each user has a reversible stack", async () => {
     const owner = await signIn();
     const collaborator = await signIn("collaborator@example.com");

@@ -13,6 +13,7 @@ import {
   WalletIcon,
 } from "../../components/icons";
 import { formatDateTime } from "../../lib/format";
+import { formatCalendarDate } from "../../lib/event-schedule";
 import { formatMoney, sumMoneyByCurrency } from "../../lib/money";
 import type { EventView } from "../../lib/event-views";
 import { useClock } from "../../lib/use-clock";
@@ -94,7 +95,9 @@ export function EventOverview({
         />
         <OverviewCard
           count={String(
-            detail.events.filter((item) => item.startsAt !== null).length,
+            detail.events.filter(
+              (item) => item.startsAt !== null || item.startsOn !== null,
+            ).length,
           )}
           icon={<CalendarIcon />}
           label="Scheduled items"
@@ -131,7 +134,11 @@ export function EventOverview({
           ) : (
             <>
               <h3>{nextItem.displayName}</h3>
-              <p>{formatDateTime(nextItem.occursAt)}</p>
+              <p>
+                {nextItem.occursOn
+                  ? formatCalendarDate(nextItem.occursOn)
+                  : formatDateTime(nextItem.occursAt)}
+              </p>
             </>
           )}
         </div>

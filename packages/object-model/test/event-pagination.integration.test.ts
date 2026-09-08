@@ -13,7 +13,7 @@ import {
   createTestDatabase,
   type TestDatabase,
 } from "@chronelle/db/testing";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { eq, inArray, sql } from "drizzle-orm";
 import type { EventListQueryInput } from "@chronelle/schemas";
 import { decodeCursor, encodeCursor } from "../src/cursor.js";
@@ -93,6 +93,92 @@ async function fixture(count = 23, hiddenCount = 550) {
 }
 
 describe.sequential("event collection pagination", () => {
+  it("paginates mixed date-only and timed events without exposing private rows", async () => {
+    const { reader, principal, ids, hiddenIds } = await fixture(4, 1);
+    const db = database.connection.db;
+    await db
+      .update(events)
+      .set({ startsOn: "2030-07-03" })
+      .where(inArray(events.objectId, [...ids.slice(0, 2), ...hiddenIds]));
+    await db
+      .update(events)
+      .set({ startsAt: new Date("2030-07-03T00:00:00Z") })
+      .where(inArray(events.objectId, ids.slice(2, 3)));
+    const found: string[] = [];
+    let cursor: string | undefined;
+    do {
+      const page = await reader.listEvents(principal, { limit: 1, cursor });
+      found.push(...page.items.map(({ id }) => id));
+      cursor = page.nextCursor ?? undefined;
+    } while (cursor !== undefined && found.length <= ids.length);
+    expect(found).toEqual(ids);
+    expect(cursor).toBeUndefined();
+  });
+
+  it("keeps date-only events upcoming throughout the inclusive end day in their timezone", async () => {
+    const { reader, principal, ids } = await fixture(3, 0);
+    const [western, eastern] = ids;
+    if (!western || !eastern) throw new Error("Expected calendar fixtures");
+    const db = database.connection.db;
+    await db
+      .update(events)
+      .set({
+        startsOn: "2030-07-03",
+        endsOn: "2030-07-12",
+        timezone: "America/Los_Angeles",
+      })
+      .where(eq(events.objectId, western));
+    await db
+      .update(events)
+      .set({
+        startsOn: "2030-07-03",
+        endsOn: "2030-07-12",
+        timezone: "Asia/Tokyo",
+      })
+      .where(eq(events.objectId, eastern));
+    vi.useFakeTimers({ toFake: ["Date"] });
+    try {
+      vi.setSystemTime(new Date("2030-07-13T06:59:59Z"));
+      expect(
+        (await reader.listEvents(principal, { filter: "upcoming" })).items.map(
+          ({ id }) => id,
+        ),
+      ).toEqual([western]);
+      expect(
+        (await reader.listEvents(principal, { filter: "past" })).items.map(
+          ({ id }) => id,
+        ),
+      ).toEqual([eastern]);
+      expect(
+        (
+          await reader.listEvents(principal, { filter: "unscheduled" })
+        ).items.map(({ id }) => id),
+      ).toEqual(ids.slice(2));
+      vi.setSystemTime(new Date("2030-07-13T07:00:00Z"));
+      expect(
+        (await reader.listEvents(principal, { filter: "upcoming" })).items,
+      ).toEqual([]);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("enforces calendar-date integrity at the SQL boundary", async () => {
+    const { ids } = await fixture(1, 0);
+    const id = ids[0];
+    if (!id) throw new Error("Expected event fixture");
+    const db = database.connection.db;
+    for (const invalid of [
+      { endsOn: "2030-07-03" },
+      { startsOn: "2030-07-03", endsOn: "2030-07-01" },
+      { startsOn: "2030-07-03", startsAt: new Date("2030-07-03T00:00:00Z") },
+      { startsOn: "10000-01-01" },
+    ])
+      await expect(
+        db.update(events).set(invalid).where(eq(events.objectId, id)),
+      ).rejects.toThrow();
+  });
+
   it("bounds the default page after authorization even with sparse access", async () => {
     const { reader, principal, ids, hiddenIds } = await fixture();
     const page = await reader.listEvents(principal);

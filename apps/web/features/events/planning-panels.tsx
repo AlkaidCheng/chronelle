@@ -19,7 +19,13 @@ import { EmptyState, ErrorNotice } from "../../components/feedback";
 import { CheckIcon } from "../../components/icons";
 import { HistoryButton } from "../history/history-button";
 import { LifecycleButton } from "../recovery/lifecycle-provider";
-import { formatDatePart, formatDateTime, shortId } from "../../lib/format";
+import { ObjectDetails } from "../../components/object-details";
+import {
+  formatCalendarDate,
+  formatEventDatePart,
+  formatEventSchedule,
+} from "../../lib/event-schedule";
+import { formatDatePart, formatDateTime } from "../../lib/format";
 import { formatMoney, sumMoneyByCurrency } from "../../lib/money";
 import {
   useRefreshEvent,
@@ -32,14 +38,6 @@ import {
   ScheduledEventForm,
   TaskForm,
 } from "./resource-forms";
-
-function CanonicalId({ id }: { readonly id: string }) {
-  return (
-    <span className="canonical-id" title={id}>
-      ID {shortId(id)}
-    </span>
-  );
-}
 
 function PanelHeading({
   action,
@@ -128,7 +126,7 @@ export function TasksPanel({
         cell: ({ row }) => (
           <div className="primary-cell">
             <strong>{row.original.displayName}</strong>
-            <CanonicalId id={row.original.id} />
+            <ObjectDetails id={row.original.id} />
           </div>
         ),
       }),
@@ -253,7 +251,7 @@ export function TasksPanel({
         <div className="editor-drawer">
           <div className="drawer-heading">
             <h3>Edit task</h3>
-            <CanonicalId id={editingTask.id} />
+            <ObjectDetails id={editingTask.id} />
           </div>
           <TaskForm
             eventId={eventId}
@@ -306,29 +304,22 @@ export function CalendarPanel({
       ) : null}
       {items.length === 0 ? (
         <EmptyState
-          description="Add a timed Event to make the calendar, itinerary, and timeline useful."
+          description="Add a dated Event to make the calendar, itinerary, and timeline useful."
           title="Nothing scheduled"
         />
       ) : (
         <div className="calendar-list">
           {items.map((item) => (
             <article className="calendar-item" key={item.id}>
-              <time dateTime={item.startsAt ?? undefined}>
-                <strong>{formatDatePart(item.startsAt, "day")}</strong>
-                <span>
-                  {formatDatePart(item.startsAt, "month").toUpperCase()}
-                </span>
+              <time dateTime={item.startsOn ?? item.startsAt ?? undefined}>
+                <strong>{formatEventDatePart(item, "day")}</strong>
+                <span>{formatEventDatePart(item, "month").toUpperCase()}</span>
               </time>
               <div>
                 <span className="object-label">Scheduled event</span>
                 <h3>{item.displayName}</h3>
-                <p>
-                  {formatDateTime(item.startsAt)}
-                  {item.endsAt === null
-                    ? ""
-                    : ` to ${formatDateTime(item.endsAt)}`}
-                </p>
-                <CanonicalId id={item.id} />
+                <p>{formatEventSchedule(item)}</p>
+                <ObjectDetails id={item.id} />
               </div>
               {canEdit ? (
                 <button
@@ -354,7 +345,7 @@ export function CalendarPanel({
         <div className="editor-drawer">
           <div className="drawer-heading">
             <h3>Edit schedule item</h3>
-            <CanonicalId id={editingEvent.id} />
+            <ObjectDetails id={editingEvent.id} />
           </div>
           <ScheduledEventForm
             event={editingEvent}
@@ -388,13 +379,15 @@ export function TimelinePanel({
           {timeline.items.map((item) => (
             <li key={`${item.objectType}:${item.canonicalObjectId}`}>
               <span className={`timeline-dot object-${item.objectType}`} />
-              <time dateTime={item.occursAt}>
-                {formatDateTime(item.occursAt)}
+              <time dateTime={item.occursOn ?? item.occursAt ?? undefined}>
+                {item.occursOn
+                  ? formatCalendarDate(item.occursOn)
+                  : formatDateTime(item.occursAt)}
               </time>
               <div>
                 <span className="object-label">{item.objectType}</span>
                 <h3>{item.displayName}</h3>
-                <CanonicalId id={item.canonicalObjectId} />
+                <ObjectDetails id={item.canonicalObjectId} />
                 <HistoryButton
                   objectId={item.canonicalObjectId}
                   displayName={item.displayName}
@@ -432,11 +425,11 @@ export function ItineraryPanel({
                 {String(index + 1).padStart(2, "0")}
               </span>
               <div>
-                <time dateTime={item.startsAt ?? undefined}>
-                  {formatDateTime(item.startsAt)}
+                <time dateTime={item.startsOn ?? item.startsAt ?? undefined}>
+                  {formatEventSchedule(item)}
                 </time>
                 <h3>{item.displayName}</h3>
-                <CanonicalId id={item.id} />
+                <ObjectDetails id={item.id} />
                 <HistoryButton
                   objectId={item.id}
                   displayName={item.displayName}
@@ -499,7 +492,7 @@ export function ExpensesPanel({
                   {formatDateTime(expense.occurredAt)}
                 </span>
                 <h3>{expense.displayName}</h3>
-                <CanonicalId id={expense.id} />
+                <ObjectDetails id={expense.id} />
               </div>
               <strong className="money-value">
                 {formatMoney(expense.amount, expense.currency)}
@@ -528,7 +521,7 @@ export function ExpensesPanel({
         <div className="editor-drawer">
           <div className="drawer-heading">
             <h3>Edit expense</h3>
-            <CanonicalId id={editingExpense.id} />
+            <ObjectDetails id={editingExpense.id} />
           </div>
           <ExpenseForm
             eventId={eventId}
@@ -586,7 +579,7 @@ export function RemindersPanel({
                   {formatDateTime(reminder.remindAt)}
                 </span>
                 <h3>{reminder.displayName}</h3>
-                <CanonicalId id={reminder.id} />
+                <ObjectDetails id={reminder.id} />
               </div>
               <span className={`status-chip status-${reminder.status}`}>
                 {reminder.status}
@@ -635,7 +628,7 @@ export function RemindersPanel({
         <div className="editor-drawer">
           <div className="drawer-heading">
             <h3>Edit reminder</h3>
-            <CanonicalId id={editingReminder.id} />
+            <ObjectDetails id={editingReminder.id} />
           </div>
           <ReminderForm
             eventId={eventId}

@@ -18,6 +18,36 @@ const envelope = {
   customProperties: {},
 };
 describe("restoration content policy", () => {
+  it("normalizes missing calendar dates in timed snapshots for comparison and restore", () => {
+    const timed = revisionSnapshotSchema.parse({
+      ...envelope,
+      objectType: "event",
+      startsAt: "2030-07-03T12:00:00Z",
+      endsAt: null,
+      timezone: "UTC",
+      isAllDay: false,
+    });
+    expect(selectRestorableContent(timed)).toMatchObject({
+      startsOn: null,
+      endsOn: null,
+    });
+    const dated = revisionSnapshotSchema.parse({
+      ...timed,
+      startsAt: null,
+      startsOn: "2030-07-03",
+      endsOn: "2030-07-12",
+    });
+    expect(compareRevisionContent(timed, dated)).toMatchObject([
+      {
+        field: "startsOn",
+        before: null,
+        after: "2030-07-03",
+        restorable: true,
+      },
+      { field: "endsOn", before: null, after: "2030-07-12", restorable: true },
+      { field: "startsAt", after: null, restorable: true },
+    ]);
+  });
   it("ignores key ordering and distinguishes missing custom properties from null", () => {
     const before = revisionSnapshotSchema.parse({
       ...envelope,

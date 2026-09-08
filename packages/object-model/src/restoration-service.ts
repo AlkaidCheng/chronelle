@@ -237,6 +237,8 @@ export class ObjectRestorationService {
           .update(events)
           .set({
             startsAt: fields.startsAt,
+            startsOn: fields.startsOn,
+            endsOn: fields.endsOn,
             endsAt: fields.endsAt,
             timezone: fields.timezone,
             isAllDay: fields.isAllDay,

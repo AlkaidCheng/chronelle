@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { calendarDateSchema } from "./event-calendar-dates.js";
 import { cursorTokenSchema } from "./pagination.js";
 import { relationTypeSchema } from "./relation-list.js";
 
@@ -52,6 +53,8 @@ export const objectDeletionQuerySchema = z.object({
 
 export const eventCreateRequestSchema = z.object({
   ...createObjectShape,
+  startsOn: calendarDateSchema.nullable().optional(),
+  endsOn: calendarDateSchema.nullable().optional(),
   startsAt: nullableDateTimeInputSchema.optional(),
   endsAt: nullableDateTimeInputSchema.optional(),
   timezone: z.string().trim().min(1).max(120).nullable().optional(),
@@ -61,6 +64,8 @@ export const eventCreateRequestSchema = z.object({
 export const eventUpdateRequestSchema = z
   .object({
     ...updateObjectShape,
+    startsOn: calendarDateSchema.nullable().optional(),
+    endsOn: calendarDateSchema.nullable().optional(),
     startsAt: nullableDateTimeInputSchema.optional(),
     endsAt: nullableDateTimeInputSchema.optional(),
     timezone: z.string().trim().min(1).max(120).nullable().optional(),
@@ -157,6 +162,8 @@ const canonicalObjectResponseShape = {
 export const eventResponseSchema = z.object({
   ...canonicalObjectResponseShape,
   objectType: z.literal("event"),
+  startsOn: calendarDateSchema.nullable().default(null),
+  endsOn: calendarDateSchema.nullable().default(null),
   startsAt: nullableDateTimeResponseSchema,
   endsAt: nullableDateTimeResponseSchema,
   timezone: z.string().nullable(),
@@ -281,7 +288,8 @@ export const timelineResponseSchema = z.object({
       canonicalObjectId: objectIdSchema,
       objectType: z.enum(["event", "task", "expense", "reminder"]),
       displayName: z.string(),
-      occursAt: dateTimeResponseSchema,
+      occursAt: dateTimeResponseSchema.nullable(),
+      occursOn: calendarDateSchema.nullable().default(null),
       version: z.number().int().positive(),
     }),
   ),

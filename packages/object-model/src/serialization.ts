@@ -27,6 +27,8 @@ export function serializeResource(resource: EventPlanningResource) {
         ...canonical,
         objectType: "event" as const,
         startsAt: serializeDate(resource.startsAt),
+        startsOn: resource.startsOn,
+        endsOn: resource.endsOn,
         endsAt: serializeDate(resource.endsAt),
         timezone: resource.timezone,
         isAllDay: resource.isAllDay,

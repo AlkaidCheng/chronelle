@@ -125,3 +125,7 @@ export {
 } from "./sharing.js";
 export * from "./commands.js";
 export * from "./storage-inventory.js";
+export {
+  calendarDateSchema,
+  eventCalendarDatesSchema,
+} from "./event-calendar-dates.js";

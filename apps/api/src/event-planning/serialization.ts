@@ -62,7 +62,8 @@ export function serializeTimeline(projection: TimelineProjection) {
     sourceEventId: projection.sourceEventId,
     items: projection.items.map((item) => ({
       ...item,
-      occursAt: item.occursAt.toISOString(),
+      occursAt: item.occursAt?.toISOString() ?? null,
+      occursOn: item.occursOn ?? null,
     })),
   };
 }
