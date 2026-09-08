@@ -163,6 +163,15 @@ describe.each(["history", "recovery"] as const)(
       expect(screen.getByRole("main")).toHaveFocus();
     });
 
+    it("returns focus to the workspace when the trigger is disabled", async () => {
+      const { user } = await openDialog(kind);
+      screen
+        .getByRole("button", { name: "Open dialog" })
+        .setAttribute("disabled", "");
+      await user.click(screen.getByRole("button", { name: /^Close/ }));
+      expect(screen.getByRole("main")).toHaveFocus();
+    });
+
     it("handles the native cancel event used by Escape", async () => {
       const { dialog } = await openDialog(kind);
       fireEvent(dialog, new Event("cancel", { cancelable: true }));

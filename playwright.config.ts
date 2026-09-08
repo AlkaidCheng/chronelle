@@ -19,6 +19,16 @@ export default defineConfig({
       name: "chromium-mobile",
       use: { ...devices["Pixel 5"] },
     },
+    {
+      name: "webkit-desktop",
+      testMatch: /(event-accessibility|date-formatting)\.spec\.ts/,
+      use: { ...devices["Desktop Safari"] },
+    },
+    {
+      name: "webkit-mobile",
+      testMatch: /(event-accessibility|date-formatting)\.spec\.ts/,
+      use: { ...devices["iPhone 13"] },
+    },
   ],
   reporter: isCi ? "github" : "list",
   retries: isCi ? 1 : 0,
