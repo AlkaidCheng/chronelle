@@ -28,3 +28,8 @@ Migration 0009 adds bounded user/workspace command stacks, immutable command
 identities, canonical revision references, and idempotency receipts. It is
 additive and needs no snapshot backfill. See [Commands](../../docs/commands.md)
 for rollout and retention constraints.
+
+Migration 0010 adds date-only Event ranges with inclusive end dates and checks
+that prevent mixing date precision with timestamp precision. It preserves
+existing timed records and immutable snapshots. See
+[Event schedules](../../docs/object-model.md#event-schedules) for the API contract.

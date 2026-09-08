@@ -19,6 +19,10 @@ needed only to build the file. Moving the file does not transfer saved edits.
 ## Available interactions
 
 - Browse and create Events; edit Events, to-dos, expenses, and reminders.
+- Create multi-day Events with dates only, exact times, or an undecided schedule.
+  The Event date picker has independent month/year controls, direct date entry,
+  arrow-key day navigation, and instant month navigation. Event IDs are available
+  in Details, not displayed as persistent header badges.
 - Compare Overview, Calendar, Timeline, and Itinerary projections of the same
   canonical sample objects. Search the sample workspace.
 - Preview Owner and Viewer controls. Viewer mutations are rejected by the sample
@@ -29,6 +33,11 @@ Real sign-in, sharing, file transfers, recovery, history, trash mutations,
 undo/redo, and reminder delivery require the full application. Unsupported
 mutations return an explicit error. Empty history and trash screens are only
 layout previews. Sample collections are bounded and unpaginated.
+
+Event subpages with manually added, movable components are a separate planned
+change. The current sandbox still exposes the fixed planning views. Event date
+controls are shared with the full application; Task, Expense, and Reminder time
+inputs retain their existing controls.
 
 ## Persistence and isolation
 
@@ -58,6 +67,10 @@ The dedicated browser suite opens the file offline on desktop and mobile Chromiu
 it starts no web server. Store tests cover canonical projections, persistence,
 stale versions, storage failures, and unsupported operations. These checks do not
 establish production authorization, database integrity, or backup recovery.
+Scheduling checks cover independent month/year changes, keyboard selection,
+invalid-date correction, date ranges, Details disclosure, and date-only reloads
+in another timezone. Chromium checks do not establish screen-reader, Safari, or
+Firefox compatibility.
 
 Full application local testing is a separate, deferred milestone after design
 review. Existing instructions in [local development](local-development.md) remain

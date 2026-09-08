@@ -26,7 +26,7 @@ sign-in creates the corresponding owner membership in the same transaction.
 ## Initial typed objects
 
 - `Event` stores the minimum scheduling facts needed for planning projections:
-  start, end, timezone, and all-day state. An unscheduled Event can represent
+  start, end, date precision, timezone, and all-day state. An unscheduled Event can represent
   the overall plan; scheduled child Events represent itinerary occurrences.
 - `Task` stores status, due time, and completion time.
 - `Expense` stores an amount, ISO-style currency code, and occurrence time as
@@ -46,6 +46,41 @@ The current browser workspace intentionally exposes only these fields. Richer
 venue, participant, budgeting, notification, and itinerary attributes remain a
 future object-model decision rather than being embedded in projection-specific
 client records.
+
+## Event schedules
+
+Events support three schedule states on the same canonical object:
+
+- Undecided: `startsAt`, `endsAt`, `startsOn`, and `endsOn` are null.
+- Dates only: `startsOn` is an ISO calendar date (`YYYY-MM-DD`); optional
+  `endsOn` is inclusive. Both timestamps are null. These facts use PostgreSQL
+  `date`, with years 1 through 9999, and are never converted into stored midnight
+  timestamps. Omitting the end leaves it unspecified.
+- Dates and times: `startsAt` is an instant; optional `endsAt` must not precede
+  it. Both date-only fields are null. These facts use `timestamptz`.
+
+Both scheduled states can span multiple days. An end requires a start. Partial
+updates validate the merged state, so switching precision must explicitly clear
+the opposite pair. `isAllDay` remains available for existing timestamp-based
+records; it does not imply date-only precision.
+
+Date-only display is independent of the viewer's timezone. The optional IANA
+`timezone` determines the current calendar day for Upcoming/Past filters; UTC is
+the fallback. The inclusive last day is upcoming until that timezone's next day.
+Timed display and input use the browser's local timezone. Nonexistent local
+times at a daylight-saving transition are rejected; ambiguous repeated times use
+the browser's Date interpretation. Choosing an arbitrary input timezone remains
+a future editor capability.
+
+Calendar and itinerary responses contain the same Event fields. Timeline entries
+carry either `occursAt` (instant) or `occursOn` (date), with the other null. A date
+is ordered at its UTC day boundary for deterministic mixed-precision ordering;
+this is a projection key, not an asserted occurrence time. Event list keyset
+pagination uses the same ordering convention and authorizes before pagination.
+
+Date fields participate in optimistic concurrency, audit, revisions, restoration,
+and Event content commands. Older revision snapshots without these fields read
+them as null; immutable stored snapshots are not rewritten.
 
 ## Relationships and projections
 

@@ -73,14 +73,14 @@ Viewers can inspect it but cannot restore.
 `{ expectedVersion }`, requires current Edit, and applies eligible historical
 content as version current + 1 of the same canonical object.
 
-| Object    | Restorable content                  | Preserved typed facts                                                                       |
-| --------- | ----------------------------------- | ------------------------------------------------------------------------------------------- |
-| All types | Name and custom properties          | Identity, permissions, relations, lifecycle state, system metadata                          |
-| Event     | Start, end, time zone, all-day flag | Common exclusions                                                                           |
-| Task      | Status, due time, completion time   | Common exclusions                                                                           |
-| Expense   | Common content only                 | Amount, currency, transaction date                                                          |
-| Reminder  | Reminder time                       | Delivery status                                                                             |
-| Document  | Common content only                 | Original filename, MIME type, size, checksum, file bytes, provider, encryption, storage key |
+| Object    | Restorable content                                | Preserved typed facts                                                                       |
+| --------- | ------------------------------------------------- | ------------------------------------------------------------------------------------------- |
+| All types | Name and custom properties                        | Identity, permissions, relations, lifecycle state, system metadata                          |
+| Event     | Start/end dates or times, time zone, all-day flag | Common exclusions                                                                           |
+| Task      | Status, due time, completion time                 | Common exclusions                                                                           |
+| Expense   | Common content only                               | Amount, currency, transaction date                                                          |
+| Reminder  | Reminder time                                     | Delivery status                                                                             |
+| Document  | Common content only                               | Original filename, MIME type, size, checksum, file bytes, provider, encryption, storage key |
 
 Expense corrections use the explicit Expense editor. Generic restore does not
 rewrite financial facts, re-arm Reminder delivery, or replace Document files.
