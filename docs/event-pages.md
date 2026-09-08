@@ -1,14 +1,37 @@
 # Event pages
 
 An Event opens on its saved pages. Owners and Editors can add named pages and
-insert a To-dos component through focused dialogs. Viewers can use the saved
-layout and read tasks but cannot change either. Browse event data opens the
-existing planning views, including Calendar, Expenses, Files and Sharing.
+choose components through a focused picker. Viewers can use the saved layout
+and read authorized records but cannot change either. Browse event data opens
+secondary planning views, including Calendar, Expenses, Files and Sharing.
 
 Page and component IDs identify presentation elements, not canonical objects.
-Every To-dos component queries the owning Event's authorized task projection.
-The same task can appear on several pages; editing it updates every projection.
-Removing a page or component from the layout does not delete a task or relation.
+Each component queries the owning Event's authorized projection. The same
+record can appear in several components or pages; editing it refreshes active
+projections and invalidates inactive ones. Removing a page or component from
+the layout does not delete business objects or relations.
+
+## Components
+
+| Kind        | Content                                                                   |
+| ----------- | ------------------------------------------------------------------------- |
+| `todos`     | Tasks with completion controls and independent local filters              |
+| `calendar`  | Scheduled Events, including date-only ranges, with creation and editing   |
+| `timeline`  | Dated Events, Tasks, Expenses, and Reminders in chronological order       |
+| `itinerary` | The same scheduled Events in running order                                |
+| `expenses`  | Historical transactions with totals kept separate by currency             |
+| `reminders` | Recorded reminders with editing and dismissal; notifications are not sent |
+| `files`     | Authorized private attachments for the Event and its Tasks and Expenses   |
+
+Only components on the selected page are mounted. Repeated components share
+query results and in-flight requests, while controls such as task filters and
+attachment targets remain independent. A failed projection shows its own retry
+control without replacing neighboring components. Secondary data views use
+the same renderer and query keys.
+
+Adding a component changes presentation only; it does not create or grant
+access to its contents. In particular, Files loads authorized attachment
+targets and checks access again when requesting upload or download transfers.
 
 ## Persistence
 
@@ -21,8 +44,8 @@ the canonical Event's object version or alter its metadata.
 The API validates a strict structure: at most 20 pages, 20 components per page,
 100 components overall, page names of 1-80 characters, unique UUIDs across the
 layout, and recognized component kinds. Configuration contains no business
-records, arbitrary scripts or style definitions. The initial component kind is
-`todos`.
+records, arbitrary scripts or style definitions. Supported component kinds
+are listed above; unrecognized kinds and extra fields are rejected.
 
 ## API
 
@@ -65,6 +88,12 @@ The typed client exposes `getEventLayout(id)` and
 `updateEventLayout(id, { expectedVersion, pages })`. Install migration 0011 and
 reapply the runtime database role grants before starting the updated API.
 
+The expanded component catalog requires no additional SQL migration. Deploy
+the API and web together before saving these kinds: clients and servers that
+only recognize `todos` reject layouts containing the other kinds. Rollback
+must preserve existing snapshots and use a version that understands their
+component kinds; do not rewrite layouts merely to satisfy an older client.
+
 ## Browser sandbox
 
 The browser-only sandbox implements the same layout request/response contracts
@@ -73,3 +102,8 @@ existing snapshots without a layout field. It previews Viewer controls and
 checks versions, but does not establish production authorization or retain
 server audit/history evidence. Production validation requires the real API and
 PostgreSQL integration tests.
+
+The sandbox can insert every component and edit its fictional planning data.
+Files previews empty attachment lists; actual file storage and downloads are
+not simulated. Unsupported transfers return an explicit error. Existing
+browser-local layouts remain usable with this expanded catalog.
