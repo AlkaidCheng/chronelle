@@ -150,6 +150,26 @@ try {
     201,
   );
   const resources = [];
+  const layoutPath = `/api/events/${event.id}/layout`;
+  const layoutInput = {
+    expectedVersion: 0,
+    pages: [
+      {
+        id: randomUUID(),
+        name: "Preparation",
+        components: [{ id: randomUUID(), kind: "todos" }],
+      },
+    ],
+  };
+  const layout = await (
+    await request(layoutPath, {
+      method: "PATCH",
+      headers: { ...headers, "content-type": "application/json" },
+      body: JSON.stringify(layoutInput),
+    })
+  ).json();
+  assert.equal(layout.version, 1);
+  assert.deepEqual(layout.pages, layoutInput.pages);
   for (const resource of [
     { objectType: "task", displayName: "Confirm venue" },
     {
@@ -299,7 +319,21 @@ try {
     "x-workspace-id": signIn.workspace.id,
   };
   await request(`/api/events/${event.id}/detail`, { headers: viewerHeaders });
+  assert.deepEqual(
+    await (await request(layoutPath, { headers: viewerHeaders })).json(),
+    layout,
+  );
+  await request(
+    layoutPath,
+    {
+      method: "PATCH",
+      headers: { ...viewerHeaders, "content-type": "application/json" },
+      body: JSON.stringify({ expectedVersion: 1, pages: [] }),
+    },
+    404,
+  );
   await request(`/api/shares/${grant.id}`, { method: "DELETE", headers });
+  await request(layoutPath, { headers: viewerHeaders }, 404);
   await request(
     `/api/events/${event.id}/detail`,
     { headers: viewerHeaders },
@@ -324,6 +358,10 @@ try {
   await compose("up", "--detach", "--wait", "--wait-timeout", "120");
   const resumed = await json("/api/auth/development/sign-in", identity);
   headers = { authorization: `Bearer ${resumed.accessToken}` };
+  assert.deepEqual(
+    await (await request(layoutPath, { headers })).json(),
+    layout,
+  );
   const download = await (await request(downloadPath, { headers })).json();
   const received = await request(download.download.url);
   assert.equal(received.headers.get("cache-control"), "private, no-store");
@@ -430,6 +468,10 @@ try {
     assert.equal(restoredSession.user.id, signIn.user.id);
     assert.equal(restoredSession.workspace.id, signIn.workspace.id);
     headers = { authorization: `Bearer ${restoredSession.accessToken}` };
+    assert.deepEqual(
+      await (await request(layoutPath, { headers })).json(),
+      layout,
+    );
     assert.deepEqual(
       await (await request(`/api/events/${event.id}`, { headers })).json(),
       expectedEvent,
