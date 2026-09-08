@@ -31,13 +31,3 @@ export function useUpdateEventLayout(eventId: string) {
     },
   });
 }
-
-export function useEventTasks(eventId: string) {
-  const client = useApiClient();
-  const { credential } = useAuthSession();
-  return useQuery({
-    queryKey: queryKeys.todos(eventId),
-    enabled: credential !== null,
-    queryFn: ({ signal }) => client.withSignal(signal).getEventTodos(eventId),
-  });
-}

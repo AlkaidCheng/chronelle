@@ -12,15 +12,8 @@ import { CalendarIcon, LockIcon } from "../../components/icons";
 import { formatEventSchedule } from "../../lib/event-schedule";
 import { ObjectDetails } from "../../components/object-details";
 import { useEventWorkspaceQueries } from "../../lib/queries";
-import {
-  CalendarPanel,
-  ExpensesPanel,
-  ItineraryPanel,
-  RemindersPanel,
-  TasksPanel,
-  TimelinePanel,
-} from "./planning-panels";
-import { DocumentsPanel } from "./documents-panel";
+import { eventComponentKindSchema } from "@chronelle/schemas";
+import { EventComponent } from "./event-component";
 import { EventEditorForm } from "./resource-forms";
 import { SharingPanel } from "./sharing-panel";
 import { HistoryButton } from "../history/history-button";
@@ -70,12 +63,6 @@ export function EventWorkspace({ eventId }: { readonly eventId: string }) {
 
   const detail = queries.detail.data;
   const access = queries.access.data;
-  const todos = queries.todos.data;
-  const calendar = queries.calendar.data;
-  const timeline = queries.timeline.data;
-  const itinerary = queries.itinerary.data;
-  const expenses = queries.expenses.data;
-  const reminders = queries.reminders.data;
   const event = queries.event.data;
   if (access === undefined || event === undefined) {
     return null;
@@ -88,19 +75,11 @@ export function EventWorkspace({ eventId }: { readonly eventId: string }) {
   );
   const shownTab =
     activeTab === "sharing" && !canShare ? "overview" : activeTab;
-  const activeProjection = {
-    pages: undefined,
-    overview: queries.detail,
-    todos: queries.todos,
-    calendar: queries.calendar,
-    timeline: queries.timeline,
-    itinerary: queries.itinerary,
-    expenses: queries.expenses,
-    reminders: queries.reminders,
-    files: queries.detail,
-    sharing: queries.detail,
-    "removed-links": undefined,
-  }[shownTab];
+  const activeProjection =
+    shownTab === "overview" || shownTab === "sharing"
+      ? queries.detail
+      : undefined;
+  const component = eventComponentKindSchema.safeParse(shownTab);
   function handleTabKeyDown(
     event: ReactKeyboardEvent<HTMLButtonElement>,
     tabId: TabId,
@@ -250,46 +229,12 @@ export function EventWorkspace({ eventId }: { readonly eventId: string }) {
                 {shownTab === "overview" && detail !== undefined ? (
                   <EventOverview detail={detail} onOpen={setActiveTab} />
                 ) : null}
-                {shownTab === "todos" && todos !== undefined ? (
-                  <TasksPanel
-                    canEdit={canEdit}
+                {component.success ? (
+                  <EventComponent
+                    key={component.data}
+                    kind={component.data}
                     eventId={eventId}
-                    tasks={todos.items}
-                  />
-                ) : null}
-                {shownTab === "calendar" && calendar !== undefined ? (
-                  <CalendarPanel
                     canEdit={canEdit}
-                    eventId={eventId}
-                    items={calendar.items}
-                  />
-                ) : null}
-                {shownTab === "timeline" && timeline !== undefined ? (
-                  <TimelinePanel timeline={timeline} />
-                ) : null}
-                {shownTab === "itinerary" && itinerary !== undefined ? (
-                  <ItineraryPanel items={itinerary.items} />
-                ) : null}
-                {shownTab === "expenses" && expenses !== undefined ? (
-                  <ExpensesPanel
-                    canEdit={canEdit}
-                    eventId={eventId}
-                    expenses={expenses.items}
-                  />
-                ) : null}
-                {shownTab === "reminders" && reminders !== undefined ? (
-                  <RemindersPanel
-                    canEdit={canEdit}
-                    eventId={eventId}
-                    reminders={reminders.items}
-                  />
-                ) : null}
-                {shownTab === "files" && detail !== undefined ? (
-                  <DocumentsPanel
-                    canEdit={canEdit}
-                    event={event}
-                    expenses={detail.expenses}
-                    tasks={detail.tasks}
                   />
                 ) : null}
                 {shownTab === "sharing" && canShare && detail !== undefined ? (

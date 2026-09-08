@@ -157,7 +157,15 @@ try {
       {
         id: randomUUID(),
         name: "Preparation",
-        components: [{ id: randomUUID(), kind: "todos" }],
+        components: [
+          "todos",
+          "calendar",
+          "timeline",
+          "itinerary",
+          "expenses",
+          "reminders",
+          "files",
+        ].map((kind) => ({ id: randomUUID(), kind })),
       },
     ],
   };

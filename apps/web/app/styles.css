@@ -1958,6 +1958,10 @@ a.search-result:hover {
     z-index: 10;
   }
 
+  html {
+    scroll-padding-block: 90px calc(90px + env(safe-area-inset-bottom));
+  }
+
   .mobile-header .brand {
     font-size: 1.15rem;
   }
@@ -2711,4 +2715,50 @@ html:has(.event-create-dialog[open]) {
 
 .event-page-components > * {
   min-width: 0;
+}
+.component-picker {
+  display: grid;
+  gap: 0.6rem;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.component-picker legend {
+  margin-bottom: 0.8rem;
+  font-weight: 600;
+}
+
+.component-choice {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.8rem;
+  padding: 0.85rem 1rem;
+  border: 1px solid var(--line);
+  border-radius: 0.75rem;
+  cursor: pointer;
+}
+
+.component-choice:has(input:checked),
+.component-choice:focus-within {
+  border-color: var(--forest);
+  background: var(--surface-subtle);
+}
+
+.component-choice input {
+  flex: 0 0 auto;
+  width: 1rem;
+  height: 1rem;
+  margin: 0.15rem 0 0;
+  accent-color: var(--forest);
+}
+
+.component-choice > span {
+  display: grid;
+  gap: 0.2rem;
+}
+
+.component-choice span span {
+  color: var(--muted);
+  font-size: 0.85rem;
 }

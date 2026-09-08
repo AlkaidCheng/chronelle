@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { ChronelleApiClient } from "@chronelle/api-client";
+import { eventComponentKindSchema } from "@chronelle/schemas";
 import {
   SandboxStore,
   sandboxStorageKey,
@@ -46,7 +47,10 @@ describe("browser sandbox", () => {
       {
         id: crypto.randomUUID(),
         name: "Preparation",
-        components: [{ id: crypto.randomUUID(), kind: "todos" as const }],
+        components: eventComponentKindSchema.options.map((kind) => ({
+          id: crypto.randomUUID(),
+          kind,
+        })),
       },
     ];
     const layout = await client.updateEventLayout(event.id, {

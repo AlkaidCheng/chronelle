@@ -7,6 +7,7 @@ import {
 } from "@chronelle/db/testing";
 import {
   developmentSignInResponseSchema,
+  eventComponentKindSchema,
   eventLayoutResponseSchema,
   eventResponseSchema,
 } from "@chronelle/schemas";
@@ -64,6 +65,134 @@ async function fixture() {
 }
 
 describe.sequential("event page layouts", () => {
+  it("does not grant access to private related records when their components are shared", async () => {
+    const { owner, event, url } = await fixture();
+    const viewer = await signIn("component-viewer@example.test");
+    const privateIds: string[] = [];
+    for (const [route, fields] of [
+      ["events", { startsOn: "2030-07-04", endsOn: "2030-07-06" }],
+      ["tasks", { dueAt: "2030-07-04T10:00:00Z" }],
+      [
+        "expenses",
+        {
+          amount: "20.0000",
+          currency: "USD",
+          occurredAt: "2030-07-04T10:00:00Z",
+        },
+      ],
+      ["reminders", { remindAt: "2030-07-04T10:00:00Z" }],
+    ] as const) {
+      const created = await app.inject({
+        method: "POST",
+        url: `/api/${route}`,
+        headers: owner.headers,
+        payload: { displayName: `Private ${route}`, ...fields },
+      });
+      expect(created.statusCode).toBe(201);
+      privateIds.push(created.json().id);
+      const linked = await app.inject({
+        method: "POST",
+        url: `/api/objects/${event.id}/relations`,
+        headers: owner.headers,
+        payload: {
+          relationType: "includes",
+          targetObjectId: created.json().id,
+        },
+      });
+      expect(linked.statusCode).toBe(201);
+    }
+    const pages = [
+      {
+        id: createId(),
+        name: "Plan",
+        components: eventComponentKindSchema.options.map((kind) => ({
+          id: createId(),
+          kind,
+        })),
+      },
+    ];
+    expect(
+      (
+        await app.inject({
+          method: "PATCH",
+          url,
+          headers: owner.headers,
+          payload: { expectedVersion: 0, pages },
+        })
+      ).statusCode,
+    ).toBe(200);
+    expect(
+      (
+        await app.inject({
+          method: "POST",
+          url: "/api/shares",
+          headers: owner.headers,
+          payload: {
+            resourceId: event.id,
+            principalEmail: "component-viewer@example.test",
+            role: "viewer",
+          },
+        })
+      ).statusCode,
+    ).toBe(201);
+    const viewerHeaders = {
+      ...viewer.headers,
+      "x-workspace-id": owner.session.workspace.id,
+    };
+    expect(
+      (await app.inject({ url, headers: viewerHeaders })).json().pages,
+    ).toEqual(pages);
+    for (const projection of [
+      "calendar",
+      "itinerary",
+      "timeline",
+      "todos",
+      "expenses",
+      "reminders",
+    ]) {
+      const response = await app.inject({
+        url: `/api/events/${event.id}/${projection}`,
+        headers: viewerHeaders,
+      });
+      expect(response.statusCode).toBe(200);
+      expect(response.json().items).toEqual([]);
+    }
+    const detail = await app.inject({
+      url: `/api/events/${event.id}/detail`,
+      headers: viewerHeaders,
+    });
+    expect(detail.statusCode).toBe(200);
+    expect(detail.json()).toMatchObject({
+      events: [],
+      tasks: [],
+      expenses: [],
+      reminders: [],
+      documents: [],
+      lockedRelationCount: 4,
+    });
+    for (const id of privateIds) {
+      expect(detail.body).not.toContain(id);
+      expect(
+        (
+          await app.inject({
+            url: `/api/objects/${id}`,
+            headers: viewerHeaders,
+          })
+        ).statusCode,
+      ).toBe(404);
+    }
+    expect(
+      (
+        await app.inject({
+          method: "PATCH",
+          url,
+          headers: viewerHeaders,
+          payload: { expectedVersion: 1, pages: [] },
+        })
+      ).statusCode,
+    ).toBe(404);
+  });
+
   it("rolls back the audit when layout persistence fails", async () => {
     const { owner, url } = await fixture();
     await database.connection.sql.unsafe(`
@@ -109,7 +238,10 @@ describe.sequential("event page layouts", () => {
       {
         id: createId(),
         name: "Preparation",
-        components: [{ id: createId(), kind: "todos" }],
+        components: eventComponentKindSchema.options.map((kind) => ({
+          id: createId(),
+          kind,
+        })),
       },
     ];
     const saved = await app.inject({
