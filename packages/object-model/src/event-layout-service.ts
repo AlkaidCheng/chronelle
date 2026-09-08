@@ -15,6 +15,7 @@ import {
   eventLayoutResponseSchema,
   eventLayoutUpdateSchema,
   type EventLayoutUpdate,
+  type EventPage,
 } from "@chronelle/schemas";
 import { and, desc, eq } from "drizzle-orm";
 
@@ -51,6 +52,46 @@ async function readLayout(
     version: revision?.version ?? 0,
     updatedAt: revision?.createdAt.toISOString() ?? null,
     pages: revision?.pages ?? [],
+  });
+}
+
+async function saveLayout(
+  transaction: DatabaseTransaction,
+  context: MutationContext,
+  eventId: string,
+  previousVersion: number,
+  pages: EventPage[],
+) {
+  const { principal } = context;
+  const version = previousVersion + 1;
+  const auditEventId = createId();
+  await transaction.insert(auditEvents).values({
+    id: auditEventId,
+    workspaceId: principal.workspaceId,
+    resourceId: eventId,
+    actorType: "user",
+    actorId: principal.userId,
+    requestId: context.requestId,
+    action: "event.layout_updated",
+    metadata: { previousVersion, version },
+  });
+  const [revision] = await transaction
+    .insert(eventPageRevisions)
+    .values({
+      workspaceId: principal.workspaceId,
+      eventId,
+      version,
+      pages,
+      auditEventId,
+    })
+    .returning();
+  if (revision === undefined)
+    throw new Error("The event layout was not saved.");
+  return eventLayoutResponseSchema.parse({
+    eventId,
+    version,
+    pages: revision.pages,
+    updatedAt: revision.createdAt.toISOString(),
   });
 }
 
@@ -93,36 +134,13 @@ export class EventLayoutService {
         );
         if (current.version !== input.expectedVersion)
           throw new ObjectConflictError();
-        const version = current.version + 1;
-        const auditEventId = createId();
-        await transaction.insert(auditEvents).values({
-          id: auditEventId,
-          workspaceId: principal.workspaceId,
-          resourceId: eventId,
-          actorType: "user",
-          actorId: principal.userId,
-          requestId: context.requestId,
-          action: "event.layout_updated",
-          metadata: { previousVersion: current.version, version },
-        });
-        const [revision] = await transaction
-          .insert(eventPageRevisions)
-          .values({
-            workspaceId: principal.workspaceId,
-            eventId,
-            version,
-            pages: input.pages,
-            auditEventId,
-          })
-          .returning();
-        if (revision === undefined)
-          throw new Error("The event layout was not saved.");
-        return eventLayoutResponseSchema.parse({
+        return saveLayout(
+          transaction,
+          context,
           eventId,
-          version,
-          pages: revision.pages,
-          updatedAt: revision.createdAt.toISOString(),
-        });
+          current.version,
+          input.pages,
+        );
       },
     );
   }
