@@ -19,7 +19,6 @@ import type {
 import { useRef } from "react";
 import {
   useMutation,
-  useQueries,
   useQuery,
   useQueryClient,
   useInfiniteQuery,
@@ -156,74 +155,19 @@ export function useEventWorkspaceQueries(
     queryFn: ({ signal }) => client.withSignal(signal).getEvent(eventId),
     queryKey: queryKeys.eventResource(eventId),
   });
-  const results = useQueries({
-    queries: [
-      {
-        enabled:
-          credential !== null &&
-          (activeView === "overview" ||
-            activeView === "files" ||
-            activeView === "sharing"),
-        queryFn: ({ signal }) =>
-          client.withSignal(signal).getEventDetail(eventId),
-        queryKey: queryKeys.detail(eventId),
-      },
-      {
-        enabled: credential !== null && activeView === "todos",
-        queryFn: ({ signal }) =>
-          client.withSignal(signal).getEventTodos(eventId),
-        queryKey: queryKeys.todos(eventId),
-      },
-      {
-        enabled: credential !== null && activeView === "calendar",
-        queryFn: ({ signal }) =>
-          client.withSignal(signal).getEventCalendar(eventId),
-        queryKey: queryKeys.calendar(eventId),
-      },
-      {
-        enabled: credential !== null && activeView === "timeline",
-        queryFn: ({ signal }) =>
-          client.withSignal(signal).getEventTimeline(eventId),
-        queryKey: queryKeys.timeline(eventId),
-      },
-      {
-        enabled: credential !== null && activeView === "itinerary",
-        queryFn: ({ signal }) =>
-          client.withSignal(signal).getEventItinerary(eventId),
-        queryKey: queryKeys.itinerary(eventId),
-      },
-      {
-        enabled: credential !== null && activeView === "expenses",
-        queryFn: ({ signal }) =>
-          client.withSignal(signal).getEventExpenses(eventId),
-        queryKey: queryKeys.expenses(eventId),
-      },
-      {
-        enabled: credential !== null && activeView === "reminders",
-        queryFn: ({ signal }) =>
-          client.withSignal(signal).getEventReminders(eventId),
-        queryKey: queryKeys.reminders(eventId),
-      },
-      {
-        enabled: credential !== null,
-        queryFn: ({ signal }) =>
-          client.withSignal(signal).getObjectAccess(eventId),
-        queryKey: queryKeys.access(eventId),
-      },
-    ],
+  const detail = useQuery({
+    enabled:
+      credential !== null &&
+      (activeView === "overview" || activeView === "sharing"),
+    queryFn: ({ signal }) => client.withSignal(signal).getEventDetail(eventId),
+    queryKey: queryKeys.detail(eventId),
   });
-
-  return {
-    event,
-    calendar: results[2],
-    detail: results[0],
-    expenses: results[5],
-    itinerary: results[4],
-    reminders: results[6],
-    access: results[7],
-    timeline: results[3],
-    todos: results[1],
-  };
+  const access = useQuery({
+    enabled: credential !== null,
+    queryFn: ({ signal }) => client.withSignal(signal).getObjectAccess(eventId),
+    queryKey: queryKeys.access(eventId),
+  });
+  return { event, detail, access };
 }
 
 export function useSharesQuery(eventId: string, enabled: boolean) {

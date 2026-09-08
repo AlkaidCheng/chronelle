@@ -1,7 +1,12 @@
 "use client";
 
 import { useEffect, useRef, useState, type FormEvent } from "react";
-import type { EventLayoutResponse, EventPage } from "@chronelle/schemas";
+import {
+  eventComponentKindSchema,
+  type EventComponentKind,
+  type EventLayoutResponse,
+  type EventPage,
+} from "@chronelle/schemas";
 import {
   EmptyState,
   ErrorNotice,
@@ -9,29 +14,11 @@ import {
 } from "../../components/feedback";
 import {
   useEventLayout,
-  useEventTasks,
   useUpdateEventLayout,
 } from "../../lib/event-layout-queries";
 import { useSessionDialog } from "../../lib/use-session-dialog";
-import { TasksPanel } from "./planning-panels";
-
-function TasksComponent({
-  eventId,
-  canEdit,
-}: {
-  readonly eventId: string;
-  readonly canEdit: boolean;
-}) {
-  const tasks = useEventTasks(eventId);
-  if (tasks.isError)
-    return (
-      <ErrorNotice error={tasks.error} onRefresh={() => void tasks.refetch()} />
-    );
-  if (tasks.isPending) return <LoadingState label="Loading to-dos" />;
-  return (
-    <TasksPanel eventId={eventId} canEdit={canEdit} tasks={tasks.data.items} />
-  );
-}
+import { eventComponents } from "../../lib/event-components";
+import { EventComponent } from "./event-component";
 
 function AddPageContentDialog({
   layout,
@@ -46,6 +33,7 @@ function AddPageContentDialog({
 }) {
   const [source] = useState(layout);
   const [name, setName] = useState("");
+  const [kind, setKind] = useState<EventComponentKind>("todos");
   const save = useUpdateEventLayout(layout.eventId);
   const dialog = useSessionDialog(onClose);
   const nameInput = useRef<HTMLInputElement>(null);
@@ -66,7 +54,7 @@ function AddPageContentDialog({
                   ...page,
                   components: [
                     ...page.components,
-                    { id: crypto.randomUUID(), kind: "todos" },
+                    { id: crypto.randomUUID(), kind },
                   ],
                 }
               : page,
@@ -122,10 +110,25 @@ function AddPageContentDialog({
               />
             </label>
           ) : (
-            <p>
-              To-dos show this event's existing tasks and let you add and track
-              work here.
-            </p>
+            <fieldset className="component-picker" disabled={save.isPending}>
+              <legend>Choose a component</legend>
+              {eventComponentKindSchema.options.map((option, index) => (
+                <label key={option} className="component-choice">
+                  <input
+                    ref={index === 0 ? nameInput : undefined}
+                    type="radio"
+                    name="component-kind"
+                    value={option}
+                    checked={kind === option}
+                    onChange={() => setKind(option)}
+                  />
+                  <span>
+                    <strong>{eventComponents[option].label}</strong>
+                    <span>{eventComponents[option].description}</span>
+                  </span>
+                </label>
+              ))}
+            </fieldset>
           )}
           {save.isError ? <ErrorNotice error={save.error} /> : null}
         </div>
@@ -147,7 +150,7 @@ function AddPageContentDialog({
               ? "Saving..."
               : pageId === null
                 ? "Add page"
-                : "Add To-dos"}
+                : `Add ${eventComponents[kind].label}`}
           </button>
         </footer>
       </form>
@@ -233,8 +236,9 @@ export function EventPages({
           ) : null}
           <div className="event-page-components">
             {selected.components.map((component) => (
-              <TasksComponent
+              <EventComponent
                 key={component.id}
+                kind={component.kind}
                 eventId={eventId}
                 canEdit={canEdit}
               />

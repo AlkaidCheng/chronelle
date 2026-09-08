@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { eventLayoutUpdateSchema } from "../src/event-pages.js";
+import {
+  eventComponentKindSchema,
+  eventLayoutUpdateSchema,
+} from "../src/event-pages.js";
 
 const page = {
   id: "00000000-0000-4000-8000-000000000001",
@@ -8,6 +11,19 @@ const page = {
 };
 
 describe("event page layout input", () => {
+  it("accepts all planning components in one bounded layout", () => {
+    const components = eventComponentKindSchema.options.map((kind) => ({
+      id: crypto.randomUUID(),
+      kind,
+    }));
+    expect(
+      eventLayoutUpdateSchema.parse({
+        expectedVersion: 2,
+        pages: [{ ...page, components }],
+      }).pages[0]?.components,
+    ).toEqual(components);
+  });
+
   it("accepts an empty layout and trims page names", () => {
     expect(
       eventLayoutUpdateSchema.parse({ expectedVersion: 0, pages: [] }).pages,
@@ -41,6 +57,21 @@ describe("event page layout input", () => {
       ],
     },
     { expectedVersion: 0, pages: [{ ...page, canonicalTasks: [] }] },
+    {
+      expectedVersion: 0,
+      pages: [
+        {
+          ...page,
+          components: [
+            {
+              id: "00000000-0000-4000-8000-000000000002",
+              kind: "calendar",
+              events: [],
+            },
+          ],
+        },
+      ],
+    },
   ])(
     "rejects malformed, duplicate or unsupported configuration: %j",
     (input) => {

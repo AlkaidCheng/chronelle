@@ -1,5 +1,17 @@
 import { z } from "zod";
 
+export const eventComponentKindSchema = z.enum([
+  "todos",
+  "calendar",
+  "timeline",
+  "itinerary",
+  "expenses",
+  "reminders",
+  "files",
+]);
+
+export type EventComponentKind = z.output<typeof eventComponentKindSchema>;
+
 export const eventPageSchema = z.strictObject({
   id: z.uuid(),
   name: z.string().trim().min(1).max(80),
@@ -7,7 +19,7 @@ export const eventPageSchema = z.strictObject({
     .array(
       z.strictObject({
         id: z.uuid(),
-        kind: z.literal("todos"),
+        kind: eventComponentKindSchema,
       }),
     )
     .max(20),
