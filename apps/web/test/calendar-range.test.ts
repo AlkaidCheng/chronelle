@@ -3,6 +3,7 @@ import {
   calendarMonthDate,
   selectCalendarRange,
   shiftCalendarDate,
+  shiftCalendarMonth,
 } from "../lib/calendar-range";
 
 describe("calendar range selection", () => {
@@ -47,4 +48,23 @@ describe("calendar range selection", () => {
     expect(calendarMonthDate(1, 1)).toBe("0001-01-01");
     expect(calendarMonthDate(99, 12)).toBe("0099-12-01");
   });
+  it.each([
+    ["2028-01-31", 1, "2028-02-29"],
+    ["2027-01-31", 1, "2027-02-28"],
+    ["2028-03-31", -1, "2028-02-29"],
+    ["2028-02-29", 12, "2029-02-28"],
+    ["2028-02-29", -12, "2027-02-28"],
+    ["2028-12-31", 1, "2029-01-31"],
+    ["0099-12-31", 1, "0100-01-31"],
+    ["0001-02-28", -1, "0001-01-28"],
+    ["0001-01-01", -1, "0001-01-01"],
+    ["9999-12-31", 1, "9999-12-31"],
+    ["0001-02-28", -12, "0001-02-28"],
+    ["9999-02-28", 12, "9999-02-28"],
+  ])(
+    "moves %s by %i month(s) within supported dates",
+    (date, months, expected) => {
+      expect(shiftCalendarMonth(date, months)).toBe(expected);
+    },
+  );
 });

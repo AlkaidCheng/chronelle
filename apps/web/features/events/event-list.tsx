@@ -104,7 +104,10 @@ export function EventList() {
         <button
           aria-haspopup="dialog"
           className="button button-primary"
-          onClick={() => setIsCreating(true)}
+          onClick={(event) => {
+            event.currentTarget.focus();
+            setIsCreating(true);
+          }}
           type="button"
         >
           <PlusIcon />

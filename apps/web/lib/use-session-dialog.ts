@@ -14,9 +14,12 @@ export function useSessionDialog(onClose: () => void) {
     element?.showModal();
     return () => {
       element?.close();
-      if (trigger instanceof HTMLElement && trigger.isConnected)
+      if (trigger instanceof HTMLElement && trigger.isConnected) {
         trigger.focus();
-      else document.getElementById("workspace-content")?.focus();
+        if (document.activeElement === trigger && trigger !== document.body)
+          return;
+      }
+      document.getElementById("workspace-content")?.focus();
     };
   }, []);
 

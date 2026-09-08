@@ -1,11 +1,12 @@
 import { calendarDateSchema } from "@chronelle/schemas";
-import { useEffect, useId, useRef, useState } from "react";
+import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 
 import {
   type CalendarRange,
   calendarMonthDate,
   selectCalendarRange,
   shiftCalendarDate,
+  shiftCalendarMonth,
 } from "../lib/calendar-range";
 import { formatCalendarDate } from "../lib/event-schedule";
 import { toDateTimeInput } from "../lib/format";
@@ -42,10 +43,12 @@ export function CalendarRangePicker({
   const [expanded, setExpanded] = useState(!value.startDate);
   const [yearPage, setYearPage] = useState(Number(focused.slice(0, 4)));
   const grid = useRef<HTMLTableElement>(null);
+  const focusRequested = useRef(false);
   const calendar = useRef<HTMLDivElement>(null);
   const startButton = useRef<HTMLButtonElement>(null);
   const panelId = useId();
   const hintId = useId();
+  const keyboardHintId = useId();
   const year = Number(focused.slice(0, 4));
   const month = Number(focused.slice(5, 7));
   const first = calendarMonthDate(year, month);
@@ -58,16 +61,19 @@ export function CalendarRangePicker({
     if (expanded) calendar.current?.scrollIntoView({ block: "start" });
   }, [expanded]);
 
+  useLayoutEffect(() => {
+    if (!focusRequested.current) return;
+    focusRequested.current = false;
+    grid.current
+      ?.querySelector<HTMLButtonElement>(`[data-date="${focused}"]`)
+      ?.focus();
+  });
+
   function navigate(date: string, focusGrid = false) {
     if (!calendarDateSchema.safeParse(date).success) return;
     setFocused(date);
     setHovered("");
-    if (focusGrid)
-      requestAnimationFrame(() =>
-        grid.current
-          ?.querySelector<HTMLButtonElement>(`[data-date="${date}"]`)
-          ?.focus(),
-      );
+    focusRequested.current = focusGrid;
   }
 
   function showDays(date: string) {
@@ -83,11 +89,9 @@ export function CalendarRangePicker({
       );
       return;
     }
-    const date = new Date(first);
-    date.setUTCMonth(
-      date.getUTCMonth() + direction * (view === "months" ? 12 : 1),
+    navigate(
+      shiftCalendarMonth(focused, direction * (view === "months" ? 12 : 1)),
     );
-    navigate(date.toISOString().slice(0, 10));
   }
 
   function choose(date: string) {
@@ -196,6 +200,17 @@ export function CalendarRangePicker({
             </button>
           </div>
           <div id={panelId} className="calendar-panel">
+            <p
+              className="visually-hidden"
+              role="status"
+              aria-label="Calendar navigation"
+            >
+              {view === "years"
+                ? `Years ${yearPage} to ${yearPage + 11}`
+                : view === "months"
+                  ? `Months in ${year}`
+                  : `${months[month - 1]} ${year}`}
+            </p>
             {view === "days" ? (
               <table
                 ref={grid}
@@ -203,14 +218,20 @@ export function CalendarRangePicker({
                 // biome-ignore lint/a11y/noNoninteractiveElementToInteractiveRole: The calendar uses a roving tabindex and arrow-key grid navigation.
                 role="grid"
                 aria-label={`${months[month - 1]} ${year}`}
-                aria-describedby={hintId}
+                aria-describedby={`${hintId} ${keyboardHintId}`}
+                aria-multiselectable="true"
                 onPointerLeave={() => setHovered("")}
               >
                 <thead>
                   <tr>
                     {weekdays.map((weekday) => {
                       return (
-                        <th key={weekday} scope="col" abbr={weekday}>
+                        <th
+                          key={weekday}
+                          scope="col"
+                          abbr={weekday}
+                          aria-label={weekday}
+                        >
                           {weekday.slice(0, 1)}
                         </th>
                       );
@@ -230,8 +251,15 @@ export function CalendarRangePicker({
                         const selected =
                           date === value.startDate || date === value.endDate;
                         return (
+                          // biome-ignore lint/a11y/useAriaPropsSupportedByRole: The parent grid gives table cells gridcell semantics; the date button owns keyboard focus.
                           <td
                             key={date}
+                            aria-selected={Boolean(
+                              valid &&
+                              value.startDate &&
+                              date >= value.startDate &&
+                              date <= (value.endDate || value.startDate),
+                            )}
                             data-in-range={Boolean(
                               value.startDate &&
                               rangeEnd &&
@@ -259,6 +287,27 @@ export function CalendarRangePicker({
                               onPointerEnter={() => setHovered(date)}
                               onClick={() => choose(date)}
                               onKeyDown={(event) => {
+                                if (
+                                  event.altKey ||
+                                  event.ctrlKey ||
+                                  event.metaKey
+                                )
+                                  return;
+                                if (
+                                  event.key === "PageUp" ||
+                                  event.key === "PageDown"
+                                ) {
+                                  event.preventDefault();
+                                  navigate(
+                                    shiftCalendarMonth(
+                                      date,
+                                      (event.key === "PageUp" ? -1 : 1) *
+                                        (event.shiftKey ? 12 : 1),
+                                    ),
+                                    true,
+                                  );
+                                  return;
+                                }
                                 const offsets: Record<string, number> = {
                                   ArrowLeft: -1,
                                   ArrowRight: 1,
@@ -356,6 +405,11 @@ export function CalendarRangePicker({
               : selectingEnd
                 ? "Select another day for an end date."
                 : "Select a day to start a new range."}
+          </p>
+          <p className="visually-hidden" id={keyboardHintId}>
+            Arrow keys move by day or week. Home and End move to the first or
+            last day of the week. Page Up and Page Down change months; hold
+            Shift to change years. Enter or Space selects a date.
           </p>
         </>
       ) : null}
