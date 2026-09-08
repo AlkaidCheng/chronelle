@@ -56,6 +56,55 @@ const documentAttachment = {
 } as const;
 
 describe("ChronelleApiClient", () => {
+  it("reads bounded layout history and restores with optimistic concurrency", async () => {
+    const layout = {
+      eventId: event.id,
+      version: 2,
+      updatedAt: event.updatedAt,
+      pages: [],
+    };
+    const fetch = vi.fn<typeof globalThis.fetch>(async () =>
+      Response.json({ items: [layout], nextBeforeVersion: null }),
+    );
+    const client = new ChronelleApiClient({
+      fetch,
+      getCredential: () => ({
+        accessToken: "test-session",
+        workspaceId: event.workspaceId,
+      }),
+    });
+    expect(
+      await client.getEventLayoutHistory(event.id, {
+        beforeVersion: 3,
+        limit: 2,
+      }),
+    ).toEqual({ items: [layout], nextBeforeVersion: null });
+    expect(fetch.mock.calls[0]?.[0]).toBe(
+      `/api/events/${event.id}/layout/history?beforeVersion=3&limit=2`,
+    );
+    fetch.mockResolvedValueOnce(Response.json(layout));
+    expect(
+      await client.restoreEventLayout(event.id, {
+        expectedVersion: 1,
+        targetVersion: 0,
+      }),
+    ).toEqual(layout);
+    expect(fetch.mock.calls[1]).toEqual([
+      `/api/events/${event.id}/layout/restore`,
+      expect.objectContaining({
+        method: "POST",
+        body: JSON.stringify({ expectedVersion: 1, targetVersion: 0 }),
+      }),
+    ]);
+    fetch.mockResolvedValueOnce(
+      Response.json({
+        items: [{ ...layout, version: "invalid" }],
+        nextBeforeVersion: null,
+      }),
+    );
+    await expect(client.getEventLayoutHistory(event.id)).rejects.toThrow();
+  });
+
   it("reads and validates one canonical Event with the current credential", async () => {
     const fetch = vi.fn<typeof globalThis.fetch>(async () =>
       Response.json(event),

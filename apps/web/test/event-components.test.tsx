@@ -95,6 +95,142 @@ function page(name: string, kinds: readonly EventComponentKind[]) {
 }
 
 describe("insertable event components", () => {
+  it("confirms removal and walks undo, redo, and saved history without changing records", async () => {
+    const pages = [page("Plan", ["todos", "calendar"])];
+    await client.updateEventLayout(eventId, { expectedVersion: 0, pages });
+    const before = await client.getEventDetail(eventId);
+    const user = userEvent.setup();
+    render(<EventPages eventId={eventId} canEdit />, { wrapper: Providers });
+    await user.click(
+      await screen.findByRole("button", { name: "Page options" }),
+    );
+    const dialog = within(
+      screen.getByRole("dialog", { name: "Manage event pages" }),
+    );
+    await user.click(
+      dialog.getByRole("button", { name: "Remove To-dos from Plan" }),
+    );
+    expect((await client.getEventLayout(eventId)).pages).toEqual(pages);
+    await user.click(
+      dialog.getByRole("button", { name: "Remove from layout" }),
+    );
+    await waitFor(() =>
+      expect(
+        dialog.getByRole("button", { name: "Undo layout change" }),
+      ).toBeEnabled(),
+    );
+    expect((await client.getEventLayout(eventId)).pages[0]?.components).toEqual(
+      pages[0]?.components.slice(1),
+    );
+    await user.click(
+      dialog.getByRole("button", { name: "Undo layout change" }),
+    );
+    await waitFor(() =>
+      expect(
+        dialog.getByRole("button", { name: "Redo layout change" }),
+      ).toBeEnabled(),
+    );
+    expect((await client.getEventLayout(eventId)).pages).toEqual(pages);
+    await user.click(
+      dialog.getByRole("button", { name: "Redo layout change" }),
+    );
+    await waitFor(() =>
+      expect(
+        dialog.getByRole("button", { name: "Undo layout change" }),
+      ).toBeEnabled(),
+    );
+    expect((await client.getEventLayout(eventId)).version).toBe(4);
+    await user.click(dialog.getByRole("button", { name: "Remove page" }));
+    await user.click(
+      dialog.getByRole("button", { name: "Remove from layout" }),
+    );
+    await waitFor(() =>
+      expect(dialog.getByText("No pages in this layout")).toBeVisible(),
+    );
+    await user.click(dialog.getByRole("button", { name: "Layout history" }));
+    await user.click(
+      await dialog.findByRole("button", { name: "Preview version 1" }),
+    );
+    expect(
+      dialog.getByText("To-dos, Calendar", { exact: false }),
+    ).toBeVisible();
+    await user.click(dialog.getByRole("button", { name: "Restore layout" }));
+    await waitFor(() =>
+      expect(
+        dialog.getByRole("heading", { name: "Version 6 (current)" }),
+      ).toBeVisible(),
+    );
+    expect((await client.getEventLayout(eventId)).pages).toEqual(pages);
+    expect(await client.getEventDetail(eventId)).toEqual(before);
+    await user.click(dialog.getByRole("button", { name: "Close" }));
+    expect(screen.queryByRole("dialog")).toBeNull();
+    expect(screen.getByRole("button", { name: "Page options" })).toHaveFocus();
+  });
+
+  it("requires an explicit refresh after a stale removal confirmation", async () => {
+    const pages = [page("Plan", ["todos"])];
+    await client.updateEventLayout(eventId, { expectedVersion: 0, pages });
+    const user = userEvent.setup();
+    render(<EventPages eventId={eventId} canEdit />, { wrapper: Providers });
+    await user.click(
+      await screen.findByRole("button", { name: "Page options" }),
+    );
+    const dialog = within(screen.getByRole("dialog"));
+    await user.click(dialog.getByRole("button", { name: "Remove page" }));
+    const external = [page("External", ["expenses"])];
+    await client.updateEventLayout(eventId, {
+      expectedVersion: 1,
+      pages: external,
+    });
+    await user.click(
+      dialog.getByRole("button", { name: "Remove from layout" }),
+    );
+    expect(await dialog.findByRole("alert")).toHaveTextContent(/changed/i);
+    expect(
+      dialog.getByRole("heading", { name: "Remove page Plan?" }),
+    ).toBeVisible();
+    expect((await client.getEventLayout(eventId)).pages).toEqual(external);
+    await user.click(dialog.getByRole("button", { name: /Refresh/ }));
+    expect(
+      await dialog.findByRole("heading", { name: "External" }),
+    ).toBeVisible();
+    expect(
+      dialog.getByRole("button", { name: "Undo layout change" }),
+    ).toBeDisabled();
+  });
+
+  it("allows a viewer to preview saved layouts without mutation controls", async () => {
+    await client.updateEventLayout(eventId, {
+      expectedVersion: 0,
+      pages: [page("Plan", ["todos"])],
+    });
+    const user = userEvent.setup();
+    render(<EventPages eventId={eventId} canEdit={false} />, {
+      wrapper: Providers,
+    });
+    await user.click(
+      await screen.findByRole("button", { name: "Layout history" }),
+    );
+    const dialog = within(
+      screen.getByRole("dialog", { name: "Layout history" }),
+    );
+    await user.click(
+      await dialog.findByRole("button", { name: "Preview version 1" }),
+    );
+    expect(dialog.getByText("To-dos", { exact: false })).toBeVisible();
+    expect(dialog.queryByRole("button", { name: "Restore layout" })).toBeNull();
+    expect(
+      dialog.queryByRole("button", { name: "Undo layout change" }),
+    ).toBeNull();
+    expect(
+      vi
+        .mocked(fetch)
+        .mock.calls.every(
+          ([, options]) => !options?.method || options.method === "GET",
+        ),
+    ).toBe(true);
+  });
+
   it("renders every component using existing projections without changing business records", async () => {
     const before = await client.getEventDetail(eventId);
     const pages = [page("Plan", eventComponentKindSchema.options)];

@@ -241,3 +241,7 @@ Event page layouts use View/Edit on the owning Event through the same policy
 evaluator. A component is not a grant to its projected records: each projection
 continues to authorize its canonical objects. Layout saves use stable workspace
 authorization, an expected layout version, and an atomic audit/history write.
+View includes saved layout revisions, including snapshots created before the
+grant. Each history page rechecks current access; revocation and Event soft
+deletion deny subsequent reads and restores. Restoration requires Edit and
+does not change permissions or access to any projected record.

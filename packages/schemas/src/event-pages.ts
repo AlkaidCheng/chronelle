@@ -64,3 +64,26 @@ export const eventLayoutResponseSchema = z.strictObject({
 export type EventPage = z.output<typeof eventPageSchema>;
 export type EventLayoutUpdate = z.output<typeof eventLayoutUpdateSchema>;
 export type EventLayoutResponse = z.output<typeof eventLayoutResponseSchema>;
+
+export const eventLayoutHistoryQuerySchema = z.strictObject({
+  beforeVersion: z.coerce.number().int().min(1).max(2_147_483_647).optional(),
+  limit: z.coerce.number().int().min(1).max(20).default(10),
+});
+export const eventLayoutHistoryResponseSchema = z.strictObject({
+  items: z.array(eventLayoutResponseSchema).max(20),
+  nextBeforeVersion: z.int().positive().nullable(),
+});
+export const eventLayoutRestoreSchema = z.strictObject({
+  expectedVersion: z.int().min(0).max(2_147_483_646),
+  targetVersion: z.int().min(0).max(2_147_483_647),
+});
+export type EventLayoutHistoryQuery = z.output<
+  typeof eventLayoutHistoryQuerySchema
+>;
+export type EventLayoutHistoryQueryInput = z.input<
+  typeof eventLayoutHistoryQuerySchema
+>;
+export type EventLayoutHistoryResponse = z.output<
+  typeof eventLayoutHistoryResponseSchema
+>;
+export type EventLayoutRestore = z.output<typeof eventLayoutRestoreSchema>;

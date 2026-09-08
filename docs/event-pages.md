@@ -57,10 +57,33 @@ Cross-page moves select the destination. Components keep local state while
 mounted. Components absent from the selected page unmount; their local controls
 and unsaved drafts are not retained.
 
-This uses the existing atomic layout API rather than a draft builder or queued
-autosave protocol. Layout recovery/removal controls, free-form positioning,
-touch dragging, and cross-Event moves are outside this interface. Native drag
+Each action saves atomically. Free-form positioning, touch dragging, and
+cross-Event moves are outside this interface. Native drag
 behavior is browser-dependent; move controls do not depend on drag support.
+
+## Removal and recovery
+
+Page options opens a focused dialog for removing components or entire pages.
+Each removal requires confirmation and checks the layout version captured when
+the dialog opened. No canonical object or relationship is deleted. A conflict
+keeps the proposed change visible; Refresh latest loads the saved layout and
+requires a new confirmation.
+
+Layout history lists saved arrangements with dates and page/component counts.
+Preview shows page names and component kinds before restoration. Restoring an
+arrangement appends a new revision; previous revisions remain immutable. The
+initial layout is an empty arrangement at version zero. Viewers can read and
+preview history, including layouts saved before they received access, but only
+Owners and Editors can restore or remove. Share event opens the existing
+sharing view when the user has Share access.
+
+Undo and redo cover up to 50 layout changes made during the current browser
+session. They reference saved revisions and use the same restore endpoint.
+Editing or manually restoring clears redo. A newer layout from another client
+invalidates the local chain; stale writes fail with HTTP 409. Reloading or
+switching sessions clears the undo/redo chain, but saved history survives.
+Layout undo is separate from planning-record command undo. Removing a component
+unmounts its local controls and does not preserve unsaved drafts.
 
 ## Persistence
 
@@ -117,6 +140,35 @@ The typed client exposes `getEventLayout(id)` and
 `updateEventLayout(id, { expectedVersion, pages })`. Install migration 0011 and
 reapply the runtime database role grants before starting the updated API.
 
+`GET /api/events/:id/layout/history?limit=10&beforeVersion=12` requires View.
+It returns `{ items, nextBeforeVersion }`, with full snapshots in descending
+version order. The limit defaults to 10 and is bounded to 20; omit beforeVersion
+for the newest page. Every page rechecks current Event access.
+
+`POST /api/events/:id/layout/restore` requires Edit:
+
+```json
+{ "expectedVersion": 12, "targetVersion": 3 }
+```
+
+The response is the appended layout snapshot at version 13. Target zero restores
+an empty layout; a missing target returns HTTP 404. An `event.layout_restored`
+audit event records previousVersion, version, and restoredFromVersion in the
+same transaction. Permissions, canonical Event versions, and planning records
+are unchanged. No additional migration or runtime grant is required.
+
+Typed client equivalents:
+
+```ts
+await client.getEventLayoutHistory(eventId, { limit: 10, beforeVersion: 12 });
+await client.restoreEventLayout(eventId, {
+  expectedVersion: 12,
+  targetVersion: 3,
+});
+```
+
+Deploy the API before or alongside the web UI that calls these endpoints.
+
 The expanded component catalog requires no additional SQL migration. Deploy
 the API and web together before saving these kinds: clients and servers that
 only recognize `todos` reject layouts containing the other kinds. Rollback
@@ -129,8 +181,14 @@ The browser-only sandbox implements the same layout request/response contracts
 with fictional browser-local data. It validates stored layouts and preserves
 existing snapshots without a layout field. It previews Viewer controls and
 checks versions, but does not establish production authorization or retain
-server audit/history evidence. Production validation requires the real API and
+server audit evidence. Production validation requires the real API and
 PostgreSQL integration tests.
+
+Saved layout revisions persist in browser storage, bounded to 2,000 revisions
+and the existing overall snapshot size limit. A full store rejects the write
+and preserves the saved data. Current-only saved snapshots remain readable;
+revisions that were never retained cannot be recovered. Reload clears the
+in-memory undo/redo references but leaves saved layout history intact.
 
 The sandbox can insert every component and edit its fictional planning data.
 Files previews empty attachment lists; actual file storage and downloads are

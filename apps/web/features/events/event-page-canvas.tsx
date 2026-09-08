@@ -1,6 +1,12 @@
 "use client";
 
-import { useLayoutEffect, useRef, useState, type DragEvent } from "react";
+import {
+  useLayoutEffect,
+  useRef,
+  useState,
+  type DragEvent,
+  type ReactNode,
+} from "react";
 import type { EventLayoutResponse, EventPage } from "@chronelle/schemas";
 import { EmptyState, ErrorNotice } from "../../components/feedback";
 import { eventComponents } from "../../lib/event-components";
@@ -16,6 +22,7 @@ export function EventPageCanvas({
   onAddPage,
   onAddComponent,
   onRefresh,
+  renderTools,
 }: {
   readonly layout: EventLayoutResponse;
   readonly selected: EventPage | undefined;
@@ -24,6 +31,7 @@ export function EventPageCanvas({
   readonly onAddPage: () => void;
   readonly onAddComponent: () => void;
   readonly onRefresh: () => Promise<unknown>;
+  readonly renderTools?: (busy: boolean) => ReactNode;
 }) {
   const save = useUpdateEventLayout(layout.eventId);
   const locked = useRef(false);
@@ -215,6 +223,7 @@ export function EventPageCanvas({
             </button>
           ))}
         </nav>
+        {renderTools?.(save.isPending)}
         {canEdit && layout.pages.length < 20 ? (
           <button
             type="button"

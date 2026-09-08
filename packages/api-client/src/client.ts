@@ -25,6 +25,10 @@ import {
   maximumDocumentSizeBytes,
   eventDetailResponseSchema,
   eventLayoutResponseSchema,
+  eventLayoutHistoryResponseSchema,
+  type EventLayoutHistoryQueryInput,
+  type EventLayoutHistoryResponse,
+  type EventLayoutRestore,
   type EventLayoutResponse,
   type EventLayoutUpdate,
   eventListResponseSchema,
@@ -589,6 +593,31 @@ export class ChronelleApiClient {
 
   getEventLayout(id: string): Promise<EventLayoutResponse> {
     return this.#request(`/api/events/${id}/layout`, eventLayoutResponseSchema);
+  }
+
+  getEventLayoutHistory(
+    id: string,
+    query: EventLayoutHistoryQueryInput = {},
+  ): Promise<EventLayoutHistoryResponse> {
+    const params = new URLSearchParams();
+    if (query.beforeVersion !== undefined)
+      params.set("beforeVersion", String(query.beforeVersion));
+    if (query.limit !== undefined) params.set("limit", String(query.limit));
+    return this.#request(
+      `/api/events/${id}/layout/history?${params}`,
+      eventLayoutHistoryResponseSchema,
+    );
+  }
+
+  restoreEventLayout(
+    id: string,
+    input: EventLayoutRestore,
+  ): Promise<EventLayoutResponse> {
+    return this.#request(
+      `/api/events/${id}/layout/restore`,
+      eventLayoutResponseSchema,
+      jsonRequest(input, "POST"),
+    );
   }
 
   updateEventLayout(
