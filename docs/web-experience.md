@@ -5,6 +5,25 @@ alongside it. Desktop navigation stays on the left; mobile navigation remains
 at the bottom with space for the device's safe area. The mobile account menu
 contains workspace switching and sign-out. Escape closes it and returns focus.
 
+## Appearance
+
+Ink & Paper uses warm paper surfaces, ink text, and restrained green accents.
+The application follows the operating system's light or dark appearance using
+CSS, including changes while a form is open. Switching system appearance does
+not reload the page or reset a draft. There is no saved appearance override yet.
+
+Semantic colors and local font stacks live in `apps/web/app/tokens.css`, shared
+by the application and the browser-only sandbox. Components use role-based
+tokens rather than their own light/dark overrides. Display headings prefer a
+local serif; controls use system sans-serif fonts with Chinese fallbacks. No
+font downloads or additional theme dependencies are required.
+
+Browser checks cover text and control-token contrast, keyboard date selection,
+visible input focus, long mixed-language names, and draft preservation during
+system appearance changes. They do not replace manual screen-reader, physical
+device, or visual acceptance testing. The installed PWA's launch background is
+the light paper color; the running page follows system appearance.
+
 ## Planning workflow
 
 - Choose **New event** to open the focused creation form. A start date is
