@@ -2,6 +2,7 @@
 
 import {
   cleanup,
+  fireEvent,
   render,
   screen,
   waitFor,
@@ -222,7 +223,9 @@ describe("insertable event components", () => {
     await user.click(trigger);
     const dialog = within(screen.getByRole("dialog"));
     expect(dialog.getAllByRole("radio")).toHaveLength(7);
-    expect(dialog.getByRole("radio", { name: /^To-dos/ })).toHaveFocus();
+    expect(
+      dialog.getByRole("searchbox", { name: "Find a component" }),
+    ).toHaveFocus();
     await user.click(dialog.getByRole("radio", { name: /^Calendar/ }));
     await client.updateEventLayout(eventId, { expectedVersion: 1, pages });
     await user.click(dialog.getByRole("button", { name: "Add Calendar" }));
@@ -241,6 +244,180 @@ describe("insertable event components", () => {
           .length,
       ).toBeGreaterThan(2),
     );
+  });
+
+  it("quick-inserts a filtered component without intercepting typing in fields", async () => {
+    await client.updateEventLayout(eventId, {
+      expectedVersion: 0,
+      pages: [page("Plan", ["todos"])],
+    });
+    const user = userEvent.setup();
+    render(<EventPages eventId={eventId} canEdit />, { wrapper: Providers });
+    await user.click(await screen.findByRole("button", { name: "Plan" }));
+    await user.keyboard("/");
+    const search = screen.getByRole("searchbox", { name: "Find a component" });
+    expect(search).toHaveFocus();
+    await user.type(search, "/unknown");
+    expect(
+      within(screen.getByRole("dialog")).getByRole("button", {
+        name: "Add component",
+      }),
+    ).toBeDisabled();
+    await user.clear(search);
+    await user.type(search, "/calendar{Enter}");
+    expect(
+      await screen.findByRole("heading", { name: "Calendar" }),
+    ).toBeVisible();
+    expect(
+      (await client.getEventLayout(eventId)).pages[0]?.components.map(
+        (item) => item.kind,
+      ),
+    ).toEqual(["todos", "calendar"]);
+    const input = screen.getByRole("textbox", { name: "Task" });
+    await user.type(input, "Plan / review");
+    expect(input).toHaveValue("Plan / review");
+    expect(screen.queryByRole("dialog")).toBeNull();
+  });
+
+  it("moves components and pages with accessible controls while preserving canonical data", async () => {
+    const pages = [page("Work", ["todos", "calendar"]), page("Day", [])];
+    const before = await client.getEventDetail(eventId);
+    await client.updateEventLayout(eventId, { expectedVersion: 0, pages });
+    const user = userEvent.setup();
+    render(<EventPages eventId={eventId} canEdit />, { wrapper: Providers });
+    const down = await screen.findByRole("button", {
+      name: "Move To-dos down",
+    });
+    await user.click(down);
+    await waitFor(() => expect(down).toBeDisabled());
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "Drag To-dos" })).toHaveFocus(),
+    );
+    expect(
+      screen
+        .getAllByRole("region", { name: /component \d/ })
+        .map((item) => item.getAttribute("aria-label")),
+    ).toEqual(["Calendar component 1", "To-dos component 2"]);
+    await user.selectOptions(
+      screen.getByRole("combobox", { name: "Move To-dos to page" }),
+      pages[1]?.id ?? "",
+    );
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "Day" })).toHaveAttribute(
+        "aria-current",
+        "page",
+      ),
+    );
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "Day" })).toHaveFocus(),
+    );
+    await user.click(screen.getByRole("button", { name: "Move page earlier" }));
+    await waitFor(() =>
+      expect(
+        screen.getByRole("button", { name: "Move page earlier" }),
+      ).toBeDisabled(),
+    );
+    const saved = await client.getEventLayout(eventId);
+    expect(saved.version).toBe(4);
+    expect(saved.pages.map((item) => item.id)).toEqual([
+      pages[1]?.id,
+      pages[0]?.id,
+    ]);
+    expect(saved.pages[0]?.components).toEqual([pages[0]?.components[0]]);
+    expect(saved.pages[1]?.components).toEqual([pages[0]?.components[1]]);
+    expect(await client.getEventDetail(eventId)).toEqual(before);
+  });
+
+  it("keeps the displayed layout on conflict and requires a refresh before retrying", async () => {
+    const pages = [page("Work", ["todos", "calendar"]), page("Day", [])];
+    await client.updateEventLayout(eventId, { expectedVersion: 0, pages });
+    const user = userEvent.setup();
+    render(<EventPages eventId={eventId} canEdit />, { wrapper: Providers });
+    await screen.findByRole("button", { name: "Move To-dos down" });
+    const concurrent = pages.map((item) => ({
+      ...item,
+      name: `Updated ${item.name}`,
+    }));
+    await client.updateEventLayout(eventId, {
+      expectedVersion: 1,
+      pages: concurrent,
+    });
+    await user.click(screen.getByRole("button", { name: "Move To-dos down" }));
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "A newer version is available",
+    );
+    expect(
+      screen.getAllByRole("region", { name: /component \d/ })[0],
+    ).toHaveAttribute("aria-label", "To-dos component 1");
+    expect((await client.getEventLayout(eventId)).pages).toEqual(concurrent);
+    await user.click(screen.getByRole("button", { name: "Refresh latest" }));
+    await screen.findByRole("button", { name: "Updated Work" });
+    await user.click(screen.getByRole("button", { name: "Move To-dos down" }));
+    await waitFor(() =>
+      expect(
+        screen.getByRole("button", { name: "Move To-dos down" }),
+      ).toBeDisabled(),
+    );
+    expect((await client.getEventLayout(eventId)).version).toBe(3);
+  });
+
+  it("keeps the default selected page open when moving it later", async () => {
+    await client.updateEventLayout(eventId, {
+      expectedVersion: 0,
+      pages: [page("Work", []), page("Day", [])],
+    });
+    const user = userEvent.setup();
+    render(<EventPages eventId={eventId} canEdit />, { wrapper: Providers });
+    await user.click(
+      await screen.findByRole("button", { name: "Move page later" }),
+    );
+    await waitFor(() =>
+      expect(
+        within(screen.getByRole("navigation", { name: "Pages" }))
+          .getAllByRole("button")
+          .map((button) => button.textContent),
+      ).toEqual(["Day", "Work"]),
+    );
+    expect(screen.getByRole("heading", { name: "Work" })).toBeVisible();
+    expect(screen.getByRole("button", { name: "Work" })).toHaveAttribute(
+      "aria-current",
+      "page",
+    );
+  });
+
+  it("ignores external drops and rejects a drag based on an outdated layout snapshot", async () => {
+    const pages = [page("Work", ["todos", "calendar"]), page("Day", [])];
+    await client.updateEventLayout(eventId, { expectedVersion: 0, pages });
+    render(<EventPages eventId={eventId} canEdit />, { wrapper: Providers });
+    const target = await screen.findByRole("button", { name: "Day" });
+    const dataTransfer = {
+      setData: vi.fn(),
+      effectAllowed: "",
+      dropEffect: "",
+    };
+    fireEvent.drop(target, { dataTransfer });
+    expect((await client.getEventLayout(eventId)).version).toBe(1);
+    const handle = screen.getByRole("button", { name: "Drag To-dos" });
+    fireEvent.dragStart(handle, { dataTransfer });
+    fireEvent.drop(screen.getByRole("region", { name: "To-dos component 1" }), {
+      dataTransfer,
+    });
+    expect((await client.getEventLayout(eventId)).version).toBe(1);
+    fireEvent.dragStart(handle, { dataTransfer });
+    fireEvent.dragEnd(handle, { dataTransfer });
+    fireEvent.drop(target, { dataTransfer });
+    expect((await client.getEventLayout(eventId)).version).toBe(1);
+    fireEvent.dragStart(screen.getByRole("button", { name: "Drag To-dos" }), {
+      dataTransfer,
+    });
+    await client.updateEventLayout(eventId, { expectedVersion: 1, pages });
+    fireEvent.dragOver(target, { dataTransfer });
+    fireEvent.drop(target, { dataTransfer });
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "A newer version is available",
+    );
+    expect((await client.getEventLayout(eventId)).pages).toEqual(pages);
+    expect(screen.queryByText("Drop at end of Work")).toBeNull();
   });
 
   it("lets viewers use mixed pages without showing mutation controls", async () => {
@@ -272,5 +449,11 @@ describe("insertable event components", () => {
     expect(
       screen.getByRole("button", { name: "Complete Confirm the garden venue" }),
     ).toBeDisabled();
+    expect(screen.queryByRole("button", { name: /^Drag / })).toBeNull();
+    expect(screen.queryByRole("button", { name: /^Move / })).toBeNull();
+    const user = userEvent.setup();
+    await user.click(screen.getByRole("button", { name: "Plan" }));
+    await user.keyboard("/");
+    expect(screen.queryByRole("dialog")).toBeNull();
   });
 });
