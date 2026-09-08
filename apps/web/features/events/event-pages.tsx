@@ -15,6 +15,7 @@ import {
 import { useSessionDialog } from "../../lib/use-session-dialog";
 import { eventComponents } from "../../lib/event-components";
 import { EventPageCanvas } from "./event-page-canvas";
+import { LayoutRecoveryTools } from "./layout-recovery";
 
 function AddPageContentDialog({
   layout,
@@ -216,6 +217,13 @@ export function EventPages({
           if (selected) setAdding({ pageId: selected.id });
         }}
         onRefresh={() => layout.refetch()}
+        renderTools={(busy) => (
+          <LayoutRecoveryTools
+            layout={layout.data}
+            canEdit={canEdit}
+            disabled={busy}
+          />
+        )}
       />
       {adding && canEdit ? (
         <AddPageContentDialog

@@ -31,6 +31,143 @@ async function request(
 }
 
 describe("browser sandbox", () => {
+  it("reads current-only snapshots and preserves a full layout store on failed writes", async () => {
+    const saved = storage();
+    const store = new SandboxStore(saved);
+    const event = await (
+      await request(store, "events", "POST", { displayName: "Snapshot" })
+    ).json();
+    const layout = {
+      eventId: event.id,
+      version: 7,
+      pages: [],
+      updatedAt: new Date().toISOString(),
+    };
+    const snapshot = JSON.parse(saved.getItem() ?? "null");
+    const currentOnly = storage(
+      JSON.stringify({ ...snapshot, layouts: [layout] }),
+    );
+    const reloaded = new SandboxStore(currentOnly);
+    expect(
+      await (await request(reloaded, `events/${event.id}/layout`)).json(),
+    ).toEqual(layout);
+    expect(
+      (
+        await request(reloaded, `events/${event.id}/layout/restore`, "POST", {
+          expectedVersion: 7,
+          targetVersion: 1,
+        })
+      ).status,
+    ).toBe(404);
+    const full = storage(
+      JSON.stringify({
+        ...snapshot,
+        layouts: Array.from({ length: 2000 }, (_, index) => ({
+          ...layout,
+          version: index + 1,
+        })),
+      }),
+    );
+    const fullStore = new SandboxStore(full);
+    const before = full.getItem();
+    expect(
+      (
+        await request(fullStore, `events/${event.id}/layout/restore`, "POST", {
+          expectedVersion: 2000,
+          targetVersion: 1,
+        })
+      ).status,
+    ).toBe(400);
+    expect(full.getItem()).toBe(before);
+    expect(
+      await (await request(fullStore, `events/${event.id}/layout`)).json(),
+    ).toMatchObject({ version: 2000 });
+  });
+
+  it("retains paginated layout history, restores snapshots, and enforces viewer access", async () => {
+    const saved = storage();
+    const store = new SandboxStore(saved);
+    const client = new ChronelleApiClient({
+      getCredential: () => ({
+        accessToken: "sample",
+        workspaceId: sandboxWorkspaceId,
+      }),
+      fetch: (input, options) => store.fetch(input, options),
+    });
+    const event = await client.createEvent({ displayName: "Layout history" });
+    const pages = [
+      {
+        id: crypto.randomUUID(),
+        name: "Plan",
+        components: [{ id: crypto.randomUUID(), kind: "todos" as const }],
+      },
+    ];
+    await client.updateEventLayout(event.id, { expectedVersion: 0, pages });
+    await client.updateEventLayout(event.id, { expectedVersion: 1, pages: [] });
+    const restored = await client.restoreEventLayout(event.id, {
+      expectedVersion: 2,
+      targetVersion: 1,
+    });
+    expect(restored).toMatchObject({ version: 3, pages });
+    const history = await client.getEventLayoutHistory(event.id, { limit: 2 });
+    expect(history.items.map((item) => item.version)).toEqual([3, 2]);
+    expect(history.nextBeforeVersion).toBe(2);
+    expect(
+      (
+        await client.getEventLayoutHistory(event.id, { beforeVersion: 2 })
+      ).items.map((item) => item.version),
+    ).toEqual([1]);
+    await expect(
+      client.restoreEventLayout(event.id, {
+        expectedVersion: 2,
+        targetVersion: 0,
+      }),
+    ).rejects.toMatchObject({ status: 409 });
+    await expect(
+      client.restoreEventLayout(event.id, {
+        expectedVersion: 3,
+        targetVersion: 99,
+      }),
+    ).rejects.toMatchObject({ status: 404 });
+    expect(
+      (
+        await request(
+          store,
+          `events/${event.id}/layout/history`,
+          "GET",
+          undefined,
+          "viewer",
+        )
+      ).status,
+    ).toBe(200);
+    expect(
+      (
+        await request(
+          store,
+          `events/${event.id}/layout/restore`,
+          "POST",
+          { expectedVersion: 3, targetVersion: 0 },
+          "viewer",
+        )
+      ).status,
+    ).toBe(403);
+    expect(await client.getEvent(event.id)).toEqual(event);
+    const reloaded = new SandboxStore(saved);
+    expect(
+      await (
+        await request(reloaded, `events/${event.id}/layout/history`)
+      ).json(),
+    ).toMatchObject({
+      items: [{ version: 3 }, { version: 2 }, { version: 1 }],
+    });
+    expect(
+      await client.restoreEventLayout(event.id, {
+        expectedVersion: 3,
+        targetVersion: 0,
+      }),
+    ).toMatchObject({ version: 4, pages: [] });
+  });
+
   it("persists independent page layouts, preserves them through task creation, and rejects stale saves", async () => {
     const saved = storage();
     const store = new SandboxStore(saved);

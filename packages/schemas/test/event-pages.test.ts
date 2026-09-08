@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 import {
   eventComponentKindSchema,
   eventLayoutUpdateSchema,
+  eventLayoutRestoreSchema,
+  eventLayoutHistoryQuerySchema,
 } from "../src/event-pages.js";
 
 const page = {
@@ -11,6 +13,30 @@ const page = {
 };
 
 describe("event page layout input", () => {
+  it("bounds history requests and accepts the initial empty restore target", () => {
+    expect(
+      eventLayoutHistoryQuerySchema.parse({ beforeVersion: "12" }),
+    ).toEqual({ beforeVersion: 12, limit: 10 });
+    expect(
+      eventLayoutRestoreSchema.parse({ expectedVersion: 2, targetVersion: 0 }),
+    ).toEqual({ expectedVersion: 2, targetVersion: 0 });
+    for (const query of [
+      { limit: 0 },
+      { limit: 21 },
+      { beforeVersion: -1 },
+      { beforeVersion: "invalid" },
+      { extra: true },
+    ])
+      expect(eventLayoutHistoryQuerySchema.safeParse(query).success).toBe(
+        false,
+      );
+    for (const input of [
+      { expectedVersion: 2, targetVersion: -1 },
+      { expectedVersion: 2_147_483_647, targetVersion: 1 },
+      { expectedVersion: 1, targetVersion: 0, pages: [] },
+    ])
+      expect(eventLayoutRestoreSchema.safeParse(input).success).toBe(false);
+  });
   it("accepts all planning components in one bounded layout", () => {
     const components = eventComponentKindSchema.options.map((kind) => ({
       id: crypto.randomUUID(),

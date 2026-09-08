@@ -2779,6 +2779,39 @@ html:has(.event-create-dialog[open]) {
   padding: 0;
   border: 0;
 }
+.layout-revision-list {
+  display: grid;
+  gap: 12px;
+}
+.layout-revision {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 16px;
+  overflow-wrap: anywhere;
+}
+.layout-revision h3 {
+  margin: 0;
+}
+.layout-recovery-dialog .event-create-body {
+  gap: 16px;
+}
+.layout-recovery-dialog .event-create-body > p {
+  margin: 0;
+}
+.layout-revision .panel-heading {
+  margin: 0 0 12px;
+}
+.layout-component-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.layout-preview {
+  padding-left: 20px;
+  overflow-wrap: anywhere;
+}
 
 .component-picker legend {
   margin-bottom: 0.8rem;

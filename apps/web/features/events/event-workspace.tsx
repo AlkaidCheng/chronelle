@@ -157,6 +157,15 @@ export function EventWorkspace({ eventId }: { readonly eventId: string }) {
       </header>
 
       <div className="event-pages-tools">
+        {canShare && shownTab !== "sharing" ? (
+          <button
+            type="button"
+            className="button button-quiet"
+            onClick={() => setActiveTab("sharing")}
+          >
+            Share event
+          </button>
+        ) : null}
         <button
           type="button"
           className="button button-quiet"

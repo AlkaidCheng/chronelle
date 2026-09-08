@@ -169,7 +169,7 @@ try {
       },
     ],
   };
-  const layout = await (
+  let layout = await (
     await request(layoutPath, {
       method: "PATCH",
       headers: { ...headers, "content-type": "application/json" },
@@ -178,6 +178,19 @@ try {
   ).json();
   assert.equal(layout.version, 1);
   assert.deepEqual(layout.pages, layoutInput.pages);
+  layout = await json(
+    `${layoutPath}/restore`,
+    { expectedVersion: 1, targetVersion: 1 },
+    headers,
+    200,
+  );
+  assert.equal(layout.version, 2);
+  assert.deepEqual(layout.pages, layoutInput.pages);
+  const history = await (
+    await request(`${layoutPath}/history?limit=1`, { headers })
+  ).json();
+  assert.deepEqual(history.items, [layout]);
+  assert.equal(history.nextBeforeVersion, 2);
   for (const resource of [
     { objectType: "task", displayName: "Confirm venue" },
     {
@@ -342,6 +355,16 @@ try {
   );
   await request(`/api/shares/${grant.id}`, { method: "DELETE", headers });
   await request(layoutPath, { headers: viewerHeaders }, 404);
+  await request(`${layoutPath}/history`, { headers: viewerHeaders }, 404);
+  await request(
+    `${layoutPath}/restore`,
+    {
+      method: "POST",
+      headers: { ...viewerHeaders, "content-type": "application/json" },
+      body: JSON.stringify({ expectedVersion: 2, targetVersion: 1 }),
+    },
+    404,
+  );
   await request(
     `/api/events/${event.id}/detail`,
     { headers: viewerHeaders },

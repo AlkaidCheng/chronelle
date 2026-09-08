@@ -2,6 +2,8 @@ import {
   eventCalendarDatesSchema,
   eventLayoutResponseSchema,
   eventLayoutUpdateSchema,
+  eventLayoutRestoreSchema,
+  eventLayoutHistoryQuerySchema,
   type EventLayoutResponse,
   eventContextCreateRequestSchema,
   eventCreateRequestSchema,
@@ -197,10 +199,11 @@ function parseState(raw: string): State {
     throw new Error("Invalid sandbox references.");
   const layouts = eventLayoutResponseSchema
     .array()
-    .max(200)
+    .max(2000)
     .parse("layouts" in value ? value.layouts : []);
   if (
-    new Set(layouts.map((layout) => layout.eventId)).size !== layouts.length ||
+    new Set(layouts.map((layout) => `${layout.eventId}:${layout.version}`))
+      .size !== layouts.length ||
     layouts.some(
       (layout) =>
         !objects.some(
@@ -211,7 +214,11 @@ function parseState(raw: string): State {
   ) {
     throw new Error("Invalid sandbox page references.");
   }
-  return { objects, relations, layouts };
+  return {
+    objects,
+    relations,
+    layouts: layouts.sort((a, b) => b.version - a.version),
+  };
 }
 
 function browserStorage(): StoragePort | undefined {
@@ -353,7 +360,7 @@ export class SandboxStore {
   }
 
   #read(url: URL, role: "owner" | "viewer"): unknown {
-    const [, , collection, id, operation] = url.pathname.split("/");
+    const [, , collection, id, operation, action] = url.pathname.split("/");
     const all = this.#state.objects.filter(
       (object) => object.deletedAt === null,
     );
@@ -419,7 +426,25 @@ export class SandboxStore {
         collection === "events" &&
         operation === "layout" &&
         object.objectType === "event"
-      )
+      ) {
+        if (action === "history") {
+          const query = eventLayoutHistoryQuerySchema.parse(
+            Object.fromEntries(url.searchParams),
+          );
+          const revisions = this.#state.layouts.filter(
+            (layout) =>
+              layout.eventId === id &&
+              (query.beforeVersion === undefined ||
+                layout.version < query.beforeVersion),
+          );
+          const items = revisions.slice(0, query.limit);
+          return {
+            items,
+            nextBeforeVersion:
+              revisions.length > query.limit ? items.at(-1)?.version : null,
+          };
+        }
+        if (action) return undefined;
         return (
           this.#state.layouts.find((layout) => layout.eventId === id) ?? {
             eventId: id,
@@ -428,6 +453,7 @@ export class SandboxStore {
             pages: [],
           }
         );
+      }
       if (operation === "access")
         return {
           resourceId: id,
@@ -535,7 +561,7 @@ export class SandboxStore {
     body: unknown,
     role: "owner" | "viewer",
   ): unknown {
-    const [, api, collection, id, operation] = url.pathname.split("/");
+    const [, api, collection, id, operation, action] = url.pathname.split("/");
     if (api !== "api")
       throw new SandboxError(404, "sandbox_route", "Unknown sandbox route.");
     if (method === "GET") {
@@ -578,7 +604,8 @@ export class SandboxStore {
       }
     }
     if (
-      method === "PATCH" &&
+      ((method === "PATCH" && action === undefined) ||
+        (method === "POST" && action === "restore")) &&
       collection === "events" &&
       id &&
       operation === "layout"
@@ -589,7 +616,10 @@ export class SandboxStore {
           "invalid_request",
           "Page layouts belong to Events.",
         );
-      const input = eventLayoutUpdateSchema.parse(body);
+      const input =
+        method === "POST"
+          ? eventLayoutRestoreSchema.parse(body)
+          : eventLayoutUpdateSchema.parse(body);
       const version =
         this.#state.layouts.find((layout) => layout.eventId === id)?.version ??
         0;
@@ -599,18 +629,31 @@ export class SandboxStore {
           "version_conflict",
           "The page layout changed. Refresh before saving.",
         );
+      let pages: EventLayoutResponse["pages"];
+      if ("pages" in input) pages = input.pages;
+      else if (input.targetVersion === 0) pages = [];
+      else {
+        const revision = this.#state.layouts.find(
+          (layout) =>
+            layout.eventId === id && layout.version === input.targetVersion,
+        );
+        if (!revision)
+          throw new SandboxError(
+            404,
+            "resource_unavailable",
+            "This layout revision is unavailable.",
+          );
+        pages = revision.pages;
+      }
       const saved = {
         eventId: id,
         version: version + 1,
         updatedAt: new Date().toISOString(),
-        pages: input.pages,
+        pages,
       };
       this.#commit({
         ...this.#state,
-        layouts: [
-          ...this.#state.layouts.filter((layout) => layout.eventId !== id),
-          saved,
-        ],
+        layouts: [saved, ...this.#state.layouts],
       });
       return saved;
     }
