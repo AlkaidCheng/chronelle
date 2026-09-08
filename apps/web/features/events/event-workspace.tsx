@@ -83,7 +83,9 @@ export function EventWorkspace({ eventId }: { readonly eventId: string }) {
 
   const canEdit = access.actions.includes("edit");
   const canShare = access.actions.includes("share");
-  const visibleTabs = tabs.filter((tab) => tab.id !== "sharing" || canShare);
+  const visibleTabs = tabs.filter(
+    (tab) => tab.id !== "pages" && (tab.id !== "sharing" || canShare),
+  );
   const shownTab =
     activeTab === "sharing" && !canShare ? "overview" : activeTab;
   const activeProjection = {

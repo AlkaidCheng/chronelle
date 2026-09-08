@@ -403,6 +403,9 @@ describe("EventWorkspace", () => {
       `/api/objects/${eventId}/access`,
     ]);
     overviewTab.focus();
+    await user.keyboard("{Home}");
+    expect(overviewTab).toHaveFocus();
+    expect(overviewTab).toHaveAttribute("aria-selected", "true");
     await user.keyboard("{ArrowRight}");
     expect(screen.getByRole("tab", { name: "To-dos" })).toHaveAttribute(
       "aria-selected",
