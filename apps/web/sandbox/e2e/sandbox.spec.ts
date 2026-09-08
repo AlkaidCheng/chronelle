@@ -25,6 +25,7 @@ test("standalone screens work offline and preserve browser edits", async ({
     path: testInfo.outputPath("event-overview.png"),
     fullPage: true,
   });
+  await page.getByRole("button", { name: "Browse event data" }).click();
   await page.getByRole("tab", { name: "Calendar", exact: true }).click();
   await expect(
     page.getByText("Welcome and coffee", { exact: true }),

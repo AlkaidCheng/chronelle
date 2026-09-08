@@ -1,5 +1,8 @@
 import {
   eventCalendarDatesSchema,
+  eventLayoutResponseSchema,
+  eventLayoutUpdateSchema,
+  type EventLayoutResponse,
   eventContextCreateRequestSchema,
   eventCreateRequestSchema,
   eventListQuerySchema,
@@ -25,6 +28,7 @@ type RelationResponse = ReturnType<typeof relationResponseSchema.parse>;
 interface State {
   objects: Resource[];
   relations: RelationResponse[];
+  layouts: EventLayoutResponse[];
 }
 
 class SandboxError extends Error {
@@ -130,6 +134,7 @@ function seed(): State {
     ),
   ];
   return {
+    layouts: [],
     objects: [
       event,
       canonical("event", { displayName: "A quiet studio weekend" }),
@@ -190,7 +195,23 @@ function parseState(raw: string): State {
     )
   )
     throw new Error("Invalid sandbox references.");
-  return { objects, relations };
+  const layouts = eventLayoutResponseSchema
+    .array()
+    .max(200)
+    .parse("layouts" in value ? value.layouts : []);
+  if (
+    new Set(layouts.map((layout) => layout.eventId)).size !== layouts.length ||
+    layouts.some(
+      (layout) =>
+        !objects.some(
+          (object) =>
+            object.id === layout.eventId && object.objectType === "event",
+        ),
+    )
+  ) {
+    throw new Error("Invalid sandbox page references.");
+  }
+  return { objects, relations, layouts };
 }
 
 function browserStorage(): StoragePort | undefined {
@@ -394,6 +415,19 @@ export class SandboxStore {
     if (id && (collection === "objects" || collection === "events")) {
       const object = this.#object(id);
       if (!operation) return object;
+      if (
+        collection === "events" &&
+        operation === "layout" &&
+        object.objectType === "event"
+      )
+        return (
+          this.#state.layouts.find((layout) => layout.eventId === id) ?? {
+            eventId: id,
+            version: 0,
+            updatedAt: null,
+            pages: [],
+          }
+        );
       if (operation === "access")
         return {
           resourceId: id,
@@ -536,11 +570,49 @@ export class SandboxStore {
         );
         const link = relation(id, resource.id);
         this.#commit({
+          ...this.#state,
           objects: [...this.#state.objects, resource],
           relations: [...this.#state.relations, link],
         });
         return { resource, relationId: link.id };
       }
+    }
+    if (
+      method === "PATCH" &&
+      collection === "events" &&
+      id &&
+      operation === "layout"
+    ) {
+      if (this.#object(id).objectType !== "event")
+        throw new SandboxError(
+          400,
+          "invalid_request",
+          "Page layouts belong to Events.",
+        );
+      const input = eventLayoutUpdateSchema.parse(body);
+      const version =
+        this.#state.layouts.find((layout) => layout.eventId === id)?.version ??
+        0;
+      if (version !== input.expectedVersion)
+        throw new SandboxError(
+          409,
+          "version_conflict",
+          "The page layout changed. Refresh before saving.",
+        );
+      const saved = {
+        eventId: id,
+        version: version + 1,
+        updatedAt: new Date().toISOString(),
+        pages: input.pages,
+      };
+      this.#commit({
+        ...this.#state,
+        layouts: [
+          ...this.#state.layouts.filter((layout) => layout.eventId !== id),
+          saved,
+        ],
+      });
+      return saved;
     }
     if (method === "PATCH" && id && !operation) {
       const object = this.#object(id);

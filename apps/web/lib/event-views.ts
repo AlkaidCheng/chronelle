@@ -1,4 +1,5 @@
 export const eventViews = [
+  { id: "pages", label: "Pages" },
   { id: "overview", label: "Overview" },
   { id: "todos", label: "To-dos" },
   { id: "calendar", label: "Calendar" },
@@ -14,5 +15,5 @@ export const eventViews = [
 export type EventView = (typeof eventViews)[number]["id"];
 
 export function parseEventView(value: string | null): EventView {
-  return eventViews.find((view) => view.id === value)?.id ?? "overview";
+  return eventViews.find((view) => view.id === value)?.id ?? "pages";
 }

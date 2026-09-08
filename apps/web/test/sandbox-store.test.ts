@@ -30,6 +30,55 @@ async function request(
 }
 
 describe("browser sandbox", () => {
+  it("persists independent page layouts, preserves them through task creation, and rejects stale saves", async () => {
+    const saved = storage();
+    const store = new SandboxStore(saved);
+    const getCredential = () => ({
+      accessToken: "sample",
+      workspaceId: sandboxWorkspaceId,
+    });
+    const client = new ChronelleApiClient({
+      getCredential,
+      fetch: (input, options) => store.fetch(input, options),
+    });
+    const event = await client.createEvent({ displayName: "Summer vacation" });
+    const pages = [
+      {
+        id: crypto.randomUUID(),
+        name: "Preparation",
+        components: [{ id: crypto.randomUUID(), kind: "todos" as const }],
+      },
+    ];
+    const layout = await client.updateEventLayout(event.id, {
+      expectedVersion: 0,
+      pages,
+    });
+    await client.createEventResource(event.id, {
+      commandId: crypto.randomUUID(),
+      resource: { objectType: "task", displayName: "Pack" },
+    });
+    expect(await client.getEventLayout(event.id)).toEqual(layout);
+    expect(await client.getEvent(event.id)).toEqual(event);
+    await expect(
+      client.updateEventLayout(event.id, { expectedVersion: 0, pages: [] }),
+    ).rejects.toMatchObject({ status: 409 });
+    const reloaded = new ChronelleApiClient({
+      getCredential,
+      fetch: (input, options) => new SandboxStore(saved).fetch(input, options),
+    });
+    expect(await reloaded.getEventLayout(event.id)).toEqual(layout);
+    const viewer = await store.fetch(
+      `/api/events/${event.id}/layout`,
+      {
+        method: "PATCH",
+        body: JSON.stringify({ expectedVersion: 1, pages: [] }),
+      },
+      "viewer",
+    );
+    expect(viewer.status).toBe(403);
+    expect(await reloaded.getEventLayout(event.id)).toEqual(layout);
+  });
+
   it("creates typed planning resources through the production client contract", async () => {
     const store = new SandboxStore(storage());
     const client = new ChronelleApiClient({

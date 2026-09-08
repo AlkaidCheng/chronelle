@@ -79,7 +79,7 @@ function requestPath(input: URL | RequestInfo): string {
 
 describe("EventWorkspace", () => {
   beforeEach(() => {
-    window.history.replaceState(null, "", "/events/plan");
+    window.history.replaceState(null, "", "/events/plan?view=overview");
     window.sessionStorage.setItem(
       "chronelle.development-session",
       JSON.stringify({ accessToken: "test-session", workspaceId }),

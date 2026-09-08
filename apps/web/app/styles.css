@@ -2658,3 +2658,57 @@ html:has(.event-create-dialog[open]) {
   font-family: monospace;
   padding: 8px;
 }
+
+.event-pages-tools {
+  display: flex;
+  justify-content: flex-end;
+  padding: 12px 0;
+}
+.event-pages {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: clamp(16px, 3vw, 32px);
+  min-height: 360px;
+}
+.event-pages-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 16px;
+  margin-bottom: 24px;
+}
+.event-pages-navigation {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  min-width: 0;
+}
+.event-pages-navigation button {
+  background: transparent;
+  border: 0;
+  border-radius: 8px;
+  padding: 10px 14px;
+  color: var(--muted);
+  cursor: pointer;
+  overflow-wrap: anywhere;
+  max-width: 100%;
+}
+.event-pages-navigation button[aria-current="page"] {
+  background: var(--forest-light);
+  color: var(--forest);
+  font-weight: 650;
+}
+.event-page-components {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 24px;
+  min-width: 0;
+}
+
+.event-page-components > * {
+  min-width: 0;
+}

@@ -22,7 +22,7 @@ describe("event view navigation", () => {
     act(() => result.current[1]("todos"));
     expect(result.current[0]).toBe("todos");
     expect(window.location.search).toBe("?view=todos&ref=collection");
-    act(() => result.current[1]("overview"));
+    act(() => result.current[1]("pages"));
     expect(window.location.search).toBe("?ref=collection");
     act(() => {
       window.history.replaceState(null, "", "/events/plan?view=files");
@@ -30,8 +30,8 @@ describe("event view navigation", () => {
     });
     expect(result.current[0]).toBe("files");
   });
-  it("falls back to overview for unknown input", () => {
-    expect(parseEventView("__proto__")).toBe("overview");
-    expect(parseEventView(null)).toBe("overview");
+  it("opens event pages for an unselected or unknown view", () => {
+    expect(parseEventView("__proto__")).toBe("pages");
+    expect(parseEventView(null)).toBe("pages");
   });
 });

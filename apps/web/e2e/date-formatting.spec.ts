@@ -157,6 +157,7 @@ for (const display of [
       await expect(undated.locator(".event-date-mark span")).toHaveText("TBD");
       await expect(undated.locator(".event-date-mark strong")).toHaveText("-");
       await card.click();
+      await page.getByRole("button", { name: "Browse event data" }).click();
       await page.getByRole("tab", { name: "Calendar", exact: true }).click();
       const calendar = page
         .locator(".calendar-item")
