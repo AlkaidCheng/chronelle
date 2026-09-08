@@ -19,9 +19,10 @@ needed only to build the file. Moving the file does not transfer saved edits.
 ## Available interactions
 
 - Browse and create Events; edit Events, to-dos, expenses, and reminders.
-- Create multi-day Events with dates only, exact times, or an undecided schedule.
-  The Event date picker has independent month/year controls, direct date entry,
-  arrow-key day navigation, and instant month navigation. Event IDs are available
+- Create Events in a focused dialog without moving the collection. Turn on Set
+  dates to choose a single day or a multi-day range, then use Done to collapse
+  the calendar. Month and year open independent selection grids; arrow keys move
+  between days. Add times is optional. Event IDs are available
   in Details, not displayed as persistent header badges.
 - Compare Overview, Calendar, Timeline, and Itinerary projections of the same
   canonical sample objects. Search the sample workspace.
@@ -67,9 +68,10 @@ The dedicated browser suite opens the file offline on desktop and mobile Chromiu
 it starts no web server. Store tests cover canonical projections, persistence,
 stale versions, storage failures, and unsupported operations. These checks do not
 establish production authorization, database integrity, or backup recovery.
-Scheduling checks cover independent month/year changes, keyboard selection,
-invalid-date correction, date ranges, Details disclosure, and date-only reloads
-in another timezone. Chromium checks do not establish screen-reader, Safari, or
+Scheduling checks cover dialog focus and background isolation, independent
+month/year changes, leap-day keyboard selection, optional dates and times, date
+ranges, Details disclosure, and date-only reloads in another timezone.
+Chromium checks do not establish screen-reader, Safari, or
 Firefox compatibility.
 
 Full application local testing is a separate, deferred milestone after design
