@@ -16,6 +16,12 @@ PostgreSQL enforces that each typed row belongs to an object of the same type in
 the same workspace. A typed row cannot exist independently of its canonical
 object.
 
+Event pages are presentation configuration, not canonical business objects.
+Their names, component kinds and order live in `event_page_revisions` with an
+independent version. Components reference their owning Event's authorized
+projections; removing a component never deletes its records or relationships.
+See [Event pages](event-pages.md).
+
 ## Personal workspaces
 
 `workspaces.personal_owner_id` identifies a user's personal workspace. The

@@ -29,6 +29,10 @@ identities, canonical revision references, and idempotency receipts. It is
 additive and needs no snapshot backfill. See [Commands](../../docs/commands.md)
 for rollout and retention constraints.
 
+Migration 0011 adds append-only Event page layouts with independent versions and
+audit references. Reapply runtime role provisioning after migration so the API
+can read and insert layout revisions; it cannot update or delete them.
+
 Migration 0010 adds date-only Event ranges with inclusive end dates and checks
 that prevent mixing date precision with timestamp precision. It preserves
 existing timed records and immutable snapshots. See
