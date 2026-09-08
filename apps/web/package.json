@@ -7,6 +7,7 @@
     "build": "pnpm --filter @chronelle/api-client build && next build",
     "dev": "pnpm --filter @chronelle/api-client build && next dev",
     "start": "node scripts/start-standalone.mjs",
+    "sandbox": "pnpm --filter @chronelle/api-client build && node sandbox/build.mjs",
     "test": "pnpm --filter @chronelle/api-client build && vitest run",
     "typecheck": "pnpm --filter @chronelle/api-client build && tsc -p tsconfig.json --noEmit"
   },
@@ -20,6 +21,7 @@
     "react-dom": "19.2.8"
   },
   "devDependencies": {
+    "esbuild": "0.28.2",
     "@testing-library/jest-dom": "6.9.1",
     "@testing-library/react": "16.3.2",
     "@testing-library/user-event": "14.6.1",

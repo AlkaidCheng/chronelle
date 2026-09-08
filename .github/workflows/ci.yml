@@ -146,3 +146,5 @@ jobs:
         run: pnpm exec playwright install --with-deps chromium
       - name: Run browser release gate
         run: pnpm test:e2e
+      - name: Check offline design sandbox
+        run: pnpm test:sandbox

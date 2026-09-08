@@ -18,6 +18,11 @@ reversible trash/link actions are not yet implemented.
 
 ## Stack
 
+For offline UI review without a server, database, or cloud account, run
+`pnpm sandbox` and open `.chronelle/sandbox/chronelle.html` directly. See the
+[browser-only design sandbox guide](docs/browser-sandbox.md) for setup, supported
+interactions, persistence limits, and testing. Use fictional data only.
+
 - Next.js, React, and strict TypeScript for the responsive web client
 - TanStack Query and TanStack Table for server state and planning tables
 - Fastify and Zod for the typed REST API boundary
