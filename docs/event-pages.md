@@ -33,6 +33,35 @@ Adding a component changes presentation only; it does not create or grant
 access to its contents. In particular, Files loads authorized attachment
 targets and checks access again when requesting upload or download transfers.
 
+## Composition controls
+
+Owners and Editors can search the component picker by label or command name
+(for example, `/calendar`). Press `/` while focus is inside the Event pages
+area to open it, or use Add component. The shortcut does not intercept text
+fields, editable content, dialogs, or modified key combinations. Enter inserts
+the selected result; no matching result disables insertion.
+
+Component handles support desktop drag-and-drop before another component, at
+the end of the current page, or onto a page tab. Up/Down buttons and Move to
+page provide equivalent keyboard and touch operations. Move page earlier/later
+changes page order. A full destination is unavailable. Repeated components are
+distinguished by their IDs, not their kinds. External drag payloads are ignored.
+
+Each completed action sends one existing layout PATCH, preserving component
+identities and canonical records. Dragging alone, cancelling, and unchanged
+moves do not write. The drag source pins its layout version until drop; a stale
+save fails without overwriting a newer layout. Refresh latest loads the saved
+layout before an explicit retry. In-flight saves block overlapping layout
+mutations; success announces completion and restores keyboard focus when needed.
+Cross-page moves select the destination. Components keep local state while
+mounted. Components absent from the selected page unmount; their local controls
+and unsaved drafts are not retained.
+
+This uses the existing atomic layout API rather than a draft builder or queued
+autosave protocol. Layout recovery/removal controls, free-form positioning,
+touch dragging, and cross-Event moves are outside this interface. Native drag
+behavior is browser-dependent; move controls do not depend on drag support.
+
 ## Persistence
 
 `event_page_revisions` stores immutable layout snapshots, keyed by workspace,
