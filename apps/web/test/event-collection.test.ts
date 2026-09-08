@@ -25,6 +25,8 @@ const event: EventResponse = {
   startsAt: "2026-09-07T12:00:00.000Z",
   endsAt: null,
   timezone: "UTC",
+  startsOn: null,
+  endsOn: null,
   isAllDay: false,
 };
 const task: TaskResponse = {

@@ -1,9 +1,9 @@
 "use client";
 
-import type { EventResponse, EventListQuery } from "@chronelle/schemas";
+import type { EventListQuery, EventResponse } from "@chronelle/schemas";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { type FormEvent, useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 
 import {
   EmptyState,
@@ -17,13 +17,13 @@ import {
   PlusIcon,
   SearchIcon,
 } from "../../components/icons";
-import {
-  formatDatePart,
-  formatDateTime,
-  fromDateTimeInput,
-} from "../../lib/format";
-import { useCreateEvent, useEventsQuery } from "../../lib/queries";
 import { eventPeriod } from "../../lib/event-collection";
+import {
+  formatEventDatePart,
+  formatEventSchedule,
+} from "../../lib/event-schedule";
+import { useEventsQuery } from "../../lib/queries";
+import { CreateEventDialog } from "./create-event-dialog";
 
 function EventCard({
   event,
@@ -35,8 +35,8 @@ function EventCard({
   return (
     <Link className="event-card" href={`/events/${event.id}`}>
       <div className="event-date-mark">
-        <span>{formatDatePart(event.startsAt, "month").toUpperCase()}</span>
-        <strong>{formatDatePart(event.startsAt, "day")}</strong>
+        <span>{formatEventDatePart(event, "month").toUpperCase()}</span>
+        <strong>{formatEventDatePart(event, "day")}</strong>
       </div>
       <div className="event-card-copy">
         <span className={`object-label period-${eventPeriod(event, now)}`}>
@@ -47,78 +47,12 @@ function EventCard({
               : "Date to be decided"}
         </span>
         <h2>{event.displayName}</h2>
-        <p>{formatDateTime(event.startsAt)}</p>
+        <p>{formatEventSchedule(event)}</p>
       </div>
       <span aria-hidden="true" className="card-arrow">
         <ArrowIcon />
       </span>
     </Link>
-  );
-}
-
-function CreateEventForm({
-  onCreated,
-}: {
-  readonly onCreated: (id: string) => void;
-}) {
-  const createEvent = useCreateEvent();
-  const [displayName, setDisplayName] = useState("");
-  const [startsAt, setStartsAt] = useState("");
-  const nameInput = useRef<HTMLInputElement>(null);
-  useEffect(() => {
-    nameInput.current?.focus();
-  }, []);
-
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    createEvent.mutate(
-      {
-        displayName,
-        startsAt: fromDateTimeInput(startsAt),
-        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-      },
-      {
-        onSuccess: (created) => {
-          setDisplayName("");
-          setStartsAt("");
-          onCreated(created.id);
-        },
-      },
-    );
-  }
-
-  return (
-    <form className="create-event-form" onSubmit={handleSubmit}>
-      <div className="compact-field grow-field">
-        <label htmlFor="event-name">Event name</label>
-        <input
-          ref={nameInput}
-          id="event-name"
-          maxLength={240}
-          onChange={(event) => setDisplayName(event.target.value)}
-          placeholder="Summer gathering"
-          required
-          value={displayName}
-        />
-      </div>
-      <div className="compact-field">
-        <label htmlFor="event-start">Starts (optional)</label>
-        <input
-          id="event-start"
-          onChange={(event) => setStartsAt(event.target.value)}
-          type="datetime-local"
-          value={startsAt}
-        />
-      </div>
-      <button
-        className="button button-primary"
-        disabled={createEvent.isPending}
-        type="submit"
-      >
-        {createEvent.isPending ? "Creating..." : "Create event"}
-      </button>
-      {createEvent.isError ? <ErrorNotice error={createEvent.error} /> : null}
-    </form>
   );
 }
 
@@ -139,7 +73,6 @@ export function EventList() {
   const now = Date.parse(events.data?.asOf ?? "");
   const filtered = debouncedQuery !== "" || filter !== "all";
   const [layout, setLayout] = useState<"grid" | "list">("grid");
-  const createButton = useRef<HTMLButtonElement>(null);
   useEffect(() => {
     try {
       if (window.localStorage.getItem("chronelle.event-layout") === "list")
@@ -158,11 +91,6 @@ export function EventList() {
     }
   }
 
-  function closeCreate() {
-    setIsCreating(false);
-    createButton.current?.focus();
-  }
-
   return (
     <main className="workspace-page">
       <header className="page-heading split-heading">
@@ -174,11 +102,9 @@ export function EventList() {
           </p>
         </div>
         <button
-          ref={createButton}
-          aria-expanded={isCreating}
-          aria-controls="create-event"
+          aria-haspopup="dialog"
           className="button button-primary"
-          onClick={() => setIsCreating(!isCreating)}
+          onClick={() => setIsCreating(true)}
           type="button"
         >
           <PlusIcon />
@@ -187,23 +113,10 @@ export function EventList() {
       </header>
 
       {isCreating ? (
-        <section
-          aria-labelledby="new-event-heading"
-          className="surface create-surface"
-          id="create-event"
-        >
-          <div className="section-title-row">
-            <h2 id="new-event-heading">Create an event</h2>
-            <button
-              className="button button-quiet"
-              type="button"
-              onClick={closeCreate}
-            >
-              Cancel
-            </button>
-          </div>
-          <CreateEventForm onCreated={(id) => router.push(`/events/${id}`)} />
-        </section>
+        <CreateEventDialog
+          onClose={() => setIsCreating(false)}
+          onCreated={(id) => router.push(`/events/${id}`)}
+        />
       ) : null}
 
       <section

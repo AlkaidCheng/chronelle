@@ -64,13 +64,16 @@ content are read in one snapshot; private candidates cannot consume the limit.
 | `cursor`  | Previous `nextCursor`; omit to start a new collection read  |
 
 Name matching is case-insensitive; `%`, `_`, and backslash are literal
-characters, not wildcard syntax. `unscheduled` means no start time. A scheduled
-Event is past when its end (or start if there is no end) precedes `asOf`;
-`upcoming` includes ongoing Events and the exact boundary. The first page's
+characters, not wildcard syntax. `unscheduled` means no start date or time. A timed
+Event is past when its end (or start if there is no end) precedes `asOf`.
+Date-only Events remain upcoming throughout their inclusive last date, using
+the Event timezone (UTC if absent). `upcoming` includes ongoing Events and the
+exact boundary. The first page's
 reference time is retained across its continuation pages. It never sets the
 authorization clock: every request rechecks current access and grant expiry.
 
-Date order is start ascending, undated last, then folded name and ID. Name order
+Date order is start ascending, undated last, then folded name and ID. Date-only
+starts use a UTC day anchor for ordering, not an asserted occurrence time. Name order
 is folded name then ID. Updated order is update time descending then ID. Names
 use PostgreSQL `lower(display_name) COLLATE "C"`, not browser locale collation.
 Cursor timestamps retain database microseconds even though resource timestamps
@@ -373,6 +376,34 @@ long-lived export snapshot. Deleted boundaries remain usable, while new or
 recovered links before the boundary require a refresh. Removed-link lists and
 Event detail projections retain their separate contracts.
 
+## Event schedules
+
+Event creation and updates accept `startsOn` and `endsOn` for dates without
+times. Both are nullable ISO calendar dates. The end is inclusive and requires
+a start. Both `startsAt` and `endsAt` must be null for date-only Events.
+
+```ts
+const vacation = await client.createEvent({
+  displayName: "Summer vacation",
+  startsOn: "2030-07-03",
+  endsOn: "2030-07-12",
+  timezone: "America/Los_Angeles",
+});
+// Once exact times are known, clear the date-only pair in the same update.
+await client.updateEvent(vacation.id, {
+  expectedVersion: vacation.version,
+  startsOn: null,
+  endsOn: null,
+  startsAt: "2030-07-03T16:30:00Z",
+  endsAt: "2030-07-12T01:00:00Z",
+});
+```
+
+Omit an end if it is unknown. Use null for all four fields to clear the schedule.
+Partial updates validate against current content; invalid ranges and mixed
+precision return 400. Stale versions still return 409. See
+[Event schedules](object-model.md#event-schedules) for storage and timezone semantics.
+
 ## Event projections
 
 The typed client can read just the canonical Event for a header or editor:
@@ -402,12 +433,15 @@ Event detail includes `lockedRelationCount`, which lets clients render a
 generic private-item notice without exposing identities or business fields.
 
 Focused endpoints select only their relevant `includes` target types and do not
-load attachments. Calendar and itinerary omit Events without a start time;
+load attachments. Calendar and itinerary omit Events without a start date or time;
 timeline omits undated Events and Tasks. To-dos retain undated Tasks after dated
 ones. Equal timestamps are ordered by canonical ID (descending for Expenses).
 The detail endpoint retains all its collections and locked-reference count.
-Response shapes, permission checks, and canonical versions are identical across
-these reads; no client migration is required.
+Permission checks and canonical versions are identical across these reads.
+Timeline entries contain either `occursAt` or `occursOn`, with the other null.
+Date-only entries keep their precision in every projection. Deploy API and web
+together after migration 0010; consumers that assume `occursAt` is always a
+timestamp must handle date-only entries.
 
 ## Private documents
 

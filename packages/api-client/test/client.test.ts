@@ -18,6 +18,8 @@ const event = {
   metadata: {},
   startsAt: "2026-10-15T16:00:00.000Z",
   endsAt: null,
+  startsOn: null,
+  endsOn: null,
   timezone: "America/Los_Angeles",
   isAllDay: false,
 } as const;

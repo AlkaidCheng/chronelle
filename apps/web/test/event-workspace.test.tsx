@@ -40,6 +40,8 @@ const rootEvent = {
   startsAt: "2026-10-15T16:00:00.000Z",
   endsAt: "2026-10-16T03:00:00.000Z",
   timezone: "America/Los_Angeles",
+  startsOn: null,
+  endsOn: null,
   isAllDay: false,
 } as const;
 
@@ -412,27 +414,39 @@ describe("EventWorkspace", () => {
       await screen.findByRole("button", { name: "Add schedule item" }),
     );
     await user.type(screen.getByLabelText("Schedule item"), "Guest arrival");
-    fireEvent.change(screen.getByLabelText("Starts"), {
-      target: { value: "2026-10-15T17:30" },
+    await user.click(screen.getByRole("button", { name: "Change year" }));
+    await user.click(screen.getByRole("button", { name: "2026" }));
+    await user.click(screen.getByRole("button", { name: "Change month" }));
+    await user.click(screen.getByRole("button", { name: "October" }));
+    await user.click(screen.getByRole("button", { name: "Oct 15, 2026" }));
+    await user.click(screen.getByRole("switch", { name: "Add times" }));
+    fireEvent.change(screen.getByLabelText("Start time"), {
+      target: { value: "17:30" },
     });
     await user.click(screen.getByRole("button", { name: "Add to schedule" }));
 
     expect(
       await screen.findByRole("heading", { name: "Guest arrival" }),
     ).toBeVisible();
-    expect(screen.getByText("ID 00000011")).toBeVisible();
+    expect(
+      within(screen.getByRole("tabpanel")).getByLabelText("Object ID"),
+    ).toHaveValue(scheduledEventId);
 
     await user.click(screen.getByRole("tab", { name: "Itinerary" }));
     expect(
       screen.getByRole("heading", { name: "Guest arrival" }),
     ).toBeVisible();
-    expect(screen.getByText("ID 00000011")).toBeVisible();
+    expect(
+      within(screen.getByRole("tabpanel")).getByLabelText("Object ID"),
+    ).toHaveValue(scheduledEventId);
 
     await user.click(screen.getByRole("tab", { name: "Timeline" }));
     expect(
       screen.getByRole("heading", { name: "Guest arrival" }),
     ).toBeVisible();
-    expect(screen.getByText("ID 00000011")).toBeVisible();
+    expect(
+      within(screen.getByRole("tabpanel")).getByLabelText("Object ID"),
+    ).toHaveValue(scheduledEventId);
     await waitFor(() => {
       expect(fetch).toHaveBeenCalledWith(
         `/api/events/${eventId}/resources`,

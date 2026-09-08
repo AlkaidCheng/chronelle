@@ -6,7 +6,13 @@ import type {
   ReminderResponse,
   TaskResponse,
 } from "@chronelle/schemas";
-import { type FormEvent, useId } from "react";
+import { type FormEvent, useId, useState } from "react";
+
+import { EventScheduleFields } from "./event-schedule-fields";
+import {
+  readEventSchedule,
+  eventSchedulePayload,
+} from "../../lib/event-schedule";
 
 import { EditorControls } from "./editor-controls";
 import { fromDateTimeInput, toDateTimeInput } from "../../lib/format";
@@ -32,28 +38,36 @@ export function EventEditorForm({
 }) {
   const draft = useEditorDraft(latestEvent, (event) => ({
     displayName: event?.displayName ?? "",
-    startsAt: toDateTimeInput(event?.startsAt ?? null),
-    endsAt: toDateTimeInput(event?.endsAt ?? null),
-    isAllDay: event?.isAllDay ?? false,
+    ...readEventSchedule(event),
   }));
   const event = draft.source ?? latestEvent;
   const nameId = useId();
   const update = useUpdateEvent();
   const refresh = useRefreshEvent(event.id);
-  const { displayName, startsAt, endsAt, isAllDay } = draft.fields;
+  const { displayName } = draft.fields;
+  const [scheduleError, setScheduleError] = useState("");
 
   function handleSubmit(formEvent: FormEvent<HTMLFormElement>) {
     formEvent.preventDefault();
     if (draft.hasNewerVersion || update.isPending) return;
+    let schedule: ReturnType<typeof eventSchedulePayload>;
+    try {
+      schedule = eventSchedulePayload(draft.fields);
+      setScheduleError("");
+    } catch (error) {
+      setScheduleError(
+        error instanceof Error ? error.message : "Check the schedule.",
+      );
+      return;
+    }
     update.mutate(
       {
         id: event.id,
         input: {
           displayName,
-          endsAt: fromDateTimeInput(endsAt),
+          ...schedule,
           expectedVersion: event.version,
-          isAllDay,
-          startsAt: fromDateTimeInput(startsAt),
+          isAllDay: draft.fields.mode === "timed" && event.isAllDay,
           timezone: event.timezone,
         },
       },
@@ -81,36 +95,12 @@ export function EventEditorForm({
           value={displayName}
         />
       </label>
-      <div className="form-grid">
-        <label className="field">
-          <span>Starts</span>
-          <input
-            disabled={update.isPending}
-            onChange={(input) => draft.change({ startsAt: input.target.value })}
-            type="datetime-local"
-            value={startsAt}
-          />
-        </label>
-        <label className="field">
-          <span>Ends</span>
-          <input
-            min={startsAt}
-            disabled={update.isPending}
-            onChange={(input) => draft.change({ endsAt: input.target.value })}
-            type="datetime-local"
-            value={endsAt}
-          />
-        </label>
-      </div>
-      <label className="check-field">
-        <input
-          checked={isAllDay}
-          disabled={update.isPending}
-          onChange={(input) => draft.change({ isAllDay: input.target.checked })}
-          type="checkbox"
-        />
-        <span>All-day event</span>
-      </label>
+      <EventScheduleFields
+        value={draft.fields}
+        onChange={draft.change}
+        disabled={update.isPending}
+      />
+      {scheduleError && <p role="alert">{scheduleError}</p>}
       <EditorControls
         draft={draft}
         mutation={update}
@@ -133,22 +123,37 @@ export function ScheduledEventForm({
 }) {
   const draft = useEditorDraft(latestEvent, (event) => ({
     displayName: event?.displayName ?? "",
-    startsAt: toDateTimeInput(event?.startsAt ?? null),
-    endsAt: toDateTimeInput(event?.endsAt ?? null),
+    ...(event
+      ? readEventSchedule(event)
+      : {
+          ...readEventSchedule(),
+          mode: "dates" as const,
+        }),
   }));
   const event = draft.source;
   const create = useCreateScheduledEvent(eventId);
   const update = useUpdateEvent();
   const refresh = useRefreshEvent(eventId);
-  const { displayName, startsAt, endsAt } = draft.fields;
+  const { displayName } = draft.fields;
+  const [scheduleError, setScheduleError] = useState("");
 
   function handleSubmit(formEvent: FormEvent<HTMLFormElement>) {
     formEvent.preventDefault();
     if (draft.hasNewerVersion || mutation.isPending) return;
+    let schedule: ReturnType<typeof eventSchedulePayload>;
+    try {
+      schedule = eventSchedulePayload(draft.fields);
+      setScheduleError("");
+    } catch (error) {
+      setScheduleError(
+        error instanceof Error ? error.message : "Check the schedule.",
+      );
+      return;
+    }
     const input = {
       displayName,
-      endsAt: fromDateTimeInput(endsAt),
-      startsAt: fromDateTimeInput(startsAt),
+      ...schedule,
+      isAllDay: draft.fields.mode === "timed" && (event?.isAllDay ?? false),
       timezone:
         event === undefined
           ? Intl.DateTimeFormat().resolvedOptions().timeZone
@@ -157,7 +162,7 @@ export function ScheduledEventForm({
     if (event === undefined) {
       create.mutate(input, {
         onSuccess: () => {
-          draft.change({ displayName: "", startsAt: "", endsAt: "" });
+          draft.change({ displayName: "", ...readEventSchedule() });
           onCancel?.();
         },
       });
@@ -193,28 +198,12 @@ export function ScheduledEventForm({
           value={displayName}
         />
       </label>
-      <div className="form-grid">
-        <label className="field">
-          <span>Starts</span>
-          <input
-            disabled={mutation.isPending}
-            onChange={(input) => draft.change({ startsAt: input.target.value })}
-            required
-            type="datetime-local"
-            value={startsAt}
-          />
-        </label>
-        <label className="field">
-          <span>Ends</span>
-          <input
-            min={startsAt}
-            disabled={mutation.isPending}
-            onChange={(input) => draft.change({ endsAt: input.target.value })}
-            type="datetime-local"
-            value={endsAt}
-          />
-        </label>
-      </div>
+      <EventScheduleFields
+        value={draft.fields}
+        onChange={draft.change}
+        disabled={mutation.isPending}
+      />
+      {scheduleError && <p role="alert">{scheduleError}</p>}
       <EditorControls
         draft={draft}
         mutation={mutation}

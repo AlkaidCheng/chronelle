@@ -2,6 +2,7 @@ import { sql } from "drizzle-orm";
 import {
   bigint,
   boolean,
+  date,
   integer,
   jsonb,
   numeric,
@@ -294,6 +295,8 @@ export const events = pgTable("events", {
   workspaceId: uuid("workspace_id").notNull(),
   objectType: text("object_type").$type<"event">().notNull().default("event"),
   startsAt: timestamp("starts_at", { mode: "date", withTimezone: true }),
+  startsOn: date("starts_on", { mode: "string" }),
+  endsOn: date("ends_on", { mode: "string" }),
   endsAt: timestamp("ends_at", { mode: "date", withTimezone: true }),
   timezone: text("timezone"),
   isAllDay: boolean("is_all_day").notNull().default(false),

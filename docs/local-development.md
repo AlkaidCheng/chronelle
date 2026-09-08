@@ -28,6 +28,13 @@ DELETE requests and older history clients are incompatible.
 
 ## Setup
 
+Migration `0010_add_event_calendar_dates.sql` adds nullable `date` columns and
+schedule integrity checks. Stop old API writers, run `pnpm db:migrate`, and
+deploy API and web together. Timeline clients must accept nullable `occursAt`
+and the new nullable `occursOn` field. Existing timed Events and revision chains
+need no data rewrite or new baseline. See [Event schedules](object-model.md#event-schedules)
+for precision, timezone, and inclusive-end semantics.
+
 Migration `0009_add_reversible_commands.sql` adds the optional Event/Task command
 API. Run `pnpm db:migrate` before deploying that API; no new baseline is needed.
 Existing web editors remain unchanged and do not yet record reversible commands.

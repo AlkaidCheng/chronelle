@@ -9,7 +9,8 @@ import {
 
 import { ErrorNotice, LoadingState } from "../../components/feedback";
 import { CalendarIcon, LockIcon } from "../../components/icons";
-import { formatDateTime, shortId } from "../../lib/format";
+import { formatEventSchedule } from "../../lib/event-schedule";
+import { ObjectDetails } from "../../components/object-details";
 import { useEventWorkspaceQueries } from "../../lib/queries";
 import {
   CalendarPanel,
@@ -130,9 +131,7 @@ export function EventWorkspace({ eventId }: { readonly eventId: string }) {
           <Link className="back-link" href="/events">
             &lt;- All events
           </Link>
-          <span className="canonical-badge" title={event.id}>
-            Canonical ID {shortId(event.id)}
-          </span>
+          <ObjectDetails id={event.id} />
         </div>
         <div className="event-title-row">
           <div>
@@ -140,13 +139,7 @@ export function EventWorkspace({ eventId }: { readonly eventId: string }) {
             <h1>{event.displayName}</h1>
             <p className="event-date">
               <CalendarIcon />
-              {event.startsAt === null
-                ? "Schedule to be decided"
-                : `${formatDateTime(event.startsAt)}${
-                    event.endsAt === null
-                      ? ""
-                      : ` to ${formatDateTime(event.endsAt)}`
-                  }`}
+              {formatEventSchedule(event)}
             </p>
           </div>
           <div className="event-actions">
