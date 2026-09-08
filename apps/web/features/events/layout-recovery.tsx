@@ -166,12 +166,14 @@ function LayoutRecoveryDialog({
             <h3 ref={confirmationHeading} tabIndex={-1}>
               {confirmation.kind === "remove"
                 ? `Remove ${confirmation.title}?`
-                : `Restore ${confirmation.snapshot.version === 0 ? "the initial empty layout" : `layout version ${confirmation.snapshot.version}`}?`}
+                : `${canEdit ? "Restore" : "Preview"} ${confirmation.snapshot.version === 0 ? "the initial empty layout" : `layout version ${confirmation.snapshot.version}`}${canEdit ? "?" : ""}`}
             </h3>
             <p>
               {confirmation.kind === "remove"
                 ? "You can recover this layout from history. No planning records will be deleted."
-                : "This replaces the current page arrangement and creates a new saved version. Planning records and access permissions do not change."}
+                : canEdit
+                  ? "This replaces the current page arrangement and creates a new saved version. Planning records and access permissions do not change."
+                  : "This is a saved page arrangement. Planning records are not part of this snapshot."}
             </p>
             {confirmation.kind === "restore" ? (
               <ul className="layout-preview">

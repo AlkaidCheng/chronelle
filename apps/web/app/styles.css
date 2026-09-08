@@ -2800,6 +2800,21 @@ html:has(.event-create-dialog[open]) {
 }
 .layout-revision .panel-heading {
   margin: 0 0 12px;
+  flex-direction: row;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.layout-recovery-dialog .button[aria-pressed="true"] {
+  background: var(--forest-light);
+  color: var(--forest);
+  border-color: var(--forest);
+}
+@media (max-width: 600px) {
+  .layout-recovery-dialog .composition-actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 .layout-component-row {
   display: flex;
