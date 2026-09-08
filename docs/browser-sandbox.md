@@ -75,6 +75,8 @@ Scheduling checks cover dialog focus and background isolation, independent
 month/year changes, month-end and leap-day keyboard selection, optional dates and
 times, selected versus hover ranges, Details disclosure, and date-only reloads in
 another timezone.
+Editor checks cover offline save confirmation, clearing confirmation for a new
+draft, and read-only empty states without creation controls.
 Chromium checks do not establish screen-reader, Safari, or
 Firefox compatibility.
 

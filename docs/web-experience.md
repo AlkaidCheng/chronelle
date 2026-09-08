@@ -56,6 +56,32 @@ screen reader. Manual Safari/VoiceOver and other assistive-technology review
 remain necessary. The offline sandbox gate continues to use Chromium: WebKit's
 emulated offline mode fails to load local files before the application runs.
 
+## Editor feedback and refresh
+
+Event, schedule-item, task, expense, and reminder forms keep their draft after a
+failed save. Submit again explicitly to retry; Refresh latest only fetches data
+and does not save changes. A failed refresh leaves the save error visible.
+Loading a newer version requires the explicit discard-draft action.
+
+Inputs and submission controls are disabled during a save. Mounted forms announce
+pending and successful saves; starting another edit clears the success message.
+Schedule validation clears when the schedule changes. Viewer empty states do not
+direct readers to unavailable creation forms.
+
+Temporary network, timeout, rate-limit, and server read failures retain mounted
+Event editors, page layouts, and planning components with an error notice.
+Permission denial, missing resources, and unexpected response errors hide affected
+content even when a cached copy exists. Backend authorization and version checks
+still apply to every mutation. Retained data is not a freshness guarantee.
+Navigating away, changing sessions, or reloading still discards unsaved drafts;
+this is not offline synchronization or durable draft storage.
+
+Production browser tests check explicit task retries with the same creation
+command, disabled pending controls, draft retention, and success feedback in
+desktop/mobile Chromium and WebKit. The offline Chromium suite also checks
+Viewer empty states. Live-region semantics have automated coverage, but actual
+screen-reader announcements require manual assistive-technology validation.
+
 ## Expense amounts
 
 Expense rows and totals retain all nonzero digits of the stored four-decimal
