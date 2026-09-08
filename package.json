@@ -10,6 +10,8 @@
     "pnpm": ">=11.25.0 <12"
   },
   "scripts": {
+    "sandbox": "pnpm --filter @chronelle/web sandbox",
+    "test:sandbox": "pnpm sandbox && playwright test --config apps/web/sandbox/playwright.config.ts",
     "build": "pnpm --filter @chronelle/schemas build && pnpm --filter @chronelle/db build && pnpm --filter @chronelle/authorization build && pnpm --filter @chronelle/storage build && pnpm --filter @chronelle/object-model build && pnpm --filter @chronelle/api-client build && pnpm --filter @chronelle/api build && pnpm --filter @chronelle/web build",
     "check": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm test:infrastructure && pnpm test && pnpm build",
     "db:migrate": "pnpm --filter @chronelle/db migrate",

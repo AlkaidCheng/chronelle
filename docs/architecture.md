@@ -1,5 +1,9 @@
 # Implemented Architecture
 
+The [browser-only design sandbox](browser-sandbox.md) is a separate offline build
+of the existing web screens. Its build-time adapters use fictional browser-local
+data and do not participate in the production architecture described below.
+
 Chronelle starts as a TypeScript modular monolith in a pnpm workspace. The web
 and API applications deploy independently while domain contracts and database
 infrastructure remain explicit shared packages.

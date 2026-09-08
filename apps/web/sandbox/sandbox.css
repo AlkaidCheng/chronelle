@@ -1,0 +1,46 @@
+.sandbox-banner {
+  padding: 1rem 1.5rem;
+  background: #f1f4ed;
+  color: #24352b;
+  border-bottom: 1px solid #c7d4c6;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1rem;
+}
+.sandbox-banner p {
+  margin: 0.25rem 0 0;
+  font-size: 0.875rem;
+}
+.sandbox-banner > div {
+  margin-right: auto;
+}
+.sandbox-banner label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.sandbox-banner details {
+  flex-basis: 100%;
+}
+.sandbox-banner summary {
+  cursor: pointer;
+  font-size: 0.875rem;
+}
+.sandbox-banner select,
+.sandbox-banner button {
+  min-height: 2.5rem;
+  padding: 0.4rem 0.75rem;
+  border: 1px solid #aebfac;
+  border-radius: 0.5rem;
+  background: white;
+  color: inherit;
+}
+@media (max-width: 600px) {
+  .sandbox-banner {
+    padding: 1rem;
+  }
+  .sandbox-banner > div {
+    flex-basis: 100%;
+  }
+}
