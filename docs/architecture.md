@@ -387,3 +387,6 @@ CloudBase identity and Tencent COS concerns out of the domain layer.
 `event_page_revisions`. The owning Event supplies the permission boundary;
 layout versions are independent from canonical object versions. Components
 query existing protected projections and never own copies of business records.
+History reads are paginated. Restoration appends a snapshot and its audit event
+atomically; it does not rewrite earlier revisions. Layout undo/redo keeps bounded
+session-local version references and calls the same authorized restore API.
