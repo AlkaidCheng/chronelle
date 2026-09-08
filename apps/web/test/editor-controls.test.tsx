@@ -13,6 +13,7 @@ function controls() {
     mutation: {
       isPending: false,
       isError: false,
+      isSuccess: false,
       error: new ApiClientError(409, "version_conflict", "Changed elsewhere"),
       reset: vi.fn(),
     },
@@ -39,6 +40,10 @@ describe("EditorControls", () => {
     expect(onRefresh).toHaveBeenCalledOnce();
     expect(props.mutation.reset).not.toHaveBeenCalled();
     expect(props.draft.loadLatest).not.toHaveBeenCalled();
+    const refreshing = screen.getByRole("button", { name: "Refreshing..." });
+    expect(refreshing).toBeDisabled();
+    await user.click(refreshing);
+    expect(onRefresh).toHaveBeenCalledOnce();
     await act(async () => finish?.());
     expect(props.mutation.reset).toHaveBeenCalledOnce();
     expect(props.draft.loadLatest).not.toHaveBeenCalled();
@@ -61,6 +66,73 @@ describe("EditorControls", () => {
       screen.getByRole("button", { name: "Discard draft and load latest" }),
     );
     expect(order).toEqual(["load", "reset"]);
+  });
+
+  it("does not reset a newer save when an earlier refresh finishes", async () => {
+    const props = controls();
+    props.mutation.isError = true;
+    let finish: (() => void) | undefined;
+    const onRefresh = () =>
+      new Promise<void>((resolve) => {
+        finish = resolve;
+      });
+    const user = userEvent.setup();
+    const view = render(<EditorControls {...props} onRefresh={onRefresh} />);
+    await user.click(screen.getByRole("button", { name: "Refresh latest" }));
+    view.rerender(
+      <EditorControls
+        {...props}
+        mutation={{
+          ...props.mutation,
+          isError: false,
+          isPending: true,
+          error: null,
+        }}
+        onRefresh={onRefresh}
+      />,
+    );
+    await act(async () => finish?.());
+    expect(props.mutation.reset).not.toHaveBeenCalled();
+    expect(screen.getByRole("button", { name: "Saving..." })).toBeDisabled();
+  });
+
+  it("retains the save error and draft when a refresh fails, then allows another refresh", async () => {
+    const props = controls();
+    props.mutation.isError = true;
+    const onRefresh = vi
+      .fn()
+      .mockRejectedValueOnce(new Error("Refresh unavailable"))
+      .mockResolvedValueOnce(undefined);
+    const user = userEvent.setup();
+    render(<EditorControls {...props} onRefresh={onRefresh} />);
+    await user.click(screen.getByRole("button", { name: "Refresh latest" }));
+    expect(screen.getAllByRole("alert")).toHaveLength(2);
+    expect(screen.getByText("Refresh unavailable")).toBeVisible();
+    expect(props.mutation.reset).not.toHaveBeenCalled();
+    expect(props.draft.loadLatest).not.toHaveBeenCalled();
+    await user.click(screen.getByRole("button", { name: "Refresh latest" }));
+    expect(props.mutation.reset).toHaveBeenCalledOnce();
+    expect(screen.queryByText("Refresh unavailable")).toBeNull();
+  });
+
+  it("labels a non-conflict refresh as a read, not a save retry", () => {
+    const props = controls();
+    render(
+      <EditorControls
+        {...props}
+        mutation={{
+          ...props.mutation,
+          isError: true,
+          error: new Error("Save unavailable"),
+        }}
+        onRefresh={vi.fn()}
+      />,
+    );
+    expect(
+      screen.getByRole("button", { name: "Refresh latest" }),
+    ).toBeEnabled();
+    expect(screen.queryByRole("button", { name: "Try again" })).toBeNull();
+    expect(screen.getByText(/Refreshing only checks/)).toBeVisible();
   });
 
   it("supports keyboard cancellation and disables save and cancel while pending", async () => {

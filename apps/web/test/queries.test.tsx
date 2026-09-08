@@ -1,11 +1,16 @@
 // @vitest-environment jsdom
 
 import { act, cleanup, renderHook, waitFor } from "@testing-library/react";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { Providers } from "../app/providers";
-import { queryKeys, useCreateTask, useUpdateTask } from "../lib/queries";
+import {
+  queryKeys,
+  useCreateTask,
+  useUpdateTask,
+  useRefreshEvent,
+} from "../lib/queries";
 
 const workspaceId = "019d6e7d-0000-7000-8000-000000000001";
 const eventId = "019d6e7d-0000-7000-8000-000000000010";
@@ -25,6 +30,38 @@ describe("canonical cache invalidation", () => {
     vi.unstubAllGlobals();
     window.sessionStorage.clear();
   });
+
+  it.each([false, true])(
+    "reports refresh failures when requested (throwOnError: %s)",
+    async (throwOnError) => {
+      let fail = false;
+      const { result } = renderHook(
+        () => {
+          const query = useQuery({
+            queryKey: queryKeys.todos(eventId),
+            retry: false,
+            queryFn: async () => {
+              if (fail) throw new Error("Refresh failed");
+              return [];
+            },
+          });
+          return { query, refresh: useRefreshEvent(eventId, { throwOnError }) };
+        },
+        { wrapper: Providers },
+      );
+      await waitFor(() => expect(result.current.query.isSuccess).toBe(true));
+      fail = true;
+      await act(async () => {
+        if (throwOnError)
+          await expect(result.current.refresh()).rejects.toThrow(
+            "Refresh failed",
+          );
+        else await expect(result.current.refresh()).resolves.toBeUndefined();
+      });
+      await waitFor(() => expect(result.current.query.isError).toBe(true));
+      expect(result.current.query.data).toEqual([]);
+    },
+  );
 
   it("retries an uncertain create with the same command and starts a fresh command after success", async () => {
     const response = {

@@ -9,6 +9,7 @@ import {
   within,
 } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   afterEach,
   assert,
@@ -26,6 +27,7 @@ import {
 import { Providers } from "../app/providers";
 import { EventPages } from "../features/events/event-pages";
 import { eventComponents } from "../lib/event-components";
+import { queryKeys } from "../lib/queries";
 import { SandboxStore, sandboxWorkspaceId } from "../sandbox/store";
 
 let store: SandboxStore;
@@ -94,7 +96,71 @@ function page(name: string, kinds: readonly EventComponentKind[]) {
   };
 }
 
+function RefreshProbe() {
+  const cache = useQueryClient();
+  return (
+    <button
+      type="button"
+      onClick={() =>
+        void cache.invalidateQueries({ queryKey: queryKeys.event(eventId) })
+      }
+    >
+      Refetch layout
+    </button>
+  );
+}
+
 describe("insertable event components", () => {
+  it.each([503, 403, 404])(
+    "handles layout refresh status %s without losing drafts on temporary failures",
+    async (status) => {
+      await client.updateEventLayout(eventId, {
+        expectedVersion: 0,
+        pages: [page("Plan", ["todos"])],
+      });
+      let fail = false;
+      vi.stubGlobal(
+        "fetch",
+        vi.fn<typeof globalThis.fetch>((input, options) => {
+          if (fail && String(input).endsWith("/layout"))
+            return Promise.resolve(
+              Response.json(
+                {
+                  error: { code: "unavailable", message: "Layout unavailable" },
+                },
+                { status },
+              ),
+            );
+          return store.fetch(input, options);
+        }),
+      );
+      const user = userEvent.setup();
+      render(
+        <>
+          <EventPages eventId={eventId} canEdit />
+          <RefreshProbe />
+        </>,
+        { wrapper: Providers },
+      );
+      const input = await screen.findByRole("textbox", { name: "Task" });
+      await user.type(input, "Unfinished plan");
+      fail = true;
+      await user.click(screen.getByRole("button", { name: "Refetch layout" }));
+      expect(
+        await screen.findByRole("alert", {}, { timeout: 3000 }),
+      ).toHaveTextContent("Layout unavailable");
+      if (status === 503)
+        expect(screen.getByRole("textbox", { name: "Task" })).toBe(input);
+      else expect(screen.queryByRole("textbox", { name: "Task" })).toBeNull();
+      fail = false;
+      await user.click(screen.getByRole("button", { name: "Refresh latest" }));
+      await waitFor(() => expect(screen.queryByRole("alert")).toBeNull());
+      expect(await screen.findByRole("textbox", { name: "Task" })).toHaveValue(
+        status === 503 ? "Unfinished plan" : "",
+      );
+    },
+  );
+
   it("confirms removal and walks undo, redo, and saved history without changing records", async () => {
     const pages = [page("Plan", ["todos", "calendar"])];
     await client.updateEventLayout(eventId, { expectedVersion: 0, pages });
@@ -341,7 +407,7 @@ describe("insertable event components", () => {
       await screen.findByRole("alert", {}, { timeout: 3000 }),
     ).toHaveTextContent("Schedule unavailable");
     fail = false;
-    await user.click(screen.getByRole("button", { name: "Try again" }));
+    await user.click(screen.getByRole("button", { name: "Refresh latest" }));
     expect(
       await screen.findByRole("heading", { name: "Calendar" }),
     ).toBeVisible();
