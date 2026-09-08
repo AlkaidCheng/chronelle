@@ -414,10 +414,12 @@ describe("EventWorkspace", () => {
       await screen.findByRole("button", { name: "Add schedule item" }),
     );
     await user.type(screen.getByLabelText("Schedule item"), "Guest arrival");
-    await user.selectOptions(screen.getByLabelText("Date precision"), "timed");
-    fireEvent.change(screen.getByLabelText("Start date"), {
-      target: { value: "2026-10-15" },
-    });
+    await user.click(screen.getByRole("button", { name: "Change year" }));
+    await user.click(screen.getByRole("button", { name: "2026" }));
+    await user.click(screen.getByRole("button", { name: "Change month" }));
+    await user.click(screen.getByRole("button", { name: "October" }));
+    await user.click(screen.getByRole("button", { name: "Oct 15, 2026" }));
+    await user.click(screen.getByRole("switch", { name: "Add times" }));
     fireEvent.change(screen.getByLabelText("Start time"), {
       target: { value: "17:30" },
     });

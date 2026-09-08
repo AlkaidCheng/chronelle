@@ -1,9 +1,9 @@
 "use client";
 
-import type { EventResponse, EventListQuery } from "@chronelle/schemas";
+import type { EventListQuery, EventResponse } from "@chronelle/schemas";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { type FormEvent, useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 
 import {
   EmptyState,
@@ -17,15 +17,13 @@ import {
   PlusIcon,
   SearchIcon,
 } from "../../components/icons";
-import { useCreateEvent, useEventsQuery } from "../../lib/queries";
-import { EventScheduleFields } from "./event-schedule-fields";
-import {
-  readEventSchedule,
-  eventSchedulePayload,
-  formatEventSchedule,
-  formatEventDatePart,
-} from "../../lib/event-schedule";
 import { eventPeriod } from "../../lib/event-collection";
+import {
+  formatEventDatePart,
+  formatEventSchedule,
+} from "../../lib/event-schedule";
+import { useEventsQuery } from "../../lib/queries";
+import { CreateEventDialog } from "./create-event-dialog";
 
 function EventCard({
   event,
@@ -58,82 +56,6 @@ function EventCard({
   );
 }
 
-function CreateEventForm({
-  onCreated,
-}: {
-  readonly onCreated: (id: string) => void;
-}) {
-  const createEvent = useCreateEvent();
-  const [displayName, setDisplayName] = useState("");
-  const [schedule, setSchedule] = useState(readEventSchedule);
-  const [scheduleError, setScheduleError] = useState("");
-  const nameInput = useRef<HTMLInputElement>(null);
-  useEffect(() => {
-    nameInput.current?.focus();
-  }, []);
-
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    let timing: ReturnType<typeof eventSchedulePayload>;
-    try {
-      timing = eventSchedulePayload(schedule);
-      setScheduleError("");
-    } catch (error) {
-      setScheduleError(
-        error instanceof Error ? error.message : "Check the schedule.",
-      );
-      return;
-    }
-    createEvent.mutate(
-      {
-        displayName,
-        ...timing,
-        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-      },
-      {
-        onSuccess: (created) => {
-          setDisplayName("");
-          setSchedule(readEventSchedule());
-          onCreated(created.id);
-        },
-      },
-    );
-  }
-
-  return (
-    <form className="create-event-form" onSubmit={handleSubmit}>
-      <div className="compact-field grow-field">
-        <label htmlFor="event-name">Event name</label>
-        <input
-          ref={nameInput}
-          id="event-name"
-          maxLength={240}
-          onChange={(event) => setDisplayName(event.target.value)}
-          placeholder="Summer gathering"
-          required
-          value={displayName}
-        />
-      </div>
-      <EventScheduleFields
-        value={schedule}
-        onChange={(change) =>
-          setSchedule((current) => ({ ...current, ...change }))
-        }
-        disabled={createEvent.isPending}
-      />
-      {scheduleError && <p role="alert">{scheduleError}</p>}
-      <button
-        className="button button-primary"
-        disabled={createEvent.isPending}
-        type="submit"
-      >
-        {createEvent.isPending ? "Creating..." : "Create event"}
-      </button>
-      {createEvent.isError ? <ErrorNotice error={createEvent.error} /> : null}
-    </form>
-  );
-}
-
 export function EventList() {
   const router = useRouter();
   const [isCreating, setIsCreating] = useState(false);
@@ -151,7 +73,6 @@ export function EventList() {
   const now = Date.parse(events.data?.asOf ?? "");
   const filtered = debouncedQuery !== "" || filter !== "all";
   const [layout, setLayout] = useState<"grid" | "list">("grid");
-  const createButton = useRef<HTMLButtonElement>(null);
   useEffect(() => {
     try {
       if (window.localStorage.getItem("chronelle.event-layout") === "list")
@@ -170,11 +91,6 @@ export function EventList() {
     }
   }
 
-  function closeCreate() {
-    setIsCreating(false);
-    createButton.current?.focus();
-  }
-
   return (
     <main className="workspace-page">
       <header className="page-heading split-heading">
@@ -186,11 +102,9 @@ export function EventList() {
           </p>
         </div>
         <button
-          ref={createButton}
-          aria-expanded={isCreating}
-          aria-controls="create-event"
+          aria-haspopup="dialog"
           className="button button-primary"
-          onClick={() => setIsCreating(!isCreating)}
+          onClick={() => setIsCreating(true)}
           type="button"
         >
           <PlusIcon />
@@ -199,23 +113,10 @@ export function EventList() {
       </header>
 
       {isCreating ? (
-        <section
-          aria-labelledby="new-event-heading"
-          className="surface create-surface"
-          id="create-event"
-        >
-          <div className="section-title-row">
-            <h2 id="new-event-heading">Create an event</h2>
-            <button
-              className="button button-quiet"
-              type="button"
-              onClick={closeCreate}
-            >
-              Cancel
-            </button>
-          </div>
-          <CreateEventForm onCreated={(id) => router.push(`/events/${id}`)} />
-        </section>
+        <CreateEventDialog
+          onClose={() => setIsCreating(false)}
+          onCreated={(id) => router.push(`/events/${id}`)}
+        />
       ) : null}
 
       <section

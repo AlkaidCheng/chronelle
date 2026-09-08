@@ -1,5 +1,6 @@
+import { CalendarRangePicker } from "../../components/calendar-range";
+import { CalendarIcon, ClockIcon } from "../../components/icons";
 import type { EventScheduleDraft } from "../../lib/event-schedule";
-import { CalendarDateField } from "../../components/calendar-date-field";
 
 export function EventScheduleFields({
   value,
@@ -10,49 +11,78 @@ export function EventScheduleFields({
   readonly onChange: (change: Partial<EventScheduleDraft>) => void;
   readonly disabled?: boolean;
 }) {
+  const hasDates = value.mode !== "unscheduled";
+  const hasTimes = value.mode === "timed";
+  const endTimeRequired = Boolean(
+    value.endDate && value.endDate !== value.startDate,
+  );
   return (
     <fieldset className="event-schedule-fields" disabled={disabled}>
-      <legend>Schedule</legend>
-      <label className="field">
-        Date precision
-        <select
-          value={value.mode}
+      <legend className="visually-hidden">Schedule</legend>
+      <label className="schedule-toggle">
+        <CalendarIcon />
+        <span>
+          <strong>Set dates</strong>
+          <small>
+            {hasDates
+              ? "Choose a day or date range"
+              : "Leave open until you know"}
+          </small>
+        </span>
+        <input
+          type="checkbox"
+          role="switch"
+          aria-label="Set dates"
+          aria-checked={hasDates}
+          checked={hasDates}
           onChange={(event) =>
-            onChange({ mode: event.target.value as EventScheduleDraft["mode"] })
+            onChange({ mode: event.target.checked ? "dates" : "unscheduled" })
           }
-        >
-          <option value="unscheduled">Not decided yet</option>
-          <option value="dates">Dates only</option>
-          <option value="timed">Dates and times</option>
-        </select>
+        />
+        <span className="switch-track" aria-hidden="true" />
       </label>
-      {value.mode !== "unscheduled" ? (
+      {hasDates ? (
         <>
-          <div className="form-grid">
-            <CalendarDateField
-              label="Start date"
-              value={value.startDate}
-              onChange={(startDate) => onChange({ startDate })}
-              disabled={disabled}
-              required
+          <CalendarRangePicker
+            value={value}
+            onChange={(range) =>
+              onChange({
+                ...range,
+                ...(hasTimes
+                  ? { endTime: range.endDate ? value.endTime || "17:00" : "" }
+                  : {}),
+              })
+            }
+          />
+          <label className="schedule-toggle time-toggle">
+            <ClockIcon />
+            <span>
+              <strong>Add times</strong>
+              <small>Optional start and end times</small>
+            </span>
+            <input
+              type="checkbox"
+              role="switch"
+              aria-label="Add times"
+              aria-checked={hasTimes}
+              checked={hasTimes}
+              onChange={(event) =>
+                onChange({
+                  mode: event.target.checked ? "timed" : "dates",
+                  startTime: value.startTime || "09:00",
+                  endTime: value.endDate ? value.endTime || "17:00" : "",
+                })
+              }
             />
-            <CalendarDateField
-              label="End date (optional)"
-              value={value.endDate}
-              onChange={(endDate) => onChange({ endDate })}
-              disabled={disabled}
-            />
-          </div>
-          {value.mode === "timed" ? (
+            <span className="switch-track" aria-hidden="true" />
+          </label>
+          {hasTimes ? (
             <>
               <div className="form-grid">
                 <label className="field">
                   Start time
                   <input
-                    type="text"
-                    placeholder="HH:mm"
-                    pattern="([01][0-9]|2[0-3]):[0-5][0-9]"
-                    maxLength={5}
+                    type="time"
                     required
                     value={value.startTime}
                     onChange={(event) =>
@@ -61,30 +91,33 @@ export function EventScheduleFields({
                   />
                 </label>
                 <label className="field">
-                  End time (optional)
+                  End time{endTimeRequired ? "" : " (optional)"}
                   <input
-                    type="text"
-                    placeholder="HH:mm"
-                    pattern="([01][0-9]|2[0-3]):[0-5][0-9]"
-                    maxLength={5}
+                    type="time"
+                    required={endTimeRequired}
                     value={value.endTime}
                     onChange={(event) =>
-                      onChange({ endTime: event.target.value })
+                      onChange({
+                        endTime: event.target.value,
+                        endDate: event.target.value
+                          ? value.endDate || value.startDate
+                          : endTimeRequired
+                            ? value.endDate
+                            : "",
+                      })
                     }
                   />
                 </label>
               </div>
               <p className="field-hint">
-                Times use this device's timezone:{" "}
-                {Intl.DateTimeFormat().resolvedOptions().timeZone}. Use 24-hour
-                HH:mm.
+                Times in{" "}
+                {Intl.DateTimeFormat()
+                  .resolvedOptions()
+                  .timeZone.replaceAll("_", " ")}
+                .
               </p>
             </>
-          ) : (
-            <p className="field-hint">
-              No exact time needed. The end date is included in the event.
-            </p>
-          )}
+          ) : null}
         </>
       ) : null}
     </fieldset>

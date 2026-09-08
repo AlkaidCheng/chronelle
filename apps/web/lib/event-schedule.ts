@@ -40,6 +40,7 @@ function localInstant(date: string, time: string): string {
 export function eventSchedulePayload(draft: EventScheduleDraft) {
   const empty = { startsOn: null, endsOn: null, startsAt: null, endsAt: null };
   if (draft.mode === "unscheduled") return empty;
+  if (!draft.startDate) throw new Error("Choose a start date.");
   if (
     !calendarDateSchema.safeParse(draft.startDate).success ||
     (draft.endDate && !calendarDateSchema.safeParse(draft.endDate).success)
@@ -64,11 +65,13 @@ export function eventSchedulePayload(draft: EventScheduleDraft) {
   return { ...empty, startsAt, endsAt };
 }
 
+const calendarDateFormatter = new Intl.DateTimeFormat(undefined, {
+  dateStyle: "medium",
+  timeZone: "UTC",
+});
+
 export function formatCalendarDate(date: string): string {
-  return new Intl.DateTimeFormat(undefined, {
-    dateStyle: "medium",
-    timeZone: "UTC",
-  }).format(new Date(`${date}T00:00:00Z`));
+  return calendarDateFormatter.format(new Date(`${date}T00:00:00Z`));
 }
 
 export function formatEventSchedule(
