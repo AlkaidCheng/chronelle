@@ -94,8 +94,8 @@ export function EventPageCanvas({
         onSuccess: (saved) => {
           version = saved.version;
           setAnnouncement(message);
+          if (selected) onSelect(targetPageId ?? selected.id);
           if (targetPageId) {
-            onSelect(targetPageId);
             trigger =
               navigation.current?.querySelector<HTMLButtonElement>(
                 `[data-page-id="${targetPageId}"]`,

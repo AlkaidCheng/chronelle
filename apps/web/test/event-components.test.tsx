@@ -361,6 +361,30 @@ describe("insertable event components", () => {
     expect((await client.getEventLayout(eventId)).version).toBe(3);
   });
 
+  it("keeps the default selected page open when moving it later", async () => {
+    await client.updateEventLayout(eventId, {
+      expectedVersion: 0,
+      pages: [page("Work", []), page("Day", [])],
+    });
+    const user = userEvent.setup();
+    render(<EventPages eventId={eventId} canEdit />, { wrapper: Providers });
+    await user.click(
+      await screen.findByRole("button", { name: "Move page later" }),
+    );
+    await waitFor(() =>
+      expect(
+        within(screen.getByRole("navigation", { name: "Pages" }))
+          .getAllByRole("button")
+          .map((button) => button.textContent),
+      ).toEqual(["Day", "Work"]),
+    );
+    expect(screen.getByRole("heading", { name: "Work" })).toBeVisible();
+    expect(screen.getByRole("button", { name: "Work" })).toHaveAttribute(
+      "aria-current",
+      "page",
+    );
+  });
+
   it("ignores external drops and rejects a drag based on an outdated layout snapshot", async () => {
     const pages = [page("Work", ["todos", "calendar"]), page("Day", [])];
     await client.updateEventLayout(eventId, { expectedVersion: 0, pages });
