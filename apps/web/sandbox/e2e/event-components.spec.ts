@@ -33,7 +33,9 @@ test("inserts mixed components offline and edits one schedule across three proje
       .getByRole("button", { name: "Add component", exact: true })
       .click();
     const dialog = page.getByRole("dialog", { name: "Add a component" });
-    await expect(dialog.getByRole("radio", { name: /^To-dos/ })).toBeFocused();
+    await expect(
+      dialog.getByRole("searchbox", { name: "Find a component" }),
+    ).toBeFocused();
     await dialog.getByRole("radio", { name: new RegExp(`^${label}`) }).check();
     if (label === "Calendar") {
       await expect(

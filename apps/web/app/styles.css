@@ -2716,6 +2716,62 @@ html:has(.event-create-dialog[open]) {
 .event-page-components > * {
   min-width: 0;
 }
+.composition-actions,
+.component-toolbar {
+  min-width: 0;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.composition-hint {
+  color: var(--muted);
+  font-size: 0.85rem;
+  margin: 0 0 20px;
+}
+.component-toolbar {
+  padding: 8px;
+  background: var(--surface-subtle);
+  border: 1px solid var(--line);
+  border-radius: 12px 12px 0 0;
+}
+.component-toolbar select {
+  width: auto;
+  min-height: 44px;
+  max-width: 100%;
+  padding: 8px 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--forest);
+  font: inherit;
+  font-size: 0.85rem;
+}
+.component-toolbar .button {
+  min-height: 44px;
+}
+.component-toolbar .component-drag-handle {
+  margin-right: auto;
+  cursor: grab;
+}
+.component-drag-handle:active {
+  cursor: grabbing;
+}
+.event-component-block > .planning-panel {
+  min-height: 0;
+}
+.component-drop-end {
+  margin-top: 16px;
+  padding: 24px;
+  border: 1px dashed var(--forest);
+  border-radius: 12px;
+  text-align: center;
+}
+[data-drop-target] {
+  outline: 3px solid var(--forest);
+  outline-offset: 3px;
+}
 .component-picker {
   display: grid;
   gap: 0.6rem;

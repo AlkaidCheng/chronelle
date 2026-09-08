@@ -7,18 +7,14 @@ import {
   type EventLayoutResponse,
   type EventPage,
 } from "@chronelle/schemas";
-import {
-  EmptyState,
-  ErrorNotice,
-  LoadingState,
-} from "../../components/feedback";
+import { ErrorNotice, LoadingState } from "../../components/feedback";
 import {
   useEventLayout,
   useUpdateEventLayout,
 } from "../../lib/event-layout-queries";
 import { useSessionDialog } from "../../lib/use-session-dialog";
 import { eventComponents } from "../../lib/event-components";
-import { EventComponent } from "./event-component";
+import { EventPageCanvas } from "./event-page-canvas";
 
 function AddPageContentDialog({
   layout,
@@ -34,6 +30,13 @@ function AddPageContentDialog({
   const [source] = useState(layout);
   const [name, setName] = useState("");
   const [kind, setKind] = useState<EventComponentKind>("todos");
+  const [search, setSearch] = useState("");
+  const options = eventComponentKindSchema.options.filter((option) =>
+    `${eventComponents[option].label} ${option}`
+      .toLowerCase()
+      .includes(search.trim().replace(/^\//, "").toLowerCase()),
+  );
+  const selectedKind = options.includes(kind) ? kind : options[0];
   const save = useUpdateEventLayout(layout.eventId);
   const dialog = useSessionDialog(onClose);
   const nameInput = useRef<HTMLInputElement>(null);
@@ -43,7 +46,8 @@ function AddPageContentDialog({
 
   function submit(event: FormEvent) {
     event.preventDefault();
-    if (save.isPending || (pageId === null && !name.trim())) return;
+    if (save.isPending || (pageId === null ? !name.trim() : !selectedKind))
+      return;
     const id = pageId ?? crypto.randomUUID();
     const pages: EventPage[] =
       pageId === null
@@ -54,7 +58,7 @@ function AddPageContentDialog({
                   ...page,
                   components: [
                     ...page.components,
-                    { id: crypto.randomUUID(), kind },
+                    { id: crypto.randomUUID(), kind: selectedKind ?? kind },
                   ],
                 }
               : page,
@@ -110,25 +114,42 @@ function AddPageContentDialog({
               />
             </label>
           ) : (
-            <fieldset className="component-picker" disabled={save.isPending}>
-              <legend>Choose a component</legend>
-              {eventComponentKindSchema.options.map((option, index) => (
-                <label key={option} className="component-choice">
-                  <input
-                    ref={index === 0 ? nameInput : undefined}
-                    type="radio"
-                    name="component-kind"
-                    value={option}
-                    checked={kind === option}
-                    onChange={() => setKind(option)}
-                  />
-                  <span>
-                    <strong>{eventComponents[option].label}</strong>
-                    <span>{eventComponents[option].description}</span>
-                  </span>
-                </label>
-              ))}
-            </fieldset>
+            <>
+              <label className="field">
+                Find a component
+                <input
+                  ref={nameInput}
+                  type="search"
+                  placeholder="Try /calendar or expenses"
+                  value={search}
+                  disabled={save.isPending}
+                  onChange={(event) => setSearch(event.target.value)}
+                />
+              </label>
+              <fieldset className="component-picker" disabled={save.isPending}>
+                <legend>Choose a component</legend>
+                {options.map((option) => (
+                  <label key={option} className="component-choice">
+                    <input
+                      type="radio"
+                      name="component-kind"
+                      value={option}
+                      checked={selectedKind === option}
+                      onChange={() => setKind(option)}
+                    />
+                    <span>
+                      <strong>{eventComponents[option].label}</strong>
+                      <span>{eventComponents[option].description}</span>
+                    </span>
+                  </label>
+                ))}
+              </fieldset>
+              {options.length === 0 ? (
+                <p role="status">
+                  No matching components. Try calendar, to-dos, or files.
+                </p>
+              ) : null}
+            </>
           )}
           {save.isError ? <ErrorNotice error={save.error} /> : null}
         </div>
@@ -144,13 +165,17 @@ function AddPageContentDialog({
           <button
             type="submit"
             className="button button-primary"
-            disabled={save.isPending || (pageId === null && !name.trim())}
+            disabled={
+              save.isPending || (pageId === null ? !name.trim() : !selectedKind)
+            }
           >
             {save.isPending
               ? "Saving..."
               : pageId === null
                 ? "Add page"
-                : `Add ${eventComponents[kind].label}`}
+                : selectedKind
+                  ? `Add ${eventComponents[selectedKind].label}`
+                  : "Add component"}
           </button>
         </footer>
       </form>
@@ -179,82 +204,19 @@ export function EventPages({
   const selected =
     layout.data.pages.find((page) => page.id === selectedId) ??
     layout.data.pages[0];
-  const totalComponents = layout.data.pages.reduce(
-    (count, page) => count + page.components.length,
-    0,
-  );
   return (
-    <section className="event-pages" aria-label="Event pages">
-      <div className="event-pages-toolbar">
-        <nav aria-label="Pages" className="event-pages-navigation">
-          {layout.data.pages.map((page) => (
-            <button
-              type="button"
-              key={page.id}
-              aria-current={page.id === selected?.id ? "page" : undefined}
-              onClick={() => setSelectedId(page.id)}
-            >
-              {page.name}
-            </button>
-          ))}
-        </nav>
-        {canEdit && layout.data.pages.length < 20 ? (
-          <button
-            type="button"
-            className="button button-secondary"
-            onClick={() => setAdding({ pageId: null })}
-          >
-            Add page
-          </button>
-        ) : null}
-      </div>
-      {selected ? (
-        <>
-          <div className="panel-heading">
-            <h2>{selected.name}</h2>
-            {canEdit &&
-            selected.components.length < 20 &&
-            totalComponents < 100 ? (
-              <button
-                type="button"
-                className="button button-secondary"
-                onClick={() => setAdding({ pageId: selected.id })}
-              >
-                Add component
-              </button>
-            ) : null}
-          </div>
-          {selected.components.length === 0 ? (
-            <EmptyState
-              title="Make room for your plans"
-              description={
-                canEdit
-                  ? "Add a component when you need it. This page starts with just what you choose."
-                  : "This page has no components yet."
-              }
-            />
-          ) : null}
-          <div className="event-page-components">
-            {selected.components.map((component) => (
-              <EventComponent
-                key={component.id}
-                kind={component.kind}
-                eventId={eventId}
-                canEdit={canEdit}
-              />
-            ))}
-          </div>
-        </>
-      ) : (
-        <EmptyState
-          title="A place for your event"
-          description={
-            canEdit
-              ? "Add your first page to organize preparations, travel, or the day itself."
-              : "The planner has not added any pages yet."
-          }
-        />
-      )}
+    <>
+      <EventPageCanvas
+        layout={layout.data}
+        selected={selected}
+        canEdit={canEdit}
+        onSelect={setSelectedId}
+        onAddPage={() => setAdding({ pageId: null })}
+        onAddComponent={() => {
+          if (selected) setAdding({ pageId: selected.id });
+        }}
+        onRefresh={() => layout.refetch()}
+      />
       {adding && canEdit ? (
         <AddPageContentDialog
           layout={layout.data}
@@ -266,6 +228,6 @@ export function EventPages({
           }}
         />
       ) : null}
-    </section>
+    </>
   );
 }
