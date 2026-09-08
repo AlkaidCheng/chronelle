@@ -180,12 +180,18 @@ export function useSharesQuery(eventId: string, enabled: boolean) {
   });
 }
 
-function useEventInvalidation(eventId: string) {
+export function useRefreshEvent(
+  eventId: string,
+  options: { readonly throwOnError?: boolean } = {},
+) {
   const queryClient = useQueryClient();
   return async () => {
     await Promise.all([
-      queryClient.invalidateQueries({ queryKey: queryKeys.event(eventId) }),
-      queryClient.invalidateQueries({ queryKey: queryKeys.events }),
+      queryClient.invalidateQueries(
+        { queryKey: queryKeys.event(eventId) },
+        options,
+      ),
+      queryClient.invalidateQueries({ queryKey: queryKeys.events }, options),
     ]);
   };
 }
@@ -199,10 +205,6 @@ export function useCanonicalInvalidation() {
           String(query.queryKey[0]),
         ),
     });
-}
-
-export function useRefreshEvent(eventId: string) {
-  return useEventInvalidation(eventId);
 }
 
 export function useDocumentAttachments(parentObjectId: string) {

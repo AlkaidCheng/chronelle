@@ -9,12 +9,14 @@ import {
   within,
 } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { useQueryClient } from "@tanstack/react-query";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { EventResponse } from "@chronelle/schemas";
 
 import { Providers } from "../app/providers";
 import { EventWorkspace } from "../features/events/event-workspace";
+import { queryKeys } from "../lib/queries";
 
 const workspaceId = "019d6e7d-0000-7000-8000-000000000001";
 const userId = "019d6e7d-0000-7000-8000-000000000002";
@@ -77,6 +79,20 @@ function requestPath(input: URL | RequestInfo): string {
   return input instanceof URL ? input.pathname : new URL(input.url).pathname;
 }
 
+function RefreshProbe() {
+  const client = useQueryClient();
+  return (
+    <button
+      type="button"
+      onClick={() =>
+        void client.invalidateQueries({ queryKey: queryKeys.event(eventId) })
+      }
+    >
+      Refetch event data
+    </button>
+  );
+}
+
 describe("EventWorkspace", () => {
   beforeEach(() => {
     window.history.replaceState(null, "", "/events/plan?view=overview");
@@ -91,6 +107,103 @@ describe("EventWorkspace", () => {
     vi.unstubAllGlobals();
     window.sessionStorage.clear();
   });
+
+  it.each(["todos", "calendar", "expenses", "reminders"])(
+    "gives viewers a read-only %s empty state",
+    async (view) => {
+      window.history.replaceState(null, "", `/events/plan?view=${view}`);
+      vi.stubGlobal(
+        "fetch",
+        vi.fn<typeof globalThis.fetch>(async (input) => {
+          const path = requestPath(input);
+          if (path.endsWith("/access"))
+            return jsonResponse({ resourceId: eventId, actions: ["view"] });
+          if (path === `/api/events/${eventId}`) return jsonResponse(rootEvent);
+          return jsonResponse({ sourceEventId: eventId, items: [] });
+        }),
+      );
+      render(<EventWorkspace eventId={eventId} />, { wrapper: Providers });
+      expect(await screen.findByText(/This event is read-only/)).toBeVisible();
+      expect(
+        screen.queryByRole("textbox", {
+          name: /Task|Schedule item|Expense|Reminder/,
+        }),
+      ).toBeNull();
+      expect(screen.queryByText(/form above/)).toBeNull();
+    },
+  );
+
+  it.each(
+    ["resource", "access", "todos"].flatMap((source) =>
+      [503, 403, 404].map((status) => ({ source, status })),
+    ),
+  )(
+    "handles $source refresh status $status without retaining denied content",
+    async ({ source, status }) => {
+      window.history.replaceState(null, "", "/events/plan?view=todos");
+      let fail = false;
+      const user = userEvent.setup();
+      vi.stubGlobal(
+        "fetch",
+        vi.fn<typeof globalThis.fetch>(async (input) => {
+          const path = requestPath(input);
+          const target =
+            source === "resource"
+              ? `/api/events/${eventId}`
+              : source === "access"
+                ? `/api/objects/${eventId}/access`
+                : `/api/events/${eventId}/todos`;
+          if (fail && path === target)
+            return jsonResponse(
+              {
+                error: {
+                  code: "unavailable",
+                  message: "Event data unavailable",
+                },
+              },
+              status,
+            );
+          if (path.endsWith("/access"))
+            return jsonResponse({
+              resourceId: eventId,
+              actions: ["view", "edit"],
+            });
+          if (path === `/api/events/${eventId}`) return jsonResponse(rootEvent);
+          return jsonResponse({ sourceEventId: eventId, items: [] });
+        }),
+      );
+      render(
+        <>
+          <EventWorkspace eventId={eventId} />
+          <RefreshProbe />
+        </>,
+        { wrapper: Providers },
+      );
+      const input = await screen.findByRole("textbox", { name: "Task" });
+      await user.type(input, "Keep my draft");
+      fail = true;
+      await user.click(
+        screen.getByRole("button", { name: "Refetch event data" }),
+      );
+      expect(
+        await screen.findByRole("alert", {}, { timeout: 3000 }),
+      ).toHaveTextContent("Event data unavailable");
+      if (status === 503) {
+        expect(screen.getByRole("textbox", { name: "Task" })).toBe(input);
+        expect(input).toHaveValue("Keep my draft");
+      } else {
+        expect(screen.queryByRole("textbox", { name: "Task" })).toBeNull();
+      }
+      fail = false;
+      await user.click(
+        screen.getByRole("button", { name: "Refetch event data" }),
+      );
+      await waitFor(() => expect(screen.queryByRole("alert")).toBeNull());
+      expect(await screen.findByRole("textbox", { name: "Task" })).toHaveValue(
+        status === 503 ? "Keep my draft" : "",
+      );
+    },
+  );
 
   it.each([
     "todos",

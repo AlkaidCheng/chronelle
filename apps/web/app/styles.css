@@ -1373,6 +1373,13 @@ a.search-result:hover {
   grid-column: 1 / -1;
 }
 
+.editor-help {
+  color: var(--muted);
+  font-size: 0.875rem;
+  grid-column: 1 / -1;
+  margin: 0;
+}
+
 .form-grid {
   display: grid;
   gap: 14px;

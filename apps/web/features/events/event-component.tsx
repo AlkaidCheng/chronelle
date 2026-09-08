@@ -8,6 +8,7 @@ import { useApiClient } from "../../lib/api-context";
 import { useAuthSession } from "../../lib/auth-session";
 import { eventComponents } from "../../lib/event-components";
 import { queryKeys } from "../../lib/queries";
+import { isTemporaryReadError } from "../../lib/query-errors";
 import { DocumentsPanel } from "./documents-panel";
 import {
   CalendarPanel,
@@ -35,13 +36,24 @@ function Projection<T>({
     enabled: credential !== null,
     queryFn: ({ signal }) => load(signal),
   });
-  if (query.isError)
-    return (
-      <ErrorNotice error={query.error} onRefresh={() => void query.refetch()} />
-    );
   if (query.isPending)
     return <LoadingState label={`Loading ${label.toLowerCase()}`} />;
-  return children(query.data);
+  return (
+    <>
+      {query.isError ? (
+        <ErrorNotice
+          error={query.error}
+          onRefresh={() => void query.refetch()}
+          isRefreshing={query.isFetching}
+          refreshLabel="Refresh latest"
+        />
+      ) : null}
+      {query.data !== undefined &&
+      (!query.isError || isTemporaryReadError(query.error))
+        ? children(query.data)
+        : null}
+    </>
+  );
 }
 
 export function EventComponent({

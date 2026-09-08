@@ -5,6 +5,8 @@ import { ApiClientError } from "@chronelle/api-client";
 interface ErrorNoticeProps {
   readonly error: unknown;
   readonly onRefresh?: (() => void) | undefined;
+  readonly refreshLabel?: string;
+  readonly isRefreshing?: boolean;
 }
 
 export function LoadingState({
@@ -36,7 +38,12 @@ export function EmptyState({
   );
 }
 
-export function ErrorNotice({ error, onRefresh }: ErrorNoticeProps) {
+export function ErrorNotice({
+  error,
+  onRefresh,
+  refreshLabel,
+  isRefreshing = false,
+}: ErrorNoticeProps) {
   const isConflict =
     error instanceof ApiClientError && error.code === "version_conflict";
   const message =
@@ -58,10 +65,13 @@ export function ErrorNotice({ error, onRefresh }: ErrorNoticeProps) {
       {onRefresh !== undefined ? (
         <button
           className="button button-secondary button-small"
+          disabled={isRefreshing}
           onClick={onRefresh}
           type="button"
         >
-          {isConflict ? "Refresh latest" : "Try again"}
+          {isRefreshing
+            ? "Refreshing..."
+            : (refreshLabel ?? (isConflict ? "Refresh latest" : "Try again"))}
         </button>
       ) : null}
     </div>

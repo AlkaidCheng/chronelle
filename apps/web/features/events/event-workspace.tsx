@@ -12,6 +12,7 @@ import { CalendarIcon, LockIcon } from "../../components/icons";
 import { formatEventSchedule } from "../../lib/event-schedule";
 import { ObjectDetails } from "../../components/object-details";
 import { useEventWorkspaceQueries } from "../../lib/queries";
+import { isTemporaryReadError } from "../../lib/query-errors";
 import { eventComponentKindSchema } from "@chronelle/schemas";
 import { EventComponent } from "./event-component";
 import { EventEditorForm } from "./resource-forms";
@@ -33,7 +34,12 @@ export function EventWorkspace({ eventId }: { readonly eventId: string }) {
   const [isEditingEvent, setIsEditingEvent] = useState(false);
   const tabButtons = useRef(new Map<TabId, HTMLButtonElement>());
   const essentialQueries = [queries.event, queries.access];
-  const firstError = essentialQueries.find((query) => query.isError)?.error;
+  const failedQuery =
+    essentialQueries.find(
+      (query) =>
+        query.isError &&
+        (query.data === undefined || !isTemporaryReadError(query.error)),
+    ) ?? essentialQueries.find((query) => query.isError);
 
   if (activeTab === null || essentialQueries.some((query) => query.isPending)) {
     return (
@@ -43,20 +49,27 @@ export function EventWorkspace({ eventId }: { readonly eventId: string }) {
     );
   }
 
-  if (firstError !== undefined) {
+  const refreshNotice =
+    failedQuery === undefined ? null : (
+      <ErrorNotice
+        error={failedQuery.error}
+        isRefreshing={essentialQueries.some((query) => query.isFetching)}
+        onRefresh={() => {
+          for (const query of essentialQueries) void query.refetch();
+        }}
+      />
+    );
+
+  if (
+    failedQuery !== undefined &&
+    (failedQuery.data === undefined || !isTemporaryReadError(failedQuery.error))
+  ) {
     return (
       <main className="workspace-page">
         <Link className="back-link" href="/events">
           &lt;- All events
         </Link>
-        <ErrorNotice
-          error={firstError}
-          onRefresh={() => {
-            for (const query of essentialQueries) {
-              void query.refetch();
-            }
-          }}
-        />
+        {refreshNotice}
       </main>
     );
   }
@@ -109,6 +122,7 @@ export function EventWorkspace({ eventId }: { readonly eventId: string }) {
 
   return (
     <main className="event-workspace">
+      {refreshNotice}
       <header className="event-hero">
         <div className="event-hero-topline">
           <Link className="back-link" href="/events">

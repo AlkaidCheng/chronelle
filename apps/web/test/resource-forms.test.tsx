@@ -144,6 +144,31 @@ describe("versioned editor drafts", () => {
     window.sessionStorage.clear();
   });
 
+  it.each(["event", "schedule"])(
+    "clears %s validation when dates are turned off",
+    async (kind) => {
+      const user = userEvent.setup();
+      const event = { ...eventResource(1, "Plan"), startsAt: null };
+      const view = render(
+        kind === "event" ? (
+          <EventEditorForm event={event} />
+        ) : (
+          <ScheduledEventForm eventId={objectId} event={event} />
+        ),
+        { wrapper: Providers },
+      );
+      await user.click(screen.getByRole("switch", { name: "Set dates" }));
+      const form = view.container.querySelector("form");
+      if (form === null) throw new Error("Editor form not found.");
+      fireEvent.submit(form);
+      expect(screen.getByRole("alert")).toHaveTextContent(
+        "Choose a start date.",
+      );
+      await user.click(screen.getByRole("switch", { name: "Set dates" }));
+      expect(screen.queryByRole("alert")).toBeNull();
+    },
+  );
+
   it("clears a recorded expense while keeping its currency and date for another entry", async () => {
     vi.stubGlobal(
       "fetch",
@@ -206,9 +231,7 @@ describe("versioned editor drafts", () => {
 
       view.rerender(form.render(2, "Collaborator update"));
       expect(screen.getByLabelText(form.field)).toHaveValue("My unsaved draft");
-      expect(screen.getByRole("status")).toHaveTextContent(
-        "Your draft is preserved",
-      );
+      expect(screen.getByText(/Your draft is preserved/)).toBeVisible();
       const submit = view.container.querySelector("button[type=submit]");
       expect(submit).toBeDisabled();
       const element = view.container.querySelector("form");
@@ -223,7 +246,7 @@ describe("versioned editor drafts", () => {
         "Collaborator update",
       );
       expect(submit).toBeEnabled();
-      expect(screen.queryByRole("status")).toBeNull();
+      expect(screen.queryByText(/Your draft is preserved/)).toBeNull();
     },
   );
 
@@ -252,6 +275,10 @@ describe("versioned editor drafts", () => {
         throw new Error("Save was not started.");
       fireEvent.submit(form);
       expect(fetch).toHaveBeenCalledTimes(1);
+      expect(form).toHaveAttribute("aria-busy", "true");
+      expect(
+        screen.getByRole("status", { name: "Save status" }),
+      ).toHaveTextContent("Saving changes...");
       await act(() =>
         finishSave?.(
           Response.json(
@@ -265,6 +292,7 @@ describe("versioned editor drafts", () => {
       await waitFor(() =>
         expect(screen.getByLabelText(editor.field)).toBeEnabled(),
       );
+      expect(form).toHaveAttribute("aria-busy", "false");
     },
   );
 
@@ -340,8 +368,14 @@ describe("versioned editor drafts", () => {
         fireEvent.change(screen.getByLabelText(form.field), {
           target: { value: title },
         });
+        expect(
+          screen.getByRole("status", { name: "Save status" }),
+        ).toBeEmptyDOMElement();
         await user.click(submit);
         await waitFor(() => expect(submit).toBeEnabled());
+        expect(
+          screen.getByRole("status", { name: "Save status" }),
+        ).toHaveTextContent("Saved successfully.");
       }
       expect(versions).toEqual([1, 2]);
     },

@@ -14,6 +14,7 @@ import {
 } from "../../lib/event-layout-queries";
 import { useSessionDialog } from "../../lib/use-session-dialog";
 import { eventComponents } from "../../lib/event-components";
+import { isTemporaryReadError } from "../../lib/query-errors";
 import { EventPageCanvas } from "./event-page-canvas";
 import { LayoutRecoveryTools } from "./layout-recovery";
 
@@ -194,19 +195,26 @@ export function EventPages({
   const layout = useEventLayout(eventId);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [adding, setAdding] = useState<{ pageId: string | null } | null>(null);
-  if (layout.isError)
-    return (
-      <ErrorNotice
-        error={layout.error}
-        onRefresh={() => void layout.refetch()}
-      />
-    );
+  const refreshNotice = layout.isError ? (
+    <ErrorNotice
+      error={layout.error}
+      onRefresh={() => void layout.refetch()}
+      isRefreshing={layout.isFetching}
+      refreshLabel="Refresh latest"
+    />
+  ) : null;
   if (layout.isPending) return <LoadingState label="Loading event pages" />;
+  if (
+    layout.data === undefined ||
+    (layout.isError && !isTemporaryReadError(layout.error))
+  )
+    return refreshNotice;
   const selected =
     layout.data.pages.find((page) => page.id === selectedId) ??
     layout.data.pages[0];
   return (
     <>
+      {refreshNotice}
       <EventPageCanvas
         layout={layout.data}
         selected={selected}

@@ -43,7 +43,7 @@ export function EventEditorForm({
   const event = draft.source ?? latestEvent;
   const nameId = useId();
   const update = useUpdateEvent();
-  const refresh = useRefreshEvent(event.id);
+  const refresh = useRefreshEvent(event.id, { throwOnError: true });
   const { displayName } = draft.fields;
   const [scheduleError, setScheduleError] = useState("");
 
@@ -81,7 +81,14 @@ export function EventEditorForm({
   }
 
   return (
-    <form className="editor-form" onSubmit={handleSubmit}>
+    <form
+      aria-busy={update.isPending}
+      className="editor-form"
+      onChangeCapture={() => {
+        if (update.isSuccess) update.reset();
+      }}
+      onSubmit={handleSubmit}
+    >
       <label className="field field-wide" htmlFor={nameId}>
         <span>Name</span>
         <input
@@ -97,7 +104,11 @@ export function EventEditorForm({
       </label>
       <EventScheduleFields
         value={draft.fields}
-        onChange={draft.change}
+        onChange={(fields) => {
+          draft.change(fields);
+          setScheduleError("");
+          if (update.isSuccess) update.reset();
+        }}
         disabled={update.isPending}
       />
       {scheduleError && <p role="alert">{scheduleError}</p>}
@@ -133,7 +144,7 @@ export function ScheduledEventForm({
   const event = draft.source;
   const create = useCreateScheduledEvent(eventId);
   const update = useUpdateEvent();
-  const refresh = useRefreshEvent(eventId);
+  const refresh = useRefreshEvent(eventId, { throwOnError: true });
   const { displayName } = draft.fields;
   const [scheduleError, setScheduleError] = useState("");
 
@@ -184,7 +195,14 @@ export function ScheduledEventForm({
 
   const mutation = event === undefined ? create : update;
   return (
-    <form className="editor-form" onSubmit={handleSubmit}>
+    <form
+      aria-busy={mutation.isPending}
+      className="editor-form"
+      onChangeCapture={() => {
+        if (mutation.isSuccess) mutation.reset();
+      }}
+      onSubmit={handleSubmit}
+    >
       <label className="field field-wide">
         <span>Schedule item</span>
         <input
@@ -200,7 +218,11 @@ export function ScheduledEventForm({
       </label>
       <EventScheduleFields
         value={draft.fields}
-        onChange={draft.change}
+        onChange={(fields) => {
+          draft.change(fields);
+          setScheduleError("");
+          if (mutation.isSuccess) mutation.reset();
+        }}
         disabled={mutation.isPending}
       />
       {scheduleError && <p role="alert">{scheduleError}</p>}
@@ -231,7 +253,7 @@ export function TaskForm({
   const task = draft.source;
   const create = useCreateTask(eventId);
   const update = useUpdateTask();
-  const refresh = useRefreshEvent(eventId);
+  const refresh = useRefreshEvent(eventId, { throwOnError: true });
   const { displayName, dueAt } = draft.fields;
 
   function handleSubmit(formEvent: FormEvent<HTMLFormElement>) {
@@ -263,7 +285,14 @@ export function TaskForm({
 
   const mutation = task === undefined ? create : update;
   return (
-    <form className="editor-form inline-editor" onSubmit={handleSubmit}>
+    <form
+      aria-busy={mutation.isPending}
+      className="editor-form inline-editor"
+      onChangeCapture={() => {
+        if (mutation.isSuccess) mutation.reset();
+      }}
+      onSubmit={handleSubmit}
+    >
       <label className="field field-wide">
         <span>Task</span>
         <input
@@ -317,7 +346,7 @@ export function ExpenseForm({
   const expense = draft.source;
   const create = useCreateExpense(eventId);
   const update = useUpdateExpense();
-  const refresh = useRefreshEvent(eventId);
+  const refresh = useRefreshEvent(eventId, { throwOnError: true });
   const { displayName, amount, currency, occurredAt } = draft.fields;
 
   function handleSubmit(formEvent: FormEvent<HTMLFormElement>) {
@@ -353,7 +382,14 @@ export function ExpenseForm({
 
   const mutation = expense === undefined ? create : update;
   return (
-    <form className="editor-form inline-editor" onSubmit={handleSubmit}>
+    <form
+      aria-busy={mutation.isPending}
+      className="editor-form inline-editor"
+      onChangeCapture={() => {
+        if (mutation.isSuccess) mutation.reset();
+      }}
+      onSubmit={handleSubmit}
+    >
       <label className="field field-wide">
         <span>Expense</span>
         <input
@@ -432,7 +468,7 @@ export function ReminderForm({
   const reminder = draft.source;
   const create = useCreateReminder(eventId);
   const update = useUpdateReminder();
-  const refresh = useRefreshEvent(eventId);
+  const refresh = useRefreshEvent(eventId, { throwOnError: true });
   const { displayName, remindAt } = draft.fields;
 
   function handleSubmit(formEvent: FormEvent<HTMLFormElement>) {
@@ -468,7 +504,14 @@ export function ReminderForm({
 
   const mutation = reminder === undefined ? create : update;
   return (
-    <form className="editor-form inline-editor" onSubmit={handleSubmit}>
+    <form
+      aria-busy={mutation.isPending}
+      className="editor-form inline-editor"
+      onChangeCapture={() => {
+        if (mutation.isSuccess) mutation.reset();
+      }}
+      onSubmit={handleSubmit}
+    >
       <label className="field field-wide">
         <span>Reminder</span>
         <input

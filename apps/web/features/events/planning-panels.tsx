@@ -206,7 +206,9 @@ export function TasksPanel({
         <EmptyState
           description={
             tasks.length === 0
-              ? "Add the first piece of work above."
+              ? canEdit
+                ? "Add the first task using the form above."
+                : "Tasks will appear here when available. This event is read-only."
               : `There are no ${filter} tasks.`
           }
           title={tasks.length === 0 ? "No tasks yet" : "Nothing in this view"}
@@ -304,7 +306,11 @@ export function CalendarPanel({
       ) : null}
       {items.length === 0 ? (
         <EmptyState
-          description="Add a dated Event to make the calendar, itinerary, and timeline useful."
+          description={
+            canEdit
+              ? "Use Add schedule item to plan a date or time."
+              : "Scheduled items will appear here when available. This event is read-only."
+          }
           title="Nothing scheduled"
         />
       ) : (
@@ -371,7 +377,7 @@ export function TimelinePanel({
       />
       {timeline.items.length === 0 ? (
         <EmptyState
-          description="Add dates to your plans and they will appear here automatically."
+          description="Dated schedule items, tasks, expenses, and reminders appear here automatically."
           title="No timeline entries"
         />
       ) : (
@@ -414,7 +420,7 @@ export function ItineraryPanel({
       />
       {items.length === 0 ? (
         <EmptyState
-          description="Add items to your calendar to build a running order for the day."
+          description="Scheduled items appear here in date order."
           title="No itinerary yet"
         />
       ) : (
@@ -480,7 +486,11 @@ export function ExpensesPanel({
       ) : null}
       {expenses.length === 0 ? (
         <EmptyState
-          description="Record a transaction above when money changes hands."
+          description={
+            canEdit
+              ? "Record a transaction using the form above."
+              : "Recorded transactions will appear here when available. This event is read-only."
+          }
           title="No expenses recorded"
         />
       ) : (
@@ -563,7 +573,11 @@ export function RemindersPanel({
       ) : null}
       {reminders.length === 0 ? (
         <EmptyState
-          description="Add an alert for a decision or deadline that should not slip."
+          description={
+            canEdit
+              ? "Add a reminder using the form above."
+              : "Reminders will appear here when available. This event is read-only."
+          }
           title="No reminders"
         />
       ) : (
