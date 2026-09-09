@@ -245,6 +245,21 @@ cover Event scheduling, date formatting, and creation-dialog keyboard focus at
 desktop and mobile widths. On Linux, use `playwright install --with-deps` to
 install the required system libraries as well.
 
+CI runs the browser gates inside the digest-pinned Ubuntu Playwright image in
+`.github/workflows/ci.yml`. That image already includes the browser engines and
+system libraries; no package-repository refresh is needed during the job. Update
+its version and digest together with `@playwright/test`; a workflow test enforces
+the version match. The container reaches the PostgreSQL service at `postgres`,
+while tests and application servers communicate over loopback inside the job.
+
+For Linux reproduction, use that same image with Node.js 24, the repository's
+pinned pnpm version, a frozen-lockfile install, and a disposable PostgreSQL 17
+service. Run `pnpm check`, `pnpm test:e2e`, and `pnpm test:sandbox` with `CI=true`.
+The quality gate also needs a `psql` client; the GitHub runner provides it and
+the workflow checks its availability explicitly. Native macOS browser results
+do not replace Linux validation. On ARM hosts, amd64 emulation matches CI's
+userspace architecture but not its hardware or timing.
+
 The macOS WebKit keyboard case uses Option-Tab to include native buttons in
 focus navigation. It does not change system keyboard preferences. This is
 distinct from date-grid arrow and Page Up/Down navigation, which is the same

@@ -55,7 +55,7 @@ describe("HTTP privacy and error boundary", () => {
         throw new Error("TCP listener unavailable");
       const response = await new Promise<string>((resolve, reject) => {
         const socket = createConnection({
-          host: "localhost",
+          host: address.address,
           port: address.port,
         });
         let received = "";

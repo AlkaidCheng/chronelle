@@ -954,7 +954,33 @@ a.search-result:hover {
 }
 
 .event-hero-topline {
-  margin-bottom: 30px;
+  margin-bottom: 20px;
+  gap: 16px;
+}
+
+.event-breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+.event-breadcrumb a {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+}
+.event-breadcrumb [aria-current] {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.event-hero h1 {
+  font-size: clamp(1.8rem, 3vw, 2.5rem);
+  line-height: 1.2;
+  overflow-wrap: anywhere;
 }
 
 .back-link {
@@ -969,8 +995,12 @@ a.search-result:hover {
 }
 
 .event-title-row {
-  align-items: flex-end;
-  gap: 28px;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 16px 24px;
+}
+.event-title-row > div:first-child {
+  flex: 1 1 440px;
 }
 
 .event-actions {
@@ -2017,8 +2047,7 @@ a.search-result:hover {
     display: none;
   }
 
-  .page-heading h1,
-  .event-hero h1 {
+  .page-heading h1 {
     font-size: clamp(2.2rem, 10vw, 3rem);
   }
 
@@ -2029,6 +2058,9 @@ a.search-result:hover {
   .event-title-row {
     align-items: stretch;
     flex-direction: column;
+  }
+  .event-title-row > div:first-child {
+    flex-basis: auto;
   }
 
   .event-title-row > .button {
@@ -2710,9 +2742,12 @@ html:has(.event-create-dialog[open]) {
 }
 .event-pages-navigation {
   display: flex;
-  flex-wrap: wrap;
+  flex: 1 1 280px;
   gap: 6px;
   min-width: 0;
+  overflow-x: auto;
+  scrollbar-width: thin;
+  padding: 4px;
 }
 .event-pages-navigation button {
   background: transparent;
@@ -2721,8 +2756,26 @@ html:has(.event-create-dialog[open]) {
   padding: 10px 14px;
   color: var(--muted);
   cursor: pointer;
-  overflow-wrap: anywhere;
+  flex-shrink: 0;
+  min-height: 44px;
+  max-width: min(240px, 100%);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.85rem;
+}
+.event-page-picker {
+  width: min(220px, 100%);
+  contain: layout;
+}
+.event-page-picker select {
+  height: 44px;
+  min-height: 44px;
   max-width: 100%;
+}
+.page-location-notice {
+  color: var(--muted);
+  font-size: 0.85rem;
 }
 .event-pages-navigation button[aria-current="page"] {
   background: var(--accent-soft);

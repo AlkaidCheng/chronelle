@@ -125,14 +125,17 @@ export function EventWorkspace({ eventId }: { readonly eventId: string }) {
       {refreshNotice}
       <header className="event-hero">
         <div className="event-hero-topline">
-          <Link className="back-link" href="/events">
-            &lt;- All events
-          </Link>
+          <nav aria-label="Breadcrumb" className="event-breadcrumb">
+            <Link className="back-link" href="/events">
+              All events
+            </Link>
+            <span aria-hidden="true">/</span>
+            <span aria-current="page">{event.displayName}</span>
+          </nav>
           <ObjectDetails id={event.id} />
         </div>
         <div className="event-title-row">
           <div>
-            <p className="eyebrow">Your event plan</p>
             <h1>{event.displayName}</h1>
             <p className="event-date">
               <CalendarIcon />

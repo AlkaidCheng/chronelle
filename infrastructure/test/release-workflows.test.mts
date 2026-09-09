@@ -124,6 +124,51 @@ describe("container release boundary", () => {
     ).toBe(true);
   });
 
+  it("uses the runner PostgreSQL client without refreshing unrelated repositories", () => {
+    expect(ci.jobs.quality.steps).toContainEqual({
+      name: "Verify PostgreSQL client",
+      run: "psql --version",
+    });
+    for (const step of ci.jobs.quality.steps as { run?: string }[]) {
+      expect(step.run ?? "").not.toContain("apt-get");
+    }
+  });
+
+  it("runs browsers in the matching pinned image with service networking", () => {
+    const { devDependencies } = JSON.parse(
+      readFileSync(resolve(root, "package.json"), "utf8"),
+    );
+    const [image, digest] = ci.jobs.browser.container.split("@");
+    expect(image).toBe(
+      `mcr.microsoft.com/playwright:v${devDependencies["@playwright/test"]}-noble`,
+    );
+    expect(digest).toMatch(/^sha256:[a-f0-9]{64}$/);
+    expect(new URL(ci.jobs.browser.env.DATABASE_URL).hostname).toBe("postgres");
+    expect(ci.jobs.browser.services.postgres.ports).toBeUndefined();
+    for (const step of ci.jobs.browser.steps as { run?: string }[]) {
+      expect(step.run ?? "").not.toMatch(/apt-get|--with-deps/);
+    }
+  });
+
+  it("retains browser failure evidence without weakening the release gate", () => {
+    const upload = ci.jobs.browser.steps.find(
+      (step: { name: string }) =>
+        step.name === "Retain browser failure diagnostics",
+    );
+    expect(upload.if).toBe("failure()");
+    expect(upload.uses).toMatch(/^actions\/upload-artifact@[a-f0-9]{40}$/);
+    expect(upload.with["retention-days"]).toBe(3);
+    expect(upload.with["if-no-files-found"]).toBe("ignore");
+    expect(upload.with.path.trim().split("\n")).toEqual([
+      "test-results/playwright/**/test-failed-*.png",
+      "test-results/playwright/**/error-context.md",
+      "test-results/playwright/**/trace.zip",
+      "test-results/sandbox/**/test-failed-*.png",
+      "test-results/sandbox/**/error-context.md",
+      "test-results/sandbox/**/trace.zip",
+    ]);
+  });
+
   it("publishes validated image artifacts without another build", () => {
     const steps = release.jobs.publish.steps;
     const download = steps.find((step: { uses?: string }) =>

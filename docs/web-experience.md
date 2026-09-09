@@ -73,9 +73,17 @@ the light paper color; the running page follows the selected appearance.
   Storage restrictions do not prevent using either layout.
 - Event views have bookmarkable URLs, such as `/events/OBJECT_ID?view=calendar`.
   Reload and browser Back/Forward preserve the selected view. Changing views
-  keeps the event-header editor mounted; navigating to another page does not
-  preserve unsaved drafts. A mobile view selector provides direct access to
-  views beyond the visible tab strip.
+  keeps the event-header editor mounted; leaving the Event does not preserve
+  unsaved drafts. A mobile view selector provides direct access to views beyond
+  the visible tab strip.
+- Named pages use the independent `page` query parameter. Selecting a view
+  preserves the selected page; reload and browser Back/Forward restore it.
+  A missing page shows an explanation and the first available page. This is
+  navigation state, not an Event or layout mutation, and conveys no access.
+- Page names stay in one horizontally scrollable strip. When it overflows,
+  Jump to page provides a native keyboard/touch picker. The selected page stays
+  visible on resize; the page heading retains its full name. Event breadcrumbs
+  and wrapping title/actions keep long names readable without hiding controls.
 - Overview counts and Next up use the authorized Event detail response.
   Next up excludes past dates, completed/cancelled tasks, dismissed/triggered
   reminders, and expenses. Time-dependent views refresh every minute and when

@@ -35,6 +35,14 @@ let client: ChronelleApiClient;
 let eventId: string;
 
 beforeEach(async () => {
+  vi.stubGlobal(
+    "ResizeObserver",
+    class {
+      observe = vi.fn();
+      unobserve = vi.fn();
+      disconnect = vi.fn();
+    },
+  );
   let saved: string | null = null;
   store = new SandboxStore({
     getItem: () => saved,
@@ -55,6 +63,7 @@ beforeEach(async () => {
   );
   assert(event);
   eventId = event.id;
+  window.history.replaceState(null, "", `/events/${eventId}`);
   window.sessionStorage.setItem(
     "chronelle.development-session",
     JSON.stringify({ accessToken: "sample", workspaceId: sandboxWorkspaceId }),
@@ -86,6 +95,7 @@ afterEach(() => {
   vi.restoreAllMocks();
   vi.unstubAllGlobals();
   window.sessionStorage.clear();
+  window.history.replaceState(null, "", "/events");
 });
 
 function page(name: string, kinds: readonly EventComponentKind[]) {
