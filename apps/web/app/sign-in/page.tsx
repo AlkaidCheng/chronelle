@@ -59,6 +59,7 @@ export default function SignInPage() {
             <span>Name</span>
             <input
               autoComplete="name"
+              disabled={!auth.isHydrated}
               maxLength={120}
               onChange={(event) => setDisplayName(event.target.value)}
               placeholder="Alex Morgan"
@@ -70,6 +71,7 @@ export default function SignInPage() {
             <span>Email</span>
             <input
               autoComplete="email"
+              disabled={!auth.isHydrated}
               onChange={(event) => setEmail(event.target.value)}
               placeholder="alex@example.com"
               required
