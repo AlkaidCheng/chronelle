@@ -1,9 +1,11 @@
 import type { Metadata, Viewport } from "next";
+import { headers } from "next/headers";
 import type { ReactNode } from "react";
 
 import "./styles.css";
 import "./collections.css";
 import { Providers } from "./providers";
+import { appearanceBootstrap } from "../lib/appearance-preference";
 
 export const dynamic = "force-dynamic";
 
@@ -15,17 +17,24 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  colorScheme: "light",
-  themeColor: "#203e32",
+  colorScheme: "light dark",
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#f5f0e6" },
+    { media: "(prefers-color-scheme: dark)", color: "#1d1b19" },
+  ],
 };
 
 interface RootLayoutProps {
   children: ReactNode;
 }
 
-export default function RootLayout({ children }: RootLayoutProps) {
+export default async function RootLayout({ children }: RootLayoutProps) {
+  const nonce = (await headers()).get("x-nonce") ?? undefined;
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
+      <head>
+        <script nonce={nonce}>{appearanceBootstrap}</script>
+      </head>
       <body>
         <Providers>{children}</Providers>
       </body>

@@ -83,20 +83,28 @@ test("blocks an injected parser script while hydrating the application", async (
     .headers()
     ["content-security-policy"]?.match(/'nonce-([^']+)'/u)?.[1];
   expect(staleNonce).toMatch(/^[A-Za-z0-9+/]{22}==$/u);
+  const violations: string[] = [];
+  const executions: string[] = [];
+  await page.exposeFunction("recordCspViolation", (directive: string) => {
+    violations.push(directive);
+  });
+  await page.exposeFunction("recordCspExecution", (probe: string) => {
+    executions.push(probe);
+  });
   let unexpectedFetches = 0;
   await page.route("**/csp-probe.js", async (route) => {
     unexpectedFetches += 1;
     await route.fulfill({
       contentType: "application/javascript",
-      body: "document.documentElement.dataset.cspExternalProbe = 'executed'",
+      body: "window.recordCspExecution('external')",
     });
   });
   await page.addInitScript(() => {
-    const violations: string[] = [];
+    const observer = window as typeof window & {
+      recordCspViolation: (directive: string) => Promise<void>;
+    };
     document.addEventListener("securitypolicyviolation", (event) => {
-      violations.push(event.effectiveDirective);
-      document.documentElement.dataset.cspViolations =
-        JSON.stringify(violations);
+      void observer.recordCspViolation(event.effectiveDirective);
     });
   });
   await page.route("**/sign-in", async (route) => {
@@ -107,31 +115,18 @@ test("blocks an injected parser script while hydrating the application", async (
       body: html
         .replace(
           "<head>",
-          `<head><script>document.documentElement.dataset.cspProbe = 'executed'</script><script nonce="${staleNonce}">document.documentElement.dataset.cspStaleProbe = 'executed'</script><script src="/csp-probe.js"></script>`,
+          `<head><script>window.recordCspExecution('inline')</script><script nonce="${staleNonce}">window.recordCspExecution('stale')</script><script src="/csp-probe.js"></script>`,
         )
         .replace(
           "<body>",
-          "<body onload=\"document.documentElement.dataset.cspAttributeProbe = 'executed'\">",
+          "<body onload=\"window.recordCspExecution('attribute')\">",
         ),
     });
   });
   await page.goto("/sign-in");
   await expect(page.getByRole("button", { name: "Continue" })).toBeEnabled();
-  for (const attribute of [
-    "data-csp-probe",
-    "data-csp-stale-probe",
-    "data-csp-external-probe",
-    "data-csp-attribute-probe",
-  ]) {
-    await expect(page.locator("html")).not.toHaveAttribute(attribute);
-  }
-  await expect(page.locator("html")).toHaveAttribute(
-    "data-csp-violations",
-    /script-src-elem/u,
-  );
-  await expect(page.locator("html")).toHaveAttribute(
-    "data-csp-violations",
-    /script-src-attr/u,
-  );
+  await expect.poll(() => violations).toContain("script-src-elem");
+  await expect.poll(() => violations).toContain("script-src-attr");
+  expect(executions).toEqual([]);
   expect(unexpectedFetches).toBe(0);
 });

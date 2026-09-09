@@ -1,8 +1,8 @@
 .sandbox-banner {
   padding: 1rem 1.5rem;
-  background: #f1f4ed;
-  color: #24352b;
-  border-bottom: 1px solid #c7d4c6;
+  background: var(--surface-subtle);
+  color: var(--ink);
+  border-bottom: 1px solid var(--line);
   display: flex;
   flex-wrap: wrap;
   align-items: center;
@@ -31,9 +31,9 @@
 .sandbox-banner button {
   min-height: 2.5rem;
   padding: 0.4rem 0.75rem;
-  border: 1px solid #aebfac;
+  border: 1px solid var(--line-strong);
   border-radius: 0.5rem;
-  background: white;
+  background: var(--surface);
   color: inherit;
 }
 @media (max-width: 600px) {
