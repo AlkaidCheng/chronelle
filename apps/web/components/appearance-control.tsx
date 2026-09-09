@@ -1,15 +1,17 @@
 "use client";
 
 import { useId } from "react";
-import { useAppearance } from "../lib/use-appearance";
+import { displayChoices } from "../lib/display-preferences";
+import { useDisplayPreference } from "../lib/use-display-preference";
 
 export function AppearanceControl() {
   const name = useId();
-  const { appearance, setAppearance } = useAppearance();
+  const { value: appearance, setValue: setAppearance } =
+    useDisplayPreference("appearance");
   return (
     <fieldset className="appearance-control">
       <legend className="visually-hidden">Appearance</legend>
-      {(["system", "light", "dark"] as const).map((value) => (
+      {displayChoices.appearance.map((value) => (
         <label key={value}>
           <input
             checked={appearance === value}

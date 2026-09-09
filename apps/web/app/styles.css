@@ -1,4 +1,5 @@
 @import "./tokens.css";
+@import "./appearance.css";
 
 * {
   box-sizing: border-box;
@@ -1467,7 +1468,7 @@ a.search-result:hover {
   border-top: 1px solid var(--line);
   color: var(--muted);
   font-size: 0.78rem;
-  padding: 14px 12px;
+  padding: var(--row-padding) 12px;
 }
 
 .data-table th:first-child,
@@ -1580,7 +1581,7 @@ a.search-result:hover {
   display: grid;
   gap: 18px;
   grid-template-columns: auto minmax(0, 1fr) auto;
-  padding: 17px 4px;
+  padding: calc(var(--row-padding) + 3px) 4px;
 }
 
 .calendar-item:first-child,
@@ -2178,15 +2179,24 @@ a.search-result:hover {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
+  :root *,
+  :root *::before,
+  :root *::after {
     scroll-behavior: auto;
     transition-duration: 0.01ms;
     animation-duration: 0.01ms;
     animation-iteration-count: 1;
   }
 }
+:root[data-motion="reduced"] *,
+:root[data-motion="reduced"] *::before,
+:root[data-motion="reduced"] *::after {
+  scroll-behavior: auto;
+  transition-duration: 0.01ms;
+  animation-duration: 0.01ms;
+  animation-iteration-count: 1;
+}
+
 /* Object history */
 .history-drawer {
   background: var(--surface);

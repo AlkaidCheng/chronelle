@@ -5,10 +5,17 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { AppearanceControl } from "../components/appearance-control";
 import {
-  appearanceBootstrap,
-  appearanceStorageKey,
-  parseAppearance,
-} from "../lib/appearance-preference";
+  displayBootstrap as appearanceBootstrap,
+  displayChoices,
+  displayStorageKey,
+  parseDisplayPreference,
+  type DisplayPreference,
+} from "../lib/display-preferences";
+import { resetDisplayPreferences } from "../lib/use-display-preference";
+
+const appearanceStorageKey = displayStorageKey("appearance");
+const parseAppearance = (value: unknown) =>
+  parseDisplayPreference("appearance", value);
 
 beforeEach(() => {
   vi.stubGlobal("localStorage", window.sessionStorage);
@@ -19,7 +26,9 @@ afterEach(() => {
   vi.restoreAllMocks();
   window.localStorage.clear();
   vi.unstubAllGlobals();
-  delete document.documentElement.dataset.appearance;
+  for (const key of Object.keys(displayChoices))
+    delete document.documentElement.dataset[key];
+  document.documentElement.style.removeProperty("background-color");
   document.head.querySelectorAll('meta[name="theme-color"]').forEach((meta) => {
     meta.remove();
   });
@@ -107,7 +116,8 @@ it("accepts cross-tab changes and falls back to System after invalidation", () =
   expect(screen.getByRole("radio", { name: "System" })).toBeChecked();
 });
 
-it("overrides and restores the browser chrome media queries", async () => {
+it("aligns browser chrome with the computed canvas", async () => {
+  document.documentElement.style.backgroundColor = "rgb(29, 27, 25)";
   for (const mode of ["light", "dark"]) {
     const meta = document.createElement("meta");
     meta.name = "theme-color";
@@ -120,10 +130,46 @@ it("overrides and restores the browser chrome media queries", async () => {
   const metas = document.head.querySelectorAll<HTMLMetaElement>(
     'meta[name="theme-color"]',
   );
-  expect([...metas].map((meta) => meta.media)).toEqual(["not all", "all"]);
-  await user.click(screen.getByRole("radio", { name: "System" }));
-  expect([...metas].map((meta) => meta.media)).toEqual([
-    "(prefers-color-scheme: light)",
-    "(prefers-color-scheme: dark)",
+  expect([...metas].map((meta) => meta.media)).toEqual(["all", "not all"]);
+  expect([...metas].map((meta) => meta.content)).toEqual([
+    "rgb(29, 27, 25)",
+    "rgb(29, 27, 25)",
   ]);
+  await user.click(screen.getByRole("radio", { name: "System" }));
+  expect([...metas].map((meta) => meta.media)).toEqual(["all", "not all"]);
+});
+
+it.each(Object.keys(displayChoices) as DisplayPreference[])(
+  "validates and bootstraps %s independently",
+  (key) => {
+    for (const value of displayChoices[key]) {
+      expect(parseDisplayPreference(key, value)).toBe(value);
+      window.localStorage.setItem(displayStorageKey(key), value);
+      new Function(appearanceBootstrap)();
+      expect(document.documentElement.dataset[key]).toBe(value);
+    }
+    expect(parseDisplayPreference(key, "unsupported")).toBe(
+      displayChoices[key][0],
+    );
+  },
+);
+
+it("synchronizes closed settings and resets only display preferences", () => {
+  render(<AppearanceControl />);
+  window.localStorage.setItem("unrelated", "keep");
+  act(() =>
+    window.dispatchEvent(
+      new StorageEvent("storage", {
+        key: displayStorageKey("palette"),
+        newValue: "celadon",
+      }),
+    ),
+  );
+  expect(document.documentElement.dataset.palette).toBe("celadon");
+  act(() => resetDisplayPreferences());
+  for (const key of Object.keys(displayChoices) as DisplayPreference[]) {
+    expect(document.documentElement.dataset[key]).toBe(displayChoices[key][0]);
+    expect(window.localStorage.getItem(displayStorageKey(key))).toBeNull();
+  }
+  expect(window.localStorage.getItem("unrelated")).toBe("keep");
 });

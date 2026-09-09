@@ -6,6 +6,12 @@
   --font-display:
     "Iowan Old Style", "Palatino Linotype", "Songti SC", "Noto Serif CJK SC",
     serif;
+  --card-padding: 24px;
+  --row-padding: 14px;
+}
+
+:root,
+[data-palette="paper"] {
   --canvas: light-dark(#f5f0e6, #1d1b19);
   --surface: light-dark(#fffdf8, #262320);
   --surface-subtle: light-dark(#eeeadf, #302c28);
@@ -28,6 +34,39 @@
   --shadow: 0 18px 54px light-dark(rgb(35 30 26 / 12%), rgb(0 0 0 / 24%));
   --shadow-raised: 0 24px 100px
     light-dark(rgb(24 22 20 / 24%), rgb(0 0 0 / 42%));
+}
+
+[data-palette="celadon"] {
+  --canvas: light-dark(#edf3ef, #152321);
+  --surface: light-dark(#f9fcfa, #20302d);
+  --surface-subtle: light-dark(#e6eee8, #283b35);
+  --ink: light-dark(#233c34, #e5efea);
+  --muted: light-dark(#50675d, #afc6bd);
+  --line: light-dark(#cedcd2, #40584e);
+  --line-strong: light-dark(#6b8275, #8aa99a);
+  --accent: light-dark(#286054, #a5d3c3);
+  --accent-hover: light-dark(#1e4d42, #bbe1d4);
+  --accent-soft: light-dark(#dfebe3, #2b403a);
+  --on-accent: light-dark(#f9fcfa, #17251d);
+}
+
+[data-palette="neutral"] {
+  --canvas: light-dark(#f4f5f6, #191d25);
+  --surface: light-dark(#ffffff, #242a35);
+  --surface-subtle: light-dark(#e9ecf0, #303744);
+  --ink: light-dark(#272b33, #e9edf5);
+  --muted: light-dark(#5f6772, #bbc4d4);
+  --line: light-dark(#d4d9e0, #424c5d);
+  --line-strong: light-dark(#7a8290, #929fb3);
+  --accent: light-dark(#35589a, #b1c9fa);
+  --accent-hover: light-dark(#29467d, #c5d8ff);
+  --accent-soft: light-dark(#e8edf7, #303e55);
+  --on-accent: light-dark(#ffffff, #18263e);
+}
+
+:root[data-density="compact"] {
+  --card-padding: 16px;
+  --row-padding: 8px;
 }
 
 @media (prefers-color-scheme: dark) {
