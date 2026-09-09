@@ -38,7 +38,28 @@ export function useEventView() {
   );
   return [
     view,
-    (next: EventView) => router.push(`${location.split("?")[0]}?view=${next}`),
+    (next: EventView) =>
+      selectParameter(location, "view", next === "pages" ? null : next),
+  ] as const;
+}
+
+function selectParameter(location: string, key: string, value: string | null) {
+  const current = snapshot();
+  const path = current.split("?")[0];
+  if (path !== location.split("?")[0]) return;
+  const query = new URLSearchParams(current.split("?")[1]);
+  if (query.get(key) === value) return;
+  if (value === null) query.delete(key);
+  else query.set(key, value);
+  router.push(`${path}${query.size ? `?${query}` : ""}`);
+}
+
+export function useEventPage() {
+  const location = useLocation();
+  const selected = new URLSearchParams(location.split("?")[1]).get("page");
+  return [
+    selected,
+    (id: string) => selectParameter(location, "page", id),
   ] as const;
 }
 

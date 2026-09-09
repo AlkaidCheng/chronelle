@@ -118,6 +118,11 @@ test("composes offline with search, drag or touch controls, and persistent cross
   await expect(tabs).toHaveText(["Work", "Day"]);
   await page.reload();
   await expect(tabs).toHaveText(["Work", "Day"]);
+  await expect(
+    page.getByRole("heading", { name: "Day", exact: true }),
+  ).toBeVisible();
+  await expect(blocks).toHaveCount(1);
+  await tabs.filter({ hasText: "Work" }).click();
   await expect(blocks).toHaveCount(2);
   await expect(blocks.first()).toHaveAttribute(
     "aria-label",

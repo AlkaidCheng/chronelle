@@ -13,6 +13,7 @@ import {
   useUpdateEventLayout,
 } from "../../lib/event-layout-queries";
 import { useSessionDialog } from "../../lib/use-session-dialog";
+import { useEventPage } from "../../lib/use-event-view";
 import { eventComponents } from "../../lib/event-components";
 import { isTemporaryReadError } from "../../lib/query-errors";
 import { EventPageCanvas } from "./event-page-canvas";
@@ -193,7 +194,7 @@ export function EventPages({
   readonly canEdit: boolean;
 }) {
   const layout = useEventLayout(eventId);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [selectedId, setSelectedId] = useEventPage();
   const [adding, setAdding] = useState<{ pageId: string | null } | null>(null);
   const refreshNotice = layout.isError ? (
     <ErrorNotice
@@ -215,6 +216,12 @@ export function EventPages({
   return (
     <>
       {refreshNotice}
+      {selectedId && selectedId !== selected?.id ? (
+        <p role="status" className="page-location-notice">
+          The requested page is unavailable.
+          {selected ? ` Showing ${selected.name}.` : ""}
+        </p>
+      ) : null}
       <EventPageCanvas
         layout={layout.data}
         selected={selected}

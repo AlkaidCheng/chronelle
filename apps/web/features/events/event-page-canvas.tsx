@@ -43,6 +43,26 @@ export function EventPageCanvas({
   const [dropTarget, setDropTarget] = useState<string | null>(null);
   const [announcement, setAnnouncement] = useState("");
   const navigation = useRef<HTMLElement>(null);
+  const [pagesOverflow, setPagesOverflow] = useState(false);
+  // biome-ignore lint/correctness/useExhaustiveDependencies: Page content and selection change strip geometry without resizing its container.
+  useLayoutEffect(() => {
+    const strip = navigation.current;
+    if (!strip) return;
+    const measure = () => {
+      setPagesOverflow(strip.scrollWidth > strip.clientWidth + 1);
+      const current = strip.querySelector<HTMLElement>('[aria-current="page"]');
+      if (!current) return;
+      const bounds = strip.getBoundingClientRect();
+      const item = current.getBoundingClientRect();
+      if (item.left < bounds.left) strip.scrollLeft += item.left - bounds.left;
+      else if (item.right > bounds.right)
+        strip.scrollLeft += item.right - bounds.right;
+    };
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(strip);
+    return () => observer.disconnect();
+  }, [layout.pages, selected?.id]);
   const [focusRequest, setFocusRequest] = useState<{
     trigger: HTMLElement | null;
     origin: HTMLElement | null;
@@ -215,6 +235,7 @@ export function EventPageCanvas({
               key={page.id}
               type="button"
               data-page-id={page.id}
+              title={page.name}
               aria-current={page.id === selected?.id ? "page" : undefined}
               onClick={() => onSelect(page.id)}
               {...dropProps(page, null)}
@@ -223,6 +244,21 @@ export function EventPageCanvas({
             </button>
           ))}
         </nav>
+        {pagesOverflow ? (
+          <label className="compact-field event-page-picker">
+            <span>Jump to page</span>
+            <select
+              value={selected?.id ?? ""}
+              onChange={(event) => onSelect(event.target.value)}
+            >
+              {layout.pages.map((page) => (
+                <option key={page.id} value={page.id}>
+                  {page.name}
+                </option>
+              ))}
+            </select>
+          </label>
+        ) : null}
         {renderTools?.(save.isPending)}
         {canEdit && layout.pages.length < 20 ? (
           <button

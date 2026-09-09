@@ -12,26 +12,40 @@ function subscribe(onChange: () => void) {
     window.removeEventListener(viewChange, onChange);
   };
 }
-function snapshot(): EventView {
-  return parseEventView(
-    new URLSearchParams(window.location.search).get("view"),
-  );
+function snapshot() {
+  return window.location.href;
 }
-function selectView(view: EventView) {
-  if (snapshot() === view) return;
-  const url = new URL(window.location.href);
-  if (view === "pages") url.searchParams.delete("view");
-  else url.searchParams.set("view", view);
-  window.history.pushState(null, "", url);
-  window.dispatchEvent(new Event(viewChange));
+
+function useEventLocation() {
+  const href = useSyncExternalStore(subscribe, snapshot, () => null);
+  const location = href === null ? null : new URL(href);
+  function select(name: "view" | "page", value: string | null) {
+    if (!location) return;
+    const url = new URL(window.location.href);
+    if (url.pathname !== location.pathname || url.hash !== location.hash)
+      return;
+    if (url.searchParams.get(name) === value) return;
+    if (value === null) url.searchParams.delete(name);
+    else url.searchParams.set(name, value);
+    window.history.pushState(null, "", url);
+    window.dispatchEvent(new Event(viewChange));
+  }
+  return { location, select };
 }
 
 /** Keeps client-side projections bookmarkable without remounting open editors. */
 export function useEventView() {
-  const view = useSyncExternalStore(
-    subscribe,
-    snapshot,
-    (): EventView | null => null,
-  );
+  const { location, select } = useEventLocation();
+  const view = location && parseEventView(location.searchParams.get("view"));
+  const selectView = (value: EventView) =>
+    select("view", value === "pages" ? null : value);
   return [view, selectView] as const;
+}
+
+export function useEventPage() {
+  const { location, select } = useEventLocation();
+  return [
+    location?.searchParams.get("page") ?? null,
+    (id: string) => select("page", id),
+  ] as const;
 }
