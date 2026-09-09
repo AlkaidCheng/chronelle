@@ -7,7 +7,8 @@ contains workspace switching and sign-out. Escape closes it and returns focus.
 
 ## Appearance
 
-Ink & Paper uses warm paper surfaces, ink text, and restrained green accents.
+Ink & Paper uses warm ivory surfaces, charcoal text, and restrained vermilion
+accents. Dark appearance uses warm charcoal surfaces with light ink text.
 The application follows the operating system's light or dark appearance using
 CSS, including changes while a form is open. Switching system appearance does
 not reload the page or reset a draft. There is no saved appearance override yet.
@@ -122,7 +123,7 @@ must support exact decimal-string input to Intl.NumberFormat.
 
 ## Design boundaries
 
-The interface uses restrained green accents, warm neutral surfaces, system
+The interface uses restrained vermilion accents, warm neutral surfaces, system
 body fonts, and a serif heading family. Shared controls use existing CSS tokens;
 collection and shell layout rules live in `apps/web/app/collections.css`.
 SVG icons are code-native and require no external asset service. Reduced-motion

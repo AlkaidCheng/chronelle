@@ -17,6 +17,16 @@ for (const appearance of ["light", "dark"] as const) {
       "content",
       "light dark",
     );
+    const canvas = await page.evaluate(() =>
+      getComputedStyle(document.documentElement)
+        .getPropertyValue("--canvas")
+        .trim(),
+    );
+    await expect(
+      page.locator(
+        `meta[name="theme-color"][media="(prefers-color-scheme: ${appearance})"]`,
+      ),
+    ).toHaveAttribute("content", canvas);
     await page.getByLabel("Name", { exact: true }).fill("Event planner");
     await page
       .getByLabel("Email")
