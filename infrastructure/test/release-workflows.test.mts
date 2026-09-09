@@ -124,6 +124,25 @@ describe("container release boundary", () => {
     ).toBe(true);
   });
 
+  it("retains browser failure evidence without weakening the release gate", () => {
+    const upload = ci.jobs.browser.steps.find(
+      (step: { name: string }) =>
+        step.name === "Retain browser failure diagnostics",
+    );
+    expect(upload.if).toBe("failure()");
+    expect(upload.uses).toMatch(/^actions\/upload-artifact@[a-f0-9]{40}$/);
+    expect(upload.with["retention-days"]).toBe(3);
+    expect(upload.with["if-no-files-found"]).toBe("ignore");
+    expect(upload.with.path.trim().split("\n")).toEqual([
+      "test-results/playwright/**/test-failed-*.png",
+      "test-results/playwright/**/error-context.md",
+      "test-results/playwright/**/trace.zip",
+      "test-results/sandbox/**/test-failed-*.png",
+      "test-results/sandbox/**/error-context.md",
+      "test-results/sandbox/**/trace.zip",
+    ]);
+  });
+
   it("publishes validated image artifacts without another build", () => {
     const steps = release.jobs.publish.steps;
     const download = steps.find((step: { uses?: string }) =>

@@ -2,8 +2,25 @@ import { randomUUID } from "node:crypto";
 import { expect, test } from "@playwright/test";
 import {
   exercisePageNavigation,
+  expectHorizontalReflow,
   navigationPageNames,
 } from "./helpers/page-navigation";
+
+test("reports document and element widths when content overflows", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 320, height: 720 });
+  await page.setContent(
+    '<meta name="viewport" content="width=device-width, initial-scale=1"><style>body { margin: 0 }</style><div class="wide" style="width: 640px; height: 44px"></div>',
+  );
+  await expect(expectHorizontalReflow(page)).rejects.toThrow(
+    /"viewport":320,"documentWidth":640,"overflowing":\[\{"tag":"DIV","class":"wide"/,
+  );
+  await page.locator(".wide").evaluate((element) => {
+    (element as HTMLElement).style.width = "100%";
+  });
+  await expectHorizontalReflow(page);
+});
 
 test("keeps named pages bookmarkable through views and workspace navigation", async ({
   page,

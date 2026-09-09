@@ -6,6 +6,47 @@ export const navigationPageNames = [
   "Returning home and keeping the memories",
 ] as const;
 
+export async function expectHorizontalReflow(page: Page) {
+  const { viewport, documentWidth } = await page.evaluate(() => ({
+    viewport: document.documentElement.clientWidth,
+    documentWidth: document.documentElement.scrollWidth,
+  }));
+  const overflowing =
+    documentWidth > viewport
+      ? await page.evaluate(() =>
+          Array.from(document.querySelectorAll("body *"))
+            .flatMap((element) => {
+              const bounds = element.getBoundingClientRect();
+              if (!bounds.width || !bounds.height) return [];
+              if (
+                bounds.right <= document.documentElement.clientWidth &&
+                bounds.left >= 0 &&
+                element.scrollWidth <= element.clientWidth
+              )
+                return [];
+              const style = getComputedStyle(element);
+              return [
+                {
+                  tag: element.tagName,
+                  class: element.getAttribute("class"),
+                  left: bounds.left,
+                  right: bounds.right,
+                  clientWidth: element.clientWidth,
+                  scrollWidth: element.scrollWidth,
+                  overflowX: style.overflowX,
+                  minWidth: style.minWidth,
+                },
+              ];
+            })
+            .slice(0, 30),
+        )
+      : [];
+  expect(
+    documentWidth,
+    `Horizontal reflow: ${JSON.stringify({ viewport, documentWidth, overflowing })}`,
+  ).toBeLessThanOrEqual(viewport);
+}
+
 export async function exercisePageNavigation(page: Page, testInfo: TestInfo) {
   const picker = page.getByRole("combobox", { name: "Jump to page" });
   await expect(picker).toBeVisible();
@@ -54,11 +95,7 @@ export async function exercisePageNavigation(page: Page, testInfo: TestInfo) {
   expect(
     await picker.evaluate((element) => element.getBoundingClientRect().height),
   ).toBeGreaterThanOrEqual(44);
-  expect(
-    await page.evaluate(
-      () => document.documentElement.scrollWidth <= innerWidth,
-    ),
-  ).toBe(true);
+  await expectHorizontalReflow(page);
   await page.setViewportSize({ width: 320, height: 720 });
   await expect
     .poll(() =>
@@ -73,11 +110,7 @@ export async function exercisePageNavigation(page: Page, testInfo: TestInfo) {
         }),
     )
     .toBe(true);
-  expect(
-    await page.evaluate(
-      () => document.documentElement.scrollWidth <= innerWidth,
-    ),
-  ).toBe(true);
+  await expectHorizontalReflow(page);
   await picker.focus();
   await expect(picker).toBeFocused();
   await page.screenshot({
