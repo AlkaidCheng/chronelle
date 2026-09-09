@@ -116,6 +116,9 @@ export async function exerciseAppearance(
     page.getByRole("heading", { name: title, exact: true }),
   ).toBeVisible();
   await expect(dialog).toHaveCount(0);
+  await expect(
+    page.getByRole("button", { name: "Browse event data" }),
+  ).toBeVisible();
   await page.screenshot({
     path: testInfo.outputPath("event.png"),
   });
