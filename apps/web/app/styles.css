@@ -2766,12 +2766,12 @@ html:has(.event-create-dialog[open]) {
 }
 .event-page-picker {
   width: min(220px, 100%);
+  contain: layout;
 }
 .event-page-picker select {
   height: 44px;
   min-height: 44px;
   max-width: 100%;
-  overflow: clip;
 }
 .page-location-notice {
   color: var(--muted);

@@ -111,6 +111,20 @@ export async function exercisePageNavigation(page: Page, testInfo: TestInfo) {
     )
     .toBe(true);
   await expectHorizontalReflow(page);
+  await picker.evaluate((select) => {
+    const overflow = document.createElement("span");
+    overflow.dataset.overflowProbe = "";
+    overflow.setAttribute("aria-hidden", "true");
+    overflow.style.cssText = "width: 366px; height: 1px; pointer-events: none";
+    select.after(overflow);
+  });
+  try {
+    await expectHorizontalReflow(page);
+  } finally {
+    await page
+      .locator("[data-overflow-probe]")
+      .evaluate((probe) => probe.remove());
+  }
   await picker.focus();
   await expect(picker).toBeFocused();
   await page.screenshot({
