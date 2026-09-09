@@ -10,8 +10,11 @@ export async function expectReadablePalette(page: Page) {
   const checks = await page.evaluate(() => {
     const style = getComputedStyle(document.documentElement);
     function luminance(token: string) {
-      const color = style.getPropertyValue(`--${token}`).trim();
-      if (!/^#[\da-f]{6}$/i.test(color)) throw new Error(token);
+      const color = style
+        .getPropertyValue(`--${token}`)
+        .match(/#[\da-f]{6}/gi)
+        ?.at(style.colorScheme === "dark" ? -1 : 0);
+      if (!color) throw new Error(token);
       const channels = color.slice(1).match(/../g) ?? [];
       const [r = 0, g = 0, b = 0] = channels.map((channel) => {
         const value = Number.parseInt(channel, 16) / 255;
@@ -56,7 +59,12 @@ export async function expectReadablePalette(page: Page) {
 
 async function expectToken(locator: Locator, property: string, token: string) {
   const color = await locator.evaluate((element, name) => {
-    const hex = getComputedStyle(element).getPropertyValue(`--${name}`).trim();
+    const style = getComputedStyle(element);
+    const hex = style
+      .getPropertyValue(`--${name}`)
+      .match(/#[\da-f]{6}/gi)
+      ?.at(style.colorScheme === "dark" ? -1 : 0);
+    if (!hex) throw new Error(name);
     const channels = hex
       .slice(1)
       .match(/../g)
@@ -127,4 +135,35 @@ export async function exerciseAppearance(
       () => document.documentElement.scrollWidth <= innerWidth,
     ),
   ).toBe(true);
+  await exerciseAppearanceControl(page, appearance);
+}
+
+async function exerciseAppearanceControl(
+  page: Page,
+  appearance: "light" | "dark",
+) {
+  const opposite = appearance === "light" ? "dark" : "light";
+  async function choose(name: string) {
+    const group = page.getByRole("group", { name: "Appearance" });
+    if (!(await group.isVisible()))
+      await page.getByLabel("Account and workspace").click();
+    await group.getByRole("radio", { name, exact: true }).check();
+  }
+  await choose(opposite === "dark" ? "Dark" : "Light");
+  await expect(page.locator("html")).toHaveCSS("color-scheme", opposite);
+  await expectReadablePalette(page);
+  await page.reload();
+  await expect(
+    page.getByRole("button", { name: "Browse event data" }),
+  ).toBeVisible();
+  await expect(page.locator("html")).toHaveCSS("color-scheme", opposite);
+  await choose(appearance === "light" ? "Light" : "Dark");
+  await page.emulateMedia({ colorScheme: opposite });
+  await expect(page.locator("html")).toHaveCSS("color-scheme", appearance);
+  await choose("System");
+  await expect(page.locator("html")).toHaveCSS("color-scheme", opposite);
+  await page.emulateMedia({ colorScheme: appearance });
+  await expect(page.locator("html")).toHaveCSS("color-scheme", appearance);
+  if (await page.getByLabel("Account and workspace").isVisible())
+    await page.getByLabel("Account and workspace").press("Escape");
 }

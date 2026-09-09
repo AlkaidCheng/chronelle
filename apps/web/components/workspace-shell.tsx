@@ -9,6 +9,7 @@ import { useAuthSession } from "../lib/auth-session";
 import { useSessionQuery } from "../lib/queries";
 import { CalendarIcon, SearchIcon, SignOutIcon, TrashIcon } from "./icons";
 import { ErrorNotice, LoadingState } from "./feedback";
+import { AppearanceControl } from "./appearance-control";
 
 export function WorkspaceShell({ children }: { readonly children: ReactNode }) {
   const { credential, isHydrated, signOut, switchWorkspace } = useAuthSession();
@@ -147,6 +148,7 @@ export function WorkspaceShell({ children }: { readonly children: ReactNode }) {
         <header className="workspace-topbar">
           <span>{currentSession.workspace.displayName}</span>
           <span className="environment-label">Development workspace</span>
+          <AppearanceControl />
         </header>
         <header className="mobile-header">
           <Link className="brand" href="/events">
@@ -169,6 +171,7 @@ export function WorkspaceShell({ children }: { readonly children: ReactNode }) {
             </summary>
             <div className="account-popover">
               <strong>{currentSession.user.displayName}</strong>
+              <AppearanceControl />
               <span className="environment-label">Development workspace</span>
               <label className="mobile-workspace-switcher">
                 <span className="visually-hidden">Workspace</span>

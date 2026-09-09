@@ -9,19 +9,39 @@ contains workspace switching and sign-out. Escape closes it and returns focus.
 
 Ink & Paper uses warm ivory surfaces, charcoal text, and restrained vermilion
 accents. Dark appearance uses warm charcoal surfaces with light ink text.
-The application follows the operating system's light or dark appearance using
-CSS, including changes while a form is open. Switching system appearance does
-not reload the page or reset a draft. There is no saved appearance override yet.
+The Appearance control offers System, Light, and Dark. It is available on
+sign-in, in the desktop workspace header, and inside the mobile account menu.
+Native radio controls support Tab and arrow-key navigation. System follows
+operating-system changes; Light and Dark override them without reloading the
+page or resetting a draft.
+
+Appearance is a device-local, same-origin browser preference, independent of
+the account, workspace, and palette. It persists across reloads and sign-out,
+and synchronizes across tabs. System removes the saved override. Invalid or
+unreadable storage falls back to System; failed writes leave the current page
+usable but cannot guarantee persistence. Sandbox file storage depends on the
+browser and file location.
 
 Semantic colors and local font stacks live in `apps/web/app/tokens.css`, shared
 by the application and the browser-only sandbox. Components use role-based
-tokens rather than their own light/dark overrides. Display headings prefer a
+tokens rather than their own light/dark overrides. Each color pairs its light
+and dark values with CSS `light-dark()`; supported browsers must implement it.
+Ordinary palettes must provide both appearances. A specialized single-mode
+palette must declare its supported appearance, explain any unavailable mode,
+and preserve the user's preferred mode for returning to a dual-mode palette.
+The palette selector and specialized palettes are not implemented yet.
+Display headings prefer a
 local serif; controls use system sans-serif fonts with Chinese fallbacks. No
-font downloads or additional theme dependencies are required.
+font downloads or additional theme dependencies are required. A fixed,
+nonce-authorized script applies a validated saved appearance before rendering;
+the offline sandbox authorizes the same script by hash. Stored values are never
+executed or interpolated into HTML. Browser chrome follows the selected mode
+after the control hydrates, and the initial browser chrome follows the OS.
 
 Browser checks cover text and control-token contrast, keyboard date selection,
-visible input focus, long mixed-language names, and draft preservation during
-system appearance changes. They do not replace manual screen-reader, physical
+visible input focus, long mixed-language names, draft preservation, saved
+overrides before application hydration, blocked storage, keyboard operation,
+and cross-tab changes. They do not replace manual screen-reader, physical
 device, or visual acceptance testing. The installed PWA's launch background is
 the light paper color; the running page follows system appearance.
 
@@ -127,8 +147,8 @@ The interface uses restrained vermilion accents, warm neutral surfaces, system
 body fonts, and a serif heading family. Shared controls use existing CSS tokens;
 collection and shell layout rules live in `apps/web/app/collections.css`.
 SVG icons are code-native and require no external asset service. Reduced-motion
-preferences disable decorative motion. There is no theme engine or component
-framework dependency.
+preferences disable decorative motion. Appearance controls use native inputs
+and shared CSS; there is no theme-engine or component-framework dependency.
 
 Presentation selectors are pure functions in `apps/web/lib`; network mutations,
 concurrency handling, and query invalidation remain in the query layer. Grid,
