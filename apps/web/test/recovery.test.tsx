@@ -37,6 +37,7 @@ const descriptors = methods.map((name) =>
 let currentVersion = 2;
 let conflict = false;
 let blocked = false;
+let objectType = "event";
 let fetch: ReturnType<typeof vi.fn<typeof globalThis.fetch>>;
 
 beforeAll(() => {
@@ -67,6 +68,7 @@ beforeEach(() => {
   currentVersion = 2;
   conflict = false;
   blocked = false;
+  objectType = "event";
   window.sessionStorage.setItem(
     "chronelle.development-session",
     JSON.stringify({ accessToken: "test-session", workspaceId }),
@@ -75,7 +77,7 @@ beforeEach(() => {
     const url = String(input);
     if (url.endsWith("/recovery-preview"))
       return Response.json({
-        object: { ...deleted, version: currentVersion },
+        object: { ...deleted, objectType, version: currentVersion },
         canRecover: !blocked,
         blockedReason: blocked
           ? "Restore the canonical permission scope first."
@@ -91,6 +93,7 @@ beforeEach(() => {
         );
       return Response.json({
         ...deleted,
+        objectType,
         version: currentVersion + 1,
         deletedAt: null,
         workspaceId,
@@ -105,6 +108,9 @@ beforeEach(() => {
         endsAt: null,
         timezone: "UTC",
         isAllDay: false,
+        status: "todo",
+        dueAt: null,
+        completedAt: null,
       });
     }
     if (url.endsWith("/shares")) return Response.json({ items: [] });
@@ -138,6 +144,9 @@ async function openPreview() {
 it("requires confirmation and submits the displayed object version", async () => {
   const { user, dialog } = await openPreview();
   const confirm = dialog.getByRole("button", { name: "Confirm recovery" });
+  expect(
+    dialog.queryByRole("link", { name: "Open recovered event" }),
+  ).toBeNull();
   expect(confirm).toBeDisabled();
   await user.click(dialog.getByRole("checkbox"));
   await user.click(confirm);
@@ -151,6 +160,42 @@ it("requires confirmation and submits the displayed object version", async () =>
   expect(JSON.parse(String(request?.[1]?.body))).toEqual({
     expectedVersion: 2,
   });
+  expect(
+    dialog.getByRole("link", { name: "Open recovered event" }),
+  ).toHaveAttribute("href", `/events/${id}`);
+});
+
+it("does not offer an Event route after recovering a task", async () => {
+  objectType = "task";
+  const { user, dialog } = await openPreview();
+  await user.click(dialog.getByRole("checkbox"));
+  await user.click(dialog.getByRole("button", { name: "Confirm recovery" }));
+  await dialog.findByRole("status");
+  expect(dialog.queryByRole("link")).toBeNull();
+});
+
+it("distinguishes empty type filters and clears them without hiding recoverable objects", async () => {
+  fetch.mockImplementation(async (input) =>
+    Response.json({
+      items: String(input).includes("objectType=") ? [] : [deleted],
+      nextCursor: null,
+    }),
+  );
+  const user = userEvent.setup();
+  render(<TrashWorkspace />, { wrapper: Providers });
+  await screen.findByRole("heading", { name: "Workshop" });
+  await user.selectOptions(screen.getByLabelText("Object type"), "document");
+  await screen.findByRole("heading", {
+    name: "No recoverable objects of this type",
+  });
+  await user.click(screen.getByRole("button", { name: "Clear type filter" }));
+  expect(
+    await screen.findByRole("heading", { name: "Workshop" }),
+  ).toBeVisible();
+  expect(screen.getByLabelText("Object type")).toHaveValue("");
+  expect(
+    screen.queryByRole("button", { name: "Clear type filter" }),
+  ).toBeNull();
 });
 
 it("clears confirmation and requires a fresh preview after a conflict", async () => {
@@ -159,6 +204,9 @@ it("clears confirmation and requires a fresh preview after a conflict", async ()
   await user.click(dialog.getByRole("checkbox"));
   await user.click(dialog.getByRole("button", { name: "Confirm recovery" }));
   await dialog.findByRole("alert");
+  expect(
+    dialog.queryByRole("link", { name: "Open recovered event" }),
+  ).toBeNull();
   expect(
     dialog.getByRole("button", { name: "Confirm recovery" }),
   ).toBeDisabled();

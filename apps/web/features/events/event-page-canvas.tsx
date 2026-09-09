@@ -343,7 +343,7 @@ export function EventPageCanvas({
               ) : null}
             </div>
           </div>
-          {canEdit ? (
+          {canEdit && selected.components.length > 0 ? (
             <p className="composition-hint">
               Use / to find a component. Drag its handle to reorder or drop it
               on a page. Move controls work with touch and keyboard.
@@ -354,7 +354,7 @@ export function EventPageCanvas({
               title="Make room for your plans"
               description={
                 canEdit
-                  ? "Add a component when you need it. This page starts with just what you choose."
+                  ? "Choose Add component for to-dos, a calendar, files, or other views. Add only what this page needs."
                   : "This page has no components yet."
               }
             />
@@ -478,7 +478,7 @@ export function EventPageCanvas({
           title="A place for your event"
           description={
             canEdit
-              ? "Add your first page to organize preparations, travel, or the day itself."
+              ? "Choose Add page to make a space for your plans, such as Preparation or On the day. Then choose the components you need."
               : "The planner has not added any pages yet."
           }
         />

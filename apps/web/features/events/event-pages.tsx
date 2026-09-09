@@ -104,18 +104,25 @@ function AddPageContentDialog({
       <form onSubmit={submit} aria-busy={save.isPending}>
         <div className="event-create-body">
           {pageId === null ? (
-            <label className="field">
-              Page name
-              <input
-                ref={nameInput}
-                required
-                maxLength={80}
-                placeholder="Preparation, travel, or anything you need"
-                value={name}
-                disabled={save.isPending}
-                onChange={(event) => setName(event.target.value)}
-              />
-            </label>
+            <>
+              <p className="field-hint" id="page-name-hint">
+                Pages organize this event. Start with a name, then add
+                components such as To-dos or Calendar.
+              </p>
+              <label className="field">
+                Page name
+                <input
+                  ref={nameInput}
+                  required
+                  maxLength={80}
+                  placeholder="Preparation, travel, or anything you need"
+                  aria-describedby="page-name-hint"
+                  value={name}
+                  disabled={save.isPending}
+                  onChange={(event) => setName(event.target.value)}
+                />
+              </label>
+            </>
           ) : (
             <>
               <label className="field">

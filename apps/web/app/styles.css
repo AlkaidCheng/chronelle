@@ -215,6 +215,7 @@ h3 {
 .compact-field {
   display: grid;
   gap: 8px;
+  min-width: 0;
 }
 
 .field > span,
@@ -234,6 +235,7 @@ h3 {
   border-radius: 9px;
   color: var(--ink);
   min-height: 44px;
+  min-width: 0;
   padding: 10px 12px;
   width: 100%;
 }
@@ -2260,6 +2262,9 @@ a.search-result:hover {
 }
 .history-header h2 {
   margin: 0;
+}
+.history-header > button {
+  flex-shrink: 0;
 }
 .history-list {
   list-style: none;
