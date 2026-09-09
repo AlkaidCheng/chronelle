@@ -1,6 +1,12 @@
 // @vitest-environment jsdom
 
-import { cleanup, render, screen, waitFor } from "@testing-library/react";
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { Providers } from "../app/providers";
@@ -38,6 +44,7 @@ const page = (items: (typeof event)[], nextCursor: string | null = null) =>
 
 describe("EventList", () => {
   beforeEach(() => {
+    vi.spyOn(window, "scrollTo").mockImplementation(() => {});
     vi.stubGlobal("localStorage", { getItem: vi.fn(), setItem: vi.fn() });
     window.sessionStorage.setItem(
       "chronelle.development-session",
@@ -46,6 +53,7 @@ describe("EventList", () => {
   });
   afterEach(() => {
     cleanup();
+    vi.restoreAllMocks();
     vi.unstubAllGlobals();
     window.sessionStorage.clear();
   });
@@ -156,5 +164,77 @@ describe("EventList", () => {
     expect(fetch.mock.calls.slice(1).map(([url]) => url)).toEqual(
       Array(3).fill("/api/events?query=&filter=all&sort=date&cursor=next_page"),
     );
+  });
+
+  it("retains private filters and loaded pages across a collection remount", async () => {
+    const fetch = vi
+      .fn<typeof globalThis.fetch>()
+      .mockImplementation(async (url) =>
+        String(url).includes("cursor=")
+          ? page([another])
+          : page([event], "next_page"),
+      );
+    vi.stubGlobal("fetch", fetch);
+    const user = userEvent.setup();
+    const view = render(
+      <Providers>
+        <EventList />
+      </Providers>,
+    );
+    await screen.findByText("Garden gathering");
+    await user.type(screen.getByLabelText("Filter events by name"), "Garden");
+    await waitFor(() => expect(fetch).toHaveBeenCalledTimes(2));
+    await user.selectOptions(screen.getByLabelText("Sort events"), "name");
+    await user.click(screen.getByRole("button", { name: "unscheduled" }));
+    await user.click(
+      await screen.findByRole("button", { name: "Load more events" }),
+    );
+    await screen.findByText("2 events loaded");
+    const requests = fetch.mock.calls.length;
+    view.rerender(<Providers>{null}</Providers>);
+    view.rerender(
+      <Providers>
+        <EventList />
+      </Providers>,
+    );
+    expect(screen.getByLabelText("Filter events by name")).toHaveValue(
+      "Garden",
+    );
+    expect(screen.getByLabelText("Sort events")).toHaveValue("name");
+    expect(screen.getByRole("button", { name: "unscheduled" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+    expect(screen.getByText("2 events loaded")).toBeVisible();
+    expect(fetch).toHaveBeenCalledTimes(requests);
+    expect(window.location.href).not.toContain("Garden");
+    expect(JSON.stringify(window.sessionStorage)).not.toContain("Garden");
+  });
+
+  it("waits for committed composition text before sending a name request", async () => {
+    const fetch = vi
+      .fn<typeof globalThis.fetch>()
+      .mockImplementation(async () => page([]));
+    vi.stubGlobal("fetch", fetch);
+    render(
+      <Providers>
+        <EventList />
+      </Providers>,
+    );
+    await screen.findByText("Your first event starts here");
+    const input = screen.getByLabelText("Filter events by name");
+    fireEvent.compositionStart(input);
+    fireEvent.change(input, { target: { value: "zhong" } });
+    await new Promise((resolve) => setTimeout(resolve, 300));
+    expect(fetch).toHaveBeenCalledTimes(1);
+    fireEvent.change(input, { target: { value: "\u4e2d\u79cb" } });
+    fireEvent.compositionEnd(input);
+    await waitFor(() => expect(fetch).toHaveBeenCalledTimes(2));
+    expect(
+      new URL(
+        String(fetch.mock.calls[1]?.[0]),
+        "http://example.test",
+      ).searchParams.get("query"),
+    ).toBe("\u4e2d\u79cb");
   });
 });

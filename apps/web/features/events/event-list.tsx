@@ -3,7 +3,7 @@
 import type { EventListQuery, EventResponse } from "@chronelle/schemas";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { type MouseEventHandler, useEffect, useState } from "react";
 
 import {
   EmptyState,
@@ -19,6 +19,10 @@ import {
 } from "../../components/icons";
 import { eventPeriod } from "../../lib/event-collection";
 import {
+  useEventCollectionReturn,
+  useEventCollectionState,
+} from "../../lib/event-collection-state";
+import {
   formatEventDatePart,
   formatEventSchedule,
 } from "../../lib/event-schedule";
@@ -28,12 +32,19 @@ import { CreateEventDialog } from "./create-event-dialog";
 function EventCard({
   event,
   now,
+  onOpen,
 }: {
   readonly event: EventResponse;
   readonly now: number;
+  readonly onOpen: MouseEventHandler<HTMLAnchorElement>;
 }) {
   return (
-    <Link className="event-card" href={`/events/${event.id}`}>
+    <Link
+      className="event-card"
+      data-event-id={event.id}
+      href={`/events/${event.id}`}
+      onClick={onOpen}
+    >
       <div className="event-date-mark">
         <span>{formatEventDatePart(event, "month").toUpperCase()}</span>
         <strong>{formatEventDatePart(event, "day")}</strong>
@@ -59,40 +70,25 @@ function EventCard({
 export function EventList() {
   const router = useRouter();
   const [isCreating, setIsCreating] = useState(false);
-  const [query, setQuery] = useState("");
-  const [debouncedQuery, setDebouncedQuery] = useState("");
-  const [filter, setFilter] = useState<EventListQuery["filter"]>("all");
-  const [sort, setSort] = useState<EventListQuery["sort"]>("date");
+  const { criteria, change, layout, changeLayout } = useEventCollectionState();
+  const { query, filter, sort } = criteria;
+  const [debouncedQuery, setDebouncedQuery] = useState(query.trim());
+  const [isComposing, setIsComposing] = useState(false);
   useEffect(() => {
+    if (isComposing) return;
     const timer = window.setTimeout(() => setDebouncedQuery(query.trim()), 250);
     return () => window.clearTimeout(timer);
-  }, [query]);
+  }, [query, isComposing]);
   const events = useEventsQuery({ query: debouncedQuery, filter, sort });
-  const changingQuery = query.trim() !== debouncedQuery;
+  const changingQuery = isComposing || query.trim() !== debouncedQuery;
+  const { container, remember } = useEventCollectionReturn(
+    events.isSuccess && !events.isFetching && !changingQuery,
+  );
   const items = changingQuery ? [] : (events.data?.items ?? []);
   const now = Date.parse(events.data?.asOf ?? "");
   const filtered = debouncedQuery !== "" || filter !== "all";
-  const [layout, setLayout] = useState<"grid" | "list">("grid");
-  useEffect(() => {
-    try {
-      if (window.localStorage.getItem("chronelle.event-layout") === "list")
-        setLayout("list");
-    } catch {
-      /* Layout remains usable when browser storage is unavailable. */
-    }
-  }, []);
-
-  function changeLayout(value: "grid" | "list") {
-    setLayout(value);
-    try {
-      window.localStorage.setItem("chronelle.event-layout", value);
-    } catch {
-      /* Persistence is optional; no event data is stored here. */
-    }
-  }
-
   return (
-    <main className="workspace-page">
+    <main className="workspace-page" ref={container} tabIndex={-1}>
       <header className="page-heading split-heading">
         <div>
           <p className="eyebrow">Make room for what matters</p>
@@ -133,7 +129,12 @@ export function EventList() {
             <input
               type="search"
               value={query}
-              onChange={(event) => setQuery(event.target.value)}
+              onChange={(event) => change({ query: event.target.value })}
+              onCompositionStart={() => setIsComposing(true)}
+              onCompositionEnd={(event) => {
+                change({ query: event.currentTarget.value });
+                setIsComposing(false);
+              }}
               placeholder="Find an event..."
               maxLength={240}
             />
@@ -143,7 +144,7 @@ export function EventList() {
             <select
               value={sort}
               onChange={(event) =>
-                setSort(event.target.value as EventListQuery["sort"])
+                change({ sort: event.target.value as EventListQuery["sort"] })
               }
             >
               <option value="date">Event date</option>
@@ -173,7 +174,10 @@ export function EventList() {
             className="button button-quiet"
             type="button"
             disabled={events.isFetching || changingQuery}
-            onClick={() => void events.refresh()}
+            onClick={() => {
+              change({});
+              void events.refresh();
+            }}
           >
             Refresh events
           </button>
@@ -187,7 +191,7 @@ export function EventList() {
                   key={value}
                   aria-pressed={filter === value}
                   className={filter === value ? "active" : ""}
-                  onClick={() => setFilter(value)}
+                  onClick={() => change({ filter: value })}
                 >
                   {value === "all"
                     ? "All events"
@@ -247,8 +251,7 @@ export function EventList() {
               className="button button-secondary"
               type="button"
               onClick={() => {
-                setQuery("");
-                setFilter("all");
+                change({ query: "", filter: "all" });
               }}
             >
               Clear filters
@@ -257,7 +260,12 @@ export function EventList() {
         ) : null}
         <div className={`event-grid event-layout-${layout}`}>
           {items.map((event) => (
-            <EventCard event={event} now={now} key={event.id} />
+            <EventCard
+              event={event}
+              now={now}
+              key={event.id}
+              onOpen={(click) => remember(event.id, click)}
+            />
           ))}
         </div>
         {!changingQuery && events.hasNextPage ? (
