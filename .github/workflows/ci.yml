@@ -52,10 +52,8 @@ jobs:
           node-version: 24
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
-      - name: Install PostgreSQL client
-        run: |
-          sudo apt-get update
-          sudo apt-get install --no-install-recommends -y postgresql-client
+      - name: Verify PostgreSQL client
+        run: psql --version
       - name: Run quality gate
         run: pnpm check
 
@@ -111,6 +109,7 @@ jobs:
     name: browser
     needs: quality
     runs-on: ubuntu-latest
+    container: mcr.microsoft.com/playwright:v1.62.0-noble@sha256:baed2032d533817f3dbe6425de795788430ba345e819a1201337009ba17c9d07
     services:
       postgres:
         image: postgres:17-alpine
@@ -118,8 +117,6 @@ jobs:
           POSTGRES_DB: chronelle
           POSTGRES_USER: chronelle
           POSTGRES_PASSWORD: chronelle_dev
-        ports:
-          - 5432:5432
         options: >-
           --health-cmd "pg_isready -U chronelle -d chronelle"
           --health-interval 5s
@@ -127,7 +124,7 @@ jobs:
           --health-retries 10
     env:
       CI: "true"
-      DATABASE_URL: postgresql://chronelle:chronelle_dev@localhost:5432/chronelle
+      DATABASE_URL: postgresql://chronelle:chronelle_dev@postgres:5432/chronelle
     steps:
       - name: Check out repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -142,8 +139,6 @@ jobs:
           node-version: 24
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
-      - name: Install browser engines
-        run: pnpm exec playwright install --with-deps chromium webkit
       - name: Run browser release gate
         run: pnpm test:e2e
       - name: Check offline design sandbox
