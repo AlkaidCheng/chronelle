@@ -126,7 +126,7 @@ test("organizes events and keeps navigation usable across reloads and screen siz
       "aria-selected",
       "true",
     );
-    await page.getByLabel("Account and workspace").click();
+    await page.getByRole("button", { name: "More", exact: true }).click();
     await expect(
       page.getByRole("button", { name: "Sign out", exact: true }),
     ).toBeVisible();
@@ -134,12 +134,14 @@ test("organizes events and keeps navigation usable across reloads and screen siz
       .getByRole("combobox", { name: "Workspace", exact: true })
       .focus();
     await page.keyboard.press("Escape");
-    await expect(page.getByLabel("Account and workspace")).toBeFocused();
+    await expect(
+      page.getByRole("button", { name: "More", exact: true }),
+    ).toBeFocused();
     await expect(
       page.getByRole("button", { name: "Sign out", exact: true }),
     ).not.toBeVisible();
-    await page.getByLabel("Account and workspace").click();
   }
+  await page.getByRole("button", { name: "More", exact: true }).click();
   expect(
     await page.evaluate(
       () =>

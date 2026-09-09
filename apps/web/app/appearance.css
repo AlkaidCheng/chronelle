@@ -4,8 +4,33 @@
   align-items: center;
   gap: 4px;
 }
-.workspace-topbar > .appearance-toolbar {
+.workspace-utilities-body {
+  gap: 24px;
+}
+.workspace-account {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  overflow-wrap: anywhere;
+}
+.workspace-account .profile-mark {
   flex-shrink: 0;
+}
+.workspace-utilities-body h3 {
+  margin: 0;
+  font-size: 1rem;
+}
+.workspace-utilities-body p {
+  margin: 8px 0 12px;
+  font-size: 0.85rem;
+}
+.workspace-utilities-dialog {
+  max-height: calc(
+    100dvh - 32px - env(safe-area-inset-top) - env(safe-area-inset-bottom)
+  );
+}
+.workspace-utilities-dialog .event-create-header h2 {
+  font-size: 1.4rem;
 }
 .event-create-dialog.appearance-dialog {
   width: min(720px, calc(100vw - 32px));

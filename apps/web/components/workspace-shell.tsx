@@ -7,9 +7,9 @@ import { type ReactNode, useEffect } from "react";
 
 import { useAuthSession } from "../lib/auth-session";
 import { useSessionQuery } from "../lib/queries";
-import { CalendarIcon, SearchIcon, SignOutIcon, TrashIcon } from "./icons";
+import { CalendarIcon, SearchIcon, TrashIcon } from "./icons";
 import { ErrorNotice, LoadingState } from "./feedback";
-import { AppearanceSettings } from "./appearance-settings";
+import { WorkspaceUtilities } from "./workspace-utilities";
 
 export function WorkspaceShell({ children }: { readonly children: ReactNode }) {
   const { credential, isHydrated, signOut, switchWorkspace } = useAuthSession();
@@ -110,21 +110,12 @@ export function WorkspaceShell({ children }: { readonly children: ReactNode }) {
             <TrashIcon />
             Trash
           </Link>
+          <WorkspaceUtilities
+            session={currentSession}
+            onSwitchWorkspace={changeWorkspace}
+            onSignOut={leaveWorkspace}
+          />
         </nav>
-        <label className="workspace-switcher" htmlFor="desktop-workspace">
-          <span>Workspace</span>
-          <select
-            id="desktop-workspace"
-            onChange={(event) => changeWorkspace(event.target.value)}
-            value={activeWorkspaceId}
-          >
-            {currentSession.availableWorkspaces.map((workspace) => (
-              <option key={workspace.id} value={workspace.id}>
-                {workspace.displayName}
-              </option>
-            ))}
-          </select>
-        </label>
         <div className="sidebar-footer">
           <div className="profile-mark" aria-hidden="true">
             {currentSession.user.displayName.slice(0, 1).toUpperCase()}
@@ -133,70 +124,21 @@ export function WorkspaceShell({ children }: { readonly children: ReactNode }) {
             <strong>{currentSession.user.displayName}</strong>
             <span>{currentSession.workspace.displayName}</span>
           </div>
-          <button
-            aria-label="Sign out"
-            className="icon-button"
-            onClick={leaveWorkspace}
-            title="Sign out"
-            type="button"
-          >
-            <SignOutIcon />
-          </button>
         </div>
       </aside>
       <div className="workspace-main">
         <header className="workspace-topbar">
           <span>{currentSession.workspace.displayName}</span>
           <span className="environment-label">Development workspace</span>
-          <AppearanceSettings />
         </header>
         <header className="mobile-header">
           <Link className="brand" href="/events">
             <span className="brand-mark">C</span>
             <span>Chronelle</span>
           </Link>
-          <details
-            className="mobile-account"
-            onKeyDown={(event) => {
-              if (event.key === "Escape") {
-                event.currentTarget.open = false;
-                event.currentTarget.querySelector("summary")?.focus();
-              }
-            }}
-          >
-            <summary aria-label="Account and workspace">
-              <span className="profile-mark" aria-hidden="true">
-                {currentSession.user.displayName.slice(0, 1).toUpperCase()}
-              </span>
-            </summary>
-            <div className="account-popover">
-              <strong>{currentSession.user.displayName}</strong>
-              <AppearanceSettings />
-              <span className="environment-label">Development workspace</span>
-              <label className="mobile-workspace-switcher">
-                <span className="visually-hidden">Workspace</span>
-                <select
-                  aria-label="Workspace"
-                  onChange={(event) => changeWorkspace(event.target.value)}
-                  value={activeWorkspaceId}
-                >
-                  {currentSession.availableWorkspaces.map((workspace) => (
-                    <option key={workspace.id} value={workspace.id}>
-                      {workspace.displayName}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <button
-                className="button button-secondary button-wide"
-                onClick={leaveWorkspace}
-                type="button"
-              >
-                <SignOutIcon />
-                Sign out
-              </button>
-            </div>
-          </details>
+          <span className="mobile-workspace-name">
+            {currentSession.workspace.displayName}
+          </span>
         </header>
         <div id="workspace-content" tabIndex={-1}>
           {children}
