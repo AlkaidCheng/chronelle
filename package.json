@@ -27,15 +27,15 @@
     "typecheck": "pnpm --filter @chronelle/schemas typecheck && pnpm --filter @chronelle/db typecheck && pnpm --filter @chronelle/authorization typecheck && pnpm --filter @chronelle/storage typecheck && pnpm --filter @chronelle/object-model typecheck && pnpm --filter @chronelle/api-client typecheck && pnpm --filter @chronelle/api typecheck && pnpm --filter @chronelle/web typecheck"
   },
   "devDependencies": {
-    "@biomejs/biome": "2.5.11",
-    "@playwright/test": "1.62.0",
-    "@types/node": "26.4.0",
+    "@biomejs/biome": "2.5.12",
+    "@playwright/test": "1.63.0",
+    "@types/node": "26.4.1",
     "@types/react": "19.2.18",
-    "@types/react-dom": "19.2.5",
+    "@types/react-dom": "19.2.7",
     "prettier": "3.9.6",
     "tsx": "4.23.13",
     "typescript": "7.0.2",
-    "vitest": "4.1.11",
+    "vitest": "5.0.0",
     "yaml": "2.9.0"
   }
 }

@@ -22,9 +22,9 @@
   },
   "devDependencies": {
     "esbuild": "0.28.2",
-    "@testing-library/jest-dom": "6.9.1",
-    "@testing-library/react": "16.3.2",
-    "@testing-library/user-event": "14.6.1",
-    "jsdom": "26.1.0"
+    "@testing-library/jest-dom": "7.0.1",
+    "@testing-library/react": "16.3.3",
+    "@testing-library/user-event": "14.6.7",
+    "jsdom": "30.0.1"
   }
 }
