@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { type FormEvent, useEffect, useState } from "react";
 
 import { ErrorNotice } from "../../components/feedback";
-import { AppearanceControl } from "../../components/appearance-control";
+import { AppearanceSettings } from "../../components/appearance-settings";
 import { useAuthSession } from "../../lib/auth-session";
 import { useDevelopmentSignIn } from "../../lib/queries";
 
@@ -45,7 +45,7 @@ export default function SignInPage() {
       </section>
       <section className="sign-in-form-wrap">
         <form className="sign-in-form" onSubmit={handleSubmit}>
-          <AppearanceControl />
+          <AppearanceSettings />
           <div>
             <span className="preview-label">Development preview</span>
             <p className="eyebrow">Welcome to Chronelle</p>

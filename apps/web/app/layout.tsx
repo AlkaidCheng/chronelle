@@ -5,7 +5,7 @@ import type { ReactNode } from "react";
 import "./styles.css";
 import "./collections.css";
 import { Providers } from "./providers";
-import { appearanceBootstrap } from "../lib/appearance-preference";
+import { displayBootstrap } from "../lib/display-preferences";
 
 export const dynamic = "force-dynamic";
 
@@ -33,7 +33,7 @@ export default async function RootLayout({ children }: RootLayoutProps) {
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
-        <script nonce={nonce}>{appearanceBootstrap}</script>
+        <script nonce={nonce}>{displayBootstrap}</script>
       </head>
       <body>
         <Providers>{children}</Providers>

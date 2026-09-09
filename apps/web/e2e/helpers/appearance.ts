@@ -8,16 +8,16 @@ import { selectLeapDayRange } from "./calendar-keyboard";
 
 export async function expectReadablePalette(page: Page) {
   const checks = await page.evaluate(() => {
-    const style = getComputedStyle(document.documentElement);
     function luminance(token: string) {
-      const color = style
-        .getPropertyValue(`--${token}`)
-        .match(/#[\da-f]{6}/gi)
-        ?.at(style.colorScheme === "dark" ? -1 : 0);
-      if (!color) throw new Error(token);
-      const channels = color.slice(1).match(/../g) ?? [];
+      const probe = document.createElement("span");
+      probe.style.color = `var(--${token})`;
+      document.body.append(probe);
+      const color = getComputedStyle(probe).color;
+      probe.remove();
+      const channels = color.match(/^rgb\((\d+), (\d+), (\d+)\)$/)?.slice(1);
+      if (!channels) throw new Error(`${token}: ${color}`);
       const [r = 0, g = 0, b = 0] = channels.map((channel) => {
-        const value = Number.parseInt(channel, 16) / 255;
+        const value = Number(channel) / 255;
         return value <= 0.04045
           ? value / 12.92
           : ((value + 0.055) / 1.055) ** 2.4;
@@ -60,16 +60,13 @@ export async function expectReadablePalette(page: Page) {
 async function expectToken(locator: Locator, property: string, token: string) {
   const color = await locator.evaluate((element, name) => {
     const style = getComputedStyle(element);
-    const hex = style
-      .getPropertyValue(`--${name}`)
-      .match(/#[\da-f]{6}/gi)
-      ?.at(style.colorScheme === "dark" ? -1 : 0);
-    if (!hex) throw new Error(name);
-    const channels = hex
-      .slice(1)
-      .match(/../g)
-      ?.map((value) => Number.parseInt(value, 16));
-    return `rgb(${channels?.join(", ")})`;
+    const probe = document.createElement("span");
+    probe.style.color = style.getPropertyValue(`--${name}`);
+    probe.style.colorScheme = style.colorScheme;
+    document.body.append(probe);
+    const resolved = getComputedStyle(probe).color;
+    probe.remove();
+    return resolved;
   }, token);
   await expect(locator).toHaveCSS(property, color);
 }
