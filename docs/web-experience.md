@@ -77,6 +77,16 @@ the light paper color; the running page follows the selected appearance.
 - Filter the authorized event collection by name and date, and sort by date,
   last update, or name. Upcoming includes events still in progress. Events with
   no end date move to Past once their start time passes.
+- Name, period, and sort selections survive in-app navigation. Returning from
+  an Event restores its card position and keyboard focus after loading settles;
+  interacting while waiting cancels the restoration. Removed cards fall back to
+  the nearest available scroll position. Loaded pages use the existing query
+  cache; after cache eviction, the list starts with one page and does not
+  automatically download the remaining collection. Refresh starts at page one.
+  Search waits for committed input when using an input method editor.
+- Collection criteria and return references stay in memory, not URLs or browser
+  storage. Reload, sign-out, identity replacement, and workspace changes reset
+  them. These temporary preferences are not saved views or shared bookmarks.
 - Choose grid or list layout. Only this preference is saved in local browser
   storage; no object data, search text, or permissions are persisted there.
   Storage restrictions do not prevent using either layout.
@@ -185,10 +195,11 @@ and shared CSS; there is no theme-engine or component-framework dependency.
 
 Presentation selectors are pure functions in `apps/web/lib`; network mutations,
 concurrency handling, and query invalidation remain in the query layer. Grid,
-list, Calendar, and Timeline retain canonical object IDs. Client filtering is
-only a presentation step over server-authorized records, never an access check.
-The current event collection is unpaginated; server pagination is required
-before large-workspace scaling.
+list, Calendar, and Timeline retain canonical object IDs. Event name/period
+filtering and sorting run on the server with permission checks and cursor
+pagination. Navigation state contains no copied canonical records and never
+grants access. The session boundary owns both the query cache and collection
+return state.
 
 The manifest and vector app icon provide standalone presentation metadata.
 This release does not promise offline support or cross-browser installation.
