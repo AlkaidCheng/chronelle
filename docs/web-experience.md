@@ -22,6 +22,20 @@ unreadable storage falls back to System; failed writes leave the current page
 usable but cannot guarantee persistence. Sandbox file storage depends on the
 browser and file location.
 
+Choose Customize beside the mode control to open the Appearance dialog. It
+previews Ink & Paper, Celadon, and Modern Neutral in the current light/dark
+mode. Choosing a palette does not change that mode. Comfortable/Compact
+density changes Event-card and record-row spacing without shrinking controls.
+Motion follows the device by default; Reduced minimizes transitions and
+movement even when the device allows them. Device-level reduced motion always
+remains effective. These settings apply immediately and require no save.
+
+Each setting stores only one validated string under its own `chronelle.*` key.
+Reset display settings removes those overrides without clearing other browser
+data. Cross-tab changes apply even while the dialog is closed. Escape or Done
+closes the dialog and restores focus; underlying forms remain mounted. This
+dialog does not add shared layout configuration or a server-side settings API.
+
 Semantic colors and local font stacks live in `apps/web/app/tokens.css`, shared
 by the application and the browser-only sandbox. Components use role-based
 tokens rather than their own light/dark overrides. Each color pairs its light
@@ -29,14 +43,16 @@ and dark values with CSS `light-dark()`; supported browsers must implement it.
 Ordinary palettes must provide both appearances. A specialized single-mode
 palette must declare its supported appearance, explain any unavailable mode,
 and preserve the user's preferred mode for returning to a dual-mode palette.
-The palette selector and specialized palettes are not implemented yet.
+The three supplied palettes support both modes; specialized palettes are not
+implemented yet.
 Display headings prefer a local serif; controls use system sans-serif fonts
 with Chinese fallbacks. No
 font downloads or additional theme dependencies are required. A fixed,
-nonce-authorized script applies a validated saved appearance before rendering;
+nonce-authorized script applies validated display preferences before rendering;
 the offline sandbox authorizes the same script by hash. Stored values are never
 executed or interpolated into HTML. Browser chrome follows the selected mode
-after the control hydrates, and the initial browser chrome follows the OS.
+after the control hydrates, including palette and OS changes. Initial browser
+chrome uses Ink & Paper and follows the OS.
 
 Browser checks cover text and control-token contrast, keyboard date selection,
 visible input focus, long mixed-language names, draft preservation, saved
