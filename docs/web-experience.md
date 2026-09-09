@@ -30,8 +30,8 @@ Ordinary palettes must provide both appearances. A specialized single-mode
 palette must declare its supported appearance, explain any unavailable mode,
 and preserve the user's preferred mode for returning to a dual-mode palette.
 The palette selector and specialized palettes are not implemented yet.
-Display headings prefer a
-local serif; controls use system sans-serif fonts with Chinese fallbacks. No
+Display headings prefer a local serif; controls use system sans-serif fonts
+with Chinese fallbacks. No
 font downloads or additional theme dependencies are required. A fixed,
 nonce-authorized script applies a validated saved appearance before rendering;
 the offline sandbox authorizes the same script by hash. Stored values are never
@@ -43,7 +43,7 @@ visible input focus, long mixed-language names, draft preservation, saved
 overrides before application hydration, blocked storage, keyboard operation,
 and cross-tab changes. They do not replace manual screen-reader, physical
 device, or visual acceptance testing. The installed PWA's launch background is
-the light paper color; the running page follows system appearance.
+the light paper color; the running page follows the selected appearance.
 
 ## Planning workflow
 
