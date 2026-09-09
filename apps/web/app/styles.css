@@ -585,6 +585,88 @@ h3 {
   min-width: 0;
 }
 
+.workspace-command-trigger {
+  flex-shrink: 0;
+}
+
+.workspace-commands {
+  max-width: min(560px, calc(100vw - 32px));
+}
+
+.command-body {
+  display: grid;
+  gap: 18px;
+}
+
+.command-body > p {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.command-results {
+  margin: 0;
+  padding: 0;
+}
+
+.command-results [role="option"] {
+  align-items: center;
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  text-align: left;
+  width: 100%;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  cursor: pointer;
+  display: flex;
+  gap: 12px;
+  min-height: 60px;
+  padding: 10px 12px;
+}
+
+.command-results [aria-selected="true"] {
+  background: var(--accent-soft);
+  border-color: var(--focus);
+}
+
+.command-results svg {
+  flex-shrink: 0;
+  height: 20px;
+  width: 20px;
+  stroke: currentColor;
+  stroke-width: 1.6;
+}
+
+.command-results span {
+  display: grid;
+  flex: 1;
+  min-width: 0;
+}
+
+.command-results small {
+  color: var(--muted);
+  overflow-wrap: anywhere;
+}
+
+.command-help {
+  border-top: 1px solid var(--line);
+  font-size: 0.85rem;
+  padding-top: 12px;
+}
+
+.command-help summary {
+  cursor: pointer;
+  min-height: 44px;
+  align-content: center;
+}
+
+.command-help label {
+  align-items: center;
+  display: flex;
+  gap: 10px;
+  min-height: 44px;
+}
+
 .mobile-header {
   display: none;
 }
@@ -2031,10 +2113,16 @@ a.search-result:hover {
   .mobile-workspace-name {
     color: var(--muted);
     font-size: 0.72rem;
-    margin-left: 16px;
+    display: block;
+    margin-top: 4px;
     min-width: 0;
     overflow-wrap: anywhere;
-    text-align: right;
+    text-align: left;
+  }
+
+  .mobile-workspace-identity {
+    min-width: 0;
+    margin-right: 12px;
   }
 
   .workspace-page,

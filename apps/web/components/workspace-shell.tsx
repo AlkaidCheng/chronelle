@@ -7,7 +7,8 @@ import { type ReactNode, useEffect } from "react";
 
 import { useAuthSession } from "../lib/auth-session";
 import { useSessionQuery } from "../lib/queries";
-import { CalendarIcon, SearchIcon, TrashIcon } from "./icons";
+import { WorkspaceHeader } from "./workspace-header";
+import { workspaceDestinations } from "./workspace-navigation";
 import { ErrorNotice, LoadingState } from "./feedback";
 import { WorkspaceUtilities } from "./workspace-utilities";
 
@@ -86,30 +87,19 @@ export function WorkspaceShell({ children }: { readonly children: ReactNode }) {
           <span>Chronelle</span>
         </Link>
         <nav aria-label="Workspace navigation" className="workspace-nav">
-          <Link
-            aria-current={pathname.startsWith("/events") ? "page" : undefined}
-            className={pathname.startsWith("/events") ? "active" : ""}
-            href="/events"
-          >
-            <CalendarIcon />
-            Events
-          </Link>
-          <Link
-            aria-current={pathname.startsWith("/search") ? "page" : undefined}
-            className={pathname.startsWith("/search") ? "active" : ""}
-            href="/search"
-          >
-            <SearchIcon />
-            Search
-          </Link>
-          <Link
-            aria-current={pathname.startsWith("/trash") ? "page" : undefined}
-            className={pathname.startsWith("/trash") ? "active" : ""}
-            href="/trash"
-          >
-            <TrashIcon />
-            Trash
-          </Link>
+          {workspaceDestinations.map((destination) => (
+            <Link
+              key={destination.href}
+              href={destination.href}
+              aria-current={
+                pathname.startsWith(destination.href) ? "page" : undefined
+              }
+              className={pathname.startsWith(destination.href) ? "active" : ""}
+            >
+              <destination.icon />
+              {destination.label}
+            </Link>
+          ))}
           <WorkspaceUtilities
             session={currentSession}
             onSwitchWorkspace={changeWorkspace}
@@ -127,19 +117,7 @@ export function WorkspaceShell({ children }: { readonly children: ReactNode }) {
         </div>
       </aside>
       <div className="workspace-main">
-        <header className="workspace-topbar">
-          <span>{currentSession.workspace.displayName}</span>
-          <span className="environment-label">Development workspace</span>
-        </header>
-        <header className="mobile-header">
-          <Link className="brand" href="/events">
-            <span className="brand-mark">C</span>
-            <span>Chronelle</span>
-          </Link>
-          <span className="mobile-workspace-name">
-            {currentSession.workspace.displayName}
-          </span>
-        </header>
+        <WorkspaceHeader workspaceName={currentSession.workspace.displayName} />
         <div id="workspace-content" tabIndex={-1}>
           {children}
         </div>
