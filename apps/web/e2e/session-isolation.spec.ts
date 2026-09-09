@@ -1,10 +1,11 @@
 import { randomUUID } from "node:crypto";
 import { expect, test } from "@playwright/test";
+import { openWorkspaceSettings } from "./helpers/workspace-utilities";
 
 test("isolates a delayed collection page across workspace changes and sign-out", async ({
   page,
   request,
-}, testInfo) => {
+}) => {
   const email = `session-${randomUUID()}@example.test`;
   const firstIdentity = await request.post("/api/auth/development/sign-in", {
     data: { email, displayName: "Session planner" },
@@ -72,9 +73,7 @@ test("isolates a delayed collection page across workspace changes and sign-out",
     );
     await page.getByRole("button", { name: "Load more events" }).click();
     await delayed.promise;
-    if (testInfo.project.name === "chromium-mobile") {
-      await page.getByLabel("Account and workspace").click();
-    }
+    await openWorkspaceSettings(page);
     await page
       .getByRole("combobox", { name: "Workspace", exact: true })
       .selectOption(second.workspace.id);
@@ -89,9 +88,7 @@ test("isolates a delayed collection page across workspace changes and sign-out",
     await expect(
       page.getByRole("link", { name: /Personal collection item/u }),
     ).toHaveCount(0);
-    if (testInfo.project.name === "chromium-mobile") {
-      await page.getByLabel("Account and workspace").click();
-    }
+    await openWorkspaceSettings(page);
     await page.getByRole("button", { name: "Sign out", exact: true }).click();
     await expect(page).toHaveURL(/\/sign-in$/u);
     await page.getByLabel("Name", { exact: true }).fill("Fresh planner");

@@ -1,10 +1,10 @@
 import { expect, type Page, type TestInfo } from "@playwright/test";
 import { expectReadablePalette } from "./appearance";
+import { openWorkspaceSettings } from "./workspace-utilities";
 
 export async function openDisplaySettings(page: Page) {
   const trigger = page.getByRole("button", { name: "Customize appearance" });
-  if (!(await trigger.isVisible()))
-    await page.getByLabel("Account and workspace").click();
+  if (!(await trigger.isVisible())) await openWorkspaceSettings(page);
   await trigger.click();
   return page.getByRole("dialog", { name: "Appearance", exact: true });
 }

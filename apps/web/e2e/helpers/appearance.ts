@@ -143,7 +143,7 @@ async function exerciseAppearanceControl(
   async function choose(name: string) {
     const group = page.getByRole("group", { name: "Appearance" });
     if (!(await group.isVisible()))
-      await page.getByLabel("Account and workspace").click();
+      await page.getByRole("button", { name: "More", exact: true }).click();
     await group.getByRole("radio", { name, exact: true }).check();
   }
   await choose(opposite === "dark" ? "Dark" : "Light");
@@ -161,6 +161,5 @@ async function exerciseAppearanceControl(
   await expect(page.locator("html")).toHaveCSS("color-scheme", opposite);
   await page.emulateMedia({ colorScheme: appearance });
   await expect(page.locator("html")).toHaveCSS("color-scheme", appearance);
-  if (await page.getByLabel("Account and workspace").isVisible())
-    await page.getByLabel("Account and workspace").press("Escape");
+  await page.keyboard.press("Escape");
 }

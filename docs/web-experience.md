@@ -2,15 +2,24 @@
 
 Chronelle opens into an event collection, with workspace-wide Search and Trash
 alongside it. Desktop navigation stays on the left; mobile navigation remains
-at the bottom with space for the device's safe area. The mobile account menu
-contains workspace switching and sign-out. Escape closes it and returns focus.
+at the bottom with space for the device's safe area. Events, Search, and Trash
+remain directly accessible on both layouts. More opens one shared Workspace
+settings dialog for workspace switching, appearance, and sign-out. Escape,
+the close button, or a backdrop press dismisses it and returns focus to More.
+Opening settings does not navigate or discard the current Event draft.
+
+Appearance customization opens a second native dialog. Closing it returns to
+Workspace settings; a second Escape returns to the page. A workspace or session
+change dismisses both dialogs and uses the existing session boundary to cancel
+pending requests and clear protected state. Workspace choices come from the
+authorized session response; choosing one never grants access by itself.
 
 ## Appearance
 
 Ink & Paper uses warm ivory surfaces, charcoal text, and restrained vermilion
 accents. Dark appearance uses warm charcoal surfaces with light ink text.
 The Appearance control offers System, Light, and Dark. It is available on
-sign-in, in the desktop workspace header, and inside the mobile account menu.
+sign-in and inside More on desktop and mobile.
 Native radio controls support Tab and arrow-key navigation. System follows
 operating-system changes; Light and Dark override them without reloading the
 page or resetting a draft.

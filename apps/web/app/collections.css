@@ -179,37 +179,6 @@
 .mobile-view-select {
   display: none;
 }
-.mobile-account {
-  position: relative;
-}
-.mobile-account summary {
-  border-radius: 50%;
-  cursor: pointer;
-  list-style: none;
-  padding: 5px;
-}
-.mobile-account summary::-webkit-details-marker {
-  display: none;
-}
-.mobile-account summary:focus-visible {
-  outline: 3px solid var(--accent);
-}
-.account-popover {
-  background: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: 14px;
-  box-shadow: var(--shadow);
-  display: grid;
-  gap: 16px;
-  margin-top: 8px;
-  padding: 20px;
-  position: absolute;
-  right: 0;
-  width: min(300px, calc(100vw - 40px));
-}
-.account-popover strong {
-  overflow-wrap: anywhere;
-}
 .route-state {
   margin: 80px auto;
   max-width: 640px;
