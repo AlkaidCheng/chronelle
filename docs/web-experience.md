@@ -113,6 +113,28 @@ Display dates and date-entry controls use the browser's local timezone. Stored
 timezone and all-day attributes are retained; specialized all-day and
 event-timezone display are a follow-up.
 
+## First use and return
+
+Start with an Event name; dates can wait. Add a named page such as Preparation,
+then add only the components it needs. Empty pages explain this next step;
+movement instructions appear once there is a component to arrange. Viewers see
+read-only explanations without instructions to use unavailable controls.
+
+Trash lists only objects the current user can recover. An empty type filter can
+be cleared to show all accessible types. After successful Event recovery,
+**Open recovered event** returns to its pages. Recovery preserves the canonical
+ID and saved layout; related objects are not recovered automatically. The link
+does not bypass the destination's authorization checks.
+
+Keyboard browser tests cover creating an undated Event, adding a page and a
+To-dos component, recording a task, recovering the Event, and reopening its
+unchanged layout and task. Mobile engine tests include a 320px viewport.
+The offline sandbox covers composition and navigation, not real recovery.
+These checks do not establish physical-device or screen-reader acceptance.
+Form fields can shrink inside narrow page components without pushing their
+inputs or submit actions outside the form. Browser checks verify control
+containment as well as document width.
+
 ## Date and dialog navigation
 
 The Event date picker has independent month and year controls. Arrow keys move
