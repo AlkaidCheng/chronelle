@@ -1,6 +1,7 @@
 "use client";
 
 import type { RecoveryPreview, TrashQueryInput } from "@chronelle/schemas";
+import Link from "next/link";
 import { useState } from "react";
 import {
   EmptyState,
@@ -82,10 +83,32 @@ export function TrashWorkspace() {
         />
       ) : null}
       {trash.isSuccess && items.length === 0 ? (
-        <EmptyState
-          title="No recoverable objects"
-          description="Objects appear here only when your current access allows recovery. Removed context links are listed separately inside each Event."
-        />
+        <div className="collection-empty">
+          <EmptyState
+            title={
+              filter === undefined
+                ? "No recoverable objects"
+                : "No recoverable objects of this type"
+            }
+            description={
+              filter === undefined
+                ? "Objects appear here only when your current access allows recovery. Removed context links are listed separately inside each Event."
+                : "Try all types. Only objects you can currently recover are shown."
+            }
+          />
+          {filter !== undefined ? (
+            <button
+              className="button button-secondary"
+              type="button"
+              onClick={() => {
+                setSelectedId(null);
+                setFilter(undefined);
+              }}
+            >
+              Clear type filter
+            </button>
+          ) : null}
+        </div>
       ) : null}
       <div className="resource-list recovery-list trash-list">
         {items.map((item) => (
@@ -150,9 +173,20 @@ function ObjectRecoveryPreview({
   return (
     <RecoveryDialog title="Recovery preview" onClose={onClose}>
       {savedVersion !== null ? (
-        <p role="status" className="notice">
-          Recovered as version {savedVersion}. Normal views have been refreshed.
-        </p>
+        <>
+          <p role="status" className="notice">
+            Recovered as version {savedVersion}. Normal views have been
+            refreshed.
+          </p>
+          {shown?.object.objectType === "event" ? (
+            <Link
+              className="button button-primary"
+              href={`/events/${objectId}`}
+            >
+              Open recovered event
+            </Link>
+          ) : null}
+        </>
       ) : (
         <>
           {preview.isPending ? (

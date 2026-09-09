@@ -233,7 +233,7 @@ export function EventList() {
         events.data?.items.length === 0 &&
         !filtered ? (
           <EmptyState
-            description="Choose New event to start a gathering, a project, or a day worth planning. Add the details as they take shape."
+            description="Choose New event and give it a name. Dates are optional. Add pages and components as your plans take shape."
             title="Your first event starts here"
           />
         ) : null}

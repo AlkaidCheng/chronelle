@@ -121,6 +121,53 @@ function RefreshProbe() {
 }
 
 describe("insertable event components", () => {
+  it.each([false, true])(
+    "explains the next step for empty layouts without offering viewer actions (canEdit=%s)",
+    async (canEdit) => {
+      const user = userEvent.setup();
+      render(<EventPages eventId={eventId} canEdit={canEdit} />, {
+        wrapper: Providers,
+      });
+      await screen.findByRole("heading", { name: "A place for your event" });
+      expect(screen.queryByText(/Drag its handle/)).toBeNull();
+      if (!canEdit) {
+        expect(
+          screen.getByText("The planner has not added any pages yet."),
+        ).toBeVisible();
+        expect(screen.queryByRole("button", { name: "Add page" })).toBeNull();
+        return;
+      }
+      await user.click(screen.getByRole("button", { name: "Add page" }));
+      const dialog = within(screen.getByRole("dialog", { name: "Add a page" }));
+      const name = dialog.getByRole("textbox", { name: "Page name" });
+      expect(name).toHaveAccessibleDescription(/Pages organize this event/);
+      await user.type(name, "Preparation");
+      await user.click(dialog.getByRole("button", { name: "Add page" }));
+      await screen.findByRole("heading", { name: "Preparation" });
+      expect(screen.getByText(/Choose Add component/)).toBeVisible();
+      expect(screen.queryByText(/Drag its handle/)).toBeNull();
+      await user.click(screen.getByRole("button", { name: "Add component" }));
+      await user.click(screen.getByRole("button", { name: "Add To-dos" }));
+      expect(await screen.findByText(/Drag its handle/)).toBeVisible();
+      expect(screen.queryByText(/Choose Add component/)).toBeNull();
+    },
+  );
+
+  it("does not instruct a viewer to insert components into an empty page", async () => {
+    await client.updateEventLayout(eventId, {
+      expectedVersion: 0,
+      pages: [page("Preparation", [])],
+    });
+    render(<EventPages eventId={eventId} canEdit={false} />, {
+      wrapper: Providers,
+    });
+    expect(
+      await screen.findByText("This page has no components yet."),
+    ).toBeVisible();
+    expect(screen.queryByRole("button", { name: "Add component" })).toBeNull();
+    expect(screen.queryByText(/Drag its handle/)).toBeNull();
+  });
+
   it.each([503, 403, 404])(
     "handles layout refresh status %s without losing drafts on temporary failures",
     async (status) => {
