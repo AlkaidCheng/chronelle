@@ -22,13 +22,13 @@ export default defineConfig({
     {
       name: "webkit-desktop",
       testMatch:
-        /(event-accessibility|date-formatting|editor-feedback|appearance|page-navigation|workspace-utilities|collection-return|first-use)\.spec\.ts/,
+        /(event-accessibility|date-formatting|editor-feedback|appearance|page-navigation|workspace-utilities|collection-return|first-use|workspace-commands)\.spec\.ts/,
       use: { ...devices["Desktop Safari"] },
     },
     {
       name: "webkit-mobile",
       testMatch:
-        /(event-accessibility|date-formatting|editor-feedback|appearance|page-navigation|workspace-utilities|collection-return|first-use)\.spec\.ts/,
+        /(event-accessibility|date-formatting|editor-feedback|appearance|page-navigation|workspace-utilities|collection-return|first-use|workspace-commands)\.spec\.ts/,
       use: { ...devices["iPhone 13"] },
     },
   ],

@@ -14,6 +14,30 @@ change dismisses both dialogs and uses the existing session boundary to cancel
 pending requests and clear protected state. Workspace choices come from the
 authorized session response; choosing one never grants access by itself.
 
+## Workspace commands
+
+Commands opens a focused navigation palette from the desktop or mobile header.
+Type a destination name or description, use Up/Down to choose a result, and
+press Enter to navigate. Pointer selection also works. Escape, Close, or a
+backdrop press dismisses the palette and restores focus. Opening or closing it
+keeps the current draft; choosing another destination has the same draft
+behavior as the navigation rail.
+
+Cmd/Ctrl + K opens Commands outside text editors and dialogs. It ignores
+composition, repeated keydown, consumed events, and extra modifiers. Keyboard
+shortcuts inside the palette explains the controls and lets users disable this
+binding. The visible Commands button remains available. The preference is a
+browser-local `chronelle.command-shortcut` value: `disabled` opts out; absence
+or an unknown value enables the default. Same-origin tabs synchronize it.
+Blocked storage allows a current-page choice without guaranteeing persistence.
+Display reset does not change shortcut preferences.
+
+The rail and palette share one catalog of Events, Search, and Trash routes.
+Filtering commands makes no object queries and stores no query text or record
+data. The palette closes on workspace or identity changes. Destination screens
+retain their existing backend authorization and session isolation. Contextual
+editing actions and object results are not part of the navigation palette.
+
 ## Appearance
 
 Ink & Paper uses warm ivory surfaces, charcoal text, and restrained vermilion

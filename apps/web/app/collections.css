@@ -14,13 +14,6 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.environment-label {
-  color: var(--muted);
-  font-size: 0.7rem;
-}
-.workspace-topbar .environment-label {
-  flex-shrink: 0;
-}
 .preview-label {
   background: var(--accent-soft);
   border-radius: 6px;
