@@ -38,9 +38,12 @@ page area; it does not insert immediately. Its independent browser-local key,
 `chronelle.component-shortcut`, accepts `slash`, `modified-slash`, or `disabled`.
 Missing, invalid, or unreadable values default to slash. Changes synchronize
 between mounted controls and same-origin tabs; blocked writes retain a
-current-page choice, including after closing the dialog. Reset keyboard
-shortcuts restores both bindings without changing appearance or clearing
-other browser data. Native text undo remains available in editors.
+current-page choice, including after closing the dialog. The editor-submit
+checkbox controls Cmd/Ctrl + Enter using `chronelle.editor-shortcut`:
+`disabled` opts out, while missing, unknown, or unreadable values enable it.
+All three shortcuts share the same storage and synchronization behavior.
+Reset keyboard shortcuts restores their defaults without changing appearance
+or clearing other browser data. Native text undo remains available in editors.
 
 The rail and palette share one catalog of Events, Search, and Trash routes.
 Filtering commands makes no object queries and stores no query text or record
@@ -201,6 +204,20 @@ Event, schedule-item, task, expense, and reminder forms keep their draft after a
 failed save. Submit again explicitly to retry; Refresh latest only fetches data
 and does not save changes. A failed refresh leaves the save error visible.
 Loading a newer version requires the explicit discard-draft action.
+
+Cmd/Ctrl + Enter submits the focused native field in these editors, including
+the New event dialog. The save button shows a hint and exposes the binding to
+assistive technology. The shortcut requests a normal form submission through
+that button: required fields, amount patterns, schedule validation, pinned
+versions, mutation commands, and backend permissions all remain in effect.
+It also works when the save button itself has focus.
+
+Only explicitly opted-in editor forms participate. Calendar navigation, Cancel,
+custom text controls, nested dialogs, portaled content, and other forms keep
+their existing keys. Consumed events, IME composition, repeats, extra modifiers,
+pending saves, and disabled save buttons cannot trigger shortcut submission.
+Unmodified Enter is unchanged. Disabling the shortcut in Commands does not
+disable the visible save button or discard drafts.
 
 Inputs and submission controls are disabled during a save. Mounted forms announce
 pending and successful saves; starting another edit clears the success message.
