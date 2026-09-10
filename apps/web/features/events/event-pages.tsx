@@ -125,6 +125,9 @@ function AddPageContentDialog({
             </>
           ) : (
             <>
+              <p className="field-hint">
+                Add to {source.pages.find((page) => page.id === pageId)?.name}.
+              </p>
               <label className="field">
                 Find a component
                 <input

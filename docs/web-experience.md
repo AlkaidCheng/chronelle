@@ -32,6 +32,16 @@ or an unknown value enables the default. Same-origin tabs synchronize it.
 Blocked storage allows a current-page choice without guaranteeing persistence.
 Display reset does not change shortcut preferences.
 
+The same help section offers `/`, `Cmd/Ctrl + /`, or Off for Add component.
+This action opens the existing picker only from within an editable event's
+page area; it does not insert immediately. Its independent browser-local key,
+`chronelle.component-shortcut`, accepts `slash`, `modified-slash`, or `disabled`.
+Missing, invalid, or unreadable values default to slash. Changes synchronize
+between mounted controls and same-origin tabs; blocked writes retain a
+current-page choice, including after closing the dialog. Reset keyboard
+shortcuts restores both bindings without changing appearance or clearing
+other browser data. Native text undo remains available in editors.
+
 The rail and palette share one catalog of Events, Search, and Trash routes.
 Filtering commands makes no object queries and stores no query text or record
 data. The palette closes on workspace or identity changes. Destination screens

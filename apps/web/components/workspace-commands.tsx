@@ -3,6 +3,11 @@
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useId, useRef, useState } from "react";
 import { useSessionDialog } from "../lib/use-session-dialog";
+import {
+  componentShortcuts,
+  parseComponentShortcut,
+  useComponentShortcut,
+} from "../lib/use-component-shortcut";
 import { workspaceDestinations } from "./workspace-navigation";
 
 export function WorkspaceCommands({
@@ -17,6 +22,7 @@ export function WorkspaceCommands({
   readonly onClose: () => void;
 }) {
   const dialog = useSessionDialog(onClose);
+  const componentShortcut = useComponentShortcut();
   const input = useRef<HTMLInputElement>(null);
   const activeOption = useRef<HTMLButtonElement>(null);
   const composing = useRef(false);
@@ -175,10 +181,42 @@ export function WorkspaceCommands({
             />{" "}
             Enable command shortcut
           </label>
+          <label className="field">
+            Add component shortcut
+            <select
+              value={componentShortcut.value}
+              onChange={(event) =>
+                componentShortcut.setValue(
+                  parseComponentShortcut(event.target.value),
+                )
+              }
+            >
+              {Object.entries(componentShortcuts).map(([value, choice]) => (
+                <option key={value} value={value}>
+                  {choice.label}
+                </option>
+              ))}
+            </select>
+          </label>
           <p className="field-hint">
-            The Commands button always works. This choice is saved on this
-            browser when storage is available. Other shortcuts are unchanged.
+            Opens the picker from the selected event page, outside editors and
+            dialogs. Requires edit access and room on the page.
           </p>
+          <p className="field-hint">
+            Buttons remain available without shortcuts. These choices are saved
+            on this browser when storage is available. Native text undo is
+            unchanged.
+          </p>
+          <button
+            type="button"
+            className="button button-quiet"
+            onClick={() => {
+              onShortcutChange(true);
+              componentShortcut.setValue("slash");
+            }}
+          >
+            Reset keyboard shortcuts
+          </button>
         </details>
       </div>
     </dialog>
