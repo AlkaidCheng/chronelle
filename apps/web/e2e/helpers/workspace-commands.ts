@@ -9,6 +9,9 @@ export async function exerciseWorkspaceCommands(
   page.on("pageerror", (error) => errors.push(error.message));
   const trigger = page.getByRole("button", { name: "Commands", exact: true });
   const dialog = page.getByRole("dialog", { name: "Commands", exact: true });
+  const results = dialog.getByRole("listbox", {
+    name: "Workspace destinations",
+  });
   await page.getByRole("button", { name: "Edit event", exact: true }).click();
   const draft = page.getByLabel("Name", { exact: true });
   await draft.fill("Unsaved command draft");
@@ -19,13 +22,13 @@ export async function exerciseWorkspaceCommands(
   await page.keyboard.press("Control+k");
   const input = dialog.getByRole("combobox", { name: "Find a command" });
   await expect(input).toBeFocused();
-  await expect(dialog.getByRole("option")).toHaveCount(3);
+  await expect(results.getByRole("option")).toHaveCount(3);
   await page.keyboard.press("ArrowUp");
-  await expect(dialog.getByRole("option", { selected: true })).toContainText(
+  await expect(results.getByRole("option", { selected: true })).toContainText(
     "Trash",
   );
   await page.keyboard.press("ArrowDown");
-  await expect(dialog.getByRole("option", { selected: true })).toContainText(
+  await expect(results.getByRole("option", { selected: true })).toContainText(
     "Events",
   );
   await input.fill("nothing matches");
@@ -85,7 +88,9 @@ export async function exerciseWorkspaceCommands(
   await page.setViewportSize({ width: 568, height: 320 });
   await input.focus();
   await page.keyboard.press("ArrowUp");
-  await expect(dialog.getByRole("option", { selected: true })).toBeInViewport();
+  await expect(
+    results.getByRole("option", { selected: true }),
+  ).toBeInViewport();
   await expect(
     dialog.getByRole("button", { name: "Close commands" }),
   ).toBeInViewport();

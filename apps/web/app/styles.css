@@ -667,6 +667,11 @@ h3 {
   min-height: 44px;
 }
 
+.command-help .field {
+  display: grid;
+  margin-top: 12px;
+}
+
 .mobile-header {
   display: none;
 }

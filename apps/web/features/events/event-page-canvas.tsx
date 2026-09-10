@@ -12,6 +12,11 @@ import { EmptyState, ErrorNotice } from "../../components/feedback";
 import { eventComponents } from "../../lib/event-components";
 import { moveEventComponent, moveEventPage } from "../../lib/event-layout";
 import { useUpdateEventLayout } from "../../lib/event-layout-queries";
+import { canInsertComponent } from "../../lib/keyboard";
+import {
+  componentShortcuts,
+  useComponentShortcut,
+} from "../../lib/use-component-shortcut";
 import { EventComponent } from "./event-component";
 
 export function EventPageCanvas({
@@ -34,6 +39,7 @@ export function EventPageCanvas({
   readonly renderTools?: (busy: boolean) => ReactNode;
 }) {
   const save = useUpdateEventLayout(layout.eventId);
+  const shortcut = useComponentShortcut();
   const locked = useRef(false);
   const drag = useRef<{
     componentId: string;
@@ -204,19 +210,12 @@ export function EventPageCanvas({
       aria-label="Event pages"
       onKeyDown={(event) => {
         if (
-          event.key !== "/" ||
-          event.ctrlKey ||
-          event.metaKey ||
-          event.altKey ||
-          event.repeat ||
           !canAdd ||
-          save.isPending
-        )
-          return;
-        if (
-          !(event.target instanceof HTMLElement) ||
-          event.target.closest(
-            "input, textarea, select, [contenteditable], dialog",
+          save.isPending ||
+          !canInsertComponent(
+            event.nativeEvent,
+            event.currentTarget,
+            shortcut.value,
           )
         )
           return;
@@ -334,7 +333,7 @@ export function EventPageCanvas({
                 <button
                   type="button"
                   className="button button-secondary"
-                  aria-keyshortcuts="/"
+                  aria-keyshortcuts={componentShortcuts[shortcut.value].keys}
                   disabled={save.isPending}
                   onClick={onAddComponent}
                 >
@@ -345,8 +344,12 @@ export function EventPageCanvas({
           </div>
           {canEdit && selected.components.length > 0 ? (
             <p className="composition-hint">
-              Use / to find a component. Drag its handle to reorder or drop it
-              on a page. Move controls work with touch and keyboard.
+              {canAdd &&
+                !save.isPending &&
+                shortcut.value !== "disabled" &&
+                `Use ${componentShortcuts[shortcut.value].label} to find a component. `}
+              Drag its handle to reorder or drop it on a page. Move controls
+              work with touch and keyboard.
             </p>
           ) : null}
           {selected.components.length === 0 ? (
