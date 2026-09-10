@@ -11,6 +11,7 @@ import { WorkspaceHeader } from "./workspace-header";
 import { workspaceDestinations } from "./workspace-navigation";
 import { ErrorNotice, LoadingState } from "./feedback";
 import { WorkspaceUtilities } from "./workspace-utilities";
+import { WorkspaceCommandProvider } from "./context-commands";
 
 export function WorkspaceShell({ children }: { readonly children: ReactNode }) {
   const { credential, isHydrated, signOut, switchWorkspace } = useAuthSession();
@@ -77,51 +78,57 @@ export function WorkspaceShell({ children }: { readonly children: ReactNode }) {
   }
 
   return (
-    <div className="workspace-shell">
-      <a className="skip-link" href="#workspace-content">
-        Skip to content
-      </a>
-      <aside className="sidebar">
-        <Link className="brand" href="/events">
-          <span className="brand-mark">C</span>
-          <span>Chronelle</span>
-        </Link>
-        <nav aria-label="Workspace navigation" className="workspace-nav">
-          {workspaceDestinations.map((destination) => (
-            <Link
-              key={destination.href}
-              href={destination.href}
-              aria-current={
-                pathname.startsWith(destination.href) ? "page" : undefined
-              }
-              className={pathname.startsWith(destination.href) ? "active" : ""}
-            >
-              <destination.icon />
-              {destination.label}
-            </Link>
-          ))}
-          <WorkspaceUtilities
-            session={currentSession}
-            onSwitchWorkspace={changeWorkspace}
-            onSignOut={leaveWorkspace}
+    <WorkspaceCommandProvider pathname={pathname}>
+      <div className="workspace-shell">
+        <a className="skip-link" href="#workspace-content">
+          Skip to content
+        </a>
+        <aside className="sidebar">
+          <Link className="brand" href="/events">
+            <span className="brand-mark">C</span>
+            <span>Chronelle</span>
+          </Link>
+          <nav aria-label="Workspace navigation" className="workspace-nav">
+            {workspaceDestinations.map((destination) => (
+              <Link
+                key={destination.href}
+                href={destination.href}
+                aria-current={
+                  pathname.startsWith(destination.href) ? "page" : undefined
+                }
+                className={
+                  pathname.startsWith(destination.href) ? "active" : ""
+                }
+              >
+                <destination.icon />
+                {destination.label}
+              </Link>
+            ))}
+            <WorkspaceUtilities
+              session={currentSession}
+              onSwitchWorkspace={changeWorkspace}
+              onSignOut={leaveWorkspace}
+            />
+          </nav>
+          <div className="sidebar-footer">
+            <div className="profile-mark" aria-hidden="true">
+              {currentSession.user.displayName.slice(0, 1).toUpperCase()}
+            </div>
+            <div className="profile-copy">
+              <strong>{currentSession.user.displayName}</strong>
+              <span>{currentSession.workspace.displayName}</span>
+            </div>
+          </div>
+        </aside>
+        <div className="workspace-main">
+          <WorkspaceHeader
+            workspaceName={currentSession.workspace.displayName}
           />
-        </nav>
-        <div className="sidebar-footer">
-          <div className="profile-mark" aria-hidden="true">
-            {currentSession.user.displayName.slice(0, 1).toUpperCase()}
+          <div id="workspace-content" tabIndex={-1}>
+            {children}
           </div>
-          <div className="profile-copy">
-            <strong>{currentSession.user.displayName}</strong>
-            <span>{currentSession.workspace.displayName}</span>
-          </div>
-        </div>
-      </aside>
-      <div className="workspace-main">
-        <WorkspaceHeader workspaceName={currentSession.workspace.displayName} />
-        <div id="workspace-content" tabIndex={-1}>
-          {children}
         </div>
       </div>
-    </div>
+    </WorkspaceCommandProvider>
   );
 }
