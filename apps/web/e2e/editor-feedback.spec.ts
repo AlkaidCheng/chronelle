@@ -55,6 +55,10 @@ test("retains a failed task draft and saves only after an explicit retry", async
   });
   expect(commands).toHaveLength(1);
   fail = false;
+  const actions = form.locator(".form-actions");
+  const actionHeight = await actions.evaluate(
+    (element) => element.getBoundingClientRect().height,
+  );
   await form.getByLabel("Task", { exact: true }).press("Meta+Enter");
   await expect(form).toHaveAttribute("aria-busy", "true");
   await expect(form.getByLabel("Task", { exact: true })).toBeDisabled();
@@ -62,6 +66,9 @@ test("retains a failed task draft and saves only after an explicit retry", async
     "Saving changes...",
   );
   await expect.poll(() => finishSave !== undefined).toBe(true);
+  expect(
+    await actions.evaluate((element) => element.getBoundingClientRect().height),
+  ).toBe(actionHeight);
   await form.dispatchEvent("keydown", { key: "Enter", ctrlKey: true });
   expect(commands).toHaveLength(2);
   finishSave?.();

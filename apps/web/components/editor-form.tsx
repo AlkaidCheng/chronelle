@@ -66,8 +66,12 @@ export function EditorSubmitButton(
         aria-keyshortcuts={enabled ? "Control+Enter Meta+Enter" : undefined}
         title={enabled ? "Cmd/Ctrl + Enter from an editor field" : undefined}
       />
-      {enabled && (
-        <span className="editor-shortcut-hint" aria-hidden="true">
+      {shortcut.value === "enabled" && (
+        <span
+          className="editor-shortcut-hint"
+          aria-hidden="true"
+          data-unavailable={!enabled}
+        >
           <kbd>Cmd/Ctrl + Enter</kbd>
         </span>
       )}
