@@ -18,6 +18,10 @@ import {
   useComponentShortcut,
 } from "../../lib/use-component-shortcut";
 import { EventComponent } from "./event-component";
+import {
+  CommandScope,
+  type ContextCommand,
+} from "../../components/context-commands";
 
 export function EventPageCanvas({
   layout,
@@ -48,6 +52,8 @@ export function EventPageCanvas({
   const [dragging, setDragging] = useState(false);
   const [dropTarget, setDropTarget] = useState<string | null>(null);
   const [announcement, setAnnouncement] = useState("");
+  const addPageButton = useRef<HTMLButtonElement>(null);
+  const addComponentButton = useRef<HTMLButtonElement>(null);
   const navigation = useRef<HTMLElement>(null);
   const [pagesOverflow, setPagesOverflow] = useState(false);
   // biome-ignore lint/correctness/useExhaustiveDependencies: Page content and selection change strip geometry without resizing its container.
@@ -103,6 +109,22 @@ export function EventPageCanvas({
   );
   const canAdd =
     canEdit && selected && selected.components.length < 20 && total < 100;
+  const canAddPage = canEdit && layout.pages.length < 20;
+  const commands: ContextCommand[] = [];
+  if (canAddPage && !save.isPending)
+    commands.push({
+      id: "add-page",
+      label: "Add page",
+      description: "Create a named page in this event",
+      target: addPageButton,
+    });
+  if (canAdd && selected && !save.isPending)
+    commands.push({
+      id: "add-component",
+      label: "Add component",
+      description: `Choose a component for ${selected.name}`,
+      target: addComponentButton,
+    });
   const selectedIndex = layout.pages.findIndex(
     (page) => page.id === selected?.id,
   );
@@ -223,6 +245,10 @@ export function EventPageCanvas({
         onAddComponent();
       }}
     >
+      <CommandScope
+        pathname={`/events/${layout.eventId}`}
+        commands={commands}
+      />
       <div className="event-pages-toolbar">
         <nav
           ref={navigation}
@@ -259,8 +285,9 @@ export function EventPageCanvas({
           </label>
         ) : null}
         {renderTools?.(save.isPending)}
-        {canEdit && layout.pages.length < 20 ? (
+        {canAddPage ? (
           <button
+            ref={addPageButton}
             type="button"
             className="button button-secondary"
             disabled={save.isPending}
@@ -331,6 +358,7 @@ export function EventPageCanvas({
               ) : null}
               {canAdd ? (
                 <button
+                  ref={addComponentButton}
                   type="button"
                   className="button button-secondary"
                   aria-keyshortcuts={componentShortcuts[shortcut.value].keys}

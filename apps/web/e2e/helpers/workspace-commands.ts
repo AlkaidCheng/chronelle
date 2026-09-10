@@ -10,7 +10,7 @@ export async function exerciseWorkspaceCommands(
   const trigger = page.getByRole("button", { name: "Commands", exact: true });
   const dialog = page.getByRole("dialog", { name: "Commands", exact: true });
   const results = dialog.getByRole("listbox", {
-    name: "Workspace destinations",
+    name: "Commands",
   });
   await page.getByRole("button", { name: "Edit event", exact: true }).click();
   const draft = page.getByLabel("Name", { exact: true });
@@ -22,14 +22,21 @@ export async function exerciseWorkspaceCommands(
   await page.keyboard.press("Control+k");
   const input = dialog.getByRole("combobox", { name: "Find a command" });
   await expect(input).toBeFocused();
-  await expect(results.getByRole("option")).toHaveCount(3);
+  await expect(
+    results.getByRole("group", { name: "Navigation" }).getByRole("option"),
+  ).toHaveCount(3);
+  const firstCommandId = await results
+    .getByRole("option")
+    .first()
+    .getAttribute("id");
   await page.keyboard.press("ArrowUp");
   await expect(results.getByRole("option", { selected: true })).toContainText(
     "Trash",
   );
   await page.keyboard.press("ArrowDown");
-  await expect(results.getByRole("option", { selected: true })).toContainText(
-    "Events",
+  await expect(results.getByRole("option", { selected: true })).toHaveAttribute(
+    "id",
+    firstCommandId ?? "",
   );
   await input.fill("nothing matches");
   await page.keyboard.press("Enter");
@@ -55,7 +62,9 @@ export async function exerciseWorkspaceCommands(
   await page.setViewportSize({ width: 320, height: 568 });
   await trigger.click();
   await expectHorizontalReflow(page);
+  await input.fill("trash");
   await expect(dialog.getByRole("option", { name: /Trash/ })).toBeInViewport();
+  await input.fill("");
   await dialog.getByText("Keyboard shortcuts", { exact: true }).click();
   const enable = dialog.getByRole("checkbox", {
     name: "Enable command shortcut",
