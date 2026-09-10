@@ -28,6 +28,7 @@ beforeEach(() => {
   window.localStorage.clear();
   delete document.documentElement.dataset.componentShortcut;
   delete document.documentElement.dataset.commandShortcut;
+  delete document.documentElement.dataset.editorShortcut;
   window.sessionStorage.setItem(
     "chronelle.development-session",
     JSON.stringify({ accessToken: "test-session", workspaceId: "personal" }),
@@ -241,7 +242,9 @@ it("supports disable, reload, storage synchronization, and a visible fallback", 
   );
   await user.click(trigger());
   await user.click(screen.getByText("Keyboard shortcuts"));
-  expect(screen.getByRole("checkbox")).not.toBeChecked();
+  expect(
+    screen.getByRole("checkbox", { name: "Enable command shortcut" }),
+  ).not.toBeChecked();
   window.localStorage.removeItem("chronelle.command-shortcut");
   fireEvent(
     window,
@@ -251,7 +254,9 @@ it("supports disable, reload, storage synchronization, and a visible fallback", 
       storageArea: window.localStorage,
     }),
   );
-  expect(screen.getByRole("checkbox")).toBeChecked();
+  expect(
+    screen.getByRole("checkbox", { name: "Enable command shortcut" }),
+  ).toBeChecked();
   expect(results().getAllByRole("option")).toHaveLength(3);
 });
 
@@ -262,7 +267,9 @@ it("retains a page-only setting when storage writes fail", async () => {
   });
   await user.click(trigger());
   await user.click(screen.getByText("Keyboard shortcuts"));
-  await user.click(screen.getByRole("checkbox"));
+  await user.click(
+    screen.getByRole("checkbox", { name: "Enable command shortcut" }),
+  );
   await user.click(screen.getByRole("button", { name: "Close commands" }));
   expect(fireEvent.keyDown(document.body, { key: "k", ctrlKey: true })).toBe(
     true,
@@ -285,12 +292,26 @@ it("shares component settings immediately and resets only keyboard preferences",
     "modified-slash",
   );
   await user.selectOptions(select, "disabled");
-  await user.click(screen.getByRole("checkbox"));
+  await user.click(
+    screen.getByRole("checkbox", { name: "Enable command shortcut" }),
+  );
+  await user.click(
+    screen.getByRole("checkbox", { name: "Enable editor submit shortcut" }),
+  );
+  expect(window.localStorage.getItem("chronelle.editor-shortcut")).toBe(
+    "disabled",
+  );
   await user.click(
     screen.getByRole("button", { name: "Reset keyboard shortcuts" }),
   );
   expect(select).toHaveValue("slash");
-  expect(screen.getByRole("checkbox")).toBeChecked();
+  expect(
+    screen.getByRole("checkbox", { name: "Enable command shortcut" }),
+  ).toBeChecked();
+  expect(
+    screen.getByRole("checkbox", { name: "Enable editor submit shortcut" }),
+  ).toBeChecked();
+  expect(window.localStorage.getItem("chronelle.editor-shortcut")).toBeNull();
   expect(
     window.localStorage.getItem("chronelle.component-shortcut"),
   ).toBeNull();

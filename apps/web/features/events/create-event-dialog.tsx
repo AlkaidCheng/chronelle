@@ -1,6 +1,7 @@
 import { type FormEvent, useEffect, useRef, useState } from "react";
 
 import { ErrorNotice } from "../../components/feedback";
+import { EditorForm, EditorSubmitButton } from "../../components/editor-form";
 import {
   eventSchedulePayload,
   readEventSchedule,
@@ -76,7 +77,7 @@ export function CreateEventDialog({
           &#215;
         </button>
       </header>
-      <form onSubmit={handleSubmit} aria-busy={createEvent.isPending}>
+      <EditorForm onSubmit={handleSubmit} aria-busy={createEvent.isPending}>
         <div className="event-create-body">
           <label className="field event-name-field">
             Event name
@@ -110,15 +111,14 @@ export function CreateEventDialog({
           >
             Cancel
           </button>
-          <button
+          <EditorSubmitButton
             className="button button-primary"
-            type="submit"
             disabled={createEvent.isPending}
           >
             {createEvent.isPending ? "Creating..." : "Create event"}
-          </button>
+          </EditorSubmitButton>
         </footer>
-      </form>
+      </EditorForm>
     </dialog>
   );
 }

@@ -8,6 +8,7 @@ import type {
 } from "@chronelle/schemas";
 import { type FormEvent, useId, useState } from "react";
 
+import { EditorForm } from "../../components/editor-form";
 import { EventScheduleFields } from "./event-schedule-fields";
 import {
   readEventSchedule,
@@ -81,7 +82,7 @@ export function EventEditorForm({
   }
 
   return (
-    <form
+    <EditorForm
       aria-busy={update.isPending}
       className="editor-form"
       onChangeCapture={() => {
@@ -119,7 +120,7 @@ export function EventEditorForm({
         onRefresh={refresh}
         submitLabel="Save event"
       />
-    </form>
+    </EditorForm>
   );
 }
 
@@ -195,7 +196,7 @@ export function ScheduledEventForm({
 
   const mutation = event === undefined ? create : update;
   return (
-    <form
+    <EditorForm
       aria-busy={mutation.isPending}
       className="editor-form"
       onChangeCapture={() => {
@@ -233,7 +234,7 @@ export function ScheduledEventForm({
         onRefresh={event === undefined ? undefined : refresh}
         submitLabel={event === undefined ? "Add to schedule" : "Save item"}
       />
-    </form>
+    </EditorForm>
   );
 }
 
@@ -285,7 +286,7 @@ export function TaskForm({
 
   const mutation = task === undefined ? create : update;
   return (
-    <form
+    <EditorForm
       aria-busy={mutation.isPending}
       className="editor-form inline-editor"
       onChangeCapture={() => {
@@ -322,7 +323,7 @@ export function TaskForm({
         onRefresh={task === undefined ? undefined : refresh}
         submitLabel={task === undefined ? "Add task" : "Save task"}
       />
-    </form>
+    </EditorForm>
   );
 }
 
@@ -382,7 +383,7 @@ export function ExpenseForm({
 
   const mutation = expense === undefined ? create : update;
   return (
-    <form
+    <EditorForm
       aria-busy={mutation.isPending}
       className="editor-form inline-editor"
       onChangeCapture={() => {
@@ -448,7 +449,7 @@ export function ExpenseForm({
         onRefresh={expense === undefined ? undefined : refresh}
         submitLabel={expense === undefined ? "Record expense" : "Save expense"}
       />
-    </form>
+    </EditorForm>
   );
 }
 
@@ -504,7 +505,7 @@ export function ReminderForm({
 
   const mutation = reminder === undefined ? create : update;
   return (
-    <form
+    <EditorForm
       aria-busy={mutation.isPending}
       className="editor-form inline-editor"
       onChangeCapture={() => {
@@ -542,6 +543,6 @@ export function ReminderForm({
         onRefresh={reminder === undefined ? undefined : refresh}
         submitLabel={reminder === undefined ? "Add reminder" : "Save reminder"}
       />
-    </form>
+    </EditorForm>
   );
 }

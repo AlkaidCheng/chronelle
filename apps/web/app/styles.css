@@ -1537,6 +1537,18 @@ a.search-result:hover {
   grid-column: auto;
 }
 
+.form-actions:has([data-editor-submit]),
+.event-create-footer:has([data-editor-submit]) {
+  flex-wrap: wrap;
+}
+
+.editor-shortcut-hint {
+  flex-basis: 100%;
+  text-align: right;
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+
 .filter-row {
   border: 0;
   display: flex;

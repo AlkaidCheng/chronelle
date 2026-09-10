@@ -3,6 +3,7 @@
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useId, useRef, useState } from "react";
 import { useSessionDialog } from "../lib/use-session-dialog";
+import { useEditorShortcut } from "../lib/shortcut-preference";
 import {
   componentShortcuts,
   parseComponentShortcut,
@@ -23,6 +24,7 @@ export function WorkspaceCommands({
 }) {
   const dialog = useSessionDialog(onClose);
   const componentShortcut = useComponentShortcut();
+  const editorShortcut = useEditorShortcut();
   const input = useRef<HTMLInputElement>(null);
   const activeOption = useRef<HTMLButtonElement>(null);
   const composing = useRef(false);
@@ -202,6 +204,22 @@ export function WorkspaceCommands({
             Opens the picker from the selected event page, outside editors and
             dialogs. Requires edit access and room on the page.
           </p>
+          <label>
+            <input
+              type="checkbox"
+              checked={editorShortcut.value === "enabled"}
+              onChange={(event) =>
+                editorShortcut.setValue(
+                  event.target.checked ? "enabled" : "disabled",
+                )
+              }
+            />{" "}
+            Enable editor submit shortcut
+          </label>
+          <p className="field-hint">
+            <kbd>Cmd/Ctrl + Enter</kbd> saves from an event, schedule, task,
+            expense, or reminder field. Save validation still applies.
+          </p>
           <p className="field-hint">
             Buttons remain available without shortcuts. These choices are saved
             on this browser when storage is available. Native text undo is
@@ -213,6 +231,7 @@ export function WorkspaceCommands({
             onClick={() => {
               onShortcutChange(true);
               componentShortcut.setValue("slash");
+              editorShortcut.setValue("enabled");
             }}
           >
             Reset keyboard shortcuts

@@ -70,3 +70,10 @@ export const useCommandShortcut = createShortcutPreference(
   "enabled",
   "disabled",
 );
+
+export const useEditorShortcut = createShortcutPreference(
+  "editor",
+  parseToggle,
+  "enabled",
+  "disabled",
+);

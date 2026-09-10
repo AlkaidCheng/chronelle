@@ -234,6 +234,9 @@ describe("versioned editor drafts", () => {
       expect(screen.getByText(/Your draft is preserved/)).toBeVisible();
       const submit = view.container.querySelector("button[type=submit]");
       expect(submit).toBeDisabled();
+      screen.getByLabelText(form.field).focus();
+      await user.keyboard("{Control>}{Enter}{/Control}");
+      expect(fetch).not.toHaveBeenCalled();
       const element = view.container.querySelector("form");
       if (element === null) throw new Error("Editor form not found.");
       fireEvent.submit(element);
@@ -267,13 +270,18 @@ describe("versioned editor drafts", () => {
         "button[type=submit]",
       );
       if (submit === null) throw new Error("Submit button not found.");
-      await user.click(submit);
+      screen.getByLabelText(editor.field).focus();
+      await user.keyboard("{Control>}{Enter}{/Control}");
       for (const input of view.container.querySelectorAll("input"))
         expect(input).toBeDisabled();
       const form = view.container.querySelector("form");
       if (form === null || finishSave === undefined)
         throw new Error("Save was not started.");
       fireEvent.submit(form);
+      fireEvent.keyDown(screen.getByLabelText(editor.field), {
+        key: "Enter",
+        ctrlKey: true,
+      });
       expect(fetch).toHaveBeenCalledTimes(1);
       expect(form).toHaveAttribute("aria-busy", "true");
       expect(
@@ -341,8 +349,12 @@ describe("versioned editor drafts", () => {
     },
   );
 
-  it.each(forms)(
-    "uses the accepted $name save version without a parent rerender",
+  it.each(
+    forms.flatMap((form) =>
+      ["button", "shortcut"].map((method) => ({ ...form, method })),
+    ),
+  )(
+    "uses the accepted $name save version through $method without a parent rerender",
     async (form) => {
       const versions: number[] = [];
       const fetch = vi.fn<typeof globalThis.fetch>(async (_input, init) => {
@@ -371,7 +383,11 @@ describe("versioned editor drafts", () => {
         expect(
           screen.getByRole("status", { name: "Save status" }),
         ).toBeEmptyDOMElement();
-        await user.click(submit);
+        if (form.method === "button") await user.click(submit);
+        else {
+          screen.getByLabelText(form.field).focus();
+          await user.keyboard("{Meta>}{Enter}{/Meta}");
+        }
         await waitFor(() => expect(submit).toBeEnabled());
         expect(
           screen.getByRole("status", { name: "Save status" }),
