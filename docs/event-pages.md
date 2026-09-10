@@ -37,9 +37,15 @@ targets and checks access again when requesting upload or download transfers.
 
 Owners and Editors can search the component picker by label or command name
 (for example, `/calendar`). Press `/` while focus is inside the Event pages
-area to open it, or use Add component. The shortcut does not intercept text
-fields, editable content, dialogs, or modified key combinations. Enter inserts
-the selected result; no matching result disables insertion.
+area to open it, or use Add component. Commands > Keyboard shortcuts offers
+`/`, `Cmd/Ctrl + /`, or Off for insertion. The button and hints reflect the
+current binding. Shortcuts ignore text fields, custom editors, dialogs,
+composition (including key code 229), held keys, and events already handled by
+another control. The actual slash character is used, allowing keyboard layouts
+that require Shift. Alt/AltGr and combined Ctrl+Meta are not insertion bindings.
+The picker names its destination page. Enter inserts the selected result;
+no matching result disables insertion. Full pages, full layouts, Viewers, and
+pending layout saves cannot open the picker through the shortcut.
 
 Component handles support desktop drag-and-drop before another component, at
 the end of the current page, or onto a page tab. Up/Down buttons and Move to
