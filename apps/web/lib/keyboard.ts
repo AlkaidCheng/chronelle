@@ -41,3 +41,34 @@ export function canInsertComponent(
       : shortcut === "modified-slash" && event.metaKey !== event.ctrlKey)
   );
 }
+
+export function canSubmitEditor(event: KeyboardEvent, form: HTMLFormElement) {
+  const target = event.target;
+  if (
+    event.key !== "Enter" ||
+    event.ctrlKey === event.metaKey ||
+    event.altKey ||
+    event.shiftKey ||
+    event.repeat ||
+    event.defaultPrevented ||
+    event.isComposing ||
+    event.keyCode === 229 ||
+    !(target instanceof HTMLElement) ||
+    target !== document.activeElement ||
+    target.closest("form") !== form
+  )
+    return false;
+  const dialogs = "dialog, [role='dialog'], [role='alertdialog']";
+  return (
+    target.closest(dialogs) === form.closest(dialogs) &&
+    !Array.from(document.querySelectorAll("dialog[open]")).some(
+      (dialog) => !dialog.contains(form),
+    ) &&
+    !target.closest(
+      "[contenteditable], [role='combobox'], [role='searchbox'], [role='textbox']",
+    ) &&
+    target.matches(
+      "input:not([type='checkbox']):not([type='radio']):not([type='file']):not([type='button']):not([type='reset']):not([type='submit']), textarea, button[data-editor-submit]",
+    )
+  );
+}

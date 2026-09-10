@@ -2,6 +2,7 @@
 
 import { useRef, useState } from "react";
 import { DraftNotice, ErrorNotice } from "../../components/feedback";
+import { EditorSubmitButton } from "../../components/editor-form";
 
 interface EditorControlsProps {
   readonly draft: {
@@ -86,13 +87,12 @@ export function EditorControls({
             Cancel
           </button>
         )}
-        <button
+        <EditorSubmitButton
           className="button button-primary"
           disabled={draft.hasNewerVersion || mutation.isPending}
-          type="submit"
         >
           {mutation.isPending ? "Saving..." : submitLabel}
-        </button>
+        </EditorSubmitButton>
       </div>
       <p
         aria-label="Save status"

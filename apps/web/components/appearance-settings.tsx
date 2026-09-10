@@ -2,6 +2,7 @@
 
 import { useId, useState } from "react";
 import { createPortal } from "react-dom";
+import { useAuthSession } from "../lib/auth-session";
 import { palettes } from "../lib/display-preferences";
 import {
   resetDisplayPreferences,
@@ -12,12 +13,14 @@ import { AppearanceControl } from "./appearance-control";
 
 export function AppearanceSettings() {
   const [open, setOpen] = useState(false);
+  const { isHydrated } = useAuthSession();
   return (
     <div className="appearance-toolbar">
       <AppearanceControl />
       <button
         className="button button-quiet"
         type="button"
+        disabled={!isHydrated}
         onClick={(event) => {
           event.currentTarget.focus();
           setOpen(true);

@@ -41,7 +41,7 @@ test("retains a failed task draft and saves only after an explicit retry", async
     });
     await route.continue();
   });
-  await form.getByRole("button", { name: "Add task", exact: true }).click();
+  await form.getByLabel("Task", { exact: true }).press("Control+Enter");
   await expect(form.getByRole("alert")).toContainText(
     "Save temporarily unavailable",
   );
@@ -55,13 +55,22 @@ test("retains a failed task draft and saves only after an explicit retry", async
   });
   expect(commands).toHaveLength(1);
   fail = false;
-  await form.getByRole("button", { name: "Add task", exact: true }).click();
+  const actions = form.locator(".form-actions");
+  const actionHeight = await actions.evaluate(
+    (element) => element.getBoundingClientRect().height,
+  );
+  await form.getByLabel("Task", { exact: true }).press("Meta+Enter");
   await expect(form).toHaveAttribute("aria-busy", "true");
   await expect(form.getByLabel("Task", { exact: true })).toBeDisabled();
   await expect(form.getByRole("status", { name: "Save status" })).toHaveText(
     "Saving changes...",
   );
   await expect.poll(() => finishSave !== undefined).toBe(true);
+  expect(
+    await actions.evaluate((element) => element.getBoundingClientRect().height),
+  ).toBe(actionHeight);
+  await form.dispatchEvent("keydown", { key: "Enter", ctrlKey: true });
+  expect(commands).toHaveLength(2);
   finishSave?.();
   await expect(form.getByRole("status", { name: "Save status" })).toHaveText(
     "Saved successfully.",

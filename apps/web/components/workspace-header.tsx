@@ -4,9 +4,8 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { canOpenCommands } from "../lib/keyboard";
+import { useCommandShortcut } from "../lib/shortcut-preference";
 import { WorkspaceCommands } from "./workspace-commands";
-
-const shortcutStorageKey = "chronelle.command-shortcut";
 
 export function WorkspaceHeader({
   workspaceName,
@@ -14,27 +13,8 @@ export function WorkspaceHeader({
   readonly workspaceName: string;
 }) {
   const [open, setOpen] = useState(false);
-  const [enabled, setEnabled] = useState(false);
-  useEffect(() => {
-    try {
-      setEnabled(
-        window.localStorage.getItem(shortcutStorageKey) !== "disabled",
-      );
-    } catch {
-      setEnabled(true);
-    }
-    function synchronize(event: StorageEvent) {
-      try {
-        if (event.storageArea !== window.localStorage) return;
-      } catch {
-        return;
-      }
-      if (event.key === null || event.key === shortcutStorageKey)
-        setEnabled(event.newValue !== "disabled");
-    }
-    window.addEventListener("storage", synchronize);
-    return () => window.removeEventListener("storage", synchronize);
-  }, []);
+  const shortcut = useCommandShortcut();
+  const enabled = shortcut.value === "enabled";
   useEffect(() => {
     if (!enabled) return;
     function onKeyDown(event: KeyboardEvent) {
@@ -46,15 +26,6 @@ export function WorkspaceHeader({
     return () => document.removeEventListener("keydown", onKeyDown);
   }, [enabled]);
 
-  function changeShortcut(value: boolean) {
-    setEnabled(value);
-    try {
-      if (value) window.localStorage.removeItem(shortcutStorageKey);
-      else window.localStorage.setItem(shortcutStorageKey, "disabled");
-    } catch {
-      // The current-page choice remains usable when storage is blocked.
-    }
-  }
   const trigger = (
     <button
       className="button button-quiet workspace-command-trigger"
@@ -91,7 +62,9 @@ export function WorkspaceHeader({
           <WorkspaceCommands
             workspaceName={workspaceName}
             shortcutEnabled={enabled}
-            onShortcutChange={changeShortcut}
+            onShortcutChange={(value) =>
+              shortcut.setValue(value ? "enabled" : "disabled")
+            }
             onClose={() => setOpen(false)}
           />,
           document.body,
