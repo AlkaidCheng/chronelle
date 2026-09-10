@@ -98,6 +98,9 @@ test("applies a saved appearance before application JavaScript loads", async ({
   await page.route(/\/_next\/static\/.*\.js(?:\?|$)/, (route) => route.abort());
   await page.goto("/sign-in");
   await expect(page.locator("html")).toHaveCSS("color-scheme", "dark");
+  await expect(
+    page.getByRole("button", { name: "Customize appearance" }),
+  ).toBeDisabled();
   await expect(page.locator("html")).toHaveAttribute("data-appearance", "dark");
   await expect(page.locator("html")).toHaveAttribute("data-palette", "celadon");
   await expect(page.locator("html")).toHaveAttribute("data-density", "compact");
