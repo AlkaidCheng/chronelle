@@ -27,6 +27,7 @@ beforeEach(() => {
   vi.stubGlobal("localStorage", window.sessionStorage);
   window.localStorage.clear();
   delete document.documentElement.dataset.componentShortcut;
+  delete document.documentElement.dataset.commandShortcut;
   window.sessionStorage.setItem(
     "chronelle.development-session",
     JSON.stringify({ accessToken: "test-session", workspaceId: "personal" }),
@@ -241,6 +242,7 @@ it("supports disable, reload, storage synchronization, and a visible fallback", 
   await user.click(trigger());
   await user.click(screen.getByText("Keyboard shortcuts"));
   expect(screen.getByRole("checkbox")).not.toBeChecked();
+  window.localStorage.removeItem("chronelle.command-shortcut");
   fireEvent(
     window,
     Object.assign(new Event("storage"), {
