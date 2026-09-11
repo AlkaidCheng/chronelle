@@ -62,12 +62,33 @@ workspace command provider; scope cleanup, route changes, session cancellation,
 and unavailable targets prevent stale activation. The application router supplies
 the scope in both Next.js and the offline sandbox.
 
-Filtering commands makes no object queries and persists no query text or record
-data. Availability follows the latest loaded access response, not a live
-subscription to permissions. All underlying reads and mutations still require
-backend authorization. Denied event queries remove their context actions.
-The palette closes on workspace or identity changes. Object search results and
-destructive actions are not included.
+Navigation and event actions filter immediately. Valid terms of at least two
+characters also search the current workspace after a 250 ms typing pause;
+composition-stage input does not issue requests. Records appear as a separate
+group, with up to eight results from the existing authorized search endpoint.
+Type and destination hints distinguish records from actions without displaying
+object IDs. Event-scoped records open their event, using the same destination
+mapping as Search. Root non-event records have no detail route yet and remain
+non-actionable. Open full Search provides the existing filters and pagination;
+query text is not transferred into a URL or persisted.
+The results scroll independently so keyboard selection keeps the search field
+visible on narrow screens.
+
+Requests are cancelled on changed terms or dismissal. Changed inputs,
+revalidation, and failed reads hide earlier records. Search failures leave
+navigation available and provide an explicit retry. Result selection follows
+canonical identity: an arriving record does not replace a selected navigation
+action, and removing a selected record does not choose another one. The palette
+retains no search cache after dismissal and revalidates when the window regains
+focus. The session boundary aborts requests, discards protected caches, and closes
+the palette on workspace or identity changes.
+
+Availability follows the latest loaded access response, not a live subscription
+to permissions. All underlying reads and mutations require backend authorization.
+Denied event queries remove their context actions. The backend retains its
+existing full-text matching; the offline sandbox uses sample-name substring
+matching with bounded pages. Neither provides a new search index or record copy.
+Destructive commands are not included.
 
 ## Appearance
 

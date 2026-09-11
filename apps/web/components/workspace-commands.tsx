@@ -4,6 +4,9 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useId, useRef, useState } from "react";
 import { flushSync } from "react-dom";
 import { useAuthSession } from "../lib/auth-session";
+import { useCommandSearch } from "../lib/use-command-search";
+import { getSearchResultHref } from "../lib/search-result";
+import { SearchIcon } from "./icons";
 import { useContextCommands } from "./context-commands";
 import { useSessionDialog } from "../lib/use-session-dialog";
 import { useEditorShortcut } from "../lib/shortcut-preference";
@@ -21,7 +24,14 @@ type Command =
     })
   | (ReturnType<typeof useContextCommands>[number] & {
       readonly kind: "context";
-    });
+    })
+  | {
+      readonly kind: "record";
+      readonly id: string;
+      readonly label: string;
+      readonly description: string;
+      readonly href: string | null;
+    };
 
 function matchingCommands(commands: readonly Command[], query: string) {
   const term = query.trim().toLowerCase();
@@ -56,17 +66,32 @@ export function WorkspaceCommands({
   const editorShortcut = useEditorShortcut();
   const input = useRef<HTMLInputElement>(null);
   const activeOption = useRef<HTMLButtonElement>(null);
-  const composing = useRef(false);
+  const [isComposing, setIsComposing] = useState(false);
   const backdropPress = useRef(false);
   const id = useId();
   const router = useRouter();
   const pathname = usePathname();
   const [query, setQuery] = useState("");
+  const search = useCommandSearch(query, isComposing);
   const [selectedId, setSelectedId] = useState<string | null>(
     () => commands[0]?.id ?? null,
   );
-  const matches = matchingCommands(commands, query);
+  const records: readonly Command[] = search.items.map((record) => {
+    const href = getSearchResultHref(record);
+    return {
+      kind: "record",
+      id: `record-${record.id}`,
+      label: record.displayName,
+      description: `${record.objectType} / ${href === null ? "Detail page unavailable" : "Open event"}`,
+      href,
+    };
+  });
+  const matches = [...matchingCommands(commands, query), ...records];
   const selected = matches.find((command) => command.id === selectedId);
+  const firstRecordId = records[0]?.id;
+  useEffect(() => {
+    if (selectedId === null && firstRecordId) setSelectedId(firstRecordId);
+  }, [selectedId, firstRecordId]);
   useEffect(() => {
     input.current?.focus();
   }, []);
@@ -76,11 +101,17 @@ export function WorkspaceCommands({
   }, [selected?.id]);
 
   function activate(command: Command) {
-    if (signal.aborted || (command.kind === "context" && !command.isCurrent()))
+    if (
+      signal.aborted ||
+      isComposing ||
+      (command.kind === "context" && !command.isCurrent()) ||
+      (command.kind === "record" && command.href === null)
+    )
       return;
     flushSync(onClose);
     if (signal.aborted) return;
-    if (command.kind === "navigation") {
+    if (command.kind !== "context") {
+      if (command.href === null) return;
       router.push(command.href);
       return;
     }
@@ -103,7 +134,7 @@ export function WorkspaceCommands({
       aria-describedby={`${id}-scope`}
       onCancel={(event) => {
         event.preventDefault();
-        if (!composing.current) onClose();
+        if (!isComposing) onClose();
       }}
       onPointerDown={(event) => {
         backdropPress.current = event.target === event.currentTarget;
@@ -127,8 +158,7 @@ export function WorkspaceCommands({
       </header>
       <div className="event-create-body command-body">
         <p id={`${id}-scope`} className="field-hint">
-          Navigate {workspaceName} or open available event tools. To find
-          records, open Search.
+          Find records or open tools in {workspaceName}.
         </p>
         <label className="field">
           Find a command
@@ -142,7 +172,7 @@ export function WorkspaceCommands({
               selected ? `${id}-${selected.id}` : undefined
             }
             autoComplete="off"
-            maxLength={100}
+            maxLength={120}
             value={query}
             onChange={(event) => {
               setQuery(event.target.value);
@@ -151,16 +181,16 @@ export function WorkspaceCommands({
               );
             }}
             onCompositionStart={() => {
-              composing.current = true;
+              setIsComposing(true);
             }}
             onCompositionEnd={() => {
-              composing.current = false;
+              setIsComposing(false);
             }}
             onKeyDown={(event) => {
               if (
                 event.defaultPrevented ||
                 event.nativeEvent.isComposing ||
-                composing.current ||
+                isComposing ||
                 event.keyCode === 229 ||
                 event.altKey ||
                 event.ctrlKey ||
@@ -172,7 +202,7 @@ export function WorkspaceCommands({
                 event.preventDefault();
                 if (matches.length) {
                   const index = matches.findIndex(
-                    (command) => command.id === selectedId,
+                    (command) => command.id === selected?.id,
                   );
                   const next =
                     event.key === "ArrowDown"
@@ -195,10 +225,14 @@ export function WorkspaceCommands({
           role="listbox"
           aria-label="Commands"
         >
-          {(["context", "navigation"] as const).map((kind) => {
+          {(["context", "navigation", "record"] as const).map((kind) => {
             const options = matches.filter((command) => command.kind === kind);
             if (options.length === 0) return null;
-            const label = kind === "context" ? "Event actions" : "Navigation";
+            const label = {
+              context: "Event actions",
+              navigation: "Navigation",
+              record: "Records",
+            }[kind];
             return (
               // biome-ignore lint/a11y/useSemanticElements: These are listbox option groups, not form fieldsets.
               <div role="group" aria-label={label} key={kind}>
@@ -209,16 +243,21 @@ export function WorkspaceCommands({
                   <button
                     type="button"
                     tabIndex={-1}
-                    ref={selectedId === command.id ? activeOption : undefined}
+                    ref={selected?.id === command.id ? activeOption : undefined}
                     key={command.id}
                     id={`${id}-${command.id}`}
                     role="option"
-                    aria-selected={selectedId === command.id}
+                    aria-selected={selected?.id === command.id}
+                    aria-disabled={
+                      command.kind === "record" && command.href === null
+                    }
                     onMouseDown={(event) => event.preventDefault()}
                     onClick={() => activate(command)}
                   >
                     {command.kind === "navigation" ? (
                       <command.icon />
+                    ) : command.kind === "record" ? (
+                      <SearchIcon />
                     ) : (
                       <span className="command-action-mark" aria-hidden="true">
                         &#8627;
@@ -238,11 +277,51 @@ export function WorkspaceCommands({
             );
           })}
         </div>
-        {matches.length === 0 && (
-          <p role="status">
-            No matching commands. Try another command, or open Search to find
-            records.
+        {search.isSearching ? (
+          <p role="status">Searching records...</p>
+        ) : search.isError ? (
+          <div className="command-search-error" role="alert">
+            <p>
+              Records could not be loaded. Navigation and event tools still
+              work.
+            </p>
+            <button
+              type="button"
+              className="button button-quiet"
+              onClick={search.retry}
+            >
+              Retry record search
+            </button>
+          </div>
+        ) : search.isEmpty ? (
+          <p role="status">No accessible records found. Try another phrase.</p>
+        ) : (
+          matches.length === 0 && (
+            <p role="status">
+              No matching commands. Enter at least two letters or numbers to
+              find records.
+            </p>
+          )
+        )}
+        {search.hasMore && (
+          <p className="field-hint">
+            Showing eight records. Refine your phrase or open Search for all
+            results.
           </p>
+        )}
+        {query.trim().length >= 2 && (
+          <button
+            type="button"
+            className="button button-quiet"
+            onClick={() => {
+              const destination = commands.find(
+                (command) => command.id === "/search",
+              );
+              if (destination) activate(destination);
+            }}
+          >
+            Open full Search
+          </button>
         )}
         <details className="command-help">
           <summary>Keyboard shortcuts</summary>

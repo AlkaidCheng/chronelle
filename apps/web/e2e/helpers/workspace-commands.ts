@@ -41,7 +41,7 @@ export async function exerciseWorkspaceCommands(
   await input.fill("nothing matches");
   await page.keyboard.press("Enter");
   await expect(dialog.getByRole("status")).toContainText(
-    "No matching commands",
+    "No accessible records found",
   );
   await input.fill("");
   await page.screenshot({ path: testInfo.outputPath("commands.png") });

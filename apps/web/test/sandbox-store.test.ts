@@ -31,6 +31,33 @@ async function request(
 }
 
 describe("browser sandbox", () => {
+  it("paginates bounded search results without duplicating canonical records", async () => {
+    const store = new SandboxStore(storage());
+    for (let index = 0; index < 10; index++)
+      await request(store, "events", "POST", {
+        displayName: `Searchable ${index}`,
+      });
+    const first = await (
+      await request(store, "search?query=Searchable&limit=8")
+    ).json();
+    expect(first.items).toHaveLength(8);
+    expect(first.nextCursor).toBe(first.items[7].id);
+    const second = await (
+      await request(
+        store,
+        `search?query=Searchable&limit=8&cursor=${first.nextCursor}`,
+      )
+    ).json();
+    expect(second.items).toHaveLength(2);
+    expect(second.nextCursor).toBeNull();
+    expect(
+      new Set([...first.items, ...second.items].map((item) => item.id)).size,
+    ).toBe(10);
+    expect(
+      (await request(store, "search?query=Searchable&cursor=unknown")).status,
+    ).toBe(400);
+  });
+
   it("reads current-only snapshots and preserves a full layout store on failed writes", async () => {
     const saved = storage();
     const store = new SandboxStore(saved);

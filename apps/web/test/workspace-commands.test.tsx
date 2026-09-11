@@ -19,6 +19,16 @@ import {
 } from "../components/context-commands";
 import { WorkspaceCommands } from "../components/workspace-commands";
 
+vi.mock("../lib/use-command-search", () => ({
+  useCommandSearch: () => ({
+    items: [],
+    hasMore: false,
+    isSearching: false,
+    isError: false,
+    isEmpty: false,
+  }),
+}));
+
 const push = vi.fn();
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ push }),
