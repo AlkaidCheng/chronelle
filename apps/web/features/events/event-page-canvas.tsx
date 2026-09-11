@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  useEffect,
   useLayoutEffect,
   useRef,
   useState,
@@ -52,6 +53,17 @@ export function EventPageCanvas({
   const [dragging, setDragging] = useState(false);
   const [dropTarget, setDropTarget] = useState<string | null>(null);
   const [announcement, setAnnouncement] = useState("");
+  const [arranging, setArranging] = useState(false);
+  const canArrange = canEdit && layout.pages.length > 0;
+  const isArranging = canArrange && arranging;
+  const arrangeButton = useRef<HTMLButtonElement>(null);
+  useEffect(() => {
+    if (canArrange) return;
+    setArranging(false);
+    drag.current = null;
+    setDragging(false);
+    setDropTarget(null);
+  }, [canArrange]);
   const addPageButton = useRef<HTMLButtonElement>(null);
   const addComponentButton = useRef<HTMLButtonElement>(null);
   const navigation = useRef<HTMLElement>(null);
@@ -111,6 +123,15 @@ export function EventPageCanvas({
     canEdit && selected && selected.components.length < 20 && total < 100;
   const canAddPage = canEdit && layout.pages.length < 20;
   const commands: ContextCommand[] = [];
+  if (canArrange && !save.isPending)
+    commands.push({
+      id: "arrange-layout",
+      label: isArranging ? "Done arranging" : "Arrange layout",
+      description: isArranging
+        ? "Hide layout controls; moves are already saved"
+        : "Show page and component move controls",
+      target: arrangeButton,
+    });
   if (canAddPage && !save.isPending)
     commands.push({
       id: "add-page",
@@ -135,7 +156,7 @@ export function EventPageCanvas({
     message: string,
     targetPageId?: string,
   ) {
-    if (!canEdit || locked.current || pages === source.pages) return;
+    if (!isArranging || locked.current || pages === source.pages) return;
     locked.current = true;
     let trigger =
       document.activeElement instanceof HTMLElement
@@ -192,7 +213,7 @@ export function EventPageCanvas({
     const allowed = () => {
       const current = drag.current;
       return (
-        canEdit &&
+        isArranging &&
         !locked.current &&
         current !== null &&
         (page.components.length < 20 ||
@@ -285,6 +306,21 @@ export function EventPageCanvas({
           </label>
         ) : null}
         {renderTools?.(save.isPending)}
+        {canArrange ? (
+          <button
+            ref={arrangeButton}
+            type="button"
+            className={`button ${isArranging ? "button-primary" : "button-secondary"}`}
+            disabled={save.isPending}
+            onClick={() => {
+              if (locked.current) return;
+              endDrag();
+              setArranging(!isArranging);
+            }}
+          >
+            {isArranging ? "Done arranging" : "Arrange layout"}
+          </button>
+        ) : null}
         {canAddPage ? (
           <button
             ref={addPageButton}
@@ -313,7 +349,7 @@ export function EventPageCanvas({
           <div className="panel-heading">
             <h2>{selected.name}</h2>
             <div className="composition-actions">
-              {canEdit && layout.pages.length > 1 ? (
+              {isArranging && layout.pages.length > 1 ? (
                 <>
                   <button
                     type="button"
@@ -370,14 +406,12 @@ export function EventPageCanvas({
               ) : null}
             </div>
           </div>
-          {canEdit && selected.components.length > 0 ? (
-            <p className="composition-hint">
-              {canAdd &&
-                !save.isPending &&
-                shortcut.value !== "disabled" &&
-                `Use ${componentShortcuts[shortcut.value].label} to find a component. `}
-              Drag its handle to reorder or drop it on a page. Move controls
-              work with touch and keyboard.
+          {isArranging ? (
+            <p className="composition-hint arrangement-notice" role="status">
+              <strong>Arranging layout.</strong> Moves save immediately.
+              {selected.components.length > 0 &&
+                " Drag a handle to reorder or drop it on a page. Move controls work with touch and keyboard."}{" "}
+              Use Page options to remove or recover components.
             </p>
           ) : null}
           {selected.components.length === 0 ? (
@@ -400,7 +434,7 @@ export function EventPageCanvas({
                   aria-label={`${label} component ${index + 1}`}
                   {...dropProps(selected, component.id)}
                 >
-                  {canEdit ? (
+                  {isArranging ? (
                     <fieldset
                       className="component-toolbar"
                       aria-label={`${label} layout controls`}
@@ -498,7 +532,7 @@ export function EventPageCanvas({
               );
             })}
           </div>
-          {canEdit && dragging ? (
+          {isArranging && dragging ? (
             <div className="component-drop-end" {...dropProps(selected, null)}>
               Drop at end of {selected.name}
             </div>
