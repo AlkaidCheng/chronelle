@@ -76,7 +76,17 @@ export async function createFirstPlan(page: Page, testInfo: TestInfo) {
   await expect(
     page.getByRole("heading", { name: "To-dos", exact: true }),
   ).toBeVisible();
-  await expect(page.locator(".composition-hint")).toBeVisible();
+  await expect(page.locator(".composition-hint")).toHaveCount(0);
+  await activateWithKeyboard(
+    page,
+    page.getByRole("button", { name: "Arrange layout", exact: true }),
+  );
+  await expect(page.getByText(/Moves save immediately/)).toBeVisible();
+  await activateWithKeyboard(
+    page,
+    page.getByRole("button", { name: "Done arranging", exact: true }),
+  );
+  await expect(page.locator(".composition-hint")).toHaveCount(0);
   await tabTo(page, page.getByLabel("Task", { exact: true }));
   expect(
     await page.getByLabel("Task", { exact: true }).evaluate((input) => {
