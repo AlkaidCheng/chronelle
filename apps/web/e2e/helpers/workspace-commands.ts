@@ -12,8 +12,9 @@ export async function exerciseWorkspaceCommands(
   const results = dialog.getByRole("listbox", {
     name: "Commands",
   });
-  await page.getByRole("button", { name: "Edit event", exact: true }).click();
-  const draft = page.getByLabel("Name", { exact: true });
+  await page.getByRole("button", { name: "Browse event data" }).click();
+  await page.getByRole("tab", { name: "To-dos", exact: true }).click();
+  const draft = page.getByLabel("Task", { exact: true });
   await draft.fill("Unsaved command draft");
   await page.keyboard.press("Control+k");
   await expect(dialog).toHaveCount(0);
