@@ -3073,11 +3073,34 @@ html:has(.event-create-dialog[open]) {
   font-weight: 600;
 }
 
+.component-catalog-dialog .event-create-body {
+  gap: 16px;
+}
+
+.catalog-destination,
+.catalog-context {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.catalog-context {
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface-subtle);
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.page-location-notice:empty {
+  display: none;
+}
+
 .component-choice {
   display: flex;
   align-items: flex-start;
   gap: 0.8rem;
-  padding: 0.85rem 1rem;
+  padding: 0.65rem 0.8rem;
   border: 1px solid var(--line);
   border-radius: 0.75rem;
   cursor: pointer;
@@ -3100,6 +3123,8 @@ html:has(.event-create-dialog[open]) {
 .component-choice > span {
   display: grid;
   gap: 0.2rem;
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .component-choice span span {

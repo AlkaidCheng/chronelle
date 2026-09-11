@@ -715,6 +715,110 @@ describe("insertable event components", () => {
     expect(screen.queryByRole("dialog")).toBeNull();
   });
 
+  it("explains repeated views and adds only a layout reference to the selected page", async () => {
+    const pages = [page("Preparation", ["todos"]), page("On the day", [])];
+    const before = await client.getEventDetail(eventId);
+    await client.updateEventLayout(eventId, { expectedVersion: 0, pages });
+    const user = userEvent.setup();
+    render(<EventPages eventId={eventId} canEdit />, { wrapper: Providers });
+    await user.click(await screen.findByRole("button", { name: "On the day" }));
+    await user.click(screen.getByRole("button", { name: "Add component" }));
+    const dialog = within(screen.getByRole("dialog"));
+    const search = dialog.getByRole("searchbox", { name: "Find a component" });
+    expect(search).toHaveAccessibleDescription("Add to On the day.");
+    expect(
+      dialog.getByText(/To-dos is already used on another page/),
+    ).toBeVisible();
+    vi.mocked(fetch).mockClear();
+    await user.type(search, "no matching view");
+    expect(dialog.queryAllByRole("radio")).toHaveLength(0);
+    await user.click(dialog.getByRole("button", { name: "Clear search" }));
+    expect(search).toHaveFocus();
+    expect(dialog.getAllByRole("radio")).toHaveLength(7);
+    await user.type(search, "checklist");
+    await user.keyboard("{ArrowDown}");
+    expect(dialog.getByRole("radio", { name: "To-dos" })).toHaveFocus();
+    expect(fetch).not.toHaveBeenCalled();
+    await user.click(dialog.getByRole("button", { name: "Add To-dos" }));
+    expect(
+      await screen.findByText("To-dos added to On the day."),
+    ).toBeVisible();
+    const saved = await client.getEventLayout(eventId);
+    expect(saved.version).toBe(2);
+    expect(saved.pages[0]).toEqual(pages[0]);
+    expect(saved.pages[1]?.components).toEqual([
+      { id: expect.any(String), kind: "todos" },
+    ]);
+    expect(await client.getEventDetail(eventId)).toEqual(before);
+    await user.click(screen.getByRole("button", { name: "Add component" }));
+    expect(
+      screen.getByText(/To-dos is already used on this page/),
+    ).toBeVisible();
+    await user.click(screen.getByRole("button", { name: "Cancel" }));
+    expect((await client.getEventLayout(eventId)).version).toBe(2);
+  });
+
+  it("keeps catalog interaction inert during composition and a pending save", async () => {
+    await client.updateEventLayout(eventId, {
+      expectedVersion: 0,
+      pages: [page("Plan", [])],
+    });
+    const user = userEvent.setup();
+    render(<EventPages eventId={eventId} canEdit />, { wrapper: Providers });
+    await user.click(
+      await screen.findByRole("button", { name: "Add component" }),
+    );
+    const element = screen.getByRole("dialog");
+    const dialog = within(element);
+    const search = dialog.getByRole("searchbox", { name: "Find a component" });
+    vi.mocked(fetch).mockClear();
+    for (const properties of [{ isComposing: true }, { keyCode: 229 }]) {
+      expect(fireEvent.keyDown(search, { key: "Enter", ...properties })).toBe(
+        false,
+      );
+      fireEvent.keyDown(search, { key: "ArrowDown", ...properties });
+      expect(search).toHaveFocus();
+    }
+    expect(fetch).not.toHaveBeenCalled();
+    const { promise, resolve } = Promise.withResolvers<void>();
+    vi.mocked(fetch).mockImplementation(async (input, options) => {
+      if (options?.method === "PATCH") await promise;
+      return store.fetch(input, options);
+    });
+    await user.click(dialog.getByRole("button", { name: "Add To-dos" }));
+    expect(search).toBeDisabled();
+    expect(dialog.getByRole("button", { name: "Saving..." })).toBeDisabled();
+    expect(dialog.getByRole("button", { name: "Cancel" })).toBeDisabled();
+    fireEvent(element, new Event("cancel", { cancelable: true }));
+    expect(element).toBeVisible();
+    resolve();
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+    expect((await client.getEventLayout(eventId)).version).toBe(2);
+  });
+
+  it("closes the catalog when edit access is lost without inserting anything", async () => {
+    await client.updateEventLayout(eventId, {
+      expectedVersion: 0,
+      pages: [page("Plan", [])],
+    });
+    const user = userEvent.setup();
+    const view = render(<EventPages eventId={eventId} canEdit />, {
+      wrapper: Providers,
+    });
+    await user.click(
+      await screen.findByRole("button", { name: "Add component" }),
+    );
+    await user.type(
+      screen.getByRole("searchbox", { name: "Find a component" }),
+      "costs",
+    );
+    view.rerender(<EventPages eventId={eventId} canEdit={false} />);
+    expect(screen.queryByRole("dialog")).toBeNull();
+    view.rerender(<EventPages eventId={eventId} canEdit />);
+    expect(screen.queryByRole("dialog")).toBeNull();
+    expect((await client.getEventLayout(eventId)).version).toBe(1);
+  });
+
   it("moves components and pages with accessible controls while preserving canonical data", async () => {
     const pages = [page("Work", ["todos", "calendar"]), page("Day", [])];
     const before = await client.getEventDetail(eventId);

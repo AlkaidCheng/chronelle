@@ -203,6 +203,21 @@ move saves immediately through the existing versioned layout API. Page options
 remains available for removal, undo/redo, and saved layout history. Add page,
 Add component, and insertion shortcuts work in either mode.
 
+The component catalog names its destination page and searches all seven kinds
+by name, description, or ordinary terms such as checklist, costs, and documents.
+Slash prefixes and full-width Latin characters are accepted. Arrow Down from
+search focuses the selected native radio; arrow keys then select a choice.
+The visible selection and Add label agree, including when filtering selects
+the first matching kind. An empty result disables insertion and offers Clear
+search. Composition-confirming Enter does not insert a component.
+
+The catalog explains when the selected kind is already used on this page or
+another page. Adding another view is allowed and does not copy canonical
+records. Successful insertion names the component and destination. Closing the
+dialog restores focus; losing Edit access discards the open catalog. Pending
+saves lock selection and dismissal. Conflicts retain the selected choice and
+captured source version; close and reopen to retry against the latest layout.
+
 The mode is local to the open event and session. It survives page selection,
 but resets on leaving the Pages view, reload, event/session changes, and loss
 of edit access. Toggling keeps mounted components and unsaved form values.
