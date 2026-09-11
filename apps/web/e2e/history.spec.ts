@@ -22,8 +22,12 @@ test("compares and restores history while preserving an open draft", async ({
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(revised);
   await page.getByRole("button", { name: "Edit event" }).click();
   await page.getByLabel("Name", { exact: true }).fill("Unsaved local draft");
-  await page.getByRole("button", { name: `History for ${revised}` }).click();
-  const dialog = page.getByRole("dialog");
+  const inspector = page.getByRole("dialog", {
+    name: "Edit event",
+    exact: true,
+  });
+  await inspector.getByRole("button", { name: "View event history" }).click();
+  const dialog = page.locator("dialog.history-drawer");
   await expect(dialog).toBeVisible();
   await expect(dialog.getByText(/Workshop planner/).first()).toBeVisible();
   await dialog.getByRole("button", { name: "Compare v1" }).click();
@@ -80,7 +84,7 @@ test("compares and restores history while preserving an open draft", async ({
   await page.keyboard.press("Escape");
   await expect(dialog).not.toBeVisible();
   await expect(
-    page.getByRole("button", { name: `History for ${original}` }),
+    inspector.getByRole("button", { name: "View event history" }),
   ).toBeFocused();
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(original);
   await expect(page.getByLabel("Name", { exact: true })).toHaveValue(
@@ -97,6 +101,8 @@ test("compares and restores history while preserving an open draft", async ({
         document.documentElement.clientWidth,
     ),
   ).toBe(true);
+  await inspector.getByRole("button", { name: "Cancel", exact: true }).click();
+  await page.getByRole("button", { name: "Discard", exact: true }).click();
   const trigger = page.getByRole("button", { name: `History for ${original}` });
   await trigger.click();
   await expect(dialog).toBeVisible();

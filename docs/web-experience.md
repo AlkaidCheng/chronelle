@@ -310,6 +310,9 @@ immediately. Confirmation retains field values, calendar navigation and focus.
 Saving locks dismissal; success closes the inspector and restores focus.
 Session changes or authoritative access loss remove private drafts immediately.
 The inspector edits the same canonical Event using its pinned source version.
+History is available inside the inspector without dismissing the draft. Closing
+history returns focus to its inspector control. Restoring a version leaves
+unsaved fields intact and requires explicitly loading the latest source to save.
 
 Event, schedule-item, task, expense, and reminder forms keep their draft after a
 failed save. Submit again explicitly to retry; Refresh latest only fetches data

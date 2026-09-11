@@ -113,6 +113,29 @@ afterEach(() => {
 });
 
 describe("Event inspector", () => {
+  it("opens canonical history without discarding the draft and restores focus", async () => {
+    vi.mocked(fetch).mockResolvedValueOnce(
+      Response.json({ items: [], nextBeforeVersion: null }),
+    );
+    const user = await openInspector();
+    await user.type(screen.getByLabelText("Name"), " private draft");
+    const history = screen.getByRole("button", { name: "View event history" });
+    await user.click(history);
+    expect(
+      await screen.findByRole("dialog", { name: initial.displayName }),
+    ).toBeVisible();
+    expect(fetch).toHaveBeenCalledWith(
+      expect.stringContaining(`/objects/${initial.id}/revisions`),
+      expect.anything(),
+    );
+    await user.click(screen.getByRole("button", { name: "Close history" }));
+    expect(history).toHaveFocus();
+    expect(screen.getByLabelText("Name")).toHaveValue(
+      "Garden evening private draft",
+    );
+    expect(unloadIsPrevented()).toBe(true);
+    expect(screen.getAllByRole("dialog")).toHaveLength(1);
+  });
   it.each(["Cancel", "Close event editor", "Escape"])(
     "closes a clean draft with %s and restores focus",
     async (action) => {
@@ -207,6 +230,9 @@ describe("Event inspector", () => {
     expect(screen.getByRole("button", { name: "Cancel" })).toBeDisabled();
     expect(
       screen.getByRole("button", { name: "Close event editor" }),
+    ).toBeDisabled();
+    expect(
+      screen.getByRole("button", { name: "View event history" }),
     ).toBeDisabled();
     cancelInspector();
     expect(screen.getByRole("dialog", { name: "Edit event" })).toBeVisible();

@@ -10,6 +10,7 @@ import {
 import { useRefreshEvent, useUpdateEvent } from "../../lib/queries";
 import { useEditorDraft } from "../../lib/use-editor-draft";
 import { useSessionDialog } from "../../lib/use-session-dialog";
+import { useOpenHistory } from "../history/history-provider";
 import { EditorControls } from "./editor-controls";
 import { EventScheduleFields } from "./event-schedule-fields";
 
@@ -27,6 +28,7 @@ export function EventInspector({
   const event = draft.source ?? latestEvent;
   const nameId = useId();
   const headingId = useId();
+  const openHistory = useOpenHistory();
   const update = useUpdateEvent();
   const refresh = useRefreshEvent(event.id, { throwOnError: true });
   const { displayName } = draft.fields;
@@ -114,6 +116,21 @@ export function EventInspector({
         <h2 id={headingId}>
           {confirmingDiscard ? "Discard changes?" : "Edit event"}
         </h2>
+        <button
+          hidden={confirmingDiscard}
+          className="button button-quiet button-small"
+          type="button"
+          aria-label="View event history"
+          disabled={update.isPending}
+          onClick={() =>
+            openHistory({
+              objectId: event.id,
+              displayName: latestEvent.displayName,
+            })
+          }
+        >
+          History
+        </button>
         <button
           hidden={confirmingDiscard}
           className="dialog-close"
