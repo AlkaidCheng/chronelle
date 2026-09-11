@@ -16,9 +16,9 @@ authorized session response; choosing one never grants access by itself.
 
 ## Workspace commands
 
-Commands opens a focused navigation palette from the desktop or mobile header.
-Type a destination name or description, use Up/Down to choose a result, and
-press Enter to navigate. Pointer selection also works. Escape, Close, or a
+Commands opens a focused palette from the desktop or mobile header.
+Type an action or destination name or description, use Up/Down to choose a result,
+and press Enter to open it. Pointer selection also works. Escape, Close, or a
 backdrop press dismisses the palette and restores focus. Opening or closing it
 keeps the current draft; choosing another destination has the same draft
 behavior as the navigation rail.
@@ -46,10 +46,28 @@ Reset keyboard shortcuts restores their defaults without changing appearance
 or clearing other browser data. Native text undo remains available in editors.
 
 The rail and palette share one catalog of Events, Search, and Trash routes.
-Filtering commands makes no object queries and stores no query text or record
-data. The palette closes on workspace or identity changes. Destination screens
-retain their existing backend authorization and session isolation. Contextual
-editing actions and object results are not part of the navigation palette.
+On an event, a separate Event actions group offers Edit event, Share event,
+Event history, Add page, and Add component when their existing controls are
+available. Viewers receive only Event history. An open event editor does not
+offer Edit event again. Page actions require the Pages view, edit access, room
+within layout limits, and no pending canvas save. Add component names its
+selected page. These actions open existing controls; they do not save, insert,
+share, or restore data immediately.
+
+Commands closes before focusing and activating the original button. Editors
+focus their first field, sharing focuses its view, and dialogs return focus to
+their original control. Removed actions do not shift keyboard selection onto
+another action. Mounted owners publish explicit button references through the
+workspace command provider; scope cleanup, route changes, session cancellation,
+and unavailable targets prevent stale activation. The application router supplies
+the scope in both Next.js and the offline sandbox.
+
+Filtering commands makes no object queries and persists no query text or record
+data. Availability follows the latest loaded access response, not a live
+subscription to permissions. All underlying reads and mutations still require
+backend authorization. Denied event queries remove their context actions.
+The palette closes on workspace or identity changes. Object search results and
+destructive actions are not included.
 
 ## Appearance
 

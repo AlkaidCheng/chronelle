@@ -2,6 +2,9 @@
 
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useId, useRef, useState } from "react";
+import { flushSync } from "react-dom";
+import { useAuthSession } from "../lib/auth-session";
+import { useContextCommands } from "./context-commands";
 import { useSessionDialog } from "../lib/use-session-dialog";
 import { useEditorShortcut } from "../lib/shortcut-preference";
 import {
@@ -10,6 +13,22 @@ import {
   useComponentShortcut,
 } from "../lib/use-component-shortcut";
 import { workspaceDestinations } from "./workspace-navigation";
+
+type Command =
+  | ((typeof workspaceDestinations)[number] & {
+      readonly kind: "navigation";
+      readonly id: string;
+    })
+  | (ReturnType<typeof useContextCommands>[number] & {
+      readonly kind: "context";
+    });
+
+function matchingCommands(commands: readonly Command[], query: string) {
+  const term = query.trim().toLowerCase();
+  return commands.filter((command) =>
+    `${command.label} ${command.description}`.toLowerCase().includes(term),
+  );
+}
 
 export function WorkspaceCommands({
   workspaceName,
@@ -22,6 +41,16 @@ export function WorkspaceCommands({
   readonly onShortcutChange: (enabled: boolean) => void;
   readonly onClose: () => void;
 }) {
+  const { signal } = useAuthSession();
+  const context = useContextCommands();
+  const commands: readonly Command[] = [
+    ...context.map((command) => ({ ...command, kind: "context" as const })),
+    ...workspaceDestinations.map((destination) => ({
+      ...destination,
+      id: destination.href,
+      kind: "navigation" as const,
+    })),
+  ];
   const dialog = useSessionDialog(onClose);
   const componentShortcut = useComponentShortcut();
   const editorShortcut = useEditorShortcut();
@@ -33,24 +62,38 @@ export function WorkspaceCommands({
   const router = useRouter();
   const pathname = usePathname();
   const [query, setQuery] = useState("");
-  const [index, setIndex] = useState(0);
-  const matches = workspaceDestinations.filter((destination) =>
-    `${destination.label} ${destination.description}`
-      .toLowerCase()
-      .includes(query.trim().toLowerCase()),
+  const [selectedId, setSelectedId] = useState<string | null>(
+    () => commands[0]?.id ?? null,
   );
-  const selected = matches[index];
+  const matches = matchingCommands(commands, query);
+  const selected = matches.find((command) => command.id === selectedId);
   useEffect(() => {
     input.current?.focus();
   }, []);
-  // biome-ignore lint/correctness/useExhaustiveDependencies: The selected destination changes which option must be visible.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: The selected command changes which option must be visible.
   useEffect(() => {
     activeOption.current?.scrollIntoView({ block: "nearest" });
-  }, [selected?.href]);
+  }, [selected?.id]);
 
-  function activate(href: string) {
-    onClose();
-    router.push(href);
+  function activate(command: Command) {
+    if (signal.aborted || (command.kind === "context" && !command.isCurrent()))
+      return;
+    flushSync(onClose);
+    if (signal.aborted) return;
+    if (command.kind === "navigation") {
+      router.push(command.href);
+      return;
+    }
+    const target = command.target.current;
+    if (
+      !command.isCurrent() ||
+      !target?.isConnected ||
+      target.matches(":disabled") ||
+      target.closest("[hidden], [inert]")
+    )
+      return;
+    target.focus();
+    if (document.activeElement === target) target.click();
   }
   return (
     <dialog
@@ -84,7 +127,8 @@ export function WorkspaceCommands({
       </header>
       <div className="event-create-body command-body">
         <p id={`${id}-scope`} className="field-hint">
-          Navigate {workspaceName}. To find records, open Search.
+          Navigate {workspaceName} or open available event tools. To find
+          records, open Search.
         </p>
         <label className="field">
           Find a command
@@ -95,14 +139,16 @@ export function WorkspaceCommands({
             aria-expanded="true"
             aria-controls={`${id}-results`}
             aria-activedescendant={
-              selected ? `${id}-${selected.href.slice(1)}` : undefined
+              selected ? `${id}-${selected.id}` : undefined
             }
             autoComplete="off"
             maxLength={100}
             value={query}
             onChange={(event) => {
               setQuery(event.target.value);
-              setIndex(0);
+              setSelectedId(
+                matchingCommands(commands, event.target.value)[0]?.id ?? null,
+              );
             }}
             onCompositionStart={() => {
               composing.current = true;
@@ -112,6 +158,7 @@ export function WorkspaceCommands({
             }}
             onKeyDown={(event) => {
               if (
+                event.defaultPrevented ||
                 event.nativeEvent.isComposing ||
                 composing.current ||
                 event.keyCode === 229 ||
@@ -123,15 +170,21 @@ export function WorkspaceCommands({
                 return;
               if (event.key === "ArrowDown" || event.key === "ArrowUp") {
                 event.preventDefault();
-                if (matches.length)
-                  setIndex(
-                    (index +
-                      (event.key === "ArrowDown" ? 1 : matches.length - 1)) %
-                      matches.length,
+                if (matches.length) {
+                  const index = matches.findIndex(
+                    (command) => command.id === selectedId,
                   );
+                  const next =
+                    event.key === "ArrowDown"
+                      ? (index + 1) % matches.length
+                      : (index < 0
+                          ? matches.length - 1
+                          : index - 1 + matches.length) % matches.length;
+                  setSelectedId(matches[next]?.id ?? null);
+                }
               } else if (event.key === "Enter") {
                 event.preventDefault();
-                if (selected && !event.repeat) activate(selected.href);
+                if (selected && !event.repeat) activate(selected);
               }
             }}
           />
@@ -140,32 +193,55 @@ export function WorkspaceCommands({
           id={`${id}-results`}
           className="command-results"
           role="listbox"
-          aria-label="Workspace destinations"
+          aria-label="Commands"
         >
-          {matches.map((destination, optionIndex) => (
-            <button
-              type="button"
-              tabIndex={-1}
-              ref={index === optionIndex ? activeOption : undefined}
-              key={destination.href}
-              id={`${id}-${destination.href.slice(1)}`}
-              role="option"
-              aria-selected={index === optionIndex}
-              onMouseDown={(event) => event.preventDefault()}
-              onClick={() => activate(destination.href)}
-            >
-              <destination.icon />
-              <span>
-                <strong>{destination.label}</strong>
-                <small>{destination.description}</small>
-              </span>
-              {pathname.startsWith(destination.href) && <small>Current</small>}
-            </button>
-          ))}
+          {(["context", "navigation"] as const).map((kind) => {
+            const options = matches.filter((command) => command.kind === kind);
+            if (options.length === 0) return null;
+            const label = kind === "context" ? "Event actions" : "Navigation";
+            return (
+              // biome-ignore lint/a11y/useSemanticElements: These are listbox option groups, not form fieldsets.
+              <div role="group" aria-label={label} key={kind}>
+                <p className="command-group-label" aria-hidden="true">
+                  {label}
+                </p>
+                {options.map((command) => (
+                  <button
+                    type="button"
+                    tabIndex={-1}
+                    ref={selectedId === command.id ? activeOption : undefined}
+                    key={command.id}
+                    id={`${id}-${command.id}`}
+                    role="option"
+                    aria-selected={selectedId === command.id}
+                    onMouseDown={(event) => event.preventDefault()}
+                    onClick={() => activate(command)}
+                  >
+                    {command.kind === "navigation" ? (
+                      <command.icon />
+                    ) : (
+                      <span className="command-action-mark" aria-hidden="true">
+                        &#8627;
+                      </span>
+                    )}
+                    <span>
+                      <strong>{command.label}</strong>
+                      <small>{command.description}</small>
+                    </span>
+                    {command.kind === "navigation" &&
+                      pathname.startsWith(command.href) && (
+                        <small>Current</small>
+                      )}
+                  </button>
+                ))}
+              </div>
+            );
+          })}
         </div>
         {matches.length === 0 && (
           <p role="status">
-            No matching commands. Try Events, Search, or Trash.
+            No matching commands. Try another command, or open Search to find
+            records.
           </p>
         )}
         <details className="command-help">

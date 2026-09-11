@@ -29,6 +29,10 @@ import { EventPages } from "../features/events/event-pages";
 import { eventComponents } from "../lib/event-components";
 import { queryKeys } from "../lib/queries";
 import { SandboxStore, sandboxWorkspaceId } from "../sandbox/store";
+import {
+  WorkspaceCommandProvider,
+  useContextCommands,
+} from "../components/context-commands";
 
 let store: SandboxStore;
 let client: ChronelleApiClient;
@@ -120,7 +124,94 @@ function RefreshProbe() {
   );
 }
 
+function CommandProbe() {
+  const commands = useContextCommands();
+  return (
+    <output aria-label="Available page actions">
+      {commands
+        .map((command) => `${command.label}: ${command.description}`)
+        .join(", ")}
+    </output>
+  );
+}
+
 describe("insertable event components", () => {
+  it("updates the command destination and removes page actions during a canvas save", async () => {
+    await client.updateEventLayout(eventId, {
+      expectedVersion: 0,
+      pages: [page("Preparation", []), page("On the day", [])],
+    });
+    const { promise, resolve } = Promise.withResolvers<void>();
+    vi.stubGlobal(
+      "fetch",
+      vi.fn<typeof globalThis.fetch>(async (input, options) => {
+        if (options?.method === "PATCH") await promise;
+        return store.fetch(input, options);
+      }),
+    );
+    render(
+      <WorkspaceCommandProvider pathname={`/events/${eventId}`}>
+        <EventPages eventId={eventId} canEdit />
+        <CommandProbe />
+      </WorkspaceCommandProvider>,
+      { wrapper: Providers },
+    );
+    const user = userEvent.setup();
+    await user.click(await screen.findByRole("button", { name: "On the day" }));
+    const commands = screen.getByLabelText("Available page actions");
+    expect(commands).toHaveTextContent("Choose a component for On the day");
+    await user.click(screen.getByRole("button", { name: "Move page earlier" }));
+    await waitFor(() => expect(commands).toBeEmptyDOMElement());
+    expect(
+      screen.getByRole("button", { name: "Add component" }),
+    ).toBeDisabled();
+    resolve();
+    await waitFor(() =>
+      expect(commands).toHaveTextContent("Choose a component for On the day"),
+    );
+  });
+
+  it.each(["empty", "viewer", "page-limit", "component-limit", "total-limit"])(
+    "matches context actions to the visible controls for %s",
+    async (scenario) => {
+      const full = () =>
+        page(
+          "Full page",
+          Array.from({ length: 20 }, () => "files" as const),
+        );
+      const pages =
+        scenario === "empty"
+          ? []
+          : scenario === "page-limit"
+            ? Array.from({ length: 20 }, (_, i) => page(`Page ${i}`, []))
+            : scenario === "component-limit"
+              ? [full()]
+              : scenario === "total-limit"
+                ? [
+                    page("Selected page", []),
+                    ...Array.from({ length: 5 }, full),
+                  ]
+                : [page("Read-only page", [])];
+      await client.updateEventLayout(eventId, { expectedVersion: 0, pages });
+      render(
+        <WorkspaceCommandProvider pathname={`/events/${eventId}`}>
+          <EventPages eventId={eventId} canEdit={scenario !== "viewer"} />
+          <CommandProbe />
+        </WorkspaceCommandProvider>,
+        { wrapper: Providers },
+      );
+      await screen.findByRole("region", { name: "Event pages" });
+      const commands = screen.getByLabelText("Available page actions");
+      for (const name of ["Add page", "Add component"]) {
+        const available = screen.queryByRole("button", { name });
+        if (available) expect(commands).toHaveTextContent(name);
+        else expect(commands).not.toHaveTextContent(name);
+      }
+      if (scenario === "page-limit")
+        expect(commands).toHaveTextContent("Choose a component for Page 0");
+    },
+  );
+
   it.each([false, true])(
     "explains the next step for empty layouts without offering viewer actions (canEdit=%s)",
     async (canEdit) => {

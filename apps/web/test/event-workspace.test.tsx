@@ -17,6 +17,10 @@ import type { EventResponse } from "@chronelle/schemas";
 import { Providers } from "../app/providers";
 import { EventWorkspace } from "../features/events/event-workspace";
 import { queryKeys } from "../lib/queries";
+import {
+  WorkspaceCommandProvider,
+  useContextCommands,
+} from "../components/context-commands";
 
 const workspaceId = "019d6e7d-0000-7000-8000-000000000001";
 const userId = "019d6e7d-0000-7000-8000-000000000002";
@@ -90,6 +94,15 @@ function RefreshProbe() {
     >
       Refetch event data
     </button>
+  );
+}
+
+function CommandProbe() {
+  const commands = useContextCommands();
+  return (
+    <output aria-label="Available event actions">
+      {commands.map((command) => command.label).join(", ")}
+    </output>
   );
 }
 
@@ -173,13 +186,17 @@ describe("EventWorkspace", () => {
         }),
       );
       render(
-        <>
+        <WorkspaceCommandProvider pathname={`/events/${eventId}`}>
           <EventWorkspace eventId={eventId} />
           <RefreshProbe />
-        </>,
+          <CommandProbe />
+        </WorkspaceCommandProvider>,
         { wrapper: Providers },
       );
       const input = await screen.findByRole("textbox", { name: "Task" });
+      expect(
+        screen.getByLabelText("Available event actions"),
+      ).toHaveTextContent("Edit event, Event history");
       await user.type(input, "Keep my draft");
       fail = true;
       await user.click(
@@ -188,6 +205,15 @@ describe("EventWorkspace", () => {
       expect(
         await screen.findByRole("alert", {}, { timeout: 3000 }),
       ).toHaveTextContent("Event data unavailable");
+      if (status !== 503 && source !== "todos") {
+        expect(
+          screen.getByLabelText("Available event actions"),
+        ).toBeEmptyDOMElement();
+      } else {
+        expect(
+          screen.getByLabelText("Available event actions"),
+        ).toHaveTextContent("Edit event, Event history");
+      }
       if (status === 503) {
         expect(screen.getByRole("textbox", { name: "Task" })).toBe(input);
         expect(input).toHaveValue("Keep my draft");

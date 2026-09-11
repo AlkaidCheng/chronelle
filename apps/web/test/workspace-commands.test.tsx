@@ -7,10 +7,17 @@ import {
   within,
 } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { StrictMode, useRef, useState } from "react";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { WorkspaceHeader } from "../components/workspace-header";
 import { AuthSessionProvider, useAuthSession } from "../lib/auth-session";
 import { useComponentShortcut } from "../lib/use-component-shortcut";
+import {
+  CommandScope,
+  WorkspaceCommandProvider,
+  type ContextCommand,
+} from "../components/context-commands";
+import { WorkspaceCommands } from "../components/workspace-commands";
 
 const push = vi.fn();
 vi.mock("next/navigation", () => ({
@@ -105,8 +112,7 @@ const trigger = () => {
   return button;
 };
 const palette = () => screen.getByRole("dialog", { name: "Commands" });
-const results = () =>
-  within(screen.getByRole("listbox", { name: "Workspace destinations" }));
+const results = () => within(screen.getByRole("listbox", { name: "Commands" }));
 
 it("filters destinations, navigates with arrows and Enter, and returns focus", async () => {
   const user = setup();
@@ -417,5 +423,207 @@ it("closes only on a full backdrop press", async () => {
   expect(palette()).toBeInTheDocument();
   fireEvent.pointerDown(palette());
   fireEvent.pointerUp(palette());
+  expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+});
+
+interface OwnerProps {
+  readonly editable?: boolean;
+  readonly disabled?: boolean;
+  readonly hidden?: boolean;
+  readonly onEdit?: () => void;
+  readonly onHistory?: () => void;
+}
+
+function CommandOwner({
+  editable = true,
+  disabled = false,
+  hidden = false,
+  onEdit,
+  onHistory,
+}: OwnerProps) {
+  const edit = useRef<HTMLButtonElement>(null);
+  const history = useRef<HTMLButtonElement>(null);
+  const commands: ContextCommand[] = [
+    {
+      id: "event-history",
+      label: "Event history",
+      description: "Review Gathering",
+      target: history,
+    },
+  ];
+  if (editable)
+    commands.push({
+      id: "edit-event",
+      label: "Edit event",
+      description: "Edit Gathering",
+      target: edit,
+    });
+  return (
+    <>
+      <CommandScope pathname="/events/gathering" commands={commands} />
+      <fieldset disabled={disabled} hidden={hidden}>
+        {editable && (
+          <button ref={edit} type="button" onClick={onEdit}>
+            Edit event
+          </button>
+        )}
+        <button ref={history} type="button" onClick={onHistory}>
+          History
+        </button>
+      </fieldset>
+    </>
+  );
+}
+
+function ContextHarness({
+  pathname = "/events/gathering",
+  mounted = true,
+  ...owner
+}: OwnerProps & { readonly pathname?: string; readonly mounted?: boolean }) {
+  return (
+    <StrictMode>
+      <AuthSessionProvider>
+        <WorkspaceCommandProvider pathname={pathname}>
+          <Harness />
+          {mounted && <CommandOwner {...owner} />}
+        </WorkspaceCommandProvider>
+      </AuthSessionProvider>
+    </StrictMode>
+  );
+}
+
+it("groups current controls and hands focus to the latest existing handler after closing", async () => {
+  const previous = vi.fn();
+  const latest = vi.fn(() => {
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Edit event" })).toHaveFocus();
+  });
+  const view = render(<ContextHarness onEdit={previous} />);
+  const user = userEvent.setup();
+  await user.click(trigger());
+  expect(
+    within(screen.getByRole("group", { name: "Event actions" })).getAllByRole(
+      "option",
+    ),
+  ).toHaveLength(2);
+  expect(
+    within(screen.getByRole("group", { name: "Navigation" })).getAllByRole(
+      "option",
+    ),
+  ).toHaveLength(3);
+  view.rerender(<ContextHarness onEdit={latest} />);
+  await user.type(
+    screen.getByRole("combobox", { name: "Find a command" }),
+    "edit gathering",
+  );
+  await user.keyboard("{Enter}");
+  expect(latest).toHaveBeenCalledTimes(1);
+  expect(previous).not.toHaveBeenCalled();
+  expect(push).not.toHaveBeenCalled();
+});
+
+it("does not replace a removed selection with another action", async () => {
+  const edit = vi.fn();
+  const history = vi.fn();
+  const view = render(<ContextHarness onEdit={edit} onHistory={history} />);
+  const user = userEvent.setup();
+  await user.click(trigger());
+  expect(results().getByRole("option", { selected: true })).toHaveTextContent(
+    "Edit event",
+  );
+  view.rerender(<ContextHarness editable={false} onHistory={history} />);
+  expect(
+    screen.getByRole("combobox", { name: "Find a command" }),
+  ).not.toHaveAttribute("aria-activedescendant");
+  await user.keyboard("{Enter}");
+  expect(palette()).toBeInTheDocument();
+  expect(edit).not.toHaveBeenCalled();
+  expect(history).not.toHaveBeenCalled();
+  await user.keyboard("{ArrowDown}{Enter}");
+  expect(history).toHaveBeenCalledTimes(1);
+});
+
+it("keeps the selected command when an earlier option is inserted", async () => {
+  const history = vi.fn();
+  const view = render(<ContextHarness editable={false} onHistory={history} />);
+  const user = userEvent.setup();
+  await user.click(trigger());
+  view.rerender(<ContextHarness onHistory={history} />);
+  expect(results().getByRole("option", { selected: true })).toHaveTextContent(
+    "Event history",
+  );
+  await user.keyboard("{Enter}");
+  expect(history).toHaveBeenCalledTimes(1);
+});
+
+it.each([{ pathname: "/search" }, { mounted: false }])(
+  "drops context after %j while Commands remains open",
+  async (props) => {
+    const view = render(<ContextHarness />);
+    const user = userEvent.setup();
+    await user.click(trigger());
+    view.rerender(<ContextHarness {...props} />);
+    expect(
+      screen.queryByRole("group", { name: "Event actions" }),
+    ).not.toBeInTheDocument();
+    expect(results().getAllByRole("option")).toHaveLength(3);
+    await user.keyboard("{Enter}");
+    expect(push).not.toHaveBeenCalled();
+  },
+);
+
+it.each(["disabled", "hidden", "inert", "disconnected"])(
+  "rejects a %s target even if its descriptor remains available",
+  async (state) => {
+    const edit = vi.fn();
+    render(<ContextHarness onEdit={edit} />);
+    const user = userEvent.setup();
+    const button = screen.getByRole("button", { name: "Edit event" });
+    const parent = button.parentElement;
+    await user.click(trigger());
+    if (state === "disconnected") button.remove();
+    else parent?.setAttribute(state, "");
+    await user.click(results().getByRole("option", { name: /Edit event/ }));
+    expect(edit).not.toHaveBeenCalled();
+    // Restore ownership before React unmounts this fixture.
+    if (state === "disconnected") parent?.prepend(button);
+  },
+);
+
+it("invalidates an old action when its route changes during dialog dismissal", async () => {
+  const edit = vi.fn();
+  function DismissingHarness() {
+    const [open, setOpen] = useState(false);
+    const [pathname, setPathname] = useState("/events/gathering");
+    return (
+      <WorkspaceCommandProvider pathname={pathname}>
+        <button type="button" onClick={() => setOpen(true)}>
+          Open
+        </button>
+        <CommandOwner onEdit={edit} />
+        {open && (
+          <WorkspaceCommands
+            workspaceName="Personal"
+            shortcutEnabled
+            onShortcutChange={() => {}}
+            onClose={() => {
+              setOpen(false);
+              setPathname("/search");
+            }}
+          />
+        )}
+      </WorkspaceCommandProvider>
+    );
+  }
+  render(
+    <AuthSessionProvider>
+      <DismissingHarness />
+    </AuthSessionProvider>,
+  );
+  await userEvent.setup().click(screen.getByRole("button", { name: "Open" }));
+  await userEvent
+    .setup()
+    .click(results().getByRole("option", { name: /Edit event/ }));
+  expect(edit).not.toHaveBeenCalled();
   expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
 });

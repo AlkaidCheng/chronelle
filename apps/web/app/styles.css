@@ -648,6 +648,19 @@ h3 {
   overflow-wrap: anywhere;
 }
 
+.command-group-label {
+  color: var(--muted);
+  font-size: 0.75rem;
+  font-weight: 600;
+  margin: 12px 12px 4px;
+}
+
+.command-results .command-action-mark {
+  color: var(--accent);
+  flex: 0 0 20px;
+  text-align: center;
+}
+
 .command-help {
   border-top: 1px solid var(--line);
   font-size: 0.85rem;

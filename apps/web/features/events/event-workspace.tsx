@@ -3,6 +3,7 @@
 import Link from "next/link";
 import {
   type KeyboardEvent as ReactKeyboardEvent,
+  useLayoutEffect,
   useRef,
   useState,
 } from "react";
@@ -27,11 +28,30 @@ import {
 import { useEventView } from "../../lib/use-event-view";
 import { EventOverview } from "./event-overview";
 import { EventPages } from "./event-pages";
+import {
+  CommandScope,
+  type ContextCommand,
+} from "../../components/context-commands";
 
 export function EventWorkspace({ eventId }: { readonly eventId: string }) {
   const [activeTab, setActiveTab] = useEventView();
   const queries = useEventWorkspaceQueries(eventId, activeTab);
   const [isEditingEvent, setIsEditingEvent] = useState(false);
+  const editButton = useRef<HTMLButtonElement>(null);
+  const shareButton = useRef<HTMLButtonElement>(null);
+  const historyButton = useRef<HTMLButtonElement>(null);
+  const editor = useRef<HTMLDivElement>(null);
+  const view = useRef<HTMLDivElement>(null);
+  const focusView = useRef(false);
+  useLayoutEffect(() => {
+    if (isEditingEvent) editor.current?.querySelector("input")?.focus();
+  }, [isEditingEvent]);
+  // biome-ignore lint/correctness/useExhaustiveDependencies: The selected view controls when its focus target is mounted.
+  useLayoutEffect(() => {
+    if (!focusView.current) return;
+    view.current?.focus();
+    focusView.current = false;
+  }, [activeTab]);
   const tabButtons = useRef(new Map<TabId, HTMLButtonElement>());
   const essentialQueries = [queries.event, queries.access];
   const failedQuery =
@@ -88,6 +108,28 @@ export function EventWorkspace({ eventId }: { readonly eventId: string }) {
   );
   const shownTab =
     activeTab === "sharing" && !canShare ? "overview" : activeTab;
+  const commands: ContextCommand[] = [
+    {
+      id: "event-history",
+      label: "Event history",
+      description: `Review changes to ${event.displayName}`,
+      target: historyButton,
+    },
+  ];
+  if (canEdit && !isEditingEvent)
+    commands.push({
+      id: "edit-event",
+      label: "Edit event",
+      description: `Edit ${event.displayName}`,
+      target: editButton,
+    });
+  if (canShare && shownTab !== "sharing")
+    commands.push({
+      id: "share-event",
+      label: "Share event",
+      description: `Manage access to ${event.displayName}`,
+      target: shareButton,
+    });
   const activeProjection =
     shownTab === "overview" || shownTab === "sharing"
       ? queries.detail
@@ -122,6 +164,7 @@ export function EventWorkspace({ eventId }: { readonly eventId: string }) {
 
   return (
     <main className="event-workspace">
+      <CommandScope pathname={`/events/${event.id}`} commands={commands} />
       {refreshNotice}
       <header className="event-hero">
         <div className="event-hero-topline">
@@ -144,12 +187,14 @@ export function EventWorkspace({ eventId }: { readonly eventId: string }) {
           </div>
           <div className="event-actions">
             <HistoryButton
+              ref={historyButton}
               objectId={event.id}
               displayName={event.displayName}
             />
             {canEdit ? <LifecycleButton target={event} /> : null}
             {canEdit ? (
               <button
+                ref={editButton}
                 className="button button-secondary"
                 onClick={() => setIsEditingEvent((value) => !value)}
                 type="button"
@@ -164,10 +209,13 @@ export function EventWorkspace({ eventId }: { readonly eventId: string }) {
           </div>
         </div>
         {isEditingEvent && canEdit ? (
-          <div className="event-editor surface">
+          <div className="event-editor surface" ref={editor}>
             <EventEditorForm
               event={event}
-              onCancel={() => setIsEditingEvent(false)}
+              onCancel={() => {
+                setIsEditingEvent(false);
+                editButton.current?.focus();
+              }}
             />
           </div>
         ) : null}
@@ -176,9 +224,13 @@ export function EventWorkspace({ eventId }: { readonly eventId: string }) {
       <div className="event-pages-tools">
         {canShare && shownTab !== "sharing" ? (
           <button
+            ref={shareButton}
             type="button"
             className="button button-quiet"
-            onClick={() => setActiveTab("sharing")}
+            onClick={() => {
+              focusView.current = true;
+              setActiveTab("sharing");
+            }}
           >
             Share event
           </button>
@@ -238,6 +290,8 @@ export function EventWorkspace({ eventId }: { readonly eventId: string }) {
           </div>
 
           <div
+            ref={view}
+            tabIndex={-1}
             aria-labelledby={`event-tab-${shownTab}`}
             className="event-view"
             id={`event-panel-${shownTab}`}
