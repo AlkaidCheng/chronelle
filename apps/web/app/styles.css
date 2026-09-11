@@ -3077,6 +3077,63 @@ html:has(.event-create-dialog[open]) {
   gap: 16px;
 }
 
+.page-preset-dialog .event-create-body {
+  gap: 16px;
+}
+.page-preset-dialog p {
+  margin: 0;
+}
+.page-preset-picker {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 8rem), 1fr));
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+.page-preset-picker legend {
+  margin-bottom: 8px;
+  font-weight: 600;
+}
+.page-preset-choice {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 10px 8px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  cursor: pointer;
+  overflow-wrap: anywhere;
+}
+.page-preset-choice:has(input:checked),
+.page-preset-choice:focus-within {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+.page-preset-choice input {
+  width: 1rem;
+  height: 1rem;
+  margin: 0;
+  accent-color: var(--accent);
+}
+.page-preset-preview {
+  display: grid;
+  gap: 10px;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface-subtle);
+  overflow-wrap: anywhere;
+}
+.page-preset-preview h3,
+.page-preset-preview ol {
+  margin: 0;
+}
+.page-preset-preview ol {
+  padding-left: 20px;
+}
+
 .catalog-destination,
 .catalog-context {
   margin: 0;

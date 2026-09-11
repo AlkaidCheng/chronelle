@@ -136,6 +136,211 @@ function CommandProbe() {
 }
 
 describe("insertable event components", () => {
+  it("previews presets locally and preserves custom names and underlying drafts on cancel", async () => {
+    const pages = [page("Plan", ["todos"])];
+    await client.updateEventLayout(eventId, { expectedVersion: 0, pages });
+    const user = userEvent.setup();
+    render(<EventPages eventId={eventId} canEdit />, { wrapper: Providers });
+    const draft = await screen.findByRole("textbox", { name: "Task" });
+    await user.type(draft, "Keep this unfinished task");
+    await user.click(screen.getByRole("button", { name: "Add page" }));
+    const dialog = within(screen.getByRole("dialog"));
+    const name = dialog.getByRole("textbox", { name: "Page name" });
+    expect(name).toHaveFocus();
+    expect(dialog.getByRole("radio", { name: "Blank" })).toBeChecked();
+    expect(dialog.getByRole("button", { name: "Add page" })).toBeDisabled();
+    vi.mocked(fetch).mockClear();
+    await user.click(dialog.getByRole("radio", { name: "Gathering" }));
+    expect(name).toHaveValue("Gathering");
+    expect(
+      dialog.getByRole("region", { name: "Page preview" }),
+    ).toHaveTextContent("To-dosItineraryExpenses");
+    await user.clear(name);
+    await user.type(name, "Our plans");
+    await user.click(dialog.getByRole("radio", { name: "Multi-day" }));
+    expect(name).toHaveValue("Our plans");
+    expect(
+      dialog.getByRole("region", { name: "Page preview" }),
+    ).toHaveTextContent("CalendarItineraryFiles");
+    await user.click(dialog.getByRole("radio", { name: "Blank" }));
+    expect(dialog.queryByRole("list")).toBeNull();
+    expect(fetch).not.toHaveBeenCalled();
+    await user.click(dialog.getByRole("button", { name: "Cancel" }));
+    expect(screen.getByRole("textbox", { name: "Task" })).toBe(draft);
+    expect(draft).toHaveValue("Keep this unfinished task");
+    expect((await client.getEventLayout(eventId)).pages).toEqual(pages);
+  });
+
+  it("appends a preset as one recoverable layout change without changing canonical records", async () => {
+    const pages = [page("Preparation", ["todos"])];
+    await client.updateEventLayout(eventId, { expectedVersion: 0, pages });
+    const before = await client.getEventDetail(eventId);
+    const user = userEvent.setup();
+    render(<EventPages eventId={eventId} canEdit />, { wrapper: Providers });
+    await user.click(await screen.findByRole("button", { name: "Add page" }));
+    const dialog = within(screen.getByRole("dialog"));
+    await user.click(dialog.getByRole("radio", { name: "Gathering" }));
+    await user.click(dialog.getByRole("button", { name: "Add page" }));
+    await screen.findByText("Gathering page added.");
+    const saved = await client.getEventLayout(eventId);
+    expect(saved.version).toBe(2);
+    expect(saved.pages[0]).toEqual(pages[0]);
+    expect(saved.pages[1]?.components.map(({ kind }) => kind)).toEqual([
+      "todos",
+      "itinerary",
+      "expenses",
+    ]);
+    expect(saved.pages[1]?.components[0]?.id).not.toBe(
+      pages[0]?.components[0]?.id,
+    );
+    expect(await client.getEventDetail(eventId)).toEqual(before);
+    await user.click(screen.getByRole("button", { name: "Page options" }));
+    const recovery = within(screen.getByRole("dialog"));
+    await user.click(
+      recovery.getByRole("button", { name: "Undo layout change" }),
+    );
+    await waitFor(() =>
+      expect(
+        recovery.getByRole("button", { name: "Redo layout change" }),
+      ).toBeEnabled(),
+    );
+    expect((await client.getEventLayout(eventId)).pages).toEqual(pages);
+    await user.click(
+      recovery.getByRole("button", { name: "Redo layout change" }),
+    );
+    await waitFor(() =>
+      expect(
+        recovery.getByRole("button", { name: "Undo layout change" }),
+      ).toBeEnabled(),
+    );
+    expect((await client.getEventLayout(eventId)).pages).toEqual(saved.pages);
+    await user.click(recovery.getByRole("button", { name: "Layout history" }));
+    await user.click(
+      await recovery.findByRole("button", { name: "Preview version 2" }),
+    );
+    expect(recovery.getByText(/To-dos, Itinerary, Expenses/)).toBeVisible();
+    expect(await client.getEventDetail(eventId)).toEqual(before);
+  });
+
+  it.each([98, 100])(
+    "respects the shared component limit with %s existing views",
+    async (count) => {
+      const pages = Array.from({ length: 5 }, (_, index) =>
+        page(
+          `Page ${index}`,
+          Array.from(
+            { length: Math.min(20, count - index * 20) },
+            () => "files" as const,
+          ),
+        ),
+      );
+      await client.updateEventLayout(eventId, { expectedVersion: 0, pages });
+      const user = userEvent.setup();
+      render(<EventPages eventId={eventId} canEdit />, { wrapper: Providers });
+      await user.click(await screen.findByRole("button", { name: "Add page" }));
+      const dialog = within(screen.getByRole("dialog"));
+      await user.type(
+        dialog.getByRole("textbox", { name: "Page name" }),
+        "Notes",
+      );
+      await user.click(dialog.getByRole("radio", { name: "Multi-day" }));
+      expect(dialog.getByText(/exceeds a layout limit/)).toBeVisible();
+      expect(dialog.getByRole("button", { name: "Add page" })).toBeDisabled();
+      await user.click(dialog.getByRole("radio", { name: "Blank" }));
+      expect(dialog.queryByText(/exceeds a layout limit/)).toBeNull();
+      await user.click(dialog.getByRole("button", { name: "Add page" }));
+      await screen.findByText("Notes page added.");
+      const saved = await client.getEventLayout(eventId);
+      expect(saved.pages.slice(0, 5)).toEqual(pages);
+      expect(saved.pages[5]?.components).toEqual([]);
+    },
+  );
+
+  it("preserves preset and name on stale writes without overwriting the current layout", async () => {
+    const user = userEvent.setup();
+    render(<EventPages eventId={eventId} canEdit />, { wrapper: Providers });
+    await user.click(await screen.findByRole("button", { name: "Add page" }));
+    const dialog = within(screen.getByRole("dialog"));
+    await user.click(dialog.getByRole("radio", { name: "Gathering" }));
+    const concurrent = [page("Another planner", ["calendar"])];
+    await client.updateEventLayout(eventId, {
+      expectedVersion: 0,
+      pages: concurrent,
+    });
+    await user.click(dialog.getByRole("button", { name: "Add page" }));
+    expect(await dialog.findByRole("alert")).toHaveTextContent(
+      "A newer version is available",
+    );
+    expect(dialog.getByRole("textbox", { name: "Page name" })).toHaveValue(
+      "Gathering",
+    );
+    expect(dialog.getByRole("radio", { name: "Gathering" })).toBeChecked();
+    expect((await client.getEventLayout(eventId)).pages).toEqual(concurrent);
+    await user.click(dialog.getByRole("button", { name: "Cancel" }));
+    await screen.findByRole("heading", { name: "Another planner" });
+  });
+
+  it("guards page creation during composition and an in-flight save", async () => {
+    const user = userEvent.setup();
+    render(<EventPages eventId={eventId} canEdit />, { wrapper: Providers });
+    await user.click(await screen.findByRole("button", { name: "Add page" }));
+    const element = screen.getByRole("dialog");
+    const dialog = within(element);
+    await user.click(dialog.getByRole("radio", { name: "Gathering" }));
+    const name = dialog.getByRole("textbox", { name: "Page name" });
+    vi.mocked(fetch).mockClear();
+    for (const properties of [{ isComposing: true }, { keyCode: 229 }])
+      expect(fireEvent.keyDown(name, { key: "Enter", ...properties })).toBe(
+        false,
+      );
+    expect(fetch).not.toHaveBeenCalled();
+    const { promise, resolve } = Promise.withResolvers<void>();
+    vi.mocked(fetch).mockImplementation(async (input, options) => {
+      if (options?.method === "PATCH") await promise;
+      return store.fetch(input, options);
+    });
+    await user.click(dialog.getByRole("button", { name: "Add page" }));
+    expect(name).toBeDisabled();
+    for (const radio of dialog.getAllByRole("radio"))
+      expect(radio).toBeDisabled();
+    expect(dialog.getByRole("button", { name: "Saving..." })).toBeDisabled();
+    expect(dialog.getByRole("button", { name: "Cancel" })).toBeDisabled();
+    fireEvent(element, new Event("cancel", { cancelable: true }));
+    expect(element).toBeVisible();
+    resolve();
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+    expect((await client.getEventLayout(eventId)).version).toBe(1);
+  });
+
+  it("rejects a preset write when the server has revoked editing permission", async () => {
+    const user = userEvent.setup();
+    render(<EventPages eventId={eventId} canEdit />, { wrapper: Providers });
+    await user.click(await screen.findByRole("button", { name: "Add page" }));
+    const dialog = within(screen.getByRole("dialog"));
+    await user.click(dialog.getByRole("radio", { name: "Gathering" }));
+    vi.mocked(fetch).mockImplementation((input, options) =>
+      store.fetch(input, options, "viewer"),
+    );
+    await user.click(dialog.getByRole("button", { name: "Add page" }));
+    expect(await dialog.findByRole("alert")).toBeVisible();
+    expect(dialog.getByRole("radio", { name: "Gathering" })).toBeChecked();
+    expect((await client.getEventLayout(eventId)).pages).toEqual([]);
+  });
+
+  it("discards page presets on edit-access loss without reviving them", async () => {
+    const user = userEvent.setup();
+    const view = render(<EventPages eventId={eventId} canEdit />, {
+      wrapper: Providers,
+    });
+    await user.click(await screen.findByRole("button", { name: "Add page" }));
+    await user.click(screen.getByRole("radio", { name: "Gathering" }));
+    view.rerender(<EventPages eventId={eventId} canEdit={false} />);
+    expect(screen.queryByRole("dialog")).toBeNull();
+    view.rerender(<EventPages eventId={eventId} canEdit />);
+    expect(screen.queryByRole("dialog")).toBeNull();
+    expect((await client.getEventLayout(eventId)).pages).toEqual([]);
+  });
+
   it("keeps planning drafts mounted and performs no writes when toggling arrangement", async () => {
     await client.updateEventLayout(eventId, {
       expectedVersion: 0,
