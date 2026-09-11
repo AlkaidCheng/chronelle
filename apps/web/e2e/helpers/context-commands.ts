@@ -91,7 +91,7 @@ export async function exerciseContextCommands(
     await openCommands(page);
     await expect(
       dialog.getByRole("group", { name: "Event actions" }).getByRole("option"),
-    ).toHaveCount(canShare ? 5 : 4);
+    ).toHaveCount(canShare ? 6 : 5);
     await expectHorizontalReflow(page);
     await page.screenshot({
       path: testInfo.outputPath(`context-commands-${colorScheme}-narrow.png`),

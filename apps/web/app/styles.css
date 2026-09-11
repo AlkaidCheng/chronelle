@@ -2958,6 +2958,18 @@ html:has(.event-create-dialog[open]) {
   font-size: 0.85rem;
   margin: 0 0 20px;
 }
+.arrangement-notice {
+  padding: 12px 16px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface-subtle);
+}
+.arrangement-notice strong {
+  color: var(--ink);
+}
+.arrangement-toggle {
+  min-width: 7rem;
+}
 .component-toolbar {
   padding: 8px;
   background: var(--surface-subtle);

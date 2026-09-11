@@ -136,6 +136,86 @@ function CommandProbe() {
 }
 
 describe("insertable event components", () => {
+  it("keeps planning drafts mounted and performs no writes when toggling arrangement", async () => {
+    await client.updateEventLayout(eventId, {
+      expectedVersion: 0,
+      pages: [page("Plan", ["todos", "calendar"])],
+    });
+    const user = userEvent.setup();
+    render(<EventPages eventId={eventId} canEdit />, { wrapper: Providers });
+    const task = await screen.findByRole("textbox", { name: "Task" });
+    await user.type(task, "Keep my unfinished plan");
+    const trigger = screen.getByRole("button", { name: "Arrange layout" });
+    expect(screen.queryByRole("group", { name: /layout controls/ })).toBeNull();
+    const before = await client.getEventLayout(eventId);
+    vi.mocked(fetch).mockClear();
+    await user.click(trigger);
+    expect(
+      screen.getAllByRole("group", { name: /layout controls/ }),
+    ).toHaveLength(2);
+    expect(screen.getByText(/Moves save immediately/)).toBeVisible();
+    expect(screen.getByRole("textbox", { name: "Task" })).toBe(task);
+    expect(task).toHaveValue("Keep my unfinished plan");
+    await user.keyboard("{Enter}");
+    expect(trigger).toHaveFocus();
+    expect(trigger).toHaveTextContent("Arrange");
+    expect(screen.queryByRole("group", { name: /layout controls/ })).toBeNull();
+    expect(screen.getByRole("textbox", { name: "Task" })).toBe(task);
+    expect(task).toHaveValue("Keep my unfinished plan");
+    expect(fetch).not.toHaveBeenCalled();
+    expect(await client.getEventLayout(eventId)).toEqual(before);
+  });
+
+  it.each(["finish", "access-loss"])(
+    "discards a drag after %s without reviving Arrange mode or writing a layout",
+    async (reason) => {
+      await client.updateEventLayout(eventId, {
+        expectedVersion: 0,
+        pages: [page("Plan", ["todos"]), page("Day", [])],
+      });
+      const user = userEvent.setup();
+      const view = render(<EventPages eventId={eventId} canEdit />, {
+        wrapper: Providers,
+      });
+      await user.click(
+        await screen.findByRole("button", { name: "Arrange layout" }),
+      );
+      const dataTransfer = {
+        setData: vi.fn(),
+        effectAllowed: "",
+        dropEffect: "",
+      };
+      fireEvent.dragStart(screen.getByRole("button", { name: "Drag To-dos" }), {
+        dataTransfer,
+      });
+      expect(screen.getByText("Drop at end of Plan")).toBeVisible();
+      if (reason === "finish")
+        await user.click(
+          screen.getByRole("button", { name: "Done arranging" }),
+        );
+      else {
+        view.rerender(<EventPages eventId={eventId} canEdit={false} />);
+        expect(screen.queryByRole("button", { name: /arrang/i })).toBeNull();
+        expect(
+          screen.queryByRole("button", { name: /^Move |^Drag / }),
+        ).toBeNull();
+        view.rerender(<EventPages eventId={eventId} canEdit />);
+      }
+      expect(
+        screen.getByRole("button", { name: "Arrange layout" }),
+      ).toBeVisible();
+      expect(screen.queryByText("Drop at end of Plan")).toBeNull();
+      fireEvent.drop(screen.getByRole("button", { name: "Day" }), {
+        dataTransfer,
+      });
+      await user.click(screen.getByRole("button", { name: "Arrange layout" }));
+      fireEvent.drop(screen.getByRole("button", { name: "Day" }), {
+        dataTransfer,
+      });
+      expect((await client.getEventLayout(eventId)).version).toBe(1);
+    },
+  );
+
   it("updates the command destination and removes page actions during a canvas save", async () => {
     await client.updateEventLayout(eventId, {
       expectedVersion: 0,
@@ -160,10 +240,15 @@ describe("insertable event components", () => {
     await user.click(await screen.findByRole("button", { name: "On the day" }));
     const commands = screen.getByLabelText("Available page actions");
     expect(commands).toHaveTextContent("Choose a component for On the day");
+    await user.click(screen.getByRole("button", { name: "Arrange layout" }));
+    expect(commands).toHaveTextContent("Done arranging");
     await user.click(screen.getByRole("button", { name: "Move page earlier" }));
     await waitFor(() => expect(commands).toBeEmptyDOMElement());
     expect(
       screen.getByRole("button", { name: "Add component" }),
+    ).toBeDisabled();
+    expect(
+      screen.getByRole("button", { name: "Done arranging" }),
     ).toBeDisabled();
     resolve();
     await waitFor(() =>
@@ -220,7 +305,7 @@ describe("insertable event components", () => {
         wrapper: Providers,
       });
       await screen.findByRole("heading", { name: "A place for your event" });
-      expect(screen.queryByText(/Drag its handle/)).toBeNull();
+      expect(screen.queryByText(/Drag a handle/)).toBeNull();
       if (!canEdit) {
         expect(
           screen.getByText("The planner has not added any pages yet."),
@@ -236,10 +321,11 @@ describe("insertable event components", () => {
       await user.click(dialog.getByRole("button", { name: "Add page" }));
       await screen.findByRole("heading", { name: "Preparation" });
       expect(screen.getByText(/Choose Add component/)).toBeVisible();
-      expect(screen.queryByText(/Drag its handle/)).toBeNull();
+      expect(screen.queryByText(/Drag a handle/)).toBeNull();
       await user.click(screen.getByRole("button", { name: "Add component" }));
       await user.click(screen.getByRole("button", { name: "Add To-dos" }));
-      expect(await screen.findByText(/Drag its handle/)).toBeVisible();
+      await user.click(screen.getByRole("button", { name: "Arrange layout" }));
+      expect(screen.getByText(/Drag a handle/)).toBeVisible();
       expect(screen.queryByText(/Choose Add component/)).toBeNull();
     },
   );
@@ -256,7 +342,7 @@ describe("insertable event components", () => {
       await screen.findByText("This page has no components yet."),
     ).toBeVisible();
     expect(screen.queryByRole("button", { name: "Add component" })).toBeNull();
-    expect(screen.queryByText(/Drag its handle/)).toBeNull();
+    expect(screen.queryByText(/Drag a handle/)).toBeNull();
   });
 
   it.each([503, 403, 404])(
@@ -635,6 +721,9 @@ describe("insertable event components", () => {
     await client.updateEventLayout(eventId, { expectedVersion: 0, pages });
     const user = userEvent.setup();
     render(<EventPages eventId={eventId} canEdit />, { wrapper: Providers });
+    await user.click(
+      await screen.findByRole("button", { name: "Arrange layout" }),
+    );
     const down = await screen.findByRole("button", {
       name: "Move To-dos down",
     });
@@ -683,7 +772,9 @@ describe("insertable event components", () => {
     await client.updateEventLayout(eventId, { expectedVersion: 0, pages });
     const user = userEvent.setup();
     render(<EventPages eventId={eventId} canEdit />, { wrapper: Providers });
-    await screen.findByRole("button", { name: "Move To-dos down" });
+    await user.click(
+      await screen.findByRole("button", { name: "Arrange layout" }),
+    );
     const concurrent = pages.map((item) => ({
       ...item,
       name: `Updated ${item.name}`,
@@ -719,6 +810,9 @@ describe("insertable event components", () => {
     const user = userEvent.setup();
     render(<EventPages eventId={eventId} canEdit />, { wrapper: Providers });
     await user.click(
+      await screen.findByRole("button", { name: "Arrange layout" }),
+    );
+    await user.click(
       await screen.findByRole("button", { name: "Move page later" }),
     );
     await waitFor(() =>
@@ -739,6 +833,9 @@ describe("insertable event components", () => {
     const pages = [page("Work", ["todos", "calendar"]), page("Day", [])];
     await client.updateEventLayout(eventId, { expectedVersion: 0, pages });
     render(<EventPages eventId={eventId} canEdit />, { wrapper: Providers });
+    await userEvent
+      .setup()
+      .click(await screen.findByRole("button", { name: "Arrange layout" }));
     const target = await screen.findByRole("button", { name: "Day" });
     const dataTransfer = {
       setData: vi.fn(),
@@ -786,6 +883,7 @@ describe("insertable event components", () => {
     });
     expect(await screen.findByText("Read-only files")).toBeVisible();
     for (const label of [
+      "Arrange layout",
       "Add component",
       "Add page",
       "Add schedule item",

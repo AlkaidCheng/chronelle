@@ -17,6 +17,7 @@ export interface ContextCommand {
     | "share-event"
     | "event-history"
     | "add-page"
+    | "arrange-layout"
     | "add-component";
   readonly label: string;
   readonly description: string;

@@ -50,6 +50,10 @@ test("composes offline with search, drag or touch controls, and persistent cross
     await expect(page.getByRole("dialog")).toHaveCount(0);
   }
   const blocks = page.locator(".event-component-block");
+  await expect(page.getByRole("button", { name: /^Move / })).toHaveCount(0);
+  await page
+    .getByRole("button", { name: "Arrange layout", exact: true })
+    .click();
   if (isMobile)
     await page
       .getByRole("button", { name: "Move Calendar up", exact: true })
@@ -117,6 +121,7 @@ test("composes offline with search, drag or touch controls, and persistent cross
     .getByRole("button");
   await expect(tabs).toHaveText(["Work", "Day"]);
   await page.reload();
+  await expect(page.getByRole("button", { name: /^Move / })).toHaveCount(0);
   await expect(tabs).toHaveText(["Work", "Day"]);
   await expect(
     page.getByRole("heading", { name: "Day", exact: true }),

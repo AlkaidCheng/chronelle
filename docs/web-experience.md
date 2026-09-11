@@ -47,10 +47,11 @@ or clearing other browser data. Native text undo remains available in editors.
 
 The rail and palette share one catalog of Events, Search, and Trash routes.
 On an event, a separate Event actions group offers Edit event, Share event,
-Event history, Add page, and Add component when their existing controls are
+Event history, Add page, Add component, and Arrange layout when their controls are
 available. Viewers receive only Event history. An open event editor does not
-offer Edit event again. Page actions require the Pages view, edit access, room
-within layout limits, and no pending canvas save. Add component names its
+offer Edit event again. Page actions require the Pages view, edit access, and
+no pending canvas save. Insertion also requires room within layout limits;
+Arrange layout requires an existing page. Add component names its
 selected page. These actions open existing controls; they do not save, insert,
 share, or restore data immediately.
 
@@ -193,8 +194,23 @@ event-timezone display are a follow-up.
 
 Start with an Event name; dates can wait. Add a named page such as Preparation,
 then add only the components it needs. Empty pages explain this next step;
-movement instructions appear once there is a component to arrange. Viewers see
+movement controls and instructions appear only in Arrange layout mode. Viewers see
 read-only explanations without instructions to use unavailable controls.
+
+Arrange layout reveals page ordering, component move buttons, cross-page moves,
+and drag handles. Done arranging hides these tools without saving again; each
+move saves immediately through the existing versioned layout API. Page options
+remains available for removal, undo/redo, and saved layout history. Add page,
+Add component, and insertion shortcuts work in either mode.
+
+The mode is local to the open event and session. It survives page selection,
+but resets on leaving the Pages view, reload, event/session changes, and loss
+of edit access. Toggling keeps mounted components and unsaved form values.
+Commands offers the same Arrange layout / Done arranging control, disabled
+during an in-flight canvas save. No global Escape shortcut is added, so native
+editors and dialogs retain ownership of their keys. Mode changes do not write
+layout versions or audit events; layout mutations retain concurrency and
+authorization checks. Removing a component never deletes its planning records.
 
 Trash lists only objects the current user can recover. An empty type filter can
 be cleared to show all accessible types. After successful Event recovery,
