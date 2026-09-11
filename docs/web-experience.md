@@ -49,8 +49,9 @@ The rail and palette share one catalog of Events, Search, and Trash routes.
 On an event, a separate Event actions group offers Edit event, Share event,
 Event history, Add page, Add component, and Arrange layout when their controls are
 available. Viewers receive only Event history. An open event editor does not
-offer Edit event again. Page actions require the Pages view, edit access, room
-within layout limits, and no pending canvas save. Add component names its
+offer Edit event again. Page actions require the Pages view, edit access, and
+no pending canvas save. Insertion also requires room within layout limits;
+Arrange layout requires an existing page. Add component names its
 selected page. These actions open existing controls; they do not save, insert,
 share, or restore data immediately.
 

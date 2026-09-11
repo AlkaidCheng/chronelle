@@ -158,7 +158,7 @@ describe("insertable event components", () => {
     expect(task).toHaveValue("Keep my unfinished plan");
     await user.keyboard("{Enter}");
     expect(trigger).toHaveFocus();
-    expect(trigger).toHaveTextContent("Arrange layout");
+    expect(trigger).toHaveTextContent("Arrange");
     expect(screen.queryByRole("group", { name: /layout controls/ })).toBeNull();
     expect(screen.getByRole("textbox", { name: "Task" })).toBe(task);
     expect(task).toHaveValue("Keep my unfinished plan");

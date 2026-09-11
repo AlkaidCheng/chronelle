@@ -2967,6 +2967,9 @@ html:has(.event-create-dialog[open]) {
 .arrangement-notice strong {
   color: var(--ink);
 }
+.arrangement-toggle {
+  min-width: 7rem;
+}
 .component-toolbar {
   padding: 8px;
   background: var(--surface-subtle);

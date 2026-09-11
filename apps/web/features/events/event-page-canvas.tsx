@@ -310,7 +310,8 @@ export function EventPageCanvas({
           <button
             ref={arrangeButton}
             type="button"
-            className={`button ${isArranging ? "button-primary" : "button-secondary"}`}
+            className={`button arrangement-toggle ${isArranging ? "button-primary" : "button-secondary"}`}
+            aria-label={isArranging ? "Done arranging" : "Arrange layout"}
             disabled={save.isPending}
             onClick={() => {
               if (locked.current) return;
@@ -318,7 +319,7 @@ export function EventPageCanvas({
               setArranging(!isArranging);
             }}
           >
-            {isArranging ? "Done arranging" : "Arrange layout"}
+            {isArranging ? "Done" : "Arrange"}
           </button>
         ) : null}
         {canAddPage ? (

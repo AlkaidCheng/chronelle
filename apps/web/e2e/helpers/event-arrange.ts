@@ -22,6 +22,7 @@ export async function exerciseEventArrange(page: Page, testInfo: TestInfo) {
   const task = page.getByRole("textbox", { name: "Task", exact: true });
   await task.fill("Keep my unfinished plan");
   const controls = page.getByRole("group", { name: /layout controls/ });
+  const canvas = page.getByRole("region", { name: "Event pages", exact: true });
   await expect(controls).toHaveCount(0);
 
   const commands = await openCommands(page);
@@ -49,14 +50,28 @@ export async function exerciseEventArrange(page: Page, testInfo: TestInfo) {
     await page.setViewportSize({ width: 320, height: 568 });
     await arrange.scrollIntoViewIfNeeded();
     await expectHorizontalReflow(page);
-    await page.screenshot({
+    const addPageTop = await page
+      .getByRole("button", { name: "Add page", exact: true })
+      .evaluate((button) =>
+        Math.round(button.getBoundingClientRect().top + window.scrollY),
+      );
+    await canvas.screenshot({
+      animations: "disabled",
       path: testInfo.outputPath(`event-quiet-${colorScheme}.png`),
     });
     await arrange.click();
     await expectHorizontalReflow(page);
     await expect(page.getByText(/Moves save immediately/)).toBeVisible();
     await expect(controls.first()).toBeVisible();
-    await page.screenshot({
+    expect(
+      await page
+        .getByRole("button", { name: "Add page", exact: true })
+        .evaluate((button) =>
+          Math.round(button.getBoundingClientRect().top + window.scrollY),
+        ),
+    ).toBe(addPageTop);
+    await canvas.screenshot({
+      animations: "disabled",
       path: testInfo.outputPath(`event-arrange-${colorScheme}.png`),
     });
     await done.click();
