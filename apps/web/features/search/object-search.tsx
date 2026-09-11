@@ -15,6 +15,7 @@ import {
 import { SearchIcon } from "../../components/icons";
 import { formatDateTime, shortId } from "../../lib/format";
 import { useObjectSearch } from "../../lib/queries";
+import { getSearchResultHref } from "../../lib/search-result";
 
 const searchableTypes = [
   { label: "All objects", value: "" },
@@ -25,17 +26,8 @@ const searchableTypes = [
   { label: "Documents", value: "document" },
 ] as const;
 
-function getResultHref(result: ObjectSearchResult): string | null {
-  if (result.objectType === "event" && result.permissionScopeId === result.id) {
-    return `/events/${result.id}`;
-  }
-  return result.permissionScopeId === result.id
-    ? null
-    : `/events/${result.permissionScopeId}`;
-}
-
 function SearchResultCard({ result }: { readonly result: ObjectSearchResult }) {
-  const href = getResultHref(result);
+  const href = getSearchResultHref(result);
   const content = (
     <>
       <span className="search-result-icon">
