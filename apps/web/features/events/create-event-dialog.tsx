@@ -21,15 +21,57 @@ export function CreateEventDialog({
   const [displayName, setDisplayName] = useState("");
   const [schedule, setSchedule] = useState(readEventSchedule);
   const [scheduleError, setScheduleError] = useState("");
+  const [confirmingDiscard, setConfirmingDiscard] = useState(false);
   const dialog = useSessionDialog(onClose);
   const nameInput = useRef<HTMLInputElement>(null);
+  const keepEditingButton = useRef<HTMLButtonElement>(null);
+  const returnFocus = useRef<HTMLElement | null>(null);
+  const isDirty =
+    displayName !== "" ||
+    schedule.mode !== "unscheduled" ||
+    [
+      schedule.startDate,
+      schedule.endDate,
+      schedule.startTime,
+      schedule.endTime,
+    ].some(Boolean);
   useEffect(() => {
     nameInput.current?.focus();
   }, []);
 
+  useEffect(() => {
+    if (confirmingDiscard) keepEditingButton.current?.focus();
+    else if (returnFocus.current?.isConnected) returnFocus.current.focus();
+  }, [confirmingDiscard]);
+
+  useEffect(() => {
+    if (!isDirty && !createEvent.isPending) return;
+    function warnBeforeUnload(event: BeforeUnloadEvent) {
+      event.preventDefault();
+      event.returnValue = "";
+    }
+    window.addEventListener("beforeunload", warnBeforeUnload);
+    return () => window.removeEventListener("beforeunload", warnBeforeUnload);
+  }, [isDirty, createEvent.isPending]);
+
+  function requestClose() {
+    if (createEvent.isPending) return;
+    if (confirmingDiscard) {
+      setConfirmingDiscard(false);
+    } else if (isDirty) {
+      returnFocus.current =
+        document.activeElement instanceof HTMLElement
+          ? document.activeElement
+          : nameInput.current;
+      setConfirmingDiscard(true);
+    } else {
+      onClose();
+    }
+  }
+
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (createEvent.isPending) return;
+    if (createEvent.isPending || confirmingDiscard) return;
     let timing: ReturnType<typeof eventSchedulePayload>;
     try {
       timing = eventSchedulePayload(schedule);
@@ -62,22 +104,53 @@ export function CreateEventDialog({
       aria-labelledby="new-event-heading"
       onCancel={(event) => {
         event.preventDefault();
-        if (!createEvent.isPending) onClose();
+        requestClose();
       }}
     >
       <header className="event-create-header">
-        <h2 id="new-event-heading">Create an event</h2>
+        <h2 id="new-event-heading">
+          {confirmingDiscard ? "Discard this event?" : "Create an event"}
+        </h2>
         <button
+          hidden={confirmingDiscard}
           type="button"
           className="dialog-close"
           aria-label="Close event creation"
           disabled={createEvent.isPending}
-          onClick={onClose}
+          onClick={requestClose}
         >
           &#215;
         </button>
       </header>
-      <EditorForm onSubmit={handleSubmit} aria-busy={createEvent.isPending}>
+      {confirmingDiscard && (
+        <>
+          <div className="event-create-body">
+            <p>Your event name and schedule have not been saved.</p>
+          </div>
+          <footer className="event-create-footer">
+            <button
+              className="button button-quiet"
+              type="button"
+              onClick={onClose}
+            >
+              Discard
+            </button>
+            <button
+              ref={keepEditingButton}
+              className="button button-primary"
+              type="button"
+              onClick={() => setConfirmingDiscard(false)}
+            >
+              Keep editing
+            </button>
+          </footer>
+        </>
+      )}
+      <EditorForm
+        hidden={confirmingDiscard}
+        onSubmit={handleSubmit}
+        aria-busy={createEvent.isPending}
+      >
         <div className="event-create-body">
           <label className="field event-name-field">
             Event name
@@ -107,7 +180,7 @@ export function CreateEventDialog({
             className="button button-quiet"
             type="button"
             disabled={createEvent.isPending}
-            onClick={onClose}
+            onClick={requestClose}
           >
             Cancel
           </button>

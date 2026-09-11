@@ -150,7 +150,13 @@ the light paper color; the running page follows the selected appearance.
 ## Planning workflow
 
 - Choose **New event** to open the focused creation form. A start date is
-  optional. Cancel closes the form and discards its draft.
+  optional. Cancel, close, and Escape dismiss an untouched form immediately.
+  After editing, choose **Keep editing** or **Discard** in the same dialog.
+  Keep editing preserves the name, schedule, calendar position, and focus;
+  Escape from confirmation also returns to the draft. Saving locks dismissal.
+  Supported browsers warn before leaving the document with an edited or saving
+  creation form. This warning is not autosave and may not appear on mobile.
+  Session changes clear the draft immediately without confirmation.
 - Filter the authorized event collection by name and date, and sort by date,
   last update, or name. Upcoming includes events still in progress. Events with
   no end date move to Past once their start time passes.
@@ -312,8 +318,10 @@ Event editors, page layouts, and planning components with an error notice.
 Permission denial, missing resources, and unexpected response errors hide affected
 content even when a cached copy exists. Backend authorization and version checks
 still apply to every mutation. Retained data is not a freshness guarantee.
-Navigating away, changing sessions, or reloading still discards unsaved drafts;
-this is not offline synchronization or durable draft storage.
+Unsaved drafts are not durable storage or offline synchronization. Confirming
+document navigation, changing sessions, or closing the browser can discard them.
+Only the event creation dialog currently guards edited-form dismissal; other
+editors retain their existing navigation behavior.
 
 Production browser tests check explicit task retries with the same creation
 command, disabled pending controls, draft retention, and success feedback in
