@@ -51,8 +51,8 @@ test("creates a date-only range and switches to multi-day exact times", async ({
   await page.getByLabel("End time", { exact: true }).fill("18:00");
   await page.getByRole("button", { name: "Save event", exact: true }).click();
   await expect(
-    page.getByRole("button", { name: "Edit event", exact: true }),
-  ).toBeVisible();
+    page.getByRole("dialog", { name: "Edit event", exact: true }),
+  ).toHaveCount(0);
   const timed = await read();
   expect(timed).toMatchObject({ id, startsOn: null, endsOn: null, version: 2 });
   expect(
