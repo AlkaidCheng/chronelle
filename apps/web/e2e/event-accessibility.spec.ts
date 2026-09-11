@@ -27,6 +27,7 @@ test("keeps date navigation and dialog return focus usable across browser engine
   ).toBe(true);
   await page.screenshot({ path: testInfo.outputPath("keyboard-schedule.png") });
   await page.keyboard.press("Escape");
+  await page.getByRole("button", { name: "Discard", exact: true }).click();
   await expect(dialog).toHaveCount(0);
   await expect(trigger).toBeFocused();
 

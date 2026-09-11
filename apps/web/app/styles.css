@@ -2553,7 +2553,7 @@ a.search-result:hover {
   overflow: clip;
 }
 .event-create-dialog[open],
-.event-create-dialog form {
+.event-create-dialog form:not([hidden]) {
   display: flex;
   flex-direction: column;
   min-height: 0;
@@ -2575,7 +2575,7 @@ html:has(.event-create-dialog[open]) {
   margin: 0;
   font-size: 1.9rem;
 }
-.dialog-close {
+.dialog-close:not([hidden]) {
   display: grid;
   place-items: center;
   flex-shrink: 0;

@@ -27,6 +27,7 @@ test("navigates months and years without changing the selected range", async ({
     path: testInfo.outputPath("keyboard-date-range.png"),
   });
   await page.keyboard.press("Escape");
+  await page.getByRole("button", { name: "Discard", exact: true }).click();
   await expect(dialog).toHaveCount(0);
   await expect(trigger).toBeFocused();
 });
