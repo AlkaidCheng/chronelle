@@ -54,12 +54,12 @@ export function eventSchedulePayload(draft: EventScheduleDraft) {
       startsOn: draft.startDate,
       endsOn: draft.endDate || null,
     };
-  if (Boolean(draft.endDate) !== Boolean(draft.endTime))
+  const endDate =
+    draft.endDate === draft.startDate && !draft.endTime ? "" : draft.endDate;
+  if (Boolean(endDate) !== Boolean(draft.endTime))
     throw new Error("Provide both an end date and time, or leave both empty.");
   const startsAt = localInstant(draft.startDate, draft.startTime);
-  const endsAt = draft.endDate
-    ? localInstant(draft.endDate, draft.endTime)
-    : null;
+  const endsAt = endDate ? localInstant(endDate, draft.endTime) : null;
   if (endsAt !== null && endsAt < startsAt)
     throw new Error("End time must not precede start time.");
   return { ...empty, startsAt, endsAt };

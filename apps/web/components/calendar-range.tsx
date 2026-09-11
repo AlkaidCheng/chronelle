@@ -4,6 +4,7 @@ import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import {
   type CalendarRange,
   calendarMonthDate,
+  describeCalendarRange,
   selectCalendarRange,
   shiftCalendarDate,
   shiftCalendarMonth,
@@ -42,13 +43,17 @@ export function CalendarRangePicker({
   const [view, setView] = useState<"days" | "months" | "years">("days");
   const [expanded, setExpanded] = useState(!value.startDate);
   const [yearPage, setYearPage] = useState(Number(focused.slice(0, 4)));
+  const [jumpYear, setJumpYear] = useState("");
   const grid = useRef<HTMLTableElement>(null);
   const focusRequested = useRef(false);
   const calendar = useRef<HTMLDivElement>(null);
   const startButton = useRef<HTMLButtonElement>(null);
+  const endButton = useRef<HTMLButtonElement>(null);
   const panelId = useId();
   const hintId = useId();
   const keyboardHintId = useId();
+  const yearHintId = useId();
+  const validJumpYear = /^\d{1,4}$/.test(jumpYear) && Number(jumpYear) >= 1;
   const year = Number(focused.slice(0, 4));
   const month = Number(focused.slice(5, 7));
   const first = calendarMonthDate(year, month);
@@ -127,6 +132,7 @@ export function CalendarRangePicker({
         </button>
         <span aria-hidden="true">&rarr;</span>
         <button
+          ref={endButton}
           type="button"
           disabled={!value.startDate}
           aria-expanded={expanded}
@@ -143,6 +149,24 @@ export function CalendarRangePicker({
             {value.endDate ? formatCalendarDate(value.endDate) : "Optional"}
           </strong>
         </button>
+      </div>
+      <div className="calendar-range-details">
+        <p className="field-hint" role="status" aria-label="Date range summary">
+          {describeCalendarRange(value)}
+        </p>
+        {value.endDate && (
+          <button
+            type="button"
+            onClick={() => {
+              onChange({ ...value, endDate: "" });
+              setSelectingEnd(true);
+              setHovered("");
+              endButton.current?.focus();
+            }}
+          >
+            Clear end date
+          </button>
+        )}
       </div>
       {expanded ? (
         <>
@@ -176,6 +200,7 @@ export function CalendarRangePicker({
                 aria-expanded={view === "years"}
                 aria-controls={panelId}
                 onClick={() => {
+                  setJumpYear(String(year));
                   setYearPage(
                     Math.max(1, Math.min(9988, Math.floor(year / 10) * 10)),
                   );
@@ -200,6 +225,45 @@ export function CalendarRangePicker({
             </button>
           </div>
           <div id={panelId} className="calendar-panel">
+            {view === "years" && (
+              <div className="calendar-year-jump">
+                <label className="field">
+                  Go to year
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    maxLength={4}
+                    value={jumpYear}
+                    aria-describedby={yearHintId}
+                    aria-invalid={jumpYear !== "" && !validJumpYear}
+                    onChange={(event) => setJumpYear(event.target.value)}
+                    onKeyDown={(event) => {
+                      if (
+                        event.key !== "Enter" ||
+                        event.nativeEvent.isComposing
+                      )
+                        return;
+                      event.preventDefault();
+                      event.stopPropagation();
+                      if (validJumpYear)
+                        showDays(calendarMonthDate(Number(jumpYear), month));
+                    }}
+                  />
+                </label>
+                <button
+                  type="button"
+                  disabled={!validJumpYear}
+                  onClick={() =>
+                    showDays(calendarMonthDate(Number(jumpYear), month))
+                  }
+                >
+                  Go
+                </button>
+                <p className="field-hint" id={yearHintId}>
+                  Enter a year from 1 to 9999.
+                </p>
+              </div>
+            )}
             <p
               className="visually-hidden"
               role="status"

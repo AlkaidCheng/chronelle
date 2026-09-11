@@ -269,6 +269,20 @@ or one year with Shift, clamping to the last available day in the target month.
 Navigation stays within years 0001-9999 and does not change the selection until
 Enter, Space, or a pointer click. One day in the grid participates in Tab order.
 
+The year picker also accepts a direct year jump. Go or Enter moves the calendar
+without selecting a date or submitting the event. An unfinished year entry does
+not prevent saving an otherwise valid event. Date-range summaries count both
+endpoints, including leap days, and leave an unspecified end optional. Clear end
+date keeps the start and returns focus to the end-date control.
+
+Add times starts with empty fields until times are explicitly entered. Switching
+back to dates retains entered times in the current form but does not save them.
+Clearing an end date also clears its time, including a temporarily hidden time.
+For a timed plan on one day, the end time can remain unspecified even when both
+selected dates are the same. A multi-day timed plan requires an end time.
+Pending saves disable the entire schedule. Existing date ordering, local-time
+validation, optimistic concurrency and authorization remain unchanged.
+
 Selected grid cells expose the actual date range, not a tentative hover preview.
 Weekday headers have full accessible names, and a polite status reports the
 displayed month/year. Keyboard focus moves with the rendered calendar rather
