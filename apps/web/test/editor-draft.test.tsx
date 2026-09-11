@@ -21,6 +21,22 @@ const initialize = (source: Resource | undefined) => ({
 afterEach(cleanup);
 
 describe("useEditorDraft", () => {
+  it("compares flat fields with their loaded baseline", () => {
+    const { result } = renderHook(() => useEditorDraft(initial, initialize));
+    expect(result.current.isDirty).toBe(false);
+    act(() => result.current.change({ displayName: "Draft" }));
+    expect(result.current.isDirty).toBe(true);
+    act(() => result.current.change({ displayName: "Initial" }));
+    expect(result.current.isDirty).toBe(false);
+    act(() =>
+      result.current.accept({ ...initial, version: 2, displayName: "Saved" }),
+    );
+    expect(result.current.isDirty).toBe(false);
+    act(() => result.current.change({ currency: "EUR" }));
+    expect(result.current.isDirty).toBe(true);
+    act(() => result.current.loadLatest());
+    expect(result.current.isDirty).toBe(false);
+  });
   it("preserves fields through background updates and explicitly accepts the latest", () => {
     const { result, rerender } = renderHook(
       (latest: Resource) => useEditorDraft(latest, initialize),

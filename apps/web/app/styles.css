@@ -1179,11 +1179,6 @@ a.search-result:hover {
   width: 18px;
 }
 
-.event-editor {
-  margin-top: 28px;
-  padding: 24px;
-}
-
 .tab-list {
   border-bottom: 1px solid var(--line-strong);
   display: flex;
@@ -2563,6 +2558,42 @@ html:has(.event-create-dialog[open]) {
 }
 .event-create-dialog::backdrop {
   background: var(--scrim);
+}
+.event-create-dialog.event-inspector {
+  inset: 0 0 0 auto;
+  width: min(560px, 100vw);
+  max-width: 100vw;
+  height: 100dvh;
+  max-height: 100dvh;
+  margin: 0;
+  border-radius: 20px 0 0 20px;
+}
+.event-inspector .event-inspector-form {
+  flex: 1;
+  gap: 0;
+  overflow: hidden;
+}
+.event-inspector-fields {
+  flex: 1;
+  align-content: start;
+}
+.event-inspector-footer {
+  flex-shrink: 0;
+  max-height: 50dvh;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 16px 28px;
+  border-top: 1px solid var(--line);
+}
+@media (max-width: 560px) {
+  .event-create-dialog.event-inspector {
+    border: 0;
+    border-radius: 0;
+  }
+  .event-inspector-footer {
+    padding-inline: 18px;
+    padding-bottom: max(16px, env(safe-area-inset-bottom));
+  }
 }
 .event-create-header {
   display: flex;

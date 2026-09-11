@@ -174,10 +174,9 @@ the light paper color; the running page follows the selected appearance.
   storage; no object data, search text, or permissions are persisted there.
   Storage restrictions do not prevent using either layout.
 - Event views have bookmarkable URLs, such as `/events/OBJECT_ID?view=calendar`.
-  Reload and browser Back/Forward preserve the selected view. Changing views
-  keeps the event-header editor mounted; leaving the Event does not preserve
-  unsaved drafts. A mobile view selector provides direct access to views beyond
-  the visible tab strip.
+  Reload and browser Back/Forward preserve the selected view. A mobile view
+  selector provides direct access to views beyond the visible tab strip.
+  Close the Event inspector before using background page navigation.
 - Named pages use the independent `page` query parameter. Selecting a view
   preserves the selected page; reload and browser Back/Forward restore it.
   A missing page shows an explanation and the first available page. This is
@@ -303,6 +302,15 @@ emulated offline mode fails to load local files before the application runs.
 
 ## Editor feedback and refresh
 
+Edit event opens a right-side modal inspector on wide screens and a full-width
+editor on narrow screens. The underlying page stays in place but is inert.
+Fields scroll independently from save actions. Escape, Cancel and Close confirm
+changed fields with Keep editing or Discard; unchanged or reverted fields close
+immediately. Confirmation retains field values, calendar navigation and focus.
+Saving locks dismissal; success closes the inspector and restores focus.
+Session changes or authoritative access loss remove private drafts immediately.
+The inspector edits the same canonical Event using its pinned source version.
+
 Event, schedule-item, task, expense, and reminder forms keep their draft after a
 failed save. Submit again explicitly to retry; Refresh latest only fetches data
 and does not save changes. A failed refresh leaves the save error visible.
@@ -334,8 +342,11 @@ content even when a cached copy exists. Backend authorization and version checks
 still apply to every mutation. Retained data is not a freshness guarantee.
 Unsaved drafts are not durable storage or offline synchronization. Confirming
 document navigation, changing sessions, or closing the browser can discard them.
-Only the event creation dialog currently guards edited-form dismissal; other
-editors retain their existing navigation behavior.
+Event creation and the Event inspector guard edited-form dismissal. Other
+planning editors retain their existing navigation behavior.
+Client-side browser Back/Forward transitions are not intercepted. Save or close
+the inspector before leaving the Event; the unload warning applies only when
+the browser unloads the document, and browser support varies.
 
 Production browser tests check explicit task retries with the same creation
 command, disabled pending controls, draft retention, and success feedback in

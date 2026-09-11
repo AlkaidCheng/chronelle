@@ -6,7 +6,7 @@ import type {
   ReminderResponse,
   TaskResponse,
 } from "@chronelle/schemas";
-import { type FormEvent, useId, useState } from "react";
+import { type FormEvent, useState } from "react";
 
 import { EditorForm } from "../../components/editor-form";
 import { EventScheduleFields } from "./event-schedule-fields";
@@ -29,100 +29,6 @@ import {
   useUpdateReminder,
   useUpdateTask,
 } from "../../lib/queries";
-
-export function EventEditorForm({
-  event: latestEvent,
-  onCancel,
-}: {
-  readonly event: EventResponse;
-  readonly onCancel?: (() => void) | undefined;
-}) {
-  const draft = useEditorDraft(latestEvent, (event) => ({
-    displayName: event?.displayName ?? "",
-    ...readEventSchedule(event),
-  }));
-  const event = draft.source ?? latestEvent;
-  const nameId = useId();
-  const update = useUpdateEvent();
-  const refresh = useRefreshEvent(event.id, { throwOnError: true });
-  const { displayName } = draft.fields;
-  const [scheduleError, setScheduleError] = useState("");
-
-  function handleSubmit(formEvent: FormEvent<HTMLFormElement>) {
-    formEvent.preventDefault();
-    if (draft.hasNewerVersion || update.isPending) return;
-    let schedule: ReturnType<typeof eventSchedulePayload>;
-    try {
-      schedule = eventSchedulePayload(draft.fields);
-      setScheduleError("");
-    } catch (error) {
-      setScheduleError(
-        error instanceof Error ? error.message : "Check the schedule.",
-      );
-      return;
-    }
-    update.mutate(
-      {
-        id: event.id,
-        input: {
-          displayName,
-          ...schedule,
-          expectedVersion: event.version,
-          isAllDay: draft.fields.mode === "timed" && event.isAllDay,
-          timezone: event.timezone,
-        },
-      },
-      {
-        onSuccess: (saved) => {
-          draft.accept(saved);
-          onCancel?.();
-        },
-      },
-    );
-  }
-
-  return (
-    <EditorForm
-      aria-busy={update.isPending}
-      className="editor-form"
-      onChangeCapture={() => {
-        if (update.isSuccess) update.reset();
-      }}
-      onSubmit={handleSubmit}
-    >
-      <label className="field field-wide" htmlFor={nameId}>
-        <span>Name</span>
-        <input
-          id={nameId}
-          maxLength={240}
-          disabled={update.isPending}
-          onChange={(input) =>
-            draft.change({ displayName: input.target.value })
-          }
-          required
-          value={displayName}
-        />
-      </label>
-      <EventScheduleFields
-        value={draft.fields}
-        onChange={(fields) => {
-          draft.change(fields);
-          setScheduleError("");
-          if (update.isSuccess) update.reset();
-        }}
-        disabled={update.isPending}
-      />
-      {scheduleError && <p role="alert">{scheduleError}</p>}
-      <EditorControls
-        draft={draft}
-        mutation={update}
-        onCancel={onCancel}
-        onRefresh={refresh}
-        submitLabel="Save event"
-      />
-    </EditorForm>
-  );
-}
 
 export function ScheduledEventForm({
   event: latestEvent,

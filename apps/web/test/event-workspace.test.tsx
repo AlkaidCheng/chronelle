@@ -108,6 +108,14 @@ function CommandProbe() {
 
 describe("EventWorkspace", () => {
   beforeEach(() => {
+    for (const method of ["showModal", "close"] as const) {
+      Object.defineProperty(HTMLDialogElement.prototype, method, {
+        configurable: true,
+        value(this: HTMLDialogElement) {
+          this.toggleAttribute("open", method === "showModal");
+        },
+      });
+    }
     window.history.replaceState(null, "", "/events/plan?view=overview");
     window.sessionStorage.setItem(
       "chronelle.development-session",
@@ -120,6 +128,68 @@ describe("EventWorkspace", () => {
     vi.unstubAllGlobals();
     window.sessionStorage.clear();
   });
+
+  it.each(["viewer", 403, 404, 503] as const)(
+    "handles inspector access refresh %s without retaining denied drafts",
+    async (failure) => {
+      window.history.replaceState(null, "", "/events/plan?view=calendar");
+      let changed = false;
+      vi.stubGlobal(
+        "fetch",
+        vi.fn<typeof fetch>(async (input) => {
+          const path = requestPath(input);
+          if (path === `/api/events/${eventId}`) return jsonResponse(rootEvent);
+          if (path.endsWith("/access")) {
+            if (changed && failure !== "viewer")
+              return jsonResponse(
+                {
+                  error: { code: "unavailable", message: "Access unavailable" },
+                },
+                failure,
+              );
+            return jsonResponse({
+              resourceId: eventId,
+              actions: changed ? ["view"] : ["view", "edit"],
+            });
+          }
+          return jsonResponse({ sourceEventId: eventId, items: [] });
+        }),
+      );
+      const user = userEvent.setup();
+      render(
+        <>
+          <EventWorkspace eventId={eventId} />
+          <RefreshProbe />
+        </>,
+        { wrapper: Providers },
+      );
+      await user.click(
+        await screen.findByRole("button", { name: "Edit event" }),
+      );
+      await user.type(screen.getByLabelText("Name"), " private draft");
+      changed = true;
+      fireEvent.click(
+        screen.getByRole("button", { name: "Refetch event data" }),
+      );
+      if (failure === 503) {
+        await screen.findByText("Access unavailable", {}, { timeout: 3000 });
+        expect(screen.getByLabelText("Name")).toHaveValue(
+          "Launch night private draft",
+        );
+      } else {
+        await waitFor(
+          () => expect(screen.queryByRole("dialog")).not.toBeInTheDocument(),
+          { timeout: 3000 },
+        );
+        expect(
+          screen.queryByDisplayValue("Launch night private draft"),
+        ).not.toBeInTheDocument();
+        const unload = new Event("beforeunload", { cancelable: true });
+        window.dispatchEvent(unload);
+        expect(unload.defaultPrevented).toBe(false);
+      }
+    },
+  );
 
   it.each(["todos", "calendar", "expenses", "reminders"])(
     "gives viewers a read-only %s empty state",

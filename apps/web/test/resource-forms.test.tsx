@@ -13,12 +13,13 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { Providers } from "../app/providers";
 import {
-  EventEditorForm,
   ExpenseForm,
   ReminderForm,
   ScheduledEventForm,
   TaskForm,
 } from "../features/events/resource-forms";
+
+import { EventInspector } from "../features/events/event-inspector";
 
 const objectId = "019d6e7d-0000-7000-8000-000000000010";
 const workspaceId = "019d6e7d-0000-7000-8000-000000000001";
@@ -85,7 +86,10 @@ const forms = [
     resource: eventResource,
     field: "Name",
     render: (version: number, displayName: string) => (
-      <EventEditorForm event={eventResource(version, displayName)} />
+      <EventInspector
+        onClose={() => {}}
+        event={eventResource(version, displayName)}
+      />
     ),
   },
   {
@@ -133,6 +137,14 @@ const forms = [
 
 describe("versioned editor drafts", () => {
   beforeEach(() => {
+    for (const method of ["showModal", "close"] as const) {
+      Object.defineProperty(HTMLDialogElement.prototype, method, {
+        configurable: true,
+        value(this: HTMLDialogElement) {
+          this.toggleAttribute("open", method === "showModal");
+        },
+      });
+    }
     window.sessionStorage.setItem(
       "chronelle.development-session",
       JSON.stringify({ accessToken: "test-session", workspaceId }),
@@ -151,7 +163,7 @@ describe("versioned editor drafts", () => {
       const event = { ...eventResource(1, "Plan"), startsAt: null };
       const view = render(
         kind === "event" ? (
-          <EventEditorForm event={event} />
+          <EventInspector onClose={() => {}} event={event} />
         ) : (
           <ScheduledEventForm eventId={objectId} event={event} />
         ),

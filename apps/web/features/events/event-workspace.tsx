@@ -16,7 +16,7 @@ import { useEventWorkspaceQueries } from "../../lib/queries";
 import { isTemporaryReadError } from "../../lib/query-errors";
 import { eventComponentKindSchema } from "@chronelle/schemas";
 import { EventComponent } from "./event-component";
-import { EventEditorForm } from "./resource-forms";
+import { EventInspector } from "./event-inspector";
 import { SharingPanel } from "./sharing-panel";
 import { HistoryButton } from "../history/history-button";
 import { LifecycleButton } from "../recovery/lifecycle-provider";
@@ -40,12 +40,8 @@ export function EventWorkspace({ eventId }: { readonly eventId: string }) {
   const editButton = useRef<HTMLButtonElement>(null);
   const shareButton = useRef<HTMLButtonElement>(null);
   const historyButton = useRef<HTMLButtonElement>(null);
-  const editor = useRef<HTMLDivElement>(null);
   const view = useRef<HTMLDivElement>(null);
   const focusView = useRef(false);
-  useLayoutEffect(() => {
-    if (isEditingEvent) editor.current?.querySelector("input")?.focus();
-  }, [isEditingEvent]);
   // biome-ignore lint/correctness/useExhaustiveDependencies: The selected view controls when its focus target is mounted.
   useLayoutEffect(() => {
     if (!focusView.current) return;
@@ -196,10 +192,10 @@ export function EventWorkspace({ eventId }: { readonly eventId: string }) {
               <button
                 ref={editButton}
                 className="button button-secondary"
-                onClick={() => setIsEditingEvent((value) => !value)}
+                onClick={() => setIsEditingEvent(true)}
                 type="button"
               >
-                {isEditingEvent ? "Close editor" : "Edit event"}
+                Edit event
               </button>
             ) : (
               <span className="read-only-badge">
@@ -209,15 +205,13 @@ export function EventWorkspace({ eventId }: { readonly eventId: string }) {
           </div>
         </div>
         {isEditingEvent && canEdit ? (
-          <div className="event-editor surface" ref={editor}>
-            <EventEditorForm
-              event={event}
-              onCancel={() => {
-                setIsEditingEvent(false);
-                editButton.current?.focus();
-              }}
-            />
-          </div>
+          <EventInspector
+            key={event.id}
+            event={event}
+            onClose={() => {
+              setIsEditingEvent(false);
+            }}
+          />
         ) : null}
       </header>
 
