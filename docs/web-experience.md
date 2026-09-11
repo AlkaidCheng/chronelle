@@ -197,6 +197,19 @@ then add only the components it needs. Empty pages explain this next step;
 movement controls and instructions appear only in Arrange layout mode. Viewers see
 read-only explanations without instructions to use unavailable controls.
 
+Add a page offers Blank (the default), Gathering (To-dos, Itinerary, Expenses),
+and Multi-day (Calendar, Itinerary, Files). The preview shows the page name and
+ordered components before saving. Choosing a preset supplies a suggested name
+until the name is edited; switching presets preserves a custom name. Each
+selection appends one page, preserving existing pages and canonical records.
+These views cover the whole event; Multi-day does not invent dates or filter
+activities to separate days. Reusing a preset creates fresh layout identities,
+not new planning records. Page/component limits are validated with the shared
+layout schema before submission; existing backend checks remain authoritative.
+The append is one versioned layout mutation, recoverable through Page options.
+Preview and cancellation perform no writes. Save failures preserve the name
+and preset; after a conflict, close and reopen to review the latest layout.
+
 Arrange layout reveals page ordering, component move buttons, cross-page moves,
 and drag handles. Done arranging hides these tools without saving again; each
 move saves immediately through the existing versioned layout API. Page options
