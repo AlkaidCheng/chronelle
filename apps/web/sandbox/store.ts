@@ -382,15 +382,30 @@ export class SandboxStore {
       const query = objectSearchQuerySchema.parse(
         Object.fromEntries(url.searchParams),
       );
+      const matches = all.filter(
+        (object) =>
+          object.displayName
+            .toLowerCase()
+            .includes(query.query.toLowerCase()) &&
+          (!query.objectType || object.objectType === query.objectType),
+      );
+      const offset =
+        query.cursor === undefined
+          ? 0
+          : matches.findIndex((object) => object.id === query.cursor) + 1;
+      if (query.cursor !== undefined && offset === 0)
+        throw new SandboxError(
+          400,
+          "invalid_cursor",
+          "Search position is unavailable.",
+        );
+      const items = matches.slice(offset, offset + query.limit);
       return {
-        items: all.filter(
-          (object) =>
-            object.displayName
-              .toLowerCase()
-              .includes(query.query.toLowerCase()) &&
-            (!query.objectType || object.objectType === query.objectType),
-        ),
-        nextCursor: null,
+        items,
+        nextCursor:
+          offset + items.length < matches.length
+            ? (items.at(-1)?.id ?? null)
+            : null,
       };
     }
     if (collection === "events" && !id) {

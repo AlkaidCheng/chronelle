@@ -641,6 +641,15 @@ h3 {
   display: grid;
   flex: 1;
   min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.command-results [aria-disabled="true"] {
+  cursor: default;
+}
+
+.command-search-error p {
+  margin: 0 0 8px;
 }
 
 .command-results small {
