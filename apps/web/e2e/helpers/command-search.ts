@@ -13,6 +13,7 @@ export async function exerciseCommandSearch(page: Page, testInfo: TestInfo) {
   await expect(event).toHaveAttribute("aria-selected", "true");
   await input.press("Enter");
   await expect(dialog).toHaveCount(0);
+  await expect(page).toHaveURL(/\/events\/[0-9a-f-]+(?:\?.*)?$/);
   await expect(
     page.getByRole("heading", { name: "Autumn gathering", exact: true }),
   ).toBeVisible();

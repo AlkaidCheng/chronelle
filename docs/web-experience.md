@@ -71,6 +71,8 @@ object IDs. Event-scoped records open their event, using the same destination
 mapping as Search. Root non-event records have no detail route yet and remain
 non-actionable. Open full Search provides the existing filters and pagination;
 query text is not transferred into a URL or persisted.
+The results scroll independently so keyboard selection keeps the search field
+visible on narrow screens.
 
 Requests are cancelled on changed terms or dismissal. Changed inputs,
 revalidation, and failed reads hide earlier records. Search failures leave

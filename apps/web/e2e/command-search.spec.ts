@@ -47,7 +47,7 @@ test("finds canonical events and tasks through Commands without losing a dismiss
 test("limits the palette to eight records and opens full Search for remaining results", async ({
   page,
   request,
-}) => {
+}, testInfo) => {
   const email = `bounded-search-${randomUUID()}@example.test`;
   const identity = await request.post("/api/auth/development/sign-in", {
     data: { email, displayName: "Planner" },
@@ -73,6 +73,25 @@ test("limits the palette to eight records and opens full Search for remaining re
     dialog.getByRole("group", { name: "Records" }).getByRole("option"),
   ).toHaveCount(8);
   await expect(dialog.getByText(/Showing eight records/)).toBeVisible();
+  await page.setViewportSize({ width: 320, height: 568 });
+  const input = dialog.getByRole("combobox");
+  const records = dialog
+    .getByRole("group", { name: "Records" })
+    .getByRole("option");
+  for (const colorScheme of ["light", "dark"] as const) {
+    await page.emulateMedia({ colorScheme });
+    await input.press("ArrowUp");
+    await expect(records.last()).toHaveAttribute("aria-selected", "true");
+    await expect(records.last()).toBeInViewport({ ratio: 1 });
+    await expect(input).toBeInViewport({ ratio: 1 });
+    await page.screenshot({
+      path: testInfo.outputPath(`command-search-bounded-${colorScheme}.png`),
+    });
+    await input.press("ArrowDown");
+    await expect(records.first()).toHaveAttribute("aria-selected", "true");
+    await expect(records.first()).toBeInViewport({ ratio: 1 });
+    await expect(input).toBeInViewport({ ratio: 1 });
+  }
   await dialog.getByRole("button", { name: "Open full Search" }).click();
   await expect(page).toHaveURL(/\/search$/);
   await page.getByLabel("Keywords").fill("findable");
@@ -174,9 +193,16 @@ test("filters workspace and private records and rechecks revoked access", async 
   await denied;
   await expect(page.getByRole("alert").first()).toBeVisible();
   await openCommands(page);
+  const searchDenied = page.waitForResponse(
+    (response) =>
+      response.url().includes("/api/search?") && response.status() === 404,
+  );
   await input.fill("gathering");
+  await searchDenied;
   await expect(
-    dialog.getByText("No accessible records found. Try another phrase."),
+    dialog.getByText(
+      "Records could not be loaded. Navigation and event tools still work.",
+    ),
   ).toBeVisible();
   await expect(dialog.getByRole("group", { name: "Records" })).toHaveCount(0);
 });

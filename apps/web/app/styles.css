@@ -593,9 +593,15 @@ h3 {
   max-width: min(560px, calc(100vw - 32px));
 }
 
-.command-body {
-  display: grid;
+.event-create-body.command-body {
+  display: flex;
+  flex-direction: column;
   gap: 18px;
+  min-height: 0;
+}
+
+.command-body > :not(.command-results) {
+  flex-shrink: 0;
 }
 
 .command-body > p {
@@ -605,7 +611,13 @@ h3 {
 
 .command-results {
   margin: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
   padding: 0;
+}
+
+.command-results:not(:empty) {
+  min-height: 72px;
 }
 
 .command-results [role="option"] {
