@@ -185,6 +185,7 @@ test("calendar supports leap-day keyboard navigation, range reset, and optional 
     dialog.getByRole("button", { name: "Start date: Choose a day" }),
   ).toBeVisible();
   await page.keyboard.press("Escape");
+  await page.getByRole("button", { name: "Discard", exact: true }).click();
   await expect(dialog).toHaveCount(0);
   await expect(
     page.getByRole("button", { name: "New event", exact: true }),
