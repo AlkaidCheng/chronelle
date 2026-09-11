@@ -126,7 +126,7 @@ export function EventInspector({
         </button>
       </header>
       {confirmingDiscard && (
-        <div className="event-create-body event-inspector-fields">
+        <div className="event-create-body">
           <p>Your changes have not been saved.</p>
           <div className="form-actions">
             <button
@@ -156,7 +156,7 @@ export function EventInspector({
         }}
         onSubmit={handleSubmit}
       >
-        <div className="event-create-body">
+        <div className="event-create-body event-inspector-fields">
           <label className="field field-wide" htmlFor={nameId}>
             <span>Name</span>
             <input

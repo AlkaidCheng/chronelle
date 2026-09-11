@@ -19,6 +19,17 @@ export async function exerciseEventInspector(page: Page, testInfo: TestInfo) {
   await trigger.click();
   const name = inspector.getByLabel("Name", { exact: true });
   await expect(name).toBeFocused();
+  expect(
+    await inspector.locator("footer").evaluate((footer) => {
+      const dialog = footer.closest("dialog");
+      return dialog === null
+        ? Infinity
+        : Math.abs(
+            dialog.getBoundingClientRect().bottom -
+              footer.getBoundingClientRect().bottom,
+          );
+    }),
+  ).toBeLessThanOrEqual(2);
   await page.screenshot({ path: testInfo.outputPath("inspector-open.png") });
   expect(await inspector.evaluate((element) => element.matches(":modal"))).toBe(
     true,
