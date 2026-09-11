@@ -48,9 +48,7 @@ export function EventScheduleFields({
             onChange={(range) =>
               onChange({
                 ...range,
-                ...(hasTimes
-                  ? { endTime: range.endDate ? value.endTime || "17:00" : "" }
-                  : {}),
+                endTime: range.endDate ? value.endTime : "",
               })
             }
           />
@@ -69,8 +67,6 @@ export function EventScheduleFields({
               onChange={(event) =>
                 onChange({
                   mode: event.target.checked ? "timed" : "dates",
-                  startTime: value.startTime || "09:00",
-                  endTime: value.endDate ? value.endTime || "17:00" : "",
                 })
               }
             />

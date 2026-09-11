@@ -72,4 +72,20 @@ describe("event scheduling", () => {
     );
     expect(eventPeriod(event, Date.parse("2030-07-13T07:00:00Z"))).toBe("past");
   });
+  it("allows an unspecified end time on a single selected day", () => {
+    expect(
+      eventSchedulePayload({
+        ...readEventSchedule(),
+        mode: "timed",
+        startDate: "2030-07-03",
+        endDate: "2030-07-03",
+        startTime: "10:30",
+      }),
+    ).toEqual({
+      startsAt: new Date("2030-07-03T10:30").toISOString(),
+      endsAt: null,
+      startsOn: null,
+      endsOn: null,
+    });
+  });
 });

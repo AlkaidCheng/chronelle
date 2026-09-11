@@ -3,6 +3,15 @@ export interface CalendarRange {
   readonly endDate: string;
 }
 
+/** Describe the inclusive date span without treating an unset end as a duration. */
+export function describeCalendarRange(range: CalendarRange): string {
+  if (!range.startDate) return "Choose a start date.";
+  if (!range.endDate) return "End date optional.";
+  const days =
+    (Date.parse(range.endDate) - Date.parse(range.startDate)) / 86_400_000 + 1;
+  return `${days} ${days === 1 ? "day" : "days"}, including start and end dates.`;
+}
+
 export function calendarMonthDate(year: number, month: number): string {
   return `${String(year).padStart(4, "0")}-${String(month).padStart(2, "0")}-01`;
 }
