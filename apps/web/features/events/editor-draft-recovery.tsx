@@ -1,6 +1,6 @@
 "use client";
 
-import { type ReactNode, useEffect, useRef, useState } from "react";
+import { type ReactNode, useEffect, useId, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { ErrorNotice, LoadingState } from "../../components/feedback";
 import { useApiClient } from "../../lib/api-context";
@@ -9,31 +9,49 @@ import {
   useEditorDraftStore,
   useKeptEditorDraft,
 } from "../../lib/editor-draft-context";
-import type { EventDraftSnapshot } from "../../lib/editor-draft-store";
+import type { RetainedDraftSnapshot } from "../../lib/editor-draft-store";
 import { queryKeys } from "../../lib/queries";
 import { isTemporaryReadError } from "../../lib/query-errors";
 import { useSessionDialog } from "../../lib/use-session-dialog";
 
-export function EditorDraftRecovery({
+type DraftKind = RetainedDraftSnapshot["kind"];
+type DraftOfKind<Kind extends DraftKind> = Extract<
+  RetainedDraftSnapshot,
+  { kind: Kind }
+>;
+
+function matchesKind<Kind extends DraftKind>(
+  snapshot: RetainedDraftSnapshot,
+  kind: Kind,
+): snapshot is DraftOfKind<Kind> {
+  return snapshot.kind === kind;
+}
+
+export function EditorDraftRecovery<Kind extends DraftKind>({
+  kind,
   id,
   accessId = id,
   onClose,
   children,
 }: {
+  readonly kind: Kind;
   readonly id: string;
   readonly accessId?: string;
   readonly onClose: () => void;
-  readonly children: (snapshot: EventDraftSnapshot | undefined) => ReactNode;
+  readonly children: (snapshot: DraftOfKind<Kind> | undefined) => ReactNode;
 }) {
   const store = useEditorDraftStore();
   const [offering, setOffering] = useState(() => store.get(id) !== undefined);
-  const [snapshot, setSnapshot] = useState<EventDraftSnapshot>();
+  const [snapshot, setSnapshot] = useState<DraftOfKind<Kind>>();
   return offering ? (
-    <ResumeEventDraft
+    <ResumeDraft
+      kind={kind}
       id={id}
       accessId={accessId}
       onClose={onClose}
       onResume={(draft) => {
+        if (!matchesKind(draft, kind))
+          throw new Error("The draft does not belong to this editor.");
         setSnapshot(draft);
         setOffering(false);
       }}
@@ -43,16 +61,18 @@ export function EditorDraftRecovery({
   );
 }
 
-function ResumeEventDraft({
+function ResumeDraft({
+  kind,
   id,
   accessId,
   onClose,
   onResume,
 }: {
+  readonly kind: DraftKind;
   readonly id: string;
   readonly accessId: string;
   readonly onClose: () => void;
-  readonly onResume: (snapshot: EventDraftSnapshot) => void;
+  readonly onResume: (snapshot: RetainedDraftSnapshot) => void;
 }) {
   const store = useEditorDraftStore();
   const kept = useKeptEditorDraft(id);
@@ -60,6 +80,7 @@ function ResumeEventDraft({
   const queries = useQueryClient();
   const { signal } = useAuthSession();
   const dialog = useSessionDialog(onClose);
+  const headingId = useId();
   const mounted = useRef(false);
   const checking = useRef(false);
   const [isChecking, setIsChecking] = useState(false);
@@ -86,12 +107,19 @@ function ResumeEventDraft({
     try {
       if (accessId === "new") await client.getSession();
       else {
-        const [event, access] = await Promise.all([
-          client.getEvent(accessId),
+        const isTaskEdit =
+          kind === "task" && kept.snapshot.source !== undefined;
+        const [resource, access] = await Promise.all([
+          isTaskEdit ? client.getTask(accessId) : client.getEvent(accessId),
           client.getObjectAccess(accessId),
         ]);
         if (signal.aborted || !mounted.current) return;
-        queries.setQueryData(queryKeys.eventResource(accessId), event);
+        queries.setQueryData(
+          isTaskEdit
+            ? queryKeys.objectResource(accessId)
+            : queryKeys.eventResource(accessId),
+          resource,
+        );
         queries.setQueryData(queryKeys.access(accessId), access);
         if (!access.actions.includes("edit")) {
           store.forget(id);
@@ -107,6 +135,9 @@ function ResumeEventDraft({
           void queries.invalidateQueries({
             queryKey: queryKeys.event(accessId),
           });
+          void queries.invalidateQueries({
+            queryKey: queryKeys.objectResource(accessId),
+          });
         }
         setError(failure);
       }
@@ -120,15 +151,15 @@ function ResumeEventDraft({
     <dialog
       ref={dialog}
       className="event-create-dialog"
-      aria-labelledby="resume-event-heading"
+      aria-labelledby={headingId}
       onCancel={(event) => {
         event.preventDefault();
         onClose();
       }}
     >
       <header className="event-create-header">
-        <h2 id="resume-event-heading">
-          {kept?.pending ? "Saving event" : "Resume your draft?"}
+        <h2 id={headingId}>
+          {kept?.pending ? `Saving ${kind}` : "Resume your draft?"}
         </h2>
         <button
           className="dialog-close"
@@ -144,8 +175,11 @@ function ResumeEventDraft({
           <LoadingState label="Your save is still in progress. You can close this panel." />
         ) : (
           <p>
-            Your entered event name and schedule are kept in this tab. Current
-            access is checked before resuming.
+            Your entered{" "}
+            {kind === "task"
+              ? "task name and due time"
+              : "event name and schedule"}{" "}
+            are kept in this tab. Current access is checked before resuming.
           </p>
         )}
         {kept?.failed && (

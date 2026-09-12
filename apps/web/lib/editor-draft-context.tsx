@@ -13,7 +13,8 @@ import {
 import { useAuthSession } from "./auth-session";
 import {
   EditorDraftStore,
-  type EventDraftSnapshot,
+  eventCreationDraftKeys,
+  type RetainedDraftSnapshot,
   isDraftAccessError,
 } from "./editor-draft-store";
 import { useQueryClient } from "@tanstack/react-query";
@@ -61,9 +62,22 @@ export function useKeptEditorDraft(id: string) {
   );
 }
 
+export function useForgetInaccessibleEventDrafts(
+  eventId: string,
+  denied: boolean,
+) {
+  const store = useEditorDraftStore();
+  useEffect(() => {
+    if (!denied) return;
+    store.forget(eventId);
+    for (const id of Object.values(eventCreationDraftKeys(eventId)))
+      store.forget(id);
+  }, [denied, eventId, store]);
+}
+
 export function useKeepEditorDraft(
   id: string,
-  snapshot: EventDraftSnapshot,
+  snapshot: RetainedDraftSnapshot,
   isDirty: boolean,
   onAccessLost: () => void,
   accessId = id,
@@ -105,6 +119,9 @@ export function useKeepEditorDraft(
       if (isDraftAccessError(error) && mounted.current && !signal.aborted) {
         onAccessLost();
         void queries.invalidateQueries({ queryKey: queryKeys.event(accessId) });
+        void queries.invalidateQueries({
+          queryKey: queryKeys.objectResource(accessId),
+        });
       }
     }
   }

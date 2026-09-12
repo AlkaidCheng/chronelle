@@ -1,4 +1,4 @@
-import { type FormEvent, useEffect, useRef, useState } from "react";
+import { type FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import type { EventResponse } from "@chronelle/schemas";
 
 import { ErrorNotice } from "../../components/feedback";
@@ -26,7 +26,7 @@ interface CreateEventDialogProps {
 
 export function CreateEventDialog(props: CreateEventDialogProps) {
   return (
-    <EditorDraftRecovery id="new" onClose={props.onClose}>
+    <EditorDraftRecovery kind="event" id="new" onClose={props.onClose}>
       {(initialDraft) => (
         <CreateEventForm {...props} initialDraft={initialDraft} />
       )}
@@ -49,7 +49,11 @@ function CreateEventForm({
   const { displayName } = draft.fields;
   const schedule = draft.fields;
   const { isDirty } = draft;
-  const recovery = useKeepEditorDraft("new", draft.snapshot, isDirty, onClose);
+  const snapshot = useMemo<EventDraftSnapshot>(
+    () => ({ ...draft.snapshot, kind: "event" }),
+    [draft.snapshot],
+  );
+  const recovery = useKeepEditorDraft("new", snapshot, isDirty, onClose);
   const [scheduleError, setScheduleError] = useState("");
   const {
     isConfirming: confirmingDiscard,

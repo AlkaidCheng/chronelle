@@ -4,11 +4,19 @@ import {
   EditorDraftStore,
   readEventFields,
   type EventDraftSnapshot,
+  type TaskDraftSnapshot,
+  eventCreationDraftKeys,
 } from "../lib/editor-draft-store";
+import { readTaskFields } from "../lib/task-fields";
 
 function snapshot(displayName = "Garden evening"): EventDraftSnapshot {
   const baseline = readEventFields();
-  return { source: undefined, baseline, fields: { ...baseline, displayName } };
+  return {
+    kind: "event",
+    source: undefined,
+    baseline,
+    fields: { ...baseline, displayName },
+  };
 }
 
 function setup() {
@@ -16,7 +24,41 @@ function setup() {
   return { controller, store: new EditorDraftStore(controller.signal) };
 }
 
-describe("Event draft retention", () => {
+function taskSnapshot(displayName = "Pack supplies"): TaskDraftSnapshot {
+  const baseline = readTaskFields();
+  return {
+    kind: "task",
+    source: undefined,
+    baseline,
+    fields: { ...baseline, displayName },
+  };
+}
+
+describe("editor draft retention", () => {
+  it("separates parent creation keys from canonical edits and other parents", () => {
+    const { store } = setup();
+    const first = eventCreationDraftKeys("first-event");
+    const second = eventCreationDraftKeys("second-event");
+    const attempt = {
+      current: { key: "first-attempt", commandId: "command-id" },
+    };
+    const draft = { ...taskSnapshot(), creationAttempt: attempt };
+    store.keep(first.task, draft);
+    store.keep(first.schedule, snapshot());
+    store.keep(second.task, taskSnapshot("Another plan"));
+    store.keep("canonical-task", taskSnapshot("Edit task"));
+    for (const id of Object.values(first)) store.forget(id);
+    expect(store.get(first.task)).toBeUndefined();
+    expect(store.get(first.schedule)).toBeUndefined();
+    expect(store.get(second.task)?.snapshot.fields.displayName).toBe(
+      "Another plan",
+    );
+    expect(store.get("canonical-task")?.snapshot.fields.displayName).toBe(
+      "Edit task",
+    );
+    store.keep(first.task, draft);
+    expect(store.get(first.task)?.snapshot.creationAttempt).toBe(attempt);
+  });
   it("keeps stable snapshots and notifies only when an entry changes", () => {
     const { store } = setup();
     const listener = vi.fn();
@@ -39,7 +81,8 @@ describe("Event draft retention", () => {
 
   it("evicts the least recently changed settled draft at the twenty-draft limit", () => {
     const { store } = setup();
-    for (let index = 0; index < 20; index++) store.keep(`${index}`, snapshot());
+    for (let index = 0; index < 20; index++)
+      store.keep(`${index}`, index % 2 ? taskSnapshot() : snapshot());
     store.keep("0", snapshot("Updated"));
     store.keep("new", snapshot());
     expect(store.get("1")).toBeUndefined();
@@ -47,13 +90,13 @@ describe("Event draft retention", () => {
     expect(store.get("new")).toBeDefined();
   });
 
-  it("reserves pending entries and refuses another draft until a save settles", async () => {
+  it("reserves pending Event and Task entries until a save settles", async () => {
     const { store } = setup();
     const completion = Promise.withResolvers<void>();
     const saves: Promise<void>[] = [];
     for (let index = 0; index < 20; index++) {
       const id = `${index}`;
-      store.keep(id, snapshot());
+      store.keep(id, index % 2 ? taskSnapshot() : snapshot());
       saves.push(store.save(id, () => completion.promise));
     }
     expect(store.canKeep("new")).toBe(false);

@@ -1,8 +1,9 @@
 "use client";
 
-import { type ReactNode, useState } from "react";
+import { type ReactNode, useEffect, useState } from "react";
 import { ErrorNotice, LoadingState } from "../../components/feedback";
 import { useTaskEditorQueries } from "../../lib/queries";
+import { useEditorDraftStore } from "../../lib/editor-draft-context";
 import { isTemporaryReadError } from "../../lib/query-errors";
 import { useSessionDialog } from "../../lib/use-session-dialog";
 import { TaskForm } from "./task-form";
@@ -17,6 +18,7 @@ export function TaskInspector({
   readonly onClose: () => void;
 }) {
   const { task, access } = useTaskEditorQueries(taskId);
+  const drafts = useEditorDraftStore();
   const [approved, setApproved] = useState(false);
   const queries = [task, access];
   const failure = queries.find((query) => query.isError);
@@ -31,6 +33,9 @@ export function TaskInspector({
     task.isFetchedAfterMount &&
     access.isFetchedAfterMount;
   if (verified && !approved) setApproved(true);
+  useEffect(() => {
+    if (denied) drafts.forget(taskId);
+  }, [denied, drafts, taskId]);
 
   async function refresh() {
     await Promise.all(

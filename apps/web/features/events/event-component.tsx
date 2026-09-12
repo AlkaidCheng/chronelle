@@ -9,6 +9,7 @@ import { useAuthSession } from "../../lib/auth-session";
 import { eventComponents } from "../../lib/event-components";
 import { queryKeys } from "../../lib/queries";
 import { isTemporaryReadError } from "../../lib/query-errors";
+import { useForgetInaccessibleEventDrafts } from "../../lib/editor-draft-context";
 import { DocumentsPanel } from "./documents-panel";
 import {
   CalendarPanel,
@@ -20,11 +21,13 @@ import {
 } from "./planning-panels";
 
 function Projection<T>({
+  eventId,
   queryKey,
   load,
   label,
   children,
 }: {
+  readonly eventId: string;
   readonly queryKey: readonly string[];
   readonly load: (signal: AbortSignal) => Promise<T>;
   readonly label: string;
@@ -36,6 +39,10 @@ function Projection<T>({
     enabled: credential !== null,
     queryFn: ({ signal }) => load(signal),
   });
+  useForgetInaccessibleEventDrafts(
+    eventId,
+    query.isError && !isTemporaryReadError(query.error),
+  );
   if (query.isPending)
     return <LoadingState label={`Loading ${label.toLowerCase()}`} />;
   return (
@@ -66,11 +73,13 @@ export function EventComponent({
   readonly canEdit: boolean;
 }) {
   const client = useApiClient();
+  useForgetInaccessibleEventDrafts(eventId, !canEdit);
   const label = eventComponents[kind].label;
   switch (kind) {
     case "todos":
       return (
         <Projection
+          eventId={eventId}
           label={label}
           queryKey={queryKeys.todos(eventId)}
           load={(signal) => client.withSignal(signal).getEventTodos(eventId)}
@@ -87,6 +96,7 @@ export function EventComponent({
     case "calendar":
       return (
         <Projection
+          eventId={eventId}
           label={label}
           queryKey={queryKeys.calendar(eventId)}
           load={(signal) => client.withSignal(signal).getEventCalendar(eventId)}
@@ -103,6 +113,7 @@ export function EventComponent({
     case "timeline":
       return (
         <Projection
+          eventId={eventId}
           label={label}
           queryKey={queryKeys.timeline(eventId)}
           load={(signal) => client.withSignal(signal).getEventTimeline(eventId)}
@@ -113,6 +124,7 @@ export function EventComponent({
     case "itinerary":
       return (
         <Projection
+          eventId={eventId}
           label={label}
           queryKey={queryKeys.itinerary(eventId)}
           load={(signal) =>
@@ -125,6 +137,7 @@ export function EventComponent({
     case "expenses":
       return (
         <Projection
+          eventId={eventId}
           label={label}
           queryKey={queryKeys.expenses(eventId)}
           load={(signal) => client.withSignal(signal).getEventExpenses(eventId)}
@@ -141,6 +154,7 @@ export function EventComponent({
     case "reminders":
       return (
         <Projection
+          eventId={eventId}
           label={label}
           queryKey={queryKeys.reminders(eventId)}
           load={(signal) =>
@@ -159,6 +173,7 @@ export function EventComponent({
     case "files":
       return (
         <Projection
+          eventId={eventId}
           label={label}
           queryKey={queryKeys.detail(eventId)}
           load={(signal) => client.withSignal(signal).getEventDetail(eventId)}

@@ -1,7 +1,14 @@
 "use client";
 
 import type { EventResponse } from "@chronelle/schemas";
-import { type FormEvent, useEffect, useId, useRef, useState } from "react";
+import {
+  type FormEvent,
+  useEffect,
+  useId,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { EditorForm } from "../../components/editor-form";
 import {
   DiscardActions,
@@ -33,7 +40,11 @@ interface EventInspectorProps {
 
 export function EventInspector(props: EventInspectorProps) {
   return (
-    <EditorDraftRecovery id={props.event.id} onClose={props.onClose}>
+    <EditorDraftRecovery
+      kind="event"
+      id={props.event.id}
+      onClose={props.onClose}
+    >
       {(initialDraft) => (
         <EventInspectorForm {...props} initialDraft={initialDraft} />
       )}
@@ -50,9 +61,13 @@ function EventInspectorForm({
   readonly initialDraft: EventDraftSnapshot | undefined;
 }) {
   const draft = useEditorDraft(latestEvent, readEventFields, initialDraft);
+  const snapshot = useMemo<EventDraftSnapshot>(
+    () => ({ ...draft.snapshot, kind: "event" }),
+    [draft.snapshot],
+  );
   const recovery = useKeepEditorDraft(
     latestEvent.id,
-    draft.snapshot,
+    snapshot,
     draft.isDirty,
     onClose,
   );

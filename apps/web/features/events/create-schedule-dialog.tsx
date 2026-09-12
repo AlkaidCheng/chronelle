@@ -23,6 +23,7 @@ import {
 import { useKeepEditorDraft } from "../../lib/editor-draft-context";
 import {
   readEventFields,
+  eventCreationDraftKeys,
   type EventDraftSnapshot,
 } from "../../lib/editor-draft-store";
 import { useDiscardConfirmation } from "../../lib/use-discard-confirmation";
@@ -43,9 +44,14 @@ export function CreateScheduleDialog({
   eventId,
   onClose,
 }: CreateScheduleDialogProps) {
-  const draftId = `schedule:${eventId}`;
+  const draftId = eventCreationDraftKeys(eventId).schedule;
   return (
-    <EditorDraftRecovery id={draftId} accessId={eventId} onClose={onClose}>
+    <EditorDraftRecovery
+      kind="event"
+      id={draftId}
+      accessId={eventId}
+      onClose={onClose}
+    >
       {(initialDraft) => (
         <CreateScheduleForm
           eventId={eventId}
@@ -81,8 +87,8 @@ function CreateScheduleForm({
   const [attempt] = useState<ContextCreateAttempt>(
     () => initialDraft?.creationAttempt ?? { current: null },
   );
-  const snapshot = useMemo(
-    () => ({ ...draft.snapshot, creationAttempt: attempt }),
+  const snapshot = useMemo<EventDraftSnapshot>(
+    () => ({ ...draft.snapshot, kind: "event", creationAttempt: attempt }),
     [draft.snapshot, attempt],
   );
   const recovery = useKeepEditorDraft(

@@ -71,6 +71,7 @@ function Harness({
         onClick={() => {
           const baseline = readEventFields(event);
           drafts.keep(eventId, {
+            kind: "event",
             source: event,
             baseline,
             fields: { ...baseline, displayName: "Kept welcome" },
