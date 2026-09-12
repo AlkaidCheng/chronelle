@@ -7,6 +7,12 @@ interface VersionedResource {
   readonly version: number;
 }
 
+export interface EditorDraftSnapshot<Resource, Fields> {
+  readonly source: Resource | undefined;
+  readonly fields: Fields;
+  readonly baseline: Fields;
+}
+
 /** Keeps flat editor fields and their baseline pinned to one source version. */
 export function useEditorDraft<
   Resource extends VersionedResource,
@@ -14,12 +20,13 @@ export function useEditorDraft<
 >(
   latest: Resource | undefined,
   initialize: (source: Resource | undefined) => Fields,
+  initial?: EditorDraftSnapshot<Resource, Fields>,
 ) {
   function read(source: Resource | undefined) {
     const fields = initialize(source);
     return { source, fields, baseline: fields };
   }
-  const [draft, setDraft] = useState(() => read(latest));
+  const [draft, setDraft] = useState(() => initial ?? read(latest));
 
   function load(source: Resource | undefined) {
     setDraft(read(source));
@@ -30,6 +37,7 @@ export function useEditorDraft<
   }
 
   return {
+    snapshot: draft,
     source: draft.source,
     fields: draft.fields,
     isDirty: (Object.keys(draft.fields) as (keyof Fields)[]).some(
