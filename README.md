@@ -254,9 +254,12 @@ pnpm test:e2e
 The browser gate runs the same canonical Event creation and search path at
 desktop and narrow-mobile widths. It also checks tab-keyboard behavior, the
 skip link, and horizontal overflow. Targeted desktop/mobile WebKit cases cover
-Event scheduling, date formatting, and creation-dialog focus. CI installs both
-engines and runs this gate in a dedicated required job. Engine emulation does not
-replace manual screen-reader or physical-device testing.
+Event scheduling, date formatting, and creation-dialog focus. CI uses the pinned
+Playwright image and runs this gate with four workers. The offline sandbox suite
+runs in a separate concurrent job, also with four workers. The required `browser`
+check succeeds only when both suites pass. Local browser runs use one worker;
+pass `--workers=4` to Playwright to exercise concurrent execution locally.
+Engine emulation does not replace manual screen-reader or physical-device testing.
 
 The API suite contains a fresh-database release test for the complete event
 slice. It covers canonical projections, Owner and Viewer behavior, hidden
@@ -295,12 +298,13 @@ docker build -f apps/api/Dockerfile -t chronelle-api:local .
 docker build -f apps/web/Dockerfile -t chronelle-web:local .
 ```
 
-CI validates formatting, lint, types, tests, application builds, the responsive
-browser smoke path, and running containers with a disposable private database.
-Version tags and manual releases run these same gates before publishing the
-tested images to GitHub Container Registry. Full commit SHA tags identify the
-validated source; publication does not rebuild images. A runtime deployment
-target is intentionally not selected yet.
+CI runs quality checks, application browser tests, offline sandbox tests, and
+container validation concurrently. These cover formatting, lint, types, tests,
+application builds, responsive browser behavior, and running containers with a
+disposable private database. Version tags and manual releases run these same gates
+before publishing the tested images to GitHub Container Registry. Full commit SHA
+tags identify the validated source; publication does not rebuild images. A runtime
+deployment target is intentionally not selected yet.
 
 Repository policy requires pull-request review and passing `quality`, `browser`,
 and `containers` checks for `main`. When host-side branch rules are unavailable,

@@ -1,3 +1,4 @@
+import { spawnSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
@@ -82,8 +83,9 @@ describe("container release boundary", () => {
       uses: "./.github/workflows/ci.yml",
       with: { retain_images: true },
     });
-    for (const name of ["quality", "browser", "containers"]) {
+    for (const name of ["quality", "browser-tests", "sandbox", "containers"]) {
       const job = ci.jobs[name];
+      expect(job.needs).toBeUndefined();
       expect(job["continue-on-error"]).toBeUndefined();
       expect(job.if).toBeUndefined();
       const checkout = job.steps.find((step: { uses?: string }) =>
@@ -104,16 +106,19 @@ describe("container release boundary", () => {
     expect(publisher.needs).toBe("validate");
     expect(publisher.if).toBeUndefined();
     expect(publisher["continue-on-error"]).toBeUndefined();
-    expect(ci.jobs.browser.needs).toBe("quality");
-    expect(ci.jobs.containers.needs).toBe("quality");
     expect(
       ci.jobs.quality.steps.some(
         (step: { run?: string }) => step.run === "pnpm check",
       ),
     ).toBe(true);
     expect(
-      ci.jobs.browser.steps.some(
+      ci.jobs["browser-tests"].steps.some(
         (step: { run?: string }) => step.run === "pnpm test:e2e",
+      ),
+    ).toBe(true);
+    expect(
+      ci.jobs.sandbox.steps.some(
+        (step: { run?: string }) => step.run === "pnpm test:sandbox",
       ),
     ).toBe(true);
     expect(
@@ -122,6 +127,36 @@ describe("container release boundary", () => {
           step.run === "node infrastructure/scripts/check-containers.mjs",
       ),
     ).toBe(true);
+  });
+
+  it("keeps the required browser check dependent on both suites", () => {
+    const gate = ci.jobs.browser;
+    expect(gate.needs).toEqual(["browser-tests", "sandbox"]);
+    expect(gate.if).toBe("always()");
+    expect(gate["continue-on-error"]).toBeUndefined();
+    expect(gate.steps).toHaveLength(1);
+    const [step] = gate.steps;
+    expect(step["continue-on-error"]).toBeUndefined();
+    expect(step.if).toBeUndefined();
+    expect(step.env).toEqual({
+      BROWSER_RESULT: `\${{ needs.browser-tests.result }}`,
+      SANDBOX_RESULT: `\${{ needs.sandbox.result }}`,
+    });
+    for (const browser of ["success", "failure", "cancelled", "skipped"]) {
+      for (const sandbox of ["success", "failure", "cancelled", "skipped"]) {
+        const result = spawnSync("sh", ["-e", "-c", step.run], {
+          env: {
+            ...process.env,
+            BROWSER_RESULT: browser,
+            SANDBOX_RESULT: sandbox,
+          },
+        });
+        expect(result.error).toBeUndefined();
+        expect(result.status === 0, `${browser} / ${sandbox}`).toBe(
+          browser === "success" && sandbox === "success",
+        );
+      }
+    }
   });
 
   it("uses the runner PostgreSQL client without refreshing unrelated repositories", () => {
@@ -138,35 +173,46 @@ describe("container release boundary", () => {
     const { devDependencies } = JSON.parse(
       readFileSync(resolve(root, "package.json"), "utf8"),
     );
-    const [image, digest] = ci.jobs.browser.container.split("@");
-    expect(image).toBe(
-      `mcr.microsoft.com/playwright:v${devDependencies["@playwright/test"]}-noble`,
-    );
-    expect(digest).toMatch(/^sha256:[a-f0-9]{64}$/);
-    expect(new URL(ci.jobs.browser.env.DATABASE_URL).hostname).toBe("postgres");
-    expect(ci.jobs.browser.services.postgres.ports).toBeUndefined();
-    for (const step of ci.jobs.browser.steps as { run?: string }[]) {
-      expect(step.run ?? "").not.toMatch(/apt-get|--with-deps/);
+    for (const name of ["browser-tests", "sandbox"]) {
+      const job = ci.jobs[name];
+      const [image, digest] = job.container.split("@");
+      expect(image).toBe(
+        `mcr.microsoft.com/playwright:v${devDependencies["@playwright/test"]}-noble`,
+      );
+      expect(digest).toMatch(/^sha256:[a-f0-9]{64}$/);
+      expect(job.env.CI).toBe("true");
+      for (const step of job.steps as { run?: string }[]) {
+        expect(step.run ?? "").not.toMatch(/apt-get|--with-deps/);
+      }
     }
+    expect(new URL(ci.jobs["browser-tests"].env.DATABASE_URL).hostname).toBe(
+      "postgres",
+    );
+    expect(ci.jobs["browser-tests"].services.postgres.ports).toBeUndefined();
+    expect(ci.jobs.sandbox.services).toBeUndefined();
   });
 
   it("retains browser failure evidence without weakening the release gate", () => {
-    const upload = ci.jobs.browser.steps.find(
-      (step: { name: string }) =>
-        step.name === "Retain browser failure diagnostics",
-    );
-    expect(upload.if).toBe("failure()");
-    expect(upload.uses).toMatch(/^actions\/upload-artifact@[a-f0-9]{40}$/);
-    expect(upload.with["retention-days"]).toBe(3);
-    expect(upload.with["if-no-files-found"]).toBe("ignore");
-    expect(upload.with.path.trim().split("\n")).toEqual([
-      "test-results/playwright/**/test-failed-*.png",
-      "test-results/playwright/**/error-context.md",
-      "test-results/playwright/**/trace.zip",
-      "test-results/sandbox/**/test-failed-*.png",
-      "test-results/sandbox/**/error-context.md",
-      "test-results/sandbox/**/trace.zip",
-    ]);
+    const artifactNames = new Set<string>();
+    for (const [name, directory] of [
+      ["browser-tests", "playwright"],
+      ["sandbox", "sandbox"],
+    ] as const) {
+      const upload = ci.jobs[name].steps.find((step: { uses?: string }) =>
+        step.uses?.startsWith("actions/upload-artifact@"),
+      );
+      expect(upload.if).toBe("failure()");
+      expect(upload.uses).toMatch(/^actions\/upload-artifact@[a-f0-9]{40}$/);
+      expect(upload.with["retention-days"]).toBe(3);
+      expect(upload.with["if-no-files-found"]).toBe("ignore");
+      expect(upload.with.path.trim().split("\n")).toEqual([
+        `test-results/${directory}/**/test-failed-*.png`,
+        `test-results/${directory}/**/error-context.md`,
+        `test-results/${directory}/**/trace.zip`,
+      ]);
+      artifactNames.add(upload.with.name);
+    }
+    expect(artifactNames.size).toBe(2);
   });
 
   it("publishes validated image artifacts without another build", () => {
