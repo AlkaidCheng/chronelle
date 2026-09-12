@@ -20,6 +20,7 @@ import { CheckIcon } from "../../components/icons";
 import { HistoryButton } from "../history/history-button";
 import { LifecycleButton } from "../recovery/lifecycle-provider";
 import { ObjectDetails } from "../../components/object-details";
+import { ScheduleItemInspector } from "./schedule-item-inspector";
 import {
   formatCalendarDate,
   formatEventDatePart,
@@ -348,17 +349,11 @@ export function CalendarPanel({
         </div>
       )}
       {!canEdit || editingEvent === undefined ? null : (
-        <div className="editor-drawer">
-          <div className="drawer-heading">
-            <h3>Edit schedule item</h3>
-            <ObjectDetails id={editingEvent.id} />
-          </div>
-          <ScheduledEventForm
-            event={editingEvent}
-            eventId={eventId}
-            onCancel={() => setEditingId(null)}
-          />
-        </div>
+        <ScheduleItemInspector
+          key={editingEvent.id}
+          eventId={editingEvent.id}
+          onClose={() => setEditingId(null)}
+        />
       )}
     </section>
   );

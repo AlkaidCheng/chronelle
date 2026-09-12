@@ -314,6 +314,14 @@ History is available inside the inspector without dismissing the draft. Closing
 history returns focus to its inspector control. Restoring a version leaves
 unsaved fields intact and requires explicitly loading the latest source to save.
 
+Calendar Edit opens the same inspector for the selected schedule item, including
+Calendar components on Event pages. The item is a canonical Event; its current
+data and edit permission are checked separately from the parent. Cached access
+is not sufficient to open it. Its name and schedule share one draft across
+contexts, and saving refreshes Calendar, Itinerary and Timeline projections.
+Temporary item-read failures hide the editor until an explicit retry; the kept
+draft can then be resumed. Schedule item creation remains an inline form.
+
 Event, schedule-item, task, expense, and reminder forms keep their draft after a
 failed save. Submit again explicitly to retry; Refresh latest only fetches data
 and does not save changes. A failed refresh leaves the save error visible.
@@ -345,7 +353,7 @@ content even when a cached copy exists. Backend authorization and version checks
 still apply to every mutation. Retained data is not a freshness guarantee.
 Unsaved drafts are not durable storage or offline synchronization. Confirming
 document navigation, changing sessions, or closing the browser can discard them.
-Event creation and the Event inspector guard edited-form dismissal. Other
+Event creation and Event/schedule-item inspectors guard edited-form dismissal. Other
 planning editors retain their existing navigation behavior.
 Client-side browser Back/Forward transitions are not intercepted. Save or close
 the inspector to finish explicitly, or navigate and reopen Edit event to recover
@@ -353,7 +361,8 @@ its unsaved name and schedule. New event offers the same recovery. Up to twenty
 recently changed Event drafts stay in the current authenticated tab's memory;
 older non-pending drafts can be evicted. Drafts are never written to browser
 storage. Reload, sign-out and workspace changes clear them. Calendar navigation
-itself is not retained across routes. Other planning editors are outside this
+itself is not retained across routes. Schedule item Edit uses the same recovery;
+task, expense, reminder and schedule creation forms are outside this
 recovery scope.
 
 Resume draft checks current access before displaying private values and preserves
