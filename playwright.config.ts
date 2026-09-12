@@ -67,5 +67,5 @@ export default defineConfig({
       url: "http://127.0.0.1:3000/sign-in",
     },
   ],
-  workers: 1,
+  workers: isCi ? 4 : 1,
 });
