@@ -26,7 +26,7 @@ test("recovers canonical objects and independent context links", async ({
       response.url().endsWith("/resources") &&
       response.request().method() === "POST",
   );
-  await page.getByRole("button", { name: "Add task" }).click();
+  await page.getByRole("button", { name: "Create task", exact: true }).click();
   const canonical = (await (await created).json()).resource;
   // Keep the original link outside the unfiltered first page.
   const session = await request.post("/api/auth/development/sign-in", {

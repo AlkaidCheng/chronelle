@@ -15,6 +15,8 @@ test("submits editors offline and keeps Viewer projections read-only", async ({
   page.on("pageerror", (error) => errors.push(error.message));
   await page.goto(sandboxUrl);
   await exerciseEditorSubmit(page, testInfo);
+  await page.keyboard.press("Escape");
+  await expect(page.getByRole("dialog")).toHaveCount(0);
   await page.getByLabel("Preview role").selectOption("viewer");
   await expect(page.locator("[data-editor-submit]")).toHaveCount(0);
   await expect(page.getByText("Viewer access", { exact: true })).toBeVisible();

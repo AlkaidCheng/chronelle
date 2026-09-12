@@ -29,11 +29,17 @@ test("explains empty Viewer panels and reports saved tasks offline", async ({
   });
   await page.getByLabel("Preview role").selectOption("owner");
   await page.getByRole("tab", { name: "To-dos", exact: true }).click();
+  const addTask = page.getByRole("button", { name: "Add task", exact: true });
+  await addTask.click();
   await page.getByLabel("Task", { exact: true }).fill("Check the venue");
-  await page.getByRole("button", { name: "Add task", exact: true }).click();
-  await expect(page.getByRole("status", { name: "Save status" })).toHaveText(
-    "Saved successfully.",
-  );
+  await page.getByRole("button", { name: "Create task", exact: true }).click();
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+  await expect(addTask).toBeFocused();
+  await expect(
+    page.getByRole("row").filter({ hasText: "Check the venue" }),
+  ).toHaveCount(1);
+  await addTask.click();
+  await expect(page.getByLabel("Task", { exact: true })).toHaveValue("");
   await page.getByLabel("Task", { exact: true }).fill("Check the guest list");
   await expect(page.getByRole("status", { name: "Save status" })).toBeEmpty();
   expect(

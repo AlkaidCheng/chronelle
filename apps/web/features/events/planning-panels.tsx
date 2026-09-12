@@ -74,6 +74,7 @@ export function TasksPanel({
   const [isAdding, setIsAdding] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const update = useUpdateTask();
+  const { mutate: updateTask, isPending: isUpdatingTask } = update;
   const refresh = useRefreshEvent(eventId);
   const filteredTasks = useMemo(
     () =>
@@ -103,9 +104,9 @@ export function TasksPanel({
                   : `Complete ${task.displayName}`
               }
               className={`task-check${isDone ? " checked" : ""}`}
-              disabled={!canEdit || update.isPending}
+              disabled={!canEdit || isUpdatingTask}
               onClick={() =>
-                update.mutate({
+                updateTask({
                   id: task.id,
                   input: {
                     completedAt: isDone ? null : new Date().toISOString(),
@@ -166,11 +167,12 @@ export function TasksPanel({
         ),
       }),
     ],
-    [canEdit, update, eventId],
+    [canEdit, isUpdatingTask, updateTask, eventId],
   );
   const table = useReactTable({
     columns,
     data: filteredTasks,
+    getRowId: (task) => task.id,
     getCoreRowModel: getCoreRowModel(),
   });
 

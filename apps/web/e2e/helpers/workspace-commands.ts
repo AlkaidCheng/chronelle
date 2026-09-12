@@ -14,11 +14,21 @@ export async function exerciseWorkspaceCommands(
   });
   await page.getByRole("button", { name: "Browse event data" }).click();
   await page.getByRole("tab", { name: "To-dos", exact: true }).click();
+  const addTask = page.getByRole("button", { name: "Add task", exact: true });
+  await addTask.click();
   const draft = page.getByLabel("Task", { exact: true });
   await draft.fill("Unsaved command draft");
   await page.keyboard.press("Control+k");
   await expect(dialog).toHaveCount(0);
   await expect(draft).toBeFocused();
+  await page.keyboard.press("Escape");
+  await page.getByRole("button", { name: "Keep editing", exact: true }).click();
+  await expect(draft).toHaveValue("Unsaved command draft");
+  await page.keyboard.press("Escape");
+  await page.getByRole("button", { name: "Discard", exact: true }).click();
+  await expect(addTask).toBeFocused();
+  const filter = page.getByRole("button", { name: "all", exact: true });
+  await filter.click();
   await trigger.focus();
   await page.keyboard.press("Control+k");
   const input = dialog.getByRole("combobox", { name: "Find a command" });
@@ -58,7 +68,7 @@ export async function exerciseWorkspaceCommands(
   }
   await page.keyboard.press("Escape");
   await expect(trigger).toBeFocused();
-  await expect(draft).toHaveValue("Unsaved command draft");
+  await expect(filter).toHaveAttribute("aria-pressed", "true");
 
   await page.setViewportSize({ width: 320, height: 568 });
   await trigger.click();

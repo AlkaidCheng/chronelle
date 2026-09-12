@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 import { expect, test } from "@playwright/test";
 import { exerciseWorkspaceCommands } from "./helpers/workspace-commands";
 
-test("navigates through commands without writing an open draft", async ({
+test("protects Task editor focus and navigates without saving discarded fields", async ({
   page,
   request,
 }, testInfo) => {

@@ -17,7 +17,7 @@ test("submits validated editors and synchronizes the browser preference", async 
   await exerciseEditorSubmit(page, testInfo);
   const other = await context.newPage();
   await other.goto("/sign-in");
-  const save = page.getByRole("button", { name: "Add task", exact: true });
+  const save = page.getByRole("button", { name: "Create task", exact: true });
   await other.evaluate(() =>
     localStorage.setItem("chronelle.editor-shortcut", "disabled"),
   );

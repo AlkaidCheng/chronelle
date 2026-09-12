@@ -6,7 +6,7 @@ const sandboxUrl = new URL(
   import.meta.url,
 ).href;
 
-test("uses workspace commands offline without altering an event draft", async ({
+test("protects offline Task editor focus and retains filters through commands", async ({
   page,
   context,
 }, testInfo) => {

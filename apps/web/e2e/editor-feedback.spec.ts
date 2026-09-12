@@ -15,6 +15,8 @@ test("retains a failed task draft and saves only after an explicit retry", async
   await page.getByRole("button", { name: "Create event", exact: true }).click();
   await page.getByRole("button", { name: "Browse event data" }).click();
   await page.getByRole("tab", { name: "To-dos", exact: true }).click();
+  const addTask = page.getByRole("button", { name: "Add task", exact: true });
+  await addTask.click();
   const form = page
     .locator("form")
     .filter({ has: page.getByLabel("Task", { exact: true }) });
@@ -72,10 +74,8 @@ test("retains a failed task draft and saves only after an explicit retry", async
   await form.dispatchEvent("keydown", { key: "Enter", ctrlKey: true });
   expect(commands).toHaveLength(2);
   finishSave?.();
-  await expect(form.getByRole("status", { name: "Save status" })).toHaveText(
-    "Saved successfully.",
-  );
-  await expect(form.getByLabel("Task", { exact: true })).toHaveValue("");
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+  await expect(addTask).toBeFocused();
   await expect(page.getByText("Confirm guests", { exact: true })).toHaveCount(
     1,
   );
@@ -85,6 +85,8 @@ test("retains a failed task draft and saves only after an explicit retry", async
     path: testInfo.outputPath("task-save-success.png"),
     fullPage: true,
   });
+  await addTask.click();
+  await expect(form.getByLabel("Task", { exact: true })).toHaveValue("");
   await form.getByLabel("Task", { exact: true }).fill("Next task");
   await expect(form.getByRole("status", { name: "Save status" })).toBeEmpty();
   expect(
