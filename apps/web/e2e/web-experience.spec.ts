@@ -111,14 +111,21 @@ test("organizes events and keeps navigation usable across reloads and screen siz
   );
   await page.getByRole("button", { name: "Edit event", exact: true }).click();
   await page.getByLabel("Name", { exact: true }).fill("Unsaved event draft");
+  await page.keyboard.press("Escape");
+  await page.getByRole("button", { name: "Keep editing", exact: true }).click();
+  await expect(page.getByLabel("Name", { exact: true })).toHaveValue(
+    "Unsaved event draft",
+  );
+  await page.getByRole("button", { name: "Cancel", exact: true }).click();
+  await page.getByRole("button", { name: "Discard", exact: true }).click();
   await page.getByRole("tab", { name: "Overview" }).click();
   await expect(
     page.getByRole("heading", { name: "Your event, connected." }),
   ).toBeVisible();
   expect(viewRequests.some((path) => path.endsWith("/detail"))).toBe(true);
-  await expect(page.getByLabel("Name", { exact: true })).toHaveValue(
-    "Unsaved event draft",
-  );
+  await expect(
+    page.getByRole("dialog", { name: "Edit event", exact: true }),
+  ).toHaveCount(0);
 
   if (testInfo.project.name === "chromium-mobile") {
     await page.getByLabel("Event view", { exact: true }).selectOption("files");

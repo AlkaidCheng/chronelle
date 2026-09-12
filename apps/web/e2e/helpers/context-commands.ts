@@ -20,13 +20,13 @@ export async function exerciseContextCommands(
   const name = page.getByLabel("Name", { exact: true });
   await expect(name).toBeFocused();
   await name.fill("Unsaved gathering name");
-  await openCommands(page);
-  await expect(dialog.getByRole("option", { name: /Edit event/ })).toHaveCount(
-    0,
-  );
+  await page.keyboard.press("Control+k");
+  await expect(dialog).toHaveCount(0);
   await page.keyboard.press("Escape");
+  await page.getByRole("button", { name: "Keep editing", exact: true }).click();
   await expect(name).toHaveValue("Unsaved gathering name");
   await page.getByRole("button", { name: "Cancel", exact: true }).click();
+  await page.getByRole("button", { name: "Discard", exact: true }).click();
   await expect(
     page.getByRole("button", { name: "Edit event", exact: true }),
   ).toBeFocused();

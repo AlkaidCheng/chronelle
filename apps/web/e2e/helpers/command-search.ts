@@ -21,6 +21,11 @@ export async function exerciseCommandSearch(page: Page, testInfo: TestInfo) {
   await page.getByRole("button", { name: "Edit event", exact: true }).click();
   const draft = page.getByLabel("Name", { exact: true });
   await draft.fill("Unsaved autumn draft");
+  await page.keyboard.press("Escape");
+  await page.getByRole("button", { name: "Keep editing", exact: true }).click();
+  await expect(draft).toHaveValue("Unsaved autumn draft");
+  await page.getByRole("button", { name: "Cancel", exact: true }).click();
+  await page.getByRole("button", { name: "Discard", exact: true }).click();
   for (const colorScheme of ["light", "dark"] as const) {
     await page.emulateMedia({ colorScheme });
     await page.setViewportSize({ width: 320, height: 568 });
@@ -37,9 +42,10 @@ export async function exerciseCommandSearch(page: Page, testInfo: TestInfo) {
       path: testInfo.outputPath(`command-search-${colorScheme}.png`),
     });
     await input.press("Escape");
-    await expect(draft).toHaveValue("Unsaved autumn draft");
+    await expect(
+      page.getByRole("heading", { name: "Autumn gathering", exact: true }),
+    ).toBeVisible();
   }
-  await page.getByRole("button", { name: "Cancel", exact: true }).click();
   await openCommands(page);
   await input.fill("garden");
   await dialog

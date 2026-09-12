@@ -61,8 +61,9 @@ export async function exerciseWorkspaceUtilities(
   await expect(dialog).toHaveCount(0);
   await expect(trigger).toBeFocused();
 
-  await page.getByRole("button", { name: "Edit event", exact: true }).click();
-  const draft = page.getByLabel("Name", { exact: true });
+  await page.getByRole("button", { name: "Browse event data" }).click();
+  await page.getByRole("tab", { name: "To-dos", exact: true }).click();
+  const draft = page.getByLabel("Task", { exact: true });
   await draft.fill("Unsaved workspace utilities draft");
   const eventUrl = page.url();
   await openWorkspaceSettings(page);

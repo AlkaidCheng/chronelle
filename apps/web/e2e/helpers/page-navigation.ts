@@ -78,15 +78,23 @@ export async function exercisePageNavigation(page: Page, testInfo: TestInfo) {
   ).toBeVisible();
   await page.getByRole("button", { name: "Edit event", exact: true }).click();
   await page.getByLabel("Name", { exact: true }).fill("Unsaved event draft");
-  await page.getByRole("button", { name: "Browse event data" }).click();
-  await page.getByRole("button", { name: "Back to pages" }).click();
+  await page.keyboard.press("Escape");
+  await page.getByRole("button", { name: "Keep editing", exact: true }).click();
   await expect(
     page.getByRole("heading", { name: navigationPageNames[2], exact: true }),
   ).toBeVisible();
   await expect(page.getByLabel("Name", { exact: true })).toHaveValue(
     "Unsaved event draft",
   );
-  await page.getByRole("button", { name: "Close editor", exact: true }).click();
+  await page
+    .getByRole("button", { name: "Close event editor", exact: true })
+    .click();
+  await page.getByRole("button", { name: "Discard", exact: true }).click();
+  await page.getByRole("button", { name: "Browse event data" }).click();
+  await page.getByRole("button", { name: "Back to pages" }).click();
+  await expect(
+    page.getByRole("heading", { name: navigationPageNames[2], exact: true }),
+  ).toBeVisible();
   await page.evaluate(() => window.scrollTo(0, 0));
   await page.screenshot({
     path: testInfo.outputPath("named-page-navigation.png"),
