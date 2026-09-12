@@ -305,9 +305,15 @@ export function useUpdatePermissionScope() {
 
 type ContextResource = EventContextCreatePayload["resource"];
 
+/** Retains the identity of an unchanged linked-create retry. */
+export interface ContextCreateAttempt {
+  current: { readonly key: string; readonly commandId: string } | null;
+}
+
 function useCreateInContext<Type extends ContextResource["objectType"]>(
   eventId: string,
   objectType: Type,
+  retainedAttempt?: ContextCreateAttempt,
 ) {
   type Input = Omit<
     Extract<ContextResource, { objectType: Type }>,
@@ -315,7 +321,8 @@ function useCreateInContext<Type extends ContextResource["objectType"]>(
   >;
   const client = useApiClient();
   const invalidate = useCanonicalInvalidation();
-  const attempt = useRef<{ key: string; commandId: string } | null>(null);
+  const localAttempt = useRef<ContextCreateAttempt["current"]>(null);
+  const attempt = retainedAttempt ?? localAttempt;
   return useMutation({
     mutationFn: async (input: Input) => {
       const resource = { ...input, objectType } as Extract<
@@ -339,8 +346,11 @@ function useCreateInContext<Type extends ContextResource["objectType"]>(
   });
 }
 
-export function useCreateScheduledEvent(eventId: string) {
-  return useCreateInContext(eventId, "event");
+export function useCreateScheduledEvent(
+  eventId: string,
+  attempt?: ContextCreateAttempt,
+) {
+  return useCreateInContext(eventId, "event", attempt);
 }
 
 export function useCreateTask(eventId: string) {

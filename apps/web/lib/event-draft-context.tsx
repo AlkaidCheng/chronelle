@@ -66,6 +66,7 @@ export function useKeepEventDraft(
   snapshot: EventDraftSnapshot,
   isDirty: boolean,
   onAccessLost: () => void,
+  accessId = id,
 ) {
   const store = useEventDraftStore();
   const kept = useKeptEventDraft(id);
@@ -103,7 +104,7 @@ export function useKeepEventDraft(
     } catch (error) {
       if (isDraftAccessError(error) && mounted.current && !signal.aborted) {
         onAccessLost();
-        void queries.invalidateQueries({ queryKey: queryKeys.event(id) });
+        void queries.invalidateQueries({ queryKey: queryKeys.event(accessId) });
       }
     }
   }

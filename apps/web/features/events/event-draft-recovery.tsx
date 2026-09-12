@@ -16,10 +16,12 @@ import { useSessionDialog } from "../../lib/use-session-dialog";
 
 export function EventDraftRecovery({
   id,
+  accessId = id,
   onClose,
   children,
 }: {
   readonly id: string;
+  readonly accessId?: string;
   readonly onClose: () => void;
   readonly children: (snapshot: EventDraftSnapshot | undefined) => ReactNode;
 }) {
@@ -29,6 +31,7 @@ export function EventDraftRecovery({
   return offering ? (
     <ResumeEventDraft
       id={id}
+      accessId={accessId}
       onClose={onClose}
       onResume={(draft) => {
         setSnapshot(draft);
@@ -42,10 +45,12 @@ export function EventDraftRecovery({
 
 function ResumeEventDraft({
   id,
+  accessId,
   onClose,
   onResume,
 }: {
   readonly id: string;
+  readonly accessId: string;
   readonly onClose: () => void;
   readonly onResume: (snapshot: EventDraftSnapshot) => void;
 }) {
@@ -79,15 +84,15 @@ function ResumeEventDraft({
     setIsChecking(true);
     setError(null);
     try {
-      if (id === "new") await client.getSession();
+      if (accessId === "new") await client.getSession();
       else {
         const [event, access] = await Promise.all([
-          client.getEvent(id),
-          client.getObjectAccess(id),
+          client.getEvent(accessId),
+          client.getObjectAccess(accessId),
         ]);
         if (signal.aborted || !mounted.current) return;
-        queries.setQueryData(queryKeys.eventResource(id), event);
-        queries.setQueryData(queryKeys.access(id), access);
+        queries.setQueryData(queryKeys.eventResource(accessId), event);
+        queries.setQueryData(queryKeys.access(accessId), access);
         if (!access.actions.includes("edit")) {
           store.forget(id);
           return;
@@ -99,7 +104,9 @@ function ResumeEventDraft({
       if (!signal.aborted && mounted.current) {
         if (!isTemporaryReadError(failure)) {
           store.forget(id);
-          void queries.invalidateQueries({ queryKey: queryKeys.event(id) });
+          void queries.invalidateQueries({
+            queryKey: queryKeys.event(accessId),
+          });
         }
         setError(failure);
       }
@@ -137,14 +144,15 @@ function ResumeEventDraft({
           <LoadingState label="Your save is still in progress. You can close this panel." />
         ) : (
           <p>
-            Your unsaved event name and schedule are kept in this tab. Current
+            Your entered event name and schedule are kept in this tab. Current
             access is checked before resuming.
           </p>
         )}
         {kept?.failed && (
           <p role="status">
-            The previous save did not complete. Check whether it was saved
-            before trying again.
+            {kept.snapshot.creationAttempt
+              ? "The previous save could not be confirmed. Resume and retry unchanged fields to reuse the same save attempt."
+              : "The previous save could not be confirmed. Check whether it was saved before trying again."}
           </p>
         )}
         {error !== null && <ErrorNotice error={error} />}
@@ -178,16 +186,18 @@ function ResumeEventDraft({
 export function EventDraftStatus({
   isRetained,
   failed,
+  failureMessage = "The last save failed. Check for a saved event before submitting again.",
 }: {
   readonly isRetained: boolean;
   readonly failed: boolean;
+  readonly failureMessage?: string;
 }) {
   return (
     <p className="editor-help" role="status">
       {!isRetained
         ? "Draft recovery is full while other saves are pending. Keep this editor open."
         : failed
-          ? "The last save failed. Check for a saved event before submitting again."
+          ? failureMessage
           : "Drafts stay in this tab until reload or sign-out."}
     </p>
   );

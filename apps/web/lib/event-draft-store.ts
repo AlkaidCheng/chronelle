@@ -2,6 +2,7 @@ import type { EventResponse } from "@chronelle/schemas";
 import { ApiClientError } from "@chronelle/api-client";
 import { readEventSchedule } from "./event-schedule";
 import type { EditorDraftSnapshot } from "./use-editor-draft";
+import type { ContextCreateAttempt } from "./queries";
 
 export function readEventFields(event?: EventResponse) {
   return { displayName: event?.displayName ?? "", ...readEventSchedule(event) };
@@ -10,7 +11,7 @@ export function readEventFields(event?: EventResponse) {
 export type EventDraftSnapshot = EditorDraftSnapshot<
   EventResponse,
   ReturnType<typeof readEventFields>
->;
+> & { readonly creationAttempt?: ContextCreateAttempt };
 
 export function isDraftAccessError(error: unknown): boolean {
   return (
