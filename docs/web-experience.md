@@ -348,8 +348,24 @@ document navigation, changing sessions, or closing the browser can discard them.
 Event creation and the Event inspector guard edited-form dismissal. Other
 planning editors retain their existing navigation behavior.
 Client-side browser Back/Forward transitions are not intercepted. Save or close
-the inspector before leaving the Event; the unload warning applies only when
-the browser unloads the document, and browser support varies.
+the inspector to finish explicitly, or navigate and reopen Edit event to recover
+its unsaved name and schedule. New event offers the same recovery. Up to twenty
+recently changed Event drafts stay in the current authenticated tab's memory;
+older non-pending drafts can be evicted. Drafts are never written to browser
+storage. Reload, sign-out and workspace changes clear them. Calendar navigation
+itself is not retained across routes. Other planning editors are outside this
+recovery scope.
+
+Resume draft checks current access before displaying private values and preserves
+the original version for conflict detection. Temporary access failures allow an
+explicit retry; definitive access loss removes the draft. Pending saves remain
+tracked after navigation: reopening cannot submit them twice, and completion
+clears recovery without moving the user to another page. Failed saves retain the
+draft. Event creation is not idempotent, so check the saved Events before retrying
+an unknown outcome. If all twenty retained entries are pending, another draft
+cannot be retained or saved until a slot becomes available; keep that editor open.
+The best-effort unload warning covers kept drafts even away from an editor, but
+browser support varies.
 
 Production browser tests check explicit task retries with the same creation
 command, disabled pending controls, draft retention, and success feedback in

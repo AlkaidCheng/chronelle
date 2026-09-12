@@ -2573,6 +2573,9 @@ html:has(.event-create-dialog[open]) {
   gap: 0;
   overflow: hidden;
 }
+.event-create-dialog [hidden] {
+  display: none;
+}
 .event-inspector-fields {
   flex: 1;
   align-content: start;

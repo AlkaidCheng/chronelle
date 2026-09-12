@@ -21,6 +21,29 @@ const initialize = (source: Resource | undefined) => ({
 afterEach(cleanup);
 
 describe("useEditorDraft", () => {
+  it("recovers fields with the original baseline and version, not a newer revision", () => {
+    const baseline = initialize(initial);
+    const recovered = {
+      source: initial,
+      baseline,
+      fields: { ...baseline, displayName: "Kept draft" },
+    };
+    const latest = { ...initial, version: 2, displayName: "Collaborator" };
+    const { result, rerender } = renderHook(
+      (resource: Resource) => useEditorDraft(resource, initialize, recovered),
+      { initialProps: latest },
+    );
+    expect(result.current.snapshot).toBe(recovered);
+    expect(result.current.isDirty).toBe(true);
+    expect(result.current.hasNewerVersion).toBe(true);
+    act(() => result.current.loadLatest());
+    expect(result.current.fields.displayName).toBe("Collaborator");
+    expect(result.current.isDirty).toBe(false);
+    rerender({ ...latest, id: "different", displayName: "Another event" });
+    expect(result.current.fields.displayName).toBe("Another event");
+    expect(result.current.isDirty).toBe(false);
+  });
+
   it("compares flat fields with their loaded baseline", () => {
     const { result } = renderHook(() => useEditorDraft(initial, initialize));
     expect(result.current.isDirty).toBe(false);

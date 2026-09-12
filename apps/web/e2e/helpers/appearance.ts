@@ -57,7 +57,11 @@ export async function expectReadablePalette(page: Page) {
     ).toBeGreaterThanOrEqual(check.minimum);
 }
 
-async function expectToken(locator: Locator, property: string, token: string) {
+export async function expectToken(
+  locator: Locator,
+  property: string,
+  token: string,
+) {
   const color = await locator.evaluate((element, name) => {
     const style = getComputedStyle(element);
     const probe = document.createElement("span");

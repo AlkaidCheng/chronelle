@@ -1,40 +1,57 @@
 import { type FormEvent, useEffect, useRef, useState } from "react";
+import type { EventResponse } from "@chronelle/schemas";
 
 import { ErrorNotice } from "../../components/feedback";
 import { EditorForm, EditorSubmitButton } from "../../components/editor-form";
+import { eventSchedulePayload } from "../../lib/event-schedule";
+import { useEditorDraft } from "../../lib/use-editor-draft";
+import { useKeepEventDraft } from "../../lib/event-draft-context";
 import {
-  eventSchedulePayload,
-  readEventSchedule,
-} from "../../lib/event-schedule";
+  readEventFields,
+  type EventDraftSnapshot,
+} from "../../lib/event-draft-store";
+import { EventDraftRecovery, EventDraftStatus } from "./event-draft-recovery";
 import { useCreateEvent } from "../../lib/queries";
 import { useSessionDialog } from "../../lib/use-session-dialog";
 import { EventScheduleFields } from "./event-schedule-fields";
 
-export function CreateEventDialog({
-  onCreated,
-  onClose,
-}: {
+interface CreateEventDialogProps {
   readonly onCreated: (id: string) => void;
   readonly onClose: () => void;
+}
+
+export function CreateEventDialog(props: CreateEventDialogProps) {
+  return (
+    <EventDraftRecovery id="new" onClose={props.onClose}>
+      {(initialDraft) => (
+        <CreateEventForm {...props} initialDraft={initialDraft} />
+      )}
+    </EventDraftRecovery>
+  );
+}
+
+function CreateEventForm({
+  onCreated,
+  onClose,
+  initialDraft,
+}: CreateEventDialogProps & {
+  readonly initialDraft: EventDraftSnapshot | undefined;
 }) {
   const createEvent = useCreateEvent();
-  const [displayName, setDisplayName] = useState("");
-  const [schedule, setSchedule] = useState(readEventSchedule);
+  const draft = useEditorDraft<
+    EventResponse,
+    ReturnType<typeof readEventFields>
+  >(undefined, readEventFields, initialDraft);
+  const { displayName } = draft.fields;
+  const schedule = draft.fields;
+  const { isDirty } = draft;
+  const recovery = useKeepEventDraft("new", draft.snapshot, isDirty, onClose);
   const [scheduleError, setScheduleError] = useState("");
   const [confirmingDiscard, setConfirmingDiscard] = useState(false);
   const dialog = useSessionDialog(onClose);
   const nameInput = useRef<HTMLInputElement>(null);
   const keepEditingButton = useRef<HTMLButtonElement>(null);
   const returnFocus = useRef<HTMLElement | null>(null);
-  const isDirty =
-    displayName !== "" ||
-    schedule.mode !== "unscheduled" ||
-    [
-      schedule.startDate,
-      schedule.endDate,
-      schedule.startTime,
-      schedule.endTime,
-    ].some(Boolean);
   useEffect(() => {
     nameInput.current?.focus();
   }, []);
@@ -43,16 +60,6 @@ export function CreateEventDialog({
     if (confirmingDiscard) keepEditingButton.current?.focus();
     else if (returnFocus.current?.isConnected) returnFocus.current.focus();
   }, [confirmingDiscard]);
-
-  useEffect(() => {
-    if (!isDirty && !createEvent.isPending) return;
-    function warnBeforeUnload(event: BeforeUnloadEvent) {
-      event.preventDefault();
-      event.returnValue = "";
-    }
-    window.addEventListener("beforeunload", warnBeforeUnload);
-    return () => window.removeEventListener("beforeunload", warnBeforeUnload);
-  }, [isDirty, createEvent.isPending]);
 
   function requestClose() {
     if (createEvent.isPending) return;
@@ -71,7 +78,8 @@ export function CreateEventDialog({
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (createEvent.isPending || confirmingDiscard) return;
+    if (createEvent.isPending || confirmingDiscard || !recovery.isRetained)
+      return;
     let timing: ReturnType<typeof eventSchedulePayload>;
     try {
       timing = eventSchedulePayload(schedule);
@@ -82,17 +90,16 @@ export function CreateEventDialog({
       );
       return;
     }
-    createEvent.mutate(
-      {
-        displayName,
-        ...timing,
-        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-      },
-      {
-        onSuccess: (created) => {
-          onClose();
-          onCreated(created.id);
-        },
+    void recovery.save(
+      () =>
+        createEvent.mutateAsync({
+          displayName,
+          ...timing,
+          timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+        }),
+      (created) => {
+        onClose();
+        onCreated(created.id);
       },
     );
   }
@@ -131,7 +138,10 @@ export function CreateEventDialog({
             <button
               className="button button-quiet"
               type="button"
-              onClick={onClose}
+              onClick={() => {
+                recovery.discard();
+                onClose();
+              }}
             >
               Discard
             </button>
@@ -161,19 +171,22 @@ export function CreateEventDialog({
               required
               disabled={createEvent.isPending}
               value={displayName}
-              onChange={(event) => setDisplayName(event.target.value)}
+              onChange={(event) =>
+                draft.change({ displayName: event.target.value })
+              }
             />
           </label>
           <EventScheduleFields
             value={schedule}
             onChange={(change) => {
-              setSchedule((current) => ({ ...current, ...change }));
+              draft.change(change);
               setScheduleError("");
             }}
             disabled={createEvent.isPending}
           />
           {scheduleError && <p role="alert">{scheduleError}</p>}
           {createEvent.isError && <ErrorNotice error={createEvent.error} />}
+          <EventDraftStatus {...recovery} />
         </div>
         <footer className="event-create-footer">
           <button
@@ -186,7 +199,7 @@ export function CreateEventDialog({
           </button>
           <EditorSubmitButton
             className="button button-primary"
-            disabled={createEvent.isPending}
+            disabled={createEvent.isPending || !recovery.isRetained}
           >
             {createEvent.isPending ? "Creating..." : "Create event"}
           </EditorSubmitButton>
