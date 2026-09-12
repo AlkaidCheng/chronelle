@@ -265,6 +265,32 @@ describe("focused Task editors", () => {
     expect(fetch).toHaveBeenCalledTimes(2);
   });
 
+  it.each([false, true])(
+    "restores lost save focus without stealing another control's focus (moved: %s)",
+    async (moved) => {
+      const pending = Promise.withResolvers<Response>();
+      vi.stubGlobal(
+        "fetch",
+        vi.fn<typeof fetch>(() => pending.promise),
+      );
+      const user = userEvent.setup();
+      render(<Harness create />, { wrapper: Providers });
+      await user.click(screen.getByRole("button", { name: "Open task" }));
+      const input = screen.getByLabelText("Task");
+      await user.type(input, "Pack bags");
+      const form = input.closest("form");
+      if (!form) throw new Error("Task form is missing.");
+      fireEvent.submit(form);
+      await waitFor(() => expect(input).toBeDisabled());
+      input.blur();
+      const other = screen.getByRole("button", { name: "Refresh queries" });
+      if (moved) other.focus();
+      await act(async () => pending.resolve(failure(503)));
+      await screen.findByRole("alert");
+      expect(moved ? other : input).toHaveFocus();
+    },
+  );
+
   it("preserves exact due seconds in a name-only versioned update", async () => {
     const fetch = vi.fn<typeof globalThis.fetch>(async (input, init) => {
       if (init?.method === "PATCH")

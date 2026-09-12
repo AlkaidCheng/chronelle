@@ -41,6 +41,7 @@ export function TaskForm({
   const [dueError, setDueError] = useState("");
   const headingId = useId();
   const nameInput = useRef<HTMLInputElement>(null);
+  const submittedControl = useRef<HTMLElement | null>(null);
   const openHistory = useOpenHistory();
   const close = () => onCancel?.();
   const dialog = useSessionDialog(close);
@@ -55,7 +56,15 @@ export function TaskForm({
   }, []);
   useEffect(() => {
     if (isDraftAccessError(mutation.error)) onCancel?.();
-  }, [mutation.error, onCancel]);
+    else if (mutation.isError && !mutation.isPending) {
+      if (
+        document.activeElement === document.body ||
+        document.activeElement === dialog.current
+      )
+        submittedControl.current?.focus();
+      submittedControl.current = null;
+    }
+  }, [mutation.error, mutation.isError, mutation.isPending, onCancel, dialog]);
   useEffect(() => {
     if (!draft.isDirty && !mutation.isPending) return;
     function warnBeforeUnload(event: BeforeUnloadEvent) {
@@ -79,6 +88,11 @@ export function TaskForm({
       );
       return;
     }
+    submittedControl.current =
+      document.activeElement instanceof HTMLElement &&
+      formEvent.currentTarget.contains(document.activeElement)
+        ? document.activeElement
+        : nameInput.current;
     if (task === undefined) {
       create.mutate(input, {
         onSuccess: () => {
