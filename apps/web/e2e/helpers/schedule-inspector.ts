@@ -39,6 +39,10 @@ export async function exerciseScheduleInspector(
     await expectToken(inspector, "background-color", "surface");
     await expectToken(inspector, "color", "ink");
     await expectToken(inspector.getByRole("heading"), "color", "ink");
+    for (const text of await inspector
+      .locator(".schedule-toggle strong, .calendar-range-summary strong")
+      .all())
+      await expectToken(text, "color", "ink");
     await page.evaluate(
       () =>
         new Promise<void>((resolve) =>
