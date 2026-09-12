@@ -326,14 +326,20 @@ Add schedule item opens a focused creation dialog without moving the Calendar
 list. Dates start enabled with no selected date or invented time; they can be
 turned off. Cancel and Escape confirm dismissal of changed fields. Keep editing
 preserves the form, calendar position and focus. An in-flight save disables
-editing and dismissal. Failed saves retain input; an unchanged retry in the same
-dialog reuses the linked-create command identity. Successful creation closes the
+editing and dismissal. Failed saves retain input; unchanged retries reuse the
+linked-create command identity, including after draft recovery. Successful creation closes the
 dialog and refreshes Calendar, Itinerary and Timeline.
 
-Schedule creation drafts live only while the dialog is mounted. Browsers may warn
-on document unload, but native route navigation is not intercepted. Discard,
-navigation and session changes clear these drafts. Cross-navigation command/draft
-recovery is not supported, and a reopened dialog starts a new create attempt.
+Schedule creation keeps one draft per parent Event in authenticated tab memory.
+After navigation, Add schedule item offers Resume / Discard. Resume checks fresh
+parent access before displaying the fields. The draft retains its linked-create
+attempt, so an unchanged retry after a lost response can return the existing
+canonical item. Pending saves stay tracked while away without late navigation.
+Discard, reload, session changes, or eviction clear the attempt. Changing the
+submitted values starts a new command; check the Calendar before doing either
+after an uncertain save. This is not durable storage or an exactly-once guarantee
+across those boundaries. The offline design sandbox supports draft recovery but
+does not implement backend command replay.
 
 Event, schedule-item, task, expense, and reminder forms keep their draft after a
 failed save. Submit again explicitly to retry; Refresh latest only fetches data
@@ -366,7 +372,7 @@ content even when a cached copy exists. Backend authorization and version checks
 still apply to every mutation. Retained data is not a freshness guarantee.
 Unsaved drafts are not durable storage or offline synchronization. Confirming
 document navigation, changing sessions, or closing the browser can discard them.
-Event creation and Event/schedule-item inspectors guard edited-form dismissal. Other
+Event creation, schedule creation, and Event inspectors guard edited-form dismissal. Other
 planning editors retain their existing navigation behavior.
 Client-side browser Back/Forward transitions are not intercepted. Save or close
 the inspector to finish explicitly, or navigate and reopen Edit event to recover
@@ -374,8 +380,8 @@ its unsaved name and schedule. New event offers the same recovery. Up to twenty
 recently changed Event drafts stay in the current authenticated tab's memory;
 older non-pending drafts can be evicted. Drafts are never written to browser
 storage. Reload, sign-out and workspace changes clear them. Calendar navigation
-itself is not retained across routes. Schedule item Edit uses the same recovery;
-task, expense, reminder and schedule creation forms are outside this
+itself is not retained across routes. Schedule creation shares this limit with
+Event creation and Event/schedule-item editing. Task, expense and reminder forms are outside this
 recovery scope.
 
 Resume draft checks current access before displaying private values and preserves
