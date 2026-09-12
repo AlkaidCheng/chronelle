@@ -320,7 +320,20 @@ data and edit permission are checked separately from the parent. Cached access
 is not sufficient to open it. Its name and schedule share one draft across
 contexts, and saving refreshes Calendar, Itinerary and Timeline projections.
 Temporary item-read failures hide the editor until an explicit retry; the kept
-draft can then be resumed. Schedule item creation remains an inline form.
+draft can then be resumed.
+
+Add schedule item opens a focused creation dialog without moving the Calendar
+list. Dates start enabled with no selected date or invented time; they can be
+turned off. Cancel and Escape confirm dismissal of changed fields. Keep editing
+preserves the form, calendar position and focus. An in-flight save disables
+editing and dismissal. Failed saves retain input; an unchanged retry in the same
+dialog reuses the linked-create command identity. Successful creation closes the
+dialog and refreshes Calendar, Itinerary and Timeline.
+
+Schedule creation drafts live only while the dialog is mounted. Browsers may warn
+on document unload, but native route navigation is not intercepted. Discard,
+navigation and session changes clear these drafts. Cross-navigation command/draft
+recovery is not supported, and a reopened dialog starts a new create attempt.
 
 Event, schedule-item, task, expense, and reminder forms keep their draft after a
 failed save. Submit again explicitly to retry; Refresh latest only fetches data

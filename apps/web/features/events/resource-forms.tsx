@@ -5,117 +5,21 @@ import type {
   ReminderResponse,
   TaskResponse,
 } from "@chronelle/schemas";
-import { type FormEvent, useState } from "react";
+import type { FormEvent } from "react";
 
 import { EditorForm } from "../../components/editor-form";
-import { EventScheduleFields } from "./event-schedule-fields";
-import {
-  type EventScheduleDraft,
-  readEventSchedule,
-  eventSchedulePayload,
-} from "../../lib/event-schedule";
-
 import { EditorControls } from "./editor-controls";
 import { fromDateTimeInput, toDateTimeInput } from "../../lib/format";
 import { useEditorDraft } from "../../lib/use-editor-draft";
 import {
   useCreateExpense,
   useCreateReminder,
-  useCreateScheduledEvent,
   useCreateTask,
   useRefreshEvent,
   useUpdateExpense,
   useUpdateReminder,
   useUpdateTask,
 } from "../../lib/queries";
-
-export function ScheduledEventForm({
-  eventId,
-  onCancel,
-}: {
-  readonly eventId: string;
-  readonly onCancel?: (() => void) | undefined;
-}) {
-  const draft = useEditorDraft(
-    undefined,
-    (): EventScheduleDraft & { displayName: string } => ({
-      displayName: "",
-      ...readEventSchedule(),
-      mode: "dates",
-    }),
-  );
-  const mutation = useCreateScheduledEvent(eventId);
-  const { displayName } = draft.fields;
-  const [scheduleError, setScheduleError] = useState("");
-
-  function handleSubmit(formEvent: FormEvent<HTMLFormElement>) {
-    formEvent.preventDefault();
-    if (mutation.isPending) return;
-    let schedule: ReturnType<typeof eventSchedulePayload>;
-    try {
-      schedule = eventSchedulePayload(draft.fields);
-      setScheduleError("");
-    } catch (error) {
-      setScheduleError(
-        error instanceof Error ? error.message : "Check the schedule.",
-      );
-      return;
-    }
-    const input = {
-      displayName,
-      ...schedule,
-      isAllDay: false,
-      timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-    };
-    mutation.mutate(input, {
-      onSuccess: () => {
-        draft.change({ displayName: "", ...readEventSchedule() });
-        onCancel?.();
-      },
-    });
-  }
-
-  return (
-    <EditorForm
-      aria-busy={mutation.isPending}
-      className="editor-form"
-      onChangeCapture={() => {
-        if (mutation.isSuccess) mutation.reset();
-      }}
-      onSubmit={handleSubmit}
-    >
-      <label className="field field-wide">
-        <span>Schedule item</span>
-        <input
-          maxLength={240}
-          disabled={mutation.isPending}
-          onChange={(input) =>
-            draft.change({ displayName: input.target.value })
-          }
-          placeholder="Guest arrival"
-          required
-          value={displayName}
-        />
-      </label>
-      <EventScheduleFields
-        value={draft.fields}
-        onChange={(fields) => {
-          draft.change(fields);
-          setScheduleError("");
-          if (mutation.isSuccess) mutation.reset();
-        }}
-        disabled={mutation.isPending}
-      />
-      {scheduleError && <p role="alert">{scheduleError}</p>}
-      <EditorControls
-        draft={draft}
-        mutation={mutation}
-        onCancel={onCancel}
-        submitLabel="Add to schedule"
-      />
-    </EditorForm>
-  );
-}
 
 export function TaskForm({
   eventId,
