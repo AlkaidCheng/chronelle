@@ -21,6 +21,7 @@ import { HistoryButton } from "../history/history-button";
 import { LifecycleButton } from "../recovery/lifecycle-provider";
 import { ObjectDetails } from "../../components/object-details";
 import { ScheduleItemInspector } from "./schedule-item-inspector";
+import { CreateScheduleDialog } from "./create-schedule-dialog";
 import {
   formatCalendarDate,
   formatEventDatePart,
@@ -33,12 +34,7 @@ import {
   useUpdateReminder,
   useUpdateTask,
 } from "../../lib/queries";
-import {
-  ExpenseForm,
-  ReminderForm,
-  ScheduledEventForm,
-  TaskForm,
-} from "./resource-forms";
+import { ExpenseForm, ReminderForm, TaskForm } from "./resource-forms";
 
 function PanelHeading({
   action,
@@ -287,10 +283,10 @@ export function CalendarPanel({
           canEdit ? (
             <button
               className="button button-secondary"
-              onClick={() => setIsAdding((value) => !value)}
+              onClick={() => setIsAdding(true)}
               type="button"
             >
-              {isAdding ? "Close" : "Add schedule item"}
+              Add schedule item
             </button>
           ) : undefined
         }
@@ -298,12 +294,11 @@ export function CalendarPanel({
         title="Calendar"
       />
       {isAdding && canEdit ? (
-        <div className="editor-drawer open-drawer">
-          <ScheduledEventForm
-            eventId={eventId}
-            onCancel={() => setIsAdding(false)}
-          />
-        </div>
+        <CreateScheduleDialog
+          key={eventId}
+          eventId={eventId}
+          onClose={() => setIsAdding(false)}
+        />
       ) : null}
       {items.length === 0 ? (
         <EmptyState

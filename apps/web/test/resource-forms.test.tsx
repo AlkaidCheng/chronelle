@@ -15,11 +15,11 @@ import { Providers } from "../app/providers";
 import {
   ExpenseForm,
   ReminderForm,
-  ScheduledEventForm,
   TaskForm,
 } from "../features/events/resource-forms";
 
 import { EventInspector } from "../features/events/event-inspector";
+import { CreateScheduleDialog } from "../features/events/create-schedule-dialog";
 
 const objectId = "019d6e7d-0000-7000-8000-000000000010";
 const workspaceId = "019d6e7d-0000-7000-8000-000000000001";
@@ -154,7 +154,7 @@ describe("versioned editor drafts", () => {
         kind === "event" ? (
           <EventInspector onClose={() => {}} event={event} />
         ) : (
-          <ScheduledEventForm eventId={objectId} />
+          <CreateScheduleDialog eventId={objectId} onClose={() => {}} />
         ),
         { wrapper: Providers },
       );

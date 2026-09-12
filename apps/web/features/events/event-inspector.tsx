@@ -13,6 +13,7 @@ import { EventDraftRecovery, EventDraftStatus } from "./event-draft-recovery";
 import { useRefreshEvent, useUpdateEvent } from "../../lib/queries";
 import { useEditorDraft } from "../../lib/use-editor-draft";
 import { useSessionDialog } from "../../lib/use-session-dialog";
+import { useDiscardConfirmation } from "../../lib/use-discard-confirmation";
 import { useOpenHistory } from "../history/history-provider";
 import { EditorControls } from "./editor-controls";
 import { EventScheduleFields } from "./event-schedule-fields";
@@ -57,32 +58,22 @@ function EventInspectorForm({
   const { displayName } = draft.fields;
   const [scheduleError, setScheduleError] = useState("");
 
-  const [confirmingDiscard, setConfirmingDiscard] = useState(false);
+  const {
+    isConfirming: confirmingDiscard,
+    keepEditingButton,
+    keepEditing,
+    requestClose,
+  } = useDiscardConfirmation({
+    isDirty: draft.isDirty,
+    isPending: update.isPending,
+    onClose,
+  });
   const dialog = useSessionDialog(onClose);
   const nameInput = useRef<HTMLInputElement>(null);
-  const keepEditingButton = useRef<HTMLButtonElement>(null);
-  const returnFocus = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
     nameInput.current?.focus();
   }, []);
-  useEffect(() => {
-    if (confirmingDiscard) keepEditingButton.current?.focus();
-    else if (returnFocus.current?.isConnected) returnFocus.current.focus();
-  }, [confirmingDiscard]);
-
-  function requestClose() {
-    if (update.isPending) return;
-    if (confirmingDiscard) setConfirmingDiscard(false);
-    else if (draft.isDirty) {
-      returnFocus.current =
-        document.activeElement instanceof HTMLElement
-          ? document.activeElement
-          : nameInput.current;
-      setConfirmingDiscard(true);
-    } else onClose();
-  }
-
   function handleSubmit(formEvent: FormEvent<HTMLFormElement>) {
     formEvent.preventDefault();
     if (
@@ -177,7 +168,7 @@ function EventInspectorForm({
               ref={keepEditingButton}
               type="button"
               className="button button-primary"
-              onClick={() => setConfirmingDiscard(false)}
+              onClick={keepEditing}
             >
               Keep editing
             </button>
