@@ -1,5 +1,6 @@
 import { expect, type Page, type TestInfo } from "@playwright/test";
 import { expectHorizontalReflow } from "./page-navigation";
+import { expectToken } from "./appearance";
 
 export async function createRecoveryEvent(page: Page) {
   await expect(
@@ -58,6 +59,17 @@ export async function exerciseEventDraftRecovery(
   for (const colorScheme of ["light", "dark"] as const) {
     await page.emulateMedia({ colorScheme, reducedMotion: "reduce" });
     await page.setViewportSize({ width: 320, height: 568 });
+    await expect(page.locator("html")).toHaveCSS("color-scheme", colorScheme);
+    await expectToken(recovery, "background-color", "surface");
+    await expectToken(recovery, "color", "ink");
+    await expectToken(recovery.getByRole("heading"), "color", "ink");
+    await expectToken(recovery.locator(".event-create-body p"), "color", "ink");
+    await page.evaluate(
+      () =>
+        new Promise<void>((resolve) =>
+          requestAnimationFrame(() => requestAnimationFrame(() => resolve())),
+        ),
+    );
     await expectHorizontalReflow(page);
     await expect(
       recovery.getByRole("button", { name: "Resume draft", exact: true }),
