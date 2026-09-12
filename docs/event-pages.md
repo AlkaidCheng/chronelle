@@ -61,7 +61,8 @@ layout before an explicit retry. In-flight saves block overlapping layout
 mutations; success announces completion and restores keyboard focus when needed.
 Cross-page moves select the destination. Components keep local state while
 mounted. Components absent from the selected page unmount; their local controls
-and unsaved drafts are not retained.
+are reset. Event/schedule and Task editor drafts remain eligible for explicit
+session-local recovery; other unsaved planning drafts are not retained.
 
 Each action saves atomically. Free-form positioning, touch dragging, and
 cross-Event moves are outside this interface. Native drag
@@ -89,7 +90,8 @@ Editing or manually restoring clears redo. A newer layout from another client
 invalidates the local chain; stale writes fail with HTTP 409. Reloading or
 switching sessions clears the undo/redo chain, but saved history survives.
 Layout undo is separate from planning-record command undo. Removing a component
-unmounts its local controls and does not preserve unsaved drafts.
+unmounts its local controls. Eligible Event/schedule and Task drafts can be
+recovered when their editor is reopened elsewhere in the same authenticated tab.
 
 ## Persistence
 

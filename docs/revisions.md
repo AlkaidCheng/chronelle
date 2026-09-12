@@ -137,11 +137,13 @@ later edits or revive a removed relationship. A failed object, relation, revisio
 audit, or receipt write rolls back the entire command. The original request ID
 correlates its object-created and relation-created audit events.
 
-Browser create forms retain a command ID for unchanged retries while mounted,
-and start a fresh command after success or changed input. Reloading or leaving
-the editor loses that in-memory retry identity; durable offline draft and command
-storage is not implemented. API clients needing recovery across restarts must
-retain their own command ID. Receipts are retained indefinitely for now.
+Browser create forms retain a command ID for unchanged retries and start a fresh
+command after success or changed input. Schedule and Task creation also retain
+it across client-side navigation through explicit draft recovery. Other forms
+retain it only while mounted. Discard, eviction, reload, sign-out and workspace
+changes clear the retained attempt; durable offline draft and command storage is
+not implemented. API clients needing recovery across restarts must retain their
+own command ID. Receipts are retained indefinitely for now.
 
 ## Upgrading an existing database
 
