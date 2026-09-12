@@ -6,15 +6,15 @@ import { ErrorNotice, LoadingState } from "../../components/feedback";
 import { useApiClient } from "../../lib/api-context";
 import { useAuthSession } from "../../lib/auth-session";
 import {
-  useEventDraftStore,
-  useKeptEventDraft,
-} from "../../lib/event-draft-context";
-import type { EventDraftSnapshot } from "../../lib/event-draft-store";
+  useEditorDraftStore,
+  useKeptEditorDraft,
+} from "../../lib/editor-draft-context";
+import type { EventDraftSnapshot } from "../../lib/editor-draft-store";
 import { queryKeys } from "../../lib/queries";
 import { isTemporaryReadError } from "../../lib/query-errors";
 import { useSessionDialog } from "../../lib/use-session-dialog";
 
-export function EventDraftRecovery({
+export function EditorDraftRecovery({
   id,
   accessId = id,
   onClose,
@@ -25,7 +25,7 @@ export function EventDraftRecovery({
   readonly onClose: () => void;
   readonly children: (snapshot: EventDraftSnapshot | undefined) => ReactNode;
 }) {
-  const store = useEventDraftStore();
+  const store = useEditorDraftStore();
   const [offering, setOffering] = useState(() => store.get(id) !== undefined);
   const [snapshot, setSnapshot] = useState<EventDraftSnapshot>();
   return offering ? (
@@ -54,8 +54,8 @@ function ResumeEventDraft({
   readonly onClose: () => void;
   readonly onResume: (snapshot: EventDraftSnapshot) => void;
 }) {
-  const store = useEventDraftStore();
-  const kept = useKeptEventDraft(id);
+  const store = useEditorDraftStore();
+  const kept = useKeptEditorDraft(id);
   const client = useApiClient();
   const queries = useQueryClient();
   const { signal } = useAuthSession();
@@ -183,7 +183,7 @@ function ResumeEventDraft({
   );
 }
 
-export function EventDraftStatus({
+export function EditorDraftStatus({
   isRetained,
   failed,
   failureMessage = "The last save failed. Check for a saved event before submitting again.",

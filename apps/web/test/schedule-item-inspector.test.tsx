@@ -13,8 +13,8 @@ import { useQueryClient } from "@tanstack/react-query";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { Providers } from "../app/providers";
 import { ScheduleItemInspector } from "../features/events/schedule-item-inspector";
-import { useEventDraftStore } from "../lib/event-draft-context";
-import { readEventFields } from "../lib/event-draft-store";
+import { useEditorDraftStore } from "../lib/editor-draft-context";
+import { readEventFields } from "../lib/editor-draft-store";
 import { queryKeys } from "../lib/queries";
 
 const eventId = "019d6e7d-0000-7000-8000-000000000010";
@@ -54,7 +54,7 @@ function Harness({
   onClose?: () => void;
 }) {
   const queries = useQueryClient();
-  const drafts = useEventDraftStore();
+  const drafts = useEditorDraftStore();
   return (
     <>
       <button

@@ -9,7 +9,7 @@ import {
 } from "../../components/editor-dialog-controls";
 import { EditorControls } from "./editor-controls";
 import { readTaskFields, taskFieldsPayload } from "../../lib/task-fields";
-import { isDraftAccessError } from "../../lib/event-draft-store";
+import { isDraftAccessError } from "../../lib/editor-draft-store";
 import { useDiscardConfirmation } from "../../lib/use-discard-confirmation";
 import { useSessionDialog } from "../../lib/use-session-dialog";
 import { useOpenHistory } from "../history/history-provider";

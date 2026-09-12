@@ -5,12 +5,15 @@ import { ErrorNotice } from "../../components/feedback";
 import { EditorForm, EditorSubmitButton } from "../../components/editor-form";
 import { eventSchedulePayload } from "../../lib/event-schedule";
 import { useEditorDraft } from "../../lib/use-editor-draft";
-import { useKeepEventDraft } from "../../lib/event-draft-context";
+import { useKeepEditorDraft } from "../../lib/editor-draft-context";
 import {
   readEventFields,
   type EventDraftSnapshot,
-} from "../../lib/event-draft-store";
-import { EventDraftRecovery, EventDraftStatus } from "./event-draft-recovery";
+} from "../../lib/editor-draft-store";
+import {
+  EditorDraftRecovery,
+  EditorDraftStatus,
+} from "./editor-draft-recovery";
 import { useCreateEvent } from "../../lib/queries";
 import { useSessionDialog } from "../../lib/use-session-dialog";
 import { useDiscardConfirmation } from "../../lib/use-discard-confirmation";
@@ -23,11 +26,11 @@ interface CreateEventDialogProps {
 
 export function CreateEventDialog(props: CreateEventDialogProps) {
   return (
-    <EventDraftRecovery id="new" onClose={props.onClose}>
+    <EditorDraftRecovery id="new" onClose={props.onClose}>
       {(initialDraft) => (
         <CreateEventForm {...props} initialDraft={initialDraft} />
       )}
-    </EventDraftRecovery>
+    </EditorDraftRecovery>
   );
 }
 
@@ -46,7 +49,7 @@ function CreateEventForm({
   const { displayName } = draft.fields;
   const schedule = draft.fields;
   const { isDirty } = draft;
-  const recovery = useKeepEventDraft("new", draft.snapshot, isDirty, onClose);
+  const recovery = useKeepEditorDraft("new", draft.snapshot, isDirty, onClose);
   const [scheduleError, setScheduleError] = useState("");
   const {
     isConfirming: confirmingDiscard,
@@ -174,7 +177,7 @@ function CreateEventForm({
           />
           {scheduleError && <p role="alert">{scheduleError}</p>}
           {createEvent.isError && <ErrorNotice error={createEvent.error} />}
-          <EventDraftStatus {...recovery} />
+          <EditorDraftStatus {...recovery} />
         </div>
         <footer className="event-create-footer">
           <button

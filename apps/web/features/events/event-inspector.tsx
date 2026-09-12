@@ -8,12 +8,15 @@ import {
   EditorDialogHeader,
 } from "../../components/editor-dialog-controls";
 import { eventSchedulePayload } from "../../lib/event-schedule";
-import { useKeepEventDraft } from "../../lib/event-draft-context";
+import { useKeepEditorDraft } from "../../lib/editor-draft-context";
 import {
   readEventFields,
   type EventDraftSnapshot,
-} from "../../lib/event-draft-store";
-import { EventDraftRecovery, EventDraftStatus } from "./event-draft-recovery";
+} from "../../lib/editor-draft-store";
+import {
+  EditorDraftRecovery,
+  EditorDraftStatus,
+} from "./editor-draft-recovery";
 import { useRefreshEvent, useUpdateEvent } from "../../lib/queries";
 import { useEditorDraft } from "../../lib/use-editor-draft";
 import { useSessionDialog } from "../../lib/use-session-dialog";
@@ -30,11 +33,11 @@ interface EventInspectorProps {
 
 export function EventInspector(props: EventInspectorProps) {
   return (
-    <EventDraftRecovery id={props.event.id} onClose={props.onClose}>
+    <EditorDraftRecovery id={props.event.id} onClose={props.onClose}>
       {(initialDraft) => (
         <EventInspectorForm {...props} initialDraft={initialDraft} />
       )}
-    </EventDraftRecovery>
+    </EditorDraftRecovery>
   );
 }
 
@@ -47,7 +50,7 @@ function EventInspectorForm({
   readonly initialDraft: EventDraftSnapshot | undefined;
 }) {
   const draft = useEditorDraft(latestEvent, readEventFields, initialDraft);
-  const recovery = useKeepEventDraft(
+  const recovery = useKeepEditorDraft(
     latestEvent.id,
     draft.snapshot,
     draft.isDirty,
@@ -199,7 +202,7 @@ function EventInspectorForm({
             disabled={update.isPending}
           />
           {scheduleError && <p role="alert">{scheduleError}</p>}
-          <EventDraftStatus {...recovery} />
+          <EditorDraftStatus {...recovery} />
         </div>
         <footer className="event-inspector-footer">
           <EditorControls

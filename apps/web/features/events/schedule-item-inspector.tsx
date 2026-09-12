@@ -2,7 +2,7 @@
 
 import { type ReactNode, useEffect } from "react";
 import { ErrorNotice, LoadingState } from "../../components/feedback";
-import { useEventDraftStore } from "../../lib/event-draft-context";
+import { useEditorDraftStore } from "../../lib/editor-draft-context";
 import { useEventWorkspaceQueries } from "../../lib/queries";
 import { isTemporaryReadError } from "../../lib/query-errors";
 import { useSessionDialog } from "../../lib/use-session-dialog";
@@ -16,7 +16,7 @@ export function ScheduleItemInspector({
   readonly onClose: () => void;
 }) {
   const { event, access } = useEventWorkspaceQueries(eventId, null, "always");
-  const drafts = useEventDraftStore();
+  const drafts = useEditorDraftStore();
   const queries = [event, access];
   const failure = queries.find((query) => query.isError);
   const denied =

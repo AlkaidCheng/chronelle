@@ -1,10 +1,10 @@
 import { ApiClientError } from "@chronelle/api-client";
 import { describe, expect, it, vi } from "vitest";
 import {
-  EventDraftStore,
+  EditorDraftStore,
   readEventFields,
   type EventDraftSnapshot,
-} from "../lib/event-draft-store";
+} from "../lib/editor-draft-store";
 
 function snapshot(displayName = "Garden evening"): EventDraftSnapshot {
   const baseline = readEventFields();
@@ -13,7 +13,7 @@ function snapshot(displayName = "Garden evening"): EventDraftSnapshot {
 
 function setup() {
   const controller = new AbortController();
-  return { controller, store: new EventDraftStore(controller.signal) };
+  return { controller, store: new EditorDraftStore(controller.signal) };
 }
 
 describe("Event draft retention", () => {

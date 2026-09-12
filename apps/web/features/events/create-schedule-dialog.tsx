@@ -20,16 +20,19 @@ import {
   useCreateScheduledEvent,
   type ContextCreateAttempt,
 } from "../../lib/queries";
-import { useKeepEventDraft } from "../../lib/event-draft-context";
+import { useKeepEditorDraft } from "../../lib/editor-draft-context";
 import {
   readEventFields,
   type EventDraftSnapshot,
-} from "../../lib/event-draft-store";
+} from "../../lib/editor-draft-store";
 import { useDiscardConfirmation } from "../../lib/use-discard-confirmation";
 import { useEditorDraft } from "../../lib/use-editor-draft";
 import { useSessionDialog } from "../../lib/use-session-dialog";
 import { EventScheduleFields } from "./event-schedule-fields";
-import { EventDraftRecovery, EventDraftStatus } from "./event-draft-recovery";
+import {
+  EditorDraftRecovery,
+  EditorDraftStatus,
+} from "./editor-draft-recovery";
 
 interface CreateScheduleDialogProps {
   readonly eventId: string;
@@ -42,7 +45,7 @@ export function CreateScheduleDialog({
 }: CreateScheduleDialogProps) {
   const draftId = `schedule:${eventId}`;
   return (
-    <EventDraftRecovery id={draftId} accessId={eventId} onClose={onClose}>
+    <EditorDraftRecovery id={draftId} accessId={eventId} onClose={onClose}>
       {(initialDraft) => (
         <CreateScheduleForm
           eventId={eventId}
@@ -51,7 +54,7 @@ export function CreateScheduleDialog({
           onClose={onClose}
         />
       )}
-    </EventDraftRecovery>
+    </EditorDraftRecovery>
   );
 }
 
@@ -82,7 +85,7 @@ function CreateScheduleForm({
     () => ({ ...draft.snapshot, creationAttempt: attempt }),
     [draft.snapshot, attempt],
   );
-  const recovery = useKeepEventDraft(
+  const recovery = useKeepEditorDraft(
     draftId,
     snapshot,
     draft.isDirty,
@@ -194,7 +197,7 @@ function CreateScheduleForm({
           />
           {scheduleError && <p role="alert">{scheduleError}</p>}
           {mutation.isError && <ErrorNotice error={mutation.error} />}
-          <EventDraftStatus
+          <EditorDraftStatus
             {...recovery}
             failureMessage="Your previous save could not be confirmed. Retry unchanged fields to reuse the same save attempt."
           />

@@ -26,7 +26,7 @@ interface KeptDraft {
 }
 
 /** Retains up to twenty Event drafts within one authenticated tab session. */
-export class EventDraftStore {
+export class EditorDraftStore {
   private readonly drafts = new Map<string, KeptDraft>();
   private readonly listeners = new Set<() => void>();
 

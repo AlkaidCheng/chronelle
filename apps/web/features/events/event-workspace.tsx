@@ -14,7 +14,7 @@ import { CalendarIcon, LockIcon } from "../../components/icons";
 import { formatEventSchedule } from "../../lib/event-schedule";
 import { ObjectDetails } from "../../components/object-details";
 import { useEventWorkspaceQueries } from "../../lib/queries";
-import { useEventDraftStore } from "../../lib/event-draft-context";
+import { useEditorDraftStore } from "../../lib/editor-draft-context";
 import { isTemporaryReadError } from "../../lib/query-errors";
 import { eventComponentKindSchema } from "@chronelle/schemas";
 import { EventComponent } from "./event-component";
@@ -38,7 +38,7 @@ import {
 export function EventWorkspace({ eventId }: { readonly eventId: string }) {
   const [activeTab, setActiveTab] = useEventView();
   const queries = useEventWorkspaceQueries(eventId, activeTab);
-  const drafts = useEventDraftStore();
+  const drafts = useEditorDraftStore();
   const accessLost =
     (queries.access.data !== undefined &&
       !queries.access.data.actions.includes("edit")) ||
