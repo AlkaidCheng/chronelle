@@ -19,6 +19,7 @@ interface EditorControlsProps {
   readonly onCancel?: (() => void) | undefined;
   readonly onRefresh?: (() => Promise<void>) | undefined;
   readonly submitLabel: string;
+  readonly disabled?: boolean;
 }
 
 export function EditorControls({
@@ -27,6 +28,7 @@ export function EditorControls({
   onCancel,
   onRefresh,
   submitLabel,
+  disabled = false,
 }: EditorControlsProps) {
   const refreshing = useRef(false);
   const currentMutation = useRef(mutation);
@@ -89,7 +91,7 @@ export function EditorControls({
         )}
         <EditorSubmitButton
           className="button button-primary"
-          disabled={draft.hasNewerVersion || mutation.isPending}
+          disabled={disabled || draft.hasNewerVersion || mutation.isPending}
         >
           {mutation.isPending ? "Saving..." : submitLabel}
         </EditorSubmitButton>

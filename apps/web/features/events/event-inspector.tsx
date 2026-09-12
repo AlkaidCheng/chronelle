@@ -3,10 +3,13 @@
 import type { EventResponse } from "@chronelle/schemas";
 import { type FormEvent, useEffect, useId, useRef, useState } from "react";
 import { EditorForm } from "../../components/editor-form";
+import { eventSchedulePayload } from "../../lib/event-schedule";
+import { useKeepEventDraft } from "../../lib/event-draft-context";
 import {
-  eventSchedulePayload,
-  readEventSchedule,
-} from "../../lib/event-schedule";
+  readEventFields,
+  type EventDraftSnapshot,
+} from "../../lib/event-draft-store";
+import { EventDraftRecovery, EventDraftStatus } from "./event-draft-recovery";
 import { useRefreshEvent, useUpdateEvent } from "../../lib/queries";
 import { useEditorDraft } from "../../lib/use-editor-draft";
 import { useSessionDialog } from "../../lib/use-session-dialog";
@@ -14,17 +17,35 @@ import { useOpenHistory } from "../history/history-provider";
 import { EditorControls } from "./editor-controls";
 import { EventScheduleFields } from "./event-schedule-fields";
 
-export function EventInspector({
-  event: latestEvent,
-  onClose,
-}: {
+interface EventInspectorProps {
   readonly event: EventResponse;
   readonly onClose: () => void;
+}
+
+export function EventInspector(props: EventInspectorProps) {
+  return (
+    <EventDraftRecovery id={props.event.id} onClose={props.onClose}>
+      {(initialDraft) => (
+        <EventInspectorForm {...props} initialDraft={initialDraft} />
+      )}
+    </EventDraftRecovery>
+  );
+}
+
+function EventInspectorForm({
+  event: latestEvent,
+  onClose,
+  initialDraft,
+}: EventInspectorProps & {
+  readonly initialDraft: EventDraftSnapshot | undefined;
 }) {
-  const draft = useEditorDraft(latestEvent, (event) => ({
-    displayName: event?.displayName ?? "",
-    ...readEventSchedule(event),
-  }));
+  const draft = useEditorDraft(latestEvent, readEventFields, initialDraft);
+  const recovery = useKeepEventDraft(
+    latestEvent.id,
+    draft.snapshot,
+    draft.isDirty,
+    onClose,
+  );
   const event = draft.source ?? latestEvent;
   const nameId = useId();
   const headingId = useId();
@@ -47,15 +68,6 @@ export function EventInspector({
     if (confirmingDiscard) keepEditingButton.current?.focus();
     else if (returnFocus.current?.isConnected) returnFocus.current.focus();
   }, [confirmingDiscard]);
-  useEffect(() => {
-    if (!draft.isDirty && !update.isPending) return;
-    function warnBeforeUnload(event: BeforeUnloadEvent) {
-      event.preventDefault();
-      event.returnValue = "";
-    }
-    window.addEventListener("beforeunload", warnBeforeUnload);
-    return () => window.removeEventListener("beforeunload", warnBeforeUnload);
-  }, [draft.isDirty, update.isPending]);
 
   function requestClose() {
     if (update.isPending) return;
@@ -71,7 +83,13 @@ export function EventInspector({
 
   function handleSubmit(formEvent: FormEvent<HTMLFormElement>) {
     formEvent.preventDefault();
-    if (confirmingDiscard || draft.hasNewerVersion || update.isPending) return;
+    if (
+      confirmingDiscard ||
+      draft.hasNewerVersion ||
+      update.isPending ||
+      !recovery.isRetained
+    )
+      return;
     let schedule: ReturnType<typeof eventSchedulePayload>;
     try {
       schedule = eventSchedulePayload(draft.fields);
@@ -82,22 +100,21 @@ export function EventInspector({
       );
       return;
     }
-    update.mutate(
-      {
-        id: event.id,
-        input: {
-          displayName,
-          ...schedule,
-          expectedVersion: event.version,
-          isAllDay: draft.fields.mode === "timed" && event.isAllDay,
-          timezone: event.timezone,
-        },
-      },
-      {
-        onSuccess: (saved) => {
-          draft.accept(saved);
-          onClose();
-        },
+    void recovery.save(
+      () =>
+        update.mutateAsync({
+          id: event.id,
+          input: {
+            displayName,
+            ...schedule,
+            expectedVersion: event.version,
+            isAllDay: draft.fields.mode === "timed" && event.isAllDay,
+            timezone: event.timezone,
+          },
+        }),
+      (saved) => {
+        draft.accept(saved);
+        onClose();
       },
     );
   }
@@ -149,7 +166,10 @@ export function EventInspector({
             <button
               type="button"
               className="button button-quiet"
-              onClick={onClose}
+              onClick={() => {
+                recovery.discard();
+                onClose();
+              }}
             >
               Discard
             </button>
@@ -198,6 +218,7 @@ export function EventInspector({
             disabled={update.isPending}
           />
           {scheduleError && <p role="alert">{scheduleError}</p>}
+          <EventDraftStatus {...recovery} />
         </div>
         <footer className="event-inspector-footer">
           <EditorControls
@@ -206,6 +227,7 @@ export function EventInspector({
             onCancel={requestClose}
             onRefresh={refresh}
             submitLabel="Save event"
+            disabled={!recovery.isRetained}
           />
         </footer>
       </EditorForm>
