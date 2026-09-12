@@ -3,9 +3,12 @@ import { expectToken } from "./appearance";
 import { expectHorizontalReflow } from "./page-navigation";
 
 export async function exerciseTaskEditors(page: Page, testInfo: TestInfo) {
+  const viewport = page.viewportSize();
   await page.getByRole("button", { name: "Browse event data" }).click();
   await page.getByRole("tab", { name: "To-dos", exact: true }).click();
-  const panel = page.locator(".planning-panel");
+  const panel = page.locator(".planning-panel").filter({
+    has: page.getByRole("heading", { name: "To-dos", exact: true }),
+  });
   await expect(panel).toBeVisible();
   const before = await panel.boundingBox();
   expect(before).not.toBeNull();
@@ -24,6 +27,9 @@ export async function exerciseTaskEditors(page: Page, testInfo: TestInfo) {
   await keep.click();
   await expect(name).toBeFocused();
   await expect(name).toHaveValue("Pack garden supplies");
+  await page.screenshot({
+    path: testInfo.outputPath("task-create-context.png"),
+  });
   for (const colorScheme of ["light", "dark"] as const) {
     await page.emulateMedia({ colorScheme, reducedMotion: "reduce" });
     await page.setViewportSize({ width: 320, height: 568 });
@@ -42,6 +48,7 @@ export async function exerciseTaskEditors(page: Page, testInfo: TestInfo) {
   await expect(add).toBeFocused();
   let row = page.getByRole("row").filter({ hasText: "Pack garden supplies" });
   await expect(row).toHaveCount(1);
+  if (viewport) await page.setViewportSize(viewport);
   await row.getByRole("button", { name: "Edit", exact: true }).click();
   const edit = page.getByRole("dialog", { name: "Edit task", exact: true });
   const editorName = edit.getByLabel("Task", { exact: true });
@@ -50,8 +57,10 @@ export async function exerciseTaskEditors(page: Page, testInfo: TestInfo) {
     "2030-07-03T11:30",
   );
   await editorName.fill("Pack garden supplies and chairs");
+  await page.screenshot({ path: testInfo.outputPath("task-edit-context.png") });
   for (const colorScheme of ["light", "dark"] as const) {
     await page.emulateMedia({ colorScheme, reducedMotion: "reduce" });
+    await page.setViewportSize({ width: 320, height: 568 });
     await expectToken(edit, "background-color", "surface");
     await expectToken(edit.getByRole("heading"), "color", "ink");
     await expectHorizontalReflow(page);

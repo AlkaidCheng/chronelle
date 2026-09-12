@@ -190,7 +190,14 @@ describe("focused Task editors", () => {
     expect(input).toHaveValue("Private draft");
     status = 403;
     await user.click(screen.getByRole("button", { name: "Refresh queries" }));
-    await waitFor(() => expect(screen.queryByLabelText("Task")).toBeNull());
+    await waitFor(
+      () =>
+        expect(
+          screen.getByRole("button", { name: "Refresh queries" }),
+        ).toBeEnabled(),
+      { timeout: 5000 },
+    );
+    expect(screen.queryByLabelText("Task")).toBeNull();
     expect(screen.getByRole("alert")).toHaveTextContent("no longer available");
   });
 
