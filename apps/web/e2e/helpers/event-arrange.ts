@@ -19,8 +19,8 @@ export async function exerciseEventArrange(page: Page, testInfo: TestInfo) {
       .click();
     await expect(picker).toHaveCount(0);
   }
-  const task = page.getByRole("textbox", { name: "Task", exact: true });
-  await task.fill("Keep my unfinished plan");
+  const filter = page.getByRole("button", { name: "all", exact: true });
+  await filter.click();
   const controls = page.getByRole("group", { name: /layout controls/ });
   const canvas = page.getByRole("region", { name: "Event pages", exact: true });
   await expect(controls).toHaveCount(0);
@@ -36,7 +36,7 @@ export async function exerciseEventArrange(page: Page, testInfo: TestInfo) {
   });
   await expect(done).toBeFocused();
   await expect(controls).toHaveCount(2);
-  await expect(task).toHaveValue("Keep my unfinished plan");
+  await expect(filter).toHaveAttribute("aria-pressed", "true");
   await page.keyboard.press("Enter");
   const arrange = page.getByRole("button", {
     name: "Arrange layout",
@@ -75,7 +75,7 @@ export async function exerciseEventArrange(page: Page, testInfo: TestInfo) {
       path: testInfo.outputPath(`event-arrange-${colorScheme}.png`),
     });
     await done.click();
-    await expect(task).toHaveValue("Keep my unfinished plan");
+    await expect(filter).toHaveAttribute("aria-pressed", "true");
   }
 
   await arrange.click();
@@ -83,7 +83,7 @@ export async function exerciseEventArrange(page: Page, testInfo: TestInfo) {
   await commands.getByRole("option", { name: /Done arranging/ }).click();
   await expect(arrange).toBeFocused();
   await expect(controls).toHaveCount(0);
-  await expect(task).toHaveValue("Keep my unfinished plan");
+  await expect(filter).toHaveAttribute("aria-pressed", "true");
   await arrange.click();
   await page.reload();
   await expect(arrange).toBeVisible();

@@ -41,7 +41,7 @@ test("saves composed pages through the API and keeps canonical tasks after layou
       response.url().endsWith("/resources") &&
       response.request().method() === "POST",
   );
-  await page.getByRole("button", { name: "Add task", exact: true }).click();
+  await page.getByRole("button", { name: "Create task", exact: true }).click();
   const creation = await created;
   expect(creation.status()).toBe(201);
   const { resource: task } = await creation.json();

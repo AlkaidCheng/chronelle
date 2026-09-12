@@ -263,6 +263,7 @@ describe("EventWorkspace", () => {
         </WorkspaceCommandProvider>,
         { wrapper: Providers },
       );
+      await user.click(await screen.findByRole("button", { name: "Add task" }));
       const input = await screen.findByRole("textbox", { name: "Task" });
       expect(
         screen.getByLabelText("Available event actions"),
@@ -295,6 +296,8 @@ describe("EventWorkspace", () => {
         screen.getByRole("button", { name: "Refetch event data" }),
       );
       await waitFor(() => expect(screen.queryByRole("alert")).toBeNull());
+      if (status !== 503)
+        await user.click(screen.getByRole("button", { name: "Add task" }));
       expect(await screen.findByRole("textbox", { name: "Task" })).toHaveValue(
         status === 503 ? "Keep my draft" : "",
       );

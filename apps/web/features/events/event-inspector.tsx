@@ -3,6 +3,10 @@
 import type { EventResponse } from "@chronelle/schemas";
 import { type FormEvent, useEffect, useId, useRef, useState } from "react";
 import { EditorForm } from "../../components/editor-form";
+import {
+  DiscardActions,
+  EditorDialogHeader,
+} from "../../components/editor-dialog-controls";
 import { eventSchedulePayload } from "../../lib/event-schedule";
 import { useKeepEventDraft } from "../../lib/event-draft-context";
 import {
@@ -122,8 +126,14 @@ function EventInspectorForm({
         requestClose();
       }}
     >
-      <header className="event-create-header">
-        <h2 id={headingId}>{confirmingDiscard ? "Discard changes?" : title}</h2>
+      <EditorDialogHeader
+        headingId={headingId}
+        title={confirmingDiscard ? "Discard changes?" : title}
+        closeLabel="Close event editor"
+        isConfirming={confirmingDiscard}
+        isPending={update.isPending}
+        onClose={requestClose}
+      >
         <button
           hidden={confirmingDiscard}
           className="button button-quiet button-small"
@@ -139,39 +149,19 @@ function EventInspectorForm({
         >
           History
         </button>
-        <button
-          hidden={confirmingDiscard}
-          className="dialog-close"
-          type="button"
-          aria-label="Close event editor"
-          disabled={update.isPending}
-          onClick={requestClose}
-        >
-          &#215;
-        </button>
-      </header>
+      </EditorDialogHeader>
       {confirmingDiscard && (
         <div className="event-create-body">
           <p>Your changes have not been saved.</p>
           <div className="form-actions">
-            <button
-              type="button"
-              className="button button-quiet"
-              onClick={() => {
+            <DiscardActions
+              keepEditingButton={keepEditingButton}
+              onKeepEditing={keepEditing}
+              onDiscard={() => {
                 recovery.discard();
                 onClose();
               }}
-            >
-              Discard
-            </button>
-            <button
-              ref={keepEditingButton}
-              type="button"
-              className="button button-primary"
-              onClick={keepEditing}
-            >
-              Keep editing
-            </button>
+            />
           </div>
         </div>
       )}

@@ -12,11 +12,8 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { Providers } from "../app/providers";
-import {
-  ExpenseForm,
-  ReminderForm,
-  TaskForm,
-} from "../features/events/resource-forms";
+import { ExpenseForm, ReminderForm } from "../features/events/resource-forms";
+import { TaskForm } from "../features/events/task-form";
 
 import { EventInspector } from "../features/events/event-inspector";
 import { CreateScheduleDialog } from "../features/events/create-schedule-dialog";

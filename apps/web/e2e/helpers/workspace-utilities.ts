@@ -63,14 +63,14 @@ export async function exerciseWorkspaceUtilities(
 
   await page.getByRole("button", { name: "Browse event data" }).click();
   await page.getByRole("tab", { name: "To-dos", exact: true }).click();
-  const draft = page.getByLabel("Task", { exact: true });
-  await draft.fill("Unsaved workspace utilities draft");
+  const filter = page.getByRole("button", { name: "all", exact: true });
+  await filter.click();
   const eventUrl = page.url();
   await openWorkspaceSettings(page);
   await page.mouse.click(2, 2);
   await expect(dialog).toHaveCount(0);
   await expect(trigger).toBeFocused();
-  await expect(draft).toHaveValue("Unsaved workspace utilities draft");
+  await expect(filter).toHaveAttribute("aria-pressed", "true");
   expect(page.url()).toBe(eventUrl);
 
   await page.setViewportSize({ width: 320, height: 568 });

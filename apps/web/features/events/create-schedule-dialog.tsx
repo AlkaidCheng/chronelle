@@ -10,6 +10,10 @@ import {
 } from "react";
 import type { EventResponse } from "@chronelle/schemas";
 import { EditorForm, EditorSubmitButton } from "../../components/editor-form";
+import {
+  DiscardActions,
+  EditorDialogHeader,
+} from "../../components/editor-dialog-controls";
 import { ErrorNotice } from "../../components/feedback";
 import { eventSchedulePayload } from "../../lib/event-schedule";
 import {
@@ -135,45 +139,28 @@ function CreateScheduleForm({
         requestClose();
       }}
     >
-      <header className="event-create-header">
-        <h2 id={headingId}>
-          {isConfirming ? "Discard schedule item?" : "Add schedule item"}
-        </h2>
-        <button
-          hidden={isConfirming}
-          type="button"
-          className="dialog-close"
-          aria-label="Close schedule creation"
-          disabled={mutation.isPending}
-          onClick={requestClose}
-        >
-          &#215;
-        </button>
-      </header>
+      <EditorDialogHeader
+        headingId={headingId}
+        title={isConfirming ? "Discard schedule item?" : "Add schedule item"}
+        closeLabel="Close schedule creation"
+        isConfirming={isConfirming}
+        isPending={mutation.isPending}
+        onClose={requestClose}
+      />
       {isConfirming && (
         <>
           <div className="event-create-body">
             <p>The name and schedule entered here will be cleared.</p>
           </div>
           <footer className="event-create-footer">
-            <button
-              className="button button-quiet"
-              type="button"
-              onClick={() => {
+            <DiscardActions
+              keepEditingButton={keepEditingButton}
+              onKeepEditing={keepEditing}
+              onDiscard={() => {
                 recovery.discard();
                 onClose();
               }}
-            >
-              Discard
-            </button>
-            <button
-              ref={keepEditingButton}
-              className="button button-primary"
-              type="button"
-              onClick={keepEditing}
-            >
-              Keep editing
-            </button>
+            />
           </footer>
         </>
       )}

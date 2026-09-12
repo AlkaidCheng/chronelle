@@ -50,17 +50,17 @@ export async function exerciseEditorSubmit(page: Page, testInfo: TestInfo) {
     .getByRole("button", { name: "Browse event data", exact: true })
     .click();
   await page.getByRole("tab", { name: "To-dos", exact: true }).click();
+  const addTask = page.getByRole("button", { name: "Add task", exact: true });
+  await addTask.click();
   const task = page.getByLabel("Task", { exact: true });
-  const save = page.getByRole("button", { name: "Add task", exact: true });
+  const save = page.getByRole("button", { name: "Create task", exact: true });
   await task.fill("Keyboard-created task");
   await task.press("Control+Enter");
-  await expect(page.getByRole("status", { name: "Save status" })).toHaveText(
-    "Saved successfully.",
-  );
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+  await expect(addTask).toBeFocused();
   await expect(
     page.getByText("Keyboard-created task", { exact: true }),
   ).toHaveCount(1);
-  await task.fill("Retained draft");
   const commands = page.getByRole("dialog", { name: "Commands", exact: true });
   await page.getByRole("button", { name: "Commands", exact: true }).click();
   await commands.getByText("Keyboard shortcuts", { exact: true }).click();
@@ -74,15 +74,22 @@ export async function exerciseEditorSubmit(page: Page, testInfo: TestInfo) {
     path: testInfo.outputPath("editor-submit-preference-narrow.png"),
   });
   await page.keyboard.press("Escape");
+  await addTask.click();
+  await task.fill("Retained draft");
   await expect(save).not.toHaveAttribute("aria-keyshortcuts");
   await expect(task).toHaveValue("Retained draft");
   await task.press("Control+Enter");
   await task.press("Meta+Enter");
   await expect(task).toHaveValue("Retained draft");
   await save.click();
-  await expect(task).toHaveValue("");
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+  await expect(page.getByText("Retained draft", { exact: true })).toHaveCount(
+    1,
+  );
   await page.reload();
+  await addTask.click();
   await expect(save).not.toHaveAttribute("aria-keyshortcuts");
+  await page.keyboard.press("Escape");
   await page.getByRole("button", { name: "Commands", exact: true }).click();
   await commands.getByText("Keyboard shortcuts", { exact: true }).click();
   await expect(preference).not.toBeChecked();
@@ -91,6 +98,7 @@ export async function exerciseEditorSubmit(page: Page, testInfo: TestInfo) {
     .click();
   await expect(preference).toBeChecked();
   await page.keyboard.press("Escape");
+  await addTask.click();
   await expect(save).toHaveAttribute(
     "aria-keyshortcuts",
     "Control+Enter Meta+Enter",

@@ -5,7 +5,9 @@ import { expectHorizontalReflow } from "./page-navigation";
 export async function prepareScheduleCreation(page: Page, testInfo: TestInfo) {
   await page.getByRole("button", { name: "Browse event data" }).click();
   await page.getByRole("tab", { name: "Calendar", exact: true }).click();
-  const panel = page.locator(".planning-panel");
+  const panel = page.locator(".planning-panel").filter({
+    has: page.getByRole("heading", { name: "Calendar", exact: true }),
+  });
   await expect(panel).toBeVisible();
   const before = await panel.boundingBox();
   expect(before).not.toBeNull();

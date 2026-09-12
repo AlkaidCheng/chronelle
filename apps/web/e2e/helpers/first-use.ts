@@ -87,7 +87,11 @@ export async function createFirstPlan(page: Page, testInfo: TestInfo) {
     page.getByRole("button", { name: "Done arranging", exact: true }),
   );
   await expect(page.locator(".composition-hint")).toHaveCount(0);
-  await tabTo(page, page.getByLabel("Task", { exact: true }));
+  await activateWithKeyboard(
+    page,
+    page.getByRole("button", { name: "Add task", exact: true }),
+  );
+  await expect(page.getByLabel("Task", { exact: true })).toBeFocused();
   expect(
     await page.getByLabel("Task", { exact: true }).evaluate((input) => {
       const form = input.closest("form");
@@ -105,7 +109,7 @@ export async function createFirstPlan(page: Page, testInfo: TestInfo) {
   await page.keyboard.insertText("Invite a friend");
   await activateWithKeyboard(
     page,
-    page.getByRole("button", { name: "Add task", exact: true }),
+    page.getByRole("button", { name: "Create task", exact: true }),
   );
   await expect(
     page.getByRole("row").filter({ hasText: "Invite a friend" }),

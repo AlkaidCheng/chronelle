@@ -48,7 +48,7 @@ test("creates and retrieves one canonical Event at responsive widths", async ({
       response.url().endsWith("/resources") &&
       response.request().method() === "POST",
   );
-  await page.getByRole("button", { name: "Add task", exact: true }).click();
+  await page.getByRole("button", { name: "Create task", exact: true }).click();
   expect((await creation).status()).toBe(201);
   await expect(page.getByText("Confirm venue", { exact: true })).toBeVisible();
   await page.reload();

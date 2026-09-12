@@ -6,7 +6,7 @@ const sandboxUrl = new URL(
   import.meta.url,
 ).href;
 
-test("keeps workspace utilities accessible without losing an offline draft", async ({
+test("keeps workspace utilities accessible without resetting offline filters", async ({
   page,
   context,
 }, testInfo) => {

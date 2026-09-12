@@ -346,6 +346,18 @@ failed save. Submit again explicitly to retry; Refresh latest only fetches data
 and does not save changes. A failed refresh leaves the save error visible.
 Loading a newer version requires the explicit discard-draft action.
 
+To-dos uses Add task to open a focused creation dialog and Edit to open a Task
+inspector. Both keep the underlying list in place and confirm dirty dismissal;
+Create task and Save task commit explicitly. Completion and reopening remain
+direct row actions. The inspector checks fresh canonical Task data and its own
+edit permission before exposing fields, even when a cached copy is present.
+Temporary refetch failures preserve mounted input; denied access hides it.
+History remains available inside the editor, and changed source versions require
+an explicit refresh/load-latest decision. Name-only edits preserve the exact
+stored due instant; a due time is optional, and unavailable local times are
+rejected. Task drafts survive failed mounted saves, but not route navigation or
+reload. Unchanged creation retries retain their command only while mounted.
+
 Cmd/Ctrl + Enter submits the focused native field in these editors, including
 the New event dialog. The save button shows a hint and exposes the binding to
 assistive technology. The shortcut requests a normal form submission through
@@ -372,7 +384,7 @@ content even when a cached copy exists. Backend authorization and version checks
 still apply to every mutation. Retained data is not a freshness guarantee.
 Unsaved drafts are not durable storage or offline synchronization. Confirming
 document navigation, changing sessions, or closing the browser can discard them.
-Event creation, schedule creation, and Event inspectors guard edited-form dismissal. Other
+Event creation, schedule creation, Event inspectors, and Task editors guard edited-form dismissal. Other
 planning editors retain their existing navigation behavior.
 Client-side browser Back/Forward transitions are not intercepted. Save or close
 the inspector to finish explicitly, or navigate and reopen Edit event to recover
