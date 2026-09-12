@@ -74,9 +74,12 @@ test("composes planning and private-file components with canonical updates and v
     has: page.getByRole("heading", { name: "Calendar", exact: true }),
   });
   await calendar.getByRole("button", { name: "Edit", exact: true }).click();
-  await calendar.getByLabel("Schedule item").fill("Mountain cabin stay");
-  await calendar
-    .getByRole("button", { name: "Save item", exact: true })
+  const inspector = page.getByRole("dialog", { name: "Edit schedule item" });
+  await inspector
+    .getByLabel("Name", { exact: true })
+    .fill("Mountain cabin stay");
+  await inspector
+    .getByRole("button", { name: "Save event", exact: true })
     .click();
   await expect(
     page.getByRole("heading", { name: "Mountain cabin stay", exact: true }),
