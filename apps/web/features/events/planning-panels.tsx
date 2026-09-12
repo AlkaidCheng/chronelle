@@ -34,7 +34,8 @@ import {
   useUpdateReminder,
   useUpdateTask,
 } from "../../lib/queries";
-import { ExpenseForm, ReminderForm, TaskForm } from "./resource-forms";
+import { ExpenseForm, ReminderForm } from "./resource-forms";
+import { TaskForm } from "./task-form";
 
 function PanelHeading({
   action,
