@@ -3,6 +3,10 @@
 import type { TaskResponse } from "@chronelle/schemas";
 import { type FormEvent, useEffect, useId, useRef, useState } from "react";
 import { EditorForm } from "../../components/editor-form";
+import {
+  DiscardActions,
+  EditorDialogHeader,
+} from "../../components/editor-dialog-controls";
 import { EditorControls } from "./editor-controls";
 import { readTaskFields, taskFieldsPayload } from "../../lib/task-fields";
 import { isDraftAccessError } from "../../lib/event-draft-store";
@@ -108,14 +112,20 @@ export function TaskForm({
         requestClose();
       }}
     >
-      <header className="event-create-header">
-        <h2 id={headingId}>
-          {isConfirming
+      <EditorDialogHeader
+        headingId={headingId}
+        title={
+          isConfirming
             ? "Discard task changes?"
             : task
               ? "Edit task"
-              : "Add task"}
-        </h2>
+              : "Add task"
+        }
+        closeLabel="Close task editor"
+        isConfirming={isConfirming}
+        isPending={mutation.isPending}
+        onClose={requestClose}
+      >
         {task && (
           <button
             hidden={isConfirming}
@@ -130,36 +140,16 @@ export function TaskForm({
             History
           </button>
         )}
-        <button
-          hidden={isConfirming}
-          className="dialog-close"
-          type="button"
-          aria-label="Close task editor"
-          disabled={mutation.isPending}
-          onClick={requestClose}
-        >
-          &#215;
-        </button>
-      </header>
+      </EditorDialogHeader>
       {isConfirming && (
         <div className="event-create-body">
           <p>Your task changes have not been saved.</p>
           <div className="form-actions">
-            <button
-              className="button button-quiet"
-              type="button"
-              onClick={close}
-            >
-              Discard
-            </button>
-            <button
-              ref={keepEditingButton}
-              className="button button-primary"
-              type="button"
-              onClick={keepEditing}
-            >
-              Keep editing
-            </button>
+            <DiscardActions
+              keepEditingButton={keepEditingButton}
+              onKeepEditing={keepEditing}
+              onDiscard={close}
+            />
           </div>
         </div>
       )}
