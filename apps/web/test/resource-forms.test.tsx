@@ -93,17 +93,6 @@ const forms = [
     ),
   },
   {
-    name: "schedule",
-    resource: eventResource,
-    field: "Schedule item",
-    render: (version: number, displayName: string) => (
-      <ScheduledEventForm
-        eventId={objectId}
-        event={eventResource(version, displayName)}
-      />
-    ),
-  },
-  {
     name: "task",
     resource: taskResource,
     field: "Task",
@@ -165,11 +154,12 @@ describe("versioned editor drafts", () => {
         kind === "event" ? (
           <EventInspector onClose={() => {}} event={event} />
         ) : (
-          <ScheduledEventForm eventId={objectId} event={event} />
+          <ScheduledEventForm eventId={objectId} />
         ),
         { wrapper: Providers },
       );
-      await user.click(screen.getByRole("switch", { name: "Set dates" }));
+      if (kind === "event")
+        await user.click(screen.getByRole("switch", { name: "Set dates" }));
       const form = view.container.querySelector("form");
       if (form === null) throw new Error("Editor form not found.");
       fireEvent.submit(form);

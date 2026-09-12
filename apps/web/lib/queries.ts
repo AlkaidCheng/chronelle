@@ -147,6 +147,7 @@ export function useObjectSearch(
 export function useEventWorkspaceQueries(
   eventId: string,
   activeView: EventView | null,
+  refetchOnMount: true | "always" = true,
 ) {
   const client = useApiClient();
   const { credential } = useAuthSession();
@@ -154,6 +155,7 @@ export function useEventWorkspaceQueries(
     enabled: credential !== null,
     queryFn: ({ signal }) => client.withSignal(signal).getEvent(eventId),
     queryKey: queryKeys.eventResource(eventId),
+    refetchOnMount,
   });
   const detail = useQuery({
     enabled:
@@ -166,6 +168,7 @@ export function useEventWorkspaceQueries(
     enabled: credential !== null,
     queryFn: ({ signal }) => client.withSignal(signal).getObjectAccess(eventId),
     queryKey: queryKeys.access(eventId),
+    refetchOnMount,
   });
   return { event, detail, access };
 }

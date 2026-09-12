@@ -20,6 +20,7 @@ import { EventScheduleFields } from "./event-schedule-fields";
 interface EventInspectorProps {
   readonly event: EventResponse;
   readonly onClose: () => void;
+  readonly title?: string;
 }
 
 export function EventInspector(props: EventInspectorProps) {
@@ -36,6 +37,7 @@ function EventInspectorForm({
   event: latestEvent,
   onClose,
   initialDraft,
+  title = "Edit event",
 }: EventInspectorProps & {
   readonly initialDraft: EventDraftSnapshot | undefined;
 }) {
@@ -130,9 +132,7 @@ function EventInspectorForm({
       }}
     >
       <header className="event-create-header">
-        <h2 id={headingId}>
-          {confirmingDiscard ? "Discard changes?" : "Edit event"}
-        </h2>
+        <h2 id={headingId}>{confirmingDiscard ? "Discard changes?" : title}</h2>
         <button
           hidden={confirmingDiscard}
           className="button button-quiet button-small"

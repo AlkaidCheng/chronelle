@@ -1,7 +1,6 @@
 "use client";
 
 import type {
-  EventResponse,
   ExpenseResponse,
   ReminderResponse,
   TaskResponse,
@@ -11,6 +10,7 @@ import { type FormEvent, useState } from "react";
 import { EditorForm } from "../../components/editor-form";
 import { EventScheduleFields } from "./event-schedule-fields";
 import {
+  type EventScheduleDraft,
   readEventSchedule,
   eventSchedulePayload,
 } from "../../lib/event-schedule";
@@ -24,40 +24,33 @@ import {
   useCreateScheduledEvent,
   useCreateTask,
   useRefreshEvent,
-  useUpdateEvent,
   useUpdateExpense,
   useUpdateReminder,
   useUpdateTask,
 } from "../../lib/queries";
 
 export function ScheduledEventForm({
-  event: latestEvent,
   eventId,
   onCancel,
 }: {
-  readonly event?: EventResponse | undefined;
   readonly eventId: string;
   readonly onCancel?: (() => void) | undefined;
 }) {
-  const draft = useEditorDraft(latestEvent, (event) => ({
-    displayName: event?.displayName ?? "",
-    ...(event
-      ? readEventSchedule(event)
-      : {
-          ...readEventSchedule(),
-          mode: "dates" as const,
-        }),
-  }));
-  const event = draft.source;
-  const create = useCreateScheduledEvent(eventId);
-  const update = useUpdateEvent();
-  const refresh = useRefreshEvent(eventId, { throwOnError: true });
+  const draft = useEditorDraft(
+    undefined,
+    (): EventScheduleDraft & { displayName: string } => ({
+      displayName: "",
+      ...readEventSchedule(),
+      mode: "dates",
+    }),
+  );
+  const mutation = useCreateScheduledEvent(eventId);
   const { displayName } = draft.fields;
   const [scheduleError, setScheduleError] = useState("");
 
   function handleSubmit(formEvent: FormEvent<HTMLFormElement>) {
     formEvent.preventDefault();
-    if (draft.hasNewerVersion || mutation.isPending) return;
+    if (mutation.isPending) return;
     let schedule: ReturnType<typeof eventSchedulePayload>;
     try {
       schedule = eventSchedulePayload(draft.fields);
@@ -71,36 +64,17 @@ export function ScheduledEventForm({
     const input = {
       displayName,
       ...schedule,
-      isAllDay: draft.fields.mode === "timed" && (event?.isAllDay ?? false),
-      timezone:
-        event === undefined
-          ? Intl.DateTimeFormat().resolvedOptions().timeZone
-          : event.timezone,
+      isAllDay: false,
+      timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
     };
-    if (event === undefined) {
-      create.mutate(input, {
-        onSuccess: () => {
-          draft.change({ displayName: "", ...readEventSchedule() });
-          onCancel?.();
-        },
-      });
-      return;
-    }
-    update.mutate(
-      {
-        id: event.id,
-        input: { ...input, expectedVersion: event.version },
+    mutation.mutate(input, {
+      onSuccess: () => {
+        draft.change({ displayName: "", ...readEventSchedule() });
+        onCancel?.();
       },
-      {
-        onSuccess: (saved) => {
-          draft.accept(saved);
-          onCancel?.();
-        },
-      },
-    );
+    });
   }
 
-  const mutation = event === undefined ? create : update;
   return (
     <EditorForm
       aria-busy={mutation.isPending}
@@ -137,8 +111,7 @@ export function ScheduledEventForm({
         draft={draft}
         mutation={mutation}
         onCancel={onCancel}
-        onRefresh={event === undefined ? undefined : refresh}
-        submitLabel={event === undefined ? "Add to schedule" : "Save item"}
+        submitLabel="Add to schedule"
       />
     </EditorForm>
   );
