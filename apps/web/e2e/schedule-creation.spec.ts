@@ -53,6 +53,16 @@ test("creates one linked schedule item when retrying a lost response", async ({
   await expect(dialog.getByLabel("Schedule item")).toHaveValue(
     "Garden arrival",
   );
+  await dialog.getByRole("button", { name: "Cancel", exact: true }).click();
+  const confirmation = page.getByRole("dialog", {
+    name: "Discard schedule item?",
+  });
+  await expect(confirmation).toContainText(
+    "The name and schedule entered here will be cleared.",
+  );
+  await confirmation
+    .getByRole("button", { name: "Keep editing", exact: true })
+    .click();
   const retried = page.waitForResponse(
     (response) =>
       response.url().endsWith(endpoint) &&

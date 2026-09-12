@@ -106,7 +106,7 @@ export function CreateScheduleDialog({
       {isConfirming && (
         <>
           <div className="event-create-body">
-            <p>Your schedule item has not been saved.</p>
+            <p>The name and schedule entered here will be cleared.</p>
           </div>
           <footer className="event-create-footer">
             <button
