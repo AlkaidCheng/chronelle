@@ -136,13 +136,13 @@ function CommandProbe() {
 }
 
 describe("insertable event components", () => {
-  it("previews presets locally and preserves custom names and underlying drafts on cancel", async () => {
+  it("previews presets locally and preserves custom names and the underlying Task view on cancel", async () => {
     const pages = [page("Plan", ["todos"])];
     await client.updateEventLayout(eventId, { expectedVersion: 0, pages });
     const user = userEvent.setup();
     render(<EventPages eventId={eventId} canEdit />, { wrapper: Providers });
-    const draft = await screen.findByRole("textbox", { name: "Task" });
-    await user.type(draft, "Keep this unfinished task");
+    const filter = await screen.findByRole("button", { name: "all" });
+    await user.click(filter);
     await user.click(screen.getByRole("button", { name: "Add page" }));
     const dialog = within(screen.getByRole("dialog"));
     const name = dialog.getByRole("textbox", { name: "Page name" });
@@ -166,8 +166,8 @@ describe("insertable event components", () => {
     expect(dialog.queryByRole("list")).toBeNull();
     expect(fetch).not.toHaveBeenCalled();
     await user.click(dialog.getByRole("button", { name: "Cancel" }));
-    expect(screen.getByRole("textbox", { name: "Task" })).toBe(draft);
-    expect(draft).toHaveValue("Keep this unfinished task");
+    expect(screen.getByRole("button", { name: "all" })).toBe(filter);
+    expect(filter).toHaveAttribute("aria-pressed", "true");
     expect((await client.getEventLayout(eventId)).pages).toEqual(pages);
   });
 
@@ -341,15 +341,15 @@ describe("insertable event components", () => {
     expect((await client.getEventLayout(eventId)).pages).toEqual([]);
   });
 
-  it("keeps planning drafts mounted and performs no writes when toggling arrangement", async () => {
+  it("keeps the Task view mounted and performs no writes when toggling arrangement", async () => {
     await client.updateEventLayout(eventId, {
       expectedVersion: 0,
       pages: [page("Plan", ["todos", "calendar"])],
     });
     const user = userEvent.setup();
     render(<EventPages eventId={eventId} canEdit />, { wrapper: Providers });
-    const task = await screen.findByRole("textbox", { name: "Task" });
-    await user.type(task, "Keep my unfinished plan");
+    const filter = await screen.findByRole("button", { name: "all" });
+    await user.click(filter);
     const trigger = screen.getByRole("button", { name: "Arrange layout" });
     expect(screen.queryByRole("group", { name: /layout controls/ })).toBeNull();
     const before = await client.getEventLayout(eventId);
@@ -359,14 +359,14 @@ describe("insertable event components", () => {
       screen.getAllByRole("group", { name: /layout controls/ }),
     ).toHaveLength(2);
     expect(screen.getByText(/Moves save immediately/)).toBeVisible();
-    expect(screen.getByRole("textbox", { name: "Task" })).toBe(task);
-    expect(task).toHaveValue("Keep my unfinished plan");
+    expect(screen.getByRole("button", { name: "all" })).toBe(filter);
+    expect(filter).toHaveAttribute("aria-pressed", "true");
     await user.keyboard("{Enter}");
     expect(trigger).toHaveFocus();
     expect(trigger).toHaveTextContent("Arrange");
     expect(screen.queryByRole("group", { name: /layout controls/ })).toBeNull();
-    expect(screen.getByRole("textbox", { name: "Task" })).toBe(task);
-    expect(task).toHaveValue("Keep my unfinished plan");
+    expect(screen.getByRole("button", { name: "all" })).toBe(filter);
+    expect(filter).toHaveAttribute("aria-pressed", "true");
     expect(fetch).not.toHaveBeenCalled();
     expect(await client.getEventLayout(eventId)).toEqual(before);
   });
@@ -581,6 +581,7 @@ describe("insertable event components", () => {
         </>,
         { wrapper: Providers },
       );
+      await user.click(await screen.findByRole("button", { name: "Add task" }));
       const input = await screen.findByRole("textbox", { name: "Task" });
       await user.type(input, "Unfinished plan");
       fail = true;
@@ -594,6 +595,8 @@ describe("insertable event components", () => {
       fail = false;
       await user.click(screen.getByRole("button", { name: "Refresh latest" }));
       await waitFor(() => expect(screen.queryByRole("alert")).toBeNull());
+      if (status !== 503)
+        await user.click(screen.getByRole("button", { name: "Add task" }));
       expect(await screen.findByRole("textbox", { name: "Task" })).toHaveValue(
         status === 503 ? "Unfinished plan" : "",
       );
@@ -914,10 +917,14 @@ describe("insertable event components", () => {
         (item) => item.kind,
       ),
     ).toEqual(["todos", "calendar"]);
+    await user.click(screen.getByRole("button", { name: "Add task" }));
     const input = screen.getByRole("textbox", { name: "Task" });
     await user.type(input, "Plan / review");
     expect(input).toHaveValue("Plan / review");
-    expect(screen.queryByRole("dialog")).toBeNull();
+    expect(screen.getByRole("dialog", { name: "Add task" })).toBeVisible();
+    expect(
+      screen.queryByRole("searchbox", { name: "Find a component" }),
+    ).toBeNull();
   });
 
   it("explains repeated views and adds only a layout reference to the selected page", async () => {

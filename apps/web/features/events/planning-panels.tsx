@@ -36,6 +36,7 @@ import {
 } from "../../lib/queries";
 import { ExpenseForm, ReminderForm } from "./resource-forms";
 import { TaskForm } from "./task-form";
+import { TaskInspector } from "./task-inspector";
 
 function PanelHeading({
   action,
@@ -70,6 +71,7 @@ export function TasksPanel({
   readonly tasks: readonly TaskResponse[];
 }) {
   const [filter, setFilter] = useState<TaskFilter>("open");
+  const [isAdding, setIsAdding] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const update = useUpdateTask();
   const refresh = useRefreshEvent(eventId);
@@ -171,15 +173,31 @@ export function TasksPanel({
     data: filteredTasks,
     getCoreRowModel: getCoreRowModel(),
   });
-  const editingTask = tasks.find(({ id }) => id === editingId);
 
   return (
     <section className="planning-panel">
       <PanelHeading
+        action={
+          canEdit ? (
+            <button
+              className="button button-secondary"
+              type="button"
+              onClick={() => setIsAdding(true)}
+            >
+              Add task
+            </button>
+          ) : undefined
+        }
         description="Keep the next steps clear. Tasks are sorted by due date and stay in sync across your plans."
         title="To-dos"
       />
-      {canEdit ? <TaskForm eventId={eventId} /> : null}
+      {canEdit && isAdding ? (
+        <TaskForm
+          key={eventId}
+          eventId={eventId}
+          onCancel={() => setIsAdding(false)}
+        />
+      ) : null}
       <fieldset className="filter-row">
         <legend>Filter tasks</legend>
         {(["open", "all", "done"] as const).map((value) => (
@@ -205,7 +223,7 @@ export function TasksPanel({
           description={
             tasks.length === 0
               ? canEdit
-                ? "Add the first task using the form above."
+                ? "Use Add task to choose the next step."
                 : "Tasks will appear here when available. This event is read-only."
               : `There are no ${filter} tasks.`
           }
@@ -247,19 +265,14 @@ export function TasksPanel({
           </table>
         </div>
       )}
-      {!canEdit || editingTask === undefined ? null : (
-        <div className="editor-drawer">
-          <div className="drawer-heading">
-            <h3>Edit task</h3>
-            <ObjectDetails id={editingTask.id} />
-          </div>
-          <TaskForm
-            eventId={eventId}
-            onCancel={() => setEditingId(null)}
-            task={editingTask}
-          />
-        </div>
-      )}
+      {canEdit && editingId ? (
+        <TaskInspector
+          key={editingId}
+          eventId={eventId}
+          taskId={editingId}
+          onClose={() => setEditingId(null)}
+        />
+      ) : null}
     </section>
   );
 }

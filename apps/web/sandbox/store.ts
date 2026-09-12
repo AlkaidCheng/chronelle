@@ -434,6 +434,12 @@ export class SandboxStore {
       );
       return { items, nextCursor: null, asOf: new Date(now).toISOString() };
     }
+    if (id && collection === "tasks" && !operation) {
+      const task = this.#object(id);
+      if (task.objectType !== "task")
+        throw new SandboxError(404, "not_found", "Task is unavailable.");
+      return task;
+    }
     if (id && (collection === "objects" || collection === "events")) {
       const object = this.#object(id);
       if (!operation) return object;

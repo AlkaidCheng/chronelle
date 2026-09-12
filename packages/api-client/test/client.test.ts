@@ -56,6 +56,36 @@ const documentAttachment = {
 } as const;
 
 describe("ChronelleApiClient", () => {
+  it("reads a canonical Task with workspace credentials and validates its response", async () => {
+    const task = {
+      ...event,
+      objectType: "task",
+      status: "todo",
+      dueAt: null,
+      completedAt: null,
+    };
+    const fetch = vi.fn<typeof globalThis.fetch>(async () =>
+      Response.json(task),
+    );
+    const client = new ChronelleApiClient({
+      fetch,
+      getCredential: () => ({
+        accessToken: "test-session",
+        workspaceId: event.workspaceId,
+      }),
+    });
+    expect(await client.getTask(event.id)).toMatchObject({
+      id: event.id,
+      objectType: "task",
+      dueAt: null,
+    });
+    expect(fetch.mock.calls[0]?.[0]).toBe(`/api/tasks/${event.id}`);
+    const headers = new Headers(fetch.mock.calls[0]?.[1]?.headers);
+    expect(headers.get("authorization")).toBe("Bearer test-session");
+    expect(headers.get("x-workspace-id")).toBe(event.workspaceId);
+    fetch.mockResolvedValueOnce(Response.json({ ...task, dueAt: "invalid" }));
+    await expect(client.getTask(event.id)).rejects.toThrow();
+  });
   it("reads bounded layout history and restores with optimistic concurrency", async () => {
     const layout = {
       eventId: event.id,

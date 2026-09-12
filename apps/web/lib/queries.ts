@@ -33,6 +33,8 @@ export const queryKeys = {
   events: ["events"] as const,
   event: (eventId: string) => ["event", eventId] as const,
   eventResource: (eventId: string) => ["event", eventId, "resource"] as const,
+  objectResource: (objectId: string) =>
+    ["object", objectId, "resource"] as const,
   detail: (eventId: string) => ["event", eventId, "detail"] as const,
   todos: (eventId: string) => ["event", eventId, "todos"] as const,
   calendar: (eventId: string) => ["event", eventId, "calendar"] as const,
@@ -181,6 +183,24 @@ export function useSharesQuery(eventId: string, enabled: boolean) {
     queryFn: ({ signal }) => client.withSignal(signal).listShares(eventId),
     queryKey: queryKeys.shares(eventId),
   });
+}
+
+export function useTaskEditorQueries(taskId: string) {
+  const client = useApiClient();
+  const { credential } = useAuthSession();
+  const task = useQuery({
+    enabled: credential !== null,
+    queryFn: ({ signal }) => client.withSignal(signal).getTask(taskId),
+    queryKey: queryKeys.objectResource(taskId),
+    refetchOnMount: "always",
+  });
+  const access = useQuery({
+    enabled: credential !== null,
+    queryFn: ({ signal }) => client.withSignal(signal).getObjectAccess(taskId),
+    queryKey: queryKeys.access(taskId),
+    refetchOnMount: "always",
+  });
+  return { task, access };
 }
 
 export function useRefreshEvent(
