@@ -1,0 +1,388 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Chronelle · CloudBase migration roadmap</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --bg: #f6f7fb;
+        --surface: #fff;
+        --ink: #172033;
+        --muted: #657087;
+        --line: #e4e8f0;
+        --accent: #315efb;
+        --done: #17815b;
+        --next: #9a6200;
+        --gate: #a03e5c;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--ink);
+        font:
+          15px/1.55 ui-sans-serif,
+          system-ui,
+          -apple-system,
+          BlinkMacSystemFont,
+          "Segoe UI",
+          sans-serif;
+      }
+      main {
+        max-width: 1120px;
+        margin: 0 auto;
+        padding: 48px 24px 72px;
+      }
+      .eyebrow {
+        color: var(--accent);
+        font-size: 12px;
+        font-weight: 750;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+      }
+      h1 {
+        font-size: clamp(32px, 5vw, 56px);
+        line-height: 1.05;
+        letter-spacing: -0.04em;
+        margin: 12px 0 18px;
+        max-width: 760px;
+      }
+      .lede {
+        color: var(--muted);
+        font-size: 18px;
+        max-width: 760px;
+        margin: 0 0 30px;
+      }
+      .summary {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 12px;
+        margin: 28px 0 42px;
+      }
+      .metric,
+      .phase {
+        background: var(--surface);
+        border: 1px solid var(--line);
+        border-radius: 16px;
+        box-shadow: 0 8px 24px #1a2b5410;
+      }
+      .metric {
+        padding: 18px;
+      }
+      .metric strong {
+        display: block;
+        font-size: 25px;
+      }
+      .metric span {
+        color: var(--muted);
+        font-size: 13px;
+      }
+      h2 {
+        font-size: 24px;
+        margin: 42px 0 16px;
+        letter-spacing: -0.02em;
+      }
+      .phase {
+        display: grid;
+        grid-template-columns: 112px 1fr;
+        gap: 20px;
+        padding: 22px;
+        margin: 12px 0;
+      }
+      .phase-number {
+        color: var(--accent);
+        font-weight: 800;
+        font-size: 14px;
+      }
+      .phase h3 {
+        margin: 0 0 5px;
+        font-size: 18px;
+      }
+      .phase p {
+        margin: 0;
+        color: var(--muted);
+      }
+      .phase ul {
+        margin: 12px 0 0;
+        padding-left: 20px;
+      }
+      .status {
+        display: inline-flex;
+        border-radius: 999px;
+        padding: 3px 9px;
+        font-size: 11px;
+        font-weight: 800;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        margin-left: 8px;
+      }
+      .done {
+        color: var(--done);
+        background: #e3f5ed;
+      }
+      .next {
+        color: var(--next);
+        background: #fff1d7;
+      }
+      .planned {
+        color: var(--accent);
+        background: #e8edff;
+      }
+      .gate {
+        color: var(--gate);
+        background: #fbe7ee;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        background: var(--surface);
+        border: 1px solid var(--line);
+        border-radius: 16px;
+        overflow: hidden;
+        display: table;
+      }
+      th,
+      td {
+        padding: 13px 15px;
+        text-align: left;
+        border-bottom: 1px solid var(--line);
+        vertical-align: top;
+      }
+      th {
+        font-size: 12px;
+        color: var(--muted);
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+      }
+      tr:last-child td {
+        border-bottom: 0;
+      }
+      code {
+        background: #eef1f7;
+        border-radius: 5px;
+        padding: 2px 5px;
+        font-size: 0.92em;
+      }
+      footer {
+        color: var(--muted);
+        margin-top: 40px;
+        font-size: 13px;
+      }
+      @media (max-width: 680px) {
+        main {
+          padding: 30px 16px 52px;
+        }
+        .summary {
+          grid-template-columns: 1fr;
+        }
+        .phase {
+          grid-template-columns: 1fr;
+          gap: 4px;
+        }
+        table {
+          font-size: 13px;
+        }
+        th,
+        td {
+          padding: 10px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <div class="eyebrow">Chronelle · deployment architecture</div>
+      <h1>CloudBase migration roadmap</h1>
+      <p class="lede">
+        A staged route to CloudBase that preserves canonical identity,
+        authorization, auditability, optimistic concurrency, recovery, and the
+        existing PostgreSQL TCP option.
+      </p>
+
+      <section class="summary" aria-label="Roadmap summary">
+        <div class="metric">
+          <strong>1 / 7</strong><span>phases complete</span>
+        </div>
+        <div class="metric">
+          <strong>PostgreSQL</strong><span>current runtime default</span>
+        </div>
+        <div class="metric">
+          <strong>CloudBase RDB</strong><span>read transport available</span>
+        </div>
+      </section>
+
+      <h2>Execution plan</h2>
+      <article class="phase">
+        <div class="phase-number">
+          PHASE 01 <span class="status done">Done</span>
+        </div>
+        <div>
+          <h3>Connectivity and boundary</h3>
+          <p>
+            Prove the CloudBase gateway path without changing application
+            persistence.
+          </p>
+          <ul>
+            <li>Read-only gateway probe.</li>
+            <li>Typed RDB read transport with identifier validation.</li>
+            <li>Keep Drizzle/PostgreSQL TCP adapter intact.</li>
+          </ul>
+        </div>
+      </article>
+      <article class="phase">
+        <div class="phase-number">
+          PHASE 02 <span class="status next">Next</span>
+        </div>
+        <div>
+          <h3>Repository contract and schema inventory</h3>
+          <p>Make backend capabilities visible at the repository boundary.</p>
+          <ul>
+            <li>
+              Classify reads, single-object writes, audited mutations, and
+              recovery workflows.
+            </li>
+            <li>Define equivalent result and authorization contracts.</li>
+            <li>Add PostgreSQL-backed contract fixtures.</li>
+          </ul>
+        </div>
+      </article>
+      <article class="phase">
+        <div class="phase-number">
+          PHASE 03 <span class="status planned">Planned</span>
+        </div>
+        <div>
+          <h3>Read-path migration</h3>
+          <p>
+            Move event, calendar, search, and detail projections behind
+            interchangeable repositories.
+          </p>
+          <ul>
+            <li>CloudBase and PostgreSQL implementations.</li>
+            <li>Differential canonical-ID and permission-filter tests.</li>
+            <li>No mutation behavior changes.</li>
+          </ul>
+        </div>
+      </article>
+      <article class="phase">
+        <div class="phase-number">
+          PHASE 04 <span class="status gate">Gate</span>
+        </div>
+        <div>
+          <h3>Single-object writes</h3>
+          <p>
+            Only proceed if CloudBase can enforce version checks and audit
+            guarantees.
+          </p>
+          <ul>
+            <li>Compare-and-set version predicates.</li>
+            <li>Conflict responses identical to PostgreSQL.</li>
+            <li>Atomic audit evidence or explicit fallback.</li>
+          </ul>
+        </div>
+      </article>
+      <article class="phase">
+        <div class="phase-number">
+          PHASE 05 <span class="status gate">Gate</span>
+        </div>
+        <div>
+          <h3>Cross-object mutations and recovery</h3>
+          <p>
+            Relations, sharing, expenses, revisions, trash, restore, undo, and
+            redo require transaction or compensation proof.
+          </p>
+          <ul>
+            <li>Reject partial state under injected failures.</li>
+            <li>Keep PostgreSQL TCP fallback until proven safe.</li>
+          </ul>
+        </div>
+      </article>
+      <article class="phase">
+        <div class="phase-number">
+          PHASE 06 <span class="status planned">Planned</span>
+        </div>
+        <div>
+          <h3>Identity, attachments, and operations</h3>
+          <p>
+            Preserve centralized authorization and private storage while adding
+            CloudBase deployment controls.
+          </p>
+          <ul>
+            <li>Server-only keys and workspace isolation.</li>
+            <li>Private download authorization and short-lived URLs.</li>
+            <li>Quota, latency, error, and rollback observability.</li>
+          </ul>
+        </div>
+      </article>
+      <article class="phase">
+        <div class="phase-number">
+          PHASE 07 <span class="status planned">Optional</span>
+        </div>
+        <div>
+          <h3>Native TCP deployment</h3>
+          <p>
+            Use a dedicated/private PostgreSQL route if full transaction
+            semantics remain necessary.
+          </p>
+          <ul>
+            <li>
+              Reuse existing SQL migrations, Drizzle schema, and integration
+              tests.
+            </li>
+            <li>No canonical data-model fork.</li>
+          </ul>
+        </div>
+      </article>
+
+      <h2>Capability gates</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Gate</th>
+            <th>Question</th>
+            <th>Evidence required</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>R1</td>
+            <td>Do CloudBase reads match PostgreSQL?</td>
+            <td>
+              Differential projection tests for IDs, relations, filtering, and
+              permissions.
+            </td>
+          </tr>
+          <tr>
+            <td>R2</td>
+            <td>Can single-object writes reject stale versions?</td>
+            <td>Conflict, authorization, and audit tests.</td>
+          </tr>
+          <tr>
+            <td>R3</td>
+            <td>Can cross-object mutations be atomic?</td>
+            <td>Transaction or compensation failure tests.</td>
+          </tr>
+          <tr>
+            <td>R4</td>
+            <td>Do private data guarantees survive?</td>
+            <td>Attachment and workspace-isolation tests.</td>
+          </tr>
+          <tr>
+            <td>R5</td>
+            <td>Is the service operationally acceptable?</td>
+            <td>
+              Staging load, latency, quota, monitoring, and rollback report.
+            </td>
+          </tr>
+        </tbody>
+      </table>
+      <footer>
+        Source of detail: <code>docs/cloudbase-migration-plan.md</code>. Updated
+        after PR #78.
+      </footer>
+    </main>
+  </body>
+</html>
