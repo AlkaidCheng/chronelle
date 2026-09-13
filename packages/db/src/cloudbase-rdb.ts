@@ -67,9 +67,31 @@ interface RdbApp {
 export interface CloudBaseRdbConnectionOptions {
   readonly envId: string;
   readonly accessKey: string;
+  /** Maximum time to wait for one gateway query, in milliseconds. */
+  readonly requestTimeoutMs?: number | undefined;
 }
 
-export function createCloudBaseRdbClient(app: RdbApp): CloudBaseRdbClient {
+export class CloudBaseRdbTimeoutError extends Error {
+  constructor(timeoutMs: number) {
+    super(`CloudBase RDB request timed out after ${timeoutMs}ms.`);
+    this.name = "CloudBaseRdbTimeoutError";
+  }
+}
+
+export function createCloudBaseRdbClient(
+  app: RdbApp,
+  options: Pick<CloudBaseRdbConnectionOptions, "requestTimeoutMs"> = {},
+): CloudBaseRdbClient {
+  const requestTimeoutMs =
+    options.requestTimeoutMs === undefined
+      ? 30_000
+      : z
+          .number()
+          .int()
+          .positive()
+          .max(120_000)
+          .parse(options.requestTimeoutMs);
+
   return {
     capabilities: {
       transactions: false,
@@ -149,11 +171,24 @@ export function createCloudBaseRdbClient(app: RdbApp): CloudBaseRdbClient {
         request = request.range(offset, offset + limit - 1);
       }
 
-      const result = await request;
-      if (result.error !== undefined) {
-        throw result.error;
+      let timer: ReturnType<typeof setTimeout> | undefined;
+      try {
+        const result = await Promise.race([
+          request,
+          new Promise<never>((_, reject) => {
+            timer = setTimeout(
+              () => reject(new CloudBaseRdbTimeoutError(requestTimeoutMs)),
+              requestTimeoutMs,
+            );
+          }),
+        ]);
+        if (result.error !== undefined) {
+          throw result.error;
+        }
+        return result.data ?? [];
+      } finally {
+        if (timer !== undefined) clearTimeout(timer);
       }
-      return result.data ?? [];
     },
   };
 }
@@ -166,5 +201,5 @@ export async function connectCloudBaseRdb(
     env: options.envId,
     accessKey: options.accessKey,
   });
-  return createCloudBaseRdbClient(app as unknown as RdbApp);
+  return createCloudBaseRdbClient(app as unknown as RdbApp, options);
 }
