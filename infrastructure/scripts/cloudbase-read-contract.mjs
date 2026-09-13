@@ -2,6 +2,7 @@ import process from "node:process";
 
 import { AuthorizationDeniedError } from "../../packages/authorization/dist/index.js";
 import { connectCloudBaseRdb } from "../../packages/db/dist/index.js";
+import { assertApiKeyFresh, readRequestTimeout } from "./cloudbase-config.mjs";
 import {
   CloudBaseCalendarReadRepository,
   CloudBaseEventReadRepository,
@@ -20,6 +21,17 @@ if (missing.length > 0) {
   process.exit(2);
 }
 
+let requestTimeoutMs;
+try {
+  assertApiKeyFresh(process.env.CLOUDBASE_APIKEY);
+  requestTimeoutMs = readRequestTimeout();
+} catch (error) {
+  console.error(
+    error instanceof Error ? error.message : "Invalid CloudBase configuration.",
+  );
+  process.exit(2);
+}
+
 const workspaceId = process.env.CLOUDBASE_CONTRACT_WORKSPACE_ID;
 const userId = process.env.CLOUDBASE_CONTRACT_USER_ID;
 const eventId = process.env.CLOUDBASE_CONTRACT_EVENT_ID;
@@ -27,6 +39,7 @@ const principal = { type: "user", userId, workspaceId };
 const client = await connectCloudBaseRdb({
   envId: process.env.CLOUDBASE_ENV_ID,
   accessKey: process.env.CLOUDBASE_APIKEY,
+  requestTimeoutMs,
 });
 const eventReads = new CloudBaseEventReadRepository(client);
 const calendarReads = new CloudBaseCalendarReadRepository(client);
