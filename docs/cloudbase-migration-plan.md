@@ -68,6 +68,14 @@ wired into the default API runtime yet; the adapter still needs a staging
 against the real CloudBase schema and gateway response shapes before it can
 replace the PostgreSQL repository.
 
+The event-list read path now has the same CloudBase boundary. Its adapter uses
+the shared visibility and row-decoding helpers, preserves search, period
+filters, deterministic sort modes, and the existing cursor envelope, and
+returns an empty page when the principal has no visible grants. It remains an
+opt-in adapter until a real-gateway differential run proves date encoding,
+pagination, and permission filtering against CloudBase rather than a local
+double.
+
 ## Migration phases
 
 ### Phase 1 — Contract and schema inventory
