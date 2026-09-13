@@ -13,7 +13,11 @@ test("adds preset pages and recovers their identities without changing planning 
   });
   expect(signedIn.status()).toBe(200);
   const session = await signedIn.json();
-  const headers = { authorization: `Bearer ${session.accessToken}` };
+  const headers = {
+    authorization: `Bearer ${session.accessToken}`,
+    // Verification reads use fresh sockets after the interactive journey.
+    connection: "close",
+  };
   const created = await request.post("/api/events", {
     headers,
     data: { displayName: "A shared plan" },

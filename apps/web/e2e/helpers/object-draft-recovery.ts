@@ -93,6 +93,14 @@ export async function exerciseObjectRecovery(
       await expect(page.locator("html")).toHaveCSS("color-scheme", colorScheme);
       await expectToken(editor, "background-color", "surface");
       await expectToken(editor, "color", "ink");
+      await expectToken(editor.getByRole("heading"), "color", "ink");
+      await expectToken(editor.locator(".field-hint"), "color", "ink");
+      await page.evaluate(
+        () =>
+          new Promise<void>((resolve) =>
+            requestAnimationFrame(() => requestAnimationFrame(() => resolve())),
+          ),
+      );
       await expectHorizontalReflow(page);
       await expect(
         editor.getByRole("button", { name: "Record expense", exact: true }),
