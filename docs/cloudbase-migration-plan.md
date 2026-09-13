@@ -54,6 +54,11 @@ the shared gateway has passed the permission-filtered join gate; that evidence
 still requires a real CloudBase adapter or an explicitly equivalent gateway
 query.
 
+The CloudBase RDB transport now exposes validated equality, null, pattern, and
+membership filters plus deterministic ordering. These are transport primitives
+only; application repositories still own authorization and must not treat an
+API key as a substitute for Chronelle permission evaluation.
+
 ## Migration phases
 
 ### Phase 1 — Contract and schema inventory
