@@ -6,6 +6,10 @@ export {
   ObjectRelationService,
 } from "./relation-service.js";
 export { EventPlanningProjectionService } from "./projection-service.js";
+export {
+  PostgresEventReadRepository,
+  type EventReadRepository,
+} from "./event-list.js";
 export { CanonicalObjectSearchService } from "./search-service.js";
 export * from "./types.js";
 export { serializeResource } from "./serialization.js";
