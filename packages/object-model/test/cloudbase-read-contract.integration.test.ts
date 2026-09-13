@@ -1,6 +1,5 @@
 import { resolve } from "node:path";
 
-import type { UserPrincipal } from "@chronelle/authorization";
 import {
   createId,
   events,
@@ -11,23 +10,18 @@ import {
   workspaceMembers,
   workspaces,
 } from "@chronelle/db";
+import type { CloudBaseRdbClient, CloudBaseRdbQuery } from "@chronelle/db";
 import {
   applyMigrations,
   createTestDatabase,
   type TestDatabase,
 } from "@chronelle/db/testing";
-import type { EventListQueryInput } from "@chronelle/schemas";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
-import {
-  PostgresCalendarReadRepository,
-  type CalendarReadRepository,
-} from "../src/projection-service.js";
-import {
-  PostgresEventReadRepository,
-  type EventReadRepository,
-} from "../src/event-list.js";
-import type { EventPage } from "../src/event-list.js";
+import { CloudBaseCalendarReadRepository } from "../src/cloudbase-calendar-read-repository.js";
+import { CloudBaseEventReadRepository } from "../src/cloudbase-event-read-repository.js";
+import { PostgresEventReadRepository } from "../src/event-list.js";
+import { PostgresCalendarReadRepository } from "../src/projection-service.js";
 import type { EventResource } from "../src/types.js";
 
 let database: TestDatabase;
@@ -47,64 +41,102 @@ afterAll(async () => {
 interface CloudBaseFixtureEvent {
   readonly includedIn: string | null;
   readonly resource: EventResource;
-  readonly visibleTo: string;
-  readonly workspaceId: string;
 }
 
-class CloudBaseReadDouble
-  implements EventReadRepository, CalendarReadRepository
-{
-  readonly #events: readonly CloudBaseFixtureEvent[];
+function matches(
+  row: Record<string, unknown>,
+  query: CloudBaseRdbQuery,
+): boolean {
+  return (query.filters ?? []).every((filter) => {
+    const value = row[filter.column];
+    switch (filter.operator) {
+      case "eq":
+        return value === filter.value;
+      case "in":
+        return (filter.value as readonly unknown[]).includes(value);
+      case "is":
+        return value === filter.value;
+      case "ilike":
+        return String(value)
+          .toLocaleLowerCase()
+          .includes(
+            String(filter.value).replaceAll("%", "").toLocaleLowerCase(),
+          );
+      default:
+        return false;
+    }
+  });
+}
 
-  constructor(events: readonly CloudBaseFixtureEvent[]) {
-    this.#events = events;
-  }
-
-  listEvents(
-    principal: UserPrincipal,
-    _input: EventListQueryInput = {},
-  ): Promise<EventPage> {
-    const items = this.#events
-      .filter(
-        (fixture) =>
-          fixture.workspaceId === principal.workspaceId &&
-          fixture.visibleTo === principal.userId,
-      )
-      .map(({ resource }) => resource)
-      .sort(
-        (first, second) =>
-          (first.startsAt?.getTime() ?? Number.MAX_SAFE_INTEGER) -
-            (second.startsAt?.getTime() ?? Number.MAX_SAFE_INTEGER) ||
-          first.id.localeCompare(second.id),
-      );
-    return Promise.resolve({
-      items,
-      nextCursor: null,
-      asOf: "2030-01-01T00:00:00.000Z",
-    });
-  }
-
-  listCalendarEvents(
-    principal: UserPrincipal,
-    eventId: string,
-  ): Promise<readonly EventResource[]> {
-    return Promise.resolve(
-      this.#events
-        .filter(
-          (fixture) =>
-            fixture.includedIn === eventId &&
-            fixture.workspaceId === principal.workspaceId &&
-            fixture.visibleTo === principal.userId,
-        )
-        .map(({ resource }) => resource)
-        .sort(
-          (first, second) =>
-            (first.startsAt?.getTime() ?? Number.MAX_SAFE_INTEGER) -
-              (second.startsAt?.getTime() ?? Number.MAX_SAFE_INTEGER) ||
-            first.id.localeCompare(second.id),
-        ),
-    );
-  }
+function fixtureClient(
+  fixtures: readonly CloudBaseFixtureEvent[],
+  principalId: string,
+  visibleResourceIds: readonly string[],
+): CloudBaseRdbClient {
+  const objectRows = fixtures.map(({ resource }) => ({
+    id: resource.id,
+    workspace_id: resource.workspaceId,
+    object_type: resource.objectType,
+    display_name: resource.displayName,
+    created_by: resource.createdBy,
+    permission_scope_id: resource.permissionScopeId,
+    created_at: resource.createdAt.toISOString(),
+    updated_at: resource.updatedAt.toISOString(),
+    version: resource.version,
+    archived_at: resource.archivedAt?.toISOString() ?? null,
+    deleted_at: resource.deletedAt?.toISOString() ?? null,
+    custom_properties: resource.customProperties,
+    metadata: resource.metadata,
+  }));
+  const eventRows = fixtures.map(({ resource }) => ({
+    object_id: resource.id,
+    workspace_id: resource.workspaceId,
+    starts_at: resource.startsAt?.toISOString() ?? null,
+    ends_at: resource.endsAt?.toISOString() ?? null,
+    starts_on: resource.startsOn,
+    ends_on: resource.endsOn,
+    timezone: resource.timezone,
+    is_all_day: resource.isAllDay,
+  }));
+  const relationRows = fixtures
+    .filter(({ includedIn }) => includedIn !== null)
+    .map(({ includedIn, resource }) => ({
+      workspace_id: resource.workspaceId,
+      source_object_id: includedIn,
+      target_object_id: resource.id,
+      relation_type: "includes",
+      deleted_at: null,
+    }));
+  return {
+    capabilities: { transactions: false, nativeTcp: false },
+    async select<T>(table: string, query: CloudBaseRdbQuery = {}) {
+      if (table === "objects")
+        return objectRows.filter((row) =>
+          matches(row, query),
+        ) as unknown as readonly T[];
+      if (table === "events")
+        return eventRows.filter((row) =>
+          matches(row, query),
+        ) as unknown as readonly T[];
+      if (table === "object_relations")
+        return relationRows.filter((row) =>
+          matches(row, query),
+        ) as unknown as readonly T[];
+      if (table === "workspace_members") return [] as readonly T[];
+      if (table === "resource_grants")
+        return visibleResourceIds
+          .map((resourceId) => ({
+            workspace_id: fixtures[0]?.resource.workspaceId,
+            principal_type: "user",
+            principal_id: principalId,
+            resource_id: resourceId,
+            role: "viewer",
+            expires_at: null,
+          }))
+          .filter((row) => matches(row, query)) as unknown as readonly T[];
+      throw new Error(`unexpected table ${table}`);
+    },
+  };
 }
 
 function fixtureResource(
@@ -223,12 +255,10 @@ describe.sequential("CloudBase read contract", () => {
 
     const postgresEvents = new PostgresEventReadRepository(db);
     const postgresCalendar = new PostgresCalendarReadRepository(db);
-    const cloudbase = new CloudBaseReadDouble([
+    const cloudbaseFixtures = [
       {
         includedIn: null,
         resource: fixtureResource(rootId, workspaceId, "Visible", null),
-        visibleTo: userId,
-        workspaceId,
       },
       {
         includedIn: rootId,
@@ -238,8 +268,6 @@ describe.sequential("CloudBase read contract", () => {
           "Visible",
           firstStartsAt,
         ),
-        visibleTo: userId,
-        workspaceId,
       },
       {
         includedIn: rootId,
@@ -249,8 +277,6 @@ describe.sequential("CloudBase read contract", () => {
           "Visible",
           secondStartsAt,
         ),
-        visibleTo: userId,
-        workspaceId,
       },
       {
         includedIn: rootId,
@@ -260,16 +286,27 @@ describe.sequential("CloudBase read contract", () => {
           "Hidden",
           new Date("2030-01-03T09:00:00Z"),
         ),
-        visibleTo: "another-user",
-        workspaceId,
       },
+    ];
+    const cloudbaseClient = fixtureClient(cloudbaseFixtures, userId, [
+      rootId,
+      firstId,
+      secondId,
     ]);
+    const cloudbaseEvents = new CloudBaseEventReadRepository(
+      cloudbaseClient,
+      () => new Date("2030-01-01T00:00:00.000Z"),
+    );
+    const cloudbaseCalendar = new CloudBaseCalendarReadRepository(
+      cloudbaseClient,
+      () => new Date("2030-01-01T00:00:00.000Z"),
+    );
 
     const postgresPage = await postgresEvents.listEvents(principal, {
       sort: "date",
       limit: 10,
     });
-    const cloudbasePage = await cloudbase.listEvents(principal, {
+    const cloudbasePage = await cloudbaseEvents.listEvents(principal, {
       sort: "date",
       limit: 10,
     });
@@ -281,7 +318,7 @@ describe.sequential("CloudBase read contract", () => {
       principal,
       rootId,
     );
-    const cloudbaseCalendarItems = await cloudbase.listCalendarEvents(
+    const cloudbaseCalendarItems = await cloudbaseCalendar.listCalendarEvents(
       principal,
       rootId,
     );
