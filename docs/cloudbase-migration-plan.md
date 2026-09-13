@@ -97,6 +97,11 @@ hydration, audit events, recovery, sharing, and transaction-heavy workflows.
 The flag defaults to false so a connectivity probe cannot silently change the
 runtime consistency model.
 
+When the flag is enabled, API startup rejects expired JWT-shaped CloudBase keys
+before constructing the RDB client. This keeps deployment failures close to
+their configuration cause; opaque provider keys remain accepted because their
+expiry is not locally inspectable.
+
 The operation-by-operation consistency inventory is maintained in
 [`docs/cloudbase-operation-matrix.md`](cloudbase-operation-matrix.md). It is
 the review checklist for deciding whether a future repository may leave the

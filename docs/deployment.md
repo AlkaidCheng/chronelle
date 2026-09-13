@@ -114,6 +114,12 @@ PostgreSQL route. This keeps the local schema, migrations, and future dedicated
 PostgreSQL deployment reusable rather than creating a second canonical data
 model.
 
+When the flag is enabled, API startup validates JWT-shaped CloudBase keys before
+constructing the gateway client. An expired key therefore fails during startup
+instead of allowing the API to start and serving failing read requests. Opaque
+provider keys remain accepted because their expiry cannot be verified locally;
+the gateway remains authoritative for those keys.
+
 CloudBase RDB reads have a bounded 30-second request timeout by default. Set
 `CLOUDBASE_REQUEST_TIMEOUT_MS` to change it within the validated 1–120 second
 range when a deployment has a documented latency budget; it must not be used

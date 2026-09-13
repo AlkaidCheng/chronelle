@@ -16,6 +16,7 @@ export {
   type CloudBaseRdbOrder,
   type CloudBaseRdbQuery,
   CloudBaseRdbTimeoutError,
+  assertCloudBaseApiKeyFresh,
   connectCloudBaseRdb,
   createCloudBaseRdbClient,
 } from "./cloudbase-rdb.js";

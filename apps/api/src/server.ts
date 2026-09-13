@@ -2,7 +2,11 @@ import { existsSync } from "node:fs";
 
 import { z } from "zod";
 
-import { connectCloudBaseRdb, connectDatabase } from "@chronelle/db";
+import {
+  assertCloudBaseApiKeyFresh,
+  connectCloudBaseRdb,
+  connectDatabase,
+} from "@chronelle/db";
 import { assertRevisionBaseline } from "@chronelle/object-model";
 
 import { buildApp } from "./app.js";
@@ -46,15 +50,7 @@ if (!runtimeEnvironment.ENABLE_DEVELOPMENT_AUTH) {
 const storage = createDocumentStorage(process.env);
 const database = connectDatabase(runtimeEnvironment.DATABASE_URL);
 const cloudBaseRdb = runtimeEnvironment.CLOUDBASE_READS_ENABLED
-  ? await connectCloudBaseRdb({
-      envId:
-        runtimeEnvironment.CLOUDBASE_ENV_ID ??
-        missingCloudBaseValue("CLOUDBASE_ENV_ID"),
-      accessKey:
-        runtimeEnvironment.CLOUDBASE_APIKEY ??
-        missingCloudBaseValue("CLOUDBASE_APIKEY"),
-      requestTimeoutMs: runtimeEnvironment.CLOUDBASE_REQUEST_TIMEOUT_MS,
-    })
+  ? await createCloudBaseReadClient()
   : undefined;
 const dependencies = createDevelopmentAppDependencies(database, {
   developmentSessionTtlMs:
@@ -78,6 +74,21 @@ for (const signal of ["SIGINT", "SIGTERM"] as const) {
 
 function missingCloudBaseValue(name: string): never {
   throw new Error(`${name} is required when CLOUDBASE_READS_ENABLED=true.`);
+}
+
+async function createCloudBaseReadClient() {
+  const envId =
+    runtimeEnvironment.CLOUDBASE_ENV_ID ??
+    missingCloudBaseValue("CLOUDBASE_ENV_ID");
+  const accessKey =
+    runtimeEnvironment.CLOUDBASE_APIKEY ??
+    missingCloudBaseValue("CLOUDBASE_APIKEY");
+  assertCloudBaseApiKeyFresh(accessKey);
+  return connectCloudBaseRdb({
+    envId,
+    accessKey,
+    requestTimeoutMs: runtimeEnvironment.CLOUDBASE_REQUEST_TIMEOUT_MS,
+  });
 }
 
 try {
