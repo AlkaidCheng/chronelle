@@ -228,12 +228,15 @@
       </section>
 
       <aside class="gate-note" aria-label="Current R1 staging gate">
-        <strong>Current gate · R1 staging evidence pending</strong>
-        The read adapters, contract harness, and secret-safe preflight are
-        merged. To run the read-only differential check, refresh the short-lived
-        CloudBase API key and provide existing staging workspace, user, and
-        visible event IDs. Until that evidence exists, PostgreSQL remains the
-        runtime default and CloudBase reads stay disabled.
+        <strong
+          >Current gate · R1 evidence recorded, cursor paging pending</strong
+        >
+        The read-only differential check has run against the real gateway for a
+        workspace member and a grant-only viewer on a synthetic staging fixture:
+        event pages, calendars, isolation, and denials match PostgreSQL. Cursor
+        paging has not crossed a real page boundary yet. PostgreSQL remains the
+        runtime default and CloudBase reads stay disabled until Phase 6 decides
+        otherwise.
       </aside>
 
       <h2>Execution plan</h2>
@@ -306,7 +309,15 @@
               opt-in CloudBase read client.
             </li>
             <li>
-              Validate the adapter against the real CloudBase gateway next.
+              The event-list adapter returns root Events only, and the
+              differential fixture is served from the PostgreSQL rows it seeds.
+            </li>
+            <li>
+              First real-gateway run completed for two principals; the transport
+              now accepts the gateway's success shape.
+            </li>
+            <li>
+              Seed a fixture larger than one page to test cursor paging next.
             </li>
           </ul>
         </div>
@@ -442,7 +453,7 @@
       </table>
       <footer>
         Source of detail: <code>docs/cloudbase-migration-plan.md</code>. Updated
-        after the CloudBase RDB query and calendar adapter work.
+        after the first real-gateway read-contract run.
       </footer>
     </main>
   </body>

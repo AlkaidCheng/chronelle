@@ -7,25 +7,17 @@ const workspaceId = "workspace-1";
 const principal = { type: "user" as const, userId: "reader-1", workspaceId };
 const now = new Date("2030-01-01T00:00:00.000Z");
 
+const firstId = "00000000-0000-7000-8000-000000000001";
+const secondId = "00000000-0000-7000-8000-000000000002";
+const hiddenId = "00000000-0000-7000-8000-000000000003";
+const childId = "00000000-0000-7000-8000-000000000004";
+
+// Roots own their scope; the child inherits the first root's scope; Hidden has no grant.
 const objects = [
-  [
-    "00000000-0000-7000-8000-000000000001",
-    "First",
-    "scope",
-    "2030-01-02T00:00:00.000Z",
-  ],
-  [
-    "00000000-0000-7000-8000-000000000002",
-    "Second",
-    "scope",
-    "2030-01-03T00:00:00.000Z",
-  ],
-  [
-    "00000000-0000-7000-8000-000000000003",
-    "Hidden",
-    "hidden",
-    "2030-01-04T00:00:00.000Z",
-  ],
+  [firstId, "First", firstId, "2030-01-02T00:00:00.000Z"],
+  [secondId, "Second", secondId, "2030-01-03T00:00:00.000Z"],
+  [hiddenId, "Hidden", hiddenId, "2030-01-04T00:00:00.000Z"],
+  [childId, "Included child", firstId, "2030-01-05T00:00:00.000Z"],
 ].map(([id, displayName, permissionScopeId, updatedAt]) => ({
   id,
   workspace_id: workspaceId,
@@ -76,7 +68,8 @@ function client(granted = true): CloudBaseRdbClient {
       if (table === "resource_grants")
         return granted
           ? ([
-              { resource_id: "scope", role: "viewer", expires_at: null },
+              { resource_id: firstId, role: "viewer", expires_at: null },
+              { resource_id: secondId, role: "viewer", expires_at: null },
             ] as unknown as readonly T[])
           : ([] as readonly T[]);
       throw new Error(`unexpected table ${table}`);
@@ -91,9 +84,7 @@ describe("CloudBaseEventReadRepository", () => {
       limit: 1,
       sort: "date",
     });
-    expect(first.items.map((event) => event.id)).toEqual([
-      "00000000-0000-7000-8000-000000000001",
-    ]);
+    expect(first.items.map((event) => event.id)).toEqual([firstId]);
     expect(first.nextCursor).not.toBeNull();
 
     const second = await repository.listEvents(principal, {
@@ -101,19 +92,24 @@ describe("CloudBaseEventReadRepository", () => {
       limit: 1,
       sort: "date",
     });
-    expect(second.items.map((event) => event.id)).toEqual([
-      "00000000-0000-7000-8000-000000000002",
-    ]);
+    expect(second.items.map((event) => event.id)).toEqual([secondId]);
     expect(second.nextCursor).toBeNull();
   });
 
   it("does not return objects outside the principal grant scope", async () => {
     const repository = new CloudBaseEventReadRepository(client(), () => now);
     const result = await repository.listEvents(principal, { limit: 10 });
-    expect(result.items.map((event) => event.id)).toEqual([
-      "00000000-0000-7000-8000-000000000001",
-      "00000000-0000-7000-8000-000000000002",
-    ]);
+    expect(result.items.map((event) => event.id)).toEqual([firstId, secondId]);
+  });
+
+  it("lists root Events only, even when an included child is visible", async () => {
+    const repository = new CloudBaseEventReadRepository(client(), () => now);
+    const result = await repository.listEvents(principal, {
+      limit: 10,
+      sort: "updated",
+    });
+    expect(result.items.map((event) => event.id)).not.toContain(childId);
+    expect(result.items).toHaveLength(2);
   });
 
   it("returns an empty page when no permission is available", async () => {

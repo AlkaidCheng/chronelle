@@ -12,6 +12,7 @@ import {
 import {
   cloudbaseEventResource,
   cloudbaseText,
+  isCloudBaseRootObject,
   readCloudBaseEvents,
   readCloudBaseVisibility,
   readCloudBaseVisibleObjects,
@@ -181,11 +182,10 @@ export class CloudBaseEventReadRepository implements EventReadRepository {
       principal,
       this.#clock,
     );
-    const objects = await readCloudBaseVisibleObjects(
-      this.#client,
-      principal,
-      visibility,
-    );
+    // The list shows root Events only, matching the PostgreSQL query.
+    const objects = (
+      await readCloudBaseVisibleObjects(this.#client, principal, visibility)
+    ).filter(isCloudBaseRootObject);
     const objectIds = objects.map((object) =>
       cloudbaseText(object.id, "object id"),
     );

@@ -332,6 +332,14 @@ export async function readCloudBaseIncludes(
   ];
 }
 
+/** A root Event owns its permission scope; included children inherit a root's scope. */
+export function isCloudBaseRootObject(object: CloudBaseObjectRow): boolean {
+  return (
+    cloudbaseText(object.permission_scope_id, "permission scope") ===
+    cloudbaseText(object.id, "object id")
+  );
+}
+
 export function assertCloudBaseRoot(
   root: CloudBaseObjectRow | undefined,
 ): CloudBaseObjectRow {
