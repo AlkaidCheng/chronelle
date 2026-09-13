@@ -151,6 +151,18 @@ export async function exerciseObjectRecovery(
   await expect(page.getByRole("dialog")).toHaveCount(0);
   await expect(row).toHaveCount(1);
   await expect(edit).toBeFocused();
+  if (kind === "reminder") {
+    await row.getByRole("button", { name: "Dismiss", exact: true }).click();
+    await expect(row.getByText("dismissed", { exact: true })).toBeVisible();
+    await edit.click();
+    await name.fill("Pack the lanterns and candles tonight");
+    await name.press("ControlOrMeta+Enter");
+    await expect(page.getByRole("dialog")).toHaveCount(0);
+    await expect(row.getByText("dismissed", { exact: true })).toBeVisible();
+    await expect(
+      row.getByRole("button", { name: "Dismiss", exact: true }),
+    ).toHaveCount(0);
+  }
   await add.click();
   await name.fill("Discard this plan");
   await revisitObjectView(page);
