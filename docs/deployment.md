@@ -77,6 +77,10 @@ keys map to the privileged `service_role` and must never be sent to a browser,
 committed to the repository, or used as a substitute for Chronelle's
 application authorization.
 
+The probe uses `CLOUDBASE_REQUEST_TIMEOUT_MS` (30 seconds by default, bounded to
+1–120 seconds) and reports expired keys, authorization failures, timeouts, and
+unexpected gateway responses without printing the key or response payload.
+
 If the probe returns `ACCESS_TOKEN_EXPIRED`, replace `CLOUDBASE_APIKEY` with a
 new short-lived server key and rerun the probe. Do not reuse an expired key or
 enable CloudBase reads while the probe is failing. If the read-contract command
