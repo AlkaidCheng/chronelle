@@ -15,6 +15,7 @@ export {
   type CloudBaseRdbFilter,
   type CloudBaseRdbOrder,
   type CloudBaseRdbQuery,
+  CloudBaseRdbTimeoutError,
   connectCloudBaseRdb,
   createCloudBaseRdbClient,
 } from "./cloudbase-rdb.js";

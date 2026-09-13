@@ -100,6 +100,11 @@ PostgreSQL route. This keeps the local schema, migrations, and future dedicated
 PostgreSQL deployment reusable rather than creating a second canonical data
 model.
 
+CloudBase RDB reads have a bounded 30-second request timeout by default. The
+transport option may raise it only up to 120 seconds when a deployment has a
+documented latency budget; it must not be used to mask gateway or quota
+failures.
+
 ### Run the real CloudBase read contract
 
 After the schemas and read adapters are built, run the opt-in, read-only staging

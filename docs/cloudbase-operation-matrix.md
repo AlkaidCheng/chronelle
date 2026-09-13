@@ -1,0 +1,72 @@
+# CloudBase operation matrix
+
+This matrix is the migration inventory for the current API. It records the
+consistency and security contract that must remain true when an operation is
+served by a different backend. It is intentionally conservative: an operation
+marked PostgreSQL-only must not be moved to the CloudBase RDB gateway merely
+because its SQL can be expressed as a read or write request.
+
+## Contract vocabulary
+
+- **Read** means no canonical state changes and no audit event is required.
+- **CAS** means an update must include the current object `version` and reject
+  a stale version.
+- **Audit** means the mutation and its audit event are committed as one logical
+  operation.
+- **Cross-object** means the operation changes more than one canonical object,
+  relation, grant, revision, or recovery record.
+- **CloudBase candidate** means a repository boundary exists or can be added
+  without changing the API response contract. It is not approval to switch the
+  operation in production.
+
+## Read operations
+
+| API surface                                                                | Service boundary                 | Contract                                                                                | Current route                                                       | CloudBase status                                                          |
+| -------------------------------------------------------------------------- | -------------------------------- | --------------------------------------------------------------------------------------- | ------------------------------------------------------------------- | ------------------------------------------------------------------------- |
+| Event list                                                                 | `EventReadRepository`            | Workspace-scoped, permission-filtered, deleted rows excluded, deterministic cursor      | `GET /api/events`                                                   | Candidate; adapter and opt-in runtime flag exist                          |
+| Calendar projection                                                        | `CalendarReadRepository`         | Canonical event IDs, active `includes` relations, inherited grants, date ordering       | `GET /api/events/:id/calendar`                                      | Candidate; adapter and opt-in runtime flag exist                          |
+| Event detail                                                               | `EventPlanningProjectionService` | Root authorization plus child relations, attached documents, and projection consistency | `GET /api/events/:id/detail`                                        | PostgreSQL; relation/document read contract is not yet equivalent         |
+| To-do, timeline, itinerary, expense, reminder projections                  | `EventPlanningProjectionService` | Shared canonical objects and relation visibility                                        | `GET /api/events/:id/{todos,timeline,itinerary,expenses,reminders}` | PostgreSQL; keep until each projection has a tested repository boundary   |
+| Object search                                                              | `CanonicalObjectSearchService`   | Full-text ranking, cursor envelope, workspace and permission predicate                  | `GET /api/search`                                                   | PostgreSQL; CloudBase transport has no equivalent full-text/rank contract |
+| Object, relation, sharing, revision, recovery, and storage inventory reads | Corresponding services           | Authorization and workspace isolation                                                   | Various `GET` routes                                                | PostgreSQL until a per-service contract is documented and tested          |
+
+Read adapters must return canonical IDs and the same externally visible
+resource shape. A gateway API key does not authorize a user; the adapter must
+still evaluate the Chronelle principal, workspace, grant expiry, inheritance,
+and deletion rules.
+
+## Mutations
+
+| Operation family                     | Examples                                               | Required guarantees                                                         | Backend decision                                    |
+| ------------------------------------ | ------------------------------------------------------ | --------------------------------------------------------------------------- | --------------------------------------------------- |
+| Single canonical object create       | Events, tasks, expenses, reminders                     | Authorization, typed validation, audit event, generated identity            | PostgreSQL; CloudBase write adapter is not approved |
+| Single canonical object update       | Object and typed-resource `PATCH` routes               | Authorization, CAS on `version`, audit event, no partial typed row          | PostgreSQL                                          |
+| Soft deletion and restoration        | Object delete, trash recovery, revision restore        | CAS, audit, object/revision consistency, recoverability                     | PostgreSQL                                          |
+| Relationship changes                 | Include, attach, paid-for, and removed-link relations  | Both endpoints remain independent objects; relation audit and authorization | PostgreSQL; cross-object                            |
+| Sharing and permission-scope changes | Grant, revoke, stop inheritance                        | Canonical scope, inherited access, audit, workspace isolation               | PostgreSQL; cross-object                            |
+| Event-page layout changes            | Add/remove/reorder panels and restore history          | Layout versioning, audit, restoration, optimistic concurrency               | PostgreSQL; cross-object                            |
+| Attachments                          | Upload authorization, finalize, download authorization | Private storage, parent authorization, short-lived transfer, audit          | PostgreSQL plus storage provider                    |
+| Undo/redo and commands               | Execute, undo, redo                                    | Durable command state, inverse operation, atomic audit and recovery         | PostgreSQL; transaction-required                    |
+
+The CloudBase RDB transport currently advertises no transaction or native TCP
+capability. Until a supported compare-and-set plus audit mechanism is proven,
+all mutation rows stay on the Drizzle/PostgreSQL adapter.
+
+## Gate evidence
+
+Before changing a row in this matrix, add evidence at the same scope as the
+operation:
+
+1. Contract tests compare canonical IDs, relation sets, deletion filtering,
+   and permission outcomes with the PostgreSQL implementation.
+2. Stale-version tests prove a conflict rather than a silent overwrite.
+3. Audit assertions prove the event is present for every mutation.
+4. Injected-failure tests prove that cross-object operations do not expose
+   partial state.
+5. Deployment checks prove that credentials remain server-only and private
+   document URLs remain authorized and short-lived.
+
+The current evidence satisfies only the event-list and calendar read rows in a
+local double plus the opt-in real-gateway harness. The harness still requires
+staging workspace, user, and event identifiers before it can provide real
+CloudBase evidence.
