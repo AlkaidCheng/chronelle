@@ -106,10 +106,20 @@ The first read-contract run against the real staging gateway showed that the
 transport treated the gateway's `error: null` success shape as a failure, so
 every successful query threw. The transport now accepts that shape, and the
 staging commands load the root `.env` and exit once their report is written.
-The same run recorded that the CloudBase event list returns child events that
-inherit a root Event's permission scope, which the PostgreSQL list excludes;
-that divergence is tracked as its own fix, and R1 stays open until the two
-lists agree on the staging fixture.
+The same run recorded that the CloudBase event list returned child events that
+inherit a root Event's permission scope, which the PostgreSQL list excludes.
+The adapter now lists root Events only, the differential test serves the
+CloudBase double from the PostgreSQL rows it seeds (inheriting and private
+children, a deleted Event, a member and a grant-only viewer), and a configured
+harness expectation must match the returned set exactly.
+
+R1 evidence now exists for a synthetic staging fixture: with a workspace owner
+and a grant-only viewer, the event pages, calendar membership and order,
+workspace isolation, deleted-row exclusion, private-child exclusion, and the
+denied-event case all match PostgreSQL through the real gateway. Each gateway
+query took roughly 0.8–1 second from the operator's location, which is the
+first R5 latency input. Enabling `CLOUDBASE_READS_ENABLED` remains a
+deployment decision under Phase 6, not a consequence of this run.
 
 The operation-by-operation consistency inventory is maintained in
 [`docs/cloudbase-operation-matrix.md`](cloudbase-operation-matrix.md). It is
@@ -224,21 +234,22 @@ PostgreSQL adapter.
 
 ## Recommended next PR
 
-Validate the same fixture against the real CloudBase gateway adapter once its
-permission-filtered event and relation queries are implemented. The calendar
-adapter is the first staging candidate; event-list pagination remains on the
-PostgreSQL path until its cursor contract is implemented. Keep the API response
-schemas unchanged and do not migrate mutations until the permission and
-pagination contract is proven against the service.
+Exercise the event-list cursor contract against the real gateway: the staging
+fixture holds fewer root Events than one page, so `cursorPageTested` is still
+false and the second-page non-overlap check has only run offline. Seed enough
+root Events to cross a page boundary, then re-run the harness for both
+principals. Keep the API response schemas unchanged and do not migrate
+mutations until the pagination contract is proven against the service.
 
 ### R1 operator checklist
 
-The implementation prerequisite is complete. The remaining staging action is
-external and read-only:
-
-1. Rotate the expired short-lived `CLOUDBASE_APIKEY` in the CloudBase console.
+1. Keep a fresh short-lived `CLOUDBASE_APIKEY` in the root `.env`; the staging
+   commands read that file and refuse an expired key.
 2. Set `CLOUDBASE_CONTRACT_WORKSPACE_ID`, `CLOUDBASE_CONTRACT_USER_ID`, and
-   `CLOUDBASE_CONTRACT_EVENT_ID` to existing visible staging fixtures.
+   `CLOUDBASE_CONTRACT_EVENT_ID` to existing staging fixtures, plus the exact
+   `CLOUDBASE_CONTRACT_EXPECTED_*` sets the PostgreSQL repositories return for
+   that principal. Run once as a workspace member and once as a grant-only
+   principal with `CLOUDBASE_CONTRACT_DENIED_EVENT_ID` set.
 3. Run `pnpm cloudbase:probe`, then `pnpm cloudbase:read-contract`.
 4. Attach the JSON output and latency observations to the R1 review before
    enabling `CLOUDBASE_READS_ENABLED`.
