@@ -34,7 +34,8 @@ import {
   useUpdateReminder,
   useUpdateTask,
 } from "../../lib/queries";
-import { ExpenseForm, ReminderForm } from "./resource-forms";
+import { ExpenseForm } from "./expense-form";
+import { ReminderForm } from "./reminder-form";
 import { TaskForm } from "./task-form";
 import { TaskInspector } from "./task-inspector";
 
