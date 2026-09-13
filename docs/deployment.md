@@ -61,6 +61,8 @@ CLOUDBASE_CONTRACT_EXPECTED_EVENT_IDS=event-id-1,event-id-2
 CLOUDBASE_CONTRACT_EXPECTED_CALENDAR_IDS=event-id-2
 # Optional: an event the principal must not be able to read.
 CLOUDBASE_CONTRACT_DENIED_EVENT_ID=private-event-id
+# Optional page size (1-50, default 50); a small value crosses cursor pages on a small fixture.
+CLOUDBASE_CONTRACT_PAGE_LIMIT=2
 ```
 
 Run the read-only probe:
@@ -136,13 +138,14 @@ pnpm cloudbase:read-contract
 
 The harness requires a workspace, user, and visible event already present in the
 CloudBase environment. It never inserts, updates, deletes, or grants access. It
-checks canonical event IDs, calendar projections, cursor-page non-overlap,
-workspace isolation on returned resources, soft-deletion filtering, and an
-optional denied-event assertion. It shares the probe's timeout and local expiry
-checks, so an expired key fails before any fixture query. Do not place the API
-key in shell history or commit these values to the repository. The JSON output
-also includes the query count and per-query/total latency in `timingMs` for the
-R1 review and later operational-cost assessment.
+walks every event page at the configured page size, checks canonical event
+IDs, calendar projections, cursor-page non-overlap, workspace isolation on
+returned resources, soft-deletion filtering, and an optional denied-event
+assertion. It shares the probe's timeout and local expiry checks, so an expired
+key fails before any fixture query. Do not place the API key in shell history or
+commit these values to the repository. The JSON output also includes the page
+count, the query count, and per-page/calendar/total latency in `timingMs` for
+the R1 review and later operational-cost assessment.
 
 ## Containerized web
 

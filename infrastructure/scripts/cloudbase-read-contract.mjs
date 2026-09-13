@@ -5,6 +5,7 @@ import { connectCloudBaseRdb } from "../../packages/db/dist/index.js";
 import {
   assertApiKeyFresh,
   exitAfterFlush,
+  readPageLimit,
   readRequestTimeout,
 } from "./cloudbase-config.mjs";
 import {
@@ -26,9 +27,11 @@ if (missing.length > 0) {
 }
 
 let requestTimeoutMs;
+let pageLimit;
 try {
   assertApiKeyFresh(process.env.CLOUDBASE_APIKEY);
   requestTimeoutMs = readRequestTimeout();
+  pageLimit = readPageLimit();
 } catch (error) {
   console.error(
     error instanceof Error ? error.message : "Invalid CloudBase configuration.",
@@ -49,31 +52,39 @@ const eventReads = new CloudBaseEventReadRepository(client);
 const calendarReads = new CloudBaseCalendarReadRepository(client);
 const contractStartedAt = performance.now();
 
-const eventPageStartedAt = performance.now();
-const firstPage = await eventReads.listEvents(principal, {
-  limit: 50,
-  sort: "date",
-});
-const eventPageMs = elapsedMs(eventPageStartedAt);
+// Walk every page so the exact-set and overlap checks cover the whole
+// collection; the bound only guards against a cursor that never ends.
+const maxPages = 100;
+const pages = [];
+const items = [];
+let cursor;
+do {
+  const startedAt = performance.now();
+  const page = await eventReads.listEvents(principal, {
+    cursor,
+    limit: pageLimit,
+    sort: "date",
+  });
+  pages.push({ count: page.items.length, ms: elapsedMs(startedAt) });
+  items.push(...page.items);
+  if (page.items.length > pageLimit)
+    throw new Error("CloudBase returned more events than the page limit.");
+  if (page.nextCursor !== null && page.items.length === 0)
+    throw new Error("CloudBase returned an empty page with a next cursor.");
+  cursor = page.nextCursor ?? undefined;
+} while (cursor !== undefined && pages.length < maxPages);
+if (cursor !== undefined)
+  throw new Error(
+    `CloudBase event paging did not end within ${maxPages} pages.`,
+  );
 const calendarStartedAt = performance.now();
 const calendar = await calendarReads.listCalendarEvents(principal, eventId);
 const calendarMs = elapsedMs(calendarStartedAt);
-let secondPageMs = 0;
-let secondPage = { items: [] };
-if (firstPage.nextCursor !== null) {
-  const secondPageStartedAt = performance.now();
-  secondPage = await eventReads.listEvents(principal, {
-    cursor: firstPage.nextCursor,
-    limit: 50,
-    sort: "date",
-  });
-  secondPageMs = elapsedMs(secondPageStartedAt);
-}
-const allIds = [...firstPage.items, ...secondPage.items].map(({ id }) => id);
+const allIds = items.map(({ id }) => id);
 if (new Set(allIds).size !== allIds.length)
   throw new Error("CloudBase event cursor pages overlap.");
 
-for (const resource of [...firstPage.items, ...secondPage.items, ...calendar]) {
+for (const resource of [...items, ...calendar]) {
   if (resource.workspaceId !== workspaceId)
     throw new Error(
       `CloudBase returned a cross-workspace resource: ${resource.id}`,
@@ -111,12 +122,13 @@ console.log(
       workspaceId,
       eventCount: allIds.length,
       calendarCount: calendar.length,
-      cursorPageTested: firstPage.nextCursor !== null,
-      queryCount: firstPage.nextCursor === null ? 2 : 3,
+      pageLimit,
+      pageCount: pages.length,
+      cursorPageTested: pages.length > 1,
+      queryCount: pages.length + 1,
       timingMs: {
-        eventFirstPage: eventPageMs,
+        eventPages: pages.map(({ ms }) => ms),
         calendar: calendarMs,
-        eventSecondPage: secondPageMs,
         total: elapsedMs(contractStartedAt),
       },
       eventIds: allIds,

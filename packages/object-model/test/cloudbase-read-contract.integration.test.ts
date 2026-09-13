@@ -26,7 +26,10 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { CloudBaseCalendarReadRepository } from "../src/cloudbase-calendar-read-repository.js";
 import { CloudBaseEventReadRepository } from "../src/cloudbase-event-read-repository.js";
-import { PostgresEventReadRepository } from "../src/event-list.js";
+import {
+  type EventReadRepository,
+  PostgresEventReadRepository,
+} from "../src/event-list.js";
 import { PostgresCalendarReadRepository } from "../src/projection-service.js";
 
 let database: TestDatabase;
@@ -299,5 +302,31 @@ describe.sequential("CloudBase read contract", () => {
     await expect(
       cloudbaseCalendar.listCalendarEvents(viewer, unrelatedId),
     ).rejects.toBeInstanceOf(AuthorizationDeniedError);
+
+    // Cursor paging: every sort mode crosses a page boundary with limit 2,
+    // and each backend's own cursor must reproduce the same page sequence.
+    for (const sort of ["date", "name", "updated"] as const) {
+      const walk = async (repository: EventReadRepository) => {
+        const pages: string[][] = [];
+        let cursor: string | undefined;
+        do {
+          const page = await repository.listEvents(owner, {
+            sort,
+            limit: 2,
+            cursor,
+          });
+          pages.push(ids(page.items));
+          cursor = page.nextCursor ?? undefined;
+        } while (cursor !== undefined && pages.length < 5);
+        return pages;
+      };
+      const postgresPages = await walk(postgresEvents);
+      const cloudbasePages = await walk(cloudbaseEvents);
+      expect(postgresPages.map((page) => page.length)).toEqual([2, 1]);
+      expect(cloudbasePages).toEqual(postgresPages);
+      expect(new Set(postgresPages.flat())).toEqual(
+        new Set([privateChildId, rootId, unrelatedId]),
+      );
+    }
   });
 });
