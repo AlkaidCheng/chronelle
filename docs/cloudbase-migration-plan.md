@@ -48,6 +48,12 @@ The event calendar projection now has a matching `CalendarReadRepository`
 boundary. Its PostgreSQL implementation returns the same authorized canonical
 events, while the projection service retains scheduling and sorting semantics.
 
+An integration contract fixture compares canonical IDs and calendar ordering
+with a CloudBase-compatible read double. It deliberately does not claim that
+the shared gateway has passed the permission-filtered join gate; that evidence
+still requires a real CloudBase adapter or an explicitly equivalent gateway
+query.
+
 ## Migration phases
 
 ### Phase 1 — Contract and schema inventory
@@ -152,7 +158,7 @@ PostgreSQL adapter.
 
 ## Recommended next PR
 
-Add differential fixtures that compare PostgreSQL results with a
-CloudBase-compatible test double for event lists and calendar projections. Keep
-the API response schemas unchanged and do not migrate mutations until the
-permission and pagination contract is proven.
+Validate the same fixture against the real CloudBase gateway adapter once its
+permission-filtered event and relation queries are implemented. Keep the API
+response schemas unchanged and do not migrate mutations until the permission
+and pagination contract is proven against the service.
