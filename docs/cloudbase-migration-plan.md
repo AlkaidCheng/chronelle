@@ -37,6 +37,13 @@ Completed in PR #78:
 The API still runs on PostgreSQL. No application feature has been moved to the
 CloudBase transport yet.
 
+The event-list read path now has an explicit `EventReadRepository` boundary.
+The default `PostgresEventReadRepository` preserves the existing Drizzle query,
+authorization filtering, cursor pagination, and response shape. A CloudBase
+event repository is intentionally deferred until the gateway can express the
+same permission-filtered query contract; the UI and API service do not need to
+change when that adapter is added.
+
 ## Migration phases
 
 ### Phase 1 — Contract and schema inventory
@@ -141,6 +148,7 @@ PostgreSQL adapter.
 
 ## Recommended next PR
 
-Introduce a repository interface for read-only event and calendar projections,
-with PostgreSQL and CloudBase implementations plus differential tests. Keep the
-API response schemas unchanged and do not migrate mutations in that PR.
+Extend the read boundary to calendar projections and add differential fixtures
+that compare PostgreSQL results with a CloudBase-compatible test double. Keep
+the API response schemas unchanged and do not migrate mutations until the
+permission and pagination contract is proven.

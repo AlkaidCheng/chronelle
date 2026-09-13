@@ -21,7 +21,11 @@ import {
   eventCalendarDatesSchema,
   type EventListQueryInput,
 } from "@chronelle/schemas";
-import { listEventPage, type EventPage } from "./event-list.js";
+import {
+  PostgresEventReadRepository,
+  type EventPage,
+  type EventReadRepository,
+} from "./event-list.js";
 
 import { InvalidObjectStateError, ObjectConflictError } from "./errors.js";
 import { readObjectState, readObjectStates } from "./object-state.js";
@@ -140,13 +144,16 @@ function assertExpenseState(
 export class EventPlanningObjectService {
   readonly #clock: () => Date;
   readonly #database: AuthorizationDatabase;
+  readonly #eventReads: EventReadRepository;
 
   constructor(
     database: AuthorizationDatabase,
     clock: () => Date = () => new Date(),
+    eventReads?: EventReadRepository,
   ) {
     this.#database = database;
     this.#clock = clock;
+    this.#eventReads = eventReads ?? new PostgresEventReadRepository(database);
   }
 
   async createEvent(
@@ -317,7 +324,7 @@ export class EventPlanningObjectService {
     principal: UserPrincipal,
     input: EventListQueryInput = {},
   ): Promise<EventPage> {
-    return listEventPage(this.#database, principal, input);
+    return this.#eventReads.listEvents(principal, input);
   }
 
   async getEvent(

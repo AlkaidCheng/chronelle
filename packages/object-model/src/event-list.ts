@@ -38,6 +38,34 @@ export interface EventPage {
   readonly asOf: string;
 }
 
+/**
+ * Read boundary for event projections.
+ *
+ * Implementations own the query strategy and storage protocol; callers only
+ * depend on the authorization and pagination contract.
+ */
+export interface EventReadRepository {
+  listEvents(
+    principal: UserPrincipal,
+    input?: EventListQueryInput,
+  ): Promise<EventPage>;
+}
+
+export class PostgresEventReadRepository implements EventReadRepository {
+  readonly #database: AuthorizationDatabase;
+
+  constructor(database: AuthorizationDatabase) {
+    this.#database = database;
+  }
+
+  listEvents(
+    principal: UserPrincipal,
+    input: EventListQueryInput = {},
+  ): Promise<EventPage> {
+    return listEventPage(this.#database, principal, input);
+  }
+}
+
 const schedulePosition = sql`coalesce(${events.startsAt}, ${events.startsOn}::timestamp AT TIME ZONE 'UTC')`;
 
 const foldedName = sql<string>`lower(${objects.displayName}) COLLATE "C"`;
