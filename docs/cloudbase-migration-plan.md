@@ -90,6 +90,11 @@ hydration, audit events, recovery, sharing, and transaction-heavy workflows.
 The flag defaults to false so a connectivity probe cannot silently change the
 runtime consistency model.
 
+The operation-by-operation consistency inventory is maintained in
+[`docs/cloudbase-operation-matrix.md`](cloudbase-operation-matrix.md). It is
+the review checklist for deciding whether a future repository may leave the
+PostgreSQL path.
+
 ## Migration phases
 
 ### Phase 1 — Contract and schema inventory
@@ -108,6 +113,10 @@ PostgreSQL adapter and a CloudBase test double.
 
 **Exit gate:** no service is migrated until its authorization, version, audit,
 and rollback requirements are explicitly listed.
+
+The initial inventory is complete for the current API. The matrix remains a
+living gate: new routes must be classified before they receive a CloudBase
+adapter.
 
 ### Phase 2 — Read path migration
 
