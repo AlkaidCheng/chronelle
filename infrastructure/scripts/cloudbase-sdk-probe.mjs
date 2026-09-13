@@ -1,6 +1,10 @@
 import process from "node:process";
 
-import { assertApiKeyFresh, readRequestTimeout } from "./cloudbase-config.mjs";
+import {
+  assertApiKeyFresh,
+  exitAfterFlush,
+  readRequestTimeout,
+} from "./cloudbase-config.mjs";
 
 const envId = process.env.CLOUDBASE_ENV_ID;
 const apiKey = process.env.CLOUDBASE_APIKEY;
@@ -76,8 +80,8 @@ if (result.error) {
       "The gateway was reached, but the response did not prove the expected authenticated PostgreSQL path.",
     );
   }
-  process.exitCode = code === "DATABASE_PGRST205" ? 0 : 1;
+  exitAfterFlush(code === "DATABASE_PGRST205" ? 0 : 1);
 } else {
   console.error("The nonexistent probe table unexpectedly returned no error.");
-  process.exitCode = 1;
+  exitAfterFlush(1);
 }

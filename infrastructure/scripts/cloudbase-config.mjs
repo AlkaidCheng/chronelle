@@ -22,3 +22,10 @@ export function readRequestTimeout(
 export function assertApiKeyFresh(value) {
   assertCloudBaseApiKeyFresh(value);
 }
+
+/** Exits once buffered stdout/stderr have been written; the SDK otherwise keeps the process alive. */
+export function exitAfterFlush(code) {
+  process.stderr.write("", () => {
+    process.stdout.write("", () => process.exit(code));
+  });
+}

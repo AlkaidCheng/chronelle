@@ -102,6 +102,15 @@ before constructing the RDB client. This keeps deployment failures close to
 their configuration cause; opaque provider keys remain accepted because their
 expiry is not locally inspectable.
 
+The first read-contract run against the real staging gateway showed that the
+transport treated the gateway's `error: null` success shape as a failure, so
+every successful query threw. The transport now accepts that shape, and the
+staging commands load the root `.env` and exit once their report is written.
+The same run recorded that the CloudBase event list returns child events that
+inherit a root Event's permission scope, which the PostgreSQL list excludes;
+that divergence is tracked as its own fix, and R1 stays open until the two
+lists agree on the staging fixture.
+
 The operation-by-operation consistency inventory is maintained in
 [`docs/cloudbase-operation-matrix.md`](cloudbase-operation-matrix.md). It is
 the review checklist for deciding whether a future repository may leave the

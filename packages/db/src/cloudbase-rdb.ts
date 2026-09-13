@@ -213,7 +213,8 @@ export function createCloudBaseRdbClient(
             );
           }),
         ]);
-        if (result.error !== undefined) {
+        // The gateway reports success as `error: null`, not an absent field.
+        if (result.error !== undefined && result.error !== null) {
           throw result.error;
         }
         return result.data ?? [];
