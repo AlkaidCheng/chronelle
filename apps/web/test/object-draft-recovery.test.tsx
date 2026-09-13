@@ -17,6 +17,7 @@ import {
   type TaskResponse,
 } from "@chronelle/schemas";
 import { StrictMode, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { Providers } from "../app/providers";
 import { TaskForm } from "../features/events/task-form";
@@ -24,6 +25,8 @@ import { TaskInspector } from "../features/events/task-inspector";
 import { ExpenseForm } from "../features/events/expense-form";
 import { ExpenseInspector } from "../features/events/expense-inspector";
 import { useAuthSession } from "../lib/auth-session";
+import { useApiClient } from "../lib/api-context";
+import { queryKeys } from "../lib/queries";
 import { SandboxStore, sandboxWorkspaceId } from "../sandbox/store";
 
 describe.each(["task", "expense"] as const)("%s draft recovery", (kind) => {
@@ -118,11 +121,23 @@ describe.each(["task", "expense"] as const)("%s draft recovery", (kind) => {
     );
   }
 
-  async function begin(mode: Mode) {
+  function AccessObserver({ id }: { readonly id: string }) {
+    const client = useApiClient();
+    const access = useQuery({
+      queryKey: queryKeys.access(id),
+      queryFn: () => client.getObjectAccess(id),
+    });
+    return <span>{access.isSuccess ? "Access ready" : "Checking access"}</span>;
+  }
+
+  async function begin(mode: Mode, observeAccess = false) {
     const user = userEvent.setup();
     render(
       <StrictMode>
         <Providers>
+          {observeAccess && (
+            <AccessObserver id={mode === "create" ? eventId : resource.id} />
+          )}
           <Harness />
         </Providers>
       </StrictMode>,
@@ -230,6 +245,38 @@ describe.each(["task", "expense"] as const)("%s draft recovery", (kind) => {
   });
 
   describe("retention lifecycle", () => {
+    it.each(["create", "edit"] as const)(
+      "settles a confirmed %s without waiting for an access refresh",
+      async (mode) => {
+        const user = await begin(mode, true);
+        await screen.findByText("Access ready");
+        const refresh = Promise.withResolvers<Response>();
+        vi.mocked(fetch).mockImplementation((input, options) =>
+          String(input).endsWith("/access")
+            ? refresh.promise
+            : store.fetch(input, options),
+        );
+        await user.click(
+          screen.getByRole("button", {
+            name: mode === "create" ? createLabel : saveLabel,
+          }),
+        );
+        try {
+          await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+          expect(unloadIsPrevented()).toBe(false);
+          expect(saveRequests()).toHaveLength(1);
+        } finally {
+          await act(async () =>
+            refresh.resolve(
+              Response.json({
+                resourceId: mode === "create" ? eventId : resource.id,
+                actions: ["view", "edit"],
+              }),
+            ),
+          );
+        }
+      },
+    );
     it.each(["create", "edit"] as const)(
       "checks fresh access before resuming a %s draft",
       async (mode) => {

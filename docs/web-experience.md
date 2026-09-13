@@ -440,6 +440,11 @@ An unchanged creation retry reuses its command after navigation. Changed input,
 discard, reload, eviction or session changes end that retry guarantee. Unknown
 edit outcomes require checking the current record before another save.
 
+Confirmed Task and Expense saves settle before background projection refreshes.
+A slow access or list refresh does not keep a completed write marked as pending;
+each view continues to own its loading and error state. Linked creation uses the
+same completion rule for scheduled Events and recorded reminders.
+
 Name-only edits preserve the complete transaction instant. Explicit time changes
 use the browser timezone and reject unavailable daylight-saving times. New dialogs
 start with USD and the current time; these are entry defaults, not inferred facts

@@ -25,7 +25,7 @@ for (const kind of ["task", "expense"] as const) {
   });
 
   for (const outcome of ["success", "lost response"] as const)
-    test(`settles a ${kind} creation ${outcome} after leaving its event`, async ({
+    test(`settles ${kind} creation ${outcome} after leaving its event`, async ({
       page,
       request,
     }) => {
@@ -103,6 +103,23 @@ for (const kind of ["task", "expense"] as const) {
       await expect(
         saving.getByRole("button", { name: "Discard draft", exact: true }),
       ).toBeDisabled();
+      const releaseRefresh = Promise.withResolvers<void>();
+      const accessEndpoint = `/api/objects/${eventId}/access`;
+      const refreshing =
+        outcome === "success"
+          ? page.waitForRequest((request) =>
+              request.url().endsWith(accessEndpoint),
+            )
+          : undefined;
+      if (outcome === "success")
+        await page.route(
+          `**${accessEndpoint}`,
+          async (route) => {
+            await releaseRefresh.promise;
+            await route.continue();
+          },
+          { times: 1 },
+        );
       release.resolve();
       if (outcome === "lost response") {
         const recovery = page.getByRole("dialog", {
@@ -127,7 +144,12 @@ for (const kind of ["task", "expense"] as const) {
         expect(response.request().postDataJSON().commandId).toBe(commandId);
         expect((await response.json()).resource.id).toBe(resourceId);
       }
-      await expect(page.getByRole("dialog")).toHaveCount(0);
+      try {
+        await refreshing;
+        await expect(page.getByRole("dialog")).toHaveCount(0);
+      } finally {
+        releaseRefresh.resolve();
+      }
       await expect(page).toHaveURL(todosUrl);
       await expect(
         page

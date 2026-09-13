@@ -378,9 +378,10 @@ function useCreateInContext<Type extends ContextResource["objectType"]>(
       });
       return result.resource;
     },
-    onSuccess: async () => {
-      await invalidate();
+    onSuccess: () => {
       attempt.current = null;
+      // A confirmed write settles independently of projection refreshes.
+      void invalidate();
     },
   });
 }
@@ -402,7 +403,9 @@ export function useUpdateTask() {
   return useMutation({
     mutationFn: ({ id, input }: { id: string; input: TaskUpdatePayload }) =>
       client.updateTask(id, input),
-    onSuccess: invalidate,
+    onSuccess: () => {
+      void invalidate();
+    },
   });
 }
 
@@ -419,7 +422,9 @@ export function useUpdateExpense() {
   return useMutation({
     mutationFn: ({ id, input }: { id: string; input: ExpenseUpdatePayload }) =>
       client.updateExpense(id, input),
-    onSuccess: invalidate,
+    onSuccess: () => {
+      void invalidate();
+    },
   });
 }
 
