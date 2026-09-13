@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type Page } from "./fixtures";
 import { createRecoveryEvent } from "./helpers/event-draft-recovery";
 import {
   exerciseObjectRecovery,

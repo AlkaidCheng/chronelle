@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./fixtures";
 import { exerciseWorkspaceCommands } from "./helpers/workspace-commands";
 
 test("protects Task editor focus and navigates without saving discarded fields", async ({

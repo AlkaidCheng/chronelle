@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type Page } from "./fixtures";
 import { exerciseCommandSearch } from "./helpers/command-search";
 import { openCommands } from "./helpers/context-commands";
 import { openWorkspaceSettings } from "./helpers/workspace-utilities";

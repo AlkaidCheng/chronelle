@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./fixtures";
 import { exercisePagePresets } from "./helpers/page-presets";
 
 test("adds preset pages and recovers their identities without changing planning records", async ({
@@ -13,11 +13,7 @@ test("adds preset pages and recovers their identities without changing planning 
   });
   expect(signedIn.status()).toBe(200);
   const session = await signedIn.json();
-  const headers = {
-    authorization: `Bearer ${session.accessToken}`,
-    // Verification reads use fresh sockets after the interactive journey.
-    connection: "close",
-  };
+  const headers = { authorization: `Bearer ${session.accessToken}` };
   const created = await request.post("/api/events", {
     headers,
     data: { displayName: "A shared plan" },

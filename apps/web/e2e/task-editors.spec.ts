@@ -1,10 +1,5 @@
 import { randomUUID } from "node:crypto";
-import {
-  expect,
-  test,
-  type APIRequestContext,
-  type Page,
-} from "@playwright/test";
+import { expect, test, type APIRequestContext, type Page } from "./fixtures";
 import { exerciseTaskEditors } from "./helpers/task-editors";
 
 async function openTaskEvent(page: Page, request: APIRequestContext) {

@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./fixtures";
 import { dragComponent } from "./helpers/drag-component";
 
 test("persists composition moves through the authorized versioned layout API", async ({

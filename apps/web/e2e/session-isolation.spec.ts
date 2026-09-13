@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./fixtures";
 import { openWorkspaceSettings } from "./helpers/workspace-utilities";
 
 test("isolates a delayed collection page across workspace changes and sign-out", async ({

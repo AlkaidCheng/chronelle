@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./fixtures";
 import {
   eventContextCreateResponseSchema,
   eventResponseSchema,
@@ -53,7 +53,7 @@ test("preserves exact expense amounts through editing and currency summaries", a
   await page.getByLabel("Email").fill(email);
   await page.getByRole("button", { name: "Continue" }).click();
   await expect(page).toHaveURL(/\/events$/u);
-  await page.goto(`/events/${event.id}`);
+  await page.getByRole("link", { name: /Expense plan/ }).click();
   await page.getByRole("button", { name: "Browse event data" }).click();
   const summary = page.getByRole("button", { name: /Recorded expenses/ });
   await expect(summary).toContainText("$999,999,999,999,999.9998");
