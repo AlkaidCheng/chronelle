@@ -50,6 +50,15 @@ server-only API key in CloudBase, then place these values in the ignored root
 ```dotenv
 CLOUDBASE_ENV_ID=your-cloudbase-environment-id
 CLOUDBASE_APIKEY=your-short-lived-server-api-key
+# Required only for the real read-contract harness below.
+CLOUDBASE_CONTRACT_WORKSPACE_ID=staging-workspace-id
+CLOUDBASE_CONTRACT_USER_ID=staging-user-id
+CLOUDBASE_CONTRACT_EVENT_ID=staging-event-id
+# Optional comma-separated expectations for a non-mutating staging check.
+CLOUDBASE_CONTRACT_EXPECTED_EVENT_IDS=event-id-1,event-id-2
+CLOUDBASE_CONTRACT_EXPECTED_CALENDAR_IDS=event-id-2
+# Optional: an event the principal must not be able to read.
+CLOUDBASE_CONTRACT_DENIED_EVENT_ID=private-event-id
 ```
 
 Run the read-only probe:
@@ -81,6 +90,22 @@ workloads remain on the TCP adapter until the service has a transaction-capable
 PostgreSQL route. This keeps the local schema, migrations, and future dedicated
 PostgreSQL deployment reusable rather than creating a second canonical data
 model.
+
+### Run the real CloudBase read contract
+
+After the schemas and read adapters are built, run the opt-in, read-only staging
+harness:
+
+```bash
+pnpm cloudbase:read-contract
+```
+
+The harness requires a workspace, user, and visible event already present in the
+CloudBase environment. It never inserts, updates, deletes, or grants access. It
+checks canonical event IDs, calendar projections, cursor-page non-overlap,
+workspace isolation on returned resources, soft-deletion filtering, and an
+optional denied-event assertion. Do not place the API key in shell history or
+commit these values to the repository.
 
 ## Containerized web
 

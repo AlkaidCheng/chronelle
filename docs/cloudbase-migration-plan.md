@@ -76,6 +76,13 @@ opt-in adapter until a real-gateway differential run proves date encoding,
 pagination, and permission filtering against CloudBase rather than a local
 double.
 
+An opt-in `pnpm cloudbase:read-contract` harness now exercises both adapters
+against a real CloudBase environment using pre-existing staging identifiers. It
+is deliberately read-only: it checks canonical IDs, calendar projection
+membership, cursor-page non-overlap, workspace and deletion invariants, and an
+optional negative authorization case. A passing harness is staging evidence for
+R1, not a license to switch the production backend or migrate mutations.
+
 ## Migration phases
 
 ### Phase 1 — Contract and schema inventory
