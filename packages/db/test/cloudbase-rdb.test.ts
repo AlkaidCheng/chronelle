@@ -31,8 +31,10 @@ describe("assertCloudBaseApiKeyFresh", () => {
 
 describe("CloudBase RDB client", () => {
   it("keeps reads behind a small transport boundary", async () => {
+    // A successful gateway response carries `error: null`.
     const response = {
       data: [{ id: "event-1" }],
+      error: null,
     };
     const request = Promise.resolve(response);
     const range = vi.fn().mockReturnValue(request);
@@ -56,6 +58,19 @@ describe("CloudBase RDB client", () => {
       transactions: false,
       nativeTcp: false,
     });
+  });
+
+  it("rejects a gateway error instead of returning rows", async () => {
+    const error = { code: "DATABASE_PGRST205", message: "relation missing" };
+    const response = { data: null, error };
+    const from = vi.fn().mockReturnValue({
+      select: vi.fn().mockReturnValue(Promise.resolve(response)),
+    });
+    const client = createCloudBaseRdbClient({
+      rdb: () => ({ from }),
+    });
+
+    await expect(client.select("events")).rejects.toBe(error);
   });
 
   it("rejects unsafe table identifiers before making a request", async () => {
