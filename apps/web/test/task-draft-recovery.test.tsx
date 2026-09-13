@@ -367,11 +367,13 @@ describe("Task draft recovery", () => {
     async (status) => {
       const user = await begin("edit");
       navigateAway();
-      vi.mocked(fetch).mockResolvedValue(failure(status));
+      vi.mocked(fetch).mockImplementation(async () => failure(status));
       await user.click(screen.getByRole("button", { name: "edit here" }));
-      expect(await screen.findByRole("alert")).toHaveTextContent(
-        "no longer available",
-      );
+      expect(screen.queryByDisplayValue("Pack the lanterns")).toBeNull();
+      // The application retries failed reads after one second.
+      expect(
+        await screen.findByRole("alert", {}, { timeout: 3_000 }),
+      ).toHaveTextContent("no longer available");
       expect(screen.queryByDisplayValue("Pack the lanterns")).toBeNull();
       await waitFor(() => expect(unloadIsPrevented()).toBe(false));
       navigateAway();
