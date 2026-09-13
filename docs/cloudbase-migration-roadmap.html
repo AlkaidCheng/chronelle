@@ -81,6 +81,18 @@
         color: var(--muted);
         font-size: 13px;
       }
+      .gate-note {
+        border: 1px solid #ead9ad;
+        border-left: 4px solid var(--next);
+        border-radius: 12px;
+        background: #fffaf0;
+        margin: 18px 0 28px;
+        padding: 14px 16px;
+      }
+      .gate-note strong {
+        display: block;
+        margin-bottom: 4px;
+      }
       h2 {
         font-size: 24px;
         margin: 42px 0 16px;
@@ -214,6 +226,15 @@
           <strong>CloudBase RDB</strong><span>read transport available</span>
         </div>
       </section>
+
+      <aside class="gate-note" aria-label="Current R1 staging gate">
+        <strong>Current gate · R1 staging evidence pending</strong>
+        The read adapters, contract harness, and secret-safe preflight are
+        merged. To run the read-only differential check, refresh the short-lived
+        CloudBase API key and provide existing staging workspace, user, and
+        visible event IDs. Until that evidence exists, PostgreSQL remains the
+        runtime default and CloudBase reads stay disabled.
+      </aside>
 
       <h2>Execution plan</h2>
       <article class="phase">

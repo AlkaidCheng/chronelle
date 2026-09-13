@@ -216,3 +216,15 @@ adapter is the first staging candidate; event-list pagination remains on the
 PostgreSQL path until its cursor contract is implemented. Keep the API response
 schemas unchanged and do not migrate mutations until the permission and
 pagination contract is proven against the service.
+
+### R1 operator checklist
+
+The implementation prerequisite is complete. The remaining staging action is
+external and read-only:
+
+1. Rotate the expired short-lived `CLOUDBASE_APIKEY` in the CloudBase console.
+2. Set `CLOUDBASE_CONTRACT_WORKSPACE_ID`, `CLOUDBASE_CONTRACT_USER_ID`, and
+   `CLOUDBASE_CONTRACT_EVENT_ID` to existing visible staging fixtures.
+3. Run `pnpm cloudbase:probe`, then `pnpm cloudbase:read-contract`.
+4. Attach the JSON output and latency observations to the R1 review before
+   enabling `CLOUDBASE_READS_ENABLED`.
