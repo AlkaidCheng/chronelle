@@ -8,7 +8,7 @@ import { AuthSessionProvider, useAuthSession } from "../lib/auth-session";
 import { HistoryProvider } from "../features/history/history-provider";
 import { LifecycleProvider } from "../features/recovery/lifecycle-provider";
 import { EventCollectionProvider } from "../lib/event-collection-state";
-import { EventDraftProvider } from "../lib/event-draft-context";
+import { EditorDraftProvider } from "../lib/editor-draft-context";
 
 export function Providers({ children }: { readonly children: ReactNode }) {
   return (
@@ -44,9 +44,9 @@ function SessionProviders({ children }: { readonly children: ReactNode }) {
       <ApiClientProvider>
         <HistoryProvider>
           <LifecycleProvider>
-            <EventDraftProvider>
+            <EditorDraftProvider>
               <EventCollectionProvider>{children}</EventCollectionProvider>
-            </EventDraftProvider>
+            </EditorDraftProvider>
           </LifecycleProvider>
         </HistoryProvider>
       </ApiClientProvider>

@@ -18,6 +18,7 @@ import {
   findEventComponents,
 } from "../../lib/event-components";
 import { isTemporaryReadError } from "../../lib/query-errors";
+import { useForgetInaccessibleEventDrafts } from "../../lib/editor-draft-context";
 import { EventPageCanvas } from "./event-page-canvas";
 import { LayoutRecoveryTools } from "./layout-recovery";
 import { AddEventPageDialog } from "./add-event-page-dialog";
@@ -228,6 +229,10 @@ export function EventPages({
   readonly canEdit: boolean;
 }) {
   const layout = useEventLayout(eventId);
+  useForgetInaccessibleEventDrafts(
+    eventId,
+    !canEdit || (layout.isError && !isTemporaryReadError(layout.error)),
+  );
   const [selectedId, setSelectedId] = useEventPage();
   const [adding, setAdding] = useState<{ pageId: string | null } | null>(null);
   const [notice, setNotice] = useState<{

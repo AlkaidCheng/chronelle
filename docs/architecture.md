@@ -348,6 +348,15 @@ timezone. Formatters resolve runtime defaults on each call. Month casing stays
 with each view. Typed submit handlers retain their resource-specific payloads
 and creation resets; shared draft state and controls own the common lifecycle.
 
+Event and Task recovery share one authenticated-tab store with a twenty-draft
+limit. Snapshots preserve typed fields, source versions and creation receipts;
+they are not canonical records or browser storage. Creation keys include the
+parent Event and resource kind; edit keys use the canonical object ID. Resuming
+checks current access before showing fields. Known parent access loss clears its
+creation drafts, while canonical child edits require their own access decision.
+Pending saves remain tracked across unmounts, and late results cannot repopulate
+a cleared session. See [Editor recovery](web-experience.md) for lifetime limits.
+
 The Event Sharing view is capability-driven: only principals with Share see
 grant administration, while Viewers receive read-only planning panels. Owners
 can stop a child object's inheritance with a versioned permission-scope

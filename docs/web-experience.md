@@ -355,8 +355,19 @@ Temporary refetch failures preserve mounted input; denied access hides it.
 History remains available inside the editor, and changed source versions require
 an explicit refresh/load-latest decision. Name-only edits preserve the exact
 stored due instant; a due time is optional, and unavailable local times are
-rejected. Task drafts survive failed mounted saves, but not route navigation or
-reload. Unchanged creation retries retain their command only while mounted.
+rejected. Task drafts survive client-side navigation within the authenticated
+tab. Add task or Edit offers Resume / Discard before exposing retained values.
+Creation drafts belong to their parent Event; edits follow the canonical Task
+across contexts. Resume checks fresh parent access for creation and the Task's
+own access for editing. Layout or projection access denial clears parent-scoped
+drafts without changing independently authorized canonical Task drafts.
+
+An unchanged Task creation retry retains its command across navigation and
+recovery. Pending saves cannot be resumed or discarded until they settle;
+completion clears the draft without navigating. Check the current Task before
+retrying an uncertain edit. Discard, eviction, reload, sign-out and workspace
+changes clear retained fields and retry identity. This is session-local recovery,
+not durable offline storage.
 
 Cmd/Ctrl + Enter submits the focused native field in these editors, including
 the New event dialog. The save button shows a hint and exposes the binding to
@@ -389,12 +400,12 @@ planning editors retain their existing navigation behavior.
 Client-side browser Back/Forward transitions are not intercepted. Save or close
 the inspector to finish explicitly, or navigate and reopen Edit event to recover
 its unsaved name and schedule. New event offers the same recovery. Up to twenty
-recently changed Event drafts stay in the current authenticated tab's memory;
+recently changed Event and Task drafts stay in the current authenticated tab's memory;
 older non-pending drafts can be evicted. Drafts are never written to browser
 storage. Reload, sign-out and workspace changes clear them. Calendar navigation
 itself is not retained across routes. Schedule creation shares this limit with
-Event creation and Event/schedule-item editing. Task, expense and reminder forms are outside this
-recovery scope.
+Event creation, Event/schedule-item editing and Task creation/editing.
+Expense and reminder forms are outside this recovery scope.
 
 Resume draft checks current access before displaying private values and preserves
 the original version for conflict detection. Temporary access failures allow an

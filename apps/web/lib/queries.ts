@@ -373,8 +373,8 @@ export function useCreateScheduledEvent(
   return useCreateInContext(eventId, "event", attempt);
 }
 
-export function useCreateTask(eventId: string) {
-  return useCreateInContext(eventId, "task");
+export function useCreateTask(eventId: string, attempt?: ContextCreateAttempt) {
+  return useCreateInContext(eventId, "task", attempt);
 }
 
 export function useUpdateTask() {

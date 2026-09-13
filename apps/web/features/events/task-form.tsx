@@ -1,7 +1,14 @@
 "use client";
 
 import type { TaskResponse } from "@chronelle/schemas";
-import { type FormEvent, useEffect, useId, useRef, useState } from "react";
+import {
+  type FormEvent,
+  useEffect,
+  useId,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { EditorForm } from "../../components/editor-form";
 import {
   DiscardActions,
@@ -9,7 +16,16 @@ import {
 } from "../../components/editor-dialog-controls";
 import { EditorControls } from "./editor-controls";
 import { readTaskFields, taskFieldsPayload } from "../../lib/task-fields";
-import { isDraftAccessError } from "../../lib/event-draft-store";
+import {
+  eventCreationDraftKeys,
+  isDraftAccessError,
+  type TaskDraftSnapshot,
+} from "../../lib/editor-draft-store";
+import { useKeepEditorDraft } from "../../lib/editor-draft-context";
+import {
+  EditorDraftRecovery,
+  EditorDraftStatus,
+} from "./editor-draft-recovery";
 import { useDiscardConfirmation } from "../../lib/use-discard-confirmation";
 import { useSessionDialog } from "../../lib/use-session-dialog";
 import { useOpenHistory } from "../history/history-provider";
@@ -18,22 +34,64 @@ import {
   useCreateTask,
   useRefreshEvent,
   useUpdateTask,
+  type ContextCreateAttempt,
 } from "../../lib/queries";
 
-export function TaskForm({
-  eventId,
-  onCancel,
-  onRefresh,
-  task: latestTask,
-}: {
+interface TaskFormProps {
   readonly eventId: string;
   readonly onCancel?: (() => void) | undefined;
   readonly onRefresh?: (() => Promise<void>) | undefined;
   readonly task?: TaskResponse | undefined;
+}
+
+export function TaskForm(props: TaskFormProps) {
+  const draftId = props.task?.id ?? eventCreationDraftKeys(props.eventId).task;
+  return (
+    <EditorDraftRecovery
+      kind="task"
+      id={draftId}
+      accessId={props.task?.id ?? props.eventId}
+      onClose={() => props.onCancel?.()}
+    >
+      {(initialDraft) => (
+        <TaskEditor {...props} draftId={draftId} initialDraft={initialDraft} />
+      )}
+    </EditorDraftRecovery>
+  );
+}
+
+function TaskEditor({
+  eventId,
+  draftId,
+  initialDraft,
+  onCancel,
+  onRefresh,
+  task: latestTask,
+}: TaskFormProps & {
+  readonly draftId: string;
+  readonly initialDraft: TaskDraftSnapshot | undefined;
 }) {
-  const draft = useEditorDraft(latestTask, readTaskFields);
+  const draft = useEditorDraft(latestTask, readTaskFields, initialDraft);
   const task = draft.source;
-  const create = useCreateTask(eventId);
+  const [attempt] = useState<ContextCreateAttempt>(
+    () => initialDraft?.creationAttempt ?? { current: null },
+  );
+  const snapshot = useMemo<TaskDraftSnapshot>(
+    () => ({
+      ...draft.snapshot,
+      kind: "task",
+      ...(task === undefined ? { creationAttempt: attempt } : {}),
+    }),
+    [draft.snapshot, task, attempt],
+  );
+  const recovery = useKeepEditorDraft(
+    draftId,
+    snapshot,
+    draft.isDirty,
+    () => onCancel?.(),
+    task?.id ?? eventId,
+  );
+  const create = useCreateTask(eventId, attempt);
   const update = useUpdateTask();
   const refresh = useRefreshEvent(eventId, { throwOnError: true });
   const { displayName, dueAt } = draft.fields;
@@ -43,7 +101,10 @@ export function TaskForm({
   const nameInput = useRef<HTMLInputElement>(null);
   const submittedControl = useRef<HTMLElement | null>(null);
   const openHistory = useOpenHistory();
-  const close = () => onCancel?.();
+  const close = () => {
+    recovery.discard();
+    onCancel?.();
+  };
   const dialog = useSessionDialog(close);
   const { isConfirming, keepEditingButton, keepEditing, requestClose } =
     useDiscardConfirmation({
@@ -55,8 +116,11 @@ export function TaskForm({
     nameInput.current?.focus();
   }, []);
   useEffect(() => {
-    if (isDraftAccessError(mutation.error)) onCancel?.();
-    else if (mutation.isError && !mutation.isPending) {
+    if (
+      mutation.isError &&
+      !mutation.isPending &&
+      !isDraftAccessError(mutation.error)
+    ) {
       if (
         document.activeElement === document.body ||
         document.activeElement === dialog.current
@@ -64,20 +128,17 @@ export function TaskForm({
         submittedControl.current?.focus();
       submittedControl.current = null;
     }
-  }, [mutation.error, mutation.isError, mutation.isPending, onCancel, dialog]);
-  useEffect(() => {
-    if (!draft.isDirty && !mutation.isPending) return;
-    function warnBeforeUnload(event: BeforeUnloadEvent) {
-      event.preventDefault();
-      event.returnValue = "";
-    }
-    window.addEventListener("beforeunload", warnBeforeUnload);
-    return () => window.removeEventListener("beforeunload", warnBeforeUnload);
-  }, [draft.isDirty, mutation.isPending]);
+  }, [mutation.error, mutation.isError, mutation.isPending, dialog]);
 
   function handleSubmit(formEvent: FormEvent<HTMLFormElement>) {
     formEvent.preventDefault();
-    if (isConfirming || draft.hasNewerVersion || mutation.isPending) return;
+    if (
+      isConfirming ||
+      draft.hasNewerVersion ||
+      mutation.isPending ||
+      !recovery.isRetained
+    )
+      return;
     let input: ReturnType<typeof taskFieldsPayload>;
     try {
       input = taskFieldsPayload(draft.fields, task);
@@ -94,24 +155,24 @@ export function TaskForm({
         ? document.activeElement
         : nameInput.current;
     if (task === undefined) {
-      create.mutate(input, {
-        onSuccess: () => {
+      void recovery.save(
+        () => create.mutateAsync(input),
+        () => {
           draft.change({ displayName: "", dueAt: "" });
           onCancel?.();
         },
-      });
+      );
       return;
     }
-    update.mutate(
-      {
-        id: task.id,
-        input: { ...input, expectedVersion: task.version },
-      },
-      {
-        onSuccess: (saved) => {
-          draft.accept(saved);
-          onCancel?.();
-        },
+    void recovery.save(
+      () =>
+        update.mutateAsync({
+          id: task.id,
+          input: { ...input, expectedVersion: task.version },
+        }),
+      (saved) => {
+        draft.accept(saved);
+        onCancel?.();
       },
     );
   }
@@ -212,11 +273,20 @@ export function TaskForm({
         </div>
         <footer className="event-inspector-footer">
           <EditorControls
+            disabled={!recovery.isRetained}
             draft={draft}
             mutation={mutation}
             onCancel={requestClose}
             onRefresh={task === undefined ? undefined : (onRefresh ?? refresh)}
             submitLabel={task === undefined ? "Create task" : "Save task"}
+          />
+          <EditorDraftStatus
+            {...recovery}
+            failureMessage={
+              task === undefined
+                ? "The last save could not be confirmed. Retry unchanged fields to reuse the same save attempt."
+                : "The last save could not be confirmed. Refresh latest before trying again."
+            }
           />
         </footer>
       </EditorForm>

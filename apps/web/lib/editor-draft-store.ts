@@ -1,8 +1,9 @@
-import type { EventResponse } from "@chronelle/schemas";
+import type { EventResponse, TaskResponse } from "@chronelle/schemas";
 import { ApiClientError } from "@chronelle/api-client";
 import { readEventSchedule } from "./event-schedule";
 import type { EditorDraftSnapshot } from "./use-editor-draft";
 import type { ContextCreateAttempt } from "./queries";
+import type { readTaskFields } from "./task-fields";
 
 export function readEventFields(event?: EventResponse) {
   return { displayName: event?.displayName ?? "", ...readEventSchedule(event) };
@@ -11,7 +12,18 @@ export function readEventFields(event?: EventResponse) {
 export type EventDraftSnapshot = EditorDraftSnapshot<
   EventResponse,
   ReturnType<typeof readEventFields>
-> & { readonly creationAttempt?: ContextCreateAttempt };
+> & { readonly kind: "event"; readonly creationAttempt?: ContextCreateAttempt };
+
+export type TaskDraftSnapshot = EditorDraftSnapshot<
+  TaskResponse,
+  ReturnType<typeof readTaskFields>
+> & { readonly kind: "task"; readonly creationAttempt?: ContextCreateAttempt };
+
+export type RetainedDraftSnapshot = EventDraftSnapshot | TaskDraftSnapshot;
+
+export function eventCreationDraftKeys(eventId: string) {
+  return { schedule: `schedule:${eventId}`, task: `task:${eventId}` };
+}
 
 export function isDraftAccessError(error: unknown): boolean {
   return (
@@ -20,13 +32,13 @@ export function isDraftAccessError(error: unknown): boolean {
 }
 
 interface KeptDraft {
-  readonly snapshot: EventDraftSnapshot;
+  readonly snapshot: RetainedDraftSnapshot;
   readonly pending: boolean;
   readonly failed: boolean;
 }
 
-/** Retains up to twenty Event drafts within one authenticated tab session. */
-export class EventDraftStore {
+/** Retains up to twenty editor drafts within one authenticated tab session. */
+export class EditorDraftStore {
   private readonly drafts = new Map<string, KeptDraft>();
   private readonly listeners = new Set<() => void>();
 
@@ -54,7 +66,7 @@ export class EventDraftStore {
     );
   }
 
-  keep(id: string, snapshot: EventDraftSnapshot): boolean {
+  keep(id: string, snapshot: RetainedDraftSnapshot): boolean {
     if (this.signal.aborted) return false;
     const previous = this.drafts.get(id);
     if (previous?.pending || previous?.snapshot === snapshot) return true;

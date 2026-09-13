@@ -12,22 +12,23 @@ import {
 } from "react";
 import { useAuthSession } from "./auth-session";
 import {
-  EventDraftStore,
-  type EventDraftSnapshot,
+  EditorDraftStore,
+  eventCreationDraftKeys,
+  type RetainedDraftSnapshot,
   isDraftAccessError,
-} from "./event-draft-store";
+} from "./editor-draft-store";
 import { useQueryClient } from "@tanstack/react-query";
 import { queryKeys } from "./queries";
 
-const Context = createContext<EventDraftStore | null>(null);
+const Context = createContext<EditorDraftStore | null>(null);
 
-export function EventDraftProvider({
+export function EditorDraftProvider({
   children,
 }: {
   readonly children: ReactNode;
 }) {
   const { signal } = useAuthSession();
-  const [store] = useState(() => new EventDraftStore(signal));
+  const [store] = useState(() => new EditorDraftStore(signal));
   useEffect(() => {
     const clear = () => store.clear();
     function warnBeforeUnload(event: BeforeUnloadEvent) {
@@ -46,14 +47,14 @@ export function EventDraftProvider({
   return <Context.Provider value={store}>{children}</Context.Provider>;
 }
 
-export function useEventDraftStore() {
+export function useEditorDraftStore() {
   const store = useContext(Context);
-  if (!store) throw new Error("EventDraftProvider is required.");
+  if (!store) throw new Error("EditorDraftProvider is required.");
   return store;
 }
 
-export function useKeptEventDraft(id: string) {
-  const store = useEventDraftStore();
+export function useKeptEditorDraft(id: string) {
+  const store = useEditorDraftStore();
   return useSyncExternalStore(
     store.subscribe,
     () => store.get(id),
@@ -61,15 +62,28 @@ export function useKeptEventDraft(id: string) {
   );
 }
 
-export function useKeepEventDraft(
+export function useForgetInaccessibleEventDrafts(
+  eventId: string,
+  denied: boolean,
+) {
+  const store = useEditorDraftStore();
+  useEffect(() => {
+    if (!denied) return;
+    store.forget(eventId);
+    for (const id of Object.values(eventCreationDraftKeys(eventId)))
+      store.forget(id);
+  }, [denied, eventId, store]);
+}
+
+export function useKeepEditorDraft(
   id: string,
-  snapshot: EventDraftSnapshot,
+  snapshot: RetainedDraftSnapshot,
   isDirty: boolean,
   onAccessLost: () => void,
   accessId = id,
 ) {
-  const store = useEventDraftStore();
-  const kept = useKeptEventDraft(id);
+  const store = useEditorDraftStore();
+  const kept = useKeptEditorDraft(id);
   const hasRoom = useSyncExternalStore(
     store.subscribe,
     () => store.canKeep(id),
@@ -105,6 +119,9 @@ export function useKeepEventDraft(
       if (isDraftAccessError(error) && mounted.current && !signal.aborted) {
         onAccessLost();
         void queries.invalidateQueries({ queryKey: queryKeys.event(accessId) });
+        void queries.invalidateQueries({
+          queryKey: queryKeys.objectResource(accessId),
+        });
       }
     }
   }
