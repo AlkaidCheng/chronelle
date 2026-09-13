@@ -434,11 +434,16 @@ export class SandboxStore {
       );
       return { items, nextCursor: null, asOf: new Date(now).toISOString() };
     }
-    if (id && collection === "tasks" && !operation) {
-      const task = this.#object(id);
-      if (task.objectType !== "task")
-        throw new SandboxError(404, "not_found", "Task is unavailable.");
-      return task;
+    if (
+      id &&
+      (collection === "tasks" || collection === "expenses") &&
+      !operation
+    ) {
+      const object = this.#object(id);
+      const type = collection === "tasks" ? "task" : "expense";
+      if (object.objectType !== type)
+        throw new SandboxError(404, "not_found", "Record is unavailable.");
+      return object;
     }
     if (id && (collection === "objects" || collection === "events")) {
       const object = this.#object(id);

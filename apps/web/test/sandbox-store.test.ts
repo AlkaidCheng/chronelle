@@ -265,7 +265,7 @@ describe("browser sandbox", () => {
       created.resource,
     ]);
     const date = new Date().toISOString();
-    await client.createEventResource(event.id, {
+    const expense = await client.createEventResource(event.id, {
       commandId: crypto.randomUUID(),
       resource: {
         objectType: "expense",
@@ -274,6 +274,15 @@ describe("browser sandbox", () => {
         currency: "USD",
         occurredAt: date,
       },
+    });
+    expect(await client.getExpense(expense.resource.id)).toEqual(
+      expense.resource,
+    );
+    await expect(client.getExpense(created.resource.id)).rejects.toMatchObject({
+      status: 404,
+    });
+    await expect(client.getTask(expense.resource.id)).rejects.toMatchObject({
+      status: 404,
     });
     await client.createEventResource(event.id, {
       commandId: crypto.randomUUID(),

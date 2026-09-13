@@ -34,7 +34,9 @@ import {
   useUpdateReminder,
   useUpdateTask,
 } from "../../lib/queries";
-import { ExpenseForm, ReminderForm } from "./resource-forms";
+import { ExpenseForm } from "./expense-form";
+import { ExpenseInspector } from "./expense-inspector";
+import { ReminderForm } from "./reminder-form";
 import { TaskForm } from "./task-form";
 import { TaskInspector } from "./task-inspector";
 
@@ -464,17 +466,34 @@ export function ExpensesPanel({
   readonly eventId: string;
   readonly expenses: readonly ExpenseResponse[];
 }) {
+  const [isAdding, setIsAdding] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const totals = useMemo(() => sumMoneyByCurrency(expenses), [expenses]);
-  const editingExpense = expenses.find(({ id }) => id === editingId);
 
   return (
     <section className="planning-panel">
       <PanelHeading
         description="Historical transactions stay independent from the plans they support."
         title="Expenses"
+        action={
+          canEdit ? (
+            <button
+              className="button button-primary button-small"
+              type="button"
+              onClick={() => setIsAdding(true)}
+            >
+              Add expense
+            </button>
+          ) : null
+        }
       />
-      {canEdit ? <ExpenseForm eventId={eventId} /> : null}
+      {canEdit && isAdding ? (
+        <ExpenseForm
+          key={eventId}
+          eventId={eventId}
+          onCancel={() => setIsAdding(false)}
+        />
+      ) : null}
       {totals.length > 0 ? (
         <div className="total-row">
           <span>Total recorded</span>
@@ -494,7 +513,7 @@ export function ExpensesPanel({
         <EmptyState
           description={
             canEdit
-              ? "Record a transaction using the form above."
+              ? "Choose Add expense to record a transaction."
               : "Recorded transactions will appear here when available. This event is read-only."
           }
           title="No expenses recorded"
@@ -533,19 +552,14 @@ export function ExpensesPanel({
           ))}
         </div>
       )}
-      {!canEdit || editingExpense === undefined ? null : (
-        <div className="editor-drawer">
-          <div className="drawer-heading">
-            <h3>Edit expense</h3>
-            <ObjectDetails id={editingExpense.id} />
-          </div>
-          <ExpenseForm
-            eventId={eventId}
-            expense={editingExpense}
-            onCancel={() => setEditingId(null)}
-          />
-        </div>
-      )}
+      {canEdit && editingId ? (
+        <ExpenseInspector
+          key={editingId}
+          eventId={eventId}
+          expenseId={editingId}
+          onClose={() => setEditingId(null)}
+        />
+      ) : null}
     </section>
   );
 }

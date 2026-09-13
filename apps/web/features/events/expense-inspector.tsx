@@ -1,32 +1,32 @@
 "use client";
 
-import { useTaskEditorQueries } from "../../lib/queries";
-import { TaskForm } from "./task-form";
+import { useExpenseEditorQueries } from "../../lib/queries";
+import { ExpenseForm } from "./expense-form";
 import { ObjectEditorAccess } from "./object-editor-access";
 
-export function TaskInspector({
+export function ExpenseInspector({
   eventId,
-  taskId,
+  expenseId,
   onClose,
 }: {
   readonly eventId: string;
-  readonly taskId: string;
+  readonly expenseId: string;
   readonly onClose: () => void;
 }) {
-  const { task, access } = useTaskEditorQueries(taskId);
+  const { expense, access } = useExpenseEditorQueries(expenseId);
   return (
     <ObjectEditorAccess
-      id={taskId}
-      kind="task"
-      resource={task}
+      id={expenseId}
+      kind="expense"
+      resource={expense}
       access={access}
       onClose={onClose}
     >
       {(resource, refresh) => (
-        <TaskForm
-          key={taskId}
+        <ExpenseForm
+          key={expenseId}
           eventId={eventId}
-          task={resource}
+          expense={resource}
           onCancel={onClose}
           onRefresh={refresh}
         />

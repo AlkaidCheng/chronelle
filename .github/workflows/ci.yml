@@ -139,8 +139,8 @@ jobs:
         run: pnpm install --frozen-lockfile
       - name: Run browser release gate
         run: pnpm test:e2e
-      - name: Retain browser failure diagnostics
-        if: failure()
+      - name: Retain browser failure and retry diagnostics
+        if: ${{ !cancelled() }}
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: browser-failures-${{ github.run_id }}-${{ github.run_attempt }}
@@ -173,8 +173,8 @@ jobs:
         run: pnpm install --frozen-lockfile
       - name: Check offline design sandbox
         run: pnpm test:sandbox
-      - name: Retain sandbox failure diagnostics
-        if: failure()
+      - name: Retain sandbox failure and retry diagnostics
+        if: ${{ !cancelled() }}
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: sandbox-failures-${{ github.run_id }}-${{ github.run_attempt }}

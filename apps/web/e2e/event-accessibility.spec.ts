@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./fixtures";
 import { selectLeapDayRange } from "./helpers/calendar-keyboard";
 
 test("keeps date navigation and dialog return focus usable across browser engines", async ({

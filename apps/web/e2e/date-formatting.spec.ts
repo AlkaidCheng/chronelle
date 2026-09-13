@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { eventResponseSchema } from "@chronelle/schemas";
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./fixtures";
 
 test("creates a date-only range and switches to multi-day exact times", async ({
   page,

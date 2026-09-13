@@ -245,6 +245,12 @@ cover Event scheduling, date formatting, and creation-dialog keyboard focus at
 desktop and mobile widths. On Linux, use `playwright install --with-deps` to
 install the required system libraries as well.
 
+Production browser specs import `test` from `apps/web/e2e/fixtures.ts`.
+Its independent API verification client closes connections between requests,
+so a long interactive journey cannot outlive a retained verification socket.
+Browser requests and server keep-alive settings remain unchanged; the fixture
+does not retry requests or assertions.
+
 CI runs the browser gates inside the digest-pinned Ubuntu Playwright image in
 `.github/workflows/ci.yml`. That image already includes the browser engines and
 system libraries; no package-repository refresh is needed during the job. Update

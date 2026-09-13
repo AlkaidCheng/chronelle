@@ -192,7 +192,7 @@ describe("container release boundary", () => {
     expect(ci.jobs.sandbox.services).toBeUndefined();
   });
 
-  it("retains browser failure evidence without weakening the release gate", () => {
+  it("retains browser failure and retry evidence without weakening the release gate", () => {
     const artifactNames = new Set<string>();
     for (const [name, directory] of [
       ["browser-tests", "playwright"],
@@ -201,7 +201,7 @@ describe("container release boundary", () => {
       const upload = ci.jobs[name].steps.find((step: { uses?: string }) =>
         step.uses?.startsWith("actions/upload-artifact@"),
       );
-      expect(upload.if).toBe("failure()");
+      expect(upload.if).toBe(`\${{ !cancelled() }}`);
       expect(upload.uses).toMatch(/^actions\/upload-artifact@[a-f0-9]{40}$/);
       expect(upload.with["retention-days"]).toBe(3);
       expect(upload.with["if-no-files-found"]).toBe("ignore");

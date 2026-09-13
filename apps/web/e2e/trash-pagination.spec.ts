@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./fixtures";
 
 test("paginates Trash, recovers an older canonical object and refreshes filters", async ({
   page,

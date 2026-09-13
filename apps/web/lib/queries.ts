@@ -203,6 +203,25 @@ export function useTaskEditorQueries(taskId: string) {
   return { task, access };
 }
 
+export function useExpenseEditorQueries(expenseId: string) {
+  const client = useApiClient();
+  const { credential } = useAuthSession();
+  const expense = useQuery({
+    enabled: credential !== null,
+    queryFn: ({ signal }) => client.withSignal(signal).getExpense(expenseId),
+    queryKey: queryKeys.objectResource(expenseId),
+    refetchOnMount: "always",
+  });
+  const access = useQuery({
+    enabled: credential !== null,
+    queryFn: ({ signal }) =>
+      client.withSignal(signal).getObjectAccess(expenseId),
+    queryKey: queryKeys.access(expenseId),
+    refetchOnMount: "always",
+  });
+  return { expense, access };
+}
+
 export function useRefreshEvent(
   eventId: string,
   options: { readonly throwOnError?: boolean } = {},
@@ -359,9 +378,10 @@ function useCreateInContext<Type extends ContextResource["objectType"]>(
       });
       return result.resource;
     },
-    onSuccess: async () => {
-      await invalidate();
+    onSuccess: () => {
       attempt.current = null;
+      // A confirmed write settles independently of projection refreshes.
+      void invalidate();
     },
   });
 }
@@ -383,12 +403,17 @@ export function useUpdateTask() {
   return useMutation({
     mutationFn: ({ id, input }: { id: string; input: TaskUpdatePayload }) =>
       client.updateTask(id, input),
-    onSuccess: invalidate,
+    onSuccess: () => {
+      void invalidate();
+    },
   });
 }
 
-export function useCreateExpense(eventId: string) {
-  return useCreateInContext(eventId, "expense");
+export function useCreateExpense(
+  eventId: string,
+  attempt?: ContextCreateAttempt,
+) {
+  return useCreateInContext(eventId, "expense", attempt);
 }
 
 export function useUpdateExpense() {
@@ -397,7 +422,9 @@ export function useUpdateExpense() {
   return useMutation({
     mutationFn: ({ id, input }: { id: string; input: ExpenseUpdatePayload }) =>
       client.updateExpense(id, input),
-    onSuccess: invalidate,
+    onSuccess: () => {
+      void invalidate();
+    },
   });
 }
 

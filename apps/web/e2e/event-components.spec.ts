@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./fixtures";
 
 test("composes planning and private-file components with canonical updates and viewer access", async ({
   page,
@@ -87,11 +87,38 @@ test("composes planning and private-file components with canonical updates and v
   const expense = page.locator(".planning-panel").filter({
     has: page.getByRole("heading", { name: "Expenses", exact: true }),
   });
-  await expense.getByLabel("Expense", { exact: true }).fill("Cabin deposit");
-  await expense.getByLabel("Amount", { exact: true }).fill("120.25");
   await expense
+    .getByRole("button", { name: "Add expense", exact: true })
+    .click();
+  const expenseEditor = page.getByRole("dialog", {
+    name: "Add expense",
+    exact: true,
+  });
+  await expenseEditor
+    .getByLabel("Expense", { exact: true })
+    .fill("Cabin deposit");
+  await expenseEditor.getByLabel("Amount", { exact: true }).fill("120.25");
+  expect(
+    await expenseEditor
+      .locator("form")
+      .evaluate((form: HTMLFormElement) => form.checkValidity()),
+  ).toBe(true);
+  const expenseCreated = page.waitForResponse(
+    (response) =>
+      response.url().endsWith(`/api/events/${event.id}/resources`) &&
+      response.request().method() === "POST",
+  );
+  await expenseEditor
     .getByRole("button", { name: "Record expense", exact: true })
     .click();
+  const expenseResponse = await expenseCreated;
+  expect(expenseResponse.status()).toBe(201);
+  expect((await expenseResponse.json()).resource).toMatchObject({
+    objectType: "expense",
+    displayName: "Cabin deposit",
+    amount: "120.2500",
+  });
+  await expect(expenseEditor).toHaveCount(0);
   await expect(
     page.getByRole("heading", { name: "Cabin deposit", exact: true }),
   ).toHaveCount(2);

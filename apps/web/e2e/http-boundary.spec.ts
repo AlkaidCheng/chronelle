@@ -1,5 +1,5 @@
 import { createHash, randomUUID } from "node:crypto";
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./fixtures";
 
 test("enforces safe errors through the production proxy", async ({
   request,

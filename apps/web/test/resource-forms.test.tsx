@@ -12,7 +12,8 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { Providers } from "../app/providers";
-import { ExpenseForm, ReminderForm } from "../features/events/resource-forms";
+import { ExpenseForm } from "../features/events/expense-form";
+import { ReminderForm } from "../features/events/reminder-form";
 import { TaskForm } from "../features/events/task-form";
 
 import { EventInspector } from "../features/events/event-inspector";

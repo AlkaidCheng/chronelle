@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./fixtures";
 import { exerciseComponentShortcuts } from "./helpers/component-shortcuts";
 
 test("inserts through the canonical layout API and synchronizes shortcut preferences", async ({

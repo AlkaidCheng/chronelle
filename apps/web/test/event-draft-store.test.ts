@@ -5,9 +5,11 @@ import {
   readEventFields,
   type EventDraftSnapshot,
   type TaskDraftSnapshot,
+  type ExpenseDraftSnapshot,
   eventCreationDraftKeys,
 } from "../lib/editor-draft-store";
 import { readTaskFields } from "../lib/task-fields";
+import { readExpenseFields } from "../lib/expense-fields";
 
 function snapshot(displayName = "Garden evening"): EventDraftSnapshot {
   const baseline = readEventFields();
@@ -34,6 +36,18 @@ function taskSnapshot(displayName = "Pack supplies"): TaskDraftSnapshot {
   };
 }
 
+function expenseSnapshot(): ExpenseDraftSnapshot {
+  const baseline = readExpenseFields();
+  return {
+    kind: "expense",
+    source: undefined,
+    baseline,
+    fields: { ...baseline, displayName: "Deposit", amount: "-0.0001" },
+  };
+}
+
+const snapshots = [snapshot(), taskSnapshot(), expenseSnapshot()] as const;
+
 describe("editor draft retention", () => {
   it("separates parent creation keys from canonical edits and other parents", () => {
     const { store } = setup();
@@ -45,11 +59,15 @@ describe("editor draft retention", () => {
     const draft = { ...taskSnapshot(), creationAttempt: attempt };
     store.keep(first.task, draft);
     store.keep(first.schedule, snapshot());
+    store.keep(first.expense, expenseSnapshot());
+    store.keep("canonical-expense", expenseSnapshot());
     store.keep(second.task, taskSnapshot("Another plan"));
     store.keep("canonical-task", taskSnapshot("Edit task"));
     for (const id of Object.values(first)) store.forget(id);
     expect(store.get(first.task)).toBeUndefined();
     expect(store.get(first.schedule)).toBeUndefined();
+    expect(store.get(first.expense)).toBeUndefined();
+    expect(store.get("canonical-expense")?.snapshot.kind).toBe("expense");
     expect(store.get(second.task)?.snapshot.fields.displayName).toBe(
       "Another plan",
     );
@@ -82,7 +100,10 @@ describe("editor draft retention", () => {
   it("evicts the least recently changed settled draft at the twenty-draft limit", () => {
     const { store } = setup();
     for (let index = 0; index < 20; index++)
-      store.keep(`${index}`, index % 2 ? taskSnapshot() : snapshot());
+      store.keep(
+        `${index}`,
+        snapshots[index % snapshots.length] ?? snapshots[0],
+      );
     store.keep("0", snapshot("Updated"));
     store.keep("new", snapshot());
     expect(store.get("1")).toBeUndefined();
@@ -90,13 +111,13 @@ describe("editor draft retention", () => {
     expect(store.get("new")).toBeDefined();
   });
 
-  it("reserves pending Event and Task entries until a save settles", async () => {
+  it("reserves pending typed entries until a save settles", async () => {
     const { store } = setup();
     const completion = Promise.withResolvers<void>();
     const saves: Promise<void>[] = [];
     for (let index = 0; index < 20; index++) {
       const id = `${index}`;
-      store.keep(id, index % 2 ? taskSnapshot() : snapshot());
+      store.keep(id, snapshots[index % snapshots.length] ?? snapshots[0]);
       saves.push(store.save(id, () => completion.promise));
     }
     expect(store.canKeep("new")).toBe(false);

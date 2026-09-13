@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./fixtures";
 import { exerciseCollectionReturn } from "./helpers/collection-return";
 
 test("returns to filtered loaded Events without persisting private criteria", async ({

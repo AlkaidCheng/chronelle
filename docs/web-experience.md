@@ -395,17 +395,17 @@ content even when a cached copy exists. Backend authorization and version checks
 still apply to every mutation. Retained data is not a freshness guarantee.
 Unsaved drafts are not durable storage or offline synchronization. Confirming
 document navigation, changing sessions, or closing the browser can discard them.
-Event creation, schedule creation, Event inspectors, and Task editors guard edited-form dismissal. Other
+Event creation, schedule creation, Event inspectors, Task and Expense editors guard edited-form dismissal. Other
 planning editors retain their existing navigation behavior.
 Client-side browser Back/Forward transitions are not intercepted. Save or close
 the inspector to finish explicitly, or navigate and reopen Edit event to recover
 its unsaved name and schedule. New event offers the same recovery. Up to twenty
-recently changed Event and Task drafts stay in the current authenticated tab's memory;
+recently changed Event, Task and Expense drafts stay in the current authenticated tab's memory;
 older non-pending drafts can be evicted. Drafts are never written to browser
 storage. Reload, sign-out and workspace changes clear them. Calendar navigation
 itself is not retained across routes. Schedule creation shares this limit with
-Event creation, Event/schedule-item editing and Task creation/editing.
-Expense and reminder forms are outside this recovery scope.
+Event creation, Event/schedule-item editing, Task and Expense creation/editing.
+Reminder forms are outside this recovery scope.
 
 Resume draft checks current access before displaying private values and preserves
 the original version for conflict detection. Temporary access failures allow an
@@ -425,6 +425,31 @@ Viewer empty states. Live-region semantics have automated coverage, but actual
 screen-reader announcements require manual assistive-technology validation.
 
 ## Expense amounts
+
+Add expense opens a focused dialog; Edit reads the canonical Expense and its own
+current access before showing fields. Record expense and Save expense are explicit
+actions. Pending saves disable fields and dismissal, failed saves preserve input,
+and dirty dismissal offers Keep editing or Discard. History remains available in
+the editor. Cmd/Ctrl+Enter follows the shared shortcut preference and native
+validation, including required transaction time and exact decimal input.
+
+Expense creation drafts belong to the parent Event; edit drafts follow their
+canonical object across contexts. Recovery checks fresh access before displaying
+fields and keeps the original version until an explicit load-latest action.
+An unchanged creation retry reuses its command after navigation. Changed input,
+discard, reload, eviction or session changes end that retry guarantee. Unknown
+edit outcomes require checking the current record before another save.
+
+Confirmed Task and Expense saves settle before background projection refreshes.
+A slow access or list refresh does not keep a completed write marked as pending;
+each view continues to own its loading and error state. Linked creation uses the
+same completion rule for scheduled Events and recorded reminders.
+
+Name-only edits preserve the complete transaction instant. Explicit time changes
+use the browser timezone and reject unavailable daylight-saving times. New dialogs
+start with USD and the current time; these are entry defaults, not inferred facts
+about another transaction. Physical mobile decimal-keyboard entry, including
+negative adjustments, still needs device testing.
 
 Expense rows and totals retain all nonzero digits of the stored four-decimal
 amount. Currency formatting uses the browser's locale and the currency's usual
