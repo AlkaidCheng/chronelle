@@ -19,6 +19,21 @@ export function readRequestTimeout(
   return timeoutMs;
 }
 
+const MAX_PAGE_LIMIT = 50;
+
+/** Page size for the read-contract harness; small values exercise cursor paging on a small fixture. */
+export function readPageLimit(
+  value = process.env.CLOUDBASE_CONTRACT_PAGE_LIMIT,
+) {
+  const limit = Number(value ?? MAX_PAGE_LIMIT);
+  if (!Number.isInteger(limit) || limit < 1 || limit > MAX_PAGE_LIMIT) {
+    throw new Error(
+      "CLOUDBASE_CONTRACT_PAGE_LIMIT must be an integer between 1 and 50.",
+    );
+  }
+  return limit;
+}
+
 export function assertApiKeyFresh(value) {
   assertCloudBaseApiKeyFresh(value);
 }
