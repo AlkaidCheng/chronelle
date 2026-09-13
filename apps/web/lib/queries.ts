@@ -1,6 +1,9 @@
 "use client";
 
-import type { DocumentFileInput } from "@chronelle/api-client";
+import type {
+  ChronelleApiClient,
+  DocumentFileInput,
+} from "@chronelle/api-client";
 import type {
   DevelopmentSignInRequest,
   EventCreatePayload,
@@ -186,40 +189,48 @@ export function useSharesQuery(eventId: string, enabled: boolean) {
 }
 
 export function useTaskEditorQueries(taskId: string) {
-  const client = useApiClient();
-  const { credential } = useAuthSession();
-  const task = useQuery({
-    enabled: credential !== null,
-    queryFn: ({ signal }) => client.withSignal(signal).getTask(taskId),
-    queryKey: queryKeys.objectResource(taskId),
-    refetchOnMount: "always",
-  });
-  const access = useQuery({
-    enabled: credential !== null,
-    queryFn: ({ signal }) => client.withSignal(signal).getObjectAccess(taskId),
-    queryKey: queryKeys.access(taskId),
-    refetchOnMount: "always",
-  });
+  const { resource: task, access } = useObjectEditorQueries(
+    taskId,
+    (client, id) => client.getTask(id),
+  );
   return { task, access };
 }
 
 export function useExpenseEditorQueries(expenseId: string) {
+  const { resource: expense, access } = useObjectEditorQueries(
+    expenseId,
+    (client, id) => client.getExpense(id),
+  );
+  return { expense, access };
+}
+
+export function useReminderEditorQueries(reminderId: string) {
+  const { resource: reminder, access } = useObjectEditorQueries(
+    reminderId,
+    (client, id) => client.getReminder(id),
+  );
+  return { reminder, access };
+}
+
+function useObjectEditorQueries<Resource>(
+  id: string,
+  read: (client: ChronelleApiClient, id: string) => Promise<Resource>,
+) {
   const client = useApiClient();
   const { credential } = useAuthSession();
-  const expense = useQuery({
+  const resource = useQuery({
     enabled: credential !== null,
-    queryFn: ({ signal }) => client.withSignal(signal).getExpense(expenseId),
-    queryKey: queryKeys.objectResource(expenseId),
+    queryFn: ({ signal }) => read(client.withSignal(signal), id),
+    queryKey: queryKeys.objectResource(id),
     refetchOnMount: "always",
   });
   const access = useQuery({
     enabled: credential !== null,
-    queryFn: ({ signal }) =>
-      client.withSignal(signal).getObjectAccess(expenseId),
-    queryKey: queryKeys.access(expenseId),
+    queryFn: ({ signal }) => client.withSignal(signal).getObjectAccess(id),
+    queryKey: queryKeys.access(id),
     refetchOnMount: "always",
   });
-  return { expense, access };
+  return { resource, access };
 }
 
 export function useRefreshEvent(
@@ -428,8 +439,11 @@ export function useUpdateExpense() {
   });
 }
 
-export function useCreateReminder(eventId: string) {
-  return useCreateInContext(eventId, "reminder");
+export function useCreateReminder(
+  eventId: string,
+  attempt?: ContextCreateAttempt,
+) {
+  return useCreateInContext(eventId, "reminder", attempt);
 }
 
 export function useUpdateReminder() {
@@ -438,6 +452,8 @@ export function useUpdateReminder() {
   return useMutation({
     mutationFn: ({ id, input }: { id: string; input: ReminderUpdatePayload }) =>
       client.updateReminder(id, input),
-    onSuccess: invalidate,
+    onSuccess: () => {
+      void invalidate();
+    },
   });
 }

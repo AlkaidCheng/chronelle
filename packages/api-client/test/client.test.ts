@@ -83,7 +83,9 @@ describe("ChronelleApiClient", () => {
     const headers = new Headers(fetch.mock.calls[0]?.[1]?.headers);
     expect(headers.get("authorization")).toBe("Bearer test-session");
     expect(headers.get("x-workspace-id")).toBe(event.workspaceId);
-    fetch.mockResolvedValueOnce(Response.json({ ...reminder, remindAt: "invalid" }));
+    fetch.mockResolvedValueOnce(
+      Response.json({ ...reminder, remindAt: "invalid" }),
+    );
     await expect(client.getReminder(event.id)).rejects.toThrow();
   });
   it("reads a canonical Expense with workspace credentials and validates decimal data", async () => {

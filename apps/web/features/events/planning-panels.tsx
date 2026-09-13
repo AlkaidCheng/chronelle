@@ -37,6 +37,7 @@ import {
 import { ExpenseForm } from "./expense-form";
 import { ExpenseInspector } from "./expense-inspector";
 import { ReminderForm } from "./reminder-form";
+import { ReminderInspector } from "./reminder-inspector";
 import { TaskForm } from "./task-form";
 import { TaskInspector } from "./task-inspector";
 
@@ -573,18 +574,35 @@ export function RemindersPanel({
   readonly eventId: string;
   readonly reminders: readonly ReminderResponse[];
 }) {
+  const [isAdding, setIsAdding] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const update = useUpdateReminder();
   const refresh = useRefreshEvent(eventId);
-  const editingReminder = reminders.find(({ id }) => id === editingId);
 
   return (
     <section className="planning-panel">
       <PanelHeading
         description="Keep track of what needs a nudge. Reminders are recorded here; notifications are not sent yet."
         title="Reminders"
+        action={
+          canEdit ? (
+            <button
+              className="button button-primary button-small"
+              type="button"
+              onClick={() => setIsAdding(true)}
+            >
+              Add reminder
+            </button>
+          ) : null
+        }
       />
-      {canEdit ? <ReminderForm eventId={eventId} /> : null}
+      {canEdit && isAdding ? (
+        <ReminderForm
+          key={eventId}
+          eventId={eventId}
+          onCancel={() => setIsAdding(false)}
+        />
+      ) : null}
       {update.isError ? (
         <ErrorNotice
           error={update.error}
@@ -595,7 +613,7 @@ export function RemindersPanel({
         <EmptyState
           description={
             canEdit
-              ? "Add a reminder using the form above."
+              ? "Record a reminder when you know the time."
               : "Reminders will appear here when available. This event is read-only."
           }
           title="No reminders"
@@ -658,18 +676,13 @@ export function RemindersPanel({
           ))}
         </div>
       )}
-      {!canEdit || editingReminder === undefined ? null : (
-        <div className="editor-drawer">
-          <div className="drawer-heading">
-            <h3>Edit reminder</h3>
-            <ObjectDetails id={editingReminder.id} />
-          </div>
-          <ReminderForm
-            eventId={eventId}
-            onCancel={() => setEditingId(null)}
-            reminder={editingReminder}
-          />
-        </div>
+      {!canEdit || editingId === null ? null : (
+        <ReminderInspector
+          key={editingId}
+          eventId={eventId}
+          onClose={() => setEditingId(null)}
+          reminderId={editingId}
+        />
       )}
     </section>
   );

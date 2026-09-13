@@ -295,12 +295,16 @@ describe("browser sandbox", () => {
     expect(await client.getReminder(reminder.resource.id)).toEqual(
       reminder.resource,
     );
-    await expect(client.getReminder(expense.resource.id)).rejects.toMatchObject({
-      status: 404,
-    });
-    await expect(client.getExpense(reminder.resource.id)).rejects.toMatchObject({
-      status: 404,
-    });
+    await expect(client.getReminder(expense.resource.id)).rejects.toMatchObject(
+      {
+        status: 404,
+      },
+    );
+    await expect(client.getExpense(reminder.resource.id)).rejects.toMatchObject(
+      {
+        status: 404,
+      },
+    );
     expect((await client.getEventExpenses(event.id)).items).toHaveLength(1);
     expect((await client.getEventReminders(event.id)).items).toHaveLength(1);
     expect((await client.getEventTimeline(event.id)).items).toHaveLength(2);

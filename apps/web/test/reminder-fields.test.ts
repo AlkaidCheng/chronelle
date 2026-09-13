@@ -1,5 +1,8 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { readReminderFields, reminderFieldsPayload } from "../lib/reminder-fields";
+import {
+  readReminderFields,
+  reminderFieldsPayload,
+} from "../lib/reminder-fields";
 
 describe("Reminder field conversion", () => {
   afterEach(() => vi.unstubAllEnvs());

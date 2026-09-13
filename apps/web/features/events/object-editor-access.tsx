@@ -17,7 +17,7 @@ export function ObjectEditorAccess<Resource>({
   children,
 }: {
   readonly id: string;
-  readonly kind: "task" | "expense";
+  readonly kind: "task" | "expense" | "reminder";
   readonly resource: UseQueryResult<Resource>;
   readonly access: UseQueryResult<ObjectAccessResponse>;
   readonly onClose: () => void;
@@ -78,7 +78,7 @@ function ObjectEditorStatus({
   children,
   onClose,
 }: {
-  readonly kind: "task" | "expense";
+  readonly kind: "task" | "expense" | "reminder";
   readonly children: ReactNode;
   readonly onClose: () => void;
 }) {
