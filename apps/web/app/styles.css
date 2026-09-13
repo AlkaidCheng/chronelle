@@ -1952,6 +1952,7 @@ a.search-result:hover {
 
 .row-actions {
   display: flex;
+  flex-wrap: wrap;
   gap: 4px;
 }
 
@@ -2326,10 +2327,13 @@ a.search-result:hover {
   }
 
   .resource-list > article > .status-chip,
-  .resource-list .row-actions,
   .resource-list > article > .button {
     grid-column: 2;
     justify-self: start;
+  }
+
+  .resource-list .row-actions {
+    grid-column: 1 / -1;
   }
 
   .resource-list .money-value {

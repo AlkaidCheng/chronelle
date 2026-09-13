@@ -136,6 +136,7 @@ export async function exerciseObjectRecovery(
   await expect(page.getByRole("dialog")).toHaveCount(0);
   const row = page.getByRole(rowRole).filter({ hasText: "Pack the lanterns" });
   await expect(row).toHaveCount(1);
+  await expectHorizontalReflow(page);
   const edit = row.getByRole("button", { name: "Edit", exact: true });
   await edit.click();
   await name.fill("Pack the lanterns and candles");
