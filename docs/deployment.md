@@ -51,6 +51,7 @@ server-only API key in CloudBase, then place these values in the ignored root
 CLOUDBASE_ENV_ID=your-cloudbase-environment-id
 CLOUDBASE_APIKEY=your-short-lived-server-api-key
 CLOUDBASE_READS_ENABLED=false
+CLOUDBASE_REQUEST_TIMEOUT_MS=30000
 # Required only for the real read-contract harness below.
 CLOUDBASE_CONTRACT_WORKSPACE_ID=staging-workspace-id
 CLOUDBASE_CONTRACT_USER_ID=staging-user-id
@@ -100,10 +101,10 @@ PostgreSQL route. This keeps the local schema, migrations, and future dedicated
 PostgreSQL deployment reusable rather than creating a second canonical data
 model.
 
-CloudBase RDB reads have a bounded 30-second request timeout by default. The
-transport option may raise it only up to 120 seconds when a deployment has a
-documented latency budget; it must not be used to mask gateway or quota
-failures.
+CloudBase RDB reads have a bounded 30-second request timeout by default. Set
+`CLOUDBASE_REQUEST_TIMEOUT_MS` to change it within the validated 1–120 second
+range when a deployment has a documented latency budget; it must not be used
+to mask gateway or quota failures.
 
 ### Run the real CloudBase read contract
 

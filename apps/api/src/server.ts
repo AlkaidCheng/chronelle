@@ -20,6 +20,12 @@ const runtimeEnvironmentSchema = z.object({
   CLOUDBASE_READS_ENABLED: z.stringbool().default(false),
   CLOUDBASE_ENV_ID: z.string().min(1).optional(),
   CLOUDBASE_APIKEY: z.string().min(1).optional(),
+  CLOUDBASE_REQUEST_TIMEOUT_MS: z.coerce
+    .number()
+    .int()
+    .positive()
+    .max(120_000)
+    .default(30_000),
   DEVELOPMENT_AUTH_SESSION_TTL_MINUTES: z.coerce
     .number()
     .int()
@@ -47,6 +53,7 @@ const cloudBaseRdb = runtimeEnvironment.CLOUDBASE_READS_ENABLED
       accessKey:
         runtimeEnvironment.CLOUDBASE_APIKEY ??
         missingCloudBaseValue("CLOUDBASE_APIKEY"),
+      requestTimeoutMs: runtimeEnvironment.CLOUDBASE_REQUEST_TIMEOUT_MS,
     })
   : undefined;
 const dependencies = createDevelopmentAppDependencies(database, {
