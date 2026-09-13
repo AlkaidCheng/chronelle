@@ -48,6 +48,31 @@ function isResource<Type extends EventPlanningResource["objectType"]>(
 }
 
 type TimelineResource = Exclude<EventPlanningResource, DocumentResource>;
+
+export interface CalendarReadRepository {
+  listEvents(
+    principal: UserPrincipal,
+    eventId: string,
+  ): Promise<readonly EventResource[]>;
+}
+
+export class PostgresCalendarReadRepository implements CalendarReadRepository {
+  readonly #database: Database;
+
+  constructor(database: Database) {
+    this.#database = database;
+  }
+
+  listEvents(
+    principal: UserPrincipal,
+    eventId: string,
+  ): Promise<readonly EventResource[]> {
+    return readProjectionResources(this.#database, principal, eventId, [
+      "event",
+    ]);
+  }
+}
+
 function timelineItem(resource: TimelineResource): TimelineItem[] {
   if (resource.objectType === "event" && resource.startsOn !== null)
     return [
@@ -90,9 +115,12 @@ function timelineItem(resource: TimelineResource): TimelineItem[] {
 
 export class EventPlanningProjectionService {
   readonly #database: Database;
+  readonly #calendarReads: CalendarReadRepository;
 
-  constructor(database: Database) {
+  constructor(database: Database, calendarReads?: CalendarReadRepository) {
     this.#database = database;
+    this.#calendarReads =
+      calendarReads ?? new PostgresCalendarReadRepository(database);
   }
 
   async getDetail(
@@ -159,9 +187,7 @@ export class EventPlanningProjectionService {
     principal: UserPrincipal,
     eventId: string,
   ): Promise<EventResourceProjection> {
-    const resources = await this.#getProjectionResources(principal, eventId, [
-      "event",
-    ]);
+    const resources = await this.#calendarReads.listEvents(principal, eventId);
     return {
       sourceEventId: eventId,
       items: this.#scheduledEvents(resources),
@@ -249,28 +275,11 @@ export class EventPlanningProjectionService {
     eventId: string,
     objectTypes: readonly Type[],
   ): Promise<Extract<EventPlanningResource, { objectType: Type }>[]> {
-    return withReadAuthorization(
+    return readProjectionResources(
       this.#database,
-      async (transaction, authorization) => {
-        const reader = new EventPlanningObjectService({
-          database: transaction,
-          authorization,
-        });
-        await reader.getEvent(principal, eventId);
-        const included = await this.#getIncludedResources(
-          transaction,
-          reader,
-          principal,
-          eventId,
-          objectTypes,
-        );
-        return included.resources.filter(
-          (
-            resource,
-          ): resource is Extract<EventPlanningResource, { objectType: Type }> =>
-            objectTypes.some((type) => resource.objectType === type),
-        );
-      },
+      principal,
+      eventId,
+      objectTypes,
     );
   }
 
@@ -370,4 +379,51 @@ export class EventPlanningProjectionService {
       lockedRelationCount: objectIds.length - resources.length,
     };
   }
+}
+
+async function readProjectionResources<
+  Type extends TimelineResource["objectType"],
+>(
+  database: Database,
+  principal: UserPrincipal,
+  eventId: string,
+  objectTypes: readonly Type[],
+): Promise<Extract<EventPlanningResource, { objectType: Type }>[]> {
+  return withReadAuthorization(database, async (transaction, authorization) => {
+    const reader = new EventPlanningObjectService({
+      database: transaction,
+      authorization,
+    });
+    await reader.getEvent(principal, eventId);
+    const relations = await transaction
+      .select({ targetObjectId: objectRelations.targetObjectId })
+      .from(objectRelations)
+      .innerJoin(
+        objects,
+        and(
+          eq(objects.workspaceId, objectRelations.workspaceId),
+          eq(objects.id, objectRelations.targetObjectId),
+          isNull(objects.deletedAt),
+          inArray(objects.objectType, [...objectTypes]),
+        ),
+      )
+      .where(
+        and(
+          eq(objectRelations.workspaceId, principal.workspaceId),
+          eq(objectRelations.sourceObjectId, eventId),
+          eq(objectRelations.relationType, "includes"),
+          isNull(objectRelations.deletedAt),
+        ),
+      );
+    const resources = await reader.listVisibleObjects(
+      principal,
+      relations.map(({ targetObjectId }) => targetObjectId),
+    );
+    return resources.filter(
+      (
+        resource,
+      ): resource is Extract<EventPlanningResource, { objectType: Type }> =>
+        objectTypes.some((type) => resource.objectType === type),
+    );
+  });
 }

@@ -5,7 +5,11 @@ export {
   isCompatibleRelation,
   ObjectRelationService,
 } from "./relation-service.js";
-export { EventPlanningProjectionService } from "./projection-service.js";
+export {
+  EventPlanningProjectionService,
+  PostgresCalendarReadRepository,
+  type CalendarReadRepository,
+} from "./projection-service.js";
 export {
   PostgresEventReadRepository,
   type EventReadRepository,
