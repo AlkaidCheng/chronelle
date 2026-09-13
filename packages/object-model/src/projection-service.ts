@@ -50,7 +50,7 @@ function isResource<Type extends EventPlanningResource["objectType"]>(
 type TimelineResource = Exclude<EventPlanningResource, DocumentResource>;
 
 export interface CalendarReadRepository {
-  listEvents(
+  listCalendarEvents(
     principal: UserPrincipal,
     eventId: string,
   ): Promise<readonly EventResource[]>;
@@ -63,7 +63,7 @@ export class PostgresCalendarReadRepository implements CalendarReadRepository {
     this.#database = database;
   }
 
-  listEvents(
+  listCalendarEvents(
     principal: UserPrincipal,
     eventId: string,
   ): Promise<readonly EventResource[]> {
@@ -187,7 +187,10 @@ export class EventPlanningProjectionService {
     principal: UserPrincipal,
     eventId: string,
   ): Promise<EventResourceProjection> {
-    const resources = await this.#calendarReads.listEvents(principal, eventId);
+    const resources = await this.#calendarReads.listCalendarEvents(
+      principal,
+      eventId,
+    );
     return {
       sourceEventId: eventId,
       items: this.#scheduledEvents(resources),

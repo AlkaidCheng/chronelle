@@ -12,8 +12,8 @@ describe("calendar read repository boundary", () => {
       userId: "user-1",
       workspaceId: "workspace-1",
     };
-    const listEvents = vi.fn().mockResolvedValue([]);
-    const repository: CalendarReadRepository = { listEvents };
+    const listCalendarEvents = vi.fn().mockResolvedValue([]);
+    const repository: CalendarReadRepository = { listCalendarEvents };
     const service = new EventPlanningProjectionService(
       {} as Database,
       repository,
@@ -23,7 +23,7 @@ describe("calendar read repository boundary", () => {
       sourceEventId: "event-1",
       items: [],
     });
-    expect(listEvents).toHaveBeenCalledOnce();
-    expect(listEvents).toHaveBeenCalledWith(principal, "event-1");
+    expect(listCalendarEvents).toHaveBeenCalledOnce();
+    expect(listCalendarEvents).toHaveBeenCalledWith(principal, "event-1");
   });
 });
