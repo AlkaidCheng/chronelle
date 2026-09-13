@@ -1,9 +1,33 @@
 import { describe, expect, it, vi } from "vitest";
 
 import {
+  assertCloudBaseApiKeyFresh,
   CloudBaseRdbTimeoutError,
   createCloudBaseRdbClient,
 } from "../src/cloudbase-rdb.js";
+
+describe("assertCloudBaseApiKeyFresh", () => {
+  const now = 2_000_000;
+
+  it("rejects an expired JWT-shaped key", () => {
+    const payload = Buffer.from(JSON.stringify({ exp: 1 })).toString(
+      "base64url",
+    );
+    expect(() =>
+      assertCloudBaseApiKeyFresh(`header.${payload}.signature`, now),
+    ).toThrow("CLOUDBASE_APIKEY is expired");
+  });
+
+  it("accepts a future expiry and opaque provider keys", () => {
+    const payload = Buffer.from(JSON.stringify({ exp: 3_000 })).toString(
+      "base64url",
+    );
+    expect(() =>
+      assertCloudBaseApiKeyFresh(`header.${payload}.signature`, now),
+    ).not.toThrow();
+    expect(() => assertCloudBaseApiKeyFresh("opaque-key", now)).not.toThrow();
+  });
+});
 
 describe("CloudBase RDB client", () => {
   it("keeps reads behind a small transport boundary", async () => {

@@ -71,6 +71,37 @@ export interface CloudBaseRdbConnectionOptions {
   readonly requestTimeoutMs?: number | undefined;
 }
 
+/**
+ * Reject an expired JWT-shaped server key before the first gateway request.
+ * Opaque provider keys remain valid inputs because their expiry is not
+ * represented locally.
+ */
+export function assertCloudBaseApiKeyFresh(
+  value: string,
+  nowMs = Date.now(),
+): void {
+  const segment = value.split(".")[1];
+  if (segment === undefined) return;
+  let payload: unknown;
+  try {
+    payload = JSON.parse(Buffer.from(segment, "base64url").toString("utf8"));
+  } catch {
+    return;
+  }
+  if (
+    payload === null ||
+    typeof payload !== "object" ||
+    typeof (payload as { exp?: unknown }).exp !== "number" ||
+    !Number.isFinite((payload as { exp: number }).exp)
+  )
+    return;
+  if ((payload as { exp: number }).exp * 1000 <= nowMs) {
+    throw new Error(
+      "CLOUDBASE_APIKEY is expired. Replace it with a fresh short-lived server key and retry.",
+    );
+  }
+}
+
 export class CloudBaseRdbTimeoutError extends Error {
   constructor(timeoutMs: number) {
     super(`CloudBase RDB request timed out after ${timeoutMs}ms.`);
