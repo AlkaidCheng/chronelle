@@ -88,10 +88,10 @@ export function WorkspaceCommands({
   });
   const matches = [...matchingCommands(commands, query), ...records];
   const selected = matches.find((command) => command.id === selectedId);
-  const firstRecordId = records[0]?.id;
+  const firstMatchId = matches[0]?.id;
   useEffect(() => {
-    if (selectedId === null && firstRecordId) setSelectedId(firstRecordId);
-  }, [selectedId, firstRecordId]);
+    if (selectedId === null && firstMatchId) setSelectedId(firstMatchId);
+  }, [selectedId, firstMatchId]);
   useEffect(() => {
     input.current?.focus();
   }, []);
