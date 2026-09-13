@@ -457,7 +457,10 @@ edit outcomes require checking the current record before another save.
 Confirmed Event, Task, Expense and Reminder saves settle before background projection refreshes.
 A slow access or list refresh does not keep a completed write marked as pending;
 each view continues to own its loading and error state. Linked creation uses the
-same completion rule for scheduled Events and recorded reminders.
+same completion rule for scheduled Events and recorded reminders. A confirmed Event
+save also publishes the acknowledged record to the editor's canonical read before
+that refresh completes, so reopening Edit event shows the saved name and version
+rather than an earlier cached copy; a newer version already loaded is kept.
 
 Name-only edits preserve the complete transaction instant. Explicit time changes
 use the browser timezone and reject unavailable daylight-saving times. New dialogs

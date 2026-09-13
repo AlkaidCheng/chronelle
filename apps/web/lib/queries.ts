@@ -11,6 +11,7 @@ import type {
   EventUpdatePayload,
   EventListQueryInput,
   EventListResponse,
+  EventResponse,
   ExpenseUpdatePayload,
   ObjectSearchQueryInput,
   ObjectSearchResponse,
@@ -301,11 +302,19 @@ export function useCreateEvent() {
 
 export function useUpdateEvent() {
   const client = useApiClient();
+  const queryClient = useQueryClient();
+  const { signal } = useAuthSession();
   const invalidate = useCanonicalInvalidation();
   return useMutation({
     mutationFn: ({ id, input }: { id: string; input: EventUpdatePayload }) =>
       client.updateEvent(id, input),
-    onSuccess: () => {
+    onSuccess: async (saved) => {
+      const queryKey = queryKeys.eventResource(saved.id);
+      await queryClient.cancelQueries({ queryKey, exact: true });
+      if (signal.aborted) return;
+      queryClient.setQueryData<EventResponse>(queryKey, (current) =>
+        current && current.version > saved.version ? current : saved,
+      );
       void invalidate();
     },
   });
