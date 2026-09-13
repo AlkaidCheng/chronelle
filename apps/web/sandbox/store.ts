@@ -436,11 +436,13 @@ export class SandboxStore {
     }
     if (
       id &&
-      (collection === "tasks" || collection === "expenses") &&
+      (collection === "tasks" ||
+        collection === "expenses" ||
+        collection === "reminders") &&
       !operation
     ) {
       const object = this.#object(id);
-      const type = collection === "tasks" ? "task" : "expense";
+      const type = collection.slice(0, -1);
       if (object.objectType !== type)
         throw new SandboxError(404, "not_found", "Record is unavailable.");
       return object;
