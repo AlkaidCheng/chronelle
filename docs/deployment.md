@@ -56,7 +56,7 @@ CLOUDBASE_REQUEST_TIMEOUT_MS=30000
 CLOUDBASE_CONTRACT_WORKSPACE_ID=staging-workspace-id
 CLOUDBASE_CONTRACT_USER_ID=staging-user-id
 CLOUDBASE_CONTRACT_EVENT_ID=staging-event-id
-# Optional comma-separated expectations for a non-mutating staging check.
+# Optional comma-separated expectations; when set, the returned set must match exactly.
 CLOUDBASE_CONTRACT_EXPECTED_EVENT_IDS=event-id-1,event-id-2
 CLOUDBASE_CONTRACT_EXPECTED_CALENDAR_IDS=event-id-2
 # Optional: an event the principal must not be able to read.

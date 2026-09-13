@@ -84,30 +84,16 @@ for (const resource of [...firstPage.items, ...secondPage.items, ...calendar]) {
     throw new Error(`CloudBase returned a non-event resource: ${resource.id}`);
 }
 
-const expectedEventIds = (
-  process.env.CLOUDBASE_CONTRACT_EXPECTED_EVENT_IDS ?? ""
-)
-  .split(",")
-  .map((value) => value.trim())
-  .filter(Boolean);
-for (const expectedId of expectedEventIds) {
-  if (!new Set(allIds).has(expectedId))
-    throw new Error(`Expected CloudBase event was not returned: ${expectedId}`);
-}
-
-const expectedCalendarIds = (
-  process.env.CLOUDBASE_CONTRACT_EXPECTED_CALENDAR_IDS ?? ""
-)
-  .split(",")
-  .map((value) => value.trim())
-  .filter(Boolean);
-const calendarIds = new Set(calendar.map(({ id }) => id));
-for (const expectedId of expectedCalendarIds) {
-  if (!calendarIds.has(expectedId))
-    throw new Error(
-      `Expected CloudBase calendar event was not returned: ${expectedId}`,
-    );
-}
+assertExactIds(
+  "event",
+  allIds,
+  process.env.CLOUDBASE_CONTRACT_EXPECTED_EVENT_IDS,
+);
+assertExactIds(
+  "calendar event",
+  calendar.map(({ id }) => id),
+  process.env.CLOUDBASE_CONTRACT_EXPECTED_CALENDAR_IDS,
+);
 
 const deniedEventId = process.env.CLOUDBASE_CONTRACT_DENIED_EVENT_ID;
 if (deniedEventId !== undefined) {
@@ -144,4 +130,24 @@ exitAfterFlush(0);
 
 function elapsedMs(startedAt) {
   return Math.max(0, Math.round(performance.now() - startedAt));
+}
+
+/** An expectation, when configured, is the complete set: extras fail like omissions. */
+function assertExactIds(label, actualIds, expected) {
+  const expectedIds = (expected ?? "")
+    .split(",")
+    .map((value) => value.trim())
+    .filter(Boolean);
+  if (expectedIds.length === 0) return;
+  const actual = new Set(actualIds);
+  const missing = expectedIds.filter((id) => !actual.has(id));
+  const unexpected = actualIds.filter((id) => !expectedIds.includes(id));
+  if (missing.length > 0)
+    throw new Error(
+      `Expected CloudBase ${label}s were not returned: ${missing.join(", ")}`,
+    );
+  if (unexpected.length > 0)
+    throw new Error(
+      `CloudBase returned ${label}s outside the expected set: ${unexpected.join(", ")}`,
+    );
 }
