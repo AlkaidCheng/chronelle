@@ -50,6 +50,7 @@ server-only API key in CloudBase, then place these values in the ignored root
 ```dotenv
 CLOUDBASE_ENV_ID=your-cloudbase-environment-id
 CLOUDBASE_APIKEY=your-short-lived-server-api-key
+CLOUDBASE_READS_ENABLED=false
 # Required only for the real read-contract harness below.
 CLOUDBASE_CONTRACT_WORKSPACE_ID=staging-workspace-id
 CLOUDBASE_CONTRACT_USER_ID=staging-user-id
@@ -83,6 +84,14 @@ bounded, non-transactional reads. It validates table identifiers, preserves
 pagination bounds, and reports the backend capabilities explicitly. The
 existing `connectDatabase(DATABASE_URL)` Drizzle/PostgreSQL adapter remains the
 runtime default and is intentionally unchanged.
+
+After the read-contract harness passes against staging, set
+`CLOUDBASE_READS_ENABLED=true` to opt the API's event-list and calendar reads
+into the CloudBase repositories. `DATABASE_URL` remains required: object
+mutations, detail hydration, audit writes, recovery, sharing, and all
+transaction-heavy services continue to use PostgreSQL. The flag is disabled by
+default and must never be enabled solely because the SDK connection probe
+succeeds.
 
 The CloudBase transport does not replace Chronelle's Drizzle adapter for
 audited mutations, optimistic concurrency, or multi-table writes. Those
