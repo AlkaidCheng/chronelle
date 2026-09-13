@@ -40,5 +40,8 @@
     "typescript": "7.0.2",
     "vitest": "4.1.11",
     "yaml": "2.9.0"
+  },
+  "dependencies": {
+    "ws": "8.18.3"
   }
 }

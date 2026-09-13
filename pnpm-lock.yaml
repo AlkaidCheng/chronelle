@@ -7,6 +7,10 @@ settings:
 importers:
 
   .:
+    dependencies:
+      ws:
+        specifier: 8.18.3
+        version: 8.18.3
     devDependencies:
       '@biomejs/biome':
         specifier: 2.5.11
@@ -3483,7 +3487,7 @@ snapshots:
       whatwg-encoding: 3.1.1
       whatwg-mimetype: 4.0.0
       whatwg-url: 14.2.0
-      ws: 8.21.3
+      ws: 8.18.3
       xml-name-validator: 5.0.0
     transitivePeerDependencies:
       - bufferutil
@@ -4148,7 +4152,8 @@ snapshots:
 
   ws@8.18.3: {}
 
-  ws@8.21.3: {}
+  ws@8.21.3:
+    optional: true
 
   xml-name-validator@5.0.0: {}
 
