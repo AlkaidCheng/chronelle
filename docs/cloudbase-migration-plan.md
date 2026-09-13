@@ -44,6 +44,10 @@ event repository is intentionally deferred until the gateway can express the
 same permission-filtered query contract; the UI and API service do not need to
 change when that adapter is added.
 
+The event calendar projection now has a matching `CalendarReadRepository`
+boundary. Its PostgreSQL implementation returns the same authorized canonical
+events, while the projection service retains scheduling and sorting semantics.
+
 ## Migration phases
 
 ### Phase 1 — Contract and schema inventory
@@ -148,7 +152,7 @@ PostgreSQL adapter.
 
 ## Recommended next PR
 
-Extend the read boundary to calendar projections and add differential fixtures
-that compare PostgreSQL results with a CloudBase-compatible test double. Keep
+Add differential fixtures that compare PostgreSQL results with a
+CloudBase-compatible test double for event lists and calendar projections. Keep
 the API response schemas unchanged and do not migrate mutations until the
 permission and pagination contract is proven.
