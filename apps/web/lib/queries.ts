@@ -293,7 +293,9 @@ export function useCreateEvent() {
   const invalidate = useCanonicalInvalidation();
   return useMutation({
     mutationFn: (input: EventCreatePayload) => client.createEvent(input),
-    onSuccess: invalidate,
+    onSuccess: () => {
+      void invalidate();
+    },
   });
 }
 
@@ -303,7 +305,9 @@ export function useUpdateEvent() {
   return useMutation({
     mutationFn: ({ id, input }: { id: string; input: EventUpdatePayload }) =>
       client.updateEvent(id, input),
-    onSuccess: invalidate,
+    onSuccess: () => {
+      void invalidate();
+    },
   });
 }
 

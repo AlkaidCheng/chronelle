@@ -9,8 +9,11 @@ import {
   queryKeys,
   useCreateTask,
   useUpdateTask,
+  useCreateEvent,
+  useUpdateEvent,
   useRefreshEvent,
 } from "../lib/queries";
+import { SandboxStore, sandboxWorkspaceId } from "../sandbox/store";
 
 const workspaceId = "019d6e7d-0000-7000-8000-000000000001";
 const eventId = "019d6e7d-0000-7000-8000-000000000010";
@@ -30,6 +33,88 @@ describe("canonical cache invalidation", () => {
     vi.unstubAllGlobals();
     window.sessionStorage.clear();
   });
+
+  it.each(["create", "edit"] as const)(
+    "settles confirmed Event %s while a projection refresh remains pending",
+    async (mode) => {
+      window.sessionStorage.setItem(
+        "chronelle.development-session",
+        JSON.stringify({
+          accessToken: "test-session",
+          workspaceId: sandboxWorkspaceId,
+        }),
+      );
+      let stored: string | null = null;
+      const store = new SandboxStore({
+        getItem: () => stored,
+        setItem: (_key, value) => {
+          stored = value;
+        },
+      });
+      const original = await (
+        await store.fetch("/api/events", {
+          method: "POST",
+          body: JSON.stringify({ displayName: "Original" }),
+        })
+      ).json();
+      vi.stubGlobal(
+        "fetch",
+        (input: RequestInfo | URL, options?: RequestInit) =>
+          store.fetch(input, options),
+      );
+      const release = Promise.withResolvers<never[]>();
+      let refreshing = false;
+      const { result } = renderHook(
+        () => {
+          const query = useQuery({
+            queryKey: queryKeys.events,
+            queryFn: () => (refreshing ? release.promise : Promise.resolve([])),
+          });
+          const create = useCreateEvent();
+          const update = useUpdateEvent();
+          return {
+            query,
+            save: () =>
+              mode === "create"
+                ? create.mutateAsync({ displayName: "Saved event" })
+                : update.mutateAsync({
+                    id: original.id,
+                    input: {
+                      displayName: "Saved event",
+                      expectedVersion: original.version,
+                    },
+                  }),
+          };
+        },
+        { wrapper: Providers },
+      );
+      await waitFor(() => expect(result.current.query.isSuccess).toBe(true));
+      refreshing = true;
+      let saved: Awaited<ReturnType<typeof result.current.save>> | undefined;
+      let failure: unknown;
+      try {
+        act(() => {
+          void result.current.save().then(
+            (value) => {
+              saved = value;
+            },
+            (error: unknown) => {
+              failure = error;
+            },
+          );
+        });
+        await waitFor(() => {
+          expect(failure).toBeUndefined();
+          expect(saved?.displayName).toBe("Saved event");
+        });
+        expect(result.current.query.isFetching).toBe(true);
+      } finally {
+        await act(async () => {
+          release.resolve([]);
+        });
+      }
+    },
+  );
 
   it.each([false, true])(
     "reports refresh failures when requested (throwOnError: %s)",
