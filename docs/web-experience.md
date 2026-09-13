@@ -395,17 +395,16 @@ content even when a cached copy exists. Backend authorization and version checks
 still apply to every mutation. Retained data is not a freshness guarantee.
 Unsaved drafts are not durable storage or offline synchronization. Confirming
 document navigation, changing sessions, or closing the browser can discard them.
-Event creation, schedule creation, Event inspectors, Task and Expense editors guard edited-form dismissal. Other
+Event creation, schedule creation, Event inspectors, Task, Expense and Reminder editors guard edited-form dismissal. Other
 planning editors retain their existing navigation behavior.
 Client-side browser Back/Forward transitions are not intercepted. Save or close
 the inspector to finish explicitly, or navigate and reopen Edit event to recover
 its unsaved name and schedule. New event offers the same recovery. Up to twenty
-recently changed Event, Task and Expense drafts stay in the current authenticated tab's memory;
+recently changed Event, Task, Expense and Reminder drafts stay in the current authenticated tab's memory;
 older non-pending drafts can be evicted. Drafts are never written to browser
 storage. Reload, sign-out and workspace changes clear them. Calendar navigation
 itself is not retained across routes. Schedule creation shares this limit with
-Event creation, Event/schedule-item editing, Task and Expense creation/editing.
-Reminder forms are outside this recovery scope.
+Event creation, Event/schedule-item editing, Task, Expense and Reminder creation/editing.
 
 Resume draft checks current access before displaying private values and preserves
 the original version for conflict detection. Temporary access failures allow an
@@ -424,6 +423,21 @@ desktop/mobile Chromium and WebKit. The offline Chromium suite also checks
 Viewer empty states. Live-region semantics have automated coverage, but actual
 screen-reader announcements require manual assistive-technology validation.
 
+## Recorded reminders
+
+Add reminder opens a focused dialog with a name and required Reminder time.
+Record reminder and Save reminder submit explicitly. No notification is sent;
+the form states this limitation before saving. Edit loads the canonical Reminder
+and its current access, not an editable copy of a projection row. Name-only edits
+preserve the original precise instant, and metadata edits do not reset status.
+The existing Dismiss action remains available for pending reminders.
+
+Reminder drafts share the same tab-local recovery, parent creation keys,
+canonical edit keys, original versions and unchanged-retry identity as other
+planning editors. They do not survive reload or sign-out. Temporary access
+failures retain approved drafts; definitive denial clears them. Confirmed saves
+settle independently of slow projection refreshes.
+
 ## Expense amounts
 
 Add expense opens a focused dialog; Edit reads the canonical Expense and its own
@@ -440,7 +454,7 @@ An unchanged creation retry reuses its command after navigation. Changed input,
 discard, reload, eviction or session changes end that retry guarantee. Unknown
 edit outcomes require checking the current record before another save.
 
-Confirmed Task and Expense saves settle before background projection refreshes.
+Confirmed Event, Task, Expense and Reminder saves settle before background projection refreshes.
 A slow access or list refresh does not keep a completed write marked as pending;
 each view continues to own its loading and error state. Linked creation uses the
 same completion rule for scheduled Events and recorded reminders.

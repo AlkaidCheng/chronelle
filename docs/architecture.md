@@ -348,7 +348,7 @@ timezone. Formatters resolve runtime defaults on each call. Month casing stays
 with each view. Typed submit handlers retain their resource-specific payloads
 and creation resets; shared draft state and controls own the common lifecycle.
 
-Event, Task and Expense recovery share one authenticated-tab store with a twenty-draft
+Event, Task, Expense and Reminder recovery share one authenticated-tab store with a twenty-draft
 limit. Snapshots preserve typed fields, source versions and creation receipts;
 they are not canonical records or browser storage. Creation keys include the
 parent Event and resource kind; edit keys use the canonical object ID. Resuming
@@ -357,11 +357,15 @@ creation drafts, while canonical child edits require their own access decision.
 Pending saves remain tracked across unmounts, and late results cannot repopulate
 a cleared session. See [Editor recovery](web-experience.md) for lifetime limits.
 
-Task and Expense inspectors share a fresh-read access boundary. Typed canonical
+Task, Expense and Reminder inspectors share a fresh-read access boundary. Typed canonical
 reads and access queries must both settle before cached fields become visible.
 Temporary refresh failures preserve an approved editor; definitive denial clears
 its retained draft. Expense amounts remain decimal text, and name-only edits
 preserve the original transaction instant, including seconds and milliseconds.
+The planning editors share focus/discard behavior and lossless local-instant
+conversion while keeping typed fields and payloads domain-specific. Reminder
+metadata edits omit status, preserving dismissed, triggered and cancelled records.
+Recording a Reminder does not schedule notification delivery.
 
 The Event Sharing view is capability-driven: only principals with Share see
 grant administration, while Viewers receive read-only planning panels. Owners

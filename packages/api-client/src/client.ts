@@ -599,6 +599,10 @@ export class ChronelleApiClient {
     return this.#request(`/api/expenses/${id}`, expenseResponseSchema);
   }
 
+  getReminder(id: string): Promise<ReminderResponse> {
+    return this.#request(`/api/reminders/${id}`, reminderResponseSchema);
+  }
+
   getEventLayout(id: string): Promise<EventLayoutResponse> {
     return this.#request(`/api/events/${id}/layout`, eventLayoutResponseSchema);
   }

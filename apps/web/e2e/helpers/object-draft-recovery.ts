@@ -2,6 +2,27 @@ import { expect, type Page, type TestInfo } from "@playwright/test";
 import { expectToken } from "./appearance";
 import { expectHorizontalReflow } from "./page-navigation";
 
+export const planningEditors = {
+  task: {
+    field: "Task",
+    timeLabel: "Due",
+    view: "To-dos",
+    projection: "todos",
+  },
+  expense: {
+    field: "Expense",
+    timeLabel: "Date",
+    view: "Expenses",
+    projection: "expenses",
+  },
+  reminder: {
+    field: "Reminder",
+    timeLabel: "Reminder time",
+    view: "Reminders",
+    projection: "reminders",
+  },
+} as const;
+
 export async function revisitObjectView(page: Page) {
   const url = page.url();
   const length = await page.evaluate(() => history.length);
@@ -16,16 +37,15 @@ export async function revisitObjectView(page: Page) {
 export async function exerciseObjectRecovery(
   page: Page,
   testInfo: TestInfo,
-  kind: "task" | "expense",
+  kind: keyof typeof planningEditors,
 ) {
-  const field = kind === "task" ? "Task" : "Expense";
-  const timeLabel = kind === "task" ? "Due" : "Date";
+  const { field, timeLabel, view } = planningEditors[kind];
   const rowRole = kind === "task" ? "row" : "article";
 
   await page.getByRole("button", { name: "Browse event data" }).click();
   await page
     .getByRole("tab", {
-      name: kind === "task" ? "To-dos" : "Expenses",
+      name: view,
       exact: true,
     })
     .click();
@@ -84,10 +104,12 @@ export async function exerciseObjectRecovery(
     await expect(page.getByLabel("Currency", { exact: true })).toHaveValue(
       "CNY",
     );
+  }
+  if (kind !== "task") {
     for (const colorScheme of ["light", "dark"] as const) {
       await page.emulateMedia({ colorScheme, reducedMotion: "reduce" });
       const editor = page.getByRole("dialog", {
-        name: "Add expense",
+        name: `Add ${kind}`,
         exact: true,
       });
       await expect(page.locator("html")).toHaveCSS("color-scheme", colorScheme);
@@ -103,10 +125,10 @@ export async function exerciseObjectRecovery(
       );
       await expectHorizontalReflow(page);
       await expect(
-        editor.getByRole("button", { name: "Record expense", exact: true }),
+        editor.getByRole("button", { name: `Record ${kind}`, exact: true }),
       ).toBeInViewport();
       await page.screenshot({
-        path: testInfo.outputPath(`expense-editor-${colorScheme}.png`),
+        path: testInfo.outputPath(`${kind}-editor-${colorScheme}.png`),
       });
     }
   }
@@ -114,6 +136,7 @@ export async function exerciseObjectRecovery(
   await expect(page.getByRole("dialog")).toHaveCount(0);
   const row = page.getByRole(rowRole).filter({ hasText: "Pack the lanterns" });
   await expect(row).toHaveCount(1);
+  await expectHorizontalReflow(page);
   const edit = row.getByRole("button", { name: "Edit", exact: true });
   await edit.click();
   await name.fill("Pack the lanterns and candles");
@@ -128,6 +151,18 @@ export async function exerciseObjectRecovery(
   await expect(page.getByRole("dialog")).toHaveCount(0);
   await expect(row).toHaveCount(1);
   await expect(edit).toBeFocused();
+  if (kind === "reminder") {
+    await row.getByRole("button", { name: "Dismiss", exact: true }).click();
+    await expect(row.getByText("dismissed", { exact: true })).toBeVisible();
+    await edit.click();
+    await name.fill("Pack the lanterns and candles tonight");
+    await name.press("ControlOrMeta+Enter");
+    await expect(page.getByRole("dialog")).toHaveCount(0);
+    await expect(row.getByText("dismissed", { exact: true })).toBeVisible();
+    await expect(
+      row.getByRole("button", { name: "Dismiss", exact: true }),
+    ).toHaveCount(0);
+  }
   await add.click();
   await name.fill("Discard this plan");
   await revisitObjectView(page);

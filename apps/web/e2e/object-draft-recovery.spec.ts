@@ -4,6 +4,7 @@ import { createRecoveryEvent } from "./helpers/event-draft-recovery";
 import {
   exerciseObjectRecovery,
   revisitObjectView,
+  planningEditors,
 } from "./helpers/object-draft-recovery";
 
 async function signIn(page: Page) {
@@ -15,7 +16,8 @@ async function signIn(page: Page) {
   return email;
 }
 
-for (const kind of ["task", "expense"] as const) {
+for (const kind of ["task", "expense", "reminder"] as const) {
+  const { field, view, projection } = planningEditors[kind];
   test(`recovers ${kind} creation and edits through browser navigation`, async ({
     page,
   }, testInfo) => {
@@ -35,7 +37,7 @@ for (const kind of ["task", "expense"] as const) {
       await page.getByRole("button", { name: "Browse event data" }).click();
       await page
         .getByRole("tab", {
-          name: kind === "task" ? "To-dos" : "Expenses",
+          name: view,
           exact: true,
         })
         .click();
@@ -44,7 +46,7 @@ for (const kind of ["task", "expense"] as const) {
         exact: true,
       });
       await add.click();
-      const name = page.getByLabel(kind === "task" ? "Task" : "Expense", {
+      const name = page.getByLabel(field, {
         exact: true,
       });
       await name.fill("Confirm the lantern delivery");
@@ -53,6 +55,10 @@ for (const kind of ["task", "expense"] as const) {
         await page.getByLabel("Currency", { exact: true }).fill("CNY");
         await page.getByLabel("Date", { exact: true }).fill("2030-07-03T11:30");
       }
+      if (kind === "reminder")
+        await page
+          .getByLabel("Reminder time", { exact: true })
+          .fill("2030-07-03T11:30");
       await revisitObjectView(page);
       await add.click();
       await page
@@ -173,15 +179,14 @@ for (const kind of ["task", "expense"] as const) {
         permissionScopeId: eventId,
         ...(kind === "task"
           ? { dueAt: null }
-          : { amount: "-12.3400", currency: "CNY" }),
+          : kind === "reminder"
+            ? { status: "pending" }
+            : { amount: "-12.3400", currency: "CNY" }),
         displayName: "Confirm the lantern delivery",
       });
-      const todos = await request.get(
-        `/api/events/${eventId}/${kind === "task" ? "todos" : "expenses"}`,
-        {
-          headers,
-        },
-      );
+      const todos = await request.get(`/api/events/${eventId}/${projection}`, {
+        headers,
+      });
       expect(todos.status()).toBe(200);
       expect((await todos.json()).items).toHaveLength(1);
       const relations = await request.get(`/api/objects/${eventId}/relations`, {

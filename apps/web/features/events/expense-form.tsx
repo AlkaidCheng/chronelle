@@ -1,14 +1,7 @@
 "use client";
 
 import type { ExpenseResponse } from "@chronelle/schemas";
-import {
-  type FormEvent,
-  useEffect,
-  useId,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import { type FormEvent, useMemo, useState } from "react";
 import { EditorForm } from "../../components/editor-form";
 import {
   DiscardActions,
@@ -21,7 +14,6 @@ import {
 } from "../../lib/expense-fields";
 import {
   eventCreationDraftKeys,
-  isDraftAccessError,
   type ExpenseDraftSnapshot,
 } from "../../lib/editor-draft-store";
 import { useKeepEditorDraft } from "../../lib/editor-draft-context";
@@ -29,8 +21,7 @@ import {
   EditorDraftRecovery,
   EditorDraftStatus,
 } from "./editor-draft-recovery";
-import { useDiscardConfirmation } from "../../lib/use-discard-confirmation";
-import { useSessionDialog } from "../../lib/use-session-dialog";
+import { usePlanningEditorDialog } from "../../lib/use-planning-editor-dialog";
 import { useOpenHistory } from "../history/history-provider";
 import { useEditorDraft } from "../../lib/use-editor-draft";
 import {
@@ -105,38 +96,25 @@ function ExpenseEditor({
   const { displayName, amount, currency, occurredAt } = draft.fields;
   const mutation = expense === undefined ? create : update;
   const [timeError, setTimeError] = useState("");
-  const headingId = useId();
-  const nameInput = useRef<HTMLInputElement>(null);
-  const submittedControl = useRef<HTMLElement | null>(null);
   const openHistory = useOpenHistory();
   const close = () => {
     recovery.discard();
     onCancel?.();
   };
-  const dialog = useSessionDialog(close);
-  const { isConfirming, keepEditingButton, keepEditing, requestClose } =
-    useDiscardConfirmation({
-      isDirty: draft.isDirty,
-      isPending: mutation.isPending,
-      onClose: close,
-    });
-  useEffect(() => {
-    nameInput.current?.focus();
-  }, []);
-  useEffect(() => {
-    if (
-      mutation.isError &&
-      !mutation.isPending &&
-      !isDraftAccessError(mutation.error)
-    ) {
-      if (
-        document.activeElement === document.body ||
-        document.activeElement === dialog.current
-      )
-        submittedControl.current?.focus();
-      submittedControl.current = null;
-    }
-  }, [mutation.error, mutation.isError, mutation.isPending, dialog]);
+  const {
+    headingId,
+    nameInput,
+    dialog,
+    rememberSubmit,
+    isConfirming,
+    keepEditingButton,
+    keepEditing,
+    requestClose,
+  } = usePlanningEditorDialog({
+    isDirty: draft.isDirty,
+    mutation,
+    onClose: close,
+  });
 
   function handleSubmit(formEvent: FormEvent<HTMLFormElement>) {
     formEvent.preventDefault();
@@ -157,11 +135,7 @@ function ExpenseEditor({
       );
       return;
     }
-    submittedControl.current =
-      document.activeElement instanceof HTMLElement &&
-      formEvent.currentTarget.contains(document.activeElement)
-        ? document.activeElement
-        : nameInput.current;
+    rememberSubmit(formEvent.currentTarget);
     if (expense === undefined) {
       void recovery.save(
         () => create.mutateAsync(input),

@@ -56,6 +56,38 @@ const documentAttachment = {
 } as const;
 
 describe("ChronelleApiClient", () => {
+  it("reads a canonical Reminder with workspace credentials and validates its response", async () => {
+    const reminder = {
+      ...event,
+      objectType: "reminder",
+      remindAt: event.createdAt,
+      status: "dismissed",
+    };
+    const fetch = vi.fn<typeof globalThis.fetch>(async () =>
+      Response.json(reminder),
+    );
+    const client = new ChronelleApiClient({
+      fetch,
+      getCredential: () => ({
+        accessToken: "test-session",
+        workspaceId: event.workspaceId,
+      }),
+    });
+    expect(await client.getReminder(event.id)).toMatchObject({
+      id: event.id,
+      objectType: "reminder",
+      status: "dismissed",
+      remindAt: event.createdAt,
+    });
+    expect(fetch.mock.calls[0]?.[0]).toBe(`/api/reminders/${event.id}`);
+    const headers = new Headers(fetch.mock.calls[0]?.[1]?.headers);
+    expect(headers.get("authorization")).toBe("Bearer test-session");
+    expect(headers.get("x-workspace-id")).toBe(event.workspaceId);
+    fetch.mockResolvedValueOnce(
+      Response.json({ ...reminder, remindAt: "invalid" }),
+    );
+    await expect(client.getReminder(event.id)).rejects.toThrow();
+  });
   it("reads a canonical Expense with workspace credentials and validates decimal data", async () => {
     const expense = {
       ...event,

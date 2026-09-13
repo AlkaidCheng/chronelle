@@ -1,5 +1,6 @@
 import type { ExpenseResponse } from "@chronelle/schemas";
-import { fromDateTimeInput, toDateTimeInput } from "./format";
+import { editedInstant } from "./edited-instant";
+import { toDateTimeInput } from "./format";
 
 export function readExpenseFields(
   expense?: Pick<
@@ -22,19 +23,12 @@ export function expenseFieldsPayload(
   fields: ReturnType<typeof readExpenseFields>,
   source?: Pick<ExpenseResponse, "occurredAt">,
 ) {
-  if (source && fields.occurredAt === toDateTimeInput(source.occurredAt))
-    return { ...fields, occurredAt: source.occurredAt };
-  let occurredAt: string | null;
-  try {
-    occurredAt = fromDateTimeInput(fields.occurredAt);
-  } catch {
-    throw new Error("Choose a valid transaction date and time.");
-  }
+  const occurredAt = editedInstant(
+    fields.occurredAt,
+    source?.occurredAt,
+    "transaction",
+  );
   if (occurredAt === null)
     throw new Error("Choose a transaction date and time.");
-  if (toDateTimeInput(occurredAt) !== fields.occurredAt)
-    throw new Error(
-      "This local time is unavailable. Choose another transaction time.",
-    );
   return { ...fields, occurredAt };
 }

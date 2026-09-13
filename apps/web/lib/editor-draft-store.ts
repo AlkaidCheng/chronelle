@@ -1,6 +1,7 @@
 import type {
   EventResponse,
   ExpenseResponse,
+  ReminderResponse,
   TaskResponse,
 } from "@chronelle/schemas";
 import { ApiClientError } from "@chronelle/api-client";
@@ -9,6 +10,7 @@ import type { EditorDraftSnapshot } from "./use-editor-draft";
 import type { ContextCreateAttempt } from "./queries";
 import type { readTaskFields } from "./task-fields";
 import type { readExpenseFields } from "./expense-fields";
+import type { readReminderFields } from "./reminder-fields";
 
 export function readEventFields(event?: EventResponse) {
   return { displayName: event?.displayName ?? "", ...readEventSchedule(event) };
@@ -32,14 +34,26 @@ export type ExpenseDraftSnapshot = EditorDraftSnapshot<
   readonly creationAttempt?: ContextCreateAttempt;
 };
 
+export type ReminderDraftSnapshot = EditorDraftSnapshot<
+  ReminderResponse,
+  ReturnType<typeof readReminderFields>
+> & {
+  readonly kind: "reminder";
+  readonly creationAttempt?: ContextCreateAttempt;
+};
+
 export type RetainedDraftSnapshot =
-  EventDraftSnapshot | TaskDraftSnapshot | ExpenseDraftSnapshot;
+  | EventDraftSnapshot
+  | TaskDraftSnapshot
+  | ExpenseDraftSnapshot
+  | ReminderDraftSnapshot;
 
 export function eventCreationDraftKeys(eventId: string) {
   return {
     schedule: `schedule:${eventId}`,
     task: `task:${eventId}`,
     expense: `expense:${eventId}`,
+    reminder: `reminder:${eventId}`,
   };
 }
 

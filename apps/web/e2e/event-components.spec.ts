@@ -126,13 +126,20 @@ test("composes planning and private-file components with canonical updates and v
     has: page.getByRole("heading", { name: "Reminders", exact: true }),
   });
   await reminder
+    .getByRole("button", { name: "Add reminder", exact: true })
+    .click();
+  const reminderDialog = page.getByRole("dialog", {
+    name: "Add reminder",
+    exact: true,
+  });
+  await reminderDialog
     .getByLabel("Reminder", { exact: true })
     .fill("Confirm arrival time");
-  await reminder
-    .getByLabel("Alert at", { exact: true })
+  await reminderDialog
+    .getByLabel("Reminder time", { exact: true })
     .fill("2030-07-03T10:00");
-  await reminder
-    .getByRole("button", { name: "Add reminder", exact: true })
+  await reminderDialog
+    .getByRole("button", { name: "Record reminder", exact: true })
     .click();
   await expect(
     page.getByRole("heading", { name: "Confirm arrival time", exact: true }),

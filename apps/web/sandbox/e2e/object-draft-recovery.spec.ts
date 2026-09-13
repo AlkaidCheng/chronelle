@@ -7,7 +7,7 @@ const sandboxUrl = new URL(
   import.meta.url,
 ).href;
 
-for (const kind of ["task", "expense"] as const)
+for (const kind of ["task", "expense", "reminder"] as const)
   test(`recovers ${kind} creation and edits through offline browser navigation`, async ({
     page,
     context,

@@ -1,108 +1,291 @@
 "use client";
 
 import type { ReminderResponse } from "@chronelle/schemas";
-import type { FormEvent } from "react";
-
+import { type FormEvent, useMemo, useState } from "react";
 import { EditorForm } from "../../components/editor-form";
+import {
+  DiscardActions,
+  EditorDialogHeader,
+} from "../../components/editor-dialog-controls";
 import { EditorControls } from "./editor-controls";
-import { fromDateTimeInput, toDateTimeInput } from "../../lib/format";
+import {
+  readReminderFields,
+  reminderFieldsPayload,
+} from "../../lib/reminder-fields";
+import {
+  eventCreationDraftKeys,
+  type ReminderDraftSnapshot,
+} from "../../lib/editor-draft-store";
+import { useKeepEditorDraft } from "../../lib/editor-draft-context";
+import {
+  EditorDraftRecovery,
+  EditorDraftStatus,
+} from "./editor-draft-recovery";
+import { usePlanningEditorDialog } from "../../lib/use-planning-editor-dialog";
+import { useOpenHistory } from "../history/history-provider";
 import { useEditorDraft } from "../../lib/use-editor-draft";
 import {
   useCreateReminder,
   useRefreshEvent,
   useUpdateReminder,
+  type ContextCreateAttempt,
 } from "../../lib/queries";
 
-export function ReminderForm({
-  eventId,
-  onCancel,
-  reminder: latestReminder,
-}: {
+interface ReminderFormProps {
   readonly eventId: string;
   readonly onCancel?: (() => void) | undefined;
+  readonly onRefresh?: (() => Promise<void>) | undefined;
   readonly reminder?: ReminderResponse | undefined;
+}
+
+export function ReminderForm(props: ReminderFormProps) {
+  const draftId =
+    props.reminder?.id ?? eventCreationDraftKeys(props.eventId).reminder;
+  return (
+    <EditorDraftRecovery
+      kind="reminder"
+      id={draftId}
+      accessId={props.reminder?.id ?? props.eventId}
+      onClose={() => props.onCancel?.()}
+    >
+      {(initialDraft) => (
+        <ReminderEditor
+          {...props}
+          draftId={draftId}
+          initialDraft={initialDraft}
+        />
+      )}
+    </EditorDraftRecovery>
+  );
+}
+
+function ReminderEditor({
+  eventId,
+  draftId,
+  initialDraft,
+  onCancel,
+  onRefresh,
+  reminder: latestReminder,
+}: ReminderFormProps & {
+  readonly draftId: string;
+  readonly initialDraft: ReminderDraftSnapshot | undefined;
 }) {
-  const draft = useEditorDraft(latestReminder, (reminder) => ({
-    displayName: reminder?.displayName ?? "",
-    remindAt: toDateTimeInput(reminder?.remindAt ?? null),
-  }));
+  const draft = useEditorDraft(
+    latestReminder,
+    readReminderFields,
+    initialDraft,
+  );
   const reminder = draft.source;
-  const create = useCreateReminder(eventId);
+  const [attempt] = useState<ContextCreateAttempt>(
+    () => initialDraft?.creationAttempt ?? { current: null },
+  );
+  const snapshot = useMemo<ReminderDraftSnapshot>(
+    () => ({
+      ...draft.snapshot,
+      kind: "reminder",
+      ...(reminder === undefined ? { creationAttempt: attempt } : {}),
+    }),
+    [draft.snapshot, reminder, attempt],
+  );
+  const recovery = useKeepEditorDraft(
+    draftId,
+    snapshot,
+    draft.isDirty,
+    () => onCancel?.(),
+    reminder?.id ?? eventId,
+  );
+  const create = useCreateReminder(eventId, attempt);
   const update = useUpdateReminder();
   const refresh = useRefreshEvent(eventId, { throwOnError: true });
   const { displayName, remindAt } = draft.fields;
+  const mutation = reminder === undefined ? create : update;
+  const [timeError, setTimeError] = useState("");
+  const openHistory = useOpenHistory();
+  const close = () => {
+    recovery.discard();
+    onCancel?.();
+  };
+  const {
+    headingId,
+    nameInput,
+    dialog,
+    rememberSubmit,
+    isConfirming,
+    keepEditingButton,
+    keepEditing,
+    requestClose,
+  } = usePlanningEditorDialog({
+    isDirty: draft.isDirty,
+    mutation,
+    onClose: close,
+  });
 
   function handleSubmit(formEvent: FormEvent<HTMLFormElement>) {
     formEvent.preventDefault();
-    if (draft.hasNewerVersion || mutation.isPending) return;
-    const timestamp = fromDateTimeInput(remindAt);
-    if (timestamp === null) {
+    if (
+      isConfirming ||
+      draft.hasNewerVersion ||
+      mutation.isPending ||
+      !recovery.isRetained
+    )
+      return;
+    let input: ReturnType<typeof reminderFieldsPayload>;
+    try {
+      input = reminderFieldsPayload(draft.fields, reminder);
+      setTimeError("");
+    } catch (error) {
+      setTimeError(
+        error instanceof Error ? error.message : "Check the reminder time.",
+      );
       return;
     }
-    const input = { displayName, remindAt: timestamp };
+    rememberSubmit(formEvent.currentTarget);
     if (reminder === undefined) {
-      create.mutate(input, {
-        onSuccess: () => {
+      void recovery.save(
+        () => create.mutateAsync(input),
+        () => {
           draft.change({ displayName: "", remindAt: "" });
           onCancel?.();
         },
-      });
+      );
       return;
     }
-    update.mutate(
-      {
-        id: reminder.id,
-        input: { ...input, expectedVersion: reminder.version },
-      },
-      {
-        onSuccess: (saved) => {
-          draft.accept(saved);
-          onCancel?.();
-        },
+    void recovery.save(
+      () =>
+        update.mutateAsync({
+          id: reminder.id,
+          input: { ...input, expectedVersion: reminder.version },
+        }),
+      (saved) => {
+        draft.accept(saved);
+        onCancel?.();
       },
     );
   }
 
-  const mutation = reminder === undefined ? create : update;
   return (
-    <EditorForm
-      aria-busy={mutation.isPending}
-      className="editor-form inline-editor"
-      onChangeCapture={() => {
-        if (mutation.isSuccess) mutation.reset();
+    <dialog
+      ref={dialog}
+      className={`event-create-dialog${reminder ? " event-inspector" : ""}`}
+      aria-labelledby={headingId}
+      onCancel={(event) => {
+        event.preventDefault();
+        requestClose();
       }}
-      onSubmit={handleSubmit}
     >
-      <label className="field field-wide">
-        <span>Reminder</span>
-        <input
-          maxLength={240}
-          disabled={mutation.isPending}
-          onChange={(input) =>
-            draft.change({ displayName: input.target.value })
-          }
-          placeholder="Send final headcount"
-          required
-          value={displayName}
-        />
-      </label>
-      <label className="field">
-        <span>Alert at</span>
-        <input
-          disabled={mutation.isPending}
-          onChange={(input) => draft.change({ remindAt: input.target.value })}
-          required
-          type="datetime-local"
-          value={remindAt}
-        />
-      </label>
-      <EditorControls
-        draft={draft}
-        mutation={mutation}
-        onCancel={onCancel}
-        onRefresh={reminder === undefined ? undefined : refresh}
-        submitLabel={reminder === undefined ? "Add reminder" : "Save reminder"}
-      />
-    </EditorForm>
+      <EditorDialogHeader
+        headingId={headingId}
+        title={
+          isConfirming
+            ? "Discard reminder changes?"
+            : reminder
+              ? "Edit reminder"
+              : "Add reminder"
+        }
+        closeLabel="Close reminder editor"
+        isConfirming={isConfirming}
+        isPending={mutation.isPending}
+        onClose={requestClose}
+      >
+        {reminder && (
+          <button
+            hidden={isConfirming}
+            className="button button-quiet button-small"
+            type="button"
+            aria-label="View reminder history"
+            disabled={mutation.isPending}
+            onClick={() =>
+              openHistory({
+                objectId: reminder.id,
+                displayName: reminder.displayName,
+              })
+            }
+          >
+            History
+          </button>
+        )}
+      </EditorDialogHeader>
+      {isConfirming && (
+        <div className="event-create-body">
+          <p>Your reminder changes have not been saved.</p>
+          <div className="form-actions">
+            <DiscardActions
+              keepEditingButton={keepEditingButton}
+              onKeepEditing={keepEditing}
+              onDiscard={close}
+            />
+          </div>
+        </div>
+      )}
+      <EditorForm
+        hidden={isConfirming}
+        aria-busy={mutation.isPending}
+        className="editor-form event-inspector-form"
+        onChangeCapture={() => {
+          setTimeError("");
+          if (mutation.isSuccess) mutation.reset();
+        }}
+        onSubmit={handleSubmit}
+      >
+        <div className="event-create-body event-inspector-fields">
+          <label className="field field-wide">
+            <span>Reminder</span>
+            <input
+              ref={nameInput}
+              maxLength={240}
+              disabled={mutation.isPending}
+              onChange={(input) =>
+                draft.change({ displayName: input.target.value })
+              }
+              placeholder="Confirm the guest list"
+              required
+              value={displayName}
+            />
+          </label>
+          <label className="field">
+            <span>Reminder time</span>
+            <input
+              disabled={mutation.isPending}
+              onChange={(input) =>
+                draft.change({ remindAt: input.target.value })
+              }
+              required
+              type="datetime-local"
+              value={remindAt}
+            />
+          </label>
+          <p className="field-hint">
+            Recorded only; no notification is sent. Time in{" "}
+            {Intl.DateTimeFormat()
+              .resolvedOptions()
+              .timeZone.replaceAll("_", " ")}
+            .
+          </p>
+          {timeError && <p role="alert">{timeError}</p>}
+        </div>
+        <footer className="event-inspector-footer">
+          <EditorControls
+            disabled={!recovery.isRetained}
+            draft={draft}
+            mutation={mutation}
+            onCancel={requestClose}
+            onRefresh={
+              reminder === undefined ? undefined : (onRefresh ?? refresh)
+            }
+            submitLabel={
+              reminder === undefined ? "Record reminder" : "Save reminder"
+            }
+          />
+          <EditorDraftStatus
+            {...recovery}
+            failureMessage={
+              reminder === undefined
+                ? "The last save could not be confirmed. Retry unchanged fields to reuse the same save attempt."
+                : "The last save could not be confirmed. Refresh latest before trying again."
+            }
+          />
+        </footer>
+      </EditorForm>
+    </dialog>
   );
 }

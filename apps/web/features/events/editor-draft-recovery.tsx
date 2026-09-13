@@ -19,6 +19,7 @@ const draftFields: Record<DraftKind, string> = {
   event: "event name and schedule",
   task: "task name and due time",
   expense: "expense name, amount, currency and transaction time",
+  reminder: "reminder name and time",
 };
 type DraftOfKind<Kind extends DraftKind> = Extract<
   RetainedDraftSnapshot,
@@ -116,6 +117,7 @@ function ResumeDraft({
           kind !== "event" && kept.snapshot.source !== undefined;
         const readResource = () => {
           if (!isObjectEdit) return client.getEvent(accessId);
+          if (kind === "reminder") return client.getReminder(accessId);
           return kind === "expense"
             ? client.getExpense(accessId)
             : client.getTask(accessId);

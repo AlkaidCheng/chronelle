@@ -532,6 +532,24 @@ it("groups current controls and hands focus to the latest existing handler after
   expect(push).not.toHaveBeenCalled();
 });
 
+it("selects a matching context command that arrives after typing", async () => {
+  const edit = vi.fn();
+  const view = render(<ContextHarness mounted={false} onEdit={edit} />);
+  const user = userEvent.setup();
+  await user.click(trigger());
+  const input = screen.getByRole("combobox", { name: "Find a command" });
+  await user.type(input, "Edit event");
+  expect(input).not.toHaveAttribute("aria-activedescendant");
+  view.rerender(<ContextHarness onEdit={edit} />);
+  expect(results().getByRole("option", { selected: true })).toHaveTextContent(
+    "Edit event",
+  );
+  await user.keyboard("{Enter}");
+  expect(edit).toHaveBeenCalledTimes(1);
+  expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  expect(push).not.toHaveBeenCalled();
+});
+
 it("does not replace a removed selection with another action", async () => {
   const edit = vi.fn();
   const history = vi.fn();

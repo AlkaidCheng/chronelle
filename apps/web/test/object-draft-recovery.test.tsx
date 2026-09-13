@@ -13,6 +13,8 @@ import {
   eventResponseSchema,
   taskResponseSchema,
   expenseResponseSchema,
+  reminderResponseSchema,
+  type ReminderResponse,
   type ExpenseResponse,
   type TaskResponse,
 } from "@chronelle/schemas";
@@ -24,29 +26,52 @@ import { TaskForm } from "../features/events/task-form";
 import { TaskInspector } from "../features/events/task-inspector";
 import { ExpenseForm } from "../features/events/expense-form";
 import { ExpenseInspector } from "../features/events/expense-inspector";
+import { ReminderForm } from "../features/events/reminder-form";
+import { ReminderInspector } from "../features/events/reminder-inspector";
 import { useAuthSession } from "../lib/auth-session";
 import { useApiClient } from "../lib/api-context";
 import { queryKeys } from "../lib/queries";
 import { SandboxStore, sandboxWorkspaceId } from "../sandbox/store";
 
-describe.each(["task", "expense"] as const)("%s draft recovery", (kind) => {
-  const field = kind === "task" ? "Task" : "Expense";
-  const timeLabel = kind === "task" ? "Due" : "Date";
-  const createLabel = kind === "task" ? "Create task" : "Record expense";
-  const saveLabel = kind === "task" ? "Save task" : "Save expense";
-  const schema = kind === "task" ? taskResponseSchema : expenseResponseSchema;
+const draftKinds = ["task", "expense", "reminder"] as const;
+describe.each(draftKinds)("%s draft recovery", (kind) => {
+  const { field, timeLabel, createLabel, schema, Form } = {
+    task: {
+      field: "Task",
+      timeLabel: "Due",
+      createLabel: "Create task",
+      schema: taskResponseSchema,
+      Form: TaskForm,
+    },
+    expense: {
+      field: "Expense",
+      timeLabel: "Date",
+      createLabel: "Record expense",
+      schema: expenseResponseSchema,
+      Form: ExpenseForm,
+    },
+    reminder: {
+      field: "Reminder",
+      timeLabel: "Reminder time",
+      createLabel: "Record reminder",
+      schema: reminderResponseSchema,
+      Form: ReminderForm,
+    },
+  }[kind];
+  const saveLabel = `Save ${kind}`;
   const originalTime = "2030-07-03T18:30:45.678Z";
   let store: SandboxStore;
   let eventId: string;
   let otherEventId: string;
-  let resource: TaskResponse | ExpenseResponse;
+  let resource: TaskResponse | ExpenseResponse | ReminderResponse;
   type Mode = "create" | "edit";
 
   function Harness() {
     const session = useAuthSession();
-    const [editor, setEditor] = useState<{ mode: Mode; parent: string } | null>(
-      null,
-    );
+    const [editor, setEditor] = useState<{
+      mode: Mode;
+      parent: string;
+    } | null>(null);
     return (
       <>
         {(["create", "edit"] as const).flatMap((mode) =>
@@ -74,18 +99,9 @@ describe.each(["task", "expense"] as const)("%s draft recovery", (kind) => {
         >
           Switch workspace
         </button>
-        {editor?.mode === "create" &&
-          (kind === "task" ? (
-            <TaskForm
-              eventId={editor.parent}
-              onCancel={() => setEditor(null)}
-            />
-          ) : (
-            <ExpenseForm
-              eventId={editor.parent}
-              onCancel={() => setEditor(null)}
-            />
-          ))}
+        {editor?.mode === "create" && (
+          <Form eventId={editor.parent} onCancel={() => setEditor(null)} />
+        )}
         {editor?.mode === "edit" &&
           (kind === "task" ? (
             <TaskInspector
@@ -93,10 +109,16 @@ describe.each(["task", "expense"] as const)("%s draft recovery", (kind) => {
               taskId={resource.id}
               onClose={() => setEditor(null)}
             />
-          ) : (
+          ) : kind === "expense" ? (
             <ExpenseInspector
               eventId={editor.parent}
               expenseId={resource.id}
+              onClose={() => setEditor(null)}
+            />
+          ) : (
+            <ReminderInspector
+              eventId={editor.parent}
+              reminderId={resource.id}
               onClose={() => setEditor(null)}
             />
           ))}
@@ -149,6 +171,10 @@ describe.each(["task", "expense"] as const)("%s draft recovery", (kind) => {
     if (mode === "create" && kind === "expense")
       fireEvent.change(screen.getByLabelText("Amount"), {
         target: { value: "-12.3400" },
+      });
+    if (mode === "create" && kind === "reminder")
+      fireEvent.change(screen.getByLabelText(timeLabel), {
+        target: { value: "2030-07-03T11:30" },
       });
     return user;
   }
@@ -206,11 +232,13 @@ describe.each(["task", "expense"] as const)("%s draft recovery", (kind) => {
                 displayName: "Pack supplies",
                 ...(kind === "task"
                   ? { dueAt: originalTime }
-                  : {
-                      amount: "-12.3400",
-                      currency: "USD",
-                      occurredAt: originalTime,
-                    }),
+                  : kind === "reminder"
+                    ? { remindAt: originalTime }
+                    : {
+                        amount: "-12.3400",
+                        currency: "USD",
+                        occurredAt: originalTime,
+                      }),
               },
             }),
           })
@@ -343,11 +371,13 @@ describe.each(["task", "expense"] as const)("%s draft recovery", (kind) => {
         version: 2,
         ...(kind === "task"
           ? { dueAt: originalTime }
-          : {
-              occurredAt: originalTime,
-              amount: "-12.3400",
-              currency: "USD",
-            }),
+          : kind === "reminder"
+            ? { remindAt: originalTime }
+            : {
+                occurredAt: originalTime,
+                amount: "-12.3400",
+                currency: "USD",
+              }),
         displayName: "Pack the lanterns",
       });
     });
