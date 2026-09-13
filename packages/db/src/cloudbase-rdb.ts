@@ -3,8 +3,24 @@ import { z } from "zod";
 const identifierSchema = z.string().regex(/^[A-Za-z_][A-Za-z0-9_]*$/);
 
 export interface CloudBaseRdbQuery {
+  readonly columns?: string | undefined;
+  readonly filters?: readonly CloudBaseRdbFilter[] | undefined;
+  readonly order?: readonly CloudBaseRdbOrder[] | undefined;
   readonly limit?: number | undefined;
   readonly offset?: number | undefined;
+}
+
+export interface CloudBaseRdbFilter {
+  readonly column: string;
+  readonly operator: "eq" | "ilike" | "in" | "is";
+  readonly value: unknown;
+}
+
+export interface CloudBaseRdbOrder {
+  readonly ascending?: boolean | undefined;
+  readonly column: string;
+  readonly nullsFirst?: boolean | undefined;
+  readonly referencedTable?: string | undefined;
 }
 
 export interface CloudBaseRdbClient {
@@ -17,7 +33,19 @@ export interface CloudBaseRdbClient {
 
 interface RdbQuery<T> {
   select(columns?: string): RdbQuery<T>;
+  eq(column: string, value: unknown): RdbQuery<T>;
+  ilike(column: string, value: string): RdbQuery<T>;
+  in(column: string, value: readonly unknown[]): RdbQuery<T>;
+  is(column: string, value: unknown): RdbQuery<T>;
   limit(value: number): RdbQuery<T>;
+  order(
+    column: string,
+    options?: {
+      readonly ascending?: boolean;
+      readonly nullsFirst?: boolean;
+      readonly referencedTable?: string;
+    },
+  ): RdbQuery<T>;
   range(from: number, to: number): RdbQuery<T>;
   then<TResult1 = { data?: readonly T[] | null; error?: unknown }>(
     onfulfilled?:
@@ -60,7 +88,60 @@ export function createCloudBaseRdbClient(app: RdbApp): CloudBaseRdbClient {
       if (offset > 0 && limit === undefined) {
         throw new Error("CloudBase RDB offsets require a limit.");
       }
-      let request = app.rdb().from<T>(tableName).select("*");
+      const filters = (query.filters ?? []).map((filter) => {
+        const column = identifierSchema.parse(filter.column);
+        const value =
+          filter.operator === "ilike"
+            ? z.string().parse(filter.value)
+            : filter.operator === "in"
+              ? z.array(z.unknown()).parse(filter.value)
+              : filter.value;
+        return { ...filter, column, value };
+      });
+      const order = (query.order ?? []).map((entry) => ({
+        ...entry,
+        column: identifierSchema.parse(entry.column),
+        referencedTable:
+          entry.referencedTable === undefined
+            ? undefined
+            : identifierSchema.parse(entry.referencedTable),
+      }));
+      let request = app
+        .rdb()
+        .from<T>(tableName)
+        .select(query.columns ?? "*");
+      for (const filter of filters) {
+        switch (filter.operator) {
+          case "eq":
+            request = request.eq(filter.column, filter.value);
+            break;
+          case "ilike":
+            request = request.ilike(filter.column, filter.value as string);
+            break;
+          case "in":
+            request = request.in(
+              filter.column,
+              filter.value as readonly unknown[],
+            );
+            break;
+          case "is":
+            request = request.is(filter.column, filter.value);
+            break;
+        }
+      }
+      for (const entry of order) {
+        const options: {
+          ascending?: boolean;
+          nullsFirst?: boolean;
+          referencedTable?: string;
+        } = {};
+        if (entry.ascending !== undefined) options.ascending = entry.ascending;
+        if (entry.nullsFirst !== undefined)
+          options.nullsFirst = entry.nullsFirst;
+        if (entry.referencedTable !== undefined)
+          options.referencedTable = entry.referencedTable;
+        request = request.order(entry.column, options);
+      }
       if (limit !== undefined) {
         request = request.limit(limit);
       }

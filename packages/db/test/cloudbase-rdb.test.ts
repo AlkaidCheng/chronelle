@@ -50,4 +50,74 @@ describe("CloudBase RDB client", () => {
       "offsets require a limit",
     );
   });
+
+  it("translates bounded filters and ordering into the SDK query builder", async () => {
+    const response = { data: [{ id: "event-1" }] };
+    const request = {
+      eq: vi.fn().mockReturnThis(),
+      ilike: vi.fn().mockReturnThis(),
+      in: vi.fn().mockReturnThis(),
+      is: vi.fn().mockReturnThis(),
+      limit: vi.fn().mockReturnThis(),
+      order: vi.fn().mockReturnThis(),
+      range: vi.fn().mockResolvedValue(response),
+    };
+    const select = vi.fn().mockReturnValue(request);
+    const client = createCloudBaseRdbClient({
+      rdb: () => ({ from: vi.fn().mockReturnValue({ select }) }),
+    });
+
+    await expect(
+      client.select("events", {
+        columns: "id, display_name",
+        filters: [
+          { column: "workspace_id", operator: "eq", value: "workspace-1" },
+          { column: "deleted_at", operator: "is", value: null },
+          { column: "display_name", operator: "ilike", value: "%trip%" },
+          { column: "object_type", operator: "in", value: ["event"] },
+        ],
+        order: [{ column: "starts_at", ascending: true, nullsFirst: false }],
+        limit: 10,
+        offset: 0,
+      }),
+    ).resolves.toEqual([{ id: "event-1" }]);
+    expect(select).toHaveBeenCalledWith("id, display_name");
+    expect(request.eq).toHaveBeenCalledWith("workspace_id", "workspace-1");
+    expect(request.is).toHaveBeenCalledWith("deleted_at", null);
+    expect(request.ilike).toHaveBeenCalledWith("display_name", "%trip%");
+    expect(request.in).toHaveBeenCalledWith("object_type", ["event"]);
+    expect(request.order).toHaveBeenCalledWith("starts_at", {
+      ascending: true,
+      nullsFirst: false,
+      referencedTable: undefined,
+    });
+    expect(request.range).toHaveBeenCalledWith(0, 9);
+  });
+
+  it("rejects unsafe filter and order identifiers before making a request", async () => {
+    const from = vi.fn();
+    const client = createCloudBaseRdbClient({
+      rdb: () => ({ from }),
+    });
+
+    await expect(
+      client.select("events", {
+        filters: [
+          {
+            column: "workspace_id; DROP TABLE users",
+            operator: "eq",
+            value: "x",
+          },
+        ],
+      }),
+    ).rejects.toThrow();
+    expect(from).not.toHaveBeenCalled();
+
+    await expect(
+      client.select("events", {
+        order: [{ column: "starts_at; DROP TABLE users" }],
+      }),
+    ).rejects.toThrow();
+    expect(from).not.toHaveBeenCalled();
+  });
 });
