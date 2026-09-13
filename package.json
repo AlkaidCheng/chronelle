@@ -24,10 +24,12 @@
     "test:e2e": "pnpm build && pnpm db:migrate && pnpm --filter @chronelle/object-model baseline-revisions && playwright test",
     "test:infrastructure": "tsc -p infrastructure/tsconfig.json && node --check infrastructure/scripts/check-containers.mjs && node --check infrastructure/scripts/check-recovery.mjs && node --check infrastructure/scripts/container-process.mjs && node --check infrastructure/scripts/inspect-runtime.mjs && node --check infrastructure/scripts/inspect-database.mjs && vitest run --config infrastructure/vitest.config.mts",
     "test:containers": "node infrastructure/scripts/check-containers.mjs",
+    "cloudbase:probe": "node infrastructure/scripts/cloudbase-sdk-probe.mjs",
     "typecheck": "pnpm --filter @chronelle/schemas typecheck && pnpm --filter @chronelle/db typecheck && pnpm --filter @chronelle/authorization typecheck && pnpm --filter @chronelle/storage typecheck && pnpm --filter @chronelle/object-model typecheck && pnpm --filter @chronelle/api-client typecheck && pnpm --filter @chronelle/api typecheck && pnpm --filter @chronelle/web typecheck"
   },
   "devDependencies": {
     "@biomejs/biome": "2.5.11",
+    "@cloudbase/js-sdk": "3.9.3",
     "@playwright/test": "1.62.0",
     "@types/node": "26.4.0",
     "@types/react": "19.2.18",

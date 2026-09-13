@@ -40,6 +40,48 @@ Open `http://localhost:3000/sign-in`. Keep both processes bound to loopback or
 behind a trusted network boundary. Rebuild before restarting the standalone
 entry point after source changes. No development server is needed at runtime.
 
+## CloudBase staging connectivity
+
+The staging environment can be checked through the CloudBase PostgreSQL
+gateway without changing the application database. Create a short-lived,
+server-only API key in CloudBase, then place these values in the ignored root
+`.env` file:
+
+```dotenv
+CLOUDBASE_ENV_ID=your-cloudbase-environment-id
+CLOUDBASE_APIKEY=your-short-lived-server-api-key
+```
+
+Run the read-only probe:
+
+```bash
+pnpm cloudbase:probe
+```
+
+The probe queries an intentionally nonexistent table with a zero-row limit. A
+`DATABASE_PGRST205` response confirms that the gateway authenticated and
+reached PostgreSQL; it does not validate application migrations, transactions,
+or native PostgreSQL TCP access. Revoke the key after testing. CloudBase API
+keys map to the privileged `service_role` and must never be sent to a browser,
+committed to the repository, or used as a substitute for Chronelle's
+application authorization.
+
+The current Personal plan is a staging option for this SDK path. Native TCP
+access remains a separate deployment decision because it requires a database
+endpoint, credentials, SSL settings, and a network route from the API service.
+Chronelle now exposes a small `@chronelle/db` CloudBase RDB transport for
+bounded, non-transactional reads. It validates table identifiers, preserves
+pagination bounds, and reports the backend capabilities explicitly. The
+existing `connectDatabase(DATABASE_URL)` Drizzle/PostgreSQL adapter remains the
+runtime default and is intentionally unchanged.
+
+The CloudBase transport does not replace Chronelle's Drizzle adapter for
+audited mutations, optimistic concurrency, or multi-table writes. Those
+workloads remain on the TCP adapter until the service has a transaction-capable
+PostgreSQL route. This keeps the local schema, migrations, and future dedicated
+PostgreSQL deployment reusable rather than creating a second canonical data
+model.
+
 ## Containerized web
 
 Build the UI image from the repository root:

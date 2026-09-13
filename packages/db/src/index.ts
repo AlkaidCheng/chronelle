@@ -1,7 +1,7 @@
 export {
-  runAuditedMutation,
   type AuditedMutationResult,
   type MutationAuditRecord,
+  runAuditedMutation,
 } from "./audited-mutation.js";
 export {
   connectDatabase,
@@ -9,5 +9,12 @@ export {
   type DatabaseConnection,
   type DatabaseTransaction,
 } from "./client.js";
+export {
+  type CloudBaseRdbClient,
+  type CloudBaseRdbConnectionOptions,
+  type CloudBaseRdbQuery,
+  connectCloudBaseRdb,
+  createCloudBaseRdbClient,
+} from "./cloudbase-rdb.js";
 export { createId } from "./ids.js";
 export * from "./schema.js";
