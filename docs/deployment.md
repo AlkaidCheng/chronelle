@@ -80,6 +80,8 @@ application authorization.
 The probe uses `CLOUDBASE_REQUEST_TIMEOUT_MS` (30 seconds by default, bounded to
 1–120 seconds) and reports expired keys, authorization failures, timeouts, and
 unexpected gateway responses without printing the key or response payload.
+JWT-shaped keys are checked for local expiry before the SDK request; this is
+only a diagnostic guard and does not replace CloudBase signature validation.
 
 If the probe returns `ACCESS_TOKEN_EXPIRED`, replace `CLOUDBASE_APIKEY` with a
 new short-lived server key and rerun the probe. Do not reuse an expired key or
