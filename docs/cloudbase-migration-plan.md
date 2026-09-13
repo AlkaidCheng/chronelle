@@ -76,6 +76,20 @@ opt-in adapter until a real-gateway differential run proves date encoding,
 pagination, and permission filtering against CloudBase rather than a local
 double.
 
+An opt-in `pnpm cloudbase:read-contract` harness now exercises both adapters
+against a real CloudBase environment using pre-existing staging identifiers. It
+is deliberately read-only: it checks canonical IDs, calendar projection
+membership, cursor-page non-overlap, workspace and deletion invariants, and an
+optional negative authorization case. A passing harness is staging evidence for
+R1, not a license to switch the production backend or migrate mutations.
+
+The API now has an explicit `CLOUDBASE_READS_ENABLED` deployment flag. When
+enabled, only event-list and calendar repository dependencies switch to the
+CloudBase adapters; PostgreSQL remains mandatory for mutations, detail
+hydration, audit events, recovery, sharing, and transaction-heavy workflows.
+The flag defaults to false so a connectivity probe cannot silently change the
+runtime consistency model.
+
 ## Migration phases
 
 ### Phase 1 — Contract and schema inventory

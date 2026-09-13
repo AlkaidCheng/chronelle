@@ -3,9 +3,11 @@ import {
   DrizzleAuthorizationStore,
   ResourceGrantService,
 } from "@chronelle/authorization";
-import type { DatabaseConnection } from "@chronelle/db";
+import type { CloudBaseRdbClient, DatabaseConnection } from "@chronelle/db";
 import {
   CanonicalObjectSearchService,
+  CloudBaseCalendarReadRepository,
+  CloudBaseEventReadRepository,
   DocumentService,
   EventPlanningObjectService,
   EventPlanningProjectionService,
@@ -52,6 +54,8 @@ export interface AppDependencyOptions {
   readonly documentTransferTtlMs?: number | undefined;
   readonly localStorageRoot?: string | undefined;
   readonly storage?: StorageProvider | undefined;
+  /** Opt-in read transport; writes and transaction-heavy services stay in PostgreSQL. */
+  readonly cloudBaseRdb?: CloudBaseRdbClient | undefined;
 }
 
 export function createAppDependencies(
@@ -62,7 +66,15 @@ export function createAppDependencies(
   const authorization = new AuthorizationService(
     new DrizzleAuthorizationStore(connection.db),
   );
-  const objects = new EventPlanningObjectService(connection.db);
+  const eventReads =
+    options.cloudBaseRdb === undefined
+      ? undefined
+      : new CloudBaseEventReadRepository(options.cloudBaseRdb);
+  const objects = new EventPlanningObjectService(
+    connection.db,
+    undefined,
+    eventReads,
+  );
   const storage =
     options.storage ??
     new LocalFilesystemStorageProvider({
@@ -96,7 +108,12 @@ export function createAppDependencies(
       clock: options.clock,
     }),
     shares: new ResourceGrantService(connection.db),
-    projections: new EventPlanningProjectionService(connection.db),
+    projections: new EventPlanningProjectionService(
+      connection.db,
+      options.cloudBaseRdb === undefined
+        ? undefined
+        : new CloudBaseCalendarReadRepository(options.cloudBaseRdb),
+    ),
   };
 }
 
