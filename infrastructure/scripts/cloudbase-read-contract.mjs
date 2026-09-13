@@ -2,7 +2,11 @@ import process from "node:process";
 
 import { AuthorizationDeniedError } from "../../packages/authorization/dist/index.js";
 import { connectCloudBaseRdb } from "../../packages/db/dist/index.js";
-import { assertApiKeyFresh, readRequestTimeout } from "./cloudbase-config.mjs";
+import {
+  assertApiKeyFresh,
+  exitAfterFlush,
+  readRequestTimeout,
+} from "./cloudbase-config.mjs";
 import {
   CloudBaseCalendarReadRepository,
   CloudBaseEventReadRepository,
@@ -136,6 +140,7 @@ console.log(
     2,
   ),
 );
+exitAfterFlush(0);
 
 function elapsedMs(startedAt) {
   return Math.max(0, Math.round(performance.now() - startedAt));
