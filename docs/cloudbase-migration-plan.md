@@ -59,6 +59,15 @@ membership filters plus deterministic ordering. These are transport primitives
 only; application repositories still own authorization and must not treat an
 API key as a substitute for Chronelle permission evaluation.
 
+The first real application adapter is now available for calendar projections:
+`CloudBaseCalendarReadRepository` loads the canonical event, active `includes`
+relations, workspace membership, and user grants through the RDB transport,
+then applies the same workspace, deleted-object, inherited-scope, and grant
+expiry rules before returning resources. It is read-only and deliberately not
+wired into the default API runtime yet; the adapter still needs a staging
+against the real CloudBase schema and gateway response shapes before it can
+replace the PostgreSQL repository.
+
 ## Migration phases
 
 ### Phase 1 — Contract and schema inventory
@@ -164,6 +173,8 @@ PostgreSQL adapter.
 ## Recommended next PR
 
 Validate the same fixture against the real CloudBase gateway adapter once its
-permission-filtered event and relation queries are implemented. Keep the API
-response schemas unchanged and do not migrate mutations until the permission
-and pagination contract is proven against the service.
+permission-filtered event and relation queries are implemented. The calendar
+adapter is the first staging candidate; event-list pagination remains on the
+PostgreSQL path until its cursor contract is implemented. Keep the API response
+schemas unchanged and do not migrate mutations until the permission and
+pagination contract is proven against the service.
