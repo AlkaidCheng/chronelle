@@ -1,6 +1,9 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { createCloudBaseRdbClient } from "../src/cloudbase-rdb.js";
+import {
+  CloudBaseRdbTimeoutError,
+  createCloudBaseRdbClient,
+} from "../src/cloudbase-rdb.js";
 
 describe("CloudBase RDB client", () => {
   it("keeps reads behind a small transport boundary", async () => {
@@ -119,5 +122,48 @@ describe("CloudBase RDB client", () => {
       }),
     ).rejects.toThrow();
     expect(from).not.toHaveBeenCalled();
+  });
+
+  it("bounds a gateway request with the configured timeout", async () => {
+    type NeverQuery = Promise<never> & {
+      select(columns?: string): NeverQuery;
+      eq(column: string, value: unknown): NeverQuery;
+      ilike(column: string, value: string): NeverQuery;
+      in(column: string, value: readonly unknown[]): NeverQuery;
+      is(column: string, value: unknown): NeverQuery;
+      limit(value: number): NeverQuery;
+      order(
+        column: string,
+        options?: {
+          readonly ascending?: boolean;
+          readonly nullsFirst?: boolean;
+          readonly referencedTable?: string;
+        },
+      ): NeverQuery;
+      range(from: number, to: number): NeverQuery;
+    };
+    const never = new Promise<never>(() => undefined) as NeverQuery;
+    const source = { select: () => never } as unknown as NeverQuery;
+    const client = createCloudBaseRdbClient(
+      {
+        rdb: () => ({
+          from: () => source,
+        }),
+      },
+      { requestTimeoutMs: 5 },
+    );
+
+    await expect(client.select("events")).rejects.toBeInstanceOf(
+      CloudBaseRdbTimeoutError,
+    );
+  });
+
+  it("rejects an unsafe timeout before creating a client", () => {
+    expect(() =>
+      createCloudBaseRdbClient(
+        { rdb: () => ({ from: vi.fn() }) },
+        { requestTimeoutMs: 0 },
+      ),
+    ).toThrow();
   });
 });
