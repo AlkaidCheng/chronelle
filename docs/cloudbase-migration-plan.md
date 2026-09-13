@@ -228,3 +228,6 @@ external and read-only:
 3. Run `pnpm cloudbase:probe`, then `pnpm cloudbase:read-contract`.
 4. Attach the JSON output and latency observations to the R1 review before
    enabling `CLOUDBASE_READS_ENABLED`.
+
+The harness reports `queryCount` and `timingMs` for the event pages and calendar
+projection so the same run can seed the later R5 latency and quota review.

@@ -134,7 +134,9 @@ checks canonical event IDs, calendar projections, cursor-page non-overlap,
 workspace isolation on returned resources, soft-deletion filtering, and an
 optional denied-event assertion. It shares the probe's timeout and local expiry
 checks, so an expired key fails before any fixture query. Do not place the API
-key in shell history or commit these values to the repository.
+key in shell history or commit these values to the repository. The JSON output
+also includes the query count and per-query/total latency in `timingMs` for the
+R1 review and later operational-cost assessment.
 
 ## Containerized web
 

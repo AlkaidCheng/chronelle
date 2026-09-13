@@ -43,20 +43,28 @@ const client = await connectCloudBaseRdb({
 });
 const eventReads = new CloudBaseEventReadRepository(client);
 const calendarReads = new CloudBaseCalendarReadRepository(client);
+const contractStartedAt = performance.now();
 
+const eventPageStartedAt = performance.now();
 const firstPage = await eventReads.listEvents(principal, {
   limit: 50,
   sort: "date",
 });
+const eventPageMs = elapsedMs(eventPageStartedAt);
+const calendarStartedAt = performance.now();
 const calendar = await calendarReads.listCalendarEvents(principal, eventId);
-const secondPage =
-  firstPage.nextCursor === null
-    ? { items: [] }
-    : await eventReads.listEvents(principal, {
-        cursor: firstPage.nextCursor,
-        limit: 50,
-        sort: "date",
-      });
+const calendarMs = elapsedMs(calendarStartedAt);
+let secondPageMs = 0;
+let secondPage = { items: [] };
+if (firstPage.nextCursor !== null) {
+  const secondPageStartedAt = performance.now();
+  secondPage = await eventReads.listEvents(principal, {
+    cursor: firstPage.nextCursor,
+    limit: 50,
+    sort: "date",
+  });
+  secondPageMs = elapsedMs(secondPageStartedAt);
+}
 const allIds = [...firstPage.items, ...secondPage.items].map(({ id }) => id);
 if (new Set(allIds).size !== allIds.length)
   throw new Error("CloudBase event cursor pages overlap.");
@@ -114,6 +122,13 @@ console.log(
       eventCount: allIds.length,
       calendarCount: calendar.length,
       cursorPageTested: firstPage.nextCursor !== null,
+      queryCount: firstPage.nextCursor === null ? 2 : 3,
+      timingMs: {
+        eventFirstPage: eventPageMs,
+        calendar: calendarMs,
+        eventSecondPage: secondPageMs,
+        total: elapsedMs(contractStartedAt),
+      },
       eventIds: allIds,
       calendarIds: calendar.map(({ id }) => id),
     },
@@ -121,3 +136,7 @@ console.log(
     2,
   ),
 );
+
+function elapsedMs(startedAt) {
+  return Math.max(0, Math.round(performance.now() - startedAt));
+}
