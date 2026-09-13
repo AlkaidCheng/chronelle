@@ -49,10 +49,10 @@ boundary. Its PostgreSQL implementation returns the same authorized canonical
 events, while the projection service retains scheduling and sorting semantics.
 
 An integration contract fixture compares canonical IDs and calendar ordering
-with a CloudBase-compatible read double. It deliberately does not claim that
-the shared gateway has passed the permission-filtered join gate; that evidence
-still requires a real CloudBase adapter or an explicitly equivalent gateway
-query.
+with the actual CloudBase event-list and calendar adapters over an in-memory RDB
+fixture client. It deliberately does not claim that the shared gateway has
+passed the permission-filtered join gate; that evidence still requires a real
+CloudBase run against staging.
 
 The CloudBase RDB transport now exposes validated equality, null, pattern, and
 membership filters plus deterministic ordering. These are transport primitives
