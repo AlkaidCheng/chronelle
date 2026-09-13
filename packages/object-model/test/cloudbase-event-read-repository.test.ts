@@ -1,0 +1,131 @@
+import type { CloudBaseRdbClient, CloudBaseRdbQuery } from "@chronelle/db";
+import { describe, expect, it } from "vitest";
+
+import { CloudBaseEventReadRepository } from "../src/cloudbase-event-read-repository.js";
+
+const workspaceId = "workspace-1";
+const principal = { type: "user" as const, userId: "reader-1", workspaceId };
+const now = new Date("2030-01-01T00:00:00.000Z");
+
+const objects = [
+  [
+    "00000000-0000-7000-8000-000000000001",
+    "First",
+    "scope",
+    "2030-01-02T00:00:00.000Z",
+  ],
+  [
+    "00000000-0000-7000-8000-000000000002",
+    "Second",
+    "scope",
+    "2030-01-03T00:00:00.000Z",
+  ],
+  [
+    "00000000-0000-7000-8000-000000000003",
+    "Hidden",
+    "hidden",
+    "2030-01-04T00:00:00.000Z",
+  ],
+].map(([id, displayName, permissionScopeId, updatedAt]) => ({
+  id,
+  workspace_id: workspaceId,
+  object_type: "event",
+  display_name: displayName,
+  created_by: "owner",
+  permission_scope_id: permissionScopeId,
+  created_at: "2030-01-01T00:00:00.000Z",
+  updated_at: updatedAt,
+  version: 1,
+  archived_at: null,
+  deleted_at: null,
+  custom_properties: {},
+  metadata: {},
+}));
+
+const eventRows = objects.map((object, index) => ({
+  object_id: object.id,
+  workspace_id: workspaceId,
+  starts_at: `2030-01-0${index + 2}T09:00:00.000Z`,
+  ends_at: `2030-01-0${index + 2}T10:00:00.000Z`,
+  starts_on: null,
+  ends_on: null,
+  timezone: "UTC",
+  is_all_day: false,
+}));
+
+function matches(row: Record<string, unknown>, query: CloudBaseRdbQuery) {
+  return (query.filters ?? []).every((entry) => {
+    const actual = row[entry.column];
+    if (entry.operator === "is") return actual === entry.value;
+    if (entry.operator === "in")
+      return (entry.value as readonly unknown[]).includes(actual);
+    return actual === entry.value;
+  });
+}
+
+function client(granted = true): CloudBaseRdbClient {
+  return {
+    capabilities: { transactions: false, nativeTcp: false },
+    async select<T>(table: string, query: CloudBaseRdbQuery = {}) {
+      if (table === "objects")
+        return objects.filter((row) =>
+          matches(row, query),
+        ) as unknown as readonly T[];
+      if (table === "events") return eventRows as unknown as readonly T[];
+      if (table === "workspace_members") return [] as readonly T[];
+      if (table === "resource_grants")
+        return granted
+          ? ([
+              { resource_id: "scope", role: "viewer", expires_at: null },
+            ] as unknown as readonly T[])
+          : ([] as readonly T[]);
+      throw new Error(`unexpected table ${table}`);
+    },
+  };
+}
+
+describe("CloudBaseEventReadRepository", () => {
+  it("preserves ordering, cursor pagination, and canonical IDs", async () => {
+    const repository = new CloudBaseEventReadRepository(client(), () => now);
+    const first = await repository.listEvents(principal, {
+      limit: 1,
+      sort: "date",
+    });
+    expect(first.items.map((event) => event.id)).toEqual([
+      "00000000-0000-7000-8000-000000000001",
+    ]);
+    expect(first.nextCursor).not.toBeNull();
+
+    const second = await repository.listEvents(principal, {
+      cursor: first.nextCursor ?? undefined,
+      limit: 1,
+      sort: "date",
+    });
+    expect(second.items.map((event) => event.id)).toEqual([
+      "00000000-0000-7000-8000-000000000002",
+    ]);
+    expect(second.nextCursor).toBeNull();
+  });
+
+  it("does not return objects outside the principal grant scope", async () => {
+    const repository = new CloudBaseEventReadRepository(client(), () => now);
+    const result = await repository.listEvents(principal, { limit: 10 });
+    expect(result.items.map((event) => event.id)).toEqual([
+      "00000000-0000-7000-8000-000000000001",
+      "00000000-0000-7000-8000-000000000002",
+    ]);
+  });
+
+  it("returns an empty page when no permission is available", async () => {
+    const repository = new CloudBaseEventReadRepository(
+      client(false),
+      () => now,
+    );
+    await expect(
+      repository.listEvents(principal, { limit: 10 }),
+    ).resolves.toMatchObject({
+      items: [],
+      nextCursor: null,
+    });
+  });
+});
