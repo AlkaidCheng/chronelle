@@ -1,5 +1,6 @@
 import { resolve } from "node:path";
 
+import { AuthorizationDeniedError } from "@chronelle/authorization";
 import {
   createId,
   events,
@@ -10,19 +11,23 @@ import {
   workspaceMembers,
   workspaces,
 } from "@chronelle/db";
-import type { CloudBaseRdbClient, CloudBaseRdbQuery } from "@chronelle/db";
+import type {
+  CloudBaseRdbClient,
+  CloudBaseRdbQuery,
+  Database,
+} from "@chronelle/db";
 import {
   applyMigrations,
   createTestDatabase,
   type TestDatabase,
 } from "@chronelle/db/testing";
+import { eq, getTableColumns, type Table } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { CloudBaseCalendarReadRepository } from "../src/cloudbase-calendar-read-repository.js";
 import { CloudBaseEventReadRepository } from "../src/cloudbase-event-read-repository.js";
 import { PostgresEventReadRepository } from "../src/event-list.js";
 import { PostgresCalendarReadRepository } from "../src/projection-service.js";
-import type { EventResource } from "../src/types.js";
 
 let database: TestDatabase;
 
@@ -37,11 +42,6 @@ beforeAll(async () => {
 afterAll(async () => {
   await database?.close();
 });
-
-interface CloudBaseFixtureEvent {
-  readonly includedIn: string | null;
-  readonly resource: EventResource;
-}
 
 function matches(
   row: Record<string, unknown>,
@@ -68,127 +68,82 @@ function matches(
   });
 }
 
-function fixtureClient(
-  fixtures: readonly CloudBaseFixtureEvent[],
-  principalId: string,
-  visibleResourceIds: readonly string[],
-): CloudBaseRdbClient {
-  const objectRows = fixtures.map(({ resource }) => ({
-    id: resource.id,
-    workspace_id: resource.workspaceId,
-    object_type: resource.objectType,
-    display_name: resource.displayName,
-    created_by: resource.createdBy,
-    permission_scope_id: resource.permissionScopeId,
-    created_at: resource.createdAt.toISOString(),
-    updated_at: resource.updatedAt.toISOString(),
-    version: resource.version,
-    archived_at: resource.archivedAt?.toISOString() ?? null,
-    deleted_at: resource.deletedAt?.toISOString() ?? null,
-    custom_properties: resource.customProperties,
-    metadata: resource.metadata,
-  }));
-  const eventRows = fixtures.map(({ resource }) => ({
-    object_id: resource.id,
-    workspace_id: resource.workspaceId,
-    starts_at: resource.startsAt?.toISOString() ?? null,
-    ends_at: resource.endsAt?.toISOString() ?? null,
-    starts_on: resource.startsOn,
-    ends_on: resource.endsOn,
-    timezone: resource.timezone,
-    is_all_day: resource.isAllDay,
-  }));
-  const relationRows = fixtures
-    .filter(({ includedIn }) => includedIn !== null)
-    .map(({ includedIn, resource }) => ({
-      workspace_id: resource.workspaceId,
-      source_object_id: includedIn,
-      target_object_id: resource.id,
-      relation_type: "includes",
-      deleted_at: null,
-    }));
+const snapshotTables = {
+  events,
+  object_relations: objectRelations,
+  objects,
+  resource_grants: resourceGrants,
+  workspace_members: workspaceMembers,
+} as const;
+
+/** Encodes one PostgreSQL row the way the gateway serializes it: SQL column names, ISO instants. */
+function gatewayRow(
+  table: Table,
+  record: Record<string, unknown>,
+): Record<string, unknown> {
+  return Object.fromEntries(
+    Object.entries(getTableColumns(table)).map(([property, column]) => {
+      const value = record[property];
+      return [column.name, value instanceof Date ? value.toISOString() : value];
+    }),
+  );
+}
+
+/**
+ * Serves the workspace rows PostgreSQL holds through the RDB transport
+ * boundary, so both adapters read one dataset.
+ */
+async function snapshotClient(
+  db: Database,
+  workspaceId: string,
+): Promise<CloudBaseRdbClient> {
+  const rows = new Map<string, Record<string, unknown>[]>();
+  for (const [name, table] of Object.entries(snapshotTables)) {
+    const records = await db
+      .select()
+      .from(table)
+      .where(eq(table.workspaceId, workspaceId));
+    rows.set(
+      name,
+      records.map((record) =>
+        gatewayRow(table, record as Record<string, unknown>),
+      ),
+    );
+  }
   return {
     capabilities: { transactions: false, nativeTcp: false },
     async select<T>(table: string, query: CloudBaseRdbQuery = {}) {
-      if (table === "objects")
-        return objectRows.filter((row) =>
-          matches(row, query),
-        ) as unknown as readonly T[];
-      if (table === "events")
-        return eventRows.filter((row) =>
-          matches(row, query),
-        ) as unknown as readonly T[];
-      if (table === "object_relations")
-        return relationRows.filter((row) =>
-          matches(row, query),
-        ) as unknown as readonly T[];
-      if (table === "workspace_members") return [] as readonly T[];
-      if (table === "resource_grants")
-        return visibleResourceIds
-          .map((resourceId) => ({
-            workspace_id: fixtures[0]?.resource.workspaceId,
-            principal_type: "user",
-            principal_id: principalId,
-            resource_id: resourceId,
-            role: "viewer",
-            expires_at: null,
-          }))
-          .filter((row) => matches(row, query)) as unknown as readonly T[];
-      throw new Error(`unexpected table ${table}`);
+      const tableRows = rows.get(table);
+      if (tableRows === undefined) throw new Error(`unexpected table ${table}`);
+      const matching = tableRows.filter((row) => matches(row, query));
+      return (query.limit === undefined
+        ? matching
+        : matching.slice(0, query.limit)) as unknown as readonly T[];
     },
   };
 }
 
-function fixtureResource(
-  id: string,
-  workspaceId: string,
-  displayName: string,
-  startsAt: Date | null,
-): EventResource {
-  const now = new Date("2030-01-01T00:00:00.000Z");
-  return {
-    id,
-    workspaceId,
-    permissionScopeId: id,
-    objectType: "event",
-    displayName,
-    createdBy: "fixture-owner",
-    createdAt: now,
-    updatedAt: now,
-    version: 1,
-    archivedAt: null,
-    deletedAt: null,
-    customProperties: {},
-    metadata: {},
-    startsAt,
-    endsAt: null,
-    startsOn: null,
-    endsOn: null,
-    timezone: "UTC",
-    isAllDay: false,
-  };
-}
-
 describe.sequential("CloudBase read contract", () => {
-  it("matches PostgreSQL canonical IDs and calendar ordering", async () => {
+  it("matches PostgreSQL event lists, calendars, and denials for members and grantees", async () => {
     const db = database.connection.db;
     const ownerId = createId();
-    const userId = createId();
+    const viewerId = createId();
     const workspaceId = createId();
     const rootId = createId();
-    const firstId = createId();
-    const secondId = createId();
-    const hiddenId = createId();
-    const principal = { type: "user" as const, userId, workspaceId };
-    const firstStartsAt = new Date("2030-01-01T09:00:00Z");
-    const secondStartsAt = new Date("2030-01-02T09:00:00Z");
+    const datedChildId = createId();
+    const timedChildId = createId();
+    const privateChildId = createId();
+    const unrelatedId = createId();
+    const deletedId = createId();
+    const owner = { type: "user" as const, userId: ownerId, workspaceId };
+    const viewer = { type: "user" as const, userId: viewerId, workspaceId };
 
     await db.insert(users).values(
-      [ownerId, userId].map((id) => ({
+      [ownerId, viewerId].map((id) => ({
         id,
         identityProvider: "test",
         providerSubject: id,
-        displayName: "Contract reader",
+        displayName: "Contract principal",
       })),
     );
     await db.insert(workspaces).values({
@@ -201,49 +156,80 @@ describe.sequential("CloudBase read contract", () => {
       userId: ownerId,
       role: "owner",
     });
+    // Two children inherit the root's scope; the private child and the
+    // unrelated Event own theirs; the deleted Event must never appear.
     await db.insert(objects).values(
-      [rootId, firstId, secondId, hiddenId].map((id) => ({
-        id,
+      [
+        { id: rootId, permissionScopeId: rootId, displayName: "Launch night" },
+        {
+          id: datedChildId,
+          permissionScopeId: rootId,
+          displayName: "Venue walkthrough",
+        },
+        {
+          id: timedChildId,
+          permissionScopeId: rootId,
+          displayName: "Doors open",
+        },
+        {
+          id: privateChildId,
+          permissionScopeId: privateChildId,
+          displayName: "Private budget review",
+        },
+        {
+          id: unrelatedId,
+          permissionScopeId: unrelatedId,
+          displayName: "Unrelated planning",
+        },
+        {
+          id: deletedId,
+          permissionScopeId: deletedId,
+          displayName: "Cancelled rehearsal",
+          deletedAt: new Date("2030-01-01T00:00:00Z"),
+        },
+      ].map((row) => ({
+        ...row,
         workspaceId,
-        permissionScopeId: id,
         objectType: "event" as const,
-        displayName: id === hiddenId ? "Hidden" : "Visible",
         createdBy: ownerId,
       })),
     );
     await db.insert(events).values([
-      { objectId: rootId, workspaceId },
       {
-        objectId: firstId,
+        objectId: rootId,
         workspaceId,
-        startsAt: firstStartsAt,
+        startsAt: new Date("2030-01-16T18:00:00Z"),
+        endsAt: new Date("2030-01-16T23:00:00Z"),
         timezone: "UTC",
       },
       {
-        objectId: secondId,
+        objectId: datedChildId,
         workspaceId,
-        startsAt: secondStartsAt,
+        startsOn: "2030-01-10",
+        endsOn: "2030-01-11",
+      },
+      {
+        objectId: timedChildId,
+        workspaceId,
+        startsAt: new Date("2030-01-16T17:30:00Z"),
         timezone: "UTC",
       },
       {
-        objectId: hiddenId,
+        objectId: privateChildId,
         workspaceId,
-        startsAt: new Date("2030-01-03T09:00:00Z"),
+        startsAt: new Date("2030-01-12T09:00:00Z"),
+        timezone: "UTC",
+      },
+      { objectId: unrelatedId, workspaceId, startsOn: "2030-02-01" },
+      {
+        objectId: deletedId,
+        workspaceId,
+        startsAt: new Date("2030-01-15T10:00:00Z"),
         timezone: "UTC",
       },
     ]);
-    await db.insert(resourceGrants).values(
-      [rootId, firstId, secondId].map((resourceId) => ({
-        id: createId(),
-        workspaceId,
-        resourceId,
-        principalId: userId,
-        role: "viewer" as const,
-        grantedBy: ownerId,
-      })),
-    );
     await db.insert(objectRelations).values(
-      [firstId, secondId, hiddenId].map((targetObjectId) => ({
+      [datedChildId, timedChildId, privateChildId].map((targetObjectId) => ({
         id: createId(),
         workspaceId,
         sourceObjectId: rootId,
@@ -252,78 +238,66 @@ describe.sequential("CloudBase read contract", () => {
         createdBy: ownerId,
       })),
     );
+    await db.insert(resourceGrants).values({
+      id: createId(),
+      workspaceId,
+      resourceId: rootId,
+      principalId: viewerId,
+      role: "viewer",
+      grantedBy: ownerId,
+    });
 
+    const clock = () => new Date("2030-01-01T00:00:00.000Z");
+    const cloudbaseClient = await snapshotClient(db, workspaceId);
     const postgresEvents = new PostgresEventReadRepository(db);
     const postgresCalendar = new PostgresCalendarReadRepository(db);
-    const cloudbaseFixtures = [
-      {
-        includedIn: null,
-        resource: fixtureResource(rootId, workspaceId, "Visible", null),
-      },
-      {
-        includedIn: rootId,
-        resource: fixtureResource(
-          firstId,
-          workspaceId,
-          "Visible",
-          firstStartsAt,
-        ),
-      },
-      {
-        includedIn: rootId,
-        resource: fixtureResource(
-          secondId,
-          workspaceId,
-          "Visible",
-          secondStartsAt,
-        ),
-      },
-      {
-        includedIn: rootId,
-        resource: fixtureResource(
-          hiddenId,
-          workspaceId,
-          "Hidden",
-          new Date("2030-01-03T09:00:00Z"),
-        ),
-      },
-    ];
-    const cloudbaseClient = fixtureClient(cloudbaseFixtures, userId, [
-      rootId,
-      firstId,
-      secondId,
-    ]);
     const cloudbaseEvents = new CloudBaseEventReadRepository(
       cloudbaseClient,
-      () => new Date("2030-01-01T00:00:00.000Z"),
+      clock,
     );
     const cloudbaseCalendar = new CloudBaseCalendarReadRepository(
       cloudbaseClient,
-      () => new Date("2030-01-01T00:00:00.000Z"),
+      clock,
     );
+    const ids = (resources: readonly { readonly id: string }[]) =>
+      resources.map(({ id }) => id);
 
-    const postgresPage = await postgresEvents.listEvents(principal, {
-      sort: "date",
-      limit: 10,
-    });
-    const cloudbasePage = await cloudbaseEvents.listEvents(principal, {
-      sort: "date",
-      limit: 10,
-    });
-    expect(cloudbasePage.items.map(({ id }) => id)).toEqual(
-      postgresPage.items.map(({ id }) => id),
-    );
+    for (const [principal, expectedList, expectedCalendar] of [
+      [
+        owner,
+        [privateChildId, rootId, unrelatedId],
+        [datedChildId, timedChildId, privateChildId],
+      ],
+      [viewer, [rootId], [datedChildId, timedChildId]],
+    ] as const) {
+      const postgresPage = await postgresEvents.listEvents(principal, {
+        sort: "date",
+        limit: 10,
+      });
+      const cloudbasePage = await cloudbaseEvents.listEvents(principal, {
+        sort: "date",
+        limit: 10,
+      });
+      expect(ids(postgresPage.items)).toEqual(expectedList);
+      expect(ids(cloudbasePage.items)).toEqual(ids(postgresPage.items));
 
-    const postgresCalendarItems = await postgresCalendar.listCalendarEvents(
-      principal,
-      rootId,
-    );
-    const cloudbaseCalendarItems = await cloudbaseCalendar.listCalendarEvents(
-      principal,
-      rootId,
-    );
-    expect(cloudbaseCalendarItems.map(({ id }) => id)).toEqual(
-      postgresCalendarItems.map(({ id }) => id),
-    );
+      const postgresCalendarItems = await postgresCalendar.listCalendarEvents(
+        principal,
+        rootId,
+      );
+      const cloudbaseCalendarItems = await cloudbaseCalendar.listCalendarEvents(
+        principal,
+        rootId,
+      );
+      expect(ids(postgresCalendarItems)).toEqual(expectedCalendar);
+      expect(ids(cloudbaseCalendarItems)).toEqual(ids(postgresCalendarItems));
+    }
+
+    await expect(
+      postgresCalendar.listCalendarEvents(viewer, unrelatedId),
+    ).rejects.toBeInstanceOf(AuthorizationDeniedError);
+    await expect(
+      cloudbaseCalendar.listCalendarEvents(viewer, unrelatedId),
+    ).rejects.toBeInstanceOf(AuthorizationDeniedError);
   });
 });
