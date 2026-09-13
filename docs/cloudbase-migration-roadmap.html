@@ -254,7 +254,13 @@
               RDB transport supports validated filters and deterministic
               ordering.
             </li>
-            <li>Validate the real CloudBase gateway adapter next.</li>
+            <li>
+              Read-only CloudBase calendar adapter applies workspace, inherited
+              grant, and expiry checks.
+            </li>
+            <li>
+              Validate the adapter against the real CloudBase gateway next.
+            </li>
           </ul>
         </div>
       </article>
@@ -389,7 +395,7 @@
       </table>
       <footer>
         Source of detail: <code>docs/cloudbase-migration-plan.md</code>. Updated
-        after PR #78.
+        after the CloudBase RDB query and calendar adapter work.
       </footer>
     </main>
   </body>

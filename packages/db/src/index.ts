@@ -12,6 +12,8 @@ export {
 export {
   type CloudBaseRdbClient,
   type CloudBaseRdbConnectionOptions,
+  type CloudBaseRdbFilter,
+  type CloudBaseRdbOrder,
   type CloudBaseRdbQuery,
   connectCloudBaseRdb,
   createCloudBaseRdbClient,
