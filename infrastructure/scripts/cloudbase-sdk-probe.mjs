@@ -10,6 +10,7 @@ if (!envId || !apiKey) {
   process.exit(2);
 }
 
+assertApiKeyFresh(apiKey);
 const { default: cloudbase } = await import("@cloudbase/js-sdk");
 const app = cloudbase.init({ env: envId, accessKey: apiKey });
 const probeTable = "chronelle_connectivity_probe_87bb3e66_nonexistent";
@@ -73,4 +74,25 @@ function readTimeout() {
     process.exit(2);
   }
   return value;
+}
+
+function assertApiKeyFresh(value) {
+  const payload = readJwtPayload(value);
+  if (payload === undefined || typeof payload.exp !== "number") return;
+  if (payload.exp * 1000 <= Date.now()) {
+    console.error(
+      "CLOUDBASE_APIKEY is expired. Replace it with a fresh short-lived server key and retry.",
+    );
+    process.exit(2);
+  }
+}
+
+function readJwtPayload(value) {
+  const segment = value.split(".")[1];
+  if (!segment) return undefined;
+  try {
+    return JSON.parse(Buffer.from(segment, "base64url").toString("utf8"));
+  } catch {
+    return undefined;
+  }
 }
