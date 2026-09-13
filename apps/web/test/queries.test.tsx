@@ -63,6 +63,7 @@ describe("canonical cache invalidation", () => {
           store.fetch(input, options),
       );
       const release = Promise.withResolvers<never[]>();
+      const staleRead = Promise.withResolvers<void>();
       let refreshing = false;
       const { result } = renderHook(
         () => {
@@ -70,10 +71,24 @@ describe("canonical cache invalidation", () => {
             queryKey: queryKeys.events,
             queryFn: () => (refreshing ? release.promise : Promise.resolve([])),
           });
+          const resource = useQuery({
+            enabled: mode === "edit",
+            queryKey: queryKeys.eventResource(original.id),
+            queryFn: async () => {
+              const response = await store.fetch(`/api/events/${original.id}`);
+              const value = await response.json();
+              if (refreshing) {
+                staleRead.resolve();
+                await release.promise;
+              }
+              return value;
+            },
+          });
           const create = useCreateEvent();
           const update = useUpdateEvent();
           return {
             query,
+            resource,
             save: () =>
               mode === "create"
                 ? create.mutateAsync({ displayName: "Saved event" })
@@ -89,10 +104,20 @@ describe("canonical cache invalidation", () => {
         { wrapper: Providers },
       );
       await waitFor(() => expect(result.current.query.isSuccess).toBe(true));
+      if (mode === "edit")
+        await waitFor(() =>
+          expect(result.current.resource.isSuccess).toBe(true),
+        );
       refreshing = true;
       let saved: Awaited<ReturnType<typeof result.current.save>> | undefined;
       let failure: unknown;
       try {
+        if (mode === "edit") {
+          act(() => {
+            void result.current.resource.refetch();
+          });
+          await staleRead.promise;
+        }
         act(() => {
           void result.current.save().then(
             (value) => {
@@ -108,11 +133,24 @@ describe("canonical cache invalidation", () => {
           expect(saved?.displayName).toBe("Saved event");
         });
         expect(result.current.query.isFetching).toBe(true);
+        if (mode === "edit")
+          expect(result.current.resource.data).toMatchObject({
+            displayName: "Saved event",
+            version: original.version + 1,
+          });
       } finally {
         await act(async () => {
           release.resolve([]);
         });
       }
+      if (mode === "edit")
+        await waitFor(() => {
+          expect(result.current.resource.isFetching).toBe(false);
+          expect(result.current.resource.data).toMatchObject({
+            displayName: "Saved event",
+            version: original.version + 1,
+          });
+        });
     },
   );
 

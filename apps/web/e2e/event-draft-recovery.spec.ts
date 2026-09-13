@@ -62,7 +62,9 @@ for (const kind of ["create", "edit"] as const)
       .getByLabel(kind === "create" ? "Event name" : "Name", { exact: true })
       .fill("Saved while away");
     const release = Promise.withResolvers<void>();
+    const refresh = Promise.withResolvers<void>();
     const started = Promise.withResolvers<void>();
+    let holdReads = false;
     let writes = 0;
     await page.route("**/api/**", async (route) => {
       if (route.request().method() === (kind === "create" ? "POST" : "PATCH")) {
@@ -70,6 +72,13 @@ for (const kind of ["create", "edit"] as const)
         started.resolve();
         await release.promise;
       }
+      if (
+        holdReads &&
+        route.request().method() === "GET" &&
+        new URL(route.request().url()).pathname ===
+          `/api${new URL(eventUrl).pathname}`
+      )
+        await refresh.promise;
       await route.continue();
     });
     await page
@@ -103,14 +112,19 @@ for (const kind of ["create", "edit"] as const)
       pending.getByRole("button", { name: "Discard draft", exact: true }),
     ).toBeDisabled();
     const currentUrl = page.url();
+    holdReads = kind === "edit";
     release.resolve();
-    await expect(page.getByRole("dialog")).toHaveCount(0);
-    await expect(page).toHaveURL(currentUrl);
-    expect(writes).toBe(1);
-    await open();
-    await expect(
-      page.getByLabel(kind === "create" ? "Event name" : "Name", {
-        exact: true,
-      }),
-    ).toHaveValue(kind === "create" ? "" : "Saved while away");
+    try {
+      await expect(page.getByRole("dialog")).toHaveCount(0);
+      await expect(page).toHaveURL(currentUrl);
+      expect(writes).toBe(1);
+      await open();
+      await expect(
+        page.getByLabel(kind === "create" ? "Event name" : "Name", {
+          exact: true,
+        }),
+      ).toHaveValue(kind === "create" ? "" : "Saved while away");
+    } finally {
+      refresh.resolve();
+    }
   });
