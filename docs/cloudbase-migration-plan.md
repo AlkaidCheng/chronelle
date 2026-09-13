@@ -86,6 +86,9 @@ R1, not a license to switch the production backend or migrate mutations.
 The connectivity preflight uses the shared request-timeout budget and reports
 expired or unauthorized keys without exposing response payloads. This makes a
 failed staging prerequisite actionable before the read-contract harness runs.
+The probe and read-contract harness share the same local expiry and timeout
+validation, so both staging entry points fail consistently before querying
+fixtures.
 
 The API now has an explicit `CLOUDBASE_READS_ENABLED` deployment flag. When
 enabled, only event-list and calendar repository dependencies switch to the

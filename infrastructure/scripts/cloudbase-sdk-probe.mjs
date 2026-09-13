@@ -1,5 +1,7 @@
 import process from "node:process";
 
+import { assertApiKeyFresh, readRequestTimeout } from "./cloudbase-config.mjs";
+
 const envId = process.env.CLOUDBASE_ENV_ID;
 const apiKey = process.env.CLOUDBASE_APIKEY;
 
@@ -10,11 +12,26 @@ if (!envId || !apiKey) {
   process.exit(2);
 }
 
-assertApiKeyFresh(apiKey);
+try {
+  assertApiKeyFresh(apiKey);
+} catch (error) {
+  console.error(
+    error instanceof Error ? error.message : "Invalid CloudBase API key.",
+  );
+  process.exit(2);
+}
 const { default: cloudbase } = await import("@cloudbase/js-sdk");
 const app = cloudbase.init({ env: envId, accessKey: apiKey });
 const probeTable = "chronelle_connectivity_probe_87bb3e66_nonexistent";
-const timeoutMs = readTimeout();
+let timeoutMs;
+try {
+  timeoutMs = readRequestTimeout();
+} catch (error) {
+  console.error(
+    error instanceof Error ? error.message : "Invalid CloudBase timeout.",
+  );
+  process.exit(2);
+}
 let timeout;
 let result;
 try {
@@ -63,36 +80,4 @@ if (result.error) {
 } else {
   console.error("The nonexistent probe table unexpectedly returned no error.");
   process.exitCode = 1;
-}
-
-function readTimeout() {
-  const value = Number(process.env.CLOUDBASE_REQUEST_TIMEOUT_MS ?? 30_000);
-  if (!Number.isInteger(value) || value < 1_000 || value > 120_000) {
-    console.error(
-      "CLOUDBASE_REQUEST_TIMEOUT_MS must be an integer between 1000 and 120000.",
-    );
-    process.exit(2);
-  }
-  return value;
-}
-
-function assertApiKeyFresh(value) {
-  const payload = readJwtPayload(value);
-  if (payload === undefined || typeof payload.exp !== "number") return;
-  if (payload.exp * 1000 <= Date.now()) {
-    console.error(
-      "CLOUDBASE_APIKEY is expired. Replace it with a fresh short-lived server key and retry.",
-    );
-    process.exit(2);
-  }
-}
-
-function readJwtPayload(value) {
-  const segment = value.split(".")[1];
-  if (!segment) return undefined;
-  try {
-    return JSON.parse(Buffer.from(segment, "base64url").toString("utf8"));
-  } catch {
-    return undefined;
-  }
 }

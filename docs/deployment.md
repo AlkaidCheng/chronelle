@@ -132,8 +132,9 @@ The harness requires a workspace, user, and visible event already present in the
 CloudBase environment. It never inserts, updates, deletes, or grants access. It
 checks canonical event IDs, calendar projections, cursor-page non-overlap,
 workspace isolation on returned resources, soft-deletion filtering, and an
-optional denied-event assertion. Do not place the API key in shell history or
-commit these values to the repository.
+optional denied-event assertion. It shares the probe's timeout and local expiry
+checks, so an expired key fails before any fixture query. Do not place the API
+key in shell history or commit these values to the repository.
 
 ## Containerized web
 
