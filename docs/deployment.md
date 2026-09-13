@@ -77,6 +77,13 @@ keys map to the privileged `service_role` and must never be sent to a browser,
 committed to the repository, or used as a substitute for Chronelle's
 application authorization.
 
+If the probe returns `ACCESS_TOKEN_EXPIRED`, replace `CLOUDBASE_APIKEY` with a
+new short-lived server key and rerun the probe. Do not reuse an expired key or
+enable CloudBase reads while the probe is failing. If the read-contract command
+reports missing `CLOUDBASE_CONTRACT_*` values, provide identifiers for an
+existing staging workspace, user, and visible event; the harness is read-only
+and will not create those fixtures.
+
 The current Personal plan is a staging option for this SDK path. Native TCP
 access remains a separate deployment decision because it requires a database
 endpoint, credentials, SSL settings, and a network route from the API service.
