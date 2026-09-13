@@ -9,13 +9,13 @@ describe("CloudBase RDB client", () => {
     };
     const request = Promise.resolve(response);
     const range = vi.fn().mockReturnValue(request);
-    const limit = vi.fn().mockReturnValue(
-      Object.assign(Promise.resolve(response), { range }),
-    );
+    const limit = vi
+      .fn()
+      .mockReturnValue(Object.assign(Promise.resolve(response), { range }));
     const from = vi.fn().mockReturnValue({
-      select: vi.fn().mockReturnValue(
-        Object.assign(Promise.resolve(response), { limit }),
-      ),
+      select: vi
+        .fn()
+        .mockReturnValue(Object.assign(Promise.resolve(response), { limit })),
     });
     const client = createCloudBaseRdbClient({
       rdb: () => ({ from }),
