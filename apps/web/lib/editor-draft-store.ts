@@ -1,9 +1,14 @@
-import type { EventResponse, TaskResponse } from "@chronelle/schemas";
+import type {
+  EventResponse,
+  ExpenseResponse,
+  TaskResponse,
+} from "@chronelle/schemas";
 import { ApiClientError } from "@chronelle/api-client";
 import { readEventSchedule } from "./event-schedule";
 import type { EditorDraftSnapshot } from "./use-editor-draft";
 import type { ContextCreateAttempt } from "./queries";
 import type { readTaskFields } from "./task-fields";
+import type { readExpenseFields } from "./expense-fields";
 
 export function readEventFields(event?: EventResponse) {
   return { displayName: event?.displayName ?? "", ...readEventSchedule(event) };
@@ -19,10 +24,23 @@ export type TaskDraftSnapshot = EditorDraftSnapshot<
   ReturnType<typeof readTaskFields>
 > & { readonly kind: "task"; readonly creationAttempt?: ContextCreateAttempt };
 
-export type RetainedDraftSnapshot = EventDraftSnapshot | TaskDraftSnapshot;
+export type ExpenseDraftSnapshot = EditorDraftSnapshot<
+  ExpenseResponse,
+  ReturnType<typeof readExpenseFields>
+> & {
+  readonly kind: "expense";
+  readonly creationAttempt?: ContextCreateAttempt;
+};
+
+export type RetainedDraftSnapshot =
+  EventDraftSnapshot | TaskDraftSnapshot | ExpenseDraftSnapshot;
 
 export function eventCreationDraftKeys(eventId: string) {
-  return { schedule: `schedule:${eventId}`, task: `task:${eventId}` };
+  return {
+    schedule: `schedule:${eventId}`,
+    task: `task:${eventId}`,
+    expense: `expense:${eventId}`,
+  };
 }
 
 export function isDraftAccessError(error: unknown): boolean {

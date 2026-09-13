@@ -56,6 +56,36 @@ const documentAttachment = {
 } as const;
 
 describe("ChronelleApiClient", () => {
+  it("reads a canonical Expense with workspace credentials and validates decimal data", async () => {
+    const expense = {
+      ...event,
+      objectType: "expense",
+      amount: "-0.0001",
+      currency: "USD",
+      occurredAt: event.createdAt,
+    };
+    const fetch = vi.fn<typeof globalThis.fetch>(async () =>
+      Response.json(expense),
+    );
+    const client = new ChronelleApiClient({
+      fetch,
+      getCredential: () => ({
+        accessToken: "test-session",
+        workspaceId: event.workspaceId,
+      }),
+    });
+    expect(await client.getExpense(event.id)).toMatchObject({
+      id: event.id,
+      objectType: "expense",
+      amount: "-0.0001",
+    });
+    expect(fetch.mock.calls[0]?.[0]).toBe(`/api/expenses/${event.id}`);
+    const headers = new Headers(fetch.mock.calls[0]?.[1]?.headers);
+    expect(headers.get("authorization")).toBe("Bearer test-session");
+    expect(headers.get("x-workspace-id")).toBe(event.workspaceId);
+    fetch.mockResolvedValueOnce(Response.json({ ...expense, amount: 0.1 }));
+    await expect(client.getExpense(event.id)).rejects.toThrow();
+  });
   it("reads a canonical Task with workspace credentials and validates its response", async () => {
     const task = {
       ...event,

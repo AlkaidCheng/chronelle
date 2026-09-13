@@ -15,6 +15,11 @@ import { isTemporaryReadError } from "../../lib/query-errors";
 import { useSessionDialog } from "../../lib/use-session-dialog";
 
 type DraftKind = RetainedDraftSnapshot["kind"];
+const draftFields: Record<DraftKind, string> = {
+  event: "event name and schedule",
+  task: "task name and due time",
+  expense: "expense name, amount, currency and transaction time",
+};
 type DraftOfKind<Kind extends DraftKind> = Extract<
   RetainedDraftSnapshot,
   { kind: Kind }
@@ -107,15 +112,21 @@ function ResumeDraft({
     try {
       if (accessId === "new") await client.getSession();
       else {
-        const isTaskEdit =
-          kind === "task" && kept.snapshot.source !== undefined;
+        const isObjectEdit =
+          kind !== "event" && kept.snapshot.source !== undefined;
+        const readResource = () => {
+          if (!isObjectEdit) return client.getEvent(accessId);
+          return kind === "expense"
+            ? client.getExpense(accessId)
+            : client.getTask(accessId);
+        };
         const [resource, access] = await Promise.all([
-          isTaskEdit ? client.getTask(accessId) : client.getEvent(accessId),
+          readResource(),
           client.getObjectAccess(accessId),
         ]);
         if (signal.aborted || !mounted.current) return;
         queries.setQueryData(
-          isTaskEdit
+          isObjectEdit
             ? queryKeys.objectResource(accessId)
             : queryKeys.eventResource(accessId),
           resource,
@@ -175,11 +186,8 @@ function ResumeDraft({
           <LoadingState label="Your save is still in progress. You can close this panel." />
         ) : (
           <p>
-            Your entered{" "}
-            {kind === "task"
-              ? "task name and due time"
-              : "event name and schedule"}{" "}
-            are kept in this tab. Current access is checked before resuming.
+            Your entered {draftFields[kind]} are kept in this tab. Current
+            access is checked before resuming.
           </p>
         )}
         {kept?.failed && (

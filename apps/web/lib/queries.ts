@@ -203,6 +203,25 @@ export function useTaskEditorQueries(taskId: string) {
   return { task, access };
 }
 
+export function useExpenseEditorQueries(expenseId: string) {
+  const client = useApiClient();
+  const { credential } = useAuthSession();
+  const expense = useQuery({
+    enabled: credential !== null,
+    queryFn: ({ signal }) => client.withSignal(signal).getExpense(expenseId),
+    queryKey: queryKeys.objectResource(expenseId),
+    refetchOnMount: "always",
+  });
+  const access = useQuery({
+    enabled: credential !== null,
+    queryFn: ({ signal }) =>
+      client.withSignal(signal).getObjectAccess(expenseId),
+    queryKey: queryKeys.access(expenseId),
+    refetchOnMount: "always",
+  });
+  return { expense, access };
+}
+
 export function useRefreshEvent(
   eventId: string,
   options: { readonly throwOnError?: boolean } = {},
@@ -387,8 +406,11 @@ export function useUpdateTask() {
   });
 }
 
-export function useCreateExpense(eventId: string) {
-  return useCreateInContext(eventId, "expense");
+export function useCreateExpense(
+  eventId: string,
+  attempt?: ContextCreateAttempt,
+) {
+  return useCreateInContext(eventId, "expense", attempt);
 }
 
 export function useUpdateExpense() {

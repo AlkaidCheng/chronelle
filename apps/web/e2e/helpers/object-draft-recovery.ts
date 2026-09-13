@@ -2,7 +2,7 @@ import { expect, type Page, type TestInfo } from "@playwright/test";
 import { expectToken } from "./appearance";
 import { expectHorizontalReflow } from "./page-navigation";
 
-export async function revisitTaskView(page: Page) {
+export async function revisitObjectView(page: Page) {
   const url = page.url();
   const length = await page.evaluate(() => history.length);
   await page.goBack();
@@ -13,11 +13,24 @@ export async function revisitTaskView(page: Page) {
   expect(await page.evaluate(() => history.length)).toBe(length);
 }
 
-export async function exerciseTaskRecovery(page: Page, testInfo: TestInfo) {
+export async function exerciseObjectRecovery(
+  page: Page,
+  testInfo: TestInfo,
+  kind: "task" | "expense",
+) {
+  const field = kind === "task" ? "Task" : "Expense";
+  const timeLabel = kind === "task" ? "Due" : "Date";
+  const rowRole = kind === "task" ? "row" : "article";
+
   await page.getByRole("button", { name: "Browse event data" }).click();
-  await page.getByRole("tab", { name: "To-dos", exact: true }).click();
-  const add = page.getByRole("button", { name: "Add task", exact: true });
-  const name = page.getByLabel("Task", { exact: true });
+  await page
+    .getByRole("tab", {
+      name: kind === "task" ? "To-dos" : "Expenses",
+      exact: true,
+    })
+    .click();
+  const add = page.getByRole("button", { name: `Add ${kind}`, exact: true });
+  const name = page.getByLabel(field, { exact: true });
   const recovery = page.getByRole("dialog", {
     name: "Resume your draft?",
     exact: true,
@@ -28,8 +41,12 @@ export async function exerciseTaskRecovery(page: Page, testInfo: TestInfo) {
   });
   await add.click();
   await name.fill("Pack the lanterns");
-  await page.getByLabel("Due", { exact: true }).fill("2030-07-03T11:30");
-  await revisitTaskView(page);
+  if (kind === "expense") {
+    await page.getByLabel("Amount", { exact: true }).fill("-0.0001");
+    await page.getByLabel("Currency", { exact: true }).fill("CNY");
+  }
+  await page.getByLabel(timeLabel, { exact: true }).fill("2030-07-03T11:30");
+  await revisitObjectView(page);
   await add.click();
   await expect(recovery).toBeVisible();
   await expect(name).toHaveCount(0);
@@ -51,23 +68,48 @@ export async function exerciseTaskRecovery(page: Page, testInfo: TestInfo) {
     await expectHorizontalReflow(page);
     await expect(resume).toBeInViewport();
     await page.screenshot({
-      path: testInfo.outputPath(`task-recovery-${colorScheme}.png`),
+      path: testInfo.outputPath(`${kind}-recovery-${colorScheme}.png`),
     });
   }
   await resume.click();
   await expect(name).toHaveValue("Pack the lanterns");
   await expect(name).toBeFocused();
-  await expect(page.getByLabel("Due", { exact: true })).toHaveValue(
+  await expect(page.getByLabel(timeLabel, { exact: true })).toHaveValue(
     "2030-07-03T11:30",
   );
+  if (kind === "expense") {
+    await expect(page.getByLabel("Amount", { exact: true })).toHaveValue(
+      "-0.0001",
+    );
+    await expect(page.getByLabel("Currency", { exact: true })).toHaveValue(
+      "CNY",
+    );
+    for (const colorScheme of ["light", "dark"] as const) {
+      await page.emulateMedia({ colorScheme, reducedMotion: "reduce" });
+      const editor = page.getByRole("dialog", {
+        name: "Add expense",
+        exact: true,
+      });
+      await expect(page.locator("html")).toHaveCSS("color-scheme", colorScheme);
+      await expectToken(editor, "background-color", "surface");
+      await expectToken(editor, "color", "ink");
+      await expectHorizontalReflow(page);
+      await expect(
+        editor.getByRole("button", { name: "Record expense", exact: true }),
+      ).toBeInViewport();
+      await page.screenshot({
+        path: testInfo.outputPath(`expense-editor-${colorScheme}.png`),
+      });
+    }
+  }
   await name.press("ControlOrMeta+Enter");
   await expect(page.getByRole("dialog")).toHaveCount(0);
-  const row = page.getByRole("row").filter({ hasText: "Pack the lanterns" });
+  const row = page.getByRole(rowRole).filter({ hasText: "Pack the lanterns" });
   await expect(row).toHaveCount(1);
   const edit = row.getByRole("button", { name: "Edit", exact: true });
   await edit.click();
   await name.fill("Pack the lanterns and candles");
-  await revisitTaskView(page);
+  await revisitObjectView(page);
   await edit.click();
   await expect(recovery).toBeVisible();
   await expect(name).toHaveCount(0);
@@ -80,7 +122,7 @@ export async function exerciseTaskRecovery(page: Page, testInfo: TestInfo) {
   await expect(edit).toBeFocused();
   await add.click();
   await name.fill("Discard this plan");
-  await revisitTaskView(page);
+  await revisitObjectView(page);
   await add.click();
   await recovery
     .getByRole("button", { name: "Discard draft", exact: true })
@@ -94,6 +136,8 @@ export async function exerciseTaskRecovery(page: Page, testInfo: TestInfo) {
   await expect(name).toHaveValue("");
   await page.getByRole("button", { name: "Cancel", exact: true }).click();
   await expect(
-    page.getByRole("row").filter({ hasText: "Pack the lanterns and candles" }),
+    page
+      .getByRole(rowRole)
+      .filter({ hasText: "Pack the lanterns and candles" }),
   ).toHaveCount(1);
 }

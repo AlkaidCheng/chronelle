@@ -595,6 +595,10 @@ export class ChronelleApiClient {
     return this.#request(`/api/tasks/${id}`, taskResponseSchema);
   }
 
+  getExpense(id: string): Promise<ExpenseResponse> {
+    return this.#request(`/api/expenses/${id}`, expenseResponseSchema);
+  }
+
   getEventLayout(id: string): Promise<EventLayoutResponse> {
     return this.#request(`/api/events/${id}/layout`, eventLayoutResponseSchema);
   }
