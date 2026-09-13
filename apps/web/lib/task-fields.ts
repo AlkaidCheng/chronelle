@@ -1,5 +1,6 @@
 import type { TaskResponse } from "@chronelle/schemas";
-import { fromDateTimeInput, toDateTimeInput } from "./format";
+import { editedInstant } from "./edited-instant";
+import { toDateTimeInput } from "./format";
 
 export function readTaskFields(
   task?: Pick<TaskResponse, "displayName" | "dueAt">,
@@ -15,15 +16,8 @@ export function taskFieldsPayload(
   fields: ReturnType<typeof readTaskFields>,
   source?: Pick<TaskResponse, "dueAt">,
 ) {
-  if (fields.dueAt === toDateTimeInput(source?.dueAt ?? null))
-    return { displayName: fields.displayName, dueAt: source?.dueAt ?? null };
-  let dueAt: string | null;
-  try {
-    dueAt = fromDateTimeInput(fields.dueAt);
-  } catch {
-    throw new Error("Choose a valid due date and time.");
-  }
-  if (toDateTimeInput(dueAt) !== fields.dueAt)
-    throw new Error("This local time is unavailable. Choose another due time.");
-  return { displayName: fields.displayName, dueAt };
+  return {
+    displayName: fields.displayName,
+    dueAt: editedInstant(fields.dueAt, source?.dueAt, "due"),
+  };
 }
