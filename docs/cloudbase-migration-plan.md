@@ -83,6 +83,10 @@ membership, cursor-page non-overlap, workspace and deletion invariants, and an
 optional negative authorization case. A passing harness is staging evidence for
 R1, not a license to switch the production backend or migrate mutations.
 
+The connectivity preflight uses the shared request-timeout budget and reports
+expired or unauthorized keys without exposing response payloads. This makes a
+failed staging prerequisite actionable before the read-contract harness runs.
+
 The API now has an explicit `CLOUDBASE_READS_ENABLED` deployment flag. When
 enabled, only event-list and calendar repository dependencies switch to the
 CloudBase adapters; PostgreSQL remains mandatory for mutations, detail
