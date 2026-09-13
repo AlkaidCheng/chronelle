@@ -228,15 +228,13 @@
       </section>
 
       <aside class="gate-note" aria-label="Current R1 staging gate">
-        <strong
-          >Current gate · R1 evidence recorded, cursor paging pending</strong
-        >
+        <strong>Current gate · R1 evidence recorded</strong>
         The read-only differential check has run against the real gateway for a
         workspace member and a grant-only viewer on a synthetic staging fixture:
-        event pages, calendars, isolation, and denials match PostgreSQL. Cursor
-        paging has not crossed a real page boundary yet. PostgreSQL remains the
-        runtime default and CloudBase reads stay disabled until Phase 6 decides
-        otherwise.
+        event pages, cursor paging, calendars, isolation, and denials match
+        PostgreSQL. PostgreSQL remains the runtime default and CloudBase reads
+        stay disabled until Phase 6 decides otherwise; R2 starts with a
+        version-predicate write harness.
       </aside>
 
       <h2>Execution plan</h2>
@@ -317,7 +315,8 @@
               now accepts the gateway's success shape.
             </li>
             <li>
-              Seed a fixture larger than one page to test cursor paging next.
+              Cursor paging verified on staging with page sizes of one and two;
+              the harness walks every page at a configurable size.
             </li>
           </ul>
         </div>

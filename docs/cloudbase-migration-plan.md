@@ -116,10 +116,13 @@ harness expectation must match the returned set exactly.
 R1 evidence now exists for a synthetic staging fixture: with a workspace owner
 and a grant-only viewer, the event pages, calendar membership and order,
 workspace isolation, deleted-row exclusion, private-child exclusion, and the
-denied-event case all match PostgreSQL through the real gateway. Each gateway
-query took roughly 0.8–1 second from the operator's location, which is the
-first R5 latency input. Enabling `CLOUDBASE_READS_ENABLED` remains a
-deployment decision under Phase 6, not a consequence of this run.
+denied-event case all match PostgreSQL through the real gateway. Cursor paging
+was exercised on the same fixture with page sizes of one and two, walking every
+page with no overlap and the same collection; the differential test also
+compares both backends' page sequences for every sort mode. Each gateway query
+took roughly 1–2 seconds from the operator's location, which is the first R5
+latency input. Enabling `CLOUDBASE_READS_ENABLED` remains a deployment decision
+under Phase 6, not a consequence of this run.
 
 The operation-by-operation consistency inventory is maintained in
 [`docs/cloudbase-operation-matrix.md`](cloudbase-operation-matrix.md). It is
@@ -234,12 +237,12 @@ PostgreSQL adapter.
 
 ## Recommended next PR
 
-Exercise the event-list cursor contract against the real gateway: the staging
-fixture holds fewer root Events than one page, so `cursorPageTested` is still
-false and the second-page non-overlap check has only run offline. Seed enough
-root Events to cross a page boundary, then re-run the harness for both
-principals. Keep the API response schemas unchanged and do not migrate
-mutations until the pagination contract is proven against the service.
+R1 has real-gateway evidence for the two migrated read paths. The next code
+step is the R2 prerequisite: an opt-in, staging-only harness that attempts a
+single-object update through the gateway with an explicit `version` predicate
+and proves that a stale version is rejected and that the audit record can be
+written in the same consistency mechanism. No repository moves until that
+harness passes; the API response schemas stay unchanged.
 
 ### R1 operator checklist
 
@@ -249,7 +252,8 @@ mutations until the pagination contract is proven against the service.
    `CLOUDBASE_CONTRACT_EVENT_ID` to existing staging fixtures, plus the exact
    `CLOUDBASE_CONTRACT_EXPECTED_*` sets the PostgreSQL repositories return for
    that principal. Run once as a workspace member and once as a grant-only
-   principal with `CLOUDBASE_CONTRACT_DENIED_EVENT_ID` set.
+   principal with `CLOUDBASE_CONTRACT_DENIED_EVENT_ID` set, and once with
+   `CLOUDBASE_CONTRACT_PAGE_LIMIT` small enough to cross a page boundary.
 3. Run `pnpm cloudbase:probe`, then `pnpm cloudbase:read-contract`.
 4. Attach the JSON output and latency observations to the R1 review before
    enabling `CLOUDBASE_READS_ENABLED`.
