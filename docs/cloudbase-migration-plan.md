@@ -317,6 +317,20 @@ ledgers, and checks the refusals for a stale version, no restorable changes,
 a missing revision, an Editor without a grant, an object in Trash, and a
 deleted state in history.
 
+**Sharing and permission-scope changes:** migration 0020 adds
+`chronelle_resource_share` (an Owner grants a role to a user found by email,
+one grant per resource and principal refreshed in place, never to the acting
+user), `chronelle_resource_share_revoke` (an Owner of the resource, tombstones
+included), and `chronelle_object_scope_update` (an Owner moves an object to
+itself or to a self-scoped Event they can share, under the version predicate,
+with the `permission_scope_updated` revision). `ShareWriteRepository` is
+declared next to `ResourceGrantService` in the authorization package;
+`PermissionScopeWriteRepository` sits with the other object boundaries; one
+CloudBase adapter implements both. The differential test compares grants,
+audit rows, the scope revision, and every refusal (unknown or ambiguous
+principal, the acting user as grantee, non-Owner callers, stale version,
+unchanged scope, missing or non-Event scope).
+
 ### Phase 4 — Cross-object mutations and recovery
 
 Do not emulate transactions with optimistic hope. For relations, shares,
@@ -376,10 +390,9 @@ PostgreSQL adapter.
 
 ## Recommended next PR
 
-Port sharing and permission-scope changes: grants, revocation, and
-`updatePermissionScope` as functions with their audit rows and the canonical
-scope rules, each with a differential test that includes inherited access
-after the change.
+Port Event page layout changes (add, remove, reorder panels, and layout
+restore) as functions with layout versioning and audit, with a differential
+test over the layout history.
 
 ### R1 operator checklist
 

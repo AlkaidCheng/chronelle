@@ -262,8 +262,12 @@
         <code>chronelle_relation_lifecycle</code> (migration 0017), and object
         deletion and recovery as <code>chronelle_object_delete</code> and
         <code>chronelle_object_recover</code> (migration 0018), and revision
-        restore as <code>chronelle_object_restore</code> (migration 0019).
-        Sharing and permission-scope changes are next.
+        restore as <code>chronelle_object_restore</code> (migration 0019), and
+        sharing and permission-scope changes as
+        <code>chronelle_resource_share</code>,
+        <code>chronelle_resource_share_revoke</code>, and
+        <code>chronelle_object_scope_update</code> (migration 0020). Event page
+        layouts are next.
       </aside>
 
       <aside class="invariant" aria-label="Standing constraint">
@@ -398,7 +402,7 @@
       </article>
       <article class="phase">
         <div class="phase-number">
-          STAGE 05 <span class="status next">Next</span>
+          STAGE 05 <span class="status next">In progress</span>
         </div>
         <div>
           <h3>Sharing, scope, and layouts</h3>
@@ -408,7 +412,8 @@
           <ul>
             <li>
               Scope changes are versioned; inherited access is recomputed from
-              the canonical scope, never from relations.
+              the canonical scope, never from relations: done, with grants and
+              revocation (migration 0020).
             </li>
             <li>
               Layout panels and their restore history keep optimistic
@@ -581,10 +586,21 @@
             <td><span class="status done">Done</span></td>
           </tr>
           <tr>
-            <td>Sharing, scope, layouts</td>
+            <td>Sharing, scope</td>
+            <td>
+              <code>chronelle_resource_share</code>,
+              <code>chronelle_resource_share_revoke</code>,
+              <code>chronelle_object_scope_update</code>
+            </td>
+            <td>0020</td>
+            <td>Differential test; staging linked contract</td>
+            <td><span class="status done">Done</span></td>
+          </tr>
+          <tr>
+            <td>Layouts</td>
             <td>One function per operation</td>
             <td>Per operation</td>
-            <td>Authorization suites on both backends</td>
+            <td>Layout history differential test</td>
             <td><span class="status next">Next</span></td>
           </tr>
           <tr>
@@ -682,7 +698,7 @@
         is in
         <a href="cloudbase-migration-roadmap.html"
           >cloudbase-migration-roadmap.html</a
-        >. Updated after revision restore.
+        >. Updated after sharing.
       </footer>
     </main>
   </body>
