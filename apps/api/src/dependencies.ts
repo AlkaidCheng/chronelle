@@ -7,6 +7,7 @@ import type { CloudBaseRdbClient, DatabaseConnection } from "@chronelle/db";
 import {
   CanonicalObjectSearchService,
   CloudBaseCalendarReadRepository,
+  CloudBaseCommandWriteRepository,
   CloudBaseEventReadRepository,
   CloudBaseProjectionReadRepository,
   CloudBaseEventContextWriteRepository,
@@ -107,6 +108,7 @@ export function createAppDependencies(
           objectLifecycle: new CloudBaseObjectLifecycleWriteRepository(
             options.cloudBaseRdb,
           ),
+          command: new CloudBaseCommandWriteRepository(options.cloudBaseRdb),
         };
   const objects = new EventPlanningObjectService(
     connection.db,
@@ -148,7 +150,7 @@ export function createAppDependencies(
     recovery: new ObjectRecoveryService(connection.db, writes.objectLifecycle),
     eventContexts: new EventContextService(connection.db, writes.eventContext),
     eventLayouts: new EventLayoutService(connection.db, writes.eventLayout),
-    commands: new ReversibleCommandService(connection.db),
+    commands: new ReversibleCommandService(connection.db, writes.command),
     search: new CanonicalObjectSearchService(
       connection.db,
       options.cloudBaseRdb === undefined
