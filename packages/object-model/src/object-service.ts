@@ -251,6 +251,8 @@ export class EventPlanningObjectService {
     input: CreateReminderInput,
   ): Promise<ReminderResource> {
     assertValidDate(input.remindAt, "remindAt");
+    if (this.#writes.reminder !== undefined)
+      return this.#writes.reminder.create(context, input);
 
     const resource = await this.#createObject(
       context,
@@ -542,6 +544,8 @@ export class EventPlanningObjectService {
     objectId: string,
     input: UpdateReminderInput,
   ): Promise<ReminderResource> {
+    if (this.#writes.reminder !== undefined)
+      return this.#writes.reminder.update(context, objectId, input);
     const current = this.#requireType(
       await this.#getObjectWithAction(context.principal, objectId, "edit"),
       "reminder",

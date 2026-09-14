@@ -12,16 +12,31 @@ import { and, eq } from "drizzle-orm";
 
 import { CommandConflictError, InvalidObjectStateError } from "./errors.js";
 import { EventPlanningObjectService } from "./object-service.js";
+import type { EventContextWriteRepository } from "./object-writes.js";
 import { ObjectRelationService } from "./relation-service.js";
 import { serializeResource } from "./serialization.js";
 import type { MutationContext } from "./types.js";
 import { hashCommand } from "./command-hash.js";
 
+/** The idempotency key of a linked creation: the same input replays, different input conflicts. */
+export function eventContextRequestHash(
+  eventId: string,
+  input: EventContextCreateRequest,
+): string {
+  return hashCommand({
+    eventId,
+    resource: input.resource,
+    relationMetadata: input.relationMetadata ?? {},
+  });
+}
+
 export class EventContextService {
   readonly #database: Database;
+  readonly #writes: EventContextWriteRepository | undefined;
 
-  constructor(database: Database) {
+  constructor(database: Database, writes?: EventContextWriteRepository) {
     this.#database = database;
+    this.#writes = writes;
   }
 
   /** Create and include one resource once per user/workspace command, without replaying later changes. */
@@ -30,12 +45,10 @@ export class EventContextService {
     eventId: string,
     input: EventContextCreateRequest,
   ) {
+    if (this.#writes !== undefined)
+      return this.#writes.create(context, eventId, input);
     const { principal } = context;
-    const requestHash = hashCommand({
-      eventId,
-      resource: input.resource,
-      relationMetadata: input.relationMetadata ?? {},
-    });
+    const requestHash = eventContextRequestHash(eventId, input);
     return withStableAuthorization(
       this.#database,
       principal.workspaceId,

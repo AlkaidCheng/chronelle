@@ -170,17 +170,15 @@ states that limitation explicitly. Run it only against staging.
 ### Run the CloudBase rpc contract
 
 The rpc check proves that a database function called through the gateway runs
-as one transaction. It exercises the write functions of one object family:
-the Event functions of migration 0012 by default, the Task functions of
-migration 0013 with `CLOUDBASE_CONTRACT_FAMILY=task`, or the Expense functions
-of migration 0014 with `CLOUDBASE_CONTRACT_FAMILY=expense`. Apply the
+as one transaction. It exercises the write functions of one object family,
+selected with `CLOUDBASE_CONTRACT_FAMILY`: `event` (migration 0012, the
+default), `task` (0013), `expense` (0014), or `reminder` (0015). Apply the
 migration to the environment first (through the console SQL editor when no
 TCP route exists, recording its ledger row as for the schema). Then:
 
 ```bash
 CLOUDBASE_CONTRACT_ALLOW_WRITES=true pnpm cloudbase:rpc-contract
-CLOUDBASE_CONTRACT_ALLOW_WRITES=true CLOUDBASE_CONTRACT_FAMILY=task pnpm cloudbase:rpc-contract
-CLOUDBASE_CONTRACT_ALLOW_WRITES=true CLOUDBASE_CONTRACT_FAMILY=expense pnpm cloudbase:rpc-contract
+CLOUDBASE_CONTRACT_ALLOW_WRITES=true CLOUDBASE_CONTRACT_FAMILY=reminder pnpm cloudbase:rpc-contract
 ```
 
 `CLOUDBASE_CONTRACT_FORBIDDEN_USER_ID` optionally names a user without edit
@@ -191,10 +189,26 @@ behind, and that four concurrent calls on one version produce one winner. The
 probe's audit and revision rows are append-only, so the harness soft-deletes
 the probe instead of removing it. Run it only against staging.
 
-`CLOUDBASE_WRITES_ENABLED=true` routes the API's Event, Task, and Expense
-create and update through those functions; it requires
-`CLOUDBASE_READS_ENABLED=true` and migrations 0012 through 0014 on the
-environment. Until every mutation family is
+### Run the CloudBase linked contract
+
+The linked check proves the first cross-object function,
+`chronelle_event_context_create` of migration 0016, through the gateway:
+
+```bash
+CLOUDBASE_CONTRACT_ALLOW_WRITES=true pnpm cloudbase:linked-contract
+```
+
+It creates a probe Event, links a Task to it in one call, replays the same
+command and expects the same child and relation, replays it with different
+input and expects a conflict, then calls the function with a request hash the
+command table rejects and proves that the child, the relation, and the audit
+rows written before that point are not persisted. The probes are
+soft-deleted afterwards. Run it only against staging.
+
+`CLOUDBASE_WRITES_ENABLED=true` routes the API's Event, Task, Expense, and
+Reminder create and update and linked creation through those functions; it
+requires `CLOUDBASE_READS_ENABLED=true` and migrations 0012 through 0016 on
+the environment. Until every mutation family is
 ported the API still needs `DATABASE_URL` for the rest, so the flag serves
 staging verification, not a deployment without PostgreSQL access.
 

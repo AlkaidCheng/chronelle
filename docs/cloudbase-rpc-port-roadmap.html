@@ -235,7 +235,7 @@
 
       <section class="summary" aria-label="Port summary">
         <div class="metric">
-          <strong>2 / 4</strong><span>single-object families ported</span>
+          <strong>4 / 4</strong><span>single-object families ported</span>
         </div>
         <div class="metric">
           <strong>Drizzle</strong
@@ -250,15 +250,15 @@
       </section>
 
       <aside class="gate-note" aria-label="Current stage">
-        <strong>Current stage &middot; Task family merged</strong>
-        Event and Task create and update run as
+        <strong>Current stage &middot; linked creation ported</strong>
+        All four typed families run as
         <code>chronelle_&lt;type&gt;_create</code> and
-        <code>chronelle_&lt;type&gt;_update</code> behind
-        <code>CLOUDBASE_WRITES_ENABLED</code>. Migration 0013 factored the
-        transaction into <code>chronelle_object_create</code> and
-        <code>chronelle_object_update</code>, so a new family is five typed
-        functions, a row decoder, and a differential test. Expense is next, then
-        Reminder; linked creation is the first cross-object function.
+        <code>chronelle_&lt;type&gt;_update</code> on the shared core of
+        migration 0013, and linked creation runs as
+        <code>chronelle_event_context_create</code> (migration 0016): the child,
+        the <code>includes</code> relation, both audit rows, and the command
+        record in one call. Relation changes on
+        <code>chronelle_relation_create</code> are next.
       </aside>
 
       <aside class="invariant" aria-label="Standing constraint">
@@ -304,7 +304,7 @@
       </article>
       <article class="phase">
         <div class="phase-number">
-          STAGE 02 <span class="status next">In progress</span>
+          STAGE 02 <span class="status done">Done</span>
         </div>
         <div>
           <h3>Single-object create and update</h3>
@@ -326,8 +326,8 @@
               subclass, and a differential test on the shared harness.
             </li>
             <li>
-              Event (migration 0012) and Task (migration 0013) merged; Expense
-              and Reminder follow the same shape.
+              Event (0012), Task (0013), Expense (0014), and Reminder (0015)
+              merged in the same shape.
             </li>
             <li>
               Staging run per family with
@@ -338,7 +338,7 @@
       </article>
       <article class="phase">
         <div class="phase-number">
-          STAGE 03 <span class="status planned">Planned</span>
+          STAGE 03 <span class="status done">Done</span>
         </div>
         <div>
           <h3>Linked creation</h3>
@@ -354,14 +354,19 @@
             </li>
             <li>
               Injected-failure test: a raise after the relation insert leaves no
-              object, relation, audit, or revision row.
+              object, relation, audit, or revision row (migration 0016; staging
+              linked contract).
+            </li>
+            <li>
+              <code>chronelle_relation_create</code> carries the service's
+              relation rules and is the building block for Stage 04.
             </li>
           </ul>
         </div>
       </article>
       <article class="phase">
         <div class="phase-number">
-          STAGE 04 <span class="status planned">Planned</span>
+          STAGE 04 <span class="status next">Next</span>
         </div>
         <div>
           <h3>Relations and lifecycle</h3>
@@ -515,8 +520,8 @@
             <td>Expense create, update</td>
             <td><code>chronelle_expense_create</code>, <code>_update</code></td>
             <td>0014</td>
-            <td>Same shape</td>
-            <td><span class="status next">Next</span></td>
+            <td>Differential test; staging rpc contract</td>
+            <td><span class="status done">Done</span></td>
           </tr>
           <tr>
             <td>Reminder create, update</td>
@@ -524,22 +529,27 @@
               <code>chronelle_reminder_create</code>, <code>_update</code>
             </td>
             <td>0015</td>
-            <td>Same shape</td>
-            <td><span class="status planned">Planned</span></td>
+            <td>Differential test; staging rpc contract</td>
+            <td><span class="status done">Done</span></td>
           </tr>
           <tr>
             <td>Linked creation</td>
-            <td>One function over the family functions plus the relation</td>
-            <td>Next free number</td>
-            <td>Differential test plus injected failure</td>
-            <td><span class="status planned">Planned</span></td>
+            <td>
+              <code>chronelle_event_context_create</code> over the family
+              functions and <code>chronelle_relation_create</code>
+            </td>
+            <td>0016</td>
+            <td>
+              Differential test plus injected failure; staging linked contract
+            </td>
+            <td><span class="status done">Done</span></td>
           </tr>
           <tr>
             <td>Relations, delete, restore, revisions</td>
             <td>One function per operation</td>
             <td>Per operation</td>
             <td>Full-ledger differential tests</td>
-            <td><span class="status planned">Planned</span></td>
+            <td><span class="status next">Next</span></td>
           </tr>
           <tr>
             <td>Sharing, scope, layouts</td>
@@ -643,7 +653,7 @@
         is in
         <a href="cloudbase-migration-roadmap.html"
           >cloudbase-migration-roadmap.html</a
-        >. Updated after the Task family merged.
+        >. Updated after linked creation.
       </footer>
     </main>
   </body>

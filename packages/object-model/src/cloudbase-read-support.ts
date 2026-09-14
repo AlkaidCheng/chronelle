@@ -5,10 +5,16 @@ import {
 import type {
   CloudBaseRdbFilter,
   CloudBaseRdbReader,
+  ReminderStatus,
   TaskStatus,
 } from "@chronelle/db";
 
-import type { EventResource, ExpenseResource, TaskResource } from "./types.js";
+import type {
+  EventResource,
+  ExpenseResource,
+  ReminderResource,
+  TaskResource,
+} from "./types.js";
 
 export const cloudbaseObjectColumns =
   "id,workspace_id,object_type,display_name,created_by,permission_scope_id,created_at,updated_at,version,archived_at,deleted_at,custom_properties,metadata";
@@ -56,6 +62,13 @@ export type CloudBaseExpenseRow = {
   readonly amount: unknown;
   readonly currency: unknown;
   readonly occurred_at: unknown;
+};
+
+export type CloudBaseReminderRow = {
+  readonly object_id: unknown;
+  readonly workspace_id: unknown;
+  readonly remind_at: unknown;
+  readonly status: unknown;
 };
 
 export type CloudBaseGrantRow = {
@@ -135,7 +148,7 @@ function cloudbaseBoolean(value: unknown, field: string): boolean {
 function cloudbaseCanonicalFields(
   object: CloudBaseObjectRow,
   typed: { readonly object_id: unknown; readonly workspace_id: unknown },
-  objectType: "event" | "task" | "expense",
+  objectType: "event" | "task" | "expense" | "reminder",
 ) {
   const objectId = cloudbaseText(object.id, "object id");
   const objectWorkspace = cloudbaseText(
@@ -197,6 +210,28 @@ export function cloudbaseTaskResource(
     status: status as TaskStatus,
     dueAt: cloudbaseNullableDate(task.due_at, "due_at"),
     completedAt: cloudbaseNullableDate(task.completed_at, "completed_at"),
+  };
+}
+
+const reminderStatuses: readonly ReminderStatus[] = [
+  "pending",
+  "triggered",
+  "dismissed",
+  "cancelled",
+];
+
+export function cloudbaseReminderResource(
+  object: CloudBaseObjectRow,
+  reminder: CloudBaseReminderRow,
+): ReminderResource {
+  const status = cloudbaseText(reminder.status, "status");
+  if (!reminderStatuses.includes(status as ReminderStatus))
+    throw new Error("CloudBase returned an invalid reminder status.");
+  return {
+    ...cloudbaseCanonicalFields(object, reminder, "reminder"),
+    objectType: "reminder",
+    remindAt: cloudbaseDate(reminder.remind_at, "remind_at"),
+    status: status as ReminderStatus,
   };
 }
 
