@@ -1,5 +1,6 @@
 import {
   documents,
+  documentTransferAuthorizations,
   events,
   expenses,
   objectRelations,
@@ -24,6 +25,7 @@ import { getTableColumns, type Table } from "drizzle-orm";
 // backends read one dataset.
 
 const snapshotTables = {
+  document_transfer_authorizations: documentTransferAuthorizations,
   documents,
   events,
   expenses,

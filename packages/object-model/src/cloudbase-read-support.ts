@@ -162,7 +162,7 @@ function cloudbaseJsonObject(
   return value as Record<string, unknown>;
 }
 
-function cloudbaseBigInt(value: unknown, field: string): bigint {
+export function cloudbaseBigInt(value: unknown, field: string): bigint {
   if (typeof value === "string" && /^-?\d+$/u.test(value)) return BigInt(value);
   if (typeof value === "number" && Number.isSafeInteger(value))
     return BigInt(value);

@@ -9,6 +9,8 @@ import {
   CloudBaseCalendarReadRepository,
   CloudBaseCommandReadRepository,
   CloudBaseCommandWriteRepository,
+  CloudBaseDocumentTransferReadRepository,
+  CloudBaseDocumentTransferWriteRepository,
   CloudBaseEventReadRepository,
   CloudBaseProjectionReadRepository,
   CloudBaseEventContextWriteRepository,
@@ -102,6 +104,9 @@ export function createAppDependencies(
           storage: new CloudBaseStorageInventoryReadRepository(
             options.cloudBaseRdb,
           ),
+          transfers: new CloudBaseDocumentTransferReadRepository(
+            options.cloudBaseRdb,
+          ),
         };
   const sharing =
     options.cloudBaseRdb === undefined || options.cloudBaseWrites !== true
@@ -128,6 +133,9 @@ export function createAppDependencies(
             options.cloudBaseRdb,
           ),
           command: new CloudBaseCommandWriteRepository(options.cloudBaseRdb),
+          transfers: new CloudBaseDocumentTransferWriteRepository(
+            options.cloudBaseRdb,
+          ),
         };
   const objects = new EventPlanningObjectService(
     connection.db,
@@ -144,16 +152,12 @@ export function createAppDependencies(
   return {
     authProvider,
     authorization,
-    documents: new DocumentService(
-      connection.db,
-      authorization,
-      objects,
-      storage,
-      {
-        clock: options.clock,
-        transferTtlMs: options.documentTransferTtlMs,
-      },
-    ),
+    documents: new DocumentService(connection.db, objects, storage, {
+      clock: options.clock,
+      transferTtlMs: options.documentTransferTtlMs,
+      writes: writes.transfers,
+      reads: reads?.transfers,
+    }),
     identity: new WorkspaceIdentityService(connection.db),
     objects,
     relations: new ObjectRelationService(
