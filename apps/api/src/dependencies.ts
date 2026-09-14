@@ -11,6 +11,7 @@ import {
   CloudBaseEventContextWriteRepository,
   CloudBaseEventWriteRepository,
   CloudBaseExpenseWriteRepository,
+  CloudBaseRelationWriteRepository,
   CloudBaseReminderWriteRepository,
   CloudBaseTaskWriteRepository,
   DocumentService,
@@ -88,6 +89,7 @@ export function createAppDependencies(
           eventContext: new CloudBaseEventContextWriteRepository(
             options.cloudBaseRdb,
           ),
+          relation: new CloudBaseRelationWriteRepository(options.cloudBaseRdb),
         };
   const objects = new EventPlanningObjectService(
     connection.db,
@@ -116,7 +118,11 @@ export function createAppDependencies(
     ),
     identity: new WorkspaceIdentityService(connection.db),
     objects,
-    relations: new ObjectRelationService(connection.db),
+    relations: new ObjectRelationService(
+      connection.db,
+      undefined,
+      writes.relation,
+    ),
     revisions: new ObjectRevisionService(connection.db),
     restoration: new ObjectRestorationService(connection.db),
     recovery: new ObjectRecoveryService(connection.db),
