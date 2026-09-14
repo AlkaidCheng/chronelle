@@ -66,9 +66,19 @@ app.addHook("onClose", async () => {
   await database.close();
 });
 
+/**
+ * Closes the app and ends the process once its output has flushed. The
+ * CloudBase SDK keeps a timer alive, so an idle event loop cannot be relied
+ * on to end the process after the server has closed.
+ */
+async function shutdown(code: number): Promise<void> {
+  await app.close();
+  process.stdout.write("", () => process.exit(code));
+}
+
 for (const signal of ["SIGINT", "SIGTERM"] as const) {
   process.once(signal, () => {
-    void app.close();
+    void shutdown(0);
   });
 }
 
@@ -99,6 +109,5 @@ try {
   });
 } catch {
   app.log.error({ code: "startup_failed" }, "The API could not start.");
-  await app.close();
-  process.exitCode = 1;
+  await shutdown(1);
 }
