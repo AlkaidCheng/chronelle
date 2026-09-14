@@ -111,7 +111,7 @@ export function createAppDependencies(
   const objects = new EventPlanningObjectService(
     connection.db,
     undefined,
-    eventReads,
+    { events: eventReads },
     writes,
   );
   const storage =
@@ -145,7 +145,11 @@ export function createAppDependencies(
       connection.db,
       writes.objectLifecycle,
     ),
-    recovery: new ObjectRecoveryService(connection.db, writes.objectLifecycle),
+    recovery: new ObjectRecoveryService(
+      connection.db,
+      undefined,
+      writes.objectLifecycle,
+    ),
     eventContexts: new EventContextService(connection.db, writes.eventContext),
     eventLayouts: new EventLayoutService(connection.db, writes.eventLayout),
     commands: new ReversibleCommandService(connection.db),

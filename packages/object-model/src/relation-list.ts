@@ -11,6 +11,7 @@ import {
   removedRelationQuerySchema,
   type RelationListCursor,
   type RelationListQueryInput,
+  type RemovedRelationQuery,
   type RemovedRelationQueryInput,
 } from "@chronelle/schemas";
 import {
@@ -29,12 +30,109 @@ import { decodeCursor, encodeCursor } from "./cursor.js";
 import { InvalidObjectStateError } from "./errors.js";
 import type { ObjectRelationResource } from "./types.js";
 
+type RelationListQuery = ReturnType<typeof relationListQuerySchema.parse>;
+
 export interface RelationPage {
   readonly items: ObjectRelationResource[];
   readonly nextCursor: string | null;
 }
 
-function readPosition(token: string | undefined, context: string) {
+export interface RemovedRelationItem {
+  readonly relation: ObjectRelationResource;
+  readonly sourceDisplayName: string;
+  readonly targetDisplayName: string;
+}
+
+export interface RemovedRelationPage {
+  readonly items: RemovedRelationItem[];
+  readonly nextCursor: string | null;
+}
+
+/**
+ * Read boundary for an object's relation pages. Implementations authorize the
+ * object, hide relations whose other endpoint the principal cannot view, and
+ * page newest-first by relation id with the shared cursor envelope.
+ */
+export interface RelationReadRepository {
+  listRelations(
+    principal: UserPrincipal,
+    objectId: string,
+    input?: RelationListQueryInput,
+  ): Promise<RelationPage>;
+  /** Removed links with a live editable source and a live readable target. */
+  listRemovedRelations(
+    principal: UserPrincipal,
+    objectId: string,
+    input: RemovedRelationQueryInput,
+  ): Promise<RemovedRelationPage>;
+}
+
+export class PostgresRelationReadRepository implements RelationReadRepository {
+  readonly #database: AuthorizationDatabase;
+
+  constructor(database: AuthorizationDatabase) {
+    this.#database = database;
+  }
+
+  listRelations(
+    principal: UserPrincipal,
+    objectId: string,
+    input: RelationListQueryInput = {},
+  ): Promise<RelationPage> {
+    return listRelationPage(this.#database, principal, objectId, input);
+  }
+
+  listRemovedRelations(
+    principal: UserPrincipal,
+    objectId: string,
+    input: RemovedRelationQueryInput,
+  ): Promise<RemovedRelationPage> {
+    return listRemovedRelationPage(this.#database, principal, objectId, input);
+  }
+}
+
+/** Query identity a relation cursor is bound to; a cursor from another query is rejected. */
+export function relationListContext(
+  principal: UserPrincipal,
+  objectId: string,
+  input: RelationListQuery,
+): string {
+  return createHash("sha256")
+    .update(
+      JSON.stringify([
+        principal.userId,
+        principal.workspaceId,
+        objectId,
+        input.direction,
+        input.relationType ?? null,
+        input.otherObjectId ?? null,
+      ]),
+    )
+    .digest("hex");
+}
+
+export function removedRelationContext(
+  principal: UserPrincipal,
+  objectId: string,
+  input: RemovedRelationQuery,
+): string {
+  return createHash("sha256")
+    .update(
+      JSON.stringify([
+        "removed-relations",
+        principal.userId,
+        principal.workspaceId,
+        objectId,
+        input.relationType ?? null,
+      ]),
+    )
+    .digest("hex");
+}
+
+export function readRelationCursor(
+  token: string | undefined,
+  context: string,
+): RelationListCursor | undefined {
   if (token === undefined) return undefined;
   try {
     const cursor = relationListCursorSchema.parse(decodeCursor(token));
@@ -47,6 +145,14 @@ function readPosition(token: string | undefined, context: string) {
   );
 }
 
+export function relationCursor(context: string, id: string): string {
+  return encodeCursor({
+    formatVersion: 1,
+    context,
+    id,
+  } satisfies RelationListCursor);
+}
+
 export async function listRelationPage(
   database: AuthorizationDatabase,
   principal: UserPrincipal,
@@ -54,19 +160,8 @@ export async function listRelationPage(
   options: RelationListQueryInput = {},
 ): Promise<RelationPage> {
   const input = relationListQuerySchema.parse(options);
-  const context = createHash("sha256")
-    .update(
-      JSON.stringify([
-        principal.userId,
-        principal.workspaceId,
-        objectId,
-        input.direction,
-        input.relationType ?? null,
-        input.otherObjectId ?? null,
-      ]),
-    )
-    .digest("hex");
-  const cursor = readPosition(input.cursor, context);
+  const context = relationListContext(principal, objectId, input);
+  const cursor = readRelationCursor(input.cursor, context);
   const outgoing = eq(objectRelations.sourceObjectId, objectId);
   const incoming = eq(objectRelations.targetObjectId, objectId);
   const direction =
@@ -126,11 +221,7 @@ export async function listRelationPage(
       items,
       nextCursor:
         rows.length > input.limit && last !== undefined
-          ? encodeCursor({
-              formatVersion: 1,
-              context,
-              id: last.id,
-            } satisfies RelationListCursor)
+          ? relationCursor(context, last.id)
           : null,
     };
   });
@@ -142,20 +233,10 @@ export async function listRemovedRelationPage(
   principal: UserPrincipal,
   objectId: string,
   options: RemovedRelationQueryInput,
-) {
+): Promise<RemovedRelationPage> {
   const input = removedRelationQuerySchema.parse(options);
-  const context = createHash("sha256")
-    .update(
-      JSON.stringify([
-        "removed-relations",
-        principal.userId,
-        principal.workspaceId,
-        objectId,
-        input.relationType ?? null,
-      ]),
-    )
-    .digest("hex");
-  const cursor = readPosition(input.cursor, context);
+  const context = removedRelationContext(principal, objectId, input);
+  const cursor = readRelationCursor(input.cursor, context);
   return withReadAuthorization(database, async (transaction, authorization) => {
     await authorization.assertCan(principal, "view", {
       id: objectId,
@@ -209,11 +290,7 @@ export async function listRemovedRelationPage(
       items,
       nextCursor:
         rows.length > input.limit && last !== undefined
-          ? encodeCursor({
-              formatVersion: 1,
-              context,
-              id: last.relation.id,
-            } satisfies RelationListCursor)
+          ? relationCursor(context, last.relation.id)
           : null,
     };
   });

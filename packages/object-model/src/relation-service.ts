@@ -21,9 +21,10 @@ import type {
   RemovedRelationQuery,
 } from "@chronelle/schemas";
 import {
-  listRelationPage,
-  listRemovedRelationPage,
+  PostgresRelationReadRepository,
   type RelationPage,
+  type RelationReadRepository,
+  type RemovedRelationPage,
 } from "./relation-list.js";
 
 import {
@@ -72,16 +73,19 @@ function isCompatibleRelation(
 export class ObjectRelationService {
   readonly #clock: () => Date;
   readonly #database: AuthorizationDatabase;
+  readonly #reads: RelationReadRepository;
   readonly #writes: RelationWriteRepository | undefined;
 
   constructor(
     database: AuthorizationDatabase,
     clock: () => Date = () => new Date(),
     writes?: RelationWriteRepository,
+    reads?: RelationReadRepository,
   ) {
     this.#database = database;
     this.#clock = clock;
     this.#writes = writes;
+    this.#reads = reads ?? new PostgresRelationReadRepository(database);
   }
 
   async create(
@@ -159,12 +163,12 @@ export class ObjectRelationService {
     );
   }
 
-  async listForObject(
+  listForObject(
     principal: UserPrincipal,
     objectId: string,
     input: RelationListQueryInput = {},
   ): Promise<RelationPage> {
-    return listRelationPage(this.#database, principal, objectId, input);
+    return this.#reads.listRelations(principal, objectId, input);
   }
 
   async softDelete(
@@ -200,12 +204,12 @@ export class ObjectRelationService {
     return this.#changeLifecycle(context, relationId, expectedVersion, null);
   }
 
-  async listRemoved(
+  listRemoved(
     principal: UserPrincipal,
     objectId: string,
     input: RemovedRelationQuery,
-  ) {
-    return listRemovedRelationPage(this.#database, principal, objectId, input);
+  ): Promise<RemovedRelationPage> {
+    return this.#reads.listRemovedRelations(principal, objectId, input);
   }
 
   async #changeLifecycle(

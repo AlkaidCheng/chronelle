@@ -59,7 +59,7 @@ beforeAll(async () => {
     objects: new EventPlanningObjectService(db, clock, undefined, {
       objectLifecycle: adapter,
     }),
-    recovery: new ObjectRecoveryService(db, adapter),
+    recovery: new ObjectRecoveryService(db, undefined, adapter),
   };
 });
 

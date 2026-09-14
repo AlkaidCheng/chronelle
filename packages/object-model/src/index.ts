@@ -32,6 +32,30 @@ export {
   PostgresEventReadRepository,
   type EventReadRepository,
 } from "./event-list.js";
+export {
+  PostgresObjectReadRepository,
+  type ObjectReadRepositories,
+  type ObjectReadRepository,
+} from "./object-reads.js";
+export {
+  PostgresRelationReadRepository,
+  type RelationPage,
+  type RelationReadRepository,
+  type RemovedRelationPage,
+} from "./relation-list.js";
+export {
+  PostgresRevisionReadRepository,
+  type RevisionDetail,
+  type RevisionPage,
+  type RevisionReadRepository,
+  type RevisionSummary,
+} from "./revision-reads.js";
+export {
+  PostgresRecoveryReadRepository,
+  type RecoveryPreview,
+  type RecoveryReadRepository,
+  type TrashPage,
+} from "./recovery-reads.js";
 export type {
   EventContextWriteRepository,
   EventLayoutWriteRepository,
