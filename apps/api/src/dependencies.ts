@@ -128,7 +128,10 @@ export function createAppDependencies(
       writes.relation,
     ),
     revisions: new ObjectRevisionService(connection.db),
-    restoration: new ObjectRestorationService(connection.db),
+    restoration: new ObjectRestorationService(
+      connection.db,
+      writes.objectLifecycle,
+    ),
     recovery: new ObjectRecoveryService(connection.db, writes.objectLifecycle),
     eventContexts: new EventContextService(connection.db, writes.eventContext),
     eventLayouts: new EventLayoutService(connection.db),
