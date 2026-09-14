@@ -77,7 +77,8 @@ GRANT SELECT, INSERT, UPDATE ON
   public.workspaces, public.workspace_members, public.objects,
   public.object_relations, public.resource_grants, public.events, public.tasks,
   public.expenses, public.reminders, public.document_transfer_authorizations,
-  public.command_stacks, public.user_sessions
+  public.command_stacks, public.user_sessions, public.user_credentials,
+  public.email_verifications
 TO :"runtime_role";
 GRANT DELETE ON public.resource_grants TO :"runtime_role";
 

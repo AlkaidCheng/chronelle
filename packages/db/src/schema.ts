@@ -88,7 +88,7 @@ export const users = pgTable("users", {
   updatedAt: createUpdatedAtColumn(),
 });
 
-// Session clocks carry millisecond precision so the API's comparisons agree with the functions'.
+// Credential and session clocks carry millisecond precision so the API's comparisons agree with the functions'.
 const createSessionInstantColumn = (name: string) =>
   timestamp(name, { mode: "date", withTimezone: true, precision: 3 });
 
@@ -101,6 +101,30 @@ export const userSessions = pgTable("user_sessions", {
   expiresAt: createSessionInstantColumn("expires_at").notNull(),
   lastSeenAt: createSessionInstantColumn("last_seen_at").notNull().defaultNow(),
   revokedAt: createSessionInstantColumn("revoked_at"),
+});
+
+export const userCredentials = pgTable("user_credentials", {
+  userId: uuid("user_id").primaryKey(),
+  passwordHash: text("password_hash").notNull(),
+  emailVerifiedAt: createSessionInstantColumn("email_verified_at"),
+  failedAttempts: integer("failed_attempts").notNull().default(0),
+  lockedUntil: createSessionInstantColumn("locked_until"),
+  createdAt: createSessionInstantColumn("created_at").notNull().defaultNow(),
+  updatedAt: createSessionInstantColumn("updated_at").notNull().defaultNow(),
+});
+
+export const verificationPurposes = ["verify_email", "reset_password"] as const;
+export type VerificationPurpose = (typeof verificationPurposes)[number];
+
+export const emailVerifications = pgTable("email_verifications", {
+  id: uuid("id").primaryKey(),
+  userId: uuid("user_id").notNull(),
+  purpose: text("purpose").$type<VerificationPurpose>().notNull(),
+  codeHash: text("code_hash").notNull(),
+  attempts: integer("attempts").notNull().default(0),
+  createdAt: createSessionInstantColumn("created_at").notNull().defaultNow(),
+  expiresAt: createSessionInstantColumn("expires_at").notNull(),
+  consumedAt: createSessionInstantColumn("consumed_at"),
 });
 
 export const workspaces = pgTable("workspaces", {
@@ -424,6 +448,8 @@ export type UserRow = typeof users.$inferSelect;
 export type NewUserRow = typeof users.$inferInsert;
 export type UserSessionRow = typeof userSessions.$inferSelect;
 export type NewUserSessionRow = typeof userSessions.$inferInsert;
+export type UserCredentialRow = typeof userCredentials.$inferSelect;
+export type EmailVerificationRow = typeof emailVerifications.$inferSelect;
 export type WorkspaceRow = typeof workspaces.$inferSelect;
 export type NewWorkspaceRow = typeof workspaces.$inferInsert;
 export type WorkspaceMemberRow = typeof workspaceMembers.$inferSelect;
