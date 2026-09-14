@@ -10,6 +10,7 @@ import {
   CloudBaseEventReadRepository,
   CloudBaseEventWriteRepository,
   CloudBaseExpenseWriteRepository,
+  CloudBaseReminderWriteRepository,
   CloudBaseTaskWriteRepository,
   DocumentService,
   EventPlanningObjectService,
@@ -82,6 +83,7 @@ export function createAppDependencies(
           event: new CloudBaseEventWriteRepository(options.cloudBaseRdb),
           task: new CloudBaseTaskWriteRepository(options.cloudBaseRdb),
           expense: new CloudBaseExpenseWriteRepository(options.cloudBaseRdb),
+          reminder: new CloudBaseReminderWriteRepository(options.cloudBaseRdb),
         };
   const objects = new EventPlanningObjectService(
     connection.db,
