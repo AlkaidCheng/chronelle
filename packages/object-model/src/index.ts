@@ -32,6 +32,7 @@ export { CloudBaseExpenseWriteRepository } from "./cloudbase-expense-write-repos
 export { CloudBaseObjectLifecycleWriteRepository } from "./cloudbase-object-lifecycle-write-repository.js";
 export { CloudBaseRelationWriteRepository } from "./cloudbase-relation-write-repository.js";
 export { CloudBaseSharingWriteRepository } from "./cloudbase-sharing-write-repository.js";
+export { CloudBaseStorageInventoryReadRepository } from "./cloudbase-storage-inventory-read-repository.js";
 export { CloudBaseReminderWriteRepository } from "./cloudbase-reminder-write-repository.js";
 export { CloudBaseSearchReadRepository } from "./cloudbase-search-read-repository.js";
 export { CloudBaseTaskWriteRepository } from "./cloudbase-task-write-repository.js";
@@ -105,3 +106,7 @@ export {
   StorageInventoryService,
   StorageInventoryBusyError,
 } from "./storage-inventory-service.js";
+export {
+  PostgresStorageInventoryReadRepository,
+  type StorageInventoryReadRepository,
+} from "./storage-inventory-reads.js";
