@@ -1,5 +1,8 @@
 import type { ShareWriteRepository } from "@chronelle/authorization";
 import type {
+  CommandExecuteRequest,
+  CommandReceipt,
+  CommandTransitionRequest,
   EventContextCreateRequest,
   EventContextCreateResponse,
   EventLayoutResponse,
@@ -170,6 +173,25 @@ export interface EventLayoutWriteRepository {
   ): Promise<EventLayoutResponse>;
 }
 
+/**
+ * Reversible content commands: a command's Event and Task edits applied as
+ * one unit, and the undo and redo transitions that restore each changed
+ * object from the revision before or after the command. Each call records
+ * the command, advances the caller's stack, and writes the receipt with its
+ * audit event; a repeated operation returns its receipt.
+ */
+export interface CommandWriteRepository {
+  execute(
+    context: MutationContext,
+    input: CommandExecuteRequest,
+  ): Promise<CommandReceipt>;
+  transition(
+    context: MutationContext,
+    input: CommandTransitionRequest,
+    direction: "undo" | "redo",
+  ): Promise<CommandReceipt>;
+}
+
 /** Families with a write repository; absent families use the PostgreSQL path. */
 export interface ObjectWriteRepositories {
   readonly event?: EventWriteRepository | undefined;
@@ -182,4 +204,5 @@ export interface ObjectWriteRepositories {
   readonly share?: ShareWriteRepository | undefined;
   readonly permissionScope?: PermissionScopeWriteRepository | undefined;
   readonly eventLayout?: EventLayoutWriteRepository | undefined;
+  readonly command?: CommandWriteRepository | undefined;
 }

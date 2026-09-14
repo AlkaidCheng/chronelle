@@ -16,12 +16,14 @@ import {
 // scope, the includes relation, both audit rows, and the command record, or
 // none of them; the relation is then removed and recovered under its version
 // predicate, the child is deleted and recovered the same way, its first
-// revision is restored, it is moved to its own scope and back, and the
-// Event's page layout is saved and restored. Exercises
+// revision is restored, it is moved to its own scope and back, the Event's
+// page layout is saved and restored, and both probes are renamed as one
+// reversible command that is replayed, undone, and redone. Exercises
 // chronelle_event_context_create (migration 0016), chronelle_relation_lifecycle
 // (0017), chronelle_object_delete and chronelle_object_recover (0018),
-// chronelle_object_restore (0019), chronelle_object_scope_update (0020), and
-// chronelle_event_layout_update and chronelle_event_layout_restore (0022)
+// chronelle_object_restore (0019), chronelle_object_scope_update (0020),
+// chronelle_event_layout_update and chronelle_event_layout_restore (0022),
+// and chronelle_command_execute and chronelle_command_transition (0023)
 // against the real gateway. The probes end soft-deleted through the delete
 // function, because their audit and revision rows are append-only.
 
@@ -103,6 +105,11 @@ function requestHash(eventId, resource, relationMetadata) {
     .update(
       JSON.stringify(canonicalJson({ eventId, resource, relationMetadata })),
     )
+    .digest("hex");
+}
+function commandHash(direction, input) {
+  return createHash("sha256")
+    .update(JSON.stringify(canonicalJson({ direction, input })))
     .digest("hex");
 }
 
@@ -407,6 +414,147 @@ try {
         "layout: the empty layout was not restored at version 2.",
       );
     return { version: layout.version };
+  });
+
+  // Both probes renamed as one reversible command. The stack belongs to the
+  // contract user, so its version and the probes' versions are read first.
+  const probeState = async () => {
+    const rows = await client.select("objects", {
+      columns: "id,version,display_name",
+      filters: [
+        { column: "workspace_id", operator: "eq", value: workspaceId },
+        { column: "id", operator: "in", value: [eventId, first.resource.id] },
+      ],
+    });
+    const byId = new Map(rows.map((row) => [row.id, row]));
+    return {
+      event: byId.get(eventId),
+      child: byId.get(first.resource.id),
+    };
+  };
+  const transition = (direction, input) =>
+    client.rpc("chronelle_command_transition", {
+      workspace_id: workspaceId,
+      user_id: userId,
+      request_id: createId(),
+      operation_id: input.operationId,
+      command_id: input.commandId,
+      expected_stack_version: input.expectedStackVersion,
+      direction,
+      request_hash: commandHash(direction, input),
+    });
+  let stackVersion;
+  let commandRequest;
+  let executed;
+  await step("rename both probes as one command", async () => {
+    const [stack] = await client.select("command_stacks", {
+      columns: "version",
+      filters: [
+        { column: "workspace_id", operator: "eq", value: workspaceId },
+        { column: "user_id", operator: "eq", value: userId },
+      ],
+    });
+    stackVersion = stack?.version ?? 0;
+    const before = await probeState();
+    commandRequest = {
+      operationId: createId(),
+      expectedStackVersion: stackVersion,
+      edits: [
+        {
+          objectType: "event",
+          objectId: eventId,
+          patch: {
+            expectedVersion: before.event.version,
+            displayName: `${before.event.display_name} (command)`,
+          },
+        },
+        {
+          objectType: "task",
+          objectId: first.resource.id,
+          patch: {
+            expectedVersion: before.child.version,
+            displayName: `${before.child.display_name} (command)`,
+          },
+        },
+      ],
+    };
+    executed = await client.rpc("chronelle_command_execute", {
+      workspace_id: workspaceId,
+      user_id: userId,
+      request_id: createId(),
+      operation_id: commandRequest.operationId,
+      expected_stack_version: stackVersion,
+      edits: commandRequest.edits,
+      request_hash: commandHash("execute", commandRequest),
+    });
+    const after = await probeState();
+    if (
+      executed.direction !== "execute" ||
+      executed.stackVersion !== stackVersion + 1 ||
+      executed.objects.length !== 2 ||
+      after.event.version !== before.event.version + 1 ||
+      after.child.version !== before.child.version + 1 ||
+      !after.child.display_name.endsWith("(command)")
+    )
+      throw new Error("command: the edits were not applied as one command.");
+    return { stackVersion: executed.stackVersion };
+  });
+
+  await step("replay the command", async () => {
+    const again = await client.rpc("chronelle_command_execute", {
+      workspace_id: workspaceId,
+      user_id: userId,
+      request_id: createId(),
+      operation_id: commandRequest.operationId,
+      expected_stack_version: stackVersion,
+      edits: commandRequest.edits,
+      request_hash: commandHash("execute", commandRequest),
+    });
+    if (JSON.stringify(again) !== JSON.stringify(executed))
+      throw new Error("command: the replay returned a different receipt.");
+    return { replayed: true };
+  });
+
+  await step("undo the command", async () => {
+    const receipt = await transition("undo", {
+      operationId: createId(),
+      commandId: commandRequest.operationId,
+      expectedStackVersion: stackVersion + 1,
+    });
+    const state = await probeState();
+    if (
+      receipt.direction !== "undo" ||
+      receipt.stackVersion !== stackVersion + 2 ||
+      state.child.display_name.endsWith("(command)")
+    )
+      throw new Error("command: the undo did not restore both probes.");
+    return { stackVersion: receipt.stackVersion };
+  });
+
+  await step("reject a redo with a stale stack version", () =>
+    expectRejection("stale redo", () =>
+      transition("redo", {
+        operationId: createId(),
+        commandId: commandRequest.operationId,
+        expectedStackVersion: stackVersion + 1,
+      }),
+    ),
+  );
+
+  await step("redo the command", async () => {
+    const receipt = await transition("redo", {
+      operationId: createId(),
+      commandId: commandRequest.operationId,
+      expectedStackVersion: stackVersion + 2,
+    });
+    const state = await probeState();
+    if (
+      receipt.direction !== "redo" ||
+      receipt.stackVersion !== stackVersion + 3 ||
+      !state.child.display_name.endsWith("(command)")
+    )
+      throw new Error("command: the redo did not reapply both probes.");
+    return { stackVersion: receipt.stackVersion };
   });
 } finally {
   if (probes.length > 0) {

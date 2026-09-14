@@ -34,12 +34,24 @@ import {
 import { CommandStackConflictError, ObjectConflictError } from "./errors.js";
 import { EventPlanningObjectService } from "./object-service.js";
 import { readObjectState } from "./object-state.js";
+import type { CommandWriteRepository } from "./object-writes.js";
 import { selectRestorableContent } from "./restoration-policy.js";
 import type { MutationContext } from "./types.js";
 
-/** Apply bounded content commands and inverses under current authorization and version preconditions. */
+/**
+ * Apply bounded content commands and inverses under current authorization
+ * and version preconditions. The PostgreSQL implementation is this class's
+ * own transactional code, used whenever no write repository is injected.
+ */
 export class ReversibleCommandService {
-  constructor(private readonly database: Database) {}
+  readonly #writes: CommandWriteRepository | undefined;
+
+  constructor(
+    private readonly database: Database,
+    writes?: CommandWriteRepository,
+  ) {
+    this.#writes = writes;
+  }
 
   async getState(principal: UserPrincipal): Promise<CommandStateResponse> {
     return withReadAuthorization(
@@ -72,6 +84,7 @@ export class ReversibleCommandService {
     context: MutationContext,
     input: CommandExecuteRequest,
   ): Promise<CommandReceipt> {
+    if (this.#writes !== undefined) return this.#writes.execute(context, input);
     const requestHash = hashCommand({ direction: "execute", input });
     return withStableAuthorization(
       this.database,
@@ -187,6 +200,8 @@ export class ReversibleCommandService {
     input: CommandTransitionRequest,
     direction: "undo" | "redo",
   ): Promise<CommandReceipt> {
+    if (this.#writes !== undefined)
+      return this.#writes.transition(context, input, direction);
     const requestHash = hashCommand({ direction, input });
     return withStableAuthorization(
       this.database,

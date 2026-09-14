@@ -250,7 +250,7 @@
       </section>
 
       <aside class="gate-note" aria-label="Current stage">
-        <strong>Current stage &middot; linked creation ported</strong>
+        <strong>Current stage &middot; every mutation family ported</strong>
         All four typed families run as
         <code>chronelle_&lt;type&gt;_create</code> and
         <code>chronelle_&lt;type&gt;_update</code> on the shared core of
@@ -268,8 +268,10 @@
         <code>chronelle_resource_share_revoke</code>, and
         <code>chronelle_object_scope_update</code> (migration 0020), and Event
         page layouts as <code>chronelle_event_layout_update</code> and
-        <code>chronelle_event_layout_restore</code> (migration 0022). Commands
-        are next.
+        <code>chronelle_event_layout_restore</code> (migration 0022), and
+        reversible commands as <code>chronelle_command_execute</code> and
+        <code>chronelle_command_transition</code> (migration 0023). The
+        remaining reads are next.
       </aside>
 
       <aside class="invariant" aria-label="Standing constraint">
@@ -426,7 +428,7 @@
       </article>
       <article class="phase">
         <div class="phase-number">
-          STAGE 06 <span class="status next">Next</span>
+          STAGE 06 <span class="status done">Done</span>
         </div>
         <div>
           <h3>Commands, undo, and redo</h3>
@@ -436,12 +438,17 @@
           </p>
           <ul>
             <li>
-              Execute, undo, and redo as functions that reuse the family
-              functions for the object change.
+              <code>chronelle_command_execute</code> and
+              <code>chronelle_command_transition</code> (migration 0023) apply
+              the edits through <code>chronelle_object_update</code>, record the
+              command and its version changes, advance the caller's stack, and
+              write the receipt in one call; undo and redo restore each object
+              from the revision before or after the command.
             </li>
             <li>
-              Gate: the reversible-command suites pass on both backends, and an
-              injected failure exposes no half-applied command.
+              Gate met: the differential test compares receipts, ledgers,
+              stacks, and refusals on both backends, and an injected failure
+              after the edits leaves nothing behind.
             </li>
           </ul>
         </div>
@@ -612,10 +619,13 @@
           </tr>
           <tr>
             <td>Commands, undo, redo</td>
-            <td>Execute, undo, redo functions</td>
-            <td>Per operation</td>
-            <td>Reversible-command suites plus injected failure</td>
-            <td><span class="status next">Next</span></td>
+            <td>
+              <code>chronelle_command_execute</code>,
+              <code>chronelle_command_transition</code>
+            </td>
+            <td>0023</td>
+            <td>Differential test; staging linked contract</td>
+            <td><span class="status done">Done</span></td>
           </tr>
           <tr>
             <td>Search and remaining reads</td>
