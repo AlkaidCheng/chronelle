@@ -2,7 +2,7 @@ import {
   AuthorizationDeniedError,
   type UserPrincipal,
 } from "@chronelle/authorization";
-import type { CloudBaseRdbClient, CloudBaseRdbFilter } from "@chronelle/db";
+import type { CloudBaseRdbReader, CloudBaseRdbFilter } from "@chronelle/db";
 
 import type { EventResource } from "./types.js";
 
@@ -169,7 +169,7 @@ function activeGrant(row: CloudBaseGrantRow, now: Date): boolean {
 }
 
 export async function readCloudBaseVisibility(
-  client: CloudBaseRdbClient,
+  client: CloudBaseRdbReader,
   principal: UserPrincipal,
   clock: () => Date,
 ): Promise<CloudBaseVisibility> {
@@ -221,7 +221,7 @@ export async function readCloudBaseVisibility(
 }
 
 export async function readCloudBaseVisibleObjects(
-  client: CloudBaseRdbClient,
+  client: CloudBaseRdbReader,
   principal: UserPrincipal,
   visibility: CloudBaseVisibility,
 ): Promise<readonly CloudBaseObjectRow[]> {
@@ -254,7 +254,7 @@ export async function readCloudBaseVisibleObjects(
 }
 
 export async function readCloudBaseObjects(
-  client: CloudBaseRdbClient,
+  client: CloudBaseRdbReader,
   principal: UserPrincipal,
   ids?: readonly string[],
 ): Promise<readonly CloudBaseObjectRow[]> {
@@ -274,7 +274,7 @@ export async function readCloudBaseObjects(
 }
 
 async function readCloudBaseObjectsByFilter(
-  client: CloudBaseRdbClient,
+  client: CloudBaseRdbReader,
   principal: UserPrincipal,
   column: "id" | "permission_scope_id",
   values: readonly string[],
@@ -292,7 +292,7 @@ async function readCloudBaseObjectsByFilter(
 }
 
 export async function readCloudBaseEvents(
-  client: CloudBaseRdbClient,
+  client: CloudBaseRdbReader,
   principal: UserPrincipal,
   ids: readonly string[],
 ): Promise<readonly CloudBaseEventRow[]> {
@@ -307,7 +307,7 @@ export async function readCloudBaseEvents(
 }
 
 export async function readCloudBaseIncludes(
-  client: CloudBaseRdbClient,
+  client: CloudBaseRdbReader,
   principal: UserPrincipal,
   eventId: string,
 ): Promise<readonly string[]> {

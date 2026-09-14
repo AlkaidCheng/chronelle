@@ -147,6 +147,26 @@ commit these values to the repository. The JSON output also includes the page
 count, the query count, and per-page/calendar/total latency in `timingMs` for
 the R1 review and later operational-cost assessment.
 
+### Run the CloudBase write contract
+
+The single-object write check mutates the staging environment and therefore
+requires an explicit opt-in in addition to the shared connection variables and
+`CLOUDBASE_CONTRACT_WORKSPACE_ID` / `CLOUDBASE_CONTRACT_USER_ID`:
+
+```bash
+CLOUDBASE_CONTRACT_ALLOW_WRITES=true pnpm cloudbase:write-contract
+```
+
+The harness inserts one probe Event owned by the contract user, then proves
+that an update with the current `version` affects one row, that the same update
+with a stale version affects none, that four concurrent updates on one version
+produce exactly one winner, that a predicate for another workspace matches
+nothing, and that a database constraint still rejects a bad write. It deletes
+the probe afterwards, also when a step fails. It writes no audit rows: the
+gateway path offers neither transactions nor server-side functions, so an audit
+record could only follow the update as a second request, and the JSON report
+states that limitation explicitly. Run it only against staging.
+
 ## Containerized web
 
 Build the UI image from the repository root:

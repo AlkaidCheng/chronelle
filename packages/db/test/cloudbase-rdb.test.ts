@@ -57,7 +57,94 @@ describe("CloudBase RDB client", () => {
     expect(client.capabilities).toEqual({
       transactions: false,
       nativeTcp: false,
+      serverFunctions: false,
     });
+  });
+
+  it("updates through filters and returns the affected rows", async () => {
+    const response = { data: [{ id: "event-1", version: 2 }], error: null };
+    const request = {
+      eq: vi.fn().mockReturnThis(),
+      select: vi.fn().mockResolvedValue(response),
+    };
+    const update = vi.fn().mockReturnValue(request);
+    const client = createCloudBaseRdbClient({
+      rdb: () => ({ from: vi.fn().mockReturnValue({ update }) }),
+    });
+
+    await expect(
+      client.update(
+        "objects",
+        { display_name: "Renamed", version: 2 },
+        {
+          filters: [
+            { column: "id", operator: "eq", value: "event-1" },
+            { column: "version", operator: "eq", value: 1 },
+          ],
+          columns: "id,version",
+        },
+      ),
+    ).resolves.toEqual([{ id: "event-1", version: 2 }]);
+    expect(update).toHaveBeenCalledWith({
+      display_name: "Renamed",
+      version: 2,
+    });
+    expect(request.eq).toHaveBeenCalledWith("id", "event-1");
+    expect(request.eq).toHaveBeenCalledWith("version", 1);
+    expect(request.select).toHaveBeenCalledWith("id,version");
+  });
+
+  it("resolves to no rows when a write predicate matches nothing", async () => {
+    const request = {
+      eq: vi.fn().mockReturnThis(),
+      select: vi.fn().mockResolvedValue({ data: [], error: null }),
+    };
+    const client = createCloudBaseRdbClient({
+      rdb: () => ({
+        from: vi.fn().mockReturnValue({
+          update: vi.fn().mockReturnValue(request),
+          delete: vi.fn().mockReturnValue(request),
+        }),
+      }),
+    });
+    const stale = {
+      filters: [{ column: "version", operator: "eq", value: 1 }] as const,
+    };
+
+    await expect(
+      client.update("objects", { version: 2 }, stale),
+    ).resolves.toEqual([]);
+    await expect(client.delete("objects", stale)).resolves.toEqual([]);
+  });
+
+  it("refuses an update or delete without filters before any request", async () => {
+    const from = vi.fn();
+    const client = createCloudBaseRdbClient({ rdb: () => ({ from }) });
+    const unfiltered = { filters: [] as unknown as [never] };
+
+    await expect(
+      client.update("objects", { version: 2 }, unfiltered),
+    ).rejects.toThrow("require at least one filter");
+    await expect(client.delete("objects", unfiltered)).rejects.toThrow(
+      "require at least one filter",
+    );
+    expect(from).not.toHaveBeenCalled();
+  });
+
+  it("inserts rows and returns their representation", async () => {
+    const response = { data: [{ id: "event-1", version: 1 }], error: null };
+    const select = vi.fn().mockResolvedValue(response);
+    const insert = vi.fn().mockReturnValue({ select });
+    const from = vi.fn().mockReturnValue({ insert });
+    const client = createCloudBaseRdbClient({ rdb: () => ({ from }) });
+
+    await expect(
+      client.insert("objects", [{ id: "event-1" }], { columns: "id,version" }),
+    ).resolves.toEqual([{ id: "event-1", version: 1 }]);
+    expect(insert).toHaveBeenCalledWith([{ id: "event-1" }]);
+    expect(select).toHaveBeenCalledWith("id,version");
+    await expect(client.insert("objects", [])).resolves.toEqual([]);
+    expect(from).toHaveBeenCalledTimes(1);
   });
 
   it("rejects a gateway error instead of returning rows", async () => {
@@ -166,6 +253,9 @@ describe("CloudBase RDB client", () => {
   it("bounds a gateway request with the configured timeout", async () => {
     type NeverQuery = Promise<never> & {
       select(columns?: string): NeverQuery;
+      insert(rows: readonly Record<string, unknown>[]): NeverQuery;
+      update(values: Record<string, unknown>): NeverQuery;
+      delete(): NeverQuery;
       eq(column: string, value: unknown): NeverQuery;
       ilike(column: string, value: string): NeverQuery;
       in(column: string, value: readonly unknown[]): NeverQuery;
