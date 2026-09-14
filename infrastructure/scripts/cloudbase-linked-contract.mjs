@@ -15,10 +15,11 @@ import {
 // Cross-object evidence: one gateway rpc call creates a child on an Event's
 // scope, the includes relation, both audit rows, and the command record, or
 // none of them; the relation is then removed and recovered under its version
-// predicate, the child is deleted and recovered the same way, and its first
-// revision is restored. Exercises chronelle_event_context_create (migration
-// 0016), chronelle_relation_lifecycle (0017), chronelle_object_delete and
-// chronelle_object_recover (0018), and chronelle_object_restore (0019)
+// predicate, the child is deleted and recovered the same way, its first
+// revision is restored, and it is moved to its own scope and back. Exercises
+// chronelle_event_context_create (migration 0016), chronelle_relation_lifecycle
+// (0017), chronelle_object_delete and chronelle_object_recover (0018),
+// chronelle_object_restore (0019), and chronelle_object_scope_update (0020)
 // against the real gateway. The probes end soft-deleted through the delete
 // function, because their audit and revision rows are append-only.
 
@@ -331,6 +332,41 @@ try {
     );
     if (rows.object.version !== 4)
       throw new Error("restore: the child was not restored at version 4.");
+    return { version: rows.object.version };
+  });
+
+  const moveScope = (expectedVersion, permissionScopeId) =>
+    client.rpc("chronelle_object_scope_update", {
+      workspace_id: workspaceId,
+      user_id: userId,
+      request_id: createId(),
+      object_id: first.resource.id,
+      expected_version: expectedVersion,
+      permission_scope_id: permissionScopeId,
+      updated_at: new Date().toISOString(),
+    });
+
+  await step("detach the child from the Event's scope", async () => {
+    const rows = await moveScope(4, first.resource.id);
+    if (
+      rows.object.version !== 5 ||
+      rows.object.permission_scope_id !== first.resource.id
+    )
+      throw new Error("scope: the child was not detached at version 5.");
+    return { version: rows.object.version };
+  });
+
+  await step("reject a scope change with a stale version", () =>
+    expectRejection("stale scope change", () => moveScope(4, eventId)),
+  );
+
+  await step("attach the child to the Event's scope again", async () => {
+    const rows = await moveScope(5, eventId);
+    if (
+      rows.object.version !== 6 ||
+      rows.object.permission_scope_id !== eventId
+    )
+      throw new Error("scope: the child was not attached at version 6.");
     return { version: rows.object.version };
   });
 } finally {
