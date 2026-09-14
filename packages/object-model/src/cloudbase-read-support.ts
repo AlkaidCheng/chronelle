@@ -2,9 +2,13 @@ import {
   AuthorizationDeniedError,
   type UserPrincipal,
 } from "@chronelle/authorization";
-import type { CloudBaseRdbReader, CloudBaseRdbFilter } from "@chronelle/db";
+import type {
+  CloudBaseRdbFilter,
+  CloudBaseRdbReader,
+  TaskStatus,
+} from "@chronelle/db";
 
-import type { EventResource } from "./types.js";
+import type { EventResource, TaskResource } from "./types.js";
 
 export const cloudbaseObjectColumns =
   "id,workspace_id,object_type,display_name,created_by,permission_scope_id,created_at,updated_at,version,archived_at,deleted_at,custom_properties,metadata";
@@ -36,6 +40,14 @@ export type CloudBaseEventRow = {
   readonly ends_on: unknown;
   readonly timezone: unknown;
   readonly is_all_day: unknown;
+};
+
+export type CloudBaseTaskRow = {
+  readonly object_id: unknown;
+  readonly workspace_id: unknown;
+  readonly status: unknown;
+  readonly due_at: unknown;
+  readonly completed_at: unknown;
 };
 
 export type CloudBaseGrantRow = {
@@ -111,25 +123,33 @@ function cloudbaseBoolean(value: unknown, field: string): boolean {
   return value;
 }
 
-export function cloudbaseEventResource(
+/** The canonical columns shared by every typed resource, with the typed row checked against them. */
+function cloudbaseCanonicalFields(
   object: CloudBaseObjectRow,
-  event: CloudBaseEventRow,
-): EventResource {
+  typed: { readonly object_id: unknown; readonly workspace_id: unknown },
+  objectType: "event" | "task",
+) {
   const objectId = cloudbaseText(object.id, "object id");
   const objectWorkspace = cloudbaseText(
     object.workspace_id,
     "object workspace",
   );
-  if (cloudbaseText(event.object_id, "event object") !== objectId)
-    throw new Error("CloudBase returned mismatched event object data.");
-  if (cloudbaseText(event.workspace_id, "event workspace") !== objectWorkspace)
-    throw new Error("CloudBase returned mismatched event workspace data.");
-  if (cloudbaseText(object.object_type, "object type") !== "event")
-    throw new Error("CloudBase returned a non-event in the event projection.");
+  if (cloudbaseText(typed.object_id, `${objectType} object`) !== objectId)
+    throw new Error(`CloudBase returned mismatched ${objectType} object data.`);
+  if (
+    cloudbaseText(typed.workspace_id, `${objectType} workspace`) !==
+    objectWorkspace
+  )
+    throw new Error(
+      `CloudBase returned mismatched ${objectType} workspace data.`,
+    );
+  if (cloudbaseText(object.object_type, "object type") !== objectType)
+    throw new Error(
+      `CloudBase returned a non-${objectType} in the ${objectType} projection.`,
+    );
   return {
     id: objectId,
     workspaceId: objectWorkspace,
-    objectType: "event",
     displayName: cloudbaseText(object.display_name, "display name"),
     createdBy: cloudbaseText(object.created_by, "created by"),
     permissionScopeId: cloudbaseText(
@@ -146,6 +166,39 @@ export function cloudbaseEventResource(
       "custom_properties",
     ),
     metadata: cloudbaseJsonObject(object.metadata, "metadata"),
+  };
+}
+
+const taskStatuses: readonly TaskStatus[] = [
+  "todo",
+  "in_progress",
+  "done",
+  "cancelled",
+];
+
+export function cloudbaseTaskResource(
+  object: CloudBaseObjectRow,
+  task: CloudBaseTaskRow,
+): TaskResource {
+  const status = cloudbaseText(task.status, "status");
+  if (!taskStatuses.includes(status as TaskStatus))
+    throw new Error("CloudBase returned an invalid task status.");
+  return {
+    ...cloudbaseCanonicalFields(object, task, "task"),
+    objectType: "task",
+    status: status as TaskStatus,
+    dueAt: cloudbaseNullableDate(task.due_at, "due_at"),
+    completedAt: cloudbaseNullableDate(task.completed_at, "completed_at"),
+  };
+}
+
+export function cloudbaseEventResource(
+  object: CloudBaseObjectRow,
+  event: CloudBaseEventRow,
+): EventResource {
+  return {
+    ...cloudbaseCanonicalFields(object, event, "event"),
+    objectType: "event",
     startsAt: cloudbaseNullableDate(event.starts_at, "starts_at"),
     endsAt: cloudbaseNullableDate(event.ends_at, "ends_at"),
     startsOn: cloudbaseNullableText(event.starts_on, "starts_on"),

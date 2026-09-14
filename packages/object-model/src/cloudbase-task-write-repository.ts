@@ -5,31 +5,31 @@ import {
   decodeRows,
 } from "./cloudbase-object-write-repository.js";
 import {
-  type CloudBaseEventRow,
   type CloudBaseObjectRow,
-  cloudbaseEventResource,
+  type CloudBaseTaskRow,
+  cloudbaseTaskResource,
 } from "./cloudbase-read-support.js";
 import type {
-  CreateEventInput,
-  EventResource,
-  UpdateEventInput,
+  CreateTaskInput,
+  TaskResource,
+  UpdateTaskInput,
 } from "./types.js";
 
-/** Event writes through chronelle_event_create and chronelle_event_update. */
-export class CloudBaseEventWriteRepository extends CloudBaseObjectWriteRepository<
-  CreateEventInput,
-  UpdateEventInput,
-  EventResource
+/** Task writes through chronelle_task_create and chronelle_task_update. */
+export class CloudBaseTaskWriteRepository extends CloudBaseObjectWriteRepository<
+  CreateTaskInput,
+  UpdateTaskInput,
+  TaskResource
 > {
   constructor(client: Pick<CloudBaseRdbClient, "rpc">) {
     super(client, {
-      objectType: "event",
+      objectType: "task",
       decode(rows) {
         const { object, typed } = decodeRows<
           CloudBaseObjectRow,
-          CloudBaseEventRow
-        >(rows, "event");
-        return cloudbaseEventResource(object, typed);
+          CloudBaseTaskRow
+        >(rows, "task");
+        return cloudbaseTaskResource(object, typed);
       },
     });
   }
