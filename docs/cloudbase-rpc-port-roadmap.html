@@ -277,7 +277,9 @@
         <code>chronelle_document_transfer_authorize</code>,
         <code>chronelle_document_transfer_consume</code>, and
         <code>chronelle_document_finalize</code> (migration 0026) around an
-        unchanged storage provider. The backend mode is next.
+        unchanged storage provider, and the layout and identity reads (migration
+        0027 for the sign-in) complete the request path. The backend mode is
+        next.
       </aside>
 
       <aside class="invariant" aria-label="Standing constraint">
@@ -511,6 +513,12 @@
               the storage provider with short-lived private URLs: done
               (migration 0026 records the transfer rows, the Document, and the
               audits; the provider is unchanged).
+            </li>
+            <li>
+              The Event page layout reads and the identity reads behind every
+              request (sign-in as <code>chronelle_identity_sign_in</code>,
+              migration 0027): done, so no service reads PostgreSQL when the
+              flags are on.
             </li>
             <li>
               One backend mode in deployment configuration; startup verifies the

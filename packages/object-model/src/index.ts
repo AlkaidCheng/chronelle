@@ -32,6 +32,7 @@ export { CloudBaseRecoveryReadRepository } from "./cloudbase-recovery-read-repos
 export { CloudBaseRelationReadRepository } from "./cloudbase-relation-read-repository.js";
 export { CloudBaseRevisionReadRepository } from "./cloudbase-revision-read-repository.js";
 export { CloudBaseEventContextWriteRepository } from "./cloudbase-event-context-write-repository.js";
+export { CloudBaseEventLayoutReadRepository } from "./cloudbase-event-layout-read-repository.js";
 export { CloudBaseEventLayoutWriteRepository } from "./cloudbase-event-layout-write-repository.js";
 export { CloudBaseEventWriteRepository } from "./cloudbase-event-write-repository.js";
 export { CloudBaseObjectWriteRepository } from "./cloudbase-object-write-repository.js";
@@ -100,6 +101,7 @@ export { ObjectRestorationService } from "./restoration-service.js";
 export { ObjectRecoveryService } from "./recovery-service.js";
 export { EventContextService } from "./event-context-service.js";
 export { EventLayoutService } from "./event-layout-service.js";
+export type { EventLayoutReadRepository } from "./event-layout-reads.js";
 export {
   assertRevisionBaseline,
   baselineObjectRevisions,

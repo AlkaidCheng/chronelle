@@ -6,7 +6,8 @@
   "files": [
     "dist/**/*.js",
     "dist/**/*.d.ts",
-    "!dist/testing.*"
+    "!dist/testing.*",
+    "!dist/cloudbase-testing.*"
   ],
   "exports": {
     ".": {

@@ -531,13 +531,31 @@ rows, the Document ledger, and the five transfer audits, plus the refusals
 consumed, foreign, and finalized transfers, a non-viewer download, and a
 consumed download).
 
+**Layout reads and identity:** the Event page layout and its history read
+through `EventLayoutReadRepository`; the CloudBase adapter reads the Event
+through the object read repository (view access, liveness, and the Event
+type check) and `event_page_revisions` through the table route newest
+version first, applying the history position after the read because the
+transport has no range filter. The API's `WorkspaceIdentityService` reads
+and writes through `IdentityStore`: the PostgreSQL store keeps each
+session resolution in one repeatable-read snapshot with the authorization
+evaluator, and the CloudBase store runs sign-in as
+`chronelle_identity_sign_in` (migration 0027: the user, the personal
+workspace, and the Owner membership created on first use, with the audit
+event) and reads users, workspaces, membership, and grants through the
+table route with the same access rules (membership, an unexpired grant on
+a live object, or an Owner grant on any object) as sequential requests.
+The differential tests compare the layout and every history page with
+their refusals, and the sign-in rows, membership, audits, sessions, and
+workspace lists for an Owner and a grant-only guest across expired,
+deleted-object, and Owner grants.
+
 ## Recommended next PR
 
 Finish stage 08 with the backend mode: one deployment setting that selects
 the CloudBase backend, startup verification that the required functions
-are installed, an authorization store that reads membership and grants
-through the gateway so the HTTP boundary needs no `DATABASE_URL`, and the
-metrics and runbooks the roadmap lists.
+are installed and the revision baseline holds, an API that starts without
+`DATABASE_URL` in that mode, and the metrics and runbooks the roadmap lists.
 
 ### R1 operator checklist
 

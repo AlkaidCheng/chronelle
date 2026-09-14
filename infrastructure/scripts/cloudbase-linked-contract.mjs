@@ -24,8 +24,9 @@ import {
 // chronelle_object_restore (0019), chronelle_object_scope_update (0020),
 // chronelle_event_layout_update and chronelle_event_layout_restore (0022),
 // chronelle_command_execute and chronelle_command_transition (0023),
-// chronelle_command_state (0024), chronelle_storage_references (0025), and
-// the document transfer functions (0026) against the real gateway. The
+// chronelle_command_state (0024), chronelle_storage_references (0025), the
+// document transfer functions (0026), and chronelle_identity_sign_in (0027)
+// against the real gateway. The
 // transfer steps record the rows around a storage transfer without moving
 // bytes: the finalized probe Document names a key that was never written. The probes end soft-deleted through the delete
 // function, because their audit and revision rows are append-only.
@@ -687,6 +688,43 @@ try {
     });
     await consume(downloadId, "download");
     return { downloadId };
+  });
+
+  await step("read the layout history through the table route", async () => {
+    const revisions = await client.select("event_page_revisions", {
+      columns: "version,pages,created_at",
+      filters: [
+        { column: "workspace_id", operator: "eq", value: workspaceId },
+        { column: "event_id", operator: "eq", value: eventId },
+      ],
+      order: [{ column: "version", ascending: false }],
+    });
+    if (revisions.length !== 2 || revisions[0].version !== 2)
+      throw new Error("layout history: expected versions 2 and 1.");
+    return { versions: revisions.map((revision) => revision.version) };
+  });
+
+  await step("sign the contract user in again", async () => {
+    const [user] = await client.select("users", {
+      columns: "identity_provider,provider_subject,email,display_name",
+      filters: [{ column: "id", operator: "eq", value: userId }],
+      limit: 1,
+    });
+    if (user === undefined)
+      throw new Error("sign-in: the contract user is missing.");
+    const signedIn = await client.rpc("chronelle_identity_sign_in", {
+      identity_provider: user.identity_provider,
+      provider_subject: user.provider_subject,
+      email: user.email,
+      display_name: user.display_name,
+      request_id: createId(),
+    });
+    if (signedIn.user?.id !== userId || signedIn.createdWorkspace !== false)
+      throw new Error("sign-in: the existing user was not recognised.");
+    return {
+      createdWorkspace: signedIn.createdWorkspace,
+      personalWorkspace: signedIn.workspace?.id === workspaceId,
+    };
   });
 
   await step("read the storage references", async () => {

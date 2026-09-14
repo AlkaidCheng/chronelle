@@ -4,6 +4,12 @@ import { connectDatabase, type DatabaseConnection } from "./client.js";
 import { createId } from "./ids.js";
 
 export { applyMigrations } from "./migrations.js";
+export {
+  createCloudBaseLiveReader,
+  createCloudBaseRpcDouble,
+  createCloudBaseSnapshotReader,
+  type CloudBaseRpcDouble,
+} from "./cloudbase-testing.js";
 
 const defaultTestDatabaseUrl =
   "postgresql://chronelle:chronelle_dev@localhost:5432/postgres";

@@ -26,6 +26,7 @@ import {
 import { and, desc, eq, lt } from "drizzle-orm";
 
 import { InvalidObjectStateError, ObjectConflictError } from "./errors.js";
+import type { EventLayoutReadRepository } from "./event-layout-reads.js";
 import type { EventLayoutWriteRepository } from "./object-writes.js";
 import type { MutationContext } from "./types.js";
 
@@ -113,12 +114,15 @@ async function saveLayout(
 /** Versioned presentation configuration, authorized by its owning Event. */
 export class EventLayoutService {
   readonly #writes: EventLayoutWriteRepository | undefined;
+  readonly #reads: EventLayoutReadRepository | undefined;
 
   constructor(
     private readonly database: Database,
     writes?: EventLayoutWriteRepository,
+    reads?: EventLayoutReadRepository,
   ) {
     this.#writes = writes;
+    this.#reads = reads;
   }
 
   async history(
@@ -127,6 +131,8 @@ export class EventLayoutService {
     payload: EventLayoutHistoryQuery,
   ) {
     const input = eventLayoutHistoryQuerySchema.parse(payload);
+    if (this.#reads !== undefined)
+      return this.#reads.history(principal, eventId, input);
     return withReadAuthorization(
       this.database,
       async (transaction, authorization) => {
@@ -227,6 +233,7 @@ export class EventLayoutService {
   }
 
   async get(principal: UserPrincipal, eventId: string) {
+    if (this.#reads !== undefined) return this.#reads.get(principal, eventId);
     return withReadAuthorization(
       this.database,
       async (transaction, authorization) => {
