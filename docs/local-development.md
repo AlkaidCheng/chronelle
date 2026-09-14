@@ -70,6 +70,12 @@ local identity, then create an Event from the workspace. The browser talks only
 to the web origin. The Next.js route handler forwards `/api` to
 `API_INTERNAL_URL`, which defaults to `http://localhost:4000`.
 
+A phone or another computer on the same private network can open the dev
+server at the host's LAN address, for example `http://192.168.1.20:3000`. The
+dev server accepts origins on `192.168.*.*`, `10.*.*.*`, and `*.local`; any
+other host renders the page without its scripts, so nothing on it responds.
+Production builds do not use this allow-list.
+
 The API reads `.env` from the repository root. Development authentication is
 fail-closed: `ENABLE_DEVELOPMENT_AUTH=true` must be set explicitly before the
 development sign-in endpoint is registered.

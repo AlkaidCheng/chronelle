@@ -3,6 +3,9 @@ import { baseContentSecurityPolicy } from "./lib/content-security-policy";
 
 const nextConfig: NextConfig = {
   agentRules: false,
+  // Development only: let phones and other devices on a private network load
+  // the dev server's assets. Production builds ignore this setting.
+  allowedDevOrigins: ["192.168.*.*", "10.*.*.*", "*.local"],
   output: "standalone",
   poweredByHeader: false,
   reactStrictMode: true,
