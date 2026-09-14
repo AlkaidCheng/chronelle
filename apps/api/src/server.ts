@@ -21,7 +21,16 @@ import {
   gatewayEventLevel,
   resolveBackend,
 } from "./backend-mode.js";
-import { createDevelopmentAppDependencies } from "./dependencies.js";
+import {
+  type EmailMessage,
+  type EmailSender,
+  LoggingEmailSender,
+} from "./authentication/email-sender.js";
+import { SmtpEmailSender } from "./authentication/smtp-email-sender.js";
+import {
+  createAppDependencies,
+  createDevelopmentAppDependencies,
+} from "./dependencies.js";
 import { createDocumentStorage } from "./documents/storage-configuration.js";
 
 if (existsSync(".env")) {
@@ -40,6 +49,15 @@ const runtimeEnvironmentSchema = backendEnvironmentSchema.extend({
     .max(120_000)
     .default(30_000),
   AUTH_SESSION_TTL_MINUTES: z.coerce.number().int().positive().default(20_160),
+  AUTH_VERIFICATION_TTL_MINUTES: z.coerce
+    .number()
+    .int()
+    .positive()
+    .max(1_440)
+    .default(15),
+  EMAIL_PROVIDER: z.enum(["log", "smtp"]).default("log"),
+  SMTP_URL: z.url().optional(),
+  EMAIL_FROM: z.string().min(3).optional(),
   ENABLE_DEVELOPMENT_AUTH: z.stringbool().default(false),
   DOCUMENT_TRANSFER_TTL_SECONDS: z.coerce
     .number()
@@ -49,8 +67,18 @@ const runtimeEnvironmentSchema = backendEnvironmentSchema.extend({
 });
 
 const runtimeEnvironment = runtimeEnvironmentSchema.parse(process.env);
-if (!runtimeEnvironment.ENABLE_DEVELOPMENT_AUTH) {
-  throw new Error("No authentication provider is enabled.");
+
+function composeEmailSender(
+  environment: typeof runtimeEnvironment,
+  log: (message: EmailMessage) => void,
+): EmailSender {
+  if (environment.EMAIL_PROVIDER === "log") return new LoggingEmailSender(log);
+  if (
+    environment.SMTP_URL === undefined ||
+    environment.EMAIL_FROM === undefined
+  )
+    throw new Error("EMAIL_PROVIDER=smtp requires SMTP_URL and EMAIL_FROM.");
+  return new SmtpEmailSender(environment.SMTP_URL, environment.EMAIL_FROM);
 }
 const backend = resolveBackend(runtimeEnvironment);
 const storage = createDocumentStorage(process.env);
@@ -62,18 +90,34 @@ const database =
         "CHRONELLE_BACKEND=cloudbase serves from the gateway",
       )
     : connectDatabase(backend.databaseUrl);
-// Gateway requests are logged once the app's logger exists.
+// Gateway requests and log-delivered emails are logged once the app's
+// logger exists.
 let logGatewayRequest = (_event: CloudBaseRequestEvent): void => undefined;
+let logEmail = (_message: EmailMessage): void => undefined;
+const email = composeEmailSender(runtimeEnvironment, (message) =>
+  logEmail(message),
+);
 const cloudBaseRdb = backend.cloudBaseReads
   ? await createCloudBaseClient((event) => logGatewayRequest(event))
   : undefined;
-const dependencies = createDevelopmentAppDependencies(database, {
+const composeDependencies = runtimeEnvironment.ENABLE_DEVELOPMENT_AUTH
+  ? createDevelopmentAppDependencies
+  : (
+      connection: typeof database,
+      options: Parameters<typeof createAppDependencies>[2],
+    ) => createAppDependencies(connection, undefined, options);
+const dependencies = composeDependencies(database, {
   sessionTtlMs: runtimeEnvironment.AUTH_SESSION_TTL_MINUTES * 60_000,
   documentTransferTtlMs:
     runtimeEnvironment.DOCUMENT_TRANSFER_TTL_SECONDS * 1_000,
   cloudBaseRdb,
   cloudBaseWrites: backend.cloudBaseWrites,
   storage,
+  email,
+  passwordAuth: {
+    verificationTtlMs:
+      runtimeEnvironment.AUTH_VERIFICATION_TTL_MINUTES * 60_000,
+  },
 });
 const app = buildApp(dependencies, { logger: true });
 logGatewayRequest = (event) => {
@@ -82,6 +126,14 @@ logGatewayRequest = (event) => {
     "CloudBase gateway request",
   );
 };
+logEmail = (message) => {
+  app.log.info({ email: message }, "Email written to the log");
+};
+if (runtimeEnvironment.EMAIL_PROVIDER === "log") {
+  app.log.warn(
+    "EMAIL_PROVIDER=log writes verification codes to the log; configure smtp for a deployment",
+  );
+}
 
 app.addHook("onClose", async () => {
   await database.close();

@@ -43,8 +43,10 @@ import {
   relationResponseSchema,
   reminderResourceProjectionResponseSchema,
   reminderResponseSchema,
+  acceptedResponseSchema,
   sessionResponseSchema,
   sessionRevocationResponseSchema,
+  signInResponseSchema,
   shareListResponseSchema,
   shareResponseSchema,
   shareRevocationResponseSchema,
@@ -92,8 +94,15 @@ import {
   type ReminderResourceProjectionResponse,
   type ReminderResponse,
   type ReminderUpdatePayload,
+  type AcceptedResponse,
+  type EmailRequest,
+  type PasswordResetConfirmRequest,
+  type PasswordSignInRequest,
   type SessionResponse,
   type SessionRevocationResponse,
+  type SignInResponse,
+  type SignUpRequest,
+  type VerifyEmailRequest,
   type ShareCreatePayload,
   type ShareListResponse,
   type ShareResponse,
@@ -244,6 +253,67 @@ export class ChronelleApiClient {
 
   getSession(): Promise<SessionResponse> {
     return this.#request("/api/auth/session", sessionResponseSchema);
+  }
+
+  /** Creates an unverified password account; a verification code is emailed. */
+  signUp(input: SignUpRequest): Promise<AcceptedResponse> {
+    return this.#request(
+      "/api/auth/sign-up",
+      acceptedResponseSchema,
+      jsonRequest(input, "POST"),
+      false,
+    );
+  }
+
+  /** Verifies the emailed code and signs the account in. */
+  verifyEmail(input: VerifyEmailRequest): Promise<SignInResponse> {
+    return this.#request(
+      "/api/auth/verify-email",
+      signInResponseSchema,
+      jsonRequest(input, "POST"),
+      false,
+    );
+  }
+
+  /** Sends a fresh verification code to an unverified account. */
+  resendVerification(input: EmailRequest): Promise<AcceptedResponse> {
+    return this.#request(
+      "/api/auth/verify-email/resend",
+      acceptedResponseSchema,
+      jsonRequest(input, "POST"),
+      false,
+    );
+  }
+
+  signInWithPassword(input: PasswordSignInRequest): Promise<SignInResponse> {
+    return this.#request(
+      "/api/auth/sign-in",
+      signInResponseSchema,
+      jsonRequest(input, "POST"),
+      false,
+    );
+  }
+
+  /** Emails a reset code when the address has an account; always accepted. */
+  requestPasswordReset(input: EmailRequest): Promise<AcceptedResponse> {
+    return this.#request(
+      "/api/auth/password-reset",
+      acceptedResponseSchema,
+      jsonRequest(input, "POST"),
+      false,
+    );
+  }
+
+  /** Replaces the password with the emailed code, ends every session, and signs in. */
+  confirmPasswordReset(
+    input: PasswordResetConfirmRequest,
+  ): Promise<SignInResponse> {
+    return this.#request(
+      "/api/auth/password-reset/confirm",
+      signInResponseSchema,
+      jsonRequest(input, "POST"),
+      false,
+    );
   }
 
   /** Ends the current session on the server. */

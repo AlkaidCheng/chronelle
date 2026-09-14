@@ -48,7 +48,14 @@ import {
 } from "@chronelle/storage";
 
 import type { AuthProvider } from "./authentication/auth-provider.js";
+import { CloudBaseCredentialStore } from "./authentication/cloudbase-credential-store.js";
 import { CloudBaseSessionStore } from "./authentication/cloudbase-session-store.js";
+import { PostgresCredentialStore } from "./authentication/credential-store.js";
+import type { EmailSender } from "./authentication/email-sender.js";
+import {
+  PasswordAuthService,
+  type PasswordAuthOptions,
+} from "./authentication/password-auth-service.js";
 import { SessionAuthProvider } from "./authentication/session-auth-provider.js";
 import { PostgresSessionStore } from "./authentication/session-store.js";
 import { CloudBaseIdentityStore } from "./identity/cloudbase-identity-store.js";
@@ -60,6 +67,7 @@ export interface AppDependencies {
   /** Whether the development sign-in route is served. */
   readonly developmentSignIn: boolean;
   readonly sessions: SessionAuthProvider;
+  readonly passwordAuth: PasswordAuthService;
   readonly documents: DocumentService;
   readonly identity: WorkspaceIdentityService;
   readonly objects: EventPlanningObjectService;
@@ -86,7 +94,14 @@ export interface AppDependencyOptions {
   /** Route the ported write families through the gateway's rpc functions. */
   readonly cloudBaseWrites?: boolean | undefined;
   readonly sessionTtlMs?: number | undefined;
+  /** Outbound email for verification codes; the log sender by default. */
+  readonly email?: EmailSender | undefined;
+  readonly passwordAuth?: PasswordAuthOptions | undefined;
 }
+
+// The server composes a real sender from its configuration; test
+// compositions inject a recording one. Without either, codes go nowhere.
+const discardingEmailSender: EmailSender = { send: async () => undefined };
 
 function cloudBaseReads(rdb: CloudBaseRdbClient) {
   const objects = new CloudBaseObjectReadRepository(rdb);
@@ -112,12 +127,30 @@ export function createAppDependencies(
   const authorization = new AuthorizationService(
     new DrizzleAuthorizationStore(connection.db),
   );
-  // Sessions follow the identity store: the gateway once a client exists.
+  // Sessions and credentials follow the identity store: the gateway once a
+  // client exists.
   const sessions = new SessionAuthProvider(
     options.cloudBaseRdb === undefined
       ? new PostgresSessionStore(connection.db)
       : new CloudBaseSessionStore(options.cloudBaseRdb),
     { sessionTtlMs: options.sessionTtlMs, clock: options.clock },
+  );
+  const credentials =
+    options.cloudBaseRdb === undefined
+      ? new PostgresCredentialStore(connection.db)
+      : new CloudBaseCredentialStore(options.cloudBaseRdb);
+  const identity = new WorkspaceIdentityService(
+    connection.db,
+    options.cloudBaseRdb === undefined
+      ? undefined
+      : new CloudBaseIdentityStore(options.cloudBaseRdb, options.clock),
+  );
+  const passwordAuth = new PasswordAuthService(
+    identity,
+    credentials,
+    sessions,
+    options.email ?? discardingEmailSender,
+    { clock: options.clock, ...options.passwordAuth },
   );
   // Read adapters; a service without one reads PostgreSQL.
   const reads =
@@ -170,18 +203,14 @@ export function createAppDependencies(
     authorization,
     developmentSignIn: false,
     sessions,
+    passwordAuth,
     documents: new DocumentService(connection.db, objects, storage, {
       clock: options.clock,
       transferTtlMs: options.documentTransferTtlMs,
       writes: writes.transfers,
       reads: reads?.transfers,
     }),
-    identity: new WorkspaceIdentityService(
-      connection.db,
-      options.cloudBaseRdb === undefined
-        ? undefined
-        : new CloudBaseIdentityStore(options.cloudBaseRdb, options.clock),
-    ),
+    identity,
     objects,
     relations: new ObjectRelationService(
       connection.db,

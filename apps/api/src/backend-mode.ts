@@ -70,6 +70,13 @@ export const cloudBaseRequiredFunctions: readonly string[] = [
   "chronelle_session_resolve",
   "chronelle_session_revoke",
   "chronelle_sessions_revoke_all",
+  "chronelle_password_credential_create",
+  "chronelle_password_credential_lookup",
+  "chronelle_password_attempt_record",
+  "chronelle_email_verified",
+  "chronelle_password_hash_update",
+  "chronelle_verification_issue",
+  "chronelle_verification_consume",
 ];
 
 /** The log level for one gateway request: conflicts and denials are routine, failures are not. */

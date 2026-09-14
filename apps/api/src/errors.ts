@@ -34,3 +34,46 @@ export class WorkspaceUnavailableError extends HttpError {
     this.name = "WorkspaceUnavailableError";
   }
 }
+
+export class InvalidCredentialsError extends HttpError {
+  constructor() {
+    super(401, "invalid_credentials", "The email or password is incorrect.");
+    this.name = "InvalidCredentialsError";
+  }
+}
+
+export class EmailUnverifiedError extends HttpError {
+  constructor() {
+    super(403, "email_unverified", "The email address is not verified.");
+    this.name = "EmailUnverifiedError";
+  }
+}
+
+export class EmailTakenError extends HttpError {
+  constructor() {
+    super(409, "email_taken", "An account with this email already exists.");
+    this.name = "EmailTakenError";
+  }
+}
+
+export class VerificationInvalidError extends HttpError {
+  constructor() {
+    super(
+      400,
+      "verification_invalid",
+      "The verification code is invalid or has expired.",
+    );
+    this.name = "VerificationInvalidError";
+  }
+}
+
+export class CredentialLockedError extends HttpError {
+  constructor() {
+    super(
+      429,
+      "credential_locked",
+      "Too many failed attempts; try again later.",
+    );
+    this.name = "CredentialLockedError";
+  }
+}

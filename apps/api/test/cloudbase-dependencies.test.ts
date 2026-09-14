@@ -97,6 +97,11 @@ const reads: Record<
       "token",
       "00000000-0000-7000-8000-000000000005",
     ),
+  "POST /api/auth/sign-in (credential lookup)": (dependencies) =>
+    dependencies.passwordAuth.signIn(
+      { email: "person@example.test", password: "correct horse battery" },
+      "00000000-0000-7000-8000-000000000006",
+    ),
 };
 
 describe("CloudBase read wiring", () => {

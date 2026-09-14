@@ -62,6 +62,13 @@ describe("resolveBackend", () => {
         "chronelle_session_resolve",
         "chronelle_session_revoke",
         "chronelle_sessions_revoke_all",
+        "chronelle_password_credential_create",
+        "chronelle_password_credential_lookup",
+        "chronelle_password_attempt_record",
+        "chronelle_email_verified",
+        "chronelle_password_hash_update",
+        "chronelle_verification_issue",
+        "chronelle_verification_consume",
       ]),
     );
     expect(cloudBaseRequiredFunctions).toContain("chronelle_backend_readiness");
