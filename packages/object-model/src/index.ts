@@ -15,6 +15,7 @@ export { CloudBaseEventReadRepository } from "./cloudbase-event-read-repository.
 export { CloudBaseEventWriteRepository } from "./cloudbase-event-write-repository.js";
 export { CloudBaseObjectWriteRepository } from "./cloudbase-object-write-repository.js";
 export { CloudBaseExpenseWriteRepository } from "./cloudbase-expense-write-repository.js";
+export { CloudBaseReminderWriteRepository } from "./cloudbase-reminder-write-repository.js";
 export { CloudBaseTaskWriteRepository } from "./cloudbase-task-write-repository.js";
 export {
   PostgresEventReadRepository,
@@ -25,6 +26,7 @@ export type {
   ExpenseWriteRepository,
   ObjectWriteRepositories,
   ObjectWriteRepository,
+  ReminderWriteRepository,
   TaskWriteRepository,
 } from "./object-writes.js";
 export { CanonicalObjectSearchService } from "./search-service.js";

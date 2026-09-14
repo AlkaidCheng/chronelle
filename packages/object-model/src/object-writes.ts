@@ -1,13 +1,16 @@
 import type {
   CreateEventInput,
   CreateExpenseInput,
+  CreateReminderInput,
   CreateTaskInput,
   EventResource,
   ExpenseResource,
   MutationContext,
+  ReminderResource,
   TaskResource,
   UpdateEventInput,
   UpdateExpenseInput,
+  UpdateReminderInput,
   UpdateTaskInput,
 } from "./types.js";
 
@@ -46,9 +49,16 @@ export type ExpenseWriteRepository = ObjectWriteRepository<
   ExpenseResource
 >;
 
+export type ReminderWriteRepository = ObjectWriteRepository<
+  CreateReminderInput,
+  UpdateReminderInput,
+  ReminderResource
+>;
+
 /** Families with a write repository; absent families use the PostgreSQL path. */
 export interface ObjectWriteRepositories {
   readonly event?: EventWriteRepository | undefined;
   readonly task?: TaskWriteRepository | undefined;
   readonly expense?: ExpenseWriteRepository | undefined;
+  readonly reminder?: ReminderWriteRepository | undefined;
 }
