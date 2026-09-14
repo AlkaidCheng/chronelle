@@ -15,10 +15,11 @@ import {
 // Cross-object evidence: one gateway rpc call creates a child on an Event's
 // scope, the includes relation, both audit rows, and the command record, or
 // none of them; the relation is then removed and recovered under its version
-// predicate. Exercises chronelle_event_context_create of migration 0016 and
-// chronelle_relation_lifecycle of migration 0017 against the real gateway.
-// The probe Event and child stay in staging soft-deleted, because their audit
-// and revision rows are append-only.
+// predicate, and the child is deleted and recovered the same way. Exercises
+// chronelle_event_context_create (migration 0016), chronelle_relation_lifecycle
+// (0017), and chronelle_object_delete and chronelle_object_recover (0018)
+// against the real gateway. The probes end soft-deleted through the delete
+// function, because their audit and revision rows are append-only.
 
 const required = [
   "CLOUDBASE_ENV_ID",
@@ -247,21 +248,78 @@ try {
       throw new Error("recover: the relation was not recovered at version 3.");
     return { version: recovered.version };
   });
+
+  const objectLifecycle = (
+    functionName,
+    objectId,
+    expectedVersion,
+    extra = {},
+  ) =>
+    client.rpc(functionName, {
+      workspace_id: workspaceId,
+      user_id: userId,
+      request_id: createId(),
+      object_id: objectId,
+      expected_version: expectedVersion,
+      ...extra,
+    });
+
+  await step("delete the child", async () => {
+    const deletion = await objectLifecycle(
+      "chronelle_object_delete",
+      first.resource.id,
+      1,
+      { deleted_at: new Date().toISOString() },
+    );
+    if (deletion.version !== 2)
+      throw new Error("delete: the child was not deleted at version 2.");
+    return { version: deletion.version };
+  });
+
+  // A deleted object is no longer deletable, so this is refused as
+  // unavailable rather than as a stale version.
+  await step("delete the deleted child", () =>
+    expectRejection("repeated deletion", () =>
+      objectLifecycle("chronelle_object_delete", first.resource.id, 1, {
+        deleted_at: new Date().toISOString(),
+      }),
+    ),
+  );
+
+  await step("recover the child", async () => {
+    const rows = await objectLifecycle(
+      "chronelle_object_recover",
+      first.resource.id,
+      2,
+    );
+    if (rows.object.version !== 3 || rows.object.deleted_at !== null)
+      throw new Error("recover: the child was not recovered at version 3.");
+    return { version: rows.object.version };
+  });
 } finally {
   if (probes.length > 0) {
-    await step("soft-delete probes", async () => {
-      const rows = await client.update(
-        "objects",
-        { deleted_at: new Date().toISOString() },
-        {
+    await step("delete the probes", async () => {
+      const deleted = [];
+      for (const objectId of probes.reverse()) {
+        const [row] = await client.select("objects", {
+          columns: "version,deleted_at",
           filters: [
             { column: "workspace_id", operator: "eq", value: workspaceId },
-            { column: "id", operator: "in", value: probes },
+            { column: "id", operator: "eq", value: objectId },
           ],
-          columns: "id",
-        },
-      );
-      return { affected: rows.length };
+        });
+        if (row === undefined || row.deleted_at !== null) continue;
+        await client.rpc("chronelle_object_delete", {
+          workspace_id: workspaceId,
+          user_id: userId,
+          request_id: createId(),
+          object_id: objectId,
+          expected_version: row.version,
+          deleted_at: new Date().toISOString(),
+        });
+        deleted.push(objectId);
+      }
+      return { affected: deleted.length };
     });
   }
 }
