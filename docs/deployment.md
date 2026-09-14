@@ -170,9 +170,10 @@ states that limitation explicitly. Run it only against staging.
 ### Run the CloudBase rpc contract
 
 The rpc check proves that a database function called through the gateway runs
-as one transaction. Apply `infrastructure/cloudbase/rpc-probe.sql` to the
-environment through the console SQL editor first; the functions carry the
-`chronelle_probe_` prefix and can be dropped afterwards. Then:
+as one transaction. It exercises the Event write functions of migration 0012,
+so apply that migration to the environment first (through the console SQL
+editor when no TCP route exists, recording its ledger row as for the schema).
+Then:
 
 ```bash
 CLOUDBASE_CONTRACT_ALLOW_WRITES=true pnpm cloudbase:rpc-contract
@@ -180,11 +181,17 @@ CLOUDBASE_CONTRACT_ALLOW_WRITES=true pnpm cloudbase:rpc-contract
 
 `CLOUDBASE_CONTRACT_FORBIDDEN_USER_ID` optionally names a user without edit
 access so the 403 path is exercised. The harness creates one probe Event
-through `chronelle_probe_create_event`, updates it, then proves that a stale
-version, a forbidden principal, and a raise after every write leave nothing
+through `chronelle_event_create`, updates it, then proves that a stale
+version, a forbidden principal, and an invalid merged state leave nothing
 behind, and that four concurrent calls on one version produce one winner. The
 probe's audit and revision rows are append-only, so the harness soft-deletes
 the probe instead of removing it. Run it only against staging.
+
+`CLOUDBASE_WRITES_ENABLED=true` routes the API's Event create and update
+through those functions; it requires `CLOUDBASE_READS_ENABLED=true` and
+migration 0012 on the environment. Until every mutation family is ported the
+API still needs `DATABASE_URL` for the rest, so the flag serves staging
+verification, not a deployment without PostgreSQL access.
 
 ## Containerized web
 

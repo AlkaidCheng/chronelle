@@ -8,6 +8,7 @@ import {
   CanonicalObjectSearchService,
   CloudBaseCalendarReadRepository,
   CloudBaseEventReadRepository,
+  CloudBaseEventWriteRepository,
   DocumentService,
   EventPlanningObjectService,
   EventPlanningProjectionService,
@@ -56,6 +57,8 @@ export interface AppDependencyOptions {
   readonly storage?: StorageProvider | undefined;
   /** Opt-in read transport; writes and transaction-heavy services stay in PostgreSQL. */
   readonly cloudBaseRdb?: CloudBaseRdbClient | undefined;
+  /** Route Event create and update through the gateway's rpc functions (migration 0012). */
+  readonly cloudBaseEventWrites?: boolean | undefined;
 }
 
 export function createAppDependencies(
@@ -70,10 +73,15 @@ export function createAppDependencies(
     options.cloudBaseRdb === undefined
       ? undefined
       : new CloudBaseEventReadRepository(options.cloudBaseRdb);
+  const eventWrites =
+    options.cloudBaseRdb === undefined || options.cloudBaseEventWrites !== true
+      ? undefined
+      : new CloudBaseEventWriteRepository(options.cloudBaseRdb);
   const objects = new EventPlanningObjectService(
     connection.db,
     undefined,
     eventReads,
+    eventWrites,
   );
   const storage =
     options.storage ??

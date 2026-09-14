@@ -12,10 +12,12 @@ export {
 } from "./projection-service.js";
 export { CloudBaseCalendarReadRepository } from "./cloudbase-calendar-read-repository.js";
 export { CloudBaseEventReadRepository } from "./cloudbase-event-read-repository.js";
+export { CloudBaseEventWriteRepository } from "./cloudbase-event-write-repository.js";
 export {
   PostgresEventReadRepository,
   type EventReadRepository,
 } from "./event-list.js";
+export type { EventWriteRepository } from "./event-writes.js";
 export { CanonicalObjectSearchService } from "./search-service.js";
 export * from "./types.js";
 export { serializeResource } from "./serialization.js";

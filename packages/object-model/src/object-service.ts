@@ -26,6 +26,7 @@ import {
   type EventPage,
   type EventReadRepository,
 } from "./event-list.js";
+import type { EventWriteRepository } from "./event-writes.js";
 
 import { InvalidObjectStateError, ObjectConflictError } from "./errors.js";
 import { readObjectState, readObjectStates } from "./object-state.js";
@@ -145,15 +146,18 @@ export class EventPlanningObjectService {
   readonly #clock: () => Date;
   readonly #database: AuthorizationDatabase;
   readonly #eventReads: EventReadRepository;
+  readonly #eventWrites: EventWriteRepository | undefined;
 
   constructor(
     database: AuthorizationDatabase,
     clock: () => Date = () => new Date(),
     eventReads?: EventReadRepository,
+    eventWrites?: EventWriteRepository,
   ) {
     this.#database = database;
     this.#clock = clock;
     this.#eventReads = eventReads ?? new PostgresEventReadRepository(database);
+    this.#eventWrites = eventWrites;
   }
 
   async createEvent(
@@ -166,6 +170,8 @@ export class EventPlanningObjectService {
     const startsOn = input.startsOn ?? null;
     const endsOn = input.endsOn ?? null;
     assertEventState(startsAt, endsAt, timezone, startsOn, endsOn);
+    if (this.#eventWrites !== undefined)
+      return this.#eventWrites.createEvent(context, input);
 
     const resource = await this.#createObject(
       context,
@@ -392,6 +398,9 @@ export class EventPlanningObjectService {
     objectId: string,
     input: UpdateEventInput,
   ): Promise<EventResource> {
+    // The function validates the merged state itself, so no PostgreSQL read precedes it.
+    if (this.#eventWrites !== undefined)
+      return this.#eventWrites.updateEvent(context, objectId, input);
     const current = this.#requireType(
       await this.#getObjectWithAction(context.principal, objectId, "edit"),
       "event",

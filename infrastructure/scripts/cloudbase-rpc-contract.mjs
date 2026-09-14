@@ -11,11 +11,11 @@ import {
   readRequestTimeout,
 } from "./cloudbase-config.mjs";
 
-// R3 evidence: can one gateway rpc call run an audited single-object
-// mutation as a transaction? Requires the functions in
-// infrastructure/cloudbase/rpc-probe.sql to be applied to the environment.
-// The probe Event stays in staging soft-deleted, because its audit and
-// revision rows are append-only by design.
+// R3 evidence: one gateway rpc call runs an audited single-object mutation
+// as a transaction. Exercises the chronelle_event_create and
+// chronelle_event_update functions of migration 0012 against the real
+// gateway. The probe Event stays in staging soft-deleted, because its audit
+// and revision rows are append-only by design.
 
 const required = [
   "CLOUDBASE_ENV_ID",
@@ -102,27 +102,35 @@ async function currentVersion() {
   return row;
 }
 
-const update = (args) =>
-  client.rpc("chronelle_probe_update_event", {
+const update = ({ expected_version, fail_after, ...changes }, actor = userId) =>
+  client.rpc("chronelle_event_update", {
     workspace_id: workspaceId,
-    user_id: userId,
+    user_id: actor,
     request_id: createId(),
     object_id: probeId,
-    ...args,
+    expected_version,
+    changes: fail_after ? { ...changes, timezone: "Not/AZone" } : changes,
+    command: null,
   });
 
 try {
   await step("create through rpc", async () => {
     try {
-      const created = await client.rpc("chronelle_probe_create_event", {
+      const created = await client.rpc("chronelle_event_create", {
         workspace_id: workspaceId,
         user_id: userId,
         request_id: createId(),
-        display_name: `R3 rpc probe ${createId()}`,
-        timezone: "UTC",
+        input: {
+          displayName: `R3 rpc probe ${createId()}`,
+          startsAt: "2030-10-16T18:00:00.000Z",
+          timezone: "UTC",
+        },
       });
-      probeId = created.id;
-      return { version: created.version, revisions: await revisionCount() };
+      probeId = created.object.id;
+      return {
+        version: created.object.version,
+        revisions: await revisionCount(),
+      };
     } catch (error) {
       // The gateway prefixes PostgREST codes, for example DATABASE_PGRST202.
       if (
@@ -130,7 +138,7 @@ try {
         error.code.endsWith("PGRST202")
       ) {
         console.error(
-          "The probe functions are not installed; apply infrastructure/cloudbase/rpc-probe.sql to the environment first.",
+          "The Event write functions are not installed; apply migration 0012 to the environment first.",
         );
         process.exit(2);
       }
@@ -141,48 +149,47 @@ try {
   await step("update with the current version", async () => {
     const updated = await update({
       expected_version: 1,
-      display_name: "R3 rpc probe v2",
+      displayName: "R3 rpc probe v2",
     });
-    if (updated.version !== 2)
+    if (updated.object.version !== 2)
       throw new Error("fresh update: version was not advanced to 2.");
-    return { version: updated.version, revisions: await revisionCount() };
+    return {
+      version: updated.object.version,
+      revisions: await revisionCount(),
+    };
   });
 
   await step("update with a stale version", () =>
     expectRejection("stale update", () =>
-      update({ expected_version: 1, display_name: "stale" }),
+      update({ expected_version: 1, displayName: "stale" }),
     ),
   );
 
   if (forbiddenUserId !== undefined) {
     await step("update as a principal without edit access", () =>
       expectRejection("forbidden update", () =>
-        client.rpc("chronelle_probe_update_event", {
-          workspace_id: workspaceId,
-          user_id: forbiddenUserId,
-          request_id: createId(),
-          object_id: probeId,
-          expected_version: 2,
-          display_name: "forbidden",
-        }),
+        update(
+          { expected_version: 2, displayName: "forbidden" },
+          forbiddenUserId,
+        ),
       ),
     );
   }
 
-  await step("raise after every write", async () => {
-    const outcome = await expectRejection("injected failure", () =>
+  await step("reject an invalid merged state", async () => {
+    const outcome = await expectRejection("invalid state", () =>
       update({
         expected_version: 2,
-        display_name: "must not persist",
+        displayName: "must not persist",
         fail_after: true,
       }),
     );
     const row = await currentVersion();
     const revisions = await revisionCount();
     if (row?.version !== 2 || row.display_name !== "R3 rpc probe v2")
-      throw new Error("injected failure: the object changed.");
+      throw new Error("invalid state: the object changed.");
     if (revisions !== 2)
-      throw new Error(`injected failure: ${revisions} revisions remain.`);
+      throw new Error(`invalid state: ${revisions} revisions remain.`);
     return { ...outcome, version: row.version, revisions };
   });
 
@@ -191,7 +198,7 @@ try {
       [1, 2, 3, 4].map((contender) =>
         update({
           expected_version: 2,
-          display_name: `R3 rpc probe v3 by ${contender}`,
+          displayName: `R3 rpc probe v3 by ${contender}`,
         }).then(
           (value) => ({ ok: true, value }),
           (error) => ({ ok: false, error }),
@@ -206,7 +213,10 @@ try {
       if (!(loser.error instanceof CloudBaseRpcError)) throw loser.error;
     }
     const row = await currentVersion();
-    if (row?.version !== 3 || row.display_name !== winners[0].value.displayName)
+    if (
+      row?.version !== 3 ||
+      row.display_name !== winners[0].value.object.display_name
+    )
       throw new Error("race: the stored row does not match the winner.");
     return {
       contenders: results.length,

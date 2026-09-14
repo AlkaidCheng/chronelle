@@ -22,6 +22,7 @@ const runtimeEnvironmentSchema = z.object({
   API_PORT: z.coerce.number().int().positive().max(65_535).default(4000),
   DATABASE_URL: z.url(),
   CLOUDBASE_READS_ENABLED: z.stringbool().default(false),
+  CLOUDBASE_WRITES_ENABLED: z.stringbool().default(false),
   CLOUDBASE_ENV_ID: z.string().min(1).optional(),
   CLOUDBASE_APIKEY: z.string().min(1).optional(),
   CLOUDBASE_REQUEST_TIMEOUT_MS: z.coerce
@@ -52,12 +53,18 @@ const database = connectDatabase(runtimeEnvironment.DATABASE_URL);
 const cloudBaseRdb = runtimeEnvironment.CLOUDBASE_READS_ENABLED
   ? await createCloudBaseReadClient()
   : undefined;
+if (runtimeEnvironment.CLOUDBASE_WRITES_ENABLED && cloudBaseRdb === undefined) {
+  throw new Error(
+    "CLOUDBASE_WRITES_ENABLED=true requires CLOUDBASE_READS_ENABLED=true.",
+  );
+}
 const dependencies = createDevelopmentAppDependencies(database, {
   developmentSessionTtlMs:
     runtimeEnvironment.DEVELOPMENT_AUTH_SESSION_TTL_MINUTES * 60_000,
   documentTransferTtlMs:
     runtimeEnvironment.DOCUMENT_TRANSFER_TTL_SECONDS * 1_000,
   cloudBaseRdb,
+  cloudBaseEventWrites: runtimeEnvironment.CLOUDBASE_WRITES_ENABLED,
   storage,
 });
 const app = buildApp(dependencies, { logger: true });
