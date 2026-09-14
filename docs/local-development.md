@@ -29,10 +29,10 @@ DELETE requests and older history clients are incompatible.
 ## Setup
 
 Migrations `0012_add_event_write_functions.sql` through
-`0019_add_revision_restore_function.sql` add the Event, Task, Expense, and
-Reminder create and update functions, relation creation, removal, and
-recovery, linked creation, object deletion and recovery, and revision
-restore used by the CloudBase rpc write path; 0013 also introduces the shared object
+`0020_add_sharing_functions.sql` add the Event, Task, Expense, and Reminder
+create and update functions, relation creation, removal, and recovery,
+linked creation, object deletion and recovery, revision restore, and sharing
+and permission-scope changes used by the CloudBase rpc write path; 0013 also introduces the shared object
 write core the family functions delegate to. They change no tables and need
 no baseline; a PostgreSQL deployment carries the functions unused.
 

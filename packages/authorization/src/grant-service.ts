@@ -63,19 +63,43 @@ export interface RevokedGrantResource {
   readonly revokedAt: Date;
 }
 
+/**
+ * Share writes: granting a role to a user and revoking a grant, each with
+ * its audit event. Implementations own the transaction; the service keeps
+ * its clock for the revocation instant.
+ */
+export interface ShareWriteRepository {
+  share(
+    context: GrantMutationContext,
+    input: ShareResourceInput,
+  ): Promise<ResourceGrantResource>;
+  revoke(
+    context: GrantMutationContext,
+    grantId: string,
+    revokedAt: Date,
+  ): Promise<RevokedGrantResource>;
+}
+
 export class ResourceGrantService {
   readonly #clock: () => Date;
   readonly #database: Database;
+  readonly #writes: ShareWriteRepository | undefined;
 
-  constructor(database: Database, clock: () => Date = () => new Date()) {
+  constructor(
+    database: Database,
+    clock: () => Date = () => new Date(),
+    writes?: ShareWriteRepository,
+  ) {
     this.#database = database;
     this.#clock = clock;
+    this.#writes = writes;
   }
 
   async share(
     context: GrantMutationContext,
     input: ShareResourceInput,
   ): Promise<ResourceGrantResource> {
+    if (this.#writes !== undefined) return this.#writes.share(context, input);
     return withStableAuthorization(
       this.#database,
       context.principal.workspaceId,
@@ -218,6 +242,8 @@ export class ResourceGrantService {
     context: GrantMutationContext,
     grantId: string,
   ): Promise<RevokedGrantResource> {
+    if (this.#writes !== undefined)
+      return this.#writes.revoke(context, grantId, this.#clock());
     return withStableAuthorization(
       this.#database,
       context.principal.workspaceId,
