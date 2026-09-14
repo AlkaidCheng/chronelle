@@ -258,6 +258,13 @@ resource matches the Drizzle service exactly. The generic adapter now rejects
 an invalid `Date` with the service's `<field> must be a valid date.` message
 before calling the gateway, which the Expense test covers on the update path.
 
+**Fourth family (Reminder create and update):** migration 0015 completes the
+single-object families. `chronelle_assert_reminder_state` requires a valid
+`remindAt` and a status from the table's set, so an unknown status is an
+invalid state rather than a constraint violation, as for Task. With the four
+families behind `CLOUDBASE_WRITES_ENABLED`, the next function is linked
+creation, the first cross-object operation.
+
 ### Phase 4 — Cross-object mutations and recovery
 
 Do not emulate transactions with optimistic hope. For relations, shares,
@@ -317,13 +324,12 @@ PostgreSQL adapter.
 
 ## Recommended next PR
 
-Port the Task, Expense, and Reminder create and update families in the Event
-shape: one migration per family with its typed validation moved into a
-`chronelle_assert_<type>_state` function, a `<Type>WriteRepository` boundary,
-a CloudBase adapter, and a differential test over every field and error path.
-The serializer must cover the type's fields exactly as `serializeResource()`
-does. After the four single-object families, linked creation
-(`POST /api/events/:id/resources`) is the first cross-object function.
+Port linked creation (`POST /api/events/:id/resources`) as the first
+cross-object function: one call creates the typed child on the parent's
+scope through the family functions, inserts the `includes` relation with its
+version, and writes both audit rows. The differential test compares the full
+ledger and an injected failure after the relation insert must leave no
+object, relation, audit, or revision row.
 
 ### R1 operator checklist
 
