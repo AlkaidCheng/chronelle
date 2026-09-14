@@ -44,6 +44,7 @@ import {
   reminderResourceProjectionResponseSchema,
   reminderResponseSchema,
   sessionResponseSchema,
+  sessionRevocationResponseSchema,
   shareListResponseSchema,
   shareResponseSchema,
   shareRevocationResponseSchema,
@@ -92,6 +93,7 @@ import {
   type ReminderResponse,
   type ReminderUpdatePayload,
   type SessionResponse,
+  type SessionRevocationResponse,
   type ShareCreatePayload,
   type ShareListResponse,
   type ShareResponse,
@@ -242,6 +244,22 @@ export class ChronelleApiClient {
 
   getSession(): Promise<SessionResponse> {
     return this.#request("/api/auth/session", sessionResponseSchema);
+  }
+
+  /** Ends the current session on the server. */
+  signOut(): Promise<SessionRevocationResponse> {
+    return this.#request("/api/auth/session", sessionRevocationResponseSchema, {
+      method: "DELETE",
+    });
+  }
+
+  /** Ends every session of the current user, this one included. */
+  signOutEverywhere(): Promise<SessionRevocationResponse> {
+    return this.#request(
+      "/api/auth/sessions",
+      sessionRevocationResponseSchema,
+      { method: "DELETE" },
+    );
   }
 
   getStorageInventory(): Promise<StorageInventoryResponse> {

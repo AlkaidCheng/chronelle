@@ -90,6 +90,13 @@ const reads: Record<
       principal.userId,
       principal.workspaceId,
     ),
+  "Bearer credential (session resolve)": (dependencies) =>
+    dependencies.sessions.authenticate("token"),
+  "DELETE /api/auth/session": (dependencies) =>
+    dependencies.sessions.revoke(
+      "token",
+      "00000000-0000-7000-8000-000000000005",
+    ),
 };
 
 describe("CloudBase read wiring", () => {

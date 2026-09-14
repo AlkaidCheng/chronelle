@@ -387,12 +387,15 @@ try {
 
   await compose("restart", "--timeout", "10", "api");
   await compose("up", "--detach", "--wait", "--wait-timeout", "120");
-  const resumed = await json("/api/auth/development/sign-in", identity);
-  headers = { authorization: `Bearer ${resumed.accessToken}` };
+  // The session is recorded in the database, so the credential issued before
+  // the restart keeps working; a new sign-in maps to the same user.
   assert.deepEqual(
     await (await request(layoutPath, { headers })).json(),
     layout,
   );
+  const resumed = await json("/api/auth/development/sign-in", identity);
+  assert.equal(resumed.user.id, signIn.user.id);
+  headers = { authorization: `Bearer ${resumed.accessToken}` };
   const download = await (await request(downloadPath, { headers })).json();
   const received = await request(download.download.url);
   assert.equal(received.headers.get("cache-control"), "private, no-store");
@@ -491,7 +494,9 @@ try {
   );
   await checkRecovery(environment, containers, async (restoredBase) => {
     base = restoredBase;
-    await request(`/api/events/${event.id}`, { headers }, 401);
+    // The archive holds the session, so the credential is valid on the
+    // restored stack as well.
+    await request(`/api/events/${event.id}`, { headers }, 200);
     const restoredSession = await json(
       "/api/auth/development/sign-in",
       identity,

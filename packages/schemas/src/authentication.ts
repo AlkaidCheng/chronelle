@@ -35,6 +35,11 @@ export const sessionResponseSchema = z.object({
   availableWorkspaces: z.array(workspaceSummarySchema),
 });
 
+/** The outcome of a sign-out: how many live sessions ended. */
+export const sessionRevocationResponseSchema = z.object({
+  revoked: z.number().int().nonnegative(),
+});
+
 export const apiErrorResponseSchema = z.object({
   error: z.object({
     code: z.string(),
@@ -49,4 +54,7 @@ export type DevelopmentSignInResponse = z.infer<
   typeof developmentSignInResponseSchema
 >;
 export type SessionResponse = z.infer<typeof sessionResponseSchema>;
+export type SessionRevocationResponse = z.infer<
+  typeof sessionRevocationResponseSchema
+>;
 export type ApiErrorResponse = z.infer<typeof apiErrorResponseSchema>;

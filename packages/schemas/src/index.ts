@@ -3,11 +3,13 @@ export {
   developmentSignInRequestSchema,
   developmentSignInResponseSchema,
   sessionResponseSchema,
+  sessionRevocationResponseSchema,
   workspaceSummarySchema,
   type ApiErrorResponse,
   type DevelopmentSignInRequest,
   type DevelopmentSignInResponse,
   type SessionResponse,
+  type SessionRevocationResponse,
 } from "./authentication.js";
 export { healthStatusSchema, type HealthStatus } from "./health.js";
 export { maximumApiBodySizeBytes, apiRequestTimeoutMs } from "./http.js";

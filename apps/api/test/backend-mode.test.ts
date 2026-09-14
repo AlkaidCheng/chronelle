@@ -56,6 +56,14 @@ describe("resolveBackend", () => {
 
   it("verifies the identity function alongside the object-model functions", () => {
     expect(cloudBaseRequiredFunctions).toContain("chronelle_identity_sign_in");
+    expect(cloudBaseRequiredFunctions).toEqual(
+      expect.arrayContaining([
+        "chronelle_session_create",
+        "chronelle_session_resolve",
+        "chronelle_session_revoke",
+        "chronelle_sessions_revoke_all",
+      ]),
+    );
     expect(cloudBaseRequiredFunctions).toContain("chronelle_backend_readiness");
   });
 

@@ -66,6 +66,10 @@ export function resolveBackend(
 export const cloudBaseRequiredFunctions: readonly string[] = [
   ...cloudBaseObjectModelFunctions,
   "chronelle_identity_sign_in",
+  "chronelle_session_create",
+  "chronelle_session_resolve",
+  "chronelle_session_revoke",
+  "chronelle_sessions_revoke_all",
 ];
 
 /** The log level for one gateway request: conflicts and denials are routine, failures are not. */

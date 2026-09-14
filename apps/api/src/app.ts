@@ -7,7 +7,7 @@ import { healthStatusSchema } from "@chronelle/schemas";
 
 import {
   registerDevelopmentAuthenticationRoute,
-  registerSessionRoute,
+  registerSessionRoutes,
 } from "./authentication/routes.js";
 import type { AppDependencies } from "./dependencies.js";
 import { registerDocumentRoutes } from "./documents/routes.js";
@@ -30,7 +30,10 @@ export function buildApp(
   registerHttpBoundary(app);
 
   registerRequestContext(app, dependencies);
-  registerSessionRoute(app, { identity: dependencies.identity });
+  registerSessionRoutes(app, {
+    identity: dependencies.identity,
+    sessions: dependencies.sessions,
+  });
   registerDocumentRoutes(app, dependencies);
   registerEventPlanningRoutes(app, dependencies);
   registerEventPageRoutes(app, dependencies);
@@ -40,10 +43,10 @@ export function buildApp(
   registerRecoveryRoutes(app, dependencies);
   registerCommandRoutes(app, dependencies);
   registerStorageInventoryRoutes(app, dependencies);
-  if (dependencies.developmentAuth !== undefined) {
+  if (dependencies.developmentSignIn) {
     registerDevelopmentAuthenticationRoute(app, {
-      developmentAuth: dependencies.developmentAuth,
       identity: dependencies.identity,
+      sessions: dependencies.sessions,
     });
   }
 

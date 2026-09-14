@@ -25,8 +25,9 @@ import {
 // chronelle_event_layout_update and chronelle_event_layout_restore (0022),
 // chronelle_command_execute and chronelle_command_transition (0023),
 // chronelle_command_state (0024), chronelle_storage_references (0025), the
-// document transfer functions (0026), chronelle_identity_sign_in (0027), and
-// chronelle_backend_readiness (0028) against the real gateway. The
+// document transfer functions (0026), chronelle_identity_sign_in (0027),
+// chronelle_backend_readiness (0028), and the chronelle_session_* functions
+// (0030) against the real gateway. The
 // transfer steps record the rows around a storage transfer without moving
 // bytes: the finalized probe Document names a key that was never written. The probes end soft-deleted through the delete
 // function, because their audit and revision rows are append-only.
@@ -725,6 +726,44 @@ try {
       createdWorkspace: signedIn.createdWorkspace,
       personalWorkspace: signedIn.workspace?.id === workspaceId,
     };
+  });
+
+  await step("issue, resolve, and revoke a session", async () => {
+    const tokenHash = createHash("sha256").update(createId()).digest("hex");
+    const issuedAt = new Date();
+    const created = await client.rpc("chronelle_session_create", {
+      user_id: userId,
+      token_hash: tokenHash,
+      identity_provider: "contract",
+      expires_at: new Date(issuedAt.getTime() + 60_000).toISOString(),
+    });
+    if (created?.user_id !== userId || created.revoked_at !== null)
+      throw new Error("sessions: the session was not recorded.");
+    const resolved = await client.rpc("chronelle_session_resolve", {
+      token_hash: tokenHash,
+      observed_at: issuedAt.toISOString(),
+      touch_after_seconds: 300,
+    });
+    if (resolved?.session?.id !== created.id || resolved.user?.id !== userId)
+      throw new Error("sessions: the live session did not resolve.");
+    const revoked = await client.rpc("chronelle_session_revoke", {
+      token_hash: tokenHash,
+      revoked_at: issuedAt.toISOString(),
+      request_id: createId(),
+    });
+    const afterwards = await client.rpc("chronelle_session_resolve", {
+      token_hash: tokenHash,
+      observed_at: issuedAt.toISOString(),
+      touch_after_seconds: 300,
+    });
+    const revokedAll = await client.rpc("chronelle_sessions_revoke_all", {
+      user_id: userId,
+      revoked_at: issuedAt.toISOString(),
+      request_id: createId(),
+    });
+    if (revoked?.revoked !== true || afterwards !== null)
+      throw new Error("sessions: revocation did not end the session.");
+    return { revoked: revoked.revoked, revokedAll: revokedAll?.revoked };
   });
 
   await step("read the backend readiness", async () => {

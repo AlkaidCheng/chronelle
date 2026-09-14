@@ -40,6 +40,13 @@ rpc path; 0013 also introduces the shared object write core the family
 functions delegate to. They change no tables and need
 no baseline; a PostgreSQL deployment carries the functions unused.
 
+Migration `0030_add_user_sessions.sql` adds the `user_sessions` table and the
+`chronelle_session_create`, `chronelle_session_resolve`,
+`chronelle_session_revoke`, and `chronelle_sessions_revoke_all` functions the
+CloudBase rpc path uses for the same session rules; `0031` redefines the two
+revocation functions to date a revocation no earlier than the session's
+creation.
+
 Migration `0021_add_object_search_function.sql` adds `chronelle_object_search`,
 the read-only function the CloudBase search adapter calls. It changes no
 tables and needs no baseline.
@@ -94,10 +101,14 @@ Production builds do not use this allow-list.
 
 The API reads `.env` from the repository root. Development authentication is
 fail-closed: `ENABLE_DEVELOPMENT_AUTH=true` must be set explicitly before the
-development sign-in endpoint is registered.
-`DEVELOPMENT_AUTH_SESSION_TTL_MINUTES` controls the lifetime of its in-memory
-sessions. These sessions disappear when the API restarts and are not suitable
-for a deployed environment.
+development sign-in endpoint is registered. A sign-in of any kind records a
+session in `user_sessions` (migration 0030) and hands out a random bearer
+token whose SHA-256 digest is the only thing stored; the session survives an
+API restart until it expires (`AUTH_SESSION_TTL_MINUTES`, fourteen days by
+default) or is revoked by `DELETE /api/auth/session` (this credential) or
+`DELETE /api/auth/sessions` (every session of the user). Development sign-in
+asserts an identity without a password and is not suitable for a deployed
+environment.
 
 Private development attachments are stored below `LOCAL_STORAGE_ROOT`, which
 defaults to `.chronelle/storage` and is ignored by Git. Keep this root private
