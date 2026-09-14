@@ -39,11 +39,7 @@ const runtimeEnvironmentSchema = backendEnvironmentSchema.extend({
     .positive()
     .max(120_000)
     .default(30_000),
-  DEVELOPMENT_AUTH_SESSION_TTL_MINUTES: z.coerce
-    .number()
-    .int()
-    .positive()
-    .default(720),
+  AUTH_SESSION_TTL_MINUTES: z.coerce.number().int().positive().default(20_160),
   ENABLE_DEVELOPMENT_AUTH: z.stringbool().default(false),
   DOCUMENT_TRANSFER_TTL_SECONDS: z.coerce
     .number()
@@ -72,8 +68,7 @@ const cloudBaseRdb = backend.cloudBaseReads
   ? await createCloudBaseClient((event) => logGatewayRequest(event))
   : undefined;
 const dependencies = createDevelopmentAppDependencies(database, {
-  developmentSessionTtlMs:
-    runtimeEnvironment.DEVELOPMENT_AUTH_SESSION_TTL_MINUTES * 60_000,
+  sessionTtlMs: runtimeEnvironment.AUTH_SESSION_TTL_MINUTES * 60_000,
   documentTransferTtlMs:
     runtimeEnvironment.DOCUMENT_TRANSFER_TTL_SECONDS * 1_000,
   cloudBaseRdb,

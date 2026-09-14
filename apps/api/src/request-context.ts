@@ -32,7 +32,9 @@ export function requirePrincipal(request: FastifyRequest): UserPrincipal {
   return request.principal;
 }
 
-function readBearerToken(authorizationHeader: string | undefined): string {
+export function readBearerToken(
+  authorizationHeader: string | undefined,
+): string {
   const match = /^Bearer ([^\s]+)$/.exec(authorizationHeader ?? "");
   if (match?.[1] === undefined) {
     throw new UnauthenticatedError();

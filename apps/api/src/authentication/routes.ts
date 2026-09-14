@@ -1,22 +1,29 @@
 import {
   developmentSignInRequestSchema,
   developmentSignInResponseSchema,
+  sessionRevocationResponseSchema,
   sessionResponseSchema,
 } from "@chronelle/schemas";
-import type { FastifyInstance } from "fastify";
+import type { FastifyInstance, FastifyRequest } from "fastify";
 
 import type { WorkspaceIdentityService } from "../identity/workspace-identity-service.js";
 import { UnauthenticatedError } from "../errors.js";
+import { readBearerToken } from "../request-context.js";
 import { parseRequest } from "../request-validation.js";
-import type { DevelopmentAuthProvider } from "./development-auth-provider.js";
+import {
+  developmentIdentity,
+  developmentIdentityProvider,
+} from "./development-identity.js";
+import type { SessionAuthProvider } from "./session-auth-provider.js";
 
 export interface DevelopmentAuthenticationRouteDependencies {
-  readonly developmentAuth: DevelopmentAuthProvider;
   readonly identity: WorkspaceIdentityService;
+  readonly sessions: SessionAuthProvider;
 }
 
 export interface SessionRouteDependencies {
   readonly identity: WorkspaceIdentityService;
+  readonly sessions: SessionAuthProvider;
 }
 
 export function registerDevelopmentAuthenticationRoute(
@@ -25,35 +32,32 @@ export function registerDevelopmentAuthenticationRoute(
 ): void {
   app.post("/api/auth/development/sign-in", async (request) => {
     const input = parseRequest(developmentSignInRequestSchema, request.body);
-    const credential = dependencies.developmentAuth.issueCredential(input);
-
-    try {
-      const session = await dependencies.identity.signIn(
-        credential.identity,
-        request.id,
-      );
-      return developmentSignInResponseSchema.parse({
-        accessToken: credential.accessToken,
-        tokenType: "Bearer",
-        expiresAt: credential.expiresAt.toISOString(),
-        user: {
-          id: session.user.id,
-          displayName: session.user.displayName,
-          email: session.user.email,
-        },
-        workspace: {
-          id: session.workspace.id,
-          displayName: session.workspace.displayName,
-        },
-      });
-    } catch (error) {
-      dependencies.developmentAuth.revoke(credential.accessToken);
-      throw error;
-    }
+    const session = await dependencies.identity.signIn(
+      developmentIdentity(input),
+      request.id,
+    );
+    const credential = await dependencies.sessions.issue(
+      session.user,
+      developmentIdentityProvider,
+    );
+    return developmentSignInResponseSchema.parse({
+      accessToken: credential.accessToken,
+      tokenType: "Bearer",
+      expiresAt: credential.expiresAt.toISOString(),
+      user: {
+        id: session.user.id,
+        displayName: session.user.displayName,
+        email: session.user.email,
+      },
+      workspace: {
+        id: session.workspace.id,
+        displayName: session.workspace.displayName,
+      },
+    });
   });
 }
 
-export function registerSessionRoute(
+export function registerSessionRoutes(
   app: FastifyInstance,
   dependencies: SessionRouteDependencies,
 ): void {
@@ -87,6 +91,37 @@ export function registerSessionRoute(
           displayName: workspace.displayName,
         })),
       });
+    },
+  );
+
+  // Signing out revokes the presented credential; the count is 0 when a
+  // concurrent sign-out already ended it.
+  app.delete(
+    "/api/auth/session",
+    { preHandler: app.authenticate },
+    async (request: FastifyRequest) => {
+      const revoked = await dependencies.sessions.revoke(
+        readBearerToken(request.headers.authorization),
+        request.id,
+      );
+      return sessionRevocationResponseSchema.parse({
+        revoked: revoked ? 1 : 0,
+      });
+    },
+  );
+
+  app.delete(
+    "/api/auth/sessions",
+    { preHandler: app.authenticate },
+    async (request: FastifyRequest) => {
+      if (request.identitySession === null) {
+        throw new UnauthenticatedError();
+      }
+      const revoked = await dependencies.sessions.revokeAll(
+        request.identitySession.user.id,
+        request.id,
+      );
+      return sessionRevocationResponseSchema.parse({ revoked });
     },
   );
 }

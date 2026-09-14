@@ -48,14 +48,18 @@ import {
 } from "@chronelle/storage";
 
 import type { AuthProvider } from "./authentication/auth-provider.js";
-import { DevelopmentAuthProvider } from "./authentication/development-auth-provider.js";
+import { CloudBaseSessionStore } from "./authentication/cloudbase-session-store.js";
+import { SessionAuthProvider } from "./authentication/session-auth-provider.js";
+import { PostgresSessionStore } from "./authentication/session-store.js";
 import { CloudBaseIdentityStore } from "./identity/cloudbase-identity-store.js";
 import { WorkspaceIdentityService } from "./identity/workspace-identity-service.js";
 
 export interface AppDependencies {
   readonly authProvider: AuthProvider;
   readonly authorization: AuthorizationService;
-  readonly developmentAuth?: DevelopmentAuthProvider;
+  /** Whether the development sign-in route is served. */
+  readonly developmentSignIn: boolean;
+  readonly sessions: SessionAuthProvider;
   readonly documents: DocumentService;
   readonly identity: WorkspaceIdentityService;
   readonly objects: EventPlanningObjectService;
@@ -81,6 +85,7 @@ export interface AppDependencyOptions {
   readonly cloudBaseRdb?: CloudBaseRdbClient | undefined;
   /** Route the ported write families through the gateway's rpc functions. */
   readonly cloudBaseWrites?: boolean | undefined;
+  readonly sessionTtlMs?: number | undefined;
 }
 
 function cloudBaseReads(rdb: CloudBaseRdbClient) {
@@ -101,11 +106,18 @@ function cloudBaseReads(rdb: CloudBaseRdbClient) {
 
 export function createAppDependencies(
   connection: DatabaseConnection,
-  authProvider: AuthProvider,
+  authProvider: AuthProvider | undefined,
   options: AppDependencyOptions = {},
 ): AppDependencies {
   const authorization = new AuthorizationService(
     new DrizzleAuthorizationStore(connection.db),
+  );
+  // Sessions follow the identity store: the gateway once a client exists.
+  const sessions = new SessionAuthProvider(
+    options.cloudBaseRdb === undefined
+      ? new PostgresSessionStore(connection.db)
+      : new CloudBaseSessionStore(options.cloudBaseRdb),
+    { sessionTtlMs: options.sessionTtlMs, clock: options.clock },
   );
   // Read adapters; a service without one reads PostgreSQL.
   const reads =
@@ -154,8 +166,10 @@ export function createAppDependencies(
     });
 
   return {
-    authProvider,
+    authProvider: authProvider ?? sessions,
     authorization,
+    developmentSignIn: false,
+    sessions,
     documents: new DocumentService(connection.db, objects, storage, {
       clock: options.clock,
       transferTtlMs: options.documentTransferTtlMs,
@@ -227,16 +241,10 @@ export function createAppDependencies(
 
 export function createDevelopmentAppDependencies(
   connection: DatabaseConnection,
-  options: AppDependencyOptions & {
-    readonly developmentSessionTtlMs?: number | undefined;
-  } = {},
+  options: AppDependencyOptions = {},
 ): AppDependencies {
-  const developmentAuth = new DevelopmentAuthProvider(
-    options.developmentSessionTtlMs,
-  );
-
   return {
-    ...createAppDependencies(connection, developmentAuth, options),
-    developmentAuth,
+    ...createAppDependencies(connection, undefined, options),
+    developmentSignIn: true,
   };
 }

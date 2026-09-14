@@ -18,6 +18,7 @@ import {
   apiErrorResponseSchema,
   developmentSignInResponseSchema,
   sessionResponseSchema,
+  sessionRevocationResponseSchema,
 } from "@chronelle/schemas";
 import { eq } from "drizzle-orm";
 import type { FastifyInstance } from "fastify";
@@ -138,6 +139,87 @@ describe.sequential("development authentication API", () => {
     expect(
       apiErrorResponseSchema.parse(missingCredentialResponse.json()),
     ).toMatchObject({ error: { code: "unauthenticated" } });
+  });
+
+  it("keeps a session across API instances and ends it on sign-out", async () => {
+    const signedIn = await signIn("durable@example.com", "Durable User");
+    const headers = { authorization: `Bearer ${signedIn.accessToken}` };
+    const replacement = buildApp(
+      createDevelopmentAppDependencies(testDatabase.connection),
+    );
+    try {
+      const fromReplacement = await replacement.inject({
+        method: "GET",
+        url: "/api/auth/session",
+        headers,
+      });
+      expect(fromReplacement.statusCode).toBe(200);
+
+      const signedOut = await app.inject({
+        method: "DELETE",
+        url: "/api/auth/session",
+        headers,
+      });
+      expect(signedOut.statusCode).toBe(200);
+      expect(sessionRevocationResponseSchema.parse(signedOut.json())).toEqual({
+        revoked: 1,
+      });
+
+      const afterwards = await replacement.inject({
+        method: "GET",
+        url: "/api/auth/session",
+        headers,
+      });
+      expect(afterwards.statusCode).toBe(401);
+      const repeated = await app.inject({
+        method: "DELETE",
+        url: "/api/auth/session",
+        headers,
+      });
+      expect(repeated.statusCode).toBe(401);
+    } finally {
+      await replacement.close();
+    }
+  });
+
+  it("signs out everywhere and records the revocation", async () => {
+    const first = await signIn("everywhere@example.com", "Everywhere User");
+    const second = await signIn("everywhere@example.com", "Everywhere User");
+    const other = await signIn("bystander@example.com", "Bystander");
+
+    const response = await app.inject({
+      method: "DELETE",
+      url: "/api/auth/sessions",
+      headers: { authorization: `Bearer ${first.accessToken}` },
+    });
+    expect(response.statusCode).toBe(200);
+    expect(sessionRevocationResponseSchema.parse(response.json())).toEqual({
+      revoked: 2,
+    });
+
+    for (const token of [first.accessToken, second.accessToken]) {
+      const check = await app.inject({
+        method: "GET",
+        url: "/api/auth/session",
+        headers: { authorization: `Bearer ${token}` },
+      });
+      expect(check.statusCode).toBe(401);
+    }
+    const bystander = await app.inject({
+      method: "GET",
+      url: "/api/auth/session",
+      headers: { authorization: `Bearer ${other.accessToken}` },
+    });
+    expect(bystander.statusCode).toBe(200);
+
+    const audits = await testDatabase.connection.db
+      .select({ action: auditEvents.action, metadata: auditEvents.metadata })
+      .from(auditEvents)
+      .where(eq(auditEvents.workspaceId, first.workspace.id));
+    expect(audits).toContainEqual({
+      action: "session.revoked",
+      metadata: { scope: "all", count: 2 },
+    });
   });
 
   it("rejects malformed sign-in input with the public error contract", async () => {
