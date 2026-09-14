@@ -6,10 +6,21 @@ import {
   assertCloudBaseApiKeyFresh,
   connectCloudBaseRdb,
   connectDatabase,
+  disconnectedDatabase,
+  type CloudBaseRequestEvent,
 } from "@chronelle/db";
-import { assertRevisionBaseline } from "@chronelle/object-model";
+import {
+  assertCloudBaseBackendReady,
+  assertRevisionBaseline,
+} from "@chronelle/object-model";
 
 import { buildApp } from "./app.js";
+import {
+  backendEnvironmentSchema,
+  cloudBaseRequiredFunctions,
+  gatewayEventLevel,
+  resolveBackend,
+} from "./backend-mode.js";
 import { createDevelopmentAppDependencies } from "./dependencies.js";
 import { createDocumentStorage } from "./documents/storage-configuration.js";
 
@@ -17,12 +28,9 @@ if (existsSync(".env")) {
   process.loadEnvFile(".env");
 }
 
-const runtimeEnvironmentSchema = z.object({
+const runtimeEnvironmentSchema = backendEnvironmentSchema.extend({
   API_HOST: z.string().min(1).default("0.0.0.0"),
   API_PORT: z.coerce.number().int().positive().max(65_535).default(4000),
-  DATABASE_URL: z.url(),
-  CLOUDBASE_READS_ENABLED: z.stringbool().default(false),
-  CLOUDBASE_WRITES_ENABLED: z.stringbool().default(false),
   CLOUDBASE_ENV_ID: z.string().min(1).optional(),
   CLOUDBASE_APIKEY: z.string().min(1).optional(),
   CLOUDBASE_REQUEST_TIMEOUT_MS: z.coerce
@@ -48,26 +56,37 @@ const runtimeEnvironment = runtimeEnvironmentSchema.parse(process.env);
 if (!runtimeEnvironment.ENABLE_DEVELOPMENT_AUTH) {
   throw new Error("No authentication provider is enabled.");
 }
+const backend = resolveBackend(runtimeEnvironment);
 const storage = createDocumentStorage(process.env);
-const database = connectDatabase(runtimeEnvironment.DATABASE_URL);
-const cloudBaseRdb = runtimeEnvironment.CLOUDBASE_READS_ENABLED
-  ? await createCloudBaseReadClient()
+// The CloudBase backend never opens a PostgreSQL connection; any service that
+// still reached one would fail with the reason instead of a connection error.
+const database =
+  backend.databaseUrl === undefined
+    ? disconnectedDatabase(
+        "CHRONELLE_BACKEND=cloudbase serves from the gateway",
+      )
+    : connectDatabase(backend.databaseUrl);
+// Gateway requests are logged once the app's logger exists.
+let logGatewayRequest = (_event: CloudBaseRequestEvent): void => undefined;
+const cloudBaseRdb = backend.cloudBaseReads
+  ? await createCloudBaseClient((event) => logGatewayRequest(event))
   : undefined;
-if (runtimeEnvironment.CLOUDBASE_WRITES_ENABLED && cloudBaseRdb === undefined) {
-  throw new Error(
-    "CLOUDBASE_WRITES_ENABLED=true requires CLOUDBASE_READS_ENABLED=true.",
-  );
-}
 const dependencies = createDevelopmentAppDependencies(database, {
   developmentSessionTtlMs:
     runtimeEnvironment.DEVELOPMENT_AUTH_SESSION_TTL_MINUTES * 60_000,
   documentTransferTtlMs:
     runtimeEnvironment.DOCUMENT_TRANSFER_TTL_SECONDS * 1_000,
   cloudBaseRdb,
-  cloudBaseWrites: runtimeEnvironment.CLOUDBASE_WRITES_ENABLED,
+  cloudBaseWrites: backend.cloudBaseWrites,
   storage,
 });
 const app = buildApp(dependencies, { logger: true });
+logGatewayRequest = (event) => {
+  app.log[gatewayEventLevel(event)](
+    { cloudbase: event },
+    "CloudBase gateway request",
+  );
+};
 
 app.addHook("onClose", async () => {
   await database.close();
@@ -90,10 +109,14 @@ for (const signal of ["SIGINT", "SIGTERM"] as const) {
 }
 
 function missingCloudBaseValue(name: string): never {
-  throw new Error(`${name} is required when CLOUDBASE_READS_ENABLED=true.`);
+  throw new Error(
+    `${name} is required when CLOUDBASE_READS_ENABLED=true or CHRONELLE_BACKEND=cloudbase.`,
+  );
 }
 
-async function createCloudBaseReadClient() {
+async function createCloudBaseClient(
+  onRequest: (event: CloudBaseRequestEvent) => void,
+) {
   const envId =
     runtimeEnvironment.CLOUDBASE_ENV_ID ??
     missingCloudBaseValue("CLOUDBASE_ENV_ID");
@@ -105,16 +128,28 @@ async function createCloudBaseReadClient() {
     envId,
     accessKey,
     requestTimeoutMs: runtimeEnvironment.CLOUDBASE_REQUEST_TIMEOUT_MS,
+    onRequest,
   });
 }
 
 try {
-  await assertRevisionBaseline(database.db);
+  if (backend.backend === "cloudbase" && cloudBaseRdb !== undefined) {
+    await assertCloudBaseBackendReady(cloudBaseRdb, cloudBaseRequiredFunctions);
+  } else {
+    await assertRevisionBaseline(database.db);
+  }
+  app.log.info({ backend: backend.backend }, "Chronelle backend selected");
   await app.listen({
     host: runtimeEnvironment.API_HOST,
     port: runtimeEnvironment.API_PORT,
   });
-} catch {
-  app.log.error({ code: "startup_failed" }, "The API could not start.");
+} catch (error) {
+  app.log.error(
+    {
+      code: "startup_failed",
+      reason: error instanceof Error ? error.message : String(error),
+    },
+    "The API could not start.",
+  );
   await shutdown(1);
 }
