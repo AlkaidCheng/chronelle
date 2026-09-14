@@ -15,4 +15,5 @@ export {
   type ResourceGrantResource,
   type RevokedGrantResource,
   type ShareResourceInput,
+  type ShareWriteRepository,
 } from "./grant-service.js";
