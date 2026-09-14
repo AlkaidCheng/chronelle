@@ -77,6 +77,8 @@ const reads: Record<
     }),
   "GET /api/objects/:id/revisions/:version/restore-preview": (dependencies) =>
     dependencies.restoration.preview(principal, objectId, 1),
+  "GET /api/workspace/storage-inventory": (dependencies) =>
+    dependencies.storageInventory.get(principal),
 };
 
 describe("CloudBase read wiring", () => {
