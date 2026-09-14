@@ -24,8 +24,10 @@ import {
 // chronelle_object_restore (0019), chronelle_object_scope_update (0020),
 // chronelle_event_layout_update and chronelle_event_layout_restore (0022),
 // chronelle_command_execute and chronelle_command_transition (0023),
-// chronelle_command_state (0024), and chronelle_storage_references (0025)
-// against the real gateway. The probes end soft-deleted through the delete
+// chronelle_command_state (0024), chronelle_storage_references (0025), and
+// the document transfer functions (0026) against the real gateway. The
+// transfer steps record the rows around a storage transfer without moving
+// bytes: the finalized probe Document names a key that was never written. The probes end soft-deleted through the delete
 // function, because their audit and revision rows are append-only.
 
 const required = [
@@ -585,6 +587,106 @@ try {
     )
       throw new Error("command state: the undo head is not the command.");
     return { version: state.version, undo: state.undo.commandId };
+  });
+
+  // A document transfer without bytes: the authorization, its consumption,
+  // the finalization into an attached Document, and a download authorization
+  // consumed once. The Document joins the probes retired at the end.
+  const transferId = createId();
+  const documentId = createId();
+  const documentKey = `workspaces/${workspaceId}/documents/${transferId}`;
+  const checksum = "0".repeat(64);
+  const at = (offsetMs) => new Date(Date.now() + offsetMs).toISOString();
+  const authorize = (transfer) =>
+    client.rpc("chronelle_document_transfer_authorize", {
+      workspace_id: workspaceId,
+      user_id: userId,
+      request_id: createId(),
+      transfer,
+    });
+  const consume = (id, operation) =>
+    client.rpc("chronelle_document_transfer_consume", {
+      transfer_id: id,
+      operation,
+      consumed_at: at(0),
+      request_id: createId(),
+    });
+  await step("authorize an upload to the Event", async () => {
+    await authorize({
+      id: transferId,
+      operation: "upload",
+      tokenHash: createHash("sha256").update(transferId).digest("hex"),
+      resourceId: eventId,
+      storageProvider: "local-filesystem",
+      storageKey: documentKey,
+      originalFilename: "probe.txt",
+      mimeType: "text/plain",
+      sizeBytes: "5",
+      checksumSha256: checksum,
+      createdAt: at(0),
+      expiresAt: at(300_000),
+    });
+    return { transferId };
+  });
+  await step("consume the upload", async () => {
+    await consume(transferId, "upload");
+    return { consumed: true };
+  });
+  await step("reject a second consumption", () =>
+    expectRejection("consumed upload", () => consume(transferId, "upload")),
+  );
+  await step("finalize the upload into a Document", async () => {
+    const attachment = await client.rpc("chronelle_document_finalize", {
+      workspace_id: workspaceId,
+      user_id: userId,
+      request_id: createId(),
+      transfer_id: transferId,
+      document_id: documentId,
+      relation_id: createId(),
+      finalized_at: at(0),
+      encryption_mode: "filesystem-permissions",
+    });
+    probes.push(documentId);
+    if (
+      attachment.document?.object?.id !== documentId ||
+      attachment.document?.document?.storage_key !== documentKey ||
+      attachment.relationVersion !== 1
+    )
+      throw new Error("finalize: the Document was not attached at version 1.");
+    return { documentId, relationId: attachment.relationId };
+  });
+  await step("reject a second finalization", () =>
+    expectRejection("finalized upload", () =>
+      client.rpc("chronelle_document_finalize", {
+        workspace_id: workspaceId,
+        user_id: userId,
+        request_id: createId(),
+        transfer_id: transferId,
+        document_id: createId(),
+        relation_id: createId(),
+        finalized_at: at(0),
+        encryption_mode: "filesystem-permissions",
+      }),
+    ),
+  );
+  const downloadId = createId();
+  await step("authorize and consume a download", async () => {
+    await authorize({
+      id: downloadId,
+      operation: "download",
+      tokenHash: createHash("sha256").update(downloadId).digest("hex"),
+      resourceId: documentId,
+      storageProvider: "local-filesystem",
+      storageKey: documentKey,
+      originalFilename: "probe.txt",
+      mimeType: "text/plain",
+      sizeBytes: "5",
+      checksumSha256: checksum,
+      createdAt: at(0),
+      expiresAt: at(300_000),
+    });
+    await consume(downloadId, "download");
+    return { downloadId };
   });
 
   await step("read the storage references", async () => {
