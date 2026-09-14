@@ -6,6 +6,8 @@ import type {
 import type {
   CreateEventInput,
   CreateObjectRelationInput,
+  EventPlanningResource,
+  ObjectDeletionResource,
   ObjectRelationResource,
   CreateExpenseInput,
   CreateReminderInput,
@@ -98,6 +100,24 @@ export interface RelationWriteRepository {
   ): Promise<ObjectRelationResource>;
 }
 
+/**
+ * Object lifecycle: soft deletion under a version predicate and recovery
+ * from Trash, each with its audit event and revision snapshot.
+ */
+export interface ObjectLifecycleWriteRepository {
+  remove(
+    context: MutationContext,
+    objectId: string,
+    expectedVersion: number,
+    deletedAt: Date,
+  ): Promise<ObjectDeletionResource>;
+  recover(
+    context: MutationContext,
+    objectId: string,
+    expectedVersion: number,
+  ): Promise<EventPlanningResource>;
+}
+
 /** Families with a write repository; absent families use the PostgreSQL path. */
 export interface ObjectWriteRepositories {
   readonly event?: EventWriteRepository | undefined;
@@ -106,4 +126,5 @@ export interface ObjectWriteRepositories {
   readonly reminder?: ReminderWriteRepository | undefined;
   readonly eventContext?: EventContextWriteRepository | undefined;
   readonly relation?: RelationWriteRepository | undefined;
+  readonly objectLifecycle?: ObjectLifecycleWriteRepository | undefined;
 }

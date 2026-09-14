@@ -18,6 +18,7 @@ import {
 } from "@chronelle/schemas";
 import { and, desc, eq, isNotNull, lt, sql } from "drizzle-orm";
 import { InvalidObjectStateError, ObjectConflictError } from "./errors.js";
+import type { ObjectLifecycleWriteRepository } from "./object-writes.js";
 import { readObjectState } from "./object-state.js";
 import { recordObjectRevision } from "./object-revisions.js";
 import type { MutationContext } from "./types.js";
@@ -47,8 +48,11 @@ const trashFields = {
 /** Recover canonical tombstones without replaying content or changing relationships. */
 export class ObjectRecoveryService {
   readonly #database: Database;
-  constructor(database: Database) {
+  readonly #writes: ObjectLifecycleWriteRepository | undefined;
+
+  constructor(database: Database, writes?: ObjectLifecycleWriteRepository) {
     this.#database = database;
+    this.#writes = writes;
   }
 
   async list(principal: UserPrincipal, options: TrashQueryInput = {}) {
@@ -143,6 +147,8 @@ export class ObjectRecoveryService {
     input: RecoveryRequest,
   ) {
     const { principal } = context;
+    if (this.#writes !== undefined)
+      return this.#writes.recover(context, objectId, input.expectedVersion);
     return withStableAuthorization(
       this.#database,
       principal.workspaceId,

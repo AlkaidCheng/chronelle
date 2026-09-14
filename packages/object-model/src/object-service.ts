@@ -584,6 +584,13 @@ export class EventPlanningObjectService {
     expectedVersion: number,
   ): Promise<ObjectDeletionResource> {
     const deletedAt = this.#clock();
+    if (this.#writes.objectLifecycle !== undefined)
+      return this.#writes.objectLifecycle.remove(
+        context,
+        objectId,
+        expectedVersion,
+        deletedAt,
+      );
 
     const resource = await withStableAuthorization(
       this.#database,
