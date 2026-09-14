@@ -1,8 +1,8 @@
 # Event-planning API
 
 Most `/api` routes accept and return JSON; document transfers carry file bytes.
-Protected routes require a development or production-provider bearer token.
-Send `x-workspace-id` when operating outside the identity's personal workspace.
+Protected routes require a bearer token issued by a sign-in. Send
+`x-workspace-id` when operating outside the identity's personal workspace.
 
 Protected database reads evaluate permissions and assemble data in the same
 snapshot. A read in progress may finish with the earlier authorized version
@@ -10,6 +10,23 @@ after a concurrent revocation, but cannot combine that access with later private
 content. Subsequent reads use current policy; separate requests are not a shared
 snapshot. Mutation/version preconditions remain unchanged.
 See [Consistent reads](permissions.md#consistent-reads).
+
+## Sessions
+
+A sign-in (`POST /api/auth/development/sign-in` while development
+authentication is enabled) records a session and returns
+`{ accessToken, tokenType: "Bearer", expiresAt, user, workspace }`. The
+token is random and opaque; the server keeps only its digest, so the
+session outlives an API restart and is valid until `expiresAt` or until it
+is revoked. `GET /api/auth/session` returns the principal, user, workspace,
+and the workspaces the user may enter.
+
+`DELETE /api/auth/session` revokes the presented token and
+`DELETE /api/auth/sessions` revokes every session of the user, this one
+included; both return `{ revoked }` with the number of live sessions that
+ended and record `session.revoked` in the user's personal workspace. A
+revoked or expired token is rejected with 401 `unauthenticated` from the
+next request on.
 
 ## HTTP limits and errors
 

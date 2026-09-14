@@ -69,9 +69,15 @@ See [Reversible content commands](commands.md) for eligibility and rollout.
 
 The Fastify API resolves each bearer credential through an `AuthProvider`, then
 maps the resulting external identity to a Chronelle user and active workspace.
-The development adapter issues random opaque tokens, stores only token digests,
-and is registered only when explicitly enabled. A production adapter can
-replace it without changing workspace or authorization services.
+The session provider backs that credential with the `user_sessions` table: a
+sign-in issues a random opaque token and stores only its SHA-256 digest with
+the expiry, a request resolves the digest to a live session and its user, and
+sign-out revokes one session or all of a user's sessions with an audit event.
+The session store has a PostgreSQL implementation and a CloudBase one over the
+`chronelle_session_*` functions, selected with the identity store. Sign-in
+methods only assert an identity: the development method is registered when
+explicitly enabled and asserts the submitted email; a production method can be
+added without changing sessions, workspace, or authorization services.
 
 The first sign-in transaction creates one user, one personal workspace, one
 owner membership, and one audit event. A unique personal-owner constraint makes
