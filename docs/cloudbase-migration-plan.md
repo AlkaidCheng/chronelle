@@ -185,6 +185,27 @@ objects and a deleted scope, and cursor rejections. `CLOUDBASE_READS_ENABLED`
 routes search through the function alongside the event-list and calendar
 reads.
 
+The Event detail and the to-do, timeline, itinerary, expense, and reminder
+projections now sit behind `ProjectionReadRepository`. The PostgreSQL
+implementation is the query code the projection service ran before, and the
+service keeps ordering, filtering, and type partitioning so both backends
+share them. `CloudBaseProjectionReadRepository` authorizes the root Event,
+follows active `includes` and `attached_to` relations to live objects, reads
+each typed family in one bounded request, and applies the workspace,
+membership, grant expiry, inherited-scope, and deletion rules in application
+code, including the rule that a grant on a permission scope counts only while
+that scope object is live; the calendar adapter now reads through it so every
+projection applies one set of rules. A differential test runs both backends
+through the service against one database for a member and a grant-only viewer
+and compares every projection, the locked-relation count, and the denials.
+`CLOUDBASE_READS_ENABLED` now switches these reads as well. A staging run
+against a linked Expense showed that a table select returns `numeric` as a
+JSON number, which the strict decoder rejects; the gateway honours the
+PostgREST cast syntax in the column list, so the adapter requests
+`amount::text` and `size_bytes::text` and receives each column's canonical
+text under its own name. The test doubles serve JSON numbers for those
+columns unless the column list casts them, so the omission fails locally.
+
 ### Phase 3 — Safe single-object writes
 
 Add CloudBase repositories for writes that affect one logical object and can
