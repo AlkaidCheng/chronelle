@@ -291,6 +291,18 @@ test compares relation rows and audit rows across creation, invalid and
 duplicate relations, removal, stale and repeated removal, recovery, recovery
 into an occupied triple, and grant-based access.
 
+**Object deletion and recovery:** migration 0018 adds `chronelle_object_delete`
+and `chronelle_object_recover` for every canonical type, with the document
+serializer and rows the type was missing. Deletion requires an Owner and
+stamps the service clock's instant; recovery reaches tombstones through
+membership or an owner grant on the object or its scope, refuses an object
+that is not in Trash and a child whose canonical scope is still in Trash, and
+returns the object's rows, which the adapter decodes by type.
+`ObjectLifecycleWriteRepository` serves both `EventPlanningObjectService.softDelete`
+and `ObjectRecoveryService.recover`. The differential test deletes and
+recovers an Event, Task, Expense, Reminder, and Document and compares the
+resources and the full ledger, including the document snapshot's storage key.
+
 ### Phase 4 — Cross-object mutations and recovery
 
 Do not emulate transactions with optimistic hope. For relations, shares,
@@ -350,10 +362,11 @@ PostgreSQL adapter.
 
 ## Recommended next PR
 
-Port object soft deletion and restoration: `DELETE /api/objects/:id`, trash
-recovery, and revision restore as functions that keep the object, its
-relations, the revision ledger, and the recovery records consistent inside
-one call, each with a differential test over the full ledger.
+Port revision restore (`POST /api/objects/:id/revisions/:version/restore`):
+the restoration policy stays in TypeScript and selects the restorable content,
+and one function applies it under the version predicate through the family
+apply functions, records the `restored` revision with its source, and writes
+the audit row, with a differential test over the full ledger.
 
 ### R1 operator checklist
 

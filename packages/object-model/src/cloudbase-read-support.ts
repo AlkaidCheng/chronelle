@@ -12,6 +12,8 @@ import {
 } from "@chronelle/db";
 
 import type {
+  DocumentResource,
+  EventPlanningResource,
   EventResource,
   ExpenseResource,
   ObjectRelationResource,
@@ -72,6 +74,18 @@ export type CloudBaseReminderRow = {
   readonly workspace_id: unknown;
   readonly remind_at: unknown;
   readonly status: unknown;
+};
+
+export type CloudBaseDocumentRow = {
+  readonly object_id: unknown;
+  readonly workspace_id: unknown;
+  readonly storage_provider: unknown;
+  readonly storage_key: unknown;
+  readonly original_filename: unknown;
+  readonly mime_type: unknown;
+  readonly size_bytes: unknown;
+  readonly checksum_sha256: unknown;
+  readonly encryption_mode: unknown;
 };
 
 export type CloudBaseRelationWriteRow = {
@@ -147,6 +161,13 @@ function cloudbaseJsonObject(
   return value as Record<string, unknown>;
 }
 
+function cloudbaseBigInt(value: unknown, field: string): bigint {
+  if (typeof value === "string" && /^-?\d+$/u.test(value)) return BigInt(value);
+  if (typeof value === "number" && Number.isSafeInteger(value))
+    return BigInt(value);
+  throw new Error(`CloudBase returned an invalid ${field}.`);
+}
+
 function cloudbaseInteger(value: unknown, field: string): number {
   const parsed = typeof value === "number" ? value : Number(value);
   if (!Number.isInteger(parsed))
@@ -164,7 +185,7 @@ function cloudbaseBoolean(value: unknown, field: string): boolean {
 function cloudbaseCanonicalFields(
   object: CloudBaseObjectRow,
   typed: { readonly object_id: unknown; readonly workspace_id: unknown },
-  objectType: "event" | "task" | "expense" | "reminder",
+  objectType: EventPlanningResource["objectType"],
 ) {
   const objectId = cloudbaseText(object.id, "object id");
   const objectWorkspace = cloudbaseText(
@@ -262,6 +283,61 @@ export function cloudbaseExpenseResource(
     currency: cloudbaseText(expense.currency, "currency"),
     occurredAt: cloudbaseDate(expense.occurred_at, "occurred_at"),
   };
+}
+
+export function cloudbaseDocumentResource(
+  object: CloudBaseObjectRow,
+  document: CloudBaseDocumentRow,
+): DocumentResource {
+  return {
+    ...cloudbaseCanonicalFields(object, document, "document"),
+    objectType: "document",
+    storageProvider: cloudbaseText(
+      document.storage_provider,
+      "storage_provider",
+    ),
+    storageKey: cloudbaseText(document.storage_key, "storage_key"),
+    originalFilename: cloudbaseText(
+      document.original_filename,
+      "original_filename",
+    ),
+    mimeType: cloudbaseText(document.mime_type, "mime_type"),
+    sizeBytes: cloudbaseBigInt(document.size_bytes, "size_bytes"),
+    checksumSha256: cloudbaseText(document.checksum_sha256, "checksum_sha256"),
+    encryptionMode: cloudbaseText(document.encryption_mode, "encryption_mode"),
+  };
+}
+
+/** Decodes `{ object, <typed> }` rows of any canonical type, as chronelle_object_rows returns them. */
+export function cloudbaseResourceFromRows(
+  rows: unknown,
+): EventPlanningResource {
+  if (rows === null || typeof rows !== "object")
+    throw new Error("CloudBase returned an invalid object.");
+  const record = rows as Record<string, unknown>;
+  const object = record.object as CloudBaseObjectRow | undefined;
+  if (object === undefined)
+    throw new Error("CloudBase returned an invalid object.");
+  const objectType = cloudbaseText(object.object_type, "object type");
+  const typed = record[objectType];
+  if (typed === undefined || typed === null)
+    throw new Error(`CloudBase returned an invalid ${objectType}.`);
+  switch (objectType) {
+    case "event":
+      return cloudbaseEventResource(object, typed as CloudBaseEventRow);
+    case "task":
+      return cloudbaseTaskResource(object, typed as CloudBaseTaskRow);
+    case "expense":
+      return cloudbaseExpenseResource(object, typed as CloudBaseExpenseRow);
+    case "reminder":
+      return cloudbaseReminderResource(object, typed as CloudBaseReminderRow);
+    case "document":
+      return cloudbaseDocumentResource(object, typed as CloudBaseDocumentRow);
+    default:
+      throw new Error(
+        `CloudBase returned an unknown object type ${objectType}.`,
+      );
+  }
 }
 
 export function cloudbaseRelationResource(

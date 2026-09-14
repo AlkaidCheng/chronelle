@@ -16,6 +16,7 @@ export { CloudBaseEventContextWriteRepository } from "./cloudbase-event-context-
 export { CloudBaseEventWriteRepository } from "./cloudbase-event-write-repository.js";
 export { CloudBaseObjectWriteRepository } from "./cloudbase-object-write-repository.js";
 export { CloudBaseExpenseWriteRepository } from "./cloudbase-expense-write-repository.js";
+export { CloudBaseObjectLifecycleWriteRepository } from "./cloudbase-object-lifecycle-write-repository.js";
 export { CloudBaseRelationWriteRepository } from "./cloudbase-relation-write-repository.js";
 export { CloudBaseReminderWriteRepository } from "./cloudbase-reminder-write-repository.js";
 export { CloudBaseTaskWriteRepository } from "./cloudbase-task-write-repository.js";
@@ -27,6 +28,7 @@ export type {
   EventContextWriteRepository,
   EventWriteRepository,
   ExpenseWriteRepository,
+  ObjectLifecycleWriteRepository,
   ObjectWriteRepositories,
   ObjectWriteRepository,
   RelationWriteRepository,
