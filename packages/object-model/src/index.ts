@@ -8,9 +8,14 @@ export {
 export {
   EventPlanningProjectionService,
   PostgresCalendarReadRepository,
+  PostgresProjectionReadRepository,
   type CalendarReadRepository,
+  type EventDetailReadResult,
+  type ProjectionObjectType,
+  type ProjectionReadRepository,
 } from "./projection-service.js";
 export { CloudBaseCalendarReadRepository } from "./cloudbase-calendar-read-repository.js";
+export { CloudBaseProjectionReadRepository } from "./cloudbase-projection-read-repository.js";
 export { CloudBaseEventReadRepository } from "./cloudbase-event-read-repository.js";
 export { CloudBaseEventContextWriteRepository } from "./cloudbase-event-context-write-repository.js";
 export { CloudBaseEventLayoutWriteRepository } from "./cloudbase-event-layout-write-repository.js";

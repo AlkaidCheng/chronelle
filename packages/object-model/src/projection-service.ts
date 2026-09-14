@@ -49,6 +49,9 @@ function isResource<Type extends EventPlanningResource["objectType"]>(
 
 type TimelineResource = Exclude<EventPlanningResource, DocumentResource>;
 
+/** The typed object families a focused projection selects from an Event's `includes` relations. */
+export type ProjectionObjectType = TimelineResource["objectType"];
+
 export interface CalendarReadRepository {
   listCalendarEvents(
     principal: UserPrincipal,
@@ -70,6 +73,181 @@ export class PostgresCalendarReadRepository implements CalendarReadRepository {
     return readProjectionResources(this.#database, principal, eventId, [
       "event",
     ]);
+  }
+}
+
+/**
+ * The authorized rows behind an Event detail projection, read from one
+ * snapshot. The projection service partitions them by type; the repository
+ * only decides what the principal may see.
+ */
+export interface EventDetailReadResult {
+  /** Visible Documents attached to the Event through `attached_to` relations. */
+  readonly attachedDocuments: readonly DocumentResource[];
+  readonly event: EventResource;
+  /** Visible targets of the Event's active `includes` relations, in relation order. */
+  readonly includedResources: readonly EventPlanningResource[];
+  /** Active relations whose live target the principal may not view. */
+  readonly lockedRelationCount: number;
+}
+
+/**
+ * Read boundary for the Event detail, to-do, timeline, itinerary, expense,
+ * and reminder projections. Every method authorizes the root Event for view,
+ * follows only active relations to live objects, and omits targets the
+ * principal cannot view instead of leaking them. Ordering, filtering, and
+ * shaping stay in the projection service so both backends share them.
+ */
+export interface ProjectionReadRepository {
+  listIncludedResources<Type extends ProjectionObjectType>(
+    principal: UserPrincipal,
+    eventId: string,
+    objectTypes: readonly Type[],
+  ): Promise<readonly Extract<EventPlanningResource, { objectType: Type }>[]>;
+  readEventDetail(
+    principal: UserPrincipal,
+    eventId: string,
+  ): Promise<EventDetailReadResult>;
+}
+
+export class PostgresProjectionReadRepository implements ProjectionReadRepository {
+  readonly #database: Database;
+
+  constructor(database: Database) {
+    this.#database = database;
+  }
+
+  listIncludedResources<Type extends ProjectionObjectType>(
+    principal: UserPrincipal,
+    eventId: string,
+    objectTypes: readonly Type[],
+  ): Promise<readonly Extract<EventPlanningResource, { objectType: Type }>[]> {
+    return readProjectionResources(
+      this.#database,
+      principal,
+      eventId,
+      objectTypes,
+    );
+  }
+
+  async readEventDetail(
+    principal: UserPrincipal,
+    eventId: string,
+  ): Promise<EventDetailReadResult> {
+    return withReadAuthorization(
+      this.#database,
+      async (transaction, authorization) => {
+        const reader = new EventPlanningObjectService({
+          database: transaction,
+          authorization,
+        });
+        const event = await reader.getEvent(principal, eventId);
+        const [included, attached] = await Promise.all([
+          this.#getIncludedResources(transaction, reader, principal, eventId),
+          this.#getAttachedDocuments(transaction, reader, principal, eventId),
+        ]);
+        return {
+          event,
+          includedResources: included.resources,
+          attachedDocuments: attached.resources,
+          lockedRelationCount:
+            included.lockedRelationCount + attached.lockedRelationCount,
+        };
+      },
+    );
+  }
+
+  async #getIncludedResources(
+    transaction: DatabaseTransaction,
+    reader: EventPlanningObjectService,
+    principal: UserPrincipal,
+    eventId: string,
+  ): Promise<{
+    readonly lockedRelationCount: number;
+    readonly resources: EventPlanningResource[];
+  }> {
+    const relations = await transaction
+      .select({ targetObjectId: objectRelations.targetObjectId })
+      .from(objectRelations)
+      .innerJoin(
+        objects,
+        and(
+          eq(objects.workspaceId, objectRelations.workspaceId),
+          eq(objects.id, objectRelations.targetObjectId),
+          isNull(objects.deletedAt),
+        ),
+      )
+      .where(
+        and(
+          eq(objectRelations.workspaceId, principal.workspaceId),
+          eq(objectRelations.sourceObjectId, eventId),
+          eq(objectRelations.relationType, "includes"),
+          isNull(objectRelations.deletedAt),
+        ),
+      );
+
+    return this.#resolveVisibleResources(
+      reader,
+      principal,
+      relations.map(({ targetObjectId }) => targetObjectId),
+    );
+  }
+
+  async #getAttachedDocuments(
+    transaction: DatabaseTransaction,
+    reader: EventPlanningObjectService,
+    principal: UserPrincipal,
+    eventId: string,
+  ): Promise<{
+    readonly lockedRelationCount: number;
+    readonly resources: DocumentResource[];
+  }> {
+    const relations = await transaction
+      .select({ sourceObjectId: objectRelations.sourceObjectId })
+      .from(objectRelations)
+      .innerJoin(
+        objects,
+        and(
+          eq(objects.workspaceId, objectRelations.workspaceId),
+          eq(objects.id, objectRelations.sourceObjectId),
+          eq(objects.objectType, "document"),
+          isNull(objects.deletedAt),
+        ),
+      )
+      .where(
+        and(
+          eq(objectRelations.workspaceId, principal.workspaceId),
+          eq(objectRelations.targetObjectId, eventId),
+          eq(objectRelations.relationType, "attached_to"),
+          isNull(objectRelations.deletedAt),
+        ),
+      );
+    const resolved = await this.#resolveVisibleResources(
+      reader,
+      principal,
+      relations.map(({ sourceObjectId }) => sourceObjectId),
+    );
+    return {
+      resources: resolved.resources.filter((resource) =>
+        isResource(resource, "document"),
+      ),
+      lockedRelationCount: resolved.lockedRelationCount,
+    };
+  }
+
+  async #resolveVisibleResources(
+    reader: EventPlanningObjectService,
+    principal: UserPrincipal,
+    objectIds: readonly string[],
+  ): Promise<{
+    readonly lockedRelationCount: number;
+    readonly resources: EventPlanningResource[];
+  }> {
+    const resources = await reader.listVisibleObjects(principal, objectIds);
+    return {
+      resources,
+      lockedRelationCount: objectIds.length - resources.length,
+    };
   }
 }
 
@@ -114,60 +292,47 @@ function timelineItem(resource: TimelineResource): TimelineItem[] {
 }
 
 export class EventPlanningProjectionService {
-  readonly #database: Database;
   readonly #calendarReads: CalendarReadRepository;
+  readonly #projectionReads: ProjectionReadRepository;
 
-  constructor(database: Database, calendarReads?: CalendarReadRepository) {
-    this.#database = database;
+  constructor(
+    database: Database,
+    calendarReads?: CalendarReadRepository,
+    projectionReads?: ProjectionReadRepository,
+  ) {
     this.#calendarReads =
       calendarReads ?? new PostgresCalendarReadRepository(database);
+    this.#projectionReads =
+      projectionReads ?? new PostgresProjectionReadRepository(database);
   }
 
   async getDetail(
     principal: UserPrincipal,
     eventId: string,
   ): Promise<EventDetailProjection> {
-    return withReadAuthorization(
-      this.#database,
-      async (transaction, authorization) => {
-        const reader = new EventPlanningObjectService({
-          database: transaction,
-          authorization,
-        });
-        const event = await reader.getEvent(principal, eventId);
-        const [included, attached] = await Promise.all([
-          this.#getIncludedResources(transaction, reader, principal, eventId),
-          this.#getAttachedDocuments(transaction, reader, principal, eventId),
-        ]);
-        const documents = new Map(
-          [
-            ...included.resources.filter((resource) =>
-              isResource(resource, "document"),
-            ),
-            ...attached.resources,
-          ].map((document) => [document.id, document]),
-        );
-
-        return {
-          event,
-          events: included.resources.filter((resource) =>
-            isResource(resource, "event"),
-          ),
-          tasks: included.resources.filter((resource) =>
-            isResource(resource, "task"),
-          ),
-          expenses: included.resources.filter((resource) =>
-            isResource(resource, "expense"),
-          ),
-          reminders: included.resources.filter((resource) =>
-            isResource(resource, "reminder"),
-          ),
-          documents: [...documents.values()],
-          lockedRelationCount:
-            included.lockedRelationCount + attached.lockedRelationCount,
-        };
-      },
+    const detail = await this.#projectionReads.readEventDetail(
+      principal,
+      eventId,
     );
+    const included = detail.includedResources;
+    const documents = new Map(
+      [
+        ...included.filter((resource) => isResource(resource, "document")),
+        ...detail.attachedDocuments,
+      ].map((document) => [document.id, document]),
+    );
+
+    return {
+      event: detail.event,
+      events: included.filter((resource) => isResource(resource, "event")),
+      tasks: included.filter((resource) => isResource(resource, "task")),
+      expenses: included.filter((resource) => isResource(resource, "expense")),
+      reminders: included.filter((resource) =>
+        isResource(resource, "reminder"),
+      ),
+      documents: [...documents.values()],
+      lockedRelationCount: detail.lockedRelationCount,
+    };
   }
 
   async getTodos(
@@ -273,120 +438,21 @@ export class EventPlanningProjectionService {
       );
   }
 
-  async #getProjectionResources<Type extends TimelineResource["objectType"]>(
+  async #getProjectionResources<Type extends ProjectionObjectType>(
     principal: UserPrincipal,
     eventId: string,
     objectTypes: readonly Type[],
   ): Promise<Extract<EventPlanningResource, { objectType: Type }>[]> {
-    return readProjectionResources(
-      this.#database,
+    const resources = await this.#projectionReads.listIncludedResources(
       principal,
       eventId,
       objectTypes,
     );
-  }
-
-  async #getIncludedResources(
-    transaction: DatabaseTransaction,
-    reader: EventPlanningObjectService,
-    principal: UserPrincipal,
-    eventId: string,
-    objectTypes?: readonly TimelineResource["objectType"][],
-  ): Promise<{
-    readonly lockedRelationCount: number;
-    readonly resources: EventPlanningResource[];
-  }> {
-    const relations = await transaction
-      .select({ targetObjectId: objectRelations.targetObjectId })
-      .from(objectRelations)
-      .innerJoin(
-        objects,
-        and(
-          eq(objects.workspaceId, objectRelations.workspaceId),
-          eq(objects.id, objectRelations.targetObjectId),
-          isNull(objects.deletedAt),
-          objectTypes === undefined
-            ? undefined
-            : inArray(objects.objectType, [...objectTypes]),
-        ),
-      )
-      .where(
-        and(
-          eq(objectRelations.workspaceId, principal.workspaceId),
-          eq(objectRelations.sourceObjectId, eventId),
-          eq(objectRelations.relationType, "includes"),
-          isNull(objectRelations.deletedAt),
-        ),
-      );
-
-    return this.#resolveVisibleResources(
-      reader,
-      principal,
-      relations.map(({ targetObjectId }) => targetObjectId),
-    );
-  }
-
-  async #getAttachedDocuments(
-    transaction: DatabaseTransaction,
-    reader: EventPlanningObjectService,
-    principal: UserPrincipal,
-    eventId: string,
-  ): Promise<{
-    readonly lockedRelationCount: number;
-    readonly resources: DocumentResource[];
-  }> {
-    const relations = await transaction
-      .select({ sourceObjectId: objectRelations.sourceObjectId })
-      .from(objectRelations)
-      .innerJoin(
-        objects,
-        and(
-          eq(objects.workspaceId, objectRelations.workspaceId),
-          eq(objects.id, objectRelations.sourceObjectId),
-          eq(objects.objectType, "document"),
-          isNull(objects.deletedAt),
-        ),
-      )
-      .where(
-        and(
-          eq(objectRelations.workspaceId, principal.workspaceId),
-          eq(objectRelations.targetObjectId, eventId),
-          eq(objectRelations.relationType, "attached_to"),
-          isNull(objectRelations.deletedAt),
-        ),
-      );
-    const resolved = await this.#resolveVisibleResources(
-      reader,
-      principal,
-      relations.map(({ sourceObjectId }) => sourceObjectId),
-    );
-    return {
-      resources: resolved.resources.filter((resource) =>
-        isResource(resource, "document"),
-      ),
-      lockedRelationCount: resolved.lockedRelationCount,
-    };
-  }
-
-  async #resolveVisibleResources(
-    reader: EventPlanningObjectService,
-    principal: UserPrincipal,
-    objectIds: readonly string[],
-  ): Promise<{
-    readonly lockedRelationCount: number;
-    readonly resources: EventPlanningResource[];
-  }> {
-    const resources = await reader.listVisibleObjects(principal, objectIds);
-    return {
-      resources,
-      lockedRelationCount: objectIds.length - resources.length,
-    };
+    return [...resources];
   }
 }
 
-async function readProjectionResources<
-  Type extends TimelineResource["objectType"],
->(
+async function readProjectionResources<Type extends ProjectionObjectType>(
   database: Database,
   principal: UserPrincipal,
   eventId: string,

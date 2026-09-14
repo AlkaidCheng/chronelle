@@ -1,61 +1,33 @@
-import {
-  AuthorizationDeniedError,
-  type UserPrincipal,
-} from "@chronelle/authorization";
+import type { UserPrincipal } from "@chronelle/authorization";
 import type { CloudBaseRdbReader } from "@chronelle/db";
-import {
-  assertCloudBaseRoot,
-  cloudbaseEventResource,
-  readCloudBaseEvents,
-  readCloudBaseIncludes,
-  readCloudBaseObjects,
-  readCloudBaseVisibility,
-} from "./cloudbase-read-support.js";
+
+import { CloudBaseProjectionReadRepository } from "./cloudbase-projection-read-repository.js";
 import type { CalendarReadRepository } from "./projection-service.js";
 import type { EventResource } from "./types.js";
 
 /**
- * Read-only CloudBase projection adapter. Authorization is evaluated from the
- * workspace membership and resource grants before any resource is returned.
- * Mutations intentionally remain on the transaction-capable PostgreSQL path.
+ * Read-only CloudBase calendar adapter: the Events an Event includes, read
+ * through the projection adapter so the calendar applies the same workspace,
+ * grant, expiry, inherited-scope, and deletion rules as every other
+ * projection. Mutations intentionally remain on the transaction-capable
+ * PostgreSQL path.
  */
 export class CloudBaseCalendarReadRepository implements CalendarReadRepository {
-  readonly #client: CloudBaseRdbReader;
-  readonly #clock: () => Date;
+  readonly #projections: CloudBaseProjectionReadRepository;
 
   constructor(
     client: CloudBaseRdbReader,
     clock: () => Date = () => new Date(),
   ) {
-    this.#client = client;
-    this.#clock = clock;
+    this.#projections = new CloudBaseProjectionReadRepository(client, clock);
   }
 
-  async listCalendarEvents(
+  listCalendarEvents(
     principal: UserPrincipal,
     eventId: string,
   ): Promise<readonly EventResource[]> {
-    const [roots, targetIds, visibility] = await Promise.all([
-      readCloudBaseObjects(this.#client, principal, [eventId]),
-      readCloudBaseIncludes(this.#client, principal, eventId),
-      readCloudBaseVisibility(this.#client, principal, this.#clock),
+    return this.#projections.listIncludedResources(principal, eventId, [
+      "event",
     ]);
-    const root = assertCloudBaseRoot(roots[0]);
-    if (!visibility.canView(root)) throw new AuthorizationDeniedError();
-    const targets = await readCloudBaseObjects(
-      this.#client,
-      principal,
-      targetIds,
-    );
-    const children = targets.filter((target) => visibility.canView(target));
-    const ids = children.map((child) => String(child.id));
-    const events = await readCloudBaseEvents(this.#client, principal, ids);
-    const byId = new Map(
-      events.map((event) => [String(event.object_id), event]),
-    );
-    return children.flatMap((child) => {
-      const event = byId.get(String(child.id));
-      return event === undefined ? [] : [cloudbaseEventResource(child, event)];
-    });
   }
 }
