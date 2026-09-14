@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Chronelle · CloudBase migration roadmap</title>
+    <title>Chronelle &middot; CloudBase migration roadmap</title>
     <style>
       :root {
         color-scheme: light;
@@ -207,7 +207,7 @@
   </head>
   <body>
     <main>
-      <div class="eyebrow">Chronelle · deployment architecture</div>
+      <div class="eyebrow">Chronelle &middot; deployment architecture</div>
       <h1>CloudBase migration roadmap</h1>
       <p class="lede">
         A staged route to CloudBase that preserves canonical identity,
@@ -228,7 +228,7 @@
       </section>
 
       <aside class="gate-note" aria-label="Current R1 staging gate">
-        <strong>Current gate · R1 evidence recorded</strong>
+        <strong>Current gate &middot; R1 evidence recorded</strong>
         The read-only differential check has run against the real gateway for a
         workspace member and a grant-only viewer on a synthetic staging fixture:
         event pages, cursor paging, calendars, isolation, and denials match
@@ -236,8 +236,11 @@
         route: an audited Event create and update run as one transaction each,
         stale and forbidden calls are rejected with 409 and 403, and a raise
         after every write persists nothing. The write path is being ported to
-        PostgreSQL functions; PostgreSQL remains the runtime default until the
-        first family ships.
+        PostgreSQL functions family by family (Event and Task are merged);
+        PostgreSQL remains the runtime default and the port is tracked in
+        <a href="cloudbase-rpc-port-roadmap.html"
+          >cloudbase-rpc-port-roadmap.html</a
+        >.
       </aside>
 
       <h2>Execution plan</h2>
@@ -366,7 +369,8 @@
             <li>
               Decision: writes move to PostgreSQL functions invoked through rpc,
               one operation family at a time, each with a differential test
-              against the TypeScript reference.
+              against the TypeScript reference. Event and Task create and update
+              are ported on a shared core (migrations 0012 and 0013).
             </li>
           </ul>
         </div>

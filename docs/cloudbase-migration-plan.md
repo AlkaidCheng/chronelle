@@ -209,8 +209,8 @@ the same version. Custom `PTxxx` SQLSTATEs map to HTTP statuses on this gateway.
 **R3 decision (2026-09-14):** the deployment target stays the shared CloudBase
 cluster, which offers no TCP route, and the write path moves to PostgreSQL
 functions invoked through rpc. The Drizzle/TypeScript services remain a
-first-class, fully tested backend — the one local development, CI, and any
-future TCP deployment use unchanged — and every ported family keeps both
+first-class, fully tested backend (the one local development, CI, and any
+future TCP deployment use unchanged), and every ported family keeps both
 implementations behind one repository interface selected by deployment
 configuration. The existing integration suites plus a per-family differential
 test are the contract both must satisfy; no family ships without one.
