@@ -248,6 +248,16 @@ default status, the done/completedAt invariant in both directions, every update
 field including clearing, command metadata, conflict, missing, forbidden,
 type mismatch, grant-based edit, and the missing-baseline guard.
 
+**Third family (Expense create and update):** migration 0014 adds the five
+typed functions and `chronelle_assert_expense_state` with the service's
+decimal, currency, and instant messages. `amount` is text in both directions:
+the function validates the decimal notation before the `numeric(19,4)` cast,
+and the serialized snapshot and the returned row carry the column's canonical
+text (four decimal places), so the adapter never parses a JSON number and the
+resource matches the Drizzle service exactly. The generic adapter now rejects
+an invalid `Date` with the service's `<field> must be a valid date.` message
+before calling the gateway, which the Expense test covers on the update path.
+
 ### Phase 4 — Cross-object mutations and recovery
 
 Do not emulate transactions with optimistic hope. For relations, shares,
