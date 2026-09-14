@@ -279,6 +279,18 @@ compares the child ledger, the relation row, the relation audit, and the
 command record for every child type, and an injected failure after the
 relation insert leaves no row behind on either backend.
 
+**Relation changes:** migration 0017 adds `chronelle_relation_lifecycle`,
+which removes or recovers a relation under its version predicate with the
+service's authorization (edit on the source, view on the target when
+recovering), rejects a relation already in the requested state, maps a
+recovery into an occupied triple to the relation conflict, and writes the
+`relation.deleted` or `relation.recovered` audit row. `RelationWriteRepository`
+covers creation, removal, and recovery; `ObjectRelationService` delegates to
+it when injected and keeps its clock for the removal instant. The differential
+test compares relation rows and audit rows across creation, invalid and
+duplicate relations, removal, stale and repeated removal, recovery, recovery
+into an occupied triple, and grant-based access.
+
 ### Phase 4 — Cross-object mutations and recovery
 
 Do not emulate transactions with optimistic hope. For relations, shares,
@@ -338,11 +350,10 @@ PostgreSQL adapter.
 
 ## Recommended next PR
 
-Port relation changes: `POST /api/objects/:id/relations` on
-`chronelle_relation_create`, then relation removal and recovery with their
-version predicates and audit rows, each with a differential test over the
-relation ledger. After relations, soft deletion and restoration of objects
-follow the same shape.
+Port object soft deletion and restoration: `DELETE /api/objects/:id`, trash
+recovery, and revision restore as functions that keep the object, its
+relations, the revision ledger, and the recovery records consistent inside
+one call, each with a differential test over the full ledger.
 
 ### R1 operator checklist
 

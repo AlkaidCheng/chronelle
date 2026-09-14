@@ -257,8 +257,10 @@
         migration 0013, and linked creation runs as
         <code>chronelle_event_context_create</code> (migration 0016): the child,
         the <code>includes</code> relation, both audit rows, and the command
-        record in one call. Relation changes on
-        <code>chronelle_relation_create</code> are next.
+        record in one call, and relation changes run as
+        <code>chronelle_relation_create</code> and
+        <code>chronelle_relation_lifecycle</code> (migration 0017). Object soft
+        deletion and restoration are next.
       </aside>
 
       <aside class="invariant" aria-label="Standing constraint">
@@ -366,7 +368,7 @@
       </article>
       <article class="phase">
         <div class="phase-number">
-          STAGE 04 <span class="status next">Next</span>
+          STAGE 04 <span class="status next">In progress</span>
         </div>
         <div>
           <h3>Relations and lifecycle</h3>
@@ -377,7 +379,7 @@
           <ul>
             <li>
               Include, attach, paid-for, and removed-link relations with their
-              own version predicates.
+              own version predicates: done (migrations 0016 and 0017).
             </li>
             <li>
               Delete, restore, and revision restore keep object, relation, and
@@ -545,7 +547,17 @@
             <td><span class="status done">Done</span></td>
           </tr>
           <tr>
-            <td>Relations, delete, restore, revisions</td>
+            <td>Relations</td>
+            <td>
+              <code>chronelle_relation_create</code>,
+              <code>chronelle_relation_lifecycle</code>
+            </td>
+            <td>0016, 0017</td>
+            <td>Differential test; staging linked contract</td>
+            <td><span class="status done">Done</span></td>
+          </tr>
+          <tr>
+            <td>Delete, restore, revisions</td>
             <td>One function per operation</td>
             <td>Per operation</td>
             <td>Full-ledger differential tests</td>
@@ -653,7 +665,7 @@
         is in
         <a href="cloudbase-migration-roadmap.html"
           >cloudbase-migration-roadmap.html</a
-        >. Updated after linked creation.
+        >. Updated after relation changes.
       </footer>
     </main>
   </body>
