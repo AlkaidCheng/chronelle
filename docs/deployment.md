@@ -104,9 +104,11 @@ runtime default and is intentionally unchanged.
 After the read-contract harness passes against staging, set
 `CLOUDBASE_READS_ENABLED=true` to opt the API's event-list, calendar, Event
 detail, to-do, timeline, itinerary, expense, and reminder projection, search,
-single-object, relation, share, revision, and Trash reads into the CloudBase
-repositories; search calls `chronelle_object_search` of migration 0021 through
-the gateway's rpc route, so that migration must be applied first.
+single-object, relation, share, revision, Trash, and command state reads into
+the CloudBase repositories; search calls `chronelle_object_search` of
+migration 0021 and the command state calls `chronelle_command_state` of
+migration 0024 through the gateway's rpc route, so those migrations must be
+applied first.
 `DATABASE_URL` remains required: object mutations, audit writes, and all
 transaction-heavy services continue to use PostgreSQL. The flag is disabled by
 default and must never be enabled solely because the SDK connection probe
@@ -210,16 +212,16 @@ rows written before that point are not persisted. It then removes the
 relation, rejects a stale removal, and recovers it, deletes and recovers
 the child the same way, restores the child's first revision, moves the
 child to its own scope and back, saves and restores the Event's page
-layout, and renames both probes as one reversible command, undoes it, and
-redoes it. The probes end deleted through `chronelle_object_delete`. Run it
-only against staging.
+layout, renames both probes as one reversible command, undoes it, and redoes
+it, and reads the command state after the undo and the redo. The probes end
+deleted through `chronelle_object_delete`. Run it only against staging.
 
 `CLOUDBASE_WRITES_ENABLED=true` routes the API's Event, Task, Expense, and
 Reminder create and update, linked creation, relation changes, object
 deletion, recovery, and revision restore, sharing and permission-scope
 changes, Event page layouts, and reversible commands through those
 functions; it requires `CLOUDBASE_READS_ENABLED=true` and migrations 0012
-through 0023 on the environment. Until every mutation family is
+through 0024 on the environment (0024 serves the command state read). Until every mutation family is
 ported the API still needs `DATABASE_URL` for the rest, so the flag serves
 staging verification, not a deployment without PostgreSQL access.
 
