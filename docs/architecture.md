@@ -75,9 +75,15 @@ the expiry, a request resolves the digest to a live session and its user, and
 sign-out revokes one session or all of a user's sessions with an audit event.
 The session store has a PostgreSQL implementation and a CloudBase one over the
 `chronelle_session_*` functions, selected with the identity store. Sign-in
-methods only assert an identity: the development method is registered when
-explicitly enabled and asserts the submitted email; a production method can be
-added without changing sessions, workspace, or authorization services.
+methods only assert an identity: the email and password method keeps the
+scrypt hash, the email verification, and the failed-attempt lock in
+`user_credentials` and emailed codes in `email_verifications` (a credential
+store with the same two implementations; hashing and comparison happen in the
+API, never in SQL); the development method is registered when explicitly
+enabled and asserts the submitted email. Outbound email is a port with a log
+sender for development and an SMTP sender for deployments. Further methods
+(external providers) can be added without changing sessions, workspace, or
+authorization services.
 
 The first sign-in transaction creates one user, one personal workspace, one
 owner membership, and one audit event. A unique personal-owner constraint makes

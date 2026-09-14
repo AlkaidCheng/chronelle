@@ -45,7 +45,10 @@ Migration `0030_add_user_sessions.sql` adds the `user_sessions` table and the
 `chronelle_session_revoke`, and `chronelle_sessions_revoke_all` functions the
 CloudBase rpc path uses for the same session rules; `0031` redefines the two
 revocation functions to date a revocation no earlier than the session's
-creation.
+creation. Migration `0032_add_password_credentials.sql` adds
+`user_credentials` and `email_verifications` with the
+`chronelle_password_*`, `chronelle_email_verified`, and
+`chronelle_verification_*` functions.
 
 Migration `0021_add_object_search_function.sql` adds `chronelle_object_search`,
 the read-only function the CloudBase search adapter calls. It changes no
@@ -108,7 +111,11 @@ API restart until it expires (`AUTH_SESSION_TTL_MINUTES`, fourteen days by
 default) or is revoked by `DELETE /api/auth/session` (this credential) or
 `DELETE /api/auth/sessions` (every session of the user). Development sign-in
 asserts an identity without a password and is not suitable for a deployed
-environment.
+environment; email and password sign-up, verification, sign-in, and reset
+(`docs/api.md`) are always available. With `EMAIL_PROVIDER=log` (the
+default) the verification codes are written to the API log as
+`Email written to the log` entries; `AUTH_VERIFICATION_TTL_MINUTES` (15)
+bounds their lifetime.
 
 Private development attachments are stored below `LOCAL_STORAGE_ROOT`, which
 defaults to `.chronelle/storage` and is ignored by Git. Keep this root private
