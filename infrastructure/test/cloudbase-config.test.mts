@@ -6,6 +6,10 @@ const harness = resolve(
   import.meta.dirname,
   "../scripts/cloudbase-read-contract.mjs",
 );
+const writeHarness = resolve(
+  import.meta.dirname,
+  "../scripts/cloudbase-write-contract.mjs",
+);
 const fixtureEnvironment = {
   CLOUDBASE_ENV_ID: "staging-env",
   CLOUDBASE_APIKEY: "opaque-key",
@@ -14,8 +18,8 @@ const fixtureEnvironment = {
   CLOUDBASE_CONTRACT_EVENT_ID: "event",
 };
 
-function runHarness(overrides: Record<string, string>) {
-  const result = spawnSync(process.execPath, [harness], {
+function runHarness(overrides: Record<string, string>, script = harness) {
+  const result = spawnSync(process.execPath, [script], {
     encoding: "utf8",
     env: { ...process.env, ...fixtureEnvironment, ...overrides },
   });
@@ -31,6 +35,12 @@ describe("CloudBase read-contract configuration", () => {
       expect(status).toBe(2);
       expect(stderr).toContain("CLOUDBASE_CONTRACT_PAGE_LIMIT");
     }
+  });
+
+  it("refuses the write contract without an explicit opt-in", () => {
+    const { status, stderr } = runHarness({}, writeHarness);
+    expect(status).toBe(2);
+    expect(stderr).toContain("CLOUDBASE_CONTRACT_ALLOW_WRITES");
   });
 
   it("rejects a request timeout outside the documented range", () => {
