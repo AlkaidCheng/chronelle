@@ -229,6 +229,25 @@ errors across timed and date-only Events, scope inheritance, every update
 field including clearing, command metadata, nine invalid states, conflict,
 missing, forbidden, grant-based edit, and the missing-baseline guard.
 
+**Second family (Task create and update):** migration 0013 factors the
+Event functions into a shared core, `chronelle_object_create` and
+`chronelle_object_update`, that owns authorization, the `objects` row,
+optimistic concurrency, the audit event, and the revision. A family plugs in
+through four functions named by object type — `chronelle_<type>_insert`,
+`_validate`, `_apply`, and `_serialize` — plus `_rows`, which returns the
+canonical and typed rows the adapter decodes. The Event functions keep their
+signatures as wrappers over the core, so the Event differential test also
+guards the refactor. The TypeScript side mirrors this:
+`ObjectWriteRepository<CreateInput, UpdateInput, Resource>` is the boundary for
+every family, `CloudBaseObjectWriteRepository` encodes inputs and maps errors
+once, and a family adapter such as `CloudBaseTaskWriteRepository` supplies only
+its object type and row decoder. `EventPlanningObjectService` takes a map of
+family repositories and delegates per family, so each port is a descriptor and
+a differential test rather than a new service path. The Task test covers the
+default status, the done/completedAt invariant in both directions, every update
+field including clearing, command metadata, conflict, missing, forbidden,
+type mismatch, grant-based edit, and the missing-baseline guard.
+
 ### Phase 4 — Cross-object mutations and recovery
 
 Do not emulate transactions with optimistic hope. For relations, shares,
