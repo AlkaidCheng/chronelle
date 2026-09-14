@@ -12,10 +12,26 @@ import {
 } from "./cloudbase-config.mjs";
 
 // R3 evidence: one gateway rpc call runs an audited single-object mutation
-// as a transaction. Exercises the chronelle_event_create and
-// chronelle_event_update functions of migration 0012 against the real
-// gateway. The probe Event stays in staging soft-deleted, because its audit
-// and revision rows are append-only by design.
+// as a transaction. Exercises the chronelle_<family>_create and
+// chronelle_<family>_update functions against the real gateway for the
+// family named by CLOUDBASE_CONTRACT_FAMILY (default: event). The probe
+// object stays in staging soft-deleted, because its audit and revision rows
+// are append-only by design.
+
+// Per family: a valid create input and a change that fails merged-state
+// validation on the created object, so the rollback step has a certain PT422.
+const families = {
+  event: {
+    migration: "0012",
+    input: { startsAt: "2030-10-16T18:00:00.000Z", timezone: "UTC" },
+    invalidChange: { timezone: "Not/AZone" },
+  },
+  task: {
+    migration: "0013",
+    input: { dueAt: "2030-10-16T18:00:00.000Z" },
+    invalidChange: { status: "done" },
+  },
+};
 
 const required = [
   "CLOUDBASE_ENV_ID",
@@ -42,6 +58,15 @@ try {
 } catch (error) {
   console.error(
     error instanceof Error ? error.message : "Invalid CloudBase configuration.",
+  );
+  process.exit(2);
+}
+
+const familyName = process.env.CLOUDBASE_CONTRACT_FAMILY ?? "event";
+const family = families[familyName];
+if (family === undefined) {
+  console.error(
+    `Unknown CLOUDBASE_CONTRACT_FAMILY "${familyName}"; expected one of ${Object.keys(families).join(", ")}.`,
   );
   process.exit(2);
 }
@@ -103,28 +128,24 @@ async function currentVersion() {
 }
 
 const update = ({ expected_version, fail_after, ...changes }, actor = userId) =>
-  client.rpc("chronelle_event_update", {
+  client.rpc(`chronelle_${familyName}_update`, {
     workspace_id: workspaceId,
     user_id: actor,
     request_id: createId(),
     object_id: probeId,
     expected_version,
-    changes: fail_after ? { ...changes, timezone: "Not/AZone" } : changes,
+    changes: fail_after ? { ...changes, ...family.invalidChange } : changes,
     command: null,
   });
 
 try {
   await step("create through rpc", async () => {
     try {
-      const created = await client.rpc("chronelle_event_create", {
+      const created = await client.rpc(`chronelle_${familyName}_create`, {
         workspace_id: workspaceId,
         user_id: userId,
         request_id: createId(),
-        input: {
-          displayName: `R3 rpc probe ${createId()}`,
-          startsAt: "2030-10-16T18:00:00.000Z",
-          timezone: "UTC",
-        },
+        input: { displayName: `R3 rpc probe ${createId()}`, ...family.input },
       });
       probeId = created.object.id;
       return {
@@ -138,7 +159,7 @@ try {
         error.code.endsWith("PGRST202")
       ) {
         console.error(
-          "The Event write functions are not installed; apply migration 0012 to the environment first.",
+          `The ${familyName} write functions are not installed; apply migration ${family.migration} to the environment first.`,
         );
         process.exit(2);
       }
@@ -248,6 +269,7 @@ try {
 console.log(
   JSON.stringify(
     {
+      family: familyName,
       workspaceId,
       probeId,
       capabilities: client.capabilities,
