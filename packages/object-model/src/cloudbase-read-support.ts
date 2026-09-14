@@ -2,16 +2,19 @@ import {
   AuthorizationDeniedError,
   type UserPrincipal,
 } from "@chronelle/authorization";
-import type {
-  CloudBaseRdbFilter,
-  CloudBaseRdbReader,
-  ReminderStatus,
-  TaskStatus,
+import {
+  relationTypes,
+  type CloudBaseRdbFilter,
+  type CloudBaseRdbReader,
+  type ReminderStatus,
+  type RelationType,
+  type TaskStatus,
 } from "@chronelle/db";
 
 import type {
   EventResource,
   ExpenseResource,
+  ObjectRelationResource,
   ReminderResource,
   TaskResource,
 } from "./types.js";
@@ -69,6 +72,19 @@ export type CloudBaseReminderRow = {
   readonly workspace_id: unknown;
   readonly remind_at: unknown;
   readonly status: unknown;
+};
+
+export type CloudBaseRelationWriteRow = {
+  readonly id: unknown;
+  readonly workspace_id: unknown;
+  readonly source_object_id: unknown;
+  readonly relation_type: unknown;
+  readonly target_object_id: unknown;
+  readonly metadata: unknown;
+  readonly created_by: unknown;
+  readonly created_at: unknown;
+  readonly deleted_at: unknown;
+  readonly version: unknown;
 };
 
 export type CloudBaseGrantRow = {
@@ -245,6 +261,32 @@ export function cloudbaseExpenseResource(
     amount: cloudbaseText(expense.amount, "amount"),
     currency: cloudbaseText(expense.currency, "currency"),
     occurredAt: cloudbaseDate(expense.occurred_at, "occurred_at"),
+  };
+}
+
+export function cloudbaseRelationResource(
+  relation: CloudBaseRelationWriteRow,
+): ObjectRelationResource {
+  const relationType = cloudbaseText(relation.relation_type, "relation_type");
+  if (!relationTypes.includes(relationType as RelationType))
+    throw new Error("CloudBase returned an invalid relation type.");
+  return {
+    id: cloudbaseText(relation.id, "relation id"),
+    workspaceId: cloudbaseText(relation.workspace_id, "relation workspace"),
+    sourceObjectId: cloudbaseText(
+      relation.source_object_id,
+      "source_object_id",
+    ),
+    relationType: relationType as RelationType,
+    targetObjectId: cloudbaseText(
+      relation.target_object_id,
+      "target_object_id",
+    ),
+    metadata: cloudbaseJsonObject(relation.metadata, "relation metadata"),
+    createdBy: cloudbaseText(relation.created_by, "created_by"),
+    createdAt: cloudbaseDate(relation.created_at, "created_at"),
+    deletedAt: cloudbaseNullableDate(relation.deleted_at, "deleted_at"),
+    version: cloudbaseInteger(relation.version, "version"),
   };
 }
 

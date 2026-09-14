@@ -191,8 +191,9 @@ the probe instead of removing it. Run it only against staging.
 
 ### Run the CloudBase linked contract
 
-The linked check proves the first cross-object function,
-`chronelle_event_context_create` of migration 0016, through the gateway:
+The linked check proves the cross-object functions,
+`chronelle_event_context_create` of migration 0016 and
+`chronelle_relation_lifecycle` of migration 0017, through the gateway:
 
 ```bash
 CLOUDBASE_CONTRACT_ALLOW_WRITES=true pnpm cloudbase:linked-contract
@@ -202,13 +203,14 @@ It creates a probe Event, links a Task to it in one call, replays the same
 command and expects the same child and relation, replays it with different
 input and expects a conflict, then calls the function with a request hash the
 command table rejects and proves that the child, the relation, and the audit
-rows written before that point are not persisted. The probes are
+rows written before that point are not persisted. It then removes the
+relation, rejects a stale removal, and recovers it. The probes are
 soft-deleted afterwards. Run it only against staging.
 
 `CLOUDBASE_WRITES_ENABLED=true` routes the API's Event, Task, Expense, and
-Reminder create and update and linked creation through those functions; it
-requires `CLOUDBASE_READS_ENABLED=true` and migrations 0012 through 0016 on
-the environment. Until every mutation family is
+Reminder create and update, linked creation, and relation changes through
+those functions; it requires `CLOUDBASE_READS_ENABLED=true` and migrations
+0012 through 0017 on the environment. Until every mutation family is
 ported the API still needs `DATABASE_URL` for the rest, so the flag serves
 staging verification, not a deployment without PostgreSQL access.
 

@@ -14,9 +14,11 @@ import {
 
 // Cross-object evidence: one gateway rpc call creates a child on an Event's
 // scope, the includes relation, both audit rows, and the command record, or
-// none of them. Exercises chronelle_event_context_create of migration 0016
-// against the real gateway. The probe Event and child stay in staging
-// soft-deleted, because their audit and revision rows are append-only.
+// none of them; the relation is then removed and recovered under its version
+// predicate. Exercises chronelle_event_context_create of migration 0016 and
+// chronelle_relation_lifecycle of migration 0017 against the real gateway.
+// The probe Event and child stay in staging soft-deleted, because their audit
+// and revision rows are append-only.
 
 const required = [
   "CLOUDBASE_ENV_ID",
@@ -214,6 +216,36 @@ try {
     if (JSON.stringify(rows) !== JSON.stringify(linkedState))
       throw new Error("injected failure: rows were persisted.");
     return { ...outcome, ...rows };
+  });
+
+  const lifecycle = (expectedVersion, deletedAt) =>
+    client.rpc("chronelle_relation_lifecycle", {
+      workspace_id: workspaceId,
+      user_id: userId,
+      request_id: createId(),
+      relation_id: first.relationId,
+      expected_version: expectedVersion,
+      deleted_at: deletedAt,
+    });
+
+  await step("remove the relation", async () => {
+    const removed = await lifecycle(1, new Date().toISOString());
+    if (removed.version !== 2 || removed.deleted_at === null)
+      throw new Error("remove: the relation was not removed at version 2.");
+    return { version: removed.version };
+  });
+
+  await step("remove with a stale version", () =>
+    expectRejection("stale removal", () =>
+      lifecycle(1, new Date().toISOString()),
+    ),
+  );
+
+  await step("recover the relation", async () => {
+    const recovered = await lifecycle(2, null);
+    if (recovered.version !== 3 || recovered.deleted_at !== null)
+      throw new Error("recover: the relation was not recovered at version 3.");
+    return { version: recovered.version };
   });
 } finally {
   if (probes.length > 0) {

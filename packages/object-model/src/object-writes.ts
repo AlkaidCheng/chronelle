@@ -5,6 +5,8 @@ import type {
 
 import type {
   CreateEventInput,
+  CreateObjectRelationInput,
+  ObjectRelationResource,
   CreateExpenseInput,
   CreateReminderInput,
   CreateTaskInput,
@@ -73,6 +75,29 @@ export interface EventContextWriteRepository {
   ): Promise<EventContextCreateResponse>;
 }
 
+/**
+ * Relation writes: creation with the service's compatibility and
+ * authorization rules, and removal and recovery under a version predicate,
+ * each with its audit row.
+ */
+export interface RelationWriteRepository {
+  create(
+    context: MutationContext,
+    input: CreateObjectRelationInput,
+  ): Promise<ObjectRelationResource>;
+  remove(
+    context: MutationContext,
+    relationId: string,
+    expectedVersion: number,
+    deletedAt: Date,
+  ): Promise<ObjectRelationResource>;
+  recover(
+    context: MutationContext,
+    relationId: string,
+    expectedVersion: number,
+  ): Promise<ObjectRelationResource>;
+}
+
 /** Families with a write repository; absent families use the PostgreSQL path. */
 export interface ObjectWriteRepositories {
   readonly event?: EventWriteRepository | undefined;
@@ -80,4 +105,5 @@ export interface ObjectWriteRepositories {
   readonly expense?: ExpenseWriteRepository | undefined;
   readonly reminder?: ReminderWriteRepository | undefined;
   readonly eventContext?: EventContextWriteRepository | undefined;
+  readonly relation?: RelationWriteRepository | undefined;
 }

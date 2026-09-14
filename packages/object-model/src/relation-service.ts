@@ -31,6 +31,7 @@ import {
   RelationConflictError,
   ObjectConflictError,
 } from "./errors.js";
+import type { RelationWriteRepository } from "./object-writes.js";
 import type {
   CreateObjectRelationInput,
   MutationContext,
@@ -71,13 +72,16 @@ function isCompatibleRelation(
 export class ObjectRelationService {
   readonly #clock: () => Date;
   readonly #database: AuthorizationDatabase;
+  readonly #writes: RelationWriteRepository | undefined;
 
   constructor(
     database: AuthorizationDatabase,
     clock: () => Date = () => new Date(),
+    writes?: RelationWriteRepository,
   ) {
     this.#database = database;
     this.#clock = clock;
+    this.#writes = writes;
   }
 
   async create(
@@ -89,6 +93,7 @@ export class ObjectRelationService {
         "A relationship must connect two distinct objects.",
       );
     }
+    if (this.#writes !== undefined) return this.#writes.create(context, input);
 
     return withStableAuthorization(
       this.#database,
@@ -168,12 +173,20 @@ export class ObjectRelationService {
     expectedVersion: number,
   ): Promise<RelationDeletionResource> {
     const deletedAt = this.#clock();
-    const relation = await this.#changeLifecycle(
-      context,
-      relationId,
-      expectedVersion,
-      deletedAt,
-    );
+    const relation =
+      this.#writes === undefined
+        ? await this.#changeLifecycle(
+            context,
+            relationId,
+            expectedVersion,
+            deletedAt,
+          )
+        : await this.#writes.remove(
+            context,
+            relationId,
+            expectedVersion,
+            deletedAt,
+          );
     return { id: relation.id, version: relation.version, deletedAt };
   }
 
@@ -182,6 +195,8 @@ export class ObjectRelationService {
     relationId: string,
     expectedVersion: number,
   ) {
+    if (this.#writes !== undefined)
+      return this.#writes.recover(context, relationId, expectedVersion);
     return this.#changeLifecycle(context, relationId, expectedVersion, null);
   }
 
