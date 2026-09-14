@@ -8,6 +8,7 @@ import {
   CanonicalObjectSearchService,
   CloudBaseCalendarReadRepository,
   CloudBaseEventReadRepository,
+  CloudBaseEventContextWriteRepository,
   CloudBaseEventWriteRepository,
   CloudBaseExpenseWriteRepository,
   CloudBaseReminderWriteRepository,
@@ -84,6 +85,9 @@ export function createAppDependencies(
           task: new CloudBaseTaskWriteRepository(options.cloudBaseRdb),
           expense: new CloudBaseExpenseWriteRepository(options.cloudBaseRdb),
           reminder: new CloudBaseReminderWriteRepository(options.cloudBaseRdb),
+          eventContext: new CloudBaseEventContextWriteRepository(
+            options.cloudBaseRdb,
+          ),
         };
   const objects = new EventPlanningObjectService(
     connection.db,
@@ -116,7 +120,7 @@ export function createAppDependencies(
     revisions: new ObjectRevisionService(connection.db),
     restoration: new ObjectRestorationService(connection.db),
     recovery: new ObjectRecoveryService(connection.db),
-    eventContexts: new EventContextService(connection.db),
+    eventContexts: new EventContextService(connection.db, writes.eventContext),
     eventLayouts: new EventLayoutService(connection.db),
     commands: new ReversibleCommandService(connection.db),
     search: new CanonicalObjectSearchService(connection.db),
