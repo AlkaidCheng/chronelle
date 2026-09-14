@@ -170,3 +170,17 @@ export async function snapshotClient(
     },
   };
 }
+
+/** A reader that snapshots the database on every select, for tests that write between reads. */
+export function liveReader(db: Database): CloudBaseRdbReader {
+  return {
+    capabilities: {
+      transactions: false,
+      nativeTcp: false,
+      serverFunctions: false,
+    },
+    async select<T>(table: string, query: CloudBaseRdbQuery = {}) {
+      return (await snapshotClient(db)).select<T>(table, query);
+    },
+  };
+}
