@@ -18,6 +18,7 @@ export { CloudBaseObjectWriteRepository } from "./cloudbase-object-write-reposit
 export { CloudBaseExpenseWriteRepository } from "./cloudbase-expense-write-repository.js";
 export { CloudBaseObjectLifecycleWriteRepository } from "./cloudbase-object-lifecycle-write-repository.js";
 export { CloudBaseRelationWriteRepository } from "./cloudbase-relation-write-repository.js";
+export { CloudBaseSharingWriteRepository } from "./cloudbase-sharing-write-repository.js";
 export { CloudBaseReminderWriteRepository } from "./cloudbase-reminder-write-repository.js";
 export { CloudBaseTaskWriteRepository } from "./cloudbase-task-write-repository.js";
 export {
@@ -32,6 +33,7 @@ export type {
   RevisionRestoreSource,
   ObjectWriteRepositories,
   ObjectWriteRepository,
+  PermissionScopeWriteRepository,
   RelationWriteRepository,
   ReminderWriteRepository,
   TaskWriteRepository,

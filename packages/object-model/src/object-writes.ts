@@ -1,3 +1,4 @@
+import type { ShareWriteRepository } from "@chronelle/authorization";
 import type {
   EventContextCreateRequest,
   EventContextCreateResponse,
@@ -133,6 +134,20 @@ export interface ObjectLifecycleWriteRepository {
   ): Promise<EventPlanningResource>;
 }
 
+/**
+ * Permission-scope changes: moving an object to itself or to a self-scoped
+ * Event under the version predicate, with the audit event and the revision.
+ */
+export interface PermissionScopeWriteRepository {
+  updatePermissionScope(
+    context: MutationContext,
+    objectId: string,
+    expectedVersion: number,
+    permissionScopeId: string,
+    updatedAt: Date,
+  ): Promise<EventPlanningResource>;
+}
+
 /** Families with a write repository; absent families use the PostgreSQL path. */
 export interface ObjectWriteRepositories {
   readonly event?: EventWriteRepository | undefined;
@@ -142,4 +157,6 @@ export interface ObjectWriteRepositories {
   readonly eventContext?: EventContextWriteRepository | undefined;
   readonly relation?: RelationWriteRepository | undefined;
   readonly objectLifecycle?: ObjectLifecycleWriteRepository | undefined;
+  readonly share?: ShareWriteRepository | undefined;
+  readonly permissionScope?: PermissionScopeWriteRepository | undefined;
 }

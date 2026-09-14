@@ -646,6 +646,14 @@ export class EventPlanningObjectService {
     objectId: string,
     input: UpdatePermissionScopeInput,
   ): Promise<EventPlanningResource> {
+    if (this.#writes.permissionScope !== undefined)
+      return this.#writes.permissionScope.updatePermissionScope(
+        context,
+        objectId,
+        input.expectedVersion,
+        input.permissionScopeId,
+        this.#clock(),
+      );
     return withStableAuthorization(
       this.#database,
       context.principal.workspaceId,
