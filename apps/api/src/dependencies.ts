@@ -7,6 +7,7 @@ import type { CloudBaseRdbClient, DatabaseConnection } from "@chronelle/db";
 import {
   CanonicalObjectSearchService,
   CloudBaseCalendarReadRepository,
+  CloudBaseCommandReadRepository,
   CloudBaseCommandWriteRepository,
   CloudBaseEventReadRepository,
   CloudBaseProjectionReadRepository,
@@ -96,6 +97,7 @@ export function createAppDependencies(
           grants: new CloudBaseGrantReadRepository(options.cloudBaseRdb),
           revisions: new CloudBaseRevisionReadRepository(options.cloudBaseRdb),
           recovery: new CloudBaseRecoveryReadRepository(options.cloudBaseRdb),
+          commands: new CloudBaseCommandReadRepository(options.cloudBaseRdb),
         };
   const sharing =
     options.cloudBaseRdb === undefined || options.cloudBaseWrites !== true
@@ -168,7 +170,11 @@ export function createAppDependencies(
     ),
     eventContexts: new EventContextService(connection.db, writes.eventContext),
     eventLayouts: new EventLayoutService(connection.db, writes.eventLayout),
-    commands: new ReversibleCommandService(connection.db, writes.command),
+    commands: new ReversibleCommandService(
+      connection.db,
+      writes.command,
+      reads?.commands,
+    ),
     search: new CanonicalObjectSearchService(
       connection.db,
       options.cloudBaseRdb === undefined
