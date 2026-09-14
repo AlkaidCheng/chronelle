@@ -64,7 +64,7 @@ const dependencies = createDevelopmentAppDependencies(database, {
   documentTransferTtlMs:
     runtimeEnvironment.DOCUMENT_TRANSFER_TTL_SECONDS * 1_000,
   cloudBaseRdb,
-  cloudBaseEventWrites: runtimeEnvironment.CLOUDBASE_WRITES_ENABLED,
+  cloudBaseWrites: runtimeEnvironment.CLOUDBASE_WRITES_ENABLED,
   storage,
 });
 const app = buildApp(dependencies, { logger: true });
