@@ -550,12 +550,29 @@ their refusals, and the sign-in rows, membership, audits, sessions, and
 workspace lists for an Owner and a grant-only guest across expired,
 deleted-object, and Owner grants.
 
+**Backend mode:** `CHRONELLE_BACKEND=cloudbase` serves every read and write
+from the gateway without a PostgreSQL connection; the API binds its
+services to a disconnected database that fails with the reason if anything
+still reaches it, and at startup calls `chronelle_backend_readiness`
+(migration 0028), which lists the installed `chronelle_*` functions and
+counts live objects without a current revision, refusing to listen when a
+function the adapters call is missing or the baseline is broken. The
+transport reports every gateway request (kind, target, duration, outcome
+with the gateway's status and code) to an observer the API logs through
+its logger, which gives latency, rejection, and error metrics without a
+second pipeline. `CHRONELLE_BACKEND=postgres` remains the default with the
+two flags as staged opt-ins, and switching back is that setting plus a
+`DATABASE_URL`. The runbook in `docs/cloudbase-backend-runbook.md` covers
+enabling, verifying, observing, and rolling back.
+
 ## Recommended next PR
 
-Finish stage 08 with the backend mode: one deployment setting that selects
-the CloudBase backend, startup verification that the required functions
-are installed and the revision baseline holds, an API that starts without
-`DATABASE_URL` in that mode, and the metrics and runbooks the roadmap lists.
+The port is complete: every route has a gateway implementation, every
+mutation family has a differential test and staging evidence, and the API
+runs on either backend by configuration. Remaining work is operational:
+running the contract harnesses against a production-shaped environment
+before enabling the CloudBase backend there, and replacing the development
+sign-in with the production identity provider on both backends.
 
 ### R1 operator checklist
 

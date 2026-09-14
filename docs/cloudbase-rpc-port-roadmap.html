@@ -250,7 +250,7 @@
       </section>
 
       <aside class="gate-note" aria-label="Current stage">
-        <strong>Current stage &middot; every mutation family ported</strong>
+        <strong>Current stage &middot; port complete</strong>
         All four typed families run as
         <code>chronelle_&lt;type&gt;_create</code> and
         <code>chronelle_&lt;type&gt;_update</code> on the shared core of
@@ -277,9 +277,11 @@
         <code>chronelle_document_transfer_authorize</code>,
         <code>chronelle_document_transfer_consume</code>, and
         <code>chronelle_document_finalize</code> (migration 0026) around an
-        unchanged storage provider, and the layout and identity reads (migration
-        0027 for the sign-in) complete the request path. The backend mode is
-        next.
+        unchanged storage provider, the layout and identity reads (migration
+        0027 for the sign-in) complete the request path, and
+        <code>CHRONELLE_BACKEND=cloudbase</code> runs the API from the gateway
+        alone behind the readiness check of migration 0028. The port is
+        complete; the Drizzle backend stays the default.
       </aside>
 
       <aside class="invariant" aria-label="Standing constraint">
@@ -499,7 +501,7 @@
       </article>
       <article class="phase">
         <div class="phase-number">
-          STAGE 08 <span class="status next">Next</span>
+          STAGE 08 <span class="status done">Done</span>
         </div>
         <div>
           <h3>Attachments, backend mode, and operations</h3>
@@ -521,12 +523,17 @@
               flags are on.
             </li>
             <li>
-              One backend mode in deployment configuration; startup verifies the
-              required functions are installed before enabling it.
+              One backend mode in deployment configuration
+              (<code>CHRONELLE_BACKEND</code>); startup calls
+              <code>chronelle_backend_readiness</code> (migration 0028) and
+              refuses to serve until every required function is installed and
+              the revision baseline holds: done.
             </li>
             <li>
-              Metrics for gateway latency, rate limits, rejected conflicts, and
-              function errors; versioned migration and rollback runbooks.
+              Every gateway request is reported with its duration and outcome
+              and logged by the API for latency, rejection, and error metrics;
+              the backend runbook covers migrations, verification, and rollback:
+              done.
             </li>
             <li>
               CI keeps running every suite on the Drizzle path; a TCP deployment
@@ -674,6 +681,13 @@
               Differential test over one storage provider; staging linked
               contract
             </td>
+            <td><span class="status done">Done</span></td>
+          </tr>
+          <tr>
+            <td>Backend mode</td>
+            <td><code>chronelle_backend_readiness</code></td>
+            <td>0028</td>
+            <td>Startup process test; staging linked contract</td>
             <td><span class="status done">Done</span></td>
           </tr>
         </tbody>
