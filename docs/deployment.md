@@ -106,14 +106,19 @@ After the read-contract harness passes against staging, set
 repositories: the event list, the calendar, the Event detail and the to-do,
 timeline, itinerary, expense, and reminder projections, search, single
 objects, relations, shares, revisions with their comparison and restoration
-preview, Trash, the command state, and the storage inventory's references.
-Search, the command state, and the storage references call
+preview, Trash, the command state, the storage inventory's references, the
+Event page layout with its history, and the identity reads behind every
+authenticated request (the user, the personal workspace, and workspace
+access through membership or an active grant). Search, the command state,
+the storage references, and the development sign-in call
 `chronelle_object_search` (migration 0021), `chronelle_command_state` (0024),
-and `chronelle_storage_references` (0025) through the gateway's rpc route,
-so those migrations must be applied first. `DATABASE_URL` remains required:
-object mutations, audit writes, and the authorization store continue to use
-PostgreSQL. The flag is disabled by default and must never be enabled solely
-because the SDK connection probe succeeds.
+`chronelle_storage_references` (0025), and `chronelle_identity_sign_in`
+(0027) through the gateway's rpc route, so those migrations must be applied
+first. The identity reads of one request are sequential gateway requests
+rather than one snapshot. `DATABASE_URL` remains required until the backend
+mode lands: startup still connects to PostgreSQL. The flag is disabled by
+default and must never be enabled solely because the SDK connection probe
+succeeds.
 
 The CloudBase transport does not replace Chronelle's Drizzle adapter for
 audited mutations, optimistic concurrency, or multi-table writes. Those
@@ -217,9 +222,11 @@ layout, renames both probes as one reversible command, undoes it, and redoes
 it, reads the command state after the undo and the redo, and reads the
 workspace's storage references, and records a document transfer without
 bytes (an upload authorization, its consumption, the finalization into an
-attached Document, and a consumed download authorization). The probes,
-the Document included, end deleted through `chronelle_object_delete`. Run
-it only against staging.
+attached Document, and a consumed download authorization), reads the
+layout history through the table route, and signs the contract user in
+again through `chronelle_identity_sign_in`. The probes, the Document
+included, end deleted through `chronelle_object_delete`. Run it only
+against staging.
 
 `CLOUDBASE_WRITES_ENABLED=true` routes the API's Event, Task, Expense, and
 Reminder create and update, linked creation, relation changes, object
@@ -227,10 +234,11 @@ deletion, recovery, and revision restore, sharing and permission-scope
 changes, Event page layouts, reversible commands, and document transfers
 (upload authorization, consumption, finalization, and download
 authorization; the storage provider is unchanged) through those functions;
-it requires `CLOUDBASE_READS_ENABLED=true` and migrations 0012 through 0026
-on the environment (0024 and 0025 serve reads). Until the authorization
-store is ported the API still needs `DATABASE_URL`, so the flag serves
-staging verification, not a deployment without PostgreSQL access.
+it requires `CLOUDBASE_READS_ENABLED=true` and migrations 0012 through 0027
+on the environment (0024, 0025, and 0027 serve reads and sign-in). Until
+the backend mode lands the API still connects to `DATABASE_URL` at startup,
+so the flags serve staging verification, not a deployment without
+PostgreSQL access.
 
 ## Containerized web
 
