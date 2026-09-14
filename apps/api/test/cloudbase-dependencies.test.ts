@@ -70,6 +70,13 @@ const reads: Record<
     dependencies.recovery.preview(principal, objectId),
   "GET /api/commands": (dependencies) =>
     dependencies.commands.getState(principal),
+  "GET /api/objects/:id/revisions/compare": (dependencies) =>
+    dependencies.restoration.compare(principal, objectId, {
+      fromVersion: 1,
+      toVersion: 2,
+    }),
+  "GET /api/objects/:id/revisions/:version/restore-preview": (dependencies) =>
+    dependencies.restoration.preview(principal, objectId, 1),
 };
 
 describe("CloudBase read wiring", () => {

@@ -162,6 +162,7 @@ export function createAppDependencies(
     restoration: new ObjectRestorationService(
       connection.db,
       writes.objectLifecycle,
+      reads && { objects: reads.objects, revisions: reads.revisions },
     ),
     recovery: new ObjectRecoveryService(
       connection.db,
