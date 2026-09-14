@@ -124,6 +124,10 @@ took roughly 1–2 seconds from the operator's location, which is the first R5
 latency input. Enabling `CLOUDBASE_READS_ENABLED` remains a deployment decision
 under Phase 6, not a consequence of this run.
 
+The rpc route resolves the audit gap: functions called through the gateway run
+as one transaction, and the probe functions reproduce the service's audit and
+revision rows. See Phase 3 for the evidence and the R3 decision.
+
 The operation-by-operation consistency inventory is maintained in
 [`docs/cloudbase-operation-matrix.md`](cloudbase-operation-matrix.md). It is
 the review checklist for deciding whether a future repository may leave the
@@ -186,14 +190,29 @@ predicate naming another workspace, exactly one winner among four concurrent
 updates on the same version, and a check-constraint rejection surfaced as a
 gateway error with the row unchanged. Version enforcement therefore holds.
 
-Audit does not: the gateway path has no transactions and exposes no server-side
-functions, so an audit event and revision snapshot can only follow an update as
-separate requests, leaving an unaudited change observable if the process fails
-in between. By this phase's own rule, single-object writes stay on PostgreSQL.
-The only route that would satisfy the gate is a database-side mechanism applied
-as a migration, for example triggers on the typed tables that append the audit
-event and revision from context carried in the updated row; that is a separate
-design with its own review, not an adapter change.
+Audit atomicity is not available to a client issuing table writes: the SDK's
+table path has no transactions, so an audit event and revision snapshot could
+only follow an update as separate requests. It is available through the
+gateway's rpc route: a PostgreSQL function called as
+`POST /v1/rdb/rest/rpc/<function>` with the same server key runs as one
+transaction, and a raised exception discards every row it wrote. The rpc probe
+in `infrastructure/cloudbase/rpc-probe.sql` implements an audited Event create
+and update as functions with the service's authorization, version, audit, and
+snapshot rules. Against one PostgreSQL, the differential test shows the
+functions leave audit and revision rows identical in shape to the TypeScript
+service's. Against the real gateway, `pnpm cloudbase:rpc-contract` showed the
+create and update succeeding in one call each, a stale version answered with
+HTTP 409, a principal without edit access with 403, a raise after every write
+with 500 and no persisted change, and one winner among four concurrent calls on
+the same version. Custom `PTxxx` SQLSTATEs map to HTTP statuses on this gateway.
+
+**R3 decision (2026-09-14):** the deployment target stays the shared CloudBase
+cluster, which offers no TCP route, and the write path moves to PostgreSQL
+functions invoked through rpc. Business rules are implemented once in
+PL/pgSQL for production while the Drizzle/TypeScript services remain the local
+development and reference implementation; the existing integration suites are
+the contract both must satisfy. The port proceeds one operation family at a
+time, each with a differential test, and no family ships until it does.
 
 ### Phase 4 — Cross-object mutations and recovery
 
@@ -254,14 +273,14 @@ PostgreSQL adapter.
 
 ## Recommended next PR
 
-R1 and the version half of R2 have real-gateway evidence. No write repository
-should be added until the audit half is resolved. The next step is a design
-record, not code: decide whether a database-side audit and revision mechanism
-(triggers applied by migration, with actor and request context carried in the
-written row) is acceptable for the CloudBase deployment, or whether all
-mutations remain on a PostgreSQL TCP route (Phase 7). Either answer is a
-deployment decision that the operation matrix must record before Phase 3
-continues.
+Turn the probe into the first production function family: an
+`EventWriteRepository` boundary in the object model with a PostgreSQL
+implementation (the current service code) and a CloudBase implementation that
+calls `chronelle_event_create` / `chronelle_event_update` functions shipped as
+a migration, sharing the serializer with the read adapters. Extend the
+differential test to every Event field and to the conflict, authorization, and
+baseline errors, and add the function family to the operation matrix. Task,
+Expense, and Reminder follow the same shape once the Event family is merged.
 
 ### R1 operator checklist
 
