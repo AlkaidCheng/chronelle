@@ -232,9 +232,10 @@
         The read-only differential check has run against the real gateway for a
         workspace member and a grant-only viewer on a synthetic staging fixture:
         event pages, cursor paging, calendars, isolation, and denials match
-        PostgreSQL. PostgreSQL remains the runtime default and CloudBase reads
-        stay disabled until Phase 6 decides otherwise; R2 starts with a
-        version-predicate write harness.
+        PostgreSQL. R2 version enforcement is proven on staging; atomic audit is
+        not available on the gateway path, so writes stay on PostgreSQL pending
+        a database-side design. PostgreSQL remains the runtime default and
+        CloudBase reads stay disabled until Phase 6 decides otherwise.
       </aside>
 
       <h2>Execution plan</h2>
@@ -349,9 +350,16 @@
             guarantees.
           </p>
           <ul>
-            <li>Compare-and-set version predicates.</li>
+            <li>
+              Compare-and-set version predicates: proven on staging (stale write
+              affects no row; one winner among four concurrent updates).
+            </li>
             <li>Conflict responses identical to PostgreSQL.</li>
-            <li>Atomic audit evidence or explicit fallback.</li>
+            <li>
+              Atomic audit: not available on the gateway path (no transactions,
+              no server-side functions); writes stay on PostgreSQL until a
+              database-side mechanism is designed.
+            </li>
           </ul>
         </div>
       </article>
@@ -452,7 +460,7 @@
       </table>
       <footer>
         Source of detail: <code>docs/cloudbase-migration-plan.md</code>. Updated
-        after the first real-gateway read-contract run.
+        after the first real-gateway write-contract run.
       </footer>
     </main>
   </body>

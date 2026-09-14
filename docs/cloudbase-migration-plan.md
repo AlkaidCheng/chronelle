@@ -178,6 +178,23 @@ the PostgreSQL path.
 **Exit gate:** stale-version tests, authorization tests, and audit assertions
 pass against the CloudBase implementation.
 
+**R2 evidence:** the transport now has bounded `insert`, `update`, and
+`delete` verbs whose results are the affected rows, so a stale version predicate
+reports an empty result. Against the real gateway, `pnpm cloudbase:write-contract`
+showed one affected row for a current version, none for a stale one, none for a
+predicate naming another workspace, exactly one winner among four concurrent
+updates on the same version, and a check-constraint rejection surfaced as a
+gateway error with the row unchanged. Version enforcement therefore holds.
+
+Audit does not: the gateway path has no transactions and exposes no server-side
+functions, so an audit event and revision snapshot can only follow an update as
+separate requests, leaving an unaudited change observable if the process fails
+in between. By this phase's own rule, single-object writes stay on PostgreSQL.
+The only route that would satisfy the gate is a database-side mechanism applied
+as a migration, for example triggers on the typed tables that append the audit
+event and revision from context carried in the updated row; that is a separate
+design with its own review, not an adapter change.
+
 ### Phase 4 — Cross-object mutations and recovery
 
 Do not emulate transactions with optimistic hope. For relations, shares,
@@ -237,12 +254,14 @@ PostgreSQL adapter.
 
 ## Recommended next PR
 
-R1 has real-gateway evidence for the two migrated read paths. The next code
-step is the R2 prerequisite: an opt-in, staging-only harness that attempts a
-single-object update through the gateway with an explicit `version` predicate
-and proves that a stale version is rejected and that the audit record can be
-written in the same consistency mechanism. No repository moves until that
-harness passes; the API response schemas stay unchanged.
+R1 and the version half of R2 have real-gateway evidence. No write repository
+should be added until the audit half is resolved. The next step is a design
+record, not code: decide whether a database-side audit and revision mechanism
+(triggers applied by migration, with actor and request context carried in the
+written row) is acceptable for the CloudBase deployment, or whether all
+mutations remain on a PostgreSQL TCP route (Phase 7). Either answer is a
+deployment decision that the operation matrix must record before Phase 3
+continues.
 
 ### R1 operator checklist
 
