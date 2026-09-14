@@ -259,8 +259,10 @@
         the <code>includes</code> relation, both audit rows, and the command
         record in one call, and relation changes run as
         <code>chronelle_relation_create</code> and
-        <code>chronelle_relation_lifecycle</code> (migration 0017). Object soft
-        deletion and restoration are next.
+        <code>chronelle_relation_lifecycle</code> (migration 0017), and object
+        deletion and recovery as <code>chronelle_object_delete</code> and
+        <code>chronelle_object_recover</code> (migration 0018). Revision restore
+        is next.
       </aside>
 
       <aside class="invariant" aria-label="Standing constraint">
@@ -382,8 +384,9 @@
               own version predicates: done (migrations 0016 and 0017).
             </li>
             <li>
-              Delete, restore, and revision restore keep object, relation, and
-              recovery records consistent inside one call.
+              Delete and recover keep object, revision, and recovery records
+              consistent inside one call: done (migration 0018). Revision
+              restore follows.
             </li>
             <li>
               Differential tests compare the full ledger: objects, relations,
@@ -557,10 +560,20 @@
             <td><span class="status done">Done</span></td>
           </tr>
           <tr>
-            <td>Delete, restore, revisions</td>
-            <td>One function per operation</td>
-            <td>Per operation</td>
-            <td>Full-ledger differential tests</td>
+            <td>Delete, recover</td>
+            <td>
+              <code>chronelle_object_delete</code>,
+              <code>chronelle_object_recover</code>
+            </td>
+            <td>0018</td>
+            <td>Differential test over every type; staging linked contract</td>
+            <td><span class="status done">Done</span></td>
+          </tr>
+          <tr>
+            <td>Revision restore</td>
+            <td>One function over the family apply functions</td>
+            <td>Next free number</td>
+            <td>Full-ledger differential test</td>
             <td><span class="status next">Next</span></td>
           </tr>
           <tr>
@@ -665,7 +678,7 @@
         is in
         <a href="cloudbase-migration-roadmap.html"
           >cloudbase-migration-roadmap.html</a
-        >. Updated after relation changes.
+        >. Updated after object deletion and recovery.
       </footer>
     </main>
   </body>
