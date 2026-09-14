@@ -43,7 +43,8 @@ export interface CloudBaseRdbReader {
   readonly capabilities: {
     readonly transactions: false;
     readonly nativeTcp: false;
-    readonly serverFunctions: false;
+    /** True when database functions can be called through the gateway's rpc route. */
+    readonly serverFunctions: boolean;
   };
   select<T>(table: string, query?: CloudBaseRdbQuery): Promise<readonly T[]>;
 }
@@ -56,6 +57,11 @@ export interface CloudBaseRdbReader {
  * PostgreSQL.
  */
 export interface CloudBaseRdbClient extends CloudBaseRdbReader {
+  /**
+   * Call a database function through the gateway's rpc route. The function
+   * runs as one transaction: everything it wrote is discarded when it raises.
+   */
+  rpc<T>(functionName: string, args?: Record<string, unknown>): Promise<T>;
   insert<T>(
     table: string,
     rows: readonly Record<string, unknown>[],
@@ -110,6 +116,32 @@ export interface CloudBaseRdbConnectionOptions {
   readonly accessKey: string;
   /** Maximum time to wait for one gateway query, in milliseconds. */
   readonly requestTimeoutMs?: number | undefined;
+  /** Gateway origin and version prefix; defaults to the mainland endpoint for the environment. */
+  readonly gatewayUrl?: string | undefined;
+}
+
+/** How rpc() reaches the gateway; absent when the client is built for tests without a gateway. */
+export interface CloudBaseRpcTransport {
+  readonly gatewayUrl: string;
+  readonly accessKey: string;
+  readonly fetch?: typeof fetch | undefined;
+}
+
+/** A function call the gateway rejected; `status` and `code` are the gateway's, the body is not retained. */
+export class CloudBaseRpcError extends Error {
+  readonly status: number;
+  readonly code: string;
+
+  constructor(status: number, code: string, message: string) {
+    super(message);
+    this.name = "CloudBaseRpcError";
+    this.status = status;
+    this.code = code;
+  }
+}
+
+export function cloudBaseGatewayUrl(envId: string): string {
+  return `https://${envId}.api.tcloudbasegateway.com/v1`;
 }
 
 /**
@@ -152,7 +184,9 @@ export class CloudBaseRdbTimeoutError extends Error {
 
 export function createCloudBaseRdbClient(
   app: RdbApp,
-  options: Pick<CloudBaseRdbConnectionOptions, "requestTimeoutMs"> = {},
+  options: Pick<CloudBaseRdbConnectionOptions, "requestTimeoutMs"> & {
+    readonly rpc?: CloudBaseRpcTransport | undefined;
+  } = {},
 ): CloudBaseRdbClient {
   const requestTimeoutMs =
     options.requestTimeoutMs === undefined
@@ -164,11 +198,63 @@ export function createCloudBaseRdbClient(
           .max(120_000)
           .parse(options.requestTimeoutMs);
 
+  const rpcTransport = options.rpc;
+
   return {
     capabilities: {
       transactions: false,
       nativeTcp: false,
-      serverFunctions: false,
+      serverFunctions: rpcTransport !== undefined,
+    },
+    async rpc<T>(functionName: string, args: Record<string, unknown> = {}) {
+      const name = identifierSchema.parse(functionName);
+      if (rpcTransport === undefined) {
+        throw new Error("CloudBase RPC requires a gateway transport.");
+      }
+      const request = (rpcTransport.fetch ?? fetch)(
+        `${rpcTransport.gatewayUrl}/rdb/rest/rpc/${name}`,
+        {
+          method: "POST",
+          headers: {
+            accept: "application/json",
+            authorization: `Bearer ${rpcTransport.accessKey}`,
+            "content-type": "application/json",
+          },
+          body: JSON.stringify(args),
+          signal: AbortSignal.timeout(requestTimeoutMs),
+        },
+      );
+      let response: Response;
+      try {
+        response = await request;
+      } catch (error) {
+        if (error instanceof Error && error.name === "TimeoutError")
+          throw new CloudBaseRdbTimeoutError(requestTimeoutMs);
+        throw error;
+      }
+      const text = await response.text();
+      let body: unknown = null;
+      if (text.length > 0) {
+        try {
+          body = JSON.parse(text);
+        } catch {
+          body = text;
+        }
+      }
+      if (!response.ok) {
+        const failure =
+          body !== null && typeof body === "object"
+            ? (body as { code?: unknown; message?: unknown })
+            : {};
+        throw new CloudBaseRpcError(
+          response.status,
+          typeof failure.code === "string" ? failure.code : "unknown",
+          typeof failure.message === "string"
+            ? failure.message
+            : `CloudBase RPC ${name} failed with status ${response.status}.`,
+        );
+      }
+      return body as T;
     },
     async insert<T>(
       table: string,
@@ -344,5 +430,11 @@ export async function connectCloudBaseRdb(
     env: options.envId,
     accessKey: options.accessKey,
   });
-  return createCloudBaseRdbClient(app as unknown as RdbApp, options);
+  return createCloudBaseRdbClient(app as unknown as RdbApp, {
+    requestTimeoutMs: options.requestTimeoutMs,
+    rpc: {
+      gatewayUrl: options.gatewayUrl ?? cloudBaseGatewayUrl(options.envId),
+      accessKey: options.accessKey,
+    },
+  });
 }
