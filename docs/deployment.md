@@ -103,13 +103,14 @@ runtime default and is intentionally unchanged.
 
 After the read-contract harness passes against staging, set
 `CLOUDBASE_READS_ENABLED=true` to opt the API's event-list, calendar, Event
-detail, to-do, timeline, itinerary, expense, and reminder projection, and
-search reads into the CloudBase repositories; search calls
-`chronelle_object_search` of migration 0021 through the gateway's rpc route,
-so that migration must be applied first. `DATABASE_URL` remains required:
-object mutations, audit writes, recovery, sharing, and all transaction-heavy
-services continue to use PostgreSQL. The flag is disabled by default and must
-never be enabled solely because the SDK connection probe succeeds.
+detail, to-do, timeline, itinerary, expense, and reminder projection, search,
+single-object, relation, share, revision, and Trash reads into the CloudBase
+repositories; search calls `chronelle_object_search` of migration 0021 through
+the gateway's rpc route, so that migration must be applied first.
+`DATABASE_URL` remains required: object mutations, audit writes, and all
+transaction-heavy services continue to use PostgreSQL. The flag is disabled by
+default and must never be enabled solely because the SDK connection probe
+succeeds.
 
 The CloudBase transport does not replace Chronelle's Drizzle adapter for
 audited mutations, optimistic concurrency, or multi-table writes. Those

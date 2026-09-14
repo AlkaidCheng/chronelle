@@ -21,14 +21,19 @@ because its SQL can be expressed as a read or write request.
 
 ## Read operations
 
-| API surface                                                                | Service boundary           | Contract                                                                                | Current route                                                       | CloudBase status                                                    |
-| -------------------------------------------------------------------------- | -------------------------- | --------------------------------------------------------------------------------------- | ------------------------------------------------------------------- | ------------------------------------------------------------------- |
-| Event list                                                                 | `EventReadRepository`      | Workspace-scoped, permission-filtered, deleted rows excluded, deterministic cursor      | `GET /api/events`                                                   | Candidate; adapter and opt-in runtime flag exist                    |
-| Calendar projection                                                        | `CalendarReadRepository`   | Canonical event IDs, active `includes` relations, inherited grants, date ordering       | `GET /api/events/:id/calendar`                                      | Candidate; adapter and opt-in runtime flag exist                    |
-| Event detail                                                               | `ProjectionReadRepository` | Root authorization plus child relations, attached documents, and projection consistency | `GET /api/events/:id/detail`                                        | Candidate; adapter and opt-in runtime flag exist                    |
-| To-do, timeline, itinerary, expense, reminder projections                  | `ProjectionReadRepository` | Canonical IDs, active `includes` relations, inherited grants, projection ordering       | `GET /api/events/:id/{todos,timeline,itinerary,expenses,reminders}` | Candidate; adapter and opt-in runtime flag exist                    |
-| Object search                                                              | `SearchReadRepository`     | Full-text ranking, cursor envelope, workspace and permission predicate                  | `GET /api/search`                                                   | Candidate; adapter calls `chronelle_object_search` (migration 0021) |
-| Object, relation, sharing, revision, recovery, and storage inventory reads | Corresponding services     | Authorization and workspace isolation                                                   | Various `GET` routes                                                | PostgreSQL until a per-service contract is documented and tested    |
+| API surface                                               | Service boundary           | Contract                                                                                | Current route                                                       | CloudBase status                                                    |
+| --------------------------------------------------------- | -------------------------- | --------------------------------------------------------------------------------------- | ------------------------------------------------------------------- | ------------------------------------------------------------------- |
+| Event list                                                | `EventReadRepository`      | Workspace-scoped, permission-filtered, deleted rows excluded, deterministic cursor      | `GET /api/events`                                                   | Candidate; adapter and opt-in runtime flag exist                    |
+| Calendar projection                                       | `CalendarReadRepository`   | Canonical event IDs, active `includes` relations, inherited grants, date ordering       | `GET /api/events/:id/calendar`                                      | Candidate; adapter and opt-in runtime flag exist                    |
+| Event detail                                              | `ProjectionReadRepository` | Root authorization plus child relations, attached documents, and projection consistency | `GET /api/events/:id/detail`                                        | Candidate; adapter and opt-in runtime flag exist                    |
+| To-do, timeline, itinerary, expense, reminder projections | `ProjectionReadRepository` | Canonical IDs, active `includes` relations, inherited grants, projection ordering       | `GET /api/events/:id/{todos,timeline,itinerary,expenses,reminders}` | Candidate; adapter and opt-in runtime flag exist                    |
+| Object search                                             | `SearchReadRepository`     | Full-text ranking, cursor envelope, workspace and permission predicate                  | `GET /api/search`                                                   | Candidate; adapter calls `chronelle_object_search` (migration 0021) |
+| Single object, allowed actions, visible objects           | `ObjectReadRepository`     | Live object only, roles from membership plus direct and live-scope grants, typed state  | `GET /api/objects/:id`, `/access`, typed `GET` routes               | Candidate; adapter and opt-in runtime flag exist                    |
+| Relation and removed-relation pages                       | `RelationReadRepository`   | Object view access, other endpoint visible (removed: editable source), id-desc cursor   | `GET /api/objects/:id/relations`, `/removed-relations`              | Candidate; adapter and opt-in runtime flag exist                    |
+| Share list                                                | `GrantReadRepository`      | Recovery-level access on the resource, expired grants excluded, creation order          | `GET /api/objects/:id/shares`                                       | Candidate; adapter and opt-in runtime flag exist                    |
+| Revision list and single revision                         | `RevisionReadRepository`   | Object view access, newest version first, snapshot schema check                         | `GET /api/objects/:id/revisions`, `/revisions/:version`             | Candidate; adapter and opt-in runtime flag exist                    |
+| Trash list and recovery preview                           | `RecoveryReadRepository`   | Recovery predicate over tombstones, id-desc cursor, blocked-scope reason                | `GET /api/trash`, `GET /api/objects/:id/recovery-preview`           | Candidate; adapter and opt-in runtime flag exist                    |
+| Storage inventory and restoration compare/preview reads   | Corresponding services     | Authorization and workspace isolation                                                   | Various `GET` routes                                                | PostgreSQL until a per-service contract is documented and tested    |
 
 Read adapters must return canonical IDs and the same externally visible
 resource shape. A gateway API key does not authorize a user; the adapter must
@@ -76,11 +81,15 @@ operation:
 5. Deployment checks prove that credentials remain server-only and private
    document URLs remain authorized and short-lived.
 
-The current evidence satisfies the event-list, calendar, Event detail, and
-focused projection read rows in a local double, and the projection adapter has
-been run against the real gateway with a linked Expense: a table select
-returns `numeric` and `bigint` columns as JSON numbers, so the adapter requests
-`amount::text` and `size_bytes::text` and the doubles serve numbers unless a
-column is cast. The opt-in real-gateway harness still covers the event-list
-and calendar rows only, and still requires staging workspace, user, and event
-identifiers before it can provide real CloudBase evidence.
+The current evidence satisfies the event-list and calendar read rows in a
+local double plus the opt-in real-gateway harness, and the object, relation,
+share, revision, and Trash read rows in a local double
+(`cloudbase-inventory-read-contract.integration.test.ts`) that runs both
+implementations through the same services against one database. The harness
+still requires staging workspace, user, and event identifiers before it can
+provide real CloudBase evidence, and the inventory adapters have not yet been
+exercised against the real gateway. One encoding detail is settled from a
+gateway probe: the table select returns `numeric` and `bigint` columns as JSON
+numbers, so the adapters request `amount::text` and `size_bytes::text` through
+the select cast, which the gateway honours (`"12.5000"` for a numeric amount),
+and the strict decoders stay unchanged.

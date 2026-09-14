@@ -17,3 +17,7 @@ export {
   type ShareResourceInput,
   type ShareWriteRepository,
 } from "./grant-service.js";
+export {
+  PostgresGrantReadRepository,
+  type GrantReadRepository,
+} from "./grant-reads.js";

@@ -13,10 +13,15 @@ import {
   CloudBaseEventLayoutWriteRepository,
   CloudBaseEventWriteRepository,
   CloudBaseExpenseWriteRepository,
+  CloudBaseGrantReadRepository,
   CloudBaseObjectLifecycleWriteRepository,
+  CloudBaseObjectReadRepository,
+  CloudBaseRecoveryReadRepository,
+  CloudBaseRelationReadRepository,
   CloudBaseRelationWriteRepository,
   CloudBaseSharingWriteRepository,
   CloudBaseReminderWriteRepository,
+  CloudBaseRevisionReadRepository,
   CloudBaseSearchReadRepository,
   CloudBaseTaskWriteRepository,
   DocumentService,
@@ -79,10 +84,18 @@ export function createAppDependencies(
   const authorization = new AuthorizationService(
     new DrizzleAuthorizationStore(connection.db),
   );
-  const eventReads =
+  // Read adapters; a service without one reads PostgreSQL.
+  const reads =
     options.cloudBaseRdb === undefined
       ? undefined
-      : new CloudBaseEventReadRepository(options.cloudBaseRdb);
+      : {
+          events: new CloudBaseEventReadRepository(options.cloudBaseRdb),
+          objects: new CloudBaseObjectReadRepository(options.cloudBaseRdb),
+          relations: new CloudBaseRelationReadRepository(options.cloudBaseRdb),
+          grants: new CloudBaseGrantReadRepository(options.cloudBaseRdb),
+          revisions: new CloudBaseRevisionReadRepository(options.cloudBaseRdb),
+          recovery: new CloudBaseRecoveryReadRepository(options.cloudBaseRdb),
+        };
   const sharing =
     options.cloudBaseRdb === undefined || options.cloudBaseWrites !== true
       ? undefined
@@ -111,7 +124,7 @@ export function createAppDependencies(
   const objects = new EventPlanningObjectService(
     connection.db,
     undefined,
-    eventReads,
+    reads,
     writes,
   );
   const storage =
@@ -139,13 +152,18 @@ export function createAppDependencies(
       connection.db,
       undefined,
       writes.relation,
+      reads?.relations,
     ),
-    revisions: new ObjectRevisionService(connection.db),
+    revisions: new ObjectRevisionService(connection.db, reads?.revisions),
     restoration: new ObjectRestorationService(
       connection.db,
       writes.objectLifecycle,
     ),
-    recovery: new ObjectRecoveryService(connection.db, writes.objectLifecycle),
+    recovery: new ObjectRecoveryService(
+      connection.db,
+      reads?.recovery,
+      writes.objectLifecycle,
+    ),
     eventContexts: new EventContextService(connection.db, writes.eventContext),
     eventLayouts: new EventLayoutService(connection.db, writes.eventLayout),
     commands: new ReversibleCommandService(connection.db),
@@ -158,7 +176,12 @@ export function createAppDependencies(
     storageInventory: new StorageInventoryService(connection.db, storage, {
       clock: options.clock,
     }),
-    shares: new ResourceGrantService(connection.db, undefined, writes.share),
+    shares: new ResourceGrantService(
+      connection.db,
+      undefined,
+      writes.share,
+      reads?.grants,
+    ),
     projections: new EventPlanningProjectionService(
       connection.db,
       options.cloudBaseRdb === undefined

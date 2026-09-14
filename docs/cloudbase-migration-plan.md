@@ -206,6 +206,20 @@ PostgREST cast syntax in the column list, so the adapter requests
 text under its own name. The test doubles serve JSON numbers for those
 columns unless the column list casts them, so the omission fails locally.
 
+**Inventory reads:** the single-object, relation, share, revision, and Trash
+reads sit behind per-service repositories (`ObjectReadRepository`,
+`RelationReadRepository`, `GrantReadRepository` in the authorization package,
+`RevisionReadRepository`, `RecoveryReadRepository`), each with the Drizzle
+implementation as the default and a CloudBase implementation that
+`CLOUDBASE_READS_ENABLED` injects. The CloudBase adapters re-evaluate the
+principal in application code from workspace membership and active grants,
+including the rule that an inherited grant needs a live canonical scope and
+that recovery access survives deletion of the object and its scope. Cursor
+positions are applied after the read because the transport has no range or
+"is not null" filter, so Trash and removed-relation reads scan the candidate
+rows before paging; a read function is the planned follow-up if that cost
+matters on real data.
+
 ### Phase 3 — Safe single-object writes
 
 Add CloudBase repositories for writes that affect one logical object and can

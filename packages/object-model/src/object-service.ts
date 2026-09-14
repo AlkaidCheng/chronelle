@@ -1,9 +1,7 @@
 import {
   AuthorizationDeniedError,
   withStableAuthorization,
-  withReadAuthorization,
   type AuthorizationDatabase,
-  type AuthorizationAction,
   type UserPrincipal,
 } from "@chronelle/authorization";
 import {
@@ -16,7 +14,7 @@ import {
   type DatabaseTransaction,
   type ObjectType,
 } from "@chronelle/db";
-import { and, eq, inArray, isNull, sql } from "drizzle-orm";
+import { and, eq, isNull, sql } from "drizzle-orm";
 import {
   eventCalendarDatesSchema,
   type EventListQueryInput,
@@ -26,10 +24,16 @@ import {
   type EventPage,
   type EventReadRepository,
 } from "./event-list.js";
+import {
+  PostgresObjectReadRepository,
+  readAuthorizedObject,
+  type ObjectReadRepositories,
+  type ObjectReadRepository,
+} from "./object-reads.js";
 import type { ObjectWriteRepositories } from "./object-writes.js";
 
 import { InvalidObjectStateError, ObjectConflictError } from "./errors.js";
-import { readObjectState, readObjectStates } from "./object-state.js";
+import { readObjectState } from "./object-state.js";
 import { recordObjectRevision } from "./object-revisions.js";
 import type {
   CreateEventInput,
@@ -146,17 +150,21 @@ export class EventPlanningObjectService {
   readonly #clock: () => Date;
   readonly #database: AuthorizationDatabase;
   readonly #eventReads: EventReadRepository;
+  readonly #objectReads: ObjectReadRepository;
   readonly #writes: ObjectWriteRepositories;
 
   constructor(
     database: AuthorizationDatabase,
     clock: () => Date = () => new Date(),
-    eventReads?: EventReadRepository,
+    reads: ObjectReadRepositories = {},
     writes: ObjectWriteRepositories = {},
   ) {
     this.#database = database;
     this.#clock = clock;
-    this.#eventReads = eventReads ?? new PostgresEventReadRepository(database);
+    this.#eventReads =
+      reads.events ?? new PostgresEventReadRepository(database);
+    this.#objectReads =
+      reads.objects ?? new PostgresObjectReadRepository(database);
     this.#writes = writes;
   }
 
@@ -270,66 +278,23 @@ export class EventPlanningObjectService {
     return this.#requireType(resource, "reminder");
   }
 
-  async getObject(
+  getObject(
     principal: UserPrincipal,
     objectId: string,
   ): Promise<EventPlanningResource> {
-    return this.#getObjectWithAction(principal, objectId, "view");
+    return this.#objectReads.getObject(principal, objectId);
   }
 
-  async getAllowedActions(principal: UserPrincipal, objectId: string) {
-    return withReadAuthorization(
-      this.#database,
-      async (transaction, authorization) => {
-        const reader = new EventPlanningObjectService({
-          database: transaction,
-          authorization,
-        });
-        await reader.getObject(principal, objectId);
-        return authorization.allowedActions(principal, {
-          id: objectId,
-          workspaceId: principal.workspaceId,
-        });
-      },
-    );
+  getAllowedActions(principal: UserPrincipal, objectId: string) {
+    return this.#objectReads.getAllowedActions(principal, objectId);
   }
 
   /** Return visible canonical states in input order; unavailable IDs are omitted. */
-  async listVisibleObjects(
+  listVisibleObjects(
     principal: UserPrincipal,
     objectIds: readonly string[],
   ): Promise<EventPlanningResource[]> {
-    if (objectIds.length === 0) return [];
-    return withReadAuthorization(
-      this.#database,
-      async (transaction, authorization) => {
-        const ids = [...new Set(objectIds)];
-        const visibility = await authorization.canMany(
-          principal,
-          "view",
-          ids.map((id) => ({ id, workspaceId: principal.workspaceId })),
-        );
-        const visibleIds = ids.filter((_, index) => visibility[index]);
-        const states = new Map<string, EventPlanningResource>();
-        const batchSize = 1000;
-        for (let start = 0; start < visibleIds.length; start += batchSize) {
-          const rows = await readObjectStates(
-            transaction,
-            and(
-              eq(objects.workspaceId, principal.workspaceId),
-              inArray(objects.id, visibleIds.slice(start, start + batchSize)),
-              isNull(objects.deletedAt),
-            ),
-            batchSize,
-          );
-          for (const row of rows) states.set(row.id, row);
-        }
-        return objectIds.flatMap((id) => {
-          const state = states.get(id);
-          return state === undefined ? [] : [state];
-        });
-      },
-    );
+    return this.#objectReads.listVisibleObjects(principal, objectIds);
   }
 
   listEvents(
@@ -343,11 +308,7 @@ export class EventPlanningObjectService {
     principal: UserPrincipal,
     objectId: string,
   ): Promise<EventResource> {
-    const resource = await this.#getObjectWithAction(
-      principal,
-      objectId,
-      "view",
-    );
+    const resource = await this.#objectReads.getObject(principal, objectId);
     return this.#requireType(resource, "event");
   }
 
@@ -355,11 +316,7 @@ export class EventPlanningObjectService {
     principal: UserPrincipal,
     objectId: string,
   ): Promise<TaskResource> {
-    const resource = await this.#getObjectWithAction(
-      principal,
-      objectId,
-      "view",
-    );
+    const resource = await this.#objectReads.getObject(principal, objectId);
     return this.#requireType(resource, "task");
   }
 
@@ -367,11 +324,7 @@ export class EventPlanningObjectService {
     principal: UserPrincipal,
     objectId: string,
   ): Promise<ExpenseResource> {
-    const resource = await this.#getObjectWithAction(
-      principal,
-      objectId,
-      "view",
-    );
+    const resource = await this.#objectReads.getObject(principal, objectId);
     return this.#requireType(resource, "expense");
   }
 
@@ -379,11 +332,7 @@ export class EventPlanningObjectService {
     principal: UserPrincipal,
     objectId: string,
   ): Promise<ReminderResource> {
-    const resource = await this.#getObjectWithAction(
-      principal,
-      objectId,
-      "view",
-    );
+    const resource = await this.#objectReads.getObject(principal, objectId);
     return this.#requireType(resource, "reminder");
   }
 
@@ -391,11 +340,7 @@ export class EventPlanningObjectService {
     principal: UserPrincipal,
     objectId: string,
   ): Promise<DocumentResource> {
-    const resource = await this.#getObjectWithAction(
-      principal,
-      objectId,
-      "view",
-    );
+    const resource = await this.#objectReads.getObject(principal, objectId);
     return this.#requireType(resource, "document");
   }
 
@@ -408,7 +353,7 @@ export class EventPlanningObjectService {
     if (this.#writes.event !== undefined)
       return this.#writes.event.update(context, objectId, input);
     const current = this.#requireType(
-      await this.#getObjectWithAction(context.principal, objectId, "edit"),
+      await this.#getEditableObject(context.principal, objectId),
       "event",
     );
     const startsAt =
@@ -458,7 +403,7 @@ export class EventPlanningObjectService {
     if (this.#writes.task !== undefined)
       return this.#writes.task.update(context, objectId, input);
     const current = this.#requireType(
-      await this.#getObjectWithAction(context.principal, objectId, "edit"),
+      await this.#getEditableObject(context.principal, objectId),
       "task",
     );
     const status = input.status ?? current.status;
@@ -503,7 +448,7 @@ export class EventPlanningObjectService {
     if (this.#writes.expense !== undefined)
       return this.#writes.expense.update(context, objectId, input);
     const current = this.#requireType(
-      await this.#getObjectWithAction(context.principal, objectId, "edit"),
+      await this.#getEditableObject(context.principal, objectId),
       "expense",
     );
     const amount = input.amount ?? current.amount;
@@ -547,7 +492,7 @@ export class EventPlanningObjectService {
     if (this.#writes.reminder !== undefined)
       return this.#writes.reminder.update(context, objectId, input);
     const current = this.#requireType(
-      await this.#getObjectWithAction(context.principal, objectId, "edit"),
+      await this.#getEditableObject(context.principal, objectId),
       "reminder",
     );
     const remindAt = input.remindAt ?? current.remindAt;
@@ -860,27 +805,12 @@ export class EventPlanningObjectService {
     );
   }
 
-  async #getObjectWithAction(
+  /** The live state an edit starts from, authorized and read in one snapshot. */
+  #getEditableObject(
     principal: UserPrincipal,
     objectId: string,
-    action: AuthorizationAction,
   ): Promise<EventPlanningResource> {
-    return withReadAuthorization(
-      this.#database,
-      async (transaction, authorization) => {
-        await authorization.assertCan(principal, action, {
-          id: objectId,
-          workspaceId: principal.workspaceId,
-        });
-        const resource = await readObjectState(
-          transaction,
-          principal.workspaceId,
-          objectId,
-        );
-        if (resource.deletedAt !== null) throw new AuthorizationDeniedError();
-        return resource;
-      },
-    );
+    return readAuthorizedObject(this.#database, principal, objectId, "edit");
   }
 
   #requireType<Type extends EventPlanningResource["objectType"]>(

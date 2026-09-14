@@ -25,7 +25,7 @@ describe("event read repository boundary", () => {
     const service = new EventPlanningObjectService(
       {} as AuthorizationDatabase,
       () => new Date("2030-01-01T00:00:00.000Z"),
-      repository,
+      { events: repository },
     );
 
     await expect(service.listEvents(principal, input)).resolves.toBe(page);
