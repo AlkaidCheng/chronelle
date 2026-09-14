@@ -81,6 +81,15 @@ const reads: Record<
     dependencies.storageInventory.get(principal),
   "GET /api/objects/:id/documents": (dependencies) =>
     dependencies.documents.listAttachments(principal, objectId),
+  "GET /api/events/:id/layout": (dependencies) =>
+    dependencies.eventLayouts.get(principal, objectId),
+  "GET /api/events/:id/layout/history": (dependencies) =>
+    dependencies.eventLayouts.history(principal, objectId, { limit: 10 }),
+  "GET /api/workspaces (identity)": (dependencies) =>
+    dependencies.identity.listAccessibleWorkspaces(
+      principal.userId,
+      principal.workspaceId,
+    ),
 };
 
 describe("CloudBase read wiring", () => {

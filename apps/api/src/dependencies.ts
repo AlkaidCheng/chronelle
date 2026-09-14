@@ -14,6 +14,7 @@ import {
   CloudBaseEventReadRepository,
   CloudBaseProjectionReadRepository,
   CloudBaseEventContextWriteRepository,
+  CloudBaseEventLayoutReadRepository,
   CloudBaseEventLayoutWriteRepository,
   CloudBaseEventWriteRepository,
   CloudBaseExpenseWriteRepository,
@@ -48,6 +49,7 @@ import {
 
 import type { AuthProvider } from "./authentication/auth-provider.js";
 import { DevelopmentAuthProvider } from "./authentication/development-auth-provider.js";
+import { CloudBaseIdentityStore } from "./identity/cloudbase-identity-store.js";
 import { WorkspaceIdentityService } from "./identity/workspace-identity-service.js";
 
 export interface AppDependencies {
@@ -81,6 +83,22 @@ export interface AppDependencyOptions {
   readonly cloudBaseWrites?: boolean | undefined;
 }
 
+function cloudBaseReads(rdb: CloudBaseRdbClient) {
+  const objects = new CloudBaseObjectReadRepository(rdb);
+  return {
+    events: new CloudBaseEventReadRepository(rdb),
+    objects,
+    relations: new CloudBaseRelationReadRepository(rdb),
+    grants: new CloudBaseGrantReadRepository(rdb),
+    revisions: new CloudBaseRevisionReadRepository(rdb),
+    recovery: new CloudBaseRecoveryReadRepository(rdb),
+    commands: new CloudBaseCommandReadRepository(rdb),
+    storage: new CloudBaseStorageInventoryReadRepository(rdb),
+    transfers: new CloudBaseDocumentTransferReadRepository(rdb),
+    layouts: new CloudBaseEventLayoutReadRepository(rdb, objects),
+  };
+}
+
 export function createAppDependencies(
   connection: DatabaseConnection,
   authProvider: AuthProvider,
@@ -93,21 +111,7 @@ export function createAppDependencies(
   const reads =
     options.cloudBaseRdb === undefined
       ? undefined
-      : {
-          events: new CloudBaseEventReadRepository(options.cloudBaseRdb),
-          objects: new CloudBaseObjectReadRepository(options.cloudBaseRdb),
-          relations: new CloudBaseRelationReadRepository(options.cloudBaseRdb),
-          grants: new CloudBaseGrantReadRepository(options.cloudBaseRdb),
-          revisions: new CloudBaseRevisionReadRepository(options.cloudBaseRdb),
-          recovery: new CloudBaseRecoveryReadRepository(options.cloudBaseRdb),
-          commands: new CloudBaseCommandReadRepository(options.cloudBaseRdb),
-          storage: new CloudBaseStorageInventoryReadRepository(
-            options.cloudBaseRdb,
-          ),
-          transfers: new CloudBaseDocumentTransferReadRepository(
-            options.cloudBaseRdb,
-          ),
-        };
+      : cloudBaseReads(options.cloudBaseRdb);
   const sharing =
     options.cloudBaseRdb === undefined || options.cloudBaseWrites !== true
       ? undefined
@@ -158,7 +162,12 @@ export function createAppDependencies(
       writes: writes.transfers,
       reads: reads?.transfers,
     }),
-    identity: new WorkspaceIdentityService(connection.db),
+    identity: new WorkspaceIdentityService(
+      connection.db,
+      options.cloudBaseRdb === undefined
+        ? undefined
+        : new CloudBaseIdentityStore(options.cloudBaseRdb, options.clock),
+    ),
     objects,
     relations: new ObjectRelationService(
       connection.db,
@@ -178,7 +187,11 @@ export function createAppDependencies(
       writes.objectLifecycle,
     ),
     eventContexts: new EventContextService(connection.db, writes.eventContext),
-    eventLayouts: new EventLayoutService(connection.db, writes.eventLayout),
+    eventLayouts: new EventLayoutService(
+      connection.db,
+      writes.eventLayout,
+      reads?.layouts,
+    ),
     commands: new ReversibleCommandService(
       connection.db,
       writes.command,
