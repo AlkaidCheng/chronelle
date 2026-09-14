@@ -100,9 +100,18 @@ export interface RelationWriteRepository {
   ): Promise<ObjectRelationResource>;
 }
 
+/** The content of a historical revision selected for restoration, in serialized form. */
+export interface RevisionRestoreSource {
+  readonly revisionId: string;
+  readonly version: number;
+  readonly content: Record<string, unknown>;
+}
+
 /**
- * Object lifecycle: soft deletion under a version predicate and recovery
- * from Trash, each with its audit event and revision snapshot.
+ * Object lifecycle: soft deletion under a version predicate, recovery from
+ * Trash, and restoration of a revision's content, each with its audit event
+ * and revision snapshot. The restoration policy selects the content; the
+ * implementation applies it.
  */
 export interface ObjectLifecycleWriteRepository {
   remove(
@@ -115,6 +124,12 @@ export interface ObjectLifecycleWriteRepository {
     context: MutationContext,
     objectId: string,
     expectedVersion: number,
+  ): Promise<EventPlanningResource>;
+  restore(
+    context: MutationContext,
+    objectId: string,
+    expectedVersion: number,
+    source: RevisionRestoreSource,
   ): Promise<EventPlanningResource>;
 }
 

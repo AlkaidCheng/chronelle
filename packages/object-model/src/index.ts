@@ -29,6 +29,7 @@ export type {
   EventWriteRepository,
   ExpenseWriteRepository,
   ObjectLifecycleWriteRepository,
+  RevisionRestoreSource,
   ObjectWriteRepositories,
   ObjectWriteRepository,
   RelationWriteRepository,

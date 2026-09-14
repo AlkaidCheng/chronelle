@@ -27,6 +27,7 @@ import { and, eq, isNull, sql } from "drizzle-orm";
 
 import { InvalidObjectStateError, ObjectConflictError } from "./errors.js";
 import { readObjectState } from "./object-state.js";
+import type { ObjectLifecycleWriteRepository } from "./object-writes.js";
 import { recordObjectRevision } from "./object-revisions.js";
 import {
   compareRevisionContent,
@@ -34,7 +35,7 @@ import {
   selectRestorableContent,
 } from "./restoration-policy.js";
 import { serializeResource } from "./serialization.js";
-import type { MutationContext } from "./types.js";
+import type { EventPlanningResource, MutationContext } from "./types.js";
 
 async function readRevision(
   transaction: DatabaseTransaction,
@@ -68,11 +69,37 @@ async function readRevision(
   };
 }
 
+/** The source revision and the content the policy allows back, or the service's refusal. */
+async function selectRestoration(
+  transaction: DatabaseTransaction,
+  principal: UserPrincipal,
+  current: EventPlanningResource,
+  objectId: string,
+  version: number,
+) {
+  const source = await readRevision(transaction, principal, objectId, version);
+  if (source.snapshot.deletedAt !== null)
+    throw new InvalidObjectStateError(
+      "A deleted state cannot be restored through content history.",
+    );
+  const changes = compareRevisionContent(
+    revisionSnapshotSchema.parse(serializeResource(current)),
+    source.snapshot,
+  );
+  if (!changes.some((change) => change.restorable))
+    throw new InvalidObjectStateError(
+      "This revision has no restorable content changes.",
+    );
+  return { source, content: selectRestorableContent(source.snapshot) };
+}
+
 export class ObjectRestorationService {
   readonly #database: Database;
+  readonly #writes: ObjectLifecycleWriteRepository | undefined;
 
-  constructor(database: Database) {
+  constructor(database: Database, writes?: ObjectLifecycleWriteRepository) {
     this.#database = database;
+    this.#writes = writes;
   }
 
   async compare(
@@ -145,6 +172,39 @@ export class ObjectRestorationService {
     input: RevisionRestoreRequest,
   ) {
     const { principal } = context;
+    if (this.#writes !== undefined) {
+      // The policy runs on a read of the current state and the source
+      // revision; the function re-checks the version, so a change in between
+      // is a conflict rather than a lost update.
+      const { source, content } = await withReadAuthorization(
+        this.#database,
+        async (transaction, authorization) => {
+          await authorization.assertCan(principal, "edit", {
+            id: objectId,
+            workspaceId: principal.workspaceId,
+          });
+          const current = await readObjectState(
+            transaction,
+            principal.workspaceId,
+            objectId,
+          );
+          if (current.version !== input.expectedVersion)
+            throw new ObjectConflictError();
+          return selectRestoration(
+            transaction,
+            principal,
+            current,
+            objectId,
+            version,
+          );
+        },
+      );
+      return this.#writes.restore(context, objectId, input.expectedVersion, {
+        revisionId: source.id,
+        version,
+        content,
+      });
+    }
     return withStableAuthorization(
       this.#database,
       principal.workspaceId,
@@ -160,25 +220,13 @@ export class ObjectRestorationService {
         );
         if (current.version !== input.expectedVersion)
           throw new ObjectConflictError();
-        const source = await readRevision(
+        const { source, content } = await selectRestoration(
           transaction,
           principal,
+          current,
           objectId,
           version,
         );
-        if (source.snapshot.deletedAt !== null)
-          throw new InvalidObjectStateError(
-            "A deleted state cannot be restored through content history.",
-          );
-        const changes = compareRevisionContent(
-          revisionSnapshotSchema.parse(serializeResource(current)),
-          source.snapshot,
-        );
-        if (!changes.some((change) => change.restorable))
-          throw new InvalidObjectStateError(
-            "This revision has no restorable content changes.",
-          );
-        const content = selectRestorableContent(source.snapshot);
         const [updated] = await transaction
           .update(objects)
           .set({
