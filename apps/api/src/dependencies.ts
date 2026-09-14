@@ -22,6 +22,7 @@ import {
   CloudBaseRelationReadRepository,
   CloudBaseRelationWriteRepository,
   CloudBaseSharingWriteRepository,
+  CloudBaseStorageInventoryReadRepository,
   CloudBaseReminderWriteRepository,
   CloudBaseRevisionReadRepository,
   CloudBaseSearchReadRepository,
@@ -98,6 +99,9 @@ export function createAppDependencies(
           revisions: new CloudBaseRevisionReadRepository(options.cloudBaseRdb),
           recovery: new CloudBaseRecoveryReadRepository(options.cloudBaseRdb),
           commands: new CloudBaseCommandReadRepository(options.cloudBaseRdb),
+          storage: new CloudBaseStorageInventoryReadRepository(
+            options.cloudBaseRdb,
+          ),
         };
   const sharing =
     options.cloudBaseRdb === undefined || options.cloudBaseWrites !== true
@@ -162,6 +166,7 @@ export function createAppDependencies(
     restoration: new ObjectRestorationService(
       connection.db,
       writes.objectLifecycle,
+      reads && { objects: reads.objects, revisions: reads.revisions },
     ),
     recovery: new ObjectRecoveryService(
       connection.db,
@@ -183,6 +188,7 @@ export function createAppDependencies(
     ),
     storageInventory: new StorageInventoryService(connection.db, storage, {
       clock: options.clock,
+      reads: reads?.storage,
     }),
     shares: new ResourceGrantService(
       connection.db,

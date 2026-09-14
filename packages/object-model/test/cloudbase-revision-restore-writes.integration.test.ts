@@ -4,6 +4,8 @@ import { eq } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { CloudBaseObjectLifecycleWriteRepository } from "../src/cloudbase-object-lifecycle-write-repository.js";
+import { CloudBaseObjectReadRepository } from "../src/cloudbase-object-read-repository.js";
+import { CloudBaseRevisionReadRepository } from "../src/cloudbase-revision-read-repository.js";
 import { InvalidObjectStateError, ObjectConflictError } from "../src/errors.js";
 import { EventPlanningObjectService } from "../src/object-service.js";
 import { ObjectRecoveryService } from "../src/recovery-service.js";
@@ -16,6 +18,7 @@ import {
   shape,
   type WriteHarness,
 } from "./cloudbase-write-harness.js";
+import { liveReader } from "./cloudbase-read-double.js";
 
 // chronelle_object_restore must leave what ObjectRestorationService.restore
 // leaves: the restored content, the preserved fields, the audit event with
@@ -27,6 +30,7 @@ let objects: EventPlanningObjectService;
 let recovery: ObjectRecoveryService;
 let reference: ObjectRestorationService;
 let cloudbase: ObjectRestorationService;
+let cloudbaseReads: ObjectRestorationService;
 
 beforeAll(async () => {
   harness = await createWriteHarness("Revision restore");
@@ -34,10 +38,14 @@ beforeAll(async () => {
   objects = new EventPlanningObjectService(db);
   recovery = new ObjectRecoveryService(db);
   reference = new ObjectRestorationService(db);
-  cloudbase = new ObjectRestorationService(
-    db,
-    new CloudBaseObjectLifecycleWriteRepository(harness),
-  );
+  const writes = new CloudBaseObjectLifecycleWriteRepository(harness);
+  cloudbase = new ObjectRestorationService(db, writes);
+  // The policy's reads through the gateway adapters as well as its write.
+  const reader = liveReader(db);
+  cloudbaseReads = new ObjectRestorationService(db, writes, {
+    objects: new CloudBaseObjectReadRepository(reader),
+    revisions: new CloudBaseRevisionReadRepository(reader),
+  });
 });
 
 afterAll(async () => {
@@ -50,6 +58,7 @@ const backends = () =>
   [
     ["postgres", reference],
     ["cloudbase", cloudbase],
+    ["cloudbase reads", cloudbaseReads],
   ] as const;
 
 /** An Event at version 3, a Task at version 2, and an Expense at version 2. */
@@ -152,8 +161,9 @@ describe.sequential("CloudBase revision restore", () => {
         expenseLedger: await restoreLedger(expense.id),
       });
     }
-    const [postgres, cloud] = results;
+    const [postgres, cloud, cloudReads] = results;
     expect(cloud).toEqual(postgres);
+    expect(cloudReads).toEqual(postgres);
     expect(cloud?.event).toMatchObject({
       version: 4,
       displayName: "Launch night",
@@ -233,6 +243,7 @@ describe.sequential("CloudBase revision restore", () => {
       outcomes.push(seen);
     }
     expect(outcomes[1]).toEqual(outcomes[0]);
+    expect(outcomes[2]).toEqual(outcomes[0]);
     expect(outcomes[0]).toEqual([
       `${ObjectConflictError.name}: ${new ObjectConflictError().message}`,
       `${InvalidObjectStateError.name}: This revision has no restorable content changes.`,

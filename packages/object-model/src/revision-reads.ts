@@ -17,6 +17,8 @@ import {
 } from "@chronelle/schemas";
 import { and, desc, eq, lt } from "drizzle-orm";
 
+import { InvalidObjectStateError } from "./errors.js";
+
 export interface RevisionSummary {
   readonly id: string;
   readonly objectId: string;
@@ -62,7 +64,9 @@ export function decodeRevisionSnapshot(
   snapshot: unknown,
 ): RevisionSnapshot {
   if (snapshotSchemaVersion !== 1)
-    throw new Error("Unsupported object snapshot schema.");
+    throw new InvalidObjectStateError(
+      "The revision snapshot schema is not supported.",
+    );
   return revisionSnapshotSchema.parse(snapshot);
 }
 
