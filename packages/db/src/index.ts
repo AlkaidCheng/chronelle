@@ -16,6 +16,8 @@ export {
   type CloudBaseRdbOrder,
   type CloudBaseRdbQuery,
   CloudBaseRdbTimeoutError,
+  type CloudBaseRdbWrite,
+  type CloudBaseRdbWriteFilters,
   assertCloudBaseApiKeyFresh,
   connectCloudBaseRdb,
   createCloudBaseRdbClient,

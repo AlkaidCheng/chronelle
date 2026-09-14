@@ -23,16 +23,51 @@ export interface CloudBaseRdbOrder {
   readonly referencedTable?: string | undefined;
 }
 
+/** Filters for a write; the tuple type keeps an unfiltered update or delete unexpressible. */
+export type CloudBaseRdbWriteFilters = readonly [
+  CloudBaseRdbFilter,
+  ...CloudBaseRdbFilter[],
+];
+
+export interface CloudBaseRdbWrite {
+  readonly filters: CloudBaseRdbWriteFilters;
+  /** Columns of the affected rows to return; defaults to every column. */
+  readonly columns?: string | undefined;
+}
+
+/**
+ * Bounded HTTPS transport over the CloudBase RDB gateway. Each call is one
+ * statement: there are no transactions and no server-side functions, so a
+ * caller that needs atomicity across rows must stay on PostgreSQL. A write
+ * resolves to the rows it affected; an update or delete whose filters match
+ * nothing resolves to an empty list, which is how a version predicate reports
+ * a stale write.
+ */
 export interface CloudBaseRdbClient {
   readonly capabilities: {
     readonly transactions: false;
     readonly nativeTcp: false;
+    readonly serverFunctions: false;
   };
   select<T>(table: string, query?: CloudBaseRdbQuery): Promise<readonly T[]>;
+  insert<T>(
+    table: string,
+    rows: readonly Record<string, unknown>[],
+    options?: { readonly columns?: string | undefined },
+  ): Promise<readonly T[]>;
+  update<T>(
+    table: string,
+    values: Record<string, unknown>,
+    write: CloudBaseRdbWrite,
+  ): Promise<readonly T[]>;
+  delete<T>(table: string, write: CloudBaseRdbWrite): Promise<readonly T[]>;
 }
 
 interface RdbQuery<T> {
   select(columns?: string): RdbQuery<T>;
+  insert(rows: readonly Record<string, unknown>[]): RdbQuery<T>;
+  update(values: Record<string, unknown>): RdbQuery<T>;
+  delete(): RdbQuery<T>;
   eq(column: string, value: unknown): RdbQuery<T>;
   ilike(column: string, value: string): RdbQuery<T>;
   in(column: string, value: readonly unknown[]): RdbQuery<T>;
@@ -127,6 +162,43 @@ export function createCloudBaseRdbClient(
     capabilities: {
       transactions: false,
       nativeTcp: false,
+      serverFunctions: false,
+    },
+    async insert<T>(
+      table: string,
+      rows: readonly Record<string, unknown>[],
+      options: { readonly columns?: string | undefined } = {},
+    ) {
+      const tableName = identifierSchema.parse(table);
+      if (rows.length === 0) return [];
+      const request = app
+        .rdb()
+        .from<T>(tableName)
+        .insert(rows)
+        .select(options.columns ?? "*");
+      return awaitRows(request, requestTimeoutMs);
+    },
+    async update<T>(
+      table: string,
+      values: Record<string, unknown>,
+      write: CloudBaseRdbWrite,
+    ) {
+      const tableName = identifierSchema.parse(table);
+      const filters = validateWriteFilters(write.filters);
+      const request = applyFilters(
+        app.rdb().from<T>(tableName).update(values),
+        filters,
+      ).select(write.columns ?? "*");
+      return awaitRows(request, requestTimeoutMs);
+    },
+    async delete<T>(table: string, write: CloudBaseRdbWrite) {
+      const tableName = identifierSchema.parse(table);
+      const filters = validateWriteFilters(write.filters);
+      const request = applyFilters(
+        app.rdb().from<T>(tableName).delete(),
+        filters,
+      ).select(write.columns ?? "*");
+      return awaitRows(request, requestTimeoutMs);
     },
     async select<T>(table: string, query: CloudBaseRdbQuery = {}) {
       const tableName = identifierSchema.parse(table);
@@ -195,6 +267,15 @@ function validateFilters(
           : filter.value;
     return { ...filter, column, value };
   });
+}
+
+function validateWriteFilters(
+  filters: CloudBaseRdbWriteFilters,
+): readonly CloudBaseRdbFilter[] {
+  if (filters.length === 0) {
+    throw new Error("CloudBase RDB writes require at least one filter.");
+  }
+  return validateFilters(filters);
 }
 
 function applyFilters<T>(
