@@ -270,8 +270,10 @@
         page layouts as <code>chronelle_event_layout_update</code> and
         <code>chronelle_event_layout_restore</code> (migration 0022), and
         reversible commands as <code>chronelle_command_execute</code> and
-        <code>chronelle_command_transition</code> (migration 0023). The
-        remaining reads are next.
+        <code>chronelle_command_transition</code> (migration 0023), and every
+        read has a gateway implementation (search, the command state, and the
+        storage references as functions; the rest as read repositories).
+        Attachments and the backend mode are next.
       </aside>
 
       <aside class="invariant" aria-label="Standing constraint">
@@ -455,7 +457,7 @@
       </article>
       <article class="phase">
         <div class="phase-number">
-          STAGE 07 <span class="status next">In progress</span>
+          STAGE 07 <span class="status done">Done</span>
         </div>
         <div>
           <h3>Remaining reads</h3>
@@ -482,15 +484,16 @@
               version checks: done (migration 0024).
             </li>
             <li>
-              Remaining: the revision comparison and restoration preview, and
-              the storage inventory reads.
+              The revision comparison and restoration preview through the object
+              and revision adapters, and the storage inventory's references as a
+              read function: done (migration 0025).
             </li>
           </ul>
         </div>
       </article>
       <article class="phase">
         <div class="phase-number">
-          STAGE 08 <span class="status planned">Planned</span>
+          STAGE 08 <span class="status next">Next</span>
         </div>
         <div>
           <h3>Attachments, backend mode, and operations</h3>
@@ -638,18 +641,19 @@
             <td>Search and remaining reads</td>
             <td>
               <code>chronelle_object_search</code>,
-              <code>chronelle_command_state</code>, read repositories
+              <code>chronelle_command_state</code>,
+              <code>chronelle_storage_references</code>, read repositories
             </td>
-            <td>0021, 0024</td>
+            <td>0021, 0024, 0025</td>
             <td>Differential read tests; staging read probes</td>
-            <td><span class="status next">In progress</span></td>
+            <td><span class="status done">Done</span></td>
           </tr>
           <tr>
             <td>Attachments</td>
             <td>Storage provider integration</td>
             <td>None</td>
             <td>Attachment security suites</td>
-            <td><span class="status planned">Planned</span></td>
+            <td><span class="status next">Next</span></td>
           </tr>
         </tbody>
       </table>

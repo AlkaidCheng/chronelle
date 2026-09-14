@@ -432,6 +432,24 @@ the redo head, a new command, an untracked edit leaving the undo head
 unavailable, a command that starts the undo list over, deletion of the
 head's object, and a non-member) and compares both backends.
 
+**Restoration reads and storage references:** the revision comparison and
+the restoration preview read through the object and revision read
+repositories when `ObjectRestorationService` receives them, and the policy
+read that precedes a repository restore does the same, so both backends
+share one comparison, preview, and content selection; no new function is
+needed. Migration 0025 adds `chronelle_storage_references`, a read-only
+function returning the storage keys of a workspace's live documents, the
+keys named by its document revision snapshots, and its upload transfers with
+whether each can still finalize, each set capped at one more than the
+inventory bound; `StorageInventoryReadRepository` carries that read and the
+workspace Owner check, the classification against the provider stays in the
+application, and `StorageInventoryService` still lists the storage provider
+itself. The differential tests compare the comparison and preview for an
+Owner and a grant-only viewer (including a deleted source revision and an
+unsupported snapshot schema), the restore through the read adapters, and the
+reference classification for one provider with its refusals (non-Owners, an
+oversized set, an unreadable document revision).
+
 ### Phase 4 — Cross-object mutations and recovery
 
 Do not emulate transactions with optimistic hope. For relations, shares,
@@ -491,11 +509,11 @@ PostgreSQL adapter.
 
 ## Recommended next PR
 
-Put the remaining PostgreSQL-only reads behind read repositories with
-CloudBase adapters: the revision comparison and restoration preview of
-`ObjectRestorationService` and the storage inventory of
-`StorageInventoryService`, each with a differential test, so every `GET`
-route has a gateway implementation before stage 08 removes `DATABASE_URL`.
+Begin stage 08 with the attachment path: put the document upload
+authorization, finalization, and download authorization of
+`DocumentService` behind a write boundary whose CloudBase implementation
+runs the transfer and document records as functions, with the storage
+provider unchanged, each proven by a differential test.
 
 ### R1 operator checklist
 
