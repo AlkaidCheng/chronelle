@@ -109,6 +109,89 @@ No data changes: both backends write the same rows through the same
 functions or the same transactional code, and the functions stay installed
 and unused. A rollback can be reversed the same way.
 
+## Host the application on CloudBase Run (yun tuo guan)
+
+The same environment can host both containers as CloudBase Run services,
+built by the platform from this repository's Dockerfiles. This is a
+trusted-preview deployment until the public launch gate in
+[deployment.md](deployment.md) is met: development sign-in remains the only
+identity provider, so keep the web service's address private.
+
+### Before creating services
+
+1. Enable CloudBase Run for the environment in the console (Cloud
+   Functions / Hosting, then Cloud Run, then enable). Enabling accepts the
+   service terms and the pay-as-you-go pricing for the environment; it is an
+   account decision, not an application setting.
+2. Create a server API key for the deployment (Environment, then API Key):
+   the key is a JWT with an expiry; note the date and rotate the key in the
+   API service's settings before it, or the API refuses to start.
+3. Decide where attachments live. A CloudBase Run container's filesystem is
+   discarded on restart, so `DOCUMENT_STORAGE_PROVIDER=local-filesystem`
+   loses uploads; use `tencent-cos` with a private bucket and least-privilege
+   credentials as described in [storage.md](storage.md), or accept
+   ephemeral attachments for a smoke deployment.
+4. Confirm the prerequisites above: migrations through 0029 applied, the
+   baseline captured, the contract harnesses passing.
+
+### Service: chronelle-api
+
+| Setting                        | Value                                                                                                                                                                                      |
+| ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Source                         | This repository; Dockerfile `apps/api/Dockerfile`; build context the repository root                                                                                                       |
+| Port                           | `4000`                                                                                                                                                                                     |
+| Health check                   | `GET /api/health`                                                                                                                                                                          |
+| Access                         | Internal only: the web service forwards `/api` to it, including document transfer URLs                                                                                                     |
+| Instances                      | At least one warm instance; the readiness call and the SDK client make a cold start noticeable                                                                                             |
+| `CHRONELLE_BACKEND`            | `cloudbase`                                                                                                                                                                                |
+| `CLOUDBASE_ENV_ID`             | The environment id                                                                                                                                                                         |
+| `CLOUDBASE_APIKEY`             | The server API key (a secret; set it as a protected variable, never in the image)                                                                                                          |
+| `ENABLE_DEVELOPMENT_AUTH`      | `true` until a production identity adapter exists                                                                                                                                          |
+| `API_HOST`, `API_PORT`         | `0.0.0.0`, `4000`                                                                                                                                                                          |
+| `DOCUMENT_STORAGE_PROVIDER`    | `tencent-cos` with `COS_BUCKET`, `COS_REGION`, `COS_SECRET_ID`, `COS_SECRET_KEY` (secrets), or `local-filesystem` with `LOCAL_STORAGE_ROOT=/app/.chronelle/storage` for a smoke deployment |
+| `CLOUDBASE_REQUEST_TIMEOUT_MS` | Optional; 30000 by default                                                                                                                                                                 |
+
+Do not set `DATABASE_URL`, `CLOUDBASE_READS_ENABLED`, or
+`CLOUDBASE_WRITES_ENABLED`: the CloudBase backend ignores the first and
+implies the other two. After the first deployment, the service log must show
+`Chronelle backend selected` with `backend: "cloudbase"` followed by
+`Server listening`; a `startup_failed` line names what to fix (see above).
+
+### Service: chronelle-web
+
+| Setting            | Value                                                                                                     |
+| ------------------ | --------------------------------------------------------------------------------------------------------- |
+| Source             | This repository; Dockerfile `apps/web/Dockerfile`; build context the repository root                      |
+| Port               | `3000`                                                                                                    |
+| Health check       | `GET /sign-in`                                                                                            |
+| Access             | The address users open; restrict it (allowed IPs or an access layer) while development sign-in is enabled |
+| `API_INTERNAL_URL` | The API service's internal address (scheme, host, and port), with no path                                 |
+| `NODE_ENV`         | `production` (set by the image)                                                                           |
+
+The web service is the only public entry point: it stamps the script CSP
+nonce, forwards `/api` to the API service, and serves the document transfer
+URLs the API issues, which are relative to its own origin.
+
+### Verify a deployment
+
+1. Open the web address, sign in with a development identity, create an
+   Event, edit it, undo the edit, upload an attachment, download it, delete
+   the Event, and find it in Trash. Each step exercises a different function
+   family through the gateway.
+2. Read the API service log: every gateway request appears as a `cloudbase`
+   event; a stale edit produces `outcome: "rejected"` with
+   `code: "DATABASE_PT409"`, and no `timeout` or `failed` outcomes should
+   appear under normal use.
+3. Stop and restart the API service: it must pass readiness and listen again
+   without any manual step.
+
+### Roll back
+
+Stop or delete both services. Nothing else changes: the data stays in the
+environment's PostgreSQL, the functions stay installed, and the same database
+serves a PostgreSQL-backend deployment through `CHRONELLE_BACKEND=postgres`
+and a `DATABASE_URL` wherever a TCP route exists.
+
 ## Apply a new migration
 
 Migrations are immutable files applied in order on both backends. For the
