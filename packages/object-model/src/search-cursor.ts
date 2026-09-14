@@ -9,7 +9,8 @@ import { InvalidObjectStateError } from "./errors.js";
 import { decodeCursor, encodeCursor } from "./cursor.js";
 import type { ObjectSearchInput } from "./types.js";
 
-type SearchPosition = Pick<
+/** The keyset position of one match: rank, then updated_at at microsecond precision, then id. */
+export type SearchPosition = Pick<
   ObjectSearchCursorPayload,
   "id" | "rank" | "updatedAt"
 >;
@@ -46,7 +47,11 @@ export function decodeSearchCursor(
       payload.query === input.query.trim() &&
       payload.objectType === (input.objectType ?? null)
     )
-      return payload;
+      return {
+        id: payload.id,
+        rank: payload.rank,
+        updatedAt: payload.updatedAt,
+      };
   } catch {
     // Treat malformed encodings and envelopes as the same invalid position.
   }

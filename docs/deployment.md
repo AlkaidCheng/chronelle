@@ -102,8 +102,10 @@ existing `connectDatabase(DATABASE_URL)` Drizzle/PostgreSQL adapter remains the
 runtime default and is intentionally unchanged.
 
 After the read-contract harness passes against staging, set
-`CLOUDBASE_READS_ENABLED=true` to opt the API's event-list and calendar reads
-into the CloudBase repositories. `DATABASE_URL` remains required: object
+`CLOUDBASE_READS_ENABLED=true` to opt the API's event-list, calendar, and
+search reads into the CloudBase repositories; search calls
+`chronelle_object_search` of migration 0021 through the gateway's rpc route,
+so that migration must be applied first. `DATABASE_URL` remains required: object
 mutations, detail hydration, audit writes, recovery, sharing, and all
 transaction-heavy services continue to use PostgreSQL. The flag is disabled by
 default and must never be enabled solely because the SDK connection probe

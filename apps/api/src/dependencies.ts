@@ -15,6 +15,7 @@ import {
   CloudBaseRelationWriteRepository,
   CloudBaseSharingWriteRepository,
   CloudBaseReminderWriteRepository,
+  CloudBaseSearchReadRepository,
   CloudBaseTaskWriteRepository,
   DocumentService,
   EventPlanningObjectService,
@@ -143,7 +144,12 @@ export function createAppDependencies(
     eventContexts: new EventContextService(connection.db, writes.eventContext),
     eventLayouts: new EventLayoutService(connection.db),
     commands: new ReversibleCommandService(connection.db),
-    search: new CanonicalObjectSearchService(connection.db),
+    search: new CanonicalObjectSearchService(
+      connection.db,
+      options.cloudBaseRdb === undefined
+        ? undefined
+        : new CloudBaseSearchReadRepository(options.cloudBaseRdb),
+    ),
     storageInventory: new StorageInventoryService(connection.db, storage, {
       clock: options.clock,
     }),
