@@ -134,11 +134,49 @@ identity provider, so keep the web service's address private.
 4. Confirm the prerequisites above: migrations through 0029 applied, the
    baseline captured, the contract harnesses passing.
 
+### Deployment repository
+
+CloudBase Run reads the source through a GitHub authorization that covers
+every repository the authorizing account can reach, and a collaborator on a
+user-owned repository always receives write access. Give the platform its own
+repository instead of the development one:
+
+1. A dedicated GitHub account used for nothing else (two-factor
+   authentication on, no other repositories, not a collaborator on the
+   development repository) owns a private repository of the same name. Create
+   it empty rather than forking: a fork of a public repository cannot be made
+   private.
+2. Register a deploy key on that repository with write access. The key is
+   scoped to the one repository and revoked from its settings; keep the
+   private key outside the working tree.
+3. Add the repository as a second remote of the development clone, pushing
+   only `main` and offering only the deploy key. When the development remote
+   uses HTTPS, the clone's SSH command can be bound to the key directly;
+   otherwise use an SSH host alias with the same options:
+
+   ```bash
+   git remote add deploy git@github.com:<deployment-account>/chronelle.git
+   git config remote.deploy.push refs/heads/main:refs/heads/main
+   git config core.sshCommand "ssh -i <deploy-key> -o IdentitiesOnly=yes"
+   ```
+
+4. Disable Actions and Dependabot on the deployment repository: the checks
+   already ran on the development repository, and nothing is edited on the
+   deployment repository directly.
+5. Authorize CloudBase Run from the deployment account only, so the grant
+   never covers the development account, and select the deployment
+   repository's `main` when creating the services below.
+
+A release is a fast-forward push of a green `main`: `git push deploy`. The
+deployment repository never diverges, so the push never needs a merge, and
+automatic deployment on push can be enabled once the procedure is trusted,
+because pushing there is the release decision itself.
+
 ### Service: chronelle-api
 
 | Setting                        | Value                                                                                                                                                                                      |
 | ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Source                         | This repository; Dockerfile `apps/api/Dockerfile`; build context the repository root                                                                                                       |
+| Source                         | The deployment repository's `main`; Dockerfile `apps/api/Dockerfile`; build context the repository root                                                                                    |
 | Port                           | `4000`                                                                                                                                                                                     |
 | Health check                   | `GET /api/health`                                                                                                                                                                          |
 | Access                         | Internal only: the web service forwards `/api` to it, including document transfer URLs                                                                                                     |
@@ -161,7 +199,7 @@ implies the other two. After the first deployment, the service log must show
 
 | Setting            | Value                                                                                                     |
 | ------------------ | --------------------------------------------------------------------------------------------------------- |
-| Source             | This repository; Dockerfile `apps/web/Dockerfile`; build context the repository root                      |
+| Source             | The deployment repository's `main`; Dockerfile `apps/web/Dockerfile`; build context the repository root   |
 | Port               | `3000`                                                                                                    |
 | Health check       | `GET /sign-in`                                                                                            |
 | Access             | The address users open; restrict it (allowed IPs or an access layer) while development sign-in is enabled |
