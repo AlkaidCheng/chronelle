@@ -9,6 +9,7 @@ import {
   CloudBaseCalendarReadRepository,
   CloudBaseEventReadRepository,
   CloudBaseEventContextWriteRepository,
+  CloudBaseEventLayoutWriteRepository,
   CloudBaseEventWriteRepository,
   CloudBaseExpenseWriteRepository,
   CloudBaseObjectLifecycleWriteRepository,
@@ -98,6 +99,9 @@ export function createAppDependencies(
           eventContext: new CloudBaseEventContextWriteRepository(
             options.cloudBaseRdb,
           ),
+          eventLayout: new CloudBaseEventLayoutWriteRepository(
+            options.cloudBaseRdb,
+          ),
           relation: new CloudBaseRelationWriteRepository(options.cloudBaseRdb),
           objectLifecycle: new CloudBaseObjectLifecycleWriteRepository(
             options.cloudBaseRdb,
@@ -142,7 +146,7 @@ export function createAppDependencies(
     ),
     recovery: new ObjectRecoveryService(connection.db, writes.objectLifecycle),
     eventContexts: new EventContextService(connection.db, writes.eventContext),
-    eventLayouts: new EventLayoutService(connection.db),
+    eventLayouts: new EventLayoutService(connection.db, writes.eventLayout),
     commands: new ReversibleCommandService(connection.db),
     search: new CanonicalObjectSearchService(
       connection.db,
