@@ -48,6 +48,6 @@ describe("assertCloudBaseBackendReady", () => {
             new CloudBaseRpcError(404, "PGRST202", "function not found"),
           ),
       }),
-    ).rejects.toThrow("apply the migrations through 0028 first");
+    ).rejects.toThrow("apply the migrations through 0029 first");
   });
 });

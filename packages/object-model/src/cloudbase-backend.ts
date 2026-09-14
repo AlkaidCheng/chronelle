@@ -7,6 +7,7 @@ import type { CloudBaseRdbClient } from "@chronelle/db";
  */
 export const cloudBaseObjectModelFunctions: readonly string[] = [
   "chronelle_backend_readiness",
+  "chronelle_revision_baseline",
   "chronelle_event_create",
   "chronelle_event_update",
   "chronelle_task_create",
@@ -58,7 +59,7 @@ export async function assertCloudBaseBackendReady(
     readiness = await client.rpc("chronelle_backend_readiness", {});
   } catch (error) {
     throw new CloudBaseBackendNotReadyError(
-      `chronelle_backend_readiness is not callable; apply the migrations through 0028 first (${
+      `chronelle_backend_readiness is not callable; apply the migrations through 0029 first (${
         error instanceof Error ? error.message : String(error)
       }).`,
     );
@@ -80,7 +81,7 @@ export async function assertCloudBaseBackendReady(
   }
   if (record.objectsWithoutBaseline !== 0) {
     throw new CloudBaseBackendNotReadyError(
-      "Object revision baseline is missing; run db:baseline-revisions before starting the API.",
+      "Object revision baseline is missing; run cloudbase:baseline (or db:baseline-revisions through PostgreSQL) before starting the API.",
     );
   }
 }
