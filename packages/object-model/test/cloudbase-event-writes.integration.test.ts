@@ -1,24 +1,5 @@
-import { resolve } from "node:path";
-
 import { AuthorizationDeniedError } from "@chronelle/authorization";
-import {
-  auditEvents,
-  CloudBaseRpcError,
-  createId,
-  events,
-  objectRevisions,
-  objects,
-  resourceGrants,
-  users,
-  workspaceMembers,
-  workspaces,
-} from "@chronelle/db";
-import {
-  applyMigrations,
-  createTestDatabase,
-  type TestDatabase,
-} from "@chronelle/db/testing";
-import { and, eq } from "drizzle-orm";
+import { createId, events, objects, resourceGrants } from "@chronelle/db";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { CloudBaseEventWriteRepository } from "../src/cloudbase-event-write-repository.js";
@@ -27,177 +8,48 @@ import { EventPlanningObjectService } from "../src/object-service.js";
 import type {
   CreateEventInput,
   EventResource,
-  MutationContext,
   UpdateEventInput,
 } from "../src/types.js";
+import {
+  backends,
+  createWriteHarness,
+  failure,
+  ledger,
+  mutationContext,
+  shape,
+  type WriteHarness,
+} from "./cloudbase-write-harness.js";
 
-// The Event write functions of migration 0012 must produce what the
-// PostgreSQL service produces. Both backends run against one database here;
-// the gateway transport is covered by the rpc contract harness on staging.
+// The Event write functions must produce what the PostgreSQL service
+// produces. Both backends run against one database here.
 
-let database: TestDatabase;
-let workspaceId: string;
-let ownerId: string;
-let viewerId: string;
+let harness: WriteHarness;
 let reference: EventPlanningObjectService;
 let cloudbase: EventPlanningObjectService;
 
-const gatewayStatus: Record<string, number> = {
-  PT403: 403,
-  PT409: 409,
-  PT422: 422,
-  PT500: 500,
-};
-
 beforeAll(async () => {
-  database = await createTestDatabase();
-  await applyMigrations(
-    { DATABASE_URL: database.databaseUrl },
-    resolve(import.meta.dirname, "../../../infrastructure/migrations"),
-  );
-  const db = database.connection.db;
-  const sql = database.connection.sql;
-  ownerId = createId();
-  viewerId = createId();
-  workspaceId = createId();
-  await db.insert(users).values(
-    [ownerId, viewerId].map((id) => ({
-      id,
-      identityProvider: "test",
-      providerSubject: id,
-      displayName: "Write principal",
-    })),
-  );
-  await db.insert(workspaces).values({
-    id: workspaceId,
-    createdBy: ownerId,
-    displayName: "Event writes",
-  });
-  await db.insert(workspaceMembers).values({
-    workspaceId,
-    userId: ownerId,
-    role: "owner",
-  });
-
-  // Executes the function locally with the gateway's error shape.
-  const localRpc = {
-    async rpc<T>(functionName: string, args: Record<string, unknown> = {}) {
-      const names = Object.keys(args);
-      // Objects travel as JSON text, which PostgreSQL casts to the jsonb parameter.
-      const values = Object.values(args).map((value) =>
-        value !== null && typeof value === "object"
-          ? JSON.stringify(value)
-          : value,
-      );
-      try {
-        const [row] = await sql.unsafe<{ result: T }[]>(
-          `SELECT ${functionName}(${names
-            .map((name, index) => `${name} => $${index + 1}`)
-            .join(", ")}) AS result`,
-          values as never[],
-        );
-        return row?.result as T;
-      } catch (error) {
-        const failure = error as { code?: string; message?: string };
-        const code = failure.code ?? "unknown";
-        throw new CloudBaseRpcError(
-          gatewayStatus[code] ?? 400,
-          `DATABASE_${code}`,
-          failure.message ?? "function failed",
-        );
-      }
-    },
-  };
+  harness = await createWriteHarness("Event writes");
+  const db = harness.database.connection.db;
   reference = new EventPlanningObjectService(db);
-  cloudbase = new EventPlanningObjectService(
-    db,
-    undefined,
-    undefined,
-    new CloudBaseEventWriteRepository(localRpc),
-  );
+  cloudbase = new EventPlanningObjectService(db, undefined, undefined, {
+    event: new CloudBaseEventWriteRepository(harness),
+  });
 });
 
 afterAll(async () => {
-  await database?.close();
+  await harness?.database.close();
 });
 
-const backends = () =>
-  [
-    ["postgres", reference],
-    ["cloudbase", cloudbase],
-  ] as const;
-
-function context(userId = ownerId, command?: MutationContext["command"]) {
-  return {
-    principal: { type: "user" as const, userId, workspaceId },
-    requestId: createId(),
-    ...(command !== undefined && { command }),
-  };
-}
-
-/** Everything but identity and clock fields; scope is compared as "owns its scope". */
-function shape(resource: EventResource) {
-  const { id, createdAt, updatedAt, permissionScopeId, ...rest } = resource;
-  return {
-    ...rest,
-    ownsScope: permissionScopeId === id,
-    clockFields: [createdAt, updatedAt].every(
-      (value) => value instanceof Date && Number.isFinite(value.getTime()),
-    ),
-  };
-}
-
-async function ledger(objectId: string) {
-  const rows = await database.connection.db
-    .select({
-      snapshot: objectRevisions.snapshot,
-      mutationKind: objectRevisions.mutationKind,
-      action: auditEvents.action,
-      metadata: auditEvents.metadata,
-    })
-    .from(objectRevisions)
-    .innerJoin(auditEvents, eq(auditEvents.id, objectRevisions.auditEventId))
-    .where(
-      and(
-        eq(objectRevisions.workspaceId, workspaceId),
-        eq(objectRevisions.objectId, objectId),
-      ),
-    )
-    .orderBy(objectRevisions.objectVersion);
-  return rows.map(({ snapshot, metadata, ...entry }) => {
-    const { id, createdAt, updatedAt, permissionScopeId, ...fields } =
-      snapshot as Record<string, unknown>;
-    const { permissionScopeId: scope, ...auditMetadata } = metadata as Record<
-      string,
-      unknown
-    >;
-    return {
-      ...entry,
-      snapshot: fields,
-      snapshotOwnsScope: permissionScopeId === id,
-      snapshotClockFields: [createdAt, updatedAt].every(
-        (value) => typeof value === "string" && /\.\d{3}Z$/u.test(value),
-      ),
-      metadata: auditMetadata,
-      metadataScopeMatches: scope === undefined || scope === id,
-    };
-  });
-}
-
-async function failure(run: () => Promise<unknown>) {
-  try {
-    await run();
-  } catch (error) {
-    return error as Error;
-  }
-  throw new Error("expected the operation to fail");
-}
+const context = (
+  userId?: string,
+  command?: Parameters<typeof mutationContext>[2],
+) => mutationContext(harness, userId, command);
 
 describe.sequential("CloudBase Event writes", () => {
   it("create and update leave the same resource, audit, and revision rows", async () => {
     const created: EventResource[] = [];
     const updated: EventResource[] = [];
-    for (const [, service] of backends()) {
+    for (const [, service] of backends(reference, cloudbase)) {
       const parent = await service.createEvent(context(), {
         displayName: "Launch night",
         startsAt: new Date("2030-10-16T18:00:00.000Z"),
@@ -217,7 +69,7 @@ describe.sequential("CloudBase Event writes", () => {
       created.push(parent, child);
       updated.push(
         await service.updateEvent(
-          context(ownerId, {
+          context(harness.ownerId, {
             id: "command-1",
             operationId: "operation-1",
             direction: "execute",
@@ -253,13 +105,15 @@ describe.sequential("CloudBase Event writes", () => {
     expect(cbUpdated?.startsOn).toBe("2030-10-17");
     expect(cbUpdated?.startsAt).toBeNull();
 
-    expect(await ledger((cbParent as EventResource).id)).toEqual(
-      await ledger((pgParent as EventResource).id),
+    expect(await ledger(harness, (cbParent as EventResource).id)).toEqual(
+      await ledger(harness, (pgParent as EventResource).id),
     );
-    expect(await ledger((cbChild as EventResource).id)).toEqual(
-      await ledger((pgChild as EventResource).id),
+    expect(await ledger(harness, (cbChild as EventResource).id)).toEqual(
+      await ledger(harness, (pgChild as EventResource).id),
     );
-    expect(await ledger((cbParent as EventResource).id)).toHaveLength(2);
+    expect(await ledger(harness, (cbParent as EventResource).id)).toHaveLength(
+      2,
+    );
   });
 
   it("reject the same inputs with the same errors", async () => {
@@ -286,7 +140,7 @@ describe.sequential("CloudBase Event writes", () => {
     ];
 
     const outcomes: string[][] = [];
-    for (const [, service] of backends()) {
+    for (const [, service] of backends(reference, cloudbase)) {
       const seen: string[] = [];
       for (const input of invalidCreates) {
         const error = await failure(() =>
@@ -320,7 +174,7 @@ describe.sequential("CloudBase Event writes", () => {
       ).toBeInstanceOf(ObjectConflictError);
       expect(
         await failure(() =>
-          service.updateEvent(context(viewerId), timed.id, {
+          service.updateEvent(context(harness.viewerId), timed.id, {
             expectedVersion: 1,
             displayName: "forbidden",
           }),
@@ -336,23 +190,26 @@ describe.sequential("CloudBase Event writes", () => {
       ).toBeInstanceOf(AuthorizationDeniedError);
       expect(
         await failure(() =>
-          service.createEvent(context(viewerId), { displayName: "denied" }),
+          service.createEvent(context(harness.viewerId), {
+            displayName: "denied",
+          }),
         ),
       ).toBeInstanceOf(AuthorizationDeniedError);
-      expect(await ledger(timed.id)).toHaveLength(1);
+      expect(await ledger(harness, timed.id)).toHaveLength(1);
 
-      await database.connection.db.insert(resourceGrants).values({
+      await harness.database.connection.db.insert(resourceGrants).values({
         id: createId(),
-        workspaceId,
+        workspaceId: harness.workspaceId,
         resourceId: timed.id,
-        principalId: viewerId,
+        principalId: harness.viewerId,
         role: "editor",
-        grantedBy: ownerId,
+        grantedBy: harness.ownerId,
       });
-      const byGrantee = await service.updateEvent(context(viewerId), timed.id, {
-        expectedVersion: 1,
-        displayName: "by grantee",
-      });
+      const byGrantee = await service.updateEvent(
+        context(harness.viewerId),
+        timed.id,
+        { expectedVersion: 1, displayName: "by grantee" },
+      );
       expect(byGrantee.version).toBe(2);
       outcomes.push(seen);
     }
@@ -364,19 +221,19 @@ describe.sequential("CloudBase Event writes", () => {
 
   it("refuse to update an object without a revision baseline", async () => {
     const messages: string[] = [];
-    for (const [, service] of backends()) {
+    for (const [, service] of backends(reference, cloudbase)) {
       const legacyId = createId();
-      await database.connection.db.insert(objects).values({
+      await harness.database.connection.db.insert(objects).values({
         id: legacyId,
-        workspaceId,
+        workspaceId: harness.workspaceId,
         permissionScopeId: legacyId,
         objectType: "event",
         displayName: "Legacy",
-        createdBy: ownerId,
+        createdBy: harness.ownerId,
       });
-      await database.connection.db.insert(events).values({
+      await harness.database.connection.db.insert(events).values({
         objectId: legacyId,
-        workspaceId,
+        workspaceId: harness.workspaceId,
       });
       const error = await failure(() =>
         service.updateEvent(context(), legacyId, {

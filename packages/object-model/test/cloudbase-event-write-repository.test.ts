@@ -44,7 +44,7 @@ describe("CloudBaseEventWriteRepository", () => {
     const rpc = vi.fn().mockResolvedValue(rows);
     const repository = new CloudBaseEventWriteRepository({ rpc });
 
-    const resource = await repository.createEvent(context, {
+    const resource = await repository.create(context, {
       displayName: "Launch",
       startsAt: new Date("2030-10-16T18:00:00.000Z"),
       endsAt: null,
@@ -83,7 +83,7 @@ describe("CloudBaseEventWriteRepository", () => {
       direction: "undo" as const,
     };
 
-    await repository.updateEvent({ ...context, command }, objectId, {
+    await repository.update({ ...context, command }, objectId, {
       expectedVersion: 1,
       startsAt: null,
       startsOn: "2030-10-17",
@@ -114,8 +114,11 @@ describe("CloudBaseEventWriteRepository", () => {
     const repository = new CloudBaseEventWriteRepository({ rpc });
 
     const error = await repository
-      .updateEvent(context, objectId, { expectedVersion: 1 })
-      .catch((failure) => failure);
+      .update(context, objectId, { expectedVersion: 1 })
+      .then(() => {
+        throw new Error("expected a rejection");
+      })
+      .catch((failure: Error) => failure);
     expect(error).toBeInstanceOf(expected);
     if (expected === InvalidObjectStateError)
       expect(error.message).toBe("endsAt requires startsAt.");
@@ -127,14 +130,14 @@ describe("CloudBaseEventWriteRepository", () => {
       rpc: vi.fn().mockRejectedValue(gateway),
     });
     await expect(
-      failing.updateEvent(context, objectId, { expectedVersion: 1 }),
+      failing.update(context, objectId, { expectedVersion: 1 }),
     ).rejects.toBe(gateway);
 
     const malformed = new CloudBaseEventWriteRepository({
       rpc: vi.fn().mockResolvedValue({ object: rows.object }),
     });
     await expect(
-      malformed.createEvent(context, { displayName: "x" }),
+      malformed.create(context, { displayName: "x" }),
     ).rejects.toThrow("invalid event");
   });
 });
