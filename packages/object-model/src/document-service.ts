@@ -5,7 +5,6 @@ import {
   withStableAuthorization,
   withReadAuthorization,
   type AuthorizationAction,
-  type AuthorizationService,
   type UserPrincipal,
 } from "@chronelle/authorization";
 import {
@@ -26,6 +25,13 @@ import {
 } from "@chronelle/storage";
 import { and, eq, gt, isNull } from "drizzle-orm";
 
+import {
+  PostgresDocumentTransferReadRepository,
+  type DocumentTransferAuthorization,
+  type DocumentTransferOperation,
+  type DocumentTransferReadRepository,
+  type DocumentTransferWriteRepository,
+} from "./document-transfers.js";
 import {
   DocumentTransferUnavailableError,
   InvalidDocumentUploadError,
@@ -69,32 +75,84 @@ function isAttachmentParent(resource: EventPlanningResource): boolean {
   return attachmentParentTypes.has(resource.objectType);
 }
 
+/** Visible attachments newest first, and how many relations the principal cannot see. */
+function attachmentList(
+  relations: readonly {
+    readonly documentId: string;
+    readonly relationId: string;
+    readonly relationVersion: number;
+  }[],
+  resources: readonly EventPlanningResource[],
+): DocumentAttachmentList {
+  const documentsById = new Map(
+    resources.map((resource) => [resource.id, resource]),
+  );
+  const visible = relations
+    .flatMap(
+      ({
+        documentId,
+        relationId,
+        relationVersion,
+      }): DocumentAttachmentResource[] => {
+        const document = documentsById.get(documentId);
+        return document?.objectType === "document"
+          ? [{ document, relationId, relationVersion }]
+          : [];
+      },
+    )
+    .sort(
+      (first, second) =>
+        second.document.createdAt.getTime() -
+          first.document.createdAt.getTime() ||
+        first.document.id.localeCompare(second.document.id),
+    );
+  return {
+    items: visible,
+    lockedAttachmentCount: relations.length - visible.length,
+  };
+}
+
 export interface DocumentServiceOptions {
   readonly clock?: (() => Date) | undefined;
   readonly transferTtlMs?: number | undefined;
+  /** The transfer rows and the attachment records; PostgreSQL when absent. */
+  readonly writes?: DocumentTransferWriteRepository | undefined;
+  /** The transfer lookups and attachment relations; PostgreSQL when absent. */
+  readonly reads?: DocumentTransferReadRepository | undefined;
 }
 
+/**
+ * Attachments: signed uploads and downloads against the storage provider,
+ * with every row DocumentService writes around them recorded in one
+ * transaction. The PostgreSQL implementation is this class's own
+ * transactional code, used whenever no write repository is injected; the
+ * object service supplies the authorization decisions.
+ */
 export class DocumentService {
-  readonly #authorization: AuthorizationService;
   readonly #clock: () => Date;
   readonly #database: Database;
   readonly #objects: EventPlanningObjectService;
   readonly #storage: StorageProvider;
   readonly #transferTtlMs: number;
+  readonly #writes: DocumentTransferWriteRepository | undefined;
+  readonly #reads: DocumentTransferReadRepository | undefined;
+  readonly #transfers: DocumentTransferReadRepository;
 
   constructor(
     database: Database,
-    authorization: AuthorizationService,
     objectsService: EventPlanningObjectService,
     storage: StorageProvider,
     options: DocumentServiceOptions = {},
   ) {
     this.#database = database;
-    this.#authorization = authorization;
     this.#objects = objectsService;
     this.#storage = storage;
     this.#clock = options.clock ?? (() => new Date());
     this.#transferTtlMs = options.transferTtlMs ?? 5 * 60_000;
+    this.#writes = options.writes;
+    this.#reads = options.reads;
+    this.#transfers =
+      options.reads ?? new PostgresDocumentTransferReadRepository(database);
   }
 
   async authorizeUpload(
@@ -121,49 +179,106 @@ export class DocumentService {
       storageKey,
     });
 
+    await this.#authorizeTransfer(context, "edit", {
+      id,
+      operation: "upload",
+      tokenHash: hashCredential(credential),
+      resourceId: input.parentObjectId,
+      storageProvider: this.#storage.providerId,
+      storageKey,
+      originalFilename: input.originalFilename,
+      mimeType: input.mimeType,
+      sizeBytes: BigInt(input.sizeBytes),
+      checksumSha256: input.checksumSha256,
+      createdAt,
+      expiresAt,
+    });
+
+    return { id, upload: { ...upload, method: "PUT" } };
+  }
+
+  /** Records a transfer after re-checking the action on its resource, with its audit event. */
+  async #authorizeTransfer(
+    context: MutationContext,
+    action: AuthorizationAction,
+    transfer: DocumentTransferAuthorization,
+  ): Promise<void> {
+    if (this.#writes !== undefined)
+      return this.#writes.authorize(context, transfer);
     await withStableAuthorization(
       this.#database,
       context.principal.workspaceId,
       async (transaction, authorization) => {
-        await authorization.assertCan(context.principal, "edit", {
-          id: input.parentObjectId,
+        await authorization.assertCan(context.principal, action, {
+          id: transfer.resourceId,
           workspaceId: context.principal.workspaceId,
         });
         return runAuditedMutation(transaction, async (transaction) => {
           await transaction.insert(documentTransferAuthorizations).values({
-            id,
+            ...transfer,
             workspaceId: context.principal.workspaceId,
-            operation: "upload",
-            tokenHash: hashCredential(credential),
-            resourceId: input.parentObjectId,
-            storageProvider: this.#storage.providerId,
-            storageKey,
-            originalFilename: input.originalFilename,
-            mimeType: input.mimeType,
-            sizeBytes: BigInt(input.sizeBytes),
-            checksumSha256: input.checksumSha256,
             authorizedBy: context.principal.userId,
-            createdAt,
-            expiresAt,
           });
-
           return {
             value: undefined,
             audit: {
               workspaceId: context.principal.workspaceId,
               actorType: "user",
               actorId: context.principal.userId,
-              action: "document.upload_authorized",
-              resourceId: input.parentObjectId,
+              action: `document.${transfer.operation}_authorized`,
+              resourceId: transfer.resourceId,
               requestId: context.requestId,
-              metadata: { transferAuthorizationId: id },
+              metadata: { transferAuthorizationId: transfer.id },
             },
           };
         });
       },
     );
+  }
 
-    return { id, upload: { ...upload, method: "PUT" } };
+  /** Consumes a transfer once, with its audit event naming the authorizer. */
+  async #consumeTransfer(
+    authorization: DocumentTransferAuthorizationRow,
+    consumedAt: Date,
+    requestId: string,
+  ): Promise<void> {
+    if (this.#writes !== undefined)
+      return this.#writes.consume(authorization, consumedAt, requestId);
+    await runAuditedMutation(this.#database, async (transaction) => {
+      const [consumed] = await transaction
+        .update(documentTransferAuthorizations)
+        .set({ consumedAt })
+        .where(
+          and(
+            eq(documentTransferAuthorizations.id, authorization.id),
+            eq(
+              documentTransferAuthorizations.operation,
+              authorization.operation,
+            ),
+            isNull(documentTransferAuthorizations.consumedAt),
+            gt(documentTransferAuthorizations.expiresAt, consumedAt),
+          ),
+        )
+        .returning({ id: documentTransferAuthorizations.id });
+      if (consumed === undefined) {
+        throw new DocumentTransferUnavailableError();
+      }
+      return {
+        value: undefined,
+        audit: {
+          workspaceId: authorization.workspaceId,
+          actorType: "user",
+          actorId: authorization.authorizedBy,
+          action:
+            authorization.operation === "upload"
+              ? "document.uploaded"
+              : "document.downloaded",
+          resourceId: authorization.resourceId,
+          requestId,
+          metadata: { transferAuthorizationId: authorization.id },
+        },
+      };
+    });
   }
 
   async receiveUpload(
@@ -192,36 +307,7 @@ export class DocumentService {
       sizeBytes: Number(authorization.sizeBytes),
     });
 
-    await runAuditedMutation(this.#database, async (transaction) => {
-      const [consumed] = await transaction
-        .update(documentTransferAuthorizations)
-        .set({ consumedAt: now })
-        .where(
-          and(
-            eq(documentTransferAuthorizations.id, authorization.id),
-            eq(documentTransferAuthorizations.operation, "upload"),
-            isNull(documentTransferAuthorizations.consumedAt),
-            gt(documentTransferAuthorizations.expiresAt, now),
-          ),
-        )
-        .returning({ id: documentTransferAuthorizations.id });
-      if (consumed === undefined) {
-        throw new DocumentTransferUnavailableError();
-      }
-
-      return {
-        value: undefined,
-        audit: {
-          workspaceId: authorization.workspaceId,
-          actorType: "user",
-          actorId: authorization.authorizedBy,
-          action: "document.uploaded",
-          resourceId: authorization.resourceId,
-          requestId,
-          metadata: { transferAuthorizationId: authorization.id },
-        },
-      };
-    });
+    await this.#consumeTransfer(authorization, now, requestId);
   }
 
   async finalizeUpload(
@@ -262,6 +348,15 @@ export class DocumentService {
     const documentId = createId();
     const relationId = createId();
     const finalizedAt = this.#clock();
+    if (this.#writes !== undefined)
+      return this.#writes.finalize(
+        context,
+        authorization,
+        documentId,
+        relationId,
+        finalizedAt,
+        this.#storage.encryptionMode,
+      );
     return withStableAuthorization(
       this.#database,
       context.principal.workspaceId,
@@ -354,6 +449,21 @@ export class DocumentService {
     principal: UserPrincipal,
     parentObjectId: string,
   ): Promise<DocumentAttachmentList> {
+    if (this.#reads !== undefined) {
+      const parent = await this.#objects.getObject(principal, parentObjectId);
+      if (!isAttachmentParent(parent)) throw new AuthorizationDeniedError();
+      const relations = await this.#reads.listAttachmentRelations(
+        principal,
+        parentObjectId,
+      );
+      return attachmentList(
+        relations,
+        await this.#objects.listVisibleObjects(
+          principal,
+          relations.map(({ documentId }) => documentId),
+        ),
+      );
+    }
     return withReadAuthorization(
       this.#database,
       async (transaction, authorization) => {
@@ -388,36 +498,13 @@ export class DocumentService {
             ),
           );
 
-        const resources = await reader.listVisibleObjects(
-          principal,
-          relations.map(({ documentId }) => documentId),
+        return attachmentList(
+          relations,
+          await reader.listVisibleObjects(
+            principal,
+            relations.map(({ documentId }) => documentId),
+          ),
         );
-        const documentsById = new Map(
-          resources.map((resource) => [resource.id, resource]),
-        );
-        const visible = relations
-          .flatMap(
-            ({
-              documentId,
-              relationId,
-              relationVersion,
-            }): DocumentAttachmentResource[] => {
-              const document = documentsById.get(documentId);
-              return document?.objectType === "document"
-                ? [{ document, relationId, relationVersion }]
-                : [];
-            },
-          )
-          .sort(
-            (first, second) =>
-              second.document.createdAt.getTime() -
-                first.document.createdAt.getTime() ||
-              first.document.id.localeCompare(second.document.id),
-          );
-        return {
-          items: visible,
-          lockedAttachmentCount: relations.length - visible.length,
-        };
       },
     );
   }
@@ -446,47 +533,20 @@ export class DocumentService {
       storageKey: document.storageKey,
     });
 
-    await withStableAuthorization(
-      this.#database,
-      context.principal.workspaceId,
-      async (transaction, authorization) => {
-        await authorization.assertCan(context.principal, "view", {
-          id: document.id,
-          workspaceId: context.principal.workspaceId,
-        });
-        return runAuditedMutation(transaction, async (transaction) => {
-          await transaction.insert(documentTransferAuthorizations).values({
-            id,
-            workspaceId: context.principal.workspaceId,
-            operation: "download",
-            tokenHash: hashCredential(credential),
-            resourceId: document.id,
-            storageProvider: document.storageProvider,
-            storageKey: document.storageKey,
-            originalFilename: document.originalFilename,
-            mimeType: document.mimeType,
-            sizeBytes: document.sizeBytes,
-            checksumSha256: document.checksumSha256,
-            authorizedBy: context.principal.userId,
-            createdAt,
-            expiresAt,
-          });
-
-          return {
-            value: undefined,
-            audit: {
-              workspaceId: context.principal.workspaceId,
-              actorType: "user",
-              actorId: context.principal.userId,
-              action: "document.download_authorized",
-              resourceId: document.id,
-              requestId: context.requestId,
-              metadata: { transferAuthorizationId: id },
-            },
-          };
-        });
-      },
-    );
+    await this.#authorizeTransfer(context, "view", {
+      id,
+      operation: "download",
+      tokenHash: hashCredential(credential),
+      resourceId: document.id,
+      storageProvider: document.storageProvider,
+      storageKey: document.storageKey,
+      originalFilename: document.originalFilename,
+      mimeType: document.mimeType,
+      sizeBytes: document.sizeBytes,
+      checksumSha256: document.checksumSha256,
+      createdAt,
+      expiresAt,
+    });
 
     return { download: { ...download, method: "GET" } };
   }
@@ -506,11 +566,7 @@ export class DocumentService {
       userId: authorization.authorizedBy,
       workspaceId: authorization.workspaceId,
     };
-    const resource = {
-      id: authorization.resourceId,
-      workspaceId: authorization.workspaceId,
-    };
-    await this.#authorization.assertCan(principal, "view", resource);
+    await this.#assertAllowed(principal, "view", authorization.resourceId);
     const storage = this.#requireTransferProvider(authorization);
     const bytes = await storage.readObject(authorization.storageKey);
     if (
@@ -520,44 +576,51 @@ export class DocumentService {
       throw new DocumentTransferUnavailableError();
     }
 
-    await withStableAuthorization(
-      this.#database,
-      principal.workspaceId,
-      async (transaction, currentAuthorization) => {
-        await currentAuthorization.assertCan(principal, "view", resource);
-        const consumedAt = this.#clock();
-        return runAuditedMutation(transaction, async (transaction) => {
-          const [consumed] = await transaction
-            .update(documentTransferAuthorizations)
-            .set({ consumedAt })
-            .where(
-              and(
-                eq(documentTransferAuthorizations.id, authorization.id),
-                eq(documentTransferAuthorizations.operation, "download"),
-                isNull(documentTransferAuthorizations.consumedAt),
-                gt(documentTransferAuthorizations.expiresAt, consumedAt),
-              ),
-            )
-            .returning({ id: documentTransferAuthorizations.id });
-          if (consumed === undefined) {
-            throw new DocumentTransferUnavailableError();
-          }
+    if (this.#writes !== undefined) {
+      await this.#writes.consume(authorization, this.#clock(), requestId);
+    } else {
+      await withStableAuthorization(
+        this.#database,
+        principal.workspaceId,
+        async (transaction, currentAuthorization) => {
+          await currentAuthorization.assertCan(principal, "view", {
+            id: authorization.resourceId,
+            workspaceId: authorization.workspaceId,
+          });
+          const consumedAt = this.#clock();
+          return runAuditedMutation(transaction, async (transaction) => {
+            const [consumed] = await transaction
+              .update(documentTransferAuthorizations)
+              .set({ consumedAt })
+              .where(
+                and(
+                  eq(documentTransferAuthorizations.id, authorization.id),
+                  eq(documentTransferAuthorizations.operation, "download"),
+                  isNull(documentTransferAuthorizations.consumedAt),
+                  gt(documentTransferAuthorizations.expiresAt, consumedAt),
+                ),
+              )
+              .returning({ id: documentTransferAuthorizations.id });
+            if (consumed === undefined) {
+              throw new DocumentTransferUnavailableError();
+            }
 
-          return {
-            value: undefined,
-            audit: {
-              workspaceId: authorization.workspaceId,
-              actorType: "user",
-              actorId: authorization.authorizedBy,
-              action: "document.downloaded",
-              resourceId: authorization.resourceId,
-              requestId,
-              metadata: { transferAuthorizationId: authorization.id },
-            },
-          };
-        });
-      },
-    );
+            return {
+              value: undefined,
+              audit: {
+                workspaceId: authorization.workspaceId,
+                actorType: "user",
+                actorId: authorization.authorizedBy,
+                action: "document.downloaded",
+                resourceId: authorization.resourceId,
+                requestId,
+                metadata: { transferAuthorizationId: authorization.id },
+              },
+            };
+          });
+        },
+      );
+    }
 
     return {
       bytes,
@@ -566,15 +629,22 @@ export class DocumentService {
     };
   }
 
+  /** The action must be among the principal's allowed actions on a live, viewable object. */
+  async #assertAllowed(
+    principal: UserPrincipal,
+    action: AuthorizationAction,
+    objectId: string,
+  ): Promise<void> {
+    const actions = await this.#objects.getAllowedActions(principal, objectId);
+    if (!actions.includes(action)) throw new AuthorizationDeniedError();
+  }
+
   async #getAttachmentParent(
     principal: UserPrincipal,
     objectId: string,
     action: AuthorizationAction,
   ): Promise<EventPlanningResource> {
-    await this.#authorization.assertCan(principal, action, {
-      id: objectId,
-      workspaceId: principal.workspaceId,
-    });
+    await this.#assertAllowed(principal, action, objectId);
     const parent = await this.#objects.getObject(principal, objectId);
     if (!isAttachmentParent(parent)) {
       throw new AuthorizationDeniedError();
@@ -584,25 +654,15 @@ export class DocumentService {
 
   async #findTransferByCredential(
     credential: string,
-    operation: "upload" | "download",
+    operation: DocumentTransferOperation,
     now: Date,
   ): Promise<DocumentTransferAuthorizationRow> {
-    const [authorization] = await this.#database
-      .select()
-      .from(documentTransferAuthorizations)
-      .where(
-        and(
-          eq(
-            documentTransferAuthorizations.tokenHash,
-            hashCredential(credential),
-          ),
-          eq(documentTransferAuthorizations.operation, operation),
-          isNull(documentTransferAuthorizations.consumedAt),
-          gt(documentTransferAuthorizations.expiresAt, now),
-        ),
-      )
-      .limit(1);
-    if (authorization === undefined) {
+    const authorization = await this.#transfers.findByCredential(
+      hashCredential(credential),
+      operation,
+      now,
+    );
+    if (authorization === null) {
       throw new DocumentTransferUnavailableError();
     }
     return authorization;
@@ -612,24 +672,12 @@ export class DocumentService {
     principal: UserPrincipal,
     authorizationId: string,
   ): Promise<DocumentTransferAuthorizationRow> {
-    const [authorization] = await this.#database
-      .select()
-      .from(documentTransferAuthorizations)
-      .where(
-        and(
-          eq(documentTransferAuthorizations.id, authorizationId),
-          eq(documentTransferAuthorizations.workspaceId, principal.workspaceId),
-          eq(documentTransferAuthorizations.authorizedBy, principal.userId),
-          eq(documentTransferAuthorizations.operation, "upload"),
-          isNull(documentTransferAuthorizations.finalizedAt),
-        ),
-      )
-      .limit(1);
-    if (
-      authorization === undefined ||
-      (authorization.consumedAt === null &&
-        authorization.expiresAt <= this.#clock())
-    ) {
+    const authorization = await this.#transfers.findUploadForFinalization(
+      principal,
+      authorizationId,
+      this.#clock(),
+    );
+    if (authorization === null) {
       throw new DocumentTransferUnavailableError();
     }
     return authorization;

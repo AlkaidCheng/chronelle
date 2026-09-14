@@ -1,5 +1,10 @@
 export * from "./errors.js";
 export { DocumentService } from "./document-service.js";
+export {
+  PostgresDocumentTransferReadRepository,
+  type DocumentTransferReadRepository,
+  type DocumentTransferWriteRepository,
+} from "./document-transfers.js";
 export { EventPlanningObjectService } from "./object-service.js";
 export {
   isCompatibleRelation,
@@ -17,6 +22,8 @@ export {
 export { CloudBaseCalendarReadRepository } from "./cloudbase-calendar-read-repository.js";
 export { CloudBaseCommandReadRepository } from "./cloudbase-command-read-repository.js";
 export { CloudBaseCommandWriteRepository } from "./cloudbase-command-write-repository.js";
+export { CloudBaseDocumentTransferReadRepository } from "./cloudbase-document-transfer-read-repository.js";
+export { CloudBaseDocumentTransferWriteRepository } from "./cloudbase-document-transfer-write-repository.js";
 export { CloudBaseProjectionReadRepository } from "./cloudbase-projection-read-repository.js";
 export { CloudBaseEventReadRepository } from "./cloudbase-event-read-repository.js";
 export { CloudBaseGrantReadRepository } from "./cloudbase-grant-read-repository.js";
