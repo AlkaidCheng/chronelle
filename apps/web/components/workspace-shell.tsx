@@ -10,6 +10,7 @@ import { useSessionQuery } from "../lib/queries";
 import { WorkspaceHeader } from "./workspace-header";
 import { workspaceDestinations } from "./workspace-navigation";
 import { ErrorNotice, LoadingState } from "./feedback";
+import { AccountMenu } from "./account-menu";
 import { WorkspaceUtilities } from "./workspace-utilities";
 import { WorkspaceCommandProvider } from "./context-commands";
 
@@ -111,13 +112,7 @@ export function WorkspaceShell({ children }: { readonly children: ReactNode }) {
             />
           </nav>
           <div className="sidebar-footer">
-            <div className="profile-mark" aria-hidden="true">
-              {currentSession.user.displayName.slice(0, 1).toUpperCase()}
-            </div>
-            <div className="profile-copy">
-              <strong>{currentSession.user.displayName}</strong>
-              <span>{currentSession.workspace.displayName}</span>
-            </div>
+            <AccountMenu session={currentSession} onSignOut={leaveWorkspace} />
           </div>
         </aside>
         <div className="workspace-main">
