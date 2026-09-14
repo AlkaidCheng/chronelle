@@ -13,6 +13,7 @@ import {
   CloudBaseExpenseWriteRepository,
   CloudBaseObjectLifecycleWriteRepository,
   CloudBaseRelationWriteRepository,
+  CloudBaseSharingWriteRepository,
   CloudBaseReminderWriteRepository,
   CloudBaseTaskWriteRepository,
   DocumentService,
@@ -79,10 +80,16 @@ export function createAppDependencies(
     options.cloudBaseRdb === undefined
       ? undefined
       : new CloudBaseEventReadRepository(options.cloudBaseRdb);
+  const sharing =
+    options.cloudBaseRdb === undefined || options.cloudBaseWrites !== true
+      ? undefined
+      : new CloudBaseSharingWriteRepository(options.cloudBaseRdb);
   const writes =
     options.cloudBaseRdb === undefined || options.cloudBaseWrites !== true
       ? {}
       : {
+          share: sharing,
+          permissionScope: sharing,
           event: new CloudBaseEventWriteRepository(options.cloudBaseRdb),
           task: new CloudBaseTaskWriteRepository(options.cloudBaseRdb),
           expense: new CloudBaseExpenseWriteRepository(options.cloudBaseRdb),
@@ -140,7 +147,7 @@ export function createAppDependencies(
     storageInventory: new StorageInventoryService(connection.db, storage, {
       clock: options.clock,
     }),
-    shares: new ResourceGrantService(connection.db),
+    shares: new ResourceGrantService(connection.db, undefined, writes.share),
     projections: new EventPlanningProjectionService(
       connection.db,
       options.cloudBaseRdb === undefined
