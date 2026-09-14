@@ -2,6 +2,8 @@ import type { ShareWriteRepository } from "@chronelle/authorization";
 import type {
   EventContextCreateRequest,
   EventContextCreateResponse,
+  EventLayoutResponse,
+  EventPage,
 } from "@chronelle/schemas";
 
 import type {
@@ -148,6 +150,26 @@ export interface PermissionScopeWriteRepository {
   ): Promise<EventPlanningResource>;
 }
 
+/**
+ * Event page layout changes: a validated layout saved as the next version,
+ * or an earlier version (0 for the empty layout) restored as the next
+ * version, each under the version predicate with its audit event.
+ */
+export interface EventLayoutWriteRepository {
+  update(
+    context: MutationContext,
+    eventId: string,
+    expectedVersion: number,
+    pages: readonly EventPage[],
+  ): Promise<EventLayoutResponse>;
+  restore(
+    context: MutationContext,
+    eventId: string,
+    expectedVersion: number,
+    targetVersion: number,
+  ): Promise<EventLayoutResponse>;
+}
+
 /** Families with a write repository; absent families use the PostgreSQL path. */
 export interface ObjectWriteRepositories {
   readonly event?: EventWriteRepository | undefined;
@@ -159,4 +181,5 @@ export interface ObjectWriteRepositories {
   readonly objectLifecycle?: ObjectLifecycleWriteRepository | undefined;
   readonly share?: ShareWriteRepository | undefined;
   readonly permissionScope?: PermissionScopeWriteRepository | undefined;
+  readonly eventLayout?: EventLayoutWriteRepository | undefined;
 }

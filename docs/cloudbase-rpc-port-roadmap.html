@@ -266,8 +266,10 @@
         sharing and permission-scope changes as
         <code>chronelle_resource_share</code>,
         <code>chronelle_resource_share_revoke</code>, and
-        <code>chronelle_object_scope_update</code> (migration 0020). Event page
-        layouts are next.
+        <code>chronelle_object_scope_update</code> (migration 0020), and Event
+        page layouts as <code>chronelle_event_layout_update</code> and
+        <code>chronelle_event_layout_restore</code> (migration 0022). Commands
+        are next.
       </aside>
 
       <aside class="invariant" aria-label="Standing constraint">
@@ -402,7 +404,7 @@
       </article>
       <article class="phase">
         <div class="phase-number">
-          STAGE 05 <span class="status next">In progress</span>
+          STAGE 05 <span class="status done">Done</span>
         </div>
         <div>
           <h3>Sharing, scope, and layouts</h3>
@@ -417,14 +419,14 @@
             </li>
             <li>
               Layout panels and their restore history keep optimistic
-              concurrency and audit.
+              concurrency and audit: done (migration 0022).
             </li>
           </ul>
         </div>
       </article>
       <article class="phase">
         <div class="phase-number">
-          STAGE 06 <span class="status gate">Gate</span>
+          STAGE 06 <span class="status next">Next</span>
         </div>
         <div>
           <h3>Commands, undo, and redo</h3>
@@ -598,17 +600,20 @@
           </tr>
           <tr>
             <td>Layouts</td>
-            <td>One function per operation</td>
-            <td>Per operation</td>
-            <td>Layout history differential test</td>
-            <td><span class="status next">Next</span></td>
+            <td>
+              <code>chronelle_event_layout_update</code>,
+              <code>chronelle_event_layout_restore</code>
+            </td>
+            <td>0022</td>
+            <td>Differential test; staging linked contract</td>
+            <td><span class="status done">Done</span></td>
           </tr>
           <tr>
             <td>Commands, undo, redo</td>
             <td>Execute, undo, redo functions</td>
             <td>Per operation</td>
             <td>Reversible-command suites plus injected failure</td>
-            <td><span class="status gate">Gate</span></td>
+            <td><span class="status next">Next</span></td>
           </tr>
           <tr>
             <td>Search and remaining reads</td>
@@ -698,7 +703,7 @@
         is in
         <a href="cloudbase-migration-roadmap.html"
           >cloudbase-migration-roadmap.html</a
-        >. Updated after sharing.
+        >. Updated after Event page layouts.
       </footer>
     </main>
   </body>

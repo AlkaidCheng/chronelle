@@ -26,6 +26,7 @@ import {
 import { and, desc, eq, lt } from "drizzle-orm";
 
 import { InvalidObjectStateError, ObjectConflictError } from "./errors.js";
+import type { EventLayoutWriteRepository } from "./object-writes.js";
 import type { MutationContext } from "./types.js";
 
 async function readLayout(
@@ -111,7 +112,14 @@ async function saveLayout(
 
 /** Versioned presentation configuration, authorized by its owning Event. */
 export class EventLayoutService {
-  constructor(private readonly database: Database) {}
+  readonly #writes: EventLayoutWriteRepository | undefined;
+
+  constructor(
+    private readonly database: Database,
+    writes?: EventLayoutWriteRepository,
+  ) {
+    this.#writes = writes;
+  }
 
   async history(
     principal: UserPrincipal,
@@ -163,6 +171,13 @@ export class EventLayoutService {
   ) {
     const input = eventLayoutRestoreSchema.parse(payload);
     const { principal } = context;
+    if (this.#writes !== undefined)
+      return this.#writes.restore(
+        context,
+        eventId,
+        input.expectedVersion,
+        input.targetVersion,
+      );
     return withStableAuthorization(
       this.database,
       principal.workspaceId,
@@ -231,6 +246,13 @@ export class EventLayoutService {
   ) {
     const input = eventLayoutUpdateSchema.parse(payload);
     const { principal } = context;
+    if (this.#writes !== undefined)
+      return this.#writes.update(
+        context,
+        eventId,
+        input.expectedVersion,
+        input.pages,
+      );
     return withStableAuthorization(
       this.database,
       principal.workspaceId,

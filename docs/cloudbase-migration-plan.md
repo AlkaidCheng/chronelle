@@ -345,6 +345,18 @@ audit rows, the scope revision, and every refusal (unknown or ambiguous
 principal, the acting user as grantee, non-Owner callers, stale version,
 unchanged scope, missing or non-Event scope).
 
+**Event page layouts:** migration 0022 adds `chronelle_event_layout_update`
+and `chronelle_event_layout_restore` over one append-only writer: edit access
+on a live Event, the version predicate against the latest layout revision,
+the pages of the target version (or the empty layout for version 0) read
+after that predicate, one audit event and one revision per call. The pages
+are validated by the application's schema before the call on both backends.
+`EventLayoutWriteRepository` is the boundary; `EventLayoutService` delegates
+when injected. The differential test compares four versions of a layout
+(two updates, a restore, and a restore to empty) with their revisions and
+audits, and the refusals for a stale version, a non-Event, a non-member, a
+missing Event, a missing target version, and a stale restore.
+
 ### Phase 4 — Cross-object mutations and recovery
 
 Do not emulate transactions with optimistic hope. For relations, shares,
@@ -404,9 +416,10 @@ PostgreSQL adapter.
 
 ## Recommended next PR
 
-Port Event page layout changes (add, remove, reorder panels, and layout
-restore) as functions with layout versioning and audit, with a differential
-test over the layout history.
+Port commands (execute, undo, and redo of `ReversibleCommandService`) as
+functions that reuse the family functions for the object change and keep
+the command state, the inverse operation, and both ledgers in one
+transaction, with the reversible-command suites run on both backends.
 
 ### R1 operator checklist
 

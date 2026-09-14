@@ -207,15 +207,17 @@ input and expects a conflict, then calls the function with a request hash the
 command table rejects and proves that the child, the relation, and the audit
 rows written before that point are not persisted. It then removes the
 relation, rejects a stale removal, and recovers it, deletes and recovers
-the child the same way, restores the child's first revision, and moves the
-child to its own scope and back. The probes end deleted through
-`chronelle_object_delete`. Run it only against staging.
+the child the same way, restores the child's first revision, moves the
+child to its own scope and back, and saves and restores the Event's page
+layout. The probes end deleted through `chronelle_object_delete`. Run it
+only against staging.
 
 `CLOUDBASE_WRITES_ENABLED=true` routes the API's Event, Task, Expense, and
 Reminder create and update, linked creation, relation changes, object
-deletion, recovery, and revision restore, and sharing and permission-scope
-changes through those functions; it requires `CLOUDBASE_READS_ENABLED=true`
-and migrations 0012 through 0020 on the environment. Until every mutation family is
+deletion, recovery, and revision restore, sharing and permission-scope
+changes, and Event page layouts through those functions; it requires
+`CLOUDBASE_READS_ENABLED=true` and migrations 0012 through 0022 on the
+environment. Until every mutation family is
 ported the API still needs `DATABASE_URL` for the rest, so the flag serves
 staging verification, not a deployment without PostgreSQL access.
 
