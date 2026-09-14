@@ -2,7 +2,7 @@ import {
   AuthorizationDeniedError,
   type UserPrincipal,
 } from "@chronelle/authorization";
-import type { CloudBaseRdbClient } from "@chronelle/db";
+import type { CloudBaseRdbReader } from "@chronelle/db";
 import {
   assertCloudBaseRoot,
   cloudbaseEventResource,
@@ -20,11 +20,11 @@ import type { EventResource } from "./types.js";
  * Mutations intentionally remain on the transaction-capable PostgreSQL path.
  */
 export class CloudBaseCalendarReadRepository implements CalendarReadRepository {
-  readonly #client: CloudBaseRdbClient;
+  readonly #client: CloudBaseRdbReader;
   readonly #clock: () => Date;
 
   constructor(
-    client: CloudBaseRdbClient,
+    client: CloudBaseRdbReader,
     clock: () => Date = () => new Date(),
   ) {
     this.#client = client;

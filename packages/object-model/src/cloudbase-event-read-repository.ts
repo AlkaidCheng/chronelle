@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 
 import type { UserPrincipal } from "@chronelle/authorization";
-import type { CloudBaseRdbClient } from "@chronelle/db";
+import type { CloudBaseRdbReader } from "@chronelle/db";
 import {
   type EventListCursor,
   type EventListQuery,
@@ -158,11 +158,11 @@ function pageCursor(
 
 /** Read-only CloudBase event list with the PostgreSQL cursor envelope. */
 export class CloudBaseEventReadRepository implements EventReadRepository {
-  readonly #client: CloudBaseRdbClient;
+  readonly #client: CloudBaseRdbReader;
   readonly #clock: () => Date;
 
   constructor(
-    client: CloudBaseRdbClient,
+    client: CloudBaseRdbReader,
     clock: () => Date = () => new Date(),
   ) {
     this.#client = client;

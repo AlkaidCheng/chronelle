@@ -15,6 +15,7 @@ export {
   type CloudBaseRdbFilter,
   type CloudBaseRdbOrder,
   type CloudBaseRdbQuery,
+  type CloudBaseRdbReader,
   CloudBaseRdbTimeoutError,
   type CloudBaseRdbWrite,
   type CloudBaseRdbWriteFilters,

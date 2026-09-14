@@ -12,7 +12,7 @@ import {
   workspaces,
 } from "@chronelle/db";
 import type {
-  CloudBaseRdbClient,
+  CloudBaseRdbReader,
   CloudBaseRdbQuery,
   Database,
 } from "@chronelle/db";
@@ -99,7 +99,7 @@ function gatewayRow(
 async function snapshotClient(
   db: Database,
   workspaceId: string,
-): Promise<CloudBaseRdbClient> {
+): Promise<CloudBaseRdbReader> {
   const rows = new Map<string, Record<string, unknown>[]>();
   for (const [name, table] of Object.entries(snapshotTables)) {
     const records = await db
@@ -114,7 +114,11 @@ async function snapshotClient(
     );
   }
   return {
-    capabilities: { transactions: false, nativeTcp: false },
+    capabilities: {
+      transactions: false,
+      nativeTcp: false,
+      serverFunctions: false,
+    },
     async select<T>(table: string, query: CloudBaseRdbQuery = {}) {
       const tableRows = rows.get(table);
       if (tableRows === undefined) throw new Error(`unexpected table ${table}`);

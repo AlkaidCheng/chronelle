@@ -36,20 +36,26 @@ export interface CloudBaseRdbWrite {
 }
 
 /**
- * Bounded HTTPS transport over the CloudBase RDB gateway. Each call is one
- * statement: there are no transactions and no server-side functions, so a
- * caller that needs atomicity across rows must stay on PostgreSQL. A write
- * resolves to the rows it affected; an update or delete whose filters match
- * nothing resolves to an empty list, which is how a version predicate reports
- * a stale write.
+ * Read side of the CloudBase RDB gateway transport. Each call is one bounded
+ * HTTPS statement; the capability metadata records what the gateway cannot do.
  */
-export interface CloudBaseRdbClient {
+export interface CloudBaseRdbReader {
   readonly capabilities: {
     readonly transactions: false;
     readonly nativeTcp: false;
     readonly serverFunctions: false;
   };
   select<T>(table: string, query?: CloudBaseRdbQuery): Promise<readonly T[]>;
+}
+
+/**
+ * Full transport. A write resolves to the rows it affected; an update or
+ * delete whose filters match nothing resolves to an empty list, which is how a
+ * version predicate reports a stale write. There are no transactions and no
+ * server-side functions, so work needing atomicity across rows stays on
+ * PostgreSQL.
+ */
+export interface CloudBaseRdbClient extends CloudBaseRdbReader {
   insert<T>(
     table: string,
     rows: readonly Record<string, unknown>[],

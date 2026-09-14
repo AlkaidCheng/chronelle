@@ -1,6 +1,6 @@
 import { AuthorizationDeniedError } from "@chronelle/authorization";
 
-import type { CloudBaseRdbClient, CloudBaseRdbQuery } from "@chronelle/db";
+import type { CloudBaseRdbReader, CloudBaseRdbQuery } from "@chronelle/db";
 import { describe, expect, it } from "vitest";
 
 import { CloudBaseCalendarReadRepository } from "../src/cloudbase-calendar-read-repository.js";
@@ -77,9 +77,13 @@ function matches(
   });
 }
 
-function client(granted = true): CloudBaseRdbClient {
+function client(granted = true): CloudBaseRdbReader {
   return {
-    capabilities: { transactions: false, nativeTcp: false },
+    capabilities: {
+      transactions: false,
+      nativeTcp: false,
+      serverFunctions: false,
+    },
     async select<T>(table: string, query: CloudBaseRdbQuery = {}) {
       if (table === "objects")
         return objects.filter((row) =>
