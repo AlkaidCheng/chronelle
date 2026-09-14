@@ -28,6 +28,10 @@ DELETE requests and older history clients are incompatible.
 
 ## Setup
 
+Migration `0012_add_event_write_functions.sql` adds the Event create and
+update functions used by the CloudBase rpc write path. It changes no tables and
+needs no baseline; a PostgreSQL deployment carries the functions unused.
+
 Migration `0011_add_event_page_layouts.sql` adds independently versioned Event
 page configuration. Run `pnpm db:migrate` and reapply runtime role provisioning
 before deploying the API and web. Existing Events start with an empty layout;

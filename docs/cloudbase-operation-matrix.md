@@ -37,20 +37,25 @@ and deletion rules.
 
 ## Mutations
 
-| Operation family                     | Examples                                               | Required guarantees                                                         | Backend decision                                    |
-| ------------------------------------ | ------------------------------------------------------ | --------------------------------------------------------------------------- | --------------------------------------------------- |
-| Single canonical object create       | Events, tasks, expenses, reminders                     | Authorization, typed validation, audit event, generated identity            | PostgreSQL; CloudBase write adapter is not approved |
-| Single canonical object update       | Object and typed-resource `PATCH` routes               | Authorization, CAS on `version`, audit event, no partial typed row          | PostgreSQL                                          |
-| Soft deletion and restoration        | Object delete, trash recovery, revision restore        | CAS, audit, object/revision consistency, recoverability                     | PostgreSQL                                          |
-| Relationship changes                 | Include, attach, paid-for, and removed-link relations  | Both endpoints remain independent objects; relation audit and authorization | PostgreSQL; cross-object                            |
-| Sharing and permission-scope changes | Grant, revoke, stop inheritance                        | Canonical scope, inherited access, audit, workspace isolation               | PostgreSQL; cross-object                            |
-| Event-page layout changes            | Add/remove/reorder panels and restore history          | Layout versioning, audit, restoration, optimistic concurrency               | PostgreSQL; cross-object                            |
-| Attachments                          | Upload authorization, finalize, download authorization | Private storage, parent authorization, short-lived transfer, audit          | PostgreSQL plus storage provider                    |
-| Undo/redo and commands               | Execute, undo, redo                                    | Durable command state, inverse operation, atomic audit and recovery         | PostgreSQL; transaction-required                    |
+| Operation family                     | Examples                                               | Required guarantees                                                         | Backend decision                                                                                                            |
+| ------------------------------------ | ------------------------------------------------------ | --------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| Event create                         | `POST /api/events`, linked Event creation              | Authorization, typed validation, audit event, revision, generated identity  | `EventWriteRepository`; CloudBase adapter calls `chronelle_event_create` (migration 0012) behind `CLOUDBASE_WRITES_ENABLED` |
+| Event update                         | `PATCH /api/events/:id`                                | Authorization, CAS on `version`, merged-state validation, audit, revision   | `EventWriteRepository`; CloudBase adapter calls `chronelle_event_update` (migration 0012) behind `CLOUDBASE_WRITES_ENABLED` |
+| Task, expense, reminder create       | Typed creation routes                                  | Authorization, typed validation, audit event, generated identity            | PostgreSQL; next families to port in the Event shape                                                                        |
+| Task, expense, reminder update       | Typed-resource `PATCH` routes                          | Authorization, CAS on `version`, audit event, no partial typed row          | PostgreSQL; next families to port in the Event shape                                                                        |
+| Soft deletion and restoration        | Object delete, trash recovery, revision restore        | CAS, audit, object/revision consistency, recoverability                     | PostgreSQL                                                                                                                  |
+| Relationship changes                 | Include, attach, paid-for, and removed-link relations  | Both endpoints remain independent objects; relation audit and authorization | PostgreSQL; cross-object                                                                                                    |
+| Sharing and permission-scope changes | Grant, revoke, stop inheritance                        | Canonical scope, inherited access, audit, workspace isolation               | PostgreSQL; cross-object                                                                                                    |
+| Event-page layout changes            | Add/remove/reorder panels and restore history          | Layout versioning, audit, restoration, optimistic concurrency               | PostgreSQL; cross-object                                                                                                    |
+| Attachments                          | Upload authorization, finalize, download authorization | Private storage, parent authorization, short-lived transfer, audit          | PostgreSQL plus storage provider                                                                                            |
+| Undo/redo and commands               | Execute, undo, redo                                    | Durable command state, inverse operation, atomic audit and recovery         | PostgreSQL; transaction-required                                                                                            |
 
-The CloudBase RDB transport currently advertises no transaction or native TCP
-capability. Until a supported compare-and-set plus audit mechanism is proven,
-all mutation rows stay on the Drizzle/PostgreSQL adapter.
+The CloudBase RDB transport advertises no transaction or native TCP
+capability for table writes. Mutations move only as PostgreSQL functions
+called through the gateway's rpc route, where one call is one transaction, and
+only after a differential test proves the function leaves the same resource,
+audit, and revision rows as the Drizzle/PostgreSQL service. The Drizzle path
+remains a first-class backend that any TCP deployment uses unchanged.
 
 ## Gate evidence
 

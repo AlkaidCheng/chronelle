@@ -208,11 +208,26 @@ the same version. Custom `PTxxx` SQLSTATEs map to HTTP statuses on this gateway.
 
 **R3 decision (2026-09-14):** the deployment target stays the shared CloudBase
 cluster, which offers no TCP route, and the write path moves to PostgreSQL
-functions invoked through rpc. Business rules are implemented once in
-PL/pgSQL for production while the Drizzle/TypeScript services remain the local
-development and reference implementation; the existing integration suites are
-the contract both must satisfy. The port proceeds one operation family at a
-time, each with a differential test, and no family ships until it does.
+functions invoked through rpc. The Drizzle/TypeScript services remain a
+first-class, fully tested backend — the one local development, CI, and any
+future TCP deployment use unchanged — and every ported family keeps both
+implementations behind one repository interface selected by deployment
+configuration. The existing integration suites plus a per-family differential
+test are the contract both must satisfy; no family ships without one.
+
+**First family (Event create and update):** migration 0012 ships
+`chronelle_event_create` and `chronelle_event_update` together with the
+serializer, authorization, and state-validation helpers they need.
+`EventWriteRepository` is the boundary; `CloudBaseEventWriteRepository` encodes
+the service's inputs as JSON and maps the functions' `PT403`/`PT409`/`PT422`
+outcomes to the service's error classes, so API responses are unchanged.
+`EventPlanningObjectService` delegates to it when
+`CLOUDBASE_WRITES_ENABLED=true` (which requires the read client). The
+differential test drives both backends through the service against one
+PostgreSQL and requires identical resources, audit rows, revision rows, and
+errors across timed and date-only Events, scope inheritance, every update
+field including clearing, command metadata, nine invalid states, conflict,
+missing, forbidden, grant-based edit, and the missing-baseline guard.
 
 ### Phase 4 — Cross-object mutations and recovery
 
@@ -273,14 +288,13 @@ PostgreSQL adapter.
 
 ## Recommended next PR
 
-Turn the probe into the first production function family: an
-`EventWriteRepository` boundary in the object model with a PostgreSQL
-implementation (the current service code) and a CloudBase implementation that
-calls `chronelle_event_create` / `chronelle_event_update` functions shipped as
-a migration, sharing the serializer with the read adapters. Extend the
-differential test to every Event field and to the conflict, authorization, and
-baseline errors, and add the function family to the operation matrix. Task,
-Expense, and Reminder follow the same shape once the Event family is merged.
+Port the Task, Expense, and Reminder create and update families in the Event
+shape: one migration per family with its typed validation moved into a
+`chronelle_assert_<type>_state` function, a `<Type>WriteRepository` boundary,
+a CloudBase adapter, and a differential test over every field and error path.
+The serializer must cover the type's fields exactly as `serializeResource()`
+does. After the four single-object families, linked creation
+(`POST /api/events/:id/resources`) is the first cross-object function.
 
 ### R1 operator checklist
 
