@@ -160,9 +160,13 @@ repository instead of the development one:
    git config core.sshCommand "ssh -i <deploy-key> -o IdentitiesOnly=yes"
    ```
 
-4. Disable Actions and Dependabot on the deployment repository: the checks
-   already ran on the development repository, and nothing is edited on the
-   deployment repository directly.
+4. Disable Actions on the deployment repository (the checks already ran on
+   the development repository) and make its default branch one that does not
+   carry `.github/dependabot.yml`: Dependabot version updates have no switch
+   while that file is on the default branch, and they would open pull
+   requests nobody merges. A one-commit orphan branch holding a README that
+   states the repository's purpose serves; `main` stays a fast-forward copy,
+   and the services below deploy from it explicitly.
 5. Authorize CloudBase Run from the deployment account only, so the grant
    never covers the development account, and select the deployment
    repository's `main` when creating the services below.
