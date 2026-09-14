@@ -6,7 +6,10 @@ import {
   cloudbaseText,
 } from "./cloudbase-read-support.js";
 import { mapRpcError } from "./cloudbase-rpc-errors.js";
-import type { ObjectLifecycleWriteRepository } from "./object-writes.js";
+import type {
+  ObjectLifecycleWriteRepository,
+  RevisionRestoreSource,
+} from "./object-writes.js";
 import type {
   EventPlanningResource,
   MutationContext,
@@ -14,8 +17,9 @@ import type {
 } from "./types.js";
 
 /**
- * Soft deletion through chronelle_object_delete and recovery through
- * chronelle_object_recover. Each call is one transaction that applies the
+ * Soft deletion through chronelle_object_delete, recovery through
+ * chronelle_object_recover, and revision restore through
+ * chronelle_object_restore. Each call is one transaction that applies the
  * service's authorization, version, state, audit, and revision rules.
  */
 export class CloudBaseObjectLifecycleWriteRepository implements ObjectLifecycleWriteRepository {
@@ -59,6 +63,24 @@ export class CloudBaseObjectLifecycleWriteRepository implements ObjectLifecycleW
         ...principalArguments(context),
         object_id: objectId,
         expected_version: expectedVersion,
+      }),
+    );
+  }
+
+  async restore(
+    context: MutationContext,
+    objectId: string,
+    expectedVersion: number,
+    source: RevisionRestoreSource,
+  ): Promise<EventPlanningResource> {
+    return cloudbaseResourceFromRows(
+      await this.#call("chronelle_object_restore", {
+        ...principalArguments(context),
+        object_id: objectId,
+        expected_version: expectedVersion,
+        source_revision_id: source.revisionId,
+        source_version: source.version,
+        content: source.content,
       }),
     );
   }

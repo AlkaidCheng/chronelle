@@ -303,6 +303,20 @@ and `ObjectRecoveryService.recover`. The differential test deletes and
 recovers an Event, Task, Expense, Reminder, and Document and compares the
 resources and the full ledger, including the document snapshot's storage key.
 
+**Revision restore:** migration 0019 adds `chronelle_object_restore`. The
+restoration policy stays in the application: `ObjectRestorationService`
+reads the current state and the source revision, refuses a deleted state or
+a revision without restorable changes, and selects the restorable content;
+the function re-checks the version, applies the name and custom properties
+and, for Events, Tasks, and Reminders, the typed content through the family
+apply functions, and records the `restored` revision with its source
+revision. Expense and Document typed content is preserved by policy on both
+backends. The differential test restores an Event across all its typed
+fields, a Task, and an Expense (name only) and compares resources and
+ledgers, and checks the refusals for a stale version, no restorable changes,
+a missing revision, an Editor without a grant, an object in Trash, and a
+deleted state in history.
+
 ### Phase 4 — Cross-object mutations and recovery
 
 Do not emulate transactions with optimistic hope. For relations, shares,
@@ -362,11 +376,10 @@ PostgreSQL adapter.
 
 ## Recommended next PR
 
-Port revision restore (`POST /api/objects/:id/revisions/:version/restore`):
-the restoration policy stays in TypeScript and selects the restorable content,
-and one function applies it under the version predicate through the family
-apply functions, records the `restored` revision with its source, and writes
-the audit row, with a differential test over the full ledger.
+Port sharing and permission-scope changes: grants, revocation, and
+`updatePermissionScope` as functions with their audit rows and the canonical
+scope rules, each with a differential test that includes inherited access
+after the change.
 
 ### R1 operator checklist
 
