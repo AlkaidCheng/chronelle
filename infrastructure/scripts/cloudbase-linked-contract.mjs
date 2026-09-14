@@ -23,8 +23,8 @@ import {
 // (0017), chronelle_object_delete and chronelle_object_recover (0018),
 // chronelle_object_restore (0019), chronelle_object_scope_update (0020),
 // chronelle_event_layout_update and chronelle_event_layout_restore (0022),
-// and chronelle_command_execute and chronelle_command_transition (0023)
-// against the real gateway. The probes end soft-deleted through the delete
+// chronelle_command_execute and chronelle_command_transition (0023), and
+// chronelle_command_state (0024) against the real gateway. The probes end soft-deleted through the delete
 // function, because their audit and revision rows are append-only.
 
 const required = [
@@ -443,6 +443,11 @@ try {
       direction,
       request_hash: commandHash(direction, input),
     });
+  const commandState = () =>
+    client.rpc("chronelle_command_state", {
+      workspace_id: workspaceId,
+      user_id: userId,
+    });
   let stackVersion;
   let commandRequest;
   let executed;
@@ -531,6 +536,18 @@ try {
     return { stackVersion: receipt.stackVersion };
   });
 
+  await step("read the state after the undo", async () => {
+    const state = await commandState();
+    if (
+      state.version !== stackVersion + 2 ||
+      state.undo !== null ||
+      state.redo?.commandId !== commandRequest.operationId ||
+      state.redo.available !== true
+    )
+      throw new Error("command state: the redo head is not the command.");
+    return { version: state.version, redo: state.redo.commandId };
+  });
+
   await step("reject a redo with a stale stack version", () =>
     expectRejection("stale redo", () =>
       transition("redo", {
@@ -555,6 +572,18 @@ try {
     )
       throw new Error("command: the redo did not reapply both probes.");
     return { stackVersion: receipt.stackVersion };
+  });
+
+  await step("read the state after the redo", async () => {
+    const state = await commandState();
+    if (
+      state.version !== stackVersion + 3 ||
+      state.redo !== null ||
+      state.undo?.commandId !== commandRequest.operationId ||
+      state.undo.available !== true
+    )
+      throw new Error("command state: the undo head is not the command.");
+    return { version: state.version, undo: state.undo.commandId };
   });
 } finally {
   if (probes.length > 0) {
