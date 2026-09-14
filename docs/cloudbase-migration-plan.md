@@ -507,13 +507,37 @@ and integration tests are deliberately retained for this option.
 No phase may silently bypass a failed gate. The fallback is the existing
 PostgreSQL adapter.
 
+**Attachments:** migration 0026 adds `chronelle_document_transfer_authorize`
+(the upload or download authorization row after the service's edit check on
+a live Event, Task, or Expense parent or view check on a live Document, with
+its audit event), `chronelle_document_transfer_consume` (one consumption
+before expiry, a download re-checking that its authorizer may still view
+the Document, the audit event naming the authorizer), and
+`chronelle_document_finalize` (the caller's unfinalized upload becomes a
+Document on the parent's permission scope, attached by an `attached_to`
+relation, with the document.created audit event and the version-1
+revision). The storage provider is untouched: `DocumentService` still
+issues the signed transfer, stores or reads the bytes, and inspects the
+stored object; `DocumentTransferWriteRepository` carries the rows around
+those steps and `DocumentTransferReadRepository` the transfer lookups and
+the attachment relations (through the gateway's table route, expiry applied
+after the read because the transport has no range filter). The service's
+authorization decisions come from the object service's allowed actions, so
+the same object read repository serves both backends. The differential test
+runs both backends against one local storage provider and compares the
+attachment, the relation, the listing, the downloaded bytes, the transfer
+rows, the Document ledger, and the five transfer audits, plus the refusals
+(a viewer, a Reminder parent, a missing parent, mismatched bytes, unknown,
+consumed, foreign, and finalized transfers, a non-viewer download, and a
+consumed download).
+
 ## Recommended next PR
 
-Begin stage 08 with the attachment path: put the document upload
-authorization, finalization, and download authorization of
-`DocumentService` behind a write boundary whose CloudBase implementation
-runs the transfer and document records as functions, with the storage
-provider unchanged, each proven by a differential test.
+Finish stage 08 with the backend mode: one deployment setting that selects
+the CloudBase backend, startup verification that the required functions
+are installed, an authorization store that reads membership and grants
+through the gateway so the HTTP boundary needs no `DATABASE_URL`, and the
+metrics and runbooks the roadmap lists.
 
 ### R1 operator checklist
 

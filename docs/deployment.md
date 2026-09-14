@@ -215,18 +215,22 @@ the child the same way, restores the child's first revision, moves the
 child to its own scope and back, saves and restores the Event's page
 layout, renames both probes as one reversible command, undoes it, and redoes
 it, reads the command state after the undo and the redo, and reads the
-workspace's storage references. The probes end deleted through
-`chronelle_object_delete`. Run it only against staging.
+workspace's storage references, and records a document transfer without
+bytes (an upload authorization, its consumption, the finalization into an
+attached Document, and a consumed download authorization). The probes,
+the Document included, end deleted through `chronelle_object_delete`. Run
+it only against staging.
 
 `CLOUDBASE_WRITES_ENABLED=true` routes the API's Event, Task, Expense, and
 Reminder create and update, linked creation, relation changes, object
 deletion, recovery, and revision restore, sharing and permission-scope
-changes, Event page layouts, and reversible commands through those
-functions; it requires `CLOUDBASE_READS_ENABLED=true` and migrations 0012
-through 0025 on the environment (0024 and 0025 serve reads). Until the
-attachment path and the authorization store are ported the API still needs
-`DATABASE_URL`, so the flag serves staging verification, not a deployment
-without PostgreSQL access.
+changes, Event page layouts, reversible commands, and document transfers
+(upload authorization, consumption, finalization, and download
+authorization; the storage provider is unchanged) through those functions;
+it requires `CLOUDBASE_READS_ENABLED=true` and migrations 0012 through 0026
+on the environment (0024 and 0025 serve reads). Until the authorization
+store is ported the API still needs `DATABASE_URL`, so the flag serves
+staging verification, not a deployment without PostgreSQL access.
 
 ## Containerized web
 

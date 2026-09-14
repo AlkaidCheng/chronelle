@@ -272,8 +272,12 @@
         reversible commands as <code>chronelle_command_execute</code> and
         <code>chronelle_command_transition</code> (migration 0023), and every
         read has a gateway implementation (search, the command state, and the
-        storage references as functions; the rest as read repositories).
-        Attachments and the backend mode are next.
+        storage references as functions; the rest as read repositories), and
+        document transfers run as
+        <code>chronelle_document_transfer_authorize</code>,
+        <code>chronelle_document_transfer_consume</code>, and
+        <code>chronelle_document_finalize</code> (migration 0026) around an
+        unchanged storage provider. The backend mode is next.
       </aside>
 
       <aside class="invariant" aria-label="Standing constraint">
@@ -504,7 +508,9 @@
           <ul>
             <li>
               Attachment upload, finalize, and download authorization against
-              the storage provider with short-lived private URLs.
+              the storage provider with short-lived private URLs: done
+              (migration 0026 records the transfer rows, the Document, and the
+              audits; the provider is unchanged).
             </li>
             <li>
               One backend mode in deployment configuration; startup verifies the
@@ -650,10 +656,17 @@
           </tr>
           <tr>
             <td>Attachments</td>
-            <td>Storage provider integration</td>
-            <td>None</td>
-            <td>Attachment security suites</td>
-            <td><span class="status next">Next</span></td>
+            <td>
+              <code>chronelle_document_transfer_authorize</code>,
+              <code>chronelle_document_transfer_consume</code>,
+              <code>chronelle_document_finalize</code>
+            </td>
+            <td>0026</td>
+            <td>
+              Differential test over one storage provider; staging linked
+              contract
+            </td>
+            <td><span class="status done">Done</span></td>
           </tr>
         </tbody>
       </table>
