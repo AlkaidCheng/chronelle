@@ -36,6 +36,10 @@ restore used by the CloudBase rpc write path; 0013 also introduces the shared ob
 write core the family functions delegate to. They change no tables and need
 no baseline; a PostgreSQL deployment carries the functions unused.
 
+Migration `0021_add_object_search_function.sql` adds `chronelle_object_search`,
+the read-only function the CloudBase search adapter calls. It changes no
+tables and needs no baseline.
+
 Migration `0011_add_event_page_layouts.sql` adds independently versioned Event
 page configuration. Run `pnpm db:migrate` and reapply runtime role provisioning
 before deploying the API and web. Existing Events start with an empty layout;

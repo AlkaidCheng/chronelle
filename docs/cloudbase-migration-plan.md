@@ -171,6 +171,20 @@ in use.
 **Exit gate:** differential tests return equivalent canonical IDs, relation
 sets, archived/deleted filtering, and permission-filtered results.
 
+Object search has this boundary as `SearchReadRepository`. The gateway has no
+full-text ranking of its own, so the CloudBase implementation calls
+`chronelle_object_search` (migration 0021), a stable read-only function with
+the service's query, `ts_rank` order, membership and grant rules, type filter,
+and keyset position. The function returns one page and the position of its
+last item; the service keeps the cursor envelope, so a cursor from either
+implementation continues the search on the other. A differential test runs
+both implementations through the service against one database and compares
+ids, order, rank ties, the type filter, page sequences across a microsecond
+tie boundary, a member and a grant-only viewer with an expired grant, deleted
+objects and a deleted scope, and cursor rejections. `CLOUDBASE_READS_ENABLED`
+routes search through the function alongside the event-list and calendar
+reads.
+
 ### Phase 3 — Safe single-object writes
 
 Add CloudBase repositories for writes that affect one logical object and can
