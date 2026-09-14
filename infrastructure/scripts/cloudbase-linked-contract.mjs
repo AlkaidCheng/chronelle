@@ -16,10 +16,12 @@ import {
 // scope, the includes relation, both audit rows, and the command record, or
 // none of them; the relation is then removed and recovered under its version
 // predicate, the child is deleted and recovered the same way, its first
-// revision is restored, and it is moved to its own scope and back. Exercises
+// revision is restored, it is moved to its own scope and back, and the
+// Event's page layout is saved and restored. Exercises
 // chronelle_event_context_create (migration 0016), chronelle_relation_lifecycle
 // (0017), chronelle_object_delete and chronelle_object_recover (0018),
-// chronelle_object_restore (0019), and chronelle_object_scope_update (0020)
+// chronelle_object_restore (0019), chronelle_object_scope_update (0020), and
+// chronelle_event_layout_update and chronelle_event_layout_restore (0022)
 // against the real gateway. The probes end soft-deleted through the delete
 // function, because their audit and revision rows are append-only.
 
@@ -368,6 +370,43 @@ try {
     )
       throw new Error("scope: the child was not attached at version 6.");
     return { version: rows.object.version };
+  });
+
+  const layoutPages = [
+    {
+      id: createId(),
+      name: "Overview",
+      components: [{ id: createId(), kind: "calendar" }],
+    },
+  ];
+  await step("save the Event's layout", async () => {
+    const layout = await client.rpc("chronelle_event_layout_update", {
+      workspace_id: workspaceId,
+      user_id: userId,
+      request_id: createId(),
+      event_id: eventId,
+      expected_version: 0,
+      pages: layoutPages,
+    });
+    if (layout.version !== 1 || layout.pages.length !== 1)
+      throw new Error("layout: the first version was not saved.");
+    return { version: layout.version };
+  });
+
+  await step("restore the empty layout", async () => {
+    const layout = await client.rpc("chronelle_event_layout_restore", {
+      workspace_id: workspaceId,
+      user_id: userId,
+      request_id: createId(),
+      event_id: eventId,
+      expected_version: 1,
+      target_version: 0,
+    });
+    if (layout.version !== 2 || layout.pages.length !== 0)
+      throw new Error(
+        "layout: the empty layout was not restored at version 2.",
+      );
+    return { version: layout.version };
   });
 } finally {
   if (probes.length > 0) {
