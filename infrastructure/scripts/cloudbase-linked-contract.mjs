@@ -23,8 +23,9 @@ import {
 // (0017), chronelle_object_delete and chronelle_object_recover (0018),
 // chronelle_object_restore (0019), chronelle_object_scope_update (0020),
 // chronelle_event_layout_update and chronelle_event_layout_restore (0022),
-// chronelle_command_execute and chronelle_command_transition (0023), and
-// chronelle_command_state (0024) against the real gateway. The probes end soft-deleted through the delete
+// chronelle_command_execute and chronelle_command_transition (0023),
+// chronelle_command_state (0024), and chronelle_storage_references (0025)
+// against the real gateway. The probes end soft-deleted through the delete
 // function, because their audit and revision rows are append-only.
 
 const required = [
@@ -584,6 +585,27 @@ try {
     )
       throw new Error("command state: the undo head is not the command.");
     return { version: state.version, undo: state.undo.commandId };
+  });
+
+  await step("read the storage references", async () => {
+    const references = await client.rpc("chronelle_storage_references", {
+      workspace_id: workspaceId,
+      user_id: userId,
+      storage_provider: "local-filesystem",
+      observed_at: new Date().toISOString(),
+      row_limit: 100,
+    });
+    if (
+      !Array.isArray(references.canonical) ||
+      !Array.isArray(references.revisions) ||
+      !Array.isArray(references.uploads)
+    )
+      throw new Error("storage references: the sets are not lists.");
+    return {
+      canonical: references.canonical.length,
+      revisions: references.revisions.length,
+      uploads: references.uploads.length,
+    };
   });
 } finally {
   if (probes.length > 0) {
