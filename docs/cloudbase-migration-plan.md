@@ -378,6 +378,31 @@ when injected. The differential test compares four versions of a layout
 audits, and the refusals for a stale version, a non-Event, a non-member, a
 missing Event, a missing target version, and a stale restore.
 
+**Reversible commands:** migration 0023 adds `chronelle_command_execute` and
+`chronelle_command_transition`, which run `ReversibleCommandService` as one
+transaction: the receipt replay (same operation id and request hash returns
+the receipt, a different hash is the command conflict), the caller's stack
+locked and checked at its expected version, every edit's target checked for
+edit access, liveness, type, and version before any edit is applied, the
+edits applied through `chronelle_object_update` with the command in each
+audit's metadata, the command and its per-object version changes recorded,
+the stack advanced under its version predicate (the undo list reset when a
+command follows an untracked edit, capped at fifty, expectations pruned to
+retained commands), and the receipt written with its `command.<direction>`
+audit event. Undo and redo restore each changed object's content from the
+revision before or after the command; the content selection mirrors the
+restoration policy for the Event and Task fields commands may edit. The
+adapter computes the request hash with the service's own function.
+`CommandWriteRepository` is the boundary; `ReversibleCommandService`
+delegates when injected. The differential test runs each backend as its own
+Owner with the same operation ids and compares receipts, resource states,
+object ledgers, the stack row, the command tables, and the command audits
+across execute, replay, undo, redo, a divergent command, and its undo, plus
+the refusals for a stale stack, a stale object, a wrong type, a deleted or
+missing object, a non-member, an invalid typed patch, a replay with
+different input, a wrong head, an empty redo list, and an undo after an
+untracked edit; an injected failure after the edits leaves nothing behind.
+
 ### Phase 4 — Cross-object mutations and recovery
 
 Do not emulate transactions with optimistic hope. For relations, shares,
@@ -437,10 +462,11 @@ PostgreSQL adapter.
 
 ## Recommended next PR
 
-Port commands (execute, undo, and redo of `ReversibleCommandService`) as
-functions that reuse the family functions for the object change and keep
-the command state, the inverse operation, and both ledgers in one
-transaction, with the reversible-command suites run on both backends.
+Port the command state read (`GET /api/commands`,
+`ReversibleCommandService.getState`) as a read function, so the undo and
+redo heads are computed with the same edit-permission and version checks on
+both backends, then begin stage 08 with attachment upload, finalize, and
+download authorization against the storage provider.
 
 ### R1 operator checklist
 
