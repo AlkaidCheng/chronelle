@@ -1,0 +1,650 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Chronelle &middot; CloudBase rpc write port</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --bg: #f6f7fb;
+        --surface: #fff;
+        --ink: #172033;
+        --muted: #657087;
+        --line: #e4e8f0;
+        --accent: #315efb;
+        --done: #17815b;
+        --next: #9a6200;
+        --gate: #a03e5c;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--ink);
+        font:
+          15px/1.55 ui-sans-serif,
+          system-ui,
+          -apple-system,
+          BlinkMacSystemFont,
+          "Segoe UI",
+          sans-serif;
+      }
+      main {
+        max-width: 1120px;
+        margin: 0 auto;
+        padding: 48px 24px 72px;
+      }
+      .eyebrow {
+        color: var(--accent);
+        font-size: 12px;
+        font-weight: 750;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+      }
+      h1 {
+        font-size: clamp(32px, 5vw, 56px);
+        line-height: 1.05;
+        letter-spacing: -0.04em;
+        margin: 12px 0 18px;
+        max-width: 760px;
+      }
+      .lede {
+        color: var(--muted);
+        font-size: 18px;
+        max-width: 760px;
+        margin: 0 0 30px;
+      }
+      .summary {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 12px;
+        margin: 28px 0 42px;
+      }
+      .metric,
+      .phase {
+        background: var(--surface);
+        border: 1px solid var(--line);
+        border-radius: 16px;
+        box-shadow: 0 8px 24px #1a2b5410;
+      }
+      .metric {
+        padding: 18px;
+      }
+      .metric strong {
+        display: block;
+        font-size: 25px;
+      }
+      .metric span {
+        color: var(--muted);
+        font-size: 13px;
+      }
+      .gate-note {
+        border: 1px solid #ead9ad;
+        border-left: 4px solid var(--next);
+        border-radius: 12px;
+        background: #fffaf0;
+        margin: 18px 0 28px;
+        padding: 14px 16px;
+      }
+      .gate-note strong {
+        display: block;
+        margin-bottom: 4px;
+      }
+      .invariant {
+        border: 1px solid #cfd9f5;
+        border-left: 4px solid var(--accent);
+        border-radius: 12px;
+        background: #f3f6ff;
+        margin: 18px 0 28px;
+        padding: 14px 16px;
+      }
+      .invariant strong {
+        display: block;
+        margin-bottom: 4px;
+      }
+      h2 {
+        font-size: 24px;
+        margin: 42px 0 16px;
+        letter-spacing: -0.02em;
+      }
+      .phase {
+        display: grid;
+        grid-template-columns: 112px 1fr;
+        gap: 20px;
+        padding: 22px;
+        margin: 12px 0;
+      }
+      .phase-number {
+        color: var(--accent);
+        font-weight: 800;
+        font-size: 14px;
+      }
+      .phase h3 {
+        margin: 0 0 5px;
+        font-size: 18px;
+      }
+      .phase p {
+        margin: 0;
+        color: var(--muted);
+      }
+      .phase ul {
+        margin: 12px 0 0;
+        padding-left: 20px;
+      }
+      .status {
+        display: inline-flex;
+        border-radius: 999px;
+        padding: 3px 9px;
+        font-size: 11px;
+        font-weight: 800;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        margin-left: 8px;
+      }
+      td .status {
+        margin-left: 0;
+      }
+      .done {
+        color: var(--done);
+        background: #e3f5ed;
+      }
+      .next {
+        color: var(--next);
+        background: #fff1d7;
+      }
+      .planned {
+        color: var(--accent);
+        background: #e8edff;
+      }
+      .gate {
+        color: var(--gate);
+        background: #fbe7ee;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        background: var(--surface);
+        border: 1px solid var(--line);
+        border-radius: 16px;
+        overflow: hidden;
+        display: table;
+      }
+      th,
+      td {
+        padding: 13px 15px;
+        text-align: left;
+        border-bottom: 1px solid var(--line);
+        vertical-align: top;
+      }
+      th {
+        font-size: 12px;
+        color: var(--muted);
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+      }
+      tr:last-child td {
+        border-bottom: 0;
+      }
+      code {
+        background: #eef1f7;
+        border-radius: 5px;
+        padding: 2px 5px;
+        font-size: 0.92em;
+      }
+      footer {
+        color: var(--muted);
+        margin-top: 40px;
+        font-size: 13px;
+      }
+      @media (max-width: 680px) {
+        main {
+          padding: 30px 16px 52px;
+        }
+        .summary {
+          grid-template-columns: 1fr;
+        }
+        .phase {
+          grid-template-columns: 1fr;
+          gap: 4px;
+        }
+        table {
+          font-size: 13px;
+        }
+        th,
+        td {
+          padding: 10px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <div class="eyebrow">Chronelle &middot; deployment architecture</div>
+      <h1>CloudBase rpc write port</h1>
+      <p class="lede">
+        The route from a PostgreSQL-only API to one that runs on the shared
+        CloudBase cluster with no TCP connection: every mutation becomes a
+        PostgreSQL function called through the gateway's rpc route, one
+        operation family at a time, each proven equal to the Drizzle service by
+        a differential test. The Drizzle path stays first-class, so a TCP
+        deployment remains a configuration change.
+      </p>
+
+      <section class="summary" aria-label="Port summary">
+        <div class="metric">
+          <strong>2 / 4</strong><span>single-object families ported</span>
+        </div>
+        <div class="metric">
+          <strong>Drizzle</strong
+          ><span>runtime default; both backends tested in CI</span>
+        </div>
+        <div class="metric">
+          <strong>0013</strong
+          ><span
+            >shared write core: one transaction shape for every family</span
+          >
+        </div>
+      </section>
+
+      <aside class="gate-note" aria-label="Current stage">
+        <strong>Current stage &middot; Task family merged</strong>
+        Event and Task create and update run as
+        <code>chronelle_&lt;type&gt;_create</code> and
+        <code>chronelle_&lt;type&gt;_update</code> behind
+        <code>CLOUDBASE_WRITES_ENABLED</code>. Migration 0013 factored the
+        transaction into <code>chronelle_object_create</code> and
+        <code>chronelle_object_update</code>, so a new family is five typed
+        functions, a row decoder, and a differential test. Expense is next, then
+        Reminder; linked creation is the first cross-object function.
+      </aside>
+
+      <aside class="invariant" aria-label="Standing constraint">
+        <strong
+          >Standing constraint &middot; the TCP backend stays switchable</strong
+        >
+        Every ported family keeps two implementations behind one repository
+        interface, selected by deployment configuration. The Drizzle
+        implementation is never deleted or skipped in tests; functions ship as
+        ordinary migrations that a TCP deployment carries unused. Business logic
+        never branches on the backend.
+      </aside>
+
+      <h2>Execution plan</h2>
+      <article class="phase">
+        <div class="phase-number">
+          STAGE 01 <span class="status done">Done</span>
+        </div>
+        <div>
+          <h3>rpc route and error contract</h3>
+          <p>
+            Prove that one gateway call runs one audited transaction before
+            porting anything.
+          </p>
+          <ul>
+            <li>
+              <code>rpc()</code> on the RDB client;
+              <code>CloudBaseRpcError</code>
+              carries the HTTP status and the gateway's prefixed SQLSTATE.
+            </li>
+            <li>
+              Custom <code>PT403</code>, <code>PT409</code>, <code>PT422</code>,
+              and <code>PT500</code> codes map to 403, 409, 422, and 500 on the
+              gateway; missing and forbidden share one code so existence never
+              leaks.
+            </li>
+            <li>
+              Staging evidence: a raise after every write persists nothing; four
+              concurrent calls on one version produce one winner.
+            </li>
+          </ul>
+        </div>
+      </article>
+      <article class="phase">
+        <div class="phase-number">
+          STAGE 02 <span class="status next">In progress</span>
+        </div>
+        <div>
+          <h3>Single-object create and update</h3>
+          <p>
+            Event, Task, Expense, and Reminder, each on the shared core with its
+            own state rules.
+          </p>
+          <ul>
+            <li>
+              Shared core: authorization, the <code>objects</code> row, the
+              version predicate, the audit event, and the revision snapshot are
+              implemented once; typed steps are resolved by name.
+            </li>
+            <li>
+              Per family: <code>chronelle_assert_&lt;type&gt;_state</code> with
+              the service's messages, insert, validate, apply, serialize, and
+              rows functions, a
+              <code>CloudBase&lt;Type&gt;WriteRepository</code>
+              subclass, and a differential test on the shared harness.
+            </li>
+            <li>
+              Event (migration 0012) and Task (migration 0013) merged; Expense
+              and Reminder follow the same shape.
+            </li>
+            <li>
+              Staging run per family with
+              <code>CLOUDBASE_CONTRACT_FAMILY</code>.
+            </li>
+          </ul>
+        </div>
+      </article>
+      <article class="phase">
+        <div class="phase-number">
+          STAGE 03 <span class="status planned">Planned</span>
+        </div>
+        <div>
+          <h3>Linked creation</h3>
+          <p>
+            The first cross-object function: a typed object and its
+            <code>includes</code> relation in one transaction.
+          </p>
+          <ul>
+            <li>
+              <code>POST /api/events/:id/resources</code> creates the child on
+              the parent's scope, the relation with its version, and both audit
+              rows.
+            </li>
+            <li>
+              Injected-failure test: a raise after the relation insert leaves no
+              object, relation, audit, or revision row.
+            </li>
+          </ul>
+        </div>
+      </article>
+      <article class="phase">
+        <div class="phase-number">
+          STAGE 04 <span class="status planned">Planned</span>
+        </div>
+        <div>
+          <h3>Relations and lifecycle</h3>
+          <p>
+            Relation changes, soft deletion, trash recovery, and revision
+            restore.
+          </p>
+          <ul>
+            <li>
+              Include, attach, paid-for, and removed-link relations with their
+              own version predicates.
+            </li>
+            <li>
+              Delete, restore, and revision restore keep object, relation, and
+              recovery records consistent inside one call.
+            </li>
+            <li>
+              Differential tests compare the full ledger: objects, relations,
+              audit, revisions, recovery.
+            </li>
+          </ul>
+        </div>
+      </article>
+      <article class="phase">
+        <div class="phase-number">
+          STAGE 05 <span class="status planned">Planned</span>
+        </div>
+        <div>
+          <h3>Sharing, scope, and layouts</h3>
+          <p>
+            Grants, revocation, stop-inheritance, and Event page layout history.
+          </p>
+          <ul>
+            <li>
+              Scope changes are versioned; inherited access is recomputed from
+              the canonical scope, never from relations.
+            </li>
+            <li>
+              Layout panels and their restore history keep optimistic
+              concurrency and audit.
+            </li>
+          </ul>
+        </div>
+      </article>
+      <article class="phase">
+        <div class="phase-number">
+          STAGE 06 <span class="status gate">Gate</span>
+        </div>
+        <div>
+          <h3>Commands, undo, and redo</h3>
+          <p>
+            Durable command state and inverse operations need one transaction
+            across the command, the object, and both ledgers.
+          </p>
+          <ul>
+            <li>
+              Execute, undo, and redo as functions that reuse the family
+              functions for the object change.
+            </li>
+            <li>
+              Gate: the reversible-command suites pass on both backends, and an
+              injected failure exposes no half-applied command.
+            </li>
+          </ul>
+        </div>
+      </article>
+      <article class="phase">
+        <div class="phase-number">
+          STAGE 07 <span class="status planned">Planned</span>
+        </div>
+        <div>
+          <h3>Remaining reads</h3>
+          <p>
+            Move the projections still served by Drizzle behind read
+            repositories or read functions.
+          </p>
+          <ul>
+            <li>
+              Event detail and the to-do, timeline, itinerary, expense, and
+              reminder projections.
+            </li>
+            <li>
+              Search as a function, since the gateway has no full-text ranking
+              of its own.
+            </li>
+            <li>
+              Object, relation, sharing, revision, recovery, and storage
+              inventory reads, each with its differential test.
+            </li>
+          </ul>
+        </div>
+      </article>
+      <article class="phase">
+        <div class="phase-number">
+          STAGE 08 <span class="status planned">Planned</span>
+        </div>
+        <div>
+          <h3>Attachments, backend mode, and operations</h3>
+          <p>
+            The API runs without <code>DATABASE_URL</code>, and the switch back
+            is configuration.
+          </p>
+          <ul>
+            <li>
+              Attachment upload, finalize, and download authorization against
+              the storage provider with short-lived private URLs.
+            </li>
+            <li>
+              One backend mode in deployment configuration; startup verifies the
+              required functions are installed before enabling it.
+            </li>
+            <li>
+              Metrics for gateway latency, rate limits, rejected conflicts, and
+              function errors; versioned migration and rollback runbooks.
+            </li>
+            <li>
+              CI keeps running every suite on the Drizzle path; a TCP deployment
+              flips the mode and changes nothing else.
+            </li>
+          </ul>
+        </div>
+      </article>
+
+      <h2>Family ledger</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Family</th>
+            <th>Functions</th>
+            <th>Migration</th>
+            <th>Evidence</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Event create, update</td>
+            <td><code>chronelle_event_create</code>, <code>_update</code></td>
+            <td>0012, redefined on the core in 0013</td>
+            <td>Differential test; staging rpc contract</td>
+            <td><span class="status done">Done</span></td>
+          </tr>
+          <tr>
+            <td>Task create, update</td>
+            <td><code>chronelle_task_create</code>, <code>_update</code></td>
+            <td>0013</td>
+            <td>Differential test; staging rpc contract</td>
+            <td><span class="status done">Done</span></td>
+          </tr>
+          <tr>
+            <td>Expense create, update</td>
+            <td><code>chronelle_expense_create</code>, <code>_update</code></td>
+            <td>0014</td>
+            <td>Same shape</td>
+            <td><span class="status next">Next</span></td>
+          </tr>
+          <tr>
+            <td>Reminder create, update</td>
+            <td>
+              <code>chronelle_reminder_create</code>, <code>_update</code>
+            </td>
+            <td>0015</td>
+            <td>Same shape</td>
+            <td><span class="status planned">Planned</span></td>
+          </tr>
+          <tr>
+            <td>Linked creation</td>
+            <td>One function over the family functions plus the relation</td>
+            <td>Next free number</td>
+            <td>Differential test plus injected failure</td>
+            <td><span class="status planned">Planned</span></td>
+          </tr>
+          <tr>
+            <td>Relations, delete, restore, revisions</td>
+            <td>One function per operation</td>
+            <td>Per operation</td>
+            <td>Full-ledger differential tests</td>
+            <td><span class="status planned">Planned</span></td>
+          </tr>
+          <tr>
+            <td>Sharing, scope, layouts</td>
+            <td>One function per operation</td>
+            <td>Per operation</td>
+            <td>Authorization suites on both backends</td>
+            <td><span class="status planned">Planned</span></td>
+          </tr>
+          <tr>
+            <td>Commands, undo, redo</td>
+            <td>Execute, undo, redo functions</td>
+            <td>Per operation</td>
+            <td>Reversible-command suites plus injected failure</td>
+            <td><span class="status gate">Gate</span></td>
+          </tr>
+          <tr>
+            <td>Search and remaining reads</td>
+            <td>Read functions or read repositories</td>
+            <td>Search only</td>
+            <td>Differential projection tests</td>
+            <td><span class="status planned">Planned</span></td>
+          </tr>
+          <tr>
+            <td>Attachments</td>
+            <td>Storage provider integration</td>
+            <td>None</td>
+            <td>Attachment security suites</td>
+            <td><span class="status planned">Planned</span></td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h2>What every family must satisfy</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Rule</th>
+            <th>Meaning</th>
+            <th>How it is checked</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Two implementations, one interface</td>
+            <td>
+              The Drizzle service and the CloudBase adapter both implement the
+              family's repository; deployment configuration picks one.
+            </td>
+            <td>
+              Both run in the differential test; the Drizzle suites stay in CI.
+            </td>
+          </tr>
+          <tr>
+            <td>Same rows, same errors</td>
+            <td>
+              Resource, audit event, revision snapshot, and every error class
+              and message match the service.
+            </td>
+            <td>
+              Differential test over every field including clearing, command
+              metadata, invalid states, conflict, missing, forbidden, and the
+              missing-baseline guard.
+            </td>
+          </tr>
+          <tr>
+            <td>One call, one transaction</td>
+            <td>
+              A function either commits every row or none; the API never issues
+              a second request to complete a write.
+            </td>
+            <td>
+              Staging rpc contract: raise after every write persists nothing;
+              one winner in a race.
+            </td>
+          </tr>
+          <tr>
+            <td>Functions are migrations</td>
+            <td>
+              Immutable <code>NNNN_*.sql</code> files with a checksum ledger; on
+              staging they are applied through the console with the ledger row.
+            </td>
+            <td>
+              Persistence test counts migrations; the harness refuses to run
+              when the family's functions are missing.
+            </td>
+          </tr>
+          <tr>
+            <td>No backend branching in business logic</td>
+            <td>
+              Services delegate to an injected repository or run their own
+              transaction; nothing inspects a flag.
+            </td>
+            <td>Review; the flag is read only in server configuration.</td>
+          </tr>
+        </tbody>
+      </table>
+      <footer>
+        Source of detail: <code>docs/cloudbase-migration-plan.md</code> (Phase 3
+        and the R3 decision) and
+        <code>docs/cloudbase-operation-matrix.md</code>. The wider staging route
+        is in
+        <a href="cloudbase-migration-roadmap.html"
+          >cloudbase-migration-roadmap.html</a
+        >. Updated after the Task family merged.
+      </footer>
+    </main>
+  </body>
+</html>
