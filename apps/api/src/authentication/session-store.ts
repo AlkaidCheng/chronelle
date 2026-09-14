@@ -9,7 +9,7 @@ import {
   users,
   workspaces,
 } from "@chronelle/db";
-import { and, eq, gt, isNull } from "drizzle-orm";
+import { and, eq, gt, isNull, sql } from "drizzle-orm";
 
 /** The fields a new session is recorded with. */
 export interface NewSession {
@@ -143,7 +143,7 @@ export class PostgresSessionStore implements SessionStore {
     return this.#database.transaction(async (transaction) => {
       const [revoked] = await transaction
         .update(userSessions)
-        .set({ revokedAt })
+        .set({ revokedAt: clampedToCreation(revokedAt) })
         .where(
           and(
             eq(userSessions.tokenHash, tokenHash),
@@ -169,7 +169,7 @@ export class PostgresSessionStore implements SessionStore {
     return this.#database.transaction(async (transaction) => {
       const revoked = await transaction
         .update(userSessions)
-        .set({ revokedAt })
+        .set({ revokedAt: clampedToCreation(revokedAt) })
         .where(
           and(
             eq(userSessions.userId, userId),
@@ -187,6 +187,14 @@ export class PostgresSessionStore implements SessionStore {
       return revoked.length;
     });
   }
+}
+
+/**
+ * A revocation instant earlier than the session's creation (an API clock
+ * slightly behind the database's) is recorded as the creation instant.
+ */
+function clampedToCreation(revokedAt: Date) {
+  return sql`GREATEST(${revokedAt.toISOString()}::timestamptz, ${userSessions.createdAt})`;
 }
 
 /** session.revoked in the user's personal workspace; nothing when the user has none. */

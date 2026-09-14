@@ -22,7 +22,7 @@ configured the same way on both backends.
 ## Prerequisites for the CloudBase backend
 
 1. The environment's PostgreSQL holds the full schema: migrations `0001`
-   through `0030`, applied in order with their `chronelle_schema_migrations`
+   through `0031`, applied in order with their `chronelle_schema_migrations`
    ledger rows. The CloudBase console's SQL editor applies each file; verify
    the editor holds the ledger row at the end of the file before executing.
 2. The revision baseline holds: every object has a revision for its current
@@ -131,7 +131,7 @@ identity provider, so keep the web service's address private.
    loses uploads; use `tencent-cos` with a private bucket and least-privilege
    credentials as described in [storage.md](storage.md), or accept
    ephemeral attachments for a smoke deployment.
-4. Confirm the prerequisites above: migrations through 0030 applied, the
+4. Confirm the prerequisites above: migrations through 0031 applied, the
    baseline captured, the contract harnesses passing.
 
 ### Deployment repository

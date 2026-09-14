@@ -1,6 +1,12 @@
 import { resolve } from "node:path";
 
-import { auditEvents, createId, users, workspaces } from "@chronelle/db";
+import {
+  auditEvents,
+  createId,
+  userSessions,
+  users,
+  workspaces,
+} from "@chronelle/db";
 import {
   applyMigrations,
   createCloudBaseRpcDouble,
@@ -235,6 +241,34 @@ describe.sequential("session store", () => {
         },
       ],
     });
+  });
+
+  it("records a revocation dated before the session's creation at the creation instant", async () => {
+    const results = [];
+    for (const [label, store] of backends()) {
+      const { user } = await person(label);
+      const tokenHash = hashAccessToken(`skew-${label}`);
+      const created = await store.create({
+        userId: user.id,
+        tokenHash,
+        identityProvider: "development",
+        expiresAt,
+      });
+      const earlier = later(created.createdAt, -60_000);
+      const revoked = await store.revoke(tokenHash, earlier, createId());
+      const [row] = await database.connection.db
+        .select({ revokedAt: userSessions.revokedAt })
+        .from(userSessions)
+        .where(eq(userSessions.tokenHash, tokenHash));
+      results.push({
+        revoked,
+        revokedAtCreation:
+          row?.revokedAt?.getTime() === created.createdAt.getTime(),
+      });
+    }
+    const [postgres, cloud] = results;
+    expect(cloud).toEqual(postgres);
+    expect(postgres).toEqual({ revoked: true, revokedAtCreation: true });
   });
 
   it("revokes every live session of a user and counts them", async () => {

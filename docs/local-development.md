@@ -43,7 +43,9 @@ no baseline; a PostgreSQL deployment carries the functions unused.
 Migration `0030_add_user_sessions.sql` adds the `user_sessions` table and the
 `chronelle_session_create`, `chronelle_session_resolve`,
 `chronelle_session_revoke`, and `chronelle_sessions_revoke_all` functions the
-CloudBase rpc path uses for the same session rules.
+CloudBase rpc path uses for the same session rules; `0031` redefines the two
+revocation functions to date a revocation no earlier than the session's
+creation.
 
 Migration `0021_add_object_search_function.sql` adds `chronelle_object_search`,
 the read-only function the CloudBase search adapter calls. It changes no

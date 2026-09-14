@@ -73,10 +73,11 @@ cp .env.example .env
 The checked-in values are local-only defaults. Production credentials must be
 provided through managed secret storage.
 
-`ENABLE_DEVELOPMENT_AUTH=true` enables the local in-memory identity adapter.
-Its opaque sessions expire and are lost when the API restarts. A production
-deployment must compose a production identity provider instead of enabling
-this adapter.
+`ENABLE_DEVELOPMENT_AUTH=true` enables the development sign-in, which asserts
+an identity from a submitted email without a password. Every sign-in records
+a session that survives API restarts until it expires or is revoked. A
+production deployment must compose a production identity provider instead of
+enabling development sign-in.
 
 ## Install and run
 
