@@ -9,6 +9,19 @@ updates:
         dependency-type: production
       development-dependencies:
         dependency-type: development
+    ignore:
+      # Majors with a code migration of their own; upgraded deliberately,
+      # outside the weekly groups.
+      - dependency-name: vitest
+        update-types: ["version-update:semver-major"]
+      - dependency-name: jsdom
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "@testing-library/jest-dom"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "@tanstack/react-table"
+        update-types: ["version-update:semver-major"]
+      # Moves together with the digest-pinned Playwright image in ci.yml.
+      - dependency-name: "@playwright/test"
   - package-ecosystem: docker
     directory: /
     schedule:

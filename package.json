@@ -32,10 +32,10 @@
     "typecheck": "pnpm --filter @chronelle/schemas typecheck && pnpm --filter @chronelle/db typecheck && pnpm --filter @chronelle/authorization typecheck && pnpm --filter @chronelle/storage typecheck && pnpm --filter @chronelle/object-model typecheck && pnpm --filter @chronelle/api-client typecheck && pnpm --filter @chronelle/api typecheck && pnpm --filter @chronelle/web typecheck"
   },
   "devDependencies": {
-    "@biomejs/biome": "2.5.11",
+    "@biomejs/biome": "2.5.13",
     "@cloudbase/js-sdk": "3.9.3",
     "@playwright/test": "1.62.0",
-    "@types/node": "26.4.0",
+    "@types/node": "26.5.1",
     "@types/react": "19.2.18",
     "@types/react-dom": "19.2.5",
     "prettier": "3.9.6",
@@ -45,6 +45,6 @@
     "yaml": "2.9.0"
   },
   "dependencies": {
-    "ws": "8.18.3"
+    "ws": "8.21.3"
   }
 }
