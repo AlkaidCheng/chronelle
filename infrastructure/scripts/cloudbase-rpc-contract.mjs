@@ -40,6 +40,11 @@ const families = {
     },
     invalidChange: { currency: "eur" },
   },
+  reminder: {
+    migration: "0015",
+    input: { remindAt: "2030-10-16T18:00:00.000Z" },
+    invalidChange: { status: "snoozed" },
+  },
 };
 
 const required = [
