@@ -6,6 +6,7 @@ import {
   relationTypes,
   type CloudBaseRdbFilter,
   type CloudBaseRdbReader,
+  type ObjectType,
   type ReminderStatus,
   type RelationType,
   type TaskStatus,
@@ -515,6 +516,31 @@ async function readCloudBaseObjectsByFilter(
   return client.select<CloudBaseObjectRow>("objects", {
     columns: cloudbaseObjectColumns,
     filters,
+  });
+}
+
+/** Live canonical rows of any object type by id, optionally narrowed to some types. */
+export async function readCloudBaseObjectRows(
+  client: CloudBaseRdbReader,
+  principal: UserPrincipal,
+  ids: readonly string[],
+  objectTypes?: readonly ObjectType[],
+): Promise<readonly CloudBaseObjectRow[]> {
+  if (ids.length === 0 || objectTypes?.length === 0) return [];
+  const filters = cloudbaseFilters(
+    ["workspace_id", "eq", principal.workspaceId],
+    ["deleted_at", "is", null],
+    ["id", "in", ids],
+  );
+  return client.select<CloudBaseObjectRow>("objects", {
+    columns: cloudbaseObjectColumns,
+    filters:
+      objectTypes === undefined
+        ? filters
+        : [
+            ...filters,
+            { column: "object_type", operator: "in", value: objectTypes },
+          ],
   });
 }
 

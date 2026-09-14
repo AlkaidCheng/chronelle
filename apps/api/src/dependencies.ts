@@ -8,6 +8,7 @@ import {
   CanonicalObjectSearchService,
   CloudBaseCalendarReadRepository,
   CloudBaseEventReadRepository,
+  CloudBaseProjectionReadRepository,
   CloudBaseEventContextWriteRepository,
   CloudBaseEventLayoutWriteRepository,
   CloudBaseEventWriteRepository,
@@ -163,6 +164,9 @@ export function createAppDependencies(
       options.cloudBaseRdb === undefined
         ? undefined
         : new CloudBaseCalendarReadRepository(options.cloudBaseRdb),
+      options.cloudBaseRdb === undefined
+        ? undefined
+        : new CloudBaseProjectionReadRepository(options.cloudBaseRdb),
     ),
   };
 }
