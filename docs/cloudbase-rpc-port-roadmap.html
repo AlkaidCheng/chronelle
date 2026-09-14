@@ -261,8 +261,9 @@
         <code>chronelle_relation_create</code> and
         <code>chronelle_relation_lifecycle</code> (migration 0017), and object
         deletion and recovery as <code>chronelle_object_delete</code> and
-        <code>chronelle_object_recover</code> (migration 0018). Revision restore
-        is next.
+        <code>chronelle_object_recover</code> (migration 0018), and revision
+        restore as <code>chronelle_object_restore</code> (migration 0019).
+        Sharing and permission-scope changes are next.
       </aside>
 
       <aside class="invariant" aria-label="Standing constraint">
@@ -370,7 +371,7 @@
       </article>
       <article class="phase">
         <div class="phase-number">
-          STAGE 04 <span class="status next">In progress</span>
+          STAGE 04 <span class="status done">Done</span>
         </div>
         <div>
           <h3>Relations and lifecycle</h3>
@@ -384,9 +385,9 @@
               own version predicates: done (migrations 0016 and 0017).
             </li>
             <li>
-              Delete and recover keep object, revision, and recovery records
-              consistent inside one call: done (migration 0018). Revision
-              restore follows.
+              Delete, recover, and revision restore keep object, revision, and
+              recovery records consistent inside one call: done (migrations 0018
+              and 0019); the restoration policy stays in the application.
             </li>
             <li>
               Differential tests compare the full ledger: objects, relations,
@@ -397,7 +398,7 @@
       </article>
       <article class="phase">
         <div class="phase-number">
-          STAGE 05 <span class="status planned">Planned</span>
+          STAGE 05 <span class="status next">Next</span>
         </div>
         <div>
           <h3>Sharing, scope, and layouts</h3>
@@ -571,17 +572,20 @@
           </tr>
           <tr>
             <td>Revision restore</td>
-            <td>One function over the family apply functions</td>
-            <td>Next free number</td>
-            <td>Full-ledger differential test</td>
-            <td><span class="status next">Next</span></td>
+            <td>
+              <code>chronelle_object_restore</code> over the family apply
+              functions
+            </td>
+            <td>0019</td>
+            <td>Differential test; staging linked contract</td>
+            <td><span class="status done">Done</span></td>
           </tr>
           <tr>
             <td>Sharing, scope, layouts</td>
             <td>One function per operation</td>
             <td>Per operation</td>
             <td>Authorization suites on both backends</td>
-            <td><span class="status planned">Planned</span></td>
+            <td><span class="status next">Next</span></td>
           </tr>
           <tr>
             <td>Commands, undo, redo</td>
@@ -678,7 +682,7 @@
         is in
         <a href="cloudbase-migration-roadmap.html"
           >cloudbase-migration-roadmap.html</a
-        >. Updated after object deletion and recovery.
+        >. Updated after revision restore.
       </footer>
     </main>
   </body>
