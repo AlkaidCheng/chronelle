@@ -475,8 +475,15 @@
             </li>
             <li>
               Object, relation, sharing, revision, and recovery reads behind
-              read repositories with a differential test: done. Storage
-              inventory reads remain.
+              read repositories with a differential test: done.
+            </li>
+            <li>
+              The command state as a read function with the service's edit and
+              version checks: done (migration 0024).
+            </li>
+            <li>
+              Remaining: the revision comparison and restoration preview, and
+              the storage inventory reads.
             </li>
           </ul>
         </div>
@@ -629,9 +636,12 @@
           </tr>
           <tr>
             <td>Search and remaining reads</td>
-            <td>Read functions or read repositories</td>
-            <td>Search only</td>
-            <td>Differential projection tests</td>
+            <td>
+              <code>chronelle_object_search</code>,
+              <code>chronelle_command_state</code>, read repositories
+            </td>
+            <td>0021, 0024</td>
+            <td>Differential read tests; staging read probes</td>
             <td><span class="status next">In progress</span></td>
           </tr>
           <tr>

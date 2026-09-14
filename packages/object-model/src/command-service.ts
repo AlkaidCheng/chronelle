@@ -1,6 +1,5 @@
 import {
   AuthorizationDeniedError,
-  withReadAuthorization,
   type AuthorizationService,
   withStableAuthorization,
   type UserPrincipal,
@@ -24,12 +23,15 @@ import {
 import { and, eq } from "drizzle-orm";
 import { hashCommand } from "./command-hash.js";
 import {
+  PostgresCommandReadRepository,
+  type CommandReadRepository,
+} from "./command-reads.js";
+import {
   readCommandChanges,
   readCommandReceipt,
   readCommandStack,
   recordCommandReceipt,
   saveCommandStack,
-  type CommandStack,
 } from "./command-store.js";
 import { CommandStackConflictError, ObjectConflictError } from "./errors.js";
 import { EventPlanningObjectService } from "./object-service.js";
@@ -41,43 +43,24 @@ import type { MutationContext } from "./types.js";
 /**
  * Apply bounded content commands and inverses under current authorization
  * and version preconditions. The PostgreSQL implementation is this class's
- * own transactional code, used whenever no write repository is injected.
+ * own transactional code, used whenever no write repository is injected;
+ * the state read comes from the read repository, PostgreSQL by default.
  */
 export class ReversibleCommandService {
   readonly #writes: CommandWriteRepository | undefined;
+  readonly #reads: CommandReadRepository;
 
   constructor(
     private readonly database: Database,
     writes?: CommandWriteRepository,
+    reads?: CommandReadRepository,
   ) {
     this.#writes = writes;
+    this.#reads = reads ?? new PostgresCommandReadRepository(database);
   }
 
   async getState(principal: UserPrincipal): Promise<CommandStateResponse> {
-    return withReadAuthorization(
-      this.database,
-      async (transaction, authorization) => {
-        const stack = await readCommandStack(transaction, principal);
-        const redo = await this.readHead(
-          transaction,
-          authorization,
-          principal,
-          stack,
-          stack.redoIds.at(-1),
-        );
-        return {
-          version: stack.version,
-          undo: await this.readHead(
-            transaction,
-            authorization,
-            principal,
-            stack,
-            stack.undoIds.at(-1),
-          ),
-          redo: redo?.available ? redo : null,
-        };
-      },
-    );
+    return this.#reads.getState(principal);
   }
 
   async execute(
@@ -360,34 +343,5 @@ export class ReversibleCommandService {
       });
     }
     return receipt;
-  }
-
-  private async readHead(
-    transaction: DatabaseTransaction,
-    authorization: AuthorizationService,
-    principal: UserPrincipal,
-    stack: CommandStack,
-    commandId: string | undefined,
-  ): Promise<CommandStateResponse["undo"]> {
-    if (commandId === undefined) return null;
-    const changes = await readCommandChanges(transaction, principal, commandId);
-    let available = true;
-    for (const change of changes) {
-      if (
-        !(await authorization.can(principal, "edit", {
-          id: change.objectId,
-          workspaceId: principal.workspaceId,
-        }))
-      )
-        return null;
-      const current = await readObjectState(
-        transaction,
-        principal.workspaceId,
-        change.objectId,
-      );
-      if (current.version !== stack.expectedVersions[change.objectId])
-        available = false;
-    }
-    return { commandId, available };
   }
 }

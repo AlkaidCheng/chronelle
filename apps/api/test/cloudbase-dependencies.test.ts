@@ -21,7 +21,7 @@ class GatewayTouched extends Error {
   }
 }
 
-/** A transport double whose first select fails loudly, which proves the read left PostgreSQL. */
+/** A transport double whose first select or rpc call fails loudly, which proves the read left PostgreSQL. */
 function gateway(): CloudBaseRdbClient {
   return {
     capabilities: {
@@ -32,7 +32,9 @@ function gateway(): CloudBaseRdbClient {
     select: vi.fn(async (table: string) => {
       throw new GatewayTouched(table);
     }),
-    rpc: vi.fn(),
+    rpc: vi.fn(async (functionName: string) => {
+      throw new GatewayTouched(functionName);
+    }),
     insert: vi.fn(),
     update: vi.fn(),
     delete: vi.fn(),
@@ -66,6 +68,8 @@ const reads: Record<
   "GET /api/trash": (dependencies) => dependencies.recovery.list(principal),
   "GET /api/objects/:id/recovery-preview": (dependencies) =>
     dependencies.recovery.preview(principal, objectId),
+  "GET /api/commands": (dependencies) =>
+    dependencies.commands.getState(principal),
 };
 
 describe("CloudBase read wiring", () => {

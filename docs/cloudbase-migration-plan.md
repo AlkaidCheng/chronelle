@@ -417,6 +417,21 @@ missing object, a non-member, an invalid typed patch, a replay with
 different input, a wrong head, an empty redo list, and an undo after an
 untracked edit; an injected failure after the edits leaves nothing behind.
 
+**Command state:** migration 0024 adds `chronelle_command_state`, a
+read-only function that returns the caller's stack version and the undo and
+redo heads the way `ReversibleCommandService.getState` computes them: a head
+is reported only while the caller may still edit every object the command
+changed (`chronelle_can_edit_live`, the authorization service's edit decision
+on a live object and a live canonical scope), it is unavailable when an
+object moved past the version the stack expects, and the redo head is
+reported only when available. `CommandReadRepository` is the boundary with
+the PostgreSQL implementation as the default; `CLOUDBASE_READS_ENABLED`
+injects the adapter. The differential test captures the state after every
+kind of stack movement (empty, executed, undone, an untracked edit hiding
+the redo head, a new command, an untracked edit leaving the undo head
+unavailable, a command that starts the undo list over, deletion of the
+head's object, and a non-member) and compares both backends.
+
 ### Phase 4 — Cross-object mutations and recovery
 
 Do not emulate transactions with optimistic hope. For relations, shares,
@@ -476,11 +491,11 @@ PostgreSQL adapter.
 
 ## Recommended next PR
 
-Port the command state read (`GET /api/commands`,
-`ReversibleCommandService.getState`) as a read function, so the undo and
-redo heads are computed with the same edit-permission and version checks on
-both backends, then begin stage 08 with attachment upload, finalize, and
-download authorization against the storage provider.
+Put the remaining PostgreSQL-only reads behind read repositories with
+CloudBase adapters: the revision comparison and restoration preview of
+`ObjectRestorationService` and the storage inventory of
+`StorageInventoryService`, each with a differential test, so every `GET`
+route has a gateway implementation before stage 08 removes `DATABASE_URL`.
 
 ### R1 operator checklist
 

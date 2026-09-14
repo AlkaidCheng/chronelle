@@ -15,6 +15,7 @@ export {
   type ProjectionReadRepository,
 } from "./projection-service.js";
 export { CloudBaseCalendarReadRepository } from "./cloudbase-calendar-read-repository.js";
+export { CloudBaseCommandReadRepository } from "./cloudbase-command-read-repository.js";
 export { CloudBaseCommandWriteRepository } from "./cloudbase-command-write-repository.js";
 export { CloudBaseProjectionReadRepository } from "./cloudbase-projection-read-repository.js";
 export { CloudBaseEventReadRepository } from "./cloudbase-event-read-repository.js";
@@ -96,6 +97,10 @@ export {
   baselineObjectRevisions,
 } from "./revision-baseline.js";
 export { ReversibleCommandService } from "./command-service.js";
+export {
+  PostgresCommandReadRepository,
+  type CommandReadRepository,
+} from "./command-reads.js";
 export {
   StorageInventoryService,
   StorageInventoryBusyError,
