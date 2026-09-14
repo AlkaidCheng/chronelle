@@ -3,13 +3,49 @@ import {
   type AuthorizationDatabase,
   type UserPrincipal,
 } from "@chronelle/authorization";
-import { objects } from "@chronelle/db";
+import { objects, type ObjectType } from "@chronelle/db";
 import { and, asc, desc, eq, gt, lt, or, sql } from "drizzle-orm";
 
-import { decodeSearchCursor, encodeSearchCursor } from "./search-cursor.js";
-import type { ObjectSearchInput, ObjectSearchPage } from "./types.js";
+import {
+  decodeSearchCursor,
+  encodeSearchCursor,
+  type SearchPosition,
+} from "./search-cursor.js";
+import type {
+  ObjectSearchInput,
+  ObjectSearchPage,
+  ObjectSearchResultResource,
+} from "./types.js";
 
-export class CanonicalObjectSearchService {
+/** A search with its cursor already decoded into the position to continue after. */
+export interface SearchReadInput {
+  readonly after?: SearchPosition | undefined;
+  readonly limit: number;
+  readonly objectType?: ObjectType | undefined;
+  readonly query: string;
+}
+
+/** One page of matches and, when more follow, the position of its last item. */
+export interface SearchReadPage {
+  readonly items: readonly ObjectSearchResultResource[];
+  readonly next: SearchPosition | null;
+}
+
+/**
+ * Read boundary for object search.
+ *
+ * Implementations own the full-text query, ranking, authorization filter,
+ * and keyset pagination; the service owns the cursor envelope, so a position
+ * from one implementation continues a search on the other.
+ */
+export interface SearchReadRepository {
+  search(
+    principal: UserPrincipal,
+    input: SearchReadInput,
+  ): Promise<SearchReadPage>;
+}
+
+export class PostgresSearchReadRepository implements SearchReadRepository {
   readonly #database: AuthorizationDatabase;
 
   constructor(database: AuthorizationDatabase) {
@@ -18,9 +54,9 @@ export class CanonicalObjectSearchService {
 
   async search(
     principal: UserPrincipal,
-    input: ObjectSearchInput,
-  ): Promise<ObjectSearchPage> {
-    const cursor = decodeSearchCursor(principal, input);
+    input: SearchReadInput,
+  ): Promise<SearchReadPage> {
+    const cursor = input.after;
     return withReadAuthorization(
       this.#database,
       async (transaction, authorization) => {
@@ -76,16 +112,40 @@ export class CanonicalObjectSearchService {
           items: page.map(
             ({ rank: _rank, cursorTime: _time, ...item }) => item,
           ),
-          nextCursor:
+          next:
             rows.length > input.limit && last !== undefined
-              ? encodeSearchCursor(principal, input, {
-                  id: last.id,
-                  rank: last.rank,
-                  updatedAt: last.cursorTime,
-                })
+              ? { id: last.id, rank: last.rank, updatedAt: last.cursorTime }
               : null,
         };
       },
     );
+  }
+}
+
+export class CanonicalObjectSearchService {
+  readonly #reads: SearchReadRepository;
+
+  constructor(database: AuthorizationDatabase, reads?: SearchReadRepository) {
+    this.#reads = reads ?? new PostgresSearchReadRepository(database);
+  }
+
+  async search(
+    principal: UserPrincipal,
+    input: ObjectSearchInput,
+  ): Promise<ObjectSearchPage> {
+    const after = decodeSearchCursor(principal, input);
+    const page = await this.#reads.search(principal, {
+      after,
+      limit: input.limit,
+      objectType: input.objectType,
+      query: input.query,
+    });
+    return {
+      items: page.items,
+      nextCursor:
+        page.next === null
+          ? null
+          : encodeSearchCursor(principal, input, page.next),
+    };
   }
 }
