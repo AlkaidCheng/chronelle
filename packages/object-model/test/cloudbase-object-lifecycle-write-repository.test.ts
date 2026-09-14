@@ -85,6 +85,30 @@ describe("CloudBaseObjectLifecycleWriteRepository", () => {
     });
   });
 
+  it("restores through chronelle_object_restore with the selected content", async () => {
+    const rpc = vi.fn().mockResolvedValue({ object, document });
+    const repository = new CloudBaseObjectLifecycleWriteRepository({ rpc });
+    const sourceRevisionId = "00000000-0000-7000-8000-000000000009";
+
+    const resource = await repository.restore(context, objectId, 2, {
+      revisionId: sourceRevisionId,
+      version: 1,
+      content: { displayName: "Contract v1.pdf", customProperties: {} },
+    });
+
+    expect(rpc).toHaveBeenCalledExactlyOnceWith("chronelle_object_restore", {
+      workspace_id: workspaceId,
+      user_id: userId,
+      request_id: "request-1",
+      object_id: objectId,
+      expected_version: 2,
+      source_revision_id: sourceRevisionId,
+      source_version: 1,
+      content: { displayName: "Contract v1.pdf", customProperties: {} },
+    });
+    expect(resource).toMatchObject({ id: objectId, version: 3 });
+  });
+
   it("rejects rows whose typed record is missing or of an unknown type", async () => {
     const missing = new CloudBaseObjectLifecycleWriteRepository({
       rpc: vi.fn().mockResolvedValue({ object }),
