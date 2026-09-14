@@ -265,6 +265,20 @@ invalid state rather than a constraint violation, as for Task. With the four
 families behind `CLOUDBASE_WRITES_ENABLED`, the next function is linked
 creation, the first cross-object operation.
 
+**Linked creation (first cross-object function):** migration 0016 ships
+`chronelle_event_context_create`, which creates the typed child on the
+Event's scope through `chronelle_object_create`, inserts the `includes`
+relation through the new `chronelle_relation_create` (the service's edit,
+view, and compatibility rules, one active relation per triple, its own audit
+row), and records the command, all in one call. A replay with the same
+request hash returns the version-1 snapshot and the relation id; different
+input raises the command conflict. The adapter computes the request hash with
+the service's own function, so both backends agree on what a replay is, and
+maps the three 409 outcomes by the service's messages. The differential test
+compares the child ledger, the relation row, the relation audit, and the
+command record for every child type, and an injected failure after the
+relation insert leaves no row behind on either backend.
+
 ### Phase 4 — Cross-object mutations and recovery
 
 Do not emulate transactions with optimistic hope. For relations, shares,
@@ -324,12 +338,11 @@ PostgreSQL adapter.
 
 ## Recommended next PR
 
-Port linked creation (`POST /api/events/:id/resources`) as the first
-cross-object function: one call creates the typed child on the parent's
-scope through the family functions, inserts the `includes` relation with its
-version, and writes both audit rows. The differential test compares the full
-ledger and an injected failure after the relation insert must leave no
-object, relation, audit, or revision row.
+Port relation changes: `POST /api/objects/:id/relations` on
+`chronelle_relation_create`, then relation removal and recovery with their
+version predicates and audit rows, each with a differential test over the
+relation ledger. After relations, soft deletion and restoration of objects
+follow the same shape.
 
 ### R1 operator checklist
 

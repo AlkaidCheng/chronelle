@@ -1,7 +1,7 @@
-import { AuthorizationDeniedError } from "@chronelle/authorization";
 import { CloudBaseRpcError, type CloudBaseRdbClient } from "@chronelle/db";
 
-import { InvalidObjectStateError, ObjectConflictError } from "./errors.js";
+import { mapRpcError } from "./cloudbase-rpc-errors.js";
+import { InvalidObjectStateError } from "./errors.js";
 import type { ObjectWriteRepository } from "./object-writes.js";
 import type { MutationContext } from "./types.js";
 
@@ -103,15 +103,6 @@ function encodeInstant(field: string, value: Date): string {
   if (!Number.isFinite(value.getTime()))
     throw new InvalidObjectStateError(`${field} must be a valid date.`);
   return value.toISOString();
-}
-
-/** The gateway prefixes SQLSTATEs (DATABASE_PT409); only the suffix carries meaning. */
-function mapRpcError(error: CloudBaseRpcError): Error {
-  if (error.code.endsWith("PT403")) return new AuthorizationDeniedError();
-  if (error.code.endsWith("PT409")) return new ObjectConflictError();
-  if (error.code.endsWith("PT422"))
-    return new InvalidObjectStateError(error.message);
-  return error;
 }
 
 /** Reads `{ object, <typed> }` rows as returned by chronelle_<type>_rows. */

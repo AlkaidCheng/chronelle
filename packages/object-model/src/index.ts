@@ -12,6 +12,7 @@ export {
 } from "./projection-service.js";
 export { CloudBaseCalendarReadRepository } from "./cloudbase-calendar-read-repository.js";
 export { CloudBaseEventReadRepository } from "./cloudbase-event-read-repository.js";
+export { CloudBaseEventContextWriteRepository } from "./cloudbase-event-context-write-repository.js";
 export { CloudBaseEventWriteRepository } from "./cloudbase-event-write-repository.js";
 export { CloudBaseObjectWriteRepository } from "./cloudbase-object-write-repository.js";
 export { CloudBaseExpenseWriteRepository } from "./cloudbase-expense-write-repository.js";
@@ -22,6 +23,7 @@ export {
   type EventReadRepository,
 } from "./event-list.js";
 export type {
+  EventContextWriteRepository,
   EventWriteRepository,
   ExpenseWriteRepository,
   ObjectWriteRepositories,
