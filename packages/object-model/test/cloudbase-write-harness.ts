@@ -2,7 +2,6 @@ import { resolve } from "node:path";
 
 import {
   auditEvents,
-  CloudBaseRpcError,
   createId,
   objectRevisions,
   users,
@@ -11,6 +10,7 @@ import {
 } from "@chronelle/db";
 import {
   applyMigrations,
+  createCloudBaseRpcDouble,
   createTestDatabase,
   type TestDatabase,
 } from "@chronelle/db/testing";
@@ -23,13 +23,6 @@ import type { CanonicalObjectResource, MutationContext } from "../src/types.js";
 // workspace with an owner and a non-member, and an rpc double that executes
 // the write functions locally with the gateway's error shape. The gateway
 // transport itself is covered by the rpc contract harness on staging.
-
-const gatewayStatus: Record<string, number> = {
-  PT403: 403,
-  PT409: 409,
-  PT422: 422,
-  PT500: 500,
-};
 
 export interface WriteHarness {
   readonly database: TestDatabase;
@@ -51,7 +44,6 @@ export async function createWriteHarness(
     resolve(import.meta.dirname, "../../../infrastructure/migrations"),
   );
   const db = database.connection.db;
-  const sql = database.connection.sql;
   const ownerId = createId();
   const viewerId = createId();
   const workspaceId = createId();
@@ -74,35 +66,7 @@ export async function createWriteHarness(
     role: "owner",
   });
 
-  async function rpc<T>(
-    functionName: string,
-    args: Record<string, unknown> = {},
-  ): Promise<T> {
-    const names = Object.keys(args);
-    // Objects travel as JSON text, which PostgreSQL casts to the jsonb parameter.
-    const values = Object.values(args).map((value) =>
-      value !== null && typeof value === "object"
-        ? JSON.stringify(value)
-        : value,
-    );
-    try {
-      const [row] = await sql.unsafe<{ result: T }[]>(
-        `SELECT ${functionName}(${names
-          .map((name, index) => `${name} => $${index + 1}`)
-          .join(", ")}) AS result`,
-        values as never[],
-      );
-      return row?.result as T;
-    } catch (error) {
-      const failure = error as { code?: string; message?: string };
-      const code = failure.code ?? "unknown";
-      throw new CloudBaseRpcError(
-        gatewayStatus[code] ?? 400,
-        `DATABASE_${code}`,
-        failure.message ?? "function failed",
-      );
-    }
-  }
+  const rpc = createCloudBaseRpcDouble(database.connection.sql);
 
   return { database, workspaceId, ownerId, viewerId, rpc };
 }
