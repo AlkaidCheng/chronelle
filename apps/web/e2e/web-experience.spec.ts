@@ -127,6 +127,18 @@ test("organizes events and keeps navigation usable across reloads and screen siz
     page.getByRole("dialog", { name: "Edit event", exact: true }),
   ).toHaveCount(0);
 
+  if (testInfo.project.name !== "chromium-mobile") {
+    const account = page.getByRole("button", { name: "Preview planner" });
+    await expect(account).toHaveAttribute("aria-expanded", "false");
+    await account.click();
+    const signOut = page.getByRole("button", { name: "Sign out", exact: true });
+    await expect(signOut).toBeVisible();
+    await signOut.focus();
+    await page.keyboard.press("Escape");
+    await expect(signOut).toHaveCount(0);
+    await expect(account).toBeFocused();
+    await expect(account).toHaveAttribute("aria-expanded", "false");
+  }
   if (testInfo.project.name === "chromium-mobile") {
     await page.getByLabel("Event view", { exact: true }).selectOption("files");
     await expect(page.getByRole("tab", { name: "Files" })).toHaveAttribute(
@@ -148,7 +160,11 @@ test("organizes events and keeps navigation usable across reloads and screen siz
       page.getByRole("button", { name: "Sign out", exact: true }),
     ).not.toBeVisible();
   }
-  await page.getByRole("button", { name: "More", exact: true }).click();
+  if (testInfo.project.name === "chromium-mobile") {
+    await page.getByRole("button", { name: "More", exact: true }).click();
+  } else {
+    await page.getByRole("button", { name: "Preview planner" }).click();
+  }
   expect(
     await page.evaluate(
       () =>

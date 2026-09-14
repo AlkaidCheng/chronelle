@@ -6,7 +6,11 @@ at the bottom with space for the device's safe area. Events, Search, and Trash
 remain directly accessible on both layouts. More opens one shared Workspace
 settings dialog for workspace switching, appearance, and sign-out. Escape,
 the close button, or a backdrop press dismisses it and returns focus to More.
-Opening settings does not navigate or discard the current Event draft.
+Opening settings does not navigate or discard the current Event draft. On the
+desktop layout the account block at the foot of the sidebar is a button that
+reveals Sign out beneath it; Escape or a press elsewhere collapses it and
+returns focus to the account button. The mobile layout keeps sign-out in
+Workspace settings.
 
 Appearance customization opens a second native dialog. Closing it returns to
 Workspace settings; a second Escape returns to the page. A workspace or session

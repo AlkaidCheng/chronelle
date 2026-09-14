@@ -471,13 +471,45 @@ h3 {
 }
 
 .sidebar-footer {
-  align-items: center;
   border-top: 1px solid var(--line);
+  margin-top: auto;
+  padding: 12px 0 0;
+}
+
+.account-menu {
   display: grid;
+  gap: 8px;
+}
+
+.account-trigger {
+  align-items: center;
+  background: none;
+  border: 0;
+  border-radius: 10px;
+  color: inherit;
+  cursor: pointer;
+  display: grid;
+  font: inherit;
   gap: 10px;
   grid-template-columns: auto minmax(0, 1fr);
-  margin-top: auto;
-  padding: 20px 8px 0;
+  padding: 8px;
+  text-align: start;
+  width: 100%;
+}
+
+.account-trigger:hover,
+.account-trigger[aria-expanded="true"] {
+  background: var(--accent-soft);
+}
+
+.account-actions {
+  display: grid;
+  padding: 0 8px 8px;
+}
+
+.account-actions .button {
+  justify-content: flex-start;
+  width: 100%;
 }
 
 .profile-mark {
