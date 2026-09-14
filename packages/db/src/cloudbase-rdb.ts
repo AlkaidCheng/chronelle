@@ -141,16 +141,7 @@ export function createCloudBaseRdbClient(
       if (offset > 0 && limit === undefined) {
         throw new Error("CloudBase RDB offsets require a limit.");
       }
-      const filters = (query.filters ?? []).map((filter) => {
-        const column = identifierSchema.parse(filter.column);
-        const value =
-          filter.operator === "ilike"
-            ? z.string().parse(filter.value)
-            : filter.operator === "in"
-              ? z.array(z.unknown()).parse(filter.value)
-              : filter.value;
-        return { ...filter, column, value };
-      });
+      const filters = validateFilters(query.filters ?? []);
       const order = (query.order ?? []).map((entry) => ({
         ...entry,
         column: identifierSchema.parse(entry.column),
@@ -159,29 +150,13 @@ export function createCloudBaseRdbClient(
             ? undefined
             : identifierSchema.parse(entry.referencedTable),
       }));
-      let request = app
-        .rdb()
-        .from<T>(tableName)
-        .select(query.columns ?? "*");
-      for (const filter of filters) {
-        switch (filter.operator) {
-          case "eq":
-            request = request.eq(filter.column, filter.value);
-            break;
-          case "ilike":
-            request = request.ilike(filter.column, filter.value as string);
-            break;
-          case "in":
-            request = request.in(
-              filter.column,
-              filter.value as readonly unknown[],
-            );
-            break;
-          case "is":
-            request = request.is(filter.column, filter.value);
-            break;
-        }
-      }
+      let request = applyFilters(
+        app
+          .rdb()
+          .from<T>(tableName)
+          .select(query.columns ?? "*"),
+        filters,
+      );
       for (const entry of order) {
         const options: {
           ascending?: boolean;
@@ -202,27 +177,76 @@ export function createCloudBaseRdbClient(
         request = request.range(offset, offset + limit - 1);
       }
 
-      let timer: ReturnType<typeof setTimeout> | undefined;
-      try {
-        const result = await Promise.race([
-          request,
-          new Promise<never>((_, reject) => {
-            timer = setTimeout(
-              () => reject(new CloudBaseRdbTimeoutError(requestTimeoutMs)),
-              requestTimeoutMs,
-            );
-          }),
-        ]);
-        // The gateway reports success as `error: null`, not an absent field.
-        if (result.error !== undefined && result.error !== null) {
-          throw result.error;
-        }
-        return result.data ?? [];
-      } finally {
-        if (timer !== undefined) clearTimeout(timer);
-      }
+      return awaitRows(request, requestTimeoutMs);
     },
   };
+}
+
+function validateFilters(
+  filters: readonly CloudBaseRdbFilter[],
+): readonly CloudBaseRdbFilter[] {
+  return filters.map((filter) => {
+    const column = identifierSchema.parse(filter.column);
+    const value =
+      filter.operator === "ilike"
+        ? z.string().parse(filter.value)
+        : filter.operator === "in"
+          ? z.array(z.unknown()).parse(filter.value)
+          : filter.value;
+    return { ...filter, column, value };
+  });
+}
+
+function applyFilters<T>(
+  request: RdbQuery<T>,
+  filters: readonly CloudBaseRdbFilter[],
+): RdbQuery<T> {
+  let filtered = request;
+  for (const filter of filters) {
+    switch (filter.operator) {
+      case "eq":
+        filtered = filtered.eq(filter.column, filter.value);
+        break;
+      case "ilike":
+        filtered = filtered.ilike(filter.column, filter.value as string);
+        break;
+      case "in":
+        filtered = filtered.in(
+          filter.column,
+          filter.value as readonly unknown[],
+        );
+        break;
+      case "is":
+        filtered = filtered.is(filter.column, filter.value);
+        break;
+    }
+  }
+  return filtered;
+}
+
+async function awaitRows<T>(
+  request: RdbQuery<T>,
+  requestTimeoutMs: number,
+): Promise<readonly T[]> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  try {
+    const result = await Promise.race([
+      request,
+      new Promise<never>((_, reject) => {
+        timer = setTimeout(
+          () => reject(new CloudBaseRdbTimeoutError(requestTimeoutMs)),
+          requestTimeoutMs,
+        );
+      }),
+    ]);
+    // The gateway reports success as `error: null`, not an absent field.
+    if (result.error !== undefined && result.error !== null) {
+      throw result.error;
+    }
+    return result.data ?? [];
+  } finally {
+    if (timer !== undefined) clearTimeout(timer);
+  }
 }
 
 export async function connectCloudBaseRdb(
