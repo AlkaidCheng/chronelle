@@ -234,9 +234,9 @@ deletion, recovery, and revision restore, sharing and permission-scope
 changes, Event page layouts, reversible commands, and document transfers
 (upload authorization, consumption, finalization, and download
 authorization; the storage provider is unchanged) through those functions;
-it requires `CLOUDBASE_READS_ENABLED=true` and migrations 0012 through 0028
+it requires `CLOUDBASE_READS_ENABLED=true` and migrations 0012 through 0029
 on the environment (0024, 0025, and 0027 serve reads and sign-in; 0028 the
-readiness check). With `CHRONELLE_BACKEND=postgres` (the default) the two
+readiness check; 0029 the revision baseline through the gateway). With `CHRONELLE_BACKEND=postgres` (the default) the two
 flags are staged opt-ins and the API still connects to `DATABASE_URL` at
 startup; the CloudBase backend below removes that connection.
 
@@ -254,9 +254,10 @@ At startup the API calls `chronelle_backend_readiness` (migration 0028)
 instead of checking the revision baseline through PostgreSQL. It refuses
 to listen, logging `startup_failed` with the reason, when the function is
 not callable (the migrations are not applied), when any function the
-adapters call is missing (the log names them), or when a live object has
-no revision for its current version (`db:baseline-revisions` has not run
-against that database). Every gateway request is logged as a `cloudbase`
+adapters call is missing (the log names them), or when an object has no
+revision for its current version (`pnpm cloudbase:baseline` captures the
+baseline through the gateway, as `db:baseline-revisions` does through
+PostgreSQL). Every gateway request is logged as a `cloudbase`
 event with its kind (`select`, `insert`, `update`, `delete`, `rpc`), target,
 duration in milliseconds, and outcome (`ok`, `timeout`, `rejected` with the
 gateway's status and code, or `failed`): successes at debug level,

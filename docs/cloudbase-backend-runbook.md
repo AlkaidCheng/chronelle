@@ -22,13 +22,17 @@ configured the same way on both backends.
 ## Prerequisites for the CloudBase backend
 
 1. The environment's PostgreSQL holds the full schema: migrations `0001`
-   through `0028`, applied in order with their `chronelle_schema_migrations`
+   through `0029`, applied in order with their `chronelle_schema_migrations`
    ledger rows. The CloudBase console's SQL editor applies each file; verify
    the editor holds the ledger row at the end of the file before executing.
-2. The revision baseline holds: every live object has a revision for its
-   current version. A database migrated from an older Chronelle needs
-   `pnpm db:baseline-revisions` run once through a PostgreSQL connection
-   with all API writers stopped.
+2. The revision baseline holds: every object has a revision for its current
+   version. A database seeded or migrated without revisions needs the
+   baseline captured once with all API writers stopped:
+   `CLOUDBASE_CONTRACT_ALLOW_WRITES=true pnpm cloudbase:baseline` through the
+   gateway (`chronelle_revision_baseline`, migration 0029), or
+   `pnpm db:baseline-revisions` through a PostgreSQL connection. Both record
+   the same `object.baselined` audit event and baseline revision, and report
+   how many objects still lack one afterwards.
 3. A short-lived server API key that is not expired. `pnpm cloudbase:probe`
    reports an expired key without printing it.
 4. The contract harnesses pass against the environment:
@@ -55,8 +59,8 @@ configured the same way on both backends.
      rpc route itself) is missing; apply the migrations and check the key.
    - `lacks required functions: ...`: the named migrations are missing;
      apply them in order.
-   - `Object revision baseline is missing`: run `db:baseline-revisions`
-     through a PostgreSQL connection with the API stopped.
+   - `Object revision baseline is missing`: run `pnpm cloudbase:baseline`
+     (or `db:baseline-revisions` through PostgreSQL) with the API stopped.
 4. Sign in and load an Event page, an attachment, and the command state
    through the web app; each exercises a different adapter family.
 

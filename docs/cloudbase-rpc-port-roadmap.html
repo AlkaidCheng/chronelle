@@ -280,8 +280,8 @@
         unchanged storage provider, the layout and identity reads (migration
         0027 for the sign-in) complete the request path, and
         <code>CHRONELLE_BACKEND=cloudbase</code> runs the API from the gateway
-        alone behind the readiness check of migration 0028. The port is
-        complete; the Drizzle backend stays the default.
+        alone behind the readiness check of migration 0028 and the baseline of
+        0029. The port is complete; the Drizzle backend stays the default.
       </aside>
 
       <aside class="invariant" aria-label="Standing constraint">
@@ -527,7 +527,9 @@
               (<code>CHRONELLE_BACKEND</code>); startup calls
               <code>chronelle_backend_readiness</code> (migration 0028) and
               refuses to serve until every required function is installed and
-              the revision baseline holds: done.
+              the revision baseline holds, which
+              <code>chronelle_revision_baseline</code> (0029) captures through
+              the gateway: done.
             </li>
             <li>
               Every gateway request is reported with its duration and outcome
@@ -685,8 +687,11 @@
           </tr>
           <tr>
             <td>Backend mode</td>
-            <td><code>chronelle_backend_readiness</code></td>
-            <td>0028</td>
+            <td>
+              <code>chronelle_backend_readiness</code>,
+              <code>chronelle_revision_baseline</code>
+            </td>
+            <td>0028, 0029</td>
             <td>Startup process test; staging linked contract</td>
             <td><span class="status done">Done</span></td>
           </tr>

@@ -555,8 +555,11 @@ from the gateway without a PostgreSQL connection; the API binds its
 services to a disconnected database that fails with the reason if anything
 still reaches it, and at startup calls `chronelle_backend_readiness`
 (migration 0028), which lists the installed `chronelle_*` functions and
-counts live objects without a current revision, refusing to listen when a
-function the adapters call is missing or the baseline is broken. The
+counts objects without a current revision, refusing to listen when a
+function the adapters call is missing or the baseline is broken;
+`chronelle_revision_baseline` (migration 0029, `pnpm cloudbase:baseline`)
+captures the baseline through the gateway the way `db:baseline-revisions`
+does through PostgreSQL, so a seeded environment needs no connection. The
 transport reports every gateway request (kind, target, duration, outcome
 with the gateway's status and code) to an observer the API logs through
 its logger, which gives latency, rejection, and error metrics without a
