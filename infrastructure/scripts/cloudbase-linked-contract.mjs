@@ -15,9 +15,10 @@ import {
 // Cross-object evidence: one gateway rpc call creates a child on an Event's
 // scope, the includes relation, both audit rows, and the command record, or
 // none of them; the relation is then removed and recovered under its version
-// predicate, and the child is deleted and recovered the same way. Exercises
-// chronelle_event_context_create (migration 0016), chronelle_relation_lifecycle
-// (0017), and chronelle_object_delete and chronelle_object_recover (0018)
+// predicate, the child is deleted and recovered the same way, and its first
+// revision is restored. Exercises chronelle_event_context_create (migration
+// 0016), chronelle_relation_lifecycle (0017), chronelle_object_delete and
+// chronelle_object_recover (0018), and chronelle_object_restore (0019)
 // against the real gateway. The probes end soft-deleted through the delete
 // function, because their audit and revision rows are append-only.
 
@@ -294,6 +295,42 @@ try {
     );
     if (rows.object.version !== 3 || rows.object.deleted_at !== null)
       throw new Error("recover: the child was not recovered at version 3.");
+    return { version: rows.object.version };
+  });
+
+  await step("restore the child's first revision", async () => {
+    // The application's restoration policy selects the content; here the
+    // version-1 snapshot's name and Task fields stand in for it.
+    const [revision] = await client.select("object_revisions", {
+      columns: "id,snapshot",
+      filters: [
+        { column: "workspace_id", operator: "eq", value: workspaceId },
+        { column: "object_id", operator: "eq", value: first.resource.id },
+        { column: "object_version", operator: "eq", value: 1 },
+      ],
+    });
+    if (revision === undefined)
+      throw new Error("restore: the first revision is missing.");
+    const { displayName, customProperties, status, dueAt, completedAt } =
+      revision.snapshot;
+    const rows = await objectLifecycle(
+      "chronelle_object_restore",
+      first.resource.id,
+      3,
+      {
+        source_revision_id: revision.id,
+        source_version: 1,
+        content: {
+          displayName: `${displayName} (restored)`,
+          customProperties,
+          status,
+          dueAt,
+          completedAt,
+        },
+      },
+    );
+    if (rows.object.version !== 4)
+      throw new Error("restore: the child was not restored at version 4.");
     return { version: rows.object.version };
   });
 } finally {
