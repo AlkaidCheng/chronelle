@@ -88,6 +88,21 @@ export const users = pgTable("users", {
   updatedAt: createUpdatedAtColumn(),
 });
 
+// Session clocks carry millisecond precision so the API's comparisons agree with the functions'.
+const createSessionInstantColumn = (name: string) =>
+  timestamp(name, { mode: "date", withTimezone: true, precision: 3 });
+
+export const userSessions = pgTable("user_sessions", {
+  id: uuid("id").primaryKey(),
+  userId: uuid("user_id").notNull(),
+  tokenHash: text("token_hash").notNull(),
+  identityProvider: text("identity_provider").notNull(),
+  createdAt: createSessionInstantColumn("created_at").notNull().defaultNow(),
+  expiresAt: createSessionInstantColumn("expires_at").notNull(),
+  lastSeenAt: createSessionInstantColumn("last_seen_at").notNull().defaultNow(),
+  revokedAt: createSessionInstantColumn("revoked_at"),
+});
+
 export const workspaces = pgTable("workspaces", {
   id: uuid("id").primaryKey(),
   displayName: text("display_name").notNull(),
@@ -407,6 +422,8 @@ export const eventPageRevisions = pgTable(
 
 export type UserRow = typeof users.$inferSelect;
 export type NewUserRow = typeof users.$inferInsert;
+export type UserSessionRow = typeof userSessions.$inferSelect;
+export type NewUserSessionRow = typeof userSessions.$inferInsert;
 export type WorkspaceRow = typeof workspaces.$inferSelect;
 export type NewWorkspaceRow = typeof workspaces.$inferInsert;
 export type WorkspaceMemberRow = typeof workspaceMembers.$inferSelect;
