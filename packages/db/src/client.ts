@@ -28,3 +28,32 @@ export function connectDatabase(databaseUrl: string): DatabaseConnection {
     },
   };
 }
+
+export class DatabaseUnavailableError extends Error {
+  constructor(reason: string) {
+    super(`PostgreSQL is not available: ${reason}`);
+    this.name = "DatabaseUnavailableError";
+  }
+}
+
+/**
+ * A connection for a deployment without PostgreSQL: every use of the
+ * database or the SQL client fails with DatabaseUnavailableError naming the
+ * reason, so a service that still reaches PostgreSQL fails loudly instead
+ * of silently, and closing it does nothing.
+ */
+export function disconnectedDatabase(reason: string): DatabaseConnection {
+  const unavailable = () => {
+    throw new DatabaseUnavailableError(reason);
+  };
+  const handler: ProxyHandler<object> = {
+    get: (_target, property) =>
+      property === "then" ? undefined : unavailable(),
+    apply: unavailable,
+  };
+  return {
+    db: new Proxy(() => undefined, handler) as unknown as Database,
+    sql: new Proxy(() => undefined, handler) as unknown as Sql,
+    async close() {},
+  };
+}

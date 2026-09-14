@@ -25,8 +25,8 @@ import {
 // chronelle_event_layout_update and chronelle_event_layout_restore (0022),
 // chronelle_command_execute and chronelle_command_transition (0023),
 // chronelle_command_state (0024), chronelle_storage_references (0025), the
-// document transfer functions (0026), and chronelle_identity_sign_in (0027)
-// against the real gateway. The
+// document transfer functions (0026), chronelle_identity_sign_in (0027), and
+// chronelle_backend_readiness (0028) against the real gateway. The
 // transfer steps record the rows around a storage transfer without moving
 // bytes: the finalized probe Document names a key that was never written. The probes end soft-deleted through the delete
 // function, because their audit and revision rows are append-only.
@@ -724,6 +724,20 @@ try {
     return {
       createdWorkspace: signedIn.createdWorkspace,
       personalWorkspace: signedIn.workspace?.id === workspaceId,
+    };
+  });
+
+  await step("read the backend readiness", async () => {
+    const readiness = await client.rpc("chronelle_backend_readiness", {});
+    if (
+      !Array.isArray(readiness.functions) ||
+      !readiness.functions.includes("chronelle_backend_readiness") ||
+      typeof readiness.objectsWithoutBaseline !== "number"
+    )
+      throw new Error("readiness: the function did not describe the schema.");
+    return {
+      functions: readiness.functions.length,
+      objectsWithoutBaseline: readiness.objectsWithoutBaseline,
     };
   });
 

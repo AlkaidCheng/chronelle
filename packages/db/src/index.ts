@@ -5,6 +5,8 @@ export {
 } from "./audited-mutation.js";
 export {
   connectDatabase,
+  DatabaseUnavailableError,
+  disconnectedDatabase,
   type Database,
   type DatabaseConnection,
   type DatabaseTransaction,
@@ -18,6 +20,7 @@ export {
   type CloudBaseRdbReader,
   CloudBaseRdbTimeoutError,
   CloudBaseRpcError,
+  type CloudBaseRequestEvent,
   type CloudBaseRpcTransport,
   cloudBaseGatewayUrl,
   type CloudBaseRdbWrite,

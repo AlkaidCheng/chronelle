@@ -4,6 +4,7 @@ import {
   assertCloudBaseApiKeyFresh,
   CloudBaseRdbTimeoutError,
   CloudBaseRpcError,
+  type CloudBaseRequestEvent,
   cloudBaseGatewayUrl,
   createCloudBaseRdbClient,
 } from "../src/cloudbase-rdb.js";
@@ -179,6 +180,75 @@ describe("CloudBase RDB client", () => {
     expect(init.body).toBe(JSON.stringify({ expected_version: 1 }));
     expect(new Headers(init.headers).get("authorization")).toBe(
       "Bearer server-key",
+    );
+  });
+
+  it("reports every request's duration and outcome to the observer", async () => {
+    const events: CloudBaseRequestEvent[] = [];
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(new Response("{}", { status: 200 }))
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({ code: "DATABASE_PT409", message: "moved" }),
+          {
+            status: 409,
+          },
+        ),
+      );
+    const rows = { data: [{ id: "a" }], error: null };
+    const range = vi.fn().mockReturnValue(Promise.resolve(rows));
+    const limit = vi
+      .fn()
+      .mockReturnValue(Object.assign(Promise.resolve(rows), { range }));
+    const from = vi.fn().mockReturnValue({
+      select: vi
+        .fn()
+        .mockReturnValue(Object.assign(Promise.resolve(rows), { limit })),
+    });
+    const client = createCloudBaseRdbClient(
+      { rdb: () => ({ from }) },
+      {
+        onRequest: (event) => events.push(event),
+        rpc: {
+          gatewayUrl: "https://gateway",
+          accessKey: "k",
+          fetch: fetchMock as unknown as typeof fetch,
+        },
+      },
+    );
+
+    await client.rpc("chronelle_probe", {});
+    await expect(client.rpc("chronelle_probe", {})).rejects.toBeInstanceOf(
+      CloudBaseRpcError,
+    );
+    await client.select("objects", { limit: 1 });
+
+    expect(events.map(({ durationMs, ...rest }) => rest)).toEqual([
+      {
+        kind: "rpc",
+        target: "chronelle_probe",
+        outcome: "ok",
+        status: undefined,
+        code: undefined,
+      },
+      {
+        kind: "rpc",
+        target: "chronelle_probe",
+        outcome: "rejected",
+        status: 409,
+        code: "DATABASE_PT409",
+      },
+      {
+        kind: "select",
+        target: "objects",
+        outcome: "ok",
+        status: undefined,
+        code: undefined,
+      },
+    ]);
+    expect(events.every((event) => Number.isInteger(event.durationMs))).toBe(
+      true,
     );
   });
 

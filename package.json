@@ -28,6 +28,7 @@
     "cloudbase:write-contract": "pnpm --filter @chronelle/db build && node --env-file-if-exists=.env infrastructure/scripts/cloudbase-write-contract.mjs",
     "cloudbase:rpc-contract": "pnpm --filter @chronelle/db build && node --env-file-if-exists=.env infrastructure/scripts/cloudbase-rpc-contract.mjs",
     "cloudbase:linked-contract": "pnpm --filter @chronelle/db build && node --env-file-if-exists=.env infrastructure/scripts/cloudbase-linked-contract.mjs",
+    "cloudbase:baseline": "pnpm --filter @chronelle/db build && node --env-file-if-exists=.env infrastructure/scripts/cloudbase-baseline.mjs",
     "cloudbase:read-contract": "pnpm --filter @chronelle/schemas build && pnpm --filter @chronelle/authorization build && pnpm --filter @chronelle/db build && pnpm --filter @chronelle/object-model build && node --env-file-if-exists=.env infrastructure/scripts/cloudbase-read-contract.mjs",
     "typecheck": "pnpm --filter @chronelle/schemas typecheck && pnpm --filter @chronelle/db typecheck && pnpm --filter @chronelle/authorization typecheck && pnpm --filter @chronelle/storage typecheck && pnpm --filter @chronelle/object-model typecheck && pnpm --filter @chronelle/api-client typecheck && pnpm --filter @chronelle/api typecheck && pnpm --filter @chronelle/web typecheck"
   },

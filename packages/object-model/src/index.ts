@@ -19,6 +19,11 @@ export {
   type ProjectionObjectType,
   type ProjectionReadRepository,
 } from "./projection-service.js";
+export {
+  assertCloudBaseBackendReady,
+  CloudBaseBackendNotReadyError,
+  cloudBaseObjectModelFunctions,
+} from "./cloudbase-backend.js";
 export { CloudBaseCalendarReadRepository } from "./cloudbase-calendar-read-repository.js";
 export { CloudBaseCommandReadRepository } from "./cloudbase-command-read-repository.js";
 export { CloudBaseCommandWriteRepository } from "./cloudbase-command-write-repository.js";

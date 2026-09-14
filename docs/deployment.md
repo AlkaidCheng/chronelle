@@ -234,11 +234,42 @@ deletion, recovery, and revision restore, sharing and permission-scope
 changes, Event page layouts, reversible commands, and document transfers
 (upload authorization, consumption, finalization, and download
 authorization; the storage provider is unchanged) through those functions;
-it requires `CLOUDBASE_READS_ENABLED=true` and migrations 0012 through 0027
-on the environment (0024, 0025, and 0027 serve reads and sign-in). Until
-the backend mode lands the API still connects to `DATABASE_URL` at startup,
-so the flags serve staging verification, not a deployment without
-PostgreSQL access.
+it requires `CLOUDBASE_READS_ENABLED=true` and migrations 0012 through 0029
+on the environment (0024, 0025, and 0027 serve reads and sign-in; 0028 the
+readiness check; 0029 the revision baseline through the gateway). With `CHRONELLE_BACKEND=postgres` (the default) the two
+flags are staged opt-ins and the API still connects to `DATABASE_URL` at
+startup; the CloudBase backend below removes that connection.
+
+### Run on the CloudBase backend
+
+`CHRONELLE_BACKEND=cloudbase` serves every read and write from the gateway.
+`DATABASE_URL` is not read; the API never opens a PostgreSQL connection, and
+a service that still reached one would fail with
+`PostgreSQL is not available: CHRONELLE_BACKEND=cloudbase serves from the
+gateway`. Both CloudBase flags are implied and may not be set to `false`.
+`CLOUDBASE_ENV_ID` and a fresh `CLOUDBASE_APIKEY` are required as for the
+flags, and the document storage provider is configured as before.
+
+At startup the API calls `chronelle_backend_readiness` (migration 0028)
+instead of checking the revision baseline through PostgreSQL. It refuses
+to listen, logging `startup_failed` with the reason, when the function is
+not callable (the migrations are not applied), when any function the
+adapters call is missing (the log names them), or when an object has no
+revision for its current version (`pnpm cloudbase:baseline` captures the
+baseline through the gateway, as `db:baseline-revisions` does through
+PostgreSQL). Every gateway request is logged as a `cloudbase`
+event with its kind (`select`, `insert`, `update`, `delete`, `rpc`), target,
+duration in milliseconds, and outcome (`ok`, `timeout`, `rejected` with the
+gateway's status and code, or `failed`): successes at debug level,
+rejections below 500 (conflicts, denials, missing records) at info level,
+and timeouts, failures, and 5xx rejections at error level. Aggregate those
+lines for latency percentiles, rejection counts by code, and error rates.
+
+Switching back is configuration: set `CHRONELLE_BACKEND=postgres` with a
+`DATABASE_URL` for the same database. The functions stay installed and
+unused; nothing else changes. The operating procedure, including the order
+of migrations and the verification commands, is in
+[the CloudBase backend runbook](cloudbase-backend-runbook.md).
 
 ## Containerized web
 
