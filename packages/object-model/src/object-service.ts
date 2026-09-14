@@ -226,6 +226,8 @@ export class EventPlanningObjectService {
     input: CreateExpenseInput,
   ): Promise<ExpenseResource> {
     assertExpenseState(input.amount, input.currency, input.occurredAt);
+    if (this.#writes.expense !== undefined)
+      return this.#writes.expense.create(context, input);
 
     const resource = await this.#createObject(
       context,
@@ -496,6 +498,8 @@ export class EventPlanningObjectService {
     objectId: string,
     input: UpdateExpenseInput,
   ): Promise<ExpenseResource> {
+    if (this.#writes.expense !== undefined)
+      return this.#writes.expense.update(context, objectId, input);
     const current = this.#requireType(
       await this.#getObjectWithAction(context.principal, objectId, "edit"),
       "expense",

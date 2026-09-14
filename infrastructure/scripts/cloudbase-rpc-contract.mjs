@@ -31,6 +31,15 @@ const families = {
     input: { dueAt: "2030-10-16T18:00:00.000Z" },
     invalidChange: { status: "done" },
   },
+  expense: {
+    migration: "0014",
+    input: {
+      amount: "12.5",
+      currency: "EUR",
+      occurredAt: "2030-10-16T18:00:00.000Z",
+    },
+    invalidChange: { currency: "eur" },
+  },
 };
 
 const required = [

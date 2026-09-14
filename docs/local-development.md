@@ -28,11 +28,13 @@ DELETE requests and older history clients are incompatible.
 
 ## Setup
 
-Migrations `0012_add_event_write_functions.sql` and
-`0013_add_task_write_functions.sql` add the Event and Task create and update
-functions used by the CloudBase rpc write path; 0013 also introduces the shared
-object write core the Event functions now delegate to. They change no tables
-and need no baseline; a PostgreSQL deployment carries the functions unused.
+Migrations `0012_add_event_write_functions.sql`,
+`0013_add_task_write_functions.sql`, and
+`0014_add_expense_write_functions.sql` add the Event, Task, and Expense create
+and update functions used by the CloudBase rpc write path; 0013 also introduces
+the shared object write core the family functions delegate to. They change no
+tables and need no baseline; a PostgreSQL deployment carries the functions
+unused.
 
 Migration `0011_add_event_page_layouts.sql` adds independently versioned Event
 page configuration. Run `pnpm db:migrate` and reapply runtime role provisioning

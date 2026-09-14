@@ -7,7 +7,7 @@ import type { MutationContext } from "./types.js";
 
 /** What a family's functions are called and how their returned rows decode. */
 export interface CloudBaseWriteFamily<Resource> {
-  readonly objectType: "event" | "task";
+  readonly objectType: "event" | "task" | "expense";
   readonly decode: (rows: unknown) => Resource;
 }
 
@@ -93,9 +93,16 @@ function encodeFields(fields: object): Record<string, unknown> {
   const encoded: Record<string, unknown> = {};
   for (const [key, value] of Object.entries(fields)) {
     if (value === undefined) continue;
-    encoded[key] = value instanceof Date ? value.toISOString() : value;
+    encoded[key] = value instanceof Date ? encodeInstant(key, value) : value;
   }
   return encoded;
+}
+
+/** An invalid Date fails the way the service's assertValidDate() fails. */
+function encodeInstant(field: string, value: Date): string {
+  if (!Number.isFinite(value.getTime()))
+    throw new InvalidObjectStateError(`${field} must be a valid date.`);
+  return value.toISOString();
 }
 
 /** The gateway prefixes SQLSTATEs (DATABASE_PT409); only the suffix carries meaning. */

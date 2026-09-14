@@ -8,7 +8,7 @@ import type {
   TaskStatus,
 } from "@chronelle/db";
 
-import type { EventResource, TaskResource } from "./types.js";
+import type { EventResource, ExpenseResource, TaskResource } from "./types.js";
 
 export const cloudbaseObjectColumns =
   "id,workspace_id,object_type,display_name,created_by,permission_scope_id,created_at,updated_at,version,archived_at,deleted_at,custom_properties,metadata";
@@ -48,6 +48,14 @@ export type CloudBaseTaskRow = {
   readonly status: unknown;
   readonly due_at: unknown;
   readonly completed_at: unknown;
+};
+
+export type CloudBaseExpenseRow = {
+  readonly object_id: unknown;
+  readonly workspace_id: unknown;
+  readonly amount: unknown;
+  readonly currency: unknown;
+  readonly occurred_at: unknown;
 };
 
 export type CloudBaseGrantRow = {
@@ -127,7 +135,7 @@ function cloudbaseBoolean(value: unknown, field: string): boolean {
 function cloudbaseCanonicalFields(
   object: CloudBaseObjectRow,
   typed: { readonly object_id: unknown; readonly workspace_id: unknown },
-  objectType: "event" | "task",
+  objectType: "event" | "task" | "expense",
 ) {
   const objectId = cloudbaseText(object.id, "object id");
   const objectWorkspace = cloudbaseText(
@@ -189,6 +197,19 @@ export function cloudbaseTaskResource(
     status: status as TaskStatus,
     dueAt: cloudbaseNullableDate(task.due_at, "due_at"),
     completedAt: cloudbaseNullableDate(task.completed_at, "completed_at"),
+  };
+}
+
+export function cloudbaseExpenseResource(
+  object: CloudBaseObjectRow,
+  expense: CloudBaseExpenseRow,
+): ExpenseResource {
+  return {
+    ...cloudbaseCanonicalFields(object, expense, "expense"),
+    objectType: "expense",
+    amount: cloudbaseText(expense.amount, "amount"),
+    currency: cloudbaseText(expense.currency, "currency"),
+    occurredAt: cloudbaseDate(expense.occurred_at, "occurred_at"),
   };
 }
 
