@@ -26,9 +26,14 @@ import {
 import { and, eq, isNull, sql } from "drizzle-orm";
 
 import { InvalidObjectStateError, ObjectConflictError } from "./errors.js";
+import type { ObjectReadRepository } from "./object-reads.js";
 import { readObjectState } from "./object-state.js";
 import type { ObjectLifecycleWriteRepository } from "./object-writes.js";
 import { recordObjectRevision } from "./object-revisions.js";
+import {
+  decodeRevisionSnapshot,
+  type RevisionReadRepository,
+} from "./revision-reads.js";
 import {
   compareRevisionContent,
   preservedRevisionFields,
@@ -59,25 +64,23 @@ async function readRevision(
     )
     .limit(1);
   if (revision === undefined) throw new AuthorizationDeniedError();
-  if (revision.schemaVersion !== 1)
-    throw new InvalidObjectStateError(
-      "The revision snapshot schema is not supported.",
-    );
   return {
     id: revision.id,
-    snapshot: revisionSnapshotSchema.parse(revision.snapshot),
+    snapshot: decodeRevisionSnapshot(revision.schemaVersion, revision.snapshot),
   };
 }
 
-/** The source revision and the content the policy allows back, or the service's refusal. */
-async function selectRestoration(
-  transaction: DatabaseTransaction,
-  principal: UserPrincipal,
+/** A revision selected as the source of a comparison or a restoration. */
+interface SourceRevision {
+  readonly id: string;
+  readonly snapshot: RevisionSnapshot;
+}
+
+/** The content the policy allows back from a source revision, or the service's refusal. */
+function selectRestoration(
   current: EventPlanningResource,
-  objectId: string,
-  version: number,
+  source: SourceRevision,
 ) {
-  const source = await readRevision(transaction, principal, objectId, version);
   if (source.snapshot.deletedAt !== null)
     throw new InvalidObjectStateError(
       "A deleted state cannot be restored through content history.",
@@ -93,13 +96,64 @@ async function selectRestoration(
   return { source, content: selectRestorableContent(source.snapshot) };
 }
 
+function comparison(
+  objectId: string,
+  input: RevisionComparisonQuery,
+  before: SourceRevision,
+  after: SourceRevision,
+) {
+  return {
+    objectId,
+    ...input,
+    changes: compareRevisionContent(before.snapshot, after.snapshot),
+  };
+}
+
+function restorationPreview(
+  objectId: string,
+  current: RevisionSnapshot,
+  source: SourceRevision,
+  version: number,
+  canEdit: boolean,
+) {
+  const changes = compareRevisionContent(current, source.snapshot);
+  return {
+    objectId,
+    sourceRevisionId: source.id,
+    sourceVersion: version,
+    currentVersion: current.version,
+    changes,
+    preservedFields: preservedRevisionFields(current.objectType),
+    canRestore:
+      source.snapshot.deletedAt === null &&
+      changes.some((change) => change.restorable) &&
+      canEdit,
+  };
+}
+
+/**
+ * The reads the comparison, the preview, and the restoration policy run on
+ * when they do not read PostgreSQL themselves: the live object with its
+ * allowed actions, and single revisions.
+ */
+export interface RestorationReadRepositories {
+  readonly objects: ObjectReadRepository;
+  readonly revisions: RevisionReadRepository;
+}
+
 export class ObjectRestorationService {
   readonly #database: Database;
   readonly #writes: ObjectLifecycleWriteRepository | undefined;
+  readonly #reads: RestorationReadRepositories | undefined;
 
-  constructor(database: Database, writes?: ObjectLifecycleWriteRepository) {
+  constructor(
+    database: Database,
+    writes?: ObjectLifecycleWriteRepository,
+    reads?: RestorationReadRepositories,
+  ) {
     this.#database = database;
     this.#writes = writes;
+    this.#reads = reads;
   }
 
   async compare(
@@ -107,28 +161,41 @@ export class ObjectRestorationService {
     objectId: string,
     input: RevisionComparisonQuery,
   ) {
-    return this.#readAuthorized(principal, objectId, async (transaction) => {
-      const before = await readRevision(
-        transaction,
-        principal,
+    if (this.#reads !== undefined) {
+      const { revisions } = this.#reads;
+      return comparison(
         objectId,
-        input.fromVersion,
+        input,
+        await revisions.getRevision(principal, objectId, input.fromVersion),
+        await revisions.getRevision(principal, objectId, input.toVersion),
       );
-      const after = await readRevision(
-        transaction,
-        principal,
+    }
+    return this.#readAuthorized(principal, objectId, async (transaction) =>
+      comparison(
         objectId,
-        input.toVersion,
-      );
-      return {
-        objectId,
-        ...input,
-        changes: compareRevisionContent(before.snapshot, after.snapshot),
-      };
-    });
+        input,
+        await readRevision(transaction, principal, objectId, input.fromVersion),
+        await readRevision(transaction, principal, objectId, input.toVersion),
+      ),
+    );
   }
 
   async preview(principal: UserPrincipal, objectId: string, version: number) {
+    if (this.#reads !== undefined) {
+      const { objects, revisions } = this.#reads;
+      const current = revisionSnapshotSchema.parse(
+        serializeResource(await objects.getObject(principal, objectId)),
+      );
+      const source = await revisions.getRevision(principal, objectId, version);
+      const actions = await objects.getAllowedActions(principal, objectId);
+      return restorationPreview(
+        objectId,
+        current,
+        source,
+        version,
+        actions.includes("edit"),
+      );
+    }
     return this.#readAuthorized(
       principal,
       objectId,
@@ -144,22 +211,16 @@ export class ObjectRestorationService {
           objectId,
           version,
         );
-        const changes = compareRevisionContent(current, source.snapshot);
-        return {
+        return restorationPreview(
           objectId,
-          sourceRevisionId: source.id,
-          sourceVersion: version,
-          currentVersion: current.version,
-          changes,
-          preservedFields: preservedRevisionFields(current.objectType),
-          canRestore:
-            source.snapshot.deletedAt === null &&
-            changes.some((change) => change.restorable) &&
-            (await authorization.can(principal, "edit", {
-              id: objectId,
-              workspaceId: principal.workspaceId,
-            })),
-        };
+          current,
+          source,
+          version,
+          await authorization.can(principal, "edit", {
+            id: objectId,
+            workspaceId: principal.workspaceId,
+          }),
+        );
       },
     );
   }
@@ -176,29 +237,35 @@ export class ObjectRestorationService {
       // The policy runs on a read of the current state and the source
       // revision; the function re-checks the version, so a change in between
       // is a conflict rather than a lost update.
-      const { source, content } = await withReadAuthorization(
-        this.#database,
-        async (transaction, authorization) => {
-          await authorization.assertCan(principal, "edit", {
-            id: objectId,
-            workspaceId: principal.workspaceId,
-          });
-          const current = await readObjectState(
-            transaction,
-            principal.workspaceId,
-            objectId,
-          );
-          if (current.version !== input.expectedVersion)
-            throw new ObjectConflictError();
-          return selectRestoration(
-            transaction,
-            principal,
-            current,
-            objectId,
-            version,
-          );
-        },
-      );
+      const { source, content } =
+        this.#reads !== undefined
+          ? await this.#selectThroughReads(
+              this.#reads,
+              principal,
+              objectId,
+              version,
+              input.expectedVersion,
+            )
+          : await withReadAuthorization(
+              this.#database,
+              async (transaction, authorization) => {
+                await authorization.assertCan(principal, "edit", {
+                  id: objectId,
+                  workspaceId: principal.workspaceId,
+                });
+                const current = await readObjectState(
+                  transaction,
+                  principal.workspaceId,
+                  objectId,
+                );
+                if (current.version !== input.expectedVersion)
+                  throw new ObjectConflictError();
+                return selectRestoration(
+                  current,
+                  await readRevision(transaction, principal, objectId, version),
+                );
+              },
+            );
       return this.#writes.restore(context, objectId, input.expectedVersion, {
         revisionId: source.id,
         version,
@@ -220,12 +287,9 @@ export class ObjectRestorationService {
         );
         if (current.version !== input.expectedVersion)
           throw new ObjectConflictError();
-        const { source, content } = await selectRestoration(
-          transaction,
-          principal,
+        const { source, content } = selectRestoration(
           current,
-          objectId,
-          version,
+          await readRevision(transaction, principal, objectId, version),
         );
         const [updated] = await transaction
           .update(objects)
@@ -339,6 +403,24 @@ export class ObjectRestorationService {
       case "document":
         break;
     }
+  }
+
+  /** The edit check, the version check, and the policy through the read repositories. */
+  async #selectThroughReads(
+    reads: RestorationReadRepositories,
+    principal: UserPrincipal,
+    objectId: string,
+    version: number,
+    expectedVersion: number,
+  ) {
+    const actions = await reads.objects.getAllowedActions(principal, objectId);
+    if (!actions.includes("edit")) throw new AuthorizationDeniedError();
+    const current = await reads.objects.getObject(principal, objectId);
+    if (current.version !== expectedVersion) throw new ObjectConflictError();
+    return selectRestoration(
+      current,
+      await reads.revisions.getRevision(principal, objectId, version),
+    );
   }
 
   async #readAuthorized<Value>(

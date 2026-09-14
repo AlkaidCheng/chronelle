@@ -672,7 +672,9 @@ describe("CloudBaseRevisionReadRepository", () => {
       snapshot: { objectType: "event", displayName: "Root v2" },
     });
     await expect(repository.getRevision(reader, rootId, 4)).rejects.toThrow(
-      "Unsupported object snapshot schema.",
+      new InvalidObjectStateError(
+        "The revision snapshot schema is not supported.",
+      ),
     );
     await expect(
       repository.getRevision(reader, rootId, 9),
