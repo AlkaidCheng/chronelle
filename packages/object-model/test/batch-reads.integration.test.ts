@@ -39,6 +39,11 @@ afterAll(async () => {
   await database?.close();
 });
 
+// The larger fixtures insert a thousand objects, events, and relations before
+// measuring; that setup alone approaches the default 5 s budget on a slow
+// runner, so the cases carry their own timeout.
+const fixtureTimeoutMs = 60_000;
+
 describe.sequential("batched canonical reads", () => {
   it.each([1, 100, 1000, 1001])(
     "bounds retrieval queries for %i related objects",
@@ -312,5 +317,6 @@ describe.sequential("batched canonical reads", () => {
       expect(await reader.listVisibleObjects(principal, [])).toEqual([]);
       expect(queryCount).toBe(0);
     },
+    fixtureTimeoutMs,
   );
 });
