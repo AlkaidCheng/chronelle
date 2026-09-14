@@ -3,6 +3,8 @@ import { describe, expect, it, vi } from "vitest";
 import {
   assertCloudBaseApiKeyFresh,
   CloudBaseRdbTimeoutError,
+  CloudBaseRpcError,
+  cloudBaseGatewayUrl,
   createCloudBaseRdbClient,
 } from "../src/cloudbase-rdb.js";
 
@@ -145,6 +147,118 @@ describe("CloudBase RDB client", () => {
     expect(select).toHaveBeenCalledWith("id,version");
     await expect(client.insert("objects", [])).resolves.toEqual([]);
     expect(from).toHaveBeenCalledTimes(1);
+  });
+
+  it("calls a database function through the gateway rpc route", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify({ id: "event-1", version: 2 }), {
+        status: 200,
+        headers: { "content-type": "application/json" },
+      }),
+    );
+    const client = createCloudBaseRdbClient(
+      { rdb: () => ({ from: vi.fn() }) },
+      {
+        rpc: {
+          gatewayUrl: cloudBaseGatewayUrl("env-1"),
+          accessKey: "server-key",
+          fetch: fetchMock as unknown as typeof fetch,
+        },
+      },
+    );
+
+    await expect(
+      client.rpc("chronelle_probe_update_event", { expected_version: 1 }),
+    ).resolves.toEqual({ id: "event-1", version: 2 });
+    expect(client.capabilities.serverFunctions).toBe(true);
+    const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(url).toBe(
+      "https://env-1.api.tcloudbasegateway.com/v1/rdb/rest/rpc/chronelle_probe_update_event",
+    );
+    expect(init.method).toBe("POST");
+    expect(init.body).toBe(JSON.stringify({ expected_version: 1 }));
+    expect(new Headers(init.headers).get("authorization")).toBe(
+      "Bearer server-key",
+    );
+  });
+
+  it("surfaces a rejected function call with the gateway status and code", async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValue(
+        new Response(
+          JSON.stringify({ code: "PT409", message: "The event changed." }),
+          { status: 409 },
+        ),
+      );
+    const client = createCloudBaseRdbClient(
+      { rdb: () => ({ from: vi.fn() }) },
+      {
+        rpc: {
+          gatewayUrl: "https://gateway",
+          accessKey: "k",
+          fetch: fetchMock as unknown as typeof fetch,
+        },
+      },
+    );
+
+    const failure = await client.rpc("probe").catch((error) => error);
+    expect(failure).toBeInstanceOf(CloudBaseRpcError);
+    expect(failure).toMatchObject({
+      status: 409,
+      code: "PT409",
+      message: "The event changed.",
+    });
+  });
+
+  it("rejects unsafe function names and clients without a gateway before any request", async () => {
+    const fetchMock = vi.fn();
+    const withGateway = createCloudBaseRdbClient(
+      { rdb: () => ({ from: vi.fn() }) },
+      {
+        rpc: {
+          gatewayUrl: "https://gateway",
+          accessKey: "k",
+          fetch: fetchMock as unknown as typeof fetch,
+        },
+      },
+    );
+    await expect(withGateway.rpc("drop table; --")).rejects.toThrow();
+    expect(fetchMock).not.toHaveBeenCalled();
+
+    const withoutGateway = createCloudBaseRdbClient({
+      rdb: () => ({ from: vi.fn() }),
+    });
+    expect(withoutGateway.capabilities.serverFunctions).toBe(false);
+    await expect(withoutGateway.rpc("probe")).rejects.toThrow(
+      "requires a gateway transport",
+    );
+  });
+
+  it("bounds a function call with the configured timeout", async () => {
+    const fetchMock = vi.fn(
+      (_url: string, init: RequestInit) =>
+        new Promise<Response>((_, reject) => {
+          init.signal?.addEventListener("abort", () =>
+            reject(init.signal?.reason),
+          );
+        }),
+    );
+    const client = createCloudBaseRdbClient(
+      { rdb: () => ({ from: vi.fn() }) },
+      {
+        requestTimeoutMs: 5,
+        rpc: {
+          gatewayUrl: "https://gateway",
+          accessKey: "k",
+          fetch: fetchMock as unknown as typeof fetch,
+        },
+      },
+    );
+
+    await expect(client.rpc("probe")).rejects.toBeInstanceOf(
+      CloudBaseRdbTimeoutError,
+    );
   });
 
   it("rejects a gateway error instead of returning rows", async () => {

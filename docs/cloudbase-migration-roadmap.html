@@ -232,10 +232,12 @@
         The read-only differential check has run against the real gateway for a
         workspace member and a grant-only viewer on a synthetic staging fixture:
         event pages, cursor paging, calendars, isolation, and denials match
-        PostgreSQL. R2 version enforcement is proven on staging; atomic audit is
-        not available on the gateway path, so writes stay on PostgreSQL pending
-        a database-side design. PostgreSQL remains the runtime default and
-        CloudBase reads stay disabled until Phase 6 decides otherwise.
+        PostgreSQL. R2 and R3 are proven on staging through the gateway's rpc
+        route: an audited Event create and update run as one transaction each,
+        stale and forbidden calls are rejected with 409 and 403, and a raise
+        after every write persists nothing. The write path is being ported to
+        PostgreSQL functions; PostgreSQL remains the runtime default until the
+        first family ships.
       </aside>
 
       <h2>Execution plan</h2>
@@ -356,9 +358,15 @@
             </li>
             <li>Conflict responses identical to PostgreSQL.</li>
             <li>
-              Atomic audit: not available on the gateway path (no transactions,
-              no server-side functions); writes stay on PostgreSQL until a
-              database-side mechanism is designed.
+              Atomic audit: proven through the gateway's rpc route. A PostgreSQL
+              function runs as one transaction; the probe reproduces the
+              service's audit and revision rows and a raise discards every
+              write.
+            </li>
+            <li>
+              Decision: writes move to PostgreSQL functions invoked through rpc,
+              one operation family at a time, each with a differential test
+              against the TypeScript reference.
             </li>
           </ul>
         </div>
@@ -460,7 +468,7 @@
       </table>
       <footer>
         Source of detail: <code>docs/cloudbase-migration-plan.md</code>. Updated
-        after the first real-gateway write-contract run.
+        after the rpc contract run and the R3 decision.
       </footer>
     </main>
   </body>
