@@ -111,6 +111,18 @@ interface RdbApp {
   };
 }
 
+/** One gateway request as reported to the observer: what was called, how long it took, and how it ended. */
+export interface CloudBaseRequestEvent {
+  readonly kind: "select" | "insert" | "update" | "delete" | "rpc";
+  /** The table or the function name. */
+  readonly target: string;
+  readonly durationMs: number;
+  readonly outcome: "ok" | "timeout" | "rejected" | "failed";
+  /** The gateway's HTTP status and error code when it rejected the request. */
+  readonly status?: number | undefined;
+  readonly code?: string | undefined;
+}
+
 export interface CloudBaseRdbConnectionOptions {
   readonly envId: string;
   readonly accessKey: string;
@@ -118,6 +130,8 @@ export interface CloudBaseRdbConnectionOptions {
   readonly requestTimeoutMs?: number | undefined;
   /** Gateway origin and version prefix; defaults to the mainland endpoint for the environment. */
   readonly gatewayUrl?: string | undefined;
+  /** Receives one event per gateway request, for latency and error metrics. */
+  readonly onRequest?: ((event: CloudBaseRequestEvent) => void) | undefined;
 }
 
 /** How rpc() reaches the gateway; absent when the client is built for tests without a gateway. */
@@ -184,7 +198,10 @@ export class CloudBaseRdbTimeoutError extends Error {
 
 export function createCloudBaseRdbClient(
   app: RdbApp,
-  options: Pick<CloudBaseRdbConnectionOptions, "requestTimeoutMs"> & {
+  options: Pick<
+    CloudBaseRdbConnectionOptions,
+    "requestTimeoutMs" | "onRequest"
+  > & {
     readonly rpc?: CloudBaseRpcTransport | undefined;
   } = {},
 ): CloudBaseRdbClient {
@@ -199,6 +216,41 @@ export function createCloudBaseRdbClient(
           .parse(options.requestTimeoutMs);
 
   const rpcTransport = options.rpc;
+  const observe = options.onRequest;
+
+  /** Runs one gateway request and reports its duration and outcome to the observer. */
+  async function observed<T>(
+    kind: CloudBaseRequestEvent["kind"],
+    target: string,
+    run: () => Promise<T>,
+  ): Promise<T> {
+    if (observe === undefined) return run();
+    const startedAt = performance.now();
+    const report = (
+      outcome: CloudBaseRequestEvent["outcome"],
+      status?: number,
+      code?: string,
+    ) =>
+      observe({
+        kind,
+        target,
+        durationMs: Math.round(performance.now() - startedAt),
+        outcome,
+        status,
+        code,
+      });
+    try {
+      const result = await run();
+      report("ok");
+      return result;
+    } catch (error) {
+      if (error instanceof CloudBaseRdbTimeoutError) report("timeout");
+      else if (error instanceof CloudBaseRpcError)
+        report("rejected", error.status, error.code);
+      else report("failed");
+      throw error;
+    }
+  }
 
   return {
     capabilities: {
@@ -208,6 +260,68 @@ export function createCloudBaseRdbClient(
     },
     async rpc<T>(functionName: string, args: Record<string, unknown> = {}) {
       const name = identifierSchema.parse(functionName);
+      return observed("rpc", name, () => callFunction<T>(name, args));
+    },
+    async insert<T>(
+      table: string,
+      rows: readonly Record<string, unknown>[],
+      options: { readonly columns?: string | undefined } = {},
+    ) {
+      const tableName = identifierSchema.parse(table);
+      if (rows.length === 0) return [];
+      return observed("insert", tableName, () =>
+        awaitRows<T>(
+          app
+            .rdb()
+            .from<T>(tableName)
+            .insert(rows)
+            .select(options.columns ?? "*"),
+          requestTimeoutMs,
+        ),
+      );
+    },
+    async update<T>(
+      table: string,
+      values: Record<string, unknown>,
+      write: CloudBaseRdbWrite,
+    ) {
+      const tableName = identifierSchema.parse(table);
+      const filters = validateWriteFilters(write.filters);
+      return observed("update", tableName, () =>
+        awaitRows<T>(
+          applyFilters(
+            app.rdb().from<T>(tableName).update(values),
+            filters,
+          ).select(write.columns ?? "*"),
+          requestTimeoutMs,
+        ),
+      );
+    },
+    async delete<T>(table: string, write: CloudBaseRdbWrite) {
+      const tableName = identifierSchema.parse(table);
+      const filters = validateWriteFilters(write.filters);
+      return observed("delete", tableName, () =>
+        awaitRows<T>(
+          applyFilters(app.rdb().from<T>(tableName).delete(), filters).select(
+            write.columns ?? "*",
+          ),
+          requestTimeoutMs,
+        ),
+      );
+    },
+    async select<T>(table: string, query: CloudBaseRdbQuery = {}) {
+      const tableName = identifierSchema.parse(table);
+      return observed("select", tableName, () =>
+        selectRows<T>(tableName, query),
+      );
+    },
+  };
+
+  async function callFunction<T>(
+    name: string,
+    args: Record<string, unknown>,
+  ): Promise<T> {
+    {
       if (rpcTransport === undefined) {
         throw new Error("CloudBase RPC requires a gateway transport.");
       }
@@ -255,95 +369,60 @@ export function createCloudBaseRdbClient(
         );
       }
       return body as T;
-    },
-    async insert<T>(
-      table: string,
-      rows: readonly Record<string, unknown>[],
-      options: { readonly columns?: string | undefined } = {},
-    ) {
-      const tableName = identifierSchema.parse(table);
-      if (rows.length === 0) return [];
-      const request = app
+    }
+  }
+
+  async function selectRows<T>(
+    tableName: string,
+    query: CloudBaseRdbQuery,
+  ): Promise<readonly T[]> {
+    const limit =
+      query.limit === undefined
+        ? undefined
+        : z.number().int().nonnegative().parse(query.limit);
+    const offset =
+      query.offset === undefined
+        ? 0
+        : z.number().int().nonnegative().parse(query.offset);
+    if (offset > 0 && limit === undefined) {
+      throw new Error("CloudBase RDB offsets require a limit.");
+    }
+    const filters = validateFilters(query.filters ?? []);
+    const order = (query.order ?? []).map((entry) => ({
+      ...entry,
+      column: identifierSchema.parse(entry.column),
+      referencedTable:
+        entry.referencedTable === undefined
+          ? undefined
+          : identifierSchema.parse(entry.referencedTable),
+    }));
+    let request = applyFilters(
+      app
         .rdb()
         .from<T>(tableName)
-        .insert(rows)
-        .select(options.columns ?? "*");
-      return awaitRows(request, requestTimeoutMs);
-    },
-    async update<T>(
-      table: string,
-      values: Record<string, unknown>,
-      write: CloudBaseRdbWrite,
-    ) {
-      const tableName = identifierSchema.parse(table);
-      const filters = validateWriteFilters(write.filters);
-      const request = applyFilters(
-        app.rdb().from<T>(tableName).update(values),
-        filters,
-      ).select(write.columns ?? "*");
-      return awaitRows(request, requestTimeoutMs);
-    },
-    async delete<T>(table: string, write: CloudBaseRdbWrite) {
-      const tableName = identifierSchema.parse(table);
-      const filters = validateWriteFilters(write.filters);
-      const request = applyFilters(
-        app.rdb().from<T>(tableName).delete(),
-        filters,
-      ).select(write.columns ?? "*");
-      return awaitRows(request, requestTimeoutMs);
-    },
-    async select<T>(table: string, query: CloudBaseRdbQuery = {}) {
-      const tableName = identifierSchema.parse(table);
-      const limit =
-        query.limit === undefined
-          ? undefined
-          : z.number().int().nonnegative().parse(query.limit);
-      const offset =
-        query.offset === undefined
-          ? 0
-          : z.number().int().nonnegative().parse(query.offset);
-      if (offset > 0 && limit === undefined) {
-        throw new Error("CloudBase RDB offsets require a limit.");
-      }
-      const filters = validateFilters(query.filters ?? []);
-      const order = (query.order ?? []).map((entry) => ({
-        ...entry,
-        column: identifierSchema.parse(entry.column),
-        referencedTable:
-          entry.referencedTable === undefined
-            ? undefined
-            : identifierSchema.parse(entry.referencedTable),
-      }));
-      let request = applyFilters(
-        app
-          .rdb()
-          .from<T>(tableName)
-          .select(query.columns ?? "*"),
-        filters,
-      );
-      for (const entry of order) {
-        const options: {
-          ascending?: boolean;
-          nullsFirst?: boolean;
-          referencedTable?: string;
-        } = {};
-        if (entry.ascending !== undefined) options.ascending = entry.ascending;
-        if (entry.nullsFirst !== undefined)
-          options.nullsFirst = entry.nullsFirst;
-        if (entry.referencedTable !== undefined)
-          options.referencedTable = entry.referencedTable;
-        request = request.order(entry.column, options);
-      }
-      if (limit !== undefined) {
-        request = request.limit(limit);
-      }
-      if (limit !== undefined && limit > 0) {
-        request = request.range(offset, offset + limit - 1);
-      }
-
-      return awaitRows(request, requestTimeoutMs);
-    },
-  };
+        .select(query.columns ?? "*"),
+      filters,
+    );
+    for (const entry of order) {
+      const options: {
+        ascending?: boolean;
+        nullsFirst?: boolean;
+        referencedTable?: string;
+      } = {};
+      if (entry.ascending !== undefined) options.ascending = entry.ascending;
+      if (entry.nullsFirst !== undefined) options.nullsFirst = entry.nullsFirst;
+      if (entry.referencedTable !== undefined)
+        options.referencedTable = entry.referencedTable;
+      request = request.order(entry.column, options);
+    }
+    if (limit !== undefined) {
+      request = request.limit(limit);
+    }
+    if (limit !== undefined && limit > 0) {
+      request = request.range(offset, offset + limit - 1);
+    }
+    return awaitRows(request, requestTimeoutMs);
+  }
 }
 
 function validateFilters(
@@ -432,6 +511,7 @@ export async function connectCloudBaseRdb(
   });
   return createCloudBaseRdbClient(app as unknown as RdbApp, {
     requestTimeoutMs: options.requestTimeoutMs,
+    onRequest: options.onRequest,
     rpc: {
       gatewayUrl: options.gatewayUrl ?? cloudBaseGatewayUrl(options.envId),
       accessKey: options.accessKey,
