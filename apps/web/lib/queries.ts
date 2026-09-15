@@ -11,6 +11,8 @@ import type {
   EventUpdatePayload,
   EventListQueryInput,
   EventListResponse,
+  TaskListQueryInput,
+  TaskListResponse,
   EventResponse,
   ExpenseUpdatePayload,
   ObjectSearchQueryInput,
@@ -47,6 +49,7 @@ export const queryKeys = {
   expenses: (eventId: string) => ["event", eventId, "expenses"] as const,
   reminders: (eventId: string) => ["event", eventId, "reminders"] as const,
   search: (input: ObjectSearchQueryInput) => ["search", input] as const,
+  tasks: ["tasks"] as const,
   access: (eventId: string) => ["event", eventId, "access"] as const,
   shares: (eventId: string) => ["event", eventId, "shares"] as const,
   attachments: (parentObjectId: string) =>
@@ -115,6 +118,39 @@ function pageItems<T extends { readonly id: string }>(
 
 function selectEventItems(data: InfiniteData<EventListResponse>) {
   return { items: pageItems(data.pages), asOf: data.pages[0]?.asOf };
+}
+
+function selectTaskItems(data: InfiniteData<TaskListResponse>) {
+  return { items: pageItems(data.pages), asOf: data.pages[0]?.asOf };
+}
+
+/** The workspace Task collection: every task the user may view, page by page. */
+export function useTasksQuery(input: Omit<TaskListQueryInput, "cursor">) {
+  const client = useApiClient();
+  const { credential } = useAuthSession();
+  const queryClient = useQueryClient();
+  const queryKey = [
+    ...queryKeys.tasks,
+    input,
+    credential?.homeWorkspaceId,
+    credential?.workspaceId,
+  ];
+  const result = useInfiniteQuery({
+    enabled: credential !== null,
+    initialPageParam: undefined as string | undefined,
+    queryFn: ({ pageParam, signal }) =>
+      client.withSignal(signal).listTasks({
+        ...input,
+        ...(pageParam === undefined ? {} : { cursor: pageParam }),
+      }),
+    getNextPageParam: (page) => page.nextCursor ?? undefined,
+    queryKey,
+    select: selectTaskItems,
+  });
+  return {
+    ...result,
+    refresh: () => queryClient.resetQueries({ queryKey, exact: true }),
+  };
 }
 
 function selectSearchItems(data: InfiniteData<ObjectSearchResponse>) {
@@ -232,17 +268,20 @@ function useObjectEditorQueries<Resource>(
   return { resource, access };
 }
 
+/** Refreshes an Event's reads, or the workspace collections when no Event is given. */
 export function useRefreshEvent(
-  eventId: string,
+  eventId: string | undefined,
   options: { readonly throwOnError?: boolean } = {},
 ) {
   const queryClient = useQueryClient();
   return async () => {
     await Promise.all([
-      queryClient.invalidateQueries(
-        { queryKey: queryKeys.event(eventId) },
-        options,
-      ),
+      eventId === undefined
+        ? queryClient.invalidateQueries({ queryKey: queryKeys.tasks }, options)
+        : queryClient.invalidateQueries(
+            { queryKey: queryKeys.event(eventId) },
+            options,
+          ),
       queryClient.invalidateQueries({ queryKey: queryKeys.events }, options),
     ]);
   };
@@ -253,7 +292,7 @@ export function useCanonicalInvalidation() {
   return () =>
     queryClient.invalidateQueries({
       predicate: (query) =>
-        ["event", "events", "object", "search", "trash"].includes(
+        ["event", "events", "object", "search", "tasks", "trash"].includes(
           String(query.queryKey[0]),
         ),
     });
@@ -371,8 +410,10 @@ export interface ContextCreateAttempt {
   current: { readonly key: string; readonly commandId: string } | null;
 }
 
+// Without an Event the resource is created on its own; only Tasks live
+// outside an Event today.
 function useCreateInContext<Type extends ContextResource["objectType"]>(
-  eventId: string,
+  eventId: string | undefined,
   objectType: Type,
   retainedAttempt?: ContextCreateAttempt,
 ) {
@@ -390,6 +431,15 @@ function useCreateInContext<Type extends ContextResource["objectType"]>(
         ContextResource,
         { objectType: Type }
       >;
+      if (eventId === undefined) {
+        if (resource.objectType !== "task")
+          throw new Error("Only a Task can be created outside an Event.");
+        const { objectType: _type, ...payload } = resource as Extract<
+          ContextResource,
+          { objectType: "task" }
+        >;
+        return client.createTask(payload);
+      }
       const key = JSON.stringify({ eventId, resource });
       if (attempt.current?.key !== key) {
         attempt.current = { key, commandId: crypto.randomUUID() };
@@ -415,7 +465,10 @@ export function useCreateScheduledEvent(
   return useCreateInContext(eventId, "event", attempt);
 }
 
-export function useCreateTask(eventId: string, attempt?: ContextCreateAttempt) {
+export function useCreateTask(
+  eventId: string | undefined,
+  attempt?: ContextCreateAttempt,
+) {
   return useCreateInContext(eventId, "task", attempt);
 }
 
