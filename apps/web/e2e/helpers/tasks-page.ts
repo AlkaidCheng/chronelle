@@ -28,6 +28,24 @@ export async function exerciseTasksPage(page: Page) {
   // Outside any event, the row names none.
   await expect(row.getByRole("link", { name: /^in / })).toHaveCount(0);
 
+  // A label added from the editor is selected at once, shows on the row,
+  // and filters the list.
+  await row.getByRole("button", { name: "Edit", exact: true }).click();
+  const edit = page.getByRole("dialog", { name: "Edit task", exact: true });
+  await edit.getByText("Labels", { exact: true }).click();
+  await edit.getByPlaceholder("New label").fill("Paperwork");
+  await edit.getByRole("button", { name: "Add label", exact: true }).click();
+  await expect(edit.getByRole("checkbox", { name: "Paperwork" })).toBeChecked();
+  await edit.getByRole("button", { name: "Save task", exact: true }).click();
+  await expect(edit).toHaveCount(0);
+  await expect(
+    row.getByRole("list", { name: "Labels" }).getByText("Paperwork"),
+  ).toBeVisible();
+  await page.getByLabel("Filter by label").selectOption({ label: "Paperwork" });
+  await expect(page.getByText("1 task loaded")).toBeVisible();
+  await expect(row).toBeVisible();
+  await page.getByLabel("Filter by label").selectOption("");
+
   // A subtask nests under its parent and counts toward its progress.
   await row
     .getByRole("button", {

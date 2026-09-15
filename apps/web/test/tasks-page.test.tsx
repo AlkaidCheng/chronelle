@@ -173,6 +173,92 @@ describe("TasksPage", () => {
     expect(created?.permissionScopeId).toBe(parent?.permissionScopeId);
   });
 
+  it("adds labels from the editor, shows them, filters by them, and manages them", async () => {
+    const user = userEvent.setup();
+    render(
+      <Providers>
+        <TasksPage />
+      </Providers>,
+    );
+    await screen.findByText("1 task loaded");
+    const row = screen.getByRole("row", { name: /Confirm the garden venue/ });
+    await user.click(within(row).getByRole("button", { name: "Edit" }));
+    const editor = await screen.findByRole("dialog", { name: "Edit task" });
+    // The picker opens on demand.
+    await user.click(within(editor).getByText("Labels"));
+    expect(
+      await within(editor).findByText("No labels yet. Add one below."),
+    ).toBeVisible();
+    await user.type(within(editor).getByLabelText("New label"), "Venue");
+    await user.click(within(editor).getByRole("button", { name: "Add label" }));
+    // The new label is selected as soon as it exists.
+    expect(
+      await within(editor).findByRole("checkbox", { name: "Venue" }),
+    ).toBeChecked();
+    await user.click(within(editor).getByRole("button", { name: "Save task" }));
+    await waitFor(() =>
+      expect(screen.queryByRole("dialog", { name: "Edit task" })).toBeNull(),
+    );
+    const labelled = await screen.findByRole("row", {
+      name: /Confirm the garden venue/,
+    });
+    expect(
+      within(within(labelled).getByRole("list", { name: "Labels" })).getByText(
+        "Venue",
+      ),
+    ).toBeVisible();
+
+    // Filtering by the label asks the server and keeps only that task.
+    await user.click(screen.getByRole("button", { name: "All tasks" }));
+    await screen.findByText("2 tasks loaded");
+    const filter = screen.getByLabelText("Filter by label");
+    await user.selectOptions(
+      filter,
+      within(filter).getByRole("option", { name: "Venue" }),
+    );
+    expect(await screen.findByText("1 task loaded")).toBeVisible();
+    expect(
+      vi
+        .mocked(fetch)
+        .mock.calls.map(([url]) => String(url))
+        .some((url) => /^\/api\/tasks\?.*label=[0-9a-f-]+/.test(url)),
+    ).toBe(true);
+
+    // The manager renames and deletes; a deleted label leaves its tasks.
+    await user.click(screen.getByRole("button", { name: "Manage labels" }));
+    const manager = await screen.findByRole("dialog", { name: "Labels" });
+    const nameInput = within(manager).getByLabelText("Name of Venue");
+    await user.clear(nameInput);
+    await user.type(nameInput, "Venues");
+    await user.click(within(manager).getByRole("button", { name: "Rename" }));
+    expect(await within(manager).findByLabelText("Name of Venues")).toHaveValue(
+      "Venues",
+    );
+    await user.click(
+      within(manager).getByRole("button", { name: "Delete Venues" }),
+    );
+    await user.click(
+      within(manager).getByRole("button", { name: "Delete Venues" }),
+    );
+    expect(await within(manager).findByText("No labels yet.")).toBeVisible();
+    await user.click(
+      within(manager).getByRole("button", { name: "Close labels" }),
+    );
+    await waitFor(() =>
+      expect(screen.queryByRole("dialog", { name: "Labels" })).toBeNull(),
+    );
+    const listed = (await (
+      await store.fetch("/api/tasks?filter=all")
+    ).json()) as {
+      items: { displayName: string; labelIds: string[] }[];
+    };
+    expect(
+      listed.items.find(
+        (item) => item.displayName === "Confirm the garden venue",
+      )?.labelIds,
+    ).toEqual([]);
+  });
+
   it("creates a task on its own and completes it from the list", async () => {
     const user = userEvent.setup();
     render(

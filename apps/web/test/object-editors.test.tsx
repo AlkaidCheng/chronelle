@@ -365,7 +365,7 @@ describe.each(["task", "expense"] as const)("focused %s editors", (kind) => {
       expect(JSON.parse(String(patch?.[1]?.body))).toEqual({
         displayName: "Confirm headcount",
         ...(kind === "task"
-          ? { dueOn: null, dueAt: resource.dueAt }
+          ? { dueOn: null, dueAt: resource.dueAt, labelIds: [] }
           : {
               amount: resource.amount,
               currency: resource.currency,
