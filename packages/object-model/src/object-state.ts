@@ -99,8 +99,18 @@ export async function readObjectStates(
         break;
       case "task":
         if (row.task) {
-          const { objectId: _, workspaceId: __, ...content } = row.task;
-          return { ...common, ...content, labelIds: row.labelIds ?? [] };
+          const {
+            objectId: _,
+            workspaceId: __,
+            assigneePersonId,
+            ...content
+          } = row.task;
+          return {
+            ...common,
+            ...content,
+            assigneeId: assigneePersonId,
+            labelIds: row.labelIds ?? [],
+          };
         }
         break;
       case "expense":

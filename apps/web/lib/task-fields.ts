@@ -8,7 +8,10 @@ import { toDateTimeInput } from "./format";
  * both from the local rendering of that instant.
  */
 export function readTaskFields(
-  task?: Pick<TaskResponse, "displayName" | "dueOn" | "dueAt" | "labelIds">,
+  task?: Pick<
+    TaskResponse,
+    "displayName" | "dueOn" | "dueAt" | "assigneeId" | "labelIds"
+  >,
 ) {
   const [dueDate = "", dueTime = ""] =
     task?.dueOn !== null && task?.dueOn !== undefined
@@ -18,6 +21,8 @@ export function readTaskFields(
     displayName: task?.displayName ?? "",
     dueDate,
     dueTime,
+    // The assignee's person id; empty for an unassigned task.
+    assignee: task?.assigneeId ?? "",
     // Label ids as one sorted string, so an unchanged set compares equal.
     labels: joinLabelIds(task?.labelIds ?? []),
   };
@@ -40,6 +45,7 @@ export function taskFieldsPayload(
   fields: ReturnType<typeof readTaskFields>,
   source?: Pick<TaskResponse, "dueAt">,
 ) {
+  const assigneeId = fields.assignee === "" ? null : fields.assignee;
   const labelIds = splitLabelIds(fields.labels);
   if (fields.dueDate === "") {
     if (fields.dueTime !== "")
@@ -48,6 +54,7 @@ export function taskFieldsPayload(
       displayName: fields.displayName,
       dueOn: null,
       dueAt: null,
+      assigneeId,
       labelIds,
     };
   }
@@ -58,6 +65,7 @@ export function taskFieldsPayload(
       displayName: fields.displayName,
       dueOn: fields.dueDate,
       dueAt: null,
+      assigneeId,
       labelIds,
     };
   return {
@@ -68,6 +76,7 @@ export function taskFieldsPayload(
       source?.dueAt,
       "due",
     ),
+    assigneeId,
     labelIds,
   };
 }

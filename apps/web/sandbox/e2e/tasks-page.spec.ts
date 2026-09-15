@@ -14,6 +14,6 @@ test("keeps the offline Tasks page in step with the sample events", async ({
   const errors: string[] = [];
   page.on("pageerror", (error) => errors.push(error.message));
   await page.goto(sandboxUrl);
-  await exerciseTasksPage(page);
+  await exerciseTasksPage(page, "Sample planner");
   expect(errors).toEqual([]);
 });

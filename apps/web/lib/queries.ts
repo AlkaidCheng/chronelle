@@ -14,6 +14,7 @@ import type {
   TaskListQueryInput,
   TaskListResponse,
   LabelCreateRequest,
+  PersonCreatePayload,
   LabelUpdateRequest,
   EventResponse,
   ExpenseUpdatePayload,
@@ -53,6 +54,7 @@ export const queryKeys = {
   search: (input: ObjectSearchQueryInput) => ["search", input] as const,
   tasks: ["tasks"] as const,
   labels: ["labels"] as const,
+  persons: ["persons"] as const,
   access: (eventId: string) => ["event", eventId, "access"] as const,
   shares: (eventId: string) => ["event", eventId, "shares"] as const,
   attachments: (parentObjectId: string) =>
@@ -150,6 +152,34 @@ export function useLabelsQuery() {
       items: page.items,
       names: new Map(page.items.map((label) => [label.id, label.name])),
     }),
+  });
+}
+
+/** The workspace's people in name order, by id and as a list. */
+export function usePersonsQuery(enabled = true) {
+  const client = useApiClient();
+  const { credential } = useAuthSession();
+  return useQuery({
+    enabled: enabled && credential !== null,
+    queryFn: ({ signal }) => client.withSignal(signal).listPersons(),
+    queryKey: [...queryKeys.persons, credential?.workspaceId],
+    select: (page) => ({
+      items: page.items,
+      names: new Map(
+        page.items.map((person) => [person.id, person.displayName]),
+      ),
+    }),
+  });
+}
+
+export function useCreatePerson() {
+  const client = useApiClient();
+  const invalidate = useCanonicalInvalidation();
+  return useMutation({
+    mutationFn: (input: PersonCreatePayload) => client.createPerson(input),
+    onSuccess: () => {
+      void invalidate();
+    },
   });
 }
 
@@ -368,6 +398,7 @@ export function useCanonicalInvalidation() {
           "search",
           "tasks",
           "labels",
+          "persons",
           "trash",
         ].includes(String(query.queryKey[0])),
     });

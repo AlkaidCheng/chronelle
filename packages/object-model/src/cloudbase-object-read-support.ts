@@ -18,6 +18,7 @@ import {
   cloudbaseObjectColumns,
   cloudbasePersonColumns,
   cloudbaseResourceFromRows,
+  cloudbaseTaskColumns,
   readCloudBaseTaskLabels,
   cloudbaseText,
   type CloudBaseGrantRow,
@@ -48,7 +49,7 @@ const typedColumns: Readonly<
   Record<EventPlanningResource["objectType"], string>
 > = {
   event: cloudbaseEventColumns,
-  task: "object_id,workspace_id,status,due_on,due_at,completed_at,parent_task_id",
+  task: cloudbaseTaskColumns,
   expense: "object_id,workspace_id,amount::text,currency,occurred_at",
   reminder: "object_id,workspace_id,remind_at,status",
   document:

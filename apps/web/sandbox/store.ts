@@ -69,6 +69,7 @@ function canonical(
       completedAt: null,
       status: "todo",
       parentTaskId: null,
+      assigneeId: null,
       labelIds: [],
     },
     expense: {},
@@ -431,9 +432,24 @@ export class SandboxStore {
     return person;
   }
 
-  // A task's labels are the workspace's labels only, in name order.
-  #assertTaskLabels(task: Resource): Resource {
+  // A task's assignee is a live person of the workspace and its labels are
+  // the workspace's labels only, in name order.
+  #checkTask(task: Resource): Resource {
     if (task.objectType !== "task") return task;
+    if (
+      task.assigneeId !== null &&
+      !this.#state.objects.some(
+        (object) =>
+          object.objectType === "person" &&
+          object.id === task.assigneeId &&
+          object.deletedAt === null,
+      )
+    )
+      throw new SandboxError(
+        400,
+        "invalid_request",
+        "assigneeId must name a live person in this workspace.",
+      );
     const names = new Map(
       this.#state.labels.map((label) => [label.id, label.name.toLowerCase()]),
     );
@@ -661,7 +677,10 @@ export class SandboxStore {
               (query.filter === "done"
                 ? task.status === "done"
                 : task.status === "todo" || task.status === "in_progress")) &&
-            (query.label === undefined || task.labelIds.includes(query.label)),
+            (query.label === undefined ||
+              task.labelIds.includes(query.label)) &&
+            (query.assignee === undefined ||
+              task.assigneeId === query.assignee),
         )
         .sort((a, b) =>
           query.sort === "name"
@@ -986,7 +1005,7 @@ export class SandboxStore {
         typeof permissionScopeId === "string" ? permissionScopeId : undefined,
       );
       this.#assertTaskParent(object);
-      const labelled = this.#assertTaskLabels(object);
+      const labelled = this.#checkTask(object);
       this.#commit({
         ...this.#state,
         objects: [...this.#state.objects, labelled],
@@ -1020,7 +1039,7 @@ export class SandboxStore {
           parent.permissionScopeId,
         );
         this.#assertTaskParent(resource);
-        const labelled = this.#assertTaskLabels(resource);
+        const labelled = this.#checkTask(resource);
         const link = relation(id, labelled.id);
         this.#commit({
           ...this.#state,
@@ -1106,7 +1125,7 @@ export class SandboxStore {
             "The sample object changed. Refresh before saving.",
           );
         const saved = this.#checkPerson(
-          this.#assertTaskLabels(
+          this.#checkTask(
             eventPlanningResourceResponseSchema.parse({
               ...object,
               ...JSON.parse(JSON.stringify(patch)),

@@ -20,7 +20,7 @@ test("lists, creates, and completes tasks outside an event", async ({
   await page.getByLabel("Email").fill(email);
   await page.getByRole("button", { name: "Continue", exact: true }).click();
   await expect(page).toHaveURL(/\/events$/);
-  const name = await exerciseTasksPage(page);
+  const name = await exerciseTasksPage(page, "Planner");
   const listed = await (
     await request.get("/api/tasks?filter=done", { headers })
   ).json();

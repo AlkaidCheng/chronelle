@@ -19,7 +19,9 @@ import { TaskInspector } from "../events/task-inspector";
 import { viewsOf } from "../../lib/event-components";
 import {
   useLabelsQuery,
+  usePersonsQuery,
   useRefreshEvent,
+  useSessionQuery,
   useTasksQuery,
 } from "../../lib/queries";
 import { ManageLabelsButton } from "./label-manager";
@@ -39,6 +41,7 @@ export function TasksPage() {
   const [filter, setFilter] = useState<TaskListQuery["filter"]>("open");
   const [sort, setSort] = useState<TaskListQuery["sort"]>("due");
   const [label, setLabel] = useState<string>("");
+  const [assignee, setAssignee] = useState<string>("");
   const [view, setView] = useState<EventComponentView>("list");
   const [isAdding, setIsAdding] = useState(false);
   const [parent, setParent] = useState<SubtaskParent | null>(null);
@@ -61,12 +64,24 @@ export function TasksPage() {
     filter,
     sort,
     ...(label === "" ? {} : { label }),
+    ...(assignee === "" ? {} : { assignee }),
   });
   const labels = useLabelsQuery();
+  const persons = usePersonsQuery();
+  const session = useSessionQuery();
+  // The person linked to the signed-in account, when one exists.
+  const myPerson = persons.data?.items.find(
+    (person) =>
+      session.data !== undefined && person.userId === session.data.user.id,
+  );
   const refresh = useRefreshEvent(undefined);
   const changingQuery = isComposing || query.trim() !== debouncedQuery;
   const items = changingQuery ? [] : (tasks.data?.items ?? []);
-  const filtered = debouncedQuery !== "" || filter !== "open" || label !== "";
+  const filtered =
+    debouncedQuery !== "" ||
+    filter !== "open" ||
+    label !== "" ||
+    assignee !== "";
 
   // Stable, so the row cells keep their identity and focus across renders.
   const addSubtask = useCallback(
@@ -171,6 +186,25 @@ export function TasksPage() {
               ))}
             </select>
           </label>
+          <label className="compact-field collection-sort">
+            <span className="visually-hidden">Filter by assignee</span>
+            <select
+              onChange={(event) => setAssignee(event.target.value)}
+              value={assignee}
+            >
+              <option value="">Anyone</option>
+              {myPerson === undefined ? null : (
+                <option value={myPerson.id}>Me</option>
+              )}
+              {(persons.data?.items ?? [])
+                .filter((person) => person.id !== myPerson?.id)
+                .map((person) => (
+                  <option key={person.id} value={person.id}>
+                    {person.displayName}
+                  </option>
+                ))}
+            </select>
+          </label>
           <ViewSwitch
             onChange={changeView}
             view={view}
@@ -251,6 +285,7 @@ export function TasksPage() {
                 setQuery("");
                 setFilter("open");
                 setLabel("");
+                setAssignee("");
               }}
               type="button"
             >
@@ -264,6 +299,7 @@ export function TasksPage() {
             contexts={tasks.data?.contexts}
             labelNames={labels.data?.names}
             onAddSubtask={addSubtask}
+            personNames={persons.data?.names}
             onEdit={setEditingId}
             onRefresh={refresh}
             parents={tasks.data?.parents ?? {}}

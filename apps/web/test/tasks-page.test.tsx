@@ -259,6 +259,166 @@ describe("TasksPage", () => {
     ).toEqual([]);
   });
 
+  it("assigns a task to a person from the editor, shows it, and filters by assignee", async () => {
+    const user = userEvent.setup();
+    render(
+      <Providers>
+        <TasksPage />
+      </Providers>,
+    );
+    await screen.findByText("1 task loaded");
+    const row = screen.getByRole("row", { name: /Confirm the garden venue/ });
+    await user.click(within(row).getByRole("button", { name: "Edit" }));
+    const editor = await screen.findByRole("dialog", { name: "Edit task" });
+    // The picker reads the people when it opens; a new person is selected
+    // as soon as they exist.
+    await user.click(within(editor).getByText("Assignee: Unassigned"));
+    expect(
+      await within(editor).findByRole("radio", { name: "Unassigned" }),
+    ).toBeChecked();
+    await user.type(within(editor).getByLabelText("New person"), "Sam Lee");
+    await user.click(
+      within(editor).getByRole("button", { name: "Add person" }),
+    );
+    expect(
+      await within(editor).findByRole("radio", { name: "Sam Lee" }),
+    ).toBeChecked();
+    expect(within(editor).getByText("Assignee: Sam Lee")).toBeVisible();
+    await user.click(within(editor).getByRole("button", { name: "Save task" }));
+    await waitFor(() =>
+      expect(screen.queryByRole("dialog", { name: "Edit task" })).toBeNull(),
+    );
+    const assigned = await screen.findByRole("row", {
+      name: /Confirm the garden venue/,
+    });
+    expect(within(assigned).getByText("Sam Lee")).toHaveTextContent(
+      "Assigned to Sam Lee",
+    );
+
+    // Assigning to me creates the signed-in user's person on first use.
+    await user.click(screen.getByRole("button", { name: "New task" }));
+    const creator = await screen.findByRole("dialog", { name: "Add task" });
+    await user.type(within(creator).getByLabelText("Task"), "Water the plants");
+    await user.click(within(creator).getByText("Assignee: Unassigned"));
+    await user.click(
+      await within(creator).findByRole("button", { name: "Assign to me" }),
+    );
+    expect(
+      await within(creator).findByRole("radio", {
+        name: "Sample planner (me)",
+      }),
+    ).toBeChecked();
+    await user.click(
+      within(creator).getByRole("button", { name: "Create task" }),
+    );
+    await waitFor(() =>
+      expect(screen.queryByRole("dialog", { name: "Add task" })).toBeNull(),
+    );
+    await screen.findByText("2 tasks loaded");
+
+    // Filtering by assignee asks the server; Me names the linked person.
+    const filter = screen.getByLabelText("Filter by assignee");
+    await user.selectOptions(
+      filter,
+      within(filter).getByRole("option", { name: "Sam Lee" }),
+    );
+    expect(await screen.findByText("1 task loaded")).toBeVisible();
+    expect(
+      vi
+        .mocked(fetch)
+        .mock.calls.map(([url]) => String(url))
+        .some((url) => /^\/api\/tasks\?.*assignee=[0-9a-f-]+/.test(url)),
+    ).toBe(true);
+    await user.selectOptions(
+      filter,
+      within(filter).getByRole("option", { name: "Me" }),
+    );
+    expect(
+      await screen.findByRole("row", { name: /Water the plants/ }),
+    ).toBeVisible();
+    expect(screen.getByText("1 task loaded")).toBeVisible();
+  });
+
+  it("assigns a task to a person from the editor, shows it, and filters by assignee", async () => {
+    const user = userEvent.setup();
+    render(
+      <Providers>
+        <TasksPage />
+      </Providers>,
+    );
+    await screen.findByText("1 task loaded");
+    const row = screen.getByRole("row", { name: /Confirm the garden venue/ });
+    await user.click(within(row).getByRole("button", { name: "Edit" }));
+    const editor = await screen.findByRole("dialog", { name: "Edit task" });
+    // The picker reads the people when it opens; a new person is selected
+    // as soon as they exist.
+    await user.click(within(editor).getByText("Assignee: Unassigned"));
+    expect(
+      await within(editor).findByRole("radio", { name: "Unassigned" }),
+    ).toBeChecked();
+    await user.type(within(editor).getByLabelText("New person"), "Sam Lee");
+    await user.click(
+      within(editor).getByRole("button", { name: "Add person" }),
+    );
+    expect(
+      await within(editor).findByRole("radio", { name: "Sam Lee" }),
+    ).toBeChecked();
+    expect(within(editor).getByText("Assignee: Sam Lee")).toBeVisible();
+    await user.click(within(editor).getByRole("button", { name: "Save task" }));
+    await waitFor(() =>
+      expect(screen.queryByRole("dialog", { name: "Edit task" })).toBeNull(),
+    );
+    const assigned = await screen.findByRole("row", {
+      name: /Confirm the garden venue/,
+    });
+    expect(within(assigned).getByText("Sam Lee")).toHaveTextContent(
+      "Assigned to Sam Lee",
+    );
+
+    // Assigning to me creates the signed-in user's person on first use.
+    await user.click(screen.getByRole("button", { name: "New task" }));
+    const creator = await screen.findByRole("dialog", { name: "Add task" });
+    await user.type(within(creator).getByLabelText("Task"), "Water the plants");
+    await user.click(within(creator).getByText("Assignee: Unassigned"));
+    await user.click(
+      await within(creator).findByRole("button", { name: "Assign to me" }),
+    );
+    expect(
+      await within(creator).findByRole("radio", {
+        name: "Sample planner (me)",
+      }),
+    ).toBeChecked();
+    await user.click(
+      within(creator).getByRole("button", { name: "Create task" }),
+    );
+    await waitFor(() =>
+      expect(screen.queryByRole("dialog", { name: "Add task" })).toBeNull(),
+    );
+    await screen.findByText("2 tasks loaded");
+
+    // Filtering by assignee asks the server; Me names the linked person.
+    const filter = screen.getByLabelText("Filter by assignee");
+    await user.selectOptions(
+      filter,
+      within(filter).getByRole("option", { name: "Sam Lee" }),
+    );
+    expect(await screen.findByText("1 task loaded")).toBeVisible();
+    expect(
+      vi
+        .mocked(fetch)
+        .mock.calls.map(([url]) => String(url))
+        .some((url) => /^\/api\/tasks\?.*assignee=[0-9a-f-]+/.test(url)),
+    ).toBe(true);
+    await user.selectOptions(
+      filter,
+      within(filter).getByRole("option", { name: "Me" }),
+    );
+    expect(
+      await screen.findByRole("row", { name: /Water the plants/ }),
+    ).toBeVisible();
+    expect(screen.getByText("1 task loaded")).toBeVisible();
+  });
+
   it("creates a task on its own and completes it from the list", async () => {
     const user = userEvent.setup();
     render(

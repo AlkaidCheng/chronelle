@@ -2,10 +2,11 @@ import { expect, type Page } from "@playwright/test";
 
 /**
  * Opens the workspace Tasks page from the rail, creates a task outside any
- * Event, switches to the by-day view, checks the choice survives a reload,
- * and completes the task from the list.
+ * Event, labels it, assigns it to the signed-in user (whose person is
+ * created on first use and named `member`), switches to the by-day view,
+ * checks the choice survives a reload, and completes the task from the list.
  */
-export async function exerciseTasksPage(page: Page) {
+export async function exerciseTasksPage(page: Page, member: string) {
   await page
     .getByRole("navigation", { name: "Workspace navigation" })
     .getByRole("link", { name: "Tasks", exact: true })
@@ -45,6 +46,23 @@ export async function exerciseTasksPage(page: Page) {
   await expect(page.getByText("1 task loaded")).toBeVisible();
   await expect(row).toBeVisible();
   await page.getByLabel("Filter by label").selectOption("");
+
+  // Assign to me creates the signed-in user's person and selects it; the
+  // row names the assignee and the Me filter finds the task.
+  await row.getByRole("button", { name: "Edit", exact: true }).click();
+  await edit.getByText("Assignee: Unassigned", { exact: true }).click();
+  await edit.getByRole("button", { name: "Assign to me", exact: true }).click();
+  await expect(
+    edit.getByRole("radio", { name: `${member} (me)`, exact: true }),
+  ).toBeChecked();
+  await expect(edit.getByText(`Assignee: ${member}`)).toBeVisible();
+  await edit.getByRole("button", { name: "Save task", exact: true }).click();
+  await expect(edit).toHaveCount(0);
+  await expect(row.getByText(`Assigned to ${member}`)).toBeAttached();
+  await page.getByLabel("Filter by assignee").selectOption({ label: "Me" });
+  await expect(page.getByText("1 task loaded")).toBeVisible();
+  await expect(row).toBeVisible();
+  await page.getByLabel("Filter by assignee").selectOption("");
 
   // A subtask nests under its parent and counts toward its progress.
   await row

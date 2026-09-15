@@ -3,6 +3,7 @@ import {
   createId,
   objectRelations,
   objects,
+  persons,
   resourceGrants,
   labels,
   taskLabels,
@@ -67,6 +68,7 @@ function matches(
 const snapshotTables = {
   objects,
   object_relations: objectRelations,
+  persons,
   tasks,
   task_labels: taskLabels,
   labels,
@@ -163,6 +165,19 @@ describe.sequential("CloudBase task list contract", () => {
     const subtaskDone = createId();
     const subtaskOpen = createId();
     const subtaskDeleted = createId();
+    // One person, assigned two of the tasks.
+    const personId = createId();
+    await db.insert(objects).values([
+      {
+        id: personId,
+        workspaceId,
+        objectType: "person" as const,
+        permissionScopeId: personId,
+        displayName: "Mira",
+        createdBy: ownerId,
+      },
+    ]);
+    await db.insert(persons).values({ objectId: personId, workspaceId });
     await db.insert(objects).values([
       {
         id: eventId,
@@ -236,6 +251,7 @@ describe.sequential("CloudBase task list contract", () => {
         workspaceId,
         status: "todo",
         dueAt: new Date("2030-03-05T09:30:00Z"),
+        assigneePersonId: personId,
       },
       {
         objectId: inEventDated,
@@ -243,7 +259,12 @@ describe.sequential("CloudBase task list contract", () => {
         status: "in_progress",
         dueOn: "2030-03-05",
       },
-      { objectId: standaloneUndated, workspaceId, status: "todo" },
+      {
+        objectId: standaloneUndated,
+        workspaceId,
+        status: "todo",
+        assigneePersonId: personId,
+      },
       {
         objectId: standaloneDone,
         workspaceId,
@@ -408,6 +429,36 @@ describe.sequential("CloudBase task list contract", () => {
           await cloudbase.listTasks(principal, { label: venueId, limit: 10 }),
         ),
       ).toEqual(ids(byLabel));
+      // The assignee travels with each task and filters the list alike.
+      const assigneesOf = (page: {
+        readonly items: readonly {
+          readonly id: string;
+          readonly assigneeId: string | null;
+        }[];
+      }) =>
+        Object.fromEntries(
+          page.items.map((task) => [task.id, task.assigneeId]),
+        );
+      expect(assigneesOf(open)).toEqual({
+        [inEventDated]: null,
+        [inEventTimed]: personId,
+        [subtaskOpen]: null,
+        [standaloneUndated]: personId,
+      });
+      expect(assigneesOf(cloudbaseOpen)).toEqual(assigneesOf(open));
+      const byAssignee = await postgres.listTasks(principal, {
+        assignee: personId,
+        limit: 10,
+      });
+      expect(ids(byAssignee)).toEqual([inEventTimed, standaloneUndated]);
+      expect(
+        ids(
+          await cloudbase.listTasks(principal, {
+            assignee: personId,
+            limit: 10,
+          }),
+        ),
+      ).toEqual(ids(byAssignee));
       const all = await postgres.listTasks(principal, {
         filter: "all",
         limit: 10,

@@ -355,6 +355,7 @@ export const tasks = pgTable("tasks", {
     withTimezone: true,
   }),
   parentTaskId: uuid("parent_task_id"),
+  assigneePersonId: uuid("assignee_person_id"),
 });
 
 export const labels = pgTable(

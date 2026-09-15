@@ -268,6 +268,7 @@ describe.sequential("CloudBase Task writes", () => {
       const detached = await service.updateTask(context(), child.id, {
         expectedVersion: 1,
         parentTaskId: null,
+        assigneeId: null,
       });
       expect(detached.parentTaskId).toBeNull();
       const reattached = await service.updateTask(context(), child.id, {
@@ -390,6 +391,69 @@ describe.sequential("CloudBase Task writes", () => {
     expect(outcomes[0]).toEqual([
       "labelIds must name labels of this workspace.",
       "labelIds must name labels of this workspace.",
+    ]);
+  });
+
+  it("assign a task to a live person and refuse anyone else alike", async () => {
+    const trashed = await reference.createPerson(context(), {
+      displayName: "Former",
+    });
+    await reference.softDelete(context(), trashed.id, 1);
+    const outcomes: string[][] = [];
+    for (const [, service] of backends(reference, cloudbase)) {
+      const mira = await service.createPerson(context(), {
+        displayName: "Mira",
+      });
+      const sam = await service.createPerson(context(), {
+        displayName: "Sam",
+      });
+      const created = await service.createTask(context(), {
+        displayName: "Assigned",
+        assigneeId: mira.id,
+      });
+      expect(created.assigneeId).toBe(mira.id);
+      const reassigned = await service.updateTask(context(), created.id, {
+        expectedVersion: 1,
+        assigneeId: sam.id,
+      });
+      expect(reassigned.assigneeId).toBe(sam.id);
+      expect(
+        (await service.getTask(context().principal, created.id)).assigneeId,
+      ).toBe(sam.id);
+      const cleared = await service.updateTask(context(), created.id, {
+        expectedVersion: 2,
+        assigneeId: null,
+      });
+      expect(cleared.assigneeId).toBeNull();
+      const seen: string[] = [];
+      for (const attempt of [
+        () =>
+          service.createTask(context(), {
+            displayName: "x",
+            assigneeId: trashed.id,
+          }),
+        () =>
+          service.updateTask(context(), created.id, {
+            expectedVersion: 3,
+            assigneeId: created.id,
+          }),
+        () =>
+          service.updateTask(context(), created.id, {
+            expectedVersion: 3,
+            assigneeId: createId(),
+          }),
+      ]) {
+        const error = await failure(attempt);
+        expect(error).toBeInstanceOf(InvalidObjectStateError);
+        seen.push(error.message);
+      }
+      outcomes.push(seen);
+    }
+    expect(outcomes[1]).toEqual(outcomes[0]);
+    expect(outcomes[0]).toEqual([
+      "assigneeId must name a live person in this workspace.",
+      "assigneeId must name a live person in this workspace.",
+      "assigneeId must name a live person in this workspace.",
     ]);
   });
 

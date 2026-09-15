@@ -20,6 +20,7 @@ import {
 } from "./editor-draft-recovery";
 import { usePlanningEditorDialog } from "../../lib/use-planning-editor-dialog";
 import { useOpenHistory } from "../history/history-provider";
+import { AssigneePicker } from "../tasks/assignee-picker";
 import { LabelPicker } from "../tasks/label-picker";
 import { useEditorDraft } from "../../lib/use-editor-draft";
 import {
@@ -107,7 +108,7 @@ function TaskEditor({
   const create = useCreateTask(eventId, attempt);
   const update = useUpdateTask();
   const refresh = useRefreshEvent(eventId, { throwOnError: true });
-  const { displayName, dueDate, dueTime, labels } = draft.fields;
+  const { displayName, dueDate, dueTime, assignee, labels } = draft.fields;
   const mutation = task === undefined ? create : update;
   const [dueError, setDueError] = useState("");
   const openHistory = useOpenHistory();
@@ -170,6 +171,7 @@ function TaskEditor({
             displayName: "",
             dueDate: "",
             dueTime: "",
+            assignee: "",
             labels: "",
           });
           onCancel?.();
@@ -304,6 +306,11 @@ function TaskEditor({
             .
           </p>
           {dueError && <p role="alert">{dueError}</p>}
+          <AssigneePicker
+            disabled={mutation.isPending}
+            onChange={(assignee) => draft.change({ assignee })}
+            value={assignee}
+          />
           <LabelPicker
             disabled={mutation.isPending}
             onChange={(labels) => draft.change({ labels })}

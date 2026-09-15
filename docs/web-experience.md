@@ -67,12 +67,21 @@ opens Manage labels, where labels are renamed, added, or deleted; a deleted
 label leaves its tasks. Anyone with access to the workspace sees label names;
 owners and editors change them. The view is a device preference, kept in browser storage like the
 event collection's grid or list choice, and applies to the loaded tasks. The
-filter, sort, and name query belong to the tab.
+filter, sort, name query, label, and assignee belong to the tab.
 
 People are canonical records of the workspace (a name, an optional email, an
 optional link to a member's account, and custom fields). They have no page
 of their own yet; Search and Trash filter by People, and Trash restores
 them like any record.
+
+A task may be assigned to one person as the one responsible for it. The task
+editor holds the choice behind an Assignee disclosure that names the current
+assignee (Unassigned when none); open, it lists the workspace's people with
+Unassigned first, takes a new person by name (selected as soon as they
+exist), and offers Assign to me, which creates the signed-in user's person on
+first use and marks it "(me)" thereafter. Rows name the assignee under the
+title in both views. The Tasks page filters by assignee from the toolbar:
+Anyone, Me (when the user has a person), or a person by name.
 
 ## Workspace commands
 

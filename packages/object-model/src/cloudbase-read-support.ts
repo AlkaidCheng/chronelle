@@ -64,6 +64,7 @@ export type CloudBaseTaskRow = {
   readonly due_at: unknown;
   readonly completed_at: unknown;
   readonly parent_task_id: unknown;
+  readonly assignee_person_id: unknown;
 };
 
 export type CloudBaseExpenseRow = {
@@ -269,6 +270,10 @@ export function cloudbaseTaskResource(
     dueAt: cloudbaseNullableDate(task.due_at, "due_at"),
     completedAt: cloudbaseNullableDate(task.completed_at, "completed_at"),
     parentTaskId: cloudbaseNullableText(task.parent_task_id, "parent_task_id"),
+    assigneeId: cloudbaseNullableText(
+      task.assignee_person_id,
+      "assignee_person_id",
+    ),
     labelIds: [...labelIds],
   };
 }
@@ -659,7 +664,7 @@ export async function readCloudBaseObjectRows(
 }
 
 export const cloudbaseTaskColumns =
-  "object_id,workspace_id,status,due_on,due_at,completed_at,parent_task_id";
+  "object_id,workspace_id,status,due_on,due_at,completed_at,parent_task_id,assignee_person_id";
 
 export async function readCloudBaseTasks(
   client: CloudBaseRdbReader,
