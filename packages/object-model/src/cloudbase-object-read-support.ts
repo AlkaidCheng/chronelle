@@ -17,6 +17,7 @@ import {
   cloudbaseNullableDate,
   cloudbaseObjectColumns,
   cloudbaseResourceFromRows,
+  readCloudBaseTaskLabels,
   cloudbaseText,
   type CloudBaseGrantRow,
   type CloudBaseObjectRow,
@@ -321,6 +322,11 @@ export async function readCloudBaseResources(
     ]);
   }
   const typed = new Map<string, TypedRow>();
+  const taskLabels = await readCloudBaseTaskLabels(
+    client,
+    principal,
+    byType.get("task") ?? [],
+  );
   for (const [objectType, ids] of byType) {
     const rows = await selectInBatches<TypedRow>(
       client,
@@ -344,6 +350,7 @@ export async function readCloudBaseResources(
         cloudbaseResourceFromRows({
           object,
           [cloudbaseObjectType(object)]: row,
+          labels: taskLabels.get(id) ?? [],
         }),
       ] as const;
     }),

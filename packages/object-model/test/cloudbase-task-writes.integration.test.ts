@@ -1,5 +1,11 @@
 import { AuthorizationDeniedError } from "@chronelle/authorization";
-import { createId, objects, resourceGrants, tasks } from "@chronelle/db";
+import {
+  createId,
+  labels,
+  objects,
+  resourceGrants,
+  tasks,
+} from "@chronelle/db";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { CloudBaseTaskWriteRepository } from "../src/cloudbase-task-write-repository.js";
@@ -320,6 +326,70 @@ describe.sequential("CloudBase Task writes", () => {
       "A subtask shares its parent's permission scope.",
       "parentTaskId must name a live task in this workspace.",
       "A task cannot be its own parent.",
+    ]);
+  });
+
+  it("set a task's labels as a whole and refuse unknown ones alike", async () => {
+    const db = harness.database.connection.db;
+    const planningId = createId();
+    const venueId = createId();
+    await db.insert(labels).values([
+      {
+        id: planningId,
+        workspaceId: harness.workspaceId,
+        name: "Planning",
+        createdBy: harness.ownerId,
+      },
+      {
+        id: venueId,
+        workspaceId: harness.workspaceId,
+        name: "venue",
+        createdBy: harness.ownerId,
+      },
+    ]);
+    const outcomes: string[][] = [];
+    for (const [, service] of backends(reference, cloudbase)) {
+      const created = await service.createTask(context(), {
+        displayName: "Labelled",
+        labelIds: [venueId, planningId, venueId],
+      });
+      expect(created.labelIds).toEqual([planningId, venueId]);
+      const trimmed = await service.updateTask(context(), created.id, {
+        expectedVersion: 1,
+        labelIds: [venueId],
+      });
+      expect(trimmed.labelIds).toEqual([venueId]);
+      expect(
+        (await service.getTask(context().principal, created.id)).labelIds,
+      ).toEqual([venueId]);
+      const cleared = await service.updateTask(context(), created.id, {
+        expectedVersion: 2,
+        labelIds: [],
+      });
+      expect(cleared.labelIds).toEqual([]);
+      const seen: string[] = [];
+      for (const attempt of [
+        () =>
+          service.createTask(context(), {
+            displayName: "x",
+            labelIds: [createId()],
+          }),
+        () =>
+          service.updateTask(context(), created.id, {
+            expectedVersion: 3,
+            labelIds: [venueId, createId()],
+          }),
+      ]) {
+        const error = await failure(attempt);
+        expect(error).toBeInstanceOf(InvalidObjectStateError);
+        seen.push(error.message);
+      }
+      outcomes.push(seen);
+    }
+    expect(outcomes[1]).toEqual(outcomes[0]);
+    expect(outcomes[0]).toEqual([
+      "labelIds must name labels of this workspace.",
+      "labelIds must name labels of this workspace.",
     ]);
   });
 

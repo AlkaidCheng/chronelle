@@ -15,6 +15,7 @@ import {
   readCloudBaseObjectRows,
   readCloudBaseObjects,
   readCloudBaseSubtasks,
+  readCloudBaseTaskLabels,
   readCloudBaseTasks,
   readCloudBaseVisibility,
   readCloudBaseVisibleObjects,
@@ -168,11 +169,10 @@ export class CloudBaseTaskReadRepository implements TaskReadRepository {
     const objectIds = objects.map((object) =>
       cloudbaseText(object.id, "object id"),
     );
-    const taskRows = await readCloudBaseTasks(
-      this.#client,
-      principal,
-      objectIds,
-    );
+    const [taskRows, taskLabels] = await Promise.all([
+      readCloudBaseTasks(this.#client, principal, objectIds),
+      readCloudBaseTaskLabels(this.#client, principal, objectIds),
+    ]);
     const byId = new Map(
       taskRows.map((task) => [
         cloudbaseText(task.object_id, "task object"),
@@ -180,8 +180,11 @@ export class CloudBaseTaskReadRepository implements TaskReadRepository {
       ]),
     );
     let tasks = objects.flatMap((object) => {
-      const task = byId.get(cloudbaseText(object.id, "object id"));
-      return task === undefined ? [] : [cloudbaseTaskResource(object, task)];
+      const id = cloudbaseText(object.id, "object id");
+      const task = byId.get(id);
+      return task === undefined
+        ? []
+        : [cloudbaseTaskResource(object, task, taskLabels.get(id) ?? [])];
     });
     tasks = tasks.filter(
       (task) =>
@@ -189,7 +192,8 @@ export class CloudBaseTaskReadRepository implements TaskReadRepository {
           task.displayName
             .toLocaleLowerCase()
             .includes(input.query.toLocaleLowerCase())) &&
-        matchesStatus(task, input.filter),
+        matchesStatus(task, input.filter) &&
+        (input.label === undefined || task.labelIds.includes(input.label)),
     );
     tasks.sort(
       input.sort === "name"

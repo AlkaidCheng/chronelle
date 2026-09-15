@@ -178,7 +178,7 @@ export function cloudbaseBigInt(value: unknown, field: string): bigint {
   throw new Error(`CloudBase returned an invalid ${field}.`);
 }
 
-function cloudbaseInteger(value: unknown, field: string): number {
+export function cloudbaseInteger(value: unknown, field: string): number {
   const parsed = typeof value === "number" ? value : Number(value);
   if (!Number.isInteger(parsed))
     throw new Error(`CloudBase returned an invalid ${field}.`);
@@ -247,6 +247,7 @@ const taskStatuses: readonly TaskStatus[] = [
 export function cloudbaseTaskResource(
   object: CloudBaseObjectRow,
   task: CloudBaseTaskRow,
+  labelIds: readonly string[] = [],
 ): TaskResource {
   const status = cloudbaseText(task.status, "status");
   if (!taskStatuses.includes(status as TaskStatus))
@@ -259,7 +260,76 @@ export function cloudbaseTaskResource(
     dueAt: cloudbaseNullableDate(task.due_at, "due_at"),
     completedAt: cloudbaseNullableDate(task.completed_at, "completed_at"),
     parentTaskId: cloudbaseNullableText(task.parent_task_id, "parent_task_id"),
+    labelIds: [...labelIds],
   };
+}
+
+/** The label ids a `labels` entry of chronelle_task_rows carries, or none. */
+export function cloudbaseLabelIds(value: unknown): string[] {
+  if (value === undefined || value === null) return [];
+  if (!Array.isArray(value))
+    throw new Error("CloudBase returned invalid task labels.");
+  return value.map((id) => cloudbaseText(id, "label id"));
+}
+
+type CloudBaseTaskLabelRow = {
+  readonly task_id: unknown;
+  readonly label_id: unknown;
+};
+
+type CloudBaseLabelNameRow = { readonly id: unknown; readonly name: unknown };
+
+/** The labels of the given tasks in name order, by task id. */
+export async function readCloudBaseTaskLabels(
+  client: CloudBaseRdbReader,
+  principal: UserPrincipal,
+  taskIds: readonly string[],
+): Promise<ReadonlyMap<string, string[]>> {
+  if (taskIds.length === 0) return new Map();
+  const rows = await client.select<CloudBaseTaskLabelRow>("task_labels", {
+    columns: "task_id,label_id",
+    filters: [
+      { column: "workspace_id", operator: "eq", value: principal.workspaceId },
+      { column: "task_id", operator: "in", value: taskIds },
+    ],
+  });
+  if (rows.length === 0) return new Map();
+  const labelRows = await client.select<CloudBaseLabelNameRow>("labels", {
+    columns: "id,name",
+    filters: [
+      { column: "workspace_id", operator: "eq", value: principal.workspaceId },
+      {
+        column: "id",
+        operator: "in",
+        value: [
+          ...new Set(
+            rows.map((row) => cloudbaseText(row.label_id, "label id")),
+          ),
+        ],
+      },
+    ],
+  });
+  const names = new Map(
+    labelRows.map((row) => [
+      cloudbaseText(row.id, "label id"),
+      cloudbaseText(row.name, "label name").toLowerCase(),
+    ]),
+  );
+  const byTask = new Map<string, string[]>();
+  for (const row of rows) {
+    const taskId = cloudbaseText(row.task_id, "task id");
+    byTask.set(taskId, [
+      ...(byTask.get(taskId) ?? []),
+      cloudbaseText(row.label_id, "label id"),
+    ]);
+  }
+  for (const ids of byTask.values())
+    ids.sort(
+      (first, second) =>
+        (names.get(first) ?? "").localeCompare(names.get(second) ?? "") ||
+        first.localeCompare(second),
+    );
+  return byTask;
 }
 
 const reminderStatuses: readonly ReminderStatus[] = [
@@ -338,7 +408,11 @@ export function cloudbaseResourceFromRows(
     case "event":
       return cloudbaseEventResource(object, typed as CloudBaseEventRow);
     case "task":
-      return cloudbaseTaskResource(object, typed as CloudBaseTaskRow);
+      return cloudbaseTaskResource(
+        object,
+        typed as CloudBaseTaskRow,
+        cloudbaseLabelIds(record.labels),
+      );
     case "expense":
       return cloudbaseExpenseResource(object, typed as CloudBaseExpenseRow);
     case "reminder":

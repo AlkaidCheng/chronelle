@@ -7,6 +7,7 @@ import {
 import {
   type CloudBaseObjectRow,
   type CloudBaseTaskRow,
+  cloudbaseLabelIds,
   cloudbaseTaskResource,
 } from "./cloudbase-read-support.js";
 import type {
@@ -29,7 +30,11 @@ export class CloudBaseTaskWriteRepository extends CloudBaseObjectWriteRepository
           CloudBaseObjectRow,
           CloudBaseTaskRow
         >(rows, "task");
-        return cloudbaseTaskResource(object, typed);
+        return cloudbaseTaskResource(
+          object,
+          typed,
+          cloudbaseLabelIds((rows as { labels?: unknown }).labels),
+        );
       },
     });
   }

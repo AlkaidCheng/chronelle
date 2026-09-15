@@ -4,6 +4,8 @@ import {
   objectRelations,
   objects,
   resourceGrants,
+  labels,
+  taskLabels,
   tasks,
   users,
   workspaceMembers,
@@ -66,6 +68,8 @@ const snapshotTables = {
   objects,
   object_relations: objectRelations,
   tasks,
+  task_labels: taskLabels,
+  labels,
   resource_grants: resourceGrants,
   workspace_members: workspaceMembers,
 } as const;
@@ -305,6 +309,18 @@ describe.sequential("CloudBase task list contract", () => {
         createdBy: ownerId,
       },
     ]);
+    // Two labels; the timed task carries both, the dated one the second.
+    const urgentId = createId();
+    const venueId = createId();
+    await db.insert(labels).values([
+      { id: urgentId, workspaceId, name: "Urgent", createdBy: ownerId },
+      { id: venueId, workspaceId, name: "venue", createdBy: ownerId },
+    ]);
+    await db.insert(taskLabels).values([
+      { workspaceId, taskId: inEventTimed, labelId: venueId },
+      { workspaceId, taskId: inEventTimed, labelId: urgentId },
+      { workspaceId, taskId: inEventDated, labelId: venueId },
+    ]);
     const clock = () => new Date("2030-01-01T00:00:00.000Z");
     const cloudbaseClient = await snapshotClient(db, workspaceId);
     const postgres = new PostgresTaskReadRepository(db);
@@ -370,6 +386,28 @@ describe.sequential("CloudBase task list contract", () => {
       });
       expect(cloudbaseOpen.progress).toEqual(open.progress);
       expect(cloudbaseOpen.parents).toEqual(open.parents);
+      // Labels come in name order, case-insensitively, on both backends.
+      const labelsOf = (page: {
+        readonly items: readonly {
+          readonly id: string;
+          readonly labelIds: readonly string[];
+        }[];
+      }) =>
+        Object.fromEntries(page.items.map((task) => [task.id, task.labelIds]));
+      expect(labelsOf(open)[inEventTimed]).toEqual([urgentId, venueId]);
+      expect(labelsOf(open)[inEventDated]).toEqual([venueId]);
+      expect(labelsOf(open)[standaloneUndated]).toEqual([]);
+      expect(labelsOf(cloudbaseOpen)).toEqual(labelsOf(open));
+      const byLabel = await postgres.listTasks(principal, {
+        label: venueId,
+        limit: 10,
+      });
+      expect(ids(byLabel)).toEqual([inEventDated, inEventTimed]);
+      expect(
+        ids(
+          await cloudbase.listTasks(principal, { label: venueId, limit: 10 }),
+        ),
+      ).toEqual(ids(byLabel));
       const all = await postgres.listTasks(principal, {
         filter: "all",
         limit: 10,

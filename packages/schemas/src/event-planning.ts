@@ -86,6 +86,8 @@ export const taskCreateRequestSchema = z.object({
   dueAt: nullableDateTimeInputSchema.optional(),
   completedAt: nullableDateTimeInputSchema.optional(),
   parentTaskId: objectIdSchema.nullable().optional(),
+  /** The task's labels as a whole; absent leaves them unchanged. */
+  labelIds: z.array(objectIdSchema).max(20).optional(),
 });
 
 export const taskUpdateRequestSchema = z
@@ -96,6 +98,7 @@ export const taskUpdateRequestSchema = z
     dueAt: nullableDateTimeInputSchema.optional(),
     completedAt: nullableDateTimeInputSchema.optional(),
     parentTaskId: objectIdSchema.nullable().optional(),
+    labelIds: z.array(objectIdSchema).max(20).optional(),
   })
   .refine(hasUpdateFields, {
     message: "At least one update field is required.",
@@ -192,6 +195,8 @@ export const taskResponseSchema = z.object({
   dueAt: nullableDateTimeResponseSchema,
   completedAt: nullableDateTimeResponseSchema,
   parentTaskId: objectIdSchema.nullable().default(null),
+  /** The task's labels in name order. */
+  labelIds: z.array(objectIdSchema).default([]),
 });
 
 /** The Event a listed Task belongs to, when the caller may view that Event. */

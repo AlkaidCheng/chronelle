@@ -11,6 +11,8 @@ import {
   objects,
   reminders,
   resourceGrants,
+  labels,
+  taskLabels,
   tasks,
   users,
   workspaceMembers,
@@ -75,6 +77,8 @@ const snapshotTables = {
   reminders,
   resource_grants: resourceGrants,
   tasks,
+  task_labels: taskLabels,
+  labels,
   workspace_members: workspaceMembers,
 } as const;
 

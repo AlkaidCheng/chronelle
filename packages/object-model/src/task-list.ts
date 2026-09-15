@@ -4,7 +4,7 @@ import {
   type AuthorizationDatabase,
   type UserPrincipal,
 } from "@chronelle/authorization";
-import { objectRelations, objects, tasks } from "@chronelle/db";
+import { objectRelations, objects, taskLabels, tasks } from "@chronelle/db";
 import {
   taskListCursorSchema,
   taskListQuerySchema,
@@ -107,6 +107,7 @@ export function taskListContext(
         input.query,
         input.filter,
         input.sort,
+        input.label ?? null,
       ]),
     )
     .digest("hex");
@@ -220,6 +221,9 @@ export async function listTaskPage(
           authorization.resourcePredicate(principal, "view"),
           input.query === "" ? undefined : ilike(objects.displayName, pattern),
           statusPredicate(input.filter),
+          input.label === undefined
+            ? undefined
+            : sql`EXISTS (SELECT 1 FROM ${taskLabels} WHERE ${taskLabels.taskId} = ${objects.id} AND ${taskLabels.labelId} = ${input.label})`,
           after,
         ),
       )

@@ -12,6 +12,13 @@ export class CommandConflictError extends Error {
   }
 }
 
+export class LabelNameConflictError extends Error {
+  constructor() {
+    super("A label with this name already exists.");
+    this.name = "LabelNameConflictError";
+  }
+}
+
 export class InvalidObjectStateError extends Error {
   constructor(message: string) {
     super(message);

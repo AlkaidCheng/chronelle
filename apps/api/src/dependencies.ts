@@ -12,7 +12,10 @@ import {
   CloudBaseDocumentTransferReadRepository,
   CloudBaseDocumentTransferWriteRepository,
   CloudBaseEventReadRepository,
+  CloudBaseLabelRepository,
   CloudBaseTaskReadRepository,
+  LabelService,
+  PostgresLabelRepository,
   CloudBaseProjectionReadRepository,
   CloudBaseEventContextWriteRepository,
   CloudBaseEventLayoutReadRepository,
@@ -72,6 +75,7 @@ export interface AppDependencies {
   readonly documents: DocumentService;
   readonly identity: WorkspaceIdentityService;
   readonly objects: EventPlanningObjectService;
+  readonly labels: LabelService;
   readonly projections: EventPlanningProjectionService;
   readonly relations: ObjectRelationService;
   readonly revisions: ObjectRevisionService;
@@ -194,6 +198,20 @@ export function createAppDependencies(
     reads,
     writes,
   );
+  const labelRepository =
+    options.cloudBaseRdb === undefined
+      ? new PostgresLabelRepository(connection.db, options.clock)
+      : new CloudBaseLabelRepository(options.cloudBaseRdb, options.clock);
+  const postgresLabels = new PostgresLabelRepository(
+    connection.db,
+    options.clock,
+  );
+  const labels = new LabelService(
+    options.cloudBaseRdb === undefined ? postgresLabels : labelRepository,
+    options.cloudBaseRdb === undefined || options.cloudBaseWrites !== true
+      ? postgresLabels
+      : labelRepository,
+  );
   const storage =
     options.storage ??
     new LocalFilesystemStorageProvider({
@@ -214,6 +232,7 @@ export function createAppDependencies(
     }),
     identity,
     objects,
+    labels,
     relations: new ObjectRelationService(
       connection.db,
       undefined,

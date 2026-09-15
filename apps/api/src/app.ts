@@ -14,6 +14,7 @@ import type { AppDependencies } from "./dependencies.js";
 import { registerDocumentRoutes } from "./documents/routes.js";
 import { httpServerOptions, registerHttpBoundary } from "./http-boundary.js";
 import { registerEventPlanningRoutes } from "./event-planning/routes.js";
+import { registerLabelRoutes } from "./labels/routes.js";
 import { registerEventPageRoutes } from "./event-pages/routes.js";
 import { registerRequestContext } from "./request-context.js";
 import { registerSearchRoutes } from "./search/routes.js";
@@ -38,6 +39,7 @@ export function buildApp(
   registerPasswordRoutes(app, { passwordAuth: dependencies.passwordAuth });
   registerDocumentRoutes(app, dependencies);
   registerEventPlanningRoutes(app, dependencies);
+  registerLabelRoutes(app, dependencies);
   registerEventPageRoutes(app, dependencies);
   registerSearchRoutes(app, dependencies);
   registerSharingRoutes(app, dependencies);

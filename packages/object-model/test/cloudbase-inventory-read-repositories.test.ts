@@ -223,6 +223,8 @@ function workspace(
     objects,
     ...typed,
     reminders: [],
+    task_labels: [],
+    labels: [],
     object_relations: relations,
     workspace_members: members.map((member) => ({
       ...member,
