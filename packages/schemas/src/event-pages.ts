@@ -12,17 +12,26 @@ export const eventComponentKindSchema = z.enum([
 
 export type EventComponentKind = z.output<typeof eventComponentKindSchema>;
 
+/**
+ * How a component lays out its records. A component without a view uses
+ * its kind's default; the web catalog says which views a kind offers.
+ */
+export const eventComponentViewSchema = z.enum(["list", "by-day"]);
+
+export type EventComponentView = z.output<typeof eventComponentViewSchema>;
+
+export const eventComponentSchema = z.strictObject({
+  id: z.uuid(),
+  kind: eventComponentKindSchema,
+  view: eventComponentViewSchema.optional(),
+});
+
+export type EventComponent = z.output<typeof eventComponentSchema>;
+
 export const eventPageSchema = z.strictObject({
   id: z.uuid(),
   name: z.string().trim().min(1).max(80),
-  components: z
-    .array(
-      z.strictObject({
-        id: z.uuid(),
-        kind: eventComponentKindSchema,
-      }),
-    )
-    .max(20),
+  components: z.array(eventComponentSchema).max(20),
 });
 
 export const eventPagesSchema = z

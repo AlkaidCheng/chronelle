@@ -1,4 +1,4 @@
-import type { EventPage } from "@chronelle/schemas";
+import type { EventComponentView, EventPage } from "@chronelle/schemas";
 
 /** Move an existing item before an anchor, or to the end when the anchor is null. */
 function reorder<T extends { id: string }>(
@@ -71,4 +71,27 @@ export function moveEventComponent(
       };
     return page;
   });
+}
+
+/** Records the view of one component; the pages are returned unchanged when it already shows it. */
+export function setEventComponentView(
+  pages: EventPage[],
+  componentId: string,
+  view: EventComponentView,
+): EventPage[] {
+  const page = pages.find((page) =>
+    page.components.some((component) => component.id === componentId),
+  );
+  const component = page?.components.find((item) => item.id === componentId);
+  if (!page || !component || component.view === view) return pages;
+  return pages.map((item) =>
+    item === page
+      ? {
+          ...item,
+          components: item.components.map((entry) =>
+            entry === component ? { ...entry, view } : entry,
+          ),
+        }
+      : item,
+  );
 }
