@@ -310,6 +310,8 @@ See [Recovery](recovery.md) for authorization, pagination, and rollout semantics
 | `POST`   | `/tasks`                         | Create a Task                       |
 | `POST`   | `/expenses`                      | Create an Expense                   |
 | `POST`   | `/reminders`                     | Create a Reminder                   |
+| `GET`    | `/persons`                       | List visible People in name order   |
+| `POST`   | `/persons`                       | Create a Person                     |
 | `GET`    | `/{type}/:id`                    | Read the requested typed object     |
 | `PATCH`  | `/{type}/:id`                    | Update with `expectedVersion`       |
 | `GET`    | `/objects/:id`                   | Read any supported canonical object |
@@ -337,6 +339,28 @@ must equal the parent's; inside an Event both are the Event). Each rule
 returns HTTP 400 with its own message. `parentTaskId: null` on an update
 detaches a subtask. Trashing a parent leaves its subtasks live; they show on
 their own until the parent is restored. Deploy migration 0035 before this API.
+
+## People
+
+A Person is a canonical object like the others: someone the workspace keeps
+track of, with the common `displayName` and `customProperties` for whatever
+else matters (a phone, a birthday), an optional `email` (trimmed, null when
+absent), and an optional `userId` linking the Person to a workspace member's
+account. `userId` must name a member of the workspace, of any role, and each
+account belongs to at most one Person of the workspace; a violation returns
+HTTP 400 with `userId must name a member of this workspace.` or
+`userId is already linked to another person.`. `null` clears either field on
+an update; absent leaves it unchanged. People are created, read (`GET
+/persons/:id`), updated, trashed, recovered, searched (`objectType=person`),
+and versioned like every object; a revision restore brings back the email
+but never the linked account.
+
+`GET /persons` lists every live Person the caller may view in the active
+workspace, ordered by name without regard to case, then ID; `query` matches
+the name and `limit` (1-200, default 100) bounds the page. The response is
+`{ items }`; there is no cursor yet, so a query narrows a large workspace.
+Deploy migration 0037 before this API and reapply the runtime role grants,
+which cover the new table.
 
 ## Labels
 
@@ -389,7 +413,7 @@ typed client exposes `listTasks(input)`.
 
 `GET /search` requires a `query` of 2-120 characters containing at least one
 letter or number. `objectType` may select `event`, `task`, `expense`,
-`reminder`, or `document`; `limit` defaults to 20 and is capped at 50. The
+`reminder`, `document`, or `person`; `limit` defaults to 20 and is capped at 50. The
 response is `{ items, nextCursor }`, with compact canonical object fields and
 no total. `nextCursor` is `null` when no more visible matches exist in this
 page's snapshot. To continue, send it unchanged as `cursor` with the same query
