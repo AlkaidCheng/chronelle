@@ -8,7 +8,7 @@ import type {
   TaskResponse,
   TimelineResponse,
 } from "@chronelle/schemas";
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 
 import { EmptyState, ErrorNotice } from "../../components/feedback";
 import { HistoryButton } from "../history/history-button";
@@ -31,13 +31,14 @@ import {
 } from "../../lib/event-schedule";
 import { viewsOf } from "../../lib/event-components";
 import { formatDatePart, formatDateTime } from "../../lib/format";
+import { deriveTaskTree } from "../../lib/task-tree";
 import { formatMoney, sumMoneyByCurrency } from "../../lib/money";
 import { useRefreshEvent, useUpdateReminder } from "../../lib/queries";
 import { ExpenseForm } from "./expense-form";
 import { ExpenseInspector } from "./expense-inspector";
 import { ReminderForm } from "./reminder-form";
 import { ReminderInspector } from "./reminder-inspector";
-import { TaskForm } from "./task-form";
+import { type SubtaskParent, TaskForm } from "./task-form";
 import { TaskInspector } from "./task-inspector";
 import { TaskListView } from "../tasks/task-list-view";
 
@@ -60,8 +61,21 @@ export function TasksPanel({
 }) {
   const [filter, setFilter] = useState<TaskFilter>("open");
   const [isAdding, setIsAdding] = useState(false);
+  const [parent, setParent] = useState<SubtaskParent | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const refresh = useRefreshEvent(eventId);
+  // The projection holds every task of the Event, so the tree is derived here.
+  const tree = useMemo(() => deriveTaskTree(tasks), [tasks]);
+  // Stable, so the row cells keep their identity and focus across renders.
+  const addSubtask = useCallback(
+    (task: TaskResponse) =>
+      setParent({
+        id: task.id,
+        displayName: task.displayName,
+        permissionScopeId: task.permissionScopeId,
+      }),
+    [],
+  );
   const filteredTasks = useMemo(
     () =>
       tasks.filter((task) => {
@@ -110,6 +124,14 @@ export function TasksPanel({
           onCancel={() => setIsAdding(false)}
         />
       ) : null}
+      {canEdit && parent !== null ? (
+        <TaskForm
+          key={`sub:${parent.id}`}
+          eventId={eventId}
+          onCancel={() => setParent(null)}
+          parent={parent}
+        />
+      ) : null}
       <fieldset className="filter-row">
         <legend>Filter tasks</legend>
         {(["open", "all", "done"] as const).map((value) => (
@@ -139,8 +161,11 @@ export function TasksPanel({
         <TaskListView
           canEdit={canEdit}
           eventId={eventId}
+          onAddSubtask={addSubtask}
           onEdit={setEditingId}
           onRefresh={refresh}
+          parents={tree.parents}
+          progress={tree.progress}
           tasks={filteredTasks}
           view={view}
         />

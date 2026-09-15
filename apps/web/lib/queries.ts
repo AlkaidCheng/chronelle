@@ -121,12 +121,16 @@ function selectEventItems(data: InfiniteData<EventListResponse>) {
 }
 
 function selectTaskItems(data: InfiniteData<TaskListResponse>) {
+  const merged = <Key extends "contexts" | "progress" | "parents">(key: Key) =>
+    Object.assign(
+      {},
+      ...data.pages.map((page) => page[key]),
+    ) as TaskListResponse[Key];
   return {
     items: pageItems(data.pages),
-    contexts: Object.assign(
-      {},
-      ...data.pages.map((page) => page.contexts),
-    ) as TaskListResponse["contexts"],
+    contexts: merged("contexts"),
+    progress: merged("progress"),
+    parents: merged("parents"),
     asOf: data.pages[0]?.asOf,
   };
 }

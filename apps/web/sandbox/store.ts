@@ -54,7 +54,13 @@ function canonical(
   const timestamp = new Date().toISOString();
   const defaults = {
     event: { startsAt: null, endsAt: null, timezone: null, isAllDay: false },
-    task: { dueOn: null, dueAt: null, completedAt: null, status: "todo" },
+    task: {
+      dueOn: null,
+      dueAt: null,
+      completedAt: null,
+      status: "todo",
+      parentTaskId: null,
+    },
     expense: {},
     reminder: { status: "pending" },
     document: {},
@@ -293,6 +299,40 @@ export class SandboxStore {
     this.#raw = raw;
   }
 
+  // The parent rules the API enforces: a live task of the same scope with
+  // no parent of its own, and no subtasks under the new subtask.
+  #assertTaskParent(task: Resource): void {
+    if (task.objectType !== "task" || task.parentTaskId === null) return;
+    const refuse = (message: string): never => {
+      throw new SandboxError(400, "invalid_request", message);
+    };
+    if (task.parentTaskId === task.id)
+      refuse("A task cannot be its own parent.");
+    const parent = this.#state.objects.find(
+      (object): object is Extract<Resource, { objectType: "task" }> =>
+        object.id === task.parentTaskId &&
+        object.objectType === "task" &&
+        object.deletedAt === null,
+    );
+    if (parent === undefined)
+      throw new SandboxError(
+        400,
+        "invalid_request",
+        "parentTaskId must name a live task in this workspace.",
+      );
+    if (parent.parentTaskId !== null)
+      refuse("A subtask cannot have subtasks of its own.");
+    if (
+      this.#state.objects.some(
+        (object) =>
+          object.objectType === "task" && object.parentTaskId === task.id,
+      )
+    )
+      refuse("A task with subtasks cannot become a subtask.");
+    if (parent.permissionScopeId !== task.permissionScopeId)
+      refuse("A subtask shares its parent's permission scope.");
+  }
+
   #object(id: string): Resource {
     const object = this.#state.objects.find(
       (object) => object.id === id && object.deletedAt === null,
@@ -459,6 +499,33 @@ export class SandboxStore {
           "The task cursor is invalid for this query.",
         );
       const items = matches.slice(offset, offset + query.limit);
+      const liveTasks = all.filter(
+        (object): object is Extract<Resource, { objectType: "task" }> =>
+          object.objectType === "task",
+      );
+      const progress: Record<string, { done: number; total: number }> = {};
+      const parents: Record<string, { taskId: string; displayName: string }> =
+        {};
+      for (const task of items) {
+        const subtasks = liveTasks.filter(
+          (candidate) => candidate.parentTaskId === task.id,
+        );
+        if (subtasks.length > 0)
+          progress[task.id] = {
+            done: subtasks.filter((candidate) => candidate.status === "done")
+              .length,
+            total: subtasks.length,
+          };
+        const parent =
+          task.parentTaskId === null
+            ? undefined
+            : liveTasks.find((candidate) => candidate.id === task.parentTaskId);
+        if (parent !== undefined)
+          parents[task.id] = {
+            taskId: parent.id,
+            displayName: parent.displayName,
+          };
+      }
       const contexts: Record<string, { eventId: string; displayName: string }> =
         {};
       for (const task of items) {
@@ -481,6 +548,8 @@ export class SandboxStore {
       return {
         items,
         contexts,
+        progress,
+        parents,
         nextCursor:
           offset + items.length < matches.length
             ? (items.at(-1)?.id ?? null)
@@ -702,6 +771,7 @@ export class SandboxStore {
         fields,
         typeof permissionScopeId === "string" ? permissionScopeId : undefined,
       );
+      this.#assertTaskParent(object);
       this.#commit({
         ...this.#state,
         objects: [...this.#state.objects, object],
@@ -734,6 +804,7 @@ export class SandboxStore {
           JSON.parse(JSON.stringify(input.resource)),
           parent.permissionScopeId,
         );
+        this.#assertTaskParent(resource);
         const link = relation(id, resource.id);
         this.#commit({
           ...this.#state,

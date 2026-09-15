@@ -1,7 +1,11 @@
 "use client";
 
-import type { EventComponentView, TaskListQuery } from "@chronelle/schemas";
-import { useEffect, useState } from "react";
+import type {
+  EventComponentView,
+  TaskListQuery,
+  TaskResponse,
+} from "@chronelle/schemas";
+import { useCallback, useEffect, useState } from "react";
 
 import {
   EmptyState,
@@ -10,7 +14,7 @@ import {
 } from "../../components/feedback";
 import { PlusIcon, SearchIcon } from "../../components/icons";
 import { ViewSwitch } from "../events/component-frame";
-import { TaskForm } from "../events/task-form";
+import { type SubtaskParent, TaskForm } from "../events/task-form";
 import { TaskInspector } from "../events/task-inspector";
 import { viewsOf } from "../../lib/event-components";
 import { useRefreshEvent, useTasksQuery } from "../../lib/queries";
@@ -31,6 +35,7 @@ export function TasksPage() {
   const [sort, setSort] = useState<TaskListQuery["sort"]>("due");
   const [view, setView] = useState<EventComponentView>("list");
   const [isAdding, setIsAdding] = useState(false);
+  const [parent, setParent] = useState<SubtaskParent | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   useEffect(() => {
     if (isComposing) return;
@@ -50,6 +55,17 @@ export function TasksPage() {
   const changingQuery = isComposing || query.trim() !== debouncedQuery;
   const items = changingQuery ? [] : (tasks.data?.items ?? []);
   const filtered = debouncedQuery !== "" || filter !== "open";
+
+  // Stable, so the row cells keep their identity and focus across renders.
+  const addSubtask = useCallback(
+    (task: TaskResponse) =>
+      setParent({
+        id: task.id,
+        displayName: task.displayName,
+        permissionScopeId: task.permissionScopeId,
+      }),
+    [],
+  );
 
   function changeView(next: EventComponentView) {
     setView(next);
@@ -86,6 +102,13 @@ export function TasksPage() {
 
       {isAdding ? (
         <TaskForm key="new" onCancel={() => setIsAdding(false)} />
+      ) : null}
+      {parent !== null ? (
+        <TaskForm
+          key={`sub:${parent.id}`}
+          onCancel={() => setParent(null)}
+          parent={parent}
+        />
       ) : null}
 
       <section
@@ -211,8 +234,11 @@ export function TasksPage() {
           <TaskListView
             canEdit
             contexts={tasks.data?.contexts}
+            onAddSubtask={addSubtask}
             onEdit={setEditingId}
             onRefresh={refresh}
+            parents={tasks.data?.parents ?? {}}
+            progress={tasks.data?.progress ?? {}}
             tasks={items}
             view={view}
           />

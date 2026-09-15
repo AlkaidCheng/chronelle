@@ -28,11 +28,20 @@ import {
   type ContextCreateAttempt,
 } from "../../lib/queries";
 
+/** The task a new subtask belongs to; it shares that task's permission scope. */
+export interface SubtaskParent {
+  readonly id: string;
+  readonly displayName: string;
+  readonly permissionScopeId: string;
+}
+
 interface TaskFormProps {
   /** The Event a new task joins; absent, the task is created on its own. */
   readonly eventId?: string | undefined;
   readonly onCancel?: (() => void) | undefined;
   readonly onRefresh?: (() => Promise<void>) | undefined;
+  /** Makes a new task a subtask of this one. */
+  readonly parent?: SubtaskParent | undefined;
   readonly task?: TaskResponse | undefined;
 }
 
@@ -43,9 +52,11 @@ const standaloneTaskDraft = { id: "task:new", accessId: "new" };
 export function TaskForm(props: TaskFormProps) {
   const draftId =
     props.task?.id ??
-    (props.eventId === undefined
-      ? standaloneTaskDraft.id
-      : eventCreationDraftKeys(props.eventId).task);
+    (props.parent !== undefined
+      ? `task:sub:${props.parent.id}`
+      : props.eventId === undefined
+        ? standaloneTaskDraft.id
+        : eventCreationDraftKeys(props.eventId).task);
   return (
     <EditorDraftRecovery
       kind="task"
@@ -66,6 +77,7 @@ function TaskEditor({
   initialDraft,
   onCancel,
   onRefresh,
+  parent,
   task: latestTask,
 }: TaskFormProps & {
   readonly draftId: string;
@@ -138,8 +150,20 @@ function TaskEditor({
     }
     rememberSubmit(formEvent.currentTarget);
     if (task === undefined) {
+      // A subtask names its parent and, outside an Event, takes the parent's
+      // scope; inside one the Event's scope is applied by the server.
+      const creation =
+        parent === undefined
+          ? input
+          : {
+              ...input,
+              parentTaskId: parent.id,
+              ...(eventId === undefined
+                ? { permissionScopeId: parent.permissionScopeId }
+                : {}),
+            };
       void recovery.save(
-        () => create.mutateAsync(input),
+        () => create.mutateAsync(creation),
         () => {
           draft.change({ displayName: "", dueDate: "", dueTime: "" });
           onCancel?.();
@@ -177,7 +201,9 @@ function TaskEditor({
             ? "Discard task changes?"
             : task
               ? "Edit task"
-              : "Add task"
+              : parent
+                ? "Add subtask"
+                : "Add task"
         }
         closeLabel="Close task editor"
         isConfirming={isConfirming}
@@ -222,6 +248,11 @@ function TaskEditor({
         onSubmit={handleSubmit}
       >
         <div className="event-create-body event-inspector-fields">
+          {parent && task === undefined ? (
+            <p className="field-hint field-wide">
+              A subtask of {parent.displayName}.
+            </p>
+          ) : null}
           <label className="field field-wide">
             <span>Task</span>
             <input

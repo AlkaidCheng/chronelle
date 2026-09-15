@@ -35,6 +35,7 @@ const task: TaskResponse = {
   objectType: "task",
   dueOn: null,
   dueAt: "2026-09-06T13:00:00.000Z",
+  parentTaskId: null,
   completedAt: null,
   status: "todo",
 };
