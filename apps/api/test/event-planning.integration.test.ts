@@ -21,6 +21,7 @@ import {
   reminderResourceProjectionResponseSchema,
   reminderResponseSchema,
   taskResourceProjectionResponseSchema,
+  taskListResponseSchema,
   taskResponseSchema,
   timelineResponseSchema,
 } from "@chronelle/schemas";
@@ -618,6 +619,89 @@ describe.sequential("event-planning API", () => {
       dueOn: null,
       dueAt: "2026-10-11T09:00:00.000Z",
     });
+  });
+
+  it("lists every visible task in due order, with cursor paging", async () => {
+    const owner = await signIn("tasks@example.com", "Task Owner");
+    const ownerHeaders = headers(owner);
+    const eventResponse = await app.inject({
+      method: "POST",
+      url: "/api/events",
+      headers: ownerHeaders,
+      payload: { displayName: "Retreat" },
+    });
+    const event = eventResponseSchema.parse(eventResponse.json());
+    const created: string[] = [];
+    for (const payload of [
+      { displayName: "Standalone, undated" },
+      {
+        displayName: "In the event",
+        permissionScopeId: event.id,
+        dueOn: "2026-11-02",
+      },
+      { displayName: "Standalone, timed", dueAt: "2026-11-02T08:00:00Z" },
+      {
+        displayName: "Finished",
+        status: "done",
+        completedAt: "2026-10-01T00:00:00Z",
+      },
+    ]) {
+      const response = await app.inject({
+        method: "POST",
+        url: "/api/tasks",
+        headers: ownerHeaders,
+        payload,
+      });
+      expect(response.statusCode).toBe(201);
+      created.push(taskResponseSchema.parse(response.json()).id);
+    }
+    const [undated, inEvent, timed, finished] = created;
+
+    const firstResponse = await app.inject({
+      method: "GET",
+      url: "/api/tasks?limit=2",
+      headers: ownerHeaders,
+    });
+    expect(firstResponse.statusCode).toBe(200);
+    const first = taskListResponseSchema.parse(firstResponse.json());
+    expect(first.items.map(({ id }) => id)).toEqual([inEvent, timed]);
+    expect(first.nextCursor).not.toBeNull();
+    const secondResponse = await app.inject({
+      method: "GET",
+      url: `/api/tasks?limit=2&cursor=${encodeURIComponent(first.nextCursor ?? "")}`,
+      headers: ownerHeaders,
+    });
+    const second = taskListResponseSchema.parse(secondResponse.json());
+    expect(second.items.map(({ id }) => id)).toEqual([undated]);
+    expect(second.nextCursor).toBeNull();
+
+    const doneResponse = await app.inject({
+      method: "GET",
+      url: "/api/tasks?filter=done",
+      headers: ownerHeaders,
+    });
+    expect(
+      taskListResponseSchema
+        .parse(doneResponse.json())
+        .items.map(({ id }) => id),
+    ).toEqual([finished]);
+
+    // Another user sees nothing of this workspace's tasks.
+    const stranger = await signIn("stranger@example.com", "Stranger");
+    const strangerResponse = await app.inject({
+      method: "GET",
+      url: "/api/tasks?filter=all",
+      headers: headers(stranger),
+    });
+    expect(taskListResponseSchema.parse(strangerResponse.json()).items).toEqual(
+      [],
+    );
+    const staleCursor = await app.inject({
+      method: "GET",
+      url: `/api/tasks?sort=name&cursor=${encodeURIComponent(first.nextCursor ?? "")}`,
+      headers: ownerHeaders,
+    });
+    expect(staleCursor.statusCode).toBe(400);
   });
 
   it("enforces inheritance without treating references as grants", async () => {

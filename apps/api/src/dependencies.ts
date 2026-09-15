@@ -12,6 +12,7 @@ import {
   CloudBaseDocumentTransferReadRepository,
   CloudBaseDocumentTransferWriteRepository,
   CloudBaseEventReadRepository,
+  CloudBaseTaskReadRepository,
   CloudBaseProjectionReadRepository,
   CloudBaseEventContextWriteRepository,
   CloudBaseEventLayoutReadRepository,
@@ -107,6 +108,7 @@ function cloudBaseReads(rdb: CloudBaseRdbClient) {
   const objects = new CloudBaseObjectReadRepository(rdb);
   return {
     events: new CloudBaseEventReadRepository(rdb),
+    tasks: new CloudBaseTaskReadRepository(rdb),
     objects,
     relations: new CloudBaseRelationReadRepository(rdb),
     grants: new CloudBaseGrantReadRepository(rdb),

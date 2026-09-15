@@ -20,6 +20,8 @@ import {
   eventDetailResponseSchema,
   eventListResponseSchema,
   eventListQuerySchema,
+  taskListQuerySchema,
+  taskListResponseSchema,
   eventPlanningResourceResponseSchema,
   eventResourceProjectionResponseSchema,
   eventResponseSchema,
@@ -151,6 +153,16 @@ export function registerEventPlanningRoutes(
         .send(eventContextCreateResponseSchema.parse(result));
     },
   );
+  app.get("/api/tasks", { preHandler: app.authenticate }, async (request) => {
+    const page = await dependencies.objects.listTasks(
+      requirePrincipal(request),
+      parseRequest(taskListQuerySchema, request.query),
+    );
+    return taskListResponseSchema.parse({
+      ...page,
+      items: page.items.map(serializeResource),
+    });
+  });
   app.get("/api/events", { preHandler: app.authenticate }, async (request) => {
     const events = await dependencies.objects.listEvents(
       requirePrincipal(request),

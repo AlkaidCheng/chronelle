@@ -189,6 +189,12 @@ export const taskResponseSchema = z.object({
   completedAt: nullableDateTimeResponseSchema,
 });
 
+export const taskListResponseSchema = z.object({
+  items: z.array(taskResponseSchema),
+  nextCursor: cursorTokenSchema.nullable(),
+  asOf: dateTimeResponseSchema,
+});
+
 export const expenseResponseSchema = z.object({
   ...canonicalObjectResponseShape,
   objectType: z.literal("expense"),
@@ -323,6 +329,7 @@ export type EventPlanningResourceResponse = z.infer<
 >;
 export type EventResponse = z.infer<typeof eventResponseSchema>;
 export type EventListResponse = z.infer<typeof eventListResponseSchema>;
+export type TaskListResponse = z.infer<typeof taskListResponseSchema>;
 export type TaskResponse = z.infer<typeof taskResponseSchema>;
 export type ExpenseResponse = z.infer<typeof expenseResponseSchema>;
 export type ReminderResponse = z.infer<typeof reminderResponseSchema>;

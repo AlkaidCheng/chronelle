@@ -31,6 +31,7 @@ export * from "./revisions.js";
 export * from "./recovery.js";
 export * from "./event-context.js";
 export * from "./event-list.js";
+export * from "./task-list.js";
 export * from "./relation-list.js";
 export {
   objectSearchQuerySchema,
@@ -65,6 +66,7 @@ export {
   eventCreateRequestSchema,
   eventDetailResponseSchema,
   eventListResponseSchema,
+  taskListResponseSchema,
   eventPlanningResourceResponseSchema,
   eventResourceProjectionResponseSchema,
   eventResponseSchema,
@@ -93,6 +95,7 @@ export {
   type EventCreatePayload,
   type EventDetailResponse,
   type EventListResponse,
+  type TaskListResponse,
   type EventPlanningResourceResponse,
   type EventResourceProjectionResponse,
   type EventResponse,

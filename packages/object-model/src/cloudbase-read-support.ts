@@ -450,16 +450,18 @@ export async function readCloudBaseVisibility(
   };
 }
 
+/** The live objects of one type the principal may view: all of them for a member, else the granted and inherited ones. */
 export async function readCloudBaseVisibleObjects(
   client: CloudBaseRdbReader,
   principal: UserPrincipal,
   visibility: CloudBaseVisibility,
+  objectType: ObjectType = "event",
 ): Promise<readonly CloudBaseObjectRow[]> {
   if (
     visibility.workspaceRole !== null &&
     viewRoles.has(visibility.workspaceRole)
   )
-    return readCloudBaseObjects(client, principal);
+    return readCloudBaseObjects(client, principal, undefined, objectType);
   if (visibility.resourceIds.length === 0) return [];
   const [direct, inherited] = await Promise.all([
     readCloudBaseObjectsByFilter(
@@ -467,12 +469,14 @@ export async function readCloudBaseVisibleObjects(
       principal,
       "id",
       visibility.resourceIds,
+      objectType,
     ),
     readCloudBaseObjectsByFilter(
       client,
       principal,
       "permission_scope_id",
       visibility.resourceIds,
+      objectType,
     ),
   ]);
   const rows = [...direct, ...inherited];
@@ -487,11 +491,12 @@ export async function readCloudBaseObjects(
   client: CloudBaseRdbReader,
   principal: UserPrincipal,
   ids?: readonly string[],
+  objectType: ObjectType = "event",
 ): Promise<readonly CloudBaseObjectRow[]> {
   if (ids !== undefined && ids.length === 0) return [];
   const filters = cloudbaseFilters(
     ["workspace_id", "eq", principal.workspaceId],
-    ["object_type", "eq", "event"],
+    ["object_type", "eq", objectType],
     ["deleted_at", "is", null],
   );
   return client.select<CloudBaseObjectRow>("objects", {
@@ -508,10 +513,11 @@ async function readCloudBaseObjectsByFilter(
   principal: UserPrincipal,
   column: "id" | "permission_scope_id",
   values: readonly string[],
+  objectType: ObjectType,
 ): Promise<readonly CloudBaseObjectRow[]> {
   const filters = cloudbaseFilters(
     ["workspace_id", "eq", principal.workspaceId],
-    ["object_type", "eq", "event"],
+    ["object_type", "eq", objectType],
     ["deleted_at", "is", null],
     [column, "in", values],
   );
@@ -543,6 +549,24 @@ export async function readCloudBaseObjectRows(
             ...filters,
             { column: "object_type", operator: "in", value: objectTypes },
           ],
+  });
+}
+
+export const cloudbaseTaskColumns =
+  "object_id,workspace_id,status,due_on,due_at,completed_at";
+
+export async function readCloudBaseTasks(
+  client: CloudBaseRdbReader,
+  principal: UserPrincipal,
+  ids: readonly string[],
+): Promise<readonly CloudBaseTaskRow[]> {
+  if (ids.length === 0) return [];
+  return client.select<CloudBaseTaskRow>("tasks", {
+    columns: cloudbaseTaskColumns,
+    filters: [
+      { column: "workspace_id", operator: "eq", value: principal.workspaceId },
+      { column: "object_id", operator: "in", value: ids },
+    ],
   });
 }
 

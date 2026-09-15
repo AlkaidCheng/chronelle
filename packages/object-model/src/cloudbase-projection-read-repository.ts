@@ -16,6 +16,7 @@ import {
   type CloudBaseObjectRow,
   type CloudBaseReminderRow,
   type CloudBaseTaskRow,
+  cloudbaseTaskColumns,
   type CloudBaseVisibility,
   cloudbaseDocumentResource,
   cloudbaseEventColumns,
@@ -44,7 +45,7 @@ import type {
 // The gateway encodes numeric and bigint columns as JSON numbers, which lose
 // the scale of an amount and the range of a size; the column list casts them
 // to text so the row carries the column's canonical text under its own name.
-const taskColumns = "object_id,workspace_id,status,due_on,due_at,completed_at";
+
 const expenseColumns =
   "object_id,workspace_id,amount::text,currency,occurred_at";
 const reminderColumns = "object_id,workspace_id,remind_at,status";
@@ -280,7 +281,7 @@ export class CloudBaseProjectionReadRepository implements ProjectionReadReposito
       this.#typedRows<CloudBaseTaskRow>(
         principal,
         "tasks",
-        taskColumns,
+        cloudbaseTaskColumns,
         idsOf("task"),
       ),
       this.#typedRows<CloudBaseExpenseRow>(
