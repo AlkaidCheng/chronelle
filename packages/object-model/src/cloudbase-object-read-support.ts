@@ -16,6 +16,7 @@ import {
   cloudbaseFilters,
   cloudbaseNullableDate,
   cloudbaseObjectColumns,
+  cloudbasePersonColumns,
   cloudbaseResourceFromRows,
   readCloudBaseTaskLabels,
   cloudbaseText,
@@ -52,6 +53,7 @@ const typedColumns: Readonly<
   reminder: "object_id,workspace_id,remind_at,status",
   document:
     "object_id,workspace_id,storage_provider,storage_key,original_filename,mime_type,size_bytes::text,checksum_sha256,encryption_mode",
+  person: cloudbasePersonColumns,
 };
 
 const typedTables: Readonly<
@@ -62,6 +64,7 @@ const typedTables: Readonly<
   expense: "expenses",
   reminder: "reminders",
   document: "documents",
+  person: "persons",
 };
 
 const objectTypeNames = Object.keys(typedTables);

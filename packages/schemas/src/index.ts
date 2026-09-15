@@ -32,6 +32,7 @@ export * from "./recovery.js";
 export * from "./event-context.js";
 export * from "./event-list.js";
 export * from "./task-list.js";
+export * from "./person-list.js";
 export * from "./labels.js";
 export * from "./relation-list.js";
 export {
@@ -82,6 +83,9 @@ export {
   objectDeletionQuerySchema,
   objectDeletionResponseSchema,
   objectIdParamsSchema,
+  personCreateRequestSchema,
+  personResponseSchema,
+  personUpdateRequestSchema,
   relationCreateRequestSchema,
   relationDeletionResponseSchema,
   relationListResponseSchema,
@@ -115,6 +119,11 @@ export {
   type ExpenseResponse,
   type ExpenseUpdateRequest,
   type ExpenseUpdatePayload,
+  type PersonCreateRequest,
+  type PersonCreatePayload,
+  type PersonResponse,
+  type PersonUpdateRequest,
+  type PersonUpdatePayload,
   type RelationCreateRequest,
   type RelationCreatePayload,
   type ReminderCreateRequest,

@@ -43,6 +43,8 @@ import {
   relationResponseSchema,
   reminderResourceProjectionResponseSchema,
   reminderResponseSchema,
+  personListResponseSchema,
+  personResponseSchema,
   acceptedResponseSchema,
   sessionResponseSchema,
   sessionRevocationResponseSchema,
@@ -103,6 +105,11 @@ import {
   type ReminderResourceProjectionResponse,
   type ReminderResponse,
   type ReminderUpdatePayload,
+  type PersonCreatePayload,
+  type PersonListQueryInput,
+  type PersonListResponse,
+  type PersonResponse,
+  type PersonUpdatePayload,
   type AcceptedResponse,
   type EmailRequest,
   type PasswordResetConfirmRequest,
@@ -555,6 +562,34 @@ export class ChronelleApiClient {
     );
   }
 
+  listPersons(input: PersonListQueryInput = {}): Promise<PersonListResponse> {
+    const parameters = new URLSearchParams();
+    for (const [key, value] of Object.entries(input)) {
+      if (value !== undefined) parameters.set(key, String(value));
+    }
+    const query = parameters.size === 0 ? "" : `?${parameters.toString()}`;
+    return this.#request(`/api/persons${query}`, personListResponseSchema);
+  }
+
+  createPerson(input: PersonCreatePayload): Promise<PersonResponse> {
+    return this.#request(
+      "/api/persons",
+      personResponseSchema,
+      jsonRequest(input, "POST"),
+    );
+  }
+
+  updatePerson(
+    id: string,
+    input: PersonUpdatePayload,
+  ): Promise<PersonResponse> {
+    return this.#request(
+      `/api/persons/${id}`,
+      personResponseSchema,
+      jsonRequest(input, "PATCH"),
+    );
+  }
+
   listDocumentAttachments(
     parentObjectId: string,
   ): Promise<DocumentAttachmentListResponse> {
@@ -741,6 +776,10 @@ export class ChronelleApiClient {
 
   getReminder(id: string): Promise<ReminderResponse> {
     return this.#request(`/api/reminders/${id}`, reminderResponseSchema);
+  }
+
+  getPerson(id: string): Promise<PersonResponse> {
+    return this.#request(`/api/persons/${id}`, personResponseSchema);
   }
 
   getEventLayout(id: string): Promise<EventLayoutResponse> {

@@ -30,6 +30,8 @@ import {
   CloudBaseRelationWriteRepository,
   CloudBaseSharingWriteRepository,
   CloudBaseStorageInventoryReadRepository,
+  CloudBasePersonReadRepository,
+  CloudBasePersonWriteRepository,
   CloudBaseReminderWriteRepository,
   CloudBaseRevisionReadRepository,
   CloudBaseSearchReadRepository,
@@ -113,6 +115,7 @@ function cloudBaseReads(rdb: CloudBaseRdbClient) {
   return {
     events: new CloudBaseEventReadRepository(rdb),
     tasks: new CloudBaseTaskReadRepository(rdb),
+    persons: new CloudBasePersonReadRepository(rdb),
     objects,
     relations: new CloudBaseRelationReadRepository(rdb),
     grants: new CloudBaseGrantReadRepository(rdb),
@@ -177,6 +180,7 @@ export function createAppDependencies(
           task: new CloudBaseTaskWriteRepository(options.cloudBaseRdb),
           expense: new CloudBaseExpenseWriteRepository(options.cloudBaseRdb),
           reminder: new CloudBaseReminderWriteRepository(options.cloudBaseRdb),
+          person: new CloudBasePersonWriteRepository(options.cloudBaseRdb),
           eventContext: new CloudBaseEventContextWriteRepository(
             options.cloudBaseRdb,
           ),

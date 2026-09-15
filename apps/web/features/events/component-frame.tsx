@@ -116,6 +116,7 @@ export function StatusChip({ status }: { readonly status: string }) {
 const objectTypeLabels: Record<string, string> = {
   event: "Scheduled event",
   expense: "Expense",
+  person: "Person",
   reminder: "Reminder",
   task: "Task",
 };

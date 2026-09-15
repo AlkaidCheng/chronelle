@@ -7,6 +7,7 @@ const objectTypeSchema = z.enum([
   "expense",
   "reminder",
   "document",
+  "person",
 ]);
 
 export const objectSearchQuerySchema = z.object({

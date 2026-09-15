@@ -69,6 +69,11 @@ owners and editors change them. The view is a device preference, kept in browser
 event collection's grid or list choice, and applies to the loaded tasks. The
 filter, sort, and name query belong to the tab.
 
+People are canonical records of the workspace (a name, an optional email, an
+optional link to a member's account, and custom fields). They have no page
+of their own yet; Search and Trash filter by People, and Trash restores
+them like any record.
+
 ## Workspace commands
 
 Commands opens a focused palette from the desktop or mobile header.

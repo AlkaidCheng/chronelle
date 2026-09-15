@@ -18,6 +18,7 @@ import type {
   EventResource,
   ExpenseResource,
   ObjectRelationResource,
+  PersonResource,
   ReminderResource,
   TaskResource,
 } from "./types.js";
@@ -26,6 +27,7 @@ export const cloudbaseObjectColumns =
   "id,workspace_id,object_type,display_name,created_by,permission_scope_id,created_at,updated_at,version,archived_at,deleted_at,custom_properties,metadata";
 export const cloudbaseEventColumns =
   "object_id,workspace_id,starts_at,ends_at,starts_on,ends_on,timezone,is_all_day";
+export const cloudbasePersonColumns = "object_id,workspace_id,user_id,email";
 
 export type CloudBaseObjectRow = {
   readonly id: unknown;
@@ -89,6 +91,13 @@ export type CloudBaseDocumentRow = {
   readonly size_bytes: unknown;
   readonly checksum_sha256: unknown;
   readonly encryption_mode: unknown;
+};
+
+export type CloudBasePersonRow = {
+  readonly object_id: unknown;
+  readonly workspace_id: unknown;
+  readonly user_id: unknown;
+  readonly email: unknown;
 };
 
 export type CloudBaseRelationWriteRow = {
@@ -390,6 +399,18 @@ export function cloudbaseDocumentResource(
   };
 }
 
+export function cloudbasePersonResource(
+  object: CloudBaseObjectRow,
+  person: CloudBasePersonRow,
+): PersonResource {
+  return {
+    ...cloudbaseCanonicalFields(object, person, "person"),
+    objectType: "person",
+    email: cloudbaseNullableText(person.email, "email"),
+    userId: cloudbaseNullableText(person.user_id, "user_id"),
+  };
+}
+
 /** Decodes `{ object, <typed> }` rows of any canonical type, as chronelle_object_rows returns them. */
 export function cloudbaseResourceFromRows(
   rows: unknown,
@@ -419,6 +440,8 @@ export function cloudbaseResourceFromRows(
       return cloudbaseReminderResource(object, typed as CloudBaseReminderRow);
     case "document":
       return cloudbaseDocumentResource(object, typed as CloudBaseDocumentRow);
+    case "person":
+      return cloudbasePersonResource(object, typed as CloudBasePersonRow);
     default:
       throw new Error(
         `CloudBase returned an unknown object type ${objectType}.`,

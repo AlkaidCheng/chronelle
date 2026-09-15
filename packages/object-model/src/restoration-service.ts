@@ -9,6 +9,7 @@ import {
   events,
   tasks,
   reminders,
+  persons,
   objects,
   objectRevisions,
   type Database,
@@ -19,6 +20,7 @@ import {
   eventUpdateRequestSchema,
   taskUpdateRequestSchema,
   reminderUpdateRequestSchema,
+  personUpdateRequestSchema,
   type RevisionComparisonQuery,
   type RevisionRestoreRequest,
   type RevisionSnapshot,
@@ -398,6 +400,23 @@ export class ObjectRestorationService {
               eq(reminders.objectId, objectId),
             ),
           );
+        break;
+      }
+      case "person": {
+        const fields = personUpdateRequestSchema.parse({
+          ...content,
+          expectedVersion: source.version,
+        });
+        if (fields.email !== undefined)
+          await transaction
+            .update(persons)
+            .set({ email: fields.email })
+            .where(
+              and(
+                eq(persons.workspaceId, workspaceId),
+                eq(persons.objectId, objectId),
+              ),
+            );
         break;
       }
       case "expense":

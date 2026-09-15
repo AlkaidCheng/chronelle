@@ -24,6 +24,7 @@ const searchableTypes = [
   { label: "Expenses", value: "expense" },
   { label: "Reminders", value: "reminder" },
   { label: "Documents", value: "document" },
+  { label: "People", value: "person" },
 ] as const;
 
 function SearchResultCard({ result }: { readonly result: ObjectSearchResult }) {

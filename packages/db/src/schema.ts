@@ -20,6 +20,7 @@ export const objectTypes = [
   "expense",
   "reminder",
   "document",
+  "person",
 ] as const;
 export type ObjectType = (typeof objectTypes)[number];
 
@@ -434,6 +435,15 @@ export const documents = pgTable("documents", {
   encryptionMode: text("encryption_mode").notNull().default("provider"),
 });
 
+export const persons = pgTable("persons", {
+  objectId: uuid("object_id").primaryKey(),
+  workspaceId: uuid("workspace_id").notNull(),
+  objectType: text("object_type").$type<"person">().notNull().default("person"),
+  /** The workspace member this person is, when they have an account. */
+  userId: uuid("user_id"),
+  email: text("email"),
+});
+
 export const documentTransferAuthorizations = pgTable(
   "document_transfer_authorizations",
   {
@@ -510,6 +520,8 @@ export type ReminderRow = typeof reminders.$inferSelect;
 export type NewReminderRow = typeof reminders.$inferInsert;
 export type DocumentRow = typeof documents.$inferSelect;
 export type NewDocumentRow = typeof documents.$inferInsert;
+export type PersonRow = typeof persons.$inferSelect;
+export type NewPersonRow = typeof persons.$inferInsert;
 export type DocumentTransferAuthorizationRow =
   typeof documentTransferAuthorizations.$inferSelect;
 export type NewDocumentTransferAuthorizationRow =

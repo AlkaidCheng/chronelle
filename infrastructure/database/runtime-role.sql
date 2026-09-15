@@ -78,7 +78,8 @@ GRANT SELECT, INSERT, UPDATE ON
   public.object_relations, public.resource_grants, public.events, public.tasks,
   public.expenses, public.reminders, public.document_transfer_authorizations,
   public.command_stacks, public.user_sessions, public.user_credentials,
-  public.email_verifications, public.labels, public.task_labels
+  public.email_verifications, public.labels, public.task_labels,
+  public.persons
 TO :"runtime_role";
 GRANT DELETE ON public.resource_grants, public.labels, public.task_labels
 TO :"runtime_role";

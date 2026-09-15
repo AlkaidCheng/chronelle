@@ -47,6 +47,13 @@ export { CloudBaseRelationWriteRepository } from "./cloudbase-relation-write-rep
 export { CloudBaseSharingWriteRepository } from "./cloudbase-sharing-write-repository.js";
 export { CloudBaseStorageInventoryReadRepository } from "./cloudbase-storage-inventory-read-repository.js";
 export { CloudBaseReminderWriteRepository } from "./cloudbase-reminder-write-repository.js";
+export { CloudBasePersonWriteRepository } from "./cloudbase-person-write-repository.js";
+export { CloudBasePersonReadRepository } from "./cloudbase-person-read-repository.js";
+export {
+  PostgresPersonReadRepository,
+  type PersonPage,
+  type PersonReadRepository,
+} from "./person-list.js";
 export { CloudBaseSearchReadRepository } from "./cloudbase-search-read-repository.js";
 export { CloudBaseLabelRepository } from "./cloudbase-label-repository.js";
 export { CloudBaseTaskReadRepository } from "./cloudbase-task-read-repository.js";
@@ -107,6 +114,7 @@ export type {
   PermissionScopeWriteRepository,
   RelationWriteRepository,
   ReminderWriteRepository,
+  PersonWriteRepository,
   TaskWriteRepository,
 } from "./object-writes.js";
 export {

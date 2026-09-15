@@ -16,15 +16,18 @@ import type {
   ObjectDeletionResource,
   ObjectRelationResource,
   CreateExpenseInput,
+  CreatePersonInput,
   CreateReminderInput,
   CreateTaskInput,
   EventResource,
   ExpenseResource,
   MutationContext,
+  PersonResource,
   ReminderResource,
   TaskResource,
   UpdateEventInput,
   UpdateExpenseInput,
+  UpdatePersonInput,
   UpdateReminderInput,
   UpdateTaskInput,
 } from "./types.js";
@@ -68,6 +71,11 @@ export type ReminderWriteRepository = ObjectWriteRepository<
   CreateReminderInput,
   UpdateReminderInput,
   ReminderResource
+>;
+export type PersonWriteRepository = ObjectWriteRepository<
+  CreatePersonInput,
+  UpdatePersonInput,
+  PersonResource
 >;
 
 /**
@@ -198,6 +206,7 @@ export interface ObjectWriteRepositories {
   readonly task?: TaskWriteRepository | undefined;
   readonly expense?: ExpenseWriteRepository | undefined;
   readonly reminder?: ReminderWriteRepository | undefined;
+  readonly person?: PersonWriteRepository | undefined;
   readonly eventContext?: EventContextWriteRepository | undefined;
   readonly relation?: RelationWriteRepository | undefined;
   readonly objectLifecycle?: ObjectLifecycleWriteRepository | undefined;

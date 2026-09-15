@@ -45,6 +45,11 @@ const families = {
     input: { remindAt: "2030-10-16T18:00:00.000Z" },
     invalidChange: { status: "snoozed" },
   },
+  person: {
+    migration: "0037",
+    input: { email: "contract@example.test" },
+    invalidChange: { email: "no-at-sign" },
+  },
 };
 
 const required = [

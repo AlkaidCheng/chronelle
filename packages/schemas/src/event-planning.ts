@@ -18,6 +18,7 @@ const objectTypeSchema = z.enum([
   "expense",
   "reminder",
   "document",
+  "person",
 ]);
 const taskStatusSchema = z.enum(["todo", "in_progress", "done", "cancelled"]);
 const reminderStatusSchema = z.enum([
@@ -148,6 +149,28 @@ export const reminderUpdateRequestSchema = z
     message: "At least one update field is required.",
   });
 
+/** A Person's email as stored: trimmed, or null. */
+const personEmailSchema = z.string().trim().max(254).pipe(z.email()).nullable();
+
+// A Person is someone the workspace keeps track of: a display name, an
+// optional email, and an optional link to a workspace member's account
+// (userId), which belongs to one Person per workspace.
+export const personCreateRequestSchema = z.object({
+  ...createObjectShape,
+  email: personEmailSchema.optional(),
+  userId: objectIdSchema.nullable().optional(),
+});
+
+export const personUpdateRequestSchema = z
+  .object({
+    ...updateObjectShape,
+    email: personEmailSchema.optional(),
+    userId: objectIdSchema.nullable().optional(),
+  })
+  .refine(hasUpdateFields, {
+    message: "At least one update field is required.",
+  });
+
 export const relationCreateRequestSchema = z.object({
   relationType: relationTypeSchema,
   targetObjectId: objectIdSchema,
@@ -255,6 +278,14 @@ export const documentResponseSchema = z.object({
   encryptionMode: z.string(),
 });
 
+export const personResponseSchema = z.object({
+  ...canonicalObjectResponseShape,
+  objectType: z.literal("person"),
+  email: z.string().nullable(),
+  /** The workspace member this person is, when they have an account. */
+  userId: objectIdSchema.nullable(),
+});
+
 export const eventPlanningResourceResponseSchema = z.discriminatedUnion(
   "objectType",
   [
@@ -263,6 +294,7 @@ export const eventPlanningResourceResponseSchema = z.discriminatedUnion(
     expenseResponseSchema,
     reminderResponseSchema,
     documentResponseSchema,
+    personResponseSchema,
   ],
 );
 
@@ -356,6 +388,10 @@ export type ReminderCreateRequest = z.infer<typeof reminderCreateRequestSchema>;
 export type ReminderCreatePayload = z.input<typeof reminderCreateRequestSchema>;
 export type ReminderUpdateRequest = z.infer<typeof reminderUpdateRequestSchema>;
 export type ReminderUpdatePayload = z.input<typeof reminderUpdateRequestSchema>;
+export type PersonCreateRequest = z.infer<typeof personCreateRequestSchema>;
+export type PersonCreatePayload = z.input<typeof personCreateRequestSchema>;
+export type PersonUpdateRequest = z.infer<typeof personUpdateRequestSchema>;
+export type PersonUpdatePayload = z.input<typeof personUpdateRequestSchema>;
 export type RelationCreateRequest = z.infer<typeof relationCreateRequestSchema>;
 export type RelationCreatePayload = z.input<typeof relationCreateRequestSchema>;
 export type EventPlanningResourceResponse = z.infer<
@@ -371,6 +407,7 @@ export type TaskResponse = z.infer<typeof taskResponseSchema>;
 export type ExpenseResponse = z.infer<typeof expenseResponseSchema>;
 export type ReminderResponse = z.infer<typeof reminderResponseSchema>;
 export type DocumentResponse = z.infer<typeof documentResponseSchema>;
+export type PersonResponse = z.infer<typeof personResponseSchema>;
 export type EventResourceProjectionResponse = z.infer<
   typeof eventResourceProjectionResponseSchema
 >;

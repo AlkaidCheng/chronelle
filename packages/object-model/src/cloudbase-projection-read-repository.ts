@@ -14,6 +14,7 @@ import {
   type CloudBaseEventRow,
   type CloudBaseExpenseRow,
   type CloudBaseObjectRow,
+  type CloudBasePersonRow,
   type CloudBaseReminderRow,
   type CloudBaseTaskRow,
   cloudbaseTaskColumns,
@@ -23,6 +24,8 @@ import {
   cloudbaseEventResource,
   cloudbaseExpenseResource,
   cloudbaseFilters,
+  cloudbasePersonColumns,
+  cloudbasePersonResource,
   cloudbaseReminderResource,
   cloudbaseTaskResource,
   cloudbaseText,
@@ -272,7 +275,7 @@ export class CloudBaseProjectionReadRepository implements ProjectionReadReposito
   ): Promise<EventPlanningResource[]> {
     const idsOf = (type: ObjectType) =>
       rows.filter((row) => objectType(row) === type).map(objectId);
-    const [events, tasks, expenses, reminders, documents, taskLabels] =
+    const [events, tasks, expenses, reminders, documents, persons, taskLabels] =
       await Promise.all([
         this.#typedRows<CloudBaseEventRow>(
           principal,
@@ -304,6 +307,12 @@ export class CloudBaseProjectionReadRepository implements ProjectionReadReposito
           documentColumns,
           idsOf("document"),
         ),
+        this.#typedRows<CloudBasePersonRow>(
+          principal,
+          "persons",
+          cloudbasePersonColumns,
+          idsOf("person"),
+        ),
         readCloudBaseTaskLabels(this.#client, principal, idsOf("task")),
       ]);
     const decode: Record<
@@ -324,6 +333,8 @@ export class CloudBaseProjectionReadRepository implements ProjectionReadReposito
         cloudbaseReminderResource(object, requireTyped(reminders, object)),
       document: (object) =>
         cloudbaseDocumentResource(object, requireTyped(documents, object)),
+      person: (object) =>
+        cloudbasePersonResource(object, requireTyped(persons, object)),
     };
     return rows.map((row) => decode[objectType(row)](row));
   }

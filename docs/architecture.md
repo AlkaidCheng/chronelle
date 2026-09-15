@@ -10,7 +10,9 @@ infrastructure remain explicit shared packages.
 
 The first product slice is event planning. Canonical `Event`, `Task`,
 `Expense`, `Reminder`, and `Document` records support event detail,
-to-do, calendar, timeline, itinerary, expense, and reminder projections.
+to-do, calendar, timeline, itinerary, expense, and reminder projections;
+`Person` records begin the people family, which tasks and events will
+reference by canonical ID.
 
 ## Non-negotiable invariant
 
@@ -31,8 +33,8 @@ the common `objects` table holds identity and lifecycle fields.
   request principal resolution, and personal-workspace bootstrap.
 - `packages/authorization` owns the central permission policy, audited direct
   grant lifecycle, and PostgreSQL-backed access lookup.
-- `packages/object-model` owns canonical Event, Task, Expense, and Reminder
-  lifecycle behavior, relationships, document workflows, event-plan
+- `packages/object-model` owns canonical Event, Task, Expense, Reminder, and
+  Person lifecycle behavior, relationships, document workflows, event-plan
   projections, and authorized object search.
 - `packages/schemas` owns contracts shared across process boundaries.
 - `packages/storage` owns the provider-neutral private storage port and the

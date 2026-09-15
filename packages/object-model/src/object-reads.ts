@@ -9,6 +9,7 @@ import { objects } from "@chronelle/db";
 import { and, eq, inArray, isNull } from "drizzle-orm";
 
 import type { EventReadRepository } from "./event-list.js";
+import type { PersonReadRepository } from "./person-list.js";
 import type { TaskReadRepository } from "./task-list.js";
 import { readObjectState, readObjectStates } from "./object-state.js";
 import type { EventPlanningResource } from "./types.js";
@@ -40,6 +41,7 @@ export interface ObjectReadRepository {
 export interface ObjectReadRepositories {
   readonly events?: EventReadRepository | undefined;
   readonly tasks?: TaskReadRepository | undefined;
+  readonly persons?: PersonReadRepository | undefined;
   readonly objects?: ObjectReadRepository | undefined;
 }
 
