@@ -9,6 +9,7 @@ import {
 import { and, eq, inArray, isNull } from "drizzle-orm";
 
 import { EventPlanningObjectService } from "./object-service.js";
+import { comparePersonNames } from "./person-list.js";
 import type {
   DocumentResource,
   EventDetailProjection,
@@ -17,6 +18,7 @@ import type {
   EventResourceProjection,
   ExpenseResourceProjection,
   PersonResource,
+  PersonResourceProjection,
   ReminderResourceProjection,
   TaskResource,
   TaskResourceProjection,
@@ -59,7 +61,8 @@ type TimelineResource = Exclude<
 >;
 
 /** The typed object families a focused projection selects from an Event's `includes` relations. */
-export type ProjectionObjectType = TimelineResource["objectType"];
+export type ProjectionObjectType =
+  TimelineResource["objectType"] | PersonResource["objectType"];
 
 export interface CalendarReadRepository {
   listCalendarEvents(
@@ -345,6 +348,9 @@ export class EventPlanningProjectionService {
       reminders: included.filter((resource) =>
         isResource(resource, "reminder"),
       ),
+      persons: included
+        .filter((resource) => isResource(resource, "person"))
+        .sort(comparePersonNames),
       documents: [...documents.values()],
       lockedRelationCount: detail.lockedRelationCount,
     };
@@ -410,6 +416,19 @@ export class EventPlanningProjectionService {
       compareDates(first.remindAt, second.remindAt, first.id, second.id),
     );
     return { sourceEventId: eventId, items };
+  }
+
+  async getPeople(
+    principal: UserPrincipal,
+    eventId: string,
+  ): Promise<PersonResourceProjection> {
+    const resources = await this.#getProjectionResources(principal, eventId, [
+      "person",
+    ]);
+    return {
+      sourceEventId: eventId,
+      items: resources.sort(comparePersonNames),
+    };
   }
 
   async getTimeline(

@@ -6,6 +6,7 @@ import type {
   ObjectDeletionResource,
   ObjectRelationResource,
   RelationDeletionResource,
+  PersonResourceProjection,
   ReminderResourceProjection,
   TaskResourceProjection,
   TimelineProjection,
@@ -39,6 +40,7 @@ export function serializeEventDetail(projection: EventDetailProjection) {
     tasks: projection.tasks.map(serializeResource),
     expenses: projection.expenses.map(serializeResource),
     reminders: projection.reminders.map(serializeResource),
+    persons: projection.persons.map(serializeResource),
     documents: projection.documents.map(serializeResource),
     lockedRelationCount: projection.lockedRelationCount,
   };
@@ -49,7 +51,8 @@ export function serializeResourceProjection(
     | EventResourceProjection
     | TaskResourceProjection
     | ExpenseResourceProjection
-    | ReminderResourceProjection,
+    | ReminderResourceProjection
+    | PersonResourceProjection,
 ) {
   return {
     sourceEventId: projection.sourceEventId,

@@ -182,6 +182,7 @@ try {
           "expenses",
           "reminders",
           "files",
+          "people",
         ].map((kind) => ({ id: randomUUID(), kind })),
       },
     ],
