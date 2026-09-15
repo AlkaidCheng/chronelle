@@ -79,7 +79,9 @@ methods only assert an identity: the email and password method keeps the
 scrypt hash, the email verification, and the failed-attempt lock in
 `user_credentials` and emailed codes in `email_verifications` (a credential
 store with the same two implementations; hashing and comparison happen in the
-API, never in SQL); the development method is registered when explicitly
+API, never in SQL; codes are issued at most once a minute and five times an
+hour per account and purpose, refused ones silently); the development method
+is registered when explicitly
 enabled and asserts the submitted email. Outbound email is a port with a log
 sender for development and an SMTP sender for deployments. Further methods
 (external providers) can be added without changing sessions, workspace, or

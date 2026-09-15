@@ -37,7 +37,10 @@ code; the response is 202 `{ accepted: true }`, or 409 `email_taken`.
 and signs the account in with the sign-in response above; a wrong, expired,
 or exhausted code (five wrong guesses) is 400 `verification_invalid`, and
 `POST /api/auth/verify-email/resend` with `{ email }` issues a fresh code
-(202 whether or not the address has an unverified account).
+(202 whether or not the address has an unverified account). Codes are
+issued at most once a minute and five times an hour per account and
+purpose; a request inside those limits is accepted but sends nothing, so
+the answer never reveals whether the address has an account.
 
 `POST /api/auth/sign-in` with `{ email, password }` returns the sign-in
 response, 401 `invalid_credentials` for an unknown address or wrong
