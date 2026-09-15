@@ -86,6 +86,13 @@ field's original type unless its text changes. Cards offer History and
 Actions (Trash) like any record; Search and Trash filter by People, and
 Trash restores them. The name query asks the server after a typing pause.
 
+An event page can carry a People component (also an event view and an
+overview card) that shows the people the event involves as the same
+namecards. Add person offers everyone the workspace knows who is not yet in
+the event, by name, or takes a new person's name and creates them inside the
+event. A card's Actions offer Remove context link, which takes the person out
+of the event and leaves them in the workspace, as well as Move to Trash.
+
 A task may be assigned to one person as the one responsible for it. The task
 editor holds the choice behind an Assignee disclosure that names the current
 assignee (Unassigned when none); open, it lists the workspace's people with

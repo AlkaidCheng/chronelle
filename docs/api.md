@@ -362,6 +362,16 @@ the name and `limit` (1-200, default 100) bounds the page. The response is
 Deploy migration 0037 before this API and reapply the runtime role grants,
 which cover the new table.
 
+An Event includes People the way it includes tasks, expenses, reminders, and
+documents: `POST /objects/:eventId/relations` with `relationType: "includes"`
+and a Person as the target, or `POST /events/:id/resources` with a
+`{ objectType: "person", displayName, ... }` resource to create the Person
+inside the Event (its scope is the Event's). `GET /events/:id/people` lists
+the included live People the caller may view in name order as
+`{ sourceEventId, items }`, and the event detail carries them as `persons`.
+Removing the relation leaves the Person in the workspace. Deploy migration
+0040 before this API.
+
 A Task may be assigned to one Person through `assigneeId` on create and
 update (`null` clears it; absent leaves it unchanged); the id must name a live
 Person of the workspace, or the request returns HTTP 400 with
@@ -565,6 +575,7 @@ when a view needs them.
 | `GET`  | `/events/:id/itinerary` | Included scheduled Events                  |
 | `GET`  | `/events/:id/expenses`  | Included Expenses in reverse time order    |
 | `GET`  | `/events/:id/reminders` | Included Reminders ordered by trigger time |
+| `GET`  | `/events/:id/people`    | Included People in name order              |
 
 Every projection is computed from active relationships and canonical rows. It
 does not create projection-owned data. Every included resource is separately
