@@ -1,6 +1,5 @@
 "use client";
 
-import { ApiClientError } from "@chronelle/api-client";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { type FormEvent, useState } from "react";
@@ -8,34 +7,25 @@ import { type FormEvent, useState } from "react";
 import { AccountPage } from "../../components/account-page";
 import { AppearanceSettings } from "../../components/appearance-settings";
 import { ErrorNotice } from "../../components/feedback";
-import {
-  usePasswordSignIn,
-  useRedirectWhenSignedIn,
-} from "../../lib/account-queries";
+import { useRedirectWhenSignedIn, useSignUp } from "../../lib/account-queries";
 import { useAuthSession } from "../../lib/auth-session";
 
-export default function SignInPage() {
+export default function SignUpPage() {
   const auth = useAuthSession();
   const router = useRouter();
-  const signIn = usePasswordSignIn();
+  const signUp = useSignUp();
+  const [displayName, setDisplayName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   useRedirectWhenSignedIn();
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    signIn.mutate(
-      { email, password },
+    signUp.mutate(
+      { displayName, email, password },
       {
-        onError: (error) => {
-          // The address is registered but not yet verified; a fresh code was
-          // just sent, so the code screen is the next step.
-          if (
-            error instanceof ApiClientError &&
-            error.code === "email_unverified"
-          )
-            router.push(`/verify-email?email=${encodeURIComponent(email)}`);
-        },
+        onSuccess: () =>
+          router.push(`/verify-email?email=${encodeURIComponent(email)}`),
       },
     );
   }
@@ -45,12 +35,24 @@ export default function SignInPage() {
       <form className="sign-in-form" onSubmit={handleSubmit}>
         <AppearanceSettings />
         <div>
-          <p className="eyebrow">Welcome back</p>
-          <h2>Sign in</h2>
+          <p className="eyebrow">Welcome to Chronelle</p>
+          <h2>Create your account</h2>
           <p className="form-intro">
-            Use the email and password of your Chronelle account.
+            A code is sent to your email to confirm the address before the first
+            sign-in.
           </p>
         </div>
+        <label className="field">
+          <span>Name</span>
+          <input
+            autoComplete="name"
+            disabled={!auth.isHydrated}
+            maxLength={120}
+            onChange={(event) => setDisplayName(event.target.value)}
+            required
+            value={displayName}
+          />
+        </label>
         <label className="field">
           <span>Email</span>
           <input
@@ -65,25 +67,30 @@ export default function SignInPage() {
         <label className="field">
           <span>Password</span>
           <input
-            autoComplete="current-password"
+            aria-describedby="sign-up-password-hint"
+            autoComplete="new-password"
             disabled={!auth.isHydrated}
+            maxLength={256}
+            minLength={10}
             onChange={(event) => setPassword(event.target.value)}
             required
             type="password"
             value={password}
           />
         </label>
-        {signIn.isError ? <ErrorNotice error={signIn.error} /> : null}
+        <small className="field-hint" id="sign-up-password-hint">
+          At least 10 characters.
+        </small>
+        {signUp.isError ? <ErrorNotice error={signUp.error} /> : null}
         <button
           className="button button-primary button-wide"
-          disabled={!auth.isHydrated || signIn.isPending}
+          disabled={!auth.isHydrated || signUp.isPending}
           type="submit"
         >
-          {signIn.isPending ? "Signing in..." : "Sign in"}
+          {signUp.isPending ? "Creating account..." : "Create account"}
         </button>
         <p className="form-links">
-          <Link href="/sign-up">Create an account</Link>
-          <Link href="/reset-password">Forgot your password?</Link>
+          <Link href="/sign-in">Already have an account? Sign in</Link>
         </p>
       </form>
     </AccountPage>
