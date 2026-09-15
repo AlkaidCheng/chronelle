@@ -1,6 +1,7 @@
 "use client";
 
 import type {
+  EventComponentView,
   EventResponse,
   ExpenseResponse,
   ReminderResponse,
@@ -13,7 +14,7 @@ import {
   getCoreRowModel,
   useReactTable,
 } from "@tanstack/react-table";
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 
 import { EmptyState, ErrorNotice } from "../../components/feedback";
 import { CheckIcon } from "../../components/icons";
@@ -26,6 +27,7 @@ import {
   PanelHeading,
   RowActions,
   StatusChip,
+  ViewSwitch,
 } from "./component-frame";
 import { ScheduleItemInspector } from "./schedule-item-inspector";
 import { CreateScheduleDialog } from "./create-schedule-dialog";
@@ -34,8 +36,10 @@ import {
   formatEventDatePart,
   formatEventSchedule,
 } from "../../lib/event-schedule";
-import { formatDatePart, formatDateTime } from "../../lib/format";
+import { viewsOf } from "../../lib/event-components";
+import { formatDatePart, formatDateTime, formatTime } from "../../lib/format";
 import { formatMoney, sumMoneyByCurrency } from "../../lib/money";
+import { groupTasksByDay } from "../../lib/task-groups";
 import {
   useRefreshEvent,
   useUpdateReminder,
@@ -54,11 +58,17 @@ const taskColumn = createColumnHelper<TaskResponse>();
 export function TasksPanel({
   canEdit,
   eventId,
+  isSavingView = false,
+  onChangeView,
   tasks,
+  view = "list",
 }: {
   readonly canEdit: boolean;
   readonly eventId: string;
+  readonly isSavingView?: boolean;
+  readonly onChangeView?: ((view: EventComponentView) => void) | undefined;
   readonly tasks: readonly TaskResponse[];
+  readonly view?: EventComponentView;
 }) {
   const [filter, setFilter] = useState<TaskFilter>("open");
   const [isAdding, setIsAdding] = useState(false);
@@ -79,38 +89,63 @@ export function TasksPanel({
       }),
     [filter, tasks],
   );
+  const groups = useMemo(
+    () => (view === "by-day" ? groupTasksByDay(filteredTasks, new Date()) : []),
+    [filteredTasks, view],
+  );
+  const check = useCallback(
+    (task: TaskResponse) => {
+      const isDone = task.status === "done";
+      return (
+        <button
+          aria-label={
+            isDone
+              ? `Reopen ${task.displayName}`
+              : `Complete ${task.displayName}`
+          }
+          className={`task-check${isDone ? " checked" : ""}`}
+          disabled={!canEdit || isUpdatingTask}
+          onClick={() =>
+            updateTask({
+              id: task.id,
+              input: {
+                completedAt: isDone ? null : new Date().toISOString(),
+                expectedVersion: task.version,
+                status: isDone ? "todo" : "done",
+              },
+            })
+          }
+          type="button"
+        >
+          {isDone ? <CheckIcon /> : null}
+        </button>
+      );
+    },
+    [canEdit, isUpdatingTask, updateTask],
+  );
+  const actions = useCallback(
+    (task: TaskResponse) => (
+      <RowActions>
+        {canEdit ? (
+          <button
+            className="button button-quiet button-small"
+            onClick={() => setEditingId(task.id)}
+            type="button"
+          >
+            Edit
+          </button>
+        ) : null}
+        <HistoryButton objectId={task.id} displayName={task.displayName} />
+        {canEdit ? <LifecycleButton target={{ ...task, eventId }} /> : null}
+      </RowActions>
+    ),
+    [canEdit, eventId],
+  );
   const columns = useMemo(
     () => [
       taskColumn.display({
         id: "complete",
-        cell: ({ row }) => {
-          const task = row.original;
-          const isDone = task.status === "done";
-          return (
-            <button
-              aria-label={
-                isDone
-                  ? `Reopen ${task.displayName}`
-                  : `Complete ${task.displayName}`
-              }
-              className={`task-check${isDone ? " checked" : ""}`}
-              disabled={!canEdit || isUpdatingTask}
-              onClick={() =>
-                updateTask({
-                  id: task.id,
-                  input: {
-                    completedAt: isDone ? null : new Date().toISOString(),
-                    expectedVersion: task.version,
-                    status: isDone ? "todo" : "done",
-                  },
-                })
-              }
-              type="button"
-            >
-              {isDone ? <CheckIcon /> : null}
-            </button>
-          );
-        },
+        cell: ({ row }) => check(row.original),
       }),
       taskColumn.accessor("displayName", {
         header: "Task",
@@ -131,29 +166,10 @@ export function TasksPanel({
       }),
       taskColumn.display({
         id: "actions",
-        cell: ({ row }) => (
-          <RowActions>
-            {canEdit ? (
-              <button
-                className="button button-quiet button-small"
-                onClick={() => setEditingId(row.original.id)}
-                type="button"
-              >
-                Edit
-              </button>
-            ) : null}
-            <HistoryButton
-              objectId={row.original.id}
-              displayName={row.original.displayName}
-            />
-            {canEdit ? (
-              <LifecycleButton target={{ ...row.original, eventId }} />
-            ) : null}
-          </RowActions>
-        ),
+        cell: ({ row }) => actions(row.original),
       }),
     ],
-    [canEdit, isUpdatingTask, updateTask, eventId],
+    [actions, check],
   );
   const table = useReactTable({
     columns,
@@ -175,6 +191,16 @@ export function TasksPanel({
               Add task
             </button>
           ) : undefined
+        }
+        controls={
+          onChangeView === undefined ? undefined : (
+            <ViewSwitch
+              busy={isSavingView}
+              onChange={onChangeView}
+              view={view}
+              views={viewsOf("todos")}
+            />
+          )
         }
         description="Keep the next steps clear. Tasks are sorted by due date and stay in sync across your plans."
         title="To-dos"
@@ -217,6 +243,42 @@ export function TasksPanel({
           }
           title={tasks.length === 0 ? "No tasks yet" : "Nothing in this view"}
         />
+      ) : view === "by-day" ? (
+        <div className="day-groups">
+          {groups.map((group) => (
+            <section
+              aria-label={group.label.join(", ")}
+              className={`day-group day-group-${group.tone}`}
+              key={group.key}
+            >
+              <h3 className="day-group-heading">
+                {group.label.map((part) => (
+                  <span key={part}>{part}</span>
+                ))}
+              </h3>
+              <ul className="resource-list">
+                {group.tasks.map((task) => (
+                  <li key={task.id}>
+                    {check(task)}
+                    <div className="resource-copy">
+                      <strong>{task.displayName}</strong>
+                      {task.dueAt === null ? null : (
+                        <p>
+                          {group.tone === "overdue"
+                            ? formatDateTime(task.dueAt)
+                            : formatTime(task.dueAt)}
+                        </p>
+                      )}
+                      <ObjectDetails id={task.id} />
+                    </div>
+                    <StatusChip status={task.status} />
+                    {actions(task)}
+                  </li>
+                ))}
+              </ul>
+            </section>
+          ))}
+        </div>
       ) : (
         <div className="table-wrap">
           <table className="data-table">

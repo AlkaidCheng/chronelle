@@ -459,6 +459,15 @@ event, Task, Expense, Reminder). Calendar, Expenses, and Reminders rows keep
 their date mark, text, and actions on one line and wrap the actions under the
 text on narrow screens.
 
+A component's kind decides which records it holds; its view decides how they
+are laid out, and the heading carries a View control when a kind offers more
+than one. To-dos offers List, the table, and By day, which groups tasks under
+Overdue, one heading per due date (Today and Tomorrow named, with the weekday),
+and No due date, showing each task's due time; the open/all/done filter applies
+to both. The choice is part of the page layout: it saves at once for everyone
+on the Event, shows in layout history, and undo covers it. Viewers see the
+saved view without a control.
+
 ## Recorded reminders
 
 Add reminder opens a focused dialog with a name and required Reminder time.

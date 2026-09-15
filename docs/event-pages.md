@@ -33,6 +33,18 @@ Adding a component changes presentation only; it does not create or grant
 access to its contents. In particular, Files loads authorized attachment
 targets and checks access again when requesting upload or download transfers.
 
+### Views
+
+A component's kind says which records it shows; its view says how they are
+laid out. Every kind offers `list`; `todos` also offers `by-day`, which groups
+tasks under Overdue (open tasks due before today), one heading per due date
+with Today and Tomorrow named, and No due date, with the task's due time on
+each row. Members who can edit choose the view from a View control in the
+component heading, outside Arrange mode. The choice is saved on the layout
+component, so everyone on the Event sees the same view, it appears in layout
+history, and undo and restore cover it. Viewers see the saved view and no
+control. A component without a stored view uses its kind's default.
+
 ## Composition controls
 
 Owners and Editors can search the component picker by label or command name
@@ -103,9 +115,10 @@ the canonical Event's object version or alter its metadata.
 
 The API validates a strict structure: at most 20 pages, 20 components per page,
 100 components overall, page names of 1-80 characters, unique UUIDs across the
-layout, and recognized component kinds. Configuration contains no business
-records, arbitrary scripts or style definitions. Supported component kinds
-are listed above; unrecognized kinds and extra fields are rejected.
+layout, recognized component kinds, and an optional `view` of `list` or
+`by-day` per component. Configuration contains no business records, arbitrary
+scripts or style definitions. Supported component kinds are listed above;
+unrecognized kinds, unrecognized views, and extra fields are rejected.
 
 ## API
 
@@ -130,7 +143,11 @@ are listed above; unrecognized kinds and extra fields are rejected.
       "id": "00000000-0000-4000-8000-000000000002",
       "name": "Preparation",
       "components": [
-        { "id": "00000000-0000-4000-8000-000000000003", "kind": "todos" }
+        {
+          "id": "00000000-0000-4000-8000-000000000003",
+          "kind": "todos",
+          "view": "by-day"
+        }
       ]
     }
   ]

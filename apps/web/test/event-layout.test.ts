@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 import type { EventPage } from "@chronelle/schemas";
-import { moveEventComponent, moveEventPage } from "../lib/event-layout";
+import {
+  moveEventComponent,
+  moveEventPage,
+  setEventComponentView,
+} from "../lib/event-layout";
 
 function fixture(): EventPage[] {
   return [
@@ -87,5 +91,22 @@ describe("event layout moves", () => {
         : page,
     );
     expect(moveEventComponent(full, "a", "day", null)).toBe(full);
+  });
+
+  it("records a component's view and leaves the rest of the layout shared", () => {
+    const pages = fixture();
+    const changed = setEventComponentView(pages, "c", "by-day");
+    expect(changed[0]?.components[2]).toEqual({
+      id: "c",
+      kind: "todos",
+      view: "by-day",
+    });
+    expect(changed[0]?.components[0]).toBe(pages[0]?.components[0]);
+    expect(changed[1]).toBe(pages[1]);
+    expect(setEventComponentView(changed, "c", "by-day")).toBe(changed);
+    expect(setEventComponentView(pages, "missing", "by-day")).toBe(pages);
+    expect(
+      setEventComponentView(changed, "c", "list")[0]?.components[2],
+    ).toEqual({ id: "c", kind: "todos", view: "list" });
   });
 });

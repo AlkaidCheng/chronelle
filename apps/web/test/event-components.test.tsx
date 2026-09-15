@@ -707,6 +707,54 @@ describe("insertable event components", () => {
     ).toBeDisabled();
   });
 
+  it("saves a chosen view with the layout and offers none to a viewer", async () => {
+    await client.updateEventLayout(eventId, {
+      expectedVersion: 0,
+      pages: [page("Plan", ["todos", "calendar"])],
+    });
+    const user = userEvent.setup();
+    const { unmount } = render(<EventPages eventId={eventId} canEdit />, {
+      wrapper: Providers,
+    });
+    // The sample task is due fourteen days from now; the heading names that day.
+    const due = new Date();
+    due.setDate(due.getDate() + 14);
+    const dueDay = new Intl.DateTimeFormat(undefined, {
+      month: "short",
+      day: "numeric",
+    }).format(due);
+    const dayHeading = (name: string) => name.startsWith(`${dueDay},`);
+    const view = within(await screen.findByRole("group", { name: "View" }));
+    expect(view.getByRole("button", { name: "List" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+    expect(screen.getByRole("table")).toBeVisible();
+    await user.click(view.getByRole("button", { name: "By day" }));
+    await screen.findByRole("region", { name: dayHeading });
+    expect(screen.queryByRole("table")).toBeNull();
+    await waitFor(() =>
+      expect(screen.getByText("Shown by day.")).toHaveAttribute(
+        "role",
+        "status",
+      ),
+    );
+    const layout = await client.getEventLayout(eventId);
+    expect(layout.version).toBe(2);
+    expect(
+      layout.pages[0]?.components.map((component) => component.view),
+    ).toEqual(["by-day", undefined]);
+    // Calendar offers one view and shows no control.
+    expect(screen.getAllByRole("group", { name: "View" })).toHaveLength(1);
+    unmount();
+
+    render(<EventPages eventId={eventId} canEdit={false} />, {
+      wrapper: Providers,
+    });
+    await screen.findByRole("region", { name: dayHeading });
+    expect(screen.queryByRole("group", { name: "View" })).toBeNull();
+  });
+
   it("allows a viewer to preview saved layouts without mutation controls", async () => {
     await client.updateEventLayout(eventId, {
       expectedVersion: 0,

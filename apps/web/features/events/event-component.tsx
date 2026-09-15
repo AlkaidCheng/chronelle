@@ -1,7 +1,10 @@
 "use client";
 
 import type { ReactNode } from "react";
-import type { EventComponentKind } from "@chronelle/schemas";
+import type {
+  EventComponentKind,
+  EventComponentView,
+} from "@chronelle/schemas";
 import { useQuery } from "@tanstack/react-query";
 import { ErrorNotice, LoadingState } from "../../components/feedback";
 import { useApiClient } from "../../lib/api-context";
@@ -67,10 +70,18 @@ export function EventComponent({
   kind,
   eventId,
   canEdit,
+  view,
+  onChangeView,
+  isSavingView = false,
 }: {
   readonly kind: EventComponentKind;
   readonly eventId: string;
   readonly canEdit: boolean;
+  /** The layout's view for this component; the kind's default when absent. */
+  readonly view?: EventComponentView | undefined;
+  /** Records a chosen view in the layout; absent when the layout is read-only. */
+  readonly onChangeView?: ((view: EventComponentView) => void) | undefined;
+  readonly isSavingView?: boolean;
 }) {
   const client = useApiClient();
   useForgetInaccessibleEventDrafts(eventId, !canEdit);
@@ -88,7 +99,10 @@ export function EventComponent({
             <TasksPanel
               eventId={eventId}
               canEdit={canEdit}
+              isSavingView={isSavingView}
+              onChangeView={onChangeView}
               tasks={tasks.items}
+              view={view ?? "list"}
             />
           )}
         </Projection>

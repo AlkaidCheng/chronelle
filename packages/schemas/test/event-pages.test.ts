@@ -50,6 +50,22 @@ describe("event page layout input", () => {
     ).toEqual(components);
   });
 
+  it("keeps a component's view and refuses one it does not know", () => {
+    const component = { id: crypto.randomUUID(), kind: "todos" as const };
+    expect(
+      eventLayoutUpdateSchema.parse({
+        expectedVersion: 2,
+        pages: [{ ...page, components: [{ ...component, view: "by-day" }] }],
+      }).pages[0]?.components[0],
+    ).toEqual({ ...component, view: "by-day" });
+    expect(
+      eventLayoutUpdateSchema.safeParse({
+        expectedVersion: 2,
+        pages: [{ ...page, components: [{ ...component, view: "grid" }] }],
+      }).success,
+    ).toBe(false);
+  });
+
   it("accepts an empty layout and trims page names", () => {
     expect(
       eventLayoutUpdateSchema.parse({ expectedVersion: 0, pages: [] }).pages,
