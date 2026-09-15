@@ -160,21 +160,23 @@ for (const display of [
       await page.getByRole("button", { name: "Browse event data" }).click();
       await page.getByRole("tab", { name: "Calendar", exact: true }).click();
       const calendar = page
-        .locator(".calendar-item")
+        .locator(".resource-list article")
         .filter({ hasText: "Scheduled item" });
-      await expect(calendar.locator("time span")).toHaveText(
+      await expect(calendar.locator(".date-tile span")).toHaveText(
         month.toUpperCase(),
       );
-      await expect(calendar.locator("time strong")).toHaveText(display.day);
+      await expect(calendar.locator(".date-tile strong")).toHaveText(
+        display.day,
+      );
       await page.screenshot({
         path: testInfo.outputPath("calendar-date.png"),
         fullPage: true,
       });
       await page.getByRole("tab", { name: "Reminders", exact: true }).click();
-      await expect(page.locator(".reminder-time span")).toHaveText(month);
-      await expect(page.locator(".reminder-time strong")).toHaveText(
-        display.day,
+      await expect(page.locator(".date-tile span")).toHaveText(
+        month.toUpperCase(),
       );
+      await expect(page.locator(".date-tile strong")).toHaveText(display.day);
       expect(errors).toEqual([]);
     });
   });

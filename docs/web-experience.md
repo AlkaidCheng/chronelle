@@ -440,6 +440,25 @@ desktop/mobile Chromium and WebKit. The offline Chromium suite also checks
 Viewer empty states. Live-region semantics have automated coverage, but actual
 screen-reader announcements require manual assistive-technology validation.
 
+## Component views
+
+The seven Event components share one frame. Each opens with its title, one
+line on what the view is for, and at most one action: Add task, Add schedule
+item, Add expense, or Add reminder for members who can edit; Files takes its
+file through the form below its heading instead. Rows carry their actions in
+one group and one order across views: the row's own action first (Edit, or
+Download for a file), then a state change (Dismiss for a pending reminder),
+then History, then Actions, which opens the move-to-Trash dialog. Viewers see
+only History and Download.
+
+Calendar and Reminders mark each row with the same date tile as the Events
+collection, the month above the day. Task and reminder statuses read as
+labels (To do, In progress, Done, Cancelled; Pending, Triggered, Dismissed),
+and the Timeline names each entry's kind the way the other views do (Scheduled
+event, Task, Expense, Reminder). Calendar, Expenses, and Reminders rows keep
+their date mark, text, and actions on one line and wrap the actions under the
+text on narrow screens.
+
 ## Recorded reminders
 
 Add reminder opens a focused dialog with a name and required Reminder time.
