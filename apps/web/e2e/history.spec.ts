@@ -8,7 +8,7 @@ test("compares and restores history while preserving an open draft", async ({
   page.on("pageerror", (error) => errors.push(error.message));
   const original = "Workshop plan";
   const revised = "Revised workshop";
-  await page.goto("/sign-in");
+  await page.goto("/sign-in/development");
   await page.getByLabel("Name").fill("Workshop planner");
   await page.getByLabel("Email").fill(`history-${randomUUID()}@example.test`);
   await page.getByRole("button", { name: "Continue" }).click();

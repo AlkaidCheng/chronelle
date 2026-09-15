@@ -64,7 +64,7 @@ test("isolates a delayed collection page across workspace changes and sign-out",
   );
 
   try {
-    await page.goto("/sign-in");
+    await page.goto("/sign-in/development");
     await page.getByLabel("Name", { exact: true }).fill("Session planner");
     await page.getByLabel("Email").fill(email);
     await page.getByRole("button", { name: "Continue" }).click();
@@ -91,6 +91,7 @@ test("isolates a delayed collection page across workspace changes and sign-out",
     await openWorkspaceSettings(page);
     await page.getByRole("button", { name: "Sign out", exact: true }).click();
     await expect(page).toHaveURL(/\/sign-in$/u);
+    await page.goto("/sign-in/development");
     await page.getByLabel("Name", { exact: true }).fill("Fresh planner");
     await page.getByLabel("Email").fill(`fresh-${randomUUID()}@example.test`);
     await page.getByRole("button", { name: "Continue" }).click();

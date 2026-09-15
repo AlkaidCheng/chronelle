@@ -20,7 +20,7 @@ test("inserts through the canonical layout API and synchronizes shortcut prefere
   });
   expect(created.status()).toBe(201);
   const event = await created.json();
-  await page.goto("/sign-in");
+  await page.goto("/sign-in/development");
   await page.getByLabel("Name", { exact: true }).fill("Planner");
   await page.getByLabel("Email").fill(email);
   await page.getByRole("button", { name: "Continue", exact: true }).click();
@@ -39,7 +39,7 @@ test("inserts through the canonical layout API and synchronizes shortcut prefere
     await (await request.get(`/api/events/${event.id}`, { headers })).json(),
   ).toEqual(event);
   const other = await context.newPage();
-  await other.goto("/sign-in");
+  await other.goto("/sign-in/development");
   await other.evaluate(() =>
     localStorage.setItem("chronelle.component-shortcut", "disabled"),
   );

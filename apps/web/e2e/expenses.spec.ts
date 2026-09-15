@@ -48,7 +48,7 @@ test("preserves exact expense amounts through editing and currency summaries", a
     );
   }
 
-  await page.goto("/sign-in");
+  await page.goto("/sign-in/development");
   await page.getByLabel("Name", { exact: true }).fill("Event planner");
   await page.getByLabel("Email").fill(email);
   await page.getByRole("button", { name: "Continue" }).click();

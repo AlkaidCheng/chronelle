@@ -30,7 +30,7 @@ test("adds preset pages and recovers their identities without changing planning 
   expect(task.status()).toBe(201);
   const detailUrl = `/api/events/${event.id}/detail`;
   const before = await (await request.get(detailUrl, { headers })).json();
-  await page.goto("/sign-in");
+  await page.goto("/sign-in/development");
   await page.getByLabel("Name", { exact: true }).fill("Planner");
   await page.getByLabel("Email").fill(email);
   await page.getByRole("button", { name: "Continue", exact: true }).click();

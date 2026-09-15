@@ -124,7 +124,7 @@ test("blocks an injected parser script while hydrating the application", async (
     });
   });
   await page.goto("/sign-in");
-  await expect(page.getByRole("button", { name: "Continue" })).toBeEnabled();
+  await expect(page.getByRole("button", { name: "Sign in" })).toBeEnabled();
   await expect.poll(() => violations).toContain("script-src-elem");
   await expect.poll(() => violations).toContain("script-src-attr");
   expect(executions).toEqual([]);

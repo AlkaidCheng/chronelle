@@ -23,7 +23,7 @@ test("pages Events and filters the full collection at responsive widths", async 
     expect(response.status()).toBe(201);
     ids.push((await response.json()).id);
   }
-  await page.goto("/sign-in");
+  await page.goto("/sign-in/development");
   await page.getByLabel("Name").fill("Event planner");
   await page.getByLabel("Email").fill(email);
   await page.getByRole("button", { name: "Continue" }).click();

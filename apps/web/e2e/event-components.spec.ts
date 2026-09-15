@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { expect, test } from "./fixtures";
+import { openWorkspaceSettings } from "./helpers/workspace-utilities";
 
 test("composes planning and private-file components with canonical updates and viewer access", async ({
   page,
@@ -36,7 +37,7 @@ test("composes planning and private-file components with canonical updates and v
   });
   expect(scheduled.status()).toBe(201);
   const { resource: activity } = await scheduled.json();
-  await page.goto("/sign-in");
+  await page.goto("/sign-in/development");
   await page.getByLabel("Name", { exact: true }).fill("Planner");
   await page.getByLabel("Email").fill(email);
   await page.getByRole("button", { name: "Continue", exact: true }).click();
@@ -204,20 +205,31 @@ test("composes planning and private-file components with canonical updates and v
       })
     ).status(),
   ).toBe(201);
+  // The browser session is the cookie, so the viewer signs in through the
+  // page; the tab then acts in the shared workspace, its home staying the
+  // viewer's own.
+  const pageUrl = page.url();
+  await openWorkspaceSettings(page);
+  await page.getByRole("button", { name: "Sign out", exact: true }).click();
+  await expect(page).toHaveURL(/\/sign-in$/u);
+  await page.goto("/sign-in/development");
+  await page.getByLabel("Name", { exact: true }).fill("Viewer");
+  await page.getByLabel("Email").fill(viewerEmail);
+  await page.getByRole("button", { name: "Continue", exact: true }).click();
+  await expect(page).toHaveURL(/\/events$/u);
   await page.evaluate(
-    ({ accessToken, workspaceId, homeWorkspaceId }) => {
+    ({ workspaceId, homeWorkspaceId }) => {
       sessionStorage.setItem(
-        "chronelle.development-session",
-        JSON.stringify({ accessToken, workspaceId, homeWorkspaceId }),
+        "chronelle.session",
+        JSON.stringify({ workspaceId, homeWorkspaceId }),
       );
     },
     {
-      accessToken: viewer.accessToken,
       workspaceId: session.workspace.id,
       homeWorkspaceId: viewer.workspace.id,
     },
   );
-  await page.reload();
+  await page.goto(pageUrl);
   await expect(page.getByText("Viewer access", { exact: true })).toBeVisible();
   await expect(
     page.getByRole("button", { name: "Add component", exact: true }),

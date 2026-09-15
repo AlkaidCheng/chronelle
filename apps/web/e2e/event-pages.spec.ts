@@ -12,7 +12,7 @@ test("saves composed pages through the API and keeps canonical tasks after layou
   expect(identity.status()).toBe(200);
   const session = await identity.json();
   const headers = { authorization: `Bearer ${session.accessToken}` };
-  await page.goto("/sign-in");
+  await page.goto("/sign-in/development");
   await page.getByLabel("Name", { exact: true }).fill("Event planner");
   await page.getByLabel("Email").fill(email);
   await page.getByRole("button", { name: "Continue", exact: true }).click();

@@ -61,6 +61,7 @@ export default defineConfig({
         API_INTERNAL_URL: "http://127.0.0.1:4000",
         HOSTNAME: "127.0.0.1",
         PORT: "3000",
+        WEB_DEVELOPMENT_SIGN_IN: "true",
       },
       reuseExistingServer: !isCi,
       timeout: 60_000,

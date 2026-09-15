@@ -7,7 +7,7 @@ test("edits one canonical Event through a responsive inspector", async ({
   request,
 }, testInfo) => {
   const email = `inspector-${randomUUID()}@example.test`;
-  await page.goto("/sign-in");
+  await page.goto("/sign-in/development");
   await page.getByLabel("Name", { exact: true }).fill("Planner");
   await page.getByLabel("Email").fill(email);
   await page.getByRole("button", { name: "Continue", exact: true }).click();

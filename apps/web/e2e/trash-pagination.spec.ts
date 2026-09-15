@@ -8,7 +8,7 @@ test("paginates Trash, recovers an older canonical object and refreshes filters"
   const errors: string[] = [];
   page.on("pageerror", (error) => errors.push(error.message));
   const email = `trash-pages-${randomUUID()}@example.test`;
-  await page.goto("/sign-in");
+  await page.goto("/sign-in/development");
   await page.getByLabel("Name").fill("Recovery planner");
   await page.getByLabel("Email").fill(email);
   await page.getByRole("button", { name: "Continue" }).click();

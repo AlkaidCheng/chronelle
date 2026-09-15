@@ -23,7 +23,7 @@ test("starts an undated plan with the keyboard and reopens it after recovery", a
   page.on("pageerror", (error) => errors.push(error.message));
   if (testInfo.project.name.endsWith("mobile"))
     await page.setViewportSize({ width: 320, height: 568 });
-  await page.goto("/sign-in");
+  await page.goto("/sign-in/development");
   await page.getByLabel("Name", { exact: true }).fill("Event planner");
   await page.getByLabel("Email").fill(email);
   await page.getByRole("button", { name: "Continue", exact: true }).click();

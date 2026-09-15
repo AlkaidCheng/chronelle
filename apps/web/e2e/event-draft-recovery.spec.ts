@@ -7,7 +7,7 @@ import {
 
 async function signIn(page: Page) {
   const email = `recovery-${randomUUID()}@example.test`;
-  await page.goto("/sign-in");
+  await page.goto("/sign-in/development");
   await page.getByLabel("Name", { exact: true }).fill("Planner");
   await page.getByLabel("Email").fill(email);
   await page.getByRole("button", { name: "Continue", exact: true }).click();

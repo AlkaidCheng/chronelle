@@ -7,7 +7,7 @@ test("protects creation drafts and creates exactly one canonical date-only event
   request,
 }, testInfo) => {
   const email = `drafts-${randomUUID()}@example.test`;
-  await page.goto("/sign-in");
+  await page.goto("/sign-in/development");
   await page.getByLabel("Name", { exact: true }).fill("Planner");
   await page.getByLabel("Email").fill(email);
   await page.getByRole("button", { name: "Continue", exact: true }).click();

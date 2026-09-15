@@ -8,7 +8,7 @@ test("submits validated editors and synchronizes the browser preference", async 
 }, testInfo) => {
   const errors: string[] = [];
   page.on("pageerror", (error) => errors.push(error.message));
-  await page.goto("/sign-in");
+  await page.goto("/sign-in/development");
   await page.getByLabel("Name", { exact: true }).fill("Planner");
   await page
     .getByLabel("Email")
@@ -16,7 +16,7 @@ test("submits validated editors and synchronizes the browser preference", async 
   await page.getByRole("button", { name: "Continue", exact: true }).click();
   await exerciseEditorSubmit(page, testInfo);
   const other = await context.newPage();
-  await other.goto("/sign-in");
+  await other.goto("/sign-in/development");
   const save = page.getByRole("button", { name: "Create task", exact: true });
   await other.evaluate(() =>
     localStorage.setItem("chronelle.editor-shortcut", "disabled"),

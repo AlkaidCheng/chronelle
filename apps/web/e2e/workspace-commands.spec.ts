@@ -19,7 +19,7 @@ test("protects Task editor focus and navigates without saving discarded fields",
   });
   expect(created.status()).toBe(201);
   const event = await created.json();
-  await page.goto("/sign-in");
+  await page.goto("/sign-in/development");
   await page.getByLabel("Name", { exact: true }).fill("Event planner");
   await page.getByLabel("Email").fill(email);
   await page.getByRole("button", { name: "Continue", exact: true }).click();
@@ -34,7 +34,7 @@ test("persists shortcut opt-out and synchronizes another tab", async ({
   page,
   context,
 }) => {
-  await page.goto("/sign-in");
+  await page.goto("/sign-in/development");
   await page.getByLabel("Name", { exact: true }).fill("Keyboard planner");
   await page.getByLabel("Email").fill(`shortcuts-${randomUUID()}@example.test`);
   await page.getByRole("button", { name: "Continue", exact: true }).click();
@@ -51,7 +51,7 @@ test("persists shortcut opt-out and synchronizes another tab", async ({
   await page.keyboard.press("Control+k");
   await expect(page.getByRole("dialog")).toHaveCount(0);
   const other = await context.newPage();
-  await other.goto("/sign-in");
+  await other.goto("/sign-in/development");
   await other.evaluate(() =>
     localStorage.removeItem("chronelle.command-shortcut"),
   );
