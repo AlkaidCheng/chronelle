@@ -444,25 +444,20 @@ describe("TasksPage", () => {
     expect(within(placed).getByText("The garden")).toHaveTextContent(
       "At The garden",
     );
-    // Typing past the limit is allowed; the count says so and saving is
-    // refused until the text fits.
+    // The field counts its characters and stops at the limit: a longer
+    // paste is cut to 240 and the count turns red at 240 / 240.
     await user.click(within(placed).getByRole("button", { name: "Edit" }));
-    const over = await screen.findByRole("dialog", { name: "Edit task" });
-    const field = within(over).getByLabelText("Location");
-    expect(within(over).getByText("10 / 240")).toBeVisible();
+    const full = await screen.findByRole("dialog", { name: "Edit task" });
+    const field = within(full).getByLabelText("Location");
+    expect(within(full).getByText("10 / 240")).not.toHaveClass(
+      "field-count-full",
+    );
     await user.clear(field);
     await user.paste("x".repeat(241));
-    expect(within(over).getByText("241 / 240 (too long)")).toHaveClass(
-      "field-count-over",
-    );
-    expect(field).toHaveAttribute("aria-invalid", "true");
-    await user.click(within(over).getByRole("button", { name: "Save task" }));
-    expect(
-      await within(over).findByText("Keep the location to 240 characters."),
-    ).toBeVisible();
-    expect(screen.getByRole("dialog", { name: "Edit task" })).toBeVisible();
-    await user.click(within(over).getByRole("button", { name: "Cancel" }));
-    await user.click(within(over).getByRole("button", { name: "Discard" }));
+    expect(field).toHaveValue("x".repeat(240));
+    expect(within(full).getByText("240 / 240")).toHaveClass("field-count-full");
+    await user.click(within(full).getByRole("button", { name: "Cancel" }));
+    await user.click(within(full).getByRole("button", { name: "Discard" }));
     await waitFor(() =>
       expect(screen.queryByRole("dialog", { name: "Edit task" })).toBeNull(),
     );

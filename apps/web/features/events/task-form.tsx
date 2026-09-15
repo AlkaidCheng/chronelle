@@ -116,8 +116,7 @@ function TaskEditor({
     draft.fields;
   const mutation = task === undefined ? create : update;
   const [fieldError, setFieldError] = useState("");
-  const locationLength = location.trim().length;
-  const locationOver = locationLength > locationLimit;
+  const locationFull = location.length >= locationLimit;
   const openHistory = useOpenHistory();
   const close = () => {
     recovery.discard();
@@ -317,22 +316,25 @@ function TaskEditor({
             <span id={`${headingId}-location-label`}>Location</span>
             <input
               aria-describedby={`${headingId}-location-count`}
-              aria-invalid={locationOver}
               aria-labelledby={`${headingId}-location-label`}
               disabled={mutation.isPending}
+              maxLength={locationLimit}
               onChange={(input) =>
-                draft.change({ location: input.target.value })
+                // The browser stops typing at the limit; a paste or a
+                // composition that lands past it is cut to the limit.
+                draft.change({
+                  location: input.target.value.slice(0, locationLimit),
+                })
               }
               placeholder="Where it happens"
               value={location}
             />
             <span
               aria-live="polite"
-              className={`field-count${locationOver ? " field-count-over" : ""}`}
+              className={`field-count${locationFull ? " field-count-full" : ""}`}
               id={`${headingId}-location-count`}
             >
-              {locationLength} / {locationLimit}
-              {locationOver ? " (too long)" : ""}
+              {location.length} / {locationLimit}
             </span>
           </label>
           {fieldError && <p role="alert">{fieldError}</p>}
