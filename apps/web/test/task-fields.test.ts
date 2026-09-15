@@ -1,7 +1,13 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { readTaskFields, taskFieldsPayload } from "../lib/task-fields";
 
-const empty = { displayName: "Pack", dueDate: "", dueTime: "", labels: "" };
+const empty = {
+  displayName: "Pack",
+  dueDate: "",
+  dueTime: "",
+  assignee: "",
+  labels: "",
+};
 
 describe("Task field conversion", () => {
   afterEach(() => vi.unstubAllEnvs());
@@ -11,12 +17,14 @@ describe("Task field conversion", () => {
       displayName: "",
       dueDate: "",
       dueTime: "",
+      assignee: "",
       labels: "",
     });
     expect(taskFieldsPayload(empty)).toEqual({
       displayName: "Pack",
       dueOn: null,
       dueAt: null,
+      assigneeId: null,
       labelIds: [],
     });
   });
@@ -28,22 +36,28 @@ describe("Task field conversion", () => {
         displayName: "Pack",
         dueOn: "2030-07-03",
         dueAt: null,
+        assigneeId: "u1",
         labelIds: ["b", "a", "b"],
       }),
     ).toEqual({
       displayName: "Pack",
       dueDate: "2030-07-03",
       dueTime: "",
+      assignee: "u1",
       labels: "a,b",
     });
     expect(taskFieldsPayload({ ...empty, labels: "a,b" }).labelIds).toEqual([
       "a",
       "b",
     ]);
+    expect(taskFieldsPayload({ ...empty, assignee: "u1" }).assigneeId).toBe(
+      "u1",
+    );
     expect(taskFieldsPayload({ ...empty, dueDate: "2030-07-03" })).toEqual({
       displayName: "Pack",
       dueOn: "2030-07-03",
       dueAt: null,
+      assigneeId: null,
       labelIds: [],
     });
     expect(
@@ -52,6 +66,7 @@ describe("Task field conversion", () => {
       displayName: "Pack",
       dueOn: null,
       dueAt: "2030-07-03T19:30:00.000Z",
+      assigneeId: null,
       labelIds: [],
     });
   });
@@ -62,6 +77,7 @@ describe("Task field conversion", () => {
       displayName: "Pack",
       dueOn: null,
       dueAt: "2030-07-03T18:30:45.678Z",
+      assigneeId: null,
       labelIds: [],
     };
     const fields = readTaskFields(source);
@@ -69,6 +85,7 @@ describe("Task field conversion", () => {
       displayName: "Pack",
       dueDate: "2030-07-03",
       dueTime: "11:30",
+      assignee: "",
       labels: "",
     });
     expect(
@@ -77,6 +94,7 @@ describe("Task field conversion", () => {
       displayName: "Pack bags",
       dueOn: null,
       dueAt: source.dueAt,
+      assigneeId: null,
       labelIds: [],
     });
   });
@@ -94,6 +112,7 @@ describe("Task field conversion", () => {
       displayName: "Pack",
       dueOn: null,
       dueAt: null,
+      assigneeId: null,
       labelIds: [],
     });
   });

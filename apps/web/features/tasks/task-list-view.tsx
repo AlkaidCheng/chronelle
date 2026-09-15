@@ -96,6 +96,7 @@ export function TaskListView({
   eventId,
   labelNames,
   onAddSubtask,
+  personNames,
   onEdit,
   onRefresh,
   parents,
@@ -109,6 +110,8 @@ export function TaskListView({
   readonly eventId?: string | undefined;
   /** Label names by id; a label the container has not loaded shows nothing. */
   readonly labelNames?: ReadonlyMap<string, string> | undefined;
+  /** People's names by id; an assignee the container has not loaded shows nothing. */
+  readonly personNames?: ReadonlyMap<string, string> | undefined;
   /** Offers a subtask under a task that has no parent of its own. */
   readonly onAddSubtask?: ((task: TaskResponse) => void) | undefined;
   readonly onEdit: (taskId: string) => void;
@@ -131,8 +134,18 @@ export function TaskListView({
         const name = labelNames?.get(id);
         return name === undefined ? [] : [{ id, name }];
       });
+      const assignee =
+        task.assigneeId === null
+          ? undefined
+          : personNames?.get(task.assigneeId);
       return (
         <>
+          {assignee === undefined ? null : (
+            <span className="task-assignee">
+              <span className="visually-hidden">Assigned to </span>
+              {assignee}
+            </span>
+          )}
           {named.length > 0 ? (
             <ul aria-label="Labels" className="task-labels">
               {named.map((label) => (
@@ -158,7 +171,7 @@ export function TaskListView({
         </>
       );
     },
-    [labelNames, parents, progress],
+    [labelNames, parents, personNames, progress],
   );
   const context = useCallback(
     (task: TaskResponse) => {

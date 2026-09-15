@@ -35,6 +35,7 @@ import { deriveTaskTree } from "../../lib/task-tree";
 import { formatMoney, sumMoneyByCurrency } from "../../lib/money";
 import {
   useLabelsQuery,
+  usePersonsQuery,
   useRefreshEvent,
   useUpdateReminder,
 } from "../../lib/queries";
@@ -71,6 +72,7 @@ export function TasksPanel({
   // The projection holds every task of the Event, so the tree is derived here.
   const tree = useMemo(() => deriveTaskTree(tasks), [tasks]);
   const labels = useLabelsQuery();
+  const persons = usePersonsQuery();
   // Stable, so the row cells keep their identity and focus across renders.
   const addSubtask = useCallback(
     (task: TaskResponse) =>
@@ -171,6 +173,7 @@ export function TasksPanel({
           onEdit={setEditingId}
           onRefresh={refresh}
           parents={tree.parents}
+          personNames={persons.data?.names}
           progress={tree.progress}
           tasks={filteredTasks}
           view={view}
