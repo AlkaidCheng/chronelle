@@ -145,6 +145,6 @@ export async function exerciseContextCommands(
   await expect(
     dialog.getByRole("group", { name: "Event actions" }),
   ).toHaveCount(0);
-  await expect(results.getByRole("option")).toHaveCount(4);
+  await expect(results.getByRole("option")).toHaveCount(5);
   await page.keyboard.press("Escape");
 }

@@ -71,6 +71,22 @@ export function CalendarIcon({ className }: IconProps) {
   );
 }
 
+export function PeopleIcon({ className }: IconProps) {
+  return (
+    <svg
+      aria-hidden="true"
+      className={className}
+      fill="none"
+      viewBox="0 0 24 24"
+    >
+      <circle cx="9" cy="8" r="3.5" />
+      <path d="M3.5 19a5.5 5.5 0 0 1 11 0" />
+      <path d="M15.5 5.2a3.2 3.2 0 0 1 0 5.6" />
+      <path d="M16.5 14.2a4.8 4.8 0 0 1 3.9 4.8" />
+    </svg>
+  );
+}
+
 export function CheckIcon({ className }: IconProps) {
   return (
     <svg

@@ -35,7 +35,7 @@ export async function exerciseWorkspaceCommands(
   await expect(input).toBeFocused();
   await expect(
     results.getByRole("group", { name: "Navigation" }).getByRole("option"),
-  ).toHaveCount(4);
+  ).toHaveCount(5);
   const firstCommandId = await results
     .getByRole("option")
     .first()

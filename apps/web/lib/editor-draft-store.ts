@@ -1,6 +1,7 @@
 import type {
   EventResponse,
   ExpenseResponse,
+  PersonResponse,
   ReminderResponse,
   TaskResponse,
 } from "@chronelle/schemas";
@@ -11,6 +12,7 @@ import type { ContextCreateAttempt } from "./queries";
 import type { readTaskFields } from "./task-fields";
 import type { readExpenseFields } from "./expense-fields";
 import type { readReminderFields } from "./reminder-fields";
+import type { readPersonFields } from "./person-fields";
 
 export function readEventFields(event?: EventResponse) {
   return { displayName: event?.displayName ?? "", ...readEventSchedule(event) };
@@ -42,11 +44,20 @@ export type ReminderDraftSnapshot = EditorDraftSnapshot<
   readonly creationAttempt?: ContextCreateAttempt;
 };
 
+export type PersonDraftSnapshot = EditorDraftSnapshot<
+  PersonResponse,
+  ReturnType<typeof readPersonFields>
+> & {
+  readonly kind: "person";
+  readonly creationAttempt?: ContextCreateAttempt;
+};
+
 export type RetainedDraftSnapshot =
   | EventDraftSnapshot
   | TaskDraftSnapshot
   | ExpenseDraftSnapshot
-  | ReminderDraftSnapshot;
+  | ReminderDraftSnapshot
+  | PersonDraftSnapshot;
 
 export function eventCreationDraftKeys(eventId: string) {
   return {

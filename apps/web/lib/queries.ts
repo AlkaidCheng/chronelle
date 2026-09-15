@@ -15,6 +15,8 @@ import type {
   TaskListResponse,
   LabelCreateRequest,
   PersonCreatePayload,
+  PersonListQueryInput,
+  PersonUpdatePayload,
   LabelUpdateRequest,
   EventResponse,
   ExpenseUpdatePayload,
@@ -156,13 +158,16 @@ export function useLabelsQuery() {
 }
 
 /** The workspace's people in name order, by id and as a list. */
-export function usePersonsQuery(enabled = true) {
+export function usePersonsQuery(
+  enabled = true,
+  input: PersonListQueryInput = {},
+) {
   const client = useApiClient();
   const { credential } = useAuthSession();
   return useQuery({
     enabled: enabled && credential !== null,
-    queryFn: ({ signal }) => client.withSignal(signal).listPersons(),
-    queryKey: [...queryKeys.persons, credential?.workspaceId],
+    queryFn: ({ signal }) => client.withSignal(signal).listPersons(input),
+    queryKey: [...queryKeys.persons, credential?.workspaceId, input],
     select: (page) => ({
       items: page.items,
       names: new Map(
@@ -177,6 +182,18 @@ export function useCreatePerson() {
   const invalidate = useCanonicalInvalidation();
   return useMutation({
     mutationFn: (input: PersonCreatePayload) => client.createPerson(input),
+    onSuccess: () => {
+      void invalidate();
+    },
+  });
+}
+
+export function useUpdatePerson() {
+  const client = useApiClient();
+  const invalidate = useCanonicalInvalidation();
+  return useMutation({
+    mutationFn: ({ id, input }: { id: string; input: PersonUpdatePayload }) =>
+      client.updatePerson(id, input),
     onSuccess: () => {
       void invalidate();
     },
@@ -336,6 +353,14 @@ export function useExpenseEditorQueries(expenseId: string) {
     (client, id) => client.getExpense(id),
   );
   return { expense, access };
+}
+
+export function usePersonEditorQueries(personId: string) {
+  const { resource: person, access } = useObjectEditorQueries(
+    personId,
+    (client, id) => client.getPerson(id),
+  );
+  return { person, access };
 }
 
 export function useReminderEditorQueries(reminderId: string) {

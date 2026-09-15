@@ -130,6 +130,141 @@ h3,
   padding: 2px 8px;
 }
 
+.person-grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.person-card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  display: grid;
+  gap: 10px 12px;
+  grid-template-columns: auto 1fr;
+  padding: 14px 16px;
+}
+
+.person-card .row-actions {
+  grid-column: 1 / -1;
+}
+
+.person-avatar {
+  align-items: center;
+  background: var(--accent-soft);
+  border-radius: 999px;
+  color: var(--accent);
+  display: inline-flex;
+  font-size: 0.8rem;
+  font-weight: 700;
+  height: 40px;
+  justify-content: center;
+  letter-spacing: 0.04em;
+  width: 40px;
+}
+
+.person-copy {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.person-copy h3 {
+  font-size: 1rem;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.person-me,
+.person-linked {
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 500;
+  margin: 0;
+}
+
+.person-email {
+  font-size: 0.85rem;
+  overflow-wrap: anywhere;
+}
+
+.person-fields-list {
+  display: grid;
+  gap: 4px 12px;
+  grid-template-columns: max-content 1fr;
+  margin: 4px 0 0;
+}
+
+.person-fields-list div {
+  display: contents;
+}
+
+.person-fields-list dt {
+  color: var(--muted);
+  font-size: 0.73rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.person-fields-list dd {
+  font-size: 0.85rem;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.person-fields {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 10px 14px;
+}
+
+.person-fields legend {
+  font-size: 0.78rem;
+  font-weight: 700;
+  padding: 0 4px;
+}
+
+.person-field-rows {
+  display: grid;
+  gap: 8px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.person-field-rows li {
+  align-items: end;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.person-field-rows .field {
+  flex: 1 1 120px;
+  margin: 0;
+}
+
+.shown-fields {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 8px 12px;
+  position: relative;
+}
+
+.shown-fields summary {
+  cursor: pointer;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
 .task-assignee {
   border: 1px solid var(--line);
   border-radius: 999px;

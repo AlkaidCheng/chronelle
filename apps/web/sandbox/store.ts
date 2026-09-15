@@ -90,8 +90,8 @@ function canonical(
     version: 1,
     archivedAt: null,
     deletedAt: null,
-    customProperties: {},
-    metadata: {},
+    customProperties: input.customProperties ?? {},
+    metadata: input.metadata ?? {},
   });
 }
 

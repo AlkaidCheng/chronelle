@@ -25,7 +25,7 @@ test("offers the same navigation to Viewers without editing commands", async ({
   await page.getByLabel("Preview role").selectOption("viewer");
   await page.getByRole("button", { name: "Commands", exact: true }).click();
   const dialog = page.getByRole("dialog", { name: "Commands", exact: true });
-  await expect(dialog.getByRole("listbox").getByRole("option")).toHaveCount(4);
+  await expect(dialog.getByRole("listbox").getByRole("option")).toHaveCount(5);
   await expect(
     dialog.getByRole("option", { name: /create|edit|add/i }),
   ).toHaveCount(0);
