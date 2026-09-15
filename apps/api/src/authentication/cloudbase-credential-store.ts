@@ -18,6 +18,8 @@ import {
   type AttemptPolicy,
   CredentialConflictError,
   type CredentialStore,
+  type IssueOutcome,
+  type IssuePolicy,
   type PasswordAccount,
   type VerificationOutcome,
 } from "./credential-store.js";
@@ -158,14 +160,31 @@ export class CloudBaseCredentialStore implements CredentialStore {
     purpose: VerificationPurpose,
     codeHash: string,
     expiresAt: Date,
-  ): Promise<EmailVerificationRow> {
-    const issued = await this.#call("chronelle_verification_issue", {
+    policy: IssuePolicy,
+  ): Promise<IssueOutcome> {
+    const result = await this.#call("chronelle_verification_issue", {
       user_id: userId,
       purpose,
       code_hash: codeHash,
       expires_at: expiresAt.toISOString(),
+      min_interval_seconds: Math.ceil(policy.minIntervalMs / 1_000),
+      window_seconds: Math.ceil(policy.windowMs / 1_000),
+      max_per_window: policy.maxPerWindow,
     });
-    return verificationRow(record(issued, "verification"));
+    const outcome = record(result, "issue result");
+    if (outcome.throttled === true) {
+      const retryAfterSeconds = integer(
+        outcome.retryAfterSeconds,
+        "retryAfterSeconds",
+      );
+      return { throttled: true, retryAfterMs: retryAfterSeconds * 1_000 };
+    }
+    return {
+      throttled: false,
+      verification: verificationRow(
+        record(outcome.verification, "verification"),
+      ),
+    };
   }
 
   async consumeVerification(

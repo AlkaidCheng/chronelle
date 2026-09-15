@@ -28,7 +28,7 @@ import {
 // document transfer functions (0026), chronelle_identity_sign_in (0027),
 // chronelle_backend_readiness (0028), the chronelle_session_* functions
 // (0030 and 0031), and the credential functions (0032) against the real
-// gateway. The
+// gateway; 0033 shapes the issue result as {throttled, verification}. The
 // transfer steps record the rows around a storage transfer without moving
 // bytes: the finalized probe Document names a key that was never written. The probes end soft-deleted through the delete
 // function, because their audit and revision rows are append-only.
@@ -845,7 +845,8 @@ try {
         locked?.locked_until === null ||
         cleared?.locked_until !== null ||
         verified?.email_verified_at === null ||
-        issued?.consumed_at !== null ||
+        issued?.throttled !== false ||
+        issued.verification?.consumed_at !== null ||
         mismatch?.status !== "mismatch" ||
         consumed?.status !== "consumed" ||
         replaced?.failed_attempts !== 0
