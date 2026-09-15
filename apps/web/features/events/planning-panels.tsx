@@ -8,16 +8,9 @@ import type {
   TaskResponse,
   TimelineResponse,
 } from "@chronelle/schemas";
-import {
-  createColumnHelper,
-  flexRender,
-  getCoreRowModel,
-  useReactTable,
-} from "@tanstack/react-table";
-import { useCallback, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 
 import { EmptyState, ErrorNotice } from "../../components/feedback";
-import { CheckIcon } from "../../components/icons";
 import { HistoryButton } from "../history/history-button";
 import { LifecycleButton } from "../recovery/lifecycle-provider";
 import { ObjectDetails } from "../../components/object-details";
@@ -37,24 +30,18 @@ import {
   formatEventSchedule,
 } from "../../lib/event-schedule";
 import { viewsOf } from "../../lib/event-components";
-import { formatDatePart, formatDateTime, formatTime } from "../../lib/format";
-import { formatTaskDue } from "../../lib/task-due";
+import { formatDatePart, formatDateTime } from "../../lib/format";
 import { formatMoney, sumMoneyByCurrency } from "../../lib/money";
-import { groupTasksByDay } from "../../lib/task-groups";
-import {
-  useRefreshEvent,
-  useUpdateReminder,
-  useUpdateTask,
-} from "../../lib/queries";
+import { useRefreshEvent, useUpdateReminder } from "../../lib/queries";
 import { ExpenseForm } from "./expense-form";
 import { ExpenseInspector } from "./expense-inspector";
 import { ReminderForm } from "./reminder-form";
 import { ReminderInspector } from "./reminder-inspector";
 import { TaskForm } from "./task-form";
 import { TaskInspector } from "./task-inspector";
+import { TaskListView } from "../tasks/task-list-view";
 
 type TaskFilter = "all" | "open" | "done";
-const taskColumn = createColumnHelper<TaskResponse>();
 
 export function TasksPanel({
   canEdit,
@@ -74,8 +61,6 @@ export function TasksPanel({
   const [filter, setFilter] = useState<TaskFilter>("open");
   const [isAdding, setIsAdding] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const update = useUpdateTask();
-  const { mutate: updateTask, isPending: isUpdatingTask } = update;
   const refresh = useRefreshEvent(eventId);
   const filteredTasks = useMemo(
     () =>
@@ -90,95 +75,6 @@ export function TasksPanel({
       }),
     [filter, tasks],
   );
-  const groups = useMemo(
-    () => (view === "by-day" ? groupTasksByDay(filteredTasks, new Date()) : []),
-    [filteredTasks, view],
-  );
-  const check = useCallback(
-    (task: TaskResponse) => {
-      const isDone = task.status === "done";
-      return (
-        <button
-          aria-label={
-            isDone
-              ? `Reopen ${task.displayName}`
-              : `Complete ${task.displayName}`
-          }
-          className={`task-check${isDone ? " checked" : ""}`}
-          disabled={!canEdit || isUpdatingTask}
-          onClick={() =>
-            updateTask({
-              id: task.id,
-              input: {
-                completedAt: isDone ? null : new Date().toISOString(),
-                expectedVersion: task.version,
-                status: isDone ? "todo" : "done",
-              },
-            })
-          }
-          type="button"
-        >
-          {isDone ? <CheckIcon /> : null}
-        </button>
-      );
-    },
-    [canEdit, isUpdatingTask, updateTask],
-  );
-  const actions = useCallback(
-    (task: TaskResponse) => (
-      <RowActions>
-        {canEdit ? (
-          <button
-            className="button button-quiet button-small"
-            onClick={() => setEditingId(task.id)}
-            type="button"
-          >
-            Edit
-          </button>
-        ) : null}
-        <HistoryButton objectId={task.id} displayName={task.displayName} />
-        {canEdit ? <LifecycleButton target={{ ...task, eventId }} /> : null}
-      </RowActions>
-    ),
-    [canEdit, eventId],
-  );
-  const columns = useMemo(
-    () => [
-      taskColumn.display({
-        id: "complete",
-        cell: ({ row }) => check(row.original),
-      }),
-      taskColumn.accessor("displayName", {
-        header: "Task",
-        cell: ({ row }) => (
-          <div className="primary-cell">
-            <strong>{row.original.displayName}</strong>
-            <ObjectDetails id={row.original.id} />
-          </div>
-        ),
-      }),
-      taskColumn.display({
-        id: "due",
-        header: "Due",
-        cell: ({ row }) => formatTaskDue(row.original),
-      }),
-      taskColumn.accessor("status", {
-        header: "Status",
-        cell: ({ getValue }) => <StatusChip status={getValue()} />,
-      }),
-      taskColumn.display({
-        id: "actions",
-        cell: ({ row }) => actions(row.original),
-      }),
-    ],
-    [actions, check],
-  );
-  const table = useReactTable({
-    columns,
-    data: filteredTasks,
-    getRowId: (task) => task.id,
-    getCoreRowModel: getCoreRowModel(),
-  });
 
   return (
     <section className="planning-panel">
@@ -228,12 +124,6 @@ export function TasksPanel({
           </button>
         ))}
       </fieldset>
-      {update.isError ? (
-        <ErrorNotice
-          error={update.error}
-          onRefresh={() => void refresh().then(() => update.reset())}
-        />
-      ) : null}
       {filteredTasks.length === 0 ? (
         <EmptyState
           description={
@@ -245,79 +135,15 @@ export function TasksPanel({
           }
           title={tasks.length === 0 ? "No tasks yet" : "Nothing in this view"}
         />
-      ) : view === "by-day" ? (
-        <div className="day-groups">
-          {groups.map((group) => (
-            <section
-              aria-label={group.label.join(", ")}
-              className={`day-group day-group-${group.tone}`}
-              key={group.key}
-            >
-              <h3 className="day-group-heading">
-                {group.label.map((part) => (
-                  <span key={part}>{part}</span>
-                ))}
-              </h3>
-              <ul className="resource-list">
-                {group.tasks.map((task) => (
-                  <li key={task.id}>
-                    {check(task)}
-                    <div className="resource-copy">
-                      <strong>{task.displayName}</strong>
-                      {task.dueAt !== null ? (
-                        <p>
-                          {group.tone === "overdue"
-                            ? formatDateTime(task.dueAt)
-                            : formatTime(task.dueAt)}
-                        </p>
-                      ) : task.dueOn !== null && group.tone === "overdue" ? (
-                        <p>{formatCalendarDate(task.dueOn)}</p>
-                      ) : null}
-                      <ObjectDetails id={task.id} />
-                    </div>
-                    <StatusChip status={task.status} />
-                    {actions(task)}
-                  </li>
-                ))}
-              </ul>
-            </section>
-          ))}
-        </div>
       ) : (
-        <div className="table-wrap">
-          <table className="data-table">
-            <thead>
-              {table.getHeaderGroups().map((headerGroup) => (
-                <tr key={headerGroup.id}>
-                  {headerGroup.headers.map((header) => (
-                    <th key={header.id}>
-                      {header.isPlaceholder
-                        ? null
-                        : flexRender(
-                            header.column.columnDef.header,
-                            header.getContext(),
-                          )}
-                    </th>
-                  ))}
-                </tr>
-              ))}
-            </thead>
-            <tbody>
-              {table.getRowModel().rows.map((row) => (
-                <tr key={row.id}>
-                  {row.getVisibleCells().map((cell) => (
-                    <td key={cell.id}>
-                      {flexRender(
-                        cell.column.columnDef.cell,
-                        cell.getContext(),
-                      )}
-                    </td>
-                  ))}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <TaskListView
+          canEdit={canEdit}
+          eventId={eventId}
+          onEdit={setEditingId}
+          onRefresh={refresh}
+          tasks={filteredTasks}
+          view={view}
+        />
       )}
       {canEdit && editingId ? (
         <TaskInspector
