@@ -16,6 +16,7 @@ import { DownloadIcon, LockIcon, PaperclipIcon } from "../../components/icons";
 import { formatBytes, shortId } from "../../lib/format";
 import { HistoryButton } from "../history/history-button";
 import { LifecycleButton } from "../recovery/lifecycle-provider";
+import { PanelHeading, RowActions } from "./component-frame";
 import {
   useAttachDocument,
   useDocumentAttachments,
@@ -95,16 +96,10 @@ export function DocumentsPanel({
 
   return (
     <section className="planning-panel documents-panel">
-      <header className="panel-heading">
-        <div>
-          <h2>Files</h2>
-          <p>
-            Private attachments stay connected to one canonical Event, Task, or
-            Expense.
-          </p>
-        </div>
-        <PaperclipIcon className="heading-icon-small" />
-      </header>
+      <PanelHeading
+        description="Private attachments stay connected to one canonical Event, Task, or Expense."
+        title="Files"
+      />
 
       <label className="field attachment-target" htmlFor={targetInputId}>
         <span>Show files attached to</span>
@@ -219,11 +214,7 @@ export function DocumentsPanel({
                         SHA-256 {file.checksumSha256.slice(0, 12)}...
                       </code>
                     </div>
-                    <div className="attachment-actions">
-                      <HistoryButton
-                        objectId={file.id}
-                        displayName={file.originalFilename}
-                      />
+                    <RowActions>
                       <button
                         className="button button-secondary button-small"
                         disabled={download.isPending}
@@ -238,6 +229,10 @@ export function DocumentsPanel({
                         <DownloadIcon />
                         {isDownloading ? "Preparing..." : "Download"}
                       </button>
+                      <HistoryButton
+                        objectId={file.id}
+                        displayName={file.originalFilename}
+                      />
                       {canEdit ? (
                         <LifecycleButton
                           target={{
@@ -249,7 +244,7 @@ export function DocumentsPanel({
                           }}
                         />
                       ) : null}
-                    </div>
+                    </RowActions>
                   </article>
                 );
               })}

@@ -13,13 +13,20 @@ import {
   getCoreRowModel,
   useReactTable,
 } from "@tanstack/react-table";
-import { type ReactNode, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 
 import { EmptyState, ErrorNotice } from "../../components/feedback";
 import { CheckIcon } from "../../components/icons";
 import { HistoryButton } from "../history/history-button";
 import { LifecycleButton } from "../recovery/lifecycle-provider";
 import { ObjectDetails } from "../../components/object-details";
+import {
+  DateTile,
+  objectTypeLabel,
+  PanelHeading,
+  RowActions,
+  StatusChip,
+} from "./component-frame";
 import { ScheduleItemInspector } from "./schedule-item-inspector";
 import { CreateScheduleDialog } from "./create-schedule-dialog";
 import {
@@ -40,26 +47,6 @@ import { ReminderForm } from "./reminder-form";
 import { ReminderInspector } from "./reminder-inspector";
 import { TaskForm } from "./task-form";
 import { TaskInspector } from "./task-inspector";
-
-function PanelHeading({
-  action,
-  description,
-  title,
-}: {
-  readonly action?: ReactNode;
-  readonly description: string;
-  readonly title: string;
-}) {
-  return (
-    <header className="panel-heading">
-      <div>
-        <h2>{title}</h2>
-        <p>{description}</p>
-      </div>
-      {action}
-    </header>
-  );
-}
 
 type TaskFilter = "all" | "open" | "done";
 const taskColumn = createColumnHelper<TaskResponse>();
@@ -140,16 +127,12 @@ export function TasksPanel({
       }),
       taskColumn.accessor("status", {
         header: "Status",
-        cell: ({ getValue }) => (
-          <span className={`status-chip status-${getValue()}`}>
-            {getValue().replace("_", " ")}
-          </span>
-        ),
+        cell: ({ getValue }) => <StatusChip status={getValue()} />,
       }),
       taskColumn.display({
         id: "actions",
         cell: ({ row }) => (
-          <div className="row-actions">
+          <RowActions>
             {canEdit ? (
               <button
                 className="button button-quiet button-small"
@@ -166,7 +149,7 @@ export function TasksPanel({
             {canEdit ? (
               <LifecycleButton target={{ ...row.original, eventId }} />
             ) : null}
-          </div>
+          </RowActions>
         ),
       }),
     ],
@@ -329,35 +312,38 @@ export function CalendarPanel({
           title="Nothing scheduled"
         />
       ) : (
-        <div className="calendar-list">
+        <div className="resource-list">
           {items.map((item) => (
-            <article className="calendar-item" key={item.id}>
-              <time dateTime={item.startsOn ?? item.startsAt ?? undefined}>
-                <strong>{formatEventDatePart(item, "day")}</strong>
-                <span>{formatEventDatePart(item, "month").toUpperCase()}</span>
-              </time>
-              <div>
-                <span className="object-label">Scheduled event</span>
+            <article key={item.id}>
+              <DateTile
+                dateTime={item.startsOn ?? item.startsAt ?? undefined}
+                day={formatEventDatePart(item, "day")}
+                month={formatEventDatePart(item, "month")}
+              />
+              <div className="resource-copy">
+                <span className="object-label">{objectTypeLabel("event")}</span>
                 <h3>{item.displayName}</h3>
                 <p>{formatEventSchedule(item)}</p>
                 <ObjectDetails id={item.id} />
               </div>
-              {canEdit ? (
-                <button
-                  className="button button-quiet button-small"
-                  onClick={() => setEditingId(item.id)}
-                  type="button"
-                >
-                  Edit
-                </button>
-              ) : null}
-              <HistoryButton
-                objectId={item.id}
-                displayName={item.displayName}
-              />
-              {canEdit ? (
-                <LifecycleButton target={{ ...item, eventId }} />
-              ) : null}
+              <RowActions>
+                {canEdit ? (
+                  <button
+                    className="button button-quiet button-small"
+                    onClick={() => setEditingId(item.id)}
+                    type="button"
+                  >
+                    Edit
+                  </button>
+                ) : null}
+                <HistoryButton
+                  objectId={item.id}
+                  displayName={item.displayName}
+                />
+                {canEdit ? (
+                  <LifecycleButton target={{ ...item, eventId }} />
+                ) : null}
+              </RowActions>
             </article>
           ))}
         </div>
@@ -400,13 +386,17 @@ export function TimelinePanel({
                   : formatDateTime(item.occursAt)}
               </time>
               <div>
-                <span className="object-label">{item.objectType}</span>
+                <span className="object-label">
+                  {objectTypeLabel(item.objectType)}
+                </span>
                 <h3>{item.displayName}</h3>
                 <ObjectDetails id={item.canonicalObjectId} />
-                <HistoryButton
-                  objectId={item.canonicalObjectId}
-                  displayName={item.displayName}
-                />
+                <RowActions>
+                  <HistoryButton
+                    objectId={item.canonicalObjectId}
+                    displayName={item.displayName}
+                  />
+                </RowActions>
               </div>
             </li>
           ))}
@@ -445,10 +435,12 @@ export function ItineraryPanel({
                 </time>
                 <h3>{item.displayName}</h3>
                 <ObjectDetails id={item.id} />
-                <HistoryButton
-                  objectId={item.id}
-                  displayName={item.displayName}
-                />
+                <RowActions>
+                  <HistoryButton
+                    objectId={item.id}
+                    displayName={item.displayName}
+                  />
+                </RowActions>
               </div>
             </li>
           ))}
@@ -479,7 +471,7 @@ export function ExpensesPanel({
         action={
           canEdit ? (
             <button
-              className="button button-primary button-small"
+              className="button button-secondary"
               type="button"
               onClick={() => setIsAdding(true)}
             >
@@ -514,7 +506,7 @@ export function ExpensesPanel({
         <EmptyState
           description={
             canEdit
-              ? "Choose Add expense to record a transaction."
+              ? "Use Add expense to record a transaction."
               : "Recorded transactions will appear here when available. This event is read-only."
           }
           title="No expenses recorded"
@@ -523,7 +515,7 @@ export function ExpensesPanel({
         <div className="resource-list">
           {expenses.map((expense) => (
             <article key={expense.id}>
-              <div>
+              <div className="resource-copy">
                 <span className="object-label">
                   {formatDateTime(expense.occurredAt)}
                 </span>
@@ -533,22 +525,24 @@ export function ExpensesPanel({
               <strong className="money-value">
                 {formatMoney(expense.amount, expense.currency)}
               </strong>
-              <HistoryButton
-                objectId={expense.id}
-                displayName={expense.displayName}
-              />
-              {canEdit ? (
-                <LifecycleButton target={{ ...expense, eventId }} />
-              ) : null}
-              {canEdit ? (
-                <button
-                  className="button button-quiet button-small"
-                  onClick={() => setEditingId(expense.id)}
-                  type="button"
-                >
-                  Edit
-                </button>
-              ) : null}
+              <RowActions>
+                {canEdit ? (
+                  <button
+                    className="button button-quiet button-small"
+                    onClick={() => setEditingId(expense.id)}
+                    type="button"
+                  >
+                    Edit
+                  </button>
+                ) : null}
+                <HistoryButton
+                  objectId={expense.id}
+                  displayName={expense.displayName}
+                />
+                {canEdit ? (
+                  <LifecycleButton target={{ ...expense, eventId }} />
+                ) : null}
+              </RowActions>
             </article>
           ))}
         </div>
@@ -587,7 +581,7 @@ export function RemindersPanel({
         action={
           canEdit ? (
             <button
-              className="button button-primary button-small"
+              className="button button-secondary"
               type="button"
               onClick={() => setIsAdding(true)}
             >
@@ -619,30 +613,31 @@ export function RemindersPanel({
           title="No reminders"
         />
       ) : (
-        <div className="resource-list reminder-list">
+        <div className="resource-list">
           {reminders.map((reminder) => (
             <article key={reminder.id}>
-              <div className="reminder-time">
-                <span>{formatDatePart(reminder.remindAt, "month")}</span>
-                <strong>{formatDatePart(reminder.remindAt, "day")}</strong>
-              </div>
-              <div>
+              <DateTile
+                dateTime={reminder.remindAt}
+                day={formatDatePart(reminder.remindAt, "day")}
+                month={formatDatePart(reminder.remindAt, "month")}
+              />
+              <div className="resource-copy">
                 <span className="object-label">
                   {formatDateTime(reminder.remindAt)}
                 </span>
                 <h3>{reminder.displayName}</h3>
                 <ObjectDetails id={reminder.id} />
               </div>
-              <span className={`status-chip status-${reminder.status}`}>
-                {reminder.status}
-              </span>
-              <div className="row-actions">
-                <HistoryButton
-                  objectId={reminder.id}
-                  displayName={reminder.displayName}
-                />
+              <StatusChip status={reminder.status} />
+              <RowActions>
                 {canEdit ? (
-                  <LifecycleButton target={{ ...reminder, eventId }} />
+                  <button
+                    className="button button-quiet button-small"
+                    onClick={() => setEditingId(reminder.id)}
+                    type="button"
+                  >
+                    Edit
+                  </button>
                 ) : null}
                 {canEdit && reminder.status === "pending" ? (
                   <button
@@ -662,16 +657,14 @@ export function RemindersPanel({
                     Dismiss
                   </button>
                 ) : null}
+                <HistoryButton
+                  objectId={reminder.id}
+                  displayName={reminder.displayName}
+                />
                 {canEdit ? (
-                  <button
-                    className="button button-quiet button-small"
-                    onClick={() => setEditingId(reminder.id)}
-                    type="button"
-                  >
-                    Edit
-                  </button>
+                  <LifecycleButton target={{ ...reminder, eventId }} />
                 ) : null}
-              </div>
+              </RowActions>
             </article>
           ))}
         </div>

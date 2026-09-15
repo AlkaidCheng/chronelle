@@ -964,7 +964,7 @@ a.search-result:hover {
 }
 
 .event-date-mark,
-.reminder-time {
+.date-tile {
   align-items: center;
   background: var(--accent-soft);
   border-radius: 9px;
@@ -977,14 +977,14 @@ a.search-result:hover {
 }
 
 .event-date-mark span,
-.reminder-time span {
+.date-tile span {
   font-size: 0.6rem;
   font-weight: 800;
   letter-spacing: 0.08em;
 }
 
 .event-date-mark strong,
-.reminder-time strong {
+.date-tile strong {
   font-family: var(--font-display);
   font-size: 1.42rem;
   font-weight: 500;
@@ -1443,12 +1443,7 @@ a.search-result:hover {
   white-space: nowrap;
 }
 
-.attachment-actions {
-  display: flex;
-  gap: 6px;
-}
-
-.attachment-actions svg {
+.row-actions svg {
   height: 14px;
   margin-right: 6px;
   width: 14px;
@@ -1791,59 +1786,39 @@ a.search-result:hover {
   margin-bottom: 0;
 }
 
-.calendar-list,
 .resource-list {
   display: grid;
   gap: 10px;
 }
 
-.calendar-item,
 .resource-list article {
   align-items: center;
   border-top: 1px solid var(--line);
-  display: grid;
-  gap: 18px;
-  grid-template-columns: auto minmax(0, 1fr) auto;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 18px;
   padding: calc(var(--row-padding) + 3px) 4px;
 }
 
-.calendar-item:first-child,
 .resource-list article:first-child {
   border-top: 0;
 }
 
-.calendar-item time {
-  align-items: center;
-  background: var(--accent-soft);
-  border-radius: 9px;
-  color: var(--accent);
-  display: flex;
-  flex-direction: column;
-  height: 58px;
-  justify-content: center;
-  width: 58px;
+.resource-copy {
+  flex: 1 1 160px;
+  min-width: 0;
 }
 
-.calendar-item time strong {
-  font-family: var(--font-display);
-  font-size: 1.35rem;
-  font-weight: 500;
-  line-height: 1;
+.resource-list .row-actions {
+  margin-left: auto;
 }
 
-.calendar-item time span {
-  font-size: 0.58rem;
-  font-weight: 800;
-  margin-top: 3px;
-}
-
-.calendar-item h3,
 .resource-list h3 {
   font-size: 0.95rem;
   margin-bottom: 5px;
 }
 
-.calendar-item p {
+.resource-copy p {
   color: var(--muted);
   font-size: 0.73rem;
   margin-bottom: 5px;
@@ -1989,15 +1964,6 @@ a.search-result:hover {
   margin: 0;
   min-width: 0;
   overflow-wrap: anywhere;
-}
-
-.reminder-list article {
-  grid-template-columns: auto minmax(0, 1fr) auto auto;
-}
-
-.reminder-time {
-  background: var(--warning-soft);
-  color: var(--warning);
 }
 
 .row-actions {
@@ -2321,10 +2287,6 @@ a.search-result:hover {
     display: none;
   }
 
-  .attachment-actions {
-    flex-wrap: wrap;
-  }
-
   .share-list article,
   .scope-list article {
     align-items: start;
@@ -2341,16 +2303,6 @@ a.search-result:hover {
 
   .money-grid {
     grid-template-columns: minmax(0, 1fr) 88px;
-  }
-
-  .calendar-item {
-    align-items: start;
-    grid-template-columns: auto minmax(0, 1fr);
-  }
-
-  .calendar-item > .button {
-    grid-column: 2;
-    justify-self: start;
   }
 
   .timeline-list li {
@@ -2370,25 +2322,13 @@ a.search-result:hover {
     grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
   }
 
-  .resource-list article,
-  .reminder-list article {
+  .resource-list article {
     align-items: start;
-    grid-template-columns: auto minmax(0, 1fr);
-  }
-
-  .resource-list > article > .status-chip,
-  .resource-list > article > .button {
-    grid-column: 2;
-    justify-self: start;
   }
 
   .resource-list .row-actions {
-    grid-column: 1 / -1;
-  }
-
-  .resource-list .money-value {
-    grid-column: 1 / -1;
-    justify-self: start;
+    flex-basis: 100%;
+    margin-left: 0;
   }
 
   .notice {

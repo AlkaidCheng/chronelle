@@ -9,7 +9,10 @@ export async function exerciseScheduleInspector(
   await page.getByRole("button", { name: "Browse event data" }).click();
   await page.getByRole("tab", { name: "Calendar", exact: true }).click();
   const calendarUrl = page.url();
-  const calendar = page.locator(".calendar-list");
+  const calendar = page
+    .locator(".planning-panel")
+    .filter({ has: page.getByRole("heading", { name: "Calendar" }) })
+    .locator(".resource-list");
   const edit = calendar
     .getByRole("button", { name: "Edit", exact: true })
     .first();
