@@ -914,7 +914,7 @@ describe("insertable event components", () => {
     });
     await user.click(trigger);
     const dialog = within(screen.getByRole("dialog"));
-    expect(dialog.getAllByRole("radio")).toHaveLength(7);
+    expect(dialog.getAllByRole("radio")).toHaveLength(8);
     expect(
       dialog.getByRole("searchbox", { name: "Find a component" }),
     ).toHaveFocus();
@@ -994,7 +994,7 @@ describe("insertable event components", () => {
     expect(dialog.queryAllByRole("radio")).toHaveLength(0);
     await user.click(dialog.getByRole("button", { name: "Clear search" }));
     expect(search).toHaveFocus();
-    expect(dialog.getAllByRole("radio")).toHaveLength(7);
+    expect(dialog.getAllByRole("radio")).toHaveLength(8);
     await user.type(search, "checklist");
     await user.keyboard("{ArrowDown}");
     expect(dialog.getByRole("radio", { name: "To-dos" })).toHaveFocus();

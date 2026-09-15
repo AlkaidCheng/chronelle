@@ -14,6 +14,7 @@ import { queryKeys } from "../../lib/queries";
 import { isTemporaryReadError } from "../../lib/query-errors";
 import { useForgetInaccessibleEventDrafts } from "../../lib/editor-draft-context";
 import { DocumentsPanel } from "./documents-panel";
+import { PeoplePanel } from "./people-panel";
 import {
   CalendarPanel,
   ExpensesPanel,
@@ -198,6 +199,23 @@ export function EventComponent({
               canEdit={canEdit}
               tasks={detail.tasks}
               expenses={detail.expenses}
+            />
+          )}
+        </Projection>
+      );
+    case "people":
+      return (
+        <Projection
+          eventId={eventId}
+          label={label}
+          queryKey={queryKeys.people(eventId)}
+          load={(signal) => client.withSignal(signal).getEventPeople(eventId)}
+        >
+          {(people) => (
+            <PeoplePanel
+              canEdit={canEdit}
+              eventId={eventId}
+              persons={people.items}
             />
           )}
         </Projection>

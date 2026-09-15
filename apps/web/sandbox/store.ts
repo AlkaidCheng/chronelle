@@ -24,6 +24,7 @@ import {
   expenseUpdateRequestSchema,
   reminderUpdateRequestSchema,
   objectSearchQuerySchema,
+  relationCreateRequestSchema,
   relationResponseSchema,
   type EventPlanningResourceResponse as Resource,
   type TimelineResponse,
@@ -881,6 +882,15 @@ export class SandboxStore {
       const reminders = children.filter(
         (child) => child.objectType === "reminder",
       );
+      const persons = children
+        .filter((child) => child.objectType === "person")
+        .sort(
+          (a, b) =>
+            a.displayName
+              .toLowerCase()
+              .localeCompare(b.displayName.toLowerCase()) ||
+            a.id.localeCompare(b.id),
+        );
       if (operation === "detail")
         return {
           event: object,
@@ -888,6 +898,7 @@ export class SandboxStore {
           tasks,
           expenses,
           reminders,
+          persons,
           documents: [],
           lockedRelationCount: 0,
         };
@@ -897,6 +908,7 @@ export class SandboxStore {
         itinerary: events,
         expenses,
         reminders,
+        people: persons,
       };
       const projection = projections[operation];
       if (projection) return { sourceEventId: id, items: projection };
@@ -977,6 +989,66 @@ export class SandboxStore {
       (method === "POST" || method === "PATCH" || method === "DELETE")
     )
       return this.#labelWrite(method, id, url, body);
+    if (
+      method === "POST" &&
+      collection === "objects" &&
+      id &&
+      operation === "relations"
+    ) {
+      // An Event includes a live person the workspace already knows; the
+      // relation is refused for other targets and for a repeat.
+      const input = relationCreateRequestSchema.parse(body);
+      const source = this.#object(id);
+      const target = this.#object(input.targetObjectId);
+      if (
+        input.relationType !== "includes" ||
+        source.objectType !== "event" ||
+        target.objectType !== "person"
+      )
+        throw new SandboxError(
+          400,
+          "invalid_relation",
+          "Only a person can be included in an event here.",
+        );
+      if (
+        this.#state.relations.some(
+          (link) =>
+            link.sourceObjectId === id &&
+            link.targetObjectId === target.id &&
+            link.deletedAt === null,
+        )
+      )
+        throw new SandboxError(
+          409,
+          "relation_exists",
+          "The person is already part of this event.",
+        );
+      const link = relation(id, target.id);
+      this.#commit({
+        ...this.#state,
+        relations: [...this.#state.relations, link],
+      });
+      return link;
+    }
+    if (method === "DELETE" && collection === "relations" && id) {
+      const link = this.#state.relations.find(
+        (candidate) => candidate.id === id && candidate.deletedAt === null,
+      );
+      if (link === undefined)
+        throw new SandboxError(404, "not_found", "The link is unavailable.");
+      const removed = {
+        ...link,
+        version: link.version + 1,
+        deletedAt: new Date().toISOString(),
+      };
+      this.#commit({
+        ...this.#state,
+        relations: this.#state.relations.map((candidate) =>
+          candidate.id === id ? removed : candidate,
+        ),
+      });
+      return { id, version: removed.version, deletedAt: removed.deletedAt };
+    }
     if (method === "POST" && collection === "persons" && !id) {
       const input = JSON.parse(
         JSON.stringify(personCreateRequestSchema.parse(body)),
