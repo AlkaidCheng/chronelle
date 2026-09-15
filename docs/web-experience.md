@@ -13,10 +13,10 @@ sign-in (name and email, no password) lives at `/sign-in/development` and
 exists only where the web server is started with
 `WEB_DEVELOPMENT_SIGN_IN=true`.
 
-Chronelle opens into an event collection, with workspace-wide Tasks, Search,
+Chronelle opens into an event collection, with workspace-wide Tasks, People, Search,
 and Trash alongside it. Desktop navigation stays on the left; mobile navigation
 remains at the bottom with space for the device's safe area. Events, Tasks,
-Search, and Trash remain directly accessible on both layouts. More opens one shared Workspace
+People, Search, and Trash remain directly accessible on both layouts. More opens one shared Workspace
 settings dialog for workspace switching, appearance, and sign-out. Escape,
 the close button, or a backdrop press dismisses it and returns focus to More.
 Opening settings does not navigate or discard the current Event draft. On the
@@ -69,10 +69,22 @@ owners and editors change them. The view is a device preference, kept in browser
 event collection's grid or list choice, and applies to the loaded tasks. The
 filter, sort, name query, label, and assignee belong to the tab.
 
-People are canonical records of the workspace (a name, an optional email, an
-optional link to a member's account, and custom fields). They have no page
-of their own yet; Search and Trash filter by People, and Trash restores
-them like any record.
+## People
+
+People are canonical records of the workspace: a name, an optional email, an
+optional link to a member's account, and custom fields for anything worth
+keeping (a phone, a birthday, a dietary note). The People page in the rail
+shows everyone as namecards with initials, the name (marked "(me)" for the
+person linked to the signed-in account), the email as a mail link, "Has an
+account here" for other linked people, and the custom fields as a small
+table. Shown fields lists every field any loaded person carries; unticking
+one hides it on every card, a device preference kept in browser storage.
+New person and Edit open the person editor: name, email, This is me (offered
+when the person is unlinked or already this user's; one person per account),
+and the fields as name/value rows with Add field and Remove. Editing keeps a
+field's original type unless its text changes. Cards offer History and
+Actions (Trash) like any record; Search and Trash filter by People, and
+Trash restores them. The name query asks the server after a typing pause.
 
 A task may be assigned to one person as the one responsible for it. The task
 editor holds the choice behind an Assignee disclosure that names the current
