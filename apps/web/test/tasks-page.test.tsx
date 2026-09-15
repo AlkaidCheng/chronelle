@@ -444,6 +444,28 @@ describe("TasksPage", () => {
     expect(within(placed).getByText("The garden")).toHaveTextContent(
       "At The garden",
     );
+    // Typing past the limit is allowed; the count says so and saving is
+    // refused until the text fits.
+    await user.click(within(placed).getByRole("button", { name: "Edit" }));
+    const over = await screen.findByRole("dialog", { name: "Edit task" });
+    const field = within(over).getByLabelText("Location");
+    expect(within(over).getByText("10 / 240")).toBeVisible();
+    await user.clear(field);
+    await user.paste("x".repeat(241));
+    expect(within(over).getByText("241 / 240 (too long)")).toHaveClass(
+      "field-count-over",
+    );
+    expect(field).toHaveAttribute("aria-invalid", "true");
+    await user.click(within(over).getByRole("button", { name: "Save task" }));
+    expect(
+      await within(over).findByText("Keep the location to 240 characters."),
+    ).toBeVisible();
+    expect(screen.getByRole("dialog", { name: "Edit task" })).toBeVisible();
+    await user.click(within(over).getByRole("button", { name: "Cancel" }));
+    await user.click(within(over).getByRole("button", { name: "Discard" }));
+    await waitFor(() =>
+      expect(screen.queryByRole("dialog", { name: "Edit task" })).toBeNull(),
+    );
     // Reopening shows the trimmed location; clearing it removes the line.
     await user.click(within(placed).getByRole("button", { name: "Edit" }));
     const again = await screen.findByRole("dialog", { name: "Edit task" });

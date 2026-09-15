@@ -142,5 +142,11 @@ describe("Task field conversion", () => {
     expect(() =>
       taskFieldsPayload({ ...empty, dueDate: "2030-03-10", dueTime: "02:30" }),
     ).toThrow("local time is unavailable");
+    expect(() =>
+      taskFieldsPayload({ ...empty, location: `${"x".repeat(240)} ` }),
+    ).not.toThrow();
+    expect(() =>
+      taskFieldsPayload({ ...empty, location: "x".repeat(241) }),
+    ).toThrow("Keep the location to 240 characters.");
   });
 });

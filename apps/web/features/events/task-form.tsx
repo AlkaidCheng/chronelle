@@ -8,7 +8,11 @@ import {
   EditorDialogHeader,
 } from "../../components/editor-dialog-controls";
 import { EditorControls } from "./editor-controls";
-import { readTaskFields, taskFieldsPayload } from "../../lib/task-fields";
+import {
+  locationLimit,
+  readTaskFields,
+  taskFieldsPayload,
+} from "../../lib/task-fields";
 import {
   eventCreationDraftKeys,
   type TaskDraftSnapshot,
@@ -111,7 +115,9 @@ function TaskEditor({
   const { displayName, dueDate, dueTime, assignee, location, labels } =
     draft.fields;
   const mutation = task === undefined ? create : update;
-  const [dueError, setDueError] = useState("");
+  const [fieldError, setFieldError] = useState("");
+  const locationLength = location.trim().length;
+  const locationOver = locationLength > locationLimit;
   const openHistory = useOpenHistory();
   const close = () => {
     recovery.discard();
@@ -144,10 +150,10 @@ function TaskEditor({
     let input: ReturnType<typeof taskFieldsPayload>;
     try {
       input = taskFieldsPayload(draft.fields, task);
-      setDueError("");
+      setFieldError("");
     } catch (error) {
-      setDueError(
-        error instanceof Error ? error.message : "Check the due time.",
+      setFieldError(
+        error instanceof Error ? error.message : "Check the fields.",
       );
       return;
     }
@@ -252,7 +258,7 @@ function TaskEditor({
         aria-busy={mutation.isPending}
         className="editor-form event-inspector-form"
         onChangeCapture={() => {
-          setDueError("");
+          setFieldError("");
           if (mutation.isSuccess) mutation.reset();
         }}
         onSubmit={handleSubmit}
@@ -307,19 +313,29 @@ function TaskEditor({
               .timeZone.replaceAll("_", " ")}
             .
           </p>
-          {dueError && <p role="alert">{dueError}</p>}
           <label className="field field-wide">
-            <span>Location</span>
+            <span id={`${headingId}-location-label`}>Location</span>
             <input
+              aria-describedby={`${headingId}-location-count`}
+              aria-invalid={locationOver}
+              aria-labelledby={`${headingId}-location-label`}
               disabled={mutation.isPending}
-              maxLength={240}
               onChange={(input) =>
                 draft.change({ location: input.target.value })
               }
               placeholder="Where it happens"
               value={location}
             />
+            <span
+              aria-live="polite"
+              className={`field-count${locationOver ? " field-count-over" : ""}`}
+              id={`${headingId}-location-count`}
+            >
+              {locationLength} / {locationLimit}
+              {locationOver ? " (too long)" : ""}
+            </span>
           </label>
+          {fieldError && <p role="alert">{fieldError}</p>}
           <AssigneePicker
             disabled={mutation.isPending}
             onChange={(assignee) => draft.change({ assignee })}

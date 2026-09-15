@@ -270,6 +270,22 @@ h3,
   font-size: 0.73rem;
 }
 
+.field > .field-count {
+  color: var(--muted);
+  font-size: 0.73rem;
+  font-weight: 500;
+  justify-self: end;
+}
+
+.field > .field-count-over {
+  color: var(--danger);
+  font-weight: 700;
+}
+
+.field input[aria-invalid="true"] {
+  border-color: var(--danger);
+}
+
 .task-assignee {
   border: 1px solid var(--line);
   border-radius: 999px;

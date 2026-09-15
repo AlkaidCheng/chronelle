@@ -29,6 +29,9 @@ export function readTaskFields(
   };
 }
 
+/** The most characters a location may hold once trimmed. */
+export const locationLimit = 240;
+
 export function joinLabelIds(labelIds: readonly string[]): string {
   return [...new Set(labelIds)].sort().join(",");
 }
@@ -49,6 +52,8 @@ export function taskFieldsPayload(
   const assigneeId = fields.assignee === "" ? null : fields.assignee;
   const location =
     fields.location.trim() === "" ? null : fields.location.trim();
+  if (location !== null && location.length > locationLimit)
+    throw new Error(`Keep the location to ${locationLimit} characters.`);
   const labelIds = splitLabelIds(fields.labels);
   if (fields.dueDate === "") {
     if (fields.dueTime !== "")

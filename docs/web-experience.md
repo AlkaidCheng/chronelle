@@ -95,7 +95,10 @@ first use and marks it "(me)" thereafter. Rows name the assignee under the
 title in both views. The Tasks page filters by assignee from the toolbar:
 Anyone, Me (when the user has a person), or a person by name. A Location
 field in the task editor names where the task happens, as text; rows show it
-under the title ("At ..."), and clearing the field removes it.
+under the title ("At ..."), and clearing the field removes it. The field
+counts its characters against the limit of 240 as the user types; typing
+past it is allowed, the count turns red and says so, and Save refuses until
+the text fits.
 
 ## Workspace commands
 
