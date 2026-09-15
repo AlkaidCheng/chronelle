@@ -146,6 +146,12 @@ export function TaskListView({
               {assignee}
             </span>
           )}
+          {task.location === null ? null : (
+            <span className="task-location">
+              <span className="visually-hidden">At </span>
+              {task.location}
+            </span>
+          )}
           {named.length > 0 ? (
             <ul aria-label="Labels" className="task-labels">
               {named.map((label) => (

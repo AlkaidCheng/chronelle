@@ -82,6 +82,7 @@ describe("CloudBaseTaskWriteRepository", () => {
         completedAt: new Date("2030-09-28T15:30:00.000Z"),
         parentTaskId: null,
         assigneeId: null,
+        location: null,
         labelIds: [],
       });
     }

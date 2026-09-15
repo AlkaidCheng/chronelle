@@ -10,7 +10,7 @@ import { toDateTimeInput } from "./format";
 export function readTaskFields(
   task?: Pick<
     TaskResponse,
-    "displayName" | "dueOn" | "dueAt" | "assigneeId" | "labelIds"
+    "displayName" | "dueOn" | "dueAt" | "assigneeId" | "location" | "labelIds"
   >,
 ) {
   const [dueDate = "", dueTime = ""] =
@@ -23,10 +23,14 @@ export function readTaskFields(
     dueTime,
     // The assignee's person id; empty for an unassigned task.
     assignee: task?.assigneeId ?? "",
+    location: task?.location ?? "",
     // Label ids as one sorted string, so an unchanged set compares equal.
     labels: joinLabelIds(task?.labelIds ?? []),
   };
 }
+
+/** The most characters a location may hold once trimmed. */
+export const locationLimit = 240;
 
 export function joinLabelIds(labelIds: readonly string[]): string {
   return [...new Set(labelIds)].sort().join(",");
@@ -46,6 +50,10 @@ export function taskFieldsPayload(
   source?: Pick<TaskResponse, "dueAt">,
 ) {
   const assigneeId = fields.assignee === "" ? null : fields.assignee;
+  const location =
+    fields.location.trim() === "" ? null : fields.location.trim();
+  if (location !== null && location.length > locationLimit)
+    throw new Error(`Keep the location to ${locationLimit} characters.`);
   const labelIds = splitLabelIds(fields.labels);
   if (fields.dueDate === "") {
     if (fields.dueTime !== "")
@@ -55,6 +63,7 @@ export function taskFieldsPayload(
       dueOn: null,
       dueAt: null,
       assigneeId,
+      location,
       labelIds,
     };
   }
@@ -66,6 +75,7 @@ export function taskFieldsPayload(
       dueOn: fields.dueDate,
       dueAt: null,
       assigneeId,
+      location,
       labelIds,
     };
   return {
@@ -77,6 +87,7 @@ export function taskFieldsPayload(
       "due",
     ),
     assigneeId,
+    location,
     labelIds,
   };
 }

@@ -214,6 +214,19 @@ async function setTaskLabels(
       .values(ids.map((labelId) => ({ workspaceId, taskId, labelId })));
 }
 
+/** The location, when set, is 1 to 240 trimmed characters. */
+function assertTaskLocation(location: string | null): void {
+  if (
+    location !== null &&
+    (location !== location.trim() ||
+      location.length < 1 ||
+      location.length > 240)
+  )
+    throw new InvalidObjectStateError(
+      "location is 1 to 240 characters without surrounding spaces.",
+    );
+}
+
 /** The assignee, when set, is a live Person of the workspace. */
 async function assertTaskAssignee(
   transaction: DatabaseTransaction,
@@ -420,6 +433,8 @@ export class EventPlanningObjectService {
 
     const parentTaskId = input.parentTaskId ?? null;
     const assigneeId = input.assigneeId ?? null;
+    const location = input.location ?? null;
+    assertTaskLocation(location);
     const resource = await this.#createObject(
       context,
       "task",
@@ -446,6 +461,7 @@ export class EventPlanningObjectService {
           completedAt,
           parentTaskId,
           assigneePersonId: assigneeId,
+          location,
         });
         if (input.labelIds !== undefined)
           await setTaskLabels(
@@ -696,6 +712,7 @@ export class EventPlanningObjectService {
     const completedAt =
       input.completedAt === undefined ? current.completedAt : input.completedAt;
     assertTaskState(status, dueOn, dueAt, completedAt);
+    if (input.location !== undefined) assertTaskLocation(input.location);
 
     const resource = await this.#updateObject(
       context,
@@ -730,6 +747,7 @@ export class EventPlanningObjectService {
           ...(input.assigneeId !== undefined && {
             assigneePersonId: input.assigneeId,
           }),
+          ...(input.location !== undefined && { location: input.location }),
           ...(input.dueOn !== undefined && { dueOn: input.dueOn }),
           ...(input.dueAt !== undefined && { dueAt: input.dueAt }),
           ...(input.completedAt !== undefined && {

@@ -70,6 +70,7 @@ function canonical(
       status: "todo",
       parentTaskId: null,
       assigneeId: null,
+      location: null,
       labelIds: [],
     },
     expense: {},

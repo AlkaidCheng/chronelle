@@ -37,6 +37,7 @@ const task: TaskResponse = {
   dueAt: "2026-09-06T13:00:00.000Z",
   parentTaskId: null,
   assigneeId: null,
+  location: null,
   labelIds: [],
   completedAt: null,
   status: "todo",

@@ -19,6 +19,7 @@ export async function exerciseTasksPage(page: Page, member: string) {
   const editor = page.getByRole("dialog", { name: "Add task", exact: true });
   await editor.getByLabel("Task", { exact: true }).fill("Renew the passport");
   await editor.getByLabel("Due date", { exact: true }).fill("2031-05-20");
+  await editor.getByLabel("Location", { exact: true }).fill("Passport office");
   await editor
     .getByRole("button", { name: "Create task", exact: true })
     .click();
@@ -26,6 +27,7 @@ export async function exerciseTasksPage(page: Page, member: string) {
   const row = page.getByRole("row", { name: /Renew the passport/ });
   await expect(row).toBeVisible();
   await expect(row).toContainText("May 20, 2031");
+  await expect(row.getByText("At Passport office")).toBeAttached();
   // Outside any event, the row names none.
   await expect(row.getByRole("link", { name: /^in / })).toHaveCount(0);
 

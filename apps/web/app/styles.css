@@ -265,6 +265,23 @@ h3,
   font-weight: 700;
 }
 
+.task-location {
+  color: var(--muted);
+  font-size: 0.73rem;
+}
+
+.field > .field-count {
+  color: var(--muted);
+  font-size: 0.73rem;
+  font-weight: 500;
+  justify-self: end;
+}
+
+.field > .field-count-full {
+  color: var(--danger);
+  font-weight: 700;
+}
+
 .task-assignee {
   border: 1px solid var(--line);
   border-radius: 999px;

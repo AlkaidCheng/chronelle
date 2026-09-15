@@ -41,6 +41,7 @@ const task: EventPlanningResource = {
   completedAt: null,
   parentTaskId: null,
   assigneeId: null,
+  location: null,
   labelIds: [],
 };
 
