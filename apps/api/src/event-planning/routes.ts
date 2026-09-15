@@ -38,6 +38,7 @@ import {
   personCreateRequestSchema,
   personListQuerySchema,
   personListResponseSchema,
+  personResourceProjectionResponseSchema,
   personResponseSchema,
   personUpdateRequestSchema,
   relationCreateRequestSchema,
@@ -429,6 +430,20 @@ export function registerEventPlanningRoutes(
         id,
       );
       return reminderResourceProjectionResponseSchema.parse(
+        serializeResourceProjection(projection),
+      );
+    },
+  );
+  app.get(
+    "/api/events/:id/people",
+    { preHandler: app.authenticate },
+    async (request) => {
+      const { id } = parseRequest(objectIdParamsSchema, request.params);
+      const projection = await dependencies.projections.getPeople(
+        requirePrincipal(request),
+        id,
+      );
+      return personResourceProjectionResponseSchema.parse(
         serializeResourceProjection(projection),
       );
     },

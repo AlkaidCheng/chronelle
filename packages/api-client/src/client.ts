@@ -44,6 +44,7 @@ import {
   reminderResourceProjectionResponseSchema,
   reminderResponseSchema,
   personListResponseSchema,
+  personResourceProjectionResponseSchema,
   personResponseSchema,
   acceptedResponseSchema,
   sessionResponseSchema,
@@ -108,6 +109,7 @@ import {
   type PersonCreatePayload,
   type PersonListQueryInput,
   type PersonListResponse,
+  type PersonResourceProjectionResponse,
   type PersonResponse,
   type PersonUpdatePayload,
   type AcceptedResponse,
@@ -898,6 +900,13 @@ export class ChronelleApiClient {
     return this.#request(
       `/api/events/${id}/reminders`,
       reminderResourceProjectionResponseSchema,
+    );
+  }
+
+  getEventPeople(id: string): Promise<PersonResourceProjectionResponse> {
+    return this.#request(
+      `/api/events/${id}/people`,
+      personResourceProjectionResponseSchema,
     );
   }
 

@@ -8,6 +8,7 @@ export const eventComponentKindSchema = z.enum([
   "expenses",
   "reminders",
   "files",
+  "people",
 ]);
 
 export type EventComponentKind = z.output<typeof eventComponentKindSchema>;

@@ -9,6 +9,7 @@ import {
   expenses,
   objectRelations,
   objects,
+  persons,
   reminders,
   resourceGrants,
   labels,
@@ -74,6 +75,7 @@ const snapshotTables = {
   expenses,
   object_relations: objectRelations,
   objects,
+  persons,
   reminders,
   resource_grants: resourceGrants,
   tasks,
@@ -169,6 +171,7 @@ function sortedDetail(detail: EventDetailProjection) {
     tasks: byId(detail.tasks),
     expenses: byId(detail.expenses),
     reminders: byId(detail.reminders),
+    persons: byId(detail.persons),
     documents: byId(detail.documents),
     lockedRelationCount: detail.lockedRelationCount,
   };
@@ -201,6 +204,9 @@ describe.sequential("CloudBase projection read contract", () => {
     const secondExpenseId = createId();
     const firstReminderId = createId();
     const secondReminderId = createId();
+    // Two people involved, listed by name without regard to case.
+    const zoePersonId = createId();
+    const adamPersonId = createId();
     const includedDocumentId = createId();
     const attachedDocumentId = createId();
     const privateDocumentId = createId();
@@ -340,6 +346,13 @@ describe.sequential("CloudBase projection read contract", () => {
           scope: rootId,
           name: "Send invites",
         },
+        { id: zoePersonId, objectType: "person", scope: rootId, name: "Zoe" },
+        {
+          id: adamPersonId,
+          objectType: "person",
+          scope: rootId,
+          name: "adam",
+        },
         {
           id: includedDocumentId,
           objectType: "document",
@@ -426,6 +439,10 @@ describe.sequential("CloudBase projection read contract", () => {
         { objectId: secondReminderId, remindAt: at("2030-01-11T08:00:00Z") },
       ].map((row) => ({ ...row, workspaceId, status: "pending" as const })),
     );
+    await db.insert(persons).values([
+      { objectId: zoePersonId, workspaceId, email: "zoe@example.test" },
+      { objectId: adamPersonId, workspaceId },
+    ]);
     await db.insert(documents).values(
       [
         includedDocumentId,
@@ -475,6 +492,8 @@ describe.sequential("CloudBase projection read contract", () => {
           secondExpenseId,
           firstReminderId,
           secondReminderId,
+          zoePersonId,
+          adamPersonId,
           includedDocumentId,
         ].map((targetObjectId) => relation(rootId, "includes", targetObjectId)),
         relation(
@@ -601,6 +620,15 @@ describe.sequential("CloudBase projection read contract", () => {
       await expect(
         cloudbase.getReminders(expected.principal, rootId),
       ).resolves.toEqual(postgresReminders);
+
+      const postgresPeople = await postgres.getPeople(
+        expected.principal,
+        rootId,
+      );
+      expect(ids(postgresPeople.items)).toEqual([adamPersonId, zoePersonId]);
+      await expect(
+        cloudbase.getPeople(expected.principal, rootId),
+      ).resolves.toEqual(postgresPeople);
 
       const postgresTimeline = await postgres.getTimeline(
         expected.principal,

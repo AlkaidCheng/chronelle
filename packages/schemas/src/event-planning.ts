@@ -339,6 +339,7 @@ export const eventDetailResponseSchema = z.object({
   tasks: z.array(taskResponseSchema),
   expenses: z.array(expenseResponseSchema),
   reminders: z.array(reminderResponseSchema),
+  persons: z.array(personResponseSchema).default([]),
   documents: z.array(documentResponseSchema),
   lockedRelationCount: z.number().int().nonnegative(),
 });
@@ -356,6 +357,11 @@ export const taskResourceProjectionResponseSchema = z.object({
 export const expenseResourceProjectionResponseSchema = z.object({
   sourceEventId: objectIdSchema,
   items: z.array(expenseResponseSchema),
+});
+
+export const personResourceProjectionResponseSchema = z.object({
+  sourceEventId: objectIdSchema,
+  items: z.array(personResponseSchema),
 });
 
 export const reminderResourceProjectionResponseSchema = z.object({
@@ -424,6 +430,9 @@ export type ExpenseResourceProjectionResponse = z.infer<
 >;
 export type ReminderResourceProjectionResponse = z.infer<
   typeof reminderResourceProjectionResponseSchema
+>;
+export type PersonResourceProjectionResponse = z.infer<
+  typeof personResourceProjectionResponseSchema
 >;
 export type EventDetailResponse = z.infer<typeof eventDetailResponseSchema>;
 export type TimelineResponse = z.infer<typeof timelineResponseSchema>;
