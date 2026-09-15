@@ -54,6 +54,8 @@ export interface TaskResource extends CanonicalObjectResource {
   readonly parentTaskId: string | null;
   /** The Person responsible for the task. */
   readonly assigneeId: string | null;
+  /** Where the task happens, as text. */
+  readonly location: string | null;
   /** The task's labels in name order. */
   readonly labelIds: readonly string[];
   readonly status: TaskStatus;
@@ -164,6 +166,7 @@ export interface CreateTaskInput extends CreateObjectFields {
   readonly dueAt?: Date | null | undefined;
   readonly parentTaskId?: string | null | undefined;
   readonly assigneeId?: string | null | undefined;
+  readonly location?: string | null | undefined;
   /** The task's labels as a whole; absent leaves them empty. */
   readonly labelIds?: readonly string[] | undefined;
   readonly status?: TaskStatus | undefined;
@@ -212,6 +215,7 @@ export interface UpdateTaskInput extends UpdateObjectFields {
   readonly dueAt?: Date | null | undefined;
   readonly parentTaskId?: string | null | undefined;
   readonly assigneeId?: string | null | undefined;
+  readonly location?: string | null | undefined;
   /** The task's labels as a whole; absent leaves them unchanged. */
   readonly labelIds?: readonly string[] | undefined;
   readonly status?: TaskStatus | undefined;
