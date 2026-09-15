@@ -319,15 +319,48 @@ describe("client session isolation", () => {
     },
   );
 
-  it("rejects malformed stored credentials even when removal fails", async () => {
+  it("rejects malformed stored credentials even when removal fails", () => {
     window.sessionStorage.setItem("chronelle.session", "{");
     vi.spyOn(Storage.prototype, "removeItem").mockImplementation(() => {
       throw new Error("Storage denied");
     });
     const { result } = renderHook(useAuthSession, { wrapper: Providers });
-    // Without a stored workspace the cookie session is looked up first.
-    await waitFor(() => expect(result.current.isHydrated).toBe(true));
+    expect(result.current.isHydrated).toBe(true);
     expect(result.current.credential).toBeNull();
+  });
+
+  it("discovers the cookie session when the presence marker is set", async () => {
+    const cookie = vi
+      .spyOn(document, "cookie", "get")
+      .mockReturnValue("chronelle_session_present=1");
+    const fetch = vi.fn<typeof globalThis.fetch>().mockResolvedValue(
+      Response.json({
+        principal: { type: "user", userId: "u", workspaceId },
+        user: { id: "u", displayName: "Person", email: null },
+        workspace: { id: workspaceId, displayName: "Personal" },
+        availableWorkspaces: [],
+      }),
+    );
+    vi.stubGlobal("fetch", fetch);
+    try {
+      const { result } = renderHook(useAuthSession, { wrapper: Providers });
+      expect(result.current.isHydrated).toBe(false);
+      await waitFor(() => expect(result.current.isHydrated).toBe(true));
+      expect(result.current.credential).toEqual({
+        workspaceId,
+        homeWorkspaceId: workspaceId,
+      });
+      expect(fetch).toHaveBeenCalledWith(
+        "/api/auth/session",
+        expect.objectContaining({ cache: "no-store" }),
+      );
+      expect(window.sessionStorage.getItem("chronelle.session")).toContain(
+        workspaceId,
+      );
+    } finally {
+      cookie.mockRestore();
+      vi.unstubAllGlobals();
+    }
   });
 
   it("replaces the cache on workspace changes and sign-out", () => {
@@ -351,12 +384,12 @@ describe("client session isolation", () => {
     expect(result.current.auth.credential).toBeNull();
   });
 
-  it("supports an in-memory session when browser storage is denied", async () => {
+  it("supports an in-memory session when browser storage is denied", () => {
     vi.spyOn(window, "sessionStorage", "get").mockImplementation(() => {
       throw new DOMException("Storage is unavailable", "SecurityError");
     });
     const { result } = renderHook(useAuthSession, { wrapper: Providers });
-    await waitFor(() => expect(result.current.isHydrated).toBe(true));
+    expect(result.current.isHydrated).toBe(true);
     act(() => result.current.startSession(credential));
     expect(result.current.credential?.workspaceId).toBe(workspaceId);
     act(() => result.current.switchWorkspace(sharedWorkspaceId));

@@ -70,7 +70,6 @@ async function discoverCookieSession(
   signal: AbortSignal,
 ): Promise<AuthCredential | null> {
   try {
-    if (!sessionPresent(document.cookie)) return null;
     const response = await fetch("/api/auth/session", {
       cache: "no-store",
       signal,
@@ -92,6 +91,15 @@ async function discoverCookieSession(
       : { homeWorkspaceId: workspaceId, workspaceId };
   } catch {
     return null;
+  }
+}
+
+/** Whether the readable presence marker says a session cookie exists; false when cookies are unreadable. */
+function cookieSessionPresent(): boolean {
+  try {
+    return sessionPresent(document.cookie);
+  } catch {
+    return false;
   }
 }
 
@@ -140,7 +148,9 @@ export function AuthSessionProvider({
 
   useEffect(() => {
     const stored = readCredential();
-    if (stored !== null) {
+    // Only a tab whose presence marker says a session cookie exists waits
+    // on the lookup; a signed-out tab hydrates at once.
+    if (stored !== null || !cookieSessionPresent()) {
       replaceSession(stored);
       return () => sessionRef.current.controller.abort();
     }
