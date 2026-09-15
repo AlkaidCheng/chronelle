@@ -656,6 +656,13 @@ describe.sequential("event-planning API", () => {
       created.push(taskResponseSchema.parse(response.json()).id);
     }
     const [undated, inEvent, timed, finished] = created;
+    const includeResponse = await app.inject({
+      method: "POST",
+      url: `/api/objects/${event.id}/relations`,
+      headers: ownerHeaders,
+      payload: { relationType: "includes", targetObjectId: inEvent },
+    });
+    expect(includeResponse.statusCode).toBe(201);
 
     const firstResponse = await app.inject({
       method: "GET",
@@ -665,6 +672,9 @@ describe.sequential("event-planning API", () => {
     expect(firstResponse.statusCode).toBe(200);
     const first = taskListResponseSchema.parse(firstResponse.json());
     expect(first.items.map(({ id }) => id)).toEqual([inEvent, timed]);
+    expect(first.contexts).toEqual({
+      [inEvent ?? ""]: { eventId: event.id, displayName: "Retreat" },
+    });
     expect(first.nextCursor).not.toBeNull();
     const secondResponse = await app.inject({
       method: "GET",

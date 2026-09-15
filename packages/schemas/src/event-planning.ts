@@ -189,8 +189,16 @@ export const taskResponseSchema = z.object({
   completedAt: nullableDateTimeResponseSchema,
 });
 
+/** The Event a listed Task belongs to, when the caller may view that Event. */
+export const taskContextSchema = z.object({
+  eventId: objectIdSchema,
+  displayName: z.string(),
+});
+
 export const taskListResponseSchema = z.object({
   items: z.array(taskResponseSchema),
+  /** By Task ID; a Task outside any viewable Event has no entry. */
+  contexts: z.record(objectIdSchema, taskContextSchema),
   nextCursor: cursorTokenSchema.nullable(),
   asOf: dateTimeResponseSchema,
 });
@@ -330,6 +338,7 @@ export type EventPlanningResourceResponse = z.infer<
 export type EventResponse = z.infer<typeof eventResponseSchema>;
 export type EventListResponse = z.infer<typeof eventListResponseSchema>;
 export type TaskListResponse = z.infer<typeof taskListResponseSchema>;
+export type TaskContext = z.infer<typeof taskContextSchema>;
 export type TaskResponse = z.infer<typeof taskResponseSchema>;
 export type ExpenseResponse = z.infer<typeof expenseResponseSchema>;
 export type ReminderResponse = z.infer<typeof reminderResponseSchema>;

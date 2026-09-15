@@ -113,6 +113,13 @@ type WorkspaceMemberRow = { readonly role: unknown };
 
 export type CloudBaseRelationRow = { readonly target_object_id: unknown };
 
+export type CloudBaseInclusionRow = {
+  readonly source_object_id: unknown;
+  readonly target_object_id: unknown;
+  readonly created_at: unknown;
+  readonly id: unknown;
+};
+
 const viewRoles = new Set(["owner", "editor", "viewer"]);
 
 export function cloudbaseFilters(
@@ -609,6 +616,32 @@ export async function readCloudBaseIncludes(
       ),
     ),
   ];
+}
+
+/** Live inclusions of the given targets, earliest first. */
+export async function readCloudBaseInclusionsOf(
+  client: CloudBaseRdbReader,
+  principal: UserPrincipal,
+  targetIds: readonly string[],
+): Promise<readonly CloudBaseInclusionRow[]> {
+  if (targetIds.length === 0) return [];
+  const rows = await client.select<CloudBaseInclusionRow>("object_relations", {
+    columns: "id,source_object_id,target_object_id,created_at",
+    filters: cloudbaseFilters(
+      ["workspace_id", "eq", principal.workspaceId],
+      ["relation_type", "eq", "includes"],
+      ["deleted_at", "is", null],
+      ["target_object_id", "in", targetIds],
+    ),
+  });
+  return [...rows].sort(
+    (first, second) =>
+      cloudbaseDate(first.created_at, "created_at").getTime() -
+        cloudbaseDate(second.created_at, "created_at").getTime() ||
+      cloudbaseText(first.id, "relation id").localeCompare(
+        cloudbaseText(second.id, "relation id"),
+      ),
+  );
 }
 
 /** A root Event owns its permission scope; included children inherit a root's scope. */

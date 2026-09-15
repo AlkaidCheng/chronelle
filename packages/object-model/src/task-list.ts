@@ -4,7 +4,7 @@ import {
   type AuthorizationDatabase,
   type UserPrincipal,
 } from "@chronelle/authorization";
-import { objects, tasks } from "@chronelle/db";
+import { objectRelations, objects, tasks } from "@chronelle/db";
 import {
   taskListCursorSchema,
   taskListQuerySchema,
@@ -31,8 +31,16 @@ import { InvalidObjectStateError } from "./errors.js";
 import { readObjectStates } from "./object-state.js";
 import type { TaskResource } from "./types.js";
 
+/** The Event a listed task belongs to, when the caller may view that Event. */
+export interface TaskContext {
+  readonly eventId: string;
+  readonly displayName: string;
+}
+
 export interface TaskPage {
   readonly items: TaskResource[];
+  /** By task ID; absent for a task outside any viewable Event. */
+  readonly contexts: Readonly<Record<string, TaskContext>>;
   readonly nextCursor: string | null;
   readonly asOf: string;
 }
@@ -225,9 +233,49 @@ export async function listTaskPage(
         );
       return task;
     });
+    // The including Event, only where the caller may view it; the earliest
+    // inclusion names the context when more than one Event includes a task.
+    const contexts: Record<string, TaskContext> = {};
+    if (items.length > 0) {
+      const inclusions = await transaction
+        .select({
+          taskId: objectRelations.targetObjectId,
+          eventId: objects.id,
+          displayName: objects.displayName,
+        })
+        .from(objectRelations)
+        .innerJoin(
+          objects,
+          and(
+            eq(objects.id, objectRelations.sourceObjectId),
+            eq(objects.workspaceId, objectRelations.workspaceId),
+          ),
+        )
+        .where(
+          and(
+            eq(objectRelations.workspaceId, principal.workspaceId),
+            eq(objectRelations.relationType, "includes"),
+            isNull(objectRelations.deletedAt),
+            inArray(
+              objectRelations.targetObjectId,
+              items.map(({ id }) => id),
+            ),
+            eq(objects.objectType, "event"),
+            isNull(objects.deletedAt),
+            authorization.resourcePredicate(principal, "view"),
+          ),
+        )
+        .orderBy(asc(objectRelations.createdAt), asc(objectRelations.id));
+      for (const inclusion of inclusions)
+        contexts[inclusion.taskId] ??= {
+          eventId: inclusion.eventId,
+          displayName: inclusion.displayName,
+        };
+    }
     const last = page.at(-1);
     return {
       items,
+      contexts,
       asOf,
       nextCursor:
         rows.length > input.limit && last !== undefined
