@@ -27,6 +27,19 @@ const runtimeCheck = readFileSync(
 );
 let projectStarted = false;
 
+async function pullWithRetry(attempts = 3) {
+  for (let attempt = 1; ; attempt += 1) {
+    try {
+      await compose("pull", "--quiet", "postgres");
+      return;
+    } catch (error) {
+      if (attempt >= attempts) throw error;
+      console.log(`compose pull failed (attempt ${attempt}); retrying`);
+      await new Promise((resolve) => setTimeout(resolve, 5_000 * attempt));
+    }
+  }
+}
+
 try {
   for (const image of [environment.API_IMAGE, environment.WEB_IMAGE]) {
     const metadata = await inspect(image);
@@ -57,6 +70,10 @@ try {
       ),
     );
   }
+  // The api and web images are built in this job; only the database image
+  // comes from a registry, and that pull fails transiently on a reset
+  // connection, so it is retried before the stack starts.
+  await pullWithRetry();
   projectStarted = true;
   await compose("up", "--detach", "--wait", "--wait-timeout", "120");
   const containers = {};
