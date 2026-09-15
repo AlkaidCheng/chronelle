@@ -23,7 +23,7 @@ const taskId = "019d6e7d-0000-7000-8000-000000000012";
 describe("canonical cache invalidation", () => {
   beforeEach(() => {
     window.sessionStorage.setItem(
-      "chronelle.development-session",
+      "chronelle.session",
       JSON.stringify({ accessToken: "test-session", workspaceId }),
     );
   });
@@ -38,7 +38,7 @@ describe("canonical cache invalidation", () => {
     "settles confirmed Event %s while a projection refresh remains pending",
     async (mode) => {
       window.sessionStorage.setItem(
-        "chronelle.development-session",
+        "chronelle.session",
         JSON.stringify({
           accessToken: "test-session",
           workspaceId: sandboxWorkspaceId,

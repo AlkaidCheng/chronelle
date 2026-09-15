@@ -5,6 +5,14 @@ import {
   maximumDocumentSizeBytes,
 } from "@chronelle/schemas";
 import { readRequestBody, RequestBodyError } from "../../../lib/request-body";
+import {
+  clearedSessionCookies,
+  endsSession,
+  establishesSession,
+  readIssuedSession,
+  readSessionToken,
+  sessionCookies,
+} from "../../../lib/session-cookie";
 
 const forwardedRequestHeaders = [
   "authorization",
@@ -21,8 +29,10 @@ async function forward(
     AbortSignal.timeout(apiRequestTimeoutMs),
   ]);
   let response: Response;
+  let route = "";
   try {
     const { path } = await context.params;
+    route = path.join("/");
     signal.throwIfAborted();
     if (
       path.some(
@@ -44,6 +54,14 @@ async function forward(
       const value = request.headers.get(name);
       if (value !== null) headers.set(name, value);
     }
+    // The session cookie is the browser's credential; an explicit bearer
+    // header (API scripting through this origin) takes precedence.
+    const sessionToken = readSessionToken(
+      request.headers.get("authorization"),
+      request.headers.get("cookie"),
+    );
+    if (sessionToken !== null)
+      headers.set("authorization", `Bearer ${sessionToken}`);
     const hasBody = request.method !== "GET" && request.method !== "HEAD";
     const isUpload =
       request.method === "PUT" &&
@@ -96,6 +114,34 @@ async function forward(
     }
   }
   responseHeaders.set("cache-control", "private, no-store");
+  const cookieOptions = { secure: request.nextUrl.protocol === "https:" };
+
+  if (endsSession(request.method, route)) {
+    for (const cookie of clearedSessionCookies(cookieOptions))
+      responseHeaders.append("set-cookie", cookie);
+  } else if (establishesSession(request.method, route) && response.ok) {
+    // The body is read once to set the cookie and forwarded as it was; the
+    // browser client discards the token and relies on the cookie.
+    const text = await response.text();
+    let body: unknown = null;
+    try {
+      body = JSON.parse(text);
+    } catch {
+      body = null;
+    }
+    const issued = readIssuedSession(body);
+    if (issued !== null)
+      for (const cookie of sessionCookies(
+        issued.token,
+        issued.expiresAt,
+        cookieOptions,
+      ))
+        responseHeaders.append("set-cookie", cookie);
+    return new Response(text, {
+      headers: responseHeaders,
+      status: response.status,
+    });
+  }
 
   return new Response(response.body, {
     headers: responseHeaders,

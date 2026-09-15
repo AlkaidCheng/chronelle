@@ -102,7 +102,7 @@ beforeEach(() => {
   vi.stubGlobal("fetch", fetch);
   vi.stubGlobal("localStorage", window.sessionStorage);
   window.sessionStorage.setItem(
-    "chronelle.development-session",
+    "chronelle.session",
     JSON.stringify({ accessToken: "test-session", workspaceId }),
   );
   for (const method of methods)
@@ -172,7 +172,8 @@ it("opens the canonical destination without persisting query text or showing IDs
   expect(option).not.toHaveTextContent(eventId);
   const headers = fetch.mock.calls[0]?.[1]?.headers as Headers;
   expect(headers.get("x-workspace-id")).toBe(workspaceId);
-  expect(headers.get("authorization")).toBe("Bearer test-session");
+  // The session travels as the origin's cookie, never as a header the page sets.
+  expect(headers.get("authorization")).toBeNull();
   fireEvent.keyDown(input(), { key: "Enter" });
   expect(push).toHaveBeenCalledExactlyOnceWith(`/events/${eventId}`);
   expect(screen.queryByRole("dialog")).not.toBeInTheDocument();

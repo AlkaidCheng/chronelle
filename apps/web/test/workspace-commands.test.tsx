@@ -47,7 +47,7 @@ beforeEach(() => {
   delete document.documentElement.dataset.commandShortcut;
   delete document.documentElement.dataset.editorShortcut;
   window.sessionStorage.setItem(
-    "chronelle.development-session",
+    "chronelle.session",
     JSON.stringify({ accessToken: "test-session", workspaceId: "personal" }),
   );
   for (const method of methods)

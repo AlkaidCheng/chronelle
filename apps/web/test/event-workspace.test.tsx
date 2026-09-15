@@ -118,7 +118,7 @@ describe("EventWorkspace", () => {
     }
     window.history.replaceState(null, "", "/events/plan?view=overview");
     window.sessionStorage.setItem(
-      "chronelle.development-session",
+      "chronelle.session",
       JSON.stringify({ accessToken: "test-session", workspaceId }),
     );
   });

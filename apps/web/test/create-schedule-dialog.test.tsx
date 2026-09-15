@@ -88,7 +88,7 @@ beforeEach(async () => {
   eventId = events.items[0].id;
   otherEventId = events.items[1].id;
   window.sessionStorage.setItem(
-    "chronelle.development-session",
+    "chronelle.session",
     JSON.stringify({ accessToken: "sample", workspaceId: sandboxWorkspaceId }),
   );
   vi.stubGlobal(
@@ -154,9 +154,9 @@ describe("schedule drafts across navigation", () => {
       expect.anything(),
     );
     expect(window.sessionStorage.length).toBe(1);
-    expect(
-      window.sessionStorage.getItem("chronelle.development-session"),
-    ).not.toContain("Private arrival");
+    expect(window.sessionStorage.getItem("chronelle.session")).not.toContain(
+      "Private arrival",
+    );
     await user.click(screen.getByRole("button", { name: "Cancel" }));
     await user.click(screen.getByRole("button", { name: "Discard" }));
     expect(unloadIsPrevented()).toBe(false);
@@ -503,7 +503,12 @@ describe("schedule creation dialog", () => {
       await user.click(screen.getByRole("button", { name: action }));
       await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
       expect(unloadIsPrevented()).toBe(false);
-      expect(fetch).not.toHaveBeenCalled();
+      // Sign out ends the cookie session with one DELETE; the draft sends nothing.
+      expect(
+        vi
+          .mocked(fetch)
+          .mock.calls.filter(([, init]) => init?.method !== "DELETE"),
+      ).toHaveLength(0);
     },
   );
 

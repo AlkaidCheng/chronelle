@@ -111,7 +111,7 @@ beforeEach(async () => {
     ).json(),
   );
   window.sessionStorage.setItem(
-    "chronelle.development-session",
+    "chronelle.session",
     JSON.stringify({ accessToken: "sample", workspaceId: sandboxWorkspaceId }),
   );
   vi.stubGlobal(
@@ -163,9 +163,7 @@ describe("Event draft recovery across navigation", () => {
     "recovers a %s draft only after a fresh access check",
     async (kind) => {
       const user = await edit(kind);
-      const storage = window.sessionStorage.getItem(
-        "chronelle.development-session",
-      );
+      const storage = window.sessionStorage.getItem("chronelle.session");
       navigateAway();
       expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
       expect(unloadIsPrevented()).toBe(true);
@@ -198,9 +196,7 @@ describe("Event draft recovery across navigation", () => {
       expect(
         await screen.findByDisplayValue("Private garden draft"),
       ).toBeVisible();
-      expect(
-        window.sessionStorage.getItem("chronelle.development-session"),
-      ).toBe(storage);
+      expect(window.sessionStorage.getItem("chronelle.session")).toBe(storage);
       expect(window.sessionStorage.length).toBe(1);
       if (kind === "edit")
         expect(fetch).toHaveBeenCalledWith(

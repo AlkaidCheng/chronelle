@@ -60,10 +60,8 @@ export function useDevelopmentSignIn() {
   return useMutation({
     mutationFn: (input: DevelopmentSignInRequest) => client.signIn(input),
     onSuccess: async (session) => {
-      startSession({
-        accessToken: session.accessToken,
-        workspaceId: session.workspace.id,
-      });
+      // The proxy set the session cookie; only the workspace is kept here.
+      startSession({ workspaceId: session.workspace.id });
     },
   });
 }

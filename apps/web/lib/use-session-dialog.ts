@@ -24,11 +24,7 @@ export function useSessionDialog(onClose: () => void) {
   }, []);
 
   useEffect(() => {
-    if (
-      credential?.workspaceId !== identity.current?.workspaceId ||
-      credential?.accessToken !== identity.current?.accessToken
-    )
-      onClose();
+    if (credential !== identity.current) onClose();
   }, [credential, onClose]);
 
   return dialog;
