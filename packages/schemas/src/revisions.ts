@@ -4,6 +4,7 @@ import {
   documentResponseSchema,
   eventResponseSchema,
   expenseResponseSchema,
+  personResponseSchema,
   reminderResponseSchema,
   taskResponseSchema,
 } from "./event-planning.js";
@@ -20,6 +21,7 @@ export const revisionSnapshotSchema = z.discriminatedUnion("objectType", [
     storageProvider: true,
     encryptionMode: true,
   }),
+  personResponseSchema.omit(privateFields),
 ]);
 
 const versionSchema = z.number().int().positive().max(2_147_483_647);

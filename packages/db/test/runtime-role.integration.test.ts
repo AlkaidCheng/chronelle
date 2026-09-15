@@ -123,6 +123,7 @@ describe("runtime database privileges", () => {
           "email_verifications",
           "labels",
           "task_labels",
+          "persons",
         ].includes(table.name),
       );
       expect(table.delete).toBe(

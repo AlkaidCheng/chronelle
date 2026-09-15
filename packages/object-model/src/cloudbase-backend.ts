@@ -16,6 +16,8 @@ export const cloudBaseObjectModelFunctions: readonly string[] = [
   "chronelle_expense_update",
   "chronelle_reminder_create",
   "chronelle_reminder_update",
+  "chronelle_person_create",
+  "chronelle_person_update",
   "chronelle_event_context_create",
   "chronelle_relation_create",
   "chronelle_relation_lifecycle",

@@ -5,6 +5,7 @@ import {
   expenses,
   labels,
   objects,
+  persons,
   reminders,
   taskLabels,
   tasks,
@@ -38,6 +39,7 @@ export async function readObjectStates(
       expense: expenses,
       reminder: reminders,
       document: documents,
+      person: persons,
     })
     .from(objects)
     .leftJoin(
@@ -75,6 +77,13 @@ export async function readObjectStates(
         eq(documents.objectId, objects.id),
       ),
     )
+    .leftJoin(
+      persons,
+      and(
+        eq(persons.workspaceId, objects.workspaceId),
+        eq(persons.objectId, objects.id),
+      ),
+    )
     .where(condition)
     .orderBy(objects.id)
     .limit(limit);
@@ -109,6 +118,12 @@ export async function readObjectStates(
       case "document":
         if (row.document) {
           const { objectId: _, workspaceId: __, ...content } = row.document;
+          return { ...common, ...content };
+        }
+        break;
+      case "person":
+        if (row.person) {
+          const { objectId: _, workspaceId: __, ...content } = row.person;
           return { ...common, ...content };
         }
     }

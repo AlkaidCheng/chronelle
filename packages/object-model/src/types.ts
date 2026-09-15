@@ -81,6 +81,13 @@ export interface DocumentResource extends CanonicalObjectResource {
   readonly storageProvider: string;
 }
 
+export interface PersonResource extends CanonicalObjectResource {
+  readonly email: string | null;
+  readonly objectType: "person";
+  /** The workspace member this person is, when they have an account. */
+  readonly userId: string | null;
+}
+
 export interface DocumentAttachmentResource {
   readonly relationVersion: number;
   readonly document: DocumentResource;
@@ -130,7 +137,8 @@ export type EventPlanningResource =
   | TaskResource
   | ExpenseResource
   | ReminderResource
-  | DocumentResource;
+  | DocumentResource
+  | PersonResource;
 
 export interface CreateObjectFields {
   readonly customProperties?: JsonObject | undefined;
@@ -167,6 +175,11 @@ export interface CreateExpenseInput extends CreateObjectFields {
 export interface CreateReminderInput extends CreateObjectFields {
   readonly remindAt: Date;
   readonly status?: ReminderStatus | undefined;
+}
+
+export interface CreatePersonInput extends CreateObjectFields {
+  readonly email?: string | null | undefined;
+  readonly userId?: string | null | undefined;
 }
 
 export interface UpdateObjectFields {
@@ -209,6 +222,11 @@ export interface UpdateExpenseInput extends UpdateObjectFields {
 export interface UpdateReminderInput extends UpdateObjectFields {
   readonly remindAt?: Date | undefined;
   readonly status?: ReminderStatus | undefined;
+}
+
+export interface UpdatePersonInput extends UpdateObjectFields {
+  readonly email?: string | null | undefined;
+  readonly userId?: string | null | undefined;
 }
 
 export interface ObjectDeletionResource {

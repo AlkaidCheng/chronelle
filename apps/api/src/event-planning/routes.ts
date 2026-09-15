@@ -2,6 +2,7 @@ import type { UserPrincipal } from "@chronelle/authorization";
 import type {
   CreateEventInput,
   CreateExpenseInput,
+  CreatePersonInput,
   CreateReminderInput,
   CreateTaskInput,
   EventPlanningObjectService,
@@ -12,6 +13,7 @@ import type {
   EventContextService,
   UpdateEventInput,
   UpdateExpenseInput,
+  UpdatePersonInput,
   UpdateReminderInput,
   UpdateTaskInput,
 } from "@chronelle/object-model";
@@ -33,6 +35,11 @@ import {
   objectDeletionQuerySchema,
   objectDeletionResponseSchema,
   objectIdParamsSchema,
+  personCreateRequestSchema,
+  personListQuerySchema,
+  personListResponseSchema,
+  personResponseSchema,
+  personUpdateRequestSchema,
   relationCreateRequestSchema,
   relationDeletionResponseSchema,
   relationDeletionQuerySchema,
@@ -163,6 +170,15 @@ export function registerEventPlanningRoutes(
       items: page.items.map(serializeResource),
     });
   });
+  app.get("/api/persons", { preHandler: app.authenticate }, async (request) => {
+    const page = await dependencies.objects.listPersons(
+      requirePrincipal(request),
+      parseRequest(personListQuerySchema, request.query),
+    );
+    return personListResponseSchema.parse({
+      items: page.items.map(serializeResource),
+    });
+  });
   app.get("/api/events", { preHandler: app.authenticate }, async (request) => {
     const events = await dependencies.objects.listEvents(
       requirePrincipal(request),
@@ -216,6 +232,17 @@ export function registerEventPlanningRoutes(
     get: (principal, id) => dependencies.objects.getReminder(principal, id),
     update: (context, id, input) =>
       dependencies.objects.updateReminder(context, id, input),
+  });
+  registerTypedObjectRoutes<CreatePersonInput, UpdatePersonInput>(app, {
+    collectionPath: "persons",
+    createSchema: personCreateRequestSchema,
+    updateSchema: personUpdateRequestSchema,
+    responseSchema: personResponseSchema,
+    create: (context, input) =>
+      dependencies.objects.createPerson(context, input),
+    get: (principal, id) => dependencies.objects.getPerson(principal, id),
+    update: (context, id, input) =>
+      dependencies.objects.updatePerson(context, id, input),
   });
 
   app.get(

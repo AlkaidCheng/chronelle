@@ -16,6 +16,7 @@ import type {
   EventResource,
   EventResourceProjection,
   ExpenseResourceProjection,
+  PersonResource,
   ReminderResourceProjection,
   TaskResource,
   TaskResourceProjection,
@@ -52,7 +53,10 @@ function isResource<Type extends EventPlanningResource["objectType"]>(
   return resource.objectType === objectType;
 }
 
-type TimelineResource = Exclude<EventPlanningResource, DocumentResource>;
+type TimelineResource = Exclude<
+  EventPlanningResource,
+  DocumentResource | PersonResource
+>;
 
 /** The typed object families a focused projection selects from an Event's `includes` relations. */
 export type ProjectionObjectType = TimelineResource["objectType"];

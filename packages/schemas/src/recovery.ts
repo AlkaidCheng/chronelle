@@ -17,7 +17,7 @@ export const trashQuerySchema = z
     limit: z.coerce.number().int().min(1).max(100).default(20),
     cursor: cursorTokenSchema.optional(),
     objectType: z
-      .enum(["event", "task", "expense", "reminder", "document"])
+      .enum(["event", "task", "expense", "reminder", "document", "person"])
       .optional(),
     scopeId: z.uuid().optional(),
   })
@@ -29,7 +29,14 @@ export const removedRelationQuerySchema = z.strictObject({
 });
 export const trashItemSchema = z.object({
   id: z.uuid(),
-  objectType: z.enum(["event", "task", "expense", "reminder", "document"]),
+  objectType: z.enum([
+    "event",
+    "task",
+    "expense",
+    "reminder",
+    "document",
+    "person",
+  ]),
   displayName: z.string(),
   version: versionSchema,
   deletedAt: z.iso.datetime(),

@@ -49,6 +49,10 @@ const typedFields: Record<
     sizeBytes: field("Size in bytes", "decimal", false),
     checksumSha256: field("File checksum", "text", false),
   },
+  person: {
+    email: field("Email", "text"),
+    userId: field("Linked account", "text", false),
+  },
 };
 
 /** Compare public content only; permission and storage internals are never inspected. */

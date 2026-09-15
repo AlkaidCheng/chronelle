@@ -70,5 +70,12 @@ export function serializeResource(resource: EventPlanningResource) {
         checksumSha256: resource.checksumSha256,
         encryptionMode: resource.encryptionMode,
       };
+    case "person":
+      return {
+        ...canonical,
+        objectType: "person" as const,
+        email: resource.email,
+        userId: resource.userId,
+      };
   }
 }

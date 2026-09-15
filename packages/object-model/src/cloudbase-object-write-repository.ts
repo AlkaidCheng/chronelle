@@ -7,7 +7,7 @@ import type { MutationContext } from "./types.js";
 
 /** What a family's functions are called and how their returned rows decode. */
 export interface CloudBaseWriteFamily<Resource> {
-  readonly objectType: "event" | "task" | "expense" | "reminder";
+  readonly objectType: "event" | "task" | "expense" | "reminder" | "person";
   readonly decode: (rows: unknown) => Resource;
 }
 

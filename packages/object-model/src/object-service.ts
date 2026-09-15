@@ -10,16 +10,19 @@ import {
   expenses,
   labels,
   objects,
+  persons,
   reminders,
   taskLabels,
   tasks,
+  workspaceMembers,
   type DatabaseTransaction,
   type ObjectType,
 } from "@chronelle/db";
-import { and, eq, inArray, isNull, sql } from "drizzle-orm";
+import { and, eq, inArray, isNull, ne, sql } from "drizzle-orm";
 import {
   eventCalendarDatesSchema,
   type EventListQueryInput,
+  type PersonListQueryInput,
   type TaskListQueryInput,
 } from "@chronelle/schemas";
 import {
@@ -35,6 +38,11 @@ import {
 } from "./object-reads.js";
 import type { ObjectWriteRepositories } from "./object-writes.js";
 import {
+  PostgresPersonReadRepository,
+  type PersonPage,
+  type PersonReadRepository,
+} from "./person-list.js";
+import {
   PostgresTaskReadRepository,
   type TaskPage,
   type TaskReadRepository,
@@ -47,6 +55,7 @@ import type {
   CreateEventInput,
   CreateExpenseInput,
   CreateObjectFields,
+  CreatePersonInput,
   CreateReminderInput,
   CreateTaskInput,
   DocumentResource,
@@ -55,11 +64,13 @@ import type {
   ExpenseResource,
   MutationContext,
   ObjectDeletionResource,
+  PersonResource,
   ReminderResource,
   TaskResource,
   UpdateEventInput,
   UpdateExpenseInput,
   UpdateObjectFields,
+  UpdatePersonInput,
   UpdateReminderInput,
   UpdatePermissionScopeInput,
   UpdateTaskInput,
@@ -116,6 +127,59 @@ function assertEventState(
       );
     }
   }
+}
+
+/**
+ * A Person's linked account is a member of the workspace and belongs to one
+ * Person; an email is a trimmed address. Checked inside the write
+ * transaction, with the messages the database functions use.
+ */
+async function assertPersonState(
+  transaction: DatabaseTransaction,
+  workspaceId: string,
+  objectId: string,
+  userId: string | null,
+  email: string | null,
+): Promise<void> {
+  if (userId !== null) {
+    const [member] = await transaction
+      .select({ userId: workspaceMembers.userId })
+      .from(workspaceMembers)
+      .where(
+        and(
+          eq(workspaceMembers.workspaceId, workspaceId),
+          eq(workspaceMembers.userId, userId),
+        ),
+      )
+      .limit(1);
+    if (member === undefined)
+      throw new InvalidObjectStateError(
+        "userId must name a member of this workspace.",
+      );
+    const [linked] = await transaction
+      .select({ objectId: persons.objectId })
+      .from(persons)
+      .where(
+        and(
+          eq(persons.workspaceId, workspaceId),
+          eq(persons.userId, userId),
+          ne(persons.objectId, objectId),
+        ),
+      )
+      .limit(1);
+    if (linked !== undefined)
+      throw new InvalidObjectStateError(
+        "userId is already linked to another person.",
+      );
+  }
+  if (
+    email !== null &&
+    (email !== email.trim() ||
+      email.length < 3 ||
+      email.length > 254 ||
+      email.indexOf("@") < 1)
+  )
+    throw new InvalidObjectStateError("email must be a valid address.");
 }
 
 /** Replaces a task's labels; every id must be a label of the workspace. */
@@ -256,6 +320,7 @@ export class EventPlanningObjectService {
   readonly #database: AuthorizationDatabase;
   readonly #eventReads: EventReadRepository;
   readonly #taskReads: TaskReadRepository;
+  readonly #personReads: PersonReadRepository;
   readonly #objectReads: ObjectReadRepository;
   readonly #writes: ObjectWriteRepositories;
 
@@ -270,6 +335,8 @@ export class EventPlanningObjectService {
     this.#eventReads =
       reads.events ?? new PostgresEventReadRepository(database);
     this.#taskReads = reads.tasks ?? new PostgresTaskReadRepository(database);
+    this.#personReads =
+      reads.persons ?? new PostgresPersonReadRepository(database);
     this.#objectReads =
       reads.objects ?? new PostgresObjectReadRepository(database);
     this.#writes = writes;
@@ -403,6 +470,38 @@ export class EventPlanningObjectService {
     return this.#requireType(resource, "reminder");
   }
 
+  async createPerson(
+    context: MutationContext,
+    input: CreatePersonInput,
+  ): Promise<PersonResource> {
+    if (this.#writes.person !== undefined)
+      return this.#writes.person.create(context, input);
+
+    const userId = input.userId ?? null;
+    const email = input.email ?? null;
+    const resource = await this.#createObject(
+      context,
+      "person",
+      input,
+      async (transaction, createdObjectId) => {
+        await assertPersonState(
+          transaction,
+          context.principal.workspaceId,
+          createdObjectId,
+          userId,
+          email,
+        );
+        await transaction.insert(persons).values({
+          objectId: createdObjectId,
+          workspaceId: context.principal.workspaceId,
+          userId,
+          email,
+        });
+      },
+    );
+    return this.#requireType(resource, "person");
+  }
+
   getObject(
     principal: UserPrincipal,
     objectId: string,
@@ -427,6 +526,13 @@ export class EventPlanningObjectService {
     input: TaskListQueryInput = {},
   ): Promise<TaskPage> {
     return this.#taskReads.listTasks(principal, input);
+  }
+
+  listPersons(
+    principal: UserPrincipal,
+    input: PersonListQueryInput = {},
+  ): Promise<PersonPage> {
+    return this.#personReads.listPersons(principal, input);
   }
 
   listEvents(
@@ -466,6 +572,14 @@ export class EventPlanningObjectService {
   ): Promise<ReminderResource> {
     const resource = await this.#objectReads.getObject(principal, objectId);
     return this.#requireType(resource, "reminder");
+  }
+
+  async getPerson(
+    principal: UserPrincipal,
+    objectId: string,
+  ): Promise<PersonResource> {
+    const resource = await this.#objectReads.getObject(principal, objectId);
+    return this.#requireType(resource, "person");
   }
 
   async getDocument(
@@ -637,6 +751,52 @@ export class EventPlanningObjectService {
       },
     );
     return this.#requireType(resource, "expense");
+  }
+
+  async updatePerson(
+    context: MutationContext,
+    objectId: string,
+    input: UpdatePersonInput,
+  ): Promise<PersonResource> {
+    if (this.#writes.person !== undefined)
+      return this.#writes.person.update(context, objectId, input);
+    const current = this.#requireType(
+      await this.#getEditableObject(context.principal, objectId),
+      "person",
+    );
+    const userId = input.userId === undefined ? current.userId : input.userId;
+    const email = input.email === undefined ? current.email : input.email;
+
+    const resource = await this.#updateObject(
+      context,
+      current,
+      input,
+      async (transaction) => {
+        await assertPersonState(
+          transaction,
+          context.principal.workspaceId,
+          objectId,
+          userId,
+          email,
+        );
+        const changes = {
+          ...(input.userId !== undefined && { userId: input.userId }),
+          ...(input.email !== undefined && { email: input.email }),
+        };
+        if (Object.keys(changes).length > 0) {
+          await transaction
+            .update(persons)
+            .set(changes)
+            .where(
+              and(
+                eq(persons.workspaceId, context.principal.workspaceId),
+                eq(persons.objectId, objectId),
+              ),
+            );
+        }
+      },
+    );
+    return this.#requireType(resource, "person");
   }
 
   async updateReminder(
