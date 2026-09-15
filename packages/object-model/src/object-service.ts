@@ -18,6 +18,7 @@ import { and, eq, isNull, sql } from "drizzle-orm";
 import {
   eventCalendarDatesSchema,
   type EventListQueryInput,
+  type TaskListQueryInput,
 } from "@chronelle/schemas";
 import {
   PostgresEventReadRepository,
@@ -31,6 +32,11 @@ import {
   type ObjectReadRepository,
 } from "./object-reads.js";
 import type { ObjectWriteRepositories } from "./object-writes.js";
+import {
+  PostgresTaskReadRepository,
+  type TaskPage,
+  type TaskReadRepository,
+} from "./task-list.js";
 
 import { InvalidObjectStateError, ObjectConflictError } from "./errors.js";
 import { readObjectState } from "./object-state.js";
@@ -154,6 +160,7 @@ export class EventPlanningObjectService {
   readonly #clock: () => Date;
   readonly #database: AuthorizationDatabase;
   readonly #eventReads: EventReadRepository;
+  readonly #taskReads: TaskReadRepository;
   readonly #objectReads: ObjectReadRepository;
   readonly #writes: ObjectWriteRepositories;
 
@@ -167,6 +174,7 @@ export class EventPlanningObjectService {
     this.#clock = clock;
     this.#eventReads =
       reads.events ?? new PostgresEventReadRepository(database);
+    this.#taskReads = reads.tasks ?? new PostgresTaskReadRepository(database);
     this.#objectReads =
       reads.objects ?? new PostgresObjectReadRepository(database);
     this.#writes = writes;
@@ -301,6 +309,13 @@ export class EventPlanningObjectService {
     objectIds: readonly string[],
   ): Promise<EventPlanningResource[]> {
     return this.#objectReads.listVisibleObjects(principal, objectIds);
+  }
+
+  listTasks(
+    principal: UserPrincipal,
+    input: TaskListQueryInput = {},
+  ): Promise<TaskPage> {
+    return this.#taskReads.listTasks(principal, input);
   }
 
   listEvents(

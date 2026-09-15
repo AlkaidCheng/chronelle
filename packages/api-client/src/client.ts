@@ -77,6 +77,9 @@ import {
   type EventDetailResponse,
   type EventListResponse,
   type EventListQueryInput,
+  type TaskListResponse,
+  type TaskListQueryInput,
+  taskListResponseSchema,
   type EventPlanningResourceResponse,
   type EventResourceProjectionResponse,
   type EventResponse,
@@ -343,6 +346,15 @@ export class ChronelleApiClient {
       "/api/workspace/storage-inventory",
       storageInventoryResponseSchema,
     );
+  }
+
+  listTasks(input: TaskListQueryInput = {}): Promise<TaskListResponse> {
+    const parameters = new URLSearchParams();
+    for (const [key, value] of Object.entries(input)) {
+      if (value !== undefined) parameters.set(key, String(value));
+    }
+    const query = parameters.size === 0 ? "" : `?${parameters.toString()}`;
+    return this.#request(`/api/tasks${query}`, taskListResponseSchema);
   }
 
   listEvents(input: EventListQueryInput = {}): Promise<EventListResponse> {

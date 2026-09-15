@@ -10,6 +10,8 @@ import {
   eventListQuerySchema,
   eventPlanningResourceResponseSchema,
   eventUpdateRequestSchema,
+  taskCreateRequestSchema,
+  taskListQuerySchema,
   taskUpdateRequestSchema,
   expenseUpdateRequestSchema,
   reminderUpdateRequestSchema,
@@ -408,6 +410,64 @@ export class SandboxStore {
             : null,
       };
     }
+    if (collection === "tasks" && !id) {
+      // The workspace task list: status filter, due/name/updated order, and
+      // a cursor that names the last task of the previous page.
+      const query = taskListQuerySchema.parse(
+        Object.fromEntries(url.searchParams),
+      );
+      const duePosition = (task: Resource) =>
+        task.objectType === "task"
+          ? task.dueOn
+            ? `${task.dueOn}T00:00:00.000Z`
+            : (task.dueAt ?? "z")
+          : "z";
+      const matches = all
+        .filter(
+          (object): object is Extract<Resource, { objectType: "task" }> =>
+            object.objectType === "task",
+        )
+        .filter(
+          (task) =>
+            task.displayName
+              .toLowerCase()
+              .includes(query.query.toLowerCase()) &&
+            (query.filter === "all" ||
+              (query.filter === "done"
+                ? task.status === "done"
+                : task.status === "todo" || task.status === "in_progress")),
+        )
+        .sort((a, b) =>
+          query.sort === "name"
+            ? a.displayName.localeCompare(b.displayName) ||
+              a.id.localeCompare(b.id)
+            : query.sort === "updated"
+              ? b.updatedAt.localeCompare(a.updatedAt) ||
+                a.id.localeCompare(b.id)
+              : duePosition(a).localeCompare(duePosition(b)) ||
+                a.displayName.localeCompare(b.displayName) ||
+                a.id.localeCompare(b.id),
+        );
+      const offset =
+        query.cursor === undefined
+          ? 0
+          : matches.findIndex((task) => task.id === query.cursor) + 1;
+      if (query.cursor !== undefined && offset === 0)
+        throw new SandboxError(
+          400,
+          "invalid_request",
+          "The task cursor is invalid for this query.",
+        );
+      const items = matches.slice(offset, offset + query.limit);
+      return {
+        items,
+        nextCursor:
+          offset + items.length < matches.length
+            ? (items.at(-1)?.id ?? null)
+            : null,
+        asOf: new Date().toISOString(),
+      };
+    }
     if (collection === "events" && !id) {
       const query = eventListQuerySchema.parse(
         Object.fromEntries(url.searchParams),
@@ -611,6 +671,22 @@ export class SandboxStore {
     if (method === "GET") {
       const response = this.#read(url, role);
       if (response !== undefined) return response;
+    }
+    if (method === "POST" && collection === "tasks" && !id) {
+      const input = JSON.parse(
+        JSON.stringify(taskCreateRequestSchema.parse(body)),
+      ) as Record<string, unknown>;
+      const { permissionScopeId, ...fields } = input;
+      const object = canonical(
+        "task",
+        fields,
+        typeof permissionScopeId === "string" ? permissionScopeId : undefined,
+      );
+      this.#commit({
+        ...this.#state,
+        objects: [...this.#state.objects, object],
+      });
+      return object;
     }
     if (method === "POST" && collection === "events") {
       if (!id) {

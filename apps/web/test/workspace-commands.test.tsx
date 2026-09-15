@@ -129,7 +129,7 @@ it("filters destinations, navigates with arrows and Enter, and returns focus", a
   await user.click(trigger());
   const input = screen.getByRole("combobox", { name: "Find a command" });
   expect(input).toHaveFocus();
-  expect(results().getAllByRole("option")).toHaveLength(3);
+  expect(results().getAllByRole("option")).toHaveLength(4);
   await user.keyboard("{ArrowUp}");
   expect(results().getByRole("option", { selected: true })).toHaveTextContent(
     "Trash",
@@ -273,7 +273,7 @@ it("supports disable, reload, storage synchronization, and a visible fallback", 
   expect(
     screen.getByRole("checkbox", { name: "Enable command shortcut" }),
   ).toBeChecked();
-  expect(results().getAllByRole("option")).toHaveLength(3);
+  expect(results().getAllByRole("option")).toHaveLength(4);
 });
 
 it("retains a page-only setting when storage writes fail", async () => {
@@ -520,7 +520,7 @@ it("groups current controls and hands focus to the latest existing handler after
     within(screen.getByRole("group", { name: "Navigation" })).getAllByRole(
       "option",
     ),
-  ).toHaveLength(3);
+  ).toHaveLength(4);
   view.rerender(<ContextHarness onEdit={latest} />);
   await user.type(
     screen.getByRole("combobox", { name: "Find a command" }),
@@ -594,7 +594,7 @@ it.each([{ pathname: "/search" }, { mounted: false }])(
     expect(
       screen.queryByRole("group", { name: "Event actions" }),
     ).not.toBeInTheDocument();
-    expect(results().getAllByRole("option")).toHaveLength(3);
+    expect(results().getAllByRole("option")).toHaveLength(4);
     await user.keyboard("{Enter}");
     expect(push).not.toHaveBeenCalled();
   },

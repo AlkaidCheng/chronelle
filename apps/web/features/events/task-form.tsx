@@ -29,19 +29,28 @@ import {
 } from "../../lib/queries";
 
 interface TaskFormProps {
-  readonly eventId: string;
+  /** The Event a new task joins; absent, the task is created on its own. */
+  readonly eventId?: string | undefined;
   readonly onCancel?: (() => void) | undefined;
   readonly onRefresh?: (() => Promise<void>) | undefined;
   readonly task?: TaskResponse | undefined;
 }
 
+// A draft for a task outside any Event is keyed like a new Event's: its
+// recovery checks the session rather than a parent's access.
+const standaloneTaskDraft = { id: "task:new", accessId: "new" };
+
 export function TaskForm(props: TaskFormProps) {
-  const draftId = props.task?.id ?? eventCreationDraftKeys(props.eventId).task;
+  const draftId =
+    props.task?.id ??
+    (props.eventId === undefined
+      ? standaloneTaskDraft.id
+      : eventCreationDraftKeys(props.eventId).task);
   return (
     <EditorDraftRecovery
       kind="task"
       id={draftId}
-      accessId={props.task?.id ?? props.eventId}
+      accessId={props.task?.id ?? props.eventId ?? standaloneTaskDraft.accessId}
       onClose={() => props.onCancel?.()}
     >
       {(initialDraft) => (
@@ -80,7 +89,7 @@ function TaskEditor({
     snapshot,
     draft.isDirty,
     () => onCancel?.(),
-    task?.id ?? eventId,
+    task?.id ?? eventId ?? standaloneTaskDraft.accessId,
   );
   const create = useCreateTask(eventId, attempt);
   const update = useUpdateTask();

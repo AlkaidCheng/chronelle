@@ -306,6 +306,7 @@ See [Recovery](recovery.md) for authorization, pagination, and rollout semantics
 | -------- | -------------------------------- | ----------------------------------- |
 | `GET`    | `/events`                        | List visible root Events            |
 | `POST`   | `/events`                        | Create an Event                     |
+| `GET`    | `/tasks`                         | List every visible Task             |
 | `POST`   | `/tasks`                         | Create a Task                       |
 | `POST`   | `/expenses`                      | Create an Expense                   |
 | `POST`   | `/reminders`                     | Create a Reminder                   |
@@ -333,6 +334,17 @@ workspace and applies the same `view` authorization decision to every candidate
 before returning it. Directly shared Events can appear without workspace
 membership; child schedule items, unrelated Events, and soft-deleted Events are
 omitted.
+
+The Task collection (`GET /tasks`) lists every live Task the caller may view in
+the active workspace, whether it owns its scope or inherits an Event's, with
+the same authorization decision per candidate. `filter` is `open` (todo and in
+progress, the default), `all`, or `done`; `sort` is `due` (a date-only due at
+the start of its day in UTC, ahead of timed tasks that day, undated tasks
+last, then name and ID), `name`, or `updated`; `query` matches the name;
+`limit` is 1-50 (default 20). Pages carry `nextCursor` and `asOf` like the
+Event collection, and a cursor is bound to its caller and query: reusing one
+with another `filter`, `sort`, `query`, or user returns HTTP 400. The typed
+client exposes `listTasks(input)`.
 
 ## Search
 

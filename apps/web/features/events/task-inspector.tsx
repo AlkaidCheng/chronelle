@@ -9,7 +9,8 @@ export function TaskInspector({
   taskId,
   onClose,
 }: {
-  readonly eventId: string;
+  /** The Event the inspector was opened from, if any. */
+  readonly eventId?: string | undefined;
   readonly taskId: string;
   readonly onClose: () => void;
 }) {

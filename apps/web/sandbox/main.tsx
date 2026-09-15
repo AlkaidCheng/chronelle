@@ -6,6 +6,7 @@ import { EventList } from "../features/events/event-list";
 import { EventWorkspace } from "../features/events/event-workspace";
 import { ObjectSearch } from "../features/search/object-search";
 import { TrashWorkspace } from "../features/recovery/trash-workspace";
+import { TasksPage } from "../features/tasks/tasks-page";
 import { store } from "./api-context";
 import { useAuthSession } from "./auth-session";
 import Link, { usePathname } from "./router";
@@ -78,6 +79,8 @@ function Sandbox() {
           <EventWorkspace key={eventId} eventId={eventId} />
         ) : pathname === "/events" ? (
           <EventList />
+        ) : pathname === "/tasks" ? (
+          <TasksPage />
         ) : pathname === "/search" ? (
           <ObjectSearch />
         ) : pathname === "/trash" ? (
