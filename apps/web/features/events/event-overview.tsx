@@ -10,6 +10,7 @@ import {
   ClockIcon,
   LockIcon,
   PaperclipIcon,
+  PeopleIcon,
   WalletIcon,
 } from "../../components/icons";
 import { formatDateTime } from "../../lib/format";
@@ -120,6 +121,12 @@ export function EventOverview({
           icon={<PaperclipIcon />}
           label="Event files"
           onOpen={() => onOpen("files")}
+        />
+        <OverviewCard
+          count={String(detail.persons.length)}
+          icon={<PeopleIcon />}
+          label="People"
+          onOpen={() => onOpen("people")}
         />
       </div>
       <div className="next-up surface-subtle">

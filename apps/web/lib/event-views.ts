@@ -8,6 +8,7 @@ export const eventViews = [
   { id: "expenses", label: "Expenses" },
   { id: "reminders", label: "Reminders" },
   { id: "files", label: "Files" },
+  { id: "people", label: "People" },
   { id: "sharing", label: "Sharing" },
   { id: "removed-links", label: "Removed links" },
 ] as const;
