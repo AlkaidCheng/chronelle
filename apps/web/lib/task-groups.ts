@@ -60,6 +60,12 @@ export function groupTasksByDay(
     month: "short",
     day: "numeric",
   });
+  // A day in another year carries its year.
+  const farDayTitle = new Intl.DateTimeFormat(undefined, {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
   const groups: TaskDayGroup[] = [];
   if (overdue.length > 0)
     groups.push({
@@ -78,7 +84,10 @@ export function groupTasksByDay(
     groups.push({
       key,
       label: [
-        dayTitle.format(day.date),
+        (day.date.getFullYear() === today.getFullYear()
+          ? dayTitle
+          : farDayTitle
+        ).format(day.date),
         ...(relative === null ? [] : [relative]),
         dayName.format(day.date),
       ],

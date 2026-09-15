@@ -85,6 +85,20 @@ describe("groupTasksByDay", () => {
     expect(groups[0]?.tone).toBe("today");
   });
 
+  it("names the year of a day outside the current one", () => {
+    const groups = groupTasksByDay(
+      [
+        task("Next spring", "2027-04-02"),
+        task("Long ago", "2019-01-05", "done"),
+      ],
+      now,
+    );
+    expect(groups.map((group) => group.label)).toEqual([
+      ["Jan 5, 2019", "Saturday"],
+      ["Apr 2, 2027", "Friday"],
+    ]);
+  });
+
   it("returns nothing for no tasks", () => {
     expect(groupTasksByDay([], now)).toEqual([]);
   });
