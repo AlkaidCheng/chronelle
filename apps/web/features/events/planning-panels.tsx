@@ -38,6 +38,7 @@ import {
 } from "../../lib/event-schedule";
 import { viewsOf } from "../../lib/event-components";
 import { formatDatePart, formatDateTime, formatTime } from "../../lib/format";
+import { formatTaskDue } from "../../lib/task-due";
 import { formatMoney, sumMoneyByCurrency } from "../../lib/money";
 import { groupTasksByDay } from "../../lib/task-groups";
 import {
@@ -156,9 +157,10 @@ export function TasksPanel({
           </div>
         ),
       }),
-      taskColumn.accessor("dueAt", {
+      taskColumn.display({
+        id: "due",
         header: "Due",
-        cell: ({ getValue }) => formatDateTime(getValue()),
+        cell: ({ row }) => formatTaskDue(row.original),
       }),
       taskColumn.accessor("status", {
         header: "Status",
@@ -262,13 +264,15 @@ export function TasksPanel({
                     {check(task)}
                     <div className="resource-copy">
                       <strong>{task.displayName}</strong>
-                      {task.dueAt === null ? null : (
+                      {task.dueAt !== null ? (
                         <p>
                           {group.tone === "overdue"
                             ? formatDateTime(task.dueAt)
                             : formatTime(task.dueAt)}
                         </p>
-                      )}
+                      ) : task.dueOn !== null && group.tone === "overdue" ? (
+                        <p>{formatCalendarDate(task.dueOn)}</p>
+                      ) : null}
                       <ObjectDetails id={task.id} />
                     </div>
                     <StatusChip status={task.status} />

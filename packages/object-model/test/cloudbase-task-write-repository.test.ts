@@ -48,6 +48,7 @@ describe("CloudBaseTaskWriteRepository", () => {
     });
     const updated = await repository.update(context, objectId, {
       expectedVersion: 1,
+      dueOn: "2030-10-02",
       dueAt: null,
     });
 
@@ -67,7 +68,7 @@ describe("CloudBaseTaskWriteRepository", () => {
       request_id: "request-1",
       object_id: objectId,
       expected_version: 1,
-      changes: { dueAt: null },
+      changes: { dueOn: "2030-10-02", dueAt: null },
       command: null,
     });
     for (const resource of [created, updated]) {
@@ -76,6 +77,7 @@ describe("CloudBaseTaskWriteRepository", () => {
         objectType: "task",
         version: 2,
         status: "done",
+        dueOn: null,
         dueAt: new Date("2030-10-01T09:00:00.000Z"),
         completedAt: new Date("2030-09-28T15:30:00.000Z"),
       });

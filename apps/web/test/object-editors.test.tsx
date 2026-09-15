@@ -294,7 +294,12 @@ describe.each(["task", "expense"] as const)("focused %s editors", (kind) => {
       await act(async () =>
         pending.resolve(
           Response.json({
-            resource: { ...resource, displayName: "Pack bags", dueAt: null },
+            resource: {
+              ...resource,
+              displayName: "Pack bags",
+              dueOn: null,
+              dueAt: null,
+            },
             relationId: eventId,
           }),
         ),
@@ -360,7 +365,7 @@ describe.each(["task", "expense"] as const)("focused %s editors", (kind) => {
       expect(JSON.parse(String(patch?.[1]?.body))).toEqual({
         displayName: "Confirm headcount",
         ...(kind === "task"
-          ? { dueAt: resource.dueAt }
+          ? { dueOn: null, dueAt: resource.dueAt }
           : {
               amount: resource.amount,
               currency: resource.currency,

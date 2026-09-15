@@ -6,6 +6,9 @@ import {
   eventUpdateRequestSchema,
   expenseCreateRequestSchema,
   relationCreateRequestSchema,
+  taskCreateRequestSchema,
+  taskResponseSchema,
+  taskUpdateRequestSchema,
 } from "../src/event-planning.js";
 import { documentUploadAuthorizationRequestSchema } from "../src/documents.js";
 
@@ -29,6 +32,46 @@ describe("event-planning schemas", () => {
         occurredAt: "2026-09-15T12:00:00Z",
       }),
     ).toMatchObject({ currency: "USD" });
+  });
+
+  it("takes a task due date, a due instant, or neither", () => {
+    expect(
+      taskCreateRequestSchema.parse({
+        displayName: "Book",
+        dueOn: "2026-10-03",
+      }),
+    ).toMatchObject({ dueOn: "2026-10-03" });
+    expect(
+      taskUpdateRequestSchema.parse({
+        expectedVersion: 1,
+        dueOn: null,
+        dueAt: "2026-10-03T09:00:00Z",
+      }),
+    ).toMatchObject({ dueOn: null, dueAt: new Date("2026-10-03T09:00:00Z") });
+    expect(
+      taskCreateRequestSchema.safeParse({ displayName: "Book", dueOn: "3 Oct" })
+        .success,
+    ).toBe(false);
+    expect(
+      taskResponseSchema.parse({
+        id: "00000000-0000-7000-8000-000000000001",
+        objectType: "task",
+        workspaceId: "00000000-0000-7000-8000-000000000002",
+        permissionScopeId: "00000000-0000-7000-8000-000000000001",
+        createdBy: "00000000-0000-7000-8000-000000000003",
+        displayName: "Book",
+        version: 1,
+        customProperties: {},
+        metadata: {},
+        createdAt: "2026-09-15T00:00:00.000Z",
+        updatedAt: "2026-09-15T00:00:00.000Z",
+        archivedAt: null,
+        deletedAt: null,
+        status: "todo",
+        dueAt: null,
+        completedAt: null,
+      }).dueOn,
+    ).toBeNull();
   });
 
   it("requires a real update and validates relationship input", () => {

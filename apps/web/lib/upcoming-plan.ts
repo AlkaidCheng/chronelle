@@ -19,8 +19,10 @@ export function nextPlanningItem(detail: EventDetailResponse, now: number) {
         id: task.id,
         displayName: task.displayName,
         occursAt: task.dueAt,
-        occursOn: null,
-        upcoming: task.dueAt !== null && Date.parse(task.dueAt) >= now,
+        occursOn: task.dueOn,
+        upcoming: task.dueOn
+          ? Date.parse(`${task.dueOn}T23:59:59.999Z`) >= now
+          : task.dueAt !== null && Date.parse(task.dueAt) >= now,
       })),
     ...detail.reminders
       .filter((reminder) => reminder.status === "pending")

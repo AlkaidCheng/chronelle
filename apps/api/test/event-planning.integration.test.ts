@@ -519,6 +519,107 @@ describe.sequential("event-planning API", () => {
     );
   });
 
+  it("keeps a task due on a date apart from one due at an instant", async () => {
+    const owner = await signIn("dates@example.com", "Date Planner");
+    const ownerHeaders = headers(owner);
+    const eventResponse = await app.inject({
+      method: "POST",
+      url: "/api/events",
+      headers: ownerHeaders,
+      payload: { displayName: "Autumn fair" },
+    });
+    const event = eventResponseSchema.parse(eventResponse.json());
+    const create = async (payload: Record<string, unknown>) =>
+      app.inject({
+        method: "POST",
+        url: "/api/tasks",
+        headers: ownerHeaders,
+        payload: { permissionScopeId: event.id, ...payload },
+      });
+
+    const bothResponse = await create({
+      displayName: "Impossible",
+      dueOn: "2026-10-10",
+      dueAt: "2026-10-10T18:00:00Z",
+    });
+    expect(bothResponse.statusCode).toBe(400);
+    expect(bothResponse.json()).toMatchObject({
+      error: { message: "dueOn and dueAt cannot both be set." },
+    });
+
+    const timedResponse = await create({
+      displayName: "Timed",
+      dueAt: "2026-10-10T18:00:00Z",
+    });
+    const timed = taskResponseSchema.parse(timedResponse.json());
+    expect(timed).toMatchObject({
+      dueOn: null,
+      dueAt: "2026-10-10T18:00:00.000Z",
+    });
+    const datedResponse = await create({
+      displayName: "Dated",
+      dueOn: "2026-10-10",
+    });
+    const dated = taskResponseSchema.parse(datedResponse.json());
+    expect(dated).toMatchObject({ dueOn: "2026-10-10", dueAt: null });
+    for (const target of [timed, dated]) {
+      const response = await app.inject({
+        method: "POST",
+        url: `/api/objects/${event.id}/relations`,
+        headers: ownerHeaders,
+        payload: { relationType: "includes", targetObjectId: target.id },
+      });
+      expect(response.statusCode).toBe(201);
+    }
+
+    const todosResponse = await app.inject({
+      method: "GET",
+      url: `/api/events/${event.id}/todos`,
+      headers: ownerHeaders,
+    });
+    expect(
+      taskResourceProjectionResponseSchema
+        .parse(todosResponse.json())
+        .items.map(({ id }) => id),
+    ).toEqual([dated.id, timed.id]);
+    const timelineResponse = await app.inject({
+      method: "GET",
+      url: `/api/events/${event.id}/timeline`,
+      headers: ownerHeaders,
+    });
+    expect(
+      timelineResponseSchema.parse(timelineResponse.json()).items,
+    ).toMatchObject([
+      { canonicalObjectId: dated.id, occursOn: "2026-10-10", occursAt: null },
+      { canonicalObjectId: timed.id, occursAt: "2026-10-10T18:00:00.000Z" },
+    ]);
+
+    // Moving between the forms clears the other in the same update.
+    const conflictResponse = await app.inject({
+      method: "PATCH",
+      url: `/api/tasks/${dated.id}`,
+      headers: ownerHeaders,
+      payload: { expectedVersion: 1, dueAt: "2026-10-11T09:00:00Z" },
+    });
+    expect(conflictResponse.statusCode).toBe(400);
+    const movedResponse = await app.inject({
+      method: "PATCH",
+      url: `/api/tasks/${dated.id}`,
+      headers: ownerHeaders,
+      payload: {
+        expectedVersion: 1,
+        dueOn: null,
+        dueAt: "2026-10-11T09:00:00Z",
+      },
+    });
+    expect(movedResponse.statusCode).toBe(200);
+    expect(taskResponseSchema.parse(movedResponse.json())).toMatchObject({
+      version: 2,
+      dueOn: null,
+      dueAt: "2026-10-11T09:00:00.000Z",
+    });
+  });
+
   it("enforces inheritance without treating references as grants", async () => {
     const owner = await signIn("owner@example.com", "Owner");
     const viewer = await signIn("viewer@example.com", "Viewer");

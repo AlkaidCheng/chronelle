@@ -33,6 +33,7 @@ const task: TaskResponse = {
   ...event,
   id: "019d6e7d-0000-7000-8000-000000000004",
   objectType: "task",
+  dueOn: null,
   dueAt: "2026-09-06T13:00:00.000Z",
   completedAt: null,
   status: "todo",

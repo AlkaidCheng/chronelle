@@ -38,6 +38,7 @@ export function serializeResource(resource: EventPlanningResource) {
         ...canonical,
         objectType: "task" as const,
         status: resource.status,
+        dueOn: resource.dueOn,
         dueAt: serializeDate(resource.dueAt),
         completedAt: serializeDate(resource.completedAt),
       };

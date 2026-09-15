@@ -38,7 +38,7 @@ describe.each(draftKinds)("%s draft recovery", (kind) => {
   const { field, timeLabel, createLabel, schema, Form } = {
     task: {
       field: "Task",
-      timeLabel: "Due",
+      timeLabel: "Due date",
       createLabel: "Create task",
       schema: taskResponseSchema,
       Form: TaskForm,
@@ -310,7 +310,8 @@ describe.each(draftKinds)("%s draft recovery", (kind) => {
       async (mode) => {
         const user = await begin(mode);
         const due = screen.getByLabelText(timeLabel);
-        fireEvent.change(due, { target: { value: "2030-07-04T10:15" } });
+        const edited = kind === "task" ? "2030-07-04" : "2030-07-04T10:15";
+        fireEvent.change(due, { target: { value: edited } });
         const session = sessionStorage.getItem("chronelle.session");
         navigateAway();
         expect(unloadIsPrevented()).toBe(true);
@@ -333,9 +334,7 @@ describe.each(draftKinds)("%s draft recovery", (kind) => {
           "Pack the lanterns",
         );
         expect(screen.getByLabelText(field)).toHaveFocus();
-        expect(screen.getByLabelText(timeLabel)).toHaveValue(
-          "2030-07-04T10:15",
-        );
+        expect(screen.getByLabelText(timeLabel)).toHaveValue(edited);
         expect(fetch).toHaveBeenCalledWith(
           expect.stringContaining(
             `/objects/${mode === "create" ? eventId : resource.id}/access`,

@@ -28,7 +28,8 @@ import {
 // document transfer functions (0026), chronelle_identity_sign_in (0027),
 // chronelle_backend_readiness (0028), the chronelle_session_* functions
 // (0030 and 0031), and the credential functions (0032) against the real
-// gateway; 0033 shapes the issue result as {throttled, verification}. The
+// gateway; 0033 shapes the issue result as {throttled, verification}; 0034
+// adds the date-only Task due (dueOn) the restore content carries. The
 // transfer steps record the rows around a storage transfer without moving
 // bytes: the finalized probe Document names a key that was never written. The probes end soft-deleted through the delete
 // function, because their audit and revision rows are append-only.
@@ -327,7 +328,7 @@ try {
     });
     if (revision === undefined)
       throw new Error("restore: the first revision is missing.");
-    const { displayName, customProperties, status, dueAt, completedAt } =
+    const { displayName, customProperties, status, dueOn, dueAt, completedAt } =
       revision.snapshot;
     const rows = await objectLifecycle(
       "chronelle_object_restore",
@@ -340,6 +341,7 @@ try {
           displayName: `${displayName} (restored)`,
           customProperties,
           status,
+          dueOn,
           dueAt,
           completedAt,
         },

@@ -54,6 +54,7 @@ describe.sequential("CloudBase Task writes", () => {
         displayName: "Book the caterer",
       });
       expect(bare.status).toBe("todo");
+      expect(bare.dueOn).toBeNull();
       expect(bare.dueAt).toBeNull();
       expect(bare.completedAt).toBeNull();
       const done = await service.createTask(context(), {
@@ -88,6 +89,7 @@ describe.sequential("CloudBase Task writes", () => {
         await service.updateTask(context(), done.id, {
           expectedVersion: 1,
           status: "cancelled",
+          dueOn: "2030-10-03",
           dueAt: null,
           completedAt: null,
         }),
@@ -114,6 +116,7 @@ describe.sequential("CloudBase Task writes", () => {
       new Date("2030-09-29T10:00:00.000Z"),
     );
     expect(cbCancelled?.status).toBe("cancelled");
+    expect(cbCancelled?.dueOn).toBe("2030-10-03");
     expect(cbCancelled?.dueAt).toBeNull();
 
     for (const [pg, cb] of [
@@ -136,12 +139,19 @@ describe.sequential("CloudBase Task writes", () => {
         status: "in_progress",
         completedAt: new Date("2030-01-01T00:00:00Z"),
       },
+      {
+        displayName: "x",
+        dueOn: "2030-03-01",
+        dueAt: new Date("2030-03-01T09:00:00Z"),
+      },
     ];
-    // Applied to a task whose status is todo and whose completedAt is null.
+    // Applied to a task whose status is todo, whose completedAt is null, and
+    // whose due is the instant 2030-03-01T09:00Z.
     const invalidUpdates: Omit<UpdateTaskInput, "expectedVersion">[] = [
       { status: "done" },
       { completedAt: new Date("2030-01-01T00:00:00Z") },
       { status: "cancelled", completedAt: new Date("2030-01-01T00:00:00Z") },
+      { dueOn: "2030-03-02" },
     ];
 
     const outcomes: string[][] = [];

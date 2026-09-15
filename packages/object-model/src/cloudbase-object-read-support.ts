@@ -46,7 +46,7 @@ const typedColumns: Readonly<
   Record<EventPlanningResource["objectType"], string>
 > = {
   event: cloudbaseEventColumns,
-  task: "object_id,workspace_id,status,due_at,completed_at",
+  task: "object_id,workspace_id,status,due_on,due_at,completed_at",
   expense: "object_id,workspace_id,amount::text,currency,occurred_at",
   reminder: "object_id,workspace_id,remind_at,status",
   document:

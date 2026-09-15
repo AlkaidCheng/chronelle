@@ -5,7 +5,7 @@ import { expectHorizontalReflow } from "./page-navigation";
 export const planningEditors = {
   task: {
     field: "Task",
-    timeLabel: "Due",
+    timeLabel: "Due date",
     view: "To-dos",
     projection: "todos",
   },
@@ -65,7 +65,9 @@ export async function exerciseObjectRecovery(
     await page.getByLabel("Amount", { exact: true }).fill("-0.0001");
     await page.getByLabel("Currency", { exact: true }).fill("CNY");
   }
-  await page.getByLabel(timeLabel, { exact: true }).fill("2030-07-03T11:30");
+  // The task editor takes a date and a time; the others take one instant.
+  const timeValue = kind === "task" ? "2030-07-03" : "2030-07-03T11:30";
+  await page.getByLabel(timeLabel, { exact: true }).fill(timeValue);
   await revisitObjectView(page);
   await add.click();
   await expect(recovery).toBeVisible();
@@ -95,7 +97,7 @@ export async function exerciseObjectRecovery(
   await expect(name).toHaveValue("Pack the lanterns");
   await expect(name).toBeFocused();
   await expect(page.getByLabel(timeLabel, { exact: true })).toHaveValue(
-    "2030-07-03T11:30",
+    timeValue,
   );
   if (kind === "expense") {
     await expect(page.getByLabel("Amount", { exact: true })).toHaveValue(

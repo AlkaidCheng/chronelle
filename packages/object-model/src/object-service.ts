@@ -112,11 +112,15 @@ function assertEventState(
 
 function assertTaskState(
   status: TaskResource["status"],
+  dueOn: string | null,
   dueAt: Date | null,
   completedAt: Date | null,
 ): void {
   if (dueAt !== null) {
     assertValidDate(dueAt, "dueAt");
+  }
+  if (dueOn !== null && dueAt !== null) {
+    throw new InvalidObjectStateError("dueOn and dueAt cannot both be set.");
   }
   if (completedAt !== null) {
     assertValidDate(completedAt, "completedAt");
@@ -206,9 +210,10 @@ export class EventPlanningObjectService {
     input: CreateTaskInput,
   ): Promise<TaskResource> {
     const status = input.status ?? "todo";
+    const dueOn = input.dueOn ?? null;
     const dueAt = input.dueAt ?? null;
     const completedAt = input.completedAt ?? null;
-    assertTaskState(status, dueAt, completedAt);
+    assertTaskState(status, dueOn, dueAt, completedAt);
     if (this.#writes.task !== undefined)
       return this.#writes.task.create(context, input);
 
@@ -221,6 +226,7 @@ export class EventPlanningObjectService {
           objectId: createdObjectId,
           workspaceId: context.principal.workspaceId,
           status,
+          dueOn,
           dueAt,
           completedAt,
         });
@@ -407,10 +413,11 @@ export class EventPlanningObjectService {
       "task",
     );
     const status = input.status ?? current.status;
+    const dueOn = input.dueOn === undefined ? current.dueOn : input.dueOn;
     const dueAt = input.dueAt === undefined ? current.dueAt : input.dueAt;
     const completedAt =
       input.completedAt === undefined ? current.completedAt : input.completedAt;
-    assertTaskState(status, dueAt, completedAt);
+    assertTaskState(status, dueOn, dueAt, completedAt);
 
     const resource = await this.#updateObject(
       context,
@@ -419,6 +426,7 @@ export class EventPlanningObjectService {
       async (transaction) => {
         const changes = {
           ...(input.status !== undefined && { status: input.status }),
+          ...(input.dueOn !== undefined && { dueOn: input.dueOn }),
           ...(input.dueAt !== undefined && { dueAt: input.dueAt }),
           ...(input.completedAt !== undefined && {
             completedAt: input.completedAt,

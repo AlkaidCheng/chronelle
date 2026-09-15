@@ -28,6 +28,7 @@ const typedFields: Record<
   },
   task: {
     status: field("Status", "text"),
+    dueOn: field("Due date", "text"),
     dueAt: field("Due", "datetime"),
     completedAt: field("Completed", "datetime"),
   },

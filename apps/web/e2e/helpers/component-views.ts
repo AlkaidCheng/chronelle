@@ -23,12 +23,29 @@ export async function exerciseComponentViews(page: Page) {
   await todos.getByRole("button", { name: "Add task", exact: true }).click();
   const editor = page.getByRole("dialog", { name: "Add task", exact: true });
   await editor.getByLabel("Task", { exact: true }).fill("Book the room");
-  await editor.getByLabel("Due", { exact: true }).fill("2031-03-05T09:30");
+  await editor.getByLabel("Due date", { exact: true }).fill("2031-03-05");
+  await editor.getByLabel("Due time", { exact: true }).fill("09:30");
+  await editor
+    .getByRole("button", { name: "Create task", exact: true })
+    .click();
+  await expect(editor).toHaveCount(0);
+  // A second task due on the same date, with no time.
+  await todos.getByRole("button", { name: "Add task", exact: true }).click();
+  await editor.getByLabel("Task", { exact: true }).fill("Send the agenda");
+  await editor.getByLabel("Due date", { exact: true }).fill("2031-03-05");
   await editor
     .getByRole("button", { name: "Create task", exact: true })
     .click();
   await expect(editor).toHaveCount(0);
   await expect(todos.getByRole("table")).toBeVisible();
+  // The date-only task leads its day in the list.
+  await expect(
+    todos.getByRole("row", { name: /Send the agenda/ }),
+  ).toBeVisible();
+  const rows = await todos.getByRole("row").allTextContents();
+  expect(rows.findIndex((row) => row.includes("Send the agenda"))).toBeLessThan(
+    rows.findIndex((row) => row.includes("Book the room")),
+  );
 
   const view = todos.getByRole("group", { name: "View", exact: true });
   await expect(view.getByRole("button", { name: "List" })).toHaveAttribute(
@@ -38,6 +55,11 @@ export async function exerciseComponentViews(page: Page) {
   await view.getByRole("button", { name: "By day" }).click();
   const day = todos.getByRole("region", { name: /Mar 5/ });
   await expect(day).toBeVisible();
+  await expect(day.getByRole("listitem")).toHaveCount(2);
+  await expect(day.getByRole("listitem").first()).toContainText(
+    "Send the agenda",
+  );
+  await expect(day.getByRole("listitem").first()).not.toContainText("AM");
   await expect(day.getByText("Book the room")).toBeVisible();
   await expect(day.getByText("9:30 AM")).toBeVisible();
   await expect(todos.getByRole("table")).toHaveCount(0);

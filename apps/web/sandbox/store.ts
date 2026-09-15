@@ -52,7 +52,7 @@ function canonical(
   const timestamp = new Date().toISOString();
   const defaults = {
     event: { startsAt: null, endsAt: null, timezone: null, isAllDay: false },
-    task: { dueAt: null, completedAt: null, status: "todo" },
+    task: { dueOn: null, dueAt: null, completedAt: null, status: "todo" },
     expense: {},
     reminder: { status: "pending" },
     document: {},
@@ -508,7 +508,17 @@ export class SandboxStore {
             b.startsOn ?? b.startsAt ?? "z",
           ),
         );
-      const tasks = children.filter((child) => child.objectType === "task");
+      // A date-only due sorts at the start of its day, ahead of timed tasks.
+      const tasks = children
+        .filter((child) => child.objectType === "task")
+        .sort((a, b) =>
+          (a.dueOn
+            ? `${a.dueOn}T00:00:00.000Z`
+            : (a.dueAt ?? "z")
+          ).localeCompare(
+            b.dueOn ? `${b.dueOn}T00:00:00.000Z` : (b.dueAt ?? "z"),
+          ),
+        );
       const expenses = children.filter(
         (child) => child.objectType === "expense",
       );
@@ -540,14 +550,20 @@ export class SandboxStore {
           items: children
             .flatMap<TimelineResponse["items"][number]>((child) => {
               if (child.objectType === "document") return [];
-              if (child.objectType === "event" && child.startsOn)
+              const occursOn =
+                child.objectType === "event"
+                  ? child.startsOn
+                  : child.objectType === "task"
+                    ? child.dueOn
+                    : null;
+              if (occursOn)
                 return [
                   {
                     canonicalObjectId: child.id,
                     objectType: child.objectType,
                     displayName: child.displayName,
                     occursAt: null,
-                    occursOn: child.startsOn,
+                    occursOn,
                     version: child.version,
                   },
                 ];
@@ -711,6 +727,16 @@ export class SandboxStore {
           version: object.version + 1,
           updatedAt: new Date().toISOString(),
         });
+        if (
+          saved.objectType === "task" &&
+          saved.dueOn !== null &&
+          saved.dueAt !== null
+        )
+          throw new SandboxError(
+            400,
+            "invalid_request",
+            "dueOn and dueAt cannot both be set.",
+          );
         this.#commit({
           ...this.#state,
           objects: this.#state.objects.map((current) =>

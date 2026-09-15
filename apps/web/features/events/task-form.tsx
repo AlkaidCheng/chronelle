@@ -85,7 +85,7 @@ function TaskEditor({
   const create = useCreateTask(eventId, attempt);
   const update = useUpdateTask();
   const refresh = useRefreshEvent(eventId, { throwOnError: true });
-  const { displayName, dueAt } = draft.fields;
+  const { displayName, dueDate, dueTime } = draft.fields;
   const mutation = task === undefined ? create : update;
   const [dueError, setDueError] = useState("");
   const openHistory = useOpenHistory();
@@ -132,7 +132,7 @@ function TaskEditor({
       void recovery.save(
         () => create.mutateAsync(input),
         () => {
-          draft.change({ displayName: "", dueAt: "" });
+          draft.change({ displayName: "", dueDate: "", dueTime: "" });
           onCancel?.();
         },
       );
@@ -228,16 +228,30 @@ function TaskEditor({
             />
           </label>
           <label className="field">
-            <span>Due</span>
+            <span>Due date</span>
             <input
               disabled={mutation.isPending}
-              onChange={(input) => draft.change({ dueAt: input.target.value })}
-              type="datetime-local"
-              value={dueAt}
+              onChange={(input) =>
+                draft.change({ dueDate: input.target.value })
+              }
+              type="date"
+              value={dueDate}
+            />
+          </label>
+          <label className="field">
+            <span>Due time</span>
+            <input
+              disabled={mutation.isPending || dueDate === ""}
+              onChange={(input) =>
+                draft.change({ dueTime: input.target.value })
+              }
+              type="time"
+              value={dueTime}
             />
           </label>
           <p className="field-hint">
-            Optional. Times in{" "}
+            Both optional. A date without a time is due that whole day; times
+            are in{" "}
             {Intl.DateTimeFormat()
               .resolvedOptions()
               .timeZone.replaceAll("_", " ")}
