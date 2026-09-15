@@ -1,4 +1,10 @@
-import { CalendarIcon, CheckIcon, SearchIcon, TrashIcon } from "./icons";
+import {
+  CalendarIcon,
+  CheckIcon,
+  PeopleIcon,
+  SearchIcon,
+  TrashIcon,
+} from "./icons";
 
 export const workspaceDestinations = [
   {
@@ -12,6 +18,12 @@ export const workspaceDestinations = [
     label: "Tasks",
     description: "Everything you have to do",
     icon: CheckIcon,
+  },
+  {
+    href: "/people",
+    label: "People",
+    description: "Who your plans involve",
+    icon: PeopleIcon,
   },
   {
     href: "/search",

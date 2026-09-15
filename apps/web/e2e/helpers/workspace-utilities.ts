@@ -16,7 +16,7 @@ export async function exerciseWorkspaceUtilities(
   const navigation = page.getByRole("navigation", {
     name: "Workspace navigation",
   });
-  for (const name of ["Events", "Tasks", "Search", "Trash"])
+  for (const name of ["Events", "Tasks", "People", "Search", "Trash"])
     await expect(
       navigation.getByRole("link", { name, exact: true }),
     ).toBeVisible();
