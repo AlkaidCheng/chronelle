@@ -68,7 +68,7 @@ beforeEach(() => {
   onCreated.mockClear();
   store = new SandboxStore({ getItem: () => null, setItem: () => {} });
   window.sessionStorage.setItem(
-    "chronelle.development-session",
+    "chronelle.session",
     JSON.stringify({
       accessToken: "sample",
       workspaceId: sandboxWorkspaceId,
@@ -261,7 +261,12 @@ describe("event creation drafts", () => {
         expect(screen.queryByRole("dialog")).not.toBeInTheDocument(),
       );
       expect(unloadIsPrevented()).toBe(false);
-      expect(fetch).not.toHaveBeenCalled();
+      // Sign out ends the cookie session with one DELETE; the draft sends nothing.
+      expect(
+        vi
+          .mocked(fetch)
+          .mock.calls.filter(([, init]) => init?.method !== "DELETE"),
+      ).toHaveLength(0);
     },
   );
 });

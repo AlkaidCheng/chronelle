@@ -7,7 +7,7 @@ test("keeps date navigation and dialog return focus usable across browser engine
 }, testInfo) => {
   const errors: string[] = [];
   page.on("pageerror", (error) => errors.push(error.message));
-  await page.goto("/sign-in");
+  await page.goto("/sign-in/development");
   await page.getByLabel("Name", { exact: true }).fill("Event planner");
   await page.getByLabel("Email").fill(`keyboard-${randomUUID()}@example.test`);
   await page.getByRole("button", { name: "Continue", exact: true }).click();

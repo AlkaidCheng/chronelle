@@ -9,7 +9,7 @@ import {
 test("customizes palettes, density, and motion independently", async ({
   page,
 }, testInfo) => {
-  await page.goto("/sign-in");
+  await page.goto("/sign-in/development");
   await expect(
     page.getByRole("button", { name: "Continue", exact: true }),
   ).toBeEnabled();
@@ -21,7 +21,7 @@ test("preserves an underlying form and applies other-tab palette changes with se
   page,
   context,
 }) => {
-  await page.goto("/sign-in");
+  await page.goto("/sign-in/development");
   await expect(
     page.getByRole("button", { name: "Continue", exact: true }),
   ).toBeEnabled();
@@ -33,7 +33,7 @@ test("preserves an underlying form and applies other-tab palette changes with se
     "Retained sign-in draft",
   );
   const other = await context.newPage();
-  await other.goto("/sign-in");
+  await other.goto("/sign-in/development");
   const settings = await openDisplaySettings(other);
   await settings.getByRole("radio", { name: /^Compact/ }).check();
   await settings.getByRole("radio", { name: /Modern Neutral/ }).check();
@@ -61,7 +61,7 @@ for (const appearance of ["light", "dark"] as const) {
     page.on("console", (message) => {
       if (message.type() === "error") errors.push(message.text());
     });
-    await page.goto("/sign-in");
+    await page.goto("/sign-in/development");
     await expect(page.locator('meta[name="color-scheme"]')).toHaveAttribute(
       "content",
       "light dark",
@@ -96,7 +96,7 @@ test("applies a saved appearance before application JavaScript loads", async ({
     localStorage.setItem("chronelle.motion", "reduced");
   });
   await page.route(/\/_next\/static\/.*\.js(?:\?|$)/, (route) => route.abort());
-  await page.goto("/sign-in");
+  await page.goto("/sign-in/development");
   await expect(page.locator("html")).toHaveCSS("color-scheme", "dark");
   await expect(
     page.getByRole("button", { name: "Customize appearance" }),
@@ -111,12 +111,12 @@ test("supports keyboard selection and synchronizes appearance across tabs", asyn
   page,
   context,
 }) => {
-  await page.goto("/sign-in");
+  await page.goto("/sign-in/development");
   await expect(
     page.getByRole("button", { name: "Continue", exact: true }),
   ).toBeEnabled();
   const other = await context.newPage();
-  await other.goto("/sign-in");
+  await other.goto("/sign-in/development");
   await expect(
     other.getByRole("button", { name: "Continue", exact: true }),
   ).toBeEnabled();
@@ -152,7 +152,7 @@ test("falls back from invalid storage and allows a page-only override when write
       setItem.call(this, key, value);
     };
   });
-  await page.goto("/sign-in");
+  await page.goto("/sign-in/development");
   await expect(
     page.getByRole("button", { name: "Continue", exact: true }),
   ).toBeEnabled();

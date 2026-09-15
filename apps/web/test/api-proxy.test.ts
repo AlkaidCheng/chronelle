@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { GET, PATCH, PUT } from "../app/api/[...path]/route";
+import { DELETE, GET, PATCH, POST, PUT } from "../app/api/[...path]/route";
 
 afterEach(() => {
   vi.unstubAllGlobals();
@@ -335,5 +335,143 @@ describe("same-origin API proxy", () => {
     expect(await response.text()).toBe("private file");
     expect(response.headers.has("content-length")).toBe(false);
     expect(response.headers.has("content-encoding")).toBe(false);
+  });
+});
+
+describe("session cookie translation", () => {
+  const context = (path: string[]) => ({
+    params: Promise.resolve({ path }),
+  });
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("presents the session cookie to the API as the bearer credential", async () => {
+    const fetch = vi
+      .fn<typeof globalThis.fetch>()
+      .mockResolvedValue(Response.json({ ok: true }));
+    vi.stubGlobal("fetch", fetch);
+    const response = await GET(
+      new NextRequest("http://localhost:3000/api/events", {
+        headers: { cookie: "theme=dark; chronelle_session=token-123; other=1" },
+      }),
+      context(["events"]),
+    );
+    expect(response.status).toBe(200);
+    const headers = fetch.mock.calls[0]?.[1]?.headers as Headers;
+    expect(headers.get("authorization")).toBe("Bearer token-123");
+  });
+
+  it("lets an explicit bearer header take precedence over the cookie", async () => {
+    const fetch = vi
+      .fn<typeof globalThis.fetch>()
+      .mockResolvedValue(Response.json({ ok: true }));
+    vi.stubGlobal("fetch", fetch);
+    await GET(
+      new NextRequest("http://localhost:3000/api/events", {
+        headers: {
+          authorization: "Bearer explicit",
+          cookie: "chronelle_session=token-123",
+        },
+      }),
+      context(["events"]),
+    );
+    const headers = fetch.mock.calls[0]?.[1]?.headers as Headers;
+    expect(headers.get("authorization")).toBe("Bearer explicit");
+  });
+
+  it("sets the httpOnly cookie from a sign-in response and forwards the body", async () => {
+    const body = {
+      accessToken: "issued-token",
+      tokenType: "Bearer",
+      expiresAt: "2030-01-15T00:00:00.000Z",
+      user: { id: "u", displayName: "Person", email: null },
+      workspace: { id: "w", displayName: "Workspace" },
+    };
+    const fetch = vi
+      .fn<typeof globalThis.fetch>()
+      .mockResolvedValue(Response.json(body));
+    vi.stubGlobal("fetch", fetch);
+    const response = await POST(
+      new NextRequest("https://web.example.test/api/auth/sign-in", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          email: "p@example.test",
+          password: "x".repeat(10),
+        }),
+      }),
+      context(["auth", "sign-in"]),
+    );
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual(body);
+    const cookies = response.headers.getSetCookie();
+    expect(cookies).toHaveLength(2);
+    const [session, presence] = cookies;
+    expect(session).toContain("chronelle_session=issued-token");
+    expect(session).toContain("HttpOnly");
+    expect(session).toContain("SameSite=Lax");
+    expect(session).toContain("Secure");
+    expect(session).toContain("Expires=Tue, 15 Jan 2030 00:00:00 GMT");
+    // The readable marker carries no secret and lets a tab skip the lookup.
+    expect(presence).toContain("chronelle_session_present=1");
+    expect(presence).not.toContain("HttpOnly");
+    expect(presence).toContain("Expires=Tue, 15 Jan 2030 00:00:00 GMT");
+  });
+
+  it("does not set a cookie when the sign-in fails or the route is not a sign-in", async () => {
+    const fetch = vi
+      .fn<typeof globalThis.fetch>()
+      .mockResolvedValueOnce(
+        Response.json(
+          { error: { code: "invalid_credentials" } },
+          { status: 401 },
+        ),
+      )
+      .mockResolvedValueOnce(Response.json({ accessToken: "leaked" }));
+    vi.stubGlobal("fetch", fetch);
+    const failed = await POST(
+      new NextRequest("http://localhost:3000/api/auth/sign-in", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: "{}",
+      }),
+      context(["auth", "sign-in"]),
+    );
+    expect(failed.status).toBe(401);
+    expect(failed.headers.get("set-cookie")).toBeNull();
+    const other = await POST(
+      new NextRequest("http://localhost:3000/api/events", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: "{}",
+      }),
+      context(["events"]),
+    );
+    expect(other.headers.get("set-cookie")).toBeNull();
+  });
+
+  it("clears the cookie on sign-out even when the API rejects the credential", async () => {
+    const fetch = vi
+      .fn<typeof globalThis.fetch>()
+      .mockResolvedValue(
+        Response.json({ error: { code: "unauthenticated" } }, { status: 401 }),
+      );
+    vi.stubGlobal("fetch", fetch);
+    const response = await DELETE(
+      new NextRequest("http://localhost:3000/api/auth/session", {
+        method: "DELETE",
+        headers: { cookie: "chronelle_session=stale" },
+      }),
+      context(["auth", "session"]),
+    );
+    expect(response.status).toBe(401);
+    const cookies = response.headers.getSetCookie();
+    expect(cookies).toHaveLength(2);
+    expect(cookies[0]).toContain("chronelle_session=;");
+    expect(cookies[0]).toContain("Max-Age=0");
+    expect(cookies[0]).toContain("HttpOnly");
+    expect(cookies[1]).toContain("chronelle_session_present=;");
+    expect(cookies[1]).toContain("Max-Age=0");
   });
 });

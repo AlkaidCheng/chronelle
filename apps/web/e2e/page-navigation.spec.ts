@@ -56,7 +56,7 @@ test("keeps named pages bookmarkable through views and workspace navigation", as
       })
     ).ok(),
   ).toBe(true);
-  await page.goto("/sign-in");
+  await page.goto("/sign-in/development");
   await page.getByLabel("Name", { exact: true }).fill("Planner");
   await page.getByLabel("Email").fill(email);
   await page.getByRole("button", { name: "Continue", exact: true }).click();

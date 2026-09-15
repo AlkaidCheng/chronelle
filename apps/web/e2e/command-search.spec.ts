@@ -5,7 +5,7 @@ import { openCommands } from "./helpers/context-commands";
 import { openWorkspaceSettings } from "./helpers/workspace-utilities";
 
 async function signIn(page: Page, email: string) {
-  await page.goto("/sign-in");
+  await page.goto("/sign-in/development");
   await page.getByLabel("Name", { exact: true }).fill("Planner");
   await page.getByLabel("Email").fill(email);
   await page.getByRole("button", { name: "Continue", exact: true }).click();

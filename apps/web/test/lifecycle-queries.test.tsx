@@ -25,7 +25,7 @@ let removed = false;
 beforeEach(() => {
   removed = false;
   window.sessionStorage.setItem(
-    "chronelle.development-session",
+    "chronelle.session",
     JSON.stringify({
       accessToken: "test-session",
       workspaceId,

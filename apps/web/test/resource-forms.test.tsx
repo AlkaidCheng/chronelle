@@ -133,7 +133,7 @@ describe("versioned editor drafts", () => {
       });
     }
     window.sessionStorage.setItem(
-      "chronelle.development-session",
+      "chronelle.session",
       JSON.stringify({ accessToken: "test-session", workspaceId }),
     );
   });

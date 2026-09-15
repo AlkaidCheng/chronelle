@@ -69,7 +69,7 @@ beforeEach(async () => {
   eventId = event.id;
   window.history.replaceState(null, "", `/events/${eventId}`);
   window.sessionStorage.setItem(
-    "chronelle.development-session",
+    "chronelle.session",
     JSON.stringify({ accessToken: "sample", workspaceId: sandboxWorkspaceId }),
   );
   vi.stubGlobal(

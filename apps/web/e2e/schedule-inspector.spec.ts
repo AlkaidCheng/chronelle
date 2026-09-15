@@ -33,7 +33,7 @@ test("edits and recovers one scheduled Event across projections", async ({
   });
   expect(scheduled.status()).toBe(201);
   const { resource: item } = await scheduled.json();
-  await page.goto("/sign-in");
+  await page.goto("/sign-in/development");
   await page.getByLabel("Name", { exact: true }).fill("Planner");
   await page.getByLabel("Email").fill(email);
   await page.getByRole("button", { name: "Continue", exact: true }).click();

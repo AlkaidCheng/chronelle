@@ -7,7 +7,7 @@ test("creates and retrieves one canonical Event at responsive widths", async ({
   const projectLabel = testInfo.project.name.replace("chromium-", "");
   const eventName = `${projectLabel} launch plan`;
 
-  await page.goto("/sign-in");
+  await page.goto("/sign-in/development");
   await page.getByLabel("Name").fill(`${projectLabel} planner`);
   await page
     .getByLabel("Email")
@@ -101,7 +101,7 @@ test("loads additional search results with keyboard navigation and resets filter
     });
     expect(created.status()).toBe(201);
   }
-  await page.goto("/sign-in");
+  await page.goto("/sign-in/development");
   await page.getByLabel("Name").fill("Search planner");
   await page.getByLabel("Email").fill(email);
   await page.getByRole("button", { name: "Continue" }).click();

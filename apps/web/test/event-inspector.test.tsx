@@ -88,7 +88,7 @@ beforeEach(async () => {
   });
   initial = eventResponseSchema.parse(await response.json());
   window.sessionStorage.setItem(
-    "chronelle.development-session",
+    "chronelle.session",
     JSON.stringify({ accessToken: "sample", workspaceId: sandboxWorkspaceId }),
   );
   vi.stubGlobal(
@@ -278,7 +278,12 @@ describe("Event inspector", () => {
         expect(screen.queryByRole("dialog")).not.toBeInTheDocument(),
       );
       expect(unloadIsPrevented()).toBe(false);
-      expect(fetch).not.toHaveBeenCalled();
+      // Sign out ends the cookie session with one DELETE; the draft sends nothing.
+      expect(
+        vi
+          .mocked(fetch)
+          .mock.calls.filter(([, init]) => init?.method !== "DELETE"),
+      ).toHaveLength(0);
     },
   );
 });

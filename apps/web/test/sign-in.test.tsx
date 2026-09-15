@@ -6,47 +6,108 @@ import { hydrateRoot, type Root } from "react-dom/client";
 import { renderToString } from "react-dom/server";
 import { expect, it, vi } from "vitest";
 
+import { DevelopmentSignInForm } from "../app/sign-in/development/development-sign-in-form";
 import SignInPage from "../app/sign-in/page";
 import { AuthSessionProvider } from "../lib/auth-session";
 
-const signIn = vi.hoisted(() => ({ mutate: vi.fn(), isPending: false }));
-const router = vi.hoisted(() => ({ replace: vi.fn() }));
+const developmentSignIn = vi.hoisted(() => ({
+  mutate: vi.fn(),
+  isPending: false,
+}));
+const passwordSignIn = vi.hoisted(() => ({
+  mutate: vi.fn(),
+  isPending: false,
+  isError: false,
+}));
+const router = vi.hoisted(() => ({ replace: vi.fn(), push: vi.fn() }));
 vi.mock("next/navigation", () => ({ useRouter: () => router }));
-vi.mock("../lib/queries", () => ({ useDevelopmentSignIn: () => signIn }));
+vi.mock("../lib/queries", () => ({
+  useDevelopmentSignIn: () => developmentSignIn,
+}));
+vi.mock("../lib/account-queries", () => ({
+  usePasswordSignIn: () => passwordSignIn,
+  useRedirectWhenSignedIn: () => undefined,
+}));
 
-it("enables sign-in fields only after hydration and preserves entered values", async () => {
+async function renderHydrated(element: React.ReactElement) {
+  const container = document.createElement("div");
+  container.innerHTML = renderToString(element);
+  document.body.append(container);
+  return {
+    container,
+    view: within(container),
+    hydrate: async () => {
+      let root: Root | undefined;
+      await act(async () => {
+        root = hydrateRoot(container, element);
+      });
+      return root;
+    },
+  };
+}
+
+it("enables the password sign-in only after hydration and submits the credentials", async () => {
   sessionStorage.clear();
   const element = (
     <AuthSessionProvider>
       <SignInPage />
     </AuthSessionProvider>
   );
-  const container = document.createElement("div");
-  container.innerHTML = renderToString(element);
-  document.body.append(container);
-  const view = within(container);
+  const { container, view, hydrate } = await renderHydrated(element);
+  let root: Root | undefined;
+  try {
+    expect(view.getByLabelText("Email")).toBeDisabled();
+    expect(view.getByLabelText("Password")).toBeDisabled();
+    expect(view.getByRole("button", { name: "Sign in" })).toBeDisabled();
+    root = await hydrate();
+    // The tab has no stored workspace, so the cookie session is looked up
+    // before the form enables; the lookup fails here and the form opens.
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    });
+    expect(view.getByLabelText("Email")).toBeEnabled();
+    expect(
+      view.getByRole("link", { name: "Create an account" }),
+    ).toHaveAttribute("href", "/sign-up");
+    expect(
+      view.getByRole("link", { name: "Forgot your password?" }),
+    ).toHaveAttribute("href", "/reset-password");
+    const user = userEvent.setup();
+    await user.type(view.getByLabelText("Email"), "planner@example.test");
+    await user.type(view.getByLabelText("Password"), "correct horse battery");
+    await user.click(view.getByRole("button", { name: "Sign in" }));
+    expect(passwordSignIn.mutate).toHaveBeenCalledOnce();
+    expect(passwordSignIn.mutate.mock.calls[0]?.[0]).toEqual({
+      email: "planner@example.test",
+      password: "correct horse battery",
+    });
+  } finally {
+    await act(async () => root?.unmount());
+    container.remove();
+    sessionStorage.clear();
+  }
+});
+
+it("keeps the development form with its name and email fields", async () => {
+  sessionStorage.clear();
+  const element = (
+    <AuthSessionProvider>
+      <DevelopmentSignInForm />
+    </AuthSessionProvider>
+  );
+  const { container, view, hydrate } = await renderHydrated(element);
   let root: Root | undefined;
   try {
     expect(view.getByLabelText("Name")).toBeDisabled();
-    expect(view.getByLabelText("Email")).toBeDisabled();
-    expect(view.getByRole("button", { name: "Continue" })).toBeDisabled();
-    expect(
-      view.getByRole("button", { name: "Customize appearance" }),
-    ).toBeDisabled();
-
+    root = await hydrate();
     await act(async () => {
-      root = hydrateRoot(container, element);
+      await new Promise((resolve) => setTimeout(resolve, 0));
     });
-    expect(view.getByLabelText("Name")).toBeEnabled();
-    expect(view.getByLabelText("Email")).toBeEnabled();
-    expect(
-      view.getByRole("button", { name: "Customize appearance" }),
-    ).toBeEnabled();
     const user = userEvent.setup();
     await user.type(view.getByLabelText("Name"), "Planner");
     await user.type(view.getByLabelText("Email"), "planner@example.test");
     await user.click(view.getByRole("button", { name: "Continue" }));
-    expect(signIn.mutate).toHaveBeenCalledExactlyOnceWith({
+    expect(developmentSignIn.mutate).toHaveBeenCalledExactlyOnceWith({
       displayName: "Planner",
       email: "planner@example.test",
     });

@@ -115,8 +115,14 @@ import {
 } from "@chronelle/schemas";
 import type { z } from "zod";
 
+/**
+ * The active session as the client presents it: the workspace every request
+ * acts in, and the bearer token when the caller holds one. A browser client
+ * omits the token; its session travels as the origin's httpOnly cookie and
+ * the web proxy presents it to the API.
+ */
 export interface ApiCredential {
-  readonly accessToken: string;
+  readonly accessToken?: string | undefined;
   readonly workspaceId: string;
 }
 
@@ -826,7 +832,8 @@ export class ChronelleApiClient {
           "A Chronelle session is required.",
         );
       }
-      headers.set("authorization", `Bearer ${credential.accessToken}`);
+      if (credential.accessToken !== undefined)
+        headers.set("authorization", `Bearer ${credential.accessToken}`);
       headers.set("x-workspace-id", credential.workspaceId);
     }
 

@@ -126,7 +126,7 @@ describe.each(["task", "expense"] as const)("focused %s editors", (kind) => {
           },
         });
       sessionStorage.setItem(
-        "chronelle.development-session",
+        "chronelle.session",
         JSON.stringify({ accessToken: "test-session", workspaceId }),
       );
     });

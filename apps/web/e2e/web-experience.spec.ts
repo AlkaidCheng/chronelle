@@ -31,7 +31,7 @@ test("organizes events and keeps navigation usable across reloads and screen siz
     });
     expect(response.status()).toBe(201);
   }
-  await page.goto("/sign-in");
+  await page.goto("/sign-in/development");
   await page.screenshot({
     path: testInfo.outputPath("sign-in.png"),
     fullPage: true,

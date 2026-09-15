@@ -246,7 +246,7 @@ describe.each(draftKinds)("%s draft recovery", (kind) => {
       ).resource,
     );
     sessionStorage.setItem(
-      "chronelle.development-session",
+      "chronelle.session",
       JSON.stringify({
         accessToken: "sample",
         workspaceId: sandboxWorkspaceId,
@@ -311,7 +311,7 @@ describe.each(draftKinds)("%s draft recovery", (kind) => {
         const user = await begin(mode);
         const due = screen.getByLabelText(timeLabel);
         fireEvent.change(due, { target: { value: "2030-07-04T10:15" } });
-        const session = sessionStorage.getItem("chronelle.development-session");
+        const session = sessionStorage.getItem("chronelle.session");
         navigateAway();
         expect(unloadIsPrevented()).toBe(true);
         await reopen(user, mode);
@@ -343,9 +343,7 @@ describe.each(draftKinds)("%s draft recovery", (kind) => {
           expect.anything(),
         );
         expect(sessionStorage.length).toBe(1);
-        expect(sessionStorage.getItem("chronelle.development-session")).toBe(
-          session,
-        );
+        expect(sessionStorage.getItem("chronelle.session")).toBe(session);
         await user.click(screen.getByRole("button", { name: "Cancel" }));
         await user.click(screen.getByRole("button", { name: "Discard" }));
         expect(unloadIsPrevented()).toBe(false);

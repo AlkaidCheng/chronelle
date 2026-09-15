@@ -37,7 +37,7 @@ test("persists composition moves through the authorized versioned layout API", a
     data: { expectedVersion: 0, pages },
   });
   expect(seeded.status()).toBe(200);
-  await page.goto("/sign-in");
+  await page.goto("/sign-in/development");
   await page.getByLabel("Name", { exact: true }).fill("Planner");
   await page.getByLabel("Email").fill(email);
   await page.getByRole("button", { name: "Continue", exact: true }).click();

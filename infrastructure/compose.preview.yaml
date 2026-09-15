@@ -77,6 +77,7 @@ services:
     networks: [default, ingress]
     environment:
       API_INTERNAL_URL: http://api:4000
+      WEB_DEVELOPMENT_SIGN_IN: ${ENABLE_DEVELOPMENT_AUTH:-false}
     read_only: true
     cap_drop: [ALL]
     security_opt: ["no-new-privileges:true"]

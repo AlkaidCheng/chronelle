@@ -6,7 +6,7 @@ test("retains a failed task draft and saves only after an explicit retry", async
 }, testInfo) => {
   const errors: string[] = [];
   page.on("pageerror", (error) => errors.push(error.message));
-  await page.goto("/sign-in");
+  await page.goto("/sign-in/development");
   await page.getByLabel("Name", { exact: true }).fill("Event planner");
   await page.getByLabel("Email").fill(`feedback-${randomUUID()}@example.test`);
   await page.getByRole("button", { name: "Continue", exact: true }).click();

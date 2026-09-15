@@ -1,6 +1,8 @@
 "use client";
 
 import type { ApiCredential } from "@chronelle/api-client";
+
+import { sessionPresent } from "./session-cookie";
 import {
   createContext,
   type ReactNode,
@@ -12,7 +14,9 @@ import {
   useState,
 } from "react";
 
-const storageKey = "chronelle.development-session";
+// The session itself is the origin's httpOnly cookie; this tab keeps only the
+// workspace it acts in, so a new tab discovers the session from the cookie.
+const storageKey = "chronelle.session";
 
 interface AuthCredential extends ApiCredential {
   readonly homeWorkspaceId: string;
@@ -38,13 +42,10 @@ function readCredential(): AuthCredential | null {
     if (
       typeof value === "object" &&
       value !== null &&
-      "accessToken" in value &&
-      typeof value.accessToken === "string" &&
       "workspaceId" in value &&
       typeof value.workspaceId === "string"
     ) {
       return {
-        accessToken: value.accessToken,
         homeWorkspaceId:
           "homeWorkspaceId" in value &&
           typeof value.homeWorkspaceId === "string"
@@ -58,6 +59,57 @@ function readCredential(): AuthCredential | null {
   }
   persistCredential(null);
   return null;
+}
+
+/**
+ * The workspace of the cookie session, when the browser holds one: the
+ * proxy presents the cookie to the API and the personal workspace comes
+ * back. Nothing is thrown; without a session the tab starts signed out.
+ */
+async function discoverCookieSession(
+  signal: AbortSignal,
+): Promise<AuthCredential | null> {
+  try {
+    const response = await fetch("/api/auth/session", {
+      cache: "no-store",
+      signal,
+    });
+    if (!response.ok) return null;
+    const body: unknown = await response.json();
+    const workspaceId =
+      typeof body === "object" &&
+      body !== null &&
+      "workspace" in body &&
+      typeof body.workspace === "object" &&
+      body.workspace !== null &&
+      "id" in body.workspace &&
+      typeof body.workspace.id === "string"
+        ? body.workspace.id
+        : null;
+    return workspaceId === null
+      ? null
+      : { homeWorkspaceId: workspaceId, workspaceId };
+  } catch {
+    return null;
+  }
+}
+
+/** Whether the readable presence marker says a session cookie exists; false when cookies are unreadable. */
+function cookieSessionPresent(): boolean {
+  try {
+    return sessionPresent(document.cookie);
+  } catch {
+    return false;
+  }
+}
+
+/** Ends the cookie session on the server; the proxy clears the cookie either way. */
+async function endCookieSession(): Promise<void> {
+  try {
+    await fetch("/api/auth/session", { method: "DELETE", cache: "no-store" });
+  } catch {
+    // The local session ends regardless; the server session expires on its own.
+  }
 }
 
 function persistCredential(credential: AuthCredential | null): void {
@@ -95,8 +147,23 @@ export function AuthSessionProvider({
   }, []);
 
   useEffect(() => {
-    replaceSession(readCredential());
-    return () => sessionRef.current.controller.abort();
+    const stored = readCredential();
+    // Only a tab whose presence marker says a session cookie exists waits
+    // on the lookup; a signed-out tab hydrates at once.
+    if (stored !== null || !cookieSessionPresent()) {
+      replaceSession(stored);
+      return () => sessionRef.current.controller.abort();
+    }
+    const discovery = new AbortController();
+    void discoverCookieSession(discovery.signal).then((discovered) => {
+      if (discovery.signal.aborted) return;
+      if (discovered !== null) persistCredential(discovered);
+      replaceSession(discovered);
+    });
+    return () => {
+      discovery.abort();
+      sessionRef.current.controller.abort();
+    };
   }, [replaceSession]);
 
   const value = useMemo<AuthSessionContextValue>(
@@ -109,12 +176,13 @@ export function AuthSessionProvider({
         if (session.controller.signal.aborted) return;
         replaceSession(null);
         persistCredential(null);
+        void endCookieSession();
       },
       startSession: (nextCredential) => {
         if (session.controller.signal.aborted) return;
         const storedCredential = {
-          ...nextCredential,
           homeWorkspaceId: nextCredential.workspaceId,
+          workspaceId: nextCredential.workspaceId,
         };
         replaceSession(storedCredential);
         persistCredential(storedCredential);

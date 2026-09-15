@@ -7,7 +7,7 @@ test("recovers canonical objects and independent context links", async ({
 }, testInfo) => {
   const errors: string[] = [];
   page.on("pageerror", (error) => errors.push(error.message));
-  await page.goto("/sign-in");
+  await page.goto("/sign-in/development");
   await page.getByLabel("Name").fill("Recovery planner");
   const email = `recovery-${randomUUID()}@example.test`;
   await page.getByLabel("Email").fill(email);

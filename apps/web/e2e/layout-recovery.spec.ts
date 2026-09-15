@@ -51,7 +51,7 @@ test("recovers event layouts without altering canonical planning data", async ({
   const before = await (
     await request.get(`/api/events/${event.id}/detail`, { headers })
   ).json();
-  await page.goto("/sign-in");
+  await page.goto("/sign-in/development");
   await page.getByLabel("Name", { exact: true }).fill("Planner");
   await page.getByLabel("Email").fill(email);
   await page.getByRole("button", { name: "Continue", exact: true }).click();

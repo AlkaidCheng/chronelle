@@ -70,7 +70,7 @@ beforeEach(() => {
   blocked = false;
   objectType = "event";
   window.sessionStorage.setItem(
-    "chronelle.development-session",
+    "chronelle.session",
     JSON.stringify({ accessToken: "test-session", workspaceId }),
   );
   fetch = vi.fn<typeof globalThis.fetch>(async (input, options) => {

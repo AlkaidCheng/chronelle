@@ -47,7 +47,7 @@ describe("EventList", () => {
     vi.spyOn(window, "scrollTo").mockImplementation(() => {});
     vi.stubGlobal("localStorage", { getItem: vi.fn(), setItem: vi.fn() });
     window.sessionStorage.setItem(
-      "chronelle.development-session",
+      "chronelle.session",
       JSON.stringify({ accessToken: "test-session", workspaceId }),
     );
   });

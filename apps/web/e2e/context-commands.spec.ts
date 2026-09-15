@@ -23,7 +23,7 @@ test("opens event controls through Commands and saves only explicit layout chang
   });
   expect(created.status()).toBe(201);
   const event = await created.json();
-  await page.goto("/sign-in");
+  await page.goto("/sign-in/development");
   await page.getByLabel("Name", { exact: true }).fill("Planner");
   await page.getByLabel("Email").fill(email);
   await page.getByRole("button", { name: "Continue", exact: true }).click();
@@ -75,7 +75,7 @@ test("limits Viewer commands and denies history after access is revoked", async 
   });
   expect(shared.status()).toBe(201);
   const grant = await shared.json();
-  await page.goto("/sign-in");
+  await page.goto("/sign-in/development");
   await page.getByLabel("Name", { exact: true }).fill("Viewer");
   await page.getByLabel("Email").fill(email);
   await page.getByRole("button", { name: "Continue", exact: true }).click();

@@ -76,9 +76,7 @@ describe("client session isolation", () => {
       previous.startSession({ ...credential, accessToken: "stale-session" }),
     );
     expect(result.current.auth.credential?.workspaceId).toBe(sharedWorkspaceId);
-    expect(result.current.auth.credential?.accessToken).toBe(
-      credential.accessToken,
-    );
+    expect(result.current.auth.credential?.accessToken).toBeUndefined();
     const shared = result.current.auth;
     act(() => result.current.auth.switchWorkspace(sharedWorkspaceId));
     expect(result.current.auth).toBe(shared);
@@ -86,7 +84,7 @@ describe("client session isolation", () => {
 
   it("keeps a live session through strict effect replay and aborts it on unmount", async () => {
     window.sessionStorage.setItem(
-      "chronelle.development-session",
+      "chronelle.session",
       JSON.stringify(credential),
     );
     vi.stubGlobal(
@@ -112,7 +110,7 @@ describe("client session isolation", () => {
 
   it("discards late reads across a workspace round trip without reusing the old cache", async () => {
     window.sessionStorage.setItem(
-      "chronelle.development-session",
+      "chronelle.session",
       JSON.stringify(credential),
     );
     const pending = Promise.withResolvers<Response>();
@@ -156,7 +154,7 @@ describe("client session isolation", () => {
     "cancels abandoned $name filters without ending the session",
     async ({ useCollection }) => {
       window.sessionStorage.setItem(
-        "chronelle.development-session",
+        "chronelle.session",
         JSON.stringify(credential),
       );
       const pending = Promise.withResolvers<Response>();
@@ -190,7 +188,7 @@ describe("client session isolation", () => {
     "discards a delayed $name continuation across workspace changes",
     async ({ useCollection }) => {
       window.sessionStorage.setItem(
-        "chronelle.development-session",
+        "chronelle.session",
         JSON.stringify(credential),
       );
       const pending = Promise.withResolvers<Response>();
@@ -256,7 +254,7 @@ describe("client session isolation", () => {
 
   it("rejects a late mutation and its retained client after sign-out and sign-in", async () => {
     window.sessionStorage.setItem(
-      "chronelle.development-session",
+      "chronelle.session",
       JSON.stringify(credential),
     );
     const pending = Promise.withResolvers<Response>();
@@ -295,14 +293,17 @@ describe("client session isolation", () => {
     await expect(original.listEvents()).rejects.toMatchObject({
       name: "AbortError",
     });
-    expect(fetch).toHaveBeenCalledTimes(1);
+    // The sign-out ended the cookie session; no other request was sent.
+    expect(
+      fetch.mock.calls.filter(([, init]) => init?.method !== "DELETE"),
+    ).toHaveLength(1);
   });
 
   it.each(["getItem", "setItem", "removeItem"] as const)(
     "allows session transitions when storage %s throws",
     (method) => {
       window.sessionStorage.setItem(
-        "chronelle.development-session",
+        "chronelle.session",
         JSON.stringify(credential),
       );
       vi.spyOn(Storage.prototype, method).mockImplementation(() => {
@@ -319,13 +320,47 @@ describe("client session isolation", () => {
   );
 
   it("rejects malformed stored credentials even when removal fails", () => {
-    window.sessionStorage.setItem("chronelle.development-session", "{");
+    window.sessionStorage.setItem("chronelle.session", "{");
     vi.spyOn(Storage.prototype, "removeItem").mockImplementation(() => {
       throw new Error("Storage denied");
     });
     const { result } = renderHook(useAuthSession, { wrapper: Providers });
     expect(result.current.isHydrated).toBe(true);
     expect(result.current.credential).toBeNull();
+  });
+
+  it("discovers the cookie session when the presence marker is set", async () => {
+    const cookie = vi
+      .spyOn(document, "cookie", "get")
+      .mockReturnValue("chronelle_session_present=1");
+    const fetch = vi.fn<typeof globalThis.fetch>().mockResolvedValue(
+      Response.json({
+        principal: { type: "user", userId: "u", workspaceId },
+        user: { id: "u", displayName: "Person", email: null },
+        workspace: { id: workspaceId, displayName: "Personal" },
+        availableWorkspaces: [],
+      }),
+    );
+    vi.stubGlobal("fetch", fetch);
+    try {
+      const { result } = renderHook(useAuthSession, { wrapper: Providers });
+      expect(result.current.isHydrated).toBe(false);
+      await waitFor(() => expect(result.current.isHydrated).toBe(true));
+      expect(result.current.credential).toEqual({
+        workspaceId,
+        homeWorkspaceId: workspaceId,
+      });
+      expect(fetch).toHaveBeenCalledWith(
+        "/api/auth/session",
+        expect.objectContaining({ cache: "no-store" }),
+      );
+      expect(window.sessionStorage.getItem("chronelle.session")).toContain(
+        workspaceId,
+      );
+    } finally {
+      cookie.mockRestore();
+      vi.unstubAllGlobals();
+    }
   });
 
   it("replaces the cache on workspace changes and sign-out", () => {

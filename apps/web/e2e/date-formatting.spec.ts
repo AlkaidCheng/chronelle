@@ -13,7 +13,7 @@ test("creates a date-only range and switches to multi-day exact times", async ({
   expect(identity.status()).toBe(200);
   const session = await identity.json();
   const headers = { authorization: `Bearer ${session.accessToken}` };
-  await page.goto("/sign-in");
+  await page.goto("/sign-in/development");
   await page.getByLabel("Name", { exact: true }).fill("Event planner");
   await page.getByLabel("Email").fill(email);
   await page.getByRole("button", { name: "Continue" }).click();
@@ -134,7 +134,7 @@ for (const display of [
         expect(response.status()).toBe(201);
       }
 
-      await page.goto("/sign-in");
+      await page.goto("/sign-in/development");
       await page.getByLabel("Name", { exact: true }).fill("Event planner");
       await page.getByLabel("Email").fill(email);
       await page.getByRole("button", { name: "Continue" }).click();
