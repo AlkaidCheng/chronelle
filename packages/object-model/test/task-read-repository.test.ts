@@ -17,6 +17,7 @@ describe("task read repository boundary", () => {
     const input = { filter: "done" as const, sort: "name" as const, limit: 5 };
     const page = {
       items: [],
+      contexts: {},
       nextCursor: null,
       asOf: "2030-01-01T00:00:00.000Z",
     } satisfies TaskPage;

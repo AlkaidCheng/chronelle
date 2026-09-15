@@ -56,6 +56,7 @@ export {
 } from "./event-list.js";
 export {
   PostgresTaskReadRepository,
+  type TaskContext,
   type TaskPage,
   type TaskReadRepository,
 } from "./task-list.js";

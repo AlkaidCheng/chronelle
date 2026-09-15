@@ -25,6 +25,8 @@ export async function exerciseTasksPage(page: Page) {
   const row = page.getByRole("row", { name: /Renew the passport/ });
   await expect(row).toBeVisible();
   await expect(row).toContainText("May 20, 2031");
+  // Outside any event, the row names none.
+  await expect(row.getByRole("link", { name: /^in / })).toHaveCount(0);
 
   const view = page.getByRole("group", { name: "View", exact: true });
   await view.getByRole("button", { name: "By day" }).click();

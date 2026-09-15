@@ -87,6 +87,19 @@ h3,
   overflow-wrap: anywhere;
 }
 
+.task-context {
+  color: var(--muted);
+  font-size: 0.73rem;
+  justify-self: start;
+  text-decoration: none;
+}
+
+.task-context:hover,
+.task-context:focus-visible {
+  color: var(--accent);
+  text-decoration: underline;
+}
+
 svg {
   stroke: currentColor;
   stroke-linecap: round;

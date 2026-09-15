@@ -1,6 +1,7 @@
 import { resolve } from "node:path";
 import {
   createId,
+  objectRelations,
   objects,
   resourceGrants,
   tasks,
@@ -63,6 +64,7 @@ function matches(
 
 const snapshotTables = {
   objects,
+  object_relations: objectRelations,
   tasks,
   resource_grants: resourceGrants,
   workspace_members: workspaceMembers,
@@ -143,7 +145,10 @@ describe.sequential("CloudBase task list contract", () => {
       role: "owner",
     });
     // The Event scope is shared with the viewer; two tasks inherit it, three
-    // own their scope (one of them done, one deleted).
+    // own their scope (one of them done, one deleted). A private Event the
+    // viewer cannot see includes the undated task, which the viewer holds
+    // through a direct grant.
+    const privateEventId = createId();
     const inEventTimed = createId();
     const inEventDated = createId();
     const standaloneUndated = createId();
@@ -156,6 +161,14 @@ describe.sequential("CloudBase task list contract", () => {
         objectType: "event" as const,
         permissionScopeId: eventId,
         displayName: "Launch night",
+        createdBy: ownerId,
+      },
+      {
+        id: privateEventId,
+        workspaceId,
+        objectType: "event" as const,
+        permissionScopeId: privateEventId,
+        displayName: "Board retreat",
         createdBy: ownerId,
       },
       ...[
@@ -215,14 +228,42 @@ describe.sequential("CloudBase task list contract", () => {
       },
       { objectId: deletedId, workspaceId, status: "todo" },
     ]);
-    await db.insert(resourceGrants).values({
-      id: createId(),
-      workspaceId,
-      resourceId: eventId,
-      principalId: viewerId,
-      role: "viewer",
-      grantedBy: ownerId,
-    });
+    await db.insert(resourceGrants).values([
+      {
+        id: createId(),
+        workspaceId,
+        resourceId: eventId,
+        principalId: viewerId,
+        role: "viewer",
+        grantedBy: ownerId,
+      },
+      {
+        id: createId(),
+        workspaceId,
+        resourceId: standaloneUndated,
+        principalId: viewerId,
+        role: "viewer",
+        grantedBy: ownerId,
+      },
+    ]);
+    await db.insert(objectRelations).values([
+      ...[inEventTimed, inEventDated].map((targetObjectId) => ({
+        id: createId(),
+        workspaceId,
+        sourceObjectId: eventId,
+        targetObjectId,
+        relationType: "includes" as const,
+        createdBy: ownerId,
+      })),
+      {
+        id: createId(),
+        workspaceId,
+        sourceObjectId: privateEventId,
+        targetObjectId: standaloneUndated,
+        relationType: "includes" as const,
+        createdBy: ownerId,
+      },
+    ]);
     const clock = () => new Date("2030-01-01T00:00:00.000Z");
     const cloudbaseClient = await snapshotClient(db, workspaceId);
     const postgres = new PostgresTaskReadRepository(db);
@@ -239,13 +280,32 @@ describe.sequential("CloudBase task list contract", () => {
         [inEventDated, inEventTimed, standaloneUndated],
         [standaloneDone, inEventDated, inEventTimed, standaloneUndated],
       ],
-      [viewer, [inEventDated, inEventTimed], [inEventDated, inEventTimed]],
+      [
+        viewer,
+        [inEventDated, inEventTimed, standaloneUndated],
+        [inEventDated, inEventTimed, standaloneUndated],
+      ],
     ] as const) {
       const open = await postgres.listTasks(principal, { limit: 10 });
       expect(ids(open)).toEqual(expectedOpen);
-      expect(ids(await cloudbase.listTasks(principal, { limit: 10 }))).toEqual(
-        ids(open),
+      const cloudbaseOpen = await cloudbase.listTasks(principal, { limit: 10 });
+      expect(ids(cloudbaseOpen)).toEqual(ids(open));
+      // Contexts name only Events the principal may view: the viewer holds
+      // the undated task directly and never learns about the board retreat.
+      const launch = { eventId, displayName: "Launch night" };
+      expect(open.contexts).toEqual(
+        principal === owner
+          ? {
+              [inEventTimed]: launch,
+              [inEventDated]: launch,
+              [standaloneUndated]: {
+                eventId: privateEventId,
+                displayName: "Board retreat",
+              },
+            }
+          : { [inEventTimed]: launch, [inEventDated]: launch },
       );
+      expect(cloudbaseOpen.contexts).toEqual(open.contexts);
       const all = await postgres.listTasks(principal, {
         filter: "all",
         limit: 10,

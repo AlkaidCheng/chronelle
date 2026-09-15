@@ -459,8 +459,28 @@ export class SandboxStore {
           "The task cursor is invalid for this query.",
         );
       const items = matches.slice(offset, offset + query.limit);
+      const contexts: Record<string, { eventId: string; displayName: string }> =
+        {};
+      for (const task of items) {
+        const relation = this.#state.relations.find(
+          (candidate) =>
+            candidate.targetObjectId === task.id &&
+            candidate.relationType === "includes" &&
+            candidate.deletedAt === null,
+        );
+        const event =
+          relation === undefined
+            ? undefined
+            : all.find((object) => object.id === relation.sourceObjectId);
+        if (event !== undefined)
+          contexts[task.id] = {
+            eventId: event.id,
+            displayName: event.displayName,
+          };
+      }
       return {
         items,
+        contexts,
         nextCursor:
           offset + items.length < matches.length
             ? (items.at(-1)?.id ?? null)

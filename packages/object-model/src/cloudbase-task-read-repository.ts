@@ -11,6 +11,8 @@ import {
 import {
   cloudbaseTaskResource,
   cloudbaseText,
+  readCloudBaseInclusionsOf,
+  readCloudBaseObjects,
   readCloudBaseTasks,
   readCloudBaseVisibility,
   readCloudBaseVisibleObjects,
@@ -18,6 +20,7 @@ import {
 import { decodeCursor, encodeCursor } from "./cursor.js";
 import { InvalidObjectStateError } from "./errors.js";
 import {
+  type TaskContext,
   type TaskPage,
   type TaskReadRepository,
   taskListContext,
@@ -195,8 +198,44 @@ export class CloudBaseTaskReadRepository implements TaskReadRepository {
       tasks = tasks.filter((task) => afterCursor(task, cursor, input.sort));
     const page = tasks.slice(0, input.limit);
     const asOfValue = cursor?.asOf ?? cursorTimestamp(asOf);
+    // The including Event, only where the caller may view it; the earliest
+    // inclusion names the context when more than one Event includes a task.
+    const inclusions = await readCloudBaseInclusionsOf(
+      this.#client,
+      principal,
+      page.map((task) => task.id),
+    );
+    const events = await readCloudBaseObjects(
+      this.#client,
+      principal,
+      [
+        ...new Set(
+          inclusions.map((row) => cloudbaseText(row.source_object_id, "event")),
+        ),
+      ],
+      "event",
+    );
+    const viewable = new Map(
+      events
+        .filter((row) => visibility.canView(row))
+        .map((row) => [
+          cloudbaseText(row.id, "event id"),
+          cloudbaseText(row.display_name, "display name"),
+        ]),
+    );
+    const contexts: Record<string, TaskContext> = {};
+    for (const row of inclusions) {
+      const eventId = cloudbaseText(row.source_object_id, "event");
+      const displayName = viewable.get(eventId);
+      if (displayName !== undefined)
+        contexts[cloudbaseText(row.target_object_id, "task")] ??= {
+          eventId,
+          displayName,
+        };
+    }
     return {
       items: page,
+      contexts,
       asOf: asOfValue,
       nextCursor:
         tasks.length > input.limit && page.at(-1) !== undefined
