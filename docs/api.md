@@ -28,6 +28,30 @@ ended and record `session.revoked` in the user's personal workspace. A
 revoked or expired token is rejected with 401 `unauthenticated` from the
 next request on.
 
+### Email and password accounts
+
+`POST /api/auth/sign-up` with `{ displayName, email, password }` (password
+10 to 256 characters) records an unverified account and emails a six-digit
+code; the response is 202 `{ accepted: true }`, or 409 `email_taken`.
+`POST /api/auth/verify-email` with `{ email, code }` verifies the address
+and signs the account in with the sign-in response above; a wrong, expired,
+or exhausted code (five wrong guesses) is 400 `verification_invalid`, and
+`POST /api/auth/verify-email/resend` with `{ email }` issues a fresh code
+(202 whether or not the address has an unverified account).
+
+`POST /api/auth/sign-in` with `{ email, password }` returns the sign-in
+response, 401 `invalid_credentials` for an unknown address or wrong
+password, 403 `email_unverified` for an account whose address is not yet
+verified (a fresh code is emailed), or 429 `credential_locked` after ten
+wrong passwords, for fifteen minutes.
+
+`POST /api/auth/password-reset` with `{ email }` emails a reset code when
+the address has an account and answers 202 either way.
+`POST /api/auth/password-reset/confirm` with `{ email, code, password }`
+replaces the password, verifies the address if it was not, ends every
+session of the user, and signs the caller in. Emails are compared after
+trimming and lower-casing.
+
 ## HTTP limits and errors
 
 Ordinary request bodies are limited to 1 MiB. Only

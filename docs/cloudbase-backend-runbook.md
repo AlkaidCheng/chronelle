@@ -22,7 +22,7 @@ configured the same way on both backends.
 ## Prerequisites for the CloudBase backend
 
 1. The environment's PostgreSQL holds the full schema: migrations `0001`
-   through `0031`, applied in order with their `chronelle_schema_migrations`
+   through `0032`, applied in order with their `chronelle_schema_migrations`
    ledger rows. The CloudBase console's SQL editor applies each file; verify
    the editor holds the ledger row at the end of the file before executing.
 2. The revision baseline holds: every object has a revision for its current
@@ -131,7 +131,7 @@ identity provider, so keep the web service's address private.
    loses uploads; use `tencent-cos` with a private bucket and least-privilege
    credentials as described in [storage.md](storage.md), or accept
    ephemeral attachments for a smoke deployment.
-4. Confirm the prerequisites above: migrations through 0031 applied, the
+4. Confirm the prerequisites above: migrations through 0032 applied, the
    baseline captured, the contract harnesses passing.
 
 ### Deployment repository
@@ -188,7 +188,8 @@ because pushing there is the release decision itself.
 | `CHRONELLE_BACKEND`            | `cloudbase`                                                                                                                                                                                |
 | `CLOUDBASE_ENV_ID`             | The environment id                                                                                                                                                                         |
 | `CLOUDBASE_APIKEY`             | The server API key (a secret; set it as a protected variable, never in the image)                                                                                                          |
-| `ENABLE_DEVELOPMENT_AUTH`      | `true` until a production identity adapter exists                                                                                                                                          |
+| `EMAIL_PROVIDER`               | `smtp` with `SMTP_URL` (for Tencent SES, `smtps://user:password@smtp.qcloudmail.com:465`) and `EMAIL_FROM`; the default `log` writes verification codes to the service log                 |
+| `ENABLE_DEVELOPMENT_AUTH`      | `true` only while the development sign-in screen is the way in; unset once the account screens exist                                                                                       |
 | `API_HOST`, `API_PORT`         | `0.0.0.0`, `4000`                                                                                                                                                                          |
 | `DOCUMENT_STORAGE_PROVIDER`    | `tencent-cos` with `COS_BUCKET`, `COS_REGION`, `COS_SECRET_ID`, `COS_SECRET_KEY` (secrets), or `local-filesystem` with `LOCAL_STORAGE_ROOT=/app/.chronelle/storage` for a smoke deployment |
 | `CLOUDBASE_REQUEST_TIMEOUT_MS` | Optional; 30000 by default                                                                                                                                                                 |

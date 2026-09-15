@@ -15,6 +15,7 @@
     "typecheck": "pnpm --filter @chronelle/schemas build && pnpm --filter @chronelle/object-model build && tsc -p tsconfig.json --noEmit"
   },
   "devDependencies": {
+    "@types/nodemailer": "^8.0.1",
     "cos-nodejs-sdk-v5": "3.0.0"
   },
   "dependencies": {
@@ -25,6 +26,7 @@
     "@chronelle/storage": "workspace:*",
     "drizzle-orm": "0.45.2",
     "fastify": "5.12.3",
+    "nodemailer": "^7.0.13",
     "zod": "4.6.2"
   }
 }

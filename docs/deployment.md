@@ -237,7 +237,8 @@ authorization; the storage provider is unchanged) through those functions;
 it requires `CLOUDBASE_READS_ENABLED=true` and migrations 0012 through 0031
 on the environment (0024, 0025, and 0027 serve reads and sign-in; 0028 the
 readiness check; 0029 the revision baseline through the gateway; 0030 and
-0031 the sessions a sign-in records and a sign-out revokes). With `CHRONELLE_BACKEND=postgres` (the default) the two
+0031 the sessions a sign-in records and a sign-out revokes; 0032 the
+password credentials and verification codes). With `CHRONELLE_BACKEND=postgres` (the default) the two
 flags are staged opt-ins and the API still connects to `DATABASE_URL` at
 startup; the CloudBase backend below removes that connection.
 
@@ -325,8 +326,10 @@ Set a unique, URL-safe `POSTGRES_PASSWORD` in the private `.env` file, using
 letters, digits, underscores, or hyphens. Also set a distinct
 `RUNTIME_DATABASE_PASSWORD`, 24-128 characters from that same alphabet, for the
 API's `chronelle_runtime` login. Set `ENABLE_DEVELOPMENT_AUTH=true`
-only for trusted preview testing. The stack fails closed if auth is not enabled.
-Start it from the repository root:
+only for trusted preview testing; email and password accounts work without
+it once `EMAIL_PROVIDER=smtp`, `SMTP_URL`, and `EMAIL_FROM` name a mail
+transport (the default `log` provider writes verification codes to the API
+log and is not for a deployment). Start it from the repository root:
 
 ```bash
 docker compose --env-file .env -f infrastructure/compose.preview.yaml up -d --wait
@@ -379,8 +382,9 @@ Never pass the owner credential
 to API processes or use the runtime credential to run migrations.
 
 Runtime can read and create application records, update mutable state
-(sessions included: a sign-out and the last-seen touch are updates, never
-deletions), and delete revoked resource grants. Audit events, revision
+(sessions, credentials, and verification codes included: sign-out, the
+last-seen touch, the failed-attempt lock, and code consumption are updates,
+never deletions), and delete revoked resource grants. Audit events, revision
 snapshots, and command history are read/insert only. The migration ledger is inaccessible. Runtime
 cannot create schema or temporary objects, disable integrity triggers, truncate
 tables, or permanently delete canonical objects/relations. Table and column ACL
@@ -562,9 +566,11 @@ Simulated COS tests do not replace validation on the deployed bucket.
 
 Before exposing the application publicly:
 
-1. Implement and test a production identity adapter, email/identity verification,
-   session revocation, and a suitable browser session strategy. Disable
-   development auth and replace the development sign-in screen.
+1. Sessions are durable and revocable and the email and password method
+   with email verification exists; still required: the browser session
+   cookie and the sign-up, verification, sign-in, and reset screens replacing
+   the development sign-in screen, and `ENABLE_DEVELOPMENT_AUTH` left unset
+   in the deployment.
 2. Configure durable private storage, backups, restore drills, and least-privilege
    database/storage credentials. Run the authorization and attachment suites
    against the deployed topology.

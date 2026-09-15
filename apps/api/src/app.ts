@@ -5,6 +5,7 @@ import Fastify, {
 
 import { healthStatusSchema } from "@chronelle/schemas";
 
+import { registerPasswordRoutes } from "./authentication/password-routes.js";
 import {
   registerDevelopmentAuthenticationRoute,
   registerSessionRoutes,
@@ -34,6 +35,7 @@ export function buildApp(
     identity: dependencies.identity,
     sessions: dependencies.sessions,
   });
+  registerPasswordRoutes(app, { passwordAuth: dependencies.passwordAuth });
   registerDocumentRoutes(app, dependencies);
   registerEventPlanningRoutes(app, dependencies);
   registerEventPageRoutes(app, dependencies);

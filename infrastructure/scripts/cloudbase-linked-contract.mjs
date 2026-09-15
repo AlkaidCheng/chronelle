@@ -26,8 +26,9 @@ import {
 // chronelle_command_execute and chronelle_command_transition (0023),
 // chronelle_command_state (0024), chronelle_storage_references (0025), the
 // document transfer functions (0026), chronelle_identity_sign_in (0027),
-// chronelle_backend_readiness (0028), and the chronelle_session_* functions
-// (0030) against the real gateway. The
+// chronelle_backend_readiness (0028), the chronelle_session_* functions
+// (0030 and 0031), and the credential functions (0032) against the real
+// gateway. The
 // transfer steps record the rows around a storage transfer without moving
 // bytes: the finalized probe Document names a key that was never written. The probes end soft-deleted through the delete
 // function, because their audit and revision rows are append-only.
@@ -765,6 +766,98 @@ try {
       throw new Error("sessions: revocation did not end the session.");
     return { revoked: revoked.revoked, revokedAll: revokedAll?.revoked };
   });
+
+  await step(
+    "record, lock, verify, and reset a password credential",
+    async () => {
+      const [user] = await client.select("users", {
+        columns: "id,identity_provider,provider_subject",
+        filters: [{ column: "id", operator: "eq", value: userId }],
+        limit: 1,
+      });
+      if (user === undefined)
+        throw new Error("credentials: the contract user is missing.");
+      // The contract user is not a password account: the credential functions
+      // are exercised on it, and the lookup by its subject must stay empty
+      // because the subject belongs to another provider.
+      const at = new Date();
+      const existing = await client.select("user_credentials", {
+        columns: "user_id",
+        filters: [{ column: "user_id", operator: "eq", value: userId }],
+        limit: 1,
+      });
+      if (existing.length === 0)
+        await client.rpc("chronelle_password_credential_create", {
+          user_id: userId,
+          password_hash: "scrypt$contract",
+        });
+      const lookup = await client.rpc("chronelle_password_credential_lookup", {
+        email: user.provider_subject,
+      });
+      const locked = await client.rpc("chronelle_password_attempt_record", {
+        user_id: userId,
+        succeeded: false,
+        observed_at: at.toISOString(),
+        max_attempts: 1,
+        lock_seconds: 60,
+      });
+      const cleared = await client.rpc("chronelle_password_attempt_record", {
+        user_id: userId,
+        succeeded: true,
+        observed_at: at.toISOString(),
+        max_attempts: 1,
+        lock_seconds: 60,
+      });
+      const verified = await client.rpc("chronelle_email_verified", {
+        user_id: userId,
+        verified_at: at.toISOString(),
+        request_id: createId(),
+      });
+      const codeHash = createHash("sha256").update(createId()).digest("hex");
+      const issued = await client.rpc("chronelle_verification_issue", {
+        user_id: userId,
+        purpose: "reset_password",
+        code_hash: codeHash,
+        expires_at: new Date(at.getTime() + 60_000).toISOString(),
+      });
+      const mismatch = await client.rpc("chronelle_verification_consume", {
+        user_id: userId,
+        purpose: "reset_password",
+        code_hash: createHash("sha256").update("wrong").digest("hex"),
+        observed_at: at.toISOString(),
+        max_attempts: 3,
+      });
+      const consumed = await client.rpc("chronelle_verification_consume", {
+        user_id: userId,
+        purpose: "reset_password",
+        code_hash: codeHash,
+        observed_at: at.toISOString(),
+        max_attempts: 3,
+      });
+      const replaced = await client.rpc("chronelle_password_hash_update", {
+        user_id: userId,
+        password_hash: "scrypt$contract",
+        updated_at: at.toISOString(),
+        request_id: createId(),
+      });
+      if (
+        lookup !== null ||
+        locked?.locked_until === null ||
+        cleared?.locked_until !== null ||
+        verified?.email_verified_at === null ||
+        issued?.consumed_at !== null ||
+        mismatch?.status !== "mismatch" ||
+        consumed?.status !== "consumed" ||
+        replaced?.failed_attempts !== 0
+      )
+        throw new Error("credentials: a function left an unexpected row.");
+      return {
+        lookupUnderOtherProvider: lookup,
+        lockedThenCleared: true,
+        verification: [mismatch.status, consumed.status],
+      };
+    },
+  );
 
   await step("read the backend readiness", async () => {
     const readiness = await client.rpc("chronelle_backend_readiness", {});

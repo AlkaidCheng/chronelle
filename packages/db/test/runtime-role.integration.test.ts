@@ -119,6 +119,8 @@ describe("runtime database privileges", () => {
           "document_transfer_authorizations",
           "command_stacks",
           "user_sessions",
+          "user_credentials",
+          "email_verifications",
         ].includes(table.name),
       );
       expect(table.delete).toBe(table.name === "resource_grants");
