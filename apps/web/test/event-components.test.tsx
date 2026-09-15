@@ -716,6 +716,14 @@ describe("insertable event components", () => {
     const { unmount } = render(<EventPages eventId={eventId} canEdit />, {
       wrapper: Providers,
     });
+    // The sample task is due fourteen days from now; the heading names that day.
+    const due = new Date();
+    due.setDate(due.getDate() + 14);
+    const dueDay = new Intl.DateTimeFormat(undefined, {
+      month: "short",
+      day: "numeric",
+    }).format(due);
+    const dayHeading = (name: string) => name.startsWith(`${dueDay},`);
     const view = within(await screen.findByRole("group", { name: "View" }));
     expect(view.getByRole("button", { name: "List" })).toHaveAttribute(
       "aria-pressed",
@@ -723,7 +731,7 @@ describe("insertable event components", () => {
     );
     expect(screen.getByRole("table")).toBeVisible();
     await user.click(view.getByRole("button", { name: "By day" }));
-    await screen.findByRole("region", { name: /Sep 28/ });
+    await screen.findByRole("region", { name: dayHeading });
     expect(screen.queryByRole("table")).toBeNull();
     await waitFor(() =>
       expect(screen.getByText("Shown by day.")).toHaveAttribute(
@@ -743,7 +751,7 @@ describe("insertable event components", () => {
     render(<EventPages eventId={eventId} canEdit={false} />, {
       wrapper: Providers,
     });
-    await screen.findByRole("region", { name: /Sep 28/ });
+    await screen.findByRole("region", { name: dayHeading });
     expect(screen.queryByRole("group", { name: "View" })).toBeNull();
   });
 
