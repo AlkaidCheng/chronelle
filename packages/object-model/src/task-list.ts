@@ -108,6 +108,7 @@ export function taskListContext(
         input.filter,
         input.sort,
         input.label ?? null,
+        input.assignee ?? null,
       ]),
     )
     .digest("hex");
@@ -224,6 +225,9 @@ export async function listTaskPage(
           input.label === undefined
             ? undefined
             : sql`EXISTS (SELECT 1 FROM ${taskLabels} WHERE ${taskLabels.taskId} = ${objects.id} AND ${taskLabels.labelId} = ${input.label})`,
+          input.assignee === undefined
+            ? undefined
+            : eq(tasks.assigneePersonId, input.assignee),
           after,
         ),
       )

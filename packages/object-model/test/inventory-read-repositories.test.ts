@@ -40,6 +40,7 @@ const task: EventPlanningResource = {
   dueAt: null,
   completedAt: null,
   parentTaskId: null,
+  assigneeId: null,
   labelIds: [],
 };
 

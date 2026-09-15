@@ -193,7 +193,8 @@ export class CloudBaseTaskReadRepository implements TaskReadRepository {
             .toLocaleLowerCase()
             .includes(input.query.toLocaleLowerCase())) &&
         matchesStatus(task, input.filter) &&
-        (input.label === undefined || task.labelIds.includes(input.label)),
+        (input.label === undefined || task.labelIds.includes(input.label)) &&
+        (input.assignee === undefined || task.assigneeId === input.assignee),
     );
     tasks.sort(
       input.sort === "name"

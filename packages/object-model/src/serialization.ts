@@ -42,6 +42,7 @@ export function serializeResource(resource: EventPlanningResource) {
         dueAt: serializeDate(resource.dueAt),
         completedAt: serializeDate(resource.completedAt),
         parentTaskId: resource.parentTaskId,
+        assigneeId: resource.assigneeId,
         labelIds: [...resource.labelIds],
       };
     case "expense":

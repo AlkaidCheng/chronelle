@@ -80,6 +80,7 @@ export const eventUpdateRequestSchema = z
 // the service refuses a state with both.
 // A Task may be a subtask of one other Task (parentTaskId), one level deep,
 // sharing its parent's permission scope; the service enforces the rules.
+// A Task may be assigned to one live Person of its workspace (assigneeId).
 export const taskCreateRequestSchema = z.object({
   ...createObjectShape,
   status: taskStatusSchema.optional(),
@@ -87,6 +88,7 @@ export const taskCreateRequestSchema = z.object({
   dueAt: nullableDateTimeInputSchema.optional(),
   completedAt: nullableDateTimeInputSchema.optional(),
   parentTaskId: objectIdSchema.nullable().optional(),
+  assigneeId: objectIdSchema.nullable().optional(),
   /** The task's labels as a whole; absent leaves them unchanged. */
   labelIds: z.array(objectIdSchema).max(20).optional(),
 });
@@ -99,6 +101,7 @@ export const taskUpdateRequestSchema = z
     dueAt: nullableDateTimeInputSchema.optional(),
     completedAt: nullableDateTimeInputSchema.optional(),
     parentTaskId: objectIdSchema.nullable().optional(),
+    assigneeId: objectIdSchema.nullable().optional(),
     labelIds: z.array(objectIdSchema).max(20).optional(),
   })
   .refine(hasUpdateFields, {
@@ -218,6 +221,8 @@ export const taskResponseSchema = z.object({
   dueAt: nullableDateTimeResponseSchema,
   completedAt: nullableDateTimeResponseSchema,
   parentTaskId: objectIdSchema.nullable().default(null),
+  /** The Person responsible for the task. */
+  assigneeId: objectIdSchema.nullable().default(null),
   /** The task's labels in name order. */
   labelIds: z.array(objectIdSchema).default([]),
 });

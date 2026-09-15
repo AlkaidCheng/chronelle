@@ -15,6 +15,8 @@ export const taskListQuerySchema = z.object({
   sort: z.enum(["due", "name", "updated"]).default("due"),
   /** Only tasks carrying this label. */
   label: z.uuid().optional(),
+  /** Only tasks assigned to this Person. */
+  assignee: z.uuid().optional(),
 });
 
 /** Internal position only; authorization is evaluated again on every page. */

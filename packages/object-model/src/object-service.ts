@@ -214,6 +214,37 @@ async function setTaskLabels(
       .values(ids.map((labelId) => ({ workspaceId, taskId, labelId })));
 }
 
+/** The assignee, when set, is a live Person of the workspace. */
+async function assertTaskAssignee(
+  transaction: DatabaseTransaction,
+  workspaceId: string,
+  assigneeId: string | null,
+): Promise<void> {
+  if (assigneeId === null) return;
+  const [person] = await transaction
+    .select({ id: objects.id })
+    .from(objects)
+    .innerJoin(
+      persons,
+      and(
+        eq(persons.workspaceId, objects.workspaceId),
+        eq(persons.objectId, objects.id),
+      ),
+    )
+    .where(
+      and(
+        eq(objects.workspaceId, workspaceId),
+        eq(objects.id, assigneeId),
+        isNull(objects.deletedAt),
+      ),
+    )
+    .limit(1);
+  if (person === undefined)
+    throw new InvalidObjectStateError(
+      "assigneeId must name a live person in this workspace.",
+    );
+}
+
 /**
  * The parent rules, checked inside the write transaction: the parent is a
  * live task of the workspace with no parent of its own, the task has no
@@ -388,6 +419,7 @@ export class EventPlanningObjectService {
       return this.#writes.task.create(context, input);
 
     const parentTaskId = input.parentTaskId ?? null;
+    const assigneeId = input.assigneeId ?? null;
     const resource = await this.#createObject(
       context,
       "task",
@@ -400,6 +432,11 @@ export class EventPlanningObjectService {
           parentTaskId,
           input.permissionScopeId ?? createdObjectId,
         );
+        await assertTaskAssignee(
+          transaction,
+          context.principal.workspaceId,
+          assigneeId,
+        );
         await transaction.insert(tasks).values({
           objectId: createdObjectId,
           workspaceId: context.principal.workspaceId,
@@ -408,6 +445,7 @@ export class EventPlanningObjectService {
           dueAt,
           completedAt,
           parentTaskId,
+          assigneePersonId: assigneeId,
         });
         if (input.labelIds !== undefined)
           await setTaskLabels(
@@ -675,10 +713,22 @@ export class EventPlanningObjectService {
             input.parentTaskId,
             current.permissionScopeId,
           );
+        if (
+          input.assigneeId !== undefined &&
+          input.assigneeId !== current.assigneeId
+        )
+          await assertTaskAssignee(
+            transaction,
+            context.principal.workspaceId,
+            input.assigneeId,
+          );
         const changes = {
           ...(input.status !== undefined && { status: input.status }),
           ...(input.parentTaskId !== undefined && {
             parentTaskId: input.parentTaskId,
+          }),
+          ...(input.assigneeId !== undefined && {
+            assigneePersonId: input.assigneeId,
           }),
           ...(input.dueOn !== undefined && { dueOn: input.dueOn }),
           ...(input.dueAt !== undefined && { dueAt: input.dueAt }),
