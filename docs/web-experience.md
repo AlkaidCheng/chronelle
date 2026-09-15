@@ -13,10 +13,10 @@ sign-in (name and email, no password) lives at `/sign-in/development` and
 exists only where the web server is started with
 `WEB_DEVELOPMENT_SIGN_IN=true`.
 
-Chronelle opens into an event collection, with workspace-wide Search and Trash
-alongside it. Desktop navigation stays on the left; mobile navigation remains
-at the bottom with space for the device's safe area. Events, Search, and Trash
-remain directly accessible on both layouts. More opens one shared Workspace
+Chronelle opens into an event collection, with workspace-wide Tasks, Search,
+and Trash alongside it. Desktop navigation stays on the left; mobile navigation
+remains at the bottom with space for the device's safe area. Events, Tasks,
+Search, and Trash remain directly accessible on both layouts. More opens one shared Workspace
 settings dialog for workspace switching, appearance, and sign-out. Escape,
 the close button, or a backdrop press dismisses it and returns focus to More.
 Opening settings does not navigate or discard the current Event draft. On the
@@ -30,6 +30,23 @@ Workspace settings; a second Escape returns to the page. A workspace or session
 change dismisses both dialogs and uses the existing session boundary to cancel
 pending requests and clear protected state. Workspace choices come from the
 authorized session response; choosing one never grants access by itself.
+
+## Tasks
+
+Tasks lists every task the user may view in the workspace: tasks that live on
+their own and tasks inside any event, in one place. New task creates a task
+that belongs to no event and owns its own permission scope; tasks added inside
+an event keep that event's scope and appear here as well. The toolbar filters
+by name, sorts by due date (a date-only due leads its day, undated tasks come
+last), recent update, or name, and the Open tasks / All tasks / Completed
+filter is applied by the server, so a page holds only what matches. Load more
+tasks extends the list page by page.
+
+The page offers the same List and By day views as the To-dos component, from
+the same rows: the completion check, Edit (the Task inspector), History, and
+Actions. The view is a device preference, kept in browser storage like the
+event collection's grid or list choice, and applies to the loaded tasks. The
+filter, sort, and name query belong to the tab.
 
 ## Workspace commands
 
