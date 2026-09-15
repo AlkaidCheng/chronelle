@@ -44,7 +44,9 @@ tasks extends the list page by page.
 
 The page offers the same List and By day views as the To-dos component, from
 the same rows: the completion check, Edit (the Task inspector), History, and
-Actions. The view is a device preference, kept in browser storage like the
+Actions. A task inside an event names that event under its title, as a link to
+the event, when the user may view the event; a task held through a direct
+grant inside an event the user cannot see shows no event. The view is a device preference, kept in browser storage like the
 event collection's grid or list choice, and applies to the loaded tasks. The
 filter, sort, and name query belong to the tab.
 
