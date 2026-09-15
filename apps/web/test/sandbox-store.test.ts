@@ -309,6 +309,48 @@ describe("browser sandbox", () => {
     expect((await client.getEventReminders(event.id)).items).toHaveLength(1);
     expect((await client.getEventTimeline(event.id)).items).toHaveLength(2);
   });
+  it("keeps people in name order and links one person to the signed-in account", async () => {
+    const store = new SandboxStore(storage());
+    const client = new ChronelleApiClient({
+      getCredential: () => ({
+        accessToken: "sample",
+        workspaceId: sandboxWorkspaceId,
+      }),
+      fetch: (input, options) => store.fetch(input, options),
+    });
+    const zoe = await client.createPerson({ displayName: "Zoe" });
+    const adam = await client.createPerson({
+      displayName: "adam",
+      email: "adam@example.test",
+    });
+    expect(zoe).toMatchObject({
+      objectType: "person",
+      email: null,
+      userId: null,
+      version: 1,
+    });
+    expect((await client.listPersons()).items.map(({ id }) => id)).toEqual([
+      adam.id,
+      zoe.id,
+    ]);
+    expect(
+      (await client.listPersons({ query: "zo" })).items.map(({ id }) => id),
+    ).toEqual([zoe.id]);
+    expect(await client.getPerson(adam.id)).toEqual(adam);
+    const me = (await client.getSession()).user.id;
+    const linked = await client.updatePerson(zoe.id, {
+      expectedVersion: 1,
+      userId: me,
+    });
+    expect(linked.userId).toBe(me);
+    await expect(
+      client.updatePerson(adam.id, { expectedVersion: 1, userId: me }),
+    ).rejects.toMatchObject({ status: 400 });
+    await expect(
+      client.createPerson({ displayName: "x", userId: crypto.randomUUID() }),
+    ).rejects.toMatchObject({ status: 400 });
+    await expect(client.getTask(zoe.id)).rejects.toMatchObject({ status: 404 });
+  });
   it("edits a canonical event once across calendar and itinerary, and persists it", async () => {
     const saved = storage();
     const store = new SandboxStore(saved);

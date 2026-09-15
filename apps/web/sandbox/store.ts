@@ -15,6 +15,9 @@ import {
   labelResponseSchema,
   labelUpdateRequestSchema,
   type LabelResponse,
+  personCreateRequestSchema,
+  personListQuerySchema,
+  personUpdateRequestSchema,
   taskCreateRequestSchema,
   taskListQuerySchema,
   taskUpdateRequestSchema,
@@ -71,6 +74,7 @@ function canonical(
     expense: {},
     reminder: { status: "pending" },
     document: {},
+    person: { email: null, userId: null },
   }[objectType];
   return eventPlanningResourceResponseSchema.parse({
     ...defaults,
@@ -399,6 +403,34 @@ export class SandboxStore {
     return current;
   }
 
+  // A person's linked account is the sample planner's and belongs to one
+  // person, as the API requires of a workspace member.
+  #checkPerson(person: Resource): Resource {
+    if (person.objectType !== "person") return person;
+    if (person.userId !== null) {
+      if (person.userId !== userId)
+        throw new SandboxError(
+          400,
+          "invalid_request",
+          "userId must name a member of this workspace.",
+        );
+      if (
+        this.#state.objects.some(
+          (other) =>
+            other.objectType === "person" &&
+            other.id !== person.id &&
+            other.userId === userId,
+        )
+      )
+        throw new SandboxError(
+          400,
+          "invalid_request",
+          "userId is already linked to another person.",
+        );
+    }
+    return person;
+  }
+
   // A task's labels are the workspace's labels only, in name order.
   #assertTaskLabels(task: Resource): Resource {
     if (task.objectType !== "task") return task;
@@ -580,6 +612,29 @@ export class SandboxStore {
             : null,
       };
     }
+    if (collection === "persons" && !id) {
+      // The workspace's people: name order, the first `limit` matching the query.
+      const query = personListQuerySchema.parse(
+        Object.fromEntries(url.searchParams),
+      );
+      return {
+        items: all
+          .filter((object) => object.objectType === "person")
+          .filter((person) =>
+            person.displayName
+              .toLowerCase()
+              .includes(query.query.toLowerCase()),
+          )
+          .sort(
+            (a, b) =>
+              a.displayName
+                .toLowerCase()
+                .localeCompare(b.displayName.toLowerCase()) ||
+              a.id.localeCompare(b.id),
+          )
+          .slice(0, query.limit),
+      };
+    }
     if (collection === "tasks" && !id) {
       // The workspace task list: status filter, due/name/updated order, and
       // a cursor that names the last task of the previous page.
@@ -718,7 +773,8 @@ export class SandboxStore {
       id &&
       (collection === "tasks" ||
         collection === "expenses" ||
-        collection === "reminders") &&
+        collection === "reminders" ||
+        collection === "persons") &&
       !operation
     ) {
       const object = this.#object(id);
@@ -829,7 +885,11 @@ export class SandboxStore {
           sourceEventId: id,
           items: children
             .flatMap<TimelineResponse["items"][number]>((child) => {
-              if (child.objectType === "document") return [];
+              if (
+                child.objectType === "document" ||
+                child.objectType === "person"
+              )
+                return [];
               const occursOn =
                 child.objectType === "event"
                   ? child.startsOn
@@ -897,6 +957,24 @@ export class SandboxStore {
       (method === "POST" || method === "PATCH" || method === "DELETE")
     )
       return this.#labelWrite(method, id, url, body);
+    if (method === "POST" && collection === "persons" && !id) {
+      const input = JSON.parse(
+        JSON.stringify(personCreateRequestSchema.parse(body)),
+      ) as Record<string, unknown>;
+      const { permissionScopeId, ...fields } = input;
+      const person = this.#checkPerson(
+        canonical(
+          "person",
+          fields,
+          typeof permissionScopeId === "string" ? permissionScopeId : undefined,
+        ),
+      );
+      this.#commit({
+        ...this.#state,
+        objects: [...this.#state.objects, person],
+      });
+      return person;
+    }
     if (method === "POST" && collection === "tasks" && !id) {
       const input = JSON.parse(
         JSON.stringify(taskCreateRequestSchema.parse(body)),
@@ -1013,6 +1091,7 @@ export class SandboxStore {
         tasks: { type: "task", schema: taskUpdateRequestSchema },
         expenses: { type: "expense", schema: expenseUpdateRequestSchema },
         reminders: { type: "reminder", schema: reminderUpdateRequestSchema },
+        persons: { type: "person", schema: personUpdateRequestSchema },
       };
       const contract =
         collection && Object.hasOwn(contracts, collection)
@@ -1026,13 +1105,15 @@ export class SandboxStore {
             "version_conflict",
             "The sample object changed. Refresh before saving.",
           );
-        const saved = this.#assertTaskLabels(
-          eventPlanningResourceResponseSchema.parse({
-            ...object,
-            ...JSON.parse(JSON.stringify(patch)),
-            version: object.version + 1,
-            updatedAt: new Date().toISOString(),
-          }),
+        const saved = this.#checkPerson(
+          this.#assertTaskLabels(
+            eventPlanningResourceResponseSchema.parse({
+              ...object,
+              ...JSON.parse(JSON.stringify(patch)),
+              version: object.version + 1,
+              updatedAt: new Date().toISOString(),
+            }),
+          ),
         );
         if (
           saved.objectType === "task" &&
