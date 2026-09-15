@@ -2,6 +2,7 @@
 
 import type { ReminderResponse } from "@chronelle/schemas";
 import { type FormEvent, useMemo, useState } from "react";
+import { CountedField } from "../../components/counted-field";
 import { EditorForm } from "../../components/editor-form";
 import {
   DiscardActions,
@@ -228,20 +229,17 @@ function ReminderEditor({
         onSubmit={handleSubmit}
       >
         <div className="event-create-body event-inspector-fields">
-          <label className="field field-wide">
-            <span>Reminder</span>
-            <input
-              ref={nameInput}
-              maxLength={240}
-              disabled={mutation.isPending}
-              onChange={(input) =>
-                draft.change({ displayName: input.target.value })
-              }
-              placeholder="Confirm the guest list"
-              required
-              value={displayName}
-            />
-          </label>
+          <CountedField
+            className="field-wide"
+            disabled={mutation.isPending}
+            inputRef={nameInput}
+            label="Reminder"
+            limit={240}
+            onChange={(displayName) => draft.change({ displayName })}
+            placeholder="Confirm the guest list"
+            required
+            value={displayName}
+          />
           <label className="field">
             <span>Reminder time</span>
             <input

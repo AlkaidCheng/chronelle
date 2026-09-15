@@ -2,6 +2,7 @@
 
 import type { ExpenseResponse } from "@chronelle/schemas";
 import { type FormEvent, useMemo, useState } from "react";
+import { CountedField } from "../../components/counted-field";
 import { EditorForm } from "../../components/editor-form";
 import {
   DiscardActions,
@@ -224,20 +225,17 @@ function ExpenseEditor({
         onSubmit={handleSubmit}
       >
         <div className="event-create-body event-inspector-fields">
-          <label className="field field-wide">
-            <span>Expense</span>
-            <input
-              ref={nameInput}
-              maxLength={240}
-              disabled={mutation.isPending}
-              onChange={(input) =>
-                draft.change({ displayName: input.target.value })
-              }
-              placeholder="Venue deposit"
-              required
-              value={displayName}
-            />
-          </label>
+          <CountedField
+            className="field-wide"
+            disabled={mutation.isPending}
+            inputRef={nameInput}
+            label="Expense"
+            limit={240}
+            onChange={(displayName) => draft.change({ displayName })}
+            placeholder="Venue deposit"
+            required
+            value={displayName}
+          />
           <div className="form-grid money-grid">
             <label className="field">
               <span>Amount</span>

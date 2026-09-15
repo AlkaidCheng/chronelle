@@ -1,6 +1,7 @@
 import { type FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import type { EventResponse } from "@chronelle/schemas";
 
+import { CountedField } from "../../components/counted-field";
 import { ErrorNotice } from "../../components/feedback";
 import { EditorForm, EditorSubmitButton } from "../../components/editor-form";
 import { eventSchedulePayload } from "../../lib/event-schedule";
@@ -157,20 +158,17 @@ function CreateEventForm({
         aria-busy={createEvent.isPending}
       >
         <div className="event-create-body">
-          <label className="field event-name-field">
-            Event name
-            <input
-              ref={nameInput}
-              maxLength={240}
-              placeholder="What are you planning?"
-              required
-              disabled={createEvent.isPending}
-              value={displayName}
-              onChange={(event) =>
-                draft.change({ displayName: event.target.value })
-              }
-            />
-          </label>
+          <CountedField
+            className="event-name-field"
+            disabled={createEvent.isPending}
+            inputRef={nameInput}
+            label="Event name"
+            limit={240}
+            onChange={(displayName) => draft.change({ displayName })}
+            placeholder="What are you planning?"
+            required
+            value={displayName}
+          />
           <EventScheduleFields
             value={schedule}
             onChange={(change) => {

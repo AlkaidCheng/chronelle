@@ -2,6 +2,7 @@
 
 import type { PersonResponse } from "@chronelle/schemas";
 import { type FormEvent, useMemo, useState } from "react";
+import { CountedField } from "../../components/counted-field";
 import { EditorForm } from "../../components/editor-form";
 import {
   DiscardActions,
@@ -231,31 +232,27 @@ function PersonEditor({
         onSubmit={handleSubmit}
       >
         <div className="event-create-body event-inspector-fields">
-          <label className="field field-wide">
-            <span>Name</span>
-            <input
-              ref={nameInput}
-              maxLength={240}
-              disabled={mutation.isPending}
-              onChange={(input) =>
-                draft.change({ displayName: input.target.value })
-              }
-              placeholder="Mira Chen"
-              required
-              value={displayName}
-            />
-          </label>
-          <label className="field field-wide">
-            <span>Email</span>
-            <input
-              disabled={mutation.isPending}
-              maxLength={254}
-              onChange={(input) => draft.change({ email: input.target.value })}
-              placeholder="mira@example.com"
-              type="email"
-              value={email}
-            />
-          </label>
+          <CountedField
+            className="field-wide"
+            disabled={mutation.isPending}
+            inputRef={nameInput}
+            label="Name"
+            limit={240}
+            onChange={(displayName) => draft.change({ displayName })}
+            placeholder="Mira Chen"
+            required
+            value={displayName}
+          />
+          <CountedField
+            className="field-wide"
+            disabled={mutation.isPending}
+            label="Email"
+            limit={254}
+            onChange={(email) => draft.change({ email })}
+            placeholder="mira@example.com"
+            type="email"
+            value={email}
+          />
           {linkedElsewhere ? (
             <p className="field-hint field-wide">
               Linked to a workspace member's account.
@@ -297,46 +294,36 @@ function PersonEditor({
                   // Rows have no identity of their own; their position is it.
                   // biome-ignore lint/suspicious/noArrayIndexKey: positional rows
                   <li key={index}>
-                    <label className="field">
-                      <span className="visually-hidden">
-                        Field {index + 1} name
-                      </span>
-                      <input
-                        disabled={mutation.isPending}
-                        maxLength={60}
-                        onChange={(input) =>
-                          changeFields(
-                            fields.map((row, at) =>
-                              at === index
-                                ? { ...row, key: input.target.value }
-                                : row,
-                            ),
-                          )
-                        }
-                        placeholder="Field"
-                        value={field.key}
-                      />
-                    </label>
-                    <label className="field">
-                      <span className="visually-hidden">
-                        Field {index + 1} value
-                      </span>
-                      <input
-                        disabled={mutation.isPending}
-                        maxLength={500}
-                        onChange={(input) =>
-                          changeFields(
-                            fields.map((row, at) =>
-                              at === index
-                                ? { ...row, value: input.target.value }
-                                : row,
-                            ),
-                          )
-                        }
-                        placeholder="Value"
-                        value={field.value}
-                      />
-                    </label>
+                    <CountedField
+                      disabled={mutation.isPending}
+                      hideLabel
+                      label={`Field ${index + 1} name`}
+                      limit={60}
+                      onChange={(key) =>
+                        changeFields(
+                          fields.map((row, at) =>
+                            at === index ? { ...row, key } : row,
+                          ),
+                        )
+                      }
+                      placeholder="Field"
+                      value={field.key}
+                    />
+                    <CountedField
+                      disabled={mutation.isPending}
+                      hideLabel
+                      label={`Field ${index + 1} value`}
+                      limit={500}
+                      onChange={(value) =>
+                        changeFields(
+                          fields.map((row, at) =>
+                            at === index ? { ...row, value } : row,
+                          ),
+                        )
+                      }
+                      placeholder="Value"
+                      value={field.value}
+                    />
                     <button
                       aria-label={`Remove field ${field.key || index + 1}`}
                       className="button button-quiet button-small"
