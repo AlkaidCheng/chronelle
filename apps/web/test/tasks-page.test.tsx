@@ -419,6 +419,43 @@ describe("TasksPage", () => {
     expect(screen.getByText("1 task loaded")).toBeVisible();
   });
 
+  it("keeps where a task happens and shows it on the row", async () => {
+    const user = userEvent.setup();
+    render(
+      <Providers>
+        <TasksPage />
+      </Providers>,
+    );
+    await screen.findByText("1 task loaded");
+    const row = screen.getByRole("row", { name: /Confirm the garden venue/ });
+    await user.click(within(row).getByRole("button", { name: "Edit" }));
+    const editor = await screen.findByRole("dialog", { name: "Edit task" });
+    await user.type(
+      within(editor).getByLabelText("Location"),
+      "  The garden  ",
+    );
+    await user.click(within(editor).getByRole("button", { name: "Save task" }));
+    await waitFor(() =>
+      expect(screen.queryByRole("dialog", { name: "Edit task" })).toBeNull(),
+    );
+    const placed = await screen.findByRole("row", {
+      name: /Confirm the garden venue/,
+    });
+    expect(within(placed).getByText("The garden")).toHaveTextContent(
+      "At The garden",
+    );
+    // Reopening shows the trimmed location; clearing it removes the line.
+    await user.click(within(placed).getByRole("button", { name: "Edit" }));
+    const again = await screen.findByRole("dialog", { name: "Edit task" });
+    expect(within(again).getByLabelText("Location")).toHaveValue("The garden");
+    await user.clear(within(again).getByLabelText("Location"));
+    await user.click(within(again).getByRole("button", { name: "Save task" }));
+    await waitFor(() =>
+      expect(screen.queryByRole("dialog", { name: "Edit task" })).toBeNull(),
+    );
+    await waitFor(() => expect(screen.queryByText("The garden")).toBeNull());
+  });
+
   it("creates a task on its own and completes it from the list", async () => {
     const user = userEvent.setup();
     render(

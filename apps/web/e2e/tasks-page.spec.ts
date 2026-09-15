@@ -25,7 +25,12 @@ test("lists, creates, and completes tasks outside an event", async ({
     await request.get("/api/tasks?filter=done", { headers })
   ).json();
   expect(listed.items).toMatchObject([
-    { displayName: name, dueOn: "2031-05-20", status: "done" },
+    {
+      displayName: name,
+      dueOn: "2031-05-20",
+      status: "done",
+      location: "Passport office",
+    },
   ]);
   expect(listed.items[0].permissionScopeId).toBe(listed.items[0].id);
   expect(errors).toEqual([]);

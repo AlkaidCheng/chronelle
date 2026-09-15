@@ -108,7 +108,8 @@ function TaskEditor({
   const create = useCreateTask(eventId, attempt);
   const update = useUpdateTask();
   const refresh = useRefreshEvent(eventId, { throwOnError: true });
-  const { displayName, dueDate, dueTime, assignee, labels } = draft.fields;
+  const { displayName, dueDate, dueTime, assignee, location, labels } =
+    draft.fields;
   const mutation = task === undefined ? create : update;
   const [dueError, setDueError] = useState("");
   const openHistory = useOpenHistory();
@@ -172,6 +173,7 @@ function TaskEditor({
             dueDate: "",
             dueTime: "",
             assignee: "",
+            location: "",
             labels: "",
           });
           onCancel?.();
@@ -306,6 +308,18 @@ function TaskEditor({
             .
           </p>
           {dueError && <p role="alert">{dueError}</p>}
+          <label className="field field-wide">
+            <span>Location</span>
+            <input
+              disabled={mutation.isPending}
+              maxLength={240}
+              onChange={(input) =>
+                draft.change({ location: input.target.value })
+              }
+              placeholder="Where it happens"
+              value={location}
+            />
+          </label>
           <AssigneePicker
             disabled={mutation.isPending}
             onChange={(assignee) => draft.change({ assignee })}

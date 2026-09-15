@@ -265,6 +265,11 @@ h3,
   font-weight: 700;
 }
 
+.task-location {
+  color: var(--muted);
+  font-size: 0.73rem;
+}
+
 .task-assignee {
   border: 1px solid var(--line);
   border-radius: 999px;
