@@ -377,6 +377,7 @@ export class ObjectRestorationService {
             dueOn: fields.dueOn,
             dueAt: fields.dueAt,
             completedAt: fields.completedAt,
+            location: fields.location,
           })
           .where(
             and(

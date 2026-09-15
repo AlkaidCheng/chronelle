@@ -8,7 +8,11 @@ import {
   EditorDialogHeader,
 } from "../../components/editor-dialog-controls";
 import { EditorControls } from "./editor-controls";
-import { readTaskFields, taskFieldsPayload } from "../../lib/task-fields";
+import {
+  locationLimit,
+  readTaskFields,
+  taskFieldsPayload,
+} from "../../lib/task-fields";
 import {
   eventCreationDraftKeys,
   type TaskDraftSnapshot,
@@ -108,9 +112,11 @@ function TaskEditor({
   const create = useCreateTask(eventId, attempt);
   const update = useUpdateTask();
   const refresh = useRefreshEvent(eventId, { throwOnError: true });
-  const { displayName, dueDate, dueTime, assignee, labels } = draft.fields;
+  const { displayName, dueDate, dueTime, assignee, location, labels } =
+    draft.fields;
   const mutation = task === undefined ? create : update;
-  const [dueError, setDueError] = useState("");
+  const [fieldError, setFieldError] = useState("");
+  const locationFull = location.length >= locationLimit;
   const openHistory = useOpenHistory();
   const close = () => {
     recovery.discard();
@@ -143,10 +149,10 @@ function TaskEditor({
     let input: ReturnType<typeof taskFieldsPayload>;
     try {
       input = taskFieldsPayload(draft.fields, task);
-      setDueError("");
+      setFieldError("");
     } catch (error) {
-      setDueError(
-        error instanceof Error ? error.message : "Check the due time.",
+      setFieldError(
+        error instanceof Error ? error.message : "Check the fields.",
       );
       return;
     }
@@ -172,6 +178,7 @@ function TaskEditor({
             dueDate: "",
             dueTime: "",
             assignee: "",
+            location: "",
             labels: "",
           });
           onCancel?.();
@@ -250,7 +257,7 @@ function TaskEditor({
         aria-busy={mutation.isPending}
         className="editor-form event-inspector-form"
         onChangeCapture={() => {
-          setDueError("");
+          setFieldError("");
           if (mutation.isSuccess) mutation.reset();
         }}
         onSubmit={handleSubmit}
@@ -305,7 +312,32 @@ function TaskEditor({
               .timeZone.replaceAll("_", " ")}
             .
           </p>
-          {dueError && <p role="alert">{dueError}</p>}
+          <label className="field field-wide">
+            <span id={`${headingId}-location-label`}>Location</span>
+            <input
+              aria-describedby={`${headingId}-location-count`}
+              aria-labelledby={`${headingId}-location-label`}
+              disabled={mutation.isPending}
+              maxLength={locationLimit}
+              onChange={(input) =>
+                // The browser stops typing at the limit; a paste or a
+                // composition that lands past it is cut to the limit.
+                draft.change({
+                  location: input.target.value.slice(0, locationLimit),
+                })
+              }
+              placeholder="Where it happens"
+              value={location}
+            />
+            <span
+              aria-live="polite"
+              className={`field-count${locationFull ? " field-count-full" : ""}`}
+              id={`${headingId}-location-count`}
+            >
+              {location.length} / {locationLimit}
+            </span>
+          </label>
+          {fieldError && <p role="alert">{fieldError}</p>}
           <AssigneePicker
             disabled={mutation.isPending}
             onChange={(assignee) => draft.change({ assignee })}

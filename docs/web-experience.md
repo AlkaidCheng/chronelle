@@ -93,7 +93,12 @@ Unassigned first, takes a new person by name (selected as soon as they
 exist), and offers Assign to me, which creates the signed-in user's person on
 first use and marks it "(me)" thereafter. Rows name the assignee under the
 title in both views. The Tasks page filters by assignee from the toolbar:
-Anyone, Me (when the user has a person), or a person by name.
+Anyone, Me (when the user has a person), or a person by name. A Location
+field in the task editor names where the task happens, as text; rows show it
+under the title ("At ..."), and clearing the field removes it. The field
+counts its characters ("n / 240") as the user types and stops at the limit:
+a longer paste is cut to 240 characters, and the count turns red at
+240 / 240.
 
 ## Workspace commands
 

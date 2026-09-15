@@ -32,6 +32,7 @@ const typedFields: Record<
     dueAt: field("Due", "datetime"),
     parentTaskId: field("Parent task", "text", false),
     assigneeId: field("Assignee", "text", false),
+    location: field("Location", "text"),
     labelIds: field("Labels", "text", false),
     completedAt: field("Completed", "datetime"),
   },

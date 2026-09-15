@@ -372,6 +372,14 @@ to that Person. A Person moved to Trash keeps their tasks; the assignee is not
 part of a revision's restorable content. Deploy migration 0038 before this
 API.
 
+A Task may name where it happens through `location`, text of 1 to 240
+characters (trimmed at the boundary; `null` clears it, absent leaves it
+unchanged; the service refuses padded or longer text with
+`location is 1 to 240 characters without surrounding spaces.`). Responses
+carry `location`, null when unset; it is restorable content. Deploy migration
+0039 before this API. A Place object may take its place once the places
+family exists.
+
 ## Labels
 
 | Method   | Path                            | Behavior                             |

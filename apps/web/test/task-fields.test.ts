@@ -6,6 +6,7 @@ const empty = {
   dueDate: "",
   dueTime: "",
   assignee: "",
+  location: "",
   labels: "",
 };
 
@@ -18,6 +19,7 @@ describe("Task field conversion", () => {
       dueDate: "",
       dueTime: "",
       assignee: "",
+      location: "",
       labels: "",
     });
     expect(taskFieldsPayload(empty)).toEqual({
@@ -25,6 +27,7 @@ describe("Task field conversion", () => {
       dueOn: null,
       dueAt: null,
       assigneeId: null,
+      location: null,
       labelIds: [],
     });
   });
@@ -37,6 +40,7 @@ describe("Task field conversion", () => {
         dueOn: "2030-07-03",
         dueAt: null,
         assigneeId: "u1",
+        location: "The garden",
         labelIds: ["b", "a", "b"],
       }),
     ).toEqual({
@@ -44,6 +48,7 @@ describe("Task field conversion", () => {
       dueDate: "2030-07-03",
       dueTime: "",
       assignee: "u1",
+      location: "The garden",
       labels: "a,b",
     });
     expect(taskFieldsPayload({ ...empty, labels: "a,b" }).labelIds).toEqual([
@@ -53,11 +58,15 @@ describe("Task field conversion", () => {
     expect(taskFieldsPayload({ ...empty, assignee: "u1" }).assigneeId).toBe(
       "u1",
     );
+    expect(taskFieldsPayload({ ...empty, location: "  Hall  " }).location).toBe(
+      "Hall",
+    );
     expect(taskFieldsPayload({ ...empty, dueDate: "2030-07-03" })).toEqual({
       displayName: "Pack",
       dueOn: "2030-07-03",
       dueAt: null,
       assigneeId: null,
+      location: null,
       labelIds: [],
     });
     expect(
@@ -67,6 +76,7 @@ describe("Task field conversion", () => {
       dueOn: null,
       dueAt: "2030-07-03T19:30:00.000Z",
       assigneeId: null,
+      location: null,
       labelIds: [],
     });
   });
@@ -78,6 +88,7 @@ describe("Task field conversion", () => {
       dueOn: null,
       dueAt: "2030-07-03T18:30:45.678Z",
       assigneeId: null,
+      location: null,
       labelIds: [],
     };
     const fields = readTaskFields(source);
@@ -86,6 +97,7 @@ describe("Task field conversion", () => {
       dueDate: "2030-07-03",
       dueTime: "11:30",
       assignee: "",
+      location: "",
       labels: "",
     });
     expect(
@@ -95,6 +107,7 @@ describe("Task field conversion", () => {
       dueOn: null,
       dueAt: source.dueAt,
       assigneeId: null,
+      location: null,
       labelIds: [],
     });
   });
@@ -113,6 +126,7 @@ describe("Task field conversion", () => {
       dueOn: null,
       dueAt: null,
       assigneeId: null,
+      location: null,
       labelIds: [],
     });
   });
@@ -128,5 +142,11 @@ describe("Task field conversion", () => {
     expect(() =>
       taskFieldsPayload({ ...empty, dueDate: "2030-03-10", dueTime: "02:30" }),
     ).toThrow("local time is unavailable");
+    expect(() =>
+      taskFieldsPayload({ ...empty, location: `${"x".repeat(240)} ` }),
+    ).not.toThrow();
+    expect(() =>
+      taskFieldsPayload({ ...empty, location: "x".repeat(241) }),
+    ).toThrow("Keep the location to 240 characters.");
   });
 });

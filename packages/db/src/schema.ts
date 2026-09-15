@@ -356,6 +356,7 @@ export const tasks = pgTable("tasks", {
   }),
   parentTaskId: uuid("parent_task_id"),
   assigneePersonId: uuid("assignee_person_id"),
+  location: text("location"),
 });
 
 export const labels = pgTable(

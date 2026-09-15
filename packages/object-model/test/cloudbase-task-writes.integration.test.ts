@@ -269,6 +269,7 @@ describe.sequential("CloudBase Task writes", () => {
         expectedVersion: 1,
         parentTaskId: null,
         assigneeId: null,
+        location: null,
       });
       expect(detached.parentTaskId).toBeNull();
       const reattached = await service.updateTask(context(), child.id, {
@@ -423,6 +424,7 @@ describe.sequential("CloudBase Task writes", () => {
       const cleared = await service.updateTask(context(), created.id, {
         expectedVersion: 2,
         assigneeId: null,
+        location: null,
       });
       expect(cleared.assigneeId).toBeNull();
       const seen: string[] = [];
@@ -454,6 +456,53 @@ describe.sequential("CloudBase Task writes", () => {
       "assigneeId must name a live person in this workspace.",
       "assigneeId must name a live person in this workspace.",
       "assigneeId must name a live person in this workspace.",
+    ]);
+  });
+
+  it("keep a task's location as text and refuse a padded or long one alike", async () => {
+    const outcomes: string[][] = [];
+    for (const [, service] of backends(reference, cloudbase)) {
+      const created = await service.createTask(context(), {
+        displayName: "Placed",
+        location: "Sunset Hall, room 2",
+      });
+      expect(created.location).toBe("Sunset Hall, room 2");
+      const moved = await service.updateTask(context(), created.id, {
+        expectedVersion: 1,
+        location: "The garden",
+      });
+      expect(moved.location).toBe("The garden");
+      expect(
+        (await service.getTask(context().principal, created.id)).location,
+      ).toBe("The garden");
+      const cleared = await service.updateTask(context(), created.id, {
+        expectedVersion: 2,
+        location: null,
+      });
+      expect(cleared.location).toBeNull();
+      const seen: string[] = [];
+      for (const attempt of [
+        () =>
+          service.createTask(context(), {
+            displayName: "x",
+            location: " padded ",
+          }),
+        () =>
+          service.updateTask(context(), created.id, {
+            expectedVersion: 3,
+            location: "x".repeat(241),
+          }),
+      ]) {
+        const error = await failure(attempt);
+        expect(error).toBeInstanceOf(InvalidObjectStateError);
+        seen.push(error.message);
+      }
+      outcomes.push(seen);
+    }
+    expect(outcomes[1]).toEqual(outcomes[0]);
+    expect(outcomes[0]).toEqual([
+      "location is 1 to 240 characters without surrounding spaces.",
+      "location is 1 to 240 characters without surrounding spaces.",
     ]);
   });
 
