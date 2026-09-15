@@ -63,7 +63,9 @@ functions, and the write core, restore, and search functions admitting the
 type; reapply the runtime role after it as well. Migration
 `0038_add_task_assignee.sql` adds `tasks.assignee_person_id` with
 `chronelle_assert_task_assignee` and redefines the Task functions to carry
-`assigneeId`.
+`assigneeId`. Migration `0039_add_task_location.sql` adds `tasks.location`
+with `chronelle_assert_task_location` and redefines the Task functions to
+carry `location`.
 
 Migration `0021_add_object_search_function.sql` adds `chronelle_object_search`,
 the read-only function the CloudBase search adapter calls. It changes no
