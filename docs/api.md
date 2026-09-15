@@ -322,6 +322,12 @@ Patch input always includes the last observed positive `expectedVersion`. A
 successful update increments the version. A stale update returns HTTP 409 with
 the `version_conflict` code.
 
+A Task is due on a calendar date (`dueOn`, `YYYY-MM-DD`, no time zone), at an
+instant (`dueAt`), or not at all; a request that leaves both set returns HTTP
+400 with `dueOn and dueAt cannot both be set.`, so moving a task between the
+two forms sends both fields in one update, one of them null. Responses carry
+both fields, the unused one null. Deploy migration 0034 before this API.
+
 The Event collection query examines self-scoped planning roots in the active
 workspace and applies the same `view` authorization decision to every candidate
 before returning it. Directly shared Events can appear without workspace
@@ -471,7 +477,7 @@ when a view needs them.
 | Method | Path                    | Result                                     |
 | ------ | ----------------------- | ------------------------------------------ |
 | `GET`  | `/events/:id/detail`    | Event plus related typed collections       |
-| `GET`  | `/events/:id/todos`     | Included Tasks ordered by due time         |
+| `GET`  | `/events/:id/todos`     | Included Tasks ordered by due date or time |
 | `GET`  | `/events/:id/calendar`  | Included scheduled Events                  |
 | `GET`  | `/events/:id/timeline`  | Dated included resources in time order     |
 | `GET`  | `/events/:id/itinerary` | Included scheduled Events                  |
@@ -487,7 +493,9 @@ generic private-item notice without exposing identities or business fields.
 Focused endpoints select only their relevant `includes` target types and do not
 load attachments. Calendar and itinerary omit Events without a start date or time;
 timeline omits undated Events and Tasks. To-dos retain undated Tasks after dated
-ones. Equal timestamps are ordered by canonical ID (descending for Expenses).
+ones; a Task due on a date sorts at the start of that day (UTC), ahead of Tasks
+due at an instant that day, and the timeline lists it with `occursOn`. Equal
+timestamps are ordered by canonical ID (descending for Expenses).
 The detail endpoint retains all its collections and locked-reference count.
 Permission checks and canonical versions are identical across these reads.
 Timeline entries contain either `occursAt` or `occursOn`, with the other null.

@@ -370,9 +370,12 @@ direct row actions. The inspector checks fresh canonical Task data and its own
 edit permission before exposing fields, even when a cached copy is present.
 Temporary refetch failures preserve mounted input; denied access hides it.
 History remains available inside the editor, and changed source versions require
-an explicit refresh/load-latest decision. Name-only edits preserve the exact
-stored due instant; a due time is optional, and unavailable local times are
-rejected. Task drafts survive client-side navigation within the authenticated
+an explicit refresh/load-latest decision. The editor takes a due date and,
+once a date is set, an optional due time: a date alone makes the task due
+that whole day (shown as the date, ahead of timed tasks that day, and in the
+Timeline as a dated entry); a date with a time makes it due at that local
+instant. Name-only edits preserve the exact stored due instant, and
+unavailable local times are rejected. Task drafts survive client-side navigation within the authenticated
 tab. Add task or Edit offers Resume / Discard before exposing retained values.
 Creation drafts belong to their parent Event; edits follow the canonical Task
 across contexts. Resume checks fresh parent access for creation and the Task's
@@ -463,7 +466,8 @@ A component's kind decides which records it holds; its view decides how they
 are laid out, and the heading carries a View control when a kind offers more
 than one. To-dos offers List, the table, and By day, which groups tasks under
 Overdue, one heading per due date (Today and Tomorrow named, with the weekday),
-and No due date, showing each task's due time; the open/all/done filter applies
+and No due date, showing each timed task's due time and nothing for a task due
+on the date itself; the open/all/done filter applies
 to both. The choice is part of the page layout: it saves at once for everyone
 on the Event, shows in layout history, and undo covers it. Viewers see the
 saved view without a control.
