@@ -121,7 +121,14 @@ function selectEventItems(data: InfiniteData<EventListResponse>) {
 }
 
 function selectTaskItems(data: InfiniteData<TaskListResponse>) {
-  return { items: pageItems(data.pages), asOf: data.pages[0]?.asOf };
+  return {
+    items: pageItems(data.pages),
+    contexts: Object.assign(
+      {},
+      ...data.pages.map((page) => page.contexts),
+    ) as TaskListResponse["contexts"],
+    asOf: data.pages[0]?.asOf,
+  };
 }
 
 /** The workspace Task collection: every task the user may view, page by page. */

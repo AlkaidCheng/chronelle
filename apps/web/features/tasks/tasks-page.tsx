@@ -210,6 +210,7 @@ export function TasksPage() {
         {items.length > 0 ? (
           <TaskListView
             canEdit
+            contexts={tasks.data?.contexts}
             onEdit={setEditingId}
             onRefresh={refresh}
             tasks={items}

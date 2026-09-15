@@ -75,9 +75,14 @@ describe("TasksPage", () => {
       </Providers>,
     );
     expect(await screen.findByText("1 task loaded")).toBeVisible();
+    const sample = screen.getByRole("row", {
+      name: /Confirm the garden venue/,
+    });
+    expect(sample).toBeVisible();
+    // A task inside an event names it and links to it.
     expect(
-      screen.getByRole("row", { name: /Confirm the garden venue/ }),
-    ).toBeVisible();
+      within(sample).getByRole("link", { name: "in Autumn gathering" }),
+    ).toHaveAttribute("href", expect.stringMatching(/^\/events\//));
     await user.click(screen.getByRole("button", { name: "Completed" }));
     expect(await screen.findByText("1 task loaded")).toBeVisible();
     expect(screen.getByRole("row", { name: /Send invitations/ })).toBeVisible();
@@ -133,6 +138,7 @@ describe("TasksPage", () => {
     expect(task?.permissionScopeId).toBe(task?.id);
     const row = screen.getByRole("row", { name: /Water the plants/ });
     expect(within(row).getByText("Apr 2, 2031")).toBeVisible();
+    expect(within(row).queryByRole("link", { name: /^in / })).toBeNull();
     await user.click(
       within(row).getByRole("button", { name: "Complete Water the plants" }),
     );

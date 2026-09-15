@@ -1,6 +1,11 @@
 "use client";
 
-import type { EventComponentView, TaskResponse } from "@chronelle/schemas";
+import type {
+  EventComponentView,
+  TaskContext,
+  TaskResponse,
+} from "@chronelle/schemas";
+import Link from "next/link";
 import {
   createColumnHelper,
   flexRender,
@@ -31,6 +36,7 @@ const taskColumn = createColumnHelper<TaskResponse>();
  */
 export function TaskListView({
   canEdit,
+  contexts,
   eventId,
   onEdit,
   onRefresh,
@@ -38,6 +44,8 @@ export function TaskListView({
   view,
 }: {
   readonly canEdit: boolean;
+  /** The Event each task belongs to, by task ID, when the container spans Events. */
+  readonly contexts?: Readonly<Record<string, TaskContext>> | undefined;
   readonly eventId?: string | undefined;
   readonly onEdit: (taskId: string) => void;
   /** Reloads the container after a failed completion change. */
@@ -45,6 +53,17 @@ export function TaskListView({
   readonly tasks: readonly TaskResponse[];
   readonly view: EventComponentView;
 }) {
+  const context = useCallback(
+    (task: TaskResponse) => {
+      const found = contexts?.[task.id];
+      return found === undefined ? null : (
+        <Link className="task-context" href={`/events/${found.eventId}`}>
+          in {found.displayName}
+        </Link>
+      );
+    },
+    [contexts],
+  );
   const update = useUpdateTask();
   const { mutate: updateTask, isPending: isUpdating } = update;
   const groups = useMemo(
@@ -114,6 +133,7 @@ export function TaskListView({
         cell: ({ row }) => (
           <div className="primary-cell">
             <strong>{row.original.displayName}</strong>
+            {context(row.original)}
             <ObjectDetails id={row.original.id} />
           </div>
         ),
@@ -132,7 +152,7 @@ export function TaskListView({
         cell: ({ row }) => actions(row.original),
       }),
     ],
-    [actions, check],
+    [actions, check, context],
   );
   const table = useReactTable({
     columns,
@@ -177,6 +197,7 @@ export function TaskListView({
                     ) : task.dueOn !== null && group.tone === "overdue" ? (
                       <p>{formatCalendarDate(task.dueOn)}</p>
                     ) : null}
+                    {context(task)}
                     <ObjectDetails id={task.id} />
                   </div>
                   <StatusChip status={task.status} />
