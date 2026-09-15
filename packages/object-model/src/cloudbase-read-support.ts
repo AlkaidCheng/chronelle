@@ -58,6 +58,7 @@ export type CloudBaseTaskRow = {
   readonly object_id: unknown;
   readonly workspace_id: unknown;
   readonly status: unknown;
+  readonly due_on: unknown;
   readonly due_at: unknown;
   readonly completed_at: unknown;
 };
@@ -246,6 +247,7 @@ export function cloudbaseTaskResource(
     ...cloudbaseCanonicalFields(object, task, "task"),
     objectType: "task",
     status: status as TaskStatus,
+    dueOn: cloudbaseNullableText(task.due_on, "due_on"),
     dueAt: cloudbaseNullableDate(task.due_at, "due_at"),
     completedAt: cloudbaseNullableDate(task.completed_at, "completed_at"),
   };

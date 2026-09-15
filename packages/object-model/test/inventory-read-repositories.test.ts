@@ -36,6 +36,7 @@ const task: EventPlanningResource = {
   customProperties: {},
   metadata: {},
   status: "todo",
+  dueOn: null,
   dueAt: null,
   completedAt: null,
 };

@@ -17,6 +17,7 @@ import type {
   EventResourceProjection,
   ExpenseResourceProjection,
   ReminderResourceProjection,
+  TaskResource,
   TaskResourceProjection,
   TimelineItem,
   TimelineProjection,
@@ -38,6 +39,10 @@ function compareDates(
     return -1;
   }
   return first.getTime() - second.getTime() || firstId.localeCompare(secondId);
+}
+
+function dueInstant(task: TaskResource): Date | null {
+  return task.dueOn === null ? task.dueAt : new Date(`${task.dueOn}T00:00:00Z`);
 }
 
 function isResource<Type extends EventPlanningResource["objectType"]>(
@@ -252,14 +257,20 @@ export class PostgresProjectionReadRepository implements ProjectionReadRepositor
 }
 
 function timelineItem(resource: TimelineResource): TimelineItem[] {
-  if (resource.objectType === "event" && resource.startsOn !== null)
+  const occursOn =
+    resource.objectType === "event"
+      ? resource.startsOn
+      : resource.objectType === "task"
+        ? resource.dueOn
+        : null;
+  if (occursOn !== null)
     return [
       {
         canonicalObjectId: resource.id,
-        objectType: "event",
+        objectType: resource.objectType,
         displayName: resource.displayName,
         occursAt: null,
-        occursOn: resource.startsOn,
+        occursOn,
         version: resource.version,
       },
     ];
@@ -342,8 +353,10 @@ export class EventPlanningProjectionService {
     const resources = await this.#getProjectionResources(principal, eventId, [
       "task",
     ]);
+    // A date-only due sorts at the start of its day (UTC), before any
+    // timed task that day, and undated tasks come last.
     const items = resources.sort((first, second) =>
-      compareDates(first.dueAt, second.dueAt, first.id, second.id),
+      compareDates(dueInstant(first), dueInstant(second), first.id, second.id),
     );
     return { sourceEventId: eventId, items };
   }

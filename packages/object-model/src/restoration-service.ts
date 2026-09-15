@@ -372,6 +372,7 @@ export class ObjectRestorationService {
           .update(tasks)
           .set({
             status: fields.status,
+            dueOn: fields.dueOn,
             dueAt: fields.dueAt,
             completedAt: fields.completedAt,
           })

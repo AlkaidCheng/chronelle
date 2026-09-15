@@ -75,9 +75,12 @@ export const eventUpdateRequestSchema = z
     message: "At least one update field is required.",
   });
 
+// A Task is due on a date (dueOn), at an instant (dueAt), or not at all;
+// the service refuses a state with both.
 export const taskCreateRequestSchema = z.object({
   ...createObjectShape,
   status: taskStatusSchema.optional(),
+  dueOn: calendarDateSchema.nullable().optional(),
   dueAt: nullableDateTimeInputSchema.optional(),
   completedAt: nullableDateTimeInputSchema.optional(),
 });
@@ -86,6 +89,7 @@ export const taskUpdateRequestSchema = z
   .object({
     ...updateObjectShape,
     status: taskStatusSchema.optional(),
+    dueOn: calendarDateSchema.nullable().optional(),
     dueAt: nullableDateTimeInputSchema.optional(),
     completedAt: nullableDateTimeInputSchema.optional(),
   })
@@ -180,6 +184,7 @@ export const taskResponseSchema = z.object({
   ...canonicalObjectResponseShape,
   objectType: z.literal("task"),
   status: taskStatusSchema,
+  dueOn: calendarDateSchema.nullable().default(null),
   dueAt: nullableDateTimeResponseSchema,
   completedAt: nullableDateTimeResponseSchema,
 });

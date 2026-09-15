@@ -346,6 +346,7 @@ export const tasks = pgTable("tasks", {
   workspaceId: uuid("workspace_id").notNull(),
   objectType: text("object_type").$type<"task">().notNull().default("task"),
   status: text("status").$type<TaskStatus>().notNull().default("todo"),
+  dueOn: date("due_on", { mode: "string" }),
   dueAt: timestamp("due_at", { mode: "date", withTimezone: true }),
   completedAt: timestamp("completed_at", {
     mode: "date",

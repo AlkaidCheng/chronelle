@@ -46,6 +46,8 @@ export interface EventResource extends CanonicalObjectResource {
 
 export interface TaskResource extends CanonicalObjectResource {
   readonly completedAt: Date | null;
+  /** A calendar date the task is due on; never set together with dueAt. */
+  readonly dueOn: string | null;
   readonly dueAt: Date | null;
   readonly objectType: "task";
   readonly status: TaskStatus;
@@ -144,6 +146,7 @@ export interface CreateEventInput extends CreateObjectFields {
 
 export interface CreateTaskInput extends CreateObjectFields {
   readonly completedAt?: Date | null | undefined;
+  readonly dueOn?: string | null | undefined;
   readonly dueAt?: Date | null | undefined;
   readonly status?: TaskStatus | undefined;
 }
@@ -182,6 +185,7 @@ export interface UpdateEventInput extends UpdateObjectFields {
 
 export interface UpdateTaskInput extends UpdateObjectFields {
   readonly completedAt?: Date | null | undefined;
+  readonly dueOn?: string | null | undefined;
   readonly dueAt?: Date | null | undefined;
   readonly status?: TaskStatus | undefined;
 }

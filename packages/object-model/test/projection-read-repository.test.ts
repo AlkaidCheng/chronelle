@@ -56,6 +56,7 @@ function task(id: string, dueAt: Date | null): TaskResource {
     ...canonical(id),
     objectType: "task",
     status: "todo",
+    dueOn: null,
     dueAt,
     completedAt: null,
   };
