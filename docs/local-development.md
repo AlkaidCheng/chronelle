@@ -60,7 +60,10 @@ Migration `0036_add_task_labels.sql` adds `labels` and `task_labels` with the
 the runtime role needs the two new tables. Migration `0037_add_persons.sql`
 adds the Person object type: the `persons` table, the `chronelle_person_*`
 functions, and the write core, restore, and search functions admitting the
-type; reapply the runtime role after it as well.
+type; reapply the runtime role after it as well. Migration
+`0038_add_task_assignee.sql` adds `tasks.assignee_person_id` with
+`chronelle_assert_task_assignee` and redefines the Task functions to carry
+`assigneeId`.
 
 Migration `0021_add_object_search_function.sql` adds `chronelle_object_search`,
 the read-only function the CloudBase search adapter calls. It changes no

@@ -362,6 +362,16 @@ the name and `limit` (1-200, default 100) bounds the page. The response is
 Deploy migration 0037 before this API and reapply the runtime role grants,
 which cover the new table.
 
+A Task may be assigned to one Person through `assigneeId` on create and
+update (`null` clears it; absent leaves it unchanged); the id must name a live
+Person of the workspace, or the request returns HTTP 400 with
+`assigneeId must name a live person in this workspace.`. Responses carry
+`assigneeId`, null when unassigned; the Person's name comes from the People
+collection. `GET /tasks?assignee=<personId>` lists only the tasks assigned
+to that Person. A Person moved to Trash keeps their tasks; the assignee is not
+part of a revision's restorable content. Deploy migration 0038 before this
+API.
+
 ## Labels
 
 | Method   | Path                            | Behavior                             |
@@ -395,7 +405,8 @@ the start of its day in UTC, ahead of timed tasks that day, undated tasks
 last, then name and ID), `name`, or `updated`; `query` matches the name;
 `limit` is 1-50 (default 20). Pages carry `nextCursor` and `asOf` like the
 Event collection, and a cursor is bound to its caller and query: reusing one
-with another `filter`, `sort`, `query`, or user returns HTTP 400. Each page
+with another `filter`, `sort`, `query`, `label`, `assignee`, or user returns
+HTTP 400. Each page
 also carries `contexts`, a map from Task ID to `{ eventId, displayName }` for
 the Event that includes the Task, present only when the caller may view that
 Event (the earliest inclusion when several Events include one Task); a Task
