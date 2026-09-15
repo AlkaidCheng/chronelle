@@ -1,5 +1,18 @@
 # Web experience
 
+Accounts are email and password. Sign in at `/sign-in`; Create an account
+(`/sign-up`) asks for a name, email, and a password of at least ten
+characters, then moves to `/verify-email` for the six-digit code sent to the
+address (Send a new code issues another; a sign-in attempt on an unverified
+address also sends one and lands on the same screen). Forgot your password?
+(`/reset-password`) sends a code to the account's email, then takes the code
+and a new password; the reset signs every other session of the account out.
+Each screen redirects to the collection once a session exists, and Sign out
+ends the session on the server as well as in the tab. The development
+sign-in (name and email, no password) lives at `/sign-in/development` and
+exists only where the web server is started with
+`WEB_DEVELOPMENT_SIGN_IN=true`.
+
 Chronelle opens into an event collection, with workspace-wide Search and Trash
 alongside it. Desktop navigation stays on the left; mobile navigation remains
 at the bottom with space for the device's safe area. Events, Search, and Trash

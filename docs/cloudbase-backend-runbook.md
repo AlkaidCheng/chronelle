@@ -202,14 +202,15 @@ implies the other two. After the first deployment, the service log must show
 
 ### Service: chronelle-web
 
-| Setting            | Value                                                                                                     |
-| ------------------ | --------------------------------------------------------------------------------------------------------- |
-| Source             | The deployment repository's `main`; Dockerfile `apps/web/Dockerfile`; build context the repository root   |
-| Port               | `3000`                                                                                                    |
-| Health check       | `GET /sign-in`                                                                                            |
-| Access             | The address users open; restrict it (allowed IPs or an access layer) while development sign-in is enabled |
-| `API_INTERNAL_URL` | The API service's internal address (scheme, host, and port), with no path                                 |
-| `NODE_ENV`         | `production` (set by the image)                                                                           |
+| Setting                   | Value                                                                                                          |
+| ------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| Source                    | The deployment repository's `main`; Dockerfile `apps/web/Dockerfile`; build context the repository root        |
+| Port                      | `3000`                                                                                                         |
+| Health check              | `GET /sign-in`                                                                                                 |
+| Access                    | The address users open; restrict it (allowed IPs or an access layer) while development sign-in is enabled      |
+| `API_INTERNAL_URL`        | The API service's internal address (scheme, host, and port), with no path                                      |
+| `WEB_DEVELOPMENT_SIGN_IN` | Unset: the development sign-in screen must not exist on a deployment; accounts sign in with email and password |
+| `NODE_ENV`                | `production` (set by the image)                                                                                |
 
 The web service is the only public entry point: it stamps the script CSP
 nonce, forwards `/api` to the API service, and serves the document transfer

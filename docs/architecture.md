@@ -265,6 +265,7 @@ The Next.js application renders a responsive workspace and forwards same-origin
 upstream origin is server-only configuration, so browser code does not contain
 deployment topology or cross-origin policy.
 
+The same handler owns the session cookie described under the client below.
 The web request boundary issues per-response script nonces and the root layout
 renders HTML dynamically. Document responses cannot be cached; static bundles
 retain immutable caching. The production script policy blocks unapproved
@@ -273,11 +274,18 @@ nonced framework runtime and its descendants. This boundary does not authenticat
 requests or change canonical permissions. See [Deployment](deployment.md#script-content-security-policy)
 for the rendering tradeoff and remaining public-launch requirements.
 
-`ChronelleApiClient` attaches the active credential and workspace, validates
-every successful response against the shared Zod contract, and turns API errors
-into one typed error. An expiring development credential is kept in
-`sessionStorage` when available, with an in-memory fallback; no authentication
-provider rules enter the domain layer.
+`ChronelleApiClient` attaches the active workspace (and a bearer token when
+the caller holds one), validates every successful response against the shared
+Zod contract, and turns API errors into one typed error. In the browser the
+session is an httpOnly, `SameSite=Lax` cookie owned by the web origin: the
+`/api` route handler sets it from a sign-in response, presents it to the API as
+the bearer credential (an explicit bearer header takes precedence, so API
+scripting through the origin still works), and clears it on sign-out. Page
+scripts never see the token; a tab keeps only its active workspace in
+`sessionStorage`, with an in-memory fallback, and a new tab discovers the
+session by asking `/api/auth/session` with the cookie when a readable
+presence marker says one exists. No authentication provider rules enter the
+domain layer.
 The workspace shell can switch between the user's personal workspace and
 workspaces discovered through active resource grants. If the active workspace
 is revoked, the shell clears protected query state and returns to the personal

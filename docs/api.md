@@ -28,6 +28,14 @@ ended and record `session.revoked` in the user's personal workspace. A
 revoked or expired token is rejected with 401 `unauthenticated` from the
 next request on.
 
+Through the web origin the same routes drive the browser session: the `/api`
+proxy sets the httpOnly `chronelle_session` cookie from a successful sign-in,
+verification, or reset response, presents the cookie to the API as the bearer
+credential when a request carries no `Authorization` header, and clears it on
+either sign-out route whatever the API answers, together with a readable
+`chronelle_session_present` marker that carries no secret. The sign-in body
+is forwarded unchanged; the browser client does not keep the token.
+
 ### Email and password accounts
 
 `POST /api/auth/sign-up` with `{ displayName, email, password }` (password

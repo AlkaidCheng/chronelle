@@ -326,10 +326,12 @@ Set a unique, URL-safe `POSTGRES_PASSWORD` in the private `.env` file, using
 letters, digits, underscores, or hyphens. Also set a distinct
 `RUNTIME_DATABASE_PASSWORD`, 24-128 characters from that same alphabet, for the
 API's `chronelle_runtime` login. Set `ENABLE_DEVELOPMENT_AUTH=true`
-only for trusted preview testing; email and password accounts work without
-it once `EMAIL_PROVIDER=smtp`, `SMTP_URL`, and `EMAIL_FROM` name a mail
-transport (the default `log` provider writes verification codes to the API
-log and is not for a deployment). Start it from the repository root:
+only for trusted preview testing (the Compose file passes it to the web
+service as `WEB_DEVELOPMENT_SIGN_IN`, which renders `/sign-in/development`);
+email and password accounts work without it once `EMAIL_PROVIDER=smtp`,
+`SMTP_URL`, and `EMAIL_FROM` name a mail transport (the default `log`
+provider writes verification codes to the API log and is not for a
+deployment). Start it from the repository root:
 
 ```bash
 docker compose --env-file .env -f infrastructure/compose.preview.yaml up -d --wait
@@ -566,11 +568,11 @@ Simulated COS tests do not replace validation on the deployed bucket.
 
 Before exposing the application publicly:
 
-1. Sessions are durable and revocable and the email and password method
-   with email verification exists; still required: the browser session
-   cookie and the sign-up, verification, sign-in, and reset screens replacing
-   the development sign-in screen, and `ENABLE_DEVELOPMENT_AUTH` left unset
-   in the deployment.
+1. Sessions are durable and revocable, the email and password method with
+   email verification exists, the browser session is an httpOnly cookie, and
+   the account screens replace the development sign-in; still required:
+   `ENABLE_DEVELOPMENT_AUTH` and `WEB_DEVELOPMENT_SIGN_IN` left unset in the
+   deployment, and a mail transport configured.
 2. Configure durable private storage, backups, restore drills, and least-privilege
    database/storage credentials. Run the authorization and attachment suites
    against the deployed topology.
