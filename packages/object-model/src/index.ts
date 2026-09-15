@@ -58,6 +58,8 @@ export {
   PostgresTaskReadRepository,
   type TaskContext,
   type TaskPage,
+  type TaskParent,
+  type TaskProgress,
   type TaskReadRepository,
 } from "./task-list.js";
 export {

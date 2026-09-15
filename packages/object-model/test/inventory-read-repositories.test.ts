@@ -39,6 +39,7 @@ const task: EventPlanningResource = {
   dueOn: null,
   dueAt: null,
   completedAt: null,
+  parentTaskId: null,
 };
 
 describe("object read repository boundary", () => {

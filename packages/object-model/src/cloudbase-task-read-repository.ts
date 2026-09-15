@@ -12,7 +12,9 @@ import {
   cloudbaseTaskResource,
   cloudbaseText,
   readCloudBaseInclusionsOf,
+  readCloudBaseObjectRows,
   readCloudBaseObjects,
+  readCloudBaseSubtasks,
   readCloudBaseTasks,
   readCloudBaseVisibility,
   readCloudBaseVisibleObjects,
@@ -22,6 +24,8 @@ import { InvalidObjectStateError } from "./errors.js";
 import {
   type TaskContext,
   type TaskPage,
+  type TaskParent,
+  type TaskProgress,
   type TaskReadRepository,
   taskListContext,
 } from "./task-list.js";
@@ -233,9 +237,66 @@ export class CloudBaseTaskReadRepository implements TaskReadRepository {
           displayName,
         };
     }
+    // Subtask progress of the listed parents and the parent of each listed
+    // subtask, both through the same visibility as the tasks themselves.
+    const pageIds = page.map((task) => task.id);
+    const subtaskRows = await readCloudBaseSubtasks(
+      this.#client,
+      principal,
+      pageIds,
+    );
+    const parentIds = [
+      ...new Set(
+        page.flatMap((task) =>
+          task.parentTaskId === null ? [] : [task.parentTaskId],
+        ),
+      ),
+    ];
+    const relatedObjects = await readCloudBaseObjectRows(
+      this.#client,
+      principal,
+      [
+        ...new Set([
+          ...subtaskRows.map((row) => cloudbaseText(row.object_id, "task")),
+          ...parentIds,
+        ]),
+      ],
+      ["task"],
+    );
+    const viewableRows = new Map(
+      relatedObjects
+        .filter((row) => visibility.canView(row))
+        .map((row) => [cloudbaseText(row.id, "task id"), row]),
+    );
+    const progress: Record<string, TaskProgress> = {};
+    for (const row of subtaskRows) {
+      if (!viewableRows.has(cloudbaseText(row.object_id, "task"))) continue;
+      const parentId = cloudbaseText(row.parent_task_id, "parent task");
+      const current = progress[parentId] ?? { done: 0, total: 0 };
+      progress[parentId] = {
+        done:
+          current.done +
+          (cloudbaseText(row.status, "status") === "done" ? 1 : 0),
+        total: current.total + 1,
+      };
+    }
+    const parents: Record<string, TaskParent> = {};
+    for (const task of page) {
+      const parent =
+        task.parentTaskId === null
+          ? undefined
+          : viewableRows.get(task.parentTaskId);
+      if (task.parentTaskId !== null && parent !== undefined)
+        parents[task.id] = {
+          taskId: task.parentTaskId,
+          displayName: cloudbaseText(parent.display_name, "display name"),
+        };
+    }
     return {
       items: page,
       contexts,
+      progress,
+      parents,
       asOf: asOfValue,
       nextCursor:
         tasks.length > input.limit && page.at(-1) !== undefined

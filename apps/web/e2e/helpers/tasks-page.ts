@@ -28,6 +28,31 @@ export async function exerciseTasksPage(page: Page) {
   // Outside any event, the row names none.
   await expect(row.getByRole("link", { name: /^in / })).toHaveCount(0);
 
+  // A subtask nests under its parent and counts toward its progress.
+  await row
+    .getByRole("button", {
+      name: "Add subtask to Renew the passport",
+      exact: true,
+    })
+    .click();
+  const subtaskEditor = page.getByRole("dialog", {
+    name: "Add subtask",
+    exact: true,
+  });
+  await subtaskEditor
+    .getByLabel("Task", { exact: true })
+    .fill("Find the old passport");
+  await subtaskEditor
+    .getByRole("button", { name: "Create task", exact: true })
+    .click();
+  await expect(subtaskEditor).toHaveCount(0);
+  const subtaskRow = page.getByRole("row", { name: /Find the old passport/ });
+  await expect(subtaskRow).toBeVisible();
+  await expect(
+    subtaskRow.getByRole("button", { name: /^Add subtask/ }),
+  ).toHaveCount(0);
+  await expect(row.getByText("0 of 1 subtasks done")).toBeAttached();
+
   const view = page.getByRole("group", { name: "View", exact: true });
   await view.getByRole("button", { name: "By day" }).click();
   const day = page.getByRole("region", { name: /May 20/ });
@@ -43,9 +68,15 @@ export async function exerciseTasksPage(page: Page) {
   await page
     .getByRole("button", { name: "Complete Renew the passport", exact: true })
     .click();
-  await expect(page.getByText("Renew the passport")).toHaveCount(0);
+  await expect(
+    page.getByText("Renew the passport", { exact: true }),
+  ).toHaveCount(0);
+  // The open subtask stays, now naming its parent from outside the page.
+  await expect(page.getByText("Part of Renew the passport")).toBeVisible();
   await page.getByRole("button", { name: "Completed", exact: true }).click();
-  await expect(page.getByText("Renew the passport")).toBeVisible();
+  await expect(
+    page.getByText("Renew the passport", { exact: true }),
+  ).toBeVisible();
   await page
     .getByRole("group", { name: "View", exact: true })
     .getByRole("button", { name: "List" })

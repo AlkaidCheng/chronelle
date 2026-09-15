@@ -46,7 +46,17 @@ The page offers the same List and By day views as the To-dos component, from
 the same rows: the completion check, Edit (the Task inspector), History, and
 Actions. A task inside an event names that event under its title, as a link to
 the event, when the user may view the event; a task held through a direct
-grant inside an event the user cannot see shows no event. The view is a device preference, kept in browser storage like the
+grant inside an event the user cannot see shows no event.
+
+Add subtask, on any task that is not itself a subtask, opens the task editor
+for a subtask: it names the parent, and the new task shares the parent's
+permission scope (its event's, inside an event). Subtasks go one level deep.
+In the list a subtask sits indented under its parent when both are loaded,
+otherwise it reads "Part of" its parent; by day, each task sits under its own
+due day with the parent named. A parent shows how many of its subtasks are
+done (2/3). Completing a parent leaves its subtasks as they are, and a parent
+moved to Trash leaves them live until it is restored. The To-dos component
+offers the same actions and marks over the event's tasks. The view is a device preference, kept in browser storage like the
 event collection's grid or list choice, and applies to the loaded tasks. The
 filter, sort, and name query belong to the tab.
 

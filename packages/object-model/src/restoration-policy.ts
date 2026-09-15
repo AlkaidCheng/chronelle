@@ -30,6 +30,7 @@ const typedFields: Record<
     status: field("Status", "text"),
     dueOn: field("Due date", "text"),
     dueAt: field("Due", "datetime"),
+    parentTaskId: field("Parent task", "text", false),
     completedAt: field("Completed", "datetime"),
   },
   expense: {

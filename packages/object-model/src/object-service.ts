@@ -116,6 +116,67 @@ function assertEventState(
   }
 }
 
+/**
+ * The parent rules, checked inside the write transaction: the parent is a
+ * live task of the workspace with no parent of its own, the task has no
+ * subtasks itself, and both share one permission scope.
+ */
+async function assertTaskParent(
+  transaction: DatabaseTransaction,
+  workspaceId: string,
+  objectId: string,
+  parentTaskId: string | null,
+  scopeId: string,
+): Promise<void> {
+  if (parentTaskId === null) return;
+  if (parentTaskId === objectId)
+    throw new InvalidObjectStateError("A task cannot be its own parent.");
+  const [parent] = await transaction
+    .select({
+      permissionScopeId: objects.permissionScopeId,
+      parentTaskId: tasks.parentTaskId,
+    })
+    .from(objects)
+    .innerJoin(
+      tasks,
+      and(
+        eq(tasks.workspaceId, objects.workspaceId),
+        eq(tasks.objectId, objects.id),
+      ),
+    )
+    .where(
+      and(
+        eq(objects.workspaceId, workspaceId),
+        eq(objects.id, parentTaskId),
+        isNull(objects.deletedAt),
+      ),
+    )
+    .limit(1);
+  if (parent === undefined)
+    throw new InvalidObjectStateError(
+      "parentTaskId must name a live task in this workspace.",
+    );
+  if (parent.parentTaskId !== null)
+    throw new InvalidObjectStateError(
+      "A subtask cannot have subtasks of its own.",
+    );
+  const [child] = await transaction
+    .select({ objectId: tasks.objectId })
+    .from(tasks)
+    .where(
+      and(eq(tasks.workspaceId, workspaceId), eq(tasks.parentTaskId, objectId)),
+    )
+    .limit(1);
+  if (child !== undefined)
+    throw new InvalidObjectStateError(
+      "A task with subtasks cannot become a subtask.",
+    );
+  if (parent.permissionScopeId !== scopeId)
+    throw new InvalidObjectStateError(
+      "A subtask shares its parent's permission scope.",
+    );
+}
+
 function assertTaskState(
   status: TaskResource["status"],
   dueOn: string | null,
@@ -225,11 +286,19 @@ export class EventPlanningObjectService {
     if (this.#writes.task !== undefined)
       return this.#writes.task.create(context, input);
 
+    const parentTaskId = input.parentTaskId ?? null;
     const resource = await this.#createObject(
       context,
       "task",
       input,
       async (transaction, createdObjectId) => {
+        await assertTaskParent(
+          transaction,
+          context.principal.workspaceId,
+          createdObjectId,
+          parentTaskId,
+          input.permissionScopeId ?? createdObjectId,
+        );
         await transaction.insert(tasks).values({
           objectId: createdObjectId,
           workspaceId: context.principal.workspaceId,
@@ -237,6 +306,7 @@ export class EventPlanningObjectService {
           dueOn,
           dueAt,
           completedAt,
+          parentTaskId,
         });
       },
     );
@@ -439,8 +509,22 @@ export class EventPlanningObjectService {
       current,
       input,
       async (transaction) => {
+        if (
+          input.parentTaskId !== undefined &&
+          input.parentTaskId !== current.parentTaskId
+        )
+          await assertTaskParent(
+            transaction,
+            context.principal.workspaceId,
+            current.id,
+            input.parentTaskId,
+            current.permissionScopeId,
+          );
         const changes = {
           ...(input.status !== undefined && { status: input.status }),
+          ...(input.parentTaskId !== undefined && {
+            parentTaskId: input.parentTaskId,
+          }),
           ...(input.dueOn !== undefined && { dueOn: input.dueOn }),
           ...(input.dueAt !== undefined && { dueAt: input.dueAt }),
           ...(input.completedAt !== undefined && {

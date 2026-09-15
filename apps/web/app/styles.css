@@ -100,6 +100,29 @@ h3,
   text-decoration: underline;
 }
 
+.task-nested {
+  border-left: 2px solid var(--line);
+  margin-left: 6px;
+  padding-left: 12px;
+}
+
+.task-parent {
+  color: var(--muted);
+  font-size: 0.73rem;
+}
+
+.task-progress {
+  background: var(--surface-subtle);
+  border-radius: 999px;
+  color: var(--muted);
+  display: inline-flex;
+  font-size: 0.66rem;
+  font-weight: 700;
+  justify-self: start;
+  letter-spacing: 0.04em;
+  padding: 2px 8px;
+}
+
 svg {
   stroke: currentColor;
   stroke-linecap: round;

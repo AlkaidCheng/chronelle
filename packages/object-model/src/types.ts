@@ -50,6 +50,8 @@ export interface TaskResource extends CanonicalObjectResource {
   readonly dueOn: string | null;
   readonly dueAt: Date | null;
   readonly objectType: "task";
+  /** The task this one is a subtask of; one level deep, same permission scope. */
+  readonly parentTaskId: string | null;
   readonly status: TaskStatus;
 }
 
@@ -148,6 +150,7 @@ export interface CreateTaskInput extends CreateObjectFields {
   readonly completedAt?: Date | null | undefined;
   readonly dueOn?: string | null | undefined;
   readonly dueAt?: Date | null | undefined;
+  readonly parentTaskId?: string | null | undefined;
   readonly status?: TaskStatus | undefined;
 }
 
@@ -187,6 +190,7 @@ export interface UpdateTaskInput extends UpdateObjectFields {
   readonly completedAt?: Date | null | undefined;
   readonly dueOn?: string | null | undefined;
   readonly dueAt?: Date | null | undefined;
+  readonly parentTaskId?: string | null | undefined;
   readonly status?: TaskStatus | undefined;
 }
 

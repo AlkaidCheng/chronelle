@@ -102,6 +102,77 @@ describe("TasksPage", () => {
     expect(requests).toContain("/api/tasks?query=&filter=done&sort=due");
   });
 
+  it("adds a subtask under a task, nests it, and counts its progress", async () => {
+    const user = userEvent.setup();
+    render(
+      <Providers>
+        <TasksPage />
+      </Providers>,
+    );
+    await screen.findByText("1 task loaded");
+    const parentRow = screen.getByRole("row", {
+      name: /Confirm the garden venue/,
+    });
+    await user.click(
+      within(parentRow).getByRole("button", {
+        name: "Add subtask to Confirm the garden venue",
+      }),
+    );
+    const editor = screen.getByRole("dialog", { name: "Add subtask" });
+    expect(
+      within(editor).getByText("A subtask of Confirm the garden venue."),
+    ).toBeVisible();
+    await user.type(within(editor).getByLabelText("Task"), "Call the owner");
+    await user.click(
+      within(editor).getByRole("button", { name: "Create task" }),
+    );
+    await waitFor(() =>
+      expect(screen.queryByRole("dialog", { name: "Add subtask" })).toBeNull(),
+    );
+    expect(await screen.findByText("2 tasks loaded")).toBeVisible();
+    const rows = screen.getAllByRole("row").map((row) => row.textContent ?? "");
+    expect(rows.findIndex((text) => text.includes("Call the owner"))).toBe(
+      rows.findIndex((text) => text.includes("Confirm the garden venue")) + 1,
+    );
+    const child = screen.getByRole("row", { name: /Call the owner/ });
+    // Nested under its parent, the row shows no parent label; by day it does.
+    expect(within(child).queryByText(/^Part of/)).toBeNull();
+    expect(child.querySelector(".task-nested")).not.toBeNull();
+    // A subtask cannot take subtasks of its own.
+    expect(
+      within(child).queryByRole("button", { name: /^Add subtask/ }),
+    ).toBeNull();
+    expect(
+      within(
+        screen.getByRole("row", { name: /Confirm the garden venue/ }),
+      ).getByText("0 of 1 subtasks done"),
+    ).toBeInTheDocument();
+    await user.click(
+      within(screen.getByRole("group", { name: "View" })).getByRole("button", {
+        name: "By day",
+      }),
+    );
+    expect(screen.getByText("Part of Confirm the garden venue")).toBeVisible();
+    const listed = (await (
+      await store.fetch("/api/tasks?filter=all&sort=name")
+    ).json()) as {
+      items: {
+        id: string;
+        displayName: string;
+        parentTaskId: string | null;
+        permissionScopeId: string;
+      }[];
+    };
+    const parent = listed.items.find(
+      (item) => item.displayName === "Confirm the garden venue",
+    );
+    const created = listed.items.find(
+      (item) => item.displayName === "Call the owner",
+    );
+    expect(created?.parentTaskId).toBe(parent?.id);
+    expect(created?.permissionScopeId).toBe(parent?.permissionScopeId);
+  });
+
   it("creates a task on its own and completes it from the list", async () => {
     const user = userEvent.setup();
     render(

@@ -714,6 +714,69 @@ describe.sequential("event-planning API", () => {
     expect(staleCursor.statusCode).toBe(400);
   });
 
+  it("keeps subtasks one level deep in their parent's scope", async () => {
+    const owner = await signIn("subtasks@example.com", "Subtask Owner");
+    const ownerHeaders = headers(owner);
+    const create = async (payload: Record<string, unknown>) =>
+      app.inject({
+        method: "POST",
+        url: "/api/tasks",
+        headers: ownerHeaders,
+        payload,
+      });
+    const parent = taskResponseSchema.parse(
+      (await create({ displayName: "Plan the retreat" })).json(),
+    );
+    const childResponse = await create({
+      displayName: "Book the venue",
+      parentTaskId: parent.id,
+      permissionScopeId: parent.id,
+      status: "done",
+      completedAt: "2026-10-01T00:00:00Z",
+    });
+    expect(childResponse.statusCode).toBe(201);
+    const child = taskResponseSchema.parse(childResponse.json());
+    expect(child).toMatchObject({
+      parentTaskId: parent.id,
+      permissionScopeId: parent.id,
+    });
+    await create({
+      displayName: "Send the invitations",
+      parentTaskId: parent.id,
+      permissionScopeId: parent.id,
+    });
+
+    const grandchild = await create({
+      displayName: "Impossible",
+      parentTaskId: child.id,
+      permissionScopeId: parent.id,
+    });
+    expect(grandchild.statusCode).toBe(400);
+    expect(grandchild.json()).toMatchObject({
+      error: { message: "A subtask cannot have subtasks of its own." },
+    });
+    const elsewhere = await create({
+      displayName: "Elsewhere",
+      parentTaskId: parent.id,
+    });
+    expect(elsewhere.statusCode).toBe(400);
+    expect(elsewhere.json()).toMatchObject({
+      error: { message: "A subtask shares its parent's permission scope." },
+    });
+
+    const listResponse = await app.inject({
+      method: "GET",
+      url: "/api/tasks?filter=all&sort=name",
+      headers: ownerHeaders,
+    });
+    const listed = taskListResponseSchema.parse(listResponse.json());
+    expect(listed.progress).toEqual({ [parent.id]: { done: 1, total: 2 } });
+    expect(listed.parents[child.id]).toEqual({
+      taskId: parent.id,
+      displayName: "Plan the retreat",
+    });
+  });
+
   it("enforces inheritance without treating references as grants", async () => {
     const owner = await signIn("owner@example.com", "Owner");
     const viewer = await signIn("viewer@example.com", "Viewer");

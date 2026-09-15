@@ -3,6 +3,8 @@
 import type {
   EventComponentView,
   TaskContext,
+  TaskParent,
+  TaskProgress,
   TaskResponse,
 } from "@chronelle/schemas";
 import Link from "next/link";
@@ -10,9 +12,10 @@ import {
   createColumnHelper,
   flexRender,
   getCoreRowModel,
+  type Table,
   useReactTable,
 } from "@tanstack/react-table";
-import { useCallback, useMemo } from "react";
+import { type ReactNode, useCallback, useMemo } from "react";
 
 import { ErrorNotice } from "../../components/feedback";
 import { CheckIcon } from "../../components/icons";
@@ -24,9 +27,62 @@ import { formatCalendarDate } from "../../lib/event-schedule";
 import { formatDateTime, formatTime } from "../../lib/format";
 import { formatTaskDue } from "../../lib/task-due";
 import { groupTasksByDay } from "../../lib/task-groups";
+import { nestTasks } from "../../lib/task-tree";
 import { useUpdateTask } from "../../lib/queries";
 
 const taskColumn = createColumnHelper<TaskResponse>();
+
+// The renderers of one render, read through the table's meta so the column
+// definitions never change: a changed cell definition remounts the cell and
+// loses the focus a row's button holds.
+interface TaskTableMeta {
+  readonly actions: (task: TaskResponse) => ReactNode;
+  readonly check: (task: TaskResponse) => ReactNode;
+  readonly context: (task: TaskResponse) => ReactNode;
+  readonly lineage: (task: TaskResponse, nested: boolean) => ReactNode;
+  readonly present: ReadonlySet<string>;
+}
+
+function tableMeta(table: Table<TaskResponse>): TaskTableMeta {
+  return table.options.meta as TaskTableMeta;
+}
+
+const taskColumns = [
+  taskColumn.display({
+    id: "complete",
+    cell: ({ row, table }) => tableMeta(table).check(row.original),
+  }),
+  taskColumn.accessor("displayName", {
+    header: "Task",
+    cell: ({ row, table }) => {
+      const { context, lineage, present } = tableMeta(table);
+      const nested =
+        row.original.parentTaskId !== null &&
+        present.has(row.original.parentTaskId);
+      return (
+        <div className={`primary-cell${nested ? " task-nested" : ""}`}>
+          <strong>{row.original.displayName}</strong>
+          {lineage(row.original, nested)}
+          {context(row.original)}
+          <ObjectDetails id={row.original.id} />
+        </div>
+      );
+    },
+  }),
+  taskColumn.display({
+    id: "due",
+    header: "Due",
+    cell: ({ row }) => formatTaskDue(row.original),
+  }),
+  taskColumn.accessor("status", {
+    header: "Status",
+    cell: ({ getValue }) => <StatusChip status={getValue()} />,
+  }),
+  taskColumn.display({
+    id: "actions",
+    cell: ({ row, table }) => tableMeta(table).actions(row.original),
+  }),
+];
 
 /**
  * The tasks of one container as a table (list) or grouped by due day, with
@@ -38,8 +94,11 @@ export function TaskListView({
   canEdit,
   contexts,
   eventId,
+  onAddSubtask,
   onEdit,
   onRefresh,
+  parents,
+  progress,
   tasks,
   view,
 }: {
@@ -47,12 +106,44 @@ export function TaskListView({
   /** The Event each task belongs to, by task ID, when the container spans Events. */
   readonly contexts?: Readonly<Record<string, TaskContext>> | undefined;
   readonly eventId?: string | undefined;
+  /** Offers a subtask under a task that has no parent of its own. */
+  readonly onAddSubtask?: ((task: TaskResponse) => void) | undefined;
   readonly onEdit: (taskId: string) => void;
   /** Reloads the container after a failed completion change. */
   readonly onRefresh: () => Promise<unknown>;
+  /** The parent of each subtask, by subtask ID. */
+  readonly parents: Readonly<Record<string, TaskParent>>;
+  /** Subtask progress of each parent, by parent ID. */
+  readonly progress: Readonly<Record<string, TaskProgress>>;
   readonly tasks: readonly TaskResponse[];
   readonly view: EventComponentView;
 }) {
+  const ordered = useMemo(() => nestTasks(tasks), [tasks]);
+  const present = useMemo(() => new Set(tasks.map((task) => task.id)), [tasks]);
+  const lineage = useCallback(
+    (task: TaskResponse, nested: boolean) => {
+      const count = progress[task.id];
+      const parent = parents[task.id];
+      return (
+        <>
+          {count === undefined ? null : (
+            <span className="task-progress">
+              <span aria-hidden="true">
+                {count.done}/{count.total}
+              </span>
+              <span className="visually-hidden">
+                {count.done} of {count.total} subtasks done
+              </span>
+            </span>
+          )}
+          {parent !== undefined && !nested ? (
+            <span className="task-parent">Part of {parent.displayName}</span>
+          ) : null}
+        </>
+      );
+    },
+    [parents, progress],
+  );
   const context = useCallback(
     (task: TaskResponse) => {
       const found = contexts?.[task.id];
@@ -112,6 +203,16 @@ export function TaskListView({
             Edit
           </button>
         ) : null}
+        {canEdit && onAddSubtask !== undefined && task.parentTaskId === null ? (
+          <button
+            aria-label={`Add subtask to ${task.displayName}`}
+            className="button button-quiet button-small"
+            onClick={() => onAddSubtask(task)}
+            type="button"
+          >
+            Add subtask
+          </button>
+        ) : null}
         <HistoryButton objectId={task.id} displayName={task.displayName} />
         {canEdit ? (
           <LifecycleButton
@@ -120,45 +221,18 @@ export function TaskListView({
         ) : null}
       </RowActions>
     ),
-    [canEdit, eventId, onEdit],
+    [canEdit, eventId, onAddSubtask, onEdit],
   );
-  const columns = useMemo(
-    () => [
-      taskColumn.display({
-        id: "complete",
-        cell: ({ row }) => check(row.original),
-      }),
-      taskColumn.accessor("displayName", {
-        header: "Task",
-        cell: ({ row }) => (
-          <div className="primary-cell">
-            <strong>{row.original.displayName}</strong>
-            {context(row.original)}
-            <ObjectDetails id={row.original.id} />
-          </div>
-        ),
-      }),
-      taskColumn.display({
-        id: "due",
-        header: "Due",
-        cell: ({ row }) => formatTaskDue(row.original),
-      }),
-      taskColumn.accessor("status", {
-        header: "Status",
-        cell: ({ getValue }) => <StatusChip status={getValue()} />,
-      }),
-      taskColumn.display({
-        id: "actions",
-        cell: ({ row }) => actions(row.original),
-      }),
-    ],
-    [actions, check, context],
+  const meta = useMemo<TaskTableMeta>(
+    () => ({ actions, check, context, lineage, present }),
+    [actions, check, context, lineage, present],
   );
   const table = useReactTable({
-    columns,
-    data: tasks as TaskResponse[],
+    columns: taskColumns,
+    data: ordered,
     getRowId: (task) => task.id,
     getCoreRowModel: getCoreRowModel(),
+    meta,
   });
 
   const notice = update.isError ? (
@@ -188,6 +262,7 @@ export function TaskListView({
                   {check(task)}
                   <div className="resource-copy">
                     <strong>{task.displayName}</strong>
+                    {lineage(task, false)}
                     {task.dueAt !== null ? (
                       <p>
                         {group.tone === "overdue"

@@ -61,6 +61,7 @@ export type CloudBaseTaskRow = {
   readonly due_on: unknown;
   readonly due_at: unknown;
   readonly completed_at: unknown;
+  readonly parent_task_id: unknown;
 };
 
 export type CloudBaseExpenseRow = {
@@ -257,6 +258,7 @@ export function cloudbaseTaskResource(
     dueOn: cloudbaseNullableText(task.due_on, "due_on"),
     dueAt: cloudbaseNullableDate(task.due_at, "due_at"),
     completedAt: cloudbaseNullableDate(task.completed_at, "completed_at"),
+    parentTaskId: cloudbaseNullableText(task.parent_task_id, "parent_task_id"),
   };
 }
 
@@ -560,7 +562,7 @@ export async function readCloudBaseObjectRows(
 }
 
 export const cloudbaseTaskColumns =
-  "object_id,workspace_id,status,due_on,due_at,completed_at";
+  "object_id,workspace_id,status,due_on,due_at,completed_at,parent_task_id";
 
 export async function readCloudBaseTasks(
   client: CloudBaseRdbReader,
@@ -616,6 +618,22 @@ export async function readCloudBaseIncludes(
       ),
     ),
   ];
+}
+
+/** The task rows whose parent is one of the given tasks. */
+export async function readCloudBaseSubtasks(
+  client: CloudBaseRdbReader,
+  principal: UserPrincipal,
+  parentIds: readonly string[],
+): Promise<readonly CloudBaseTaskRow[]> {
+  if (parentIds.length === 0) return [];
+  return client.select<CloudBaseTaskRow>("tasks", {
+    columns: cloudbaseTaskColumns,
+    filters: [
+      { column: "workspace_id", operator: "eq", value: principal.workspaceId },
+      { column: "parent_task_id", operator: "in", value: parentIds },
+    ],
+  });
 }
 
 /** Live inclusions of the given targets, earliest first. */
