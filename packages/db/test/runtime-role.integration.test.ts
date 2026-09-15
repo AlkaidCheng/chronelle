@@ -121,9 +121,13 @@ describe("runtime database privileges", () => {
           "user_sessions",
           "user_credentials",
           "email_verifications",
+          "labels",
+          "task_labels",
         ].includes(table.name),
       );
-      expect(table.delete).toBe(table.name === "resource_grants");
+      expect(table.delete).toBe(
+        ["resource_grants", "labels", "task_labels"].includes(table.name),
+      );
     }
   });
 

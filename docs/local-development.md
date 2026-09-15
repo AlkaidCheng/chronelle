@@ -54,6 +54,10 @@ adds `tasks.due_on` (a calendar date, exclusive with `due_at`) and redefines
 the Task functions and `chronelle_command_content` to carry it. Migration
 `0035_add_task_parent.sql` adds `tasks.parent_task_id` with
 `chronelle_assert_task_parent` and redefines the Task functions to carry it.
+Migration `0036_add_task_labels.sql` adds `labels` and `task_labels` with the
+`chronelle_label_*` functions and redefines the Task functions to carry
+`labelIds`; reapply `infrastructure/database/runtime-role.sql` after it, since
+the runtime role needs the two new tables.
 
 Migration `0021_add_object_search_function.sql` adds `chronelle_object_search`,
 the read-only function the CloudBase search adapter calls. It changes no

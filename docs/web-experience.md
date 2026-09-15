@@ -56,7 +56,16 @@ otherwise it reads "Part of" its parent; by day, each task sits under its own
 due day with the parent named. A parent shows how many of its subtasks are
 done (2/3). Completing a parent leaves its subtasks as they are, and a parent
 moved to Trash leaves them live until it is restored. The To-dos component
-offers the same actions and marks over the event's tasks. The view is a device preference, kept in browser storage like the
+offers the same actions and marks over the event's tasks.
+
+Labels are workspace-wide names a task may carry any number of. The task
+editor holds them behind a Labels disclosure: closed, it counts the selection;
+open, it lists the workspace's labels as checkboxes and takes a new label,
+which is selected as soon as it exists. Rows show labels as chips under the
+title in both views. The Tasks page filters by one label from the toolbar and
+opens Manage labels, where labels are renamed, added, or deleted; a deleted
+label leaves its tasks. Anyone with access to the workspace sees label names;
+owners and editors change them. The view is a device preference, kept in browser storage like the
 event collection's grid or list choice, and applies to the loaded tasks. The
 filter, sort, and name query belong to the tab.
 

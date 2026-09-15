@@ -32,6 +32,7 @@ export * from "./recovery.js";
 export * from "./event-context.js";
 export * from "./event-list.js";
 export * from "./task-list.js";
+export * from "./labels.js";
 export * from "./relation-list.js";
 export {
   objectSearchQuerySchema,

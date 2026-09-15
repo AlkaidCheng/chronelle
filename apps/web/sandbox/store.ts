@@ -10,6 +10,11 @@ import {
   eventListQuerySchema,
   eventPlanningResourceResponseSchema,
   eventUpdateRequestSchema,
+  labelCreateRequestSchema,
+  labelDeleteQuerySchema,
+  labelResponseSchema,
+  labelUpdateRequestSchema,
+  type LabelResponse,
   taskCreateRequestSchema,
   taskListQuerySchema,
   taskUpdateRequestSchema,
@@ -33,6 +38,7 @@ interface State {
   objects: Resource[];
   relations: RelationResponse[];
   layouts: EventLayoutResponse[];
+  labels: LabelResponse[];
 }
 
 class SandboxError extends Error {
@@ -60,6 +66,7 @@ function canonical(
       completedAt: null,
       status: "todo",
       parentTaskId: null,
+      labelIds: [],
     },
     expense: {},
     reminder: { status: "pending" },
@@ -145,6 +152,7 @@ function seed(): State {
   ];
   return {
     layouts: [],
+    labels: [],
     objects: [
       event,
       canonical("event", { displayName: "A quiet studio weekend" }),
@@ -222,10 +230,15 @@ function parseState(raw: string): State {
   ) {
     throw new Error("Invalid sandbox page references.");
   }
+  const labels = labelResponseSchema
+    .array()
+    .max(200)
+    .parse("labels" in value ? value.labels : []);
   return {
     objects,
     relations,
     layouts: layouts.sort((a, b) => b.version - a.version),
+    labels,
   };
 }
 
@@ -297,6 +310,115 @@ export class SandboxStore {
     }
     this.#state = next;
     this.#raw = raw;
+  }
+
+  // Labels: unique names per workspace, versioned renames and deletes, and
+  // every task keeps only labels that exist.
+  #labelWrite(
+    method: string,
+    id: string | undefined,
+    url: URL,
+    body: unknown,
+  ): LabelResponse {
+    const conflict = (name: string, except?: string) => {
+      if (
+        this.#state.labels.some(
+          (label) =>
+            label.id !== except &&
+            label.name.toLowerCase() === name.toLowerCase(),
+        )
+      )
+        throw new SandboxError(
+          409,
+          "label_name_taken",
+          "A label with this name already exists.",
+        );
+    };
+    const timestamp = new Date().toISOString();
+    if (method === "POST" && !id) {
+      const { name } = labelCreateRequestSchema.parse(body);
+      conflict(name);
+      const label = labelResponseSchema.parse({
+        id: crypto.randomUUID(),
+        workspaceId: sandboxWorkspaceId,
+        name,
+        version: 1,
+        createdAt: timestamp,
+        updatedAt: timestamp,
+      });
+      this.#commit({ ...this.#state, labels: [...this.#state.labels, label] });
+      return label;
+    }
+    const current = this.#state.labels.find((label) => label.id === id);
+    if (current === undefined)
+      throw new SandboxError(404, "not_found", "The label is unavailable.");
+    if (method === "PATCH") {
+      const { expectedVersion, name } = labelUpdateRequestSchema.parse(body);
+      if (expectedVersion !== current.version)
+        throw new SandboxError(
+          409,
+          "version_conflict",
+          "The label changed. Refresh before saving.",
+        );
+      conflict(name, current.id);
+      const label = {
+        ...current,
+        name,
+        version: current.version + 1,
+        updatedAt: timestamp,
+      };
+      this.#commit({
+        ...this.#state,
+        labels: this.#state.labels.map((item) =>
+          item.id === id ? label : item,
+        ),
+      });
+      return label;
+    }
+    const { expectedVersion } = labelDeleteQuerySchema.parse(
+      Object.fromEntries(url.searchParams),
+    );
+    if (expectedVersion !== current.version)
+      throw new SandboxError(
+        409,
+        "version_conflict",
+        "The label changed. Refresh before saving.",
+      );
+    this.#commit({
+      ...this.#state,
+      labels: this.#state.labels.filter((item) => item.id !== id),
+      objects: this.#state.objects.map((object) =>
+        object.objectType === "task"
+          ? {
+              ...object,
+              labelIds: object.labelIds.filter((labelId) => labelId !== id),
+            }
+          : object,
+      ),
+    });
+    return current;
+  }
+
+  // A task's labels are the workspace's labels only, in name order.
+  #assertTaskLabels(task: Resource): Resource {
+    if (task.objectType !== "task") return task;
+    const names = new Map(
+      this.#state.labels.map((label) => [label.id, label.name.toLowerCase()]),
+    );
+    if (task.labelIds.some((labelId) => !names.has(labelId)))
+      throw new SandboxError(
+        400,
+        "invalid_request",
+        "labelIds must name labels of this workspace.",
+      );
+    return {
+      ...task,
+      labelIds: [...new Set(task.labelIds)].sort(
+        (a, b) =>
+          (names.get(a) ?? "").localeCompare(names.get(b) ?? "") ||
+          a.localeCompare(b),
+      ),
+    };
   }
 
   // The parent rules the API enforces: a live task of the same scope with
@@ -406,6 +528,14 @@ export class SandboxStore {
     const all = this.#state.objects.filter(
       (object) => object.deletedAt === null,
     );
+    if (collection === "labels" && !id)
+      return {
+        items: [...this.#state.labels].sort(
+          (a, b) =>
+            a.name.toLowerCase().localeCompare(b.name.toLowerCase()) ||
+            a.id.localeCompare(b.id),
+        ),
+      };
     if (collection === "auth" && id === "session")
       return {
         user: {
@@ -475,7 +605,8 @@ export class SandboxStore {
             (query.filter === "all" ||
               (query.filter === "done"
                 ? task.status === "done"
-                : task.status === "todo" || task.status === "in_progress")),
+                : task.status === "todo" || task.status === "in_progress")) &&
+            (query.label === undefined || task.labelIds.includes(query.label)),
         )
         .sort((a, b) =>
           query.sort === "name"
@@ -761,6 +892,11 @@ export class SandboxStore {
       const response = this.#read(url, role);
       if (response !== undefined) return response;
     }
+    if (
+      collection === "labels" &&
+      (method === "POST" || method === "PATCH" || method === "DELETE")
+    )
+      return this.#labelWrite(method, id, url, body);
     if (method === "POST" && collection === "tasks" && !id) {
       const input = JSON.parse(
         JSON.stringify(taskCreateRequestSchema.parse(body)),
@@ -772,11 +908,12 @@ export class SandboxStore {
         typeof permissionScopeId === "string" ? permissionScopeId : undefined,
       );
       this.#assertTaskParent(object);
+      const labelled = this.#assertTaskLabels(object);
       this.#commit({
         ...this.#state,
-        objects: [...this.#state.objects, object],
+        objects: [...this.#state.objects, labelled],
       });
-      return object;
+      return labelled;
     }
     if (method === "POST" && collection === "events") {
       if (!id) {
@@ -805,13 +942,14 @@ export class SandboxStore {
           parent.permissionScopeId,
         );
         this.#assertTaskParent(resource);
-        const link = relation(id, resource.id);
+        const labelled = this.#assertTaskLabels(resource);
+        const link = relation(id, labelled.id);
         this.#commit({
           ...this.#state,
-          objects: [...this.#state.objects, resource],
+          objects: [...this.#state.objects, labelled],
           relations: [...this.#state.relations, link],
         });
-        return { resource, relationId: link.id };
+        return { resource: labelled, relationId: link.id };
       }
     }
     if (
@@ -888,12 +1026,14 @@ export class SandboxStore {
             "version_conflict",
             "The sample object changed. Refresh before saving.",
           );
-        const saved = eventPlanningResourceResponseSchema.parse({
-          ...object,
-          ...JSON.parse(JSON.stringify(patch)),
-          version: object.version + 1,
-          updatedAt: new Date().toISOString(),
-        });
+        const saved = this.#assertTaskLabels(
+          eventPlanningResourceResponseSchema.parse({
+            ...object,
+            ...JSON.parse(JSON.stringify(patch)),
+            version: object.version + 1,
+            updatedAt: new Date().toISOString(),
+          }),
+        );
         if (
           saved.objectType === "task" &&
           saved.dueOn !== null &&

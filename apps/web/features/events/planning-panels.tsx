@@ -33,7 +33,11 @@ import { viewsOf } from "../../lib/event-components";
 import { formatDatePart, formatDateTime } from "../../lib/format";
 import { deriveTaskTree } from "../../lib/task-tree";
 import { formatMoney, sumMoneyByCurrency } from "../../lib/money";
-import { useRefreshEvent, useUpdateReminder } from "../../lib/queries";
+import {
+  useLabelsQuery,
+  useRefreshEvent,
+  useUpdateReminder,
+} from "../../lib/queries";
 import { ExpenseForm } from "./expense-form";
 import { ExpenseInspector } from "./expense-inspector";
 import { ReminderForm } from "./reminder-form";
@@ -66,6 +70,7 @@ export function TasksPanel({
   const refresh = useRefreshEvent(eventId);
   // The projection holds every task of the Event, so the tree is derived here.
   const tree = useMemo(() => deriveTaskTree(tasks), [tasks]);
+  const labels = useLabelsQuery();
   // Stable, so the row cells keep their identity and focus across renders.
   const addSubtask = useCallback(
     (task: TaskResponse) =>
@@ -161,6 +166,7 @@ export function TasksPanel({
         <TaskListView
           canEdit={canEdit}
           eventId={eventId}
+          labelNames={labels.data?.names}
           onAddSubtask={addSubtask}
           onEdit={setEditingId}
           onRefresh={refresh}

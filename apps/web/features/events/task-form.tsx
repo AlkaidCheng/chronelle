@@ -20,6 +20,7 @@ import {
 } from "./editor-draft-recovery";
 import { usePlanningEditorDialog } from "../../lib/use-planning-editor-dialog";
 import { useOpenHistory } from "../history/history-provider";
+import { LabelPicker } from "../tasks/label-picker";
 import { useEditorDraft } from "../../lib/use-editor-draft";
 import {
   useCreateTask,
@@ -106,7 +107,7 @@ function TaskEditor({
   const create = useCreateTask(eventId, attempt);
   const update = useUpdateTask();
   const refresh = useRefreshEvent(eventId, { throwOnError: true });
-  const { displayName, dueDate, dueTime } = draft.fields;
+  const { displayName, dueDate, dueTime, labels } = draft.fields;
   const mutation = task === undefined ? create : update;
   const [dueError, setDueError] = useState("");
   const openHistory = useOpenHistory();
@@ -165,7 +166,12 @@ function TaskEditor({
       void recovery.save(
         () => create.mutateAsync(creation),
         () => {
-          draft.change({ displayName: "", dueDate: "", dueTime: "" });
+          draft.change({
+            displayName: "",
+            dueDate: "",
+            dueTime: "",
+            labels: "",
+          });
           onCancel?.();
         },
       );
@@ -298,6 +304,11 @@ function TaskEditor({
             .
           </p>
           {dueError && <p role="alert">{dueError}</p>}
+          <LabelPicker
+            disabled={mutation.isPending}
+            onChange={(labels) => draft.change({ labels })}
+            value={labels}
+          />
         </div>
         <footer className="event-inspector-footer">
           <EditorControls

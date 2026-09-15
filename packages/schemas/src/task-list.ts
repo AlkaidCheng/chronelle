@@ -13,6 +13,8 @@ export const taskListQuerySchema = z.object({
   query: z.string().trim().max(240).default(""),
   filter: z.enum(["open", "all", "done"]).default("open"),
   sort: z.enum(["due", "name", "updated"]).default("due"),
+  /** Only tasks carrying this label. */
+  label: z.uuid().optional(),
 });
 
 /** Internal position only; authorization is evaluated again on every page. */

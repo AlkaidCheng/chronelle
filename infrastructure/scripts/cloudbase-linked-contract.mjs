@@ -30,7 +30,7 @@ import {
 // (0030 and 0031), and the credential functions (0032) against the real
 // gateway; 0033 shapes the issue result as {throttled, verification}; 0034
 // adds the date-only Task due (dueOn) the restore content carries; 0035 adds
-// the Task parent the serialized Task carries. The
+// the Task parent and 0036 the labels the serialized Task carries. The
 // transfer steps record the rows around a storage transfer without moving
 // bytes: the finalized probe Document names a key that was never written. The probes end soft-deleted through the delete
 // function, because their audit and revision rows are append-only.

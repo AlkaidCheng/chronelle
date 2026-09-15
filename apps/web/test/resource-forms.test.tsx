@@ -57,6 +57,7 @@ const taskResource = (version: number, displayName: string) =>
     dueAt: null,
     completedAt: null,
     parentTaskId: null,
+    labelIds: [] as string[],
   }) as const;
 
 const expenseResource = (version: number, displayName: string) =>

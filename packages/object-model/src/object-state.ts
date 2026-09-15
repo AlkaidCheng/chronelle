@@ -3,13 +3,23 @@ import {
   documents,
   events,
   expenses,
+  labels,
   objects,
   reminders,
+  taskLabels,
   tasks,
   type Database,
   type DatabaseTransaction,
 } from "@chronelle/db";
-import { and, eq, type SQL } from "drizzle-orm";
+import { and, eq, sql, type SQL } from "drizzle-orm";
+
+// A task's labels in name order, read with its state.
+const labelIds = sql<string[]>`(
+  SELECT coalesce(array_agg(${labels.id} ORDER BY lower(${labels.name}), ${labels.id}), '{}')
+  FROM ${taskLabels}
+  JOIN ${labels} ON ${labels.id} = ${taskLabels.labelId}
+  WHERE ${taskLabels.workspaceId} = ${objects.workspaceId} AND ${taskLabels.taskId} = ${objects.id}
+)`;
 
 import type { EventPlanningResource } from "./types.js";
 
@@ -24,6 +34,7 @@ export async function readObjectStates(
       object: objects,
       event: events,
       task: tasks,
+      labelIds,
       expense: expenses,
       reminder: reminders,
       document: documents,
@@ -80,7 +91,7 @@ export async function readObjectStates(
       case "task":
         if (row.task) {
           const { objectId: _, workspaceId: __, ...content } = row.task;
-          return { ...common, ...content };
+          return { ...common, ...content, labelIds: row.labelIds ?? [] };
         }
         break;
       case "expense":

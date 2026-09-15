@@ -28,6 +28,7 @@ import {
   cloudbaseText,
   readCloudBaseIncludes,
   readCloudBaseObjectRows,
+  readCloudBaseTaskLabels,
   readCloudBaseObjects,
   readCloudBaseVisibility,
 } from "./cloudbase-read-support.js";
@@ -271,38 +272,40 @@ export class CloudBaseProjectionReadRepository implements ProjectionReadReposito
   ): Promise<EventPlanningResource[]> {
     const idsOf = (type: ObjectType) =>
       rows.filter((row) => objectType(row) === type).map(objectId);
-    const [events, tasks, expenses, reminders, documents] = await Promise.all([
-      this.#typedRows<CloudBaseEventRow>(
-        principal,
-        "events",
-        cloudbaseEventColumns,
-        idsOf("event"),
-      ),
-      this.#typedRows<CloudBaseTaskRow>(
-        principal,
-        "tasks",
-        cloudbaseTaskColumns,
-        idsOf("task"),
-      ),
-      this.#typedRows<CloudBaseExpenseRow>(
-        principal,
-        "expenses",
-        expenseColumns,
-        idsOf("expense"),
-      ),
-      this.#typedRows<CloudBaseReminderRow>(
-        principal,
-        "reminders",
-        reminderColumns,
-        idsOf("reminder"),
-      ),
-      this.#typedRows<CloudBaseDocumentRow>(
-        principal,
-        "documents",
-        documentColumns,
-        idsOf("document"),
-      ),
-    ]);
+    const [events, tasks, expenses, reminders, documents, taskLabels] =
+      await Promise.all([
+        this.#typedRows<CloudBaseEventRow>(
+          principal,
+          "events",
+          cloudbaseEventColumns,
+          idsOf("event"),
+        ),
+        this.#typedRows<CloudBaseTaskRow>(
+          principal,
+          "tasks",
+          cloudbaseTaskColumns,
+          idsOf("task"),
+        ),
+        this.#typedRows<CloudBaseExpenseRow>(
+          principal,
+          "expenses",
+          expenseColumns,
+          idsOf("expense"),
+        ),
+        this.#typedRows<CloudBaseReminderRow>(
+          principal,
+          "reminders",
+          reminderColumns,
+          idsOf("reminder"),
+        ),
+        this.#typedRows<CloudBaseDocumentRow>(
+          principal,
+          "documents",
+          documentColumns,
+          idsOf("document"),
+        ),
+        readCloudBaseTaskLabels(this.#client, principal, idsOf("task")),
+      ]);
     const decode: Record<
       ObjectType,
       (object: CloudBaseObjectRow) => EventPlanningResource
@@ -310,7 +313,11 @@ export class CloudBaseProjectionReadRepository implements ProjectionReadReposito
       event: (object) =>
         cloudbaseEventResource(object, requireTyped(events, object)),
       task: (object) =>
-        cloudbaseTaskResource(object, requireTyped(tasks, object)),
+        cloudbaseTaskResource(
+          object,
+          requireTyped(tasks, object),
+          taskLabels.get(objectId(object)) ?? [],
+        ),
       expense: (object) =>
         cloudbaseExpenseResource(object, requireTyped(expenses, object)),
       reminder: (object) =>

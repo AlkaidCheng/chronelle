@@ -78,9 +78,10 @@ GRANT SELECT, INSERT, UPDATE ON
   public.object_relations, public.resource_grants, public.events, public.tasks,
   public.expenses, public.reminders, public.document_transfer_authorizations,
   public.command_stacks, public.user_sessions, public.user_credentials,
-  public.email_verifications
+  public.email_verifications, public.labels, public.task_labels
 TO :"runtime_role";
-GRANT DELETE ON public.resource_grants TO :"runtime_role";
+GRANT DELETE ON public.resource_grants, public.labels, public.task_labels
+TO :"runtime_role";
 
 -- New tables and functions require an explicit runtime privilege review.
 ALTER DEFAULT PRIVILEGES REVOKE ALL ON TABLES FROM PUBLIC, :"runtime_role";

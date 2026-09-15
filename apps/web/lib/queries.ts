@@ -13,6 +13,8 @@ import type {
   EventListResponse,
   TaskListQueryInput,
   TaskListResponse,
+  LabelCreateRequest,
+  LabelUpdateRequest,
   EventResponse,
   ExpenseUpdatePayload,
   ObjectSearchQueryInput,
@@ -50,6 +52,7 @@ export const queryKeys = {
   reminders: (eventId: string) => ["event", eventId, "reminders"] as const,
   search: (input: ObjectSearchQueryInput) => ["search", input] as const,
   tasks: ["tasks"] as const,
+  labels: ["labels"] as const,
   access: (eventId: string) => ["event", eventId, "access"] as const,
   shares: (eventId: string) => ["event", eventId, "shares"] as const,
   attachments: (parentObjectId: string) =>
@@ -133,6 +136,61 @@ function selectTaskItems(data: InfiniteData<TaskListResponse>) {
     parents: merged("parents"),
     asOf: data.pages[0]?.asOf,
   };
+}
+
+/** The workspace's labels in name order, by id and as a list. */
+export function useLabelsQuery() {
+  const client = useApiClient();
+  const { credential } = useAuthSession();
+  return useQuery({
+    enabled: credential !== null,
+    queryFn: ({ signal }) => client.withSignal(signal).listLabels(),
+    queryKey: [...queryKeys.labels, credential?.workspaceId],
+    select: (page) => ({
+      items: page.items,
+      names: new Map(page.items.map((label) => [label.id, label.name])),
+    }),
+  });
+}
+
+export function useCreateLabel() {
+  const client = useApiClient();
+  const invalidate = useCanonicalInvalidation();
+  return useMutation({
+    mutationFn: (input: LabelCreateRequest) => client.createLabel(input),
+    onSuccess: () => {
+      void invalidate();
+    },
+  });
+}
+
+export function useUpdateLabel() {
+  const client = useApiClient();
+  const invalidate = useCanonicalInvalidation();
+  return useMutation({
+    mutationFn: ({ id, input }: { id: string; input: LabelUpdateRequest }) =>
+      client.updateLabel(id, input),
+    onSuccess: () => {
+      void invalidate();
+    },
+  });
+}
+
+export function useDeleteLabel() {
+  const client = useApiClient();
+  const invalidate = useCanonicalInvalidation();
+  return useMutation({
+    mutationFn: ({
+      id,
+      expectedVersion,
+    }: {
+      id: string;
+      expectedVersion: number;
+    }) => client.deleteLabel(id, expectedVersion),
+    onSuccess: () => {
+      void invalidate();
+    },
+  });
 }
 
 /** The workspace Task collection: every task the user may view, page by page. */
@@ -303,9 +361,15 @@ export function useCanonicalInvalidation() {
   return () =>
     queryClient.invalidateQueries({
       predicate: (query) =>
-        ["event", "events", "object", "search", "tasks", "trash"].includes(
-          String(query.queryKey[0]),
-        ),
+        [
+          "event",
+          "events",
+          "object",
+          "search",
+          "tasks",
+          "labels",
+          "trash",
+        ].includes(String(query.queryKey[0])),
     });
 }
 

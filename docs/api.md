@@ -338,6 +338,25 @@ returns HTTP 400 with its own message. `parentTaskId: null` on an update
 detaches a subtask. Trashing a parent leaves its subtasks live; they show on
 their own until the parent is restored. Deploy migration 0035 before this API.
 
+## Labels
+
+| Method   | Path                            | Behavior                             |
+| -------- | ------------------------------- | ------------------------------------ |
+| `GET`    | `/labels`                       | The workspace's labels in name order |
+| `POST`   | `/labels`                       | Create a label (`{ name }`)          |
+| `PATCH`  | `/labels/:id`                   | Rename with `expectedVersion`        |
+| `DELETE` | `/labels/:id?expectedVersion=N` | Delete; its tasks lose it            |
+
+A label is a workspace-level name of 1 to 40 characters, unique per workspace
+without regard to case (`label_name_taken`, HTTP 409). Anyone with access to
+the workspace, member or grantee, may list labels; owners and editors create,
+rename, and delete them. A Task carries labels as a whole through `labelIds`
+on create and update (absent leaves them unchanged; each id must name a label
+of the workspace, HTTP 400 otherwise) and returns them as `labelIds` in name
+order. `GET /tasks?label=<id>` lists only tasks carrying that label. Labels
+are not part of a revision's restorable content. Deploy migration 0036 before
+this API and reapply the runtime role grants, which cover the two new tables.
+
 The Event collection query examines self-scoped planning roots in the active
 workspace and applies the same `view` authorization decision to every candidate
 before returning it. Directly shared Events can appear without workspace

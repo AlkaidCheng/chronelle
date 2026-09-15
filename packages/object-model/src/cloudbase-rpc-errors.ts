@@ -9,6 +9,7 @@ import {
   CommandStackConflictError,
   InvalidObjectStateError,
   InvalidRelationError,
+  LabelNameConflictError,
   ObjectConflictError,
   RelationConflictError,
 } from "./errors.js";
@@ -17,6 +18,7 @@ const invalidRelation = (message: string) => new InvalidRelationError(message);
 const commandConflictMessage = new CommandConflictError().message;
 const commandStackConflictMessage = new CommandStackConflictError().message;
 const relationConflictMessage = new RelationConflictError().message;
+const labelNameConflictMessage = new LabelNameConflictError().message;
 
 /** Which service errors a PT400 and a PT404 mean; each adapter knows its own domain. */
 export interface RpcErrorMapping {
@@ -48,6 +50,8 @@ export function mapRpcError(
       return new CommandStackConflictError();
     if (error.message === relationConflictMessage)
       return new RelationConflictError();
+    if (error.message === labelNameConflictMessage)
+      return new LabelNameConflictError();
     return new ObjectConflictError();
   }
   if (error.code.endsWith("PT422"))

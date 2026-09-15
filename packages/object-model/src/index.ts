@@ -48,7 +48,15 @@ export { CloudBaseSharingWriteRepository } from "./cloudbase-sharing-write-repos
 export { CloudBaseStorageInventoryReadRepository } from "./cloudbase-storage-inventory-read-repository.js";
 export { CloudBaseReminderWriteRepository } from "./cloudbase-reminder-write-repository.js";
 export { CloudBaseSearchReadRepository } from "./cloudbase-search-read-repository.js";
+export { CloudBaseLabelRepository } from "./cloudbase-label-repository.js";
 export { CloudBaseTaskReadRepository } from "./cloudbase-task-read-repository.js";
+export {
+  LabelService,
+  PostgresLabelRepository,
+  type LabelReadRepository,
+  type LabelResource,
+  type LabelWriteRepository,
+} from "./labels.js";
 export { CloudBaseTaskWriteRepository } from "./cloudbase-task-write-repository.js";
 export {
   PostgresEventReadRepository,

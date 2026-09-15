@@ -80,6 +80,12 @@ import {
   type TaskListResponse,
   type TaskListQueryInput,
   taskListResponseSchema,
+  type LabelCreateRequest,
+  type LabelListResponse,
+  type LabelResponse,
+  type LabelUpdateRequest,
+  labelListResponseSchema,
+  labelResponseSchema,
   type EventPlanningResourceResponse,
   type EventResourceProjectionResponse,
   type EventResponse,
@@ -345,6 +351,34 @@ export class ChronelleApiClient {
     return this.#request(
       "/api/workspace/storage-inventory",
       storageInventoryResponseSchema,
+    );
+  }
+
+  listLabels(): Promise<LabelListResponse> {
+    return this.#request("/api/labels", labelListResponseSchema);
+  }
+
+  createLabel(input: LabelCreateRequest): Promise<LabelResponse> {
+    return this.#request(
+      "/api/labels",
+      labelResponseSchema,
+      jsonRequest(input, "POST"),
+    );
+  }
+
+  updateLabel(id: string, input: LabelUpdateRequest): Promise<LabelResponse> {
+    return this.#request(
+      `/api/labels/${id}`,
+      labelResponseSchema,
+      jsonRequest(input, "PATCH"),
+    );
+  }
+
+  deleteLabel(id: string, expectedVersion: number): Promise<LabelResponse> {
+    return this.#request(
+      `/api/labels/${id}?expectedVersion=${expectedVersion}`,
+      labelResponseSchema,
+      { method: "DELETE" },
     );
   }
 

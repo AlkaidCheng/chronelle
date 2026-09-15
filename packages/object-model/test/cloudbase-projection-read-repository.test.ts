@@ -213,6 +213,8 @@ function client(options: ClientOptions = {}): CloudBaseRdbReader {
       principal_id: principal.userId,
       role: "viewer",
     })),
+    task_labels: [],
+    labels: [],
     ...typedRows,
   };
   return {

@@ -94,6 +94,7 @@ export function TaskListView({
   canEdit,
   contexts,
   eventId,
+  labelNames,
   onAddSubtask,
   onEdit,
   onRefresh,
@@ -106,6 +107,8 @@ export function TaskListView({
   /** The Event each task belongs to, by task ID, when the container spans Events. */
   readonly contexts?: Readonly<Record<string, TaskContext>> | undefined;
   readonly eventId?: string | undefined;
+  /** Label names by id; a label the container has not loaded shows nothing. */
+  readonly labelNames?: ReadonlyMap<string, string> | undefined;
   /** Offers a subtask under a task that has no parent of its own. */
   readonly onAddSubtask?: ((task: TaskResponse) => void) | undefined;
   readonly onEdit: (taskId: string) => void;
@@ -124,8 +127,21 @@ export function TaskListView({
     (task: TaskResponse, nested: boolean) => {
       const count = progress[task.id];
       const parent = parents[task.id];
+      const named = task.labelIds.flatMap((id) => {
+        const name = labelNames?.get(id);
+        return name === undefined ? [] : [{ id, name }];
+      });
       return (
         <>
+          {named.length > 0 ? (
+            <ul aria-label="Labels" className="task-labels">
+              {named.map((label) => (
+                <li className="task-label" key={label.id}>
+                  {label.name}
+                </li>
+              ))}
+            </ul>
+          ) : null}
           {count === undefined ? null : (
             <span className="task-progress">
               <span aria-hidden="true">
@@ -142,7 +158,7 @@ export function TaskListView({
         </>
       );
     },
-    [parents, progress],
+    [labelNames, parents, progress],
   );
   const context = useCallback(
     (task: TaskResponse) => {

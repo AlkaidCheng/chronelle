@@ -17,7 +17,12 @@ import { ViewSwitch } from "../events/component-frame";
 import { type SubtaskParent, TaskForm } from "../events/task-form";
 import { TaskInspector } from "../events/task-inspector";
 import { viewsOf } from "../../lib/event-components";
-import { useRefreshEvent, useTasksQuery } from "../../lib/queries";
+import {
+  useLabelsQuery,
+  useRefreshEvent,
+  useTasksQuery,
+} from "../../lib/queries";
+import { ManageLabelsButton } from "./label-manager";
 import { TaskListView } from "./task-list-view";
 
 const viewStorageKey = "chronelle.task-view";
@@ -33,6 +38,7 @@ export function TasksPage() {
   const [isComposing, setIsComposing] = useState(false);
   const [filter, setFilter] = useState<TaskListQuery["filter"]>("open");
   const [sort, setSort] = useState<TaskListQuery["sort"]>("due");
+  const [label, setLabel] = useState<string>("");
   const [view, setView] = useState<EventComponentView>("list");
   const [isAdding, setIsAdding] = useState(false);
   const [parent, setParent] = useState<SubtaskParent | null>(null);
@@ -50,11 +56,17 @@ export function TasksPage() {
       // The list stays usable when browser storage is unavailable.
     }
   }, []);
-  const tasks = useTasksQuery({ query: debouncedQuery, filter, sort });
+  const tasks = useTasksQuery({
+    query: debouncedQuery,
+    filter,
+    sort,
+    ...(label === "" ? {} : { label }),
+  });
+  const labels = useLabelsQuery();
   const refresh = useRefreshEvent(undefined);
   const changingQuery = isComposing || query.trim() !== debouncedQuery;
   const items = changingQuery ? [] : (tasks.data?.items ?? []);
-  const filtered = debouncedQuery !== "" || filter !== "open";
+  const filtered = debouncedQuery !== "" || filter !== "open" || label !== "";
 
   // Stable, so the row cells keep their identity and focus across renders.
   const addSubtask = useCallback(
@@ -145,11 +157,26 @@ export function TasksPage() {
               <option value="name">Name A-Z</option>
             </select>
           </label>
+          <label className="compact-field collection-sort">
+            <span className="visually-hidden">Filter by label</span>
+            <select
+              onChange={(event) => setLabel(event.target.value)}
+              value={label}
+            >
+              <option value="">Any label</option>
+              {(labels.data?.items ?? []).map((item) => (
+                <option key={item.id} value={item.id}>
+                  {item.name}
+                </option>
+              ))}
+            </select>
+          </label>
           <ViewSwitch
             onChange={changeView}
             view={view}
             views={viewsOf("todos")}
           />
+          <ManageLabelsButton />
           <button
             className="button button-quiet"
             disabled={tasks.isFetching || changingQuery}
@@ -223,6 +250,7 @@ export function TasksPage() {
               onClick={() => {
                 setQuery("");
                 setFilter("open");
+                setLabel("");
               }}
               type="button"
             >
@@ -234,6 +262,7 @@ export function TasksPage() {
           <TaskListView
             canEdit
             contexts={tasks.data?.contexts}
+            labelNames={labels.data?.names}
             onAddSubtask={addSubtask}
             onEdit={setEditingId}
             onRefresh={refresh}

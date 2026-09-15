@@ -8,6 +8,7 @@ import {
   numeric,
   pgTable,
   primaryKey,
+  uniqueIndex,
   text,
   timestamp,
   uuid,
@@ -355,6 +356,39 @@ export const tasks = pgTable("tasks", {
   parentTaskId: uuid("parent_task_id"),
 });
 
+export const labels = pgTable(
+  "labels",
+  {
+    id: uuid("id").primaryKey(),
+    workspaceId: uuid("workspace_id").notNull(),
+    name: text("name").notNull(),
+    createdBy: uuid("created_by").notNull(),
+    createdAt: timestamp("created_at", { mode: "date", withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { mode: "date", withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    version: integer("version").notNull().default(1),
+  },
+  (table) => [
+    uniqueIndex("labels_workspace_name_idx").on(
+      table.workspaceId,
+      sql`lower(${table.name})`,
+    ),
+  ],
+);
+
+export const taskLabels = pgTable(
+  "task_labels",
+  {
+    workspaceId: uuid("workspace_id").notNull(),
+    taskId: uuid("task_id").notNull(),
+    labelId: uuid("label_id").notNull(),
+  },
+  (table) => [primaryKey({ columns: [table.taskId, table.labelId] })],
+);
+
 export const expenses = pgTable("expenses", {
   objectId: uuid("object_id").primaryKey(),
   workspaceId: uuid("workspace_id").notNull(),
@@ -467,6 +501,8 @@ export type NewAuditEventRow = typeof auditEvents.$inferInsert;
 export type EventRow = typeof events.$inferSelect;
 export type NewEventRow = typeof events.$inferInsert;
 export type TaskRow = typeof tasks.$inferSelect;
+export type LabelRow = typeof labels.$inferSelect;
+export type TaskLabelRow = typeof taskLabels.$inferSelect;
 export type NewTaskRow = typeof tasks.$inferInsert;
 export type ExpenseRow = typeof expenses.$inferSelect;
 export type NewExpenseRow = typeof expenses.$inferInsert;

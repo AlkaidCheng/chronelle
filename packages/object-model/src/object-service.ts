@@ -8,13 +8,15 @@ import {
   createId,
   events,
   expenses,
+  labels,
   objects,
   reminders,
+  taskLabels,
   tasks,
   type DatabaseTransaction,
   type ObjectType,
 } from "@chronelle/db";
-import { and, eq, isNull, sql } from "drizzle-orm";
+import { and, eq, inArray, isNull, sql } from "drizzle-orm";
 import {
   eventCalendarDatesSchema,
   type EventListQueryInput,
@@ -114,6 +116,38 @@ function assertEventState(
       );
     }
   }
+}
+
+/** Replaces a task's labels; every id must be a label of the workspace. */
+async function setTaskLabels(
+  transaction: DatabaseTransaction,
+  workspaceId: string,
+  taskId: string,
+  labelIds: readonly string[],
+): Promise<void> {
+  const ids = [...new Set(labelIds)];
+  if (ids.length > 0) {
+    const known = await transaction
+      .select({ id: labels.id })
+      .from(labels)
+      .where(and(eq(labels.workspaceId, workspaceId), inArray(labels.id, ids)));
+    if (known.length !== ids.length)
+      throw new InvalidObjectStateError(
+        "labelIds must name labels of this workspace.",
+      );
+  }
+  await transaction
+    .delete(taskLabels)
+    .where(
+      and(
+        eq(taskLabels.workspaceId, workspaceId),
+        eq(taskLabels.taskId, taskId),
+      ),
+    );
+  if (ids.length > 0)
+    await transaction
+      .insert(taskLabels)
+      .values(ids.map((labelId) => ({ workspaceId, taskId, labelId })));
 }
 
 /**
@@ -308,6 +342,13 @@ export class EventPlanningObjectService {
           completedAt,
           parentTaskId,
         });
+        if (input.labelIds !== undefined)
+          await setTaskLabels(
+            transaction,
+            context.principal.workspaceId,
+            createdObjectId,
+            input.labelIds,
+          );
       },
     );
     return this.#requireType(resource, "task");
@@ -531,6 +572,13 @@ export class EventPlanningObjectService {
             completedAt: input.completedAt,
           }),
         };
+        if (input.labelIds !== undefined)
+          await setTaskLabels(
+            transaction,
+            context.principal.workspaceId,
+            current.id,
+            input.labelIds,
+          );
         if (Object.keys(changes).length > 0) {
           await transaction
             .update(tasks)
