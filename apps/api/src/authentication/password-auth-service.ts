@@ -13,6 +13,7 @@ import {
   type AttemptPolicy,
   CredentialConflictError,
   type CredentialStore,
+  type IssuePolicy,
   passwordIdentityProvider,
 } from "./credential-store.js";
 import type { EmailSender } from "./email-sender.js";
@@ -62,8 +63,19 @@ export interface PasswordAuthOptions {
   readonly verificationMaxAttempts?: number | undefined;
   /** Wrong passwords before the credential locks, and for how long. */
   readonly attemptPolicy?: AttemptPolicy | undefined;
+  /** How often codes may be emailed for one account and purpose. */
+  readonly issuePolicy?: IssuePolicy | undefined;
   /** The product name in the emails. */
   readonly productName?: string | undefined;
+  /** Receives each refused code issue; the request itself still succeeds. */
+  readonly onThrottled?: ((event: ThrottledIssue) => void) | undefined;
+}
+
+/** A code issue the policy refused. */
+export interface ThrottledIssue {
+  readonly userId: string;
+  readonly purpose: "verify_email" | "reset_password";
+  readonly retryAfterMs: number;
 }
 
 const defaultVerificationTtlMs = 15 * 60 * 1_000;
@@ -71,6 +83,13 @@ const defaultVerificationMaxAttempts = 5;
 const defaultAttemptPolicy: AttemptPolicy = {
   maxAttempts: 10,
   lockMs: 15 * 60 * 1_000,
+};
+// One code a minute and five an hour: enough for a mistyped code or a lost
+// email, too few for flooding a mailbox or burning the mail quota.
+const defaultIssuePolicy: IssuePolicy = {
+  minIntervalMs: 60 * 1_000,
+  windowMs: 60 * 60 * 1_000,
+  maxPerWindow: 5,
 };
 
 /**
@@ -81,7 +100,8 @@ const defaultAttemptPolicy: AttemptPolicy = {
  * counts failures toward a temporary lock, and refuses an unverified
  * account while re-sending its code; a password reset replaces the hash and
  * ends every session of the user. Responses never reveal whether an email
- * has an account except where the caller already proved it.
+ * has an account except where the caller already proved it; a code the issue
+ * policy refuses is not sent, and the request is accepted as if it were.
  */
 export class PasswordAuthService {
   readonly #identity: WorkspaceIdentityService;
@@ -92,7 +112,9 @@ export class PasswordAuthService {
   readonly #verificationTtlMs: number;
   readonly #verificationMaxAttempts: number;
   readonly #attemptPolicy: AttemptPolicy;
+  readonly #issuePolicy: IssuePolicy;
   readonly #productName: string;
+  readonly #onThrottled: (event: ThrottledIssue) => void;
   // A hash checked when the email has no account, so the response time does
   // not tell an unknown email from a wrong password.
   readonly #decoyHash: Promise<string>;
@@ -114,7 +136,9 @@ export class PasswordAuthService {
     this.#verificationMaxAttempts =
       options.verificationMaxAttempts ?? defaultVerificationMaxAttempts;
     this.#attemptPolicy = options.attemptPolicy ?? defaultAttemptPolicy;
+    this.#issuePolicy = options.issuePolicy ?? defaultIssuePolicy;
     this.#productName = options.productName ?? "Chronelle";
+    this.#onThrottled = options.onThrottled ?? (() => undefined);
     this.#decoyHash = hashPassword(generateVerificationCode());
   }
 
@@ -247,12 +271,21 @@ export class PasswordAuthService {
     purpose: "verify_email" | "reset_password",
   ): Promise<void> {
     const code = generateVerificationCode();
-    await this.#credentials.issueVerification(
+    const issued = await this.#credentials.issueVerification(
       user.id,
       purpose,
       hashVerificationCode(user.id, purpose, code),
       new Date(this.#clock().getTime() + this.#verificationTtlMs),
+      this.#issuePolicy,
     );
+    if (issued.throttled) {
+      this.#onThrottled({
+        userId: user.id,
+        purpose,
+        retryAfterMs: issued.retryAfterMs,
+      });
+      return;
+    }
     const minutes = Math.round(this.#verificationTtlMs / 60_000);
     const action =
       purpose === "verify_email" ? "verify your email" : "reset your password";

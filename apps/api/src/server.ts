@@ -26,6 +26,7 @@ import {
   type EmailSender,
   LoggingEmailSender,
 } from "./authentication/email-sender.js";
+import type { ThrottledIssue } from "./authentication/password-auth-service.js";
 import { SmtpEmailSender } from "./authentication/smtp-email-sender.js";
 import {
   createAppDependencies,
@@ -94,6 +95,7 @@ const database =
 // logger exists.
 let logGatewayRequest = (_event: CloudBaseRequestEvent): void => undefined;
 let logEmail = (_message: EmailMessage): void => undefined;
+let logThrottled = (_event: ThrottledIssue): void => undefined;
 const email = composeEmailSender(runtimeEnvironment, (message) =>
   logEmail(message),
 );
@@ -117,6 +119,7 @@ const dependencies = composeDependencies(database, {
   passwordAuth: {
     verificationTtlMs:
       runtimeEnvironment.AUTH_VERIFICATION_TTL_MINUTES * 60_000,
+    onThrottled: (event) => logThrottled(event),
   },
 });
 const app = buildApp(dependencies, { logger: true });
@@ -128,6 +131,9 @@ logGatewayRequest = (event) => {
 };
 logEmail = (message) => {
   app.log.info({ email: message }, "Email written to the log");
+};
+logThrottled = (event) => {
+  app.log.warn({ verification: event }, "Verification code issue throttled");
 };
 if (runtimeEnvironment.EMAIL_PROVIDER === "log") {
   app.log.warn(

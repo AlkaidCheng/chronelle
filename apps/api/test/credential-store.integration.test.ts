@@ -13,7 +13,7 @@ import {
   createTestDatabase,
   type TestDatabase,
 } from "@chronelle/db/testing";
-import { and, eq } from "drizzle-orm";
+import { and, eq, isNull } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { CloudBaseCredentialStore } from "../src/authentication/cloudbase-credential-store.js";
@@ -37,6 +37,26 @@ let reference: CredentialStore;
 let cloudbase: CredentialStore;
 
 const policy = { maxAttempts: 3, lockMs: 60_000 };
+const unlimited = { minIntervalMs: 0, windowMs: 0, maxPerWindow: 0 };
+
+/** Issues a code the policy allows and returns its row. */
+async function issue(
+  store: CredentialStore,
+  userId: string,
+  purpose: "verify_email" | "reset_password",
+  codeHash: string,
+  expiresAt: Date,
+) {
+  const outcome = await store.issueVerification(
+    userId,
+    purpose,
+    codeHash,
+    expiresAt,
+    unlimited,
+  );
+  if (outcome.throttled) throw new Error("the code was throttled");
+  return outcome.verification;
+}
 const at = new Date("2030-08-01T12:00:00.000Z");
 const later = (ms: number) => new Date(at.getTime() + ms);
 
@@ -262,19 +282,22 @@ describe.sequential("credential store", () => {
       const { user } = await person(label);
       const code = (n: number) =>
         hashVerificationCode(user.id, "verify_email", `00000${n}`);
-      const stale = await store.issueVerification(
+      const stale = await issue(
+        store,
         user.id,
         "verify_email",
         code(1),
         later(600_000),
       );
-      const current = await store.issueVerification(
+      const current = await issue(
+        store,
         user.id,
         "verify_email",
         code(2),
         later(600_000),
       );
-      const reset = await store.issueVerification(
+      const reset = await issue(
+        store,
         user.id,
         "reset_password",
         hashVerificationCode(user.id, "reset_password", "000002"),
@@ -317,7 +340,8 @@ describe.sequential("credential store", () => {
           2,
         ),
       };
-      const fresh = await store.issueVerification(
+      const fresh = await issue(
+        store,
         user.id,
         "verify_email",
         code(3),
@@ -337,12 +361,7 @@ describe.sequential("credential store", () => {
         at,
         2,
       );
-      await store.issueVerification(
-        user.id,
-        "verify_email",
-        code(4),
-        later(1_000),
-      );
+      await issue(store, user.id, "verify_email", code(4), later(1_000));
       const expired = await store.consumeVerification(
         user.id,
         "verify_email",
@@ -375,6 +394,94 @@ describe.sequential("credential store", () => {
       consumed: "consumed",
       afterwards: "none",
       expired: "expired",
+    });
+  });
+
+  it("refuses a code inside the minimum interval and beyond the window's maximum", async () => {
+    const results = [];
+    for (const [label, store] of backends()) {
+      const { user } = await person(label);
+      const code = (n: number) =>
+        hashVerificationCode(user.id, "verify_email", `10000${n}`);
+      const spaced = { minIntervalMs: 60_000, windowMs: 0, maxPerWindow: 0 };
+      const first = await store.issueVerification(
+        user.id,
+        "verify_email",
+        code(1),
+        later(600_000),
+        spaced,
+      );
+      const tooSoon = await store.issueVerification(
+        user.id,
+        "verify_email",
+        code(2),
+        later(600_000),
+        spaced,
+      );
+      // The same code for another purpose is a separate budget.
+      const otherPurpose = await store.issueVerification(
+        user.id,
+        "reset_password",
+        hashVerificationCode(user.id, "reset_password", "100003"),
+        later(600_000),
+        spaced,
+      );
+      const windowed = {
+        minIntervalMs: 0,
+        windowMs: 60 * 60_000,
+        maxPerWindow: 2,
+      };
+      const second = await store.issueVerification(
+        user.id,
+        "verify_email",
+        code(4),
+        later(600_000),
+        windowed,
+      );
+      const overBudget = await store.issueVerification(
+        user.id,
+        "verify_email",
+        code(5),
+        later(600_000),
+        windowed,
+      );
+      const open = await database.connection.db
+        .select({ id: emailVerifications.id })
+        .from(emailVerifications)
+        .where(
+          and(
+            eq(emailVerifications.userId, user.id),
+            eq(emailVerifications.purpose, "verify_email"),
+            isNull(emailVerifications.consumedAt),
+          ),
+        );
+      results.push({
+        first: first.throttled,
+        tooSoon:
+          tooSoon.throttled &&
+          tooSoon.retryAfterMs > 0 &&
+          tooSoon.retryAfterMs <= 60_000,
+        otherPurpose: otherPurpose.throttled,
+        second: second.throttled,
+        overBudget:
+          overBudget.throttled &&
+          overBudget.retryAfterMs > 0 &&
+          overBudget.retryAfterMs <= 60 * 60_000,
+        openCodes: open.length,
+        latestOpenIsSecond:
+          !second.throttled && open[0]?.id === second.verification.id,
+      });
+    }
+    const [postgres, cloud] = results;
+    expect(cloud).toEqual(postgres);
+    expect(postgres).toEqual({
+      first: false,
+      tooSoon: true,
+      otherPurpose: false,
+      second: false,
+      overBudget: true,
+      openCodes: 1,
+      latestOpenIsSecond: true,
     });
   });
 });

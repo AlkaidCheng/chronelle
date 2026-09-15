@@ -52,6 +52,9 @@ let email: RecordingEmailSender;
 let ready = false;
 
 const attemptPolicy = { maxAttempts: 3, lockMs: 60_000 };
+// The flows below re-send codes within the same second; the issue policy is
+// exercised by its own test.
+const unlimitedIssues = { minIntervalMs: 0, windowMs: 0, maxPerWindow: 0 };
 
 beforeEach(async () => {
   ready = false;
@@ -64,7 +67,11 @@ beforeEach(async () => {
   app = buildApp(
     createAppDependencies(testDatabase.connection, undefined, {
       email,
-      passwordAuth: { attemptPolicy, verificationMaxAttempts: 2 },
+      passwordAuth: {
+        attemptPolicy,
+        verificationMaxAttempts: 2,
+        issuePolicy: unlimitedIssues,
+      },
     }),
   );
   ready = true;
@@ -300,6 +307,52 @@ describe.sequential("password authentication API", () => {
     expect(audits.map((audit) => audit.action)).toContain(
       "credential.password_reset",
     );
+  });
+
+  it("accepts but does not send a code issued inside the minimum interval", async () => {
+    const throttled: unknown[] = [];
+    const spaced = buildApp(
+      createAppDependencies(testDatabase.connection, undefined, {
+        email,
+        passwordAuth: {
+          issuePolicy: { minIntervalMs: 60_000, windowMs: 0, maxPerWindow: 0 },
+          onThrottled: (event) => throttled.push(event),
+        },
+      }),
+    );
+    try {
+      const signedUp = await spaced.inject({
+        method: "POST",
+        url: "/api/auth/sign-up",
+        payload: account,
+      });
+      expect(signedUp.statusCode).toBe(202);
+      expect(email.messages).toHaveLength(1);
+
+      const resent = await spaced.inject({
+        method: "POST",
+        url: "/api/auth/verify-email/resend",
+        payload: { email: account.email },
+      });
+      expect(resent.statusCode).toBe(202);
+      expect(email.messages).toHaveLength(1);
+      expect(throttled).toEqual([
+        expect.objectContaining({
+          purpose: "verify_email",
+          retryAfterMs: expect.any(Number),
+        }),
+      ]);
+
+      // The first code is still the live one.
+      const verified = await spaced.inject({
+        method: "POST",
+        url: "/api/auth/verify-email",
+        payload: { email: account.email, code: email.codeFor(normalizedEmail) },
+      });
+      expect(verified.statusCode).toBe(200);
+    } finally {
+      await spaced.close();
+    }
   });
 
   it("rejects malformed input with the public error contract", async () => {

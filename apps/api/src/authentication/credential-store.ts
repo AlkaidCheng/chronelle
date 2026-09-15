@@ -12,7 +12,7 @@ import {
   users,
   workspaces,
 } from "@chronelle/db";
-import { and, desc, eq, isNull, sql } from "drizzle-orm";
+import { and, desc, eq, gt, isNull, sql } from "drizzle-orm";
 
 /** The provider name password accounts are recorded under; the subject is the normalized email. */
 export const passwordIdentityProvider = "password";
@@ -33,6 +33,21 @@ export interface AttemptPolicy {
   /** How long the lock lasts. */
   readonly lockMs: number;
 }
+
+/** How often codes may be issued for one user and purpose. */
+export interface IssuePolicy {
+  /** The least time between two codes. */
+  readonly minIntervalMs: number;
+  /** The window over which issues are counted. */
+  readonly windowMs: number;
+  /** Codes allowed in the window, consumed or not. */
+  readonly maxPerWindow: number;
+}
+
+/** A code was issued, or the policy refused one until retryAfterMs have passed. */
+export type IssueOutcome =
+  | { readonly throttled: false; readonly verification: EmailVerificationRow }
+  | { readonly throttled: true; readonly retryAfterMs: number };
 
 /**
  * Credential persistence for password accounts: the credential of a user
@@ -70,7 +85,8 @@ export interface CredentialStore {
     purpose: VerificationPurpose,
     codeHash: string,
     expiresAt: Date,
-  ): Promise<EmailVerificationRow>;
+    policy: IssuePolicy,
+  ): Promise<IssueOutcome>;
   consumeVerification(
     userId: string,
     purpose: VerificationPurpose,
@@ -220,7 +236,8 @@ export class PostgresCredentialStore implements CredentialStore {
     purpose: VerificationPurpose,
     codeHash: string,
     expiresAt: Date,
-  ): Promise<EmailVerificationRow> {
+    policy: IssuePolicy,
+  ): Promise<IssueOutcome> {
     return this.#database.transaction(async (transaction) => {
       const [owner] = await transaction
         .select({ id: users.id })
@@ -229,6 +246,15 @@ export class PostgresCredentialStore implements CredentialStore {
         .limit(1);
       if (owner === undefined) throw new Error("The user does not exist.");
       const issuedAt = new Date();
+      const throttled = await refusalUntil(
+        transaction,
+        userId,
+        purpose,
+        issuedAt,
+        policy,
+      );
+      if (throttled !== null)
+        return { throttled: true, retryAfterMs: throttled };
       await transaction
         .update(emailVerifications)
         .set({
@@ -254,7 +280,7 @@ export class PostgresCredentialStore implements CredentialStore {
         .returning();
       if (issued === undefined)
         throw new Error("Verification persistence did not return a code.");
-      return issued;
+      return { throttled: false, verification: issued };
     });
   }
 
@@ -298,6 +324,53 @@ export class PostgresCredentialStore implements CredentialStore {
       return "consumed";
     });
   }
+}
+
+/**
+ * How long until the policy allows another code for the user and purpose,
+ * or null when one may be issued now: the latest code must be older than
+ * the minimum interval, and fewer than the window's maximum may have been
+ * issued within the window.
+ */
+async function refusalUntil(
+  transaction: DatabaseTransaction,
+  userId: string,
+  purpose: VerificationPurpose,
+  issuedAt: Date,
+  policy: IssuePolicy,
+): Promise<number | null> {
+  const owned = and(
+    eq(emailVerifications.userId, userId),
+    eq(emailVerifications.purpose, purpose),
+  );
+  if (policy.minIntervalMs > 0) {
+    const [latest] = await transaction
+      .select({ createdAt: emailVerifications.createdAt })
+      .from(emailVerifications)
+      .where(owned)
+      .orderBy(desc(emailVerifications.createdAt))
+      .limit(1);
+    if (latest !== undefined) {
+      const allowedAt = latest.createdAt.getTime() + policy.minIntervalMs;
+      if (allowedAt > issuedAt.getTime())
+        return Math.max(allowedAt - issuedAt.getTime(), 1);
+    }
+  }
+  if (policy.windowMs > 0 && policy.maxPerWindow > 0) {
+    const windowStart = new Date(issuedAt.getTime() - policy.windowMs);
+    const recent = await transaction
+      .select({ createdAt: emailVerifications.createdAt })
+      .from(emailVerifications)
+      .where(and(owned, gt(emailVerifications.createdAt, windowStart)))
+      .orderBy(emailVerifications.createdAt);
+    const oldest = recent[0];
+    if (recent.length >= policy.maxPerWindow && oldest !== undefined)
+      return Math.max(
+        oldest.createdAt.getTime() + policy.windowMs - issuedAt.getTime(),
+        1,
+      );
+  }
+  return null;
 }
 
 /** A credential event in the user's personal workspace; nothing when the user has none. */

@@ -48,7 +48,8 @@ revocation functions to date a revocation no earlier than the session's
 creation. Migration `0032_add_password_credentials.sql` adds
 `user_credentials` and `email_verifications` with the
 `chronelle_password_*`, `chronelle_email_verified`, and
-`chronelle_verification_*` functions.
+`chronelle_verification_*` functions; `0033` redefines the issue function
+with the rate limit on emailed codes.
 
 Migration `0021_add_object_search_function.sql` adds `chronelle_object_search`,
 the read-only function the CloudBase search adapter calls. It changes no
