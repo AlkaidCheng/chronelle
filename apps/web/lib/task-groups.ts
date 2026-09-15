@@ -41,16 +41,15 @@ export function groupTasksByDay(
   const undated: TaskResponse[] = [];
   const days = new Map<string, { date: Date; tasks: TaskResponse[] }>();
   for (const task of tasks) {
-    if (task.dueAt === null) {
+    const date = dueDay(task);
+    if (date === null) {
       undated.push(task);
       continue;
     }
-    const due = new Date(task.dueAt);
-    if (isOpen(task) && due < today) {
+    if (isOpen(task) && date < today) {
       overdue.push(task);
       continue;
     }
-    const date = localDate(due);
     const key = dayKey(date);
     const day = days.get(key) ?? { date, tasks: [] };
     day.tasks.push(task);
@@ -97,6 +96,18 @@ export function groupTasksByDay(
   return groups;
 }
 
+/** The local day a task is due: its date, or the local date of its instant. */
+function dueDay(task: TaskResponse): Date | null {
+  if (task.dueOn !== null) {
+    const [year, month, day] = task.dueOn.split("-").map(Number);
+    return new Date(year ?? 0, (month ?? 1) - 1, day ?? 1);
+  }
+  return task.dueAt === null ? null : localDate(new Date(task.dueAt));
+}
+
+/** Date-only tasks lead their day; timed tasks follow in time order. */
 function byDue(a: TaskResponse, b: TaskResponse): number {
-  return (a.dueAt ?? "").localeCompare(b.dueAt ?? "");
+  const left = a.dueOn === null ? (a.dueAt ?? "") : "";
+  const right = b.dueOn === null ? (b.dueAt ?? "") : "";
+  return left.localeCompare(right) || a.id.localeCompare(b.id);
 }

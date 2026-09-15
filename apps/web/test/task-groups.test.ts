@@ -9,14 +9,15 @@ let counter = 0;
 
 function task(
   name: string,
-  due: Date | null,
+  due: Date | string | null,
   status: TaskResponse["status"] = "todo",
 ): TaskResponse {
   counter += 1;
   return {
     id: `00000000-0000-4000-8000-${String(counter).padStart(12, "0")}`,
     displayName: name,
-    dueAt: due === null ? null : due.toISOString(),
+    dueOn: typeof due === "string" ? due : null,
+    dueAt: due instanceof Date ? due.toISOString() : null,
     status,
     version: 1,
   } as TaskResponse;
@@ -30,8 +31,10 @@ describe("groupTasksByDay", () => {
         task("Undated", null),
         task("Tomorrow", new Date(2026, 8, 15, 8)),
         task("Earlier today", new Date(2026, 8, 14, 9)),
+        task("Any time today", "2026-09-14"),
         task("Late today", new Date(2026, 8, 14, 22)),
         task("Missed", new Date(2026, 8, 10, 12)),
+        task("Missed day", "2026-09-12"),
       ],
       now,
     );
@@ -42,8 +45,12 @@ describe("groupTasksByDay", () => {
         group.tasks.map((task) => task.displayName),
       ]),
     ).toEqual([
-      [["Overdue"], "overdue", ["Missed"]],
-      [["Sep 14", "Today", "Monday"], "today", ["Earlier today", "Late today"]],
+      [["Overdue"], "overdue", ["Missed day", "Missed"]],
+      [
+        ["Sep 14", "Today", "Monday"],
+        "today",
+        ["Any time today", "Earlier today", "Late today"],
+      ],
       [["Sep 15", "Tomorrow", "Tuesday"], "plain", ["Tomorrow"]],
       [["Sep 20", "Sunday"], "plain", ["Later"]],
       [["No due date"], "plain", ["Undated"]],

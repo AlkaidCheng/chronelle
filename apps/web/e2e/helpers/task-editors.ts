@@ -20,7 +20,8 @@ export async function exerciseTaskEditors(page: Page, testInfo: TestInfo) {
   await expect(name).toBeFocused();
   expect((await panel.boundingBox())?.height).toBe(before?.height);
   await name.fill("Pack garden supplies");
-  await create.getByLabel("Due", { exact: true }).fill("2030-07-03T11:30");
+  await create.getByLabel("Due date", { exact: true }).fill("2030-07-03");
+  await create.getByLabel("Due time", { exact: true }).fill("11:30");
   await name.press("Escape");
   const keep = page.getByRole("button", { name: "Keep editing", exact: true });
   await expect(keep).toBeFocused();
@@ -53,8 +54,11 @@ export async function exerciseTaskEditors(page: Page, testInfo: TestInfo) {
   const edit = page.getByRole("dialog", { name: "Edit task", exact: true });
   const editorName = edit.getByLabel("Task", { exact: true });
   await expect(editorName).toBeFocused();
-  await expect(edit.getByLabel("Due", { exact: true })).toHaveValue(
-    "2030-07-03T11:30",
+  await expect(edit.getByLabel("Due date", { exact: true })).toHaveValue(
+    "2030-07-03",
+  );
+  await expect(edit.getByLabel("Due time", { exact: true })).toHaveValue(
+    "11:30",
   );
   await editorName.fill("Pack garden supplies and chairs");
   await page.screenshot({ path: testInfo.outputPath("task-edit-context.png") });

@@ -53,6 +53,7 @@ const taskResource = (version: number, displayName: string) =>
     displayName,
     objectType: "task",
     status: "todo",
+    dueOn: null,
     dueAt: null,
     completedAt: null,
   }) as const;
