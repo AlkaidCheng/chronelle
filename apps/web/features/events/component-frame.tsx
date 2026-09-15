@@ -1,14 +1,21 @@
 "use client";
 
+import type { EventComponentView } from "@chronelle/schemas";
 import type { ReactNode } from "react";
+import { eventComponentViews } from "../../lib/event-components";
 
-/** The heading every Event component shares: title, one line of purpose, one action. */
+/**
+ * The heading every Event component shares: title, one line of purpose,
+ * then its view control and one action.
+ */
 export function PanelHeading({
   action,
+  controls,
   description,
   title,
 }: {
   readonly action?: ReactNode;
+  readonly controls?: ReactNode;
   readonly description: string;
   readonly title: string;
 }) {
@@ -18,8 +25,46 @@ export function PanelHeading({
         <h2>{title}</h2>
         <p>{description}</p>
       </div>
-      {action}
+      {controls === undefined && action === undefined ? null : (
+        <div className="panel-tools">
+          {controls}
+          {action}
+        </div>
+      )}
     </header>
+  );
+}
+
+/** Chooses among the views a component offers; nothing when it offers one. */
+export function ViewSwitch({
+  busy = false,
+  onChange,
+  view,
+  views,
+}: {
+  readonly busy?: boolean;
+  readonly onChange: (view: EventComponentView) => void;
+  readonly view: EventComponentView;
+  readonly views: readonly EventComponentView[];
+}) {
+  if (views.length < 2) return null;
+  return (
+    <fieldset className="view-switch" disabled={busy}>
+      <legend>View</legend>
+      {views.map((option) => (
+        <button
+          aria-pressed={option === view}
+          className={option === view ? "active" : ""}
+          key={option}
+          onClick={() => {
+            if (option !== view) onChange(option);
+          }}
+          type="button"
+        >
+          {eventComponentViews[option].label}
+        </button>
+      ))}
+    </fieldset>
   );
 }
 

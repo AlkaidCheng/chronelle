@@ -21,6 +21,12 @@ export function formatDateTime(value: string | null): string {
   }).format(new Date(value));
 }
 
+export function formatTime(value: string): string {
+  return new Intl.DateTimeFormat(undefined, { timeStyle: "short" }).format(
+    new Date(value),
+  );
+}
+
 export function formatDatePart(
   value: string | null,
   part: "month" | "day",

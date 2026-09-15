@@ -8,10 +8,22 @@ import {
   type DragEvent,
   type ReactNode,
 } from "react";
-import type { EventLayoutResponse, EventPage } from "@chronelle/schemas";
+import type {
+  EventComponentView,
+  EventLayoutResponse,
+  EventPage,
+} from "@chronelle/schemas";
 import { EmptyState, ErrorNotice } from "../../components/feedback";
-import { eventComponents } from "../../lib/event-components";
-import { moveEventComponent, moveEventPage } from "../../lib/event-layout";
+import {
+  eventComponents,
+  eventComponentViews,
+  viewOf,
+} from "../../lib/event-components";
+import {
+  moveEventComponent,
+  moveEventPage,
+  setEventComponentView,
+} from "../../lib/event-layout";
 import { useUpdateEventLayout } from "../../lib/event-layout-queries";
 import { canInsertComponent } from "../../lib/keyboard";
 import {
@@ -182,6 +194,28 @@ export function EventPageCanvas({
         onSettled: () => {
           locked.current = false;
           setFocusRequest({ trigger, origin, version });
+        },
+      },
+    );
+  }
+
+  // A view is part of the page's composition and saves like a move, but it
+  // is chosen while reading, so Arrange mode is not required.
+  function changeView(componentId: string, view: EventComponentView) {
+    if (locked.current) return;
+    const pages = setEventComponentView(layout.pages, componentId, view);
+    if (pages === layout.pages) return;
+    locked.current = true;
+    setAnnouncement("");
+    save.mutate(
+      { expectedVersion: layout.version, pages },
+      {
+        onSuccess: () =>
+          setAnnouncement(
+            `Shown ${eventComponentViews[view].label.toLowerCase()}.`,
+          ),
+        onSettled: () => {
+          locked.current = false;
         },
       },
     );
@@ -528,6 +562,13 @@ export function EventPageCanvas({
                     kind={component.kind}
                     eventId={layout.eventId}
                     canEdit={canEdit}
+                    view={viewOf(component)}
+                    onChangeView={
+                      canEdit
+                        ? (view) => changeView(component.id, view)
+                        : undefined
+                    }
+                    isSavingView={save.isPending}
                   />
                 </section>
               );
