@@ -329,6 +329,15 @@ instant (`dueAt`), or not at all; a request that leaves both set returns HTTP
 two forms sends both fields in one update, one of them null. Responses carry
 both fields, the unused one null. Deploy migration 0034 before this API.
 
+A Task may be a subtask of one other Task through `parentTaskId`, one level
+deep: the parent must be a live Task of the workspace with no parent of its
+own, a Task that has subtasks cannot become one, a Task cannot be its own
+parent, and a subtask shares its parent's permission scope (`permissionScopeId`
+must equal the parent's; inside an Event both are the Event). Each rule
+returns HTTP 400 with its own message. `parentTaskId: null` on an update
+detaches a subtask. Trashing a parent leaves its subtasks live; they show on
+their own until the parent is restored. Deploy migration 0035 before this API.
+
 The Event collection query examines self-scoped planning roots in the active
 workspace and applies the same `view` authorization decision to every candidate
 before returning it. Directly shared Events can appear without workspace
@@ -348,7 +357,10 @@ also carries `contexts`, a map from Task ID to `{ eventId, displayName }` for
 the Event that includes the Task, present only when the caller may view that
 Event (the earliest inclusion when several Events include one Task); a Task
 held through a direct grant inside an Event the caller cannot see has no
-entry. The typed client exposes `listTasks(input)`.
+entry. `progress` maps each listed parent Task ID to `{ done, total }` over
+its live, viewable subtasks, and `parents` maps each listed subtask ID to
+`{ taskId, displayName }` of its parent when the caller may view it. The
+typed client exposes `listTasks(input)`.
 
 ## Search
 

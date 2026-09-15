@@ -51,7 +51,9 @@ creation. Migration `0032_add_password_credentials.sql` adds
 `chronelle_verification_*` functions; `0033` redefines the issue function
 with the rate limit on emailed codes. Migration `0034_add_task_due_date.sql`
 adds `tasks.due_on` (a calendar date, exclusive with `due_at`) and redefines
-the Task functions and `chronelle_command_content` to carry it.
+the Task functions and `chronelle_command_content` to carry it. Migration
+`0035_add_task_parent.sql` adds `tasks.parent_task_id` with
+`chronelle_assert_task_parent` and redefines the Task functions to carry it.
 
 Migration `0021_add_object_search_function.sql` adds `chronelle_object_search`,
 the read-only function the CloudBase search adapter calls. It changes no
