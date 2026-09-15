@@ -352,6 +352,7 @@ export const tasks = pgTable("tasks", {
     mode: "date",
     withTimezone: true,
   }),
+  parentTaskId: uuid("parent_task_id"),
 });
 
 export const expenses = pgTable("expenses", {

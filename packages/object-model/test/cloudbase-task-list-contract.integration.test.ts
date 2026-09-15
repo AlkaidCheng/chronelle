@@ -154,6 +154,11 @@ describe.sequential("CloudBase task list contract", () => {
     const standaloneUndated = createId();
     const standaloneDone = createId();
     const deletedId = createId();
+    // Two subtasks of the dated task share its (the Event's) scope: one done,
+    // one open and due later; a deleted one never counts.
+    const subtaskDone = createId();
+    const subtaskOpen = createId();
+    const subtaskDeleted = createId();
     await db.insert(objects).values([
       {
         id: eventId,
@@ -198,6 +203,22 @@ describe.sequential("CloudBase task list contract", () => {
           displayName: "Dropped",
           deletedAt: new Date("2030-01-01T00:00:00Z"),
         },
+        {
+          id: subtaskDone,
+          permissionScopeId: eventId,
+          displayName: "Sign the contract",
+        },
+        {
+          id: subtaskOpen,
+          permissionScopeId: eventId,
+          displayName: "Pay the deposit",
+        },
+        {
+          id: subtaskDeleted,
+          permissionScopeId: eventId,
+          displayName: "Dropped subtask",
+          deletedAt: new Date("2030-01-01T00:00:00Z"),
+        },
       ].map((row) => ({
         ...row,
         workspaceId,
@@ -227,6 +248,26 @@ describe.sequential("CloudBase task list contract", () => {
         completedAt: new Date("2030-02-01T12:00:00Z"),
       },
       { objectId: deletedId, workspaceId, status: "todo" },
+      {
+        objectId: subtaskDone,
+        workspaceId,
+        status: "done",
+        completedAt: new Date("2030-02-02T12:00:00Z"),
+        parentTaskId: inEventDated,
+      },
+      {
+        objectId: subtaskOpen,
+        workspaceId,
+        status: "todo",
+        dueOn: "2030-04-01",
+        parentTaskId: inEventDated,
+      },
+      {
+        objectId: subtaskDeleted,
+        workspaceId,
+        status: "todo",
+        parentTaskId: inEventDated,
+      },
     ]);
     await db.insert(resourceGrants).values([
       {
@@ -274,16 +315,31 @@ describe.sequential("CloudBase task list contract", () => {
 
     // Due order: the date-only task leads its day, the timed one follows,
     // undated tasks come last; the done task is out of the open filter.
+    // Due order: the date-only task leads its day, the timed one follows,
+    // the open subtask is due later, and undated tasks come last by name.
     for (const [principal, expectedOpen, expectedAll] of [
       [
         owner,
-        [inEventDated, inEventTimed, standaloneUndated],
-        [standaloneDone, inEventDated, inEventTimed, standaloneUndated],
+        [inEventDated, inEventTimed, subtaskOpen, standaloneUndated],
+        [
+          standaloneDone,
+          inEventDated,
+          inEventTimed,
+          subtaskOpen,
+          standaloneUndated,
+          subtaskDone,
+        ],
       ],
       [
         viewer,
-        [inEventDated, inEventTimed, standaloneUndated],
-        [inEventDated, inEventTimed, standaloneUndated],
+        [inEventDated, inEventTimed, subtaskOpen, standaloneUndated],
+        [
+          inEventDated,
+          inEventTimed,
+          subtaskOpen,
+          standaloneUndated,
+          subtaskDone,
+        ],
       ],
     ] as const) {
       const open = await postgres.listTasks(principal, { limit: 10 });
@@ -306,6 +362,14 @@ describe.sequential("CloudBase task list contract", () => {
           : { [inEventTimed]: launch, [inEventDated]: launch },
       );
       expect(cloudbaseOpen.contexts).toEqual(open.contexts);
+      // The dated task counts its two live subtasks (one done); the open
+      // subtask names its parent. The deleted subtask is invisible.
+      expect(open.progress).toEqual({ [inEventDated]: { done: 1, total: 2 } });
+      expect(open.parents).toEqual({
+        [subtaskOpen]: { taskId: inEventDated, displayName: "Book the room" },
+      });
+      expect(cloudbaseOpen.progress).toEqual(open.progress);
+      expect(cloudbaseOpen.parents).toEqual(open.parents);
       const all = await postgres.listTasks(principal, {
         filter: "all",
         limit: 10,
@@ -317,13 +381,13 @@ describe.sequential("CloudBase task list contract", () => {
     }
     expect(
       ids(await postgres.listTasks(owner, { filter: "done", limit: 10 })),
-    ).toEqual([standaloneDone]);
+    ).toEqual([standaloneDone, subtaskDone]);
     expect(
       ids(await postgres.listTasks(owner, { query: "the", limit: 10 })),
-    ).toEqual([inEventDated, inEventTimed, standaloneUndated]);
+    ).toEqual([inEventDated, inEventTimed, subtaskOpen, standaloneUndated]);
     expect(
       ids(await cloudbase.listTasks(owner, { query: "THE", limit: 10 })),
-    ).toEqual([inEventDated, inEventTimed, standaloneUndated]);
+    ).toEqual([inEventDated, inEventTimed, subtaskOpen, standaloneUndated]);
 
     // Cursor paging: every sort mode crosses a page boundary with limit 2,
     // and each backend's own cursor must reproduce the same page sequence.
@@ -345,7 +409,7 @@ describe.sequential("CloudBase task list contract", () => {
       };
       const postgresPages = await walk(postgres);
       const cloudbasePages = await walk(cloudbase);
-      expect(postgresPages.map((page) => page.length)).toEqual([2, 2]);
+      expect(postgresPages.map((page) => page.length)).toEqual([2, 2, 2]);
       expect(cloudbasePages).toEqual(postgresPages);
       expect(new Set(postgresPages.flat())).toEqual(
         new Set([
@@ -353,6 +417,8 @@ describe.sequential("CloudBase task list contract", () => {
           inEventTimed,
           standaloneUndated,
           standaloneDone,
+          subtaskDone,
+          subtaskOpen,
         ]),
       );
     }

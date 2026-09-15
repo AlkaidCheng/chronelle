@@ -37,10 +37,26 @@ export interface TaskContext {
   readonly displayName: string;
 }
 
+/** How many subtasks a listed parent has, and how many are done. */
+export interface TaskProgress {
+  readonly done: number;
+  readonly total: number;
+}
+
+/** The parent of a listed subtask, when the caller may view it. */
+export interface TaskParent {
+  readonly taskId: string;
+  readonly displayName: string;
+}
+
 export interface TaskPage {
   readonly items: TaskResource[];
   /** By task ID; absent for a task outside any viewable Event. */
   readonly contexts: Readonly<Record<string, TaskContext>>;
+  /** By parent task ID, for listed parents with live subtasks. */
+  readonly progress: Readonly<Record<string, TaskProgress>>;
+  /** By subtask ID, for listed subtasks whose parent the caller may view. */
+  readonly parents: Readonly<Record<string, TaskParent>>;
   readonly nextCursor: string | null;
   readonly asOf: string;
 }
@@ -272,10 +288,77 @@ export async function listTaskPage(
           displayName: inclusion.displayName,
         };
     }
+    // Subtask progress of the listed parents, and the parent of each listed
+    // subtask; both under the view predicate, since a scope change can part
+    // a subtask from its parent's scope.
+    const progress: Record<string, TaskProgress> = {};
+    const parents: Record<string, TaskParent> = {};
+    if (items.length > 0) {
+      const counts = await transaction
+        .select({
+          parentTaskId: tasks.parentTaskId,
+          total: sql<number>`count(*)::int`,
+          done: sql<number>`count(*) FILTER (WHERE ${tasks.status} = 'done')::int`,
+        })
+        .from(tasks)
+        .innerJoin(
+          objects,
+          and(
+            eq(objects.id, tasks.objectId),
+            eq(objects.workspaceId, tasks.workspaceId),
+          ),
+        )
+        .where(
+          and(
+            eq(tasks.workspaceId, principal.workspaceId),
+            inArray(
+              tasks.parentTaskId,
+              items.map(({ id }) => id),
+            ),
+            authorization.resourcePredicate(principal, "view"),
+          ),
+        )
+        .groupBy(tasks.parentTaskId);
+      for (const row of counts)
+        if (row.parentTaskId !== null)
+          progress[row.parentTaskId] = { done: row.done, total: row.total };
+      const parentIds = [
+        ...new Set(
+          items.flatMap((task) =>
+            task.parentTaskId === null ? [] : [task.parentTaskId],
+          ),
+        ),
+      ];
+      if (parentIds.length > 0) {
+        const parentRows = await transaction
+          .select({ id: objects.id, displayName: objects.displayName })
+          .from(objects)
+          .where(
+            and(
+              eq(objects.workspaceId, principal.workspaceId),
+              inArray(objects.id, parentIds),
+              authorization.resourcePredicate(principal, "view"),
+            ),
+          );
+        const named = new Map(
+          parentRows.map((row) => [row.id, row.displayName]),
+        );
+        for (const task of items) {
+          const displayName =
+            task.parentTaskId === null
+              ? undefined
+              : named.get(task.parentTaskId);
+          if (task.parentTaskId !== null && displayName !== undefined)
+            parents[task.id] = { taskId: task.parentTaskId, displayName };
+        }
+      }
+    }
     const last = page.at(-1);
     return {
       items,
       contexts,
+      progress,
+      parents,
       asOf,
       nextCursor:
         rows.length > input.limit && last !== undefined

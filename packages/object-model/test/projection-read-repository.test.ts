@@ -59,6 +59,7 @@ function task(id: string, dueAt: Date | null): TaskResource {
     dueOn: null,
     dueAt,
     completedAt: null,
+    parentTaskId: null,
   };
 }
 

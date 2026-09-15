@@ -77,12 +77,15 @@ export const eventUpdateRequestSchema = z
 
 // A Task is due on a date (dueOn), at an instant (dueAt), or not at all;
 // the service refuses a state with both.
+// A Task may be a subtask of one other Task (parentTaskId), one level deep,
+// sharing its parent's permission scope; the service enforces the rules.
 export const taskCreateRequestSchema = z.object({
   ...createObjectShape,
   status: taskStatusSchema.optional(),
   dueOn: calendarDateSchema.nullable().optional(),
   dueAt: nullableDateTimeInputSchema.optional(),
   completedAt: nullableDateTimeInputSchema.optional(),
+  parentTaskId: objectIdSchema.nullable().optional(),
 });
 
 export const taskUpdateRequestSchema = z
@@ -92,6 +95,7 @@ export const taskUpdateRequestSchema = z
     dueOn: calendarDateSchema.nullable().optional(),
     dueAt: nullableDateTimeInputSchema.optional(),
     completedAt: nullableDateTimeInputSchema.optional(),
+    parentTaskId: objectIdSchema.nullable().optional(),
   })
   .refine(hasUpdateFields, {
     message: "At least one update field is required.",
@@ -187,6 +191,7 @@ export const taskResponseSchema = z.object({
   dueOn: calendarDateSchema.nullable().default(null),
   dueAt: nullableDateTimeResponseSchema,
   completedAt: nullableDateTimeResponseSchema,
+  parentTaskId: objectIdSchema.nullable().default(null),
 });
 
 /** The Event a listed Task belongs to, when the caller may view that Event. */
@@ -195,10 +200,26 @@ export const taskContextSchema = z.object({
   displayName: z.string(),
 });
 
+/** How many subtasks a listed parent has, and how many are done. */
+export const taskProgressSchema = z.object({
+  done: z.number().int().nonnegative(),
+  total: z.number().int().positive(),
+});
+
+/** The parent of a listed subtask, when the caller may view it. */
+export const taskParentSchema = z.object({
+  taskId: objectIdSchema,
+  displayName: z.string(),
+});
+
 export const taskListResponseSchema = z.object({
   items: z.array(taskResponseSchema),
   /** By Task ID; a Task outside any viewable Event has no entry. */
   contexts: z.record(objectIdSchema, taskContextSchema),
+  /** By parent Task ID, for listed parents with live subtasks. */
+  progress: z.record(objectIdSchema, taskProgressSchema),
+  /** By subtask ID, for listed subtasks whose parent the caller may view. */
+  parents: z.record(objectIdSchema, taskParentSchema),
   nextCursor: cursorTokenSchema.nullable(),
   asOf: dateTimeResponseSchema,
 });
@@ -339,6 +360,8 @@ export type EventResponse = z.infer<typeof eventResponseSchema>;
 export type EventListResponse = z.infer<typeof eventListResponseSchema>;
 export type TaskListResponse = z.infer<typeof taskListResponseSchema>;
 export type TaskContext = z.infer<typeof taskContextSchema>;
+export type TaskProgress = z.infer<typeof taskProgressSchema>;
+export type TaskParent = z.infer<typeof taskParentSchema>;
 export type TaskResponse = z.infer<typeof taskResponseSchema>;
 export type ExpenseResponse = z.infer<typeof expenseResponseSchema>;
 export type ReminderResponse = z.infer<typeof reminderResponseSchema>;

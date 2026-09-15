@@ -246,6 +246,83 @@ describe.sequential("CloudBase Task writes", () => {
     );
   });
 
+  it("keep subtasks one level deep in one scope, with the same refusals", async () => {
+    const outcomes: string[][] = [];
+    for (const [, service] of backends(reference, cloudbase)) {
+      const parent = await service.createTask(context(), {
+        displayName: "Plan the retreat",
+      });
+      const child = await service.createTask(context(), {
+        displayName: "Book the venue",
+        parentTaskId: parent.id,
+        permissionScopeId: parent.id,
+      });
+      expect(child.parentTaskId).toBe(parent.id);
+      expect(child.permissionScopeId).toBe(parent.id);
+      const detached = await service.updateTask(context(), child.id, {
+        expectedVersion: 1,
+        parentTaskId: null,
+      });
+      expect(detached.parentTaskId).toBeNull();
+      const reattached = await service.updateTask(context(), child.id, {
+        expectedVersion: 2,
+        parentTaskId: parent.id,
+      });
+      expect(reattached.parentTaskId).toBe(parent.id);
+
+      const seen: string[] = [];
+      const other = await service.createTask(context(), {
+        displayName: "Elsewhere",
+      });
+      for (const attempt of [
+        // a grandchild
+        () =>
+          service.createTask(context(), {
+            displayName: "x",
+            parentTaskId: child.id,
+            permissionScopeId: parent.id,
+          }),
+        // a parent becoming a subtask
+        () =>
+          service.updateTask(context(), parent.id, {
+            expectedVersion: 1,
+            parentTaskId: other.id,
+          }),
+        // another scope
+        () =>
+          service.createTask(context(), {
+            displayName: "x",
+            parentTaskId: parent.id,
+          }),
+        // a missing parent
+        () =>
+          service.createTask(context(), {
+            displayName: "x",
+            parentTaskId: createId(),
+          }),
+        // itself
+        () =>
+          service.updateTask(context(), other.id, {
+            expectedVersion: 1,
+            parentTaskId: other.id,
+          }),
+      ]) {
+        const error = await failure(attempt);
+        expect(error).toBeInstanceOf(InvalidObjectStateError);
+        seen.push(error.message);
+      }
+      outcomes.push(seen);
+    }
+    expect(outcomes[1]).toEqual(outcomes[0]);
+    expect(outcomes[0]).toEqual([
+      "A subtask cannot have subtasks of its own.",
+      "A task with subtasks cannot become a subtask.",
+      "A subtask shares its parent's permission scope.",
+      "parentTaskId must name a live task in this workspace.",
+      "A task cannot be its own parent.",
+    ]);
+  });
+
   it("refuse an object of another type or without a revision baseline", async () => {
     const messages: string[] = [];
     for (const [, service] of backends(reference, cloudbase)) {
