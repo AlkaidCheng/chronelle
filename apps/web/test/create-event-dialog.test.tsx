@@ -14,6 +14,7 @@ import { Providers } from "../app/providers";
 import { CreateEventDialog } from "../features/events/create-event-dialog";
 import { useAuthSession } from "../lib/auth-session";
 import { SandboxStore, sandboxWorkspaceId } from "../sandbox/store";
+import { setDates } from "./range-picker-support";
 
 let store: SandboxStore;
 const onCreated = vi.fn();
@@ -119,12 +120,7 @@ describe("event creation drafts", () => {
       const name = screen.getByLabelText("Event name");
       await user.type(name, "Garden evening");
       await user.click(screen.getByRole("switch", { name: "Set dates" }));
-      await user.click(screen.getByRole("button", { name: "Change year" }));
-      await user.click(screen.getByRole("button", { name: "2030" }));
-      await user.click(screen.getByRole("button", { name: "Change month" }));
-      await user.click(screen.getByRole("button", { name: "July" }));
-      await user.click(screen.getByRole("button", { name: "Jul 3, 2030" }));
-      await user.click(screen.getByRole("button", { name: "Jul 12, 2030" }));
+      await setDates(user, "2030-07-03", "2030-07-12");
       name.focus();
       const returnTarget =
         action === "Escape"
@@ -150,9 +146,9 @@ describe("event creation drafts", () => {
       );
       expect(returnTarget).toHaveFocus();
       expect(name).toHaveValue("Garden evening");
-      expect(screen.getByRole("grid", { name: "July 2030" })).toBeVisible();
+      expect(screen.getByRole("table", { name: "July 2030" })).toBeVisible();
       expect(
-        screen.getByRole("button", { name: "End date: Jul 12, 2030" }),
+        screen.getByText("Dates: Jul 3, 2030 to Jul 12, 2030"),
       ).toBeVisible();
       fireEvent(
         screen.getByRole("dialog"),

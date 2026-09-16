@@ -1,6 +1,7 @@
 import { expect, type Page, type TestInfo } from "@playwright/test";
 import { expectToken } from "./appearance";
 import { expectHorizontalReflow } from "./page-navigation";
+import { expectDates } from "./range-picker";
 
 export async function reopenScheduleDraft(page: Page) {
   const calendarUrl = page.url();
@@ -49,7 +50,8 @@ export async function inspectScheduleRecovery(page: Page, testInfo: TestInfo) {
     "Garden arrival",
   );
   await expect(page.getByLabel("Schedule item", { exact: true })).toBeFocused();
-  await expect(
-    page.getByRole("button", { name: "End date: Jul 5, 2030", exact: true }),
-  ).toBeVisible();
+  await expectDates(
+    page.getByRole("dialog", { name: "Add schedule item", exact: true }),
+    "Jul 3, 2030 to Jul 5, 2030",
+  );
 }

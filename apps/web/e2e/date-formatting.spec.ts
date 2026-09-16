@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { eventResponseSchema } from "@chronelle/schemas";
 import { expect, test } from "./fixtures";
+import { expectDates, setDates } from "./helpers/range-picker";
 
 test("creates a date-only range and switches to multi-day exact times", async ({
   page,
@@ -20,12 +21,8 @@ test("creates a date-only range and switches to multi-day exact times", async ({
   await page.getByRole("button", { name: "New event", exact: true }).click();
   await page.getByLabel("Event name", { exact: true }).fill("Summer vacation");
   await page.getByRole("switch", { name: "Set dates" }).check();
-  await page.getByRole("button", { name: "Change year" }).click();
-  await page.getByRole("button", { name: "2030", exact: true }).click();
-  await page.getByRole("button", { name: "Change month" }).click();
-  await page.getByRole("button", { name: "July", exact: true }).click();
-  await page.getByRole("button", { name: "Jul 3, 2030", exact: true }).click();
-  await page.getByRole("button", { name: "Jul 12, 2030", exact: true }).click();
+  const editor = page.getByRole("dialog", { name: "Create an event" });
+  await setDates(editor, "2030-07-03", "2030-07-12");
   await page.getByRole("button", { name: "Create event", exact: true }).click();
   await expect(
     page.getByRole("heading", { name: "Summer vacation", exact: true }),
@@ -60,12 +57,10 @@ test("creates a date-only range and switches to multi-day exact times", async ({
   ).toBeGreaterThan(8 * 86_400_000);
   await page.reload();
   await page.getByRole("button", { name: "Edit event", exact: true }).click();
-  await expect(
-    page.getByRole("button", { name: "Start date: Jul 3, 2030" }),
-  ).toBeVisible();
-  await expect(
-    page.getByRole("button", { name: "End date: Jul 12, 2030" }),
-  ).toBeVisible();
+  await expectDates(
+    page.getByRole("dialog", { name: "Edit event", exact: true }),
+    "Jul 3, 2030 to Jul 12, 2030",
+  );
   await expect(page.getByLabel("Start time", { exact: true })).toHaveValue(
     "09:30",
   );

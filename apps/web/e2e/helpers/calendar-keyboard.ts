@@ -1,57 +1,50 @@
 import { expect, type Page } from "@playwright/test";
+import { dayName, expectDates } from "./range-picker";
 
 export async function selectLeapDayRange(page: Page) {
   const dialog = page.getByRole("dialog", { name: "Create an event" });
   await dialog.getByRole("switch", { name: "Set dates" }).check();
-  await dialog.getByRole("button", { name: "Change year" }).click();
-  await dialog.getByRole("button", { name: "2028", exact: true }).click();
-  await dialog.getByRole("button", { name: "Change month" }).click();
-  await dialog.getByRole("button", { name: "January", exact: true }).click();
   await dialog
-    .getByRole("button", { name: "Jan 31, 2028", exact: true })
-    .focus();
+    .getByRole("button", { name: /^Choose a month and year/ })
+    .click();
+  const chooser = dialog.getByRole("dialog", {
+    name: "Choose a month and year",
+  });
+  await chooser.getByRole("button", { name: "2028", exact: true }).click();
+  await chooser.getByRole("button", { name: "Jan", exact: true }).click();
+  await chooser.getByRole("button", { name: "Done", exact: true }).click();
+  await expect(
+    dialog.getByRole("button", { name: /^Choose a month and year/ }),
+  ).toHaveAccessibleName("Choose a month and year, showing January 2028");
+  await dialog.getByRole("button", { name: dayName("2028-01-31") }).focus();
   await page.keyboard.press("PageDown");
   await expect(
-    dialog.getByRole("button", { name: "Feb 29, 2028", exact: true }),
+    dialog.getByRole("button", { name: dayName("2028-02-29") }),
   ).toBeFocused();
   await expect(
-    dialog.getByRole("status", { name: "Calendar navigation" }),
-  ).toHaveText("February 2028");
+    dialog.getByRole("button", { name: /^Choose a month and year/ }),
+  ).toHaveAccessibleName("Choose a month and year, showing February 2028");
   await expect(
-    dialog.getByRole("columnheader", { name: "Sunday", exact: true }),
-  ).toBeVisible();
+    dialog.getByRole("columnheader", { name: "Sunday", exact: true }).first(),
+  ).toBeAttached();
   await page.keyboard.press("Shift+PageDown");
   await expect(
-    dialog.getByRole("button", { name: "Feb 28, 2029", exact: true }),
+    dialog.getByRole("button", { name: dayName("2029-02-28") }),
   ).toBeFocused();
   await page.keyboard.press("Shift+PageUp");
   await expect(
-    dialog.getByRole("button", { name: "Feb 28, 2028", exact: true }),
+    dialog.getByRole("button", { name: dayName("2028-02-28") }),
   ).toBeFocused();
-  await expect(
-    dialog.getByRole("button", { name: "Start date: Choose a day" }),
-  ).toBeVisible();
+  await expectDates(dialog, "not set");
   await page.keyboard.press("Enter");
   await page.keyboard.press("ArrowRight");
   await page.keyboard.press("ArrowRight");
   await page.keyboard.press("Enter");
+  await expectDates(dialog, "Feb 28, 2028 to Mar 1, 2028");
   await expect(
-    dialog.getByRole("button", { name: "End date: Mar 1, 2028" }),
-  ).toBeVisible();
-  await expect(dialog.getByRole("gridcell", { selected: true })).toHaveCount(3);
-  await expect(
-    dialog.getByRole("status", { name: "Calendar navigation" }),
-  ).toHaveText("March 2028");
-  // macOS WebKit uses Option-Tab to include native buttons in keyboard navigation.
-  const tabKey =
-    process.platform === "darwin" &&
-    page.context().browser()?.browserType().name() === "webkit"
-      ? "Alt+Tab"
-      : "Tab";
-  await page.keyboard.press(tabKey);
-  await expect(
-    dialog.getByRole("button", { name: "Today", exact: true }),
-  ).toBeFocused();
+    dialog.locator('.month-list-day[aria-pressed="true"]'),
+  ).toHaveCount(2);
+  await expect(dialog.locator("td.is-between")).toHaveCount(1);
   await expect(dialog.locator(".event-create-header")).toBeInViewport({
     ratio: 1,
   });

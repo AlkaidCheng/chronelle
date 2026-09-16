@@ -16,6 +16,7 @@ import { Providers } from "../app/providers";
 import { EventInspector } from "../features/events/event-inspector";
 import { useAuthSession } from "../lib/auth-session";
 import { SandboxStore, sandboxWorkspaceId } from "../sandbox/store";
+import { setDates } from "./range-picker-support";
 
 let store: SandboxStore;
 let initial: ReturnType<typeof eventResponseSchema.parse>;
@@ -159,10 +160,7 @@ describe("Event inspector", () => {
       await user.clear(name);
       await user.type(name, "Evening in the garden");
       await user.click(screen.getByRole("switch", { name: "Set dates" }));
-      await user.click(screen.getByRole("button", { name: "Change year" }));
-      const year = screen.getByRole("textbox", { name: "Go to year" });
-      await user.clear(year);
-      await user.type(year, "2040{Enter}");
+      await setDates(user, "2040-07-03");
       name.focus();
       const target =
         action === "Escape"
@@ -181,7 +179,8 @@ describe("Event inspector", () => {
       cancelInspector();
       expect(target).toHaveFocus();
       expect(name).toHaveValue("Evening in the garden");
-      expect(screen.getByRole("grid")).toHaveAccessibleName(/2040/);
+      expect(screen.getByText("Dates: Jul 3, 2040")).toBeVisible();
+      expect(screen.getByRole("table", { name: "July 2040" })).toBeVisible();
       cancelInspector();
       await user.click(screen.getByRole("button", { name: "Discard" }));
       expect(screen.queryByRole("dialog")).not.toBeInTheDocument();

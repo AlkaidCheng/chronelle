@@ -15,6 +15,7 @@ import { Providers } from "../app/providers";
 import { CalendarPanel } from "../features/events/planning-panels";
 import { useAuthSession } from "../lib/auth-session";
 import { SandboxStore, sandboxWorkspaceId } from "../sandbox/store";
+import { setDates } from "./range-picker-support";
 
 let store: SandboxStore;
 let eventId: string;
@@ -392,11 +393,7 @@ describe("schedule creation dialog", () => {
     const user = await openEditor();
     const name = screen.getByLabelText("Schedule item");
     await user.type(name, "Garden welcome");
-    await user.click(screen.getByRole("button", { name: "Change year" }));
-    await user.click(screen.getByRole("button", { name: "2030" }));
-    await user.click(screen.getByRole("button", { name: "Change month" }));
-    await user.click(screen.getByRole("button", { name: "July" }));
-    await user.click(screen.getByRole("button", { name: "Jul 3, 2030" }));
+    await setDates(user, "2030-07-03");
     name.focus();
     fireEvent(
       screen.getByRole("dialog"),
@@ -411,7 +408,7 @@ describe("schedule creation dialog", () => {
     await user.click(screen.getByRole("button", { name: "Keep editing" }));
     expect(name).toHaveFocus();
     expect(name).toHaveValue("Garden welcome");
-    expect(screen.getByRole("grid", { name: "July 2030" })).toBeVisible();
+    expect(screen.getByRole("table", { name: "July 2030" })).toBeVisible();
     await user.click(screen.getByRole("button", { name: "Cancel" }));
     await user.click(screen.getByRole("button", { name: "Discard" }));
     expect(unloadIsPrevented()).toBe(false);

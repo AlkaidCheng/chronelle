@@ -1,6 +1,7 @@
 import { expect, type Page, type TestInfo } from "@playwright/test";
 import { expectHorizontalReflow } from "./page-navigation";
 import { expectToken } from "./appearance";
+import { expectDates, setDates } from "./range-picker";
 
 export async function createRecoveryEvent(page: Page) {
   await expect(
@@ -29,13 +30,7 @@ export async function exerciseEventDraftRecovery(
     .getByLabel("Name", { exact: true })
     .fill("Recovered garden evening");
   await page.getByRole("switch", { name: "Set dates", exact: true }).check();
-  await page.getByRole("button", { name: "Change year", exact: true }).click();
-  await page.getByRole("textbox", { name: "Go to year" }).fill("2030");
-  await page.getByRole("textbox", { name: "Go to year" }).press("Enter");
-  await page.getByRole("button", { name: "Change month", exact: true }).click();
-  await page.getByRole("button", { name: "July", exact: true }).click();
-  await page.getByRole("button", { name: "Jul 3, 2030", exact: true }).click();
-  await page.getByRole("button", { name: "Jul 12, 2030", exact: true }).click();
+  await setDates(page.getByRole("dialog"), "2030-07-03", "2030-07-12");
 
   for (let index = 0; index < 2; index++) {
     await page.goBack();
@@ -85,9 +80,10 @@ export async function exerciseEventDraftRecovery(
     "Recovered garden evening",
   );
   await expect(page.getByLabel("Name", { exact: true })).toBeFocused();
-  await expect(
-    page.getByRole("button", { name: "End date: Jul 12, 2030", exact: true }),
-  ).toBeVisible();
+  await expectDates(
+    page.getByRole("dialog", { name: "Edit event", exact: true }),
+    "Jul 3, 2030 to Jul 12, 2030",
+  );
   await page.getByRole("button", { name: "Save event", exact: true }).click();
   await expect(
     page.getByRole("heading", {
