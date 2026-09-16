@@ -5,13 +5,10 @@ import { useState } from "react";
 
 import { type DayKey, monthDays, weekDays } from "./day-placement";
 
-/** The period a week or month view shows, and the day chosen in it. */
+/** The period a week or month view shows. */
 export interface Period {
   readonly cursor: Date;
-  readonly selected: DayKey | null;
-  /** Moves the period; the chosen day clears unless one is given. */
-  readonly setCursor: (cursor: Date, selected?: DayKey | null) => void;
-  readonly setSelected: (selected: DayKey | null) => void;
+  readonly setCursor: (cursor: Date) => void;
 }
 
 /**
@@ -19,20 +16,11 @@ export interface Period {
  * today and returns there whenever the view changes; nothing is saved.
  */
 export function usePeriod(view: EventComponentView): Period {
-  const [state, setState] = useState(() => ({
-    view,
-    cursor: new Date(),
-    selected: null as DayKey | null,
-  }));
-  if (state.view !== view)
-    setState({ view, cursor: new Date(), selected: null });
+  const [state, setState] = useState(() => ({ view, cursor: new Date() }));
+  if (state.view !== view) setState({ view, cursor: new Date() });
   return {
     cursor: state.cursor,
-    selected: state.selected,
-    setCursor: (cursor, selected = null) =>
-      setState({ view, cursor, selected }),
-    setSelected: (selected) =>
-      setState({ view, cursor: state.cursor, selected }),
+    setCursor: (cursor) => setState({ view, cursor }),
   };
 }
 
