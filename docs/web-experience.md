@@ -54,9 +54,11 @@ permission scope (its event's, inside an event). Subtasks go one level deep.
 In the list a subtask sits indented under its parent when both are loaded,
 otherwise it reads "Part of" its parent; by day, each task sits under its own
 due day with the parent named. A parent shows how many of its subtasks are
-done (2/3). Completing a parent leaves its subtasks as they are, and a parent
-moved to Trash leaves them live until it is restored. The To-dos component
-offers the same actions and marks over the event's tasks.
+done (2/3). Completing a parent leaves its subtasks as they are; a parent
+moved to Trash takes its live subtasks with it, and restoring the parent
+brings back the ones that went with it (a subtask trashed on its own stays,
+and cannot be restored before its parent). The To-dos component offers the
+same actions and marks over the event's tasks.
 
 Labels are workspace-wide names a task may carry any number of. The task
 editor holds them behind a Labels disclosure: closed, it counts the selection;

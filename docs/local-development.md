@@ -67,7 +67,10 @@ type; reapply the runtime role after it as well. Migration
 with `chronelle_assert_task_location` and redefines the Task functions to
 carry `location`. Migration
 `0040_include_people_in_events.sql` lets an Event include People
-(`chronelle_relation_compatible`).
+(`chronelle_relation_compatible`). Migration
+`0041_cascade_subtasks_in_trash.sql` adds `objects.deleted_with` and
+redefines `chronelle_object_delete` and `chronelle_object_recover` so a
+task's live subtasks go to Trash and come back with it.
 
 Migration `0021_add_object_search_function.sql` adds `chronelle_object_search`,
 the read-only function the CloudBase search adapter calls. It changes no
