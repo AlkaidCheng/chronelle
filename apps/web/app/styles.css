@@ -1650,8 +1650,7 @@ a.search-result:hover {
   justify-content: space-between;
 }
 
-.attachment-upload-actions > span,
-.attachment-locked-count {
+.attachment-upload-actions > span {
   color: var(--muted);
   font-size: 0.72rem;
   line-height: 1.45;
@@ -1661,13 +1660,6 @@ a.search-result:hover {
   accent-color: var(--accent);
   height: 5px;
   width: 100%;
-}
-
-.attachment-locked-count {
-  background: var(--surface-subtle);
-  border-radius: 8px;
-  margin: 0 0 14px;
-  padding: 10px 12px;
 }
 
 .attachment-list {
