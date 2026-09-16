@@ -546,7 +546,13 @@ screen-reader announcements require manual assistive-technology validation.
 The seven Event components share one frame. Each opens with its title, one
 line on what the view is for, and at most one action: Add task, Add schedule
 item, Add expense, or Add reminder for members who can edit; Files takes its
-file through the form below its heading instead. Rows carry their actions in
+file through the form below its heading instead, and holds that form and the
+target choice while an upload runs. Every component's states use the same
+pieces: one loading line, one empty state whose viewer wording says the event
+is read-only, and one error notice with a retry (or, for a failed upload or
+download, Dismiss). Attachments outside the viewer's permission scope are
+counted in a Private attachments note, as the Overview counts private related
+items. Rows carry their actions in
 one group and one order across views: the row's own action first (Edit, or
 Download for a file), then a state change (Dismiss for a pending reminder),
 then History, then Actions, which opens the move-to-Trash dialog. Viewers see
