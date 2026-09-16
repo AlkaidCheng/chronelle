@@ -46,6 +46,7 @@ import {
   useLabelsQuery,
   usePersonsQuery,
   useRefreshEvent,
+  useSessionQuery,
   useUpdateReminder,
 } from "../../lib/queries";
 import { ExpenseForm } from "./expense-form";
@@ -57,6 +58,23 @@ import { TaskInspector } from "./task-inspector";
 import { TaskListView } from "../tasks/task-list-view";
 
 type TaskFilter = "all" | "open" | "done";
+
+/** Named choices in name order, for a filter over what the tasks carry. */
+function namedChoices(
+  ids: Iterable<string>,
+  names: ReadonlyMap<string, string> | undefined,
+): { readonly id: string; readonly name: string }[] {
+  const choices: { id: string; name: string }[] = [];
+  for (const id of new Set(ids)) {
+    const name = names?.get(id);
+    if (name !== undefined) choices.push({ id, name });
+  }
+  return choices.sort(
+    (a, b) =>
+      a.name.toLowerCase().localeCompare(b.name.toLowerCase()) ||
+      a.id.localeCompare(b.id),
+  );
+}
 
 export function TasksPanel({
   canEdit,
@@ -74,6 +92,8 @@ export function TasksPanel({
   readonly view?: EventComponentView;
 }) {
   const [filter, setFilter] = useState<TaskFilter>("open");
+  const [label, setLabel] = useState("");
+  const [assignee, setAssignee] = useState("");
   const [isAdding, setIsAdding] = useState(false);
   const [parent, setParent] = useState<SubtaskParent | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -83,6 +103,43 @@ export function TasksPanel({
   const tree = useMemo(() => deriveTaskTree(tasks), [tasks]);
   const labels = useLabelsQuery();
   const persons = usePersonsQuery();
+  const session = useSessionQuery();
+  // The person linked to the signed-in account, when one exists.
+  const myPerson = persons.data?.items.find(
+    (person) =>
+      session.data !== undefined && person.userId === session.data.user.id,
+  );
+  // The labels and people the tasks carry, so the filters offer only what
+  // can match; a choice the tasks no longer carry falls back to any.
+  const labelChoices = useMemo(
+    () =>
+      namedChoices(
+        tasks.flatMap((task) => task.labelIds),
+        labels.data?.names,
+      ),
+    [labels.data, tasks],
+  );
+  const assigneeChoices = useMemo(
+    () =>
+      namedChoices(
+        tasks.flatMap((task) =>
+          task.assigneeId === null || task.assigneeId === myPerson?.id
+            ? []
+            : [task.assigneeId],
+        ),
+        persons.data?.names,
+      ),
+    [myPerson?.id, persons.data, tasks],
+  );
+  const meAssigned =
+    myPerson !== undefined &&
+    tasks.some((task) => task.assigneeId === myPerson.id);
+  const activeLabel = labelChoices.some(({ id }) => id === label) ? label : "";
+  const activeAssignee =
+    (meAssigned && assignee === myPerson?.id) ||
+    assigneeChoices.some(({ id }) => id === assignee)
+      ? assignee
+      : "";
   // Stable, so the row cells keep their identity and focus across renders.
   const addSubtask = useCallback(
     (task: TaskResponse) =>
@@ -96,6 +153,10 @@ export function TasksPanel({
   const filteredTasks = useMemo(
     () =>
       tasks.filter((task) => {
+        if (activeLabel !== "" && !task.labelIds.includes(activeLabel))
+          return false;
+        if (activeAssignee !== "" && task.assigneeId !== activeAssignee)
+          return false;
         if (filter === "open") {
           return task.status !== "done" && task.status !== "cancelled";
         }
@@ -104,7 +165,7 @@ export function TasksPanel({
         }
         return true;
       }),
-    [filter, tasks],
+    [activeAssignee, activeLabel, filter, tasks],
   );
 
   return (
@@ -149,20 +210,57 @@ export function TasksPanel({
           parent={parent}
         />
       ) : null}
-      <fieldset className="filter-row">
-        <legend>Filter tasks</legend>
-        {(["open", "all", "done"] as const).map((value) => (
-          <button
-            aria-pressed={filter === value}
-            className={filter === value ? "active" : ""}
-            key={value}
-            onClick={() => setFilter(value)}
-            type="button"
-          >
-            {value}
-          </button>
-        ))}
-      </fieldset>
+      <div className="filter-bar">
+        <fieldset className="filter-row">
+          <legend>Filter tasks</legend>
+          {(["open", "all", "done"] as const).map((value) => (
+            <button
+              aria-pressed={filter === value}
+              className={filter === value ? "active" : ""}
+              key={value}
+              onClick={() => setFilter(value)}
+              type="button"
+            >
+              {value}
+            </button>
+          ))}
+        </fieldset>
+        {labelChoices.length === 0 ? null : (
+          <label className="compact-field collection-sort">
+            <span className="visually-hidden">Filter by label</span>
+            <select
+              onChange={(event) => setLabel(event.target.value)}
+              value={activeLabel}
+            >
+              <option value="">Any label</option>
+              {labelChoices.map((choice) => (
+                <option key={choice.id} value={choice.id}>
+                  {choice.name}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
+        {!meAssigned && assigneeChoices.length === 0 ? null : (
+          <label className="compact-field collection-sort">
+            <span className="visually-hidden">Filter by assignee</span>
+            <select
+              onChange={(event) => setAssignee(event.target.value)}
+              value={activeAssignee}
+            >
+              <option value="">Anyone</option>
+              {meAssigned && myPerson !== undefined ? (
+                <option value={myPerson.id}>Me</option>
+              ) : null}
+              {assigneeChoices.map((choice) => (
+                <option key={choice.id} value={choice.id}>
+                  {choice.name}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
+      </div>
       {filteredTasks.length === 0 ? (
         <EmptyState
           description={
@@ -170,7 +268,11 @@ export function TasksPanel({
               ? canEdit
                 ? "Use Add task to choose the next step."
                 : "Tasks will appear here when available. This event is read-only."
-              : `There are no ${filter} tasks.`
+              : activeLabel !== "" || activeAssignee !== ""
+                ? filter === "all"
+                  ? "No tasks match these filters."
+                  : `No ${filter} tasks match these filters.`
+                : `There are no ${filter} tasks.`
           }
           title={tasks.length === 0 ? "No tasks yet" : "Nothing in this view"}
         />

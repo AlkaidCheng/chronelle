@@ -1036,6 +1036,91 @@ describe("insertable event components", () => {
     ).toEqual(["month", "by-day"]);
   });
 
+  it("filters the To-dos by the labels and people its tasks carry, for the session", async () => {
+    await client.updateEventLayout(eventId, {
+      expectedVersion: 0,
+      pages: [page("Plan", ["todos"])],
+    });
+    const urgent = await client.createLabel({ name: "Urgent" });
+    const mira = await client.createPerson({ displayName: "Mira" });
+    const me = await client.createPerson({
+      displayName: "Sample planner",
+      userId: (await client.getSession()).user.id,
+    });
+    const task = async (input: {
+      readonly displayName: string;
+      readonly labelIds?: string[];
+      readonly assigneeId?: string;
+    }) =>
+      (
+        await client.createEventResource(eventId, {
+          commandId: crypto.randomUUID(),
+          resource: { objectType: "task", ...input },
+        })
+      ).resource;
+    const cake = await task({
+      displayName: "Order the cake",
+      labelIds: [urgent.id],
+      assigneeId: mira.id,
+    });
+    await task({ displayName: "Call the band", assigneeId: me.id });
+    const user = userEvent.setup();
+    render(
+      <>
+        <EventPages eventId={eventId} canEdit />
+        <RefreshProbe />
+      </>,
+      { wrapper: Providers },
+    );
+    await screen.findByText("Order the cake");
+    await user.click(screen.getByRole("button", { name: "all" }));
+    // The filters offer only what the tasks carry: one label, Me, and Mira.
+    const byLabel = screen.getByRole("combobox", { name: "Filter by label" });
+    expect(
+      within(byLabel)
+        .getAllByRole("option")
+        .map((option) => option.textContent),
+    ).toEqual(["Any label", "Urgent"]);
+    const byAssignee = screen.getByRole("combobox", {
+      name: "Filter by assignee",
+    });
+    expect(
+      within(byAssignee)
+        .getAllByRole("option")
+        .map((option) => option.textContent),
+    ).toEqual(["Anyone", "Me", "Mira"]);
+    await user.selectOptions(byLabel, "Urgent");
+    expect(screen.getByRole("row", { name: /Order the cake/ })).toBeVisible();
+    expect(screen.queryByRole("row", { name: /Call the band/ })).toBeNull();
+    expect(
+      screen.queryByRole("row", { name: /Confirm the garden venue/ }),
+    ).toBeNull();
+    // The filters combine; a match-less pair shows why the list is empty.
+    await user.selectOptions(byAssignee, "Me");
+    expect(screen.getByText("No tasks match these filters.")).toBeVisible();
+    await user.selectOptions(byLabel, "");
+    expect(screen.getByRole("row", { name: /Call the band/ })).toBeVisible();
+    expect(screen.queryByRole("row", { name: /Order the cake/ })).toBeNull();
+    await user.selectOptions(byAssignee, "Mira");
+    expect(screen.getByRole("row", { name: /Order the cake/ })).toBeVisible();
+    // The choice is session state: the layout saved nothing for it.
+    expect((await client.getEventLayout(eventId)).version).toBe(1);
+    // A label the tasks no longer carry leaves the filter; the list widens.
+    await user.selectOptions(byLabel, "Urgent");
+    await client.updateTask(cake.id, {
+      expectedVersion: cake.version,
+      labelIds: [],
+    });
+    await user.click(screen.getByRole("button", { name: "Refetch layout" }));
+    await waitFor(() =>
+      expect(
+        screen.queryByRole("combobox", { name: "Filter by label" }),
+      ).toBeNull(),
+    );
+    expect(screen.getByRole("row", { name: /Order the cake/ })).toBeVisible();
+    expect(byAssignee).toHaveValue(mira.id);
+  });
+
   it("allows a viewer to preview saved layouts without mutation controls", async () => {
     await client.updateEventLayout(eventId, {
       expectedVersion: 0,

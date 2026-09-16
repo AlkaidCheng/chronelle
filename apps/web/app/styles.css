@@ -1918,6 +1918,22 @@ a.search-result:hover {
   padding: 0;
 }
 
+.filter-bar {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+  margin: 8px 0 18px;
+}
+
+.filter-bar .filter-row {
+  margin: 0;
+}
+
+.filter-bar .collection-sort {
+  flex: 0 1 190px;
+}
+
 .view-switch {
   background: var(--surface-subtle);
   border-radius: 999px;
