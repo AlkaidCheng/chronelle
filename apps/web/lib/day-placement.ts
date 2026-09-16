@@ -43,11 +43,15 @@ export function weekDays(cursor: Date): DayKey[] {
   );
 }
 
-/** Six weeks of local days covering the cursor's month, Monday first. */
+/**
+ * The local days of the weeks the cursor's month spans, Monday first: from
+ * the week holding the first of the month to the week holding its last day.
+ */
 export function monthDays(cursor: Date): DayKey[] {
-  const first = startOfWeek(startOfMonth(cursor));
-  return Array.from({ length: 42 }, (_, index) =>
-    dayKeyOf(addDays(first, index)),
+  const last = new Date(cursor.getFullYear(), cursor.getMonth() + 1, 0);
+  return daySpan(
+    startOfWeek(startOfMonth(cursor)),
+    addDays(startOfWeek(last), 6),
   );
 }
 

@@ -240,3 +240,72 @@ export function SearchIcon({ className }: IconProps) {
     </svg>
   );
 }
+
+export function LayoutIcon({ className }: IconProps) {
+  return (
+    <svg
+      aria-hidden="true"
+      className={className}
+      fill="none"
+      viewBox="0 0 24 24"
+    >
+      <rect x="4" y="4" width="16" height="16" rx="2" />
+      <path d="M4 10h16M10 10v10" />
+    </svg>
+  );
+}
+
+export function SortIcon({ className }: IconProps) {
+  return (
+    <svg
+      aria-hidden="true"
+      className={className}
+      fill="none"
+      viewBox="0 0 24 24"
+    >
+      <path d="M5 7h14M7.5 12h9M10 17h4" />
+    </svg>
+  );
+}
+
+export function FilterIcon({ className }: IconProps) {
+  return (
+    <svg
+      aria-hidden="true"
+      className={className}
+      fill="none"
+      viewBox="0 0 24 24"
+    >
+      <path d="M4 6h16l-6.5 7.5V19l-3-1.5v-4Z" />
+    </svg>
+  );
+}
+
+export function ChevronIcon({
+  className,
+  direction,
+}: IconProps & { readonly direction: "left" | "right" }) {
+  return (
+    <svg
+      aria-hidden="true"
+      className={className}
+      fill="none"
+      viewBox="0 0 24 24"
+    >
+      <path d={direction === "left" ? "m14 6-6 6 6 6" : "m10 6 6 6-6 6"} />
+    </svg>
+  );
+}
+
+export function RingIcon({ className }: IconProps) {
+  return (
+    <svg
+      aria-hidden="true"
+      className={className}
+      fill="none"
+      viewBox="0 0 24 24"
+    >
+      <circle cx="12" cy="12" r="7.5" />
+    </svg>
+  );
+}

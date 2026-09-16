@@ -19,8 +19,15 @@ export async function exerciseEventArrange(page: Page, testInfo: TestInfo) {
       .click();
     await expect(picker).toHaveCount(0);
   }
-  const filter = page.getByRole("button", { name: "all", exact: true });
-  await filter.click();
+  await page.getByRole("button", { name: /^Filter/ }).click();
+  await page.getByRole("menuitemradio", { name: "All", exact: true }).click();
+  await page.keyboard.press("Escape");
+  // The filter is session state of the To-dos component: arranging must
+  // keep the component mounted, so the choice survives every toggle.
+  const filter = page.getByRole("button", {
+    name: "Filter: 1 filter",
+    exact: true,
+  });
   const controls = page.getByRole("group", { name: /layout controls/ });
   const canvas = page.getByRole("region", { name: "Event pages", exact: true });
   await expect(controls).toHaveCount(0);
@@ -36,7 +43,7 @@ export async function exerciseEventArrange(page: Page, testInfo: TestInfo) {
   });
   await expect(done).toBeFocused();
   await expect(controls).toHaveCount(2);
-  await expect(filter).toHaveAttribute("aria-pressed", "true");
+  await expect(filter).toHaveClass(/is-active/);
   await page.keyboard.press("Enter");
   const arrange = page.getByRole("button", {
     name: "Arrange layout",
@@ -75,7 +82,7 @@ export async function exerciseEventArrange(page: Page, testInfo: TestInfo) {
       path: testInfo.outputPath(`event-arrange-${colorScheme}.png`),
     });
     await done.click();
-    await expect(filter).toHaveAttribute("aria-pressed", "true");
+    await expect(filter).toHaveClass(/is-active/);
   }
 
   await arrange.click();
@@ -83,7 +90,7 @@ export async function exerciseEventArrange(page: Page, testInfo: TestInfo) {
   await commands.getByRole("option", { name: /Done arranging/ }).click();
   await expect(arrange).toBeFocused();
   await expect(controls).toHaveCount(0);
-  await expect(filter).toHaveAttribute("aria-pressed", "true");
+  await expect(filter).toHaveClass(/is-active/);
   await arrange.click();
   await page.reload();
   await expect(arrange).toBeVisible();

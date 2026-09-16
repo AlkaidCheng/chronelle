@@ -26,10 +26,22 @@ describe("day placement", () => {
       "2030-03-09",
       "2030-03-10",
     ]);
+    // The weeks run from the one holding the 1st to the one holding the
+    // last day: five for a March starting on a Friday, four for a
+    // February that fills its weeks, six for a September starting on a
+    // Sunday and ending on a Monday.
     const march = monthDays(at("2030-03-15"));
-    expect(march).toHaveLength(42);
+    expect(march).toHaveLength(35);
     expect(march[0]).toBe("2030-02-25");
-    expect(march.at(-1)).toBe("2030-04-07");
+    expect(march.at(-1)).toBe("2030-03-31");
+    const february = monthDays(at("2027-02-10"));
+    expect(february).toHaveLength(28);
+    expect(february[0]).toBe("2027-02-01");
+    expect(february.at(-1)).toBe("2027-02-28");
+    const september = monthDays(at("2030-09-16"));
+    expect(september).toHaveLength(42);
+    expect(september[0]).toBe("2030-08-26");
+    expect(september.at(-1)).toBe("2030-10-06");
     // A year end keeps its Monday framing.
     expect(monthDays(at("2030-12-31"))[0]).toBe("2030-11-25");
   });

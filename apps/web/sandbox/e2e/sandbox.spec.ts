@@ -30,9 +30,9 @@ test("standalone screens work offline and preserve browser edits", async ({
   await expect(
     page.getByText("Welcome and coffee", { exact: true }),
   ).toBeVisible();
+  await page.getByRole("button", { name: "Layout", exact: false }).click();
   await page
-    .getByRole("group", { name: "View", exact: true })
-    .getByRole("button", { name: "Agenda", exact: true })
+    .getByRole("menuitemradio", { name: "Agenda", exact: true })
     .click();
   await expect(
     page.getByText("Welcome and coffee", { exact: true }),

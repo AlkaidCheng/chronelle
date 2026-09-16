@@ -2,20 +2,26 @@
 
 import type { EventComponentView } from "@chronelle/schemas";
 import type { ReactNode } from "react";
+import { HeadMenu } from "../../components/head-menu";
+import { LayoutIcon } from "../../components/icons";
 import { eventComponentViews } from "../../lib/event-components";
 
 /**
- * The heading every Event component shares: title, one line of purpose,
- * then its view control and one action.
+ * The heading every Event component shares: title, a count when the
+ * component keeps one, one line of purpose, then its controls and one
+ * action.
  */
 export function PanelHeading({
   action,
   controls,
+  count,
   description,
   title,
 }: {
   readonly action?: ReactNode;
   readonly controls?: ReactNode;
+  /** What the component holds, read beside the title: "3 open". */
+  readonly count?: string | undefined;
   readonly description: string;
   readonly title: string;
 }) {
@@ -23,6 +29,7 @@ export function PanelHeading({
     <header className="panel-heading">
       <div>
         <h2>{title}</h2>
+        {count === undefined ? null : <p className="panel-count">{count}</p>}
         <p>{description}</p>
       </div>
       {controls === undefined && action === undefined ? null : (
@@ -35,8 +42,12 @@ export function PanelHeading({
   );
 }
 
-/** Chooses among the views a component offers; nothing when it offers one. */
-export function ViewSwitch({
+/**
+ * One quiet control reading the current layout that opens the templates a
+ * component offers (List, By day, By week, Calendar); nothing when it
+ * offers one.
+ */
+export function LayoutControl({
   busy = false,
   onChange,
   view,
@@ -49,22 +60,20 @@ export function ViewSwitch({
 }) {
   if (views.length < 2) return null;
   return (
-    <fieldset className="view-switch" disabled={busy}>
-      <legend>View</legend>
-      {views.map((option) => (
-        <button
-          aria-pressed={option === view}
-          className={option === view ? "active" : ""}
-          key={option}
-          onClick={() => {
-            if (option !== view) onChange(option);
-          }}
-          type="button"
-        >
-          {eventComponentViews[option].label}
-        </button>
-      ))}
-    </fieldset>
+    <HeadMenu
+      busy={busy}
+      entries={views.map((option) => ({
+        kind: "radio",
+        label: eventComponentViews[option].label,
+        checked: option === view,
+        onSelect: () => {
+          if (option !== view) onChange(option);
+        },
+      }))}
+      icon={<LayoutIcon />}
+      label="Layout"
+      name={eventComponentViews[view].label}
+    />
   );
 }
 

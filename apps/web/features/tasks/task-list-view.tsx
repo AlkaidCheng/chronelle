@@ -28,7 +28,12 @@ import {
   rankForStep,
   staysInPlace,
 } from "../../lib/collection-order";
-import { type DayKey, placeByDay, taskDay } from "../../lib/day-placement";
+import {
+  type DayKey,
+  dayKeyOf,
+  placeByDay,
+  taskDay,
+} from "../../lib/day-placement";
 import { dayInWords, dueShortcuts } from "../../lib/due-choices";
 import { formatTime } from "../../lib/format";
 import { useDuplicateTask, useUpdateTask } from "../../lib/queries";
@@ -38,12 +43,28 @@ import { nestTasks } from "../../lib/task-tree";
 import type { Period } from "../../lib/use-period";
 import { type RowDrop, useRowDrag } from "../../lib/use-row-drag";
 import { StatusChip } from "../events/component-frame";
-import { PeriodView } from "../events/period-view";
+import { PeriodView, type RowMode } from "../events/period-view";
 import { useOpenHistory } from "../history/history-provider";
 import { useOpenLifecycle } from "../recovery/lifecycle-provider";
 import { QuickAddTask } from "./quick-add-task";
 
 const taskColumn = createColumnHelper<TaskResponse>();
+
+/** The list's class for a row mode, shared by the containers that render rows. */
+export function resourceListClass(mode: RowMode): string {
+  return `resource-list${mode === "compact" ? " resource-list-compact" : mode === "cell" ? " resource-list-cell" : ""}`;
+}
+
+/** A row's classes: the drag state and, for a done row, is-done. */
+export function rowClasses(
+  dragClass: string | undefined,
+  done: boolean,
+): string | undefined {
+  const classes = [dragClass, done ? "is-done" : undefined].filter(
+    (name) => name !== undefined,
+  );
+  return classes.length === 0 ? undefined : classes.join(" ");
+}
 
 /** The one group of the list view; by day, groups carry their own keys. */
 const listGroup = "all";
@@ -275,6 +296,21 @@ export function TaskListView({
         : [],
     [tasks, view],
   );
+  // Open tasks whose day has passed sit in a strip as well as in their day,
+  // since the day may be outside the period shown.
+  const overdue = useMemo(() => {
+    if (view !== "week" && view !== "month") return [];
+    const today = dayKeyOf(new Date());
+    return tasks.filter((task) => {
+      const day = taskDay(task);
+      return (
+        day !== null &&
+        day < today &&
+        task.status !== "done" &&
+        task.status !== "cancelled"
+      );
+    });
+  }, [tasks, view]);
 
   /** One versioned update of the task with the given changes, announced. */
   const change = useCallback(
@@ -578,7 +614,10 @@ export function TaskListView({
     groupKey: string,
   ) => (
     <li
-      className={rowClass(groupKey, task.id)}
+      className={rowClasses(
+        rowClass(groupKey, task.id),
+        task.status === "done",
+      )}
       id={`task-${task.id}`}
       key={task.id}
       {...rowProps(task.id)}
@@ -600,21 +639,13 @@ export function TaskListView({
   if (view === "week" || view === "month")
     return (
       <PeriodView
-        cellOf={(task) => (
-          <span className={task.status === "done" ? "is-done" : undefined}>
-            {task.dueAt !== null ? `${formatTime(task.dueAt)} ` : ""}
-            {task.displayName}
-          </span>
-        )}
-        emptyDay="Nothing due this day."
         notice={notice}
+        overdue={overdue}
         period={period}
         placed={placed}
-        renderList={(items, compact) => (
-          <ul
-            className={`resource-list${compact ? " resource-list-compact" : ""}`}
-          >
-            {items.map((task) => row(task, false, items, listGroup))}
+        renderList={(items, mode) => (
+          <ul className={resourceListClass(mode)}>
+            {items.map((task) => row(task, mode === "full", items, listGroup))}
           </ul>
         )}
         undated={undated}

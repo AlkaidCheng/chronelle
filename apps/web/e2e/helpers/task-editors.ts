@@ -87,7 +87,9 @@ export async function exerciseTaskEditors(page: Page, testInfo: TestInfo) {
     })
     .click();
   await expect(row).toHaveCount(0);
-  await page.getByRole("button", { name: "done", exact: true }).click();
+  await page.getByRole("button", { name: /^Filter/ }).click();
+  await page.getByRole("menuitemradio", { name: "Done", exact: true }).click();
+  await page.keyboard.press("Escape");
   await expect(row).toHaveCount(1);
   await row
     .getByRole("button", {
@@ -96,6 +98,8 @@ export async function exerciseTaskEditors(page: Page, testInfo: TestInfo) {
     })
     .click();
   await expect(row).toHaveCount(0);
-  await page.getByRole("button", { name: "open", exact: true }).click();
+  await page.getByRole("button", { name: /^Filter/ }).click();
+  await page.getByRole("menuitemradio", { name: "Open", exact: true }).click();
+  await page.keyboard.press("Escape");
   await expect(row).toHaveCount(1);
 }

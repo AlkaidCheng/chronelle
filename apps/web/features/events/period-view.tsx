@@ -3,21 +3,22 @@
 import type { ReactNode } from "react";
 
 import { MonthGrid, PeriodNav, WeekStrip } from "../../components/period-views";
-import { type DayKey, dayKeyOf } from "../../lib/day-placement";
-import { formatCalendarDate } from "../../lib/event-schedule";
+import type { DayKey } from "../../lib/day-placement";
 import type { Period } from "../../lib/use-period";
 
+/** How a container renders its rows: in full, wrapped for a column, or as one line for a calendar cell. */
+export type RowMode = "full" | "compact" | "cell";
+
 /**
- * A container's week or month: the period navigation, seven columns or a
- * six-week grid over the items placed by day, the selected day's rows
- * under a grid (today's while the month is the current one), and the
- * items without a day under either. The container renders its own rows
- * and cell nodes, so behaviour does not fork by view.
+ * A container's week or calendar: the items that have no cell (overdue,
+ * undated) as strips above, the period navigation, then seven columns or
+ * the month's grid over the items placed by day. The container renders
+ * its own rows in every mode, so behaviour does not fork by view.
  */
 export function PeriodView<Item extends { readonly id: string }>({
-  cellOf,
-  emptyDay,
   notice,
+  overdue = [],
+  overdueLabel = "Overdue",
   period,
   placed,
   renderList,
@@ -25,85 +26,64 @@ export function PeriodView<Item extends { readonly id: string }>({
   undatedLabel,
   view,
 }: {
-  /** The compact node a month cell shows for one item. */
-  readonly cellOf: (item: Item) => ReactNode;
-  /** The hint under a month when the shown day holds nothing. */
-  readonly emptyDay: string;
   readonly notice?: ReactNode;
+  /** Open items whose day has passed; shown as a strip since a past cell may be out of view. */
+  readonly overdue?: readonly Item[];
+  readonly overdueLabel?: string;
   readonly period: Period;
   readonly placed: ReadonlyMap<DayKey, readonly Item[]>;
-  /** The rows of one day or of the undated group, as the list view renders them. */
-  readonly renderList: (items: readonly Item[], compact: boolean) => ReactNode;
+  /** The rows of one day or of a strip, as the list view renders them. */
+  readonly renderList: (items: readonly Item[], mode: RowMode) => ReactNode;
   readonly undated: readonly Item[];
   readonly undatedLabel: string;
   readonly view: "week" | "month";
 }) {
-  const { cursor, selected, setCursor, setSelected } = period;
-  const undatedGroup =
-    undated.length === 0 ? null : (
-      <section aria-label={undatedLabel} className="day-group day-group-plain">
+  const { cursor, setCursor } = period;
+  const strip = (label: string, tone: string, items: readonly Item[]) =>
+    items.length === 0 ? null : (
+      <section
+        aria-label={label}
+        className={`day-group day-group-strip day-group-${tone}`}
+      >
         <h3 className="day-group-heading">
-          <span>{undatedLabel}</span>
+          <span>{label}</span>
         </h3>
-        {renderList(undated, false)}
+        {renderList(items, "full")}
       </section>
     );
-  if (view === "week")
-    return (
-      <div className="period-view">
-        {notice}
-        <PeriodNav cursor={cursor} onChange={setCursor} period="week" />
+  const strips =
+    overdue.length === 0 && undated.length === 0 ? null : (
+      <div className="period-strips">
+        {strip(overdueLabel, "overdue", overdue)}
+        {strip(undatedLabel, "plain", undated)}
+      </div>
+    );
+  return (
+    <div className="period-view">
+      {notice}
+      {strips}
+      <PeriodNav cursor={cursor} onChange={setCursor} period={view} />
+      {view === "week" ? (
         <WeekStrip
           cursor={cursor}
           renderDay={(day) => {
             const items = placed.get(day) ?? [];
-            return items.length === 0 ? null : renderList(items, true);
+            return items.length === 0 ? null : renderList(items, "compact");
           }}
         />
-        {undatedGroup}
-      </div>
-    );
-  const now = new Date();
-  const shownDay =
-    selected ??
-    (cursor.getMonth() === now.getMonth() &&
-    cursor.getFullYear() === now.getFullYear()
-      ? dayKeyOf(now)
-      : null);
-  const dayItems = shownDay === null ? [] : (placed.get(shownDay) ?? []);
-  return (
-    <div className="period-view">
-      {notice}
-      <PeriodNav cursor={cursor} onChange={setCursor} period="month" />
-      <MonthGrid
-        cursor={cursor}
-        onSelect={setSelected}
-        renderItem={(day) =>
-          (placed.get(day) ?? []).map((item) => ({
-            key: item.id,
-            node: cellOf(item),
-          }))
-        }
-        selected={shownDay}
-      />
-      {shownDay === null ? (
-        <p className="field-hint">Select a day to see it.</p>
       ) : (
-        <section
-          aria-label={formatCalendarDate(shownDay)}
-          className="day-group day-group-plain"
-        >
-          <h3 className="day-group-heading">
-            <span>{formatCalendarDate(shownDay)}</span>
-          </h3>
-          {dayItems.length === 0 ? (
-            <p className="field-hint">{emptyDay}</p>
-          ) : (
-            renderList(dayItems, false)
-          )}
-        </section>
+        <MonthGrid
+          countOf={(day) => (placed.get(day) ?? []).length}
+          cursor={cursor}
+          renderDay={(day, limit) => {
+            const items = placed.get(day) ?? [];
+            return renderList(
+              limit === null ? items : items.slice(0, limit),
+              "cell",
+            );
+          }}
+        />
       )}
-      {undatedGroup}
     </div>
   );
 }

@@ -1,11 +1,21 @@
-import { expect, type Page } from "@playwright/test";
+import { expect, type Locator, type Page } from "@playwright/test";
 import { setDue } from "./due-picker";
 import { today } from "./today";
 
+/** Opens a panel's Layout menu and chooses a template by its name. */
+export async function chooseLayout(panel: Locator, name: string) {
+  await panel.getByRole("button", { name: "Layout" }).click();
+  await panel.getByRole("menuitemradio", { name, exact: true }).click();
+  await expect(
+    panel.getByRole("button", { name: `Layout: ${name}` }),
+  ).toBeVisible();
+}
+
 /**
  * Adds a To-dos component with two tasks due on one far day and one due
- * today, walks it through the by-day, week, and month views, and checks
- * each chosen view survives a reload while moving the period does not.
+ * today, walks it through the by-day, by-week, and calendar layouts, and
+ * checks each chosen layout survives a reload while moving the period
+ * does not.
  */
 export async function exerciseComponentViews(page: Page) {
   await page.getByRole("button", { name: "Add page", exact: true }).click();
@@ -57,12 +67,10 @@ export async function exerciseComponentViews(page: Page) {
     rows.findIndex((row) => row.includes("Send the agenda")),
   );
 
-  const view = todos.getByRole("group", { name: "View", exact: true });
-  await expect(view.getByRole("button", { name: "List" })).toHaveAttribute(
-    "aria-pressed",
-    "true",
-  );
-  await view.getByRole("button", { name: "By day" }).click();
+  await expect(
+    todos.getByRole("button", { name: "Layout: List", exact: true }),
+  ).toBeVisible();
+  await chooseLayout(todos, "By day");
   const day = todos.getByRole("region", { name: /Mar 5/ });
   await expect(day).toBeVisible();
   await expect(day.getByRole("listitem")).toHaveCount(2);
@@ -75,10 +83,6 @@ export async function exerciseComponentViews(page: Page) {
   );
   await expect(day.getByRole("listitem").last()).not.toContainText("AM");
   await expect(todos.getByRole("table")).toHaveCount(0);
-  await expect(view.getByRole("button", { name: "By day" })).toHaveAttribute(
-    "aria-pressed",
-    "true",
-  );
   await expect(page.getByText("Shown by day.")).toBeAttached();
 
   await page.reload();
@@ -86,31 +90,29 @@ export async function exerciseComponentViews(page: Page) {
     has: page.getByRole("heading", { name: "To-dos", exact: true }),
   });
   await expect(reopened.getByRole("region", { name: /Mar 5/ })).toBeVisible();
-  const views = reopened.getByRole("group", { name: "View", exact: true });
-  await expect(views.getByRole("button", { name: "By day" })).toHaveAttribute(
-    "aria-pressed",
-    "true",
-  );
+  await expect(
+    reopened.getByRole("button", { name: "Layout: By day", exact: true }),
+  ).toBeVisible();
 
   // The week opens on today; the far tasks are outside it.
-  await views.getByRole("button", { name: "Week" }).click();
+  await chooseLayout(reopened, "By week");
   const period = reopened.getByRole("group", { name: "Period", exact: true });
   const todayColumn = reopened.locator(".week-day.is-today");
   await expect(todayColumn).toHaveCount(1);
   await expect(todayColumn.getByText("Confirm the caterer")).toBeVisible();
   await expect(reopened.getByText("Book the room")).toHaveCount(0);
-  await expect(views.getByRole("button", { name: "Week" })).toHaveAttribute(
-    "aria-pressed",
-    "true",
-  );
-  // Moving the period is not saved; Today returns.
+  // Moving the period is not saved; the ring returns to this week.
   await period.getByRole("button", { name: "Next week" }).click();
   await expect(reopened.locator(".week-day.is-today")).toHaveCount(0);
   await expect(reopened.getByText("Confirm the caterer")).toHaveCount(0);
-  await period.getByRole("button", { name: "Today" }).click();
+  await period.getByRole("button", { name: "This week" }).click();
   await expect(todayColumn.getByText("Confirm the caterer")).toBeVisible();
   // A column's row completes the task like the list's; every status shown.
-  await reopened.getByRole("button", { name: "all", exact: true }).click();
+  await reopened.getByRole("button", { name: /^Filter/ }).click();
+  await reopened
+    .getByRole("menuitemradio", { name: "All", exact: true })
+    .click();
+  await page.keyboard.press("Escape");
   await todayColumn
     .getByRole("button", { name: "Complete Confirm the caterer" })
     .click();
@@ -118,34 +120,38 @@ export async function exerciseComponentViews(page: Page) {
     todayColumn.getByRole("button", { name: "Reopen Confirm the caterer" }),
   ).toBeVisible();
 
-  // The month opens on today's day; another day lists what it holds.
-  await views.getByRole("button", { name: "Month" }).click();
+  // The calendar opens on today's month; today's cell holds the row, and
+  // the grid ends with the week of the month's last day.
+  await chooseLayout(reopened, "Calendar");
   const grid = reopened.getByRole("table");
   await expect(grid).toBeVisible();
   const todayCell = reopened.locator(".month-day.is-today");
   await expect(todayCell.locator(".is-done")).toContainText(
     "Confirm the caterer",
   );
-  // The selected day's section comes before the undated group.
-  const shownDay = reopened.locator(".period-view > .day-group").first();
-  await expect(shownDay).toContainText("Confirm the caterer");
   await expect(
-    shownDay.getByRole("button", { name: "Reopen Confirm the caterer" }),
+    todayCell.getByRole("button", { name: "Reopen Confirm the caterer" }),
+  ).toBeAttached();
+  await expect(
+    period.getByRole("button", { name: "This month" }),
   ).toBeVisible();
-  // The last cell belongs to the next month and holds nothing.
-  await grid.getByRole("button").last().click();
-  await expect(shownDay).toContainText("Nothing due this day.");
-  await expect(shownDay).not.toContainText("Confirm the caterer");
-  await expect(period).toBeVisible();
+  const cells = await grid.getByRole("cell").count();
+  expect(cells % 7).toBe(0);
+  expect(cells).toBeLessThanOrEqual(42);
+  await expect(
+    grid.locator("tr").last().locator(".is-outside"),
+  ).not.toHaveCount(7);
 
   await page.reload();
   await expect(reopened.getByRole("table")).toBeVisible();
   await expect(
-    reopened
-      .getByRole("group", { name: "View", exact: true })
-      .getByRole("button", { name: "Month" }),
-  ).toHaveAttribute("aria-pressed", "true");
-  await reopened.getByRole("button", { name: "all", exact: true }).click();
+    reopened.getByRole("button", { name: "Layout: Calendar", exact: true }),
+  ).toBeVisible();
+  await reopened.getByRole("button", { name: /^Filter/ }).click();
+  await reopened
+    .getByRole("menuitemradio", { name: "All", exact: true })
+    .click();
+  await page.keyboard.press("Escape");
   await expect(reopened.locator(".month-day.is-today")).toContainText(
     "Confirm the caterer",
   );
@@ -176,15 +182,10 @@ export async function exerciseComponentViews(page: Page) {
     .getByRole("button", { name: "Record expense", exact: true })
     .click();
   await expect(expenseEditor).toHaveCount(0);
-  await expenses
-    .getByRole("group", { name: "View", exact: true })
-    .getByRole("button", { name: "Month" })
-    .click();
+  await chooseLayout(expenses, "Calendar");
   await expect(expenses.locator(".month-day.is-today")).toContainText(
     "Napkins",
   );
-  await expect(
-    expenses.locator(".period-view > .day-group").first(),
-  ).toContainText("Day total");
+  await expect(expenses.locator(".month-day.is-today")).toContainText("$12.50");
   return "Book the room";
 }

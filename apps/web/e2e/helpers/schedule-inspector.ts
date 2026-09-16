@@ -76,9 +76,9 @@ export async function exerciseScheduleInspector(
   await expect(
     calendar.getByRole("heading", { name: "Recovered schedule item" }),
   ).toBeVisible();
+  await page.getByRole("button", { name: "Layout", exact: false }).click();
   await page
-    .getByRole("group", { name: "View", exact: true })
-    .getByRole("button", { name: "Agenda", exact: true })
+    .getByRole("menuitemradio", { name: "Agenda", exact: true })
     .click();
   await expect(
     page.getByRole("heading", {

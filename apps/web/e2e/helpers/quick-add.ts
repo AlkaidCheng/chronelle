@@ -1,4 +1,5 @@
 import { expect, type Page } from "@playwright/test";
+import { chooseLayout } from "./component-views";
 import { setDue } from "./due-picker";
 import { today } from "./today";
 
@@ -75,10 +76,7 @@ export async function exerciseQuickAddInEvent(page: Page) {
   await field.press("Escape");
   await expect(field).toHaveCount(0);
 
-  await todos
-    .getByRole("group", { name: "View", exact: true })
-    .getByRole("button", { name: "By day" })
-    .click();
+  await chooseLayout(todos, "By day");
   const undated = todos.locator("section.day-group").filter({
     has: page.getByRole("heading", { name: "No due date" }),
   });
@@ -112,10 +110,7 @@ export async function exerciseQuickAddInEvent(page: Page) {
   ).toBeVisible();
   await expect(reminderField).toHaveValue("");
   await reminderField.press("Escape");
-  await reminders
-    .getByRole("group", { name: "View", exact: true })
-    .getByRole("button", { name: "By day" })
-    .click();
+  await chooseLayout(reminders, "By day");
   const dayGroup = reminders.locator("section.day-group").first();
   await dayGroup.getByRole("button", { name: /^Add a reminder for / }).click();
   await reminderField.fill("Buy the cake");

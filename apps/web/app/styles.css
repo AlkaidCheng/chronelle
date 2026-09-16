@@ -1956,37 +1956,12 @@ p[role="alert"] {
   visibility: hidden;
 }
 
-.filter-row,
-.view-switch {
+.filter-row {
   border: 0;
   display: flex;
   gap: 6px;
   margin: 8px 0 18px;
   padding: 0;
-}
-
-.filter-bar {
-  align-items: center;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px 14px;
-  margin: 8px 0 18px;
-}
-
-.filter-bar .filter-row {
-  margin: 0;
-}
-
-.filter-bar .collection-sort {
-  flex: 0 1 190px;
-}
-
-.view-switch {
-  background: var(--surface-subtle);
-  border-radius: 999px;
-  gap: 2px;
-  margin: 0;
-  padding: 3px;
 }
 
 .panel-tools {
@@ -1998,8 +1973,7 @@ p[role="alert"] {
   justify-content: flex-end;
 }
 
-.filter-row legend,
-.view-switch legend {
+.filter-row legend {
   height: 1px;
   margin: -1px;
   overflow: hidden;
@@ -2009,8 +1983,7 @@ p[role="alert"] {
   clip: rect(0 0 0 0);
 }
 
-.filter-row button,
-.view-switch button {
+.filter-row button {
   background: transparent;
   border: 1px solid transparent;
   border-radius: 999px;
@@ -2023,26 +1996,101 @@ p[role="alert"] {
 }
 
 .filter-row button:hover,
-.filter-row button.active,
-.view-switch button:hover,
-.view-switch button.active {
+.filter-row button.active {
   background: var(--accent-soft);
   color: var(--accent);
 }
 
-.view-switch button {
-  text-transform: none;
+/* Sort, Filter, and Layout: quiet controls that open one narrow menu each. */
+.head-controls {
+  display: inline-flex;
+  gap: 2px;
 }
 
-.view-switch button.active {
+.head-menu {
+  position: relative;
+}
+
+.head-menu-button {
+  font-size: 0.8rem;
+  gap: 6px;
+  min-height: 36px;
+  padding: 6px 10px;
+}
+
+.head-menu-button svg {
+  height: 16px;
+  width: 16px;
+}
+
+.head-menu-button.is-active {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.head-menu-list {
   background: var(--surface);
-  box-shadow: 0 0 0 1px var(--line);
-  color: var(--ink);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  box-shadow: var(--shadow);
+  display: grid;
+  gap: 2px;
+  margin-top: 4px;
+  padding: 6px;
+  position: absolute;
+  right: 0;
+  top: 100%;
+  width: 200px;
+  z-index: 4;
 }
 
-.view-switch:disabled button {
-  cursor: default;
-  opacity: 0.6;
+.head-menu-list [role^="menuitem"] {
+  align-items: center;
+  background: none;
+  border: 0;
+  border-radius: 8px;
+  color: inherit;
+  cursor: pointer;
+  display: flex;
+  font: inherit;
+  font-size: 0.86rem;
+  gap: 10px;
+  justify-content: space-between;
+  padding: 7px 10px;
+  text-align: left;
+  width: 100%;
+}
+
+.head-menu-list [role^="menuitem"]:hover,
+.head-menu-list [role^="menuitem"]:focus-visible {
+  background: var(--surface-subtle);
+  outline: none;
+}
+
+.head-menu-list [aria-checked="true"]::after {
+  color: var(--accent);
+  content: "\2713";
+  font-weight: 700;
+}
+
+.head-menu-rule {
+  border-top: 1px solid var(--line);
+  margin: 4px 2px;
+}
+
+.head-menu-label {
+  color: var(--muted);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  padding: 6px 10px 2px;
+  text-transform: uppercase;
+}
+
+.panel-count {
+  color: var(--muted);
+  font-size: 0.82rem;
+  margin: -4px 0 8px;
 }
 
 .table-wrap {
@@ -2435,66 +2483,118 @@ ul.resource-list {
   gap: 16px;
 }
 
+.period-view > * {
+  min-width: 0;
+}
+
+/* Overdue and undated items have no cell: they sit as strips above. */
+.period-strips {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+}
+
+.day-group-strip {
+  background: var(--surface-subtle);
+  border-radius: 10px;
+  padding: 2px 10px 6px;
+}
+
+.day-group-strip .day-group-heading {
+  padding: 8px 0 4px;
+}
+
+/* The period's title at the left; previous, this period, next at the right. */
 .period-nav {
   align-items: center;
   border: 0;
   display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
+  gap: 10px;
   margin: 0;
   padding: 0;
 }
 
 .period-label {
-  font-size: 0.9rem;
-  font-weight: 700;
-  margin-left: 6px;
+  color: var(--muted);
+  font-size: 0.85rem;
+  margin-right: auto;
+}
+
+.period-label strong {
+  color: var(--ink);
+  font-size: 1rem;
+}
+
+.period-steps {
+  display: inline-flex;
+  gap: 2px;
+}
+
+.period-steps button {
+  align-items: center;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  color: var(--ink);
+  cursor: pointer;
+  display: inline-flex;
+  height: 32px;
+  justify-content: center;
+  padding: 0;
+  width: 32px;
+}
+
+.period-steps button:hover {
+  background: var(--surface-subtle);
+}
+
+.period-steps svg {
+  height: 18px;
+  width: 18px;
+}
+
+.period-steps .period-today svg {
+  height: 15px;
+  width: 15px;
+}
+
+/* By week: one column per day, scrolling sideways where the panel is narrow. */
+.week-scroll {
+  overflow-x: auto;
+  scrollbar-gutter: stable;
 }
 
 .week-strip {
   display: grid;
-  gap: 8px;
-  grid-template-columns: repeat(7, minmax(150px, 1fr));
+  gap: 10px;
+  grid-template-columns: repeat(7, minmax(112px, 1fr));
   list-style: none;
   margin: 0;
-  overflow-x: auto;
+  min-width: 840px;
   padding: 0 0 6px;
 }
 
 .week-day {
   align-content: start;
-  background: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: 12px;
   display: grid;
-  gap: 8px;
-  min-height: 140px;
-  padding: 10px;
-}
-
-.week-day.is-today {
-  border-color: var(--accent);
+  min-width: 0;
 }
 
 .week-day-heading {
-  align-items: baseline;
-  display: flex;
-  font-size: 0.78rem;
-  gap: 6px;
-  margin: 0;
+  border-bottom: 1px solid var(--line);
+  display: grid;
+  font-size: 0.82rem;
+  margin: 0 0 4px;
+  padding: 6px 0 4px;
 }
 
-.week-day-heading span {
+.week-day-heading small {
   color: var(--muted);
-  font-weight: 700;
-  text-transform: uppercase;
+  font-size: 0.72rem;
+  font-weight: 500;
 }
 
-.week-day-heading strong {
-  font-size: 1.05rem;
-}
-
-.is-today .week-day-heading strong {
+.is-today .week-day-heading span {
   color: var(--accent);
 }
 
@@ -2515,117 +2615,211 @@ ul.resource-list {
   margin-left: 0;
 }
 
+/* Calendar: the month's weeks as cells, numbers at the right, today filled. */
 .month-grid {
-  border-collapse: separate;
-  border-spacing: 4px;
+  border-collapse: collapse;
+  border-top: 1px solid var(--line);
   table-layout: fixed;
   width: 100%;
 }
 
 .month-weekdays th {
   color: var(--muted);
-  font-size: 0.72rem;
-  font-weight: 700;
-  padding: 0 6px;
-  text-align: left;
-  text-transform: uppercase;
+  font-size: 0.78rem;
+  font-weight: 600;
+  padding: 6px 8px 4px;
+  text-align: right;
 }
 
 .month-day {
+  border-right: 1px solid var(--line);
+  border-top: 1px solid var(--line);
+  height: 104px;
   min-width: 0;
-  padding: 0;
+  padding: 4px 4px 2px;
   vertical-align: top;
 }
 
-.month-day-button {
-  background: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: 10px;
-  color: inherit;
-  cursor: pointer;
-  display: grid;
-  font: inherit;
-  gap: 4px;
-  min-height: 92px;
-  padding: 6px;
-  text-align: left;
-  width: 100%;
+.month-day:first-child {
+  border-left: 1px solid var(--line);
 }
 
-.month-day.is-outside .month-day-button {
+.month-day.is-outside {
   color: var(--muted);
-  opacity: 0.7;
-}
-
-.month-day.is-today .month-day-button {
-  border-color: var(--accent);
-}
-
-.month-day.is-selected .month-day-button {
-  background: var(--accent-soft);
-  border-color: var(--accent);
 }
 
 .month-day-number {
-  font-size: 0.8rem;
-  font-weight: 700;
+  display: block;
+  font-size: 0.82rem;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  padding: 0 2px 2px;
+  text-align: right;
 }
 
-.month-day-items {
+.month-day.is-today .month-day-number > span {
+  background: var(--accent);
+  border-radius: 999px;
+  color: var(--on-accent);
+  display: inline-block;
+  line-height: 22px;
+  min-width: 22px;
+  padding: 0 5px;
+  text-align: center;
+}
+
+.month-day-more {
+  background: none;
+  border: 0;
+  color: var(--muted);
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.74rem;
+  padding: 0 2px;
+  text-align: left;
+}
+
+/* A calendar cell's rows: a dot, the name clipped, the time at the right. */
+.resource-list-cell {
+  gap: 0;
+}
+
+.resource-list-cell > li,
+.resource-list-cell > article {
+  align-items: center;
+  border: 0;
   display: grid;
-  gap: 2px;
+  gap: 4px;
+  grid-template-columns: 8px minmax(0, 1fr);
+  min-height: 22px;
+  padding: 0 2px;
+  position: relative;
+}
+
+.resource-list-cell > article::before {
+  background: var(--accent);
+  border-radius: 999px;
+  content: "";
+  height: 8px;
+  width: 8px;
+}
+
+.resource-list-cell > article.is-done::before,
+.resource-list-cell .task-check.checked {
+  background: var(--muted);
+}
+
+.resource-list-cell .task-check {
+  background: var(--accent);
+  border: 0;
+  border-radius: 999px;
+  height: 8px;
+  min-height: 0;
+  padding: 0;
+  width: 8px;
+}
+
+.resource-list-cell .task-check svg,
+.resource-list-cell .date-tile,
+.resource-list-cell .object-details,
+.resource-list-cell .status-chip,
+.resource-list-cell .task-assignee,
+.resource-list-cell .task-location,
+.resource-list-cell .task-labels,
+.resource-list-cell .task-progress,
+.resource-list-cell .task-parent,
+.resource-list-cell .task-context,
+.resource-list-cell .object-label {
+  display: none;
+}
+
+.resource-list-cell .resource-copy {
+  align-items: baseline;
+  display: flex;
+  flex: 1 1 auto;
+  gap: 6px;
   min-width: 0;
 }
 
-.month-day-item {
-  font-size: 0.7rem;
+.resource-list-cell .resource-copy > strong,
+.resource-list-cell .resource-copy > h3 {
+  flex: 1 1 auto;
+  font-size: 0.78rem;
+  margin: 0;
+  min-width: 3ch;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.month-day-item .is-done {
+.resource-list-cell .resource-copy > p,
+.resource-list-cell .money-value {
+  color: var(--muted);
+  flex: 0 1 auto;
+  font-size: 0.72rem;
+  font-variant-numeric: tabular-nums;
+  font-weight: 500;
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.resource-list-cell .resource-copy > p:empty {
+  display: none;
+}
+
+.resource-list-cell .money-value {
+  grid-column: 2;
+  padding-left: 0;
+}
+
+.resource-list-cell .is-done > .resource-copy > strong,
+.resource-list-cell .is-done > .resource-copy > h3 {
   color: var(--muted);
   text-decoration: line-through;
 }
 
-.month-day-more {
-  color: var(--muted);
-  font-size: 0.68rem;
+.resource-list-cell .row-actions {
+  background: var(--surface);
+  border-radius: 8px;
+  margin: 0;
+  opacity: 0;
+  position: absolute;
+  right: 0;
+  top: 0;
+  z-index: 1;
 }
 
-.month-day.has-items .month-day-number::after {
-  background: var(--accent);
-  border-radius: 50%;
-  content: "";
-  display: none;
-  height: 5px;
-  margin-left: 4px;
-  vertical-align: middle;
-  width: 5px;
+.resource-list-cell .row-more {
+  height: 20px;
+  position: absolute;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 20px;
 }
 
-@media (max-width: 720px) {
-  /* Days stack on a phone; a month cell marks its days rather than listing them. */
-  .week-strip {
-    grid-template-columns: 1fr;
-    overflow-x: visible;
+.resource-list-cell > li,
+.resource-list-cell > article {
+  padding-right: 22px;
+}
+
+.resource-list-cell > li:hover .row-actions,
+.resource-list-cell > li:focus-within .row-actions,
+.resource-list-cell > article:hover .row-actions,
+.resource-list-cell > article:focus-within .row-actions {
+  opacity: 1;
+}
+
+@media (max-width: 760px) {
+  .month-day {
+    height: 64px;
   }
 
-  .week-day {
-    min-height: 0;
-  }
-
-  .month-day-button {
-    min-height: 56px;
-  }
-
-  .month-day-items {
-    display: none;
-  }
-
-  .month-day.has-items .month-day-number::after {
-    display: inline-block;
+  .resource-list-cell .resource-copy > strong,
+  .resource-list-cell .resource-copy > h3 {
+    font-size: 0.72rem;
   }
 }
 

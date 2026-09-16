@@ -61,7 +61,7 @@ describe("period views", () => {
     );
   });
 
-  it("navigates a period and returns to today", async () => {
+  it("steps a period with three icon buttons and returns to this one", async () => {
     const user = userEvent.setup();
     const onChange = vi.fn<(cursor: Date) => void>();
     render(
@@ -72,10 +72,24 @@ describe("period views", () => {
     expect(dayKeyOf(onChange.mock.calls[0]?.[0] as Date)).toBe("2030-03-13");
     await user.click(nav.getByRole("button", { name: "Previous week" }));
     expect(dayKeyOf(onChange.mock.calls[1]?.[0] as Date)).toBe("2030-02-27");
-    await user.click(nav.getByRole("button", { name: "Today" }));
+    await user.click(nav.getByRole("button", { name: "This week" }));
     expect(dayKeyOf(onChange.mock.calls[2]?.[0] as Date)).toBe(
       dayKeyOf(new Date()),
     );
+    expect(nav.getByRole("button", { name: "This week" })).toHaveAttribute(
+      "title",
+      "This week",
+    );
+  });
+
+  it("titles a month with its name in bold and the year after it", () => {
+    render(
+      <PeriodNav cursor={at("2030-03-06")} onChange={vi.fn()} period="month" />,
+    );
+    const title = screen.getByRole("group", { name: "Period" });
+    expect(within(title).getByText("March").tagName).toBe("STRONG");
+    expect(title).toHaveTextContent(/March 2030/);
+    expect(screen.getByRole("button", { name: "This month" })).toBeVisible();
   });
 
   it("lays a week out Monday first with today marked", () => {
@@ -99,57 +113,90 @@ describe("period views", () => {
       ].map(fullDay),
     );
     expect(days[4]).toHaveClass("is-today");
+    expect(days[4]).toHaveTextContent("Today");
     expect(days[3]).not.toHaveClass("is-today");
+    expect(days[3]).not.toHaveTextContent("Today");
     expect(
       within(days[0] as HTMLElement).getByText("2030-03-04"),
     ).toBeVisible();
   });
 
-  it("shows six weeks of a month, counts what a cell cannot show, and selects a day", async () => {
+  it("stops the month after the week holding its last day and names the first of a month", async () => {
     const user = userEvent.setup();
-    const onSelect = vi.fn<(day: string) => void>();
     const items: Record<string, string[]> = {
       "2030-03-06": ["Book flights", "Pack", "Call the hotel", "Buy adapters"],
       "2030-03-08": ["Depart"],
     };
+    const renderDay = vi.fn((day: string, limit: number | null) => (
+      <ul>
+        {(items[day] ?? []).slice(0, limit ?? undefined).map((name) => (
+          <li key={name}>{name}</li>
+        ))}
+      </ul>
+    ));
     render(
       <MonthGrid
+        countOf={(day) => (items[day] ?? []).length}
         cursor={at("2030-03-06")}
-        onSelect={onSelect}
-        renderItem={(day) =>
-          (items[day] ?? []).map((name) => ({ key: name, node: name }))
-        }
-        selected="2030-03-08"
+        renderDay={renderDay}
         today={at("2030-03-07")}
       />,
     );
     const grid = screen.getByRole("table", { name: /2030/ });
+    // March 2030 starts on a Friday and ends on a Sunday: five weeks, no
+    // week of April alone.
     const cells = within(grid).getAllByRole("cell");
-    expect(cells).toHaveLength(42);
+    expect(cells).toHaveLength(35);
     expect(cells[0]).toHaveClass("is-outside");
+    expect(cells[0]).toHaveAccessibleName(fullDay("2030-02-25"));
     expect(cells[4]).not.toHaveClass("is-outside");
-    expect(cells.at(-1)).toHaveClass("is-outside");
+    expect(cells[4]).toHaveTextContent(/^Mar 1$/);
+    expect(cells.at(-1)).toHaveAccessibleName(fullDay("2030-03-31"));
+    expect(cells.at(-1)).not.toHaveClass("is-outside");
+    expect(
+      within(grid)
+        .getAllByRole("columnheader")
+        .map((header) => header.textContent),
+    ).toEqual(
+      [
+        "2030-03-04",
+        "2030-03-05",
+        "2030-03-06",
+        "2030-03-07",
+        "2030-03-08",
+        "2030-03-09",
+        "2030-03-10",
+      ].map((day) =>
+        new Intl.DateTimeFormat(undefined, { weekday: "short" }).format(
+          at(day),
+        ),
+      ),
+    );
     const day = (key: string) =>
-      within(grid).getByRole("button", {
+      within(grid).getByRole("cell", {
         name: new RegExp(`^${fullDay(key)}`),
       });
     expect(day("2030-03-06")).toHaveAccessibleName(
       `${fullDay("2030-03-06")}, 4 items`,
     );
-    expect(within(day("2030-03-06")).getByText("+1 more")).toBeVisible();
-    expect(within(day("2030-03-06")).queryByText("Buy adapters")).toBeNull();
+    expect(day("2030-03-06")).toHaveClass("has-items");
+    expect(day("2030-03-07")).toHaveClass("is-today");
+    expect(day("2030-03-07")).not.toHaveClass("has-items");
     expect(day("2030-03-08")).toHaveAccessibleName(
       `${fullDay("2030-03-08")}, 1 item`,
     );
-    expect(day("2030-03-08")).toHaveAttribute("aria-pressed", "true");
-    expect(day("2030-03-08").closest("td")).toHaveClass(
-      "is-selected",
-      "has-items",
+    // Three rows show; the rest fold behind "+N more", which opens the day.
+    expect(renderDay).toHaveBeenCalledWith("2030-03-06", 3);
+    expect(within(day("2030-03-06")).queryByText("Buy adapters")).toBeNull();
+    await user.click(
+      within(day("2030-03-06")).getByRole("button", { name: "+1 more" }),
     );
-    expect(day("2030-03-07").closest("td")).not.toHaveClass("has-items");
-    expect(day("2030-03-07").closest("td")).toHaveClass("is-today");
-    expect(day("2030-03-07")).toHaveAttribute("aria-pressed", "false");
-    await user.click(day("2030-03-06"));
-    expect(onSelect).toHaveBeenCalledWith("2030-03-06");
+    expect(within(day("2030-03-06")).getByText("Buy adapters")).toBeVisible();
+    expect(
+      within(day("2030-03-06")).queryByRole("button", { name: /more/ }),
+    ).toBeNull();
+    expect(renderDay).toHaveBeenCalledWith("2030-03-06", null);
+    // An empty day renders no rows at all.
+    expect(renderDay).not.toHaveBeenCalledWith("2030-03-07", 3);
   });
 });

@@ -22,9 +22,11 @@ import {
 import { groupByDay } from "../../lib/day-groups";
 import {
   type DayKey,
+  dayKeyOf,
   eventDays,
   instantDay,
   placeByDay,
+  taskDay,
 } from "../../lib/day-placement";
 import { dayInWords, dueShortcuts } from "../../lib/due-choices";
 import { viewsOf } from "../../lib/event-components";
@@ -43,6 +45,7 @@ import {
   useUpdateReminder,
 } from "../../lib/queries";
 import { instantOnDay } from "../../lib/task-due";
+import { type TaskSort, sortTasks } from "../../lib/task-sort";
 import { deriveTaskTree } from "../../lib/task-tree";
 import { usePeriod } from "../../lib/use-period";
 import { type RowDrop, useRowDrag } from "../../lib/use-row-drag";
@@ -53,19 +56,30 @@ import {
   useOpenLifecycle,
 } from "../recovery/lifecycle-provider";
 import { QuickAddTask } from "../tasks/quick-add-task";
-import { TaskListView } from "../tasks/task-list-view";
+import {
+  activeFilterCount,
+  defaultTaskFilters,
+  type TaskFilters,
+  TaskFilterControl,
+  TaskSortControl,
+} from "../tasks/task-controls";
+import {
+  resourceListClass,
+  rowClasses,
+  TaskListView,
+} from "../tasks/task-list-view";
 import {
   DateTile,
+  LayoutControl,
   objectTypeLabel,
   PanelHeading,
   RowActions,
   StatusChip,
-  ViewSwitch,
 } from "./component-frame";
 import { CreateScheduleDialog } from "./create-schedule-dialog";
 import { ExpenseForm } from "./expense-form";
 import { ExpenseInspector } from "./expense-inspector";
-import { PeriodView } from "./period-view";
+import { PeriodView, type RowMode } from "./period-view";
 import { QuickAddReminder } from "./quick-add-reminder";
 import { ReminderForm } from "./reminder-form";
 import { ReminderInspector } from "./reminder-inspector";
@@ -73,7 +87,9 @@ import { ScheduleItemInspector } from "./schedule-item-inspector";
 import { type SubtaskParent, TaskForm } from "./task-form";
 import { TaskInspector } from "./task-inspector";
 
-type TaskFilter = "all" | "open" | "done";
+function isOpen(task: TaskResponse): boolean {
+  return task.status !== "done" && task.status !== "cancelled";
+}
 
 /** Named choices in name order, for a filter over what the tasks carry. */
 function namedChoices(
@@ -107,9 +123,12 @@ export function TasksPanel({
   readonly tasks: readonly TaskResponse[];
   readonly view?: EventComponentView;
 }) {
-  const [filter, setFilter] = useState<TaskFilter>("open");
-  const [label, setLabel] = useState("");
-  const [assignee, setAssignee] = useState("");
+  const [filters, setFilters] = useState<TaskFilters>({
+    ...defaultTaskFilters,
+    timed: false,
+    overdue: false,
+  });
+  const [sort, setSort] = useState<TaskSort>("manual");
   const [isAdding, setIsAdding] = useState(false);
   const [parent, setParent] = useState<SubtaskParent | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -151,12 +170,20 @@ export function TasksPanel({
   const meAssigned =
     myPerson !== undefined &&
     tasks.some((task) => task.assigneeId === myPerson.id);
-  const activeLabel = labelChoices.some(({ id }) => id === label) ? label : "";
+  const activeLabel = labelChoices.some(({ id }) => id === filters.label)
+    ? filters.label
+    : "";
   const activeAssignee =
-    (meAssigned && assignee === myPerson?.id) ||
-    assigneeChoices.some(({ id }) => id === assignee)
-      ? assignee
+    (meAssigned && filters.assignee === myPerson?.id) ||
+    assigneeChoices.some(({ id }) => id === filters.assignee)
+      ? filters.assignee
       : "";
+  const activeFilters: TaskFilters = {
+    ...filters,
+    label: activeLabel,
+    assignee: activeAssignee,
+  };
+  const filterCount = activeFilterCount(activeFilters);
   // Stable, so the row cells keep their identity and focus across renders.
   const addSubtask = useCallback(
     (task: TaskResponse) =>
@@ -167,26 +194,31 @@ export function TasksPanel({
       }),
     [],
   );
-  // The projection lists by due; the component keeps its manual order.
-  const filteredTasks = useMemo(
-    () =>
-      tasks
-        .filter((task) => {
-          if (activeLabel !== "" && !task.labelIds.includes(activeLabel))
-            return false;
-          if (activeAssignee !== "" && task.assigneeId !== activeAssignee)
-            return false;
-          if (filter === "open") {
-            return task.status !== "done" && task.status !== "cancelled";
-          }
-          if (filter === "done") {
-            return task.status === "done";
-          }
-          return true;
-        })
-        .sort(byRank),
-    [activeAssignee, activeLabel, filter, tasks],
-  );
+  // The projection lists by due; the component orders as Sort says, its
+  // manual order unless another is chosen.
+  const filteredTasks = useMemo(() => {
+    const today = dayKeyOf(new Date());
+    const { status, timed, overdue } = filters;
+    return sortTasks(
+      tasks.filter((task) => {
+        if (activeLabel !== "" && !task.labelIds.includes(activeLabel))
+          return false;
+        if (activeAssignee !== "" && task.assigneeId !== activeAssignee)
+          return false;
+        if (timed === true && task.dueAt === null) return false;
+        if (overdue === true) {
+          const day = taskDay(task);
+          if (day === null || day >= today || !isOpen(task)) return false;
+        }
+        if (status === "open") return isOpen(task);
+        if (status === "done") return task.status === "done";
+        return true;
+      }),
+      sort,
+    );
+  }, [activeAssignee, activeLabel, filters, sort, tasks]);
+  const openCount = tasks.filter(isOpen).length;
+  const shownOpen = filteredTasks.filter(isOpen).length;
 
   return (
     <section className="planning-panel">
@@ -203,14 +235,29 @@ export function TasksPanel({
           ) : undefined
         }
         controls={
-          onChangeView === undefined ? undefined : (
-            <ViewSwitch
-              busy={isSavingView}
-              onChange={onChangeView}
-              view={view}
-              views={viewsOf("todos")}
+          <div className="head-controls">
+            <TaskSortControl onChange={setSort} sort={sort} />
+            <TaskFilterControl
+              assignees={assigneeChoices}
+              filters={activeFilters}
+              labels={labelChoices}
+              me={meAssigned ? myPerson : undefined}
+              onChange={setFilters}
             />
-          )
+            {onChangeView === undefined ? null : (
+              <LayoutControl
+                busy={isSavingView}
+                onChange={onChangeView}
+                view={view}
+                views={viewsOf("todos")}
+              />
+            )}
+          </div>
+        }
+        count={
+          filterCount === 0
+            ? `${openCount} open`
+            : `${shownOpen} of ${openCount} open`
         }
         description="Keep the next steps clear. Drag a task to reorder it; tasks stay in sync across your plans."
         title="To-dos"
@@ -230,57 +277,6 @@ export function TasksPanel({
           parent={parent}
         />
       ) : null}
-      <div className="filter-bar">
-        <fieldset className="filter-row">
-          <legend>Filter tasks</legend>
-          {(["open", "all", "done"] as const).map((value) => (
-            <button
-              aria-pressed={filter === value}
-              className={filter === value ? "active" : ""}
-              key={value}
-              onClick={() => setFilter(value)}
-              type="button"
-            >
-              {value}
-            </button>
-          ))}
-        </fieldset>
-        {labelChoices.length === 0 ? null : (
-          <label className="compact-field collection-sort">
-            <span className="visually-hidden">Filter by label</span>
-            <select
-              onChange={(event) => setLabel(event.target.value)}
-              value={activeLabel}
-            >
-              <option value="">Any label</option>
-              {labelChoices.map((choice) => (
-                <option key={choice.id} value={choice.id}>
-                  {choice.name}
-                </option>
-              ))}
-            </select>
-          </label>
-        )}
-        {!meAssigned && assigneeChoices.length === 0 ? null : (
-          <label className="compact-field collection-sort">
-            <span className="visually-hidden">Filter by assignee</span>
-            <select
-              onChange={(event) => setAssignee(event.target.value)}
-              value={activeAssignee}
-            >
-              <option value="">Anyone</option>
-              {meAssigned && myPerson !== undefined ? (
-                <option value={myPerson.id}>Me</option>
-              ) : null}
-              {assigneeChoices.map((choice) => (
-                <option key={choice.id} value={choice.id}>
-                  {choice.name}
-                </option>
-              ))}
-            </select>
-          </label>
-        )}
-      </div>
       {filteredTasks.length === 0 ? (
         <EmptyState
           description={
@@ -288,11 +284,9 @@ export function TasksPanel({
               ? canEdit
                 ? "Use Add task to choose the next step."
                 : "Tasks will appear here when available. This event is read-only."
-              : activeLabel !== "" || activeAssignee !== ""
-                ? filter === "all"
-                  ? "No tasks match these filters."
-                  : `No ${filter} tasks match these filters.`
-                : `There are no ${filter} tasks.`
+              : filterCount > 1 || filters.status === "all"
+                ? "No tasks match these filters."
+                : `There are no ${filters.status} tasks.`
           }
           title={tasks.length === 0 ? "No tasks yet" : "Nothing in this view"}
         />
@@ -312,7 +306,7 @@ export function TasksPanel({
           canEdit={canEdit}
           eventId={eventId}
           labelNames={labels.data?.names}
-          manual
+          manual={sort === "manual"}
           onAddSubtask={addSubtask}
           onEdit={setEditingId}
           onRefresh={refresh}
@@ -385,7 +379,8 @@ export function CalendarPanel({
       {canEdit ? <LifecycleButton target={{ ...item, eventId }} /> : null}
     </RowActions>
   );
-  const scheduleRow = (item: EventResponse) => (
+  // A calendar cell reads the start time alone; the day is the cell's.
+  const scheduleRow = (item: EventResponse, mode: RowMode = "full") => (
     <article key={item.id}>
       <DateTile
         dateTime={item.startsOn ?? item.startsAt ?? undefined}
@@ -395,7 +390,13 @@ export function CalendarPanel({
       <div className="resource-copy">
         <span className="object-label">{objectTypeLabel("event")}</span>
         <h3>{item.displayName}</h3>
-        <p>{formatEventSchedule(item)}</p>
+        <p>
+          {mode === "cell"
+            ? item.startsAt !== null && item.startsOn === null
+              ? formatTime(item.startsAt)
+              : ""
+            : formatEventSchedule(item)}
+        </p>
         <ObjectDetails id={item.id} />
       </div>
       {rowActions(item)}
@@ -417,7 +418,7 @@ export function CalendarPanel({
         }
         controls={
           onChangeView === undefined ? undefined : (
-            <ViewSwitch
+            <LayoutControl
               busy={isSavingView ?? false}
               onChange={onChangeView}
               view={view}
@@ -464,22 +465,11 @@ export function CalendarPanel({
         </ol>
       ) : view === "week" || view === "month" ? (
         <PeriodView
-          cellOf={(item) => (
-            <span>
-              {item.startsAt !== null && item.startsOn === null
-                ? `${formatTime(item.startsAt)} `
-                : ""}
-              {item.displayName}
-            </span>
-          )}
-          emptyDay="Nothing scheduled this day."
           period={period}
           placed={placed}
-          renderList={(dayItems, compact) => (
-            <div
-              className={`resource-list${compact ? " resource-list-compact" : ""}`}
-            >
-              {dayItems.map(scheduleRow)}
+          renderList={(dayItems, mode) => (
+            <div className={resourceListClass(mode)}>
+              {dayItems.map((item) => scheduleRow(item, mode))}
             </div>
           )}
           undated={unscheduled}
@@ -487,7 +477,9 @@ export function CalendarPanel({
           view={view}
         />
       ) : (
-        <div className="resource-list">{items.map(scheduleRow)}</div>
+        <div className="resource-list">
+          {items.map((item) => scheduleRow(item))}
+        </div>
       )}
       {!canEdit || editingEvent === undefined ? null : (
         <ScheduleItemInspector
@@ -627,16 +619,16 @@ export function ExpensesPanel({
   );
   const expenseList = (
     dayExpenses: readonly ExpenseResponse[],
-    compact: boolean,
+    mode: RowMode,
   ) => (
-    <div className={`resource-list${compact ? " resource-list-compact" : ""}`}>
+    <div className={resourceListClass(mode)}>
       {dayExpenses.map(expenseRow)}
-      {compact ? null : (
+      {mode === "full" ? (
         <p className="day-group-sum">
           <span>Day total</span>
           {dayTotals(dayExpenses)}
         </p>
-      )}
+      ) : null}
     </div>
   );
 
@@ -645,7 +637,7 @@ export function ExpensesPanel({
       <PanelHeading
         controls={
           onChangeView === undefined ? undefined : (
-            <ViewSwitch
+            <LayoutControl
               busy={isSavingView ?? false}
               onChange={onChangeView}
               view={view}
@@ -718,13 +710,6 @@ export function ExpensesPanel({
         </div>
       ) : view === "week" || view === "month" ? (
         <PeriodView
-          cellOf={(expense) => (
-            <span>
-              {formatMoney(expense.amount, expense.currency)}{" "}
-              {expense.displayName}
-            </span>
-          )}
-          emptyDay="Nothing recorded this day."
           period={period}
           placed={placed}
           renderList={expenseList}
@@ -955,7 +940,10 @@ export function RemindersPanel({
     groupKey: string,
   ) => (
     <article
-      className={rowClass(groupKey, reminder.id)}
+      className={rowClasses(
+        rowClass(groupKey, reminder.id),
+        reminder.status !== "pending",
+      )}
       id={`reminder-${reminder.id}`}
       key={reminder.id}
       {...rowProps(reminder.id)}
@@ -980,9 +968,9 @@ export function RemindersPanel({
   );
   const reminderList = (
     dayReminders: readonly ReminderResponse[],
-    compact: boolean,
+    mode: RowMode,
   ) => (
-    <div className={`resource-list${compact ? " resource-list-compact" : ""}`}>
+    <div className={resourceListClass(mode)}>
       {dayReminders.map((reminder) =>
         reminderRow(reminder, dayReminders, "all"),
       )}
@@ -1019,7 +1007,7 @@ export function RemindersPanel({
       <PanelHeading
         controls={
           onChangeView === undefined ? undefined : (
-            <ViewSwitch
+            <LayoutControl
               busy={isSavingView ?? false}
               onChange={onChangeView}
               view={view}
@@ -1097,14 +1085,6 @@ export function RemindersPanel({
         </div>
       ) : view === "week" || view === "month" ? (
         <PeriodView
-          cellOf={(reminder) => (
-            <span
-              className={reminder.status === "pending" ? undefined : "is-done"}
-            >
-              {formatTime(reminder.remindAt)} {reminder.displayName}
-            </span>
-          )}
-          emptyDay="No reminders this day."
           notice={notice}
           period={period}
           placed={placed}

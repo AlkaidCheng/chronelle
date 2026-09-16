@@ -80,7 +80,9 @@ test("composes named pages with canonical tasks and preserves the layout offline
     .getByRole("navigation", { name: "Pages", exact: true })
     .getByRole("button", { name: "Preparation", exact: true })
     .click();
-  await page.getByRole("button", { name: "all", exact: true }).click();
+  await page.getByRole("button", { name: /^Filter/ }).click();
+  await page.getByRole("menuitemradio", { name: "All", exact: true }).click();
+  await page.keyboard.press("Escape");
   await expect(
     page.getByRole("button", {
       name: "Reopen Confirm the garden venue",
@@ -91,7 +93,9 @@ test("composes named pages with canonical tasks and preserves the layout offline
   await expect(
     page.getByRole("heading", { name: "Preparation", exact: true }),
   ).toBeVisible();
-  await page.getByRole("button", { name: "all", exact: true }).click();
+  await page.getByRole("button", { name: /^Filter/ }).click();
+  await page.getByRole("menuitemradio", { name: "All", exact: true }).click();
+  await page.keyboard.press("Escape");
   await expect(
     page.getByRole("button", {
       name: "Reopen Confirm the garden venue",

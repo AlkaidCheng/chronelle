@@ -63,14 +63,19 @@ export async function exerciseWorkspaceUtilities(
 
   await page.getByRole("button", { name: "Browse event data" }).click();
   await page.getByRole("tab", { name: "To-dos", exact: true }).click();
-  const filter = page.getByRole("button", { name: "all", exact: true });
-  await filter.click();
+  await page.getByRole("button", { name: /^Filter/ }).click();
+  await page.getByRole("menuitemradio", { name: "All", exact: true }).click();
+  await page.keyboard.press("Escape");
+  const filter = page.getByRole("button", {
+    name: "Filter: 1 filter",
+    exact: true,
+  });
   const eventUrl = page.url();
   await openWorkspaceSettings(page);
   await page.mouse.click(2, 2);
   await expect(dialog).toHaveCount(0);
   await expect(trigger).toBeFocused();
-  await expect(filter).toHaveAttribute("aria-pressed", "true");
+  await expect(filter).toHaveClass(/is-active/);
   expect(page.url()).toBe(eventUrl);
 
   await page.setViewportSize({ width: 320, height: 568 });

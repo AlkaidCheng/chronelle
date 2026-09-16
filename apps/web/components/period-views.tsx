@@ -1,6 +1,6 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { type ReactNode, useState } from "react";
 
 import {
   type DayKey,
@@ -11,9 +11,11 @@ import {
   startOfMonth,
   weekDays,
 } from "../lib/day-placement";
+import { ChevronIcon, RingIcon } from "./icons";
 
 const weekdayShort = new Intl.DateTimeFormat(undefined, { weekday: "short" });
 const dayOfMonth = new Intl.DateTimeFormat(undefined, { day: "numeric" });
+const monthName = new Intl.DateTimeFormat(undefined, { month: "long" });
 const monthTitle = new Intl.DateTimeFormat(undefined, {
   month: "long",
   year: "numeric",
@@ -53,7 +55,11 @@ export function shiftPeriod(
   return new Date(first.getFullYear(), first.getMonth() + direction, 1);
 }
 
-/** Previous / Today / Next around the period's label. */
+/**
+ * The period's title at the left (a month reads as its name in bold with
+ * the year after it) and three quiet icon buttons at the right: previous,
+ * this week or month (a plain ring), next.
+ */
 export function PeriodNav({
   cursor,
   onChange,
@@ -63,34 +69,44 @@ export function PeriodNav({
   readonly onChange: (cursor: Date) => void;
   readonly period: "week" | "month";
 }) {
+  const label = periodLabel(period, cursor);
+  const step = (
+    direction: -1 | 0 | 1,
+    icon: ReactNode,
+    name: string,
+    className?: string,
+  ) => (
+    <button
+      aria-label={name}
+      className={className}
+      onClick={() =>
+        onChange(
+          direction === 0 ? new Date() : shiftPeriod(period, cursor, direction),
+        )
+      }
+      title={name}
+      type="button"
+    >
+      {icon}
+    </button>
+  );
   return (
     <fieldset className="period-nav">
       <legend className="visually-hidden">Period</legend>
-      <button
-        aria-label={`Previous ${period}`}
-        className="button button-quiet button-small"
-        onClick={() => onChange(shiftPeriod(period, cursor, -1))}
-        type="button"
-      >
-        &#8249;
-      </button>
-      <button
-        className="button button-quiet button-small"
-        onClick={() => onChange(new Date())}
-        type="button"
-      >
-        Today
-      </button>
-      <button
-        aria-label={`Next ${period}`}
-        className="button button-quiet button-small"
-        onClick={() => onChange(shiftPeriod(period, cursor, 1))}
-        type="button"
-      >
-        &#8250;
-      </button>
       <span aria-live="polite" className="period-label">
-        {periodLabel(period, cursor)}
+        {period === "month" ? (
+          <>
+            <strong>{monthName.format(cursor)}</strong> {cursor.getFullYear()}
+            <span className="visually-hidden">{`, ${label}`}</span>
+          </>
+        ) : (
+          label
+        )}
+      </span>
+      <span className="period-steps">
+        {step(-1, <ChevronIcon direction="left" />, `Previous ${period}`)}
+        {step(0, <RingIcon />, `This ${period}`, "period-today")}
+        {step(1, <ChevronIcon direction="right" />, `Next ${period}`)}
       </span>
     </fieldset>
   );
@@ -98,7 +114,8 @@ export function PeriodNav({
 
 /**
  * Seven columns for the week the cursor falls in, Monday first, today
- * marked; each column renders what the container places on that day.
+ * marked, scrolling sideways where the panel is narrow; each column
+ * renders what the container places on that day.
  */
 export function WeekStrip({
   cursor,
@@ -112,52 +129,66 @@ export function WeekStrip({
 }) {
   const todayKey = dayKeyOf(today);
   return (
-    <ol className="week-strip">
-      {weekDays(cursor).map((day) => {
-        const date = parseDayKey(day);
-        return (
-          <li
-            aria-label={fullDayTitle.format(date)}
-            className={`week-day${day === todayKey ? " is-today" : ""}`}
-            key={day}
-          >
-            <h3 className="week-day-heading">
-              <span>{weekdayShort.format(date)}</span>
-              <strong>{dayOfMonth.format(date)}</strong>
-            </h3>
-            <div className="week-day-items">{renderDay(day)}</div>
-          </li>
-        );
-      })}
-    </ol>
+    <div className="week-scroll">
+      <ol className="week-strip">
+        {weekDays(cursor).map((day) => {
+          const date = parseDayKey(day);
+          return (
+            <li
+              aria-label={fullDayTitle.format(date)}
+              className={`week-day${day === todayKey ? " is-today" : ""}`}
+              key={day}
+            >
+              <h3 className="week-day-heading">
+                <span>{weekdayShort.format(date)}</span>
+                <small>
+                  {dayTitle.format(date)}
+                  {day === todayKey ? <> &middot; Today</> : null}
+                </small>
+              </h3>
+              <div className="week-day-items">{renderDay(day)}</div>
+            </li>
+          );
+        })}
+      </ol>
+    </div>
   );
 }
 
+/** How many rows a month cell shows before folding the rest behind "+N more". */
+export const monthCellRows = 3;
+
 /**
- * Six weeks of days covering the cursor's month, days outside the month
- * dimmed, today marked, one day selectable; each cell shows up to three
- * compact nodes and counts the rest.
+ * The weeks of the cursor's month as a grid of day cells: weekday names
+ * and day numbers at the right, today a filled circle, days of other
+ * months muted with the first of a month named, the grid ending with the
+ * week that holds the month's last day. Each cell shows three rows and
+ * folds the rest behind "+N more", which opens the day in place.
  */
 export function MonthGrid({
+  countOf,
   cursor,
-  onSelect,
-  renderItem,
-  selected,
+  renderDay,
   today = new Date(),
 }: {
+  /** How many items the day holds. */
+  readonly countOf: (day: DayKey) => number;
   readonly cursor: Date;
-  readonly onSelect: (day: DayKey) => void;
-  /** The compact nodes of one day, keyed, in order; the cell shows the first three. */
-  readonly renderItem: (
-    day: DayKey,
-  ) => readonly { readonly key: string; readonly node: ReactNode }[];
-  readonly selected: DayKey | null;
+  /** The day's rows, the first `limit` of them unless the limit is null. */
+  readonly renderDay: (day: DayKey, limit: number | null) => ReactNode;
   readonly today?: Date;
 }) {
+  const [expanded, setExpanded] = useState<{
+    readonly month: string;
+    readonly days: ReadonlySet<DayKey>;
+  }>({ month: "", days: new Set() });
   const todayKey = dayKeyOf(today);
   const month = cursor.getMonth();
+  const monthKey = dayKeyOf(startOfMonth(cursor)).slice(0, 7);
+  const opened =
+    expanded.month === monthKey ? expanded.days : new Set<DayKey>();
   const days = monthDays(cursor);
-  const weeks = Array.from({ length: 6 }, (_, week) =>
+  const weeks = Array.from({ length: days.length / 7 }, (_, week) =>
     days.slice(week * 7, week * 7 + 7),
   );
   return (
@@ -177,36 +208,39 @@ export function MonthGrid({
           <tr className="month-week" key={week[0]}>
             {week.map((day) => {
               const date = parseDayKey(day);
-              const items = renderItem(day);
-              const shown = items.slice(0, 3);
+              const count = countOf(day);
+              const isOpen = opened.has(day);
+              const hidden = isOpen ? 0 : Math.max(0, count - monthCellRows);
               return (
                 <td
-                  className={`month-day${date.getMonth() === month ? "" : " is-outside"}${day === todayKey ? " is-today" : ""}${selected === day ? " is-selected" : ""}${items.length === 0 ? "" : " has-items"}`}
+                  aria-label={`${fullDayTitle.format(date)}${count === 0 ? "" : `, ${count} item${count === 1 ? "" : "s"}`}`}
+                  className={`month-day${date.getMonth() === month ? "" : " is-outside"}${day === todayKey ? " is-today" : ""}${count === 0 ? "" : " has-items"}`}
                   key={day}
                 >
-                  <button
-                    aria-label={`${fullDayTitle.format(date)}${items.length === 0 ? "" : `, ${items.length} item${items.length === 1 ? "" : "s"}`}`}
-                    aria-pressed={selected === day}
-                    className="month-day-button"
-                    onClick={() => onSelect(day)}
-                    type="button"
-                  >
-                    <span className="month-day-number">
-                      {dayOfMonth.format(date)}
+                  <span className="month-day-number">
+                    <span>
+                      {date.getDate() === 1
+                        ? dayTitle.format(date)
+                        : dayOfMonth.format(date)}
                     </span>
-                    <span className="month-day-items">
-                      {shown.map((item) => (
-                        <span className="month-day-item" key={item.key}>
-                          {item.node}
-                        </span>
-                      ))}
-                      {items.length > shown.length ? (
-                        <span className="month-day-more">
-                          +{items.length - shown.length} more
-                        </span>
-                      ) : null}
-                    </span>
-                  </button>
+                  </span>
+                  {count === 0
+                    ? null
+                    : renderDay(day, isOpen ? null : monthCellRows)}
+                  {hidden === 0 ? null : (
+                    <button
+                      className="month-day-more"
+                      onClick={() =>
+                        setExpanded({
+                          month: monthKey,
+                          days: new Set([...opened, day]),
+                        })
+                      }
+                      type="button"
+                    >
+                      +{hidden} more
+                    </button>
+                  )}
                 </td>
               );
             })}

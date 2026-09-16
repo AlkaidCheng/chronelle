@@ -222,12 +222,10 @@ describe("quick add", () => {
           .getByRole("heading", { name: title })
           .closest(".planning-panel") as HTMLElement,
       );
-    const choose = (panel: ReturnType<typeof within>, view: string) =>
-      user.click(
-        within(panel.getByRole("group", { name: "View" })).getByRole("button", {
-          name: view,
-        }),
-      );
+    const choose = async (panel: ReturnType<typeof within>, view: string) => {
+      await user.click(panel.getByRole("button", { name: /^Layout: / }));
+      await user.click(panel.getByRole("menuitemradio", { name: view }));
+    };
 
     // The list's row adds a task with no due date; by day, that task's
     // group and today's group each add to their own day.
@@ -398,11 +396,8 @@ describe("quick add", () => {
     // By day from the start: the empty state's row is the No due date
     // group's row, so the field carries over when that group appears.
     const todos = panel("To-dos");
-    await user.click(
-      within(todos.getByRole("group", { name: "View" })).getByRole("button", {
-        name: "By day",
-      }),
-    );
+    await user.click(todos.getByRole("button", { name: /^Layout: / }));
+    await user.click(todos.getByRole("menuitemradio", { name: "By day" }));
     await user.click(
       todos.getByRole("button", { name: "Add a task with no due date" }),
     );
