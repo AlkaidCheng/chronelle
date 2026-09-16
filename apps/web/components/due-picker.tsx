@@ -39,6 +39,11 @@ const monthNames = Array.from({ length: 12 }, (_, month) =>
     new Date(2000, month, 1),
   ),
 );
+const monthLongNames = Array.from({ length: 12 }, (_, month) =>
+  new Intl.DateTimeFormat(undefined, { month: "long" }).format(
+    new Date(2000, month, 1),
+  ),
+);
 const monthDayShort = new Intl.DateTimeFormat(undefined, {
   month: "short",
   day: "numeric",
@@ -428,7 +433,23 @@ export function DuePicker({
                   onClick={openMonth}
                   type="button"
                 >
-                  {title}
+                  {/* Every month name shares one cell, so the year keeps its place while scrolling. */}
+                  <span className="due-month-name">
+                    {monthLongNames.map((name, index) => (
+                      <span
+                        aria-hidden={index !== Number(shown.slice(5, 7)) - 1}
+                        className={
+                          index === Number(shown.slice(5, 7)) - 1
+                            ? undefined
+                            : "due-month-name-other"
+                        }
+                        key={name}
+                      >
+                        {name}
+                      </span>
+                    ))}
+                  </span>
+                  <span className="due-month-year">{shown.slice(0, 4)}</span>
                 </button>
               )}
               <div>

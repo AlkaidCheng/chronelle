@@ -3987,6 +3987,30 @@ html:has(.event-create-dialog[open]) {
   font-weight: 400;
 }
 
+.due-month-button {
+  align-items: baseline;
+  display: inline-flex;
+  gap: 0.35em;
+}
+
+/* The month names share one cell, so the button is as wide as the widest and the year stays put. */
+.due-month-name {
+  display: inline-grid;
+  text-align: left;
+}
+
+.due-month-name > span {
+  grid-area: 1 / 1;
+}
+
+.due-month-name-other {
+  visibility: hidden;
+}
+
+.due-month-year {
+  font-variant-numeric: tabular-nums;
+}
+
 .due-month-button:hover {
   background: var(--surface-subtle);
 }
