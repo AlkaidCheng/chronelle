@@ -67,6 +67,7 @@ function canonical(
     task: {
       dueOn: null,
       dueAt: null,
+      durationMinutes: null,
       completedAt: null,
       status: "todo",
       parentTaskId: null,
@@ -473,6 +474,13 @@ export class SandboxStore {
   // the workspace's labels only, in name order.
   #checkTask(task: Resource): Resource {
     if (task.objectType !== "task") return task;
+    // The duration rules the API enforces; the schema already bounds the value.
+    if (task.durationMinutes !== null && task.dueAt === null)
+      throw new SandboxError(
+        400,
+        "invalid_request",
+        "durationMinutes requires dueAt.",
+      );
     if (
       task.assigneeId !== null &&
       !this.#state.objects.some(

@@ -386,6 +386,38 @@ describe("browser sandbox", () => {
       client.listTasks({ dueFrom: "2030-03-06", dueTo: "2030-03-05" }),
     ).rejects.toMatchObject({ status: 400 });
   });
+  it("keeps a task's duration with its due time and refuses one without", async () => {
+    const store = new SandboxStore(storage());
+    const client = new ChronelleApiClient({
+      getCredential: () => ({
+        accessToken: "sample",
+        workspaceId: sandboxWorkspaceId,
+      }),
+      fetch: (input, options) => store.fetch(input, options),
+    });
+    const timed = await client.createTask({
+      displayName: "Walk the venue",
+      dueAt: "2030-03-05T09:30:00Z",
+      durationMinutes: 45,
+    });
+    expect(timed.durationMinutes).toBe(45);
+    expect((await client.getTask(timed.id)).durationMinutes).toBe(45);
+    const cleared = await client.updateTask(timed.id, {
+      expectedVersion: 1,
+      dueAt: null,
+      durationMinutes: null,
+    });
+    expect(cleared.durationMinutes).toBeNull();
+    await expect(
+      client.createTask({ displayName: "Untimed", durationMinutes: 30 }),
+    ).rejects.toMatchObject({ status: 400 });
+    await expect(
+      client.updateTask(timed.id, {
+        expectedVersion: 2,
+        durationMinutes: 1441,
+      }),
+    ).rejects.toMatchObject({ status: 400 });
+  });
   it("keeps people in name order and links one person to the signed-in account", async () => {
     const store = new SandboxStore(storage());
     const client = new ChronelleApiClient({

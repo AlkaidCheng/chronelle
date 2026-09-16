@@ -59,6 +59,7 @@ const taskResource = (version: number, displayName: string) =>
     parentTaskId: null,
     assigneeId: null,
     location: null,
+    durationMinutes: null,
     labelIds: [] as string[],
   }) as const;
 
