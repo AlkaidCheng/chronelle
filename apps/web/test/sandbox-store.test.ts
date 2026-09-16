@@ -418,6 +418,73 @@ describe("browser sandbox", () => {
       }),
     ).rejects.toMatchObject({ status: 400 });
   });
+  it("advances a repeating task's due on completion, as the API does", async () => {
+    const store = new SandboxStore(storage());
+    const client = new ChronelleApiClient({
+      getCredential: () => ({
+        accessToken: "sample",
+        workspaceId: sandboxWorkspaceId,
+      }),
+      fetch: (input, options) => store.fetch(input, options),
+    });
+    const weekly = await client.createTask({
+      displayName: "Water the plants",
+      dueOn: "2030-03-05",
+      repeatRule: "weekly",
+      repeatUntil: "2030-03-12",
+    });
+    expect(weekly).toMatchObject({
+      repeatRule: "weekly",
+      repeatUntil: "2030-03-12",
+    });
+    const advanced = await client.updateTask(weekly.id, {
+      expectedVersion: 1,
+      status: "done",
+      completedAt: "2030-03-05T18:00:00Z",
+    });
+    expect(advanced).toMatchObject({
+      status: "todo",
+      dueOn: "2030-03-12",
+      completedAt: null,
+      version: 2,
+    });
+    const last = await client.updateTask(weekly.id, {
+      expectedVersion: 2,
+      status: "done",
+      completedAt: "2030-03-12T18:00:00Z",
+    });
+    expect(last).toMatchObject({ status: "done", dueOn: "2030-03-12" });
+    const monthly = await client.createTask({
+      displayName: "Rent",
+      dueAt: "2030-01-31T09:00:00Z",
+      repeatRule: "monthly",
+    });
+    const february = await client.updateTask(monthly.id, {
+      expectedVersion: 1,
+      status: "done",
+      completedAt: "2030-01-31T10:00:00Z",
+    });
+    expect(february).toMatchObject({
+      status: "todo",
+      dueAt: "2030-02-28T09:00:00.000Z",
+    });
+    const cleared = await client.updateTask(monthly.id, {
+      expectedVersion: 2,
+      repeatRule: null,
+    });
+    expect(cleared).toMatchObject({ repeatRule: null, repeatUntil: null });
+    await expect(
+      client.createTask({ displayName: "Undated", repeatRule: "daily" }),
+    ).rejects.toMatchObject({ status: 400 });
+    await expect(
+      client.createTask({
+        displayName: "Backwards",
+        dueOn: "2030-03-05",
+        repeatRule: "daily",
+        repeatUntil: "2030-03-04",
+      }),
+    ).rejects.toMatchObject({ status: 400 });
+  });
   it("keeps people in name order and links one person to the signed-in account", async () => {
     const store = new SandboxStore(storage());
     const client = new ChronelleApiClient({

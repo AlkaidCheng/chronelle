@@ -14,11 +14,14 @@ import {
   labelDeleteQuerySchema,
   labelResponseSchema,
   labelUpdateRequestSchema,
+  nextTaskDueAt,
+  nextTaskDueDate,
   type LabelResponse,
   personCreateRequestSchema,
   personListQuerySchema,
   personUpdateRequestSchema,
   taskCreateRequestSchema,
+  taskDueDate,
   taskListQuerySchema,
   taskUpdateRequestSchema,
   expenseUpdateRequestSchema,
@@ -55,6 +58,45 @@ class SandboxError extends Error {
   }
 }
 
+/**
+ * Completing a repeating task, as the API does: a patch that sets status to
+ * done on a task that is not done, carrying no due or repeat change, keeps
+ * the task open on its next occurrence unless that falls after repeatUntil.
+ */
+function repeatTaskPatch(
+  task: Extract<Resource, { objectType: "task" }>,
+  patch: Record<string, unknown>,
+): Record<string, unknown> {
+  if (
+    patch.status !== "done" ||
+    task.status === "done" ||
+    task.repeatRule === null ||
+    "dueOn" in patch ||
+    "dueAt" in patch ||
+    "repeatRule" in patch ||
+    "repeatUntil" in patch
+  )
+    return patch;
+  if (task.dueOn !== null) {
+    const dueOn = nextTaskDueDate(task.dueOn, task.repeatRule);
+    if (task.repeatUntil !== null && dueOn > task.repeatUntil) return patch;
+    return { ...patch, status: "todo", completedAt: null, dueOn };
+  }
+  if (task.dueAt === null) return patch;
+  const dueAt = nextTaskDueAt(new Date(task.dueAt), task.repeatRule);
+  if (
+    task.repeatUntil !== null &&
+    dueAt.toISOString().slice(0, 10) > task.repeatUntil
+  )
+    return patch;
+  return {
+    ...patch,
+    status: "todo",
+    completedAt: null,
+    dueAt: dueAt.toISOString(),
+  };
+}
+
 function canonical(
   objectType: Resource["objectType"],
   input: Record<string, unknown>,
@@ -68,6 +110,8 @@ function canonical(
       dueOn: null,
       dueAt: null,
       durationMinutes: null,
+      repeatRule: null,
+      repeatUntil: null,
       completedAt: null,
       status: "todo",
       parentTaskId: null,
@@ -474,12 +518,35 @@ export class SandboxStore {
   // the workspace's labels only, in name order.
   #checkTask(task: Resource): Resource {
     if (task.objectType !== "task") return task;
-    // The duration rules the API enforces; the schema already bounds the value.
+    // The duration and repeat rules the API enforces; the schema already
+    // bounds the values.
     if (task.durationMinutes !== null && task.dueAt === null)
       throw new SandboxError(
         400,
         "invalid_request",
         "durationMinutes requires dueAt.",
+      );
+    if (task.repeatRule !== null && task.dueOn === null && task.dueAt === null)
+      throw new SandboxError(
+        400,
+        "invalid_request",
+        "repeatRule requires dueOn or dueAt.",
+      );
+    if (task.repeatUntil !== null && task.repeatRule === null)
+      throw new SandboxError(
+        400,
+        "invalid_request",
+        "repeatUntil requires repeatRule.",
+      );
+    const due = taskDueDate(
+      task.dueOn,
+      task.dueAt === null ? null : new Date(task.dueAt),
+    );
+    if (task.repeatUntil !== null && due !== null && task.repeatUntil < due)
+      throw new SandboxError(
+        400,
+        "invalid_request",
+        "repeatUntil must be on or after the due date.",
       );
     if (
       task.assigneeId !== null &&
@@ -1268,18 +1335,27 @@ export class SandboxStore {
           ? contracts[collection as keyof typeof contracts]
           : undefined;
       if (contract && object.objectType === contract.type) {
-        const { expectedVersion, ...patch } = contract.schema.parse(body);
+        const { expectedVersion, ...requested } = contract.schema.parse(body);
         if (expectedVersion !== object.version)
           throw new SandboxError(
             409,
             "version_conflict",
             "The sample object changed. Refresh before saving.",
           );
+        const patch = JSON.parse(JSON.stringify(requested)) as Record<
+          string,
+          unknown
+        >;
+        // Clearing a repeat rule clears its end.
+        if ("repeatRule" in patch && patch.repeatRule === null)
+          patch.repeatUntil = null;
         const saved = this.#checkPerson(
           this.#checkTask(
             eventPlanningResourceResponseSchema.parse({
               ...object,
-              ...JSON.parse(JSON.stringify(patch)),
+              ...(object.objectType === "task"
+                ? repeatTaskPatch(object, patch)
+                : patch),
               version: object.version + 1,
               updatedAt: new Date().toISOString(),
             }),
