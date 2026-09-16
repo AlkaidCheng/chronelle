@@ -1,5 +1,6 @@
 import { expect, test } from "@playwright/test";
 import { dragComponent } from "../../e2e/helpers/drag-component";
+import { choosePageOption } from "../../e2e/helpers/quiet-chrome";
 
 const sandboxUrl = new URL(
   "../../../../.chronelle/sandbox/chronelle.html",
@@ -51,9 +52,7 @@ test("composes offline with search, drag or touch controls, and persistent cross
   }
   const blocks = page.locator(".event-component-block");
   await expect(page.getByRole("button", { name: /^Move / })).toHaveCount(0);
-  await page
-    .getByRole("button", { name: "Arrange layout", exact: true })
-    .click();
+  await choosePageOption(page, "Arrange layout");
   if (isMobile)
     await page
       .getByRole("button", { name: "Move Calendar up", exact: true })
@@ -118,7 +117,7 @@ test("composes offline with search, drag or touch controls, and persistent cross
     .click();
   const tabs = page
     .getByRole("navigation", { name: "Pages", exact: true })
-    .getByRole("button");
+    .locator("[data-page-id]");
   await expect(tabs).toHaveText(["Work", "Day"]);
   await page.reload();
   await expect(page.getByRole("button", { name: /^Move / })).toHaveCount(0);

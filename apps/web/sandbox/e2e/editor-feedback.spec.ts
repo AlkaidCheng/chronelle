@@ -16,7 +16,9 @@ test("explains empty Viewer panels and reports saved tasks offline", async ({
   await page.getByRole("button", { name: "New event", exact: true }).click();
   await page.getByLabel("Event name", { exact: true }).fill("Empty plan");
   await page.getByRole("button", { name: "Create event", exact: true }).click();
-  await page.getByRole("button", { name: "Browse event data" }).click();
+  await expect(
+    page.getByRole("heading", { name: "Empty plan", exact: true }),
+  ).toBeVisible();
   await page.getByLabel("Preview role").selectOption("viewer");
   for (const view of ["To-dos", "Calendar", "Expenses", "Reminders"]) {
     await page.getByRole("tab", { name: view, exact: true }).click();

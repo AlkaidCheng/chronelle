@@ -22,7 +22,7 @@ test("saves composed pages through the API and keeps canonical tasks after layou
   await expect(page).toHaveURL(/\/events\/[0-9a-f-]+$/u);
   const eventId = new URL(page.url()).pathname.split("/").at(-1);
   await expect(
-    page.getByRole("heading", { name: "A place for your event" }),
+    page.getByRole("button", { name: "Add a page", exact: true }),
   ).toBeVisible();
   await page.getByRole("button", { name: "Add page", exact: true }).click();
   await page.getByLabel("Page name").fill("Preparation");
@@ -74,7 +74,7 @@ test("saves composed pages through the API and keeps canonical tasks after layou
   expect(removed.status()).toBe(200);
   await page.reload();
   await expect(
-    page.getByRole("heading", { name: "A place for your event" }),
+    page.getByRole("button", { name: "Add a page", exact: true }),
   ).toBeVisible();
   const canonical = await request.get(`/api/objects/${task.id}`, { headers });
   expect(canonical.status()).toBe(200);

@@ -84,7 +84,7 @@ export function formatEventSchedule(
         ? ` to ${formatCalendarDate(event.endsOn)}`
         : "")
     );
-  if (event.startsAt === null) return "Schedule to be decided";
+  if (event.startsAt === null) return "";
   return (
     formatDateTime(event.startsAt) +
     (event.endsAt === null ? "" : ` to ${formatDateTime(event.endsAt)}`)

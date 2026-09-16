@@ -37,6 +37,8 @@ interface EventInspectorProps {
   readonly event: EventResponse;
   readonly onClose: () => void;
   readonly title?: string;
+  /** Where the editor opens: the name, or the schedule when setting dates. */
+  readonly initialFocus?: "name" | "schedule";
 }
 
 export function EventInspector(props: EventInspectorProps) {
@@ -58,6 +60,7 @@ function EventInspectorForm({
   onClose,
   initialDraft,
   title = "Edit event",
+  initialFocus = "name",
 }: EventInspectorProps & {
   readonly initialDraft: EventDraftSnapshot | undefined;
 }) {
@@ -95,8 +98,18 @@ function EventInspectorForm({
   const nameInput = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    nameInput.current?.focus();
-  }, []);
+    const name = nameInput.current;
+    if (initialFocus === "schedule") {
+      const toggle = name
+        ?.closest("dialog")
+        ?.querySelector<HTMLElement>('[role="switch"][aria-label="Set dates"]');
+      if (toggle) {
+        toggle.focus();
+        return;
+      }
+    }
+    name?.focus();
+  }, [initialFocus]);
   function handleSubmit(formEvent: FormEvent<HTMLFormElement>) {
     formEvent.preventDefault();
     if (

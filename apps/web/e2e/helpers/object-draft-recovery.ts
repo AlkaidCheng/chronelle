@@ -44,7 +44,7 @@ export async function exerciseObjectRecovery(
   const { field, timeLabel, view } = planningEditors[kind];
   const rowRole = kind === "task" ? "row" : "article";
 
-  await page.getByRole("button", { name: "Browse event data" }).click();
+  await page.getByRole("tab", { name: "Overview", exact: true }).click();
   await page
     .getByRole("tab", {
       name: view,

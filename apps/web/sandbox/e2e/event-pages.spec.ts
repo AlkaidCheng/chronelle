@@ -15,7 +15,7 @@ test("composes named pages with canonical tasks and preserves the layout offline
   await page.goto(sandboxUrl);
   await page.getByRole("link", { name: /Autumn gathering/ }).click();
   await expect(
-    page.getByRole("heading", { name: "A place for your event" }),
+    page.getByRole("button", { name: "Add a page", exact: true }),
   ).toBeVisible();
   await page.screenshot({
     path: testInfo.outputPath("empty-event-pages.png"),

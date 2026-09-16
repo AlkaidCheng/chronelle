@@ -34,7 +34,7 @@ for (const appearance of ["light", "dark"] as const) {
     await exerciseAppearance(page, testInfo, appearance);
     await page.getByLabel("Preview role").selectOption("viewer");
     await expect(
-      page.getByRole("button", { name: "Browse event data" }),
+      page.getByRole("tablist", { name: "Event views", exact: true }),
     ).toBeVisible();
     expect(requests).toEqual([]);
   });

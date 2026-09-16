@@ -1,6 +1,7 @@
 import { expect, type Page, type TestInfo } from "@playwright/test";
 import { openCommands } from "./context-commands";
 import { expectHorizontalReflow } from "./page-navigation";
+import { choosePageOption, pageOptions } from "./quiet-chrome";
 
 export async function exerciseEventArrange(page: Page, testInfo: TestInfo) {
   await page.getByRole("button", { name: "Add page", exact: true }).click();
@@ -45,10 +46,7 @@ export async function exerciseEventArrange(page: Page, testInfo: TestInfo) {
   await expect(controls).toHaveCount(2);
   await expect(filter).toHaveClass(/is-active/);
   await page.keyboard.press("Enter");
-  const arrange = page.getByRole("button", {
-    name: "Arrange layout",
-    exact: true,
-  });
+  const arrange = pageOptions(page);
   await expect(arrange).toBeFocused();
   await expect(controls).toHaveCount(0);
 
@@ -66,9 +64,9 @@ export async function exerciseEventArrange(page: Page, testInfo: TestInfo) {
       animations: "disabled",
       path: testInfo.outputPath(`event-quiet-${colorScheme}.png`),
     });
-    await arrange.click();
+    await choosePageOption(page, "Arrange layout");
     await expectHorizontalReflow(page);
-    await expect(page.getByText(/Moves save immediately/)).toBeVisible();
+    await expect(done).toBeVisible();
     await expect(controls.first()).toBeVisible();
     expect(
       await page
@@ -85,18 +83,18 @@ export async function exerciseEventArrange(page: Page, testInfo: TestInfo) {
     await expect(filter).toHaveClass(/is-active/);
   }
 
-  await arrange.click();
+  await choosePageOption(page, "Arrange layout");
   await openCommands(page);
   await commands.getByRole("option", { name: /Done arranging/ }).click();
   await expect(arrange).toBeFocused();
   await expect(controls).toHaveCount(0);
   await expect(filter).toHaveClass(/is-active/);
-  await arrange.click();
+  await choosePageOption(page, "Arrange layout");
   await page.reload();
   await expect(arrange).toBeVisible();
   await expect(controls).toHaveCount(0);
 
-  await page.getByRole("button", { name: "Page options", exact: true }).click();
+  await choosePageOption(page, "Page options");
   const recovery = page.getByRole("dialog", { name: "Manage event pages" });
   await expect(
     recovery.getByRole("button", { name: "Layout history", exact: true }),

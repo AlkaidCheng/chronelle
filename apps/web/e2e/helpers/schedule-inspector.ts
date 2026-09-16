@@ -6,7 +6,7 @@ export async function exerciseScheduleInspector(
   page: Page,
   testInfo: TestInfo,
 ) {
-  await page.getByRole("button", { name: "Browse event data" }).click();
+  await page.getByRole("tab", { name: "Overview", exact: true }).click();
   await page.getByRole("tab", { name: "Calendar", exact: true }).click();
   const calendarUrl = page.url();
   const calendar = page

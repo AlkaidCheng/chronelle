@@ -42,6 +42,11 @@ test("starts an undated plan with the keyboard and reopens it after recovery", a
     page,
     page.getByRole("button", { name: "Actions for A first gathering" }),
   );
+  await page.keyboard.press("ArrowDown");
+  await expect(
+    page.getByRole("menuitem", { name: "Move to Trash", exact: true }),
+  ).toBeFocused();
+  await page.keyboard.press("Enter");
   const actions = page.getByRole("dialog");
   await activateWithKeyboard(
     page,

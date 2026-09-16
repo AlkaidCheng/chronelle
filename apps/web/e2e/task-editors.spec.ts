@@ -67,7 +67,6 @@ test("retries a lost Task creation response without duplicating its resource or 
   request,
 }) => {
   const { event, headers } = await openTaskEvent(page, request);
-  await page.getByRole("button", { name: "Browse event data" }).click();
   await page.getByRole("tab", { name: "To-dos", exact: true }).click();
   await page.getByRole("button", { name: "Add task", exact: true }).click();
   const dialog = page.getByRole("dialog", { name: "Add task", exact: true });

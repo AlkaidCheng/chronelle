@@ -27,7 +27,6 @@ async function orderOf(rows: Locator, wanted: readonly string[]) {
  * move is one versioned write of the moved task.
  */
 export async function exerciseRowOrder(page: Page) {
-  await page.getByRole("button", { name: "Browse event data" }).click();
   await page.getByRole("tab", { name: "To-dos", exact: true }).click();
   const panel = page.locator(".planning-panel").filter({
     has: page.getByRole("heading", { name: "To-dos", exact: true }),

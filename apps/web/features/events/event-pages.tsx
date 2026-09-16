@@ -1,27 +1,29 @@
 "use client";
 
-import { useEffect, useRef, useState, type FormEvent } from "react";
+import {
+  useEffect,
+  useRef,
+  useState,
+  type FormEvent,
+  type RefObject,
+} from "react";
+import type { UseQueryResult } from "@tanstack/react-query";
 import type {
   EventComponentKind,
   EventLayoutResponse,
   EventPage,
 } from "@chronelle/schemas";
 import { ErrorNotice, LoadingState } from "../../components/feedback";
-import {
-  useEventLayout,
-  useUpdateEventLayout,
-} from "../../lib/event-layout-queries";
+import { useUpdateEventLayout } from "../../lib/event-layout-queries";
 import { useSessionDialog } from "../../lib/use-session-dialog";
-import { useEventPage } from "../../lib/use-event-view";
 import {
   eventComponents,
   findEventComponents,
 } from "../../lib/event-components";
 import { isTemporaryReadError } from "../../lib/query-errors";
-import { useForgetInaccessibleEventDrafts } from "../../lib/editor-draft-context";
 import { EventPageCanvas } from "./event-page-canvas";
-import { LayoutRecoveryTools } from "./layout-recovery";
 import { AddEventPageDialog } from "./add-event-page-dialog";
+import type { PageDrop } from "./use-event-pages";
 
 function AddComponentDialog({
   layout,
@@ -221,29 +223,39 @@ function AddComponentDialog({
   );
 }
 
+export interface EventPagesAdding {
+  readonly pageId: string | null;
+}
+
 export function EventPages({
-  eventId,
+  layout,
+  selected,
+  selectedId,
   canEdit,
+  onSelect,
+  adding,
+  onAddingChange,
+  arranging,
+  onArrangingChange,
+  pageDrop,
 }: {
-  readonly eventId: string;
+  readonly layout: UseQueryResult<EventLayoutResponse>;
+  readonly selected: EventPage | undefined;
+  readonly selectedId: string | null;
   readonly canEdit: boolean;
+  readonly onSelect: (pageId: string) => void;
+  readonly adding: EventPagesAdding | null;
+  readonly onAddingChange: (adding: EventPagesAdding | null) => void;
+  readonly arranging: boolean;
+  readonly onArrangingChange: (arranging: boolean) => void;
+  readonly pageDrop?: RefObject<PageDrop | null> | undefined;
 }) {
-  const layout = useEventLayout(eventId);
-  useForgetInaccessibleEventDrafts(
-    eventId,
-    !canEdit || (layout.isError && !isTemporaryReadError(layout.error)),
-  );
-  const [selectedId, setSelectedId] = useEventPage();
-  const [adding, setAdding] = useState<{ pageId: string | null } | null>(null);
   const [notice, setNotice] = useState<{
     pageId: string;
     message: string;
   } | null>(null);
   useEffect(() => {
-    if (!canEdit) {
-      setAdding(null);
-      setNotice(null);
-    }
+    if (!canEdit) setNotice(null);
   }, [canEdit]);
   const refreshNotice = layout.isError ? (
     <ErrorNotice
@@ -259,17 +271,14 @@ export function EventPages({
     (layout.isError && !isTemporaryReadError(layout.error))
   )
     return refreshNotice;
-  const selected =
-    layout.data.pages.find((page) => page.id === selectedId) ??
-    layout.data.pages[0];
   const insertion = {
     layout: layout.data,
     onSaved: (pageId: string, message: string) => {
-      setSelectedId(pageId);
+      onSelect(pageId);
       setNotice({ pageId, message });
     },
     onClose: () => {
-      setAdding(null);
+      onAddingChange(null);
       void layout.refetch();
     },
   };
@@ -289,19 +298,15 @@ export function EventPages({
         layout={layout.data}
         selected={selected}
         canEdit={canEdit}
-        onSelect={setSelectedId}
-        onAddPage={() => setAdding({ pageId: null })}
+        onSelect={onSelect}
+        onAddPage={() => onAddingChange({ pageId: null })}
         onAddComponent={() => {
-          if (selected) setAdding({ pageId: selected.id });
+          if (selected) onAddingChange({ pageId: selected.id });
         }}
         onRefresh={() => layout.refetch()}
-        renderTools={(busy) => (
-          <LayoutRecoveryTools
-            layout={layout.data}
-            canEdit={canEdit}
-            disabled={busy}
-          />
-        )}
+        arranging={arranging}
+        onArrangingChange={onArrangingChange}
+        pageDrop={pageDrop}
       />
       {adding && canEdit ? (
         adding.pageId === null ? (

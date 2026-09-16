@@ -13,7 +13,6 @@ test("retains a failed task draft and saves only after an explicit retry", async
   await page.getByRole("button", { name: "New event", exact: true }).click();
   await page.getByLabel("Event name", { exact: true }).fill("Planning review");
   await page.getByRole("button", { name: "Create event", exact: true }).click();
-  await page.getByRole("button", { name: "Browse event data" }).click();
   await page.getByRole("tab", { name: "To-dos", exact: true }).click();
   const addTask = page.getByRole("button", { name: "Add task", exact: true });
   await addTask.click();

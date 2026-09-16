@@ -60,7 +60,7 @@ test("creates and retrieves one canonical Event at responsive widths", async ({
 
   await openSearchPage(page);
   await page.getByLabel("Keywords").fill("launch plan");
-  await page.getByRole("button", { name: "Search" }).click();
+  await page.getByRole("button", { name: "Search", exact: true }).click();
   const result = page.getByRole("link", { name: new RegExp(eventName, "u") });
   await expect(result).toHaveAttribute("href", new URL(eventUrl).pathname);
 

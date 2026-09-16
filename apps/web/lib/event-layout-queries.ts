@@ -7,6 +7,7 @@ import type {
 } from "@chronelle/schemas";
 import {
   useInfiniteQuery,
+  useIsMutating,
   useMutation,
   useQuery,
   useQueryClient,
@@ -22,6 +23,8 @@ import {
   type LayoutUndoState,
 } from "./layout-undo";
 
+const layoutUpdateKey = (eventId: string) =>
+  ["event-layout-update", eventId] as const;
 const layoutKey = (eventId: string) =>
   [...queryKeys.event(eventId), "layout"] as const;
 const historyKey = (eventId: string) =>
@@ -126,9 +129,15 @@ export function useUpdateEventLayout(eventId: string) {
   const client = useApiClient();
   const cache = useQueryClient();
   return useMutation({
+    mutationKey: layoutUpdateKey(eventId),
     mutationFn: (input: EventLayoutUpdate) =>
       client.updateEventLayout(eventId, input),
     onSuccess: (layout, input) =>
       acceptLayout(cache, layout, input.expectedVersion, "edit"),
   });
+}
+
+/** True while any layout write for the event is in flight. */
+export function useIsLayoutSaving(eventId: string) {
+  return useIsMutating({ mutationKey: layoutUpdateKey(eventId) }) > 0;
 }

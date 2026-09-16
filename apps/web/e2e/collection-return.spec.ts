@@ -31,6 +31,9 @@ test("returns to filtered loaded Events without persisting private criteria", as
   await card.focus();
   await page.keyboard.press("Enter");
   await page.getByRole("button", { name: "Actions for Gathering 22" }).click();
+  await page
+    .getByRole("menuitem", { name: "Move to Trash", exact: true })
+    .click();
   const dialog = page.getByRole("dialog");
   await dialog
     .getByRole("button", { name: "Move to Trash", exact: true })

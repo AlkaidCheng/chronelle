@@ -43,7 +43,7 @@ export async function exerciseEventInspector(page: Page, testInfo: TestInfo) {
   await name.fill("Changed garden evening");
   await page.keyboard.press("Control+k");
   await expect(
-    page.getByRole("dialog", { name: "Commands", exact: true }),
+    page.getByRole("dialog", { name: "Search", exact: true }),
   ).toHaveCount(0);
   await page.keyboard.press("Escape");
   const confirmation = page.getByRole("dialog", {
