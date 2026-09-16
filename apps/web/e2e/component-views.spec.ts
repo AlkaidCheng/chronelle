@@ -30,16 +30,18 @@ test("keeps a component's chosen view in the shared layout", async ({
   const layout = await (
     await request.get(`/api/events/${event.id}/layout`, { headers })
   ).json();
-  // Each chosen view saved a version; moving the period saved none.
-  expect(layout.version).toBe(5);
+  // Each chosen view and the added component saved a version; moving the
+  // period saved none.
+  expect(layout.version).toBe(7);
   expect(layout.pages[0].components).toEqual([
     { id: expect.any(String), kind: "todos", view: "month" },
+    { id: expect.any(String), kind: "expenses", view: "month" },
   ]);
   const history = await (
     await request.get(`/api/events/${event.id}/layout/history`, { headers })
   ).json();
   expect(
     history.items.map((item: { version: number }) => item.version),
-  ).toEqual([5, 4, 3, 2, 1]);
+  ).toEqual([7, 6, 5, 4, 3, 2, 1]);
   expect(errors).toEqual([]);
 });

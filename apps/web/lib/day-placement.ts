@@ -69,6 +69,11 @@ export function taskDay(task: TaskResponse): DayKey | null {
   return task.dueAt === null ? null : dayKeyOf(new Date(task.dueAt));
 }
 
+/** The local day of an instant, for items that always carry one. */
+export function instantDay(value: string): DayKey {
+  return dayKeyOf(new Date(value));
+}
+
 /**
  * The local days a scheduled Event covers: a date-only span inclusive of
  * both ends, a timed item from its start to its end (the same day unless

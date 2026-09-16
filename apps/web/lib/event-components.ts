@@ -35,13 +35,13 @@ export const eventComponents = {
     label: "Expenses",
     description: "Record transactions and see totals by currency.",
     keywords: "costs spending payments",
-    views: ["list"],
+    views: ["list", "by-day", "week", "month"],
   },
   reminders: {
     label: "Reminders",
     description: "Track upcoming nudges. Notifications are not sent yet.",
     keywords: "alerts notifications",
-    views: ["list"],
+    views: ["list", "by-day", "week", "month"],
   },
   files: {
     label: "Files",

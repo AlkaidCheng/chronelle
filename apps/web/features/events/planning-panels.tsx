@@ -13,8 +13,8 @@ import { useCallback, useMemo, useState } from "react";
 import { EmptyState, ErrorNotice } from "../../components/feedback";
 import {
   type DayKey,
-  dayKeyOf,
   eventDays,
+  instantDay,
   placeByDay,
 } from "../../lib/day-placement";
 import { HistoryButton } from "../history/history-button";
@@ -38,6 +38,7 @@ import {
 import { viewsOf } from "../../lib/event-components";
 import { formatDatePart, formatDateTime, formatTime } from "../../lib/format";
 import { deriveTaskTree } from "../../lib/task-tree";
+import { groupByDay } from "../../lib/day-groups";
 import { usePeriod } from "../../lib/use-period";
 import { PeriodView } from "./period-view";
 import { formatMoney, sumMoneyByCurrency } from "../../lib/money";
@@ -411,22 +412,112 @@ export function TimelinePanel({
   );
 }
 
+/** The local day a transaction happened. */
+const expenseDay = (expense: ExpenseResponse) => instantDay(expense.occurredAt);
+
+/** The local day a reminder is due. */
+const reminderDay = (reminder: ReminderResponse) =>
+  instantDay(reminder.remindAt);
+
 export function ExpensesPanel({
   canEdit,
   eventId,
   expenses,
+  isSavingView,
+  onChangeView,
+  view = "list",
 }: {
   readonly canEdit: boolean;
   readonly eventId: string;
   readonly expenses: readonly ExpenseResponse[];
+  readonly isSavingView?: boolean | undefined;
+  readonly onChangeView?: ((view: EventComponentView) => void) | undefined;
+  readonly view?: EventComponentView;
 }) {
   const [isAdding, setIsAdding] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const totals = useMemo(() => sumMoneyByCurrency(expenses), [expenses]);
+  const period = usePeriod(view);
+  const placed = useMemo(
+    () =>
+      view === "week" || view === "month"
+        ? placeByDay(expenses, (expense) => [expenseDay(expense)])
+        : new Map<DayKey, ExpenseResponse[]>(),
+    [expenses, view],
+  );
+  const groups = useMemo(
+    () =>
+      view === "by-day" ? groupByDay(expenses, expenseDay, new Date()) : [],
+    [expenses, view],
+  );
+  const expenseRow = (expense: ExpenseResponse) => (
+    <article key={expense.id}>
+      <div className="resource-copy">
+        <span className="object-label">
+          {view === "list" || view === "week"
+            ? formatDateTime(expense.occurredAt)
+            : formatTime(expense.occurredAt)}
+        </span>
+        <h3>{expense.displayName}</h3>
+        <ObjectDetails id={expense.id} />
+      </div>
+      <strong className="money-value">
+        {formatMoney(expense.amount, expense.currency)}
+      </strong>
+      <RowActions>
+        {canEdit ? (
+          <button
+            className="button button-quiet button-small"
+            onClick={() => setEditingId(expense.id)}
+            type="button"
+          >
+            Edit
+          </button>
+        ) : null}
+        <HistoryButton
+          objectId={expense.id}
+          displayName={expense.displayName}
+        />
+        {canEdit ? <LifecycleButton target={{ ...expense, eventId }} /> : null}
+      </RowActions>
+    </article>
+  );
+  // A day's totals by currency, in the heading of a by-day group and under a month's day.
+  const dayTotals = (dayExpenses: readonly ExpenseResponse[]) => (
+    <span className="day-group-totals">
+      {sumMoneyByCurrency(dayExpenses).map(({ amount, currency }) => (
+        <span key={currency}>{formatMoney(amount, currency)}</span>
+      ))}
+    </span>
+  );
+  const expenseList = (
+    dayExpenses: readonly ExpenseResponse[],
+    compact: boolean,
+  ) => (
+    <div className={`resource-list${compact ? " resource-list-compact" : ""}`}>
+      {dayExpenses.map(expenseRow)}
+      {compact ? null : (
+        <p className="day-group-sum">
+          <span>Day total</span>
+          {dayTotals(dayExpenses)}
+        </p>
+      )}
+    </div>
+  );
 
   return (
     <section className="planning-panel">
       <PanelHeading
+        controls={
+          onChangeView === undefined ? undefined : (
+            <ViewSwitch
+              busy={isSavingView ?? false}
+              onChange={onChangeView}
+              view={view}
+              views={viewsOf("expenses")}
+            />
+          )
+        }
         description="Historical transactions stay independent from the plans they support."
         title="Expenses"
         action={
@@ -472,41 +563,42 @@ export function ExpensesPanel({
           }
           title="No expenses recorded"
         />
-      ) : (
-        <div className="resource-list">
-          {expenses.map((expense) => (
-            <article key={expense.id}>
-              <div className="resource-copy">
-                <span className="object-label">
-                  {formatDateTime(expense.occurredAt)}
-                </span>
-                <h3>{expense.displayName}</h3>
-                <ObjectDetails id={expense.id} />
-              </div>
-              <strong className="money-value">
-                {formatMoney(expense.amount, expense.currency)}
-              </strong>
-              <RowActions>
-                {canEdit ? (
-                  <button
-                    className="button button-quiet button-small"
-                    onClick={() => setEditingId(expense.id)}
-                    type="button"
-                  >
-                    Edit
-                  </button>
-                ) : null}
-                <HistoryButton
-                  objectId={expense.id}
-                  displayName={expense.displayName}
-                />
-                {canEdit ? (
-                  <LifecycleButton target={{ ...expense, eventId }} />
-                ) : null}
-              </RowActions>
-            </article>
+      ) : view === "by-day" ? (
+        <div className="day-groups">
+          {groups.map((group) => (
+            <section
+              aria-label={group.label.join(", ")}
+              className={`day-group day-group-${group.tone}`}
+              key={group.key}
+            >
+              <h3 className="day-group-heading">
+                {group.label.map((part) => (
+                  <span key={part}>{part}</span>
+                ))}
+                {dayTotals(group.items)}
+              </h3>
+              <div className="resource-list">{group.items.map(expenseRow)}</div>
+            </section>
           ))}
         </div>
+      ) : view === "week" || view === "month" ? (
+        <PeriodView
+          cellOf={(expense) => (
+            <span>
+              {formatMoney(expense.amount, expense.currency)}{" "}
+              {expense.displayName}
+            </span>
+          )}
+          emptyDay="Nothing recorded this day."
+          period={period}
+          placed={placed}
+          renderList={expenseList}
+          undated={[]}
+          undatedLabel="Undated"
+          view={view}
+        />
+      ) : (
+        <div className="resource-list">{expenses.map(expenseRow)}</div>
       )}
       {canEdit && editingId ? (
         <ExpenseInspector
@@ -523,20 +615,110 @@ export function ExpensesPanel({
 export function RemindersPanel({
   canEdit,
   eventId,
+  isSavingView,
+  onChangeView,
   reminders,
+  view = "list",
 }: {
   readonly canEdit: boolean;
   readonly eventId: string;
+  readonly isSavingView?: boolean | undefined;
+  readonly onChangeView?: ((view: EventComponentView) => void) | undefined;
   readonly reminders: readonly ReminderResponse[];
+  readonly view?: EventComponentView;
 }) {
   const [isAdding, setIsAdding] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const update = useUpdateReminder();
   const refresh = useRefreshEvent(eventId);
+  const period = usePeriod(view);
+  const placed = useMemo(
+    () =>
+      view === "week" || view === "month"
+        ? placeByDay(reminders, (reminder) => [reminderDay(reminder)])
+        : new Map<DayKey, ReminderResponse[]>(),
+    [reminders, view],
+  );
+  const groups = useMemo(
+    () =>
+      view === "by-day" ? groupByDay(reminders, reminderDay, new Date()) : [],
+    [reminders, view],
+  );
+  const reminderRow = (reminder: ReminderResponse) => (
+    <article key={reminder.id}>
+      <DateTile
+        dateTime={reminder.remindAt}
+        day={formatDatePart(reminder.remindAt, "day")}
+        month={formatDatePart(reminder.remindAt, "month")}
+      />
+      <div className="resource-copy">
+        <span className="object-label">
+          {view === "list"
+            ? formatDateTime(reminder.remindAt)
+            : formatTime(reminder.remindAt)}
+        </span>
+        <h3>{reminder.displayName}</h3>
+        <ObjectDetails id={reminder.id} />
+      </div>
+      <StatusChip status={reminder.status} />
+      <RowActions>
+        {canEdit ? (
+          <button
+            className="button button-quiet button-small"
+            onClick={() => setEditingId(reminder.id)}
+            type="button"
+          >
+            Edit
+          </button>
+        ) : null}
+        {canEdit && reminder.status === "pending" ? (
+          <button
+            className="button button-secondary button-small"
+            disabled={update.isPending}
+            onClick={() =>
+              update.mutate({
+                id: reminder.id,
+                input: {
+                  expectedVersion: reminder.version,
+                  status: "dismissed",
+                },
+              })
+            }
+            type="button"
+          >
+            Dismiss
+          </button>
+        ) : null}
+        <HistoryButton
+          objectId={reminder.id}
+          displayName={reminder.displayName}
+        />
+        {canEdit ? <LifecycleButton target={{ ...reminder, eventId }} /> : null}
+      </RowActions>
+    </article>
+  );
+  const reminderList = (
+    dayReminders: readonly ReminderResponse[],
+    compact: boolean,
+  ) => (
+    <div className={`resource-list${compact ? " resource-list-compact" : ""}`}>
+      {dayReminders.map(reminderRow)}
+    </div>
+  );
 
   return (
     <section className="planning-panel">
       <PanelHeading
+        controls={
+          onChangeView === undefined ? undefined : (
+            <ViewSwitch
+              busy={isSavingView ?? false}
+              onChange={onChangeView}
+              view={view}
+              views={viewsOf("reminders")}
+            />
+          )
+        }
         description="Keep track of what needs a nudge. Reminders are recorded here; notifications are not sent yet."
         title="Reminders"
         action={
@@ -573,62 +755,44 @@ export function RemindersPanel({
           }
           title="No reminders"
         />
-      ) : (
-        <div className="resource-list">
-          {reminders.map((reminder) => (
-            <article key={reminder.id}>
-              <DateTile
-                dateTime={reminder.remindAt}
-                day={formatDatePart(reminder.remindAt, "day")}
-                month={formatDatePart(reminder.remindAt, "month")}
-              />
-              <div className="resource-copy">
-                <span className="object-label">
-                  {formatDateTime(reminder.remindAt)}
-                </span>
-                <h3>{reminder.displayName}</h3>
-                <ObjectDetails id={reminder.id} />
+      ) : view === "by-day" ? (
+        <div className="day-groups">
+          {groups.map((group) => (
+            <section
+              aria-label={group.label.join(", ")}
+              className={`day-group day-group-${group.tone}`}
+              key={group.key}
+            >
+              <h3 className="day-group-heading">
+                {group.label.map((part) => (
+                  <span key={part}>{part}</span>
+                ))}
+              </h3>
+              <div className="resource-list">
+                {group.items.map(reminderRow)}
               </div>
-              <StatusChip status={reminder.status} />
-              <RowActions>
-                {canEdit ? (
-                  <button
-                    className="button button-quiet button-small"
-                    onClick={() => setEditingId(reminder.id)}
-                    type="button"
-                  >
-                    Edit
-                  </button>
-                ) : null}
-                {canEdit && reminder.status === "pending" ? (
-                  <button
-                    className="button button-secondary button-small"
-                    disabled={update.isPending}
-                    onClick={() =>
-                      update.mutate({
-                        id: reminder.id,
-                        input: {
-                          expectedVersion: reminder.version,
-                          status: "dismissed",
-                        },
-                      })
-                    }
-                    type="button"
-                  >
-                    Dismiss
-                  </button>
-                ) : null}
-                <HistoryButton
-                  objectId={reminder.id}
-                  displayName={reminder.displayName}
-                />
-                {canEdit ? (
-                  <LifecycleButton target={{ ...reminder, eventId }} />
-                ) : null}
-              </RowActions>
-            </article>
+            </section>
           ))}
         </div>
+      ) : view === "week" || view === "month" ? (
+        <PeriodView
+          cellOf={(reminder) => (
+            <span
+              className={reminder.status === "pending" ? undefined : "is-done"}
+            >
+              {formatTime(reminder.remindAt)} {reminder.displayName}
+            </span>
+          )}
+          emptyDay="No reminders this day."
+          period={period}
+          placed={placed}
+          renderList={reminderList}
+          undated={[]}
+          undatedLabel="Undated"
+          view={view}
+        />
+      ) : (
+        <div className="resource-list">{reminders.map(reminderRow)}</div>
       )}
       {!canEdit || editingId === null ? null : (
         <ReminderInspector

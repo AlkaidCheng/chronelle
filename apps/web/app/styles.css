@@ -3892,3 +3892,22 @@ html:has(.event-create-dialog[open]) {
 .share-people-disclosure[open] > summary {
   margin-bottom: 12px;
 }
+
+.day-group-totals {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-left: auto;
+}
+
+.day-group-sum {
+  border-top: 1px solid var(--line);
+  color: var(--muted);
+  display: flex;
+  flex-wrap: wrap;
+  font-size: 0.85rem;
+  gap: 10px;
+  justify-content: space-between;
+  margin: 0;
+  padding: 10px 4px 0;
+}
