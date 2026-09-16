@@ -1539,6 +1539,12 @@ describe("insertable event components", () => {
       wrapper: Providers,
     });
     expect(await screen.findByText("Read-only files")).toBeVisible();
+    // The Files empty state reads like every other viewer's.
+    expect(
+      await screen.findByText(
+        "Shared files will appear here when available. This event is read-only.",
+      ),
+    ).toBeVisible();
     for (const label of [
       "Arrange layout",
       "Add component",

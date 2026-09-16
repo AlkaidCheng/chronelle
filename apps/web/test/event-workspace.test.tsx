@@ -83,6 +83,15 @@ function requestPath(input: URL | RequestInfo): string {
   return input instanceof URL ? input.pathname : new URL(input.url).pathname;
 }
 
+/** A small text file the client can hash; jsdom's File has no arrayBuffer. */
+function textFile(name: string, text: string): File {
+  const file = new File([text], name, { type: "text/plain" });
+  Object.defineProperty(file, "arrayBuffer", {
+    value: () => Promise.resolve(new TextEncoder().encode(text).buffer),
+  });
+  return file;
+}
+
 function RefreshProbe() {
   const client = useQueryClient();
   return (
@@ -922,6 +931,205 @@ describe("EventWorkspace", () => {
       ).toBe(true);
     });
     expect(await screen.findByText("No files attached")).toBeVisible();
+  });
+
+  it("shows the Files states with the shared frame: locked count, empty target, load error, pending and failed uploads", async () => {
+    const task = {
+      ...rootEvent,
+      id: "019d6e7d-0000-7000-8000-000000000032",
+      objectType: "task",
+      displayName: "Confirm venue",
+      startsAt: undefined,
+      endsAt: undefined,
+      timezone: undefined,
+      isAllDay: undefined,
+      status: "todo",
+      dueAt: null,
+      completedAt: null,
+    } as const;
+    let taskDocumentsFail = true;
+    let uploadAnswer: "hang" | "fail" = "hang";
+    const fetch = vi.fn<typeof globalThis.fetch>(async (input, init) => {
+      const path = requestPath(input);
+      if (path === `/api/events/${eventId}`) return jsonResponse(rootEvent);
+      if (path === `/api/events/${eventId}/detail`)
+        return jsonResponse({
+          event: rootEvent,
+          events: [],
+          tasks: [task],
+          expenses: [],
+          reminders: [],
+          documents: [documentAttachment.document],
+          lockedRelationCount: 0,
+        });
+      if (path.endsWith("/access"))
+        return jsonResponse({
+          resourceId: eventId,
+          actions: ["view", "comment", "edit", "share", "delete"],
+        });
+      if (path.startsWith(`/api/events/${eventId}/`))
+        return jsonResponse({ sourceEventId: eventId, items: [] });
+      if (path === `/api/objects/${eventId}/documents`)
+        return jsonResponse({
+          items: [documentAttachment],
+          lockedAttachmentCount: 2,
+        });
+      if (path === `/api/objects/${task.id}/documents`) {
+        if (taskDocumentsFail)
+          return jsonResponse(
+            {
+              error: {
+                code: "unavailable",
+                message: "The attachments could not be read.",
+                requestId: "test",
+              },
+            },
+            503,
+          );
+        return jsonResponse({ items: [], lockedAttachmentCount: 0 });
+      }
+      if (path === "/api/documents/upload-url" && init?.method === "POST") {
+        if (uploadAnswer === "hang") return new Promise(() => {});
+        return jsonResponse(
+          {
+            error: {
+              code: "unavailable",
+              message: "Uploads are unavailable right now.",
+              requestId: "test",
+            },
+          },
+          503,
+        );
+      }
+      return jsonResponse(
+        { error: { code: "not_found", message: `No mock for ${path}` } },
+        404,
+      );
+    });
+    vi.stubGlobal("fetch", fetch);
+    const user = userEvent.setup();
+    render(
+      <Providers>
+        <EventWorkspace eventId={eventId} />
+      </Providers>,
+    );
+    await user.click(await screen.findByRole("tab", { name: "Files" }));
+    expect(await screen.findByText("run-of-show.pdf")).toBeVisible();
+    // Attachments outside the caller's scope are counted the way the
+    // Overview counts private related items.
+    expect(screen.getByText("Private attachments")).toBeVisible();
+    expect(
+      screen.getByText("2 attachments are outside your permission scope."),
+    ).toBeVisible();
+
+    // A target whose attachments cannot be read shows the error with a retry;
+    // once readable, its empty state names the next step.
+    const target = screen.getByLabelText("Show files attached to");
+    await user.selectOptions(target, "Task: Confirm venue");
+    // The read is retried once before the notice appears.
+    expect(
+      await screen.findByText(
+        "The attachments could not be read.",
+        {},
+        { timeout: 5_000 },
+      ),
+    ).toBeVisible();
+    taskDocumentsFail = false;
+    await user.click(screen.getByRole("button", { name: "Try again" }));
+    expect(await screen.findByText("No files attached")).toBeVisible();
+    expect(
+      screen.getByText(
+        "Choose a file above to attach it without exposing a public URL.",
+      ),
+    ).toBeVisible();
+    expect(screen.queryByText("Private attachments")).toBeNull();
+
+    // While an upload runs, the file and target controls are held and the
+    // button and progress say so.
+    const fileInput = screen.getByLabelText("Choose a private file");
+    await user.upload(fileInput, textFile("notes.txt", "hello"));
+    fireEvent.submit(
+      screen
+        .getByRole("button", { name: "Attach file" })
+        .closest("form") as HTMLFormElement,
+    );
+    expect(
+      await screen.findByRole("button", { name: "Uploading..." }),
+    ).toBeDisabled();
+    expect(
+      screen.getByRole("progressbar", { name: "Uploading attachment" }),
+    ).toBeVisible();
+    expect(screen.getByLabelText("Choose a private file")).toBeDisabled();
+    expect(target).toBeDisabled();
+  });
+
+  it("dismisses a failed upload's notice and frees the controls", async () => {
+    const fetch = vi.fn<typeof globalThis.fetch>(async (input, init) => {
+      const path = requestPath(input);
+      if (path === `/api/events/${eventId}`) return jsonResponse(rootEvent);
+      if (path === `/api/events/${eventId}/detail`)
+        return jsonResponse({
+          event: rootEvent,
+          events: [],
+          tasks: [],
+          expenses: [],
+          reminders: [],
+          documents: [],
+          lockedRelationCount: 0,
+        });
+      if (path.endsWith("/access"))
+        return jsonResponse({
+          resourceId: eventId,
+          actions: ["view", "comment", "edit", "share", "delete"],
+        });
+      if (path.startsWith(`/api/events/${eventId}/`))
+        return jsonResponse({ sourceEventId: eventId, items: [] });
+      if (path === `/api/objects/${eventId}/documents`)
+        return jsonResponse({ items: [], lockedAttachmentCount: 0 });
+      if (path === "/api/documents/upload-url" && init?.method === "POST")
+        return jsonResponse(
+          {
+            error: {
+              code: "unavailable",
+              message: "Uploads are unavailable right now.",
+              requestId: "test",
+            },
+          },
+          503,
+        );
+      return jsonResponse(
+        { error: { code: "not_found", message: `No mock for ${path}` } },
+        404,
+      );
+    });
+    vi.stubGlobal("fetch", fetch);
+    const user = userEvent.setup();
+    render(
+      <Providers>
+        <EventWorkspace eventId={eventId} />
+      </Providers>,
+    );
+    await user.click(await screen.findByRole("tab", { name: "Files" }));
+    expect(await screen.findByText("No files attached")).toBeVisible();
+    await user.upload(
+      screen.getByLabelText("Choose a private file"),
+      textFile("notes.txt", "hello"),
+    );
+    expect(screen.getByRole("button", { name: "Attach file" })).toBeEnabled();
+    // jsdom's constraint validation sees no file, so the form is submitted
+    // directly, as a click on Attach file does in a browser.
+    fireEvent.submit(
+      screen
+        .getByRole("button", { name: "Attach file" })
+        .closest("form") as HTMLFormElement,
+    );
+    const notice = await screen.findByRole("alert");
+    expect(notice).toHaveTextContent("Uploads are unavailable right now.");
+    // The chosen file stays for another try; Dismiss clears the notice.
+    expect(screen.getByRole("button", { name: "Attach file" })).toBeEnabled();
+    await user.click(within(notice).getByRole("button", { name: "Dismiss" }));
+    expect(screen.queryByRole("alert")).toBeNull();
+    expect(screen.getByLabelText("Choose a private file")).toBeEnabled();
   });
 
   it("shares an Event with an existing development user", async () => {
