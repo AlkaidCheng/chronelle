@@ -9,6 +9,7 @@ import {
   events,
   expenses,
   labels,
+  objectCreateCommands,
   objects,
   persons,
   reminders,
@@ -48,7 +49,12 @@ import {
   type TaskReadRepository,
 } from "./task-list.js";
 
-import { InvalidObjectStateError, ObjectConflictError } from "./errors.js";
+import { createRequestHash } from "./create-command.js";
+import {
+  CommandConflictError,
+  InvalidObjectStateError,
+  ObjectConflictError,
+} from "./errors.js";
 import { readObjectState } from "./object-state.js";
 import { recordObjectRevision } from "./object-revisions.js";
 import type {
@@ -1140,6 +1146,10 @@ export class EventPlanningObjectService {
   ): Promise<EventPlanningResource> {
     const objectId = createId();
     const permissionScopeId = input.permissionScopeId ?? objectId;
+    const requestHash =
+      input.commandId === undefined
+        ? undefined
+        : createRequestHash(objectType, input);
     return withStableAuthorization(
       this.#database,
       context.principal.workspaceId,
@@ -1152,6 +1162,37 @@ export class EventPlanningObjectService {
             workspaceId: context.principal.workspaceId,
           });
         }
+        // A repeated command returns what it created; a different input
+        // under the same command id is a conflict.
+        if (input.commandId !== undefined && requestHash !== undefined) {
+          const [existing] = await transaction
+            .select()
+            .from(objectCreateCommands)
+            .where(
+              and(
+                eq(
+                  objectCreateCommands.workspaceId,
+                  context.principal.workspaceId,
+                ),
+                eq(objectCreateCommands.userId, context.principal.userId),
+                eq(objectCreateCommands.commandId, input.commandId),
+              ),
+            )
+            .limit(1);
+          if (existing !== undefined) {
+            if (existing.requestHash !== requestHash)
+              throw new CommandConflictError();
+            await authorization.assertCan(context.principal, "view", {
+              id: existing.objectId,
+              workspaceId: context.principal.workspaceId,
+            });
+            return readObjectState(
+              transaction,
+              context.principal.workspaceId,
+              existing.objectId,
+            );
+          }
+        }
         await transaction.insert(objects).values({
           id: objectId,
           workspaceId: context.principal.workspaceId,
@@ -1163,6 +1204,16 @@ export class EventPlanningObjectService {
           metadata: input.metadata ?? {},
         });
         await insertTyped(transaction, objectId);
+        if (input.commandId !== undefined && requestHash !== undefined)
+          await transaction.insert(objectCreateCommands).values({
+            workspaceId: context.principal.workspaceId,
+            userId: context.principal.userId,
+            commandId: input.commandId,
+            requestId: context.requestId,
+            requestHash,
+            objectType,
+            objectId,
+          });
 
         const resource = await readObjectState(
           transaction,

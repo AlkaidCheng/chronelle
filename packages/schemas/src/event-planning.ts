@@ -28,11 +28,14 @@ const reminderStatusSchema = z.enum([
   "cancelled",
 ]);
 
+// A creation may carry a commandId: the caller's repeat of the same input
+// returns the object it created instead of a second one.
 const createObjectShape = {
   displayName: z.string().trim().min(1).max(240),
   permissionScopeId: objectIdSchema.optional(),
   customProperties: jsonObjectSchema.optional(),
   metadata: jsonObjectSchema.optional(),
+  commandId: z.uuid().optional(),
 };
 
 const updateObjectShape = {

@@ -7,6 +7,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { Providers } from "../app/providers";
 import {
   queryKeys,
+  useCreatePerson,
   useCreateTask,
   useUpdateTask,
   useCreateEvent,
@@ -235,6 +236,75 @@ describe("canonical cache invalidation", () => {
       objectType: "task",
       displayName: "Task",
     });
+  });
+
+  it("retries a standalone create with the same command and a person with its own", async () => {
+    const task = {
+      id: taskId,
+      workspaceId,
+      objectType: "task",
+      displayName: "Task",
+      permissionScopeId: taskId,
+      createdBy: workspaceId,
+      createdAt: "2026-09-02T20:00:00.000Z",
+      updatedAt: "2026-09-02T20:00:00.000Z",
+      version: 1,
+      archivedAt: null,
+      deletedAt: null,
+      customProperties: {},
+      metadata: {},
+      status: "todo",
+      dueOn: null,
+      dueAt: null,
+      completedAt: null,
+      parentTaskId: null,
+      assigneeId: null,
+      location: null,
+      labelIds: [],
+    };
+    const fetch = vi
+      .fn<typeof globalThis.fetch>()
+      .mockRejectedValueOnce(new TypeError("Connection interrupted"))
+      .mockImplementation(async (input) =>
+        Response.json(
+          String(input).endsWith("/api/persons")
+            ? { ...task, objectType: "person", email: null, userId: null }
+            : task,
+        ),
+      );
+    vi.stubGlobal("fetch", fetch);
+    const { result } = renderHook(
+      () => ({
+        task: useCreateTask(undefined),
+        person: useCreatePerson(),
+      }),
+      { wrapper: Providers },
+    );
+    await act(async () => {
+      await expect(
+        result.current.task.mutateAsync({ displayName: "Task" }),
+      ).rejects.toThrow("The Chronelle API could not be reached.");
+    });
+    await act(() => result.current.task.mutateAsync({ displayName: "Task" }));
+    await act(() => result.current.task.mutateAsync({ displayName: "Task" }));
+    await act(() => result.current.person.mutateAsync({ displayName: "Mira" }));
+    const bodies = fetch.mock.calls.map(([, options]) =>
+      JSON.parse(String(options?.body)),
+    );
+    expect(fetch.mock.calls.map(([url]) => url)).toEqual([
+      "/api/tasks",
+      "/api/tasks",
+      "/api/tasks",
+      "/api/persons",
+    ]);
+    expect(bodies[0]).toEqual({
+      displayName: "Task",
+      commandId: bodies[0].commandId,
+    });
+    expect(bodies[0].commandId).toBe(bodies[1].commandId);
+    expect(bodies[2].commandId).not.toBe(bodies[1].commandId);
+    expect(bodies[3].commandId).toMatch(/^[0-9a-f-]{36}$/);
+    expect(bodies[3].commandId).not.toBe(bodies[2].commandId);
   });
 
   it("marks every cached context, search, and attachment list stale without eagerly refetching inactive queries", async () => {

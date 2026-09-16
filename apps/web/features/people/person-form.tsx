@@ -23,6 +23,7 @@ import {
   splitPersonFields,
 } from "../../lib/person-fields";
 import {
+  type ContextCreateAttempt,
   useCreatePerson,
   usePersonsQuery,
   useSessionQuery,
@@ -73,9 +74,18 @@ function PersonEditor({
 }) {
   const draft = useEditorDraft(latestPerson, readPersonFields, initialDraft);
   const person = draft.source;
+  // A retained draft keeps its creation attempt, so a retry after a lost
+  // response reuses the command the API already served.
+  const [attempt] = useState<ContextCreateAttempt>(
+    () => initialDraft?.creationAttempt ?? { current: null },
+  );
   const snapshot = useMemo<PersonDraftSnapshot>(
-    () => ({ ...draft.snapshot, kind: "person" }),
-    [draft.snapshot],
+    () => ({
+      ...draft.snapshot,
+      kind: "person",
+      ...(person === undefined ? { creationAttempt: attempt } : {}),
+    }),
+    [draft.snapshot, person, attempt],
   );
   const recovery = useKeepEditorDraft(
     draftId,
@@ -84,7 +94,7 @@ function PersonEditor({
     () => onCancel?.(),
     person?.id ?? newPersonDraft.accessId,
   );
-  const create = useCreatePerson();
+  const create = useCreatePerson(attempt);
   const update = useUpdatePerson();
   const session = useSessionQuery();
   const people = usePersonsQuery();

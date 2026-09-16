@@ -144,6 +144,7 @@ describe("runtime database privileges", () => {
     "UPDATE audit_events SET action = 'forged'",
     "UPDATE object_revisions SET object_version = 99",
     "UPDATE event_context_commands SET request_hash = repeat('0', 64)",
+    "UPDATE object_create_commands SET request_hash = repeat('0', 64)",
     "UPDATE command_receipts SET request_hash = repeat('0', 64)",
     "UPDATE event_page_revisions SET pages = '[]'",
     "DELETE FROM event_page_revisions",

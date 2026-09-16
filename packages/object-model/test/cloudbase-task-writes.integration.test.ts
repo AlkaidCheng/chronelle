@@ -5,11 +5,17 @@ import {
   objects,
   resourceGrants,
   tasks,
+  workspaceMembers,
 } from "@chronelle/db";
+import { eq } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { CloudBaseTaskWriteRepository } from "../src/cloudbase-task-write-repository.js";
-import { InvalidObjectStateError, ObjectConflictError } from "../src/errors.js";
+import {
+  CommandConflictError,
+  InvalidObjectStateError,
+  ObjectConflictError,
+} from "../src/errors.js";
 import { EventPlanningObjectService } from "../src/object-service.js";
 import type {
   CreateTaskInput,
@@ -504,6 +510,50 @@ describe.sequential("CloudBase Task writes", () => {
       "location is 1 to 240 characters without surrounding spaces.",
       "location is 1 to 240 characters without surrounding spaces.",
     ]);
+  });
+
+  it("create once per command and refuse a different input under the same id alike", async () => {
+    const outcomes: unknown[] = [];
+    for (const [, service] of backends(reference, cloudbase)) {
+      const commandId = createId();
+      const first = await service.createTask(context(), {
+        displayName: "Once",
+        location: "The hall",
+        commandId,
+      });
+      const again = await service.createTask(context(), {
+        displayName: "Once",
+        location: "The hall",
+        commandId,
+      });
+      expect(again.id).toBe(first.id);
+      expect(again.version).toBe(1);
+      // The same id from another user is that user's own command.
+      await harness.database.connection.db.insert(workspaceMembers).values({
+        workspaceId: harness.workspaceId,
+        userId: harness.viewerId,
+        role: "editor",
+      });
+      const theirs = await service.createTask(context(harness.viewerId), {
+        displayName: "Once",
+        location: "The hall",
+        commandId,
+      });
+      expect(theirs.id).not.toBe(first.id);
+      await harness.database.connection.db
+        .delete(workspaceMembers)
+        .where(eq(workspaceMembers.userId, harness.viewerId));
+      const conflict = await failure(() =>
+        service.createTask(context(), {
+          displayName: "Once, changed",
+          commandId,
+        }),
+      );
+      expect(conflict).toBeInstanceOf(CommandConflictError);
+      expect(await ledger(harness, first.id)).toHaveLength(1);
+      outcomes.push(shape(again as TaskResource));
+    }
+    expect(outcomes[1]).toEqual(outcomes[0]);
   });
 
   it("refuse an object of another type or without a revision baseline", async () => {

@@ -1,9 +1,10 @@
 import { CloudBaseRpcError, type CloudBaseRdbClient } from "@chronelle/db";
 
 import { mapRpcError } from "./cloudbase-rpc-errors.js";
+import { createRequestHash } from "./create-command.js";
 import { InvalidObjectStateError } from "./errors.js";
 import type { ObjectWriteRepository } from "./object-writes.js";
-import type { MutationContext } from "./types.js";
+import type { CreateObjectFields, MutationContext } from "./types.js";
 
 /** What a family's functions are called and how their returned rows decode. */
 export interface CloudBaseWriteFamily<Resource> {
@@ -23,7 +24,7 @@ interface WriteFields {
  * SQLSTATE to the service's error classes.
  */
 export class CloudBaseObjectWriteRepository<
-  CreateInput extends object,
+  CreateInput extends CreateObjectFields,
   UpdateInput extends WriteFields,
   Resource,
 > implements ObjectWriteRepository<CreateInput, UpdateInput, Resource> {
@@ -48,7 +49,16 @@ export class CloudBaseObjectWriteRepository<
         workspace_id: context.principal.workspaceId,
         user_id: context.principal.userId,
         request_id: context.requestId,
-        input: encodeFields(input),
+        // The function reads the command id and the application's hash of
+        // the other fields from the input, as the service computes it.
+        input: encodeFields(
+          input.commandId === undefined
+            ? input
+            : {
+                ...input,
+                requestHash: createRequestHash(this.#family.objectType, input),
+              },
+        ),
       },
     );
     return this.#family.decode(rows);

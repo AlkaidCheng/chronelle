@@ -178,15 +178,35 @@ export function usePersonsQuery(
   });
 }
 
-export function useCreatePerson() {
+/**
+ * Creates a person on its own. An unchanged retry after a lost response
+ * reuses the same command id, so the API returns the person it already
+ * created instead of a second one.
+ */
+export function useCreatePerson(retainedAttempt?: ContextCreateAttempt) {
   const client = useApiClient();
   const invalidate = useCanonicalInvalidation();
+  const localAttempt = useRef<ContextCreateAttempt["current"]>(null);
+  const attempt = retainedAttempt ?? localAttempt;
   return useMutation({
-    mutationFn: (input: PersonCreatePayload) => client.createPerson(input),
+    mutationFn: (input: PersonCreatePayload) =>
+      client.createPerson({
+        ...input,
+        commandId: commandFor(attempt, { person: input }),
+      }),
     onSuccess: () => {
+      attempt.current = null;
       void invalidate();
     },
   });
+}
+
+/** The command id of an unchanged attempt, or a fresh one for new input. */
+function commandFor(attempt: ContextCreateAttempt, input: unknown): string {
+  const key = JSON.stringify(input);
+  if (attempt.current?.key !== key)
+    attempt.current = { key, commandId: crypto.randomUUID() };
+  return attempt.current.commandId;
 }
 
 /** Creates a person inside an Event: the person and its inclusion in one command. */
@@ -594,14 +614,13 @@ function useCreateInContext<Type extends ContextResource["objectType"]>(
           ContextResource,
           { objectType: "task" }
         >;
-        return client.createTask(payload);
-      }
-      const key = JSON.stringify({ eventId, resource });
-      if (attempt.current?.key !== key) {
-        attempt.current = { key, commandId: crypto.randomUUID() };
+        return client.createTask({
+          ...payload,
+          commandId: commandFor(attempt, { standalone: resource }),
+        });
       }
       const result = await client.createEventResource(eventId, {
-        commandId: attempt.current.commandId,
+        commandId: commandFor(attempt, { eventId, resource }),
         resource,
       });
       return result.resource;

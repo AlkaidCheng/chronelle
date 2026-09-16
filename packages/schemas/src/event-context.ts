@@ -15,22 +15,22 @@ export const eventContextCreateRequestSchema = z
     relationMetadata: z.record(z.string(), z.unknown()).optional(),
     resource: z.discriminatedUnion("objectType", [
       eventCreateRequestSchema
-        .omit({ permissionScopeId: true })
+        .omit({ permissionScopeId: true, commandId: true })
         .extend({ objectType: z.literal("event") })
         .strict(),
       taskCreateRequestSchema
-        .omit({ permissionScopeId: true })
+        .omit({ permissionScopeId: true, commandId: true })
         .extend({ objectType: z.literal("task") })
         .strict(),
       expenseCreateRequestSchema
-        .omit({ permissionScopeId: true })
+        .omit({ permissionScopeId: true, commandId: true })
         .extend({ objectType: z.literal("expense") })
         .strict(),
       reminderCreateRequestSchema
-        .omit({ permissionScopeId: true })
+        .omit({ permissionScopeId: true, commandId: true })
         .extend({ objectType: z.literal("reminder") }),
       personCreateRequestSchema
-        .omit({ permissionScopeId: true })
+        .omit({ permissionScopeId: true, commandId: true })
         .extend({ objectType: z.literal("person") })
         .strict(),
     ]),

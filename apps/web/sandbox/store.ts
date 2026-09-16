@@ -406,6 +406,41 @@ export class SandboxStore {
     return current;
   }
 
+  // Standalone creations replay by command id within the session: the same
+  // input returns the object created, a different input is a conflict.
+  readonly #createCommands = new Map<
+    string,
+    { readonly key: string; readonly objectId: string }
+  >();
+
+  #replayCreate(
+    commandId: unknown,
+    fields: Record<string, unknown>,
+  ): Resource | undefined {
+    if (typeof commandId !== "string") return undefined;
+    const known = this.#createCommands.get(commandId);
+    if (known === undefined) return undefined;
+    if (known.key !== JSON.stringify(fields))
+      throw new SandboxError(
+        409,
+        "command_conflict",
+        "The command ID was already used with different input.",
+      );
+    return this.#object(known.objectId);
+  }
+
+  #rememberCreate(
+    commandId: unknown,
+    fields: Record<string, unknown>,
+    objectId: string,
+  ): void {
+    if (typeof commandId === "string")
+      this.#createCommands.set(commandId, {
+        key: JSON.stringify(fields),
+        objectId,
+      });
+  }
+
   // A person's linked account is the sample planner's and belongs to one
   // person, as the API requires of a workspace member.
   #checkPerson(person: Resource): Resource {
@@ -1053,7 +1088,9 @@ export class SandboxStore {
       const input = JSON.parse(
         JSON.stringify(personCreateRequestSchema.parse(body)),
       ) as Record<string, unknown>;
-      const { permissionScopeId, ...fields } = input;
+      const { permissionScopeId, commandId, ...fields } = input;
+      const replay = this.#replayCreate(commandId, fields);
+      if (replay !== undefined) return replay;
       const person = this.#checkPerson(
         canonical(
           "person",
@@ -1065,13 +1102,16 @@ export class SandboxStore {
         ...this.#state,
         objects: [...this.#state.objects, person],
       });
+      this.#rememberCreate(commandId, fields, person.id);
       return person;
     }
     if (method === "POST" && collection === "tasks" && !id) {
       const input = JSON.parse(
         JSON.stringify(taskCreateRequestSchema.parse(body)),
       ) as Record<string, unknown>;
-      const { permissionScopeId, ...fields } = input;
+      const { permissionScopeId, commandId, ...fields } = input;
+      const replay = this.#replayCreate(commandId, fields);
+      if (replay !== undefined) return replay;
       const object = canonical(
         "task",
         fields,
@@ -1083,6 +1123,7 @@ export class SandboxStore {
         ...this.#state,
         objects: [...this.#state.objects, labelled],
       });
+      this.#rememberCreate(commandId, fields, labelled.id);
       return labelled;
     }
     if (method === "POST" && collection === "events") {
