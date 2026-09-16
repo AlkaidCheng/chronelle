@@ -3952,15 +3952,195 @@ html:has(.event-create-dialog[open]) {
   font-weight: 500;
 }
 
+.due-shortcuts button[aria-pressed="true"] {
+  background: var(--accent-soft);
+  box-shadow: inset 2px 0 0 var(--accent);
+}
+
+.due-month {
+  position: relative;
+}
+
 .due-month-nav {
   align-items: center;
   display: flex;
+  gap: 8px;
   justify-content: space-between;
   margin-bottom: 6px;
 }
 
-.due-month-nav strong {
+.due-month-button {
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
   font-size: 0.92rem;
+  font-weight: 700;
+  padding: 4px 8px;
+}
+
+.due-month-button::after {
+  color: var(--muted);
+  content: " \2304";
+  font-weight: 400;
+}
+
+.due-month-button {
+  align-items: baseline;
+  display: inline-flex;
+  gap: 0.35em;
+}
+
+/* The month names share one cell, so the button is as wide as the widest and the year stays put. */
+.due-month-name {
+  display: inline-grid;
+  text-align: left;
+}
+
+.due-month-name > span {
+  grid-area: 1 / 1;
+}
+
+.due-month-name-other {
+  visibility: hidden;
+}
+
+.due-month-year {
+  font-variant-numeric: tabular-nums;
+}
+
+.due-month-button:hover {
+  background: var(--surface-subtle);
+}
+
+.due-month-input {
+  flex: 1 1 160px;
+  max-width: 240px;
+  min-height: 34px;
+  padding: 4px 10px;
+}
+
+/* The chooser floats over the months as a focused panel; the backdrop closes it. */
+.due-month-backdrop {
+  background: color-mix(in srgb, var(--canvas) 55%, transparent);
+  border: 0;
+  border-radius: 12px;
+  cursor: default;
+  inset: 44px 0 0;
+  padding: 0;
+  position: absolute;
+  z-index: 1;
+}
+
+.due-month-panel {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  box-shadow: 0 12px 32px color-mix(in srgb, var(--ink) 18%, transparent);
+  display: grid;
+  gap: 10px;
+  left: 0;
+  padding: 12px;
+  position: absolute;
+  right: 0;
+  top: 44px;
+  z-index: 2;
+}
+
+/* The month and the year are chosen independently, so each gets its own grid. */
+.due-month-columns {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: 3fr 2fr;
+}
+
+.due-month-group {
+  border: 0;
+  margin: 0;
+  min-width: 0;
+  padding: 0;
+}
+
+.due-month-group legend {
+  color: var(--muted);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  padding: 0 0 6px;
+  text-transform: uppercase;
+}
+
+.due-month-grid,
+.due-year-grid {
+  display: grid;
+  gap: 4px;
+  grid-template-columns: repeat(3, 1fr);
+}
+
+/* Years wrap to fewer columns where the panel is narrow. */
+.due-year-grid {
+  align-content: start;
+  border-left: 1px solid var(--line);
+  grid-template-columns: repeat(auto-fill, minmax(40px, 1fr));
+  max-height: 132px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding-left: 12px;
+  position: relative;
+  scrollbar-gutter: stable;
+}
+
+.due-month-choice {
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.85rem;
+  font-variant-numeric: tabular-nums;
+  padding: 6px 4px;
+  width: 100%;
+}
+
+.due-month-choice:hover {
+  background: var(--surface-subtle);
+}
+
+.due-month-choice.is-now {
+  border-color: var(--accent);
+}
+
+.due-month-choice[aria-pressed="true"] {
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+.due-month-footer {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.due-weekdays {
+  color: var(--muted);
+  display: grid;
+  font-size: 0.72rem;
+  font-weight: 700;
+  grid-template-columns: repeat(7, 1fr);
+  padding: 2px 2px 4px;
+  text-align: center;
+}
+
+/* Months run on continuously; the list extends as it is scrolled. */
+/* One six-week month at most; the list scrolls for the rest. */
+.due-months {
+  max-height: 250px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  position: relative;
+  scrollbar-gutter: stable;
 }
 
 .due-grid {
@@ -3970,12 +4150,12 @@ html:has(.event-create-dialog[open]) {
   width: 100%;
 }
 
-.due-grid th {
-  color: var(--muted);
-  font-size: 0.72rem;
+.due-grid-caption {
+  caption-side: top;
+  font-size: 0.85rem;
   font-weight: 700;
-  padding: 2px 0;
-  text-align: center;
+  padding: 10px 6px 4px;
+  text-align: left;
 }
 
 .due-grid td {
@@ -3998,11 +4178,6 @@ html:has(.event-create-dialog[open]) {
 
 .due-day:hover {
   background: var(--accent-soft);
-}
-
-.due-day.is-outside {
-  color: var(--muted);
-  opacity: 0.5;
 }
 
 .due-day.is-past,

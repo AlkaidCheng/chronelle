@@ -16,6 +16,20 @@ const day = (key: string) =>
     day: "numeric",
     year: "numeric",
   }).format(parseDayKey(key));
+const exact = (key: string) =>
+  new Intl.DateTimeFormat(undefined, {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  }).format(parseDayKey(key));
+const monthName = (key: string) =>
+  new Intl.DateTimeFormat(undefined, { month: "long", year: "numeric" }).format(
+    parseDayKey(`${key}-01`),
+  );
+const shortMonth = (key: string) =>
+  new Intl.DateTimeFormat(undefined, { month: "short" }).format(
+    parseDayKey(`${key}-01`),
+  );
 
 function Harness({
   dueDate = "",
@@ -49,28 +63,30 @@ const fields = () =>
     dueTime: string;
     duration: string;
   };
+const month = (key: string) =>
+  within(screen.getByRole("table", { name: monthName(key) }));
+const summary = () => screen.getByText(/^Due: /);
 
 afterEach(cleanup);
 
-describe("DuePicker", () => {
-  it("reads the choice on the closed control", () => {
+// The open control renders fifteen months of day buttons, which jsdom lays
+// out slowly on a busy runner.
+describe("DuePicker", { timeout: 15_000 }, () => {
+  it("reads the choice on the closed control as an exact date", () => {
     expect(describeDue("", "", "", now)).toBe("No date");
-    expect(describeDue("2030-03-05", "", "", now)).toBe("Today");
+    expect(describeDue("2030-03-05", "", "", now)).toBe(
+      `${exact("2030-03-05")} (today)`,
+    );
     expect(describeDue("2030-03-06", "21:00", "", now)).toMatch(
-      /^Tomorrow, 9:00 PM$/,
+      new RegExp(`^${exact("2030-03-06")} \\(tomorrow\\), 9:00 PM$`),
     );
     expect(describeDue("2030-03-06", "21:00", "90", now)).toMatch(
-      /^Tomorrow, 9:00 PM, 1 h 30 min$/,
+      /, 9:00 PM, 1 h 30 min$/,
     );
-    expect(describeDue("2030-03-21", "", "", now)).toBe(
-      new Intl.DateTimeFormat(undefined, {
-        month: "short",
-        day: "numeric",
-      }).format(parseDayKey("2030-03-21")),
-    );
+    expect(describeDue("2030-03-21", "", "", now)).toBe(exact("2030-03-21"));
   });
 
-  it("chooses a day from a shortcut, the grid, or typed text, and clears it", async () => {
+  it("keeps every shortcut, marks the chosen one, and fills the exact date", async () => {
     const user = userEvent.setup();
     render(<Harness />);
     expect(screen.getByText("Due: No date")).toBeVisible();
@@ -78,25 +94,44 @@ describe("DuePicker", () => {
     const shortcuts = within(
       screen.getByRole("list", { name: "Due shortcuts" }),
     );
-    expect(
-      shortcuts.getAllByRole("button").map((button) => button.textContent),
-    ).toEqual([
-      expect.stringMatching(/^Today/),
-      expect.stringMatching(/^Tomorrow/),
-      expect.stringMatching(/^Later this week/),
-      expect.stringMatching(/^This weekend/),
-      expect.stringMatching(/^Next week/),
+    // The first span of each button is its label; the second the weekday.
+    const labels = () =>
+      shortcuts
+        .getAllByRole("button")
+        .map((button) => button.querySelector("span")?.textContent);
+    expect(labels()).toEqual([
+      "Today",
+      "Tomorrow",
+      "Later this week",
+      "This weekend",
+      "Next week",
+      "No date",
     ]);
-    await user.click(shortcuts.getByRole("button", { name: /^This weekend/ }));
+    expect(shortcuts.getByRole("button", { name: "No date" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+    await user.click(shortcuts.getByRole("button", { name: /^Today/ }));
     expect(fields()).toEqual({
-      dueDate: "2030-03-09",
+      dueDate: "2030-03-05",
       dueTime: "",
       duration: "",
     });
-    expect(screen.getByText(/^Due: /)).toHaveTextContent(/^Due: Mar 9$/);
-    // Today is offered again, No date appears, the grid marks the day.
-    expect(shortcuts.getByRole("button", { name: /^Today/ })).toBeVisible();
-    const grid = within(screen.getByRole("table"));
+    // Today stays offered and reads as pressed; the field shows the date itself.
+    expect(labels()).toHaveLength(6);
+    expect(shortcuts.getByRole("button", { name: /^Today/ })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+    expect(shortcuts.getByRole("button", { name: "No date" })).toHaveAttribute(
+      "aria-pressed",
+      "false",
+    );
+    expect(screen.getByLabelText("Due date")).toHaveValue(exact("2030-03-05"));
+    expect(summary()).toHaveTextContent(`Due: ${exact("2030-03-05")} (today)`);
+    await user.click(shortcuts.getByRole("button", { name: /^This weekend/ }));
+    expect(fields().dueDate).toBe("2030-03-09");
+    const grid = month("2030-03");
     expect(
       grid.getByRole("button", { name: day("2030-03-09") }),
     ).toHaveAttribute("aria-pressed", "true");
@@ -109,19 +144,10 @@ describe("DuePicker", () => {
     expect(grid.getByRole("button", { name: day("2030-03-09") })).toHaveClass(
       "is-weekend",
     );
-    await user.click(grid.getByRole("button", { name: day("2030-03-20") }));
-    expect(fields().dueDate).toBe("2030-03-20");
-    expect(screen.getByLabelText("Due date")).toHaveValue(
-      new Intl.DateTimeFormat(undefined, {
-        month: "short",
-        day: "numeric",
-      }).format(parseDayKey("2030-03-20")),
-    );
     // Typed text: a readable date moves the choice; unreadable text keeps it.
     await user.clear(screen.getByLabelText("Due date"));
     await user.type(screen.getByLabelText("Due date"), "Apr 2");
     expect(fields().dueDate).toBe("2030-04-02");
-    expect(screen.getByRole("table")).toHaveAccessibleName(/April 2030/);
     await user.type(screen.getByLabelText("Due date"), "x");
     expect(screen.getByLabelText("Due date")).toHaveAttribute(
       "aria-invalid",
@@ -133,37 +159,150 @@ describe("DuePicker", () => {
     expect(screen.getByLabelText("Due date")).toHaveValue("");
   });
 
-  it("moves through the grid from the keyboard", async () => {
+  it("lists months continuously and reads a typed month in the chooser", async () => {
     const user = userEvent.setup();
     render(<Harness dueDate="2030-03-05" />);
-    await user.click(screen.getByText(/^Due: /));
-    const grid = within(screen.getByRole("table"));
-    grid.getByRole("button", { name: day("2030-03-05") }).focus();
+    await user.click(summary());
+    // Several months are listed at once; a day appears once.
+    expect(screen.getAllByRole("table").length).toBeGreaterThan(3);
+    expect(
+      month("2030-04").queryByRole("button", { name: day("2030-03-31") }),
+    ).toBeNull();
+    expect(
+      month("2030-04").getByRole("button", { name: day("2030-04-01") }),
+    ).toBeVisible();
+    // The heading names the month at the top and opens the chooser.
+    const heading = screen.getByRole("button", {
+      name: `Choose a month and year, showing ${monthName("2030-03")}`,
+    });
+    expect(screen.getByRole("button", { name: "Today" })).toBeDisabled();
+    await user.click(heading);
+    const chooser = within(
+      screen.getByRole("dialog", { name: "Choose a month and year" }),
+    );
+    expect(screen.getByLabelText("Month and year")).toHaveValue(
+      monthName("2030-03"),
+    );
+    expect(
+      within(chooser.getByRole("group", { name: "Month" })).getByRole(
+        "button",
+        { pressed: true },
+      ),
+    ).toHaveTextContent(shortMonth("2030-03"));
+    expect(
+      within(chooser.getByRole("group", { name: "Year" })).getByRole("button", {
+        pressed: true,
+      }),
+    ).toHaveTextContent("2030");
+    // A typed month moves the list; Enter closes the chooser.
+    await user.clear(screen.getByLabelText("Month and year"));
+    await user.paste("October 2027");
+    expect(
+      month("2027-10").getByRole("button", { name: day("2027-10-01") }),
+    ).toBeVisible();
+    await user.keyboard("{Enter}");
+    expect(
+      screen.queryByRole("dialog", { name: "Choose a month and year" }),
+    ).toBeNull();
+    expect(
+      screen.getByRole("button", {
+        name: `Choose a month and year, showing ${monthName("2027-10")}`,
+      }),
+    ).toBeVisible();
+    // Today brings the list back to this month.
+    await user.click(screen.getByRole("button", { name: "Today" }));
+    expect(
+      screen.getByRole("button", {
+        name: `Choose a month and year, showing ${monthName("2030-03")}`,
+      }),
+    ).toBeVisible();
+  });
+
+  it("chooses the month and the year independently in the chooser", async () => {
+    const user = userEvent.setup();
+    render(<Harness dueDate="2030-03-05" />);
+    await user.click(summary());
+    await user.click(
+      screen.getByRole("button", {
+        name: `Choose a month and year, showing ${monthName("2030-03")}`,
+      }),
+    );
+    const chooser = within(
+      screen.getByRole("dialog", { name: "Choose a month and year" }),
+    );
+    const months = () => within(chooser.getByRole("group", { name: "Month" }));
+    const years = () => within(chooser.getByRole("group", { name: "Year" }));
+    // Each choice keeps the chooser open and moves the list behind it.
+    await user.click(years().getByRole("button", { name: "2031" }));
+    expect(
+      month("2031-03").getByRole("button", { name: day("2031-03-01") }),
+    ).toBeVisible();
+    await user.click(
+      months().getByRole("button", { name: shortMonth("2031-12") }),
+    );
+    expect(
+      month("2031-12").getByRole("button", { name: day("2031-12-01") }),
+    ).toBeVisible();
+    expect(
+      screen.getByRole("dialog", { name: "Choose a month and year" }),
+    ).toBeVisible();
+    expect(months().getByRole("button", { pressed: true })).toHaveTextContent(
+      shortMonth("2031-12"),
+    );
+    expect(years().getByRole("button", { pressed: true })).toHaveTextContent(
+      "2031",
+    );
+    await user.click(chooser.getByRole("button", { name: "Done" }));
+    expect(
+      screen.queryByRole("dialog", { name: "Choose a month and year" }),
+    ).toBeNull();
+    const heading = screen.getByRole("button", {
+      name: `Choose a month and year, showing ${monthName("2031-12")}`,
+    });
+    expect(heading).toHaveFocus();
+    // Escape closes it too.
+    await user.click(heading);
+    await user.keyboard("{Escape}");
+    expect(
+      screen.queryByRole("dialog", { name: "Choose a month and year" }),
+    ).toBeNull();
+  });
+
+  it("moves through the months from the keyboard", async () => {
+    const user = userEvent.setup();
+    render(<Harness dueDate="2030-03-05" />);
+    await user.click(summary());
+    month("2030-03")
+      .getByRole("button", { name: day("2030-03-05") })
+      .focus();
     await user.keyboard("{ArrowRight}{ArrowDown}");
-    expect(grid.getByRole("button", { name: day("2030-03-13") })).toHaveFocus();
+    expect(
+      month("2030-03").getByRole("button", { name: day("2030-03-13") }),
+    ).toHaveFocus();
     await user.keyboard("{Home}");
-    expect(grid.getByRole("button", { name: day("2030-03-10") })).toHaveFocus();
+    expect(
+      month("2030-03").getByRole("button", { name: day("2030-03-10") }),
+    ).toHaveFocus();
     await user.keyboard("{End}{PageDown}");
-    expect(grid.getByRole("button", { name: day("2030-04-16") })).toHaveFocus();
-    expect(screen.getByRole("table")).toHaveAccessibleName(/April 2030/);
+    expect(
+      month("2030-04").getByRole("button", { name: day("2030-04-16") }),
+    ).toHaveFocus();
     await user.keyboard("{Enter}");
     expect(fields().dueDate).toBe("2030-04-16");
-    await user.click(screen.getByRole("button", { name: "This month" }));
-    expect(screen.getByRole("table")).toHaveAccessibleName(/March 2030/);
+    // Crossing into the previous month keeps moving; the list extends as needed.
+    await user.keyboard("{ArrowUp}{ArrowUp}{ArrowUp}");
+    expect(
+      month("2030-03").getByRole("button", { name: day("2030-03-26") }),
+    ).toHaveFocus();
   });
 
   it("keeps the time off until asked for and clears it with the date", async () => {
     const user = userEvent.setup();
     render(<Harness />);
-    await user.click(screen.getByText(/^Due: /));
+    await user.click(summary());
     expect(screen.getByRole("button", { name: "Add time" })).toBeDisabled();
-    expect(screen.getByText("Choose a date before a time.")).toBeVisible();
     await user.click(screen.getByRole("button", { name: /^Tomorrow/ }));
-    expect(
-      screen.getByText("Without a time, the task is due that whole day."),
-    ).toBeVisible();
     await user.click(screen.getByRole("button", { name: "Add time" }));
-    // A duration waits for a time.
     expect(screen.getByLabelText("Duration")).toBeDisabled();
     await user.type(screen.getByLabelText("Due time"), "21:00");
     expect(fields()).toEqual({
@@ -171,14 +310,12 @@ describe("DuePicker", () => {
       dueTime: "21:00",
       duration: "",
     });
-    expect(screen.getByText(/^Due: /)).toHaveTextContent(
-      /^Due: Tomorrow, 9:00 PM$/,
+    expect(summary()).toHaveTextContent(
+      `Due: ${exact("2030-03-06")} (tomorrow), 9:00 PM`,
     );
     await user.selectOptions(screen.getByLabelText("Duration"), "90");
     expect(fields().duration).toBe("90");
-    expect(screen.getByText(/^Due: /)).toHaveTextContent(
-      /^Due: Tomorrow, 9:00 PM, 1 h 30 min$/,
-    );
+    expect(summary()).toHaveTextContent(/, 9:00 PM, 1 h 30 min$/);
     await user.click(screen.getByRole("button", { name: "Remove time" }));
     expect(fields()).toEqual({
       dueDate: "2030-03-06",

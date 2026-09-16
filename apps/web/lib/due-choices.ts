@@ -9,10 +9,6 @@ export interface DueShortcut {
 }
 
 const weekday = new Intl.DateTimeFormat(undefined, { weekday: "short" });
-const monthDay = new Intl.DateTimeFormat(undefined, {
-  month: "short",
-  day: "numeric",
-});
 const monthDayYear = new Intl.DateTimeFormat(undefined, {
   month: "short",
   day: "numeric",
@@ -20,17 +16,16 @@ const monthDayYear = new Intl.DateTimeFormat(undefined, {
 });
 
 /**
- * The shortcuts that make sense from a given day: Today unless the choice
- * is today, Tomorrow, Later this week (two days on while that is still
- * Friday or earlier), This weekend (the coming Saturday, not on a
- * weekend), and Next week (the coming Monday).
+ * The shortcuts a day allows: Today, Tomorrow, Later this week (two days
+ * on while that is still Friday or earlier), This weekend (the coming
+ * Saturday, not on a weekend), and Next week (the coming Monday). Every
+ * one stays offered; the control marks the one matching the choice.
  */
-export function dueShortcuts(now: Date, chosen: DayKey | null): DueShortcut[] {
+export function dueShortcuts(now: Date): DueShortcut[] {
   const today = dayKeyOf(now);
   const day = now.getDay(); // 0 Sunday .. 6 Saturday
   const shortcuts: DueShortcut[] = [];
-  if (chosen !== today)
-    shortcuts.push({ id: "today", label: "Today", day: today });
+  shortcuts.push({ id: "today", label: "Today", day: today });
   shortcuts.push({
     id: "tomorrow",
     label: "Tomorrow",
@@ -56,19 +51,17 @@ export function dueShortcuts(now: Date, chosen: DayKey | null): DueShortcut[] {
   return shortcuts;
 }
 
-/** A due day in words: Today, Tomorrow, or the date, with the weekday. */
-export function describeDueDay(day: DayKey, now: Date): string {
-  const date = parseDayKey(day);
-  if (day === dayKeyOf(now)) return "Today";
-  if (day === dayKeyOf(addDays(now, 1))) return "Tomorrow";
-  return date.getFullYear() === now.getFullYear()
-    ? monthDay.format(date)
-    : monthDayYear.format(date);
+/** The exact date of a due day, always with its year. */
+export function exactDueDay(day: DayKey): string {
+  return monthDayYear.format(parseDayKey(day));
 }
 
-/** The weekday a due day falls on, short. */
-export function dueWeekday(day: DayKey): string {
-  return weekday.format(parseDayKey(day));
+/** A due day in words: the exact date, with today or tomorrow as a hint. */
+export function describeDueDay(day: DayKey, now: Date): string {
+  const exact = exactDueDay(day);
+  if (day === dayKeyOf(now)) return `${exact} (today)`;
+  if (day === dayKeyOf(addDays(now, 1))) return `${exact} (tomorrow)`;
+  return exact;
 }
 
 const monthNames = Array.from({ length: 12 }, (_, month) =>
@@ -77,11 +70,54 @@ const monthNames = Array.from({ length: 12 }, (_, month) =>
     .toLowerCase(),
 );
 
+/** A month name, or its first three letters, as a month index; -1 otherwise. */
 function monthIndex(text: string): number {
   const lower = text.toLowerCase();
   return monthNames.findIndex(
     (name) => name === lower || (lower.length >= 3 && name.startsWith(lower)),
   );
+}
+
+/**
+ * The month some typed text names, as YYYY-MM: "October 2027", "Oct 2027",
+ * "2027-10", "10/2027", or a month name alone for the current year; null
+ * for anything else.
+ */
+export function parseMonthText(text: string, now: Date): string | null {
+  const value = text
+    .trim()
+    .toLowerCase()
+    .replace(/,/g, " ")
+    .replace(/\s+/g, " ");
+  const pad = (month: number) => String(month).padStart(2, "0");
+  const iso = /^(\d{4})-(\d{1,2})$/.exec(value);
+  if (iso) {
+    const month = Number(iso[2]);
+    return month >= 1 && month <= 12 ? `${iso[1]}-${pad(month)}` : null;
+  }
+  const numeric = /^(\d{1,2})\/(\d{4})$/.exec(value);
+  if (numeric) {
+    const month = Number(numeric[1]);
+    return month >= 1 && month <= 12 ? `${numeric[2]}-${pad(month)}` : null;
+  }
+  const named = /^([a-z]+)(?: (\d{4}))?$/.exec(value);
+  if (named) {
+    const month = monthIndex(named[1] ?? "");
+    return month < 0
+      ? null
+      : `${named[2] ?? String(now.getFullYear())}-${pad(month + 1)}`;
+  }
+  const yearFirst = /^(\d{4}) ([a-z]+)$/.exec(value);
+  if (yearFirst) {
+    const month = monthIndex(yearFirst[2] ?? "");
+    return month < 0 ? null : `${yearFirst[1]}-${pad(month + 1)}`;
+  }
+  return null;
+}
+
+/** The weekday a due day falls on, short. */
+export function dueWeekday(day: DayKey): string {
+  return weekday.format(parseDayKey(day));
 }
 
 function validDay(year: number, month: number, day: number): DayKey | null {
