@@ -104,10 +104,10 @@ describe("RowMenu", () => {
     const today = screen.getByRole("menuitemradio", { name: "Today" });
     expect(today).toHaveAttribute("aria-checked", "true");
     expect(today).toHaveFocus();
-    // Escape in the choices returns to the entries, not out of the menu.
+    // Escape in the choices returns to the entries, not out of the menu; the
+    // entry that opened them takes focus on the next frame.
     await user.keyboard("{Escape}");
     expect(screen.getByRole("menuitem", { name: "Edit" })).toBeVisible();
-    await user.keyboard("{ArrowRight}");
     await vi.waitFor(() =>
       expect(screen.getByRole("menuitem", { name: "Due" })).toHaveFocus(),
     );
