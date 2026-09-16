@@ -321,6 +321,15 @@ Create input may include `permissionScopeId`. When omitted, the object owns its
 permission scope. A child can inherit from exactly one object in the same
 workspace. The caller must be allowed to edit that scope.
 
+Create input may also carry a `commandId` (UUID). The same caller's repeat of
+the same input under that id returns the object it created (its current
+state, HTTP 201) instead of a second one, so a retry after a lost response
+cannot duplicate an object; a different input under the same id returns HTTP
+409 `command_conflict`. A command id belongs to the caller across every
+family, and the web client attaches one to standalone task and person
+creation for the life of an unchanged draft. Deploy migration 0042 before
+this API and reapply the runtime role grants, which cover the command table.
+
 Patch input always includes the last observed positive `expectedVersion`. A
 successful update increments the version. A stale update returns HTTP 409 with
 the `version_conflict` code.

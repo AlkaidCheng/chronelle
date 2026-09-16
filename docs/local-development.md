@@ -70,7 +70,11 @@ carry `location`. Migration
 (`chronelle_relation_compatible`). Migration
 `0041_cascade_subtasks_in_trash.sql` adds `objects.deleted_with` and
 redefines `chronelle_object_delete` and `chronelle_object_recover` so a
-task's live subtasks go to Trash and come back with it.
+task's live subtasks go to Trash and come back with it. Migration
+`0042_add_object_create_commands.sql` adds the append-only
+`object_create_commands` table and redefines `chronelle_object_create` to
+replay a standalone creation by `commandId`; reapply the runtime role after
+it.
 
 Migration `0021_add_object_search_function.sql` adds `chronelle_object_search`,
 the read-only function the CloudBase search adapter calls. It changes no
