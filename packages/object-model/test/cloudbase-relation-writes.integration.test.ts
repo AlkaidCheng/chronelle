@@ -82,7 +82,7 @@ async function relationAudits(sourceId: string) {
         like(auditEvents.action, "relation.%"),
       ),
     )
-    .orderBy(auditEvents.id);
+    .orderBy(auditEvents.createdAt, auditEvents.action, auditEvents.id);
   return rows.map(({ action, metadata }) => {
     const { relationId, targetObjectId, ...rest } = metadata as Record<
       string,

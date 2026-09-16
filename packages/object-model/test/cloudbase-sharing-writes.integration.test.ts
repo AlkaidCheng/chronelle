@@ -96,7 +96,7 @@ async function sharingAudits(resourceId: string) {
         ]),
       ),
     )
-    .orderBy(auditEvents.id);
+    .orderBy(auditEvents.createdAt, auditEvents.action, auditEvents.id);
   return rows.map(({ action, metadata }) => {
     const { grantId, ...rest } = metadata as Record<string, unknown>;
     return {
