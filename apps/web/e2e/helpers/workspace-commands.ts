@@ -27,8 +27,13 @@ export async function exerciseWorkspaceCommands(
   await page.keyboard.press("Escape");
   await page.getByRole("button", { name: "Discard", exact: true }).click();
   await expect(addTask).toBeFocused();
-  const filter = page.getByRole("button", { name: "all", exact: true });
-  await filter.click();
+  await page.getByRole("button", { name: /^Filter/ }).click();
+  await page.getByRole("menuitemradio", { name: "All", exact: true }).click();
+  await page.keyboard.press("Escape");
+  const filter = page.getByRole("button", {
+    name: "Filter: 1 filter",
+    exact: true,
+  });
   await trigger.focus();
   await page.keyboard.press("Control+k");
   const input = dialog.getByRole("combobox", { name: "Find a command" });
@@ -68,7 +73,7 @@ export async function exerciseWorkspaceCommands(
   }
   await page.keyboard.press("Escape");
   await expect(trigger).toBeFocused();
-  await expect(filter).toHaveAttribute("aria-pressed", "true");
+  await expect(filter).toHaveClass(/is-active/);
 
   await page.setViewportSize({ width: 320, height: 568 });
   await trigger.click();

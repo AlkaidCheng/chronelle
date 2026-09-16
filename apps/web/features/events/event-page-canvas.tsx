@@ -15,8 +15,8 @@ import type {
 } from "@chronelle/schemas";
 import { EmptyState, ErrorNotice } from "../../components/feedback";
 import {
+  describeShownView,
   eventComponents,
-  eventComponentViews,
   viewOf,
 } from "../../lib/event-components";
 import {
@@ -210,10 +210,7 @@ export function EventPageCanvas({
     save.mutate(
       { expectedVersion: layout.version, pages },
       {
-        onSuccess: () =>
-          setAnnouncement(
-            `Shown ${eventComponentViews[view].label.toLowerCase()}.`,
-          ),
+        onSuccess: () => setAnnouncement(describeShownView(view)),
         onSettled: () => {
           locked.current = false;
         },

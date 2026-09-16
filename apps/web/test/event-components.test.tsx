@@ -30,13 +30,13 @@ import {
   type DayKey,
   addDays,
   dayKeyOf,
+  monthDays,
   parseDayKey,
 } from "../lib/day-placement";
 import {
   addableEventComponentKinds,
   eventComponents,
 } from "../lib/event-components";
-import { formatCalendarDate } from "../lib/event-schedule";
 import { queryKeys } from "../lib/queries";
 import { SandboxStore, sandboxWorkspaceId } from "../sandbox/store";
 import {
@@ -152,8 +152,10 @@ describe("insertable event components", () => {
     await client.updateEventLayout(eventId, { expectedVersion: 0, pages });
     const user = userEvent.setup();
     render(<EventPages eventId={eventId} canEdit />, { wrapper: Providers });
-    const filter = await screen.findByRole("button", { name: "all" });
+    const filter = await screen.findByRole("button", { name: "Filter" });
     await user.click(filter);
+    await user.click(screen.getByRole("menuitemradio", { name: "All" }));
+    await user.keyboard("{Escape}");
     await user.click(screen.getByRole("button", { name: "Add page" }));
     const dialog = within(screen.getByRole("dialog"));
     const name = dialog.getByRole("textbox", { name: "Page name" });
@@ -177,8 +179,10 @@ describe("insertable event components", () => {
     expect(dialog.queryByRole("list")).toBeNull();
     expect(fetch).not.toHaveBeenCalled();
     await user.click(dialog.getByRole("button", { name: "Cancel" }));
-    expect(screen.getByRole("button", { name: "all" })).toBe(filter);
-    expect(filter).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByRole("button", { name: "Filter: 1 filter" })).toBe(
+      filter,
+    );
+    expect(filter).toHaveClass("is-active");
     expect((await client.getEventLayout(eventId)).pages).toEqual(pages);
   });
 
@@ -361,8 +365,10 @@ describe("insertable event components", () => {
     });
     const user = userEvent.setup();
     render(<EventPages eventId={eventId} canEdit />, { wrapper: Providers });
-    const filter = await screen.findByRole("button", { name: "all" });
+    const filter = await screen.findByRole("button", { name: "Filter" });
     await user.click(filter);
+    await user.click(screen.getByRole("menuitemradio", { name: "All" }));
+    await user.keyboard("{Escape}");
     const trigger = screen.getByRole("button", { name: "Arrange layout" });
     expect(screen.queryByRole("group", { name: /layout controls/ })).toBeNull();
     const before = await client.getEventLayout(eventId);
@@ -372,14 +378,18 @@ describe("insertable event components", () => {
       screen.getAllByRole("group", { name: /layout controls/ }),
     ).toHaveLength(2);
     expect(screen.getByText(/Moves save immediately/)).toBeVisible();
-    expect(screen.getByRole("button", { name: "all" })).toBe(filter);
-    expect(filter).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByRole("button", { name: "Filter: 1 filter" })).toBe(
+      filter,
+    );
+    expect(filter).toHaveClass("is-active");
     await user.keyboard("{Enter}");
     expect(trigger).toHaveFocus();
     expect(trigger).toHaveTextContent("Arrange");
     expect(screen.queryByRole("group", { name: /layout controls/ })).toBeNull();
-    expect(screen.getByRole("button", { name: "all" })).toBe(filter);
-    expect(filter).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByRole("button", { name: "Filter: 1 filter" })).toBe(
+      filter,
+    );
+    expect(filter).toHaveClass("is-active");
     expect(fetch).not.toHaveBeenCalled();
     expect(await client.getEventLayout(eventId)).toEqual(before);
   });
@@ -737,13 +747,12 @@ describe("insertable event components", () => {
       day: "numeric",
     }).format(due);
     const dayHeading = (name: string) => name.startsWith(`${dueDay},`);
-    const view = within(await screen.findByRole("group", { name: "View" }));
-    expect(view.getByRole("button", { name: "List" })).toHaveAttribute(
-      "aria-pressed",
-      "true",
-    );
+    const layoutButton = await screen.findByRole("button", {
+      name: "Layout: List",
+    });
     expect(screen.getByRole("table")).toBeVisible();
-    await user.click(view.getByRole("button", { name: "By day" }));
+    await user.click(layoutButton);
+    await user.click(screen.getByRole("menuitemradio", { name: "By day" }));
     await screen.findByRole("region", { name: dayHeading });
     expect(screen.queryByRole("table")).toBeNull();
     await waitFor(() =>
@@ -757,21 +766,21 @@ describe("insertable event components", () => {
     expect(
       layout.pages[0]?.components.map((component) => component.view),
     ).toEqual(["by-day", undefined]);
-    // Calendar offers its own views: list, week, month.
-    const switches = screen.getAllByRole("group", { name: "View" });
-    expect(switches).toHaveLength(2);
+    // Calendar offers its own layouts: list, agenda, week, calendar.
+    const layouts = screen.getAllByRole("button", { name: /^Layout: / });
+    expect(layouts).toHaveLength(2);
+    await user.click(layouts[1] as HTMLElement);
     expect(
-      within(switches[1] as HTMLElement)
-        .getAllByRole("button")
-        .map((button) => button.textContent),
-    ).toEqual(["List", "Agenda", "Week", "Month"]);
+      screen.getAllByRole("menuitemradio").map((item) => item.textContent),
+    ).toEqual(["List", "Agenda", "By week", "Calendar"]);
+    await user.keyboard("{Escape}");
     unmount();
 
     render(<EventPages eventId={eventId} canEdit={false} />, {
       wrapper: Providers,
     });
     await screen.findByRole("region", { name: dayHeading });
-    expect(screen.queryByRole("group", { name: "View" })).toBeNull();
+    expect(screen.queryByRole("button", { name: /^Layout: / })).toBeNull();
   });
 
   it("shows To-dos and Calendar by week and by month around today without saving the period", async () => {
@@ -820,14 +829,14 @@ describe("insertable event components", () => {
     // To-dos by week: today's column holds today's task, undated tasks sit
     // under the strip, and moving the period is session state only.
     const todos = panel("To-dos");
-    await user.click(todos.getByRole("button", { name: "all" }));
-    const choose = async (panel: ReturnType<typeof within>, view: string) =>
-      user.click(
-        within(panel.getByRole("group", { name: "View" })).getByRole("button", {
-          name: view,
-        }),
-      );
-    await choose(todos, "Week");
+    await user.click(todos.getByRole("button", { name: "Filter" }));
+    await user.click(todos.getByRole("menuitemradio", { name: "All" }));
+    await user.keyboard("{Escape}");
+    const choose = async (panel: ReturnType<typeof within>, view: string) => {
+      await user.click(panel.getByRole("button", { name: /^Layout: / }));
+      await user.click(panel.getByRole("menuitemradio", { name: view }));
+    };
+    await choose(todos, "By week");
     const todayColumn = () =>
       within(todos.getByRole("listitem", { name: fullDay(today) }));
     expect(todayColumn().getByText("Confirm the caterer")).toBeVisible();
@@ -853,7 +862,7 @@ describe("insertable event components", () => {
     expect(todos.queryByText("Confirm the caterer")).toBeNull();
     expect(await version()).toBe(2);
     await user.click(
-      within(todosPeriod).getByRole("button", { name: "Today" }),
+      within(todosPeriod).getByRole("button", { name: "This week" }),
     );
     await user.click(
       todayColumn().getByRole("button", {
@@ -866,55 +875,47 @@ describe("insertable event components", () => {
       }),
     ).toBeVisible();
 
-    // To-dos by month: today's cell counts its task and the day under the
-    // grid lists it; another day reads as empty.
-    await choose(todos, "Month");
-    const todayCell = todos.getByRole("button", {
+    // To-dos as a calendar: today's cell holds its task as a row with the
+    // same check; the grid ends with the week of the month's last day.
+    await choose(todos, "Calendar");
+    const todayCell = todos.getByRole("cell", {
       name: `${fullDay(today)}, 1 item`,
     });
-    expect(todayCell).toHaveAttribute("aria-pressed", "true");
-    expect(within(todayCell).getByText("Confirm the caterer")).toHaveClass(
-      "is-done",
-    );
-    const todayGroup = todos.getByRole("region", {
-      name: formatCalendarDate(today),
-    });
     expect(
-      within(todayGroup).getByRole("button", {
+      within(todayCell).getByText("Confirm the caterer").closest("li"),
+    ).toHaveClass("is-done");
+    expect(
+      within(todayCell).getByRole("button", {
         name: "Reopen Confirm the caterer",
       }),
-    ).toBeVisible();
+    ).toBeInTheDocument();
+    const monthCells = monthDays(new Date());
     const cells = todos.getAllByRole("cell");
-    expect(cells).toHaveLength(42);
-    await user.click(within(cells.at(-1) as HTMLElement).getByRole("button"));
-    expect(todos.getByText("Nothing due this day.")).toBeVisible();
-    expect(
-      todos.queryByRole("region", { name: formatCalendarDate(today) }),
-    ).toBeNull();
+    expect(cells).toHaveLength(monthCells.length);
+    expect(cells.at(-1)).toHaveAccessibleName(
+      fullDay(monthCells.at(-1) as DayKey),
+    );
     await waitFor(async () => expect(await version()).toBe(3));
 
     // Calendar by week and by month: a two-day item sits on both of its
     // days; the sample item two weeks out stays outside the current period.
     const calendar = panel("Calendar");
-    await choose(calendar, "Week");
+    await choose(calendar, "By week");
     expect(
       within(
         calendar.getByRole("listitem", { name: fullDay(today) }),
       ).getByText("Setup weekend"),
     ).toBeVisible();
     expect(calendar.queryByText("Welcome and coffee")).toBeNull();
-    await choose(calendar, "Month");
+    await choose(calendar, "Calendar");
     expect(
       calendar
         .getAllByRole("cell")
         .filter((cell) => cell.textContent?.includes("Setup weekend")),
-    ).toHaveLength(2);
-    expect(
-      calendar.getByRole("button", { name: `${fullDay(tomorrow)}, 1 item` }),
-    ).toBeVisible();
+    ).toHaveLength(monthCells.includes(tomorrow) ? 2 : 1);
     expect(
       within(
-        calendar.getByRole("region", { name: formatCalendarDate(today) }),
+        calendar.getByRole("cell", { name: `${fullDay(today)}, 1 item` }),
       ).getByRole("heading", { name: "Setup weekend" }),
     ).toBeVisible();
     await waitFor(async () => expect(await version()).toBe(5));
@@ -931,7 +932,6 @@ describe("insertable event components", () => {
     });
     const today = new Date();
     today.setHours(9, 15, 0, 0);
-    const todayKey = dayKeyOf(today);
     for (const [displayName, amount] of [
       ["Flowers", "18.5000"],
       ["Chairs", "60.0000"],
@@ -963,12 +963,10 @@ describe("insertable event components", () => {
           .getByRole("heading", { name: title })
           .closest(".planning-panel") as HTMLElement,
       );
-    const choose = async (panel: ReturnType<typeof within>, view: string) =>
-      user.click(
-        within(panel.getByRole("group", { name: "View" })).getByRole("button", {
-          name: view,
-        }),
-      );
+    const choose = async (panel: ReturnType<typeof within>, view: string) => {
+      await user.click(panel.getByRole("button", { name: /^Layout: / }));
+      await user.click(panel.getByRole("menuitemradio", { name: view }));
+    };
 
     // Expenses by day: one heading per day carrying the day's totals; the
     // sample deposit sits under its own day two weeks out.
@@ -982,28 +980,26 @@ describe("insertable event components", () => {
     ).toHaveTextContent("$78.50");
     expect(expenses.getAllByRole("region")).toHaveLength(2);
     expect(expenses.getByText("Venue deposit")).toBeVisible();
-    // Month: the cell shows amount and name; the day under the grid sums.
-    await choose(expenses, "Month");
+    // Calendar: the cell holds the rows, each with its amount and Edit.
+    await choose(expenses, "Calendar");
     const cells = expenses.getAllByRole("cell");
-    expect(cells).toHaveLength(42);
+    expect(cells).toHaveLength(monthDays(new Date()).length);
     const fullDay = new Intl.DateTimeFormat(undefined, {
       weekday: "long",
       month: "long",
       day: "numeric",
       year: "numeric",
     }).format(today);
-    const todayCell = expenses.getByRole("button", {
+    const todayCell = expenses.getByRole("cell", {
       name: `${fullDay}, 2 items`,
     });
-    expect(within(todayCell).getByText("$18.50 Flowers")).toBeVisible();
-    const shown = expenses.getByRole("region", {
-      name: formatCalendarDate(todayKey),
-    });
-    expect(within(shown).getByText("Day total")).toBeVisible();
-    expect(within(shown).getByText("$78.50")).toBeVisible();
-    expect(within(shown).getAllByRole("button", { name: "Edit" })).toHaveLength(
-      2,
-    );
+    expect(
+      within(todayCell).getByRole("heading", { name: "Flowers" }),
+    ).toBeVisible();
+    expect(within(todayCell).getByText("$18.50")).toBeVisible();
+    expect(
+      within(todayCell).getAllByRole("button", { name: "Edit" }),
+    ).toHaveLength(2);
     await waitFor(async () =>
       expect(
         (await client.getEventLayout(eventId)).pages[0]?.components[0]?.view,
@@ -1013,7 +1009,7 @@ describe("insertable event components", () => {
     // Reminders by week: today's column holds the reminder with Dismiss;
     // dismissing strikes it through in the month cell.
     const reminders = panel("Reminders");
-    await choose(reminders, "Week");
+    await choose(reminders, "By week");
     const column = within(reminders.getByRole("listitem", { name: fullDay }));
     expect(column.getByText("Call the florist")).toBeVisible();
     await chooseRowAction(
@@ -1022,11 +1018,11 @@ describe("insertable event components", () => {
       "Dismiss",
     );
     await waitFor(() => expect(column.getByText("Dismissed")).toBeVisible());
-    await choose(reminders, "Month");
+    await choose(reminders, "Calendar");
     expect(
-      within(
-        reminders.getByRole("button", { name: `${fullDay}, 1 item` }),
-      ).getByText(/Call the florist/),
+      within(reminders.getByRole("cell", { name: `${fullDay}, 1 item` }))
+        .getByRole("heading", { name: "Call the florist" })
+        .closest("article"),
     ).toHaveClass("is-done");
     await choose(reminders, "By day");
     expect(
@@ -1078,52 +1074,65 @@ describe("insertable event components", () => {
       { wrapper: Providers },
     );
     await screen.findByText("Order the cake");
-    await user.click(screen.getByRole("button", { name: "all" }));
-    // The filters offer only what the tasks carry: one label, Me, and Mira.
-    const byLabel = screen.getByRole("combobox", { name: "Filter by label" });
-    expect(
-      within(byLabel)
-        .getAllByRole("option")
-        .map((option) => option.textContent),
-    ).toEqual(["Any label", "Urgent"]);
-    const byAssignee = screen.getByRole("combobox", {
-      name: "Filter by assignee",
-    });
-    expect(
-      within(byAssignee)
-        .getAllByRole("option")
-        .map((option) => option.textContent),
-    ).toEqual(["Anyone", "Me", "Mira"]);
-    await user.selectOptions(byLabel, "Urgent");
+    await user.click(screen.getByRole("button", { name: "Filter" }));
+    await user.click(screen.getByRole("menuitemradio", { name: "All" }));
+    // The menu offers only what the tasks carry: one label, Me, and Mira.
+    const choices = () =>
+      [...screen.getByRole("menu").querySelectorAll("[role^='menuitem']")].map(
+        (item) => item.textContent,
+      );
+    expect(choices()).toEqual([
+      "Open",
+      "All",
+      "Done",
+      "Has a time",
+      "Overdue",
+      "Any label",
+      "Urgent",
+      "Anyone",
+      "Me",
+      "Mira",
+      "Clear filters",
+    ]);
+    const choose = (name: string) =>
+      user.click(screen.getByRole("menuitemradio", { name }));
+    await choose("Urgent");
     expect(screen.getByRole("row", { name: /Order the cake/ })).toBeVisible();
     expect(screen.queryByRole("row", { name: /Call the band/ })).toBeNull();
     expect(
       screen.queryByRole("row", { name: /Confirm the garden venue/ }),
     ).toBeNull();
     // The filters combine; a match-less pair shows why the list is empty.
-    await user.selectOptions(byAssignee, "Me");
+    await choose("Me");
     expect(screen.getByText("No tasks match these filters.")).toBeVisible();
-    await user.selectOptions(byLabel, "");
+    await choose("Any label");
     expect(screen.getByRole("row", { name: /Call the band/ })).toBeVisible();
     expect(screen.queryByRole("row", { name: /Order the cake/ })).toBeNull();
-    await user.selectOptions(byAssignee, "Mira");
+    await choose("Mira");
     expect(screen.getByRole("row", { name: /Order the cake/ })).toBeVisible();
+    expect(screen.getByText("1 of 3 open")).toBeVisible();
     // The choice is session state: the layout saved nothing for it.
     expect((await client.getEventLayout(eventId)).version).toBe(1);
-    // A label the tasks no longer carry leaves the filter; the list widens.
-    await user.selectOptions(byLabel, "Urgent");
+    // A label the tasks no longer carry leaves the menu; the list widens.
+    await choose("Urgent");
+    expect(
+      screen.getByRole("button", { name: "Filter: 3 filters" }),
+    ).toBeVisible();
     await client.updateTask(cake.id, {
       expectedVersion: cake.version,
       labelIds: [],
     });
     await user.click(screen.getByRole("button", { name: "Refetch layout" }));
-    await waitFor(() =>
-      expect(
-        screen.queryByRole("combobox", { name: "Filter by label" }),
-      ).toBeNull(),
-    );
+    expect(
+      await screen.findByRole("button", { name: "Filter: 2 filters" }),
+    ).toBeVisible();
     expect(screen.getByRole("row", { name: /Order the cake/ })).toBeVisible();
-    expect(byAssignee).toHaveValue(mira.id);
+    await user.click(screen.getByRole("button", { name: "Filter: 2 filters" }));
+    expect(choices()).not.toContain("Urgent");
+    expect(screen.getByRole("menuitemradio", { name: "Mira" })).toHaveAttribute(
+      "aria-checked",
+      "true",
+    );
   });
 
   it("lists To-dos and Reminders in manual order and moves them from the row menu", async () => {
@@ -1335,7 +1344,9 @@ describe("insertable event components", () => {
         }),
       ).toBeNull(),
     );
-    await user.click(first.getByRole("button", { name: "all" }));
+    await user.click(first.getByRole("button", { name: "Filter" }));
+    await user.click(first.getByRole("menuitemradio", { name: "All" }));
+    await user.keyboard("{Escape}");
     expect(
       first.getByRole("button", {
         name: "Reopen Confirm the garden venue",

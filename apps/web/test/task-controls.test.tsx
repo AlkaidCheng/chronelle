@@ -18,7 +18,7 @@ describe("task controls", () => {
     const user = userEvent.setup();
     const onChange = vi.fn();
     const { rerender } = render(
-      <TaskSortControl onChange={onChange} sort="due" />,
+      <TaskSortControl onChange={onChange} sort="manual" />,
     );
     const button = screen.getByRole("button", { name: "Sort" });
     expect(button).not.toHaveClass("is-active");
@@ -28,8 +28,8 @@ describe("task controls", () => {
         .getAllByRole("menuitemradio")
         .map((item) => [item.textContent, item.getAttribute("aria-checked")]),
     ).toEqual([
-      ["Manual", "false"],
-      ["By due", "true"],
+      ["Manual", "true"],
+      ["By due", "false"],
       ["By name", "false"],
       ["By updated", "false"],
     ]);

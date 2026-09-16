@@ -1,7 +1,15 @@
 import { expect, type Page } from "@playwright/test";
+import { chooseLayout } from "./component-views";
 import { setDue } from "./due-picker";
 import { chooseRowAction } from "./row-menu";
 import { today } from "./today";
+
+/** Opens the Filter menu, chooses one entry, and closes it. */
+async function chooseFilter(page: Page, name: string) {
+  await page.getByRole("button", { name: /^Filter/ }).click();
+  await page.getByRole("menuitemradio", { name, exact: true }).click();
+  await page.keyboard.press("Escape");
+}
 
 /**
  * Opens the workspace Tasks page from the rail, creates a task outside any
@@ -48,10 +56,13 @@ export async function exerciseTasksPage(page: Page, member: string) {
   await expect(
     row.getByRole("list", { name: "Labels" }).getByText("Paperwork"),
   ).toBeVisible();
-  await page.getByLabel("Filter by label").selectOption({ label: "Paperwork" });
+  await chooseFilter(page, "Paperwork");
+  await expect(
+    page.getByRole("button", { name: "Filter: 1 filter", exact: true }),
+  ).toBeVisible();
   await expect(page.getByText("1 task loaded")).toBeVisible();
   await expect(row).toBeVisible();
-  await page.getByLabel("Filter by label").selectOption("");
+  await chooseFilter(page, "Any label");
 
   // Assign to me creates the signed-in user's person and selects it; the
   // row names the assignee and the Me filter finds the task.
@@ -65,10 +76,10 @@ export async function exerciseTasksPage(page: Page, member: string) {
   await edit.getByRole("button", { name: "Save task", exact: true }).click();
   await expect(edit).toHaveCount(0);
   await expect(row.getByText(`Assigned to ${member}`)).toBeAttached();
-  await page.getByLabel("Filter by assignee").selectOption({ label: "Me" });
+  await chooseFilter(page, "Me");
   await expect(page.getByText("1 task loaded")).toBeVisible();
   await expect(row).toBeVisible();
-  await page.getByLabel("Filter by assignee").selectOption("");
+  await chooseFilter(page, "Anyone");
 
   // A subtask nests under its parent and counts toward its progress.
   await chooseRowAction(page, row, "Add subtask");
@@ -92,18 +103,16 @@ export async function exerciseTasksPage(page: Page, member: string) {
   await page.keyboard.press("Escape");
   await expect(row.getByText("0 of 1 subtasks done")).toBeAttached();
 
-  const view = page.getByRole("group", { name: "View", exact: true });
-  await view.getByRole("button", { name: "By day" }).click();
+  const main = page.getByRole("main");
+  await chooseLayout(main, "By day");
   const day = page.getByRole("region", { name: /May 20/ });
   await expect(day).toBeVisible();
   await expect(day.getByText("Renew the passport")).toBeVisible();
   await page.reload();
   await expect(page.getByRole("region", { name: /May 20/ })).toBeVisible();
   await expect(
-    page
-      .getByRole("group", { name: "View", exact: true })
-      .getByRole("button", { name: "By day" }),
-  ).toHaveAttribute("aria-pressed", "true");
+    page.getByRole("button", { name: "Layout: By day", exact: true }),
+  ).toBeVisible();
   await page
     .getByRole("button", { name: "Complete Renew the passport", exact: true })
     .click();
@@ -112,17 +121,16 @@ export async function exerciseTasksPage(page: Page, member: string) {
   ).toHaveCount(0);
   // The open subtask stays, now naming its parent from outside the page.
   await expect(page.getByText("Part of Renew the passport")).toBeVisible();
-  await page.getByRole("button", { name: "Completed", exact: true }).click();
+  await chooseFilter(page, "Done");
   await expect(
     page.getByText("Renew the passport", { exact: true }),
   ).toBeVisible();
 
-  // Week and Month ask the server for their days: the 2031 task and the
-  // undated subtask are outside this week; a task due today lands in its
-  // column and in its month cell.
-  await page.getByRole("button", { name: "All tasks", exact: true }).click();
-  const views = page.getByRole("group", { name: "View", exact: true });
-  await views.getByRole("button", { name: "Week" }).click();
+  // The week and the calendar ask the server for their days: the 2031
+  // task and the undated subtask are outside this week; a task due today
+  // lands in its column and in its calendar cell.
+  await chooseFilter(page, "All");
+  await chooseLayout(main, "By week");
   await expect(page.getByText("0 tasks loaded")).toBeVisible();
   const todayColumn = page.locator(".week-day.is-today");
   await expect(todayColumn).toBeVisible();
@@ -135,11 +143,19 @@ export async function exerciseTasksPage(page: Page, member: string) {
   await expect(editor).toHaveCount(0);
   await expect(todayColumn.getByText("Water the plants")).toBeVisible();
   await expect(page.getByText("1 task loaded")).toBeVisible();
-  await views.getByRole("button", { name: "Month" }).click();
+  await chooseLayout(main, "Calendar");
   await expect(page.locator(".month-day.is-today")).toContainText(
     "Water the plants",
   );
-  await views.getByRole("button", { name: "List" }).click();
+  // Sort is one control too: by name puts the watered plants last.
+  await page.getByRole("button", { name: "Sort", exact: true }).click();
+  await page
+    .getByRole("menuitemradio", { name: "By name", exact: true })
+    .click();
+  await expect(
+    page.getByRole("button", { name: "Sort: By name", exact: true }),
+  ).toBeVisible();
+  await chooseLayout(main, "List");
   await expect(
     page.getByRole("row", { name: /Water the plants/ }),
   ).toBeVisible();

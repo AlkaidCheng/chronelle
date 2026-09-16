@@ -37,14 +37,18 @@ Tasks lists every task the user may view in the workspace: tasks that live on
 their own and tasks inside any event, in one place. New task creates a task
 that belongs to no event and owns its own permission scope; tasks added inside
 an event keep that event's scope and appear here as well. The toolbar filters
-by name, sorts by manual order (the default), due date (a date-only due leads
-its day, undated tasks come last), recent update, or name, and the Open tasks
-/ All tasks / Completed filter is applied by the server, so a page holds only
-what matches. Load more tasks extends the list page by page.
+by name and carries the three quiet controls every task collection shares:
+Sort (Manual, the default, the order tasks are kept in; By due, a date-only
+due leading its day and undated tasks last; By name; By updated), Filter
+(Open, All, or Done, then any label and any person the workspace knows, with
+Clear filters; the button counts the choices that differ from Open, Any
+label, and Anyone), and Layout. The sort, status, label, and assignee are
+applied by the server, so a page holds only what matches. Load more tasks
+extends the list page by page.
 
-The page offers the same List, By day, Week, and Month views as the To-dos
-component, from the same rows: the completion check, the name and its
-details, the status, and the row menu. Week and Month ask the server for the tasks
+The page offers the same List, By day, By week, and Calendar layouts as the
+To-dos component, from the same rows: the completion check, the name and its
+details, the status, and the row menu. The week and the calendar ask the server for the tasks
 due on the days shown (in the browser's time zone) and load all of them, so
 Load more does not appear there; tasks with no due date are in no week or
 month, and the other filters still apply. Moving the period asks again. A task inside an event names that event under its title, as a link to
@@ -661,42 +665,54 @@ event, Task, Expense, Reminder). Calendar, Expenses, and Reminders rows keep
 their date mark, text, and actions on one line and wrap the actions under the
 text on narrow screens.
 
-A component's kind decides which records it holds; its view decides how they
-are laid out, and the heading carries a View control when a kind offers more
-than one. To-dos offers List, the table; By day, which groups tasks under
-Overdue, one heading per due date (Today and Tomorrow named, with the weekday),
-and No due date, showing each timed task's due time and nothing for a task due
-on the date itself; Week, seven columns Monday to Sunday with today marked and
-each task in its due day's column; and Month, a six-week grid in which each
-day shows up to three tasks (time and name, done ones struck through) and
-"+n more", and the selected day's tasks are listed under the grid, today's
-until another day is chosen. Calendar offers List; Agenda, the numbered
+A component's kind decides which records it holds; its layout decides how
+they are laid out, and the heading carries one Layout control, an icon with
+the current layout's name, that opens the templates a kind offers when it
+offers more than one. To-dos offers List, the table; By day, which groups
+tasks under Overdue, one heading per due date (Today and Tomorrow named, with
+the weekday), and No due date, showing each timed task's due time and nothing
+for a task due on the date itself; By week, seven columns Monday to Sunday
+with today marked and each task in its due day's column, scrolling sideways
+where the panel is narrow; and Calendar, the month's weeks as a grid of day
+cells with the weekday names and day numbers at the right, today a filled
+circle, the days of other months muted and the first of a month named, and
+the grid ending with the week that holds the month's last day. Each calendar
+cell holds its tasks as compact rows (a dot, the name clipped, the time at
+the right, done ones struck through), three of them and then "+n more",
+which opens the rest in place. Calendar offers List; Agenda, the numbered
 running order of its items with the same Edit, History, and Actions on each;
-and Week and Month, a scheduled item sitting on every day it covers. Expenses and Reminders offer List, By day,
-Week, and Month as well: a transaction sits on the day it happened and a
-reminder on the day it is due; an expense day heading, and the day under an
-expense month, carries the day's totals by currency, and a month cell shows
-the amount or the time with the name (a dismissed or triggered reminder struck
-through). A page that carries an Itinerary component (a retired kind) shows
-the Calendar in its Agenda view, and choosing another view on it saves it as
-a Calendar. The
-event's own tabs (To-dos, Calendar, and the rest) offer the same View
-control; a tab's choice lasts for the session, while a page component's is
-saved with the layout. Tasks with no due date and
-unscheduled items are listed under the week or the month. On a narrow screen
-the week's days stack and a month cell marks a day that holds something with a
-dot instead of listing it. Previous, Today, and Next move the period; it opens on today, is not saved, and returns to
-today when the view changes. The rows in a column or under the grid are the
-list's rows with the same actions, and the open/all/done filter applies to
-every view. Beside it, the To-dos component filters by label and by assignee:
-each select offers only what the event's tasks carry (Any label and the
-labels on at least one task; Anyone, Me when the user's person is assigned,
-and the assigned people by name), the filters combine with the status filter,
-a choice the tasks no longer carry falls back to any, and these choices last
-for the session rather than being saved with the layout. On a page, the
-choice of view is part of the layout: it saves at once for everyone on the
-Event, shows in layout history, and undo covers it. Viewers see the saved
-view without a control.
+and By week and Calendar, a scheduled item sitting on every day it covers.
+Expenses and Reminders offer List, By day, By week, and Calendar as well: a
+transaction sits on the day it happened and a reminder on the day it is due;
+an expense day heading carries the day's totals by currency, and a calendar
+cell shows each amount or time with the name (a dismissed or triggered
+reminder struck through). A page that carries an Itinerary component (a
+retired kind) shows the Calendar in its Agenda view, and choosing another
+layout on it saves it as a Calendar. The event's own tabs (To-dos, Calendar,
+and the rest) offer the same Layout control; a tab's choice lasts for the
+session, while a page component's is saved with the layout. Above a week or
+a calendar, open tasks whose due has passed sit in an Overdue strip and tasks
+with no due date or unscheduled items in a second strip, since neither has a
+cell. The period's title sits at the left of the grid, the month in bold
+with the year after it, and three quiet icon buttons at the right move it:
+previous, this week or month (a plain ring), next; the period opens on today,
+is not saved, and returns to today when the layout changes. The rows in a
+column or a cell are the list's rows with the same check and actions, and the
+filters apply to every layout.
+
+Beside Layout, the To-dos component carries Sort and Filter. Sort orders the
+tasks by Manual (their kept order), By due, By name, or By updated, and the
+button reads the chosen order when it is not the default. Filter opens one
+menu: Open, All, or Done; Has a time and Overdue; the labels the event's
+tasks carry (Any label and the labels on at least one task); the people
+assigned (Anyone, Me when the user's person is assigned, and the assigned
+people by name); and Clear filters. Choices keep the menu open and combine,
+the button counts the choices that differ from the defaults, the count
+beside the title reads "2 of 7 open" while any are on, a choice the tasks no
+longer carry falls back to any, and these choices last for the session rather
+than being saved with the layout. On a page, the choice of layout is part of
+the layout: it saves at once for everyone on the Event, shows in layout
+history, and undo covers it. Viewers see the saved layout without a control.
 
 ## Recorded reminders
 

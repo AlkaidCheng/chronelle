@@ -15,7 +15,7 @@ import {
 } from "../../components/feedback";
 import { PlusIcon, SearchIcon } from "../../components/icons";
 import { useQuickAddSlots } from "../../components/quick-add-row";
-import { ViewSwitch } from "../events/component-frame";
+import { LayoutControl } from "../events/component-frame";
 import { type SubtaskParent, TaskForm } from "../events/task-form";
 import { TaskInspector } from "../events/task-inspector";
 import { viewsOf } from "../../lib/event-components";
@@ -29,6 +29,12 @@ import {
 } from "../../lib/queries";
 import { ManageLabelsButton } from "./label-manager";
 import { QuickAddTask } from "./quick-add-task";
+import {
+  defaultTaskFilters,
+  type TaskFilters,
+  TaskFilterControl,
+  TaskSortControl,
+} from "./task-controls";
 import { TaskListView } from "./task-list-view";
 
 const viewStorageKey = "chronelle.task-view";
@@ -43,11 +49,11 @@ export function TasksPage() {
   const [query, setQuery] = useState("");
   const [debouncedQuery, setDebouncedQuery] = useState("");
   const [isComposing, setIsComposing] = useState(false);
-  const [filter, setFilter] = useState<TaskListQuery["filter"]>("open");
-  const [sort, setSort] = useState<TaskListQuery["sort"]>("manual");
-  const [label, setLabel] = useState<string>("");
-  const [assignee, setAssignee] = useState<string>("");
+  const [filters, setFilters] = useState<TaskFilters>(defaultTaskFilters);
+  const [sort, setSort] =
+    useState<NonNullable<TaskListQuery["sort"]>>("manual");
   const [view, setView] = useState<EventComponentView>("list");
+  const { status: filter, label, assignee } = filters;
   const [isAdding, setIsAdding] = useState(false);
   const [parent, setParent] = useState<SubtaskParent | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -109,6 +115,10 @@ export function TasksPage() {
     filter !== "open" ||
     label !== "" ||
     assignee !== "";
+  const labelChoices = labels.data?.items ?? [];
+  const assigneeChoices = (persons.data?.items ?? [])
+    .filter((person) => person.id !== myPerson?.id)
+    .map((person) => ({ id: person.id, name: person.displayName }));
 
   // Stable, so the row cells keep their identity and focus across renders.
   const addSubtask = useCallback(
@@ -187,58 +197,21 @@ export function TasksPage() {
               value={query}
             />
           </label>
-          <label className="compact-field collection-sort">
-            <span className="visually-hidden">Sort tasks</span>
-            <select
-              onChange={(event) =>
-                setSort(event.target.value as TaskListQuery["sort"])
-              }
-              value={sort}
-            >
-              <option value="manual">Manual</option>
-              <option value="due">Due date</option>
-              <option value="updated">Recently updated</option>
-              <option value="name">Name A-Z</option>
-            </select>
-          </label>
-          <label className="compact-field collection-sort">
-            <span className="visually-hidden">Filter by label</span>
-            <select
-              onChange={(event) => setLabel(event.target.value)}
-              value={label}
-            >
-              <option value="">Any label</option>
-              {(labels.data?.items ?? []).map((item) => (
-                <option key={item.id} value={item.id}>
-                  {item.name}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="compact-field collection-sort">
-            <span className="visually-hidden">Filter by assignee</span>
-            <select
-              onChange={(event) => setAssignee(event.target.value)}
-              value={assignee}
-            >
-              <option value="">Anyone</option>
-              {myPerson === undefined ? null : (
-                <option value={myPerson.id}>Me</option>
-              )}
-              {(persons.data?.items ?? [])
-                .filter((person) => person.id !== myPerson?.id)
-                .map((person) => (
-                  <option key={person.id} value={person.id}>
-                    {person.displayName}
-                  </option>
-                ))}
-            </select>
-          </label>
-          <ViewSwitch
-            onChange={changeView}
-            view={view}
-            views={viewsOf("todos")}
-          />
+          <div className="head-controls">
+            <TaskSortControl onChange={setSort} sort={sort} />
+            <TaskFilterControl
+              assignees={assigneeChoices}
+              filters={filters}
+              labels={labelChoices}
+              me={myPerson}
+              onChange={setFilters}
+            />
+            <LayoutControl
+              onChange={changeView}
+              view={view}
+              views={viewsOf("todos")}
+            />
+          </div>
           <ManageLabelsButton />
           <button
             className="button button-quiet"
@@ -250,23 +223,6 @@ export function TasksPage() {
           </button>
         </div>
         <div className="collection-heading">
-          <fieldset aria-label="Filter tasks" className="filter-row">
-            {(["open", "all", "done"] as const).map((value) => (
-              <button
-                aria-pressed={filter === value}
-                className={filter === value ? "active" : ""}
-                key={value}
-                onClick={() => setFilter(value)}
-                type="button"
-              >
-                {value === "open"
-                  ? "Open tasks"
-                  : value === "all"
-                    ? "All tasks"
-                    : "Completed"}
-              </button>
-            ))}
-          </fieldset>
           <p aria-label="Task count" className="collection-count" role="status">
             {tasks.data && !changingQuery
               ? `${items.length} ${items.length === 1 ? "task" : "tasks"} loaded`
@@ -323,9 +279,7 @@ export function TasksPage() {
               className="button button-secondary"
               onClick={() => {
                 setQuery("");
-                setFilter("open");
-                setLabel("");
-                setAssignee("");
+                setFilters(defaultTaskFilters);
               }}
               type="button"
             >

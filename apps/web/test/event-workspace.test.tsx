@@ -656,11 +656,8 @@ describe("EventWorkspace", () => {
 
     // The Calendar's agenda view is the running order the Itinerary showed.
     expect(screen.queryByRole("tab", { name: "Itinerary" })).toBeNull();
-    await user.click(
-      within(screen.getByRole("group", { name: "View" })).getByRole("button", {
-        name: "Agenda",
-      }),
-    );
+    await user.click(screen.getByRole("button", { name: /^Layout: / }));
+    await user.click(screen.getByRole("menuitemradio", { name: "Agenda" }));
     expect(
       screen.getByRole("heading", { name: "Guest arrival" }),
     ).toBeVisible();

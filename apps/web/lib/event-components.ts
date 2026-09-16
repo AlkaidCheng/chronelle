@@ -79,9 +79,16 @@ export const eventComponentViews: Record<
   list: { label: "List" },
   agenda: { label: "Agenda" },
   "by-day": { label: "By day" },
-  week: { label: "Week" },
-  month: { label: "Month" },
+  week: { label: "By week" },
+  month: { label: "Calendar" },
 };
+
+/** The status read after a view is chosen: "Shown by day.", "Shown as a calendar." */
+export function describeShownView(view: EventComponentView): string {
+  const label = eventComponentViews[view].label.toLowerCase();
+  if (label.startsWith("by ")) return `Shown ${label}.`;
+  return `Shown as ${/^[aeiou]/.test(label) ? "an" : "a"} ${label}.`;
+}
 
 /** The kinds a page may add; retired aliases are left out. */
 export const addableEventComponentKinds: readonly EventComponentKind[] =

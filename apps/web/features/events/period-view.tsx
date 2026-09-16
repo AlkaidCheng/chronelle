@@ -48,7 +48,7 @@ export function PeriodView<Item extends { readonly id: string }>({
         <h3 className="day-group-heading">
           <span>{label}</span>
         </h3>
-        {renderList(items, "compact")}
+        {renderList(items, "full")}
       </section>
     );
   const strips =

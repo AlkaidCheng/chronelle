@@ -1,5 +1,12 @@
 import { expect, type Locator, type Page } from "@playwright/test";
+import { chooseLayout } from "./component-views";
 import { chooseRowAction, dragRow, rowMenuButton } from "./row-menu";
+
+/** Opens the Sort menu and chooses an order by its label. */
+async function chooseSort(page: Page, name: string) {
+  await page.getByRole("button", { name: /^Sort/ }).click();
+  await page.getByRole("menuitemradio", { name, exact: true }).click();
+}
 
 const names = ["Book the hall", "Order the cake", "Call the band"] as const;
 
@@ -81,8 +88,7 @@ export async function exerciseRowOrder(page: Page) {
 
   // By day: Due offers its choices in place; Tomorrow moves the row to
   // that day's group.
-  const view = panel.getByRole("group", { name: "View", exact: true });
-  await view.getByRole("button", { name: "By day" }).click();
+  await chooseLayout(panel, "By day");
   const undated = panel.getByRole("region", { name: "No due date" });
   await expect(undated.getByText("Order the cake")).toBeVisible();
   const cake = undated.locator("li").filter({ hasText: "Order the cake" });
@@ -114,7 +120,7 @@ export async function exerciseRowOrder(page: Page) {
   await expect(panel.getByRole("status")).toHaveText(
     "Book the hall is due tomorrow.",
   );
-  await view.getByRole("button", { name: "List" }).click();
+  await chooseLayout(panel, "List");
 
   // The Tasks page lists in the same manual order and drags in its table.
   await page
@@ -122,7 +128,10 @@ export async function exerciseRowOrder(page: Page) {
     .getByRole("link", { name: "Tasks", exact: true })
     .click();
   await expect(page).toHaveURL(/\/tasks$/);
-  await expect(page.getByLabel("Sort tasks")).toHaveValue("manual");
+  // Manual is the default order, so the Sort button reads only its name.
+  await expect(
+    page.getByRole("button", { name: "Sort", exact: true }),
+  ).toBeVisible();
   const pageRows = page.getByRole("row");
   await expect(page.getByRole("row", { name: /Book the hall/ })).toBeVisible();
   expect(await orderOf(pageRows, names)).toEqual([
@@ -140,7 +149,10 @@ export async function exerciseRowOrder(page: Page) {
     .poll(() => orderOf(pageRows, names))
     .toEqual(["Call the band", "Book the hall", "Order the cake"]);
   // Under another sort the rows do not drag and the steps are not offered.
-  await page.getByLabel("Sort tasks").selectOption("name");
+  await chooseSort(page, "By name");
+  await expect(
+    page.getByRole("button", { name: "Sort: By name", exact: true }),
+  ).toBeVisible();
   await expect
     .poll(() => orderOf(pageRows, names))
     .toEqual(["Book the hall", "Call the band", "Order the cake"]);
@@ -148,5 +160,5 @@ export async function exerciseRowOrder(page: Page) {
   await expect(page.getByRole("menu")).toBeVisible();
   await expect(page.getByRole("menuitem", { name: "Move up" })).toHaveCount(0);
   await page.keyboard.press("Escape");
-  await page.getByLabel("Sort tasks").selectOption("manual");
+  await chooseSort(page, "Manual");
 }

@@ -38,7 +38,7 @@ export function activeFilterCount(filters: TaskFilters): number {
 
 /** Sort as one quiet control; the button reads the chosen order when it is not the default. */
 export function TaskSortControl({
-  defaultSort = "due",
+  defaultSort = "manual",
   onChange,
   sort,
 }: {
