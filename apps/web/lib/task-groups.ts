@@ -30,12 +30,17 @@ function isOpen(task: TaskResponse): boolean {
 /**
  * Tasks in the order a day-by-day view shows them: open tasks due before
  * today under Overdue, then one group per local due date in date order
- * with Today and Tomorrow named, then tasks without a due date.
+ * with Today and Tomorrow named, then tasks without a due date. Within a
+ * group tasks follow their due, or keep the order they arrived in when
+ * that order is the manual one.
  */
 export function groupTasksByDay(
   tasks: readonly TaskResponse[],
   now: Date,
+  order: "due" | "manual" = "due",
 ): TaskDayGroup[] {
+  const within = (grouped: TaskResponse[]) =>
+    order === "manual" ? grouped : grouped.sort(byDue);
   const today = localDate(now);
   const overdue: TaskResponse[] = [];
   const undated: TaskResponse[] = [];
@@ -61,13 +66,13 @@ export function groupTasksByDay(
       key: overdueKey,
       label: ["Overdue"],
       tone: "overdue",
-      tasks: overdue.sort(byDue),
+      tasks: within(overdue),
     });
   for (const [key, day] of [...days].sort(([a], [b]) => a.localeCompare(b))) {
     groups.push({
       key,
       ...dayGroupLabel(key, today),
-      tasks: day.tasks.sort(byDue),
+      tasks: within(day.tasks),
     });
   }
   if (undated.length > 0)

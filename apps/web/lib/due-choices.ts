@@ -94,6 +94,13 @@ export function exactDueDay(day: DayKey): string {
   return monthDayYear.format(parseDayKey(day));
 }
 
+/** A day as a move announces it: today, tomorrow, or its exact date. */
+export function dayInWords(day: DayKey, now: Date): string {
+  if (day === dayKeyOf(now)) return "today";
+  if (day === dayKeyOf(addDays(now, 1))) return "tomorrow";
+  return exactDueDay(day);
+}
+
 /** A due day in words: the exact date, with today or tomorrow as a hint. */
 export function describeDueDay(day: DayKey, now: Date): string {
   const exact = exactDueDay(day);

@@ -48,13 +48,13 @@ export async function exerciseComponentViews(page: Page) {
     .click();
   await expect(editor).toHaveCount(0);
   await expect(todos.getByRole("table")).toBeVisible();
-  // The date-only task leads its day in the list.
+  // The list keeps its manual order: each new task after the last.
   await expect(
     todos.getByRole("row", { name: /Send the agenda/ }),
   ).toBeVisible();
   const rows = await todos.getByRole("row").allTextContents();
-  expect(rows.findIndex((row) => row.includes("Send the agenda"))).toBeLessThan(
-    rows.findIndex((row) => row.includes("Book the room")),
+  expect(rows.findIndex((row) => row.includes("Book the room"))).toBeLessThan(
+    rows.findIndex((row) => row.includes("Send the agenda")),
   );
 
   const view = todos.getByRole("group", { name: "View", exact: true });
@@ -67,11 +67,13 @@ export async function exerciseComponentViews(page: Page) {
   await expect(day).toBeVisible();
   await expect(day.getByRole("listitem")).toHaveCount(2);
   await expect(day.getByRole("listitem").first()).toContainText(
+    "Book the room",
+  );
+  await expect(day.getByRole("listitem").first()).toContainText("9:30 AM");
+  await expect(day.getByRole("listitem").last()).toContainText(
     "Send the agenda",
   );
-  await expect(day.getByRole("listitem").first()).not.toContainText("AM");
-  await expect(day.getByText("Book the room")).toBeVisible();
-  await expect(day.getByText("9:30 AM")).toBeVisible();
+  await expect(day.getByRole("listitem").last()).not.toContainText("AM");
   await expect(todos.getByRole("table")).toHaveCount(0);
   await expect(view.getByRole("button", { name: "By day" })).toHaveAttribute(
     "aria-pressed",

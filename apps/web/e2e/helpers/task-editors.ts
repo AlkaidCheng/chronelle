@@ -2,6 +2,7 @@ import { expect, type Page, type TestInfo } from "@playwright/test";
 import { expectDue, setDue } from "./due-picker";
 import { expectToken } from "./appearance";
 import { expectHorizontalReflow } from "./page-navigation";
+import { chooseRowAction, rowMenuButton } from "./row-menu";
 
 export async function exerciseTaskEditors(page: Page, testInfo: TestInfo) {
   const viewport = page.viewportSize();
@@ -52,7 +53,7 @@ export async function exerciseTaskEditors(page: Page, testInfo: TestInfo) {
   await expect(row).toHaveCount(1);
   await expect(row).toContainText("30 min");
   if (viewport) await page.setViewportSize(viewport);
-  await row.getByRole("button", { name: "Edit", exact: true }).click();
+  await chooseRowAction(page, row, "Edit");
   const edit = page.getByRole("dialog", { name: "Edit task", exact: true });
   const editorName = edit.getByLabel("Task", { exact: true });
   await expect(editorName).toBeFocused();
@@ -78,9 +79,7 @@ export async function exerciseTaskEditors(page: Page, testInfo: TestInfo) {
     .getByRole("row")
     .filter({ hasText: "Pack garden supplies and chairs" });
   await expect(row).toHaveCount(1);
-  await expect(
-    row.getByRole("button", { name: "Edit", exact: true }),
-  ).toBeFocused();
+  await expect(rowMenuButton(row)).toBeFocused();
   await row
     .getByRole("button", {
       name: "Complete Pack garden supplies and chairs",

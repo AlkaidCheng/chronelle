@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { expect, test } from "./fixtures";
+import { chooseRowAction } from "./helpers/row-menu";
 
 test("recovers canonical objects and independent context links", async ({
   page,
@@ -73,7 +74,7 @@ test("recovers canonical objects and independent context links", async ({
       url.searchParams.get("otherObjectId") === canonical.id
     );
   });
-  await row.getByRole("button", { name: "Actions for Reserve room" }).click();
+  await chooseRowAction(page, row, "Move to Trash");
   expect((await (await lookup).json()).items).toHaveLength(1);
   let dialog = page.getByRole("dialog");
   expect(await dialog.evaluate((element) => element.matches(":modal"))).toBe(
@@ -136,7 +137,7 @@ test("recovers canonical objects and independent context links", async ({
   await dialog.getByRole("button", { name: "Close", exact: true }).click();
   await page.getByRole("tab", { name: "To-dos" }).click();
   await expect(row).toBeVisible();
-  await row.getByRole("button", { name: "Actions for Reserve room" }).click();
+  await chooseRowAction(page, row, "Move to Trash");
   dialog = page.getByRole("dialog");
   await dialog
     .getByRole("button", { name: "Move to Trash", exact: true })

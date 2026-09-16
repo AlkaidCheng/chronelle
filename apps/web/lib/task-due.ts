@@ -1,4 +1,5 @@
 import type { TaskResponse } from "@chronelle/schemas";
+import { type DayKey, parseDayKey } from "./day-placement";
 import { describeRepeatShort } from "./due-choices";
 import { formatCalendarDate } from "./event-schedule";
 import { formatDateTime, formatDuration, formatTime } from "./format";
@@ -61,4 +62,25 @@ function withDuration(
   return task.durationMinutes === null
     ? text
     : `${text}, ${formatDuration(task.durationMinutes)}`;
+}
+
+/**
+ * A task's due moved to another day: a timed task keeps its time of day
+ * on the new day, a dated one takes the day, and null clears the due.
+ */
+export function dueOnDay(
+  task: Pick<TaskResponse, "dueOn" | "dueAt">,
+  day: DayKey | null,
+): { readonly dueOn: string | null; readonly dueAt: string | null } {
+  if (day === null) return { dueOn: null, dueAt: null };
+  if (task.dueAt === null) return { dueOn: day, dueAt: null };
+  return { dueOn: null, dueAt: instantOnDay(task.dueAt, day) };
+}
+
+/** The same local time of day on another day. */
+export function instantOnDay(instant: string, day: DayKey): string {
+  const time = new Date(instant);
+  const moved = parseDayKey(day);
+  moved.setHours(time.getHours(), time.getMinutes(), 0, 0);
+  return moved.toISOString();
 }

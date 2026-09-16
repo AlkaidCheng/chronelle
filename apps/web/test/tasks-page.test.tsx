@@ -2,6 +2,7 @@
 
 import {
   cleanup,
+  fireEvent,
   render,
   screen,
   waitFor,
@@ -12,6 +13,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { Providers } from "../app/providers";
 import { TasksPage } from "../features/tasks/tasks-page";
 import { SandboxStore, sandboxWorkspaceId } from "../sandbox/store";
+import { chooseRowAction, installPointerEvents } from "./row-menu-support";
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: vi.fn(), replace: vi.fn() }),
@@ -111,8 +113,8 @@ describe("TasksPage", () => {
       .mocked(fetch)
       .mock.calls.map(([url]) => String(url))
       .filter((url) => url.startsWith("/api/tasks"));
-    expect(requests[0]).toBe("/api/tasks?query=&filter=open&sort=due");
-    expect(requests).toContain("/api/tasks?query=&filter=done&sort=due");
+    expect(requests[0]).toBe("/api/tasks?query=&filter=open&sort=manual");
+    expect(requests).toContain("/api/tasks?query=&filter=done&sort=manual");
     const timezone = encodeURIComponent(
       Intl.DateTimeFormat().resolvedOptions().timeZone,
     );
@@ -121,7 +123,7 @@ describe("TasksPage", () => {
     for (const url of ranged)
       expect(url).toMatch(
         new RegExp(
-          `^/api/tasks\\?query=&filter=all&sort=due&dueFrom=\\d{4}-\\d{2}-\\d{2}&dueTo=\\d{4}-\\d{2}-\\d{2}&timezone=${timezone}&limit=50$`,
+          `^/api/tasks\\?query=&filter=all&sort=manual&dueFrom=\\d{4}-\\d{2}-\\d{2}&dueTo=\\d{4}-\\d{2}-\\d{2}&timezone=${timezone}&limit=50$`,
         ),
       );
   });
@@ -169,11 +171,7 @@ describe("TasksPage", () => {
     const parentRow = screen.getByRole("row", {
       name: /Confirm the garden venue/,
     });
-    await user.click(
-      within(parentRow).getByRole("button", {
-        name: "Add subtask to Confirm the garden venue",
-      }),
-    );
+    await chooseRowAction(user, parentRow, "Add subtask");
     const editor = screen.getByRole("dialog", { name: "Add subtask" });
     expect(
       within(editor).getByText("A subtask of Confirm the garden venue."),
@@ -195,9 +193,11 @@ describe("TasksPage", () => {
     expect(within(child).queryByText(/^Part of/)).toBeNull();
     expect(child.querySelector(".task-nested")).not.toBeNull();
     // A subtask cannot take subtasks of its own.
-    expect(
-      within(child).queryByRole("button", { name: /^Add subtask/ }),
-    ).toBeNull();
+    await user.click(
+      within(child).getByRole("button", { name: /^Actions for/ }),
+    );
+    expect(screen.queryByRole("menuitem", { name: "Add subtask" })).toBeNull();
+    await user.keyboard("{Escape}");
     expect(
       within(
         screen.getByRole("row", { name: /Confirm the garden venue/ }),
@@ -238,7 +238,7 @@ describe("TasksPage", () => {
     );
     await screen.findByText("1 task loaded");
     const row = screen.getByRole("row", { name: /Confirm the garden venue/ });
-    await user.click(within(row).getByRole("button", { name: "Edit" }));
+    await chooseRowAction(user, row, "Edit");
     const editor = await screen.findByRole("dialog", { name: "Edit task" });
     // The picker opens on demand.
     await user.click(within(editor).getByText("Labels"));
@@ -324,7 +324,7 @@ describe("TasksPage", () => {
     );
     await screen.findByText("1 task loaded");
     const row = screen.getByRole("row", { name: /Confirm the garden venue/ });
-    await user.click(within(row).getByRole("button", { name: "Edit" }));
+    await chooseRowAction(user, row, "Edit");
     const editor = await screen.findByRole("dialog", { name: "Edit task" });
     // The picker reads the people when it opens; a new person is selected
     // as soon as they exist.
@@ -404,7 +404,7 @@ describe("TasksPage", () => {
     );
     await screen.findByText("1 task loaded");
     const row = screen.getByRole("row", { name: /Confirm the garden venue/ });
-    await user.click(within(row).getByRole("button", { name: "Edit" }));
+    await chooseRowAction(user, row, "Edit");
     const editor = await screen.findByRole("dialog", { name: "Edit task" });
     // The picker reads the people when it opens; a new person is selected
     // as soon as they exist.
@@ -484,7 +484,7 @@ describe("TasksPage", () => {
     );
     await screen.findByText("1 task loaded");
     const row = screen.getByRole("row", { name: /Confirm the garden venue/ });
-    await user.click(within(row).getByRole("button", { name: "Edit" }));
+    await chooseRowAction(user, row, "Edit");
     const editor = await screen.findByRole("dialog", { name: "Edit task" });
     await user.type(
       within(editor).getByLabelText("Location"),
@@ -502,7 +502,7 @@ describe("TasksPage", () => {
     );
     // The field counts its characters and stops at the limit: a longer
     // paste is cut to 240 and the count turns red at 240 / 240.
-    await user.click(within(placed).getByRole("button", { name: "Edit" }));
+    await chooseRowAction(user, placed, "Edit");
     const full = await screen.findByRole("dialog", { name: "Edit task" });
     const field = within(full).getByLabelText("Location");
     expect(within(full).getByText("10 / 240")).not.toHaveClass(
@@ -518,7 +518,7 @@ describe("TasksPage", () => {
       expect(screen.queryByRole("dialog", { name: "Edit task" })).toBeNull(),
     );
     // Reopening shows the trimmed location; clearing it removes the line.
-    await user.click(within(placed).getByRole("button", { name: "Edit" }));
+    await chooseRowAction(user, placed, "Edit");
     const again = await screen.findByRole("dialog", { name: "Edit task" });
     expect(within(again).getByLabelText("Location")).toHaveValue("The garden");
     await user.clear(within(again).getByLabelText("Location"));
@@ -576,5 +576,284 @@ describe("TasksPage", () => {
       ).toBeNull(),
     );
     expect(await screen.findByText("1 task loaded")).toBeVisible();
+  });
+
+  it("moves a task a step from its menu and sets its due from the Due choices", async () => {
+    const user = userEvent.setup();
+    for (const displayName of ["Order the cake", "Call the band"]) {
+      const response = await store.fetch("/api/tasks", {
+        method: "POST",
+        body: JSON.stringify({ displayName }),
+      });
+      expect(response.ok).toBe(true);
+    }
+    render(
+      <Providers>
+        <TasksPage />
+      </Providers>,
+    );
+    await screen.findByText("3 tasks loaded");
+    await user.click(screen.getByRole("button", { name: "All tasks" }));
+    await screen.findByText("4 tasks loaded");
+    const rowNames = () =>
+      screen
+        .getAllByRole("row")
+        .slice(1)
+        .map((row) => row.querySelector("strong")?.textContent);
+    expect(rowNames()).toEqual([
+      "Confirm the garden venue",
+      "Send invitations",
+      "Order the cake",
+      "Call the band",
+    ]);
+    // The first row cannot move up; the last cannot move down.
+    const first = screen.getByRole("row", { name: /Confirm the garden venue/ });
+    await user.click(
+      within(first).getByRole("button", { name: /^Actions for/ }),
+    );
+    expect(screen.getByRole("menuitem", { name: "Move up" })).toBeDisabled();
+    expect(screen.getByRole("menuitem", { name: "Move down" })).toBeEnabled();
+    await user.keyboard("{Escape}");
+    const band = screen.getByRole("row", { name: /Call the band/ });
+    await chooseRowAction(user, band, "Move up");
+    await waitFor(() =>
+      expect(rowNames()).toEqual([
+        "Confirm the garden venue",
+        "Send invitations",
+        "Call the band",
+        "Order the cake",
+      ]),
+    );
+    expect(screen.getByRole("status", { name: "" })).toHaveTextContent(
+      "Call the band is now 3 of 4.",
+    );
+    // Only the moved task was written: it took the midpoint rank.
+    const listed = (await (
+      await store.fetch("/api/tasks?filter=all&sort=manual")
+    ).json()) as {
+      items: { displayName: string; rank: string; version: number }[];
+    };
+    expect(
+      listed.items.map((item) => [item.displayName, item.rank, item.version]),
+    ).toEqual([
+      ["Confirm the garden venue", "00000001000", 1],
+      ["Send invitations", "00000002000", 1],
+      ["Call the band", "00000002500", 2],
+      ["Order the cake", "00000003000", 1],
+    ]);
+    // The menu button keeps focus after the move.
+    expect(
+      within(screen.getByRole("row", { name: /Call the band/ })).getByRole(
+        "button",
+        { name: "Actions for Call the band" },
+      ),
+    ).toHaveFocus();
+
+    // Due opens its choices in place; Tomorrow sets the date.
+    await user.click(
+      within(screen.getByRole("row", { name: /Order the cake/ })).getByRole(
+        "button",
+        { name: /^Actions for/ },
+      ),
+    );
+    await user.click(screen.getByRole("menuitem", { name: "Due" }));
+    expect(
+      screen.getByRole("menuitemradio", { name: "No date" }),
+    ).toHaveAttribute("aria-checked", "true");
+    await user.click(screen.getByRole("menuitemradio", { name: "Tomorrow" }));
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const pad = (part: number) => String(part).padStart(2, "0");
+    const tomorrowKey = `${tomorrow.getFullYear()}-${pad(tomorrow.getMonth() + 1)}-${pad(tomorrow.getDate())}`;
+    await waitFor(async () => {
+      const after = (await (
+        await store.fetch("/api/tasks?filter=all&sort=manual")
+      ).json()) as { items: { displayName: string; dueOn: string | null }[] };
+      expect(
+        after.items.find((item) => item.displayName === "Order the cake")
+          ?.dueOn,
+      ).toBe(tomorrowKey);
+    });
+    expect(screen.getByRole("status", { name: "" })).toHaveTextContent(
+      "Order the cake is due tomorrow.",
+    );
+  });
+
+  it("drags a task above another in the list and onto another day by day", async () => {
+    const restorePointerEvents = installPointerEvents();
+    const user = userEvent.setup();
+    const now = new Date();
+    const pad = (part: number) => String(part).padStart(2, "0");
+    const todayKey = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+    for (const body of [
+      { displayName: "Order the cake" },
+      { displayName: "Call the band", dueOn: todayKey },
+    ]) {
+      const response = await store.fetch("/api/tasks", {
+        method: "POST",
+        body: JSON.stringify(body),
+      });
+      expect(response.ok).toBe(true);
+    }
+    render(
+      <Providers>
+        <TasksPage />
+      </Providers>,
+    );
+    await screen.findByText("3 tasks loaded");
+    const rowNames = () =>
+      screen
+        .getAllByRole("row")
+        .slice(1)
+        .map((row) => row.querySelector("strong")?.textContent);
+    expect(rowNames()).toEqual([
+      "Confirm the garden venue",
+      "Order the cake",
+      "Call the band",
+    ]);
+    // jsdom has no layout: rows are 40px tall in document order, and the
+    // pointer is over whichever group the test names.
+    vi.spyOn(Element.prototype, "getBoundingClientRect").mockImplementation(
+      function (this: Element) {
+        const rows = Array.from(document.querySelectorAll("[data-row-id]"));
+        const at = rows.indexOf(this.closest("[data-row-id]") ?? this);
+        const top = at < 0 ? 0 : at * 40;
+        return {
+          top,
+          bottom: top + 40,
+          height: 40,
+          left: 0,
+          right: 600,
+          width: 600,
+        } as DOMRect;
+      },
+    );
+    const target = { current: null as Element | null };
+    document.elementFromPoint = () => target.current;
+    const pointer = (
+      type: "pointerDown" | "pointerMove" | "pointerUp",
+      element: Element | Document,
+      x: number,
+      y: number,
+      pointerId: number,
+    ) =>
+      fireEvent[type](element, {
+        button: 0,
+        clientX: x,
+        clientY: y,
+        pointerId,
+        pointerType: "mouse",
+      });
+    const cake = screen.getByRole("row", { name: /Order the cake/ });
+    target.current = cake.closest("tbody");
+    pointer("pointerDown", cake, 10, 60, 1);
+    // A short move is still a click; nothing is dragged yet.
+    pointer("pointerMove", document, 12, 62, 1);
+    expect(document.querySelector(".row-drag-ghost")).toBeNull();
+    pointer("pointerMove", document, 10, 5, 1);
+    expect(document.querySelector(".row-drag-ghost")).toHaveTextContent(
+      "Order the cake",
+    );
+    expect(cake).toHaveClass("is-dragging");
+    expect(
+      screen.getByRole("row", { name: /Confirm the garden venue/ }),
+    ).toHaveClass("is-drop-before");
+    pointer("pointerUp", document, 10, 5, 1);
+    await waitFor(() =>
+      expect(rowNames()).toEqual([
+        "Order the cake",
+        "Confirm the garden venue",
+        "Call the band",
+      ]),
+    );
+    expect(document.querySelector(".row-drag-ghost")).toBeNull();
+    expect(screen.getByRole("status", { name: "" })).toHaveTextContent(
+      "Order the cake moved.",
+    );
+    // The click that ended the drag opened nothing.
+    expect(screen.queryByRole("dialog")).toBeNull();
+
+    // By day, a drop under another day's rows sets the due to that day and
+    // ranks the task after the rows there.
+    await user.click(
+      within(screen.getByRole("group", { name: "View" })).getByRole("button", {
+        name: "By day",
+      }),
+    );
+    const today = screen.getByRole("region", { name: /Today/ });
+    expect(within(today).getByText("Call the band")).toBeVisible();
+    const undatedRow = within(
+      screen.getByRole("region", { name: /No due date/ }),
+    )
+      .getByText("Order the cake")
+      .closest("li");
+    expect(undatedRow).not.toBeNull();
+    if (undatedRow === null) return;
+    target.current = today.querySelector("[data-drop-group]");
+    pointer("pointerDown", undatedRow, 10, 60, 2);
+    pointer("pointerMove", document, 10, 400, 2);
+    pointer("pointerUp", document, 10, 400, 2);
+    await waitFor(() =>
+      expect(
+        within(screen.getByRole("region", { name: /Today/ })).getByText(
+          "Order the cake",
+        ),
+      ).toBeVisible(),
+    );
+    expect(screen.getByRole("status", { name: "" })).toHaveTextContent(
+      "Order the cake is due today.",
+    );
+    const listed = (await (
+      await store.fetch("/api/tasks?filter=all&sort=manual")
+    ).json()) as {
+      items: { displayName: string; dueOn: string | null; rank: string }[];
+    };
+    expect(
+      listed.items.find((item) => item.displayName === "Order the cake"),
+    ).toMatchObject({ dueOn: todayKey, rank: "00000005000" });
+    restorePointerEvents();
+  });
+
+  it("duplicates a task beside it and copies its link", async () => {
+    const user = userEvent.setup();
+    const writeText = vi.fn(() => Promise.resolve());
+    vi.stubGlobal("navigator", { ...navigator, clipboard: { writeText } });
+    render(
+      <Providers>
+        <TasksPage />
+      </Providers>,
+    );
+    await screen.findByText("1 task loaded");
+    await user.click(screen.getByRole("button", { name: "All tasks" }));
+    await screen.findByText("2 tasks loaded");
+    const row = screen.getByRole("row", { name: /Confirm the garden venue/ });
+    await chooseRowAction(user, row, "Copy link");
+    expect(writeText).toHaveBeenCalledWith(
+      expect.stringMatching(
+        /^http:\/\/localhost(:\d+)?\/events\/[0-9a-f-]+#task-[0-9a-f-]+$/,
+      ),
+    );
+    await waitFor(() =>
+      expect(screen.getByRole("status", { name: "" })).toHaveTextContent(
+        "Link copied.",
+      ),
+    );
+    await chooseRowAction(user, row, "Duplicate");
+    expect(await screen.findByText("3 tasks loaded")).toBeVisible();
+    const copy = screen.getByRole("row", {
+      name: /Confirm the garden venue \(copy\)/,
+    });
+    expect(copy).toBeVisible();
+    expect(
+      within(copy).getByRole("link", { name: "in Autumn gathering" }),
+    ).toBeVisible();
+    const listed = (await (
+      await store.fetch("/api/tasks?filter=all&sort=manual")
+    ).json()) as { items: { displayName: string; rank: string }[] };
+    expect(listed.items.map((item) => item.displayName)).toEqual([
+      "Confirm the garden venue",
+      "Confirm the garden venue (copy)",
+      "Send invitations",
+    ]);
   });
 });

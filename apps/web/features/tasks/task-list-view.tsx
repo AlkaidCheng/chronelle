@@ -15,33 +15,49 @@ import {
   type Table,
   useReactTable,
 } from "@tanstack/react-table";
-import { type ReactNode, useCallback, useMemo } from "react";
+import { type ReactNode, useCallback, useMemo, useState } from "react";
 
 import { ErrorNotice } from "../../components/feedback";
 import { CheckIcon } from "../../components/icons";
 import { ObjectDetails } from "../../components/object-details";
-import { RowActions, StatusChip } from "../events/component-frame";
-import { HistoryButton } from "../history/history-button";
-import { LifecycleButton } from "../recovery/lifecycle-provider";
+import { RowMenu, type RowMenuEntry } from "../../components/row-menu";
+import { StatusChip } from "../events/component-frame";
+import { useOpenHistory } from "../history/history-provider";
+import { useOpenLifecycle } from "../recovery/lifecycle-provider";
+import {
+  rankAtIndex,
+  rankBetweenRows,
+  rankForStep,
+  staysInPlace,
+} from "../../lib/collection-order";
 import { formatTime } from "../../lib/format";
 import { type DayKey, placeByDay, taskDay } from "../../lib/day-placement";
+import { dayInWords, dueShortcuts } from "../../lib/due-choices";
 import type { Period } from "../../lib/use-period";
 import { PeriodView } from "../events/period-view";
-import { formatTaskDue, formatTaskWhen } from "../../lib/task-due";
+import { dueOnDay, formatTaskDue, formatTaskWhen } from "../../lib/task-due";
 import { groupTasksByDay } from "../../lib/task-groups";
 import { nestTasks } from "../../lib/task-tree";
-import { useUpdateTask } from "../../lib/queries";
+import { useDuplicateTask, useUpdateTask } from "../../lib/queries";
+import { type RowDrop, useRowDrag } from "../../lib/use-row-drag";
 
 const taskColumn = createColumnHelper<TaskResponse>();
+
+/** The one group of the list view; by day, groups carry their own keys. */
+const listGroup = "all";
 
 // The renderers of one render, read through the table's meta so the column
 // definitions never change: a changed cell definition remounts the cell and
 // loses the focus a row's button holds.
 interface TaskTableMeta {
-  readonly actions: (task: TaskResponse) => ReactNode;
   readonly check: (task: TaskResponse) => ReactNode;
   readonly context: (task: TaskResponse) => ReactNode;
   readonly lineage: (task: TaskResponse, nested: boolean) => ReactNode;
+  readonly menu: (
+    task: TaskResponse,
+    rows: readonly TaskResponse[],
+  ) => ReactNode;
+  readonly ordered: readonly TaskResponse[];
   readonly present: ReadonlySet<string>;
 }
 
@@ -82,21 +98,26 @@ const taskColumns = [
   }),
   taskColumn.display({
     id: "actions",
-    cell: ({ row, table }) => tableMeta(table).actions(row.original),
+    cell: ({ row, table }) => {
+      const { menu, ordered } = tableMeta(table);
+      return menu(row.original, ordered);
+    },
   }),
 ];
 
 /**
  * The tasks of one container as a table (list) or grouped by due day, with
- * the same completion check and row actions in both. The container decides
+ * the same completion check and row menu in both. The container decides
  * which tasks arrive and, when it is an Event, names it so row actions
- * keep their context.
+ * keep their context. Under manual order a row can be dragged to another
+ * place or day, or moved a step from its menu.
  */
 export function TaskListView({
   canEdit,
   contexts,
   eventId,
   labelNames,
+  manual = false,
   onAddSubtask,
   personNames,
   onEdit,
@@ -113,12 +134,14 @@ export function TaskListView({
   readonly eventId?: string | undefined;
   /** Label names by id; a label the container has not loaded shows nothing. */
   readonly labelNames?: ReadonlyMap<string, string> | undefined;
+  /** The tasks arrive in manual order, so they may be reordered. */
+  readonly manual?: boolean | undefined;
   /** People's names by id; an assignee the container has not loaded shows nothing. */
   readonly personNames?: ReadonlyMap<string, string> | undefined;
   /** Offers a subtask under a task that has no parent of its own. */
   readonly onAddSubtask?: ((task: TaskResponse) => void) | undefined;
   readonly onEdit: (taskId: string) => void;
-  /** Reloads the container after a failed completion change. */
+  /** Reloads the container after a failed change. */
   readonly onRefresh: () => Promise<unknown>;
   /** The parent of each subtask, by subtask ID. */
   readonly parents: Readonly<Record<string, TaskParent>>;
@@ -131,6 +154,13 @@ export function TaskListView({
 }) {
   const ordered = useMemo(() => nestTasks(tasks), [tasks]);
   const present = useMemo(() => new Set(tasks.map((task) => task.id)), [tasks]);
+  const byId = useMemo(
+    () => new Map(tasks.map((task) => [task.id, task])),
+    [tasks],
+  );
+  const [announcement, setAnnouncement] = useState("");
+  const openHistory = useOpenHistory();
+  const openLifecycle = useOpenLifecycle();
   const lineage = useCallback(
     (task: TaskResponse, nested: boolean) => {
       const count = progress[task.id];
@@ -196,10 +226,32 @@ export function TaskListView({
     [contexts],
   );
   const update = useUpdateTask();
+  const duplicate = useDuplicateTask();
   const { mutate: updateTask, isPending: isUpdating } = update;
+  const { mutate: duplicateTask } = duplicate;
   const groups = useMemo(
-    () => (view === "by-day" ? groupTasksByDay(tasks, new Date()) : []),
-    [tasks, view],
+    () =>
+      view === "by-day"
+        ? groupTasksByDay(tasks, new Date(), manual ? "manual" : "due")
+        : [],
+    [manual, tasks, view],
+  );
+  // Which group each task sits in, for a drop that keeps its place or a
+  // step that stays among its rows.
+  const groupOf = useMemo(() => {
+    const keys = new Map<string, string>();
+    if (view === "by-day")
+      for (const group of groups)
+        for (const task of group.tasks) keys.set(task.id, group.key);
+    else for (const task of ordered) keys.set(task.id, listGroup);
+    return keys;
+  }, [groups, ordered, view]);
+  const rowsOf = useCallback(
+    (groupKey: string): readonly TaskResponse[] =>
+      groupKey === listGroup
+        ? ordered
+        : (groups.find((group) => group.key === groupKey)?.tasks ?? []),
+    [groups, ordered],
   );
   const placed = useMemo(
     () =>
@@ -218,6 +270,76 @@ export function TaskListView({
         : [],
     [tasks, view],
   );
+
+  /** One versioned update of the task with the given changes, announced. */
+  const change = useCallback(
+    (task: TaskResponse, input: Record<string, unknown>, said: string) => {
+      updateTask(
+        { id: task.id, input: { expectedVersion: task.version, ...input } },
+        { onSuccess: () => setAnnouncement(said) },
+      );
+    },
+    [updateTask],
+  );
+  const moveToDay = useCallback(
+    (task: TaskResponse, day: DayKey | null, rank?: string) => {
+      const now = new Date();
+      change(
+        task,
+        { ...dueOnDay(task, day), ...(rank === undefined ? {} : { rank }) },
+        day === null
+          ? `${task.displayName} has no due date now.`
+          : `${task.displayName} is due ${dayInWords(day, now)}.`,
+      );
+    },
+    [change],
+  );
+  const onDrop = useCallback(
+    (id: string, drop: RowDrop) => {
+      const task = byId.get(id);
+      if (task === undefined) return;
+      const from = groupOf.get(id) ?? listGroup;
+      const rows = drop.rowIds.flatMap((rowId) => byId.get(rowId) ?? []);
+      if (
+        drop.groupKey === from &&
+        staysInPlace(rowsOf(from), id, rows, drop.index)
+      )
+        return;
+      const rank = rankAtIndex(rows, drop.index);
+      if (drop.groupKey === "undated") {
+        if (taskDay(task) !== null) moveToDay(task, null, rank);
+        else change(task, { rank }, `${task.displayName} moved.`);
+        return;
+      }
+      if (
+        /^\d{4}-\d{2}-\d{2}$/.test(drop.groupKey) &&
+        taskDay(task) !== drop.groupKey
+      ) {
+        moveToDay(task, drop.groupKey, rank);
+        return;
+      }
+      change(task, { rank }, `${task.displayName} moved.`);
+    },
+    [byId, change, groupOf, moveToDay, rowsOf],
+  );
+  // Overdue keeps its dates: only its own rows may be reordered there.
+  const canDrop = useCallback(
+    (groupKey: string, id: string) =>
+      groupKey !== "overdue" || groupOf.get(id) === "overdue",
+    [groupOf],
+  );
+  const labelOf = useCallback(
+    (id: string) => byId.get(id)?.displayName ?? "",
+    [byId],
+  );
+  const reorder = manual && canEdit;
+  const { drag, groupProps, rowClass, rowProps } = useRowDrag({
+    canDrop,
+    enabled: reorder && (view === "list" || view === "by-day"),
+    labelOf,
+    onDrop,
+  });
+
   const check = useCallback(
     (task: TaskResponse) => {
       const isDone = task.status === "done";
@@ -242,47 +364,173 @@ export function TaskListView({
           }
           type="button"
         >
-          {isDone ? <CheckIcon /> : null}
+          <CheckIcon />
         </button>
       );
     },
     [canEdit, isUpdating, updateTask],
   );
-  const actions = useCallback(
-    (task: TaskResponse) => (
-      <RowActions>
-        {canEdit ? (
-          <button
-            className="button button-quiet button-small"
-            onClick={() => onEdit(task.id)}
-            type="button"
-          >
-            Edit
-          </button>
-        ) : null}
-        {canEdit && onAddSubtask !== undefined && task.parentTaskId === null ? (
-          <button
-            aria-label={`Add subtask to ${task.displayName}`}
-            className="button button-quiet button-small"
-            onClick={() => onAddSubtask(task)}
-            type="button"
-          >
-            Add subtask
-          </button>
-        ) : null}
-        <HistoryButton objectId={task.id} displayName={task.displayName} />
-        {canEdit ? (
-          <LifecycleButton
-            target={eventId === undefined ? task : { ...task, eventId }}
-          />
-        ) : null}
-      </RowActions>
-    ),
-    [canEdit, eventId, onAddSubtask, onEdit],
+  const menu = useCallback(
+    (task: TaskResponse, rows: readonly TaskResponse[]) => {
+      const isDone = task.status === "done";
+      const now = new Date();
+      const day = taskDay(task);
+      const contextEvent = eventId ?? contexts?.[task.id]?.eventId;
+      const entries: RowMenuEntry[] = [];
+      if (canEdit) {
+        entries.push(
+          { kind: "action", label: "Edit", onSelect: () => onEdit(task.id) },
+          {
+            kind: "action",
+            label: isDone ? "Reopen" : "Complete",
+            onSelect: () =>
+              change(
+                task,
+                {
+                  completedAt: isDone ? null : new Date().toISOString(),
+                  status: isDone ? "todo" : "done",
+                },
+                isDone
+                  ? `${task.displayName} reopened.`
+                  : `${task.displayName} completed.`,
+              ),
+          },
+        );
+        if (reorder) {
+          const step = (direction: -1 | 1) => {
+            const rank = rankForStep(rows, task.id, direction);
+            if (rank === null) return;
+            const at = rows.findIndex((row) => row.id === task.id) + direction;
+            change(
+              task,
+              { rank },
+              `${task.displayName} is now ${at + 1} of ${rows.length}.`,
+            );
+          };
+          const at = rows.findIndex((row) => row.id === task.id);
+          entries.push(
+            {
+              kind: "action",
+              label: "Move up",
+              disabled: at <= 0,
+              onSelect: () => step(-1),
+            },
+            {
+              kind: "action",
+              label: "Move down",
+              disabled: at < 0 || at >= rows.length - 1,
+              onSelect: () => step(1),
+            },
+          );
+        }
+        entries.push(
+          { kind: "rule" },
+          {
+            kind: "choices",
+            label: "Due",
+            note:
+              day === null
+                ? undefined
+                : `Now ${dayInWords(day, now)}${
+                    task.dueAt === null ? "" : `, ${formatTime(task.dueAt)}`
+                  }`,
+            choices: [
+              ...dueShortcuts(now).map((shortcut) => ({
+                label: shortcut.label,
+                checked: day === shortcut.day,
+                onSelect: () => moveToDay(task, shortcut.day),
+              })),
+              {
+                label: "No date",
+                checked: day === null,
+                onSelect: () => {
+                  if (day !== null) moveToDay(task, null);
+                },
+              },
+            ],
+          },
+          { kind: "rule" },
+        );
+        if (onAddSubtask !== undefined && task.parentTaskId === null)
+          entries.push({
+            kind: "action",
+            label: "Add subtask",
+            onSelect: () => onAddSubtask(task),
+          });
+        entries.push({
+          kind: "action",
+          label: "Duplicate",
+          onSelect: () => {
+            const at = rows.findIndex((row) => row.id === task.id);
+            duplicateTask(
+              {
+                eventId: contextEvent,
+                rank: rankBetweenRows(task, rows[at + 1]),
+                task,
+              },
+              {
+                onSuccess: () =>
+                  setAnnouncement(`Duplicated ${task.displayName}.`),
+              },
+            );
+          },
+        });
+      }
+      entries.push(
+        {
+          kind: "action",
+          label: "Copy link",
+          onSelect: () => {
+            const path =
+              contextEvent === undefined ? "/tasks" : `/events/${contextEvent}`;
+            const link = `${window.location.origin}${path}#task-${task.id}`;
+            navigator.clipboard
+              ?.writeText(link)
+              .then(() => setAnnouncement("Link copied."))
+              .catch(() => setAnnouncement("The link could not be copied."));
+          },
+        },
+        {
+          kind: "action",
+          label: "History",
+          onSelect: () =>
+            openHistory({ objectId: task.id, displayName: task.displayName }),
+        },
+      );
+      if (canEdit)
+        entries.push(
+          { kind: "rule" },
+          {
+            kind: "action",
+            label: "Move to Trash",
+            danger: true,
+            onSelect: () =>
+              openLifecycle(
+                eventId === undefined ? task : { ...task, eventId },
+              ),
+          },
+        );
+      return (
+        <RowMenu entries={entries} label={`Actions for ${task.displayName}`} />
+      );
+    },
+    [
+      canEdit,
+      change,
+      contexts,
+      duplicateTask,
+      eventId,
+      moveToDay,
+      onAddSubtask,
+      onEdit,
+      openHistory,
+      openLifecycle,
+      reorder,
+    ],
   );
   const meta = useMemo<TaskTableMeta>(
-    () => ({ actions, check, context, lineage, present }),
-    [actions, check, context, lineage, present],
+    () => ({ check, context, lineage, menu, ordered, present }),
+    [check, context, lineage, menu, ordered, present],
   );
   const table = useReactTable({
     columns: taskColumns,
@@ -292,14 +540,44 @@ export function TaskListView({
     meta,
   });
 
-  const notice = update.isError ? (
-    <ErrorNotice
-      error={update.error}
-      onRefresh={() => void onRefresh().then(() => update.reset())}
-    />
-  ) : null;
-  const row = (task: TaskResponse, showDate: boolean) => (
-    <li key={task.id}>
+  const error = update.isError ? update : duplicate.isError ? duplicate : null;
+  const notice = (
+    <>
+      {error === null ? null : (
+        <ErrorNotice
+          error={error.error}
+          onRefresh={() => void onRefresh().then(() => error.reset())}
+        />
+      )}
+      <p aria-live="polite" className="visually-hidden" role="status">
+        {announcement}
+      </p>
+      {drag === null ? null : (
+        <div
+          aria-hidden="true"
+          className="row-drag-ghost"
+          style={{
+            transform: `translate(${drag.x}px, ${drag.y}px)`,
+            width: drag.width,
+          }}
+        >
+          {drag.label}
+        </div>
+      )}
+    </>
+  );
+  const row = (
+    task: TaskResponse,
+    showDate: boolean,
+    rows: readonly TaskResponse[],
+    groupKey: string,
+  ) => (
+    <li
+      className={rowClass(groupKey, task.id)}
+      id={`task-${task.id}`}
+      key={task.id}
+      {...rowProps(task.id)}
+    >
       {check(task)}
       <div className="resource-copy">
         <strong>{task.displayName}</strong>
@@ -311,7 +589,7 @@ export function TaskListView({
         <ObjectDetails id={task.id} />
       </div>
       <StatusChip status={task.status} />
-      {actions(task)}
+      {menu(task, rows)}
     </li>
   );
   if (view === "week" || view === "month")
@@ -331,7 +609,7 @@ export function TaskListView({
           <ul
             className={`resource-list${compact ? " resource-list-compact" : ""}`}
           >
-            {items.map((task) => row(task, false))}
+            {items.map((task) => row(task, false, items, listGroup))}
           </ul>
         )}
         undated={undated}
@@ -354,23 +632,10 @@ export function TaskListView({
                 <span key={part}>{part}</span>
               ))}
             </h3>
-            <ul className="resource-list">
-              {group.tasks.map((task) => (
-                <li key={task.id}>
-                  {check(task)}
-                  <div className="resource-copy">
-                    <strong>{task.displayName}</strong>
-                    {lineage(task, false)}
-                    {formatTaskWhen(task, group.tone === "overdue") !== "" ? (
-                      <p>{formatTaskWhen(task, group.tone === "overdue")}</p>
-                    ) : null}
-                    {context(task)}
-                    <ObjectDetails id={task.id} />
-                  </div>
-                  <StatusChip status={task.status} />
-                  {actions(task)}
-                </li>
-              ))}
+            <ul className="resource-list" {...groupProps(group.key)}>
+              {group.tasks.map((task) =>
+                row(task, group.tone === "overdue", group.tasks, group.key),
+              )}
             </ul>
           </section>
         ))}
@@ -396,10 +661,15 @@ export function TaskListView({
             </tr>
           ))}
         </thead>
-        <tbody>
-          {table.getRowModel().rows.map((row) => (
-            <tr key={row.id}>
-              {row.getVisibleCells().map((cell) => (
+        <tbody {...groupProps(listGroup)}>
+          {table.getRowModel().rows.map((tableRow) => (
+            <tr
+              className={rowClass(listGroup, tableRow.id)}
+              id={`task-${tableRow.id}`}
+              key={tableRow.id}
+              {...rowProps(tableRow.id)}
+            >
+              {tableRow.getVisibleCells().map((cell) => (
                 <td key={cell.id}>
                   {flexRender(cell.column.columnDef.cell, cell.getContext())}
                 </td>

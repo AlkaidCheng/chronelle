@@ -103,3 +103,24 @@ describe("groupTasksByDay", () => {
     expect(groupTasksByDay([], now)).toEqual([]);
   });
 });
+
+describe("groupTasksByDay in manual order", () => {
+  it("keeps the arriving order within a day and under Overdue", () => {
+    const groups = groupTasksByDay(
+      [
+        task("Late today", new Date(2026, 8, 14, 22)),
+        task("Any time today", "2026-09-14"),
+        task("Missed later", new Date(2026, 8, 12, 12)),
+        task("Missed", new Date(2026, 8, 10, 12)),
+      ],
+      now,
+      "manual",
+    );
+    expect(
+      groups.map((group) => group.tasks.map((item) => item.displayName)),
+    ).toEqual([
+      ["Missed later", "Missed"],
+      ["Late today", "Any time today"],
+    ]);
+  });
+});
