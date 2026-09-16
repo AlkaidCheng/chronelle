@@ -44,7 +44,10 @@ tasks extends the list page by page.
 
 The page offers the same List, By day, Week, and Month views as the To-dos
 component, from the same rows: the completion check, Edit (the Task
-inspector), History, and Actions; Week and Month place the tasks loaded so far. A task inside an event names that event under its title, as a link to
+inspector), History, and Actions. Week and Month ask the server for the tasks
+due on the days shown (in the browser's time zone) and load all of them, so
+Load more does not appear there; tasks with no due date are in no week or
+month, and the other filters still apply. Moving the period asks again. A task inside an event names that event under its title, as a link to
 the event, when the user may view the event; a task held through a direct
 grant inside an event the user cannot see shows no event.
 
