@@ -764,6 +764,33 @@ describe("CloudBaseRecoveryReadRepository", () => {
       canRecover: true,
       blockedReason: null,
     });
+    // A subtask whose parent is still in Trash waits for the parent.
+    const subtaskRows = {
+      ...workspace(
+        [{ resource_id: deadScopeId, role: "owner" }],
+        [{ user_id: ownerId, role: "owner" }],
+      ),
+      objects: objects.map((row) =>
+        row.id === orphanId
+          ? { ...row, deleted_at: "2029-12-26T00:00:00.000Z" }
+          : row,
+      ),
+      tasks: typed.tasks.map((row) =>
+        row.object_id === deletedId
+          ? { ...row, parent_task_id: orphanId }
+          : row,
+      ),
+    };
+    expect(
+      await new CloudBaseRecoveryReadRepository(
+        client(subtaskRows).reader,
+        clock,
+      ).previewRecovery(owner, deletedId),
+    ).toMatchObject({
+      object: { id: deletedId },
+      canRecover: false,
+      blockedReason: "Restore the parent task first.",
+    });
     const orphanRows = {
       ...workspace([{ resource_id: deadScopeId, role: "owner" }]),
       objects: objects.map((row) =>

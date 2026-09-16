@@ -164,6 +164,8 @@ export const objects = pgTable("objects", {
     withTimezone: true,
   }),
   deletedAt: timestamp("deleted_at", { mode: "date", withTimezone: true }),
+  /** The object whose deletion took this one to Trash, while it is there. */
+  deletedWith: uuid("deleted_with"),
   customProperties: jsonb("custom_properties")
     .$type<Record<string, unknown>>()
     .notNull()

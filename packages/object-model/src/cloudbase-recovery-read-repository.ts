@@ -20,10 +20,12 @@ import {
 import {
   cloudbaseFilters,
   cloudbaseNullableDate,
+  cloudbaseNullableText,
   cloudbaseText,
 } from "./cloudbase-read-support.js";
 import {
   readTrashCursor,
+  recoveryBlockedByParentReason,
   recoveryBlockedByScopeReason,
   trashCursor,
   trashListContext,
@@ -144,6 +146,41 @@ export class CloudBaseRecoveryReadRepository implements RecoveryReadRepository {
         cloudbaseNullableDate(scope.deleted_at, "deleted_at") !== null
       )
         blockedReason = recoveryBlockedByScopeReason;
+    }
+    // A subtask cannot come back under a parent that is still in Trash.
+    if (
+      blockedReason === null &&
+      cloudbaseText(object.object_type, "object type") === "task"
+    ) {
+      const [task] = await this.#client.select<{
+        readonly parent_task_id: unknown;
+      }>("tasks", {
+        columns: "parent_task_id",
+        filters: cloudbaseFilters(
+          ["workspace_id", "eq", principal.workspaceId],
+          ["object_id", "eq", objectId],
+        ),
+        limit: 1,
+      });
+      const parentId = cloudbaseNullableText(
+        task?.parent_task_id,
+        "parent_task_id",
+      );
+      if (parentId !== null) {
+        const [parent] = await this.#client.select<TrashRow>("objects", {
+          columns: trashColumns,
+          filters: cloudbaseFilters(
+            ["workspace_id", "eq", principal.workspaceId],
+            ["id", "eq", parentId],
+          ),
+          limit: 1,
+        });
+        if (
+          parent === undefined ||
+          cloudbaseNullableDate(parent.deleted_at, "deleted_at") !== null
+        )
+          blockedReason = recoveryBlockedByParentReason;
+      }
     }
     return {
       object: trashItem(object, deletedAt),
