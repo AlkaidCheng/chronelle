@@ -309,6 +309,39 @@ describe("browser sandbox", () => {
     expect((await client.getEventReminders(event.id)).items).toHaveLength(1);
     expect((await client.getEventTimeline(event.id)).items).toHaveLength(2);
   });
+  it("replays a standalone creation by command id and refuses a changed input", async () => {
+    const store = new SandboxStore(storage());
+    const client = new ChronelleApiClient({
+      getCredential: () => ({
+        accessToken: "sample",
+        workspaceId: sandboxWorkspaceId,
+      }),
+      fetch: (input, options) => store.fetch(input, options),
+    });
+    const commandId = crypto.randomUUID();
+    const task = await client.createTask({ displayName: "Once", commandId });
+    const again = await client.createTask({ displayName: "Once", commandId });
+    expect(again.id).toBe(task.id);
+    expect(
+      (await client.listTasks()).items.filter(({ id }) => id === task.id),
+    ).toHaveLength(1);
+    await expect(
+      client.createTask({ displayName: "Twice", commandId }),
+    ).rejects.toMatchObject({ status: 409 });
+    const personCommand = crypto.randomUUID();
+    const person = await client.createPerson({
+      displayName: "Mira",
+      commandId: personCommand,
+    });
+    expect(
+      (
+        await client.createPerson({
+          displayName: "Mira",
+          commandId: personCommand,
+        })
+      ).id,
+    ).toBe(person.id);
+  });
   it("keeps people in name order and links one person to the signed-in account", async () => {
     const store = new SandboxStore(storage());
     const client = new ChronelleApiClient({
