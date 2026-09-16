@@ -7,7 +7,6 @@ import type {
   TaskProgress,
   TaskResponse,
 } from "@chronelle/schemas";
-import Link from "next/link";
 import {
   createColumnHelper,
   flexRender,
@@ -15,31 +14,34 @@ import {
   type Table,
   useReactTable,
 } from "@tanstack/react-table";
+import Link from "next/link";
 import { type ReactNode, useCallback, useMemo, useState } from "react";
 
 import { ErrorNotice } from "../../components/feedback";
 import { CheckIcon } from "../../components/icons";
 import { ObjectDetails } from "../../components/object-details";
+import type { QuickAddSlots } from "../../components/quick-add-row";
 import { RowMenu, type RowMenuEntry } from "../../components/row-menu";
-import { StatusChip } from "../events/component-frame";
-import { useOpenHistory } from "../history/history-provider";
-import { useOpenLifecycle } from "../recovery/lifecycle-provider";
 import {
   rankAtIndex,
   rankBetweenRows,
   rankForStep,
   staysInPlace,
 } from "../../lib/collection-order";
-import { formatTime } from "../../lib/format";
 import { type DayKey, placeByDay, taskDay } from "../../lib/day-placement";
 import { dayInWords, dueShortcuts } from "../../lib/due-choices";
-import type { Period } from "../../lib/use-period";
-import { PeriodView } from "../events/period-view";
+import { formatTime } from "../../lib/format";
+import { useDuplicateTask, useUpdateTask } from "../../lib/queries";
 import { dueOnDay, formatTaskDue, formatTaskWhen } from "../../lib/task-due";
 import { groupTasksByDay } from "../../lib/task-groups";
 import { nestTasks } from "../../lib/task-tree";
-import { useDuplicateTask, useUpdateTask } from "../../lib/queries";
+import type { Period } from "../../lib/use-period";
 import { type RowDrop, useRowDrag } from "../../lib/use-row-drag";
+import { StatusChip } from "../events/component-frame";
+import { PeriodView } from "../events/period-view";
+import { useOpenHistory } from "../history/history-provider";
+import { useOpenLifecycle } from "../recovery/lifecycle-provider";
+import { QuickAddTask } from "./quick-add-task";
 
 const taskColumn = createColumnHelper<TaskResponse>();
 
@@ -125,6 +127,7 @@ export function TaskListView({
   parents,
   period,
   progress,
+  quickAdd,
   tasks,
   view,
 }: {
@@ -149,6 +152,8 @@ export function TaskListView({
   readonly period: Period;
   /** Subtask progress of each parent, by parent ID. */
   readonly progress: Readonly<Record<string, TaskProgress>>;
+  /** The state of the quick add rows, owned by the container. */
+  readonly quickAdd: QuickAddSlots;
   readonly tasks: readonly TaskResponse[];
   readonly view: EventComponentView;
 }) {
@@ -637,6 +642,18 @@ export function TaskListView({
                 row(task, group.tone === "overdue", group.tasks, group.key),
               )}
             </ul>
+            {canEdit && group.tone !== "overdue" ? (
+              <div className="quick-add-item">
+                <QuickAddTask
+                  dayLabel={
+                    group.key === "undated" ? "no due date" : group.label[0]
+                  }
+                  dueOn={group.key === "undated" ? null : group.key}
+                  eventId={eventId}
+                  slots={quickAdd}
+                />
+              </div>
+            ) : null}
           </section>
         ))}
       </div>
@@ -678,6 +695,11 @@ export function TaskListView({
           ))}
         </tbody>
       </table>
+      {canEdit ? (
+        <div className="quick-add-item quick-add-table">
+          <QuickAddTask dueOn={null} eventId={eventId} slots={quickAdd} />
+        </div>
+      ) : null}
     </div>
   );
 }

@@ -2663,6 +2663,93 @@ ul.resource-list {
   margin-bottom: 5px;
 }
 
+/* The quick add row sits on the rows' grid: the plus where the check is,
+   the words or the field where the name is. */
+.resource-list > .quick-add-item,
+.resource-list + .quick-add-item,
+.quick-add-empty {
+  align-items: start;
+  border-top: 1px solid var(--line);
+  display: flex;
+  padding: calc(var(--row-padding) + 3px) 4px;
+}
+
+.resource-list + .quick-add-item,
+.quick-add-empty {
+  margin-top: 10px;
+}
+
+.quick-add-item > .quick-add {
+  flex: 1 1 100%;
+}
+
+.quick-add-table {
+  border-top: 1px solid var(--line);
+  padding: var(--row-padding) 12px var(--row-padding) 2px;
+}
+
+.quick-add {
+  align-items: center;
+  background: none;
+  border: 0;
+  border-radius: 6px;
+  color: var(--muted);
+  cursor: pointer;
+  display: grid;
+  font: inherit;
+  font-size: 0.86rem;
+  gap: 18px;
+  grid-template-columns: 24px minmax(0, 1fr);
+  min-height: 24px;
+  padding: 0;
+  text-align: left;
+  width: 100%;
+}
+
+.quick-add:hover {
+  color: var(--accent);
+}
+
+.quick-add > svg {
+  height: 20px;
+  justify-self: center;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-width: 1.5;
+  width: 20px;
+}
+
+.quick-add.is-open {
+  align-items: start;
+  cursor: default;
+}
+
+.quick-add.is-open > svg {
+  color: var(--accent);
+  margin-top: 4px;
+}
+
+.quick-add-field {
+  display: grid;
+  gap: 8px;
+}
+
+.quick-add-field input {
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid var(--accent);
+  border-radius: 0;
+  color: var(--ink);
+  font: inherit;
+  font-size: 0.95rem;
+  padding: 2px 0 6px;
+  width: 100%;
+}
+
+.quick-add-field input:focus-visible {
+  outline: none;
+}
+
 .timeline-list,
 .itinerary-list {
   list-style: none;

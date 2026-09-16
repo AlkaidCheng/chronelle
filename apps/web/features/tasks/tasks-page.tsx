@@ -14,6 +14,7 @@ import {
   LoadingState,
 } from "../../components/feedback";
 import { PlusIcon, SearchIcon } from "../../components/icons";
+import { useQuickAddSlots } from "../../components/quick-add-row";
 import { ViewSwitch } from "../events/component-frame";
 import { type SubtaskParent, TaskForm } from "../events/task-form";
 import { TaskInspector } from "../events/task-inspector";
@@ -27,6 +28,7 @@ import {
   useTasksQuery,
 } from "../../lib/queries";
 import { ManageLabelsButton } from "./label-manager";
+import { QuickAddTask } from "./quick-add-task";
 import { TaskListView } from "./task-list-view";
 
 const viewStorageKey = "chronelle.task-view";
@@ -99,6 +101,7 @@ export function TasksPage() {
       session.data !== undefined && person.userId === session.data.user.id,
   );
   const refresh = useRefreshEvent(undefined);
+  const quickAdd = useQuickAddSlots();
   const changingQuery = isComposing || query.trim() !== debouncedQuery;
   const items = changingQuery ? [] : (tasks.data?.items ?? []);
   const filtered =
@@ -291,10 +294,19 @@ export function TasksPage() {
         range === null &&
         tasks.data?.items.length === 0 &&
         !filtered ? (
-          <EmptyState
-            description="Choose New task for something to do on its own, or add tasks inside an event and find them here too."
-            title="Nothing to do yet"
-          />
+          <>
+            <EmptyState
+              description="Choose New task for something to do on its own, or add tasks inside an event and find them here too."
+              title="Nothing to do yet"
+            />
+            <div className="quick-add-item quick-add-empty">
+              <QuickAddTask
+                dayLabel={view === "by-day" ? "no due date" : undefined}
+                dueOn={null}
+                slots={quickAdd}
+              />
+            </div>
+          </>
         ) : null}
         {!changingQuery &&
         !tasks.isError &&
@@ -319,6 +331,13 @@ export function TasksPage() {
             >
               Clear filters
             </button>
+            <div className="quick-add-item quick-add-empty">
+              <QuickAddTask
+                dayLabel={view === "by-day" ? "no due date" : undefined}
+                dueOn={null}
+                slots={quickAdd}
+              />
+            </div>
           </div>
         ) : null}
         {items.length > 0 ||
@@ -335,6 +354,7 @@ export function TasksPage() {
             parents={tasks.data?.parents ?? {}}
             period={period}
             progress={tasks.data?.progress ?? {}}
+            quickAdd={quickAdd}
             tasks={items}
             view={view}
           />
