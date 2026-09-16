@@ -23,12 +23,11 @@ import { ObjectDetails } from "../../components/object-details";
 import { RowActions, StatusChip } from "../events/component-frame";
 import { HistoryButton } from "../history/history-button";
 import { LifecycleButton } from "../recovery/lifecycle-provider";
-import { formatCalendarDate } from "../../lib/event-schedule";
 import { formatTime } from "../../lib/format";
 import { type DayKey, placeByDay, taskDay } from "../../lib/day-placement";
 import type { Period } from "../../lib/use-period";
 import { PeriodView } from "../events/period-view";
-import { formatTaskDue, formatTaskTime } from "../../lib/task-due";
+import { formatTaskDue, formatTaskWhen } from "../../lib/task-due";
 import { groupTasksByDay } from "../../lib/task-groups";
 import { nestTasks } from "../../lib/task-tree";
 import { useUpdateTask } from "../../lib/queries";
@@ -305,10 +304,8 @@ export function TaskListView({
       <div className="resource-copy">
         <strong>{task.displayName}</strong>
         {lineage(task, false)}
-        {task.dueAt !== null ? (
-          <p>{formatTaskTime(task, showDate)}</p>
-        ) : task.dueOn !== null && showDate ? (
-          <p>{formatCalendarDate(task.dueOn)}</p>
+        {formatTaskWhen(task, showDate) !== "" ? (
+          <p>{formatTaskWhen(task, showDate)}</p>
         ) : null}
         {context(task)}
         <ObjectDetails id={task.id} />
@@ -364,10 +361,8 @@ export function TaskListView({
                   <div className="resource-copy">
                     <strong>{task.displayName}</strong>
                     {lineage(task, false)}
-                    {task.dueAt !== null ? (
-                      <p>{formatTaskTime(task, group.tone === "overdue")}</p>
-                    ) : task.dueOn !== null && group.tone === "overdue" ? (
-                      <p>{formatCalendarDate(task.dueOn)}</p>
+                    {formatTaskWhen(task, group.tone === "overdue") !== "" ? (
+                      <p>{formatTaskWhen(task, group.tone === "overdue")}</p>
                     ) : null}
                     {context(task)}
                     <ObjectDetails id={task.id} />

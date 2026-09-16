@@ -1,3 +1,4 @@
+import type { TaskRepeatRule } from "@chronelle/schemas";
 import { type DayKey, addDays, dayKeyOf, parseDayKey } from "./day-placement";
 
 /** A quick way to a due day, with the day it means. */
@@ -53,6 +54,39 @@ export function dueShortcuts(now: Date): DueShortcut[] {
     day: dayKeyOf(addDays(now, day === 0 ? 1 : 8 - day)),
   });
   return shortcuts;
+}
+
+/** The repeat rules the control offers, in order, with their labels. */
+export const repeatChoices: readonly (readonly [TaskRepeatRule, string])[] = [
+  ["daily", "Every day"],
+  ["weekdays", "Every weekday"],
+  ["weekly", "Every week"],
+  ["biweekly", "Every 2 weeks"],
+  ["monthly", "Every month"],
+  ["yearly", "Every year"],
+];
+
+const repeatAdverbs: Record<TaskRepeatRule, string> = {
+  daily: "daily",
+  weekdays: "on weekdays",
+  weekly: "weekly",
+  biweekly: "every 2 weeks",
+  monthly: "monthly",
+  yearly: "yearly",
+};
+
+/** A rule as the summary reads it: "every week", "every week until Oct 31, 2026". */
+export function describeRepeat(rule: string, until = ""): string {
+  const choice = repeatChoices.find(([key]) => key === rule);
+  if (choice === undefined) return "";
+  const words = choice[1].toLowerCase();
+  return until === "" ? words : `${words} until ${exactDueDay(until)}`;
+}
+
+/** A rule as a row reads it: "repeats weekly". */
+export function describeRepeatShort(rule: string | null): string {
+  if (rule === null || !(rule in repeatAdverbs)) return "";
+  return `repeats ${repeatAdverbs[rule as TaskRepeatRule]}`;
 }
 
 /** The exact date of a due day, always with its year. */

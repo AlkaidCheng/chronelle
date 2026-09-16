@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
   describeDueDay,
+  describeRepeat,
+  describeRepeatShort,
   dueShortcuts,
   dueWeekday,
   exactDueDay,
@@ -96,5 +98,22 @@ describe("due choices", () => {
     expect(parseMonthText("13/2027", now)).toBeNull();
     expect(parseMonthText("Octember 2027", now)).toBeNull();
     expect(parseMonthText("", now)).toBeNull();
+  });
+
+  it("reads a repeat rule for the summary and for a row", () => {
+    const exact = new Intl.DateTimeFormat(undefined, {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    }).format(at("2030-10-31"));
+    expect(describeRepeat("weekly")).toBe("every week");
+    expect(describeRepeat("biweekly", "2030-10-31")).toBe(
+      `every 2 weeks until ${exact}`,
+    );
+    expect(describeRepeat("")).toBe("");
+    expect(describeRepeat("hourly", "2030-10-31")).toBe("");
+    expect(describeRepeatShort("weekdays")).toBe("repeats on weekdays");
+    expect(describeRepeatShort("monthly")).toBe("repeats monthly");
+    expect(describeRepeatShort(null)).toBe("");
   });
 });

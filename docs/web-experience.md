@@ -126,8 +126,8 @@ time ("9:30 AM, 30 min", "1 h 30 min"). A task with a due may repeat (every
 day, every weekday, every week, every two weeks, every month, every year),
 optionally until a last date; completing it from a row moves its due to the
 next occurrence and leaves the row open, and only the last occurrence marks it
-done. The editor does not yet offer the rule; the API and the sandbox carry
-it.
+done. Rows say how a task repeats after its time ("9:30 AM, repeats
+weekly").
 
 Every bounded text field in an editor (the names of events, schedule items,
 tasks, expenses, reminders, pages, labels, and people; a person's email and
@@ -499,8 +499,13 @@ choosing the heading opens a focused chooser over the list: a typed field
 grid with the current ones marked. The month and the year are chosen
 independently and the list behind follows each choice until Done, Enter,
 Escape, or a click outside closes the chooser. Add time reveals the Due time field and a Duration select (No duration,
-15 min to 8 h), which waits for a time; Remove time clears both; No date
-clears everything. A date alone makes the task due that
+15 min to 8 h), which waits for a time; Remove time clears both. A Repeat
+select (Does not repeat, Every day, Every weekday, Every week, Every 2 weeks,
+Every month, Every year) waits for a date; a rule reveals an Until field that
+takes a typed date, optional, refused with a note when it comes before the
+due, and dropped when the due moves past it; the closed control reads the
+rule ("Sep 19, 2026, every week until Oct 31, 2026"). No date clears
+everything. A date alone makes the task due that
 whole day (shown as the date, ahead of timed tasks that day, and in the
 Timeline as a dated entry); a date with a time makes it due at that local
 instant. Name-only edits preserve the exact stored due instant, and

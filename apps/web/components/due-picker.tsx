@@ -5,10 +5,12 @@ import { useId, useState } from "react";
 import { type DayKey, dayKeyOf, parseDayKey } from "../lib/day-placement";
 import {
   describeDueDay,
+  describeRepeat,
   dueShortcuts,
   dueWeekday,
   exactDueDay,
   parseDueText,
+  repeatChoices,
 } from "../lib/due-choices";
 import { formatDuration, formatTime } from "../lib/format";
 import { MonthList } from "./month-list";
@@ -30,21 +32,36 @@ export function describeDue(
   dueTime: string,
   duration = "",
   now: Date = new Date(),
+  repeat = "",
+  repeatUntil = "",
 ): string {
   if (dueDate === "") return "No date";
   const day = describeDueDay(dueDate, now);
-  if (dueTime === "") return day;
-  const time = `${day}, ${formatTime(`${dueDate}T${dueTime}`)}`;
-  return duration === ""
-    ? time
-    : `${time}, ${formatDuration(Number(duration))}`;
+  const time =
+    dueTime === "" ? day : `${day}, ${formatTime(`${dueDate}T${dueTime}`)}`;
+  const timed =
+    dueTime === "" || duration === ""
+      ? time
+      : `${time}, ${formatDuration(Number(duration))}`;
+  const rule = describeRepeat(repeat, repeatUntil);
+  return rule === "" ? timed : `${timed}, ${rule}`;
+}
+
+/** The fields the control owns, as one change. */
+interface DueFields {
+  readonly dueDate: string;
+  readonly dueTime: string;
+  readonly duration: string;
+  readonly repeat: string;
+  readonly repeatUntil: string;
 }
 
 /**
  * The task's due behind a disclosure that reads the choice; open, a typed
  * date, the shortcuts a day allows, a continuous list of months with a
- * month and year chooser, and a time that stays off until asked for. A
- * date alone is due that whole day.
+ * month and year chooser, a time that stays off until asked for, and a
+ * repeat rule with an optional last date. A date alone is due that whole
+ * day; without a date there is no time and no rule.
  */
 export function DuePicker({
   disabled = false,
@@ -53,6 +70,8 @@ export function DuePicker({
   duration,
   now = new Date(),
   onChange,
+  repeat = "",
+  repeatUntil = "",
 }: {
   readonly disabled?: boolean;
   /** A calendar date, or the empty string for no due date. */
@@ -63,11 +82,11 @@ export function DuePicker({
   readonly duration: string;
   /** Today, for tests. */
   readonly now?: Date;
-  readonly onChange: (due: {
-    dueDate: string;
-    dueTime: string;
-    duration: string;
-  }) => void;
+  readonly onChange: (due: DueFields) => void;
+  /** A repeat rule, or the empty string for none. */
+  readonly repeat?: string;
+  /** The last date the rule repeats to, or the empty string for none. */
+  readonly repeatUntil?: string;
 }) {
   const id = useId();
   const today = dayKeyOf(now);
@@ -78,43 +97,83 @@ export function DuePicker({
   );
   const [textDay, setTextDay] = useState(dueDate);
   const [timeOn, setTimeOn] = useState(dueTime !== "");
+  const [untilText, setUntilText] = useState(() =>
+    repeatUntil === "" ? "" : exactDueDay(repeatUntil),
+  );
+  const [untilDay, setUntilDay] = useState(repeatUntil);
 
   // The text follows a choice made elsewhere; typed text stands on its own.
   if (dueDate !== textDay) {
     setTextDay(dueDate);
     setText(dueDate === "" ? "" : exactDueDay(dueDate));
   }
+  if (repeatUntil !== untilDay) {
+    setUntilDay(repeatUntil);
+    setUntilText(repeatUntil === "" ? "" : exactDueDay(repeatUntil));
+  }
 
   const showTime = timeOn || dueTime !== "";
   const unreadable = text.trim() !== "" && parseDueText(text, now) === null;
+  const untilParsed =
+    untilText.trim() === "" ? "" : parseDueText(untilText, now);
+  const untilUnreadable = untilParsed === null;
+  const untilEarly =
+    typeof untilParsed === "string" &&
+    untilParsed !== "" &&
+    dueDate !== "" &&
+    untilParsed < dueDate;
 
+  /** The fields as they stand, with the rule following the date. */
+  const fieldsFor = (day: string): DueFields => ({
+    dueDate: day,
+    dueTime: day === "" ? "" : dueTime,
+    duration: day === "" ? "" : duration,
+    repeat: day === "" ? "" : repeat,
+    // An end before the new date would be refused, so it goes.
+    repeatUntil:
+      day === "" || (repeatUntil !== "" && repeatUntil < day)
+        ? ""
+        : repeatUntil,
+  });
   const chooseDay = (day: DayKey | "") => {
     setTextDay(day);
     setText(day === "" ? "" : exactDueDay(day));
-    onChange({
-      dueDate: day,
-      dueTime: day === "" ? "" : dueTime,
-      duration: day === "" ? "" : duration,
-    });
+    onChange(fieldsFor(day));
   };
   const readText = (value: string) => {
     setText(value);
     if (value.trim() === "") {
       setTextDay("");
-      onChange({ dueDate: "", dueTime: "", duration: "" });
+      onChange(fieldsFor(""));
       return;
     }
     const day = parseDueText(value, now);
     if (day === null) return;
     setTextDay(day);
-    onChange({ dueDate: day, dueTime, duration });
+    onChange(fieldsFor(day));
+  };
+  const change = (part: Partial<DueFields>) =>
+    onChange({ dueDate, dueTime, duration, repeat, repeatUntil, ...part });
+  const readUntil = (value: string) => {
+    setUntilText(value);
+    if (value.trim() === "") {
+      setUntilDay("");
+      change({ repeatUntil: "" });
+      return;
+    }
+    const day = parseDueText(value, now);
+    if (day === null || day < dueDate) return;
+    setUntilDay(day);
+    change({ repeatUntil: day });
   };
   return (
     <details
       className="due-picker field-wide"
       onToggle={(event) => setOpen(event.currentTarget.open)}
     >
-      <summary>Due: {describeDue(dueDate, dueTime, duration, now)}</summary>
+      <summary>
+        Due: {describeDue(dueDate, dueTime, duration, now, repeat, repeatUntil)}
+      </summary>
       {open ? (
         <div className="due-panel">
           <label className="field">
@@ -195,7 +254,7 @@ export function DuePicker({
               onClick={() => {
                 if (showTime) {
                   setTimeOn(false);
-                  onChange({ dueDate, dueTime: "", duration: "" });
+                  change({ dueTime: "", duration: "" });
                 } else setTimeOn(true);
               }}
               type="button"
@@ -209,8 +268,7 @@ export function DuePicker({
                   <input
                     disabled={disabled}
                     onChange={(input) =>
-                      onChange({
-                        dueDate,
+                      change({
                         dueTime: input.target.value,
                         duration: input.target.value === "" ? "" : duration,
                       })
@@ -225,11 +283,7 @@ export function DuePicker({
                     aria-labelledby={`${id}-duration`}
                     disabled={disabled || dueTime === ""}
                     onChange={(input) =>
-                      onChange({
-                        dueDate,
-                        dueTime,
-                        duration: input.target.value,
-                      })
+                      change({ duration: input.target.value })
                     }
                     value={duration}
                   >
@@ -246,6 +300,60 @@ export function DuePicker({
             {showTime ? (
               <p className="field-hint">
                 {`Times are in ${Intl.DateTimeFormat().resolvedOptions().timeZone.replaceAll("_", " ")}.`}
+              </p>
+            ) : null}
+          </div>
+          <div className="due-repeat">
+            <label className="field">
+              <span id={`${id}-repeat`}>Repeat</span>
+              <select
+                aria-labelledby={`${id}-repeat`}
+                disabled={disabled || dueDate === ""}
+                onChange={(input) =>
+                  change({
+                    repeat: input.target.value,
+                    repeatUntil: input.target.value === "" ? "" : repeatUntil,
+                  })
+                }
+                value={repeat}
+              >
+                <option value="">Does not repeat</option>
+                {repeatChoices.map(([rule, label]) => (
+                  <option key={rule} value={rule}>
+                    {label}
+                  </option>
+                ))}
+              </select>
+            </label>
+            {repeat !== "" ? (
+              <label className="field">
+                <span>Until</span>
+                <input
+                  aria-describedby={
+                    untilUnreadable || untilEarly
+                      ? `${id}-until-hint`
+                      : undefined
+                  }
+                  aria-invalid={untilUnreadable || untilEarly}
+                  disabled={disabled}
+                  onBlur={() => {
+                    if (!untilUnreadable && !untilEarly)
+                      setUntilText(
+                        repeatUntil === "" ? "" : exactDueDay(repeatUntil),
+                      );
+                  }}
+                  onChange={(input) => readUntil(input.target.value)}
+                  placeholder="Optional"
+                  type="text"
+                  value={untilText}
+                />
+              </label>
+            ) : null}
+            {untilUnreadable || untilEarly ? (
+              <p className="field-hint" id={`${id}-until-hint`}>
+                {untilUnreadable
+                  ? "Not a date the picker knows. Try Sep 21, 21 Sep, 9/21, or 2030-09-21."
+                  : "The end cannot come before the due date."}
               </p>
             ) : null}
           </div>

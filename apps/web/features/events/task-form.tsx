@@ -119,6 +119,8 @@ function TaskEditor({
     dueDate,
     dueTime,
     duration,
+    repeat,
+    repeatUntil,
     assignee,
     location,
     labels,
@@ -186,6 +188,8 @@ function TaskEditor({
             dueDate: "",
             dueTime: "",
             duration: "",
+            repeat: "",
+            repeatUntil: "",
             assignee: "",
             location: "",
             labels: "",
@@ -294,6 +298,8 @@ function TaskEditor({
             dueTime={dueTime}
             duration={duration}
             onChange={(due) => draft.change(due)}
+            repeat={repeat}
+            repeatUntil={repeatUntil}
           />
           <CountedField
             className="field-wide"
