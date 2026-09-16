@@ -7,7 +7,13 @@ import {
   toDateTimeInput,
 } from "../lib/format";
 import { formatCalendarDate } from "../lib/event-schedule";
-import { formatTaskDue, formatTaskTime, formatTaskWhen } from "../lib/task-due";
+import {
+  dueOnDay,
+  formatTaskDue,
+  formatTaskTime,
+  formatTaskWhen,
+  instantOnDay,
+} from "../lib/task-due";
 
 describe("date input conversion", () => {
   it("keeps an unscheduled value empty", () => {
@@ -148,5 +154,29 @@ describe("durations", () => {
         false,
       ),
     ).toBe("");
+  });
+});
+
+describe("a due moved to another day", () => {
+  it("keeps a timed task's time of day, moves a dated one, and clears with null", () => {
+    const at = new Date(2026, 8, 14, 9, 30).toISOString();
+    expect(instantOnDay(at, "2026-09-21")).toBe(
+      new Date(2026, 8, 21, 9, 30).toISOString(),
+    );
+    expect(dueOnDay({ dueOn: null, dueAt: at }, "2026-09-21")).toEqual({
+      dueOn: null,
+      dueAt: new Date(2026, 8, 21, 9, 30).toISOString(),
+    });
+    expect(
+      dueOnDay({ dueOn: "2026-09-14", dueAt: null }, "2026-09-21"),
+    ).toEqual({ dueOn: "2026-09-21", dueAt: null });
+    expect(dueOnDay({ dueOn: null, dueAt: null }, "2026-09-21")).toEqual({
+      dueOn: "2026-09-21",
+      dueAt: null,
+    });
+    expect(dueOnDay({ dueOn: null, dueAt: at }, null)).toEqual({
+      dueOn: null,
+      dueAt: null,
+    });
   });
 });

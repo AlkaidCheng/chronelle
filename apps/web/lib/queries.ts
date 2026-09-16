@@ -25,6 +25,7 @@ import type {
   PermissionScopeUpdatePayload,
   ReminderUpdatePayload,
   ShareCreatePayload,
+  TaskResponse,
   TaskUpdatePayload,
 } from "@chronelle/schemas";
 import { useRef } from "react";
@@ -663,6 +664,50 @@ export function useUpdateTask() {
   return useMutation({
     mutationFn: ({ id, input }: { id: string; input: TaskUpdatePayload }) =>
       client.updateTask(id, input),
+    onSuccess: () => {
+      void invalidate();
+    },
+  });
+}
+
+/**
+ * Creates a copy of a task at a given place in manual order: its fields and
+ * labels, not its subtasks, inside the same Event when it has one.
+ */
+export function useDuplicateTask() {
+  const client = useApiClient();
+  const invalidate = useCanonicalInvalidation();
+  return useMutation({
+    mutationFn: async ({
+      eventId,
+      rank,
+      task,
+    }: {
+      readonly eventId: string | undefined;
+      readonly rank: string;
+      readonly task: TaskResponse;
+    }) => {
+      const fields = {
+        displayName: `${task.displayName} (copy)`.slice(0, 240),
+        dueOn: task.dueOn,
+        dueAt: task.dueAt,
+        durationMinutes: task.durationMinutes,
+        repeatRule: task.repeatRule,
+        repeatUntil: task.repeatUntil,
+        parentTaskId: task.parentTaskId,
+        assigneeId: task.assigneeId,
+        location: task.location,
+        labelIds: [...task.labelIds],
+        rank,
+      };
+      if (eventId === undefined)
+        return client.createTask({ ...fields, commandId: crypto.randomUUID() });
+      const result = await client.createEventResource(eventId, {
+        commandId: crypto.randomUUID(),
+        resource: { objectType: "task", ...fields },
+      });
+      return result.resource;
+    },
     onSuccess: () => {
       void invalidate();
     },

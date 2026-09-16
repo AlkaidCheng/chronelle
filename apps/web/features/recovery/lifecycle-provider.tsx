@@ -33,13 +33,19 @@ export function LifecycleProvider({
   );
 }
 
+/** Opens the move-to-Trash dialog for a record. */
+export function useOpenLifecycle() {
+  const open = useContext(LifecycleContext);
+  if (open === null) throw new Error("LifecycleProvider is required.");
+  return open;
+}
+
 export function LifecycleButton({
   target,
 }: {
   readonly target: LifecycleTarget;
 }) {
-  const open = useContext(LifecycleContext);
-  if (open === null) throw new Error("LifecycleProvider is required.");
+  const open = useOpenLifecycle();
   return (
     <button
       className="button button-quiet button-small"
