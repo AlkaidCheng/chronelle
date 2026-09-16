@@ -922,6 +922,7 @@ describe("EventWorkspace", () => {
     let shares: unknown[] = [];
     const fetch = vi.fn<typeof globalThis.fetch>(async (input, init) => {
       const path = requestPath(input);
+      if (path === "/api/persons") return jsonResponse({ items: [] });
       if (path === `/api/events/${eventId}`) return jsonResponse(rootEvent);
       if (path === `/api/events/${eventId}/detail`) {
         return jsonResponse({
@@ -1011,5 +1012,153 @@ describe("EventWorkspace", () => {
       resourceId: eventId,
       role: "viewer",
     });
+  });
+
+  it("shares an Event with several people at once and reports each outcome", async () => {
+    const linkedUserId = "019d6e7d-0000-7000-8000-000000000041";
+    const person = (id: string, fields: Record<string, unknown>) => ({
+      ...rootEvent,
+      id,
+      objectType: "person",
+      startsAt: null,
+      endsAt: null,
+      timezone: null,
+      email: null,
+      userId: null,
+      ...fields,
+    });
+    const people = [
+      person("019d6e7d-0000-7000-8000-000000000051", {
+        displayName: "Mira",
+        userId: linkedUserId,
+      }),
+      person("019d6e7d-0000-7000-8000-000000000052", {
+        displayName: "Sam",
+        email: "sam@example.com",
+      }),
+      person("019d6e7d-0000-7000-8000-000000000053", {
+        displayName: "Nobody",
+      }),
+      person("019d6e7d-0000-7000-8000-000000000054", {
+        displayName: "Me",
+        userId,
+      }),
+    ];
+    const shares: unknown[] = [];
+    const fetch = vi.fn<typeof globalThis.fetch>(async (input, init) => {
+      const path = requestPath(input);
+      if (path === "/api/persons") return jsonResponse({ items: people });
+      if (path === "/api/auth/session")
+        return jsonResponse({
+          principal: { type: "user", userId, workspaceId },
+          user: { id: userId, displayName: "Owner", email: null },
+          workspace: { id: workspaceId, displayName: "Home" },
+          availableWorkspaces: [{ id: workspaceId, displayName: "Home" }],
+        });
+      if (path === `/api/events/${eventId}`) return jsonResponse(rootEvent);
+      if (path === `/api/events/${eventId}/detail`)
+        return jsonResponse({
+          event: rootEvent,
+          events: [],
+          tasks: [],
+          expenses: [],
+          reminders: [],
+          documents: [],
+          lockedRelationCount: 0,
+        });
+      if (path === `/api/objects/${eventId}/access`)
+        return jsonResponse({
+          resourceId: eventId,
+          actions: ["view", "comment", "edit", "share", "delete"],
+        });
+      if (path.startsWith(`/api/events/${eventId}/`))
+        return jsonResponse({ sourceEventId: eventId, items: [] });
+      if (path === `/api/objects/${eventId}/shares`)
+        return jsonResponse({ items: shares });
+      if (path === "/api/shares" && init?.method === "POST") {
+        const body = JSON.parse(String(init.body)) as {
+          personId: string;
+          role: string;
+        };
+        if (body.personId === people[1]?.id)
+          return jsonResponse(
+            {
+              error: {
+                code: "principal_unavailable",
+                message: "The requested user is unavailable.",
+                requestId: "test",
+              },
+            },
+            404,
+          );
+        const grant = {
+          id: `019d6e7d-0000-7000-8000-00000000006${shares.length}`,
+          workspaceId,
+          resourceId: eventId,
+          principal: { id: linkedUserId, displayName: "Mira", email: null },
+          role: body.role,
+          grantedBy: userId,
+          createdAt: "2026-09-02T20:05:00.000Z",
+          expiresAt: null,
+        };
+        shares.push(grant);
+        return jsonResponse(grant, 201);
+      }
+      return jsonResponse(
+        { error: { code: "not_found", message: `No mock for ${path}` } },
+        404,
+      );
+    });
+    vi.stubGlobal("fetch", fetch);
+    const user = userEvent.setup();
+    render(
+      <Providers>
+        <EventWorkspace eventId={eventId} />
+      </Providers>,
+    );
+    await user.click(await screen.findByRole("tab", { name: "Sharing" }));
+    const list = within(
+      await screen.findByRole("list", { name: "Share with people" }),
+    );
+    // Linked people and people with an email are offered; the acting
+    // user's own person and a person with neither are not.
+    expect(list.getAllByRole("checkbox")).toHaveLength(2);
+    expect(list.getByText("Has an account here")).toBeVisible();
+    expect(list.getByText("sam@example.com")).toBeVisible();
+    expect(list.queryByText("Nobody")).toBeNull();
+    expect(list.queryByText("Me")).toBeNull();
+    const shareButton = screen.getByRole("button", { name: /^Share with/ });
+    expect(shareButton).toBeDisabled();
+    await user.click(list.getByRole("checkbox", { name: /Mira/ }));
+    await user.click(list.getByRole("checkbox", { name: /Sam/ }));
+    expect(shareButton).toHaveTextContent("Share with 2 people");
+    await user.click(shareButton);
+    expect(await list.findByText("Shared as viewer")).toBeVisible();
+    expect(
+      await list.findByText("The requested user is unavailable."),
+    ).toBeVisible();
+    // The refused person stays ticked for another try; the shared one clears.
+    expect(list.getByRole("checkbox", { name: /Sam/ })).toBeChecked();
+    expect(list.getByRole("checkbox", { name: /Mira/ })).not.toBeChecked();
+    const bodies = fetch.mock.calls
+      .filter(
+        ([url, request]) => url === "/api/shares" && request?.method === "POST",
+      )
+      .map(([, request]) => JSON.parse(String(request?.body)));
+    expect(bodies).toEqual([
+      { personId: people[0]?.id, resourceId: eventId, role: "viewer" },
+      { personId: people[1]?.id, resourceId: eventId, role: "viewer" },
+    ]);
+    // The collaborator list shows the new grant, and Mira's row its role.
+    expect(
+      await screen.findByText("Mira", { selector: "strong" }),
+    ).toBeVisible();
+    expect(
+      within(
+        list
+          .getByRole("checkbox", { name: /Mira/ })
+          .closest("li") as HTMLElement,
+      ).getByText("viewer"),
+    ).toBeVisible();
   });
 });

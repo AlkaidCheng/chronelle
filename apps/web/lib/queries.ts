@@ -365,12 +365,7 @@ export function useEventWorkspaceQueries(
     queryFn: ({ signal }) => client.withSignal(signal).getEventDetail(eventId),
     queryKey: queryKeys.detail(eventId),
   });
-  const access = useQuery({
-    enabled: credential !== null,
-    queryFn: ({ signal }) => client.withSignal(signal).getObjectAccess(eventId),
-    queryKey: queryKeys.access(eventId),
-    refetchOnMount,
-  });
+  const access = useEventAccessQuery(eventId, refetchOnMount);
   return { event, detail, access };
 }
 
@@ -530,6 +525,21 @@ export function useUpdateEvent() {
       );
       void invalidate();
     },
+  });
+}
+
+/** The caller's actions on an Event. */
+export function useEventAccessQuery(
+  eventId: string,
+  refetchOnMount: true | "always" = true,
+) {
+  const client = useApiClient();
+  const { credential } = useAuthSession();
+  return useQuery({
+    enabled: credential !== null,
+    queryFn: ({ signal }) => client.withSignal(signal).getObjectAccess(eventId),
+    queryKey: queryKeys.access(eventId),
+    refetchOnMount,
   });
 }
 

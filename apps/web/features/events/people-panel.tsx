@@ -9,12 +9,15 @@ import { PersonCard } from "../people/person-card";
 import { PersonInspector } from "../people/person-inspector";
 import {
   useCreatePersonInEvent,
+  useEventAccessQuery,
   useIncludePerson,
   usePersonsQuery,
   useSessionQuery,
+  useSharesQuery,
 } from "../../lib/queries";
 import { useSessionDialog } from "../../lib/use-session-dialog";
 import { PanelHeading } from "./component-frame";
+import { ShareWithPeople, shareablePeople } from "./share-with-people";
 
 /**
  * The people an Event involves, as namecards. Add person includes someone
@@ -33,6 +36,11 @@ export function PeoplePanel({
   const [editingId, setEditingId] = useState<string | null>(null);
   const session = useSessionQuery();
   const me = session.data?.user.id;
+  // Owners may share the event with the people it involves in one go.
+  const access = useEventAccessQuery(eventId);
+  const canShare = access.data?.actions.includes("share") ?? false;
+  const shares = useSharesQuery(eventId, canShare);
+  const shareable = shareablePeople(persons, me);
   return (
     <section className="planning-panel">
       <PanelHeading
@@ -77,6 +85,18 @@ export function PeoplePanel({
           ))}
         </ul>
       )}
+      {canShare && shareable.length > 0 ? (
+        <details className="share-people-disclosure">
+          <summary>Share with everyone here</summary>
+          <ShareWithPeople
+            eventId={eventId}
+            grants={shares.data?.items ?? []}
+            initialSelected={shareable.map((person) => person.id)}
+            legend="Share this event with its people"
+            people={shareable}
+          />
+        </details>
+      ) : null}
       {isAdding
         ? createPortal(
             <AddPersonDialog
