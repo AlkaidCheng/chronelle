@@ -6,6 +6,7 @@ import {
 } from "@playwright/test";
 import { selectLeapDayRange } from "./calendar-keyboard";
 import { expectDates } from "./range-picker";
+import { openThemePanel } from "./quiet-chrome";
 
 export async function expectReadablePalette(page: Page) {
   const checks = await page.evaluate(() => {
@@ -125,7 +126,7 @@ export async function exerciseAppearance(
   ).toBeVisible();
   await expect(dialog).toHaveCount(0);
   await expect(
-    page.getByRole("button", { name: "Browse event data" }),
+    page.getByRole("tablist", { name: "Event views", exact: true }),
   ).toBeVisible();
   await page.screenshot({
     path: testInfo.outputPath("event.png"),
@@ -145,8 +146,7 @@ async function exerciseAppearanceControl(
   const opposite = appearance === "light" ? "dark" : "light";
   async function choose(name: string) {
     const group = page.getByRole("group", { name: "Appearance" });
-    if (!(await group.isVisible()))
-      await page.getByRole("button", { name: "More", exact: true }).click();
+    if (!(await group.isVisible())) await openThemePanel(page);
     await group.getByRole("radio", { name, exact: true }).check();
   }
   await choose(opposite === "dark" ? "Dark" : "Light");
@@ -154,7 +154,7 @@ async function exerciseAppearanceControl(
   await expectReadablePalette(page);
   await page.reload();
   await expect(
-    page.getByRole("button", { name: "Browse event data" }),
+    page.getByRole("tablist", { name: "Event views", exact: true }),
   ).toBeVisible();
   await expect(page.locator("html")).toHaveCSS("color-scheme", opposite);
   await choose(appearance === "light" ? "Light" : "Dark");

@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { expect, test } from "./fixtures";
 import { exerciseWorkspaceCommands } from "./helpers/workspace-commands";
+import { searchEntry } from "./helpers/quiet-chrome";
 
 test("protects Task editor focus and navigates without saving discarded fields", async ({
   page,
@@ -38,7 +39,7 @@ test("persists shortcut opt-out and synchronizes another tab", async ({
   await page.getByLabel("Name", { exact: true }).fill("Keyboard planner");
   await page.getByLabel("Email").fill(`shortcuts-${randomUUID()}@example.test`);
   await page.getByRole("button", { name: "Continue", exact: true }).click();
-  const trigger = page.getByRole("button", { name: "Commands", exact: true });
+  const trigger = searchEntry(page);
   await trigger.click();
   await page.getByText("Keyboard shortcuts", { exact: true }).click();
   await page
@@ -61,6 +62,6 @@ test("persists shortcut opt-out and synchronizes another tab", async ({
   );
   await trigger.focus();
   await page.keyboard.press("Control+k");
-  await expect(page.getByRole("dialog", { name: "Commands" })).toBeVisible();
+  await expect(page.getByRole("dialog", { name: "Search" })).toBeVisible();
   await other.close();
 });

@@ -7,12 +7,12 @@ import { type ReactNode, useEffect } from "react";
 
 import { useAuthSession } from "../lib/auth-session";
 import { useSessionQuery } from "../lib/queries";
-import { WorkspaceHeader } from "./workspace-header";
-import { workspaceDestinations } from "./workspace-navigation";
-import { ErrorNotice, LoadingState } from "./feedback";
 import { AccountMenu } from "./account-menu";
-import { WorkspaceUtilities } from "./workspace-utilities";
 import { WorkspaceCommandProvider } from "./context-commands";
+import { ErrorNotice, LoadingState } from "./feedback";
+import { SearchEntry } from "./search-entry";
+import { ThemePanel } from "./theme-panel";
+import { workspaceDestinations } from "./workspace-navigation";
 
 export function WorkspaceShell({ children }: { readonly children: ReactNode }) {
   const { credential, isHydrated, signOut, switchWorkspace } = useAuthSession();
@@ -66,10 +66,12 @@ export function WorkspaceShell({ children }: { readonly children: ReactNode }) {
 
   const currentSession = session.data;
   const activeWorkspaceId = credential.workspaceId;
+
   function leaveWorkspace() {
     signOut();
     router.replace("/sign-in");
   }
+
   function changeWorkspace(workspaceId: string) {
     if (workspaceId === activeWorkspaceId) {
       return;
@@ -90,35 +92,40 @@ export function WorkspaceShell({ children }: { readonly children: ReactNode }) {
             <span>Chronelle</span>
           </Link>
           <nav aria-label="Workspace navigation" className="workspace-nav">
-            {workspaceDestinations.map((destination) => (
-              <Link
-                key={destination.href}
-                href={destination.href}
-                aria-current={
-                  pathname.startsWith(destination.href) ? "page" : undefined
-                }
-                className={
-                  pathname.startsWith(destination.href) ? "active" : ""
-                }
-              >
-                <destination.icon />
-                {destination.label}
-              </Link>
-            ))}
-            <WorkspaceUtilities
+            {workspaceDestinations.map((destination) =>
+              destination.href === "/search" ? (
+                <SearchEntry
+                  key={destination.href}
+                  workspaceName={currentSession.workspace.displayName}
+                  current={pathname.startsWith(destination.href)}
+                />
+              ) : (
+                <Link
+                  key={destination.href}
+                  href={destination.href}
+                  aria-current={
+                    pathname.startsWith(destination.href) ? "page" : undefined
+                  }
+                  className={
+                    pathname.startsWith(destination.href) ? "active" : ""
+                  }
+                >
+                  <destination.icon />
+                  {destination.label}
+                </Link>
+              ),
+            )}
+          </nav>
+          <div className="sidebar-footer">
+            <ThemePanel />
+            <AccountMenu
               session={currentSession}
               onSwitchWorkspace={changeWorkspace}
               onSignOut={leaveWorkspace}
             />
-          </nav>
-          <div className="sidebar-footer">
-            <AccountMenu session={currentSession} onSignOut={leaveWorkspace} />
           </div>
         </aside>
         <div className="workspace-main">
-          <WorkspaceHeader
-            workspaceName={currentSession.workspace.displayName}
-          />
           <div id="workspace-content" tabIndex={-1}>
             {children}
           </div>

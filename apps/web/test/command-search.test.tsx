@@ -11,7 +11,7 @@ import {
 import { useQueryClient } from "@tanstack/react-query";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { Providers } from "../app/providers";
-import { WorkspaceHeader } from "../components/workspace-header";
+import { SearchEntry } from "../components/search-entry";
 import { useAuthSession } from "../lib/auth-session";
 
 const push = vi.fn();
@@ -41,12 +41,14 @@ const options = () => within(screen.getByRole("listbox", { name: "Commands" }));
 const change = (query: string) =>
   fireEvent.change(input(), { target: { value: query } });
 const open = () => {
-  const trigger = screen.getAllByRole("button", { name: "Commands" })[0];
-  if (!trigger) throw new Error("Commands trigger missing");
+  const trigger = screen.getAllByRole("button", {
+    name: "Search and commands",
+  })[0];
+  if (!trigger) throw new Error("Search trigger missing");
   fireEvent.click(trigger);
 };
 const close = () =>
-  fireEvent.click(screen.getByRole("button", { name: "Close commands" }));
+  fireEvent.click(screen.getByRole("button", { name: "Close search" }));
 const methods = ["showModal", "close"] as const;
 const descriptors = methods.map((method) =>
   Object.getOwnPropertyDescriptor(HTMLDialogElement.prototype, method),
@@ -57,7 +59,9 @@ function Harness() {
   const queries = useQueryClient();
   return (
     <>
-      <WorkspaceHeader workspaceName="Personal" />
+      <nav className="workspace-nav">
+        <SearchEntry workspaceName="Personal" />
+      </nav>
       <button
         type="button"
         onClick={() => void queries.invalidateQueries({ queryKey: ["search"] })}
@@ -344,7 +348,7 @@ it.each([
   "Expire session",
   "Switch workspace",
   "Replace identity",
-  "Close commands",
+  "Close search",
 ])(
   "aborts a pending request on %s and cannot revive its records",
   async (action) => {

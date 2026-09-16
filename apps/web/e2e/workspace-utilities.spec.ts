@@ -1,9 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { expect, test } from "./fixtures";
-import {
-  exerciseWorkspaceUtilities,
-  openWorkspaceSettings,
-} from "./helpers/workspace-utilities";
+import { openAccountMenu } from "./helpers/quiet-chrome";
+import { exerciseWorkspaceUtilities } from "./helpers/workspace-utilities";
 
 test("keeps workspace utilities accessible without changing Event data", async ({
   page,
@@ -67,14 +65,12 @@ test("rejects a workspace choice whose last grant was revoked", async ({
   await page.getByLabel("Email").fill(email);
   await page.getByRole("button", { name: "Continue", exact: true }).click();
   await expect(page).toHaveURL(/\/events$/);
-  const dialog = await openWorkspaceSettings(page);
-  const select = dialog.getByRole("combobox", {
-    name: "Workspace",
+  const menu = await openAccountMenu(page);
+  const ownerWorkspace = menu.getByRole("menuitemradio", {
+    name: owner.workspace.displayName,
     exact: true,
   });
-  await expect(
-    select.locator("option", { hasText: owner.workspace.displayName }),
-  ).toHaveCount(1);
+  await expect(ownerWorkspace).toHaveCount(1);
   expect(
     (await request.delete(`/api/shares/${grant.id}`, { headers })).ok(),
   ).toBe(true);
@@ -82,15 +78,21 @@ test("rejects a workspace choice whose last grant was revoked", async ({
     (response) =>
       response.url().endsWith("/api/auth/session") && response.status() === 404,
   );
-  await select.selectOption(owner.workspace.id);
+  await ownerWorkspace.click();
   await deniedSession;
-  await expect(dialog).toHaveCount(0);
-  const returned = await openWorkspaceSettings(page);
+  await expect(menu).toHaveCount(0);
+  const returned = await openAccountMenu(page);
   await expect(
-    returned.getByRole("combobox", { name: "Workspace", exact: true }),
-  ).toHaveValue(viewer.workspace.id);
+    returned.getByRole("menuitemradio", {
+      name: viewer.workspace.displayName,
+      exact: true,
+    }),
+  ).toHaveAttribute("aria-checked", "true");
   await expect(
-    returned.locator(`option[value="${owner.workspace.id}"]`),
+    returned.getByRole("menuitemradio", {
+      name: owner.workspace.displayName,
+      exact: true,
+    }),
   ).toHaveCount(0);
   await page.keyboard.press("Escape");
   await expect(

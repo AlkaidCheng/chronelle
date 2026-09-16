@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { expect, test } from "./fixtures";
-import { openWorkspaceSettings } from "./helpers/workspace-utilities";
+import { signOutFromMenu, switchWorkspace } from "./helpers/quiet-chrome";
 
 test("isolates a delayed collection page across workspace changes and sign-out", async ({
   page,
@@ -73,10 +73,7 @@ test("isolates a delayed collection page across workspace changes and sign-out",
     );
     await page.getByRole("button", { name: "Load more events" }).click();
     await delayed.promise;
-    await openWorkspaceSettings(page);
-    await page
-      .getByRole("combobox", { name: "Workspace", exact: true })
-      .selectOption(second.workspace.id);
+    await switchWorkspace(page, second.workspace.displayName);
     await expect(
       page.getByRole("link", { name: /Shared collection item/u }),
     ).toBeVisible();
@@ -88,8 +85,7 @@ test("isolates a delayed collection page across workspace changes and sign-out",
     await expect(
       page.getByRole("link", { name: /Personal collection item/u }),
     ).toHaveCount(0);
-    await openWorkspaceSettings(page);
-    await page.getByRole("button", { name: "Sign out", exact: true }).click();
+    await signOutFromMenu(page);
     await expect(page).toHaveURL(/\/sign-in$/u);
     await page.goto("/sign-in/development");
     await page.getByLabel("Name", { exact: true }).fill("Fresh planner");

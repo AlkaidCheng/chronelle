@@ -1,16 +1,22 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { canOpenCommands } from "../lib/keyboard";
 import { useCommandShortcut } from "../lib/shortcut-preference";
+import { SearchIcon } from "./icons";
 import { WorkspaceCommands } from "./workspace-commands";
 
-export function WorkspaceHeader({
+/**
+ * The sidebar's Search entry: one palette for records, navigation, and the
+ * current page's actions, opened from the entry or with Cmd/Ctrl+K.
+ */
+export function SearchEntry({
   workspaceName,
+  current = false,
 }: {
   readonly workspaceName: string;
+  readonly current?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const shortcut = useCommandShortcut();
@@ -25,38 +31,24 @@ export function WorkspaceHeader({
     document.addEventListener("keydown", onKeyDown);
     return () => document.removeEventListener("keydown", onKeyDown);
   }, [enabled]);
-
-  const trigger = (
-    <button
-      className="button button-quiet workspace-command-trigger"
-      type="button"
-      aria-haspopup="dialog"
-      aria-expanded={open}
-      aria-keyshortcuts={enabled ? "Control+k Meta+k" : undefined}
-      onClick={(event) => {
-        event.currentTarget.focus();
-        setOpen(true);
-      }}
-    >
-      Commands
-    </button>
-  );
   return (
     <>
-      <header className="workspace-topbar">
-        <span>{workspaceName}</span>
-        {trigger}
-      </header>
-      <header className="mobile-header">
-        <div className="mobile-workspace-identity">
-          <Link className="brand" href="/events">
-            <span className="brand-mark">C</span>
-            <span>Chronelle</span>
-          </Link>
-          <span className="mobile-workspace-name">{workspaceName}</span>
-        </div>
-        {trigger}
-      </header>
+      <button
+        type="button"
+        className={current ? "active" : ""}
+        aria-label="Search and commands"
+        aria-haspopup="dialog"
+        aria-expanded={open}
+        aria-keyshortcuts={enabled ? "Control+k Meta+k" : undefined}
+        onClick={(event) => {
+          event.currentTarget.focus();
+          setOpen(true);
+        }}
+      >
+        <SearchIcon />
+        Search
+        {enabled ? <kbd>&#8984;K</kbd> : null}
+      </button>
       {open &&
         createPortal(
           <WorkspaceCommands
