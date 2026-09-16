@@ -19,6 +19,7 @@ export type EventComponentKind = z.output<typeof eventComponentKindSchema>;
  */
 export const eventComponentViewSchema = z.enum([
   "list",
+  "agenda",
   "by-day",
   "week",
   "month",

@@ -18,7 +18,7 @@ the layout does not delete business objects or relations.
 | `todos`     | Tasks with completion controls and independent local filters              |
 | `calendar`  | Scheduled Events, including date-only ranges, with creation and editing   |
 | `timeline`  | Dated Events, Tasks, Expenses, and Reminders in chronological order       |
-| `itinerary` | The same scheduled Events in running order                                |
+| `itinerary` | Retired: a saved one shows as the Calendar in its `agenda` view           |
 | `expenses`  | Historical transactions with totals kept separate by currency             |
 | `reminders` | Recorded reminders with editing and dismissal; notifications are not sent |
 | `files`     | Authorized private attachments for the Event and its Tasks and Expenses   |
@@ -42,11 +42,16 @@ with Today and Tomorrow named, and No due date, with the task's due time on
 each row; `week`, seven columns of one local week, Monday first, each task in
 the column of its due day; and `month`, a six-week grid of one month in which
 each day shows up to three tasks and counts the rest, with the selected day's
-tasks listed under the grid. `calendar` offers `week` and `month` in the same
-shape, a scheduled item sitting on every local day it covers. Tasks without a
-due date and unscheduled items are listed under the week or the month. The
-period shown opens on today, moves with Previous, Today, and Next, and is not
-saved; only the view is. Members who can edit choose the view from a View
+tasks listed under the grid. `calendar` offers `agenda`, the numbered running
+order of its items with the same row actions, and `week` and `month` in the
+same shape as the to-dos, a scheduled item sitting on every local day it
+covers. Tasks without a due date and unscheduled items are listed under the
+week or the month. The period shown opens on today, moves with Previous,
+Today, and Next, and is not saved; only the view is. A layout may still carry
+the retired `itinerary` kind: it renders as the Calendar in its `agenda` view,
+the picker does not offer it, and choosing a view on it saves the component
+as `calendar` with that view under the same id (earlier layout versions keep
+what they stored). Members who can edit choose the view from a View
 control in the component heading, outside Arrange mode. The choice is saved on
 the layout component, so everyone on the Event sees the same view, it appears
 in layout history, and undo and restore cover it. Viewers see the saved view

@@ -82,10 +82,16 @@ export async function expectCreatedSchedule(page: Page) {
   await expect(
     page.getByRole("heading", { name: "Garden arrival", exact: true }),
   ).toHaveCount(1);
-  for (const view of ["Itinerary", "Timeline"]) {
-    await page.getByRole("tab", { name: view, exact: true }).click();
-    await expect(
-      page.getByRole("heading", { name: "Garden arrival", exact: true }),
-    ).toHaveCount(1);
-  }
+  // The Calendar's agenda view and the Timeline show the same item once.
+  await page
+    .getByRole("group", { name: "View", exact: true })
+    .getByRole("button", { name: "Agenda", exact: true })
+    .click();
+  await expect(
+    page.getByRole("heading", { name: "Garden arrival", exact: true }),
+  ).toHaveCount(1);
+  await page.getByRole("tab", { name: "Timeline", exact: true }).click();
+  await expect(
+    page.getByRole("heading", { name: "Garden arrival", exact: true }),
+  ).toHaveCount(1);
 }

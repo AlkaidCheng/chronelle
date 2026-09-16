@@ -76,13 +76,21 @@ export async function exerciseScheduleInspector(
   await expect(
     calendar.getByRole("heading", { name: "Recovered schedule item" }),
   ).toBeVisible();
-  for (const view of ["Itinerary", "Timeline"]) {
-    await page.getByRole("tab", { name: view, exact: true }).click();
-    await expect(
-      page.getByRole("heading", {
-        name: "Recovered schedule item",
-        exact: true,
-      }),
-    ).toBeVisible();
-  }
+  await page
+    .getByRole("group", { name: "View", exact: true })
+    .getByRole("button", { name: "Agenda", exact: true })
+    .click();
+  await expect(
+    page.getByRole("heading", {
+      name: "Recovered schedule item",
+      exact: true,
+    }),
+  ).toBeVisible();
+  await page.getByRole("tab", { name: "Timeline", exact: true }).click();
+  await expect(
+    page.getByRole("heading", {
+      name: "Recovered schedule item",
+      exact: true,
+    }),
+  ).toBeVisible();
 }

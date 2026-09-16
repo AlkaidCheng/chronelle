@@ -4,7 +4,6 @@ export const eventViews = [
   { id: "todos", label: "To-dos" },
   { id: "calendar", label: "Calendar" },
   { id: "timeline", label: "Timeline" },
-  { id: "itinerary", label: "Itinerary" },
   { id: "expenses", label: "Expenses" },
   { id: "reminders", label: "Reminders" },
   { id: "files", label: "Files" },
@@ -16,5 +15,7 @@ export const eventViews = [
 export type EventView = (typeof eventViews)[number]["id"];
 
 export function parseEventView(value: string | null): EventView {
+  // The Itinerary tab folded into the Calendar; its links still open.
+  if (value === "itinerary") return "calendar";
   return eventViews.find((view) => view.id === value)?.id ?? "pages";
 }

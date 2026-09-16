@@ -15,7 +15,10 @@ import { ObjectDetails } from "../../components/object-details";
 import { useEventWorkspaceQueries } from "../../lib/queries";
 import { useForgetInaccessibleEventDrafts } from "../../lib/editor-draft-context";
 import { isTemporaryReadError } from "../../lib/query-errors";
-import { eventComponentKindSchema } from "@chronelle/schemas";
+import {
+  eventComponentKindSchema,
+  type EventComponentView,
+} from "@chronelle/schemas";
 import { EventComponent } from "./event-component";
 import { EventInspector } from "./event-inspector";
 import { SharingPanel } from "./sharing-panel";
@@ -45,6 +48,11 @@ export function EventWorkspace({ eventId }: { readonly eventId: string }) {
     );
   useForgetInaccessibleEventDrafts(eventId, accessLost);
   const [isEditingEvent, setIsEditingEvent] = useState(false);
+  // A tab's view is chosen for the session; page components save theirs.
+  const [tabView, setTabView] = useState<{
+    tab: string;
+    view: EventComponentView;
+  } | null>(null);
   const editButton = useRef<HTMLButtonElement>(null);
   const shareButton = useRef<HTMLButtonElement>(null);
   const historyButton = useRef<HTMLButtonElement>(null);
@@ -317,6 +325,12 @@ export function EventWorkspace({ eventId }: { readonly eventId: string }) {
                     kind={component.data}
                     eventId={eventId}
                     canEdit={canEdit}
+                    view={
+                      tabView?.tab === component.data ? tabView.view : undefined
+                    }
+                    onChangeView={(view) =>
+                      setTabView({ tab: component.data, view })
+                    }
                   />
                 ) : null}
                 {shownTab === "sharing" && canShare && detail !== undefined ? (

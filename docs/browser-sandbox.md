@@ -25,8 +25,8 @@ needed only to build the file. Moving the file does not transfer saved edits.
   between days. Page Up/Down changes months, or years with Shift, without
   selecting a date. Add times is optional. Event IDs are available
   in Details, not displayed as persistent header badges.
-- Compare Overview, Calendar, Timeline, and Itinerary projections of the same
-  canonical sample objects. Search the sample workspace.
+- Compare the Overview, Calendar (list, agenda, week, month), and Timeline
+  projections of the same canonical sample objects. Search the sample workspace.
 - Preview Owner and Viewer controls. Viewer mutations are rejected by the sample
   adapter, but this is not authentication or a security boundary.
 - Reset fictional data with confirmation. Reset cannot be undone.

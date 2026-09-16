@@ -239,6 +239,21 @@ export function CalendarPanel({
         : [],
     [items, view],
   );
+  const rowActions = (item: EventResponse) => (
+    <RowActions>
+      {canEdit ? (
+        <button
+          className="button button-quiet button-small"
+          onClick={() => setEditingId(item.id)}
+          type="button"
+        >
+          Edit
+        </button>
+      ) : null}
+      <HistoryButton objectId={item.id} displayName={item.displayName} />
+      {canEdit ? <LifecycleButton target={{ ...item, eventId }} /> : null}
+    </RowActions>
+  );
   const scheduleRow = (item: EventResponse) => (
     <article key={item.id}>
       <DateTile
@@ -252,19 +267,7 @@ export function CalendarPanel({
         <p>{formatEventSchedule(item)}</p>
         <ObjectDetails id={item.id} />
       </div>
-      <RowActions>
-        {canEdit ? (
-          <button
-            className="button button-quiet button-small"
-            onClick={() => setEditingId(item.id)}
-            type="button"
-          >
-            Edit
-          </button>
-        ) : null}
-        <HistoryButton objectId={item.id} displayName={item.displayName} />
-        {canEdit ? <LifecycleButton target={{ ...item, eventId }} /> : null}
-      </RowActions>
+      {rowActions(item)}
     </article>
   );
   const unscheduledGroup =
@@ -309,7 +312,7 @@ export function CalendarPanel({
             />
           )
         }
-        description="See what is happening and when. Schedule changes stay in sync with your itinerary."
+        description="See what is happening and when, as a list, a running order, a week, or a month."
         title="Calendar"
       />
       {isAdding && canEdit ? (
@@ -328,6 +331,24 @@ export function CalendarPanel({
           }
           title="Nothing scheduled"
         />
+      ) : view === "agenda" ? (
+        <ol className="itinerary-list">
+          {items.map((item, index) => (
+            <li key={item.id}>
+              <span className="itinerary-number">
+                {String(index + 1).padStart(2, "0")}
+              </span>
+              <div>
+                <time dateTime={item.startsOn ?? item.startsAt ?? undefined}>
+                  {formatEventSchedule(item)}
+                </time>
+                <h3>{item.displayName}</h3>
+                <ObjectDetails id={item.id} />
+                {rowActions(item)}
+              </div>
+            </li>
+          ))}
+        </ol>
       ) : view === "week" ? (
         <div className="period-view">
           <PeriodNav cursor={cursor} onChange={setCursor} period="week" />
@@ -435,50 +456,6 @@ export function TimelinePanel({
                 <RowActions>
                   <HistoryButton
                     objectId={item.canonicalObjectId}
-                    displayName={item.displayName}
-                  />
-                </RowActions>
-              </div>
-            </li>
-          ))}
-        </ol>
-      )}
-    </section>
-  );
-}
-
-export function ItineraryPanel({
-  items,
-}: {
-  readonly items: readonly EventResponse[];
-}) {
-  return (
-    <section className="planning-panel">
-      <PanelHeading
-        description="The same scheduled Events arranged as an ordered run of show."
-        title="Itinerary"
-      />
-      {items.length === 0 ? (
-        <EmptyState
-          description="Scheduled items appear here in date order."
-          title="No itinerary yet"
-        />
-      ) : (
-        <ol className="itinerary-list">
-          {items.map((item, index) => (
-            <li key={item.id}>
-              <span className="itinerary-number">
-                {String(index + 1).padStart(2, "0")}
-              </span>
-              <div>
-                <time dateTime={item.startsOn ?? item.startsAt ?? undefined}>
-                  {formatEventSchedule(item)}
-                </time>
-                <h3>{item.displayName}</h3>
-                <ObjectDetails id={item.id} />
-                <RowActions>
-                  <HistoryButton
-                    objectId={item.id}
                     displayName={item.displayName}
                   />
                 </RowActions>

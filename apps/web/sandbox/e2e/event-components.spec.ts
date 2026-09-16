@@ -22,7 +22,6 @@ test("inserts mixed components offline and edits one schedule across three proje
     .click();
   for (const label of [
     "Calendar",
-    "Itinerary",
     "Timeline",
     "Expenses",
     "Reminders",
@@ -64,11 +63,11 @@ test("inserts mixed components offline and edits one schedule across three proje
     .click();
   await expect(
     page.getByRole("heading", { name: "Garden welcome", exact: true }),
-  ).toHaveCount(3);
+  ).toHaveCount(2);
   await page.reload();
   await expect(
     page.getByRole("heading", { name: "Garden welcome", exact: true }),
-  ).toHaveCount(3);
+  ).toHaveCount(2);
   await expect(
     page.getByText("No files attached", { exact: true }),
   ).toBeVisible();

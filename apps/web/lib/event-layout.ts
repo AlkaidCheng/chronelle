@@ -1,5 +1,7 @@
 import type { EventComponentView, EventPage } from "@chronelle/schemas";
 
+import { resolveEventComponent } from "./event-components";
+
 /** Move an existing item before an anchor, or to the end when the anchor is null. */
 function reorder<T extends { id: string }>(
   items: T[],
@@ -84,12 +86,14 @@ export function setEventComponentView(
   );
   const component = page?.components.find((item) => item.id === componentId);
   if (!page || !component || component.view === view) return pages;
+  // A retired kind becomes the kind it renders as once its view is chosen.
+  const kind = resolveEventComponent(component).kind;
   return pages.map((item) =>
     item === page
       ? {
           ...item,
           components: item.components.map((entry) =>
-            entry === component ? { ...entry, view } : entry,
+            entry === component ? { ...entry, kind, view } : entry,
           ),
         }
       : item,
