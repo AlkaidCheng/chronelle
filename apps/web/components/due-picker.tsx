@@ -14,7 +14,9 @@ import {
   describeDueDay,
   dueShortcuts,
   dueWeekday,
+  exactDueDay,
   parseDueText,
+  parseMonthText,
 } from "../lib/due-choices";
 import { formatDuration, formatTime } from "../lib/format";
 
@@ -32,6 +34,16 @@ const monthTitle = new Intl.DateTimeFormat(undefined, {
   month: "long",
   year: "numeric",
 });
+const monthNames = Array.from({ length: 12 }, (_, month) =>
+  new Intl.DateTimeFormat(undefined, { month: "short" }).format(
+    new Date(2000, month, 1),
+  ),
+);
+const monthDayShort = new Intl.DateTimeFormat(undefined, {
+  month: "short",
+  day: "numeric",
+});
+const weekdayLong = new Intl.DateTimeFormat(undefined, { weekday: "long" });
 const fullDay = new Intl.DateTimeFormat(undefined, {
   weekday: "long",
   month: "long",
@@ -60,21 +72,46 @@ export function describeDue(
     : `${time}, ${formatDuration(Number(duration))}`;
 }
 
-/** The six weeks of a month, Sunday first, as day keys. */
-function monthWeeks(monthStart: DayKey): DayKey[][] {
-  const first = parseDayKey(monthStart);
-  const start = shiftCalendarDate(monthStart, -first.getDay());
-  return Array.from({ length: 6 }, (_, week) =>
-    Array.from({ length: 7 }, (_, day) =>
-      shiftCalendarDate(start, week * 7 + day),
-    ),
-  );
+/** A month as YYYY-MM. */
+type MonthKey = string;
+
+const monthOf = (day: DayKey): MonthKey => day.slice(0, 7);
+const monthStartOf = (month: MonthKey): DayKey => `${month}-01`;
+const shiftMonth = (month: MonthKey, by: number): MonthKey =>
+  monthOf(shiftCalendarMonth(monthStartOf(month), by));
+
+/** The months from one to another, inclusive. */
+function monthsBetween(from: MonthKey, to: MonthKey): MonthKey[] {
+  const months: MonthKey[] = [];
+  for (let month = from; month <= to; month = shiftMonth(month, 1))
+    months.push(month);
+  return months;
+}
+
+/**
+ * The weeks of one month, Sunday first, with the days of other months as
+ * empty cells so a day appears once in a continuous list.
+ */
+function monthWeeks(month: MonthKey): (DayKey | null)[][] {
+  const first = parseDayKey(monthStartOf(month));
+  const start = shiftCalendarDate(monthStartOf(month), -first.getDay());
+  const weeks: (DayKey | null)[][] = [];
+  for (let week = 0; week < 6; week += 1) {
+    const days = Array.from({ length: 7 }, (_, day) => {
+      const key = shiftCalendarDate(start, week * 7 + day);
+      return monthOf(key) === month ? key : null;
+    });
+    if (days.every((day) => day === null)) break;
+    weeks.push(days);
+  }
+  return weeks;
 }
 
 /**
  * The task's due behind a disclosure that reads the choice; open, a typed
- * date, the shortcuts a day allows, one month at a time, and a time that
- * stays off until asked for. A date alone is due that whole day.
+ * date, the shortcuts a day allows, a continuous list of months with a
+ * month and year chooser, and a time that stays off until asked for. A
+ * date alone is due that whole day.
  */
 export function DuePicker({
   disabled = false,
@@ -101,41 +138,105 @@ export function DuePicker({
 }) {
   const id = useId();
   const today = dayKeyOf(now);
+  const tomorrow = dayKeyOf(new Date(now.getTime() + 86_400_000));
   const [open, setOpen] = useState(false);
   const [text, setText] = useState(() =>
-    dueDate === "" ? "" : describeDueDay(dueDate, now),
+    dueDate === "" ? "" : exactDueDay(dueDate),
   );
   const [textDay, setTextDay] = useState(dueDate);
-  const [cursor, setCursor] = useState(() => dueDate || today);
+  // The month at the top of the list, and the months the list holds.
+  const [shown, setShown] = useState<MonthKey>(() => monthOf(dueDate || today));
+  const [span, setSpan] = useState(() => {
+    const anchor = monthOf(dueDate || today);
+    return { from: shiftMonth(anchor, -2), to: shiftMonth(anchor, 12) };
+  });
   const [focusedDay, setFocusedDay] = useState<DayKey | null>(null);
   const [timeOn, setTimeOn] = useState(dueTime !== "");
-  const grid = useRef<HTMLTableElement>(null);
+  const [monthOpen, setMonthOpen] = useState(false);
+  const [monthText, setMonthText] = useState("");
+  const list = useRef<HTMLDivElement>(null);
+  const chooser = useRef<HTMLDivElement>(null);
+  const monthInput = useRef<HTMLInputElement>(null);
+  const yearList = useRef<HTMLFieldSetElement>(null);
   const focusRequested = useRef<DayKey | null>(null);
-  // Focus follows a keyboard move once the month it lands in has rendered.
-  useLayoutEffect(() => {
-    const day = focusRequested.current;
-    if (day === null) return;
-    focusRequested.current = null;
-    grid.current
-      ?.querySelector<HTMLButtonElement>(`[data-day="${day}"]`)
-      ?.focus();
-  });
+  const scrollRequested = useRef<MonthKey | null>(null);
+  const prepended = useRef(0);
+
+  /** Makes a month part of the list and scrolls it to the top. */
+  const revealMonth = (month: MonthKey) => {
+    setShown(month);
+    scrollRequested.current = month;
+    setSpan((current) => ({
+      from: month < current.from ? shiftMonth(month, -2) : current.from,
+      to: month > current.to ? shiftMonth(month, 6) : current.to,
+    }));
+  };
+
   // The text follows a choice made elsewhere; typed text stands on its own.
   if (dueDate !== textDay) {
     setTextDay(dueDate);
-    setText(dueDate === "" ? "" : describeDueDay(dueDate, now));
-    if (dueDate !== "") setCursor(dueDate);
+    setText(dueDate === "" ? "" : exactDueDay(dueDate));
+    if (dueDate !== "") revealMonth(monthOf(dueDate));
   }
+
+  // After a render: keep the scroll position when months were added above,
+  // scroll a requested month to the top, and focus a requested day.
+  useLayoutEffect(() => {
+    const container = list.current;
+    if (container === null) return;
+    if (prepended.current > 0) {
+      const tables = container.querySelectorAll<HTMLElement>("[data-month]");
+      let height = 0;
+      for (let index = 0; index < prepended.current; index += 1)
+        height += tables[index]?.offsetHeight ?? 0;
+      container.scrollTop += height;
+      prepended.current = 0;
+    }
+    const month = scrollRequested.current;
+    if (month !== null) {
+      scrollRequested.current = null;
+      const target = container.querySelector<HTMLElement>(
+        `[data-month="${month}"]`,
+      );
+      if (target) container.scrollTop = target.offsetTop;
+    }
+    const day = focusRequested.current;
+    if (day !== null) {
+      focusRequested.current = null;
+      container
+        .querySelector<HTMLButtonElement>(`[data-day="${day}"]`)
+        ?.focus();
+    }
+  });
+
+  // The month chooser's year list scrolls to the shown year.
+  useLayoutEffect(() => {
+    if (!monthOpen) return;
+    const chosen = yearList.current?.querySelector<HTMLButtonElement>(
+      '[aria-pressed="true"]',
+    );
+    if (chosen && yearList.current)
+      yearList.current.scrollTop =
+        chosen.offsetTop -
+        yearList.current.clientHeight / 2 +
+        chosen.offsetHeight / 2;
+  }, [monthOpen]);
+
   const showTime = timeOn || dueTime !== "";
   const unreadable = text.trim() !== "" && parseDueText(text, now) === null;
-  const monthStart = `${cursor.slice(0, 7)}-01`;
-  const weeks = monthWeeks(monthStart);
-  const month = cursor.slice(0, 7);
+  const title = monthTitle.format(parseDayKey(monthStartOf(shown)));
+  const monthUnreadable =
+    monthText.trim() !== "" && parseMonthText(monthText, now) === null;
+  const years = Array.from(
+    { length: 101 },
+    (_, index) => now.getFullYear() - 50 + index,
+  );
+  const months = monthsBetween(span.from, span.to);
 
   const chooseDay = (day: DayKey | "") => {
     setTextDay(day);
-    setText(day === "" ? "" : describeDueDay(day, now));
-    if (day !== "") setCursor(day);
+    setText(day === "" ? "" : exactDueDay(day));
+    if (day !== "") revealMonth(monthOf(day));
     onChange({
       dueDate: day,
       dueTime: day === "" ? "" : dueTime,
@@ -152,13 +253,15 @@ export function DuePicker({
     const day = parseDueText(value, now);
     if (day === null) return;
     setTextDay(day);
-    setCursor(day);
+    revealMonth(monthOf(day));
     onChange({ dueDate: day, dueTime, duration });
   };
   const focusDay = (day: DayKey) => {
     focusRequested.current = day;
     setFocusedDay(day);
-    setCursor(day);
+    const month = monthOf(day);
+    if (month < span.from || month > span.to) revealMonth(month);
+    else setShown(month);
   };
   const onGridKey = (event: KeyboardEvent<HTMLButtonElement>, day: DayKey) => {
     const moves: Record<string, () => DayKey> = {
@@ -176,18 +279,59 @@ export function DuePicker({
     event.preventDefault();
     focusDay(move());
   };
-  const tabStop = focusedDay ?? dueDate ?? "";
+  // Scrolling extends the list at either end and names the month at the top.
+  const onScroll = () => {
+    const container = list.current;
+    if (container === null) return;
+    if (container.scrollTop < 60) {
+      prepended.current = 3;
+      setSpan((current) => ({
+        ...current,
+        from: shiftMonth(current.from, -3),
+      }));
+    } else if (
+      container.scrollHeight - container.scrollTop - container.clientHeight <
+      120
+    )
+      setSpan((current) => ({ ...current, to: shiftMonth(current.to, 3) }));
+    let top: MonthKey | null = null;
+    for (const table of container.querySelectorAll<HTMLElement>(
+      "[data-month]",
+    )) {
+      if (table.offsetTop - container.scrollTop <= 4)
+        top = table.dataset.month ?? null;
+      else break;
+    }
+    if (top !== null && top !== shown) setShown(top);
+  };
+  const openMonth = () => {
+    setMonthText(title);
+    setMonthOpen(true);
+    requestAnimationFrame(() => monthInput.current?.select());
+  };
+  const closeMonth = () => setMonthOpen(false);
+  const leavesChooser = (related: EventTarget | null) =>
+    !(related instanceof Node) ||
+    (related !== monthInput.current && !chooser.current?.contains(related));
+
+  // One tab stop among the months: the choice, else today, else the shown month's first day.
+  const tabStop = focusedDay ?? dueDate;
+  const inSpan = (day: DayKey) =>
+    monthOf(day) >= span.from && monthOf(day) <= span.to;
   const tabDay =
-    tabStop !== "" && tabStop.startsWith(month)
+    tabStop !== "" && inSpan(tabStop)
       ? tabStop
-      : today.startsWith(month)
+      : inSpan(today)
         ? today
-        : monthStart;
+        : monthStartOf(shown);
 
   return (
     <details
       className="due-picker field-wide"
-      onToggle={(event) => setOpen(event.currentTarget.open)}
+      onToggle={(event) => {
+        setOpen(event.currentTarget.open);
+        if (event.currentTarget.open) revealMonth(monthOf(dueDate || today));
+      }}
     >
       <summary>Due: {describeDue(dueDate, dueTime, duration, now)}</summary>
       {open ? (
@@ -209,12 +353,19 @@ export function DuePicker({
               ? "Not a date the picker knows. Try Sep 21, 21 Sep, 9/21, tomorrow, or 2030-09-21."
               : dueDate === ""
                 ? "No due date. Type one, pick a shortcut, or choose a day."
-                : `${fullDay.format(parseDayKey(dueDate))}.`}
+                : `Due ${weekdayLong.format(parseDayKey(dueDate))}${
+                    dueDate === today
+                      ? ", today"
+                      : dueDate === tomorrow
+                        ? ", tomorrow"
+                        : ""
+                  }.`}
           </p>
           <ul aria-label="Due shortcuts" className="due-shortcuts">
-            {dueShortcuts(now, dueDate || null).map((shortcut) => (
+            {dueShortcuts(now).map((shortcut) => (
               <li key={shortcut.id}>
                 <button
+                  aria-pressed={shortcut.day === dueDate}
                   className="button button-quiet button-small"
                   disabled={disabled}
                   onClick={() => chooseDay(shortcut.day)}
@@ -223,109 +374,219 @@ export function DuePicker({
                   <span>{shortcut.label}</span>
                   <span className="due-shortcut-day">
                     {shortcut.id === "next-week"
-                      ? `${dueWeekday(shortcut.day)} ${describeDueDay(shortcut.day, now)}`
+                      ? `${dueWeekday(shortcut.day)} ${monthDayShort.format(parseDayKey(shortcut.day))}`
                       : dueWeekday(shortcut.day)}
                   </span>
                 </button>
               </li>
             ))}
-            {dueDate === "" ? null : (
-              <li>
-                <button
-                  className="button button-quiet button-small"
-                  disabled={disabled}
-                  onClick={() => chooseDay("")}
-                  type="button"
-                >
-                  <span>No date</span>
-                </button>
-              </li>
-            )}
+            <li>
+              <button
+                aria-pressed={dueDate === ""}
+                className="button button-quiet button-small"
+                disabled={disabled}
+                onClick={() => chooseDay("")}
+                type="button"
+              >
+                <span>No date</span>
+              </button>
+            </li>
           </ul>
           <div className="due-month">
             <div className="due-month-nav">
-              <strong aria-live="polite">
-                {monthTitle.format(parseDayKey(monthStart))}
-              </strong>
+              {monthOpen ? (
+                <input
+                  aria-invalid={monthUnreadable}
+                  aria-label="Month and year"
+                  className="due-month-input"
+                  disabled={disabled}
+                  onBlur={(event) => {
+                    if (leavesChooser(event.relatedTarget)) closeMonth();
+                  }}
+                  onChange={(input) => {
+                    setMonthText(input.target.value);
+                    const next = parseMonthText(input.target.value, now);
+                    if (next !== null) revealMonth(next);
+                  }}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter" || event.key === "Escape") {
+                      event.preventDefault();
+                      closeMonth();
+                    }
+                  }}
+                  placeholder="October 2027, 2027-10, 10/2027"
+                  ref={monthInput}
+                  type="text"
+                  value={monthText}
+                />
+              ) : (
+                <button
+                  aria-expanded={false}
+                  aria-label={`Choose a month and year, showing ${title}`}
+                  className="due-month-button"
+                  disabled={disabled}
+                  onClick={openMonth}
+                  type="button"
+                >
+                  {title}
+                </button>
+              )}
               <div>
                 <button
                   aria-label="Previous month"
                   className="button button-quiet button-small"
                   disabled={disabled}
-                  onClick={() => setCursor(shiftCalendarMonth(monthStart, -1))}
+                  onClick={() => revealMonth(shiftMonth(shown, -1))}
                   type="button"
                 >
                   &#8249;
                 </button>
                 <button
-                  aria-label="This month"
                   className="button button-quiet button-small"
-                  disabled={disabled}
-                  onClick={() => setCursor(today)}
+                  disabled={disabled || shown === monthOf(today)}
+                  onClick={() => revealMonth(monthOf(today))}
                   type="button"
                 >
-                  &#9679;
+                  Today
                 </button>
                 <button
                   aria-label="Next month"
                   className="button button-quiet button-small"
                   disabled={disabled}
-                  onClick={() => setCursor(shiftCalendarMonth(monthStart, 1))}
+                  onClick={() => revealMonth(shiftMonth(shown, 1))}
                   type="button"
                 >
                   &#8250;
                 </button>
               </div>
             </div>
-            <table
-              aria-label={monthTitle.format(parseDayKey(monthStart))}
-              className="due-grid"
-              ref={grid}
-            >
-              <thead>
-                <tr>
-                  {weekdayHeadings.map((heading, index) => (
-                    <th
-                      abbr={weekdayNames[index]}
-                      key={weekdayNames[index]}
-                      scope="col"
+            {monthOpen ? (
+              <div
+                aria-label="Choose a month and year"
+                aria-modal="true"
+                className="due-month-panel"
+                onBlur={(event) => {
+                  if (leavesChooser(event.relatedTarget)) closeMonth();
+                }}
+                onKeyDown={(event) => {
+                  if (event.key === "Escape") {
+                    event.preventDefault();
+                    closeMonth();
+                    monthInput.current?.focus();
+                  }
+                }}
+                ref={chooser}
+                role="dialog"
+              >
+                <fieldset className="due-month-grid">
+                  <legend className="visually-hidden">Months</legend>
+                  {monthNames.map((name, index) => {
+                    const key = `${shown.slice(0, 4)}-${String(index + 1).padStart(2, "0")}`;
+                    return (
+                      <button
+                        aria-pressed={key === shown}
+                        className={`due-month-choice${key === monthOf(today) ? " is-now" : ""}`}
+                        key={name}
+                        onClick={() => {
+                          revealMonth(key);
+                          closeMonth();
+                        }}
+                        type="button"
+                      >
+                        {name}
+                      </button>
+                    );
+                  })}
+                </fieldset>
+                <fieldset className="due-year-list" ref={yearList}>
+                  <legend className="visually-hidden">Years</legend>
+                  {years.map((year) => (
+                    <button
+                      aria-pressed={String(year) === shown.slice(0, 4)}
+                      className={`due-month-choice${year === now.getFullYear() ? " is-now" : ""}`}
+                      key={year}
+                      onClick={() =>
+                        revealMonth(`${year}-${shown.slice(5, 7)}`)
+                      }
+                      type="button"
                     >
-                      {heading}
-                    </th>
+                      {year}
+                    </button>
                   ))}
-                </tr>
-              </thead>
-              <tbody>
-                {weeks.map((week) => (
-                  <tr key={week[0]}>
-                    {week.map((day) => {
-                      const date = parseDayKey(day);
-                      const inMonth = day.startsWith(month);
-                      const weekend =
-                        date.getDay() === 0 || date.getDay() === 6;
-                      return (
-                        <td key={day}>
-                          <button
-                            aria-label={fullDay.format(date)}
-                            aria-pressed={day === dueDate}
-                            className={`due-day${inMonth ? "" : " is-outside"}${day < today ? " is-past" : ""}${weekend ? " is-weekend" : ""}${day === today ? " is-today" : ""}`}
-                            data-day={day}
-                            disabled={disabled}
-                            onClick={() => chooseDay(day)}
-                            onFocus={() => setFocusedDay(day)}
-                            onKeyDown={(event) => onGridKey(event, day)}
-                            tabIndex={day === tabDay ? 0 : -1}
-                            type="button"
-                          >
-                            {date.getDate()}
-                          </button>
-                        </td>
-                      );
-                    })}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                </fieldset>
+              </div>
+            ) : null}
+            {monthOpen ? (
+              <button
+                aria-label="Close the month and year chooser"
+                className="due-month-backdrop"
+                onClick={closeMonth}
+                tabIndex={-1}
+                type="button"
+              />
+            ) : null}
+            <div aria-hidden="true" className="due-weekdays">
+              {weekdayHeadings.map((heading, index) => (
+                <span key={weekdayNames[index]}>{heading}</span>
+              ))}
+            </div>
+            <div className="due-months" onScroll={onScroll} ref={list}>
+              {months.map((month) => (
+                <table
+                  aria-label={monthTitle.format(
+                    parseDayKey(monthStartOf(month)),
+                  )}
+                  className="due-grid"
+                  data-month={month}
+                  key={month}
+                >
+                  <caption className="due-grid-caption">
+                    {monthTitle.format(parseDayKey(monthStartOf(month)))}
+                  </caption>
+                  <thead className="visually-hidden">
+                    <tr>
+                      {weekdayHeadings.map((heading, index) => (
+                        <th
+                          abbr={weekdayNames[index]}
+                          key={weekdayNames[index]}
+                          scope="col"
+                        >
+                          {heading}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {monthWeeks(month).map((week) => (
+                      <tr key={week.find((day) => day !== null) ?? month}>
+                        {week.map((day, index) =>
+                          day === null ? (
+                            <td key={`${month}-${weekdayNames[index]}`} />
+                          ) : (
+                            <td key={day}>
+                              <button
+                                aria-label={fullDay.format(parseDayKey(day))}
+                                aria-pressed={day === dueDate}
+                                className={`due-day${day < today ? " is-past" : ""}${index === 0 || index === 6 ? " is-weekend" : ""}${day === today ? " is-today" : ""}`}
+                                data-day={day}
+                                disabled={disabled}
+                                onClick={() => chooseDay(day)}
+                                onFocus={() => setFocusedDay(day)}
+                                onKeyDown={(event) => onGridKey(event, day)}
+                                tabIndex={day === tabDay ? 0 : -1}
+                                type="button"
+                              >
+                                {parseDayKey(day).getDate()}
+                              </button>
+                            </td>
+                          ),
+                        )}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              ))}
+            </div>
           </div>
           <div className="due-time">
             <button

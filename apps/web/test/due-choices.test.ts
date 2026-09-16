@@ -3,7 +3,9 @@ import {
   describeDueDay,
   dueShortcuts,
   dueWeekday,
+  exactDueDay,
   parseDueText,
+  parseMonthText,
 } from "../lib/due-choices";
 import { parseDayKey } from "../lib/day-placement";
 
@@ -12,7 +14,7 @@ const at = (key: string) => parseDayKey(key);
 describe("due choices", () => {
   it("offers the shortcuts a weekday allows, with the days they mean", () => {
     // 2030-03-05 is a Tuesday.
-    const tuesday = dueShortcuts(at("2030-03-05"), null);
+    const tuesday = dueShortcuts(at("2030-03-05"));
     expect(tuesday.map(({ id, day }) => [id, day])).toEqual([
       ["today", "2030-03-05"],
       ["tomorrow", "2030-03-06"],
@@ -20,12 +22,8 @@ describe("due choices", () => {
       ["weekend", "2030-03-09"],
       ["next-week", "2030-03-11"],
     ]);
-    // Today drops out once it is the choice.
-    expect(dueShortcuts(at("2030-03-05"), "2030-03-05")[0]?.id).toBe(
-      "tomorrow",
-    );
     // Thursday: two days on is Saturday, so no Later this week.
-    expect(dueShortcuts(at("2030-03-07"), null).map(({ id }) => id)).toEqual([
+    expect(dueShortcuts(at("2030-03-07")).map(({ id }) => id)).toEqual([
       "today",
       "tomorrow",
       "weekend",
@@ -33,27 +31,33 @@ describe("due choices", () => {
     ]);
     // Saturday: no weekend shortcut; next week is Monday.
     expect(
-      dueShortcuts(at("2030-03-09"), null).map(({ id, day }) => [id, day]),
+      dueShortcuts(at("2030-03-09")).map(({ id, day }) => [id, day]),
     ).toEqual([
       ["today", "2030-03-09"],
       ["tomorrow", "2030-03-10"],
       ["next-week", "2030-03-11"],
     ]);
     // Sunday: next week is tomorrow's Monday.
-    expect(dueShortcuts(at("2030-03-10"), null).at(-1)?.day).toBe("2030-03-11");
+    expect(dueShortcuts(at("2030-03-10")).at(-1)?.day).toBe("2030-03-11");
   });
 
-  it("describes a day as Today, Tomorrow, or its date, with the year when far", () => {
+  it("describes a day as its exact date, with today or tomorrow as a hint", () => {
     const now = at("2030-03-05");
-    expect(describeDueDay("2030-03-05", now)).toBe("Today");
-    expect(describeDueDay("2030-03-06", now)).toBe("Tomorrow");
-    expect(describeDueDay("2030-03-21", now)).toBe(
+    const exact = (key: string) =>
       new Intl.DateTimeFormat(undefined, {
         month: "short",
         day: "numeric",
-      }).format(at("2030-03-21")),
+        year: "numeric",
+      }).format(at(key));
+    expect(exactDueDay("2030-03-05")).toBe(exact("2030-03-05"));
+    expect(describeDueDay("2030-03-05", now)).toBe(
+      `${exact("2030-03-05")} (today)`,
     );
-    expect(describeDueDay("2031-01-02", now)).toMatch(/2031/);
+    expect(describeDueDay("2030-03-06", now)).toBe(
+      `${exact("2030-03-06")} (tomorrow)`,
+    );
+    expect(describeDueDay("2030-03-21", now)).toBe(exact("2030-03-21"));
+    expect(describeDueDay("2031-01-02", now)).toBe(exact("2031-01-02"));
     expect(dueWeekday("2030-03-05")).toBe(
       new Intl.DateTimeFormat(undefined, { weekday: "short" }).format(
         at("2030-03-05"),
@@ -79,5 +83,18 @@ describe("due choices", () => {
     expect(parseDueText("2030-02-30", now)).toBeNull();
     expect(parseDueText("Sometime", now)).toBeNull();
     expect(parseDueText("", now)).toBeNull();
+  });
+
+  it("reads a typed month and year in several shapes", () => {
+    const now = at("2030-03-05");
+    expect(parseMonthText("October 2027", now)).toBe("2027-10");
+    expect(parseMonthText("oct 2027", now)).toBe("2027-10");
+    expect(parseMonthText("2027-10", now)).toBe("2027-10");
+    expect(parseMonthText("10/2027", now)).toBe("2027-10");
+    expect(parseMonthText("2027 october", now)).toBe("2027-10");
+    expect(parseMonthText("October", now)).toBe("2030-10");
+    expect(parseMonthText("13/2027", now)).toBeNull();
+    expect(parseMonthText("Octember 2027", now)).toBeNull();
+    expect(parseMonthText("", now)).toBeNull();
   });
 });
