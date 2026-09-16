@@ -162,8 +162,10 @@ export function DuePicker({
   const list = useRef<HTMLDivElement>(null);
   const chooser = useRef<HTMLDivElement>(null);
   const monthInput = useRef<HTMLInputElement>(null);
-  const yearList = useRef<HTMLFieldSetElement>(null);
+  const monthButton = useRef<HTMLButtonElement>(null);
+  const yearList = useRef<HTMLDivElement>(null);
   const focusRequested = useRef<DayKey | null>(null);
+  const headingFocusRequested = useRef(false);
   const scrollRequested = useRef<MonthKey | null>(null);
   const prepended = useRef(0);
 
@@ -214,18 +216,35 @@ export function DuePicker({
     }
   });
 
-  // The month chooser's year list scrolls to the shown year.
+  // Opening the chooser selects its typed field; a deliberate close returns
+  // focus to the heading.
   useLayoutEffect(() => {
-    if (!monthOpen) return;
-    const chosen = yearList.current?.querySelector<HTMLButtonElement>(
-      '[aria-pressed="true"]',
-    );
-    if (chosen && yearList.current)
-      yearList.current.scrollTop =
-        chosen.offsetTop -
-        yearList.current.clientHeight / 2 +
-        chosen.offsetHeight / 2;
+    if (monthOpen) {
+      monthInput.current?.focus();
+      monthInput.current?.select();
+    } else if (headingFocusRequested.current) {
+      headingFocusRequested.current = false;
+      monthButton.current?.focus();
+    }
   }, [monthOpen]);
+
+  // The chooser's year grid keeps the shown year in view without moving a
+  // year the pointer is on.
+  const shownYear = shown.slice(0, 4);
+  useLayoutEffect(() => {
+    const grid = yearList.current;
+    const chosen = grid?.querySelector<HTMLButtonElement>(
+      `[data-year="${shownYear}"]`,
+    );
+    if (!monthOpen || !grid || !chosen) return;
+    const above = chosen.offsetTop < grid.scrollTop;
+    const below =
+      chosen.offsetTop + chosen.offsetHeight >
+      grid.scrollTop + grid.clientHeight;
+    // The shown year's row lands second, with one row of earlier years above it.
+    if (above || below)
+      grid.scrollTop = chosen.offsetTop - chosen.offsetHeight - 4;
+  }, [monthOpen, shownYear]);
 
   const showTime = timeOn || dueTime !== "";
   const unreadable = text.trim() !== "" && parseDueText(text, now) === null;
@@ -312,9 +331,14 @@ export function DuePicker({
   const openMonth = () => {
     setMonthText(title);
     setMonthOpen(true);
-    requestAnimationFrame(() => monthInput.current?.select());
   };
+  // Closing because focus left keeps focus where it went; closing on purpose
+  // (Done, Escape, the backdrop) returns it to the heading.
   const closeMonth = () => setMonthOpen(false);
+  const finishMonth = () => {
+    headingFocusRequested.current = true;
+    setMonthOpen(false);
+  };
   const leavesChooser = (related: EventTarget | null) =>
     !(related instanceof Node) ||
     (related !== monthInput.current && !chooser.current?.contains(related));
@@ -416,7 +440,7 @@ export function DuePicker({
                   onKeyDown={(event) => {
                     if (event.key === "Enter" || event.key === "Escape") {
                       event.preventDefault();
-                      closeMonth();
+                      finishMonth();
                     }
                   }}
                   placeholder="October 2027, 2027-10, 10/2027"
@@ -431,6 +455,7 @@ export function DuePicker({
                   className="due-month-button"
                   disabled={disabled}
                   onClick={openMonth}
+                  ref={monthButton}
                   type="button"
                 >
                   {/* Every month name shares one cell, so the year keeps its place while scrolling. */}
@@ -492,56 +517,71 @@ export function DuePicker({
                 onKeyDown={(event) => {
                   if (event.key === "Escape") {
                     event.preventDefault();
-                    closeMonth();
-                    monthInput.current?.focus();
+                    finishMonth();
                   }
                 }}
                 ref={chooser}
                 role="dialog"
               >
-                <fieldset className="due-month-grid">
-                  <legend className="visually-hidden">Months</legend>
-                  {monthNames.map((name, index) => {
-                    const key = `${shown.slice(0, 4)}-${String(index + 1).padStart(2, "0")}`;
-                    return (
-                      <button
-                        aria-pressed={key === shown}
-                        className={`due-month-choice${key === monthOf(today) ? " is-now" : ""}`}
-                        key={name}
-                        onClick={() => {
-                          revealMonth(key);
-                          closeMonth();
-                        }}
-                        type="button"
-                      >
-                        {name}
-                      </button>
-                    );
-                  })}
-                </fieldset>
-                <fieldset className="due-year-list" ref={yearList}>
-                  <legend className="visually-hidden">Years</legend>
-                  {years.map((year) => (
-                    <button
-                      aria-pressed={String(year) === shown.slice(0, 4)}
-                      className={`due-month-choice${year === now.getFullYear() ? " is-now" : ""}`}
-                      key={year}
-                      onClick={() =>
-                        revealMonth(`${year}-${shown.slice(5, 7)}`)
-                      }
-                      type="button"
-                    >
-                      {year}
-                    </button>
-                  ))}
-                </fieldset>
+                <div className="due-month-columns">
+                  <fieldset className="due-month-group">
+                    <legend>Month</legend>
+                    <div className="due-month-grid">
+                      {monthNames.map((name, index) => {
+                        const key = `${shownYear}-${String(index + 1).padStart(2, "0")}`;
+                        return (
+                          <button
+                            aria-pressed={key === shown}
+                            className={`due-month-choice${key === monthOf(today) ? " is-now" : ""}`}
+                            key={name}
+                            onClick={() => revealMonth(key)}
+                            type="button"
+                          >
+                            {name}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </fieldset>
+                  <fieldset className="due-month-group">
+                    <legend>Year</legend>
+                    <div className="due-year-grid" ref={yearList}>
+                      {years.map((year) => (
+                        <button
+                          aria-pressed={String(year) === shownYear}
+                          className={`due-month-choice${year === now.getFullYear() ? " is-now" : ""}`}
+                          data-year={year}
+                          key={year}
+                          onClick={() =>
+                            revealMonth(`${year}-${shown.slice(5, 7)}`)
+                          }
+                          type="button"
+                        >
+                          {year}
+                        </button>
+                      ))}
+                    </div>
+                  </fieldset>
+                </div>
+                <div className="due-month-footer">
+                  <span aria-live="polite" className="field-hint">
+                    Showing {title}
+                  </span>
+                  <button
+                    className="button button-small"
+                    onClick={finishMonth}
+                    type="button"
+                  >
+                    Done
+                  </button>
+                </div>
               </div>
             ) : null}
             {monthOpen ? (
               <button
                 aria-label="Close the month and year chooser"
                 className="due-month-backdrop"
-                onClick={closeMonth}
+                onClick={finishMonth}
                 tabIndex={-1}
                 type="button"
               />

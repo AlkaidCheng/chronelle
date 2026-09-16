@@ -177,46 +177,65 @@ describe("DuePicker", () => {
     expect(screen.getByLabelText("Month and year")).toHaveValue(
       monthName("2030-03"),
     );
-    expect(
-      within(chooser.getByRole("group", { name: "Months" })).getByRole(
-        "button",
-        { pressed: true },
-      ),
-    ).toHaveTextContent(
+    const months = () => within(chooser.getByRole("group", { name: "Month" }));
+    const years = () => within(chooser.getByRole("group", { name: "Year" }));
+    const shortMonth = (key: string) =>
       new Intl.DateTimeFormat(undefined, { month: "short" }).format(
-        parseDayKey("2030-03-01"),
-      ),
+        parseDayKey(`${key}-01`),
+      );
+    expect(months().getByRole("button", { pressed: true })).toHaveTextContent(
+      shortMonth("2030-03"),
     );
-    expect(
-      within(chooser.getByRole("group", { name: "Years" })).getByRole(
-        "button",
-        { pressed: true },
-      ),
-    ).toHaveTextContent("2030");
-    // A typed month moves the list; a chosen year keeps the month.
+    expect(years().getByRole("button", { pressed: true })).toHaveTextContent(
+      "2030",
+    );
+    // A typed month moves the list.
     await user.clear(screen.getByLabelText("Month and year"));
     await user.type(screen.getByLabelText("Month and year"), "October 2027");
     expect(
       month("2027-10").getByRole("button", { name: day("2027-10-01") }),
     ).toBeVisible();
-    await user.click(
-      within(chooser.getByRole("group", { name: "Years" })).getByRole(
-        "button",
-        { name: "2031" },
-      ),
-    );
+    // The month and the year are chosen independently: each keeps the
+    // chooser open, moves the list behind it, and reads back the result.
+    await user.click(years().getByRole("button", { name: "2031" }));
     expect(
       month("2031-10").getByRole("button", { name: day("2031-10-01") }),
     ).toBeVisible();
-    await user.keyboard("{Escape}");
+    await user.click(
+      months().getByRole("button", { name: shortMonth("2031-12") }),
+    );
+    expect(
+      month("2031-12").getByRole("button", { name: day("2031-12-01") }),
+    ).toBeVisible();
+    expect(
+      screen.getByRole("dialog", { name: "Choose a month and year" }),
+    ).toBeVisible();
+    expect(chooser.getByText(`Showing ${monthName("2031-12")}`)).toBeVisible();
+    expect(months().getByRole("button", { pressed: true })).toHaveTextContent(
+      shortMonth("2031-12"),
+    );
+    expect(years().getByRole("button", { pressed: true })).toHaveTextContent(
+      "2031",
+    );
+    await user.click(chooser.getByRole("button", { name: "Done" }));
     expect(
       screen.queryByRole("dialog", { name: "Choose a month and year" }),
     ).toBeNull();
     expect(
       screen.getByRole("button", {
-        name: `Choose a month and year, showing ${monthName("2031-10")}`,
+        name: `Choose a month and year, showing ${monthName("2031-12")}`,
       }),
     ).toBeVisible();
+    // Escape closes it too.
+    await user.click(
+      screen.getByRole("button", {
+        name: `Choose a month and year, showing ${monthName("2031-12")}`,
+      }),
+    );
+    await user.keyboard("{Escape}");
+    expect(
+      screen.queryByRole("dialog", { name: "Choose a month and year" }),
+    ).toBeNull();
     // Today brings the list back to this month.
     await user.click(screen.getByRole("button", { name: "Today" }));
     expect(

@@ -484,8 +484,10 @@ with the schedule picker's keyboard moves (arrows by day and week, Page Up and
 Down by month, Home and End to the week's edges, Enter to choose). The month
 heading names the month at the top; Previous, Today, and Next move it, and
 choosing the heading opens a focused chooser over the list: a typed field
-(October 2027, 2027-10, 10/2027) beside a month grid and a scrollable year
-list with the current ones marked; Enter, Escape, or a click outside closes
+(October 2027, 2027-10, 10/2027) above a month grid and a scrollable year
+grid with the current ones marked. The month and the year are chosen
+independently, the list behind follows each choice, and the chooser reads
+back the month it shows until Done, Enter, Escape, or a click outside closes
 it. Add time reveals the Due time field and a Duration select (No duration,
 15 min to 8 h), which waits for a time; Remove time clears both; No date
 clears everything. A date alone makes the task due that

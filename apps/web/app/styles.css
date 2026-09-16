@@ -4041,24 +4041,55 @@ html:has(.event-create-dialog[open]) {
   box-shadow: 0 12px 32px color-mix(in srgb, var(--ink) 18%, transparent);
   display: grid;
   gap: 10px;
-  grid-template-columns: 1fr 92px;
   left: 0;
-  padding: 10px;
+  padding: 12px;
   position: absolute;
   right: 0;
   top: 44px;
   z-index: 2;
 }
 
-.due-month-grid {
-  align-content: start;
-  border: 0;
+/* The month and the year are chosen independently, so each gets its own grid. */
+.due-month-columns {
   display: grid;
-  gap: 4px;
-  grid-template-columns: repeat(4, 1fr);
+  gap: 14px;
+  grid-template-columns: 3fr 2fr;
+}
+
+.due-month-group {
+  border: 0;
   margin: 0;
   min-width: 0;
   padding: 0;
+}
+
+.due-month-group legend {
+  color: var(--muted);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  padding: 0 0 6px;
+  text-transform: uppercase;
+}
+
+.due-month-grid,
+.due-year-grid {
+  display: grid;
+  gap: 4px;
+  grid-template-columns: repeat(3, 1fr);
+}
+
+/* Years wrap to fewer columns where the panel is narrow. */
+.due-year-grid {
+  align-content: start;
+  border-left: 1px solid var(--line);
+  grid-template-columns: repeat(auto-fill, minmax(40px, 1fr));
+  max-height: 132px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding-left: 12px;
+  position: relative;
+  scrollbar-gutter: stable;
 }
 
 .due-month-choice {
@@ -4069,6 +4100,7 @@ html:has(.event-create-dialog[open]) {
   cursor: pointer;
   font: inherit;
   font-size: 0.85rem;
+  font-variant-numeric: tabular-nums;
   padding: 6px 4px;
   width: 100%;
 }
@@ -4086,17 +4118,11 @@ html:has(.event-create-dialog[open]) {
   color: var(--on-accent);
 }
 
-.due-year-list {
-  align-content: start;
-  border: 0;
-  border-left: 1px solid var(--line);
-  display: grid;
-  gap: 2px;
-  margin: 0;
-  max-height: 128px;
-  min-width: 0;
-  overflow-y: auto;
-  padding: 0 0 0 8px;
+.due-month-footer {
+  align-items: center;
+  display: flex;
+  gap: 10px;
+  justify-content: space-between;
 }
 
 .due-weekdays {
