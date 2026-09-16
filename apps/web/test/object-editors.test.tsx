@@ -368,6 +368,7 @@ describe.each(["task", "expense"] as const)("focused %s editors", (kind) => {
           ? {
               dueOn: null,
               dueAt: resource.dueAt,
+              durationMinutes: null,
               assigneeId: null,
               location: null,
               labelIds: [],

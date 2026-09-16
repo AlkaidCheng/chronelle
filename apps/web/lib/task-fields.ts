@@ -10,7 +10,13 @@ import { toDateTimeInput } from "./format";
 export function readTaskFields(
   task?: Pick<
     TaskResponse,
-    "displayName" | "dueOn" | "dueAt" | "assigneeId" | "location" | "labelIds"
+    | "displayName"
+    | "dueOn"
+    | "dueAt"
+    | "durationMinutes"
+    | "assigneeId"
+    | "location"
+    | "labelIds"
   >,
 ) {
   const [dueDate = "", dueTime = ""] =
@@ -21,6 +27,11 @@ export function readTaskFields(
     displayName: task?.displayName ?? "",
     dueDate,
     dueTime,
+    // The duration in minutes as text; empty for none.
+    duration:
+      task?.durationMinutes === null || task?.durationMinutes === undefined
+        ? ""
+        : String(task.durationMinutes),
     // The assignee's person id; empty for an unassigned task.
     assignee: task?.assigneeId ?? "",
     location: task?.location ?? "",
@@ -40,10 +51,13 @@ export function splitLabelIds(labels: string): string[] {
   return labels === "" ? [] : labels.split(",");
 }
 
+/** The most minutes a duration may hold: a whole day. */
+export const durationLimit = 1440;
+
 /**
  * A date alone is a date-only due; a date with a time is a due instant,
  * preserved unchanged when the local rendering did not change. A time
- * without a date is refused.
+ * without a date is refused, as is a duration without a time.
  */
 export function taskFieldsPayload(
   fields: ReturnType<typeof readTaskFields>,
@@ -55,13 +69,25 @@ export function taskFieldsPayload(
   if (location !== null && location.length > locationLimit)
     throw new Error(`Keep the location to ${locationLimit} characters.`);
   const labelIds = splitLabelIds(fields.labels);
+  const durationMinutes =
+    fields.duration === "" ? null : Number(fields.duration);
+  if (
+    durationMinutes !== null &&
+    (!Number.isInteger(durationMinutes) ||
+      durationMinutes < 1 ||
+      durationMinutes > durationLimit)
+  )
+    throw new Error("Choose a duration of up to a day.");
   if (fields.dueDate === "") {
     if (fields.dueTime !== "")
       throw new Error("Choose a due date for the due time.");
+    if (durationMinutes !== null)
+      throw new Error("Choose a due time for the duration.");
     return {
       displayName: fields.displayName,
       dueOn: null,
       dueAt: null,
+      durationMinutes: null,
       assigneeId,
       location,
       labelIds,
@@ -69,15 +95,19 @@ export function taskFieldsPayload(
   }
   if (!/^\d{4}-\d{2}-\d{2}$/.test(fields.dueDate))
     throw new Error("Choose a valid due date.");
-  if (fields.dueTime === "")
+  if (fields.dueTime === "") {
+    if (durationMinutes !== null)
+      throw new Error("Choose a due time for the duration.");
     return {
       displayName: fields.displayName,
       dueOn: fields.dueDate,
       dueAt: null,
+      durationMinutes: null,
       assigneeId,
       location,
       labelIds,
     };
+  }
   return {
     displayName: fields.displayName,
     dueOn: null,
@@ -86,6 +116,7 @@ export function taskFieldsPayload(
       source?.dueAt,
       "due",
     ),
+    durationMinutes,
     assigneeId,
     location,
     labelIds,

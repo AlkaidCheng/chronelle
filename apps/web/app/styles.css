@@ -4025,6 +4025,9 @@ html:has(.event-create-dialog[open]) {
   justify-items: start;
 }
 
-.due-time .field {
+.due-time-fields {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
   width: 100%;
 }
