@@ -311,7 +311,7 @@ describe.sequential("session store", () => {
         .select({ action: auditEvents.action, metadata: auditEvents.metadata })
         .from(auditEvents)
         .where(eq(auditEvents.workspaceId, workspace.id))
-        .orderBy(auditEvents.id);
+        .orderBy(auditEvents.createdAt, auditEvents.action, auditEvents.id);
       results.push({
         revoked,
         again,

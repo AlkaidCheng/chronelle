@@ -1,5 +1,33 @@
 import { createHash, randomUUID } from "node:crypto";
+import type { APIRequestContext } from "@playwright/test";
 import { expect, test } from "./fixtures";
+
+/**
+ * Posts a body the boundary may refuse before it has been read in full: the
+ * server answers and closes the connection while the client is still
+ * writing, which surfaces as EPIPE or a reset under load rather than as
+ * the response. Such a write failure is retried a few times; the refusal
+ * itself is asserted on the response.
+ */
+async function postRefusable(
+  request: APIRequestContext,
+  data: string,
+  contentType: string,
+) {
+  let lastError: unknown;
+  for (let attempt = 0; attempt < 4; attempt += 1) {
+    try {
+      return await request.post("/api/events", {
+        data: Buffer.from(data),
+        headers: { "content-type": contentType },
+      });
+    } catch (error) {
+      lastError = error;
+      if (!/EPIPE|ECONNRESET|socket hang up/.test(String(error))) throw error;
+    }
+  }
+  throw lastError;
+}
 
 test("enforces safe errors through the production proxy", async ({
   request,
@@ -9,10 +37,7 @@ test("enforces safe errors through the production proxy", async ({
     ["application/xml", "<private/>", 415],
     ["application/json", " ".repeat(1024 * 1024 + 1), 413],
   ] as const) {
-    const response = await request.post("/api/events", {
-      data: Buffer.from(data),
-      headers: { "content-type": contentType },
-    });
+    const response = await postRefusable(request, data, contentType);
     expect(response.status()).toBe(status);
     expect(response.headers()["cache-control"]).toBe("private, no-store");
     expect(await response.json()).toMatchObject({

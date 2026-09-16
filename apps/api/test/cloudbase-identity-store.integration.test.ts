@@ -119,7 +119,9 @@ describe.sequential("CloudBase identity store", () => {
         .select({ action: auditEvents.action, metadata: auditEvents.metadata })
         .from(auditEvents)
         .where(eq(auditEvents.workspaceId, first.workspace.id))
-        .orderBy(auditEvents.id);
+        // One sign-in writes two audits in one transaction; the SQL uuidv7
+        // does not order ids within a millisecond, the action does.
+        .orderBy(auditEvents.createdAt, auditEvents.action, auditEvents.id);
       results.push({
         first: { ...shape(first), createdWorkspace: first.createdWorkspace },
         second: {
