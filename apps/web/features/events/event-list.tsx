@@ -1,6 +1,6 @@
 "use client";
 
-import type { EventListQuery, EventResponse } from "@chronelle/schemas";
+import type { EventResponse } from "@chronelle/schemas";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { type MouseEventHandler, useEffect, useState } from "react";
@@ -10,13 +10,18 @@ import {
   ErrorNotice,
   LoadingState,
 } from "../../components/feedback";
+import { IconButton } from "../../components/icon-button";
 import {
   ArrowIcon,
+  FilterIcon,
   GridIcon,
   ListIcon,
   PlusIcon,
+  RefreshIcon,
   SearchIcon,
+  SortIcon,
 } from "../../components/icons";
+import { MenuItem, QuietMenu } from "../../components/quiet-menu";
 import { eventPeriod } from "../../lib/event-collection";
 import {
   useEventCollectionReturn,
@@ -87,28 +92,107 @@ export function EventList() {
   const items = changingQuery ? [] : (events.data?.items ?? []);
   const now = Date.parse(events.data?.asOf ?? "");
   const filtered = debouncedQuery !== "" || filter !== "all";
+  const filters = [
+    ["all", "All events"],
+    ["upcoming", "Upcoming & ongoing"],
+    ["unscheduled", "Unscheduled"],
+    ["past", "Past"],
+  ] as const;
+  const sorts = [
+    ["date", "Event date"],
+    ["updated", "Recently updated"],
+    ["name", "Name A-Z"],
+  ] as const;
   return (
     <main className="workspace-page" ref={container} tabIndex={-1}>
-      <header className="page-heading split-heading">
-        <div>
-          <p className="eyebrow">Make room for what matters</p>
-          <h1>Events</h1>
-          <p>
-            From the first idea to the final detail. Keep your plans together.
-          </p>
+      <header className="quiet-heading">
+        <h1>Events</h1>
+        <div className="quiet-tools">
+          <label className="inline-search">
+            <SearchIcon />
+            <span className="visually-hidden">Filter events by name</span>
+            <input
+              type="search"
+              value={query}
+              onChange={(event) => change({ query: event.target.value })}
+              onCompositionStart={() => setIsComposing(true)}
+              onCompositionEnd={(event) => {
+                change({ query: event.currentTarget.value });
+                setIsComposing(false);
+              }}
+              placeholder="Find an event"
+              maxLength={240}
+            />
+          </label>
+          <QuietMenu
+            label="Filter events"
+            icon={<FilterIcon />}
+            active={filter !== "all"}
+            value={filter}
+          >
+            {filters.map(([value, label]) => (
+              <MenuItem
+                key={value}
+                checked={filter === value}
+                onSelect={() => change({ filter: value })}
+              >
+                {label}
+              </MenuItem>
+            ))}
+          </QuietMenu>
+          <QuietMenu label="Sort events" icon={<SortIcon />} value={sort}>
+            {sorts.map(([value, label]) => (
+              <MenuItem
+                key={value}
+                checked={sort === value}
+                onSelect={() => change({ sort: value })}
+              >
+                {label}
+              </MenuItem>
+            ))}
+          </QuietMenu>
+          <QuietMenu
+            label="Event layout"
+            icon={layout === "grid" ? <GridIcon /> : <ListIcon />}
+            value={layout}
+          >
+            <MenuItem
+              checked={layout === "grid"}
+              icon={<GridIcon />}
+              onSelect={() => changeLayout("grid")}
+            >
+              Grid
+            </MenuItem>
+            <MenuItem
+              checked={layout === "list"}
+              icon={<ListIcon />}
+              onSelect={() => changeLayout("list")}
+            >
+              List
+            </MenuItem>
+          </QuietMenu>
+          <IconButton
+            label="Refresh events"
+            disabled={events.isFetching || changingQuery}
+            onClick={() => {
+              change({});
+              void events.refresh();
+            }}
+          >
+            <RefreshIcon />
+          </IconButton>
+          <IconButton
+            label="New event"
+            tone="primary"
+            aria-haspopup="dialog"
+            onClick={(event) => {
+              event.currentTarget.focus();
+              setIsCreating(true);
+            }}
+          >
+            <PlusIcon />
+          </IconButton>
         </div>
-        <button
-          aria-haspopup="dialog"
-          className="button button-primary"
-          onClick={(event) => {
-            event.currentTarget.focus();
-            setIsCreating(true);
-          }}
-          type="button"
-        >
-          <PlusIcon />
-          New event
-        </button>
       </header>
 
       {isCreating ? (
@@ -122,96 +206,11 @@ export function EventList() {
         aria-labelledby="event-list-heading"
         className="event-list-section"
       >
-        <div className="collection-toolbar">
-          <label className="collection-search">
-            <SearchIcon />
-            <span className="visually-hidden">Filter events by name</span>
-            <input
-              type="search"
-              value={query}
-              onChange={(event) => change({ query: event.target.value })}
-              onCompositionStart={() => setIsComposing(true)}
-              onCompositionEnd={(event) => {
-                change({ query: event.currentTarget.value });
-                setIsComposing(false);
-              }}
-              placeholder="Find an event..."
-              maxLength={240}
-            />
-          </label>
-          <label className="compact-field collection-sort">
-            <span className="visually-hidden">Sort events</span>
-            <select
-              value={sort}
-              onChange={(event) =>
-                change({ sort: event.target.value as EventListQuery["sort"] })
-              }
-            >
-              <option value="date">Event date</option>
-              <option value="updated">Recently updated</option>
-              <option value="name">Name A-Z</option>
-            </select>
-          </label>
-          <fieldset className="segmented-control" aria-label="Event layout">
-            <button
-              aria-label="Grid view"
-              aria-pressed={layout === "grid"}
-              type="button"
-              onClick={() => changeLayout("grid")}
-            >
-              <GridIcon />
-            </button>
-            <button
-              aria-label="List view"
-              aria-pressed={layout === "list"}
-              type="button"
-              onClick={() => changeLayout("list")}
-            >
-              <ListIcon />
-            </button>
-          </fieldset>
-          <button
-            className="button button-quiet"
-            type="button"
-            disabled={events.isFetching || changingQuery}
-            onClick={() => {
-              change({});
-              void events.refresh();
-            }}
-          >
-            Refresh events
-          </button>
-        </div>
-        <div className="collection-heading">
-          <fieldset className="filter-row" aria-label="Filter events">
-            {(["all", "upcoming", "unscheduled", "past"] as const).map(
-              (value) => (
-                <button
-                  type="button"
-                  key={value}
-                  aria-pressed={filter === value}
-                  className={filter === value ? "active" : ""}
-                  onClick={() => change({ filter: value })}
-                >
-                  {value === "all"
-                    ? "All events"
-                    : value === "upcoming"
-                      ? "Upcoming & ongoing"
-                      : value}
-                </button>
-              ),
-            )}
-          </fieldset>
-          <p
-            aria-label="Event count"
-            className="collection-count"
-            role="status"
-          >
-            {events.data && !changingQuery
-              ? `${items.length} ${items.length === 1 ? "event" : "events"} loaded`
-              : ""}
-          </p>
-        </div>
+        <p aria-label="Event count" className="visually-hidden" role="status">
+          {events.data && !changingQuery
+            ? `${items.length} ${items.length === 1 ? "event" : "events"} loaded`
+            : ""}
+        </p>
         <div className="visually-hidden">
           <h2 id="event-list-heading">All events</h2>
         </div>
@@ -232,10 +231,7 @@ export function EventList() {
         !events.isError &&
         events.data?.items.length === 0 &&
         !filtered ? (
-          <EmptyState
-            description="Choose New event and give it a name. Dates are optional. Add pages and components as your plans take shape."
-            title="Your first event starts here"
-          />
+          <EmptyState title="No events yet" />
         ) : null}
         {!changingQuery &&
         !events.isError &&
@@ -243,10 +239,7 @@ export function EventList() {
         items.length === 0 &&
         filtered ? (
           <div className="collection-empty">
-            <EmptyState
-              title="No matching events"
-              description="Try another name or change your filters."
-            />
+            <EmptyState title="No matching events" />
             <button
               className="button button-secondary"
               type="button"

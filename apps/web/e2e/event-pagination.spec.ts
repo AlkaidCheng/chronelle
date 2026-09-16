@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { expect, test } from "./fixtures";
+import { chooseEventLayout, chooseEventSort } from "./helpers/quiet-chrome";
 
 test("pages Events and filters the full collection at responsive widths", async ({
   page,
@@ -49,13 +50,8 @@ test("pages Events and filters the full collection at responsive widths", async 
   expect(new Set(links).size).toBe(23);
   await page.getByRole("button", { name: "Refresh events" }).click();
   await expect(count).toHaveText("20 events loaded");
-  await page.getByRole("button", { name: "List view" }).click();
-  await page.getByLabel("Sort events").selectOption("updated");
-  expect(
-    await page
-      .getByLabel("Sort events")
-      .evaluate((select) => select.getBoundingClientRect().width),
-  ).toBeGreaterThanOrEqual(170);
+  await chooseEventLayout(page, "List");
+  await chooseEventSort(page, "Recently updated");
   await expect(page.locator(".event-card").first()).toHaveAttribute(
     "href",
     `/events/${ids[22]}`,

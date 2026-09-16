@@ -75,14 +75,14 @@ export function EmptyState({
   description,
   title,
 }: {
-  readonly description: string;
+  readonly description?: string;
   readonly title: string;
 }) {
   return (
     <div className="empty-state">
       <span aria-hidden="true">+</span>
       <h3>{title}</h3>
-      <p>{description}</p>
+      {description === undefined ? null : <p>{description}</p>}
     </div>
   );
 }

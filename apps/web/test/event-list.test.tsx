@@ -87,10 +87,9 @@ describe("EventList", () => {
     expect(fetch.mock.calls[1]?.[0]).toBe(
       "/api/events?query=&filter=all&sort=date&cursor=next_page",
     );
-    await user.selectOptions(screen.getByLabelText("Sort events"), "name");
-    expect(
-      await screen.findByText("Your first event starts here"),
-    ).toBeVisible();
+    await user.click(screen.getByRole("button", { name: "Sort events" }));
+    await user.click(screen.getByRole("menuitemradio", { name: "Name A-Z" }));
+    expect(await screen.findByText("No events yet")).toBeVisible();
     await user.click(screen.getByRole("button", { name: "Refresh events" }));
     expect(await screen.findByText("1 event loaded")).toBeVisible();
     expect(fetch.mock.calls.slice(2).map(([url]) => url)).toEqual(
@@ -118,8 +117,9 @@ describe("EventList", () => {
     expect(fetch.mock.calls[1]?.[0]).toBe(
       "/api/events?query=missing&filter=all&sort=date",
     );
+    await user.click(screen.getByRole("button", { name: "Filter events" }));
     await user.click(
-      screen.getByRole("button", { name: "Upcoming & ongoing" }),
+      screen.getByRole("menuitemradio", { name: "Upcoming & ongoing" }),
     );
     await waitFor(() => expect(fetch).toHaveBeenCalledTimes(3));
     expect(fetch.mock.calls[2]?.[0]).toBe(
@@ -184,8 +184,12 @@ describe("EventList", () => {
     await screen.findByText("Garden gathering");
     await user.type(screen.getByLabelText("Filter events by name"), "Garden");
     await waitFor(() => expect(fetch).toHaveBeenCalledTimes(2));
-    await user.selectOptions(screen.getByLabelText("Sort events"), "name");
-    await user.click(screen.getByRole("button", { name: "unscheduled" }));
+    await user.click(screen.getByRole("button", { name: "Sort events" }));
+    await user.click(screen.getByRole("menuitemradio", { name: "Name A-Z" }));
+    await user.click(screen.getByRole("button", { name: "Filter events" }));
+    await user.click(
+      screen.getByRole("menuitemradio", { name: "Unscheduled" }),
+    );
     await user.click(
       await screen.findByRole("button", { name: "Load more events" }),
     );
@@ -200,11 +204,13 @@ describe("EventList", () => {
     expect(screen.getByLabelText("Filter events by name")).toHaveValue(
       "Garden",
     );
-    expect(screen.getByLabelText("Sort events")).toHaveValue("name");
-    expect(screen.getByRole("button", { name: "unscheduled" })).toHaveAttribute(
-      "aria-pressed",
-      "true",
+    expect(screen.getByRole("button", { name: "Sort events" })).toHaveAttribute(
+      "data-value",
+      "name",
     );
+    expect(
+      screen.getByRole("button", { name: "Filter events" }),
+    ).toHaveAttribute("data-value", "unscheduled");
     expect(screen.getByText("2 events loaded")).toBeVisible();
     expect(fetch).toHaveBeenCalledTimes(requests);
     expect(window.location.href).not.toContain("Garden");
@@ -221,7 +227,7 @@ describe("EventList", () => {
         <EventList />
       </Providers>,
     );
-    await screen.findByText("Your first event starts here");
+    await screen.findByText("No events yet");
     const input = screen.getByLabelText("Filter events by name");
     fireEvent.compositionStart(input);
     fireEvent.change(input, { target: { value: "zhong" } });
