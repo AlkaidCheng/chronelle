@@ -111,12 +111,14 @@ async function person(label: string, provider = passwordIdentityProvider) {
   return { user, workspace, email };
 }
 
+// Each store call is its own transaction, so the transaction time orders
+// the audits; ids generated within one millisecond do not.
 async function auditsOf(workspaceId: string) {
   const rows = await database.connection.db
     .select({ action: auditEvents.action, actorId: auditEvents.actorId })
     .from(auditEvents)
     .where(eq(auditEvents.workspaceId, workspaceId))
-    .orderBy(auditEvents.id);
+    .orderBy(auditEvents.createdAt, auditEvents.id);
   return rows.map((row) => row.action);
 }
 
