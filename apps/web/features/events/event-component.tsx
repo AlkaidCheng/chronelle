@@ -120,7 +120,10 @@ export function EventComponent({
             <CalendarPanel
               eventId={eventId}
               canEdit={canEdit}
+              isSavingView={isSavingView}
               items={calendar.items}
+              onChangeView={onChangeView}
+              view={view ?? "list"}
             />
           )}
         </Projection>

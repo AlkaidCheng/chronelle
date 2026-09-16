@@ -9,13 +9,13 @@ export const eventComponents = {
     label: "To-dos",
     description: "Add tasks and track what needs doing.",
     keywords: "tasks checklist todo",
-    views: ["list", "by-day"],
+    views: ["list", "by-day", "week", "month"],
   },
   calendar: {
     label: "Calendar",
     description: "Plan dates, times, and multi-day activities.",
     keywords: "schedule activities",
-    views: ["list"],
+    views: ["list", "week", "month"],
   },
   timeline: {
     label: "Timeline",
@@ -71,6 +71,8 @@ export const eventComponentViews: Record<
 > = {
   list: { label: "List" },
   "by-day": { label: "By day" },
+  week: { label: "Week" },
+  month: { label: "Month" },
 };
 
 /** The views a kind offers, the first being its default. */

@@ -26,7 +26,14 @@ import {
 } from "@chronelle/schemas";
 import { Providers } from "../app/providers";
 import { EventPages } from "../features/events/event-pages";
+import {
+  type DayKey,
+  addDays,
+  dayKeyOf,
+  parseDayKey,
+} from "../lib/day-placement";
 import { eventComponents } from "../lib/event-components";
+import { formatCalendarDate } from "../lib/event-schedule";
 import { queryKeys } from "../lib/queries";
 import { SandboxStore, sandboxWorkspaceId } from "../sandbox/store";
 import {
@@ -744,8 +751,14 @@ describe("insertable event components", () => {
     expect(
       layout.pages[0]?.components.map((component) => component.view),
     ).toEqual(["by-day", undefined]);
-    // Calendar offers one view and shows no control.
-    expect(screen.getAllByRole("group", { name: "View" })).toHaveLength(1);
+    // Calendar offers its own views: list, week, month.
+    const switches = screen.getAllByRole("group", { name: "View" });
+    expect(switches).toHaveLength(2);
+    expect(
+      within(switches[1] as HTMLElement)
+        .getAllByRole("button")
+        .map((button) => button.textContent),
+    ).toEqual(["List", "Week", "Month"]);
     unmount();
 
     render(<EventPages eventId={eventId} canEdit={false} />, {
@@ -753,6 +766,156 @@ describe("insertable event components", () => {
     });
     await screen.findByRole("region", { name: dayHeading });
     expect(screen.queryByRole("group", { name: "View" })).toBeNull();
+  });
+
+  it("shows To-dos and Calendar by week and by month around today without saving the period", async () => {
+    await client.updateEventLayout(eventId, {
+      expectedVersion: 0,
+      pages: [page("Plan", ["todos", "calendar"])],
+    });
+    const today = dayKeyOf(new Date());
+    const tomorrow = dayKeyOf(addDays(new Date(), 1));
+    const inTwoWeeks = dayKeyOf(addDays(new Date(), 14));
+    await client.createEventResource(eventId, {
+      commandId: crypto.randomUUID(),
+      resource: {
+        objectType: "task",
+        displayName: "Confirm the caterer",
+        dueOn: today,
+      },
+    });
+    await client.createEventResource(eventId, {
+      commandId: crypto.randomUUID(),
+      resource: {
+        objectType: "event",
+        displayName: "Setup weekend",
+        startsOn: today,
+        endsOn: tomorrow,
+      },
+    });
+    const fullDay = (day: DayKey) =>
+      new Intl.DateTimeFormat(undefined, {
+        weekday: "long",
+        month: "long",
+        day: "numeric",
+        year: "numeric",
+      }).format(parseDayKey(day));
+    const user = userEvent.setup();
+    render(<EventPages eventId={eventId} canEdit />, { wrapper: Providers });
+    await screen.findByText("Confirm the caterer");
+    const panel = (title: string) =>
+      within(
+        screen
+          .getByRole("heading", { name: title })
+          .closest(".planning-panel") as HTMLElement,
+      );
+    const version = async () => (await client.getEventLayout(eventId)).version;
+
+    // To-dos by week: today's column holds today's task, undated tasks sit
+    // under the strip, and moving the period is session state only.
+    const todos = panel("To-dos");
+    await user.click(todos.getByRole("button", { name: "all" }));
+    const choose = async (panel: ReturnType<typeof within>, view: string) =>
+      user.click(
+        within(panel.getByRole("group", { name: "View" })).getByRole("button", {
+          name: view,
+        }),
+      );
+    await choose(todos, "Week");
+    const todayColumn = () =>
+      within(todos.getByRole("listitem", { name: fullDay(today) }));
+    expect(todayColumn().getByText("Confirm the caterer")).toBeVisible();
+    expect(
+      within(todos.getByRole("region", { name: "No due date" })).getByText(
+        "Send invitations",
+      ),
+    ).toBeVisible();
+    expect(todos.queryByText("Confirm the garden venue")).toBeNull();
+    await waitFor(async () => expect(await version()).toBe(2));
+    const todosPeriod = todos.getByRole("group", { name: "Period" });
+    await user.click(
+      within(todosPeriod).getByRole("button", { name: "Next week" }),
+    );
+    await user.click(
+      within(todosPeriod).getByRole("button", { name: "Next week" }),
+    );
+    expect(
+      within(
+        todos.getByRole("listitem", { name: fullDay(inTwoWeeks) }),
+      ).getByText("Confirm the garden venue"),
+    ).toBeVisible();
+    expect(todos.queryByText("Confirm the caterer")).toBeNull();
+    expect(await version()).toBe(2);
+    await user.click(
+      within(todosPeriod).getByRole("button", { name: "Today" }),
+    );
+    await user.click(
+      todayColumn().getByRole("button", {
+        name: "Complete Confirm the caterer",
+      }),
+    );
+    expect(
+      await todayColumn().findByRole("button", {
+        name: "Reopen Confirm the caterer",
+      }),
+    ).toBeVisible();
+
+    // To-dos by month: today's cell counts its task and the day under the
+    // grid lists it; another day reads as empty.
+    await choose(todos, "Month");
+    const todayCell = todos.getByRole("button", {
+      name: `${fullDay(today)}, 1 item`,
+    });
+    expect(todayCell).toHaveAttribute("aria-pressed", "true");
+    expect(within(todayCell).getByText("Confirm the caterer")).toHaveClass(
+      "is-done",
+    );
+    const todayGroup = todos.getByRole("region", {
+      name: formatCalendarDate(today),
+    });
+    expect(
+      within(todayGroup).getByRole("button", {
+        name: "Reopen Confirm the caterer",
+      }),
+    ).toBeVisible();
+    const cells = todos.getAllByRole("cell");
+    expect(cells).toHaveLength(42);
+    await user.click(within(cells.at(-1) as HTMLElement).getByRole("button"));
+    expect(todos.getByText("Nothing due this day.")).toBeVisible();
+    expect(
+      todos.queryByRole("region", { name: formatCalendarDate(today) }),
+    ).toBeNull();
+    await waitFor(async () => expect(await version()).toBe(3));
+
+    // Calendar by week and by month: a two-day item sits on both of its
+    // days; the sample item two weeks out stays outside the current period.
+    const calendar = panel("Calendar");
+    await choose(calendar, "Week");
+    expect(
+      within(
+        calendar.getByRole("listitem", { name: fullDay(today) }),
+      ).getByText("Setup weekend"),
+    ).toBeVisible();
+    expect(calendar.queryByText("Welcome and coffee")).toBeNull();
+    await choose(calendar, "Month");
+    expect(
+      calendar
+        .getAllByRole("cell")
+        .filter((cell) => cell.textContent?.includes("Setup weekend")),
+    ).toHaveLength(2);
+    expect(
+      calendar.getByRole("button", { name: `${fullDay(tomorrow)}, 1 item` }),
+    ).toBeVisible();
+    expect(
+      within(
+        calendar.getByRole("region", { name: formatCalendarDate(today) }),
+      ).getByRole("heading", { name: "Setup weekend" }),
+    ).toBeVisible();
+    await waitFor(async () => expect(await version()).toBe(5));
+    const layout = await client.getEventLayout(eventId);
+    expect(
+      layout.pages[0]?.components.map((component) => component.view),
+    ).toEqual(["month", "month"]);
   });
 
   it("allows a viewer to preview saved layouts without mutation controls", async () => {

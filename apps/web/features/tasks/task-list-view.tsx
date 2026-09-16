@@ -15,9 +15,10 @@ import {
   type Table,
   useReactTable,
 } from "@tanstack/react-table";
-import { type ReactNode, useCallback, useMemo } from "react";
+import { type ReactNode, useCallback, useMemo, useState } from "react";
 
 import { ErrorNotice } from "../../components/feedback";
+import { MonthGrid, PeriodNav, WeekStrip } from "../../components/period-views";
 import { CheckIcon } from "../../components/icons";
 import { ObjectDetails } from "../../components/object-details";
 import { RowActions, StatusChip } from "../events/component-frame";
@@ -25,6 +26,12 @@ import { HistoryButton } from "../history/history-button";
 import { LifecycleButton } from "../recovery/lifecycle-provider";
 import { formatCalendarDate } from "../../lib/event-schedule";
 import { formatDateTime, formatTime } from "../../lib/format";
+import {
+  type DayKey,
+  dayKeyOf,
+  placeByDay,
+  taskDay,
+} from "../../lib/day-placement";
 import { formatTaskDue } from "../../lib/task-due";
 import { groupTasksByDay } from "../../lib/task-groups";
 import { nestTasks } from "../../lib/task-tree";
@@ -196,6 +203,36 @@ export function TaskListView({
     () => (view === "by-day" ? groupTasksByDay(tasks, new Date()) : []),
     [tasks, view],
   );
+  // The period cursor is session state: today whenever the view changes.
+  const [period, setPeriod] = useState(() => ({
+    view,
+    cursor: new Date(),
+    selected: null as DayKey | null,
+  }));
+  if (period.view !== view)
+    setPeriod({ view, cursor: new Date(), selected: null });
+  const { cursor, selected: selectedDay } = period;
+  const setCursor = (cursor: Date, selected: DayKey | null = null) =>
+    setPeriod({ view, cursor, selected });
+  const setSelectedDay = (selected: DayKey | null) =>
+    setPeriod({ view, cursor, selected });
+  const placed = useMemo(
+    () =>
+      view === "week" || view === "month"
+        ? placeByDay(tasks, (task) => {
+            const day = taskDay(task);
+            return day === null ? [] : [day];
+          })
+        : new Map<DayKey, TaskResponse[]>(),
+    [tasks, view],
+  );
+  const undated = useMemo(
+    () =>
+      view === "week" || view === "month"
+        ? tasks.filter((task) => taskDay(task) === null)
+        : [],
+    [tasks, view],
+  );
   const check = useCallback(
     (task: TaskResponse) => {
       const isDone = task.status === "done";
@@ -276,6 +313,109 @@ export function TaskListView({
       onRefresh={() => void onRefresh().then(() => update.reset())}
     />
   ) : null;
+  const row = (task: TaskResponse, showDate: boolean) => (
+    <li key={task.id}>
+      {check(task)}
+      <div className="resource-copy">
+        <strong>{task.displayName}</strong>
+        {lineage(task, false)}
+        {task.dueAt !== null ? (
+          <p>
+            {showDate ? formatDateTime(task.dueAt) : formatTime(task.dueAt)}
+          </p>
+        ) : task.dueOn !== null && showDate ? (
+          <p>{formatCalendarDate(task.dueOn)}</p>
+        ) : null}
+        {context(task)}
+        <ObjectDetails id={task.id} />
+      </div>
+      <StatusChip status={task.status} />
+      {actions(task)}
+    </li>
+  );
+  const undatedGroup =
+    undated.length === 0 ? null : (
+      <section aria-label="No due date" className="day-group day-group-plain">
+        <h3 className="day-group-heading">
+          <span>No due date</span>
+        </h3>
+        <ul className="resource-list">
+          {undated.map((task) => row(task, false))}
+        </ul>
+      </section>
+    );
+  if (view === "week")
+    return (
+      <div className="period-view">
+        {notice}
+        <PeriodNav cursor={cursor} onChange={setCursor} period="week" />
+        <WeekStrip
+          cursor={cursor}
+          renderDay={(day) => {
+            const items = placed.get(day) ?? [];
+            return items.length === 0 ? null : (
+              <ul className="resource-list resource-list-compact">
+                {items.map((task) => row(task, false))}
+              </ul>
+            );
+          }}
+        />
+        {undatedGroup}
+      </div>
+    );
+  if (view === "month") {
+    const shownDay =
+      selectedDay ??
+      (cursor.getMonth() === new Date().getMonth() &&
+      cursor.getFullYear() === new Date().getFullYear()
+        ? dayKeyOf(new Date())
+        : null);
+    const dayTasks = shownDay === null ? [] : (placed.get(shownDay) ?? []);
+    return (
+      <div className="period-view">
+        {notice}
+        <PeriodNav cursor={cursor} onChange={setCursor} period="month" />
+        <MonthGrid
+          cursor={cursor}
+          onSelect={setSelectedDay}
+          renderItem={(day) =>
+            (placed.get(day) ?? []).map((task) => ({
+              key: task.id,
+              node: (
+                <span
+                  className={task.status === "done" ? "is-done" : undefined}
+                >
+                  {task.dueAt !== null ? `${formatTime(task.dueAt)} ` : ""}
+                  {task.displayName}
+                </span>
+              ),
+            }))
+          }
+          selected={shownDay}
+        />
+        {shownDay === null ? (
+          <p className="field-hint">Select a day to see its tasks.</p>
+        ) : (
+          <section
+            aria-label={formatCalendarDate(shownDay)}
+            className="day-group day-group-plain"
+          >
+            <h3 className="day-group-heading">
+              <span>{formatCalendarDate(shownDay)}</span>
+            </h3>
+            {dayTasks.length === 0 ? (
+              <p className="field-hint">Nothing due this day.</p>
+            ) : (
+              <ul className="resource-list">
+                {dayTasks.map((task) => row(task, false))}
+              </ul>
+            )}
+          </section>
+        )}
+        {undatedGroup}
+      </div>
+    );
+  }
   if (view === "by-day")
     return (
       <div className="day-groups">
