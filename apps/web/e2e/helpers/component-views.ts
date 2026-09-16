@@ -147,5 +147,42 @@ export async function exerciseComponentViews(page: Page) {
   await expect(reopened.locator(".month-day.is-today")).toContainText(
     "Confirm the caterer",
   );
+
+  // Expenses place a transaction on the day it happened; the month shows
+  // the amount in today's cell and the day's total under the grid.
+  await page
+    .getByRole("button", { name: "Add component", exact: true })
+    .click();
+  await picker.getByRole("radio", { name: /^Expenses/ }).check();
+  await picker
+    .getByRole("button", { name: "Add Expenses", exact: true })
+    .click();
+  await expect(picker).toHaveCount(0);
+  const expenses = page.locator(".planning-panel").filter({
+    has: page.getByRole("heading", { name: "Expenses", exact: true }),
+  });
+  await expenses
+    .getByRole("button", { name: "Add expense", exact: true })
+    .click();
+  const expenseEditor = page.getByRole("dialog", {
+    name: "Add expense",
+    exact: true,
+  });
+  await expenseEditor.getByLabel("Expense", { exact: true }).fill("Napkins");
+  await expenseEditor.getByLabel("Amount", { exact: true }).fill("12.50");
+  await expenseEditor
+    .getByRole("button", { name: "Record expense", exact: true })
+    .click();
+  await expect(expenseEditor).toHaveCount(0);
+  await expenses
+    .getByRole("group", { name: "View", exact: true })
+    .getByRole("button", { name: "Month" })
+    .click();
+  await expect(expenses.locator(".month-day.is-today")).toContainText(
+    "Napkins",
+  );
+  await expect(
+    expenses.locator(".period-view > .day-group").first(),
+  ).toContainText("Day total");
   return "Book the room";
 }

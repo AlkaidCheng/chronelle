@@ -162,6 +162,9 @@ export function EventComponent({
               eventId={eventId}
               canEdit={canEdit}
               expenses={expenses.items}
+              isSavingView={isSavingView}
+              onChangeView={onChangeView}
+              view={view}
             />
           )}
         </Projection>
@@ -180,7 +183,10 @@ export function EventComponent({
             <RemindersPanel
               eventId={eventId}
               canEdit={canEdit}
+              isSavingView={isSavingView}
+              onChangeView={onChangeView}
               reminders={reminders.items}
+              view={view}
             />
           )}
         </Projection>

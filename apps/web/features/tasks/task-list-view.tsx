@@ -18,7 +18,6 @@ import {
 import { type ReactNode, useCallback, useMemo } from "react";
 
 import { ErrorNotice } from "../../components/feedback";
-import { MonthGrid, PeriodNav, WeekStrip } from "../../components/period-views";
 import { CheckIcon } from "../../components/icons";
 import { ObjectDetails } from "../../components/object-details";
 import { RowActions, StatusChip } from "../events/component-frame";
@@ -26,13 +25,9 @@ import { HistoryButton } from "../history/history-button";
 import { LifecycleButton } from "../recovery/lifecycle-provider";
 import { formatCalendarDate } from "../../lib/event-schedule";
 import { formatDateTime, formatTime } from "../../lib/format";
-import {
-  type DayKey,
-  dayKeyOf,
-  placeByDay,
-  taskDay,
-} from "../../lib/day-placement";
+import { type DayKey, placeByDay, taskDay } from "../../lib/day-placement";
 import type { Period } from "../../lib/use-period";
+import { PeriodView } from "../events/period-view";
 import { formatTaskDue } from "../../lib/task-due";
 import { groupTasksByDay } from "../../lib/task-groups";
 import { nestTasks } from "../../lib/task-tree";
@@ -207,12 +202,6 @@ export function TaskListView({
     () => (view === "by-day" ? groupTasksByDay(tasks, new Date()) : []),
     [tasks, view],
   );
-  const {
-    cursor,
-    selected: selectedDay,
-    setCursor,
-    setSelected: setSelectedDay,
-  } = period;
   const placed = useMemo(
     () =>
       view === "week" || view === "month"
@@ -330,89 +319,31 @@ export function TaskListView({
       {actions(task)}
     </li>
   );
-  const undatedGroup =
-    undated.length === 0 ? null : (
-      <section aria-label="No due date" className="day-group day-group-plain">
-        <h3 className="day-group-heading">
-          <span>No due date</span>
-        </h3>
-        <ul className="resource-list">
-          {undated.map((task) => row(task, false))}
-        </ul>
-      </section>
-    );
-  if (view === "week")
+  if (view === "week" || view === "month")
     return (
-      <div className="period-view">
-        {notice}
-        <PeriodNav cursor={cursor} onChange={setCursor} period="week" />
-        <WeekStrip
-          cursor={cursor}
-          renderDay={(day) => {
-            const items = placed.get(day) ?? [];
-            return items.length === 0 ? null : (
-              <ul className="resource-list resource-list-compact">
-                {items.map((task) => row(task, false))}
-              </ul>
-            );
-          }}
-        />
-        {undatedGroup}
-      </div>
-    );
-  if (view === "month") {
-    const shownDay =
-      selectedDay ??
-      (cursor.getMonth() === new Date().getMonth() &&
-      cursor.getFullYear() === new Date().getFullYear()
-        ? dayKeyOf(new Date())
-        : null);
-    const dayTasks = shownDay === null ? [] : (placed.get(shownDay) ?? []);
-    return (
-      <div className="period-view">
-        {notice}
-        <PeriodNav cursor={cursor} onChange={setCursor} period="month" />
-        <MonthGrid
-          cursor={cursor}
-          onSelect={setSelectedDay}
-          renderItem={(day) =>
-            (placed.get(day) ?? []).map((task) => ({
-              key: task.id,
-              node: (
-                <span
-                  className={task.status === "done" ? "is-done" : undefined}
-                >
-                  {task.dueAt !== null ? `${formatTime(task.dueAt)} ` : ""}
-                  {task.displayName}
-                </span>
-              ),
-            }))
-          }
-          selected={shownDay}
-        />
-        {shownDay === null ? (
-          <p className="field-hint">Select a day to see its tasks.</p>
-        ) : (
-          <section
-            aria-label={formatCalendarDate(shownDay)}
-            className="day-group day-group-plain"
-          >
-            <h3 className="day-group-heading">
-              <span>{formatCalendarDate(shownDay)}</span>
-            </h3>
-            {dayTasks.length === 0 ? (
-              <p className="field-hint">Nothing due this day.</p>
-            ) : (
-              <ul className="resource-list">
-                {dayTasks.map((task) => row(task, false))}
-              </ul>
-            )}
-          </section>
+      <PeriodView
+        cellOf={(task) => (
+          <span className={task.status === "done" ? "is-done" : undefined}>
+            {task.dueAt !== null ? `${formatTime(task.dueAt)} ` : ""}
+            {task.displayName}
+          </span>
         )}
-        {undatedGroup}
-      </div>
+        emptyDay="Nothing due this day."
+        notice={notice}
+        period={period}
+        placed={placed}
+        renderList={(items, compact) => (
+          <ul
+            className={`resource-list${compact ? " resource-list-compact" : ""}`}
+          >
+            {items.map((task) => row(task, false))}
+          </ul>
+        )}
+        undated={undated}
+        undatedLabel="No due date"
+        view={view}
+      />
     );
-  }
   if (view === "by-day")
     return (
       <div className="day-groups">

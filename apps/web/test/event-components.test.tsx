@@ -923,6 +923,119 @@ describe("insertable event components", () => {
     ).toEqual(["month", "month"]);
   });
 
+  it("shows Expenses and Reminders by day, by week, and by month with the same rows", async () => {
+    await client.updateEventLayout(eventId, {
+      expectedVersion: 0,
+      pages: [page("Money", ["expenses", "reminders"])],
+    });
+    const today = new Date();
+    today.setHours(9, 15, 0, 0);
+    const todayKey = dayKeyOf(today);
+    for (const [displayName, amount] of [
+      ["Flowers", "18.5000"],
+      ["Chairs", "60.0000"],
+    ] as const)
+      await client.createEventResource(eventId, {
+        commandId: crypto.randomUUID(),
+        resource: {
+          objectType: "expense",
+          displayName,
+          amount,
+          currency: "USD",
+          occurredAt: today.toISOString(),
+        },
+      });
+    await client.createEventResource(eventId, {
+      commandId: crypto.randomUUID(),
+      resource: {
+        objectType: "reminder",
+        displayName: "Call the florist",
+        remindAt: today.toISOString(),
+      },
+    });
+    const user = userEvent.setup();
+    render(<EventPages eventId={eventId} canEdit />, { wrapper: Providers });
+    await screen.findByText("Call the florist");
+    const panel = (title: string) =>
+      within(
+        screen
+          .getByRole("heading", { name: title })
+          .closest(".planning-panel") as HTMLElement,
+      );
+    const choose = async (panel: ReturnType<typeof within>, view: string) =>
+      user.click(
+        within(panel.getByRole("group", { name: "View" })).getByRole("button", {
+          name: view,
+        }),
+      );
+
+    // Expenses by day: one heading per day carrying the day's totals; the
+    // sample deposit sits under its own day two weeks out.
+    const expenses = panel("Expenses");
+    await choose(expenses, "By day");
+    const todayGroup = expenses.getByRole("region", { name: /Today/ });
+    expect(within(todayGroup).getByText("Flowers")).toBeVisible();
+    expect(within(todayGroup).getByText("Chairs")).toBeVisible();
+    expect(
+      within(todayGroup).getByRole("heading", { level: 3, name: /Today/ }),
+    ).toHaveTextContent("$78.50");
+    expect(expenses.getAllByRole("region")).toHaveLength(2);
+    expect(expenses.getByText("Venue deposit")).toBeVisible();
+    // Month: the cell shows amount and name; the day under the grid sums.
+    await choose(expenses, "Month");
+    const cells = expenses.getAllByRole("cell");
+    expect(cells).toHaveLength(42);
+    const fullDay = new Intl.DateTimeFormat(undefined, {
+      weekday: "long",
+      month: "long",
+      day: "numeric",
+      year: "numeric",
+    }).format(today);
+    const todayCell = expenses.getByRole("button", {
+      name: `${fullDay}, 2 items`,
+    });
+    expect(within(todayCell).getByText("$18.50 Flowers")).toBeVisible();
+    const shown = expenses.getByRole("region", {
+      name: formatCalendarDate(todayKey),
+    });
+    expect(within(shown).getByText("Day total")).toBeVisible();
+    expect(within(shown).getByText("$78.50")).toBeVisible();
+    expect(within(shown).getAllByRole("button", { name: "Edit" })).toHaveLength(
+      2,
+    );
+    await waitFor(async () =>
+      expect(
+        (await client.getEventLayout(eventId)).pages[0]?.components[0]?.view,
+      ).toBe("month"),
+    );
+
+    // Reminders by week: today's column holds the reminder with Dismiss;
+    // dismissing strikes it through in the month cell.
+    const reminders = panel("Reminders");
+    await choose(reminders, "Week");
+    const column = within(reminders.getByRole("listitem", { name: fullDay }));
+    expect(column.getByText("Call the florist")).toBeVisible();
+    await user.click(column.getByRole("button", { name: "Dismiss" }));
+    await waitFor(() => expect(column.getByText("Dismissed")).toBeVisible());
+    await choose(reminders, "Month");
+    expect(
+      within(
+        reminders.getByRole("button", { name: `${fullDay}, 1 item` }),
+      ).getByText(/Call the florist/),
+    ).toHaveClass("is-done");
+    await choose(reminders, "By day");
+    expect(
+      within(reminders.getByRole("region", { name: /Today/ })).getByText(
+        "Call the florist",
+      ),
+    ).toBeVisible();
+    expect(
+      (await client.getEventLayout(eventId)).pages[0]?.components.map(
+        (component) => component.view,
+      ),
+    ).toEqual(["month", "by-day"]);
+  });
+
   it("allows a viewer to preview saved layouts without mutation controls", async () => {
     await client.updateEventLayout(eventId, {
       expectedVersion: 0,

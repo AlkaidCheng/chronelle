@@ -45,8 +45,11 @@ each day shows up to three tasks and counts the rest, with the selected day's
 tasks listed under the grid. `calendar` offers `agenda`, the numbered running
 order of its items with the same row actions, and `week` and `month` in the
 same shape as the to-dos, a scheduled item sitting on every local day it
-covers. Tasks without a due date and unscheduled items are listed under the
-week or the month. The period shown opens on today, moves with Previous,
+covers. `expenses` and `reminders` offer `by-day`, `week`, and `month` too: a
+transaction sits on the local day it happened, a reminder on the local day it
+is due, and an expense day (a by-day heading or the day under a month) carries
+the day's totals by currency. Tasks without a due date and unscheduled items
+are listed under the week or the month. The period shown opens on today, moves with Previous,
 Today, and Next, and is not saved; only the view is. A layout may still carry
 the retired `itinerary` kind: it renders as the Calendar in its `agenda` view,
 the picker does not offer it, and choosing a view on it saves the component
