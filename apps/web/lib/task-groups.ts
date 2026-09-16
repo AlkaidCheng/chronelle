@@ -1,5 +1,7 @@
 import type { TaskResponse } from "@chronelle/schemas";
 
+import { dayGroupLabel } from "./day-groups";
+
 export interface TaskDayGroup {
   readonly key: string;
   /** The heading's parts: a date, then Today or Tomorrow, then the weekday. */
@@ -35,8 +37,6 @@ export function groupTasksByDay(
   now: Date,
 ): TaskDayGroup[] {
   const today = localDate(now);
-  const tomorrow = new Date(today);
-  tomorrow.setDate(today.getDate() + 1);
   const overdue: TaskResponse[] = [];
   const undated: TaskResponse[] = [];
   const days = new Map<string, { date: Date; tasks: TaskResponse[] }>();
@@ -55,17 +55,6 @@ export function groupTasksByDay(
     day.tasks.push(task);
     days.set(key, day);
   }
-  const dayName = new Intl.DateTimeFormat(undefined, { weekday: "long" });
-  const dayTitle = new Intl.DateTimeFormat(undefined, {
-    month: "short",
-    day: "numeric",
-  });
-  // A day in another year carries its year.
-  const farDayTitle = new Intl.DateTimeFormat(undefined, {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  });
   const groups: TaskDayGroup[] = [];
   if (overdue.length > 0)
     groups.push({
@@ -75,23 +64,9 @@ export function groupTasksByDay(
       tasks: overdue.sort(byDue),
     });
   for (const [key, day] of [...days].sort(([a], [b]) => a.localeCompare(b))) {
-    const relative =
-      key === dayKey(today)
-        ? "Today"
-        : key === dayKey(tomorrow)
-          ? "Tomorrow"
-          : null;
     groups.push({
       key,
-      label: [
-        (day.date.getFullYear() === today.getFullYear()
-          ? dayTitle
-          : farDayTitle
-        ).format(day.date),
-        ...(relative === null ? [] : [relative]),
-        dayName.format(day.date),
-      ],
-      tone: relative === "Today" ? "today" : "plain",
+      ...dayGroupLabel(key, today),
       tasks: day.tasks.sort(byDue),
     });
   }

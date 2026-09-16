@@ -11,7 +11,6 @@ import type {
 import { useCallback, useMemo, useState } from "react";
 
 import { EmptyState, ErrorNotice } from "../../components/feedback";
-import { MonthGrid, PeriodNav, WeekStrip } from "../../components/period-views";
 import {
   type DayKey,
   dayKeyOf,
@@ -40,6 +39,7 @@ import { viewsOf } from "../../lib/event-components";
 import { formatDatePart, formatDateTime, formatTime } from "../../lib/format";
 import { deriveTaskTree } from "../../lib/task-tree";
 import { usePeriod } from "../../lib/use-period";
+import { PeriodView } from "./period-view";
 import { formatMoney, sumMoneyByCurrency } from "../../lib/money";
 import {
   useLabelsQuery,
@@ -219,12 +219,7 @@ export function CalendarPanel({
   const [isAdding, setIsAdding] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const editingEvent = items.find(({ id }) => id === editingId);
-  const {
-    cursor,
-    selected: selectedDay,
-    setCursor,
-    setSelected: setSelectedDay,
-  } = usePeriod(view);
+  const period = usePeriod(view);
   const placed = useMemo(
     () =>
       view === "week" || view === "month"
@@ -270,24 +265,6 @@ export function CalendarPanel({
       {rowActions(item)}
     </article>
   );
-  const unscheduledGroup =
-    unscheduled.length === 0 ? null : (
-      <section aria-label="Unscheduled" className="day-group day-group-plain">
-        <h3 className="day-group-heading">
-          <span>Unscheduled</span>
-        </h3>
-        <div className="resource-list">{unscheduled.map(scheduleRow)}</div>
-      </section>
-    );
-  const shownDay =
-    view === "month"
-      ? (selectedDay ??
-        (cursor.getMonth() === new Date().getMonth() &&
-        cursor.getFullYear() === new Date().getFullYear()
-          ? dayKeyOf(new Date())
-          : null))
-      : null;
-
   return (
     <section className="planning-panel">
       <PanelHeading
@@ -349,64 +326,30 @@ export function CalendarPanel({
             </li>
           ))}
         </ol>
-      ) : view === "week" ? (
-        <div className="period-view">
-          <PeriodNav cursor={cursor} onChange={setCursor} period="week" />
-          <WeekStrip
-            cursor={cursor}
-            renderDay={(day) => {
-              const dayItems = placed.get(day) ?? [];
-              return dayItems.length === 0 ? null : (
-                <div className="resource-list resource-list-compact">
-                  {dayItems.map(scheduleRow)}
-                </div>
-              );
-            }}
-          />
-          {unscheduledGroup}
-        </div>
-      ) : view === "month" ? (
-        <div className="period-view">
-          <PeriodNav cursor={cursor} onChange={setCursor} period="month" />
-          <MonthGrid
-            cursor={cursor}
-            onSelect={setSelectedDay}
-            renderItem={(day) =>
-              (placed.get(day) ?? []).map((item) => ({
-                key: item.id,
-                node: (
-                  <span>
-                    {item.startsAt !== null && item.startsOn === null
-                      ? `${formatTime(item.startsAt)} `
-                      : ""}
-                    {item.displayName}
-                  </span>
-                ),
-              }))
-            }
-            selected={shownDay}
-          />
-          {shownDay === null ? (
-            <p className="field-hint">Select a day to see its schedule.</p>
-          ) : (
-            <section
-              aria-label={formatCalendarDate(shownDay)}
-              className="day-group day-group-plain"
-            >
-              <h3 className="day-group-heading">
-                <span>{formatCalendarDate(shownDay)}</span>
-              </h3>
-              {(placed.get(shownDay) ?? []).length === 0 ? (
-                <p className="field-hint">Nothing scheduled this day.</p>
-              ) : (
-                <div className="resource-list">
-                  {(placed.get(shownDay) ?? []).map(scheduleRow)}
-                </div>
-              )}
-            </section>
+      ) : view === "week" || view === "month" ? (
+        <PeriodView
+          cellOf={(item) => (
+            <span>
+              {item.startsAt !== null && item.startsOn === null
+                ? `${formatTime(item.startsAt)} `
+                : ""}
+              {item.displayName}
+            </span>
           )}
-          {unscheduledGroup}
-        </div>
+          emptyDay="Nothing scheduled this day."
+          period={period}
+          placed={placed}
+          renderList={(dayItems, compact) => (
+            <div
+              className={`resource-list${compact ? " resource-list-compact" : ""}`}
+            >
+              {dayItems.map(scheduleRow)}
+            </div>
+          )}
+          undated={unscheduled}
+          undatedLabel="Unscheduled"
+          view={view}
+        />
       ) : (
         <div className="resource-list">{items.map(scheduleRow)}</div>
       )}
