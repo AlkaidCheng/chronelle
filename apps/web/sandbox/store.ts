@@ -700,6 +700,34 @@ export class SandboxStore {
             ? `${task.dueOn}T00:00:00.000Z`
             : (task.dueAt ?? "z")
           : "z";
+      // The day a task is due in the query's time zone; undated tasks are
+      // in no range.
+      const dueDay = (task: { dueOn: string | null; dueAt: string | null }) => {
+        if (task.dueOn !== null) return task.dueOn;
+        if (task.dueAt === null) return null;
+        const parts = new Intl.DateTimeFormat("en-US", {
+          timeZone: query.timezone,
+          year: "numeric",
+          month: "2-digit",
+          day: "2-digit",
+        }).formatToParts(new Date(task.dueAt));
+        const part = (type: string) =>
+          parts.find((candidate) => candidate.type === type)?.value ?? "";
+        return `${part("year")}-${part("month")}-${part("day")}`;
+      };
+      const inDueRange = (task: {
+        dueOn: string | null;
+        dueAt: string | null;
+      }) => {
+        if (query.dueFrom === undefined && query.dueTo === undefined)
+          return true;
+        const day = dueDay(task);
+        return (
+          day !== null &&
+          (query.dueFrom === undefined || day >= query.dueFrom) &&
+          (query.dueTo === undefined || day <= query.dueTo)
+        );
+      };
       const matches = all
         .filter(
           (object): object is Extract<Resource, { objectType: "task" }> =>
@@ -717,7 +745,8 @@ export class SandboxStore {
             (query.label === undefined ||
               task.labelIds.includes(query.label)) &&
             (query.assignee === undefined ||
-              task.assigneeId === query.assignee),
+              task.assigneeId === query.assignee) &&
+            inDueRange(task),
         )
         .sort((a, b) =>
           query.sort === "name"

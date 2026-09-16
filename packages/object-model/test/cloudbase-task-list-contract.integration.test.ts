@@ -478,6 +478,54 @@ describe.sequential("CloudBase task list contract", () => {
       ids(await cloudbase.listTasks(owner, { query: "THE", limit: 10 })),
     ).toEqual([inEventDated, inEventTimed, subtaskOpen, standaloneUndated]);
 
+    // A due range keeps the tasks due on its days and never an undated one;
+    // a timed task belongs to the day of its instant in the query's time
+    // zone (09:30Z is still March 4 in Honolulu), and either end may be open.
+    for (const [range, expected] of [
+      [
+        { dueFrom: "2030-03-05", dueTo: "2030-03-05" },
+        [inEventDated, inEventTimed],
+      ],
+      [
+        {
+          dueFrom: "2030-03-05",
+          dueTo: "2030-03-05",
+          timezone: "Pacific/Honolulu",
+        },
+        [inEventDated],
+      ],
+      [
+        {
+          dueFrom: "2030-03-04",
+          dueTo: "2030-03-04",
+          timezone: "Pacific/Honolulu",
+        },
+        [inEventTimed],
+      ],
+      [{ dueFrom: "2030-03-06" }, [subtaskOpen]],
+      [{ dueTo: "2030-03-04", filter: "all" }, [standaloneDone]],
+    ] as const) {
+      const ranged = await postgres.listTasks(owner, { ...range, limit: 10 });
+      expect(ids(ranged)).toEqual(expected);
+      expect(
+        ids(await cloudbase.listTasks(owner, { ...range, limit: 10 })),
+      ).toEqual(expected);
+    }
+    for (const repository of [postgres, cloudbase]) {
+      await expect(
+        repository.listTasks(owner, {
+          dueFrom: "2030-03-06",
+          dueTo: "2030-03-05",
+        }),
+      ).rejects.toThrow("dueTo must not precede dueFrom.");
+      await expect(
+        repository.listTasks(owner, {
+          dueFrom: "2030-03-05",
+          timezone: "Mars/Olympus",
+        }),
+      ).rejects.toThrow("Unknown time zone.");
+    }
+
     // Cursor paging: every sort mode crosses a page boundary with limit 2,
     // and each backend's own cursor must reproduce the same page sequence.
     for (const sort of ["due", "name", "updated"] as const) {

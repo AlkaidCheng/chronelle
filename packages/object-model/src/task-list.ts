@@ -109,6 +109,9 @@ export function taskListContext(
         input.sort,
         input.label ?? null,
         input.assignee ?? null,
+        input.dueFrom ?? null,
+        input.dueTo ?? null,
+        input.timezone,
       ]),
     )
     .digest("hex");
@@ -167,6 +170,22 @@ function statusPredicate(filter: TaskListQuery["filter"]) {
   if (filter === "all") return undefined;
   if (filter === "done") return eq(tasks.status, "done");
   return inArray(tasks.status, ["todo", "in_progress"]);
+}
+
+// The day a task is due: its date, or the day of its instant in the query's
+// time zone; a task with neither is due on no day and misses every range.
+function dueRangePredicate(input: TaskListQuery) {
+  if (input.dueFrom === undefined && input.dueTo === undefined)
+    return undefined;
+  const dueDay = sql`coalesce(${tasks.dueOn}, (${tasks.dueAt} AT TIME ZONE ${input.timezone})::date)`;
+  return and(
+    input.dueFrom === undefined
+      ? undefined
+      : sql`${dueDay} >= ${input.dueFrom}::date`,
+    input.dueTo === undefined
+      ? undefined
+      : sql`${dueDay} <= ${input.dueTo}::date`,
+  );
 }
 
 function readPosition(
@@ -228,6 +247,7 @@ export async function listTaskPage(
           input.assignee === undefined
             ? undefined
             : eq(tasks.assigneePersonId, input.assignee),
+          dueRangePredicate(input),
           after,
         ),
       )
