@@ -7,6 +7,7 @@ import {
   EmptyState,
   ErrorNotice,
   LoadingState,
+  Notice,
 } from "../../components/feedback";
 import { formatDateTime, shortId } from "../../lib/format";
 import {
@@ -175,10 +176,9 @@ function ObjectRecoveryPreview({
     <RecoveryDialog title="Recovery preview" onClose={onClose}>
       {savedVersion !== null ? (
         <>
-          <p role="status" className="notice">
-            Recovered as version {savedVersion}. Normal views have been
-            refreshed.
-          </p>
+          <Notice tone="success">
+            {`Recovered as version ${savedVersion}. Normal views have been refreshed.`}
+          </Notice>
           {shown?.object.objectType === "event" ? (
             <Link
               className="button button-primary"
@@ -221,7 +221,7 @@ function ObjectRecoveryPreview({
                 Related objects are not recovered automatically.
               </p>
               {shown.blockedReason === null ? null : (
-                <p className="notice">{shown.blockedReason}</p>
+                <Notice tone="warning">{shown.blockedReason}</Notice>
               )}
               {shown.canRecover ? (
                 <>

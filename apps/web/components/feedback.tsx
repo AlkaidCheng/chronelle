@@ -1,6 +1,55 @@
 "use client";
 
 import { ApiClientError } from "@chronelle/api-client";
+import type { ReactNode } from "react";
+
+import { AlertIcon, CheckIcon, InfoIcon } from "./icons";
+
+/** What a notice means; its color and icon follow. */
+export type NoticeTone = "neutral" | "success" | "warning" | "danger";
+
+const toneIcons = {
+  neutral: InfoIcon,
+  success: CheckIcon,
+  warning: AlertIcon,
+  danger: AlertIcon,
+} as const;
+
+/**
+ * A boxed notice in one tone. Errors alert; everything else is announced
+ * politely as a status unless a role is given.
+ */
+export function Notice({
+  action,
+  children,
+  role,
+  title,
+  tone = "neutral",
+}: {
+  readonly action?: ReactNode;
+  readonly children: ReactNode;
+  readonly role?: "alert" | "status";
+  readonly title?: string;
+  readonly tone?: NoticeTone;
+}) {
+  const Icon = toneIcons[tone];
+  return (
+    <div
+      className={`notice notice-${tone}`}
+      data-tone={tone}
+      role={role ?? (tone === "danger" ? "alert" : "status")}
+    >
+      <span aria-hidden="true" className="notice-mark">
+        <Icon />
+      </span>
+      <div className="notice-body">
+        {title === undefined ? null : <strong>{title}</strong>}
+        {typeof children === "string" ? <p>{children}</p> : children}
+      </div>
+      {action}
+    </div>
+  );
+}
 
 interface ErrorNoticeProps {
   readonly error: unknown;
@@ -52,29 +101,29 @@ export function ErrorNotice({
       : "The request could not be completed.";
 
   return (
-    <div
-      className={isConflict ? "notice notice-conflict" : "notice notice-error"}
+    <Notice
+      action={
+        onRefresh !== undefined ? (
+          <button
+            className="button button-secondary button-small"
+            disabled={isRefreshing}
+            onClick={onRefresh}
+            type="button"
+          >
+            {isRefreshing
+              ? "Refreshing..."
+              : (refreshLabel ?? (isConflict ? "Refresh latest" : "Try again"))}
+          </button>
+        ) : null
+      }
       role="alert"
+      title={
+        isConflict ? "A newer version is available" : "Something went wrong"
+      }
+      tone={isConflict ? "warning" : "danger"}
     >
-      <div>
-        <strong>
-          {isConflict ? "A newer version is available" : "Something went wrong"}
-        </strong>
-        <p>{message}</p>
-      </div>
-      {onRefresh !== undefined ? (
-        <button
-          className="button button-secondary button-small"
-          disabled={isRefreshing}
-          onClick={onRefresh}
-          type="button"
-        >
-          {isRefreshing
-            ? "Refreshing..."
-            : (refreshLabel ?? (isConflict ? "Refresh latest" : "Try again"))}
-        </button>
-      ) : null}
-    </div>
+      {message}
+    </Notice>
   );
 }
 
@@ -84,21 +133,21 @@ export function DraftNotice({
   readonly onLoadLatest: () => void;
 }) {
   return (
-    <div className="notice notice-conflict" role="status">
-      <div>
-        <strong>A newer version is available</strong>
-        <p>
-          Your draft is preserved. Load the latest version to discard this draft
-          and continue editing.
-        </p>
-      </div>
-      <button
-        className="button button-secondary button-small"
-        onClick={onLoadLatest}
-        type="button"
-      >
-        Discard draft and load latest
-      </button>
-    </div>
+    <Notice
+      action={
+        <button
+          className="button button-secondary button-small"
+          onClick={onLoadLatest}
+          type="button"
+        >
+          Discard draft and load latest
+        </button>
+      }
+      title="A newer version is available"
+      tone="warning"
+    >
+      Your draft is preserved. Load the latest version to discard this draft and
+      continue editing.
+    </Notice>
   );
 }

@@ -30,6 +30,8 @@
   --danger-soft: light-dark(#f7e7e1, #482f2a);
   --warning: light-dark(#70541d, #e8cb8f);
   --warning-soft: light-dark(#f5ead3, #423921);
+  --success: light-dark(#3b6b47, #b5d6b7);
+  --success-soft: light-dark(#e4efe4, #2b3d2e);
   --scrim: light-dark(rgb(24 22 20 / 48%), rgb(7 6 5 / 68%));
   --shadow: 0 18px 54px light-dark(rgb(35 30 26 / 12%), rgb(0 0 0 / 24%));
   --shadow-raised: 0 24px 100px

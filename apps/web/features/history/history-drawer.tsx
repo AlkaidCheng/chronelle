@@ -6,7 +6,7 @@ import type {
 } from "@chronelle/schemas";
 import { useEffect, useId, useRef, useState } from "react";
 
-import { ErrorNotice, LoadingState } from "../../components/feedback";
+import { ErrorNotice, LoadingState, Notice } from "../../components/feedback";
 import { formatDateTime, shortId } from "../../lib/format";
 import {
   useObjectHistory,
@@ -229,11 +229,7 @@ export function HistoryDrawer({
       <p className="muted">
         Saved versions of one canonical object. History follows current access.
       </p>
-      {message ? (
-        <p role="status" className="notice">
-          {message}
-        </p>
-      ) : null}
+      {message ? <Notice tone="success">{message}</Notice> : null}
       {history.isError ? (
         <ErrorNotice
           error={history.error}

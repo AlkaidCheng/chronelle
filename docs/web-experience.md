@@ -382,6 +382,17 @@ Form fields can shrink inside narrow page components without pushing their
 inputs or submit actions outside the form. Browser checks verify control
 containment as well as document width.
 
+## Notice tones
+
+A boxed notice carries one tone, told by its icon as much as its color: neutral
+(an information mark) for something to know, success (a check) for an action
+that completed, such as a link removed or recovered, an object moved to Trash,
+or a version restored; warning (an exclamation mark) for a newer version or a
+blocked recovery; and danger (the same mark in the danger color) for a failed
+request. Errors are announced as alerts; the other tones are announced politely
+as status. An inline error under a field reads in the danger color. Loading and
+empty states are not notices and keep their own quiet styling.
+
 ## Date and dialog navigation
 
 The Event and schedule item editors set their dates behind a Dates disclosure

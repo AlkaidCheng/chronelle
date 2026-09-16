@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { createContext, type ReactNode, useContext, useState } from "react";
-import { ErrorNotice, LoadingState } from "../../components/feedback";
+import { ErrorNotice, LoadingState, Notice } from "../../components/feedback";
 import {
   type LifecycleTarget,
   useLifecycleActions,
@@ -81,9 +81,7 @@ function LifecycleDialog({
     <RecoveryDialog title={target.displayName} onClose={onClose}>
       {message !== null ? (
         <>
-          <p role="status" className="notice">
-            {message}
-          </p>
+          <Notice tone="success">{message}</Notice>
           <Link href="/trash" onClick={onClose}>
             Open Trash
           </Link>
