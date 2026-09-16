@@ -478,17 +478,16 @@ date, today, tomorrow, next week, Sep 21 or 21 Sep with an optional year, or
 9/21, with a hint for text it cannot read); shortcuts for the days a weekday
 allows (Today, Tomorrow, Later this week, This weekend, Next week, No date),
 all of them always listed with the one matching the choice marked; and the
-months as one continuous list, Sunday-first headings, today outlined, past
-days and weekends muted, the chosen day marked, extending as it is scrolled,
-with the schedule picker's keyboard moves (arrows by day and week, Page Up and
+months as one continuous list showing a month at a time, Sunday-first
+headings, today outlined, past days and weekends muted, the chosen day
+marked, extending as it is scrolled, with the schedule picker's keyboard moves (arrows by day and week, Page Up and
 Down by month, Home and End to the week's edges, Enter to choose). The month
 heading names the month at the top; Previous, Today, and Next move it, and
 choosing the heading opens a focused chooser over the list: a typed field
 (October 2027, 2027-10, 10/2027) above a month grid and a scrollable year
 grid with the current ones marked. The month and the year are chosen
-independently, the list behind follows each choice, and the chooser reads
-back the month it shows until Done, Enter, Escape, or a click outside closes
-it. Add time reveals the Due time field and a Duration select (No duration,
+independently and the list behind follows each choice until Done, Enter,
+Escape, or a click outside closes the chooser. Add time reveals the Due time field and a Duration select (No duration,
 15 min to 8 h), which waits for a time; Remove time clears both; No date
 clears everything. A date alone makes the task due that
 whole day (shown as the date, ahead of timed tasks that day, and in the

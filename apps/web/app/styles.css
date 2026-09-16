@@ -4119,10 +4119,8 @@ html:has(.event-create-dialog[open]) {
 }
 
 .due-month-footer {
-  align-items: center;
   display: flex;
-  gap: 10px;
-  justify-content: space-between;
+  justify-content: flex-end;
 }
 
 .due-weekdays {
@@ -4136,10 +4134,12 @@ html:has(.event-create-dialog[open]) {
 }
 
 /* Months run on continuously; the list extends as it is scrolled. */
+/* One six-week month at most; the list scrolls for the rest. */
 .due-months {
-  max-height: 320px;
+  max-height: 250px;
   overflow-y: auto;
   overscroll-behavior: contain;
+  position: relative;
   scrollbar-gutter: stable;
 }
 

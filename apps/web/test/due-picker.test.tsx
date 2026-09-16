@@ -210,7 +210,6 @@ describe("DuePicker", () => {
     expect(
       screen.getByRole("dialog", { name: "Choose a month and year" }),
     ).toBeVisible();
-    expect(chooser.getByText(`Showing ${monthName("2031-12")}`)).toBeVisible();
     expect(months().getByRole("button", { pressed: true })).toHaveTextContent(
       shortMonth("2031-12"),
     );
@@ -278,11 +277,7 @@ describe("DuePicker", () => {
     render(<Harness />);
     await user.click(summary());
     expect(screen.getByRole("button", { name: "Add time" })).toBeDisabled();
-    expect(screen.getByText("Choose a date before a time.")).toBeVisible();
     await user.click(screen.getByRole("button", { name: /^Tomorrow/ }));
-    expect(
-      screen.getByText("Without a time, the task is due that whole day."),
-    ).toBeVisible();
     await user.click(screen.getByRole("button", { name: "Add time" }));
     expect(screen.getByLabelText("Duration")).toBeDisabled();
     await user.type(screen.getByLabelText("Due time"), "21:00");

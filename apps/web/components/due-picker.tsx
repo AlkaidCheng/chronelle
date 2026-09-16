@@ -368,7 +368,9 @@ export function DuePicker({
           <label className="field">
             <span>Due date</span>
             <input
-              aria-describedby={`${id}-date-hint`}
+              aria-describedby={
+                unreadable || dueDate !== "" ? `${id}-date-hint` : undefined
+              }
               aria-invalid={unreadable}
               disabled={disabled}
               onChange={(input) => readText(input.target.value)}
@@ -377,11 +379,10 @@ export function DuePicker({
               value={text}
             />
           </label>
-          <p className="field-hint" id={`${id}-date-hint`}>
-            {unreadable
-              ? "Not a date the picker knows. Try Sep 21, 21 Sep, 9/21, tomorrow, or 2030-09-21."
-              : dueDate === ""
-                ? "No due date. Type one, pick a shortcut, or choose a day."
+          {unreadable || dueDate !== "" ? (
+            <p className="field-hint" id={`${id}-date-hint`}>
+              {unreadable
+                ? "Not a date the picker knows. Try Sep 21, 21 Sep, 9/21, tomorrow, or 2030-09-21."
                 : `Due ${weekdayLong.format(parseDayKey(dueDate))}${
                     dueDate === today
                       ? ", today"
@@ -389,7 +390,8 @@ export function DuePicker({
                         ? ", tomorrow"
                         : ""
                   }.`}
-          </p>
+            </p>
+          ) : null}
           <ul aria-label="Due shortcuts" className="due-shortcuts">
             {dueShortcuts(now).map((shortcut) => (
               <li key={shortcut.id}>
@@ -564,9 +566,6 @@ export function DuePicker({
                   </fieldset>
                 </div>
                 <div className="due-month-footer">
-                  <span aria-live="polite" className="field-hint">
-                    Showing {title}
-                  </span>
                   <button
                     className="button button-small"
                     onClick={finishMonth}
@@ -705,13 +704,11 @@ export function DuePicker({
                 </label>
               </div>
             ) : null}
-            <p className="field-hint">
-              {dueDate === ""
-                ? "Choose a date before a time."
-                : showTime
-                  ? `Times are in ${Intl.DateTimeFormat().resolvedOptions().timeZone.replaceAll("_", " ")}.`
-                  : "Without a time, the task is due that whole day."}
-            </p>
+            {showTime ? (
+              <p className="field-hint">
+                {`Times are in ${Intl.DateTimeFormat().resolvedOptions().timeZone.replaceAll("_", " ")}.`}
+              </p>
+            ) : null}
           </div>
         </div>
       ) : null}
