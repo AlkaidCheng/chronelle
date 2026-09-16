@@ -1,11 +1,5 @@
 import { expect, type Page } from "@playwright/test";
-
-/** Today as the calendar date the due date field takes. */
-function today(): string {
-  const now = new Date();
-  const pad = (part: number) => String(part).padStart(2, "0");
-  return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
-}
+import { today } from "./today";
 
 /**
  * Adds a To-dos component with two tasks due on one far day and one due

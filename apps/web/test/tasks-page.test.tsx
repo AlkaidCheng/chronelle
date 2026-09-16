@@ -94,15 +94,18 @@ describe("TasksPage", () => {
     expect(screen.queryByRole("table")).toBeNull();
     expect(screen.getByRole("region", { name: /No due date/ })).toBeVisible();
     expect(stored["chronelle.task-view"]).toBe("by-day");
-    // Week and Month place the loaded page; the undated task sits below.
+    // Week and Month ask the server for their days in this time zone, so
+    // the undated task is not in them.
     await user.click(view.getByRole("button", { name: "Month" }));
+    expect(await screen.findByRole("table")).toBeVisible();
     expect(screen.getAllByRole("cell")).toHaveLength(42);
-    expect(screen.getByRole("region", { name: "No due date" })).toBeVisible();
+    expect(screen.queryByRole("region", { name: "No due date" })).toBeNull();
     expect(stored["chronelle.task-view"]).toBe("month");
     await user.click(view.getByRole("button", { name: "Week" }));
     expect(screen.getByRole("group", { name: "Period" })).toBeVisible();
-    expect(document.querySelector(".week-day.is-today")).not.toBeNull();
-    expect(screen.getByRole("region", { name: "No due date" })).toBeVisible();
+    await waitFor(() =>
+      expect(document.querySelector(".week-day.is-today")).not.toBeNull(),
+    );
     expect(stored["chronelle.task-view"]).toBe("week");
     const requests = vi
       .mocked(fetch)
@@ -110,22 +113,49 @@ describe("TasksPage", () => {
       .filter((url) => url.startsWith("/api/tasks"));
     expect(requests[0]).toBe("/api/tasks?query=&filter=open&sort=due");
     expect(requests).toContain("/api/tasks?query=&filter=done&sort=due");
+    const timezone = encodeURIComponent(
+      Intl.DateTimeFormat().resolvedOptions().timeZone,
+    );
+    const ranged = requests.filter((url) => url.includes("dueFrom="));
+    expect(ranged).toHaveLength(2);
+    for (const url of ranged)
+      expect(url).toMatch(
+        new RegExp(
+          `^/api/tasks\\?query=&filter=all&sort=due&dueFrom=\\d{4}-\\d{2}-\\d{2}&dueTo=\\d{4}-\\d{2}-\\d{2}&timezone=${timezone}&limit=50$`,
+        ),
+      );
   });
 
-  it("opens on a remembered week or month view", async () => {
+  it("opens on a remembered month and loads every page of its days", async () => {
     stored["chronelle.task-view"] = "month";
+    // More tasks due today than one page holds.
+    const today = new Date();
+    const pad = (part: number) => String(part).padStart(2, "0");
+    const dueOn = `${today.getFullYear()}-${pad(today.getMonth() + 1)}-${pad(today.getDate())}`;
+    for (let index = 0; index < 51; index += 1) {
+      const response = await store.fetch("/api/tasks", {
+        method: "POST",
+        body: JSON.stringify({ displayName: `Errand ${index + 1}`, dueOn }),
+      });
+      expect(response.ok).toBe(true);
+    }
     render(
       <Providers>
         <TasksPage />
       </Providers>,
     );
-    await screen.findByText("1 task loaded");
+    // The sample task two weeks out may or may not fall inside the grid.
+    expect(await screen.findByText(/^5[12] tasks loaded$/)).toBeVisible();
     expect(
       within(screen.getByRole("group", { name: "View" })).getByRole("button", {
         name: "Month",
       }),
     ).toHaveAttribute("aria-pressed", "true");
     expect(screen.getAllByRole("cell")).toHaveLength(42);
+    expect(screen.getByText("+48 more")).toBeVisible();
+    expect(
+      screen.queryByRole("button", { name: /Load more tasks/ }),
+    ).toBeNull();
   });
 
   it("adds a subtask under a task, nests it, and counts its progress", async () => {
