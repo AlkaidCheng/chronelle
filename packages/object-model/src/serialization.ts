@@ -40,6 +40,7 @@ export function serializeResource(resource: EventPlanningResource) {
         status: resource.status,
         dueOn: resource.dueOn,
         dueAt: serializeDate(resource.dueAt),
+        durationMinutes: resource.durationMinutes,
         completedAt: serializeDate(resource.completedAt),
         parentTaskId: resource.parentTaskId,
         assigneeId: resource.assigneeId,

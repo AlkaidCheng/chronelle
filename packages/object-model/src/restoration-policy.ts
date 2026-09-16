@@ -30,6 +30,7 @@ const typedFields: Record<
     status: field("Status", "text"),
     dueOn: field("Due date", "text"),
     dueAt: field("Due", "datetime"),
+    durationMinutes: field("Duration (minutes)", "text"),
     parentTaskId: field("Parent task", "text", false),
     assigneeId: field("Assignee", "text", false),
     location: field("Location", "text"),

@@ -247,6 +247,20 @@ async function liveSubtaskIds(
   return rows.map(({ id }) => id);
 }
 
+/** A duration is 1 to 1440 minutes and needs a due instant. */
+function assertTaskDuration(
+  dueAt: Date | null,
+  durationMinutes: number | null,
+): void {
+  if (
+    durationMinutes !== null &&
+    (durationMinutes < 1 || durationMinutes > 1440)
+  )
+    throw new InvalidObjectStateError("durationMinutes is 1 to 1440 minutes.");
+  if (durationMinutes !== null && dueAt === null)
+    throw new InvalidObjectStateError("durationMinutes requires dueAt.");
+}
+
 /** The location, when set, is 1 to 240 trimmed characters. */
 function assertTaskLocation(location: string | null): void {
   if (
@@ -460,7 +474,9 @@ export class EventPlanningObjectService {
     const dueOn = input.dueOn ?? null;
     const dueAt = input.dueAt ?? null;
     const completedAt = input.completedAt ?? null;
+    const durationMinutes = input.durationMinutes ?? null;
     assertTaskState(status, dueOn, dueAt, completedAt);
+    assertTaskDuration(dueAt, durationMinutes);
     if (this.#writes.task !== undefined)
       return this.#writes.task.create(context, input);
 
@@ -491,6 +507,7 @@ export class EventPlanningObjectService {
           status,
           dueOn,
           dueAt,
+          durationMinutes,
           completedAt,
           parentTaskId,
           assigneePersonId: assigneeId,
@@ -745,6 +762,12 @@ export class EventPlanningObjectService {
     const completedAt =
       input.completedAt === undefined ? current.completedAt : input.completedAt;
     assertTaskState(status, dueOn, dueAt, completedAt);
+    assertTaskDuration(
+      dueAt,
+      input.durationMinutes === undefined
+        ? current.durationMinutes
+        : input.durationMinutes,
+    );
     if (input.location !== undefined) assertTaskLocation(input.location);
 
     const resource = await this.#updateObject(
@@ -783,6 +806,9 @@ export class EventPlanningObjectService {
           ...(input.location !== undefined && { location: input.location }),
           ...(input.dueOn !== undefined && { dueOn: input.dueOn }),
           ...(input.dueAt !== undefined && { dueAt: input.dueAt }),
+          ...(input.durationMinutes !== undefined && {
+            durationMinutes: input.durationMinutes,
+          }),
           ...(input.completedAt !== undefined && {
             completedAt: input.completedAt,
           }),

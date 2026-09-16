@@ -376,6 +376,9 @@ export class ObjectRestorationService {
             status: fields.status,
             dueOn: fields.dueOn,
             dueAt: fields.dueAt,
+            // A restored state without a due instant keeps no duration.
+            durationMinutes:
+              fields.dueAt === null ? null : fields.durationMinutes,
             completedAt: fields.completedAt,
             location: fields.location,
           })
