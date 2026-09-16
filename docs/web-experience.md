@@ -571,9 +571,14 @@ day shows up to three tasks (time and name, done ones struck through) and
 "+n more", and the selected day's tasks are listed under the grid, today's
 until another day is chosen. Calendar offers List; Agenda, the numbered
 running order of its items with the same Edit, History, and Actions on each;
-and Week and Month, a scheduled item sitting on every day it covers. A page
-that carries an Itinerary component (a retired kind) shows the Calendar in
-its Agenda view, and choosing another view on it saves it as a Calendar. The
+and Week and Month, a scheduled item sitting on every day it covers. Expenses and Reminders offer List, By day,
+Week, and Month as well: a transaction sits on the day it happened and a
+reminder on the day it is due; an expense day heading, and the day under an
+expense month, carries the day's totals by currency, and a month cell shows
+the amount or the time with the name (a dismissed or triggered reminder struck
+through). A page that carries an Itinerary component (a retired kind) shows
+the Calendar in its Agenda view, and choosing another view on it saves it as
+a Calendar. The
 event's own tabs (To-dos, Calendar, and the rest) offer the same View
 control; a tab's choice lasts for the session, while a page component's is
 saved with the layout. Tasks with no due date and
