@@ -27,6 +27,7 @@ import {
   useTasksQuery,
 } from "../../lib/queries";
 import { ManageLabelsButton } from "./label-manager";
+import { QuickAddTask } from "./quick-add-task";
 import { TaskListView } from "./task-list-view";
 
 const viewStorageKey = "chronelle.task-view";
@@ -291,10 +292,15 @@ export function TasksPage() {
         range === null &&
         tasks.data?.items.length === 0 &&
         !filtered ? (
-          <EmptyState
-            description="Choose New task for something to do on its own, or add tasks inside an event and find them here too."
-            title="Nothing to do yet"
-          />
+          <>
+            <EmptyState
+              description="Choose New task for something to do on its own, or add tasks inside an event and find them here too."
+              title="Nothing to do yet"
+            />
+            <div className="quick-add-item quick-add-empty">
+              <QuickAddTask dueOn={null} />
+            </div>
+          </>
         ) : null}
         {!changingQuery &&
         !tasks.isError &&
@@ -319,6 +325,9 @@ export function TasksPage() {
             >
               Clear filters
             </button>
+            <div className="quick-add-item quick-add-empty">
+              <QuickAddTask dueOn={null} />
+            </div>
           </div>
         ) : null}
         {items.length > 0 ||

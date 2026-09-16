@@ -493,7 +493,9 @@ Escape, or leaving the field empty, puts the row back. In the by-day view each
 day group has its own row, and a task added there is due on that day (the No
 due date group adds one without a date; Overdue has none). The Tasks page has
 the same row, and a task added there stands on its own. A refused name stays
-in the field under the usual error notice. Reminders end with an Add reminder
+in the field under the usual error notice. An empty collection shows the row
+under its empty state, so the first item is added the same way. Reminders end
+with an Add reminder
 row that works the same way: a reminder added under a day is due at 9:00 that
 day, one added to the list at the next 9:00; the editor changes the time.
 Viewers see no such rows.

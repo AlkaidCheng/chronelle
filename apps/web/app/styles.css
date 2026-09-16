@@ -2666,14 +2666,16 @@ ul.resource-list {
 /* The quick add row sits on the rows' grid: the plus where the check is,
    the words or the field where the name is. */
 .resource-list > .quick-add-item,
-.resource-list + .quick-add-item {
+.resource-list + .quick-add-item,
+.quick-add-empty {
   align-items: start;
   border-top: 1px solid var(--line);
   display: flex;
   padding: calc(var(--row-padding) + 3px) 4px;
 }
 
-.resource-list + .quick-add-item {
+.resource-list + .quick-add-item,
+.quick-add-empty {
   margin-top: 10px;
 }
 

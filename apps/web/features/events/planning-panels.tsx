@@ -69,6 +69,7 @@ import { ReminderInspector } from "./reminder-inspector";
 import { QuickAddReminder } from "./quick-add-reminder";
 import { type SubtaskParent, TaskForm } from "./task-form";
 import { TaskInspector } from "./task-inspector";
+import { QuickAddTask } from "../tasks/quick-add-task";
 import { TaskListView } from "../tasks/task-list-view";
 
 type TaskFilter = "all" | "open" | "done";
@@ -293,7 +294,13 @@ export function TasksPanel({
           }
           title={tasks.length === 0 ? "No tasks yet" : "Nothing in this view"}
         />
-      ) : (
+      ) : null}
+      {filteredTasks.length === 0 && canEdit ? (
+        <div className="quick-add-item quick-add-empty">
+          <QuickAddTask dueOn={null} eventId={eventId} />
+        </div>
+      ) : null}
+      {filteredTasks.length === 0 ? null : (
         <TaskListView
           canEdit={canEdit}
           eventId={eventId}
@@ -1042,7 +1049,13 @@ export function RemindersPanel({
           }
           title="No reminders"
         />
-      ) : view === "by-day" ? (
+      ) : null}
+      {reminders.length === 0 && canEdit ? (
+        <div className="quick-add-item quick-add-empty">
+          <QuickAddReminder day={null} eventId={eventId} />
+        </div>
+      ) : null}
+      {reminders.length === 0 ? null : view === "by-day" ? (
         <div className="day-groups">
           {groups.map((group) => (
             <section

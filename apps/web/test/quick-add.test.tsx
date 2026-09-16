@@ -301,4 +301,80 @@ describe("quick add", () => {
     await screen.findByText("Greet the guests");
     expect(screen.queryByRole("button", { name: /^Add a / })).toBeNull();
   });
+
+  it("offers the row under an empty collection, where the first item is added", async () => {
+    const user = userEvent.setup();
+    const event = await client.createEvent({ displayName: "Spring fair" });
+    pathname = `/events/${event.id}`;
+    window.history.replaceState(null, "", pathname);
+    await client.updateEventLayout(event.id, {
+      expectedVersion: 0,
+      pages: [page("Plan", ["todos", "reminders"])],
+    });
+    render(<EventPages eventId={event.id} canEdit />, { wrapper: Providers });
+    const panel = (title: string) =>
+      within(
+        screen
+          .getByRole("heading", { name: title })
+          .closest(".planning-panel") as HTMLElement,
+      );
+    expect(
+      await screen.findByRole("heading", { name: "No tasks yet" }),
+    ).toBeVisible();
+    const todos = panel("To-dos");
+    await user.click(
+      todos.getByRole("button", { name: "Add a task to the list" }),
+    );
+    await user.keyboard("Hire the tent{Enter}");
+    expect(
+      await todos.findByRole("row", { name: /Hire the tent/ }),
+    ).toBeVisible();
+    expect(todos.queryByRole("heading", { name: "No tasks yet" })).toBeNull();
+    await user.keyboard("{Escape}");
+    const reminders = panel("Reminders");
+    expect(
+      reminders.getByRole("heading", { name: "No reminders" }),
+    ).toBeVisible();
+    await user.click(
+      reminders.getByRole("button", { name: "Add a reminder to the list" }),
+    );
+    await user.keyboard("Book the band{Enter}");
+    await waitFor(() =>
+      expect(
+        reminders.getByRole("heading", { name: "Book the band" }),
+      ).toBeVisible(),
+    );
+    expect(
+      reminders.queryByRole("heading", { name: "No reminders" }),
+    ).toBeNull();
+    expect(
+      (await client.getEventReminders(event.id)).items.map(
+        (item) => item.displayName,
+      ),
+    ).toEqual(["Book the band"]);
+  });
+
+  it("offers the row under the Tasks page's empty states", async () => {
+    const user = userEvent.setup();
+    render(
+      <Providers>
+        <TasksPage />
+      </Providers>,
+    );
+    expect(await screen.findByText("1 task loaded")).toBeVisible();
+    await user.type(screen.getByPlaceholderText("Find a task..."), "Zebra");
+    expect(
+      await screen.findByRole("heading", { name: "No matching tasks" }),
+    ).toBeVisible();
+    await user.click(
+      screen.getByRole("button", { name: "Add a task to the list" }),
+    );
+    await user.keyboard("Zebra crossing{Enter}");
+    expect(
+      await screen.findByRole("row", { name: /Zebra crossing/ }),
+    ).toBeVisible();
+    expect(
+      screen.queryByRole("heading", { name: "No matching tasks" }),
+    ).toBeNull();
+  });
 });
