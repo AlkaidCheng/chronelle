@@ -587,9 +587,15 @@ the week's days stack and a month cell marks a day that holds something with a
 dot instead of listing it. Previous, Today, and Next move the period; it opens on today, is not saved, and returns to
 today when the view changes. The rows in a column or under the grid are the
 list's rows with the same actions, and the open/all/done filter applies to
-every view. On a page, the choice of view is part of the layout: it saves at
-once for everyone on the Event, shows in layout history, and undo covers it.
-Viewers see the saved view without a control.
+every view. Beside it, the To-dos component filters by label and by assignee:
+each select offers only what the event's tasks carry (Any label and the
+labels on at least one task; Anyone, Me when the user's person is assigned,
+and the assigned people by name), the filters combine with the status filter,
+a choice the tasks no longer carry falls back to any, and these choices last
+for the session rather than being saved with the layout. On a page, the
+choice of view is part of the layout: it saves at once for everyone on the
+Event, shows in layout history, and undo covers it. Viewers see the saved
+view without a control.
 
 ## Recorded reminders
 
