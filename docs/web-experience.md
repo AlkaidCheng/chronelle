@@ -471,17 +471,24 @@ edit permission before exposing fields, even when a cached copy is present.
 Temporary refetch failures preserve mounted input; denied access hides it.
 History remains available inside the editor, and changed source versions require
 an explicit refresh/load-latest decision. The editor's Due control reads the
-choice when closed (Due: No date, Today, Tomorrow, or the date, with the time
-when one is set) and opens to a Due date field that takes a typed date (an
-ISO date, today, tomorrow, next week, Sep 21 or 21 Sep with an optional year,
-or 9/21, with a hint for text it cannot read), shortcuts for the days a weekday
+choice when closed as the exact date (Due: No date, or Sep 21, 2026, with
+"(today)" or "(tomorrow)" as a hint and the time when one is set) and opens
+to a Due date field that shows the exact date and takes a typed one (an ISO
+date, today, tomorrow, next week, Sep 21 or 21 Sep with an optional year, or
+9/21, with a hint for text it cannot read); shortcuts for the days a weekday
 allows (Today, Tomorrow, Later this week, This weekend, Next week, No date),
-and one month at a time with Sunday-first headings, today outlined, past days
-and weekends muted, the chosen day marked, and the schedule picker's keyboard
-moves (arrows by day and week, Page Up and Down by month, Home and End to the
-week's edges, Enter to choose). Add time reveals the Due time field and a
-Duration select (No duration, 15 min to 8 h), which waits for a time; Remove
-time clears both; No date clears everything. A date alone makes the task due that
+all of them always listed with the one matching the choice marked; and the
+months as one continuous list, Sunday-first headings, today outlined, past
+days and weekends muted, the chosen day marked, extending as it is scrolled,
+with the schedule picker's keyboard moves (arrows by day and week, Page Up and
+Down by month, Home and End to the week's edges, Enter to choose). The month
+heading names the month at the top; Previous, Today, and Next move it, and
+choosing the heading opens a focused chooser over the list: a typed field
+(October 2027, 2027-10, 10/2027) beside a month grid and a scrollable year
+list with the current ones marked; Enter, Escape, or a click outside closes
+it. Add time reveals the Due time field and a Duration select (No duration,
+15 min to 8 h), which waits for a time; Remove time clears both; No date
+clears everything. A date alone makes the task due that
 whole day (shown as the date, ahead of timed tasks that day, and in the
 Timeline as a dated entry); a date with a time makes it due at that local
 instant. Name-only edits preserve the exact stored due instant, and
