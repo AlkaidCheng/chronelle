@@ -17,7 +17,12 @@ export type EventComponentKind = z.output<typeof eventComponentKindSchema>;
  * How a component lays out its records. A component without a view uses
  * its kind's default; the web catalog says which views a kind offers.
  */
-export const eventComponentViewSchema = z.enum(["list", "by-day"]);
+export const eventComponentViewSchema = z.enum([
+  "list",
+  "by-day",
+  "week",
+  "month",
+]);
 
 export type EventComponentView = z.output<typeof eventComponentViewSchema>;
 

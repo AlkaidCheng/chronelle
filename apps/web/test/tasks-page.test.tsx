@@ -94,12 +94,38 @@ describe("TasksPage", () => {
     expect(screen.queryByRole("table")).toBeNull();
     expect(screen.getByRole("region", { name: /No due date/ })).toBeVisible();
     expect(stored["chronelle.task-view"]).toBe("by-day");
+    // Week and Month place the loaded page; the undated task sits below.
+    await user.click(view.getByRole("button", { name: "Month" }));
+    expect(screen.getAllByRole("cell")).toHaveLength(42);
+    expect(screen.getByRole("region", { name: "No due date" })).toBeVisible();
+    expect(stored["chronelle.task-view"]).toBe("month");
+    await user.click(view.getByRole("button", { name: "Week" }));
+    expect(screen.getByRole("group", { name: "Period" })).toBeVisible();
+    expect(document.querySelector(".week-day.is-today")).not.toBeNull();
+    expect(screen.getByRole("region", { name: "No due date" })).toBeVisible();
+    expect(stored["chronelle.task-view"]).toBe("week");
     const requests = vi
       .mocked(fetch)
       .mock.calls.map(([url]) => String(url))
       .filter((url) => url.startsWith("/api/tasks"));
     expect(requests[0]).toBe("/api/tasks?query=&filter=open&sort=due");
     expect(requests).toContain("/api/tasks?query=&filter=done&sort=due");
+  });
+
+  it("opens on a remembered week or month view", async () => {
+    stored["chronelle.task-view"] = "month";
+    render(
+      <Providers>
+        <TasksPage />
+      </Providers>,
+    );
+    await screen.findByText("1 task loaded");
+    expect(
+      within(screen.getByRole("group", { name: "View" })).getByRole("button", {
+        name: "Month",
+      }),
+    ).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getAllByRole("cell")).toHaveLength(42);
   });
 
   it("adds a subtask under a task, nests it, and counts its progress", async () => {

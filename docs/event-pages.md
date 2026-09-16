@@ -36,14 +36,21 @@ targets and checks access again when requesting upload or download transfers.
 ### Views
 
 A component's kind says which records it shows; its view says how they are
-laid out. Every kind offers `list`; `todos` also offers `by-day`, which groups
+laid out. Every kind offers `list`. `todos` also offers `by-day`, which groups
 tasks under Overdue (open tasks due before today), one heading per due date
 with Today and Tomorrow named, and No due date, with the task's due time on
-each row. Members who can edit choose the view from a View control in the
-component heading, outside Arrange mode. The choice is saved on the layout
-component, so everyone on the Event sees the same view, it appears in layout
-history, and undo and restore cover it. Viewers see the saved view and no
-control. A component without a stored view uses its kind's default.
+each row; `week`, seven columns of one local week, Monday first, each task in
+the column of its due day; and `month`, a six-week grid of one month in which
+each day shows up to three tasks and counts the rest, with the selected day's
+tasks listed under the grid. `calendar` offers `week` and `month` in the same
+shape, a scheduled item sitting on every local day it covers. Tasks without a
+due date and unscheduled items are listed under the week or the month. The
+period shown opens on today, moves with Previous, Today, and Next, and is not
+saved; only the view is. Members who can edit choose the view from a View
+control in the component heading, outside Arrange mode. The choice is saved on
+the layout component, so everyone on the Event sees the same view, it appears
+in layout history, and undo and restore cover it. Viewers see the saved view
+and no control. A component without a stored view uses its kind's default.
 
 ## Composition controls
 
@@ -115,8 +122,8 @@ the canonical Event's object version or alter its metadata.
 
 The API validates a strict structure: at most 20 pages, 20 components per page,
 100 components overall, page names of 1-80 characters, unique UUIDs across the
-layout, recognized component kinds, and an optional `view` of `list` or
-`by-day` per component. Configuration contains no business records, arbitrary
+layout, recognized component kinds, and an optional `view` of `list`,
+`by-day`, `week`, or `month` per component. Configuration contains no business records, arbitrary
 scripts or style definitions. Supported component kinds are listed above;
 unrecognized kinds, unrecognized views, and extra fields are rejected.
 

@@ -1,9 +1,10 @@
 "use client";
 
-import type {
-  EventComponentView,
-  TaskListQuery,
-  TaskResponse,
+import {
+  type EventComponentView,
+  eventComponentViewSchema,
+  type TaskListQuery,
+  type TaskResponse,
 } from "@chronelle/schemas";
 import { useCallback, useEffect, useState } from "react";
 
@@ -53,8 +54,11 @@ export function TasksPage() {
   }, [query, isComposing]);
   useEffect(() => {
     try {
-      if (window.localStorage.getItem(viewStorageKey) === "by-day")
-        setView("by-day");
+      const stored = eventComponentViewSchema.safeParse(
+        window.localStorage.getItem(viewStorageKey),
+      );
+      if (stored.success && viewsOf("todos").includes(stored.data))
+        setView(stored.data);
     } catch {
       // The list stays usable when browser storage is unavailable.
     }

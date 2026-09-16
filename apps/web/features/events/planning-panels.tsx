@@ -11,6 +11,13 @@ import type {
 import { useCallback, useMemo, useState } from "react";
 
 import { EmptyState, ErrorNotice } from "../../components/feedback";
+import { MonthGrid, PeriodNav, WeekStrip } from "../../components/period-views";
+import {
+  type DayKey,
+  dayKeyOf,
+  eventDays,
+  placeByDay,
+} from "../../lib/day-placement";
 import { HistoryButton } from "../history/history-button";
 import { LifecycleButton } from "../recovery/lifecycle-provider";
 import { ObjectDetails } from "../../components/object-details";
@@ -30,7 +37,7 @@ import {
   formatEventSchedule,
 } from "../../lib/event-schedule";
 import { viewsOf } from "../../lib/event-components";
-import { formatDatePart, formatDateTime } from "../../lib/format";
+import { formatDatePart, formatDateTime, formatTime } from "../../lib/format";
 import { deriveTaskTree } from "../../lib/task-tree";
 import { formatMoney, sumMoneyByCurrency } from "../../lib/money";
 import {
@@ -194,15 +201,93 @@ export function TasksPanel({
 export function CalendarPanel({
   canEdit,
   eventId,
+  isSavingView,
   items,
+  onChangeView,
+  view = "list",
 }: {
   readonly canEdit: boolean;
   readonly eventId: string;
+  readonly isSavingView?: boolean | undefined;
   readonly items: readonly EventResponse[];
+  readonly onChangeView?: ((view: EventComponentView) => void) | undefined;
+  readonly view?: EventComponentView;
 }) {
   const [isAdding, setIsAdding] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const editingEvent = items.find(({ id }) => id === editingId);
+  // The period cursor is session state: today whenever the view changes.
+  const [period, setPeriod] = useState(() => ({
+    view,
+    cursor: new Date(),
+    selected: null as DayKey | null,
+  }));
+  if (period.view !== view)
+    setPeriod({ view, cursor: new Date(), selected: null });
+  const { cursor, selected: selectedDay } = period;
+  const setCursor = (cursor: Date, selected: DayKey | null = null) =>
+    setPeriod({ view, cursor, selected });
+  const setSelectedDay = (selected: DayKey | null) =>
+    setPeriod({ view, cursor, selected });
+  const placed = useMemo(
+    () =>
+      view === "week" || view === "month"
+        ? placeByDay(items, eventDays)
+        : new Map<DayKey, EventResponse[]>(),
+    [items, view],
+  );
+  const unscheduled = useMemo(
+    () =>
+      view === "week" || view === "month"
+        ? items.filter((item) => eventDays(item).length === 0)
+        : [],
+    [items, view],
+  );
+  const scheduleRow = (item: EventResponse) => (
+    <article key={item.id}>
+      <DateTile
+        dateTime={item.startsOn ?? item.startsAt ?? undefined}
+        day={formatEventDatePart(item, "day")}
+        month={formatEventDatePart(item, "month")}
+      />
+      <div className="resource-copy">
+        <span className="object-label">{objectTypeLabel("event")}</span>
+        <h3>{item.displayName}</h3>
+        <p>{formatEventSchedule(item)}</p>
+        <ObjectDetails id={item.id} />
+      </div>
+      <RowActions>
+        {canEdit ? (
+          <button
+            className="button button-quiet button-small"
+            onClick={() => setEditingId(item.id)}
+            type="button"
+          >
+            Edit
+          </button>
+        ) : null}
+        <HistoryButton objectId={item.id} displayName={item.displayName} />
+        {canEdit ? <LifecycleButton target={{ ...item, eventId }} /> : null}
+      </RowActions>
+    </article>
+  );
+  const unscheduledGroup =
+    unscheduled.length === 0 ? null : (
+      <section aria-label="Unscheduled" className="day-group day-group-plain">
+        <h3 className="day-group-heading">
+          <span>Unscheduled</span>
+        </h3>
+        <div className="resource-list">{unscheduled.map(scheduleRow)}</div>
+      </section>
+    );
+  const shownDay =
+    view === "month"
+      ? (selectedDay ??
+        (cursor.getMonth() === new Date().getMonth() &&
+        cursor.getFullYear() === new Date().getFullYear()
+          ? dayKeyOf(new Date())
+          : null))
+      : null;
 
   return (
     <section className="planning-panel">
@@ -217,6 +302,16 @@ export function CalendarPanel({
               Add schedule item
             </button>
           ) : undefined
+        }
+        controls={
+          onChangeView === undefined ? undefined : (
+            <ViewSwitch
+              busy={isSavingView ?? false}
+              onChange={onChangeView}
+              view={view}
+              views={viewsOf("calendar")}
+            />
+          )
         }
         description="See what is happening and when. Schedule changes stay in sync with your itinerary."
         title="Calendar"
@@ -237,42 +332,66 @@ export function CalendarPanel({
           }
           title="Nothing scheduled"
         />
-      ) : (
-        <div className="resource-list">
-          {items.map((item) => (
-            <article key={item.id}>
-              <DateTile
-                dateTime={item.startsOn ?? item.startsAt ?? undefined}
-                day={formatEventDatePart(item, "day")}
-                month={formatEventDatePart(item, "month")}
-              />
-              <div className="resource-copy">
-                <span className="object-label">{objectTypeLabel("event")}</span>
-                <h3>{item.displayName}</h3>
-                <p>{formatEventSchedule(item)}</p>
-                <ObjectDetails id={item.id} />
-              </div>
-              <RowActions>
-                {canEdit ? (
-                  <button
-                    className="button button-quiet button-small"
-                    onClick={() => setEditingId(item.id)}
-                    type="button"
-                  >
-                    Edit
-                  </button>
-                ) : null}
-                <HistoryButton
-                  objectId={item.id}
-                  displayName={item.displayName}
-                />
-                {canEdit ? (
-                  <LifecycleButton target={{ ...item, eventId }} />
-                ) : null}
-              </RowActions>
-            </article>
-          ))}
+      ) : view === "week" ? (
+        <div className="period-view">
+          <PeriodNav cursor={cursor} onChange={setCursor} period="week" />
+          <WeekStrip
+            cursor={cursor}
+            renderDay={(day) => {
+              const dayItems = placed.get(day) ?? [];
+              return dayItems.length === 0 ? null : (
+                <div className="resource-list resource-list-compact">
+                  {dayItems.map(scheduleRow)}
+                </div>
+              );
+            }}
+          />
+          {unscheduledGroup}
         </div>
+      ) : view === "month" ? (
+        <div className="period-view">
+          <PeriodNav cursor={cursor} onChange={setCursor} period="month" />
+          <MonthGrid
+            cursor={cursor}
+            onSelect={setSelectedDay}
+            renderItem={(day) =>
+              (placed.get(day) ?? []).map((item) => ({
+                key: item.id,
+                node: (
+                  <span>
+                    {item.startsAt !== null && item.startsOn === null
+                      ? `${formatTime(item.startsAt)} `
+                      : ""}
+                    {item.displayName}
+                  </span>
+                ),
+              }))
+            }
+            selected={shownDay}
+          />
+          {shownDay === null ? (
+            <p className="field-hint">Select a day to see its schedule.</p>
+          ) : (
+            <section
+              aria-label={formatCalendarDate(shownDay)}
+              className="day-group day-group-plain"
+            >
+              <h3 className="day-group-heading">
+                <span>{formatCalendarDate(shownDay)}</span>
+              </h3>
+              {(placed.get(shownDay) ?? []).length === 0 ? (
+                <p className="field-hint">Nothing scheduled this day.</p>
+              ) : (
+                <div className="resource-list">
+                  {(placed.get(shownDay) ?? []).map(scheduleRow)}
+                </div>
+              )}
+            </section>
+          )}
+          {unscheduledGroup}
+        </div>
+      ) : (
+        <div className="resource-list">{items.map(scheduleRow)}</div>
       )}
       {!canEdit || editingEvent === undefined ? null : (
         <ScheduleItemInspector
