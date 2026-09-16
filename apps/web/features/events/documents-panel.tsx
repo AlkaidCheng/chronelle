@@ -93,6 +93,7 @@ export function DocumentsPanel({
   }
 
   const firstError = attach.error ?? download.error;
+  const isUploading = attach.isPending;
 
   return (
     <section className="planning-panel documents-panel">
@@ -104,6 +105,7 @@ export function DocumentsPanel({
       <label className="field attachment-target" htmlFor={targetInputId}>
         <span>Show files attached to</span>
         <select
+          disabled={isUploading}
           id={targetInputId}
           onChange={(input) => setParentObjectId(input.target.value)}
           value={parentObjectId}
@@ -124,6 +126,7 @@ export function DocumentsPanel({
           <label className="field" htmlFor={fileInputId}>
             <span>Choose a private file</span>
             <input
+              disabled={isUploading}
               id={fileInputId}
               key={fileInputVersion}
               onChange={(input) =>
@@ -139,13 +142,13 @@ export function DocumentsPanel({
             </span>
             <button
               className="button button-primary"
-              disabled={attach.isPending || selectedFile === null}
+              disabled={isUploading || selectedFile === null}
               type="submit"
             >
-              {attach.isPending ? "Uploading..." : "Attach file"}
+              {isUploading ? "Uploading..." : "Attach file"}
             </button>
           </div>
-          {attach.isPending ? (
+          {isUploading ? (
             <progress
               aria-label="Uploading attachment"
               className="upload-progress"
@@ -162,7 +165,16 @@ export function DocumentsPanel({
         </div>
       )}
 
-      {firstError === null ? null : <ErrorNotice error={firstError} />}
+      {firstError === null ? null : (
+        <ErrorNotice
+          error={firstError}
+          onRefresh={() => {
+            attach.reset();
+            download.reset();
+          }}
+          refreshLabel="Dismiss"
+        />
+      )}
       {attachments.isPending ? (
         <LoadingState label="Loading private files" />
       ) : attachments.isError ? (
@@ -173,20 +185,26 @@ export function DocumentsPanel({
       ) : attachments.data === undefined ? null : (
         <>
           {attachments.data.lockedAttachmentCount > 0 ? (
-            <p className="attachment-locked-count">
-              {attachments.data.lockedAttachmentCount} private attachment
-              {attachments.data.lockedAttachmentCount === 1
-                ? " is"
-                : "s are"}{" "}
-              hidden.
-            </p>
+            <div className="locked-reference surface-subtle">
+              <LockIcon />
+              <div>
+                <strong>Private attachments</strong>
+                <p>
+                  {attachments.data.lockedAttachmentCount} attachment
+                  {attachments.data.lockedAttachmentCount === 1
+                    ? " is"
+                    : "s are"}{" "}
+                  outside your permission scope.
+                </p>
+              </div>
+            </div>
           ) : null}
           {attachments.data.items.length === 0 ? (
             <EmptyState
               description={
                 canEdit
                   ? "Choose a file above to attach it without exposing a public URL."
-                  : "No shared files are attached to this item."
+                  : "Shared files will appear here when available. This event is read-only."
               }
               title="No files attached"
             />
