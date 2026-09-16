@@ -122,7 +122,12 @@ Anyone, Me (when the user has a person), or a person by name. A Location
 field in the task editor names where the task happens, as text; rows show it
 under the title ("At ..."), and clearing the field removes it. A task due at
 a time may carry a duration (1 minute to 24 hours); rows show it after the
-time ("9:30 AM, 30 min", "1 h 30 min").
+time ("9:30 AM, 30 min", "1 h 30 min"). A task with a due may repeat (every
+day, every weekday, every week, every two weeks, every month, every year),
+optionally until a last date; completing it from a row moves its due to the
+next occurrence and leaves the row open, and only the last occurrence marks it
+done. The editor does not yet offer the rule; the API and the sandbox carry
+it.
 
 Every bounded text field in an editor (the names of events, schedule items,
 tasks, expenses, reminders, pages, labels, and people; a person's email and

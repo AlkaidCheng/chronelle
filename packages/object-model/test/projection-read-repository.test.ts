@@ -63,6 +63,8 @@ function task(id: string, dueAt: Date | null): TaskResource {
     assigneeId: null,
     location: null,
     durationMinutes: null,
+    repeatRule: null,
+    repeatUntil: null,
     labelIds: [],
   };
 }

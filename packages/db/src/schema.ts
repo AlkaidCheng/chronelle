@@ -58,6 +58,16 @@ export const taskStatuses = [
 ] as const;
 export type TaskStatus = (typeof taskStatuses)[number];
 
+export const taskRepeatRules = [
+  "daily",
+  "weekdays",
+  "weekly",
+  "biweekly",
+  "monthly",
+  "yearly",
+] as const;
+export type TaskRepeatRule = (typeof taskRepeatRules)[number];
+
 export const reminderStatuses = [
   "pending",
   "triggered",
@@ -370,6 +380,8 @@ export const tasks = pgTable("tasks", {
   dueOn: date("due_on", { mode: "string" }),
   dueAt: timestamp("due_at", { mode: "date", withTimezone: true }),
   durationMinutes: integer("duration_minutes"),
+  repeatRule: text("repeat_rule").$type<TaskRepeatRule>(),
+  repeatUntil: date("repeat_until", { mode: "string" }),
   completedAt: timestamp("completed_at", {
     mode: "date",
     withTimezone: true,

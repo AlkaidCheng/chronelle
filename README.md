@@ -280,8 +280,9 @@ attachments across an API restart, and audit request IDs.
   authorization and workspace constraints remain mandatory.
 - Tencent COS has a signed-transfer adapter and simulated integration tests;
   live bucket/IAM/CORS validation and production storage operations are pending.
-- Reminder delivery providers, invitations, anonymous links, recurrence, and
-  the travel object slice remain deferred.
+- Reminder delivery providers, invitations, anonymous links, and the travel
+  object slice remain deferred. Task recurrence is a rule on the task whose
+  completion advances the due (ADR 0047); reminders do not repeat yet.
 
 ## Containers and delivery
 

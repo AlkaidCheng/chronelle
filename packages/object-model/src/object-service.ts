@@ -18,12 +18,16 @@ import {
   workspaceMembers,
   type DatabaseTransaction,
   type ObjectType,
+  type TaskRepeatRule,
 } from "@chronelle/db";
 import { and, eq, inArray, isNull, ne, sql } from "drizzle-orm";
 import {
   eventCalendarDatesSchema,
   type EventListQueryInput,
+  nextTaskDueAt,
+  nextTaskDueDate,
   type PersonListQueryInput,
+  taskDueDate,
   type TaskListQueryInput,
 } from "@chronelle/schemas";
 import {
@@ -43,6 +47,7 @@ import {
   type PersonPage,
   type PersonReadRepository,
 } from "./person-list.js";
+
 import {
   PostgresTaskReadRepository,
   type TaskPage,
@@ -261,6 +266,60 @@ function assertTaskDuration(
     throw new InvalidObjectStateError("durationMinutes requires dueAt.");
 }
 
+/** A repeat rule needs a due; an end needs a rule and comes no earlier than the due. */
+function assertTaskRepeat(
+  dueOn: string | null,
+  dueAt: Date | null,
+  repeatRule: TaskRepeatRule | null,
+  repeatUntil: string | null,
+): void {
+  if (repeatRule !== null && dueOn === null && dueAt === null)
+    throw new InvalidObjectStateError("repeatRule requires dueOn or dueAt.");
+  if (repeatUntil !== null && repeatRule === null)
+    throw new InvalidObjectStateError("repeatUntil requires repeatRule.");
+  const due = taskDueDate(dueOn, dueAt);
+  if (repeatUntil !== null && due !== null && repeatUntil < due)
+    throw new InvalidObjectStateError(
+      "repeatUntil must be on or after the due date.",
+    );
+}
+
+/**
+ * Completing a repeating task: an update that sets status to done on a task
+ * that is not done, and carries no due or repeat change of its own, becomes
+ * an update that keeps the task open on its next occurrence, unless that
+ * occurrence would fall after repeatUntil. Any other update passes through.
+ */
+function repeatTaskUpdate(
+  current: TaskResource,
+  input: UpdateTaskInput,
+): UpdateTaskInput {
+  if (
+    input.status !== "done" ||
+    current.status === "done" ||
+    current.repeatRule === null ||
+    input.dueOn !== undefined ||
+    input.dueAt !== undefined ||
+    input.repeatRule !== undefined ||
+    input.repeatUntil !== undefined
+  )
+    return input;
+  if (current.dueOn !== null) {
+    const dueOn = nextTaskDueDate(current.dueOn, current.repeatRule);
+    if (current.repeatUntil !== null && dueOn > current.repeatUntil)
+      return input;
+    return { ...input, status: "todo", completedAt: null, dueOn };
+  }
+  if (current.dueAt === null) return input;
+  const dueAt = nextTaskDueAt(current.dueAt, current.repeatRule);
+  if (
+    current.repeatUntil !== null &&
+    dueAt.toISOString().slice(0, 10) > current.repeatUntil
+  )
+    return input;
+  return { ...input, status: "todo", completedAt: null, dueAt };
+}
+
 /** The location, when set, is 1 to 240 trimmed characters. */
 function assertTaskLocation(location: string | null): void {
   if (
@@ -475,8 +534,11 @@ export class EventPlanningObjectService {
     const dueAt = input.dueAt ?? null;
     const completedAt = input.completedAt ?? null;
     const durationMinutes = input.durationMinutes ?? null;
+    const repeatRule = input.repeatRule ?? null;
+    const repeatUntil = input.repeatUntil ?? null;
     assertTaskState(status, dueOn, dueAt, completedAt);
     assertTaskDuration(dueAt, durationMinutes);
+    assertTaskRepeat(dueOn, dueAt, repeatRule, repeatUntil);
     if (this.#writes.task !== undefined)
       return this.#writes.task.create(context, input);
 
@@ -508,6 +570,8 @@ export class EventPlanningObjectService {
           dueOn,
           dueAt,
           durationMinutes,
+          repeatRule,
+          repeatUntil,
           completedAt,
           parentTaskId,
           assigneePersonId: assigneeId,
@@ -748,14 +812,15 @@ export class EventPlanningObjectService {
   async updateTask(
     context: MutationContext,
     objectId: string,
-    input: UpdateTaskInput,
+    requested: UpdateTaskInput,
   ): Promise<TaskResource> {
     if (this.#writes.task !== undefined)
-      return this.#writes.task.update(context, objectId, input);
+      return this.#writes.task.update(context, objectId, requested);
     const current = this.#requireType(
       await this.#getEditableObject(context.principal, objectId),
       "task",
     );
+    const input = repeatTaskUpdate(current, requested);
     const status = input.status ?? current.status;
     const dueOn = input.dueOn === undefined ? current.dueOn : input.dueOn;
     const dueAt = input.dueAt === undefined ? current.dueAt : input.dueAt;
@@ -768,6 +833,16 @@ export class EventPlanningObjectService {
         ? current.durationMinutes
         : input.durationMinutes,
     );
+    // Clearing the rule clears its end.
+    const repeatRule =
+      input.repeatRule === undefined ? current.repeatRule : input.repeatRule;
+    const repeatUntil =
+      input.repeatRule === null
+        ? null
+        : input.repeatUntil === undefined
+          ? current.repeatUntil
+          : input.repeatUntil;
+    assertTaskRepeat(dueOn, dueAt, repeatRule, repeatUntil);
     if (input.location !== undefined) assertTaskLocation(input.location);
 
     const resource = await this.#updateObject(
@@ -808,6 +883,11 @@ export class EventPlanningObjectService {
           ...(input.dueAt !== undefined && { dueAt: input.dueAt }),
           ...(input.durationMinutes !== undefined && {
             durationMinutes: input.durationMinutes,
+          }),
+          ...((input.repeatRule !== undefined ||
+            input.repeatUntil !== undefined) && {
+            repeatRule,
+            repeatUntil,
           }),
           ...(input.completedAt !== undefined && {
             completedAt: input.completedAt,

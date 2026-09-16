@@ -2,6 +2,7 @@ import type {
   ObjectType,
   RelationType,
   ReminderStatus,
+  TaskRepeatRule,
   TaskStatus,
 } from "@chronelle/db";
 import type { UserPrincipal } from "@chronelle/authorization";
@@ -51,6 +52,10 @@ export interface TaskResource extends CanonicalObjectResource {
   readonly dueAt: Date | null;
   /** How long the task takes, in minutes, only with a due instant. */
   readonly durationMinutes: number | null;
+  /** How the task repeats from its due, if it does. */
+  readonly repeatRule: TaskRepeatRule | null;
+  /** The last date the task repeats to, if the rule ends. */
+  readonly repeatUntil: string | null;
   readonly objectType: "task";
   /** The task this one is a subtask of; one level deep, same permission scope. */
   readonly parentTaskId: string | null;
@@ -169,6 +174,8 @@ export interface CreateTaskInput extends CreateObjectFields {
   readonly dueOn?: string | null | undefined;
   readonly dueAt?: Date | null | undefined;
   readonly durationMinutes?: number | null | undefined;
+  readonly repeatRule?: TaskRepeatRule | null | undefined;
+  readonly repeatUntil?: string | null | undefined;
   readonly parentTaskId?: string | null | undefined;
   readonly assigneeId?: string | null | undefined;
   readonly location?: string | null | undefined;
@@ -219,6 +226,8 @@ export interface UpdateTaskInput extends UpdateObjectFields {
   readonly dueOn?: string | null | undefined;
   readonly dueAt?: Date | null | undefined;
   readonly durationMinutes?: number | null | undefined;
+  readonly repeatRule?: TaskRepeatRule | null | undefined;
+  readonly repeatUntil?: string | null | undefined;
   readonly parentTaskId?: string | null | undefined;
   readonly assigneeId?: string | null | undefined;
   readonly location?: string | null | undefined;

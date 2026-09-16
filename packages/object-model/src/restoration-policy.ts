@@ -31,6 +31,8 @@ const typedFields: Record<
     dueOn: field("Due date", "text"),
     dueAt: field("Due", "datetime"),
     durationMinutes: field("Duration (minutes)", "text"),
+    repeatRule: field("Repeat", "text"),
+    repeatUntil: field("Repeat until", "text"),
     parentTaskId: field("Parent task", "text", false),
     assigneeId: field("Assignee", "text", false),
     location: field("Location", "text"),
