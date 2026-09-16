@@ -405,6 +405,16 @@ carry `location`, null when unset; it is restorable content. Deploy migration
 0039 before this API. A Place object may take its place once the places
 family exists.
 
+A Task due at an instant may say how long it takes through `durationMinutes`,
+an integer from 1 to 1440 (`null` clears it, absent leaves it unchanged). A
+duration needs a due instant: the service refuses one on a date-only or
+undated task, and refuses clearing `dueAt` while a duration stands, with
+`durationMinutes requires dueAt.` (`durationMinutes is 1 to 1440 minutes.`
+for a value out of range), so a client clears the time and the duration
+together. Responses carry `durationMinutes`, null when unset; it is
+restorable content, and a restored revision without a due instant carries
+none. Deploy migration 0044 before this API.
+
 ## Labels
 
 | Method   | Path                            | Behavior                             |

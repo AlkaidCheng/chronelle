@@ -2,9 +2,11 @@ import { describe, expect, it } from "vitest";
 import {
   formatDatePart,
   formatDateTime,
+  formatDuration,
   fromDateTimeInput,
   toDateTimeInput,
 } from "../lib/format";
+import { formatTaskDue, formatTaskTime } from "../lib/task-due";
 
 describe("date input conversion", () => {
   it("keeps an unscheduled value empty", () => {
@@ -74,5 +76,35 @@ describe("date badge parts", () => {
   it("rejects invalid timestamps", () => {
     expect(() => formatDatePart("invalid", "month")).toThrow(RangeError);
     expect(() => formatDatePart("invalid", "day")).toThrow(RangeError);
+  });
+});
+
+describe("durations", () => {
+  it("reads minutes, whole hours, and hours with minutes", () => {
+    expect(formatDuration(15)).toBe("15 min");
+    expect(formatDuration(60)).toBe("1 h");
+    expect(formatDuration(90)).toBe("1 h 30 min");
+    expect(formatDuration(1440)).toBe("24 h");
+  });
+
+  it("follows a task's time and never a date-only due", () => {
+    const dueAt = "2030-03-05T09:30:00.000Z";
+    const time = new Intl.DateTimeFormat(undefined, {
+      timeStyle: "short",
+    }).format(new Date(dueAt));
+    expect(formatTaskTime({ dueAt, durationMinutes: 30 }, false)).toBe(
+      `${time}, 30 min`,
+    );
+    expect(formatTaskTime({ dueAt, durationMinutes: null }, false)).toBe(time);
+    expect(formatTaskDue({ dueOn: null, dueAt, durationMinutes: 90 })).toBe(
+      `${formatDateTime(dueAt)}, 1 h 30 min`,
+    );
+    expect(
+      formatTaskDue({
+        dueOn: "2030-03-05",
+        dueAt: null,
+        durationMinutes: null,
+      }),
+    ).not.toContain("min");
   });
 });

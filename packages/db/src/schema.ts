@@ -369,6 +369,7 @@ export const tasks = pgTable("tasks", {
   status: text("status").$type<TaskStatus>().notNull().default("todo"),
   dueOn: date("due_on", { mode: "string" }),
   dueAt: timestamp("due_at", { mode: "date", withTimezone: true }),
+  durationMinutes: integer("duration_minutes"),
   completedAt: timestamp("completed_at", {
     mode: "date",
     withTimezone: true,

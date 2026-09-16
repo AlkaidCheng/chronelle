@@ -38,6 +38,7 @@ const task: TaskResponse = {
   parentTaskId: null,
   assigneeId: null,
   location: null,
+  durationMinutes: null,
   labelIds: [],
   completedAt: null,
   status: "todo",

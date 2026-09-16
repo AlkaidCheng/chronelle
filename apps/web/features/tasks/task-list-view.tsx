@@ -24,11 +24,11 @@ import { RowActions, StatusChip } from "../events/component-frame";
 import { HistoryButton } from "../history/history-button";
 import { LifecycleButton } from "../recovery/lifecycle-provider";
 import { formatCalendarDate } from "../../lib/event-schedule";
-import { formatDateTime, formatTime } from "../../lib/format";
+import { formatTime } from "../../lib/format";
 import { type DayKey, placeByDay, taskDay } from "../../lib/day-placement";
 import type { Period } from "../../lib/use-period";
 import { PeriodView } from "../events/period-view";
-import { formatTaskDue } from "../../lib/task-due";
+import { formatTaskDue, formatTaskTime } from "../../lib/task-due";
 import { groupTasksByDay } from "../../lib/task-groups";
 import { nestTasks } from "../../lib/task-tree";
 import { useUpdateTask } from "../../lib/queries";
@@ -306,9 +306,7 @@ export function TaskListView({
         <strong>{task.displayName}</strong>
         {lineage(task, false)}
         {task.dueAt !== null ? (
-          <p>
-            {showDate ? formatDateTime(task.dueAt) : formatTime(task.dueAt)}
-          </p>
+          <p>{formatTaskTime(task, showDate)}</p>
         ) : task.dueOn !== null && showDate ? (
           <p>{formatCalendarDate(task.dueOn)}</p>
         ) : null}
@@ -367,11 +365,7 @@ export function TaskListView({
                     <strong>{task.displayName}</strong>
                     {lineage(task, false)}
                     {task.dueAt !== null ? (
-                      <p>
-                        {group.tone === "overdue"
-                          ? formatDateTime(task.dueAt)
-                          : formatTime(task.dueAt)}
-                      </p>
+                      <p>{formatTaskTime(task, group.tone === "overdue")}</p>
                     ) : task.dueOn !== null && group.tone === "overdue" ? (
                       <p>{formatCalendarDate(task.dueOn)}</p>
                     ) : null}

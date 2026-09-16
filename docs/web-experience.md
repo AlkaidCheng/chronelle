@@ -120,7 +120,9 @@ first use and marks it "(me)" thereafter. Rows name the assignee under the
 title in both views. The Tasks page filters by assignee from the toolbar:
 Anyone, Me (when the user has a person), or a person by name. A Location
 field in the task editor names where the task happens, as text; rows show it
-under the title ("At ..."), and clearing the field removes it.
+under the title ("At ..."), and clearing the field removes it. A task due at
+a time may carry a duration (1 minute to 24 hours); rows show it after the
+time ("9:30 AM, 30 min", "1 h 30 min").
 
 Every bounded text field in an editor (the names of events, schedule items,
 tasks, expenses, reminders, pages, labels, and people; a person's email and

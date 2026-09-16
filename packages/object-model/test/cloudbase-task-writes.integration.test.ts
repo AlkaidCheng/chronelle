@@ -512,6 +512,101 @@ describe.sequential("CloudBase Task writes", () => {
     ]);
   });
 
+  it("keep a task's duration with its due time and refuse one without alike", async () => {
+    const outcomes: string[][] = [];
+    const dueAt = new Date("2030-03-05T09:30:00.000Z");
+    for (const [, service] of backends(reference, cloudbase)) {
+      const created = await service.createTask(context(), {
+        displayName: "Timed",
+        dueAt,
+        durationMinutes: 30,
+      });
+      expect(created.durationMinutes).toBe(30);
+      const longer = await service.updateTask(context(), created.id, {
+        expectedVersion: 1,
+        durationMinutes: 90,
+      });
+      expect(longer.durationMinutes).toBe(90);
+      expect(
+        (await service.getTask(context().principal, created.id))
+          .durationMinutes,
+      ).toBe(90);
+      // Moving the time keeps the duration; clearing both clears both.
+      const moved = await service.updateTask(context(), created.id, {
+        expectedVersion: 2,
+        dueAt: new Date("2030-03-06T09:30:00.000Z"),
+      });
+      expect(moved.durationMinutes).toBe(90);
+      const cleared = await service.updateTask(context(), created.id, {
+        expectedVersion: 3,
+        dueAt: null,
+        durationMinutes: null,
+      });
+      expect(cleared.dueAt).toBeNull();
+      expect(cleared.durationMinutes).toBeNull();
+      const seen: string[] = [];
+      for (const attempt of [
+        () =>
+          service.createTask(context(), {
+            displayName: "Untimed",
+            durationMinutes: 30,
+          }),
+        () =>
+          service.createTask(context(), {
+            displayName: "Dated",
+            dueOn: "2030-03-05",
+            durationMinutes: 30,
+          }),
+        () =>
+          service.createTask(context(), {
+            displayName: "Short",
+            dueAt,
+            durationMinutes: 0,
+          }),
+        () =>
+          service.createTask(context(), {
+            displayName: "Long",
+            dueAt,
+            durationMinutes: 1441,
+          }),
+        () =>
+          service.updateTask(context(), created.id, {
+            expectedVersion: 4,
+            durationMinutes: 15,
+          }),
+      ]) {
+        const error = await failure(attempt);
+        expect(error).toBeInstanceOf(InvalidObjectStateError);
+        seen.push(error.message);
+      }
+      // Restoring the time, then dropping it while a duration stands, is refused.
+      const timed = await service.updateTask(context(), created.id, {
+        expectedVersion: 4,
+        dueAt,
+        durationMinutes: 45,
+      });
+      expect(timed.durationMinutes).toBe(45);
+      const dropped = await failure(() =>
+        service.updateTask(context(), created.id, {
+          expectedVersion: 5,
+          dueAt: null,
+        }),
+      );
+      expect(dropped).toBeInstanceOf(InvalidObjectStateError);
+      seen.push(dropped.message);
+      outcomes.push(seen);
+    }
+    expect(outcomes[1]).toEqual(outcomes[0]);
+    expect(outcomes[0]).toEqual([
+      "durationMinutes requires dueAt.",
+      "durationMinutes requires dueAt.",
+      "durationMinutes is 1 to 1440 minutes.",
+      "durationMinutes is 1 to 1440 minutes.",
+      "durationMinutes requires dueAt.",
+      "durationMinutes requires dueAt.",
+    ]);
+  });
+
   it("create once per command and refuse a different input under the same id alike", async () => {
     const outcomes: unknown[] = [];
     for (const [, service] of backends(reference, cloudbase)) {

@@ -84,14 +84,17 @@ export const eventUpdateRequestSchema = z
 // A Task may be a subtask of one other Task (parentTaskId), one level deep,
 // sharing its parent's permission scope; the service enforces the rules.
 // A Task may be assigned to one live Person of its workspace (assigneeId)
-// and name where it happens as text (location).
+// and name where it happens as text (location). A task due at an instant
+// may say how long it takes (durationMinutes, 1 to 1440).
 const taskLocationSchema = z.string().trim().min(1).max(240).nullable();
+const taskDurationSchema = z.number().int().min(1).max(1440).nullable();
 
 export const taskCreateRequestSchema = z.object({
   ...createObjectShape,
   status: taskStatusSchema.optional(),
   dueOn: calendarDateSchema.nullable().optional(),
   dueAt: nullableDateTimeInputSchema.optional(),
+  durationMinutes: taskDurationSchema.optional(),
   completedAt: nullableDateTimeInputSchema.optional(),
   parentTaskId: objectIdSchema.nullable().optional(),
   assigneeId: objectIdSchema.nullable().optional(),
@@ -106,6 +109,7 @@ export const taskUpdateRequestSchema = z
     status: taskStatusSchema.optional(),
     dueOn: calendarDateSchema.nullable().optional(),
     dueAt: nullableDateTimeInputSchema.optional(),
+    durationMinutes: taskDurationSchema.optional(),
     completedAt: nullableDateTimeInputSchema.optional(),
     parentTaskId: objectIdSchema.nullable().optional(),
     assigneeId: objectIdSchema.nullable().optional(),
@@ -227,6 +231,8 @@ export const taskResponseSchema = z.object({
   status: taskStatusSchema,
   dueOn: calendarDateSchema.nullable().default(null),
   dueAt: nullableDateTimeResponseSchema,
+  /** How long the task takes, in minutes, only with a due instant. */
+  durationMinutes: z.number().int().nullable().default(null),
   completedAt: nullableDateTimeResponseSchema,
   parentTaskId: objectIdSchema.nullable().default(null),
   /** The Person responsible for the task. */

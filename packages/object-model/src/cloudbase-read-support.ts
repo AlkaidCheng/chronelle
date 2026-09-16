@@ -62,6 +62,7 @@ export type CloudBaseTaskRow = {
   readonly status: unknown;
   readonly due_on: unknown;
   readonly due_at: unknown;
+  readonly duration_minutes: unknown;
   readonly completed_at: unknown;
   readonly parent_task_id: unknown;
   readonly assignee_person_id: unknown;
@@ -196,6 +197,14 @@ export function cloudbaseInteger(value: unknown, field: string): number {
   return parsed;
 }
 
+export function cloudbaseNullableInteger(
+  value: unknown,
+  field: string,
+): number | null {
+  if (value === null || value === undefined) return null;
+  return cloudbaseInteger(value, field);
+}
+
 function cloudbaseBoolean(value: unknown, field: string): boolean {
   if (typeof value !== "boolean")
     throw new Error(`CloudBase returned an invalid ${field}.`);
@@ -269,6 +278,10 @@ export function cloudbaseTaskResource(
     status: status as TaskStatus,
     dueOn: cloudbaseNullableText(task.due_on, "due_on"),
     dueAt: cloudbaseNullableDate(task.due_at, "due_at"),
+    durationMinutes: cloudbaseNullableInteger(
+      task.duration_minutes,
+      "duration_minutes",
+    ),
     completedAt: cloudbaseNullableDate(task.completed_at, "completed_at"),
     parentTaskId: cloudbaseNullableText(task.parent_task_id, "parent_task_id"),
     assigneeId: cloudbaseNullableText(
@@ -666,7 +679,7 @@ export async function readCloudBaseObjectRows(
 }
 
 export const cloudbaseTaskColumns =
-  "object_id,workspace_id,status,due_on,due_at,completed_at,parent_task_id,assignee_person_id,location";
+  "object_id,workspace_id,status,due_on,due_at,duration_minutes,completed_at,parent_task_id,assignee_person_id,location";
 
 export async function readCloudBaseTasks(
   client: CloudBaseRdbReader,
