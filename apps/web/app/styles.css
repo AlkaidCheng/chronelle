@@ -3957,11 +3957,11 @@ html:has(.event-create-dialog[open]) {
   box-shadow: inset 2px 0 0 var(--accent);
 }
 
-.due-month {
+.month-list {
   position: relative;
 }
 
-.due-month-nav {
+.month-list-nav {
   align-items: center;
   display: flex;
   gap: 8px;
@@ -3969,7 +3969,7 @@ html:has(.event-create-dialog[open]) {
   margin-bottom: 6px;
 }
 
-.due-month-button {
+.month-list-heading {
   background: transparent;
   border: 1px solid transparent;
   border-radius: 8px;
@@ -3981,41 +3981,41 @@ html:has(.event-create-dialog[open]) {
   padding: 4px 8px;
 }
 
-.due-month-button::after {
+.month-list-heading::after {
   color: var(--muted);
   content: " \2304";
   font-weight: 400;
 }
 
-.due-month-button {
+.month-list-heading {
   align-items: baseline;
   display: inline-flex;
   gap: 0.35em;
 }
 
 /* The month names share one cell, so the button is as wide as the widest and the year stays put. */
-.due-month-name {
+.month-list-month {
   display: inline-grid;
   text-align: left;
 }
 
-.due-month-name > span {
+.month-list-month > span {
   grid-area: 1 / 1;
 }
 
-.due-month-name-other {
+.month-list-month-other {
   visibility: hidden;
 }
 
-.due-month-year {
+.month-list-year {
   font-variant-numeric: tabular-nums;
 }
 
-.due-month-button:hover {
+.month-list-heading:hover {
   background: var(--surface-subtle);
 }
 
-.due-month-input {
+.month-list-input {
   flex: 1 1 160px;
   max-width: 240px;
   min-height: 34px;
@@ -4023,7 +4023,7 @@ html:has(.event-create-dialog[open]) {
 }
 
 /* The chooser floats over the months as a focused panel; the backdrop closes it. */
-.due-month-backdrop {
+.month-list-backdrop {
   background: color-mix(in srgb, var(--canvas) 55%, transparent);
   border: 0;
   border-radius: 12px;
@@ -4034,7 +4034,7 @@ html:has(.event-create-dialog[open]) {
   z-index: 1;
 }
 
-.due-month-panel {
+.month-list-chooser {
   background: var(--surface);
   border: 1px solid var(--line);
   border-radius: 12px;
@@ -4050,20 +4050,20 @@ html:has(.event-create-dialog[open]) {
 }
 
 /* The month and the year are chosen independently, so each gets its own grid. */
-.due-month-columns {
+.month-list-chooser-columns {
   display: grid;
   gap: 14px;
   grid-template-columns: 3fr 2fr;
 }
 
-.due-month-group {
+.month-list-chooser-group {
   border: 0;
   margin: 0;
   min-width: 0;
   padding: 0;
 }
 
-.due-month-group legend {
+.month-list-chooser-group legend {
   color: var(--muted);
   font-size: 0.7rem;
   font-weight: 700;
@@ -4072,15 +4072,15 @@ html:has(.event-create-dialog[open]) {
   text-transform: uppercase;
 }
 
-.due-month-grid,
-.due-year-grid {
+.month-list-month-grid,
+.month-list-year-grid {
   display: grid;
   gap: 4px;
   grid-template-columns: repeat(3, 1fr);
 }
 
 /* Years wrap to fewer columns where the panel is narrow. */
-.due-year-grid {
+.month-list-year-grid {
   align-content: start;
   border-left: 1px solid var(--line);
   grid-template-columns: repeat(auto-fill, minmax(40px, 1fr));
@@ -4092,7 +4092,7 @@ html:has(.event-create-dialog[open]) {
   scrollbar-gutter: stable;
 }
 
-.due-month-choice {
+.month-list-choice {
   background: transparent;
   border: 1px solid transparent;
   border-radius: 8px;
@@ -4105,25 +4105,25 @@ html:has(.event-create-dialog[open]) {
   width: 100%;
 }
 
-.due-month-choice:hover {
+.month-list-choice:hover {
   background: var(--surface-subtle);
 }
 
-.due-month-choice.is-now {
+.month-list-choice.is-now {
   border-color: var(--accent);
 }
 
-.due-month-choice[aria-pressed="true"] {
+.month-list-choice[aria-pressed="true"] {
   background: var(--accent);
   color: var(--on-accent);
 }
 
-.due-month-footer {
+.month-list-chooser-footer {
   display: flex;
   justify-content: flex-end;
 }
 
-.due-weekdays {
+.month-list-weekdays {
   color: var(--muted);
   display: grid;
   font-size: 0.72rem;
@@ -4135,7 +4135,7 @@ html:has(.event-create-dialog[open]) {
 
 /* Months run on continuously; the list extends as it is scrolled. */
 /* One six-week month at most; the list scrolls for the rest. */
-.due-months {
+.month-list-months {
   max-height: 250px;
   overflow-y: auto;
   overscroll-behavior: contain;
@@ -4143,14 +4143,14 @@ html:has(.event-create-dialog[open]) {
   scrollbar-gutter: stable;
 }
 
-.due-grid {
+.month-list-grid {
   border-collapse: separate;
   border-spacing: 2px;
   table-layout: fixed;
   width: 100%;
 }
 
-.due-grid-caption {
+.month-list-caption {
   caption-side: top;
   font-size: 0.85rem;
   font-weight: 700;
@@ -4158,12 +4158,12 @@ html:has(.event-create-dialog[open]) {
   text-align: left;
 }
 
-.due-grid td {
+.month-list-grid td {
   padding: 0;
   text-align: center;
 }
 
-.due-day {
+.month-list-day {
   background: transparent;
   border: 1px solid transparent;
   border-radius: 999px;
@@ -4176,22 +4176,41 @@ html:has(.event-create-dialog[open]) {
   width: 34px;
 }
 
-.due-day:hover {
+.month-list-day:hover {
   background: var(--accent-soft);
 }
 
-.due-day.is-past,
-.due-day.is-weekend {
+.month-list-day.is-past,
+.month-list-day.is-weekend {
   color: var(--muted);
 }
 
-.due-day.is-today {
+.month-list-day.is-today {
   border-color: var(--accent);
 }
 
-.due-day[aria-pressed="true"] {
+.month-list-day[aria-pressed="true"] {
   background: var(--accent);
   color: var(--on-accent);
+}
+
+/* Days inside a chosen range; the ends stay round over the band. */
+.month-list-grid td.is-between {
+  background: var(--accent-soft);
+}
+
+.month-list-grid td.is-between:first-child {
+  border-radius: 999px 0 0 999px;
+}
+
+.month-list-grid td.is-between:last-child {
+  border-radius: 0 999px 999px 0;
+}
+
+/* Dragging across days chooses a span; the pointer must not select text. */
+.month-list-months.is-draggable {
+  touch-action: pan-y;
+  user-select: none;
 }
 
 .due-time {
