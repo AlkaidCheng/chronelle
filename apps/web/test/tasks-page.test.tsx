@@ -540,6 +540,7 @@ describe("TasksPage", () => {
     await user.click(screen.getByRole("button", { name: "New task" }));
     const editor = screen.getByRole("dialog", { name: "Add task" });
     await user.type(within(editor).getByLabelText("Task"), "Water the plants");
+    await user.click(within(editor).getByText(/^Due: /));
     await user.type(within(editor).getByLabelText("Due date"), "2031-04-02");
     await user.click(
       within(editor).getByRole("button", { name: "Create task" }),

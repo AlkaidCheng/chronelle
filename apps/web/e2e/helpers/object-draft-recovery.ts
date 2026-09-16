@@ -1,4 +1,5 @@
 import { expect, type Page, type TestInfo } from "@playwright/test";
+import { expectDue, setDue } from "./due-picker";
 import { expectToken } from "./appearance";
 import { expectHorizontalReflow } from "./page-navigation";
 
@@ -65,9 +66,11 @@ export async function exerciseObjectRecovery(
     await page.getByLabel("Amount", { exact: true }).fill("-0.0001");
     await page.getByLabel("Currency", { exact: true }).fill("CNY");
   }
-  // The task editor takes a date and a time; the others take one instant.
+  // The task editor takes a date behind its Due control; the others take
+  // one instant.
   const timeValue = kind === "task" ? "2030-07-03" : "2030-07-03T11:30";
-  await page.getByLabel(timeLabel, { exact: true }).fill(timeValue);
+  if (kind === "task") await setDue(page.getByRole("dialog"), timeValue);
+  else await page.getByLabel(timeLabel, { exact: true }).fill(timeValue);
   await revisitObjectView(page);
   await add.click();
   await expect(recovery).toBeVisible();
@@ -96,9 +99,11 @@ export async function exerciseObjectRecovery(
   await resume.click();
   await expect(name).toHaveValue("Pack the lanterns");
   await expect(name).toBeFocused();
-  await expect(page.getByLabel(timeLabel, { exact: true })).toHaveValue(
-    timeValue,
-  );
+  if (kind === "task") await expectDue(page.getByRole("dialog"), "Jul 3, 2030");
+  else
+    await expect(page.getByLabel(timeLabel, { exact: true })).toHaveValue(
+      timeValue,
+    );
   if (kind === "expense") {
     await expect(page.getByLabel("Amount", { exact: true })).toHaveValue(
       "-0.0001",

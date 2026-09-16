@@ -1,4 +1,5 @@
 import { expect, type Page } from "@playwright/test";
+import { setDue } from "./due-picker";
 import { today } from "./today";
 
 /**
@@ -25,8 +26,7 @@ export async function exerciseComponentViews(page: Page) {
   await todos.getByRole("button", { name: "Add task", exact: true }).click();
   const editor = page.getByRole("dialog", { name: "Add task", exact: true });
   await editor.getByLabel("Task", { exact: true }).fill("Book the room");
-  await editor.getByLabel("Due date", { exact: true }).fill("2031-03-05");
-  await editor.getByLabel("Due time", { exact: true }).fill("09:30");
+  await setDue(editor, "2031-03-05", "09:30");
   await editor
     .getByRole("button", { name: "Create task", exact: true })
     .click();
@@ -34,7 +34,7 @@ export async function exerciseComponentViews(page: Page) {
   // A second task due on the same date, with no time.
   await todos.getByRole("button", { name: "Add task", exact: true }).click();
   await editor.getByLabel("Task", { exact: true }).fill("Send the agenda");
-  await editor.getByLabel("Due date", { exact: true }).fill("2031-03-05");
+  await setDue(editor, "2031-03-05");
   await editor
     .getByRole("button", { name: "Create task", exact: true })
     .click();
@@ -42,7 +42,7 @@ export async function exerciseComponentViews(page: Page) {
   // A third task due today, which the week and month views open on.
   await todos.getByRole("button", { name: "Add task", exact: true }).click();
   await editor.getByLabel("Task", { exact: true }).fill("Confirm the caterer");
-  await editor.getByLabel("Due date", { exact: true }).fill(today());
+  await setDue(editor, today());
   await editor
     .getByRole("button", { name: "Create task", exact: true })
     .click();

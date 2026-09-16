@@ -29,6 +29,7 @@ import { ExpenseInspector } from "../features/events/expense-inspector";
 import { ReminderForm } from "../features/events/reminder-form";
 import { ReminderInspector } from "../features/events/reminder-inspector";
 import { useAuthSession } from "../lib/auth-session";
+import { describeDueDay } from "../lib/due-choices";
 import { useApiClient } from "../lib/api-context";
 import { queryKeys } from "../lib/queries";
 import { SandboxStore, sandboxWorkspaceId } from "../sandbox/store";
@@ -309,6 +310,8 @@ describe.each(draftKinds)("%s draft recovery", (kind) => {
       "checks fresh access before resuming a %s draft",
       async (mode) => {
         const user = await begin(mode);
+        // The task's due sits behind its disclosure.
+        if (kind === "task") await user.click(screen.getByText(/^Due: /));
         const due = screen.getByLabelText(timeLabel);
         const edited = kind === "task" ? "2030-07-04" : "2030-07-04T10:15";
         fireEvent.change(due, { target: { value: edited } });
@@ -334,7 +337,11 @@ describe.each(draftKinds)("%s draft recovery", (kind) => {
           "Pack the lanterns",
         );
         expect(screen.getByLabelText(field)).toHaveFocus();
-        expect(screen.getByLabelText(timeLabel)).toHaveValue(edited);
+        if (kind === "task")
+          expect(screen.getByText(/^Due: /)).toHaveTextContent(
+            `Due: ${describeDueDay(edited, new Date())}`,
+          );
+        else expect(screen.getByLabelText(timeLabel)).toHaveValue(edited);
         expect(fetch).toHaveBeenCalledWith(
           expect.stringContaining(
             `/objects/${mode === "create" ? eventId : resource.id}/access`,
