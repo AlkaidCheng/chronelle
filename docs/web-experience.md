@@ -15,21 +15,25 @@ exists only where the web server is started with
 
 Chronelle opens into an event collection, with workspace-wide Tasks, People, Search,
 and Trash alongside it. Desktop navigation stays on the left; mobile navigation
-remains at the bottom with space for the device's safe area. Events, Tasks,
-People, Search, and Trash remain directly accessible on both layouts. More opens one shared Workspace
-settings dialog for workspace switching, appearance, and sign-out. Escape,
-the close button, or a backdrop press dismisses it and returns focus to More.
-Opening settings does not navigate or discard the current Event draft. On the
-desktop layout the account block at the foot of the sidebar is a button that
-reveals Sign out beneath it; Escape or a press elsewhere collapses it and
-returns focus to the account button. The mobile layout keeps sign-out in
-Workspace settings.
-
-Appearance customization opens a second native dialog. Closing it returns to
-Workspace settings; a second Escape returns to the page. A workspace or session
-change dismisses both dialogs and uses the existing session boundary to cancel
+remains at the bottom with space for the device's safe area, and the theme and
+account controls sit in a slim bar at the top. There is no other header: each
+page starts with its own title. Search in the rail opens the one palette
+(records, destinations, and the current page's actions); the Search page stays
+reachable from the palette. Theme opens a panel beside the rail with the mode
+(System, Light, Dark), the palette, density, and motion choices, and a reset.
+The profile block at the foot of the rail opens the account menu: the account,
+the workspaces the person can open (the current one checked), Change password,
+and Sign out. Escape or a press elsewhere closes either and returns focus to
+its control; neither navigates or discards the current Event draft. A
+workspace or session change uses the existing session boundary to cancel
 pending requests and clear protected state. Workspace choices come from the
 authorized session response; choosing one never grants access by itself.
+
+The Events page is one row: the title, an inline name filter, then quiet
+Filter (All, Upcoming & ongoing, Unscheduled, Past), Sort (Event date, Recently
+updated, Name A-Z), and Layout (Grid, List) menus, Refresh, and the single
+filled New event control. The count of loaded events is announced to assistive
+technology and not shown.
 
 ## Tasks
 
@@ -142,17 +146,16 @@ limit is reached.
 
 ## Workspace commands
 
-Commands opens a focused palette from the desktop or mobile header.
-Type an action or destination name or description, use Up/Down to choose a result,
-and press Enter to open it. Pointer selection also works. Escape, Close, or a
-backdrop press dismisses the palette and restores focus. Opening or closing it
-keeps the current draft; choosing another destination has the same draft
-behavior as the navigation rail.
+Search in the rail opens a focused palette. Type an action or destination
+name or description, use Up/Down to choose a result, and press Enter to open
+it. Pointer selection also works. Escape, Close, or a backdrop press dismisses
+the palette and restores focus. Opening or closing it keeps the current draft;
+choosing another destination has the same draft behavior as the navigation rail.
 
-Cmd/Ctrl + K opens Commands outside text editors and dialogs. It ignores
+Cmd/Ctrl + K opens Search outside text editors and dialogs. It ignores
 composition, repeated keydown, consumed events, and extra modifiers. Keyboard
 shortcuts inside the palette explains the controls and lets users disable this
-binding. The visible Commands button remains available. The preference is a
+binding. The Search entry remains available. The preference is a
 browser-local `chronelle.command-shortcut` value: `disabled` opts out; absence
 or an unknown value enables the default. Same-origin tabs synchronize it.
 Blocked storage allows a current-page choice without guaranteeing persistence.
@@ -175,13 +178,14 @@ The rail and palette share one catalog of Events, Search, and Trash routes.
 On an event, a separate Event actions group offers Edit event, Share event,
 Event history, Add page, Add component, and Arrange layout when their controls are
 available. Viewers receive only Event history. An open event editor does not
-offer Edit event again. Page actions require the Pages view, edit access, and
-no pending canvas save. Insertion also requires room within layout limits;
+offer Edit event again. Add page needs edit access and no pending layout save;
+Add component and Arrange layout also need the Pages view. Insertion also requires room within layout limits;
 Arrange layout requires an existing page. Add component names its
 selected page. These actions open existing controls; they do not save, insert,
 share, or restore data immediately.
 
-Commands closes before focusing and activating the original button. Editors
+The palette closes before focusing and activating the original control;
+Arrange layout runs from the page menu and lands focus on Done arranging. Editors
 focus their first field, sharing focuses its view, and dialogs return focus to
 their original control. Removed actions do not shift keyboard selection onto
 another action. Mounted owners publish explicit button references through the
@@ -221,8 +225,8 @@ Destructive commands are not included.
 
 Ink & Paper uses warm ivory surfaces, charcoal text, and restrained vermilion
 accents. Dark appearance uses warm charcoal surfaces with light ink text.
-The Appearance control offers System, Light, and Dark. It is available on
-sign-in and inside More on desktop and mobile.
+The mode control offers System, Light, and Dark. It is available on sign-in
+and in the rail's Theme panel on desktop and mobile.
 Native radio controls support Tab and arrow-key navigation. System follows
 operating-system changes; Light and Dark override them without reloading the
 page or resetting a draft.
@@ -234,9 +238,9 @@ unreadable storage falls back to System; failed writes leave the current page
 usable but cannot guarantee persistence. Sandbox file storage depends on the
 browser and file location.
 
-Choose Customize beside the mode control to open the Appearance dialog. It
-previews Ink & Paper, Celadon, and Modern Neutral in the current light/dark
-mode. Choosing a palette does not change that mode. Comfortable/Compact
+The Theme panel previews Ink & Paper, Celadon, and Modern Neutral in the
+current light/dark mode (sign-in keeps its Customize dialog for the same
+choices). Choosing a palette does not change that mode. Comfortable/Compact
 density changes Event-card and record-row spacing without shrinking controls.
 Motion follows the device by default; Reduced minimizes transitions and
 movement even when the device allows them. Device-level reduced motion always
@@ -307,10 +311,11 @@ the light paper color; the running page follows the selected appearance.
   preserves the selected page; reload and browser Back/Forward restore it.
   A missing page shows an explanation and the first available page. This is
   navigation state, not an Event or layout mutation, and conveys no access.
-- Page names stay in one horizontally scrollable strip. When it overflows,
-  Jump to page provides a native keyboard/touch picker. The selected page stays
-  visible on resize; the page heading retains its full name. Event breadcrumbs
-  and wrapping title/actions keep long names readable without hiding controls.
+- The event strip holds the pages first, a plus to add one, then the data
+  views (Overview, To-dos, and the rest); it scrolls sideways and keeps the
+  selected page in view on resize. The page heading retains its full name, and
+  the quiet Events link above the title returns to the collection. An undated
+  event shows no date line; Set dates opens the editor on the schedule.
 - Overview counts and Next up use the authorized Event detail response.
   Next up excludes past dates, completed/cancelled tasks, dismissed/triggered
   reminders, and expenses. Time-dependent views refresh every minute and when
@@ -337,15 +342,20 @@ These views cover the whole event; Multi-day does not invent dates or filter
 activities to separate days. Reusing a preset creates fresh layout identities,
 not new planning records. Page/component limits are validated with the shared
 layout schema before submission; existing backend checks remain authoritative.
-The append is one versioned layout mutation, recoverable through Page options.
+The append is one versioned layout mutation, recoverable through Page options
+in the active page's menu.
 Preview and cancellation perform no writes. Save failures preserve the name
 and preset; after a conflict, close and reopen to review the latest layout.
 
-Arrange layout reveals page ordering, component move buttons, cross-page moves,
-and drag handles. Done arranging hides these tools without saving again; each
-move saves immediately through the existing versioned layout API. Page options
-remains available for removal, undo/redo, and saved layout history. Add page,
-Add component, and insertion shortcuts work in either mode.
+Arrange layout, in the active page's menu, reveals page ordering, component
+move buttons, cross-page moves, and drag handles, including dropping a
+component on another page in the strip. Done arranging, in the page heading,
+hides these tools without saving again and returns focus to the page menu;
+each move saves immediately through the existing versioned layout API. Page
+options (Layout history for viewers) stays in the same menu for removal,
+undo/redo, and saved layout history. Add page, Add component, and insertion
+shortcuts work in either mode. An event with no pages offers Add a page; a
+page with no components offers Add component; neither explains itself.
 
 The component catalog names its destination page and searches all seven kinds
 by name, description, or ordinary terms such as checklist, costs, and documents.
@@ -365,7 +375,7 @@ captured source version; close and reopen to retry against the latest layout.
 The mode is local to the open event and session. It survives page selection,
 but resets on leaving the Pages view, reload, event/session changes, and loss
 of edit access. Toggling keeps mounted components and unsaved form values.
-Commands offers the same Arrange layout / Done arranging control, disabled
+The palette offers the same Arrange layout / Done arranging action, withheld
 during an in-flight canvas save. No global Escape shortcut is added, so native
 editors and dialogs retain ownership of their keys. Mode changes do not write
 layout versions or audit events; layout mutations retain concurrency and
