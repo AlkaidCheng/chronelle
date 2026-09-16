@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { taskRepeatRuleSchema } from "./task-repeat.js";
 import { calendarDateSchema } from "./event-calendar-dates.js";
 import { cursorTokenSchema } from "./pagination.js";
 import { relationTypeSchema } from "./relation-list.js";
@@ -85,7 +86,8 @@ export const eventUpdateRequestSchema = z
 // sharing its parent's permission scope; the service enforces the rules.
 // A Task may be assigned to one live Person of its workspace (assigneeId)
 // and name where it happens as text (location). A task due at an instant
-// may say how long it takes (durationMinutes, 1 to 1440).
+// may say how long it takes (durationMinutes, 1 to 1440). A task with a due
+// may repeat (repeatRule), optionally until a last date (repeatUntil).
 const taskLocationSchema = z.string().trim().min(1).max(240).nullable();
 const taskDurationSchema = z.number().int().min(1).max(1440).nullable();
 
@@ -95,6 +97,8 @@ export const taskCreateRequestSchema = z.object({
   dueOn: calendarDateSchema.nullable().optional(),
   dueAt: nullableDateTimeInputSchema.optional(),
   durationMinutes: taskDurationSchema.optional(),
+  repeatRule: taskRepeatRuleSchema.nullable().optional(),
+  repeatUntil: calendarDateSchema.nullable().optional(),
   completedAt: nullableDateTimeInputSchema.optional(),
   parentTaskId: objectIdSchema.nullable().optional(),
   assigneeId: objectIdSchema.nullable().optional(),
@@ -110,6 +114,8 @@ export const taskUpdateRequestSchema = z
     dueOn: calendarDateSchema.nullable().optional(),
     dueAt: nullableDateTimeInputSchema.optional(),
     durationMinutes: taskDurationSchema.optional(),
+    repeatRule: taskRepeatRuleSchema.nullable().optional(),
+    repeatUntil: calendarDateSchema.nullable().optional(),
     completedAt: nullableDateTimeInputSchema.optional(),
     parentTaskId: objectIdSchema.nullable().optional(),
     assigneeId: objectIdSchema.nullable().optional(),
@@ -233,6 +239,10 @@ export const taskResponseSchema = z.object({
   dueAt: nullableDateTimeResponseSchema,
   /** How long the task takes, in minutes, only with a due instant. */
   durationMinutes: z.number().int().nullable().default(null),
+  /** How the task repeats from its due, if it does. */
+  repeatRule: taskRepeatRuleSchema.nullable().default(null),
+  /** The last date the task repeats to, if the rule ends. */
+  repeatUntil: calendarDateSchema.nullable().default(null),
   completedAt: nullableDateTimeResponseSchema,
   parentTaskId: objectIdSchema.nullable().default(null),
   /** The Person responsible for the task. */

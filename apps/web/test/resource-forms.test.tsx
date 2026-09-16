@@ -60,6 +60,8 @@ const taskResource = (version: number, displayName: string) =>
     assigneeId: null,
     location: null,
     durationMinutes: null,
+    repeatRule: null,
+    repeatUntil: null,
     labelIds: [] as string[],
   }) as const;
 

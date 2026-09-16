@@ -376,9 +376,18 @@ export class ObjectRestorationService {
             status: fields.status,
             dueOn: fields.dueOn,
             dueAt: fields.dueAt,
-            // A restored state without a due instant keeps no duration.
+            // A restored state without a due instant keeps no duration, and
+            // one without a due keeps no repeat rule.
             durationMinutes:
               fields.dueAt === null ? null : fields.durationMinutes,
+            repeatRule:
+              fields.dueOn === null && fields.dueAt === null
+                ? null
+                : fields.repeatRule,
+            repeatUntil:
+              fields.dueOn === null && fields.dueAt === null
+                ? null
+                : (fields.repeatUntil ?? null),
             completedAt: fields.completedAt,
             location: fields.location,
           })

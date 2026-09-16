@@ -9,6 +9,7 @@ import {
   type ObjectType,
   type ReminderStatus,
   type RelationType,
+  type TaskRepeatRule,
   type TaskStatus,
 } from "@chronelle/db";
 
@@ -63,6 +64,8 @@ export type CloudBaseTaskRow = {
   readonly due_on: unknown;
   readonly due_at: unknown;
   readonly duration_minutes: unknown;
+  readonly repeat_rule: unknown;
+  readonly repeat_until: unknown;
   readonly completed_at: unknown;
   readonly parent_task_id: unknown;
   readonly assignee_person_id: unknown;
@@ -263,6 +266,14 @@ const taskStatuses: readonly TaskStatus[] = [
   "done",
   "cancelled",
 ];
+const taskRepeatRules: readonly TaskRepeatRule[] = [
+  "daily",
+  "weekdays",
+  "weekly",
+  "biweekly",
+  "monthly",
+  "yearly",
+];
 
 export function cloudbaseTaskResource(
   object: CloudBaseObjectRow,
@@ -272,6 +283,12 @@ export function cloudbaseTaskResource(
   const status = cloudbaseText(task.status, "status");
   if (!taskStatuses.includes(status as TaskStatus))
     throw new Error("CloudBase returned an invalid task status.");
+  const repeatRule = cloudbaseNullableText(task.repeat_rule, "repeat_rule");
+  if (
+    repeatRule !== null &&
+    !taskRepeatRules.includes(repeatRule as TaskRepeatRule)
+  )
+    throw new Error("CloudBase returned an invalid task repeat rule.");
   return {
     ...cloudbaseCanonicalFields(object, task, "task"),
     objectType: "task",
@@ -282,6 +299,8 @@ export function cloudbaseTaskResource(
       task.duration_minutes,
       "duration_minutes",
     ),
+    repeatRule: repeatRule as TaskRepeatRule | null,
+    repeatUntil: cloudbaseNullableText(task.repeat_until, "repeat_until"),
     completedAt: cloudbaseNullableDate(task.completed_at, "completed_at"),
     parentTaskId: cloudbaseNullableText(task.parent_task_id, "parent_task_id"),
     assigneeId: cloudbaseNullableText(
@@ -679,7 +698,7 @@ export async function readCloudBaseObjectRows(
 }
 
 export const cloudbaseTaskColumns =
-  "object_id,workspace_id,status,due_on,due_at,duration_minutes,completed_at,parent_task_id,assignee_person_id,location";
+  "object_id,workspace_id,status,due_on,due_at,duration_minutes,repeat_rule,repeat_until,completed_at,parent_task_id,assignee_person_id,location";
 
 export async function readCloudBaseTasks(
   client: CloudBaseRdbReader,

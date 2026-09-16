@@ -143,6 +143,13 @@ export {
   type TimelineResponse,
 } from "./event-planning.js";
 export {
+  nextTaskDueAt,
+  nextTaskDueDate,
+  taskDueDate,
+  type TaskRepeatRule,
+  taskRepeatRuleSchema,
+} from "./task-repeat.js";
+export {
   authorizationActionSchema,
   objectAccessResponseSchema,
   permissionScopeUpdateRequestSchema,

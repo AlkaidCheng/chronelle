@@ -607,6 +607,156 @@ describe.sequential("CloudBase Task writes", () => {
     ]);
   });
 
+  it("advance a repeating task's due on completion and refuse a rule without a due alike", async () => {
+    const outcomes: string[][] = [];
+    const results: string[][] = [];
+    for (const [, service] of backends(reference, cloudbase)) {
+      const seen: string[] = [];
+      // A dated weekly task: completing it moves the due a week on and keeps
+      // it open; the completion is an ordinary versioned update.
+      const weekly = await service.createTask(context(), {
+        displayName: "Water the plants",
+        dueOn: "2030-03-05",
+        repeatRule: "weekly",
+        repeatUntil: "2030-03-19",
+      });
+      expect(weekly.repeatRule).toBe("weekly");
+      expect(weekly.repeatUntil).toBe("2030-03-19");
+      const first = await service.updateTask(context(), weekly.id, {
+        expectedVersion: 1,
+        status: "done",
+        completedAt: new Date("2030-03-05T18:00:00.000Z"),
+      });
+      seen.push(
+        `${first.status} ${first.dueOn} ${first.completedAt} v${first.version}`,
+      );
+      const second = await service.updateTask(context(), weekly.id, {
+        expectedVersion: 2,
+        status: "done",
+        completedAt: new Date("2030-03-12T18:00:00.000Z"),
+      });
+      seen.push(`${second.status} ${second.dueOn} v${second.version}`);
+      // The next occurrence would pass the end: the last one marks it done.
+      const last = await service.updateTask(context(), weekly.id, {
+        expectedVersion: 3,
+        status: "done",
+        completedAt: new Date("2030-03-19T18:00:00.000Z"),
+      });
+      seen.push(
+        `${last.status} ${last.dueOn} ${last.completedAt?.toISOString()} ${last.repeatRule}`,
+      );
+      // Reopening keeps the rule; a completion that also moves the due is
+      // taken as given.
+      const reopened = await service.updateTask(context(), weekly.id, {
+        expectedVersion: 4,
+        status: "todo",
+        completedAt: null,
+      });
+      const moved = await service.updateTask(context(), weekly.id, {
+        expectedVersion: 5,
+        status: "done",
+        completedAt: new Date("2030-03-18T18:00:00.000Z"),
+        dueOn: "2030-03-18",
+      });
+      seen.push(`${reopened.status} ${moved.status} ${moved.dueOn}`);
+      // An instant advances by its UTC date, keeping its time; monthly clamps.
+      const monthly = await service.createTask(context(), {
+        displayName: "Rent",
+        dueAt: new Date("2030-01-31T09:00:00.000Z"),
+        repeatRule: "monthly",
+      });
+      const february = await service.updateTask(context(), monthly.id, {
+        expectedVersion: 1,
+        status: "done",
+        completedAt: new Date("2030-01-31T10:00:00.000Z"),
+      });
+      seen.push(`${february.status} ${february.dueAt?.toISOString()}`);
+      // Weekdays skip the weekend: a Friday due moves to Monday.
+      const weekdays = await service.createTask(context(), {
+        displayName: "Stand-up",
+        dueOn: "2030-03-08",
+        repeatRule: "weekdays",
+      });
+      const monday = await service.updateTask(context(), weekdays.id, {
+        expectedVersion: 1,
+        status: "done",
+        completedAt: new Date("2030-03-08T10:00:00.000Z"),
+      });
+      seen.push(`${monday.status} ${monday.dueOn}`);
+      // Clearing the rule clears its end; dropping the due drops both.
+      const unruled = await service.updateTask(context(), monthly.id, {
+        expectedVersion: 2,
+        repeatUntil: "2031-01-01",
+      });
+      const cleared = await service.updateTask(context(), monthly.id, {
+        expectedVersion: 3,
+        repeatRule: null,
+      });
+      seen.push(
+        `${unruled.repeatUntil} ${cleared.repeatRule} ${cleared.repeatUntil}`,
+      );
+      const undated = await service.updateTask(context(), weekly.id, {
+        expectedVersion: 6,
+        status: "todo",
+        completedAt: null,
+        dueOn: null,
+        repeatRule: null,
+      });
+      seen.push(`${undated.repeatRule} ${undated.repeatUntil}`);
+      results.push(seen);
+      const errors: string[] = [];
+      for (const attempt of [
+        () =>
+          service.createTask(context(), {
+            displayName: "Undated",
+            repeatRule: "daily",
+          }),
+        () =>
+          service.createTask(context(), {
+            displayName: "Ended",
+            dueOn: "2030-03-05",
+            repeatUntil: "2030-04-05",
+          }),
+        () =>
+          service.createTask(context(), {
+            displayName: "Backwards",
+            dueOn: "2030-03-05",
+            repeatRule: "daily",
+            repeatUntil: "2030-03-04",
+          }),
+        () =>
+          service.updateTask(context(), monthly.id, {
+            expectedVersion: 4,
+            dueAt: null,
+            repeatRule: "yearly",
+          }),
+      ]) {
+        const error = await failure(attempt);
+        expect(error).toBeInstanceOf(InvalidObjectStateError);
+        errors.push(error.message);
+      }
+      outcomes.push(errors);
+    }
+    expect(results[1]).toEqual(results[0]);
+    expect(results[0]).toEqual([
+      "todo 2030-03-12 null v2",
+      "todo 2030-03-19 v3",
+      "done 2030-03-19 2030-03-19T18:00:00.000Z weekly",
+      "todo done 2030-03-18",
+      "todo 2030-02-28T09:00:00.000Z",
+      "todo 2030-03-11",
+      "2031-01-01 null null",
+      "null null",
+    ]);
+    expect(outcomes[1]).toEqual(outcomes[0]);
+    expect(outcomes[0]).toEqual([
+      "repeatRule requires dueOn or dueAt.",
+      "repeatUntil requires repeatRule.",
+      "repeatUntil must be on or after the due date.",
+      "repeatRule requires dueOn or dueAt.",
+    ]);
+  });
+
   it("create once per command and refuse a different input under the same id alike", async () => {
     const outcomes: unknown[] = [];
     for (const [, service] of backends(reference, cloudbase)) {

@@ -415,6 +415,28 @@ together. Responses carry `durationMinutes`, null when unset; it is
 restorable content, and a restored revision without a due instant carries
 none. Deploy migration 0044 before this API.
 
+A Task with a due may repeat through `repeatRule`: `daily`, `weekdays`
+(Monday to Friday), `weekly`, `biweekly`, `monthly`, or `yearly`, optionally
+until a last date through `repeatUntil` (`null` clears either; absent leaves
+it unchanged; clearing the rule clears its end). A rule needs a due date or
+instant (`repeatRule requires dueOn or dueAt.`), an end needs a rule
+(`repeatUntil requires repeatRule.`) and cannot come before the due
+(`repeatUntil must be on or after the due date.`). Completing a repeating
+task, that is, a `PATCH` that sets `status` to `done` on a task that is not
+done and carries no `dueOn`, `dueAt`, `repeatRule`, or `repeatUntil` of its
+own, keeps the task open on its next occurrence: the response has `status`
+`todo`, `completedAt` null, and the due moved on (daily adds a day; weekdays
+the next Monday to Friday; weekly and biweekly seven and fourteen days;
+monthly and yearly a month or a year, clamped to the target month's last day;
+an instant keeps its UTC time of day). The completion is one ordinary
+versioned update whose revision shows the move. When the next occurrence
+would fall after `repeatUntil`, the completion marks the task done as usual.
+A `PATCH` that also changes the due or the rule, a reversible command, and a
+revision restore apply the state they are given. Responses carry
+`repeatRule` and `repeatUntil`, null when unset; they are restorable content,
+and a restored revision without a due carries neither. Deploy migration 0045
+before this API.
+
 ## Labels
 
 | Method   | Path                            | Behavior                             |

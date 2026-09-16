@@ -80,7 +80,11 @@ function is dropped); reapply the runtime role after it. Migration
 `0044_add_task_duration.sql` adds `tasks.duration_minutes` with
 `chronelle_assert_task_duration` and redefines the Task functions to carry
 `durationMinutes`; the functions are replaced in place, so the runtime role
-needs no change.
+needs no change. Migration `0045_add_task_repeat.sql` adds `tasks.repeat_rule`
+and `tasks.repeat_until` with `chronelle_assert_task_repeat`, the next-due
+functions, and `chronelle_task_repeat_changes`, which `chronelle_task_update`
+now applies to a completion; the Task functions are replaced in place, so the
+runtime role needs no change.
 
 Migration `0021_add_object_search_function.sql` adds `chronelle_object_search`,
 the read-only function the CloudBase search adapter calls. It changes no
