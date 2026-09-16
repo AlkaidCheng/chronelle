@@ -19,7 +19,7 @@ export const timeZoneSchema = z
  * The workspace Task collection: every Task the caller may view, whether it
  * lives on its own or inside an Event. `filter` selects by status, `sort`
  * by due (date-only tasks at the start of their day, undated last), name,
- * or last update. `dueFrom` and `dueTo` keep the tasks due on a day of that
+ * last update, or manual order (rank). `dueFrom` and `dueTo` keep the tasks due on a day of that
  * inclusive range, a timed task on the day of its instant in `timezone`;
  * undated tasks are left out of a range.
  */
@@ -29,7 +29,7 @@ export const taskListQuerySchema = z
     limit: z.coerce.number().int().min(1).max(50).default(20),
     query: z.string().trim().max(240).default(""),
     filter: z.enum(["open", "all", "done"]).default("open"),
-    sort: z.enum(["due", "name", "updated"]).default("due"),
+    sort: z.enum(["due", "name", "updated", "manual"]).default("due"),
     /** Only tasks carrying this label. */
     label: z.uuid().optional(),
     /** Only tasks assigned to this Person. */
@@ -58,6 +58,7 @@ export const taskListCursorSchema = z.strictObject({
   name: z.string().max(720),
   dueAt: cursorTimestampSchema.nullable(),
   updatedAt: cursorTimestampSchema,
+  rank: z.string().max(64).default(""),
 });
 
 export type TaskListQuery = z.infer<typeof taskListQuerySchema>;

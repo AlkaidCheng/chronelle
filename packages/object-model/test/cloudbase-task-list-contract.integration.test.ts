@@ -528,7 +528,7 @@ describe.sequential("CloudBase task list contract", () => {
 
     // Cursor paging: every sort mode crosses a page boundary with limit 2,
     // and each backend's own cursor must reproduce the same page sequence.
-    for (const sort of ["due", "name", "updated"] as const) {
+    for (const sort of ["due", "name", "updated", "manual"] as const) {
       const walk = async (repository: TaskReadRepository) => {
         const pages: string[][] = [];
         let cursor: string | undefined;

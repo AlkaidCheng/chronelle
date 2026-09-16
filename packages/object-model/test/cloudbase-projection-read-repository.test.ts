@@ -82,6 +82,7 @@ const typedRows: Record<string, Record<string, unknown>[]> = {
     workspace_id: workspaceId,
     status: "todo",
     due_at: "2030-01-08T09:00:00.000Z",
+    rank: "00000001000",
     completed_at: null,
   })),
   expenses: [
@@ -99,6 +100,7 @@ const typedRows: Record<string, Record<string, unknown>[]> = {
       workspace_id: workspaceId,
       remind_at: "2030-01-04T08:00:00.000Z",
       status: "pending",
+      rank: "00000001000",
     },
   ],
   documents: ["included-document", "attached-document", "private-document"].map(

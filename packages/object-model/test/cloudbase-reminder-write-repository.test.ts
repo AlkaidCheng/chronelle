@@ -32,6 +32,7 @@ const rows = {
     workspace_id: workspaceId,
     remind_at: "2030-10-01T08:00:00+00:00",
     status: "triggered",
+    rank: "00000001000",
   },
 };
 

@@ -485,6 +485,32 @@ describe("browser sandbox", () => {
       }),
     ).rejects.toMatchObject({ status: 400 });
   });
+  it("ranks new tasks last and lists them in manual order", async () => {
+    const store = new SandboxStore(storage());
+    const client = new ChronelleApiClient({
+      getCredential: () => ({
+        accessToken: "sample",
+        workspaceId: sandboxWorkspaceId,
+      }),
+      fetch: (input, options) => store.fetch(input, options),
+    });
+    const first = await client.createTask({ displayName: "Ranked first" });
+    const second = await client.createTask({ displayName: "Ranked second" });
+    expect(second.rank > first.rank).toBe(true);
+    const moved = await client.updateTask(second.id, {
+      expectedVersion: 1,
+      rank: "00000000500",
+    });
+    expect(moved.rank).toBe("00000000500");
+    const page = await client.listTasks({ sort: "manual", limit: 50 });
+    const names = page.items.map((task) => task.displayName);
+    expect(names.indexOf("Ranked second")).toBeLessThan(
+      names.indexOf("Ranked first"),
+    );
+    await expect(
+      client.updateTask(first.id, { expectedVersion: 1, rank: "500" }),
+    ).rejects.toMatchObject({ status: 400 });
+  });
   it("keeps people in name order and links one person to the signed-in account", async () => {
     const store = new SandboxStore(storage());
     const client = new ChronelleApiClient({

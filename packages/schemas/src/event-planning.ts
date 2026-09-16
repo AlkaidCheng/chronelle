@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { taskRepeatRuleSchema } from "./task-repeat.js";
+import { rankSchema } from "./rank.js";
 import { calendarDateSchema } from "./event-calendar-dates.js";
 import { cursorTokenSchema } from "./pagination.js";
 import { relationTypeSchema } from "./relation-list.js";
@@ -103,6 +104,8 @@ export const taskCreateRequestSchema = z.object({
   parentTaskId: objectIdSchema.nullable().optional(),
   assigneeId: objectIdSchema.nullable().optional(),
   location: taskLocationSchema.optional(),
+  /** The task's place in manual order; absent puts it last. */
+  rank: rankSchema.optional(),
   /** The task's labels as a whole; absent leaves them unchanged. */
   labelIds: z.array(objectIdSchema).max(20).optional(),
 });
@@ -120,6 +123,7 @@ export const taskUpdateRequestSchema = z
     parentTaskId: objectIdSchema.nullable().optional(),
     assigneeId: objectIdSchema.nullable().optional(),
     location: taskLocationSchema.optional(),
+    rank: rankSchema.optional(),
     labelIds: z.array(objectIdSchema).max(20).optional(),
   })
   .refine(hasUpdateFields, {
@@ -158,6 +162,8 @@ export const reminderCreateRequestSchema = z.object({
   ...createObjectShape,
   remindAt: dateTimeInputSchema,
   status: reminderStatusSchema.optional(),
+  /** The reminder's place in manual order; absent puts it last. */
+  rank: rankSchema.optional(),
 });
 
 export const reminderUpdateRequestSchema = z
@@ -165,6 +171,7 @@ export const reminderUpdateRequestSchema = z
     ...updateObjectShape,
     remindAt: dateTimeInputSchema.optional(),
     status: reminderStatusSchema.optional(),
+    rank: rankSchema.optional(),
   })
   .refine(hasUpdateFields, {
     message: "At least one update field is required.",
@@ -249,6 +256,8 @@ export const taskResponseSchema = z.object({
   assigneeId: objectIdSchema.nullable().default(null),
   /** Where the task happens, as text. */
   location: z.string().nullable().default(null),
+  /** The task's place in manual order. */
+  rank: z.string().default("00000001000"),
   /** The task's labels in name order. */
   labelIds: z.array(objectIdSchema).default([]),
 });
@@ -296,6 +305,8 @@ export const reminderResponseSchema = z.object({
   objectType: z.literal("reminder"),
   remindAt: dateTimeResponseSchema,
   status: reminderStatusSchema,
+  /** The reminder's place in manual order. */
+  rank: z.string().default("00000001000"),
 });
 
 export const documentResponseSchema = z.object({

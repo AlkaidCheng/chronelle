@@ -62,6 +62,7 @@ const taskResource = (version: number, displayName: string) =>
     durationMinutes: null,
     repeatRule: null,
     repeatUntil: null,
+    rank: "00000001000",
     labelIds: [] as string[],
   }) as const;
 
@@ -84,6 +85,7 @@ const reminderResource = (version: number, displayName: string) =>
     objectType: "reminder",
     status: "pending",
     remindAt: "2026-10-15T16:00:00.000Z",
+    rank: "00000001000",
   }) as const;
 
 const forms = [

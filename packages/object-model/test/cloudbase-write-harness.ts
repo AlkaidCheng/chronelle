@@ -99,8 +99,17 @@ export function backends(
 }
 
 /** Everything but identity and clock fields; scope is compared as "owns its scope". */
+// The rank follows creation order, so two backends writing one database
+// never agree on it; the shape leaves it out.
 export function shape(resource: CanonicalObjectResource) {
-  const { id, createdAt, updatedAt, permissionScopeId, ...rest } = resource;
+  const {
+    id,
+    createdAt,
+    updatedAt,
+    permissionScopeId,
+    rank: _rank,
+    ...rest
+  } = resource as CanonicalObjectResource & { rank?: string };
   return {
     ...rest,
     ownsScope: permissionScopeId === id,
@@ -129,8 +138,14 @@ export async function ledger(harness: WriteHarness, objectId: string) {
     )
     .orderBy(objectRevisions.objectVersion);
   return rows.map(({ snapshot, metadata, ...entry }) => {
-    const { id, createdAt, updatedAt, permissionScopeId, ...fields } =
-      snapshot as Record<string, unknown>;
+    const {
+      id,
+      createdAt,
+      updatedAt,
+      permissionScopeId,
+      rank: _rank,
+      ...fields
+    } = snapshot as Record<string, unknown>;
     const { permissionScopeId: scope, ...auditMetadata } = metadata as Record<
       string,
       unknown

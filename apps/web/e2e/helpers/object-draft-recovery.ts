@@ -159,6 +159,11 @@ export async function exerciseObjectRecovery(
   await expect(row).toHaveCount(1);
   await expect(edit).toBeFocused();
   if (kind === "reminder") {
+    // The row shows the rename only once the list has refetched; dismissing
+    // before that would send the version the rename already replaced.
+    await expect(row.getByRole("heading")).toHaveText(
+      "Pack the lanterns and candles",
+    );
     await row.getByRole("button", { name: "Dismiss", exact: true }).click();
     await expect(row.getByText("Dismissed", { exact: true })).toBeVisible();
     await edit.click();

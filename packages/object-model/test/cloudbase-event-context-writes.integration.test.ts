@@ -93,7 +93,15 @@ function shape(
   resource: Record<string, unknown>,
   eventId: string,
 ): Record<string, unknown> {
-  const { id, createdAt, updatedAt, permissionScopeId, ...rest } = resource;
+  // The rank follows creation order, which the two backends share here.
+  const {
+    id,
+    createdAt,
+    updatedAt,
+    permissionScopeId,
+    rank: _rank,
+    ...rest
+  } = resource;
   return {
     ...rest,
     scopedToEvent: permissionScopeId === eventId,

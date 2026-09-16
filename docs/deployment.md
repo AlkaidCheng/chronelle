@@ -234,7 +234,7 @@ deletion, recovery, and revision restore, sharing and permission-scope
 changes, Event page layouts, reversible commands, and document transfers
 (upload authorization, consumption, finalization, and download
 authorization; the storage provider is unchanged) through those functions;
-it requires `CLOUDBASE_READS_ENABLED=true` and migrations 0012 through 0045
+it requires `CLOUDBASE_READS_ENABLED=true` and migrations 0012 through 0046
 on the environment (0024, 0025, and 0027 serve reads and sign-in; 0028 the
 readiness check; 0029 the revision baseline through the gateway; 0030 and
 0031 the sessions a sign-in records and a sign-out revokes; 0032 and 0033
@@ -245,7 +245,7 @@ Task assignee; 0039 the Task location; 0040 People in Events; 0041 subtasks
 in Trash with their parent; 0042 standalone creation commands, after which
 the runtime role grants are reapplied; 0043 sharing with a Person, which
 replaces `chronelle_resource_share` and needs the runtime role grants
-reapplied; 0044 the Task duration; 0045 the Task repeat rule). With `CHRONELLE_BACKEND=postgres` (the default) the two
+reapplied; 0044 the Task duration; 0045 the Task repeat rule; 0046 the manual order of Tasks and Reminders). With `CHRONELLE_BACKEND=postgres` (the default) the two
 flags are staged opt-ins and the API still connects to `DATABASE_URL` at
 startup; the CloudBase backend below removes that connection.
 

@@ -757,6 +757,62 @@ describe.sequential("CloudBase Task writes", () => {
     ]);
   });
 
+  it("rank a new task last, take a given rank, and refuse a malformed one alike", async () => {
+    const outcomes: string[][] = [];
+    for (const [, service] of backends(reference, cloudbase)) {
+      const seen: string[] = [];
+      // Each backend sees the tasks the other created: the next rank is a
+      // thousand past the workspace's highest integer part either way.
+      const first = await service.createTask(context(), {
+        displayName: "Ranked first",
+      });
+      const second = await service.createTask(context(), {
+        displayName: "Ranked second",
+      });
+      expect(second.rank > first.rank).toBe(true);
+      expect(second.rank.slice(0, 11)).toBe(
+        String(Number(first.rank.slice(0, 11)) + 1000).padStart(11, "0"),
+      );
+      // A rank the client computed between two others is kept as sent.
+      const between = await service.updateTask(context(), second.id, {
+        expectedVersion: 1,
+        rank: `${first.rank}.5`,
+      });
+      seen.push(
+        between.rank === `${first.rank}.5` ? "between kept" : between.rank,
+      );
+      const explicit = await service.createTask(context(), {
+        displayName: "Ranked by hand",
+        rank: "00000000500",
+      });
+      seen.push(explicit.rank);
+      for (const attempt of [
+        () =>
+          service.createTask(context(), {
+            displayName: "Short rank",
+            rank: "500",
+          }),
+        () =>
+          service.updateTask(context(), first.id, {
+            expectedVersion: 1,
+            rank: "00000001000.50",
+          }),
+      ]) {
+        const error = await failure(attempt);
+        expect(error).toBeInstanceOf(InvalidObjectStateError);
+        seen.push(error.message);
+      }
+      outcomes.push(seen);
+    }
+    expect(outcomes[1]).toEqual(outcomes[0]);
+    expect(outcomes[0]).toEqual([
+      "between kept",
+      "00000000500",
+      "rank is a position in manual order.",
+      "rank is a position in manual order.",
+    ]);
+  });
+
   it("create once per command and refuse a different input under the same id alike", async () => {
     const outcomes: unknown[] = [];
     for (const [, service] of backends(reference, cloudbase)) {

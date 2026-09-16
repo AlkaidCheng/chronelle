@@ -142,6 +142,7 @@ export {
   type TaskUpdatePayload,
   type TimelineResponse,
 } from "./event-planning.js";
+export { rankAfter, rankBetween, rankSchema } from "./rank.js";
 export {
   nextTaskDueAt,
   nextTaskDueDate,

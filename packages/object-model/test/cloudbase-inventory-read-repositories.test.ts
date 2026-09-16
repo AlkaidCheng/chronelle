@@ -83,6 +83,7 @@ const typed = {
     workspace_id: workspaceId,
     status: "todo",
     due_at: null,
+    rank: "00000001000",
     completed_at: null,
   })),
   // Numeric and bigint values are held as PostgreSQL returns them as text.

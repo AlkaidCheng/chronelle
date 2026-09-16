@@ -437,6 +437,18 @@ revision restore apply the state they are given. Responses carry
 and a restored revision without a due carries neither. Deploy migration 0045
 before this API.
 
+Tasks and Reminders take a place in manual order through `rank`: eleven
+digits with an optional fraction and no trailing zero (`00000001000`,
+`00000001500.5`), so text order is numeric order. A created record goes last
+(a thousand past the workspace's highest integer part) unless the request
+sends a rank; to drop a record between two others, send the midpoint of
+their ranks (the `rankBetween` helper in `@chronelle/schemas` computes it) as
+a `PATCH` with the expected version, which moves no other record. A rank of
+another shape is refused with `rank is a position in manual order.`.
+Responses carry `rank`; `GET /tasks?sort=manual` lists by it. The rank is
+content the revision history records but never restores. Deploy migration
+0046 before this API.
+
 ## Labels
 
 | Method   | Path                            | Behavior                             |
@@ -467,7 +479,8 @@ the active workspace, whether it owns its scope or inherits an Event's, with
 the same authorization decision per candidate. `filter` is `open` (todo and in
 progress, the default), `all`, or `done`; `sort` is `due` (a date-only due at
 the start of its day in UTC, ahead of timed tasks that day, undated tasks
-last, then name and ID), `name`, or `updated`; `query` matches the name;
+last, then name and ID), `name`, `updated`, or `manual` (by `rank`, then
+ID); `query` matches the name;
 `label` and `assignee` keep the tasks carrying that label or assigned to that
 Person; `dueFrom` and `dueTo` (calendar dates, either or both) keep the tasks
 due on a day of that inclusive range, where a timed task is due on the day of

@@ -389,6 +389,7 @@ export const tasks = pgTable("tasks", {
   parentTaskId: uuid("parent_task_id"),
   assigneePersonId: uuid("assignee_person_id"),
   location: text("location"),
+  rank: text("rank").notNull().default("00000001000"),
 });
 
 export const labels = pgTable(
@@ -451,6 +452,7 @@ export const reminders = pgTable("reminders", {
     withTimezone: true,
   }).notNull(),
   status: text("status").$type<ReminderStatus>().notNull().default("pending"),
+  rank: text("rank").notNull().default("00000001000"),
 });
 
 export const documents = pgTable("documents", {

@@ -47,6 +47,7 @@ export function serializeResource(resource: EventPlanningResource) {
         parentTaskId: resource.parentTaskId,
         assigneeId: resource.assigneeId,
         location: resource.location,
+        rank: resource.rank,
         labelIds: [...resource.labelIds],
       };
     case "expense":
@@ -63,6 +64,7 @@ export function serializeResource(resource: EventPlanningResource) {
         objectType: "reminder" as const,
         remindAt: resource.remindAt.toISOString(),
         status: resource.status,
+        rank: resource.rank,
       };
     case "document":
       return {
