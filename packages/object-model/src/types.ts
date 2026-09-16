@@ -295,6 +295,7 @@ export interface EventDetailProjection {
   readonly event: EventResource;
   readonly events: readonly EventResource[];
   readonly expenses: readonly ExpenseResource[];
+  readonly persons: readonly PersonResource[];
   readonly reminders: readonly ReminderResource[];
   readonly tasks: readonly TaskResource[];
   readonly lockedRelationCount: number;
@@ -317,6 +318,11 @@ export interface ExpenseResourceProjection {
 
 export interface ReminderResourceProjection {
   readonly items: readonly ReminderResource[];
+  readonly sourceEventId: string;
+}
+
+export interface PersonResourceProjection {
+  readonly items: readonly PersonResource[];
   readonly sourceEventId: string;
 }
 

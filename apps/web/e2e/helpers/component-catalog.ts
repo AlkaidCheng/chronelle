@@ -22,7 +22,7 @@ export async function exerciseComponentCatalog(page: Page, testInfo: TestInfo) {
   await page.keyboard.press("Enter");
   await expect(search).toBeFocused();
   await expect(search).toHaveAccessibleDescription(`Add to ${destination}.`);
-  await expect(picker.getByRole("radio")).toHaveCount(7);
+  await expect(picker.getByRole("radio")).toHaveCount(8);
   await expect(
     picker.getByText(/To-dos is already used on another page/),
   ).toBeVisible();
@@ -44,7 +44,7 @@ export async function exerciseComponentCatalog(page: Page, testInfo: TestInfo) {
   ).toBeDisabled();
   await picker.getByRole("button", { name: "Clear search" }).click();
   await expect(search).toBeFocused();
-  await expect(picker.getByRole("radio")).toHaveCount(7);
+  await expect(picker.getByRole("radio")).toHaveCount(8);
   await picker.screenshot({
     path: testInfo.outputPath("catalog-default.png"),
     animations: "disabled",

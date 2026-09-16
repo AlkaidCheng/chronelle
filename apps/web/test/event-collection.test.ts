@@ -100,6 +100,7 @@ describe("next planning item", () => {
         },
       ],
       documents: [],
+      persons: [],
       lockedRelationCount: 0,
     };
     expect(nextPlanningItem(detail, now)?.id).toBe(task.id);

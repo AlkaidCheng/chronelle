@@ -48,6 +48,12 @@ export const eventComponents = {
     keywords: "documents receipts",
     views: ["list"],
   },
+  people: {
+    label: "People",
+    description: "See who is involved in this event, as namecards.",
+    keywords: "persons contacts attendees guests",
+    views: ["list"],
+  },
 } satisfies Record<
   EventComponentKind,
   {

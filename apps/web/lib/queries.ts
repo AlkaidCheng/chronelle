@@ -53,6 +53,7 @@ export const queryKeys = {
   itinerary: (eventId: string) => ["event", eventId, "itinerary"] as const,
   expenses: (eventId: string) => ["event", eventId, "expenses"] as const,
   reminders: (eventId: string) => ["event", eventId, "reminders"] as const,
+  people: (eventId: string) => ["event", eventId, "people"] as const,
   search: (input: ObjectSearchQueryInput) => ["search", input] as const,
   tasks: ["tasks"] as const,
   labels: ["labels"] as const,
@@ -182,6 +183,30 @@ export function useCreatePerson() {
   const invalidate = useCanonicalInvalidation();
   return useMutation({
     mutationFn: (input: PersonCreatePayload) => client.createPerson(input),
+    onSuccess: () => {
+      void invalidate();
+    },
+  });
+}
+
+/** Creates a person inside an Event: the person and its inclusion in one command. */
+export function useCreatePersonInEvent(
+  eventId: string,
+  attempt?: ContextCreateAttempt,
+) {
+  return useCreateInContext(eventId, "person", attempt);
+}
+
+/** Includes a person the workspace already knows in an Event. */
+export function useIncludePerson(eventId: string) {
+  const client = useApiClient();
+  const invalidate = useCanonicalInvalidation();
+  return useMutation({
+    mutationFn: (personId: string) =>
+      client.createRelation(eventId, {
+        relationType: "includes",
+        targetObjectId: personId,
+      }),
     onSuccess: () => {
       void invalidate();
     },

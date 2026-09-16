@@ -49,7 +49,7 @@ function isCompatibleRelation(
     case "includes":
       return (
         sourceType === "event" &&
-        ["event", "task", "expense", "reminder", "document"].includes(
+        ["event", "task", "expense", "reminder", "document", "person"].includes(
           targetType,
         )
       );
