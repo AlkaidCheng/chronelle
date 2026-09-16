@@ -42,9 +42,9 @@ last), recent update, or name, and the Open tasks / All tasks / Completed
 filter is applied by the server, so a page holds only what matches. Load more
 tasks extends the list page by page.
 
-The page offers the same List and By day views as the To-dos component, from
-the same rows: the completion check, Edit (the Task inspector), History, and
-Actions. A task inside an event names that event under its title, as a link to
+The page offers the same List, By day, Week, and Month views as the To-dos
+component, from the same rows: the completion check, Edit (the Task
+inspector), History, and Actions; Week and Month place the tasks loaded so far. A task inside an event names that event under its title, as a link to
 the event, when the user may view the event; a task held through a direct
 grant inside an event the user cannot see shows no event.
 
@@ -546,13 +546,23 @@ text on narrow screens.
 
 A component's kind decides which records it holds; its view decides how they
 are laid out, and the heading carries a View control when a kind offers more
-than one. To-dos offers List, the table, and By day, which groups tasks under
+than one. To-dos offers List, the table; By day, which groups tasks under
 Overdue, one heading per due date (Today and Tomorrow named, with the weekday),
 and No due date, showing each timed task's due time and nothing for a task due
-on the date itself; the open/all/done filter applies
-to both. The choice is part of the page layout: it saves at once for everyone
-on the Event, shows in layout history, and undo covers it. Viewers see the
-saved view without a control.
+on the date itself; Week, seven columns Monday to Sunday with today marked and
+each task in its due day's column; and Month, a six-week grid in which each
+day shows up to three tasks (time and name, done ones struck through) and
+"+n more", and the selected day's tasks are listed under the grid, today's
+until another day is chosen. Calendar offers List, Week, and Month, a
+scheduled item sitting on every day it covers. Tasks with no due date and
+unscheduled items are listed under the week or the month. On a narrow screen
+the week's days stack and a month cell marks a day that holds something with a
+dot instead of listing it. Previous, Today, and Next move the period; it opens on today, is not saved, and returns to
+today when the view changes. The rows in a column or under the grid are the
+list's rows with the same actions, and the open/all/done filter applies to
+every view. The choice of view is part of the page layout: it saves at once
+for everyone on the Event, shows in layout history, and undo covers it.
+Viewers see the saved view without a control.
 
 ## Recorded reminders
 
