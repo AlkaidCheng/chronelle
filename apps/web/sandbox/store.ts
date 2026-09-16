@@ -16,6 +16,7 @@ import {
   labelUpdateRequestSchema,
   nextTaskDueAt,
   nextTaskDueDate,
+  rankAfter,
   type LabelResponse,
   personCreateRequestSchema,
   personListQuerySchema,
@@ -97,6 +98,18 @@ function repeatTaskPatch(
   };
 }
 
+/** The rank after the sample workspace's last task or reminder, as the API assigns one. */
+function rankAmong(
+  objects: readonly Resource[],
+  type: "task" | "reminder",
+): string {
+  let last: string | null = null;
+  for (const object of objects)
+    if (object.objectType === type && (last === null || object.rank > last))
+      last = object.rank;
+  return rankAfter(last);
+}
+
 function canonical(
   objectType: Resource["objectType"],
   input: Record<string, unknown>,
@@ -117,10 +130,11 @@ function canonical(
       parentTaskId: null,
       assigneeId: null,
       location: null,
+      rank: "00000001000",
       labelIds: [],
     },
     expense: {},
-    reminder: { status: "pending" },
+    reminder: { status: "pending", rank: "00000001000" },
     document: {},
     person: { email: null, userId: null },
   }[objectType];
@@ -202,6 +216,14 @@ function seed(): State {
       event.id,
     ),
   ];
+  for (const type of ["task", "reminder"] as const)
+    children
+      .filter((child) => child.objectType === type)
+      .forEach((child, index) => {
+        (child as { rank: string }).rank = rankAfter(
+          index === 0 ? null : `${String(index * 1000).padStart(11, "0")}`,
+        );
+      });
   return {
     layouts: [],
     labels: [],
@@ -824,15 +846,18 @@ export class SandboxStore {
             inDueRange(task),
         )
         .sort((a, b) =>
-          query.sort === "name"
-            ? a.displayName.localeCompare(b.displayName) ||
+          query.sort === "manual"
+            ? (a.rank < b.rank ? -1 : a.rank > b.rank ? 1 : 0) ||
               a.id.localeCompare(b.id)
-            : query.sort === "updated"
-              ? b.updatedAt.localeCompare(a.updatedAt) ||
+            : query.sort === "name"
+              ? a.displayName.localeCompare(b.displayName) ||
                 a.id.localeCompare(b.id)
-              : duePosition(a).localeCompare(duePosition(b)) ||
-                a.displayName.localeCompare(b.displayName) ||
-                a.id.localeCompare(b.id),
+              : query.sort === "updated"
+                ? b.updatedAt.localeCompare(a.updatedAt) ||
+                  a.id.localeCompare(b.id)
+                : duePosition(a).localeCompare(duePosition(b)) ||
+                  a.displayName.localeCompare(b.displayName) ||
+                  a.id.localeCompare(b.id),
         );
       const offset =
         query.cursor === undefined
@@ -1218,7 +1243,7 @@ export class SandboxStore {
       if (replay !== undefined) return replay;
       const object = canonical(
         "task",
-        fields,
+        { rank: rankAmong(this.#state.objects, "task"), ...fields },
         typeof permissionScopeId === "string" ? permissionScopeId : undefined,
       );
       this.#assertTaskParent(object);
@@ -1251,9 +1276,18 @@ export class SandboxStore {
             "A planning context must be an Event.",
           );
         const input = eventContextCreateRequestSchema.parse(body);
+        const fields = JSON.parse(JSON.stringify(input.resource)) as Record<
+          string,
+          unknown
+        >;
+        if (
+          (fields.objectType === "task" || fields.objectType === "reminder") &&
+          fields.rank === undefined
+        )
+          fields.rank = rankAmong(this.#state.objects, fields.objectType);
         const resource = canonical(
           input.resource.objectType,
-          JSON.parse(JSON.stringify(input.resource)),
+          fields,
           parent.permissionScopeId,
         );
         this.#assertTaskParent(resource);

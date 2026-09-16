@@ -27,6 +27,8 @@ import {
   nextTaskDueAt,
   nextTaskDueDate,
   type PersonListQueryInput,
+  rankAfter,
+  rankSchema,
   taskDueDate,
   type TaskListQueryInput,
 } from "@chronelle/schemas";
@@ -320,6 +322,30 @@ function repeatTaskUpdate(
   return { ...input, status: "todo", completedAt: null, dueAt };
 }
 
+/** A rank is a position in manual order: eleven digits and an optional fraction. */
+function assertRank(rank: string): void {
+  if (!rankSchema.safeParse(rank).success)
+    throw new InvalidObjectStateError("rank is a position in manual order.");
+}
+
+/** The rank after the workspace's last task or reminder, as the SQL default. */
+async function nextRank(
+  transaction: DatabaseTransaction,
+  table: typeof tasks | typeof reminders,
+  workspaceId: string,
+): Promise<string> {
+  const [row] = await transaction
+    .select({
+      last: sql<
+        string | null
+      >`max(split_part(${table.rank}, '.', 1)::bigint)::text`,
+    })
+    .from(table)
+    .where(eq(table.workspaceId, workspaceId));
+  const last = row?.last ?? null;
+  return rankAfter(last === null ? null : last.padStart(11, "0"));
+}
+
 /** The location, when set, is 1 to 240 trimmed characters. */
 function assertTaskLocation(location: string | null): void {
   if (
@@ -539,6 +565,7 @@ export class EventPlanningObjectService {
     assertTaskState(status, dueOn, dueAt, completedAt);
     assertTaskDuration(dueAt, durationMinutes);
     assertTaskRepeat(dueOn, dueAt, repeatRule, repeatUntil);
+    if (input.rank !== undefined) assertRank(input.rank);
     if (this.#writes.task !== undefined)
       return this.#writes.task.create(context, input);
 
@@ -576,6 +603,9 @@ export class EventPlanningObjectService {
           parentTaskId,
           assigneePersonId: assigneeId,
           location,
+          rank:
+            input.rank ??
+            (await nextRank(transaction, tasks, context.principal.workspaceId)),
         });
         if (input.labelIds !== undefined)
           await setTaskLabels(
@@ -619,6 +649,7 @@ export class EventPlanningObjectService {
     input: CreateReminderInput,
   ): Promise<ReminderResource> {
     assertValidDate(input.remindAt, "remindAt");
+    if (input.rank !== undefined) assertRank(input.rank);
     if (this.#writes.reminder !== undefined)
       return this.#writes.reminder.create(context, input);
 
@@ -632,6 +663,13 @@ export class EventPlanningObjectService {
           workspaceId: context.principal.workspaceId,
           remindAt: input.remindAt,
           status: input.status ?? "pending",
+          rank:
+            input.rank ??
+            (await nextRank(
+              transaction,
+              reminders,
+              context.principal.workspaceId,
+            )),
         });
       },
     );
@@ -844,6 +882,7 @@ export class EventPlanningObjectService {
           : input.repeatUntil;
     assertTaskRepeat(dueOn, dueAt, repeatRule, repeatUntil);
     if (input.location !== undefined) assertTaskLocation(input.location);
+    if (input.rank !== undefined) assertRank(input.rank);
 
     const resource = await this.#updateObject(
       context,
@@ -892,6 +931,7 @@ export class EventPlanningObjectService {
           ...(input.completedAt !== undefined && {
             completedAt: input.completedAt,
           }),
+          ...(input.rank !== undefined && { rank: input.rank }),
         };
         if (input.labelIds !== undefined)
           await setTaskLabels(
@@ -1019,6 +1059,7 @@ export class EventPlanningObjectService {
     );
     const remindAt = input.remindAt ?? current.remindAt;
     assertValidDate(remindAt, "remindAt");
+    if (input.rank !== undefined) assertRank(input.rank);
 
     const resource = await this.#updateObject(
       context,
@@ -1028,6 +1069,7 @@ export class EventPlanningObjectService {
         const changes = {
           ...(input.remindAt !== undefined && { remindAt: input.remindAt }),
           ...(input.status !== undefined && { status: input.status }),
+          ...(input.rank !== undefined && { rank: input.rank }),
         };
         if (Object.keys(changes).length > 0) {
           await transaction

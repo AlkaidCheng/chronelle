@@ -60,39 +60,54 @@ const snapshotTables = {
 interface SnapshotRow {
   readonly raw: Record<string, unknown>;
   readonly encoded: Record<string, unknown>;
+  /** The columns the gateway serializes as JSON numbers. */
+  readonly numeric: ReadonlySet<string>;
 }
 
 /**
  * Encodes one value the way the gateway serializes it: ISO instants, and JSON
  * numbers for numeric and bigint columns (which rounds a bigint beyond 2^53
  * and drops the numeric scale) unless the select list casts the column with
- * `::text`, in which case PostgreSQL's text representation is returned.
+ * `::text`, in which case PostgreSQL's text representation is returned. A
+ * text column keeps its text, digits included.
  */
-function gatewayValue(value: unknown, cast: string | undefined): unknown {
+function gatewayValue(
+  value: unknown,
+  cast: string | undefined,
+  numeric: boolean,
+): unknown {
   if (cast === "text")
     return value === null || value instanceof Date ? value : String(value);
   if (value instanceof Date) return value.toISOString();
   if (typeof value === "bigint") return Number(value);
-  if (typeof value === "string" && /^-?\d+(?:\.\d+)?$/.test(value))
+  if (numeric && typeof value === "string" && /^-?\d+(?:\.\d+)?$/.test(value))
     return Number(value);
   return value;
 }
 
+function isNumericColumn(columnType: string): boolean {
+  return columnType === "PgNumeric" || columnType.startsWith("PgBigInt");
+}
+
 function snapshotRow(table: Table, record: Record<string, unknown>) {
+  const columns = Object.entries(getTableColumns(table));
   const raw = Object.fromEntries(
-    Object.entries(getTableColumns(table)).map(([property, column]) => [
-      column.name,
-      record[property],
-    ]),
+    columns.map(([property, column]) => [column.name, record[property]]),
+  );
+  const numeric = new Set(
+    columns
+      .filter(([, column]) => isNumericColumn(column.columnType))
+      .map(([, column]) => column.name),
   );
   return {
     raw,
     encoded: Object.fromEntries(
-      Object.entries(raw).map(([name, value]) => [
-        name,
-        gatewayValue(value, undefined),
+      columns.map(([property, column]) => [
+        column.name,
+        gatewayValue(record[property], undefined, numeric.has(column.name)),
       ]),
     ),
+    numeric,
   } satisfies SnapshotRow;
 }
 
@@ -105,7 +120,7 @@ function project(
   return Object.fromEntries(
     columns.split(",").map((entry) => {
       const [name, cast] = entry.split("::") as [string, string | undefined];
-      return [name, gatewayValue(row.raw[name], cast)];
+      return [name, gatewayValue(row.raw[name], cast, row.numeric.has(name))];
     }),
   );
 }

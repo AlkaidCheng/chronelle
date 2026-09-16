@@ -117,6 +117,38 @@ describe.sequential("CloudBase Reminder writes", () => {
     }
   });
 
+  it("rank a new reminder last and keep a given rank alike", async () => {
+    const outcomes: string[][] = [];
+    for (const [, service] of backends(reference, cloudbase)) {
+      const first = await service.createReminder(context(), {
+        displayName: "First reminder",
+        remindAt: new Date("2030-10-01T08:00:00.000Z"),
+      });
+      const second = await service.createReminder(context(), {
+        displayName: "Second reminder",
+        remindAt: new Date("2030-10-01T09:00:00.000Z"),
+      });
+      expect(second.rank > first.rank).toBe(true);
+      const moved = await service.updateReminder(context(), second.id, {
+        expectedVersion: 1,
+        rank: "00000000500",
+      });
+      const refused = await failure(() =>
+        service.updateReminder(context(), first.id, {
+          expectedVersion: 1,
+          rank: "first",
+        }),
+      );
+      expect(refused).toBeInstanceOf(InvalidObjectStateError);
+      outcomes.push([moved.rank, refused.message]);
+    }
+    expect(outcomes[1]).toEqual(outcomes[0]);
+    expect(outcomes[0]).toEqual([
+      "00000000500",
+      "rank is a position in manual order.",
+    ]);
+  });
+
   it("reject the same inputs with the same errors", async () => {
     const outcomes: string[][] = [];
     for (const [, service] of backends(reference, cloudbase)) {

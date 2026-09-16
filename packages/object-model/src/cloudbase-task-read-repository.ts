@@ -116,6 +116,13 @@ function compareDue(first: TaskResource, second: TaskResource): number {
   );
 }
 
+function compareRank(first: TaskResource, second: TaskResource): number {
+  return (
+    (first.rank < second.rank ? -1 : first.rank > second.rank ? 1 : 0) ||
+    first.id.localeCompare(second.id)
+  );
+}
+
 function compareUpdated(first: TaskResource, second: TaskResource): number {
   return (
     second.updatedAt.getTime() - first.updatedAt.getTime() ||
@@ -128,6 +135,11 @@ function afterCursor(
   cursor: TaskListCursor,
   sort: TaskListQuery["sort"],
 ): boolean {
+  if (sort === "manual")
+    return (
+      task.rank > cursor.rank ||
+      (task.rank === cursor.rank && task.id > cursor.id)
+    );
   if (sort === "name") {
     const name = task.displayName.toLocaleLowerCase();
     return name > cursor.name || (name === cursor.name && task.id > cursor.id);
@@ -160,6 +172,7 @@ function pageCursor(task: TaskResource, context: string, asOf: string): string {
     name: task.displayName.toLocaleLowerCase(),
     dueAt: due === null ? null : cursorTimestamp(due),
     updatedAt: cursorTimestamp(task.updatedAt),
+    rank: task.rank,
   } satisfies TaskListCursor);
 }
 
@@ -227,11 +240,13 @@ export class CloudBaseTaskReadRepository implements TaskReadRepository {
         matchesDueRange(task, input),
     );
     tasks.sort(
-      input.sort === "name"
-        ? compareName
-        : input.sort === "updated"
-          ? compareUpdated
-          : compareDue,
+      input.sort === "manual"
+        ? compareRank
+        : input.sort === "name"
+          ? compareName
+          : input.sort === "updated"
+            ? compareUpdated
+            : compareDue,
     );
     if (cursor !== undefined)
       tasks = tasks.filter((task) => afterCursor(task, cursor, input.sort));

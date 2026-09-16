@@ -84,7 +84,11 @@ needs no change. Migration `0045_add_task_repeat.sql` adds `tasks.repeat_rule`
 and `tasks.repeat_until` with `chronelle_assert_task_repeat`, the next-due
 functions, and `chronelle_task_repeat_changes`, which `chronelle_task_update`
 now applies to a completion; the Task functions are replaced in place, so the
-runtime role needs no change.
+runtime role needs no change. Migration `0046_add_collection_rank.sql` adds
+`tasks.rank` and `reminders.rank` (numbering existing rows by creation order)
+with `chronelle_assert_rank`, `chronelle_next_task_rank`, and
+`chronelle_next_reminder_rank`, and replaces the Task and Reminder functions
+in place; the runtime role needs no change.
 
 Migration `0021_add_object_search_function.sql` adds `chronelle_object_search`,
 the read-only function the CloudBase search adapter calls. It changes no

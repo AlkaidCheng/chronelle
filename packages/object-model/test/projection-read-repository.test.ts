@@ -65,6 +65,7 @@ function task(id: string, dueAt: Date | null): TaskResource {
     durationMinutes: null,
     repeatRule: null,
     repeatUntil: null,
+    rank: "00000001000",
     labelIds: [],
   };
 }

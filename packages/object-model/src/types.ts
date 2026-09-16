@@ -63,6 +63,8 @@ export interface TaskResource extends CanonicalObjectResource {
   readonly assigneeId: string | null;
   /** Where the task happens, as text. */
   readonly location: string | null;
+  /** The task's place in manual order. */
+  readonly rank: string;
   /** The task's labels in name order. */
   readonly labelIds: readonly string[];
   readonly status: TaskStatus;
@@ -79,6 +81,8 @@ export interface ReminderResource extends CanonicalObjectResource {
   readonly objectType: "reminder";
   readonly remindAt: Date;
   readonly status: ReminderStatus;
+  /** The reminder's place in manual order. */
+  readonly rank: string;
 }
 
 export interface DocumentResource extends CanonicalObjectResource {
@@ -179,6 +183,8 @@ export interface CreateTaskInput extends CreateObjectFields {
   readonly parentTaskId?: string | null | undefined;
   readonly assigneeId?: string | null | undefined;
   readonly location?: string | null | undefined;
+  /** The task's place in manual order; absent puts it last. */
+  readonly rank?: string | undefined;
   /** The task's labels as a whole; absent leaves them empty. */
   readonly labelIds?: readonly string[] | undefined;
   readonly status?: TaskStatus | undefined;
@@ -193,6 +199,8 @@ export interface CreateExpenseInput extends CreateObjectFields {
 export interface CreateReminderInput extends CreateObjectFields {
   readonly remindAt: Date;
   readonly status?: ReminderStatus | undefined;
+  /** The reminder's place in manual order; absent puts it last. */
+  readonly rank?: string | undefined;
 }
 
 export interface CreatePersonInput extends CreateObjectFields {
@@ -231,6 +239,7 @@ export interface UpdateTaskInput extends UpdateObjectFields {
   readonly parentTaskId?: string | null | undefined;
   readonly assigneeId?: string | null | undefined;
   readonly location?: string | null | undefined;
+  readonly rank?: string | undefined;
   /** The task's labels as a whole; absent leaves them unchanged. */
   readonly labelIds?: readonly string[] | undefined;
   readonly status?: TaskStatus | undefined;
@@ -245,6 +254,7 @@ export interface UpdateExpenseInput extends UpdateObjectFields {
 export interface UpdateReminderInput extends UpdateObjectFields {
   readonly remindAt?: Date | undefined;
   readonly status?: ReminderStatus | undefined;
+  readonly rank?: string | undefined;
 }
 
 export interface UpdatePersonInput extends UpdateObjectFields {

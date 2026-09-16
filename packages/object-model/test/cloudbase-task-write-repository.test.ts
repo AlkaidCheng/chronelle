@@ -32,6 +32,7 @@ const rows = {
     workspace_id: workspaceId,
     status: "done",
     due_at: "2030-10-01T09:00:00+00:00",
+    rank: "00000001000",
     completed_at: "2030-09-28T15:30:00+00:00",
   },
 };

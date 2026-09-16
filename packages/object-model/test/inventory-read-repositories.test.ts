@@ -45,6 +45,7 @@ const task: EventPlanningResource = {
   durationMinutes: null,
   repeatRule: null,
   repeatUntil: null,
+  rank: "00000001000",
   labelIds: [],
 };
 

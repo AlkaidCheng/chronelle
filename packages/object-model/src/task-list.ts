@@ -129,6 +129,17 @@ function taskOrder(
           and(eq(foldedName, cursor.name), gt(objects.id, cursor.id)),
         );
   switch (sort) {
+    case "manual":
+      return {
+        order: [asc(tasks.rank), asc(objects.id)],
+        after:
+          cursor === undefined
+            ? undefined
+            : or(
+                gt(tasks.rank, cursor.rank),
+                and(eq(tasks.rank, cursor.rank), gt(objects.id, cursor.id)),
+              ),
+      };
     case "name":
       return { order: [asc(foldedName), asc(objects.id)], after: afterName };
     case "updated": {
@@ -226,6 +237,7 @@ export async function listTaskPage(
           string | null
         >`to_char(${duePosition} AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"')`,
         updatedAt: sql<string>`to_char(${objects.updatedAt} AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"')`,
+        rank: tasks.rank,
       })
       .from(objects)
       .innerJoin(

@@ -111,6 +111,7 @@ describe("CloudBaseSharingWriteRepository", () => {
         workspace_id: workspaceId,
         status: "todo",
         due_at: null,
+        rank: "00000001000",
         completed_at: null,
       },
     });

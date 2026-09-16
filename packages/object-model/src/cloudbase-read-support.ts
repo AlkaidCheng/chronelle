@@ -70,6 +70,7 @@ export type CloudBaseTaskRow = {
   readonly parent_task_id: unknown;
   readonly assignee_person_id: unknown;
   readonly location: unknown;
+  readonly rank: unknown;
 };
 
 export type CloudBaseExpenseRow = {
@@ -85,6 +86,7 @@ export type CloudBaseReminderRow = {
   readonly workspace_id: unknown;
   readonly remind_at: unknown;
   readonly status: unknown;
+  readonly rank: unknown;
 };
 
 export type CloudBaseDocumentRow = {
@@ -308,6 +310,7 @@ export function cloudbaseTaskResource(
       "assignee_person_id",
     ),
     location: cloudbaseNullableText(task.location, "location"),
+    rank: cloudbaseText(task.rank, "rank"),
     labelIds: [...labelIds],
   };
 }
@@ -399,6 +402,7 @@ export function cloudbaseReminderResource(
     objectType: "reminder",
     remindAt: cloudbaseDate(reminder.remind_at, "remind_at"),
     status: status as ReminderStatus,
+    rank: cloudbaseText(reminder.rank, "rank"),
   };
 }
 
@@ -698,7 +702,7 @@ export async function readCloudBaseObjectRows(
 }
 
 export const cloudbaseTaskColumns =
-  "object_id,workspace_id,status,due_on,due_at,duration_minutes,repeat_rule,repeat_until,completed_at,parent_task_id,assignee_person_id,location";
+  "object_id,workspace_id,status,due_on,due_at,duration_minutes,repeat_rule,repeat_until,completed_at,parent_task_id,assignee_person_id,location,rank";
 
 export async function readCloudBaseTasks(
   client: CloudBaseRdbReader,

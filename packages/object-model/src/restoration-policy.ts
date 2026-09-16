@@ -36,6 +36,7 @@ const typedFields: Record<
     parentTaskId: field("Parent task", "text", false),
     assigneeId: field("Assignee", "text", false),
     location: field("Location", "text"),
+    rank: field("Order", "text", false),
     labelIds: field("Labels", "text", false),
     completedAt: field("Completed", "datetime"),
   },
@@ -47,6 +48,7 @@ const typedFields: Record<
   reminder: {
     remindAt: field("Reminder time", "datetime"),
     status: field("Delivery status", "text", false),
+    rank: field("Order", "text", false),
   },
   document: {
     originalFilename: field("Original filename", "text", false),
