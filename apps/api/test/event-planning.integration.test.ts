@@ -696,6 +696,45 @@ describe.sequential("event-planning API", () => {
         .items.map(({ id }) => id),
     ).toEqual([finished]);
 
+    // A due range names days in a time zone: 08:00Z on November 2 is still
+    // November 1 in Honolulu; the undated task is never in a range.
+    const ranged = async (parameters: string) =>
+      taskListResponseSchema
+        .parse(
+          (
+            await app.inject({
+              method: "GET",
+              url: `/api/tasks?${parameters}`,
+              headers: ownerHeaders,
+            })
+          ).json(),
+        )
+        .items.map(({ id }) => id);
+    expect(await ranged("dueFrom=2026-11-02&dueTo=2026-11-02")).toEqual([
+      inEvent,
+      timed,
+    ]);
+    expect(
+      await ranged(
+        "dueFrom=2026-11-02&dueTo=2026-11-02&timezone=Pacific%2FHonolulu",
+      ),
+    ).toEqual([inEvent]);
+    expect(
+      await ranged("dueTo=2026-11-01&timezone=Pacific%2FHonolulu"),
+    ).toEqual([timed]);
+    expect(await ranged("dueFrom=2026-11-03")).toEqual([]);
+    for (const invalid of [
+      "dueFrom=2026-11-03&dueTo=2026-11-02",
+      "dueFrom=2026-11-02&timezone=Mars%2FOlympus",
+    ]) {
+      const refused = await app.inject({
+        method: "GET",
+        url: `/api/tasks?${invalid}`,
+        headers: ownerHeaders,
+      });
+      expect(refused.statusCode).toBe(400);
+    }
+
     // Another user sees nothing of this workspace's tasks.
     const stranger = await signIn("stranger@example.com", "Stranger");
     const strangerResponse = await app.inject({

@@ -67,6 +67,35 @@ function matchesStatus(
   return task.status === "todo" || task.status === "in_progress";
 }
 
+/** The calendar day of an instant in a time zone, as YYYY-MM-DD. */
+function dayIn(instant: Date, timezone: string): string {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: timezone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(instant);
+  const part = (type: string) =>
+    parts.find((candidate) => candidate.type === type)?.value ?? "";
+  return `${part("year")}-${part("month")}-${part("day")}`;
+}
+
+/** The day a task is due in the query's time zone; none when undated. */
+function dueDay(task: TaskResource, timezone: string): string | null {
+  if (task.dueOn !== null) return task.dueOn;
+  return task.dueAt === null ? null : dayIn(task.dueAt, timezone);
+}
+
+function matchesDueRange(task: TaskResource, input: TaskListQuery): boolean {
+  if (input.dueFrom === undefined && input.dueTo === undefined) return true;
+  const day = dueDay(task, input.timezone);
+  return (
+    day !== null &&
+    (input.dueFrom === undefined || day >= input.dueFrom) &&
+    (input.dueTo === undefined || day <= input.dueTo)
+  );
+}
+
 function compareName(first: TaskResource, second: TaskResource): number {
   return (
     first.displayName
@@ -194,7 +223,8 @@ export class CloudBaseTaskReadRepository implements TaskReadRepository {
             .includes(input.query.toLocaleLowerCase())) &&
         matchesStatus(task, input.filter) &&
         (input.label === undefined || task.labelIds.includes(input.label)) &&
-        (input.assignee === undefined || task.assigneeId === input.assignee),
+        (input.assignee === undefined || task.assigneeId === input.assignee) &&
+        matchesDueRange(task, input),
     );
     tasks.sort(
       input.sort === "name"

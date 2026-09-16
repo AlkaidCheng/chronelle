@@ -6,7 +6,7 @@ import {
   type TaskListQuery,
   type TaskResponse,
 } from "@chronelle/schemas";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 import {
   EmptyState,
@@ -18,6 +18,7 @@ import { ViewSwitch } from "../events/component-frame";
 import { type SubtaskParent, TaskForm } from "../events/task-form";
 import { TaskInspector } from "../events/task-inspector";
 import { viewsOf } from "../../lib/event-components";
+import { periodRange, usePeriod } from "../../lib/use-period";
 import {
   useLabelsQuery,
   usePersonsQuery,
@@ -63,13 +64,31 @@ export function TasksPage() {
       // The list stays usable when browser storage is unavailable.
     }
   }, []);
+  // A week or month asks the server for its days and loads all of them.
+  const period = usePeriod(view);
+  const range = useMemo(
+    () => periodRange(view, period.cursor),
+    [view, period.cursor],
+  );
   const tasks = useTasksQuery({
     query: debouncedQuery,
     filter,
     sort,
     ...(label === "" ? {} : { label }),
     ...(assignee === "" ? {} : { assignee }),
+    ...(range === null
+      ? {}
+      : {
+          dueFrom: range.from,
+          dueTo: range.to,
+          timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+          limit: 50,
+        }),
   });
+  const { fetchNextPage, hasNextPage, isFetching: isFetchingTasks } = tasks;
+  useEffect(() => {
+    if (range !== null && hasNextPage && !isFetchingTasks) void fetchNextPage();
+  }, [range, hasNextPage, isFetchingTasks, fetchNextPage]);
   const labels = useLabelsQuery();
   const persons = usePersonsQuery();
   const session = useSessionQuery();
@@ -266,6 +285,7 @@ export function TasksPage() {
         ) : null}
         {!changingQuery &&
         !tasks.isError &&
+        range === null &&
         tasks.data?.items.length === 0 &&
         !filtered ? (
           <EmptyState
@@ -275,6 +295,7 @@ export function TasksPage() {
         ) : null}
         {!changingQuery &&
         !tasks.isError &&
+        range === null &&
         tasks.data &&
         items.length === 0 &&
         filtered ? (
@@ -297,7 +318,8 @@ export function TasksPage() {
             </button>
           </div>
         ) : null}
-        {items.length > 0 ? (
+        {items.length > 0 ||
+        (range !== null && tasks.data !== undefined && !changingQuery) ? (
           <TaskListView
             canEdit
             contexts={tasks.data?.contexts}
@@ -307,12 +329,13 @@ export function TasksPage() {
             onEdit={setEditingId}
             onRefresh={refresh}
             parents={tasks.data?.parents ?? {}}
+            period={period}
             progress={tasks.data?.progress ?? {}}
             tasks={items}
             view={view}
           />
         ) : null}
-        {!changingQuery && tasks.hasNextPage ? (
+        {!changingQuery && range === null && tasks.hasNextPage ? (
           <button
             className="button button-secondary"
             disabled={tasks.isFetching}

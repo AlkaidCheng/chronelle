@@ -39,6 +39,7 @@ import {
 import { viewsOf } from "../../lib/event-components";
 import { formatDatePart, formatDateTime, formatTime } from "../../lib/format";
 import { deriveTaskTree } from "../../lib/task-tree";
+import { usePeriod } from "../../lib/use-period";
 import { formatMoney, sumMoneyByCurrency } from "../../lib/money";
 import {
   useLabelsQuery,
@@ -76,6 +77,7 @@ export function TasksPanel({
   const [parent, setParent] = useState<SubtaskParent | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const refresh = useRefreshEvent(eventId);
+  const period = usePeriod(view);
   // The projection holds every task of the Event, so the tree is derived here.
   const tree = useMemo(() => deriveTaskTree(tasks), [tasks]);
   const labels = useLabelsQuery();
@@ -180,6 +182,7 @@ export function TasksPanel({
           onEdit={setEditingId}
           onRefresh={refresh}
           parents={tree.parents}
+          period={period}
           personNames={persons.data?.names}
           progress={tree.progress}
           tasks={filteredTasks}
@@ -216,19 +219,12 @@ export function CalendarPanel({
   const [isAdding, setIsAdding] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const editingEvent = items.find(({ id }) => id === editingId);
-  // The period cursor is session state: today whenever the view changes.
-  const [period, setPeriod] = useState(() => ({
-    view,
-    cursor: new Date(),
-    selected: null as DayKey | null,
-  }));
-  if (period.view !== view)
-    setPeriod({ view, cursor: new Date(), selected: null });
-  const { cursor, selected: selectedDay } = period;
-  const setCursor = (cursor: Date, selected: DayKey | null = null) =>
-    setPeriod({ view, cursor, selected });
-  const setSelectedDay = (selected: DayKey | null) =>
-    setPeriod({ view, cursor, selected });
+  const {
+    cursor,
+    selected: selectedDay,
+    setCursor,
+    setSelected: setSelectedDay,
+  } = usePeriod(view);
   const placed = useMemo(
     () =>
       view === "week" || view === "month"

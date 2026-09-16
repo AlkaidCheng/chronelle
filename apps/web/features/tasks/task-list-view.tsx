@@ -15,7 +15,7 @@ import {
   type Table,
   useReactTable,
 } from "@tanstack/react-table";
-import { type ReactNode, useCallback, useMemo, useState } from "react";
+import { type ReactNode, useCallback, useMemo } from "react";
 
 import { ErrorNotice } from "../../components/feedback";
 import { MonthGrid, PeriodNav, WeekStrip } from "../../components/period-views";
@@ -32,6 +32,7 @@ import {
   placeByDay,
   taskDay,
 } from "../../lib/day-placement";
+import type { Period } from "../../lib/use-period";
 import { formatTaskDue } from "../../lib/task-due";
 import { groupTasksByDay } from "../../lib/task-groups";
 import { nestTasks } from "../../lib/task-tree";
@@ -107,6 +108,7 @@ export function TaskListView({
   onEdit,
   onRefresh,
   parents,
+  period,
   progress,
   tasks,
   view,
@@ -126,6 +128,8 @@ export function TaskListView({
   readonly onRefresh: () => Promise<unknown>;
   /** The parent of each subtask, by subtask ID. */
   readonly parents: Readonly<Record<string, TaskParent>>;
+  /** The period the week and month views show, owned by the container. */
+  readonly period: Period;
   /** Subtask progress of each parent, by parent ID. */
   readonly progress: Readonly<Record<string, TaskProgress>>;
   readonly tasks: readonly TaskResponse[];
@@ -203,19 +207,12 @@ export function TaskListView({
     () => (view === "by-day" ? groupTasksByDay(tasks, new Date()) : []),
     [tasks, view],
   );
-  // The period cursor is session state: today whenever the view changes.
-  const [period, setPeriod] = useState(() => ({
-    view,
-    cursor: new Date(),
-    selected: null as DayKey | null,
-  }));
-  if (period.view !== view)
-    setPeriod({ view, cursor: new Date(), selected: null });
-  const { cursor, selected: selectedDay } = period;
-  const setCursor = (cursor: Date, selected: DayKey | null = null) =>
-    setPeriod({ view, cursor, selected });
-  const setSelectedDay = (selected: DayKey | null) =>
-    setPeriod({ view, cursor, selected });
+  const {
+    cursor,
+    selected: selectedDay,
+    setCursor,
+    setSelected: setSelectedDay,
+  } = period;
   const placed = useMemo(
     () =>
       view === "week" || view === "month"

@@ -1,10 +1,12 @@
 import { expect, type Page } from "@playwright/test";
+import { today } from "./today";
 
 /**
  * Opens the workspace Tasks page from the rail, creates a task outside any
  * Event, labels it, assigns it to the signed-in user (whose person is
  * created on first use and named `member`), switches to the by-day view,
- * checks the choice survives a reload, and completes the task from the list.
+ * checks the choice survives a reload, completes the task from the list,
+ * and places a task due today in the week and the month.
  */
 export async function exerciseTasksPage(page: Page, member: string) {
   await page
@@ -115,9 +117,32 @@ export async function exerciseTasksPage(page: Page, member: string) {
   await expect(
     page.getByText("Renew the passport", { exact: true }),
   ).toBeVisible();
-  await page
-    .getByRole("group", { name: "View", exact: true })
-    .getByRole("button", { name: "List" })
+
+  // Week and Month ask the server for their days: the 2031 task and the
+  // undated subtask are outside this week; a task due today lands in its
+  // column and in its month cell.
+  await page.getByRole("button", { name: "All tasks", exact: true }).click();
+  const views = page.getByRole("group", { name: "View", exact: true });
+  await views.getByRole("button", { name: "Week" }).click();
+  await expect(page.getByText("0 tasks loaded")).toBeVisible();
+  const todayColumn = page.locator(".week-day.is-today");
+  await expect(todayColumn).toBeVisible();
+  await page.getByRole("button", { name: "New task", exact: true }).click();
+  await editor.getByLabel("Task", { exact: true }).fill("Water the plants");
+  await editor.getByLabel("Due date", { exact: true }).fill(today());
+  await editor
+    .getByRole("button", { name: "Create task", exact: true })
     .click();
+  await expect(editor).toHaveCount(0);
+  await expect(todayColumn.getByText("Water the plants")).toBeVisible();
+  await expect(page.getByText("1 task loaded")).toBeVisible();
+  await views.getByRole("button", { name: "Month" }).click();
+  await expect(page.locator(".month-day.is-today")).toContainText(
+    "Water the plants",
+  );
+  await views.getByRole("button", { name: "List" }).click();
+  await expect(
+    page.getByRole("row", { name: /Water the plants/ }),
+  ).toBeVisible();
   return "Renew the passport";
 }

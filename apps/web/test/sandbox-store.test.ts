@@ -342,6 +342,50 @@ describe("browser sandbox", () => {
       ).id,
     ).toBe(person.id);
   });
+  it("lists the tasks due in a range of days named in a time zone", async () => {
+    const store = new SandboxStore(storage());
+    const client = new ChronelleApiClient({
+      getCredential: () => ({
+        accessToken: "sample",
+        workspaceId: sandboxWorkspaceId,
+      }),
+      fetch: (input, options) => store.fetch(input, options),
+    });
+    const dated = await client.createTask({
+      displayName: "Book the room",
+      dueOn: "2030-03-05",
+    });
+    // 09:30Z on March 5 is still March 4 in Honolulu.
+    const timed = await client.createTask({
+      displayName: "Confirm the caterer",
+      dueAt: "2030-03-05T09:30:00Z",
+    });
+    await client.createTask({ displayName: "Read the contract" });
+    const ids = async (input: Parameters<typeof client.listTasks>[0]) =>
+      (await client.listTasks(input)).items.map(({ id }) => id);
+    expect(await ids({ dueFrom: "2030-03-05", dueTo: "2030-03-05" })).toEqual([
+      dated.id,
+      timed.id,
+    ]);
+    expect(
+      await ids({
+        dueFrom: "2030-03-05",
+        dueTo: "2030-03-05",
+        timezone: "Pacific/Honolulu",
+      }),
+    ).toEqual([dated.id]);
+    expect(
+      await ids({
+        dueFrom: "2030-03-04",
+        dueTo: "2030-03-04",
+        timezone: "Pacific/Honolulu",
+      }),
+    ).toEqual([timed.id]);
+    expect(await ids({ dueFrom: "2030-03-06" })).toEqual([]);
+    await expect(
+      client.listTasks({ dueFrom: "2030-03-06", dueTo: "2030-03-05" }),
+    ).rejects.toMatchObject({ status: 400 });
+  });
   it("keeps people in name order and links one person to the signed-in account", async () => {
     const store = new SandboxStore(storage());
     const client = new ChronelleApiClient({
