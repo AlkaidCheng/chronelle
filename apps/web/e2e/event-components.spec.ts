@@ -51,7 +51,6 @@ test("composes planning and private-file components with canonical updates and v
     .click();
   for (const label of [
     "Calendar",
-    "Itinerary",
     "Timeline",
     "Expenses",
     "Reminders",
@@ -84,7 +83,7 @@ test("composes planning and private-file components with canonical updates and v
     .click();
   await expect(
     page.getByRole("heading", { name: "Mountain cabin stay", exact: true }),
-  ).toHaveCount(3);
+  ).toHaveCount(2);
   const expense = page.locator(".planning-panel").filter({
     has: page.getByRole("heading", { name: "Expenses", exact: true }),
   });
@@ -172,7 +171,7 @@ test("composes planning and private-file components with canonical updates and v
   await page.reload();
   await expect(
     page.getByRole("heading", { name: "Mountain cabin stay", exact: true }),
-  ).toHaveCount(3);
+  ).toHaveCount(2);
   await files
     .getByLabel("Show files attached to")
     .selectOption({ label: "Expense: Cabin deposit" });

@@ -305,16 +305,17 @@ describe("EventWorkspace", () => {
   );
 
   it.each([
-    "todos",
-    "calendar",
-    "timeline",
-    "itinerary",
-    "expenses",
-    "reminders",
+    ["todos", "todos"],
+    ["calendar", "calendar"],
+    ["timeline", "timeline"],
+    // The Itinerary tab folded into the Calendar; its link still opens.
+    ["itinerary", "calendar"],
+    ["expenses", "expenses"],
+    ["reminders", "reminders"],
   ])(
     "opens a focused %s deep link without loading event detail",
-    async (view) => {
-      window.history.replaceState(null, "", `/events/plan?view=${view}`);
+    async (link, view) => {
+      window.history.replaceState(null, "", `/events/plan?view=${link}`);
       const fetch = vi.fn<typeof globalThis.fetch>(async (input) => {
         const path = requestPath(input);
         if (path === `/api/events/${eventId}`) return jsonResponse(rootEvent);
@@ -647,10 +648,17 @@ describe("EventWorkspace", () => {
       within(screen.getByRole("tabpanel")).getByLabelText("Object ID"),
     ).toHaveValue(scheduledEventId);
 
-    await user.click(screen.getByRole("tab", { name: "Itinerary" }));
+    // The Calendar's agenda view is the running order the Itinerary showed.
+    expect(screen.queryByRole("tab", { name: "Itinerary" })).toBeNull();
+    await user.click(
+      within(screen.getByRole("group", { name: "View" })).getByRole("button", {
+        name: "Agenda",
+      }),
+    );
     expect(
       screen.getByRole("heading", { name: "Guest arrival" }),
     ).toBeVisible();
+    expect(screen.getByText("01")).toBeVisible();
     expect(
       within(screen.getByRole("tabpanel")).getByLabelText("Object ID"),
     ).toHaveValue(scheduledEventId);

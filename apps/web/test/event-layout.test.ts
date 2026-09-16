@@ -108,5 +108,17 @@ describe("event layout moves", () => {
     expect(
       setEventComponentView(changed, "c", "list")[0]?.components[2],
     ).toEqual({ id: "c", kind: "todos", view: "list" });
+    // A retired itinerary becomes the Calendar it renders as, keeping its id.
+    const legacy: EventPage[] = [
+      {
+        id: "p",
+        name: "Plan",
+        components: [{ id: "i", kind: "itinerary" }],
+      },
+    ];
+    expect(setEventComponentView(legacy, "i", "list")[0]?.components).toEqual([
+      { id: "i", kind: "calendar", view: "list" },
+    ]);
+    expect(legacy[0]?.components[0]).toEqual({ id: "i", kind: "itinerary" });
   });
 });

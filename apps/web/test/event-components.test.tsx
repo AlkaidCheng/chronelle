@@ -32,7 +32,10 @@ import {
   dayKeyOf,
   parseDayKey,
 } from "../lib/day-placement";
-import { eventComponents } from "../lib/event-components";
+import {
+  addableEventComponentKinds,
+  eventComponents,
+} from "../lib/event-components";
 import { formatCalendarDate } from "../lib/event-schedule";
 import { queryKeys } from "../lib/queries";
 import { SandboxStore, sandboxWorkspaceId } from "../sandbox/store";
@@ -161,14 +164,14 @@ describe("insertable event components", () => {
     expect(name).toHaveValue("Gathering");
     expect(
       dialog.getByRole("region", { name: "Page preview" }),
-    ).toHaveTextContent("To-dosItineraryExpenses");
+    ).toHaveTextContent("To-dosCalendarExpenses");
     await user.clear(name);
     await user.type(name, "Our plans");
     await user.click(dialog.getByRole("radio", { name: "Multi-day" }));
     expect(name).toHaveValue("Our plans");
     expect(
       dialog.getByRole("region", { name: "Page preview" }),
-    ).toHaveTextContent("CalendarItineraryFiles");
+    ).toHaveTextContent("CalendarFiles");
     await user.click(dialog.getByRole("radio", { name: "Blank" }));
     expect(dialog.queryByRole("list")).toBeNull();
     expect(fetch).not.toHaveBeenCalled();
@@ -192,10 +195,12 @@ describe("insertable event components", () => {
     const saved = await client.getEventLayout(eventId);
     expect(saved.version).toBe(2);
     expect(saved.pages[0]).toEqual(pages[0]);
-    expect(saved.pages[1]?.components.map(({ kind }) => kind)).toEqual([
-      "todos",
-      "itinerary",
-      "expenses",
+    expect(
+      saved.pages[1]?.components.map(({ kind, view }) => [kind, view]),
+    ).toEqual([
+      ["todos", undefined],
+      ["calendar", "agenda"],
+      ["expenses", undefined],
     ]);
     expect(saved.pages[1]?.components[0]?.id).not.toBe(
       pages[0]?.components[0]?.id,
@@ -225,7 +230,7 @@ describe("insertable event components", () => {
     await user.click(
       await recovery.findByRole("button", { name: "Preview version 2" }),
     );
-    expect(recovery.getByText(/To-dos, Itinerary, Expenses/)).toBeVisible();
+    expect(recovery.getByText(/To-dos, Calendar, Expenses/)).toBeVisible();
     expect(await client.getEventDetail(eventId)).toEqual(before);
   });
 
@@ -250,7 +255,7 @@ describe("insertable event components", () => {
         dialog.getByRole("textbox", { name: "Page name" }),
         "Notes",
       );
-      await user.click(dialog.getByRole("radio", { name: "Multi-day" }));
+      await user.click(dialog.getByRole("radio", { name: "Gathering" }));
       expect(dialog.getByText(/exceeds a layout limit/)).toBeVisible();
       expect(dialog.getByRole("button", { name: "Add page" })).toBeDisabled();
       await user.click(dialog.getByRole("radio", { name: "Blank" }));
@@ -758,7 +763,7 @@ describe("insertable event components", () => {
       within(switches[1] as HTMLElement)
         .getAllByRole("button")
         .map((button) => button.textContent),
-    ).toEqual(["List", "Week", "Month"]);
+    ).toEqual(["List", "Agenda", "Week", "Month"]);
     unmount();
 
     render(<EventPages eventId={eventId} canEdit={false} />, {
@@ -955,9 +960,21 @@ describe("insertable event components", () => {
     const pages = [page("Plan", eventComponentKindSchema.options)];
     await client.updateEventLayout(eventId, { expectedVersion: 0, pages });
     render(<EventPages eventId={eventId} canEdit />, { wrapper: Providers });
-    for (const { label } of Object.values(eventComponents)) {
-      expect(await screen.findByRole("heading", { name: label })).toBeVisible();
+    for (const kind of addableEventComponentKinds) {
+      expect(
+        (
+          await screen.findAllByRole("heading", {
+            name: eventComponents[kind].label,
+          })
+        )[0],
+      ).toBeVisible();
     }
+    // The saved itinerary renders as a second Calendar, in its agenda view.
+    expect(screen.getAllByRole("heading", { name: "Calendar" })).toHaveLength(
+      2,
+    );
+    expect(screen.queryByRole("heading", { name: "Itinerary" })).toBeNull();
+    expect(document.querySelectorAll(".itinerary-list")).toHaveLength(1);
     expect(await screen.findByText("No files attached")).toBeVisible();
     expect(await client.getEventDetail(eventId)).toEqual(before);
     expect(
@@ -1077,7 +1094,7 @@ describe("insertable event components", () => {
     });
     await user.click(trigger);
     const dialog = within(screen.getByRole("dialog"));
-    expect(dialog.getAllByRole("radio")).toHaveLength(8);
+    expect(dialog.getAllByRole("radio")).toHaveLength(7);
     expect(
       dialog.getByRole("searchbox", { name: "Find a component" }),
     ).toHaveFocus();
@@ -1157,7 +1174,7 @@ describe("insertable event components", () => {
     expect(dialog.queryAllByRole("radio")).toHaveLength(0);
     await user.click(dialog.getByRole("button", { name: "Clear search" }));
     expect(search).toHaveFocus();
-    expect(dialog.getAllByRole("radio")).toHaveLength(8);
+    expect(dialog.getAllByRole("radio")).toHaveLength(7);
     await user.type(search, "checklist");
     await user.keyboard("{ArrowDown}");
     expect(dialog.getByRole("radio", { name: "To-dos" })).toHaveFocus();

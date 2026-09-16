@@ -9,7 +9,10 @@ import { useQuery } from "@tanstack/react-query";
 import { ErrorNotice, LoadingState } from "../../components/feedback";
 import { useApiClient } from "../../lib/api-context";
 import { useAuthSession } from "../../lib/auth-session";
-import { eventComponents } from "../../lib/event-components";
+import {
+  eventComponents,
+  resolveEventComponent,
+} from "../../lib/event-components";
 import { queryKeys } from "../../lib/queries";
 import { isTemporaryReadError } from "../../lib/query-errors";
 import { useForgetInaccessibleEventDrafts } from "../../lib/editor-draft-context";
@@ -18,7 +21,6 @@ import { PeoplePanel } from "./people-panel";
 import {
   CalendarPanel,
   ExpensesPanel,
-  ItineraryPanel,
   RemindersPanel,
   TasksPanel,
   TimelinePanel,
@@ -68,10 +70,10 @@ function Projection<T>({
 }
 
 export function EventComponent({
-  kind,
+  kind: storedKind,
   eventId,
   canEdit,
-  view,
+  view: storedView,
   onChangeView,
   isSavingView = false,
 }: {
@@ -86,6 +88,11 @@ export function EventComponent({
 }) {
   const client = useApiClient();
   useForgetInaccessibleEventDrafts(eventId, !canEdit);
+  // A retired kind renders as the kind and view it stands for.
+  const { kind, view } = resolveEventComponent({
+    kind: storedKind,
+    view: storedView,
+  });
   const label = eventComponents[kind].label;
   switch (kind) {
     case "todos":
@@ -103,7 +110,7 @@ export function EventComponent({
               isSavingView={isSavingView}
               onChangeView={onChangeView}
               tasks={tasks.items}
-              view={view ?? "list"}
+              view={view}
             />
           )}
         </Projection>
@@ -123,7 +130,7 @@ export function EventComponent({
               isSavingView={isSavingView}
               items={calendar.items}
               onChangeView={onChangeView}
-              view={view ?? "list"}
+              view={view}
             />
           )}
         </Projection>
@@ -140,18 +147,8 @@ export function EventComponent({
         </Projection>
       );
     case "itinerary":
-      return (
-        <Projection
-          eventId={eventId}
-          label={label}
-          queryKey={queryKeys.itinerary(eventId)}
-          load={(signal) =>
-            client.withSignal(signal).getEventItinerary(eventId)
-          }
-        >
-          {(itinerary) => <ItineraryPanel items={itinerary.items} />}
-        </Projection>
-      );
+      // Resolved to the Calendar above; kept for the exhaustive switch.
+      return null;
     case "expenses":
       return (
         <Projection

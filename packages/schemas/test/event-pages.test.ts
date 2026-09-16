@@ -58,7 +58,7 @@ describe("event page layout input", () => {
         pages: [{ ...page, components: [{ ...component, view: "by-day" }] }],
       }).pages[0]?.components[0],
     ).toEqual({ ...component, view: "by-day" });
-    for (const view of ["week", "month"] as const) {
+    for (const view of ["agenda", "week", "month"] as const) {
       expect(
         eventLayoutUpdateSchema.parse({
           expectedVersion: 2,

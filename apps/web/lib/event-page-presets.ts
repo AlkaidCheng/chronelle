@@ -1,11 +1,19 @@
-import type { EventComponentKind, EventPage } from "@chronelle/schemas";
+import type {
+  EventComponentKind,
+  EventComponentView,
+  EventPage,
+} from "@chronelle/schemas";
 
 interface EventPagePreset {
   readonly id: string;
   readonly label: string;
   readonly name: string;
   readonly description: string;
-  readonly components: readonly EventComponentKind[];
+  /** The components in order; a kind alone takes its default view. */
+  readonly components: readonly (
+    | EventComponentKind
+    | { readonly kind: EventComponentKind; readonly view: EventComponentView }
+  )[];
 }
 
 export const eventPagePresets = [
@@ -21,14 +29,14 @@ export const eventPagePresets = [
     label: "Gathering",
     name: "Gathering",
     description: "Prepare, follow the running order, and track spending.",
-    components: ["todos", "itinerary", "expenses"],
+    components: ["todos", { kind: "calendar", view: "agenda" }, "expenses"],
   },
   {
     id: "multi-day",
     label: "Multi-day",
     name: "Multi-day",
     description: "Keep scheduled activities and useful documents together.",
-    components: ["calendar", "itinerary", "files"],
+    components: ["calendar", "files"],
   },
 ] as const satisfies readonly EventPagePreset[];
 
@@ -37,9 +45,10 @@ export function createPresetPage(preset: EventPagePreset): EventPage {
   return {
     id: crypto.randomUUID(),
     name: preset.name,
-    components: preset.components.map((kind) => ({
-      id: crypto.randomUUID(),
-      kind,
-    })),
+    components: preset.components.map((component) =>
+      typeof component === "string"
+        ? { id: crypto.randomUUID(), kind: component }
+        : { id: crypto.randomUUID(), ...component },
+    ),
   };
 }

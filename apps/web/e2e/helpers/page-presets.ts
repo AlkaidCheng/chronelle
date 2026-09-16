@@ -31,17 +31,13 @@ export async function exercisePagePresets(page: Page, testInfo: TestInfo) {
   await expect(name).toHaveValue("Gathering");
   await expect(preview.getByRole("listitem")).toHaveText([
     "To-dos",
-    "Itinerary",
+    "Calendar",
     "Expenses",
   ]);
   await name.fill("On the day");
   await dialog.getByRole("radio", { name: "Multi-day", exact: true }).check();
   await expect(name).toHaveValue("On the day");
-  await expect(preview.getByRole("listitem")).toHaveText([
-    "Calendar",
-    "Itinerary",
-    "Files",
-  ]);
+  await expect(preview.getByRole("listitem")).toHaveText(["Calendar", "Files"]);
   await dialog.getByRole("radio", { name: "Gathering", exact: true }).check();
   await dialog.screenshot({
     path: testInfo.outputPath("preset-desktop.png"),
@@ -110,7 +106,7 @@ export async function exercisePagePresets(page: Page, testInfo: TestInfo) {
     .getByRole("button", { name: "Preview version 3", exact: true })
     .click();
   await expect(
-    recovery.getByText("Calendar, Itinerary, Files", { exact: false }),
+    recovery.getByText("Calendar, Files", { exact: false }),
   ).toBeVisible();
   await recovery.getByRole("button", { name: "Back", exact: true }).click();
   await recovery.getByRole("button", { name: "Close", exact: true }).click();

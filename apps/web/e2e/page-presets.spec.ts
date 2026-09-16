@@ -50,17 +50,13 @@ test("adds preset pages and recovers their identities without changing planning 
         name: "On the day",
         components: [
           { kind: "todos" },
-          { kind: "itinerary" },
+          { kind: "calendar", view: "agenda" },
           { kind: "expenses" },
         ],
       },
       {
         name: "Multi-day",
-        components: [
-          { kind: "calendar" },
-          { kind: "itinerary" },
-          { kind: "files" },
-        ],
+        components: [{ kind: "calendar" }, { kind: "files" }],
       },
     ],
   });
