@@ -4106,3 +4106,14 @@ html:has(.event-create-dialog[open]) {
   grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
   width: 100%;
 }
+
+/* Repeat and its optional end, side by side where the editor is wide. */
+.due-repeat {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+}
+
+.due-repeat .field-hint {
+  grid-column: 1 / -1;
+}

@@ -40,7 +40,13 @@ function Harness({
   readonly dueTime?: string;
   readonly duration?: string;
 }) {
-  const [due, setDue] = useState({ dueDate, dueTime, duration });
+  const [due, setDue] = useState({
+    dueDate,
+    dueTime,
+    duration,
+    repeat: "",
+    repeatUntil: "",
+  });
   return (
     <>
       <DuePicker
@@ -49,6 +55,8 @@ function Harness({
         duration={due.duration}
         now={now}
         onChange={setDue}
+        repeat={due.repeat}
+        repeatUntil={due.repeatUntil}
       />
       <output aria-label="Due fields">{JSON.stringify(due)}</output>
     </>
@@ -62,6 +70,8 @@ const fields = () =>
     dueDate: string;
     dueTime: string;
     duration: string;
+    repeat: string;
+    repeatUntil: string;
   };
 const month = (key: string) =>
   within(screen.getByRole("table", { name: monthName(key) }));
@@ -116,6 +126,8 @@ describe("DuePicker", { timeout: 15_000 }, () => {
       dueDate: "2030-03-05",
       dueTime: "",
       duration: "",
+      repeat: "",
+      repeatUntil: "",
     });
     // Today stays offered and reads as pressed; the field shows the date itself.
     expect(labels()).toHaveLength(6);
@@ -155,7 +167,13 @@ describe("DuePicker", { timeout: 15_000 }, () => {
     );
     expect(fields().dueDate).toBe("2030-04-02");
     await user.click(shortcuts.getByRole("button", { name: "No date" }));
-    expect(fields()).toEqual({ dueDate: "", dueTime: "", duration: "" });
+    expect(fields()).toEqual({
+      dueDate: "",
+      dueTime: "",
+      duration: "",
+      repeat: "",
+      repeatUntil: "",
+    });
     expect(screen.getByLabelText("Due date")).toHaveValue("");
   });
 
@@ -309,6 +327,8 @@ describe("DuePicker", { timeout: 15_000 }, () => {
       dueDate: "2030-03-06",
       dueTime: "21:00",
       duration: "",
+      repeat: "",
+      repeatUntil: "",
     });
     expect(summary()).toHaveTextContent(
       `Due: ${exact("2030-03-06")} (tomorrow), 9:00 PM`,
@@ -321,6 +341,8 @@ describe("DuePicker", { timeout: 15_000 }, () => {
       dueDate: "2030-03-06",
       dueTime: "",
       duration: "",
+      repeat: "",
+      repeatUntil: "",
     });
     expect(screen.queryByLabelText("Due time")).toBeNull();
     expect(screen.queryByLabelText("Duration")).toBeNull();
@@ -328,6 +350,73 @@ describe("DuePicker", { timeout: 15_000 }, () => {
     await user.type(screen.getByLabelText("Due time"), "08:30");
     await user.selectOptions(screen.getByLabelText("Duration"), "30");
     await user.click(screen.getByRole("button", { name: "No date" }));
-    expect(fields()).toEqual({ dueDate: "", dueTime: "", duration: "" });
+    expect(fields()).toEqual({
+      dueDate: "",
+      dueTime: "",
+      duration: "",
+      repeat: "",
+      repeatUntil: "",
+    });
+  });
+
+  it("offers a repeat rule once a date is chosen, with an optional end", async () => {
+    const user = userEvent.setup();
+    render(<Harness />);
+    await user.click(summary());
+    expect(screen.getByLabelText("Repeat")).toBeDisabled();
+    expect(screen.queryByLabelText("Until")).toBeNull();
+    await user.click(screen.getByRole("button", { name: /^Tomorrow/ }));
+    await user.selectOptions(screen.getByLabelText("Repeat"), "weekly");
+    expect(fields()).toMatchObject({
+      dueDate: "2030-03-06",
+      repeat: "weekly",
+      repeatUntil: "",
+    });
+    expect(summary()).toHaveTextContent(
+      `Due: ${exact("2030-03-06")} (tomorrow), every week`,
+    );
+    // The end is typed like the date; one before the due is refused.
+    await user.click(screen.getByLabelText("Until"));
+    await user.paste("2030-03-04");
+    expect(screen.getByLabelText("Until")).toHaveAttribute(
+      "aria-invalid",
+      "true",
+    );
+    expect(
+      screen.getByText("The end cannot come before the due date."),
+    ).toBeVisible();
+    expect(fields().repeatUntil).toBe("");
+    await user.clear(screen.getByLabelText("Until"));
+    await user.paste("2030-04-30");
+    expect(fields().repeatUntil).toBe("2030-04-30");
+    expect(summary()).toHaveTextContent(
+      `, every week until ${exact("2030-04-30")}`,
+    );
+    // Moving the due past the end drops the end; dropping the rule drops the
+    // end; No date drops both.
+    await user.click(screen.getByRole("button", { name: /^Next week/ }));
+    expect(fields().repeatUntil).toBe("2030-04-30");
+    // Typed over in one go, so the date never passes through empty.
+    await user.tripleClick(screen.getByLabelText("Due date"));
+    await user.paste("2030-05-01");
+    expect(fields()).toMatchObject({
+      dueDate: "2030-05-01",
+      repeat: "weekly",
+      repeatUntil: "",
+    });
+    expect(screen.getByLabelText("Until")).toHaveValue("");
+    await user.selectOptions(screen.getByLabelText("Repeat"), "");
+    expect(fields().repeat).toBe("");
+    expect(screen.queryByLabelText("Until")).toBeNull();
+    await user.selectOptions(screen.getByLabelText("Repeat"), "monthly");
+    await user.click(screen.getByRole("button", { name: "No date" }));
+    expect(fields()).toEqual({
+      dueDate: "",
+      dueTime: "",
+      duration: "",
+      repeat: "",
+      repeatUntil: "",
+    });
+    expect(screen.getByLabelText("Repeat")).toBeDisabled();
   });
 });

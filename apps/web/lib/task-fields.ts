@@ -1,11 +1,16 @@
-import type { TaskResponse } from "@chronelle/schemas";
+import {
+  type TaskRepeatRule,
+  type TaskResponse,
+  taskRepeatRuleSchema,
+} from "@chronelle/schemas";
 import { editedInstant } from "./edited-instant";
 import { toDateTimeInput } from "./format";
 
 /**
- * The editor's due fields: a calendar date and an optional local time. A
- * task due on a date fills only the date; a task due at an instant fills
- * both from the local rendering of that instant.
+ * The editor's due fields: a calendar date, an optional local time, and an
+ * optional repeat rule with its last date. A task due on a date fills only
+ * the date; a task due at an instant fills both from the local rendering of
+ * that instant.
  */
 export function readTaskFields(
   task?: Pick<
@@ -14,6 +19,8 @@ export function readTaskFields(
     | "dueOn"
     | "dueAt"
     | "durationMinutes"
+    | "repeatRule"
+    | "repeatUntil"
     | "assigneeId"
     | "location"
     | "labelIds"
@@ -32,6 +39,9 @@ export function readTaskFields(
       task?.durationMinutes === null || task?.durationMinutes === undefined
         ? ""
         : String(task.durationMinutes),
+    // The repeat rule and its last date; empty for none.
+    repeat: task?.repeatRule ?? "",
+    repeatUntil: task?.repeatUntil ?? "",
     // The assignee's person id; empty for an unassigned task.
     assignee: task?.assigneeId ?? "",
     location: task?.location ?? "",
@@ -57,7 +67,8 @@ export const durationLimit = 1440;
 /**
  * A date alone is a date-only due; a date with a time is a due instant,
  * preserved unchanged when the local rendering did not change. A time
- * without a date is refused, as is a duration without a time.
+ * without a date is refused, as is a duration without a time, a repeat
+ * without a date, and a repeat's end before the date.
  */
 export function taskFieldsPayload(
   fields: ReturnType<typeof readTaskFields>,
@@ -78,16 +89,20 @@ export function taskFieldsPayload(
       durationMinutes > durationLimit)
   )
     throw new Error("Choose a duration of up to a day.");
+  const repeat = readRepeat(fields);
   if (fields.dueDate === "") {
     if (fields.dueTime !== "")
       throw new Error("Choose a due date for the due time.");
     if (durationMinutes !== null)
       throw new Error("Choose a due time for the duration.");
+    if (repeat.repeatRule !== null)
+      throw new Error("Choose a due date to repeat from.");
     return {
       displayName: fields.displayName,
       dueOn: null,
       dueAt: null,
       durationMinutes: null,
+      ...repeat,
       assigneeId,
       location,
       labelIds,
@@ -95,6 +110,8 @@ export function taskFieldsPayload(
   }
   if (!/^\d{4}-\d{2}-\d{2}$/.test(fields.dueDate))
     throw new Error("Choose a valid due date.");
+  if (repeat.repeatUntil !== null && repeat.repeatUntil < fields.dueDate)
+    throw new Error("Choose a repeat end on or after the due date.");
   if (fields.dueTime === "") {
     if (durationMinutes !== null)
       throw new Error("Choose a due time for the duration.");
@@ -103,6 +120,7 @@ export function taskFieldsPayload(
       dueOn: fields.dueDate,
       dueAt: null,
       durationMinutes: null,
+      ...repeat,
       assigneeId,
       location,
       labelIds,
@@ -117,8 +135,28 @@ export function taskFieldsPayload(
       "due",
     ),
     durationMinutes,
+    ...repeat,
     assigneeId,
     location,
     labelIds,
+  };
+}
+
+/** The rule and its end as the API takes them; an end needs a rule. */
+function readRepeat(fields: { repeat: string; repeatUntil: string }): {
+  repeatRule: TaskRepeatRule | null;
+  repeatUntil: string | null;
+} {
+  if (fields.repeat === "") return { repeatRule: null, repeatUntil: null };
+  const rule = taskRepeatRuleSchema.safeParse(fields.repeat);
+  if (!rule.success) throw new Error("Choose a repeat the picker offers.");
+  if (
+    fields.repeatUntil !== "" &&
+    !/^\d{4}-\d{2}-\d{2}$/.test(fields.repeatUntil)
+  )
+    throw new Error("Choose a valid repeat end.");
+  return {
+    repeatRule: rule.data,
+    repeatUntil: fields.repeatUntil === "" ? null : fields.repeatUntil,
   };
 }

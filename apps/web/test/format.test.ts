@@ -6,7 +6,8 @@ import {
   fromDateTimeInput,
   toDateTimeInput,
 } from "../lib/format";
-import { formatTaskDue, formatTaskTime } from "../lib/task-due";
+import { formatCalendarDate } from "../lib/event-schedule";
+import { formatTaskDue, formatTaskTime, formatTaskWhen } from "../lib/task-due";
 
 describe("date input conversion", () => {
   it("keeps an unscheduled value empty", () => {
@@ -96,15 +97,56 @@ describe("durations", () => {
       `${time}, 30 min`,
     );
     expect(formatTaskTime({ dueAt, durationMinutes: null }, false)).toBe(time);
-    expect(formatTaskDue({ dueOn: null, dueAt, durationMinutes: 90 })).toBe(
-      `${formatDateTime(dueAt)}, 1 h 30 min`,
-    );
+    expect(
+      formatTaskDue({
+        dueOn: null,
+        dueAt,
+        durationMinutes: 90,
+        repeatRule: null,
+      }),
+    ).toBe(`${formatDateTime(dueAt)}, 1 h 30 min`);
     expect(
       formatTaskDue({
         dueOn: "2030-03-05",
         dueAt: null,
         durationMinutes: null,
+        repeatRule: "yearly",
       }),
-    ).not.toContain("min");
+    ).toBe(`${formatCalendarDate("2030-03-05")} \u00b7 repeats yearly`);
+  });
+
+  it("says when a task is due and how it repeats, or nothing", () => {
+    const dueAt = "2030-03-05T09:30:00.000Z";
+    const time = new Intl.DateTimeFormat(undefined, {
+      timeStyle: "short",
+    }).format(new Date(dueAt));
+    expect(
+      formatTaskWhen(
+        { dueOn: null, dueAt, durationMinutes: null, repeatRule: "weekly" },
+        false,
+      ),
+    ).toBe(`${time} \u00b7 repeats weekly`);
+    expect(
+      formatTaskWhen(
+        {
+          dueOn: "2030-03-05",
+          dueAt: null,
+          durationMinutes: null,
+          repeatRule: "daily",
+        },
+        false,
+      ),
+    ).toBe("repeats daily");
+    expect(
+      formatTaskWhen(
+        {
+          dueOn: "2030-03-05",
+          dueAt: null,
+          durationMinutes: null,
+          repeatRule: null,
+        },
+        false,
+      ),
+    ).toBe("");
   });
 });

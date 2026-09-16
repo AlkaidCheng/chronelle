@@ -6,6 +6,8 @@ const empty = {
   dueDate: "",
   dueTime: "",
   duration: "",
+  repeat: "",
+  repeatUntil: "",
   assignee: "",
   location: "",
   labels: "",
@@ -20,6 +22,8 @@ describe("Task field conversion", () => {
       dueDate: "",
       dueTime: "",
       duration: "",
+      repeat: "",
+      repeatUntil: "",
       assignee: "",
       location: "",
       labels: "",
@@ -29,6 +33,8 @@ describe("Task field conversion", () => {
       dueOn: null,
       dueAt: null,
       durationMinutes: null,
+      repeatRule: null,
+      repeatUntil: null,
       assigneeId: null,
       location: null,
       labelIds: [],
@@ -43,6 +49,8 @@ describe("Task field conversion", () => {
         dueOn: "2030-07-03",
         dueAt: null,
         durationMinutes: null,
+        repeatRule: null,
+        repeatUntil: null,
         assigneeId: "u1",
         location: "The garden",
         labelIds: ["b", "a", "b"],
@@ -52,6 +60,8 @@ describe("Task field conversion", () => {
       dueDate: "2030-07-03",
       dueTime: "",
       duration: "",
+      repeat: "",
+      repeatUntil: "",
       assignee: "u1",
       location: "The garden",
       labels: "a,b",
@@ -71,6 +81,8 @@ describe("Task field conversion", () => {
       dueOn: "2030-07-03",
       dueAt: null,
       durationMinutes: null,
+      repeatRule: null,
+      repeatUntil: null,
       assigneeId: null,
       location: null,
       labelIds: [],
@@ -82,6 +94,8 @@ describe("Task field conversion", () => {
       dueOn: null,
       dueAt: "2030-07-03T19:30:00.000Z",
       durationMinutes: null,
+      repeatRule: null,
+      repeatUntil: null,
       assigneeId: null,
       location: null,
       labelIds: [],
@@ -95,6 +109,8 @@ describe("Task field conversion", () => {
       dueOn: null,
       dueAt: "2030-07-03T18:30:45.678Z",
       durationMinutes: null,
+      repeatRule: null,
+      repeatUntil: null,
       assigneeId: null,
       location: null,
       labelIds: [],
@@ -105,6 +121,8 @@ describe("Task field conversion", () => {
       dueDate: "2030-07-03",
       dueTime: "11:30",
       duration: "",
+      repeat: "",
+      repeatUntil: "",
       assignee: "",
       location: "",
       labels: "",
@@ -116,6 +134,8 @@ describe("Task field conversion", () => {
       dueOn: null,
       dueAt: source.dueAt,
       durationMinutes: null,
+      repeatRule: null,
+      repeatUntil: null,
       assigneeId: null,
       location: null,
       labelIds: [],
@@ -136,6 +156,8 @@ describe("Task field conversion", () => {
       dueOn: null,
       dueAt: null,
       durationMinutes: null,
+      repeatRule: null,
+      repeatUntil: null,
       assigneeId: null,
       location: null,
       labelIds: [],
@@ -169,6 +191,8 @@ describe("Task field conversion", () => {
         dueOn: null,
         dueAt: "2030-07-03T19:30:00.000Z",
         durationMinutes: 90,
+        repeatRule: null,
+        repeatUntil: null,
         assigneeId: null,
         location: null,
         labelIds: [],
@@ -197,5 +221,52 @@ describe("Task field conversion", () => {
           duration,
         }),
       ).toThrow("Choose a duration of up to a day.");
+  });
+
+  it("keeps a repeat rule only with a due date and its end on or after it", () => {
+    const fields = readTaskFields({
+      displayName: "Water",
+      dueOn: "2030-07-03",
+      dueAt: null,
+      durationMinutes: null,
+      repeatRule: "weekly",
+      repeatUntil: "2030-08-01",
+      assigneeId: null,
+      location: null,
+      labelIds: [],
+    });
+    expect(fields.repeat).toBe("weekly");
+    expect(fields.repeatUntil).toBe("2030-08-01");
+    expect(taskFieldsPayload(fields)).toMatchObject({
+      dueOn: "2030-07-03",
+      repeatRule: "weekly",
+      repeatUntil: "2030-08-01",
+    });
+    expect(
+      taskFieldsPayload({ ...empty, dueDate: "2030-07-03", repeat: "daily" }),
+    ).toMatchObject({ repeatRule: "daily", repeatUntil: null });
+    // An end without a rule is dropped; a rule without a date, or an end
+    // before the date, is refused.
+    expect(
+      taskFieldsPayload({
+        ...empty,
+        dueDate: "2030-07-03",
+        repeatUntil: "2030-08-01",
+      }),
+    ).toMatchObject({ repeatRule: null, repeatUntil: null });
+    expect(() => taskFieldsPayload({ ...empty, repeat: "weekly" })).toThrow(
+      "Choose a due date to repeat from.",
+    );
+    expect(() =>
+      taskFieldsPayload({
+        ...empty,
+        dueDate: "2030-07-03",
+        repeat: "weekly",
+        repeatUntil: "2030-07-02",
+      }),
+    ).toThrow("Choose a repeat end on or after the due date.");
+    expect(() =>
+      taskFieldsPayload({ ...empty, dueDate: "2030-07-03", repeat: "hourly" }),
+    ).toThrow("Choose a repeat the picker offers.");
   });
 });
