@@ -317,8 +317,8 @@ then add only the components it needs. Empty pages explain this next step;
 movement controls and instructions appear only in Arrange layout mode. Viewers see
 read-only explanations without instructions to use unavailable controls.
 
-Add a page offers Blank (the default), Gathering (To-dos, Itinerary, Expenses),
-and Multi-day (Calendar, Itinerary, Files). The preview shows the page name and
+Add a page offers Blank (the default), Gathering (To-dos, Calendar as an
+agenda, Expenses), and Multi-day (Calendar, Files). The preview shows the page name and
 ordered components before saving. Choosing a preset supplies a suggested name
 until the name is edited; switching presets preserves a custom name. Each
 selection appends one page, preserving existing pages and canonical records.
@@ -433,7 +433,7 @@ Calendar Edit opens the same inspector for the selected schedule item, including
 Calendar components on Event pages. The item is a canonical Event; its current
 data and edit permission are checked separately from the parent. Cached access
 is not sufficient to open it. Its name and schedule share one draft across
-contexts, and saving refreshes Calendar, Itinerary and Timeline projections.
+contexts, and saving refreshes the Calendar and Timeline projections.
 Temporary item-read failures hide the editor until an explicit retry; the kept
 draft can then be resumed.
 
@@ -443,7 +443,7 @@ turned off. Cancel and Escape confirm dismissal of changed fields. Keep editing
 preserves the form, calendar position and focus. An in-flight save disables
 editing and dismissal. Failed saves retain input; unchanged retries reuse the
 linked-create command identity, including after draft recovery. Successful creation closes the
-dialog and refreshes Calendar, Itinerary and Timeline.
+dialog and refreshes the Calendar and Timeline.
 
 Schedule creation keeps one draft per parent Event in authenticated tab memory.
 After navigation, Add schedule item offers Resume / Discard. Resume checks fresh
@@ -569,15 +569,21 @@ on the date itself; Week, seven columns Monday to Sunday with today marked and
 each task in its due day's column; and Month, a six-week grid in which each
 day shows up to three tasks (time and name, done ones struck through) and
 "+n more", and the selected day's tasks are listed under the grid, today's
-until another day is chosen. Calendar offers List, Week, and Month, a
-scheduled item sitting on every day it covers. Tasks with no due date and
+until another day is chosen. Calendar offers List; Agenda, the numbered
+running order of its items with the same Edit, History, and Actions on each;
+and Week and Month, a scheduled item sitting on every day it covers. A page
+that carries an Itinerary component (a retired kind) shows the Calendar in
+its Agenda view, and choosing another view on it saves it as a Calendar. The
+event's own tabs (To-dos, Calendar, and the rest) offer the same View
+control; a tab's choice lasts for the session, while a page component's is
+saved with the layout. Tasks with no due date and
 unscheduled items are listed under the week or the month. On a narrow screen
 the week's days stack and a month cell marks a day that holds something with a
 dot instead of listing it. Previous, Today, and Next move the period; it opens on today, is not saved, and returns to
 today when the view changes. The rows in a column or under the grid are the
 list's rows with the same actions, and the open/all/done filter applies to
-every view. The choice of view is part of the page layout: it saves at once
-for everyone on the Event, shows in layout history, and undo covers it.
+every view. On a page, the choice of view is part of the layout: it saves at
+once for everyone on the Event, shows in layout history, and undo covers it.
 Viewers see the saved view without a control.
 
 ## Recorded reminders
