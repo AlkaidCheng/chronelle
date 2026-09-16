@@ -74,7 +74,9 @@ task's live subtasks go to Trash and come back with it. Migration
 `0042_add_object_create_commands.sql` adds the append-only
 `object_create_commands` table and redefines `chronelle_object_create` to
 replay a standalone creation by `commandId`; reapply the runtime role after
-it.
+it. Migration `0043_share_with_person.sql` redefines `chronelle_resource_share`
+to take the grantee as `principal_email` or `person_id` (the old six-argument
+function is dropped); reapply the runtime role after it.
 
 Migration `0021_add_object_search_function.sql` adds `chronelle_object_search`,
 the read-only function the CloudBase search adapter calls. It changes no

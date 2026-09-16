@@ -15,6 +15,7 @@ import {
   expenseResourceProjectionResponseSchema,
   expenseResponseSchema,
   objectAccessResponseSchema,
+  personResponseSchema,
   reminderResourceProjectionResponseSchema,
   reminderResponseSchema,
   sessionResponseSchema,
@@ -478,6 +479,81 @@ describe.sequential("Event sharing API", () => {
     );
     expect(new Set(sharingAudits.map(({ requestId }) => requestId)).size).toBe(
       sharingAudits.length,
+    );
+  });
+
+  it("shares with a person through the account the person's email names", async () => {
+    const owner = await signIn("owner@example.com", "Event Owner");
+    const viewer = await signIn("viewer@example.com", "Event Viewer");
+    const workspaceId = owner.workspace.id;
+    const event = eventResponseSchema.parse(
+      (
+        await request(owner, workspaceId, {
+          method: "POST",
+          url: "/api/events",
+          payload: { displayName: "Book club" },
+        })
+      ).json(),
+    );
+    const person = async (payload: Record<string, unknown>) =>
+      personResponseSchema.parse(
+        (
+          await request(owner, workspaceId, {
+            method: "POST",
+            url: "/api/persons",
+            payload: { displayName: "Reader", ...payload },
+          })
+        ).json(),
+      );
+    const reachable = await person({ email: "Viewer@example.com" });
+    const unreachable = await person({});
+    const shared = await request(owner, workspaceId, {
+      method: "POST",
+      url: "/api/shares",
+      payload: { resourceId: event.id, personId: reachable.id, role: "editor" },
+    });
+    expect(shared.statusCode).toBe(201);
+    expect(shareResponseSchema.parse(shared.json())).toMatchObject({
+      resourceId: event.id,
+      role: "editor",
+      principal: { id: viewer.user.id, email: "viewer@example.com" },
+    });
+    const refused = await Promise.all([
+      request(owner, workspaceId, {
+        method: "POST",
+        url: "/api/shares",
+        payload: {
+          resourceId: event.id,
+          personId: unreachable.id,
+          role: "viewer",
+        },
+      }),
+      request(owner, workspaceId, {
+        method: "POST",
+        url: "/api/shares",
+        payload: {
+          resourceId: event.id,
+          personId: reachable.id,
+          principalEmail: "viewer@example.com",
+          role: "viewer",
+        },
+      }),
+      request(owner, workspaceId, {
+        method: "POST",
+        url: "/api/shares",
+        payload: { resourceId: event.id, role: "viewer" },
+      }),
+    ]);
+    expect(refused.map(({ statusCode }) => statusCode)).toEqual([
+      404, 400, 400,
+    ]);
+    // The editor now reaches the event; the person grants nothing by itself.
+    const access = await request(viewer, workspaceId, {
+      method: "GET",
+      url: `/api/objects/${event.id}/access`,
+    });
+    expect(objectAccessResponseSchema.parse(access.json()).actions).toContain(
+      "edit",
     );
   });
 });

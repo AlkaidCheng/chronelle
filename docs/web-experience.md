@@ -98,6 +98,19 @@ the event, by name, or takes a new person's name and creates them inside the
 event. A card's Actions offer Remove context link, which takes the person out
 of the event and leaves them in the workspace, as well as Move to Trash.
 
+The Sharing tab of an event, offered to its owners, grants access by email
+(Collaborator email, Viewer or Owner) or to people: Share with people lists
+the workspace's people who can be reached, those with an account here (other
+than the user's own person) and those with an email, with the role each
+already holds on the event; tick any number, choose Viewer or Owner, and
+Share with N people shares with each in turn, reporting "Shared as viewer"
+or the refusal (an email that matches no account, for one) beside each name
+and leaving a refused person ticked for another try. A person's account is
+their linked one, else the account with their email. The People component
+offers owners Share with everyone here, the same control with the event's
+reachable people ticked. People with access lists the accounts that hold a
+grant, with Revoke.
+
 A task may be assigned to one person as the one responsible for it. The task
 editor holds the choice behind an Assignee disclosure that names the current
 assignee (Unassigned when none); open, it lists the workspace's people with

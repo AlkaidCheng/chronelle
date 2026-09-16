@@ -3813,3 +3813,82 @@ html:has(.event-create-dialog[open]) {
   color: var(--muted);
   font-size: 0.85rem;
 }
+
+.share-people {
+  display: grid;
+  gap: 12px;
+}
+
+.share-people-list {
+  border: 0;
+  margin: 0;
+  min-width: 0;
+  padding: 0;
+}
+
+.share-people-list legend {
+  font-size: 0.9rem;
+  font-weight: 700;
+  margin-bottom: 8px;
+  padding: 0;
+}
+
+.share-people-list ul {
+  display: grid;
+  gap: 6px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.share-people-list li {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 12px;
+}
+
+.share-person {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.share-person-name {
+  font-weight: 600;
+}
+
+.share-person-reach {
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.share-outcome {
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.share-outcome-failed {
+  color: var(--danger);
+}
+
+.share-people-actions {
+  align-items: end;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.share-people-disclosure {
+  margin-top: 16px;
+}
+
+.share-people-disclosure > summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.share-people-disclosure[open] > summary {
+  margin-bottom: 12px;
+}

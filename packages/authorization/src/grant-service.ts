@@ -1,16 +1,19 @@
 import {
   createId,
   objects,
+  persons,
   resourceGrants,
   runAuditedMutation,
   users,
   type Database,
+  type DatabaseTransaction,
   type Role,
 } from "@chronelle/db";
-import { and, eq } from "drizzle-orm";
+import { and, eq, isNull } from "drizzle-orm";
 
 import {
   AuthorizationDeniedError,
+  type AuthorizationService,
   type UserPrincipal,
 } from "./authorization.js";
 import { withStableAuthorization } from "./authorization-transaction.js";
@@ -38,8 +41,10 @@ export interface GrantMutationContext {
   readonly requestId: string;
 }
 
+/** The grantee is an account email or a Person; exactly one is named. */
 export interface ShareResourceInput {
-  readonly principalEmail: string;
+  readonly principalEmail?: string | undefined;
+  readonly personId?: string | undefined;
   readonly resourceId: string;
   readonly role: Role;
 }
@@ -81,6 +86,78 @@ export interface ShareWriteRepository {
   ): Promise<RevokedGrantResource>;
 }
 
+/**
+ * The account a share goes to: the one user with the named email, or the
+ * named Person's linked account (else the one user with the person's
+ * email). A person the caller cannot view, or with no reachable account,
+ * is as unavailable as an unknown email.
+ */
+async function resolvePrincipal(
+  transaction: DatabaseTransaction,
+  authorization: AuthorizationService,
+  principal: UserPrincipal,
+  input: ShareResourceInput,
+): Promise<{ id: string; displayName: string; email: string | null }> {
+  let email = input.principalEmail;
+  if (input.personId !== undefined) {
+    if (email !== undefined)
+      throw new InvalidShareError(
+        "Name exactly one of principalEmail and personId.",
+      );
+    const [person] = await transaction
+      .select({ userId: persons.userId, email: persons.email })
+      .from(persons)
+      .innerJoin(
+        objects,
+        and(
+          eq(objects.id, persons.objectId),
+          eq(objects.workspaceId, persons.workspaceId),
+        ),
+      )
+      .where(
+        and(
+          eq(persons.workspaceId, principal.workspaceId),
+          eq(persons.objectId, input.personId),
+          isNull(objects.deletedAt),
+          authorization.resourcePredicate(principal, "view"),
+        ),
+      )
+      .limit(1);
+    if (person === undefined) throw new PrincipalUnavailableError();
+    if (person.userId !== null) {
+      const [linked] = await transaction
+        .select({
+          id: users.id,
+          displayName: users.displayName,
+          email: users.email,
+        })
+        .from(users)
+        .where(eq(users.id, person.userId))
+        .limit(1);
+      if (linked === undefined) throw new PrincipalUnavailableError();
+      return linked;
+    }
+    if (person.email === null) throw new PrincipalUnavailableError();
+    email = person.email.toLowerCase();
+  }
+  if (email === undefined)
+    throw new InvalidShareError(
+      "Name exactly one of principalEmail and personId.",
+    );
+  const [found, duplicate] = await transaction
+    .select({
+      id: users.id,
+      displayName: users.displayName,
+      email: users.email,
+    })
+    .from(users)
+    .where(eq(users.email, email))
+    .limit(2);
+  if (found === undefined || duplicate !== undefined)
+    throw new PrincipalUnavailableError();
+  return found;
+}
+
 export class ResourceGrantService {
   readonly #clock: () => Date;
   readonly #database: Database;
@@ -112,18 +189,12 @@ export class ResourceGrantService {
           id: input.resourceId,
           workspaceId: context.principal.workspaceId,
         });
-        const [principal, duplicatePrincipal] = await transaction
-          .select({
-            id: users.id,
-            displayName: users.displayName,
-            email: users.email,
-          })
-          .from(users)
-          .where(eq(users.email, input.principalEmail))
-          .limit(2);
-        if (principal === undefined || duplicatePrincipal !== undefined) {
-          throw new PrincipalUnavailableError();
-        }
+        const principal = await resolvePrincipal(
+          transaction,
+          authorization,
+          context.principal,
+          input,
+        );
         if (principal.id === context.principal.userId) {
           throw new InvalidShareError(
             "A resource cannot be shared with the acting user.",
@@ -174,6 +245,9 @@ export class ResourceGrantService {
                   grantId: persisted.id,
                   principalId: principal.id,
                   role: persisted.role,
+                  ...(input.personId === undefined
+                    ? {}
+                    : { personId: input.personId }),
                 },
               },
             };

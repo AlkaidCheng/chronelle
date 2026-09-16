@@ -13,11 +13,26 @@ export const authorizationActionSchema = z.enum([
   "recover",
 ]);
 
-export const shareCreateRequestSchema = z.object({
-  resourceId: idSchema,
-  principalEmail: z.email().transform((email) => email.toLowerCase()),
-  role: roleSchema,
-});
+/**
+ * A share names its grantee as an account email or as a Person of the
+ * workspace, whose linked account (else the one account with the person's
+ * email) receives the role.
+ */
+export const shareCreateRequestSchema = z
+  .object({
+    resourceId: idSchema,
+    principalEmail: z
+      .email()
+      .transform((email) => email.toLowerCase())
+      .optional(),
+    personId: idSchema.optional(),
+    role: roleSchema,
+  })
+  .refine(
+    (value) =>
+      (value.principalEmail === undefined) !== (value.personId === undefined),
+    "Name exactly one of principalEmail and personId.",
+  );
 
 export const shareResponseSchema = z.object({
   id: idSchema,

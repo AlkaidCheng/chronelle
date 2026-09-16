@@ -14,12 +14,15 @@ import {
 import { LockIcon, ShareIcon } from "../../components/icons";
 import { shortId } from "../../lib/format";
 import {
+  usePersonsQuery,
   useRefreshEvent,
   useRevokeShare,
+  useSessionQuery,
   useShareResource,
   useSharesQuery,
   useUpdatePermissionScope,
 } from "../../lib/queries";
+import { ShareWithPeople, shareablePeople } from "./share-with-people";
 
 type SharedRole = "owner" | "viewer";
 
@@ -50,6 +53,12 @@ export function SharingPanel({
   const [principalEmail, setPrincipalEmail] = useState("");
   const [role, setRole] = useState<SharedRole>("viewer");
   const resources = useMemo(() => relatedResources(detail), [detail]);
+  const persons = usePersonsQuery();
+  const session = useSessionQuery();
+  const people = useMemo(
+    () => shareablePeople(persons.data?.items ?? [], session.data?.user.id),
+    [persons.data, session.data],
+  );
 
   function handleShare(formEvent: FormEvent<HTMLFormElement>) {
     formEvent.preventDefault();
@@ -110,6 +119,13 @@ export function SharingPanel({
         </button>
         {share.isError ? <ErrorNotice error={share.error} /> : null}
       </form>
+
+      <ShareWithPeople
+        eventId={eventId}
+        grants={shares.data?.items ?? []}
+        legend="Share with people"
+        people={people}
+      />
 
       <div className="sharing-section">
         <div className="section-title-row">

@@ -80,6 +80,83 @@ afterEach(() => {
 });
 
 describe("People component", () => {
+  it("offers owners to share the event with everyone it involves", async () => {
+    const sam = await client.createEventResource(eventId, {
+      commandId: crypto.randomUUID(),
+      resource: {
+        objectType: "person",
+        displayName: "Sam Lee",
+        email: "sam@example.com",
+      },
+    });
+    await client.createEventResource(eventId, {
+      commandId: crypto.randomUUID(),
+      resource: { objectType: "person", displayName: "No account" },
+    });
+    // The sandbox grants no share access and takes no shares; answer both.
+    const posted: unknown[] = [];
+    vi.stubGlobal(
+      "fetch",
+      vi.fn<typeof globalThis.fetch>(async (input, options) => {
+        const path = String(input);
+        if (path === `/api/objects/${eventId}/access`)
+          return Response.json({
+            resourceId: eventId,
+            actions: ["view", "edit", "share"],
+          });
+        if (path === "/api/shares" && options?.method === "POST") {
+          posted.push(JSON.parse(String(options.body)));
+          return Response.json(
+            {
+              id: crypto.randomUUID(),
+              workspaceId: sandboxWorkspaceId,
+              resourceId: eventId,
+              principal: {
+                id: crypto.randomUUID(),
+                displayName: "Sam Lee",
+                email: "sam@example.com",
+              },
+              role: "owner",
+              grantedBy: crypto.randomUUID(),
+              createdAt: new Date().toISOString(),
+              expiresAt: null,
+            },
+            { status: 201 },
+          );
+        }
+        return store.fetch(input, options);
+      }),
+    );
+    const user = userEvent.setup();
+    render(
+      <Providers>
+        <EventComponent canEdit eventId={eventId} kind="people" />
+      </Providers>,
+    );
+    await user.click(
+      await screen.findByText("Share with everyone here", {
+        selector: "summary",
+      }),
+    );
+    const list = within(
+      screen.getByRole("list", { name: "Share this event with its people" }),
+    );
+    // Only the person with an email is offered, already ticked.
+    expect(list.getAllByRole("checkbox")).toHaveLength(1);
+    expect(list.getByRole("checkbox", { name: /Sam Lee/ })).toBeChecked();
+    await user.selectOptions(
+      screen.getByRole("combobox", { name: "Access" }),
+      "owner",
+    );
+    await user.click(
+      screen.getByRole("button", { name: "Share with 1 person" }),
+    );
+    expect(await list.findByText("Shared as owner")).toBeVisible();
+    expect(posted).toEqual([
+      { personId: sam.resource.id, resourceId: eventId, role: "owner" },
+    ]);
+  });
+
   it("adds a known person, creates a new one inside the event, and removes a link", async () => {
     const sam = await client.createPerson({ displayName: "Sam Lee" });
     const user = userEvent.setup();

@@ -663,11 +663,19 @@ permanent public URL.
 | `DELETE` | `/shares/:id`                   | Revoke a direct grant                 |
 | `PATCH`  | `/objects/:id/permission-scope` | Change inheritance with a version     |
 
-`POST /shares` accepts `resourceId`, `principalEmail`, and an Owner, Editor, or
-Viewer `role`. The recipient must already have a Chronelle identity. Repeating
-the request for the same resource and user replaces the active role rather
-than creating a duplicate grant. Only callers with Share permission can read
-or mutate grants; user lookup happens after that authorization check.
+`POST /shares` accepts `resourceId`, an Owner, Editor, or Viewer `role`, and
+the grantee as exactly one of `principalEmail` and `personId`. An email names
+the one account with that address. A Person of the workspace names its linked
+account, or else the one account whose email is the person's; a person the
+caller cannot view, a person in Trash, one with neither an account nor an
+email, or an email that matches no account or several is
+`principal_unavailable` (HTTP 404), as an unknown email is, and naming both
+or neither is HTTP 400. The recipient must already have a Chronelle
+identity. Repeating the request for the same resource and user replaces the
+active role rather than creating a duplicate grant; the audit event of a
+share by person carries `personId`. Only callers with Share permission can
+read or mutate grants; user and person lookup happens after that
+authorization check.
 
 The permission-scope patch accepts `permissionScopeId` and
 `expectedVersion`. Setting the scope to the object's own ID stops inheritance.
