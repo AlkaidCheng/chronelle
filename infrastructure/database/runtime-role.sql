@@ -70,7 +70,7 @@ GROUP BY attrelid
 
 GRANT SELECT, INSERT ON
   public.users, public.documents, public.audit_events, public.object_revisions,
-  public.event_context_commands, public.reversible_commands,
+  public.event_context_commands, public.object_create_commands, public.reversible_commands,
   public.command_changes, public.command_receipts, public.event_page_revisions
 TO :"runtime_role";
 GRANT SELECT, INSERT, UPDATE ON

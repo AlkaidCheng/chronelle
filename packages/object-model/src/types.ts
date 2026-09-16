@@ -145,6 +145,8 @@ export type EventPlanningResource =
   | PersonResource;
 
 export interface CreateObjectFields {
+  /** Binds the creation to one command of the caller; a repeat returns the created object. */
+  readonly commandId?: string | undefined;
   readonly customProperties?: JsonObject | undefined;
   readonly displayName: string;
   readonly metadata?: JsonObject | undefined;
