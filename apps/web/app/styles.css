@@ -294,7 +294,8 @@ h3,
 }
 
 .label-picker,
-.assignee-picker {
+.assignee-picker,
+.due-picker {
   border: 1px solid var(--line);
   border-radius: 12px;
   margin: 0;
@@ -302,7 +303,8 @@ h3,
 }
 
 .label-picker summary,
-.assignee-picker summary {
+.assignee-picker summary,
+.due-picker summary {
   cursor: pointer;
   font-size: 0.78rem;
   font-weight: 700;
@@ -3918,4 +3920,111 @@ html:has(.event-create-dialog[open]) {
   justify-content: space-between;
   margin: 0;
   padding: 10px 4px 0;
+}
+
+.due-panel {
+  display: grid;
+  gap: 12px;
+  margin-top: 10px;
+}
+
+.due-panel .field-hint {
+  margin: 0;
+}
+
+.due-shortcuts {
+  display: grid;
+  gap: 4px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.due-shortcuts button {
+  display: flex;
+  justify-content: space-between;
+  text-align: left;
+  width: 100%;
+}
+
+.due-shortcut-day {
+  color: var(--muted);
+  font-weight: 500;
+}
+
+.due-month-nav {
+  align-items: center;
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+
+.due-month-nav strong {
+  font-size: 0.92rem;
+}
+
+.due-grid {
+  border-collapse: separate;
+  border-spacing: 2px;
+  table-layout: fixed;
+  width: 100%;
+}
+
+.due-grid th {
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 2px 0;
+  text-align: center;
+}
+
+.due-grid td {
+  padding: 0;
+  text-align: center;
+}
+
+.due-day {
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.9rem;
+  height: 34px;
+  padding: 0;
+  width: 34px;
+}
+
+.due-day:hover {
+  background: var(--accent-soft);
+}
+
+.due-day.is-outside {
+  color: var(--muted);
+  opacity: 0.5;
+}
+
+.due-day.is-past,
+.due-day.is-weekend {
+  color: var(--muted);
+}
+
+.due-day.is-today {
+  border-color: var(--accent);
+}
+
+.due-day[aria-pressed="true"] {
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+.due-time {
+  display: grid;
+  gap: 8px;
+  justify-items: start;
+}
+
+.due-time .field {
+  width: 100%;
 }

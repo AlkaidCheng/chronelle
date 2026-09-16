@@ -25,6 +25,7 @@ import {
 } from "./editor-draft-recovery";
 import { usePlanningEditorDialog } from "../../lib/use-planning-editor-dialog";
 import { useOpenHistory } from "../history/history-provider";
+import { DuePicker } from "../../components/due-picker";
 import { AssigneePicker } from "../tasks/assignee-picker";
 import { LabelPicker } from "../tasks/label-picker";
 import { useEditorDraft } from "../../lib/use-editor-draft";
@@ -279,36 +280,12 @@ function TaskEditor({
             required
             value={displayName}
           />
-          <label className="field">
-            <span>Due date</span>
-            <input
-              disabled={mutation.isPending}
-              onChange={(input) =>
-                draft.change({ dueDate: input.target.value })
-              }
-              type="date"
-              value={dueDate}
-            />
-          </label>
-          <label className="field">
-            <span>Due time</span>
-            <input
-              disabled={mutation.isPending || dueDate === ""}
-              onChange={(input) =>
-                draft.change({ dueTime: input.target.value })
-              }
-              type="time"
-              value={dueTime}
-            />
-          </label>
-          <p className="field-hint">
-            Both optional. A date without a time is due that whole day; times
-            are in{" "}
-            {Intl.DateTimeFormat()
-              .resolvedOptions()
-              .timeZone.replaceAll("_", " ")}
-            .
-          </p>
+          <DuePicker
+            disabled={mutation.isPending}
+            dueDate={dueDate}
+            dueTime={dueTime}
+            onChange={(due) => draft.change(due)}
+          />
           <CountedField
             className="field-wide"
             disabled={mutation.isPending}

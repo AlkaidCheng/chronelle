@@ -1,4 +1,5 @@
 import { expect, type Page } from "@playwright/test";
+import { setDue } from "./due-picker";
 import { today } from "./today";
 
 /**
@@ -20,7 +21,7 @@ export async function exerciseTasksPage(page: Page, member: string) {
   await page.getByRole("button", { name: "New task", exact: true }).click();
   const editor = page.getByRole("dialog", { name: "Add task", exact: true });
   await editor.getByLabel("Task", { exact: true }).fill("Renew the passport");
-  await editor.getByLabel("Due date", { exact: true }).fill("2031-05-20");
+  await setDue(editor, "2031-05-20");
   await editor.getByLabel("Location", { exact: true }).fill("Passport office");
   await editor
     .getByRole("button", { name: "Create task", exact: true })
@@ -129,7 +130,7 @@ export async function exerciseTasksPage(page: Page, member: string) {
   await expect(todayColumn).toBeVisible();
   await page.getByRole("button", { name: "New task", exact: true }).click();
   await editor.getByLabel("Task", { exact: true }).fill("Water the plants");
-  await editor.getByLabel("Due date", { exact: true }).fill(today());
+  await setDue(editor, today());
   await editor
     .getByRole("button", { name: "Create task", exact: true })
     .click();
