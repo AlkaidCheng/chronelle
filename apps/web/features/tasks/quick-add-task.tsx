@@ -1,8 +1,15 @@
 "use client";
 
-import { QuickAddRow } from "../../components/quick-add-row";
+import {
+  QuickAddRow,
+  type QuickAddSlots,
+} from "../../components/quick-add-row";
 import type { DayKey } from "../../lib/day-placement";
 import { useCreateTask } from "../../lib/queries";
+
+// The row that adds a task with no due date is one slot in every view, so
+// the field under an empty by-day view carries over to the No due date group.
+const undatedTaskSlot = "undated";
 
 /**
  * The quick "Add task" row of a task list or of one of its day groups. A
@@ -14,11 +21,13 @@ export function QuickAddTask({
   dayLabel,
   dueOn,
   eventId,
+  slots,
 }: {
   /** The day group's heading, named in the row's accessible name. */
   readonly dayLabel?: string | undefined;
   readonly dueOn: DayKey | null;
   readonly eventId?: string | undefined;
+  readonly slots: QuickAddSlots;
 }) {
   const create = useCreateTask(eventId);
   return (
@@ -33,6 +42,8 @@ export function QuickAddTask({
       name="New task"
       onAdd={(displayName) => create.mutateAsync({ displayName, dueOn })}
       placeholder="Task name"
+      slot={dueOn === null ? undatedTaskSlot : `day:${dueOn}`}
+      slots={slots}
       text="Add task"
     />
   );

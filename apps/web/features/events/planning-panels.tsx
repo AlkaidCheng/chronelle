@@ -9,7 +9,9 @@ import type {
   TimelineResponse,
 } from "@chronelle/schemas";
 import { useCallback, useMemo, useState } from "react";
-
+import { EmptyState, ErrorNotice } from "../../components/feedback";
+import { ObjectDetails } from "../../components/object-details";
+import { useQuickAddSlots } from "../../components/quick-add-row";
 import { RowMenu, type RowMenuEntry } from "../../components/row-menu";
 import {
   byRank,
@@ -17,43 +19,21 @@ import {
   rankForStep,
   staysInPlace,
 } from "../../lib/collection-order";
-import { dayInWords, dueShortcuts } from "../../lib/due-choices";
-import { instantOnDay } from "../../lib/task-due";
-import { useOpenHistory } from "../history/history-provider";
-import { useOpenLifecycle } from "../recovery/lifecycle-provider";
-import { type RowDrop, useRowDrag } from "../../lib/use-row-drag";
-
-import { EmptyState, ErrorNotice } from "../../components/feedback";
+import { groupByDay } from "../../lib/day-groups";
 import {
   type DayKey,
   eventDays,
   instantDay,
   placeByDay,
 } from "../../lib/day-placement";
-import { HistoryButton } from "../history/history-button";
-import { LifecycleButton } from "../recovery/lifecycle-provider";
-import { ObjectDetails } from "../../components/object-details";
-import {
-  DateTile,
-  objectTypeLabel,
-  PanelHeading,
-  RowActions,
-  StatusChip,
-  ViewSwitch,
-} from "./component-frame";
-import { ScheduleItemInspector } from "./schedule-item-inspector";
-import { CreateScheduleDialog } from "./create-schedule-dialog";
+import { dayInWords, dueShortcuts } from "../../lib/due-choices";
+import { viewsOf } from "../../lib/event-components";
 import {
   formatCalendarDate,
   formatEventDatePart,
   formatEventSchedule,
 } from "../../lib/event-schedule";
-import { viewsOf } from "../../lib/event-components";
 import { formatDatePart, formatDateTime, formatTime } from "../../lib/format";
-import { deriveTaskTree } from "../../lib/task-tree";
-import { groupByDay } from "../../lib/day-groups";
-import { usePeriod } from "../../lib/use-period";
-import { PeriodView } from "./period-view";
 import { formatMoney, sumMoneyByCurrency } from "../../lib/money";
 import {
   useLabelsQuery,
@@ -62,15 +42,36 @@ import {
   useSessionQuery,
   useUpdateReminder,
 } from "../../lib/queries";
-import { ExpenseForm } from "./expense-form";
-import { ExpenseInspector } from "./expense-inspector";
-import { ReminderForm } from "./reminder-form";
-import { ReminderInspector } from "./reminder-inspector";
-import { QuickAddReminder } from "./quick-add-reminder";
-import { type SubtaskParent, TaskForm } from "./task-form";
-import { TaskInspector } from "./task-inspector";
+import { instantOnDay } from "../../lib/task-due";
+import { deriveTaskTree } from "../../lib/task-tree";
+import { usePeriod } from "../../lib/use-period";
+import { type RowDrop, useRowDrag } from "../../lib/use-row-drag";
+import { HistoryButton } from "../history/history-button";
+import { useOpenHistory } from "../history/history-provider";
+import {
+  LifecycleButton,
+  useOpenLifecycle,
+} from "../recovery/lifecycle-provider";
 import { QuickAddTask } from "../tasks/quick-add-task";
 import { TaskListView } from "../tasks/task-list-view";
+import {
+  DateTile,
+  objectTypeLabel,
+  PanelHeading,
+  RowActions,
+  StatusChip,
+  ViewSwitch,
+} from "./component-frame";
+import { CreateScheduleDialog } from "./create-schedule-dialog";
+import { ExpenseForm } from "./expense-form";
+import { ExpenseInspector } from "./expense-inspector";
+import { PeriodView } from "./period-view";
+import { QuickAddReminder } from "./quick-add-reminder";
+import { ReminderForm } from "./reminder-form";
+import { ReminderInspector } from "./reminder-inspector";
+import { ScheduleItemInspector } from "./schedule-item-inspector";
+import { type SubtaskParent, TaskForm } from "./task-form";
+import { TaskInspector } from "./task-inspector";
 
 type TaskFilter = "all" | "open" | "done";
 
@@ -114,6 +115,7 @@ export function TasksPanel({
   const [editingId, setEditingId] = useState<string | null>(null);
   const refresh = useRefreshEvent(eventId);
   const period = usePeriod(view);
+  const quickAdd = useQuickAddSlots();
   // The projection holds every task of the Event, so the tree is derived here.
   const tree = useMemo(() => deriveTaskTree(tasks), [tasks]);
   const labels = useLabelsQuery();
@@ -297,7 +299,12 @@ export function TasksPanel({
       ) : null}
       {filteredTasks.length === 0 && canEdit ? (
         <div className="quick-add-item quick-add-empty">
-          <QuickAddTask dueOn={null} eventId={eventId} />
+          <QuickAddTask
+            dayLabel={view === "by-day" ? "no due date" : undefined}
+            dueOn={null}
+            eventId={eventId}
+            slots={quickAdd}
+          />
         </div>
       ) : null}
       {filteredTasks.length === 0 ? null : (
@@ -313,6 +320,7 @@ export function TasksPanel({
           period={period}
           personNames={persons.data?.names}
           progress={tree.progress}
+          quickAdd={quickAdd}
           tasks={filteredTasks}
           view={view}
         />
@@ -768,6 +776,7 @@ export function RemindersPanel({
     () => new Map(reminders.map((reminder) => [reminder.id, reminder])),
     [reminders],
   );
+  const quickAdd = useQuickAddSlots();
   const placed = useMemo(
     () =>
       view === "week" || view === "month"
@@ -1052,7 +1061,7 @@ export function RemindersPanel({
       ) : null}
       {reminders.length === 0 && canEdit ? (
         <div className="quick-add-item quick-add-empty">
-          <QuickAddReminder day={null} eventId={eventId} />
+          <QuickAddReminder day={null} eventId={eventId} slots={quickAdd} />
         </div>
       ) : null}
       {reminders.length === 0 ? null : view === "by-day" ? (
@@ -1078,6 +1087,7 @@ export function RemindersPanel({
                       day={group.key}
                       dayLabel={group.label[0]}
                       eventId={eventId}
+                      slots={quickAdd}
                     />
                   </div>
                 ) : null}
@@ -1108,7 +1118,7 @@ export function RemindersPanel({
           {reminders.map((reminder) => reminderRow(reminder, reminders, "all"))}
           {canEdit ? (
             <div className="quick-add-item">
-              <QuickAddReminder day={null} eventId={eventId} />
+              <QuickAddReminder day={null} eventId={eventId} slots={quickAdd} />
             </div>
           ) : null}
         </div>

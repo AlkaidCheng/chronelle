@@ -1,9 +1,46 @@
 "use client";
 
-import { type FormEvent, useEffect, useRef, useState } from "react";
+import { type FormEvent, useEffect, useMemo, useRef, useState } from "react";
 
 import { ErrorNotice } from "./feedback";
 import { PlusIcon } from "./icons";
+
+/** What a quick add row holds: whether it is open, the typed name, a refusal. */
+export interface QuickAddState {
+  readonly isOpen: boolean;
+  readonly value: string;
+  readonly error: unknown;
+}
+
+const closedQuickAdd: QuickAddState = { isOpen: false, value: "", error: null };
+
+/**
+ * The state of a collection's quick add rows, by slot, owned by the
+ * collection rather than by the rows: the row under an empty collection
+ * and the row that follows its first item are different elements, and the
+ * field must stay open, typed, and focused across that change.
+ */
+export interface QuickAddSlots {
+  readonly stateOf: (slot: string) => QuickAddState;
+  readonly update: (slot: string, patch: Partial<QuickAddState>) => void;
+}
+
+export function useQuickAddSlots(): QuickAddSlots {
+  const [slots, setSlots] = useState<Readonly<Record<string, QuickAddState>>>(
+    {},
+  );
+  return useMemo(
+    () => ({
+      stateOf: (slot) => slots[slot] ?? closedQuickAdd,
+      update: (slot, patch) =>
+        setSlots((current) => ({
+          ...current,
+          [slot]: { ...(current[slot] ?? closedQuickAdd), ...patch },
+        })),
+    }),
+    [slots],
+  );
+}
 
 /**
  * The last row of a collection: a quiet "Add task" line on the rows' own
@@ -16,6 +53,8 @@ export function QuickAddRow({
   name,
   onAdd,
   placeholder,
+  slot,
+  slots,
   text,
 }: {
   /** The accessible name of the closed row, e.g. "Add a task for Sep 21". */
@@ -25,23 +64,23 @@ export function QuickAddRow({
   /** Creates the record; the row keeps the name while this rejects. */
   readonly onAdd: (displayName: string) => Promise<unknown>;
   readonly placeholder: string;
+  /** Which of the collection's rows this is, e.g. "list" or a day. */
+  readonly slot: string;
+  readonly slots: QuickAddSlots;
   /** The words of the closed row, e.g. "Add task". */
   readonly text: string;
 }) {
-  const [isOpen, setIsOpen] = useState(false);
-  const [value, setValue] = useState("");
-  const [error, setError] = useState<unknown>(null);
+  const { isOpen, value, error } = slots.stateOf(slot);
   const [isPending, setIsPending] = useState(false);
   const input = useRef<HTMLInputElement>(null);
-  // The field takes focus as it opens, so typing can start at once.
+  // The field takes focus as it opens, and again when the collection
+  // re-renders it elsewhere (after its first item, say), so typing goes on.
   useEffect(() => {
     if (isOpen) input.current?.focus();
   }, [isOpen]);
 
   function close() {
-    setIsOpen(false);
-    setValue("");
-    setError(null);
+    slots.update(slot, closedQuickAdd);
   }
 
   async function submit(formEvent: FormEvent<HTMLFormElement>) {
@@ -51,10 +90,9 @@ export function QuickAddRow({
     setIsPending(true);
     try {
       await onAdd(displayName);
-      setValue("");
-      setError(null);
+      slots.update(slot, { value: "", error: null });
     } catch (failure) {
-      setError(failure);
+      slots.update(slot, { error: failure });
     } finally {
       setIsPending(false);
       input.current?.focus();
@@ -66,7 +104,7 @@ export function QuickAddRow({
       <button
         aria-label={label}
         className="quick-add"
-        onClick={() => setIsOpen(true)}
+        onClick={() => slots.update(slot, { isOpen: true })}
         type="button"
       >
         <PlusIcon />
@@ -85,10 +123,9 @@ export function QuickAddRow({
           onBlur={() => {
             if (!isPending && value.trim() === "") close();
           }}
-          onChange={(event) => {
-            setValue(event.target.value);
-            setError(null);
-          }}
+          onChange={(event) =>
+            slots.update(slot, { value: event.target.value, error: null })
+          }
           onKeyDown={(event) => {
             if (event.key === "Escape") {
               event.preventDefault();

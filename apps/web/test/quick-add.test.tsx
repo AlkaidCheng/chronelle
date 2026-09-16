@@ -377,4 +377,72 @@ describe("quick add", () => {
       screen.queryByRole("heading", { name: "No matching tasks" }),
     ).toBeNull();
   });
+
+  it("keeps the field open, focused, and empty across the first item, in the list and by day", async () => {
+    const user = userEvent.setup();
+    const event = await client.createEvent({ displayName: "Winter market" });
+    pathname = `/events/${event.id}`;
+    window.history.replaceState(null, "", pathname);
+    await client.updateEventLayout(event.id, {
+      expectedVersion: 0,
+      pages: [page("Plan", ["todos", "reminders"])],
+    });
+    render(<EventPages eventId={event.id} canEdit />, { wrapper: Providers });
+    await screen.findByRole("heading", { name: "No tasks yet" });
+    const panel = (title: string) =>
+      within(
+        screen
+          .getByRole("heading", { name: title })
+          .closest(".planning-panel") as HTMLElement,
+      );
+    // By day from the start: the empty state's row is the No due date
+    // group's row, so the field carries over when that group appears.
+    const todos = panel("To-dos");
+    await user.click(
+      within(todos.getByRole("group", { name: "View" })).getByRole("button", {
+        name: "By day",
+      }),
+    );
+    await user.click(
+      todos.getByRole("button", { name: "Add a task with no due date" }),
+    );
+    await user.keyboard("Pitch the stalls{Enter}");
+    await waitFor(() =>
+      expect(todos.getByText("Pitch the stalls")).toBeVisible(),
+    );
+    expect(todos.queryByRole("heading", { name: "No tasks yet" })).toBeNull();
+    let field = todos.getByLabelText("New task");
+    expect(field).toHaveFocus();
+    expect(field).toHaveValue("");
+    await user.keyboard("String the lights{Enter}");
+    await waitFor(() =>
+      expect(todos.getByText("String the lights")).toBeVisible(),
+    );
+    expect(
+      within(todos.getByRole("region", { name: "No due date" })).getAllByRole(
+        "listitem",
+      ),
+    ).toHaveLength(2);
+    // The Reminders list's row carries over to the list after the first one.
+    const reminders = panel("Reminders");
+    await user.click(
+      reminders.getByRole("button", { name: "Add a reminder to the list" }),
+    );
+    await user.keyboard("Open the gates{Enter}");
+    await waitFor(() =>
+      expect(
+        reminders.getByRole("heading", { name: "Open the gates" }),
+      ).toBeVisible(),
+    );
+    field = reminders.getByLabelText("New reminder");
+    expect(field).toHaveFocus();
+    expect(field).toHaveValue("");
+    await user.keyboard("Light the brazier{Enter}");
+    await waitFor(() =>
+      expect(
+        reminders.getByRole("heading", { name: "Light the brazier" }),
+      ).toBeVisible(),
+    );
+    expect(reminders.getByLabelText("New reminder")).toHaveFocus();
+  });
 });

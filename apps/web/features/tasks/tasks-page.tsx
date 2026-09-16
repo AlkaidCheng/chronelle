@@ -14,6 +14,7 @@ import {
   LoadingState,
 } from "../../components/feedback";
 import { PlusIcon, SearchIcon } from "../../components/icons";
+import { useQuickAddSlots } from "../../components/quick-add-row";
 import { ViewSwitch } from "../events/component-frame";
 import { type SubtaskParent, TaskForm } from "../events/task-form";
 import { TaskInspector } from "../events/task-inspector";
@@ -100,6 +101,7 @@ export function TasksPage() {
       session.data !== undefined && person.userId === session.data.user.id,
   );
   const refresh = useRefreshEvent(undefined);
+  const quickAdd = useQuickAddSlots();
   const changingQuery = isComposing || query.trim() !== debouncedQuery;
   const items = changingQuery ? [] : (tasks.data?.items ?? []);
   const filtered =
@@ -298,7 +300,11 @@ export function TasksPage() {
               title="Nothing to do yet"
             />
             <div className="quick-add-item quick-add-empty">
-              <QuickAddTask dueOn={null} />
+              <QuickAddTask
+                dayLabel={view === "by-day" ? "no due date" : undefined}
+                dueOn={null}
+                slots={quickAdd}
+              />
             </div>
           </>
         ) : null}
@@ -326,7 +332,11 @@ export function TasksPage() {
               Clear filters
             </button>
             <div className="quick-add-item quick-add-empty">
-              <QuickAddTask dueOn={null} />
+              <QuickAddTask
+                dayLabel={view === "by-day" ? "no due date" : undefined}
+                dueOn={null}
+                slots={quickAdd}
+              />
             </div>
           </div>
         ) : null}
@@ -344,6 +354,7 @@ export function TasksPage() {
             parents={tasks.data?.parents ?? {}}
             period={period}
             progress={tasks.data?.progress ?? {}}
+            quickAdd={quickAdd}
             tasks={items}
             view={view}
           />
