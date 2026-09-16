@@ -43,6 +43,7 @@ import {
   WorkspaceCommandProvider,
   useContextCommands,
 } from "../components/context-commands";
+import { chooseRowAction } from "./row-menu-support";
 
 let store: SandboxStore;
 let client: ChronelleApiClient;
@@ -1015,7 +1016,11 @@ describe("insertable event components", () => {
     await choose(reminders, "Week");
     const column = within(reminders.getByRole("listitem", { name: fullDay }));
     expect(column.getByText("Call the florist")).toBeVisible();
-    await user.click(column.getByRole("button", { name: "Dismiss" }));
+    await chooseRowAction(
+      user,
+      reminders.getByRole("listitem", { name: fullDay }),
+      "Dismiss",
+    );
     await waitFor(() => expect(column.getByText("Dismissed")).toBeVisible());
     await choose(reminders, "Month");
     expect(
@@ -1119,6 +1124,115 @@ describe("insertable event components", () => {
     );
     expect(screen.getByRole("row", { name: /Order the cake/ })).toBeVisible();
     expect(byAssignee).toHaveValue(mira.id);
+  });
+
+  it("lists To-dos and Reminders in manual order and moves them from the row menu", async () => {
+    await client.updateEventLayout(eventId, {
+      expectedVersion: 0,
+      pages: [page("Plan", ["todos", "reminders"])],
+    });
+    // Created in one order, due in the other: the rows follow creation.
+    const later = new Date();
+    later.setDate(later.getDate() + 3);
+    const soon = new Date();
+    soon.setDate(soon.getDate() + 1);
+    const create = async (
+      resource:
+        | { objectType: "task"; displayName: string; dueAt: string }
+        | { objectType: "reminder"; displayName: string; remindAt: string },
+    ) =>
+      (
+        await client.createEventResource(eventId, {
+          commandId: crypto.randomUUID(),
+          resource,
+        })
+      ).resource;
+    await create({
+      objectType: "task",
+      displayName: "Order the cake",
+      dueAt: later.toISOString(),
+    });
+    await create({
+      objectType: "task",
+      displayName: "Call the band",
+      dueAt: soon.toISOString(),
+    });
+    await create({
+      objectType: "reminder",
+      displayName: "Pay the deposit",
+      remindAt: later.toISOString(),
+    });
+    const ring = await create({
+      objectType: "reminder",
+      displayName: "Ring the venue",
+      remindAt: soon.toISOString(),
+    });
+    const user = userEvent.setup();
+    render(<EventPages eventId={eventId} canEdit />, { wrapper: Providers });
+    const todos = within(await screen.findByRole("heading", { name: "To-dos" }))
+      .getByText("To-dos")
+      .closest("section") as HTMLElement;
+    await within(todos).findByText("Call the band");
+    const taskNames = () =>
+      within(todos)
+        .getAllByRole("row")
+        .slice(1)
+        .map((row) => row.querySelector("strong")?.textContent);
+    expect(taskNames()).toEqual([
+      "Confirm the garden venue",
+      "Order the cake",
+      "Call the band",
+    ]);
+    // The row's actions live in its menu; a viewer's row would offer
+    // Copy link and History only.
+    await chooseRowAction(
+      user,
+      within(todos).getByRole("row", { name: /Call the band/ }),
+      "Move up",
+    );
+    await waitFor(() =>
+      expect(taskNames()).toEqual([
+        "Confirm the garden venue",
+        "Call the band",
+        "Order the cake",
+      ]),
+    );
+    const reminders = within(screen.getByRole("heading", { name: "Reminders" }))
+      .getByText("Reminders")
+      .closest("section") as HTMLElement;
+    const reminderNames = () =>
+      within(reminders)
+        .getAllByRole("heading", { level: 3 })
+        .map((heading) => heading.textContent);
+    expect(reminderNames()).toEqual([
+      "Check the weather forecast",
+      "Pay the deposit",
+      "Ring the venue",
+    ]);
+    const ringRow = within(reminders)
+      .getByRole("heading", { name: "Ring the venue" })
+      .closest("article") as HTMLElement;
+    await user.click(
+      within(ringRow).getByRole("button", {
+        name: "Actions for Ring the venue",
+      }),
+    );
+    await user.click(screen.getByRole("menuitem", { name: "Snooze" }));
+    await user.click(screen.getByRole("menuitemradio", { name: "Next week" }));
+    await waitFor(async () => {
+      const moved = await client.getReminder(ring.id);
+      expect(moved.version).toBe(2);
+      expect(new Date(moved.remindAt).getHours()).toBe(soon.getHours());
+      expect(new Date(moved.remindAt).getDay()).toBe(1);
+    });
+    await chooseRowAction(user, ringRow, "Move up");
+    await waitFor(() =>
+      expect(reminderNames()).toEqual([
+        "Check the weather forecast",
+        "Ring the venue",
+        "Pay the deposit",
+      ]),
+    );
   });
 
   it("allows a viewer to preview saved layouts without mutation controls", async () => {

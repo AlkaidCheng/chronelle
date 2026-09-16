@@ -2096,25 +2096,240 @@ p[role="alert"] {
   align-items: center;
   background: var(--surface);
   border: 1.5px solid var(--line-strong);
-  border-radius: 6px;
-  color: var(--on-accent);
+  border-radius: 999px;
+  color: var(--accent);
   cursor: pointer;
   display: flex;
-  height: 24px;
+  flex: none;
+  height: 22px;
   justify-content: center;
-  width: 24px;
+  padding: 0;
+  width: 22px;
+}
+
+.task-check:hover {
+  border-color: var(--accent);
 }
 
 .task-check.checked {
   background: var(--accent);
   border-color: var(--accent);
+  color: var(--on-accent);
 }
 
+/* The tick is drawn faintly on hover as a preview and fully once checked. */
 .task-check svg {
-  height: 16px;
+  height: 14px;
+  opacity: 0;
   stroke: currentColor;
-  stroke-width: 2.3;
-  width: 16px;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 2.6;
+  width: 14px;
+}
+
+.task-check:hover svg {
+  opacity: 0.55;
+}
+
+.task-check.checked svg {
+  opacity: 1;
+}
+
+/* The row menu button shows on hover or focus; the row stays plain otherwise. */
+.row-more {
+  align-items: center;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  color: var(--muted);
+  cursor: pointer;
+  display: inline-flex;
+  flex: none;
+  height: 30px;
+  justify-content: center;
+  margin-left: auto;
+  opacity: 0;
+  padding: 0;
+  transition: opacity 120ms;
+  width: 30px;
+}
+
+.row-more svg {
+  fill: currentColor;
+  height: 18px;
+  stroke: currentColor;
+  stroke-width: 1.5;
+  width: 18px;
+}
+
+tr:hover .row-more,
+tr:focus-within .row-more,
+li:hover .row-more,
+li:focus-within .row-more,
+article:hover .row-more,
+article:focus-within .row-more,
+.row-more[aria-expanded="true"] {
+  opacity: 1;
+}
+
+.row-more:hover,
+.row-more[aria-expanded="true"] {
+  background: var(--surface-subtle);
+  color: var(--ink);
+}
+
+@media (hover: none) {
+  .row-more {
+    opacity: 0.6;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .row-more {
+    transition: none;
+  }
+}
+
+/* The row menu: one narrow list, on request only. */
+.row-menu {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  box-shadow: var(--shadow);
+  display: grid;
+  gap: 2px;
+  padding: 6px;
+  position: fixed;
+  width: 200px;
+  z-index: 30;
+}
+
+.row-menu [role^="menuitem"] {
+  align-items: center;
+  background: none;
+  border: 0;
+  border-radius: 8px;
+  color: inherit;
+  cursor: pointer;
+  display: flex;
+  font: inherit;
+  font-size: 0.92rem;
+  gap: 10px;
+  justify-content: space-between;
+  padding: 7px 10px;
+  text-align: left;
+  width: 100%;
+}
+
+.row-menu [role^="menuitem"]:hover,
+.row-menu [role^="menuitem"]:focus-visible {
+  background: var(--surface-subtle);
+  outline: none;
+}
+
+.row-menu [role^="menuitem"]:disabled {
+  color: var(--muted);
+  cursor: default;
+  opacity: 0.6;
+}
+
+.row-menu [role="menuitem"].is-danger {
+  color: var(--danger);
+}
+
+.row-menu [role="menuitemradio"][aria-checked="true"] {
+  background: var(--accent-soft);
+}
+
+.row-menu [role="menuitemradio"][aria-checked="true"] > span {
+  color: var(--accent);
+  font-weight: 700;
+}
+
+.row-menu .row-menu-more > span {
+  color: var(--muted);
+  font-size: 1.1rem;
+  line-height: 1;
+}
+
+.row-menu .row-menu-back {
+  gap: 6px;
+  justify-content: flex-start;
+}
+
+.row-menu .row-menu-back > span {
+  color: var(--muted);
+  font-size: 1.1rem;
+  line-height: 1;
+}
+
+.row-menu-rule {
+  border: 0;
+  border-top: 1px solid var(--line);
+  margin: 4px 2px;
+}
+
+.row-menu-note {
+  color: var(--muted);
+  font-size: 0.78rem;
+  margin: 0;
+  padding: 4px 10px 2px;
+}
+
+/* Rows in manual order: the pressed row fades, a line marks the drop. */
+[data-row-id] {
+  touch-action: pan-y;
+}
+
+[data-drop-group] [data-row-id] {
+  cursor: grab;
+}
+
+.is-dragging-row,
+.is-dragging-row * {
+  cursor: grabbing !important;
+  user-select: none;
+}
+
+[data-row-id].is-dragging {
+  opacity: 0.35;
+}
+
+li.is-drop-before,
+article.is-drop-before {
+  box-shadow: inset 0 3px 0 0 var(--accent);
+}
+
+li.is-drop-after,
+article.is-drop-after {
+  box-shadow: inset 0 -3px 0 0 var(--accent);
+}
+
+tr.is-drop-before > td {
+  box-shadow: inset 0 3px 0 0 var(--accent);
+}
+
+tr.is-drop-after > td {
+  box-shadow: inset 0 -3px 0 0 var(--accent);
+}
+
+.row-drag-ghost {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  box-shadow: var(--shadow);
+  font-weight: 600;
+  left: 0;
+  opacity: 0.95;
+  overflow: hidden;
+  padding: 8px 12px;
+  pointer-events: none;
+  position: fixed;
+  text-overflow: ellipsis;
+  top: 0;
+  white-space: nowrap;
+  z-index: 31;
 }
 
 .status-chip {

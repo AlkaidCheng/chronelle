@@ -33,15 +33,16 @@ const viewStorageKey = "chronelle.task-view";
 
 /**
  * Every task the user may view in the workspace, on its own or inside an
- * Event, as a list or by day. The view is a device preference like the
- * Event collection's layout; the filter, sort, and query live with the tab.
+ * Event, as a list or by day, in manual order unless another sort is
+ * chosen. The view is a device preference like the Event collection's
+ * layout; the filter, sort, and query live with the tab.
  */
 export function TasksPage() {
   const [query, setQuery] = useState("");
   const [debouncedQuery, setDebouncedQuery] = useState("");
   const [isComposing, setIsComposing] = useState(false);
   const [filter, setFilter] = useState<TaskListQuery["filter"]>("open");
-  const [sort, setSort] = useState<TaskListQuery["sort"]>("due");
+  const [sort, setSort] = useState<TaskListQuery["sort"]>("manual");
   const [label, setLabel] = useState<string>("");
   const [assignee, setAssignee] = useState<string>("");
   const [view, setView] = useState<EventComponentView>("list");
@@ -133,7 +134,8 @@ export function TasksPage() {
           <p className="eyebrow">What needs doing</p>
           <h1>Tasks</h1>
           <p>
-            Every task you can see, on its own or inside an event, in due order.
+            Every task you can see, on its own or inside an event, in your
+            order.
           </p>
         </div>
         <button
@@ -190,6 +192,7 @@ export function TasksPage() {
               }
               value={sort}
             >
+              <option value="manual">Manual</option>
               <option value="due">Due date</option>
               <option value="updated">Recently updated</option>
               <option value="name">Name A-Z</option>
@@ -324,6 +327,7 @@ export function TasksPage() {
             canEdit
             contexts={tasks.data?.contexts}
             labelNames={labels.data?.names}
+            manual={sort === "manual"}
             onAddSubtask={addSubtask}
             personNames={persons.data?.names}
             onEdit={setEditingId}

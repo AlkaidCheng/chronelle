@@ -37,14 +37,14 @@ Tasks lists every task the user may view in the workspace: tasks that live on
 their own and tasks inside any event, in one place. New task creates a task
 that belongs to no event and owns its own permission scope; tasks added inside
 an event keep that event's scope and appear here as well. The toolbar filters
-by name, sorts by due date (a date-only due leads its day, undated tasks come
-last), recent update, or name, and the Open tasks / All tasks / Completed
-filter is applied by the server, so a page holds only what matches. Load more
-tasks extends the list page by page.
+by name, sorts by manual order (the default), due date (a date-only due leads
+its day, undated tasks come last), recent update, or name, and the Open tasks
+/ All tasks / Completed filter is applied by the server, so a page holds only
+what matches. Load more tasks extends the list page by page.
 
 The page offers the same List, By day, Week, and Month views as the To-dos
-component, from the same rows: the completion check, Edit (the Task
-inspector), History, and Actions. Week and Month ask the server for the tasks
+component, from the same rows: the completion check, the name and its
+details, the status, and the row menu. Week and Month ask the server for the tasks
 due on the days shown (in the browser's time zone) and load all of them, so
 Load more does not appear there; tasks with no due date are in no week or
 month, and the other filters still apply. Moving the period asks again. A task inside an event names that event under its title, as a link to
@@ -488,7 +488,8 @@ Loading a newer version requires the explicit discard-draft action.
 To-dos uses Add task to open a focused creation dialog and Edit to open a Task
 inspector. Both keep the underlying list in place and confirm dirty dismissal;
 Create task and Save task commit explicitly. Completion and reopening remain
-direct row actions. The inspector checks fresh canonical Task data and its own
+direct row actions through the check, a filled circle whose tick previews
+faintly on hover. The inspector checks fresh canonical Task data and its own
 edit permission before exposing fields, even when a cached copy is present.
 Temporary refetch failures preserve mounted input; denied access hides it.
 History remains available inside the editor, and changed source versions require
@@ -599,11 +600,43 @@ pieces: one loading line, one empty state whose viewer wording says the event
 is read-only, and one error notice with a retry (or, for a failed upload or
 download, Dismiss). Attachments outside the viewer's permission scope are
 counted in a Private attachments note, as the Overview counts private related
-items. Rows carry their actions in
+items. Calendar, Expenses, and Files rows carry their actions in
 one group and one order across views: the row's own action first (Edit, or
-Download for a file), then a state change (Dismiss for a pending reminder),
-then History, then Actions, which opens the move-to-Trash dialog. Viewers see
-only History and Download.
+Download for a file), then History, then Actions, which opens the move-to-Trash
+dialog. Viewers see only History and Download.
+
+Task and Reminder rows keep their further options behind one menu button at
+the row's end (Actions for the row's name), shown on hover or focus and
+faintly on touch. The menu is one narrow list: Edit, Complete or Reopen (for
+a reminder, Dismiss while it is pending), Move up and Move down, then Due
+(for a reminder, Snooze), which swaps the day shortcuts into the same list
+(Today, Tomorrow, Later this week, This weekend, Next week, and for a task No
+date) with the current one marked and a line saying the current day; a
+timed task or reminder keeps its time of day on the new day. Then Add subtask
+(on a task that is not itself a subtask), Duplicate (the task's fields and
+labels, not its subtasks, placed just after it), Copy link (the row's address
+on its event page, or on the Tasks page for a task outside any event),
+History, and Move to Trash, which opens the recovery dialog. Arrow keys move
+through the menu and skip a disabled entry, Home and End jump, Escape or Arrow
+Left leaves the shortcuts, Escape or a press outside closes the menu, and
+focus returns to the menu button, which is also where a dialog opened from the
+menu returns focus. A viewer's menu offers Copy link and History.
+
+Tasks and Reminders hold a manual order: a new record goes last, and the
+To-dos and Reminders components list by it, as does the Tasks page under its
+Manual sort. Under manual order a row can be dragged by pressing anywhere on
+it and moving a few pixels (on touch, by holding it first), so a click on the
+check, the name, or the menu keeps its meaning and the click that ends a drag
+does nothing; a ghost of the name follows the pointer and a line marks the
+place. Dropping between two rows takes the midpoint of their positions, so
+only the moved record is written, as one versioned update the history and
+undo cover. In the by-day view a drop under another day's rows moves the due
+(or the reminder's time) to that day, keeping the time of day; a drop under
+No due date clears the due; Overdue takes only its own rows back. Move up and
+Move down do the same one step at a time from the keyboard, announcing the
+new position, and a status line reads out every move, due change, and copied
+link. Under another sort on the Tasks page rows do not drag and the steps
+are not offered.
 
 Calendar and Reminders mark each row with the same date tile as the Events
 collection, the month above the day. Task and reminder statuses read as

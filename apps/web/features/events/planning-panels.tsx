@@ -10,6 +10,19 @@ import type {
 } from "@chronelle/schemas";
 import { useCallback, useMemo, useState } from "react";
 
+import { RowMenu, type RowMenuEntry } from "../../components/row-menu";
+import {
+  byRank,
+  rankAtIndex,
+  rankForStep,
+  staysInPlace,
+} from "../../lib/collection-order";
+import { dayInWords, dueShortcuts } from "../../lib/due-choices";
+import { instantOnDay } from "../../lib/task-due";
+import { useOpenHistory } from "../history/history-provider";
+import { useOpenLifecycle } from "../recovery/lifecycle-provider";
+import { type RowDrop, useRowDrag } from "../../lib/use-row-drag";
+
 import { EmptyState, ErrorNotice } from "../../components/feedback";
 import {
   type DayKey,
@@ -150,21 +163,24 @@ export function TasksPanel({
       }),
     [],
   );
+  // The projection lists by due; the component keeps its manual order.
   const filteredTasks = useMemo(
     () =>
-      tasks.filter((task) => {
-        if (activeLabel !== "" && !task.labelIds.includes(activeLabel))
-          return false;
-        if (activeAssignee !== "" && task.assigneeId !== activeAssignee)
-          return false;
-        if (filter === "open") {
-          return task.status !== "done" && task.status !== "cancelled";
-        }
-        if (filter === "done") {
-          return task.status === "done";
-        }
-        return true;
-      }),
+      tasks
+        .filter((task) => {
+          if (activeLabel !== "" && !task.labelIds.includes(activeLabel))
+            return false;
+          if (activeAssignee !== "" && task.assigneeId !== activeAssignee)
+            return false;
+          if (filter === "open") {
+            return task.status !== "done" && task.status !== "cancelled";
+          }
+          if (filter === "done") {
+            return task.status === "done";
+          }
+          return true;
+        })
+        .sort(byRank),
     [activeAssignee, activeLabel, filter, tasks],
   );
 
@@ -192,7 +208,7 @@ export function TasksPanel({
             />
           )
         }
-        description="Keep the next steps clear. Tasks are sorted by due date and stay in sync across your plans."
+        description="Keep the next steps clear. Drag a task to reorder it; tasks stay in sync across your plans."
         title="To-dos"
       />
       {canEdit && isAdding ? (
@@ -281,6 +297,7 @@ export function TasksPanel({
           canEdit={canEdit}
           eventId={eventId}
           labelNames={labels.data?.names}
+          manual
           onAddSubtask={addSubtask}
           onEdit={setEditingId}
           onRefresh={refresh}
@@ -719,7 +736,7 @@ export function RemindersPanel({
   eventId,
   isSavingView,
   onChangeView,
-  reminders,
+  reminders: listed,
   view = "list",
 }: {
   readonly canEdit: boolean;
@@ -731,9 +748,18 @@ export function RemindersPanel({
 }) {
   const [isAdding, setIsAdding] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [announcement, setAnnouncement] = useState("");
   const update = useUpdateReminder();
   const refresh = useRefreshEvent(eventId);
   const period = usePeriod(view);
+  const openHistory = useOpenHistory();
+  const openLifecycle = useOpenLifecycle();
+  // The projection lists by time; the component keeps its manual order.
+  const reminders = useMemo(() => [...listed].sort(byRank), [listed]);
+  const byId = useMemo(
+    () => new Map(reminders.map((reminder) => [reminder.id, reminder])),
+    [reminders],
+  );
   const placed = useMemo(
     () =>
       view === "week" || view === "month"
@@ -746,8 +772,177 @@ export function RemindersPanel({
       view === "by-day" ? groupByDay(reminders, reminderDay, new Date()) : [],
     [reminders, view],
   );
-  const reminderRow = (reminder: ReminderResponse) => (
-    <article key={reminder.id}>
+  const rowsOf = useCallback(
+    (groupKey: string): readonly ReminderResponse[] =>
+      groupKey === "all"
+        ? reminders
+        : (groups.find((group) => group.key === groupKey)?.items ?? []),
+    [groups, reminders],
+  );
+  const change = useCallback(
+    (
+      reminder: ReminderResponse,
+      input: Record<string, unknown>,
+      said: string,
+    ) => {
+      update.mutate(
+        {
+          id: reminder.id,
+          input: { expectedVersion: reminder.version, ...input },
+        },
+        { onSuccess: () => setAnnouncement(said) },
+      );
+    },
+    [update],
+  );
+  const snooze = useCallback(
+    (reminder: ReminderResponse, day: DayKey, rank?: string) =>
+      change(
+        reminder,
+        {
+          remindAt: instantOnDay(reminder.remindAt, day),
+          ...(rank === undefined ? {} : { rank }),
+        },
+        `${reminder.displayName} is due ${dayInWords(day, new Date())}.`,
+      ),
+    [change],
+  );
+  const onDrop = useCallback(
+    (id: string, drop: RowDrop) => {
+      const reminder = byId.get(id);
+      if (reminder === undefined) return;
+      const from = view === "by-day" ? reminderDay(reminder) : "all";
+      const rows = drop.rowIds.flatMap((rowId) => byId.get(rowId) ?? []);
+      if (
+        drop.groupKey === from &&
+        staysInPlace(rowsOf(from), id, rows, drop.index)
+      )
+        return;
+      const rank = rankAtIndex(rows, drop.index);
+      if (drop.groupKey !== "all" && drop.groupKey !== from)
+        snooze(reminder, drop.groupKey, rank);
+      else change(reminder, { rank }, `${reminder.displayName} moved.`);
+    },
+    [byId, change, rowsOf, snooze, view],
+  );
+  const labelOf = useCallback(
+    (id: string) => byId.get(id)?.displayName ?? "",
+    [byId],
+  );
+  const { drag, groupProps, rowClass, rowProps } = useRowDrag({
+    enabled: canEdit && (view === "list" || view === "by-day"),
+    labelOf,
+    onDrop,
+  });
+  const menu = (
+    reminder: ReminderResponse,
+    rows: readonly ReminderResponse[],
+  ) => {
+    const now = new Date();
+    const day = reminderDay(reminder);
+    const at = rows.findIndex((row) => row.id === reminder.id);
+    const step = (direction: -1 | 1) => {
+      const rank = rankForStep(rows, reminder.id, direction);
+      if (rank === null) return;
+      change(
+        reminder,
+        { rank },
+        `${reminder.displayName} is now ${at + direction + 1} of ${rows.length}.`,
+      );
+    };
+    const entries: RowMenuEntry[] = canEdit
+      ? [
+          {
+            kind: "action",
+            label: "Edit",
+            onSelect: () => setEditingId(reminder.id),
+          },
+          ...(reminder.status === "pending"
+            ? [
+                {
+                  kind: "action" as const,
+                  label: "Dismiss",
+                  onSelect: () =>
+                    change(
+                      reminder,
+                      { status: "dismissed" },
+                      `${reminder.displayName} dismissed.`,
+                    ),
+                },
+              ]
+            : []),
+          {
+            kind: "action",
+            label: "Move up",
+            disabled: at <= 0,
+            onSelect: () => step(-1),
+          },
+          {
+            kind: "action",
+            label: "Move down",
+            disabled: at < 0 || at >= rows.length - 1,
+            onSelect: () => step(1),
+          },
+          { kind: "rule" },
+          {
+            kind: "choices",
+            label: "Snooze",
+            note: `Now ${dayInWords(day, now)}, ${formatTime(reminder.remindAt)}`,
+            choices: dueShortcuts(now).map((shortcut) => ({
+              label: shortcut.label,
+              checked: day === shortcut.day,
+              onSelect: () => {
+                if (day !== shortcut.day) snooze(reminder, shortcut.day);
+              },
+            })),
+          },
+          { kind: "rule" },
+          {
+            kind: "action",
+            label: "History",
+            onSelect: () =>
+              openHistory({
+                objectId: reminder.id,
+                displayName: reminder.displayName,
+              }),
+          },
+          { kind: "rule" },
+          {
+            kind: "action",
+            label: "Move to Trash",
+            danger: true,
+            onSelect: () => openLifecycle({ ...reminder, eventId }),
+          },
+        ]
+      : [
+          {
+            kind: "action",
+            label: "History",
+            onSelect: () =>
+              openHistory({
+                objectId: reminder.id,
+                displayName: reminder.displayName,
+              }),
+          },
+        ];
+    return (
+      <RowMenu
+        entries={entries}
+        label={`Actions for ${reminder.displayName}`}
+      />
+    );
+  };
+  const reminderRow = (
+    reminder: ReminderResponse,
+    rows: readonly ReminderResponse[],
+    groupKey: string,
+  ) => (
+    <article
+      className={rowClass(groupKey, reminder.id)}
+      id={`reminder-${reminder.id}`}
+      key={reminder.id}
+      {...rowProps(reminder.id)}
+    >
       <DateTile
         dateTime={reminder.remindAt}
         day={formatDatePart(reminder.remindAt, "day")}
@@ -763,40 +958,7 @@ export function RemindersPanel({
         <ObjectDetails id={reminder.id} />
       </div>
       <StatusChip status={reminder.status} />
-      <RowActions>
-        {canEdit ? (
-          <button
-            className="button button-quiet button-small"
-            onClick={() => setEditingId(reminder.id)}
-            type="button"
-          >
-            Edit
-          </button>
-        ) : null}
-        {canEdit && reminder.status === "pending" ? (
-          <button
-            className="button button-secondary button-small"
-            disabled={update.isPending}
-            onClick={() =>
-              update.mutate({
-                id: reminder.id,
-                input: {
-                  expectedVersion: reminder.version,
-                  status: "dismissed",
-                },
-              })
-            }
-            type="button"
-          >
-            Dismiss
-          </button>
-        ) : null}
-        <HistoryButton
-          objectId={reminder.id}
-          displayName={reminder.displayName}
-        />
-        {canEdit ? <LifecycleButton target={{ ...reminder, eventId }} /> : null}
-      </RowActions>
+      {menu(reminder, rows)}
     </article>
   );
   const reminderList = (
@@ -804,8 +966,35 @@ export function RemindersPanel({
     compact: boolean,
   ) => (
     <div className={`resource-list${compact ? " resource-list-compact" : ""}`}>
-      {dayReminders.map(reminderRow)}
+      {dayReminders.map((reminder) =>
+        reminderRow(reminder, dayReminders, "all"),
+      )}
     </div>
+  );
+  const notice = (
+    <>
+      {update.isError ? (
+        <ErrorNotice
+          error={update.error}
+          onRefresh={() => void refresh().then(() => update.reset())}
+        />
+      ) : null}
+      <p aria-live="polite" className="visually-hidden" role="status">
+        {announcement}
+      </p>
+      {drag === null ? null : (
+        <div
+          aria-hidden="true"
+          className="row-drag-ghost"
+          style={{
+            transform: `translate(${drag.x}px, ${drag.y}px)`,
+            width: drag.width,
+          }}
+        >
+          {drag.label}
+        </div>
+      )}
+    </>
   );
 
   return (
@@ -842,12 +1031,7 @@ export function RemindersPanel({
           onCancel={() => setIsAdding(false)}
         />
       ) : null}
-      {update.isError ? (
-        <ErrorNotice
-          error={update.error}
-          onRefresh={() => void refresh().then(() => update.reset())}
-        />
-      ) : null}
+      {view === "week" || view === "month" ? null : notice}
       {reminders.length === 0 ? (
         <EmptyState
           description={
@@ -870,8 +1054,10 @@ export function RemindersPanel({
                   <span key={part}>{part}</span>
                 ))}
               </h3>
-              <div className="resource-list">
-                {group.items.map(reminderRow)}
+              <div className="resource-list" {...groupProps(group.key)}>
+                {group.items.map((reminder) =>
+                  reminderRow(reminder, group.items, group.key),
+                )}
               </div>
             </section>
           ))}
@@ -886,6 +1072,7 @@ export function RemindersPanel({
             </span>
           )}
           emptyDay="No reminders this day."
+          notice={notice}
           period={period}
           placed={placed}
           renderList={reminderList}
@@ -894,7 +1081,9 @@ export function RemindersPanel({
           view={view}
         />
       ) : (
-        <div className="resource-list">{reminders.map(reminderRow)}</div>
+        <div className="resource-list" {...groupProps("all")}>
+          {reminders.map((reminder) => reminderRow(reminder, reminders, "all"))}
+        </div>
       )}
       {!canEdit || editingId === null ? null : (
         <ReminderInspector
