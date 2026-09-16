@@ -125,6 +125,10 @@ export function DuePicker({
               }
               aria-invalid={unreadable}
               disabled={disabled}
+              onBlur={() => {
+                if (!unreadable)
+                  setText(dueDate === "" ? "" : exactDueDay(dueDate));
+              }}
               onChange={(input) => readText(input.target.value)}
               placeholder="Sep 21, tomorrow, 2030-09-21"
               type="text"
@@ -144,7 +148,7 @@ export function DuePicker({
                   }.`}
             </p>
           ) : null}
-          <ul aria-label="Due shortcuts" className="due-shortcuts">
+          <ul aria-label="Due shortcuts" className="day-shortcuts">
             {dueShortcuts(now).map((shortcut) => (
               <li key={shortcut.id}>
                 <button
@@ -155,7 +159,7 @@ export function DuePicker({
                   type="button"
                 >
                   <span>{shortcut.label}</span>
-                  <span className="due-shortcut-day">
+                  <span className="day-shortcut-day">
                     {shortcut.id === "next-week"
                       ? `${dueWeekday(shortcut.day)} ${monthDayShort.format(parseDayKey(shortcut.day))}`
                       : dueWeekday(shortcut.day)}

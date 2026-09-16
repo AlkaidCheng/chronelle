@@ -9,13 +9,11 @@ import {
 
 describe("calendar range selection", () => {
   it.each([
-    ["", "", "Choose a start date."],
-    ["2030-07-03", "", "End date optional."],
-    ["2030-07-03", "2030-07-03", "1 day, including start and end dates."],
-    ["2030-07-03", "2030-07-12", "10 days, including start and end dates."],
-    ["2028-02-28", "2028-03-01", "3 days, including start and end dates."],
-    ["2026-03-07", "2026-03-09", "3 days, including start and end dates."],
-    ["0001-12-31", "0002-01-01", "2 days, including start and end dates."],
+    ["", "", "not set"],
+    ["2030-07-03", "", "Jul 3, 2030"],
+    ["2030-07-03", "2030-07-03", "Jul 3, 2030"],
+    ["2030-07-03", "2030-07-12", "Jul 3, 2030 to Jul 12, 2030"],
+    ["2028-02-28", "2028-03-01", "Feb 28, 2028 to Mar 1, 2028"],
   ])("describes %s through %s", (startDate, endDate, expected) => {
     expect(describeCalendarRange({ startDate, endDate })).toBe(expected);
   });

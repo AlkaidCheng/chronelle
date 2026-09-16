@@ -5,6 +5,7 @@ import {
   type TestInfo,
 } from "@playwright/test";
 import { selectLeapDayRange } from "./calendar-keyboard";
+import { expectDates } from "./range-picker";
 
 export async function expectReadablePalette(page: Page) {
   const checks = await page.evaluate(() => {
@@ -102,7 +103,7 @@ export async function exerciseAppearance(
   await expectToken(name, "color", "ink");
   await selectLeapDayRange(page);
   const selectedDate = dialog
-    .locator('.calendar-grid button[aria-pressed="true"]')
+    .locator('.month-list-day[aria-pressed="true"]')
     .first();
   await expectToken(selectedDate, "background-color", "accent");
   await expectToken(selectedDate, "color", "on-accent");
@@ -113,9 +114,7 @@ export async function exerciseAppearance(
     colorScheme: appearance === "light" ? "dark" : "light",
   });
   await expect(name).toHaveValue(title);
-  await expect(
-    dialog.getByRole("button", { name: "End date: Mar 1, 2028" }),
-  ).toBeVisible();
+  await expectDates(dialog, "Feb 28, 2028 to Mar 1, 2028");
   await expectReadablePalette(page);
   await page.emulateMedia({ colorScheme: appearance });
   await dialog

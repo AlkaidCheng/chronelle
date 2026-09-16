@@ -132,6 +132,7 @@ export function MonthList({
   const monthInput = useRef<HTMLInputElement>(null);
   const monthButton = useRef<HTMLButtonElement>(null);
   const yearList = useRef<HTMLDivElement>(null);
+  const backdrop = useRef<HTMLButtonElement>(null);
   const focusRequested = useRef<DayKey | null>(null);
   const headingFocusRequested = useRef(false);
   const scrollRequested = useRef<MonthKey | null>(monthOf(reveal));
@@ -145,14 +146,18 @@ export function MonthList({
     suppressClick: false,
   });
 
-  /** Makes a month part of the list and scrolls it to the top. */
+  /**
+   * Scrolls a month to the top: within the list as it stands, or, for a
+   * month beyond either end, in a list rebuilt around it.
+   */
   const revealMonth = (month: MonthKey) => {
     setShown(month);
     scrollRequested.current = month;
-    setSpan((current) => ({
-      from: month < current.from ? shiftMonth(month, -2) : current.from,
-      to: month > current.to ? shiftMonth(month, 6) : current.to,
-    }));
+    setSpan((current) =>
+      month >= current.from && month <= current.to
+        ? current
+        : { from: shiftMonth(month, -2), to: shiftMonth(month, 12) },
+    );
   };
 
   // A choice made elsewhere brings its month to the top; a drag keeps the
@@ -222,6 +227,26 @@ export function MonthList({
       grid.scrollTop = chosen.offsetTop - chosen.offsetHeight - 4;
   }, [monthOpen, shownYear]);
 
+  // A press outside the chooser closes it. Blur alone cannot tell, since
+  // Safari moves focus to the page rather than to a clicked button.
+  useEffect(() => {
+    if (!monthOpen) return;
+    const onPointerDown = (event: Event) => {
+      const target = event.target;
+      if (!(target instanceof Node)) return;
+      if (
+        target === monthInput.current ||
+        target === backdrop.current ||
+        chooser.current?.contains(target)
+      )
+        return;
+      setMonthOpen(false);
+    };
+    document.addEventListener("pointerdown", onPointerDown, true);
+    return () =>
+      document.removeEventListener("pointerdown", onPointerDown, true);
+  }, [monthOpen]);
+
   // A drag ends wherever the pointer is released.
   useEffect(() => {
     if (onChooseSpan === undefined) return;
@@ -288,7 +313,7 @@ export function MonthList({
     day: DayKey,
   ) => {
     if (onChooseSpan === undefined) return;
-    if (event.pointerType === "touch" || event.button !== 0) return;
+    if (event.pointerType === "touch" || event.button > 0) return;
     drag.current = { anchor: day, moved: false, suppressClick: false };
   };
   const onListPointerMove = (event: PointerEvent<HTMLDivElement>) => {
@@ -339,9 +364,13 @@ export function MonthList({
     headingFocusRequested.current = true;
     setMonthOpen(false);
   };
+  // Focus moving to something outside the chooser closes it; focus lost to
+  // the page (a click on a button in Safari) does not.
   const leavesChooser = (related: EventTarget | null) =>
-    !(related instanceof Node) ||
-    (related !== monthInput.current && !chooser.current?.contains(related));
+    related instanceof Node &&
+    related !== monthInput.current &&
+    related !== backdrop.current &&
+    !chooser.current?.contains(related);
 
   // One tab stop among the months: the focused day, else the anchor, else
   // today, else the shown month's first day.
@@ -411,6 +440,88 @@ export function MonthList({
             <span className="month-list-year">{shownYear}</span>
           </button>
         )}
+        {monthOpen ? (
+          <div
+            aria-label="Choose a month and year"
+            aria-modal="true"
+            className="month-list-chooser"
+            onBlur={(event) => {
+              if (leavesChooser(event.relatedTarget)) closeMonth();
+            }}
+            onKeyDown={(event) => {
+              if (event.key === "Escape") {
+                event.preventDefault();
+                finishMonth();
+              }
+            }}
+            // A press on a month or year keeps focus on the typed field, so no
+            // browser moves it elsewhere and closes the chooser on the way.
+            onMouseDown={(event) => event.preventDefault()}
+            ref={chooser}
+            role="dialog"
+          >
+            <div className="month-list-chooser-columns">
+              <fieldset className="month-list-chooser-group">
+                <legend>Month</legend>
+                <div className="month-list-month-grid">
+                  {monthNames.map((name, index) => {
+                    const key = `${shownYear}-${String(index + 1).padStart(2, "0")}`;
+                    return (
+                      <button
+                        aria-pressed={key === shown}
+                        className={`month-list-choice${key === monthOf(today) ? " is-now" : ""}`}
+                        key={name}
+                        onClick={() => revealMonth(key)}
+                        type="button"
+                      >
+                        {name}
+                      </button>
+                    );
+                  })}
+                </div>
+              </fieldset>
+              <fieldset className="month-list-chooser-group">
+                <legend>Year</legend>
+                <div className="month-list-year-grid" ref={yearList}>
+                  {years.map((year) => (
+                    <button
+                      aria-pressed={String(year) === shownYear}
+                      className={`month-list-choice${year === now.getFullYear() ? " is-now" : ""}`}
+                      data-year={year}
+                      key={year}
+                      onClick={() =>
+                        revealMonth(`${year}-${shown.slice(5, 7)}`)
+                      }
+                      type="button"
+                    >
+                      {year}
+                    </button>
+                  ))}
+                </div>
+              </fieldset>
+            </div>
+            <div className="month-list-chooser-footer">
+              <button
+                className="button button-small"
+                onClick={finishMonth}
+                type="button"
+              >
+                Done
+              </button>
+            </div>
+          </div>
+        ) : null}
+        {monthOpen ? (
+          <button
+            aria-label="Close the month and year chooser"
+            className="month-list-backdrop"
+            onClick={finishMonth}
+            onMouseDown={(event) => event.preventDefault()}
+            ref={backdrop}
+            tabIndex={-1}
+            type="button"
+          />
+        ) : null}
         <div>
           <button
             aria-label="Previous month"
@@ -440,81 +551,6 @@ export function MonthList({
           </button>
         </div>
       </div>
-      {monthOpen ? (
-        <div
-          aria-label="Choose a month and year"
-          aria-modal="true"
-          className="month-list-chooser"
-          onBlur={(event) => {
-            if (leavesChooser(event.relatedTarget)) closeMonth();
-          }}
-          onKeyDown={(event) => {
-            if (event.key === "Escape") {
-              event.preventDefault();
-              finishMonth();
-            }
-          }}
-          ref={chooser}
-          role="dialog"
-        >
-          <div className="month-list-chooser-columns">
-            <fieldset className="month-list-chooser-group">
-              <legend>Month</legend>
-              <div className="month-list-month-grid">
-                {monthNames.map((name, index) => {
-                  const key = `${shownYear}-${String(index + 1).padStart(2, "0")}`;
-                  return (
-                    <button
-                      aria-pressed={key === shown}
-                      className={`month-list-choice${key === monthOf(today) ? " is-now" : ""}`}
-                      key={name}
-                      onClick={() => revealMonth(key)}
-                      type="button"
-                    >
-                      {name}
-                    </button>
-                  );
-                })}
-              </div>
-            </fieldset>
-            <fieldset className="month-list-chooser-group">
-              <legend>Year</legend>
-              <div className="month-list-year-grid" ref={yearList}>
-                {years.map((year) => (
-                  <button
-                    aria-pressed={String(year) === shownYear}
-                    className={`month-list-choice${year === now.getFullYear() ? " is-now" : ""}`}
-                    data-year={year}
-                    key={year}
-                    onClick={() => revealMonth(`${year}-${shown.slice(5, 7)}`)}
-                    type="button"
-                  >
-                    {year}
-                  </button>
-                ))}
-              </div>
-            </fieldset>
-          </div>
-          <div className="month-list-chooser-footer">
-            <button
-              className="button button-small"
-              onClick={finishMonth}
-              type="button"
-            >
-              Done
-            </button>
-          </div>
-        </div>
-      ) : null}
-      {monthOpen ? (
-        <button
-          aria-label="Close the month and year chooser"
-          className="month-list-backdrop"
-          onClick={finishMonth}
-          tabIndex={-1}
-          type="button"
-        />
-      ) : null}
       <div aria-hidden="true" className="month-list-weekdays">
         {weekdayHeadings.map((heading, index) => (
           <span key={weekdayNames[index]}>{heading}</span>
@@ -541,6 +577,7 @@ export function MonthList({
                 {weekdayHeadings.map((heading, index) => (
                   <th
                     abbr={weekdayNames[index]}
+                    aria-label={weekdayNames[index]}
                     key={weekdayNames[index]}
                     scope="col"
                   >

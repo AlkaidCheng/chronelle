@@ -68,7 +68,7 @@ export async function exerciseEventInspector(page: Page, testInfo: TestInfo) {
     await inspector
       .getByRole("switch", { name: "Set dates", exact: true })
       .check();
-    await expect(inspector.getByRole("grid")).toBeVisible();
+    await expect(inspector.getByRole("table").first()).toBeVisible();
     await expect(
       inspector.getByRole("button", { name: "Save event", exact: true }),
     ).toBeInViewport();

@@ -1,15 +1,16 @@
+import { formatCalendarDate } from "./event-schedule";
+
 export interface CalendarRange {
   readonly startDate: string;
   readonly endDate: string;
 }
 
-/** Describe the inclusive date span without treating an unset end as a duration. */
+/** The range as its exact dates: not set, one day, or a start and an end. */
 export function describeCalendarRange(range: CalendarRange): string {
-  if (!range.startDate) return "Choose a start date.";
-  if (!range.endDate) return "End date optional.";
-  const days =
-    (Date.parse(range.endDate) - Date.parse(range.startDate)) / 86_400_000 + 1;
-  return `${days} ${days === 1 ? "day" : "days"}, including start and end dates.`;
+  if (!range.startDate) return "not set";
+  if (!range.endDate || range.endDate === range.startDate)
+    return formatCalendarDate(range.startDate);
+  return `${formatCalendarDate(range.startDate)} to ${formatCalendarDate(range.endDate)}`;
 }
 
 export function calendarMonthDate(year: number, month: number): string {

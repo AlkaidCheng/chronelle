@@ -21,6 +21,7 @@ import {
   WorkspaceCommandProvider,
   useContextCommands,
 } from "../components/context-commands";
+import { setDates } from "./range-picker-support";
 
 const workspaceId = "019d6e7d-0000-7000-8000-000000000001";
 const userId = "019d6e7d-0000-7000-8000-000000000002";
@@ -639,11 +640,7 @@ describe("EventWorkspace", () => {
       await screen.findByRole("button", { name: "Add schedule item" }),
     );
     await user.type(screen.getByLabelText("Schedule item"), "Guest arrival");
-    await user.click(screen.getByRole("button", { name: "Change year" }));
-    await user.click(screen.getByRole("button", { name: "2026" }));
-    await user.click(screen.getByRole("button", { name: "Change month" }));
-    await user.click(screen.getByRole("button", { name: "October" }));
-    await user.click(screen.getByRole("button", { name: "Oct 15, 2026" }));
+    await setDates(user, "2026-10-15");
     await user.click(screen.getByRole("switch", { name: "Add times" }));
     fireEvent.change(screen.getByLabelText("Start time"), {
       target: { value: "17:30" },

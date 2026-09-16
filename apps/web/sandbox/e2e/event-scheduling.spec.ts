@@ -1,4 +1,10 @@
 import { expect, test } from "@playwright/test";
+import {
+  datesSummary,
+  dayName,
+  expectDates,
+  setDates,
+} from "../../e2e/helpers/range-picker";
 
 const sandboxUrl = new URL(
   "../../../../.chronelle/sandbox/chronelle.html",
@@ -33,27 +39,22 @@ test("creates a date-only range in a focused dialog without moving the collectio
     .fill("Summer vacation");
   await page.screenshot({ path: testInfo.outputPath("create-event.png") });
   await dialog.getByRole("switch", { name: "Set dates" }).check();
-  await dialog.getByRole("button", { name: "Change year" }).click();
-  await dialog.getByRole("button", { name: "2030", exact: true }).click();
-  await dialog.getByRole("button", { name: "Change month" }).click();
-  await dialog.getByRole("button", { name: "July", exact: true }).click();
-  await expect(dialog.getByRole("grid", { name: "July 2030" })).toBeVisible();
   await dialog
-    .getByRole("button", { name: "Jul 3, 2030", exact: true })
+    .getByRole("button", { name: /^Choose a month and year/ })
     .click();
-  await dialog
-    .getByRole("button", { name: "Jul 12, 2030", exact: true })
-    .click();
+  await dialog.getByLabel("Month and year", { exact: true }).fill("July 2030");
+  await dialog.getByLabel("Month and year", { exact: true }).press("Enter");
+  await expect(dialog.getByRole("table", { name: "July 2030" })).toBeVisible();
+  await dialog.getByRole("button", { name: dayName("2030-07-03") }).click();
+  await dialog.getByRole("button", { name: dayName("2030-07-12") }).click();
+  await expectDates(dialog, "Jul 3, 2030 to Jul 12, 2030");
+  await expect(dialog.locator("td.is-between")).toHaveCount(8);
   await expect(
-    dialog.getByRole("button", { name: "End date: Jul 12, 2030" }),
-  ).toBeVisible();
-  await expect(dialog.locator('[data-in-range="true"]')).toHaveCount(10);
-  await expect(dialog.getByRole("grid", { name: "July 2030" })).toBeInViewport({
-    ratio: 1,
-  });
+    dialog.getByRole("table", { name: "July 2030" }),
+  ).toBeInViewport();
   await page.screenshot({ path: testInfo.outputPath("date-range.png") });
-  await dialog.getByRole("button", { name: "Done", exact: true }).click();
-  await expect(dialog.getByRole("grid")).toHaveCount(0);
+  await datesSummary(dialog).click();
+  await expect(dialog.getByRole("table")).toHaveCount(0);
   await page.screenshot({ path: testInfo.outputPath("event-ready.png") });
   await expect(
     dialog.getByRole("button", { name: "Create event", exact: true }),
@@ -87,12 +88,10 @@ test("creates a date-only range in a focused dialog without moving the collectio
   await expect(
     page.getByRole("switch", { name: "Add times" }),
   ).not.toBeChecked();
-  await expect(
-    page.getByRole("button", { name: "Start date: Jul 3, 2030" }),
-  ).toBeVisible();
-  await expect(
-    page.getByRole("button", { name: "End date: Jul 12, 2030" }),
-  ).toBeVisible();
+  await expectDates(
+    page.getByRole("dialog", { name: "Edit event", exact: true }),
+    "Jul 3, 2030 to Jul 12, 2030",
+  );
   const saved = await page.evaluate(() =>
     localStorage.getItem("chronelle.design-sandbox.v1"),
   );
@@ -116,9 +115,10 @@ test("creates a date-only range in a focused dialog without moving the collectio
     await preview
       .getByRole("button", { name: "Edit event", exact: true })
       .click();
-    await expect(
-      preview.getByRole("button", { name: "Start date: Jul 3, 2030" }),
-    ).toBeVisible();
+    await expectDates(
+      preview.getByRole("dialog", { name: "Edit event", exact: true }),
+      "Jul 3, 2030 to Jul 12, 2030",
+    );
   } finally {
     await alternate.close();
   }
@@ -133,46 +133,37 @@ test("calendar supports leap-day keyboard navigation, range reset, and optional 
   await page.getByRole("button", { name: "New event", exact: true }).click();
   const dialog = page.getByRole("dialog", { name: "Create an event" });
   await dialog.getByRole("switch", { name: "Set dates" }).check();
-  await dialog.getByRole("button", { name: "Change year" }).click();
-  await dialog.getByRole("button", { name: "2028", exact: true }).click();
-  await dialog.getByRole("button", { name: "Change month" }).click();
-  await dialog.getByRole("button", { name: "February", exact: true }).click();
   await dialog
-    .getByRole("button", { name: "Feb 28, 2028", exact: true })
-    .focus();
+    .getByRole("button", { name: /^Choose a month and year/ })
+    .click();
+  await dialog
+    .getByLabel("Month and year", { exact: true })
+    .fill("February 2028");
+  await dialog.getByLabel("Month and year", { exact: true }).press("Enter");
+  await dialog.getByRole("button", { name: dayName("2028-02-28") }).focus();
   await page.keyboard.press("ArrowRight");
   await expect(
-    dialog.getByRole("button", { name: "Feb 29, 2028", exact: true }),
+    dialog.getByRole("button", { name: dayName("2028-02-29") }),
   ).toBeFocused();
   await page.keyboard.press("Enter");
-  await expect(
-    dialog.getByRole("button", { name: "Start date: Feb 29, 2028" }),
-  ).toBeVisible();
+  await expectDates(dialog, "Feb 29, 2028");
   await page.keyboard.press("ArrowRight");
-  await expect(dialog.getByRole("grid", { name: "March 2028" })).toBeVisible();
+  await expect(
+    dialog.getByRole("button", { name: dayName("2028-03-01") }),
+  ).toBeFocused();
   await page.keyboard.press("Enter");
-  await expect(
-    dialog.getByRole("button", { name: "End date: Mar 1, 2028" }),
-  ).toBeVisible();
-  await dialog
-    .getByRole("button", { name: "Mar 8, 2028", exact: true })
-    .click();
-  await expect(
-    dialog.getByRole("button", { name: "Start date: Mar 8, 2028" }),
-  ).toBeVisible();
-  await expect(
-    dialog.getByRole("button", { name: "End date: Optional" }),
-  ).toBeVisible();
+  await expectDates(dialog, "Feb 29, 2028 to Mar 1, 2028");
+  await dialog.getByRole("button", { name: dayName("2028-03-08") }).click();
+  await expectDates(dialog, "Mar 8, 2028");
+  await expect(dialog.getByLabel("End date", { exact: true })).toHaveValue("");
   await dialog.getByRole("switch", { name: "Add times" }).check();
   await dialog.getByLabel("Start time", { exact: true }).fill("09:30");
   await dialog.getByLabel("End time (optional)", { exact: true }).fill("17:00");
-  await expect(
-    dialog.getByRole("button", { name: "End date: Mar 8, 2028" }),
-  ).toBeVisible();
+  await expect(dialog.getByLabel("End date", { exact: true })).toHaveValue(
+    "Mar 8, 2028",
+  );
   await dialog.getByLabel("End time (optional)", { exact: true }).fill("");
-  await expect(
-    dialog.getByRole("button", { name: "End date: Optional" }),
-  ).toBeVisible();
+  await expect(dialog.getByLabel("End date", { exact: true })).toHaveValue("");
   await dialog.getByLabel("End time (optional)", { exact: true }).fill("17:00");
   await expect(
     dialog.getByRole("button", { name: "Create event", exact: true }),
@@ -180,10 +171,8 @@ test("calendar supports leap-day keyboard navigation, range reset, and optional 
   await page.screenshot({ path: testInfo.outputPath("optional-times.png") });
   await dialog.getByRole("switch", { name: "Add times" }).uncheck();
   await expect(dialog.getByLabel("Start time", { exact: true })).toHaveCount(0);
-  await dialog.getByRole("button", { name: "Clear dates" }).click();
-  await expect(
-    dialog.getByRole("button", { name: "Start date: Choose a day" }),
-  ).toBeVisible();
+  await dialog.getByRole("button", { name: "No dates", exact: true }).click();
+  await expectDates(dialog, "not set");
   await page.keyboard.press("Escape");
   await page.getByRole("button", { name: "Discard", exact: true }).click();
   await expect(dialog).toHaveCount(0);
@@ -212,13 +201,7 @@ test("creation makes the background inert and allows a single day or no dates", 
     .getByRole("button", { name: "Create event", exact: true })
     .click();
   await expect(dialog.getByRole("alert")).toContainText("date");
-  await dialog.getByRole("button", { name: "Change year" }).click();
-  await dialog.getByRole("button", { name: "2028", exact: true }).click();
-  await dialog.getByRole("button", { name: "Change month" }).click();
-  await dialog.getByRole("button", { name: "April", exact: true }).click();
-  await dialog
-    .getByRole("button", { name: "Apr 4, 2028", exact: true })
-    .click();
+  await setDates(dialog, "Apr 4, 2028");
   await dialog
     .getByRole("button", { name: "Create event", exact: true })
     .click();

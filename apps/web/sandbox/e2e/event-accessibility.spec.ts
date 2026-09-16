@@ -1,5 +1,6 @@
 import { expect, test } from "@playwright/test";
 import { selectLeapDayRange } from "../../e2e/helpers/calendar-keyboard";
+import { dayName, expectDates } from "../../e2e/helpers/range-picker";
 
 const sandboxUrl = new URL(
   "../../../../.chronelle/sandbox/chronelle.html",
@@ -32,33 +33,39 @@ test("navigates months and years without changing the selected range", async ({
   await expect(trigger).toBeFocused();
 });
 
-test("distinguishes a tentative hover range from selected dates", async ({
+test("chooses a range by dragging across days and clears it with No dates", async ({
   page,
 }) => {
   await page.goto(sandboxUrl);
   await page.getByRole("button", { name: "New event", exact: true }).click();
   const dialog = page.getByRole("dialog", { name: "Create an event" });
   await dialog.getByRole("switch", { name: "Set dates" }).check();
-  await dialog.getByRole("button", { name: "Change year" }).click();
-  await dialog.getByRole("button", { name: "2030", exact: true }).click();
-  await dialog.getByRole("button", { name: "Change month" }).click();
-  await dialog.getByRole("button", { name: "July", exact: true }).click();
   await dialog
-    .getByRole("button", { name: "Jul 3, 2030", exact: true })
+    .getByRole("button", { name: /^Choose a month and year/ })
     .click();
-  await dialog
-    .getByRole("button", { name: "Jul 12, 2030", exact: true })
-    .hover();
-  await expect(dialog.locator('[data-in-range="true"]')).toHaveCount(10);
-  await expect(dialog.getByRole("gridcell", { selected: true })).toHaveCount(1);
-  await dialog
-    .getByRole("button", { name: "Jul 12, 2030", exact: true })
-    .click();
-  await expect(dialog.getByRole("gridcell", { selected: true })).toHaveCount(
-    10,
-  );
-  await dialog
-    .getByRole("button", { name: "Clear dates", exact: true })
-    .click();
-  await expect(dialog.getByRole("gridcell", { selected: true })).toHaveCount(0);
+  await dialog.getByLabel("Month and year", { exact: true }).fill("July 2030");
+  await dialog.getByLabel("Month and year", { exact: true }).press("Enter");
+  const from = dialog.getByRole("button", { name: dayName("2030-07-03") });
+  const to = dialog.getByRole("button", { name: dayName("2030-07-12") });
+  const [a, b] = await Promise.all([from.boundingBox(), to.boundingBox()]);
+  if (!a || !b) throw new Error("The days are not laid out.");
+  await page.mouse.move(a.x + a.width / 2, a.y + a.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(b.x + b.width / 2, b.y + b.height / 2, { steps: 6 });
+  // The range follows the pointer before it is released.
+  await expectDates(dialog, "Jul 3, 2030 to Jul 12, 2030");
+  await page.mouse.up();
+  await expectDates(dialog, "Jul 3, 2030 to Jul 12, 2030");
+  await expect(
+    dialog.locator('.month-list-day[aria-pressed="true"]'),
+  ).toHaveCount(2);
+  await expect(dialog.locator("td.is-between")).toHaveCount(8);
+  // A plain click after the drag starts a new range.
+  await dialog.getByRole("button", { name: dayName("2030-07-20") }).click();
+  await expectDates(dialog, "Jul 20, 2030");
+  await dialog.getByRole("button", { name: "No dates", exact: true }).click();
+  await expectDates(dialog, "not set");
+  await expect(
+    dialog.locator('.month-list-day[aria-pressed="true"]'),
+  ).toHaveCount(0);
 });

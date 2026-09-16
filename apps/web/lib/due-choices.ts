@@ -6,6 +6,8 @@ export interface DueShortcut {
     "today" | "tomorrow" | "later-this-week" | "weekend" | "next-week";
   readonly label: string;
   readonly day: DayKey;
+  /** For a schedule, the last day the shortcut spans: the weekend's Sunday. */
+  readonly through?: DayKey;
 }
 
 const weekday = new Intl.DateTimeFormat(undefined, { weekday: "short" });
@@ -18,8 +20,9 @@ const monthDayYear = new Intl.DateTimeFormat(undefined, {
 /**
  * The shortcuts a day allows: Today, Tomorrow, Later this week (two days
  * on while that is still Friday or earlier), This weekend (the coming
- * Saturday, not on a weekend), and Next week (the coming Monday). Every
- * one stays offered; the control marks the one matching the choice.
+ * Saturday, not on a weekend, spanning to Sunday for a schedule), and Next
+ * week (the coming Monday). Every one stays offered; the control marks the
+ * one matching the choice.
  */
 export function dueShortcuts(now: Date): DueShortcut[] {
   const today = dayKeyOf(now);
@@ -42,6 +45,7 @@ export function dueShortcuts(now: Date): DueShortcut[] {
       id: "weekend",
       label: "This weekend",
       day: dayKeyOf(addDays(now, 6 - day)),
+      through: dayKeyOf(addDays(now, 7 - day)),
     });
   shortcuts.push({
     id: "next-week",

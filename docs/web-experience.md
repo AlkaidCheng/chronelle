@@ -379,21 +379,27 @@ containment as well as document width.
 
 ## Date and dialog navigation
 
-The Event date picker has independent month and year controls. Arrow keys move
-by day or week; Home/End move to the week's edges. Page Up/Down moves one month,
-or one year with Shift, clamping to the last available day in the target month.
-Navigation stays within years 0001-9999 and does not change the selection until
-Enter, Space, or a pointer click. One day in the grid participates in Tab order.
-
-The year picker also accepts a direct year jump. Go or Enter moves the calendar
-without selecting a date or submitting the event. An unfinished year entry does
-not prevent saving an otherwise valid event. Date-range summaries count both
-endpoints, including leap days, and leave an unspecified end optional. Clear end
-date keeps the start and returns focus to the end-date control.
+The Event and schedule item editors set their dates behind a Dates disclosure
+that reads the range as exact dates (Dates: Jul 3, 2030 to Jul 12, 2030, or
+not set), open until a start is chosen. Open, it holds a Start date and an End
+date field that take typed dates in the shapes the Due control reads, the
+shortcuts a weekday allows (Today, Tomorrow, Later this week, This weekend as
+Saturday to Sunday, Next week) with No dates, and the same month list as the
+Due control: one six-week month at a time, extending as it is scrolled, with the
+month and year chooser above it. The first day chosen on the list starts the
+range and the second ends it; pressing on a day and dragging across others
+chooses the span between them (mouse or pen; touch scrolls the list); a start
+typed after the end clears the end, and an end before the start is refused
+with a note until it is fixed. Arrow keys move by day or week; Home/End move
+to the week's edges; Page Up/Down moves one month, or one year with Shift,
+clamping to the last day of the target month; Enter or Space chooses. One day
+in the list participates in Tab order. Moving through the list never changes
+the selection or submits the editor.
 
 Add times starts with empty fields until times are explicitly entered. Switching
 back to dates retains entered times in the current form but does not save them.
-Clearing an end date also clears its time, including a temporarily hidden time.
+Clearing the End date field also clears its time, including a temporarily
+hidden time.
 For a timed plan on one day, the end time can remain unspecified even when both
 selected dates are the same. A multi-day timed plan requires an end time.
 Pending saves disable the entire schedule. Existing date ordering, local-time

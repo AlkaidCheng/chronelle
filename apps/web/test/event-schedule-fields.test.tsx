@@ -1,6 +1,12 @@
 // @vitest-environment jsdom
 
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  within,
+} from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { useState } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -82,7 +88,7 @@ describe("event schedule controls", () => {
     );
   });
 
-  it("clears only the end date and time, restoring focus to the end control", async () => {
+  it("clears the end and its time from the End date field, then takes a new end", async () => {
     const user = userEvent.setup();
     render(
       <Harness
@@ -94,19 +100,15 @@ describe("event schedule controls", () => {
         }}
       />,
     );
-    await user.click(screen.getByRole("button", { name: "Clear end date" }));
-    expect(document.activeElement).toBe(
-      screen.getByRole("button", { name: "End date: Optional" }),
-    );
+    await user.click(screen.getByText("Dates: Jul 3, 2030 to Jul 12, 2030"));
+    await user.clear(screen.getByLabelText("End date"));
+    expect(screen.getByText("Dates: Jul 3, 2030")).toBeVisible();
     expect(screen.getByLabelText<HTMLInputElement>("Start time").value).toBe(
       "10:30",
     );
     expect(
       screen.getByLabelText<HTMLInputElement>("End time (optional)").value,
     ).toBe("");
-    expect(
-      screen.getByRole("status", { name: "Date range summary" }).textContent,
-    ).toBe("End date optional.");
     await user.click(screen.getByRole("button", { name: "Save" }));
     expect(eventSchedulePayload(onSubmit.mock.lastCall?.[0])).toEqual({
       startsAt: new Date("2030-07-03T10:30").toISOString(),
@@ -114,10 +116,11 @@ describe("event schedule controls", () => {
       startsOn: null,
       endsOn: null,
     });
-    await user.click(
-      screen.getByRole("button", { name: "End date: Optional" }),
-    );
-    await user.click(screen.getByRole("button", { name: "Jul 12, 2030" }));
+    await user.click(screen.getByLabelText("End date"));
+    await user.paste("Jul 12, 2030");
+    expect(
+      screen.getByText("Dates: Jul 3, 2030 to Jul 12, 2030"),
+    ).toBeVisible();
     expect(screen.getByLabelText<HTMLInputElement>("End time").value).toBe("");
     expect(screen.getByLabelText<HTMLInputElement>("End time").required).toBe(
       true,
@@ -137,69 +140,70 @@ describe("event schedule controls", () => {
     });
     await user.click(screen.getByRole("switch", { name: "Set dates" }));
     expect(
-      screen.getByRole("status", { name: "Date range summary" }).textContent,
-    ).toBe("10 days, including start and end dates.");
+      screen.getByText("Dates: Jul 3, 2030 to Jul 12, 2030"),
+    ).toBeVisible();
   });
 
-  it.each(["1", "99", "2099", "9999"])(
-    "jumps directly to year %s without changing or submitting the schedule",
-    async (year) => {
-      const user = userEvent.setup();
-      render(<Harness />);
-      await user.click(
-        screen.getByRole("button", { name: "Start date: Jul 3, 2030" }),
-      );
-      await user.click(screen.getByRole("button", { name: "Change year" }));
-      const input = screen.getByLabelText("Go to year");
-      await user.clear(input);
-      await user.type(input, `${year}{Enter}`);
-      expect(onSubmit).not.toHaveBeenCalled();
-      expect(document.activeElement?.getAttribute("data-date")).toBe(
-        `${year.padStart(4, "0")}-07-01`,
-      );
-      expect(
-        screen.getByRole("button", { name: "Start date: Jul 3, 2030" }),
-      ).toBeTruthy();
-      expect(
-        screen.getByRole("button", { name: "End date: Jul 12, 2030" }),
-      ).toBeTruthy();
-    },
-  );
+  it("moves the list to a typed month without changing or submitting the schedule", async () => {
+    const user = userEvent.setup();
+    render(<Harness />);
+    await user.click(screen.getByText("Dates: Jul 3, 2030 to Jul 12, 2030"));
+    await user.click(
+      screen.getByRole("button", { name: /^Choose a month and year/ }),
+    );
+    await user.clear(screen.getByLabelText("Month and year"));
+    await user.paste("July 2099");
+    await user.keyboard("{Enter}");
+    expect(onSubmit).not.toHaveBeenCalled();
+    expect(screen.getByRole("table", { name: "July 2099" })).toBeVisible();
+    expect(screen.getByLabelText("Start date")).toHaveValue("Jul 3, 2030");
+    expect(screen.getByLabelText("End date")).toHaveValue("Jul 12, 2030");
+  });
 
-  it.each(["", "0", "-1", "1e3", "abcd"])(
-    "keeps invalid year input %s out of the calendar and event payload",
-    async (year) => {
-      const user = userEvent.setup();
-      render(<Harness />);
-      await user.click(
-        screen.getByRole("button", { name: "Start date: Jul 3, 2030" }),
-      );
-      await user.click(screen.getByRole("button", { name: "Change year" }));
-      const input = screen.getByLabelText("Go to year");
-      await user.clear(input);
-      if (year) await user.type(input, year);
-      await user.keyboard("{Enter}");
-      expect(onSubmit).not.toHaveBeenCalled();
-      expect(
-        screen.getByRole<HTMLButtonElement>("button", {
-          name: "Go",
-        }).disabled,
-      ).toBe(true);
-      await user.click(screen.getByRole("button", { name: "Save" }));
-      expect(eventSchedulePayload(onSubmit.mock.lastCall?.[0]).startsOn).toBe(
-        range.startDate,
-      );
-    },
-  );
+  it("keeps text it cannot read out of the schedule and says so", async () => {
+    const user = userEvent.setup();
+    render(<Harness />);
+    await user.click(screen.getByText("Dates: Jul 3, 2030 to Jul 12, 2030"));
+    await user.click(screen.getByLabelText("Start date"));
+    await user.paste("x");
+    expect(screen.getByLabelText("Start date")).toHaveAttribute(
+      "aria-invalid",
+      "true",
+    );
+    expect(screen.getByText(/Not a date the picker knows/)).toBeVisible();
+    await user.click(screen.getByRole("button", { name: "Save" }));
+    expect(eventSchedulePayload(onSubmit.mock.lastCall?.[0]).startsOn).toBe(
+      range.startDate,
+    );
+    // Clearing the start clears the range; an end before the new start is
+    // refused until it is fixed.
+    await user.clear(screen.getByLabelText("Start date"));
+    expect(screen.getByText("Dates: not set")).toBeVisible();
+    await user.paste("Jul 3, 2030");
+    await user.click(screen.getByLabelText("End date"));
+    await user.paste("Jul 1, 2030");
+    expect(
+      screen.getByText("The end cannot come before the start."),
+    ).toBeVisible();
+    expect(screen.getByText("Dates: Jul 3, 2030")).toBeVisible();
+    await user.clear(screen.getByLabelText("End date"));
+    await user.paste("Jul 5, 2030");
+    expect(screen.getByText("Dates: Jul 3, 2030 to Jul 5, 2030")).toBeVisible();
+  });
 
   it("locks all schedule controls during a pending save", async () => {
     const user = userEvent.setup();
-    render(<Harness disabled />);
-    await user.click(screen.getByRole("button", { name: "Clear end date" }));
-    await user.click(screen.getByRole("switch", { name: "Add times" }));
+    render(
+      <Harness disabled initial={{ ...range, startDate: "", endDate: "" }} />,
+    );
+    expect(screen.getByLabelText("Start date")).toBeDisabled();
+    expect(screen.getByLabelText("End date")).toBeDisabled();
     expect(
-      screen.getByRole("button", { name: "End date: Jul 12, 2030" }),
-    ).toBeTruthy();
+      within(
+        screen.getByRole("list", { name: "Schedule shortcuts" }),
+      ).getByRole("button", { name: /^Today/ }),
+    ).toBeDisabled();
+    await user.click(screen.getByRole("switch", { name: "Add times" }));
     expect(screen.queryByLabelText("Start time")).toBeNull();
   });
 
@@ -208,7 +212,8 @@ describe("event schedule controls", () => {
     render(
       <Harness initial={{ ...range, startTime: "10:30", endTime: "18:15" }} />,
     );
-    await user.click(screen.getByRole("button", { name: "Clear end date" }));
+    await user.click(screen.getByText("Dates: Jul 3, 2030 to Jul 12, 2030"));
+    await user.clear(screen.getByLabelText("End date"));
     await user.click(screen.getByRole("switch", { name: "Add times" }));
     expect(screen.getByLabelText<HTMLInputElement>("Start time").value).toBe(
       "10:30",

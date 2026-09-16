@@ -1,482 +1,264 @@
-import { calendarDateSchema } from "@chronelle/schemas";
-import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
+"use client";
+
+import { useId, useState } from "react";
 
 import {
   type CalendarRange,
-  calendarMonthDate,
   describeCalendarRange,
   selectCalendarRange,
-  shiftCalendarDate,
-  shiftCalendarMonth,
 } from "../lib/calendar-range";
+import { type DayKey, dayKeyOf, parseDayKey } from "../lib/day-placement";
+import { dueShortcuts, dueWeekday, parseDueText } from "../lib/due-choices";
 import { formatCalendarDate } from "../lib/event-schedule";
-import { toDateTimeInput } from "../lib/format";
+import { MonthList } from "./month-list";
 
-const monthFormatter = new Intl.DateTimeFormat(undefined, {
-  month: "long",
-  timeZone: "UTC",
+const monthDayShort = new Intl.DateTimeFormat(undefined, {
+  month: "short",
+  day: "numeric",
 });
-const weekdayFormatter = new Intl.DateTimeFormat(undefined, {
-  weekday: "long",
-  timeZone: "UTC",
-});
-const months = Array.from({ length: 12 }, (_, index) =>
-  monthFormatter.format(new Date(calendarMonthDate(2000, index + 1))),
-);
-const weekdays = Array.from({ length: 7 }, (_, day) =>
-  weekdayFormatter.format(new Date(Date.UTC(2026, 0, 4 + day))),
-);
 
+const unreadableHint =
+  "Not a date the picker knows. Try Sep 21, 21 Sep, 9/21, tomorrow, or 2030-09-21.";
+
+/**
+ * A schedule's dates behind a disclosure that reads the range; open, typed
+ * Start and End fields, the shortcuts a day allows, and a continuous list of
+ * months where the first day chosen starts the range and the second ends
+ * it, or a drag across days chooses both.
+ */
 export function CalendarRangePicker({
-  value,
+  disabled = false,
+  now = new Date(),
   onChange,
+  value,
 }: {
-  readonly value: CalendarRange;
+  readonly disabled?: boolean;
+  /** Today, for tests. */
+  readonly now?: Date;
   readonly onChange: (range: CalendarRange) => void;
+  readonly value: CalendarRange;
 }) {
-  const today = toDateTimeInput(new Date().toISOString()).slice(0, 10);
-  const [focused, setFocused] = useState(value.startDate || today);
+  const id = useId();
+  const today = dayKeyOf(now);
+  const [open, setOpen] = useState(value.startDate === "");
+  const [startText, setStartText] = useState(() => exact(value.startDate));
+  const [endText, setEndText] = useState(() => exact(value.endDate));
+  const [mirrored, setMirrored] = useState(value);
+  // The next day chosen on the grid ends the range while a start stands alone.
   const [selectingEnd, setSelectingEnd] = useState(
-    Boolean(value.startDate && !value.endDate),
+    value.startDate !== "" && value.endDate === "",
   );
-  const [hovered, setHovered] = useState("");
-  const [view, setView] = useState<"days" | "months" | "years">("days");
-  const [expanded, setExpanded] = useState(!value.startDate);
-  const [yearPage, setYearPage] = useState(Number(focused.slice(0, 4)));
-  const [jumpYear, setJumpYear] = useState("");
-  const grid = useRef<HTMLTableElement>(null);
-  const focusRequested = useRef(false);
-  const calendar = useRef<HTMLDivElement>(null);
-  const startButton = useRef<HTMLButtonElement>(null);
-  const endButton = useRef<HTMLButtonElement>(null);
-  const panelId = useId();
-  const hintId = useId();
-  const keyboardHintId = useId();
-  const yearHintId = useId();
-  const validJumpYear = /^\d{1,4}$/.test(jumpYear) && Number(jumpYear) >= 1;
-  const year = Number(focused.slice(0, 4));
-  const month = Number(focused.slice(5, 7));
-  const first = calendarMonthDate(year, month);
-  const firstWeekday = new Date(first).getUTCDay();
-  const rangeEnd =
-    value.endDate ||
-    (selectingEnd && hovered >= value.startDate ? hovered : "");
+  // The day whose month the list brings to the top: the end last set, else the start.
+  const [reveal, setReveal] = useState<DayKey>(
+    value.endDate || value.startDate || today,
+  );
 
-  useEffect(() => {
-    if (expanded) calendar.current?.scrollIntoView({ block: "start" });
-  }, [expanded]);
-
-  useLayoutEffect(() => {
-    if (!focusRequested.current) return;
-    focusRequested.current = false;
-    grid.current
-      ?.querySelector<HTMLButtonElement>(`[data-date="${focused}"]`)
-      ?.focus();
-  });
-
-  function navigate(date: string, focusGrid = false) {
-    if (!calendarDateSchema.safeParse(date).success) return;
-    setFocused(date);
-    setHovered("");
-    focusRequested.current = focusGrid;
+  // The fields follow a choice made elsewhere; typed text stands on its own.
+  if (
+    value.startDate !== mirrored.startDate ||
+    value.endDate !== mirrored.endDate
+  ) {
+    setMirrored(value);
+    if (value.startDate !== mirrored.startDate)
+      setStartText(exact(value.startDate));
+    if (value.endDate !== mirrored.endDate) setEndText(exact(value.endDate));
   }
 
-  function showDays(date: string) {
-    setExpanded(true);
-    setView("days");
-    navigate(date, true);
-  }
+  const startUnreadable =
+    startText.trim() !== "" && parseDueText(startText, now) === null;
+  const endTyped = endText.trim() === "" ? "" : parseDueText(endText, now);
+  const endUnreadable = endTyped === null;
+  const endWithoutStart = endTyped !== "" && value.startDate === "";
+  const endBeforeStart =
+    typeof endTyped === "string" &&
+    endTyped !== "" &&
+    value.startDate !== "" &&
+    endTyped < value.startDate;
+  const hint =
+    startUnreadable || endUnreadable
+      ? unreadableHint
+      : endWithoutStart
+        ? "Choose a start date first."
+        : endBeforeStart
+          ? "The end cannot come before the start."
+          : "";
 
-  function move(direction: number) {
-    if (view === "years") {
-      setYearPage((current) =>
-        Math.max(1, Math.min(9988, current + direction * 12)),
-      );
+  const choose = (range: CalendarRange, shown: DayKey) => {
+    setMirrored(range);
+    setStartText(exact(range.startDate));
+    setEndText(exact(range.endDate));
+    setReveal(shown);
+    onChange(range);
+  };
+  const readStart = (text: string) => {
+    setStartText(text);
+    if (text.trim() === "") {
+      setMirrored({ startDate: "", endDate: "" });
+      setEndText("");
+      setSelectingEnd(false);
+      onChange({ startDate: "", endDate: "" });
       return;
     }
-    navigate(
-      shiftCalendarMonth(focused, direction * (view === "months" ? 12 : 1)),
-    );
-  }
+    const day = parseDueText(text, now);
+    if (day === null) return;
+    // An end typed while there was no start now counts, unless it comes first.
+    const endDate =
+      value.endDate ||
+      (endText.trim() === "" ? "" : (parseDueText(endText, now) ?? ""));
+    const range = {
+      startDate: day,
+      endDate: endDate !== "" && endDate < day ? "" : endDate,
+    };
+    setMirrored(range);
+    setEndText(exact(range.endDate));
+    setSelectingEnd(range.endDate === "");
+    setReveal(day);
+    onChange(range);
+  };
+  const readEnd = (text: string) => {
+    setEndText(text);
+    if (text.trim() === "") {
+      setMirrored({ ...value, endDate: "" });
+      setSelectingEnd(value.startDate !== "");
+      onChange({ ...value, endDate: "" });
+      return;
+    }
+    const day = parseDueText(text, now);
+    if (day === null || value.startDate === "" || day < value.startDate) return;
+    const range = { startDate: value.startDate, endDate: day };
+    setMirrored(range);
+    setSelectingEnd(false);
+    setReveal(day);
+    onChange(range);
+  };
+  const chooseDay = (day: DayKey) => {
+    const range = selectCalendarRange(value, day, selectingEnd);
+    setSelectingEnd(range.endDate === "");
+    choose(range, day);
+  };
+  const chooseSpan = (from: DayKey, to: DayKey) => {
+    setSelectingEnd(false);
+    choose({ startDate: from, endDate: from === to ? "" : to }, from);
+  };
 
-  function choose(date: string) {
-    const next = selectCalendarRange(value, date, selectingEnd);
-    onChange(next);
-    setSelectingEnd(!next.endDate);
-    navigate(date, true);
-  }
-
-  const unit =
-    view === "years" ? "12 years" : view === "months" ? "year" : "month";
   return (
-    <div className="calendar-range" ref={calendar}>
-      <div className="calendar-range-summary">
-        <button
-          ref={startButton}
-          type="button"
-          aria-expanded={expanded}
-          aria-controls={panelId}
-          aria-pressed={expanded && !selectingEnd}
-          aria-label={`Start date: ${value.startDate ? formatCalendarDate(value.startDate) : "Choose a day"}`}
-          onClick={() => {
-            setSelectingEnd(false);
-            showDays(value.startDate || focused);
-          }}
-        >
-          <span>Starts</span>
-          <strong>
-            {value.startDate
-              ? formatCalendarDate(value.startDate)
-              : "Choose a day"}
-          </strong>
-        </button>
-        <span aria-hidden="true">&rarr;</span>
-        <button
-          ref={endButton}
-          type="button"
-          disabled={!value.startDate}
-          aria-expanded={expanded}
-          aria-controls={panelId}
-          aria-pressed={expanded && selectingEnd}
-          aria-label={`End date: ${value.endDate ? formatCalendarDate(value.endDate) : "Optional"}`}
-          onClick={() => {
-            setSelectingEnd(true);
-            showDays(value.endDate || value.startDate);
-          }}
-        >
-          <span>Ends</span>
-          <strong>
-            {value.endDate ? formatCalendarDate(value.endDate) : "Optional"}
-          </strong>
-        </button>
-      </div>
-      <div className="calendar-range-details">
-        <p className="field-hint" role="status" aria-label="Date range summary">
-          {describeCalendarRange(value)}
-        </p>
-        {value.endDate && (
-          <button
-            type="button"
-            onClick={() => {
-              onChange({ ...value, endDate: "" });
-              setSelectingEnd(true);
-              setHovered("");
-              endButton.current?.focus();
-            }}
-          >
-            Clear end date
-          </button>
-        )}
-      </div>
-      {expanded ? (
-        <>
-          <div className="calendar-navigation">
-            <button
-              type="button"
-              className="calendar-step"
-              aria-label={`Previous ${unit}`}
-              disabled={
-                view === "years"
-                  ? yearPage === 1
-                  : year === 1 && (view === "months" || month === 1)
-              }
-              onClick={() => move(-1)}
-            >
-              &lsaquo;
-            </button>
-            <div className="calendar-heading">
-              <button
-                type="button"
-                aria-label="Change month"
-                aria-expanded={view === "months"}
-                aria-controls={panelId}
-                onClick={() => setView(view === "months" ? "days" : "months")}
-              >
-                {months[month - 1]} <span aria-hidden="true">&#8964;</span>
-              </button>
-              <button
-                type="button"
-                aria-label="Change year"
-                aria-expanded={view === "years"}
-                aria-controls={panelId}
-                onClick={() => {
-                  setJumpYear(String(year));
-                  setYearPage(
-                    Math.max(1, Math.min(9988, Math.floor(year / 10) * 10)),
-                  );
-                  setView(view === "years" ? "days" : "years");
+    <details
+      className="range-picker field-wide"
+      onToggle={(event) => setOpen(event.currentTarget.open)}
+      open={open}
+    >
+      <summary>Dates: {describeCalendarRange(value)}</summary>
+      {open ? (
+        <div className="range-panel">
+          <div className="range-fields">
+            <label className="field">
+              <span>Start date</span>
+              <input
+                aria-describedby={hint === "" ? undefined : `${id}-hint`}
+                aria-invalid={startUnreadable}
+                disabled={disabled}
+                onBlur={() => {
+                  if (!startUnreadable) setStartText(exact(value.startDate));
                 }}
-              >
-                {year} <span aria-hidden="true">&#8964;</span>
-              </button>
-            </div>
-            <button
-              type="button"
-              className="calendar-step"
-              aria-label={`Next ${unit}`}
-              disabled={
-                view === "years"
-                  ? yearPage === 9988
-                  : year === 9999 && (view === "months" || month === 12)
-              }
-              onClick={() => move(1)}
-            >
-              &rsaquo;
-            </button>
-          </div>
-          <div id={panelId} className="calendar-panel">
-            {view === "years" && (
-              <div className="calendar-year-jump">
-                <label className="field">
-                  Go to year
-                  <input
-                    type="text"
-                    inputMode="numeric"
-                    maxLength={4}
-                    value={jumpYear}
-                    aria-describedby={yearHintId}
-                    aria-invalid={jumpYear !== "" && !validJumpYear}
-                    onChange={(event) => setJumpYear(event.target.value)}
-                    onKeyDown={(event) => {
-                      if (
-                        event.key !== "Enter" ||
-                        event.nativeEvent.isComposing
-                      )
-                        return;
-                      event.preventDefault();
-                      event.stopPropagation();
-                      if (validJumpYear)
-                        showDays(calendarMonthDate(Number(jumpYear), month));
-                    }}
-                  />
-                </label>
-                <button
-                  type="button"
-                  disabled={!validJumpYear}
-                  onClick={() =>
-                    showDays(calendarMonthDate(Number(jumpYear), month))
-                  }
-                >
-                  Go
-                </button>
-                <p className="field-hint" id={yearHintId}>
-                  Enter a year from 1 to 9999.
-                </p>
-              </div>
-            )}
-            <p
-              className="visually-hidden"
-              role="status"
-              aria-label="Calendar navigation"
-            >
-              {view === "years"
-                ? `Years ${yearPage} to ${yearPage + 11}`
-                : view === "months"
-                  ? `Months in ${year}`
-                  : `${months[month - 1]} ${year}`}
-            </p>
-            {view === "days" ? (
-              <table
-                ref={grid}
-                className="calendar-grid"
-                // biome-ignore lint/a11y/noNoninteractiveElementToInteractiveRole: The calendar uses a roving tabindex and arrow-key grid navigation.
-                role="grid"
-                aria-label={`${months[month - 1]} ${year}`}
-                aria-describedby={`${hintId} ${keyboardHintId}`}
-                aria-multiselectable="true"
-                onPointerLeave={() => setHovered("")}
-              >
-                <thead>
-                  <tr>
-                    {weekdays.map((weekday) => {
-                      return (
-                        <th
-                          key={weekday}
-                          scope="col"
-                          abbr={weekday}
-                          aria-label={weekday}
-                        >
-                          {weekday.slice(0, 1)}
-                        </th>
-                      );
-                    })}
-                  </tr>
-                </thead>
-                <tbody>
-                  {Array.from({ length: 6 }, (_, row) => (
-                    <tr key={shiftCalendarDate(first, row * 7 - firstWeekday)}>
-                      {Array.from({ length: 7 }, (_, column) => {
-                        const date = shiftCalendarDate(
-                          first,
-                          row * 7 + column - firstWeekday,
-                        );
-                        const valid =
-                          calendarDateSchema.safeParse(date).success;
-                        const selected =
-                          date === value.startDate || date === value.endDate;
-                        return (
-                          // biome-ignore lint/a11y/useAriaPropsSupportedByRole: The parent grid gives table cells gridcell semantics; the date button owns keyboard focus.
-                          <td
-                            key={date}
-                            aria-selected={Boolean(
-                              valid &&
-                              value.startDate &&
-                              date >= value.startDate &&
-                              date <= (value.endDate || value.startDate),
-                            )}
-                            data-in-range={Boolean(
-                              value.startDate &&
-                              rangeEnd &&
-                              date >= value.startDate &&
-                              date <= rangeEnd,
-                            )}
-                            data-range-start={date === value.startDate}
-                            data-range-end={date === rangeEnd}
-                          >
-                            <button
-                              type="button"
-                              disabled={!valid}
-                              data-date={date}
-                              data-outside-month={
-                                date.slice(0, 7) !== first.slice(0, 7)
-                              }
-                              tabIndex={date === focused ? 0 : -1}
-                              aria-label={
-                                valid
-                                  ? formatCalendarDate(date)
-                                  : "Unavailable date"
-                              }
-                              aria-pressed={selected}
-                              aria-current={date === today ? "date" : undefined}
-                              onPointerEnter={() => setHovered(date)}
-                              onClick={() => choose(date)}
-                              onKeyDown={(event) => {
-                                if (
-                                  event.altKey ||
-                                  event.ctrlKey ||
-                                  event.metaKey
-                                )
-                                  return;
-                                if (
-                                  event.key === "PageUp" ||
-                                  event.key === "PageDown"
-                                ) {
-                                  event.preventDefault();
-                                  navigate(
-                                    shiftCalendarMonth(
-                                      date,
-                                      (event.key === "PageUp" ? -1 : 1) *
-                                        (event.shiftKey ? 12 : 1),
-                                    ),
-                                    true,
-                                  );
-                                  return;
-                                }
-                                const offsets: Record<string, number> = {
-                                  ArrowLeft: -1,
-                                  ArrowRight: 1,
-                                  ArrowUp: -7,
-                                  ArrowDown: 7,
-                                  Home: -column,
-                                  End: 6 - column,
-                                };
-                                const offset = offsets[event.key];
-                                if (offset !== undefined) {
-                                  event.preventDefault();
-                                  navigate(
-                                    shiftCalendarDate(date, offset),
-                                    true,
-                                  );
-                                }
-                              }}
-                            >
-                              {valid ? Number(date.slice(8)) : ""}
-                            </button>
-                          </td>
-                        );
-                      })}
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            ) : (
-              <fieldset
-                className="calendar-choices"
-                aria-label={
-                  view === "months"
-                    ? `Months in ${year}`
-                    : `Years ${yearPage} to ${yearPage + 11}`
+                onChange={(input) => readStart(input.target.value)}
+                placeholder="Sep 21, tomorrow, 2030-09-21"
+                type="text"
+                value={startText}
+              />
+            </label>
+            <label className="field">
+              <span>End date</span>
+              <input
+                aria-describedby={hint === "" ? undefined : `${id}-hint`}
+                aria-invalid={
+                  endUnreadable || endWithoutStart || endBeforeStart
                 }
+                disabled={disabled}
+                onBlur={() => {
+                  if (!endUnreadable && !endWithoutStart && !endBeforeStart)
+                    setEndText(exact(value.endDate));
+                }}
+                onChange={(input) => readEnd(input.target.value)}
+                placeholder="Optional"
+                type="text"
+                value={endText}
+              />
+            </label>
+          </div>
+          {hint === "" ? null : (
+            <p className="field-hint" id={`${id}-hint`}>
+              {hint}
+            </p>
+          )}
+          <ul aria-label="Schedule shortcuts" className="day-shortcuts">
+            {dueShortcuts(now).map((shortcut) => {
+              const endDate = shortcut.through ?? "";
+              return (
+                <li key={shortcut.id}>
+                  <button
+                    aria-pressed={
+                      shortcut.day === value.startDate &&
+                      endDate === value.endDate
+                    }
+                    className="button button-quiet button-small"
+                    disabled={disabled}
+                    onClick={() => {
+                      setSelectingEnd(endDate === "");
+                      choose(
+                        { startDate: shortcut.day, endDate },
+                        shortcut.day,
+                      );
+                    }}
+                    type="button"
+                  >
+                    <span>{shortcut.label}</span>
+                    <span className="day-shortcut-day">
+                      {shortcut.id === "next-week"
+                        ? `${dueWeekday(shortcut.day)} ${monthDayShort.format(parseDayKey(shortcut.day))}`
+                        : shortcut.through === undefined
+                          ? dueWeekday(shortcut.day)
+                          : `${dueWeekday(shortcut.day)} to ${dueWeekday(shortcut.through)}`}
+                    </span>
+                  </button>
+                </li>
+              );
+            })}
+            <li>
+              <button
+                aria-pressed={value.startDate === ""}
+                className="button button-quiet button-small"
+                disabled={disabled}
+                onClick={() => {
+                  setSelectingEnd(false);
+                  choose({ startDate: "", endDate: "" }, today);
+                }}
+                type="button"
               >
-                {Array.from({ length: 12 }, (_, index) => {
-                  const choice =
-                    view === "months" ? index + 1 : yearPage + index;
-                  return (
-                    <button
-                      type="button"
-                      key={choice}
-                      aria-pressed={
-                        choice === (view === "months" ? month : year)
-                      }
-                      onClick={() =>
-                        showDays(
-                          view === "months"
-                            ? calendarMonthDate(year, choice)
-                            : calendarMonthDate(choice, month),
-                        )
-                      }
-                    >
-                      {view === "months" ? months[choice - 1] : choice}
-                    </button>
-                  );
-                })}
-              </fieldset>
-            )}
-          </div>
-          <div className="calendar-footer">
-            <button type="button" onClick={() => showDays(today)}>
-              Today
-            </button>
-            <button
-              type="button"
-              disabled={!value.startDate}
-              onClick={() => {
-                onChange({ startDate: "", endDate: "" });
-                setSelectingEnd(false);
-                setHovered("");
-              }}
-            >
-              Clear dates
-            </button>
-            <button
-              type="button"
-              disabled={!value.startDate}
-              onClick={() => {
-                setExpanded(false);
-                startButton.current?.focus();
-              }}
-            >
-              Done
-            </button>
-          </div>
-          <p
-            className="field-hint calendar-hint"
-            id={hintId}
-            aria-live="polite"
-          >
-            {!value.startDate
-              ? "Choose a start date."
-              : selectingEnd
-                ? "Select another day for an end date."
-                : "Select a day to start a new range."}
-          </p>
-          <p className="visually-hidden" id={keyboardHintId}>
-            Arrow keys move by day or week. Home and End move to the first or
-            last day of the week. Page Up and Page Down change months; hold
-            Shift to change years. Enter or Space selects a date.
-          </p>
-        </>
+                <span>No dates</span>
+              </button>
+            </li>
+          </ul>
+          <MonthList
+            anchor={value.startDate || today}
+            disabled={disabled}
+            marks={(day) => ({
+              pressed: day === value.startDate || day === value.endDate,
+              between:
+                value.endDate !== "" &&
+                day > value.startDate &&
+                day < value.endDate,
+            })}
+            now={now}
+            onChooseDay={chooseDay}
+            onChooseSpan={chooseSpan}
+            reveal={reveal}
+          />
+        </div>
       ) : null}
-    </div>
+    </details>
   );
+}
+
+function exact(day: string): string {
+  return day === "" ? "" : formatCalendarDate(day);
 }
