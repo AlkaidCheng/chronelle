@@ -114,8 +114,15 @@ function TaskEditor({
   const create = useCreateTask(eventId, attempt);
   const update = useUpdateTask();
   const refresh = useRefreshEvent(eventId, { throwOnError: true });
-  const { displayName, dueDate, dueTime, assignee, location, labels } =
-    draft.fields;
+  const {
+    displayName,
+    dueDate,
+    dueTime,
+    duration,
+    assignee,
+    location,
+    labels,
+  } = draft.fields;
   const mutation = task === undefined ? create : update;
   const [fieldError, setFieldError] = useState("");
   const openHistory = useOpenHistory();
@@ -178,6 +185,7 @@ function TaskEditor({
             displayName: "",
             dueDate: "",
             dueTime: "",
+            duration: "",
             assignee: "",
             location: "",
             labels: "",
@@ -284,6 +292,7 @@ function TaskEditor({
             disabled={mutation.isPending}
             dueDate={dueDate}
             dueTime={dueTime}
+            duration={duration}
             onChange={(due) => draft.change(due)}
           />
           <CountedField

@@ -16,7 +16,7 @@ import {
   dueWeekday,
   parseDueText,
 } from "../lib/due-choices";
-import { formatTime } from "../lib/format";
+import { formatDuration, formatTime } from "../lib/format";
 
 const weekdayHeadings = Array.from({ length: 7 }, (_, day) =>
   new Intl.DateTimeFormat(undefined, { weekday: "narrow" }).format(
@@ -39,17 +39,25 @@ const fullDay = new Intl.DateTimeFormat(undefined, {
   year: "numeric",
 });
 
+/** The durations offered, in minutes. */
+export const durationChoices = [
+  15, 30, 45, 60, 90, 120, 180, 240, 480,
+] as const;
+
 /** What a due choice reads as on the closed control. */
 export function describeDue(
   dueDate: string,
   dueTime: string,
+  duration = "",
   now: Date = new Date(),
 ): string {
   if (dueDate === "") return "No date";
   const day = describeDueDay(dueDate, now);
-  return dueTime === ""
-    ? day
-    : `${day}, ${formatTime(`${dueDate}T${dueTime}`)}`;
+  if (dueTime === "") return day;
+  const time = `${day}, ${formatTime(`${dueDate}T${dueTime}`)}`;
+  return duration === ""
+    ? time
+    : `${time}, ${formatDuration(Number(duration))}`;
 }
 
 /** The six weeks of a month, Sunday first, as day keys. */
@@ -72,6 +80,7 @@ export function DuePicker({
   disabled = false,
   dueDate,
   dueTime,
+  duration,
   now = new Date(),
   onChange,
 }: {
@@ -80,9 +89,15 @@ export function DuePicker({
   readonly dueDate: string;
   /** A local time of day, or the empty string for none. */
   readonly dueTime: string;
+  /** Minutes as text, or the empty string for no duration. */
+  readonly duration: string;
   /** Today, for tests. */
   readonly now?: Date;
-  readonly onChange: (due: { dueDate: string; dueTime: string }) => void;
+  readonly onChange: (due: {
+    dueDate: string;
+    dueTime: string;
+    duration: string;
+  }) => void;
 }) {
   const id = useId();
   const today = dayKeyOf(now);
@@ -121,20 +136,24 @@ export function DuePicker({
     setTextDay(day);
     setText(day === "" ? "" : describeDueDay(day, now));
     if (day !== "") setCursor(day);
-    onChange({ dueDate: day, dueTime: day === "" ? "" : dueTime });
+    onChange({
+      dueDate: day,
+      dueTime: day === "" ? "" : dueTime,
+      duration: day === "" ? "" : duration,
+    });
   };
   const readText = (value: string) => {
     setText(value);
     if (value.trim() === "") {
       setTextDay("");
-      onChange({ dueDate: "", dueTime: "" });
+      onChange({ dueDate: "", dueTime: "", duration: "" });
       return;
     }
     const day = parseDueText(value, now);
     if (day === null) return;
     setTextDay(day);
     setCursor(day);
-    onChange({ dueDate: day, dueTime });
+    onChange({ dueDate: day, dueTime, duration });
   };
   const focusDay = (day: DayKey) => {
     focusRequested.current = day;
@@ -170,7 +189,7 @@ export function DuePicker({
       className="due-picker field-wide"
       onToggle={(event) => setOpen(event.currentTarget.open)}
     >
-      <summary>Due: {describeDue(dueDate, dueTime, now)}</summary>
+      <summary>Due: {describeDue(dueDate, dueTime, duration, now)}</summary>
       {open ? (
         <div className="due-panel">
           <label className="field">
@@ -316,7 +335,7 @@ export function DuePicker({
               onClick={() => {
                 if (showTime) {
                   setTimeOn(false);
-                  onChange({ dueDate, dueTime: "" });
+                  onChange({ dueDate, dueTime: "", duration: "" });
                 } else setTimeOn(true);
               }}
               type="button"
@@ -324,17 +343,45 @@ export function DuePicker({
               {showTime ? "Remove time" : "Add time"}
             </button>
             {showTime ? (
-              <label className="field">
-                <span>Due time</span>
-                <input
-                  disabled={disabled}
-                  onChange={(input) =>
-                    onChange({ dueDate, dueTime: input.target.value })
-                  }
-                  type="time"
-                  value={dueTime}
-                />
-              </label>
+              <div className="due-time-fields">
+                <label className="field">
+                  <span>Due time</span>
+                  <input
+                    disabled={disabled}
+                    onChange={(input) =>
+                      onChange({
+                        dueDate,
+                        dueTime: input.target.value,
+                        duration: input.target.value === "" ? "" : duration,
+                      })
+                    }
+                    type="time"
+                    value={dueTime}
+                  />
+                </label>
+                <label className="field">
+                  <span id={`${id}-duration`}>Duration</span>
+                  <select
+                    aria-labelledby={`${id}-duration`}
+                    disabled={disabled || dueTime === ""}
+                    onChange={(input) =>
+                      onChange({
+                        dueDate,
+                        dueTime,
+                        duration: input.target.value,
+                      })
+                    }
+                    value={duration}
+                  >
+                    <option value="">No duration</option>
+                    {durationChoices.map((minutes) => (
+                      <option key={minutes} value={String(minutes)}>
+                        {formatDuration(minutes)}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              </div>
             ) : null}
             <p className="field-hint">
               {dueDate === ""

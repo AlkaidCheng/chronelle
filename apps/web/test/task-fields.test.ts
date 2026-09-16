@@ -5,6 +5,7 @@ const empty = {
   displayName: "Pack",
   dueDate: "",
   dueTime: "",
+  duration: "",
   assignee: "",
   location: "",
   labels: "",
@@ -18,6 +19,7 @@ describe("Task field conversion", () => {
       displayName: "",
       dueDate: "",
       dueTime: "",
+      duration: "",
       assignee: "",
       location: "",
       labels: "",
@@ -26,6 +28,7 @@ describe("Task field conversion", () => {
       displayName: "Pack",
       dueOn: null,
       dueAt: null,
+      durationMinutes: null,
       assigneeId: null,
       location: null,
       labelIds: [],
@@ -39,6 +42,7 @@ describe("Task field conversion", () => {
         displayName: "Pack",
         dueOn: "2030-07-03",
         dueAt: null,
+        durationMinutes: null,
         assigneeId: "u1",
         location: "The garden",
         labelIds: ["b", "a", "b"],
@@ -47,6 +51,7 @@ describe("Task field conversion", () => {
       displayName: "Pack",
       dueDate: "2030-07-03",
       dueTime: "",
+      duration: "",
       assignee: "u1",
       location: "The garden",
       labels: "a,b",
@@ -65,6 +70,7 @@ describe("Task field conversion", () => {
       displayName: "Pack",
       dueOn: "2030-07-03",
       dueAt: null,
+      durationMinutes: null,
       assigneeId: null,
       location: null,
       labelIds: [],
@@ -75,6 +81,7 @@ describe("Task field conversion", () => {
       displayName: "Pack",
       dueOn: null,
       dueAt: "2030-07-03T19:30:00.000Z",
+      durationMinutes: null,
       assigneeId: null,
       location: null,
       labelIds: [],
@@ -87,6 +94,7 @@ describe("Task field conversion", () => {
       displayName: "Pack",
       dueOn: null,
       dueAt: "2030-07-03T18:30:45.678Z",
+      durationMinutes: null,
       assigneeId: null,
       location: null,
       labelIds: [],
@@ -96,6 +104,7 @@ describe("Task field conversion", () => {
       displayName: "Pack",
       dueDate: "2030-07-03",
       dueTime: "11:30",
+      duration: "",
       assignee: "",
       location: "",
       labels: "",
@@ -106,6 +115,7 @@ describe("Task field conversion", () => {
       displayName: "Pack bags",
       dueOn: null,
       dueAt: source.dueAt,
+      durationMinutes: null,
       assigneeId: null,
       location: null,
       labelIds: [],
@@ -125,6 +135,7 @@ describe("Task field conversion", () => {
       displayName: "Pack",
       dueOn: null,
       dueAt: null,
+      durationMinutes: null,
       assigneeId: null,
       location: null,
       labelIds: [],
@@ -148,5 +159,43 @@ describe("Task field conversion", () => {
     expect(() =>
       taskFieldsPayload({ ...empty, location: "x".repeat(241) }),
     ).toThrow("Keep the location to 240 characters.");
+  });
+
+  it("keeps a duration only with a due time and within a day", () => {
+    vi.stubEnv("TZ", "America/Los_Angeles");
+    expect(
+      readTaskFields({
+        displayName: "Pack",
+        dueOn: null,
+        dueAt: "2030-07-03T19:30:00.000Z",
+        durationMinutes: 90,
+        assigneeId: null,
+        location: null,
+        labelIds: [],
+      }).duration,
+    ).toBe("90");
+    expect(
+      taskFieldsPayload({
+        ...empty,
+        dueDate: "2030-07-03",
+        dueTime: "12:30",
+        duration: "90",
+      }).durationMinutes,
+    ).toBe(90);
+    expect(() =>
+      taskFieldsPayload({ ...empty, dueDate: "2030-07-03", duration: "30" }),
+    ).toThrow("Choose a due time for the duration.");
+    expect(() => taskFieldsPayload({ ...empty, duration: "30" })).toThrow(
+      "Choose a due time for the duration.",
+    );
+    for (const duration of ["0", "1441", "1.5", "soon"])
+      expect(() =>
+        taskFieldsPayload({
+          ...empty,
+          dueDate: "2030-07-03",
+          dueTime: "12:30",
+          duration,
+        }),
+      ).toThrow("Choose a duration of up to a day.");
   });
 });

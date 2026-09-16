@@ -20,16 +20,19 @@ const day = (key: string) =>
 function Harness({
   dueDate = "",
   dueTime = "",
+  duration = "",
 }: {
   readonly dueDate?: string;
   readonly dueTime?: string;
+  readonly duration?: string;
 }) {
-  const [due, setDue] = useState({ dueDate, dueTime });
+  const [due, setDue] = useState({ dueDate, dueTime, duration });
   return (
     <>
       <DuePicker
         dueDate={due.dueDate}
         dueTime={due.dueTime}
+        duration={due.duration}
         now={now}
         onChange={setDue}
       />
@@ -44,18 +47,22 @@ const fields = () =>
   ) as {
     dueDate: string;
     dueTime: string;
+    duration: string;
   };
 
 afterEach(cleanup);
 
 describe("DuePicker", () => {
   it("reads the choice on the closed control", () => {
-    expect(describeDue("", "", now)).toBe("No date");
-    expect(describeDue("2030-03-05", "", now)).toBe("Today");
-    expect(describeDue("2030-03-06", "21:00", now)).toMatch(
+    expect(describeDue("", "", "", now)).toBe("No date");
+    expect(describeDue("2030-03-05", "", "", now)).toBe("Today");
+    expect(describeDue("2030-03-06", "21:00", "", now)).toMatch(
       /^Tomorrow, 9:00 PM$/,
     );
-    expect(describeDue("2030-03-21", "", now)).toBe(
+    expect(describeDue("2030-03-06", "21:00", "90", now)).toMatch(
+      /^Tomorrow, 9:00 PM, 1 h 30 min$/,
+    );
+    expect(describeDue("2030-03-21", "", "", now)).toBe(
       new Intl.DateTimeFormat(undefined, {
         month: "short",
         day: "numeric",
@@ -81,7 +88,11 @@ describe("DuePicker", () => {
       expect.stringMatching(/^Next week/),
     ]);
     await user.click(shortcuts.getByRole("button", { name: /^This weekend/ }));
-    expect(fields()).toEqual({ dueDate: "2030-03-09", dueTime: "" });
+    expect(fields()).toEqual({
+      dueDate: "2030-03-09",
+      dueTime: "",
+      duration: "",
+    });
     expect(screen.getByText(/^Due: /)).toHaveTextContent(/^Due: Mar 9$/);
     // Today is offered again, No date appears, the grid marks the day.
     expect(shortcuts.getByRole("button", { name: /^Today/ })).toBeVisible();
@@ -118,7 +129,7 @@ describe("DuePicker", () => {
     );
     expect(fields().dueDate).toBe("2030-04-02");
     await user.click(shortcuts.getByRole("button", { name: "No date" }));
-    expect(fields()).toEqual({ dueDate: "", dueTime: "" });
+    expect(fields()).toEqual({ dueDate: "", dueTime: "", duration: "" });
     expect(screen.getByLabelText("Due date")).toHaveValue("");
   });
 
@@ -152,17 +163,34 @@ describe("DuePicker", () => {
       screen.getByText("Without a time, the task is due that whole day."),
     ).toBeVisible();
     await user.click(screen.getByRole("button", { name: "Add time" }));
+    // A duration waits for a time.
+    expect(screen.getByLabelText("Duration")).toBeDisabled();
     await user.type(screen.getByLabelText("Due time"), "21:00");
-    expect(fields()).toEqual({ dueDate: "2030-03-06", dueTime: "21:00" });
+    expect(fields()).toEqual({
+      dueDate: "2030-03-06",
+      dueTime: "21:00",
+      duration: "",
+    });
     expect(screen.getByText(/^Due: /)).toHaveTextContent(
       /^Due: Tomorrow, 9:00 PM$/,
     );
+    await user.selectOptions(screen.getByLabelText("Duration"), "90");
+    expect(fields().duration).toBe("90");
+    expect(screen.getByText(/^Due: /)).toHaveTextContent(
+      /^Due: Tomorrow, 9:00 PM, 1 h 30 min$/,
+    );
     await user.click(screen.getByRole("button", { name: "Remove time" }));
-    expect(fields()).toEqual({ dueDate: "2030-03-06", dueTime: "" });
+    expect(fields()).toEqual({
+      dueDate: "2030-03-06",
+      dueTime: "",
+      duration: "",
+    });
     expect(screen.queryByLabelText("Due time")).toBeNull();
+    expect(screen.queryByLabelText("Duration")).toBeNull();
     await user.click(screen.getByRole("button", { name: "Add time" }));
     await user.type(screen.getByLabelText("Due time"), "08:30");
+    await user.selectOptions(screen.getByLabelText("Duration"), "30");
     await user.click(screen.getByRole("button", { name: "No date" }));
-    expect(fields()).toEqual({ dueDate: "", dueTime: "" });
+    expect(fields()).toEqual({ dueDate: "", dueTime: "", duration: "" });
   });
 });

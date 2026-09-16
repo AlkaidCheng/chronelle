@@ -46,6 +46,7 @@ test("creates and edits one canonical Task through focused surfaces", async ({
     permissionScopeId: event.id,
     displayName: "Pack garden supplies and chairs",
     dueAt: task.dueAt,
+    durationMinutes: 30,
     status: "todo",
   });
   const tasks = await request.get(`/api/events/${event.id}/todos`, { headers });

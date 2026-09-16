@@ -479,8 +479,9 @@ allows (Today, Tomorrow, Later this week, This weekend, Next week, No date),
 and one month at a time with Sunday-first headings, today outlined, past days
 and weekends muted, the chosen day marked, and the schedule picker's keyboard
 moves (arrows by day and week, Page Up and Down by month, Home and End to the
-week's edges, Enter to choose). Add time reveals the Due time field; Remove
-time clears it; No date clears both. A date alone makes the task due that
+week's edges, Enter to choose). Add time reveals the Due time field and a
+Duration select (No duration, 15 min to 8 h), which waits for a time; Remove
+time clears both; No date clears everything. A date alone makes the task due that
 whole day (shown as the date, ahead of timed tasks that day, and in the
 Timeline as a dated entry); a date with a time makes it due at that local
 instant. Name-only edits preserve the exact stored due instant, and
