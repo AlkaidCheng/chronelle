@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
+  quickReminderInstant,
   readReminderFields,
   reminderFieldsPayload,
 } from "../lib/reminder-fields";
@@ -55,4 +56,28 @@ describe("Reminder field conversion", () => {
       ).toThrow();
     },
   );
+});
+
+describe("quickReminderInstant", () => {
+  it("is 9:00 on the given day", () => {
+    const at = new Date(quickReminderInstant("2030-07-03", new Date()));
+    expect([
+      at.getFullYear(),
+      at.getMonth(),
+      at.getDate(),
+      at.getHours(),
+      at.getMinutes(),
+    ]).toEqual([2030, 6, 3, 9, 0]);
+  });
+
+  it("is the next 9:00 without a day: today's while ahead, else tomorrow's", () => {
+    const early = new Date(2030, 6, 3, 8, 59);
+    const late = new Date(2030, 6, 3, 9, 0);
+    expect(quickReminderInstant(null, early)).toBe(
+      new Date(2030, 6, 3, 9).toISOString(),
+    );
+    expect(quickReminderInstant(null, late)).toBe(
+      new Date(2030, 6, 4, 9).toISOString(),
+    );
+  });
 });

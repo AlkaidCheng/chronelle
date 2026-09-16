@@ -66,6 +66,7 @@ import { ExpenseForm } from "./expense-form";
 import { ExpenseInspector } from "./expense-inspector";
 import { ReminderForm } from "./reminder-form";
 import { ReminderInspector } from "./reminder-inspector";
+import { QuickAddReminder } from "./quick-add-reminder";
 import { type SubtaskParent, TaskForm } from "./task-form";
 import { TaskInspector } from "./task-inspector";
 import { TaskListView } from "../tasks/task-list-view";
@@ -1058,6 +1059,15 @@ export function RemindersPanel({
                 {group.items.map((reminder) =>
                   reminderRow(reminder, group.items, group.key),
                 )}
+                {canEdit ? (
+                  <div className="quick-add-item">
+                    <QuickAddReminder
+                      day={group.key}
+                      dayLabel={group.label[0]}
+                      eventId={eventId}
+                    />
+                  </div>
+                ) : null}
               </div>
             </section>
           ))}
@@ -1083,6 +1093,11 @@ export function RemindersPanel({
       ) : (
         <div className="resource-list" {...groupProps("all")}>
           {reminders.map((reminder) => reminderRow(reminder, reminders, "all"))}
+          {canEdit ? (
+            <div className="quick-add-item">
+              <QuickAddReminder day={null} eventId={eventId} />
+            </div>
+          ) : null}
         </div>
       )}
       {!canEdit || editingId === null ? null : (

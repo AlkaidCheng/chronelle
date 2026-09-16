@@ -40,6 +40,7 @@ import { groupTasksByDay } from "../../lib/task-groups";
 import { nestTasks } from "../../lib/task-tree";
 import { useDuplicateTask, useUpdateTask } from "../../lib/queries";
 import { type RowDrop, useRowDrag } from "../../lib/use-row-drag";
+import { QuickAddTask } from "./quick-add-task";
 
 const taskColumn = createColumnHelper<TaskResponse>();
 
@@ -637,6 +638,17 @@ export function TaskListView({
                 row(task, group.tone === "overdue", group.tasks, group.key),
               )}
             </ul>
+            {canEdit && group.tone !== "overdue" ? (
+              <div className="quick-add-item">
+                <QuickAddTask
+                  dayLabel={
+                    group.key === "undated" ? "no due date" : group.label[0]
+                  }
+                  dueOn={group.key === "undated" ? null : group.key}
+                  eventId={eventId}
+                />
+              </div>
+            ) : null}
           </section>
         ))}
       </div>
@@ -678,6 +690,11 @@ export function TaskListView({
           ))}
         </tbody>
       </table>
+      {canEdit ? (
+        <div className="quick-add-item quick-add-table">
+          <QuickAddTask dueOn={null} eventId={eventId} />
+        </div>
+      ) : null}
     </div>
   );
 }
