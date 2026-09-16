@@ -9,6 +9,7 @@ import {
   useRef,
   useState,
 } from "react";
+import { CountedField } from "../../components/counted-field";
 import { EditorForm } from "../../components/editor-form";
 import {
   DiscardActions,
@@ -193,20 +194,17 @@ function EventInspectorForm({
         onSubmit={handleSubmit}
       >
         <div className="event-create-body event-inspector-fields">
-          <label className="field field-wide" htmlFor={nameId}>
-            <span>Name</span>
-            <input
-              ref={nameInput}
-              id={nameId}
-              maxLength={240}
-              disabled={update.isPending}
-              onChange={(input) =>
-                draft.change({ displayName: input.target.value })
-              }
-              required
-              value={displayName}
-            />
-          </label>
+          <CountedField
+            className="field-wide"
+            disabled={update.isPending}
+            id={nameId}
+            inputRef={nameInput}
+            label="Name"
+            limit={240}
+            onChange={(displayName) => draft.change({ displayName })}
+            required
+            value={displayName}
+          />
           <EventScheduleFields
             value={draft.fields}
             onChange={(fields) => {

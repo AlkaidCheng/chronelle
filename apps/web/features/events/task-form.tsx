@@ -2,6 +2,7 @@
 
 import type { TaskResponse } from "@chronelle/schemas";
 import { type FormEvent, useMemo, useState } from "react";
+import { CountedField } from "../../components/counted-field";
 import { EditorForm } from "../../components/editor-form";
 import {
   DiscardActions,
@@ -116,7 +117,6 @@ function TaskEditor({
     draft.fields;
   const mutation = task === undefined ? create : update;
   const [fieldError, setFieldError] = useState("");
-  const locationFull = location.length >= locationLimit;
   const openHistory = useOpenHistory();
   const close = () => {
     recovery.discard();
@@ -268,20 +268,17 @@ function TaskEditor({
               A subtask of {parent.displayName}.
             </p>
           ) : null}
-          <label className="field field-wide">
-            <span>Task</span>
-            <input
-              ref={nameInput}
-              maxLength={240}
-              disabled={mutation.isPending}
-              onChange={(input) =>
-                draft.change({ displayName: input.target.value })
-              }
-              placeholder="Confirm the guest list"
-              required
-              value={displayName}
-            />
-          </label>
+          <CountedField
+            className="field-wide"
+            disabled={mutation.isPending}
+            inputRef={nameInput}
+            label="Task"
+            limit={240}
+            onChange={(displayName) => draft.change({ displayName })}
+            placeholder="Confirm the guest list"
+            required
+            value={displayName}
+          />
           <label className="field">
             <span>Due date</span>
             <input
@@ -312,31 +309,15 @@ function TaskEditor({
               .timeZone.replaceAll("_", " ")}
             .
           </p>
-          <label className="field field-wide">
-            <span id={`${headingId}-location-label`}>Location</span>
-            <input
-              aria-describedby={`${headingId}-location-count`}
-              aria-labelledby={`${headingId}-location-label`}
-              disabled={mutation.isPending}
-              maxLength={locationLimit}
-              onChange={(input) =>
-                // The browser stops typing at the limit; a paste or a
-                // composition that lands past it is cut to the limit.
-                draft.change({
-                  location: input.target.value.slice(0, locationLimit),
-                })
-              }
-              placeholder="Where it happens"
-              value={location}
-            />
-            <span
-              aria-live="polite"
-              className={`field-count${locationFull ? " field-count-full" : ""}`}
-              id={`${headingId}-location-count`}
-            >
-              {location.length} / {locationLimit}
-            </span>
-          </label>
+          <CountedField
+            className="field-wide"
+            disabled={mutation.isPending}
+            label="Location"
+            limit={locationLimit}
+            onChange={(location) => draft.change({ location })}
+            placeholder="Where it happens"
+            value={location}
+          />
           {fieldError && <p role="alert">{fieldError}</p>}
           <AssigneePicker
             disabled={mutation.isPending}

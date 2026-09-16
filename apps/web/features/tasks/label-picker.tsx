@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 
+import { CountedField } from "../../components/counted-field";
 import { joinLabelIds, splitLabelIds } from "../../lib/task-fields";
 import { useCreateLabel, useLabelsQuery } from "../../lib/queries";
 
@@ -98,21 +99,20 @@ function LabelChoices({
         </ul>
       )}
       <div className="label-add">
-        <label className="field">
-          <span className="visually-hidden">New label</span>
-          <input
-            maxLength={40}
-            onChange={(input) => setDraft(input.target.value)}
-            onKeyDown={(event) => {
-              if (event.key === "Enter") {
-                event.preventDefault();
-                add();
-              }
-            }}
-            placeholder="New label"
-            value={draft}
-          />
-        </label>
+        <CountedField
+          hideLabel
+          label="New label"
+          limit={40}
+          onChange={setDraft}
+          onKeyDown={(event) => {
+            if (event.key === "Enter") {
+              event.preventDefault();
+              add();
+            }
+          }}
+          placeholder="New label"
+          value={draft}
+        />
         <button
           className="button button-secondary button-small"
           disabled={draft.trim() === "" || create.isPending}

@@ -4,6 +4,7 @@ import type { LabelResponse } from "@chronelle/schemas";
 import { useId, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
+import { CountedField } from "../../components/counted-field";
 import { ErrorNotice } from "../../components/feedback";
 import {
   useCreateLabel,
@@ -95,23 +96,21 @@ function LabelManagerDialog({ onClose }: { readonly onClose: () => void }) {
           </ul>
         )}
         <div className="label-add">
-          <label className="field">
-            <span>New label</span>
-            <input
-              maxLength={40}
-              onChange={(input) => setDraft(input.target.value)}
-              onKeyDown={(event) => {
-                if (event.key !== "Enter") return;
-                event.preventDefault();
-                if (draft.trim() !== "" && !create.isPending)
-                  create.mutate(
-                    { name: draft.trim() },
-                    { onSuccess: () => setDraft("") },
-                  );
-              }}
-              value={draft}
-            />
-          </label>
+          <CountedField
+            label="New label"
+            limit={40}
+            onChange={setDraft}
+            onKeyDown={(event) => {
+              if (event.key !== "Enter") return;
+              event.preventDefault();
+              if (draft.trim() !== "" && !create.isPending)
+                create.mutate(
+                  { name: draft.trim() },
+                  { onSuccess: () => setDraft("") },
+                );
+            }}
+            value={draft}
+          />
           <button
             className="button button-secondary button-small"
             disabled={draft.trim() === "" || create.isPending}
@@ -147,16 +146,14 @@ function LabelRow({ label }: { readonly label: LabelResponse }) {
   const failure = update.error ?? remove.error;
   return (
     <li>
-      <label className="field">
-        <span className="visually-hidden">Name of {label.name}</span>
-        <input
-          aria-label={`Name of ${label.name}`}
-          disabled={busy}
-          maxLength={40}
-          onChange={(input) => setName(input.target.value)}
-          value={name}
-        />
-      </label>
+      <CountedField
+        disabled={busy}
+        hideLabel
+        label={`Name of ${label.name}`}
+        limit={40}
+        onChange={setName}
+        value={name}
+      />
       <button
         className="button button-secondary button-small"
         disabled={busy || name.trim() === "" || name.trim() === label.name}

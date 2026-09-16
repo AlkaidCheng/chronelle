@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 
+import { CountedField } from "../../components/counted-field";
 import {
   useCreatePerson,
   usePersonsQuery,
@@ -134,21 +135,20 @@ function AssigneeChoices({
         </ul>
       )}
       <div className="label-add">
-        <label className="field">
-          <span className="visually-hidden">New person</span>
-          <input
-            maxLength={120}
-            onChange={(input) => setDraft(input.target.value)}
-            onKeyDown={(event) => {
-              if (event.key === "Enter") {
-                event.preventDefault();
-                add();
-              }
-            }}
-            placeholder="New person"
-            value={draft}
-          />
-        </label>
+        <CountedField
+          hideLabel
+          label="New person"
+          limit={240}
+          onChange={setDraft}
+          onKeyDown={(event) => {
+            if (event.key === "Enter") {
+              event.preventDefault();
+              add();
+            }
+          }}
+          placeholder="New person"
+          value={draft}
+        />
         <button
           className="button button-secondary button-small"
           disabled={draft.trim() === "" || create.isPending}

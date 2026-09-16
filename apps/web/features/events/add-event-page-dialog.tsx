@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { eventPagesSchema, type EventLayoutResponse } from "@chronelle/schemas";
+import { CountedField } from "../../components/counted-field";
 import { ErrorNotice } from "../../components/feedback";
 import { useUpdateEventLayout } from "../../lib/event-layout-queries";
 import { useSessionDialog } from "../../lib/use-session-dialog";
@@ -92,19 +93,17 @@ export function AddEventPageDialog({
           <p className="field-hint" id="page-name-hint">
             Pages organize this event. Start blank or choose a few useful views.
           </p>
-          <label className="field">
-            Page name
-            <input
-              ref={nameInput}
-              required
-              maxLength={80}
-              placeholder="Preparation, travel, or anything you need"
-              aria-describedby="page-name-hint"
-              value={name ?? selection.page.name}
-              disabled={save.isPending}
-              onChange={(event) => setName(event.target.value)}
-            />
-          </label>
+          <CountedField
+            aria-describedby="page-name-hint"
+            disabled={save.isPending}
+            inputRef={nameInput}
+            label="Page name"
+            limit={80}
+            onChange={setName}
+            placeholder="Preparation, travel, or anything you need"
+            required
+            value={name ?? selection.page.name}
+          />
           <fieldset className="page-preset-picker" disabled={save.isPending}>
             <legend>Start with</legend>
             {eventPagePresets.map((preset) => (

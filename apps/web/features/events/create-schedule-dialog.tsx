@@ -9,6 +9,7 @@ import {
   useState,
 } from "react";
 import type { EventResponse } from "@chronelle/schemas";
+import { CountedField } from "../../components/counted-field";
 import { EditorForm, EditorSubmitButton } from "../../components/editor-form";
 import {
   DiscardActions,
@@ -179,20 +180,17 @@ function CreateScheduleForm({
         onSubmit={handleSubmit}
       >
         <div className="event-create-body">
-          <label className="field event-name-field">
-            Schedule item
-            <input
-              ref={nameInput}
-              maxLength={240}
-              disabled={mutation.isPending}
-              onChange={(input) =>
-                draft.change({ displayName: input.target.value })
-              }
-              placeholder="Guest arrival"
-              required
-              value={draft.fields.displayName}
-            />
-          </label>
+          <CountedField
+            className="event-name-field"
+            disabled={mutation.isPending}
+            inputRef={nameInput}
+            label="Schedule item"
+            limit={240}
+            onChange={(displayName) => draft.change({ displayName })}
+            placeholder="Guest arrival"
+            required
+            value={draft.fields.displayName}
+          />
           <EventScheduleFields
             value={draft.fields}
             onChange={(fields) => {
