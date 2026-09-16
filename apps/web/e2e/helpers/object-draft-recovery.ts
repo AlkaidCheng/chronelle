@@ -2,6 +2,7 @@ import { expect, type Page, type TestInfo } from "@playwright/test";
 import { expectDue, setDue } from "./due-picker";
 import { expectToken } from "./appearance";
 import { expectHorizontalReflow } from "./page-navigation";
+import { chooseRowAction, rowMenuButton } from "./row-menu";
 
 export const planningEditors = {
   task: {
@@ -144,11 +145,19 @@ export async function exerciseObjectRecovery(
   const row = page.getByRole(rowRole).filter({ hasText: "Pack the lanterns" });
   await expect(row).toHaveCount(1);
   await expectHorizontalReflow(page);
-  const edit = row.getByRole("button", { name: "Edit", exact: true });
-  await edit.click();
+  // Task and reminder rows keep Edit in their menu; an expense row shows it.
+  const menuButton =
+    kind === "expense"
+      ? row.getByRole("button", { name: "Edit", exact: true })
+      : rowMenuButton(row);
+  const edit = async () => {
+    if (kind === "expense") await menuButton.click();
+    else await chooseRowAction(page, row, "Edit");
+  };
+  await edit();
   await name.fill("Pack the lanterns and candles");
   await revisitObjectView(page);
-  await edit.click();
+  await edit();
   await expect(recovery).toBeVisible();
   await expect(name).toHaveCount(0);
   await resume.click();
@@ -157,23 +166,25 @@ export async function exerciseObjectRecovery(
   await name.press("ControlOrMeta+Enter");
   await expect(page.getByRole("dialog")).toHaveCount(0);
   await expect(row).toHaveCount(1);
-  await expect(edit).toBeFocused();
+  await expect(menuButton).toBeFocused();
   if (kind === "reminder") {
     // The row shows the rename only once the list has refetched; dismissing
     // before that would send the version the rename already replaced.
     await expect(row.getByRole("heading")).toHaveText(
       "Pack the lanterns and candles",
     );
-    await row.getByRole("button", { name: "Dismiss", exact: true }).click();
+    await chooseRowAction(page, row, "Dismiss");
     await expect(row.getByText("Dismissed", { exact: true })).toBeVisible();
-    await edit.click();
+    await edit();
     await name.fill("Pack the lanterns and candles tonight");
     await name.press("ControlOrMeta+Enter");
     await expect(page.getByRole("dialog")).toHaveCount(0);
     await expect(row.getByText("Dismissed", { exact: true })).toBeVisible();
+    await menuButton.click();
     await expect(
-      row.getByRole("button", { name: "Dismiss", exact: true }),
+      page.getByRole("menu").getByRole("menuitem", { name: "Dismiss" }),
     ).toHaveCount(0);
+    await page.keyboard.press("Escape");
   }
   await add.click();
   await name.fill("Discard this plan");

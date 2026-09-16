@@ -1,5 +1,6 @@
 import { expect, type Page } from "@playwright/test";
 import { setDue } from "./due-picker";
+import { chooseRowAction } from "./row-menu";
 import { today } from "./today";
 
 /**
@@ -36,7 +37,7 @@ export async function exerciseTasksPage(page: Page, member: string) {
 
   // A label added from the editor is selected at once, shows on the row,
   // and filters the list.
-  await row.getByRole("button", { name: "Edit", exact: true }).click();
+  await chooseRowAction(page, row, "Edit");
   const edit = page.getByRole("dialog", { name: "Edit task", exact: true });
   await edit.getByText("Labels", { exact: true }).click();
   await edit.getByPlaceholder("New label").fill("Paperwork");
@@ -54,7 +55,7 @@ export async function exerciseTasksPage(page: Page, member: string) {
 
   // Assign to me creates the signed-in user's person and selects it; the
   // row names the assignee and the Me filter finds the task.
-  await row.getByRole("button", { name: "Edit", exact: true }).click();
+  await chooseRowAction(page, row, "Edit");
   await edit.getByText("Assignee: Unassigned", { exact: true }).click();
   await edit.getByRole("button", { name: "Assign to me", exact: true }).click();
   await expect(
@@ -70,12 +71,7 @@ export async function exerciseTasksPage(page: Page, member: string) {
   await page.getByLabel("Filter by assignee").selectOption("");
 
   // A subtask nests under its parent and counts toward its progress.
-  await row
-    .getByRole("button", {
-      name: "Add subtask to Renew the passport",
-      exact: true,
-    })
-    .click();
+  await chooseRowAction(page, row, "Add subtask");
   const subtaskEditor = page.getByRole("dialog", {
     name: "Add subtask",
     exact: true,
@@ -89,9 +85,11 @@ export async function exerciseTasksPage(page: Page, member: string) {
   await expect(subtaskEditor).toHaveCount(0);
   const subtaskRow = page.getByRole("row", { name: /Find the old passport/ });
   await expect(subtaskRow).toBeVisible();
+  await subtaskRow.getByRole("button", { name: /^Actions for/ }).click();
   await expect(
-    subtaskRow.getByRole("button", { name: /^Add subtask/ }),
+    page.getByRole("menu").getByRole("menuitem", { name: "Add subtask" }),
   ).toHaveCount(0);
+  await page.keyboard.press("Escape");
   await expect(row.getByText("0 of 1 subtasks done")).toBeAttached();
 
   const view = page.getByRole("group", { name: "View", exact: true });
