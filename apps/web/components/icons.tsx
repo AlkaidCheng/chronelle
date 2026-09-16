@@ -100,6 +100,36 @@ export function CheckIcon({ className }: IconProps) {
   );
 }
 
+export function InfoIcon({ className }: IconProps) {
+  return (
+    <svg
+      aria-hidden="true"
+      className={className}
+      fill="none"
+      viewBox="0 0 24 24"
+    >
+      <circle cx="12" cy="12" r="8.5" />
+      <path d="M12 11v5.5" />
+      <circle cx="12" cy="7.8" fill="currentColor" r="0.6" stroke="none" />
+    </svg>
+  );
+}
+
+export function AlertIcon({ className }: IconProps) {
+  return (
+    <svg
+      aria-hidden="true"
+      className={className}
+      fill="none"
+      viewBox="0 0 24 24"
+    >
+      <circle cx="12" cy="12" r="8.5" />
+      <path d="M12 7.5V13" />
+      <circle cx="12" cy="16.4" fill="currentColor" r="0.6" stroke="none" />
+    </svg>
+  );
+}
+
 export function ClockIcon({ className }: IconProps) {
   return (
     <svg

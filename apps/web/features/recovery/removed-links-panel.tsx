@@ -9,6 +9,7 @@ import {
   EmptyState,
   ErrorNotice,
   LoadingState,
+  Notice,
 } from "../../components/feedback";
 import {
   useRecoverRelation,
@@ -132,9 +133,9 @@ export function RemovedLinksPanel({ objectId }: { readonly objectId: string }) {
       {selected === null ? null : (
         <RecoveryDialog title="Recover context link" onClose={close}>
           {recover.isSuccess ? (
-            <p role="status" className="notice">
+            <Notice tone="success">
               Link recovered. Neither canonical object was changed.
-            </p>
+            </Notice>
           ) : (
             <>
               <p>

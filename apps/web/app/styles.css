@@ -1377,18 +1377,39 @@ a.search-result:hover {
   max-width: 400px;
 }
 
+/*
+ * A notice carries one tone: neutral (information), success (something
+ * completed), warning (a newer version, a blocked step), or danger (an
+ * error). The icon says which as much as the color does.
+ */
 .notice {
   align-items: center;
-  background: var(--danger-soft);
-  border: 1px solid var(--danger);
+  background: var(--surface-subtle);
+  border: 1px solid var(--line);
   border-radius: 10px;
-  color: var(--danger);
+  color: var(--ink);
   display: flex;
-  gap: 18px;
-  justify-content: space-between;
+  gap: 12px;
   margin: 14px 0;
   padding: 13px 15px;
   width: 100%;
+}
+
+.notice-mark {
+  display: inline-flex;
+  flex: none;
+}
+
+.notice-mark svg {
+  height: 18px;
+  width: 18px;
+}
+
+.notice-body {
+  flex: 1 1 0;
+  font-size: 0.78rem;
+  line-height: 1.4;
+  min-width: 0;
 }
 
 .notice strong {
@@ -1398,13 +1419,43 @@ a.search-result:hover {
 .notice p {
   font-size: 0.75rem;
   line-height: 1.4;
-  margin: 3px 0 0;
+  margin: 0;
 }
 
-.notice-conflict {
+.notice strong + p {
+  margin-top: 3px;
+}
+
+/* A message on its own reads at body size; under a title it is the detail. */
+.notice-body > p:only-child {
+  font-size: 0.85rem;
+}
+
+.notice > .button {
+  flex: none;
+}
+
+.notice-success {
+  background: var(--success-soft);
+  border-color: var(--success);
+  color: var(--success);
+}
+
+.notice-warning {
   background: var(--warning-soft);
   border-color: var(--warning);
   color: var(--warning);
+}
+
+.notice-danger {
+  background: var(--danger-soft);
+  border-color: var(--danger);
+  color: var(--danger);
+}
+
+/* An inline error under a field reads in the danger tone. */
+p[role="alert"] {
+  color: var(--danger);
 }
 
 .event-hero {
@@ -2910,9 +2961,13 @@ ul.resource-list {
     margin-left: 0;
   }
 
+  /* The icon stays beside the text; the action drops to its own full row. */
   .notice {
-    align-items: stretch;
-    flex-direction: column;
+    flex-wrap: wrap;
+  }
+
+  .notice > .button {
+    flex-basis: 100%;
   }
 
   .search-result {
