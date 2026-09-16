@@ -468,9 +468,18 @@ direct row actions. The inspector checks fresh canonical Task data and its own
 edit permission before exposing fields, even when a cached copy is present.
 Temporary refetch failures preserve mounted input; denied access hides it.
 History remains available inside the editor, and changed source versions require
-an explicit refresh/load-latest decision. The editor takes a due date and,
-once a date is set, an optional due time: a date alone makes the task due
-that whole day (shown as the date, ahead of timed tasks that day, and in the
+an explicit refresh/load-latest decision. The editor's Due control reads the
+choice when closed (Due: No date, Today, Tomorrow, or the date, with the time
+when one is set) and opens to a Due date field that takes a typed date (an
+ISO date, today, tomorrow, next week, Sep 21 or 21 Sep with an optional year,
+or 9/21, with a hint for text it cannot read), shortcuts for the days a weekday
+allows (Today, Tomorrow, Later this week, This weekend, Next week, No date),
+and one month at a time with Sunday-first headings, today outlined, past days
+and weekends muted, the chosen day marked, and the schedule picker's keyboard
+moves (arrows by day and week, Page Up and Down by month, Home and End to the
+week's edges, Enter to choose). Add time reveals the Due time field; Remove
+time clears it; No date clears both. A date alone makes the task due that
+whole day (shown as the date, ahead of timed tasks that day, and in the
 Timeline as a dated entry); a date with a time makes it due at that local
 instant. Name-only edits preserve the exact stored due instant, and
 unavailable local times are rejected. Task drafts survive client-side navigation within the authenticated
