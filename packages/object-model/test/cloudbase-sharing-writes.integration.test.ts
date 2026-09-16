@@ -4,7 +4,13 @@ import {
   PrincipalUnavailableError,
   ResourceGrantService,
 } from "@chronelle/authorization";
-import { auditEvents, createId, resourceGrants, users } from "@chronelle/db";
+import {
+  auditEvents,
+  createId,
+  resourceGrants,
+  users,
+  workspaceMembers,
+} from "@chronelle/db";
 import { and, eq, inArray } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
@@ -171,6 +177,136 @@ describe.sequential("CloudBase sharing writes", () => {
       ["resource.shared", { principalId: granteeId, role: "editor" }],
       ["resource.share_revoked", {}],
     ]);
+  });
+
+  it("shares with a person through the linked account or the person's email", async () => {
+    const db = harness.database.connection.db;
+    // A member with a linked person; the grantee reachable by a person's
+    // email (in another case); two accounts with one email; and people
+    // with no account: unlinked without email, and in the Trash.
+    const memberId = createId();
+    await db.insert(users).values({
+      id: memberId,
+      identityProvider: "test",
+      providerSubject: memberId,
+      displayName: "Member",
+      email: "member@example.test",
+    });
+    await db.insert(workspaceMembers).values({
+      workspaceId: harness.workspaceId,
+      userId: memberId,
+      role: "editor",
+    });
+    for (const id of [createId(), createId()])
+      await db.insert(users).values({
+        id,
+        identityProvider: "test",
+        providerSubject: id,
+        displayName: "Twin",
+        email: "twins@example.test",
+      });
+    const person = (input: Record<string, unknown>) =>
+      reference.objects.createPerson(context(), {
+        displayName: "Someone",
+        ...input,
+      });
+    const linked = await person({ userId: memberId });
+    const byEmail = await person({ email: granteeEmail.toUpperCase() });
+    const twins = await person({ email: "twins@example.test" });
+    const unreachable = await person({});
+    const trashed = await person({ email: granteeEmail });
+    await reference.objects.softDelete(context(), trashed.id, trashed.version);
+    const results = [];
+    for (const [, services] of backends()) {
+      const event = await reference.objects.createEvent(context(), {
+        displayName: "With people",
+      });
+      const viaLink = await services.shares.share(context(), {
+        resourceId: event.id,
+        personId: linked.id,
+        role: "editor",
+      });
+      const viaEmail = await services.shares.share(context(), {
+        resourceId: event.id,
+        personId: byEmail.id,
+        role: "viewer",
+      });
+      const refused: string[] = [];
+      for (const personId of [twins.id, unreachable.id, trashed.id, createId()])
+        refused.push(
+          (
+            await failure(() =>
+              services.shares.share(context(), {
+                resourceId: event.id,
+                personId,
+                role: "viewer",
+              }),
+            )
+          ).constructor.name,
+        );
+      refused.push(
+        (
+          await failure(() =>
+            services.shares.share(context(), {
+              resourceId: event.id,
+              personId: linked.id,
+              principalEmail: granteeEmail,
+              role: "viewer",
+            }),
+          )
+        ).message,
+      );
+      results.push({
+        viaLink: {
+          principalId: viaLink.principal.id === memberId,
+          email: viaLink.principal.email,
+          role: viaLink.role,
+        },
+        viaEmail: {
+          principalId: viaEmail.principal.id === granteeId,
+          email: viaEmail.principal.email,
+          role: viaEmail.role,
+        },
+        refused,
+        audits: await sharingAudits(event.id),
+      });
+    }
+    expect(results[1]).toEqual(results[0]);
+    expect(results[0]).toEqual({
+      viaLink: {
+        principalId: true,
+        email: "member@example.test",
+        role: "editor",
+      },
+      viaEmail: { principalId: true, email: granteeEmail, role: "viewer" },
+      refused: [
+        PrincipalUnavailableError.name,
+        PrincipalUnavailableError.name,
+        PrincipalUnavailableError.name,
+        PrincipalUnavailableError.name,
+        "Name exactly one of principalEmail and personId.",
+      ],
+      audits: [
+        {
+          action: "resource.shared",
+          metadata: {
+            principalId: memberId,
+            role: "editor",
+            personId: linked.id,
+          },
+          grantIdPresent: true,
+        },
+        {
+          action: "resource.shared",
+          metadata: {
+            principalId: granteeId,
+            role: "viewer",
+            personId: byEmail.id,
+          },
+          grantIdPresent: true,
+        },
+      ],
+    });
   });
 
   it("refuses the same shares and revocations with the same errors", async () => {

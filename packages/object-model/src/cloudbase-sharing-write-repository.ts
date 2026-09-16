@@ -46,8 +46,11 @@ export class CloudBaseSharingWriteRepository
     const row = await this.#call("chronelle_resource_share", {
       ...principalArguments(context),
       resource_id: input.resourceId,
-      principal_email: input.principalEmail,
       role: input.role,
+      ...(input.principalEmail === undefined
+        ? {}
+        : { principal_email: input.principalEmail }),
+      ...(input.personId === undefined ? {} : { person_id: input.personId }),
     });
     return decodeGrant(row);
   }
