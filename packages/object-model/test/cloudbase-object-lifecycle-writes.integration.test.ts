@@ -12,6 +12,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { CloudBaseObjectLifecycleWriteRepository } from "../src/cloudbase-object-lifecycle-write-repository.js";
 import { InvalidObjectStateError, ObjectConflictError } from "../src/errors.js";
 import { EventPlanningObjectService } from "../src/object-service.js";
+import { readObjectState } from "../src/object-state.js";
 import { ObjectRecoveryService } from "../src/recovery-service.js";
 import { baselineObjectRevisions } from "../src/revision-baseline.js";
 import type { EventPlanningResource } from "../src/types.js";
@@ -257,6 +258,106 @@ describe.sequential("CloudBase object lifecycle writes", () => {
       `${ObjectConflictError.name}: ${new ObjectConflictError().message}`,
       `${AuthorizationDeniedError.name}: The requested resource is unavailable.`,
       `${AuthorizationDeniedError.name}: The requested resource is unavailable.`,
+    ]);
+  });
+
+  it("takes live subtasks to Trash with their parent and brings them back with it", async () => {
+    const outcomes: Record<string, unknown>[] = [];
+    for (const [, services] of backends()) {
+      const db = harness.database.connection.db;
+      // Inside an Event the scope stays live, so the parent rule is what
+      // blocks a lone subtask recovery.
+      const event = await services.objects.createEvent(context(), {
+        displayName: "Trip",
+      });
+      const parent = await services.objects.createTask(context(), {
+        displayName: "Plan the trip",
+        permissionScopeId: event.id,
+      });
+      const subtask = (name: string) =>
+        services.objects.createTask(context(), {
+          displayName: name,
+          parentTaskId: parent.id,
+          permissionScopeId: event.id,
+        });
+      const first = await subtask("Book flights");
+      const second = await subtask("Pack");
+      const earlier = await subtask("Dropped before");
+      await baselineObjectRevisions(db);
+      // One subtask is trashed on its own first.
+      await services.objects.softDelete(context(), earlier.id, 1);
+
+      const deletion = await services.objects.softDelete(
+        context(),
+        parent.id,
+        1,
+      );
+      const trashed = await Promise.all(
+        [first.id, second.id, earlier.id].map((id) =>
+          readObjectState(db, harness.workspaceId, id),
+        ),
+      );
+      // Live subtasks went at the parent's instant with a version each;
+      // the one trashed earlier is untouched.
+      expect(trashed.map((task) => task.version)).toEqual([2, 2, 2]);
+      expect(
+        trashed.slice(0, 2).map((task) => task.deletedAt?.toISOString()),
+      ).toEqual([
+        deletion.deletedAt.toISOString(),
+        deletion.deletedAt.toISOString(),
+      ]);
+      // A subtask cannot be recovered under a parent in Trash.
+      const blocked = await failure(() =>
+        services.recovery.recover(context(), first.id, { expectedVersion: 2 }),
+      );
+      expect(blocked).toBeInstanceOf(InvalidObjectStateError);
+      expect(blocked.message).toBe("Restore the parent task first.");
+
+      const recovered = await services.recovery.recover(context(), parent.id, {
+        expectedVersion: 2,
+      });
+      expect(recovered.version).toBe(3);
+      const after = await Promise.all(
+        [first.id, second.id].map((id) =>
+          services.objects.getTask(context().principal, id),
+        ),
+      );
+      expect(after.map((task) => [task.deletedAt, task.version])).toEqual([
+        [null, 3],
+        [null, 3],
+      ]);
+      const stillTrashed = await readObjectState(
+        db,
+        harness.workspaceId,
+        earlier.id,
+      );
+      expect(stillTrashed.deletedAt).not.toBeNull();
+      expect(stillTrashed.version).toBe(2);
+      // The cascade's audit rows name the parent; identities differ per run.
+      const withoutIds = async (id: string) =>
+        (await ledger(harness, id)).map((entry) => ({
+          ...entry,
+          snapshot: {
+            ...entry.snapshot,
+            parentTaskId: entry.snapshot.parentTaskId === parent.id,
+          },
+          metadata: {
+            ...entry.metadata,
+            cascadeFrom: "cascadeFrom" in entry.metadata,
+          },
+        }));
+      outcomes.push({
+        parent: await withoutIds(parent.id),
+        first: await withoutIds(first.id),
+        earlier: await withoutIds(earlier.id),
+      });
+    }
+    expect(outcomes[1]).toEqual(outcomes[0]);
+    const firstLedger = outcomes[0]?.first as { action: string }[];
+    expect(firstLedger.map((entry) => entry.action)).toEqual([
+      "task.created",
+      "task.deleted",
+      "task.recovered",
     ]);
   });
 

@@ -2,7 +2,7 @@ import {
   withStableAuthorization,
   type UserPrincipal,
 } from "@chronelle/authorization";
-import { objects, type Database } from "@chronelle/db";
+import { objects, tasks, type Database } from "@chronelle/db";
 import type { RecoveryRequest, TrashQueryInput } from "@chronelle/schemas";
 import { and, eq, isNotNull, sql } from "drizzle-orm";
 import { InvalidObjectStateError, ObjectConflictError } from "./errors.js";
@@ -85,6 +85,7 @@ export class ObjectRecoveryService {
           .update(objects)
           .set({
             deletedAt: null,
+            deletedWith: null,
             updatedAt: new Date(),
             version: sql`${objects.version} + 1`,
           })
@@ -98,20 +99,75 @@ export class ObjectRecoveryService {
           )
           .returning({ id: objects.id });
         if (updated === undefined) throw new ObjectConflictError();
-        return recordObjectRevision(
+        const actor = {
+          actorType: "user" as const,
+          actorId: principal.userId,
+          requestId: context.requestId,
+        };
+        const recovered = await recordObjectRevision(
           transaction,
           await readObjectState(transaction, principal.workspaceId, objectId),
-          {
-            actorType: "user",
-            actorId: principal.userId,
-            requestId: context.requestId,
-          },
+          actor,
           "recovered",
           {
             previousVersion: current.version,
             deletedAt: current.deletedAt.toISOString(),
           },
         );
+        // The subtasks that went to Trash with the task come back with it;
+        // those trashed on their own stay.
+        if (current.objectType === "task") {
+          const cascaded = await transaction
+            .select({ id: objects.id, version: objects.version })
+            .from(tasks)
+            .innerJoin(
+              objects,
+              and(
+                eq(objects.workspaceId, tasks.workspaceId),
+                eq(objects.id, tasks.objectId),
+              ),
+            )
+            .where(
+              and(
+                eq(tasks.workspaceId, principal.workspaceId),
+                eq(tasks.parentTaskId, objectId),
+                eq(objects.deletedWith, objectId),
+              ),
+            )
+            .orderBy(objects.id);
+          for (const subtask of cascaded) {
+            await transaction
+              .update(objects)
+              .set({
+                deletedAt: null,
+                deletedWith: null,
+                updatedAt: new Date(),
+                version: sql`${objects.version} + 1`,
+              })
+              .where(
+                and(
+                  eq(objects.workspaceId, principal.workspaceId),
+                  eq(objects.id, subtask.id),
+                ),
+              );
+            await recordObjectRevision(
+              transaction,
+              await readObjectState(
+                transaction,
+                principal.workspaceId,
+                subtask.id,
+              ),
+              actor,
+              "recovered",
+              {
+                cascadeFrom: objectId,
+                previousVersion: subtask.version,
+                deletedAt: current.deletedAt.toISOString(),
+              },
+            );
+          }
+        }
+        return recovered;
       },
     );
   }

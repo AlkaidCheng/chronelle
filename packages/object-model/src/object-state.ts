@@ -89,7 +89,8 @@ export async function readObjectStates(
     .limit(limit);
 
   return rows.map((row): EventPlanningResource => {
-    const common = row.object;
+    // The cascade marker stays internal to the lifecycle functions.
+    const { deletedWith: _deletedWith, ...common } = row.object;
     switch (common.objectType) {
       case "event":
         if (row.event) {

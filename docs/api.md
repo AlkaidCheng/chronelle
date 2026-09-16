@@ -337,8 +337,14 @@ own, a Task that has subtasks cannot become one, a Task cannot be its own
 parent, and a subtask shares its parent's permission scope (`permissionScopeId`
 must equal the parent's; inside an Event both are the Event). Each rule
 returns HTTP 400 with its own message. `parentTaskId: null` on an update
-detaches a subtask. Trashing a parent leaves its subtasks live; they show on
-their own until the parent is restored. Deploy migration 0035 before this API.
+detaches a subtask. Trashing a parent takes its live subtasks to Trash with
+it (each with its own audit event and revision, marked as trashed with the
+parent); recovering the parent brings back exactly those, while a subtask
+trashed on its own stays in Trash. A subtask cannot be recovered while its
+parent is in Trash (`Restore the parent task first.`, HTTP 400; the recovery
+preview reports the same reason), and a standalone subtask's scope rule
+applies first since its parent is its scope. Deploy migrations 0035 and 0041
+before this API.
 
 ## People
 

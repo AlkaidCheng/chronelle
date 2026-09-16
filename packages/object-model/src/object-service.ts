@@ -214,6 +214,33 @@ async function setTaskLabels(
       .values(ids.map((labelId) => ({ workspaceId, taskId, labelId })));
 }
 
+/** The live subtasks of a task, in id order. */
+async function liveSubtaskIds(
+  transaction: DatabaseTransaction,
+  workspaceId: string,
+  parentTaskId: string,
+): Promise<string[]> {
+  const rows = await transaction
+    .select({ id: objects.id })
+    .from(tasks)
+    .innerJoin(
+      objects,
+      and(
+        eq(objects.workspaceId, tasks.workspaceId),
+        eq(objects.id, tasks.objectId),
+      ),
+    )
+    .where(
+      and(
+        eq(tasks.workspaceId, workspaceId),
+        eq(tasks.parentTaskId, parentTaskId),
+        isNull(objects.deletedAt),
+      ),
+    )
+    .orderBy(objects.id);
+  return rows.map(({ id }) => id);
+}
+
 /** The location, when set, is 1 to 240 trimmed characters. */
 function assertTaskLocation(location: string | null): void {
   if (
@@ -953,16 +980,53 @@ export class EventPlanningObjectService {
           context.principal.workspaceId,
           objectId,
         );
-        return recordObjectRevision(
+        const actor = {
+          actorId: context.principal.userId,
+          actorType: "user" as const,
+          requestId: context.requestId,
+        };
+        const deleted = await recordObjectRevision(
           transaction,
           resource,
-          {
-            actorId: context.principal.userId,
-            actorType: "user",
-            requestId: context.requestId,
-          },
+          actor,
           "deleted",
         );
+        // A task takes its live subtasks to Trash with it, at the same
+        // instant, each with its own audit event and revision.
+        if (resource.objectType === "task") {
+          for (const subtaskId of await liveSubtaskIds(
+            transaction,
+            context.principal.workspaceId,
+            objectId,
+          )) {
+            await transaction
+              .update(objects)
+              .set({
+                deletedAt,
+                deletedWith: objectId,
+                updatedAt: deletedAt,
+                version: sql`${objects.version} + 1`,
+              })
+              .where(
+                and(
+                  eq(objects.workspaceId, context.principal.workspaceId),
+                  eq(objects.id, subtaskId),
+                ),
+              );
+            await recordObjectRevision(
+              transaction,
+              await readObjectState(
+                transaction,
+                context.principal.workspaceId,
+                subtaskId,
+              ),
+              actor,
+              "deleted",
+              { cascadeFrom: objectId },
+            );
+          }
+        }
+        return deleted;
       },
     );
 

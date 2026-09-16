@@ -6,6 +6,7 @@ import {
 } from "@chronelle/authorization";
 import {
   objects,
+  tasks,
   type Database,
   type DatabaseTransaction,
   type ObjectType,
@@ -59,6 +60,7 @@ export interface RecoveryReadRepository {
 
 export const recoveryBlockedByScopeReason =
   "Restore the canonical permission scope first. Recovery does not change permissions.";
+export const recoveryBlockedByParentReason = "Restore the parent task first.";
 
 /** Query identity a Trash cursor is bound to; a cursor from another query is rejected. */
 export function trashListContext(
@@ -102,14 +104,32 @@ export async function recoveryBlockedReason(
   scopeId: string,
   objectId: string,
 ): Promise<string | null> {
-  if (scopeId === objectId) return null;
-  const [scope] = await transaction
+  if (scopeId !== objectId) {
+    const [scope] = await transaction
+      .select({ deletedAt: objects.deletedAt })
+      .from(objects)
+      .where(and(eq(objects.workspaceId, workspaceId), eq(objects.id, scopeId)))
+      .limit(1);
+    if (scope === undefined || scope.deletedAt !== null)
+      return recoveryBlockedByScopeReason;
+  }
+  // A subtask cannot come back under a parent that is still in Trash.
+  const [parent] = await transaction
     .select({ deletedAt: objects.deletedAt })
-    .from(objects)
-    .where(and(eq(objects.workspaceId, workspaceId), eq(objects.id, scopeId)))
+    .from(tasks)
+    .innerJoin(
+      objects,
+      and(
+        eq(objects.workspaceId, tasks.workspaceId),
+        eq(objects.id, tasks.parentTaskId),
+      ),
+    )
+    .where(
+      and(eq(tasks.workspaceId, workspaceId), eq(tasks.objectId, objectId)),
+    )
     .limit(1);
-  return scope === undefined || scope.deletedAt !== null
-    ? recoveryBlockedByScopeReason
+  return parent !== undefined && parent.deletedAt !== null
+    ? recoveryBlockedByParentReason
     : null;
 }
 
