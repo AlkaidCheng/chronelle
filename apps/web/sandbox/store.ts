@@ -1,40 +1,43 @@
 import {
-  eventCalendarDatesSchema,
-  eventLayoutResponseSchema,
-  eventLayoutUpdateSchema,
-  eventLayoutRestoreSchema,
-  eventLayoutHistoryQuerySchema,
   type EventLayoutResponse,
+  eventCalendarDatesSchema,
   eventContextCreateRequestSchema,
   eventCreateRequestSchema,
+  eventLayoutHistoryQuerySchema,
+  eventLayoutResponseSchema,
+  eventLayoutRestoreSchema,
+  eventLayoutUpdateSchema,
   eventListQuerySchema,
   eventPlanningResourceResponseSchema,
   eventUpdateRequestSchema,
+  expenseUpdateRequestSchema,
+  type FriendsResponse,
+  friendInvitationRequestSchema,
+  friendsResponseSchema,
+  type LabelResponse,
   labelCreateRequestSchema,
   labelDeleteQuerySchema,
   labelResponseSchema,
   labelUpdateRequestSchema,
   nextTaskDueAt,
   nextTaskDueDate,
-  rankAfter,
-  type LabelResponse,
+  objectSearchQuerySchema,
   personCreateRequestSchema,
   personListQuerySchema,
   relationListQuerySchema,
   personUpdateRequestSchema,
+  preferencesRequestSchema,
+  type EventPlanningResourceResponse as Resource,
+  rankAfter,
+  relationCreateRequestSchema,
+  relationResponseSchema,
+  reminderUpdateRequestSchema,
+  type TimelineResponse,
   taskCreateRequestSchema,
   taskDueDate,
   taskListQuerySchema,
   taskUpdateRequestSchema,
-  expenseUpdateRequestSchema,
-  reminderUpdateRequestSchema,
-  objectSearchQuerySchema,
-  preferencesRequestSchema,
-  relationCreateRequestSchema,
-  relationResponseSchema,
   userResponseSchema,
-  type EventPlanningResourceResponse as Resource,
-  type TimelineResponse,
 } from "@chronelle/schemas";
 import { eventPeriod } from "../lib/event-collection";
 
@@ -57,7 +60,48 @@ interface State {
     Preferences,
     "locale" | "timeZone" | "hourCycle" | "weekStart" | "rail"
   >;
+  /** The sample account's friends, requests, and sent invitations, as the Friends page keeps them. */
+  friends: FriendsResponse;
 }
+
+const friendUserId = "00000000-0000-4000-8000-000000000003";
+
+const defaultFriends: FriendsResponse = {
+  friends: [
+    {
+      id: "00000000-0000-4000-8000-0000000000f1",
+      userId: friendUserId,
+      displayName: "Mei Lin",
+      email: "mei.lin@example.test",
+      since: "2026-09-02T09:00:00.000Z",
+    },
+  ],
+  incoming: [
+    {
+      id: "00000000-0000-4000-8000-0000000000f2",
+      requester: {
+        userId: "00000000-0000-4000-8000-000000000004",
+        displayName: "Tomas Berg",
+        email: "tomas.b@example.test",
+      },
+      message:
+        "Tomas from the climbing gym. Daniel said you plan the trips here.",
+      createdAt: "2026-09-17T07:00:00.000Z",
+    },
+  ],
+  sent: [
+    {
+      id: "00000000-0000-4000-8000-0000000000f3",
+      kind: "invitation",
+      email: "priya@example.test",
+      message: null,
+      personId: null,
+      workspaceId: null,
+      createdAt: "2026-09-15T10:00:00.000Z",
+      expiresAt: "2026-09-29T10:00:00.000Z",
+    },
+  ],
+};
 
 const defaultPreferences: State["preferences"] = {
   locale: null,
@@ -287,6 +331,7 @@ function seed(): State {
     ],
     relations: children.map((child) => relation(event.id, child.id)),
     preferences: defaultPreferences,
+    friends: defaultFriends,
   };
 }
 
@@ -371,12 +416,16 @@ function parseState(raw: string): State {
       rail: true,
     })
     .parse("preferences" in value ? value.preferences : {});
+  const friends = friendsResponseSchema.parse(
+    "friends" in value ? value.friends : defaultFriends,
+  );
   return {
     objects,
     relations,
     layouts: layouts.sort((a, b) => b.version - a.version),
     labels,
     preferences,
+    friends,
   };
 }
 
@@ -448,6 +497,124 @@ export class SandboxStore {
     }
     this.#state = next;
     this.#raw = raw;
+  }
+
+  // Friends: an invitation to an address waits under Sent (as a request
+  // when the address is one of the sample accounts); a request is accepted
+  // into the friends or declined; sent items are withdrawn or sent again;
+  // a friend is removed.
+  #friendWrite(
+    method: string,
+    id: string | undefined,
+    operation: string | undefined,
+    action: string | undefined,
+    body: unknown,
+  ): unknown {
+    const friends = this.#state.friends;
+    const timestamp = new Date().toISOString();
+    const notFound = (what: string) =>
+      new SandboxError(
+        404,
+        "friend_unavailable",
+        `The ${what} does not exist.`,
+      );
+    if (method === "POST" && id === "invitations" && !operation) {
+      const input = friendInvitationRequestSchema.parse(body);
+      if (input.email === "planner@example.test")
+        throw new SandboxError(
+          400,
+          "invalid_request",
+          "You cannot invite yourself.",
+        );
+      if (
+        friends.sent.some((item) => item.email === input.email) ||
+        friends.friends.some((friend) => friend.email === input.email)
+      )
+        throw new SandboxError(
+          409,
+          "friend_conflict",
+          friends.friends.some((friend) => friend.email === input.email)
+            ? "You are already friends."
+            : "An invitation is already waiting.",
+        );
+      const item = {
+        id: crypto.randomUUID(),
+        kind: "invitation" as const,
+        email: input.email,
+        message: input.message ?? null,
+        personId: input.personId ?? null,
+        workspaceId: input.personId === undefined ? null : sandboxWorkspaceId,
+        createdAt: timestamp,
+        expiresAt: new Date(Date.now() + 14 * 86_400_000).toISOString(),
+      };
+      this.#commit({
+        ...this.#state,
+        friends: { ...friends, sent: [item, ...friends.sent] },
+      });
+      return item;
+    }
+    if (
+      method === "POST" &&
+      id === "invitations" &&
+      operation &&
+      action === "resend"
+    ) {
+      if (!friends.sent.some((item) => item.id === operation))
+        throw notFound("invitation");
+      return { accepted: true };
+    }
+    if (method === "DELETE" && id === "invitations" && operation) {
+      if (!friends.sent.some((item) => item.id === operation))
+        throw notFound("invitation");
+      this.#commit({
+        ...this.#state,
+        friends: {
+          ...friends,
+          sent: friends.sent.filter((item) => item.id !== operation),
+        },
+      });
+      return { id: operation, status: "withdrawn" };
+    }
+    if (method === "POST" && id === "requests" && operation) {
+      const request = friends.incoming.find((item) => item.id === operation);
+      if (request === undefined) throw notFound("request");
+      const incoming = friends.incoming.filter((item) => item.id !== operation);
+      if (action === "decline") {
+        this.#commit({ ...this.#state, friends: { ...friends, incoming } });
+        return { id: operation, status: "declined" };
+      }
+      const friend = {
+        id: request.id,
+        userId: request.requester.userId,
+        displayName: request.requester.displayName,
+        email: request.requester.email,
+        since: timestamp,
+      };
+      this.#commit({
+        ...this.#state,
+        friends: {
+          ...friends,
+          incoming,
+          friends: [...friends.friends, friend].sort((a, b) =>
+            a.displayName.localeCompare(b.displayName),
+          ),
+        },
+      });
+      return friend;
+    }
+    if (method === "DELETE" && id && !operation) {
+      if (!friends.friends.some((friend) => friend.id === id))
+        throw notFound("friend");
+      this.#commit({
+        ...this.#state,
+        friends: {
+          ...friends,
+          friends: friends.friends.filter((friend) => friend.id !== id),
+        },
+      });
+      return { id, status: "removed" };
+    }
+    throw new SandboxError(404, "sandbox_route", "Unknown sandbox route.");
   }
 
   // Labels: unique names per workspace, versioned renames and deletes, and
@@ -597,11 +764,16 @@ export class SandboxStore {
       ? input
       : { ...input, labelIds };
     if (person.userId !== null) {
-      if (person.userId !== userId)
+      if (
+        person.userId !== userId &&
+        !this.#state.friends.friends.some(
+          (friend) => friend.userId === person.userId,
+        )
+      )
         throw new SandboxError(
           400,
           "invalid_request",
-          "userId must name a member of this workspace.",
+          "userId must name a member of this workspace or a friend of one.",
         );
       if (
         this.#state.objects.some(
@@ -811,6 +983,7 @@ export class SandboxStore {
             a.id.localeCompare(b.id),
         ),
       };
+    if (collection === "friends" && !id) return this.#state.friends;
     if (collection === "auth" && id === "session")
       return {
         user: this.#user(),
@@ -1300,6 +1473,8 @@ export class SandboxStore {
     }
     if (collection === "auth" && id === "sessions" && method === "DELETE")
       return { revoked: 1 };
+    if (collection === "friends")
+      return this.#friendWrite(method, id, operation, action, body);
     if (
       method === "POST" &&
       collection === "objects" &&

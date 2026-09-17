@@ -75,6 +75,7 @@ export const queryKeys = {
   attachments: (parentObjectId: string) =>
     ["object", parentObjectId, "documents"] as const,
   session: ["session"] as const,
+  friends: ["friends"] as const,
 };
 
 export function useDevelopmentSignIn() {

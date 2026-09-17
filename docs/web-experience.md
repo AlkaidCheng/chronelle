@@ -186,6 +186,22 @@ counts its characters ("n / limit") as the user types and stops at the
 limit: a longer paste is cut to the limit, and the count turns red when the
 limit is reached.
 
+## Friends
+
+Friends (`/friends`, from the profile menu, whose entry carries the number
+of requests waiting and whose profile block shows a dot then) belong to the
+account, not to a workspace. The page lists Requests (Accept, Decline; the
+requester's name, email, and note), Friends (name, email, since when,
+Remove), and Sent (the address, when it was sent or until when its sign-up
+link is valid, Resend, Withdraw). Invite a friend opens a dialog: a person
+of the current workspace who has an email and no account link, or Someone
+new by address, and an optional note; the address is emailed a request when
+it has an account and a sign-up link otherwise. A sign-up link opens
+`/sign-up?invitation=...`; the account it creates finds the request on its
+Friends page. In the person editor, Link to a friend offers the account's
+friends beside This is me, so a card of any workspace can be the friend;
+accepting a request that came from a card links the card by itself.
+
 ## Workspace commands
 
 Search in the rail opens a focused palette. Type an action or destination

@@ -4,19 +4,14 @@ import type { PersonContactKind, PersonResponse } from "@chronelle/schemas";
 import { useTranslations } from "next-intl";
 import { type FormEvent, useMemo, useState } from "react";
 import { CountedField } from "../../components/counted-field";
-import { EditorForm } from "../../components/editor-form";
 import {
   DiscardActions,
   EditorDialogHeader,
 } from "../../components/editor-dialog-controls";
-import { EditorControls } from "../events/editor-controls";
-import {
-  EditorDraftRecovery,
-  EditorDraftStatus,
-} from "../events/editor-draft-recovery";
-import { useOpenHistory } from "../history/history-provider";
+import { EditorForm } from "../../components/editor-form";
 import { useKeepEditorDraft } from "../../lib/editor-draft-context";
 import type { PersonDraftSnapshot } from "../../lib/editor-draft-store";
+import { useFriendsQuery } from "../../lib/friend-queries";
 import {
   joinPersonContacts,
   joinPersonFields,
@@ -26,7 +21,6 @@ import {
   splitPersonContacts,
   splitPersonFields,
 } from "../../lib/person-fields";
-import { LabelPicker } from "../tasks/label-picker";
 import {
   type ContextCreateAttempt,
   useCreatePerson,
@@ -36,6 +30,13 @@ import {
 } from "../../lib/queries";
 import { useEditorDraft } from "../../lib/use-editor-draft";
 import { usePlanningEditorDialog } from "../../lib/use-planning-editor-dialog";
+import { EditorControls } from "../events/editor-controls";
+import {
+  EditorDraftRecovery,
+  EditorDraftStatus,
+} from "../events/editor-draft-recovery";
+import { useOpenHistory } from "../history/history-provider";
+import { LabelPicker } from "../tasks/label-picker";
 
 interface PersonFormProps {
   readonly onCancel?: (() => void) | undefined;
@@ -124,10 +125,21 @@ function PersonEditor({
   const [fieldError, setFieldError] = useState("");
   const openHistory = useOpenHistory();
   const me = session.data?.user.id;
-  // The link is offered when the person is unlinked or already this user's;
-  // a person linked to someone else's account keeps that link.
+  const friends = useFriendsQuery();
+  const friendChoices = (friends.data?.friends ?? []).filter(
+    (friend) =>
+      !people.data?.items.some(
+        (other) => other.userId === friend.userId && other.id !== person?.id,
+      ),
+  );
+  // The link is offered when the person is unlinked, already this user's,
+  // or one of the account's friends; a person linked to another account
+  // keeps that link.
   const linkedElsewhere =
-    person !== undefined && person.userId !== null && person.userId !== me;
+    person !== undefined &&
+    person.userId !== null &&
+    person.userId !== me &&
+    !friendChoices.some((friend) => friend.userId === person.userId);
   const meTakenBy = people.data?.items.find(
     (other) => other.userId === me && other.id !== person?.id,
   );
@@ -291,28 +303,55 @@ function PersonEditor({
               Linked to a workspace member's account.
             </p>
           ) : (
-            <label className="check-field field-wide">
-              <input
-                checked={userId !== "" && userId === me}
-                disabled={
-                  mutation.isPending ||
-                  me === undefined ||
-                  meTakenBy !== undefined
-                }
-                onChange={(input) =>
-                  draft.change({
-                    userId: input.target.checked && me !== undefined ? me : "",
-                  })
-                }
-                type="checkbox"
-              />
-              <span>
-                This is me
-                {meTakenBy !== undefined
-                  ? ` (already ${meTakenBy.displayName})`
-                  : ""}
-              </span>
-            </label>
+            <>
+              <label className="check-field field-wide">
+                <input
+                  checked={userId !== "" && userId === me}
+                  disabled={
+                    mutation.isPending ||
+                    me === undefined ||
+                    meTakenBy !== undefined
+                  }
+                  onChange={(input) =>
+                    draft.change({
+                      userId:
+                        input.target.checked && me !== undefined ? me : "",
+                    })
+                  }
+                  type="checkbox"
+                />
+                <span>
+                  This is me
+                  {meTakenBy !== undefined
+                    ? ` (already ${meTakenBy.displayName})`
+                    : ""}
+                </span>
+              </label>
+              {friendChoices.length > 0 ? (
+                <label className="field field-wide">
+                  <span>{t("linkToFriend")}</span>
+                  <select
+                    disabled={mutation.isPending || userId === me}
+                    onChange={(input) =>
+                      draft.change({ userId: input.target.value })
+                    }
+                    value={
+                      friendChoices.some((friend) => friend.userId === userId)
+                        ? userId
+                        : ""
+                    }
+                  >
+                    <option value="">{t("noFriendLink")}</option>
+                    {friendChoices.map((friend) => (
+                      <option key={friend.id} value={friend.userId}>
+                        {friend.displayName}
+                        {friend.email === null ? "" : ` (${friend.email})`}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              ) : null}
+            </>
           )}
           <fieldset className="person-fields field-wide">
             <legend>{t("contacts")}</legend>

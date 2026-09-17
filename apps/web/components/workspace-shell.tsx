@@ -7,6 +7,7 @@ import { useTranslations } from "next-intl";
 import { type ReactNode, useEffect, useState } from "react";
 
 import { useAuthSession } from "../lib/auth-session";
+import { useFriendsQuery } from "../lib/friend-queries";
 import { useAdoptAccountLocale, useSessionQuery } from "../lib/queries";
 import {
   DisplayPreferencesProvider,
@@ -24,6 +25,7 @@ export function WorkspaceShell({ children }: { readonly children: ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
   const session = useSessionQuery();
+  const friends = useFriendsQuery();
   const t = useTranslations("nav");
   const adoptLocale = useAdoptAccountLocale();
   const [customizing, setCustomizing] = useState(false);
@@ -126,6 +128,7 @@ export function WorkspaceShell({ children }: { readonly children: ReactNode }) {
             <div className="sidebar-footer">
               <AccountMenu
                 session={currentSession}
+                pendingRequests={friends.data?.incoming.length ?? 0}
                 onSwitchWorkspace={changeWorkspace}
                 onSignOut={leaveWorkspace}
               />
