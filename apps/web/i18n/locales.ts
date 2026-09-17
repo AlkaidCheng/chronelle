@@ -14,7 +14,7 @@ export interface LocaleDefinition {
   /**
    * The day the week starts on when the account has not chosen one: 1 for
    * Monday, 7 for Sunday, as CLDR gives the language's main region. Fixed
-   * here rather than asked of the browser so every engine agrees.
+   * here so every engine agrees.
    */
   readonly weekStart: 1 | 7;
 }

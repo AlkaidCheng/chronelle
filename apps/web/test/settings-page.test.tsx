@@ -87,7 +87,7 @@ const inShell = ({ children }: { readonly children: ReactNode }) => (
   </Providers>
 );
 
-/** The sample account's preferences as the store now holds them. */
+/** The sample account's preferences as the store holds them. */
 async function storedPreferences() {
   const response = await store.fetch(
     "https://sandbox.invalid/api/auth/session",

@@ -7,8 +7,8 @@ import { ThemeControls } from "./theme-controls";
 
 /**
  * The sidebar's Theme entry: a panel beside it with the mode, palette,
- * density, and motion choices; the language moved to Settings. Escape or
- * a press outside closes the panel and returns focus to the entry.
+ * density, and motion choices. Escape or a press outside closes the panel
+ * and returns focus to the entry. Choices apply to this browser only.
  */
 export function ThemePanel() {
   const [open, setOpen] = useState(false);

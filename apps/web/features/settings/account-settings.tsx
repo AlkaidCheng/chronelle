@@ -11,9 +11,9 @@ import { useAuthSession } from "../../lib/auth-session";
 import { useSessionQuery } from "../../lib/queries";
 
 /**
- * The account: the name and email as the account holds them (the API has
- * no way to change either yet), the password screen, and a way to end
- * every session of the account, this one included.
+ * The account: the name and email as the account holds them (the API
+ * offers no change to either), the password screen, and a way to end every
+ * session of the account, this one included.
  */
 export function AccountSettings() {
   const t = useTranslations("settings");

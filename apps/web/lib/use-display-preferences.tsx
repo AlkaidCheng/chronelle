@@ -12,7 +12,6 @@ import {
 
 import {
   defaultTimePreferences,
-  type HourCycle,
   instantOptions,
   setActiveTimePreferences,
   type TimePreferences,
@@ -96,5 +95,3 @@ export function useDisplayPreferences(): DisplayPreferences {
     };
   }, [provided, locale]);
 }
-
-export type { HourCycle, WeekStart };
