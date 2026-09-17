@@ -650,7 +650,7 @@ export function ExpensesPanel({
       {totals.length > 0 ? (
         <div className="total-row">
           <span>{panels("totalRecorded")}</span>
-          <dl aria-label="Totals by currency" className="money-totals">
+          <dl aria-label={panels("totalsByCurrency")} className="money-totals">
             {totals.map(({ amount, currency }) => (
               <div key={currency}>
                 <dt>{currency}</dt>

@@ -1,10 +1,11 @@
 "use client";
 
 import type { EventComponentView } from "@chronelle/schemas";
-import type { ReactNode } from "react";
 import { useTranslations } from "next-intl";
+import type { ReactNode } from "react";
 import { HeadMenu } from "../../components/head-menu";
 import { LayoutIcon } from "../../components/icons";
+import { tr } from "../../i18n/active-locale";
 import { componentViewLabel } from "../../lib/event-components";
 
 /**
@@ -125,15 +126,16 @@ export function StatusChip({ status }: { readonly status: string }) {
   );
 }
 
-const objectTypeLabels: Record<string, string> = {
-  event: "Scheduled event",
-  expense: "Expense",
-  person: "Person",
-  reminder: "Reminder",
-  task: "Task",
-};
+const objectTypeKeys = {
+  event: "scheduledEvent",
+  expense: "expense",
+  person: "person",
+  reminder: "reminder",
+  task: "task",
+} as const;
 
-/** The kind of a canonical object as people read it. */
+/** The kind of a canonical object as people read it, in the active language. */
 export function objectTypeLabel(objectType: string): string {
-  return objectTypeLabels[objectType] ?? objectType;
+  const key = objectTypeKeys[objectType as keyof typeof objectTypeKeys];
+  return key === undefined ? objectType : tr("objectTypes")(key);
 }

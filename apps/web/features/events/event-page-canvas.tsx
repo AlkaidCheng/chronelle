@@ -1,24 +1,28 @@
 "use client";
 
-import {
-  useEffect,
-  useLayoutEffect,
-  useRef,
-  useState,
-  type DragEvent,
-  type RefObject,
-} from "react";
 import type {
   EventComponentView,
   EventLayoutResponse,
   EventPage,
 } from "@chronelle/schemas";
 import { useTranslations } from "next-intl";
+import {
+  type DragEvent,
+  type RefObject,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from "react";
+import {
+  CommandScope,
+  type ContextCommand,
+} from "../../components/context-commands";
 import { ErrorNotice } from "../../components/feedback";
 import { PlusIcon } from "../../components/icons";
 import {
+  componentKindLabel,
   describeShownView,
-  eventComponents,
   viewOf,
 } from "../../lib/event-components";
 import {
@@ -34,10 +38,6 @@ import {
 } from "../../lib/use-component-shortcut";
 import { EventComponent } from "./event-component";
 import type { PageDrop } from "./use-event-pages";
-import {
-  CommandScope,
-  type ContextCommand,
-} from "../../components/context-commands";
 
 export function EventPageCanvas({
   layout,
@@ -63,6 +63,7 @@ export function EventPageCanvas({
   readonly pageDrop?: RefObject<PageDrop | null> | undefined;
 }) {
   const t = useTranslations("event");
+  const tc = useTranslations("canvas");
   const save = useUpdateEventLayout(layout.eventId);
   const shortcut = useComponentShortcut();
   const locked = useRef(false);
@@ -132,14 +133,14 @@ export function EventPageCanvas({
       isArranging
         ? {
             id: "arrange-layout",
-            label: "Done arranging",
-            description: "Hide layout controls; moves are already saved",
+            label: tc("doneArranging"),
+            description: tc("doneArrangingDescription"),
             target: doneButton,
           }
         : {
             id: "arrange-layout",
-            label: "Arrange layout",
-            description: "Show page and component move controls",
+            label: tc("arrange"),
+            description: tc("arrangeDescription"),
             run: () => {
               if (locked.current) return;
               endDrag();
@@ -156,8 +157,8 @@ export function EventPageCanvas({
   if (canAdd && selected && !save.isPending)
     commands.push({
       id: "add-component",
-      label: "Add component",
-      description: `Choose a component for ${selected.name}`,
+      label: tc("addComponent"),
+      description: tc("addComponentDescription", { name: selected.name }),
       target: addComponentButton,
     });
   const selectedIndex = layout.pages.findIndex(
@@ -230,7 +231,7 @@ export function EventPageCanvas({
     persist(
       source,
       moveEventComponent(source.pages, componentId, targetPageId, beforeId),
-      `Component moved in ${target?.name ?? "page"}.`,
+      tc("componentMoved", { name: target?.name ?? tc("page") }),
       targetPageId !== selected?.id ? targetPageId : undefined,
     );
   }
@@ -310,7 +311,7 @@ export function EventPageCanvas({
   return (
     <section
       className="event-pages"
-      aria-label="Event pages"
+      aria-label={tc("pages")}
       onKeyDown={(event) => {
         if (
           !canAdd ||
@@ -331,7 +332,7 @@ export function EventPageCanvas({
         commands={commands}
       />
       <p className="visually-hidden" role="status">
-        {save.isPending ? "Saving layout..." : announcement}
+        {save.isPending ? tc("saving") : announcement}
       </p>
       {save.isError ? (
         <ErrorNotice
@@ -360,7 +361,7 @@ export function EventPageCanvas({
                           selected.id,
                           layout.pages[selectedIndex - 1]?.id ?? null,
                         ),
-                        "Page moved earlier.",
+                        tc("pageEarlier"),
                       )
                     }
                   >
@@ -381,7 +382,7 @@ export function EventPageCanvas({
                           selected.id,
                           layout.pages[selectedIndex + 2]?.id ?? null,
                         ),
-                        "Page moved later.",
+                        tc("pageLater"),
                       )
                     }
                   >
@@ -425,12 +426,12 @@ export function EventPageCanvas({
           </div>
           {selected.components.length === 0 && !canEdit ? (
             <div className="event-pages-empty">
-              <p>No components yet.</p>
+              <p>{tc("noComponents")}</p>
             </div>
           ) : null}
           <div className="event-page-components">
             {selected.components.map((component, index) => {
-              const label = eventComponents[component.kind].label;
+              const label = componentKindLabel(component.kind);
               return (
                 <section
                   key={component.id}
@@ -441,13 +442,13 @@ export function EventPageCanvas({
                   {isArranging ? (
                     <fieldset
                       className="component-toolbar"
-                      aria-label={`${label} layout controls`}
+                      aria-label={tc("layoutControls", { name: label })}
                     >
                       <button
                         type="button"
                         className="button button-quiet component-drag-handle"
-                        aria-label={`Drag ${label}`}
-                        title="Drag to reorder; or use the move controls"
+                        aria-label={tc("drag", { name: label })}
+                        title={tc("dragHint")}
                         draggable={!save.isPending}
                         disabled={save.isPending}
                         onDragStart={(event) => {
@@ -470,7 +471,7 @@ export function EventPageCanvas({
                       <button
                         type="button"
                         className="button button-quiet"
-                        aria-label={`Move ${label} up`}
+                        aria-label={tc("moveUp", { name: label })}
                         disabled={save.isPending || index === 0}
                         onClick={() =>
                           move(
@@ -485,7 +486,7 @@ export function EventPageCanvas({
                       <button
                         type="button"
                         className="button button-quiet"
-                        aria-label={`Move ${label} down`}
+                        aria-label={tc("moveDown", { name: label })}
                         disabled={
                           save.isPending ||
                           index === selected.components.length - 1
@@ -502,7 +503,7 @@ export function EventPageCanvas({
                       </button>
                       {layout.pages.length > 1 ? (
                         <select
-                          aria-label={`Move ${label} to page`}
+                          aria-label={tc("moveToPageFor", { name: label })}
                           value=""
                           disabled={save.isPending}
                           onChange={(event) => {
@@ -510,7 +511,7 @@ export function EventPageCanvas({
                               move(component.id, event.target.value, null);
                           }}
                         >
-                          <option value="">Move to page...</option>
+                          <option value="">{tc("moveToPage")}</option>
                           {layout.pages
                             .filter((page) => page.id !== selected.id)
                             .map((page) => (

@@ -1,67 +1,49 @@
 import {
-  eventComponentKindSchema,
   type EventComponentKind,
   type EventComponentView,
+  eventComponentKindSchema,
 } from "@chronelle/schemas";
 import { tr } from "../i18n/active-locale";
 
 export const eventComponents = {
   todos: {
-    label: "To-dos",
-    description: "Add tasks and track what needs doing.",
     keywords: "tasks checklist todo",
     views: ["list", "by-day", "week", "month"],
   },
   calendar: {
-    label: "Calendar",
-    description: "Plan dates, times, and multi-day activities.",
     keywords: "schedule activities agenda itinerary running order",
     views: ["list", "agenda", "week", "month"],
   },
   timeline: {
-    label: "Timeline",
-    description: "See dated plans, tasks, spending, and reminders in order.",
     keywords: "chronological overview",
     views: ["list"],
   },
   // A kind saved layouts may still carry; it shows as the Calendar's agenda.
   itinerary: {
-    label: "Itinerary",
-    description: "Follow the running order of your scheduled activities.",
     keywords: "agenda schedule",
     views: ["list"],
     aliasOf: { kind: "calendar", view: "agenda" },
   },
   expenses: {
-    label: "Expenses",
-    description: "Record transactions and see totals by currency.",
     keywords: "costs spending payments",
     views: ["list", "by-day", "week", "month"],
   },
   reminders: {
-    label: "Reminders",
-    description: "Track upcoming nudges. Notifications are not sent yet.",
     keywords: "alerts notifications",
     views: ["list", "by-day", "week", "month"],
   },
   files: {
-    label: "Files",
-    description:
-      "Manage private attachments on this event, its tasks, and expenses.",
     keywords: "documents receipts",
     views: ["list"],
   },
   people: {
-    label: "People",
-    description: "See who is involved in this event, as namecards.",
     keywords: "persons contacts attendees guests",
     views: ["list"],
   },
 } satisfies Record<
   EventComponentKind,
   {
-    label: string;
-    description: string;
+    /** English search terms for the component picker, beside the localized name. */
     keywords: string;
     /** The views the kind offers, the first being its default. */
     views: readonly EventComponentView[];
@@ -72,17 +54,6 @@ export const eventComponents = {
     };
   }
 >;
-
-export const eventComponentViews: Record<
-  EventComponentView,
-  { readonly label: string }
-> = {
-  list: { label: "List" },
-  agenda: { label: "Agenda" },
-  "by-day": { label: "By day" },
-  week: { label: "By week" },
-  month: { label: "Calendar" },
-};
 
 const viewKeys = {
   list: "list",
@@ -124,7 +95,7 @@ function aliasOf(kind: EventComponentKind) {
       readonly kind: EventComponentKind;
       readonly view: EventComponentView;
     };
-    readonly label: string;
+    readonly keywords: string;
   } = eventComponents[kind];
   return entry.aliasOf;
 }
@@ -172,12 +143,9 @@ export function findEventComponents(query: string): EventComponentKind[] {
     .split(/[\s-]+/)
     .filter(Boolean);
   return addableEventComponentKinds.filter((kind) => {
-    const { label, description, keywords } = eventComponents[kind];
     const text = [
       kind,
-      label,
-      description,
-      keywords,
+      eventComponents[kind].keywords,
       componentKindLabel(kind),
       componentKindDescription(kind),
     ]

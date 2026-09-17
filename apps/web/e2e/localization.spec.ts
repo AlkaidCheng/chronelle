@@ -27,6 +27,21 @@ const hans = {
   tomorrow: "\u660e\u5929",
   dueTomorrow: /\uff08\u660e\u5929\uff09\u3002$/,
   search: "\u641c\u7d22",
+  addPerson: "\u6dfb\u52a0\u53c2\u4e0e\u8005",
+  newPerson: "\u65b0\u53c2\u4e0e\u8005",
+  addNewPerson: "\u6dfb\u52a0\u65b0\u53c2\u4e0e\u8005",
+  actionsFor: /\u7684\u64cd\u4f5c$/u,
+  edit: "\u7f16\u8f91",
+  editPerson: "\u7f16\u8f91\u53c2\u4e0e\u8005",
+  name: "\u59d3\u540d",
+  thisIsMe: "\u8fd9\u662f\u6211",
+  addContact: "\u6dfb\u52a0\u8054\u7cfb\u65b9\u5f0f",
+  contactValue: "\u8054\u7cfb\u65b9\u5f0f 1 \u7684\u5185\u5bb9",
+  savePerson: "\u4fdd\u5b58\u53c2\u4e0e\u8005",
+  shareEvent: "\u5171\u4eab\u6d3b\u52a8",
+  sharingView: "\u5171\u4eab",
+  byEmail: "\u901a\u8fc7\u90ae\u7bb1",
+  othersInPeople: "\u5176\u4ed6\u53c2\u4e0e\u8005",
   findObject: "\u67e5\u627e\u5bf9\u8c61",
   historyFor: "Summer vacation\u7684\u5386\u53f2",
   objectHistory: "\u5bf9\u8c61\u5386\u53f2",
@@ -66,10 +81,19 @@ async function chooseLanguage(
     .getByRole("link", { name: names.languageTime, exact: true })
     .click();
   await expect(page).toHaveURL(/\/settings\/language$/u);
+  // The choice is kept on the account; a page opened before that write
+  // lands would adopt the account's previous language.
+  const kept = page.waitForResponse(
+    (response) =>
+      response.request().method() === "PATCH" &&
+      response.url().endsWith("/api/auth/me") &&
+      response.ok(),
+  );
   await page
     .getByRole("group", { name: names.group, exact: true })
     .getByRole("radio", { name: language, exact: true })
     .check();
+  await kept;
 }
 
 const english = {
@@ -81,6 +105,9 @@ const english = {
 test("switches the workspace to Simplified and Traditional Chinese and back", async ({
   page,
 }) => {
+  // One walk through every localized surface: longer than the default budget
+  // on a loaded WebKit runner.
+  test.setTimeout(60_000);
   const email = `locale-${randomUUID()}@example.test`;
   await page.goto("/sign-in/development");
   await page.getByLabel("Name", { exact: true }).fill("Event planner");
@@ -178,6 +205,58 @@ test("switches the workspace to Simplified and Traditional Chinese and back", as
     page.getByLabel(hans.findCommand, { exact: true }),
   ).toBeVisible();
   await page.keyboard.press("Escape");
+
+  // The event's People view, its Add person dialog, the person editor
+  // opened from the card, and the Share view read in the language too.
+  await page.getByRole("tab", { name: hans.people, exact: true }).click();
+  await page.getByRole("button", { name: hans.addPerson, exact: true }).click();
+  const addPerson = page.getByRole("dialog", {
+    name: hans.addPerson,
+    exact: true,
+  });
+  await addPerson.getByLabel(hans.newPerson, { exact: true }).fill("Lin Wei");
+  await addPerson
+    .getByRole("button", { name: hans.addNewPerson, exact: true })
+    .click();
+  await expect(addPerson).toHaveCount(0);
+  const card = page.getByRole("listitem", { name: "Lin Wei", exact: true });
+  await expect(card).toBeVisible();
+  await card.getByRole("button", { name: hans.actionsFor }).click();
+  await page.getByRole("menuitem", { name: hans.edit, exact: true }).click();
+  const personEditor = page.getByRole("dialog", {
+    name: hans.editPerson,
+    exact: true,
+  });
+  await expect(personEditor.getByLabel(hans.name, { exact: true })).toHaveValue(
+    "Lin Wei",
+  );
+  await expect(personEditor.getByLabel(hans.thisIsMe)).toBeVisible();
+  // An email makes the person reachable, so Share lists them among the
+  // other people of the workspace.
+  await personEditor
+    .getByRole("button", { name: hans.addContact, exact: true })
+    .click();
+  await personEditor
+    .getByLabel(hans.contactValue, { exact: true })
+    .fill("lin.wei@example.test");
+  await personEditor
+    .getByRole("button", { name: hans.savePerson, exact: true })
+    .click();
+  await expect(personEditor).toHaveCount(0);
+  await page
+    .getByRole("button", { name: hans.shareEvent, exact: true })
+    .click();
+  await expect(
+    page.getByRole("heading", {
+      level: 2,
+      name: hans.sharingView,
+      exact: true,
+    }),
+  ).toBeVisible();
+  await expect(
+    page.getByText(hans.othersInPeople, { exact: true }),
+  ).toBeVisible();
+  await expect(page.getByText(hans.byEmail, { exact: true })).toBeVisible();
 
   // Traditional Chinese has its own vocabulary, not a conversion.
   await chooseLanguage(page, hans, hant.language);

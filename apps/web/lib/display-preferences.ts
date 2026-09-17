@@ -24,21 +24,9 @@ export function parseDisplayPreference<K extends DisplayPreference>(
 }
 
 export const palettes = [
-  { id: "paper", name: "Ink & Paper", description: "Warm ivory and vermilion" },
-  {
-    id: "celadon",
-    name: "Celadon",
-    description: "Porcelain greens and cool ink",
-  },
-  {
-    id: "neutral",
-    name: "Modern Neutral",
-    description: "Quiet neutrals and blue",
-  },
-] as const satisfies readonly {
-  id: DisplayValue<"palette">;
-  name: string;
-  description: string;
-}[];
+  { id: "paper" },
+  { id: "celadon" },
+  { id: "neutral" },
+] as const satisfies readonly { id: DisplayValue<"palette"> }[];
 
 export const displayBootstrap = `for(const [name,choices] of Object.entries(${JSON.stringify(displayChoices)})){try{const value=window.localStorage.getItem("chronelle."+name);if(choices.includes(value))document.documentElement.dataset[name]=value;}catch{}}`;

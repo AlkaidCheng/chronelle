@@ -1,22 +1,21 @@
 "use client";
 
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 
 export default function ErrorPage({ reset }: { readonly reset: () => void }) {
+  const t = useTranslations("routeState");
   return (
     <main className="route-state surface">
       <p className="eyebrow">Chronelle</p>
-      <h1>Something interrupted this page</h1>
-      <p>
-        Your saved plans are still there. Try opening the page again, or return
-        to your events. Any unsaved changes may need to be entered again.
-      </p>
+      <h1>{t("errorTitle")}</h1>
+      <p>{t("errorText")}</p>
       <div className="form-actions">
         <button className="button button-primary" type="button" onClick={reset}>
-          Try again
+          {t("tryAgain")}
         </button>
         <Link className="button button-secondary" href="/events">
-          Back to events
+          {t("backToEvents")}
         </Link>
       </div>
     </main>

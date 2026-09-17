@@ -86,6 +86,7 @@ function PersonEditor({
   readonly initialDraft: PersonDraftSnapshot | undefined;
 }) {
   const t = useTranslations("person");
+  const te = useTranslations("personEditor");
   const draft = useEditorDraft(latestPerson, readPersonFields, initialDraft);
   const person = draft.source;
   // A retained draft keeps its creation attempt, so a retry after a lost
@@ -181,12 +182,10 @@ function PersonEditor({
       return;
     let input: ReturnType<typeof personFieldsPayload>;
     try {
-      input = personFieldsPayload(draft.fields, person);
+      input = personFieldsPayload(draft.fields, person, te);
       setFieldError("");
     } catch (error) {
-      setFieldError(
-        error instanceof Error ? error.message : "Check the fields.",
-      );
+      setFieldError(error instanceof Error ? error.message : te("checkFields"));
       return;
     }
     rememberSubmit(formEvent.currentTarget);
@@ -227,12 +226,12 @@ function PersonEditor({
         headingId={headingId}
         title={
           isConfirming
-            ? "Discard person changes?"
+            ? te("discardTitle")
             : person
-              ? "Edit person"
-              : "Add person"
+              ? te("editTitle")
+              : te("addTitle")
         }
-        closeLabel="Close person editor"
+        closeLabel={te("close")}
         isConfirming={isConfirming}
         isPending={mutation.isPending}
         onClose={requestClose}
@@ -242,7 +241,7 @@ function PersonEditor({
             hidden={isConfirming}
             className="button button-quiet button-small"
             type="button"
-            aria-label="View person history"
+            aria-label={te("historyLabel")}
             disabled={mutation.isPending}
             onClick={() =>
               openHistory({
@@ -251,13 +250,13 @@ function PersonEditor({
               })
             }
           >
-            History
+            {te("history")}
           </button>
         )}
       </EditorDialogHeader>
       {isConfirming && (
         <div className="event-create-body">
-          <p>Your person changes have not been saved.</p>
+          <p>{te("unsaved")}</p>
           <div className="form-actions">
             <DiscardActions
               keepEditingButton={keepEditingButton}
@@ -282,10 +281,10 @@ function PersonEditor({
             className="field-wide"
             disabled={mutation.isPending}
             inputRef={nameInput}
-            label="Name"
+            label={te("name")}
             limit={240}
             onChange={(displayName) => draft.change({ displayName })}
-            placeholder="Mira Chen"
+            placeholder={te("namePlaceholder")}
             required
             value={displayName}
           />
@@ -295,13 +294,11 @@ function PersonEditor({
             label={t("nickname")}
             limit={240}
             onChange={(nickname) => draft.change({ nickname })}
-            placeholder="Mira"
+            placeholder={te("nicknamePlaceholder")}
             value={nickname}
           />
           {linkedElsewhere ? (
-            <p className="field-hint field-wide">
-              Linked to a workspace member's account.
-            </p>
+            <p className="field-hint field-wide">{te("linkedElsewhere")}</p>
           ) : (
             <>
               <label className="check-field field-wide">
@@ -321,10 +318,9 @@ function PersonEditor({
                   type="checkbox"
                 />
                 <span>
-                  This is me
-                  {meTakenBy !== undefined
-                    ? ` (already ${meTakenBy.displayName})`
-                    : ""}
+                  {meTakenBy === undefined
+                    ? te("me")
+                    : te("meTaken", { name: meTakenBy.displayName })}
                 </span>
               </label>
               {friendChoices.length > 0 ? (
@@ -413,7 +409,7 @@ function PersonEditor({
                       }
                       type="button"
                     >
-                      Remove
+                      {te("remove")}
                     </button>
                   </li>
                 ))}
@@ -448,12 +444,9 @@ function PersonEditor({
             />
           </label>
           <fieldset className="person-fields field-wide">
-            <legend>Fields</legend>
+            <legend>{te("fields")}</legend>
             {fields.length === 0 ? (
-              <p className="field-hint">
-                Add a field for anything worth keeping: a phone, a birthday, a
-                dietary note.
-              </p>
+              <p className="field-hint">{te("fieldsHint")}</p>
             ) : (
               <ul className="person-field-rows">
                 {fields.map((field, index) => (
@@ -463,7 +456,7 @@ function PersonEditor({
                     <CountedField
                       disabled={mutation.isPending}
                       hideLabel
-                      label={`Field ${index + 1} name`}
+                      label={te("fieldName", { n: index + 1 })}
                       limit={60}
                       onChange={(key) =>
                         changeFields(
@@ -472,13 +465,13 @@ function PersonEditor({
                           ),
                         )
                       }
-                      placeholder="Field"
+                      placeholder={te("fieldPlaceholder")}
                       value={field.key}
                     />
                     <CountedField
                       disabled={mutation.isPending}
                       hideLabel
-                      label={`Field ${index + 1} value`}
+                      label={te("fieldValue", { n: index + 1 })}
                       limit={500}
                       onChange={(value) =>
                         changeFields(
@@ -487,11 +480,13 @@ function PersonEditor({
                           ),
                         )
                       }
-                      placeholder="Value"
+                      placeholder={te("valuePlaceholder")}
                       value={field.value}
                     />
                     <button
-                      aria-label={`Remove field ${field.key || index + 1}`}
+                      aria-label={te("removeField", {
+                        name: field.key || String(index + 1),
+                      })}
                       className="button button-quiet button-small"
                       disabled={mutation.isPending}
                       onClick={() =>
@@ -499,7 +494,7 @@ function PersonEditor({
                       }
                       type="button"
                     >
-                      Remove
+                      {te("remove")}
                     </button>
                   </li>
                 ))}
@@ -511,7 +506,7 @@ function PersonEditor({
               onClick={() => changeFields([...fields, { key: "", value: "" }])}
               type="button"
             >
-              Add field
+              {te("addField")}
             </button>
           </fieldset>
           {fieldError && <p role="alert">{fieldError}</p>}
@@ -523,14 +518,16 @@ function PersonEditor({
             mutation={mutation}
             onCancel={requestClose}
             onRefresh={person === undefined ? undefined : onRefresh}
-            submitLabel={person === undefined ? "Add person" : "Save person"}
+            submitLabel={
+              person === undefined ? te("submitAdd") : te("submitSave")
+            }
           />
           <EditorDraftStatus
             {...recovery}
             failureMessage={
               person === undefined
-                ? "The last save could not be confirmed. Check People before trying again."
-                : "The last save could not be confirmed. Refresh latest before trying again."
+                ? te("unconfirmedNew")
+                : te("unconfirmedEdit")
             }
           />
         </footer>
