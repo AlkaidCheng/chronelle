@@ -36,17 +36,22 @@ export function useEditorDraft<
     load(latest);
   }
 
+  const hasNewerVersion =
+    draft.source !== undefined &&
+    latest !== undefined &&
+    latest.version > draft.source.version;
+
   return {
     snapshot: draft,
     source: draft.source,
     fields: draft.fields,
+    baseline: draft.baseline,
     isDirty: (Object.keys(draft.fields) as (keyof Fields)[]).some(
       (key) => !Object.is(draft.fields[key], draft.baseline[key]),
     ),
-    hasNewerVersion:
-      draft.source !== undefined &&
-      latest !== undefined &&
-      latest.version > draft.source.version,
+    hasNewerVersion,
+    /** The newest version's fields while it is ahead of the draft's base. */
+    theirs: hasNewerVersion ? initialize(latest) : undefined,
     change: (fields: Partial<Fields>) =>
       setDraft((current) => ({
         ...current,
@@ -54,5 +59,11 @@ export function useEditorDraft<
       })),
     accept: (saved: Resource) => load(saved),
     loadLatest: () => load(latest),
+    /**
+     * Pins the draft to the newest version with the given fields, so the
+     * next save writes them over it as a new version.
+     */
+    rebase: (fields: Fields) =>
+      setDraft({ source: latest, fields, baseline: initialize(latest) }),
   };
 }

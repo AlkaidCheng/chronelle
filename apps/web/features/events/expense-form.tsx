@@ -287,6 +287,9 @@ function ExpenseEditor({
         </div>
         <footer className="event-inspector-footer">
           <EditorControls
+            conflict={
+              expense === undefined ? undefined : { objectId: expense.id }
+            }
             disabled={!recovery.isRetained}
             draft={draft}
             mutation={mutation}

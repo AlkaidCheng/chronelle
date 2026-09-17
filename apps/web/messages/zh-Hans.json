@@ -555,8 +555,6 @@
     "tryAgain": "重试",
     "incomplete": "请求未能完成。",
     "loading": "正在加载",
-    "draftBody": "你的草稿已保留。加载最新版本将放弃此草稿并继续编辑。",
-    "draftAction": "放弃草稿并加载最新版本",
     "codes": {
       "version_conflict": "对象在你读取该版本之后已被更改。",
       "workspace_unavailable": "你已无法访问此工作区。",
@@ -1468,6 +1466,36 @@
     "kept": "已保留",
     "saveMerged": "保存合并后的版本",
     "field": "字段",
-    "empty": "（空）"
+    "empty": "（空）",
+    "fields": {
+      "displayName": "名称",
+      "dueDate": "截止日期",
+      "dueTime": "截止时间",
+      "duration": "时长",
+      "repeat": "重复",
+      "repeatUntil": "重复至",
+      "assignee": "负责人",
+      "location": "地点",
+      "labels": "标签",
+      "amount": "金额",
+      "currency": "货币",
+      "occurredAt": "日期",
+      "remindAt": "提醒时间",
+      "mode": "日程",
+      "startDate": "开始日期",
+      "endDate": "结束日期",
+      "startTime": "开始时间",
+      "endTime": "结束时间",
+      "nickname": "昵称",
+      "description": "描述",
+      "userId": "账号",
+      "contacts": "联系方式",
+      "properties": "字段"
+    },
+    "modes": {
+      "dates": "日期",
+      "timed": "日期和时间",
+      "unscheduled": "未安排"
+    }
   }
 }

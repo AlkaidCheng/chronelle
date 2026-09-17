@@ -10,10 +10,12 @@ import {
   DiscardActions,
   EditorDialogHeader,
 } from "../../components/editor-dialog-controls";
+import type { FieldFormatter } from "./conflict-notice";
 import { EditorControls } from "./editor-controls";
 import {
   locationLimit,
   readTaskFields,
+  splitLabelIds,
   taskFieldsPayload,
 } from "../../lib/task-fields";
 import {
@@ -32,10 +34,12 @@ import { AssigneePicker } from "../tasks/assignee-picker";
 import { LabelPicker } from "../tasks/label-picker";
 import { useEditorDraft } from "../../lib/use-editor-draft";
 import {
+  type ContextCreateAttempt,
   useCreateTask,
+  useLabelsQuery,
+  usePersonsQuery,
   useRefreshEvent,
   useUpdateTask,
-  type ContextCreateAttempt,
 } from "../../lib/queries";
 
 /** The task a new subtask belongs to; it shares that task's permission scope. */
@@ -131,6 +135,20 @@ function TaskEditor({
     labels,
   } = draft.fields;
   const mutation = task === undefined ? create : update;
+  // The comparison names labels and the assignee rather than showing ids;
+  // the lists load only once there is a newer version to compare.
+  const labelNames = useLabelsQuery(draft.hasNewerVersion).data?.names;
+  const people = usePersonsQuery(draft.hasNewerVersion).data?.items;
+  const formatTaskField: FieldFormatter = (key, value) => {
+    if (value === "") return undefined;
+    if (key === "labels")
+      return splitLabelIds(value)
+        .map((labelId) => labelNames?.get(labelId) ?? labelId)
+        .join(", ");
+    if (key === "assignee")
+      return people?.find((person) => person.id === value)?.displayName;
+    return undefined;
+  };
   const t = useTranslations("taskForm");
   const editor = useTranslations("editor");
   const [fieldError, setFieldError] = useState("");
@@ -332,6 +350,11 @@ function TaskEditor({
         </div>
         <footer className="event-inspector-footer">
           <EditorControls
+            conflict={
+              task === undefined
+                ? undefined
+                : { objectId: task.id, format: formatTaskField }
+            }
             disabled={!recovery.isRetained}
             draft={draft}
             mutation={mutation}

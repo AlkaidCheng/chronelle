@@ -6290,3 +6290,69 @@ html:has(.event-create-dialog[open]) {
     width: calc(100vw - 32px);
   }
 }
+
+/* A stale write compared: mine and theirs per field, three ways out. */
+.notice .conflict-meta {
+  color: var(--muted);
+  font-size: 0.86rem;
+  margin: 2px 0 8px;
+}
+
+.conflict-table {
+  border-collapse: collapse;
+  font-size: 0.86rem;
+  margin: 0 0 10px;
+  width: 100%;
+}
+
+.conflict-table th,
+.conflict-table td {
+  border-top: 1px solid var(--line);
+  padding: 6px 10px 6px 0;
+  text-align: left;
+  vertical-align: top;
+}
+
+.conflict-table thead th {
+  border-top: 0;
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.conflict-table tbody th {
+  color: var(--muted);
+  font-weight: 600;
+  width: 28%;
+}
+
+.conflict-both td {
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
+}
+
+.conflict-table td.conflict-kept {
+  font-weight: 600;
+}
+
+.conflict-table label {
+  align-items: baseline;
+  display: inline-flex;
+  gap: 6px;
+}
+
+.conflict-chip {
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  color: var(--muted);
+  font-size: 0.72rem;
+  margin-left: 6px;
+  padding: 0 7px;
+}
+
+.conflict-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}

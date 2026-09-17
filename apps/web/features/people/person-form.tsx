@@ -513,6 +513,9 @@ function PersonEditor({
         </div>
         <footer className="event-inspector-footer">
           <EditorControls
+            conflict={
+              person === undefined ? undefined : { objectId: person.id }
+            }
             disabled={!recovery.isRetained}
             draft={draft}
             mutation={mutation}

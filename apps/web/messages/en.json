@@ -555,8 +555,6 @@
     "tryAgain": "Try again",
     "incomplete": "The request could not be completed.",
     "loading": "Loading",
-    "draftBody": "Your draft is preserved. Load the latest version to discard this draft and continue editing.",
-    "draftAction": "Discard draft and load latest",
     "codes": {
       "version_conflict": "The object changed after the supplied version was read.",
       "workspace_unavailable": "This workspace is no longer available to you.",
@@ -1468,6 +1466,36 @@
     "kept": "kept",
     "saveMerged": "Save merged version",
     "field": "Field",
-    "empty": "(empty)"
+    "empty": "(empty)",
+    "fields": {
+      "displayName": "Name",
+      "dueDate": "Due date",
+      "dueTime": "Due time",
+      "duration": "Duration",
+      "repeat": "Repeat",
+      "repeatUntil": "Repeat until",
+      "assignee": "Assignee",
+      "location": "Location",
+      "labels": "Labels",
+      "amount": "Amount",
+      "currency": "Currency",
+      "occurredAt": "Date",
+      "remindAt": "Reminder time",
+      "mode": "Schedule",
+      "startDate": "Start date",
+      "endDate": "End date",
+      "startTime": "Start time",
+      "endTime": "End time",
+      "nickname": "Nickname",
+      "description": "Description",
+      "userId": "Account",
+      "contacts": "Contacts",
+      "properties": "Fields"
+    },
+    "modes": {
+      "dates": "Dates",
+      "timed": "Dates and times",
+      "unscheduled": "Not scheduled"
+    }
   }
 }

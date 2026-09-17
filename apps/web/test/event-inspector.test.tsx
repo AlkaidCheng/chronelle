@@ -203,14 +203,16 @@ describe("Event inspector", () => {
     );
     expect(name).toHaveValue("Garden evening private draft");
     expect(screen.getByRole("button", { name: "Save event" })).toBeDisabled();
-    await user.click(
-      screen.getByRole("button", { name: "Discard draft and load latest" }),
-    );
+    await user.click(screen.getByRole("button", { name: "Take theirs" }));
     expect(name).toHaveValue("Collaborator name");
     expect(unloadIsPrevented()).toBe(false);
     cancelInspector();
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
-    expect(fetch).not.toHaveBeenCalled();
+    expect(
+      vi
+        .mocked(fetch)
+        .mock.calls.filter(([, init]) => (init?.method ?? "GET") !== "GET"),
+    ).toHaveLength(0);
   });
 
   it("locks pending saves, retains failed drafts, then saves one canonical version", async () => {

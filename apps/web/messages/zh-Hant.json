@@ -555,8 +555,6 @@
     "tryAgain": "再試一次",
     "incomplete": "請求未能完成。",
     "loading": "正在載入",
-    "draftBody": "你的草稿已保留。載入最新版本將放棄此草稿並繼續編輯。",
-    "draftAction": "放棄草稿並載入最新版本",
     "codes": {
       "version_conflict": "物件在你讀取該版本之後已被變更。",
       "workspace_unavailable": "你已無法存取此工作區。",
@@ -1468,6 +1466,36 @@
     "kept": "已保留",
     "saveMerged": "儲存合併後的版本",
     "field": "欄位",
-    "empty": "（空）"
+    "empty": "（空）",
+    "fields": {
+      "displayName": "名稱",
+      "dueDate": "到期日",
+      "dueTime": "到期時間",
+      "duration": "時長",
+      "repeat": "重複",
+      "repeatUntil": "重複至",
+      "assignee": "負責人",
+      "location": "地點",
+      "labels": "標籤",
+      "amount": "金額",
+      "currency": "貨幣",
+      "occurredAt": "日期",
+      "remindAt": "提醒時間",
+      "mode": "日程",
+      "startDate": "開始日期",
+      "endDate": "結束日期",
+      "startTime": "開始時間",
+      "endTime": "結束時間",
+      "nickname": "暱稱",
+      "description": "描述",
+      "userId": "帳號",
+      "contacts": "聯絡方式",
+      "properties": "欄位"
+    },
+    "modes": {
+      "dates": "日期",
+      "timed": "日期和時間",
+      "unscheduled": "未安排"
+    }
   }
 }

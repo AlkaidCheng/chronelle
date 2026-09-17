@@ -187,9 +187,7 @@ describe("schedule item inspector", () => {
     );
     expect(await screen.findByLabelText("Name")).toHaveValue("Kept welcome");
     expect(screen.getByRole("button", { name: "Save event" })).toBeDisabled();
-    await user.click(
-      screen.getByRole("button", { name: "Discard draft and load latest" }),
-    );
+    await user.click(screen.getByRole("button", { name: "Take theirs" }));
     expect(screen.getByLabelText("Name")).toHaveValue("Changed elsewhere");
     expect(screen.getByRole("button", { name: "Save event" })).toBeEnabled();
   });
