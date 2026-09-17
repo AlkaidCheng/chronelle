@@ -122,7 +122,15 @@ describe.sequential("object revisions", () => {
       const page = revisionListResponseSchema.parse(history.json());
       expect(page).toMatchObject({
         items: [
-          { objectVersion: 2, mutationKind: "updated", actorId: owner.user.id },
+          {
+            objectVersion: 2,
+            mutationKind: "updated",
+            actorId: owner.user.id,
+            changedFieldCount: 1,
+            changedFields: [
+              { field: Object.keys(fixture.patch)[0], beforePresent: true },
+            ],
+          },
         ],
         nextBeforeVersion: 2,
       });

@@ -12,12 +12,14 @@ import {
 } from "@chronelle/db";
 import {
   revisionSnapshotSchema,
+  type RevisionFieldChange,
   type RevisionListQuery,
   type RevisionSnapshot,
 } from "@chronelle/schemas";
 import { and, desc, eq, lt } from "drizzle-orm";
 
 import { InvalidObjectStateError } from "./errors.js";
+import { compareRevisionContent } from "./restoration-policy.js";
 
 export interface RevisionSummary {
   readonly id: string;
@@ -30,6 +32,10 @@ export interface RevisionSummary {
   readonly createdAt: string;
   readonly snapshotSchemaVersion: number;
   readonly sourceRevisionId: string | null;
+  /** Up to three content fields that differ from the previous revision. */
+  readonly changedFields: readonly RevisionFieldChange[];
+  /** Every content field that differs from the previous revision. */
+  readonly changedFieldCount: number;
 }
 
 export interface RevisionPage {
@@ -57,6 +63,33 @@ export interface RevisionReadRepository {
     objectId: string,
     version: number,
   ): Promise<RevisionDetail>;
+}
+
+/** The change summary shown on a history row, from the previous revision's snapshot. */
+export const revisionSummaryFieldLimit = 3;
+
+/** Both backends summarize a row the same way: `changedFields` is the first
+ * three differences and `changedFieldCount` all of them; the oldest known
+ * revision, and one whose snapshot cannot be read, summarize as unchanged. */
+export function summarizeRevisionChanges(
+  previous: { schemaVersion: number; snapshot: unknown } | undefined,
+  current: { schemaVersion: number; snapshot: unknown },
+): Pick<RevisionSummary, "changedFields" | "changedFieldCount"> {
+  if (previous === undefined)
+    return { changedFields: [], changedFieldCount: 0 };
+  let changes: RevisionFieldChange[];
+  try {
+    changes = compareRevisionContent(
+      decodeRevisionSnapshot(previous.schemaVersion, previous.snapshot),
+      decodeRevisionSnapshot(current.schemaVersion, current.snapshot),
+    );
+  } catch {
+    return { changedFields: [], changedFieldCount: 0 };
+  }
+  return {
+    changedFields: changes.slice(0, revisionSummaryFieldLimit),
+    changedFieldCount: changes.length,
+  };
 }
 
 export function decodeRevisionSnapshot(
@@ -103,7 +136,7 @@ export class PostgresRevisionReadRepository implements RevisionReadRepository {
           workspaceId: principal.workspaceId,
         });
         const rows = await transaction
-          .select(summaryFields)
+          .select({ ...summaryFields, snapshot: objectRevisions.snapshot })
           .from(objectRevisions)
           .leftJoin(
             users,
@@ -122,10 +155,24 @@ export class PostgresRevisionReadRepository implements RevisionReadRepository {
             ),
           )
           .orderBy(desc(objectRevisions.objectVersion))
-          .limit(input.limit + 1);
-        const items = rows
-          .slice(0, input.limit)
-          .map((row) => ({ ...row, createdAt: row.createdAt.toISOString() }));
+          .limit(input.limit + 2);
+        const items = rows.slice(0, input.limit).map((row, index) => {
+          const { snapshot, ...summary } = row;
+          const previous = rows[index + 1];
+          return {
+            ...summary,
+            createdAt: row.createdAt.toISOString(),
+            ...summarizeRevisionChanges(
+              previous === undefined
+                ? undefined
+                : {
+                    schemaVersion: previous.snapshotSchemaVersion,
+                    snapshot: previous.snapshot,
+                  },
+              { schemaVersion: row.snapshotSchemaVersion, snapshot },
+            ),
+          };
+        });
         return {
           items,
           nextBeforeVersion:
@@ -168,9 +215,36 @@ export class PostgresRevisionReadRepository implements RevisionReadRepository {
           )
           .limit(1);
         if (row === undefined) throw new AuthorizationDeniedError();
+        const [previous] = await transaction
+          .select({
+            snapshotSchemaVersion: objectRevisions.snapshotSchemaVersion,
+            snapshot: objectRevisions.snapshot,
+          })
+          .from(objectRevisions)
+          .where(
+            and(
+              eq(objectRevisions.workspaceId, principal.workspaceId),
+              eq(objectRevisions.objectId, objectId),
+              lt(objectRevisions.objectVersion, version),
+            ),
+          )
+          .orderBy(desc(objectRevisions.objectVersion))
+          .limit(1);
         return {
           ...row,
           createdAt: row.createdAt.toISOString(),
+          ...summarizeRevisionChanges(
+            previous === undefined
+              ? undefined
+              : {
+                  schemaVersion: previous.snapshotSchemaVersion,
+                  snapshot: previous.snapshot,
+                },
+            {
+              schemaVersion: row.snapshotSchemaVersion,
+              snapshot: row.snapshot,
+            },
+          ),
           snapshot: decodeRevisionSnapshot(
             row.snapshotSchemaVersion,
             row.snapshot,

@@ -31,6 +31,7 @@ import {
   type RevisionPage,
   type RevisionReadRepository,
   type RevisionSummary,
+  summarizeRevisionChanges,
 } from "./revision-reads.js";
 
 const summaryColumns =
@@ -51,10 +52,16 @@ type RevisionRow = {
 
 type UserRow = { readonly id: unknown; readonly display_name: unknown };
 
+type SnapshotRow = {
+  readonly object_version: unknown;
+  readonly snapshot_schema_version: unknown;
+  readonly snapshot: unknown;
+};
+
 function cloudbaseSummary(
   row: RevisionRow,
   actorNames: ReadonlyMap<string, string>,
-): RevisionSummary {
+): Omit<RevisionSummary, "changedFields" | "changedFieldCount"> {
   const mutationKind = cloudbaseText(row.mutation_kind, "mutation kind");
   if (!revisionKinds.includes(mutationKind as RevisionKind))
     throw new Error("CloudBase returned an invalid mutation kind.");
@@ -123,10 +130,25 @@ export class CloudBaseRevisionReadRepository implements RevisionReadRepository {
           input.beforeVersion === undefined || version < input.beforeVersion,
       )
       .sort((first, second) => second.version - first.version)
-      .slice(0, input.limit + 1);
+      .slice(0, input.limit + 2);
     const page = rows.slice(0, input.limit).map(({ row }) => row);
     const actorNames = await this.#readActorNames(page);
-    const items = page.map((row) => cloudbaseSummary(row, actorNames));
+    const snapshots = await this.#readSnapshots(
+      principal,
+      objectId,
+      rows.map(({ version }) => version),
+    );
+    const items = page.map((row, index) => ({
+      ...cloudbaseSummary(row, actorNames),
+      ...summarizeRevisionChanges(
+        snapshots.get(rows[index + 1]?.version ?? -1),
+        snapshots.get(rows[index]?.version ?? -1) ?? {
+          schemaVersion: 0,
+          snapshot: null,
+        },
+      ),
+    }));
+    rows.splice(input.limit + 1);
     return {
       items,
       nextBeforeVersion:
@@ -153,13 +175,69 @@ export class CloudBaseRevisionReadRepository implements RevisionReadRepository {
     if (row === undefined) throw new AuthorizationDeniedError();
     const actorNames = await this.#readActorNames([row]);
     const summary = cloudbaseSummary(row, actorNames);
+    const previous = (
+      await this.#readRevisions(summaryColumns, [
+        ...this.#objectFilters(principal, objectId),
+      ])
+    )
+      .map((candidate) =>
+        cloudbaseInteger(candidate.object_version, "object version"),
+      )
+      .filter((candidate) => candidate < version)
+      .sort((first, second) => second - first)[0];
+    const snapshots =
+      previous === undefined
+        ? new Map<number, { schemaVersion: number; snapshot: unknown }>()
+        : await this.#readSnapshots(principal, objectId, [previous]);
     return {
       ...summary,
+      ...summarizeRevisionChanges(snapshots.get(previous ?? -1), {
+        schemaVersion: summary.snapshotSchemaVersion,
+        snapshot: row.snapshot,
+      }),
       snapshot: decodeRevisionSnapshot(
         summary.snapshotSchemaVersion,
         row.snapshot,
       ),
     };
+  }
+
+  /** The snapshots of the given versions, by version, read in id-sized batches. */
+  async #readSnapshots(
+    principal: UserPrincipal,
+    objectId: string,
+    versions: readonly number[],
+  ): Promise<Map<number, { schemaVersion: number; snapshot: unknown }>> {
+    const found = new Map<
+      number,
+      { schemaVersion: number; snapshot: unknown }
+    >();
+    for (
+      let start = 0;
+      start < versions.length;
+      start += cloudbaseIdBatchSize
+    ) {
+      const rows = await this.#client.select<SnapshotRow>("object_revisions", {
+        columns: "object_version,snapshot_schema_version,snapshot",
+        filters: [
+          ...this.#objectFilters(principal, objectId),
+          {
+            column: "object_version",
+            operator: "in",
+            value: versions.slice(start, start + cloudbaseIdBatchSize),
+          },
+        ],
+      });
+      for (const row of rows)
+        found.set(cloudbaseInteger(row.object_version, "object version"), {
+          schemaVersion: cloudbaseInteger(
+            row.snapshot_schema_version,
+            "snapshot schema version",
+          ),
+          snapshot: row.snapshot,
+        });
+    }
+    return found;
   }
 
   #objectFilters(

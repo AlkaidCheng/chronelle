@@ -259,8 +259,13 @@ Authenticated callers with current View permission can list revision summaries
 with `GET /api/objects/:id/revisions?limit=25` and fetch typed historical content
 with `GET /api/objects/:id/revisions/:version`. Pass the returned
 `nextBeforeVersion` as `beforeVersion` to continue; `null` ends pagination.
-The limit is 1-100. No total counts, security metadata, or private storage keys
-are returned. See [Object revisions](revisions.md) for authorization semantics.
+The limit is 1-100. Each summary carries `changedFields`, up to three public
+content fields that differ from the previous revision with their before and
+after values, and `changedFieldCount`, the number of all such fields, so a
+history row can preview its change without a comparison request; the oldest
+known revision summarizes as unchanged. No total counts, security metadata, or
+private storage keys are returned. See [Object revisions](revisions.md) for
+authorization semantics.
 
 ```ts
 const page = await client.listObjectRevisions(objectId, { limit: 10 });

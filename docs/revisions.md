@@ -34,8 +34,14 @@ Each revision references its own audit event; neither ledger replaces the other.
 
 `GET /api/objects/:id/revisions` returns newest-first summary rows, with `limit`
 defaulting to 25 and capped at 100. `nextBeforeVersion` is the exclusive keyset
-boundary for the next request. No counts or full snapshots are loaded for a
-list. New writes do not shift older pages. Fetch one snapshot with
+boundary for the next request. No total counts are returned. Each row carries a
+change summary against the previous revision: `changedFields`, the first three
+public content differences with their values, and `changedFieldCount`, the
+number of all of them; the oldest known revision, and one whose snapshot schema
+the application does not read, summarize as unchanged. The list reads the
+page's snapshots and one more for that comparison; both backends compute the
+summary with the same comparison the compare endpoint uses. New writes do not
+shift older pages. Fetch one snapshot with
 `GET /api/objects/:id/revisions/:version`.
 
 Both endpoints use the central View decision against the current resource, not
@@ -55,9 +61,11 @@ This is not permission to restore or replay historical security state.
 
 History is available on Events, Tasks, Expenses, Reminders, and Documents. One
 shared drawer stays open when restoration moves a resource out of a filtered
-view. It loads 20 summaries at a time, showing version, action, time, and the
-actor's current display name when available. Actor IDs provide durable
-attribution; display names are not historical snapshots.
+view. It loads 20 summaries at a time, showing version, the kind of change (a content
+edit, or for the event page layout, an arrangement), time, the actor's current
+display name when available, and a preview of up to three changed fields with
+how many more changed. Actor IDs provide durable attribution; display names are
+not historical snapshots.
 
 Choose two loaded versions for a typed comparison, or preview a revision against
 current content. Custom properties are compared by top-level key, distinguishing

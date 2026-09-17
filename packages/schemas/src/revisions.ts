@@ -36,6 +36,22 @@ export const revisionParamsSchema = z.object({
   version: z.coerce.number().pipe(versionSchema),
 });
 
+export const revisionFieldChangeSchema = z.object({
+  field: z.string(),
+  label: z.string(),
+  valueType: z.enum(["text", "datetime", "boolean", "json", "decimal"]),
+  before: z.unknown(),
+  after: z.unknown(),
+  beforePresent: z.boolean(),
+  afterPresent: z.boolean(),
+  restorable: z.boolean(),
+});
+
+/**
+ * A revision as the history list shows it. `changedFields` names up to three
+ * content fields that differ from the previous revision, with their values;
+ * `changedFieldCount` is the full number, so a row can say how many more.
+ */
 export const revisionSummarySchema = z.object({
   id: z.uuid(),
   objectId: z.uuid(),
@@ -55,6 +71,8 @@ export const revisionSummarySchema = z.object({
   createdAt: z.iso.datetime(),
   snapshotSchemaVersion: z.number().int().positive(),
   sourceRevisionId: z.uuid().nullable().default(null),
+  changedFields: z.array(revisionFieldChangeSchema).max(3).default([]),
+  changedFieldCount: z.number().int().nonnegative().default(0),
 });
 export const revisionListResponseSchema = z.object({
   items: z.array(revisionSummarySchema),
@@ -76,17 +94,6 @@ export const revisionComparisonQuerySchema = z
     toVersion: z.coerce.number().pipe(versionSchema),
   })
   .strict();
-
-export const revisionFieldChangeSchema = z.object({
-  field: z.string(),
-  label: z.string(),
-  valueType: z.enum(["text", "datetime", "boolean", "json", "decimal"]),
-  before: z.unknown(),
-  after: z.unknown(),
-  beforePresent: z.boolean(),
-  afterPresent: z.boolean(),
-  restorable: z.boolean(),
-});
 
 export const revisionComparisonResponseSchema = z.object({
   objectId: z.uuid(),
