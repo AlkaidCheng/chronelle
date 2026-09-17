@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import type { Ref } from "react";
 import { IconButton } from "../../components/icon-button";
 import { ClockIcon } from "../../components/icons";
@@ -16,13 +17,14 @@ export function HistoryButton({
   readonly ref?: Ref<HTMLButtonElement>;
   readonly variant?: "text" | "icon";
 }) {
+  const t = useTranslations("history");
   const open = useOpenHistory();
   if (variant === "icon")
     return (
       <IconButton
         ref={ref}
-        label="History"
-        aria-label={`History for ${displayName}`}
+        label={t("button")}
+        aria-label={t("buttonFor", { name: displayName })}
         onClick={() => open({ objectId, displayName })}
       >
         <ClockIcon />
@@ -33,10 +35,10 @@ export function HistoryButton({
       ref={ref}
       className="button button-quiet button-small"
       type="button"
-      aria-label={`History for ${displayName}`}
+      aria-label={t("buttonFor", { name: displayName })}
       onClick={() => open({ objectId, displayName })}
     >
-      History
+      {t("button")}
     </button>
   );
 }

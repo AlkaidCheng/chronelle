@@ -875,7 +875,9 @@
     "comparison": "Version comparison",
     "compareVersions": "Compare versions",
     "comparing": "Comparing versions",
-    "restored": "Restored as version {version}. Other views have been refreshed."
+    "restored": "Restored as version {version}. Other views have been refreshed.",
+    "button": "History",
+    "buttonFor": "History for {name}"
   },
   "trash": {
     "eyebrow": "Workspace recovery",

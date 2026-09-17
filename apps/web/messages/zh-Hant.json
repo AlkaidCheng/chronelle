@@ -875,7 +875,9 @@
     "comparison": "版本比較",
     "compareVersions": "比較版本",
     "comparing": "正在比較版本",
-    "restored": "已還原為版本 {version}。其他檢視已重新整理。"
+    "restored": "已還原為版本 {version}。其他檢視已重新整理。",
+    "button": "歷史",
+    "buttonFor": "{name}的歷史"
   },
   "trash": {
     "eyebrow": "工作區復原",
