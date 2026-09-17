@@ -1,3 +1,5 @@
+import { tr } from "../i18n/active-locale";
+
 export const eventViews = [
   { id: "pages", label: "Pages" },
   { id: "overview", label: "Overview" },
@@ -13,6 +15,25 @@ export const eventViews = [
 ] as const;
 
 export type EventView = (typeof eventViews)[number]["id"];
+
+const viewKeys = {
+  pages: "pages",
+  overview: "overview",
+  todos: "todos",
+  calendar: "calendar",
+  timeline: "timeline",
+  expenses: "expenses",
+  reminders: "reminders",
+  files: "files",
+  people: "people",
+  sharing: "sharing",
+  "removed-links": "removedLinks",
+} as const satisfies Record<EventView, string>;
+
+/** A view's name in the active language. */
+export function eventViewLabel(view: EventView): string {
+  return tr("views")(viewKeys[view]);
+}
 
 export function parseEventView(value: string | null): EventView {
   // The Itinerary tab folded into the Calendar; its links still open.

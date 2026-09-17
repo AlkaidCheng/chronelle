@@ -1,3 +1,4 @@
+import { activeLocale, tr } from "../i18n/active-locale";
 import { type DayKey, dayKeyOf, parseDayKey } from "./day-placement";
 
 export interface DayGroup<Item> {
@@ -8,39 +9,31 @@ export interface DayGroup<Item> {
   readonly items: readonly Item[];
 }
 
-const dayName = new Intl.DateTimeFormat(undefined, { weekday: "long" });
-const dayTitle = new Intl.DateTimeFormat(undefined, {
-  month: "short",
-  day: "numeric",
-});
-// A day in another year carries its year.
-const farDayTitle = new Intl.DateTimeFormat(undefined, {
-  month: "short",
-  day: "numeric",
-  year: "numeric",
-});
-
 /** The parts of a day heading: the date, Today or Tomorrow, the weekday. */
 export function dayGroupLabel(
   day: DayKey,
   now: Date,
 ): { readonly label: readonly string[]; readonly tone: "today" | "plain" } {
+  const locale = activeLocale();
   const date = parseDayKey(day);
   const today = dayKeyOf(now);
   const tomorrow = new Date(now);
   tomorrow.setDate(now.getDate() + 1);
   const relative =
-    day === today ? "Today" : day === dayKeyOf(tomorrow) ? "Tomorrow" : null;
+    day === today ? "today" : day === dayKeyOf(tomorrow) ? "tomorrow" : null;
+  // A day in another year carries its year.
+  const title = new Intl.DateTimeFormat(locale, {
+    month: "short",
+    day: "numeric",
+    ...(date.getFullYear() === now.getFullYear() ? {} : { year: "numeric" }),
+  });
   return {
     label: [
-      (date.getFullYear() === now.getFullYear()
-        ? dayTitle
-        : farDayTitle
-      ).format(date),
-      ...(relative === null ? [] : [relative]),
-      dayName.format(date),
+      title.format(date),
+      ...(relative === null ? [] : [tr("dates")(relative)]),
+      new Intl.DateTimeFormat(locale, { weekday: "long" }).format(date),
     ],
-    tone: relative === "Today" ? "today" : "plain",
+    tone: relative === "today" ? "today" : "plain",
   };
 }
 

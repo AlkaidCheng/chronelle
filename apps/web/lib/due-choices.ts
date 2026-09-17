@@ -1,4 +1,5 @@
 import type { TaskRepeatRule } from "@chronelle/schemas";
+import { activeLocale, tr } from "../i18n/active-locale";
 import { type DayKey, addDays, dayKeyOf, parseDayKey } from "./day-placement";
 
 /** A quick way to a due day, with the day it means. */
@@ -11,13 +12,6 @@ export interface DueShortcut {
   readonly through?: DayKey;
 }
 
-const weekday = new Intl.DateTimeFormat(undefined, { weekday: "short" });
-const monthDayYear = new Intl.DateTimeFormat(undefined, {
-  month: "short",
-  day: "numeric",
-  year: "numeric",
-});
-
 /**
  * The shortcuts a day allows: Today, Tomorrow, Later this week (two days
  * on while that is still Friday or earlier), This weekend (the coming
@@ -26,86 +20,100 @@ const monthDayYear = new Intl.DateTimeFormat(undefined, {
  * one matching the choice.
  */
 export function dueShortcuts(now: Date): DueShortcut[] {
+  const t = tr("dueChoices");
   const today = dayKeyOf(now);
   const day = now.getDay(); // 0 Sunday .. 6 Saturday
   const shortcuts: DueShortcut[] = [];
-  shortcuts.push({ id: "today", label: "Today", day: today });
+  shortcuts.push({ id: "today", label: t("today"), day: today });
   shortcuts.push({
     id: "tomorrow",
-    label: "Tomorrow",
+    label: t("tomorrow"),
     day: dayKeyOf(addDays(now, 1)),
   });
   if (day >= 1 && day <= 3)
     shortcuts.push({
       id: "later-this-week",
-      label: "Later this week",
+      label: t("laterThisWeek"),
       day: dayKeyOf(addDays(now, 2)),
     });
   if (day >= 1 && day <= 5)
     shortcuts.push({
       id: "weekend",
-      label: "This weekend",
+      label: t("thisWeekend"),
       day: dayKeyOf(addDays(now, 6 - day)),
       through: dayKeyOf(addDays(now, 7 - day)),
     });
   shortcuts.push({
     id: "next-week",
-    label: "Next week",
+    label: t("nextWeek"),
     day: dayKeyOf(addDays(now, day === 0 ? 1 : 8 - day)),
   });
   return shortcuts;
 }
 
-/** The repeat rules the control offers, in order, with their labels. */
-export const repeatChoices: readonly (readonly [TaskRepeatRule, string])[] = [
-  ["daily", "Every day"],
-  ["weekdays", "Every weekday"],
-  ["weekly", "Every week"],
-  ["biweekly", "Every 2 weeks"],
-  ["monthly", "Every month"],
-  ["yearly", "Every year"],
+const repeatRules: readonly TaskRepeatRule[] = [
+  "daily",
+  "weekdays",
+  "weekly",
+  "biweekly",
+  "monthly",
+  "yearly",
 ];
 
-const repeatAdverbs: Record<TaskRepeatRule, string> = {
-  daily: "daily",
-  weekdays: "on weekdays",
-  weekly: "weekly",
-  biweekly: "every 2 weeks",
-  monthly: "monthly",
-  yearly: "yearly",
-};
+function isRepeatRule(rule: string): rule is TaskRepeatRule {
+  return (repeatRules as readonly string[]).includes(rule);
+}
+
+/** The repeat rules the control offers, in order, with their labels. */
+export function repeatChoices(): readonly (readonly [
+  TaskRepeatRule,
+  string,
+])[] {
+  const t = tr("repeat.choices");
+  return repeatRules.map((rule) => [rule, t(rule)] as const);
+}
 
 /** A rule as the summary reads it: "every week", "every week until Oct 31, 2026". */
 export function describeRepeat(rule: string, until = ""): string {
-  const choice = repeatChoices.find(([key]) => key === rule);
-  if (choice === undefined) return "";
-  const words = choice[1].toLowerCase();
-  return until === "" ? words : `${words} until ${exactDueDay(until)}`;
+  if (!isRepeatRule(rule)) return "";
+  const words = tr("repeat.summary")(rule);
+  return until === ""
+    ? words
+    : tr("repeat")("until", { rule: words, date: exactDueDay(until) });
 }
 
 /** A rule as a row reads it: "repeats weekly". */
 export function describeRepeatShort(rule: string | null): string {
-  if (rule === null || !(rule in repeatAdverbs)) return "";
-  return `repeats ${repeatAdverbs[rule as TaskRepeatRule]}`;
+  if (rule === null || !isRepeatRule(rule)) return "";
+  return tr("repeat.short")(rule);
 }
 
 /** The exact date of a due day, always with its year. */
 export function exactDueDay(day: DayKey): string {
-  return monthDayYear.format(parseDayKey(day));
+  return new Intl.DateTimeFormat(activeLocale(), {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  }).format(parseDayKey(day));
 }
 
 /** A day as a move announces it: today, tomorrow, or its exact date. */
 export function dayInWords(day: DayKey, now: Date): string {
-  if (day === dayKeyOf(now)) return "today";
-  if (day === dayKeyOf(addDays(now, 1))) return "tomorrow";
+  if (day === dayKeyOf(now)) return tr("dates.inWords")("today");
+  if (day === dayKeyOf(addDays(now, 1))) return tr("dates.inWords")("tomorrow");
   return exactDueDay(day);
 }
 
 /** A due day in words: the exact date, with today or tomorrow as a hint. */
 export function describeDueDay(day: DayKey, now: Date): string {
   const exact = exactDueDay(day);
-  if (day === dayKeyOf(now)) return `${exact} (today)`;
-  if (day === dayKeyOf(addDays(now, 1))) return `${exact} (tomorrow)`;
+  const hint = (relative: "today" | "tomorrow") =>
+    tr("dates")("hint", {
+      date: exact,
+      relative: tr("dates.inWords")(relative),
+    });
+  if (day === dayKeyOf(now)) return hint("today");
+  if (day === dayKeyOf(addDays(now, 1))) return hint("tomorrow");
   return exact;
 }
 
@@ -162,7 +170,9 @@ export function parseMonthText(text: string, now: Date): string | null {
 
 /** The weekday a due day falls on, short. */
 export function dueWeekday(day: DayKey): string {
-  return weekday.format(parseDayKey(day));
+  return new Intl.DateTimeFormat(activeLocale(), { weekday: "short" }).format(
+    parseDayKey(day),
+  );
 }
 
 function validDay(year: number, month: number, day: number): DayKey | null {
