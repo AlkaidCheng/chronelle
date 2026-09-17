@@ -1,5 +1,7 @@
 import {
   type EventLayoutResponse,
+  commandExecuteRequestSchema,
+  commandTransitionRequestSchema,
   eventCalendarDatesSchema,
   eventContextCreateRequestSchema,
   eventCreateRequestSchema,
@@ -480,6 +482,13 @@ function browserStorage(): StoragePort | undefined {
 
 export class SandboxStore {
   #state: State = seed();
+  /** The reversible content commands of this session: they are not persisted, like the layout undo. */
+  #commands: {
+    version: number;
+    stack: SandboxCommand[];
+    /** Commands up to this index are applied; the rest can be redone. */
+    applied: number;
+  } = { version: 0, stack: [], applied: 0 };
   #raw: string | null = null;
   #storage: StoragePort | undefined;
   #invalid = false;
@@ -1274,8 +1283,7 @@ export class SandboxStore {
         workspace,
         availableWorkspaces: [workspace],
       };
-    if (collection === "commands")
-      return { version: 0, undo: null, redo: null };
+    if (collection === "commands") return this.#commandState();
     if (collection === "trash") return { items: [], nextCursor: null };
     if (collection === "search") {
       const query = objectSearchQuerySchema.parse(
@@ -1971,7 +1979,139 @@ export class SandboxStore {
       });
       return saved;
     }
+    if (collection === "commands" && method === "POST")
+      return this.#commandWrite(id, body);
     if (method === "PATCH" && id && !operation) {
+      const saved = this.#applyPatch(collection, id, body);
+      if (saved !== undefined) return saved;
+    }
+    throw new SandboxError(
+      501,
+      "sandbox_unsupported",
+      "This operation needs the full application. Real sign-in, sharing, file transfers and recovery are not simulated in this design sandbox.",
+    );
+  }
+
+  /** The command stack as the API reports it: the heads carry no content. */
+  #commandState() {
+    const { version, stack, applied } = this.#commands;
+    const undo = stack[applied - 1];
+    const redo = stack[applied];
+    return {
+      version,
+      undo: undo === undefined ? null : { commandId: undo.id, available: true },
+      redo: redo === undefined ? null : { commandId: redo.id, available: true },
+    };
+  }
+
+  /** Execute, undo, or redo; each is one more version of the objects it touches. */
+  #commandWrite(direction: string | undefined, body: unknown) {
+    const collections = { event: "events", task: "tasks" } as const;
+    if (direction === undefined) {
+      const input = commandExecuteRequestSchema.parse(body);
+      this.#assertStackVersion(input.expectedStackVersion);
+      // The record patch is applied as sent: the envelope's parse has
+      // already turned its dates into Date objects.
+      const sent = (body as { edits: { patch: Record<string, unknown> }[] })
+        .edits;
+      const edits = input.edits.map((edit, index) => {
+        const before = this.#object(edit.objectId) as unknown as Record<
+          string,
+          unknown
+        >;
+        const { expectedVersion: _, ...fields } = edit.patch;
+        const saved = this.#applyPatch(
+          collections[edit.objectType],
+          edit.objectId,
+          sent[index]?.patch,
+        );
+        if (saved === undefined)
+          throw new SandboxError(404, "not_found", "Unknown object.");
+        const keys = Object.keys(fields);
+        return {
+          objectType: edit.objectType,
+          objectId: edit.objectId,
+          before: Object.fromEntries(keys.map((key) => [key, before[key]])),
+          after: Object.fromEntries(
+            keys.map((key) => [
+              key,
+              (saved as unknown as Record<string, unknown>)[key],
+            ]),
+          ),
+        };
+      });
+      const command = { id: crypto.randomUUID(), edits };
+      const { stack, applied } = this.#commands;
+      this.#commands = {
+        version: this.#commands.version + 1,
+        stack: [...stack.slice(0, applied), command].slice(-50),
+        applied: Math.min(applied + 1, 50),
+      };
+      return this.#receipt(input.operationId, command, "execute");
+    }
+    const input = commandTransitionRequestSchema.parse(body);
+    this.#assertStackVersion(input.expectedStackVersion);
+    const { stack, applied } = this.#commands;
+    const index = direction === "undo" ? applied - 1 : applied;
+    const command = stack[index];
+    if (command === undefined || command.id !== input.commandId)
+      throw new SandboxError(
+        409,
+        "command_stack_conflict",
+        "The command stack changed. Refresh before undoing or redoing.",
+      );
+    for (const edit of command.edits) {
+      const current = this.#object(edit.objectId);
+      this.#applyPatch(collections[edit.objectType], edit.objectId, {
+        expectedVersion: current.version,
+        ...(direction === "undo" ? edit.before : edit.after),
+      });
+    }
+    this.#commands = {
+      version: this.#commands.version + 1,
+      stack,
+      applied: direction === "undo" ? applied - 1 : applied + 1,
+    };
+    return this.#receipt(
+      input.operationId,
+      command,
+      direction === "undo" ? "undo" : "redo",
+    );
+  }
+
+  #assertStackVersion(expected: number) {
+    if (expected !== this.#commands.version)
+      throw new SandboxError(
+        409,
+        "command_stack_conflict",
+        "The command stack changed. Refresh before undoing or redoing.",
+      );
+  }
+
+  #receipt(
+    operationId: string,
+    command: SandboxCommand,
+    direction: "execute" | "undo" | "redo",
+  ) {
+    return {
+      operationId,
+      commandId: command.id,
+      direction,
+      stackVersion: this.#commands.version,
+      objects: command.edits.map((edit) => ({
+        id: edit.objectId,
+        version: this.#object(edit.objectId).version,
+      })),
+    };
+  }
+
+  /** A content patch on one record, or undefined when the route is not one. */
+  #applyPatch(
+    collection: string | undefined,
+    id: string,
+    body: unknown,
+  ): Resource | undefined {
+    {
       const object = this.#object(id);
       const contracts = {
         events: { type: "event", schema: eventUpdateRequestSchema },
@@ -2032,10 +2172,16 @@ export class SandboxStore {
         return saved;
       }
     }
-    throw new SandboxError(
-      501,
-      "sandbox_unsupported",
-      "This operation needs the full application. Real sign-in, sharing, file transfers and recovery are not simulated in this design sandbox.",
-    );
+    return undefined;
   }
+}
+
+interface SandboxCommand {
+  readonly id: string;
+  readonly edits: readonly {
+    readonly objectType: "event" | "task";
+    readonly objectId: string;
+    readonly before: Record<string, unknown>;
+    readonly after: Record<string, unknown>;
+  }[];
 }

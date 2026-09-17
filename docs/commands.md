@@ -4,7 +4,9 @@ The command API applies and reverses Event/Task content edits. Each successful
 Execute, Undo, or Redo is a new mutation of the same canonical objects, with
 new versions, immutable revisions, and audit events. Existing PATCH endpoints
 remain supported but do not add entries to a reversible stack. The web editors
-still use those PATCH endpoints; command controls are not yet implemented.
+save Event and Task content through commands, one edit per save, and offer
+Undo edit and Redo edit from the page's More menu and Cmd/Ctrl + Z; a patch
+that carries metadata still uses the PATCH endpoint.
 
 ## Contract
 
@@ -117,8 +119,8 @@ Migration `0009_add_reversible_commands.sql` adds:
 Object revisions retain mutation kind `updated`. Their associated audit metadata
 includes command ID, operation ID, and `execute`, `undo`, or `redo` direction.
 Each command also writes one `command.execute`, `command.undo`, or `command.redo`
-audit with all resulting object versions. The existing History UI shows the new
-revisions as edits; command-specific labels and controls are a separate UI step.
+audit with all resulting object versions. The History UI shows the new
+revisions as edits, Edited (content), with a preview of the changed fields.
 
 The migration is additive. Apply it before starting an API exposing these routes;
 there is no new baseline or data backfill. Earlier API/web versions can continue

@@ -9,6 +9,7 @@ import { type ReactNode, useEffect, useState } from "react";
 import { useAuthSession } from "../lib/auth-session";
 import { useFriendsQuery } from "../lib/friend-queries";
 import { useAdoptAccountLocale, useSessionQuery } from "../lib/queries";
+import { useContentUndoShortcut } from "../lib/use-content-undo-shortcut";
 import {
   DisplayPreferencesProvider,
   timePreferencesOf,
@@ -29,6 +30,7 @@ export function WorkspaceShell({ children }: { readonly children: ReactNode }) {
   const t = useTranslations("nav");
   const adoptLocale = useAdoptAccountLocale();
   const [customizing, setCustomizing] = useState(false);
+  useContentUndoShortcut();
 
   useEffect(() => {
     if (isHydrated && credential === null) {

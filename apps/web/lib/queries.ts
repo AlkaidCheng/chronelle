@@ -1,8 +1,9 @@
 "use client";
 
-import type {
-  ChronelleApiClient,
-  DocumentFileInput,
+import {
+  ApiClientError,
+  type ChronelleApiClient,
+  type DocumentFileInput,
 } from "@chronelle/api-client";
 import type {
   DevelopmentSignInRequest,
@@ -50,6 +51,14 @@ import {
 } from "../i18n/locale-preference";
 import { isLocale } from "../i18n/locales";
 import { useApiClient } from "./api-context";
+import {
+  commandDescription,
+  commandsKey,
+  executeCommand,
+  readCommandState,
+  rememberCommand,
+  settledRecord,
+} from "./commands";
 import { personDisplayName } from "./person-fields";
 import { useAuthSession } from "./auth-session";
 import type { EventView } from "./event-views";
@@ -79,6 +88,7 @@ export const queryKeys = {
   session: ["session"] as const,
   friends: ["friends"] as const,
   members: ["members"] as const,
+  commands: commandsKey,
 };
 
 export function useDevelopmentSignIn() {
@@ -647,14 +657,44 @@ export function useCreateEvent() {
   });
 }
 
+/**
+ * Content edits of Events and Tasks run as reversible commands, so the
+ * page's Undo edit can take them back; the saved record is read back after
+ * the receipt. A patch that carries metadata is not a content edit and goes
+ * through the plain update.
+ */
 export function useUpdateEvent() {
   const client = useApiClient();
   const queryClient = useQueryClient();
   const { signal } = useAuthSession();
   const invalidate = useCanonicalInvalidation();
   return useMutation({
-    mutationFn: ({ id, input }: { id: string; input: EventUpdatePayload }) =>
-      client.updateEvent(id, input),
+    mutationFn: async ({
+      id,
+      input,
+    }: {
+      id: string;
+      input: EventUpdatePayload;
+    }) => {
+      if (input.metadata !== undefined) return client.updateEvent(id, input);
+      const { metadata: _, ...patch } = input;
+      const receipt = await executeCommand(client, queryClient, {
+        objectType: "event",
+        objectId: id,
+        patch,
+      });
+      const saved =
+        settledRecord(
+          queryClient.getQueryData<EventResponse>(queryKeys.eventResource(id)),
+          patch,
+          receipt,
+        ) ?? (await client.getEvent(id));
+      rememberCommand(
+        receipt.commandId,
+        commandDescription(input, saved.displayName),
+      );
+      return saved;
+    },
     onSuccess: async (saved) => {
       const queryKey = queryKeys.eventResource(saved.id);
       await queryClient.cancelQueries({ queryKey, exact: true });
@@ -870,11 +910,86 @@ export function useCreateTask(
 
 export function useUpdateTask() {
   const client = useApiClient();
+  const queryClient = useQueryClient();
   const invalidate = useCanonicalInvalidation();
   return useMutation({
-    mutationFn: ({ id, input }: { id: string; input: TaskUpdatePayload }) =>
-      client.updateTask(id, input),
-    onSuccess: () => {
+    mutationFn: async ({
+      id,
+      input,
+    }: {
+      id: string;
+      input: TaskUpdatePayload;
+    }) => {
+      if (input.metadata !== undefined) return client.updateTask(id, input);
+      const { metadata: _, ...patch } = input;
+      const receipt = await executeCommand(client, queryClient, {
+        objectType: "task",
+        objectId: id,
+        patch,
+      });
+      const saved =
+        settledRecord(
+          queryClient.getQueryData<TaskResponse>(queryKeys.objectResource(id)),
+          patch,
+          receipt,
+        ) ?? (await client.getTask(id));
+      rememberCommand(
+        receipt.commandId,
+        commandDescription(input, saved.displayName),
+      );
+      return saved;
+    },
+    onSuccess: (saved) => {
+      queryClient.setQueryData<TaskResponse>(
+        queryKeys.objectResource(saved.id),
+        (current) =>
+          current && current.version > saved.version ? current : saved,
+      );
+      void invalidate();
+    },
+  });
+}
+
+/** The caller's undo and redo heads in this workspace. */
+export function useCommandState() {
+  const client = useApiClient();
+  const { credential } = useAuthSession();
+  return useQuery({
+    enabled: credential !== null,
+    queryFn: ({ signal }) => client.withSignal(signal).getCommandState(),
+    queryKey: queryKeys.commands,
+  });
+}
+
+/**
+ * Reverses or reapplies the pinned head. A head that is gone or unreachable
+ * reports a stack conflict; the refreshed state then shows why.
+ */
+export function useCommandTransition(direction: "undo" | "redo") {
+  const client = useApiClient();
+  const queryClient = useQueryClient();
+  const invalidate = useCanonicalInvalidation();
+  return useMutation({
+    mutationFn: async () => {
+      const state = await readCommandState(client, queryClient);
+      const head = state[direction];
+      if (head === null || !head.available)
+        throw new ApiClientError(
+          409,
+          "command_stack_conflict",
+          "The command stack changed. Refresh before undoing or redoing.",
+        );
+      const input = {
+        operationId: crypto.randomUUID(),
+        commandId: head.commandId,
+        expectedStackVersion: state.version,
+      };
+      return direction === "undo"
+        ? client.undoCommand(input)
+        : client.redoCommand(input);
+    },
+    onSettled: async () => {
+      await queryClient.invalidateQueries({ queryKey: queryKeys.commands });
       void invalidate();
     },
   });

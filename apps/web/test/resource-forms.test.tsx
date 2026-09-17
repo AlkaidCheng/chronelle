@@ -18,6 +18,7 @@ import { TaskForm } from "../features/events/task-form";
 
 import { EventInspector } from "../features/events/event-inspector";
 import { CreateScheduleDialog } from "../features/events/create-schedule-dialog";
+import { withCommands } from "./helpers/command-fetch";
 
 const objectId = "019d6e7d-0000-7000-8000-000000000010";
 const workspaceId = "019d6e7d-0000-7000-8000-000000000001";
@@ -230,7 +231,7 @@ describe("versioned editor drafts", () => {
     "preserves the $name draft until an explicit reload",
     async (form) => {
       const fetch = vi.fn<typeof globalThis.fetch>();
-      vi.stubGlobal("fetch", fetch);
+      vi.stubGlobal("fetch", withCommands(fetch));
       const user = userEvent.setup();
       const view = render(form.render(1, "Initial title"), {
         wrapper: Providers,
@@ -273,7 +274,7 @@ describe("versioned editor drafts", () => {
             finishSave = resolve;
           }),
       );
-      vi.stubGlobal("fetch", fetch);
+      vi.stubGlobal("fetch", withCommands(fetch));
       const user = userEvent.setup();
       const view = render(editor.render(1, "Initial"), { wrapper: Providers });
       const submit = view.container.querySelector<HTMLButtonElement>(
@@ -377,7 +378,7 @@ describe("versioned editor drafts", () => {
           form.resource(body.expectedVersion + 1, body.displayName),
         );
       });
-      vi.stubGlobal("fetch", fetch);
+      vi.stubGlobal("fetch", withCommands(fetch));
       const user = userEvent.setup();
       const view = render(form.render(1, "Initial"), {
         wrapper: Providers,

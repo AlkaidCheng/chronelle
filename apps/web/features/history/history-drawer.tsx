@@ -9,6 +9,7 @@ import { useEffect, useId, useRef, useState } from "react";
 
 import { ErrorNotice, LoadingState, Notice } from "../../components/feedback";
 import { tr } from "../../i18n/active-locale";
+import { formatCalendarDate } from "../../lib/event-schedule";
 import { formatDateTime, shortId } from "../../lib/format";
 import {
   useObjectHistory,
@@ -28,6 +29,8 @@ const actionKeys = {
   restored: "restored",
 } as const;
 
+const calendarDate = /^\d{4}-\d{2}-\d{2}$/u;
+
 function displayValue(
   change: RevisionFieldChange,
   side: "before" | "after",
@@ -40,9 +43,53 @@ function displayValue(
   if (value === null) return t("empty");
   if (change.valueType === "datetime" && typeof value === "string")
     return formatDateTime(value);
+  if (typeof value === "string" && calendarDate.test(value))
+    return formatCalendarDate(value);
   if (typeof value === "boolean") return value ? t("yes") : t("no");
   if (typeof value === "object") return JSON.stringify(value, null, 2);
   return String(value);
+}
+
+/** The field's name in the language: the catalog knows the typed fields, a custom property carries its key. */
+function fieldLabel(change: RevisionFieldChange): string {
+  const t = tr("history.fields");
+  if (change.field.startsWith("customProperties."))
+    return t("customProperty", {
+      name: change.field.slice("customProperties.".length),
+    });
+  const key = change.field as Parameters<typeof t>[0];
+  return t.has(key) ? t(key) : change.label;
+}
+
+/** One line per changed field, values on one line, for a history row. */
+function ChangePreview({
+  changes,
+  count,
+}: {
+  readonly changes: readonly RevisionFieldChange[];
+  readonly count: number;
+}) {
+  const t = useTranslations("history");
+  if (changes.length === 0) return null;
+  const line = (value: string) => value.replace(/\s+/gu, " ");
+  return (
+    <ul className="history-change-lines">
+      {changes.map((change) => (
+        <li key={change.field}>
+          {t("changeLine", {
+            field: fieldLabel(change),
+            before: line(displayValue(change, "before")),
+            after: line(displayValue(change, "after")),
+          })}
+        </li>
+      ))}
+      {count > changes.length ? (
+        <li className="muted">
+          {t("more", { count: count - changes.length })}
+        </li>
+      ) : null}
+    </ul>
+  );
 }
 
 function ChangeList({
@@ -60,7 +107,7 @@ function ChangeList({
       {changes.map((change) => (
         <div className="history-change" key={change.field}>
           <dt>
-            {change.label}
+            {fieldLabel(change)}
             {preview && !change.restorable ? (
               <span className="status-chip">{t("preserved")}</span>
             ) : null}
@@ -261,7 +308,12 @@ export function HistoryDrawer({
                   </p>
                   {revision.mutationKind === "baseline" ? (
                     <p>{t("baselineNote")}</p>
-                  ) : null}
+                  ) : (
+                    <ChangePreview
+                      changes={revision.changedFields}
+                      count={revision.changedFieldCount}
+                    />
+                  )}
                 </div>
                 <div className="history-actions">
                   <button

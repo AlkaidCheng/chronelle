@@ -837,7 +837,7 @@
     "actions": {
       "recovered": "已從垃圾桶復原",
       "created": "已建立",
-      "updated": "已編輯",
+      "updated": "已編輯（內容）",
       "baseline": "已記錄基準",
       "permissionScope": "權限範圍已變更",
       "deleted": "已移到垃圾桶",
@@ -885,7 +885,46 @@
     "comparing": "正在比較版本",
     "restored": "已還原為版本 {version}。其他檢視已重新整理。",
     "button": "歷史",
-    "buttonFor": "{name}的歷史"
+    "buttonFor": "{name}的歷史",
+    "fields": {
+      "displayName": "名稱",
+      "startsOn": "開始日期",
+      "endsOn": "結束日期",
+      "startsAt": "開始",
+      "endsAt": "結束",
+      "timezone": "時區",
+      "isAllDay": "全天",
+      "status": "狀態",
+      "dueOn": "到期日",
+      "dueAt": "到期",
+      "durationMinutes": "時長（分鐘）",
+      "repeatRule": "重複",
+      "repeatUntil": "重複至",
+      "parentTaskId": "父任務",
+      "assigneeId": "負責人",
+      "location": "地點",
+      "rank": "順序",
+      "labelIds": "標籤",
+      "completedAt": "完成時間",
+      "amount": "金額",
+      "currency": "幣別",
+      "occurredAt": "交易日期",
+      "remindAt": "提醒時間",
+      "originalFilename": "原始檔名",
+      "mimeType": "檔案類型",
+      "sizeBytes": "大小（位元組）",
+      "checksumSha256": "檔案校驗和",
+      "nickname": "暱稱",
+      "description": "描述",
+      "contacts": "聯絡方式",
+      "email": "電子郵件",
+      "userId": "連結帳號",
+      "customProperty": "自訂屬性：{name}"
+    },
+    "changeLine": "{field}：{before} 改為 {after}",
+    "more": "另有 {count} 個欄位",
+    "kindContent": "已編輯（內容）",
+    "kindLayout": "已排列（版面）"
   },
   "trash": {
     "eyebrow": "工作區復原",
@@ -1036,7 +1075,18 @@
     "back": "返回",
     "saving": "儲存中…",
     "removeFromLayout": "從版面中移除",
-    "restoreLayout": "還原版面"
+    "restoreLayout": "還原版面",
+    "kind": "已排列（版面）",
+    "moved": "將{component}移到{other}之上",
+    "movedToEnd": "將{component}移到{page}末尾",
+    "movedToPage": "將{component}移到{page}",
+    "addedPage": "新增了頁面{page}",
+    "removedPage": "移除了頁面{page}",
+    "addedComponent": "在{page}新增了{component}",
+    "removedComponent": "移除了元件{component}",
+    "renamedPage": "頁面{before}重新命名為{after}",
+    "moreChanges": "另有 {count} 項變更",
+    "initialSummary": "空版面"
   },
   "search": {
     "updatedAt": "更新於 {when} | ID {id}",
@@ -1100,7 +1150,8 @@
     "enableSubmit": "啟用編輯器送出快速鍵",
     "submitNote": "<kbd>Cmd/Ctrl + Enter</kbd> 可從活動、日程、任務、支出或提醒的欄位中儲存。儲存驗證仍然生效。",
     "buttonsNote": "沒有快速鍵時按鈕仍可使用。這些選擇會在儲存空間可用時儲存在此瀏覽器上。原生文字復原不受影響。",
-    "reset": "重設鍵盤快速鍵"
+    "reset": "重設鍵盤快速鍵",
+    "undoShortcut": "<kbd>Cmd/Ctrl + Z</kbd> 在文字欄位之外復原你的上一次編輯，排列時則復原上一次版面變更；<kbd>Shift + Cmd/Ctrl + Z</kbd> 重做。"
   },
   "overview": {
     "transactions": "{count} 筆交易",
@@ -1381,6 +1432,22 @@
       "viewer": "檢視者",
       "editor": "編輯者",
       "owner": "擁有者"
+    }
+  },
+  "undo": {
+    "edit": "復原編輯",
+    "redoEdit": "重做編輯",
+    "named": "復原：{command}",
+    "redoNamed": "重做：{command}",
+    "nothing": "沒有可復原的操作",
+    "nothingRedo": "沒有可重做的操作",
+    "changedElsewhere": "此後已被他人變更",
+    "commands": {
+      "rename": "重新命名 {name}",
+      "complete": "完成 {name}",
+      "reopen": "重新開啟 {name}",
+      "move": "移動 {name}",
+      "edit": "編輯 {name}"
     }
   }
 }

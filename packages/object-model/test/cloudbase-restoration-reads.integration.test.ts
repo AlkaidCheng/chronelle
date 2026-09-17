@@ -15,6 +15,7 @@ import { InvalidObjectStateError } from "../src/errors.js";
 import { EventPlanningObjectService } from "../src/object-service.js";
 import { ObjectRecoveryService } from "../src/recovery-service.js";
 import { ObjectRestorationService } from "../src/restoration-service.js";
+import { PostgresRevisionReadRepository } from "../src/revision-reads.js";
 import { liveReader } from "./cloudbase-read-double.js";
 import {
   createWriteHarness,
@@ -33,6 +34,8 @@ let objects: EventPlanningObjectService;
 let recovery: ObjectRecoveryService;
 let reference: ObjectRestorationService;
 let cloudbase: ObjectRestorationService;
+let referenceRevisions: PostgresRevisionReadRepository;
+let cloudbaseRevisions: CloudBaseRevisionReadRepository;
 
 beforeAll(async () => {
   harness = await createWriteHarness("Restoration reads");
@@ -41,9 +44,11 @@ beforeAll(async () => {
   recovery = new ObjectRecoveryService(db);
   reference = new ObjectRestorationService(db);
   const reader = liveReader(db);
+  referenceRevisions = new PostgresRevisionReadRepository(db);
+  cloudbaseRevisions = new CloudBaseRevisionReadRepository(reader);
   cloudbase = new ObjectRestorationService(db, undefined, {
     objects: new CloudBaseObjectReadRepository(reader),
-    revisions: new CloudBaseRevisionReadRepository(reader),
+    revisions: cloudbaseRevisions,
   });
 });
 
@@ -228,6 +233,71 @@ describe.sequential("CloudBase restoration reads", () => {
       currentVersion: 3,
       canRestore: false,
     });
+  });
+
+  it("summarizes each revision's changes identically on the list", async () => {
+    const results = [];
+    for (const revisions of [referenceRevisions, cloudbaseRevisions]) {
+      const { event, task } = await fixtures();
+      const list = (objectId: string, limit: number, beforeVersion?: number) =>
+        revisions.listRevisions(context().principal, objectId, {
+          limit,
+          ...(beforeVersion === undefined ? {} : { beforeVersion }),
+        });
+      const strip = (page: { items: readonly object[] }) =>
+        page.items.map((item) => {
+          const { changedFields, changedFieldCount, mutationKind } =
+            item as Record<string, unknown>;
+          return { changedFields, changedFieldCount, mutationKind };
+        });
+      const [full, firstPage, secondPage, single] = await Promise.all([
+        list(event.id, 25),
+        list(event.id, 1),
+        list(event.id, 1, 3),
+        revisions.getRevision(context().principal, event.id, 2),
+      ]);
+      results.push({
+        full: strip(full),
+        firstPage: strip(firstPage),
+        secondPage: strip(secondPage),
+        single: {
+          changedFields: single.changedFields,
+          changedFieldCount: single.changedFieldCount,
+        },
+        task: strip(await list(task.id, 25)),
+      });
+    }
+    expect(results[1]).toEqual(results[0]);
+    // Newest first: the metadata-only version changed no content; version 2
+    // changed eight fields, of which three are named; the first has no
+    // earlier version to compare with.
+    expect(results[0]?.full).toEqual([
+      { mutationKind: "updated", changedFields: [], changedFieldCount: 0 },
+      expect.objectContaining({
+        mutationKind: "updated",
+        changedFieldCount: 8,
+      }),
+      { mutationKind: "created", changedFields: [], changedFieldCount: 0 },
+    ]);
+    expect(results[0]?.full[1]?.changedFields).toEqual([
+      expect.objectContaining({
+        field: "displayName",
+        before: "Launch night",
+        after: "Launch night, moved",
+      }),
+      expect.objectContaining({ field: "startsOn", after: "2030-10-17" }),
+      expect.objectContaining({ field: "startsAt" }),
+    ]);
+    // A page's last row still compares with the version before the page.
+    expect(results[0]?.firstPage).toEqual([results[0]?.full[0]]);
+    expect(results[0]?.secondPage).toEqual([results[0]?.full[1]]);
+    expect(results[0]?.single).toEqual({
+      changedFields: results[0]?.full[1]?.changedFields,
+      changedFieldCount: 8,
+    });
+    expect(results[0]?.task.map((row) => row.changedFieldCount)).toEqual([
+      0, 0, 0,
+    ]);
   });
 
   it("refuses the same reads with the same errors", async () => {

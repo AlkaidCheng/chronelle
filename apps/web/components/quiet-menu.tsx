@@ -185,6 +185,7 @@ export function MenuItem({
   disabled = false,
   tone = "neutral",
   icon,
+  hint,
 }: {
   readonly children: ReactNode;
   readonly onSelect: () => void;
@@ -192,6 +193,8 @@ export function MenuItem({
   readonly disabled?: boolean;
   readonly tone?: "neutral" | "danger";
   readonly icon?: ReactNode;
+  /** A second line under the label: what the item will do, or why it cannot. */
+  readonly hint?: string | undefined;
 }) {
   const close = useContext(CloseContext);
   const shared = {
@@ -199,6 +202,7 @@ export function MenuItem({
     "aria-disabled": disabled || undefined,
     tabIndex: -1,
     className: `quiet-menu-item quiet-menu-${tone}`,
+    title: hint,
     onClick: () => {
       if (disabled) return;
       close?.();
@@ -208,7 +212,12 @@ export function MenuItem({
   const body = (
     <>
       {icon}
-      <span>{children}</span>
+      <span>
+        {children}
+        {hint === undefined ? null : (
+          <span className="quiet-menu-hint">{hint}</span>
+        )}
+      </span>
       {checked ? (
         <svg
           aria-hidden="true"

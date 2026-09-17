@@ -18,6 +18,7 @@ import { TaskInspector } from "../features/events/task-inspector";
 import { ExpenseForm } from "../features/events/expense-form";
 import { ExpenseInspector } from "../features/events/expense-inspector";
 import { queryKeys } from "../lib/queries";
+import { withCommands } from "./helpers/command-fetch";
 
 describe.each(["task", "expense"] as const)("focused %s editors", (kind) => {
   const field = kind === "task" ? "Task" : "Expense";
@@ -354,7 +355,7 @@ describe.each(["task", "expense"] as const)("focused %s editors", (kind) => {
           String(input).endsWith("/access") ? access : resource,
         );
       });
-      vi.stubGlobal("fetch", fetch);
+      vi.stubGlobal("fetch", withCommands(fetch));
       const user = userEvent.setup();
       render(<Harness />, { wrapper: Providers });
       await user.click(screen.getByRole("button", { name: "Open resource" }));

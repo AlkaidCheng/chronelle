@@ -66,8 +66,13 @@ for (const kind of ["create", "edit"] as const)
     const started = Promise.withResolvers<void>();
     let holdReads = false;
     let writes = 0;
+    // A creation posts the event; an edit runs as a command.
+    const isWrite = (pathname: string, method: string) =>
+      method === "POST" &&
+      pathname === (kind === "create" ? "/api/events" : "/api/commands");
     await page.route("**/api/**", async (route) => {
-      if (route.request().method() === (kind === "create" ? "POST" : "PATCH")) {
+      const { pathname } = new URL(route.request().url());
+      if (isWrite(pathname, route.request().method())) {
         writes++;
         started.resolve();
         await release.promise;

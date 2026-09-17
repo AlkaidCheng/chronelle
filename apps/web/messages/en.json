@@ -837,7 +837,7 @@
     "actions": {
       "recovered": "Recovered from trash",
       "created": "Created",
-      "updated": "Edited",
+      "updated": "Edited (content)",
       "baseline": "Baseline captured",
       "permissionScope": "Permission scope changed",
       "deleted": "Moved to trash",
@@ -885,7 +885,46 @@
     "comparing": "Comparing versions",
     "restored": "Restored as version {version}. Other views have been refreshed.",
     "button": "History",
-    "buttonFor": "History for {name}"
+    "buttonFor": "History for {name}",
+    "fields": {
+      "displayName": "Name",
+      "startsOn": "Start date",
+      "endsOn": "End date",
+      "startsAt": "Starts",
+      "endsAt": "Ends",
+      "timezone": "Time zone",
+      "isAllDay": "All day",
+      "status": "Status",
+      "dueOn": "Due date",
+      "dueAt": "Due",
+      "durationMinutes": "Duration (minutes)",
+      "repeatRule": "Repeat",
+      "repeatUntil": "Repeat until",
+      "parentTaskId": "Parent task",
+      "assigneeId": "Assignee",
+      "location": "Location",
+      "rank": "Order",
+      "labelIds": "Labels",
+      "completedAt": "Completed",
+      "amount": "Amount",
+      "currency": "Currency",
+      "occurredAt": "Transaction date",
+      "remindAt": "Reminder time",
+      "originalFilename": "Original filename",
+      "mimeType": "File type",
+      "sizeBytes": "Size in bytes",
+      "checksumSha256": "File checksum",
+      "nickname": "Nickname",
+      "description": "Description",
+      "contacts": "Contacts",
+      "email": "Email",
+      "userId": "Linked account",
+      "customProperty": "Custom property: {name}"
+    },
+    "changeLine": "{field}: {before} to {after}",
+    "more": "+{count, plural, one {# field} other {# fields}}",
+    "kindContent": "Edited (content)",
+    "kindLayout": "Arranged (layout)"
   },
   "trash": {
     "eyebrow": "Workspace recovery",
@@ -1036,7 +1075,18 @@
     "back": "Back",
     "saving": "Saving...",
     "removeFromLayout": "Remove from layout",
-    "restoreLayout": "Restore layout"
+    "restoreLayout": "Restore layout",
+    "kind": "Arranged (layout)",
+    "moved": "Moved {component} above {other}",
+    "movedToEnd": "Moved {component} to the end of {page}",
+    "movedToPage": "Moved {component} to {page}",
+    "addedPage": "Added page {page}",
+    "removedPage": "Removed page {page}",
+    "addedComponent": "Added {component} to {page}",
+    "removedComponent": "Removed component {component}",
+    "renamedPage": "Renamed page {before} to {after}",
+    "moreChanges": "+{count, plural, one {# change} other {# changes}}",
+    "initialSummary": "The empty layout"
   },
   "search": {
     "updatedAt": "Updated {when} | ID {id}",
@@ -1100,7 +1150,8 @@
     "enableSubmit": "Enable editor submit shortcut",
     "submitNote": "<kbd>Cmd/Ctrl + Enter</kbd> saves from an event, schedule, task, expense, or reminder field. Save validation still applies.",
     "buttonsNote": "Buttons remain available without shortcuts. These choices are saved on this browser when storage is available. Native text undo is unchanged.",
-    "reset": "Reset keyboard shortcuts"
+    "reset": "Reset keyboard shortcuts",
+    "undoShortcut": "<kbd>Cmd/Ctrl + Z</kbd> undoes your last edit outside text fields, and the last layout change while arranging; <kbd>Shift + Cmd/Ctrl + Z</kbd> redoes it."
   },
   "overview": {
     "transactions": "{count, plural, one {# transaction} other {# transactions}}",
@@ -1381,6 +1432,22 @@
       "viewer": "viewer",
       "editor": "editor",
       "owner": "owner"
+    }
+  },
+  "undo": {
+    "edit": "Undo edit",
+    "redoEdit": "Redo edit",
+    "named": "Undo: {command}",
+    "redoNamed": "Redo: {command}",
+    "nothing": "Nothing to undo",
+    "nothingRedo": "Nothing to redo",
+    "changedElsewhere": "Changed by someone else since",
+    "commands": {
+      "rename": "rename {name}",
+      "complete": "complete {name}",
+      "reopen": "reopen {name}",
+      "move": "move {name}",
+      "edit": "edit {name}"
     }
   }
 }

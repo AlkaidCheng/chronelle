@@ -214,13 +214,18 @@ describe("Event inspector", () => {
   });
 
   it("locks pending saves, retains failed drafts, then saves one canonical version", async () => {
+    // The write is held until the test answers it; the command state read
+    // before it reaches the store.
     let complete: (response: Response) => void = () => {};
-    vi.mocked(fetch).mockImplementationOnce(
-      () =>
-        new Promise((resolve) => {
-          complete = resolve;
-        }),
-    );
+    vi.mocked(fetch).mockImplementation((input, options) => {
+      if (options?.method !== "POST") return store.fetch(input, options);
+      vi.mocked(fetch).mockImplementation((next, nextOptions) =>
+        store.fetch(next, nextOptions),
+      );
+      return new Promise((resolve) => {
+        complete = resolve;
+      });
+    });
     const user = await openInspector();
     await user.clear(screen.getByLabelText("Name"));
     await user.type(screen.getByLabelText("Name"), "Saved garden evening");

@@ -25,6 +25,7 @@ import {
   MenuSeparator,
   QuietMenu,
 } from "../../components/quiet-menu";
+import { UndoMenuItems } from "../../components/undo-menu-items";
 import { formatEventSchedule } from "../../lib/event-schedule";
 import { personAccount } from "../../lib/person-collection";
 import { personDisplayName, propertyText } from "../../lib/person-fields";
@@ -159,6 +160,12 @@ export function PersonPage({ personId }: { readonly personId: string }) {
               icon={<MoreIcon />}
               label={people("actionsFor", { name })}
             >
+              {canEdit ? (
+                <>
+                  <UndoMenuItems />
+                  <MenuSeparator />
+                </>
+              ) : null}
               <MenuItem icon={<LinkIcon />} onSelect={copyLink}>
                 {t("copyLink")}
               </MenuItem>
