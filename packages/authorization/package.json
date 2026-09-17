@@ -16,7 +16,9 @@
   "scripts": {
     "build": "pnpm --filter @chronelle/db build && tsc -p tsconfig.build.json",
     "test": "pnpm --filter @chronelle/db build && vitest run",
-    "typecheck": "pnpm --filter @chronelle/db build && tsc -p tsconfig.json --noEmit"
+    "test:unit": "vitest run",
+    "typecheck": "pnpm --filter @chronelle/db build && tsc -p tsconfig.json --noEmit",
+    "typecheck:unit": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
     "@chronelle/db": "workspace:*",

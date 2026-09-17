@@ -19,8 +19,28 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  quality:
-    name: quality
+  quality-static:
+    name: quality-static
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Install pnpm
+        uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+        with:
+          version: 11.25.0
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          cache: pnpm
+          node-version: 24
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Format, lint, type-check, and build
+        run: pnpm check:static
+
+  quality-tests:
+    name: quality-tests
     runs-on: ubuntu-latest
     services:
       postgres:
@@ -54,9 +74,22 @@ jobs:
         run: pnpm install --frozen-lockfile
       - name: Verify PostgreSQL client
         run: psql --version
-      - name: Run quality gate
-        run: pnpm check
+      - name: Run the package suites
+        run: pnpm check:tests
 
+  quality:
+    name: quality
+    needs: [quality-static, quality-tests]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require both halves of the quality gate to pass
+        env:
+          STATIC_RESULT: ${{ needs.quality-static.result }}
+          TESTS_RESULT: ${{ needs.quality-tests.result }}
+        run: |
+          test "$STATIC_RESULT" = success
+          test "$TESTS_RESULT" = success
   containers:
     name: containers
     runs-on: ubuntu-latest
@@ -111,7 +144,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        shard: [1, 2, 3]
+        project:
+          [chromium-desktop, chromium-mobile, webkit-desktop, webkit-mobile]
     services:
       postgres:
         image: postgres:17-alpine
@@ -127,7 +161,7 @@ jobs:
     env:
       CI: "true"
       DATABASE_URL: postgresql://chronelle:chronelle_dev@postgres:5432/chronelle
-      E2E_SHARD: ${{ matrix.shard }}/3
+      E2E_PROJECT: ${{ matrix.project }}
     steps:
       - name: Check out repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -148,7 +182,7 @@ jobs:
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: browser-failures-${{ github.run_id }}-${{ github.run_attempt }}-${{ matrix.shard }}
+          name: browser-failures-${{ github.run_id }}-${{ github.run_attempt }}-${{ matrix.project }}
           path: |
             test-results/playwright/**/test-failed-*.png
             test-results/playwright/**/error-context.md

@@ -333,6 +333,12 @@ Run the same aggregate gate used by CI:
 pnpm check
 ```
 
+The gate builds the workspace packages once, then runs every package's
+`typecheck:unit` and `test:unit` in parallel, four at a time, and builds the
+two applications last. Run `pnpm --filter @chronelle/<pkg> test` for one
+package (it rebuilds its upstream packages first) or `pnpm test:units` after
+`pnpm build:packages` for all of them at once.
+
 Tests are organized by workspace under `test/`. Database integration tests in
 `packages/db`, `packages/authorization`, and `apps/api` create isolated,
 disposable databases and apply migrations from scratch. PostgreSQL must be

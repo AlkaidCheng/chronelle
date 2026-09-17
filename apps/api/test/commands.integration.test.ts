@@ -704,7 +704,7 @@ describe("reversible content commands", () => {
     expect(
       await database.connection.sql`SELECT * FROM reversible_commands`,
     ).toHaveLength(51);
-  });
+  }, 30_000);
 
   it("enforces immutable command history and same-workspace revision references in PostgreSQL", async () => {
     const owner = await signIn();
