@@ -1,9 +1,12 @@
 import {
   developmentSignInRequestSchema,
   developmentSignInResponseSchema,
+  localePreferenceRequestSchema,
   sessionRevocationResponseSchema,
   sessionResponseSchema,
+  userResponseSchema,
 } from "@chronelle/schemas";
+import type { UserRow } from "@chronelle/db";
 import type { FastifyInstance, FastifyRequest } from "fastify";
 
 import type { WorkspaceIdentityService } from "../identity/workspace-identity-service.js";
@@ -44,17 +47,23 @@ export function registerDevelopmentAuthenticationRoute(
       accessToken: credential.accessToken,
       tokenType: "Bearer",
       expiresAt: credential.expiresAt.toISOString(),
-      user: {
-        id: session.user.id,
-        displayName: session.user.displayName,
-        email: session.user.email,
-      },
+      user: userPayload(session.user),
       workspace: {
         id: session.workspace.id,
         displayName: session.workspace.displayName,
       },
     });
   });
+}
+
+/** The account fields every session-shaped response carries. */
+export function userPayload(user: UserRow) {
+  return {
+    id: user.id,
+    displayName: user.displayName,
+    email: user.email,
+    locale: user.locale,
+  };
 }
 
 export function registerSessionRoutes(
@@ -77,11 +86,7 @@ export function registerSessionRoutes(
 
       return sessionResponseSchema.parse({
         principal: session.principal,
-        user: {
-          id: session.user.id,
-          displayName: session.user.displayName,
-          email: session.user.email,
-        },
+        user: userPayload(session.user),
         workspace: {
           id: session.workspace.id,
           displayName: session.workspace.displayName,
@@ -91,6 +96,24 @@ export function registerSessionRoutes(
           displayName: workspace.displayName,
         })),
       });
+    },
+  );
+
+  // The language kept on the account; null clears it. The response is the
+  // account as the next session read will show it.
+  app.patch(
+    "/api/auth/me",
+    { preHandler: app.authenticate },
+    async (request) => {
+      if (request.identitySession === null) {
+        throw new UnauthenticatedError();
+      }
+      const input = parseRequest(localePreferenceRequestSchema, request.body);
+      const user = await dependencies.identity.updateLocale(
+        request.identitySession.user.id,
+        input.locale,
+      );
+      return userResponseSchema.parse(userPayload(user));
     },
   );
 

@@ -5,6 +5,7 @@ import {
   createId,
   objects,
   resourceGrants,
+  users,
   workspaceMembers,
 } from "@chronelle/db";
 import {
@@ -314,5 +315,55 @@ describe.sequential("CloudBase identity store", () => {
         .from(objects)
         .where(eq(objects.workspaceId, owner.workspace.id)),
     ).toHaveLength(2);
+  });
+
+  it("keeps the same language on the account and refuses the same tags", async () => {
+    const db = database.connection.db;
+    const results: Record<string, unknown> = {};
+    for (const [name, store] of backends()) {
+      const signedIn = await store.signIn(identity(`lang-${name}`), createId());
+      expect(signedIn.user.locale).toBeNull();
+      const chosen = await store.updateLocale(signedIn.user.id, "zh-Hant");
+      const read = await store.resolveSession(
+        identity(`lang-${name}`),
+        undefined,
+      );
+      const cleared = await store.updateLocale(signedIn.user.id, null);
+      const refused = await store
+        .updateLocale(signedIn.user.id, "not a tag")
+        .then(() => "accepted")
+        .catch((error: unknown) =>
+          error instanceof Error ? "refused" : "unknown",
+        );
+      const unknownUser = await store
+        .updateLocale(createId(), "en")
+        .then(() => "accepted")
+        .catch((error: unknown) =>
+          error instanceof Error ? "refused" : "unknown",
+        );
+      const [row] = await db
+        .select({ locale: users.locale })
+        .from(users)
+        .where(eq(users.id, signedIn.user.id));
+      results[name] = {
+        chosen: chosen.locale,
+        read: read?.user.locale,
+        cleared: cleared.locale,
+        stored: row?.locale,
+        refused,
+        unknownUser,
+        touched: chosen.updatedAt >= signedIn.user.updatedAt,
+      };
+    }
+    expect(results.cloudbase).toEqual(results.postgres);
+    expect(results.postgres).toEqual({
+      chosen: "zh-Hant",
+      read: "zh-Hant",
+      cleared: null,
+      stored: null,
+      refused: "refused",
+      unknownUser: "refused",
+      touched: true,
+    });
   });
 });

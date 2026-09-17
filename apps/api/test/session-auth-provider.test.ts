@@ -18,6 +18,7 @@ const user: UserRow = {
   providerSubject: "person@example.test",
   email: "person@example.test",
   displayName: "Person",
+  locale: null,
   createdAt: now,
   updatedAt: now,
 };

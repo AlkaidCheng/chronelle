@@ -116,7 +116,7 @@ describe.sequential("persistence kernel", () => {
         { DATABASE_URL: testDatabase.databaseUrl },
         migrationDirectory,
       ),
-    ).resolves.toBe(46);
+    ).resolves.toBe(47);
     await expect(
       applyMigrations(
         { DATABASE_URL: testDatabase.databaseUrl },

@@ -96,6 +96,7 @@ export const users = pgTable("users", {
   providerSubject: text("provider_subject").notNull(),
   email: text("email"),
   displayName: text("display_name").notNull(),
+  locale: text("locale"),
   createdAt: createCreatedAtColumn(),
   updatedAt: createUpdatedAtColumn(),
 });

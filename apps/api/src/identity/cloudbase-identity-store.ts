@@ -2,6 +2,7 @@ import {
   CloudBaseRpcError,
   type CloudBaseRdbClient,
   type CloudBaseRdbFilter,
+  type UserRow,
   type WorkspaceRow,
 } from "@chronelle/db";
 
@@ -28,9 +29,9 @@ const filters = (
 
 /**
  * Identity persistence through the gateway: the sign-in as
- * chronelle_identity_sign_in, and the user, workspace, membership, and
- * grant reads through the table route with the same access rules as the
- * PostgreSQL store (membership, or an unexpired grant on a live object, or
+ * chronelle_identity_sign_in, the language as chronelle_user_locale_update,
+ * and the user, workspace, membership, and grant reads through the table
+ * route with the same access rules as the PostgreSQL store (membership, or an unexpired grant on a live object, or
  * an Owner grant on any object). The reads of one session are sequential
  * requests rather than one snapshot.
  */
@@ -134,6 +135,21 @@ export class CloudBaseIdentityStore implements IdentityStore {
       filters: filters(["id", "in", [...ids]]),
     });
     return rows.map(workspaceRow);
+  }
+
+  async updateLocale(userId: string, locale: string | null): Promise<UserRow> {
+    let result: unknown;
+    try {
+      result = await this.#client.rpc("chronelle_user_locale_update", {
+        user_id: userId,
+        locale,
+      });
+    } catch (error) {
+      if (error instanceof CloudBaseRpcError)
+        throw new Error(`Identity persistence failed: ${error.message}`);
+      throw error;
+    }
+    return userRow(record(result, "user"));
   }
 
   /** Workspaces where the user holds an unexpired grant on a live object, or an Owner grant on any object. */

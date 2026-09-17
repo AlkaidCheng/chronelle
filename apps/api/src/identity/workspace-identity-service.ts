@@ -39,6 +39,11 @@ export class WorkspaceIdentityService {
     return toSession(session.user, session.workspace);
   }
 
+  /** Keeps the language on the account; null clears it. */
+  updateLocale(userId: string, locale: string | null): Promise<UserRow> {
+    return this.#store.updateLocale(userId, locale);
+  }
+
   async listAccessibleWorkspaces(
     userId: string,
     activeWorkspaceId: string,

@@ -88,7 +88,11 @@ runtime role needs no change. Migration `0046_add_collection_rank.sql` adds
 `tasks.rank` and `reminders.rank` (numbering existing rows by creation order)
 with `chronelle_assert_rank`, `chronelle_next_task_rank`, and
 `chronelle_next_reminder_rank`, and replaces the Task and Reminder functions
-in place; the runtime role needs no change.
+in place; the runtime role needs no change. Migration
+`0047_add_user_locale.sql` adds `users.locale` (a language tag or null) with
+`chronelle_user_locale_update`; the user row is serialized whole by the
+identity, session, and credential functions, so no other function changes
+and the runtime role needs no change.
 
 Migration `0021_add_object_search_function.sql` adds `chronelle_object_search`,
 the read-only function the CloudBase search adapter calls. It changes no
