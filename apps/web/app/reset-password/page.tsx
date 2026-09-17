@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { type FormEvent, useState } from "react";
 
 import { AccountPage } from "../../components/account-page";
@@ -14,6 +15,7 @@ import {
 import { useAuthSession } from "../../lib/auth-session";
 
 export default function ResetPasswordPage() {
+  const t = useTranslations("auth");
   const auth = useAuthSession();
   const request = useRequestPasswordReset();
   const confirm = useConfirmPasswordReset();
@@ -37,16 +39,14 @@ export default function ResetPasswordPage() {
       <form className="sign-in-form" onSubmit={handleSubmit}>
         <AppearanceSettings />
         <div>
-          <p className="eyebrow">Account recovery</p>
-          <h2>Reset your password</h2>
+          <p className="eyebrow">{t("reset.eyebrow")}</p>
+          <h2>{t("reset.title")}</h2>
           <p className="form-intro">
-            {codeStep
-              ? "Enter the six-digit code from the email and choose a new password. Every other session of the account is signed out."
-              : "Enter the email of your account and we send a code to reset the password."}
+            {codeStep ? t("reset.introCode") : t("reset.introEmail")}
           </p>
         </div>
         <label className="field">
-          <span>Email</span>
+          <span>{t("email")}</span>
           <input
             autoComplete="email"
             disabled={!auth.isHydrated || codeStep}
@@ -59,7 +59,7 @@ export default function ResetPasswordPage() {
         {codeStep ? (
           <>
             <label className="field">
-              <span>Reset code</span>
+              <span>{t("reset.code")}</span>
               <input
                 autoComplete="one-time-code"
                 inputMode="numeric"
@@ -71,7 +71,7 @@ export default function ResetPasswordPage() {
               />
             </label>
             <label className="field">
-              <span>New password</span>
+              <span>{t("reset.newPassword")}</span>
               <input
                 aria-describedby="reset-password-hint"
                 autoComplete="new-password"
@@ -84,7 +84,7 @@ export default function ResetPasswordPage() {
               />
             </label>
             <small className="field-hint" id="reset-password-hint">
-              At least 10 characters.
+              {t("passwordHint")}
             </small>
           </>
         ) : null}
@@ -97,14 +97,14 @@ export default function ResetPasswordPage() {
         >
           {codeStep
             ? confirm.isPending
-              ? "Updating password..."
-              : "Set new password"
+              ? t("reset.updating")
+              : t("reset.setPassword")
             : request.isPending
-              ? "Sending code..."
-              : "Send reset code"}
+              ? t("reset.sending")
+              : t("reset.sendCode")}
         </button>
         <p className="form-links">
-          <Link href="/sign-in">Back to sign in</Link>
+          <Link href="/sign-in">{t("backToSignIn")}</Link>
         </p>
       </form>
     </AccountPage>

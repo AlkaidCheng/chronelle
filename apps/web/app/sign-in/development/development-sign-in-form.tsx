@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { type FormEvent, useState } from "react";
 
 import { AccountPage } from "../../../components/account-page";
@@ -10,6 +11,7 @@ import { useAuthSession } from "../../../lib/auth-session";
 import { useDevelopmentSignIn } from "../../../lib/queries";
 
 export function DevelopmentSignInForm() {
+  const t = useTranslations("auth");
   const auth = useAuthSession();
   const signIn = useDevelopmentSignIn();
   const [displayName, setDisplayName] = useState("");
@@ -22,20 +24,17 @@ export function DevelopmentSignInForm() {
   }
 
   return (
-    <AccountPage footnote="Development access">
+    <AccountPage footnote={t("development.footnote")}>
       <form className="sign-in-form" onSubmit={handleSubmit}>
         <AppearanceSettings />
         <div>
-          <span className="preview-label">Development preview</span>
-          <p className="eyebrow">Welcome to Chronelle</p>
-          <h2>Open your workspace</h2>
-          <p className="form-intro">
-            Try your planning workspace with a test name and email. Use the same
-            email to return to your plans.
-          </p>
+          <span className="preview-label">{t("development.preview")}</span>
+          <p className="eyebrow">{t("development.eyebrow")}</p>
+          <h2>{t("development.title")}</h2>
+          <p className="form-intro">{t("development.intro")}</p>
         </div>
         <label className="field">
-          <span>Name</span>
+          <span>{t("name")}</span>
           <input
             autoComplete="name"
             disabled={!auth.isHydrated}
@@ -47,7 +46,7 @@ export function DevelopmentSignInForm() {
           />
         </label>
         <label className="field">
-          <span>Email</span>
+          <span>{t("email")}</span>
           <input
             autoComplete="email"
             disabled={!auth.isHydrated}
@@ -64,13 +63,11 @@ export function DevelopmentSignInForm() {
           disabled={!auth.isHydrated || signIn.isPending}
           type="submit"
         >
-          {signIn.isPending ? "Opening workspace..." : "Continue"}
+          {signIn.isPending
+            ? t("development.pending")
+            : t("development.continue")}
         </button>
-        <p className="privacy-note">
-          For trusted testing only. Email ownership is not verified, so anyone
-          with an email can access that development identity. Do not use real
-          personal data.
-        </p>
+        <p className="privacy-note">{t("development.privacy")}</p>
       </form>
     </AccountPage>
   );

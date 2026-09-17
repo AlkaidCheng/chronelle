@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { type FormEvent, Suspense, useState } from "react";
 
 import { AccountPage } from "../../components/account-page";
@@ -15,6 +16,7 @@ import {
 import { useAuthSession } from "../../lib/auth-session";
 
 function VerifyEmailForm() {
+  const t = useTranslations("auth");
   const auth = useAuthSession();
   const parameters = useSearchParams();
   const verify = useVerifyEmail();
@@ -33,15 +35,12 @@ function VerifyEmailForm() {
       <form className="sign-in-form" onSubmit={handleSubmit}>
         <AppearanceSettings />
         <div>
-          <p className="eyebrow">One more step</p>
-          <h2>Confirm your email</h2>
-          <p className="form-intro">
-            Enter the six-digit code from the email we sent. It expires after
-            fifteen minutes.
-          </p>
+          <p className="eyebrow">{t("verify.eyebrow")}</p>
+          <h2>{t("verify.title")}</h2>
+          <p className="form-intro">{t("verify.intro")}</p>
         </div>
         <label className="field">
-          <span>Email</span>
+          <span>{t("email")}</span>
           <input
             autoComplete="email"
             disabled={!auth.isHydrated}
@@ -52,7 +51,7 @@ function VerifyEmailForm() {
           />
         </label>
         <label className="field">
-          <span>Verification code</span>
+          <span>{t("verify.code")}</span>
           <input
             autoComplete="one-time-code"
             disabled={!auth.isHydrated}
@@ -68,7 +67,7 @@ function VerifyEmailForm() {
         {resend.isError ? <ErrorNotice error={resend.error} /> : null}
         {resend.isSuccess ? (
           <p className="form-note" role="status">
-            A new code is on its way if this address has an unverified account.
+            {t("verify.resent")}
           </p>
         ) : null}
         <button
@@ -76,7 +75,7 @@ function VerifyEmailForm() {
           disabled={!auth.isHydrated || verify.isPending}
           type="submit"
         >
-          {verify.isPending ? "Confirming..." : "Confirm"}
+          {verify.isPending ? t("verify.pending") : t("verify.submit")}
         </button>
         <button
           className="button button-secondary button-wide"
@@ -84,10 +83,10 @@ function VerifyEmailForm() {
           onClick={() => resend.mutate({ email })}
           type="button"
         >
-          Send a new code
+          {t("verify.resend")}
         </button>
         <p className="form-links">
-          <Link href="/sign-in">Back to sign in</Link>
+          <Link href="/sign-in">{t("backToSignIn")}</Link>
         </p>
       </form>
     </AccountPage>
