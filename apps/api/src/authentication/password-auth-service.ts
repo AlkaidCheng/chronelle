@@ -16,6 +16,7 @@ import {
   type IssuePolicy,
   passwordIdentityProvider,
 } from "./credential-store.js";
+import { messagesFor } from "./email-messages.js";
 import type { EmailSender } from "./email-sender.js";
 import { hashPassword, verifyPassword } from "./password-hash.js";
 import type {
@@ -31,6 +32,8 @@ export interface SignUpInput {
   readonly email: string;
   readonly password: string;
   readonly displayName: string;
+  /** The language the sign-up screen was in; kept on the account and used for its emails. */
+  readonly locale?: string | undefined;
 }
 
 export interface VerifyEmailInput {
@@ -156,7 +159,11 @@ export class PasswordAuthService {
       if (error instanceof CredentialConflictError) throw new EmailTakenError();
       throw error;
     }
-    await this.#sendCode(session.user, "verify_email");
+    const user =
+      input.locale === undefined
+        ? session.user
+        : await this.#identity.updateLocale(session.user.id, input.locale);
+    await this.#sendCode(user, "verify_email");
   }
 
   async verifyEmail(
@@ -286,14 +293,13 @@ export class PasswordAuthService {
       });
       return;
     }
-    const minutes = Math.round(this.#verificationTtlMs / 60_000);
-    const action =
-      purpose === "verify_email" ? "verify your email" : "reset your password";
-    await this.#email.send({
-      to: user.providerSubject,
-      subject: `${this.#productName}: your code is ${code}`,
-      text: `Enter ${code} to ${action}. The code expires in ${minutes} minutes. If you did not request it, ignore this message.`,
+    const message = messagesFor(user.locale).codeEmail({
+      productName: this.#productName,
+      code,
+      purpose,
+      expiresInMinutes: Math.round(this.#verificationTtlMs / 60_000),
     });
+    await this.#email.send({ to: user.providerSubject, ...message });
   }
 
   async #consumeCode(

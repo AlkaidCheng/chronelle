@@ -14,6 +14,7 @@ import type {
   PasswordAuthService,
   PasswordSession,
 } from "./password-auth-service.js";
+import { userPayload } from "./routes.js";
 
 export interface PasswordRouteDependencies {
   readonly passwordAuth: PasswordAuthService;
@@ -24,11 +25,7 @@ function signedIn(session: PasswordSession) {
     accessToken: session.accessToken,
     tokenType: "Bearer",
     expiresAt: session.expiresAt.toISOString(),
-    user: {
-      id: session.user.id,
-      displayName: session.user.displayName,
-      email: session.user.email,
-    },
+    user: userPayload(session.user),
     workspace: {
       id: session.workspace.id,
       displayName: session.workspace.displayName,
