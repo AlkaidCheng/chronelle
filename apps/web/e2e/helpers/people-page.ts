@@ -2,16 +2,18 @@ import { expect, type Page } from "@playwright/test";
 
 import { chooseRowAction } from "./row-menu";
 
-/** Chooses one of a quiet heading control's choices; a filter choice keeps its menu open. */
-async function chooseFromHeadMenu(
-  page: Page,
-  control: RegExp,
-  choice: string,
-  stays = false,
-) {
+/** Chooses one of a quiet heading menu's choices. */
+async function chooseFromHeadMenu(page: Page, control: RegExp, choice: string) {
   await page.getByRole("button", { name: control }).click();
   await page.getByRole("menuitemradio", { name: choice, exact: true }).click();
-  if (stays) await page.keyboard.press("Escape");
+}
+
+/** Presses one of the segmented layout control's choices. */
+async function chooseLayout(page: Page, choice: "List" | "Namecards") {
+  await page
+    .getByRole("group", { name: "Layout", exact: true })
+    .getByRole("button", { name: choice, exact: true })
+    .click();
 }
 
 /**
@@ -94,7 +96,7 @@ export async function exercisePeoplePage(page: Page) {
   // Namecards show the contacts, the label, and the badge for the
   // signed-in user's own person at every width; the layout is kept on
   // this device.
-  await chooseFromHeadMenu(page, /^Layout/, "Namecards");
+  await chooseLayout(page, "Namecards");
   const cards = page.getByRole("list", { name: "People", exact: true });
   await expect(cards).toHaveClass(/person-grid/);
   const card = cards.getByRole("listitem", { name: "Mira", exact: true });
@@ -115,20 +117,36 @@ export async function exercisePeoplePage(page: Page) {
     page.getByRole("list", { name: "People", exact: true }),
   ).toHaveClass(/person-grid/);
 
-  // Filtering by the label leaves adam out; clearing brings them back.
-  await chooseFromHeadMenu(page, /^Filter/, "family", true);
+  // Filtering by the label from the menu leaves adam out; the label's chip
+  // shows the choice, and Clear filters brings them back.
+  await chooseFromHeadMenu(page, /^Filter/, "family");
   await expect(
     page.getByRole("listitem", { name: "adam", exact: true }),
   ).toHaveCount(0);
   await expect(
     page.getByRole("listitem", { name: "Mira", exact: true }),
   ).toBeVisible();
+  const labelChips = page.getByRole("group", { name: "Labels", exact: true });
+  await expect(
+    labelChips.getByRole("button", { name: "family", exact: true }),
+  ).toHaveAttribute("aria-pressed", "true");
   await page.getByRole("button", { name: /^Filter/ }).click();
   await page
     .getByRole("menuitem", { name: "Clear filters", exact: true })
     .click();
   await expect(
     page.getByRole("listitem", { name: "adam", exact: true }),
+  ).toBeVisible();
+  // The connection chips narrow the list the same way.
+  const accountChips = page.getByRole("group", {
+    name: "Account",
+    exact: true,
+  });
+  await accountChips.getByRole("button", { name: "Friends" }).click();
+  await expect(page.getByText("No matching people")).toBeVisible();
+  await accountChips.getByRole("button", { name: "Everyone" }).click();
+  await expect(
+    page.getByRole("listitem", { name: "Mira", exact: true }),
   ).toBeVisible();
 
   // The card opens the person's page: the names, the badge, the details.
@@ -154,7 +172,7 @@ export async function exercisePeoplePage(page: Page) {
   // Back to the collection by the up link; the list layout is a choice again.
   await page.getByRole("link", { name: "All people", exact: true }).click();
   await expect(page).toHaveURL(/\/people$/);
-  await chooseFromHeadMenu(page, /^Layout/, "List");
+  await chooseLayout(page, "List");
   await expect(
     page.getByRole("list", { name: "People", exact: true }),
   ).toHaveClass(/person-list/);

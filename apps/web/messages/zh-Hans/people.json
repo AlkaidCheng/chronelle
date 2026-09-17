@@ -4,6 +4,7 @@
   "find": "查找参与者",
   "refresh": "刷新参与者",
   "new": "新建参与者",
+  "invite": "邀请好友",
   "countLabel": "参与者数",
   "count": "已加载 {count} 位参与者",
   "all": "全部参与者",

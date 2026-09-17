@@ -2,8 +2,18 @@
 
 import { useTranslations } from "next-intl";
 
-import { HeadMenu, type HeadMenuEntry } from "../../components/head-menu";
-import { FilterIcon, LayoutIcon, SortIcon } from "../../components/icons";
+import {
+  FilterIcon,
+  GridIcon,
+  ListIcon,
+  SortIcon,
+} from "../../components/icons";
+import {
+  MenuHeading,
+  MenuItem,
+  MenuSeparator,
+  QuietMenu,
+} from "../../components/quiet-menu";
 import {
   activePersonFilterCount,
   defaultPersonFilters,
@@ -16,7 +26,13 @@ import {
   personSorts,
 } from "../../lib/person-collection";
 
-/** Sort as one quiet control; the button reads the order when it is not the default. */
+/** A label the workspace knows, as the filter offers it. */
+export interface PersonLabelChoice {
+  readonly id: string;
+  readonly name: string;
+}
+
+/** Sort as one quiet control: by name, or by the latest change first. */
 export function PersonSortControl({
   onChange,
   sort,
@@ -26,27 +42,31 @@ export function PersonSortControl({
 }) {
   const t = useTranslations("controls");
   return (
-    <HeadMenu
+    <QuietMenu
       active={sort !== "name"}
-      entries={personSorts.map((choice) => ({
-        kind: "radio",
-        label: t(`sorts.${choice}`),
-        checked: choice === sort,
-        onSelect: () => {
-          if (choice !== sort) onChange(choice);
-        },
-      }))}
       icon={<SortIcon />}
       label={t("sort")}
-      name={sort === "name" ? undefined : t(`sorts.${sort}`)}
-    />
+      value={sort}
+    >
+      {personSorts.map((choice) => (
+        <MenuItem
+          checked={choice === sort}
+          key={choice}
+          onSelect={() => {
+            if (choice !== sort) onChange(choice);
+          }}
+        >
+          {t(`sorts.${choice}`)}
+        </MenuItem>
+      ))}
+    </QuietMenu>
   );
 }
 
 /**
- * Filter as one quiet control over the account (everyone, those with an
- * account, those without) and the labels the workspace knows. Choices keep
- * the menu open; the button counts them.
+ * Filter as one quiet control over the account behind a person and the
+ * labels the workspace knows; the chips under the toolbar offer the same
+ * choices in the open.
  */
 export function PersonFilterControl({
   filters,
@@ -54,60 +74,58 @@ export function PersonFilterControl({
   onChange,
 }: {
   readonly filters: PersonFilters;
-  readonly labels: readonly { readonly id: string; readonly name: string }[];
+  readonly labels: readonly PersonLabelChoice[];
   readonly onChange: (filters: PersonFilters) => void;
 }) {
   const t = useTranslations("controls");
   const people = useTranslations("people");
-  const count = activePersonFilterCount(filters);
-  const radio = (
-    label: string,
-    checked: boolean,
-    change: Partial<PersonFilters>,
-  ): HeadMenuEntry => ({
-    kind: "radio",
-    label,
-    checked,
-    closes: false,
-    onSelect: () => onChange({ ...filters, ...change }),
-  });
-  const entries: HeadMenuEntry[] = [
-    { kind: "label", text: people("account") },
-    ...personAccountFilters.map((choice: PersonAccountFilter) =>
-      radio(people(`accounts.${choice}`), filters.account === choice, {
-        account: choice,
-      }),
-    ),
-  ];
-  if (labels.length > 0)
-    entries.push(
-      { kind: "rule" },
-      { kind: "label", text: t("label") },
-      radio(t("anyLabel"), filters.label === "", { label: "" }),
-      ...labels.map((label) =>
-        radio(label.name, filters.label === label.id, { label: label.id }),
-      ),
-    );
-  entries.push(
-    { kind: "rule" },
-    {
-      kind: "item",
-      label: t("clearFilters"),
-      onSelect: () => onChange(defaultPersonFilters),
-    },
-  );
   return (
-    <HeadMenu
-      active={count > 0}
-      entries={entries}
+    <QuietMenu
+      active={activePersonFilterCount(filters) > 0}
       icon={<FilterIcon />}
       label={t("filter")}
-      name={count === 0 ? undefined : t("filterCount", { count })}
-    />
+      value={`${filters.account}:${filters.label}`}
+    >
+      <MenuHeading>{people("account")}</MenuHeading>
+      {personAccountFilters.map((choice: PersonAccountFilter) => (
+        <MenuItem
+          checked={filters.account === choice}
+          key={choice}
+          onSelect={() => onChange({ ...filters, account: choice })}
+        >
+          {people(`accounts.${choice}`)}
+        </MenuItem>
+      ))}
+      {labels.length > 0 ? (
+        <>
+          <MenuSeparator />
+          <MenuHeading>{t("label")}</MenuHeading>
+          <MenuItem
+            checked={filters.label === ""}
+            onSelect={() => onChange({ ...filters, label: "" })}
+          >
+            {t("anyLabel")}
+          </MenuItem>
+          {labels.map((label) => (
+            <MenuItem
+              checked={filters.label === label.id}
+              key={label.id}
+              onSelect={() => onChange({ ...filters, label: label.id })}
+            >
+              {label.name}
+            </MenuItem>
+          ))}
+        </>
+      ) : null}
+      <MenuSeparator />
+      <MenuItem onSelect={() => onChange(defaultPersonFilters)}>
+        {t("clearFilters")}
+      </MenuItem>
+    </QuietMenu>
   );
 }
 
-/** Layout as one quiet control reading the current choice: List or Namecards. */
+/** Layout as a segmented control, List or Namecards, the current one pressed. */
 export function PersonLayoutControl({
   layout,
   onChange,
@@ -118,18 +136,87 @@ export function PersonLayoutControl({
   const t = useTranslations("controls");
   const people = useTranslations("people");
   return (
-    <HeadMenu
-      entries={personLayouts.map((choice) => ({
-        kind: "radio",
-        label: people(`layouts.${choice}`),
-        checked: choice === layout,
-        onSelect: () => {
-          if (choice !== layout) onChange(choice);
-        },
-      }))}
-      icon={<LayoutIcon />}
-      label={t("layout")}
-      name={people(`layouts.${layout}`)}
-    />
+    <fieldset className="quiet-segment">
+      <legend className="visually-hidden">{t("layout")}</legend>
+      {personLayouts.map((choice) => (
+        <button
+          aria-label={people(`layouts.${choice}`)}
+          aria-pressed={choice === layout}
+          data-tip={people(`layouts.${choice}`)}
+          key={choice}
+          onClick={() => {
+            if (choice !== layout) onChange(choice);
+          }}
+          type="button"
+        >
+          {choice === "cards" ? <GridIcon /> : <ListIcon />}
+        </button>
+      ))}
+    </fieldset>
+  );
+}
+
+/** The connections the chips under the toolbar offer, in the order shown. */
+const chipConnections: readonly PersonAccountFilter[] = [
+  "all",
+  "friend",
+  "invited",
+  "unlinked",
+];
+
+/**
+ * The quick filters under the toolbar: the connection behind a person,
+ * then the workspace's labels. A pressed chip is the filter in force; a
+ * label chip pressed again lets every label through.
+ */
+export function PersonChips({
+  filters,
+  labels,
+  onChange,
+}: {
+  readonly filters: PersonFilters;
+  readonly labels: readonly PersonLabelChoice[];
+  readonly onChange: (filters: PersonFilters) => void;
+}) {
+  const people = useTranslations("people");
+  const person = useTranslations("person");
+  return (
+    <div className="chip-rows">
+      <fieldset className="chip-row">
+        <legend className="visually-hidden">{people("account")}</legend>
+        {chipConnections.map((choice) => (
+          <button
+            aria-pressed={filters.account === choice}
+            className="chip"
+            key={choice}
+            onClick={() => onChange({ ...filters, account: choice })}
+            type="button"
+          >
+            {people(`accounts.${choice}`)}
+          </button>
+        ))}
+      </fieldset>
+      {labels.length > 0 ? (
+        <fieldset className="chip-row">
+          <legend className="visually-hidden">{person("labels")}</legend>
+          {labels.map((label) => (
+            <button
+              aria-pressed={filters.label === label.id}
+              className="chip"
+              key={label.id}
+              onClick={() =>
+                onChange({
+                  ...filters,
+                  label: filters.label === label.id ? "" : label.id,
+                })
+              }
+              type="button"
+            >
+              {label.name}
+            </button>
+          ))}
+        </fieldset>
+      ) : null}
+    </div>
   );
 }

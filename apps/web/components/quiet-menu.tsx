@@ -245,3 +245,8 @@ export function MenuItem({
 export function MenuSeparator() {
   return <hr className="quiet-menu-separator" />;
 }
+
+/** A section label inside a menu, above the items it names. */
+export function MenuHeading({ children }: { readonly children: ReactNode }) {
+  return <p className="quiet-menu-heading">{children}</p>;
+}

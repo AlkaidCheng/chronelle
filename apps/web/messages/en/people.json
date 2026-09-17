@@ -4,6 +4,7 @@
   "find": "Find a person",
   "refresh": "Refresh people",
   "new": "New person",
+  "invite": "Invite a friend",
   "countLabel": "People count",
   "count": "{count, plural, one {# person loaded} other {# people loaded}}",
   "all": "Everyone",
