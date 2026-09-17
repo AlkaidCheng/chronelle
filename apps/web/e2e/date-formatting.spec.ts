@@ -66,13 +66,17 @@ test("creates a date-only range and switches to multi-day exact times", async ({
   );
 });
 
+// Dates are worded in the application's language, which is negotiated from
+// the browser's: a German browser gets English (German is not offered), so
+// its badges read the English month while the day still follows the zone.
 for (const display of [
   {
     locale: "en-US",
+    application: "en",
     timezoneId: "America/Los_Angeles",
     day: "28",
   },
-  { locale: "de-DE", timezoneId: "Asia/Tokyo", day: "01" },
+  { locale: "de-DE", application: "en", timezoneId: "Asia/Tokyo", day: "01" },
 ]) {
   test.describe(`${display.locale} in ${display.timezoneId}`, () => {
     test.use({ locale: display.locale, timezoneId: display.timezoneId });
@@ -134,8 +138,8 @@ for (const display of [
       await page.getByLabel("Email").fill(email);
       await page.getByRole("button", { name: "Continue" }).click();
       const month = await page.evaluate(
-        ({ locale, timezoneId, timestamp }) =>
-          new Intl.DateTimeFormat(locale, {
+        ({ application, timezoneId, timestamp }) =>
+          new Intl.DateTimeFormat(application, {
             month: "short",
             timeZone: timezoneId,
           }).format(new Date(timestamp)),
