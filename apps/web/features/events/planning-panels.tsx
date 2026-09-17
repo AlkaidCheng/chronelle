@@ -8,6 +8,7 @@ import type {
   TaskResponse,
   TimelineResponse,
 } from "@chronelle/schemas";
+import { useTranslations } from "next-intl";
 import { useCallback, useMemo, useState } from "react";
 import { EmptyState, ErrorNotice } from "../../components/feedback";
 import { useQuickAddSlots } from "../../components/quick-add-row";
@@ -122,6 +123,7 @@ export function TasksPanel({
   readonly tasks: readonly TaskResponse[];
   readonly view?: EventComponentView;
 }) {
+  const t = useTranslations("todos");
   const [filters, setFilters] = useState<TaskFilters>({
     ...defaultTaskFilters,
     timed: false,
@@ -229,7 +231,7 @@ export function TasksPanel({
               type="button"
               onClick={() => setIsAdding(true)}
             >
-              Add task
+              {t("addTask")}
             </button>
           ) : undefined
         }
@@ -255,10 +257,10 @@ export function TasksPanel({
         }
         count={
           filterCount === 0
-            ? `${openCount} open`
-            : `${shownOpen} of ${openCount} open`
+            ? t("open", { count: openCount })
+            : t("openOf", { shown: shownOpen, total: openCount })
         }
-        title="To-dos"
+        title={t("title")}
       />
       {canEdit && isAdding ? (
         <TaskForm
@@ -277,13 +279,13 @@ export function TasksPanel({
       ) : null}
       {filteredTasks.length === 0 && (tasks.length > 0 || !canEdit) ? (
         <EmptyState
-          title={tasks.length === 0 ? "No tasks yet" : "Nothing in this view"}
+          title={tasks.length === 0 ? t("empty") : t("nothingInView")}
         />
       ) : null}
       {filteredTasks.length === 0 && canEdit ? (
         <div className="quick-add-item quick-add-empty">
           <QuickAddTask
-            dayLabel={view === "by-day" ? "no due date" : undefined}
+            dayLabel={view === "by-day" ? t("noDueDateGroup") : undefined}
             dueOn={null}
             eventId={eventId}
             slots={quickAdd}

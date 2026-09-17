@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { canOpenCommands } from "../lib/keyboard";
@@ -19,6 +20,7 @@ export function SearchEntry({
   readonly current?: boolean;
 }) {
   const [open, setOpen] = useState(false);
+  const t = useTranslations("nav");
   const shortcut = useCommandShortcut();
   const enabled = shortcut.value === "enabled";
   useEffect(() => {
@@ -36,7 +38,7 @@ export function SearchEntry({
       <button
         type="button"
         className={current ? "active" : ""}
-        aria-label="Search and commands"
+        aria-label={t("searchAndCommands")}
         aria-haspopup="dialog"
         aria-expanded={open}
         aria-keyshortcuts={enabled ? "Control+k Meta+k" : undefined}
@@ -46,7 +48,7 @@ export function SearchEntry({
         }}
       >
         <SearchIcon />
-        Search
+        {t("search")}
         {enabled ? <kbd>&#8984;K</kbd> : null}
       </button>
       {open &&

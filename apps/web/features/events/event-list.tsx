@@ -3,6 +3,7 @@
 import type { EventResponse } from "@chronelle/schemas";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { type MouseEventHandler, useEffect, useState } from "react";
 
 import {
@@ -43,6 +44,7 @@ function EventCard({
   readonly now: number;
   readonly onOpen: MouseEventHandler<HTMLAnchorElement>;
 }) {
+  const t = useTranslations("events");
   return (
     <Link
       className="event-card"
@@ -56,11 +58,7 @@ function EventCard({
       </div>
       <div className="event-card-copy">
         <span className={`object-label period-${eventPeriod(event, now)}`}>
-          {eventPeriod(event, now) === "upcoming"
-            ? "Scheduled"
-            : eventPeriod(event, now) === "past"
-              ? "Past event"
-              : "Date to be decided"}
+          {t(`period.${eventPeriod(event, now)}`)}
         </span>
         <h2>{event.displayName}</h2>
         <p>{formatEventSchedule(event)}</p>
@@ -73,6 +71,7 @@ function EventCard({
 }
 
 export function EventList() {
+  const t = useTranslations("events");
   const router = useRouter();
   const [isCreating, setIsCreating] = useState(false);
   const { criteria, change, layout, changeLayout } = useEventCollectionState();
@@ -92,25 +91,16 @@ export function EventList() {
   const items = changingQuery ? [] : (events.data?.items ?? []);
   const now = Date.parse(events.data?.asOf ?? "");
   const filtered = debouncedQuery !== "" || filter !== "all";
-  const filters = [
-    ["all", "All events"],
-    ["upcoming", "Upcoming & ongoing"],
-    ["unscheduled", "Unscheduled"],
-    ["past", "Past"],
-  ] as const;
-  const sorts = [
-    ["date", "Event date"],
-    ["updated", "Recently updated"],
-    ["name", "Name A-Z"],
-  ] as const;
+  const filters = ["all", "upcoming", "unscheduled", "past"] as const;
+  const sorts = ["date", "updated", "name"] as const;
   return (
     <main className="workspace-page" ref={container} tabIndex={-1}>
       <header className="quiet-heading">
-        <h1>Events</h1>
+        <h1>{t("title")}</h1>
         <div className="quiet-tools">
           <label className="inline-search">
             <SearchIcon />
-            <span className="visually-hidden">Filter events by name</span>
+            <span className="visually-hidden">{t("filterByName")}</span>
             <input
               type="search"
               value={query}
@@ -120,39 +110,39 @@ export function EventList() {
                 change({ query: event.currentTarget.value });
                 setIsComposing(false);
               }}
-              placeholder="Find an event"
+              placeholder={t("find")}
               maxLength={240}
             />
           </label>
           <QuietMenu
-            label="Filter events"
+            label={t("filterMenu")}
             icon={<FilterIcon />}
             active={filter !== "all"}
             value={filter}
           >
-            {filters.map(([value, label]) => (
+            {filters.map((value) => (
               <MenuItem
                 key={value}
                 checked={filter === value}
                 onSelect={() => change({ filter: value })}
               >
-                {label}
+                {t(`filters.${value}`)}
               </MenuItem>
             ))}
           </QuietMenu>
-          <QuietMenu label="Sort events" icon={<SortIcon />} value={sort}>
-            {sorts.map(([value, label]) => (
+          <QuietMenu label={t("sortMenu")} icon={<SortIcon />} value={sort}>
+            {sorts.map((value) => (
               <MenuItem
                 key={value}
                 checked={sort === value}
                 onSelect={() => change({ sort: value })}
               >
-                {label}
+                {t(`sorts.${value}`)}
               </MenuItem>
             ))}
           </QuietMenu>
           <QuietMenu
-            label="Event layout"
+            label={t("layoutMenu")}
             icon={layout === "grid" ? <GridIcon /> : <ListIcon />}
             value={layout}
           >
@@ -161,18 +151,18 @@ export function EventList() {
               icon={<GridIcon />}
               onSelect={() => changeLayout("grid")}
             >
-              Grid
+              {t("layouts.grid")}
             </MenuItem>
             <MenuItem
               checked={layout === "list"}
               icon={<ListIcon />}
               onSelect={() => changeLayout("list")}
             >
-              List
+              {t("layouts.list")}
             </MenuItem>
           </QuietMenu>
           <IconButton
-            label="Refresh events"
+            label={t("refresh")}
             disabled={events.isFetching || changingQuery}
             onClick={() => {
               change({});
@@ -182,7 +172,7 @@ export function EventList() {
             <RefreshIcon />
           </IconButton>
           <IconButton
-            label="New event"
+            label={t("new")}
             tone="primary"
             aria-haspopup="dialog"
             onClick={(event) => {
@@ -206,16 +196,20 @@ export function EventList() {
         aria-labelledby="event-list-heading"
         className="event-list-section"
       >
-        <p aria-label="Event count" className="visually-hidden" role="status">
+        <p
+          aria-label={t("countLabel")}
+          className="visually-hidden"
+          role="status"
+        >
           {events.data && !changingQuery
-            ? `${items.length} ${items.length === 1 ? "event" : "events"} loaded`
+            ? t("count", { count: items.length })
             : ""}
         </p>
         <div className="visually-hidden">
-          <h2 id="event-list-heading">All events</h2>
+          <h2 id="event-list-heading">{t("all")}</h2>
         </div>
         {events.isPending || changingQuery ? (
-          <LoadingState label="Loading events" />
+          <LoadingState label={t("loading")} />
         ) : null}
         {events.isError ? (
           <ErrorNotice
@@ -231,7 +225,7 @@ export function EventList() {
         !events.isError &&
         events.data?.items.length === 0 &&
         !filtered ? (
-          <EmptyState title="No events yet" />
+          <EmptyState title={t("empty")} />
         ) : null}
         {!changingQuery &&
         !events.isError &&
@@ -239,7 +233,7 @@ export function EventList() {
         items.length === 0 &&
         filtered ? (
           <div className="collection-empty">
-            <EmptyState title="No matching events" />
+            <EmptyState title={t("noMatch")} />
             <button
               className="button button-secondary"
               type="button"
@@ -247,7 +241,7 @@ export function EventList() {
                 change({ query: "", filter: "all" });
               }}
             >
-              Clear filters
+              {t("clearFilters")}
             </button>
           </div>
         ) : null}
@@ -268,9 +262,7 @@ export function EventList() {
             disabled={events.isFetching}
             onClick={() => void events.fetchNextPage()}
           >
-            {events.isFetchingNextPage
-              ? "Loading more events..."
-              : "Load more events"}
+            {events.isFetchingNextPage ? t("loadingMore") : t("loadMore")}
           </button>
         ) : null}
       </section>

@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import {
   QuickAddRow,
   type QuickAddSlots,
@@ -29,22 +30,23 @@ export function QuickAddTask({
   readonly eventId?: string | undefined;
   readonly slots: QuickAddSlots;
 }) {
+  const t = useTranslations("quickAdd");
   const create = useCreateTask(eventId);
   return (
     <QuickAddRow
       label={
         dayLabel === undefined
-          ? "Add a task to the list"
+          ? t("taskToList")
           : dueOn === null
-            ? `Add a task with ${dayLabel}`
-            : `Add a task for ${dayLabel}`
+            ? t("taskWith", { day: dayLabel })
+            : t("taskFor", { day: dayLabel })
       }
-      name="New task"
+      name={t("newTask")}
       onAdd={(displayName) => create.mutateAsync({ displayName, dueOn })}
-      placeholder="Task name"
+      placeholder={t("taskName")}
       slot={dueOn === null ? undatedTaskSlot : `day:${dueOn}`}
       slots={slots}
-      text="Add task"
+      text={t("addTask")}
     />
   );
 }

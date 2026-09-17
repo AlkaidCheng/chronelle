@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { useLayoutEffect, useRef, useState } from "react";
 
 import { ErrorNotice, LoadingState } from "../../components/feedback";
@@ -36,6 +37,7 @@ import { HistoryButton } from "../history/history-button";
 import { useOpenLifecycle } from "../recovery/lifecycle-provider";
 import { RemovedLinksPanel } from "../recovery/removed-links-panel";
 import {
+  eventViewLabel,
   eventViews as tabs,
   type EventView as TabId,
 } from "../../lib/event-views";
@@ -50,6 +52,8 @@ import {
 } from "../../components/context-commands";
 
 export function EventWorkspace({ eventId }: { readonly eventId: string }) {
+  const t = useTranslations("event");
+  const nav = useTranslations("nav");
   const [activeTab, setActiveTab] = useEventView();
   const queries = useEventWorkspaceQueries(eventId, activeTab);
   const canEdit = queries.access.data?.actions.includes("edit") ?? false;
@@ -92,7 +96,7 @@ export function EventWorkspace({ eventId }: { readonly eventId: string }) {
   if (activeTab === null || essentialQueries.some((query) => query.isPending)) {
     return (
       <main className="centered-page workspace-loading">
-        <LoadingState label="Connecting your event plan" />
+        <LoadingState label={t("connecting")} />
       </main>
     );
   }
@@ -114,9 +118,9 @@ export function EventWorkspace({ eventId }: { readonly eventId: string }) {
   ) {
     return (
       <main className="workspace-page">
-        <Link className="up-link" aria-label="All events" href="/events">
+        <Link className="up-link" aria-label={t("allEvents")} href="/events">
           <ChevronLeftIcon />
-          Events
+          {nav("events")}
         </Link>
         {refreshNotice}
       </main>
@@ -142,23 +146,27 @@ export function EventWorkspace({ eventId }: { readonly eventId: string }) {
     ...pagesState.commands,
     {
       id: "event-history",
-      label: "Event history",
-      description: `Review changes to ${event.displayName}`,
+      label: t("commands.history"),
+      description: t("commands.historyDescription", {
+        name: event.displayName,
+      }),
       target: historyButton,
     },
   ];
   if (canEdit && editing === null)
     commands.push({
       id: "edit-event",
-      label: "Edit event",
-      description: `Edit ${event.displayName}`,
+      label: t("commands.edit"),
+      description: t("commands.editDescription", { name: event.displayName }),
       target: editButton,
     });
   if (canShare && shownTab !== "sharing")
     commands.push({
       id: "share-event",
-      label: "Share event",
-      description: `Manage access to ${event.displayName}`,
+      label: t("commands.share"),
+      description: t("commands.shareDescription", {
+        name: event.displayName,
+      }),
       target: shareButton,
     });
   const activeProjection =
@@ -169,7 +177,7 @@ export function EventWorkspace({ eventId }: { readonly eventId: string }) {
 
   function copyLink() {
     const href = window.location.href;
-    const done = () => setCopied("Link copied.");
+    const done = () => setCopied(t("linkCopied"));
     if (navigator.clipboard?.writeText)
       void navigator.clipboard.writeText(href).then(done, () => setCopied(""));
     else done();
@@ -180,9 +188,9 @@ export function EventWorkspace({ eventId }: { readonly eventId: string }) {
       <CommandScope pathname={`/events/${event.id}`} commands={commands} />
       {refreshNotice}
       <header className="event-hero">
-        <Link className="up-link" aria-label="All events" href="/events">
+        <Link className="up-link" aria-label={t("allEvents")} href="/events">
           <ChevronLeftIcon />
-          Events
+          {nav("events")}
         </Link>
         <div className="event-title-row">
           <div>
@@ -197,7 +205,7 @@ export function EventWorkspace({ eventId }: { readonly eventId: string }) {
           <div className="event-actions">
             {canEdit && schedule === "" ? (
               <IconButton
-                label="Set dates"
+                label={t("setDates")}
                 onClick={() => setEditing("schedule")}
               >
                 <CalendarPlusIcon />
@@ -206,21 +214,24 @@ export function EventWorkspace({ eventId }: { readonly eventId: string }) {
             {canEdit ? (
               <IconButton
                 ref={editButton}
-                label="Edit event"
+                label={t("edit")}
                 onClick={() => setEditing("name")}
               >
                 <PencilIcon />
               </IconButton>
             ) : (
-              <span className="icon-control icon-static" title="Viewer access">
+              <span
+                className="icon-control icon-static"
+                title={t("viewerAccess")}
+              >
                 <LockIcon />
-                <span className="visually-hidden">Viewer access</span>
+                <span className="visually-hidden">{t("viewerAccess")}</span>
               </span>
             )}
             {canShare && shownTab !== "sharing" ? (
               <IconButton
                 ref={shareButton}
-                label="Share event"
+                label={t("share")}
                 onClick={() => {
                   focusView.current = true;
                   setActiveTab("sharing");
@@ -236,11 +247,11 @@ export function EventWorkspace({ eventId }: { readonly eventId: string }) {
               displayName={event.displayName}
             />
             <QuietMenu
-              label={`Actions for ${event.displayName}`}
+              label={t("actionsFor", { name: event.displayName })}
               icon={<MoreIcon />}
             >
               <MenuItem icon={<LinkIcon />} onSelect={copyLink}>
-                Copy link
+                {t("copyLink")}
               </MenuItem>
               {canDelete ? (
                 <>
@@ -250,7 +261,7 @@ export function EventWorkspace({ eventId }: { readonly eventId: string }) {
                     tone="danger"
                     onSelect={() => openLifecycle(event)}
                   >
-                    Move to Trash
+                    {t("moveToTrash")}
                   </MenuItem>
                 </>
               ) : null}
@@ -273,16 +284,16 @@ export function EventWorkspace({ eventId }: { readonly eventId: string }) {
       </header>
 
       <label className="mobile-view-select compact-field">
-        <span>Event view</span>
+        <span>{t("viewSelect")}</span>
         <select
-          aria-label="Event view"
+          aria-label={t("viewSelect")}
           value={shownTab}
           onChange={(event) => setActiveTab(event.target.value as TabId)}
         >
-          <option value="pages">Pages</option>
+          <option value="pages">{eventViewLabel("pages")}</option>
           {visibleTabs.map((tab) => (
             <option value={tab.id} key={tab.id}>
-              {tab.label}
+              {eventViewLabel(tab.id)}
             </option>
           ))}
         </select>
@@ -313,7 +324,10 @@ export function EventWorkspace({ eventId }: { readonly eventId: string }) {
               }
             : undefined
         }
-        views={visibleTabs}
+        views={visibleTabs.map((tab) => ({
+          id: tab.id,
+          label: eventViewLabel(tab.id),
+        }))}
         activeView={shownTab}
         onSelectView={setActiveTab}
         tabRef={(tab, element) => {
@@ -345,7 +359,7 @@ export function EventWorkspace({ eventId }: { readonly eventId: string }) {
           role="tabpanel"
         >
           {activeProjection?.isPending ? (
-            <LoadingState label="Loading this view" />
+            <LoadingState label={t("loadingView")} />
           ) : activeProjection?.isError ? (
             <ErrorNotice
               error={activeProjection.error}

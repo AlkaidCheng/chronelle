@@ -15,12 +15,14 @@ import {
   useReactTable,
 } from "@tanstack/react-table";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { type ReactNode, useCallback, useMemo, useState } from "react";
 
 import { ErrorNotice } from "../../components/feedback";
 import { CheckIcon } from "../../components/icons";
 import type { QuickAddSlots } from "../../components/quick-add-row";
 import { RowMenu, type RowMenuEntry } from "../../components/row-menu";
+import { tr } from "../../i18n/active-locale";
 import {
   rankAtIndex,
   rankBetweenRows,
@@ -93,7 +95,7 @@ const taskColumns = [
     cell: ({ row, table }) => tableMeta(table).check(row.original),
   }),
   taskColumn.accessor("displayName", {
-    header: "Task",
+    header: () => tr("taskRow.columns")("task"),
     cell: ({ row, table }) => {
       const { context, lineage, present } = tableMeta(table);
       const nested =
@@ -110,11 +112,11 @@ const taskColumns = [
   }),
   taskColumn.display({
     id: "due",
-    header: "Due",
+    header: () => tr("taskRow.columns")("due"),
     cell: ({ row }) => formatTaskDue(row.original),
   }),
   taskColumn.accessor("status", {
-    header: "Status",
+    header: () => tr("taskRow.columns")("status"),
     cell: ({ getValue }) => <StatusChip status={getValue()} />,
   }),
   taskColumn.display({
@@ -183,6 +185,8 @@ export function TaskListView({
     [tasks],
   );
   const [announcement, setAnnouncement] = useState("");
+  const t = useTranslations("taskRow");
+  const todos = useTranslations("todos");
   const openHistory = useOpenHistory();
   const openLifecycle = useOpenLifecycle();
   const lineage = useCallback(
@@ -201,18 +205,18 @@ export function TaskListView({
         <>
           {assignee === undefined ? null : (
             <span className="task-assignee">
-              <span className="visually-hidden">Assigned to </span>
+              <span className="visually-hidden">{t("assignedTo")}</span>
               {assignee}
             </span>
           )}
           {task.location === null ? null : (
             <span className="task-location">
-              <span className="visually-hidden">At </span>
+              <span className="visually-hidden">{t("at")}</span>
               {task.location}
             </span>
           )}
           {named.length > 0 ? (
-            <ul aria-label="Labels" className="task-labels">
+            <ul aria-label={t("labels")} className="task-labels">
               {named.map((label) => (
                 <li className="task-label" key={label.id}>
                   {label.name}
@@ -226,7 +230,7 @@ export function TaskListView({
                 {count.done}/{count.total}
               </span>
               <span className="visually-hidden">
-                {count.done} of {count.total} subtasks done
+                {t("subtasksDone", { done: count.done, total: count.total })}
               </span>
             </span>
           )}
@@ -236,7 +240,7 @@ export function TaskListView({
         </>
       );
     },
-    [labelNames, parents, personNames, progress],
+    [labelNames, parents, personNames, progress, t],
   );
   const context = useCallback(
     (task: TaskResponse) => {
@@ -327,11 +331,14 @@ export function TaskListView({
         task,
         { ...dueOnDay(task, day), ...(rank === undefined ? {} : { rank }) },
         day === null
-          ? `${task.displayName} has no due date now.`
-          : `${task.displayName} is due ${dayInWords(day, now)}.`,
+          ? t("said.noDueDate", { name: task.displayName })
+          : t("said.due", {
+              name: task.displayName,
+              day: dayInWords(day, now),
+            }),
       );
     },
-    [change],
+    [change, t],
   );
   const onDrop = useCallback(
     (id: string, drop: RowDrop) => {
@@ -347,7 +354,8 @@ export function TaskListView({
       const rank = rankAtIndex(rows, drop.index);
       if (drop.groupKey === "undated") {
         if (taskDay(task) !== null) moveToDay(task, null, rank);
-        else change(task, { rank }, `${task.displayName} moved.`);
+        else
+          change(task, { rank }, t("said.moved", { name: task.displayName }));
         return;
       }
       if (
@@ -357,9 +365,9 @@ export function TaskListView({
         moveToDay(task, drop.groupKey, rank);
         return;
       }
-      change(task, { rank }, `${task.displayName} moved.`);
+      change(task, { rank }, t("said.moved", { name: task.displayName }));
     },
-    [byId, change, groupOf, moveToDay, rowsOf],
+    [byId, change, groupOf, moveToDay, rowsOf, t],
   );
   // Overdue keeps its dates: only its own rows may be reordered there.
   const canDrop = useCallback(
@@ -386,8 +394,8 @@ export function TaskListView({
         <button
           aria-label={
             isDone
-              ? `Reopen ${task.displayName}`
-              : `Complete ${task.displayName}`
+              ? t("reopen", { name: task.displayName })
+              : t("complete", { name: task.displayName })
           }
           className={`task-check${isDone ? " checked" : ""}`}
           disabled={!canEdit || isUpdating}
@@ -407,7 +415,7 @@ export function TaskListView({
         </button>
       );
     },
-    [canEdit, isUpdating, updateTask],
+    [canEdit, isUpdating, t, updateTask],
   );
   const menu = useCallback(
     (task: TaskResponse, rows: readonly TaskResponse[]) => {
@@ -418,10 +426,14 @@ export function TaskListView({
       const entries: RowMenuEntry[] = [];
       if (canEdit) {
         entries.push(
-          { kind: "action", label: "Edit", onSelect: () => onEdit(task.id) },
           {
             kind: "action",
-            label: isDone ? "Reopen" : "Complete",
+            label: t("menu.edit"),
+            onSelect: () => onEdit(task.id),
+          },
+          {
+            kind: "action",
+            label: isDone ? t("menu.reopen") : t("menu.complete"),
             onSelect: () =>
               change(
                 task,
@@ -430,8 +442,8 @@ export function TaskListView({
                   status: isDone ? "todo" : "done",
                 },
                 isDone
-                  ? `${task.displayName} reopened.`
-                  : `${task.displayName} completed.`,
+                  ? t("said.reopened", { name: task.displayName })
+                  : t("said.completed", { name: task.displayName }),
               ),
           },
         );
@@ -443,20 +455,24 @@ export function TaskListView({
             change(
               task,
               { rank },
-              `${task.displayName} is now ${at + 1} of ${rows.length}.`,
+              t("said.position", {
+                name: task.displayName,
+                at: at + 1,
+                total: rows.length,
+              }),
             );
           };
           const at = rows.findIndex((row) => row.id === task.id);
           entries.push(
             {
               kind: "action",
-              label: "Move up",
+              label: t("menu.moveUp"),
               disabled: at <= 0,
               onSelect: () => step(-1),
             },
             {
               kind: "action",
-              label: "Move down",
+              label: t("menu.moveDown"),
               disabled: at < 0 || at >= rows.length - 1,
               onSelect: () => step(1),
             },
@@ -466,13 +482,16 @@ export function TaskListView({
           { kind: "rule" },
           {
             kind: "choices",
-            label: "Due",
+            label: t("menu.due"),
             note:
               day === null
                 ? undefined
-                : `Now ${dayInWords(day, now)}${
-                    task.dueAt === null ? "" : `, ${formatTime(task.dueAt)}`
-                  }`,
+                : task.dueAt === null
+                  ? t("nowDue", { day: dayInWords(day, now) })
+                  : t("nowDueAt", {
+                      day: dayInWords(day, now),
+                      time: formatTime(task.dueAt),
+                    }),
             choices: [
               ...dueShortcuts(now).map((shortcut) => ({
                 label: shortcut.label,
@@ -480,7 +499,7 @@ export function TaskListView({
                 onSelect: () => moveToDay(task, shortcut.day),
               })),
               {
-                label: "No date",
+                label: t("menu.noDate"),
                 checked: day === null,
                 onSelect: () => {
                   if (day !== null) moveToDay(task, null);
@@ -493,12 +512,12 @@ export function TaskListView({
         if (onAddSubtask !== undefined && task.parentTaskId === null)
           entries.push({
             kind: "action",
-            label: "Add subtask",
+            label: t("menu.addSubtask"),
             onSelect: () => onAddSubtask(task),
           });
         entries.push({
           kind: "action",
-          label: "Duplicate",
+          label: t("menu.duplicate"),
           onSelect: () => {
             const at = rows.findIndex((row) => row.id === task.id);
             duplicateTask(
@@ -509,7 +528,9 @@ export function TaskListView({
               },
               {
                 onSuccess: () =>
-                  setAnnouncement(`Duplicated ${task.displayName}.`),
+                  setAnnouncement(
+                    t("said.duplicated", { name: task.displayName }),
+                  ),
               },
             );
           },
@@ -518,20 +539,20 @@ export function TaskListView({
       entries.push(
         {
           kind: "action",
-          label: "Copy link",
+          label: t("menu.copyLink"),
           onSelect: () => {
             const path =
               contextEvent === undefined ? "/tasks" : `/events/${contextEvent}`;
             const link = `${window.location.origin}${path}#task-${task.id}`;
             navigator.clipboard
               ?.writeText(link)
-              .then(() => setAnnouncement("Link copied."))
-              .catch(() => setAnnouncement("The link could not be copied."));
+              .then(() => setAnnouncement(t("said.linkCopied")))
+              .catch(() => setAnnouncement(t("said.linkNotCopied")));
           },
         },
         {
           kind: "action",
-          label: "History",
+          label: t("menu.history"),
           onSelect: () =>
             openHistory({ objectId: task.id, displayName: task.displayName }),
         },
@@ -541,7 +562,7 @@ export function TaskListView({
           { kind: "rule" },
           {
             kind: "action",
-            label: "Move to Trash",
+            label: t("menu.moveToTrash"),
             danger: true,
             onSelect: () =>
               openLifecycle(
@@ -550,7 +571,10 @@ export function TaskListView({
           },
         );
       return (
-        <RowMenu entries={entries} label={`Actions for ${task.displayName}`} />
+        <RowMenu
+          entries={entries}
+          label={t("actionsFor", { name: task.displayName })}
+        />
       );
     },
     [
@@ -565,6 +589,7 @@ export function TaskListView({
       openHistory,
       openLifecycle,
       reorder,
+      t,
     ],
   );
   const meta = useMemo<TaskTableMeta>(
@@ -646,7 +671,7 @@ export function TaskListView({
           </ul>
         )}
         undated={undated}
-        undatedLabel="No due date"
+        undatedLabel={t("groups.noDueDate")}
         view={view}
       />
     );
@@ -674,7 +699,9 @@ export function TaskListView({
               <div className="quick-add-item">
                 <QuickAddTask
                   dayLabel={
-                    group.key === "undated" ? "no due date" : group.label[0]
+                    group.key === "undated"
+                      ? todos("noDueDateGroup")
+                      : group.label[0]
                   }
                   dueOn={group.key === "undated" ? null : group.key}
                   eventId={eventId}

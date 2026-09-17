@@ -2,6 +2,7 @@
 
 import type { SessionResponse } from "@chronelle/schemas";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { useEffect, useId, useRef, useState } from "react";
 import { CheckIcon, KeyIcon, SignOutIcon } from "./icons";
 
@@ -23,6 +24,7 @@ export function AccountMenu({
 }: AccountMenuProps) {
   const [open, setOpen] = useState(false);
   const id = useId();
+  const t = useTranslations("account");
   const root = useRef<HTMLDivElement>(null);
   const trigger = useRef<HTMLButtonElement>(null);
   const menu = useRef<HTMLDivElement>(null);
@@ -73,7 +75,7 @@ export function AccountMenu({
           ref={menu}
           id={`${id}-menu`}
           role="menu"
-          aria-label="Account"
+          aria-label={t("menu")}
           className="quiet-menu-list account-menu-list"
           onKeyDown={(event) => {
             const items = Array.from(
@@ -100,7 +102,7 @@ export function AccountMenu({
             <span>{session.user.email}</span>
           </p>
           <hr className="quiet-menu-separator" />
-          <p className="quiet-menu-heading">Workspaces</p>
+          <p className="quiet-menu-heading">{t("workspaces")}</p>
           {session.availableWorkspaces.map((workspace) => {
             const current = workspace.id === session.workspace.id;
             return (
@@ -130,7 +132,7 @@ export function AccountMenu({
             onClick={() => setOpen(false)}
           >
             <KeyIcon />
-            <span>Change password</span>
+            <span>{t("changePassword")}</span>
           </Link>
           <button
             type="button"
@@ -143,7 +145,7 @@ export function AccountMenu({
             }}
           >
             <SignOutIcon />
-            <span>Sign out</span>
+            <span>{t("signOut")}</span>
           </button>
         </div>
       ) : null}

@@ -6,6 +6,7 @@ import {
   type TaskListQuery,
   type TaskResponse,
 } from "@chronelle/schemas";
+import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import {
@@ -46,6 +47,9 @@ const viewStorageKey = "chronelle.task-view";
  * layout; the filter, sort, and query live with the tab.
  */
 export function TasksPage() {
+  const t = useTranslations("tasksPage");
+  const controls = useTranslations("controls");
+  const todos = useTranslations("todos");
   const [query, setQuery] = useState("");
   const [debouncedQuery, setDebouncedQuery] = useState("");
   const [isComposing, setIsComposing] = useState(false);
@@ -144,12 +148,9 @@ export function TasksPage() {
     <main className="workspace-page" tabIndex={-1}>
       <header className="page-heading split-heading">
         <div>
-          <p className="eyebrow">What needs doing</p>
-          <h1>Tasks</h1>
-          <p>
-            Every task you can see, on its own or inside an event, in your
-            order.
-          </p>
+          <p className="eyebrow">{t("eyebrow")}</p>
+          <h1>{t("title")}</h1>
+          <p>{t("intro")}</p>
         </div>
         <button
           aria-haspopup="dialog"
@@ -161,7 +162,7 @@ export function TasksPage() {
           type="button"
         >
           <PlusIcon />
-          New task
+          {t("new")}
         </button>
       </header>
 
@@ -183,7 +184,7 @@ export function TasksPage() {
         <div className="collection-toolbar">
           <label className="collection-search">
             <SearchIcon />
-            <span className="visually-hidden">Filter tasks by name</span>
+            <span className="visually-hidden">{t("filterByName")}</span>
             <input
               maxLength={240}
               onChange={(event) => setQuery(event.target.value)}
@@ -192,7 +193,7 @@ export function TasksPage() {
                 setIsComposing(false);
               }}
               onCompositionStart={() => setIsComposing(true)}
-              placeholder="Find a task..."
+              placeholder={t("find")}
               type="search"
               value={query}
             />
@@ -219,21 +220,25 @@ export function TasksPage() {
             onClick={() => void tasks.refresh()}
             type="button"
           >
-            Refresh tasks
+            {t("refresh")}
           </button>
         </div>
         <div className="collection-heading">
-          <p aria-label="Task count" className="collection-count" role="status">
+          <p
+            aria-label={t("countLabel")}
+            className="collection-count"
+            role="status"
+          >
             {tasks.data && !changingQuery
-              ? `${items.length} ${items.length === 1 ? "task" : "tasks"} loaded`
+              ? t("count", { count: items.length })
               : ""}
           </p>
         </div>
         <div className="visually-hidden">
-          <h2 id="task-list-heading">All tasks</h2>
+          <h2 id="task-list-heading">{t("all")}</h2>
         </div>
         {tasks.isPending || changingQuery ? (
-          <LoadingState label="Loading tasks" />
+          <LoadingState label={t("loading")} />
         ) : null}
         {tasks.isError ? (
           <ErrorNotice
@@ -252,12 +257,14 @@ export function TasksPage() {
         !filtered ? (
           <>
             <EmptyState
-              description="Choose New task for something to do on its own, or add tasks inside an event and find them here too."
-              title="Nothing to do yet"
+              description={t("emptyDescription")}
+              title={t("emptyTitle")}
             />
             <div className="quick-add-item quick-add-empty">
               <QuickAddTask
-                dayLabel={view === "by-day" ? "no due date" : undefined}
+                dayLabel={
+                  view === "by-day" ? todos("noDueDateGroup") : undefined
+                }
                 dueOn={null}
                 slots={quickAdd}
               />
@@ -272,8 +279,8 @@ export function TasksPage() {
         filtered ? (
           <div className="collection-empty">
             <EmptyState
-              description="Try another name or change your filters."
-              title="No matching tasks"
+              description={t("noMatchDescription")}
+              title={t("noMatchTitle")}
             />
             <button
               className="button button-secondary"
@@ -283,11 +290,13 @@ export function TasksPage() {
               }}
               type="button"
             >
-              Clear filters
+              {controls("clearFilters")}
             </button>
             <div className="quick-add-item quick-add-empty">
               <QuickAddTask
-                dayLabel={view === "by-day" ? "no due date" : undefined}
+                dayLabel={
+                  view === "by-day" ? todos("noDueDateGroup") : undefined
+                }
                 dueOn={null}
                 slots={quickAdd}
               />
@@ -320,9 +329,7 @@ export function TasksPage() {
             onClick={() => void tasks.fetchNextPage()}
             type="button"
           >
-            {tasks.isFetchingNextPage
-              ? "Loading more tasks..."
-              : "Load more tasks"}
+            {tasks.isFetchingNextPage ? t("loadingMore") : t("loadMore")}
           </button>
         ) : null}
       </section>

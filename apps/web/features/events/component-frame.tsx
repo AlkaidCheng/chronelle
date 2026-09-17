@@ -2,9 +2,10 @@
 
 import type { EventComponentView } from "@chronelle/schemas";
 import type { ReactNode } from "react";
+import { useTranslations } from "next-intl";
 import { HeadMenu } from "../../components/head-menu";
 import { LayoutIcon } from "../../components/icons";
-import { eventComponentViews } from "../../lib/event-components";
+import { componentViewLabel } from "../../lib/event-components";
 
 /**
  * The heading every Event component shares: title, a count when the
@@ -54,21 +55,22 @@ export function LayoutControl({
   readonly view: EventComponentView;
   readonly views: readonly EventComponentView[];
 }) {
+  const t = useTranslations("controls");
   if (views.length < 2) return null;
   return (
     <HeadMenu
       busy={busy}
       entries={views.map((option) => ({
         kind: "radio",
-        label: eventComponentViews[option].label,
+        label: componentViewLabel(option),
         checked: option === view,
         onSelect: () => {
           if (option !== view) onChange(option);
         },
       }))}
       icon={<LayoutIcon />}
-      label="Layout"
-      name={eventComponentViews[view].label}
+      label={t("layout")}
+      name={componentViewLabel(view)}
     />
   );
 }
@@ -99,21 +101,26 @@ export function DateTile({
   );
 }
 
-const statusLabels: Record<string, string> = {
-  cancelled: "Cancelled",
-  dismissed: "Dismissed",
-  done: "Done",
-  in_progress: "In progress",
-  pending: "Pending",
-  todo: "To do",
-  triggered: "Triggered",
-};
+const statuses = [
+  "cancelled",
+  "dismissed",
+  "done",
+  "in_progress",
+  "pending",
+  "todo",
+  "triggered",
+] as const;
+
+function isStatus(value: string): value is (typeof statuses)[number] {
+  return (statuses as readonly string[]).includes(value);
+}
 
 /** A status of a Task or Reminder as a labelled chip. */
 export function StatusChip({ status }: { readonly status: string }) {
+  const t = useTranslations("taskRow.status");
   return (
     <span className={`status-chip status-${status}`}>
-      {statusLabels[status] ?? status}
+      {isStatus(status) ? t(status) : status}
     </span>
   );
 }

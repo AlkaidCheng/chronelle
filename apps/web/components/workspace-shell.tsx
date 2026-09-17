@@ -3,6 +3,7 @@
 import { ApiClientError } from "@chronelle/api-client";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { type ReactNode, useEffect } from "react";
 
 import { useAuthSession } from "../lib/auth-session";
@@ -19,6 +20,7 @@ export function WorkspaceShell({ children }: { readonly children: ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
   const session = useSessionQuery();
+  const t = useTranslations("nav");
 
   useEffect(() => {
     if (isHydrated && credential === null) {
@@ -48,7 +50,7 @@ export function WorkspaceShell({ children }: { readonly children: ReactNode }) {
   if (!isHydrated || credential === null || session.isPending) {
     return (
       <main className="centered-page">
-        <LoadingState label="Opening your workspace" />
+        <LoadingState label={t("openingWorkspace")} />
       </main>
     );
   }
@@ -84,14 +86,14 @@ export function WorkspaceShell({ children }: { readonly children: ReactNode }) {
     <WorkspaceCommandProvider pathname={pathname}>
       <div className="workspace-shell">
         <a className="skip-link" href="#workspace-content">
-          Skip to content
+          {t("skipToContent")}
         </a>
         <aside className="sidebar">
           <Link className="brand" href="/events">
             <span className="brand-mark">C</span>
             <span>Chronelle</span>
           </Link>
-          <nav aria-label="Workspace navigation" className="workspace-nav">
+          <nav aria-label={t("workspaceNavigation")} className="workspace-nav">
             {workspaceDestinations.map((destination) =>
               destination.href === "/search" ? (
                 <SearchEntry
@@ -111,7 +113,7 @@ export function WorkspaceShell({ children }: { readonly children: ReactNode }) {
                   }
                 >
                   <destination.icon />
-                  {destination.label}
+                  {t(destination.key)}
                 </Link>
               ),
             )}
