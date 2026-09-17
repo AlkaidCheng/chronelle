@@ -256,10 +256,12 @@ The browser gate runs the same canonical Event creation and search path at
 desktop and narrow-mobile widths. It also checks tab-keyboard behavior, the
 skip link, and horizontal overflow. Targeted desktop/mobile WebKit cases cover
 Event scheduling, date formatting, and creation-dialog focus. CI uses the pinned
-Playwright image and runs this gate with four workers. The offline sandbox suite
-runs in a separate concurrent job, also with four workers. The required `browser`
-check succeeds only when both suites pass. Local browser runs use one worker;
-pass `--workers=4` to Playwright to exercise concurrent execution locally.
+Playwright image and splits this gate into three shards, one runner each with
+two workers (`E2E_SHARD=current/total` selects a slice locally too). The offline
+sandbox suite runs in a separate concurrent job with four workers. The required
+`browser` check succeeds only when every shard and the sandbox suite pass. Local
+browser runs use one worker; pass `--workers=4` to Playwright to exercise
+concurrent execution locally.
 Engine emulation does not replace manual screen-reader or physical-device testing.
 
 The API suite contains a fresh-database release test for the complete event

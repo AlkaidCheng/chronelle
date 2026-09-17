@@ -108,6 +108,10 @@ jobs:
     name: browser-tests
     runs-on: ubuntu-latest
     container: mcr.microsoft.com/playwright:v1.62.0-noble@sha256:baed2032d533817f3dbe6425de795788430ba345e819a1201337009ba17c9d07
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3]
     services:
       postgres:
         image: postgres:17-alpine
@@ -123,6 +127,7 @@ jobs:
     env:
       CI: "true"
       DATABASE_URL: postgresql://chronelle:chronelle_dev@postgres:5432/chronelle
+      E2E_SHARD: ${{ matrix.shard }}/3
     steps:
       - name: Check out repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -143,7 +148,7 @@ jobs:
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: browser-failures-${{ github.run_id }}-${{ github.run_attempt }}
+          name: browser-failures-${{ github.run_id }}-${{ github.run_attempt }}-${{ matrix.shard }}
           path: |
             test-results/playwright/**/test-failed-*.png
             test-results/playwright/**/error-context.md
