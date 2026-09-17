@@ -11,6 +11,7 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { Providers } from "../app/providers";
 import { PeoplePage } from "../features/people/people-page";
+import { PersonPage } from "../features/people/person-page";
 import { SandboxStore, sandboxWorkspaceId } from "../sandbox/store";
 
 vi.mock("next/navigation", () => ({
@@ -66,8 +67,15 @@ afterEach(() => {
   window.sessionStorage.clear();
 });
 
+async function openRowMenu(row: HTMLElement, entry: string) {
+  const user = userEvent.setup();
+  await user.click(within(row).getByRole("button", { name: /^Actions for / }));
+  const menu = await screen.findByRole("menu");
+  await user.click(within(menu).getByRole("menuitem", { name: entry }));
+}
+
 describe("PeoplePage", () => {
-  it("adds people with fields, shows namecards, hides a field, edits, and filters", async () => {
+  it("adds people through quick add, edits from the row menu, lays them out, filters, and sorts", async () => {
     const user = userEvent.setup();
     render(
       <Providers>
@@ -76,11 +84,22 @@ describe("PeoplePage", () => {
     );
     expect(await screen.findByText("No people yet")).toBeVisible();
 
-    // A person with a nickname, an email and a phone, a label, a field, and
-    // the link to the signed-in user.
-    await user.click(screen.getByRole("button", { name: "New person" }));
-    const editor = await screen.findByRole("dialog", { name: "Add person" });
-    await user.type(within(editor).getByLabelText("Name"), "Mira Chen");
+    // Quick add creates a person with the name and keeps the field open.
+    await user.click(screen.getByRole("button", { name: "Add a person" }));
+    const field = screen.getByRole("textbox", { name: "New person" });
+    await user.type(field, "Mira Chen{Enter}");
+    const list = await screen.findByRole("list", { name: "People" });
+    const mira = await within(list).findByRole("listitem", {
+      name: "Mira Chen",
+    });
+    expect(screen.getByRole("textbox", { name: "New person" })).toHaveValue("");
+    expect(list).toHaveClass("person-list");
+    expect(screen.getByText("1 person loaded")).toBeInTheDocument();
+
+    // The row menu edits: a nickname, the link to the signed-in user, an
+    // email, a label, and a field.
+    await openRowMenu(mira, "Edit");
+    const editor = await screen.findByRole("dialog", { name: "Edit person" });
     await user.type(within(editor).getByLabelText("Nickname"), "Mira");
     await user.click(within(editor).getByLabelText("This is me"));
     await user.click(
@@ -89,17 +108,6 @@ describe("PeoplePage", () => {
     await user.type(
       within(editor).getByLabelText("Contact 1 value"),
       "mira@example.test",
-    );
-    await user.click(
-      within(editor).getByRole("button", { name: "Add contact" }),
-    );
-    await user.selectOptions(
-      within(editor).getByLabelText("Contact 2 kind"),
-      "phone",
-    );
-    await user.type(
-      within(editor).getByLabelText("Contact 2 value"),
-      "+1 555 0100",
     );
     await user.click(within(editor).getByText("Labels"));
     await user.type(within(editor).getByLabelText("New label"), "family");
@@ -116,89 +124,119 @@ describe("PeoplePage", () => {
       "Vegetarian",
     );
     await user.click(
-      within(editor).getByRole("button", { name: "Add person" }),
+      within(editor).getByRole("button", { name: "Save person" }),
     );
-    await waitFor(() =>
-      expect(screen.queryByRole("dialog", { name: "Add person" })).toBeNull(),
-    );
-    const cards = await screen.findByRole("list", { name: "People" });
-    const mira = within(cards).getByRole("listitem", { name: "Mira" });
-    expect(within(mira).getByRole("heading")).toHaveTextContent("Mira (me)");
-    expect(within(mira).getByText("Mira Chen")).toBeVisible();
-    expect(
-      within(mira).getByRole("link", { name: "mira@example.test" }),
-    ).toHaveAttribute("href", "mailto:mira@example.test");
-    expect(
-      within(mira).getByRole("link", { name: "+1 555 0100" }),
-    ).toHaveAttribute("href", "tel:+1 555 0100");
-    expect(
-      within(within(mira).getByRole("list", { name: "Labels" })).getByText(
-        "family",
-      ),
-    ).toBeVisible();
-    expect(within(mira).getByText("Vegetarian")).toBeVisible();
-    expect(screen.getByText("1 person loaded")).toBeVisible();
-
-    // A second person; the diet field can be hidden across the page and the
-    // choice is remembered on this device.
-    await user.click(screen.getByRole("button", { name: "New person" }));
-    const second = await screen.findByRole("dialog", { name: "Add person" });
-    await user.type(within(second).getByLabelText("Name"), "adam");
-    // The signed-in user already has a person, so the link is not offered.
-    expect(within(second).getByLabelText(/This is me/)).toBeDisabled();
-    await user.click(
-      within(second).getByRole("button", { name: "Add person" }),
-    );
-    await waitFor(() =>
-      expect(screen.queryByRole("dialog", { name: "Add person" })).toBeNull(),
-    );
-    expect(await screen.findByText("2 people loaded")).toBeVisible();
-    expect(
-      within(cards)
-        .getAllByRole("heading")
-        .map((heading) => heading.textContent),
-    ).toEqual(["adam", "Mira (me)"]);
-    await user.click(screen.getByText("Shown fields"));
-    await user.click(screen.getByRole("checkbox", { name: "diet" }));
-    expect(screen.queryByText("Vegetarian")).toBeNull();
-    expect(JSON.parse(stored["chronelle.people-fields"] ?? "[]")).toEqual([
-      "diet",
-    ]);
-    await user.click(screen.getByRole("checkbox", { name: "diet" }));
-    expect(screen.getByText("Vegetarian")).toBeVisible();
-
-    // Editing removes a contact, changes a field's value, and keeps the rest.
-    await user.click(screen.getByRole("button", { name: "Edit Mira" }));
-    const edit = await screen.findByRole("dialog", { name: "Edit person" });
-    expect(within(edit).getByLabelText("Nickname")).toHaveValue("Mira");
-    await user.click(
-      within(edit).getByRole("button", { name: "Remove contact 2" }),
-    );
-    const value = within(edit).getByLabelText("Field 1 value");
-    await user.clear(value);
-    await user.type(value, "Vegetarian dishes");
-    await user.click(within(edit).getByRole("button", { name: "Save person" }));
     await waitFor(() =>
       expect(screen.queryByRole("dialog", { name: "Edit person" })).toBeNull(),
     );
-    expect(await screen.findByText("Vegetarian dishes")).toBeVisible();
-    expect(screen.queryByText("+1 555 0100")).toBeNull();
+    const row = await within(list).findByRole("listitem", { name: "Mira" });
     expect(
-      within(within(cards).getByRole("listitem", { name: "Mira" })).getByRole(
-        "link",
-        { name: "mira@example.test" },
-      ),
+      within(row).getByRole("link", { name: "Open Mira" }),
+    ).toHaveAttribute("href", expect.stringMatching(/^\/people\//));
+    expect(within(row).getByText("Mira Chen")).toBeVisible();
+    expect(
+      within(row).getByRole("link", { name: "mira@example.test" }),
+    ).toHaveAttribute("href", "mailto:mira@example.test");
+    expect(within(row).getByText("family")).toBeVisible();
+    expect(within(row).getByText("This is me")).toBeVisible();
+
+    // The row closed when the editor took its focus; a second person goes
+    // in the same way, and the label filter leaves them out.
+    await user.click(screen.getByRole("button", { name: "Add a person" }));
+    await user.type(
+      screen.getByRole("textbox", { name: "New person" }),
+      "adam{Enter}",
+    );
+    await within(list).findByRole("listitem", { name: "adam" });
+    expect(screen.getByText("2 people loaded")).toBeInTheDocument();
+    const rows = () =>
+      Array.from(list.children).map((item) => item.getAttribute("aria-label"));
+    expect(rows()).toEqual(["adam", "Mira"]);
+    await user.click(screen.getByRole("button", { name: /^Filter/ }));
+    await user.click(screen.getByRole("menuitemradio", { name: "family" }));
+    await user.keyboard("{Escape}");
+    expect(within(list).queryByRole("listitem", { name: "adam" })).toBeNull();
+    expect(screen.getByText("1 person loaded")).toBeInTheDocument();
+    // Narrowed further to people without an account, nobody is left; the
+    // empty state clears both filters.
+    await user.click(screen.getByRole("button", { name: /^Filter/ }));
+    await user.click(screen.getByRole("menuitemradio", { name: "No account" }));
+    await user.keyboard("{Escape}");
+    expect(await screen.findByText("No matching people")).toBeVisible();
+    await user.click(screen.getByRole("button", { name: "Clear filters" }));
+    const all = await screen.findByRole("list", { name: "People" });
+    expect(
+      Array.from(all.children).map((item) => item.getAttribute("aria-label")),
+    ).toEqual(["adam", "Mira"]);
+
+    // Namecards show the same people, and the device remembers the layout.
+    await user.click(screen.getByRole("button", { name: /^Layout/ }));
+    await user.click(screen.getByRole("menuitemradio", { name: "Namecards" }));
+    const cards = await screen.findByRole("list", { name: "People" });
+    expect(cards).toHaveClass("person-grid");
+    expect(stored["chronelle.people-layout"]).toBe("cards");
+    expect(within(cards).getByRole("listitem", { name: "Mira" })).toBeVisible();
+    expect(
+      within(cards).getByRole("button", { name: "Add a person" }),
     ).toBeVisible();
 
     // The name query asks the server.
     await user.type(screen.getByLabelText("Filter people by name"), "ada");
-    expect(await screen.findByText("1 person loaded")).toBeVisible();
+    expect(await screen.findByText("1 person loaded")).toBeInTheDocument();
     expect(screen.queryByText("Mira Chen")).toBeNull();
     expect(
       vi
         .mocked(fetch)
         .mock.calls.map(([url]) => String(url))
-        .some((url) => /^\/api\/persons\?query=ada/.test(url)),
+        .some((url) => url.includes("/api/persons?") && url.includes("ada")),
     ).toBe(true);
+  });
+});
+
+describe("PersonPage", () => {
+  it("shows the person's details, description, and tabs, and opens the editor", async () => {
+    const user = userEvent.setup();
+    const created = await store.fetch("/api/persons", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        displayName: "Bea Long",
+        nickname: "Bee",
+        description: "Plans the autumn trips.",
+        contacts: [{ kind: "phone", value: "+1 555 0199" }],
+        customProperties: { birthday: "14 March" },
+      }),
+    });
+    const person = (await created.json()) as { id: string };
+    render(
+      <Providers>
+        <PersonPage personId={person.id} />
+      </Providers>,
+    );
+    expect(
+      await screen.findByRole("heading", { level: 1, name: "Bee" }),
+    ).toBeVisible();
+    // The full name reads under the title and again among the details.
+    expect(screen.getAllByText("Bea Long")).toHaveLength(2);
+    expect(screen.getByRole("link", { name: "All people" })).toHaveAttribute(
+      "href",
+      "/people",
+    );
+    const overview = screen.getByRole("tabpanel");
+    expect(
+      within(overview).getByRole("link", { name: "+1 555 0199" }),
+    ).toHaveAttribute("href", "tel:+1 555 0199");
+    expect(within(overview).getByText("birthday")).toBeVisible();
+    expect(within(overview).getByText("14 March")).toBeVisible();
+    expect(within(overview).getByText("Plans the autumn trips.")).toBeVisible();
+
+    await user.click(screen.getByRole("tab", { name: "Events" }));
+    expect(await screen.findByText("Not part of any event yet")).toBeVisible();
+    await user.click(screen.getByRole("tab", { name: "Tasks" }));
+    expect(await screen.findByText("No tasks assigned")).toBeVisible();
+
+    await user.click(screen.getByRole("button", { name: "Edit person" }));
+    const editor = await screen.findByRole("dialog", { name: "Edit person" });
+    expect(within(editor).getByLabelText("Nickname")).toHaveValue("Bee");
   });
 });

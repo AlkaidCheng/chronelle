@@ -502,6 +502,42 @@ export function usePersonEditorQueries(personId: string) {
   return { person, access };
 }
 
+/**
+ * The Events a person is part of: the live "includes" links that point at
+ * the person, then each Event as the user may read it (one they may not
+ * is left out), in date order with the undated last.
+ */
+export function usePersonEventsQuery(personId: string) {
+  const client = useApiClient();
+  const { credential } = useAuthSession();
+  return useQuery({
+    enabled: credential !== null,
+    queryFn: async ({ signal }) => {
+      const scoped = client.withSignal(signal);
+      const links = await scoped.listObjectRelations(personId, {
+        direction: "incoming",
+        relationType: "includes",
+        limit: 50,
+      });
+      const events = await Promise.allSettled(
+        links.items.map((link) => scoped.getEvent(link.sourceObjectId)),
+      );
+      const items = events.flatMap((event) =>
+        event.status === "fulfilled" ? [event.value] : [],
+      );
+      const startOf = (event: EventResponse) =>
+        event.startsOn ?? event.startsAt ?? "~";
+      return {
+        items: items.sort(
+          (a, b) =>
+            startOf(a).localeCompare(startOf(b)) || a.id.localeCompare(b.id),
+        ),
+      };
+    },
+    queryKey: [...queryKeys.objectResource(personId), "events"],
+  });
+}
+
 export function useReminderEditorQueries(reminderId: string) {
   const { resource: reminder, access } = useObjectEditorQueries(
     reminderId,

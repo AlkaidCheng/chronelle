@@ -133,24 +133,194 @@ h3,
 .person-grid {
   display: grid;
   gap: 12px;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
   list-style: none;
   margin: 0;
   padding: 0;
 }
 
+/* The list layout: one row per person on a shared grid; a press on the
+   row opens the person, the name being the link. */
+.person-list {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  list-style: none;
+  margin: 0;
+  overflow: hidden;
+  padding: 0;
+}
+
+.person-row {
+  align-items: center;
+  border-top: 1px solid var(--line);
+  display: grid;
+  gap: 8px 14px;
+  grid-template-columns:
+    36px minmax(140px, 1.2fr) minmax(140px, 1fr) minmax(0, 0.9fr)
+    auto 32px;
+  min-height: 52px;
+  padding: 8px 14px;
+}
+
+.person-row:first-child {
+  border-top: 0;
+}
+
+.person-row:hover,
+.person-row:focus-within {
+  background: var(--surface-subtle);
+}
+
+.person-row .row-more {
+  margin-left: 0;
+}
+
+.person-row .task-labels {
+  margin: 0;
+}
+
+.person-row-badge {
+  display: flex;
+  justify-content: flex-end;
+  min-width: 0;
+}
+
+.person-names {
+  display: grid;
+  line-height: 1.25;
+  min-width: 0;
+}
+
+/* The name is the link to the person and stretches over its row or card;
+   the other links and the controls sit above it. */
+.person-row,
+.person-card {
+  position: relative;
+}
+
+.person-name {
+  color: var(--ink);
+  font-weight: 600;
+  overflow: hidden;
+  text-decoration: none;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.person-name::after {
+  content: "";
+  inset: 0;
+  position: absolute;
+}
+
+.person-name:hover {
+  text-decoration: underline;
+}
+
+.person-row .person-contacts,
+.person-row .task-labels,
+.person-row .row-more,
+.person-card .person-contacts,
+.person-card .task-labels,
+.person-card .row-more {
+  position: relative;
+  z-index: 1;
+}
+
+.person-fullname {
+  color: var(--muted);
+  font-size: 0.82rem;
+  overflow-wrap: anywhere;
+}
+
 .person-card {
   background: var(--surface);
   border: 1px solid var(--line);
-  border-radius: 16px;
+  border-radius: 14px;
   display: grid;
-  gap: 10px 12px;
-  grid-template-columns: auto 1fr;
+  gap: 10px;
+  min-height: 150px;
   padding: 14px 16px;
+  position: relative;
 }
 
-.person-card .row-actions {
-  grid-column: 1 / -1;
+.person-card:hover,
+.person-card:focus-within {
+  border-color: var(--line-strong);
+}
+
+.person-card-top {
+  align-items: flex-start;
+  display: flex;
+  gap: 12px;
+}
+
+.person-card-top .person-names {
+  flex: 1;
+  padding-top: 2px;
+}
+
+.person-card-top .person-name {
+  font-family: var(--font-display);
+  font-size: 1.1rem;
+  white-space: normal;
+}
+
+.person-card .row-more {
+  align-self: flex-start;
+}
+
+.person-card-foot {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: auto;
+}
+
+.person-card-foot .task-labels {
+  margin: 0 0 0 auto;
+}
+
+.person-add-card {
+  border-style: dashed;
+  min-height: 150px;
+  padding: 0;
+}
+
+.person-add-card-button {
+  align-items: center;
+  background: none;
+  border: 0;
+  color: var(--muted);
+  cursor: pointer;
+  display: flex;
+  font: inherit;
+  font-size: 0.9rem;
+  gap: 8px;
+  height: 100%;
+  justify-content: center;
+  min-height: 150px;
+  width: 100%;
+}
+
+.person-add-card-button:hover {
+  color: var(--accent);
+}
+
+.person-add-card-button svg {
+  height: 18px;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-width: 1.6;
+  width: 18px;
+}
+
+.quick-add-people {
+  border-top: 0;
+  margin-top: 8px;
+  padding-left: 14px;
 }
 
 .person-avatar {
@@ -159,43 +329,47 @@ h3,
   border-radius: 999px;
   color: var(--accent);
   display: inline-flex;
-  font-size: 0.8rem;
+  flex: none;
+  font-size: 0.78rem;
   font-weight: 700;
-  height: 40px;
+  height: 36px;
   justify-content: center;
   letter-spacing: 0.04em;
-  width: 40px;
+  width: 36px;
 }
 
-.person-copy {
-  display: grid;
-  gap: 4px;
-  min-width: 0;
+.person-avatar-card {
+  font-size: 0.92rem;
+  height: 44px;
+  width: 44px;
 }
 
-.person-copy h3 {
-  font-size: 1rem;
-  margin: 0;
-  overflow-wrap: anywhere;
+.person-avatar-page {
+  font-family: var(--font-display);
+  font-size: 1.4rem;
+  height: 64px;
+  letter-spacing: 0;
+  width: 64px;
 }
 
-.person-me,
-.person-linked {
+.person-badge {
+  border: 1px solid var(--line);
+  border-radius: 999px;
   color: var(--muted);
-  font-size: 0.78rem;
-  font-weight: 500;
-  margin: 0;
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 1px 8px;
+  white-space: nowrap;
+}
+
+.person-badge-me {
+  background: var(--accent-soft);
+  border-color: transparent;
+  color: var(--accent);
 }
 
 .person-email {
   font-size: 0.85rem;
-  overflow-wrap: anywhere;
-}
-
-.person-fullname {
-  color: var(--muted);
-  font-size: 0.82rem;
-  margin: -2px 0 0;
   overflow-wrap: anywhere;
 }
 
@@ -209,41 +383,124 @@ h3,
   padding: 0;
 }
 
+.person-contacts li {
+  align-items: center;
+  display: flex;
+  gap: 7px;
+  min-width: 0;
+}
+
+.person-contacts li > a,
+.person-contacts li > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.person-contact-icon {
+  color: var(--faint);
+  flex: none;
+  height: 13px;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.6;
+  width: 13px;
+}
+
 .person-description {
+  color: var(--muted);
   font-size: 0.85rem;
-  margin: 2px 0 0;
+  margin: 0;
   overflow-wrap: anywhere;
-  white-space: pre-line;
+}
+
+/* The person page: the avatar beside the title, the names and badge
+   under it, then the tabs and one panel. */
+.person-title-row {
+  align-items: flex-start;
+  display: flex;
+  gap: 18px;
+}
+
+.person-titles {
+  flex: 1;
+  min-width: 0;
+}
+
+.person-titles h1 {
+  margin: 0;
+}
+
+.person-subline {
+  align-items: center;
+  color: var(--muted);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 10px;
+  margin: 6px 0 0;
+}
+
+.person-subline .task-labels {
+  margin: 0;
+}
+
+.person-panel {
+  margin-top: 18px;
+}
+
+.person-overview {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: minmax(0, 1.4fr) minmax(240px, 1fr);
+}
+
+.person-details {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+}
+
+.person-details > div {
+  display: grid;
+  gap: 4px 12px;
+  grid-template-columns: 110px minmax(0, 1fr);
+}
+
+.person-details dt {
+  color: var(--faint);
+  font-size: 0.85rem;
+}
+
+.person-details dd {
+  margin: 0;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 760px) {
+  .person-row {
+    grid-template-columns: 36px minmax(0, 1fr) 32px;
+  }
+
+  .person-row .person-contacts,
+  .person-row .task-labels,
+  .person-row-badge {
+    display: none;
+  }
+
+  .person-overview {
+    grid-template-columns: 1fr;
+  }
+
+  .person-title-row {
+    gap: 12px;
+  }
 }
 
 .person-contact-kind {
   flex: 0 0 auto;
   margin: 0;
-}
-
-.person-fields-list {
-  display: grid;
-  gap: 4px 12px;
-  grid-template-columns: max-content 1fr;
-  margin: 4px 0 0;
-}
-
-.person-fields-list div {
-  display: contents;
-}
-
-.person-fields-list dt {
-  color: var(--muted);
-  font-size: 0.73rem;
-  font-weight: 700;
-  letter-spacing: 0.02em;
-  text-transform: uppercase;
-}
-
-.person-fields-list dd {
-  font-size: 0.85rem;
-  margin: 0;
-  overflow-wrap: anywhere;
 }
 
 .person-fields {
@@ -5415,7 +5672,6 @@ html:has(.event-create-dialog[open]) {
     .money-totals dt,
     .month-list-chooser-group legend,
     .quiet-menu-heading,
-    .person-fields-list dt,
     .theme-group > span,
     .theme-group legend,
     .settings-nav-group > span

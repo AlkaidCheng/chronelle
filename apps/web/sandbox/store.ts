@@ -20,6 +20,7 @@ import {
   type LabelResponse,
   personCreateRequestSchema,
   personListQuerySchema,
+  relationListQuerySchema,
   personUpdateRequestSchema,
   taskCreateRequestSchema,
   taskDueDate,
@@ -1106,7 +1107,33 @@ export class SandboxStore {
       const links = this.#state.relations.filter(
         (link) => link.sourceObjectId === id && link.deletedAt === null,
       );
-      if (operation === "relations") return { items: links, nextCursor: null };
+      if (operation === "relations") {
+        const query = relationListQuerySchema.parse(
+          Object.fromEntries(url.searchParams),
+        );
+        const incoming = this.#state.relations.filter(
+          (link) => link.targetObjectId === id && link.deletedAt === null,
+        );
+        const listed =
+          query.direction === "incoming"
+            ? incoming
+            : query.direction === "outgoing"
+              ? links
+              : [...links, ...incoming];
+        return {
+          items: listed
+            .filter(
+              (link) =>
+                (query.relationType === undefined ||
+                  link.relationType === query.relationType) &&
+                (query.otherObjectId === undefined ||
+                  link.sourceObjectId === query.otherObjectId ||
+                  link.targetObjectId === query.otherObjectId),
+            )
+            .slice(0, query.limit),
+          nextCursor: null,
+        };
+      }
       const children = all.filter((child) =>
         links.some((link) => link.targetObjectId === child.id),
       );

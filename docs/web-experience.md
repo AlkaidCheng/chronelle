@@ -106,27 +106,44 @@ shown in its place wherever the person is named, contacts (email, phone, or
 other, in the order kept), labels from the workspace's label vocabulary, a
 description, an optional link to a member's account, and custom fields for
 anything else worth keeping (a birthday, a dietary note). The People page in
-the rail shows everyone as namecards with initials, the nickname or name
-(marked "(me)" for the person linked to the signed-in account) with the full
-name under a nickname, "Has an account here" for other linked people, the
-contacts (an email as a mail link, a phone as a call link), the labels, the
-description, and the custom fields as a small table. Shown fields lists
-every custom field any loaded person carries; unticking one hides it on
-every card, a device preference kept in browser storage. New person and
-Edit open the person editor: name, nickname, This is me (offered when the
-person is unlinked or already this user's; one person per account), the
-contacts as kind/value rows with Add contact and Remove, Labels (the same
-picker tasks use, with a field to add one), the description, and the custom
-fields as name/value rows with Add field and Remove. Editing keeps a field's
-original type unless its text changes. Assignee chips, the assignee and
-share pickers, and the event People component all name a person by their
-nickname when one exists. Cards offer History and
-Actions (Trash) like any record; Search and Trash filter by People, and
-Trash restores them. The name query asks the server after a typing pause.
+the rail is a collection like Tasks: one heading row with an inline name
+search (asked of the server after a typing pause), Filter (Account: everyone,
+those with an account, those without; then any label), Sort (by name, the
+default, or by the latest change), Layout (List or Namecards, a device
+preference kept in browser storage), Refresh, and the filled plus for New
+person, which opens the person editor. The list shows one row per person:
+initials (the first character of a name written in Han, kana, or Hangul), the
+nickname over the full name (or the name alone) as the link to the person's
+page, the contacts (an email as a mail link, a phone as a call link), the
+labels, "This is me" for the person linked to the signed-in account or "Has
+an account" for another member's, and the row menu (Edit, History, Move to
+Trash). Namecards show the same people as cards with the contacts under
+their icons, the description, and the badge and labels at the foot; the menu
+shows on hover or focus. A press on a row or card opens the person's page.
+Both layouts end with Add a person, a quick add row like the task lists':
+Enter creates a person with the typed name and keeps the field open for the
+next; among namecards a dashed card opens the same row. At a phone width the
+rows keep the avatar, the names, and the menu.
+
+A person's page (People, then a row or card) shows the nickname as its title
+with the full name, the badge, and the labels under it; Edit (the person
+editor), History, and More (Copy link, Move to Trash); then three tabs.
+Overview holds Details (the full name under a nickname, the contacts, the
+custom fields) and Description. Events lists the events the person is part
+of, each a link with its dates. Tasks lists the tasks assigned to them, open
+and done, each a link to where it lives. The editor takes the name, nickname,
+This is me (offered when the person is unlinked or already this user's; one
+person per account), the contacts as kind/value rows with Add contact and
+Remove, Labels (the same picker tasks use, with a field to add one), the
+description, and the custom fields as name/value rows with Add field and
+Remove. Editing keeps a field's original type unless its text changes.
+Assignee chips, the assignee and share pickers, and the event People
+component all name a person by their nickname when one exists. Search and
+Trash filter by People, and Trash restores them.
 
 An event page can carry a People component (also an event view and an
 overview card) that shows the people the event involves as the same
-namecards. Add person offers everyone the workspace knows who is not yet in
+namecards, each opening the person's page. Add person offers everyone the workspace knows who is not yet in
 the event, by name, or takes a new person's name and creates them inside the
 event. A card's Actions offer Remove context link, which takes the person out
 of the event and leaves them in the workspace, as well as Move to Trash.

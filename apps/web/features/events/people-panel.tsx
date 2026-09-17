@@ -6,8 +6,8 @@ import { createPortal } from "react-dom";
 
 import { EmptyState, ErrorNotice } from "../../components/feedback";
 import { personDisplayName } from "../../lib/person-fields";
-import { PersonCard } from "../people/person-card";
 import { PersonInspector } from "../people/person-inspector";
+import { PersonListing } from "../people/person-row";
 import {
   useCreatePersonInEvent,
   useEventAccessQuery,
@@ -67,19 +67,12 @@ export function PeoplePanel({
       {persons.length === 0 ? (
         <EmptyState title="No people yet" />
       ) : (
-        <ul aria-label="People" className="person-grid">
-          {persons.map((person) => (
-            <PersonCard
-              eventId={eventId}
-              hidden={new Set()}
-              isMe={me !== undefined && person.userId === me}
-              key={person.id}
-              labelNames={labelNames}
-              onEdit={setEditingId}
-              person={person}
-            />
-          ))}
-        </ul>
+        <PersonListing
+          context={{ canEdit, eventId, labelNames, me, onEdit: setEditingId }}
+          items={persons}
+          label="People"
+          layout="cards"
+        />
       )}
       {canShare && shareable.length > 0 ? (
         <details className="share-people-disclosure">

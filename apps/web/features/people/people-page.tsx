@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { useEffect, useMemo, useState } from "react";
 
 import {
@@ -7,28 +8,51 @@ import {
   ErrorNotice,
   LoadingState,
 } from "../../components/feedback";
-import { PlusIcon, SearchIcon } from "../../components/icons";
+import { IconButton } from "../../components/icon-button";
+import { PlusIcon, RefreshIcon, SearchIcon } from "../../components/icons";
+import { useQuickAddSlots } from "../../components/quick-add-row";
+import {
+  activePersonFilterCount,
+  defaultPersonFilters,
+  filterPersons,
+  isPersonLayout,
+  type PersonFilters,
+  type PersonLayout,
+  type PersonSort,
+  sortPersons,
+} from "../../lib/person-collection";
 import {
   useLabelsQuery,
   usePersonsQuery,
   useSessionQuery,
 } from "../../lib/queries";
-import { PersonCard } from "./person-card";
+import {
+  PersonFilterControl,
+  PersonLayoutControl,
+  PersonSortControl,
+} from "./person-controls";
 import { PersonForm } from "./person-form";
 import { PersonInspector } from "./person-inspector";
+import { QuickAddPerson } from "./quick-add-person";
+import { PersonListing } from "./person-row";
 
-const fieldsStorageKey = "chronelle.people-fields";
+const layoutStorageKey = "chronelle.people-layout";
 
 /**
- * Everyone the workspace keeps track of, as namecards. Which custom fields
- * the cards show is a device preference; absent, every field shows. The
- * name query lives with the tab.
+ * Everyone the workspace keeps track of, as rows or as namecards, in name
+ * order unless another is chosen, narrowed by account and label. The
+ * layout is a device preference like the Event collection's; the filter,
+ * sort, and name query live with the tab.
  */
 export function PeoplePage() {
+  const t = useTranslations("people");
+  const controls = useTranslations("controls");
   const [query, setQuery] = useState("");
   const [debouncedQuery, setDebouncedQuery] = useState("");
   const [isComposing, setIsComposing] = useState(false);
-  const [hidden, setHidden] = useState<ReadonlySet<string>>(new Set());
+  const [filters, setFilters] = useState<PersonFilters>(defaultPersonFilters);
+  const [sort, setSort] = useState<PersonSort>("name");
+  const [layout, setLayout] = useState<PersonLayout>("list");
   const [isAdding, setIsAdding] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   useEffect(() => {
@@ -38,70 +62,50 @@ export function PeoplePage() {
   }, [query, isComposing]);
   useEffect(() => {
     try {
-      const stored = window.localStorage.getItem(fieldsStorageKey);
-      if (stored !== null) setHidden(new Set(JSON.parse(stored) as string[]));
+      const stored = window.localStorage.getItem(layoutStorageKey);
+      if (isPersonLayout(stored)) setLayout(stored);
     } catch {
-      // Every field shows when the preference cannot be read.
+      // The list stays usable when browser storage is unavailable.
     }
   }, []);
   const people = usePersonsQuery(true, { query: debouncedQuery });
   const labels = useLabelsQuery();
   const session = useSessionQuery();
+  const quickAdd = useQuickAddSlots();
   const me = session.data?.user.id;
   const changingQuery = isComposing || query.trim() !== debouncedQuery;
-  const items = changingQuery ? [] : (people.data?.items ?? []);
-  // Every custom field any loaded person carries, in first-seen order.
-  const fieldNames = useMemo(() => {
-    const names: string[] = [];
-    for (const person of items)
-      for (const key of Object.keys(person.customProperties))
-        if (!names.includes(key)) names.push(key);
-    return names;
-  }, [items]);
+  const loaded = changingQuery ? [] : (people.data?.items ?? []);
+  const items = useMemo(
+    () => sortPersons(filterPersons(loaded, filters), sort),
+    [loaded, filters, sort],
+  );
+  const filtered =
+    debouncedQuery !== "" || activePersonFilterCount(filters) > 0;
 
-  function toggleField(name: string, shown: boolean) {
-    const next = new Set(hidden);
-    if (shown) next.delete(name);
-    else next.add(name);
-    setHidden(next);
+  function changeLayout(next: PersonLayout) {
+    setLayout(next);
     try {
-      window.localStorage.setItem(fieldsStorageKey, JSON.stringify([...next]));
+      window.localStorage.setItem(layoutStorageKey, next);
     } catch {
       // A preference that cannot be stored still applies to this page.
     }
   }
 
+  const context = {
+    canEdit: true,
+    labelNames: labels.data?.names,
+    me,
+    onEdit: setEditingId,
+  };
+
   return (
     <main className="workspace-page" tabIndex={-1}>
-      <header className="page-heading split-heading">
-        <div>
-          <p className="eyebrow">Who is involved</p>
-          <h1>People</h1>
-          <p>Everyone your plans involve, with the details worth keeping.</p>
-        </div>
-        <button
-          aria-haspopup="dialog"
-          className="button button-primary"
-          onClick={(event) => {
-            event.currentTarget.focus();
-            setIsAdding(true);
-          }}
-          type="button"
-        >
-          <PlusIcon />
-          New person
-        </button>
-      </header>
-
-      {isAdding ? (
-        <PersonForm key="new" onCancel={() => setIsAdding(false)} />
-      ) : null}
-
-      <section aria-labelledby="people-heading" className="event-list-section">
-        <div className="collection-toolbar">
-          <label className="collection-search">
+      <header className="quiet-heading">
+        <h1>{t("title")}</h1>
+        <div className="quiet-tools">
+          <label className="inline-search">
             <SearchIcon />
-            <span className="visually-hidden">Filter people by name</span>
+            <span className="visually-hidden">{t("filterByName")}</span>
             <input
               maxLength={240}
               onChange={(event) => setQuery(event.target.value)}
@@ -110,91 +114,94 @@ export function PeoplePage() {
                 setIsComposing(false);
               }}
               onCompositionStart={() => setIsComposing(true)}
-              placeholder="Find a person..."
+              placeholder={t("find")}
               type="search"
               value={query}
             />
           </label>
-          {fieldNames.length > 0 ? (
-            <details className="shown-fields">
-              <summary>Shown fields</summary>
-              <fieldset className="assignee-choices">
-                <legend className="visually-hidden">Fields to show</legend>
-                <ul className="label-options">
-                  {fieldNames.map((name) => (
-                    <li key={name}>
-                      <label className="check-field">
-                        <input
-                          checked={!hidden.has(name)}
-                          onChange={(input) =>
-                            toggleField(name, input.target.checked)
-                          }
-                          type="checkbox"
-                        />
-                        <span>{name}</span>
-                      </label>
-                    </li>
-                  ))}
-                </ul>
-              </fieldset>
-            </details>
-          ) : null}
-          <button
-            className="button button-quiet"
+          <PersonFilterControl
+            filters={filters}
+            labels={labels.data?.items ?? []}
+            onChange={setFilters}
+          />
+          <PersonSortControl onChange={setSort} sort={sort} />
+          <PersonLayoutControl layout={layout} onChange={changeLayout} />
+          <IconButton
             disabled={people.isFetching || changingQuery}
+            label={t("refresh")}
             onClick={() => void people.refetch()}
-            type="button"
           >
-            Refresh people
-          </button>
-        </div>
-        <div className="collection-heading">
-          <h2 id="people-heading">Everyone</h2>
-          <p
-            aria-label="People count"
-            className="collection-count"
-            role="status"
+            <RefreshIcon />
+          </IconButton>
+          <IconButton
+            aria-haspopup="dialog"
+            label={t("new")}
+            onClick={(event) => {
+              event.currentTarget.focus();
+              setIsAdding(true);
+            }}
+            tone="primary"
           >
-            {changingQuery || people.data === undefined
-              ? ""
-              : `${items.length} ${items.length === 1 ? "person" : "people"} loaded`}
-          </p>
+            <PlusIcon />
+          </IconButton>
         </div>
+      </header>
+
+      {isAdding ? (
+        <PersonForm key="new" onCancel={() => setIsAdding(false)} />
+      ) : null}
+
+      <section aria-labelledby="people-heading" className="event-list-section">
+        <p
+          aria-label={t("countLabel")}
+          className="visually-hidden"
+          role="status"
+        >
+          {people.data && !changingQuery
+            ? t("count", { count: items.length })
+            : ""}
+        </p>
+        <div className="visually-hidden">
+          <h2 id="people-heading">{t("all")}</h2>
+        </div>
+        {people.isPending || changingQuery ? (
+          <LoadingState label={t("loading")} />
+        ) : null}
         {people.isError ? (
           <ErrorNotice
             error={people.error}
             isRefreshing={people.isFetching}
             onRefresh={() => void people.refetch()}
           />
-        ) : people.isPending && !changingQuery ? (
-          <LoadingState label="Loading people" />
-        ) : items.length === 0 && !changingQuery ? (
+        ) : null}
+        {!changingQuery && people.data && items.length === 0 ? (
           <div className="collection-empty">
-            <EmptyState
-              description={
-                debouncedQuery === ""
-                  ? "Add the people your plans involve; a task can then be assigned to them."
-                  : "Try another name."
-              }
-              title={
-                debouncedQuery === "" ? "No people yet" : "No matching people"
-              }
-            />
+            <EmptyState title={filtered ? t("noMatch") : t("empty")} />
+            {filtered ? (
+              <button
+                className="button button-secondary"
+                onClick={() => {
+                  setQuery("");
+                  setFilters(defaultPersonFilters);
+                }}
+                type="button"
+              >
+                {controls("clearFilters")}
+              </button>
+            ) : null}
+            <div className="quick-add-item quick-add-empty">
+              <QuickAddPerson slots={quickAdd} />
+            </div>
           </div>
         ) : null}
         {items.length > 0 ? (
-          <ul aria-label="People" className="person-grid">
-            {items.map((person) => (
-              <PersonCard
-                hidden={hidden}
-                isMe={me !== undefined && person.userId === me}
-                key={person.id}
-                labelNames={labels.data?.names}
-                onEdit={setEditingId}
-                person={person}
-              />
-            ))}
-          </ul>
+          <PersonListing
+            context={context}
+            items={items}
+            label={t("listLabel")}
+            layout={layout}
+            quickAdd={quickAdd}
+          />
         ) : null}
       </section>
       {editingId ? (
