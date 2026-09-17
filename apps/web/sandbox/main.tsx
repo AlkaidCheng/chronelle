@@ -9,6 +9,7 @@ import { ObjectSearch } from "../features/search/object-search";
 import { TrashWorkspace } from "../features/recovery/trash-workspace";
 import { TasksPage } from "../features/tasks/tasks-page";
 import { PeoplePage } from "../features/people/people-page";
+import { SettingsPage } from "../features/settings/settings-page";
 import { store } from "./api-context";
 import { useAuthSession } from "./auth-session";
 import Link, { usePathname } from "./router";
@@ -90,6 +91,12 @@ function Sandbox() {
           <ObjectSearch />
         ) : pathname === "/trash" ? (
           <TrashWorkspace />
+        ) : pathname === "/settings" ? (
+          <SettingsPage section="account" />
+        ) : pathname === "/settings/language" ? (
+          <SettingsPage section="language" />
+        ) : pathname === "/settings/appearance" ? (
+          <SettingsPage section="appearance" />
         ) : (
           <section className="panel">
             <h1>No account needed</h1>

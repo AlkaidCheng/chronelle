@@ -52,8 +52,42 @@
   "account": {
     "menu": "Account",
     "workspaces": "Workspaces",
-    "changePassword": "Change password",
+    "settings": "Settings",
     "signOut": "Sign out"
+  },
+  "settings": {
+    "title": "Settings",
+    "sections": "Settings sections",
+    "account": "Account",
+    "preferences": "Preferences",
+    "languageTime": "Language & time",
+    "appearance": "Appearance",
+    "displayName": "Display name",
+    "email": "Email",
+    "noEmail": "No email on this account",
+    "password": "Password",
+    "passwordNote": "Change it with a code sent to your email.",
+    "changePassword": "Change password",
+    "sessions": "Sessions",
+    "signOutEverywhere": "Sign out everywhere",
+    "signOutEverywhereNote": "Ends every session of this account, including this one.",
+    "appearanceNote": "Appearance is kept on this browser. The Theme entry in the rail holds the same choices."
+  },
+  "preferences": {
+    "language": "Language",
+    "timeZone": "Time zone",
+    "timeZoneNote": "Times are shown in this zone. Device follows wherever you are.",
+    "deviceZone": "Device: {zone} ({offset})",
+    "searchZones": "Search time zones",
+    "otherZones": "Other",
+    "timeFormat": "Time format",
+    "fromLanguage": "From language",
+    "twelveHour": "12-hour",
+    "twentyFourHour": "24-hour",
+    "now": "Now: {time}",
+    "weekStart": "Week starts on",
+    "monday": "Monday",
+    "sunday": "Sunday"
   },
   "events": {
     "title": "Events",

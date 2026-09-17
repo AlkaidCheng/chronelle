@@ -23,12 +23,16 @@ import type {
   ObjectSearchQueryInput,
   ObjectSearchResponse,
   PermissionScopeUpdatePayload,
+  PreferencesRequest,
   ReminderUpdatePayload,
+  SessionResponse,
   ShareCreatePayload,
   TaskResponse,
   TaskUpdatePayload,
+  UserResponse,
 } from "@chronelle/schemas";
-import { useRef } from "react";
+import { useRouter } from "next/navigation";
+import { useCallback, useRef } from "react";
 import {
   useMutation,
   useQuery,
@@ -37,6 +41,12 @@ import {
   type InfiniteData,
 } from "@tanstack/react-query";
 
+import {
+  localeChoiceOf,
+  readLocaleChoice,
+  writeLocaleChoice,
+} from "../i18n/locale-preference";
+import { isLocale } from "../i18n/locales";
 import { useApiClient } from "./api-context";
 import { useAuthSession } from "./auth-session";
 import type { EventView } from "./event-views";
@@ -69,9 +79,11 @@ export const queryKeys = {
 export function useDevelopmentSignIn() {
   const client = useApiClient();
   const { startSession } = useAuthSession();
+  const adoptLocale = useAdoptAccountLocale();
   return useMutation({
     mutationFn: (input: DevelopmentSignInRequest) => client.signIn(input),
     onSuccess: async (session) => {
+      adoptLocale(session.user);
       // The proxy set the session cookie; only the workspace is kept here.
       startSession({ workspaceId: session.workspace.id });
     },
@@ -85,6 +97,90 @@ export function useSessionQuery() {
     enabled: credential !== null,
     queryFn: ({ signal }) => client.withSignal(signal).getSession(),
     queryKey: queryKeys.session,
+  });
+}
+
+/**
+ * Keeps the browser's language and the account's the same. An account
+ * with a language puts it on this browser before the workspace renders;
+ * an account without one learns the choice this browser already made, so
+ * a language picked on the sign-in screen follows the person from then on.
+ */
+export function useAdoptAccountLocale() {
+  const client = useApiClient();
+  const queryClient = useQueryClient();
+  const router = useRouter();
+  return useCallback(
+    (user: Pick<UserResponse, "locale">) => {
+      const browser = readLocaleChoice();
+      if (user.locale !== null) {
+        // A language this build does not speak leaves the browser's alone.
+        if (!isLocale(user.locale)) return;
+        const account = localeChoiceOf(user.locale);
+        if (account === browser) return;
+        writeLocaleChoice(account);
+        router.refresh();
+        return;
+      }
+      if (browser === "system") return;
+      void client
+        .updatePreferences({ locale: browser })
+        .then((updated) => {
+          queryClient.setQueryData<SessionResponse>(
+            queryKeys.session,
+            (session) =>
+              session === undefined ? session : { ...session, user: updated },
+          );
+        })
+        .catch(() => {
+          // The account keeps no language for now; the browser's still applies.
+        });
+    },
+    [client, queryClient, router],
+  );
+}
+
+/**
+ * Changes the preferences kept on the account. The session reflects the
+ * change at once and again from the server's reply; a refusal puts the
+ * previous values back.
+ */
+export function useUpdatePreferences() {
+  const client = useApiClient();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (input: PreferencesRequest) => client.updatePreferences(input),
+    onMutate: async (input) => {
+      await queryClient.cancelQueries({ queryKey: queryKeys.session });
+      const previous = queryClient.getQueryData<SessionResponse>(
+        queryKeys.session,
+      );
+      if (previous !== undefined)
+        queryClient.setQueryData<SessionResponse>(queryKeys.session, {
+          ...previous,
+          user: {
+            ...previous.user,
+            ...(input.locale !== undefined && { locale: input.locale }),
+            ...(input.timeZone !== undefined && { timeZone: input.timeZone }),
+            ...(input.hourCycle !== undefined && {
+              hourCycle: input.hourCycle,
+            }),
+            ...(input.weekStart !== undefined && {
+              weekStart: input.weekStart,
+            }),
+          },
+        });
+      return { previous };
+    },
+    onError: (_error, _input, context) => {
+      if (context?.previous !== undefined)
+        queryClient.setQueryData(queryKeys.session, context.previous);
+    },
+    onSuccess: (updated) => {
+      queryClient.setQueryData<SessionResponse>(queryKeys.session, (session) =>
+        session === undefined ? session : { ...session, user: updated },
+      );
+    },
   });
 }
 

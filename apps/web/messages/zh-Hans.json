@@ -52,8 +52,42 @@
   "account": {
     "menu": "账号",
     "workspaces": "工作区",
-    "changePassword": "修改密码",
+    "settings": "设置",
     "signOut": "退出登录"
+  },
+  "settings": {
+    "title": "设置",
+    "sections": "设置栏目",
+    "account": "账号",
+    "preferences": "偏好",
+    "languageTime": "语言与时间",
+    "appearance": "外观",
+    "displayName": "显示名称",
+    "email": "邮箱",
+    "noEmail": "此账号没有邮箱",
+    "password": "密码",
+    "passwordNote": "通过发送到邮箱的验证码修改。",
+    "changePassword": "修改密码",
+    "sessions": "登录会话",
+    "signOutEverywhere": "退出所有设备",
+    "signOutEverywhereNote": "结束此账号的所有会话，包括当前这个。",
+    "appearanceNote": "外观设置保存在此浏览器中。侧栏的“主题”提供同样的选项。"
+  },
+  "preferences": {
+    "language": "语言",
+    "timeZone": "时区",
+    "timeZoneNote": "时间按此时区显示。“设备”随你所在的地方而变。",
+    "deviceZone": "设备：{zone}（{offset}）",
+    "searchZones": "搜索时区",
+    "otherZones": "其他",
+    "timeFormat": "时间格式",
+    "fromLanguage": "跟随语言",
+    "twelveHour": "12 小时制",
+    "twentyFourHour": "24 小时制",
+    "now": "现在：{time}",
+    "weekStart": "一周开始于",
+    "monday": "周一",
+    "sunday": "周日"
   },
   "events": {
     "title": "活动",

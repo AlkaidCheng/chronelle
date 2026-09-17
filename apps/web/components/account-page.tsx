@@ -1,7 +1,12 @@
 import { useTranslations } from "next-intl";
 import type { ReactNode } from "react";
 
-/** The two-column frame every account screen shares: the brand intro and a form. */
+import { LocaleMenu } from "./locale-menu";
+
+/**
+ * The two-column frame every account screen shares: the brand intro and a
+ * form, with the language menu at the bottom of the form column.
+ */
 export function AccountPage({
   children,
   footnote,
@@ -26,7 +31,12 @@ export function AccountPage({
           <p className="sign-in-footnote">{footnote}</p>
         )}
       </section>
-      <section className="sign-in-form-wrap">{children}</section>
+      <section className="sign-in-form-wrap">
+        {children}
+        <div className="sign-in-language">
+          <LocaleMenu />
+        </div>
+      </section>
     </main>
   );
 }

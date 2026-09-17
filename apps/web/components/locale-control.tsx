@@ -8,9 +8,17 @@ import { locales } from "../i18n/locales";
 
 /**
  * The language choices, each in its own language, with System for the
- * browser's. Used by the Theme panel and the sign-in Customize dialog.
+ * browser's. Settings shows it under Language & time, where a change is
+ * also kept on the account through `onChange`.
  */
-export function LocaleControl() {
+export function LocaleControl({
+  legend,
+  onChange,
+}: {
+  /** The group's name; the Theme catalog's "Language" when absent. */
+  readonly legend?: string | undefined;
+  readonly onChange?: ((choice: LocaleChoice) => void) | undefined;
+}) {
   const id = useId();
   const t = useTranslations("theme");
   const { choice, setChoice } = useLocaleChoice();
@@ -20,7 +28,7 @@ export function LocaleControl() {
   ];
   return (
     <fieldset className="theme-group">
-      <legend>{t("language")}</legend>
+      <legend>{legend ?? t("language")}</legend>
       <div className="theme-segment locale-choices">
         {choices.map((entry) => (
           <label
@@ -32,7 +40,10 @@ export function LocaleControl() {
               name={`${id}-locale`}
               value={entry.value}
               checked={choice === entry.value}
-              onChange={() => setChoice(entry.value)}
+              onChange={() => {
+                setChoice(entry.value);
+                onChange?.(entry.value);
+              }}
             />
             <span>{entry.label}</span>
           </label>

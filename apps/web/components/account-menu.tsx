@@ -4,7 +4,7 @@ import type { SessionResponse } from "@chronelle/schemas";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { useEffect, useId, useRef, useState } from "react";
-import { CheckIcon, KeyIcon, SignOutIcon } from "./icons";
+import { CheckIcon, SettingsIcon, SignOutIcon } from "./icons";
 
 interface AccountMenuProps {
   readonly session: SessionResponse;
@@ -14,8 +14,8 @@ interface AccountMenuProps {
 
 /**
  * The sidebar profile block opens a menu above it: the account, the
- * workspaces the person can open, the password screen, and sign out. Escape
- * or a press outside closes it and returns focus to the profile block.
+ * workspaces the person can open, Settings, and sign out. Escape or a
+ * press outside closes it and returns focus to the profile block.
  */
 export function AccountMenu({
   session,
@@ -128,11 +128,11 @@ export function AccountMenu({
             role="menuitem"
             tabIndex={-1}
             className="quiet-menu-item"
-            href="/reset-password"
+            href="/settings"
             onClick={() => setOpen(false)}
           >
-            <KeyIcon />
-            <span>{t("changePassword")}</span>
+            <SettingsIcon />
+            <span>{t("settings")}</span>
           </Link>
           <button
             type="button"

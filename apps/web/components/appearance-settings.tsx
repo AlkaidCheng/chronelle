@@ -11,7 +11,6 @@ import {
 } from "../lib/use-display-preference";
 import { useSessionDialog } from "../lib/use-session-dialog";
 import { AppearanceControl } from "./appearance-control";
-import { LocaleControl } from "./locale-control";
 
 export function AppearanceSettings() {
   const [open, setOpen] = useState(false);
@@ -158,7 +157,6 @@ function AppearanceDialog({ onClose }: { readonly onClose: () => void }) {
             </label>
           </fieldset>
         </div>
-        <LocaleControl />
         <p className="appearance-storage-note">{t("storageNote")}</p>
       </div>
       <footer className="event-create-footer">

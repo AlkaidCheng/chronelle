@@ -7,7 +7,7 @@ import { useTranslations } from "next-intl";
 import { type ReactNode, useEffect } from "react";
 
 import { useAuthSession } from "../lib/auth-session";
-import { useSessionQuery } from "../lib/queries";
+import { useAdoptAccountLocale, useSessionQuery } from "../lib/queries";
 import {
   DisplayPreferencesProvider,
   timePreferencesOf,
@@ -25,12 +25,20 @@ export function WorkspaceShell({ children }: { readonly children: ReactNode }) {
   const pathname = usePathname();
   const session = useSessionQuery();
   const t = useTranslations("nav");
+  const adoptLocale = useAdoptAccountLocale();
 
   useEffect(() => {
     if (isHydrated && credential === null) {
       router.replace("/sign-in");
     }
   }, [credential, isHydrated, router]);
+
+  // A session found through the cookie has not passed through sign-in, so
+  // the browser's language and the account's are reconciled here.
+  const accountLocale = session.data?.user.locale;
+  useEffect(() => {
+    if (accountLocale !== undefined) adoptLocale({ locale: accountLocale });
+  }, [accountLocale, adoptLocale]);
 
   useEffect(() => {
     if (

@@ -12,8 +12,10 @@ import { useMutation } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 
+import { readLocaleChoice } from "../i18n/locale-preference";
 import { useApiClient } from "./api-context";
 import { useAuthSession } from "./auth-session";
+import { useAdoptAccountLocale } from "./queries";
 
 /** Leaves an account screen once a session exists. */
 export function useRedirectWhenSignedIn(): void {
@@ -26,16 +28,25 @@ export function useRedirectWhenSignedIn(): void {
 
 function useSessionStart() {
   const { startSession } = useAuthSession();
+  const adoptLocale = useAdoptAccountLocale();
   return (session: SignInResponse) => {
+    adoptLocale(session.user);
     // The proxy set the session cookie; only the workspace is kept here.
     startSession({ workspaceId: session.workspace.id });
   };
 }
 
+/** Creates the account with the language this browser chose, when it chose one. */
 export function useSignUp() {
   const client = useApiClient();
   return useMutation({
-    mutationFn: (input: SignUpRequest) => client.signUp(input),
+    mutationFn: (input: SignUpRequest) => {
+      const choice = readLocaleChoice();
+      return client.signUp({
+        ...input,
+        ...(choice === "system" ? {} : { locale: choice }),
+      });
+    },
   });
 }
 

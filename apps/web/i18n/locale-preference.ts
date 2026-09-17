@@ -10,13 +10,16 @@ import {
   localeStorageKey,
 } from "./locales";
 
+export { isLocale };
+
 /** An explicit language, or "system" for the browser's. */
 export type LocaleChoice = Locale | "system";
 
 const changeEvent = "chronelle:locale";
 const yearInSeconds = 60 * 60 * 24 * 365;
 
-function readCookie(): LocaleChoice {
+/** The choice this browser holds: the cookie's language, or "system". */
+export function readLocaleChoice(): LocaleChoice {
   const match = new RegExp(`(?:^|; )${localeCookie}=([^;]*)`).exec(
     document.cookie,
   );
@@ -42,6 +45,22 @@ function writeStorage(choice: LocaleChoice) {
   }
 }
 
+/**
+ * Records a choice in this browser (the cookie and its mirror) and tells
+ * the hooks; the caller refreshes the router so the server re-renders in
+ * the new language.
+ */
+export function writeLocaleChoice(choice: LocaleChoice): void {
+  writeCookie(choice);
+  writeStorage(choice);
+  window.dispatchEvent(new Event(changeEvent));
+}
+
+/** The account's language as a choice: a known locale, else "system". */
+export function localeChoiceOf(locale: string | null): LocaleChoice {
+  return isLocale(locale) ? locale : "system";
+}
+
 function subscribe(notify: () => void) {
   window.addEventListener(changeEvent, notify);
   return () => window.removeEventListener(changeEvent, notify);
@@ -56,14 +75,12 @@ export function useLocaleChoice() {
   const router = useRouter();
   const choice = useSyncExternalStore(
     subscribe,
-    readCookie,
+    readLocaleChoice,
     () => "system" as LocaleChoice,
   );
   const setChoice = useCallback(
     (next: LocaleChoice) => {
-      writeCookie(next);
-      writeStorage(next);
-      window.dispatchEvent(new Event(changeEvent));
+      writeLocaleChoice(next);
       router.refresh();
     },
     [router],
