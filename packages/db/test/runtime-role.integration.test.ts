@@ -124,6 +124,8 @@ describe("runtime database privileges", () => {
           "labels",
           "task_labels",
           "persons",
+          "user_connections",
+          "user_invitations",
         ].includes(table.name),
       );
       expect(table.delete).toBe(

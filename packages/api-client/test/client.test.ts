@@ -1071,3 +1071,99 @@ describe("ChronelleApiClient", () => {
     ).toBeNull();
   });
 });
+
+describe("friends", () => {
+  const credential: ApiCredential = {
+    accessToken: "test-session",
+    workspaceId: event.workspaceId,
+  };
+  const friend = {
+    id: "019d6e7d-0000-7000-8000-000000000021",
+    userId: "019d6e7d-0000-7000-8000-000000000022",
+    displayName: "Ben",
+    email: "ben@example.test",
+    since: "2030-08-01T12:00:00.000Z",
+  };
+
+  it("lists, invites, answers, withdraws, and removes with validated responses", async () => {
+    const fetch = vi.fn<typeof globalThis.fetch>(async () =>
+      Response.json({ friends: [friend], incoming: [], sent: [] }),
+    );
+    const client = new ChronelleApiClient({
+      fetch,
+      getCredential: () => credential,
+    });
+    expect((await client.listFriends()).friends).toEqual([friend]);
+    expect(fetch).toHaveBeenLastCalledWith("/api/friends", expect.anything());
+
+    const sent = {
+      id: friend.id,
+      kind: "invitation",
+      email: "dan@example.test",
+      message: null,
+      personId: null,
+      workspaceId: null,
+      createdAt: "2030-08-01T12:00:00.000Z",
+      expiresAt: "2030-08-15T12:00:00.000Z",
+    };
+    fetch.mockResolvedValueOnce(Response.json(sent, { status: 201 }));
+    expect(await client.inviteFriend({ email: "Dan@example.test" })).toEqual(
+      sent,
+    );
+    expect(fetch).toHaveBeenLastCalledWith(
+      "/api/friends/invitations",
+      expect.objectContaining({
+        method: "POST",
+        body: JSON.stringify({ email: "Dan@example.test" }),
+      }),
+    );
+
+    fetch.mockResolvedValueOnce(Response.json(friend));
+    expect(await client.acceptFriendRequest(friend.id)).toEqual(friend);
+    expect(fetch).toHaveBeenLastCalledWith(
+      `/api/friends/requests/${friend.id}/accept`,
+      expect.objectContaining({ method: "POST" }),
+    );
+    for (const [call, path, method, status] of [
+      [
+        () => client.declineFriendRequest(friend.id),
+        `/api/friends/requests/${friend.id}/decline`,
+        "POST",
+        "declined",
+      ],
+      [
+        () => client.withdrawFriendInvitation(friend.id),
+        `/api/friends/invitations/${friend.id}`,
+        "DELETE",
+        "withdrawn",
+      ],
+      [
+        () => client.removeFriend(friend.id),
+        `/api/friends/${friend.id}`,
+        "DELETE",
+        "removed",
+      ],
+    ] as const) {
+      fetch.mockResolvedValueOnce(Response.json({ id: friend.id, status }));
+      expect(await call()).toEqual({ id: friend.id, status });
+      expect(fetch).toHaveBeenLastCalledWith(
+        path,
+        expect.objectContaining({ method }),
+      );
+    }
+    fetch.mockResolvedValueOnce(
+      Response.json({ accepted: true }, { status: 202 }),
+    );
+    expect(await client.resendFriendInvitation(friend.id)).toEqual({
+      accepted: true,
+    });
+    fetch.mockResolvedValueOnce(
+      Response.json({
+        friends: [{ ...friend, since: 1 }],
+        incoming: [],
+        sent: [],
+      }),
+    );
+    await expect(client.listFriends()).rejects.toThrow();
+  });
+});

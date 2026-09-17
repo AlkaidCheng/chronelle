@@ -228,6 +228,7 @@ const gatewayStatus: Record<string, number> = {
   PT404: 404,
   PT409: 409,
   PT422: 422,
+  PT429: 429,
   PT500: 500,
 };
 

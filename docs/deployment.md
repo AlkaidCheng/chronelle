@@ -234,7 +234,7 @@ deletion, recovery, and revision restore, sharing and permission-scope
 changes, Event page layouts, reversible commands, and document transfers
 (upload authorization, consumption, finalization, and download
 authorization; the storage provider is unchanged) through those functions;
-it requires `CLOUDBASE_READS_ENABLED=true` and migrations 0012 through 0049
+it requires `CLOUDBASE_READS_ENABLED=true` and migrations 0012 through 0051
 on the environment (0024, 0025, and 0027 serve reads and sign-in; 0028 the
 readiness check; 0029 the revision baseline through the gateway; 0030 and
 0031 the sessions a sign-in records and a sign-out revokes; 0032 and 0033
@@ -245,7 +245,7 @@ Task assignee; 0039 the Task location; 0040 People in Events; 0041 subtasks
 in Trash with their parent; 0042 standalone creation commands, after which
 the runtime role grants are reapplied; 0043 sharing with a Person, which
 replaces `chronelle_resource_share` and needs the runtime role grants
-reapplied; 0044 the Task duration; 0045 the Task repeat rule; 0046 the manual order of Tasks and Reminders; 0047 the language kept on the account; 0048 the time zone, clock, and week start kept on the account, which replaces `chronelle_user_locale_update` with `chronelle_user_preferences_update` and is applied before the API built from it starts; 0049 the rail order and hidden collections kept on the account, which redefines `chronelle_user_preferences_update` in place; 0050 the Person nickname, description, contacts, and labels, after which the runtime role grants are reapplied for `person_contacts` and `person_labels`). With `CHRONELLE_BACKEND=postgres` (the default) the two
+reapplied; 0044 the Task duration; 0045 the Task repeat rule; 0046 the manual order of Tasks and Reminders; 0047 the language kept on the account; 0048 the time zone, clock, and week start kept on the account, which replaces `chronelle_user_locale_update` with `chronelle_user_preferences_update` and is applied before the API built from it starts; 0049 the rail order and hidden collections kept on the account, which redefines `chronelle_user_preferences_update` in place; 0050 the Person nickname, description, contacts, and labels, after which the runtime role grants are reapplied for `person_contacts` and `person_labels`; 0051 friends (`user_connections`, `user_invitations`, the `chronelle_friend_*` functions the readiness check requires, and `chronelle_assert_person_state` replaced in place), after which the runtime role grants are reapplied for the two new tables)). With `CHRONELLE_BACKEND=postgres` (the default) the two
 flags are staged opt-ins and the API still connects to `DATABASE_URL` at
 startup; the CloudBase backend below removes that connection.
 
@@ -340,7 +340,9 @@ email and password accounts work without it once `EMAIL_PROVIDER=smtp`,
 provider writes verification codes to the API log and is not for a
 deployment; `EMAIL_PROVIDER=file` with `EMAIL_FILE_PATH` appends them to a
 file on the instance for an internal test whose operator hands codes to
-testers by other means). Start it from the repository root:
+testers by other means). Friend invitation emails link to the web origin
+in `WEB_PUBLIC_URL` (for example `https://chronelle.example`); set it on
+the API service, or the links point at `http://localhost:3000`. Start it from the repository root:
 
 ```bash
 docker compose --env-file .env -f infrastructure/compose.preview.yaml up -d --wait

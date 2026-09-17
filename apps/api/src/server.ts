@@ -60,6 +60,8 @@ const runtimeEnvironmentSchema = backendEnvironmentSchema.extend({
   SMTP_URL: z.url().optional(),
   EMAIL_FROM: z.string().min(3).optional(),
   ENABLE_DEVELOPMENT_AUTH: z.stringbool().default(false),
+  /** The web origin that friend invitation emails link to for sign-up. */
+  WEB_PUBLIC_URL: z.url().optional(),
   DOCUMENT_TRANSFER_TTL_SECONDS: z.coerce
     .number()
     .int()
@@ -126,6 +128,7 @@ const dependencies = composeDependencies(database, {
       runtimeEnvironment.AUTH_VERIFICATION_TTL_MINUTES * 60_000,
     onThrottled: (event) => logThrottled(event),
   },
+  friends: { webBaseUrl: runtimeEnvironment.WEB_PUBLIC_URL },
 });
 const app = buildApp(dependencies, { logger: true });
 logGatewayRequest = (event) => {

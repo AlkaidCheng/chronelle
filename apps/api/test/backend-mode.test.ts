@@ -69,6 +69,13 @@ describe("resolveBackend", () => {
         "chronelle_password_hash_update",
         "chronelle_verification_issue",
         "chronelle_verification_consume",
+        "chronelle_friend_list",
+        "chronelle_friend_invite",
+        "chronelle_friend_respond",
+        "chronelle_friend_withdraw",
+        "chronelle_friend_remove",
+        "chronelle_friend_resend",
+        "chronelle_friend_invitations_claim",
       ]),
     );
     expect(cloudBaseRequiredFunctions).toContain("chronelle_backend_readiness");

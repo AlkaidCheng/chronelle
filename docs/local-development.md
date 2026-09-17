@@ -112,7 +112,13 @@ contact through `chronelle_person_set_contacts`, and replaces the Person
 step functions in place; `chronelle_person_create` and
 `chronelle_person_update` keep their signatures, so the readiness check is
 unchanged, but the runtime role grants must be reapplied for the two new
-tables.
+tables. Migration `0051_add_user_connections.sql` adds `user_connections`
+and `user_invitations`, the `chronelle_friend_*` functions (list, invite,
+respond, withdraw, remove, resend, invitations_claim; the readiness check
+requires the seven), and replaces `chronelle_assert_person_state` in place
+so a person may be linked to a friend of a workspace member; the runtime
+role grants are reapplied for the two new tables. Friend invitation emails
+link to `WEB_PUBLIC_URL` (`http://localhost:3000` when unset).
 
 Migration `0021_add_object_search_function.sql` adds `chronelle_object_search`,
 the read-only function the CloudBase search adapter calls. It changes no

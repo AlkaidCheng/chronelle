@@ -55,10 +55,14 @@ is forwarded unchanged; the browser client does not keep the token.
 
 ### Email and password accounts
 
-`POST /api/auth/sign-up` with `{ displayName, email, password, locale? }`
+`POST /api/auth/sign-up` with `{ displayName, email, password, locale?, invitationToken? }`
 (password 10 to 256 characters; `locale` the language of the sign-up screen,
-kept on the account) records an unverified account and emails a six-digit
-code in the account's language (English when none); the response is 202 `{ accepted: true }`, or 409 `email_taken`.
+kept on the account; `invitationToken` the token a friend invitation's
+sign-up link carried, see Friends) records an unverified account and emails
+a six-digit code in the account's language (English when none); the response
+is 202 `{ accepted: true }`, or 409 `email_taken`. The friend invitations
+waiting for the address become requests on the new account whether or not a
+token was sent.
 `POST /api/auth/verify-email` with `{ email, code }` verifies the address
 and signs the account in with the sign-in response above; a wrong, expired,
 or exhausted code (five wrong guesses) is 400 `verification_invalid`, and
@@ -384,10 +388,10 @@ optional `description` (1-2000 characters), `contacts` (at most 20
 in the order sent; an `email` value must be an address), `labelIds` (labels
 of the workspace, returned in name order; an unknown id returns HTTP 400 with
 `labelIds must name labels of this workspace.`), and an optional `userId`
-linking the Person to a workspace member's account. `userId` must name a
-member of the workspace, of any role, and each account belongs to at most
+linking the Person to an account. `userId` must name a member of the
+workspace, of any role, or a friend of one (see Friends), and each account belongs to at most
 one Person of the workspace; a violation returns HTTP 400 with
-`userId must name a member of this workspace.` or
+`userId must name a member of this workspace or a friend of one.` or
 `userId is already linked to another person.`. Responses carry `email` as
 the first email contact (null when there is none). Requests may still send
 `email` in place of `contacts`: it replaces the email contacts, first, and
@@ -728,6 +732,60 @@ one-time GET authorization. The local adapter rechecks permission when the
 transfer is consumed and responds with `Cache-Control: private, no-store`.
 Neither Document responses nor transfer responses expose a storage key or
 permanent public URL.
+
+## Friends
+
+Friends belong to the account, not to a workspace: a connection is a mutual
+link between two accounts, made by one inviting the other and the other
+accepting. `GET /api/friends` returns `{ friends, incoming, sent }`:
+`friends` are the accepted connections (`id`, the other account's `userId`,
+`displayName`, `email`, and `since`), in name order; `incoming` the requests
+waiting for the caller's answer (`id`, `requester` with `userId`,
+`displayName`, `email`, the `message`, `createdAt`), newest first; `sent`
+what the caller sent and still waits (`id`, `kind`, `email`, `message`,
+`personId`, `workspaceId`, `createdAt`, `expiresAt`), newest first. A sent
+item is a `connection` (a request to the account that has the address) or an
+`invitation` (an address without an account, which gets a sign-up link and
+an `expiresAt`); a caller cannot tell from the response whether an address
+has an account except through what the recipient does.
+
+`POST /api/friends/invitations` with `{ email, message?, personId? }`
+(message up to 500 characters; `personId` a live, unlinked person of the
+current workspace the caller can view, the card the invitation comes from)
+answers 201 with the sent item. When exactly one account has the address a
+pending connection is made and that account is emailed in its language;
+otherwise an invitation is recorded with the digest of a token and the
+address is emailed, in the caller's language, a link to
+`/sign-up?invitation=<token>` valid for fourteen days. Refusals: 400
+`invalid_request` for the caller's own address (`You cannot invite
+yourself.`), an untrimmed or overlong note, a card that is not an unlinked
+person the caller can view, or an address that belongs to more than one
+account; 409 `friend_conflict` when a request or connection already stands
+(`You are already friends.`, `An invitation is already waiting.`, `This
+person has already invited you.`); 429 `friend_limit` after fifty
+invitations in a day (`Too many invitations today.`).
+
+`POST /api/friends/requests/:id/accept` makes the two accounts friends and
+answers with the friend; when the request came from a person card, that card
+is linked to the accepting account as the requester in that workspace, if
+the card is still unlinked and the account has no card there yet.
+`POST /api/friends/requests/:id/decline` answers `{ id, status: "declined" }`.
+`DELETE /api/friends/invitations/:id` withdraws a pending request or
+invitation the caller sent (`{ id, status: "withdrawn" }`), and
+`POST /api/friends/invitations/:id/resend` emails it again (202; an
+invitation takes a fresh token and expiry), at most once a minute per item
+(429 `friend_limit`, `Wait before sending again.`). `DELETE /api/friends/:id`
+ends an accepted connection from either side (`{ id, status: "removed" }`);
+person links made through it stay, and are unlinked from the person editor.
+A request, invitation, or friend that is not the caller's, or is no longer
+pending or accepted, is 404 `friend_unavailable`. Every change is recorded
+in the actor's personal workspace (`friend.invited`,
+`friend.invitation_sent`, `friend.accepted`, `friend.declined`,
+`friend.withdrawn`, `friend.invitation_withdrawn`, `friend.removed`,
+`friend.resent`, `friend.invitation_resent`, `friend.invitation_claimed`).
+Both backends write through the `chronelle_friend_*` functions (migration
+0051). A connection exposes only display name and email to the other side;
+account lookup by email happens only through an invitation.
 
 ## Access and sharing
 
