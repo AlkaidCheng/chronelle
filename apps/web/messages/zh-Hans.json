@@ -1196,5 +1196,34 @@
     "inherits": "继承活动权限",
     "privateScope": "私密范围",
     "makePrivate": "设为私密"
+  },
+  "panels": {
+    "nothingScheduled": "暂无安排",
+    "unscheduled": "未安排",
+    "noTimeline": "暂无时间线条目",
+    "dayTotal": "当日合计",
+    "totalRecorded": "已记录合计",
+    "noExpenses": "暂无支出记录",
+    "undated": "无日期",
+    "noReminders": "暂无提醒"
+  },
+  "reminderRow": {
+    "menu": {
+      "edit": "编辑",
+      "dismiss": "忽略",
+      "moveUp": "上移",
+      "moveDown": "下移",
+      "snooze": "推迟",
+      "history": "历史",
+      "moveToTrash": "移到回收站"
+    },
+    "snoozeNote": "当前为 {day}，{time}",
+    "actionsFor": "{name} 的操作",
+    "said": {
+      "dismissed": "已忽略{name}。",
+      "moved": "已移动{name}。",
+      "position": "{name}现在是第 {at} 项，共 {total} 项。",
+      "due": "{name}的提醒时间为{day}。"
+    }
   }
 }

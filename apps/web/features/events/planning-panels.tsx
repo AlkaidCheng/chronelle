@@ -340,6 +340,8 @@ export function CalendarPanel({
   readonly onChangeView?: ((view: EventComponentView) => void) | undefined;
   readonly view?: EventComponentView;
 }) {
+  const panels = useTranslations("panels");
+  const views = useTranslations("views");
   const [isAdding, setIsAdding] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const editingEvent = items.find(({ id }) => id === editingId);
@@ -419,7 +421,7 @@ export function CalendarPanel({
             />
           )
         }
-        title="Calendar"
+        title={views("calendar")}
       />
       {isAdding && canEdit ? (
         <CreateScheduleDialog
@@ -429,7 +431,7 @@ export function CalendarPanel({
         />
       ) : null}
       {items.length === 0 ? (
-        <EmptyState title="Nothing scheduled" />
+        <EmptyState title={panels("nothingScheduled")} />
       ) : view === "agenda" ? (
         <ol className="itinerary-list">
           {items.map((item, index) => (
@@ -457,7 +459,7 @@ export function CalendarPanel({
             </div>
           )}
           undated={unscheduled}
-          undatedLabel="Unscheduled"
+          undatedLabel={panels("unscheduled")}
           view={view}
         />
       ) : (
@@ -481,11 +483,13 @@ export function TimelinePanel({
 }: {
   readonly timeline: TimelineResponse;
 }) {
+  const panels = useTranslations("panels");
+  const views = useTranslations("views");
   return (
     <section className="planning-panel">
-      <PanelHeading title="Timeline" />
+      <PanelHeading title={views("timeline")} />
       {timeline.items.length === 0 ? (
-        <EmptyState title="No timeline entries" />
+        <EmptyState title={panels("noTimeline")} />
       ) : (
         <ol className="timeline-list">
           {timeline.items.map((item) => (
@@ -538,6 +542,8 @@ export function ExpensesPanel({
   readonly onChangeView?: ((view: EventComponentView) => void) | undefined;
   readonly view?: EventComponentView;
 }) {
+  const panels = useTranslations("panels");
+  const views = useTranslations("views");
   const [isAdding, setIsAdding] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const totals = useMemo(() => sumMoneyByCurrency(expenses), [expenses]);
@@ -601,7 +607,7 @@ export function ExpensesPanel({
       {dayExpenses.map(expenseRow)}
       {mode === "full" ? (
         <p className="day-group-sum">
-          <span>Day total</span>
+          <span>{panels("dayTotal")}</span>
           {dayTotals(dayExpenses)}
         </p>
       ) : null}
@@ -621,7 +627,7 @@ export function ExpensesPanel({
             />
           )
         }
-        title="Expenses"
+        title={views("expenses")}
         action={
           canEdit ? (
             <button
@@ -643,7 +649,7 @@ export function ExpensesPanel({
       ) : null}
       {totals.length > 0 ? (
         <div className="total-row">
-          <span>Total recorded</span>
+          <span>{panels("totalRecorded")}</span>
           <dl aria-label="Totals by currency" className="money-totals">
             {totals.map(({ amount, currency }) => (
               <div key={currency}>
@@ -657,7 +663,7 @@ export function ExpensesPanel({
         </div>
       ) : null}
       {expenses.length === 0 ? (
-        <EmptyState title="No expenses recorded" />
+        <EmptyState title={panels("noExpenses")} />
       ) : view === "by-day" ? (
         <div className="day-groups">
           {groups.map((group) => (
@@ -682,7 +688,7 @@ export function ExpensesPanel({
           placed={placed}
           renderList={expenseList}
           undated={[]}
-          undatedLabel="Undated"
+          undatedLabel={panels("undated")}
           view={view}
         />
       ) : (
@@ -715,6 +721,9 @@ export function RemindersPanel({
   readonly reminders: readonly ReminderResponse[];
   readonly view?: EventComponentView;
 }) {
+  const panels = useTranslations("panels");
+  const views = useTranslations("views");
+  const t = useTranslations("reminderRow");
   const [isAdding, setIsAdding] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [announcement, setAnnouncement] = useState("");
@@ -773,9 +782,12 @@ export function RemindersPanel({
           remindAt: instantOnDay(reminder.remindAt, day),
           ...(rank === undefined ? {} : { rank }),
         },
-        `${reminder.displayName} is due ${dayInWords(day, new Date())}.`,
+        t("said.due", {
+          name: reminder.displayName,
+          day: dayInWords(day, new Date()),
+        }),
       ),
-    [change],
+    [change, t],
   );
   const onDrop = useCallback(
     (id: string, drop: RowDrop) => {
@@ -791,9 +803,14 @@ export function RemindersPanel({
       const rank = rankAtIndex(rows, drop.index);
       if (drop.groupKey !== "all" && drop.groupKey !== from)
         snooze(reminder, drop.groupKey, rank);
-      else change(reminder, { rank }, `${reminder.displayName} moved.`);
+      else
+        change(
+          reminder,
+          { rank },
+          t("said.moved", { name: reminder.displayName }),
+        );
     },
-    [byId, change, rowsOf, snooze, view],
+    [byId, change, rowsOf, snooze, t, view],
   );
   const labelOf = useCallback(
     (id: string) => byId.get(id)?.displayName ?? "",
@@ -817,47 +834,54 @@ export function RemindersPanel({
       change(
         reminder,
         { rank },
-        `${reminder.displayName} is now ${at + direction + 1} of ${rows.length}.`,
+        t("said.position", {
+          name: reminder.displayName,
+          at: at + direction + 1,
+          total: rows.length,
+        }),
       );
     };
     const entries: RowMenuEntry[] = canEdit
       ? [
           {
             kind: "action",
-            label: "Edit",
+            label: t("menu.edit"),
             onSelect: () => setEditingId(reminder.id),
           },
           ...(reminder.status === "pending"
             ? [
                 {
                   kind: "action" as const,
-                  label: "Dismiss",
+                  label: t("menu.dismiss"),
                   onSelect: () =>
                     change(
                       reminder,
                       { status: "dismissed" },
-                      `${reminder.displayName} dismissed.`,
+                      t("said.dismissed", { name: reminder.displayName }),
                     ),
                 },
               ]
             : []),
           {
             kind: "action",
-            label: "Move up",
+            label: t("menu.moveUp"),
             disabled: at <= 0,
             onSelect: () => step(-1),
           },
           {
             kind: "action",
-            label: "Move down",
+            label: t("menu.moveDown"),
             disabled: at < 0 || at >= rows.length - 1,
             onSelect: () => step(1),
           },
           { kind: "rule" },
           {
             kind: "choices",
-            label: "Snooze",
-            note: `Now ${dayInWords(day, now)}, ${formatTime(reminder.remindAt)}`,
+            label: t("menu.snooze"),
+            note: t("snoozeNote", {
+              day: dayInWords(day, now),
+              time: formatTime(reminder.remindAt),
+            }),
             choices: dueShortcuts(now).map((shortcut) => ({
               label: shortcut.label,
               checked: day === shortcut.day,
@@ -869,7 +893,7 @@ export function RemindersPanel({
           { kind: "rule" },
           {
             kind: "action",
-            label: "History",
+            label: t("menu.history"),
             onSelect: () =>
               openHistory({
                 objectId: reminder.id,
@@ -879,7 +903,7 @@ export function RemindersPanel({
           { kind: "rule" },
           {
             kind: "action",
-            label: "Move to Trash",
+            label: t("menu.moveToTrash"),
             danger: true,
             onSelect: () => openLifecycle({ ...reminder, eventId }),
           },
@@ -887,7 +911,7 @@ export function RemindersPanel({
       : [
           {
             kind: "action",
-            label: "History",
+            label: t("menu.history"),
             onSelect: () =>
               openHistory({
                 objectId: reminder.id,
@@ -898,7 +922,7 @@ export function RemindersPanel({
     return (
       <RowMenu
         entries={entries}
-        label={`Actions for ${reminder.displayName}`}
+        label={t("actionsFor", { name: reminder.displayName })}
       />
     );
   };
@@ -982,7 +1006,7 @@ export function RemindersPanel({
             />
           )
         }
-        title="Reminders"
+        title={views("reminders")}
         action={
           canEdit ? (
             <button
@@ -1004,7 +1028,7 @@ export function RemindersPanel({
       ) : null}
       {view === "week" || view === "month" ? null : notice}
       {reminders.length === 0 && !canEdit ? (
-        <EmptyState title="No reminders" />
+        <EmptyState title={panels("noReminders")} />
       ) : null}
       {reminders.length === 0 && canEdit ? (
         <div className="quick-add-item quick-add-empty">
@@ -1049,7 +1073,7 @@ export function RemindersPanel({
           placed={placed}
           renderList={reminderList}
           undated={[]}
-          undatedLabel="Undated"
+          undatedLabel={panels("undated")}
           view={view}
         />
       ) : (

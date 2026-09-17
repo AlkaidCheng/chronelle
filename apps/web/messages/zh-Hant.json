@@ -1196,5 +1196,34 @@
     "inherits": "繼承活動權限",
     "privateScope": "私密範圍",
     "makePrivate": "設為私密"
+  },
+  "panels": {
+    "nothingScheduled": "暫無安排",
+    "unscheduled": "未安排",
+    "noTimeline": "暫無時間軸項目",
+    "dayTotal": "當日合計",
+    "totalRecorded": "已記錄合計",
+    "noExpenses": "暫無支出記錄",
+    "undated": "無日期",
+    "noReminders": "暫無提醒"
+  },
+  "reminderRow": {
+    "menu": {
+      "edit": "編輯",
+      "dismiss": "忽略",
+      "moveUp": "上移",
+      "moveDown": "下移",
+      "snooze": "延後",
+      "history": "歷史",
+      "moveToTrash": "移到垃圾桶"
+    },
+    "snoozeNote": "目前為 {day}，{time}",
+    "actionsFor": "{name} 的操作",
+    "said": {
+      "dismissed": "已忽略{name}。",
+      "moved": "已移動{name}。",
+      "position": "{name}現在是第 {at} 項，共 {total} 項。",
+      "due": "{name}的提醒時間為{day}。"
+    }
   }
 }
