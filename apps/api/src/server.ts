@@ -1,33 +1,32 @@
 import { existsSync } from "node:fs";
-
-import { z } from "zod";
-
 import {
   assertCloudBaseApiKeyFresh,
+  type CloudBaseRequestEvent,
   connectCloudBaseRdb,
   connectDatabase,
   disconnectedDatabase,
-  type CloudBaseRequestEvent,
 } from "@chronelle/db";
 import {
   assertCloudBaseBackendReady,
   assertRevisionBaseline,
 } from "@chronelle/object-model";
+import { z } from "zod";
 
 import { buildApp } from "./app.js";
+import {
+  type EmailMessage,
+  type EmailSender,
+  LoggingEmailSender,
+} from "./authentication/email-sender.js";
+import { FileEmailSender } from "./authentication/file-email-sender.js";
+import type { ThrottledIssue } from "./authentication/password-auth-service.js";
+import { SmtpEmailSender } from "./authentication/smtp-email-sender.js";
 import {
   backendEnvironmentSchema,
   cloudBaseRequiredFunctions,
   gatewayEventLevel,
   resolveBackend,
 } from "./backend-mode.js";
-import {
-  type EmailMessage,
-  type EmailSender,
-  LoggingEmailSender,
-} from "./authentication/email-sender.js";
-import type { ThrottledIssue } from "./authentication/password-auth-service.js";
-import { SmtpEmailSender } from "./authentication/smtp-email-sender.js";
 import {
   createAppDependencies,
   createDevelopmentAppDependencies,
@@ -56,7 +55,8 @@ const runtimeEnvironmentSchema = backendEnvironmentSchema.extend({
     .positive()
     .max(1_440)
     .default(15),
-  EMAIL_PROVIDER: z.enum(["log", "smtp"]).default("log"),
+  EMAIL_PROVIDER: z.enum(["log", "file", "smtp"]).default("log"),
+  EMAIL_FILE_PATH: z.string().min(1).optional(),
   SMTP_URL: z.url().optional(),
   EMAIL_FROM: z.string().min(3).optional(),
   ENABLE_DEVELOPMENT_AUTH: z.stringbool().default(false),
@@ -74,6 +74,11 @@ function composeEmailSender(
   log: (message: EmailMessage) => void,
 ): EmailSender {
   if (environment.EMAIL_PROVIDER === "log") return new LoggingEmailSender(log);
+  if (environment.EMAIL_PROVIDER === "file") {
+    if (environment.EMAIL_FILE_PATH === undefined)
+      throw new Error("EMAIL_PROVIDER=file requires EMAIL_FILE_PATH.");
+    return new FileEmailSender(environment.EMAIL_FILE_PATH);
+  }
   if (
     environment.SMTP_URL === undefined ||
     environment.EMAIL_FROM === undefined

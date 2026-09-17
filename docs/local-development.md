@@ -154,8 +154,10 @@ asserts an identity without a password and is not suitable for a deployed
 environment; email and password sign-up, verification, sign-in, and reset
 (`docs/api.md`) are always available. With `EMAIL_PROVIDER=log` (the
 default) the verification codes are written to the API log as
-`Email written to the log` entries; `AUTH_VERIFICATION_TTL_MINUTES` (15)
-bounds their lifetime.
+`Email written to the log` entries; with `EMAIL_PROVIDER=file` each message
+is appended as one JSON line (`writtenAt`, `to`, `subject`, `text`) to
+`EMAIL_FILE_PATH`, for an instance whose log is not collected but whose shell
+is reachable. `AUTH_VERIFICATION_TTL_MINUTES` (15) bounds a code's lifetime.
 
 Private development attachments are stored below `LOCAL_STORAGE_ROOT`, which
 defaults to `.chronelle/storage` and is ignored by Git. Keep this root private
