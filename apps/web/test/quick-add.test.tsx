@@ -316,10 +316,13 @@ describe("quick add", () => {
           .getByRole("heading", { name: title })
           .closest(".planning-panel") as HTMLElement,
       );
-    expect(
-      await screen.findByRole("heading", { name: "No tasks yet" }),
-    ).toBeVisible();
+    // An empty collection shows its editor the quick row alone.
+    await screen.findByRole("heading", { name: "To-dos" });
     const todos = panel("To-dos");
+    expect(
+      await todos.findByRole("button", { name: "Add a task to the list" }),
+    ).toBeVisible();
+    expect(todos.queryByRole("heading", { name: "No tasks yet" })).toBeNull();
     await user.click(
       todos.getByRole("button", { name: "Add a task to the list" }),
     );
@@ -331,8 +334,8 @@ describe("quick add", () => {
     await user.keyboard("{Escape}");
     const reminders = panel("Reminders");
     expect(
-      reminders.getByRole("heading", { name: "No reminders" }),
-    ).toBeVisible();
+      reminders.queryByRole("heading", { name: "No reminders" }),
+    ).toBeNull();
     await user.click(
       reminders.getByRole("button", { name: "Add a reminder to the list" }),
     );
@@ -386,7 +389,7 @@ describe("quick add", () => {
       pages: [page("Plan", ["todos", "reminders"])],
     });
     render(<PagesHarness eventId={event.id} canEdit />, { wrapper: Providers });
-    await screen.findByRole("heading", { name: "No tasks yet" });
+    await screen.findByRole("button", { name: "Add a task to the list" });
     const panel = (title: string) =>
       within(
         screen

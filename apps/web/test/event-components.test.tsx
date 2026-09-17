@@ -1112,9 +1112,11 @@ describe("insertable event components", () => {
     expect(
       screen.queryByRole("row", { name: /Confirm the garden venue/ }),
     ).toBeNull();
-    // The filters combine; a match-less pair shows why the list is empty.
+    // The filters combine; a match-less pair leaves the view empty.
     await choose("Me");
-    expect(screen.getByText("No tasks match these filters.")).toBeVisible();
+    expect(
+      screen.getByRole("heading", { name: "Nothing in this view" }),
+    ).toBeVisible();
     await choose("Any label");
     expect(screen.getByRole("row", { name: /Call the band/ })).toBeVisible();
     expect(screen.queryByRole("row", { name: /Order the cake/ })).toBeNull();
@@ -1305,7 +1307,7 @@ describe("insertable event components", () => {
     );
     expect(screen.queryByRole("heading", { name: "Itinerary" })).toBeNull();
     expect(document.querySelectorAll(".itinerary-list")).toHaveLength(1);
-    expect(await screen.findByText("No files attached")).toBeVisible();
+    expect(await screen.findByText("Attach a file")).toBeVisible();
     expect(await client.getEventDetail(eventId)).toEqual(before);
     expect(
       screen.getAllByText("Welcome and coffee", { exact: true }),
@@ -1754,13 +1756,10 @@ describe("insertable event components", () => {
     render(<PagesHarness eventId={eventId} canEdit={false} />, {
       wrapper: Providers,
     });
-    expect(await screen.findByText("Read-only files")).toBeVisible();
-    // The Files empty state reads like every other viewer's.
     expect(
-      await screen.findByText(
-        "Shared files will appear here when available. This event is read-only.",
-      ),
+      await screen.findByRole("heading", { name: "No files attached" }),
     ).toBeVisible();
+    expect(screen.queryByText("Attach a file")).toBeNull();
     for (const label of [
       "Arrange layout",
       "Add component",
@@ -1769,7 +1768,7 @@ describe("insertable event components", () => {
       "Add task",
       "Add expense",
       "Add reminder",
-      "Attach file",
+      "Attach a file",
     ]) {
       expect(screen.queryByRole("button", { name: label })).toBeNull();
     }

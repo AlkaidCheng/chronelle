@@ -4,6 +4,7 @@ import {
   createContext,
   type KeyboardEvent as ReactKeyboardEvent,
   type ReactNode,
+  useCallback,
   useContext,
   useEffect,
   useId,
@@ -16,6 +17,37 @@ import { IconButton } from "./icon-button";
 const CloseContext = createContext<((returnFocus?: boolean) => void) | null>(
   null,
 );
+
+/**
+ * Closes an open menu on Escape anywhere in the document or on a press
+ * outside it. The document listens for Escape because a pointer press does
+ * not focus the pressed control in every browser, so a key handler on the
+ * list alone would miss it.
+ */
+export function useMenuDismissal(
+  open: boolean,
+  contains: (target: Node) => boolean,
+  onClose: (byKeyboard: boolean) => void,
+) {
+  useEffect(() => {
+    if (!open) return;
+    function onPointerDown(event: PointerEvent) {
+      if (event.target instanceof Node && contains(event.target)) return;
+      onClose(false);
+    }
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.key !== "Escape" || event.defaultPrevented) return;
+      event.preventDefault();
+      onClose(true);
+    }
+    document.addEventListener("pointerdown", onPointerDown);
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.removeEventListener("pointerdown", onPointerDown);
+      document.removeEventListener("keydown", onKeyDown);
+    };
+  }, [contains, onClose, open]);
+}
 
 function menuItems(menu: HTMLElement | null) {
   return Array.from(
@@ -69,31 +101,18 @@ export function QuietMenu({
   }, [open, align]);
 
   useEffect(() => {
-    if (!open) return;
-    menuItems(menu.current)[0]?.focus();
-    function onPointerDown(event: PointerEvent) {
-      if (event.target instanceof Node && root.current?.contains(event.target))
-        return;
-      setOpen(false);
-    }
-    function onKeyDown(event: KeyboardEvent) {
-      if (event.key !== "Escape" || event.defaultPrevented) return;
-      event.preventDefault();
-      setOpen(false);
-      trigger.current?.focus();
-    }
-    document.addEventListener("pointerdown", onPointerDown);
-    document.addEventListener("keydown", onKeyDown);
-    return () => {
-      document.removeEventListener("pointerdown", onPointerDown);
-      document.removeEventListener("keydown", onKeyDown);
-    };
+    if (open) menuItems(menu.current)[0]?.focus();
   }, [open]);
 
-  function close(returnFocus = true) {
+  const contains = useCallback(
+    (target: Node) => root.current?.contains(target) ?? false,
+    [],
+  );
+  const close = useCallback((returnFocus = true) => {
     setOpen(false);
     if (returnFocus) trigger.current?.focus();
-  }
+  }, []);
+  useMenuDismissal(open, contains, close);
 
   function onKeyDown(event: ReactKeyboardEvent<HTMLDivElement>) {
     const all = menuItems(menu.current);

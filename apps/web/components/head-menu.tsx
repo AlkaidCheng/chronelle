@@ -3,11 +3,13 @@
 import {
   type KeyboardEvent,
   type ReactNode,
+  useCallback,
   useEffect,
   useId,
   useRef,
   useState,
 } from "react";
+import { useMenuDismissal } from "./quiet-menu";
 
 /** One line of a heading menu: a choice, a toggle, an action, a section label, or a rule. */
 export type HeadMenuEntry =
@@ -76,19 +78,17 @@ export function HeadMenu({
       items.find((item) => item.getAttribute("aria-checked") === "true") ??
       items[0]
     )?.focus();
-    function onPointerDown(event: PointerEvent) {
-      if (event.target instanceof Node && root.current?.contains(event.target))
-        return;
-      setOpen(false);
-    }
-    document.addEventListener("pointerdown", onPointerDown);
-    return () => document.removeEventListener("pointerdown", onPointerDown);
   }, [open]);
 
-  function close(refocus: boolean) {
+  const contains = useCallback(
+    (target: Node) => root.current?.contains(target) ?? false,
+    [],
+  );
+  const close = useCallback((refocus: boolean) => {
     setOpen(false);
     if (refocus) trigger.current?.focus();
-  }
+  }, []);
+  useMenuDismissal(open, contains, close);
 
   function onKeyDown(event: KeyboardEvent<HTMLDivElement>) {
     const items = menuItems(menu.current);
@@ -98,10 +98,6 @@ export function HeadMenu({
       items[((next % items.length) + items.length) % items.length]?.focus();
     };
     switch (event.key) {
-      case "Escape":
-        event.preventDefault();
-        close(true);
-        return;
       case "ArrowDown":
         focus(index + 1);
         return;

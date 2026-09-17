@@ -620,19 +620,30 @@ screen-reader announcements require manual assistive-technology validation.
 
 ## Component views
 
-The seven Event components share one frame. Each opens with its title, one
-line on what the view is for, and at most one action: Add task, Add schedule
-item, Add expense, or Add reminder for members who can edit; Files takes its
-file through the form below its heading instead, and holds that form and the
-target choice while an upload runs. Every component's states use the same
-pieces: one loading line, one empty state whose viewer wording says the event
-is read-only, and one error notice with a retry (or, for a failed upload or
-download, Dismiss). Attachments outside the viewer's permission scope are
-counted in a Private attachments note, as the Overview counts private related
-items. Calendar, Expenses, and Files rows carry their actions in
-one group and one order across views: the row's own action first (Edit, or
-Download for a file), then History, then Actions, which opens the move-to-Trash
-dialog. Viewers see only History and Download.
+The seven Event components share one frame. Each opens with its title, a
+light count where the component keeps one, its Layout, Sort, and Filter
+controls, and at most one action: Add task, Add schedule item, Add expense,
+or Add reminder for members who can edit. No line of purpose sits under a
+heading. Every component's states use the same pieces: one loading line, one
+empty state that is its title alone for a viewer and, where the collection
+takes a quick row, that row alone for an editor, and one error notice with a
+retry (or, for a failed upload or download, Dismiss). Attachments outside the
+viewer's permission scope are counted in a Private attachments note, as the
+Overview counts private related items. Calendar and Expenses rows carry their
+actions in one group and one order across views: the row's own action first
+(Edit), then History, then Actions, which opens the move-to-Trash dialog.
+Viewers see only History.
+
+Files is its rows: the file's name, its size and the day it was added, a
+Download icon, and a row menu (Actions for the file's name) with Download,
+History, and, for members who can edit, Move to Trash, which opens the
+recovery dialog with its unlink choice. The heading's Attached to menu chooses
+whose files are shown (the event, or one of its tasks or expenses). The row at
+the end, Attach a file, opens the file picker; a chosen file is sent at once,
+the row reads Uploading with the file's name until the upload settles, and a
+refused file leaves a notice with the limit (25 MB) and the checks a file
+goes through (filename, type, size, and checksum). Viewers get the rows and
+Download only.
 
 Task and Reminder rows keep their further options behind one menu button at
 the row's end (Actions for the row's name), shown on hover or focus and

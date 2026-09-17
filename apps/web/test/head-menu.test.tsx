@@ -37,6 +37,29 @@ describe("HeadMenu", () => {
     expect(button).toHaveFocus();
   });
 
+  it("closes on Escape when nothing inside it holds focus", async () => {
+    // A pointer press does not focus the pressed control in every browser,
+    // so Escape is read from the document rather than the list.
+    const user = userEvent.setup();
+    render(
+      <HeadMenu
+        entries={[
+          { kind: "check", label: "Open", checked: true, onSelect: vi.fn() },
+        ]}
+        icon={<svg aria-hidden="true" />}
+        label="Filter"
+      />,
+    );
+    const trigger = screen.getByRole("button", { name: "Filter" });
+    await user.click(trigger);
+    expect(screen.getByRole("menu")).toBeVisible();
+    (document.activeElement as HTMLElement | null)?.blur();
+    expect(document.activeElement).toBe(document.body);
+    await user.keyboard("{Escape}");
+    expect(screen.queryByRole("menu")).toBeNull();
+    expect(trigger).toHaveFocus();
+  });
+
   it("keeps a filter menu open while toggling and closes on Escape or a press outside", async () => {
     const user = userEvent.setup();
     const toggle = vi.fn();

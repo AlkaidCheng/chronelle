@@ -12,6 +12,7 @@ import {
 import { createPortal } from "react-dom";
 
 import { MoreIcon } from "./icons";
+import { useMenuDismissal } from "./quiet-menu";
 
 export type RowMenuEntry =
   | {
@@ -102,14 +103,7 @@ export function RowMenu({
 
   useEffect(() => {
     if (!open) return;
-    const onPointerDown = (event: PointerEvent) => {
-      if (!(event.target instanceof Node)) return;
-      if (menu.current?.contains(event.target)) return;
-      if (button.current?.contains(event.target)) return;
-      close(false);
-    };
     const onMove = () => close(false);
-    document.addEventListener("pointerdown", onPointerDown, true);
     window.addEventListener("resize", onMove);
     // The page moving under the menu closes it; the frame that opens it
     // may still be settling its own scroll.
@@ -118,7 +112,6 @@ export function RowMenu({
     );
     return () => {
       window.cancelAnimationFrame(frame);
-      document.removeEventListener("pointerdown", onPointerDown, true);
       window.removeEventListener("resize", onMove);
       document.removeEventListener("scroll", onMove, true);
     };
@@ -133,11 +126,6 @@ export function RowMenu({
     const focus = (index: number) =>
       items[(index + items.length) % items.length]?.focus();
     switch (event.key) {
-      case "Escape":
-        event.preventDefault();
-        if (view === null) close(true);
-        else back(view);
-        return;
       case "ArrowLeft":
         if (view === null) return;
         event.preventDefault();
@@ -167,7 +155,7 @@ export function RowMenu({
     }
   };
 
-  const back = (from: number) => {
+  const back = useCallback((from: number) => {
     setView(null);
     // The entry that opened the choices takes focus once the list is back.
     window.requestAnimationFrame(() => {
@@ -175,7 +163,24 @@ export function RowMenu({
         ?.querySelector<HTMLElement>(`[data-entry="${from}"]`)
         ?.focus();
     });
-  };
+  }, []);
+
+  // Escape closes the menu, or steps back from the choices; a press outside closes it.
+  const contains = useCallback(
+    (target: Node) =>
+      (menu.current?.contains(target) ?? false) ||
+      (button.current?.contains(target) ?? false),
+    [],
+  );
+  const dismiss = useCallback(
+    (byKeyboard: boolean) => {
+      if (!byKeyboard) close(false);
+      else if (view === null) close(true);
+      else back(view);
+    },
+    [back, close, view],
+  );
+  useMenuDismissal(open, contains, dismiss);
 
   const chosen = view === null ? null : entries[view];
   const list =

@@ -68,9 +68,7 @@ test("inserts mixed components offline and edits one schedule across three proje
   await expect(
     page.getByRole("heading", { name: "Garden welcome", exact: true }),
   ).toHaveCount(2);
-  await expect(
-    page.getByText("No files attached", { exact: true }),
-  ).toBeVisible();
+  await expect(page.getByText("Attach a file", { exact: true })).toBeVisible();
   expect(
     await page.evaluate(
       () => document.documentElement.scrollWidth <= innerWidth,
@@ -82,8 +80,9 @@ test("inserts mixed components offline and edits one schedule across three proje
   });
   await page.getByLabel("Preview role").selectOption("viewer");
   await expect(
-    page.getByText("Read-only files", { exact: true }),
+    page.getByRole("heading", { name: "No files attached", exact: true }),
   ).toBeVisible();
+  await expect(page.getByText("Attach a file", { exact: true })).toHaveCount(0);
   await expect(
     page.getByRole("button", { name: "Add component", exact: true }),
   ).toHaveCount(0);

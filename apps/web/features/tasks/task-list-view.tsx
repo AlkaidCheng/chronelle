@@ -19,7 +19,6 @@ import { type ReactNode, useCallback, useMemo, useState } from "react";
 
 import { ErrorNotice } from "../../components/feedback";
 import { CheckIcon } from "../../components/icons";
-import { ObjectDetails } from "../../components/object-details";
 import type { QuickAddSlots } from "../../components/quick-add-row";
 import { RowMenu, type RowMenuEntry } from "../../components/row-menu";
 import {
@@ -105,7 +104,6 @@ const taskColumns = [
           <strong>{row.original.displayName}</strong>
           {lineage(row.original, nested)}
           {context(row.original)}
-          <ObjectDetails id={row.original.id} />
         </div>
       );
     },
@@ -630,7 +628,6 @@ export function TaskListView({
           <p>{formatTaskWhen(task, showDate)}</p>
         ) : null}
         {context(task)}
-        <ObjectDetails id={task.id} />
       </div>
       <StatusChip status={task.status} />
       {menu(task, rows)}
