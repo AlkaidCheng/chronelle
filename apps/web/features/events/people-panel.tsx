@@ -5,12 +5,14 @@ import { useId, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
 import { EmptyState, ErrorNotice } from "../../components/feedback";
+import { personDisplayName } from "../../lib/person-fields";
 import { PersonCard } from "../people/person-card";
 import { PersonInspector } from "../people/person-inspector";
 import {
   useCreatePersonInEvent,
   useEventAccessQuery,
   useIncludePerson,
+  useLabelsQuery,
   usePersonsQuery,
   useSessionQuery,
   useSharesQuery,
@@ -36,6 +38,7 @@ export function PeoplePanel({
   const [editingId, setEditingId] = useState<string | null>(null);
   const session = useSessionQuery();
   const me = session.data?.user.id;
+  const labelNames = useLabelsQuery().data?.names;
   // Owners may share the event with the people it involves in one go.
   const access = useEventAccessQuery(eventId);
   const canShare = access.data?.actions.includes("share") ?? false;
@@ -71,6 +74,7 @@ export function PeoplePanel({
               hidden={new Set()}
               isMe={me !== undefined && person.userId === me}
               key={person.id}
+              labelNames={labelNames}
               onEdit={setEditingId}
               person={person}
             />
@@ -197,9 +201,11 @@ function AddPersonDialog({
           <ul aria-label="People to add" className="label-manager">
             {candidates.map((person) => (
               <li key={person.id}>
-                <span className="person-option">{person.displayName}</span>
+                <span className="person-option">
+                  {personDisplayName(person)}
+                </span>
                 <button
-                  aria-label={`Add ${person.displayName}`}
+                  aria-label={`Add ${personDisplayName(person)}`}
                   className="button button-secondary button-small"
                   disabled={pending}
                   onClick={() =>

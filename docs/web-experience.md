@@ -84,18 +84,26 @@ filter, sort, name query, label, and assignee belong to the tab.
 
 ## People
 
-People are canonical records of the workspace: a name, an optional email, an
-optional link to a member's account, and custom fields for anything worth
-keeping (a phone, a birthday, a dietary note). The People page in the rail
-shows everyone as namecards with initials, the name (marked "(me)" for the
-person linked to the signed-in account), the email as a mail link, "Has an
-account here" for other linked people, and the custom fields as a small
-table. Shown fields lists every field any loaded person carries; unticking
-one hides it on every card, a device preference kept in browser storage.
-New person and Edit open the person editor: name, email, This is me (offered
-when the person is unlinked or already this user's; one person per account),
-and the fields as name/value rows with Add field and Remove. Editing keeps a
-field's original type unless its text changes. Cards offer History and
+People are canonical records of the workspace: a name, an optional nickname
+shown in its place wherever the person is named, contacts (email, phone, or
+other, in the order kept), labels from the workspace's label vocabulary, a
+description, an optional link to a member's account, and custom fields for
+anything else worth keeping (a birthday, a dietary note). The People page in
+the rail shows everyone as namecards with initials, the nickname or name
+(marked "(me)" for the person linked to the signed-in account) with the full
+name under a nickname, "Has an account here" for other linked people, the
+contacts (an email as a mail link, a phone as a call link), the labels, the
+description, and the custom fields as a small table. Shown fields lists
+every custom field any loaded person carries; unticking one hides it on
+every card, a device preference kept in browser storage. New person and
+Edit open the person editor: name, nickname, This is me (offered when the
+person is unlinked or already this user's; one person per account), the
+contacts as kind/value rows with Add contact and Remove, Labels (the same
+picker tasks use, with a field to add one), the description, and the custom
+fields as name/value rows with Add field and Remove. Editing keeps a field's
+original type unless its text changes. Assignee chips, the assignee and
+share pickers, and the event People component all name a person by their
+nickname when one exists. Cards offer History and
 Actions (Trash) like any record; Search and Trash filter by People, and
 Trash restores them. The name query asks the server after a typing pause.
 

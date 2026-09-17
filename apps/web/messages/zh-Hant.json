@@ -89,6 +89,21 @@
     "monday": "週一",
     "sunday": "週日"
   },
+  "person": {
+    "nickname": "暱稱",
+    "description": "描述",
+    "contacts": "聯絡方式",
+    "contactKinds": {
+      "email": "電子郵件",
+      "phone": "電話",
+      "other": "其他"
+    },
+    "contactKind": "聯絡方式 {n} 的類型",
+    "contactValue": "聯絡方式 {n} 的內容",
+    "removeContact": "移除聯絡方式 {n}",
+    "addContact": "新增聯絡方式",
+    "labels": "標籤"
+  },
   "events": {
     "title": "活動",
     "filterByName": "依名稱篩選活動",

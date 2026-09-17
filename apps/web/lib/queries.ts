@@ -48,6 +48,7 @@ import {
 } from "../i18n/locale-preference";
 import { isLocale } from "../i18n/locales";
 import { useApiClient } from "./api-context";
+import { personDisplayName } from "./person-fields";
 import { useAuthSession } from "./auth-session";
 import type { EventView } from "./event-views";
 
@@ -269,7 +270,7 @@ export function usePersonsQuery(
     select: (page) => ({
       items: page.items,
       names: new Map(
-        page.items.map((person) => [person.id, person.displayName]),
+        page.items.map((person) => [person.id, personDisplayName(person)]),
       ),
     }),
   });

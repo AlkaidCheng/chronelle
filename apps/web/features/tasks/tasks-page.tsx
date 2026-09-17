@@ -22,6 +22,7 @@ import { TaskInspector } from "../events/task-inspector";
 import { viewsOf } from "../../lib/event-components";
 import { periodRange, usePeriod } from "../../lib/use-period";
 import { shownTimeZone } from "../../i18n/active-preferences";
+import { personDisplayName } from "../../lib/person-fields";
 import {
   useLabelsQuery,
   usePersonsQuery,
@@ -123,7 +124,7 @@ export function TasksPage() {
   const labelChoices = labels.data?.items ?? [];
   const assigneeChoices = (persons.data?.items ?? [])
     .filter((person) => person.id !== myPerson?.id)
-    .map((person) => ({ id: person.id, name: person.displayName }));
+    .map((person) => ({ id: person.id, name: personDisplayName(person) }));
 
   // Stable, so the row cells keep their identity and focus across renders.
   const addSubtask = useCallback(
