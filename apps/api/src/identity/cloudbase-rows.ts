@@ -37,6 +37,7 @@ export function userRow(row: CloudBaseRow): UserRow {
     providerSubject: text(row.provider_subject, "provider subject"),
     email: nullableText(row.email, "email"),
     displayName: text(row.display_name, "display name"),
+    locale: nullableText(row.locale, "locale"),
     createdAt: instant(row.created_at, "created_at"),
     updatedAt: instant(row.updated_at, "updated_at"),
   };

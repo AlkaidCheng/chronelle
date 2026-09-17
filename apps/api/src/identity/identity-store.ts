@@ -9,7 +9,7 @@ import {
   type UserRow,
   type WorkspaceRow,
 } from "@chronelle/db";
-import { and, eq, inArray } from "drizzle-orm";
+import { and, eq, inArray, sql } from "drizzle-orm";
 
 import type { AuthIdentity } from "../authentication/auth-provider.js";
 import { WorkspaceUnavailableError } from "../errors.js";
@@ -34,7 +34,8 @@ export interface IdentitySessionRows {
  * requested or the personal workspace (null when the user is unknown or
  * has no personal workspace; a workspace error when the user may not enter
  * the workspace), and the workspaces the user may enter through membership
- * or an active grant.
+ * or an active grant, and the language kept on the account (a language tag
+ * or null for no choice; the user is returned as the row then reads).
  */
 export interface IdentityStore {
   signIn(identity: AuthIdentity, requestId: string): Promise<SignInResult>;
@@ -43,6 +44,7 @@ export interface IdentityStore {
     requestedWorkspaceId: string | undefined,
   ): Promise<IdentitySessionRows | null>;
   listAccessibleWorkspaces(userId: string): Promise<readonly WorkspaceRow[]>;
+  updateLocale(userId: string, locale: string | null): Promise<UserRow>;
 }
 
 /** The PostgreSQL store: each read runs in one repeatable-read snapshot with the authorization evaluator. */
@@ -166,6 +168,19 @@ export class PostgresIdentityStore implements IdentityStore {
           .where(inArray(workspaces.id, ids));
       },
     );
+  }
+
+  async updateLocale(userId: string, locale: string | null): Promise<UserRow> {
+    const [updated] = await this.#database
+      .update(users)
+      .set({
+        locale,
+        updatedAt: sql`GREATEST(now(), ${users.createdAt})`,
+      })
+      .where(eq(users.id, userId))
+      .returning();
+    if (updated === undefined) throw new Error("The user does not exist.");
+    return updated;
   }
 }
 
