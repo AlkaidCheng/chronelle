@@ -1,5 +1,7 @@
 // @vitest-environment jsdom
 
+import type { EventResponse } from "@chronelle/schemas";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   cleanup,
   fireEvent,
@@ -9,18 +11,15 @@ import {
   within,
 } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { useQueryClient } from "@tanstack/react-query";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import type { EventResponse } from "@chronelle/schemas";
-
 import { Providers } from "../app/providers";
+import {
+  useContextCommands,
+  WorkspaceCommandProvider,
+} from "../components/context-commands";
 import { EventWorkspace } from "../features/events/event-workspace";
 import { queryKeys } from "../lib/queries";
-import {
-  WorkspaceCommandProvider,
-  useContextCommands,
-} from "../components/context-commands";
 import { setDates } from "./range-picker-support";
 
 const workspaceId = "019d6e7d-0000-7000-8000-000000000001";
@@ -796,9 +795,11 @@ describe("EventWorkspace", () => {
 
     await user.click(screen.getByRole("tab", { name: "Files" }));
     expect(await screen.findByText("run-of-show.pdf")).toBeVisible();
-    expect(screen.getByText("Read-only files")).toBeVisible();
-    expect(screen.getByRole("button", { name: "Download" })).toBeVisible();
+    expect(
+      screen.getByRole("button", { name: "Download run-of-show.pdf" }),
+    ).toBeVisible();
     expect(screen.queryByLabelText("Choose a private file")).toBeNull();
+    expect(screen.queryByText("Attach a file")).toBeNull();
     expect(screen.queryByRole("button", { name: "Unlink" })).toBeNull();
   });
 
@@ -896,17 +897,23 @@ describe("EventWorkspace", () => {
 
     await user.click(await screen.findByRole("tab", { name: "Files" }));
     expect(await screen.findByText("run-of-show.pdf")).toBeVisible();
-    expect(screen.getByLabelText("Choose a private file")).toBeVisible();
+    expect(screen.getByText("Attach a file")).toBeVisible();
+    // The targets are one quiet menu in the heading, the event chosen first.
+    await user.click(
+      screen.getByRole("button", { name: "Attached to: Event: Launch night" }),
+    );
     expect(
-      screen.getByRole("option", { name: "Event: Launch night" }),
-    ).toBeVisible();
+      screen.getByRole("menuitemradio", { name: "Event: Launch night" }),
+    ).toHaveAttribute("aria-checked", "true");
     expect(
-      screen.getByRole("option", { name: "Task: Confirm venue" }),
+      screen.getByRole("menuitemradio", { name: "Task: Confirm venue" }),
     ).toBeVisible();
+    await user.keyboard("{Escape}");
 
     await user.click(
       screen.getByRole("button", { name: "Actions for run-of-show.pdf" }),
     );
+    await user.click(screen.getByRole("menuitem", { name: "Move to Trash" }));
     await user.click(
       await screen.findByRole("button", { name: "Remove context link" }),
     );
@@ -922,7 +929,10 @@ describe("EventWorkspace", () => {
         ),
       ).toBe(true);
     });
-    expect(await screen.findByText("No files attached")).toBeVisible();
+    await waitFor(() =>
+      expect(document.querySelectorAll(".attachment-row")).toHaveLength(0),
+    );
+    expect(screen.getByText("Attach a file")).toBeVisible();
   });
 
   it("shows the Files states with the shared frame: locked count, empty target, load error, pending and failed uploads", async () => {
@@ -940,7 +950,7 @@ describe("EventWorkspace", () => {
       completedAt: null,
     } as const;
     let taskDocumentsFail = true;
-    let uploadAnswer: "hang" | "fail" = "hang";
+    const uploadAnswer: "hang" | "fail" = "hang";
     const fetch = vi.fn<typeof globalThis.fetch>(async (input, init) => {
       const path = requestPath(input);
       if (path === `/api/events/${eventId}`) return jsonResponse(rootEvent);
@@ -1015,9 +1025,13 @@ describe("EventWorkspace", () => {
     ).toBeVisible();
 
     // A target whose attachments cannot be read shows the error with a retry;
-    // once readable, its empty state names the next step.
-    const target = screen.getByLabelText("Show files attached to");
-    await user.selectOptions(target, "Task: Confirm venue");
+    // once readable, the editor has the attach row alone.
+    await user.click(
+      screen.getByRole("button", { name: "Attached to: Event: Launch night" }),
+    );
+    await user.click(
+      screen.getByRole("menuitemradio", { name: "Task: Confirm venue" }),
+    );
     // The read is retried once before the notice appears.
     expect(
       await screen.findByText(
@@ -1028,26 +1042,24 @@ describe("EventWorkspace", () => {
     ).toBeVisible();
     taskDocumentsFail = false;
     await user.click(screen.getByRole("button", { name: "Try again" }));
-    expect(await screen.findByText("No files attached")).toBeVisible();
+    expect(await screen.findByText("Attach a file")).toBeVisible();
+    expect(screen.queryByText("No files attached")).toBeNull();
     expect(screen.queryByText("Private attachments")).toBeNull();
 
-    // While an upload runs, the file and target controls are held and the
-    // button and progress say so.
+    // A chosen file goes up at once; while it does, the row says so and the
+    // file and target controls are held.
     const fileInput = screen.getByLabelText("Choose a private file");
     await user.upload(fileInput, textFile("notes.txt", "hello"));
-    fireEvent.submit(
-      screen
-        .getByRole("button", { name: "Attach file" })
-        .closest("form") as HTMLFormElement,
-    );
     expect(
-      await screen.findByRole("button", { name: "Uploading..." }),
+      await screen.findByRole("button", { name: "Uploading notes.txt..." }),
     ).toBeDisabled();
     expect(
       screen.getByRole("progressbar", { name: "Uploading attachment" }),
     ).toBeVisible();
     expect(screen.getByLabelText("Choose a private file")).toBeDisabled();
-    expect(target).toBeDisabled();
+    expect(
+      screen.getByRole("button", { name: "Attached to: Task: Confirm venue" }),
+    ).toBeDisabled();
   });
 
   it("dismisses a failed upload's notice and frees the controls", async () => {
@@ -1097,25 +1109,24 @@ describe("EventWorkspace", () => {
       </Providers>,
     );
     await user.click(await screen.findByRole("tab", { name: "Files" }));
-    expect(await screen.findByText("No files attached")).toBeVisible();
+    expect(await screen.findByText("Attach a file")).toBeVisible();
     await user.upload(
       screen.getByLabelText("Choose a private file"),
       textFile("notes.txt", "hello"),
     );
-    expect(screen.getByRole("button", { name: "Attach file" })).toBeEnabled();
-    // jsdom's constraint validation sees no file, so the form is submitted
-    // directly, as a click on Attach file does in a browser.
-    fireEvent.submit(
-      screen
-        .getByRole("button", { name: "Attach file" })
-        .closest("form") as HTMLFormElement,
-    );
     const notice = await screen.findByRole("alert");
     expect(notice).toHaveTextContent("Uploads are unavailable right now.");
-    // The chosen file stays for another try; Dismiss clears the notice.
-    expect(screen.getByRole("button", { name: "Attach file" })).toBeEnabled();
+    // The limit and the checks are read only once a file is refused.
+    expect(
+      screen.getByText(
+        "Maximum 25 MB. Filename, type, size, and checksum are verified.",
+      ),
+    ).toBeVisible();
+    // The row is free for another try; Dismiss clears the notice.
+    expect(screen.getByRole("button", { name: "Attach a file" })).toBeEnabled();
     await user.click(within(notice).getByRole("button", { name: "Dismiss" }));
     expect(screen.queryByRole("alert")).toBeNull();
+    expect(screen.queryByText(/Maximum 25 MB/)).toBeNull();
     expect(screen.getByLabelText("Choose a private file")).toBeEnabled();
   });
 

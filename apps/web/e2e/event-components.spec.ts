@@ -145,18 +145,25 @@ test("composes planning and private-file components with canonical updates and v
     page.getByRole("heading", { name: "Confirm arrival time", exact: true }),
   ).toHaveCount(2);
   const files = page.locator(".documents-panel");
-  await files
-    .getByLabel("Show files attached to")
-    .selectOption({ label: "Expense: Cabin deposit" });
+  const showFilesOf = async (label: string) => {
+    await files.getByRole("button", { name: /^Attached to: / }).click();
+    await files.getByRole("menuitemradio", { name: label }).click();
+  };
+  await showFilesOf("Expense: Cabin deposit");
+  // Choosing a file attaches it; the row says so until the upload settles.
   await files.getByLabel("Choose a private file").setInputFiles({
     name: "receipt.txt",
     mimeType: "text/plain",
     buffer: Buffer.from("Private cabin receipt"),
   });
-  await files.getByRole("button", { name: "Attach file", exact: true }).click();
   await expect(files.getByText("receipt.txt", { exact: true })).toBeVisible();
+  await expect(
+    files.getByRole("button", { name: "Attach a file", exact: true }),
+  ).toBeEnabled();
   const downloadPromise = page.waitForEvent("download");
-  await files.getByRole("button", { name: "Download", exact: true }).click();
+  await files
+    .getByRole("button", { name: "Download receipt.txt", exact: true })
+    .click();
   expect((await downloadPromise).suggestedFilename()).toBe("receipt.txt");
   const canonical = await request.get(`/api/events/${activity.id}`, {
     headers,
@@ -172,9 +179,7 @@ test("composes planning and private-file components with canonical updates and v
   await expect(
     page.getByRole("heading", { name: "Mountain cabin stay", exact: true }),
   ).toHaveCount(2);
-  await files
-    .getByLabel("Show files attached to")
-    .selectOption({ label: "Expense: Cabin deposit" });
+  await showFilesOf("Expense: Cabin deposit");
   await expect(files.getByText("receipt.txt", { exact: true })).toBeVisible();
   expect(
     await page.evaluate(
@@ -235,9 +240,8 @@ test("composes planning and private-file components with canonical updates and v
   await expect(
     page.getByRole("button", { name: "Edit", exact: true }),
   ).toHaveCount(0);
-  await files
-    .getByLabel("Show files attached to")
-    .selectOption({ label: "Expense: Cabin deposit" });
+  await showFilesOf("Expense: Cabin deposit");
   await expect(files.getByText("receipt.txt", { exact: true })).toBeVisible();
   await expect(files.getByLabel("Choose a private file")).toHaveCount(0);
+  await expect(files.getByText("Attach a file")).toHaveCount(0);
 });

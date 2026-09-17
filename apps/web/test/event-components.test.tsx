@@ -1307,7 +1307,7 @@ describe("insertable event components", () => {
     );
     expect(screen.queryByRole("heading", { name: "Itinerary" })).toBeNull();
     expect(document.querySelectorAll(".itinerary-list")).toHaveLength(1);
-    expect(await screen.findByText("No files attached")).toBeVisible();
+    expect(await screen.findByText("Attach a file")).toBeVisible();
     expect(await client.getEventDetail(eventId)).toEqual(before);
     expect(
       screen.getAllByText("Welcome and coffee", { exact: true }),
@@ -1756,10 +1756,10 @@ describe("insertable event components", () => {
     render(<PagesHarness eventId={eventId} canEdit={false} />, {
       wrapper: Providers,
     });
-    expect(await screen.findByText("Read-only files")).toBeVisible();
     expect(
       await screen.findByRole("heading", { name: "No files attached" }),
     ).toBeVisible();
+    expect(screen.queryByText("Attach a file")).toBeNull();
     for (const label of [
       "Arrange layout",
       "Add component",
@@ -1768,7 +1768,7 @@ describe("insertable event components", () => {
       "Add task",
       "Add expense",
       "Add reminder",
-      "Attach file",
+      "Attach a file",
     ]) {
       expect(screen.queryByRole("button", { name: label })).toBeNull();
     }
