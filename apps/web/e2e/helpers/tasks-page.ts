@@ -27,6 +27,12 @@ export async function exerciseTasksPage(page: Page, member: string) {
   await expect(
     page.getByRole("heading", { name: "Tasks", level: 1 }),
   ).toBeVisible();
+  // The page keeps the rail, with its own entry marked as the current one.
+  await expect(
+    page
+      .getByRole("navigation", { name: "Workspace navigation" })
+      .getByRole("link", { name: "Tasks", exact: true }),
+  ).toHaveAttribute("aria-current", "page");
   await page.getByRole("button", { name: "New task", exact: true }).click();
   const editor = page.getByRole("dialog", { name: "Add task", exact: true });
   await editor.getByLabel("Task", { exact: true }).fill("Renew the passport");
