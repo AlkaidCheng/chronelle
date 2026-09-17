@@ -80,7 +80,9 @@
     "sessions": "登入工作階段",
     "signOutEverywhere": "登出所有裝置",
     "signOutEverywhereNote": "結束此帳號的所有工作階段，包括目前這一個。",
-    "appearanceNote": "外觀設定儲存在此瀏覽器中。側欄的「主題」提供相同的選項。"
+    "appearanceNote": "外觀設定儲存在此瀏覽器中。側欄的「主題」提供相同的選項。",
+    "workspace": "工作區",
+    "members": "成員"
   },
   "friends": {
     "title": "好友",
@@ -161,6 +163,8 @@
     "account": "帳號",
     "accounts": {
       "all": "所有人",
+      "friend": "好友",
+      "invited": "已邀請",
       "linked": "已有帳號",
       "unlinked": "沒有帳號"
     },
@@ -175,7 +179,9 @@
       "edit": "編輯",
       "history": "歷史",
       "moveToTrash": "移到垃圾桶"
-    }
+    },
+    "friend": "好友",
+    "invited": "已邀請"
   },
   "personPage": {
     "allPeople": "全部參與者",
@@ -1174,7 +1180,6 @@
   },
   "sharingPanel": {
     "title": "共享",
-    "intro": "授予對此活動及其繼承資源的存取權限。僅有關聯不會授予存取權限。協作者還可以閱讀其目前可見資源的更早已儲存版本，包括此次邀請之前儲存的版本。",
     "collaboratorEmail": "協作者電子郵件",
     "access": "權限",
     "roles": {
@@ -1224,6 +1229,48 @@
       "moved": "已移動{name}。",
       "position": "{name}現在是第 {at} 項，共 {total} 項。",
       "due": "{name}的提醒時間為{day}。"
+    }
+  },
+  "sharing": {
+    "sharePeople": "與參與者分享",
+    "friends": "好友",
+    "others": "其他參與者",
+    "byEmail": "透過電子郵件",
+    "peopleWithAccess": "可存取的人",
+    "onlyYou": "目前只有你可以存取",
+    "shareWith": "{count, plural, =0 {分享} other {與 # 人分享}}",
+    "sharing": "分享中…",
+    "hasAccount": "已有帳號",
+    "invitedAccessFollows": "已邀請，加入後即可存取",
+    "invitationOnShare": "{email}；將傳送邀請，加入後即可存取",
+    "accessFollows": "加入後即可存取",
+    "accessFor": "{name} 的存取權限",
+    "sharedAs": "已分享為{role}",
+    "queued": "等待對方加入",
+    "invitationSent": "已傳送邀請，加入後即可存取",
+    "failed": "無法完成分享。",
+    "remove": "移除",
+    "nobody": "為參與者新增電子郵件或連結帳號後即可分享。",
+    "roles": {
+      "viewer": "檢視者",
+      "editor": "編輯者",
+      "owner": "擁有者"
+    }
+  },
+  "members": {
+    "title": "成員",
+    "loading": "正在載入成員",
+    "addFriend": "新增好友",
+    "friend": "好友",
+    "access": "存取權限",
+    "add": "新增",
+    "remove": "移除",
+    "personal": "個人工作區",
+    "noFriends": "先新增好友，才能將其加入此處。",
+    "roles": {
+      "viewer": "檢視者",
+      "editor": "編輯者",
+      "owner": "擁有者"
     }
   }
 }

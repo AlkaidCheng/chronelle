@@ -80,7 +80,9 @@
     "sessions": "登录会话",
     "signOutEverywhere": "退出所有设备",
     "signOutEverywhereNote": "结束此账号的所有会话，包括当前这个。",
-    "appearanceNote": "外观设置保存在此浏览器中。侧栏的“主题”提供同样的选项。"
+    "appearanceNote": "外观设置保存在此浏览器中。侧栏的“主题”提供同样的选项。",
+    "workspace": "工作区",
+    "members": "成员"
   },
   "friends": {
     "title": "好友",
@@ -161,6 +163,8 @@
     "account": "账号",
     "accounts": {
       "all": "所有人",
+      "friend": "好友",
+      "invited": "已邀请",
       "linked": "已有账号",
       "unlinked": "没有账号"
     },
@@ -175,7 +179,9 @@
       "edit": "编辑",
       "history": "历史",
       "moveToTrash": "移到回收站"
-    }
+    },
+    "friend": "好友",
+    "invited": "已邀请"
   },
   "personPage": {
     "allPeople": "全部参与者",
@@ -1174,7 +1180,6 @@
   },
   "sharingPanel": {
     "title": "共享",
-    "intro": "授予对此活动及其继承资源的访问权限。仅有关联不会授予访问权限。协作者还可以阅读其当前可见资源的更早已保存版本，包括此次邀请之前保存的版本。",
     "collaboratorEmail": "协作者邮箱",
     "access": "权限",
     "roles": {
@@ -1224,6 +1229,48 @@
       "moved": "已移动{name}。",
       "position": "{name}现在是第 {at} 项，共 {total} 项。",
       "due": "{name}的提醒时间为{day}。"
+    }
+  },
+  "sharing": {
+    "sharePeople": "与参与者共享",
+    "friends": "好友",
+    "others": "其他参与者",
+    "byEmail": "通过邮箱",
+    "peopleWithAccess": "可访问的人",
+    "onlyYou": "目前只有你可以访问",
+    "shareWith": "{count, plural, =0 {共享} other {与 # 人共享}}",
+    "sharing": "共享中…",
+    "hasAccount": "已有账号",
+    "invitedAccessFollows": "已邀请，加入后即可访问",
+    "invitationOnShare": "{email}；将发送邀请，加入后即可访问",
+    "accessFollows": "加入后即可访问",
+    "accessFor": "{name} 的访问权限",
+    "sharedAs": "已共享为{role}",
+    "queued": "等待对方加入",
+    "invitationSent": "已发送邀请，加入后即可访问",
+    "failed": "无法完成共享。",
+    "remove": "移除",
+    "nobody": "为参与者添加邮箱或关联账号后即可共享。",
+    "roles": {
+      "viewer": "查看者",
+      "editor": "编辑者",
+      "owner": "拥有者"
+    }
+  },
+  "members": {
+    "title": "成员",
+    "loading": "正在加载成员",
+    "addFriend": "添加好友",
+    "friend": "好友",
+    "access": "访问权限",
+    "add": "添加",
+    "remove": "移除",
+    "personal": "个人工作区",
+    "noFriends": "先添加好友，才能将其加入此处。",
+    "roles": {
+      "viewer": "查看者",
+      "editor": "编辑者",
+      "owner": "拥有者"
     }
   }
 }

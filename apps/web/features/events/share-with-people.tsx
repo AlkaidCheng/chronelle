@@ -1,195 +1,307 @@
 "use client";
 
-import type { PersonResponse, ShareResponse } from "@chronelle/schemas";
+import type {
+  Friend,
+  PendingShare,
+  PersonResponse,
+  SentInvitation,
+  ShareResponse,
+} from "@chronelle/schemas";
+import { useTranslations } from "next-intl";
 import { type FormEvent, useId, useState } from "react";
 
 import { personDisplayName } from "../../lib/person-fields";
-import { useShareResource } from "../../lib/queries";
+import { useQueuePendingShare, useShareResource } from "../../lib/queries";
 
 type SharedRole = "owner" | "viewer";
 
 type Outcome =
   | { readonly kind: "shared"; readonly role: SharedRole }
+  | { readonly kind: "queued"; readonly invited: boolean }
   | { readonly kind: "failed"; readonly message: string };
 
 /**
- * The people a share can reach: those with an account here, other than the
- * acting user's own person, and those with an email.
+ * One line of the share list: a friend (shared through the connection), a
+ * person with an account here (shared through the card), a person already
+ * invited (the share waits on that invitation), or a person with an email
+ * and no account (the invitation goes out with the share).
  */
-export function shareablePeople(
-  people: readonly PersonResponse[],
-  me: string | undefined,
-): PersonResponse[] {
-  return people.filter(
-    (person) =>
-      (person.userId !== null && person.userId !== me) ||
-      (person.userId === null && person.email !== null),
-  );
+export interface ShareRow {
+  readonly key: string;
+  readonly group: "friends" | "others";
+  readonly kind: "friend" | "member" | "invited" | "new";
+  readonly name: string;
+  readonly reach: string | null;
+  readonly friendId: string | null;
+  readonly personId: string | null;
+  /** The role the account already holds, or the queued share waits with. */
+  readonly held: string | undefined;
 }
 
-/** The role a person's account already holds on the resource, if any. */
-function currentRole(
-  person: PersonResponse,
-  grants: readonly ShareResponse[],
-): string | undefined {
-  const email = person.email?.toLowerCase();
-  return grants.find(
-    (grant) =>
-      grant.principal.id === person.userId ||
-      (person.userId === null &&
-        email !== undefined &&
-        grant.principal.email?.toLowerCase() === email),
-  )?.role;
+export interface ShareRowContext {
+  readonly friends: readonly Friend[];
+  readonly grants: readonly ShareResponse[];
+  readonly me: string | undefined;
+  readonly pending: readonly PendingShare[];
+  readonly people: readonly PersonResponse[];
+  readonly sent: readonly SentInvitation[];
+  readonly workspaceId: string | undefined;
+  /** "people": only friends who are among the people offered; "workspace": every friend. */
+  readonly scope: "people" | "workspace";
+}
+
+/** The rows a share can reach, friends first, then the other people. */
+export function shareRows(context: ShareRowContext): ShareRow[] {
+  const friendByUser = new Map(
+    context.friends.map((friend) => [friend.userId, friend]),
+  );
+  const heldByUser = new Map(
+    context.grants.map((grant) => [grant.principal.id, grant.role]),
+  );
+  const queuedByPerson = new Map(
+    context.pending.flatMap((share) =>
+      share.person === null ? [] : [[share.person.id, share.role] as const],
+    ),
+  );
+  const rows: ShareRow[] = [];
+  for (const friend of context.friends) {
+    const card = context.people.find(
+      (person) => person.userId === friend.userId,
+    );
+    if (context.scope === "people" && card === undefined) continue;
+    rows.push({
+      key: `friend:${friend.id}`,
+      group: "friends",
+      kind: "friend",
+      name: card === undefined ? friend.displayName : personDisplayName(card),
+      reach: friend.email,
+      friendId: friend.id,
+      personId: card?.id ?? null,
+      held: heldByUser.get(friend.userId),
+    });
+  }
+  for (const person of context.people) {
+    if (person.userId === context.me) continue;
+    if (person.userId !== null && friendByUser.has(person.userId)) continue;
+    const invited = context.sent.some(
+      (item) =>
+        item.personId === person.id &&
+        (context.workspaceId === undefined ||
+          item.workspaceId === context.workspaceId),
+    );
+    const kind =
+      person.userId !== null
+        ? "member"
+        : invited
+          ? "invited"
+          : person.email !== null
+            ? "new"
+            : null;
+    if (kind === null) continue;
+    rows.push({
+      key: `person:${person.id}`,
+      group: "others",
+      kind,
+      name: personDisplayName(person),
+      reach: kind === "member" ? null : person.email,
+      friendId: null,
+      personId: person.id,
+      held:
+        person.userId !== null
+          ? heldByUser.get(person.userId)
+          : queuedByPerson.get(person.id),
+    });
+  }
+  return rows;
 }
 
 /**
- * Shares one resource with several people in one go: a list of people to
- * tick, one role, and the outcome of each share in place. Each person is
- * one share request, so a refusal leaves the others' grants standing.
+ * Shares one resource with several people in one go: friends first with
+ * the role beside each name, then the other people the workspace knows.
+ * A friend or a person with an account is granted at once; an invited
+ * person's share waits on the invitation; a person with only an email is
+ * invited and the share waits. Each row is one request, so a refusal
+ * leaves the others standing.
  */
 export function ShareWithPeople({
   eventId,
-  grants,
   initialSelected = [],
   legend,
-  people,
+  rows,
 }: {
   readonly eventId: string;
-  readonly grants: readonly ShareResponse[];
-  /** People ticked when the control opens. */
+  /** Row keys ticked when the control opens. */
   readonly initialSelected?: readonly string[];
   readonly legend: string;
-  /** The people offered; see shareablePeople. */
-  readonly people: readonly PersonResponse[];
+  readonly rows: readonly ShareRow[];
 }) {
+  const t = useTranslations("sharing");
   const id = useId();
   const share = useShareResource(eventId);
+  const queue = useQueuePendingShare(eventId);
   const [selected, setSelected] = useState(() => new Set(initialSelected));
-  const [role, setRole] = useState<SharedRole>("viewer");
+  const [roles, setRoles] = useState(() => new Map<string, SharedRole>());
   const [outcomes, setOutcomes] = useState(() => new Map<string, Outcome>());
   const [isSharing, setIsSharing] = useState(false);
-  const chosen = people.filter((person) => selected.has(person.id));
+  const chosen = rows.filter((row) => selected.has(row.key));
+  const roleOf = (row: ShareRow): SharedRole =>
+    roles.get(row.key) ?? (row.held === "owner" ? "owner" : "viewer");
 
   async function handleShare(formEvent: FormEvent<HTMLFormElement>) {
     formEvent.preventDefault();
     if (chosen.length === 0) return;
     setIsSharing(true);
     const results = new Map<string, Outcome>();
-    for (const person of chosen) {
+    for (const row of chosen) {
+      const role = roleOf(row);
       try {
-        const grant = await share.mutateAsync({ personId: person.id, role });
-        results.set(person.id, {
-          kind: "shared",
-          role: grant.role === "owner" ? "owner" : "viewer",
-        });
+        if (row.kind === "friend" && row.friendId !== null) {
+          const grant = await share.mutateAsync({
+            friendId: row.friendId,
+            role,
+          });
+          results.set(row.key, {
+            kind: "shared",
+            role: grant.role === "owner" ? "owner" : "viewer",
+          });
+        } else if (row.kind === "member" && row.personId !== null) {
+          const grant = await share.mutateAsync({
+            personId: row.personId,
+            role,
+          });
+          results.set(row.key, {
+            kind: "shared",
+            role: grant.role === "owner" ? "owner" : "viewer",
+          });
+        } else if (row.personId !== null) {
+          await queue.mutateAsync({ personId: row.personId, role });
+          results.set(row.key, { kind: "queued", invited: row.kind === "new" });
+        }
       } catch (error) {
-        results.set(person.id, {
+        results.set(row.key, {
           kind: "failed",
-          message:
-            error instanceof Error
-              ? error.message
-              : "The share could not be completed.",
+          message: error instanceof Error ? error.message : t("failed"),
         });
       }
       setOutcomes(new Map(results));
     }
     setSelected(
       new Set(
-        [...selected].filter(
-          (personId) => results.get(personId)?.kind !== "shared",
-        ),
+        [...selected].filter((key) => results.get(key)?.kind === "failed"),
       ),
     );
     setIsSharing(false);
   }
 
-  const toggle = (personId: string, checked: boolean) =>
+  const toggle = (key: string, checked: boolean) =>
     setSelected((current) => {
       const next = new Set(current);
-      if (checked) next.add(personId);
-      else next.delete(personId);
+      if (checked) next.add(key);
+      else next.delete(key);
       return next;
     });
+
+  const group = (name: "friends" | "others") => {
+    const members = rows.filter((row) => row.group === name);
+    if (members.length === 0) return null;
+    return (
+      <div className="share-group">
+        <span className="share-group-title" id={`${id}-${name}`}>
+          {t(name)}
+        </span>
+        <ul aria-labelledby={`${id}-${name}`}>
+          {members.map((row) => {
+            const outcome = outcomes.get(row.key);
+            return (
+              <li key={row.key}>
+                <label className="share-person">
+                  <input
+                    checked={selected.has(row.key)}
+                    onChange={(input) => toggle(row.key, input.target.checked)}
+                    type="checkbox"
+                  />
+                  <span className="share-person-name">{row.name}</span>
+                  <span className="share-person-reach">
+                    {row.kind === "member"
+                      ? t("hasAccount")
+                      : row.kind === "invited"
+                        ? t("invitedAccessFollows")
+                        : row.kind === "new"
+                          ? t("invitationOnShare", { email: row.reach ?? "" })
+                          : row.reach}
+                  </span>
+                  {row.held === undefined ? null : (
+                    <span className={`status-chip status-${row.held}`}>
+                      {t(`roles.${row.held}` as "roles.viewer")}
+                    </span>
+                  )}
+                </label>
+                <select
+                  aria-label={t("accessFor", { name: row.name })}
+                  className="share-person-role"
+                  disabled={isSharing}
+                  onChange={(input) =>
+                    setRoles((current) =>
+                      new Map(current).set(
+                        row.key,
+                        input.target.value as SharedRole,
+                      ),
+                    )
+                  }
+                  value={roleOf(row)}
+                >
+                  <option value="viewer">{t("roles.viewer")}</option>
+                  <option value="owner">{t("roles.owner")}</option>
+                </select>
+                {outcome === undefined ? null : (
+                  <span
+                    className={
+                      outcome.kind === "failed"
+                        ? "share-outcome share-outcome-failed"
+                        : "share-outcome"
+                    }
+                    role="status"
+                  >
+                    {outcome.kind === "shared"
+                      ? t("sharedAs", { role: t(`roles.${outcome.role}`) })
+                      : outcome.kind === "queued"
+                        ? outcome.invited
+                          ? t("invitationSent")
+                          : t("queued")
+                        : outcome.message}
+                  </span>
+                )}
+              </li>
+            );
+          })}
+        </ul>
+      </div>
+    );
+  };
 
   return (
     <form className="share-people surface-subtle" onSubmit={handleShare}>
       <fieldset className="share-people-list" disabled={isSharing}>
         <legend>{legend}</legend>
-        {people.length === 0 ? (
-          <p className="field-hint">
-            Give a person an email or link their account to share with them.
-          </p>
+        {rows.length === 0 ? (
+          <p className="field-hint">{t("nobody")}</p>
         ) : (
-          <ul aria-label={legend}>
-            {people.map((person) => {
-              const outcome = outcomes.get(person.id);
-              const held = currentRole(person, grants);
-              return (
-                <li key={person.id}>
-                  <label className="share-person">
-                    <input
-                      checked={selected.has(person.id)}
-                      onChange={(input) =>
-                        toggle(person.id, input.target.checked)
-                      }
-                      type="checkbox"
-                    />
-                    <span className="share-person-name">
-                      {personDisplayName(person)}
-                    </span>
-                    <span className="share-person-reach">
-                      {person.userId !== null
-                        ? "Has an account here"
-                        : person.email}
-                    </span>
-                    {held === undefined ? null : (
-                      <span className={`status-chip status-${held}`}>
-                        {held}
-                      </span>
-                    )}
-                  </label>
-                  {outcome === undefined ? null : (
-                    <span
-                      className={
-                        outcome.kind === "shared"
-                          ? "share-outcome"
-                          : "share-outcome share-outcome-failed"
-                      }
-                      role="status"
-                    >
-                      {outcome.kind === "shared"
-                        ? `Shared as ${outcome.role}`
-                        : outcome.message}
-                    </span>
-                  )}
-                </li>
-              );
-            })}
-          </ul>
+          <>
+            {group("friends")}
+            {group("others")}
+          </>
         )}
       </fieldset>
-      {people.length === 0 ? null : (
+      {rows.length === 0 ? null : (
         <div className="share-people-actions">
-          <label className="field">
-            <span id={`${id}-role`}>Access</span>
-            <select
-              aria-labelledby={`${id}-role`}
-              disabled={isSharing}
-              onChange={(input) => setRole(input.target.value as SharedRole)}
-              value={role}
-            >
-              <option value="viewer">Viewer</option>
-              <option value="owner">Owner</option>
-            </select>
-          </label>
           <button
             className="button button-primary"
             disabled={isSharing || chosen.length === 0}
             type="submit"
           >
             {isSharing
-              ? "Sharing..."
-              : `Share with ${chosen.length} ${chosen.length === 1 ? "person" : "people"}`}
+              ? t("sharing")
+              : t("shareWith", { count: chosen.length })}
           </button>
         </div>
       )}

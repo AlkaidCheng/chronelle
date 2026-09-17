@@ -7,9 +7,10 @@ import type { ReactNode } from "react";
 import { AccountSettings } from "./account-settings";
 import { AppearanceSection } from "./appearance-section";
 import { LanguageTimeSettings } from "./language-time-settings";
+import { MembersSection } from "./members-section";
 
 /** The sections of Settings, each with its own address. */
-export type SettingsSection = "account" | "language" | "appearance";
+export type SettingsSection = "account" | "language" | "appearance" | "members";
 
 export const settingsSections: readonly {
   readonly id: SettingsSection;
@@ -18,12 +19,13 @@ export const settingsSections: readonly {
   { id: "account", href: "/settings" },
   { id: "language", href: "/settings/language" },
   { id: "appearance", href: "/settings/appearance" },
+  { id: "members", href: "/settings/members" },
 ];
 
 /**
  * Settings, reached from the profile menu: a list of sections at the left
- * (Account; under Preferences, Language & time and Appearance), the open
- * section at the right. Each section has its own address, so it can be
+ * (Account; under Preferences, Language & time and Appearance; under
+ * Workspace, Members), the open section at the right. Each section has its own address, so it can be
  * bookmarked and reached again.
  */
 export function SettingsPage({
@@ -48,11 +50,13 @@ export function SettingsPage({
     account: t("account"),
     language: t("languageTime"),
     appearance: t("appearance"),
+    members: t("members"),
   };
   const bodies: Record<SettingsSection, ReactNode> = {
     account: <AccountSettings />,
     language: <LanguageTimeSettings />,
     appearance: <AppearanceSection />,
+    members: <MembersSection />,
   };
   return (
     <main className="workspace-page settings-page" tabIndex={-1}>
@@ -69,6 +73,10 @@ export function SettingsPage({
                 {entry("language", t("languageTime"))}
                 {entry("appearance", t("appearance"))}
               </ul>
+            </li>
+            <li className="settings-nav-group">
+              <span>{t("workspace")}</span>
+              <ul>{entry("members", t("members"))}</ul>
             </li>
           </ul>
         </nav>

@@ -81,6 +81,16 @@ afterEach(() => {
 
 describe("People component", () => {
   it("offers owners to share the event with everyone it involves", async () => {
+    // A person linked to the sample account's friend Mei, one with only an
+    // email, and one with neither.
+    await client.createEventResource(eventId, {
+      commandId: crypto.randomUUID(),
+      resource: {
+        objectType: "person",
+        displayName: "Mei Lin",
+        userId: "00000000-0000-4000-8000-000000000003",
+      },
+    });
     const sam = await client.createEventResource(eventId, {
       commandId: crypto.randomUUID(),
       resource: {
@@ -93,8 +103,7 @@ describe("People component", () => {
       commandId: crypto.randomUUID(),
       resource: { objectType: "person", displayName: "No account" },
     });
-    // The sandbox grants no share access and takes no shares; answer both.
-    const posted: unknown[] = [];
+    // The sandbox grants no share access by itself; answer that.
     vi.stubGlobal(
       "fetch",
       vi.fn<typeof globalThis.fetch>(async (input, options) => {
@@ -104,26 +113,6 @@ describe("People component", () => {
             resourceId: eventId,
             actions: ["view", "edit", "share"],
           });
-        if (path === "/api/shares" && options?.method === "POST") {
-          posted.push(JSON.parse(String(options.body)));
-          return Response.json(
-            {
-              id: crypto.randomUUID(),
-              workspaceId: sandboxWorkspaceId,
-              resourceId: eventId,
-              principal: {
-                id: crypto.randomUUID(),
-                displayName: "Sam Lee",
-                email: "sam@example.com",
-              },
-              role: "owner",
-              grantedBy: crypto.randomUUID(),
-              createdAt: new Date().toISOString(),
-              expiresAt: null,
-            },
-            { status: 201 },
-          );
-        }
         return store.fetch(input, options);
       }),
     );
@@ -138,22 +127,39 @@ describe("People component", () => {
         selector: "summary",
       }),
     );
-    const list = within(
-      screen.getByRole("list", { name: "Share this event with its people" }),
+    // Mei is offered under Friends and Sam under the other people, both
+    // ticked; the person with neither is not offered.
+    const friends = within(
+      await screen.findByRole("list", { name: "Friends" }),
     );
-    // Only the person with an email is offered, already ticked.
-    expect(list.getAllByRole("checkbox")).toHaveLength(1);
-    expect(list.getByRole("checkbox", { name: /Sam Lee/ })).toBeChecked();
+    const others = within(
+      screen.getByRole("list", { name: "Others in People" }),
+    );
+    expect(friends.getByRole("checkbox", { name: /Mei Lin/ })).toBeChecked();
+    expect(others.getByRole("checkbox", { name: /Sam Lee/ })).toBeChecked();
+    expect(others.queryByText("No account")).toBeNull();
     await user.selectOptions(
-      screen.getByRole("combobox", { name: "Access" }),
+      screen.getByRole("combobox", { name: "Access for Mei Lin" }),
       "owner",
     );
     await user.click(
-      screen.getByRole("button", { name: "Share with 1 person" }),
+      screen.getByRole("button", { name: "Share with 2 people" }),
     );
-    expect(await list.findByText("Shared as owner")).toBeVisible();
-    expect(posted).toEqual([
-      { personId: sam.resource.id, resourceId: eventId, role: "owner" },
+    // Mei holds the grant at once; Sam's share waits on the invitation the
+    // tick sent to his email.
+    expect(await friends.findByText("Shared as Owner")).toBeVisible();
+    expect(
+      await others.findByText("Invitation sent; access follows when they join"),
+    ).toBeVisible();
+    const shares = await client.listShares(eventId);
+    expect(shares.items).toMatchObject([
+      {
+        principal: { id: "00000000-0000-4000-8000-000000000003" },
+        role: "owner",
+      },
+    ]);
+    expect(shares.pending).toMatchObject([
+      { person: { id: sam.resource.id }, role: "viewer", kind: "invitation" },
     ]);
   });
 

@@ -14,6 +14,9 @@ import {
   type FriendsResponse,
   friendInvitationRequestSchema,
   friendsResponseSchema,
+  type PendingShare,
+  pendingShareCreateRequestSchema,
+  pendingShareSchema,
   type LabelResponse,
   labelCreateRequestSchema,
   labelDeleteQuerySchema,
@@ -32,12 +35,18 @@ import {
   relationListQuerySchema,
   relationResponseSchema,
   reminderUpdateRequestSchema,
+  type ShareResponse,
+  shareCreateRequestSchema,
+  shareResponseSchema,
   type TimelineResponse,
   taskCreateRequestSchema,
   taskDueDate,
   taskListQuerySchema,
   taskUpdateRequestSchema,
   userResponseSchema,
+  type WorkspaceMember,
+  workspaceMemberAddRequestSchema,
+  workspaceMemberSchema,
 } from "@chronelle/schemas";
 import { eventPeriod } from "../lib/event-collection";
 import { compareNames } from "../lib/format";
@@ -64,6 +73,11 @@ interface State {
   >;
   /** The sample account's friends, requests, and sent invitations, as the Friends page keeps them. */
   friends: FriendsResponse;
+  /** Grants on the sample objects, and the shares waiting on an invitation. */
+  shares: ShareResponse[];
+  pendingShares: PendingShare[];
+  /** The members of the sample workspace. */
+  members: WorkspaceMember[];
 }
 
 const friendUserId = "00000000-0000-4000-8000-000000000003";
@@ -103,6 +117,16 @@ const defaultFriends: FriendsResponse = {
       expiresAt: "2026-09-29T10:00:00.000Z",
     },
   ],
+};
+
+const defaultMember: WorkspaceMember = {
+  userId,
+  displayName: "Sample planner",
+  email: "planner@example.test",
+  role: "owner",
+  personal: true,
+  friendId: null,
+  joinedAt: "2026-09-01T09:00:00.000Z",
 };
 
 const defaultPreferences: State["preferences"] = {
@@ -334,6 +358,9 @@ function seed(): State {
     relations: children.map((child) => relation(event.id, child.id)),
     preferences: defaultPreferences,
     friends: defaultFriends,
+    shares: [],
+    pendingShares: [],
+    members: [defaultMember],
   };
 }
 
@@ -421,6 +448,15 @@ function parseState(raw: string): State {
   const friends = friendsResponseSchema.parse(
     "friends" in value ? value.friends : defaultFriends,
   );
+  const shares = shareResponseSchema
+    .array()
+    .parse("shares" in value ? value.shares : []);
+  const pendingShares = pendingShareSchema
+    .array()
+    .parse("pendingShares" in value ? value.pendingShares : []);
+  const members = workspaceMemberSchema
+    .array()
+    .parse("members" in value ? value.members : [defaultMember]);
   return {
     objects,
     relations,
@@ -428,6 +464,9 @@ function parseState(raw: string): State {
     labels,
     preferences,
     friends,
+    shares,
+    pendingShares,
+    members,
   };
 }
 
@@ -615,6 +654,244 @@ export class SandboxStore {
         },
       });
       return { id, status: "removed" };
+    }
+    throw new SandboxError(404, "sandbox_route", "Unknown sandbox route.");
+  }
+
+  /** A live person of the sample workspace by id. */
+  #personCard(personId: string) {
+    for (const object of this.#state.objects)
+      if (object.objectType === "person" && object.id === personId)
+        return object;
+    return undefined;
+  }
+
+  // Shares: a grant to a friend (by the connection), to a person with an
+  // account, or to an address that is a friend's; a share for a person
+  // without an account waits on an invitation to their email, sent when
+  // none waits, and is granted when that invitation is accepted here.
+  #shareWrite(
+    method: string,
+    id: string | undefined,
+    operation: string | undefined,
+    body: unknown,
+  ): unknown {
+    const timestamp = new Date().toISOString();
+    const unavailable = () =>
+      new SandboxError(
+        404,
+        "principal_unavailable",
+        "The requested user is unavailable.",
+      );
+    if (method === "POST" && !id) {
+      const input = shareCreateRequestSchema.parse(body);
+      const friends = this.#state.friends.friends;
+      let principal: ShareResponse["principal"] | undefined;
+      if (input.friendId !== undefined) {
+        const friend = friends.find((item) => item.id === input.friendId);
+        if (friend === undefined) throw unavailable();
+        principal = {
+          id: friend.userId,
+          displayName: friend.displayName,
+          email: friend.email,
+        };
+      } else {
+        const person =
+          input.personId === undefined
+            ? undefined
+            : this.#personCard(input.personId);
+        if (input.personId !== undefined && person === undefined)
+          throw unavailable();
+        const email = person?.email ?? input.principalEmail;
+        const friend = friends.find(
+          (item) =>
+            (person?.userId !== null && item.userId === person?.userId) ||
+            (email !== undefined && item.email === email),
+        );
+        if (friend === undefined) throw unavailable();
+        principal = {
+          id: friend.userId,
+          displayName:
+            person === undefined ? friend.displayName : person.displayName,
+          email: friend.email,
+        };
+      }
+      const grant: ShareResponse = {
+        id: crypto.randomUUID(),
+        workspaceId: sandboxWorkspaceId,
+        resourceId: input.resourceId,
+        principal,
+        role: input.role,
+        grantedBy: userId,
+        createdAt: timestamp,
+        expiresAt: null,
+      };
+      this.#commit({
+        ...this.#state,
+        shares: [
+          ...this.#state.shares.filter(
+            (item) =>
+              item.resourceId !== grant.resourceId ||
+              item.principal.id !== principal.id,
+          ),
+          grant,
+        ],
+      });
+      return grant;
+    }
+    if (method === "POST" && id === "pending" && !operation) {
+      const input = pendingShareCreateRequestSchema.parse(body);
+      const person = this.#personCard(input.personId);
+      if (person === undefined) throw unavailable();
+      if (person.userId !== null)
+        throw new SandboxError(
+          400,
+          "invalid_request",
+          "The person has an account here; share with them directly.",
+        );
+      let friends = this.#state.friends;
+      let item = friends.sent.find((sent) => sent.personId === person.id);
+      if (item === undefined) {
+        if (person.email === null)
+          throw new SandboxError(
+            400,
+            "invalid_request",
+            "Give the person an email to invite them.",
+          );
+        item = {
+          id: crypto.randomUUID(),
+          kind: "invitation",
+          email: person.email,
+          message: null,
+          personId: person.id,
+          workspaceId: sandboxWorkspaceId,
+          createdAt: timestamp,
+          expiresAt: new Date(Date.now() + 14 * 86_400_000).toISOString(),
+        };
+        friends = { ...friends, sent: [item, ...friends.sent] };
+      }
+      const standing = this.#state.pendingShares.find(
+        (share) =>
+          share.resourceId === input.resourceId && share.itemId === item.id,
+      );
+      const pending: PendingShare = {
+        id: standing?.id ?? crypto.randomUUID(),
+        workspaceId: sandboxWorkspaceId,
+        resourceId: input.resourceId,
+        role: input.role,
+        status: "pending",
+        kind: item.kind,
+        itemId: item.id,
+        person: {
+          id: person.id,
+          displayName: person.nickname ?? person.displayName,
+        },
+        email: item.email,
+        grantedBy: userId,
+        createdAt: standing?.createdAt ?? timestamp,
+      };
+      this.#commit({
+        ...this.#state,
+        friends,
+        pendingShares: [
+          ...this.#state.pendingShares.filter(
+            (share) => share.id !== pending.id,
+          ),
+          pending,
+        ],
+      });
+      return pending;
+    }
+    if (method === "DELETE" && id === "pending" && operation) {
+      if (!this.#state.pendingShares.some((share) => share.id === operation))
+        throw new SandboxError(
+          404,
+          "unavailable_resource",
+          "The requested resource is unavailable.",
+        );
+      this.#commit({
+        ...this.#state,
+        pendingShares: this.#state.pendingShares.filter(
+          (share) => share.id !== operation,
+        ),
+      });
+      return { id: operation, revokedAt: timestamp };
+    }
+    if (method === "DELETE" && id && !operation) {
+      if (!this.#state.shares.some((grant) => grant.id === id))
+        throw new SandboxError(
+          404,
+          "unavailable_resource",
+          "The requested resource is unavailable.",
+        );
+      this.#commit({
+        ...this.#state,
+        shares: this.#state.shares.filter((grant) => grant.id !== id),
+      });
+      return { id, revokedAt: timestamp };
+    }
+    throw new SandboxError(404, "sandbox_route", "Unknown sandbox route.");
+  }
+
+  // Members: the sample planner owns the workspace; a friend is added as
+  // viewer or editor (or has the role changed) and removed again.
+  #memberWrite(
+    method: string,
+    memberId: string | undefined,
+    body: unknown,
+  ): unknown {
+    if (method === "POST" && !memberId) {
+      const input = workspaceMemberAddRequestSchema.parse(body);
+      const friend = this.#state.friends.friends.find(
+        (item) => item.id === input.friendId,
+      );
+      if (friend === undefined)
+        throw new SandboxError(
+          404,
+          "friend_unavailable",
+          "The friend does not exist.",
+        );
+      const member: WorkspaceMember = {
+        userId: friend.userId,
+        displayName: friend.displayName,
+        email: friend.email,
+        role: input.role,
+        personal: false,
+        friendId: friend.id,
+        joinedAt: new Date().toISOString(),
+      };
+      this.#commit({
+        ...this.#state,
+        members: [
+          ...this.#state.members.filter(
+            (item) => item.userId !== member.userId,
+          ),
+          member,
+        ],
+      });
+      return member;
+    }
+    if (method === "DELETE" && memberId) {
+      const member = this.#state.members.find(
+        (item) => item.userId === memberId,
+      );
+      if (member === undefined)
+        throw new SandboxError(
+          404,
+          "friend_unavailable",
+          "The member does not exist.",
+        );
+      if (member.personal || member.userId === userId)
+        throw new SandboxError(
+          400,
+          "invalid_request",
+          "The member cannot be removed.",
+        );
+      this.#commit({
+        ...this.#state,
+        members: this.#state.members.filter((item) => item.userId !== memberId),
+      });
+      return { userId: memberId, removed: true };
     }
     throw new SandboxError(404, "sandbox_route", "Unknown sandbox route.");
   }
@@ -984,6 +1261,12 @@ export class SandboxStore {
         ),
       };
     if (collection === "friends" && !id) return this.#state.friends;
+    if (
+      collection === "workspaces" &&
+      id === "current" &&
+      operation === "members"
+    )
+      return { items: this.#state.members };
     if (collection === "auth" && id === "session")
       return {
         user: this.#user(),
@@ -1270,7 +1553,13 @@ export class SandboxStore {
         };
       if (operation === "documents")
         return { items: [], lockedAttachmentCount: 0 };
-      if (operation === "shares") return { items: [] };
+      if (operation === "shares")
+        return {
+          items: this.#state.shares.filter((grant) => grant.resourceId === id),
+          pending: this.#state.pendingShares.filter(
+            (share) => share.resourceId === id,
+          ),
+        };
       if (operation === "revisions")
         return { items: [], nextBeforeVersion: null };
       if (operation === "removed-relations")
@@ -1471,6 +1760,14 @@ export class SandboxStore {
       return { revoked: 1 };
     if (collection === "friends")
       return this.#friendWrite(method, id, operation, action, body);
+    if (collection === "shares")
+      return this.#shareWrite(method, id, operation, body);
+    if (
+      collection === "workspaces" &&
+      id === "current" &&
+      operation === "members"
+    )
+      return this.#memberWrite(method, action, body);
     if (
       method === "POST" &&
       collection === "objects" &&

@@ -9,6 +9,7 @@ import { MailIcon, PhoneIcon, PlusIcon } from "../../components/icons";
 import type { QuickAddSlots } from "../../components/quick-add-row";
 import { RowMenu, type RowMenuEntry } from "../../components/row-menu";
 import {
+  type PersonConnections,
   type PersonLayout,
   personAccount,
   personInitials,
@@ -33,18 +34,24 @@ export function PersonAvatar({
   );
 }
 
-/** "This is me" or "Has an account"; nothing for an unlinked person. */
+/** "This is me", "Friend", "Has an account", or "Invited"; nothing for an unlinked person. */
 export function PersonBadge({
   account,
 }: {
-  readonly account: "me" | "linked" | null;
+  readonly account: "me" | "friend" | "linked" | "invited" | null;
 }) {
   const t = useTranslations("people");
   if (account === null) return null;
+  const label =
+    account === "me"
+      ? t("me")
+      : account === "friend"
+        ? t("friend")
+        : account === "invited"
+          ? t("invited")
+          : t("hasAccount");
   return (
-    <span className={`person-badge person-badge-${account}`}>
-      {account === "me" ? t("me") : t("hasAccount")}
-    </span>
+    <span className={`person-badge person-badge-${account}`}>{label}</span>
   );
 }
 
@@ -122,6 +129,8 @@ export interface PersonRowContext {
   readonly labelNames?: ReadonlyMap<string, string> | undefined;
   /** The signed-in user's account id, to mark their own person. */
   readonly me: string | undefined;
+  /** The signed-in account's friends and invited cards, for the badges. */
+  readonly connections?: PersonConnections | undefined;
   readonly onEdit: (personId: string) => void;
 }
 
@@ -200,7 +209,9 @@ export function PersonRow({
       <PersonContacts person={person} />
       <PersonLabels labelNames={context.labelNames} person={person} />
       <span className="person-row-badge">
-        <PersonBadge account={personAccount(person, context.me)} />
+        <PersonBadge
+          account={personAccount(person, context.me, context.connections)}
+        />
       </span>
       {menu(person, context)}
     </li>
@@ -245,7 +256,9 @@ export function PersonNamecard({
         <p className="person-description">{person.description}</p>
       ) : null}
       <div className="person-card-foot">
-        <PersonBadge account={personAccount(person, context.me)} />
+        <PersonBadge
+          account={personAccount(person, context.me, context.connections)}
+        />
         <PersonLabels labelNames={context.labelNames} person={person} />
       </div>
     </li>

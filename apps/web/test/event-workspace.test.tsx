@@ -1229,6 +1229,7 @@ describe("EventWorkspace", () => {
   });
 
   it("shares an Event with several people at once and reports each outcome", async () => {
+    const friendUserId = "019d6e7d-0000-7000-8000-000000000040";
     const linkedUserId = "019d6e7d-0000-7000-8000-000000000041";
     const person = (id: string, fields: Record<string, unknown>) => ({
       ...rootEvent,
@@ -1241,7 +1242,15 @@ describe("EventWorkspace", () => {
       userId: null,
       ...fields,
     });
+    // Mei is a friend with a card; Ivo a friend without one; Mira another
+    // account here; Sam has an email; Pat was invited from their card;
+    // Nobody has neither; Me is the acting user's own card.
     const people = [
+      person("019d6e7d-0000-7000-8000-000000000050", {
+        displayName: "Mei Lin",
+        nickname: "Mei",
+        userId: friendUserId,
+      }),
       person("019d6e7d-0000-7000-8000-000000000051", {
         displayName: "Mira",
         userId: linkedUserId,
@@ -1249,6 +1258,10 @@ describe("EventWorkspace", () => {
       person("019d6e7d-0000-7000-8000-000000000052", {
         displayName: "Sam",
         email: "sam@example.com",
+      }),
+      person("019d6e7d-0000-7000-8000-000000000055", {
+        displayName: "Pat",
+        email: "pat@example.com",
       }),
       person("019d6e7d-0000-7000-8000-000000000053", {
         displayName: "Nobody",
@@ -1258,10 +1271,43 @@ describe("EventWorkspace", () => {
         userId,
       }),
     ];
+    const friends = {
+      friends: [
+        {
+          id: "019d6e7d-0000-7000-8000-000000000071",
+          userId: friendUserId,
+          displayName: "Mei Lin",
+          email: "mei@example.com",
+          since: "2026-09-02T09:00:00.000Z",
+        },
+        {
+          id: "019d6e7d-0000-7000-8000-000000000072",
+          userId: "019d6e7d-0000-7000-8000-000000000042",
+          displayName: "Ivo",
+          email: "ivo@example.com",
+          since: "2026-09-02T09:00:00.000Z",
+        },
+      ],
+      incoming: [],
+      sent: [
+        {
+          id: "019d6e7d-0000-7000-8000-000000000073",
+          kind: "invitation",
+          email: "pat@example.com",
+          message: null,
+          personId: "019d6e7d-0000-7000-8000-000000000055",
+          workspaceId,
+          createdAt: "2026-09-02T09:00:00.000Z",
+          expiresAt: "2026-09-16T09:00:00.000Z",
+        },
+      ],
+    };
     const shares: unknown[] = [];
+    const pending: unknown[] = [];
     const fetch = vi.fn<typeof globalThis.fetch>(async (input, init) => {
       const path = requestPath(input);
       if (path === "/api/persons") return jsonResponse({ items: people });
+      if (path === "/api/friends") return jsonResponse(friends);
       if (path === "/api/auth/session")
         return jsonResponse({
           principal: { type: "user", userId, workspaceId },
@@ -1288,10 +1334,33 @@ describe("EventWorkspace", () => {
       if (path.startsWith(`/api/events/${eventId}/`))
         return jsonResponse({ sourceEventId: eventId, items: [] });
       if (path === `/api/objects/${eventId}/shares`)
-        return jsonResponse({ items: shares });
-      if (path === "/api/shares" && init?.method === "POST") {
+        return jsonResponse({ items: shares, pending });
+      if (path === "/api/shares/pending" && init?.method === "POST") {
         const body = JSON.parse(String(init.body)) as {
           personId: string;
+          role: string;
+        };
+        const card = people.find((item) => item.id === body.personId);
+        const queued = {
+          id: `019d6e7d-0000-7000-8000-00000000008${pending.length}`,
+          workspaceId,
+          resourceId: eventId,
+          role: body.role,
+          status: "pending",
+          kind: "invitation",
+          itemId: "019d6e7d-0000-7000-8000-000000000073",
+          person: { id: body.personId, displayName: card?.displayName ?? "" },
+          email: card?.email ?? null,
+          grantedBy: userId,
+          createdAt: "2026-09-02T20:05:00.000Z",
+        };
+        pending.push(queued);
+        return jsonResponse(queued, 201);
+      }
+      if (path === "/api/shares" && init?.method === "POST") {
+        const body = JSON.parse(String(init.body)) as {
+          personId?: string;
+          friendId?: string;
           role: string;
         };
         if (body.personId === people[1]?.id)
@@ -1309,7 +1378,11 @@ describe("EventWorkspace", () => {
           id: `019d6e7d-0000-7000-8000-00000000006${shares.length}`,
           workspaceId,
           resourceId: eventId,
-          principal: { id: linkedUserId, displayName: "Mira", email: null },
+          principal: {
+            id: body.friendId === undefined ? linkedUserId : friendUserId,
+            displayName: body.friendId === undefined ? "Mira" : "Mei Lin",
+            email: null,
+          },
           role: body.role,
           grantedBy: userId,
           createdAt: "2026-09-02T20:05:00.000Z",
@@ -1331,48 +1404,95 @@ describe("EventWorkspace", () => {
       </Providers>,
     );
     await user.click(await screen.findByRole("tab", { name: "Sharing" }));
-    const list = within(
-      await screen.findByRole("list", { name: "Share with people" }),
+    const friendList = within(
+      await screen.findByRole("list", { name: "Friends" }),
     );
-    // Linked people and people with an email are offered; the acting
-    // user's own person and a person with neither are not.
-    expect(list.getAllByRole("checkbox")).toHaveLength(2);
-    expect(list.getByText("Has an account here")).toBeVisible();
-    expect(list.getByText("sam@example.com")).toBeVisible();
-    expect(list.queryByText("Nobody")).toBeNull();
-    expect(list.queryByText("Me")).toBeNull();
+    const others = within(
+      screen.getByRole("list", { name: "Others in People" }),
+    );
+    // Friends come first, by their card's name when they have one; the
+    // other people with an account, an invitation, or an email follow. The
+    // acting user's own card and a person with neither are not offered.
+    expect(
+      friendList
+        .getAllByRole("checkbox")
+        .map((box) => box.getAttribute("name")),
+    ).toHaveLength(2);
+    expect(friendList.getByRole("checkbox", { name: /^Mei / })).toBeVisible();
+    expect(friendList.getByRole("checkbox", { name: /Ivo/ })).toBeVisible();
+    expect(others.getAllByRole("checkbox")).toHaveLength(3);
+    expect(others.getByText("Has an account")).toBeVisible();
+    expect(
+      others.getByText("Invited; access follows when they join"),
+    ).toBeVisible();
+    expect(others.getByText(/sam@example\.com; an invitation/)).toBeVisible();
+    expect(others.queryByText("Nobody")).toBeNull();
+    expect(others.queryByText("Me")).toBeNull();
     const shareButton = screen.getByRole("button", { name: /^Share with/ });
     expect(shareButton).toBeDisabled();
-    await user.click(list.getByRole("checkbox", { name: /Mira/ }));
-    await user.click(list.getByRole("checkbox", { name: /Sam/ }));
-    expect(shareButton).toHaveTextContent("Share with 2 people");
+    await user.click(friendList.getByRole("checkbox", { name: /^Mei / }));
+    await user.click(others.getByRole("checkbox", { name: /Mira/ }));
+    await user.click(others.getByRole("checkbox", { name: /Sam/ }));
+    await user.click(others.getByRole("checkbox", { name: /Pat/ }));
+    expect(shareButton).toHaveTextContent("Share with 4 people");
     await user.click(shareButton);
-    expect(await list.findByText("Shared as viewer")).toBeVisible();
+    // Each row reports its own outcome; the refused person stays ticked
+    // for another try and the others clear.
+    expect(await friendList.findByText("Shared as Viewer")).toBeVisible();
     expect(
-      await list.findByText("The requested user is unavailable."),
+      await others.findByText("The requested user is unavailable."),
     ).toBeVisible();
-    // The refused person stays ticked for another try; the shared one clears.
-    expect(list.getByRole("checkbox", { name: /Sam/ })).toBeChecked();
-    expect(list.getByRole("checkbox", { name: /Mira/ })).not.toBeChecked();
+    expect(
+      await others.findByText("Invitation sent; access follows when they join"),
+    ).toBeVisible();
+    expect(await others.findByText("Waiting for them to join")).toBeVisible();
+    expect(others.getByRole("checkbox", { name: /Mira/ })).toBeChecked();
+    expect(
+      friendList.getByRole("checkbox", { name: /^Mei / }),
+    ).not.toBeChecked();
     const bodies = fetch.mock.calls
       .filter(
-        ([url, request]) => url === "/api/shares" && request?.method === "POST",
+        ([url, request]) =>
+          (url === "/api/shares" || url === "/api/shares/pending") &&
+          request?.method === "POST",
       )
-      .map(([, request]) => JSON.parse(String(request?.body)));
+      .map(([url, request]) => [url, JSON.parse(String(request?.body))]);
     expect(bodies).toEqual([
-      { personId: people[0]?.id, resourceId: eventId, role: "viewer" },
-      { personId: people[1]?.id, resourceId: eventId, role: "viewer" },
+      [
+        "/api/shares",
+        {
+          friendId: "019d6e7d-0000-7000-8000-000000000071",
+          resourceId: eventId,
+          role: "viewer",
+        },
+      ],
+      [
+        "/api/shares",
+        { personId: people[1]?.id, resourceId: eventId, role: "viewer" },
+      ],
+      [
+        "/api/shares/pending",
+        { personId: people[2]?.id, resourceId: eventId, role: "viewer" },
+      ],
+      [
+        "/api/shares/pending",
+        { personId: people[3]?.id, resourceId: eventId, role: "viewer" },
+      ],
     ]);
-    // The collaborator list shows the new grant, and Mira's row its role.
+    // People with access lists the grant and the waiting shares; Mei's
+    // row shows the role she now holds.
     expect(
-      await screen.findByText("Mira", { selector: "strong" }),
+      await screen.findByText("Mei Lin", { selector: "strong" }),
     ).toBeVisible();
     expect(
+      screen.getAllByText(/example\.com \S Access follows when they join/),
+    ).toHaveLength(2);
+    expect(
       within(
-        list
-          .getByRole("checkbox", { name: /Mira/ })
+        friendList
+          .getByRole("checkbox", { name: /^Mei / })
           .closest("li") as HTMLElement,
-      ).getByText("viewer"),
+      ).getByText("Viewer", { selector: ".status-chip" }),
     ).toBeVisible();
   });
 });

@@ -108,16 +108,18 @@ description, an optional link to a member's account, and custom fields for
 anything else worth keeping (a birthday, a dietary note). The People page in
 the rail is a collection like Tasks: one heading row with an inline name
 search (asked of the server after a typing pause), Filter (Account: everyone,
-those with an account, those without; then any label), Sort (by name, the
+friends, invited, those with an account, those without; then any label),
+Sort (by name, the
 default, or by the latest change), Layout (List or Namecards, a device
 preference kept in browser storage), Refresh, and the filled plus for New
 person, which opens the person editor. The list shows one row per person:
 initials (the first character of a name written in Han, kana, or Hangul), the
 nickname over the full name (or the name alone) as the link to the person's
 page, the contacts (an email as a mail link, a phone as a call link), the
-labels, "This is me" for the person linked to the signed-in account or "Has
-an account" for another member's, and the row menu (Edit, History, Move to
-Trash). Namecards show the same people as cards with the contacts under
+labels, a badge for the account behind the person ("This is me" for the
+signed-in account's own, "Friend" for a friend's, "Has an account" for
+another account here, "Invited" while a request or invitation sent from the
+card waits), and the row menu (Edit, History, Move to Trash). Namecards show the same people as cards with the contacts under
 their icons, the description, and the badge and labels at the foot; the menu
 shows on hover or focus. A press on a row or card opens the person's page.
 Both layouts end with Add a person, a quick add row like the task lists':
@@ -148,18 +150,25 @@ the event, by name, or takes a new person's name and creates them inside the
 event. A card's Actions offer Remove context link, which takes the person out
 of the event and leaves them in the workspace, as well as Move to Trash.
 
-The Sharing tab of an event, offered to its owners, grants access by email
-(Collaborator email, Viewer or Owner) or to people: Share with people lists
-the workspace's people who can be reached, those with an account here (other
-than the user's own person) and those with an email, with the role each
-already holds on the event; tick any number, choose Viewer or Owner, and
-Share with N people shares with each in turn, reporting "Shared as viewer"
-or the refusal (an email that matches no account, for one) beside each name
-and leaving a refused person ticked for another try. A person's account is
-their linked one, else the account with their email. The People component
-offers owners Share with everyone here, the same control with the event's
-reachable people ticked. People with access lists the accounts that hold a
-grant, with Revoke.
+The Sharing tab of an event, offered to its owners, shares it in three
+groups. Friends lists the account's friends (by their card's name when the
+workspace has one), each with a role beside the name and the role they
+already hold; Others in People lists the workspace's other people who can be
+reached: one with an account here, one already invited from their card, or
+one with an email and no account, whose row says an invitation goes out;
+By email takes a Collaborator email. Tick any number, choose Viewer or Owner
+beside each, and Share with N people applies every row in turn: a friend or
+an account is granted at once ("Shared as Viewer"), a person with an email
+is invited and the share waits ("Invitation sent; access follows when they
+join"), an invited person's share waits on the invitation already sent
+("Waiting for them to join"), and a refusal stays beside the name with the
+row ticked for another try. A waiting share is granted the moment the
+request is accepted and lapses when it is declined or withdrawn. The People
+component offers owners Share with everyone here, the same control with the
+event's own people ticked. People with access lists the accounts that hold a
+grant and the shares still waiting ("Access follows when they join"), each
+with Remove. A whole workspace is shared by making a friend a member (see
+Settings).
 
 A task may be assigned to one person as the one responsible for it. The task
 editor holds the choice behind an Assignee disclosure that names the current
@@ -345,7 +354,13 @@ which ends every session of the account, this one included, and returns to
 sign-in. Under Preferences, Language & time holds the language, the time
 zone, the time format, and the first day of the week, all kept on the
 account and applied at once; Appearance repeats the Theme panel's mode,
-palette, density, and motion choices, which stay on the browser.
+palette, density, and motion choices, which stay on the browser. Under
+Workspace, Members lists the current workspace's members with their roles
+(the personal owner first, marked Personal workspace, and Friend beside a
+member who is one); an Owner adds a friend as Viewer or Editor from the
+friends list (adding a member again changes their role) and removes any
+member but the personal owner and themselves. A member sees the workspace
+under Workspaces in the profile menu and reaches everything in it by role.
 
 The time zone is Device (named, with its offset) or any zone the browser
 knows, grouped by region with its current offset; a search field narrows the

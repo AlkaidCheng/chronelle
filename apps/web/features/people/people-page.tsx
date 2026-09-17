@@ -26,6 +26,7 @@ import {
   usePersonsQuery,
   useSessionQuery,
 } from "../../lib/queries";
+import { usePersonConnections } from "../../lib/use-person-connections";
 import {
   PersonFilterControl,
   PersonLayoutControl,
@@ -75,9 +76,10 @@ export function PeoplePage() {
   const me = session.data?.user.id;
   const changingQuery = isComposing || query.trim() !== debouncedQuery;
   const loaded = changingQuery ? [] : (people.data?.items ?? []);
+  const connections = usePersonConnections();
   const items = useMemo(
-    () => sortPersons(filterPersons(loaded, filters), sort),
-    [loaded, filters, sort],
+    () => sortPersons(filterPersons(loaded, filters, connections), sort),
+    [loaded, filters, sort, connections],
   );
   const filtered =
     debouncedQuery !== "" || activePersonFilterCount(filters) > 0;
@@ -93,6 +95,7 @@ export function PeoplePage() {
 
   const context = {
     canEdit: true,
+    connections,
     labelNames: labels.data?.names,
     me,
     onEdit: setEditingId,

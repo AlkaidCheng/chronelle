@@ -57,10 +57,29 @@ describe("personInitials", () => {
 
 describe("personAccount", () => {
   it("tells the signed-in user's person from other linked people", () => {
-    expect(personAccount({ userId: "me" }, "me")).toBe("me");
-    expect(personAccount({ userId: "other" }, "me")).toBe("linked");
-    expect(personAccount({ userId: null }, "me")).toBeNull();
-    expect(personAccount({ userId: "me" }, undefined)).toBe("linked");
+    expect(personAccount({ id: "p", userId: "me" }, "me")).toBe("me");
+    expect(personAccount({ id: "p", userId: "other" }, "me")).toBe("linked");
+    expect(personAccount({ id: "p", userId: null }, "me")).toBeNull();
+    expect(personAccount({ id: "p", userId: "me" }, undefined)).toBe("linked");
+  });
+
+  it("knows a friend's account and a card that was invited", () => {
+    const connections = {
+      friends: new Set(["friend"]),
+      invited: new Set(["card"]),
+    };
+    expect(
+      personAccount({ id: "p", userId: "friend" }, "me", connections),
+    ).toBe("friend");
+    expect(personAccount({ id: "card", userId: null }, "me", connections)).toBe(
+      "invited",
+    );
+    expect(personAccount({ id: "p", userId: "other" }, "me", connections)).toBe(
+      "linked",
+    );
+    expect(
+      personAccount({ id: "friend", userId: "friend" }, "friend", connections),
+    ).toBe("me");
   });
 });
 
@@ -84,6 +103,24 @@ describe("filterPersons", () => {
     const both = { account: "linked", label: "family" } as const;
     expect(filterPersons(people, both).map((p) => p.id)).toEqual(["b"]);
     expect(activePersonFilterCount(both)).toBe(2);
+  });
+
+  it("narrows to friends and to invited cards from what the account knows", () => {
+    const connections = {
+      friends: new Set(["other"]),
+      invited: new Set(["a"]),
+    };
+    const friends = { account: "friend", label: "" } as const;
+    expect(
+      filterPersons(people, friends, connections).map((p) => p.id),
+    ).toEqual(["c"]);
+    const invited = { account: "invited", label: "" } as const;
+    expect(
+      filterPersons(people, invited, connections).map((p) => p.id),
+    ).toEqual(["a"]);
+    // Without what the account knows, neither narrowing matches anyone.
+    expect(filterPersons(people, friends)).toEqual([]);
+    expect(filterPersons(people, invited)).toEqual([]);
   });
 });
 

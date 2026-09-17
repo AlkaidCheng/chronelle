@@ -1,10 +1,12 @@
 "use client";
 
 import type { PersonResponse } from "@chronelle/schemas";
-import { useId, useRef, useState } from "react";
+import { useId, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
 import { EmptyState, ErrorNotice } from "../../components/feedback";
+import { useFriendsQuery } from "../../lib/friend-queries";
+import { usePersonConnections } from "../../lib/use-person-connections";
 import { personDisplayName } from "../../lib/person-fields";
 import { PersonInspector } from "../people/person-inspector";
 import { PersonListing } from "../people/person-row";
@@ -19,7 +21,7 @@ import {
 } from "../../lib/queries";
 import { useSessionDialog } from "../../lib/use-session-dialog";
 import { PanelHeading } from "./component-frame";
-import { ShareWithPeople, shareablePeople } from "./share-with-people";
+import { ShareWithPeople, shareRows } from "./share-with-people";
 
 /**
  * The people an Event involves, as namecards. Add person includes someone
@@ -43,7 +45,22 @@ export function PeoplePanel({
   const access = useEventAccessQuery(eventId);
   const canShare = access.data?.actions.includes("share") ?? false;
   const shares = useSharesQuery(eventId, canShare);
-  const shareable = shareablePeople(persons, me);
+  const friends = useFriendsQuery();
+  const connections = usePersonConnections();
+  const rows = useMemo(
+    () =>
+      shareRows({
+        friends: friends.data?.friends ?? [],
+        grants: shares.data?.items ?? [],
+        me,
+        pending: shares.data?.pending ?? [],
+        people: persons,
+        sent: friends.data?.sent ?? [],
+        workspaceId: session.data?.workspace.id,
+        scope: "people",
+      }),
+    [friends.data, me, persons, session.data, shares.data],
+  );
   return (
     <section className="planning-panel">
       <PanelHeading
@@ -68,21 +85,27 @@ export function PeoplePanel({
         <EmptyState title="No people yet" />
       ) : (
         <PersonListing
-          context={{ canEdit, eventId, labelNames, me, onEdit: setEditingId }}
+          context={{
+            canEdit,
+            connections,
+            eventId,
+            labelNames,
+            me,
+            onEdit: setEditingId,
+          }}
           items={persons}
           label="People"
           layout="cards"
         />
       )}
-      {canShare && shareable.length > 0 ? (
+      {canShare && rows.length > 0 ? (
         <details className="share-people-disclosure">
           <summary>Share with everyone here</summary>
           <ShareWithPeople
             eventId={eventId}
-            grants={shares.data?.items ?? []}
-            initialSelected={shareable.map((person) => person.id)}
+            initialSelected={rows.map((row) => row.key)}
             legend="Share this event with its people"
-            people={shareable}
+            rows={rows}
           />
         </details>
       ) : null}

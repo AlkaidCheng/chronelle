@@ -23,10 +23,12 @@ import type {
   ObjectSearchQueryInput,
   ObjectSearchResponse,
   PermissionScopeUpdatePayload,
+  PendingShareCreateRequest,
   PreferencesRequest,
   ReminderUpdatePayload,
   SessionResponse,
   ShareCreatePayload,
+  WorkspaceMemberAddRequest,
   TaskResponse,
   TaskUpdatePayload,
   UserResponse,
@@ -76,6 +78,7 @@ export const queryKeys = {
     ["object", parentObjectId, "documents"] as const,
   session: ["session"] as const,
   friends: ["friends"] as const,
+  members: ["members"] as const,
 };
 
 export function useDevelopmentSignIn() {
@@ -708,6 +711,78 @@ export function useRevokeShare() {
       ]);
     },
   });
+}
+
+/** Queues a share for a person without an account here; the invitation goes out when none waits. */
+export function useQueuePendingShare(eventId: string) {
+  const client = useApiClient();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (input: Omit<PendingShareCreateRequest, "resourceId">) =>
+      client.queuePendingShare({ ...input, resourceId: eventId }),
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: queryKeys.shares(eventId) }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.friends }),
+      ]);
+    },
+  });
+}
+
+export function useRevokePendingShare(eventId: string) {
+  const client = useApiClient();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (pendingId: string) => client.revokePendingShare(pendingId),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({
+        queryKey: queryKeys.shares(eventId),
+      });
+    },
+  });
+}
+
+/** The members of the current workspace, for any member. */
+export function useWorkspaceMembersQuery(enabled = true) {
+  const client = useApiClient();
+  const { credential } = useAuthSession();
+  return useQuery({
+    enabled: enabled && credential !== null,
+    queryFn: ({ signal }) => client.withSignal(signal).listWorkspaceMembers(),
+    queryKey: queryKeys.members,
+  });
+}
+
+function useMembersMutation<Input, Output>(
+  run: (
+    client: ReturnType<typeof useApiClient>,
+    input: Input,
+  ) => Promise<Output>,
+) {
+  const client = useApiClient();
+  const queryClient = useQueryClient();
+  const invalidate = useCanonicalInvalidation();
+  return useMutation({
+    mutationFn: (input: Input) => run(client, input),
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: queryKeys.members }),
+        invalidate(),
+      ]);
+    },
+  });
+}
+
+export function useAddWorkspaceMember() {
+  return useMembersMutation((client, input: WorkspaceMemberAddRequest) =>
+    client.addWorkspaceMember(input),
+  );
+}
+
+export function useRemoveWorkspaceMember() {
+  return useMembersMutation((client, userId: string) =>
+    client.removeWorkspaceMember(userId),
+  );
 }
 
 export function useUpdatePermissionScope() {
