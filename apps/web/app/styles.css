@@ -4704,6 +4704,19 @@ html:has(.event-create-dialog[open]) {
   outline-offset: -3px;
 }
 
+.locale-choices {
+  grid-auto-flow: row;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.locale-choices label:nth-child(-n + 2) {
+  border-bottom: 1px solid var(--line);
+}
+
+.locale-choices label:nth-child(odd) {
+  border-right: 1px solid var(--line);
+}
+
 .theme-reset {
   background: none;
   border: 0;
@@ -5121,4 +5134,31 @@ html:has(.event-create-dialog[open]) {
   .event-strip-gap {
     display: none;
   }
+}
+
+/*
+ * CJK text: a taller line for body copy, and the uppercase labels keep their
+ * size but lose the wide Latin tracking (text-transform is a no-op for CJK).
+ */
+:root:lang(zh-Hans) body,
+:root:lang(zh-Hant) body {
+  line-height: 1.6;
+}
+
+:root:is(:lang(zh-Hans), :lang(zh-Hant))
+  :is(
+    .eyebrow,
+    .object-label,
+    .sign-in-footnote,
+    .head-menu-label,
+    .data-table th,
+    .status-chip,
+    .money-totals dt,
+    .month-list-chooser-group legend,
+    .quiet-menu-heading,
+    .person-fields-list dt,
+    .theme-group > span,
+    .theme-group legend
+  ) {
+  letter-spacing: 0.02em;
 }
