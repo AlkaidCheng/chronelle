@@ -24,6 +24,13 @@ export function nullableInstant(value: unknown, field: string): Date | null {
   return value === null || value === undefined ? null : instant(value, field);
 }
 
+function nullableInteger(value: unknown, field: string): number | null {
+  if (value === null || value === undefined) return null;
+  if (typeof value === "number" && Number.isInteger(value)) return value;
+  if (typeof value === "string" && /^-?\d+$/.test(value)) return Number(value);
+  throw new Error(`CloudBase returned an invalid ${field}.`);
+}
+
 export function record(value: unknown, label: string): CloudBaseRow {
   if (value === null || typeof value !== "object" || Array.isArray(value))
     throw new Error(`CloudBase returned an invalid ${label}.`);
@@ -38,6 +45,9 @@ export function userRow(row: CloudBaseRow): UserRow {
     email: nullableText(row.email, "email"),
     displayName: text(row.display_name, "display name"),
     locale: nullableText(row.locale, "locale"),
+    timeZone: nullableText(row.time_zone, "time zone"),
+    hourCycle: nullableText(row.hour_cycle, "hour cycle"),
+    weekStart: nullableInteger(row.week_start, "week start"),
     createdAt: instant(row.created_at, "created_at"),
     updatedAt: instant(row.updated_at, "updated_at"),
   };

@@ -80,10 +80,18 @@ async function signIn() {
   return developmentSignInResponseSchema.parse(response.json());
 }
 
-describe("the language kept on the account", () => {
-  it("is null until chosen, then round-trips through PATCH /api/auth/me and the session", async () => {
+describe("the preferences kept on the account", () => {
+  it("are null until chosen, then round-trip through PATCH /api/auth/me and the session", async () => {
     const signedIn = await signIn();
-    expect(signedIn.user.locale).toBeNull();
+    expect(signedIn.user).toEqual({
+      id: signedIn.user.id,
+      displayName: "Owner",
+      email: "owner@example.test",
+      locale: null,
+      timeZone: null,
+      hourCycle: null,
+      weekStart: null,
+    });
 
     const chosen = await app.inject({
       method: "PATCH",
@@ -97,6 +105,9 @@ describe("the language kept on the account", () => {
       displayName: "Owner",
       email: "owner@example.test",
       locale: "zh-Hant",
+      timeZone: null,
+      hourCycle: null,
+      weekStart: null,
     });
 
     const session = await app.inject({
@@ -120,20 +131,105 @@ describe("the language kept on the account", () => {
     expect(userResponseSchema.parse(cleared.json()).locale).toBeNull();
   });
 
-  it("refuses a value that is not a language tag, and an unauthenticated change", async () => {
+  it("merges the time zone, clock, and week start one key at a time and reads them on the next session", async () => {
     const signedIn = await signIn();
-    for (const locale of ["", "Chinese", "zh_Hans", "z", "en-", 42]) {
+    const patch = (payload: Record<string, unknown>) =>
+      app.inject({
+        method: "PATCH",
+        url: "/api/auth/me",
+        headers: bearer(signedIn.accessToken),
+        payload,
+      });
+
+    const zoned = await patch({ timeZone: "Asia/Shanghai" });
+    expect(zoned.statusCode).toBe(200);
+    expect(userResponseSchema.parse(zoned.json())).toMatchObject({
+      timeZone: "Asia/Shanghai",
+      hourCycle: null,
+      weekStart: null,
+    });
+
+    const clocked = await patch({ hourCycle: "h23", weekStart: 1 });
+    expect(clocked.statusCode).toBe(200);
+    expect(userResponseSchema.parse(clocked.json())).toMatchObject({
+      timeZone: "Asia/Shanghai",
+      hourCycle: "h23",
+      weekStart: 1,
+    });
+
+    // An empty object changes nothing; a null clears one key and keeps the rest.
+    const untouched = await patch({});
+    expect(userResponseSchema.parse(untouched.json())).toMatchObject({
+      timeZone: "Asia/Shanghai",
+      hourCycle: "h23",
+      weekStart: 1,
+    });
+    const cleared = await patch({ hourCycle: null, weekStart: 7 });
+    expect(userResponseSchema.parse(cleared.json())).toMatchObject({
+      timeZone: "Asia/Shanghai",
+      hourCycle: null,
+      weekStart: 7,
+    });
+
+    const session = await app.inject({
+      method: "GET",
+      url: "/api/auth/session",
+      headers: bearer(signedIn.accessToken),
+    });
+    expect(sessionResponseSchema.parse(session.json()).user).toMatchObject({
+      timeZone: "Asia/Shanghai",
+      hourCycle: null,
+      weekStart: 7,
+    });
+    expect((await signIn()).user).toMatchObject({
+      timeZone: "Asia/Shanghai",
+      hourCycle: null,
+      weekStart: 7,
+    });
+  });
+
+  it("refuses a value that is not a language tag, a zone, a clock, or a week start, and an unauthenticated change", async () => {
+    const signedIn = await signIn();
+    const refusals: (Record<string, unknown> | unknown[])[] = [
+      ...["", "Chinese", "zh_Hans", "z", "en-", 42].map((locale) => ({
+        locale,
+      })),
+      ...[
+        "",
+        "Mars/Olympus_Mons",
+        "Asia Shanghai",
+        "asia/shanghai;drop",
+        "+08:00",
+        8,
+      ].map((timeZone) => ({ timeZone })),
+      ...["", "h11", "h24", "12", 12].map((hourCycle) => ({ hourCycle })),
+      ...[0, 2, 6, 8, "1", "monday"].map((weekStart) => ({ weekStart })),
+      [],
+    ];
+    for (const payload of refusals) {
       const refused = await app.inject({
         method: "PATCH",
         url: "/api/auth/me",
         headers: bearer(signedIn.accessToken),
-        payload: { locale },
+        payload,
       });
-      expect(refused.statusCode).toBe(400);
+      expect(refused.statusCode, JSON.stringify(payload)).toBe(400);
       expect(apiErrorResponseSchema.parse(refused.json()).error.code).toBe(
         "invalid_request",
       );
     }
+    // A refused key leaves the account as it was.
+    const session = await app.inject({
+      method: "GET",
+      url: "/api/auth/session",
+      headers: bearer(signedIn.accessToken),
+    });
+    expect(sessionResponseSchema.parse(session.json()).user).toMatchObject({
+      locale: null,
+      timeZone: null,
+      hourCycle: null,
+      weekStart: null,
+    });
     const anonymous = await app.inject({
       method: "PATCH",
       url: "/api/auth/me",
