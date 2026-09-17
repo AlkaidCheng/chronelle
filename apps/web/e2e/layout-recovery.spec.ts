@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { expect, test } from "./fixtures";
+import { choosePageOption, pageOptions } from "./helpers/quiet-chrome";
 
 test("recovers event layouts without altering canonical planning data", async ({
   page,
@@ -57,11 +58,8 @@ test("recovers event layouts without altering canonical planning data", async ({
   await page.getByRole("button", { name: "Continue", exact: true }).click();
   await expect(page).toHaveURL(/\/events$/);
   await page.goto(`/events/${event.id}`);
-  const options = page.getByRole("button", {
-    name: "Page options",
-    exact: true,
-  });
-  await options.click();
+  const options = pageOptions(page);
+  await choosePageOption(page, "Page options");
   const dialog = page.getByRole("dialog", { name: "Manage event pages" });
   await dialog
     .getByRole("button", { name: "Remove To-dos from Preparation" })
@@ -118,7 +116,7 @@ test("recovers event layouts without altering canonical planning data", async ({
     ).json(),
   ).toEqual(before);
   await page.reload();
-  await options.click();
+  await choosePageOption(page, "Page options");
   await expect(undo).toBeDisabled();
   await dialog
     .getByRole("button", { name: "Layout history", exact: true })

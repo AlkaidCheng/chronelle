@@ -1,13 +1,6 @@
 import { expect, type Page, type TestInfo } from "@playwright/test";
 import { expectHorizontalReflow } from "./page-navigation";
-
-export async function openWorkspaceSettings(page: Page) {
-  const dialog = page.getByRole("dialog", { name: "Workspace settings" });
-  if (!(await dialog.isVisible()))
-    await page.getByRole("button", { name: "More", exact: true }).click();
-  await expect(dialog).toBeVisible();
-  return dialog;
-}
+import { openAccountMenu, openThemePanel } from "./quiet-chrome";
 
 export async function exerciseWorkspaceUtilities(
   page: Page,
@@ -16,52 +9,53 @@ export async function exerciseWorkspaceUtilities(
   const navigation = page.getByRole("navigation", {
     name: "Workspace navigation",
   });
-  for (const name of ["Events", "Tasks", "People", "Search", "Trash"])
+  for (const name of ["Events", "Tasks", "People", "Trash"])
     await expect(
       navigation.getByRole("link", { name, exact: true }),
     ).toBeVisible();
-  const trigger = navigation.getByRole("button", { name: "More", exact: true });
-  await expect(trigger).toHaveCount(1);
-  await trigger.focus();
+  await expect(
+    navigation.getByRole("button", {
+      name: "Search and commands",
+      exact: true,
+    }),
+  ).toBeVisible();
+  const account = page.locator(".account-trigger");
+  await expect(account).toHaveCount(1);
+  await account.focus();
   await page.keyboard.press("Enter");
-  const dialog = page.getByRole("dialog", { name: "Workspace settings" });
-  await expect(dialog).toBeVisible();
+  const menu = page.getByRole("menu", { name: "Account", exact: true });
+  await expect(menu).toBeVisible();
   await page.screenshot({
-    path: testInfo.outputPath("workspace-settings.png"),
+    path: testInfo.outputPath("account-menu.png"),
   });
+  await expect(menu.getByRole("menuitemradio").first()).toBeFocused();
   await expect(
-    dialog.getByRole("button", { name: "Close workspace settings" }),
-  ).toBeFocused();
-  await page.keyboard.press("Tab");
+    menu.getByRole("menuitem", { name: "Change password", exact: true }),
+  ).toBeVisible();
   await expect(
-    dialog.getByRole("combobox", { name: "Workspace", exact: true }),
-  ).toBeFocused();
-  for (let index = 0; index < 10; index += 1) {
-    await page.keyboard.press("Tab");
-    expect(
-      await dialog.evaluate(
-        (element) =>
-          document.activeElement === document.body ||
-          element.contains(document.activeElement),
-      ),
-    ).toBe(true);
-  }
-  await dialog.getByRole("button", { name: "Customize appearance" }).click();
-  const appearance = page.getByRole("dialog", {
-    name: "Appearance",
-    exact: true,
-  });
-  await expect(appearance).toBeVisible();
-  await page.keyboard.press("Escape");
-  await expect(appearance).toHaveCount(0);
+    menu.getByRole("menuitem", { name: "Sign out", exact: true }),
+  ).toBeVisible();
+  await page.keyboard.press("End");
   await expect(
-    dialog.getByRole("button", { name: "Customize appearance" }),
+    menu.getByRole("menuitem", { name: "Sign out", exact: true }),
   ).toBeFocused();
   await page.keyboard.press("Escape");
-  await expect(dialog).toHaveCount(0);
-  await expect(trigger).toBeFocused();
+  await expect(menu).toHaveCount(0);
+  await expect(account).toBeFocused();
 
-  await page.getByRole("button", { name: "Browse event data" }).click();
+  const theme = await openThemePanel(page);
+  await expect(
+    theme.getByRole("group", { name: "Appearance" }).getByRole("radio", {
+      name: "System",
+      exact: true,
+    }),
+  ).toBeFocused();
+  await page.keyboard.press("Escape");
+  await expect(theme).toHaveCount(0);
+  await expect(
+    page.getByRole("button", { name: "Theme", exact: true }),
+  ).toBeFocused();
+
   await page.getByRole("tab", { name: "To-dos", exact: true }).click();
   await page.getByRole("button", { name: /^Filter/ }).click();
   await page.getByRole("menuitemradio", { name: "All", exact: true }).click();
@@ -71,41 +65,45 @@ export async function exerciseWorkspaceUtilities(
     exact: true,
   });
   const eventUrl = page.url();
-  await openWorkspaceSettings(page);
+  await openAccountMenu(page);
   await page.mouse.click(2, 2);
-  await expect(dialog).toHaveCount(0);
-  await expect(trigger).toBeFocused();
+  await expect(menu).toHaveCount(0);
   await expect(filter).toHaveClass(/is-active/);
   expect(page.url()).toBe(eventUrl);
 
   await page.setViewportSize({ width: 320, height: 568 });
-  await openWorkspaceSettings(page);
+  await openAccountMenu(page);
   await expectHorizontalReflow(page);
   await expect(
-    dialog.getByRole("combobox", { name: "Workspace", exact: true }),
-  ).toBeInViewport();
-  await expect(
-    dialog.getByRole("button", { name: "Sign out", exact: true }),
+    menu.getByRole("menuitem", { name: "Sign out", exact: true }),
   ).toBeInViewport();
   await page.screenshot({
-    path: testInfo.outputPath("workspace-settings-narrow.png"),
+    path: testInfo.outputPath("account-menu-narrow.png"),
   });
-  await dialog.getByRole("radio", { name: "Dark", exact: true }).check();
+  await page.keyboard.press("Escape");
+  await openThemePanel(page);
+  await theme
+    .getByRole("group", { name: "Appearance" })
+    .getByRole("radio", { name: "Dark", exact: true })
+    .check();
   await expect(page.locator("html")).toHaveCSS("color-scheme", "dark");
+  await expectHorizontalReflow(page);
   await page.screenshot({
-    path: testInfo.outputPath("workspace-settings-dark.png"),
+    path: testInfo.outputPath("theme-panel-dark.png"),
   });
   await page.setViewportSize({ width: 568, height: 320 });
+  await theme
+    .getByRole("button", { name: "Reset display settings" })
+    .scrollIntoViewIfNeeded();
   await expect(
-    dialog.getByRole("button", { name: "Close workspace settings" }),
-  ).toBeInViewport();
-  await expect(
-    dialog.getByRole("button", { name: "Sign out", exact: true }),
+    theme.getByRole("button", { name: "Reset display settings" }),
   ).toBeInViewport();
   await expectHorizontalReflow(page);
   await page.setViewportSize({ width: 320, height: 568 });
   await page.keyboard.press("Escape");
-  await expect(trigger).toBeFocused();
+  await expect(
+    page.getByRole("button", { name: "Theme", exact: true }),
+  ).toBeFocused();
   await expectHorizontalReflow(page);
   await page.screenshot({
     path: testInfo.outputPath("workspace-navigation-narrow.png"),

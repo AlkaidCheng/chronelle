@@ -1,5 +1,6 @@
 import { expect, type Page, type TestInfo } from "@playwright/test";
 import { expectHorizontalReflow } from "./page-navigation";
+import { choosePageOption } from "./quiet-chrome";
 
 export async function exercisePagePresets(page: Page, testInfo: TestInfo) {
   const add = page.getByRole("button", { name: "Add page", exact: true });
@@ -80,7 +81,7 @@ export async function exercisePagePresets(page: Page, testInfo: TestInfo) {
   await dialog.getByRole("button", { name: "Add page", exact: true }).click();
   await expect(dialog).toHaveCount(0);
 
-  await page.getByRole("button", { name: "Page options", exact: true }).click();
+  await choosePageOption(page, "Page options");
   const recovery = page.getByRole("dialog", { name: "Manage event pages" });
   await recovery.getByRole("button", { name: "Undo layout change" }).click();
   await expect(
@@ -98,7 +99,7 @@ export async function exercisePagePresets(page: Page, testInfo: TestInfo) {
   await expect(
     page.getByRole("region", { name: "Calendar component 1", exact: true }),
   ).toBeVisible();
-  await page.getByRole("button", { name: "Page options", exact: true }).click();
+  await choosePageOption(page, "Page options");
   await recovery
     .getByRole("button", { name: "Layout history", exact: true })
     .click();

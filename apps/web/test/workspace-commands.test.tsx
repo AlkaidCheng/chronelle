@@ -9,7 +9,7 @@ import {
 import userEvent from "@testing-library/user-event";
 import { StrictMode, useRef, useState } from "react";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
-import { WorkspaceHeader } from "../components/workspace-header";
+import { SearchEntry } from "../components/search-entry";
 import { AuthSessionProvider, useAuthSession } from "../lib/auth-session";
 import { useComponentShortcut } from "../lib/use-component-shortcut";
 import {
@@ -77,7 +77,9 @@ function Harness() {
   const shortcut = useComponentShortcut();
   return (
     <div className="workspace-shell">
-      <WorkspaceHeader workspaceName="Personal" />
+      <nav className="workspace-nav">
+        <SearchEntry workspaceName="Personal" />
+      </nav>
       <output aria-label="Component binding">{shortcut.value}</output>
       <input aria-label="Draft" />
       <div contentEditable suppressContentEditableWarning>
@@ -117,11 +119,13 @@ function setup() {
   return userEvent.setup();
 }
 const trigger = () => {
-  const button = screen.getAllByRole("button", { name: "Commands" })[0];
-  if (!button) throw new Error("Commands trigger missing");
+  const button = screen.getAllByRole("button", {
+    name: "Search and commands",
+  })[0];
+  if (!button) throw new Error("Search trigger missing");
   return button;
 };
-const palette = () => screen.getByRole("dialog", { name: "Commands" });
+const palette = () => screen.getByRole("dialog", { name: "Search" });
 const results = () => within(screen.getByRole("listbox", { name: "Commands" }));
 
 it("filters destinations, navigates with arrows and Enter, and returns focus", async () => {
@@ -250,7 +254,7 @@ it("supports disable, reload, storage synchronization, and a visible fallback", 
   expect(window.localStorage.getItem("chronelle.command-shortcut")).toBe(
     "disabled",
   );
-  await user.click(screen.getByRole("button", { name: "Close commands" }));
+  await user.click(screen.getByRole("button", { name: "Close search" }));
   cleanup();
   setup();
   expect(fireEvent.keyDown(document.body, { key: "k", ctrlKey: true })).toBe(
@@ -286,7 +290,7 @@ it("retains a page-only setting when storage writes fail", async () => {
   await user.click(
     screen.getByRole("checkbox", { name: "Enable command shortcut" }),
   );
-  await user.click(screen.getByRole("button", { name: "Close commands" }));
+  await user.click(screen.getByRole("button", { name: "Close search" }));
   expect(fireEvent.keyDown(document.body, { key: "k", ctrlKey: true })).toBe(
     true,
   );
@@ -391,7 +395,7 @@ it("keeps component settings across dialog remounts when storage is blocked", as
     screen.getByLabelText("Add component shortcut"),
     "disabled",
   );
-  await user.click(screen.getByRole("button", { name: "Close commands" }));
+  await user.click(screen.getByRole("button", { name: "Close search" }));
   expect(screen.getByLabelText("Component binding")).toHaveTextContent(
     "disabled",
   );

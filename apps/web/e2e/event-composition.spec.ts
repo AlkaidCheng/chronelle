@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { expect, test } from "./fixtures";
 import { dragComponent } from "./helpers/drag-component";
+import { choosePageOption } from "./helpers/quiet-chrome";
 
 test("persists composition moves through the authorized versioned layout API", async ({
   page,
@@ -43,9 +44,7 @@ test("persists composition moves through the authorized versioned layout API", a
   await page.getByRole("button", { name: "Continue", exact: true }).click();
   await expect(page).toHaveURL(/\/events$/);
   await page.goto(`/events/${event.id}`);
-  await page
-    .getByRole("button", { name: "Arrange layout", exact: true })
-    .click();
+  await choosePageOption(page, "Arrange layout");
   const changed = page.waitForResponse(
     (response) =>
       response.url().endsWith("/layout") &&
@@ -77,7 +76,7 @@ test("persists composition moves through the authorized versioned layout API", a
     .click();
   const tabs = page
     .getByRole("navigation", { name: "Pages", exact: true })
-    .getByRole("button");
+    .locator("[data-page-id]");
   await expect(tabs).toHaveText(["Day", "Work"]);
   await expect(
     page.getByRole("button", { name: "Move page earlier", exact: true }),
@@ -95,9 +94,7 @@ test("persists composition moves through the authorized versioned layout API", a
   ).toEqual(event);
   await page.reload();
   await expect(page.getByRole("button", { name: /^Move / })).toHaveCount(0);
-  await page
-    .getByRole("button", { name: "Arrange layout", exact: true })
-    .click();
+  await choosePageOption(page, "Arrange layout");
   await expect(
     page.getByRole("heading", { name: "Day", exact: true }),
   ).toBeVisible();

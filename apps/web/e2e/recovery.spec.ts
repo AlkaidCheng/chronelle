@@ -18,7 +18,6 @@ test("recovers canonical objects and independent context links", async ({
   await page.getByRole("button", { name: "Create event" }).click();
   await expect(page).toHaveURL(/\/events\/[0-9a-f-]+$/u);
   const eventUrl = page.url();
-  await page.getByRole("button", { name: "Browse event data" }).click();
   await page.getByRole("tab", { name: "To-dos" }).click();
   await page.getByRole("button", { name: "Add task", exact: true }).click();
   await page.getByLabel("Task", { exact: true }).fill("Reserve room");
@@ -191,11 +190,13 @@ test("recovers canonical objects and independent context links", async ({
     page.getByRole("button", { name: "Preview recovery for Reserve room" }),
   ).not.toBeVisible();
   await page.goto(eventUrl);
-  await page.getByRole("button", { name: "Browse event data" }).click();
   await page.getByRole("tab", { name: "To-dos" }).click();
   await expect(row).toBeVisible();
   await page
     .getByRole("button", { name: "Actions for Recovery workshop" })
+    .click();
+  await page
+    .getByRole("menuitem", { name: "Move to Trash", exact: true })
     .click();
   dialog = page.getByRole("dialog");
   await dialog
@@ -216,7 +217,6 @@ test("recovers canonical objects and independent context links", async ({
   await expect(dialog.getByRole("status")).toBeVisible();
   await dialog.getByRole("button", { name: "Close", exact: true }).click();
   await page.goto(eventUrl);
-  await page.getByRole("button", { name: "Browse event data" }).click();
   await page.getByRole("tab", { name: "To-dos" }).click();
   await expect(row).toBeVisible();
   expect(

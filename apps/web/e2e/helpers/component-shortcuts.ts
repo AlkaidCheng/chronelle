@@ -1,5 +1,6 @@
 import { expect, type Page, type TestInfo } from "@playwright/test";
 import { expectHorizontalReflow } from "./page-navigation";
+import { searchEntry } from "./quiet-chrome";
 
 export async function exerciseComponentShortcuts(
   page: Page,
@@ -19,8 +20,8 @@ export async function exerciseComponentShortcuts(
     name: "Add a component",
     exact: true,
   });
-  const commands = page.getByRole("dialog", { name: "Commands", exact: true });
-  const trigger = page.getByRole("button", { name: "Commands", exact: true });
+  const commands = page.getByRole("dialog", { name: "Search", exact: true });
+  const trigger = searchEntry(page);
   await expect(add).toHaveAttribute("aria-keyshortcuts", "/");
   await tab.focus();
   for (const properties of [

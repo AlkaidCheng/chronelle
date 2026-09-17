@@ -20,7 +20,7 @@ import {
   vi,
 } from "vitest";
 import { Providers } from "../app/providers";
-import { EventPages } from "../features/events/event-pages";
+import { PagesHarness } from "./pages-harness";
 import { TasksPage } from "../features/tasks/tasks-page";
 import { dayGroupLabel } from "../lib/day-groups";
 import { dayKeyOf } from "../lib/day-placement";
@@ -214,7 +214,7 @@ describe("quick add", () => {
       },
     });
     const user = userEvent.setup();
-    render(<EventPages eventId={eventId} canEdit />, { wrapper: Providers });
+    render(<PagesHarness eventId={eventId} canEdit />, { wrapper: Providers });
     await screen.findByText("Greet the guests");
     const panel = (title: string) =>
       within(
@@ -293,7 +293,7 @@ describe("quick add", () => {
     ).toBe(quickReminderInstant(todayKey, now));
     // A viewer sees no quick add rows.
     cleanup();
-    render(<EventPages eventId={eventId} canEdit={false} />, {
+    render(<PagesHarness eventId={eventId} canEdit={false} />, {
       wrapper: Providers,
     });
     await screen.findByText("Greet the guests");
@@ -309,7 +309,7 @@ describe("quick add", () => {
       expectedVersion: 0,
       pages: [page("Plan", ["todos", "reminders"])],
     });
-    render(<EventPages eventId={event.id} canEdit />, { wrapper: Providers });
+    render(<PagesHarness eventId={event.id} canEdit />, { wrapper: Providers });
     const panel = (title: string) =>
       within(
         screen
@@ -385,7 +385,7 @@ describe("quick add", () => {
       expectedVersion: 0,
       pages: [page("Plan", ["todos", "reminders"])],
     });
-    render(<EventPages eventId={event.id} canEdit />, { wrapper: Providers });
+    render(<PagesHarness eventId={event.id} canEdit />, { wrapper: Providers });
     await screen.findByRole("heading", { name: "No tasks yet" });
     const panel = (title: string) =>
       within(

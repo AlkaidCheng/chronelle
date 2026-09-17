@@ -1,6 +1,7 @@
 import { expect, test } from "@playwright/test";
 import { exerciseEventArrange } from "../../e2e/helpers/event-arrange";
 import { openCommands } from "../../e2e/helpers/context-commands";
+import { choosePageOption, pageOptions } from "../../e2e/helpers/quiet-chrome";
 
 const sandboxUrl = new URL(
   "../../../../.chronelle/sandbox/chronelle.html",
@@ -17,9 +18,7 @@ test("keeps offline arrangement local and resets it when preview access changes"
   await page.goto(sandboxUrl);
   await page.getByRole("link", { name: /Autumn gathering/ }).click();
   await exerciseEventArrange(page, testInfo);
-  await page
-    .getByRole("button", { name: "Arrange layout", exact: true })
-    .click();
+  await choosePageOption(page, "Arrange layout");
   await page.getByLabel("Preview role").selectOption("viewer");
   await expect(
     page.getByRole("button", {
@@ -32,9 +31,7 @@ test("keeps offline arrangement local and resets it when preview access changes"
   );
   await page.keyboard.press("Escape");
   await page.getByLabel("Preview role").selectOption("owner");
-  await expect(
-    page.getByRole("button", { name: "Arrange layout", exact: true }),
-  ).toBeVisible();
+  await expect(pageOptions(page)).toBeVisible();
   await expect(
     page.getByRole("group", { name: /layout controls/ }),
   ).toHaveCount(0);

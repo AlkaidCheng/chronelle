@@ -4,7 +4,7 @@ import {
   exerciseContextCommands,
   openCommands,
 } from "./helpers/context-commands";
-import { openWorkspaceSettings } from "./helpers/workspace-utilities";
+import { switchWorkspace } from "./helpers/quiet-chrome";
 
 test("opens event controls through Commands and saves only explicit layout changes", async ({
   page,
@@ -79,11 +79,7 @@ test("limits Viewer commands and denies history after access is revoked", async 
   await page.getByLabel("Name", { exact: true }).fill("Viewer");
   await page.getByLabel("Email").fill(email);
   await page.getByRole("button", { name: "Continue", exact: true }).click();
-  const settings = await openWorkspaceSettings(page);
-  await settings
-    .getByRole("combobox", { name: "Workspace", exact: true })
-    .selectOption(owner.workspace.id);
-  await expect(settings).toHaveCount(0);
+  await switchWorkspace(page, owner.workspace.displayName);
   await page.getByRole("link", { name: /Shared gathering/ }).click();
   const commands = await openCommands(page);
   await expect(

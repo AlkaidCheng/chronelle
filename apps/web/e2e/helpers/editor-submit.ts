@@ -1,5 +1,6 @@
 import { expect, type Page, type TestInfo } from "@playwright/test";
 import { expectHorizontalReflow } from "./page-navigation";
+import { searchEntry } from "./quiet-chrome";
 
 export async function exerciseEditorSubmit(page: Page, testInfo: TestInfo) {
   await page.getByRole("button", { name: "New event", exact: true }).click();
@@ -46,9 +47,6 @@ export async function exerciseEditorSubmit(page: Page, testInfo: TestInfo) {
   await expect(
     page.getByRole("heading", { name: "Editor shortcut plan", exact: true }),
   ).toBeVisible();
-  await page
-    .getByRole("button", { name: "Browse event data", exact: true })
-    .click();
   await page.getByRole("tab", { name: "To-dos", exact: true }).click();
   const addTask = page.getByRole("button", { name: "Add task", exact: true });
   await addTask.click();
@@ -61,8 +59,8 @@ export async function exerciseEditorSubmit(page: Page, testInfo: TestInfo) {
   await expect(
     page.getByText("Keyboard-created task", { exact: true }),
   ).toHaveCount(1);
-  const commands = page.getByRole("dialog", { name: "Commands", exact: true });
-  await page.getByRole("button", { name: "Commands", exact: true }).click();
+  const commands = page.getByRole("dialog", { name: "Search", exact: true });
+  await searchEntry(page).click();
   await commands.getByText("Keyboard shortcuts", { exact: true }).click();
   const preference = commands.getByLabel("Enable editor submit shortcut", {
     exact: true,
@@ -90,7 +88,7 @@ export async function exerciseEditorSubmit(page: Page, testInfo: TestInfo) {
   await addTask.click();
   await expect(save).not.toHaveAttribute("aria-keyshortcuts");
   await page.keyboard.press("Escape");
-  await page.getByRole("button", { name: "Commands", exact: true }).click();
+  await searchEntry(page).click();
   await commands.getByText("Keyboard shortcuts", { exact: true }).click();
   await expect(preference).not.toBeChecked();
   await commands

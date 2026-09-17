@@ -1,5 +1,6 @@
 import { expect, test } from "@playwright/test";
 import { exerciseWorkspaceCommands } from "../../e2e/helpers/workspace-commands";
+import { searchEntry } from "../../e2e/helpers/quiet-chrome";
 
 const sandboxUrl = new URL(
   "../../../../.chronelle/sandbox/chronelle.html",
@@ -23,8 +24,8 @@ test("offers the same navigation to Viewers without editing commands", async ({
   await context.setOffline(true);
   await page.goto(sandboxUrl);
   await page.getByLabel("Preview role").selectOption("viewer");
-  await page.getByRole("button", { name: "Commands", exact: true }).click();
-  const dialog = page.getByRole("dialog", { name: "Commands", exact: true });
+  await searchEntry(page).click();
+  const dialog = page.getByRole("dialog", { name: "Search", exact: true });
   await expect(dialog.getByRole("listbox").getByRole("option")).toHaveCount(5);
   await expect(
     dialog.getByRole("option", { name: /create|edit|add/i }),

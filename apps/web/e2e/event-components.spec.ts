@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { expect, test } from "./fixtures";
-import { openWorkspaceSettings } from "./helpers/workspace-utilities";
+import { signOutFromMenu } from "./helpers/quiet-chrome";
 
 test("composes planning and private-file components with canonical updates and viewer access", async ({
   page,
@@ -208,8 +208,7 @@ test("composes planning and private-file components with canonical updates and v
   // page; the tab then acts in the shared workspace, its home staying the
   // viewer's own.
   const pageUrl = page.url();
-  await openWorkspaceSettings(page);
-  await page.getByRole("button", { name: "Sign out", exact: true }).click();
+  await signOutFromMenu(page);
   await expect(page).toHaveURL(/\/sign-in$/u);
   await page.goto("/sign-in/development");
   await page.getByLabel("Name", { exact: true }).fill("Viewer");

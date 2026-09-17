@@ -11,7 +11,6 @@ import { eventComponents } from "../../lib/event-components";
 import {
   useEventLayout,
   useEventLayoutHistory,
-  useLayoutUndo,
   useRestoreEventLayout,
   useUpdateEventLayout,
 } from "../../lib/event-layout-queries";
@@ -23,7 +22,7 @@ type Confirmation = { expectedVersion: number } & (
   | { kind: "restore"; snapshot: EventLayoutResponse }
 );
 
-function LayoutRecoveryDialog({
+export function LayoutRecoveryDialog({
   layout,
   canEdit,
   undo,
@@ -420,38 +419,5 @@ function LayoutRecoveryDialog({
         ) : null}
       </footer>
     </dialog>
-  );
-}
-
-export function LayoutRecoveryTools({
-  layout,
-  canEdit,
-  disabled,
-}: {
-  readonly layout: EventLayoutResponse;
-  readonly canEdit: boolean;
-  readonly disabled: boolean;
-}) {
-  const [open, setOpen] = useState(false);
-  const undo = useLayoutUndo(layout.eventId);
-  return (
-    <>
-      <button
-        type="button"
-        className="button button-quiet"
-        disabled={disabled}
-        onClick={() => setOpen(true)}
-      >
-        {canEdit ? "Page options" : "Layout history"}
-      </button>
-      {open ? (
-        <LayoutRecoveryDialog
-          layout={layout}
-          canEdit={canEdit}
-          undo={undo.data}
-          onClose={() => setOpen(false)}
-        />
-      ) : null}
-    </>
   );
 }

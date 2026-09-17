@@ -74,11 +74,6 @@ test("creates a date-only range in a focused dialog without moving the collectio
     /Jul 3, 2030 to Jul 12, 2030/,
   );
   await expect(page.getByLabel("Object ID", { exact: true })).toBeHidden();
-  await page
-    .locator(".event-hero")
-    .getByText("Details", { exact: true })
-    .click();
-  await expect(page.getByLabel("Object ID", { exact: true })).toBeVisible();
   await page.reload();
   await expect(page.locator(".event-date")).toHaveText(
     /Jul 3, 2030 to Jul 12, 2030/,
@@ -214,7 +209,5 @@ test("creation makes the background inert and allows a single day or no dates", 
   await dialog
     .getByRole("button", { name: "Create event", exact: true })
     .click();
-  await expect(page.locator(".event-date")).toContainText(
-    "Schedule to be decided",
-  );
+  await expect(page.locator(".event-date")).toHaveCount(0);
 });

@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { choosePageOption } from "../../e2e/helpers/quiet-chrome";
 
 const sandboxUrl = new URL(
   "../../../../.chronelle/sandbox/chronelle.html",
@@ -32,7 +33,7 @@ test("recovers an offline layout across reloads and previews read-only history",
   await expect(
     page.getByText("Confirm the garden venue", { exact: true }),
   ).toBeVisible();
-  await page.getByRole("button", { name: "Page options", exact: true }).click();
+  await choosePageOption(page, "Page options");
   const dialog = page.getByRole("dialog");
   await dialog
     .getByRole("button", { name: "Remove page", exact: true })
@@ -65,7 +66,7 @@ test("recovers an offline layout across reloads and previews read-only history",
   });
   await dialog.getByRole("button", { name: "Close", exact: true }).click();
   await page.reload();
-  await page.getByRole("button", { name: "Page options", exact: true }).click();
+  await choosePageOption(page, "Page options");
   await expect(
     dialog.getByRole("button", { name: "Undo layout change", exact: true }),
   ).toBeDisabled();
@@ -90,9 +91,7 @@ test("recovers an offline layout across reloads and previews read-only history",
     page.getByText("Confirm the garden venue", { exact: true }),
   ).toBeVisible();
   await page.getByLabel("Preview role").selectOption("viewer");
-  await page
-    .getByRole("button", { name: "Layout history", exact: true })
-    .click();
+  await choosePageOption(page, "Layout history");
   await dialog
     .getByRole("button", { name: "Preview version 2", exact: true })
     .click();

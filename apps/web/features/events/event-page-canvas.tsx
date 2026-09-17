@@ -6,14 +6,15 @@ import {
   useRef,
   useState,
   type DragEvent,
-  type ReactNode,
+  type RefObject,
 } from "react";
 import type {
   EventComponentView,
   EventLayoutResponse,
   EventPage,
 } from "@chronelle/schemas";
-import { EmptyState, ErrorNotice } from "../../components/feedback";
+import { ErrorNotice } from "../../components/feedback";
+import { PlusIcon } from "../../components/icons";
 import {
   describeShownView,
   eventComponents,
@@ -31,6 +32,7 @@ import {
   useComponentShortcut,
 } from "../../lib/use-component-shortcut";
 import { EventComponent } from "./event-component";
+import type { PageDrop } from "./use-event-pages";
 import {
   CommandScope,
   type ContextCommand,
@@ -44,7 +46,9 @@ export function EventPageCanvas({
   onAddPage,
   onAddComponent,
   onRefresh,
-  renderTools,
+  arranging,
+  onArrangingChange,
+  pageDrop,
 }: {
   readonly layout: EventLayoutResponse;
   readonly selected: EventPage | undefined;
@@ -53,7 +57,9 @@ export function EventPageCanvas({
   readonly onAddPage: () => void;
   readonly onAddComponent: () => void;
   readonly onRefresh: () => Promise<unknown>;
-  readonly renderTools?: (busy: boolean) => ReactNode;
+  readonly arranging: boolean;
+  readonly onArrangingChange: (arranging: boolean) => void;
+  readonly pageDrop?: RefObject<PageDrop | null> | undefined;
 }) {
   const save = useUpdateEventLayout(layout.eventId);
   const shortcut = useComponentShortcut();
@@ -65,44 +71,22 @@ export function EventPageCanvas({
   const [dragging, setDragging] = useState(false);
   const [dropTarget, setDropTarget] = useState<string | null>(null);
   const [announcement, setAnnouncement] = useState("");
-  const [arranging, setArranging] = useState(false);
   const canArrange = canEdit && layout.pages.length > 0;
   const isArranging = canArrange && arranging;
-  const arrangeButton = useRef<HTMLButtonElement>(null);
   useEffect(() => {
     if (canArrange) return;
-    setArranging(false);
+    onArrangingChange(false);
     drag.current = null;
     setDragging(false);
     setDropTarget(null);
-  }, [canArrange]);
-  const addPageButton = useRef<HTMLButtonElement>(null);
+  }, [canArrange, onArrangingChange]);
+  const doneButton = useRef<HTMLButtonElement>(null);
   const addComponentButton = useRef<HTMLButtonElement>(null);
-  const navigation = useRef<HTMLElement>(null);
-  const [pagesOverflow, setPagesOverflow] = useState(false);
-  // biome-ignore lint/correctness/useExhaustiveDependencies: Page content and selection change strip geometry without resizing its container.
-  useLayoutEffect(() => {
-    const strip = navigation.current;
-    if (!strip) return;
-    const measure = () => {
-      setPagesOverflow(strip.scrollWidth > strip.clientWidth + 1);
-      const current = strip.querySelector<HTMLElement>('[aria-current="page"]');
-      if (!current) return;
-      const bounds = strip.getBoundingClientRect();
-      const item = current.getBoundingClientRect();
-      if (item.left < bounds.left) strip.scrollLeft += item.left - bounds.left;
-      else if (item.right > bounds.right)
-        strip.scrollLeft += item.right - bounds.right;
-    };
-    measure();
-    const observer = new ResizeObserver(measure);
-    observer.observe(strip);
-    return () => observer.disconnect();
-  }, [layout.pages, selected?.id]);
   const [focusRequest, setFocusRequest] = useState<{
     trigger: HTMLElement | null;
     origin: HTMLElement | null;
     version: number;
+    done?: boolean;
   } | null>(null);
   useLayoutEffect(() => {
     if (
@@ -111,6 +95,10 @@ export function EventPageCanvas({
       layout.version < focusRequest.version
     )
       return;
+    if (focusRequest.done) {
+      doneButton.current?.focus();
+      return;
+    }
     const trigger = focusRequest?.trigger;
     if (!trigger?.isConnected) return;
     if (
@@ -123,7 +111,9 @@ export function EventPageCanvas({
       ? (trigger
           .closest(".component-toolbar")
           ?.querySelector<HTMLButtonElement>(".component-drag-handle") ??
-        navigation.current?.querySelector<HTMLButtonElement>("[aria-current]"))
+        document.querySelector<HTMLButtonElement>(
+          '.event-strip-pages [aria-current="page"]',
+        ))
       : trigger;
     target?.focus();
   }, [focusRequest, save.isPending, layout.version]);
@@ -136,21 +126,31 @@ export function EventPageCanvas({
   const canAddPage = canEdit && layout.pages.length < 20;
   const commands: ContextCommand[] = [];
   if (canArrange && !save.isPending)
-    commands.push({
-      id: "arrange-layout",
-      label: isArranging ? "Done arranging" : "Arrange layout",
-      description: isArranging
-        ? "Hide layout controls; moves are already saved"
-        : "Show page and component move controls",
-      target: arrangeButton,
-    });
-  if (canAddPage && !save.isPending)
-    commands.push({
-      id: "add-page",
-      label: "Add page",
-      description: "Create a named page in this event",
-      target: addPageButton,
-    });
+    commands.push(
+      isArranging
+        ? {
+            id: "arrange-layout",
+            label: "Done arranging",
+            description: "Hide layout controls; moves are already saved",
+            target: doneButton,
+          }
+        : {
+            id: "arrange-layout",
+            label: "Arrange layout",
+            description: "Show page and component move controls",
+            run: () => {
+              if (locked.current) return;
+              endDrag();
+              onArrangingChange(true);
+              setFocusRequest({
+                trigger: null,
+                origin: null,
+                version: layout.version,
+                done: true,
+              });
+            },
+          },
+    );
   if (canAdd && selected && !save.isPending)
     commands.push({
       id: "add-component",
@@ -186,8 +186,8 @@ export function EventPageCanvas({
           if (selected) onSelect(targetPageId ?? selected.id);
           if (targetPageId) {
             trigger =
-              navigation.current?.querySelector<HTMLButtonElement>(
-                `[data-page-id="${targetPageId}"]`,
+              document.querySelector<HTMLButtonElement>(
+                `.event-strip-pages [data-page-id="${targetPageId}"]`,
               ) ?? null;
           }
         },
@@ -238,6 +238,33 @@ export function EventPageCanvas({
     setDragging(false);
     setDropTarget(null);
   }
+
+  useEffect(() => {
+    if (!pageDrop) return;
+    pageDrop.current = {
+      allowed: (pageId) => {
+        const page = layout.pages.find((item) => item.id === pageId);
+        const current = drag.current;
+        return (
+          page !== undefined &&
+          isArranging &&
+          !locked.current &&
+          current !== null &&
+          (page.components.length < 20 ||
+            page.components.some((item) => item.id === current.componentId))
+        );
+      },
+      drop: (pageId) => {
+        const current = drag.current;
+        if (!current) return;
+        move(current.componentId, pageId, null, current.source);
+        endDrag();
+      },
+    };
+    return () => {
+      pageDrop.current = null;
+    };
+  });
 
   function dropProps(page: EventPage, beforeId: string | null) {
     const key = beforeId ?? page.id;
@@ -301,70 +328,6 @@ export function EventPageCanvas({
         pathname={`/events/${layout.eventId}`}
         commands={commands}
       />
-      <div className="event-pages-toolbar">
-        <nav
-          ref={navigation}
-          aria-label="Pages"
-          className="event-pages-navigation"
-        >
-          {layout.pages.map((page) => (
-            <button
-              key={page.id}
-              type="button"
-              data-page-id={page.id}
-              title={page.name}
-              aria-current={page.id === selected?.id ? "page" : undefined}
-              onClick={() => onSelect(page.id)}
-              {...dropProps(page, null)}
-            >
-              {page.name}
-            </button>
-          ))}
-        </nav>
-        {pagesOverflow ? (
-          <label className="compact-field event-page-picker">
-            <span>Jump to page</span>
-            <select
-              value={selected?.id ?? ""}
-              onChange={(event) => onSelect(event.target.value)}
-            >
-              {layout.pages.map((page) => (
-                <option key={page.id} value={page.id}>
-                  {page.name}
-                </option>
-              ))}
-            </select>
-          </label>
-        ) : null}
-        {renderTools?.(save.isPending)}
-        {canArrange ? (
-          <button
-            ref={arrangeButton}
-            type="button"
-            className={`button arrangement-toggle ${isArranging ? "button-primary" : "button-secondary"}`}
-            aria-label={isArranging ? "Done arranging" : "Arrange layout"}
-            disabled={save.isPending}
-            onClick={() => {
-              if (locked.current) return;
-              endDrag();
-              setArranging(!isArranging);
-            }}
-          >
-            {isArranging ? "Done" : "Arrange"}
-          </button>
-        ) : null}
-        {canAddPage ? (
-          <button
-            ref={addPageButton}
-            type="button"
-            className="button button-secondary"
-            disabled={save.isPending}
-            onClick={onAddPage}
-          >
-            Add page
-          </button>
-        ) : null}
-      </div>
       <p className="visually-hidden" role="status">
         {save.isPending ? "Saving layout..." : announcement}
       </p>
@@ -424,11 +387,31 @@ export function EventPageCanvas({
                   </button>
                 </>
               ) : null}
+              {isArranging ? (
+                <button
+                  ref={doneButton}
+                  type="button"
+                  className="button button-secondary button-small"
+                  disabled={save.isPending}
+                  onClick={() => {
+                    if (locked.current) return;
+                    endDrag();
+                    onArrangingChange(false);
+                    document
+                      .querySelector<HTMLElement>(
+                        '.event-strip-menu [aria-haspopup="menu"]',
+                      )
+                      ?.focus();
+                  }}
+                >
+                  Done arranging
+                </button>
+              ) : null}
               {canAdd ? (
                 <button
                   ref={addComponentButton}
                   type="button"
-                  className="button button-secondary"
+                  className="button button-quiet button-small"
                   aria-keyshortcuts={componentShortcuts[shortcut.value].keys}
                   disabled={save.isPending}
                   onClick={onAddComponent}
@@ -438,23 +421,10 @@ export function EventPageCanvas({
               ) : null}
             </div>
           </div>
-          {isArranging ? (
-            <p className="composition-hint arrangement-notice" role="status">
-              <strong>Arranging layout.</strong> Moves save immediately.
-              {selected.components.length > 0 &&
-                " Drag a handle to reorder or drop it on a page. Move controls work with touch and keyboard."}{" "}
-              Use Page options to remove or recover components.
-            </p>
-          ) : null}
-          {selected.components.length === 0 ? (
-            <EmptyState
-              title="Make room for your plans"
-              description={
-                canEdit
-                  ? "Choose Add component for to-dos, a calendar, files, or other views. Add only what this page needs."
-                  : "This page has no components yet."
-              }
-            />
+          {selected.components.length === 0 && !canEdit ? (
+            <div className="event-pages-empty">
+              <p>No components yet.</p>
+            </div>
           ) : null}
           <div className="event-page-components">
             {selected.components.map((component, index) => {
@@ -578,14 +548,18 @@ export function EventPageCanvas({
           ) : null}
         </>
       ) : (
-        <EmptyState
-          title="A place for your event"
-          description={
-            canEdit
-              ? "Choose Add page to make a space for your plans, such as Preparation or On the day. Then choose the components you need."
-              : "The planner has not added any pages yet."
-          }
-        />
+        <div className="event-pages-empty">
+          {canAddPage ? (
+            <button type="button" onClick={onAddPage}>
+              <span className="event-pages-empty-mark" aria-hidden="true">
+                <PlusIcon />
+              </span>
+              Add a page
+            </button>
+          ) : (
+            <p>No pages yet.</p>
+          )}
+        </div>
       )}
     </section>
   );

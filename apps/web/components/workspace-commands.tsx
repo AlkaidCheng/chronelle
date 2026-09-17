@@ -115,7 +115,11 @@ export function WorkspaceCommands({
       router.push(command.href);
       return;
     }
-    const target = command.target.current;
+    if (command.run) {
+      if (command.isCurrent()) command.run();
+      return;
+    }
+    const target = command.target?.current;
     if (
       !command.isCurrent() ||
       !target?.isConnected ||
@@ -146,11 +150,11 @@ export function WorkspaceCommands({
       }}
     >
       <header className="event-create-header">
-        <h2 id={`${id}-title`}>Commands</h2>
+        <h2 id={`${id}-title`}>Search</h2>
         <button
           type="button"
           className="dialog-close"
-          aria-label="Close commands"
+          aria-label="Close search"
           onClick={onClose}
         >
           &#215;
@@ -326,7 +330,7 @@ export function WorkspaceCommands({
         <details className="command-help">
           <summary>Keyboard shortcuts</summary>
           <p>
-            <kbd>Cmd/Ctrl + K</kbd> opens Commands outside editors and dialogs.
+            <kbd>Cmd/Ctrl + K</kbd> opens Search outside editors and dialogs.
             Use Up/Down to choose a result, Enter to open it, and Escape to
             close.
           </p>

@@ -1,4 +1,10 @@
 import { expect, type Page, type TestInfo } from "@playwright/test";
+import {
+  chooseEventFilter,
+  chooseEventLayout,
+  chooseEventSort,
+  openSearchPage,
+} from "./quiet-chrome";
 
 export async function exerciseCollectionReturn(
   page: Page,
@@ -8,9 +14,9 @@ export async function exerciseCollectionReturn(
 ) {
   const input = page.getByLabel("Filter events by name");
   await input.fill(name);
-  await page.getByLabel("Sort events").selectOption("name");
-  await page.getByRole("button", { name: "unscheduled", exact: true }).click();
-  await page.getByRole("button", { name: "List view", exact: true }).click();
+  await chooseEventSort(page, "Name A-Z");
+  await chooseEventFilter(page, "Unscheduled");
+  await chooseEventLayout(page, "List");
   const count = page.getByRole("status", { name: "Event count" });
   await expect(count).toHaveText(
     `${Math.min(total, 20)} ${total === 1 ? "event" : "events"} loaded`,
@@ -35,13 +41,15 @@ export async function exerciseCollectionReturn(
 
   async function expectReturn() {
     await expect(input).toHaveValue(name);
-    await expect(page.getByLabel("Sort events")).toHaveValue("name");
     await expect(
-      page.getByRole("button", { name: "List view", exact: true }),
-    ).toHaveAttribute("aria-pressed", "true");
+      page.getByRole("button", { name: "Sort events" }),
+    ).toHaveAttribute("data-value", "name");
     await expect(
-      page.getByRole("button", { name: "unscheduled", exact: true }),
-    ).toHaveAttribute("aria-pressed", "true");
+      page.getByRole("button", { name: "Event layout", exact: true }),
+    ).toHaveAttribute("data-value", "list");
+    await expect(
+      page.getByRole("button", { name: "Filter events", exact: true }),
+    ).toHaveAttribute("data-value", "unscheduled");
     await expect(count).toHaveText(
       `${total} ${total === 1 ? "event" : "events"} loaded`,
     );
@@ -77,7 +85,7 @@ export async function exerciseCollectionReturn(
   const navigation = page.getByRole("navigation", {
     name: "Workspace navigation",
   });
-  await navigation.getByRole("link", { name: "Search", exact: true }).click();
+  await openSearchPage(page);
   await navigation.getByRole("link", { name: "Events", exact: true }).click();
   await expect(input).toHaveValue("No matching private plans");
   await expect(
@@ -90,5 +98,7 @@ export async function exerciseCollectionReturn(
   await input.fill(name);
   await page.reload();
   await expect(input).toHaveValue("");
-  await expect(page.getByLabel("Sort events")).toHaveValue("date");
+  await expect(
+    page.getByRole("button", { name: "Sort events" }),
+  ).toHaveAttribute("data-value", "date");
 }

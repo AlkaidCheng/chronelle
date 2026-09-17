@@ -48,14 +48,15 @@ export async function expectHorizontalReflow(page: Page) {
 }
 
 export async function exercisePageNavigation(page: Page, testInfo: TestInfo) {
-  const picker = page.getByRole("combobox", { name: "Jump to page" });
-  await expect(picker).toBeVisible();
-  await picker.selectOption({ label: navigationPageNames[2] });
+  const pages = page.getByRole("navigation", { name: "Pages", exact: true });
+  const pageButton = (name: string) =>
+    pages.getByRole("button", { name, exact: true });
+  await pageButton(navigationPageNames[2]).click();
   await expect(
     page.getByRole("heading", { name: navigationPageNames[2], exact: true }),
   ).toBeVisible();
   const bookmark = page.url();
-  await picker.selectOption({ label: navigationPageNames[1] });
+  await pageButton(navigationPageNames[1]).click();
   await page.goBack();
   await expect(
     page.getByRole("heading", { name: navigationPageNames[2], exact: true }),
@@ -90,8 +91,8 @@ export async function exercisePageNavigation(page: Page, testInfo: TestInfo) {
     .getByRole("button", { name: "Close event editor", exact: true })
     .click();
   await page.getByRole("button", { name: "Discard", exact: true }).click();
-  await page.getByRole("button", { name: "Browse event data" }).click();
-  await page.getByRole("button", { name: "Back to pages" }).click();
+  await page.getByRole("tab", { name: "To-dos", exact: true }).click();
+  await pageButton(navigationPageNames[2]).click();
   await expect(
     page.getByRole("heading", { name: navigationPageNames[2], exact: true }),
   ).toBeVisible();
@@ -100,41 +101,22 @@ export async function exercisePageNavigation(page: Page, testInfo: TestInfo) {
     path: testInfo.outputPath("named-page-navigation.png"),
     fullPage: true,
   });
-  expect(
-    await picker.evaluate((element) => element.getBoundingClientRect().height),
-  ).toBeGreaterThanOrEqual(44);
   await expectHorizontalReflow(page);
   await page.setViewportSize({ width: 320, height: 720 });
   await expect
     .poll(() =>
-      page
-        .getByRole("navigation", { name: "Pages", exact: true })
-        .evaluate((strip) => {
-          const current = strip.querySelector('[aria-current="page"]');
-          if (!current) return false;
-          const outer = strip.getBoundingClientRect();
-          const inner = current.getBoundingClientRect();
-          return inner.left >= outer.left - 1 && inner.right <= outer.right + 1;
-        }),
+      pages.evaluate((strip) => {
+        const current = strip.querySelector('[aria-current="page"]');
+        if (!current) return false;
+        const outer = strip.getBoundingClientRect();
+        const inner = current.getBoundingClientRect();
+        return inner.left >= outer.left - 1 && inner.right <= outer.right + 1;
+      }),
     )
     .toBe(true);
   await expectHorizontalReflow(page);
-  await picker.evaluate((select) => {
-    const overflow = document.createElement("span");
-    overflow.dataset.overflowProbe = "";
-    overflow.setAttribute("aria-hidden", "true");
-    overflow.style.cssText = "width: 366px; height: 1px; pointer-events: none";
-    select.after(overflow);
-  });
-  try {
-    await expectHorizontalReflow(page);
-  } finally {
-    await page
-      .locator("[data-overflow-probe]")
-      .evaluate((probe) => probe.remove());
-  }
-  await picker.focus();
-  await expect(picker).toBeFocused();
+  await pageButton(navigationPageNames[2]).focus();
+  await expect(pageButton(navigationPageNames[2])).toBeFocused();
   await page.screenshot({
     path: testInfo.outputPath("named-page-navigation-narrow.png"),
   });

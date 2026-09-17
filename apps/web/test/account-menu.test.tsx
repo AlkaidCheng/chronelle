@@ -13,7 +13,7 @@ const session = {
   user: {
     id: "019d6e7d-0000-7000-8000-000000000002",
     displayName: "Planner",
-    email: null,
+    email: "planner@example.com",
   },
   workspace: {
     id: "019d6e7d-0000-7000-8000-000000000001",
@@ -21,6 +21,7 @@ const session = {
   },
   availableWorkspaces: [
     { id: "019d6e7d-0000-7000-8000-000000000001", displayName: "Personal" },
+    { id: "019d6e7d-0000-7000-8000-000000000003", displayName: "Shared" },
   ],
 };
 
@@ -28,54 +29,82 @@ afterEach(cleanup);
 
 function renderMenu() {
   const onSignOut = vi.fn();
+  const onSwitchWorkspace = vi.fn();
   render(
     <>
-      <AccountMenu session={session} onSignOut={onSignOut} />
+      <AccountMenu
+        session={session}
+        onSwitchWorkspace={onSwitchWorkspace}
+        onSignOut={onSignOut}
+      />
       <button type="button">Elsewhere</button>
     </>,
   );
   return {
     onSignOut,
+    onSwitchWorkspace,
     trigger: screen.getByRole("button", { name: "Planner Personal" }),
     user: userEvent.setup(),
   };
 }
 
-it("reveals Sign out beneath the profile and hides it again", async () => {
+it("opens a menu with the account, the workspaces, the password screen, and sign out", async () => {
   const { trigger, user } = renderMenu();
-  expect(trigger).toHaveAttribute("aria-expanded", "false");
-  expect(screen.queryByRole("button", { name: "Sign out" })).toBeNull();
   await user.click(trigger);
-  expect(trigger).toHaveAttribute("aria-expanded", "true");
-  expect(screen.getByRole("button", { name: "Sign out" })).toBeVisible();
+  const menu = screen.getByRole("menu", { name: "Account" });
+  expect(menu).toHaveTextContent("planner@example.com");
+  expect(
+    screen.getByRole("menuitemradio", { name: "Personal" }),
+  ).toHaveAttribute("aria-checked", "true");
+  expect(screen.getByRole("menuitemradio", { name: "Personal" })).toHaveFocus();
+  expect(
+    screen.getByRole("menuitem", { name: "Change password" }),
+  ).toHaveAttribute("href", "/reset-password");
+  expect(screen.getByRole("menuitem", { name: "Sign out" })).toBeVisible();
   await user.click(trigger);
-  expect(screen.queryByRole("button", { name: "Sign out" })).toBeNull();
+  expect(screen.queryByRole("menu")).not.toBeInTheDocument();
 });
 
-it("signs out once and collapses", async () => {
+it("switches only to another workspace and closes", async () => {
+  const { onSwitchWorkspace, trigger, user } = renderMenu();
+  await user.click(trigger);
+  await user.click(screen.getByRole("menuitemradio", { name: "Personal" }));
+  expect(onSwitchWorkspace).not.toHaveBeenCalled();
+  expect(screen.queryByRole("menu")).not.toBeInTheDocument();
+  await user.click(trigger);
+  await user.click(screen.getByRole("menuitemradio", { name: "Shared" }));
+  expect(onSwitchWorkspace).toHaveBeenCalledWith(
+    "019d6e7d-0000-7000-8000-000000000003",
+  );
+});
+
+it("signs out once and closes", async () => {
   const { onSignOut, trigger, user } = renderMenu();
   await user.click(trigger);
-  await user.click(screen.getByRole("button", { name: "Sign out" }));
+  await user.click(screen.getByRole("menuitem", { name: "Sign out" }));
   expect(onSignOut).toHaveBeenCalledOnce();
-  expect(screen.queryByRole("button", { name: "Sign out" })).toBeNull();
+  expect(screen.queryByRole("menu")).not.toBeInTheDocument();
 });
 
-it("collapses on Escape and returns focus to the profile button", async () => {
+it("moves with arrow keys, closes on Escape, and returns focus to the profile", async () => {
   const { trigger, user } = renderMenu();
   await user.click(trigger);
-  screen.getByRole("button", { name: "Sign out" }).focus();
+  await user.keyboard("{ArrowDown}");
+  expect(screen.getByRole("menuitemradio", { name: "Shared" })).toHaveFocus();
+  await user.keyboard("{End}");
+  expect(screen.getByRole("menuitem", { name: "Sign out" })).toHaveFocus();
+  await user.keyboard("{ArrowDown}");
+  expect(screen.getByRole("menuitemradio", { name: "Personal" })).toHaveFocus();
   await user.keyboard("{Escape}");
-  expect(screen.queryByRole("button", { name: "Sign out" })).toBeNull();
+  expect(screen.queryByRole("menu")).not.toBeInTheDocument();
   expect(trigger).toHaveFocus();
 });
 
-it("ignores Escape pressed elsewhere and collapses on an outside press", async () => {
+it("closes on an outside press without stealing focus", async () => {
   const { trigger, user } = renderMenu();
   await user.click(trigger);
   const elsewhere = screen.getByRole("button", { name: "Elsewhere" });
-  elsewhere.focus();
-  await user.keyboard("{Escape}");
-  expect(screen.getByRole("button", { name: "Sign out" })).toBeVisible();
   fireEvent.pointerDown(elsewhere);
-  expect(screen.queryByRole("button", { name: "Sign out" })).toBeNull();
+  expect(screen.queryByRole("menu")).not.toBeInTheDocument();
+  expect(trigger).not.toHaveFocus();
 });

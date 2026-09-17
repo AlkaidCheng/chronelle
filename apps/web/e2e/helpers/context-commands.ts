@@ -1,9 +1,10 @@
 import { expect, type Page, type TestInfo } from "@playwright/test";
 import { expectHorizontalReflow } from "./page-navigation";
+import { searchEntry } from "./quiet-chrome";
 
 export async function openCommands(page: Page) {
-  await page.getByRole("button", { name: "Commands", exact: true }).click();
-  return page.getByRole("dialog", { name: "Commands", exact: true });
+  await searchEntry(page).click();
+  return page.getByRole("dialog", { name: "Search", exact: true });
 }
 
 export async function exerciseContextCommands(
@@ -50,11 +51,10 @@ export async function exerciseContextCommands(
     await openCommands(page);
     await expect(
       dialog.getByRole("option", {
-        name: /Share event|Add page|Add component/,
+        name: /Share event|Add component/,
       }),
     ).toHaveCount(0);
     await page.keyboard.press("Escape");
-    await page.getByRole("button", { name: "Back to pages" }).click();
   } else {
     await expect(
       dialog.getByRole("option", { name: /Share event/ }),

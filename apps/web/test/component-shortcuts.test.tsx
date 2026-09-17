@@ -52,6 +52,8 @@ function setup(canEdit = true, source = layout) {
       onAddPage={vi.fn()}
       onAddComponent={add}
       onRefresh={vi.fn()}
+      arranging={false}
+      onArrangingChange={vi.fn()}
     />,
   );
   return screen.getByRole("region", { name: "Event pages" });

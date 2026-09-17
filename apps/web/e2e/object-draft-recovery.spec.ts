@@ -34,7 +34,7 @@ for (const kind of ["task", "expense", "reminder"] as const) {
       const email = await signIn(page);
       const { eventUrl, collectionUrl } = await createRecoveryEvent(page);
       const eventId = new URL(eventUrl).pathname.split("/").at(-1);
-      await page.getByRole("button", { name: "Browse event data" }).click();
+      await page.getByRole("tab", { name: "Overview", exact: true }).click();
       await page
         .getByRole("tab", {
           name: view,

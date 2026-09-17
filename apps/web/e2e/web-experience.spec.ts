@@ -1,5 +1,11 @@
 import { randomUUID } from "node:crypto";
 import { expect, test } from "./fixtures";
+import {
+  chooseEventLayout,
+  chooseEventSort,
+  chooseEventFilter,
+  signOutFromMenu,
+} from "./helpers/quiet-chrome";
 
 test("organizes events and keeps navigation usable across reloads and screen sizes", async ({
   page,
@@ -50,13 +56,12 @@ test("organizes events and keeps navigation usable across reloads and screen siz
     fullPage: true,
   });
 
-  await page.getByRole("button", { name: "List view" }).click();
+  await chooseEventLayout(page, "List");
   await page.reload();
-  await expect(page.getByRole("button", { name: "List view" })).toHaveAttribute(
-    "aria-pressed",
-    "true",
-  );
-  await page.getByRole("button", { name: "Upcoming & ongoing" }).click();
+  await expect(
+    page.getByRole("button", { name: "Event layout" }),
+  ).toHaveAttribute("data-value", "list");
+  await chooseEventFilter(page, "Upcoming & ongoing");
   await expect(page.getByRole("status", { name: "Event count" })).toHaveText(
     "2 events loaded",
   );
@@ -68,14 +73,14 @@ test("organizes events and keeps navigation usable across reloads and screen siz
   await expect(page.getByRole("status", { name: "Event count" })).toHaveText(
     "4 events loaded",
   );
-  await page.getByLabel("Sort events").selectOption("name");
+  await chooseEventSort(page, "Name A-Z");
   await page.getByRole("button", { name: "New event" }).click();
   await expect(page.getByLabel("Event name")).toBeFocused();
   await page.getByRole("button", { name: "Cancel", exact: true }).click();
   await expect(page.getByRole("button", { name: "New event" })).toBeFocused();
   await page.getByRole("link", { name: /Autumn gathering/u }).click();
   await expect(page).toHaveURL(/\/events\/[0-9a-f-]+$/u);
-  await page.getByRole("button", { name: "Browse event data" }).click();
+  await page.getByRole("tab", { name: "Overview", exact: true }).click();
   await expect(
     page.getByRole("heading", { name: "Your event, connected." }),
   ).toBeVisible();
@@ -131,7 +136,10 @@ test("organizes events and keeps navigation usable across reloads and screen siz
     const account = page.getByRole("button", { name: "Preview planner" });
     await expect(account).toHaveAttribute("aria-expanded", "false");
     await account.click();
-    const signOut = page.getByRole("button", { name: "Sign out", exact: true });
+    const signOut = page.getByRole("menuitem", {
+      name: "Sign out",
+      exact: true,
+    });
     await expect(signOut).toBeVisible();
     await signOut.focus();
     await page.keyboard.press("Escape");
@@ -145,23 +153,20 @@ test("organizes events and keeps navigation usable across reloads and screen siz
       "aria-selected",
       "true",
     );
-    await page.getByRole("button", { name: "More", exact: true }).click();
+    const account = page.locator(".account-trigger");
+    await account.click();
     await expect(
-      page.getByRole("button", { name: "Sign out", exact: true }),
+      page.getByRole("menuitem", { name: "Sign out", exact: true }),
     ).toBeVisible();
-    await page
-      .getByRole("combobox", { name: "Workspace", exact: true })
-      .focus();
+    await page.getByRole("menuitemradio").first().focus();
     await page.keyboard.press("Escape");
+    await expect(account).toBeFocused();
     await expect(
-      page.getByRole("button", { name: "More", exact: true }),
-    ).toBeFocused();
-    await expect(
-      page.getByRole("button", { name: "Sign out", exact: true }),
-    ).not.toBeVisible();
+      page.getByRole("menuitem", { name: "Sign out", exact: true }),
+    ).toHaveCount(0);
   }
   if (testInfo.project.name === "chromium-mobile") {
-    await page.getByRole("button", { name: "More", exact: true }).click();
+    await page.locator(".account-trigger").click();
   } else {
     await page.getByRole("button", { name: "Preview planner" }).click();
   }
@@ -172,7 +177,7 @@ test("organizes events and keeps navigation usable across reloads and screen siz
         document.documentElement.clientWidth,
     ),
   ).toBe(true);
-  await page.getByRole("button", { name: "Sign out", exact: true }).click();
+  await signOutFromMenu(page);
   await expect(page).toHaveURL(/\/sign-in$/u);
   await page.goto("/events");
   await expect(page).toHaveURL(/\/sign-in$/u);

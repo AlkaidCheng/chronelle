@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { expect, test } from "./fixtures";
+import { openSearchPage } from "./helpers/quiet-chrome";
 
 test("creates and retrieves one canonical Event at responsive widths", async ({
   page,
@@ -31,8 +32,6 @@ test("creates and retrieves one canonical Event at responsive widths", async ({
   await expect(page.getByRole("heading", { name: eventName })).toBeVisible();
   const eventUrl = page.url();
 
-  await page.getByRole("button", { name: "Browse event data" }).click();
-
   const overviewTab = page.getByRole("tab", { name: "Overview" });
   await overviewTab.focus();
   await page.keyboard.press("ArrowRight");
@@ -59,9 +58,9 @@ test("creates and retrieves one canonical Event at responsive widths", async ({
     page.getByText(/including versions saved before this invitation/u),
   ).toBeVisible();
 
-  await page.getByRole("link", { name: "Search" }).click();
+  await openSearchPage(page);
   await page.getByLabel("Keywords").fill("launch plan");
-  await page.getByRole("button", { name: "Search" }).click();
+  await page.getByRole("button", { name: "Search", exact: true }).click();
   const result = page.getByRole("link", { name: new RegExp(eventName, "u") });
   await expect(result).toHaveAttribute("href", new URL(eventUrl).pathname);
 
@@ -105,7 +104,7 @@ test("loads additional search results with keyboard navigation and resets filter
   await page.getByLabel("Name").fill("Search planner");
   await page.getByLabel("Email").fill(email);
   await page.getByRole("button", { name: "Continue" }).click();
-  await page.getByRole("link", { name: "Search", exact: true }).click();
+  await openSearchPage(page);
   await page.getByLabel("Keywords").fill("Searchable");
   await page.getByRole("button", { name: "Search", exact: true }).click();
   await expect(page.getByText("20 loaded", { exact: true })).toBeVisible();

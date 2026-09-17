@@ -25,7 +25,7 @@ import {
   type EventComponentKind,
 } from "@chronelle/schemas";
 import { Providers } from "../app/providers";
-import { EventPages } from "../features/events/event-pages";
+import { PagesHarness } from "./pages-harness";
 import {
   type DayKey,
   addDays,
@@ -121,6 +121,17 @@ function page(name: string, kinds: readonly EventComponentKind[]) {
   };
 }
 
+const pageOptions = () => screen.getByRole("button", { name: /^Options for / });
+async function choosePageOption(
+  user: ReturnType<typeof userEvent.setup>,
+  name: string,
+) {
+  await user.click(pageOptions());
+  await user.click(screen.getByRole("menuitem", { name }));
+}
+const arrange = (user: ReturnType<typeof userEvent.setup>) =>
+  choosePageOption(user, "Arrange layout");
+
 function RefreshProbe() {
   const cache = useQueryClient();
   return (
@@ -151,7 +162,7 @@ describe("insertable event components", () => {
     const pages = [page("Plan", ["todos"])];
     await client.updateEventLayout(eventId, { expectedVersion: 0, pages });
     const user = userEvent.setup();
-    render(<EventPages eventId={eventId} canEdit />, { wrapper: Providers });
+    render(<PagesHarness eventId={eventId} canEdit />, { wrapper: Providers });
     const filter = await screen.findByRole("button", { name: "Filter" });
     await user.click(filter);
     await user.click(screen.getByRole("menuitemradio", { name: "All" }));
@@ -191,7 +202,7 @@ describe("insertable event components", () => {
     await client.updateEventLayout(eventId, { expectedVersion: 0, pages });
     const before = await client.getEventDetail(eventId);
     const user = userEvent.setup();
-    render(<EventPages eventId={eventId} canEdit />, { wrapper: Providers });
+    render(<PagesHarness eventId={eventId} canEdit />, { wrapper: Providers });
     await user.click(await screen.findByRole("button", { name: "Add page" }));
     const dialog = within(screen.getByRole("dialog"));
     await user.click(dialog.getByRole("radio", { name: "Gathering" }));
@@ -211,7 +222,7 @@ describe("insertable event components", () => {
       pages[0]?.components[0]?.id,
     );
     expect(await client.getEventDetail(eventId)).toEqual(before);
-    await user.click(screen.getByRole("button", { name: "Page options" }));
+    await choosePageOption(user, "Page options");
     const recovery = within(screen.getByRole("dialog"));
     await user.click(
       recovery.getByRole("button", { name: "Undo layout change" }),
@@ -253,7 +264,9 @@ describe("insertable event components", () => {
       );
       await client.updateEventLayout(eventId, { expectedVersion: 0, pages });
       const user = userEvent.setup();
-      render(<EventPages eventId={eventId} canEdit />, { wrapper: Providers });
+      render(<PagesHarness eventId={eventId} canEdit />, {
+        wrapper: Providers,
+      });
       await user.click(await screen.findByRole("button", { name: "Add page" }));
       const dialog = within(screen.getByRole("dialog"));
       await user.type(
@@ -275,7 +288,7 @@ describe("insertable event components", () => {
 
   it("preserves preset and name on stale writes without overwriting the current layout", async () => {
     const user = userEvent.setup();
-    render(<EventPages eventId={eventId} canEdit />, { wrapper: Providers });
+    render(<PagesHarness eventId={eventId} canEdit />, { wrapper: Providers });
     await user.click(await screen.findByRole("button", { name: "Add page" }));
     const dialog = within(screen.getByRole("dialog"));
     await user.click(dialog.getByRole("radio", { name: "Gathering" }));
@@ -299,7 +312,7 @@ describe("insertable event components", () => {
 
   it("guards page creation during composition and an in-flight save", async () => {
     const user = userEvent.setup();
-    render(<EventPages eventId={eventId} canEdit />, { wrapper: Providers });
+    render(<PagesHarness eventId={eventId} canEdit />, { wrapper: Providers });
     await user.click(await screen.findByRole("button", { name: "Add page" }));
     const element = screen.getByRole("dialog");
     const dialog = within(element);
@@ -331,7 +344,7 @@ describe("insertable event components", () => {
 
   it("rejects a preset write when the server has revoked editing permission", async () => {
     const user = userEvent.setup();
-    render(<EventPages eventId={eventId} canEdit />, { wrapper: Providers });
+    render(<PagesHarness eventId={eventId} canEdit />, { wrapper: Providers });
     await user.click(await screen.findByRole("button", { name: "Add page" }));
     const dialog = within(screen.getByRole("dialog"));
     await user.click(dialog.getByRole("radio", { name: "Gathering" }));
@@ -346,14 +359,14 @@ describe("insertable event components", () => {
 
   it("discards page presets on edit-access loss without reviving them", async () => {
     const user = userEvent.setup();
-    const view = render(<EventPages eventId={eventId} canEdit />, {
+    const view = render(<PagesHarness eventId={eventId} canEdit />, {
       wrapper: Providers,
     });
     await user.click(await screen.findByRole("button", { name: "Add page" }));
     await user.click(screen.getByRole("radio", { name: "Gathering" }));
-    view.rerender(<EventPages eventId={eventId} canEdit={false} />);
+    view.rerender(<PagesHarness eventId={eventId} canEdit={false} />);
     expect(screen.queryByRole("dialog")).toBeNull();
-    view.rerender(<EventPages eventId={eventId} canEdit />);
+    view.rerender(<PagesHarness eventId={eventId} canEdit />);
     expect(screen.queryByRole("dialog")).toBeNull();
     expect((await client.getEventLayout(eventId)).pages).toEqual([]);
   });
@@ -364,27 +377,24 @@ describe("insertable event components", () => {
       pages: [page("Plan", ["todos", "calendar"])],
     });
     const user = userEvent.setup();
-    render(<EventPages eventId={eventId} canEdit />, { wrapper: Providers });
+    render(<PagesHarness eventId={eventId} canEdit />, { wrapper: Providers });
     const filter = await screen.findByRole("button", { name: "Filter" });
     await user.click(filter);
     await user.click(screen.getByRole("menuitemradio", { name: "All" }));
     await user.keyboard("{Escape}");
-    const trigger = screen.getByRole("button", { name: "Arrange layout" });
     expect(screen.queryByRole("group", { name: /layout controls/ })).toBeNull();
     const before = await client.getEventLayout(eventId);
     vi.mocked(fetch).mockClear();
-    await user.click(trigger);
+    await arrange(user);
     expect(
       screen.getAllByRole("group", { name: /layout controls/ }),
     ).toHaveLength(2);
-    expect(screen.getByText(/Moves save immediately/)).toBeVisible();
     expect(screen.getByRole("button", { name: "Filter: 1 filter" })).toBe(
       filter,
     );
     expect(filter).toHaveClass("is-active");
-    await user.keyboard("{Enter}");
-    expect(trigger).toHaveFocus();
-    expect(trigger).toHaveTextContent("Arrange");
+    await user.click(screen.getByRole("button", { name: "Done arranging" }));
+    expect(pageOptions()).toHaveFocus();
     expect(screen.queryByRole("group", { name: /layout controls/ })).toBeNull();
     expect(screen.getByRole("button", { name: "Filter: 1 filter" })).toBe(
       filter,
@@ -402,12 +412,11 @@ describe("insertable event components", () => {
         pages: [page("Plan", ["todos"]), page("Day", [])],
       });
       const user = userEvent.setup();
-      const view = render(<EventPages eventId={eventId} canEdit />, {
+      const view = render(<PagesHarness eventId={eventId} canEdit />, {
         wrapper: Providers,
       });
-      await user.click(
-        await screen.findByRole("button", { name: "Arrange layout" }),
-      );
+      await screen.findByRole("region", { name: "Event pages" });
+      await arrange(user);
       const dataTransfer = {
         setData: vi.fn(),
         effectAllowed: "",
@@ -422,21 +431,21 @@ describe("insertable event components", () => {
           screen.getByRole("button", { name: "Done arranging" }),
         );
       else {
-        view.rerender(<EventPages eventId={eventId} canEdit={false} />);
+        view.rerender(<PagesHarness eventId={eventId} canEdit={false} />);
         expect(screen.queryByRole("button", { name: /arrang/i })).toBeNull();
         expect(
           screen.queryByRole("button", { name: /^Move |^Drag / }),
         ).toBeNull();
-        view.rerender(<EventPages eventId={eventId} canEdit />);
+        view.rerender(<PagesHarness eventId={eventId} canEdit />);
       }
       expect(
-        screen.getByRole("button", { name: "Arrange layout" }),
-      ).toBeVisible();
+        screen.queryByRole("button", { name: "Done arranging" }),
+      ).toBeNull();
       expect(screen.queryByText("Drop at end of Plan")).toBeNull();
       fireEvent.drop(screen.getByRole("button", { name: "Day" }), {
         dataTransfer,
       });
-      await user.click(screen.getByRole("button", { name: "Arrange layout" }));
+      await arrange(user);
       fireEvent.drop(screen.getByRole("button", { name: "Day" }), {
         dataTransfer,
       });
@@ -459,7 +468,7 @@ describe("insertable event components", () => {
     );
     render(
       <WorkspaceCommandProvider pathname={`/events/${eventId}`}>
-        <EventPages eventId={eventId} canEdit />
+        <PagesHarness eventId={eventId} canEdit />
         <CommandProbe />
       </WorkspaceCommandProvider>,
       { wrapper: Providers },
@@ -468,7 +477,7 @@ describe("insertable event components", () => {
     await user.click(await screen.findByRole("button", { name: "On the day" }));
     const commands = screen.getByLabelText("Available page actions");
     expect(commands).toHaveTextContent("Choose a component for On the day");
-    await user.click(screen.getByRole("button", { name: "Arrange layout" }));
+    await arrange(user);
     expect(commands).toHaveTextContent("Done arranging");
     await user.click(screen.getByRole("button", { name: "Move page earlier" }));
     await waitFor(() => expect(commands).toBeEmptyDOMElement());
@@ -508,7 +517,7 @@ describe("insertable event components", () => {
       await client.updateEventLayout(eventId, { expectedVersion: 0, pages });
       render(
         <WorkspaceCommandProvider pathname={`/events/${eventId}`}>
-          <EventPages eventId={eventId} canEdit={scenario !== "viewer"} />
+          <PagesHarness eventId={eventId} canEdit={scenario !== "viewer"} />
           <CommandProbe />
         </WorkspaceCommandProvider>,
         { wrapper: Providers },
@@ -529,32 +538,38 @@ describe("insertable event components", () => {
     "explains the next step for empty layouts without offering viewer actions (canEdit=%s)",
     async (canEdit) => {
       const user = userEvent.setup();
-      render(<EventPages eventId={eventId} canEdit={canEdit} />, {
+      render(<PagesHarness eventId={eventId} canEdit={canEdit} />, {
         wrapper: Providers,
       });
-      await screen.findByRole("heading", { name: "A place for your event" });
-      expect(screen.queryByText(/Drag a handle/)).toBeNull();
+      await screen.findByRole("region", { name: "Event pages" });
       if (!canEdit) {
-        expect(
-          screen.getByText("The planner has not added any pages yet."),
-        ).toBeVisible();
+        expect(screen.getByText("No pages yet.")).toBeVisible();
         expect(screen.queryByRole("button", { name: "Add page" })).toBeNull();
+        expect(screen.queryByRole("button", { name: "Add a page" })).toBeNull();
         return;
       }
-      await user.click(screen.getByRole("button", { name: "Add page" }));
+      await user.click(screen.getByRole("button", { name: "Add a page" }));
       const dialog = within(screen.getByRole("dialog", { name: "Add a page" }));
       const name = dialog.getByRole("textbox", { name: "Page name" });
       expect(name).toHaveAccessibleDescription(/Pages organize this event/);
       await user.type(name, "Preparation");
       await user.click(dialog.getByRole("button", { name: "Add page" }));
       await screen.findByRole("heading", { name: "Preparation" });
-      expect(screen.getByText(/Choose Add component/)).toBeVisible();
-      expect(screen.queryByText(/Drag a handle/)).toBeNull();
+      expect(
+        screen.getByRole("button", { name: "Add component" }),
+      ).toBeVisible();
+      expect(
+        screen.queryByRole("group", { name: /layout controls/ }),
+      ).toBeNull();
       await user.click(screen.getByRole("button", { name: "Add component" }));
       await user.click(screen.getByRole("button", { name: "Add To-dos" }));
-      await user.click(screen.getByRole("button", { name: "Arrange layout" }));
-      expect(screen.getByText(/Drag a handle/)).toBeVisible();
-      expect(screen.queryByText(/Choose Add component/)).toBeNull();
+      await arrange(user);
+      expect(
+        screen.getByRole("button", { name: "Done arranging" }),
+      ).toBeVisible();
+      expect(
+        screen.getAllByRole("group", { name: /layout controls/ }),
+      ).toHaveLength(1);
     },
   );
 
@@ -563,14 +578,11 @@ describe("insertable event components", () => {
       expectedVersion: 0,
       pages: [page("Preparation", [])],
     });
-    render(<EventPages eventId={eventId} canEdit={false} />, {
+    render(<PagesHarness eventId={eventId} canEdit={false} />, {
       wrapper: Providers,
     });
-    expect(
-      await screen.findByText("This page has no components yet."),
-    ).toBeVisible();
+    expect(await screen.findByText("No components yet.")).toBeVisible();
     expect(screen.queryByRole("button", { name: "Add component" })).toBeNull();
-    expect(screen.queryByText(/Drag a handle/)).toBeNull();
   });
 
   it.each([503, 403, 404])(
@@ -599,7 +611,7 @@ describe("insertable event components", () => {
       const user = userEvent.setup();
       render(
         <>
-          <EventPages eventId={eventId} canEdit />
+          <PagesHarness eventId={eventId} canEdit />
           <RefreshProbe />
         </>,
         { wrapper: Providers },
@@ -631,10 +643,9 @@ describe("insertable event components", () => {
     await client.updateEventLayout(eventId, { expectedVersion: 0, pages });
     const before = await client.getEventDetail(eventId);
     const user = userEvent.setup();
-    render(<EventPages eventId={eventId} canEdit />, { wrapper: Providers });
-    await user.click(
-      await screen.findByRole("button", { name: "Page options" }),
-    );
+    render(<PagesHarness eventId={eventId} canEdit />, { wrapper: Providers });
+    await screen.findByRole("region", { name: "Event pages" });
+    await choosePageOption(user, "Page options");
     const dialog = within(
       screen.getByRole("dialog", { name: "Manage event pages" }),
     );
@@ -695,17 +706,16 @@ describe("insertable event components", () => {
     expect(await client.getEventDetail(eventId)).toEqual(before);
     await user.click(dialog.getByRole("button", { name: "Close" }));
     expect(screen.queryByRole("dialog")).toBeNull();
-    expect(screen.getByRole("button", { name: "Page options" })).toHaveFocus();
+    expect(pageOptions()).toHaveFocus();
   });
 
   it("requires an explicit refresh after a stale removal confirmation", async () => {
     const pages = [page("Plan", ["todos"])];
     await client.updateEventLayout(eventId, { expectedVersion: 0, pages });
     const user = userEvent.setup();
-    render(<EventPages eventId={eventId} canEdit />, { wrapper: Providers });
-    await user.click(
-      await screen.findByRole("button", { name: "Page options" }),
-    );
+    render(<PagesHarness eventId={eventId} canEdit />, { wrapper: Providers });
+    await screen.findByRole("region", { name: "Event pages" });
+    await choosePageOption(user, "Page options");
     const dialog = within(screen.getByRole("dialog"));
     await user.click(dialog.getByRole("button", { name: "Remove page" }));
     const external = [page("External", ["expenses"])];
@@ -736,7 +746,7 @@ describe("insertable event components", () => {
       pages: [page("Plan", ["todos", "calendar"])],
     });
     const user = userEvent.setup();
-    const { unmount } = render(<EventPages eventId={eventId} canEdit />, {
+    const { unmount } = render(<PagesHarness eventId={eventId} canEdit />, {
       wrapper: Providers,
     });
     // The sample task is due fourteen days from now; the heading names that day.
@@ -776,7 +786,7 @@ describe("insertable event components", () => {
     await user.keyboard("{Escape}");
     unmount();
 
-    render(<EventPages eventId={eventId} canEdit={false} />, {
+    render(<PagesHarness eventId={eventId} canEdit={false} />, {
       wrapper: Providers,
     });
     await screen.findByRole("region", { name: dayHeading });
@@ -816,7 +826,7 @@ describe("insertable event components", () => {
         year: "numeric",
       }).format(parseDayKey(day));
     const user = userEvent.setup();
-    render(<EventPages eventId={eventId} canEdit />, { wrapper: Providers });
+    render(<PagesHarness eventId={eventId} canEdit />, { wrapper: Providers });
     await screen.findByText("Confirm the caterer");
     const panel = (title: string) =>
       within(
@@ -955,7 +965,7 @@ describe("insertable event components", () => {
       },
     });
     const user = userEvent.setup();
-    render(<EventPages eventId={eventId} canEdit />, { wrapper: Providers });
+    render(<PagesHarness eventId={eventId} canEdit />, { wrapper: Providers });
     await screen.findByText("Call the florist");
     const panel = (title: string) =>
       within(
@@ -1068,7 +1078,7 @@ describe("insertable event components", () => {
     const user = userEvent.setup();
     render(
       <>
-        <EventPages eventId={eventId} canEdit />
+        <PagesHarness eventId={eventId} canEdit />
         <RefreshProbe />
       </>,
       { wrapper: Providers },
@@ -1177,7 +1187,7 @@ describe("insertable event components", () => {
       remindAt: soon.toISOString(),
     });
     const user = userEvent.setup();
-    render(<EventPages eventId={eventId} canEdit />, { wrapper: Providers });
+    render(<PagesHarness eventId={eventId} canEdit />, { wrapper: Providers });
     const todos = within(await screen.findByRole("heading", { name: "To-dos" }))
       .getByText("To-dos")
       .closest("section") as HTMLElement;
@@ -1250,12 +1260,11 @@ describe("insertable event components", () => {
       pages: [page("Plan", ["todos"])],
     });
     const user = userEvent.setup();
-    render(<EventPages eventId={eventId} canEdit={false} />, {
+    render(<PagesHarness eventId={eventId} canEdit={false} />, {
       wrapper: Providers,
     });
-    await user.click(
-      await screen.findByRole("button", { name: "Layout history" }),
-    );
+    await screen.findByRole("region", { name: "Event pages" });
+    await choosePageOption(user, "Layout history");
     const dialog = within(
       screen.getByRole("dialog", { name: "Layout history" }),
     );
@@ -1280,7 +1289,7 @@ describe("insertable event components", () => {
     const before = await client.getEventDetail(eventId);
     const pages = [page("Plan", eventComponentKindSchema.options)];
     await client.updateEventLayout(eventId, { expectedVersion: 0, pages });
-    render(<EventPages eventId={eventId} canEdit />, { wrapper: Providers });
+    render(<PagesHarness eventId={eventId} canEdit />, { wrapper: Providers });
     for (const kind of addableEventComponentKinds) {
       expect(
         (
@@ -1312,7 +1321,7 @@ describe("insertable event components", () => {
       pages: [page("Work", ["todos", "todos"]), page("Schedule", ["calendar"])],
     });
     const user = userEvent.setup();
-    render(<EventPages eventId={eventId} canEdit />, { wrapper: Providers });
+    render(<PagesHarness eventId={eventId} canEdit />, { wrapper: Providers });
     await waitFor(() =>
       expect(screen.getAllByRole("heading", { name: "To-dos" })).toHaveLength(
         2,
@@ -1392,7 +1401,7 @@ describe("insertable event components", () => {
       }),
     );
     const user = userEvent.setup();
-    render(<EventPages eventId={eventId} canEdit />, { wrapper: Providers });
+    render(<PagesHarness eventId={eventId} canEdit />, { wrapper: Providers });
     expect(
       await screen.findByRole("heading", { name: "To-dos" }),
     ).toBeVisible();
@@ -1411,7 +1420,7 @@ describe("insertable event components", () => {
     const pages = [page("Plan", [])];
     await client.updateEventLayout(eventId, { expectedVersion: 0, pages });
     const user = userEvent.setup();
-    render(<EventPages eventId={eventId} canEdit />, { wrapper: Providers });
+    render(<PagesHarness eventId={eventId} canEdit />, { wrapper: Providers });
     const trigger = await screen.findByRole("button", {
       name: "Add component",
     });
@@ -1447,7 +1456,7 @@ describe("insertable event components", () => {
       pages: [page("Plan", ["todos"])],
     });
     const user = userEvent.setup();
-    render(<EventPages eventId={eventId} canEdit />, { wrapper: Providers });
+    render(<PagesHarness eventId={eventId} canEdit />, { wrapper: Providers });
     await user.click(await screen.findByRole("button", { name: "Plan" }));
     await user.keyboard("/");
     const search = screen.getByRole("searchbox", { name: "Find a component" });
@@ -1483,7 +1492,7 @@ describe("insertable event components", () => {
     const before = await client.getEventDetail(eventId);
     await client.updateEventLayout(eventId, { expectedVersion: 0, pages });
     const user = userEvent.setup();
-    render(<EventPages eventId={eventId} canEdit />, { wrapper: Providers });
+    render(<PagesHarness eventId={eventId} canEdit />, { wrapper: Providers });
     await user.click(await screen.findByRole("button", { name: "On the day" }));
     await user.click(screen.getByRole("button", { name: "Add component" }));
     const dialog = within(screen.getByRole("dialog"));
@@ -1527,7 +1536,7 @@ describe("insertable event components", () => {
       pages: [page("Plan", [])],
     });
     const user = userEvent.setup();
-    render(<EventPages eventId={eventId} canEdit />, { wrapper: Providers });
+    render(<PagesHarness eventId={eventId} canEdit />, { wrapper: Providers });
     await user.click(
       await screen.findByRole("button", { name: "Add component" }),
     );
@@ -1565,7 +1574,7 @@ describe("insertable event components", () => {
       pages: [page("Plan", [])],
     });
     const user = userEvent.setup();
-    const view = render(<EventPages eventId={eventId} canEdit />, {
+    const view = render(<PagesHarness eventId={eventId} canEdit />, {
       wrapper: Providers,
     });
     await user.click(
@@ -1575,9 +1584,9 @@ describe("insertable event components", () => {
       screen.getByRole("searchbox", { name: "Find a component" }),
       "costs",
     );
-    view.rerender(<EventPages eventId={eventId} canEdit={false} />);
+    view.rerender(<PagesHarness eventId={eventId} canEdit={false} />);
     expect(screen.queryByRole("dialog")).toBeNull();
-    view.rerender(<EventPages eventId={eventId} canEdit />);
+    view.rerender(<PagesHarness eventId={eventId} canEdit />);
     expect(screen.queryByRole("dialog")).toBeNull();
     expect((await client.getEventLayout(eventId)).version).toBe(1);
   });
@@ -1587,10 +1596,9 @@ describe("insertable event components", () => {
     const before = await client.getEventDetail(eventId);
     await client.updateEventLayout(eventId, { expectedVersion: 0, pages });
     const user = userEvent.setup();
-    render(<EventPages eventId={eventId} canEdit />, { wrapper: Providers });
-    await user.click(
-      await screen.findByRole("button", { name: "Arrange layout" }),
-    );
+    render(<PagesHarness eventId={eventId} canEdit />, { wrapper: Providers });
+    await screen.findByRole("region", { name: "Event pages" });
+    await arrange(user);
     const down = await screen.findByRole("button", {
       name: "Move To-dos down",
     });
@@ -1638,10 +1646,9 @@ describe("insertable event components", () => {
     const pages = [page("Work", ["todos", "calendar"]), page("Day", [])];
     await client.updateEventLayout(eventId, { expectedVersion: 0, pages });
     const user = userEvent.setup();
-    render(<EventPages eventId={eventId} canEdit />, { wrapper: Providers });
-    await user.click(
-      await screen.findByRole("button", { name: "Arrange layout" }),
-    );
+    render(<PagesHarness eventId={eventId} canEdit />, { wrapper: Providers });
+    await screen.findByRole("region", { name: "Event pages" });
+    await arrange(user);
     const concurrent = pages.map((item) => ({
       ...item,
       name: `Updated ${item.name}`,
@@ -1675,10 +1682,9 @@ describe("insertable event components", () => {
       pages: [page("Work", []), page("Day", [])],
     });
     const user = userEvent.setup();
-    render(<EventPages eventId={eventId} canEdit />, { wrapper: Providers });
-    await user.click(
-      await screen.findByRole("button", { name: "Arrange layout" }),
-    );
+    render(<PagesHarness eventId={eventId} canEdit />, { wrapper: Providers });
+    await screen.findByRole("region", { name: "Event pages" });
+    await arrange(user);
     await user.click(
       await screen.findByRole("button", { name: "Move page later" }),
     );
@@ -1686,6 +1692,7 @@ describe("insertable event components", () => {
       expect(
         within(screen.getByRole("navigation", { name: "Pages" }))
           .getAllByRole("button")
+          .filter((button) => button.dataset.pageId)
           .map((button) => button.textContent),
       ).toEqual(["Day", "Work"]),
     );
@@ -1699,10 +1706,9 @@ describe("insertable event components", () => {
   it("ignores external drops and rejects a drag based on an outdated layout snapshot", async () => {
     const pages = [page("Work", ["todos", "calendar"]), page("Day", [])];
     await client.updateEventLayout(eventId, { expectedVersion: 0, pages });
-    render(<EventPages eventId={eventId} canEdit />, { wrapper: Providers });
-    await userEvent
-      .setup()
-      .click(await screen.findByRole("button", { name: "Arrange layout" }));
+    render(<PagesHarness eventId={eventId} canEdit />, { wrapper: Providers });
+    await screen.findByRole("region", { name: "Event pages" });
+    await arrange(userEvent.setup());
     const target = await screen.findByRole("button", { name: "Day" });
     const dataTransfer = {
       setData: vi.fn(),
@@ -1745,7 +1751,7 @@ describe("insertable event components", () => {
         store.fetch(input, options, "viewer"),
       ),
     );
-    render(<EventPages eventId={eventId} canEdit={false} />, {
+    render(<PagesHarness eventId={eventId} canEdit={false} />, {
       wrapper: Providers,
     });
     expect(await screen.findByText("Read-only files")).toBeVisible();

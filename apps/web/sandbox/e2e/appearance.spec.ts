@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 import { exerciseAppearance } from "../../e2e/helpers/appearance";
-import { exerciseDisplaySettings } from "../../e2e/helpers/display-settings";
+import { exerciseThemePanel } from "../../e2e/helpers/display-settings";
 
 const sandboxUrl = new URL(
   "../../../../.chronelle/sandbox/chronelle.html",
@@ -13,7 +13,7 @@ test("customizes all palettes and display settings offline", async ({
 }, testInfo) => {
   await context.setOffline(true);
   await page.goto(sandboxUrl);
-  await exerciseDisplaySettings(page, testInfo);
+  await exerciseThemePanel(page, testInfo);
 });
 
 for (const appearance of ["light", "dark"] as const) {
@@ -34,7 +34,7 @@ for (const appearance of ["light", "dark"] as const) {
     await exerciseAppearance(page, testInfo, appearance);
     await page.getByLabel("Preview role").selectOption("viewer");
     await expect(
-      page.getByRole("button", { name: "Browse event data" }),
+      page.getByRole("tablist", { name: "Event views", exact: true }),
     ).toBeVisible();
     expect(requests).toEqual([]);
   });

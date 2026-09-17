@@ -1,5 +1,6 @@
 import { expect, type Page, type TestInfo } from "@playwright/test";
 import { expectHorizontalReflow } from "./page-navigation";
+import { openThemePanel, searchEntry } from "./quiet-chrome";
 
 export async function exerciseWorkspaceCommands(
   page: Page,
@@ -7,12 +8,11 @@ export async function exerciseWorkspaceCommands(
 ) {
   const errors: string[] = [];
   page.on("pageerror", (error) => errors.push(error.message));
-  const trigger = page.getByRole("button", { name: "Commands", exact: true });
-  const dialog = page.getByRole("dialog", { name: "Commands", exact: true });
+  const trigger = searchEntry(page);
+  const dialog = page.getByRole("dialog", { name: "Search", exact: true });
   const results = dialog.getByRole("listbox", {
     name: "Commands",
   });
-  await page.getByRole("button", { name: "Browse event data" }).click();
   await page.getByRole("tab", { name: "To-dos", exact: true }).click();
   const addTask = page.getByRole("button", { name: "Add task", exact: true });
   await addTask.click();
@@ -89,7 +89,7 @@ export async function exerciseWorkspaceCommands(
   await page.screenshot({
     path: testInfo.outputPath("commands-help-narrow.png"),
   });
-  await dialog.getByRole("button", { name: "Close commands" }).click();
+  await dialog.getByRole("button", { name: "Close search" }).click();
   await expect(trigger).toBeFocused();
   await page.keyboard.press("Control+k");
   await expect(dialog).toHaveCount(0);
@@ -99,12 +99,13 @@ export async function exerciseWorkspaceCommands(
   await enable.check();
   await page.keyboard.press("Escape");
 
-  await page.getByRole("button", { name: "More", exact: true }).click();
-  const settings = page.getByRole("dialog", { name: "Workspace settings" });
-  await page.keyboard.press("Control+k");
-  await expect(dialog).toHaveCount(0);
-  await settings.getByRole("radio", { name: "Dark", exact: true }).check();
+  const theme = await openThemePanel(page);
+  await theme
+    .getByRole("group", { name: "Appearance" })
+    .getByRole("radio", { name: "Dark", exact: true })
+    .check();
   await page.keyboard.press("Escape");
+  await expect(theme).toHaveCount(0);
   await trigger.click();
   await expectHorizontalReflow(page);
   await page.screenshot({
@@ -117,7 +118,7 @@ export async function exerciseWorkspaceCommands(
     results.getByRole("option", { selected: true }),
   ).toBeInViewport();
   await expect(
-    dialog.getByRole("button", { name: "Close commands" }),
+    dialog.getByRole("button", { name: "Close search" }),
   ).toBeInViewport();
   await expectHorizontalReflow(page);
   await input.fill("search");

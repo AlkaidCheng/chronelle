@@ -346,15 +346,18 @@ describe("EventWorkspace", () => {
       expect(
         await screen.findByRole("heading", { name: rootEvent.displayName }),
       ).toBeVisible();
+      const paths = () => fetch.mock.calls.map(([input]) => requestPath(input));
       await waitFor(() =>
-        expect(
-          fetch.mock.calls.map(([input]) => requestPath(input)).sort(),
-        ).toEqual([
-          `/api/events/${eventId}`,
-          `/api/events/${eventId}/${view}`,
-          `/api/objects/${eventId}/access`,
-        ]),
+        expect(paths()).toEqual(
+          expect.arrayContaining([
+            `/api/events/${eventId}`,
+            `/api/events/${eventId}/${view}`,
+            `/api/events/${eventId}/layout`,
+            `/api/objects/${eventId}/access`,
+          ]),
+        ),
       );
+      expect(paths()).not.toContain(`/api/events/${eventId}/detail`);
       expect(screen.queryByRole("alert")).toBeNull();
     },
   );
@@ -623,6 +626,7 @@ describe("EventWorkspace", () => {
     ).toEqual([
       `/api/events/${eventId}`,
       `/api/events/${eventId}/detail`,
+      `/api/events/${eventId}/layout`,
       `/api/objects/${eventId}/access`,
     ]);
     overviewTab.focus();

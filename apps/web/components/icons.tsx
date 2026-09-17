@@ -309,3 +309,101 @@ export function RingIcon({ className }: IconProps) {
     </svg>
   );
 }
+
+export function PencilIcon({ className }: IconProps) {
+  return (
+    <svg
+      aria-hidden="true"
+      className={className}
+      fill="none"
+      viewBox="0 0 24 24"
+    >
+      <path d="M4 20l4.5-1L19 8.5a2.1 2.1 0 0 0-3-3L5.5 16 4 20z" />
+    </svg>
+  );
+}
+
+export function RefreshIcon({ className }: IconProps) {
+  return (
+    <svg
+      aria-hidden="true"
+      className={className}
+      fill="none"
+      viewBox="0 0 24 24"
+    >
+      <path d="M20 12a8 8 0 1 1-2.3-5.7M20 4v5h-5" />
+    </svg>
+  );
+}
+
+export function ChevronLeftIcon({ className }: IconProps) {
+  return (
+    <svg
+      aria-hidden="true"
+      className={className}
+      fill="none"
+      viewBox="0 0 24 24"
+    >
+      <path d="M15 6l-6 6 6 6" />
+    </svg>
+  );
+}
+
+export function ThemeIcon({ className }: IconProps) {
+  return (
+    <svg
+      aria-hidden="true"
+      className={className}
+      fill="none"
+      viewBox="0 0 24 24"
+    >
+      <circle cx="12" cy="12" r="8.5" />
+      <path
+        d="M12 3.5v17a8.5 8.5 0 0 0 0-17z"
+        fill="currentColor"
+        stroke="none"
+      />
+    </svg>
+  );
+}
+
+export function KeyIcon({ className }: IconProps) {
+  return (
+    <svg
+      aria-hidden="true"
+      className={className}
+      fill="none"
+      viewBox="0 0 24 24"
+    >
+      <circle cx="8" cy="14" r="4" />
+      <path d="M11 11l9-9M16 6l2 2M14 8l2 2" />
+    </svg>
+  );
+}
+
+export function CalendarPlusIcon({ className }: IconProps) {
+  return (
+    <svg
+      aria-hidden="true"
+      className={className}
+      fill="none"
+      viewBox="0 0 24 24"
+    >
+      <rect x="3" y="5" width="18" height="16" rx="2" />
+      <path d="M3 10h18M8 3v4M16 3v4M12 13v5M9.5 15.5h5" />
+    </svg>
+  );
+}
+
+export function LinkIcon({ className }: IconProps) {
+  return (
+    <svg
+      aria-hidden="true"
+      className={className}
+      fill="none"
+      viewBox="0 0 24 24"
+    >
+      <path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1" />
+    </svg>
+  );
+}

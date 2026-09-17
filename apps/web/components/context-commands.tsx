@@ -21,7 +21,9 @@ export interface ContextCommand {
     | "add-component";
   readonly label: string;
   readonly description: string;
-  readonly target: RefObject<HTMLButtonElement | null>;
+  /** The control the command presses; `run` replaces it for menu entries. */
+  readonly target?: RefObject<HTMLButtonElement | null>;
+  readonly run?: () => void;
 }
 
 interface CommandScopeProps {

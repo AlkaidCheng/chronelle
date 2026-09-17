@@ -5,6 +5,7 @@ import {
   type TestInfo,
 } from "@playwright/test";
 import { expectHorizontalReflow } from "./page-navigation";
+import { choosePageOptionWithKeyboard } from "./quiet-chrome";
 
 export async function tabTo(page: Page, target: Locator) {
   await expect(target).toBeVisible();
@@ -23,9 +24,8 @@ export async function activateWithKeyboard(page: Page, target: Locator) {
 
 export async function createFirstPlan(page: Page, testInfo: TestInfo) {
   await expect(
-    page.getByRole("heading", { name: "Your first event starts here" }),
+    page.getByRole("heading", { name: "No events yet" }),
   ).toBeVisible();
-  await expect(page.getByText(/Dates are optional/)).toBeVisible();
   await activateWithKeyboard(
     page,
     page.getByRole("button", { name: "New event", exact: true }),
@@ -38,11 +38,12 @@ export async function createFirstPlan(page: Page, testInfo: TestInfo) {
   await page.keyboard.insertText("A first gathering");
   await page.keyboard.press("Enter");
   await expect(
-    page.getByRole("heading", { name: "A place for your event" }),
+    page.getByRole("button", { name: "Add a page", exact: true }),
   ).toBeVisible();
-  await expect(page.locator(".event-date")).toHaveText(
-    "Schedule to be decided",
-  );
+  await expect(page.locator(".event-date")).toHaveCount(0);
+  await expect(
+    page.getByRole("button", { name: "Set dates", exact: true }),
+  ).toBeVisible();
   await expectHorizontalReflow(page);
   const addPage = page.getByRole("button", { name: "Add page", exact: true });
   await tabTo(page, addPage);
@@ -64,7 +65,9 @@ export async function createFirstPlan(page: Page, testInfo: TestInfo) {
   await expect(
     page.getByRole("heading", { name: "Preparation", exact: true }),
   ).toBeVisible();
-  await expect(page.getByText(/Choose Add component/)).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Add component", exact: true }),
+  ).toBeVisible();
   await expect(page.locator(".composition-hint")).toHaveCount(0);
   await activateWithKeyboard(
     page,
@@ -77,11 +80,10 @@ export async function createFirstPlan(page: Page, testInfo: TestInfo) {
     page.getByRole("heading", { name: "To-dos", exact: true }),
   ).toBeVisible();
   await expect(page.locator(".composition-hint")).toHaveCount(0);
-  await activateWithKeyboard(
-    page,
-    page.getByRole("button", { name: "Arrange layout", exact: true }),
-  );
-  await expect(page.getByText(/Moves save immediately/)).toBeVisible();
+  await choosePageOptionWithKeyboard(page, "Arrange layout");
+  await expect(
+    page.getByRole("button", { name: "Done arranging", exact: true }),
+  ).toBeVisible();
   await activateWithKeyboard(
     page,
     page.getByRole("button", { name: "Done arranging", exact: true }),

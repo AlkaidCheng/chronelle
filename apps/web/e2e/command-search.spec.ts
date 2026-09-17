@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 import { expect, test, type Page } from "./fixtures";
 import { exerciseCommandSearch } from "./helpers/command-search";
 import { openCommands } from "./helpers/context-commands";
-import { openWorkspaceSettings } from "./helpers/workspace-utilities";
+import { switchWorkspace } from "./helpers/quiet-chrome";
 
 async function signIn(page: Page, email: string) {
   await page.goto("/sign-in/development");
@@ -170,11 +170,7 @@ test("filters workspace and private records and rechecks revoked access", async 
     dialog.getByText("No accessible records found. Try another phrase."),
   ).toBeVisible();
   await input.press("Escape");
-  const settings = await openWorkspaceSettings(page);
-  await settings
-    .getByRole("combobox", { name: "Workspace", exact: true })
-    .selectOption(owner.workspace.id);
-  await expect(settings).toHaveCount(0);
+  await switchWorkspace(page, owner.workspace.displayName);
   await openCommands(page);
   await input.fill("gathering");
   await expect(

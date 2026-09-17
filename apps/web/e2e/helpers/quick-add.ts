@@ -50,7 +50,6 @@ export async function exerciseQuickAddOnTasksPage(page: Page) {
  * the next 9:00, a day group at 9:00 that day). Returns what was added.
  */
 export async function exerciseQuickAddInEvent(page: Page) {
-  await page.getByRole("button", { name: "Browse event data" }).click();
   await page.getByRole("tab", { name: "To-dos", exact: true }).click();
   const todos = page.locator(".planning-panel").filter({
     has: page.getByRole("heading", { name: "To-dos", exact: true }),
