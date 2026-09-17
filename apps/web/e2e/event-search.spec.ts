@@ -55,7 +55,10 @@ test("creates and retrieves one canonical Event at responsive widths", async ({
   await expect(page.getByText("Confirm venue", { exact: true })).toBeVisible();
   await page.getByRole("tab", { name: "Sharing" }).click();
   await expect(
-    page.getByText(/including versions saved before this invitation/u),
+    page.getByRole("heading", { name: "People with access", exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Only you have access", exact: true }),
   ).toBeVisible();
 
   await openSearchPage(page);
