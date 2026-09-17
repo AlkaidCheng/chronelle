@@ -19,7 +19,12 @@ authentication is enabled) records a session and returns
 token is random and opaque; the server keeps only its digest, so the
 session outlives an API restart and is valid until `expiresAt` or until it
 is revoked. `GET /api/auth/session` returns the principal, user, workspace,
-and the workspaces the user may enter.
+and the workspaces the user may enter. The user carries `locale`, the
+language kept on the account as a BCP 47 tag (`en`, `zh-Hans`, `zh-Hant`)
+or null when none was chosen; `PATCH /api/auth/me` with `{ locale }` (a tag,
+or null to clear it) sets it for the signed-in user and returns the user as
+the next session read shows it, 400 `invalid_request` for a value that is
+not a language tag.
 
 `DELETE /api/auth/session` revokes the presented token and
 `DELETE /api/auth/sessions` revokes every session of the user, this one
@@ -38,9 +43,10 @@ is forwarded unchanged; the browser client does not keep the token.
 
 ### Email and password accounts
 
-`POST /api/auth/sign-up` with `{ displayName, email, password }` (password
-10 to 256 characters) records an unverified account and emails a six-digit
-code; the response is 202 `{ accepted: true }`, or 409 `email_taken`.
+`POST /api/auth/sign-up` with `{ displayName, email, password, locale? }`
+(password 10 to 256 characters; `locale` the language of the sign-up screen,
+kept on the account) records an unverified account and emails a six-digit
+code in the account's language (English when none); the response is 202 `{ accepted: true }`, or 409 `email_taken`.
 `POST /api/auth/verify-email` with `{ email, code }` verifies the address
 and signs the account in with the sign-in response above; a wrong, expired,
 or exhausted code (five wrong guesses) is 400 `verification_invalid`, and
