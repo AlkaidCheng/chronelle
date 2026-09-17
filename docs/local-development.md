@@ -92,7 +92,16 @@ in place; the runtime role needs no change. Migration
 `0047_add_user_locale.sql` adds `users.locale` (a language tag or null) with
 `chronelle_user_locale_update`; the user row is serialized whole by the
 identity, session, and credential functions, so no other function changes
-and the runtime role needs no change.
+and the runtime role needs no change. Migration
+`0048_add_user_time_preferences.sql` adds `users.time_zone`, `hour_cycle`,
+and `week_start` (each null until chosen, with check constraints) and
+replaces `chronelle_user_locale_update` with
+`chronelle_user_preferences_update(user_id, preferences jsonb)`, one merging
+write for every account preference; the function count is unchanged and the
+runtime role needs no change. Apply 0048 before deploying an API built from
+this change: the API's startup readiness check requires the new function,
+and an API built before it fails only the language change until it is
+redeployed.
 
 Migration `0021_add_object_search_function.sql` adds `chronelle_object_search`,
 the read-only function the CloudBase search adapter calls. It changes no
