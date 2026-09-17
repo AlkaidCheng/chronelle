@@ -14,6 +14,12 @@ export async function exercisePeoplePage(page: Page) {
   await expect(
     page.getByRole("heading", { name: "People", level: 1 }),
   ).toBeVisible();
+  // The page keeps the rail, with its own entry marked as the current one.
+  await expect(
+    page
+      .getByRole("navigation", { name: "Workspace navigation" })
+      .getByRole("link", { name: "People", exact: true }),
+  ).toHaveAttribute("aria-current", "page");
   await page.getByRole("button", { name: "New person", exact: true }).click();
   const editor = page.getByRole("dialog", { name: "Add person", exact: true });
   await editor.getByLabel("Name", { exact: true }).fill("Mira Chen");

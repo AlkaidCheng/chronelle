@@ -1,4 +1,4 @@
-import { EventWorkspace } from "../../../features/events/event-workspace";
+import { EventWorkspace } from "../../../../features/events/event-workspace";
 
 export default async function EventPage({
   params,
