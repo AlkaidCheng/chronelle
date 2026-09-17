@@ -2,11 +2,11 @@
 
 import { type ReactNode, useState } from "react";
 
-import { activeLocale } from "../i18n/active-locale";
+import { activeLocale, tr } from "../i18n/active-locale";
 import { activeWeekStart, type WeekStart } from "../i18n/active-preferences";
 import {
-  type DayKey,
   addDays,
+  type DayKey,
   dayKeyOf,
   instantDay,
   monthDays,
@@ -95,6 +95,7 @@ export function PeriodNav({
   const { locale, firstDay } = useDisplayPreferences();
   const { monthName } = formatsFor(locale);
   const label = periodLabel(period, cursor, locale, firstDay);
+  const nav = tr("periodNav");
   const step = (
     direction: -1 | 0 | 1,
     icon: ReactNode,
@@ -117,7 +118,7 @@ export function PeriodNav({
   );
   return (
     <fieldset className="period-nav">
-      <legend className="visually-hidden">Period</legend>
+      <legend className="visually-hidden">{nav("period")}</legend>
       <span aria-live="polite" className="period-label">
         {period === "month" ? (
           <>
@@ -129,9 +130,9 @@ export function PeriodNav({
         )}
       </span>
       <span className="period-steps">
-        {step(-1, <ChevronIcon direction="left" />, `Previous ${period}`)}
-        {step(0, <RingIcon />, `This ${period}`, "period-today")}
-        {step(1, <ChevronIcon direction="right" />, `Next ${period}`)}
+        {step(-1, <ChevronIcon direction="left" />, nav(`previous.${period}`))}
+        {step(0, <RingIcon />, nav(`this.${period}`), "period-today")}
+        {step(1, <ChevronIcon direction="right" />, nav(`next.${period}`))}
       </span>
     </fieldset>
   );
@@ -245,7 +246,10 @@ export function MonthGrid({
               const hidden = isOpen ? 0 : Math.max(0, count - monthCellRows);
               return (
                 <td
-                  aria-label={`${fullDayTitle.format(date)}${count === 0 ? "" : `, ${count} item${count === 1 ? "" : "s"}`}`}
+                  aria-label={tr("periodNav")("dayCell", {
+                    day: fullDayTitle.format(date),
+                    count,
+                  })}
                   className={`month-day${date.getMonth() === month ? "" : " is-outside"}${day === todayKey ? " is-today" : ""}${count === 0 ? "" : " has-items"}`}
                   key={day}
                 >

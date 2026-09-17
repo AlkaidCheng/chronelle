@@ -1,21 +1,22 @@
 "use client";
 
-import type { ReactNode } from "react";
 import type {
   EventComponentKind,
   EventComponentView,
 } from "@chronelle/schemas";
 import { useQuery } from "@tanstack/react-query";
+import type { ReactNode } from "react";
 import { ErrorNotice, LoadingState } from "../../components/feedback";
+import { tr } from "../../i18n/active-locale";
 import { useApiClient } from "../../lib/api-context";
 import { useAuthSession } from "../../lib/auth-session";
+import { useForgetInaccessibleEventDrafts } from "../../lib/editor-draft-context";
 import {
-  eventComponents,
+  componentKindLabel,
   resolveEventComponent,
 } from "../../lib/event-components";
 import { queryKeys } from "../../lib/queries";
 import { isTemporaryReadError } from "../../lib/query-errors";
-import { useForgetInaccessibleEventDrafts } from "../../lib/editor-draft-context";
 import { DocumentsPanel } from "./documents-panel";
 import { PeoplePanel } from "./people-panel";
 import {
@@ -50,7 +51,11 @@ function Projection<T>({
     query.isError && !isTemporaryReadError(query.error),
   );
   if (query.isPending)
-    return <LoadingState label={`Loading ${label.toLowerCase()}`} />;
+    return (
+      <LoadingState
+        label={tr("views")("loading", { name: label.toLowerCase() })}
+      />
+    );
   return (
     <>
       {query.isError ? (
@@ -93,7 +98,7 @@ export function EventComponent({
     kind: storedKind,
     view: storedView,
   });
-  const label = eventComponents[kind].label;
+  const label = componentKindLabel(kind);
   switch (kind) {
     case "todos":
       return (
