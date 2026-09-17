@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { useState } from "react";
 
 import { CountedField } from "../../components/counted-field";
@@ -26,18 +27,19 @@ export function AssigneePicker({
   readonly onChange: (assignee: string) => void;
   readonly value: string;
 }) {
+  const t = useTranslations("assignee");
   const [open, setOpen] = useState(false);
   const persons = usePersonsQuery(open || value !== "");
   const name =
     value === ""
-      ? "Unassigned"
-      : (persons.data?.names.get(value) ?? "Assigned");
+      ? t("unassigned")
+      : (persons.data?.names.get(value) ?? t("assigned"));
   return (
     <details
       className="assignee-picker field-wide"
       onToggle={(event) => setOpen(event.currentTarget.open)}
     >
-      <summary>Assignee: {name}</summary>
+      <summary>{t("summary", { name })}</summary>
       {open ? (
         <AssigneeChoices
           disabled={disabled}
@@ -62,6 +64,7 @@ function AssigneeChoices({
   readonly value: string;
 }) {
   const session = useSessionQuery();
+  const t = useTranslations("assignee");
   const create = useCreatePerson();
   const [draft, setDraft] = useState("");
   const me = session.data?.user;
@@ -99,11 +102,11 @@ function AssigneeChoices({
 
   return (
     <fieldset className="assignee-choices" disabled={disabled}>
-      <legend className="visually-hidden">Assign to</legend>
+      <legend className="visually-hidden">{t("assignTo")}</legend>
       {persons.isError ? (
-        <p role="alert">People could not be loaded.</p>
+        <p role="alert">{t("loadFailed")}</p>
       ) : persons.data === undefined ? (
-        <p className="field-hint">Loading people...</p>
+        <p className="field-hint">{t("loading")}</p>
       ) : (
         <ul className="label-options">
           <li>
@@ -114,7 +117,7 @@ function AssigneeChoices({
                 onChange={() => onChange("")}
                 type="radio"
               />
-              <span>Unassigned</span>
+              <span>{t("unassigned")}</span>
             </label>
           </li>
           {persons.data.items.map((person) => (
@@ -128,7 +131,7 @@ function AssigneeChoices({
                 />
                 <span>
                   {personDisplayName(person)}
-                  {person.id === myPerson?.id ? " (me)" : ""}
+                  {person.id === myPerson?.id ? t("meSuffix") : ""}
                 </span>
               </label>
             </li>
@@ -138,7 +141,7 @@ function AssigneeChoices({
       <div className="label-add">
         <CountedField
           hideLabel
-          label="New person"
+          label={t("newPerson")}
           limit={240}
           onChange={setDraft}
           onKeyDown={(event) => {
@@ -147,7 +150,7 @@ function AssigneeChoices({
               add();
             }
           }}
-          placeholder="New person"
+          placeholder={t("newPerson")}
           value={draft}
         />
         <button
@@ -156,7 +159,7 @@ function AssigneeChoices({
           onClick={add}
           type="button"
         >
-          {create.isPending ? "Adding..." : "Add person"}
+          {create.isPending ? t("adding") : t("add")}
         </button>
         <button
           className="button button-quiet button-small"
@@ -168,14 +171,14 @@ function AssigneeChoices({
           onClick={assignToMe}
           type="button"
         >
-          Assign to me
+          {t("assignToMe")}
         </button>
       </div>
       {create.isError ? (
         <p role="alert">
           {create.error instanceof Error
             ? create.error.message
-            : "The person could not be added."}
+            : t("addFailed")}
         </p>
       ) : null}
     </fieldset>

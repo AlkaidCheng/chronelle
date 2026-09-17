@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import {
   QuickAddRow,
   type QuickAddSlots,
@@ -27,26 +28,27 @@ export function QuickAddReminder({
   readonly eventId: string;
   readonly slots: QuickAddSlots;
 }) {
+  const t = useTranslations("quickAdd");
   const create = useCreateReminder(eventId);
   const nextDay = instantDay(quickReminderInstant(day, new Date()));
   return (
     <QuickAddRow
       label={
         dayLabel === undefined
-          ? "Add a reminder to the list"
-          : `Add a reminder for ${dayLabel}`
+          ? t("reminderToList")
+          : t("reminderFor", { day: dayLabel })
       }
-      name="New reminder"
+      name={t("newReminder")}
       onAdd={(displayName) =>
         create.mutateAsync({
           displayName,
           remindAt: quickReminderInstant(day, new Date()),
         })
       }
-      placeholder="Reminder name"
+      placeholder={t("reminderName")}
       slot={`day:${nextDay}`}
       slots={slots}
-      text="Add reminder"
+      text={t("addReminder")}
     />
   );
 }

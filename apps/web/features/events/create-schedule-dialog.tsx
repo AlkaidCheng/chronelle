@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import {
   type FormEvent,
   useEffect,
@@ -101,6 +102,9 @@ function CreateScheduleForm({
     eventId,
   );
   const mutation = useCreateScheduledEvent(eventId, attempt);
+  const t = useTranslations("scheduleDialog");
+  const editor = useTranslations("editor");
+  const common = useTranslations("common");
   const [scheduleError, setScheduleError] = useState("");
   const dialog = useSessionDialog(onClose);
   const headingId = useId();
@@ -124,7 +128,7 @@ function CreateScheduleForm({
       setScheduleError("");
     } catch (error) {
       setScheduleError(
-        error instanceof Error ? error.message : "Check the schedule.",
+        error instanceof Error ? error.message : t("checkSchedule"),
       );
       return;
     }
@@ -152,8 +156,8 @@ function CreateScheduleForm({
     >
       <EditorDialogHeader
         headingId={headingId}
-        title={isConfirming ? "Discard schedule item?" : "Add schedule item"}
-        closeLabel="Close schedule creation"
+        title={isConfirming ? t("discardTitle") : t("title")}
+        closeLabel={t("close")}
         isConfirming={isConfirming}
         isPending={mutation.isPending}
         onClose={requestClose}
@@ -161,7 +165,7 @@ function CreateScheduleForm({
       {isConfirming && (
         <>
           <div className="event-create-body">
-            <p>The name and schedule entered here will be cleared.</p>
+            <p>{t("unsaved")}</p>
           </div>
           <footer className="event-create-footer">
             <DiscardActions
@@ -185,10 +189,10 @@ function CreateScheduleForm({
             className="event-name-field"
             disabled={mutation.isPending}
             inputRef={nameInput}
-            label="Schedule item"
+            label={t("name")}
             limit={240}
             onChange={(displayName) => draft.change({ displayName })}
-            placeholder="Guest arrival"
+            placeholder={t("namePlaceholder")}
             required
             value={draft.fields.displayName}
           />
@@ -204,7 +208,7 @@ function CreateScheduleForm({
           {mutation.isError && <ErrorNotice error={mutation.error} />}
           <EditorDraftStatus
             {...recovery}
-            failureMessage="Your previous save could not be confirmed. Retry unchanged fields to reuse the same save attempt."
+            failureMessage={editor("failureRetry")}
           />
         </div>
         <footer className="event-create-footer">
@@ -214,13 +218,13 @@ function CreateScheduleForm({
             disabled={mutation.isPending}
             onClick={requestClose}
           >
-            Cancel
+            {common("cancel")}
           </button>
           <EditorSubmitButton
             className="button button-primary"
             disabled={mutation.isPending || !recovery.isRetained}
           >
-            {mutation.isPending ? "Saving..." : "Add to schedule"}
+            {mutation.isPending ? editor("saving") : t("add")}
           </EditorSubmitButton>
         </footer>
       </EditorForm>

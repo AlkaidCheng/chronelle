@@ -1,6 +1,7 @@
 "use client";
 
 import type { ReminderResponse } from "@chronelle/schemas";
+import { useTranslations } from "next-intl";
 import { type FormEvent, useMemo, useState } from "react";
 import { CountedField } from "../../components/counted-field";
 import { EditorForm } from "../../components/editor-form";
@@ -101,6 +102,8 @@ function ReminderEditor({
   const refresh = useRefreshEvent(eventId, { throwOnError: true });
   const { displayName, remindAt } = draft.fields;
   const mutation = reminder === undefined ? create : update;
+  const t = useTranslations("reminderForm");
+  const editor = useTranslations("editor");
   const [timeError, setTimeError] = useState("");
   const openHistory = useOpenHistory();
   const close = () => {
@@ -136,9 +139,7 @@ function ReminderEditor({
       input = reminderFieldsPayload(draft.fields, reminder);
       setTimeError("");
     } catch (error) {
-      setTimeError(
-        error instanceof Error ? error.message : "Check the reminder time.",
-      );
+      setTimeError(error instanceof Error ? error.message : t("checkTime"));
       return;
     }
     rememberSubmit(formEvent.currentTarget);
@@ -179,12 +180,12 @@ function ReminderEditor({
         headingId={headingId}
         title={
           isConfirming
-            ? "Discard reminder changes?"
+            ? t("discardTitle")
             : reminder
-              ? "Edit reminder"
-              : "Add reminder"
+              ? t("editTitle")
+              : t("addTitle")
         }
-        closeLabel="Close reminder editor"
+        closeLabel={t("close")}
         isConfirming={isConfirming}
         isPending={mutation.isPending}
         onClose={requestClose}
@@ -194,7 +195,7 @@ function ReminderEditor({
             hidden={isConfirming}
             className="button button-quiet button-small"
             type="button"
-            aria-label="View reminder history"
+            aria-label={t("viewHistory")}
             disabled={mutation.isPending}
             onClick={() =>
               openHistory({
@@ -203,13 +204,13 @@ function ReminderEditor({
               })
             }
           >
-            History
+            {editor("history")}
           </button>
         )}
       </EditorDialogHeader>
       {isConfirming && (
         <div className="event-create-body">
-          <p>Your reminder changes have not been saved.</p>
+          <p>{t("unsaved")}</p>
           <div className="form-actions">
             <DiscardActions
               keepEditingButton={keepEditingButton}
@@ -234,15 +235,15 @@ function ReminderEditor({
             className="field-wide"
             disabled={mutation.isPending}
             inputRef={nameInput}
-            label="Reminder"
+            label={t("name")}
             limit={240}
             onChange={(displayName) => draft.change({ displayName })}
-            placeholder="Confirm the guest list"
+            placeholder={t("namePlaceholder")}
             required
             value={displayName}
           />
           <label className="field">
-            <span>Reminder time</span>
+            <span>{t("time")}</span>
             <input
               disabled={mutation.isPending}
               onChange={(input) =>
@@ -254,8 +255,7 @@ function ReminderEditor({
             />
           </label>
           <p className="field-hint">
-            Recorded only; no notification is sent. Time in{" "}
-            {shownTimeZone().replaceAll("_", " ")}.
+            {t("timeIn", { zone: shownTimeZone().replaceAll("_", " ") })}
           </p>
           {timeError && <p role="alert">{timeError}</p>}
         </div>
@@ -268,16 +268,14 @@ function ReminderEditor({
             onRefresh={
               reminder === undefined ? undefined : (onRefresh ?? refresh)
             }
-            submitLabel={
-              reminder === undefined ? "Record reminder" : "Save reminder"
-            }
+            submitLabel={reminder === undefined ? t("create") : t("save")}
           />
           <EditorDraftStatus
             {...recovery}
             failureMessage={
               reminder === undefined
-                ? "The last save could not be confirmed. Retry unchanged fields to reuse the same save attempt."
-                : "The last save could not be confirmed. Refresh latest before trying again."
+                ? editor("failureRetry")
+                : editor("failureRefresh")
             }
           />
         </footer>

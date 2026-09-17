@@ -13,7 +13,7 @@ describe("event page presets", () => {
   });
 
   it.each(eventPagePresets)(
-    "creates fresh layout identities for $label",
+    "creates fresh layout identities for $id",
     (preset) => {
       const first = createPresetPage(preset);
       const second = createPresetPage(preset);

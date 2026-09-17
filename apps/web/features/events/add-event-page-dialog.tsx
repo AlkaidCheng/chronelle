@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { eventPagesSchema, type EventLayoutResponse } from "@chronelle/schemas";
 import { CountedField } from "../../components/counted-field";
@@ -9,8 +10,10 @@ import { useSessionDialog } from "../../lib/use-session-dialog";
 import {
   createPresetPage,
   eventPagePresets,
+  presetDescription,
+  presetLabel,
 } from "../../lib/event-page-presets";
-import { eventComponents } from "../../lib/event-components";
+import { componentKindLabel } from "../../lib/event-components";
 
 export function AddEventPageDialog({
   layout,
@@ -21,6 +24,8 @@ export function AddEventPageDialog({
   readonly onClose: () => void;
   readonly onSaved: (pageId: string, message: string) => void;
 }) {
+  const t = useTranslations("pageDialog");
+  const common = useTranslations("common");
   const [source] = useState(layout);
   const [name, setName] = useState<string | null>(null);
   const [selection, setSelection] = useState(() => ({
@@ -49,7 +54,7 @@ export function AddEventPageDialog({
       },
       {
         onSuccess: () => {
-          onSaved(page.id, `${page.name} page added.`);
+          onSaved(page.id, t("added", { name: page.name }));
           onClose();
         },
       },
@@ -67,11 +72,11 @@ export function AddEventPageDialog({
       }}
     >
       <header className="event-create-header">
-        <h2 id="page-content-heading">Add a page</h2>
+        <h2 id="page-content-heading">{t("title")}</h2>
         <button
           type="button"
           className="dialog-close"
-          aria-label="Close page dialog"
+          aria-label={t("close")}
           disabled={save.isPending}
           onClick={onClose}
         >
@@ -91,21 +96,21 @@ export function AddEventPageDialog({
       >
         <div className="event-create-body">
           <p className="field-hint" id="page-name-hint">
-            Pages organize this event. Start blank or choose a few useful views.
+            {t("intro")}
           </p>
           <CountedField
             aria-describedby="page-name-hint"
             disabled={save.isPending}
             inputRef={nameInput}
-            label="Page name"
+            label={t("name")}
             limit={80}
             onChange={setName}
-            placeholder="Preparation, travel, or anything you need"
+            placeholder={t("namePlaceholder")}
             required
             value={name ?? selection.page.name}
           />
           <fieldset className="page-preset-picker" disabled={save.isPending}>
-            <legend>Start with</legend>
+            <legend>{t("startWith")}</legend>
             {eventPagePresets.map((preset) => (
               <label key={preset.id} className="page-preset-choice">
                 <input
@@ -116,32 +121,26 @@ export function AddEventPageDialog({
                     setSelection({ preset, page: createPresetPage(preset) })
                   }
                 />
-                <span>{preset.label}</span>
+                <span>{presetLabel(preset.id)}</span>
               </label>
             ))}
           </fieldset>
-          <section className="page-preset-preview" aria-label="Page preview">
-            <h3>{page.name || "New page"}</h3>
-            <p role="status">{selection.preset.description}</p>
+          <section className="page-preset-preview" aria-label={t("preview")}>
+            <h3>{page.name || t("newPage")}</h3>
+            <p role="status">{presetDescription(selection.preset.id)}</p>
             {page.components.length > 0 ? (
               <ol>
                 {page.components.map((component) => (
                   <li key={component.id}>
-                    {eventComponents[component.kind].label}
+                    {componentKindLabel(component.kind)}
                   </li>
                 ))}
               </ol>
             ) : null}
-            <p className="field-hint">
-              Adds one page of event-wide views. Existing pages and records stay
-              unchanged.
-            </p>
+            <p className="field-hint">{t("addsNote")}</p>
           </section>
           {page.name && !candidate.success ? (
-            <p role="status">
-              This page exceeds a layout limit. Choose Blank or remove an unused
-              page or component first.
-            </p>
+            <p role="status">{t("limit")}</p>
           ) : null}
           {save.isError ? <ErrorNotice error={save.error} /> : null}
         </div>
@@ -152,14 +151,14 @@ export function AddEventPageDialog({
             disabled={save.isPending}
             onClick={onClose}
           >
-            Cancel
+            {common("cancel")}
           </button>
           <button
             type="submit"
             className="button button-primary"
             disabled={save.isPending || !candidate.success}
           >
-            {save.isPending ? "Saving..." : "Add page"}
+            {save.isPending ? t("saving") : t("add")}
           </button>
         </footer>
       </form>

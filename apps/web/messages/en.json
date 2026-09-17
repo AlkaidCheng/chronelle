@@ -286,7 +286,17 @@
     "files": "Files",
     "people": "People",
     "sharing": "Sharing",
-    "removedLinks": "Removed links"
+    "removedLinks": "Removed links",
+    "descriptions": {
+      "todos": "Add tasks and track what needs doing.",
+      "calendar": "Plan dates, times, and multi-day activities.",
+      "timeline": "See dated plans, tasks, spending, and reminders in order.",
+      "itinerary": "Follow the running order of your scheduled activities.",
+      "expenses": "Record transactions and see totals by currency.",
+      "reminders": "Track upcoming nudges. Notifications are not sent yet.",
+      "files": "Manage private attachments on this event, its tasks, and expenses.",
+      "people": "See who is involved in this event, as namecards."
+    }
   },
   "layouts": {
     "list": "List",
@@ -360,7 +370,12 @@
     "taskFor": "Add a task for {day}",
     "newTask": "New task",
     "taskName": "Task name",
-    "addTask": "Add task"
+    "addTask": "Add task",
+    "reminderToList": "Add a reminder to the list",
+    "reminderFor": "Add a reminder for {day}",
+    "newReminder": "New reminder",
+    "reminderName": "Reminder name",
+    "addReminder": "Add reminder"
   },
   "taskRow": {
     "columns": {
@@ -555,5 +570,245 @@
     "save": "Save",
     "delete": "Delete",
     "confirm": "Confirm"
+  },
+  "validation": {
+    "locationLength": "Keep the location to {limit} characters.",
+    "durationRange": "Choose a duration of up to a day.",
+    "dueDateForTime": "Choose a due date for the due time.",
+    "dueTimeForDuration": "Choose a due time for the duration.",
+    "dueDateForRepeat": "Choose a due date to repeat from.",
+    "validDueDate": "Choose a valid due date.",
+    "repeatEndAfterDue": "Choose a repeat end on or after the due date.",
+    "repeatOffered": "Choose a repeat the picker offers.",
+    "validRepeatEnd": "Choose a valid repeat end.",
+    "validInstant": {
+      "due": "Choose a valid due date and time.",
+      "transaction": "Choose a valid transaction date and time.",
+      "reminder": "Choose a valid reminder date and time."
+    },
+    "unavailableInstant": {
+      "due": "This local time is unavailable. Choose another due time.",
+      "transaction": "This local time is unavailable. Choose another transaction time.",
+      "reminder": "This local time is unavailable. Choose another reminder time."
+    },
+    "transactionInstant": "Choose a transaction date and time.",
+    "reminderInstant": "Choose a reminder date and time.",
+    "validDateTime": "Enter a valid date and time (HH:mm).",
+    "clockChange": "This local time does not exist because the clock changes. Choose another time.",
+    "startDate": "Choose a start date.",
+    "validCalendarDates": "Enter valid calendar dates.",
+    "endBeforeStartDate": "End date must not precede start date.",
+    "endAndTime": "Provide both an end date and time, or leave both empty.",
+    "endBeforeStartTime": "End time must not precede start time."
+  },
+  "dueText": {
+    "today": "today",
+    "tomorrow": "tomorrow",
+    "nextWeek": "next week"
+  },
+  "dueField": {
+    "summary": "Due: {due}",
+    "noDate": "No date",
+    "dueDate": "Due date",
+    "placeholder": "Sep 21, tomorrow, 2030-09-21",
+    "unreadable": "Not a date the picker knows. Try Sep 21, 21 Sep, 9/21, tomorrow, or 2030-09-21.",
+    "dueOn": "Due {weekday}{relative, select, today {, today} tomorrow {, tomorrow} other {}}.",
+    "shortcuts": "Due shortcuts",
+    "removeTime": "Remove time",
+    "addTime": "Add time",
+    "dueTime": "Due time",
+    "duration": "Duration",
+    "noDuration": "No duration",
+    "timesIn": "Times are in {zone}.",
+    "repeat": "Repeat",
+    "noRepeat": "Does not repeat",
+    "until": "Until",
+    "optional": "Optional",
+    "untilUnreadable": "Not a date the picker knows. Try Sep 21, 21 Sep, 9/21, or 2030-09-21.",
+    "untilEarly": "The end cannot come before the due date."
+  },
+  "rangeField": {
+    "notSet": "not set",
+    "summary": "Dates: {dates}",
+    "startDate": "Start date",
+    "endDate": "End date",
+    "placeholder": "Sep 21, tomorrow, 2030-09-21",
+    "optional": "Optional",
+    "unreadable": "Not a date the picker knows. Try Sep 21, 21 Sep, 9/21, tomorrow, or 2030-09-21.",
+    "startFirst": "Choose a start date first.",
+    "endBeforeStart": "The end cannot come before the start.",
+    "shortcuts": "Schedule shortcuts",
+    "noDates": "No dates"
+  },
+  "monthList": {
+    "monthAndYear": "Month and year",
+    "placeholder": "October 2027, 2027-10, 10/2027",
+    "chooseShowing": "Choose a month and year, showing {title}",
+    "choose": "Choose a month and year",
+    "month": "Month",
+    "year": "Year",
+    "closeChooser": "Close the month and year chooser",
+    "previousMonth": "Previous month",
+    "nextMonth": "Next month",
+    "today": "Today"
+  },
+  "editor": {
+    "discard": "Discard",
+    "keepEditing": "Keep editing",
+    "history": "History",
+    "shortcutTitle": "Cmd/Ctrl + Enter from an editor field",
+    "checkFields": "Check the fields.",
+    "saving": "Saving...",
+    "savingChanges": "Saving changes...",
+    "saved": "Saved successfully.",
+    "saveStatus": "Save status",
+    "refreshLatest": "Refresh latest",
+    "draftKept": "Your draft is still here. Use {submit} to submit it again.",
+    "refreshOnlyChecks": "Refreshing only checks for updated data.",
+    "failureRetry": "The last save could not be confirmed. Retry unchanged fields to reuse the same save attempt.",
+    "failureRefresh": "The last save could not be confirmed. Refresh latest before trying again."
+  },
+  "taskForm": {
+    "discardTitle": "Discard task changes?",
+    "editTitle": "Edit task",
+    "addSubtaskTitle": "Add subtask",
+    "addTitle": "Add task",
+    "close": "Close task editor",
+    "viewHistory": "View task history",
+    "unsaved": "Your task changes have not been saved.",
+    "subtaskOf": "A subtask of {parent}.",
+    "name": "Task",
+    "namePlaceholder": "Confirm the guest list",
+    "location": "Location",
+    "locationPlaceholder": "Where it happens",
+    "create": "Create task",
+    "save": "Save task"
+  },
+  "expenseForm": {
+    "checkTime": "Check the transaction time.",
+    "discardTitle": "Discard expense changes?",
+    "editTitle": "Edit expense",
+    "addTitle": "Add expense",
+    "close": "Close expense editor",
+    "viewHistory": "View expense history",
+    "unsaved": "Your expense changes have not been saved.",
+    "name": "Expense",
+    "namePlaceholder": "Venue deposit",
+    "amount": "Amount",
+    "currency": "Currency",
+    "date": "Date",
+    "timeIn": "Transaction time in {zone}.",
+    "create": "Record expense",
+    "save": "Save expense"
+  },
+  "reminderForm": {
+    "checkTime": "Check the reminder time.",
+    "discardTitle": "Discard reminder changes?",
+    "editTitle": "Edit reminder",
+    "addTitle": "Add reminder",
+    "close": "Close reminder editor",
+    "viewHistory": "View reminder history",
+    "unsaved": "Your reminder changes have not been saved.",
+    "name": "Reminder",
+    "namePlaceholder": "Confirm the guest list",
+    "time": "Reminder time",
+    "timeIn": "Recorded only; no notification is sent. Time in {zone}.",
+    "create": "Record reminder",
+    "save": "Save reminder"
+  },
+  "eventDialog": {
+    "checkSchedule": "Check the schedule.",
+    "discardTitle": "Discard this event?",
+    "title": "Create an event",
+    "close": "Close event creation",
+    "unsaved": "Your event name and schedule have not been saved.",
+    "name": "Event name",
+    "namePlaceholder": "What are you planning?",
+    "creating": "Creating...",
+    "create": "Create event"
+  },
+  "scheduleDialog": {
+    "checkSchedule": "Check the schedule.",
+    "discardTitle": "Discard schedule item?",
+    "title": "Add schedule item",
+    "close": "Close schedule creation",
+    "unsaved": "The name and schedule entered here will be cleared.",
+    "name": "Schedule item",
+    "namePlaceholder": "Guest arrival",
+    "add": "Add to schedule"
+  },
+  "pageDialog": {
+    "title": "Add a page",
+    "close": "Close page dialog",
+    "intro": "Pages organize this event. Start blank or choose a few useful views.",
+    "name": "Page name",
+    "namePlaceholder": "Preparation, travel, or anything you need",
+    "startWith": "Start with",
+    "preview": "Page preview",
+    "newPage": "New page",
+    "addsNote": "Adds one page of event-wide views. Existing pages and records stay unchanged.",
+    "limit": "This page exceeds a layout limit. Choose Blank or remove an unused page or component first.",
+    "saving": "Saving...",
+    "add": "Add page",
+    "added": "{name} page added."
+  },
+  "pagePresets": {
+    "labels": {
+      "blank": "Blank",
+      "gathering": "Gathering",
+      "multiDay": "Multi-day"
+    },
+    "descriptions": {
+      "blank": "An empty page. Add only the components you need.",
+      "gathering": "Prepare, follow the running order, and track spending.",
+      "multiDay": "Keep scheduled activities and useful documents together."
+    }
+  },
+  "scheduleFields": {
+    "legend": "Schedule",
+    "setDates": "Set dates",
+    "datesOn": "Choose a day or date range",
+    "datesOff": "Leave open until you know",
+    "addTimes": "Add times",
+    "timesNote": "Optional start and end times",
+    "startTime": "Start time",
+    "endTime": "End time",
+    "endTimeOptional": "End time (optional)",
+    "timesIn": "Times in {zone}."
+  },
+  "labels": {
+    "title": "Labels",
+    "close": "Close labels",
+    "choose": "Choose labels",
+    "loadFailed": "Labels could not be loaded.",
+    "loading": "Loading labels...",
+    "noneYet": "No labels yet. Add one below.",
+    "none": "No labels yet.",
+    "newLabel": "New label",
+    "adding": "Adding...",
+    "add": "Add label",
+    "addFailed": "The label could not be added.",
+    "nameOf": "Name of {name}",
+    "renaming": "Renaming...",
+    "rename": "Rename",
+    "deleting": "Deleting...",
+    "deleteNamed": "Delete {name}",
+    "keep": "Keep",
+    "delete": "Delete",
+    "changeFailed": "The change failed."
+  },
+  "assignee": {
+    "summary": "Assignee: {name}",
+    "unassigned": "Unassigned",
+    "assigned": "Assigned",
+    "assignTo": "Assign to",
+    "loadFailed": "People could not be loaded.",
+    "loading": "Loading people...",
+    "meSuffix": " (me)",
+    "newPerson": "New person",
+    "adding": "Adding...",
+    "add": "Add person",
+    "assignToMe": "Assign to me",
+    "addFailed": "The person could not be added."
   }
 }

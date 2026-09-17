@@ -3,12 +3,12 @@ import type {
   EventComponentView,
   EventPage,
 } from "@chronelle/schemas";
+import { tr } from "../i18n/active-locale";
+
+export type EventPagePresetId = "blank" | "gathering" | "multi-day";
 
 interface EventPagePreset {
-  readonly id: string;
-  readonly label: string;
-  readonly name: string;
-  readonly description: string;
+  readonly id: EventPagePresetId;
   /** The components in order; a kind alone takes its default view. */
   readonly components: readonly (
     | EventComponentKind
@@ -17,34 +17,40 @@ interface EventPagePreset {
 }
 
 export const eventPagePresets = [
-  {
-    id: "blank",
-    label: "Blank",
-    name: "",
-    description: "An empty page. Add only the components you need.",
-    components: [],
-  },
+  { id: "blank", components: [] },
   {
     id: "gathering",
-    label: "Gathering",
-    name: "Gathering",
-    description: "Prepare, follow the running order, and track spending.",
     components: ["todos", { kind: "calendar", view: "agenda" }, "expenses"],
   },
-  {
-    id: "multi-day",
-    label: "Multi-day",
-    name: "Multi-day",
-    description: "Keep scheduled activities and useful documents together.",
-    components: ["calendar", "files"],
-  },
+  { id: "multi-day", components: ["calendar", "files"] },
 ] as const satisfies readonly EventPagePreset[];
+
+const presetKeys = {
+  blank: "blank",
+  gathering: "gathering",
+  "multi-day": "multiDay",
+} as const satisfies Record<EventPagePresetId, string>;
+
+/** A preset's name on the chooser, in the active language. */
+export function presetLabel(id: EventPagePresetId): string {
+  return tr("pagePresets.labels")(presetKeys[id]);
+}
+
+/** What a preset sets up, in the active language. */
+export function presetDescription(id: EventPagePresetId): string {
+  return tr("pagePresets.descriptions")(presetKeys[id]);
+}
+
+/** The page name a preset starts with: its label, or none for a blank page. */
+export function presetPageName(id: EventPagePresetId): string {
+  return id === "blank" ? "" : presetLabel(id);
+}
 
 /** Create layout identities only; component views use existing event records. */
 export function createPresetPage(preset: EventPagePreset): EventPage {
   return {
     id: crypto.randomUUID(),
-    name: preset.name,
+    name: presetPageName(preset.id),
     components: preset.components.map((component) =>
       typeof component === "string"
         ? { id: crypto.randomUUID(), kind: component }

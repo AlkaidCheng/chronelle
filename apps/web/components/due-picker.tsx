@@ -1,8 +1,9 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { useId, useState } from "react";
 
-import { activeLocale } from "../i18n/active-locale";
+import { activeLocale, tr } from "../i18n/active-locale";
 import {
   type DayKey,
   addDays,
@@ -49,7 +50,7 @@ export function describeDue(
   repeat = "",
   repeatUntil = "",
 ): string {
-  if (dueDate === "") return "No date";
+  if (dueDate === "") return tr("dueField")("noDate");
   const day = describeDueDay(dueDate, now);
   const time =
     dueTime === ""
@@ -104,6 +105,7 @@ export function DuePicker({
   /** The last date the rule repeats to, or the empty string for none. */
   readonly repeatUntil?: string;
 }) {
+  const t = useTranslations("dueField");
   const id = useId();
   const { timeZone } = useDisplayPreferences();
   const today = instantDay(now);
@@ -189,12 +191,21 @@ export function DuePicker({
       onToggle={(event) => setOpen(event.currentTarget.open)}
     >
       <summary>
-        Due: {describeDue(dueDate, dueTime, duration, now, repeat, repeatUntil)}
+        {t("summary", {
+          due: describeDue(
+            dueDate,
+            dueTime,
+            duration,
+            now,
+            repeat,
+            repeatUntil,
+          ),
+        })}
       </summary>
       {open ? (
         <div className="due-panel">
           <label className="field">
-            <span>Due date</span>
+            <span>{t("dueDate")}</span>
             <input
               aria-describedby={
                 unreadable || dueDate !== "" ? `${id}-date-hint` : undefined
@@ -206,7 +217,7 @@ export function DuePicker({
                   setText(dueDate === "" ? "" : exactDueDay(dueDate));
               }}
               onChange={(input) => readText(input.target.value)}
-              placeholder="Sep 21, tomorrow, 2030-09-21"
+              placeholder={t("placeholder")}
               type="text"
               value={text}
             />
@@ -214,17 +225,19 @@ export function DuePicker({
           {unreadable || dueDate !== "" ? (
             <p className="field-hint" id={`${id}-date-hint`}>
               {unreadable
-                ? "Not a date the picker knows. Try Sep 21, 21 Sep, 9/21, tomorrow, or 2030-09-21."
-                : `Due ${weekdayLong(dueDate)}${
-                    dueDate === today
-                      ? ", today"
-                      : dueDate === tomorrow
-                        ? ", tomorrow"
-                        : ""
-                  }.`}
+                ? t("unreadable")
+                : t("dueOn", {
+                    weekday: weekdayLong(dueDate),
+                    relative:
+                      dueDate === today
+                        ? "today"
+                        : dueDate === tomorrow
+                          ? "tomorrow"
+                          : "other",
+                  })}
             </p>
           ) : null}
-          <ul aria-label="Due shortcuts" className="day-shortcuts">
+          <ul aria-label={t("shortcuts")} className="day-shortcuts">
             {dueShortcuts(now).map((shortcut) => (
               <li key={shortcut.id}>
                 <button
@@ -251,7 +264,7 @@ export function DuePicker({
                 onClick={() => chooseDay("")}
                 type="button"
               >
-                <span>No date</span>
+                <span>{t("noDate")}</span>
               </button>
             </li>
           </ul>
@@ -276,12 +289,12 @@ export function DuePicker({
               }}
               type="button"
             >
-              {showTime ? "Remove time" : "Add time"}
+              {showTime ? t("removeTime") : t("addTime")}
             </button>
             {showTime ? (
               <div className="due-time-fields">
                 <label className="field">
-                  <span>Due time</span>
+                  <span>{t("dueTime")}</span>
                   <input
                     disabled={disabled}
                     onChange={(input) =>
@@ -295,7 +308,7 @@ export function DuePicker({
                   />
                 </label>
                 <label className="field">
-                  <span id={`${id}-duration`}>Duration</span>
+                  <span id={`${id}-duration`}>{t("duration")}</span>
                   <select
                     aria-labelledby={`${id}-duration`}
                     disabled={disabled || dueTime === ""}
@@ -304,7 +317,7 @@ export function DuePicker({
                     }
                     value={duration}
                   >
-                    <option value="">No duration</option>
+                    <option value="">{t("noDuration")}</option>
                     {durationChoices.map((minutes) => (
                       <option key={minutes} value={String(minutes)}>
                         {formatDuration(minutes)}
@@ -316,13 +329,17 @@ export function DuePicker({
             ) : null}
             {showTime ? (
               <p className="field-hint">
-                {`Times are in ${(timeZone ?? Intl.DateTimeFormat().resolvedOptions().timeZone).replaceAll("_", " ")}.`}
+                {t("timesIn", {
+                  zone: (
+                    timeZone ?? Intl.DateTimeFormat().resolvedOptions().timeZone
+                  ).replaceAll("_", " "),
+                })}
               </p>
             ) : null}
           </div>
           <div className="due-repeat">
             <label className="field">
-              <span id={`${id}-repeat`}>Repeat</span>
+              <span id={`${id}-repeat`}>{t("repeat")}</span>
               <select
                 aria-labelledby={`${id}-repeat`}
                 disabled={disabled || dueDate === ""}
@@ -334,7 +351,7 @@ export function DuePicker({
                 }
                 value={repeat}
               >
-                <option value="">Does not repeat</option>
+                <option value="">{t("noRepeat")}</option>
                 {repeatChoices().map(([rule, label]) => (
                   <option key={rule} value={rule}>
                     {label}
@@ -344,7 +361,7 @@ export function DuePicker({
             </label>
             {repeat !== "" ? (
               <label className="field">
-                <span>Until</span>
+                <span>{t("until")}</span>
                 <input
                   aria-describedby={
                     untilUnreadable || untilEarly
@@ -360,7 +377,7 @@ export function DuePicker({
                       );
                   }}
                   onChange={(input) => readUntil(input.target.value)}
-                  placeholder="Optional"
+                  placeholder={t("optional")}
                   type="text"
                   value={untilText}
                 />
@@ -368,9 +385,7 @@ export function DuePicker({
             ) : null}
             {untilUnreadable || untilEarly ? (
               <p className="field-hint" id={`${id}-until-hint`}>
-                {untilUnreadable
-                  ? "Not a date the picker knows. Try Sep 21, 21 Sep, 9/21, or 2030-09-21."
-                  : "The end cannot come before the due date."}
+                {untilUnreadable ? t("untilUnreadable") : t("untilEarly")}
               </p>
             ) : null}
           </div>

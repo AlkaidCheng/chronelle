@@ -1,4 +1,5 @@
 import type { ExpenseResponse } from "@chronelle/schemas";
+import { tr } from "../i18n/active-locale";
 import { editedInstant } from "./edited-instant";
 import { toDateTimeInput } from "./format";
 
@@ -29,6 +30,6 @@ export function expenseFieldsPayload(
     "transaction",
   );
   if (occurredAt === null)
-    throw new Error("Choose a transaction date and time.");
+    throw new Error(tr("validation")("transactionInstant"));
   return { ...fields, occurredAt };
 }

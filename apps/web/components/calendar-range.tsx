@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { useId, useState } from "react";
 
 import {
@@ -20,9 +21,6 @@ const monthDayShort = (day: DayKey) =>
     day: "numeric",
   }).format(parseDayKey(day));
 
-const unreadableHint =
-  "Not a date the picker knows. Try Sep 21, 21 Sep, 9/21, tomorrow, or 2030-09-21.";
-
 /**
  * A schedule's dates behind a disclosure that reads the range; open, typed
  * Start and End fields, the shortcuts a day allows, and a continuous list of
@@ -41,6 +39,7 @@ export function CalendarRangePicker({
   readonly onChange: (range: CalendarRange) => void;
   readonly value: CalendarRange;
 }) {
+  const t = useTranslations("rangeField");
   const id = useId();
   const today = instantDay(now);
   const [open, setOpen] = useState(value.startDate === "");
@@ -79,11 +78,11 @@ export function CalendarRangePicker({
     endTyped < value.startDate;
   const hint =
     startUnreadable || endUnreadable
-      ? unreadableHint
+      ? t("unreadable")
       : endWithoutStart
-        ? "Choose a start date first."
+        ? t("startFirst")
         : endBeforeStart
-          ? "The end cannot come before the start."
+          ? t("endBeforeStart")
           : "";
 
   const choose = (range: CalendarRange, shown: DayKey) => {
@@ -150,12 +149,12 @@ export function CalendarRangePicker({
       onToggle={(event) => setOpen(event.currentTarget.open)}
       open={open}
     >
-      <summary>Dates: {describeCalendarRange(value)}</summary>
+      <summary>{t("summary", { dates: describeCalendarRange(value) })}</summary>
       {open ? (
         <div className="range-panel">
           <div className="range-fields">
             <label className="field">
-              <span>Start date</span>
+              <span>{t("startDate")}</span>
               <input
                 aria-describedby={hint === "" ? undefined : `${id}-hint`}
                 aria-invalid={startUnreadable}
@@ -164,13 +163,13 @@ export function CalendarRangePicker({
                   if (!startUnreadable) setStartText(exact(value.startDate));
                 }}
                 onChange={(input) => readStart(input.target.value)}
-                placeholder="Sep 21, tomorrow, 2030-09-21"
+                placeholder={t("placeholder")}
                 type="text"
                 value={startText}
               />
             </label>
             <label className="field">
-              <span>End date</span>
+              <span>{t("endDate")}</span>
               <input
                 aria-describedby={hint === "" ? undefined : `${id}-hint`}
                 aria-invalid={
@@ -182,7 +181,7 @@ export function CalendarRangePicker({
                     setEndText(exact(value.endDate));
                 }}
                 onChange={(input) => readEnd(input.target.value)}
-                placeholder="Optional"
+                placeholder={t("optional")}
                 type="text"
                 value={endText}
               />
@@ -193,7 +192,7 @@ export function CalendarRangePicker({
               {hint}
             </p>
           )}
-          <ul aria-label="Schedule shortcuts" className="day-shortcuts">
+          <ul aria-label={t("shortcuts")} className="day-shortcuts">
             {dueShortcuts(now).map((shortcut) => {
               const endDate = shortcut.through ?? "";
               return (
@@ -237,7 +236,7 @@ export function CalendarRangePicker({
                 }}
                 type="button"
               >
-                <span>No dates</span>
+                <span>{t("noDates")}</span>
               </button>
             </li>
           </ul>

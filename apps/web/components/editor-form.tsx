@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { type ComponentPropsWithoutRef, useRef } from "react";
 import { canSubmitEditor } from "../lib/keyboard";
 import { useEditorShortcut } from "../lib/shortcut-preference";
@@ -55,6 +56,7 @@ export function EditorForm(props: EditorFormProps) {
 export function EditorSubmitButton(
   props: Omit<ComponentPropsWithoutRef<"button">, "type">,
 ) {
+  const t = useTranslations("editor");
   const shortcut = useEditorShortcut();
   const enabled = shortcut.value === "enabled" && !props.disabled;
   return (
@@ -64,7 +66,7 @@ export function EditorSubmitButton(
         type="submit"
         data-editor-submit=""
         aria-keyshortcuts={enabled ? "Control+Enter Meta+Enter" : undefined}
-        title={enabled ? "Cmd/Ctrl + Enter from an editor field" : undefined}
+        title={enabled ? t("shortcutTitle") : undefined}
       />
       {shortcut.value === "enabled" && (
         <span

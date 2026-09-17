@@ -1,4 +1,5 @@
 import type { ReminderResponse } from "@chronelle/schemas";
+import { tr } from "../i18n/active-locale";
 import { type DayKey, parseDayKey, today } from "./day-placement";
 import { editedInstant } from "./edited-instant";
 import { toDateTimeInput } from "./format";
@@ -18,7 +19,7 @@ export function reminderFieldsPayload(
   source?: Pick<ReminderResponse, "remindAt">,
 ) {
   const remindAt = editedInstant(fields.remindAt, source?.remindAt, "reminder");
-  if (remindAt === null) throw new Error("Choose a reminder date and time.");
+  if (remindAt === null) throw new Error(tr("validation")("reminderInstant"));
   return { displayName: fields.displayName, remindAt };
 }
 

@@ -1,3 +1,4 @@
+import { useTranslations } from "next-intl";
 import { CalendarRangePicker } from "../../components/calendar-range";
 import { CalendarIcon, ClockIcon } from "../../components/icons";
 import type { EventScheduleDraft } from "../../lib/event-schedule";
@@ -12,6 +13,7 @@ export function EventScheduleFields({
   readonly onChange: (change: Partial<EventScheduleDraft>) => void;
   readonly disabled?: boolean;
 }) {
+  const t = useTranslations("scheduleFields");
   const hasDates = value.mode !== "unscheduled";
   const hasTimes = value.mode === "timed";
   const endTimeRequired = Boolean(
@@ -19,21 +21,17 @@ export function EventScheduleFields({
   );
   return (
     <fieldset className="event-schedule-fields" disabled={disabled}>
-      <legend className="visually-hidden">Schedule</legend>
+      <legend className="visually-hidden">{t("legend")}</legend>
       <label className="schedule-toggle">
         <CalendarIcon />
         <span>
-          <strong>Set dates</strong>
-          <small>
-            {hasDates
-              ? "Choose a day or date range"
-              : "Leave open until you know"}
-          </small>
+          <strong>{t("setDates")}</strong>
+          <small>{hasDates ? t("datesOn") : t("datesOff")}</small>
         </span>
         <input
           type="checkbox"
           role="switch"
-          aria-label="Set dates"
+          aria-label={t("setDates")}
           aria-checked={hasDates}
           checked={hasDates}
           onChange={(event) =>
@@ -56,13 +54,13 @@ export function EventScheduleFields({
           <label className="schedule-toggle time-toggle">
             <ClockIcon />
             <span>
-              <strong>Add times</strong>
-              <small>Optional start and end times</small>
+              <strong>{t("addTimes")}</strong>
+              <small>{t("timesNote")}</small>
             </span>
             <input
               type="checkbox"
               role="switch"
-              aria-label="Add times"
+              aria-label={t("addTimes")}
               aria-checked={hasTimes}
               checked={hasTimes}
               onChange={(event) =>
@@ -77,7 +75,7 @@ export function EventScheduleFields({
             <>
               <div className="form-grid">
                 <label className="field">
-                  Start time
+                  {t("startTime")}
                   <input
                     type="time"
                     required
@@ -88,7 +86,7 @@ export function EventScheduleFields({
                   />
                 </label>
                 <label className="field">
-                  End time{endTimeRequired ? "" : " (optional)"}
+                  {endTimeRequired ? t("endTime") : t("endTimeOptional")}
                   <input
                     type="time"
                     required={endTimeRequired}
@@ -107,7 +105,7 @@ export function EventScheduleFields({
                 </label>
               </div>
               <p className="field-hint">
-                Times in {shownTimeZone().replaceAll("_", " ")}.
+                {t("timesIn", { zone: shownTimeZone().replaceAll("_", " ") })}
               </p>
             </>
           ) : null}
