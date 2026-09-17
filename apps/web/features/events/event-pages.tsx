@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import {
   useEffect,
   useRef,
@@ -17,7 +18,8 @@ import { ErrorNotice, LoadingState } from "../../components/feedback";
 import { useUpdateEventLayout } from "../../lib/event-layout-queries";
 import { useSessionDialog } from "../../lib/use-session-dialog";
 import {
-  eventComponents,
+  componentKindDescription,
+  componentKindLabel,
   findEventComponents,
 } from "../../lib/event-components";
 import { isTemporaryReadError } from "../../lib/query-errors";
@@ -50,6 +52,8 @@ function AddComponentDialog({
       page.id !== pageId &&
       page.components.some((component) => component.kind === selectedKind),
   );
+  const t = useTranslations("componentDialog");
+  const common = useTranslations("common");
   const save = useUpdateEventLayout(layout.eventId);
   const dialog = useSessionDialog(onClose);
   const nameInput = useRef<HTMLInputElement>(null);
@@ -77,7 +81,10 @@ function AddComponentDialog({
         onSuccess: () => {
           onSaved(
             pageId,
-            `${eventComponents[selectedKind].label} added to ${target?.name}.`,
+            t("added", {
+              component: componentKindLabel(selectedKind),
+              page: target?.name ?? "",
+            }),
           );
           onClose();
         },
@@ -96,11 +103,11 @@ function AddComponentDialog({
       }}
     >
       <header className="event-create-header">
-        <h2 id="page-content-heading">Add a component</h2>
+        <h2 id="page-content-heading">{t("title")}</h2>
         <button
           type="button"
           className="dialog-close"
-          aria-label="Close page dialog"
+          aria-label={t("close")}
           disabled={save.isPending}
           onClick={onClose}
         >
@@ -110,14 +117,14 @@ function AddComponentDialog({
       <form onSubmit={submit} aria-busy={save.isPending}>
         <div className="event-create-body">
           <p className="catalog-destination" id="component-destination">
-            Add to {target?.name}.
+            {t("addTo", { page: target?.name ?? "" })}
           </p>
           <label className="field">
-            Find a component
+            {t("find")}
             <input
               ref={nameInput}
               type="search"
-              placeholder="Try /calendar or expenses"
+              placeholder={t("placeholder")}
               aria-describedby="component-destination"
               maxLength={120}
               value={search}
@@ -152,11 +159,13 @@ function AddComponentDialog({
           </label>
           <p className="catalog-context" role="status">
             {selectedKind && (alreadyHere || usedElsewhere)
-              ? `${eventComponents[selectedKind].label} is already used ${alreadyHere ? "on this page" : "on another page"}. You can add another view of the same records.`
-              : "Add a view of this event's records, without creating or copying them."}
+              ? t(alreadyHere ? "usedHere" : "usedElsewhere", {
+                  component: componentKindLabel(selectedKind),
+                })
+              : t("intro")}
           </p>
           <fieldset className="component-picker" disabled={save.isPending}>
-            <legend>Choose a component</legend>
+            <legend>{t("choose")}</legend>
             {options.map((option) => (
               <label key={option} className="component-choice">
                 <input
@@ -170,10 +179,10 @@ function AddComponentDialog({
                 />
                 <span>
                   <strong id={`component-${option}-label`}>
-                    {eventComponents[option].label}
+                    {componentKindLabel(option)}
                   </strong>
                   <span id={`component-${option}-description`}>
-                    {eventComponents[option].description}
+                    {componentKindDescription(option)}
                   </span>
                 </span>
               </label>
@@ -181,7 +190,7 @@ function AddComponentDialog({
           </fieldset>
           {options.length === 0 ? (
             <p role="status">
-              No matching components. Try calendar, to-dos, or files.{" "}
+              {t("noMatch")}{" "}
               <button
                 type="button"
                 className="button button-quiet"
@@ -191,7 +200,7 @@ function AddComponentDialog({
                   nameInput.current?.focus();
                 }}
               >
-                Clear search
+                {t("clearSearch")}
               </button>
             </p>
           ) : null}
@@ -204,7 +213,7 @@ function AddComponentDialog({
             disabled={save.isPending}
             onClick={onClose}
           >
-            Cancel
+            {common("cancel")}
           </button>
           <button
             type="submit"
@@ -212,10 +221,10 @@ function AddComponentDialog({
             disabled={save.isPending || !selectedKind}
           >
             {save.isPending
-              ? "Saving..."
+              ? t("saving")
               : selectedKind
-                ? `Add ${eventComponents[selectedKind].label}`
-                : "Add component"}
+                ? t("addNamed", { component: componentKindLabel(selectedKind) })
+                : t("add")}
           </button>
         </footer>
       </form>
@@ -250,6 +259,7 @@ export function EventPages({
   readonly onArrangingChange: (arranging: boolean) => void;
   readonly pageDrop?: RefObject<PageDrop | null> | undefined;
 }) {
+  const t = useTranslations("componentDialog");
   const [notice, setNotice] = useState<{
     pageId: string;
     message: string;
@@ -262,10 +272,10 @@ export function EventPages({
       error={layout.error}
       onRefresh={() => void layout.refetch()}
       isRefreshing={layout.isFetching}
-      refreshLabel="Refresh latest"
+      refreshLabel={t("refreshLatest")}
     />
   ) : null;
-  if (layout.isPending) return <LoadingState label="Loading event pages" />;
+  if (layout.isPending) return <LoadingState label={t("loadingPages")} />;
   if (
     layout.data === undefined ||
     (layout.isError && !isTemporaryReadError(layout.error))
@@ -290,8 +300,8 @@ export function EventPages({
       </p>
       {selectedId && selectedId !== selected?.id ? (
         <p role="status" className="page-location-notice">
-          The requested page is unavailable.
-          {selected ? ` Showing ${selected.name}.` : ""}
+          {t("pageUnavailable")}
+          {selected ? ` ${t("showing", { name: selected.name })}` : ""}
         </p>
       ) : null}
       <EventPageCanvas

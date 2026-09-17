@@ -2,6 +2,7 @@
 
 import type { RecoveryPreview, TrashQueryInput } from "@chronelle/schemas";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { useState } from "react";
 import {
   EmptyState,
@@ -19,6 +20,8 @@ import { useRevokeShare, useSharesQuery } from "../../lib/queries";
 import { RecoveryDialog } from "./recovery-dialog";
 
 export function TrashWorkspace() {
+  const t = useTranslations("trash");
+  const types = useTranslations("objectTypes");
   const [filter, setFilter] = useState<TrashQueryInput["objectType"]>();
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const trash = useTrash({
@@ -35,16 +38,13 @@ export function TrashWorkspace() {
   return (
     <main className="workspace-page">
       <header className="page-heading">
-        <p className="eyebrow">Workspace recovery</p>
-        <h1>Trash</h1>
-        <p>
-          Deleted objects you currently own, including those inherited from a
-          shared Owner scope. Nothing here is permanently erased.
-        </p>
+        <p className="eyebrow">{t("eyebrow")}</p>
+        <h1>{t("title")}</h1>
+        <p>{t("intro")}</p>
       </header>
       <div className="panel-heading">
         <label className="field trash-filter">
-          <span>Object type</span>
+          <span>{t("objectType")}</span>
           <select
             value={filter ?? ""}
             onChange={(event) => {
@@ -56,13 +56,13 @@ export function TrashWorkspace() {
               );
             }}
           >
-            <option value="">All types</option>
-            <option value="event">Events</option>
-            <option value="task">To-dos</option>
-            <option value="expense">Expenses</option>
-            <option value="reminder">Reminders</option>
-            <option value="document">Documents</option>
-            <option value="person">People</option>
+            <option value="">{t("allTypes")}</option>
+            <option value="event">{types("events")}</option>
+            <option value="task">{types("tasks")}</option>
+            <option value="expense">{types("expenses")}</option>
+            <option value="reminder">{types("reminders")}</option>
+            <option value="document">{types("documents")}</option>
+            <option value="person">{types("people")}</option>
           </select>
         </label>
         <button
@@ -74,10 +74,10 @@ export function TrashWorkspace() {
             void trash.refetch();
           }}
         >
-          Refresh Trash
+          {t("refresh")}
         </button>
       </div>
-      {trash.isPending ? <LoadingState label="Loading Trash" /> : null}
+      {trash.isPending ? <LoadingState label={t("loading")} /> : null}
       {trash.isError ? (
         <ErrorNotice
           error={trash.error}
@@ -87,15 +87,11 @@ export function TrashWorkspace() {
       {trash.isSuccess && items.length === 0 ? (
         <div className="collection-empty">
           <EmptyState
-            title={
-              filter === undefined
-                ? "No recoverable objects"
-                : "No recoverable objects of this type"
-            }
+            title={filter === undefined ? t("emptyTitle") : t("emptyTypeTitle")}
             description={
               filter === undefined
-                ? "Objects appear here only when your current access allows recovery. Removed context links are listed separately inside each Event."
-                : "Try all types. Only objects you can currently recover are shown."
+                ? t("emptyDescription")
+                : t("emptyTypeDescription")
             }
           />
           {filter !== undefined ? (
@@ -107,7 +103,7 @@ export function TrashWorkspace() {
                 setFilter(undefined);
               }}
             >
-              Clear type filter
+              {t("clearType")}
             </button>
           ) : null}
         </div>
@@ -117,20 +113,26 @@ export function TrashWorkspace() {
           <article key={item.id}>
             <div>
               <span className="object-label">
-                {item.objectType} · v{item.version}
+                {t("objectLabel", {
+                  type: types(item.objectType),
+                  version: item.version,
+                })}
               </span>
               <h2>{item.displayName}</h2>
               <p className="muted">
-                Deleted {formatDateTime(item.deletedAt)} · ID {shortId(item.id)}
+                {t("deletedAt", {
+                  when: formatDateTime(item.deletedAt),
+                  id: shortId(item.id),
+                })}
               </p>
             </div>
             <button
               className="button button-secondary"
               type="button"
               onClick={() => setSelectedId(item.id)}
-              aria-label={`Preview recovery for ${item.displayName}`}
+              aria-label={t("previewFor", { name: item.displayName })}
             >
-              Preview recovery
+              {t("previewRecovery")}
             </button>
           </article>
         ))}
@@ -142,9 +144,7 @@ export function TrashWorkspace() {
           disabled={trash.isFetching}
           onClick={() => void trash.fetchNextPage()}
         >
-          {trash.isFetchingNextPage
-            ? "Loading deleted objects..."
-            : "Load more deleted objects"}
+          {trash.isFetchingNextPage ? t("loadingMore") : t("loadMore")}
         </button>
       ) : null}
       {selectedId === null ? null : (
@@ -165,6 +165,7 @@ function ObjectRecoveryPreview({
   readonly objectId: string;
   readonly onClose: () => void;
 }) {
+  const t = useTranslations("trash");
   const preview = useRecoveryPreview(objectId);
   const recover = useRecoverObject(objectId);
   const [proposal, setProposal] = useState<RecoveryPreview | null>(null);
@@ -173,25 +174,25 @@ function ObjectRecoveryPreview({
   const shown = proposal ?? preview.data;
   const hasError = preview.isError || recover.isError;
   return (
-    <RecoveryDialog title="Recovery preview" onClose={onClose}>
+    <RecoveryDialog title={t("recoveryPreview")} onClose={onClose}>
       {savedVersion !== null ? (
         <>
           <Notice tone="success">
-            {`Recovered as version ${savedVersion}. Normal views have been refreshed.`}
+            {t("recovered", { version: savedVersion })}
           </Notice>
           {shown?.object.objectType === "event" ? (
             <Link
               className="button button-primary"
               href={`/events/${objectId}`}
             >
-              Open recovered event
+              {t("openRecovered")}
             </Link>
           ) : null}
         </>
       ) : (
         <>
           {preview.isPending ? (
-            <LoadingState label="Loading recovery preview" />
+            <LoadingState label={t("loadingPreview")} />
           ) : null}
           {hasError ? (
             <ErrorNotice
@@ -208,18 +209,10 @@ function ObjectRecoveryPreview({
             <>
               <h3>{shown.object.displayName}</h3>
               <p className="muted">
-                Preview based on deleted version {shown.object.version}.
+                {t("previewBasedOn", { version: shown.object.version })}
               </p>
-              <p>
-                Recovery keeps this object's ID, current content, files,
-                permissions, and history. It creates a new version, without
-                replaying an earlier snapshot.
-              </p>
-              <p>
-                Existing links appear again only when both objects are available
-                and authorized. Independently removed links stay removed.
-                Related objects are not recovered automatically.
-              </p>
+              <p>{t("keepsNote")}</p>
+              <p>{t("linksNote")}</p>
               {shown.blockedReason === null ? null : (
                 <Notice tone="warning">{shown.blockedReason}</Notice>
               )}
@@ -237,7 +230,7 @@ function ObjectRecoveryPreview({
                         setConfirmed(event.target.checked);
                       }}
                     />
-                    I reviewed this recovery.
+                    {t("reviewed")}
                   </label>
                   <button
                     className="button button-primary"
@@ -257,7 +250,7 @@ function ObjectRecoveryPreview({
                       )
                     }
                   >
-                    {recover.isPending ? "Recovering..." : "Confirm recovery"}
+                    {recover.isPending ? t("recovering") : t("confirm")}
                   </button>
                 </>
               ) : null}
@@ -271,23 +264,21 @@ function ObjectRecoveryPreview({
 }
 
 function TrashGrants({ objectId }: { readonly objectId: string }) {
+  const t = useTranslations("trash");
   const shares = useSharesQuery(objectId, true);
   const revoke = useRevokeShare();
   return (
     <section className="sharing-section">
-      <h3>Direct grants</h3>
-      <p className="muted">
-        Recovery does not re-create revoked grants. Inherited access must be
-        managed on its canonical scope.
-      </p>
-      {shares.isPending ? <LoadingState label="Loading direct grants" /> : null}
+      <h3>{t("directGrants")}</h3>
+      <p className="muted">{t("grantsNote")}</p>
+      {shares.isPending ? <LoadingState label={t("loadingGrants")} /> : null}
       {shares.isError ? (
         <ErrorNotice
           error={shares.error}
           onRefresh={() => void shares.refetch()}
         />
       ) : null}
-      {shares.data?.items.length === 0 ? <p>No direct grants.</p> : null}
+      {shares.data?.items.length === 0 ? <p>{t("noGrants")}</p> : null}
       <ul className="trash-grants">
         {shares.data?.items.map((grant) => (
           <li key={grant.id}>
@@ -300,7 +291,7 @@ function TrashGrants({ objectId }: { readonly objectId: string }) {
               disabled={revoke.isPending}
               onClick={() => revoke.mutate(grant.id)}
             >
-              Revoke
+              {t("revoke")}
             </button>
           </li>
         ))}

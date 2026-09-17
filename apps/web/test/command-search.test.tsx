@@ -172,7 +172,7 @@ it("opens the canonical destination without persisting query text or showing IDs
   });
   await waitFor(() => expect(option).toHaveAttribute("aria-selected", "true"));
   expect(input()).toHaveAttribute("aria-activedescendant", option.id);
-  expect(option).toHaveTextContent("event / Open event");
+  expect(option).toHaveTextContent("Event / Open event");
   expect(option).not.toHaveTextContent(eventId);
   const headers = fetch.mock.calls[0]?.[1]?.headers as Headers;
   expect(headers.get("x-workspace-id")).toBe(workspaceId);

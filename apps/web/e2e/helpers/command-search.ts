@@ -35,7 +35,7 @@ export async function exerciseCommandSearch(page: Page, testInfo: TestInfo) {
       name: /Confirm the garden venue/,
     });
     await expect(task).toHaveAttribute("aria-selected", "true");
-    await expect(task).toContainText("task / Open event");
+    await expect(task).toContainText("Task / Open event");
     await expectHorizontalReflow(page);
     await expect(task).toBeInViewport();
     await page.screenshot({

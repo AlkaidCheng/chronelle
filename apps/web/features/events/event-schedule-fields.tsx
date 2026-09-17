@@ -29,6 +29,7 @@ export function EventScheduleFields({
           <small>{hasDates ? t("datesOn") : t("datesOff")}</small>
         </span>
         <input
+          data-schedule-toggle="dates"
           type="checkbox"
           role="switch"
           aria-label={t("setDates")}

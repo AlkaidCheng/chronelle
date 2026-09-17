@@ -4,9 +4,11 @@ import type {
   RevisionFieldChange,
   RevisionRestorePreview,
 } from "@chronelle/schemas";
+import { useTranslations } from "next-intl";
 import { useEffect, useId, useRef, useState } from "react";
 
 import { ErrorNotice, LoadingState, Notice } from "../../components/feedback";
+import { tr } from "../../i18n/active-locale";
 import { formatDateTime, shortId } from "../../lib/format";
 import {
   useObjectHistory,
@@ -16,28 +18,29 @@ import {
 } from "../../lib/history-queries";
 import { useSessionDialog } from "../../lib/use-session-dialog";
 
-const actionNames = {
-  recovered: "Recovered from trash",
-  created: "Created",
-  updated: "Edited",
-  baseline: "Baseline captured",
-  permission_scope_updated: "Permission scope changed",
-  deleted: "Moved to trash",
-  restored: "Restored",
-};
+const actionKeys = {
+  recovered: "recovered",
+  created: "created",
+  updated: "updated",
+  baseline: "baseline",
+  permission_scope_updated: "permissionScope",
+  deleted: "deleted",
+  restored: "restored",
+} as const;
 
 function displayValue(
   change: RevisionFieldChange,
   side: "before" | "after",
 ): string {
+  const t = tr("history.values");
   const present =
     side === "before" ? change.beforePresent : change.afterPresent;
-  if (!present) return "Not set";
+  if (!present) return t("notSet");
   const value = change[side];
-  if (value === null) return "Empty";
+  if (value === null) return t("empty");
   if (change.valueType === "datetime" && typeof value === "string")
     return formatDateTime(value);
-  if (typeof value === "boolean") return value ? "Yes" : "No";
+  if (typeof value === "boolean") return value ? t("yes") : t("no");
   if (typeof value === "object") return JSON.stringify(value, null, 2);
   return String(value);
 }
@@ -49,8 +52,9 @@ function ChangeList({
   readonly changes: RevisionFieldChange[];
   readonly preview?: boolean;
 }) {
+  const t = useTranslations("history");
   return changes.length === 0 ? (
-    <p className="muted">No content differences between these versions.</p>
+    <p className="muted">{t("noDifferences")}</p>
   ) : (
     <dl className="history-changes">
       {changes.map((change) => (
@@ -58,20 +62,20 @@ function ChangeList({
           <dt>
             {change.label}
             {preview && !change.restorable ? (
-              <span className="status-chip">Preserved</span>
+              <span className="status-chip">{t("preserved")}</span>
             ) : null}
           </dt>
           <dd>
-            <span>{preview ? "Current" : "Before"}</span>
+            <span>{preview ? t("current") : t("before")}</span>
             <pre>{displayValue(change, "before")}</pre>
           </dd>
           <dd>
             <span>
               {preview
                 ? change.restorable
-                  ? "Will restore"
-                  : "Historical only"
-                : "After"}
+                  ? t("willRestore")
+                  : t("historicalOnly")
+                : t("after")}
             </span>
             <pre>{displayValue(change, "after")}</pre>
           </dd>
@@ -90,6 +94,7 @@ function RestorationPreview({
   readonly version: number;
   readonly onRestored: (version: number) => void;
 }) {
+  const t = useTranslations("history");
   const preview = useRestorePreview(objectId, version);
   const restore = useRestoreRevision(objectId);
   const [confirmed, setConfirmed] = useState(false);
@@ -109,26 +114,24 @@ function RestorationPreview({
         onRefresh={() => void preview.refetch()}
       />
     ) : (
-      <LoadingState label="Loading restore preview" />
+      <LoadingState label={t("loadingPreview")} />
     );
   return (
     <section
       ref={region}
       tabIndex={-1}
       className="history-preview"
-      aria-label="Restore preview"
+      aria-label={t("restorePreview")}
     >
-      <h3>Restore version {version}</h3>
-      <p>
-        This creates a new version of this object. Later history remains
-        available. Any open editor draft is kept and may need reconciliation.
-      </p>
+      <h3>{t("restoreVersion", { version })}</h3>
+      <p>{t("restoreNote")}</p>
       <p className="muted">
-        Preview based on current version {shown.currentVersion}.
+        {t("previewBasedOn", { version: shown.currentVersion })}
       </p>
       <ChangeList changes={shown.changes} preview />
       <p>
-        <strong>Always preserved:</strong> {shown.preservedFields.join("; ")}.
+        <strong>{t("alwaysPreserved")}</strong>{" "}
+        {shown.preservedFields.join("; ")}.
       </p>
       {hasError ? (
         <ErrorNotice
@@ -153,7 +156,7 @@ function RestorationPreview({
                 setConfirmed(event.target.checked);
               }}
             />
-            I reviewed the changes to this canonical object.
+            {t("reviewed")}
           </label>
           <button
             className="button button-primary"
@@ -168,13 +171,11 @@ function RestorationPreview({
               );
             }}
           >
-            {restore.isPending ? "Restoring..." : "Confirm restore"}
+            {restore.isPending ? t("restoring") : t("confirmRestore")}
           </button>
         </>
       ) : (
-        <p className="muted">
-          There are no eligible changes to restore, or your access is read-only.
-        </p>
+        <p className="muted">{t("nothingToRestore")}</p>
       )}
     </section>
   );
@@ -189,6 +190,7 @@ export function HistoryDrawer({
   readonly displayName: string;
   readonly onClose: () => void;
 }) {
+  const t = useTranslations("history");
   const dialog = useSessionDialog(onClose);
   const headingId = useId();
   const history = useObjectHistory(objectId);
@@ -214,9 +216,9 @@ export function HistoryDrawer({
     >
       <header className="history-header">
         <div>
-          <p className="eyebrow">Object history</p>
+          <p className="eyebrow">{t("eyebrow")}</p>
           <h2 id={headingId}>{displayName}</h2>
-          <code className="history-object-id" title="Object ID">
+          <code className="history-object-id" title={t("objectId")}>
             {objectId}
           </code>
         </div>
@@ -224,14 +226,12 @@ export function HistoryDrawer({
           className="button button-quiet"
           type="button"
           onClick={onClose}
-          aria-label="Close history"
+          aria-label={t("close")}
         >
-          Close
+          {t("closeShort")}
         </button>
       </header>
-      <p className="muted">
-        Saved versions of one canonical object. History follows current access.
-      </p>
+      <p className="muted">{t("intro")}</p>
       {message ? <Notice tone="success">{message}</Notice> : null}
       {history.isError ? (
         <ErrorNotice
@@ -239,24 +239,28 @@ export function HistoryDrawer({
           onRefresh={() => void history.refetch()}
         />
       ) : history.isPending ? (
-        <LoadingState label="Loading history" />
+        <LoadingState label={t("loading")} />
       ) : (
         <>
           <ol className="history-list">
             {revisions.map((revision) => (
               <li key={revision.id}>
                 <div>
-                  <strong>Version {revision.objectVersion}</strong>{" "}
-                  <span>{actionNames[revision.mutationKind]}</span>
+                  <strong>
+                    {t("version", { version: revision.objectVersion })}
+                  </strong>{" "}
+                  <span>
+                    {t(`actions.${actionKeys[revision.mutationKind]}`)}
+                  </span>
                   <p>
                     {formatDateTime(revision.createdAt)} /{" "}
                     {revision.actorType === "system"
-                      ? "System"
+                      ? t("system")
                       : (revision.actorDisplayName ??
                         `${revision.actorType.replace("_", " ")} ${shortId(revision.actorId ?? "")}`)}
                   </p>
                   {revision.mutationKind === "baseline" ? (
-                    <p>Earlier states were not recorded.</p>
+                    <p>{t("baselineNote")}</p>
                   ) : null}
                 </div>
                 <div className="history-actions">
@@ -270,7 +274,7 @@ export function HistoryDrawer({
                       setMessage(null);
                     }}
                   >
-                    Compare v{revision.objectVersion}
+                    {t("compare", { version: revision.objectVersion })}
                   </button>
                   <button
                     className="button button-secondary button-small"
@@ -282,7 +286,7 @@ export function HistoryDrawer({
                       setMessage(null);
                     }}
                   >
-                    Preview v{revision.objectVersion}
+                    {t("preview", { version: revision.objectVersion })}
                   </button>
                 </div>
               </li>
@@ -295,45 +299,41 @@ export function HistoryDrawer({
               disabled={history.isFetchingNextPage}
               onClick={() => void history.fetchNextPage()}
             >
-              {history.isFetchingNextPage
-                ? "Loading..."
-                : "Load older versions"}
+              {history.isFetchingNextPage ? t("loadingMore") : t("loadOlder")}
             </button>
           ) : null}
-          {revisions.length === 0 ? (
-            <p>No saved versions are available.</p>
-          ) : null}
+          {revisions.length === 0 ? <p>{t("none")}</p> : null}
           {from !== null && to !== null ? (
             <section
               ref={comparisonRegion}
               tabIndex={-1}
               className="history-comparison"
-              aria-label="Version comparison"
+              aria-label={t("comparison")}
             >
-              <h3>Compare versions</h3>
+              <h3>{t("compareVersions")}</h3>
               <div className="form-grid">
                 <label className="field">
-                  <span>Before</span>
+                  <span>{t("before")}</span>
                   <select
                     value={from}
                     onChange={(event) => setFrom(Number(event.target.value))}
                   >
                     {revisions.map((revision) => (
                       <option key={revision.id} value={revision.objectVersion}>
-                        Version {revision.objectVersion}
+                        {t("version", { version: revision.objectVersion })}
                       </option>
                     ))}
                   </select>
                 </label>
                 <label className="field">
-                  <span>After</span>
+                  <span>{t("after")}</span>
                   <select
                     value={to}
                     onChange={(event) => setTo(Number(event.target.value))}
                   >
                     {revisions.map((revision) => (
                       <option key={revision.id} value={revision.objectVersion}>
-                        Version {revision.objectVersion}
+                        {t("version", { version: revision.objectVersion })}
                       </option>
                     ))}
                   </select>
@@ -345,7 +345,7 @@ export function HistoryDrawer({
                   onRefresh={() => void comparison.refetch()}
                 />
               ) : comparison.isPending ? (
-                <LoadingState label="Comparing versions" />
+                <LoadingState label={t("comparing")} />
               ) : (
                 <ChangeList changes={comparison.data.changes} />
               )}
@@ -358,9 +358,7 @@ export function HistoryDrawer({
               version={restoreVersion}
               onRestored={(version) => {
                 setRestoreVersion(null);
-                setMessage(
-                  `Restored as version ${version}. Other views have been refreshed.`,
-                );
+                setMessage(t("restored", { version }));
               }}
             />
           ) : null}

@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { createContext, type ReactNode, useContext, useState } from "react";
 import { ErrorNotice, LoadingState, Notice } from "../../components/feedback";
 import {
@@ -45,15 +46,16 @@ export function LifecycleButton({
 }: {
   readonly target: LifecycleTarget;
 }) {
+  const t = useTranslations("lifecycle");
   const open = useOpenLifecycle();
   return (
     <button
       className="button button-quiet button-small"
       type="button"
-      aria-label={`Actions for ${target.displayName}`}
+      aria-label={t("actionsFor", { name: target.displayName })}
       onClick={() => open(target)}
     >
-      Actions
+      {t("actions")}
     </button>
   );
 }
@@ -65,6 +67,7 @@ function LifecycleDialog({
   readonly target: LifecycleTarget;
   readonly onClose: () => void;
 }) {
+  const t = useTranslations("lifecycle");
   const actions = useLifecycleActions(target);
   const [proposal, setProposal] = useState<
     { kind: "trash" } | { kind: "remove"; id: string; version: number } | null
@@ -89,22 +92,19 @@ function LifecycleDialog({
         <>
           <Notice tone="success">{message}</Notice>
           <Link href="/trash" onClick={onClose}>
-            Open Trash
+            {t("openTrash")}
           </Link>
         </>
       ) : (
         <>
-          <p>
-            Removing a context link and moving the object to Trash have
-            different effects.
-          </p>
+          <p>{t("intro")}</p>
           {actions.objectAccess.isPending ? (
-            <LoadingState label="Checking available actions" />
+            <LoadingState label={t("checking")} />
           ) : null}
           {error !== null ? (
             <>
               <ErrorNotice error={error} />
-              <p>Close this dialog and reload the view before trying again.</p>
+              <p>{t("reloadNote")}</p>
             </>
           ) : null}
           <div className="recovery-options">
@@ -123,7 +123,7 @@ function LifecycleDialog({
                   setConfirmed(false);
                 }}
               >
-                Remove context link
+                {t("removeLink")}
               </button>
             ) : null}
             {actions.objectAccess.data?.actions.includes("delete") ? (
@@ -136,21 +136,19 @@ function LifecycleDialog({
                   setConfirmed(false);
                 }}
               >
-                Move to Trash
+                {t("moveToTrash")}
               </button>
             ) : null}
           </div>
           {proposal !== null ? (
-            <section className="history-preview" aria-label="Deletion preview">
+            <section className="history-preview" aria-label={t("preview")}>
               <h3>
                 {proposal.kind === "remove"
-                  ? "Remove this link only"
-                  : "Move the canonical object to Trash"}
+                  ? t("removeTitle")
+                  : t("trashTitle")}
               </h3>
               <p>
-                {proposal.kind === "remove"
-                  ? "The object, its history, permissions, and other contexts remain unchanged. Recover this link from Removed links while both objects are available."
-                  : "This object disappears from normal views and downloads. Its content, files, history, and permissions are retained. Related objects are not deleted. A current Owner can recover it from Trash."}
+                {proposal.kind === "remove" ? t("removeNote") : t("trashNote")}
               </p>
               <label className="check-field">
                 <input
@@ -159,7 +157,7 @@ function LifecycleDialog({
                   disabled={pending || error !== null}
                   onChange={(event) => setConfirmed(event.target.checked)}
                 />
-                I understand what will change.
+                {t("understand")}
               </label>
               <button
                 className="button button-primary"
@@ -168,34 +166,26 @@ function LifecycleDialog({
                 onClick={() => {
                   if (proposal.kind === "remove")
                     actions.remove.mutate(proposal, {
-                      onSuccess: () =>
-                        setMessage(
-                          "Link removed. The canonical object remains available.",
-                        ),
+                      onSuccess: () => setMessage(t("linkRemoved")),
                     });
                   else
                     actions.trash.mutate(undefined, {
-                      onSuccess: () =>
-                        setMessage(
-                          "Moved to Trash. No related objects were deleted.",
-                        ),
+                      onSuccess: () => setMessage(t("movedToTrash")),
                     });
                 }}
               >
                 {pending
-                  ? "Saving..."
+                  ? t("saving")
                   : proposal.kind === "remove"
-                    ? "Confirm removal"
-                    : "Confirm move to Trash"}
+                    ? t("confirmRemoval")
+                    : t("confirmTrash")}
               </button>
             </section>
           ) : null}
           {actions.objectAccess.isSuccess &&
           !actions.objectAccess.data.actions.includes("delete") &&
           !canRemove ? (
-            <p className="muted">
-              No deletion actions are available with your current access.
-            </p>
+            <p className="muted">{t("noActions")}</p>
           ) : null}
         </>
       )}

@@ -1,6 +1,7 @@
 "use client";
 
 import type { EventResponse } from "@chronelle/schemas";
+import { useTranslations } from "next-intl";
 import {
   type FormEvent,
   useEffect,
@@ -59,7 +60,7 @@ function EventInspectorForm({
   event: latestEvent,
   onClose,
   initialDraft,
-  title = "Edit event",
+  title,
   initialFocus = "name",
 }: EventInspectorProps & {
   readonly initialDraft: EventDraftSnapshot | undefined;
@@ -82,6 +83,7 @@ function EventInspectorForm({
   const update = useUpdateEvent();
   const refresh = useRefreshEvent(event.id, { throwOnError: true });
   const { displayName } = draft.fields;
+  const t = useTranslations("eventEditor");
   const [scheduleError, setScheduleError] = useState("");
 
   const {
@@ -102,7 +104,7 @@ function EventInspectorForm({
     if (initialFocus === "schedule") {
       const toggle = name
         ?.closest("dialog")
-        ?.querySelector<HTMLElement>('[role="switch"][aria-label="Set dates"]');
+        ?.querySelector<HTMLElement>('[data-schedule-toggle="dates"]');
       if (toggle) {
         toggle.focus();
         return;
@@ -125,7 +127,7 @@ function EventInspectorForm({
       setScheduleError("");
     } catch (error) {
       setScheduleError(
-        error instanceof Error ? error.message : "Check the schedule.",
+        error instanceof Error ? error.message : t("checkSchedule"),
       );
       return;
     }
@@ -160,8 +162,8 @@ function EventInspectorForm({
     >
       <EditorDialogHeader
         headingId={headingId}
-        title={confirmingDiscard ? "Discard changes?" : title}
-        closeLabel="Close event editor"
+        title={confirmingDiscard ? t("discardTitle") : (title ?? t("title"))}
+        closeLabel={t("close")}
         isConfirming={confirmingDiscard}
         isPending={update.isPending}
         onClose={requestClose}
@@ -170,7 +172,7 @@ function EventInspectorForm({
           hidden={confirmingDiscard}
           className="button button-quiet button-small"
           type="button"
-          aria-label="View event history"
+          aria-label={t("viewHistory")}
           disabled={update.isPending}
           onClick={() =>
             openHistory({
@@ -179,12 +181,12 @@ function EventInspectorForm({
             })
           }
         >
-          History
+          {t("history")}
         </button>
       </EditorDialogHeader>
       {confirmingDiscard && (
         <div className="event-create-body">
-          <p>Your changes have not been saved.</p>
+          <p>{t("unsaved")}</p>
           <div className="form-actions">
             <DiscardActions
               keepEditingButton={keepEditingButton}
@@ -212,7 +214,7 @@ function EventInspectorForm({
             disabled={update.isPending}
             id={nameId}
             inputRef={nameInput}
-            label="Name"
+            label={t("name")}
             limit={240}
             onChange={(displayName) => draft.change({ displayName })}
             required
@@ -236,7 +238,7 @@ function EventInspectorForm({
             mutation={update}
             onCancel={requestClose}
             onRefresh={refresh}
-            submitLabel="Save event"
+            submitLabel={t("save")}
             disabled={!recovery.isRetained}
           />
         </footer>

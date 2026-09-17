@@ -1,6 +1,7 @@
 "use client";
 
 import { usePathname, useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { useEffect, useId, useRef, useState } from "react";
 import { flushSync } from "react-dom";
 import { useAuthSession } from "../lib/auth-session";
@@ -21,6 +22,8 @@ type Command =
   | ((typeof workspaceDestinations)[number] & {
       readonly kind: "navigation";
       readonly id: string;
+      readonly label: string;
+      readonly description: string;
     })
   | (ReturnType<typeof useContextCommands>[number] & {
       readonly kind: "context";
@@ -51,6 +54,9 @@ export function WorkspaceCommands({
   readonly onShortcutChange: (enabled: boolean) => void;
   readonly onClose: () => void;
 }) {
+  const t = useTranslations("commands");
+  const nav = useTranslations("nav");
+  const types = useTranslations("objectTypes");
   const { signal } = useAuthSession();
   const context = useContextCommands();
   const commands: readonly Command[] = [
@@ -59,6 +65,8 @@ export function WorkspaceCommands({
       ...destination,
       id: destination.href,
       kind: "navigation" as const,
+      label: nav(destination.key),
+      description: t(`destinations.${destination.key}`),
     })),
   ];
   const dialog = useSessionDialog(onClose);
@@ -82,7 +90,10 @@ export function WorkspaceCommands({
       kind: "record",
       id: `record-${record.id}`,
       label: record.displayName,
-      description: `${record.objectType} / ${href === null ? "Detail page unavailable" : "Open event"}`,
+      description: t("recordDescription", {
+        type: types(record.objectType),
+        state: href === null ? t("detailUnavailable") : t("openEvent"),
+      }),
       href,
     };
   });
@@ -150,11 +161,11 @@ export function WorkspaceCommands({
       }}
     >
       <header className="event-create-header">
-        <h2 id={`${id}-title`}>Search</h2>
+        <h2 id={`${id}-title`}>{t("title")}</h2>
         <button
           type="button"
           className="dialog-close"
-          aria-label="Close search"
+          aria-label={t("close")}
           onClick={onClose}
         >
           &#215;
@@ -162,10 +173,10 @@ export function WorkspaceCommands({
       </header>
       <div className="event-create-body command-body">
         <p id={`${id}-scope`} className="field-hint">
-          Find records or open tools in {workspaceName}.
+          {t("scope", { workspace: workspaceName })}
         </p>
         <label className="field">
-          Find a command
+          {t("find")}
           <input
             ref={input}
             role="combobox"
@@ -227,16 +238,12 @@ export function WorkspaceCommands({
           id={`${id}-results`}
           className="command-results"
           role="listbox"
-          aria-label="Commands"
+          aria-label={t("listLabel")}
         >
           {(["context", "navigation", "record"] as const).map((kind) => {
             const options = matches.filter((command) => command.kind === kind);
             if (options.length === 0) return null;
-            const label = {
-              context: "Event actions",
-              navigation: "Navigation",
-              record: "Records",
-            }[kind];
+            const label = t(`groups.${kind}`);
             return (
               // biome-ignore lint/a11y/useSemanticElements: These are listbox option groups, not form fieldsets.
               <div role="group" aria-label={label} key={kind}>
@@ -273,7 +280,7 @@ export function WorkspaceCommands({
                     </span>
                     {command.kind === "navigation" &&
                       pathname.startsWith(command.href) && (
-                        <small>Current</small>
+                        <small>{t("current")}</small>
                       )}
                   </button>
                 ))}
@@ -282,37 +289,24 @@ export function WorkspaceCommands({
           })}
         </div>
         {search.isSearching ? (
-          <p role="status">Searching records...</p>
+          <p role="status">{t("searching")}</p>
         ) : search.isError ? (
           <div className="command-search-error" role="alert">
-            <p>
-              Records could not be loaded. Navigation and event tools still
-              work.
-            </p>
+            <p>{t("loadFailed")}</p>
             <button
               type="button"
               className="button button-quiet"
               onClick={search.retry}
             >
-              Retry record search
+              {t("retry")}
             </button>
           </div>
         ) : search.isEmpty ? (
-          <p role="status">No accessible records found. Try another phrase.</p>
+          <p role="status">{t("noRecords")}</p>
         ) : (
-          matches.length === 0 && (
-            <p role="status">
-              No matching commands. Enter at least two letters or numbers to
-              find records.
-            </p>
-          )
+          matches.length === 0 && <p role="status">{t("noMatch")}</p>
         )}
-        {search.hasMore && (
-          <p className="field-hint">
-            Showing eight records. Refine your phrase or open Search for all
-            results.
-          </p>
-        )}
+        {search.hasMore && <p className="field-hint">{t("showingEight")}</p>}
         {query.trim().length >= 2 && (
           <button
             type="button"
@@ -324,15 +318,15 @@ export function WorkspaceCommands({
               if (destination) activate(destination);
             }}
           >
-            Open full Search
+            {t("openFull")}
           </button>
         )}
         <details className="command-help">
-          <summary>Keyboard shortcuts</summary>
+          <summary>{t("shortcuts")}</summary>
           <p>
-            <kbd>Cmd/Ctrl + K</kbd> opens Search outside editors and dialogs.
-            Use Up/Down to choose a result, Enter to open it, and Escape to
-            close.
+            {t.rich("openShortcut", {
+              kbd: (chunks) => <kbd>{chunks}</kbd>,
+            })}
           </p>
           <label>
             <input
@@ -340,10 +334,10 @@ export function WorkspaceCommands({
               checked={shortcutEnabled}
               onChange={(event) => onShortcutChange(event.target.checked)}
             />{" "}
-            Enable command shortcut
+            {t("enableCommand")}
           </label>
           <label className="field">
-            Add component shortcut
+            {t("componentShortcut")}
             <select
               value={componentShortcut.value}
               onChange={(event) =>
@@ -354,15 +348,12 @@ export function WorkspaceCommands({
             >
               {Object.entries(componentShortcuts).map(([value, choice]) => (
                 <option key={value} value={value}>
-                  {choice.label}
+                  {value === "disabled" ? t("off") : choice.label}
                 </option>
               ))}
             </select>
           </label>
-          <p className="field-hint">
-            Opens the picker from the selected event page, outside editors and
-            dialogs. Requires edit access and room on the page.
-          </p>
+          <p className="field-hint">{t("componentNote")}</p>
           <label>
             <input
               type="checkbox"
@@ -373,17 +364,14 @@ export function WorkspaceCommands({
                 )
               }
             />{" "}
-            Enable editor submit shortcut
+            {t("enableSubmit")}
           </label>
           <p className="field-hint">
-            <kbd>Cmd/Ctrl + Enter</kbd> saves from an event, schedule, task,
-            expense, or reminder field. Save validation still applies.
+            {t.rich("submitNote", {
+              kbd: (chunks) => <kbd>{chunks}</kbd>,
+            })}
           </p>
-          <p className="field-hint">
-            Buttons remain available without shortcuts. These choices are saved
-            on this browser when storage is available. Native text undo is
-            unchanged.
-          </p>
+          <p className="field-hint">{t("buttonsNote")}</p>
           <button
             type="button"
             className="button button-quiet"
@@ -393,7 +381,7 @@ export function WorkspaceCommands({
               editorShortcut.setValue("enabled");
             }}
           >
-            Reset keyboard shortcuts
+            {t("reset")}
           </button>
         </details>
       </div>

@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { useState } from "react";
 import {
   relationTypeSchema,
@@ -27,6 +28,7 @@ export function RemovedLinksPanel({ objectId }: { readonly objectId: string }) {
   });
   const [selected, setSelected] = useState<RemovedLink | null>(null);
   const [confirmed, setConfirmed] = useState(false);
+  const t = useTranslations("removedLinks");
   const recover = useRecoverRelation();
   const items = [
     ...new Map(
@@ -44,17 +46,13 @@ export function RemovedLinksPanel({ objectId }: { readonly objectId: string }) {
     <section className="planning-panel">
       <header className="panel-heading">
         <div>
-          <h2>Removed links</h2>
-          <p>
-            Restore a context link without copying or changing either object.
-            Only links with live, accessible endpoints and an editable source
-            appear here.
-          </p>
+          <h2>{t("title")}</h2>
+          <p>{t("intro")}</p>
         </div>
       </header>
       <div className="panel-heading">
         <label className="field">
-          <span>Link type</span>
+          <span>{t("linkType")}</span>
           <select
             value={relationType}
             onChange={(event) => {
@@ -62,10 +60,10 @@ export function RemovedLinksPanel({ objectId }: { readonly objectId: string }) {
               close();
             }}
           >
-            <option value="">All link types</option>
+            <option value="">{t("allTypes")}</option>
             {relationTypeSchema.options.map((type) => (
               <option key={type} value={type}>
-                {type.replaceAll("_", " ")}
+                {t(`types.${type}`)}
               </option>
             ))}
           </select>
@@ -79,12 +77,10 @@ export function RemovedLinksPanel({ objectId }: { readonly objectId: string }) {
             void removed.refetch();
           }}
         >
-          Refresh links
+          {t("refresh")}
         </button>
       </div>
-      {removed.isPending ? (
-        <LoadingState label="Loading removed links" />
-      ) : null}
+      {removed.isPending ? <LoadingState label={t("loading")} /> : null}
       {removed.isError ? (
         <ErrorNotice
           error={removed.error}
@@ -93,8 +89,8 @@ export function RemovedLinksPanel({ objectId }: { readonly objectId: string }) {
       ) : null}
       {removed.isSuccess && items.length === 0 ? (
         <EmptyState
-          title="No recoverable links"
-          description="Recover deleted objects from Trash first. An equivalent active link cannot be recovered twice."
+          title={t("emptyTitle")}
+          description={t("emptyDescription")}
         />
       ) : null}
       <div className="resource-list recovery-list">
@@ -105,7 +101,10 @@ export function RemovedLinksPanel({ objectId }: { readonly objectId: string }) {
                 {item.sourceDisplayName} → {item.targetDisplayName}
               </h3>
               <span className="object-label">
-                {item.relation.relationType} · link v{item.relation.version}
+                {t("linkLabel", {
+                  type: t(`types.${item.relation.relationType}`),
+                  version: item.relation.version,
+                })}
               </span>
             </div>
             <button
@@ -113,7 +112,7 @@ export function RemovedLinksPanel({ objectId }: { readonly objectId: string }) {
               type="button"
               onClick={() => setSelected(item)}
             >
-              Preview link recovery
+              {t("previewRecovery")}
             </button>
           </article>
         ))}
@@ -125,25 +124,20 @@ export function RemovedLinksPanel({ objectId }: { readonly objectId: string }) {
           disabled={removed.isFetching}
           onClick={() => void removed.fetchNextPage()}
         >
-          {removed.isFetchingNextPage
-            ? "Loading links..."
-            : "Load more removed links"}
+          {removed.isFetchingNextPage ? t("loadingMore") : t("loadMore")}
         </button>
       ) : null}
       {selected === null ? null : (
-        <RecoveryDialog title="Recover context link" onClose={close}>
+        <RecoveryDialog title={t("recoverTitle")} onClose={close}>
           {recover.isSuccess ? (
-            <Notice tone="success">
-              Link recovered. Neither canonical object was changed.
-            </Notice>
+            <Notice tone="success">{t("recovered")}</Notice>
           ) : (
             <>
               <p>
                 {selected.sourceDisplayName} → {selected.targetDisplayName}
               </p>
               <p>
-                Recovering link version {selected.relation.version}. Content and
-                permissions stay unchanged.
+                {t("recoveringVersion", { version: selected.relation.version })}
               </p>
               <label className="check-field">
                 <input
@@ -152,7 +146,7 @@ export function RemovedLinksPanel({ objectId }: { readonly objectId: string }) {
                   disabled={recover.isPending || recover.isError}
                   onChange={(event) => setConfirmed(event.target.checked)}
                 />
-                I reviewed this link.
+                {t("reviewed")}
               </label>
               <button
                 className="button button-primary"
@@ -160,15 +154,12 @@ export function RemovedLinksPanel({ objectId }: { readonly objectId: string }) {
                 disabled={!confirmed || recover.isPending || recover.isError}
                 onClick={() => recover.mutate(selected.relation)}
               >
-                {recover.isPending ? "Recovering..." : "Confirm link recovery"}
+                {recover.isPending ? t("recovering") : t("confirm")}
               </button>
               {recover.isError ? (
                 <>
                   <ErrorNotice error={recover.error} />
-                  <p>
-                    Close this preview and refresh the Event before trying
-                    again.
-                  </p>
+                  <p>{t("refreshNote")}</p>
                 </>
               ) : null}
             </>
