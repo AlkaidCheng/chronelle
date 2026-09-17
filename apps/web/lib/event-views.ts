@@ -1,17 +1,17 @@
 import { tr } from "../i18n/active-locale";
 
 export const eventViews = [
-  { id: "pages", label: "Pages" },
-  { id: "overview", label: "Overview" },
-  { id: "todos", label: "To-dos" },
-  { id: "calendar", label: "Calendar" },
-  { id: "timeline", label: "Timeline" },
-  { id: "expenses", label: "Expenses" },
-  { id: "reminders", label: "Reminders" },
-  { id: "files", label: "Files" },
-  { id: "people", label: "People" },
-  { id: "sharing", label: "Sharing" },
-  { id: "removed-links", label: "Removed links" },
+  { id: "pages" },
+  { id: "overview" },
+  { id: "todos" },
+  { id: "calendar" },
+  { id: "timeline" },
+  { id: "expenses" },
+  { id: "reminders" },
+  { id: "files" },
+  { id: "people" },
+  { id: "sharing" },
+  { id: "removed-links" },
 ] as const;
 
 export type EventView = (typeof eventViews)[number]["id"];

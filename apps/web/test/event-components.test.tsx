@@ -1,5 +1,11 @@
 // @vitest-environment jsdom
 
+import { ChronelleApiClient } from "@chronelle/api-client";
+import {
+  type EventComponentKind,
+  eventComponentKindSchema,
+} from "@chronelle/schemas";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   cleanup,
   fireEvent,
@@ -9,7 +15,6 @@ import {
   within,
 } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { useQueryClient } from "@tanstack/react-query";
 import {
   afterEach,
   assert,
@@ -19,30 +24,26 @@ import {
   it,
   vi,
 } from "vitest";
-import { ChronelleApiClient } from "@chronelle/api-client";
-import {
-  eventComponentKindSchema,
-  type EventComponentKind,
-} from "@chronelle/schemas";
 import { Providers } from "../app/providers";
-import { PagesHarness } from "./pages-harness";
 import {
-  type DayKey,
+  useContextCommands,
+  WorkspaceCommandProvider,
+} from "../components/context-commands";
+import {
   addDays,
+  type DayKey,
   dayKeyOf,
   monthDays,
   parseDayKey,
 } from "../lib/day-placement";
 import {
   addableEventComponentKinds,
+  componentKindLabel,
   eventComponents,
 } from "../lib/event-components";
 import { queryKeys } from "../lib/queries";
 import { SandboxStore, sandboxWorkspaceId } from "../sandbox/store";
-import {
-  WorkspaceCommandProvider,
-  useContextCommands,
-} from "../components/context-commands";
+import { PagesHarness } from "./pages-harness";
 import { chooseRowAction } from "./row-menu-support";
 
 let store: SandboxStore;
@@ -1296,7 +1297,7 @@ describe("insertable event components", () => {
       expect(
         (
           await screen.findAllByRole("heading", {
-            name: eventComponents[kind].label,
+            name: componentKindLabel(kind),
           })
         )[0],
       ).toBeVisible();
