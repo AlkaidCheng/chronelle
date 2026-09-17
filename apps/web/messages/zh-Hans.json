@@ -102,9 +102,7 @@
     "sent": "已发送",
     "accept": "接受",
     "decline": "拒绝",
-    "withdraw": "撤回",
     "resend": "重新发送",
-    "remove": "移除",
     "noFriends": "还没有好友。通过邮箱邀请一位吧。",
     "since": "自 {date}",
     "sentOn": "发送于 {date}",
@@ -575,7 +573,6 @@
     "close": "关闭",
     "done": "完成",
     "save": "保存",
-    "delete": "删除",
     "confirm": "确认"
   },
   "validation": {
@@ -798,11 +795,9 @@
     "nameOf": "{name}的名称",
     "renaming": "重命名中…",
     "rename": "重命名",
-    "deleting": "删除中…",
-    "deleteNamed": "删除{name}",
     "keep": "保留",
-    "delete": "删除",
-    "changeFailed": "更改失败。"
+    "changeFailed": "更改失败。",
+    "removing": "正在移除…"
   },
   "assignee": {
     "summary": "负责人：{name}",
@@ -959,28 +954,15 @@
     "grantsNote": "恢复不会重新创建已撤销的授权。继承的访问权限需在其所属范围管理。",
     "loadingGrants": "正在加载直接授权",
     "noGrants": "没有直接授权。",
-    "revoke": "撤销"
+    "thisRecord": "此记录"
   },
   "lifecycle": {
     "actionsFor": "{name}的操作",
     "actions": "操作",
-    "openTrash": "打开回收站",
-    "intro": "移除关联和把对象移到回收站的效果不同。",
     "checking": "正在检查可用操作",
-    "reloadNote": "请关闭此对话框并重新加载视图后再试。",
-    "removeLink": "移除关联",
-    "moveToTrash": "移到回收站",
-    "preview": "删除预览",
-    "removeTitle": "仅移除此关联",
-    "trashTitle": "把对象移到回收站",
-    "removeNote": "对象及其历史、权限和其他关联保持不变。两个对象都可用时，可从“已移除的关联”恢复此关联。",
-    "trashNote": "此对象将从常规视图和下载中消失。其内容、文件、历史和权限会被保留。相关对象不会被删除。当前所有者可从回收站恢复。",
-    "understand": "我了解将发生的更改。",
-    "linkRemoved": "关联已移除。对象仍然可用。",
-    "movedToTrash": "已移到回收站。未删除任何相关对象。",
+    "removeNote": "记录本身保留；关联可从“已移除的关联”中恢复。",
+    "trashNote": "从所有视图中隐藏；所有者可从回收站恢复。",
     "saving": "保存中…",
-    "confirmRemoval": "确认移除",
-    "confirmTrash": "确认移到回收站",
     "noActions": "当前访问权限下没有可用的删除操作。"
   },
   "removedLinks": {
@@ -1246,7 +1228,6 @@
     "peopleWithAccess": "可访问的人",
     "loadingCollaborators": "正在加载协作者",
     "onlyYou": "只有你可以访问",
-    "revoke": "撤销",
     "inheritedResources": "继承的资源",
     "inheritedNote": "停止继承可让某个相关对象保持私密。",
     "noResources": "没有相关资源",
@@ -1303,7 +1284,6 @@
     "queued": "等待对方加入",
     "invitationSent": "已发送邀请，加入后即可访问",
     "failed": "无法完成共享。",
-    "remove": "移除",
     "nobody": "为参与者添加邮箱或关联账号后即可共享。",
     "roles": {
       "viewer": "查看者",
@@ -1318,7 +1298,6 @@
     "friend": "好友",
     "access": "访问权限",
     "add": "添加",
-    "remove": "移除",
     "personal": "个人工作区",
     "noFriends": "先添加好友，才能将其加入此处。",
     "roles": {
@@ -1449,5 +1428,46 @@
       "move": "移动 {name}",
       "edit": "编辑 {name}"
     }
+  },
+  "verbs": {
+    "moveToTrash": "移到回收站",
+    "removeFromEvent": "从此活动中移除",
+    "unlinkPerson": "取消关联参与者",
+    "removeShare": "移除共享",
+    "removeMember": "移除成员",
+    "removeFriend": "移除好友",
+    "withdrawInvitation": "撤回邀请",
+    "removeLabel": "移除标签",
+    "removeLabelNamed": "移除{name}"
+  },
+  "confirm": {
+    "trash": "将{name}移到回收站？可从回收站恢复。",
+    "removeShare": "{name}将失去对{resource}的访问权限。",
+    "removeMember": "{name}将失去对此工作区的访问权限。",
+    "removeFriend": "你们互相给予的共享将保留，直到被移除。",
+    "removeLabel": "所有任务都将失去{name}。"
+  },
+  "done": {
+    "movedToTrash": "已移到回收站",
+    "removedFromEvent": "已从此活动中移除",
+    "shareRemoved": "已移除共享",
+    "memberRemoved": "已移除成员",
+    "friendRemoved": "已移除好友",
+    "invitationWithdrawn": "已撤回邀请",
+    "personUnlinked": "已取消关联参与者",
+    "undo": "撤销"
+  },
+  "conflict": {
+    "title": "编辑期间已在别处保存",
+    "theirs": "{name}，{when}",
+    "someone": "某人",
+    "mine": "你的草稿",
+    "keepMine": "保留我的",
+    "takeTheirs": "采用对方的",
+    "merge": "合并字段",
+    "kept": "已保留",
+    "saveMerged": "保存合并后的版本",
+    "field": "字段",
+    "empty": "（空）"
   }
 }

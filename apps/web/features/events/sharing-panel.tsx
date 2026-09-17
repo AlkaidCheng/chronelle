@@ -3,16 +3,18 @@
 import type {
   EventDetailResponse,
   EventPlanningResourceResponse,
+  ShareResponse,
 } from "@chronelle/schemas";
 import { useTranslations } from "next-intl";
 import { type FormEvent, useMemo, useState } from "react";
-
+import { ConfirmAction } from "../../components/confirm-action";
 import {
   EmptyState,
   ErrorNotice,
   LoadingState,
 } from "../../components/feedback";
 import { LockIcon, ShareIcon } from "../../components/icons";
+import { useNotices } from "../../components/notices";
 import { shortId } from "../../lib/format";
 import { useFriendsQuery } from "../../lib/friend-queries";
 import {
@@ -52,6 +54,10 @@ export function SharingPanel({
   const tp = useTranslations("sharingPanel");
   const access = useTranslations("access");
   const types = useTranslations("objectTypes");
+  const verbs = useTranslations("verbs");
+  const confirm = useTranslations("confirm");
+  const done = useTranslations("done");
+  const { post } = useNotices();
   const shares = useSharesQuery(eventId, true);
   const share = useShareResource(eventId);
   const revoke = useRevokeShare();
@@ -60,6 +66,31 @@ export function SharingPanel({
   const refresh = useRefreshEvent(eventId);
   const [principalEmail, setPrincipalEmail] = useState("");
   const [role, setRole] = useState<SharedRole>("viewer");
+
+  // The share can be given again to the same address, so the notice offers
+  // that as Undo; an account without an address gets no Undo.
+  function removeShare(grant: ShareResponse) {
+    revoke.mutate(grant.id, {
+      onSuccess: () => {
+        const email = grant.principal.email;
+        post({
+          message: done("shareRemoved"),
+          ...(email === null
+            ? {}
+            : {
+                action: {
+                  label: done("undo"),
+                  run: () =>
+                    share.mutateAsync({
+                      principalEmail: email,
+                      role: grant.role,
+                    }),
+                },
+              }),
+        });
+      },
+    });
+  }
   const resources = useMemo(() => relatedResources(detail), [detail]);
   const persons = usePersonsQuery();
   const session = useSessionQuery();
@@ -172,14 +203,16 @@ export function SharingPanel({
               <span className={`status-chip status-${grant.role}`}>
                 {grant.role}
               </span>
-              <button
-                className="button button-quiet button-small"
+              <ConfirmAction
                 disabled={revoke.isPending}
-                onClick={() => revoke.mutate(grant.id)}
-                type="button"
-              >
-                {t("remove")}
-              </button>
+                label={verbs("removeShare")}
+                onConfirm={() => removeShare(grant)}
+                pending={revoke.isPending}
+                question={confirm("removeShare", {
+                  name: grant.principal.displayName,
+                  resource: detail.event.displayName,
+                })}
+              />
             </article>
           ))}
           {pending.map((item) => {
@@ -204,10 +237,14 @@ export function SharingPanel({
                 <button
                   className="button button-quiet button-small"
                   disabled={revokePending.isPending}
-                  onClick={() => revokePending.mutate(item.id)}
+                  onClick={() =>
+                    revokePending.mutate(item.id, {
+                      onSuccess: () => post({ message: done("shareRemoved") }),
+                    })
+                  }
                   type="button"
                 >
-                  {t("remove")}
+                  {verbs("removeShare")}
                 </button>
               </article>
             );

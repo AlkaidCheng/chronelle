@@ -1040,10 +1040,8 @@ describe("EventWorkspace", () => {
     );
     await user.click(screen.getByRole("menuitem", { name: "Move to Trash" }));
     await user.click(
-      await screen.findByRole("button", { name: "Remove context link" }),
+      await screen.findByRole("button", { name: "Remove from this event" }),
     );
-    await user.click(screen.getByRole("checkbox", { name: /I understand/ }));
-    await user.click(screen.getByRole("button", { name: "Confirm removal" }));
 
     await waitFor(() => {
       expect(

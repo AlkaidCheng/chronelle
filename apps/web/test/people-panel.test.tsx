@@ -222,15 +222,11 @@ describe("People component", () => {
         name: "Move to Trash",
       }),
     );
-    await user.click(
-      await screen.findByRole("button", { name: "Remove context link" }),
-    );
     const lifecycle = await screen.findByRole("dialog", {
       name: /Sam Lee/,
     });
-    await user.click(within(lifecycle).getByRole("checkbox"));
     await user.click(
-      within(lifecycle).getByRole("button", { name: "Confirm removal" }),
+      within(lifecycle).getByRole("button", { name: "Remove from this event" }),
     );
     await waitFor(() =>
       expect(
