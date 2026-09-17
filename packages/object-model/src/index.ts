@@ -80,6 +80,9 @@ export {
 export {
   PostgresObjectReadRepository,
   type ObjectReadRepositories,
+  type AccessSource,
+  type AccountSummary,
+  type ObjectAccess,
   type ObjectReadRepository,
 } from "./object-reads.js";
 export {

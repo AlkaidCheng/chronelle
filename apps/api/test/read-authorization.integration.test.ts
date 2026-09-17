@@ -345,6 +345,11 @@ describe.sequential("authorized read snapshots", () => {
     expect(response.json()).toEqual({
       resourceId: event.id,
       actions: ["view"],
+      source: {
+        kind: "direct",
+        grantedBy: { id: owner.user.id, displayName: "Planner" },
+        role: "viewer",
+      },
     });
   });
 

@@ -789,15 +789,26 @@ account lookup by email happens only through an invitation.
 
 ## Access and sharing
 
-| Method   | Path                            | Behavior                                      |
-| -------- | ------------------------------- | --------------------------------------------- |
-| `GET`    | `/objects/:id/access`           | List the caller's allowed actions             |
-| `GET`    | `/objects/:id/shares`           | List active direct grants and waiting shares  |
-| `POST`   | `/shares`                       | Create or replace a direct user grant         |
-| `DELETE` | `/shares/:id`                   | Revoke a direct grant                         |
-| `POST`   | `/shares/pending`               | Queue a share for a person without an account |
-| `DELETE` | `/shares/pending/:id`           | Take a waiting share back                     |
-| `PATCH`  | `/objects/:id/permission-scope` | Change inheritance with a version             |
+| Method   | Path                            | Behavior                                       |
+| -------- | ------------------------------- | ---------------------------------------------- |
+| `GET`    | `/objects/:id/access`           | The caller's allowed actions and access source |
+| `GET`    | `/objects/:id/shares`           | List active direct grants and waiting shares   |
+| `POST`   | `/shares`                       | Create or replace a direct user grant          |
+| `DELETE` | `/shares/:id`                   | Revoke a direct grant                          |
+| `POST`   | `/shares/pending`               | Queue a share for a person without an account  |
+| `DELETE` | `/shares/pending/:id`           | Take a waiting share back                      |
+| `PATCH`  | `/objects/:id/permission-scope` | Change inheritance with a version              |
+
+`GET /objects/:id/access` answers `{ resourceId, actions, source }` for a
+live object the caller can view. `source` says where that access comes from:
+`{ kind: "own" }` when the caller is a member of the workspace; `{ kind:
+"direct", grantedBy: { id, displayName }, role }` when a grant on the object
+itself gives it; `{ kind: "inherited", through: { id, displayName },
+grantedBy, role }` when the grant sits on the Event whose scope the object
+inherits. Membership names itself before a grant and a direct grant before an
+inherited one. Both backends derive the source from the same membership,
+grant, and scope rows in the same snapshot as the actions; nothing the caller
+can view lacks one of the three.
 
 `POST /shares` accepts `resourceId`, an Owner, Editor, or Viewer `role`, and
 the grantee as exactly one of `principalEmail`, `personId`, and `friendId`.

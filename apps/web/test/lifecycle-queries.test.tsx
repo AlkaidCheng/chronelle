@@ -45,6 +45,7 @@ beforeEach(() => {
       return Response.json({
         resourceId: url.pathname.split("/").at(-2),
         actions: ["view", "edit", "delete"],
+        source: { kind: "own" },
       });
     const matches =
       url.searchParams.get("otherObjectId") === taskId && !removed;

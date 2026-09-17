@@ -1550,6 +1550,7 @@ export class SandboxStore {
         return {
           resourceId: id,
           actions: role === "owner" ? ["view", "edit"] : ["view"],
+          source: { kind: "own" },
         };
       if (operation === "documents")
         return { items: [], lockedAttachmentCount: 0 };

@@ -168,6 +168,7 @@ export {
   taskRepeatRuleSchema,
 } from "./task-repeat.js";
 export {
+  accessSourceSchema,
   authorizationActionSchema,
   objectAccessResponseSchema,
   pendingShareCreateRequestSchema,
@@ -179,6 +180,7 @@ export {
   shareListResponseSchema,
   shareResponseSchema,
   shareRevocationResponseSchema,
+  type AccessSource,
   type ObjectAccessResponse,
   type PendingShare,
   type PendingShareCreateRequest,

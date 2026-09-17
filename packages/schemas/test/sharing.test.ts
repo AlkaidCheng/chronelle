@@ -44,13 +44,47 @@ describe("sharing schemas", () => {
       objectAccessResponseSchema.safeParse({
         resourceId,
         actions: ["view", "edit"],
+        source: { kind: "own" },
       }).success,
     ).toBe(true);
     expect(
       objectAccessResponseSchema.safeParse({
         resourceId,
         actions: ["administer"],
+        source: { kind: "own" },
       }).success,
     ).toBe(false);
+  });
+
+  it("names the access source as own, a grant, or an inherited grant", () => {
+    const account = { id: resourceId, displayName: "Mei" };
+    for (const source of [
+      { kind: "direct", grantedBy: account, role: "editor" },
+      {
+        kind: "inherited",
+        through: account,
+        grantedBy: account,
+        role: "viewer",
+      },
+    ])
+      expect(
+        objectAccessResponseSchema.safeParse({
+          resourceId,
+          actions: ["view"],
+          source,
+        }).success,
+      ).toBe(true);
+    for (const source of [
+      { kind: "referenced" },
+      { kind: "direct", role: "editor" },
+      { kind: "inherited", grantedBy: account, role: "viewer" },
+    ])
+      expect(
+        objectAccessResponseSchema.safeParse({
+          resourceId,
+          actions: ["view"],
+          source,
+        }).success,
+      ).toBe(false);
   });
 });

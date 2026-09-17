@@ -159,6 +159,7 @@ describe("EventWorkspace", () => {
             return jsonResponse({
               resourceId: eventId,
               actions: changed ? ["view"] : ["view", "edit"],
+              source: { kind: "own" },
             });
           }
           return jsonResponse({ sourceEventId: eventId, items: [] });
@@ -200,6 +201,109 @@ describe("EventWorkspace", () => {
     },
   );
 
+  it("names where a grantee's access comes from and opens Sharing for an owner", async () => {
+    window.history.replaceState(null, "", "/events/plan?view=todos");
+    const source = {
+      kind: "direct",
+      grantedBy: {
+        id: "019b0000-0000-7000-8000-0000000000a1",
+        displayName: "Mei",
+      },
+      role: "owner",
+    };
+    vi.stubGlobal(
+      "fetch",
+      vi.fn<typeof globalThis.fetch>(async (input) => {
+        const path = requestPath(input);
+        if (path.endsWith("/access"))
+          return jsonResponse({
+            resourceId: eventId,
+            actions: ["view", "comment", "edit", "share", "delete"],
+            source,
+          });
+        if (path === `/api/events/${eventId}`) return jsonResponse(rootEvent);
+        if (path === `/api/events/${eventId}/detail`)
+          return jsonResponse({
+            event: rootEvent,
+            events: [],
+            tasks: [],
+            expenses: [],
+            reminders: [],
+            documents: [],
+            lockedRelationCount: 0,
+          });
+        if (path.endsWith("/shares")) return jsonResponse({ items: [] });
+        if (path === "/api/persons") return jsonResponse({ items: [] });
+        return jsonResponse({ sourceEventId: eventId, items: [] });
+      }),
+    );
+    const user = userEvent.setup();
+    render(<EventWorkspace eventId={eventId} />, { wrapper: Providers });
+    const line = await screen.findByRole("button", {
+      name: "Shared with you by Mei as owner",
+    });
+    await user.click(line);
+    expect(
+      await screen.findByRole("tab", { name: "Sharing", selected: true }),
+    ).toBeVisible();
+    expect(await screen.findByLabelText("Collaborator email")).toBeVisible();
+  });
+
+  it("shows the inherited line as a link to the granting event and nothing for the owner", async () => {
+    window.history.replaceState(null, "", "/events/plan?view=todos");
+    const respond = (source: unknown) =>
+      vi.fn<typeof globalThis.fetch>(async (input) => {
+        const path = requestPath(input);
+        if (path.endsWith("/access"))
+          return jsonResponse({
+            resourceId: eventId,
+            actions: ["view"],
+            source,
+          });
+        if (path === `/api/events/${eventId}`) return jsonResponse(rootEvent);
+        return jsonResponse({ sourceEventId: eventId, items: [] });
+      });
+    vi.stubGlobal(
+      "fetch",
+      respond({
+        kind: "inherited",
+        through: {
+          id: "019b0000-0000-7000-8000-0000000000e2",
+          displayName: "Kyoto in November",
+        },
+        grantedBy: {
+          id: "019b0000-0000-7000-8000-0000000000a1",
+          displayName: "Mei",
+        },
+        role: "viewer",
+      }),
+    );
+    const first = render(<EventWorkspace eventId={eventId} />, {
+      wrapper: Providers,
+    });
+    expect(
+      await screen.findByRole("heading", {
+        level: 1,
+        name: rootEvent.displayName,
+      }),
+    ).toBeVisible();
+    expect(
+      await screen.findByRole("link", {
+        name: "Through Kyoto in November, shared by Mei",
+      }),
+    ).toHaveAttribute("href", "/events/019b0000-0000-7000-8000-0000000000e2");
+    first.unmount();
+    vi.stubGlobal("fetch", respond({ kind: "own" }));
+    render(<EventWorkspace eventId={eventId} />, { wrapper: Providers });
+    expect(
+      await screen.findByRole("heading", {
+        level: 1,
+        name: rootEvent.displayName,
+      }),
+    ).toBeVisible();
+    expect(screen.queryByText(/shared by|Shared with you/)).toBeNull();
+  });
+
   it.each([
     ["todos", "No tasks yet"],
     ["calendar", "Nothing scheduled"],
@@ -212,7 +316,11 @@ describe("EventWorkspace", () => {
       vi.fn<typeof globalThis.fetch>(async (input) => {
         const path = requestPath(input);
         if (path.endsWith("/access"))
-          return jsonResponse({ resourceId: eventId, actions: ["view"] });
+          return jsonResponse({
+            resourceId: eventId,
+            actions: ["view"],
+            source: { kind: "own" },
+          });
         if (path === `/api/events/${eventId}`) return jsonResponse(rootEvent);
         return jsonResponse({ sourceEventId: eventId, items: [] });
       }),
@@ -262,6 +370,7 @@ describe("EventWorkspace", () => {
             return jsonResponse({
               resourceId: eventId,
               actions: ["view", "edit"],
+              source: { kind: "own" },
             });
           if (path === `/api/events/${eventId}`) return jsonResponse(rootEvent);
           return jsonResponse({ sourceEventId: eventId, items: [] });
@@ -335,6 +444,7 @@ describe("EventWorkspace", () => {
           return jsonResponse({
             resourceId: eventId,
             actions: ["view", "edit"],
+            source: { kind: "own" },
           });
         if (path === `/api/events/${eventId}/${view}`)
           return jsonResponse({ sourceEventId: eventId, items: [] });
@@ -396,7 +506,11 @@ describe("EventWorkspace", () => {
               lockedRelationCount: 0,
             });
           if (path.endsWith("/access"))
-            return jsonResponse({ resourceId: eventId, actions: ["view"] });
+            return jsonResponse({
+              resourceId: eventId,
+              actions: ["view"],
+              source: { kind: "own" },
+            });
           if (path.endsWith("/expenses"))
             return jsonResponse({ sourceEventId: eventId, items: expenses });
           return jsonResponse(
@@ -440,7 +554,11 @@ describe("EventWorkspace", () => {
       const path = requestPath(input);
       if (path === `/api/events/${eventId}`) return jsonResponse(rootEvent);
       if (path.endsWith("/access"))
-        return jsonResponse({ resourceId: eventId, actions: ["view", "edit"] });
+        return jsonResponse({
+          resourceId: eventId,
+          actions: ["view", "edit"],
+          source: { kind: "own" },
+        });
       if (path.endsWith("/calendar"))
         return jsonResponse({ sourceEventId: eventId, items: [] });
       return jsonResponse(
@@ -490,6 +608,7 @@ describe("EventWorkspace", () => {
           return jsonResponse({
             resourceId: eventId,
             actions: ["view", "edit"],
+            source: { kind: "own" },
           });
         if (path.endsWith("/timeline"))
           return jsonResponse({ sourceEventId: eventId, items: [] });
@@ -540,6 +659,7 @@ describe("EventWorkspace", () => {
         return jsonResponse({
           resourceId: eventId,
           actions: ["view", "comment", "edit", "share", "delete"],
+          source: { kind: "own" },
         });
       }
       if (path === `/api/events/${eventId}/todos`) {
@@ -726,7 +846,11 @@ describe("EventWorkspace", () => {
         });
       }
       if (path === `/api/objects/${eventId}/access`) {
-        return jsonResponse({ resourceId: eventId, actions: ["view"] });
+        return jsonResponse({
+          resourceId: eventId,
+          actions: ["view"],
+          source: { kind: "own" },
+        });
       }
       if (path === `/api/events/${eventId}/todos`) {
         return jsonResponse({ sourceEventId: eventId, items: [task] });
@@ -853,6 +977,7 @@ describe("EventWorkspace", () => {
         return jsonResponse({
           resourceId: eventId,
           actions: ["view", "comment", "edit", "share", "delete"],
+          source: { kind: "own" },
         });
       }
       if (path === `/api/events/${eventId}/todos`) {
@@ -968,6 +1093,7 @@ describe("EventWorkspace", () => {
         return jsonResponse({
           resourceId: eventId,
           actions: ["view", "comment", "edit", "share", "delete"],
+          source: { kind: "own" },
         });
       if (path.startsWith(`/api/events/${eventId}/`))
         return jsonResponse({ sourceEventId: eventId, items: [] });
@@ -1080,6 +1206,7 @@ describe("EventWorkspace", () => {
         return jsonResponse({
           resourceId: eventId,
           actions: ["view", "comment", "edit", "share", "delete"],
+          source: { kind: "own" },
         });
       if (path.startsWith(`/api/events/${eventId}/`))
         return jsonResponse({ sourceEventId: eventId, items: [] });
@@ -1153,6 +1280,7 @@ describe("EventWorkspace", () => {
         return jsonResponse({
           resourceId: eventId,
           actions: ["view", "comment", "edit", "share", "delete"],
+          source: { kind: "own" },
         });
       }
       if (
@@ -1330,6 +1458,7 @@ describe("EventWorkspace", () => {
         return jsonResponse({
           resourceId: eventId,
           actions: ["view", "comment", "edit", "share", "delete"],
+          source: { kind: "own" },
         });
       if (path.startsWith(`/api/events/${eventId}/`))
         return jsonResponse({ sourceEventId: eventId, items: [] });

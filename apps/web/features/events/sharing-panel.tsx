@@ -50,6 +50,7 @@ export function SharingPanel({
 }) {
   const t = useTranslations("sharing");
   const tp = useTranslations("sharingPanel");
+  const access = useTranslations("access");
   const types = useTranslations("objectTypes");
   const shares = useSharesQuery(eventId, true);
   const share = useShareResource(eventId);
@@ -166,6 +167,7 @@ export function SharingPanel({
               <div>
                 <strong>{grant.principal.displayName}</strong>
                 <span>{grant.principal.email}</span>
+                <span className="share-grants">{access("grants")}</span>
               </div>
               <span className={`status-chip status-${grant.role}`}>
                 {grant.role}

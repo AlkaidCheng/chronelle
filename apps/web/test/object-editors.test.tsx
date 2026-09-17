@@ -46,7 +46,11 @@ describe.each(["task", "expense"] as const)("focused %s editors", (kind) => {
     currency: "CNY",
     occurredAt: "2030-07-03T18:30:45.678Z",
   };
-  const access = { resourceId: resource.id, actions: ["view", "edit"] };
+  const access = {
+    resourceId: resource.id,
+    actions: ["view", "edit"],
+    source: { kind: "own" },
+  };
   const failure = (status: number) =>
     Response.json(
       {

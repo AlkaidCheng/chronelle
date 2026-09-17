@@ -166,9 +166,21 @@ row ticked for another try. A waiting share is granted the moment the
 request is accepted and lapses when it is declined or withdrawn. The People
 component offers owners Share with everyone here, the same control with the
 event's own people ticked. People with access lists the accounts that hold a
-grant and the shares still waiting ("Access follows when they join"), each
-with Remove. A whole workspace is shared by making a friend a member (see
-Settings).
+grant, each with what the grant gives under the name ("Also this event's
+pages, to-dos, expenses, files, and earlier versions"), and the shares still
+waiting ("Access follows when they join"), each with Remove. A whole
+workspace is shared by making a friend a member (see Settings).
+
+Where access comes from is named on the record when it is not the reader's
+own workspace. Under the heading of an event, a person's page, or a task's
+editor, one quiet line reads "Shared with you by Mei as editor" for a grant
+on that record, or "Through Kyoto in November, shared by Mei" for a record
+that inherits its access from an event's scope. The inherited line opens that
+event, at its Sharing view when the role allows sharing; on an event page the
+direct line opens the event's own Sharing view for an owner and is plain text
+otherwise. A record of the reader's own workspace shows no line. A record the
+reader has no role on is not shown at all: an event's views count such
+included records as locked rather than listing them.
 
 A task may be assigned to one person as the one responsible for it. The task
 editor holds the choice behind an Assignee disclosure that names the current

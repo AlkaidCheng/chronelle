@@ -5,14 +5,53 @@ import {
   type AuthorizationDatabase,
   type UserPrincipal,
 } from "@chronelle/authorization";
-import { objects } from "@chronelle/db";
-import { and, eq, inArray, isNull } from "drizzle-orm";
+import {
+  type DatabaseTransaction,
+  objects,
+  resourceGrants,
+  type Role,
+  users,
+  workspaceMembers,
+} from "@chronelle/db";
+import { and, eq, gt, inArray, isNull, or } from "drizzle-orm";
 
 import type { EventReadRepository } from "./event-list.js";
 import type { PersonReadRepository } from "./person-list.js";
 import type { TaskReadRepository } from "./task-list.js";
 import { readObjectState, readObjectStates } from "./object-state.js";
 import type { EventPlanningResource } from "./types.js";
+
+/** An account named beside the access it granted or holds. */
+export interface AccountSummary {
+  readonly id: string;
+  readonly displayName: string;
+}
+
+/**
+ * Where the principal's access to a live object comes from: membership of
+ * the workspace, a grant on the object, or a grant on the Event whose
+ * scope the object inherits. A direct grant names itself before an
+ * inherited one; membership names itself before either.
+ */
+export type AccessSource =
+  | { readonly kind: "own" }
+  | {
+      readonly kind: "direct";
+      readonly grantedBy: AccountSummary;
+      readonly role: Role;
+    }
+  | {
+      readonly kind: "inherited";
+      readonly through: AccountSummary;
+      readonly grantedBy: AccountSummary;
+      readonly role: Role;
+    };
+
+/** What a principal may do to an object, and where that access comes from. */
+export interface ObjectAccess {
+  readonly actions: readonly AuthorizationAction[];
+  readonly source: AccessSource;
+}
 
 /**
  * Read boundary for single canonical objects. Implementations evaluate the
@@ -30,6 +69,8 @@ export interface ObjectReadRepository {
     principal: UserPrincipal,
     objectId: string,
   ): Promise<readonly AuthorizationAction[]>;
+  /** The actions and their source for a live object the principal can view, in one snapshot. */
+  getAccess(principal: UserPrincipal, objectId: string): Promise<ObjectAccess>;
   /** Visible live states in input order; unavailable IDs are omitted. */
   listVisibleObjects(
     principal: UserPrincipal,
@@ -102,6 +143,31 @@ export class PostgresObjectReadRepository implements ObjectReadRepository {
     );
   }
 
+  async getAccess(
+    principal: UserPrincipal,
+    objectId: string,
+  ): Promise<ObjectAccess> {
+    return withReadAuthorization(
+      this.#database,
+      async (transaction, authorization) => {
+        const object = await readAuthorizedObject(
+          { database: transaction, authorization },
+          principal,
+          objectId,
+          "view",
+        );
+        const actions = await authorization.allowedActions(principal, {
+          id: objectId,
+          workspaceId: principal.workspaceId,
+        });
+        return {
+          actions,
+          source: await readAccessSource(transaction, principal, object),
+        };
+      },
+    );
+  }
+
   async listVisibleObjects(
     principal: UserPrincipal,
     objectIds: readonly string[],
@@ -138,4 +204,74 @@ export class PostgresObjectReadRepository implements ObjectReadRepository {
       },
     );
   }
+}
+
+/** Membership, else the grant on the object, else the grant on its scope. */
+async function readAccessSource(
+  transaction: DatabaseTransaction,
+  principal: UserPrincipal,
+  object: EventPlanningResource,
+): Promise<AccessSource> {
+  const [membership] = await transaction
+    .select({ role: workspaceMembers.role })
+    .from(workspaceMembers)
+    .where(
+      and(
+        eq(workspaceMembers.workspaceId, principal.workspaceId),
+        eq(workspaceMembers.userId, principal.userId),
+      ),
+    )
+    .limit(1);
+  if (membership !== undefined) return { kind: "own" };
+  const grants = await transaction
+    .select({
+      resourceId: resourceGrants.resourceId,
+      role: resourceGrants.role,
+      grantedBy: { id: users.id, displayName: users.displayName },
+    })
+    .from(resourceGrants)
+    .innerJoin(users, eq(users.id, resourceGrants.grantedBy))
+    .where(
+      and(
+        eq(resourceGrants.workspaceId, principal.workspaceId),
+        eq(resourceGrants.principalType, "user"),
+        eq(resourceGrants.principalId, principal.userId),
+        inArray(resourceGrants.resourceId, [
+          object.id,
+          object.permissionScopeId,
+        ]),
+        or(
+          isNull(resourceGrants.expiresAt),
+          gt(resourceGrants.expiresAt, new Date()),
+        ),
+      ),
+    );
+  const direct = grants.find((grant) => grant.resourceId === object.id);
+  if (direct !== undefined)
+    return { kind: "direct", grantedBy: direct.grantedBy, role: direct.role };
+  const inherited = grants.find(
+    (grant) => grant.resourceId === object.permissionScopeId,
+  );
+  const [scope] =
+    inherited === undefined
+      ? []
+      : await transaction
+          .select({ id: objects.id, displayName: objects.displayName })
+          .from(objects)
+          .where(
+            and(
+              eq(objects.workspaceId, principal.workspaceId),
+              eq(objects.id, object.permissionScopeId),
+              isNull(objects.deletedAt),
+            ),
+          )
+          .limit(1);
+  if (inherited === undefined || scope === undefined)
+    throw new AuthorizationDeniedError();
+  return {
+    kind: "inherited",
+    through: scope,
+    grantedBy: inherited.grantedBy,
+    role: inherited.role,
+  };
 }

@@ -130,6 +130,7 @@ export type CloudBaseGrantRow = {
   readonly resource_id: unknown;
   readonly role: unknown;
   readonly expires_at: unknown;
+  readonly granted_by?: unknown;
 };
 
 type WorkspaceMemberRow = { readonly role: unknown };

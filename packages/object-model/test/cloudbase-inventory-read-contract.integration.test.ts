@@ -458,6 +458,50 @@ describe.sequential("CloudBase inventory read contract", () => {
       backend.objects.getAllowedActions(owner, fixtureIds.deletedTask),
     );
 
+    // Where access comes from: membership, the grant on the root, or the
+    // root's grant reaching a child through its scope.
+    await differential(
+      backends,
+      (backend) => backend.objects.getAccess(owner, fixtureIds.taskA),
+      (access) => expect(access.source).toEqual({ kind: "own" }),
+    );
+    await differential(
+      backends,
+      (backend) => backend.objects.getAccess(viewer, fixtureIds.root),
+      (access) =>
+        expect(access.source).toEqual({
+          kind: "direct",
+          grantedBy: { id: owner.userId, displayName: "Workspace owner" },
+          role: "viewer",
+        }),
+    );
+    await differential(
+      backends,
+      (backend) => backend.objects.getAccess(viewer, fixtureIds.taskA),
+      (access) =>
+        expect(access.source).toEqual({
+          kind: "inherited",
+          through: { id: fixtureIds.root, displayName: "Launch" },
+          grantedBy: { id: owner.userId, displayName: "Workspace owner" },
+          role: "viewer",
+        }),
+    );
+    await differential(
+      backends,
+      (backend) => backend.objects.getAccess(delegate, fixtureIds.reminder),
+      (access) =>
+        expect(access).toMatchObject({
+          actions: ["view", "comment", "edit", "share", "delete", "recover"],
+          source: { kind: "inherited", role: "owner" },
+        }),
+    );
+    await bothDeny(backends, (backend) =>
+      backend.objects.getAccess(viewer, fixtureIds.privateEvent),
+    );
+    await bothDeny(backends, (backend) =>
+      backend.objects.getAccess(viewer, fixtureIds.orphanLive),
+    );
+
     const requested = [
       fixtureIds.taskA,
       fixtureIds.privateEvent,

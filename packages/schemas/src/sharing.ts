@@ -98,9 +98,35 @@ export const shareRevocationResponseSchema = z.object({
   revokedAt: dateTimeSchema,
 });
 
+const accountSummarySchema = z.object({
+  id: idSchema,
+  displayName: z.string(),
+});
+
+/**
+ * Where the caller's access to a record comes from: the workspace they belong
+ * to, a grant on the record itself, or a grant on the Event whose scope the
+ * record inherits. Anything the caller can view has one of the three.
+ */
+export const accessSourceSchema = z.discriminatedUnion("kind", [
+  z.object({ kind: z.literal("own") }),
+  z.object({
+    kind: z.literal("direct"),
+    grantedBy: accountSummarySchema,
+    role: roleSchema,
+  }),
+  z.object({
+    kind: z.literal("inherited"),
+    through: accountSummarySchema,
+    grantedBy: accountSummarySchema,
+    role: roleSchema,
+  }),
+]);
+
 export const objectAccessResponseSchema = z.object({
   resourceId: idSchema,
   actions: z.array(authorizationActionSchema),
+  source: accessSourceSchema,
 });
 
 export const permissionScopeUpdateRequestSchema = z.object({
@@ -122,6 +148,7 @@ export type PendingShareCreateRequest = z.infer<
 export type PendingShareRevocationResponse = z.infer<
   typeof pendingShareRevocationResponseSchema
 >;
+export type AccessSource = z.infer<typeof accessSourceSchema>;
 export type ObjectAccessResponse = z.infer<typeof objectAccessResponseSchema>;
 export type PermissionScopeUpdateRequest = z.infer<
   typeof permissionScopeUpdateRequestSchema
