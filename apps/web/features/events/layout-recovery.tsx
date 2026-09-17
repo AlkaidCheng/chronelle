@@ -11,6 +11,7 @@ import {
 import { componentKindLabel } from "../../lib/event-components";
 import { formatDateTime } from "../../lib/format";
 import { undoDirection } from "../../lib/keyboard";
+import { describeLayoutChanges } from "../../lib/layout-changes";
 import {
   useEventLayout,
   useEventLayoutHistory,
@@ -143,7 +144,6 @@ export function LayoutRecoveryDialog({
         event.preventDefault();
         if (!busy) onClose();
       }}
-    >
       onKeyDown={(event) => {
         // The dialog owns the layout stack: its keys never reach the page.
         const direction = undoDirection(event.nativeEvent, event.currentTarget);
@@ -151,6 +151,7 @@ export function LayoutRecoveryDialog({
         event.preventDefault();
         if (direction === "undo" ? canUndo : canRedo) rewind(direction);
       }}
+    >
       <header className="event-create-header">
         <h2 id="layout-recovery-heading">
           {canEdit ? t("manageTitle") : t("historyTitle")}
@@ -324,42 +325,78 @@ export function LayoutRecoveryDialog({
                   <LoadingState label={t("loadingHistory")} />
                 ) : (
                   <>
-                    {history.data.pages
-                      .flatMap((page) => page.items)
-                      .map((revision) => (
-                        <section
-                          key={revision.version}
-                          className="layout-revision"
-                        >
-                          <h3>
-                            {revision.version === source.version
-                              ? t("currentVersion", {
-                                  version: revision.version,
-                                })
-                              : t("version", { version: revision.version })}
-                          </h3>
-                          <p>
-                            {t("revisionSummary", {
-                              when: revision.updatedAt
-                                ? formatDateTime(revision.updatedAt)
-                                : t("initialLayout"),
-                              pages: revision.pages.length,
-                              components: revision.pages.reduce(
-                                (count, page) => count + page.components.length,
-                                0,
-                              ),
-                            })}
-                          </p>
-                          <button
-                            type="button"
-                            className="button button-secondary"
-                            disabled={busy}
-                            onClick={() => preview(revision)}
+                    {(() => {
+                      const items = history.data.pages.flatMap(
+                        (page) => page.items,
+                      );
+                      return items.map((revision, index) => {
+                        // The version before this one is the next row, or
+                        // the empty layout at the start; a row whose
+                        // predecessor is on a page not yet loaded reads
+                        // only its summary.
+                        const earlier =
+                          items[index + 1] ??
+                          (revision.version === 1 ? { pages: [] } : undefined);
+                        const changes =
+                          earlier === undefined
+                            ? undefined
+                            : describeLayoutChanges(
+                                earlier.pages,
+                                revision.pages,
+                              );
+                        return (
+                          <section
+                            key={revision.version}
+                            className="layout-revision"
                           >
-                            {t("previewVersion", { version: revision.version })}
-                          </button>
-                        </section>
-                      ))}
+                            <h3>
+                              {revision.version === source.version
+                                ? t("currentVersion", {
+                                    version: revision.version,
+                                  })
+                                : t("version", { version: revision.version })}
+                            </h3>
+                            <p className="history-kind">{t("kind")}</p>
+                            <p>
+                              {t("revisionSummary", {
+                                when: revision.updatedAt
+                                  ? formatDateTime(revision.updatedAt)
+                                  : t("initialLayout"),
+                                pages: revision.pages.length,
+                                components: revision.pages.reduce(
+                                  (count, page) =>
+                                    count + page.components.length,
+                                  0,
+                                ),
+                              })}
+                            </p>
+                            {changes !== undefined &&
+                            changes.sentences.length > 0 ? (
+                              <ul className="history-change-lines">
+                                {changes.sentences.map((sentence) => (
+                                  <li key={sentence}>{sentence}</li>
+                                ))}
+                                {changes.more > 0 ? (
+                                  <li className="muted">
+                                    {t("moreChanges", { count: changes.more })}
+                                  </li>
+                                ) : null}
+                              </ul>
+                            ) : null}
+                            <button
+                              type="button"
+                              className="button button-secondary"
+                              disabled={busy}
+                              onClick={() => preview(revision)}
+                            >
+                              {t("previewVersion", {
+                                version: revision.version,
+                              })}
+                            </button>
+                          </section>
+                        );
+                      });
+                    })()}
                     {history.hasNextPage ? (
                       <button
                         type="button"

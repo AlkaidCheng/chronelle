@@ -659,6 +659,13 @@ The inspector edits the same canonical Event using its pinned source version.
 History is available inside the inspector without dismissing the draft. Closing
 history returns focus to its inspector control. Restoring a version leaves
 unsaved fields intact and requires explicitly loading the latest source to save.
+Each history row names its kind, Edited (content) for a saved edit, and
+previews its change: up to three changed fields as "Due date: Oct 3, 2030 to
+Oct 4, 2030" with the values in the display language and zone, then how many
+more fields changed; the list carries the summary, so no row asks the server
+before Compare. Layout history rows in Page options read Arranged (layout) and
+say what moved: "Moved Calendar above To-dos", "Added page Packing", "Removed
+component Map".
 
 Calendar Edit opens the same inspector for the selected schedule item, including
 Calendar components on Event pages. The item is a canonical Event; its current
