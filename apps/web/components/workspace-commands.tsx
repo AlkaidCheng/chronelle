@@ -328,6 +328,11 @@ export function WorkspaceCommands({
               kbd: (chunks) => <kbd>{chunks}</kbd>,
             })}
           </p>
+          <p>
+            {t.rich("undoShortcut", {
+              kbd: (chunks) => <kbd>{chunks}</kbd>,
+            })}
+          </p>
           <label>
             <input
               type="checkbox"

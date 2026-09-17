@@ -10,6 +10,7 @@ import {
 } from "../../components/feedback";
 import { componentKindLabel } from "../../lib/event-components";
 import { formatDateTime } from "../../lib/format";
+import { undoDirection } from "../../lib/keyboard";
 import {
   useEventLayout,
   useEventLayoutHistory,
@@ -143,6 +144,13 @@ export function LayoutRecoveryDialog({
         if (!busy) onClose();
       }}
     >
+      onKeyDown={(event) => {
+        // The dialog owns the layout stack: its keys never reach the page.
+        const direction = undoDirection(event.nativeEvent, event.currentTarget);
+        if (direction === null) return;
+        event.preventDefault();
+        if (direction === "undo" ? canUndo : canRedo) rewind(direction);
+      }}
       <header className="event-create-header">
         <h2 id="layout-recovery-heading">
           {canEdit ? t("manageTitle") : t("historyTitle")}

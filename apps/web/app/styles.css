@@ -5152,10 +5152,20 @@ html:has(.event-create-dialog[open]) {
 }
 
 .quiet-menu-item svg {
+  display: grid;
   flex-shrink: 0;
   height: 17px;
   width: 17px;
   stroke: currentColor;
+.quiet-menu-hint {
+  color: var(--muted);
+  font-size: 0.76rem;
+  line-height: 1.3;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
   stroke-linecap: round;
   stroke-linejoin: round;
   stroke-width: 1.7;

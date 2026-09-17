@@ -15,6 +15,7 @@ import {
   useRefreshEvent,
 } from "../lib/queries";
 import { SandboxStore, sandboxWorkspaceId } from "../sandbox/store";
+import { withCommands } from "./helpers/command-fetch";
 
 const workspaceId = "019d6e7d-0000-7000-8000-000000000001";
 const eventId = "019d6e7d-0000-7000-8000-000000000010";
@@ -328,7 +329,7 @@ describe("canonical cache invalidation", () => {
         completedAt: "2026-09-02T20:01:00.000Z",
       }),
     );
-    vi.stubGlobal("fetch", fetch);
+    vi.stubGlobal("fetch", withCommands(fetch));
     const { result } = renderHook(
       () => ({ client: useQueryClient(), mutation: useUpdateTask() }),
       { wrapper: Providers },

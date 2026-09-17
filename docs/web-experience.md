@@ -253,6 +253,19 @@ All three shortcuts share the same storage and synchronization behavior.
 Reset keyboard shortcuts restores their defaults without changing appearance
 or clearing other browser data. Native text undo remains available in editors.
 
+Two undo stacks, each named for what it takes back. Content edits of Events and
+Tasks (a rename, a due date, a completion, a move in manual order) run as
+reversible commands, and the page's More menu on an event or a person offers
+Undo edit and Redo edit for the account's stack in this workspace: the item
+reads the command this browser ran ("Undo: rename Kyoto in November"), and is
+disabled with the reason when the head is not reachable (Nothing to undo, or
+Changed by someone else since, when another account edited the record). After
+a reload the items still work but name nothing. Cmd/Ctrl + Z and Shift +
+Cmd/Ctrl + Z run them outside text fields and dialogs; while arranging a page,
+or inside the Page options dialog, the same keys move the layout stack instead
+(Undo layout change, Redo layout change, as the dialog's controls read). The
+palette's shortcut list names both.
+
 The rail and palette share one catalog of Events, Search, and Trash routes.
 On an event, a separate Event actions group offers Edit event, Share event,
 Event history, Add page, Add component, and Arrange layout when their controls are

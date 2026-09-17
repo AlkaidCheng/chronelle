@@ -34,6 +34,7 @@ import {
 import { EventComponent } from "./event-component";
 import { EventInspector } from "./event-inspector";
 import { SharingPanel } from "./sharing-panel";
+import { UndoMenuItems } from "../../components/undo-menu-items";
 import { HistoryButton } from "../history/history-button";
 import { useOpenLifecycle } from "../recovery/lifecycle-provider";
 import { RemovedLinksPanel } from "../recovery/removed-links-panel";
@@ -257,6 +258,12 @@ export function EventWorkspace({ eventId }: { readonly eventId: string }) {
               label={t("actionsFor", { name: event.displayName })}
               icon={<MoreIcon />}
             >
+              {canEdit ? (
+                <>
+                  <UndoMenuItems />
+                  <MenuSeparator />
+                </>
+              ) : null}
               <MenuItem icon={<LinkIcon />} onSelect={copyLink}>
                 {t("copyLink")}
               </MenuItem>

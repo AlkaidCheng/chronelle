@@ -10,7 +10,9 @@ import {
   useEventLayout,
   useIsLayoutSaving,
   useLayoutUndo,
+  useRestoreEventLayout,
 } from "../../lib/event-layout-queries";
+import { undoDirection } from "../../lib/keyboard";
 import { isTemporaryReadError } from "../../lib/query-errors";
 import { useEventPage } from "../../lib/use-event-view";
 import type { EventPagesAdding } from "./event-pages";
@@ -54,6 +56,31 @@ export function useEventPagesState(eventId: string, canEdit: boolean) {
     setAdding(null);
     setArranging(false);
   }, [canEdit]);
+  // While arranging, the keys move the layout stack, not the content one:
+  // the handler runs first and marks the event consumed.
+  const restore = useRestoreEventLayout(eventId);
+  const layoutVersion = layout.data?.version;
+  const undoState = undo.data;
+  const rewind = restore.mutate;
+  const rewinding = restore.isPending || saving;
+  useEffect(() => {
+    if (!arranging || !canEdit || layoutVersion === undefined) return;
+    function onKeyDown(event: KeyboardEvent) {
+      const direction = undoDirection(event);
+      if (direction === null) return;
+      event.preventDefault();
+      const targetVersion = undoState[direction].at(-1);
+      if (rewinding || undoState.version !== layoutVersion) return;
+      if (targetVersion === undefined) return;
+      rewind({
+        expectedVersion: layoutVersion,
+        targetVersion,
+        intent: direction,
+      });
+    }
+    document.addEventListener("keydown", onKeyDown, true);
+    return () => document.removeEventListener("keydown", onKeyDown, true);
+  }, [arranging, canEdit, layoutVersion, undoState, rewinding, rewind]);
   const addPageButton = useRef<HTMLButtonElement>(null);
   /** The canvas registers how a dragged component lands on a page button. */
   const pageDrop = useRef<PageDrop | null>(null);

@@ -201,6 +201,20 @@ describe.each(draftKinds)("%s draft recovery", (kind) => {
       );
   }
 
+  /** Holds the next write until the test answers it; reads keep reaching the store. */
+  function deferNextWrite() {
+    const deferred = Promise.withResolvers<Response>();
+    vi.mocked(fetch).mockImplementation((input, options) => {
+      if (!["POST", "PATCH"].includes(options?.method ?? ""))
+        return store.fetch(input, options);
+      vi.mocked(fetch).mockImplementation((next, nextOptions) =>
+        store.fetch(next, nextOptions),
+      );
+      return deferred.promise;
+    });
+    return deferred;
+  }
+
   beforeEach(async () => {
     let stored: string | null = null;
     store = new SandboxStore({
@@ -522,8 +536,7 @@ describe.each(draftKinds)("%s draft recovery", (kind) => {
 
     it("retains an edit that fails after navigation until an explicit retry", async () => {
       const user = await begin("edit");
-      const deferred = Promise.withResolvers<Response>();
-      vi.mocked(fetch).mockImplementationOnce(() => deferred.promise);
+      const deferred = deferNextWrite();
       await user.click(screen.getByRole("button", { name: saveLabel }));
       navigateAway();
       await act(async () => deferred.resolve(failure(503)));
@@ -546,8 +559,7 @@ describe.each(draftKinds)("%s draft recovery", (kind) => {
       "settles a pending %s after navigation without another write",
       async (mode) => {
         const user = await begin(mode);
-        const deferred = Promise.withResolvers<Response>();
-        vi.mocked(fetch).mockImplementationOnce(() => deferred.promise);
+        const deferred = deferNextWrite();
         await user.click(
           screen.getByRole("button", {
             name: mode === "create" ? createLabel : saveLabel,
@@ -580,8 +592,7 @@ describe.each(draftKinds)("%s draft recovery", (kind) => {
       "retains the failed creation receipt and changes it only with edited fields (%s)",
       async (changeFields) => {
         const user = await begin("create");
-        const deferred = Promise.withResolvers<Response>();
-        vi.mocked(fetch).mockImplementationOnce(() => deferred.promise);
+        const deferred = deferNextWrite();
         await user.click(screen.getByRole("button", { name: createLabel }));
         navigateAway();
         await act(async () => deferred.resolve(failure(503)));
@@ -613,8 +624,7 @@ describe.each(draftKinds)("%s draft recovery", (kind) => {
       "ignores pending save failures after %s",
       async (action) => {
         const user = await begin("create");
-        const deferred = Promise.withResolvers<Response>();
-        vi.mocked(fetch).mockImplementationOnce(() => deferred.promise);
+        const deferred = deferNextWrite();
         await user.click(screen.getByRole("button", { name: createLabel }));
         fireEvent.click(screen.getByRole("button", { name: action }));
         await act(async () => deferred.resolve(failure(503)));

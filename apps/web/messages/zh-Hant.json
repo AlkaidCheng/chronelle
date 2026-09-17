@@ -1100,7 +1100,8 @@
     "enableSubmit": "啟用編輯器送出快速鍵",
     "submitNote": "<kbd>Cmd/Ctrl + Enter</kbd> 可從活動、日程、任務、支出或提醒的欄位中儲存。儲存驗證仍然生效。",
     "buttonsNote": "沒有快速鍵時按鈕仍可使用。這些選擇會在儲存空間可用時儲存在此瀏覽器上。原生文字復原不受影響。",
-    "reset": "重設鍵盤快速鍵"
+    "reset": "重設鍵盤快速鍵",
+    "undoShortcut": "<kbd>Cmd/Ctrl + Z</kbd> 在文字欄位之外復原你的上一次編輯，排列時則復原上一次版面變更；<kbd>Shift + Cmd/Ctrl + Z</kbd> 重做。"
   },
   "overview": {
     "transactions": "{count} 筆交易",
@@ -1381,6 +1382,22 @@
       "viewer": "檢視者",
       "editor": "編輯者",
       "owner": "擁有者"
+    }
+  },
+  "undo": {
+    "edit": "復原編輯",
+    "redoEdit": "重做編輯",
+    "named": "復原：{command}",
+    "redoNamed": "重做：{command}",
+    "nothing": "沒有可復原的操作",
+    "nothingRedo": "沒有可重做的操作",
+    "changedElsewhere": "此後已被他人變更",
+    "commands": {
+      "rename": "重新命名 {name}",
+      "complete": "完成 {name}",
+      "reopen": "重新開啟 {name}",
+      "move": "移動 {name}",
+      "edit": "編輯 {name}"
     }
   }
 }

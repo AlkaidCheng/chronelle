@@ -72,3 +72,31 @@ export function canSubmitEditor(event: KeyboardEvent, form: HTMLFormElement) {
     )
   );
 }
+
+/**
+ * Cmd/Ctrl+Z is undo and Shift+Cmd/Ctrl+Z redo, outside text fields and
+ * dialogs where the browser owns the keys; `within` limits the shortcut to
+ * one region, such as an open dialog that owns its own stack.
+ */
+export function undoDirection(
+  event: KeyboardEvent,
+  within?: HTMLElement | null,
+): "undo" | "redo" | null {
+  if (
+    event.key.toLowerCase() !== "z" ||
+    event.metaKey === event.ctrlKey ||
+    event.altKey ||
+    event.repeat ||
+    event.defaultPrevented ||
+    event.isComposing ||
+    event.keyCode === 229 ||
+    !(event.target instanceof Element) ||
+    event.target.closest(
+      "input, textarea, select, [contenteditable], [role='textbox'], [role='searchbox'], [role='combobox']",
+    ) !== null
+  )
+    return null;
+  if (within ? !within.contains(event.target) : event.target.closest("dialog"))
+    return null;
+  return event.shiftKey ? "redo" : "undo";
+}
