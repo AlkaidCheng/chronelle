@@ -3,7 +3,7 @@ import { expect, test } from "./fixtures";
 import { exercisePeoplePage } from "./helpers/people-page";
 import { chooseRowAction } from "./helpers/row-menu";
 
-test("keeps people as namecards with chosen fields", async ({
+test("keeps people as rows and namecards with a page for each", async ({
   page,
   request,
 }) => {
@@ -24,19 +24,25 @@ test("keeps people as namecards with chosen fields", async ({
   const name = await exercisePeoplePage(page);
   const listed = await (await request.get("/api/persons", { headers })).json();
   expect(listed.items).toMatchObject([
+    { displayName: "adam", nickname: null, userId: null },
     {
       displayName: name,
       nickname: "Mira",
       email: "mira@example.test",
-      contacts: [{ kind: "email", value: "mira@example.test" }],
+      contacts: [
+        { kind: "email", value: "mira@example.test" },
+        { kind: "phone", value: "+1 555 0100" },
+      ],
       userId: session.user.id,
-      customProperties: { diet: "Vegetarian dishes" },
+      customProperties: { diet: "Vegetarian" },
       version: 2,
     },
   ]);
-  expect(listed.items[0].labelIds).toHaveLength(1);
+  const [, mira] = listed.items;
+  expect(mira.labelIds).toHaveLength(1);
 
-  // A task assigned to the person names them by nickname.
+  // A task assigned to the person names them by nickname, and the
+  // person's page lists it under Tasks.
   await page
     .getByRole("navigation", { name: "Workspace navigation" })
     .getByRole("link", { name: "Tasks", exact: true })
@@ -50,14 +56,47 @@ test("keeps people as namecards with chosen fields", async ({
     .getByRole("button", { name: "Create task", exact: true })
     .click();
   await expect(editor).toHaveCount(0);
-  const row = page.getByRole("row", { name: /Call about the trip/ });
-  await expect(row.getByText("Assigned to Mira")).toBeAttached();
-  await chooseRowAction(page, row, "Edit");
   await expect(
     page
-      .getByRole("dialog", { name: "Edit task", exact: true })
-      .getByText("Assignee: Mira", { exact: true }),
+      .getByRole("row", { name: /Call about the trip/ })
+      .getByText("Assigned to Mira"),
+  ).toBeAttached();
+  await page.goto(`/people/${mira.id}`);
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Mira");
+  await page.getByRole("tab", { name: "Tasks", exact: true }).click();
+  await expect(
+    page
+      .getByRole("tabpanel")
+      .getByRole("link", { name: "Call about the trip", exact: true }),
   ).toBeVisible();
-  await page.keyboard.press("Escape");
+
+  // The row menu moves a person to the Trash, and the Trash restores them.
+  await page.getByRole("link", { name: "All people", exact: true }).click();
+  const adam = page.getByRole("listitem", { name: "adam", exact: true });
+  await chooseRowAction(page, adam, "Move to Trash");
+  let dialog = page.getByRole("dialog");
+  await dialog
+    .getByRole("button", { name: "Move to Trash", exact: true })
+    .click();
+  await dialog.getByRole("checkbox").check();
+  await dialog.getByRole("button", { name: "Confirm move to Trash" }).click();
+  await expect(dialog.getByRole("status")).toHaveText(
+    "Moved to Trash. No related objects were deleted.",
+  );
+  await dialog.getByRole("link", { name: "Open Trash" }).click();
+  await page
+    .getByRole("button", { name: "Preview recovery for adam", exact: true })
+    .click();
+  dialog = page.getByRole("dialog");
+  await dialog.getByRole("checkbox").check();
+  await dialog.getByRole("button", { name: "Confirm recovery" }).click();
+  await expect(dialog.getByRole("status")).toContainText(
+    "Recovered as version",
+  );
+  await dialog.getByRole("button", { name: "Close", exact: true }).click();
+  await page.goto("/people");
+  await expect(
+    page.getByRole("listitem", { name: "adam", exact: true }),
+  ).toBeVisible();
   expect(errors).toEqual([]);
 });
