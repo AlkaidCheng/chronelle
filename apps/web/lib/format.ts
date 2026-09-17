@@ -86,3 +86,12 @@ export function formatBytes(sizeBytes: number): string {
   }
   return `${(sizeBytes / (1024 * 1024)).toFixed(1)} MB`;
 }
+
+/**
+ * Orders two names the way the active language reads them (Chinese by
+ * pinyin under zh-Hans and by stroke under zh-Hant, as ICU defines), case
+ * and accent aside.
+ */
+export function compareNames(a: string, b: string): number {
+  return a.localeCompare(b, activeLocale(), { sensitivity: "base" });
+}

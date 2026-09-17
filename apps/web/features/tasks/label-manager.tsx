@@ -1,6 +1,7 @@
 "use client";
 
 import type { LabelResponse } from "@chronelle/schemas";
+import { useTranslations } from "next-intl";
 import { useId, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
@@ -43,6 +44,7 @@ export function ManageLabelsButton() {
 function LabelManagerDialog({ onClose }: { readonly onClose: () => void }) {
   const dialog = useSessionDialog(onClose);
   const backdropPress = useRef(false);
+  const t = useTranslations("labels");
   const id = useId();
   const labels = useLabelsQuery();
   const create = useCreateLabel();
@@ -68,9 +70,9 @@ function LabelManagerDialog({ onClose }: { readonly onClose: () => void }) {
       ref={dialog}
     >
       <header className="event-create-header">
-        <h2 id={`${id}-title`}>Labels</h2>
+        <h2 id={`${id}-title`}>{t("title")}</h2>
         <button
-          aria-label="Close labels"
+          aria-label={t("close")}
           className="dialog-close"
           onClick={onClose}
           type="button"
@@ -85,9 +87,9 @@ function LabelManagerDialog({ onClose }: { readonly onClose: () => void }) {
             onRefresh={() => void labels.refetch()}
           />
         ) : labels.data === undefined ? (
-          <p className="field-hint">Loading labels...</p>
+          <p className="field-hint">{t("loading")}</p>
         ) : labels.data.items.length === 0 ? (
-          <p className="field-hint">No labels yet.</p>
+          <p className="field-hint">{t("none")}</p>
         ) : (
           <ul className="label-manager">
             {labels.data.items.map((label) => (
@@ -97,7 +99,7 @@ function LabelManagerDialog({ onClose }: { readonly onClose: () => void }) {
         )}
         <div className="label-add">
           <CountedField
-            label="New label"
+            label={t("newLabel")}
             limit={40}
             onChange={setDraft}
             onKeyDown={(event) => {
@@ -122,14 +124,12 @@ function LabelManagerDialog({ onClose }: { readonly onClose: () => void }) {
             }
             type="button"
           >
-            {create.isPending ? "Adding..." : "Add label"}
+            {create.isPending ? t("adding") : t("add")}
           </button>
         </div>
         {error ? (
           <p role="alert">
-            {error instanceof Error
-              ? error.message
-              : "The label could not be added."}
+            {error instanceof Error ? error.message : t("addFailed")}
           </p>
         ) : null}
       </div>
@@ -138,6 +138,7 @@ function LabelManagerDialog({ onClose }: { readonly onClose: () => void }) {
 }
 
 function LabelRow({ label }: { readonly label: LabelResponse }) {
+  const t = useTranslations("labels");
   const update = useUpdateLabel();
   const remove = useDeleteLabel();
   const [name, setName] = useState(label.name);
@@ -149,7 +150,7 @@ function LabelRow({ label }: { readonly label: LabelResponse }) {
       <CountedField
         disabled={busy}
         hideLabel
-        label={`Name of ${label.name}`}
+        label={t("nameOf", { name: label.name })}
         limit={40}
         onChange={setName}
         value={name}
@@ -165,7 +166,7 @@ function LabelRow({ label }: { readonly label: LabelResponse }) {
         }
         type="button"
       >
-        {update.isPending ? "Renaming..." : "Rename"}
+        {update.isPending ? t("renaming") : t("rename")}
       </button>
       {confirming ? (
         <>
@@ -177,7 +178,9 @@ function LabelRow({ label }: { readonly label: LabelResponse }) {
             }
             type="button"
           >
-            {remove.isPending ? "Deleting..." : `Delete ${label.name}`}
+            {remove.isPending
+              ? t("deleting")
+              : t("deleteNamed", { name: label.name })}
           </button>
           <button
             className="button button-quiet button-small"
@@ -185,23 +188,23 @@ function LabelRow({ label }: { readonly label: LabelResponse }) {
             onClick={() => setConfirming(false)}
             type="button"
           >
-            Keep
+            {t("keep")}
           </button>
         </>
       ) : (
         <button
-          aria-label={`Delete ${label.name}`}
+          aria-label={t("deleteNamed", { name: label.name })}
           className="button button-quiet button-small"
           disabled={busy}
           onClick={() => setConfirming(true)}
           type="button"
         >
-          Delete
+          {t("delete")}
         </button>
       )}
       {failure ? (
         <p role="alert">
-          {failure instanceof Error ? failure.message : "The change failed."}
+          {failure instanceof Error ? failure.message : t("changeFailed")}
         </p>
       ) : null}
     </li>

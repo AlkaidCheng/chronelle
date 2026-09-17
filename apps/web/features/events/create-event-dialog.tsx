@@ -1,3 +1,4 @@
+import { useTranslations } from "next-intl";
 import { type FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import type { EventResponse } from "@chronelle/schemas";
 
@@ -56,6 +57,9 @@ function CreateEventForm({
     [draft.snapshot],
   );
   const recovery = useKeepEditorDraft("new", snapshot, isDirty, onClose);
+  const t = useTranslations("eventDialog");
+  const editor = useTranslations("editor");
+  const common = useTranslations("common");
   const [scheduleError, setScheduleError] = useState("");
   const {
     isConfirming: confirmingDiscard,
@@ -83,7 +87,7 @@ function CreateEventForm({
       setScheduleError("");
     } catch (error) {
       setScheduleError(
-        error instanceof Error ? error.message : "Check the schedule.",
+        error instanceof Error ? error.message : t("checkSchedule"),
       );
       return;
     }
@@ -113,13 +117,13 @@ function CreateEventForm({
     >
       <header className="event-create-header">
         <h2 id="new-event-heading">
-          {confirmingDiscard ? "Discard this event?" : "Create an event"}
+          {confirmingDiscard ? t("discardTitle") : t("title")}
         </h2>
         <button
           hidden={confirmingDiscard}
           type="button"
           className="dialog-close"
-          aria-label="Close event creation"
+          aria-label={t("close")}
           disabled={createEvent.isPending}
           onClick={requestClose}
         >
@@ -129,7 +133,7 @@ function CreateEventForm({
       {confirmingDiscard && (
         <>
           <div className="event-create-body">
-            <p>Your event name and schedule have not been saved.</p>
+            <p>{t("unsaved")}</p>
           </div>
           <footer className="event-create-footer">
             <button
@@ -140,7 +144,7 @@ function CreateEventForm({
                 onClose();
               }}
             >
-              Discard
+              {editor("discard")}
             </button>
             <button
               ref={keepEditingButton}
@@ -148,7 +152,7 @@ function CreateEventForm({
               type="button"
               onClick={keepEditing}
             >
-              Keep editing
+              {editor("keepEditing")}
             </button>
           </footer>
         </>
@@ -163,10 +167,10 @@ function CreateEventForm({
             className="event-name-field"
             disabled={createEvent.isPending}
             inputRef={nameInput}
-            label="Event name"
+            label={t("name")}
             limit={240}
             onChange={(displayName) => draft.change({ displayName })}
-            placeholder="What are you planning?"
+            placeholder={t("namePlaceholder")}
             required
             value={displayName}
           />
@@ -189,13 +193,13 @@ function CreateEventForm({
             disabled={createEvent.isPending}
             onClick={requestClose}
           >
-            Cancel
+            {common("cancel")}
           </button>
           <EditorSubmitButton
             className="button button-primary"
             disabled={createEvent.isPending || !recovery.isRetained}
           >
-            {createEvent.isPending ? "Creating..." : "Create event"}
+            {createEvent.isPending ? t("creating") : t("create")}
           </EditorSubmitButton>
         </footer>
       </EditorForm>

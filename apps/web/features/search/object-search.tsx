@@ -5,6 +5,7 @@ import type {
   ObjectSearchResult,
 } from "@chronelle/schemas";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { type FormEvent, useState } from "react";
 
 import {
@@ -18,16 +19,17 @@ import { useObjectSearch } from "../../lib/queries";
 import { getSearchResultHref } from "../../lib/search-result";
 
 const searchableTypes = [
-  { label: "All objects", value: "" },
-  { label: "Events", value: "event" },
-  { label: "Tasks", value: "task" },
-  { label: "Expenses", value: "expense" },
-  { label: "Reminders", value: "reminder" },
-  { label: "Documents", value: "document" },
-  { label: "People", value: "person" },
+  "event",
+  "task",
+  "expense",
+  "reminder",
+  "document",
+  "person",
 ] as const;
 
 function SearchResultCard({ result }: { readonly result: ObjectSearchResult }) {
+  const t = useTranslations("search");
+  const types = useTranslations("objectTypes");
   const href = getSearchResultHref(result);
   const content = (
     <>
@@ -35,14 +37,17 @@ function SearchResultCard({ result }: { readonly result: ObjectSearchResult }) {
         <SearchIcon />
       </span>
       <span className="search-result-copy">
-        <span className="object-label">{result.objectType}</span>
+        <span className="object-label">{types(result.objectType)}</span>
         <strong>{result.displayName}</strong>
         <span>
-          Updated {formatDateTime(result.updatedAt)} | ID {shortId(result.id)}
+          {t("updatedAt", {
+            when: formatDateTime(result.updatedAt),
+            id: shortId(result.id),
+          })}
         </span>
       </span>
       {href === null ? (
-        <span className="search-result-state">Canonical record</span>
+        <span className="search-result-state">{t("canonicalRecord")}</span>
       ) : (
         <span aria-hidden="true" className="card-arrow">
           -&gt;
@@ -61,6 +66,8 @@ function SearchResultCard({ result }: { readonly result: ObjectSearchResult }) {
 }
 
 export function ObjectSearch() {
+  const t = useTranslations("search");
+  const types = useTranslations("objectTypes");
   const [query, setQuery] = useState("");
   const [objectType, setObjectType] = useState<
     ObjectSearchResult["objectType"] | ""
@@ -78,12 +85,9 @@ export function ObjectSearch() {
     <main className="workspace-page search-page">
       <header className="page-heading split-heading">
         <div>
-          <p className="eyebrow">Canonical retrieval</p>
-          <h1>Search</h1>
-          <p>
-            Find the event-planning objects available in this workspace. Every
-            result uses the same permission decision as its detail view.
-          </p>
+          <p className="eyebrow">{t("eyebrow")}</p>
+          <h1>{t("title")}</h1>
+          <p>{t("intro")}</p>
         </div>
         <SearchIcon className="heading-icon" />
       </header>
@@ -93,26 +97,26 @@ export function ObjectSearch() {
         className="surface search-surface"
       >
         <div>
-          <span className="object-label">Workspace index</span>
-          <h2 id="search-heading">Find an object</h2>
+          <span className="object-label">{t("index")}</span>
+          <h2 id="search-heading">{t("findObject")}</h2>
         </div>
         <search>
           <form className="search-form" onSubmit={handleSubmit}>
             <label className="compact-field grow-field" htmlFor="object-search">
-              <span>Keywords</span>
+              <span>{t("keywords")}</span>
               <input
                 id="object-search"
                 maxLength={120}
                 minLength={2}
                 onChange={(event) => setQuery(event.target.value)}
-                placeholder="Launch night"
+                placeholder={t("placeholder")}
                 required
                 type="search"
                 value={query}
               />
             </label>
             <label className="compact-field" htmlFor="object-search-type">
-              <span>Type</span>
+              <span>{t("type")}</span>
               <select
                 id="object-search-type"
                 onChange={(event) =>
@@ -122,9 +126,10 @@ export function ObjectSearch() {
                 }
                 value={objectType}
               >
+                <option value="">{t("allObjects")}</option>
                 {searchableTypes.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
+                  <option key={option} value={option}>
+                    {types(option)}
                   </option>
                 ))}
               </select>
@@ -134,7 +139,7 @@ export function ObjectSearch() {
               disabled={search.isFetching}
               type="submit"
             >
-              {search.isFetching ? "Searching..." : "Search"}
+              {search.isFetching ? t("searching") : t("search")}
             </button>
           </form>
         </search>
@@ -145,13 +150,13 @@ export function ObjectSearch() {
         className="search-results"
       >
         <div className="section-title-row">
-          <h2 id="search-results-heading">Results</h2>
+          <h2 id="search-results-heading">{t("results")}</h2>
           <span aria-live="polite">
-            {search.data?.items.length ?? 0} loaded
+            {t("loaded", { count: search.data?.items.length ?? 0 })}
           </span>
         </div>
         {search.isPending && submittedInput !== null ? (
-          <LoadingState label="Searching workspace" />
+          <LoadingState label={t("searchingWorkspace")} />
         ) : null}
         {search.isError ? (
           <ErrorNotice
@@ -165,14 +170,14 @@ export function ObjectSearch() {
         ) : null}
         {submittedInput === null ? (
           <EmptyState
-            description="Enter at least two letters or numbers and optionally choose an object type."
-            title="Search your workspace"
+            description={t("startDescription")}
+            title={t("startTitle")}
           />
         ) : null}
         {search.data?.items.length === 0 ? (
           <EmptyState
-            description="Try a broader phrase or search all object types."
-            title="No accessible objects found"
+            description={t("noneDescription")}
+            title={t("noneTitle")}
           />
         ) : null}
         <div className="search-result-list">
@@ -187,9 +192,7 @@ export function ObjectSearch() {
             onClick={() => void search.fetchNextPage()}
             type="button"
           >
-            {search.isFetchingNextPage
-              ? "Loading more..."
-              : "Load more results"}
+            {search.isFetchingNextPage ? t("loadingMore") : t("loadMore")}
           </button>
         ) : null}
       </section>

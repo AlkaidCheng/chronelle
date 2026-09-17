@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { type ReactNode, useId } from "react";
 import { useSessionDialog } from "../../lib/use-session-dialog";
 
@@ -12,6 +13,7 @@ export function RecoveryDialog({
   readonly onClose: () => void;
   readonly children: ReactNode;
 }) {
+  const common = useTranslations("common");
   const dialog = useSessionDialog(onClose);
   const heading = useId();
   return (
@@ -24,7 +26,7 @@ export function RecoveryDialog({
       <header className="history-header">
         <h2 id={heading}>{title}</h2>
         <button className="button button-quiet" type="button" onClick={onClose}>
-          Close
+          {common("close")}
         </button>
       </header>
       {children}

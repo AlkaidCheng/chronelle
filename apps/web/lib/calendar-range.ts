@@ -1,3 +1,4 @@
+import { tr } from "../i18n/active-locale";
 import { formatCalendarDate } from "./event-schedule";
 
 export interface CalendarRange {
@@ -7,10 +8,13 @@ export interface CalendarRange {
 
 /** The range as its exact dates: not set, one day, or a start and an end. */
 export function describeCalendarRange(range: CalendarRange): string {
-  if (!range.startDate) return "not set";
+  if (!range.startDate) return tr("rangeField")("notSet");
   if (!range.endDate || range.endDate === range.startDate)
     return formatCalendarDate(range.startDate);
-  return `${formatCalendarDate(range.startDate)} to ${formatCalendarDate(range.endDate)}`;
+  return tr("dates")("range", {
+    start: formatCalendarDate(range.startDate),
+    end: formatCalendarDate(range.endDate),
+  });
 }
 
 export function calendarMonthDate(year: number, month: number): string {

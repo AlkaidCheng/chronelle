@@ -1,6 +1,7 @@
 "use client";
 
 import type { ExpenseResponse } from "@chronelle/schemas";
+import { useTranslations } from "next-intl";
 import { type FormEvent, useMemo, useState } from "react";
 import { CountedField } from "../../components/counted-field";
 import { EditorForm } from "../../components/editor-form";
@@ -97,6 +98,8 @@ function ExpenseEditor({
   const refresh = useRefreshEvent(eventId, { throwOnError: true });
   const { displayName, amount, currency, occurredAt } = draft.fields;
   const mutation = expense === undefined ? create : update;
+  const t = useTranslations("expenseForm");
+  const editor = useTranslations("editor");
   const [timeError, setTimeError] = useState("");
   const openHistory = useOpenHistory();
   const close = () => {
@@ -132,9 +135,7 @@ function ExpenseEditor({
       input = expenseFieldsPayload(draft.fields, expense);
       setTimeError("");
     } catch (error) {
-      setTimeError(
-        error instanceof Error ? error.message : "Check the transaction time.",
-      );
+      setTimeError(error instanceof Error ? error.message : t("checkTime"));
       return;
     }
     rememberSubmit(formEvent.currentTarget);
@@ -175,12 +176,12 @@ function ExpenseEditor({
         headingId={headingId}
         title={
           isConfirming
-            ? "Discard expense changes?"
+            ? t("discardTitle")
             : expense
-              ? "Edit expense"
-              : "Add expense"
+              ? t("editTitle")
+              : t("addTitle")
         }
-        closeLabel="Close expense editor"
+        closeLabel={t("close")}
         isConfirming={isConfirming}
         isPending={mutation.isPending}
         onClose={requestClose}
@@ -190,7 +191,7 @@ function ExpenseEditor({
             hidden={isConfirming}
             className="button button-quiet button-small"
             type="button"
-            aria-label="View expense history"
+            aria-label={t("viewHistory")}
             disabled={mutation.isPending}
             onClick={() =>
               openHistory({
@@ -199,13 +200,13 @@ function ExpenseEditor({
               })
             }
           >
-            History
+            {editor("history")}
           </button>
         )}
       </EditorDialogHeader>
       {isConfirming && (
         <div className="event-create-body">
-          <p>Your expense changes have not been saved.</p>
+          <p>{t("unsaved")}</p>
           <div className="form-actions">
             <DiscardActions
               keepEditingButton={keepEditingButton}
@@ -230,16 +231,16 @@ function ExpenseEditor({
             className="field-wide"
             disabled={mutation.isPending}
             inputRef={nameInput}
-            label="Expense"
+            label={t("name")}
             limit={240}
             onChange={(displayName) => draft.change({ displayName })}
-            placeholder="Venue deposit"
+            placeholder={t("namePlaceholder")}
             required
             value={displayName}
           />
           <div className="form-grid money-grid">
             <label className="field">
-              <span>Amount</span>
+              <span>{t("amount")}</span>
               <input
                 inputMode="decimal"
                 disabled={mutation.isPending}
@@ -253,7 +254,7 @@ function ExpenseEditor({
               />
             </label>
             <label className="field currency-field">
-              <span>Currency</span>
+              <span>{t("currency")}</span>
               <input
                 maxLength={3}
                 minLength={3}
@@ -268,7 +269,7 @@ function ExpenseEditor({
             </label>
           </div>
           <label className="field">
-            <span>Date</span>
+            <span>{t("date")}</span>
             <input
               disabled={mutation.isPending}
               onChange={(input) =>
@@ -280,7 +281,7 @@ function ExpenseEditor({
             />
           </label>
           <p className="field-hint">
-            Transaction time in {shownTimeZone().replaceAll("_", " ")}.
+            {t("timeIn", { zone: shownTimeZone().replaceAll("_", " ") })}
           </p>
           {timeError && <p role="alert">{timeError}</p>}
         </div>
@@ -293,16 +294,14 @@ function ExpenseEditor({
             onRefresh={
               expense === undefined ? undefined : (onRefresh ?? refresh)
             }
-            submitLabel={
-              expense === undefined ? "Record expense" : "Save expense"
-            }
+            submitLabel={expense === undefined ? t("create") : t("save")}
           />
           <EditorDraftStatus
             {...recovery}
             failureMessage={
               expense === undefined
-                ? "The last save could not be confirmed. Retry unchanged fields to reuse the same save attempt."
-                : "The last save could not be confirmed. Refresh latest before trying again."
+                ? editor("failureRetry")
+                : editor("failureRefresh")
             }
           />
         </footer>

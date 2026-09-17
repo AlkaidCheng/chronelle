@@ -6,6 +6,7 @@ import {
   maximumDocumentSizeBytes,
   type TaskResponse,
 } from "@chronelle/schemas";
+import { useTranslations } from "next-intl";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import {
@@ -37,10 +38,6 @@ interface AttachmentTarget {
   readonly label: string;
 }
 
-/** The limit and the checks a file goes through, read only when one is refused. */
-const attachmentNote =
-  "Maximum 25 MB. Filename, type, size, and checksum are verified.";
-
 function saveDownload(blob: Blob, filename: string): void {
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
@@ -63,19 +60,20 @@ export function DocumentsPanel({
   readonly expenses: readonly ExpenseResponse[];
   readonly tasks: readonly TaskResponse[];
 }) {
+  const t = useTranslations("files");
   const targets = useMemo<readonly AttachmentTarget[]>(
     () => [
-      { id: event.id, label: `Event: ${event.displayName}` },
+      { id: event.id, label: t("eventTarget", { name: event.displayName }) },
       ...tasks.map((task) => ({
         id: task.id,
-        label: `Task: ${task.displayName}`,
+        label: t("taskTarget", { name: task.displayName }),
       })),
       ...expenses.map((expense) => ({
         id: expense.id,
-        label: `Expense: ${expense.displayName}`,
+        label: t("expenseTarget", { name: expense.displayName }),
       })),
     ],
-    [event.displayName, event.id, expenses, tasks],
+    [event.displayName, event.id, expenses, t, tasks],
   );
   const [parentObjectId, setParentObjectId] = useState(event.id);
   const [uploading, setUploading] = useState<string | null>(null);
@@ -99,7 +97,7 @@ export function DocumentsPanel({
   function attachFile(file: File | undefined): void {
     if (file === undefined) return;
     if (file.size > maximumDocumentSizeBytes) {
-      setRefused(new Error(`${file.name} is larger than 25 MB.`));
+      setRefused(new Error(t("tooLarge", { name: file.name })));
       setFileInputVersion((version) => version + 1);
       return;
     }
@@ -132,14 +130,14 @@ export function DocumentsPanel({
               onSelect: () => setParentObjectId(choice.id),
             }))}
             icon={<LinkIcon />}
-            label="Attached to"
+            label={t("attachedTo")}
             name={target?.label}
           />
         }
         count={
           attachments.data === undefined ? undefined : String(items.length)
         }
-        title="Files"
+        title={t("title")}
       />
 
       {firstError === null ? null : (
@@ -151,15 +149,15 @@ export function DocumentsPanel({
               attach.reset();
               download.reset();
             }}
-            refreshLabel="Dismiss"
+            refreshLabel={t("dismiss")}
           />
           {attachError === null ? null : (
-            <p className="attachment-note">{attachmentNote}</p>
+            <p className="attachment-note">{t("note")}</p>
           )}
         </>
       )}
       {attachments.isPending ? (
-        <LoadingState label="Loading private files" />
+        <LoadingState label={t("loading")} />
       ) : attachments.isError ? (
         <ErrorNotice
           error={attachments.error}
@@ -171,19 +169,17 @@ export function DocumentsPanel({
             <div className="locked-reference surface-subtle">
               <LockIcon />
               <div>
-                <strong>Private attachments</strong>
+                <strong>{t("privateTitle")}</strong>
                 <p>
-                  {attachments.data.lockedAttachmentCount} attachment
-                  {attachments.data.lockedAttachmentCount === 1
-                    ? " is"
-                    : "s are"}{" "}
-                  outside your permission scope.
+                  {t("privateNote", {
+                    count: attachments.data.lockedAttachmentCount,
+                  })}
                 </p>
               </div>
             </div>
           ) : null}
           {items.length === 0 && !canEdit ? (
-            <EmptyState title="No files attached" />
+            <EmptyState title={t("none")} />
           ) : null}
           <div className="attachment-list">
             {items.map((attachment) => {
@@ -196,10 +192,10 @@ export function DocumentsPanel({
                     saveDownload(blob, file.originalFilename),
                 });
               const entries: RowMenuEntry[] = [
-                { kind: "action", label: "Download", onSelect: save },
+                { kind: "action", label: t("download"), onSelect: save },
                 {
                   kind: "action",
-                  label: "History",
+                  label: t("history"),
                   onSelect: () =>
                     openHistory({
                       objectId: file.id,
@@ -211,7 +207,7 @@ export function DocumentsPanel({
                       { kind: "rule" },
                       {
                         kind: "action",
-                        label: "Move to Trash",
+                        label: t("moveToTrash"),
                         danger: true,
                         onSelect: () =>
                           openLifecycle({
@@ -243,8 +239,8 @@ export function DocumentsPanel({
                       disabled={download.isPending}
                       label={
                         isDownloading
-                          ? `Preparing ${file.originalFilename}`
-                          : `Download ${file.originalFilename}`
+                          ? t("preparing", { name: file.originalFilename })
+                          : t("downloadNamed", { name: file.originalFilename })
                       }
                       onClick={save}
                     >
@@ -252,7 +248,7 @@ export function DocumentsPanel({
                     </IconButton>
                     <RowMenu
                       entries={entries}
-                      label={`Actions for ${file.originalFilename}`}
+                      label={t("actionsFor", { name: file.originalFilename })}
                     />
                   </RowActions>
                 </article>
@@ -269,12 +265,12 @@ export function DocumentsPanel({
                   <PaperclipIcon />
                   <span>
                     {uploading === null
-                      ? "Attach a file"
-                      : `Uploading ${uploading}...`}
+                      ? t("attach")
+                      : t("uploading", { name: uploading })}
                   </span>
                 </button>
                 <input
-                  aria-label="Choose a private file"
+                  aria-label={t("choose")}
                   className="visually-hidden"
                   disabled={isUploading}
                   key={fileInputVersion}
@@ -285,7 +281,7 @@ export function DocumentsPanel({
                 />
                 {isUploading ? (
                   <progress
-                    aria-label="Uploading attachment"
+                    aria-label={t("uploadingLabel")}
                     className="upload-progress"
                   />
                 ) : null}

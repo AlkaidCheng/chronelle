@@ -1,6 +1,7 @@
 "use client";
 
 import type { TaskResponse } from "@chronelle/schemas";
+import { useTranslations } from "next-intl";
 import { type FormEvent, useMemo, useState } from "react";
 import { CountedField } from "../../components/counted-field";
 import { EditorForm } from "../../components/editor-form";
@@ -126,6 +127,8 @@ function TaskEditor({
     labels,
   } = draft.fields;
   const mutation = task === undefined ? create : update;
+  const t = useTranslations("taskForm");
+  const editor = useTranslations("editor");
   const [fieldError, setFieldError] = useState("");
   const openHistory = useOpenHistory();
   const close = () => {
@@ -162,7 +165,7 @@ function TaskEditor({
       setFieldError("");
     } catch (error) {
       setFieldError(
-        error instanceof Error ? error.message : "Check the fields.",
+        error instanceof Error ? error.message : editor("checkFields"),
       );
       return;
     }
@@ -226,14 +229,14 @@ function TaskEditor({
         headingId={headingId}
         title={
           isConfirming
-            ? "Discard task changes?"
+            ? t("discardTitle")
             : task
-              ? "Edit task"
+              ? t("editTitle")
               : parent
-                ? "Add subtask"
-                : "Add task"
+                ? t("addSubtaskTitle")
+                : t("addTitle")
         }
-        closeLabel="Close task editor"
+        closeLabel={t("close")}
         isConfirming={isConfirming}
         isPending={mutation.isPending}
         onClose={requestClose}
@@ -243,19 +246,19 @@ function TaskEditor({
             hidden={isConfirming}
             className="button button-quiet button-small"
             type="button"
-            aria-label="View task history"
+            aria-label={t("viewHistory")}
             disabled={mutation.isPending}
             onClick={() =>
               openHistory({ objectId: task.id, displayName: task.displayName })
             }
           >
-            History
+            {editor("history")}
           </button>
         )}
       </EditorDialogHeader>
       {isConfirming && (
         <div className="event-create-body">
-          <p>Your task changes have not been saved.</p>
+          <p>{t("unsaved")}</p>
           <div className="form-actions">
             <DiscardActions
               keepEditingButton={keepEditingButton}
@@ -278,17 +281,17 @@ function TaskEditor({
         <div className="event-create-body event-inspector-fields">
           {parent && task === undefined ? (
             <p className="field-hint field-wide">
-              A subtask of {parent.displayName}.
+              {t("subtaskOf", { parent: parent.displayName })}
             </p>
           ) : null}
           <CountedField
             className="field-wide"
             disabled={mutation.isPending}
             inputRef={nameInput}
-            label="Task"
+            label={t("name")}
             limit={240}
             onChange={(displayName) => draft.change({ displayName })}
-            placeholder="Confirm the guest list"
+            placeholder={t("namePlaceholder")}
             required
             value={displayName}
           />
@@ -304,10 +307,10 @@ function TaskEditor({
           <CountedField
             className="field-wide"
             disabled={mutation.isPending}
-            label="Location"
+            label={t("location")}
             limit={locationLimit}
             onChange={(location) => draft.change({ location })}
-            placeholder="Where it happens"
+            placeholder={t("locationPlaceholder")}
             value={location}
           />
           {fieldError && <p role="alert">{fieldError}</p>}
@@ -329,14 +332,14 @@ function TaskEditor({
             mutation={mutation}
             onCancel={requestClose}
             onRefresh={task === undefined ? undefined : (onRefresh ?? refresh)}
-            submitLabel={task === undefined ? "Create task" : "Save task"}
+            submitLabel={task === undefined ? t("create") : t("save")}
           />
           <EditorDraftStatus
             {...recovery}
             failureMessage={
               task === undefined
-                ? "The last save could not be confirmed. Retry unchanged fields to reuse the same save attempt."
-                : "The last save could not be confirmed. Refresh latest before trying again."
+                ? editor("failureRetry")
+                : editor("failureRefresh")
             }
           />
         </footer>

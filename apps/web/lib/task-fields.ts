@@ -3,6 +3,7 @@ import {
   type TaskResponse,
   taskRepeatRuleSchema,
 } from "@chronelle/schemas";
+import { tr } from "../i18n/active-locale";
 import { editedInstant } from "./edited-instant";
 import { toDateTimeInput } from "./format";
 
@@ -74,11 +75,12 @@ export function taskFieldsPayload(
   fields: ReturnType<typeof readTaskFields>,
   source?: Pick<TaskResponse, "dueAt">,
 ) {
+  const v = tr("validation");
   const assigneeId = fields.assignee === "" ? null : fields.assignee;
   const location =
     fields.location.trim() === "" ? null : fields.location.trim();
   if (location !== null && location.length > locationLimit)
-    throw new Error(`Keep the location to ${locationLimit} characters.`);
+    throw new Error(v("locationLength", { limit: locationLimit }));
   const labelIds = splitLabelIds(fields.labels);
   const durationMinutes =
     fields.duration === "" ? null : Number(fields.duration);
@@ -88,15 +90,12 @@ export function taskFieldsPayload(
       durationMinutes < 1 ||
       durationMinutes > durationLimit)
   )
-    throw new Error("Choose a duration of up to a day.");
+    throw new Error(v("durationRange"));
   const repeat = readRepeat(fields);
   if (fields.dueDate === "") {
-    if (fields.dueTime !== "")
-      throw new Error("Choose a due date for the due time.");
-    if (durationMinutes !== null)
-      throw new Error("Choose a due time for the duration.");
-    if (repeat.repeatRule !== null)
-      throw new Error("Choose a due date to repeat from.");
+    if (fields.dueTime !== "") throw new Error(v("dueDateForTime"));
+    if (durationMinutes !== null) throw new Error(v("dueTimeForDuration"));
+    if (repeat.repeatRule !== null) throw new Error(v("dueDateForRepeat"));
     return {
       displayName: fields.displayName,
       dueOn: null,
@@ -109,12 +108,11 @@ export function taskFieldsPayload(
     };
   }
   if (!/^\d{4}-\d{2}-\d{2}$/.test(fields.dueDate))
-    throw new Error("Choose a valid due date.");
+    throw new Error(v("validDueDate"));
   if (repeat.repeatUntil !== null && repeat.repeatUntil < fields.dueDate)
-    throw new Error("Choose a repeat end on or after the due date.");
+    throw new Error(v("repeatEndAfterDue"));
   if (fields.dueTime === "") {
-    if (durationMinutes !== null)
-      throw new Error("Choose a due time for the duration.");
+    if (durationMinutes !== null) throw new Error(v("dueTimeForDuration"));
     return {
       displayName: fields.displayName,
       dueOn: fields.dueDate,
@@ -149,12 +147,12 @@ function readRepeat(fields: { repeat: string; repeatUntil: string }): {
 } {
   if (fields.repeat === "") return { repeatRule: null, repeatUntil: null };
   const rule = taskRepeatRuleSchema.safeParse(fields.repeat);
-  if (!rule.success) throw new Error("Choose a repeat the picker offers.");
+  if (!rule.success) throw new Error(tr("validation")("repeatOffered"));
   if (
     fields.repeatUntil !== "" &&
     !/^\d{4}-\d{2}-\d{2}$/.test(fields.repeatUntil)
   )
-    throw new Error("Choose a valid repeat end.");
+    throw new Error(tr("validation")("validRepeatEnd"));
   return {
     repeatRule: rule.data,
     repeatUntil: fields.repeatUntil === "" ? null : fields.repeatUntil,

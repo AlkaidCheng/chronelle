@@ -3,7 +3,7 @@ import {
   activateWithKeyboard,
   createFirstPlan,
 } from "../../e2e/helpers/first-use";
-import { sandboxStorageKey } from "../store";
+import { sandboxStorageKey } from "../storage-key";
 
 const sandboxUrl = new URL(
   "../../../../.chronelle/sandbox/chronelle.html",

@@ -185,7 +185,7 @@ test("filters workspace and private records and rechecks revoked access", async 
       response.url().endsWith(`/api/events/${event.id}`) &&
       response.status() === 404,
   );
-  await dialog.getByRole("option", { name: /Shared gathering event/ }).click();
+  await dialog.getByRole("option", { name: /Shared gathering Event/ }).click();
   await denied;
   await expect(page.getByRole("alert").first()).toBeVisible();
   await openCommands(page);

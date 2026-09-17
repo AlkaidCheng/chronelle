@@ -4,6 +4,7 @@ import type {
   EventDetailResponse,
   EventPlanningResourceResponse,
 } from "@chronelle/schemas";
+import { useTranslations } from "next-intl";
 import { type FormEvent, useMemo, useState } from "react";
 
 import {
@@ -50,6 +51,8 @@ export function SharingPanel({
   const revoke = useRevokeShare();
   const updateScope = useUpdatePermissionScope();
   const refresh = useRefreshEvent(eventId);
+  const t = useTranslations("sharingPanel");
+  const types = useTranslations("objectTypes");
   const [principalEmail, setPrincipalEmail] = useState("");
   const [role, setRole] = useState<SharedRole>("viewer");
   const resources = useMemo(() => relatedResources(detail), [detail]);
@@ -77,20 +80,15 @@ export function SharingPanel({
     <section className="planning-panel sharing-panel">
       <header className="panel-heading">
         <div>
-          <h2>Sharing</h2>
-          <p>
-            Grant access to this Event and its inheriting resources. A
-            relationship alone never grants access. Collaborators can also read
-            earlier saved versions of resources they can currently view,
-            including versions saved before this invitation.
-          </p>
+          <h2>{t("title")}</h2>
+          <p>{t("intro")}</p>
         </div>
         <ShareIcon />
       </header>
 
       <form className="share-form surface-subtle" onSubmit={handleShare}>
         <label className="field field-wide">
-          <span>Collaborator email</span>
+          <span>{t("collaboratorEmail")}</span>
           <input
             autoComplete="email"
             onChange={(input) => setPrincipalEmail(input.target.value)}
@@ -101,13 +99,13 @@ export function SharingPanel({
           />
         </label>
         <label className="field">
-          <span>Access</span>
+          <span>{t("access")}</span>
           <select
             onChange={(input) => setRole(input.target.value as SharedRole)}
             value={role}
           >
-            <option value="viewer">Viewer</option>
-            <option value="owner">Owner</option>
+            <option value="viewer">{t("roles.viewer")}</option>
+            <option value="owner">{t("roles.owner")}</option>
           </select>
         </label>
         <button
@@ -115,7 +113,7 @@ export function SharingPanel({
           disabled={share.isPending}
           type="submit"
         >
-          {share.isPending ? "Sharing..." : "Share event"}
+          {share.isPending ? t("sharing") : t("shareEvent")}
         </button>
         {share.isError ? <ErrorNotice error={share.error} /> : null}
       </form>
@@ -123,17 +121,17 @@ export function SharingPanel({
       <ShareWithPeople
         eventId={eventId}
         grants={shares.data?.items ?? []}
-        legend="Share with people"
+        legend={t("shareWithPeople")}
         people={people}
       />
 
       <div className="sharing-section">
         <div className="section-title-row">
-          <h3>People with access</h3>
+          <h3>{t("peopleWithAccess")}</h3>
           <span>{shares.data?.items.length ?? 0}</span>
         </div>
         {shares.isPending ? (
-          <LoadingState label="Loading collaborators" />
+          <LoadingState label={t("loadingCollaborators")} />
         ) : null}
         {shares.isError ? (
           <ErrorNotice
@@ -142,7 +140,7 @@ export function SharingPanel({
           />
         ) : null}
         {shares.data?.items.length === 0 ? (
-          <EmptyState title="Only you have access" />
+          <EmptyState title={t("onlyYou")} />
         ) : null}
         <div className="share-list">
           {shares.data?.items.map((grant) => (
@@ -155,7 +153,7 @@ export function SharingPanel({
                 <span>{grant.principal.email}</span>
               </div>
               <span className={`status-chip status-${grant.role}`}>
-                {grant.role}
+                {t(`roles.${grant.role}`)}
               </span>
               <button
                 className="button button-quiet button-small"
@@ -163,7 +161,7 @@ export function SharingPanel({
                 onClick={() => revoke.mutate(grant.id)}
                 type="button"
               >
-                Revoke
+                {t("revoke")}
               </button>
             </article>
           ))}
@@ -174,13 +172,13 @@ export function SharingPanel({
       <div className="sharing-section">
         <div className="section-title-row">
           <div>
-            <h3>Inherited resources</h3>
-            <p>Stop inheritance to keep one related object private.</p>
+            <h3>{t("inheritedResources")}</h3>
+            <p>{t("inheritedNote")}</p>
           </div>
           <span>{resources.length}</span>
         </div>
         {resources.length === 0 ? (
-          <EmptyState title="No related resources" />
+          <EmptyState title={t("noResources")} />
         ) : (
           <div className="scope-list">
             {resources.map((resource) => {
@@ -191,12 +189,14 @@ export function SharingPanel({
                     {inherits ? <ShareIcon /> : <LockIcon />}
                   </span>
                   <div>
-                    <span className="object-label">{resource.objectType}</span>
+                    <span className="object-label">
+                      {types(resource.objectType)}
+                    </span>
                     <strong>{resource.displayName}</strong>
-                    <span>ID {shortId(resource.id)}</span>
+                    <span>{t("id", { id: shortId(resource.id) })}</span>
                   </div>
                   <span className="scope-state">
-                    {inherits ? "Inherits Event access" : "Private scope"}
+                    {inherits ? t("inherits") : t("privateScope")}
                   </span>
                   {inherits ? (
                     <button
@@ -213,7 +213,7 @@ export function SharingPanel({
                       }
                       type="button"
                     >
-                      Make private
+                      {t("makePrivate")}
                     </button>
                   ) : null}
                 </article>

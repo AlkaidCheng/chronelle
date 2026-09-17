@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { type ReactNode, useEffect, useId, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { ErrorNotice, LoadingState } from "../../components/feedback";
@@ -15,13 +16,6 @@ import { isTemporaryReadError } from "../../lib/query-errors";
 import { useSessionDialog } from "../../lib/use-session-dialog";
 
 type DraftKind = RetainedDraftSnapshot["kind"];
-const draftFields: Record<DraftKind, string> = {
-  event: "event name and schedule",
-  task: "task name and due time",
-  expense: "expense name, amount, currency and transaction time",
-  reminder: "reminder name and time",
-  person: "person's name, email, account link and fields",
-};
 type DraftOfKind<Kind extends DraftKind> = Extract<
   RetainedDraftSnapshot,
   { kind: Kind }
@@ -87,6 +81,7 @@ function ResumeDraft({
   const queries = useQueryClient();
   const { signal } = useAuthSession();
   const dialog = useSessionDialog(onClose);
+  const t = useTranslations("draftRecovery");
   const headingId = useId();
   const mounted = useRef(false);
   const checking = useRef(false);
@@ -174,12 +169,12 @@ function ResumeDraft({
     >
       <header className="event-create-header">
         <h2 id={headingId}>
-          {kept?.pending ? `Saving ${kind}` : "Resume your draft?"}
+          {kept?.pending ? t(`saving.${kind}`) : t("resumeTitle")}
         </h2>
         <button
           className="dialog-close"
           type="button"
-          aria-label="Close draft recovery"
+          aria-label={t("close")}
           onClick={onClose}
         >
           &#215;
@@ -187,18 +182,15 @@ function ResumeDraft({
       </header>
       <div className="event-create-body">
         {kept?.pending ? (
-          <LoadingState label="Your save is still in progress. You can close this panel." />
+          <LoadingState label={t("inProgress")} />
         ) : (
-          <p>
-            Your entered {draftFields[kind]} are kept in this tab. Current
-            access is checked before resuming.
-          </p>
+          <p>{t(`kept.${kind}`)}</p>
         )}
         {kept?.failed && (
           <p role="status">
             {kept.snapshot.creationAttempt
-              ? "The previous save could not be confirmed. Resume and retry unchanged fields to reuse the same save attempt."
-              : "The previous save could not be confirmed. Check whether it was saved before trying again."}
+              ? t("failedRetry")
+              : t("failedCheck")}
           </p>
         )}
         {error !== null && <ErrorNotice error={error} />}
@@ -213,7 +205,7 @@ function ResumeDraft({
             onClose();
           }}
         >
-          Discard draft
+          {t("discard")}
         </button>
         <button
           ref={resumeButton}
@@ -222,7 +214,7 @@ function ResumeDraft({
           disabled={!kept || kept.pending || isChecking}
           onClick={() => void resume()}
         >
-          {isChecking ? "Checking access..." : "Resume draft"}
+          {isChecking ? t("checking") : t("resume")}
         </button>
       </footer>
     </dialog>
@@ -232,19 +224,20 @@ function ResumeDraft({
 export function EditorDraftStatus({
   isRetained,
   failed,
-  failureMessage = "The last save failed. Check for a saved event before submitting again.",
+  failureMessage,
 }: {
   readonly isRetained: boolean;
   readonly failed: boolean;
-  readonly failureMessage?: string;
+  readonly failureMessage?: string | undefined;
 }) {
+  const t = useTranslations("draftRecovery");
   return (
     <p className="editor-help" role="status">
       {!isRetained
-        ? "Draft recovery is full while other saves are pending. Keep this editor open."
+        ? t("full")
         : failed
-          ? failureMessage
-          : "Drafts stay in this tab until reload or sign-out."}
+          ? (failureMessage ?? t("lastSaveFailed"))
+          : t("stays")}
     </p>
   );
 }

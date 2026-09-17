@@ -24,12 +24,12 @@ import {
   objectSearchQuerySchema,
   personCreateRequestSchema,
   personListQuerySchema,
-  relationListQuerySchema,
   personUpdateRequestSchema,
   preferencesRequestSchema,
   type EventPlanningResourceResponse as Resource,
   rankAfter,
   relationCreateRequestSchema,
+  relationListQuerySchema,
   relationResponseSchema,
   reminderUpdateRequestSchema,
   type TimelineResponse,
@@ -40,10 +40,12 @@ import {
   userResponseSchema,
 } from "@chronelle/schemas";
 import { eventPeriod } from "../lib/event-collection";
+import { compareNames } from "../lib/format";
+import { sandboxStorageKey } from "./storage-key";
 
+export { sandboxStorageKey };
 export const sandboxWorkspaceId = "00000000-0000-4000-8000-000000000001";
 const userId = "00000000-0000-4000-8000-000000000002";
-export const sandboxStorageKey = "chronelle.design-sandbox.v1";
 const workspace = { id: sandboxWorkspaceId, displayName: "Design playground" };
 const maximumCharacters = 1_000_000;
 type StoragePort = Pick<Storage, "getItem" | "setItem">;
@@ -755,7 +757,7 @@ export class SandboxStore {
       );
     const labelIds = [...new Set(input.labelIds)].sort(
       (first, second) =>
-        (names.get(first) ?? "").localeCompare(names.get(second) ?? "") ||
+        compareNames(names.get(first) ?? "", names.get(second) ?? "") ||
         first.localeCompare(second),
     );
     const person = labelIds.every(
@@ -853,7 +855,7 @@ export class SandboxStore {
       ...task,
       labelIds: [...new Set(task.labelIds)].sort(
         (a, b) =>
-          (names.get(a) ?? "").localeCompare(names.get(b) ?? "") ||
+          compareNames(names.get(a) ?? "", names.get(b) ?? "") ||
           a.localeCompare(b),
       ),
     };
@@ -978,9 +980,7 @@ export class SandboxStore {
     if (collection === "labels" && !id)
       return {
         items: [...this.#state.labels].sort(
-          (a, b) =>
-            a.name.toLowerCase().localeCompare(b.name.toLowerCase()) ||
-            a.id.localeCompare(b.id),
+          (a, b) => compareNames(a.name, b.name) || a.id.localeCompare(b.id),
         ),
       };
     if (collection === "friends" && !id) return this.#state.friends;
@@ -1039,9 +1039,7 @@ export class SandboxStore {
           )
           .sort(
             (a, b) =>
-              a.displayName
-                .toLowerCase()
-                .localeCompare(b.displayName.toLowerCase()) ||
+              compareNames(a.displayName, b.displayName) ||
               a.id.localeCompare(b.id),
           )
           .slice(0, query.limit),
@@ -1112,13 +1110,13 @@ export class SandboxStore {
             ? (a.rank < b.rank ? -1 : a.rank > b.rank ? 1 : 0) ||
               a.id.localeCompare(b.id)
             : query.sort === "name"
-              ? a.displayName.localeCompare(b.displayName) ||
+              ? compareNames(a.displayName, b.displayName) ||
                 a.id.localeCompare(b.id)
               : query.sort === "updated"
                 ? b.updatedAt.localeCompare(a.updatedAt) ||
                   a.id.localeCompare(b.id)
                 : duePosition(a).localeCompare(duePosition(b)) ||
-                  a.displayName.localeCompare(b.displayName) ||
+                  compareNames(a.displayName, b.displayName) ||
                   a.id.localeCompare(b.id),
         );
       const offset =
@@ -1207,7 +1205,7 @@ export class SandboxStore {
         );
       items.sort((a, b) =>
         query.sort === "name"
-          ? a.displayName.localeCompare(b.displayName)
+          ? compareNames(a.displayName, b.displayName)
           : query.sort === "updated"
             ? b.updatedAt.localeCompare(a.updatedAt)
             : (a.startsOn ?? a.startsAt ?? "z").localeCompare(
@@ -1338,9 +1336,7 @@ export class SandboxStore {
         .filter((child) => child.objectType === "person")
         .sort(
           (a, b) =>
-            a.displayName
-              .toLowerCase()
-              .localeCompare(b.displayName.toLowerCase()) ||
+            compareNames(a.displayName, b.displayName) ||
             a.id.localeCompare(b.id),
         );
       if (operation === "detail")

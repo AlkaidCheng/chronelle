@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { useEffect, useRef, useState } from "react";
 import type { EventLayoutResponse, EventPage } from "@chronelle/schemas";
 import {
@@ -7,7 +8,7 @@ import {
   ErrorNotice,
   LoadingState,
 } from "../../components/feedback";
-import { eventComponents } from "../../lib/event-components";
+import { componentKindLabel } from "../../lib/event-components";
 import { formatDateTime } from "../../lib/format";
 import {
   useEventLayout,
@@ -37,6 +38,8 @@ export function LayoutRecoveryDialog({
   const [source, setSource] = useState(layout);
   const [tab, setTab] = useState(canEdit ? "pages" : "history");
   const [confirmation, setConfirmation] = useState<Confirmation | null>(null);
+  const t = useTranslations("layoutRecovery");
+  const common = useTranslations("common");
   const [notice, setNotice] = useState("");
   const confirmationHeading = useRef<HTMLHeadingElement>(null);
   const body = useRef<HTMLDivElement>(null);
@@ -62,7 +65,7 @@ export function LayoutRecoveryDialog({
   function saved(next: EventLayoutResponse) {
     setSource(next);
     setConfirmation(null);
-    setNotice("Layout saved. Planning records are unchanged.");
+    setNotice(t("saved"));
   }
 
   function rewind(intent: "undo" | "redo") {
@@ -142,12 +145,12 @@ export function LayoutRecoveryDialog({
     >
       <header className="event-create-header">
         <h2 id="layout-recovery-heading">
-          {canEdit ? "Manage event pages" : "Layout history"}
+          {canEdit ? t("manageTitle") : t("historyTitle")}
         </h2>
         <button
           type="button"
           className="dialog-close"
-          aria-label="Close layout options"
+          aria-label={t("close")}
           disabled={busy}
           onClick={onClose}
         >
@@ -160,20 +163,22 @@ export function LayoutRecoveryDialog({
         ref={body}
         tabIndex={-1}
       >
-        <p>Removing pages or components keeps their planning records.</p>
+        <p>{t("intro")}</p>
         {confirmation ? (
-          <section aria-label="Confirm layout change">
+          <section aria-label={t("confirmLabel")}>
             <h3 ref={confirmationHeading} tabIndex={-1}>
               {confirmation.kind === "remove"
-                ? `Remove ${confirmation.title}?`
-                : `${canEdit ? "Restore" : "Preview"} ${confirmation.snapshot.version === 0 ? "the initial empty layout" : `layout version ${confirmation.snapshot.version}`}${canEdit ? "?" : ""}`}
+                ? t("removeQuestion", { title: confirmation.title })
+                : t(canEdit ? "restoreQuestion" : "previewTitle", {
+                    version: confirmation.snapshot.version,
+                  })}
             </h3>
             <p>
               {confirmation.kind === "remove"
-                ? "You can recover this layout from history. No planning records will be deleted."
+                ? t("removeNote")
                 : canEdit
-                  ? "This replaces the current page arrangement and creates a new saved version. Planning records and access permissions do not change."
-                  : "This is a saved page arrangement. Planning records are not part of this snapshot."}
+                  ? t("restoreNote")
+                  : t("previewNote")}
             </p>
             {confirmation.kind === "restore" ? (
               <ul className="layout-preview">
@@ -181,8 +186,8 @@ export function LayoutRecoveryDialog({
                   <li key={page.id}>
                     <strong>{page.name}</strong>:{" "}
                     {page.components
-                      .map((component) => eventComponents[component.kind].label)
-                      .join(", ") || "Empty page"}
+                      .map((component) => componentKindLabel(component.kind))
+                      .join(", ") || t("emptyPage")}
                   </li>
                 ))}
               </ul>
@@ -200,7 +205,7 @@ export function LayoutRecoveryDialog({
                     onClick={() => setTab("pages")}
                     disabled={busy}
                   >
-                    Pages
+                    {t("pages")}
                   </button>
                   <button
                     type="button"
@@ -209,40 +214,38 @@ export function LayoutRecoveryDialog({
                     onClick={() => setTab("history")}
                     disabled={busy}
                   >
-                    Layout history
+                    {t("historyTitle")}
                   </button>
                   <button
                     type="button"
                     className="button button-quiet"
-                    aria-label="Undo layout change"
+                    aria-label={t("undoLabel")}
                     disabled={busy || !canUndo}
                     onClick={() => rewind("undo")}
                   >
-                    Undo
+                    {t("undo")}
                   </button>
                   <button
                     type="button"
                     className="button button-quiet"
-                    aria-label="Redo layout change"
+                    aria-label={t("redoLabel")}
                     disabled={busy || !canRedo}
                     onClick={() => rewind("redo")}
                   >
-                    Redo
+                    {t("redo")}
                   </button>
                 </>
               ) : null}
             </div>
             {canEdit ? (
-              <p className="composition-hint">
-                Undo/redo resets on reload. Saved history is retained.
-              </p>
+              <p className="composition-hint">{t("undoNote")}</p>
             ) : null}
             {tab === "pages" ? (
               <div className="layout-revision-list">
                 {source.pages.length === 0 ? (
                   <EmptyState
-                    title="No pages in this layout"
-                    description="Open Layout history to recover a saved arrangement."
+                    title={t("noPagesTitle")}
+                    description={t("noPagesDescription")}
                   />
                 ) : null}
                 {source.pages.map((page) => (
@@ -255,30 +258,33 @@ export function LayoutRecoveryDialog({
                         disabled={busy}
                         onClick={() =>
                           remove(
-                            `page ${page.name}`,
+                            t("pageTitle", { name: page.name }),
                             source.pages.filter(
                               (candidate) => candidate.id !== page.id,
                             ),
                           )
                         }
                       >
-                        Remove page
+                        {t("removePage")}
                       </button>
                     </div>
                     {page.components.map((component, index) => (
                       <div key={component.id} className="layout-component-row">
                         <span>
-                          {eventComponents[component.kind].label}{" "}
+                          {componentKindLabel(component.kind)}{" "}
                           <span className="muted">({index + 1})</span>
                         </span>
                         <button
                           type="button"
                           className="button button-quiet"
-                          aria-label={`Remove ${eventComponents[component.kind].label} from ${page.name}`}
+                          aria-label={t("removeFrom", {
+                            component: componentKindLabel(component.kind),
+                            page: page.name,
+                          })}
                           disabled={busy}
                           onClick={() =>
                             remove(
-                              eventComponents[component.kind].label,
+                              componentKindLabel(component.kind),
                               source.pages.map((candidate) =>
                                 candidate.id === page.id
                                   ? {
@@ -292,7 +298,7 @@ export function LayoutRecoveryDialog({
                             )
                           }
                         >
-                          Remove component
+                          {t("removeComponent")}
                         </button>
                       </div>
                     ))}
@@ -307,7 +313,7 @@ export function LayoutRecoveryDialog({
                     onRefresh={() => void history.refetch()}
                   />
                 ) : history.isPending ? (
-                  <LoadingState label="Loading layout history" />
+                  <LoadingState label={t("loadingHistory")} />
                 ) : (
                   <>
                     {history.data.pages
@@ -318,21 +324,23 @@ export function LayoutRecoveryDialog({
                           className="layout-revision"
                         >
                           <h3>
-                            Version {revision.version}
                             {revision.version === source.version
-                              ? " (current)"
-                              : ""}
+                              ? t("currentVersion", {
+                                  version: revision.version,
+                                })
+                              : t("version", { version: revision.version })}
                           </h3>
                           <p>
-                            {revision.updatedAt
-                              ? formatDateTime(revision.updatedAt)
-                              : "Initial layout"}
-                            , {revision.pages.length} pages,{" "}
-                            {revision.pages.reduce(
-                              (count, page) => count + page.components.length,
-                              0,
-                            )}{" "}
-                            components
+                            {t("revisionSummary", {
+                              when: revision.updatedAt
+                                ? formatDateTime(revision.updatedAt)
+                                : t("initialLayout"),
+                              pages: revision.pages.length,
+                              components: revision.pages.reduce(
+                                (count, page) => count + page.components.length,
+                                0,
+                              ),
+                            })}
                           </p>
                           <button
                             type="button"
@@ -340,7 +348,7 @@ export function LayoutRecoveryDialog({
                             disabled={busy}
                             onClick={() => preview(revision)}
                           >
-                            Preview version {revision.version}
+                            {t("previewVersion", { version: revision.version })}
                           </button>
                         </section>
                       ))}
@@ -351,7 +359,7 @@ export function LayoutRecoveryDialog({
                         disabled={busy || history.isFetchingNextPage}
                         onClick={() => void history.fetchNextPage()}
                       >
-                        Load older layouts
+                        {t("loadOlder")}
                       </button>
                     ) : null}
                     <button
@@ -367,7 +375,7 @@ export function LayoutRecoveryDialog({
                         })
                       }
                     >
-                      Preview initial layout
+                      {t("previewInitial")}
                     </button>
                   </>
                 )}
@@ -378,7 +386,7 @@ export function LayoutRecoveryDialog({
         {error ? (
           <ErrorNotice error={error} onRefresh={() => void refresh()} />
         ) : null}
-        <p role="status">{busy ? "Saving layout..." : notice}</p>
+        <p role="status">{busy ? t("savingLayout") : notice}</p>
       </div>
       <footer className="event-create-footer">
         {confirmation ? (
@@ -392,7 +400,7 @@ export function LayoutRecoveryDialog({
               update.reset();
             }}
           >
-            Back
+            {t("back")}
           </button>
         ) : (
           <button
@@ -401,7 +409,7 @@ export function LayoutRecoveryDialog({
             disabled={busy}
             onClick={onClose}
           >
-            Close
+            {common("close")}
           </button>
         )}
         {confirmation && canEdit ? (
@@ -412,10 +420,10 @@ export function LayoutRecoveryDialog({
             onClick={confirm}
           >
             {busy
-              ? "Saving..."
+              ? t("saving")
               : confirmation.kind === "remove"
-                ? "Remove from layout"
-                : "Restore layout"}
+                ? t("removeFromLayout")
+                : t("restoreLayout")}
           </button>
         ) : null}
       </footer>

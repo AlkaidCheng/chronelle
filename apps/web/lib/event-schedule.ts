@@ -29,27 +29,26 @@ function localInstant(date: string, time: string): string {
     !calendarDateSchema.safeParse(date).success ||
     !/^([01]\d|2[0-3]):[0-5]\d$/.test(time)
   )
-    throw new Error("Enter a valid date and time (HH:mm).");
+    throw new Error(tr("validation")("validDateTime"));
   const input = `${date}T${time}`;
   const instant = fromDateTimeInput(input);
   if (instant === null || toDateTimeInput(instant) !== input)
-    throw new Error(
-      "This local time does not exist because the clock changes. Choose another time.",
-    );
+    throw new Error(tr("validation")("clockChange"));
   return instant;
 }
 
 export function eventSchedulePayload(draft: EventScheduleDraft) {
   const empty = { startsOn: null, endsOn: null, startsAt: null, endsAt: null };
   if (draft.mode === "unscheduled") return empty;
-  if (!draft.startDate) throw new Error("Choose a start date.");
+  const v = tr("validation");
+  if (!draft.startDate) throw new Error(v("startDate"));
   if (
     !calendarDateSchema.safeParse(draft.startDate).success ||
     (draft.endDate && !calendarDateSchema.safeParse(draft.endDate).success)
   )
-    throw new Error("Enter valid calendar dates.");
+    throw new Error(v("validCalendarDates"));
   if (draft.endDate && draft.endDate < draft.startDate)
-    throw new Error("End date must not precede start date.");
+    throw new Error(v("endBeforeStartDate"));
   if (draft.mode === "dates")
     return {
       ...empty,
@@ -59,11 +58,11 @@ export function eventSchedulePayload(draft: EventScheduleDraft) {
   const endDate =
     draft.endDate === draft.startDate && !draft.endTime ? "" : draft.endDate;
   if (Boolean(endDate) !== Boolean(draft.endTime))
-    throw new Error("Provide both an end date and time, or leave both empty.");
+    throw new Error(v("endAndTime"));
   const startsAt = localInstant(draft.startDate, draft.startTime);
   const endsAt = endDate ? localInstant(endDate, draft.endTime) : null;
   if (endsAt !== null && endsAt < startsAt)
-    throw new Error("End time must not precede start time.");
+    throw new Error(v("endBeforeStartTime"));
   return { ...empty, startsAt, endsAt };
 }
 

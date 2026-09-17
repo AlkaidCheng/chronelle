@@ -394,16 +394,28 @@ workspace, network failure, wrong credentials, unverified email, ended
 session) in the active language and show the API's English message only for
 codes without a translation.
 
-This first step localizes the shell, the Events page, the event page heading
-and strip, the To-dos panel, the Tasks page heading and controls, the Theme
-panel, the sign-in screens, and notices. Editors and pickers, People, Files,
-Sharing, Trash, Search, History, the command palette, and the offline sandbox
-remain English until the next step, and typed dates in the Due field are
-parsed in English only. Verification emails are English.
+Localized today: the shell and rail, the command palette and its shortcut
+settings, the Events page, the event page heading, strip, and Overview, the
+To-dos panel, the Tasks page, the event, schedule item, task, expense, and
+reminder editors with the Due and date-range pickers, the month list, the
+label and assignee pickers, the page and component dialogs, layout and draft
+recovery, History, Trash and the deletion dialog, Removed links, Search, the
+Files and Sharing panels, the Theme panel, Settings, the sign-in screens,
+notices, and the validation messages the editors raise. The Due field's typed
+date understands the active language as well as English: its words for today,
+tomorrow, and next week, its month names, and a Chinese "9月21日" with an
+optional year. The offline sandbox carries all three catalogs and renders in
+the language chosen in Settings. Still English: the person editor's older
+fields, the People page and person page beyond their new strings, the event
+People component, and the Share with people picker, which are being reworked
+for friends and follow in that work. Verification emails are localized;
+friend invitations follow the same texts.
 
 Browser checks switch the language from Settings on desktop and mobile
 Chromium and WebKit, verify `lang`, the rail, the Events heading, the event
-strip, and a date range in both Chinese variants, return to System, and render
+strip, and a date range in both Chinese variants, open a new task's Due
+control and type "tomorrow" in Simplified Chinese, reach Trash, Search, the
+event's History, and the command palette in it, return to System, and render
 the sign-in screen from a `zh-TW` browser, choosing English from its compact
 menu. A Settings journey (Chromium and WebKit desktop) opens Settings from the
 profile menu, changes the language and back, chooses a 24-hour clock, the UTC

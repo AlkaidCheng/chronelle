@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { type ReactNode, useEffect } from "react";
 import { ErrorNotice, LoadingState } from "../../components/feedback";
 import { useEditorDraftStore } from "../../lib/editor-draft-context";
@@ -15,6 +16,7 @@ export function ScheduleItemInspector({
   readonly eventId: string;
   readonly onClose: () => void;
 }) {
+  const t = useTranslations("scheduleItemEditor");
   const { event, access } = useEventWorkspaceQueries(eventId, null, "always");
   const drafts = useEditorDraftStore();
   const queries = [event, access];
@@ -41,14 +43,14 @@ export function ScheduleItemInspector({
         key={eventId}
         event={event.data}
         onClose={onClose}
-        title="Edit schedule item"
+        title={t("title")}
       />
     );
 
   return (
     <ScheduleItemStatus onClose={onClose}>
       {denied ? (
-        <p role="alert">This schedule item is no longer available to edit.</p>
+        <p role="alert">{t("unavailable")}</p>
       ) : failure ? (
         <ErrorNotice
           error={failure.error}
@@ -58,7 +60,7 @@ export function ScheduleItemInspector({
           }}
         />
       ) : (
-        <LoadingState label="Checking schedule item access" />
+        <LoadingState label={t("checking")} />
       )}
     </ScheduleItemStatus>
   );
@@ -71,23 +73,24 @@ function ScheduleItemStatus({
   readonly children: ReactNode;
   readonly onClose: () => void;
 }) {
+  const t = useTranslations("scheduleItemEditor");
   const dialog = useSessionDialog(onClose);
   return (
     <dialog
       ref={dialog}
       className="event-create-dialog"
-      aria-label="Edit schedule item"
+      aria-label={t("title")}
       onCancel={(event) => {
         event.preventDefault();
         onClose();
       }}
     >
       <header className="event-create-header">
-        <h2>Edit schedule item</h2>
+        <h2>{t("title")}</h2>
         <button
           className="dialog-close"
           type="button"
-          aria-label="Close event editor"
+          aria-label={t("close")}
           onClick={onClose}
         >
           &#215;

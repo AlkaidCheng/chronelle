@@ -19,6 +19,21 @@ const hans = {
   files: "\u6587\u4ef6",
   loaded: /\u5df2\u52a0\u8f7d \d+ \u4e2a\u6d3b\u52a8/,
   range: "2030\u5e747\u67083\u65e5 \u81f3 2030\u5e747\u670812\u65e5",
+  newTask: "\u65b0\u5efa\u4efb\u52a1",
+  addTask: "\u6dfb\u52a0\u4efb\u52a1",
+  dueSummary: /^\u622a\u6b62\uff1a/,
+  noDate: "\u65e0\u65e5\u671f",
+  dueDate: "\u622a\u6b62\u65e5\u671f",
+  tomorrow: "\u660e\u5929",
+  dueTomorrow: /\uff08\u660e\u5929\uff09\u3002$/,
+  search: "\u641c\u7d22",
+  findObject: "\u67e5\u627e\u5bf9\u8c61",
+  historyFor: "Summer vacation\u7684\u5386\u53f2",
+  objectHistory: "\u5bf9\u8c61\u5386\u53f2",
+  closeHistory: "\u5173\u95ed\u5386\u53f2",
+  searchAndCommands: "\u641c\u7d22\u4e0e\u547d\u4ee4",
+  findCommand: "\u67e5\u627e\u547d\u4ee4",
+  discard: "\u653e\u5f03",
 };
 const hant = {
   language: "\u7e41\u9ad4\u4e2d\u6587",
@@ -116,6 +131,53 @@ test("switches the workspace to Simplified and Traditional Chinese and back", as
     page.getByRole("status").filter({ hasText: hans.loaded }),
   ).toBeVisible();
   await expect(page.getByText(hans.range)).toBeVisible();
+
+  // The editors and pages read in the language too: the Due control of a
+  // new task takes "tomorrow" typed in Chinese, and Trash, Search, History,
+  // and the command palette open in it.
+  await page.goto("/tasks");
+  await page.getByRole("button", { name: hans.newTask, exact: true }).click();
+  const taskEditor = page.getByRole("dialog", { name: hans.addTask });
+  await expect(
+    taskEditor.locator("summary", { hasText: hans.dueSummary }),
+  ).toContainText(hans.noDate);
+  await taskEditor.locator("summary", { hasText: hans.dueSummary }).click();
+  await taskEditor
+    .getByLabel(hans.dueDate, { exact: true })
+    .fill(hans.tomorrow);
+  await expect(taskEditor.locator(".field-hint").first()).toHaveText(
+    hans.dueTomorrow,
+  );
+  await page.keyboard.press("Escape");
+  await page.getByRole("button", { name: hans.discard, exact: true }).click();
+  await page.goto("/trash");
+  await expect(
+    page.getByRole("heading", { level: 1, name: hans.trash, exact: true }),
+  ).toBeVisible();
+  await page.goto("/search");
+  await expect(
+    page.getByRole("heading", { level: 1, name: hans.search, exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: hans.findObject, exact: true }),
+  ).toBeVisible();
+  await page.goto(eventUrl);
+  await page
+    .getByRole("button", { name: hans.historyFor, exact: true })
+    .click();
+  await expect(
+    page.getByText(hans.objectHistory, { exact: true }),
+  ).toBeVisible();
+  await page
+    .getByRole("button", { name: hans.closeHistory, exact: true })
+    .click();
+  await page
+    .getByRole("button", { name: hans.searchAndCommands, exact: true })
+    .click();
+  await expect(
+    page.getByLabel(hans.findCommand, { exact: true }),
+  ).toBeVisible();
+  await page.keyboard.press("Escape");
 
   // Traditional Chinese has its own vocabulary, not a conversion.
   await chooseLanguage(page, hans, hant.language);

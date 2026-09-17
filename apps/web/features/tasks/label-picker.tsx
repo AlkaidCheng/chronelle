@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { useState } from "react";
 
 import { CountedField } from "../../components/counted-field";
@@ -45,6 +46,7 @@ function LabelChoices({
   readonly onChange: (labels: string) => void;
   readonly value: string;
 }) {
+  const t = useTranslations("labels");
   const labels = useLabelsQuery();
   const create = useCreateLabel();
   const [draft, setDraft] = useState("");
@@ -75,13 +77,13 @@ function LabelChoices({
 
   return (
     <fieldset className="label-choices" disabled={disabled}>
-      <legend className="visually-hidden">Choose labels</legend>
+      <legend className="visually-hidden">{t("choose")}</legend>
       {labels.isError ? (
-        <p role="alert">Labels could not be loaded.</p>
+        <p role="alert">{t("loadFailed")}</p>
       ) : labels.data === undefined ? (
-        <p className="field-hint">Loading labels...</p>
+        <p className="field-hint">{t("loading")}</p>
       ) : labels.data.items.length === 0 ? (
-        <p className="field-hint">No labels yet. Add one below.</p>
+        <p className="field-hint">{t("noneYet")}</p>
       ) : (
         <ul className="label-options">
           {labels.data.items.map((label) => (
@@ -101,7 +103,7 @@ function LabelChoices({
       <div className="label-add">
         <CountedField
           hideLabel
-          label="New label"
+          label={t("newLabel")}
           limit={40}
           onChange={setDraft}
           onKeyDown={(event) => {
@@ -110,7 +112,7 @@ function LabelChoices({
               add();
             }
           }}
-          placeholder="New label"
+          placeholder={t("newLabel")}
           value={draft}
         />
         <button
@@ -119,14 +121,14 @@ function LabelChoices({
           onClick={add}
           type="button"
         >
-          {create.isPending ? "Adding..." : "Add label"}
+          {create.isPending ? t("adding") : t("add")}
         </button>
       </div>
       {create.isError ? (
         <p role="alert">
           {create.error instanceof Error
             ? create.error.message
-            : "The label could not be added."}
+            : t("addFailed")}
         </p>
       ) : null}
     </fieldset>

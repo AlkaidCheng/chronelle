@@ -126,17 +126,53 @@ export function describeDueDay(day: DayKey, clock: Date): string {
   return exact;
 }
 
-const monthNames = Array.from({ length: 12 }, (_, month) =>
+const englishMonths = Array.from({ length: 12 }, (_, month) =>
   new Intl.DateTimeFormat("en-US", { month: "long" })
     .format(new Date(2000, month, 1))
     .toLowerCase(),
 );
 
-/** A month name, or its first three letters, as a month index; -1 otherwise. */
+/** The month names of a locale, long and short, lower-cased, by index. */
+const localeMonths = (locale: string) =>
+  (["long", "short"] as const).map((month) =>
+    Array.from({ length: 12 }, (_, index) =>
+      new Intl.DateTimeFormat(locale, { month })
+        .format(new Date(2000, index, 1))
+        .toLowerCase(),
+    ),
+  );
+
+/**
+ * A month name as a month index, in the active language or in English:
+ * the whole name, its short form, or at least three letters of an English
+ * name; -1 otherwise.
+ */
 function monthIndex(text: string): number {
   const lower = text.toLowerCase();
-  return monthNames.findIndex(
+  for (const names of localeMonths(activeLocale())) {
+    const index = names.indexOf(lower);
+    if (index >= 0) return index;
+  }
+  return englishMonths.findIndex(
     (name) => name === lower || (lower.length >= 3 && name.startsWith(lower)),
+  );
+}
+
+/**
+ * Whether typed text is one of the words a message lists for a relative
+ * day: the active language's words, separated by "|", or the English one.
+ */
+function saysWord(value: string, word: "today" | "tomorrow" | "nextWeek") {
+  const english = {
+    today: "today",
+    tomorrow: "tomorrow",
+    nextWeek: "next week",
+  };
+  return (
+    value === english[word] ||
+    tr("dueText")(word)
+      .split("|")
+      .some((choice) => choice.trim().toLowerCase() === value)
   );
 }
 
@@ -163,14 +199,21 @@ export function parseMonthText(text: string, clock: Date): string | null {
     const month = Number(numeric[1]);
     return month >= 1 && month <= 12 ? `${numeric[2]}-${pad(month)}` : null;
   }
-  const named = /^([a-z]+)(?: (\d{4}))?$/.exec(value);
+  const cjk = /^(?:(\d{4})\s?年\s?)?(\d{1,2})\s?月$/u.exec(value);
+  if (cjk) {
+    const month = Number(cjk[2]);
+    return month >= 1 && month <= 12
+      ? `${cjk[1] ?? String(now.getFullYear())}-${pad(month)}`
+      : null;
+  }
+  const named = /^(\p{L}+)(?: (\d{4}))?$/u.exec(value);
   if (named) {
     const month = monthIndex(named[1] ?? "");
     return month < 0
       ? null
       : `${named[2] ?? String(now.getFullYear())}-${pad(month + 1)}`;
   }
-  const yearFirst = /^(\d{4}) ([a-z]+)$/.exec(value);
+  const yearFirst = /^(\d{4}) (\p{L}+)$/u.exec(value);
   if (yearFirst) {
     const month = monthIndex(yearFirst[2] ?? "");
     return month < 0 ? null : `${yearFirst[1]}-${pad(month + 1)}`;
@@ -194,10 +237,11 @@ function validDay(year: number, month: number, day: number): DayKey | null {
 }
 
 /**
- * The day some typed text names: an ISO date, "today", "tomorrow", "next
- * week", a month name with a day such as "Sep 21" or "21 Sep" with an
- * optional year (this year without one, the next when that day has
- * passed), or a numeric "9/21"; null for anything else.
+ * The day some typed text names: an ISO date; the words for today,
+ * tomorrow, and next week in the active language or in English; a month
+ * name with a day such as "Sep 21" or "21 Sep" with an optional year (this
+ * year without one, the next when that day has passed); a numeric "9/21";
+ * or a Chinese "9月21日" with an optional "2030年"; null for anything else.
  */
 export function parseDueText(text: string, clock: Date): DayKey | null {
   const now = instantDate(clock);
@@ -207,12 +251,22 @@ export function parseDueText(text: string, clock: Date): DayKey | null {
     .replace(/,/g, " ")
     .replace(/\s+/g, " ");
   if (value === "") return null;
-  if (value === "today") return dayKeyOf(now);
-  if (value === "tomorrow") return dayKeyOf(addDays(now, 1));
-  if (value === "next week")
+  if (saysWord(value, "today")) return dayKeyOf(now);
+  if (saysWord(value, "tomorrow")) return dayKeyOf(addDays(now, 1));
+  if (saysWord(value, "nextWeek"))
     return dayKeyOf(addDays(now, now.getDay() === 0 ? 1 : 8 - now.getDay()));
   const iso = /^(\d{4})-(\d{1,2})-(\d{1,2})$/.exec(value);
   if (iso) return validDay(Number(iso[1]), Number(iso[2]) - 1, Number(iso[3]));
+  const cjk = /^(?:(\d{4})\s?年\s?)?(\d{1,2})\s?月\s?(\d{1,2})\s?日?$/u.exec(
+    value,
+  );
+  if (cjk)
+    return upcoming(
+      Number(cjk[2]) - 1,
+      Number(cjk[3]),
+      cjk[1] === undefined ? null : Number(cjk[1]),
+      now,
+    );
   const numeric = /^(\d{1,2})\/(\d{1,2})(?:\/(\d{2,4}))?$/.exec(value);
   if (numeric)
     return upcoming(
@@ -221,7 +275,7 @@ export function parseDueText(text: string, clock: Date): DayKey | null {
       numeric[3] === undefined ? null : Number(numeric[3]),
       now,
     );
-  const monthFirst = /^([a-z]+) (\d{1,2})(?: (\d{4}))?$/.exec(value);
+  const monthFirst = /^(\p{L}+) (\d{1,2})(?: (\d{4}))?$/u.exec(value);
   if (monthFirst)
     return upcoming(
       monthIndex(monthFirst[1] ?? ""),
@@ -229,7 +283,7 @@ export function parseDueText(text: string, clock: Date): DayKey | null {
       monthFirst[3] === undefined ? null : Number(monthFirst[3]),
       now,
     );
-  const dayFirst = /^(\d{1,2}) ([a-z]+)(?: (\d{4}))?$/.exec(value);
+  const dayFirst = /^(\d{1,2}) (\p{L}+)(?: (\d{4}))?$/u.exec(value);
   if (dayFirst)
     return upcoming(
       monthIndex(dayFirst[2] ?? ""),

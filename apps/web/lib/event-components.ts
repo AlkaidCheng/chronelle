@@ -102,6 +102,11 @@ export function componentKindLabel(kind: EventComponentKind): string {
   return tr("views")(kind === "itinerary" ? "itinerary" : kind);
 }
 
+/** What a component kind is for, in the active language. */
+export function componentKindDescription(kind: EventComponentKind): string {
+  return tr("views.descriptions")(kind);
+}
+
 /** The status read after a view is chosen: "Shown by day.", "Shown as a calendar." */
 export function describeShownView(view: EventComponentView): string {
   return tr("layouts.shown")(viewKeys[view]);
@@ -168,7 +173,16 @@ export function findEventComponents(query: string): EventComponentKind[] {
     .filter(Boolean);
   return addableEventComponentKinds.filter((kind) => {
     const { label, description, keywords } = eventComponents[kind];
-    const text = `${kind} ${label} ${description} ${keywords}`.toLowerCase();
+    const text = [
+      kind,
+      label,
+      description,
+      keywords,
+      componentKindLabel(kind),
+      componentKindDescription(kind),
+    ]
+      .join(" ")
+      .toLowerCase();
     return terms.every((term) => text.includes(term));
   });
 }

@@ -2,14 +2,15 @@
 
 import {
   createContext,
+  type ReactNode,
+  type RefObject,
   useCallback,
   useContext,
   useLayoutEffect,
   useRef,
   useState,
-  type ReactNode,
-  type RefObject,
 } from "react";
+import { compareNames } from "../lib/format";
 
 export interface ContextCommand {
   readonly id:
@@ -65,7 +66,7 @@ export function WorkspaceCommandProvider({
         isCurrent: () => scope.active && route.current === scope.pathname,
       })),
     )
-    .sort((first, second) => first.label.localeCompare(second.label));
+    .sort((first, second) => compareNames(first.label, second.label));
   return (
     <RegistrationContext.Provider value={register}>
       <CommandsContext.Provider value={commands}>

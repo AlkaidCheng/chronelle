@@ -18,13 +18,30 @@ export type LocaleChoice = Locale | "system";
 const changeEvent = "chronelle:locale";
 const yearInSeconds = 60 * 60 * 24 * 365;
 
-/** The choice this browser holds: the cookie's language, or "system". */
+/** The choice the localStorage mirror holds; "system" when there is none. */
+function readMirroredLocaleChoice(): LocaleChoice {
+  try {
+    const value = window.localStorage.getItem(localeStorageKey);
+    return isLocale(value) ? value : "system";
+  } catch {
+    return "system";
+  }
+}
+
+/**
+ * The choice this browser holds: the cookie's language, or "system". A page
+ * opened from a file has no cookies, so there the storage mirror carries the
+ * choice (the offline sandbox).
+ */
 export function readLocaleChoice(): LocaleChoice {
   const match = new RegExp(`(?:^|; )${localeCookie}=([^;]*)`).exec(
     document.cookie,
   );
   const value = match?.[1];
-  return isLocale(value) ? value : "system";
+  if (isLocale(value)) return value;
+  return window.location.protocol === "file:"
+    ? readMirroredLocaleChoice()
+    : "system";
 }
 
 function writeCookie(choice: LocaleChoice) {
@@ -61,7 +78,8 @@ export function localeChoiceOf(locale: string | null): LocaleChoice {
   return isLocale(locale) ? locale : "system";
 }
 
-function subscribe(notify: () => void) {
+/** Calls `notify` whenever this browser's language choice is written. */
+export function subscribeLocaleChoice(notify: () => void) {
   window.addEventListener(changeEvent, notify);
   return () => window.removeEventListener(changeEvent, notify);
 }
@@ -74,7 +92,7 @@ function subscribe(notify: () => void) {
 export function useLocaleChoice() {
   const router = useRouter();
   const choice = useSyncExternalStore(
-    subscribe,
+    subscribeLocaleChoice,
     readLocaleChoice,
     () => "system" as LocaleChoice,
   );

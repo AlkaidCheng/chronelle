@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import {
   type KeyboardEvent,
   type PointerEvent,
@@ -141,6 +142,7 @@ export function MonthList({
   /** A day whose month scrolls to the top whenever it changes. */
   readonly reveal: DayKey;
 }) {
+  const t = useTranslations("monthList");
   const { locale, firstDay } = useDisplayPreferences();
   const {
     weekdayHeadings,
@@ -428,7 +430,7 @@ export function MonthList({
         {monthOpen ? (
           <input
             aria-invalid={monthUnreadable}
-            aria-label="Month and year"
+            aria-label={t("monthAndYear")}
             className="month-list-input"
             disabled={disabled}
             onBlur={(event) => {
@@ -445,7 +447,7 @@ export function MonthList({
                 finishMonth();
               }
             }}
-            placeholder="October 2027, 2027-10, 10/2027"
+            placeholder={t("placeholder")}
             ref={monthInput}
             type="text"
             value={monthText}
@@ -453,7 +455,7 @@ export function MonthList({
         ) : (
           <button
             aria-expanded={false}
-            aria-label={`Choose a month and year, showing ${title}`}
+            aria-label={t("chooseShowing", { title })}
             className="month-list-heading"
             disabled={disabled}
             onClick={openMonth}
@@ -481,7 +483,7 @@ export function MonthList({
         )}
         {monthOpen ? (
           <div
-            aria-label="Choose a month and year"
+            aria-label={t("choose")}
             aria-modal="true"
             className="month-list-chooser"
             onBlur={(event) => {
@@ -501,7 +503,7 @@ export function MonthList({
           >
             <div className="month-list-chooser-columns">
               <fieldset className="month-list-chooser-group">
-                <legend>Month</legend>
+                <legend>{t("month")}</legend>
                 <div className="month-list-month-grid">
                   {monthNames.map((name, index) => {
                     const key = `${shownYear}-${String(index + 1).padStart(2, "0")}`;
@@ -520,7 +522,7 @@ export function MonthList({
                 </div>
               </fieldset>
               <fieldset className="month-list-chooser-group">
-                <legend>Year</legend>
+                <legend>{t("year")}</legend>
                 <div className="month-list-year-grid" ref={yearList}>
                   {years.map((year) => (
                     <button
@@ -552,7 +554,7 @@ export function MonthList({
         ) : null}
         {monthOpen ? (
           <button
-            aria-label="Close the month and year chooser"
+            aria-label={t("closeChooser")}
             className="month-list-backdrop"
             onClick={finishMonth}
             onMouseDown={(event) => event.preventDefault()}
@@ -563,7 +565,7 @@ export function MonthList({
         ) : null}
         <div>
           <button
-            aria-label="Previous month"
+            aria-label={t("previousMonth")}
             className="button button-quiet button-small"
             disabled={disabled}
             onClick={() => revealMonth(shiftMonth(shown, -1))}
@@ -577,10 +579,10 @@ export function MonthList({
             onClick={() => revealMonth(monthOf(today))}
             type="button"
           >
-            Today
+            {t("today")}
           </button>
           <button
-            aria-label="Next month"
+            aria-label={t("nextMonth")}
             className="button button-quiet button-small"
             disabled={disabled}
             onClick={() => revealMonth(shiftMonth(shown, 1))}
