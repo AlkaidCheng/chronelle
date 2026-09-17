@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { expect, type Page, test } from "./fixtures";
+import { moreTrigger } from "./helpers/quiet-chrome";
 import { setDates } from "./helpers/range-picker";
 
 // The Chinese strings the journey looks for, as escapes so the spec stays
@@ -12,6 +13,7 @@ const hans = {
   navigation: "\u5de5\u4f5c\u533a\u5bfc\u822a",
   people: "\u53c2\u4e0e\u8005",
   trash: "\u56de\u6536\u7ad9",
+  more: "\u66f4\u591a",
   events: "\u6d3b\u52a8",
   views: "\u6d3b\u52a8\u89c6\u56fe",
   files: "\u6587\u4ef6",
@@ -93,7 +95,11 @@ test("switches the workspace to Simplified and Traditional Chinese and back", as
   ).toBeVisible();
   const rail = page.getByRole("navigation", { name: hans.navigation });
   await expect(rail).toContainText(hans.people);
-  await expect(rail).toContainText(hans.trash);
+  await moreTrigger(page).click();
+  await expect(
+    page.getByRole("menu", { name: hans.more, exact: true }),
+  ).toContainText(hans.trash);
+  await page.keyboard.press("Escape");
   await page.goto(eventUrl);
   await expect(
     page.getByRole("tablist", { name: hans.views, exact: true }),

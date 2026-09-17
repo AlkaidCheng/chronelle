@@ -6,6 +6,7 @@ import {
   TrashIcon,
 } from "./icons";
 
+/** Every workspace page the command palette can open. */
 export const workspaceDestinations = [
   {
     href: "/events",
@@ -43,3 +44,26 @@ export const workspaceDestinations = [
     icon: TrashIcon,
   },
 ] as const;
+
+export type WorkspaceDestination = (typeof workspaceDestinations)[number];
+
+/**
+ * The collections the rail lists under Search, in default order. The user
+ * reorders and hides them from the rail; a collection added here appends in
+ * this position for an account that has not arranged it.
+ */
+export const railCollections = workspaceDestinations.filter(
+  (destination): destination is RailCollection =>
+    destination.key === "events" ||
+    destination.key === "tasks" ||
+    destination.key === "people",
+);
+
+export type RailCollection = Extract<
+  WorkspaceDestination,
+  { key: "events" | "tasks" | "people" }
+>;
+
+export const railCollectionKeys: readonly string[] = railCollections.map(
+  (collection) => collection.key,
+);

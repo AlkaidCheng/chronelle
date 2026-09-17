@@ -66,6 +66,7 @@ export function userPayload(user: UserRow) {
     timeZone: user.timeZone,
     hourCycle: user.hourCycle,
     weekStart: user.weekStart,
+    rail: user.rail,
   };
 }
 

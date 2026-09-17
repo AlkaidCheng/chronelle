@@ -23,15 +23,20 @@ and the workspaces the user may enter. The user carries the preferences kept
 on the account, each null until chosen: `locale`, a BCP 47 language tag
 (`en`, `zh-Hans`, `zh-Hant`); `timeZone`, an IANA zone name the runtime
 knows (`Asia/Shanghai`, `UTC`); `hourCycle`, `h12` or `h23`; and
-`weekStart`, `1` for Monday or `7` for Sunday. `PATCH /api/auth/me` takes any
-subset of the four: a key that is present replaces the stored value, null
-clears it, an absent key keeps it, and an empty object changes nothing. The
-response is the user as the next session read shows it; 400
-`invalid_request` for a value of the wrong shape (a tag that is not a
-language tag, a zone that is not an IANA name or that the runtime does not
-know, a clock other than `h12` or `h23`, a week start other than 1 or 7).
-Both backends write through one merging function,
-`chronelle_user_preferences_update` (migration 0048).
+`weekStart`, `1` for Monday or `7` for Sunday; and `rail`, how the rail
+lists the workspace collections, an object with an optional `order` (collection
+keys first to last) and an optional `hidden` (keys left out), `{}` until
+arranged. `PATCH /api/auth/me` takes any subset of the five: a key that is
+present replaces the stored value, null clears it (the rail returns to `{}`),
+an absent key keeps it, and an empty object changes nothing. The response is
+the user as the next session read shows it; 400 `invalid_request` for a value
+of the wrong shape (a tag that is not a language tag, a zone that is not an
+IANA name or that the runtime does not know, a clock other than `h12` or
+`h23`, a week start other than 1 or 7, a rail whose lists are not arrays of
+up to 50 collection keys of 1 to 40 characters). A collection key the web
+app does not know is kept in the rail as given and ignored on read. Both
+backends write through one merging function,
+`chronelle_user_preferences_update` (migration 0049).
 
 `DELETE /api/auth/session` revokes the presented token and
 `DELETE /api/auth/sessions` revokes every session of the user, this one

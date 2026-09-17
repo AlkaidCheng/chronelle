@@ -8,7 +8,7 @@ import {
 } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
-import { ThemePanel } from "../components/theme-panel";
+import { MoreMenu } from "../components/more-menu";
 
 const router = vi.hoisted(() => ({ refresh: vi.fn() }));
 vi.mock("next/navigation", () => ({ useRouter: () => router }));
@@ -25,17 +25,49 @@ afterEach(() => {
     delete document.documentElement.dataset[name];
 });
 
-it("opens the panel with the mode, palette, density, and motion choices", async () => {
-  const user = userEvent.setup();
-  render(<ThemePanel />);
-  const trigger = screen.getByRole("button", { name: "Theme" });
+function renderMenu() {
+  const onCustomize = vi.fn();
+  render(
+    <>
+      <MoreMenu onCustomize={onCustomize} />
+      <button type="button">Elsewhere</button>
+    </>,
+  );
+  return {
+    onCustomize,
+    trigger: screen.getByRole("button", { name: "More" }),
+    user: userEvent.setup(),
+  };
+}
+
+it("opens a menu with Trash, Theme, and Customize sidebar, and starts customizing", async () => {
+  const { onCustomize, trigger, user } = renderMenu();
   await user.click(trigger);
+  const menu = screen.getByRole("menu", { name: "More" });
+  expect(within(menu).getByRole("menuitem", { name: "Trash" })).toHaveAttribute(
+    "href",
+    "/trash",
+  );
+  expect(within(menu).getByRole("menuitem", { name: "Trash" })).toHaveFocus();
+  await user.keyboard("{End}");
+  expect(
+    within(menu).getByRole("menuitem", { name: "Customize sidebar" }),
+  ).toHaveFocus();
+  await user.keyboard("{Enter}");
+  expect(onCustomize).toHaveBeenCalledTimes(1);
+  expect(screen.queryByRole("menu")).not.toBeInTheDocument();
+});
+
+it("opens the Theme panel from the menu with the mode, palette, density, and motion choices", async () => {
+  const { trigger, user } = renderMenu();
+  await user.click(trigger);
+  await user.click(screen.getByRole("menuitem", { name: "Theme" }));
+  expect(screen.queryByRole("menu")).not.toBeInTheDocument();
   const panel = screen.getByRole("dialog", { name: "Theme" });
   expect(panel).toBeVisible();
-  // The panel holds the display choices; the language is a Settings preference.
   expect(within(panel).queryByRole("group", { name: "Language" })).toBeNull();
   const mode = within(screen.getByRole("group", { name: "Appearance" }));
-  expect(mode.getByRole("radio", { name: "System" })).toBeChecked();
+  expect(mode.getByRole("radio", { name: "System" })).toHaveFocus();
   await user.click(screen.getByRole("radio", { name: "Celadon" }));
   expect(document.documentElement.dataset.palette).toBe("celadon");
   await user.click(screen.getByRole("radio", { name: "Compact" }));
@@ -56,26 +88,19 @@ it("opens the panel with the mode, palette, density, and motion choices", async 
   expect(document.documentElement.dataset.appearance).toBe("system");
 });
 
-it("closes on Escape and returns focus to the entry, or on an outside press", async () => {
-  const user = userEvent.setup();
-  render(
-    <>
-      <ThemePanel />
-      <button type="button">Elsewhere</button>
-    </>,
-  );
-  const trigger = screen.getByRole("button", { name: "Theme" });
+it("closes the menu or the panel on Escape with focus back on More, or on an outside press", async () => {
+  const { trigger, user } = renderMenu();
   await user.click(trigger);
-  expect(
-    within(screen.getByRole("group", { name: "Appearance" })).getByRole(
-      "radio",
-      { name: "System" },
-    ),
-  ).toHaveFocus();
+  await user.keyboard("{Escape}");
+  expect(screen.queryByRole("menu")).not.toBeInTheDocument();
+  expect(trigger).toHaveFocus();
+  await user.click(trigger);
+  await user.click(screen.getByRole("menuitem", { name: "Theme" }));
   await user.keyboard("{Escape}");
   expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   expect(trigger).toHaveFocus();
   await user.click(trigger);
+  await user.click(screen.getByRole("menuitem", { name: "Theme" }));
   fireEvent.pointerDown(screen.getByRole("button", { name: "Elsewhere" }));
   expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
 });

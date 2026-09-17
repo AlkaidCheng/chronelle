@@ -325,6 +325,7 @@ describe.sequential("CloudBase identity store", () => {
       timeZone: users.timeZone,
       hourCycle: users.hourCycle,
       weekStart: users.weekStart,
+      rail: users.rail,
     };
     const outcome = (attempt: Promise<unknown>) =>
       attempt
@@ -340,10 +341,12 @@ describe.sequential("CloudBase identity store", () => {
         timeZone: null,
         hourCycle: null,
         weekStart: null,
+        rail: {},
       });
       const chosen = await store.updatePreferences(signedIn.user.id, {
         locale: "zh-Hant",
         timeZone: "Asia/Taipei",
+        rail: { order: ["people", "events", "tasks"], hidden: ["tasks"] },
       });
       const merged = await store.updatePreferences(signedIn.user.id, {
         hourCycle: "h23",
@@ -357,6 +360,7 @@ describe.sequential("CloudBase identity store", () => {
       const cleared = await store.updatePreferences(signedIn.user.id, {
         locale: null,
         hourCycle: null,
+        rail: null,
       });
       const refusals = {
         locale: await outcome(
@@ -375,6 +379,16 @@ describe.sequential("CloudBase identity store", () => {
         weekStart: await outcome(
           store.updatePreferences(signedIn.user.id, { weekStart: 2 as 1 }),
         ),
+        railList: await outcome(
+          store.updatePreferences(signedIn.user.id, {
+            rail: ["events"] as unknown as { order: string[] },
+          }),
+        ),
+        railKeys: await outcome(
+          store.updatePreferences(signedIn.user.id, {
+            rail: { order: [1] as unknown as string[] },
+          }),
+        ),
         unknownUser: await outcome(
           store.updatePreferences(createId(), { locale: "en" }),
         ),
@@ -388,6 +402,7 @@ describe.sequential("CloudBase identity store", () => {
         timeZone: user.timeZone,
         hourCycle: user.hourCycle,
         weekStart: user.weekStart,
+        rail: user.rail,
       });
       results[name] = {
         chosen: shape(chosen),
@@ -407,42 +422,50 @@ describe.sequential("CloudBase identity store", () => {
         timeZone: "Asia/Taipei",
         hourCycle: null,
         weekStart: null,
+        rail: { order: ["people", "events", "tasks"], hidden: ["tasks"] },
       },
       merged: {
         locale: "zh-Hant",
         timeZone: "Asia/Taipei",
         hourCycle: "h23",
         weekStart: 7,
+        rail: { order: ["people", "events", "tasks"], hidden: ["tasks"] },
       },
       read: {
         locale: "zh-Hant",
         timeZone: "Asia/Taipei",
         hourCycle: "h23",
         weekStart: 7,
+        rail: { order: ["people", "events", "tasks"], hidden: ["tasks"] },
       },
       untouched: {
         locale: "zh-Hant",
         timeZone: "Asia/Taipei",
         hourCycle: "h23",
         weekStart: 7,
+        rail: { order: ["people", "events", "tasks"], hidden: ["tasks"] },
       },
       cleared: {
         locale: null,
         timeZone: "Asia/Taipei",
         hourCycle: null,
         weekStart: 7,
+        rail: {},
       },
       stored: {
         locale: null,
         timeZone: "Asia/Taipei",
         hourCycle: null,
         weekStart: 7,
+        rail: {},
       },
       refusals: {
         locale: "refused",
         timeZone: "refused",
         hourCycle: "refused",
         weekStart: "refused",
+        railList: "refused",
+        railKeys: "refused",
         unknownUser: "refused",
       },
       touched: true,

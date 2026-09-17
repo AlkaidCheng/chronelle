@@ -101,7 +101,10 @@ write for every account preference; the function count is unchanged and the
 runtime role needs no change. Apply 0048 before deploying an API built from
 this change: the API's startup readiness check requires the new function,
 and an API built before it fails only the language change until it is
-redeployed. Migration `0050_add_person_fields.sql` adds `persons.nickname`
+redeployed. Migration `0049_add_user_rail_preference.sql` adds `users.rail`
+(`{}` by default, checked as an object whose `order` and `hidden` are arrays
+of strings) and redefines `chronelle_user_preferences_update` to merge it;
+the function count is unchanged and the runtime role needs no change. Migration `0050_add_person_fields.sql` adds `persons.nickname`
 and `persons.description`, the `person_contacts` table (typed contacts in
 kept order, with one email contact backfilled per person that had an email)
 and the `person_labels` table, keeps `persons.email` as the first email

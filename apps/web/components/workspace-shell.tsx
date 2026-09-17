@@ -4,7 +4,7 @@ import { ApiClientError } from "@chronelle/api-client";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { type ReactNode, useEffect } from "react";
+import { type ReactNode, useEffect, useState } from "react";
 
 import { useAuthSession } from "../lib/auth-session";
 import { useAdoptAccountLocale, useSessionQuery } from "../lib/queries";
@@ -15,9 +15,9 @@ import {
 import { AccountMenu } from "./account-menu";
 import { WorkspaceCommandProvider } from "./context-commands";
 import { ErrorNotice, LoadingState } from "./feedback";
+import { MoreMenu } from "./more-menu";
+import { RailCollections } from "./rail-collections";
 import { SearchEntry } from "./search-entry";
-import { ThemePanel } from "./theme-panel";
-import { workspaceDestinations } from "./workspace-navigation";
 
 export function WorkspaceShell({ children }: { readonly children: ReactNode }) {
   const { credential, isHydrated, signOut, switchWorkspace } = useAuthSession();
@@ -26,6 +26,7 @@ export function WorkspaceShell({ children }: { readonly children: ReactNode }) {
   const session = useSessionQuery();
   const t = useTranslations("nav");
   const adoptLocale = useAdoptAccountLocale();
+  const [customizing, setCustomizing] = useState(false);
 
   useEffect(() => {
     if (isHydrated && credential === null) {
@@ -112,37 +113,23 @@ export function WorkspaceShell({ children }: { readonly children: ReactNode }) {
               aria-label={t("workspaceNavigation")}
               className="workspace-nav"
             >
-              {workspaceDestinations.map((destination) =>
-                destination.href === "/search" ? (
-                  <SearchEntry
-                    key={destination.href}
-                    workspaceName={currentSession.workspace.displayName}
-                    current={pathname.startsWith(destination.href)}
-                  />
-                ) : (
-                  <Link
-                    key={destination.href}
-                    href={destination.href}
-                    aria-current={
-                      pathname.startsWith(destination.href) ? "page" : undefined
-                    }
-                    className={
-                      pathname.startsWith(destination.href) ? "active" : ""
-                    }
-                  >
-                    <destination.icon />
-                    {t(destination.key)}
-                  </Link>
-                ),
-              )}
+              <SearchEntry
+                workspaceName={currentSession.workspace.displayName}
+                current={pathname.startsWith("/search")}
+              />
+              <RailCollections
+                pathname={pathname}
+                customizing={customizing}
+                onCustomize={setCustomizing}
+              />
             </nav>
             <div className="sidebar-footer">
-              <ThemePanel />
               <AccountMenu
                 session={currentSession}
                 onSwitchWorkspace={changeWorkspace}
                 onSignOut={leaveWorkspace}
               />
+              <MoreMenu onCustomize={() => setCustomizing(true)} />
             </div>
           </aside>
           <div className="workspace-main">

@@ -38,12 +38,33 @@ export async function openAccountMenu(page: Page) {
   return menu;
 }
 
+/** The More control beside the profile block: Trash, Theme, Customize sidebar. */
+export const moreTrigger = (page: Page) => page.locator(".more-trigger");
+
+export async function openMoreMenu(page: Page) {
+  const menu = page.getByRole("menu", { name: "More", exact: true });
+  if (!(await menu.isVisible())) await moreTrigger(page).click();
+  await expect(menu).toBeVisible();
+  return menu;
+}
+
 export async function openThemePanel(page: Page) {
   const panel = page.getByRole("dialog", { name: "Theme", exact: true });
-  if (!(await panel.isVisible()))
-    await page.getByRole("button", { name: "Theme", exact: true }).click();
+  if (!(await panel.isVisible())) {
+    const menu = await openMoreMenu(page);
+    await menu.getByRole("menuitem", { name: "Theme", exact: true }).click();
+  }
   await expect(panel).toBeVisible();
   return panel;
+}
+
+/** Reaches the Trash page through More. */
+export async function openTrash(page: Page) {
+  const menu = await openMoreMenu(page);
+  await menu.getByRole("menuitem", { name: "Trash", exact: true }).click();
+  await expect(
+    page.getByRole("heading", { name: "Trash", exact: true }),
+  ).toBeVisible();
 }
 
 async function chooseFromMenu(page: Page, control: string, item: string) {

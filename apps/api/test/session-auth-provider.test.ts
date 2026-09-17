@@ -22,6 +22,7 @@ const user: UserRow = {
   timeZone: null,
   hourCycle: null,
   weekStart: null,
+  rail: {},
   createdAt: now,
   updatedAt: now,
 };

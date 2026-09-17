@@ -13,18 +13,35 @@ sign-in (name and email, no password) lives at `/sign-in/development` and
 exists only where the web server is started with
 `WEB_DEVELOPMENT_SIGN_IN=true`.
 
-Chronelle opens into an event collection, with workspace-wide Tasks, People, Search,
-and Trash alongside it. Desktop navigation stays on the left; mobile navigation
-remains at the bottom with space for the device's safe area, and the theme and
-account controls sit in a slim bar at the top. There is no other header: each
-page starts with its own title. Search in the rail opens the one palette
-(records, destinations, and the current page's actions); the Search page stays
-reachable from the palette. Theme opens a panel beside the rail with the mode
-(System, Light, Dark), the palette, density, and motion choices, and a reset.
-The profile block at the foot of the rail opens the account menu: the account,
+Chronelle opens into an event collection, with workspace-wide Tasks and People
+alongside it. Desktop navigation stays on the left: Search at the top, then a
+Collections section (Events, Tasks, People) in the order the account keeps,
+then the profile block with a More control beside it. Mobile navigation
+remains at the bottom with space for the device's safe area, in the same
+order, and the More and account controls sit in a slim bar at the top. There
+is no other header: each page starts with its own title. Search in the rail
+opens the one palette (records, destinations including Trash, and the current
+page's actions); the Search page stays reachable from the palette.
+
+The Collections section is the person's to arrange: a pencil beside the
+heading (shown on hover or focus), or More then Customize sidebar, opens
+customize mode, where each row gains a grip and an eye. Dragging a row, or
+the up and down arrow keys on its grip, reorders the collections; the eye
+hides a collection from the rail or shows it again (a hidden collection stays
+dimmed in customize mode, and still shows while it is the open page). Each
+change is kept on the account at once, so the order and the hidden set follow
+the person across devices, and Done ends customize mode. A collection that
+ships later appends in its default place. The bottom bar on a phone lists the
+collections in the kept order; arranging them is a desktop task, and More does not
+offer it there.
+
+More holds what acts on the app rather than on records: Trash, Theme, and
+Customize sidebar. Theme opens a panel beside the rail with the mode (System,
+Light, Dark), the palette, density, and motion choices, and a reset. The
+profile block at the foot of the rail opens the account menu: the account,
 the workspaces the person can open (the current one checked), Settings, and
-Sign out. Escape or a press elsewhere closes either and returns focus to
-its control; neither navigates or discards the current Event draft. A
+Sign out. Escape or a press elsewhere closes any of these and returns focus to
+its control; none navigates or discards the current Event draft. A
 workspace or session change uses the existing session boundary to cancel
 pending requests and clear protected state. Workspace choices come from the
 authorized session response; choosing one never grants access by itself.

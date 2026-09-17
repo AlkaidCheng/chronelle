@@ -30,10 +30,12 @@ test("starts with an empty offline workspace and composes only selected componen
   const navigation = page.getByRole("navigation", {
     name: "Workspace navigation",
   });
-  await activateWithKeyboard(
-    page,
-    navigation.getByRole("link", { name: "Trash", exact: true }),
-  );
+  // Trash sits under More; the menu's first entry takes focus when it opens.
+  await activateWithKeyboard(page, page.locator(".more-trigger"));
+  await expect(
+    page.getByRole("menuitem", { name: "Trash", exact: true }),
+  ).toBeFocused();
+  await page.keyboard.press("Enter");
   await expect(
     page.getByRole("heading", { name: "No recoverable objects" }),
   ).toBeVisible();

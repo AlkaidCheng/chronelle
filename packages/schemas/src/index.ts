@@ -16,6 +16,7 @@ export {
   timeZoneNameSchema,
   userResponseSchema,
   verifyEmailRequestSchema,
+  railPreferenceSchema,
   weekStartSchema,
   workspaceSummarySchema,
   type AcceptedResponse,
@@ -33,6 +34,7 @@ export {
   type SignUpRequest,
   type UserResponse,
   type VerifyEmailRequest,
+  type RailPreference,
   type WeekStart,
 } from "./authentication.js";
 export { healthStatusSchema, type HealthStatus } from "./health.js";

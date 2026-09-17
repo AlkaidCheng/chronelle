@@ -1,0 +1,122 @@
+"use client";
+
+import Link from "next/link";
+import { useTranslations } from "next-intl";
+import { useCallback, useEffect, useId, useRef, useState } from "react";
+import { MoreGridIcon, PencilIcon, ThemeIcon, TrashIcon } from "./icons";
+import {
+  focusFirstMenuItem,
+  moveMenuFocus,
+  useMenuDismissal,
+} from "./quiet-menu";
+import { ThemePanel } from "./theme-panel";
+
+/**
+ * The More control beside the profile block: what acts on the app rather
+ * than on records. Trash, Theme (the panel opens beside the rail), and
+ * Customize sidebar. Escape or a press outside closes the menu or the panel
+ * and, from the keyboard, returns focus to the control.
+ */
+export function MoreMenu({
+  onCustomize,
+}: {
+  readonly onCustomize: () => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [themeOpen, setThemeOpen] = useState(false);
+  const id = useId();
+  const t = useTranslations("nav");
+  const theme = useTranslations("theme");
+  const root = useRef<HTMLDivElement>(null);
+  const trigger = useRef<HTMLButtonElement>(null);
+  const menu = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (open) focusFirstMenuItem(menu.current);
+  }, [open]);
+  const contains = useCallback(
+    (target: Node) => root.current?.contains(target) ?? false,
+    [],
+  );
+  const close = useCallback((byKeyboard: boolean) => {
+    setOpen(false);
+    if (byKeyboard) trigger.current?.focus();
+  }, []);
+  useMenuDismissal(open, contains, close);
+  const closeTheme = useCallback((byKeyboard: boolean) => {
+    setThemeOpen(false);
+    if (byKeyboard) trigger.current?.focus();
+  }, []);
+
+  return (
+    <div className="more-menu" ref={root}>
+      <button
+        ref={trigger}
+        type="button"
+        className="more-trigger"
+        aria-label={t("more")}
+        aria-haspopup="menu"
+        aria-expanded={open}
+        aria-controls={`${id}-menu`}
+        onClick={() => {
+          setThemeOpen(false);
+          setOpen((current) => !current);
+        }}
+      >
+        <MoreGridIcon />
+      </button>
+      {open ? (
+        <div
+          ref={menu}
+          id={`${id}-menu`}
+          role="menu"
+          aria-label={t("more")}
+          className="quiet-menu-list more-menu-list"
+          onKeyDown={(event) => {
+            if (moveMenuFocus(event, menu.current) === "left") setOpen(false);
+          }}
+        >
+          <Link
+            role="menuitem"
+            tabIndex={-1}
+            className="quiet-menu-item"
+            href="/trash"
+            onClick={() => setOpen(false)}
+          >
+            <TrashIcon />
+            <span>{t("trash")}</span>
+          </Link>
+          <button
+            type="button"
+            role="menuitem"
+            tabIndex={-1}
+            className="quiet-menu-item"
+            aria-haspopup="dialog"
+            onClick={() => {
+              setOpen(false);
+              setThemeOpen(true);
+            }}
+          >
+            <ThemeIcon />
+            <span>{theme("title")}</span>
+          </button>
+          <hr className="quiet-menu-separator" />
+          <button
+            type="button"
+            role="menuitem"
+            tabIndex={-1}
+            className="quiet-menu-item more-customize"
+            onClick={() => {
+              setOpen(false);
+              onCustomize();
+            }}
+          >
+            <PencilIcon />
+            <span>{t("customize")}</span>
+          </button>
+        </div>
+      ) : null}
+      <ThemePanel open={themeOpen} onClose={closeTheme} />
+    </div>
+  );
+}

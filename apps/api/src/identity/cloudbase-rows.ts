@@ -1,4 +1,9 @@
-import type { UserRow, UserSessionRow, WorkspaceRow } from "@chronelle/db";
+import type {
+  RailPreferenceRow,
+  UserRow,
+  UserSessionRow,
+  WorkspaceRow,
+} from "@chronelle/db";
 
 /** A gateway row: the table's columns as JSON. */
 export type CloudBaseRow = Record<string, unknown>;
@@ -31,6 +36,21 @@ function nullableInteger(value: unknown, field: string): number | null {
   throw new Error(`CloudBase returned an invalid ${field}.`);
 }
 
+/** The rail preference as stored: an object whose order and hidden lists hold strings. */
+function railPreference(value: unknown): RailPreferenceRow {
+  const row = record(value, "rail preference");
+  const list = (name: "order" | "hidden") => {
+    if (row[name] === undefined) return {};
+    if (
+      !Array.isArray(row[name]) ||
+      !row[name].every((key) => typeof key === "string")
+    )
+      throw new Error(`CloudBase returned an invalid rail ${name}.`);
+    return { [name]: row[name] as string[] };
+  };
+  return { ...list("order"), ...list("hidden") };
+}
+
 export function record(value: unknown, label: string): CloudBaseRow {
   if (value === null || typeof value !== "object" || Array.isArray(value))
     throw new Error(`CloudBase returned an invalid ${label}.`);
@@ -48,6 +68,7 @@ export function userRow(row: CloudBaseRow): UserRow {
     timeZone: nullableText(row.time_zone, "time zone"),
     hourCycle: nullableText(row.hour_cycle, "hour cycle"),
     weekStart: nullableInteger(row.week_start, "week start"),
+    rail: railPreference(row.rail),
     createdAt: instant(row.created_at, "created_at"),
     updatedAt: instant(row.updated_at, "updated_at"),
   };

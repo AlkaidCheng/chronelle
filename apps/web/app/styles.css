@@ -3162,7 +3162,8 @@ ul.resource-list {
   }
 
   .workspace-nav {
-    grid-template-columns: repeat(5, minmax(0, 1fr));
+    grid-auto-columns: minmax(0, 1fr);
+    grid-auto-flow: column;
     width: 100%;
   }
 
@@ -4422,10 +4423,6 @@ html:has(.event-create-dialog[open]) {
 }
 
 /* Quiet chrome: the sidebar's lower entries, icon controls, menus, and the event strip. */
-.sidebar-footer {
-  display: grid;
-  gap: 2px;
-}
 
 .sidebar-entry {
   align-items: center;
@@ -4471,16 +4468,223 @@ html:has(.event-create-dialog[open]) {
   opacity: 0.8;
 }
 
-.theme-entry,
+.more-menu,
 .account-menu {
   position: relative;
 }
 
-.account-trigger {
-  border-top: 1px solid var(--line);
-  border-radius: 0;
+/* The rail's Collections section and its customize mode. */
+.rail-heading {
+  align-items: center;
+  color: var(--muted);
+  display: flex;
+  font-size: 0.68rem;
+  font-weight: 650;
+  letter-spacing: 0.06em;
+  margin-top: 10px;
+  min-height: 26px;
+  padding: 0 12px;
+  text-transform: uppercase;
+}
+
+.rail-customize {
+  background: none;
+  border: 0;
+  border-radius: 6px;
+  color: var(--muted);
+  cursor: pointer;
+  display: grid;
+  height: 22px;
+  margin-left: auto;
+  opacity: 0;
+  padding: 0;
+  place-items: center;
+  width: 22px;
+}
+
+.rail-heading:hover .rail-customize,
+.rail-customize:focus-visible,
+.rail-customize[aria-pressed="true"] {
+  opacity: 1;
+}
+
+.rail-customize:hover,
+.rail-customize[aria-pressed="true"] {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.rail-customize svg {
+  height: 14px;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.7;
+  width: 14px;
+}
+
+.rail-collections {
+  display: grid;
+  gap: 7px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.rail-row {
+  align-items: center;
+  border-radius: 10px;
+  display: flex;
+  min-width: 0;
+}
+
+.rail-row > a {
+  flex: 1;
+  min-width: 0;
+}
+
+.rail-row[data-hidden] > a {
+  opacity: 0.55;
+}
+
+.rail-row[data-dragging] {
+  opacity: 0.4;
+}
+
+.rail-row[data-drop="before"] {
+  box-shadow: 0 -2px 0 0 var(--accent);
+}
+
+.rail-row[data-drop="after"] {
+  box-shadow: 0 2px 0 0 var(--accent);
+}
+
+.rail-collections[data-customizing] .rail-row {
+  cursor: grab;
+}
+
+.rail-collections[data-customizing] .rail-row > a {
+  padding-left: 4px;
+}
+
+.rail-grip,
+.rail-eye {
+  align-items: center;
+  background: none;
+  border: 0;
+  border-radius: 6px;
+  color: var(--muted);
+  cursor: pointer;
+  display: flex;
+  flex-shrink: 0;
+  height: 28px;
+  justify-content: center;
+  padding: 0;
+  width: 22px;
+}
+
+.rail-grip {
+  cursor: grab;
+}
+
+.rail-eye {
+  margin-right: 4px;
+  width: 28px;
+}
+
+.rail-grip:hover,
+.rail-eye:hover {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.rail-grip svg,
+.rail-eye svg {
+  height: 15px;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.7;
+  width: 15px;
+}
+
+.rail-grip svg {
+  stroke: none;
+}
+
+.rail-customize-bar {
+  border: 1px dashed var(--line-strong);
+  border-radius: 8px;
+  color: var(--muted);
+  font-size: 0.78rem;
+  line-height: 1.4;
+  margin: 10px 4px 0;
+  padding: 8px 10px;
+}
+
+.rail-customize-bar button {
+  background: none;
+  border: 0;
+  color: var(--accent);
+  cursor: pointer;
+  font: inherit;
+  font-weight: 650;
+  padding: 0;
+}
+
+/* The More control beside the profile block and its menu, which opens upward. */
+.sidebar-footer {
+  align-items: center;
+  display: flex;
+  gap: 2px;
+}
+
+.sidebar-footer .account-menu {
+  flex: 1;
+  min-width: 0;
+}
+
+.more-trigger {
+  align-items: center;
+  background: none;
+  border: 0;
+  border-radius: 8px;
+  color: var(--muted);
+  cursor: pointer;
+  display: flex;
+  flex-shrink: 0;
+  height: 34px;
+  justify-content: center;
   margin-top: 6px;
-  padding-top: 14px;
+  padding: 0;
+  width: 34px;
+}
+
+.more-trigger:hover,
+.more-trigger[aria-expanded="true"] {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.more-trigger svg {
+  height: 18px;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.7;
+  width: 18px;
+}
+
+.more-menu-list {
+  bottom: calc(100% + 6px);
+  right: 0;
+  top: auto;
+  width: min(220px, calc(100vw - 32px));
+}
+
+.account-trigger {
+  border-radius: 10px;
+  margin-top: 6px;
 }
 
 .account-trigger:hover,
@@ -5136,11 +5340,37 @@ html:has(.event-create-dialog[open]) {
   }
 
   .account-menu-list,
+  .more-menu-list,
   .theme-panel {
     bottom: auto;
     left: auto;
     right: 0;
     top: calc(100% + 6px);
+  }
+
+  .more-trigger {
+    margin: 0;
+  }
+
+  .sidebar-footer .account-menu {
+    flex: none;
+  }
+
+  /* The bottom bar lists the collections in the kept order; arranging them is a desktop task. */
+  .rail-heading,
+  .rail-customize-bar,
+  .rail-grip,
+  .rail-eye,
+  .more-customize {
+    display: none;
+  }
+
+  .rail-collections {
+    display: contents;
+  }
+
+  .rail-row {
+    display: contents;
   }
 
   .theme-panel {

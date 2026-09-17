@@ -1,72 +1,47 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { useEffect, useId, useRef, useState } from "react";
-import { ThemeIcon } from "./icons";
+import { useCallback, useEffect, useId, useRef } from "react";
+import { useMenuDismissal } from "./quiet-menu";
 import { ThemeControls } from "./theme-controls";
 
 /**
- * The sidebar's Theme entry: a panel beside it with the mode, palette,
- * density, and motion choices. Escape or a press outside closes the panel
- * and returns focus to the entry. Choices apply to this browser only.
+ * The Theme panel beside the rail: the mode, palette, density, and motion
+ * choices, opened from the More menu. Escape or a press outside closes it;
+ * `onClose` says whether the keyboard closed it so the opener can take focus
+ * back. Choices apply to this browser only.
  */
-export function ThemePanel() {
-  const [open, setOpen] = useState(false);
+export function ThemePanel({
+  open,
+  onClose,
+}: {
+  readonly open: boolean;
+  readonly onClose: (byKeyboard: boolean) => void;
+}) {
   const id = useId();
   const t = useTranslations("theme");
-  const root = useRef<HTMLDivElement>(null);
-  const trigger = useRef<HTMLButtonElement>(null);
   const panel = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (!open) return;
-    panel.current?.querySelector<HTMLElement>("input:checked")?.focus();
-    function onPointerDown(event: PointerEvent) {
-      if (event.target instanceof Node && root.current?.contains(event.target))
-        return;
-      setOpen(false);
-    }
-    // Escape closes from anywhere: a pointer press on a control does not
-    // move focus into the panel in every browser.
-    function onKeyDown(event: KeyboardEvent) {
-      if (event.key !== "Escape" || event.defaultPrevented) return;
-      event.preventDefault();
-      setOpen(false);
-      trigger.current?.focus();
-    }
-    document.addEventListener("pointerdown", onPointerDown);
-    document.addEventListener("keydown", onKeyDown);
-    return () => {
-      document.removeEventListener("pointerdown", onPointerDown);
-      document.removeEventListener("keydown", onKeyDown);
-    };
+    if (open)
+      panel.current?.querySelector<HTMLElement>("input:checked")?.focus();
   }, [open]);
+  const contains = useCallback(
+    (target: Node) => panel.current?.contains(target) ?? false,
+    [],
+  );
+  useMenuDismissal(open, contains, onClose);
 
+  if (!open) return null;
   return (
-    <div className="theme-entry" ref={root}>
-      <button
-        ref={trigger}
-        type="button"
-        className="sidebar-entry"
-        aria-haspopup="dialog"
-        aria-expanded={open}
-        aria-controls={`${id}-panel`}
-        onClick={() => setOpen((current) => !current)}
-      >
-        <ThemeIcon />
-        {t("title")}
-      </button>
-      {open ? (
-        <div
-          ref={panel}
-          id={`${id}-panel`}
-          role="dialog"
-          aria-label={t("title")}
-          className="theme-panel"
-        >
-          <ThemeControls />
-        </div>
-      ) : null}
+    <div
+      ref={panel}
+      id={`${id}-panel`}
+      role="dialog"
+      aria-label={t("title")}
+      className="theme-panel"
+    >
+      <ThemeControls />
     </div>
   );
 }
