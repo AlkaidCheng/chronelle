@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 import { expect, test } from "./fixtures";
 import { exerciseEventInspector } from "./helpers/event-inspector";
 
-test("edits one canonical Event through a responsive inspector", async ({
+test("edits one canonical Event through a responsive inspector @webkit-desktop @webkit-mobile", async ({
   page,
   request,
 }, testInfo) => {

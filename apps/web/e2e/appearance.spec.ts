@@ -6,7 +6,7 @@ import {
   openDisplaySettings,
 } from "./helpers/display-settings";
 
-test("customizes palettes, density, and motion independently", async ({
+test("customizes palettes, density, and motion independently @webkit-desktop @webkit-mobile", async ({
   page,
 }, testInfo) => {
   await page.goto("/sign-in/development");
@@ -17,7 +17,7 @@ test("customizes palettes, density, and motion independently", async ({
   await exerciseDisplaySettings(page, testInfo);
 });
 
-test("preserves an underlying form and applies other-tab palette changes with settings closed", async ({
+test("preserves an underlying form and applies other-tab palette changes with settings closed @webkit-desktop @webkit-mobile", async ({
   page,
   context,
 }) => {
@@ -49,7 +49,7 @@ test("preserves an underlying form and applies other-tab palette changes with se
 });
 
 for (const appearance of ["light", "dark"] as const) {
-  test(`keeps the Event journey readable in ${appearance} appearance`, async ({
+  test(`keeps the Event journey readable in ${appearance} appearance @webkit-desktop @webkit-mobile`, async ({
     page,
   }, testInfo) => {
     await page.emulateMedia({
@@ -85,7 +85,7 @@ for (const appearance of ["light", "dark"] as const) {
   });
 }
 
-test("applies a saved appearance before application JavaScript loads", async ({
+test("applies a saved appearance before application JavaScript loads @webkit-desktop @webkit-mobile", async ({
   page,
 }) => {
   await page.emulateMedia({ colorScheme: "light" });
@@ -107,7 +107,7 @@ test("applies a saved appearance before application JavaScript loads", async ({
   await expect(page.locator("html")).toHaveAttribute("data-motion", "reduced");
 });
 
-test("supports keyboard selection and synchronizes appearance across tabs", async ({
+test("supports keyboard selection and synchronizes appearance across tabs @webkit-desktop @webkit-mobile", async ({
   page,
   context,
 }) => {
@@ -140,7 +140,7 @@ test("supports keyboard selection and synchronizes appearance across tabs", asyn
   await other.close();
 });
 
-test("falls back from invalid storage and allows a page-only override when writes fail", async ({
+test("falls back from invalid storage and allows a page-only override when writes fail @webkit-desktop @webkit-mobile", async ({
   page,
 }) => {
   await page.emulateMedia({ colorScheme: "light" });

@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 import { expect, test } from "./fixtures";
 import { exerciseComponentViews } from "./helpers/component-views";
 
-test("keeps a component's chosen view in the shared layout", async ({
+test("keeps a component's chosen view in the shared layout @webkit-desktop @webkit-mobile", async ({
   page,
   request,
 }) => {

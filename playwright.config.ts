@@ -21,14 +21,12 @@ export default defineConfig({
     },
     {
       name: "webkit-desktop",
-      testMatch:
-        /(event-accessibility|date-formatting|editor-feedback|editor-submit|appearance|page-navigation|workspace-utilities|collection-return|first-use|workspace-commands|component-shortcuts|context-commands|command-search|event-arrange|component-catalog|page-presets|event-drafts|schedule-refinement|event-inspector|event-draft-recovery|schedule-inspector|schedule-creation|schedule-draft-recovery|task-editors|object-draft-recovery|expenses|history|row-order|quick-add|component-views|localization|settings|sidebar|friends|share-with-friends|access-source|undo-history|verbs-conflicts)\.spec\.ts/,
+      grep: /@webkit-desktop/,
       use: { ...devices["Desktop Safari"] },
     },
     {
       name: "webkit-mobile",
-      testMatch:
-        /(event-accessibility|date-formatting|editor-feedback|editor-submit|appearance|page-navigation|workspace-utilities|collection-return|first-use|workspace-commands|component-shortcuts|context-commands|command-search|event-arrange|component-catalog|page-presets|event-drafts|schedule-refinement|event-inspector|event-draft-recovery|schedule-inspector|schedule-creation|schedule-draft-recovery|task-editors|object-draft-recovery|expenses|history|row-order|quick-add|component-views|localization)\.spec\.ts/,
+      grep: /@webkit-mobile/,
       use: { ...devices["iPhone 13"] },
     },
   ],

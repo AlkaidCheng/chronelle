@@ -3,7 +3,7 @@ import { expect, test } from "./fixtures";
 import { openAccountMenu } from "./helpers/quiet-chrome";
 import { exerciseWorkspaceUtilities } from "./helpers/workspace-utilities";
 
-test("keeps workspace utilities accessible without changing Event data", async ({
+test("keeps workspace utilities accessible without changing Event data @webkit-desktop @webkit-mobile", async ({
   page,
   request,
 }, testInfo) => {
@@ -32,7 +32,7 @@ test("keeps workspace utilities accessible without changing Event data", async (
   ).toEqual(event);
 });
 
-test("rejects a workspace choice whose last grant was revoked", async ({
+test("rejects a workspace choice whose last grant was revoked @webkit-desktop @webkit-mobile", async ({
   page,
   request,
 }) => {

@@ -9,7 +9,7 @@ import { outcomeNotice } from "./helpers/lifecycle";
 import { expectHorizontalReflow } from "./helpers/page-navigation";
 import { moreTrigger } from "./helpers/quiet-chrome";
 
-test("starts an undated plan with the keyboard and reopens it after recovery", async ({
+test("starts an undated plan with the keyboard and reopens it after recovery @webkit-desktop @webkit-mobile", async ({
   page,
   request,
 }, testInfo) => {

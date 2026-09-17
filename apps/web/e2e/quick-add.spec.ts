@@ -6,7 +6,7 @@ import {
 } from "./helpers/quick-add";
 import { today } from "./helpers/today";
 
-test("adds tasks and reminders from the quick row at the end of a collection", async ({
+test("adds tasks and reminders from the quick row at the end of a collection @webkit-desktop @webkit-mobile", async ({
   page,
   request,
 }) => {

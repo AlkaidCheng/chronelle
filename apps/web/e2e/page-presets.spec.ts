@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 import { expect, test } from "./fixtures";
 import { exercisePagePresets } from "./helpers/page-presets";
 
-test("adds preset pages and recovers their identities without changing planning records", async ({
+test("adds preset pages and recovers their identities without changing planning records @webkit-desktop @webkit-mobile", async ({
   page,
   request,
 }, testInfo) => {

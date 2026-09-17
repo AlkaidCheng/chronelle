@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 import { expect, test } from "./fixtures";
 import { exerciseRowOrder } from "./helpers/row-order";
 
-test("reorders tasks by drag and from the row menu, and moves them between days", async ({
+test("reorders tasks by drag and from the row menu, and moves them between days @webkit-desktop @webkit-mobile", async ({
   page,
   request,
 }) => {

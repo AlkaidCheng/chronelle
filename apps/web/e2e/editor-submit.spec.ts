@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 import { expect, test } from "./fixtures";
 import { exerciseEditorSubmit } from "./helpers/editor-submit";
 
-test("submits validated editors and synchronizes the browser preference", async ({
+test("submits validated editors and synchronizes the browser preference @webkit-desktop @webkit-mobile", async ({
   page,
   context,
 }, testInfo) => {

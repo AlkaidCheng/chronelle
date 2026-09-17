@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { expect, test } from "./fixtures";
 
-test("compares and restores history while preserving an open draft", async ({
+test("compares and restores history while preserving an open draft @webkit-desktop @webkit-mobile", async ({
   page,
 }, testInfo) => {
   const errors: string[] = [];

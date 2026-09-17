@@ -12,7 +12,7 @@ async function signIn(page: Page, email: string) {
   await expect(page).toHaveURL(/\/events$/);
 }
 
-test("finds canonical events and tasks through Commands without losing a dismissed draft", async ({
+test("finds canonical events and tasks through Commands without losing a dismissed draft @webkit-desktop @webkit-mobile", async ({
   page,
   request,
 }, testInfo) => {
@@ -44,7 +44,7 @@ test("finds canonical events and tasks through Commands without losing a dismiss
   ).toEqual(event);
 });
 
-test("limits the palette to eight records and opens full Search for remaining results", async ({
+test("limits the palette to eight records and opens full Search for remaining results @webkit-desktop @webkit-mobile", async ({
   page,
   request,
 }, testInfo) => {
@@ -99,7 +99,7 @@ test("limits the palette to eight records and opens full Search for remaining re
   await expect(page.getByText("10 loaded", { exact: true })).toBeVisible();
 });
 
-test("filters workspace and private records and rechecks revoked access", async ({
+test("filters workspace and private records and rechecks revoked access @webkit-desktop @webkit-mobile", async ({
   page,
   request,
 }) => {

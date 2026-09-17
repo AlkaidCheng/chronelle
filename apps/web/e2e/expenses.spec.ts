@@ -6,7 +6,7 @@ import {
   expenseResponseSchema,
 } from "@chronelle/schemas";
 
-test("preserves exact expense amounts through editing and currency summaries", async ({
+test("preserves exact expense amounts through editing and currency summaries @webkit-desktop @webkit-mobile", async ({
   page,
   request,
 }, testInfo) => {

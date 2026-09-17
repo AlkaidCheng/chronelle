@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 import { expect, test } from "./fixtures";
 import { exerciseScheduleInspector } from "./helpers/schedule-inspector";
 
-test("edits and recovers one scheduled Event across projections", async ({
+test("edits and recovers one scheduled Event across projections @webkit-desktop @webkit-mobile", async ({
   page,
   request,
 }, testInfo) => {

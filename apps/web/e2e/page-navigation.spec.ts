@@ -6,7 +6,7 @@ import {
   navigationPageNames,
 } from "./helpers/page-navigation";
 
-test("reports document and element widths when content overflows", async ({
+test("reports document and element widths when content overflows @webkit-desktop @webkit-mobile", async ({
   page,
 }) => {
   await page.setViewportSize({ width: 320, height: 720 });
@@ -22,7 +22,7 @@ test("reports document and element widths when content overflows", async ({
   await expectHorizontalReflow(page);
 });
 
-test("keeps named pages bookmarkable through views and workspace navigation", async ({
+test("keeps named pages bookmarkable through views and workspace navigation @webkit-desktop @webkit-mobile", async ({
   page,
   request,
 }, testInfo) => {

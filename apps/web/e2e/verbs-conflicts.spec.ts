@@ -42,7 +42,7 @@ async function openEvent(page: Page, name: string) {
   await page.getByRole("tab", { name: "To-dos", exact: true }).click();
 }
 
-test("names removals by what reverses them and never reports one that was refused", async ({
+test("names removals by what reverses them and never reports one that was refused @webkit-desktop", async ({
   page,
   request,
 }) => {
@@ -143,7 +143,7 @@ test("names removals by what reverses them and never reports one that was refuse
   await expect(benRow).toBeVisible();
 });
 
-test("compares a stale write side by side and saves each way out", async ({
+test("compares a stale write side by side and saves each way out @webkit-desktop", async ({
   context,
   page,
   request,
