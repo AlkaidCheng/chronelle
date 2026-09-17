@@ -15,10 +15,27 @@ const verificationCodeSchema = z
   .trim()
   .regex(/^\d{6}$/);
 
+/**
+ * A BCP 47 language tag as the application uses it ("en", "zh-Hans",
+ * "zh-Hant"). The shape is checked, not the value, so a language added later
+ * is accepted by every backend without a change here.
+ */
+export const localeTagSchema = z
+  .string()
+  .trim()
+  .max(35)
+  .regex(/^[a-z]{2,3}(-[A-Za-z0-9]{2,8})*$/);
+
 export const signUpRequestSchema = z.object({
   displayName: z.string().trim().min(1).max(120),
   email: emailSchema,
   password: passwordSchema,
+  locale: localeTagSchema.optional(),
+});
+
+/** The language kept on the account; null clears it. */
+export const localePreferenceRequestSchema = z.object({
+  locale: localeTagSchema.nullable(),
 });
 
 export const emailRequestSchema = z.object({
@@ -50,7 +67,11 @@ const userSchema = z.object({
   id: z.uuid(),
   displayName: z.string(),
   email: z.email().nullable(),
+  locale: z.string().nullable().default(null),
 });
+
+/** The account as the session and account routes return it. */
+export const userResponseSchema = userSchema;
 
 export const workspaceSummarySchema = z.object({
   id: z.uuid(),
@@ -111,3 +132,7 @@ export type SessionRevocationResponse = z.infer<
   typeof sessionRevocationResponseSchema
 >;
 export type ApiErrorResponse = z.infer<typeof apiErrorResponseSchema>;
+export type LocalePreferenceRequest = z.infer<
+  typeof localePreferenceRequestSchema
+>;
+export type UserResponse = z.infer<typeof userResponseSchema>;
