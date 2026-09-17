@@ -3,8 +3,13 @@
 import type { SessionResponse } from "@chronelle/schemas";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
-import { useEffect, useId, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { CheckIcon, SettingsIcon, SignOutIcon } from "./icons";
+import {
+  focusFirstMenuItem,
+  moveMenuFocus,
+  useMenuDismissal,
+} from "./quiet-menu";
 
 interface AccountMenuProps {
   readonly session: SessionResponse;
@@ -30,26 +35,17 @@ export function AccountMenu({
   const menu = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (!open) return;
-    menu.current?.querySelector<HTMLElement>('[role^="menuitem"]')?.focus();
-    function onPointerDown(event: PointerEvent) {
-      if (event.target instanceof Node && root.current?.contains(event.target))
-        return;
-      setOpen(false);
-    }
-    function onKeyDown(event: KeyboardEvent) {
-      if (event.key !== "Escape" || event.defaultPrevented) return;
-      event.preventDefault();
-      setOpen(false);
-      trigger.current?.focus();
-    }
-    document.addEventListener("pointerdown", onPointerDown);
-    document.addEventListener("keydown", onKeyDown);
-    return () => {
-      document.removeEventListener("pointerdown", onPointerDown);
-      document.removeEventListener("keydown", onKeyDown);
-    };
+    if (open) focusFirstMenuItem(menu.current);
   }, [open]);
+  const contains = useCallback(
+    (target: Node) => root.current?.contains(target) ?? false,
+    [],
+  );
+  const close = useCallback((byKeyboard: boolean) => {
+    setOpen(false);
+    if (byKeyboard) trigger.current?.focus();
+  }, []);
+  useMenuDismissal(open, contains, close);
 
   return (
     <div className="account-menu" ref={root}>
@@ -78,23 +74,7 @@ export function AccountMenu({
           aria-label={t("menu")}
           className="quiet-menu-list account-menu-list"
           onKeyDown={(event) => {
-            const items = Array.from(
-              menu.current?.querySelectorAll<HTMLElement>(
-                '[role^="menuitem"]',
-              ) ?? [],
-            );
-            const index = items.indexOf(document.activeElement as HTMLElement);
-            const go = (next: number) => {
-              event.preventDefault();
-              items
-                .at(((next % items.length) + items.length) % items.length)
-                ?.focus();
-            };
-            if (event.key === "ArrowDown") go(index + 1);
-            else if (event.key === "ArrowUp") go(index - 1);
-            else if (event.key === "Home") go(0);
-            else if (event.key === "End") go(items.length - 1);
-            else if (event.key === "Tab") setOpen(false);
+            if (moveMenuFocus(event, menu.current) === "left") setOpen(false);
           }}
         >
           <p className="quiet-menu-heading account-identity">

@@ -58,6 +58,34 @@ function menuItems(menu: HTMLElement | null) {
 }
 
 /**
+ * Moves focus between a menu's items on the arrow, Home, and End keys and
+ * reports Tab, which leaves the menu. Returns whether the key was handled.
+ */
+export function moveMenuFocus(
+  event: ReactKeyboardEvent<HTMLElement>,
+  menu: HTMLElement | null,
+): "moved" | "left" | "ignored" {
+  const all = menuItems(menu);
+  const index = all.indexOf(document.activeElement as HTMLElement);
+  const go = (next: number) => {
+    event.preventDefault();
+    all.at(((next % all.length) + all.length) % all.length)?.focus();
+    return "moved" as const;
+  };
+  if (event.key === "ArrowDown") return go(index + 1);
+  if (event.key === "ArrowUp") return go(index - 1);
+  if (event.key === "Home") return go(0);
+  if (event.key === "End") return go(all.length - 1);
+  if (event.key === "Tab") return "left";
+  return "ignored";
+}
+
+/** Focuses a menu's first item once it opens. */
+export function focusFirstMenuItem(menu: HTMLElement | null) {
+  menuItems(menu)[0]?.focus();
+}
+
+/**
  * A quiet icon control that opens a small menu beneath it. Arrow keys move
  * between items, Escape or a press outside closes it, and focus returns to
  * the control. `checked` on an item renders a radio-style entry.
@@ -101,7 +129,7 @@ export function QuietMenu({
   }, [open, align]);
 
   useEffect(() => {
-    if (open) menuItems(menu.current)[0]?.focus();
+    if (open) focusFirstMenuItem(menu.current);
   }, [open]);
 
   const contains = useCallback(
@@ -115,17 +143,7 @@ export function QuietMenu({
   useMenuDismissal(open, contains, close);
 
   function onKeyDown(event: ReactKeyboardEvent<HTMLDivElement>) {
-    const all = menuItems(menu.current);
-    const index = all.indexOf(document.activeElement as HTMLElement);
-    const go = (next: number) => {
-      event.preventDefault();
-      all.at(((next % all.length) + all.length) % all.length)?.focus();
-    };
-    if (event.key === "ArrowDown") go(index + 1);
-    else if (event.key === "ArrowUp") go(index - 1);
-    else if (event.key === "Home") go(0);
-    else if (event.key === "End") go(all.length - 1);
-    else if (event.key === "Tab") close(false);
+    if (moveMenuFocus(event, menu.current) === "left") close(false);
   }
 
   return (

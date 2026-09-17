@@ -8,7 +8,15 @@
     "searchAndCommands": "Search and commands",
     "workspaceNavigation": "Workspace navigation",
     "skipToContent": "Skip to content",
-    "openingWorkspace": "Opening your workspace"
+    "openingWorkspace": "Opening your workspace",
+    "collections": "Collections",
+    "customize": "Customize sidebar",
+    "customizeHint": "Drag to reorder, tap the eye to hide or show.",
+    "done": "Done",
+    "more": "More",
+    "hide": "Hide {name}",
+    "show": "Show {name}",
+    "move": "Move {name}"
   },
   "theme": {
     "title": "Theme",

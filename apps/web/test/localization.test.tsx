@@ -123,7 +123,13 @@ it("words the rail and the Events page in Simplified Chinese", async () => {
     name: "\u5de5\u4f5c\u533a\u5bfc\u822a",
   });
   expect(rail).toHaveTextContent("\u53c2\u4e0e\u8005");
-  expect(rail).toHaveTextContent("\u56de\u6536\u7ad9");
+  expect(rail).toHaveTextContent("\u96c6\u5408");
+  // Trash sits under More, which is wordy in its own language too.
+  await userEvent.click(screen.getByRole("button", { name: "\u66f4\u591a" }));
+  expect(
+    screen.getByRole("menuitem", { name: "\u56de\u6536\u7ad9" }),
+  ).toHaveAttribute("href", "/trash");
+  await userEvent.keyboard("{Escape}");
   expect(
     screen.getByRole("heading", { level: 1, name: "\u6d3b\u52a8" }),
   ).toBeVisible();

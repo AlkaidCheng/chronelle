@@ -169,6 +169,7 @@ export function useUpdatePreferences() {
             ...(input.weekStart !== undefined && {
               weekStart: input.weekStart,
             }),
+            ...(input.rail !== undefined && { rail: input.rail ?? {} }),
           },
         });
       return { previous };
