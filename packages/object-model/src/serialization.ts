@@ -83,6 +83,10 @@ export function serializeResource(resource: EventPlanningResource) {
         objectType: "person" as const,
         email: resource.email,
         userId: resource.userId,
+        nickname: resource.nickname,
+        description: resource.description,
+        contacts: resource.contacts.map((contact) => ({ ...contact })),
+        labelIds: [...resource.labelIds],
       };
   }
 }

@@ -1,14 +1,7 @@
 import type { CloudBaseRdbClient } from "@chronelle/db";
 
-import {
-  CloudBaseObjectWriteRepository,
-  decodeRows,
-} from "./cloudbase-object-write-repository.js";
-import {
-  type CloudBaseObjectRow,
-  type CloudBasePersonRow,
-  cloudbasePersonResource,
-} from "./cloudbase-read-support.js";
+import { CloudBaseObjectWriteRepository } from "./cloudbase-object-write-repository.js";
+import { cloudbaseResourceFromRows } from "./cloudbase-read-support.js";
 import type {
   CreatePersonInput,
   PersonResource,
@@ -25,11 +18,10 @@ export class CloudBasePersonWriteRepository extends CloudBaseObjectWriteReposito
     super(client, {
       objectType: "person",
       decode(rows) {
-        const { object, typed } = decodeRows<
-          CloudBaseObjectRow,
-          CloudBasePersonRow
-        >(rows, "person");
-        return cloudbasePersonResource(object, typed);
+        const resource = cloudbaseResourceFromRows(rows);
+        if (resource.objectType !== "person")
+          throw new Error("CloudBase returned an invalid person.");
+        return resource;
       },
     });
   }

@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import { resolve } from "node:path";
 
 import { workspaceMembers } from "@chronelle/db";
@@ -8,6 +9,7 @@ import {
 } from "@chronelle/db/testing";
 import {
   developmentSignInResponseSchema,
+  labelResponseSchema,
   objectSearchResponseSchema,
   personListResponseSchema,
   personResponseSchema,
@@ -249,6 +251,129 @@ describe("persons API", () => {
       email: null,
       userId: owner.user.id,
       version: 3,
+    });
+  });
+
+  it("keeps a nickname, a description, typed contacts, and labels on a person", async () => {
+    const owner = await signIn("owner@example.com", "Zoe Owner");
+    const ownerHeaders = headers(owner);
+    const family = labelResponseSchema.parse(
+      (
+        await app.inject({
+          method: "POST",
+          url: "/api/labels",
+          headers: ownerHeaders,
+          payload: { name: "family" },
+        })
+      ).json(),
+    );
+    const created = await app.inject({
+      method: "POST",
+      url: "/api/persons",
+      headers: ownerHeaders,
+      payload: {
+        displayName: "Mei Lin",
+        nickname: " Mei ",
+        description: "Sister.",
+        contacts: [
+          { kind: "phone", value: "+1 555 0100" },
+          { kind: "email", value: " mei@example.test " },
+        ],
+        labelIds: [family.id],
+      },
+    });
+    expect(created.statusCode).toBe(201);
+    const mei = personResponseSchema.parse(created.json());
+    expect(mei).toMatchObject({
+      nickname: "Mei",
+      description: "Sister.",
+      email: "mei@example.test",
+      contacts: [
+        { kind: "phone", value: "+1 555 0100" },
+        { kind: "email", value: "mei@example.test" },
+      ],
+      labelIds: [family.id],
+    });
+
+    // A legacy email replaces the email contacts, first, and keeps the rest;
+    // an empty nickname reads as none.
+    const legacy = await app.inject({
+      method: "PATCH",
+      url: `/api/persons/${mei.id}`,
+      headers: ownerHeaders,
+      payload: {
+        expectedVersion: 1,
+        email: "mei.lin@example.test",
+        nickname: "",
+      },
+    });
+    expect(legacy.statusCode).toBe(200);
+    expect(personResponseSchema.parse(legacy.json())).toMatchObject({
+      nickname: null,
+      email: "mei.lin@example.test",
+      contacts: [
+        { kind: "email", value: "mei.lin@example.test" },
+        { kind: "phone", value: "+1 555 0100" },
+      ],
+    });
+
+    // An email contact that is not an address fails at the request boundary;
+    // an unknown label fails in the service.
+    expect(
+      (
+        await app.inject({
+          method: "PATCH",
+          url: `/api/persons/${mei.id}`,
+          headers: ownerHeaders,
+          payload: {
+            expectedVersion: 2,
+            contacts: [{ kind: "email", value: "no-at-sign" }],
+          },
+        })
+      ).statusCode,
+    ).toBe(400);
+    const unknownLabel = await app.inject({
+      method: "PATCH",
+      url: `/api/persons/${mei.id}`,
+      headers: ownerHeaders,
+      payload: { expectedVersion: 2, labelIds: [randomUUID()] },
+    });
+    expect(unknownLabel.statusCode).toBe(400);
+    expect(unknownLabel.json()).toMatchObject({
+      error: { message: "labelIds must name labels of this workspace." },
+    });
+
+    // A restore brings back the contacts, nickname, and description of the
+    // earlier revision; the labels stay as they are.
+    const emptied = await app.inject({
+      method: "PATCH",
+      url: `/api/persons/${mei.id}`,
+      headers: ownerHeaders,
+      payload: { expectedVersion: 2, contacts: [], labelIds: [] },
+    });
+    expect(emptied.statusCode).toBe(200);
+    expect(personResponseSchema.parse(emptied.json())).toMatchObject({
+      email: null,
+      contacts: [],
+      labelIds: [],
+    });
+    const restored = await app.inject({
+      method: "POST",
+      url: `/api/objects/${mei.id}/revisions/1/restore`,
+      headers: ownerHeaders,
+      payload: { expectedVersion: 3 },
+    });
+    expect(restored.statusCode).toBe(200);
+    expect(personResponseSchema.parse(restored.json())).toMatchObject({
+      nickname: "Mei",
+      description: "Sister.",
+      email: "mei@example.test",
+      contacts: [
+        { kind: "phone", value: "+1 555 0100" },
+        { kind: "email", value: "mei@example.test" },
+      ],
+      labelIds: [],
+      version: 4,
     });
   });
 });

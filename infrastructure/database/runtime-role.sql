@@ -71,7 +71,8 @@ GROUP BY attrelid
 GRANT SELECT, INSERT ON
   public.users, public.documents, public.audit_events, public.object_revisions,
   public.event_context_commands, public.object_create_commands, public.reversible_commands,
-  public.command_changes, public.command_receipts, public.event_page_revisions
+  public.command_changes, public.command_receipts, public.event_page_revisions,
+  public.person_contacts, public.person_labels
 TO :"runtime_role";
 GRANT SELECT, INSERT, UPDATE ON
   public.workspaces, public.workspace_members, public.objects,
@@ -81,7 +82,8 @@ GRANT SELECT, INSERT, UPDATE ON
   public.email_verifications, public.labels, public.task_labels,
   public.persons
 TO :"runtime_role";
-GRANT DELETE ON public.resource_grants, public.labels, public.task_labels
+GRANT DELETE ON public.resource_grants, public.labels, public.task_labels,
+  public.person_contacts, public.person_labels
 TO :"runtime_role";
 
 -- New tables and functions require an explicit runtime privilege review.

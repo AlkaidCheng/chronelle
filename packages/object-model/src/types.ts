@@ -1,5 +1,6 @@
 import type {
   ObjectType,
+  PersonContactKind,
   RelationType,
   ReminderStatus,
   TaskRepeatRule,
@@ -96,11 +97,25 @@ export interface DocumentResource extends CanonicalObjectResource {
   readonly storageProvider: string;
 }
 
+/** One way to reach a person: an email, a phone number, or anything else. */
+export interface PersonContact {
+  readonly kind: PersonContactKind;
+  readonly value: string;
+}
+
 export interface PersonResource extends CanonicalObjectResource {
+  /** The first email contact, or null. */
   readonly email: string | null;
   readonly objectType: "person";
   /** The workspace member this person is, when they have an account. */
   readonly userId: string | null;
+  /** The name shown in place of the display name when present. */
+  readonly nickname: string | null;
+  readonly description: string | null;
+  /** The contacts in kept order. */
+  readonly contacts: readonly PersonContact[];
+  /** The person's labels in name order. */
+  readonly labelIds: readonly string[];
 }
 
 export interface DocumentAttachmentResource {
@@ -204,8 +219,15 @@ export interface CreateReminderInput extends CreateObjectFields {
 }
 
 export interface CreatePersonInput extends CreateObjectFields {
+  /** The first email contact; `contacts` wins when both are given. */
   readonly email?: string | null | undefined;
   readonly userId?: string | null | undefined;
+  readonly nickname?: string | null | undefined;
+  readonly description?: string | null | undefined;
+  /** The contacts as a whole; absent leaves them empty. */
+  readonly contacts?: readonly PersonContact[] | undefined;
+  /** The person's labels as a whole; absent leaves them empty. */
+  readonly labelIds?: readonly string[] | undefined;
 }
 
 export interface UpdateObjectFields {
@@ -258,8 +280,15 @@ export interface UpdateReminderInput extends UpdateObjectFields {
 }
 
 export interface UpdatePersonInput extends UpdateObjectFields {
+  /** Replaces the email contacts and keeps the others; `contacts` wins when both are given. */
   readonly email?: string | null | undefined;
   readonly userId?: string | null | undefined;
+  readonly nickname?: string | null | undefined;
+  readonly description?: string | null | undefined;
+  /** The contacts as a whole; absent leaves them unchanged. */
+  readonly contacts?: readonly PersonContact[] | undefined;
+  /** The person's labels as a whole; absent leaves them unchanged. */
+  readonly labelIds?: readonly string[] | undefined;
 }
 
 export interface ObjectDeletionResource {

@@ -372,16 +372,29 @@ before this API.
 
 A Person is a canonical object like the others: someone the workspace keeps
 track of, with the common `displayName` and `customProperties` for whatever
-else matters (a phone, a birthday), an optional `email` (trimmed, null when
-absent), and an optional `userId` linking the Person to a workspace member's
-account. `userId` must name a member of the workspace, of any role, and each
-account belongs to at most one Person of the workspace; a violation returns
-HTTP 400 with `userId must name a member of this workspace.` or
-`userId is already linked to another person.`. `null` clears either field on
-an update; absent leaves it unchanged. People are created, read (`GET
-/persons/:id`), updated, trashed, recovered, searched (`objectType=person`),
-and versioned like every object; a revision restore brings back the email
-but never the linked account.
+else matters (a birthday, a dietary note), an optional `nickname` (1-240
+characters, the name shown in place of `displayName` when present), an
+optional `description` (1-2000 characters), `contacts` (at most 20
+`{ kind, value }` entries with `kind` one of `email`, `phone`, `other`, kept
+in the order sent; an `email` value must be an address), `labelIds` (labels
+of the workspace, returned in name order; an unknown id returns HTTP 400 with
+`labelIds must name labels of this workspace.`), and an optional `userId`
+linking the Person to a workspace member's account. `userId` must name a
+member of the workspace, of any role, and each account belongs to at most
+one Person of the workspace; a violation returns HTTP 400 with
+`userId must name a member of this workspace.` or
+`userId is already linked to another person.`. Responses carry `email` as
+the first email contact (null when there is none). Requests may still send
+`email` in place of `contacts`: it replaces the email contacts, first, and
+keeps the other contacts, and `null` removes them; `contacts` wins when both
+are sent. `null` clears the nickname, description, or linked account on an
+update; absent leaves each unchanged, as do absent `contacts` and
+`labelIds`. People are created, read (`GET /persons/:id`), updated, trashed,
+recovered, searched (`objectType=person`), and versioned like every object;
+a revision restore brings back the nickname, description, and contacts but
+never the linked account or the labels. Deploy migration 0050 before this
+API and reapply the runtime role grants, which cover the `person_contacts`
+and `person_labels` tables.
 
 `GET /persons` lists every live Person the caller may view in the active
 workspace, ordered by name without regard to case, then ID; `query` matches

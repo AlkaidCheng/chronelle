@@ -245,7 +245,7 @@ Task assignee; 0039 the Task location; 0040 People in Events; 0041 subtasks
 in Trash with their parent; 0042 standalone creation commands, after which
 the runtime role grants are reapplied; 0043 sharing with a Person, which
 replaces `chronelle_resource_share` and needs the runtime role grants
-reapplied; 0044 the Task duration; 0045 the Task repeat rule; 0046 the manual order of Tasks and Reminders; 0047 the language kept on the account; 0048 the time zone, clock, and week start kept on the account, which replaces `chronelle_user_locale_update` with `chronelle_user_preferences_update` and is applied before the API built from it starts). With `CHRONELLE_BACKEND=postgres` (the default) the two
+reapplied; 0044 the Task duration; 0045 the Task repeat rule; 0046 the manual order of Tasks and Reminders; 0047 the language kept on the account; 0048 the time zone, clock, and week start kept on the account, which replaces `chronelle_user_locale_update` with `chronelle_user_preferences_update` and is applied before the API built from it starts; 0050 the Person nickname, description, contacts, and labels, after which the runtime role grants are reapplied for `person_contacts` and `person_labels`). With `CHRONELLE_BACKEND=postgres` (the default) the two
 flags are staged opt-ins and the API still connects to `DATABASE_URL` at
 startup; the CloudBase backend below removes that connection.
 

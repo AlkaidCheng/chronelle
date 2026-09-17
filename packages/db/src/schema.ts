@@ -482,8 +482,45 @@ export const persons = pgTable("persons", {
   objectType: text("object_type").$type<"person">().notNull().default("person"),
   /** The workspace member this person is, when they have an account. */
   userId: uuid("user_id"),
+  /** The first email contact, kept in step with person_contacts. */
   email: text("email"),
+  nickname: text("nickname"),
+  description: text("description"),
 });
+
+export const personContactKinds = ["email", "phone", "other"] as const;
+export type PersonContactKind = (typeof personContactKinds)[number];
+
+export const personContacts = pgTable(
+  "person_contacts",
+  {
+    id: uuid("id").primaryKey(),
+    workspaceId: uuid("workspace_id").notNull(),
+    personId: uuid("person_id").notNull(),
+    kind: text("kind").$type<PersonContactKind>().notNull(),
+    value: text("value").notNull(),
+    position: integer("position").notNull(),
+    createdAt: timestamp("created_at", { mode: "date", withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("person_contacts_position_unique").on(
+      table.personId,
+      table.position,
+    ),
+  ],
+);
+
+export const personLabels = pgTable(
+  "person_labels",
+  {
+    workspaceId: uuid("workspace_id").notNull(),
+    personId: uuid("person_id").notNull(),
+    labelId: uuid("label_id").notNull(),
+  },
+  (table) => [primaryKey({ columns: [table.personId, table.labelId] })],
+);
 
 export const documentTransferAuthorizations = pgTable(
   "document_transfer_authorizations",
@@ -563,6 +600,8 @@ export type DocumentRow = typeof documents.$inferSelect;
 export type NewDocumentRow = typeof documents.$inferInsert;
 export type PersonRow = typeof persons.$inferSelect;
 export type NewPersonRow = typeof persons.$inferInsert;
+export type PersonContactRow = typeof personContacts.$inferSelect;
+export type PersonLabelRow = typeof personLabels.$inferSelect;
 export type DocumentTransferAuthorizationRow =
   typeof documentTransferAuthorizations.$inferSelect;
 export type NewDocumentTransferAuthorizationRow =

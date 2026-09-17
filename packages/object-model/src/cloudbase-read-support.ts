@@ -3,6 +3,7 @@ import {
   type UserPrincipal,
 } from "@chronelle/authorization";
 import {
+  personContactKinds,
   relationTypes,
   type CloudBaseRdbFilter,
   type CloudBaseRdbReader,
@@ -19,6 +20,7 @@ import type {
   EventResource,
   ExpenseResource,
   ObjectRelationResource,
+  PersonContact,
   PersonResource,
   ReminderResource,
   TaskResource,
@@ -28,7 +30,8 @@ export const cloudbaseObjectColumns =
   "id,workspace_id,object_type,display_name,created_by,permission_scope_id,created_at,updated_at,version,archived_at,deleted_at,custom_properties,metadata";
 export const cloudbaseEventColumns =
   "object_id,workspace_id,starts_at,ends_at,starts_on,ends_on,timezone,is_all_day";
-export const cloudbasePersonColumns = "object_id,workspace_id,user_id,email";
+export const cloudbasePersonColumns =
+  "object_id,workspace_id,user_id,email,nickname,description";
 
 export type CloudBaseObjectRow = {
   readonly id: unknown;
@@ -106,6 +109,8 @@ export type CloudBasePersonRow = {
   readonly workspace_id: unknown;
   readonly user_id: unknown;
   readonly email: unknown;
+  readonly nickname: unknown;
+  readonly description: unknown;
 };
 
 export type CloudBaseRelationWriteRow = {
@@ -315,35 +320,136 @@ export function cloudbaseTaskResource(
   };
 }
 
-/** The label ids a `labels` entry of chronelle_task_rows carries, or none. */
+/** The label ids a `labels` entry of chronelle_<type>_rows carries, or none. */
 export function cloudbaseLabelIds(value: unknown): string[] {
   if (value === undefined || value === null) return [];
   if (!Array.isArray(value))
-    throw new Error("CloudBase returned invalid task labels.");
+    throw new Error("CloudBase returned invalid labels.");
   return value.map((id) => cloudbaseText(id, "label id"));
 }
 
-type CloudBaseTaskLabelRow = {
-  readonly task_id: unknown;
+/** The contacts a `contacts` entry of chronelle_person_rows carries, or none. */
+export function cloudbasePersonContacts(value: unknown): PersonContact[] {
+  if (value === undefined || value === null) return [];
+  if (!Array.isArray(value))
+    throw new Error("CloudBase returned invalid person contacts.");
+  return value.map((entry) => {
+    const contact = entry as { kind?: unknown; value?: unknown } | null;
+    const kind = cloudbaseText(contact?.kind, "contact kind");
+    if (!personContactKinds.includes(kind as PersonContact["kind"]))
+      throw new Error("CloudBase returned an invalid person contact kind.");
+    return {
+      kind: kind as PersonContact["kind"],
+      value: cloudbaseText(contact?.value, "contact value"),
+    };
+  });
+}
+
+type CloudBaseLabelJoinRow = {
+  readonly object_id: unknown;
   readonly label_id: unknown;
 };
 
 type CloudBaseLabelNameRow = { readonly id: unknown; readonly name: unknown };
 
+/** A label join table and the column that names the labelled object. */
+interface CloudBaseLabelJoin {
+  readonly table: "task_labels" | "person_labels";
+  readonly column: "task_id" | "person_id";
+}
+
 /** The labels of the given tasks in name order, by task id. */
-export async function readCloudBaseTaskLabels(
+export function readCloudBaseTaskLabels(
   client: CloudBaseRdbReader,
   principal: UserPrincipal,
   taskIds: readonly string[],
 ): Promise<ReadonlyMap<string, string[]>> {
-  if (taskIds.length === 0) return new Map();
-  const rows = await client.select<CloudBaseTaskLabelRow>("task_labels", {
-    columns: "task_id,label_id",
-    filters: [
-      { column: "workspace_id", operator: "eq", value: principal.workspaceId },
-      { column: "task_id", operator: "in", value: taskIds },
-    ],
-  });
+  return readCloudBaseLabels(
+    client,
+    principal,
+    { table: "task_labels", column: "task_id" },
+    taskIds,
+  );
+}
+
+/** The labels of the given persons in name order, by person id. */
+export function readCloudBasePersonLabels(
+  client: CloudBaseRdbReader,
+  principal: UserPrincipal,
+  personIds: readonly string[],
+): Promise<ReadonlyMap<string, string[]>> {
+  return readCloudBaseLabels(
+    client,
+    principal,
+    { table: "person_labels", column: "person_id" },
+    personIds,
+  );
+}
+
+type CloudBasePersonContactRow = {
+  readonly person_id: unknown;
+  readonly kind: unknown;
+  readonly value: unknown;
+  readonly position: unknown;
+};
+
+/** The contacts of the given persons in kept order, by person id. */
+export async function readCloudBasePersonContacts(
+  client: CloudBaseRdbReader,
+  principal: UserPrincipal,
+  personIds: readonly string[],
+): Promise<ReadonlyMap<string, PersonContact[]>> {
+  if (personIds.length === 0) return new Map();
+  const rows = await client.select<CloudBasePersonContactRow>(
+    "person_contacts",
+    {
+      columns: "person_id,kind,value,position",
+      filters: [
+        {
+          column: "workspace_id",
+          operator: "eq",
+          value: principal.workspaceId,
+        },
+        { column: "person_id", operator: "in", value: personIds },
+      ],
+    },
+  );
+  const positioned = rows
+    .map((row) => ({
+      personId: cloudbaseText(row.person_id, "person id"),
+      position: cloudbaseInteger(row.position, "contact position"),
+      contact: cloudbasePersonContacts([row])[0] as PersonContact,
+    }))
+    .sort((first, second) => first.position - second.position);
+  const byPerson = new Map<string, PersonContact[]>();
+  for (const { personId, contact } of positioned)
+    byPerson.set(personId, [...(byPerson.get(personId) ?? []), contact]);
+  return byPerson;
+}
+
+async function readCloudBaseLabels(
+  client: CloudBaseRdbReader,
+  principal: UserPrincipal,
+  join: CloudBaseLabelJoin,
+  ids: readonly string[],
+): Promise<ReadonlyMap<string, string[]>> {
+  if (ids.length === 0) return new Map();
+  const rows = (
+    await client.select<Record<string, unknown>>(join.table, {
+      columns: `${join.column},label_id`,
+      filters: [
+        {
+          column: "workspace_id",
+          operator: "eq",
+          value: principal.workspaceId,
+        },
+        { column: join.column, operator: "in", value: ids },
+      ],
+    })
+  ).map((row): CloudBaseLabelJoinRow => ({
+    object_id: row[join.column],
+    label_id: row.label_id,
+  }));
   if (rows.length === 0) return new Map();
   const labelRows = await client.select<CloudBaseLabelNameRow>("labels", {
     columns: "id,name",
@@ -366,21 +472,21 @@ export async function readCloudBaseTaskLabels(
       cloudbaseText(row.name, "label name").toLowerCase(),
     ]),
   );
-  const byTask = new Map<string, string[]>();
+  const byObject = new Map<string, string[]>();
   for (const row of rows) {
-    const taskId = cloudbaseText(row.task_id, "task id");
-    byTask.set(taskId, [
-      ...(byTask.get(taskId) ?? []),
+    const objectId = cloudbaseText(row.object_id, "labelled object id");
+    byObject.set(objectId, [
+      ...(byObject.get(objectId) ?? []),
       cloudbaseText(row.label_id, "label id"),
     ]);
   }
-  for (const ids of byTask.values())
-    ids.sort(
+  for (const labelIds of byObject.values())
+    labelIds.sort(
       (first, second) =>
         (names.get(first) ?? "").localeCompare(names.get(second) ?? "") ||
         first.localeCompare(second),
     );
-  return byTask;
+  return byObject;
 }
 
 const reminderStatuses: readonly ReminderStatus[] = [
@@ -445,12 +551,18 @@ export function cloudbaseDocumentResource(
 export function cloudbasePersonResource(
   object: CloudBaseObjectRow,
   person: CloudBasePersonRow,
+  contacts: readonly PersonContact[] = [],
+  labelIds: readonly string[] = [],
 ): PersonResource {
   return {
     ...cloudbaseCanonicalFields(object, person, "person"),
     objectType: "person",
     email: cloudbaseNullableText(person.email, "email"),
     userId: cloudbaseNullableText(person.user_id, "user_id"),
+    nickname: cloudbaseNullableText(person.nickname, "nickname"),
+    description: cloudbaseNullableText(person.description, "description"),
+    contacts: contacts.map((contact) => ({ ...contact })),
+    labelIds: [...labelIds],
   };
 }
 
@@ -484,7 +596,12 @@ export function cloudbaseResourceFromRows(
     case "document":
       return cloudbaseDocumentResource(object, typed as CloudBaseDocumentRow);
     case "person":
-      return cloudbasePersonResource(object, typed as CloudBasePersonRow);
+      return cloudbasePersonResource(
+        object,
+        typed as CloudBasePersonRow,
+        cloudbasePersonContacts(record.contacts),
+        cloudbaseLabelIds(record.labels),
+      );
     default:
       throw new Error(
         `CloudBase returned an unknown object type ${objectType}.`,

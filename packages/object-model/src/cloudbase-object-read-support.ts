@@ -19,6 +19,8 @@ import {
   cloudbasePersonColumns,
   cloudbaseResourceFromRows,
   cloudbaseTaskColumns,
+  readCloudBasePersonContacts,
+  readCloudBasePersonLabels,
   readCloudBaseTaskLabels,
   cloudbaseText,
   type CloudBaseGrantRow,
@@ -331,6 +333,16 @@ export async function readCloudBaseResources(
     principal,
     byType.get("task") ?? [],
   );
+  const personLabels = await readCloudBasePersonLabels(
+    client,
+    principal,
+    byType.get("person") ?? [],
+  );
+  const personContacts = await readCloudBasePersonContacts(
+    client,
+    principal,
+    byType.get("person") ?? [],
+  );
   for (const [objectType, ids] of byType) {
     const rows = await selectInBatches<TypedRow>(
       client,
@@ -354,7 +366,8 @@ export async function readCloudBaseResources(
         cloudbaseResourceFromRows({
           object,
           [cloudbaseObjectType(object)]: row,
-          labels: taskLabels.get(id) ?? [],
+          labels: taskLabels.get(id) ?? personLabels.get(id) ?? [],
+          contacts: personContacts.get(id) ?? [],
         }),
       ] as const;
     }),
