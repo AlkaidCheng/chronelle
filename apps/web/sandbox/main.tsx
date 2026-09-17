@@ -5,16 +5,17 @@ import { Providers } from "../app/providers";
 import { WorkspaceShell } from "../components/workspace-shell";
 import { EventList } from "../features/events/event-list";
 import { EventWorkspace } from "../features/events/event-workspace";
-import { ObjectSearch } from "../features/search/object-search";
-import { TrashWorkspace } from "../features/recovery/trash-workspace";
-import { TasksPage } from "../features/tasks/tasks-page";
+import { FriendsPage } from "../features/friends/friends-page";
 import { PeoplePage } from "../features/people/people-page";
 import { PersonPage } from "../features/people/person-page";
+import { TrashWorkspace } from "../features/recovery/trash-workspace";
+import { ObjectSearch } from "../features/search/object-search";
 import { SettingsPage } from "../features/settings/settings-page";
+import { TasksPage } from "../features/tasks/tasks-page";
+import en from "../messages/en.json";
 import { store } from "./api-context";
 import { useAuthSession } from "./auth-session";
 import Link, { usePathname } from "./router";
-import en from "../messages/en.json";
 import "../app/styles.css";
 import "../app/collections.css";
 import "./sandbox.css";
@@ -95,6 +96,8 @@ function Sandbox() {
           <ObjectSearch />
         ) : pathname === "/trash" ? (
           <TrashWorkspace />
+        ) : pathname === "/friends" ? (
+          <FriendsPage />
         ) : pathname === "/settings" ? (
           <SettingsPage section="account" />
         ) : pathname === "/settings/language" ? (

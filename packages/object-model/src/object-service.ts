@@ -1,70 +1,59 @@
 import {
-  AuthorizationDeniedError,
-  withStableAuthorization,
   type AuthorizationDatabase,
+  AuthorizationDeniedError,
   type UserPrincipal,
+  withStableAuthorization,
 } from "@chronelle/authorization";
 import {
   createId,
+  type DatabaseTransaction,
   events,
   expenses,
   labels,
+  type ObjectType,
   objectCreateCommands,
   objects,
   personLabels,
   persons,
   reminders,
+  type TaskRepeatRule,
   taskLabels,
   tasks,
+  userConnections,
   workspaceMembers,
-  type DatabaseTransaction,
-  type ObjectType,
-  type TaskRepeatRule,
 } from "@chronelle/db";
-import { and, eq, inArray, isNull, ne, sql } from "drizzle-orm";
 import {
-  eventCalendarDatesSchema,
   type EventListQueryInput,
+  eventCalendarDatesSchema,
   nextTaskDueAt,
   nextTaskDueDate,
   type PersonListQueryInput,
   rankAfter,
   rankSchema,
-  taskDueDate,
   type TaskListQueryInput,
+  taskDueDate,
 } from "@chronelle/schemas";
-import {
-  PostgresEventReadRepository,
-  type EventPage,
-  type EventReadRepository,
-} from "./event-list.js";
-import {
-  PostgresObjectReadRepository,
-  readAuthorizedObject,
-  type ObjectReadRepositories,
-  type ObjectReadRepository,
-} from "./object-reads.js";
-import type { ObjectWriteRepositories } from "./object-writes.js";
-import {
-  PostgresPersonReadRepository,
-  type PersonPage,
-  type PersonReadRepository,
-} from "./person-list.js";
-
-import {
-  PostgresTaskReadRepository,
-  type TaskPage,
-  type TaskReadRepository,
-} from "./task-list.js";
-
+import { and, eq, inArray, isNull, ne, or, sql } from "drizzle-orm";
 import { createRequestHash } from "./create-command.js";
 import {
   CommandConflictError,
   InvalidObjectStateError,
   ObjectConflictError,
 } from "./errors.js";
-import { readObjectState } from "./object-state.js";
+import {
+  type EventPage,
+  type EventReadRepository,
+  PostgresEventReadRepository,
+} from "./event-list.js";
+import {
+  type ObjectReadRepositories,
+  type ObjectReadRepository,
+  PostgresObjectReadRepository,
+  readAuthorizedObject,
+} from "./object-reads.js";
 import { recordObjectRevision } from "./object-revisions.js";
+import { readObjectState } from "./object-state.js";
+import type { ObjectWriteRepositories } from "./object-writes.js";
 import {
   assertPersonContacts,
   assertPersonText,
@@ -72,6 +61,16 @@ import {
   requestedPersonContacts,
   setPersonContacts,
 } from "./person-contacts.js";
+import {
+  type PersonPage,
+  type PersonReadRepository,
+  PostgresPersonReadRepository,
+} from "./person-list.js";
+import {
+  PostgresTaskReadRepository,
+  type TaskPage,
+  type TaskReadRepository,
+} from "./task-list.js";
 import type {
   CreateEventInput,
   CreateExpenseInput,
@@ -91,9 +90,9 @@ import type {
   UpdateEventInput,
   UpdateExpenseInput,
   UpdateObjectFields,
+  UpdatePermissionScopeInput,
   UpdatePersonInput,
   UpdateReminderInput,
-  UpdatePermissionScopeInput,
   UpdateTaskInput,
 } from "./types.js";
 
@@ -151,8 +150,8 @@ function assertEventState(
 }
 
 /**
- * A Person's linked account is a member of the workspace and belongs to one
- * Person; an email is a trimmed address. Checked inside the write
+ * A Person's linked account is a member of the workspace or a friend of one
+ * and belongs to one Person; an email is a trimmed address. Checked inside the write
  * transaction, with the messages the database functions use.
  */
 async function assertPersonState(
@@ -173,10 +172,35 @@ async function assertPersonState(
         ),
       )
       .limit(1);
-    if (member === undefined)
-      throw new InvalidObjectStateError(
-        "userId must name a member of this workspace.",
-      );
+    if (member === undefined) {
+      const [friendOfMember] = await transaction
+        .select({ id: userConnections.id })
+        .from(userConnections)
+        .innerJoin(
+          workspaceMembers,
+          eq(workspaceMembers.workspaceId, workspaceId),
+        )
+        .where(
+          and(
+            eq(userConnections.status, "accepted"),
+            or(
+              and(
+                eq(userConnections.requesterId, userId),
+                eq(userConnections.addresseeId, workspaceMembers.userId),
+              ),
+              and(
+                eq(userConnections.addresseeId, userId),
+                eq(userConnections.requesterId, workspaceMembers.userId),
+              ),
+            ),
+          ),
+        )
+        .limit(1);
+      if (friendOfMember === undefined)
+        throw new InvalidObjectStateError(
+          "userId must name a member of this workspace or a friend of one.",
+        );
+    }
     const [linked] = await transaction
       .select({ objectId: persons.objectId })
       .from(persons)

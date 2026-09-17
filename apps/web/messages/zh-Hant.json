@@ -61,7 +61,8 @@
     "menu": "帳號",
     "workspaces": "工作區",
     "settings": "設定",
-    "signOut": "登出"
+    "signOut": "登出",
+    "friends": "好友"
   },
   "settings": {
     "title": "設定",
@@ -80,6 +81,32 @@
     "signOutEverywhere": "登出所有裝置",
     "signOutEverywhereNote": "結束此帳號的所有工作階段，包括目前這一個。",
     "appearanceNote": "外觀設定儲存在此瀏覽器中。側欄的「主題」提供相同的選項。"
+  },
+  "friends": {
+    "title": "好友",
+    "loading": "正在載入好友...",
+    "invite": "邀請好友",
+    "closeInvite": "關閉邀請",
+    "inviteNote": "對方會收到一封帶有您的名字和留言的電子郵件。對方接受後，您可以將其連結到參與者，並一鍵分享。",
+    "person": "參與者",
+    "someoneNew": "新聯絡人",
+    "email": "電子郵件",
+    "note": "留言（選填）",
+    "cancel": "取消",
+    "send": "傳送邀請",
+    "sending": "傳送中...",
+    "requests": "請求",
+    "friends": "好友",
+    "sent": "已傳送",
+    "accept": "接受",
+    "decline": "拒絕",
+    "withdraw": "撤回",
+    "resend": "重新傳送",
+    "remove": "移除",
+    "noFriends": "還沒有好友。透過電子郵件邀請一位吧。",
+    "since": "自 {date}",
+    "sentOn": "傳送於 {date}",
+    "linkUntil": "註冊連結有效期至 {date}"
   },
   "preferences": {
     "language": "語言",
@@ -110,7 +137,9 @@
     "contactValue": "聯絡方式 {n} 的內容",
     "removeContact": "移除聯絡方式 {n}",
     "addContact": "新增聯絡方式",
-    "labels": "標籤"
+    "labels": "標籤",
+    "linkToFriend": "連結好友",
+    "noFriendLink": "未連結好友"
   },
   "people": {
     "title": "參與者",

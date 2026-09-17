@@ -31,6 +31,8 @@ export const signUpRequestSchema = z.object({
   email: emailSchema,
   password: passwordSchema,
   locale: localeTagSchema.optional(),
+  /** The token of the friend invitation the sign-up link carried. */
+  invitationToken: z.string().trim().min(1).max(256).optional(),
 });
 
 /**

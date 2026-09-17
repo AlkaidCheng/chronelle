@@ -32,7 +32,7 @@ const session = {
 
 afterEach(cleanup);
 
-function renderMenu() {
+function renderMenu(extra: { pendingRequests?: number } = {}) {
   const onSignOut = vi.fn();
   const onSwitchWorkspace = vi.fn();
   render(
@@ -41,6 +41,7 @@ function renderMenu() {
         session={session}
         onSwitchWorkspace={onSwitchWorkspace}
         onSignOut={onSignOut}
+        {...extra}
       />
       <button type="button">Elsewhere</button>
     </>,
@@ -53,7 +54,7 @@ function renderMenu() {
   };
 }
 
-it("opens a menu with the account, the workspaces, Settings, and sign out", async () => {
+it("opens a menu with the account, the workspaces, Friends, Settings, and sign out", async () => {
   const { trigger, user } = renderMenu();
   await user.click(trigger);
   const menu = screen.getByRole("menu", { name: "Account" });
@@ -62,6 +63,10 @@ it("opens a menu with the account, the workspaces, Settings, and sign out", asyn
     screen.getByRole("menuitemradio", { name: "Personal" }),
   ).toHaveAttribute("aria-checked", "true");
   expect(screen.getByRole("menuitemradio", { name: "Personal" })).toHaveFocus();
+  expect(screen.getByRole("menuitem", { name: "Friends" })).toHaveAttribute(
+    "href",
+    "/friends",
+  );
   expect(screen.getByRole("menuitem", { name: "Settings" })).toHaveAttribute(
     "href",
     "/settings",
@@ -116,4 +121,13 @@ it("closes on an outside press without stealing focus", async () => {
   fireEvent.pointerDown(elsewhere);
   expect(screen.queryByRole("menu")).not.toBeInTheDocument();
   expect(trigger).not.toHaveFocus();
+});
+
+it("counts the requests waiting on the Friends entry and marks the profile", async () => {
+  const { trigger, user } = renderMenu({ pendingRequests: 2 });
+  expect(trigger.querySelector(".profile-dot")).not.toBeNull();
+  await user.click(trigger);
+  expect(screen.getByRole("menuitem", { name: /Friends/ })).toHaveTextContent(
+    "2",
+  );
 });

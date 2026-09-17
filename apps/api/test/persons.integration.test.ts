@@ -145,7 +145,7 @@ describe("persons API", () => {
     for (const [payload, message] of [
       [
         { expectedVersion: 1, userId: stranger.user.id },
-        "userId must name a member of this workspace.",
+        "userId must name a member of this workspace or a friend of one.",
       ],
       [
         { expectedVersion: 1, userId: editor.user.id },

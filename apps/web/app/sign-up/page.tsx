@@ -1,9 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { type FormEvent, useState } from "react";
+import { type FormEvent, Suspense, useState } from "react";
 
 import { AccountPage } from "../../components/account-page";
 import { AppearanceSettings } from "../../components/appearance-settings";
@@ -11,10 +11,12 @@ import { ErrorNotice } from "../../components/feedback";
 import { useRedirectWhenSignedIn, useSignUp } from "../../lib/account-queries";
 import { useAuthSession } from "../../lib/auth-session";
 
-export default function SignUpPage() {
+function SignUpForm() {
   const t = useTranslations("auth");
   const auth = useAuthSession();
   const router = useRouter();
+  const parameters = useSearchParams();
+  const invitationToken = parameters.get("invitation");
   const signUp = useSignUp();
   const [displayName, setDisplayName] = useState("");
   const [email, setEmail] = useState("");
@@ -24,7 +26,12 @@ export default function SignUpPage() {
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     signUp.mutate(
-      { displayName, email, password },
+      {
+        displayName,
+        email,
+        password,
+        ...(invitationToken !== null && { invitationToken }),
+      },
       {
         onSuccess: () =>
           router.push(`/verify-email?email=${encodeURIComponent(email)}`),
@@ -93,5 +100,13 @@ export default function SignUpPage() {
         </p>
       </form>
     </AccountPage>
+  );
+}
+
+export default function SignUpPage() {
+  return (
+    <Suspense>
+      <SignUpForm />
+    </Suspense>
   );
 }

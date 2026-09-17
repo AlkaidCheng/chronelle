@@ -4,7 +4,7 @@ import type { SessionResponse } from "@chronelle/schemas";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useId, useRef, useState } from "react";
-import { CheckIcon, SettingsIcon, SignOutIcon } from "./icons";
+import { CheckIcon, PeopleIcon, SettingsIcon, SignOutIcon } from "./icons";
 import {
   focusFirstMenuItem,
   moveMenuFocus,
@@ -13,17 +13,21 @@ import {
 
 interface AccountMenuProps {
   readonly session: SessionResponse;
+  /** Friend requests waiting for an answer; shown on the Friends entry and as a dot on the profile block. */
+  readonly pendingRequests?: number | undefined;
   readonly onSwitchWorkspace: (workspaceId: string) => void;
   readonly onSignOut: () => void;
 }
 
 /**
  * The sidebar profile block opens a menu above it: the account, the
- * workspaces the person can open, Settings, and sign out. Escape or a
- * press outside closes it and returns focus to the profile block.
+ * workspaces the person can open, Friends (with the requests waiting),
+ * Settings, and sign out. Escape or a press outside closes it and returns
+ * focus to the profile block.
  */
 export function AccountMenu({
   session,
+  pendingRequests = 0,
   onSwitchWorkspace,
   onSignOut,
 }: AccountMenuProps) {
@@ -60,6 +64,7 @@ export function AccountMenu({
       >
         <span className="profile-mark" aria-hidden="true">
           {session.user.displayName.slice(0, 1).toUpperCase()}
+          {pendingRequests > 0 ? <span className="profile-dot" /> : null}
         </span>
         <span className="profile-copy">
           <strong>{session.user.displayName}</strong>
@@ -104,6 +109,19 @@ export function AccountMenu({
             );
           })}
           <hr className="quiet-menu-separator" />
+          <Link
+            role="menuitem"
+            tabIndex={-1}
+            className="quiet-menu-item"
+            href="/friends"
+            onClick={() => setOpen(false)}
+          >
+            <PeopleIcon />
+            <span>{t("friends")}</span>
+            {pendingRequests > 0 ? (
+              <span className="menu-count">{pendingRequests}</span>
+            ) : null}
+          </Link>
           <Link
             role="menuitem"
             tabIndex={-1}

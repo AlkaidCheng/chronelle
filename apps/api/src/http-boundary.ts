@@ -1,40 +1,46 @@
 import { STATUS_CODES } from "node:http";
 import {
-  LogController,
-  errorCodes,
-  type FastifyInstance,
-  type FastifyReply,
-  type FastifyServerOptions,
-} from "fastify";
-import { createId } from "@chronelle/db";
-import {
-  apiRequestTimeoutMs,
-  maximumApiBodySizeBytes,
-} from "@chronelle/schemas";
-import {
   AuthorizationDeniedError,
   InvalidShareError,
   PrincipalUnavailableError,
 } from "@chronelle/authorization";
+import { createId } from "@chronelle/db";
 import {
   CommandConflictError,
   CommandStackConflictError,
   DocumentTransferUnavailableError,
   InvalidDocumentUploadError,
   InvalidObjectStateError,
-  LabelNameConflictError,
   InvalidRelationError,
+  LabelNameConflictError,
   ObjectConflictError,
   RelationConflictError,
   StorageInventoryBusyError,
 } from "@chronelle/object-model";
 import {
+  apiRequestTimeoutMs,
+  maximumApiBodySizeBytes,
+} from "@chronelle/schemas";
+import {
+  StorageInventoryUnavailableError,
   StorageObjectConflictError,
   StorageObjectUnavailableError,
   UnsafeStorageKeyError,
-  StorageInventoryUnavailableError,
 } from "@chronelle/storage";
+import {
+  errorCodes,
+  type FastifyInstance,
+  type FastifyReply,
+  type FastifyServerOptions,
+  LogController,
+} from "fastify";
 import { HttpError, InvalidRequestError } from "./errors.js";
+import {
+  FriendConflictError,
+  FriendLimitError,
+  FriendUnavailableError,
+  InvalidFriendRequestError,
+} from "./friends/friend-store.js";
 
 const domainErrors = [
   [StorageInventoryBusyError, 429, "inventory_busy"],
@@ -50,6 +56,10 @@ const domainErrors = [
   [InvalidRelationError, 400, "invalid_request"],
   [InvalidDocumentUploadError, 400, "invalid_request"],
   [UnsafeStorageKeyError, 400, "invalid_request"],
+  [FriendUnavailableError, 404, "friend_unavailable"],
+  [FriendConflictError, 409, "friend_conflict"],
+  [FriendLimitError, 429, "friend_limit"],
+  [InvalidFriendRequestError, 400, "invalid_request"],
 ] as const;
 
 function resolveHttpError(error: unknown): HttpError {

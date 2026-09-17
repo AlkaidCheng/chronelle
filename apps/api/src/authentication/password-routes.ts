@@ -9,6 +9,7 @@ import {
 } from "@chronelle/schemas";
 import type { FastifyInstance } from "fastify";
 
+import type { FriendService } from "../friends/friend-service.js";
 import { parseRequest } from "../request-validation.js";
 import type {
   PasswordAuthService,
@@ -18,6 +19,7 @@ import { userPayload } from "./routes.js";
 
 export interface PasswordRouteDependencies {
   readonly passwordAuth: PasswordAuthService;
+  readonly friends: FriendService;
 }
 
 function signedIn(session: PasswordSession) {
@@ -42,7 +44,14 @@ export function registerPasswordRoutes(
 ): void {
   app.post("/api/auth/sign-up", async (request, reply) => {
     const input = parseRequest(signUpRequestSchema, request.body);
-    await dependencies.passwordAuth.signUp(input, request.id);
+    const user = await dependencies.passwordAuth.signUp(input, request.id);
+    // The invitations waiting for this address become friend requests,
+    // whether or not the sign-up link carried a token.
+    await dependencies.friends.claimInvitations(
+      user.id,
+      input.invitationToken ?? null,
+      request.id,
+    );
     return reply.code(202).send(accepted());
   });
 

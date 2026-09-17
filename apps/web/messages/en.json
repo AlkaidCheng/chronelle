@@ -61,7 +61,8 @@
     "menu": "Account",
     "workspaces": "Workspaces",
     "settings": "Settings",
-    "signOut": "Sign out"
+    "signOut": "Sign out",
+    "friends": "Friends"
   },
   "settings": {
     "title": "Settings",
@@ -80,6 +81,32 @@
     "signOutEverywhere": "Sign out everywhere",
     "signOutEverywhereNote": "Ends every session of this account, including this one.",
     "appearanceNote": "Appearance is kept on this browser. The Theme entry in the rail holds the same choices."
+  },
+  "friends": {
+    "title": "Friends",
+    "loading": "Loading friends...",
+    "invite": "Invite a friend",
+    "closeInvite": "Close invitation",
+    "inviteNote": "They get an email with your name and note. Once they accept, you can link them to a person and share with one tick.",
+    "person": "Person",
+    "someoneNew": "Someone new",
+    "email": "Email",
+    "note": "Note (optional)",
+    "cancel": "Cancel",
+    "send": "Send invitation",
+    "sending": "Sending...",
+    "requests": "Requests",
+    "friends": "Friends",
+    "sent": "Sent",
+    "accept": "Accept",
+    "decline": "Decline",
+    "withdraw": "Withdraw",
+    "resend": "Resend",
+    "remove": "Remove",
+    "noFriends": "No friends yet. Invite someone by email.",
+    "since": "Since {date}",
+    "sentOn": "Sent {date}",
+    "linkUntil": "Sign-up link valid until {date}"
   },
   "preferences": {
     "language": "Language",
@@ -110,7 +137,9 @@
     "contactValue": "Contact {n} value",
     "removeContact": "Remove contact {n}",
     "addContact": "Add contact",
-    "labels": "Labels"
+    "labels": "Labels",
+    "linkToFriend": "Link to a friend",
+    "noFriendLink": "Not linked to a friend"
   },
   "people": {
     "title": "People",

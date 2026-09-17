@@ -1,27 +1,27 @@
+import { healthStatusSchema } from "@chronelle/schemas";
 import Fastify, {
   type FastifyInstance,
   type FastifyServerOptions,
 } from "fastify";
-
-import { healthStatusSchema } from "@chronelle/schemas";
 
 import { registerPasswordRoutes } from "./authentication/password-routes.js";
 import {
   registerDevelopmentAuthenticationRoute,
   registerSessionRoutes,
 } from "./authentication/routes.js";
+import { registerCommandRoutes } from "./commands/routes.js";
 import type { AppDependencies } from "./dependencies.js";
 import { registerDocumentRoutes } from "./documents/routes.js";
-import { httpServerOptions, registerHttpBoundary } from "./http-boundary.js";
-import { registerEventPlanningRoutes } from "./event-planning/routes.js";
-import { registerLabelRoutes } from "./labels/routes.js";
 import { registerEventPageRoutes } from "./event-pages/routes.js";
+import { registerEventPlanningRoutes } from "./event-planning/routes.js";
+import { registerFriendRoutes } from "./friends/routes.js";
+import { httpServerOptions, registerHttpBoundary } from "./http-boundary.js";
+import { registerLabelRoutes } from "./labels/routes.js";
+import { registerRecoveryRoutes } from "./recovery/routes.js";
 import { registerRequestContext } from "./request-context.js";
+import { registerRevisionRoutes } from "./revisions/routes.js";
 import { registerSearchRoutes } from "./search/routes.js";
 import { registerSharingRoutes } from "./sharing/routes.js";
-import { registerRevisionRoutes } from "./revisions/routes.js";
-import { registerRecoveryRoutes } from "./recovery/routes.js";
-import { registerCommandRoutes } from "./commands/routes.js";
 import { registerStorageInventoryRoutes } from "./storage-inventory/routes.js";
 
 export function buildApp(
@@ -36,7 +36,11 @@ export function buildApp(
     identity: dependencies.identity,
     sessions: dependencies.sessions,
   });
-  registerPasswordRoutes(app, { passwordAuth: dependencies.passwordAuth });
+  registerPasswordRoutes(app, {
+    passwordAuth: dependencies.passwordAuth,
+    friends: dependencies.friends,
+  });
+  registerFriendRoutes(app, { friends: dependencies.friends });
   registerDocumentRoutes(app, dependencies);
   registerEventPlanningRoutes(app, dependencies);
   registerLabelRoutes(app, dependencies);

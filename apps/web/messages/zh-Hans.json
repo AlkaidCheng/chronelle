@@ -61,7 +61,8 @@
     "menu": "账号",
     "workspaces": "工作区",
     "settings": "设置",
-    "signOut": "退出登录"
+    "signOut": "退出登录",
+    "friends": "好友"
   },
   "settings": {
     "title": "设置",
@@ -80,6 +81,32 @@
     "signOutEverywhere": "退出所有设备",
     "signOutEverywhereNote": "结束此账号的所有会话，包括当前这个。",
     "appearanceNote": "外观设置保存在此浏览器中。侧栏的“主题”提供同样的选项。"
+  },
+  "friends": {
+    "title": "好友",
+    "loading": "正在加载好友...",
+    "invite": "邀请好友",
+    "closeInvite": "关闭邀请",
+    "inviteNote": "对方会收到一封带有您的名字和留言的邮件。对方接受后，您可以将其关联到参与者，并一键共享。",
+    "person": "参与者",
+    "someoneNew": "新联系人",
+    "email": "邮箱",
+    "note": "留言（可选）",
+    "cancel": "取消",
+    "send": "发送邀请",
+    "sending": "发送中...",
+    "requests": "请求",
+    "friends": "好友",
+    "sent": "已发送",
+    "accept": "接受",
+    "decline": "拒绝",
+    "withdraw": "撤回",
+    "resend": "重新发送",
+    "remove": "移除",
+    "noFriends": "还没有好友。通过邮箱邀请一位吧。",
+    "since": "自 {date}",
+    "sentOn": "发送于 {date}",
+    "linkUntil": "注册链接有效期至 {date}"
   },
   "preferences": {
     "language": "语言",
@@ -110,7 +137,9 @@
     "contactValue": "联系方式 {n} 的内容",
     "removeContact": "移除联系方式 {n}",
     "addContact": "添加联系方式",
-    "labels": "标签"
+    "labels": "标签",
+    "linkToFriend": "关联好友",
+    "noFriendLink": "未关联好友"
   },
   "people": {
     "title": "参与者",

@@ -145,7 +145,7 @@ export class PasswordAuthService {
     this.#decoyHash = hashPassword(generateVerificationCode());
   }
 
-  async signUp(input: SignUpInput, requestId: string): Promise<void> {
+  async signUp(input: SignUpInput, requestId: string): Promise<UserRow> {
     if ((await this.#credentials.findAccount(input.email)) !== null)
       throw new EmailTakenError();
     const passwordHash = await hashPassword(input.password);
@@ -166,6 +166,7 @@ export class PasswordAuthService {
             locale: input.locale,
           });
     await this.#sendCode(user, "verify_email");
+    return user;
   }
 
   async verifyEmail(

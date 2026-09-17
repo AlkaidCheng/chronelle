@@ -11,40 +11,40 @@ import {
   CloudBaseCommandWriteRepository,
   CloudBaseDocumentTransferReadRepository,
   CloudBaseDocumentTransferWriteRepository,
-  CloudBaseEventReadRepository,
-  CloudBaseLabelRepository,
-  CloudBaseTaskReadRepository,
-  LabelService,
-  PostgresLabelRepository,
-  CloudBaseProjectionReadRepository,
   CloudBaseEventContextWriteRepository,
   CloudBaseEventLayoutReadRepository,
   CloudBaseEventLayoutWriteRepository,
+  CloudBaseEventReadRepository,
   CloudBaseEventWriteRepository,
   CloudBaseExpenseWriteRepository,
   CloudBaseGrantReadRepository,
+  CloudBaseLabelRepository,
   CloudBaseObjectLifecycleWriteRepository,
   CloudBaseObjectReadRepository,
+  CloudBasePersonReadRepository,
+  CloudBasePersonWriteRepository,
+  CloudBaseProjectionReadRepository,
   CloudBaseRecoveryReadRepository,
   CloudBaseRelationReadRepository,
   CloudBaseRelationWriteRepository,
-  CloudBaseSharingWriteRepository,
-  CloudBaseStorageInventoryReadRepository,
-  CloudBasePersonReadRepository,
-  CloudBasePersonWriteRepository,
   CloudBaseReminderWriteRepository,
   CloudBaseRevisionReadRepository,
   CloudBaseSearchReadRepository,
+  CloudBaseSharingWriteRepository,
+  CloudBaseStorageInventoryReadRepository,
+  CloudBaseTaskReadRepository,
   CloudBaseTaskWriteRepository,
   DocumentService,
-  EventPlanningObjectService,
-  EventPlanningProjectionService,
-  ObjectRelationService,
-  ObjectRevisionService,
-  ObjectRestorationService,
-  ObjectRecoveryService,
   EventContextService,
   EventLayoutService,
+  EventPlanningObjectService,
+  EventPlanningProjectionService,
+  LabelService,
+  ObjectRecoveryService,
+  ObjectRelationService,
+  ObjectRestorationService,
+  ObjectRevisionService,
+  PostgresLabelRepository,
   ReversibleCommandService,
   StorageInventoryService,
 } from "@chronelle/object-model";
@@ -59,11 +59,17 @@ import { CloudBaseSessionStore } from "./authentication/cloudbase-session-store.
 import { PostgresCredentialStore } from "./authentication/credential-store.js";
 import type { EmailSender } from "./authentication/email-sender.js";
 import {
-  PasswordAuthService,
   type PasswordAuthOptions,
+  PasswordAuthService,
 } from "./authentication/password-auth-service.js";
 import { SessionAuthProvider } from "./authentication/session-auth-provider.js";
 import { PostgresSessionStore } from "./authentication/session-store.js";
+import { CloudBaseFriendStore } from "./friends/cloudbase-friend-store.js";
+import {
+  FriendService,
+  type FriendServiceOptions,
+} from "./friends/friend-service.js";
+import { PostgresFriendStore } from "./friends/friend-store.js";
 import { CloudBaseIdentityStore } from "./identity/cloudbase-identity-store.js";
 import { WorkspaceIdentityService } from "./identity/workspace-identity-service.js";
 
@@ -74,6 +80,7 @@ export interface AppDependencies {
   readonly developmentSignIn: boolean;
   readonly sessions: SessionAuthProvider;
   readonly passwordAuth: PasswordAuthService;
+  readonly friends: FriendService;
   readonly documents: DocumentService;
   readonly identity: WorkspaceIdentityService;
   readonly objects: EventPlanningObjectService;
@@ -104,6 +111,7 @@ export interface AppDependencyOptions {
   /** Outbound email for verification codes; the log sender by default. */
   readonly email?: EmailSender | undefined;
   readonly passwordAuth?: PasswordAuthOptions | undefined;
+  readonly friends?: FriendServiceOptions | undefined;
 }
 
 // The server composes a real sender from its configuration; test
@@ -221,6 +229,15 @@ export function createAppDependencies(
     new LocalFilesystemStorageProvider({
       root: options.localStorageRoot ?? ".chronelle/storage",
     });
+  // Friends follow the identity store: the gateway once a client exists.
+  const friends = new FriendService(
+    options.cloudBaseRdb === undefined
+      ? new PostgresFriendStore(connection.db, options.clock)
+      : new CloudBaseFriendStore(options.cloudBaseRdb),
+    options.email ?? discardingEmailSender,
+    objects,
+    { clock: options.clock, ...options.friends },
+  );
 
   return {
     authProvider: authProvider ?? sessions,
@@ -228,6 +245,7 @@ export function createAppDependencies(
     developmentSignIn: false,
     sessions,
     passwordAuth,
+    friends,
     documents: new DocumentService(connection.db, objects, storage, {
       clock: options.clock,
       transferTtlMs: options.documentTransferTtlMs,

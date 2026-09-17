@@ -50,3 +50,46 @@ describe("messagesFor", () => {
     );
   });
 });
+
+describe("friend emails", () => {
+  const request = {
+    productName: "Chronelle",
+    senderName: "Ana",
+    senderEmail: "ana@example.test",
+    message: "Climbing on Saturday?",
+  };
+
+  it("tells an account who asked, with the note, in its language", () => {
+    const english = messagesFor("en").friendRequestEmail(request);
+    expect(english.subject).toBe("Chronelle: Ana wants to connect");
+    expect(english.text).toContain("Ana (ana@example.test)");
+    expect(english.text).toContain('"Climbing on Saturday?"');
+    expect(
+      messagesFor("en").friendRequestEmail({ ...request, message: null }).text,
+    ).not.toContain('"');
+    expect(messagesFor("zh-Hans").friendRequestEmail(request).subject).toBe(
+      "Chronelle：Ana 想与您成为好友",
+    );
+    expect(messagesFor("zh-TW").friendRequestEmail(request).subject).toBe(
+      "Chronelle：Ana 想與您成為好友",
+    );
+  });
+
+  it("gives a new address the sign-up link and its validity", () => {
+    const input = {
+      ...request,
+      link: "https://chronelle.example/sign-up?invitation=t",
+      expiresInDays: 14,
+    };
+    const english = messagesFor(null).friendInvitationEmail(input);
+    expect(english.subject).toBe("Chronelle: Ana invited you");
+    expect(english.text).toContain(input.link);
+    expect(english.text).toContain("14 days");
+    expect(messagesFor("zh-Hans").friendInvitationEmail(input).text).toContain(
+      "14 天内有效",
+    );
+    expect(messagesFor("zh-Hant").friendInvitationEmail(input).text).toContain(
+      "14 天內有效",
+    );
+  });
+});

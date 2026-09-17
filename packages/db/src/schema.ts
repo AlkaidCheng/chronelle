@@ -9,9 +9,9 @@ import {
   pgTable,
   primaryKey,
   smallint,
-  uniqueIndex,
   text,
   timestamp,
+  uniqueIndex,
   uuid,
 } from "drizzle-orm/pg-core";
 
@@ -153,6 +153,80 @@ export const emailVerifications = pgTable("email_verifications", {
   expiresAt: createSessionInstantColumn("expires_at").notNull(),
   consumedAt: createSessionInstantColumn("consumed_at"),
 });
+
+export const connectionStatuses = [
+  "pending",
+  "accepted",
+  "declined",
+  "withdrawn",
+  "removed",
+] as const;
+export type ConnectionStatus = (typeof connectionStatuses)[number];
+
+/** A friend request between two accounts, and the connection it becomes. */
+export const userConnections = pgTable(
+  "user_connections",
+  {
+    id: uuid("id").primaryKey(),
+    requesterId: uuid("requester_id").notNull(),
+    addresseeId: uuid("addressee_id").notNull(),
+    status: text("status")
+      .$type<ConnectionStatus>()
+      .notNull()
+      .default("pending"),
+    message: text("message"),
+    /** The requester's person card the invitation came from, in its workspace. */
+    personId: uuid("person_id"),
+    workspaceId: uuid("workspace_id"),
+    createdAt: createSessionInstantColumn("created_at").notNull().defaultNow(),
+    lastSentAt: createSessionInstantColumn("last_sent_at")
+      .notNull()
+      .defaultNow(),
+    respondedAt: createSessionInstantColumn("responded_at"),
+  },
+  (table) => [
+    uniqueIndex("user_connections_live_pair_idx")
+      .on(
+        sql`LEAST(${table.requesterId}, ${table.addresseeId})`,
+        sql`GREATEST(${table.requesterId}, ${table.addresseeId})`,
+      )
+      .where(sql`${table.status} IN ('pending', 'accepted')`),
+  ],
+);
+
+export const invitationStatuses = ["pending", "consumed", "withdrawn"] as const;
+export type InvitationStatus = (typeof invitationStatuses)[number];
+
+/** An invitation to an address without an account, keyed by its token's digest. */
+export const userInvitations = pgTable(
+  "user_invitations",
+  {
+    id: uuid("id").primaryKey(),
+    requesterId: uuid("requester_id").notNull(),
+    email: text("email").notNull(),
+    message: text("message"),
+    personId: uuid("person_id"),
+    workspaceId: uuid("workspace_id"),
+    status: text("status")
+      .$type<InvitationStatus>()
+      .notNull()
+      .default("pending"),
+    tokenDigest: text("token_digest").notNull(),
+    createdAt: createSessionInstantColumn("created_at").notNull().defaultNow(),
+    lastSentAt: createSessionInstantColumn("last_sent_at")
+      .notNull()
+      .defaultNow(),
+    expiresAt: createSessionInstantColumn("expires_at").notNull(),
+    consumedAt: createSessionInstantColumn("consumed_at"),
+    consumedBy: uuid("consumed_by"),
+  },
+  (table) => [
+    uniqueIndex("user_invitations_pending_idx")
+      .on(table.requesterId, table.email)
+      .where(sql`${table.status} = 'pending'`),
+    uniqueIndex("user_invitations_token_idx").on(table.tokenDigest),
+  ],
+);
 
 export const workspaces = pgTable("workspaces", {
   id: uuid("id").primaryKey(),
@@ -584,6 +658,8 @@ export type UserSessionRow = typeof userSessions.$inferSelect;
 export type NewUserSessionRow = typeof userSessions.$inferInsert;
 export type UserCredentialRow = typeof userCredentials.$inferSelect;
 export type EmailVerificationRow = typeof emailVerifications.$inferSelect;
+export type UserConnectionRow = typeof userConnections.$inferSelect;
+export type UserInvitationRow = typeof userInvitations.$inferSelect;
 export type WorkspaceRow = typeof workspaces.$inferSelect;
 export type NewWorkspaceRow = typeof workspaces.$inferInsert;
 export type WorkspaceMemberRow = typeof workspaceMembers.$inferSelect;
