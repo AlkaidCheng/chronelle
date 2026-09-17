@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { type FormEvent, useState } from "react";
 
 import { AccountPage } from "../../components/account-page";
@@ -11,6 +12,7 @@ import { useRedirectWhenSignedIn, useSignUp } from "../../lib/account-queries";
 import { useAuthSession } from "../../lib/auth-session";
 
 export default function SignUpPage() {
+  const t = useTranslations("auth");
   const auth = useAuthSession();
   const router = useRouter();
   const signUp = useSignUp();
@@ -35,15 +37,12 @@ export default function SignUpPage() {
       <form className="sign-in-form" onSubmit={handleSubmit}>
         <AppearanceSettings />
         <div>
-          <p className="eyebrow">Welcome to Chronelle</p>
-          <h2>Create your account</h2>
-          <p className="form-intro">
-            A code is sent to your email to confirm the address before the first
-            sign-in.
-          </p>
+          <p className="eyebrow">{t("signUp.eyebrow")}</p>
+          <h2>{t("signUp.title")}</h2>
+          <p className="form-intro">{t("signUp.intro")}</p>
         </div>
         <label className="field">
-          <span>Name</span>
+          <span>{t("name")}</span>
           <input
             autoComplete="name"
             disabled={!auth.isHydrated}
@@ -54,7 +53,7 @@ export default function SignUpPage() {
           />
         </label>
         <label className="field">
-          <span>Email</span>
+          <span>{t("email")}</span>
           <input
             autoComplete="email"
             disabled={!auth.isHydrated}
@@ -65,7 +64,7 @@ export default function SignUpPage() {
           />
         </label>
         <label className="field">
-          <span>Password</span>
+          <span>{t("password")}</span>
           <input
             aria-describedby="sign-up-password-hint"
             autoComplete="new-password"
@@ -79,7 +78,7 @@ export default function SignUpPage() {
           />
         </label>
         <small className="field-hint" id="sign-up-password-hint">
-          At least 10 characters.
+          {t("passwordHint")}
         </small>
         {signUp.isError ? <ErrorNotice error={signUp.error} /> : null}
         <button
@@ -87,10 +86,10 @@ export default function SignUpPage() {
           disabled={!auth.isHydrated || signUp.isPending}
           type="submit"
         >
-          {signUp.isPending ? "Creating account..." : "Create account"}
+          {signUp.isPending ? t("signUp.pending") : t("signUp.submit")}
         </button>
         <p className="form-links">
-          <Link href="/sign-in">Already have an account? Sign in</Link>
+          <Link href="/sign-in">{t("signUp.haveAccount")}</Link>
         </p>
       </form>
     </AccountPage>

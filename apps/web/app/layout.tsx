@@ -1,10 +1,13 @@
 import type { Metadata, Viewport } from "next";
 import { headers } from "next/headers";
+import { NextIntlClientProvider } from "next-intl";
+import { getLocale } from "next-intl/server";
 import type { ReactNode } from "react";
 
 import "./styles.css";
 import "./collections.css";
 import { Providers } from "./providers";
+import { LocaleSync } from "../i18n/locale-sync";
 import { displayBootstrap } from "../lib/display-preferences";
 
 export const dynamic = "force-dynamic";
@@ -30,13 +33,17 @@ interface RootLayoutProps {
 
 export default async function RootLayout({ children }: RootLayoutProps) {
   const nonce = (await headers()).get("x-nonce") ?? undefined;
+  const locale = await getLocale();
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang={locale} suppressHydrationWarning>
       <head>
         <script nonce={nonce}>{displayBootstrap}</script>
       </head>
       <body>
-        <Providers>{children}</Providers>
+        <NextIntlClientProvider>
+          <LocaleSync />
+          <Providers>{children}</Providers>
+        </NextIntlClientProvider>
       </body>
     </html>
   );

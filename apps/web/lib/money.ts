@@ -1,3 +1,5 @@
+import { activeLocale } from "../i18n/active-locale";
+
 interface Money {
   readonly amount: string;
   readonly currency: string;
@@ -11,7 +13,7 @@ function isDecimalAmount(amount: string): amount is `${number}` {
 export function formatMoney(
   amount: string,
   currency: string,
-  locale?: string,
+  locale: string = activeLocale(),
 ): string {
   if (!isDecimalAmount(amount)) return `${currency} ${amount}`;
   return new Intl.NumberFormat(locale, {

@@ -1,0 +1,412 @@
+{
+  "nav": {
+    "events": "Events",
+    "tasks": "Tasks",
+    "people": "People",
+    "search": "Search",
+    "trash": "Trash",
+    "searchAndCommands": "Search and commands",
+    "workspaceNavigation": "Workspace navigation",
+    "skipToContent": "Skip to content",
+    "openingWorkspace": "Opening your workspace"
+  },
+  "theme": {
+    "title": "Theme",
+    "mode": "Mode",
+    "appearance": "Appearance",
+    "system": "System",
+    "light": "Light",
+    "dark": "Dark",
+    "palette": "Palette",
+    "colorPalette": "Color palette",
+    "density": "Density",
+    "comfortable": "Comfortable",
+    "compact": "Compact",
+    "motion": "Motion",
+    "reduced": "Reduced",
+    "language": "Language",
+    "reset": "Reset display settings",
+    "customize": "Customize",
+    "customizeAppearance": "Customize appearance",
+    "closeDialog": "Close appearance settings",
+    "dialogIntro": "Make this space yours. Changes apply immediately on this browser, without changing anyone else's workspace.",
+    "lightAndDark": "Light and dark",
+    "lightAndDarkNote": "Every palette supports both. System follows your device.",
+    "comfortableNote": "More space between records",
+    "compactNote": "Closer rows, full-size controls",
+    "motionSystemNote": "Respect device motion preferences",
+    "motionReducedNote": "Minimize movement and transitions",
+    "storageNote": "Saved only when browser storage is available. Reset affects display settings only, never your events or files.",
+    "done": "Done",
+    "palettes": {
+      "paper": "Ink & Paper",
+      "celadon": "Celadon",
+      "neutral": "Modern Neutral"
+    },
+    "paletteDescriptions": {
+      "paper": "Warm ivory and vermilion",
+      "celadon": "Porcelain greens and cool ink",
+      "neutral": "Quiet neutrals and blue"
+    }
+  },
+  "account": {
+    "menu": "Account",
+    "workspaces": "Workspaces",
+    "changePassword": "Change password",
+    "signOut": "Sign out"
+  },
+  "events": {
+    "title": "Events",
+    "filterByName": "Filter events by name",
+    "find": "Find an event",
+    "filterMenu": "Filter events",
+    "sortMenu": "Sort events",
+    "layoutMenu": "Event layout",
+    "refresh": "Refresh events",
+    "new": "New event",
+    "countLabel": "Event count",
+    "count": "{count, plural, one {# event loaded} other {# events loaded}}",
+    "all": "All events",
+    "loading": "Loading events",
+    "empty": "No events yet",
+    "noMatch": "No matching events",
+    "clearFilters": "Clear filters",
+    "loadMore": "Load more events",
+    "loadingMore": "Loading more events...",
+    "filters": {
+      "all": "All events",
+      "upcoming": "Upcoming & ongoing",
+      "unscheduled": "Unscheduled",
+      "past": "Past"
+    },
+    "sorts": {
+      "date": "Event date",
+      "updated": "Recently updated",
+      "name": "Name A-Z"
+    },
+    "layouts": {
+      "grid": "Grid",
+      "list": "List"
+    },
+    "period": {
+      "upcoming": "Scheduled",
+      "past": "Past event",
+      "unscheduled": "Date to be decided"
+    }
+  },
+  "event": {
+    "allEvents": "All events",
+    "connecting": "Connecting your event plan",
+    "loadingView": "Loading this view",
+    "setDates": "Set dates",
+    "edit": "Edit event",
+    "viewerAccess": "Viewer access",
+    "share": "Share event",
+    "actionsFor": "Actions for {name}",
+    "copyLink": "Copy link",
+    "linkCopied": "Link copied.",
+    "moveToTrash": "Move to Trash",
+    "viewSelect": "Event view",
+    "pagesLabel": "Pages",
+    "viewsLabel": "Event views",
+    "addPage": "Add page",
+    "addPageDescription": "Create a named page in this event",
+    "addAPage": "Add a page",
+    "noPages": "No pages yet.",
+    "optionsFor": "Options for {name}",
+    "arrange": "Arrange layout",
+    "doneArranging": "Done arranging",
+    "pageOptions": "Page options",
+    "layoutHistory": "Layout history",
+    "commands": {
+      "history": "Event history",
+      "historyDescription": "Review changes to {name}",
+      "edit": "Edit event",
+      "editDescription": "Edit {name}",
+      "share": "Share event",
+      "shareDescription": "Manage access to {name}"
+    }
+  },
+  "views": {
+    "pages": "Pages",
+    "overview": "Overview",
+    "todos": "To-dos",
+    "calendar": "Calendar",
+    "timeline": "Timeline",
+    "itinerary": "Itinerary",
+    "expenses": "Expenses",
+    "reminders": "Reminders",
+    "files": "Files",
+    "people": "People",
+    "sharing": "Sharing",
+    "removedLinks": "Removed links"
+  },
+  "layouts": {
+    "list": "List",
+    "agenda": "Agenda",
+    "byDay": "By day",
+    "week": "By week",
+    "month": "Calendar",
+    "shown": {
+      "list": "Shown as a list.",
+      "agenda": "Shown as an agenda.",
+      "byDay": "Shown by day.",
+      "week": "Shown by week.",
+      "month": "Shown as a calendar."
+    }
+  },
+  "controls": {
+    "layout": "Layout",
+    "sort": "Sort",
+    "filter": "Filter",
+    "filterCount": "{count, plural, one {# filter} other {# filters}}",
+    "show": "Show",
+    "open": "Open",
+    "all": "All",
+    "done": "Done",
+    "hasTime": "Has a time",
+    "overdue": "Overdue",
+    "label": "Label",
+    "anyLabel": "Any label",
+    "assignee": "Assignee",
+    "anyone": "Anyone",
+    "me": "Me",
+    "clearFilters": "Clear filters",
+    "sorts": {
+      "manual": "Manual",
+      "due": "By due",
+      "name": "By name",
+      "updated": "By updated"
+    }
+  },
+  "todos": {
+    "title": "To-dos",
+    "open": "{count, plural, one {# open} other {# open}}",
+    "openOf": "{shown} of {total} open",
+    "addTask": "Add task",
+    "empty": "No tasks yet",
+    "nothingInView": "Nothing in this view",
+    "noDueDateGroup": "no due date"
+  },
+  "tasksPage": {
+    "eyebrow": "What needs doing",
+    "title": "Tasks",
+    "intro": "Every task you can see, on its own or inside an event, in your order.",
+    "new": "New task",
+    "filterByName": "Filter tasks by name",
+    "find": "Find a task...",
+    "refresh": "Refresh tasks",
+    "countLabel": "Task count",
+    "count": "{count, plural, one {# task loaded} other {# tasks loaded}}",
+    "all": "All tasks",
+    "loading": "Loading tasks",
+    "emptyTitle": "Nothing to do yet",
+    "emptyDescription": "Choose New task for something to do on its own, or add tasks inside an event and find them here too.",
+    "noMatchTitle": "No matching tasks",
+    "noMatchDescription": "Try another name or change your filters.",
+    "loadMore": "Load more tasks",
+    "loadingMore": "Loading more tasks..."
+  },
+  "quickAdd": {
+    "taskToList": "Add a task to the list",
+    "taskWith": "Add a task with {day}",
+    "taskFor": "Add a task for {day}",
+    "newTask": "New task",
+    "taskName": "Task name",
+    "addTask": "Add task"
+  },
+  "taskRow": {
+    "columns": {
+      "task": "Task",
+      "due": "Due",
+      "status": "Status"
+    },
+    "assignedTo": "Assigned to ",
+    "at": "At ",
+    "labels": "Labels",
+    "subtasksDone": "{done} of {total} subtasks done",
+    "complete": "Complete {name}",
+    "reopen": "Reopen {name}",
+    "actionsFor": "Actions for {name}",
+    "nowDue": "Now {day}",
+    "nowDueAt": "Now {day}, {time}",
+    "menu": {
+      "edit": "Edit",
+      "complete": "Complete",
+      "reopen": "Reopen",
+      "moveUp": "Move up",
+      "moveDown": "Move down",
+      "due": "Due",
+      "noDate": "No date",
+      "addSubtask": "Add subtask",
+      "duplicate": "Duplicate",
+      "copyLink": "Copy link",
+      "history": "History",
+      "moveToTrash": "Move to Trash"
+    },
+    "said": {
+      "completed": "{name} completed.",
+      "reopened": "{name} reopened.",
+      "moved": "{name} moved.",
+      "position": "{name} is now {at} of {total}.",
+      "noDueDate": "{name} has no due date now.",
+      "due": "{name} is due {day}.",
+      "duplicated": "Duplicated {name}.",
+      "linkCopied": "Link copied.",
+      "linkNotCopied": "The link could not be copied."
+    },
+    "groups": {
+      "overdue": "Overdue",
+      "noDueDate": "No due date"
+    },
+    "status": {
+      "todo": "To do",
+      "in_progress": "In progress",
+      "done": "Done",
+      "cancelled": "Cancelled",
+      "pending": "Pending",
+      "dismissed": "Dismissed",
+      "triggered": "Triggered"
+    }
+  },
+  "dates": {
+    "notScheduled": "Not scheduled",
+    "tbd": "TBD",
+    "noDay": "-",
+    "today": "Today",
+    "tomorrow": "Tomorrow",
+    "inWords": {
+      "today": "today",
+      "tomorrow": "tomorrow"
+    },
+    "hint": "{date} ({relative})",
+    "range": "{start} to {end}",
+    "duration": {
+      "minutes": "{minutes} min",
+      "hours": "{hours} h",
+      "hoursMinutes": "{hours} h {minutes} min"
+    }
+  },
+  "dueChoices": {
+    "today": "Today",
+    "tomorrow": "Tomorrow",
+    "laterThisWeek": "Later this week",
+    "thisWeekend": "This weekend",
+    "nextWeek": "Next week"
+  },
+  "repeat": {
+    "choices": {
+      "daily": "Every day",
+      "weekdays": "Every weekday",
+      "weekly": "Every week",
+      "biweekly": "Every 2 weeks",
+      "monthly": "Every month",
+      "yearly": "Every year"
+    },
+    "summary": {
+      "daily": "every day",
+      "weekdays": "every weekday",
+      "weekly": "every week",
+      "biweekly": "every 2 weeks",
+      "monthly": "every month",
+      "yearly": "every year"
+    },
+    "until": "{rule} until {date}",
+    "short": {
+      "daily": "repeats daily",
+      "weekdays": "repeats on weekdays",
+      "weekly": "repeats weekly",
+      "biweekly": "repeats every 2 weeks",
+      "monthly": "repeats monthly",
+      "yearly": "repeats yearly"
+    }
+  },
+  "auth": {
+    "eyebrow": "Life, thoughtfully connected",
+    "tagline": "Make every plan part of your story.",
+    "intro": "The people, plans, and little details that make life yours. Bring them together, one event at a time.",
+    "name": "Name",
+    "email": "Email",
+    "password": "Password",
+    "passwordHint": "At least 10 characters.",
+    "backToSignIn": "Back to sign in",
+    "signIn": {
+      "eyebrow": "Welcome back",
+      "title": "Sign in",
+      "intro": "Use the email and password of your Chronelle account.",
+      "pending": "Signing in...",
+      "submit": "Sign in",
+      "createAccount": "Create an account",
+      "forgot": "Forgot your password?"
+    },
+    "signUp": {
+      "eyebrow": "Welcome to Chronelle",
+      "title": "Create your account",
+      "intro": "A code is sent to your email to confirm the address before the first sign-in.",
+      "pending": "Creating account...",
+      "submit": "Create account",
+      "haveAccount": "Already have an account? Sign in"
+    },
+    "verify": {
+      "eyebrow": "One more step",
+      "title": "Confirm your email",
+      "intro": "Enter the six-digit code from the email we sent. It expires after fifteen minutes.",
+      "code": "Verification code",
+      "resent": "A new code is on its way if this address has an unverified account.",
+      "pending": "Confirming...",
+      "submit": "Confirm",
+      "resend": "Send a new code"
+    },
+    "reset": {
+      "eyebrow": "Account recovery",
+      "title": "Reset your password",
+      "introCode": "Enter the six-digit code from the email and choose a new password. Every other session of the account is signed out.",
+      "introEmail": "Enter the email of your account and we send a code to reset the password.",
+      "code": "Reset code",
+      "newPassword": "New password",
+      "updating": "Updating password...",
+      "setPassword": "Set new password",
+      "sending": "Sending code...",
+      "sendCode": "Send reset code"
+    },
+    "development": {
+      "footnote": "Development access",
+      "preview": "Development preview",
+      "eyebrow": "Welcome to Chronelle",
+      "title": "Open your workspace",
+      "intro": "Try your planning workspace with a test name and email. Use the same email to return to your plans.",
+      "pending": "Opening workspace...",
+      "continue": "Continue",
+      "privacy": "For trusted testing only. Email ownership is not verified, so anyone with an email can access that development identity. Do not use real personal data."
+    }
+  },
+  "notices": {
+    "somethingWrong": "Something went wrong",
+    "newerVersion": "A newer version is available",
+    "refreshing": "Refreshing...",
+    "refreshLatest": "Refresh latest",
+    "tryAgain": "Try again",
+    "incomplete": "The request could not be completed.",
+    "loading": "Loading",
+    "draftBody": "Your draft is preserved. Load the latest version to discard this draft and continue editing.",
+    "draftAction": "Discard draft and load latest",
+    "codes": {
+      "version_conflict": "The object changed after the supplied version was read.",
+      "workspace_unavailable": "This workspace is no longer available to you.",
+      "network_error": "The server could not be reached. Check your connection and try again.",
+      "request_failed": "The request could not be completed.",
+      "internal_error": "The server ran into a problem. Try again in a moment.",
+      "invalid_credentials": "The email or password is not right.",
+      "email_unverified": "Confirm your email before signing in.",
+      "principal_unavailable": "Your session has ended. Sign in again."
+    }
+  },
+  "common": {
+    "cancel": "Cancel",
+    "close": "Close",
+    "done": "Done",
+    "save": "Save",
+    "delete": "Delete",
+    "confirm": "Confirm"
+  }
+}

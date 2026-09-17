@@ -13,6 +13,7 @@ import type {
   EventLayoutResponse,
   EventPage,
 } from "@chronelle/schemas";
+import { useTranslations } from "next-intl";
 import { ErrorNotice } from "../../components/feedback";
 import { PlusIcon } from "../../components/icons";
 import {
@@ -61,6 +62,7 @@ export function EventPageCanvas({
   readonly onArrangingChange: (arranging: boolean) => void;
   readonly pageDrop?: RefObject<PageDrop | null> | undefined;
 }) {
+  const t = useTranslations("event");
   const save = useUpdateEventLayout(layout.eventId);
   const shortcut = useComponentShortcut();
   const locked = useRef(false);
@@ -554,10 +556,10 @@ export function EventPageCanvas({
               <span className="event-pages-empty-mark" aria-hidden="true">
                 <PlusIcon />
               </span>
-              Add a page
+              {t("addAPage")}
             </button>
           ) : (
-            <p>No pages yet.</p>
+            <p>{t("noPages")}</p>
           )}
         </div>
       )}

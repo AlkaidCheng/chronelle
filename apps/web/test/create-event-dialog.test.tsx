@@ -235,7 +235,9 @@ describe("event creation drafts", () => {
     await user.click(screen.getByRole("button", { name: "Cancel" }));
     await user.click(screen.getByRole("button", { name: "Keep editing" }));
     expect(screen.getByLabelText("Event name")).toHaveValue("A real event");
-    expect(screen.getByRole("alert")).toHaveTextContent("Could not save");
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "The server ran into a problem",
+    );
     await user.click(screen.getByRole("button", { name: "Create event" }));
     await waitFor(() => expect(onCreated).toHaveBeenCalledTimes(1));
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();

@@ -25,6 +25,8 @@ const router = {
   replace: (path: string) => {
     window.location.replace(`#${path}`);
   },
+  // The sandbox has no server render to refresh; its language stays English.
+  refresh: () => undefined,
 };
 
 export function useRouter() {

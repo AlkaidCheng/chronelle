@@ -10,6 +10,16 @@
   --row-padding: 14px;
 }
 
+/* Traditional Chinese picks the TC faces; the Latin faces stay first. */
+:root:lang(zh-Hant) {
+  --font-body:
+    ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+    "PingFang TC", "Microsoft JhengHei", sans-serif;
+  --font-display:
+    "Iowan Old Style", "Palatino Linotype", "Songti TC", "Noto Serif CJK TC",
+    serif;
+}
+
 :root,
 [data-palette="paper"] {
   --canvas: light-dark(#f5f0e6, #1d1b19);

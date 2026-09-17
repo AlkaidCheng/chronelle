@@ -1,6 +1,7 @@
 import type { EventResponse } from "@chronelle/schemas";
 import { calendarDateSchema } from "@chronelle/schemas";
-import { fromDateTimeInput, toDateTimeInput, formatDateTime } from "./format";
+import { activeLocale, tr } from "../i18n/active-locale";
+import { formatDateTime, fromDateTimeInput, toDateTimeInput } from "./format";
 
 export interface EventScheduleDraft {
   mode: "unscheduled" | "dates" | "timed";
@@ -65,30 +66,33 @@ export function eventSchedulePayload(draft: EventScheduleDraft) {
   return { ...empty, startsAt, endsAt };
 }
 
-const calendarDateFormatter = new Intl.DateTimeFormat(undefined, {
-  dateStyle: "medium",
-  timeZone: "UTC",
-});
-
-export function formatCalendarDate(date: string): string {
-  return calendarDateFormatter.format(new Date(`${date}T00:00:00Z`));
+/** A calendar date in the active locale, the day it names in every zone. */
+export function formatCalendarDate(
+  date: string,
+  locale: string = activeLocale(),
+): string {
+  return new Intl.DateTimeFormat(locale, {
+    dateStyle: "medium",
+    timeZone: "UTC",
+  }).format(new Date(`${date}T00:00:00Z`));
 }
 
 export function formatEventSchedule(
   event: Pick<EventResponse, "startsAt" | "endsAt" | "startsOn" | "endsOn">,
 ): string {
-  if (event.startsOn)
-    return (
-      formatCalendarDate(event.startsOn) +
-      (event.endsOn && event.endsOn !== event.startsOn
-        ? ` to ${formatCalendarDate(event.endsOn)}`
-        : "")
-    );
+  const range = (start: string, end: string) =>
+    tr("dates")("range", { start, end });
+  if (event.startsOn) {
+    const start = formatCalendarDate(event.startsOn);
+    return event.endsOn && event.endsOn !== event.startsOn
+      ? range(start, formatCalendarDate(event.endsOn))
+      : start;
+  }
   if (event.startsAt === null) return "";
-  return (
-    formatDateTime(event.startsAt) +
-    (event.endsAt === null ? "" : ` to ${formatDateTime(event.endsAt)}`)
-  );
+  const start = formatDateTime(event.startsAt);
+  return event.endsAt === null
+    ? start
+    : range(start, formatDateTime(event.endsAt));
 }
 
 export function formatEventDatePart(
@@ -96,8 +100,8 @@ export function formatEventDatePart(
   part: "month" | "day",
 ): string {
   const value = event.startsOn ?? event.startsAt;
-  if (value === null) return part === "month" ? "TBD" : "-";
-  return new Intl.DateTimeFormat(undefined, {
+  if (value === null) return tr("dates")(part === "month" ? "tbd" : "noDay");
+  return new Intl.DateTimeFormat(activeLocale(), {
     ...(part === "month"
       ? { month: "short" as const }
       : { day: "2-digit" as const }),

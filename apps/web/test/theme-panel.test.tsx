@@ -10,6 +10,9 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { ThemePanel } from "../components/theme-panel";
 
+const router = vi.hoisted(() => ({ refresh: vi.fn() }));
+vi.mock("next/navigation", () => ({ useRouter: () => router }));
+
 beforeEach(() => {
   vi.stubGlobal("localStorage", window.sessionStorage);
 });

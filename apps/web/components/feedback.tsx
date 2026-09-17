@@ -1,6 +1,7 @@
 "use client";
 
 import { ApiClientError } from "@chronelle/api-client";
+import { useTranslations } from "next-intl";
 import type { ReactNode } from "react";
 
 import { AlertIcon, CheckIcon, InfoIcon } from "./icons";
@@ -58,17 +59,44 @@ interface ErrorNoticeProps {
   readonly isRefreshing?: boolean;
 }
 
-export function LoadingState({
-  label = "Loading",
-}: {
-  readonly label?: string;
-}) {
+export function LoadingState({ label }: { readonly label?: string }) {
+  const t = useTranslations("notices");
   return (
     <div aria-live="polite" className="loading-state" role="status">
       <span aria-hidden="true" className="spinner" />
-      {label}
+      {label ?? t("loading")}
     </div>
   );
+}
+
+const mappedCodes = [
+  "version_conflict",
+  "workspace_unavailable",
+  "network_error",
+  "request_failed",
+  "internal_error",
+  "invalid_credentials",
+  "email_unverified",
+  "principal_unavailable",
+] as const;
+type MappedCode = (typeof mappedCodes)[number];
+
+function isMappedCode(code: string): code is MappedCode {
+  return (mappedCodes as readonly string[]).includes(code);
+}
+
+/**
+ * What a notice says for an error: the message of a known API code in the
+ * active language, the API's own message for others, and a generic line
+ * for anything that is not an Error.
+ */
+export function useErrorMessage(): (error: unknown) => string {
+  const t = useTranslations("notices");
+  return (error) => {
+    if (error instanceof ApiClientError && isMappedCode(error.code))
+      return t(`codes.${error.code}`);
+    return error instanceof Error ? error.message : t("incomplete");
+  };
 }
 
 export function EmptyState({
@@ -93,12 +121,11 @@ export function ErrorNotice({
   refreshLabel,
   isRefreshing = false,
 }: ErrorNoticeProps) {
+  const t = useTranslations("notices");
+  const describe = useErrorMessage();
   const isConflict =
     error instanceof ApiClientError && error.code === "version_conflict";
-  const message =
-    error instanceof Error
-      ? error.message
-      : "The request could not be completed.";
+  const message = describe(error);
 
   return (
     <Notice
@@ -111,15 +138,14 @@ export function ErrorNotice({
             type="button"
           >
             {isRefreshing
-              ? "Refreshing..."
-              : (refreshLabel ?? (isConflict ? "Refresh latest" : "Try again"))}
+              ? t("refreshing")
+              : (refreshLabel ??
+                (isConflict ? t("refreshLatest") : t("tryAgain")))}
           </button>
         ) : null
       }
       role="alert"
-      title={
-        isConflict ? "A newer version is available" : "Something went wrong"
-      }
+      title={isConflict ? t("newerVersion") : t("somethingWrong")}
       tone={isConflict ? "warning" : "danger"}
     >
       {message}
@@ -132,6 +158,7 @@ export function DraftNotice({
 }: {
   readonly onLoadLatest: () => void;
 }) {
+  const t = useTranslations("notices");
   return (
     <Notice
       action={
@@ -140,14 +167,13 @@ export function DraftNotice({
           onClick={onLoadLatest}
           type="button"
         >
-          Discard draft and load latest
+          {t("draftAction")}
         </button>
       }
-      title="A newer version is available"
+      title={t("newerVersion")}
       tone="warning"
     >
-      Your draft is preserved. Load the latest version to discard this draft and
-      continue editing.
+      {t("draftBody")}
     </Notice>
   );
 }

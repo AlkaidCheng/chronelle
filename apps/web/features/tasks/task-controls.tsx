@@ -1,6 +1,7 @@
 "use client";
 
 import type { TaskListQuery } from "@chronelle/schemas";
+import { useTranslations } from "next-intl";
 
 import { HeadMenu, type HeadMenuEntry } from "../../components/head-menu";
 import { FilterIcon, SortIcon } from "../../components/icons";
@@ -46,24 +47,21 @@ export function TaskSortControl({
   readonly onChange: (sort: TaskSort) => void;
   readonly sort: TaskSort;
 }) {
+  const t = useTranslations("controls");
   return (
     <HeadMenu
       active={sort !== defaultSort}
       entries={taskSorts.map((choice) => ({
         kind: "radio",
-        label: choice.label,
-        checked: choice.value === sort,
+        label: t(`sorts.${choice}`),
+        checked: choice === sort,
         onSelect: () => {
-          if (choice.value !== sort) onChange(choice.value);
+          if (choice !== sort) onChange(choice);
         },
       }))}
       icon={<SortIcon />}
-      label="Sort"
-      name={
-        sort === defaultSort
-          ? undefined
-          : taskSorts.find((choice) => choice.value === sort)?.label
-      }
+      label={t("sort")}
+      name={sort === defaultSort ? undefined : t(`sorts.${sort}`)}
     />
   );
 }
@@ -88,6 +86,7 @@ export function TaskFilterControl({
   readonly me?: { readonly id: string } | undefined;
   readonly onChange: (filters: TaskFilters) => void;
 }) {
+  const t = useTranslations("controls");
   const count = activeFilterCount(filters);
   const radio = (
     label: string,
@@ -101,30 +100,30 @@ export function TaskFilterControl({
     onSelect: () => onChange({ ...filters, ...change }),
   });
   const entries: HeadMenuEntry[] = [
-    { kind: "label", text: "Show" },
-    radio("Open", filters.status === "open", { status: "open" }),
-    radio("All", filters.status === "all", { status: "all" }),
-    radio("Done", filters.status === "done", { status: "done" }),
+    { kind: "label", text: t("show") },
+    radio(t("open"), filters.status === "open", { status: "open" }),
+    radio(t("all"), filters.status === "all", { status: "all" }),
+    radio(t("done"), filters.status === "done", { status: "done" }),
   ];
   if (filters.timed !== undefined)
     entries.push({
       kind: "check",
-      label: "Has a time",
+      label: t("hasTime"),
       checked: filters.timed,
       onSelect: () => onChange({ ...filters, timed: !filters.timed }),
     });
   if (filters.overdue !== undefined)
     entries.push({
       kind: "check",
-      label: "Overdue",
+      label: t("overdue"),
       checked: filters.overdue,
       onSelect: () => onChange({ ...filters, overdue: !filters.overdue }),
     });
   if (labels.length > 0)
     entries.push(
       { kind: "rule" },
-      { kind: "label", text: "Label" },
-      radio("Any label", filters.label === "", { label: "" }),
+      { kind: "label", text: t("label") },
+      radio(t("anyLabel"), filters.label === "", { label: "" }),
       ...labels.map((label) =>
         radio(label.name, filters.label === label.id, { label: label.id }),
       ),
@@ -132,11 +131,11 @@ export function TaskFilterControl({
   if (me !== undefined || assignees.length > 0)
     entries.push(
       { kind: "rule" },
-      { kind: "label", text: "Assignee" },
-      radio("Anyone", filters.assignee === "", { assignee: "" }),
+      { kind: "label", text: t("assignee") },
+      radio(t("anyone"), filters.assignee === "", { assignee: "" }),
       ...(me === undefined
         ? []
-        : [radio("Me", filters.assignee === me.id, { assignee: me.id })]),
+        : [radio(t("me"), filters.assignee === me.id, { assignee: me.id })]),
       ...assignees.map((person) =>
         radio(person.name, filters.assignee === person.id, {
           assignee: person.id,
@@ -147,7 +146,7 @@ export function TaskFilterControl({
     { kind: "rule" },
     {
       kind: "item",
-      label: "Clear filters",
+      label: t("clearFilters"),
       onSelect: () =>
         onChange({
           ...defaultTaskFilters,
@@ -161,12 +160,8 @@ export function TaskFilterControl({
       active={count > 0}
       entries={entries}
       icon={<FilterIcon />}
-      label="Filter"
-      name={
-        count === 0
-          ? undefined
-          : `${count} ${count === 1 ? "filter" : "filters"}`
-      }
+      label={t("filter")}
+      name={count === 0 ? undefined : t("filterCount", { count })}
     />
   );
 }

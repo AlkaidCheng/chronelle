@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { useEffect, useId, useRef, useState } from "react";
 import { palettes } from "../lib/display-preferences";
 import {
@@ -8,6 +9,7 @@ import {
 } from "../lib/use-display-preference";
 import { AppearanceControl } from "./appearance-control";
 import { ThemeIcon } from "./icons";
+import { LocaleControl } from "./locale-control";
 
 /**
  * The sidebar's Theme entry: a panel beside it with the mode, palette,
@@ -17,6 +19,7 @@ import { ThemeIcon } from "./icons";
 export function ThemePanel() {
   const [open, setOpen] = useState(false);
   const id = useId();
+  const t = useTranslations("theme");
   const root = useRef<HTMLDivElement>(null);
   const trigger = useRef<HTMLButtonElement>(null);
   const panel = useRef<HTMLDivElement>(null);
@@ -60,22 +63,22 @@ export function ThemePanel() {
         onClick={() => setOpen((current) => !current)}
       >
         <ThemeIcon />
-        Theme
+        {t("title")}
       </button>
       {open ? (
         <div
           ref={panel}
           id={`${id}-panel`}
           role="dialog"
-          aria-label="Theme"
+          aria-label={t("title")}
           className="theme-panel"
         >
           <div className="theme-group">
-            <span id={`${id}-mode`}>Mode</span>
+            <span id={`${id}-mode`}>{t("mode")}</span>
             <AppearanceControl />
           </div>
           <fieldset className="theme-group">
-            <legend>Palette</legend>
+            <legend>{t("palette")}</legend>
             <div className="theme-swatches">
               {palettes.map((choice) => (
                 <label
@@ -99,13 +102,13 @@ export function ThemePanel() {
                     checked={palette.value === choice.id}
                     onChange={() => palette.setValue(choice.id)}
                   />
-                  {choice.name}
+                  {t(`palettes.${choice.id}`)}
                 </label>
               ))}
             </div>
           </fieldset>
           <fieldset className="theme-group">
-            <legend>Density</legend>
+            <legend>{t("density")}</legend>
             <div className="theme-segment">
               <label>
                 <input
@@ -114,7 +117,7 @@ export function ThemePanel() {
                   checked={density.value === "comfortable"}
                   onChange={() => density.setValue("comfortable")}
                 />
-                <span>Comfortable</span>
+                <span>{t("comfortable")}</span>
               </label>
               <label>
                 <input
@@ -123,12 +126,12 @@ export function ThemePanel() {
                   checked={density.value === "compact"}
                   onChange={() => density.setValue("compact")}
                 />
-                <span>Compact</span>
+                <span>{t("compact")}</span>
               </label>
             </div>
           </fieldset>
           <fieldset className="theme-group">
-            <legend>Motion</legend>
+            <legend>{t("motion")}</legend>
             <div className="theme-segment">
               <label>
                 <input
@@ -137,7 +140,7 @@ export function ThemePanel() {
                   checked={motion.value === "system"}
                   onChange={() => motion.setValue("system")}
                 />
-                <span>System</span>
+                <span>{t("system")}</span>
               </label>
               <label>
                 <input
@@ -146,16 +149,17 @@ export function ThemePanel() {
                   checked={motion.value === "reduced"}
                   onChange={() => motion.setValue("reduced")}
                 />
-                <span>Reduced</span>
+                <span>{t("reduced")}</span>
               </label>
             </div>
           </fieldset>
+          <LocaleControl />
           <button
             type="button"
             className="theme-reset"
             onClick={resetDisplayPreferences}
           >
-            Reset display settings
+            {t("reset")}
           </button>
         </div>
       ) : null}

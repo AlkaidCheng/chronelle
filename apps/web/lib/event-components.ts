@@ -3,6 +3,7 @@ import {
   type EventComponentKind,
   type EventComponentView,
 } from "@chronelle/schemas";
+import { tr } from "../i18n/active-locale";
 
 export const eventComponents = {
   todos: {
@@ -83,11 +84,27 @@ export const eventComponentViews: Record<
   month: { label: "Calendar" },
 };
 
+const viewKeys = {
+  list: "list",
+  agenda: "agenda",
+  "by-day": "byDay",
+  week: "week",
+  month: "month",
+} as const satisfies Record<EventComponentView, string>;
+
+/** A component view's name in the active language. */
+export function componentViewLabel(view: EventComponentView): string {
+  return tr("layouts")(viewKeys[view]);
+}
+
+/** A component kind's name in the active language. */
+export function componentKindLabel(kind: EventComponentKind): string {
+  return tr("views")(kind === "itinerary" ? "itinerary" : kind);
+}
+
 /** The status read after a view is chosen: "Shown by day.", "Shown as a calendar." */
 export function describeShownView(view: EventComponentView): string {
-  const label = eventComponentViews[view].label.toLowerCase();
-  if (label.startsWith("by ")) return `Shown ${label}.`;
-  return `Shown as ${/^[aeiou]/.test(label) ? "an" : "a"} ${label}.`;
+  return tr("layouts.shown")(viewKeys[view]);
 }
 
 /** The kinds a page may add; retired aliases are left out. */

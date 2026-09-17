@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { type ReactNode, useEffect, useRef, useState } from "react";
 import type { ContextCommand } from "../../components/context-commands";
 import { MoreIcon } from "../../components/icons";
@@ -26,6 +27,7 @@ export interface PageDrop {
  * and the canvas both read from it.
  */
 export function useEventPagesState(eventId: string, canEdit: boolean) {
+  const t = useTranslations("event");
   const layout = useEventLayout(eventId);
   useForgetInaccessibleEventDrafts(
     eventId,
@@ -74,8 +76,8 @@ export function useEventPagesState(eventId: string, canEdit: boolean) {
       ? [
           {
             id: "add-page",
-            label: "Add page",
-            description: "Create a named page in this event",
+            label: t("addPage"),
+            description: t("addPageDescription"),
             target: addPageButton,
           },
         ]
@@ -83,18 +85,18 @@ export function useEventPagesState(eventId: string, canEdit: boolean) {
   const pageMenu: ReactNode =
     layout.data !== undefined && selectedPage !== undefined ? (
       <QuietMenu
-        label={`Options for ${selectedPage.name}`}
+        label={t("optionsFor", { name: selectedPage.name })}
         icon={<MoreIcon />}
         align="start"
         className="event-strip-menu"
       >
         {canArrange ? (
           <MenuItem onSelect={() => setArranging(!arranging)}>
-            {arranging ? "Done arranging" : "Arrange layout"}
+            {arranging ? t("doneArranging") : t("arrange")}
           </MenuItem>
         ) : null}
         <MenuItem onSelect={() => setOptionsOpen(true)}>
-          {canEdit ? "Page options" : "Layout history"}
+          {canEdit ? t("pageOptions") : t("layoutHistory")}
         </MenuItem>
       </QuietMenu>
     ) : null;

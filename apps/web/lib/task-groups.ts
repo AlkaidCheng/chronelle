@@ -1,5 +1,6 @@
 import type { TaskResponse } from "@chronelle/schemas";
 
+import { tr } from "../i18n/active-locale";
 import { dayGroupLabel } from "./day-groups";
 
 export interface TaskDayGroup {
@@ -64,7 +65,7 @@ export function groupTasksByDay(
   if (overdue.length > 0)
     groups.push({
       key: overdueKey,
-      label: ["Overdue"],
+      label: [tr("taskRow.groups")("overdue")],
       tone: "overdue",
       tasks: within(overdue),
     });
@@ -78,7 +79,7 @@ export function groupTasksByDay(
   if (undated.length > 0)
     groups.push({
       key: undatedKey,
-      label: ["No due date"],
+      label: [tr("taskRow.groups")("noDueDate")],
       tone: "plain",
       tasks: undated,
     });

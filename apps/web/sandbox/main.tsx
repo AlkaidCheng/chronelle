@@ -1,3 +1,4 @@
+import { NextIntlClientProvider } from "next-intl";
 import { useEffect, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { Providers } from "../app/providers";
@@ -11,6 +12,7 @@ import { PeoplePage } from "../features/people/people-page";
 import { store } from "./api-context";
 import { useAuthSession } from "./auth-session";
 import Link, { usePathname } from "./router";
+import en from "../messages/en.json";
 import "../app/styles.css";
 import "../app/collections.css";
 import "./sandbox.css";
@@ -112,7 +114,9 @@ document.addEventListener("click", (event) => {
 const root = document.getElementById("sandbox-root");
 if (!root) throw new Error("Sandbox root missing.");
 createRoot(root).render(
-  <Providers>
-    <Sandbox />
-  </Providers>,
+  <NextIntlClientProvider locale="en" messages={en}>
+    <Providers>
+      <Sandbox />
+    </Providers>
+  </NextIntlClientProvider>,
 );

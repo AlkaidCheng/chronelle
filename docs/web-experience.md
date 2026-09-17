@@ -277,6 +277,47 @@ and cross-tab changes. They do not replace manual screen-reader, physical
 device, or visual acceptance testing. The installed PWA's launch background is
 the light paper color; the running page follows the selected appearance.
 
+## Language
+
+The web app speaks English, Simplified Chinese, and Traditional Chinese. The
+Language group in the rail's Theme panel and in the sign-in Customize dialog
+offers System, English, and the two Chinese variants, each named in its own
+language. System follows the browser's languages: `zh-TW`, `zh-HK`, `zh-MO`,
+and any `zh-Hant` tag read as Traditional, other Chinese tags as Simplified,
+English tags as English, and anything else as English. Choosing a language
+re-renders the page in place, sets the document's `lang`, and keeps the URL;
+the locale is a preference, never a path segment.
+
+The choice lives in the `chronelle.locale` cookie, which the server reads to
+render the first paint and the `lang` attribute in the right language, with a
+localStorage mirror for the same browser. System clears both. The choice does
+not follow the account across devices yet.
+
+Traditional Chinese is written, not converted from Simplified; Files, Trash,
+and sign in each carry their own Traditional wording. Dates, times, durations, money, and name
+sorting follow the active language through `Intl`, so Chinese names sort by
+pinyin under Simplified and by stroke under Traditional as ICU defines. Under
+Traditional Chinese the display and body stacks prefer the TC faces; Chinese
+body text takes a taller line and uppercase labels drop their Latin tracking.
+Notices word the API's known error codes (version conflict, unavailable
+workspace, network failure, wrong credentials, unverified email, ended
+session) in the active language and show the API's English message only for
+codes without a translation.
+
+This first step localizes the shell, the Events page, the event page heading
+and strip, the To-dos panel, the Tasks page heading and controls, the Theme
+panel, the sign-in screens, and notices. Editors and pickers, People, Files,
+Sharing, Trash, Search, History, the command palette, and the offline sandbox
+remain English until the next step, and typed dates in the Due field are
+parsed in English only. Verification emails are English.
+
+Browser checks switch the language from the Theme panel on desktop and mobile
+Chromium and WebKit, verify `lang`, the rail, the Events heading, the event
+strip, and a date range in both Chinese variants, return to System, and render
+the sign-in screen from a `zh-TW` browser. Unit tests hold every catalog to the
+English key set and parameter names. A native reader has not yet reviewed the
+two Chinese catalogs; wording may change.
+
 ## Planning workflow
 
 - Choose **New event** to open the focused creation form. A start date is

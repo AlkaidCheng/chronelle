@@ -9,6 +9,7 @@ import { expect, it, vi } from "vitest";
 import { DevelopmentSignInForm } from "../app/sign-in/development/development-sign-in-form";
 import SignInPage from "../app/sign-in/page";
 import { AuthSessionProvider } from "../lib/auth-session";
+import { withIntl } from "./intl";
 
 const developmentSignIn = vi.hoisted(() => ({
   mutate: vi.fn(),
@@ -29,7 +30,12 @@ vi.mock("../lib/account-queries", () => ({
   useRedirectWhenSignedIn: () => undefined,
 }));
 
-async function renderHydrated(element: React.ReactElement) {
+// Server markup and hydration share one element, rendered inside the
+// messages provider the way the layout renders every page.
+const Localized = withIntl();
+
+async function renderHydrated(inner: React.ReactElement) {
+  const element = <Localized>{inner}</Localized>;
   const container = document.createElement("div");
   container.innerHTML = renderToString(element);
   document.body.append(container);

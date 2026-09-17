@@ -357,6 +357,36 @@ focus navigation. It does not change system keyboard preferences. This is
 distinct from date-grid arrow and Page Up/Down navigation, which is the same
 in each engine.
 
+## Adding a language
+
+The web app's strings live in one catalog per locale under
+`apps/web/messages/` (`en.json`, `zh-Hans.json`, `zh-Hant.json`), keyed by
+feature namespace and identifier, never by English text. `apps/web/i18n/`
+holds the locale list, the request-time negotiation, the cookie preference,
+and the catalog loader. Adding a language is one catalog file plus one entry
+in `apps/web/i18n/locales.ts`:
+
+```ts
+{ tag: "ja", native: "<the language's name in itself>", fallbacks: ["en"] }
+```
+
+The Language control, `<html lang>`, the Accept-Language negotiation (extend
+`localeForTag` when a new language needs region rules), the `Intl` helpers,
+and the fallback chain all read that list. A key the new catalog lacks renders
+from the next locale in `fallbacks`, so a partial catalog never shows a bare
+key, but `apps/web/test/i18n-catalogs.test.ts` fails the build until every key
+of `en.json` exists in the new catalog with the same ICU parameters and no
+extras. Keep messages in ICU: plurals as
+`{count, plural, one {# task} other {# tasks}}`, named parameters, no string
+concatenation in components. Components read strings with `useTranslations`;
+helpers outside React use `tr()` from `apps/web/i18n/active-locale.ts`, which
+follows the provider through `LocaleSync` and defaults to English in unit
+tests and the sandbox build.
+
+Unit tests render inside the English provider automatically
+(`apps/web/test/setup.ts` wraps `render` and `renderHook`); a test that needs
+another locale renders its own `NextIntlClientProvider` with `loadMessages`.
+
 ## Migrations
 
 Migration filenames use `NNNN_description.sql`. Applied migration checksums are

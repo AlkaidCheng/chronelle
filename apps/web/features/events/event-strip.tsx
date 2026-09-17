@@ -1,6 +1,7 @@
 "use client";
 
 import type { EventPage } from "@chronelle/schemas";
+import { useTranslations } from "next-intl";
 import {
   type DragEvent,
   type KeyboardEvent as ReactKeyboardEvent,
@@ -55,6 +56,7 @@ export function EventStrip({
   readonly onSelectView: (view: EventView) => void;
   readonly tabRef: (view: EventView, element: HTMLButtonElement | null) => void;
 }) {
+  const t = useTranslations("event");
   const navigation = useRef<HTMLDivElement>(null);
   const tabs = useRef(new Map<EventView, HTMLButtonElement>());
   const [dropTarget, setDropTarget] = useState<string | null>(null);
@@ -121,7 +123,7 @@ export function EventStrip({
     <div className="event-strip">
       {pages.length > 0 || canAddPage ? (
         <nav
-          aria-label="Pages"
+          aria-label={t("pagesLabel")}
           className="event-strip-pages"
           onKeyDown={(event) => {
             if (
@@ -160,7 +162,7 @@ export function EventStrip({
           {canAddPage ? (
             <IconButton
               ref={addPageRef}
-              label="Add page"
+              label={t("addPage")}
               className="event-strip-plus"
               onClick={onAddPage}
             >
@@ -172,7 +174,7 @@ export function EventStrip({
       {pages.length > 0 || canAddPage ? (
         <span className="event-strip-gap" aria-hidden="true" />
       ) : null}
-      <div aria-label="Event views" className="tab-list" role="tablist">
+      <div aria-label={t("viewsLabel")} className="tab-list" role="tablist">
         {views.map((tab) => (
           <button
             aria-controls={`event-panel-${tab.id}`}

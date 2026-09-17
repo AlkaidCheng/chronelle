@@ -318,7 +318,7 @@ export function DuePicker({
                 value={repeat}
               >
                 <option value="">Does not repeat</option>
-                {repeatChoices.map(([rule, label]) => (
+                {repeatChoices().map(([rule, label]) => (
                   <option key={rule} value={rule}>
                     {label}
                   </option>

@@ -3,6 +3,7 @@
 import { ApiClientError } from "@chronelle/api-client";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { type FormEvent, useState } from "react";
 
 import { AccountPage } from "../../components/account-page";
@@ -15,6 +16,7 @@ import {
 import { useAuthSession } from "../../lib/auth-session";
 
 export default function SignInPage() {
+  const t = useTranslations("auth");
   const auth = useAuthSession();
   const router = useRouter();
   const signIn = usePasswordSignIn();
@@ -45,14 +47,12 @@ export default function SignInPage() {
       <form className="sign-in-form" onSubmit={handleSubmit}>
         <AppearanceSettings />
         <div>
-          <p className="eyebrow">Welcome back</p>
-          <h2>Sign in</h2>
-          <p className="form-intro">
-            Use the email and password of your Chronelle account.
-          </p>
+          <p className="eyebrow">{t("signIn.eyebrow")}</p>
+          <h2>{t("signIn.title")}</h2>
+          <p className="form-intro">{t("signIn.intro")}</p>
         </div>
         <label className="field">
-          <span>Email</span>
+          <span>{t("email")}</span>
           <input
             autoComplete="email"
             disabled={!auth.isHydrated}
@@ -63,7 +63,7 @@ export default function SignInPage() {
           />
         </label>
         <label className="field">
-          <span>Password</span>
+          <span>{t("password")}</span>
           <input
             autoComplete="current-password"
             disabled={!auth.isHydrated}
@@ -79,11 +79,11 @@ export default function SignInPage() {
           disabled={!auth.isHydrated || signIn.isPending}
           type="submit"
         >
-          {signIn.isPending ? "Signing in..." : "Sign in"}
+          {signIn.isPending ? t("signIn.pending") : t("signIn.submit")}
         </button>
         <p className="form-links">
-          <Link href="/sign-up">Create an account</Link>
-          <Link href="/reset-password">Forgot your password?</Link>
+          <Link href="/sign-up">{t("signIn.createAccount")}</Link>
+          <Link href="/reset-password">{t("signIn.forgot")}</Link>
         </p>
       </form>
     </AccountPage>

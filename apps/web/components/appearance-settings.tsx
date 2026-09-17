@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { useId, useState } from "react";
 import { createPortal } from "react-dom";
 import { useAuthSession } from "../lib/auth-session";
@@ -10,9 +11,11 @@ import {
 } from "../lib/use-display-preference";
 import { useSessionDialog } from "../lib/use-session-dialog";
 import { AppearanceControl } from "./appearance-control";
+import { LocaleControl } from "./locale-control";
 
 export function AppearanceSettings() {
   const [open, setOpen] = useState(false);
+  const t = useTranslations("theme");
   const { isHydrated } = useAuthSession();
   return (
     <div className="appearance-toolbar">
@@ -25,9 +28,9 @@ export function AppearanceSettings() {
           event.currentTarget.focus();
           setOpen(true);
         }}
-        aria-label="Customize appearance"
+        aria-label={t("customizeAppearance")}
       >
-        Customize
+        {t("customize")}
       </button>
       {open &&
         createPortal(
@@ -41,6 +44,7 @@ export function AppearanceSettings() {
 function AppearanceDialog({ onClose }: { readonly onClose: () => void }) {
   const dialog = useSessionDialog(onClose);
   const id = useId();
+  const t = useTranslations("theme");
   const palette = useDisplayPreference("palette");
   const density = useDisplayPreference("density");
   const motion = useDisplayPreference("motion");
@@ -56,23 +60,20 @@ function AppearanceDialog({ onClose }: { readonly onClose: () => void }) {
       }}
     >
       <header className="event-create-header">
-        <h2 id={`${id}-title`}>Appearance</h2>
+        <h2 id={`${id}-title`}>{t("appearance")}</h2>
         <button
           type="button"
           className="dialog-close"
-          aria-label="Close appearance settings"
+          aria-label={t("closeDialog")}
           onClick={onClose}
         >
           &#215;
         </button>
       </header>
       <div className="event-create-body appearance-body">
-        <p id={`${id}-description`}>
-          Make this space yours. Changes apply immediately on this browser,
-          without changing anyone else's workspace.
-        </p>
+        <p id={`${id}-description`}>{t("dialogIntro")}</p>
         <fieldset className="palette-choices">
-          <legend>Color palette</legend>
+          <legend>{t("colorPalette")}</legend>
           <div className="palette-grid">
             {palettes.map((choice) => (
               <label className="palette-choice" key={choice.id}>
@@ -93,10 +94,10 @@ function AppearanceDialog({ onClose }: { readonly onClose: () => void }) {
                     checked={palette.value === choice.id}
                     onChange={() => palette.setValue(choice.id)}
                   />
-                  <strong>{choice.name}</strong>
+                  <strong>{t(`palettes.${choice.id}`)}</strong>
                 </span>
                 <span className="palette-description">
-                  {choice.description}
+                  {t(`paletteDescriptions.${choice.id}`)}
                 </span>
               </label>
             ))}
@@ -104,14 +105,14 @@ function AppearanceDialog({ onClose }: { readonly onClose: () => void }) {
         </fieldset>
         <div className="appearance-setting-row">
           <div>
-            <h3>Light and dark</h3>
-            <p>Every palette supports both. System follows your device.</p>
+            <h3>{t("lightAndDark")}</h3>
+            <p>{t("lightAndDarkNote")}</p>
           </div>
           <AppearanceControl />
         </div>
         <div className="display-settings-grid">
           <fieldset className="display-choice-group">
-            <legend>Density</legend>
+            <legend>{t("density")}</legend>
             <label>
               <input
                 type="radio"
@@ -119,7 +120,8 @@ function AppearanceDialog({ onClose }: { readonly onClose: () => void }) {
                 checked={density.value === "comfortable"}
                 onChange={() => density.setValue("comfortable")}
               />
-              Comfortable<span>More space between records</span>
+              {t("comfortable")}
+              <span>{t("comfortableNote")}</span>
             </label>
             <label>
               <input
@@ -128,11 +130,12 @@ function AppearanceDialog({ onClose }: { readonly onClose: () => void }) {
                 checked={density.value === "compact"}
                 onChange={() => density.setValue("compact")}
               />
-              Compact<span>Closer rows, full-size controls</span>
+              {t("compact")}
+              <span>{t("compactNote")}</span>
             </label>
           </fieldset>
           <fieldset className="display-choice-group">
-            <legend>Motion</legend>
+            <legend>{t("motion")}</legend>
             <label>
               <input
                 type="radio"
@@ -140,7 +143,8 @@ function AppearanceDialog({ onClose }: { readonly onClose: () => void }) {
                 checked={motion.value === "system"}
                 onChange={() => motion.setValue("system")}
               />
-              System<span>Respect device motion preferences</span>
+              {t("system")}
+              <span>{t("motionSystemNote")}</span>
             </label>
             <label>
               <input
@@ -149,14 +153,13 @@ function AppearanceDialog({ onClose }: { readonly onClose: () => void }) {
                 checked={motion.value === "reduced"}
                 onChange={() => motion.setValue("reduced")}
               />
-              Reduced<span>Minimize movement and transitions</span>
+              {t("reduced")}
+              <span>{t("motionReducedNote")}</span>
             </label>
           </fieldset>
         </div>
-        <p className="appearance-storage-note">
-          Saved only when browser storage is available. Reset affects display
-          settings only, never your events or files.
-        </p>
+        <LocaleControl />
+        <p className="appearance-storage-note">{t("storageNote")}</p>
       </div>
       <footer className="event-create-footer">
         <button
@@ -164,14 +167,14 @@ function AppearanceDialog({ onClose }: { readonly onClose: () => void }) {
           className="button button-quiet"
           onClick={resetDisplayPreferences}
         >
-          Reset display settings
+          {t("reset")}
         </button>
         <button
           type="button"
           className="button button-primary"
           onClick={onClose}
         >
-          Done
+          {t("done")}
         </button>
       </footer>
     </dialog>
