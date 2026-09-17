@@ -1,5 +1,6 @@
 import type { TaskResponse } from "@chronelle/schemas";
 import { type DayKey, parseDayKey } from "./day-placement";
+import { wallClock, wallInstant } from "./zone";
 import { describeRepeatShort } from "./due-choices";
 import { formatCalendarDate } from "./event-schedule";
 import { formatDateTime, formatDuration, formatTime } from "./format";
@@ -77,10 +78,15 @@ export function dueOnDay(
   return { dueOn: null, dueAt: instantOnDay(task.dueAt, day) };
 }
 
-/** The same local time of day on another day. */
+/** The same time of day, in the account's zone, on another day. */
 export function instantOnDay(instant: string, day: DayKey): string {
-  const time = new Date(instant);
+  const time = wallClock(new Date(instant));
   const moved = parseDayKey(day);
-  moved.setHours(time.getHours(), time.getMinutes(), 0, 0);
-  return moved.toISOString();
+  return wallInstant({
+    year: moved.getFullYear(),
+    month: moved.getMonth() + 1,
+    day: moved.getDate(),
+    hour: time.hour,
+    minute: time.minute,
+  }).toISOString();
 }

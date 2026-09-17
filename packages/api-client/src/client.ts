@@ -50,6 +50,7 @@ import {
   sessionResponseSchema,
   sessionRevocationResponseSchema,
   signInResponseSchema,
+  userResponseSchema,
   shareListResponseSchema,
   shareResponseSchema,
   shareRevocationResponseSchema,
@@ -116,10 +117,12 @@ import {
   type EmailRequest,
   type PasswordResetConfirmRequest,
   type PasswordSignInRequest,
+  type PreferencesRequest,
   type SessionResponse,
   type SessionRevocationResponse,
   type SignInResponse,
   type SignUpRequest,
+  type UserResponse,
   type VerifyEmailRequest,
   type ShareCreatePayload,
   type ShareListResponse,
@@ -277,6 +280,15 @@ export class ChronelleApiClient {
 
   getSession(): Promise<SessionResponse> {
     return this.#request("/api/auth/session", sessionResponseSchema);
+  }
+
+  /** Merges the given preferences into the account; null clears a key. */
+  updatePreferences(input: PreferencesRequest): Promise<UserResponse> {
+    return this.#request(
+      "/api/auth/me",
+      userResponseSchema,
+      jsonRequest(input, "PATCH"),
+    );
   }
 
   /** Creates an unverified password account; a verification code is emailed. */

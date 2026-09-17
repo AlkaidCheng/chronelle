@@ -1,5 +1,11 @@
 import { activeLocale, tr } from "../i18n/active-locale";
-import { type DayKey, dayKeyOf, parseDayKey } from "./day-placement";
+import {
+  type DayKey,
+  addDays,
+  dayKeyOf,
+  instantDate,
+  parseDayKey,
+} from "./day-placement";
 
 export interface DayGroup<Item> {
   readonly key: DayKey;
@@ -12,15 +18,18 @@ export interface DayGroup<Item> {
 /** The parts of a day heading: the date, Today or Tomorrow, the weekday. */
 export function dayGroupLabel(
   day: DayKey,
-  now: Date,
+  clock: Date,
 ): { readonly label: readonly string[]; readonly tone: "today" | "plain" } {
   const locale = activeLocale();
   const date = parseDayKey(day);
+  const now = instantDate(clock);
   const today = dayKeyOf(now);
-  const tomorrow = new Date(now);
-  tomorrow.setDate(now.getDate() + 1);
   const relative =
-    day === today ? "today" : day === dayKeyOf(tomorrow) ? "tomorrow" : null;
+    day === today
+      ? "today"
+      : day === dayKeyOf(addDays(now, 1))
+        ? "tomorrow"
+        : null;
   // A day in another year carries its year.
   const title = new Intl.DateTimeFormat(locale, {
     month: "short",

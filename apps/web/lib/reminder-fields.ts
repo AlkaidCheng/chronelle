@@ -1,7 +1,8 @@
 import type { ReminderResponse } from "@chronelle/schemas";
-import { type DayKey, parseDayKey } from "./day-placement";
+import { type DayKey, parseDayKey, today } from "./day-placement";
 import { editedInstant } from "./edited-instant";
 import { toDateTimeInput } from "./format";
+import { wallInstant } from "./zone";
 
 export function readReminderFields(
   reminder?: Pick<ReminderResponse, "displayName" | "remindAt">,
@@ -22,16 +23,23 @@ export function reminderFieldsPayload(
 }
 
 /**
- * The instant a quickly added reminder is due: 9:00 local time on the
- * given day, or, with no day, the next 9:00 (today's while it is ahead,
- * otherwise tomorrow's).
+ * The instant a quickly added reminder is due: 9:00 in the account's zone
+ * on the given day, or, with no day, the next 9:00 (today's while it is
+ * ahead, otherwise tomorrow's).
  */
 export function quickReminderInstant(day: DayKey | null, now: Date): string {
-  const at =
-    day === null
-      ? new Date(now.getFullYear(), now.getMonth(), now.getDate())
-      : parseDayKey(day);
-  at.setHours(9, 0, 0, 0);
-  if (day === null && at <= now) at.setDate(at.getDate() + 1);
-  return at.toISOString();
+  const nineOn = (date: Date) =>
+    wallInstant({
+      year: date.getFullYear(),
+      month: date.getMonth() + 1,
+      day: date.getDate(),
+      hour: 9,
+      minute: 0,
+    });
+  if (day !== null) return nineOn(parseDayKey(day)).toISOString();
+  const todayAtNine = nineOn(today(now));
+  if (todayAtNine > now) return todayAtNine.toISOString();
+  const tomorrow = today(now);
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  return nineOn(tomorrow).toISOString();
 }

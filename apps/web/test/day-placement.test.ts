@@ -1,23 +1,37 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
+import en from "../messages/en.json";
+import { setActiveLocale } from "../i18n/active-locale";
+import {
+  defaultTimePreferences,
+  setActiveTimePreferences,
+} from "../i18n/active-preferences";
 import {
   dayKeyOf,
   eventDays,
+  instantDate,
+  instantDay,
   monthDays,
   parseDayKey,
   placeByDay,
   startOfWeek,
   taskDay,
+  today,
   weekDays,
 } from "../lib/day-placement";
 
 const at = (key: string) => parseDayKey(key);
 
+afterEach(() => {
+  setActiveTimePreferences(defaultTimePreferences);
+  setActiveLocale("en", en);
+});
+
 describe("day placement", () => {
   it("frames weeks from Monday and months across six weeks", () => {
-    expect(dayKeyOf(startOfWeek(at("2030-03-06")))).toBe("2030-03-04");
-    expect(dayKeyOf(startOfWeek(at("2030-03-04")))).toBe("2030-03-04");
-    expect(dayKeyOf(startOfWeek(at("2030-03-03")))).toBe("2030-02-25");
-    expect(weekDays(at("2030-03-06"))).toEqual([
+    expect(dayKeyOf(startOfWeek(at("2030-03-06"), 1))).toBe("2030-03-04");
+    expect(dayKeyOf(startOfWeek(at("2030-03-04"), 1))).toBe("2030-03-04");
+    expect(dayKeyOf(startOfWeek(at("2030-03-03"), 1))).toBe("2030-02-25");
+    expect(weekDays(at("2030-03-06"), 1)).toEqual([
       "2030-03-04",
       "2030-03-05",
       "2030-03-06",
@@ -30,20 +44,61 @@ describe("day placement", () => {
     // last day: five for a March starting on a Friday, four for a
     // February that fills its weeks, six for a September starting on a
     // Sunday and ending on a Monday.
-    const march = monthDays(at("2030-03-15"));
+    const march = monthDays(at("2030-03-15"), 1);
     expect(march).toHaveLength(35);
     expect(march[0]).toBe("2030-02-25");
     expect(march.at(-1)).toBe("2030-03-31");
-    const february = monthDays(at("2027-02-10"));
+    const february = monthDays(at("2027-02-10"), 1);
     expect(february).toHaveLength(28);
     expect(february[0]).toBe("2027-02-01");
     expect(february.at(-1)).toBe("2027-02-28");
-    const september = monthDays(at("2030-09-16"));
+    const september = monthDays(at("2030-09-16"), 1);
     expect(september).toHaveLength(42);
     expect(september[0]).toBe("2030-08-26");
     expect(september.at(-1)).toBe("2030-10-06");
     // A year end keeps its Monday framing.
-    expect(monthDays(at("2030-12-31"))[0]).toBe("2030-11-25");
+    expect(monthDays(at("2030-12-31"), 1)[0]).toBe("2030-11-25");
+  });
+
+  it("frames weeks from Sunday when asked, and by default from the language", () => {
+    expect(dayKeyOf(startOfWeek(at("2030-03-06"), 7))).toBe("2030-03-03");
+    expect(dayKeyOf(startOfWeek(at("2030-03-03"), 7))).toBe("2030-03-03");
+    expect(dayKeyOf(startOfWeek(at("2030-03-02"), 7))).toBe("2030-02-24");
+    expect(weekDays(at("2030-03-06"), 7)[0]).toBe("2030-03-03");
+    // March 2030 starts on a Friday and ends on a Sunday: Sunday-first
+    // weeks begin on Feb 24 and the last week is the one March 31 opens.
+    const march = monthDays(at("2030-03-15"), 7);
+    expect(march).toHaveLength(42);
+    expect(march[0]).toBe("2030-02-24");
+    expect(march.at(-1)).toBe("2030-04-06");
+    // English weeks start on Sunday, Simplified Chinese ones on Monday,
+    // unless the account chose a day.
+    expect(dayKeyOf(startOfWeek(at("2030-03-06")))).toBe("2030-03-03");
+    setActiveLocale("zh-Hans", en);
+    expect(dayKeyOf(startOfWeek(at("2030-03-06")))).toBe("2030-03-04");
+    setActiveTimePreferences({ ...defaultTimePreferences, weekStart: 7 });
+    expect(dayKeyOf(startOfWeek(at("2030-03-06")))).toBe("2030-03-03");
+  });
+
+  it("places instants on the day of the account's zone", () => {
+    const late = "2030-03-06T23:30:00Z";
+    setActiveTimePreferences({ ...defaultTimePreferences, timeZone: "UTC" });
+    expect(instantDay(late)).toBe("2030-03-06");
+    expect(dayKeyOf(today(new Date(late)))).toBe("2030-03-06");
+    setActiveTimePreferences({
+      ...defaultTimePreferences,
+      timeZone: "Asia/Shanghai",
+    });
+    expect(instantDay(late)).toBe("2030-03-07");
+    expect(dayKeyOf(instantDate(late))).toBe("2030-03-07");
+    setActiveTimePreferences({
+      ...defaultTimePreferences,
+      timeZone: "America/Los_Angeles",
+    });
+    expect(instantDay(late)).toBe("2030-03-06");
+    expect(
+      taskDay({ dueOn: null, dueAt: late } as Parameters<typeof taskDay>[0]),
+    ).toBe("2030-03-06");
   });
 
   it("places a task on its due day and a scheduled item on every day it covers", () => {

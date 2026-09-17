@@ -21,6 +21,7 @@ import { type SubtaskParent, TaskForm } from "../events/task-form";
 import { TaskInspector } from "../events/task-inspector";
 import { viewsOf } from "../../lib/event-components";
 import { periodRange, usePeriod } from "../../lib/use-period";
+import { shownTimeZone } from "../../i18n/active-preferences";
 import {
   useLabelsQuery,
   usePersonsQuery,
@@ -94,7 +95,7 @@ export function TasksPage() {
       : {
           dueFrom: range.from,
           dueTo: range.to,
-          timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+          timezone: shownTimeZone(),
           limit: 50,
         }),
   });

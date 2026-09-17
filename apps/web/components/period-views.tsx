@@ -2,43 +2,66 @@
 
 import { type ReactNode, useState } from "react";
 
+import { activeLocale } from "../i18n/active-locale";
+import { activeWeekStart, type WeekStart } from "../i18n/active-preferences";
 import {
   type DayKey,
   addDays,
   dayKeyOf,
+  instantDay,
   monthDays,
   parseDayKey,
   startOfMonth,
+  today as todayIn,
   weekDays,
 } from "../lib/day-placement";
+import { useDisplayPreferences } from "../lib/use-display-preferences";
 import { ChevronIcon, RingIcon } from "./icons";
 
-const weekdayShort = new Intl.DateTimeFormat(undefined, { weekday: "short" });
-const dayOfMonth = new Intl.DateTimeFormat(undefined, { day: "numeric" });
-const monthName = new Intl.DateTimeFormat(undefined, { month: "long" });
-const monthTitle = new Intl.DateTimeFormat(undefined, {
-  month: "long",
-  year: "numeric",
-});
-const dayTitle = new Intl.DateTimeFormat(undefined, {
-  month: "short",
-  day: "numeric",
-});
-const fullDayTitle = new Intl.DateTimeFormat(undefined, {
-  weekday: "long",
-  month: "long",
-  day: "numeric",
-  year: "numeric",
-});
+/** The formats of calendar days (local-midnight Dates) in one locale; no zone applies to them. */
+function dayFormats(locale: string) {
+  const format = (options: Intl.DateTimeFormatOptions) =>
+    new Intl.DateTimeFormat(locale, options);
+  return {
+    weekdayShort: format({ weekday: "short" }),
+    dayOfMonth: format({ day: "numeric" }),
+    monthName: format({ month: "long" }),
+    monthTitle: format({ month: "long", year: "numeric" }),
+    dayTitle: format({ month: "short", day: "numeric" }),
+    fullDayTitle: format({
+      weekday: "long",
+      month: "long",
+      day: "numeric",
+      year: "numeric",
+    }),
+  };
+}
+
+const formatsByLocale = new Map<string, ReturnType<typeof dayFormats>>();
+
+function formatsFor(locale: string) {
+  let formats = formatsByLocale.get(locale);
+  if (formats === undefined) {
+    formats = dayFormats(locale);
+    formatsByLocale.set(locale, formats);
+  }
+  return formats;
+}
 
 /** The label of the period a cursor falls in: a week's span or a month. */
-export function periodLabel(period: "week" | "month", cursor: Date): string {
+export function periodLabel(
+  period: "week" | "month",
+  cursor: Date,
+  locale: string = activeLocale(),
+  weekStart: WeekStart = activeWeekStart(locale),
+): string {
+  const { monthTitle, dayTitle } = formatsFor(locale);
   if (period === "month") return monthTitle.format(cursor);
-  const days = weekDays(cursor);
+  const days = weekDays(cursor, weekStart);
   const first = parseDayKey(days[0] ?? dayKeyOf(cursor));
   const last = parseDayKey(days[6] ?? dayKeyOf(cursor));
   return `${dayTitle.format(first)} - ${dayTitle.format(last)}${
-    last.getFullYear() === new Date().getFullYear()
+    last.getFullYear() === todayIn().getFullYear()
       ? ""
       : `, ${last.getFullYear()}`
   }`;
@@ -69,7 +92,9 @@ export function PeriodNav({
   readonly onChange: (cursor: Date) => void;
   readonly period: "week" | "month";
 }) {
-  const label = periodLabel(period, cursor);
+  const { locale, firstDay } = useDisplayPreferences();
+  const { monthName } = formatsFor(locale);
+  const label = periodLabel(period, cursor, locale, firstDay);
   const step = (
     direction: -1 | 0 | 1,
     icon: ReactNode,
@@ -81,7 +106,7 @@ export function PeriodNav({
       className={className}
       onClick={() =>
         onChange(
-          direction === 0 ? new Date() : shiftPeriod(period, cursor, direction),
+          direction === 0 ? todayIn() : shiftPeriod(period, cursor, direction),
         )
       }
       title={name}
@@ -113,9 +138,9 @@ export function PeriodNav({
 }
 
 /**
- * Seven columns for the week the cursor falls in, Monday first, today
- * marked, scrolling sideways where the panel is narrow; each column
- * renders what the container places on that day.
+ * Seven columns for the week the cursor falls in, the account's first day
+ * first, today marked, scrolling sideways where the panel is narrow; each
+ * column renders what the container places on that day.
  */
 export function WeekStrip({
   cursor,
@@ -125,13 +150,16 @@ export function WeekStrip({
   readonly cursor: Date;
   /** The nodes of one day, or nothing for an empty column. */
   readonly renderDay: (day: DayKey) => ReactNode;
+  /** The present instant; its day is marked in the account's zone. */
   readonly today?: Date;
 }) {
-  const todayKey = dayKeyOf(today);
+  const { locale, firstDay } = useDisplayPreferences();
+  const { weekdayShort, dayTitle, fullDayTitle } = formatsFor(locale);
+  const todayKey = instantDay(today);
   return (
     <div className="week-scroll">
       <ol className="week-strip">
-        {weekDays(cursor).map((day) => {
+        {weekDays(cursor, firstDay).map((day) => {
           const date = parseDayKey(day);
           return (
             <li
@@ -176,18 +204,22 @@ export function MonthGrid({
   readonly cursor: Date;
   /** The day's rows, the first `limit` of them unless the limit is null. */
   readonly renderDay: (day: DayKey, limit: number | null) => ReactNode;
+  /** The present instant; its day is marked in the account's zone. */
   readonly today?: Date;
 }) {
   const [expanded, setExpanded] = useState<{
     readonly month: string;
     readonly days: ReadonlySet<DayKey>;
   }>({ month: "", days: new Set() });
-  const todayKey = dayKeyOf(today);
+  const { locale, firstDay } = useDisplayPreferences();
+  const { weekdayShort, dayOfMonth, monthTitle, dayTitle, fullDayTitle } =
+    formatsFor(locale);
+  const todayKey = instantDay(today);
   const month = cursor.getMonth();
   const monthKey = dayKeyOf(startOfMonth(cursor)).slice(0, 7);
   const opened =
     expanded.month === monthKey ? expanded.days : new Set<DayKey>();
-  const days = monthDays(cursor);
+  const days = monthDays(cursor, firstDay);
   const weeks = Array.from({ length: days.length / 7 }, (_, week) =>
     days.slice(week * 7, week * 7 + 7),
   );
@@ -196,7 +228,7 @@ export function MonthGrid({
       <caption className="visually-hidden">{monthTitle.format(cursor)}</caption>
       <thead>
         <tr className="month-weekdays">
-          {weekDays(cursor).map((day) => (
+          {weekDays(cursor, firstDay).map((day) => (
             <th key={day} scope="col">
               {weekdayShort.format(parseDayKey(day))}
             </th>

@@ -17,6 +17,7 @@ import {
 } from "../../components/editor-dialog-controls";
 import { ErrorNotice } from "../../components/feedback";
 import { eventSchedulePayload } from "../../lib/event-schedule";
+import { shownTimeZone } from "../../i18n/active-preferences";
 import {
   useCreateScheduledEvent,
   type ContextCreateAttempt,
@@ -133,7 +134,7 @@ function CreateScheduleForm({
           displayName: draft.fields.displayName,
           ...schedule,
           isAllDay: false,
-          timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+          timezone: shownTimeZone(),
         }),
       onClose,
     );

@@ -13,6 +13,7 @@ import {
   readExpenseFields,
   expenseFieldsPayload,
 } from "../../lib/expense-fields";
+import { shownTimeZone } from "../../i18n/active-preferences";
 import {
   eventCreationDraftKeys,
   type ExpenseDraftSnapshot,
@@ -279,11 +280,7 @@ function ExpenseEditor({
             />
           </label>
           <p className="field-hint">
-            Transaction time in{" "}
-            {Intl.DateTimeFormat()
-              .resolvedOptions()
-              .timeZone.replaceAll("_", " ")}
-            .
+            Transaction time in {shownTimeZone().replaceAll("_", " ")}.
           </p>
           {timeError && <p role="alert">{timeError}</p>}
         </div>

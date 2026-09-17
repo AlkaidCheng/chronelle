@@ -7,15 +7,18 @@ import {
   describeCalendarRange,
   selectCalendarRange,
 } from "../lib/calendar-range";
-import { type DayKey, dayKeyOf, parseDayKey } from "../lib/day-placement";
+import { activeLocale } from "../i18n/active-locale";
+import { type DayKey, instantDay, parseDayKey } from "../lib/day-placement";
 import { dueShortcuts, dueWeekday, parseDueText } from "../lib/due-choices";
 import { formatCalendarDate } from "../lib/event-schedule";
 import { MonthList } from "./month-list";
 
-const monthDayShort = new Intl.DateTimeFormat(undefined, {
-  month: "short",
-  day: "numeric",
-});
+/** A calendar day's month and day, short, in the active locale. */
+const monthDayShort = (day: DayKey) =>
+  new Intl.DateTimeFormat(activeLocale(), {
+    month: "short",
+    day: "numeric",
+  }).format(parseDayKey(day));
 
 const unreadableHint =
   "Not a date the picker knows. Try Sep 21, 21 Sep, 9/21, tomorrow, or 2030-09-21.";
@@ -39,7 +42,7 @@ export function CalendarRangePicker({
   readonly value: CalendarRange;
 }) {
   const id = useId();
-  const today = dayKeyOf(now);
+  const today = instantDay(now);
   const [open, setOpen] = useState(value.startDate === "");
   const [startText, setStartText] = useState(() => exact(value.startDate));
   const [endText, setEndText] = useState(() => exact(value.endDate));
@@ -214,7 +217,7 @@ export function CalendarRangePicker({
                     <span>{shortcut.label}</span>
                     <span className="day-shortcut-day">
                       {shortcut.id === "next-week"
-                        ? `${dueWeekday(shortcut.day)} ${monthDayShort.format(parseDayKey(shortcut.day))}`
+                        ? `${dueWeekday(shortcut.day)} ${monthDayShort(shortcut.day)}`
                         : shortcut.through === undefined
                           ? dueWeekday(shortcut.day)
                           : `${dueWeekday(shortcut.day)} to ${dueWeekday(shortcut.through)}`}

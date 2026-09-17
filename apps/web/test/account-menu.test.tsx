@@ -15,6 +15,9 @@ const session = {
     displayName: "Planner",
     email: "planner@example.com",
     locale: null,
+    timeZone: null,
+    hourCycle: null,
+    weekStart: null,
   },
   workspace: {
     id: "019d6e7d-0000-7000-8000-000000000001",

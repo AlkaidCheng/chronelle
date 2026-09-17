@@ -1,6 +1,7 @@
 import type { EventResponse } from "@chronelle/schemas";
 import { calendarDateSchema } from "@chronelle/schemas";
 import { activeLocale, tr } from "../i18n/active-locale";
+import { instantOptions } from "../i18n/active-preferences";
 import { formatDateTime, fromDateTimeInput, toDateTimeInput } from "./format";
 
 export interface EventScheduleDraft {
@@ -105,6 +106,6 @@ export function formatEventDatePart(
     ...(part === "month"
       ? { month: "short" as const }
       : { day: "2-digit" as const }),
-    ...(event.startsOn ? { timeZone: "UTC" } : {}),
+    ...(event.startsOn ? { timeZone: "UTC" } : instantOptions()),
   }).format(new Date(event.startsOn ? `${value}T00:00:00Z` : value));
 }

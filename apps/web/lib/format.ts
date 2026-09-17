@@ -1,19 +1,33 @@
 import { activeLocale, tr } from "../i18n/active-locale";
+import { instantOptions } from "../i18n/active-preferences";
+import { instantWallInput, wallInstant } from "./zone";
 
+/** An instant as the wall clock of the active zone, for a datetime-local field. */
 export function toDateTimeInput(value: string | null): string {
   if (value === null) {
     return "";
   }
-  const date = new Date(value);
-  const offset = date.getTimezoneOffset() * 60_000;
-  return new Date(date.getTime() - offset).toISOString().slice(0, 16);
+  return instantWallInput(value);
 }
 
+/** The instant a datetime-local value names in the active zone; null when empty. */
 export function fromDateTimeInput(value: string): string | null {
-  return value === "" ? null : new Date(value).toISOString();
+  if (value === "") return null;
+  const match = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2}))?$/.exec(
+    value,
+  );
+  if (match === null) return new Date(value).toISOString();
+  return wallInstant({
+    year: Number(match[1]),
+    month: Number(match[2]),
+    day: Number(match[3]),
+    hour: Number(match[4]),
+    minute: Number(match[5]),
+    second: Number(match[6] ?? 0),
+  }).toISOString();
 }
 
-/** A date and time in the active locale; "Not scheduled" without one. */
+/** A date and time in the active locale and zone; "Not scheduled" without one. */
 export function formatDateTime(
   value: string | null,
   locale: string = activeLocale(),
@@ -22,6 +36,7 @@ export function formatDateTime(
   return new Intl.DateTimeFormat(locale, {
     dateStyle: "medium",
     timeStyle: "short",
+    ...instantOptions(),
   }).format(new Date(value));
 }
 
@@ -29,9 +44,10 @@ export function formatTime(
   value: string,
   locale: string = activeLocale(),
 ): string {
-  return new Intl.DateTimeFormat(locale, { timeStyle: "short" }).format(
-    new Date(value),
-  );
+  return new Intl.DateTimeFormat(locale, {
+    timeStyle: "short",
+    ...instantOptions(),
+  }).format(new Date(value));
 }
 
 /** A duration in minutes as people read it: "30 min", "1 h", "1 h 30 min". */
@@ -51,10 +67,10 @@ export function formatDatePart(
   locale: string = activeLocale(),
 ): string {
   if (value === null) return tr("dates")(part === "month" ? "tbd" : "noDay");
-  return new Intl.DateTimeFormat(
-    locale,
-    part === "month" ? { month: "short" } : { day: "2-digit" },
-  ).format(new Date(value));
+  return new Intl.DateTimeFormat(locale, {
+    ...(part === "month" ? { month: "short" } : { day: "2-digit" }),
+    ...instantOptions(),
+  }).format(new Date(value));
 }
 
 export function shortId(id: string): string {

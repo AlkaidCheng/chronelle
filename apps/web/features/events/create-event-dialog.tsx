@@ -5,6 +5,7 @@ import { CountedField } from "../../components/counted-field";
 import { ErrorNotice } from "../../components/feedback";
 import { EditorForm, EditorSubmitButton } from "../../components/editor-form";
 import { eventSchedulePayload } from "../../lib/event-schedule";
+import { shownTimeZone } from "../../i18n/active-preferences";
 import { useEditorDraft } from "../../lib/use-editor-draft";
 import { useKeepEditorDraft } from "../../lib/editor-draft-context";
 import {
@@ -91,7 +92,7 @@ function CreateEventForm({
         createEvent.mutateAsync({
           displayName,
           ...timing,
-          timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+          timezone: shownTimeZone(),
         }),
       (created) => {
         onClose();

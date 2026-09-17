@@ -8,6 +8,7 @@ import {
   LoadingState,
 } from "../../components/feedback";
 import { eventComponents } from "../../lib/event-components";
+import { formatDateTime } from "../../lib/format";
 import {
   useEventLayout,
   useEventLayoutHistory,
@@ -324,7 +325,7 @@ export function LayoutRecoveryDialog({
                           </h3>
                           <p>
                             {revision.updatedAt
-                              ? new Date(revision.updatedAt).toLocaleString()
+                              ? formatDateTime(revision.updatedAt)
                               : "Initial layout"}
                             , {revision.pages.length} pages,{" "}
                             {revision.pages.reduce(

@@ -2,6 +2,7 @@
 
 import { cleanup, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import type { ReactNode } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   MonthGrid,
@@ -11,8 +12,16 @@ import {
   WeekStrip,
 } from "../components/period-views";
 import { dayKeyOf, parseDayKey } from "../lib/day-placement";
+import { DisplayPreferencesProvider } from "../lib/use-display-preferences";
 
 const at = (key: string) => parseDayKey(key);
+const mondayFirst = ({ children }: { readonly children: ReactNode }) => (
+  <DisplayPreferencesProvider
+    preferences={{ timeZone: null, hourCycle: null, weekStart: 1 }}
+  >
+    {children}
+  </DisplayPreferencesProvider>
+);
 const fullDay = (key: string) =>
   new Intl.DateTimeFormat(undefined, {
     weekday: "long",
@@ -29,7 +38,11 @@ describe("period views", () => {
       month: "short",
       day: "numeric",
     });
+    // English weeks start on Sunday unless the account chose Monday.
     expect(periodLabel("week", at("2030-03-06"))).toBe(
+      `${short.format(at("2030-03-03"))} - ${short.format(at("2030-03-09"))}, 2030`,
+    );
+    expect(periodLabel("week", at("2030-03-06"), "en", 1)).toBe(
       `${short.format(at("2030-03-04"))} - ${short.format(at("2030-03-10"))}, 2030`,
     );
     const thisYear = new Date();
@@ -92,13 +105,38 @@ describe("period views", () => {
     expect(screen.getByRole("button", { name: "This month" })).toBeVisible();
   });
 
-  it("lays a week out Monday first with today marked", () => {
+  it("lays a week out from the account's first day with today marked", () => {
+    const { unmount } = render(
+      <WeekStrip
+        cursor={at("2030-03-06")}
+        renderDay={(day) => <span>{day}</span>}
+        today={at("2030-03-08")}
+      />,
+    );
+    // English weeks start on Sunday unless the account chose Monday.
+    expect(
+      screen
+        .getAllByRole("listitem")
+        .map((day) => day.getAttribute("aria-label")),
+    ).toEqual(
+      [
+        "2030-03-03",
+        "2030-03-04",
+        "2030-03-05",
+        "2030-03-06",
+        "2030-03-07",
+        "2030-03-08",
+        "2030-03-09",
+      ].map(fullDay),
+    );
+    unmount();
     render(
       <WeekStrip
         cursor={at("2030-03-06")}
         renderDay={(day) => <span>{day}</span>}
         today={at("2030-03-08")}
       />,
+      { wrapper: mondayFirst },
     );
     const days = screen.getAllByRole("listitem");
     expect(days.map((day) => day.getAttribute("aria-label"))).toEqual(
@@ -141,10 +179,11 @@ describe("period views", () => {
         renderDay={renderDay}
         today={at("2030-03-07")}
       />,
+      { wrapper: mondayFirst },
     );
     const grid = screen.getByRole("table", { name: /2030/ });
-    // March 2030 starts on a Friday and ends on a Sunday: five weeks, no
-    // week of April alone.
+    // March 2030 starts on a Friday and ends on a Sunday: five Monday-first
+    // weeks, no week of April alone.
     const cells = within(grid).getAllByRole("cell");
     expect(cells).toHaveLength(35);
     expect(cells[0]).toHaveClass("is-outside");

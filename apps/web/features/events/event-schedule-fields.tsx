@@ -1,6 +1,7 @@
 import { CalendarRangePicker } from "../../components/calendar-range";
 import { CalendarIcon, ClockIcon } from "../../components/icons";
 import type { EventScheduleDraft } from "../../lib/event-schedule";
+import { shownTimeZone } from "../../i18n/active-preferences";
 
 export function EventScheduleFields({
   value,
@@ -106,11 +107,7 @@ export function EventScheduleFields({
                 </label>
               </div>
               <p className="field-hint">
-                Times in{" "}
-                {Intl.DateTimeFormat()
-                  .resolvedOptions()
-                  .timeZone.replaceAll("_", " ")}
-                .
+                Times in {shownTimeZone().replaceAll("_", " ")}.
               </p>
             </>
           ) : null}

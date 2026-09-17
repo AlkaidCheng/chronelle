@@ -11,19 +11,34 @@ export interface LocaleDefinition {
   readonly native: string;
   /** Where a missing message is looked up next, nearest first. */
   readonly fallbacks: readonly string[];
+  /**
+   * The day the week starts on when the account has not chosen one: 1 for
+   * Monday, 7 for Sunday, as CLDR gives the language's main region. Fixed
+   * here rather than asked of the browser so every engine agrees.
+   */
+  readonly weekStart: 1 | 7;
 }
 
 export const locales = [
-  { tag: "en", native: "English", fallbacks: [] },
-  { tag: "zh-Hans", native: "简体中文", fallbacks: ["en"] },
+  { tag: "en", native: "English", fallbacks: [], weekStart: 7 },
+  { tag: "zh-Hans", native: "简体中文", fallbacks: ["en"], weekStart: 1 },
   {
     tag: "zh-Hant",
     native: "繁體中文",
     fallbacks: ["zh-Hans", "en"],
+    weekStart: 7,
   },
 ] as const satisfies readonly LocaleDefinition[];
 
 export type Locale = (typeof locales)[number]["tag"];
+
+/** The first day of the week the language implies, when no day is chosen. */
+export function languageWeekStart(locale: string): 1 | 7 {
+  return (
+    locales.find((entry) => entry.tag === locale)?.weekStart ??
+    locales[0].weekStart
+  );
+}
 
 export const defaultLocale: Locale = "en";
 
