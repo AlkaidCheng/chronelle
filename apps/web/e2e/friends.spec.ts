@@ -118,7 +118,7 @@ test("connects two accounts through a request and links a person to the friend",
   await editor.getByRole("button", { name: "Add person", exact: true }).click();
   await expect(editor).toHaveCount(0);
   const card = page.getByRole("listitem", { name: "Benjamin", exact: true });
-  await expect(card).toContainText("Has an account");
+  await expect(card).toContainText("Friend");
   const people = await (
     await request.get("/api/persons?query=Benjamin", {
       headers: { authorization: `Bearer ${ben.accessToken}` },

@@ -80,7 +80,9 @@
     "sessions": "Sessions",
     "signOutEverywhere": "Sign out everywhere",
     "signOutEverywhereNote": "Ends every session of this account, including this one.",
-    "appearanceNote": "Appearance is kept on this browser. The Theme entry in the rail holds the same choices."
+    "appearanceNote": "Appearance is kept on this browser. The Theme entry in the rail holds the same choices.",
+    "workspace": "Workspace",
+    "members": "Members"
   },
   "friends": {
     "title": "Friends",
@@ -161,6 +163,8 @@
     "account": "Account",
     "accounts": {
       "all": "Everyone",
+      "friend": "Friends",
+      "invited": "Invited",
       "linked": "Has an account",
       "unlinked": "No account"
     },
@@ -175,7 +179,9 @@
       "edit": "Edit",
       "history": "History",
       "moveToTrash": "Move to Trash"
-    }
+    },
+    "friend": "Friend",
+    "invited": "Invited"
   },
   "personPage": {
     "allPeople": "All people",
@@ -1174,7 +1180,6 @@
   },
   "sharingPanel": {
     "title": "Sharing",
-    "intro": "Grant access to this Event and its inheriting resources. A relationship alone never grants access. Collaborators can also read earlier saved versions of resources they can currently view, including versions saved before this invitation.",
     "collaboratorEmail": "Collaborator email",
     "access": "Access",
     "roles": {
@@ -1224,6 +1229,48 @@
       "moved": "{name} moved.",
       "position": "{name} is now {at} of {total}.",
       "due": "{name} is due {day}."
+    }
+  },
+  "sharing": {
+    "sharePeople": "Share with people",
+    "friends": "Friends",
+    "others": "Others in People",
+    "byEmail": "By email",
+    "peopleWithAccess": "People with access",
+    "onlyYou": "Only you have access",
+    "shareWith": "{count, plural, =0 {Share with people} one {Share with # person} other {Share with # people}}",
+    "sharing": "Sharing...",
+    "hasAccount": "Has an account",
+    "invitedAccessFollows": "Invited; access follows when they join",
+    "invitationOnShare": "{email}; an invitation goes out and access follows when they join",
+    "accessFollows": "Access follows when they join",
+    "accessFor": "Access for {name}",
+    "sharedAs": "Shared as {role}",
+    "queued": "Waiting for them to join",
+    "invitationSent": "Invitation sent; access follows when they join",
+    "failed": "The share could not be completed.",
+    "remove": "Remove",
+    "nobody": "Give a person an email or link their account to share with them.",
+    "roles": {
+      "viewer": "Viewer",
+      "editor": "Editor",
+      "owner": "Owner"
+    }
+  },
+  "members": {
+    "title": "Members",
+    "loading": "Loading members",
+    "addFriend": "Add a friend",
+    "friend": "Friend",
+    "access": "Access",
+    "add": "Add",
+    "remove": "Remove",
+    "personal": "Personal workspace",
+    "noFriends": "Befriend someone first to add them here.",
+    "roles": {
+      "viewer": "Viewer",
+      "editor": "Editor",
+      "owner": "Owner"
     }
   }
 }

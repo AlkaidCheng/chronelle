@@ -70,6 +70,14 @@ import {
   type FriendServiceOptions,
 } from "./friends/friend-service.js";
 import { PostgresFriendStore } from "./friends/friend-store.js";
+import { CloudBasePendingShareStore } from "./sharing/cloudbase-pending-share-store.js";
+import { PendingShareService } from "./sharing/pending-share-service.js";
+import { PostgresPendingShareStore } from "./sharing/pending-share-store.js";
+import { CloudBaseMembershipStore } from "./workspaces/cloudbase-membership-store.js";
+import {
+  type MembershipStore,
+  PostgresMembershipStore,
+} from "./workspaces/membership-store.js";
 import { CloudBaseIdentityStore } from "./identity/cloudbase-identity-store.js";
 import { WorkspaceIdentityService } from "./identity/workspace-identity-service.js";
 
@@ -95,6 +103,8 @@ export interface AppDependencies {
   readonly commands: ReversibleCommandService;
   readonly search: CanonicalObjectSearchService;
   readonly shares: ResourceGrantService;
+  readonly pendingShares: PendingShareService;
+  readonly members: MembershipStore;
   readonly storageInventory: StorageInventoryService;
 }
 
@@ -238,6 +248,18 @@ export function createAppDependencies(
     objects,
     { clock: options.clock, ...options.friends },
   );
+  const pendingShares = new PendingShareService(
+    options.cloudBaseRdb === undefined
+      ? new PostgresPendingShareStore(connection.db, options.clock)
+      : new CloudBasePendingShareStore(options.cloudBaseRdb),
+    friends,
+    objects,
+    options.clock,
+  );
+  const members =
+    options.cloudBaseRdb === undefined
+      ? new PostgresMembershipStore(connection.db)
+      : new CloudBaseMembershipStore(options.cloudBaseRdb);
 
   return {
     authProvider: authProvider ?? sessions,
@@ -299,6 +321,8 @@ export function createAppDependencies(
       writes.share,
       reads?.grants,
     ),
+    pendingShares,
+    members,
     projections: new EventPlanningProjectionService(
       connection.db,
       options.cloudBaseRdb === undefined

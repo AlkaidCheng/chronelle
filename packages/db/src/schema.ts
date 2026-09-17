@@ -228,6 +228,50 @@ export const userInvitations = pgTable(
   ],
 );
 
+export const pendingShareStatuses = [
+  "pending",
+  "granted",
+  "revoked",
+  "lapsed",
+] as const;
+export type PendingShareStatus = (typeof pendingShareStatuses)[number];
+
+/**
+ * A share waiting on a request or invitation the granting account sent:
+ * granted to the other side when the request is accepted, lapsed when it
+ * ends otherwise, revoked when taken back first.
+ */
+export const pendingShares = pgTable(
+  "pending_shares",
+  {
+    id: uuid("id").primaryKey(),
+    workspaceId: uuid("workspace_id").notNull(),
+    resourceId: uuid("resource_id").notNull(),
+    /** The person card the share was ticked from, when there was one. */
+    personId: uuid("person_id"),
+    connectionId: uuid("connection_id"),
+    invitationId: uuid("invitation_id"),
+    role: text("role").$type<Role>().notNull(),
+    status: text("status")
+      .$type<PendingShareStatus>()
+      .notNull()
+      .default("pending"),
+    grantedBy: uuid("granted_by").notNull(),
+    grantId: uuid("grant_id"),
+    createdAt: createSessionInstantColumn("created_at").notNull().defaultNow(),
+    resolvedAt: createSessionInstantColumn("resolved_at"),
+  },
+  (table) => [
+    uniqueIndex("pending_shares_live_idx")
+      .on(
+        table.workspaceId,
+        table.resourceId,
+        sql`COALESCE(${table.connectionId}, ${table.invitationId})`,
+      )
+      .where(sql`${table.status} = 'pending'`),
+  ],
+);
+
 export const workspaces = pgTable("workspaces", {
   id: uuid("id").primaryKey(),
   displayName: text("display_name").notNull(),
@@ -660,6 +704,7 @@ export type UserCredentialRow = typeof userCredentials.$inferSelect;
 export type EmailVerificationRow = typeof emailVerifications.$inferSelect;
 export type UserConnectionRow = typeof userConnections.$inferSelect;
 export type UserInvitationRow = typeof userInvitations.$inferSelect;
+export type PendingShareRow = typeof pendingShares.$inferSelect;
 export type WorkspaceRow = typeof workspaces.$inferSelect;
 export type NewWorkspaceRow = typeof workspaces.$inferInsert;
 export type WorkspaceMemberRow = typeof workspaceMembers.$inferSelect;

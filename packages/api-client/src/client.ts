@@ -111,19 +111,31 @@ import {
   type SentInvitation,
   type SessionResponse,
   type SessionRevocationResponse,
+  type PendingShare,
+  type PendingShareCreateRequest,
+  type PendingShareRevocationResponse,
   type ShareCreatePayload,
   type ShareListResponse,
   type ShareResponse,
   type ShareRevocationResponse,
+  type WorkspaceMember,
+  type WorkspaceMemberAddRequest,
+  type WorkspaceMemberListResponse,
+  type WorkspaceMemberRemovalResponse,
   type SignInResponse,
   type SignUpRequest,
   type StorageInventoryResponse,
   sentInvitationSchema,
   sessionResponseSchema,
   sessionRevocationResponseSchema,
+  pendingShareRevocationResponseSchema,
+  pendingShareSchema,
   shareListResponseSchema,
   shareResponseSchema,
   shareRevocationResponseSchema,
+  workspaceMemberListResponseSchema,
+  workspaceMemberRemovalResponseSchema,
+  workspaceMemberSchema,
   signInResponseSchema,
   storageInventoryResponseSchema,
   type TaskCreatePayload,
@@ -922,6 +934,51 @@ export class ChronelleApiClient {
     return this.#request(`/api/shares/${id}`, shareRevocationResponseSchema, {
       method: "DELETE",
     });
+  }
+
+  /** Queues a share for a person without an account here; the invitation goes out when none waits. */
+  queuePendingShare(input: PendingShareCreateRequest): Promise<PendingShare> {
+    return this.#request(
+      "/api/shares/pending",
+      pendingShareSchema,
+      jsonRequest(input, "POST"),
+    );
+  }
+
+  revokePendingShare(id: string): Promise<PendingShareRevocationResponse> {
+    return this.#request(
+      `/api/shares/pending/${id}`,
+      pendingShareRevocationResponseSchema,
+      { method: "DELETE" },
+    );
+  }
+
+  listWorkspaceMembers(): Promise<WorkspaceMemberListResponse> {
+    return this.#request(
+      "/api/workspaces/current/members",
+      workspaceMemberListResponseSchema,
+    );
+  }
+
+  /** Adds a friend as a member, or changes the role of one who already is. */
+  addWorkspaceMember(
+    input: WorkspaceMemberAddRequest,
+  ): Promise<WorkspaceMember> {
+    return this.#request(
+      "/api/workspaces/current/members",
+      workspaceMemberSchema,
+      jsonRequest(input, "POST"),
+    );
+  }
+
+  removeWorkspaceMember(
+    userId: string,
+  ): Promise<WorkspaceMemberRemovalResponse> {
+    return this.#request(
+      `/api/workspaces/current/members/${userId}`,
+      workspaceMemberRemovalResponseSchema,
+      { method: "DELETE" },
+    );
   }
 
   updatePermissionScope(

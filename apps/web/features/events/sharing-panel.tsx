@@ -14,16 +14,18 @@ import {
 } from "../../components/feedback";
 import { LockIcon, ShareIcon } from "../../components/icons";
 import { shortId } from "../../lib/format";
+import { useFriendsQuery } from "../../lib/friend-queries";
 import {
   usePersonsQuery,
   useRefreshEvent,
+  useRevokePendingShare,
   useRevokeShare,
   useSessionQuery,
   useShareResource,
   useSharesQuery,
   useUpdatePermissionScope,
 } from "../../lib/queries";
-import { ShareWithPeople, shareablePeople } from "./share-with-people";
+import { ShareWithPeople, shareRows } from "./share-with-people";
 
 type SharedRole = "owner" | "viewer";
 
@@ -46,22 +48,36 @@ export function SharingPanel({
   readonly detail: EventDetailResponse;
   readonly eventId: string;
 }) {
+  const t = useTranslations("sharing");
+  const tp = useTranslations("sharingPanel");
+  const types = useTranslations("objectTypes");
   const shares = useSharesQuery(eventId, true);
   const share = useShareResource(eventId);
   const revoke = useRevokeShare();
+  const revokePending = useRevokePendingShare(eventId);
   const updateScope = useUpdatePermissionScope();
   const refresh = useRefreshEvent(eventId);
-  const t = useTranslations("sharingPanel");
-  const types = useTranslations("objectTypes");
   const [principalEmail, setPrincipalEmail] = useState("");
   const [role, setRole] = useState<SharedRole>("viewer");
   const resources = useMemo(() => relatedResources(detail), [detail]);
   const persons = usePersonsQuery();
   const session = useSessionQuery();
-  const people = useMemo(
-    () => shareablePeople(persons.data?.items ?? [], session.data?.user.id),
-    [persons.data, session.data],
+  const friends = useFriendsQuery();
+  const rows = useMemo(
+    () =>
+      shareRows({
+        friends: friends.data?.friends ?? [],
+        grants: shares.data?.items ?? [],
+        me: session.data?.user.id,
+        pending: shares.data?.pending ?? [],
+        people: persons.data?.items ?? [],
+        sent: friends.data?.sent ?? [],
+        workspaceId: session.data?.workspace.id,
+        scope: "workspace",
+      }),
+    [friends.data, persons.data, session.data, shares.data],
   );
+  const pending = shares.data?.pending ?? [];
 
   function handleShare(formEvent: FormEvent<HTMLFormElement>) {
     formEvent.preventDefault();
@@ -80,15 +96,21 @@ export function SharingPanel({
     <section className="planning-panel sharing-panel">
       <header className="panel-heading">
         <div>
-          <h2>{t("title")}</h2>
-          <p>{t("intro")}</p>
+          <h2>{tp("title")}</h2>
         </div>
         <ShareIcon />
       </header>
 
+      <ShareWithPeople
+        eventId={eventId}
+        legend={t("sharePeople")}
+        rows={rows}
+      />
+
       <form className="share-form surface-subtle" onSubmit={handleShare}>
+        <span className="share-group-title">{t("byEmail")}</span>
         <label className="field field-wide">
-          <span>{t("collaboratorEmail")}</span>
+          <span>{tp("collaboratorEmail")}</span>
           <input
             autoComplete="email"
             onChange={(input) => setPrincipalEmail(input.target.value)}
@@ -99,13 +121,13 @@ export function SharingPanel({
           />
         </label>
         <label className="field">
-          <span>{t("access")}</span>
+          <span>{tp("access")}</span>
           <select
             onChange={(input) => setRole(input.target.value as SharedRole)}
             value={role}
           >
-            <option value="viewer">{t("roles.viewer")}</option>
-            <option value="owner">{t("roles.owner")}</option>
+            <option value="viewer">{tp("roles.viewer")}</option>
+            <option value="owner">{tp("roles.owner")}</option>
           </select>
         </label>
         <button
@@ -113,25 +135,18 @@ export function SharingPanel({
           disabled={share.isPending}
           type="submit"
         >
-          {share.isPending ? t("sharing") : t("shareEvent")}
+          {share.isPending ? tp("sharing") : tp("shareEvent")}
         </button>
         {share.isError ? <ErrorNotice error={share.error} /> : null}
       </form>
 
-      <ShareWithPeople
-        eventId={eventId}
-        grants={shares.data?.items ?? []}
-        legend={t("shareWithPeople")}
-        people={people}
-      />
-
       <div className="sharing-section">
         <div className="section-title-row">
           <h3>{t("peopleWithAccess")}</h3>
-          <span>{shares.data?.items.length ?? 0}</span>
+          <span>{(shares.data?.items.length ?? 0) + pending.length}</span>
         </div>
         {shares.isPending ? (
-          <LoadingState label={t("loadingCollaborators")} />
+          <LoadingState label={tp("loadingCollaborators")} />
         ) : null}
         {shares.isError ? (
           <ErrorNotice
@@ -139,7 +154,7 @@ export function SharingPanel({
             onRefresh={() => void shares.refetch()}
           />
         ) : null}
-        {shares.data?.items.length === 0 ? (
+        {shares.data?.items.length === 0 && pending.length === 0 ? (
           <EmptyState title={t("onlyYou")} />
         ) : null}
         <div className="share-list">
@@ -153,7 +168,7 @@ export function SharingPanel({
                 <span>{grant.principal.email}</span>
               </div>
               <span className={`status-chip status-${grant.role}`}>
-                {t(`roles.${grant.role}`)}
+                {grant.role}
               </span>
               <button
                 className="button button-quiet button-small"
@@ -161,24 +176,57 @@ export function SharingPanel({
                 onClick={() => revoke.mutate(grant.id)}
                 type="button"
               >
-                {t("revoke")}
+                {t("remove")}
               </button>
             </article>
           ))}
+          {pending.map((item) => {
+            const name = item.person?.displayName ?? item.email ?? "";
+            return (
+              <article className="share-pending" key={item.id}>
+                <span className="profile-mark" aria-hidden="true">
+                  {name.slice(0, 1).toUpperCase()}
+                </span>
+                <div>
+                  <strong>{name}</strong>
+                  <span>
+                    {item.person === null ? t("accessFollows") : item.email}
+                    {item.person === null
+                      ? null
+                      : ` \u00b7 ${t("accessFollows")}`}
+                  </span>
+                </div>
+                <span className={`status-chip status-${item.role}`}>
+                  {t(`roles.${item.role}` as "roles.viewer")}
+                </span>
+                <button
+                  className="button button-quiet button-small"
+                  disabled={revokePending.isPending}
+                  onClick={() => revokePending.mutate(item.id)}
+                  type="button"
+                >
+                  {t("remove")}
+                </button>
+              </article>
+            );
+          })}
         </div>
         {revoke.isError ? <ErrorNotice error={revoke.error} /> : null}
+        {revokePending.isError ? (
+          <ErrorNotice error={revokePending.error} />
+        ) : null}
       </div>
 
       <div className="sharing-section">
         <div className="section-title-row">
           <div>
-            <h3>{t("inheritedResources")}</h3>
-            <p>{t("inheritedNote")}</p>
+            <h3>{tp("inheritedResources")}</h3>
+            <p>{tp("inheritedNote")}</p>
           </div>
           <span>{resources.length}</span>
         </div>
         {resources.length === 0 ? (
-          <EmptyState title={t("noResources")} />
+          <EmptyState title={tp("noResources")} />
         ) : (
           <div className="scope-list">
             {resources.map((resource) => {
@@ -193,10 +241,10 @@ export function SharingPanel({
                       {types(resource.objectType)}
                     </span>
                     <strong>{resource.displayName}</strong>
-                    <span>{t("id", { id: shortId(resource.id) })}</span>
+                    <span>{tp("id", { id: shortId(resource.id) })}</span>
                   </div>
                   <span className="scope-state">
-                    {inherits ? t("inherits") : t("privateScope")}
+                    {inherits ? tp("inherits") : tp("privateScope")}
                   </span>
                   {inherits ? (
                     <button
@@ -213,7 +261,7 @@ export function SharingPanel({
                       }
                       type="button"
                     >
-                      {t("makePrivate")}
+                      {tp("makePrivate")}
                     </button>
                   ) : null}
                 </article>

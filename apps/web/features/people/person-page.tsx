@@ -34,6 +34,7 @@ import {
   useTasksQuery,
   useLabelsQuery,
 } from "../../lib/queries";
+import { usePersonConnections } from "../../lib/use-person-connections";
 import { formatTaskWhen } from "../../lib/task-due";
 import { StatusChip } from "../events/component-frame";
 import { HistoryButton } from "../history/history-button";
@@ -61,6 +62,7 @@ export function PersonPage({ personId }: { readonly personId: string }) {
   const people = useTranslations("people");
   const { person, access } = usePersonEditorQueries(personId);
   const session = useSessionQuery();
+  const connections = usePersonConnections();
   const labelNames = useLabelsQuery().data?.names;
   const openLifecycle = useOpenLifecycle();
   const [tab, setTab] = useState<PersonTab>("overview");
@@ -92,7 +94,7 @@ export function PersonPage({ personId }: { readonly personId: string }) {
   const actions = access.data?.actions ?? [];
   const canEdit = actions.includes("edit");
   const canDelete = actions.includes("delete");
-  const account = personAccount(record, session.data?.user.id);
+  const account = personAccount(record, session.data?.user.id, connections);
   const fields = Object.entries(record.customProperties);
 
   function copyLink() {

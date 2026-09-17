@@ -15,6 +15,12 @@ import {
 } from "@chronelle/db";
 import { and, asc, eq, gt, isNull, or, sql } from "drizzle-orm";
 
+import {
+  carryPendingShares,
+  lapsePendingShares,
+  settlePendingShares,
+} from "../sharing/pending-share-store.js";
+
 /** A request or connection as one side of it sees the other. */
 export interface ConnectionView {
   readonly id: string;
@@ -464,6 +470,20 @@ export class PostgresFriendStore implements FriendStore {
         requestId,
         { connectionId: connection.id, requesterId: connection.requesterId },
       );
+      if (accept)
+        await settlePendingShares(
+          transaction,
+          connection,
+          userId,
+          requestId,
+          now,
+        );
+      else
+        await lapsePendingShares(
+          transaction,
+          { connectionId: connection.id },
+          now,
+        );
       return connectionView(transaction, connection, userId);
     });
   }
@@ -494,6 +514,11 @@ export class PostgresFriendStore implements FriendStore {
         await audit(transaction, home, userId, "friend.withdrawn", requestId, {
           connectionId: connection.id,
         });
+        await lapsePendingShares(
+          transaction,
+          { connectionId: connection.id },
+          now,
+        );
         return { id: connection.id, kind: "connection", status: "withdrawn" };
       }
       const [invitation] = await transaction
@@ -516,6 +541,11 @@ export class PostgresFriendStore implements FriendStore {
         "friend.invitation_withdrawn",
         requestId,
         { invitationId: invitation.id },
+      );
+      await lapsePendingShares(
+        transaction,
+        { invitationId: invitation.id },
+        now,
       );
       return { id: invitation.id, kind: "invitation", status: "withdrawn" };
     });
@@ -698,37 +728,46 @@ export class PostgresFriendStore implements FriendStore {
             consumedBy: userId,
           })
           .where(eq(userInvitations.id, invitation.id));
-        const existing = await liveConnection(
+        let connection = await liveConnection(
           transaction,
           invitation.requesterId,
           userId,
         );
-        if (existing !== undefined) continue;
-        const [connection] = await transaction
-          .insert(userConnections)
-          .values({
-            id: createId(),
-            requesterId: invitation.requesterId,
-            addresseeId: userId,
-            status: "pending",
-            message: invitation.message,
-            personId: invitation.personId,
-            workspaceId: invitation.workspaceId,
-            createdAt: claimedAt,
-            lastSentAt: claimedAt,
-          })
-          .returning();
-        if (connection === undefined)
-          throw new Error("The connection was not recorded.");
-        await audit(
+        if (connection === undefined) {
+          [connection] = await transaction
+            .insert(userConnections)
+            .values({
+              id: createId(),
+              requesterId: invitation.requesterId,
+              addresseeId: userId,
+              status: "pending",
+              message: invitation.message,
+              personId: invitation.personId,
+              workspaceId: invitation.workspaceId,
+              createdAt: claimedAt,
+              lastSentAt: claimedAt,
+            })
+            .returning();
+          if (connection === undefined)
+            throw new Error("The connection was not recorded.");
+          await audit(
+            transaction,
+            await homeWorkspace(transaction, invitation.requesterId),
+            userId,
+            "friend.invitation_claimed",
+            requestId,
+            { invitationId: invitation.id, connectionId: connection.id },
+          );
+          claimed += 1;
+        }
+        await carryPendingShares(
           transaction,
-          await homeWorkspace(transaction, invitation.requesterId),
+          invitation.id,
+          connection,
           userId,
-          "friend.invitation_claimed",
           requestId,
-          { invitationId: invitation.id, connectionId: connection.id },
+          claimedAt,
         );
-        claimed += 1;
       }
       return claimed;
     });

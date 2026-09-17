@@ -789,27 +789,53 @@ account lookup by email happens only through an invitation.
 
 ## Access and sharing
 
-| Method   | Path                            | Behavior                              |
-| -------- | ------------------------------- | ------------------------------------- |
-| `GET`    | `/objects/:id/access`           | List the caller's allowed actions     |
-| `GET`    | `/objects/:id/shares`           | List active direct grants             |
-| `POST`   | `/shares`                       | Create or replace a direct user grant |
-| `DELETE` | `/shares/:id`                   | Revoke a direct grant                 |
-| `PATCH`  | `/objects/:id/permission-scope` | Change inheritance with a version     |
+| Method   | Path                            | Behavior                                      |
+| -------- | ------------------------------- | --------------------------------------------- |
+| `GET`    | `/objects/:id/access`           | List the caller's allowed actions             |
+| `GET`    | `/objects/:id/shares`           | List active direct grants and waiting shares  |
+| `POST`   | `/shares`                       | Create or replace a direct user grant         |
+| `DELETE` | `/shares/:id`                   | Revoke a direct grant                         |
+| `POST`   | `/shares/pending`               | Queue a share for a person without an account |
+| `DELETE` | `/shares/pending/:id`           | Take a waiting share back                     |
+| `PATCH`  | `/objects/:id/permission-scope` | Change inheritance with a version             |
 
 `POST /shares` accepts `resourceId`, an Owner, Editor, or Viewer `role`, and
-the grantee as exactly one of `principalEmail` and `personId`. An email names
-the one account with that address. A Person of the workspace names its linked
-account, or else the one account whose email is the person's; a person the
-caller cannot view, a person in Trash, one with neither an account nor an
-email, or an email that matches no account or several is
-`principal_unavailable` (HTTP 404), as an unknown email is, and naming both
-or neither is HTTP 400. The recipient must already have a Chronelle
+the grantee as exactly one of `principalEmail`, `personId`, and `friendId`.
+An email names the one account with that address. A Person of the workspace
+names its linked account, or else the one account whose email is the
+person's. A friend names an accepted connection of the caller (an id from
+`GET /api/friends`); the other side receives the role. A person the caller
+cannot view, a person in Trash, one with neither an account nor an email, an
+email that matches no account or several, or a connection that is not the
+caller's and accepted is `principal_unavailable` (HTTP 404), and naming two
+grantees or none is HTTP 400. The recipient must already have a Chronelle
 identity. Repeating the request for the same resource and user replaces the
 active role rather than creating a duplicate grant; the audit event of a
-share by person carries `personId`. Only callers with Share permission can
-read or mutate grants; user and person lookup happens after that
-authorization check.
+share by person carries `personId` and one by friend `friendId`. Only
+callers with Share permission can read or mutate grants; user and person
+lookup happens after that authorization check.
+
+`GET /objects/:id/shares` returns `{ items, pending }`. `pending` lists the
+shares waiting on a request or invitation the caller's account sent, each
+`{ id, workspaceId, resourceId, role, status: "pending", kind, itemId,
+person, email, grantedBy, createdAt }`: `kind` is `connection` (a request to
+an account) or `invitation` (a sign-up link to an address) and `itemId` that
+item; `person` is the card the share was ticked from, or null.
+
+`POST /shares/pending` accepts `resourceId`, `personId`, and `role` for a
+Person with no linked account. When a request or invitation from the caller
+already names the person, the share is queued on it; otherwise the person's
+email is invited as `POST /api/friends/invitations` would (a request to the
+account that has the address, a sign-up link to one without) and the share
+queued on what was sent. A person with an account here is HTTP 400 (share
+with them directly), as is one with no email. The response is the pending
+share (201); queuing the same person and resource again changes the role.
+The share is granted, with the usual `resource.shared` audit event carrying
+`pendingShareId`, when the request is accepted; it lapses when the request
+is declined or withdrawn. `DELETE /shares/pending/:id` takes a waiting
+share back for a caller who could revoke a grant on the resource and
+answers `{ id, revokedAt }`. Queuing writes `resource.share_queued` and
+taking back `resource.share_queue_revoked`.
 
 The permission-scope patch accepts `permissionScopeId` and
 `expectedVersion`. Setting the scope to the object's own ID stops inheritance.
@@ -819,6 +845,24 @@ Share permission on both resources. Stale versions return `version_conflict`.
 The session response includes `availableWorkspaces`. It contains the personal
 workspace plus workspaces reached through live direct grants. Revoking the last
 grant makes that workspace unavailable on the next request.
+
+## Workspace members
+
+| Method   | Path                                  | Behavior                             |
+| -------- | ------------------------------------- | ------------------------------------ |
+| `GET`    | `/workspaces/current/members`         | List the current workspace's members |
+| `POST`   | `/workspaces/current/members`         | Add a friend as viewer or editor     |
+| `DELETE` | `/workspaces/current/members/:userId` | Remove a member                      |
+
+Any member reads the list: `{ items }` of `{ userId, displayName, email,
+role, personal, friendId, joinedAt }`, the personal owner first, then by
+name; `friendId` is the caller's accepted connection to that member when
+they are friends. An Owner adds a friend with `{ friendId, role }` where the
+role is `editor` or `viewer`; a friend who already is a member takes the new
+role, and one who is an Owner is refused with `member_conflict` (HTTP 409).
+An Owner removes any member but the personal owner and themselves (HTTP
+400); a member's direct grants in the workspace stay. Membership writes
+`workspace.member_added` and `workspace.member_removed`.
 
 ## Mutation contract
 

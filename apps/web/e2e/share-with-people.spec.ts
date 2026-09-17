@@ -18,6 +18,7 @@ test("shares an event with the people the workspace knows", async ({
     })
   ).json();
   const headers = { authorization: `Bearer ${owner.accessToken}` };
+  const readerHeaders = { authorization: `Bearer ${reader.accessToken}` };
   const event = await (
     await request.post("/api/events", {
       headers,
@@ -41,26 +42,71 @@ test("shares an event with the people the workspace knows", async ({
   await page.getByRole("button", { name: "Continue", exact: true }).click();
   await page.getByRole("link", { name: /Reading circle/ }).click();
   await page.getByRole("button", { name: "Share event", exact: true }).click();
-  const list = page.getByRole("list", { name: "Share with people" });
-  await expect(list.getByRole("checkbox")).toHaveCount(1);
-  await expect(list.getByText(readerEmail.toUpperCase())).toBeVisible();
-  const shareButton = page.getByRole("button", { name: /^Share with \d/ });
+  // The person with an email is offered among the other people; the tick
+  // sends them a request and the share waits on it.
+  const others = page.getByRole("list", { name: "Others in People" });
+  await expect(others.getByRole("checkbox")).toHaveCount(1);
+  await expect(others.getByText(new RegExp(readerEmail, "i"))).toBeVisible();
+  await expect(page.getByRole("list", { name: "Friends" })).toHaveCount(0);
+  const shareButton = page.getByRole("button", { name: /^Share with/ });
   await expect(shareButton).toBeDisabled();
-  await list.getByRole("checkbox", { name: /Reader Person/ }).check();
+  await others.getByRole("checkbox", { name: /Reader Person/ }).check();
   await expect(shareButton).toHaveText("Share with 1 person");
   await shareButton.click();
-  await expect(list.getByText("Shared as viewer")).toBeVisible();
   await expect(
-    page.locator(".share-list").getByText("Reader", { exact: true }),
+    others.getByText("Invitation sent; access follows when they join"),
   ).toBeVisible();
+  const access = page.locator(".share-list");
   await expect(
-    list.getByRole("checkbox", { name: /Reader Person/ }),
+    access.getByText("Reader Person", { exact: true }),
+  ).toBeVisible();
+  await expect(access.getByText(/Access follows when they join/)).toBeVisible();
+  await expect(
+    others.getByRole("checkbox", { name: /Reader Person/ }),
   ).not.toBeChecked();
+  await expect(
+    others.getByText("Invited; access follows when they join"),
+  ).toBeVisible();
+  const shares = await (
+    await request.get(`/api/objects/${event.id}/shares`, { headers })
+  ).json();
+  expect(shares.items).toEqual([]);
+  expect(shares.pending).toMatchObject([
+    { role: "viewer", kind: "connection", email: readerEmail },
+  ]);
+
+  // The reader accepts the request: the share becomes a grant, and the
+  // Sharing view shows it.
+  const requests = await (
+    await request.get("/api/friends", { headers: readerHeaders })
+  ).json();
+  expect(requests.incoming).toHaveLength(1);
+  expect(
+    (
+      await request.post(
+        `/api/friends/requests/${requests.incoming[0].id}/accept`,
+        { headers: readerHeaders },
+      )
+    ).status(),
+  ).toBe(200);
+  await page.reload();
+  await page.getByRole("button", { name: "Share event", exact: true }).click();
+  await expect(access.getByText("Reader", { exact: true })).toBeVisible();
+  await expect(access.getByText(/Access follows when they join/)).toHaveCount(
+    0,
+  );
   const grants = await (
     await request.get(`/api/objects/${event.id}/shares`, { headers })
   ).json();
   expect(grants.items).toMatchObject([
     { principal: { id: reader.user.id, email: readerEmail }, role: "viewer" },
   ]);
+  expect(grants.pending).toEqual([]);
+  // The reader, now a friend, is offered under Friends with the role held.
+  const friends = page.getByRole("list", { name: "Friends" });
+  await expect(
+    friends.getByRole("checkbox", { name: /Reader Person/ }),
+  ).toBeVisible();
+  await expect(friends.locator(".status-chip")).toHaveText("Viewer");
   expect(errors).toEqual([]);
 });

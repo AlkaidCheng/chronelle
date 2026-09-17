@@ -118,7 +118,17 @@ respond, withdraw, remove, resend, invitations_claim; the readiness check
 requires the seven), and replaces `chronelle_assert_person_state` in place
 so a person may be linked to a friend of a workspace member; the runtime
 role grants are reapplied for the two new tables. Friend invitation emails
-link to `WEB_PUBLIC_URL` (`http://localhost:3000` when unset).
+link to `WEB_PUBLIC_URL` (`http://localhost:3000` when unset). Migration
+`0052_queue_shares_for_invited.sql` adds `pending_shares` (a share waiting
+on a request or invitation, granted when it is accepted), redefines
+`chronelle_resource_share` with `friend_id` as a third grantee argument,
+adds `chronelle_pending_share_create`, `_list`, and `_revoke` and
+`chronelle_workspace_member_list`, `_add`, and `_remove` (the readiness
+check requires the six), and replaces `chronelle_friend_respond`,
+`chronelle_friend_withdraw`, and `chronelle_friend_invitations_claim` in
+place so answering a request settles the shares waiting on it; the runtime
+role grants are reapplied for the new table and for deleting workspace
+members.
 
 Migration `0021_add_object_search_function.sql` adds `chronelle_object_search`,
 the read-only function the CloudBase search adapter calls. It changes no
