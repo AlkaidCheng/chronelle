@@ -338,7 +338,9 @@ service as `WEB_DEVELOPMENT_SIGN_IN`, which renders `/sign-in/development`);
 email and password accounts work without it once `EMAIL_PROVIDER=smtp`,
 `SMTP_URL`, and `EMAIL_FROM` name a mail transport (the default `log`
 provider writes verification codes to the API log and is not for a
-deployment). Start it from the repository root:
+deployment; `EMAIL_PROVIDER=file` with `EMAIL_FILE_PATH` appends them to a
+file on the instance for an internal test whose operator hands codes to
+testers by other means). Start it from the repository root:
 
 ```bash
 docker compose --env-file .env -f infrastructure/compose.preview.yaml up -d --wait
