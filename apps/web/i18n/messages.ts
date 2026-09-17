@@ -10,7 +10,8 @@ const catalogs: Record<Locale, () => Promise<AbstractIntlMessages>> = {
     import("../messages/zh-Hant.json").then((module) => module.default),
 };
 
-function merge(
+/** `over` on top of `base`, key by key, nested objects merged rather than replaced. */
+export function mergeMessages(
   base: AbstractIntlMessages,
   over: AbstractIntlMessages,
 ): AbstractIntlMessages {
@@ -22,7 +23,10 @@ function merge(
       value !== null &&
       typeof current === "object" &&
       current !== null
-        ? merge(current as AbstractIntlMessages, value as AbstractIntlMessages)
+        ? mergeMessages(
+            current as AbstractIntlMessages,
+            value as AbstractIntlMessages,
+          )
         : value;
   }
   return result as AbstractIntlMessages;
@@ -38,5 +42,5 @@ export async function loadMessages(
   const chain = localeChain(locale);
   const loaded = await Promise.all(chain.map((tag) => catalogs[tag]()));
   // The farthest fallback is the base; nearer catalogs override it.
-  return loaded.reverse().reduce((base, over) => merge(base, over), {});
+  return loaded.reverse().reduce((base, over) => mergeMessages(base, over), {});
 }

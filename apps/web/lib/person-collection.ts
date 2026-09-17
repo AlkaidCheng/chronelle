@@ -1,6 +1,5 @@
 import type { PersonResponse } from "@chronelle/schemas";
-
-import { activeLocale } from "../i18n/active-locale";
+import { compareNames } from "./format";
 import { personDisplayName } from "./person-fields";
 
 /** How the People collection lays its people out. */
@@ -69,11 +68,8 @@ export function comparePersons(
   switch (sort) {
     case "name":
       return (a, b) =>
-        personDisplayName(a).localeCompare(
-          personDisplayName(b),
-          activeLocale(),
-          { sensitivity: "base" },
-        ) || compareText(a.id, b.id);
+        compareNames(personDisplayName(a), personDisplayName(b)) ||
+        compareText(a.id, b.id);
     case "updated":
       return (a, b) =>
         compareText(b.updatedAt, a.updatedAt) || compareText(a.id, b.id);

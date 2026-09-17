@@ -1,5 +1,5 @@
 import { NextIntlClientProvider } from "next-intl";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import { createRoot } from "react-dom/client";
 import { Providers } from "../app/providers";
 import { WorkspaceShell } from "../components/workspace-shell";
@@ -12,7 +12,16 @@ import { TrashWorkspace } from "../features/recovery/trash-workspace";
 import { ObjectSearch } from "../features/search/object-search";
 import { SettingsPage } from "../features/settings/settings-page";
 import { TasksPage } from "../features/tasks/tasks-page";
+import {
+  readLocaleChoice,
+  subscribeLocaleChoice,
+} from "../i18n/locale-preference";
+import { LocaleSync } from "../i18n/locale-sync";
+import { type Locale, localeChain, negotiateLocale } from "../i18n/locales";
+import { mergeMessages } from "../i18n/messages";
 import en from "../messages/en.json";
+import hans from "../messages/zh-Hans.json";
+import hant from "../messages/zh-Hant.json";
 import { store } from "./api-context";
 import { useAuthSession } from "./auth-session";
 import Link, { usePathname } from "./router";
@@ -127,10 +136,36 @@ document.addEventListener("click", (event) => {
 });
 const root = document.getElementById("sandbox-root");
 if (!root) throw new Error("Sandbox root missing.");
-createRoot(root).render(
-  <NextIntlClientProvider locale="en" messages={en}>
-    <Providers>
-      <Sandbox />
-    </Providers>
-  </NextIntlClientProvider>,
-);
+const catalogs: Record<Locale, typeof en> = {
+  en,
+  "zh-Hans": hans,
+  "zh-Hant": hant,
+};
+
+/** The language this browser chose, else the one its languages imply. */
+function sandboxLocale(): Locale {
+  const choice = readLocaleChoice();
+  return choice === "system" ? negotiateLocale(navigator.languages) : choice;
+}
+
+/**
+ * The bundle carries every catalog, so a language chosen in Settings
+ * applies at once: the provider re-renders with that locale's messages
+ * merged over its fallbacks, the same chain the server uses.
+ */
+function SandboxIntl() {
+  const locale = useSyncExternalStore(subscribeLocaleChoice, sandboxLocale);
+  const messages = [...localeChain(locale)]
+    .reverse()
+    .reduce((base, tag) => mergeMessages(base, catalogs[tag]), {});
+  return (
+    <NextIntlClientProvider locale={locale} messages={messages}>
+      <LocaleSync />
+      <Providers>
+        <Sandbox />
+      </Providers>
+    </NextIntlClientProvider>
+  );
+}
+
+createRoot(root).render(<SandboxIntl />);

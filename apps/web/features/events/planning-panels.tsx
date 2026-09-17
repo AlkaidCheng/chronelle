@@ -35,7 +35,12 @@ import {
   formatEventDatePart,
   formatEventSchedule,
 } from "../../lib/event-schedule";
-import { formatDatePart, formatDateTime, formatTime } from "../../lib/format";
+import {
+  compareNames,
+  formatDatePart,
+  formatDateTime,
+  formatTime,
+} from "../../lib/format";
 import { formatMoney, sumMoneyByCurrency } from "../../lib/money";
 import {
   useLabelsQuery,
@@ -45,7 +50,7 @@ import {
   useUpdateReminder,
 } from "../../lib/queries";
 import { instantOnDay } from "../../lib/task-due";
-import { type TaskSort, sortTasks } from "../../lib/task-sort";
+import { sortTasks, type TaskSort } from "../../lib/task-sort";
 import { deriveTaskTree } from "../../lib/task-tree";
 import { usePeriod } from "../../lib/use-period";
 import { type RowDrop, useRowDrag } from "../../lib/use-row-drag";
@@ -59,8 +64,8 @@ import { QuickAddTask } from "../tasks/quick-add-task";
 import {
   activeFilterCount,
   defaultTaskFilters,
-  type TaskFilters,
   TaskFilterControl,
+  type TaskFilters,
   TaskSortControl,
 } from "../tasks/task-controls";
 import {
@@ -102,9 +107,7 @@ function namedChoices(
     if (name !== undefined) choices.push({ id, name });
   }
   return choices.sort(
-    (a, b) =>
-      a.name.toLowerCase().localeCompare(b.name.toLowerCase()) ||
-      a.id.localeCompare(b.id),
+    (a, b) => compareNames(a.name, b.name) || a.id.localeCompare(b.id),
   );
 }
 

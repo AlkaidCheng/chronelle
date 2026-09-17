@@ -1,7 +1,6 @@
 import type { TaskListQuery, TaskResponse } from "@chronelle/schemas";
-
-import { activeLocale } from "../i18n/active-locale";
 import { taskDay } from "./day-placement";
+import { compareNames } from "./format";
 
 /** The orders a task collection offers, as `GET /api/tasks` names them. */
 export type TaskSort = NonNullable<TaskListQuery["sort"]>;
@@ -33,9 +32,7 @@ export function compareTasks(
       return (a, b) => compareText(a.rank, b.rank) || compareText(a.id, b.id);
     case "name":
       return (a, b) =>
-        a.displayName.localeCompare(b.displayName, activeLocale(), {
-          sensitivity: "base",
-        }) || compareText(a.id, b.id);
+        compareNames(a.displayName, b.displayName) || compareText(a.id, b.id);
     case "updated":
       return (a, b) =>
         compareText(b.updatedAt, a.updatedAt) || compareText(a.id, b.id);
