@@ -20,6 +20,7 @@ import {
   PencilIcon,
   TrashIcon,
 } from "../../components/icons";
+import { useNotices } from "../../components/notices";
 import {
   MenuItem,
   MenuSeparator,
@@ -30,14 +31,15 @@ import { formatEventSchedule } from "../../lib/event-schedule";
 import { personAccount } from "../../lib/person-collection";
 import { personDisplayName, propertyText } from "../../lib/person-fields";
 import {
+  useLabelsQuery,
   usePersonEditorQueries,
   usePersonEventsQuery,
   useSessionQuery,
   useTasksQuery,
-  useLabelsQuery,
+  useUpdatePerson,
 } from "../../lib/queries";
-import { usePersonConnections } from "../../lib/use-person-connections";
 import { formatTaskWhen } from "../../lib/task-due";
+import { usePersonConnections } from "../../lib/use-person-connections";
 import { StatusChip } from "../events/component-frame";
 import { HistoryButton } from "../history/history-button";
 import { useOpenLifecycle } from "../recovery/lifecycle-provider";
@@ -62,6 +64,10 @@ const personTabs: readonly PersonTab[] = ["overview", "events", "tasks"];
 export function PersonPage({ personId }: { readonly personId: string }) {
   const t = useTranslations("personPage");
   const people = useTranslations("people");
+  const verbs = useTranslations("verbs");
+  const done = useTranslations("done");
+  const { post } = useNotices();
+  const update = useUpdatePerson();
   const { person, access } = usePersonEditorQueries(personId);
   const session = useSessionQuery();
   const connections = usePersonConnections();
@@ -169,6 +175,30 @@ export function PersonPage({ personId }: { readonly personId: string }) {
               <MenuItem icon={<LinkIcon />} onSelect={copyLink}>
                 {t("copyLink")}
               </MenuItem>
+              {canEdit &&
+              record.userId !== null &&
+              record.userId !== session.data?.user.id ? (
+                <MenuItem
+                  icon={<LinkIcon />}
+                  onSelect={() =>
+                    update.mutate(
+                      {
+                        id: record.id,
+                        input: {
+                          expectedVersion: record.version,
+                          userId: null,
+                        },
+                      },
+                      {
+                        onSuccess: () =>
+                          post({ message: done("personUnlinked") }),
+                      },
+                    )
+                  }
+                >
+                  {verbs("unlinkPerson")}
+                </MenuItem>
+              ) : null}
               {canDelete ? (
                 <>
                   <MenuSeparator />

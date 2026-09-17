@@ -31,6 +31,7 @@ import { useEditorDraft } from "../../lib/use-editor-draft";
 import { useSessionDialog } from "../../lib/use-session-dialog";
 import { useDiscardConfirmation } from "../../lib/use-discard-confirmation";
 import { useOpenHistory } from "../history/history-provider";
+import type { FieldFormatter } from "./conflict-notice";
 import { EditorControls } from "./editor-controls";
 import { EventScheduleFields } from "./event-schedule-fields";
 
@@ -77,6 +78,11 @@ function EventInspectorForm({
     onClose,
   );
   const event = draft.source ?? latestEvent;
+  const modes = useTranslations("conflict.modes");
+  const formatEventField: FieldFormatter = (key, value) => {
+    const mode = value as Parameters<typeof modes>[0];
+    return key === "mode" && modes.has(mode) ? modes(mode) : undefined;
+  };
   const nameId = useId();
   const headingId = useId();
   const openHistory = useOpenHistory();
@@ -234,6 +240,7 @@ function EventInspectorForm({
         </div>
         <footer className="event-inspector-footer">
           <EditorControls
+            conflict={{ objectId: event.id, format: formatEventField }}
             draft={draft}
             mutation={update}
             onCancel={requestClose}

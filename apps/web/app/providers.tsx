@@ -2,13 +2,13 @@
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { type ReactNode, useEffect, useState } from "react";
-
-import { ApiClientProvider } from "../lib/api-context";
-import { AuthSessionProvider, useAuthSession } from "../lib/auth-session";
+import { NoticesProvider } from "../components/notices";
 import { HistoryProvider } from "../features/history/history-provider";
 import { LifecycleProvider } from "../features/recovery/lifecycle-provider";
-import { EventCollectionProvider } from "../lib/event-collection-state";
+import { ApiClientProvider } from "../lib/api-context";
+import { AuthSessionProvider, useAuthSession } from "../lib/auth-session";
 import { EditorDraftProvider } from "../lib/editor-draft-context";
+import { EventCollectionProvider } from "../lib/event-collection-state";
 
 export function Providers({ children }: { readonly children: ReactNode }) {
   return (
@@ -43,11 +43,13 @@ function SessionProviders({ children }: { readonly children: ReactNode }) {
     <QueryClientProvider client={queryClient}>
       <ApiClientProvider>
         <HistoryProvider>
-          <LifecycleProvider>
-            <EditorDraftProvider>
-              <EventCollectionProvider>{children}</EventCollectionProvider>
-            </EditorDraftProvider>
-          </LifecycleProvider>
+          <NoticesProvider>
+            <LifecycleProvider>
+              <EditorDraftProvider>
+                <EventCollectionProvider>{children}</EventCollectionProvider>
+              </EditorDraftProvider>
+            </LifecycleProvider>
+          </NoticesProvider>
         </HistoryProvider>
       </ApiClientProvider>
     </QueryClientProvider>

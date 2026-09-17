@@ -226,9 +226,7 @@ describe("Event draft recovery across navigation", () => {
       await screen.findByDisplayValue("Private garden draft"),
     ).toBeVisible();
     expect(screen.getByRole("button", { name: "Save event" })).toBeDisabled();
-    await user.click(
-      screen.getByRole("button", { name: "Discard draft and load latest" }),
-    );
+    await user.click(screen.getByRole("button", { name: "Take theirs" }));
     expect(screen.getByLabelText("Name")).toHaveValue("Collaborator name");
     expect(unloadIsPrevented()).toBe(false);
   });

@@ -139,6 +139,7 @@ function LabelManagerDialog({ onClose }: { readonly onClose: () => void }) {
 
 function LabelRow({ label }: { readonly label: LabelResponse }) {
   const t = useTranslations("labels");
+  const verbs = useTranslations("verbs");
   const update = useUpdateLabel();
   const remove = useDeleteLabel();
   const [name, setName] = useState(label.name);
@@ -179,8 +180,8 @@ function LabelRow({ label }: { readonly label: LabelResponse }) {
             type="button"
           >
             {remove.isPending
-              ? t("deleting")
-              : t("deleteNamed", { name: label.name })}
+              ? t("removing")
+              : verbs("removeLabelNamed", { name: label.name })}
           </button>
           <button
             className="button button-quiet button-small"
@@ -193,13 +194,13 @@ function LabelRow({ label }: { readonly label: LabelResponse }) {
         </>
       ) : (
         <button
-          aria-label={t("deleteNamed", { name: label.name })}
+          aria-label={verbs("removeLabelNamed", { name: label.name })}
           className="button button-quiet button-small"
           disabled={busy}
           onClick={() => setConfirming(true)}
           type="button"
         >
-          {t("delete")}
+          {verbs("removeLabel")}
         </button>
       )}
       {failure ? (

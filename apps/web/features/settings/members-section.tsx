@@ -2,8 +2,9 @@
 
 import { useTranslations } from "next-intl";
 import { type FormEvent, useId, useState } from "react";
-
+import { ConfirmAction } from "../../components/confirm-action";
 import { ErrorNotice, LoadingState } from "../../components/feedback";
+import { useNotices } from "../../components/notices";
 import { useFriendsQuery } from "../../lib/friend-queries";
 import { personInitials } from "../../lib/person-collection";
 import {
@@ -22,6 +23,10 @@ type MemberRole = "editor" | "viewer";
  */
 export function MembersSection() {
   const t = useTranslations("members");
+  const verbs = useTranslations("verbs");
+  const confirm = useTranslations("confirm");
+  const done = useTranslations("done");
+  const { post } = useNotices();
   const id = useId();
   const session = useSessionQuery();
   const members = useWorkspaceMembersQuery();
@@ -79,14 +84,19 @@ export function MembersSection() {
               {t(`roles.${member.role}`)}
             </span>
             {isOwner && !member.personal && member.userId !== me ? (
-              <button
-                className="button button-quiet button-small"
+              <ConfirmAction
                 disabled={remove.isPending}
-                onClick={() => remove.mutate(member.userId)}
-                type="button"
-              >
-                {t("remove")}
-              </button>
+                label={verbs("removeMember")}
+                onConfirm={() =>
+                  remove.mutate(member.userId, {
+                    onSuccess: () => post({ message: done("memberRemoved") }),
+                  })
+                }
+                pending={remove.isPending}
+                question={confirm("removeMember", {
+                  name: member.displayName,
+                })}
+              />
             ) : null}
           </li>
         ))}

@@ -242,20 +242,26 @@ describe("versioned editor drafts", () => {
 
       view.rerender(form.render(2, "Collaborator update"));
       expect(screen.getByLabelText(form.field)).toHaveValue("My unsaved draft");
-      expect(screen.getByText(/Your draft is preserved/)).toBeVisible();
+      // The newer version is compared with the draft, never announced alone.
+      expect(
+        screen.getByText("Saved elsewhere while you edited"),
+      ).toBeVisible();
+      expect(screen.getByText("Collaborator update")).toBeVisible();
       const submit = view.container.querySelector("button[type=submit]");
       expect(submit).toBeDisabled();
+      const writes = () =>
+        fetch.mock.calls.filter(
+          ([, init]) => (init?.method ?? "GET") !== "GET",
+        );
       screen.getByLabelText(form.field).focus();
       await user.keyboard("{Control>}{Enter}{/Control}");
-      expect(fetch).not.toHaveBeenCalled();
+      expect(writes()).toHaveLength(0);
       const element = view.container.querySelector("form");
       if (element === null) throw new Error("Editor form not found.");
       fireEvent.submit(element);
-      expect(fetch).not.toHaveBeenCalled();
+      expect(writes()).toHaveLength(0);
 
-      await user.click(
-        screen.getByRole("button", { name: "Discard draft and load latest" }),
-      );
+      await user.click(screen.getByRole("button", { name: "Take theirs" }));
       expect(screen.getByLabelText(form.field)).toHaveValue(
         "Collaborator update",
       );
@@ -293,7 +299,11 @@ describe("versioned editor drafts", () => {
         key: "Enter",
         ctrlKey: true,
       });
-      expect(fetch).toHaveBeenCalledTimes(1);
+      expect(
+        fetch.mock.calls.filter(
+          ([, init]) => (init?.method ?? "GET") !== "GET",
+        ),
+      ).toHaveLength(1);
       expect(form).toHaveAttribute("aria-busy", "true");
       expect(
         screen.getByRole("status", { name: "Save status" }),
@@ -344,16 +354,15 @@ describe("versioned editor drafts", () => {
       );
       if (submit === null) throw new Error("Submit button not found.");
       await user.click(submit);
-      expect(await screen.findByRole("alert")).toHaveTextContent(
+      // The refusal fetches the newest version by itself; here that read is
+      // refused too, so the refusal stands and the draft is kept.
+      expect((await screen.findAllByRole("alert"))[0]).toHaveTextContent(
         "A newer version is available",
       );
       expect(screen.getByLabelText(form.field)).toHaveValue("My draft");
-      await user.click(screen.getByRole("button", { name: "Refresh latest" }));
-      await waitFor(() => expect(screen.queryByRole("alert")).toBeNull());
-      expect(screen.getByLabelText(form.field)).toHaveValue("My draft");
       view.rerender(form.render(2, "Saved elsewhere"));
       await user.click(
-        screen.getByRole("button", { name: "Discard draft and load latest" }),
+        await screen.findByRole("button", { name: "Take theirs" }),
       );
       expect(screen.getByLabelText(form.field)).toHaveValue("Saved elsewhere");
       expect(submit).toBeEnabled();

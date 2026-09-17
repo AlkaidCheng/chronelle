@@ -261,6 +261,9 @@ function ReminderEditor({
         </div>
         <footer className="event-inspector-footer">
           <EditorControls
+            conflict={
+              reminder === undefined ? undefined : { objectId: reminder.id }
+            }
             disabled={!recovery.isRetained}
             draft={draft}
             mutation={mutation}

@@ -6,7 +6,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { ApiClientError } from "@chronelle/api-client";
 
-import { DraftNotice, ErrorNotice, Notice } from "../components/feedback";
+import { ErrorNotice, Notice } from "../components/feedback";
 
 afterEach(cleanup);
 
@@ -75,13 +75,13 @@ describe("Notice", () => {
     render(
       <>
         <ErrorNotice error={new Error("Temporary failure.")} />
-        <DraftNotice onLoadLatest={vi.fn()} />
+        <ErrorNotice
+          error={new ApiClientError(409, "version_conflict", "Changed.")}
+        />
       </>,
     );
-    expect(screen.getByRole("alert")).toHaveAttribute("data-tone", "danger");
-    expect(screen.getByRole("status")).toHaveAttribute("data-tone", "warning");
-    expect(screen.getByRole("status")).toHaveTextContent(
-      "A newer version is available",
-    );
+    const [failure, conflict] = screen.getAllByRole("alert");
+    expect(failure).toHaveAttribute("data-tone", "danger");
+    expect(conflict).toHaveAttribute("data-tone", "warning");
   });
 });

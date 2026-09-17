@@ -152,28 +152,3 @@ export function ErrorNotice({
     </Notice>
   );
 }
-
-export function DraftNotice({
-  onLoadLatest,
-}: {
-  readonly onLoadLatest: () => void;
-}) {
-  const t = useTranslations("notices");
-  return (
-    <Notice
-      action={
-        <button
-          className="button button-secondary button-small"
-          onClick={onLoadLatest}
-          type="button"
-        >
-          {t("draftAction")}
-        </button>
-      }
-      title={t("newerVersion")}
-      tone="warning"
-    >
-      {t("draftBody")}
-    </Notice>
-  );
-}

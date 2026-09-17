@@ -102,9 +102,7 @@
     "sent": "Sent",
     "accept": "Accept",
     "decline": "Decline",
-    "withdraw": "Withdraw",
     "resend": "Resend",
-    "remove": "Remove",
     "noFriends": "No friends yet. Invite someone by email.",
     "since": "Since {date}",
     "sentOn": "Sent {date}",
@@ -557,8 +555,6 @@
     "tryAgain": "Try again",
     "incomplete": "The request could not be completed.",
     "loading": "Loading",
-    "draftBody": "Your draft is preserved. Load the latest version to discard this draft and continue editing.",
-    "draftAction": "Discard draft and load latest",
     "codes": {
       "version_conflict": "The object changed after the supplied version was read.",
       "workspace_unavailable": "This workspace is no longer available to you.",
@@ -575,7 +571,6 @@
     "close": "Close",
     "done": "Done",
     "save": "Save",
-    "delete": "Delete",
     "confirm": "Confirm"
   },
   "validation": {
@@ -798,11 +793,9 @@
     "nameOf": "Name of {name}",
     "renaming": "Renaming...",
     "rename": "Rename",
-    "deleting": "Deleting...",
-    "deleteNamed": "Delete {name}",
     "keep": "Keep",
-    "delete": "Delete",
-    "changeFailed": "The change failed."
+    "changeFailed": "The change failed.",
+    "removing": "Removing..."
   },
   "assignee": {
     "summary": "Assignee: {name}",
@@ -959,28 +952,15 @@
     "grantsNote": "Recovery does not re-create revoked grants. Inherited access must be managed on its canonical scope.",
     "loadingGrants": "Loading direct grants",
     "noGrants": "No direct grants.",
-    "revoke": "Revoke"
+    "thisRecord": "this record"
   },
   "lifecycle": {
     "actionsFor": "Actions for {name}",
     "actions": "Actions",
-    "openTrash": "Open Trash",
-    "intro": "Removing a context link and moving the object to Trash have different effects.",
     "checking": "Checking available actions",
-    "reloadNote": "Close this dialog and reload the view before trying again.",
-    "removeLink": "Remove context link",
-    "moveToTrash": "Move to Trash",
-    "preview": "Deletion preview",
-    "removeTitle": "Remove this link only",
-    "trashTitle": "Move the canonical object to Trash",
-    "removeNote": "The object, its history, permissions, and other contexts remain unchanged. Recover this link from Removed links while both objects are available.",
-    "trashNote": "This object disappears from normal views and downloads. Its content, files, history, and permissions are retained. Related objects are not deleted. A current Owner can recover it from Trash.",
-    "understand": "I understand what will change.",
-    "linkRemoved": "Link removed. The canonical object remains available.",
-    "movedToTrash": "Moved to Trash. No related objects were deleted.",
+    "removeNote": "The record itself stays; the link can be recovered from Removed links.",
+    "trashNote": "Hidden from every view; an Owner can restore it from Trash.",
     "saving": "Saving...",
-    "confirmRemoval": "Confirm removal",
-    "confirmTrash": "Confirm move to Trash",
     "noActions": "No deletion actions are available with your current access."
   },
   "removedLinks": {
@@ -1246,7 +1226,6 @@
     "peopleWithAccess": "People with access",
     "loadingCollaborators": "Loading collaborators",
     "onlyYou": "Only you have access",
-    "revoke": "Revoke",
     "inheritedResources": "Inherited resources",
     "inheritedNote": "Stop inheritance to keep one related object private.",
     "noResources": "No related resources",
@@ -1303,7 +1282,6 @@
     "queued": "Waiting for them to join",
     "invitationSent": "Invitation sent; access follows when they join",
     "failed": "The share could not be completed.",
-    "remove": "Remove",
     "nobody": "Give a person an email or link their account to share with them.",
     "roles": {
       "viewer": "Viewer",
@@ -1318,7 +1296,6 @@
     "friend": "Friend",
     "access": "Access",
     "add": "Add",
-    "remove": "Remove",
     "personal": "Personal workspace",
     "noFriends": "Befriend someone first to add them here.",
     "roles": {
@@ -1448,6 +1425,77 @@
       "reopen": "reopen {name}",
       "move": "move {name}",
       "edit": "edit {name}"
+    }
+  },
+  "verbs": {
+    "moveToTrash": "Move to Trash",
+    "removeFromEvent": "Remove from this event",
+    "unlinkPerson": "Unlink person",
+    "removeShare": "Remove share",
+    "removeMember": "Remove member",
+    "removeFriend": "Remove friend",
+    "withdrawInvitation": "Withdraw invitation",
+    "removeLabel": "Remove label",
+    "removeLabelNamed": "Remove {name}"
+  },
+  "confirm": {
+    "trash": "Move {name} to Trash? You can restore it from Trash.",
+    "removeShare": "{name} will lose access to {resource}.",
+    "removeMember": "{name} will lose access to this workspace.",
+    "removeFriend": "Shares you gave each other stay until removed.",
+    "removeLabel": "Every task loses {name}."
+  },
+  "done": {
+    "movedToTrash": "Moved to Trash",
+    "removedFromEvent": "Removed from this event",
+    "shareRemoved": "Share removed",
+    "memberRemoved": "Member removed",
+    "friendRemoved": "Friend removed",
+    "invitationWithdrawn": "Invitation withdrawn",
+    "personUnlinked": "Person unlinked",
+    "undo": "Undo"
+  },
+  "conflict": {
+    "title": "Saved elsewhere while you edited",
+    "theirs": "{name}, {when}",
+    "someone": "Someone",
+    "mine": "Your draft",
+    "keepMine": "Keep mine",
+    "takeTheirs": "Take theirs",
+    "merge": "Merge fields",
+    "kept": "kept",
+    "saveMerged": "Save merged version",
+    "field": "Field",
+    "empty": "(empty)",
+    "fields": {
+      "displayName": "Name",
+      "dueDate": "Due date",
+      "dueTime": "Due time",
+      "duration": "Duration",
+      "repeat": "Repeat",
+      "repeatUntil": "Repeat until",
+      "assignee": "Assignee",
+      "location": "Location",
+      "labels": "Labels",
+      "amount": "Amount",
+      "currency": "Currency",
+      "occurredAt": "Date",
+      "remindAt": "Reminder time",
+      "mode": "Schedule",
+      "startDate": "Start date",
+      "endDate": "End date",
+      "startTime": "Start time",
+      "endTime": "End time",
+      "nickname": "Nickname",
+      "description": "Description",
+      "userId": "Account",
+      "contacts": "Contacts",
+      "properties": "Fields"
+    },
+    "modes": {
+      "dates": "Dates",
+      "timed": "Dates and times",
+      "unscheduled": "Not scheduled"
     }
   }
 }

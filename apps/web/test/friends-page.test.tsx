@@ -141,7 +141,9 @@ describe("the Friends page", () => {
     const sent = screen.getByRole("region", { name: /Sent/ });
     const row = within(sent).getByText("dan@example.test").closest("li");
     if (row === null) throw new Error("no row");
-    await user.click(within(row).getByRole("button", { name: "Withdraw" }));
+    await user.click(
+      within(row).getByRole("button", { name: "Withdraw invitation" }),
+    );
     await waitFor(() =>
       expect(
         screen.getByRole("region", { name: /Sent/ }),
@@ -153,7 +155,12 @@ describe("the Friends page", () => {
     const user = userEvent.setup();
     render(<FriendsPage />, { wrapper });
     const friends = await screen.findByRole("region", { name: /^Friends/ });
-    await user.click(within(friends).getByRole("button", { name: "Remove" }));
+    await user.click(
+      within(friends).getByRole("button", { name: "Remove friend" }),
+    );
+    await user.click(
+      within(friends).getByRole("button", { name: "Remove friend" }),
+    );
     await waitFor(() =>
       expect(
         screen.getByRole("region", { name: /^Friends/ }),

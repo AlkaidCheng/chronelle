@@ -303,10 +303,10 @@ describe("TasksPage", () => {
       "Venues",
     );
     await user.click(
-      within(manager).getByRole("button", { name: "Delete Venues" }),
+      within(manager).getByRole("button", { name: "Remove Venues" }),
     );
     await user.click(
-      within(manager).getByRole("button", { name: "Delete Venues" }),
+      within(manager).getByRole("button", { name: "Remove Venues" }),
     );
     expect(await within(manager).findByText("No labels yet.")).toBeVisible();
     await user.click(

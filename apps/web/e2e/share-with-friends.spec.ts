@@ -120,9 +120,10 @@ test("shares an event with a friend and queues one for a person without an accou
       })
     ).status(),
   ).toBe(200);
+  // A queued share is taken back without a question: nobody loses access.
   await access
     .locator("article", { hasText: "Priya Raman" })
-    .getByRole("button", { name: "Remove" })
+    .getByRole("button", { name: "Remove share" })
     .click();
   await expect(access.getByText("Priya Raman", { exact: true })).toHaveCount(0);
   expect(
@@ -212,11 +213,10 @@ test("adds a friend to the workspace as a member from Settings", async ({
   ).toContain(ana.workspace.id);
 
   // Removing him ends his access.
-  await members
-    .getByRole("listitem")
-    .nth(1)
-    .getByRole("button", { name: "Remove" })
-    .click();
+  const benRow = members.getByRole("listitem").nth(1);
+  await benRow.getByRole("button", { name: "Remove member" }).click();
+  await expect(benRow).toContainText("will lose access to this workspace.");
+  await benRow.getByRole("button", { name: "Remove member" }).click();
   await expect(members.getByRole("listitem")).toHaveCount(1);
   const after = await (
     await request.get("/api/auth/session", { headers: benHeaders })

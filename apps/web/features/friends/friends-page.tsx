@@ -2,9 +2,10 @@
 
 import { useTranslations } from "next-intl";
 import { useState } from "react";
-
+import { ConfirmAction } from "../../components/confirm-action";
 import { ErrorNotice, LoadingState } from "../../components/feedback";
 import { UserPlusIcon } from "../../components/icons";
+import { useNotices } from "../../components/notices";
 import {
   useAcceptFriendRequest,
   useDeclineFriendRequest,
@@ -25,6 +26,10 @@ import { InviteFriendDialog } from "./invite-friend-dialog";
  */
 export function FriendsPage() {
   const t = useTranslations("friends");
+  const verbs = useTranslations("verbs");
+  const confirm = useTranslations("confirm");
+  const done = useTranslations("done");
+  const { post } = useNotices();
   const friends = useFriendsQuery();
   const [inviting, setInviting] = useState(false);
   const { locale, instant } = useDisplayPreferences();
@@ -160,14 +165,18 @@ export function FriendsPage() {
                     <span className="friends-since">
                       {t("since", { date: day(friend.since) })}
                     </span>
-                    <button
-                      className="button button-quiet button-small"
+                    <ConfirmAction
                       disabled={busy}
-                      onClick={() => remove.mutate(friend.id)}
-                      type="button"
-                    >
-                      {t("remove")}
-                    </button>
+                      label={verbs("removeFriend")}
+                      onConfirm={() =>
+                        remove.mutate(friend.id, {
+                          onSuccess: () =>
+                            post({ message: done("friendRemoved") }),
+                        })
+                      }
+                      pending={remove.isPending}
+                      question={confirm("removeFriend")}
+                    />
                   </li>
                 ))}
               </ul>
@@ -208,10 +217,15 @@ export function FriendsPage() {
                     <button
                       className="button button-quiet button-small"
                       disabled={busy}
-                      onClick={() => withdraw.mutate(item.id)}
+                      onClick={() =>
+                        withdraw.mutate(item.id, {
+                          onSuccess: () =>
+                            post({ message: done("invitationWithdrawn") }),
+                        })
+                      }
                       type="button"
                     >
-                      {t("withdraw")}
+                      {verbs("withdrawInvitation")}
                     </button>
                   </li>
                 ))}

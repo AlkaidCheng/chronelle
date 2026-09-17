@@ -444,9 +444,7 @@ describe.each(draftKinds)("%s draft recovery", (kind) => {
         "Pack the lanterns",
       );
       expect(screen.getByRole("button", { name: saveLabel })).toBeDisabled();
-      await user.click(
-        screen.getByRole("button", { name: "Discard draft and load latest" }),
-      );
+      await user.click(screen.getByRole("button", { name: "Take theirs" }));
       expect(screen.getByLabelText(field)).toHaveValue("Collaborator plan");
       expect(unloadIsPrevented()).toBe(false);
       expect(saveRequests()).toHaveLength(0);

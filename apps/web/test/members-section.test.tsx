@@ -59,7 +59,7 @@ describe("the Members section", () => {
     expect(list.getAllByRole("listitem")).toHaveLength(1);
     expect(list.getByText("Sample planner")).toBeVisible();
     expect(list.getByText(/Personal workspace/)).toBeVisible();
-    expect(list.queryByRole("button", { name: "Remove" })).toBeNull();
+    expect(list.queryByRole("button", { name: "Remove member" })).toBeNull();
 
     // The friend list offers Mei; adding her lists her as a viewer.
     const friend = screen.getByRole("combobox", { name: "Friend" });
@@ -83,7 +83,8 @@ describe("the Members section", () => {
       await screen.findByText("Befriend someone first to add them here."),
     ).toBeVisible();
 
-    await user.click(list.getByRole("button", { name: "Remove" }));
+    await user.click(list.getByRole("button", { name: "Remove member" }));
+    await user.click(list.getByRole("button", { name: "Remove member" }));
     expect(
       await screen.findByRole("combobox", { name: "Friend" }),
     ).toBeVisible();

@@ -831,12 +831,12 @@ export class ChronelleApiClient {
     );
   }
 
-  deleteRelation(id: string, expectedVersion: number): Promise<void> {
+  deleteRelation(id: string, expectedVersion: number) {
     return this.#request(
       `/api/relations/${id}?expectedVersion=${expectedVersion}`,
       relationDeletionResponseSchema,
       { method: "DELETE" },
-    ).then(() => undefined);
+    );
   }
 
   createRelation(sourceObjectId: string, input: RelationCreatePayload) {

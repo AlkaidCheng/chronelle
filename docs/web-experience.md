@@ -147,7 +147,7 @@ An event page can carry a People component (also an event view and an
 overview card) that shows the people the event involves as the same
 namecards, each opening the person's page. Add person offers everyone the workspace knows who is not yet in
 the event, by name, or takes a new person's name and creates them inside the
-event. A card's Actions offer Remove context link, which takes the person out
+event. A card's Actions offer Remove from this event, which takes the person out
 of the event and leaves them in the workspace, as well as Move to Trash.
 
 The Sharing tab of an event, offered to its owners, shares it in three
@@ -593,8 +593,8 @@ containment as well as document width.
 
 A boxed notice carries one tone, told by its icon as much as its color: neutral
 (an information mark) for something to know, success (a check) for an action
-that completed, such as a link removed or recovered, an object moved to Trash,
-or a version restored; warning (an exclamation mark) for a newer version or a
+that completed, such as a link recovered or a version restored; warning (an
+exclamation mark) for a stale write compared with the newest version or a
 blocked recovery; and danger (the same mark in the danger color) for a failed
 request. Errors are announced as alerts; the other tones are announced politely
 as status. An inline error under a field reads in the danger color. Loading and
@@ -694,10 +694,46 @@ after an uncertain save. This is not durable storage or an exactly-once guarante
 across those boundaries. The offline design sandbox supports draft recovery but
 does not implement backend command replay.
 
-Event, schedule-item, task, expense, and reminder forms keep their draft after a
-failed save. Submit again explicitly to retry; Refresh latest only fetches data
-and does not save changes. A failed refresh leaves the save error visible.
-Loading a newer version requires the explicit discard-draft action.
+Event, schedule-item, task, expense, reminder, and person forms keep their
+draft after a failed save. Submit again explicitly to retry; Refresh latest
+only fetches data and does not save changes. A failed refresh leaves the save
+error visible.
+
+## A stale write, compared
+
+A save refused because the record changed since the draft was opened reads
+the newest version at once, and a newer version arriving while a draft is
+open is shown the same way: a comparison under the form headed Saved
+elsewhere while you edited, with the author and time of the newest version.
+Its table lists only the fields that differ, one column for the draft and one
+for the newest version, named by the editor's own labels (a task's labels and
+assignee by name, an event's schedule mode in words). Three ways out: Keep
+mine saves the draft over the newest version as a new version, so History
+keeps theirs; Take theirs loads the newest version and drops the draft; Merge
+fields turns the table into a choice per field, where a field only one side
+changed is kept from that side and marked kept, a field both sides changed
+starts on theirs and is highlighted, and Save merged version saves the result
+as one version. A newer version is never announced alone.
+
+## Removing things
+
+One vocabulary names every removal by what reverses it. Move to Trash (a
+record; an Owner restores it from Trash), Remove from this event (a context
+link; recovered from Removed links), Unlink person, Remove share, Remove
+member, Remove friend, Withdraw invitation, and Remove label are reversed by
+doing the opposite. Delete appears nowhere. A one-line question stands in for
+a confirmation dialog, and only where other people lose access (Remove share
+names who loses what, Remove member the workspace, Remove friend that shares
+stay) or Trash is involved (Move to Trash offers Trash as the way back);
+removing a context link, a field, a contact, or a queued share asks nothing.
+The record's Actions dialog is the two verbs with a one-line note each.
+
+The outcome is a short notice at the foot of the page, posted only once the
+API has answered, in the past tense (Moved to Trash, Removed from this event,
+Share removed, Member removed, Friend removed, Invitation withdrawn), with
+Undo where the API can reverse it: a record back from Trash, a link recovered,
+a share given again. It leaves after a while or on its close control. A
+refused action keeps its row and explains under it; no notice is posted.
 
 Every task list ends with a quiet Add task row, on the rows' own grid: a
 plus where the check sits and the words where a name sits. Choosing it turns
@@ -831,13 +867,13 @@ retry (or, for a failed upload or download, Dismiss). Attachments outside the
 viewer's permission scope are counted in a Private attachments note, as the
 Overview counts private related items. Calendar and Expenses rows carry their
 actions in one group and one order across views: the row's own action first
-(Edit), then History, then Actions, which opens the move-to-Trash dialog.
+(Edit), then History, then Actions, which opens the record's Actions dialog.
 Viewers see only History.
 
 Files is its rows: the file's name, its size and the day it was added, a
 Download icon, and a row menu (Actions for the file's name) with Download,
 History, and, for members who can edit, Move to Trash, which opens the
-recovery dialog with its unlink choice. The heading's Attached to menu chooses
+Actions dialog with Remove from this event beside it. The heading's Attached to menu chooses
 whose files are shown (the event, or one of its tasks or expenses). The row at
 the end, Attach a file, opens the file picker; a chosen file is sent at once,
 the row reads Uploading with the file's name until the upload settles, and a
@@ -856,7 +892,7 @@ timed task or reminder keeps its time of day on the new day. Then Add subtask
 (on a task that is not itself a subtask), Duplicate (the task's fields and
 labels, not its subtasks, placed just after it), Copy link (the row's address
 on its event page, or on the Tasks page for a task outside any event),
-History, and Move to Trash, which opens the recovery dialog. Arrow keys move
+History, and Move to Trash, which opens the Actions dialog. Arrow keys move
 through the menu and skip a disabled entry, Home and End jump, Escape or Arrow
 Left leaves the shortcuts, Escape or a press outside closes the menu, and
 focus returns to the menu button, which is also where a dialog opened from the

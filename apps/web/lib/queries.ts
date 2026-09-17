@@ -257,11 +257,11 @@ function selectTaskItems(data: InfiniteData<TaskListResponse>) {
 }
 
 /** The workspace's labels in name order, by id and as a list. */
-export function useLabelsQuery() {
+export function useLabelsQuery(enabled = true) {
   const client = useApiClient();
   const { credential } = useAuthSession();
   return useQuery({
-    enabled: credential !== null,
+    enabled: enabled && credential !== null,
     queryFn: ({ signal }) => client.withSignal(signal).listLabels(),
     queryKey: [...queryKeys.labels, credential?.workspaceId],
     select: (page) => ({

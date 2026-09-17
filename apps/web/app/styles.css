@@ -6196,3 +6196,163 @@ html:has(.event-create-dialog[open]) {
     width: 100%;
   }
 }
+
+/* One-line confirmations in place: the question, the verb, Cancel. */
+.confirm-line {
+  align-items: center;
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  font-size: 0.86rem;
+}
+
+.confirm-line > span {
+  color: var(--muted);
+}
+
+/* The lifecycle dialog: each verb with its one-line note. */
+.lifecycle-options {
+  display: grid;
+  gap: 18px;
+  margin-top: 6px;
+}
+
+.lifecycle-option {
+  display: grid;
+  gap: 6px;
+  justify-items: start;
+}
+
+.lifecycle-option .muted {
+  font-size: 0.86rem;
+  margin: 0;
+}
+
+/* Outcome notices at the foot of the page, newest last. */
+.notice-stack {
+  bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+  display: grid;
+  gap: 8px;
+  left: 50%;
+  max-width: min(520px, calc(100vw - 32px));
+  position: fixed;
+  transform: translateX(-50%);
+  width: max-content;
+  z-index: 60;
+}
+
+.notice-toast {
+  align-items: center;
+  background: var(--ink);
+  border-radius: 10px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.18);
+  color: var(--canvas);
+  display: flex;
+  font-size: 0.9rem;
+  gap: 12px;
+  padding: 10px 10px 10px 16px;
+}
+
+.notice-toast-danger {
+  background: var(--danger);
+  color: var(--canvas);
+}
+
+.notice-toast > span {
+  flex: 1;
+  min-width: 0;
+}
+
+.notice-toast .button-secondary {
+  background: transparent;
+  border-color: color-mix(in srgb, currentColor 40%, transparent);
+  color: inherit;
+}
+
+.notice-toast .button-secondary:hover {
+  background: color-mix(in srgb, currentColor 12%, transparent);
+}
+
+.notice-toast-close {
+  color: inherit;
+  font-size: 1.1rem;
+  line-height: 1;
+  opacity: 0.75;
+}
+
+.notice-toast-close:hover {
+  opacity: 1;
+}
+
+@media (max-width: 760px) {
+  .notice-stack {
+    bottom: calc(72px + env(safe-area-inset-bottom, 0px));
+    width: calc(100vw - 32px);
+  }
+}
+
+/* A stale write compared: mine and theirs per field, three ways out. */
+.notice .conflict-meta {
+  color: var(--muted);
+  font-size: 0.86rem;
+  margin: 2px 0 8px;
+}
+
+.conflict-table {
+  border-collapse: collapse;
+  font-size: 0.86rem;
+  margin: 0 0 10px;
+  width: 100%;
+}
+
+.conflict-table th,
+.conflict-table td {
+  border-top: 1px solid var(--line);
+  padding: 6px 10px 6px 0;
+  text-align: left;
+  vertical-align: top;
+}
+
+.conflict-table thead th {
+  border-top: 0;
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.conflict-table tbody th {
+  color: var(--muted);
+  font-weight: 600;
+  width: 28%;
+}
+
+.conflict-both td {
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
+}
+
+.conflict-table td.conflict-kept {
+  font-weight: 600;
+}
+
+.conflict-table label {
+  align-items: baseline;
+  display: inline-flex;
+  gap: 6px;
+}
+
+.conflict-chip {
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  color: var(--muted);
+  font-size: 0.72rem;
+  margin-left: 6px;
+  padding: 0 7px;
+}
+
+.conflict-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}

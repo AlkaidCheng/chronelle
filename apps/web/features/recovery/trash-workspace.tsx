@@ -4,19 +4,21 @@ import type { RecoveryPreview, TrashQueryInput } from "@chronelle/schemas";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
+import { ConfirmAction } from "../../components/confirm-action";
 import {
   EmptyState,
   ErrorNotice,
   LoadingState,
   Notice,
 } from "../../components/feedback";
+import { useNotices } from "../../components/notices";
 import { formatDateTime, shortId } from "../../lib/format";
+import { useRevokeShare, useSharesQuery } from "../../lib/queries";
 import {
   useRecoverObject,
   useRecoveryPreview,
   useTrash,
 } from "../../lib/recovery-queries";
-import { useRevokeShare, useSharesQuery } from "../../lib/queries";
 import { RecoveryDialog } from "./recovery-dialog";
 
 export function TrashWorkspace() {
@@ -265,6 +267,10 @@ function ObjectRecoveryPreview({
 
 function TrashGrants({ objectId }: { readonly objectId: string }) {
   const t = useTranslations("trash");
+  const verbs = useTranslations("verbs");
+  const confirm = useTranslations("confirm");
+  const done = useTranslations("done");
+  const { post } = useNotices();
   const shares = useSharesQuery(objectId, true);
   const revoke = useRevokeShare();
   return (
@@ -285,14 +291,20 @@ function TrashGrants({ objectId }: { readonly objectId: string }) {
             <span>
               {grant.principal.email} · {grant.role}
             </span>
-            <button
-              className="button button-quiet button-small"
-              type="button"
+            <ConfirmAction
               disabled={revoke.isPending}
-              onClick={() => revoke.mutate(grant.id)}
-            >
-              {t("revoke")}
-            </button>
+              label={verbs("removeShare")}
+              onConfirm={() =>
+                revoke.mutate(grant.id, {
+                  onSuccess: () => post({ message: done("shareRemoved") }),
+                })
+              }
+              pending={revoke.isPending}
+              question={confirm("removeShare", {
+                name: grant.principal.displayName,
+                resource: t("thisRecord"),
+              })}
+            />
           </li>
         ))}
       </ul>

@@ -102,9 +102,7 @@
     "sent": "已傳送",
     "accept": "接受",
     "decline": "拒絕",
-    "withdraw": "撤回",
     "resend": "重新傳送",
-    "remove": "移除",
     "noFriends": "還沒有好友。透過電子郵件邀請一位吧。",
     "since": "自 {date}",
     "sentOn": "傳送於 {date}",
@@ -557,8 +555,6 @@
     "tryAgain": "再試一次",
     "incomplete": "請求未能完成。",
     "loading": "正在載入",
-    "draftBody": "你的草稿已保留。載入最新版本將放棄此草稿並繼續編輯。",
-    "draftAction": "放棄草稿並載入最新版本",
     "codes": {
       "version_conflict": "物件在你讀取該版本之後已被變更。",
       "workspace_unavailable": "你已無法存取此工作區。",
@@ -575,7 +571,6 @@
     "close": "關閉",
     "done": "完成",
     "save": "儲存",
-    "delete": "刪除",
     "confirm": "確認"
   },
   "validation": {
@@ -798,11 +793,9 @@
     "nameOf": "{name}的名稱",
     "renaming": "重新命名中…",
     "rename": "重新命名",
-    "deleting": "刪除中…",
-    "deleteNamed": "刪除{name}",
     "keep": "保留",
-    "delete": "刪除",
-    "changeFailed": "變更失敗。"
+    "changeFailed": "變更失敗。",
+    "removing": "正在移除…"
   },
   "assignee": {
     "summary": "負責人：{name}",
@@ -959,28 +952,15 @@
     "grantsNote": "復原不會重新建立已撤銷的授權。繼承的存取權限需在其所屬範圍管理。",
     "loadingGrants": "正在載入直接授權",
     "noGrants": "沒有直接授權。",
-    "revoke": "撤銷"
+    "thisRecord": "此記錄"
   },
   "lifecycle": {
     "actionsFor": "{name}的操作",
     "actions": "操作",
-    "openTrash": "開啟垃圾桶",
-    "intro": "移除關聯和把物件移到垃圾桶的效果不同。",
     "checking": "正在檢查可用操作",
-    "reloadNote": "請關閉此對話框並重新載入檢視後再試。",
-    "removeLink": "移除關聯",
-    "moveToTrash": "移到垃圾桶",
-    "preview": "刪除預覽",
-    "removeTitle": "僅移除此關聯",
-    "trashTitle": "把物件移到垃圾桶",
-    "removeNote": "物件及其歷史、權限和其他關聯保持不變。兩個物件都可用時，可從「已移除的關聯」復原此關聯。",
-    "trashNote": "此物件將從一般檢視和下載中消失。其內容、檔案、歷史和權限會被保留。相關物件不會被刪除。目前的擁有者可從垃圾桶復原。",
-    "understand": "我了解將發生的變更。",
-    "linkRemoved": "關聯已移除。物件仍然可用。",
-    "movedToTrash": "已移到垃圾桶。未刪除任何相關物件。",
+    "removeNote": "記錄本身保留；關聯可從「已移除的關聯」中還原。",
+    "trashNote": "從所有檢視中隱藏；擁有者可從垃圾桶還原。",
     "saving": "儲存中…",
-    "confirmRemoval": "確認移除",
-    "confirmTrash": "確認移到垃圾桶",
     "noActions": "目前存取權限下沒有可用的刪除操作。"
   },
   "removedLinks": {
@@ -1246,7 +1226,6 @@
     "peopleWithAccess": "可存取的人",
     "loadingCollaborators": "正在載入協作者",
     "onlyYou": "只有你可以存取",
-    "revoke": "撤銷",
     "inheritedResources": "繼承的資源",
     "inheritedNote": "停止繼承可讓某個相關物件保持私密。",
     "noResources": "沒有相關資源",
@@ -1303,7 +1282,6 @@
     "queued": "等待對方加入",
     "invitationSent": "已傳送邀請，加入後即可存取",
     "failed": "無法完成分享。",
-    "remove": "移除",
     "nobody": "為參與者新增電子郵件或連結帳號後即可分享。",
     "roles": {
       "viewer": "檢視者",
@@ -1318,7 +1296,6 @@
     "friend": "好友",
     "access": "存取權限",
     "add": "新增",
-    "remove": "移除",
     "personal": "個人工作區",
     "noFriends": "先新增好友，才能將其加入此處。",
     "roles": {
@@ -1448,6 +1425,77 @@
       "reopen": "重新開啟 {name}",
       "move": "移動 {name}",
       "edit": "編輯 {name}"
+    }
+  },
+  "verbs": {
+    "moveToTrash": "移到垃圾桶",
+    "removeFromEvent": "從此活動中移除",
+    "unlinkPerson": "取消連結參與者",
+    "removeShare": "移除分享",
+    "removeMember": "移除成員",
+    "removeFriend": "移除好友",
+    "withdrawInvitation": "撤回邀請",
+    "removeLabel": "移除標籤",
+    "removeLabelNamed": "移除{name}"
+  },
+  "confirm": {
+    "trash": "將{name}移到垃圾桶？可從垃圾桶還原。",
+    "removeShare": "{name}將失去對{resource}的存取權限。",
+    "removeMember": "{name}將失去對此工作區的存取權限。",
+    "removeFriend": "你們互相給予的分享將保留，直到被移除。",
+    "removeLabel": "所有任務都將失去{name}。"
+  },
+  "done": {
+    "movedToTrash": "已移到垃圾桶",
+    "removedFromEvent": "已從此活動中移除",
+    "shareRemoved": "已移除分享",
+    "memberRemoved": "已移除成員",
+    "friendRemoved": "已移除好友",
+    "invitationWithdrawn": "已撤回邀請",
+    "personUnlinked": "已取消連結參與者",
+    "undo": "復原"
+  },
+  "conflict": {
+    "title": "編輯期間已在別處儲存",
+    "theirs": "{name}，{when}",
+    "someone": "某人",
+    "mine": "你的草稿",
+    "keepMine": "保留我的",
+    "takeTheirs": "採用對方的",
+    "merge": "合併欄位",
+    "kept": "已保留",
+    "saveMerged": "儲存合併後的版本",
+    "field": "欄位",
+    "empty": "（空）",
+    "fields": {
+      "displayName": "名稱",
+      "dueDate": "到期日",
+      "dueTime": "到期時間",
+      "duration": "時長",
+      "repeat": "重複",
+      "repeatUntil": "重複至",
+      "assignee": "負責人",
+      "location": "地點",
+      "labels": "標籤",
+      "amount": "金額",
+      "currency": "貨幣",
+      "occurredAt": "日期",
+      "remindAt": "提醒時間",
+      "mode": "日程",
+      "startDate": "開始日期",
+      "endDate": "結束日期",
+      "startTime": "開始時間",
+      "endTime": "結束時間",
+      "nickname": "暱稱",
+      "description": "描述",
+      "userId": "帳號",
+      "contacts": "聯絡方式",
+      "properties": "欄位"
+    },
+    "modes": {
+      "dates": "日期",
+      "timed": "日期和時間",
+      "unscheduled": "未安排"
     }
   }
 }

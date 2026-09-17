@@ -5,7 +5,9 @@ import {
   createFirstPlan,
   tabTo,
 } from "./helpers/first-use";
+import { outcomeNotice } from "./helpers/lifecycle";
 import { expectHorizontalReflow } from "./helpers/page-navigation";
+import { moreTrigger } from "./helpers/quiet-chrome";
 
 test("starts an undated plan with the keyboard and reopens it after recovery", async ({
   page,
@@ -52,18 +54,17 @@ test("starts an undated plan with the keyboard and reopens it after recovery", a
     page,
     actions.getByRole("button", { name: "Move to Trash", exact: true }),
   );
-  await tabTo(page, actions.getByRole("checkbox"));
-  await page.keyboard.press("Space");
+  await expect(actions).toContainText("You can restore it from Trash.");
   await activateWithKeyboard(
     page,
-    actions.getByRole("button", { name: "Confirm move to Trash" }),
+    actions.getByRole("button", { name: "Move to Trash", exact: true }),
   );
-  await expect(actions.getByRole("status")).toHaveText(
-    "Moved to Trash. No related objects were deleted.",
-  );
+  await expect(actions).toHaveCount(0);
+  await expect(outcomeNotice(page, "Moved to Trash")).toBeVisible();
+  await activateWithKeyboard(page, moreTrigger(page));
   await activateWithKeyboard(
     page,
-    actions.getByRole("link", { name: "Open Trash" }),
+    page.getByRole("menuitem", { name: "Trash", exact: true }),
   );
   await tabTo(page, page.getByLabel("Object type"));
   await page.keyboard.press("End");
