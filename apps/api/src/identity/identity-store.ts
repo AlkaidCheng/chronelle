@@ -6,6 +6,7 @@ import {
   workspaceMembers,
   workspaces,
   type Database,
+  type RailPreferenceRow,
   type UserRow,
   type WorkspaceRow,
 } from "@chronelle/db";
@@ -58,6 +59,7 @@ export interface UserPreferences {
   readonly timeZone?: string | null | undefined;
   readonly hourCycle?: "h12" | "h23" | null | undefined;
   readonly weekStart?: 1 | 7 | null | undefined;
+  readonly rail?: RailPreferenceRow | null | undefined;
 }
 
 /** The PostgreSQL store: each read runs in one repeatable-read snapshot with the authorization evaluator. */
@@ -199,6 +201,9 @@ export class PostgresIdentityStore implements IdentityStore {
         }),
         ...(preferences.weekStart !== undefined && {
           weekStart: preferences.weekStart,
+        }),
+        ...(preferences.rail !== undefined && {
+          rail: preferences.rail ?? {},
         }),
         updatedAt: sql`GREATEST(now(), ${users.createdAt})`,
       })

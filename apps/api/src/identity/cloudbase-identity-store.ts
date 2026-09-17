@@ -160,6 +160,7 @@ export class CloudBaseIdentityStore implements IdentityStore {
           ...(preferences.weekStart !== undefined && {
             week_start: preferences.weekStart,
           }),
+          ...(preferences.rail !== undefined && { rail: preferences.rail }),
         },
       });
     } catch (error) {

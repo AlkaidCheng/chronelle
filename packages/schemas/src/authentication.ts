@@ -50,16 +50,31 @@ export const hourCycleSchema = z.enum(["h12", "h23"]);
 /** The first day of the account's week: 1 for Monday, 7 for Sunday. */
 export const weekStartSchema = z.union([z.literal(1), z.literal(7)]);
 
+const collectionKeySchema = z.string().min(1).max(40);
+
+/**
+ * How the rail lists the workspace collections: `order` names collection
+ * keys first to last and `hidden` the keys left out, each optional. A key
+ * the app does not know is kept and ignored, so a collection that ships
+ * later appends in its default place.
+ */
+export const railPreferenceSchema = z.object({
+  order: z.array(collectionKeySchema).max(50).optional(),
+  hidden: z.array(collectionKeySchema).max(50).optional(),
+});
+
 /**
  * The preferences kept on the account. Each key is optional; a key that is
  * present replaces the stored value, and null clears it so the device or the
- * language decides again. An empty object changes nothing.
+ * language decides again (the rail returns to its default order). An empty
+ * object changes nothing.
  */
 export const preferencesRequestSchema = z.object({
   locale: localeTagSchema.nullable().optional(),
   timeZone: timeZoneNameSchema.nullable().optional(),
   hourCycle: hourCycleSchema.nullable().optional(),
   weekStart: weekStartSchema.nullable().optional(),
+  rail: railPreferenceSchema.nullable().optional(),
 });
 
 export const emailRequestSchema = z.object({
@@ -95,6 +110,7 @@ const userSchema = z.object({
   timeZone: z.string().nullable().default(null),
   hourCycle: hourCycleSchema.nullable().default(null),
   weekStart: weekStartSchema.nullable().default(null),
+  rail: railPreferenceSchema.default({}),
 });
 
 /** The account as the session and account routes return it. */
@@ -162,4 +178,5 @@ export type ApiErrorResponse = z.infer<typeof apiErrorResponseSchema>;
 export type PreferencesRequest = z.infer<typeof preferencesRequestSchema>;
 export type HourCycle = z.infer<typeof hourCycleSchema>;
 export type WeekStart = z.infer<typeof weekStartSchema>;
+export type RailPreference = z.infer<typeof railPreferenceSchema>;
 export type UserResponse = z.infer<typeof userResponseSchema>;

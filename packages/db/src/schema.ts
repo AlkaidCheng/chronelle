@@ -101,9 +101,19 @@ export const users = pgTable("users", {
   timeZone: text("time_zone"),
   hourCycle: text("hour_cycle"),
   weekStart: smallint("week_start"),
+  rail: jsonb("rail")
+    .$type<RailPreferenceRow>()
+    .notNull()
+    .default(sql`'{}'::jsonb`),
   createdAt: createCreatedAtColumn(),
   updatedAt: createUpdatedAtColumn(),
 });
+
+/** How the rail lists the workspace collections: keys first to last, and keys left out. */
+export interface RailPreferenceRow {
+  readonly order?: readonly string[] | undefined;
+  readonly hidden?: readonly string[] | undefined;
+}
 
 // Credential and session clocks carry millisecond precision so the API's comparisons agree with the functions'.
 const createSessionInstantColumn = (name: string) =>

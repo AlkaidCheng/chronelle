@@ -91,6 +91,7 @@ describe("the preferences kept on the account", () => {
       timeZone: null,
       hourCycle: null,
       weekStart: null,
+      rail: {},
     });
 
     const chosen = await app.inject({
@@ -108,6 +109,7 @@ describe("the preferences kept on the account", () => {
       timeZone: null,
       hourCycle: null,
       weekStart: null,
+      rail: {},
     });
 
     const session = await app.inject({
@@ -186,6 +188,67 @@ describe("the preferences kept on the account", () => {
       hourCycle: null,
       weekStart: 7,
     });
+  });
+
+  it("keeps the rail order and hidden collections, resets them with null, and keeps keys it does not know", async () => {
+    const signedIn = await signIn();
+    const patch = (payload: Record<string, unknown>) =>
+      app.inject({
+        method: "PATCH",
+        url: "/api/auth/me",
+        headers: bearer(signedIn.accessToken),
+        payload,
+      });
+
+    const arranged = await patch({
+      rail: { order: ["people", "events", "tasks"], hidden: ["tasks"] },
+    });
+    expect(arranged.statusCode).toBe(200);
+    expect(userResponseSchema.parse(arranged.json()).rail).toEqual({
+      order: ["people", "events", "tasks"],
+      hidden: ["tasks"],
+    });
+
+    // Another preference leaves the rail alone; a key the app does not
+    // know is kept as given for the client to ignore.
+    const clocked = await patch({ hourCycle: "h12" });
+    expect(userResponseSchema.parse(clocked.json()).rail).toEqual({
+      order: ["people", "events", "tasks"],
+      hidden: ["tasks"],
+    });
+    const later = await patch({ rail: { order: ["reminders", "events"] } });
+    expect(userResponseSchema.parse(later.json()).rail).toEqual({
+      order: ["reminders", "events"],
+    });
+    const session = await app.inject({
+      method: "GET",
+      url: "/api/auth/session",
+      headers: bearer(signedIn.accessToken),
+    });
+    expect(sessionResponseSchema.parse(session.json()).user.rail).toEqual({
+      order: ["reminders", "events"],
+    });
+
+    const reset = await patch({ rail: null });
+    expect(reset.statusCode).toBe(200);
+    expect(userResponseSchema.parse(reset.json()).rail).toEqual({});
+
+    for (const rail of [
+      "events",
+      ["events"],
+      { order: "events" },
+      { order: [1] },
+      { hidden: [null] },
+      { order: Array.from({ length: 51 }, (_, index) => `k${index}`) },
+      { order: [""] },
+    ]) {
+      const refused = await patch({ rail });
+      expect(refused.statusCode, JSON.stringify(rail)).toBe(400);
+      expect(apiErrorResponseSchema.parse(refused.json()).error.code).toBe(
+        "invalid_request",
+      );
+    }
+    expect(userResponseSchema.parse((await patch({})).json()).rail).toEqual({});
   });
 
   it("refuses a value that is not a language tag, a zone, a clock, or a week start, and an unauthenticated change", async () => {

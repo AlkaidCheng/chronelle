@@ -51,10 +51,10 @@ interface State {
   relations: RelationResponse[];
   layouts: EventLayoutResponse[];
   labels: LabelResponse[];
-  /** The sample account's language, zone, clock, and week start, as Settings keeps them. */
+  /** The sample account's language, zone, clock, week start, and rail, as Settings and the rail keep them. */
   preferences: Pick<
     Preferences,
-    "locale" | "timeZone" | "hourCycle" | "weekStart"
+    "locale" | "timeZone" | "hourCycle" | "weekStart" | "rail"
   >;
 }
 
@@ -63,6 +63,7 @@ const defaultPreferences: State["preferences"] = {
   timeZone: null,
   hourCycle: null,
   weekStart: null,
+  rail: {},
 };
 
 class SandboxError extends Error {
@@ -361,7 +362,13 @@ function parseState(raw: string): State {
     .max(200)
     .parse("labels" in value ? value.labels : []);
   const preferences = userResponseSchema
-    .pick({ locale: true, timeZone: true, hourCycle: true, weekStart: true })
+    .pick({
+      locale: true,
+      timeZone: true,
+      hourCycle: true,
+      weekStart: true,
+      rail: true,
+    })
     .parse("preferences" in value ? value.preferences : {});
   return {
     objects,
@@ -1256,6 +1263,10 @@ export class SandboxStore {
             input.weekStart === undefined
               ? this.#state.preferences.weekStart
               : input.weekStart,
+          rail:
+            input.rail === undefined
+              ? this.#state.preferences.rail
+              : (input.rail ?? {}),
         },
       });
       return this.#user();
