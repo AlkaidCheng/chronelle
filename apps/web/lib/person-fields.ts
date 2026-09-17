@@ -91,7 +91,8 @@ export function splitPersonContacts(contacts = ""): PersonContactField[] {
  */
 export function personFieldsPayload(
   fields: ReturnType<typeof readPersonFields>,
-  source?: Pick<PersonResponse, "customProperties">,
+  source: Pick<PersonResponse, "customProperties"> | undefined,
+  te: (key: "fieldRepeats", values: { name: string }) => string,
 ) {
   const nickname = fields.nickname.trim();
   const description = fields.description.trim();
@@ -99,7 +100,7 @@ export function personFieldsPayload(
   for (const { key, value } of splitPersonFields(fields.properties)) {
     const name = key.trim();
     if (name === "") continue;
-    if (name in customProperties) throw new Error(`Field ${name} repeats.`);
+    if (name in customProperties) throw new Error(te("fieldRepeats", { name }));
     const original = source?.customProperties[name];
     customProperties[name] =
       original !== undefined && propertyText(original) === value

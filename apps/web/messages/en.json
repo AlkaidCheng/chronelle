@@ -302,7 +302,8 @@
       "reminders": "Track upcoming nudges. Notifications are not sent yet.",
       "files": "Manage private attachments on this event, its tasks, and expenses.",
       "people": "See who is involved in this event, as namecards."
-    }
+    },
+    "loading": "Loading {name}"
   },
   "layouts": {
     "list": "List",
@@ -829,7 +830,8 @@
     "expenses": "Expenses",
     "reminders": "Reminders",
     "documents": "Documents",
-    "people": "People"
+    "people": "People",
+    "scheduledEvent": "Scheduled event"
   },
   "history": {
     "actions": {
@@ -1210,7 +1212,8 @@
     "totalRecorded": "Total recorded",
     "noExpenses": "No expenses recorded",
     "undated": "Undated",
-    "noReminders": "No reminders"
+    "noReminders": "No reminders",
+    "totalsByCurrency": "Totals by currency"
   },
   "reminderRow": {
     "menu": {
@@ -1272,5 +1275,102 @@
       "editor": "Editor",
       "owner": "Owner"
     }
+  },
+  "peoplePanel": {
+    "title": "People",
+    "addPerson": "Add person",
+    "empty": "No people yet",
+    "shareAll": "Share with everyone here",
+    "shareLegend": "Share this event with its people",
+    "closeAdd": "Close add person",
+    "find": "Find a person",
+    "searchByName": "Search by name",
+    "loading": "Loading people...",
+    "allHere": "Everyone the workspace knows is already here.",
+    "noMatch": "No one matches; add them below.",
+    "toAdd": "People to add",
+    "addNamed": "Add {name}",
+    "add": "Add",
+    "newPerson": "New person",
+    "newPersonPlaceholder": "Someone new to the workspace",
+    "adding": "Adding...",
+    "addNew": "Add new person",
+    "failed": "The person could not be added."
+  },
+  "personEditor": {
+    "discardTitle": "Discard person changes?",
+    "editTitle": "Edit person",
+    "addTitle": "Add person",
+    "close": "Close person editor",
+    "historyLabel": "View person history",
+    "history": "History",
+    "unsaved": "Your person changes have not been saved.",
+    "name": "Name",
+    "namePlaceholder": "Mira Chen",
+    "nicknamePlaceholder": "Mira",
+    "linkedElsewhere": "Linked to a workspace member's account.",
+    "me": "This is me",
+    "meTaken": "This is me (already {name})",
+    "fields": "Fields",
+    "fieldsHint": "Add a field for anything worth keeping: a phone, a birthday, a dietary note.",
+    "fieldName": "Field {n} name",
+    "fieldValue": "Field {n} value",
+    "fieldPlaceholder": "Field",
+    "valuePlaceholder": "Value",
+    "removeField": "Remove field {name}",
+    "remove": "Remove",
+    "addField": "Add field",
+    "fieldRepeats": "Field {name} repeats.",
+    "checkFields": "Check the fields.",
+    "submitAdd": "Add person",
+    "submitSave": "Save person",
+    "unconfirmedNew": "The last save could not be confirmed. Check People before trying again.",
+    "unconfirmedEdit": "The last save could not be confirmed. Refresh latest before trying again."
+  },
+  "canvas": {
+    "doneArranging": "Done arranging",
+    "doneArrangingDescription": "Hide layout controls; moves are already saved",
+    "arrange": "Arrange layout",
+    "arrangeDescription": "Show page and component move controls",
+    "addComponent": "Add component",
+    "addComponentDescription": "Choose a component for {name}",
+    "pages": "Event pages",
+    "saving": "Saving layout...",
+    "pageEarlier": "Page moved earlier.",
+    "pageLater": "Page moved later.",
+    "componentMoved": "Component moved in {name}.",
+    "page": "page",
+    "noComponents": "No components yet.",
+    "dragHint": "Drag to reorder; or use the move controls",
+    "moveToPage": "Move to page...",
+    "layoutControls": "{name} layout controls",
+    "drag": "Drag {name}",
+    "moveUp": "Move {name} up",
+    "moveDown": "Move {name} down",
+    "moveToPageFor": "Move {name} to page"
+  },
+  "routeState": {
+    "notFoundTitle": "This page is not here",
+    "notFoundText": "The link may have changed. Your workspace is a good place to start again.",
+    "errorTitle": "Something interrupted this page",
+    "errorText": "Your saved plans are still there. Try opening the page again, or return to your events. Any unsaved changes may need to be entered again.",
+    "tryAgain": "Try again",
+    "backToEvents": "Back to events"
+  },
+  "periodNav": {
+    "period": "Period",
+    "previous": {
+      "week": "Previous week",
+      "month": "Previous month"
+    },
+    "this": {
+      "week": "This week",
+      "month": "This month"
+    },
+    "next": {
+      "week": "Next week",
+      "month": "Next month"
+    },
+    "dayCell": "{day}{count, plural, =0 {} one {, # item} other {, # items}}"
   }
 }

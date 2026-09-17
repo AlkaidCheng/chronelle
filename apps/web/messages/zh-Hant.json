@@ -302,7 +302,8 @@
       "reminders": "跟進即將到來的提醒。暫不發送通知。",
       "files": "管理此活動及其任務、支出的私密附件。",
       "people": "以名片檢視參與此活動的人。"
-    }
+    },
+    "loading": "正在載入{name}"
   },
   "layouts": {
     "list": "列表",
@@ -829,7 +830,8 @@
     "expenses": "支出",
     "reminders": "提醒",
     "documents": "檔案",
-    "people": "參與者"
+    "people": "參與者",
+    "scheduledEvent": "已安排的活動"
   },
   "history": {
     "actions": {
@@ -1210,7 +1212,8 @@
     "totalRecorded": "已記錄合計",
     "noExpenses": "暫無支出記錄",
     "undated": "無日期",
-    "noReminders": "暫無提醒"
+    "noReminders": "暫無提醒",
+    "totalsByCurrency": "依貨幣合計"
   },
   "reminderRow": {
     "menu": {
@@ -1272,5 +1275,102 @@
       "editor": "編輯者",
       "owner": "擁有者"
     }
+  },
+  "peoplePanel": {
+    "title": "參與者",
+    "addPerson": "新增參與者",
+    "empty": "還沒有參與者",
+    "shareAll": "與這裡的所有人分享",
+    "shareLegend": "與活動的參與者分享此活動",
+    "closeAdd": "關閉新增參與者",
+    "find": "尋找參與者",
+    "searchByName": "依姓名搜尋",
+    "loading": "正在載入參與者...",
+    "allHere": "工作區認識的每個人都已在這裡。",
+    "noMatch": "沒有相符的人；請在下方新增。",
+    "toAdd": "可新增的參與者",
+    "addNamed": "新增 {name}",
+    "add": "新增",
+    "newPerson": "新參與者",
+    "newPersonPlaceholder": "工作區裡的新面孔",
+    "adding": "正在新增...",
+    "addNew": "新增參與者",
+    "failed": "無法新增該參與者。"
+  },
+  "personEditor": {
+    "discardTitle": "放棄對參與者的變更？",
+    "editTitle": "編輯參與者",
+    "addTitle": "新增參與者",
+    "close": "關閉參與者編輯器",
+    "historyLabel": "檢視參與者歷史",
+    "history": "歷史",
+    "unsaved": "對參與者的變更尚未儲存。",
+    "name": "姓名",
+    "namePlaceholder": "陳米拉",
+    "nicknamePlaceholder": "米拉",
+    "linkedElsewhere": "已連結到工作區成員的帳號。",
+    "me": "這是我",
+    "meTaken": "這是我（已是 {name}）",
+    "fields": "欄位",
+    "fieldsHint": "新增值得記下的任何資訊：電話、生日、飲食注意事項。",
+    "fieldName": "欄位 {n} 名稱",
+    "fieldValue": "欄位 {n} 值",
+    "fieldPlaceholder": "欄位",
+    "valuePlaceholder": "值",
+    "removeField": "移除欄位 {name}",
+    "remove": "移除",
+    "addField": "新增欄位",
+    "fieldRepeats": "欄位 {name} 重複。",
+    "checkFields": "請檢查各欄位。",
+    "submitAdd": "新增參與者",
+    "submitSave": "儲存參與者",
+    "unconfirmedNew": "上次儲存未能確認。再試之前請先查看參與者。",
+    "unconfirmedEdit": "上次儲存未能確認。再試之前請先重新整理最新版本。"
+  },
+  "canvas": {
+    "doneArranging": "完成排列",
+    "doneArrangingDescription": "隱藏版面控制項；移動已儲存",
+    "arrange": "排列版面",
+    "arrangeDescription": "顯示頁面與元件的移動控制項",
+    "addComponent": "新增元件",
+    "addComponentDescription": "為 {name} 選擇元件",
+    "pages": "活動頁面",
+    "saving": "正在儲存版面...",
+    "pageEarlier": "頁面已前移。",
+    "pageLater": "頁面已後移。",
+    "componentMoved": "元件已在 {name} 中移動。",
+    "page": "頁面",
+    "noComponents": "還沒有元件。",
+    "dragHint": "拖曳以重新排序；或使用移動控制項",
+    "moveToPage": "移動到頁面...",
+    "layoutControls": "{name} 的版面控制項",
+    "drag": "拖曳 {name}",
+    "moveUp": "上移 {name}",
+    "moveDown": "下移 {name}",
+    "moveToPageFor": "將 {name} 移動到頁面"
+  },
+  "routeState": {
+    "notFoundTitle": "這個頁面不在這裡",
+    "notFoundText": "連結可能已變更。從你的工作區重新開始會更順手。",
+    "errorTitle": "這個頁面被中斷了",
+    "errorText": "你儲存的計畫仍然在。請重新開啟頁面，或返回活動。未儲存的變更可能需要重新輸入。",
+    "tryAgain": "再試一次",
+    "backToEvents": "返回活動"
+  },
+  "periodNav": {
+    "period": "時段",
+    "previous": {
+      "week": "上一週",
+      "month": "上一個月"
+    },
+    "this": {
+      "week": "本週",
+      "month": "本月"
+    },
+    "next": {
+      "week": "下一週",
+      "month": "下一個月"
+    },
+    "dayCell": "{day}{count, plural, =0 {} other {，# 項}}"
   }
 }

@@ -1,15 +1,13 @@
 "use client";
 
 import type { PersonResponse } from "@chronelle/schemas";
+import { useTranslations } from "next-intl";
 import { useId, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
 import { EmptyState, ErrorNotice } from "../../components/feedback";
 import { useFriendsQuery } from "../../lib/friend-queries";
-import { usePersonConnections } from "../../lib/use-person-connections";
 import { personDisplayName } from "../../lib/person-fields";
-import { PersonInspector } from "../people/person-inspector";
-import { PersonListing } from "../people/person-row";
 import {
   useCreatePersonInEvent,
   useEventAccessQuery,
@@ -19,7 +17,10 @@ import {
   useSessionQuery,
   useSharesQuery,
 } from "../../lib/queries";
+import { usePersonConnections } from "../../lib/use-person-connections";
 import { useSessionDialog } from "../../lib/use-session-dialog";
+import { PersonInspector } from "../people/person-inspector";
+import { PersonListing } from "../people/person-row";
 import { PanelHeading } from "./component-frame";
 import { ShareWithPeople, shareRows } from "./share-with-people";
 
@@ -36,6 +37,7 @@ export function PeoplePanel({
   readonly eventId: string;
   readonly persons: readonly PersonResponse[];
 }) {
+  const t = useTranslations("peoplePanel");
   const [isAdding, setIsAdding] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const session = useSessionQuery();
@@ -64,7 +66,7 @@ export function PeoplePanel({
   return (
     <section className="planning-panel">
       <PanelHeading
-        title="People"
+        title={t("title")}
         action={
           canEdit ? (
             <button
@@ -76,13 +78,13 @@ export function PeoplePanel({
               }}
               type="button"
             >
-              Add person
+              {t("addPerson")}
             </button>
           ) : null
         }
       />
       {persons.length === 0 ? (
-        <EmptyState title="No people yet" />
+        <EmptyState title={t("empty")} />
       ) : (
         <PersonListing
           context={{
@@ -94,17 +96,17 @@ export function PeoplePanel({
             onEdit: setEditingId,
           }}
           items={persons}
-          label="People"
+          label={t("title")}
           layout="cards"
         />
       )}
       {canShare && rows.length > 0 ? (
         <details className="share-people-disclosure">
-          <summary>Share with everyone here</summary>
+          <summary>{t("shareAll")}</summary>
           <ShareWithPeople
             eventId={eventId}
             initialSelected={rows.map((row) => row.key)}
-            legend="Share this event with its people"
+            legend={t("shareLegend")}
             rows={rows}
           />
         </details>
@@ -139,6 +141,7 @@ function AddPersonDialog({
   readonly included: readonly PersonResponse[];
   readonly onClose: () => void;
 }) {
+  const t = useTranslations("peoplePanel");
   const dialog = useSessionDialog(onClose);
   const backdropPress = useRef(false);
   const id = useId();
@@ -180,9 +183,9 @@ function AddPersonDialog({
       ref={dialog}
     >
       <header className="event-create-header">
-        <h2 id={`${id}-title`}>Add person</h2>
+        <h2 id={`${id}-title`}>{t("addPerson")}</h2>
         <button
-          aria-label="Close add person"
+          aria-label={t("closeAdd")}
           className="dialog-close"
           onClick={onClose}
           type="button"
@@ -192,10 +195,10 @@ function AddPersonDialog({
       </header>
       <div className="event-create-body">
         <label className="field">
-          <span>Find a person</span>
+          <span>{t("find")}</span>
           <input
             onChange={(input) => setQuery(input.target.value)}
-            placeholder="Search by name"
+            placeholder={t("searchByName")}
             type="search"
             value={query}
           />
@@ -206,22 +209,22 @@ function AddPersonDialog({
             onRefresh={() => void people.refetch()}
           />
         ) : people.data === undefined ? (
-          <p className="field-hint">Loading people...</p>
+          <p className="field-hint">{t("loading")}</p>
         ) : candidates.length === 0 ? (
           <p className="field-hint">
-            {query.trim() === ""
-              ? "Everyone the workspace knows is already here."
-              : "No one matches; add them below."}
+            {query.trim() === "" ? t("allHere") : t("noMatch")}
           </p>
         ) : (
-          <ul aria-label="People to add" className="label-manager">
+          <ul aria-label={t("toAdd")} className="label-manager">
             {candidates.map((person) => (
               <li key={person.id}>
                 <span className="person-option">
                   {personDisplayName(person)}
                 </span>
                 <button
-                  aria-label={`Add ${personDisplayName(person)}`}
+                  aria-label={t("addNamed", {
+                    name: personDisplayName(person),
+                  })}
                   className="button button-secondary button-small"
                   disabled={pending}
                   onClick={() =>
@@ -229,7 +232,7 @@ function AddPersonDialog({
                   }
                   type="button"
                 >
-                  Add
+                  {t("add")}
                 </button>
               </li>
             ))}
@@ -237,7 +240,7 @@ function AddPersonDialog({
         )}
         <div className="label-add">
           <label className="field">
-            <span>New person</span>
+            <span>{t("newPerson")}</span>
             <input
               maxLength={240}
               onChange={(input) => setDraft(input.target.value)}
@@ -246,7 +249,7 @@ function AddPersonDialog({
                 event.preventDefault();
                 add();
               }}
-              placeholder="Someone new to the workspace"
+              placeholder={t("newPersonPlaceholder")}
               value={draft}
             />
           </label>
@@ -256,14 +259,12 @@ function AddPersonDialog({
             onClick={add}
             type="button"
           >
-            {create.isPending ? "Adding..." : "Add new person"}
+            {create.isPending ? t("adding") : t("addNew")}
           </button>
         </div>
         {error ? (
           <p role="alert">
-            {error instanceof Error
-              ? error.message
-              : "The person could not be added."}
+            {error instanceof Error ? error.message : t("failed")}
           </p>
         ) : null}
       </div>
