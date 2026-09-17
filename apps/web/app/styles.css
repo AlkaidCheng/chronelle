@@ -558,6 +558,11 @@ h3,
   overflow-wrap: anywhere;
 }
 
+.quiet-panel > .person-description {
+  color: var(--ink);
+  line-height: 1.5;
+}
+
 /* The person page: the avatar beside the title, the names and badge
    under it, then the tabs and one panel. */
 .person-title-row {
@@ -593,32 +598,130 @@ h3,
 }
 
 .person-overview {
+  align-items: start;
   display: grid;
-  gap: 14px;
-  grid-template-columns: minmax(0, 1.4fr) minmax(240px, 1fr);
+  gap: 18px;
+  grid-template-columns: minmax(0, 1.4fr) minmax(260px, 1fr);
 }
 
-.person-details {
+.person-overview-column {
   display: grid;
+  gap: 14px;
+  min-width: 0;
+}
+
+/* A quiet panel: a bordered card with a display heading and an optional
+   count, sized to its content. Person overview, Friends, and Share use it. */
+.quiet-panel {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  min-width: 0;
+  padding: 16px 18px 14px;
+}
+
+.quiet-panel-head {
+  align-items: baseline;
+  display: flex;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.quiet-panel-head h2 {
+  font: 400 1.2rem/1.1 var(--font-display);
+  letter-spacing: -0.01em;
+  margin: 0;
+}
+
+.quiet-panel-count {
+  color: var(--faint);
+  font-size: 0.8rem;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Key-value details: the label column in the faint tone, values in ink. */
+.kv-list {
+  display: grid;
+  font-size: 0.84rem;
+  gap: 7px 12px;
+  grid-template-columns: 110px minmax(0, 1fr);
+  margin: 0;
+}
+
+.kv-list dt {
+  color: var(--faint);
+  margin: 0;
+}
+
+.kv-list dd {
+  color: var(--ink);
+  margin: 0;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.kv-list dd a {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+.kv-list dd a:hover {
+  text-decoration: underline;
+}
+
+.kv-list dd a[href^="tel:"] {
+  color: inherit;
+}
+
+.kv-list .person-labels {
+  margin: 0;
+}
+
+.kv-empty {
+  color: var(--faint);
+  font-size: 0.84rem;
+  margin: 0;
+}
+
+/* The Connection panel's lines: an icon, the fact, and a date at the end. */
+.connection-lines {
+  display: grid;
+  font-size: 0.84rem;
+  gap: 10px;
+}
+
+.connection-line {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
   gap: 8px;
   margin: 0;
 }
 
-.person-details > div {
-  display: grid;
-  gap: 4px 12px;
-  grid-template-columns: 110px minmax(0, 1fr);
-}
-
-.person-details dt {
+.connection-line > svg {
   color: var(--faint);
-  font-size: 0.85rem;
+  flex: none;
+  height: 15px;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.7;
+  width: 15px;
 }
 
-.person-details dd {
-  margin: 0;
-  min-width: 0;
-  overflow-wrap: anywhere;
+.connection-line b {
+  font-weight: 600;
+}
+
+.connection-when {
+  color: var(--faint);
+  font-size: 0.76rem;
+  margin-left: auto;
+}
+
+.connection-actions {
+  gap: 14px;
+  margin-top: 2px;
 }
 
 @media (max-width: 760px) {

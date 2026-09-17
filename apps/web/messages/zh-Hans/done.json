@@ -5,6 +5,7 @@
   "memberRemoved": "已移除成员",
   "friendRemoved": "已移除好友",
   "invitationWithdrawn": "已撤回邀请",
+  "invitationResent": "已重新发送邀请",
   "personUnlinked": "已取消关联参与者",
   "undo": "撤销"
 }

@@ -245,19 +245,35 @@ describe("PersonPage", () => {
     expect(
       await screen.findByRole("heading", { level: 1, name: "Bee" }),
     ).toBeVisible();
-    // The full name reads under the title and again among the details.
-    expect(screen.getAllByText("Bea Long")).toHaveLength(2);
+    // The full name reads under the title; the details list the nickname,
+    // each contact by kind, the fields, and nothing for what is missing.
+    expect(screen.getByText("Bea Long")).toBeVisible();
     expect(screen.getByRole("link", { name: "All people" })).toHaveAttribute(
       "href",
       "/people",
     );
     const overview = screen.getByRole("tabpanel");
+    const details = within(overview).getByRole("region", { name: "Details" });
     expect(
-      within(overview).getByRole("link", { name: "+1 555 0199" }),
+      within(details)
+        .getAllByRole("term")
+        .map((term) => term.textContent),
+    ).toEqual(["Nickname", "Phone", "birthday"]);
+    expect(
+      within(details).getByRole("link", { name: "+1 555 0199" }),
     ).toHaveAttribute("href", "tel:+1 555 0199");
-    expect(within(overview).getByText("birthday")).toBeVisible();
-    expect(within(overview).getByText("14 March")).toBeVisible();
+    expect(within(details).getByText("14 March")).toBeVisible();
     expect(within(overview).getByText("Plans the autumn trips.")).toBeVisible();
+    // Nobody stands behind the card yet; the connection offers to link.
+    const connection = within(overview).getByRole("region", {
+      name: "Connection",
+    });
+    expect(
+      within(connection).getByText("Not linked to an account"),
+    ).toBeVisible();
+    expect(
+      within(connection).getByRole("button", { name: "Link to a friend" }),
+    ).toBeVisible();
 
     await user.click(screen.getByRole("tab", { name: "Events" }));
     expect(await screen.findByText("Not part of any event yet")).toBeVisible();

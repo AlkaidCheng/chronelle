@@ -156,16 +156,24 @@ export async function exercisePeoplePage(page: Page) {
     .click();
   await expect(page).toHaveURL(/\/people\/[\da-f-]+$/);
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("Mira");
-  // The full name reads under the title and again among the details.
-  await expect(page.getByText("Mira Chen", { exact: true })).toHaveCount(2);
+  // The full name reads under the title; the details list the nickname,
+  // the email, and the field. Without a description there is no panel for
+  // it, and the connection says this card is the signed-in user's own.
+  await expect(page.getByText("Mira Chen", { exact: true })).toBeVisible();
   await expect(page.getByText("This is me", { exact: true })).toBeVisible();
   const overview = page.getByRole("tabpanel");
+  await expect(overview.getByText("Nickname", { exact: true })).toBeVisible();
   await expect(
     overview.getByRole("link", { name: "mira@example.test" }),
   ).toBeVisible();
   await expect(overview.getByText("diet", { exact: true })).toBeVisible();
   await expect(overview.getByText("Vegetarian", { exact: true })).toBeVisible();
-  await expect(overview.getByText("No description yet.")).toBeVisible();
+  await expect(
+    overview.getByRole("region", { name: "Description" }),
+  ).toHaveCount(0);
+  await expect(
+    overview.getByText("This is you", { exact: true }),
+  ).toBeVisible();
   await page.getByRole("tab", { name: "Events", exact: true }).click();
   await expect(page.getByText("Not part of any event yet")).toBeVisible();
 
