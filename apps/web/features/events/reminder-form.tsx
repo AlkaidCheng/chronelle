@@ -13,6 +13,7 @@ import {
   readReminderFields,
   reminderFieldsPayload,
 } from "../../lib/reminder-fields";
+import { shownTimeZone } from "../../i18n/active-preferences";
 import {
   eventCreationDraftKeys,
   type ReminderDraftSnapshot,
@@ -254,10 +255,7 @@ function ReminderEditor({
           </label>
           <p className="field-hint">
             Recorded only; no notification is sent. Time in{" "}
-            {Intl.DateTimeFormat()
-              .resolvedOptions()
-              .timeZone.replaceAll("_", " ")}
-            .
+            {shownTimeZone().replaceAll("_", " ")}.
           </p>
           {timeError && <p role="alert">{timeError}</p>}
         </div>

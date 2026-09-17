@@ -78,6 +78,19 @@ it("enables the password sign-in only after hydration and submits the credential
     expect(
       view.getByRole("link", { name: "Forgot your password?" }),
     ).toHaveAttribute("href", "/reset-password");
+    // The compact language menu sits at the bottom of the form column.
+    const language = view.getByRole("combobox", { name: "Language" });
+    expect(language).toHaveValue("system");
+    expect(
+      within(language)
+        .getAllByRole("option")
+        .map((option) => option.textContent),
+    ).toEqual([
+      "System",
+      "English",
+      "\u7b80\u4f53\u4e2d\u6587",
+      "\u7e41\u9ad4\u4e2d\u6587",
+    ]);
     const user = userEvent.setup();
     await user.type(view.getByLabelText("Email"), "planner@example.test");
     await user.type(view.getByLabelText("Password"), "correct horse battery");

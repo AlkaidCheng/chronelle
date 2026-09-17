@@ -32,6 +32,8 @@ it("opens the panel with the mode, palette, density, and motion choices", async 
   await user.click(trigger);
   const panel = screen.getByRole("dialog", { name: "Theme" });
   expect(panel).toBeVisible();
+  // The panel holds the display choices; the language is a Settings preference.
+  expect(within(panel).queryByRole("group", { name: "Language" })).toBeNull();
   const mode = within(screen.getByRole("group", { name: "Appearance" }));
   expect(mode.getByRole("radio", { name: "System" })).toBeChecked();
   await user.click(screen.getByRole("radio", { name: "Celadon" }));

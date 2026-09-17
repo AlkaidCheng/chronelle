@@ -3,7 +3,11 @@ import type { UserPrincipal } from "@chronelle/authorization";
 
 import type { AuthIdentity } from "../authentication/auth-provider.js";
 import { UnauthenticatedError } from "../errors.js";
-import { PostgresIdentityStore, type IdentityStore } from "./identity-store.js";
+import {
+  PostgresIdentityStore,
+  type IdentityStore,
+  type UserPreferences,
+} from "./identity-store.js";
 
 export interface IdentitySession {
   readonly principal: UserPrincipal;
@@ -39,9 +43,12 @@ export class WorkspaceIdentityService {
     return toSession(session.user, session.workspace);
   }
 
-  /** Keeps the language on the account; null clears it. */
-  updateLocale(userId: string, locale: string | null): Promise<UserRow> {
-    return this.#store.updateLocale(userId, locale);
+  /** Merges the given preferences into the account; null clears a key. */
+  updatePreferences(
+    userId: string,
+    preferences: UserPreferences,
+  ): Promise<UserRow> {
+    return this.#store.updatePreferences(userId, preferences);
   }
 
   async listAccessibleWorkspaces(

@@ -20,6 +20,7 @@ import type {
   IdentitySessionRows,
   IdentityStore,
   SignInResult,
+  UserPreferences,
 } from "./identity-store.js";
 
 const filters = (
@@ -29,7 +30,8 @@ const filters = (
 
 /**
  * Identity persistence through the gateway: the sign-in as
- * chronelle_identity_sign_in, the language as chronelle_user_locale_update,
+ * chronelle_identity_sign_in, the account preferences as
+ * chronelle_user_preferences_update,
  * and the user, workspace, membership, and grant reads through the table
  * route with the same access rules as the PostgreSQL store (membership, or an unexpired grant on a live object, or
  * an Owner grant on any object). The reads of one session are sequential
@@ -137,12 +139,28 @@ export class CloudBaseIdentityStore implements IdentityStore {
     return rows.map(workspaceRow);
   }
 
-  async updateLocale(userId: string, locale: string | null): Promise<UserRow> {
+  async updatePreferences(
+    userId: string,
+    preferences: UserPreferences,
+  ): Promise<UserRow> {
     let result: unknown;
     try {
-      result = await this.#client.rpc("chronelle_user_locale_update", {
+      result = await this.#client.rpc("chronelle_user_preferences_update", {
         user_id: userId,
-        locale,
+        preferences: {
+          ...(preferences.locale !== undefined && {
+            locale: preferences.locale,
+          }),
+          ...(preferences.timeZone !== undefined && {
+            time_zone: preferences.timeZone,
+          }),
+          ...(preferences.hourCycle !== undefined && {
+            hour_cycle: preferences.hourCycle,
+          }),
+          ...(preferences.weekStart !== undefined && {
+            week_start: preferences.weekStart,
+          }),
+        },
       });
     } catch (error) {
       if (error instanceof CloudBaseRpcError)

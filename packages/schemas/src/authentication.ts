@@ -33,9 +33,33 @@ export const signUpRequestSchema = z.object({
   locale: localeTagSchema.optional(),
 });
 
-/** The language kept on the account; null clears it. */
-export const localePreferenceRequestSchema = z.object({
-  locale: localeTagSchema.nullable(),
+/**
+ * An IANA time zone name ("Asia/Shanghai", "America/New_York", "UTC"). The
+ * shape is checked here and by the database; whether the zone exists is
+ * checked by the API against the runtime's zone list.
+ */
+export const timeZoneNameSchema = z
+  .string()
+  .trim()
+  .max(64)
+  .regex(/^[A-Za-z_]+(\/[A-Za-z0-9_+-]+)*$/);
+
+/** The clock the account shows: 12-hour or 24-hour. */
+export const hourCycleSchema = z.enum(["h12", "h23"]);
+
+/** The first day of the account's week: 1 for Monday, 7 for Sunday. */
+export const weekStartSchema = z.union([z.literal(1), z.literal(7)]);
+
+/**
+ * The preferences kept on the account. Each key is optional; a key that is
+ * present replaces the stored value, and null clears it so the device or the
+ * language decides again. An empty object changes nothing.
+ */
+export const preferencesRequestSchema = z.object({
+  locale: localeTagSchema.nullable().optional(),
+  timeZone: timeZoneNameSchema.nullable().optional(),
+  hourCycle: hourCycleSchema.nullable().optional(),
+  weekStart: weekStartSchema.nullable().optional(),
 });
 
 export const emailRequestSchema = z.object({
@@ -68,6 +92,9 @@ const userSchema = z.object({
   displayName: z.string(),
   email: z.email().nullable(),
   locale: z.string().nullable().default(null),
+  timeZone: z.string().nullable().default(null),
+  hourCycle: hourCycleSchema.nullable().default(null),
+  weekStart: weekStartSchema.nullable().default(null),
 });
 
 /** The account as the session and account routes return it. */
@@ -132,7 +159,7 @@ export type SessionRevocationResponse = z.infer<
   typeof sessionRevocationResponseSchema
 >;
 export type ApiErrorResponse = z.infer<typeof apiErrorResponseSchema>;
-export type LocalePreferenceRequest = z.infer<
-  typeof localePreferenceRequestSchema
->;
+export type PreferencesRequest = z.infer<typeof preferencesRequestSchema>;
+export type HourCycle = z.infer<typeof hourCycleSchema>;
+export type WeekStart = z.infer<typeof weekStartSchema>;
 export type UserResponse = z.infer<typeof userResponseSchema>;

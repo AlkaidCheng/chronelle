@@ -30,7 +30,7 @@ export async function exerciseWorkspaceUtilities(
   });
   await expect(menu.getByRole("menuitemradio").first()).toBeFocused();
   await expect(
-    menu.getByRole("menuitem", { name: "Change password", exact: true }),
+    menu.getByRole("menuitem", { name: "Settings", exact: true }),
   ).toBeVisible();
   await expect(
     menu.getByRole("menuitem", { name: "Sign out", exact: true }),

@@ -9,40 +9,62 @@ import {
   useState,
 } from "react";
 
+import type { WeekStart } from "../i18n/active-preferences";
 import { shiftCalendarDate, shiftCalendarMonth } from "../lib/calendar-range";
-import { type DayKey, dayKeyOf, parseDayKey } from "../lib/day-placement";
+import {
+  type DayKey,
+  instantDate,
+  instantDay,
+  parseDayKey,
+} from "../lib/day-placement";
 import { parseMonthText } from "../lib/due-choices";
+import { useDisplayPreferences } from "../lib/use-display-preferences";
 
-const weekdayHeadings = Array.from({ length: 7 }, (_, day) =>
-  new Intl.DateTimeFormat(undefined, { weekday: "narrow" }).format(
-    new Date(2026, 0, 4 + day),
-  ),
-);
-const weekdayNames = Array.from({ length: 7 }, (_, day) =>
-  new Intl.DateTimeFormat(undefined, { weekday: "long" }).format(
-    new Date(2026, 0, 4 + day),
-  ),
-);
-const monthTitle = new Intl.DateTimeFormat(undefined, {
-  month: "long",
-  year: "numeric",
-});
-const monthNames = Array.from({ length: 12 }, (_, month) =>
-  new Intl.DateTimeFormat(undefined, { month: "short" }).format(
-    new Date(2000, month, 1),
-  ),
-);
-const monthLongNames = Array.from({ length: 12 }, (_, month) =>
-  new Intl.DateTimeFormat(undefined, { month: "long" }).format(
-    new Date(2000, month, 1),
-  ),
-);
-const fullDay = new Intl.DateTimeFormat(undefined, {
-  weekday: "long",
-  month: "long",
-  day: "numeric",
-  year: "numeric",
-});
+/** The names the grid uses in one locale; calendar days take no zone. */
+function monthListFormats(locale: string) {
+  const format = (options: Intl.DateTimeFormatOptions) =>
+    new Intl.DateTimeFormat(locale, options);
+  // Weekdays indexed as Date.getDay does: 0 Sunday .. 6 Saturday.
+  const weekday = (day: number, options: Intl.DateTimeFormatOptions) =>
+    format(options).format(new Date(2026, 0, 4 + day));
+  return {
+    weekdayHeadings: Array.from({ length: 7 }, (_, day) =>
+      weekday(day, { weekday: "narrow" }),
+    ),
+    weekdayNames: Array.from({ length: 7 }, (_, day) =>
+      weekday(day, { weekday: "long" }),
+    ),
+    monthTitle: format({ month: "long", year: "numeric" }),
+    monthNames: Array.from({ length: 12 }, (_, month) =>
+      format({ month: "short" }).format(new Date(2000, month, 1)),
+    ),
+    monthLongNames: Array.from({ length: 12 }, (_, month) =>
+      format({ month: "long" }).format(new Date(2000, month, 1)),
+    ),
+    fullDay: format({
+      weekday: "long",
+      month: "long",
+      day: "numeric",
+      year: "numeric",
+    }),
+  };
+}
+
+const formatsByLocale = new Map<string, ReturnType<typeof monthListFormats>>();
+
+function formatsFor(locale: string) {
+  let formats = formatsByLocale.get(locale);
+  if (formats === undefined) {
+    formats = monthListFormats(locale);
+    formatsByLocale.set(locale, formats);
+  }
+  return formats;
+}
+
+/** How many days a calendar day sits after the first day of its week. */
+function columnOf(day: DayKey, firstDay: WeekStart): number {
+  return (parseDayKey(day).getDay() - (firstDay % 7) + 7) % 7;
+}
 
 /** A month as YYYY-MM. */
 export type MonthKey = string;
@@ -61,12 +83,14 @@ function monthsBetween(from: MonthKey, to: MonthKey): MonthKey[] {
 }
 
 /**
- * The weeks of one month, Sunday first, with the days of other months as
- * empty cells so a day appears once in a continuous list.
+ * The weeks of one month, the account's first day first, with the days of
+ * other months as empty cells so a day appears once in a continuous list.
  */
-function monthWeeks(month: MonthKey): (DayKey | null)[][] {
-  const first = parseDayKey(monthStartOf(month));
-  const start = shiftCalendarDate(monthStartOf(month), -first.getDay());
+function monthWeeks(month: MonthKey, firstDay: WeekStart): (DayKey | null)[][] {
+  const start = shiftCalendarDate(
+    monthStartOf(month),
+    -columnOf(monthStartOf(month), firstDay),
+  );
   const weeks: (DayKey | null)[][] = [];
   for (let week = 0; week < 6; week += 1) {
     const days = Array.from({ length: 7 }, (_, day) => {
@@ -106,7 +130,7 @@ export function MonthList({
   readonly anchor: DayKey;
   readonly disabled?: boolean;
   readonly marks: (day: DayKey) => DayMarks;
-  /** Today. */
+  /** The present instant; its day is today in the account's zone. */
   readonly now: Date;
   readonly onChooseDay: (day: DayKey) => void;
   /**
@@ -117,7 +141,22 @@ export function MonthList({
   /** A day whose month scrolls to the top whenever it changes. */
   readonly reveal: DayKey;
 }) {
-  const today = dayKeyOf(now);
+  const { locale, firstDay } = useDisplayPreferences();
+  const {
+    weekdayHeadings,
+    weekdayNames,
+    monthTitle,
+    monthNames,
+    monthLongNames,
+    fullDay,
+  } = formatsFor(locale);
+  // The weekday of each column, as Date.getDay numbers them.
+  const columns = Array.from(
+    { length: 7 },
+    (_, index) => ((firstDay % 7) + index) % 7,
+  );
+  const today = instantDay(now);
+  const thisYear = instantDate(now).getFullYear();
   // The month at the top of the list, and the months the list holds.
   const [shown, setShown] = useState<MonthKey>(() => monthOf(reveal));
   const [span, setSpan] = useState(() => ({
@@ -273,7 +312,7 @@ export function MonthList({
     monthText.trim() !== "" && parseMonthText(monthText, now) === null;
   const years = Array.from(
     { length: 101 },
-    (_, index) => now.getFullYear() - 50 + index,
+    (_, index) => thisYear - 50 + index,
   );
   const months = monthsBetween(span.from, span.to);
 
@@ -292,8 +331,8 @@ export function MonthList({
       ArrowDown: () => shiftCalendarDate(day, 7),
       PageUp: () => shiftCalendarMonth(day, event.shiftKey ? -12 : -1),
       PageDown: () => shiftCalendarMonth(day, event.shiftKey ? 12 : 1),
-      Home: () => shiftCalendarDate(day, -parseDayKey(day).getDay()),
-      End: () => shiftCalendarDate(day, 6 - parseDayKey(day).getDay()),
+      Home: () => shiftCalendarDate(day, -columnOf(day, firstDay)),
+      End: () => shiftCalendarDate(day, 6 - columnOf(day, firstDay)),
     };
     const move = moves[event.key];
     if (move === undefined) return;
@@ -486,7 +525,7 @@ export function MonthList({
                   {years.map((year) => (
                     <button
                       aria-pressed={String(year) === shownYear}
-                      className={`month-list-choice${year === now.getFullYear() ? " is-now" : ""}`}
+                      className={`month-list-choice${year === thisYear ? " is-now" : ""}`}
                       data-year={year}
                       key={year}
                       onClick={() =>
@@ -552,8 +591,8 @@ export function MonthList({
         </div>
       </div>
       <div aria-hidden="true" className="month-list-weekdays">
-        {weekdayHeadings.map((heading, index) => (
-          <span key={weekdayNames[index]}>{heading}</span>
+        {columns.map((weekday) => (
+          <span key={weekdayNames[weekday]}>{weekdayHeadings[weekday]}</span>
         ))}
       </div>
       <div
@@ -574,24 +613,28 @@ export function MonthList({
             </caption>
             <thead className="visually-hidden">
               <tr>
-                {weekdayHeadings.map((heading, index) => (
+                {columns.map((weekday) => (
                   <th
-                    abbr={weekdayNames[index]}
-                    aria-label={weekdayNames[index]}
-                    key={weekdayNames[index]}
+                    abbr={weekdayNames[weekday]}
+                    aria-label={weekdayNames[weekday]}
+                    key={weekdayNames[weekday]}
                     scope="col"
                   >
-                    {heading}
+                    {weekdayHeadings[weekday]}
                   </th>
                 ))}
               </tr>
             </thead>
             <tbody>
-              {monthWeeks(month).map((week) => (
+              {monthWeeks(month, firstDay).map((week) => (
                 <tr key={week.find((day) => day !== null) ?? month}>
                   {week.map((day, index) => {
                     if (day === null)
-                      return <td key={`${month}-${weekdayNames[index]}`} />;
+                      return (
+                        <td
+                          key={`${month}-${weekdayNames[columns[index] ?? 0]}`}
+                        />
+                      );
                     const mark = marks(day);
                     return (
                       <td

@@ -5158,7 +5158,220 @@ html:has(.event-create-dialog[open]) {
     .quiet-menu-heading,
     .person-fields-list dt,
     .theme-group > span,
-    .theme-group legend
+    .theme-group legend,
+    .settings-nav-group > span
   ) {
   letter-spacing: 0.02em;
+}
+
+/* Settings: a list of sections at the left, the open section at the right. */
+.settings-page .page-heading {
+  margin-bottom: 28px;
+}
+
+.settings-layout {
+  align-items: start;
+  display: grid;
+  gap: 40px;
+  grid-template-columns: 200px minmax(0, 1fr);
+}
+
+.settings-nav ul {
+  display: grid;
+  gap: 2px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.settings-nav a {
+  border-radius: 10px;
+  color: var(--muted);
+  display: block;
+  font-size: 0.87rem;
+  font-weight: 650;
+  padding: 9px 12px;
+  text-decoration: none;
+}
+
+.settings-nav a:hover,
+.settings-nav a[aria-current="page"] {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.settings-nav-group {
+  margin-top: 14px;
+}
+
+.settings-nav-group > span {
+  color: var(--muted);
+  display: block;
+  font-size: 0.66rem;
+  font-weight: 750;
+  letter-spacing: 0.08em;
+  padding: 6px 12px;
+  text-transform: uppercase;
+}
+
+.settings-section {
+  display: grid;
+  gap: 24px;
+  max-width: 560px;
+}
+
+.settings-section h2 {
+  font-size: 1.5rem;
+  line-height: 1.2;
+  margin: 0;
+}
+
+.settings-facts {
+  display: grid;
+  gap: 14px;
+  margin: 0;
+}
+
+.settings-facts > div {
+  display: grid;
+  gap: 4px;
+}
+
+.settings-facts dt {
+  color: var(--muted);
+  font-size: 0.76rem;
+  font-weight: 750;
+}
+
+.settings-facts dd {
+  font-size: 1rem;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.settings-row {
+  align-items: center;
+  border-top: 1px solid var(--line);
+  display: flex;
+  gap: 20px;
+  justify-content: space-between;
+  padding-top: 20px;
+}
+
+.settings-row h3 {
+  font-size: 0.95rem;
+  margin: 0 0 4px;
+}
+
+.settings-row p,
+.settings-note {
+  color: var(--muted);
+  font-size: 0.82rem;
+  line-height: 1.5;
+  margin: 0;
+}
+
+.settings-row > .button {
+  flex-shrink: 0;
+}
+
+.settings-preferences,
+.settings-appearance {
+  display: grid;
+  gap: 22px;
+}
+
+.settings-group {
+  max-width: 440px;
+}
+
+.settings-zone {
+  display: grid;
+  gap: 8px;
+}
+
+.settings-zone-search input {
+  min-height: 40px;
+}
+
+.settings-now {
+  margin-top: -12px;
+}
+
+.settings-appearance .theme-swatches {
+  max-width: 440px;
+}
+
+/* The language menu of the screens outside a session. */
+.sign-in-form-wrap {
+  position: relative;
+}
+
+.sign-in-language {
+  bottom: 20px;
+  position: absolute;
+  right: 24px;
+}
+
+.locale-menu {
+  align-items: center;
+  color: var(--muted);
+  display: inline-flex;
+  gap: 6px;
+}
+
+.locale-menu-icon {
+  height: 16px;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.7;
+  width: 16px;
+}
+
+.locale-menu select {
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  color: var(--muted);
+  font: inherit;
+  font-size: 0.8rem;
+  padding: 6px 8px;
+}
+
+.locale-menu select:hover,
+.locale-menu select:focus {
+  border-color: var(--line-strong);
+  color: var(--ink);
+}
+
+@media (max-width: 760px) {
+  .settings-layout {
+    gap: 24px;
+    grid-template-columns: 1fr;
+  }
+
+  .settings-nav ul {
+    grid-auto-flow: column;
+    grid-auto-columns: max-content;
+    overflow-x: auto;
+  }
+
+  .settings-nav-group {
+    display: contents;
+  }
+
+  .settings-nav-group > span {
+    display: none;
+  }
+
+  .settings-row {
+    align-items: start;
+    flex-direction: column;
+  }
+
+  .sign-in-language {
+    position: static;
+    text-align: right;
+  }
 }

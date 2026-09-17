@@ -2,7 +2,15 @@
 
 import { useId, useState } from "react";
 
-import { type DayKey, dayKeyOf, parseDayKey } from "../lib/day-placement";
+import { activeLocale } from "../i18n/active-locale";
+import {
+  type DayKey,
+  addDays,
+  dayKeyOf,
+  instantDate,
+  instantDay,
+  parseDayKey,
+} from "../lib/day-placement";
 import {
   describeDueDay,
   describeRepeat,
@@ -12,14 +20,20 @@ import {
   parseDueText,
   repeatChoices,
 } from "../lib/due-choices";
-import { formatDuration, formatTime } from "../lib/format";
+import { formatDuration, formatTime, fromDateTimeInput } from "../lib/format";
+import { useDisplayPreferences } from "../lib/use-display-preferences";
 import { MonthList } from "./month-list";
 
-const monthDayShort = new Intl.DateTimeFormat(undefined, {
-  month: "short",
-  day: "numeric",
-});
-const weekdayLong = new Intl.DateTimeFormat(undefined, { weekday: "long" });
+/** A calendar day's month and day, short, in the active locale. */
+const monthDayShort = (day: DayKey) =>
+  new Intl.DateTimeFormat(activeLocale(), {
+    month: "short",
+    day: "numeric",
+  }).format(parseDayKey(day));
+const weekdayLong = (day: DayKey) =>
+  new Intl.DateTimeFormat(activeLocale(), { weekday: "long" }).format(
+    parseDayKey(day),
+  );
 
 /** The durations offered, in minutes. */
 export const durationChoices = [
@@ -38,7 +52,9 @@ export function describeDue(
   if (dueDate === "") return "No date";
   const day = describeDueDay(dueDate, now);
   const time =
-    dueTime === "" ? day : `${day}, ${formatTime(`${dueDate}T${dueTime}`)}`;
+    dueTime === ""
+      ? day
+      : `${day}, ${formatTime(fromDateTimeInput(`${dueDate}T${dueTime}`) ?? "")}`;
   const timed =
     dueTime === "" || duration === ""
       ? time
@@ -89,8 +105,9 @@ export function DuePicker({
   readonly repeatUntil?: string;
 }) {
   const id = useId();
-  const today = dayKeyOf(now);
-  const tomorrow = dayKeyOf(new Date(now.getTime() + 86_400_000));
+  const { timeZone } = useDisplayPreferences();
+  const today = instantDay(now);
+  const tomorrow = dayKeyOf(addDays(instantDate(now), 1));
   const [open, setOpen] = useState(false);
   const [text, setText] = useState(() =>
     dueDate === "" ? "" : exactDueDay(dueDate),
@@ -198,7 +215,7 @@ export function DuePicker({
             <p className="field-hint" id={`${id}-date-hint`}>
               {unreadable
                 ? "Not a date the picker knows. Try Sep 21, 21 Sep, 9/21, tomorrow, or 2030-09-21."
-                : `Due ${weekdayLong.format(parseDayKey(dueDate))}${
+                : `Due ${weekdayLong(dueDate)}${
                     dueDate === today
                       ? ", today"
                       : dueDate === tomorrow
@@ -220,7 +237,7 @@ export function DuePicker({
                   <span>{shortcut.label}</span>
                   <span className="day-shortcut-day">
                     {shortcut.id === "next-week"
-                      ? `${dueWeekday(shortcut.day)} ${monthDayShort.format(parseDayKey(shortcut.day))}`
+                      ? `${dueWeekday(shortcut.day)} ${monthDayShort(shortcut.day)}`
                       : dueWeekday(shortcut.day)}
                   </span>
                 </button>
@@ -299,7 +316,7 @@ export function DuePicker({
             ) : null}
             {showTime ? (
               <p className="field-hint">
-                {`Times are in ${Intl.DateTimeFormat().resolvedOptions().timeZone.replaceAll("_", " ")}.`}
+                {`Times are in ${(timeZone ?? Intl.DateTimeFormat().resolvedOptions().timeZone).replaceAll("_", " ")}.`}
               </p>
             ) : null}
           </div>

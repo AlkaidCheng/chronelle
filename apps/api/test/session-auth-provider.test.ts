@@ -19,6 +19,9 @@ const user: UserRow = {
   email: "person@example.test",
   displayName: "Person",
   locale: null,
+  timeZone: null,
+  hourCycle: null,
+  weekStart: null,
   createdAt: now,
   updatedAt: now,
 };

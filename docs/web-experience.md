@@ -22,8 +22,8 @@ page starts with its own title. Search in the rail opens the one palette
 reachable from the palette. Theme opens a panel beside the rail with the mode
 (System, Light, Dark), the palette, density, and motion choices, and a reset.
 The profile block at the foot of the rail opens the account menu: the account,
-the workspaces the person can open (the current one checked), Change password,
-and Sign out. Escape or a press elsewhere closes either and returns focus to
+the workspaces the person can open (the current one checked), Settings, and
+Sign out. Escape or a press elsewhere closes either and returns focus to
 its control; neither navigates or discards the current Event draft. A
 workspace or session change uses the existing session boundary to cancel
 pending requests and clear protected state. Workspace choices come from the
@@ -277,21 +277,53 @@ and cross-tab changes. They do not replace manual screen-reader, physical
 device, or visual acceptance testing. The installed PWA's launch background is
 the light paper color; the running page follows the selected appearance.
 
+## Settings
+
+Settings (`/settings`, from the profile menu) lists its sections at the left
+and opens one at the right; each section has its own address. Account shows
+the display name and email as the account holds them (neither can be changed
+here yet), links to the password screen, and offers Sign out everywhere,
+which ends every session of the account, this one included, and returns to
+sign-in. Under Preferences, Language & time holds the language, the time
+zone, the time format, and the first day of the week, all kept on the
+account and applied at once; Appearance repeats the Theme panel's mode,
+palette, density, and motion choices, which stay on the browser.
+
+The time zone is Device (named, with its offset) or any zone the browser
+knows, grouped by region with its current offset; a search field narrows the
+list by name or offset. Times are formatted in that zone and days are placed
+in it: a task due at an instant, a timed Event's span, an expense, a
+reminder, and today all fall on the zone's calendar day, and the date-time
+fields of the editors read and write on the zone's wall clock. The time
+format is From language (the language's convention: 12-hour for English and
+Traditional Chinese, 24-hour for Simplified Chinese), 12-hour, or 24-hour.
+Week starts on is From language (Sunday for English and Traditional Chinese,
+Monday for Simplified Chinese), Monday, or Sunday; the week strip, the month
+grid, the date pickers, and the period labels start on that day. An Event's
+own time zone field is unchanged; a new Event or schedule item takes the
+account's zone as its default.
+
 ## Language
 
 The web app speaks English, Simplified Chinese, and Traditional Chinese. The
-Language group in the rail's Theme panel and in the sign-in Customize dialog
-offers System, English, and the two Chinese variants, each named in its own
-language. System follows the browser's languages: `zh-TW`, `zh-HK`, `zh-MO`,
-and any `zh-Hant` tag read as Traditional, other Chinese tags as Simplified,
-English tags as English, and anything else as English. Choosing a language
-re-renders the page in place, sets the document's `lang`, and keeps the URL;
-the locale is a preference, never a path segment.
+Language group under Settings, Preferences, Language & time offers System,
+English, and the two Chinese variants, each named in its own language; the
+sign-in, sign-up, verification, and reset screens carry a compact language
+menu at the bottom of the form column. System follows the browser's
+languages: `zh-TW`, `zh-HK`, `zh-MO`, and any `zh-Hant` tag read as
+Traditional, other Chinese tags as Simplified, English tags as English, and
+anything else as English. Choosing a language re-renders the page in place,
+sets the document's `lang`, and keeps the URL; the locale is a preference,
+never a path segment.
 
 The choice lives in the `chronelle.locale` cookie, which the server reads to
 render the first paint and the `lang` attribute in the right language, with a
-localStorage mirror for the same browser. System clears both. The choice does
-not follow the account across devices yet.
+localStorage mirror for the same browser. System clears both. Signed in, the
+choice is also kept on the account: sign-in puts the account's language on
+the browser before the workspace renders, an account without a language
+learns the choice this browser already made (a language picked on the sign-in
+screen follows the person from then on), sign-up sends the browser's choice,
+and a session found through the cookie reconciles the two the same way.
 
 Traditional Chinese is written, not converted from Simplified; Files, Trash,
 and sign in each carry their own Traditional wording. Dates, times, durations, money, and name
@@ -311,12 +343,16 @@ Sharing, Trash, Search, History, the command palette, and the offline sandbox
 remain English until the next step, and typed dates in the Due field are
 parsed in English only. Verification emails are English.
 
-Browser checks switch the language from the Theme panel on desktop and mobile
+Browser checks switch the language from Settings on desktop and mobile
 Chromium and WebKit, verify `lang`, the rail, the Events heading, the event
 strip, and a date range in both Chinese variants, return to System, and render
-the sign-in screen from a `zh-TW` browser. Unit tests hold every catalog to the
-English key set and parameter names. A native reader has not yet reviewed the
-two Chinese catalogs; wording may change.
+the sign-in screen from a `zh-TW` browser, choosing English from its compact
+menu. A Settings journey (Chromium and WebKit desktop) opens Settings from the
+profile menu, changes the language and back, chooses a 24-hour clock, the UTC
+zone, and a Monday week, sees a timed task and the week strip follow, reads
+every choice back after a reload, and signs out everywhere. Unit tests hold
+every catalog to the English key set and parameter names. A native reader has
+not yet reviewed the two Chinese catalogs; wording may change.
 
 ## Planning workflow
 

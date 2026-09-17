@@ -3,7 +3,7 @@
 import type { EventComponentView } from "@chronelle/schemas";
 import { useState } from "react";
 
-import { type DayKey, monthDays, weekDays } from "./day-placement";
+import { type DayKey, monthDays, today, weekDays } from "./day-placement";
 
 /** The period a week or month view shows. */
 export interface Period {
@@ -16,8 +16,8 @@ export interface Period {
  * today and returns there whenever the view changes; nothing is saved.
  */
 export function usePeriod(view: EventComponentView): Period {
-  const [state, setState] = useState(() => ({ view, cursor: new Date() }));
-  if (state.view !== view) setState({ view, cursor: new Date() });
+  const [state, setState] = useState(() => ({ view, cursor: today() }));
+  if (state.view !== view) setState({ view, cursor: today() });
   return {
     cursor: state.cursor,
     setCursor: (cursor) => setState({ view, cursor }),

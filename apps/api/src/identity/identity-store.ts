@@ -34,8 +34,10 @@ export interface IdentitySessionRows {
  * requested or the personal workspace (null when the user is unknown or
  * has no personal workspace; a workspace error when the user may not enter
  * the workspace), and the workspaces the user may enter through membership
- * or an active grant, and the language kept on the account (a language tag
- * or null for no choice; the user is returned as the row then reads).
+ * or an active grant, and the preferences kept on the account (the
+ * language, time zone, clock, and week start; a key that is present
+ * replaces the stored value, null clears it, and an absent key keeps it;
+ * the user is returned as the row then reads).
  */
 export interface IdentityStore {
   signIn(identity: AuthIdentity, requestId: string): Promise<SignInResult>;
@@ -44,7 +46,18 @@ export interface IdentityStore {
     requestedWorkspaceId: string | undefined,
   ): Promise<IdentitySessionRows | null>;
   listAccessibleWorkspaces(userId: string): Promise<readonly WorkspaceRow[]>;
-  updateLocale(userId: string, locale: string | null): Promise<UserRow>;
+  updatePreferences(
+    userId: string,
+    preferences: UserPreferences,
+  ): Promise<UserRow>;
+}
+
+/** The account preferences a store merges; an absent or undefined key keeps its value and null clears it. */
+export interface UserPreferences {
+  readonly locale?: string | null | undefined;
+  readonly timeZone?: string | null | undefined;
+  readonly hourCycle?: "h12" | "h23" | null | undefined;
+  readonly weekStart?: 1 | 7 | null | undefined;
 }
 
 /** The PostgreSQL store: each read runs in one repeatable-read snapshot with the authorization evaluator. */
@@ -170,11 +183,23 @@ export class PostgresIdentityStore implements IdentityStore {
     );
   }
 
-  async updateLocale(userId: string, locale: string | null): Promise<UserRow> {
+  async updatePreferences(
+    userId: string,
+    preferences: UserPreferences,
+  ): Promise<UserRow> {
     const [updated] = await this.#database
       .update(users)
       .set({
-        locale,
+        ...(preferences.locale !== undefined && { locale: preferences.locale }),
+        ...(preferences.timeZone !== undefined && {
+          timeZone: preferences.timeZone,
+        }),
+        ...(preferences.hourCycle !== undefined && {
+          hourCycle: preferences.hourCycle,
+        }),
+        ...(preferences.weekStart !== undefined && {
+          weekStart: preferences.weekStart,
+        }),
         updatedAt: sql`GREATEST(now(), ${users.createdAt})`,
       })
       .where(eq(users.id, userId))

@@ -8,6 +8,7 @@ import {
   numeric,
   pgTable,
   primaryKey,
+  smallint,
   uniqueIndex,
   text,
   timestamp,
@@ -97,6 +98,9 @@ export const users = pgTable("users", {
   email: text("email"),
   displayName: text("display_name").notNull(),
   locale: text("locale"),
+  timeZone: text("time_zone"),
+  hourCycle: text("hour_cycle"),
+  weekStart: smallint("week_start"),
   createdAt: createCreatedAtColumn(),
   updatedAt: createUpdatedAtColumn(),
 });

@@ -162,7 +162,9 @@ export class PasswordAuthService {
     const user =
       input.locale === undefined
         ? session.user
-        : await this.#identity.updateLocale(session.user.id, input.locale);
+        : await this.#identity.updatePreferences(session.user.id, {
+            locale: input.locale,
+          });
     await this.#sendCode(user, "verify_email");
   }
 

@@ -1,7 +1,7 @@
 import {
   developmentSignInRequestSchema,
   developmentSignInResponseSchema,
-  localePreferenceRequestSchema,
+  preferencesRequestSchema,
   sessionRevocationResponseSchema,
   sessionResponseSchema,
   userResponseSchema,
@@ -10,7 +10,7 @@ import type { UserRow } from "@chronelle/db";
 import type { FastifyInstance, FastifyRequest } from "fastify";
 
 import type { WorkspaceIdentityService } from "../identity/workspace-identity-service.js";
-import { UnauthenticatedError } from "../errors.js";
+import { InvalidRequestError, UnauthenticatedError } from "../errors.js";
 import { readBearerToken } from "../request-context.js";
 import { parseRequest } from "../request-validation.js";
 import {
@@ -63,7 +63,20 @@ export function userPayload(user: UserRow) {
     displayName: user.displayName,
     email: user.email,
     locale: user.locale,
+    timeZone: user.timeZone,
+    hourCycle: user.hourCycle,
+    weekStart: user.weekStart,
   };
+}
+
+/** Whether the runtime knows the zone: the schema checks the shape, this checks the name. */
+export function isKnownTimeZone(name: string): boolean {
+  try {
+    new Intl.DateTimeFormat("en", { timeZone: name });
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 export function registerSessionRoutes(
@@ -99,8 +112,9 @@ export function registerSessionRoutes(
     },
   );
 
-  // The language kept on the account; null clears it. The response is the
-  // account as the next session read will show it.
+  // The preferences kept on the account: each key present replaces the
+  // stored value and null clears it. The response is the account as the
+  // next session read will show it.
   app.patch(
     "/api/auth/me",
     { preHandler: app.authenticate },
@@ -108,10 +122,15 @@ export function registerSessionRoutes(
       if (request.identitySession === null) {
         throw new UnauthenticatedError();
       }
-      const input = parseRequest(localePreferenceRequestSchema, request.body);
-      const user = await dependencies.identity.updateLocale(
+      const input = parseRequest(preferencesRequestSchema, request.body);
+      if (
+        typeof input.timeZone === "string" &&
+        !isKnownTimeZone(input.timeZone)
+      )
+        throw new InvalidRequestError();
+      const user = await dependencies.identity.updatePreferences(
         request.identitySession.user.id,
-        input.locale,
+        input,
       );
       return userResponseSchema.parse(userPayload(user));
     },

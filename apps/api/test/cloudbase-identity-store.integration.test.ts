@@ -7,6 +7,7 @@ import {
   resourceGrants,
   users,
   workspaceMembers,
+  type UserRow,
 } from "@chronelle/db";
 import {
   applyMigrations,
@@ -317,52 +318,133 @@ describe.sequential("CloudBase identity store", () => {
     ).toHaveLength(2);
   });
 
-  it("keeps the same language on the account and refuses the same tags", async () => {
+  it("keeps the same preferences on the account, merges one key at a time, and refuses the same values", async () => {
     const db = database.connection.db;
+    const preferenceColumns = {
+      locale: users.locale,
+      timeZone: users.timeZone,
+      hourCycle: users.hourCycle,
+      weekStart: users.weekStart,
+    };
+    const outcome = (attempt: Promise<unknown>) =>
+      attempt
+        .then(() => "accepted")
+        .catch((error: unknown) =>
+          error instanceof Error ? "refused" : "unknown",
+        );
     const results: Record<string, unknown> = {};
     for (const [name, store] of backends()) {
-      const signedIn = await store.signIn(identity(`lang-${name}`), createId());
-      expect(signedIn.user.locale).toBeNull();
-      const chosen = await store.updateLocale(signedIn.user.id, "zh-Hant");
+      const signedIn = await store.signIn(identity(`pref-${name}`), createId());
+      expect(signedIn.user).toMatchObject({
+        locale: null,
+        timeZone: null,
+        hourCycle: null,
+        weekStart: null,
+      });
+      const chosen = await store.updatePreferences(signedIn.user.id, {
+        locale: "zh-Hant",
+        timeZone: "Asia/Taipei",
+      });
+      const merged = await store.updatePreferences(signedIn.user.id, {
+        hourCycle: "h23",
+        weekStart: 7,
+      });
       const read = await store.resolveSession(
-        identity(`lang-${name}`),
+        identity(`pref-${name}`),
         undefined,
       );
-      const cleared = await store.updateLocale(signedIn.user.id, null);
-      const refused = await store
-        .updateLocale(signedIn.user.id, "not a tag")
-        .then(() => "accepted")
-        .catch((error: unknown) =>
-          error instanceof Error ? "refused" : "unknown",
-        );
-      const unknownUser = await store
-        .updateLocale(createId(), "en")
-        .then(() => "accepted")
-        .catch((error: unknown) =>
-          error instanceof Error ? "refused" : "unknown",
-        );
+      const untouched = await store.updatePreferences(signedIn.user.id, {});
+      const cleared = await store.updatePreferences(signedIn.user.id, {
+        locale: null,
+        hourCycle: null,
+      });
+      const refusals = {
+        locale: await outcome(
+          store.updatePreferences(signedIn.user.id, { locale: "not a tag" }),
+        ),
+        timeZone: await outcome(
+          store.updatePreferences(signedIn.user.id, {
+            timeZone: "Asia Shanghai",
+          }),
+        ),
+        hourCycle: await outcome(
+          store.updatePreferences(signedIn.user.id, {
+            hourCycle: "h11" as "h12",
+          }),
+        ),
+        weekStart: await outcome(
+          store.updatePreferences(signedIn.user.id, { weekStart: 2 as 1 }),
+        ),
+        unknownUser: await outcome(
+          store.updatePreferences(createId(), { locale: "en" }),
+        ),
+      };
       const [row] = await db
-        .select({ locale: users.locale })
+        .select(preferenceColumns)
         .from(users)
         .where(eq(users.id, signedIn.user.id));
+      const shape = (user: UserRow) => ({
+        locale: user.locale,
+        timeZone: user.timeZone,
+        hourCycle: user.hourCycle,
+        weekStart: user.weekStart,
+      });
       results[name] = {
-        chosen: chosen.locale,
-        read: read?.user.locale,
-        cleared: cleared.locale,
-        stored: row?.locale,
-        refused,
-        unknownUser,
+        chosen: shape(chosen),
+        merged: shape(merged),
+        read: read === null ? null : shape(read.user),
+        untouched: shape(untouched),
+        cleared: shape(cleared),
+        stored: row,
+        refusals,
         touched: chosen.updatedAt >= signedIn.user.updatedAt,
       };
     }
     expect(results.cloudbase).toEqual(results.postgres);
     expect(results.postgres).toEqual({
-      chosen: "zh-Hant",
-      read: "zh-Hant",
-      cleared: null,
-      stored: null,
-      refused: "refused",
-      unknownUser: "refused",
+      chosen: {
+        locale: "zh-Hant",
+        timeZone: "Asia/Taipei",
+        hourCycle: null,
+        weekStart: null,
+      },
+      merged: {
+        locale: "zh-Hant",
+        timeZone: "Asia/Taipei",
+        hourCycle: "h23",
+        weekStart: 7,
+      },
+      read: {
+        locale: "zh-Hant",
+        timeZone: "Asia/Taipei",
+        hourCycle: "h23",
+        weekStart: 7,
+      },
+      untouched: {
+        locale: "zh-Hant",
+        timeZone: "Asia/Taipei",
+        hourCycle: "h23",
+        weekStart: 7,
+      },
+      cleared: {
+        locale: null,
+        timeZone: "Asia/Taipei",
+        hourCycle: null,
+        weekStart: 7,
+      },
+      stored: {
+        locale: null,
+        timeZone: "Asia/Taipei",
+        hourCycle: null,
+        weekStart: 7,
+      },
+      refusals: {
+        locale: "refused",
+        timeZone: "refused",
+        hourCycle: "refused",
+        weekStart: "refused",
+        unknownUser: "refused",
+      },
       touched: true,
     });
   });

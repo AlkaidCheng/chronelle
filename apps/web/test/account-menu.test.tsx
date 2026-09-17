@@ -15,6 +15,9 @@ const session = {
     displayName: "Planner",
     email: "planner@example.com",
     locale: null,
+    timeZone: null,
+    hourCycle: null,
+    weekStart: null,
   },
   workspace: {
     id: "019d6e7d-0000-7000-8000-000000000001",
@@ -49,7 +52,7 @@ function renderMenu() {
   };
 }
 
-it("opens a menu with the account, the workspaces, the password screen, and sign out", async () => {
+it("opens a menu with the account, the workspaces, Settings, and sign out", async () => {
   const { trigger, user } = renderMenu();
   await user.click(trigger);
   const menu = screen.getByRole("menu", { name: "Account" });
@@ -58,9 +61,13 @@ it("opens a menu with the account, the workspaces, the password screen, and sign
     screen.getByRole("menuitemradio", { name: "Personal" }),
   ).toHaveAttribute("aria-checked", "true");
   expect(screen.getByRole("menuitemradio", { name: "Personal" })).toHaveFocus();
+  expect(screen.getByRole("menuitem", { name: "Settings" })).toHaveAttribute(
+    "href",
+    "/settings",
+  );
   expect(
-    screen.getByRole("menuitem", { name: "Change password" }),
-  ).toHaveAttribute("href", "/reset-password");
+    screen.queryByRole("menuitem", { name: "Change password" }),
+  ).not.toBeInTheDocument();
   expect(screen.getByRole("menuitem", { name: "Sign out" })).toBeVisible();
   await user.click(trigger);
   expect(screen.queryByRole("menu")).not.toBeInTheDocument();

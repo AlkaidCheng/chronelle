@@ -28,8 +28,10 @@ import {
   expenseUpdateRequestSchema,
   reminderUpdateRequestSchema,
   objectSearchQuerySchema,
+  preferencesRequestSchema,
   relationCreateRequestSchema,
   relationResponseSchema,
+  userResponseSchema,
   type EventPlanningResourceResponse as Resource,
   type TimelineResponse,
 } from "@chronelle/schemas";
@@ -42,12 +44,26 @@ const workspace = { id: sandboxWorkspaceId, displayName: "Design playground" };
 const maximumCharacters = 1_000_000;
 type StoragePort = Pick<Storage, "getItem" | "setItem">;
 type RelationResponse = ReturnType<typeof relationResponseSchema.parse>;
+type Preferences = ReturnType<typeof userResponseSchema.parse>;
+
 interface State {
   objects: Resource[];
   relations: RelationResponse[];
   layouts: EventLayoutResponse[];
   labels: LabelResponse[];
+  /** The sample account's language, zone, clock, and week start, as Settings keeps them. */
+  preferences: Pick<
+    Preferences,
+    "locale" | "timeZone" | "hourCycle" | "weekStart"
+  >;
 }
+
+const defaultPreferences: State["preferences"] = {
+  locale: null,
+  timeZone: null,
+  hourCycle: null,
+  weekStart: null,
+};
 
 class SandboxError extends Error {
   constructor(
@@ -233,6 +249,7 @@ function seed(): State {
       ...children,
     ],
     relations: children.map((child) => relation(event.id, child.id)),
+    preferences: defaultPreferences,
   };
 }
 
@@ -308,11 +325,15 @@ function parseState(raw: string): State {
     .array()
     .max(200)
     .parse("labels" in value ? value.labels : []);
+  const preferences = userResponseSchema
+    .pick({ locale: true, timeZone: true, hourCycle: true, weekStart: true })
+    .parse("preferences" in value ? value.preferences : {});
   return {
     objects,
     relations,
     layouts: layouts.sort((a, b) => b.version - a.version),
     labels,
+    preferences,
   };
 }
 
@@ -705,6 +726,15 @@ export class SandboxStore {
     }
   }
 
+  #user(): Preferences {
+    return {
+      id: userId,
+      displayName: "Sample planner",
+      email: "planner@example.test",
+      ...this.#state.preferences,
+    };
+  }
+
   #read(url: URL, role: "owner" | "viewer"): unknown {
     const [, , collection, id, operation, action] = url.pathname.split("/");
     const all = this.#state.objects.filter(
@@ -720,11 +750,7 @@ export class SandboxStore {
       };
     if (collection === "auth" && id === "session")
       return {
-        user: {
-          id: userId,
-          displayName: "Sample planner",
-          email: "planner@example.test",
-        },
+        user: this.#user(),
         principal: { type: "user", userId, workspaceId: sandboxWorkspaceId },
         workspace,
         availableWorkspaces: [workspace],
@@ -1153,6 +1179,34 @@ export class SandboxStore {
       (method === "POST" || method === "PATCH" || method === "DELETE")
     )
       return this.#labelWrite(method, id, url, body);
+    if (collection === "auth" && id === "me" && method === "PATCH") {
+      // Settings keeps the sample account's preferences; absent keys stay.
+      const input = preferencesRequestSchema.parse(body);
+      this.#commit({
+        ...this.#state,
+        preferences: {
+          locale:
+            input.locale === undefined
+              ? this.#state.preferences.locale
+              : input.locale,
+          timeZone:
+            input.timeZone === undefined
+              ? this.#state.preferences.timeZone
+              : input.timeZone,
+          hourCycle:
+            input.hourCycle === undefined
+              ? this.#state.preferences.hourCycle
+              : input.hourCycle,
+          weekStart:
+            input.weekStart === undefined
+              ? this.#state.preferences.weekStart
+              : input.weekStart,
+        },
+      });
+      return this.#user();
+    }
+    if (collection === "auth" && id === "sessions" && method === "DELETE")
+      return { revoked: 1 };
     if (
       method === "POST" &&
       collection === "objects" &&

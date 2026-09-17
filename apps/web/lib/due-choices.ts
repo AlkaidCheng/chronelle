@@ -1,6 +1,12 @@
 import type { TaskRepeatRule } from "@chronelle/schemas";
 import { activeLocale, tr } from "../i18n/active-locale";
-import { type DayKey, addDays, dayKeyOf, parseDayKey } from "./day-placement";
+import {
+  type DayKey,
+  addDays,
+  dayKeyOf,
+  instantDate,
+  parseDayKey,
+} from "./day-placement";
 
 /** A quick way to a due day, with the day it means. */
 export interface DueShortcut {
@@ -19,8 +25,9 @@ export interface DueShortcut {
  * week (the coming Monday). Every one stays offered; the control marks the
  * one matching the choice.
  */
-export function dueShortcuts(now: Date): DueShortcut[] {
+export function dueShortcuts(clock: Date): DueShortcut[] {
   const t = tr("dueChoices");
+  const now = instantDate(clock);
   const today = dayKeyOf(now);
   const day = now.getDay(); // 0 Sunday .. 6 Saturday
   const shortcuts: DueShortcut[] = [];
@@ -98,14 +105,16 @@ export function exactDueDay(day: DayKey): string {
 }
 
 /** A day as a move announces it: today, tomorrow, or its exact date. */
-export function dayInWords(day: DayKey, now: Date): string {
+export function dayInWords(day: DayKey, clock: Date): string {
+  const now = instantDate(clock);
   if (day === dayKeyOf(now)) return tr("dates.inWords")("today");
   if (day === dayKeyOf(addDays(now, 1))) return tr("dates.inWords")("tomorrow");
   return exactDueDay(day);
 }
 
 /** A due day in words: the exact date, with today or tomorrow as a hint. */
-export function describeDueDay(day: DayKey, now: Date): string {
+export function describeDueDay(day: DayKey, clock: Date): string {
+  const now = instantDate(clock);
   const exact = exactDueDay(day);
   const hint = (relative: "today" | "tomorrow") =>
     tr("dates")("hint", {
@@ -136,7 +145,8 @@ function monthIndex(text: string): number {
  * "2027-10", "10/2027", or a month name alone for the current year; null
  * for anything else.
  */
-export function parseMonthText(text: string, now: Date): string | null {
+export function parseMonthText(text: string, clock: Date): string | null {
+  const now = instantDate(clock);
   const value = text
     .trim()
     .toLowerCase()
@@ -189,7 +199,8 @@ function validDay(year: number, month: number, day: number): DayKey | null {
  * optional year (this year without one, the next when that day has
  * passed), or a numeric "9/21"; null for anything else.
  */
-export function parseDueText(text: string, now: Date): DayKey | null {
+export function parseDueText(text: string, clock: Date): DayKey | null {
+  const now = instantDate(clock);
   const value = text
     .trim()
     .toLowerCase()
