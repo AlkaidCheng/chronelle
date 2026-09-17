@@ -1,0 +1,18 @@
+{
+  "notScheduled": "Not scheduled",
+  "tbd": "TBD",
+  "noDay": "-",
+  "today": "Today",
+  "tomorrow": "Tomorrow",
+  "inWords": {
+    "today": "today",
+    "tomorrow": "tomorrow"
+  },
+  "hint": "{date} ({relative})",
+  "range": "{start} to {end}",
+  "duration": {
+    "minutes": "{minutes} min",
+    "hours": "{hours} h",
+    "hoursMinutes": "{hours} h {minutes} min"
+  }
+}

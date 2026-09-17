@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
@@ -13,9 +13,20 @@ import { loadMessages } from "../i18n/messages";
 
 type Catalog = { readonly [key: string]: string | Catalog };
 
+const messages = join(__dirname, "..", "messages");
+
+/** The assembled catalog of a locale, as the generator writes it. */
 function catalog(tag: string): Catalog {
-  const path = join(__dirname, "..", "messages", `${tag}.json`);
-  return JSON.parse(readFileSync(path, "utf8")) as Catalog;
+  return JSON.parse(
+    readFileSync(join(messages, `${tag}.json`), "utf8"),
+  ) as Catalog;
+}
+
+/** The namespace files of a locale, the source the generator assembles. */
+function namespaceFiles(tag: string): string[] {
+  return readdirSync(join(messages, tag))
+    .filter((name) => name.endsWith(".json"))
+    .sort();
 }
 
 /** Every leaf of a catalog as `namespace.key`, with its message. */
@@ -40,6 +51,41 @@ function parameters(message: string): string[] {
 
 describe("message catalogs", () => {
   const reference = leaves(catalog(defaultLocale));
+
+  it("keeps one file per namespace in every locale, each an object", () => {
+    const expected = namespaceFiles(defaultLocale);
+    expect(expected.length).toBeGreaterThan(0);
+    for (const locale of locales) {
+      expect({ locale: locale.tag, files: namespaceFiles(locale.tag) }).toEqual(
+        {
+          locale: locale.tag,
+          files: expected,
+        },
+      );
+      for (const file of expected) {
+        const parsed: unknown = JSON.parse(
+          readFileSync(join(messages, locale.tag, file), "utf8"),
+        );
+        expect(
+          typeof parsed === "object" &&
+            parsed !== null &&
+            !Array.isArray(parsed),
+          `${locale.tag}/${file}`,
+        ).toBe(true);
+      }
+    }
+  });
+
+  it("assembles each catalog from its namespace files", () => {
+    for (const locale of locales) {
+      const assembled = catalog(locale.tag);
+      expect(Object.keys(assembled)).toEqual(
+        namespaceFiles(locale.tag).map((file) =>
+          file.slice(0, -".json".length),
+        ),
+      );
+    }
+  });
 
   it("keeps a message for every key of the default locale, and no others", () => {
     for (const locale of locales) {

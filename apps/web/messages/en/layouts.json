@@ -1,0 +1,14 @@
+{
+  "list": "List",
+  "agenda": "Agenda",
+  "byDay": "By day",
+  "week": "By week",
+  "month": "Calendar",
+  "shown": {
+    "list": "Shown as a list.",
+    "agenda": "Shown as an agenda.",
+    "byDay": "Shown by day.",
+    "week": "Shown by week.",
+    "month": "Shown as a calendar."
+  }
+}

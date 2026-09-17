@@ -1,0 +1,22 @@
+{
+  "doneArranging": "完成排列",
+  "doneArrangingDescription": "隱藏版面控制項；移動已儲存",
+  "arrange": "排列版面",
+  "arrangeDescription": "顯示頁面與元件的移動控制項",
+  "addComponent": "新增元件",
+  "addComponentDescription": "為 {name} 選擇元件",
+  "pages": "活動頁面",
+  "saving": "正在儲存版面...",
+  "pageEarlier": "頁面已前移。",
+  "pageLater": "頁面已後移。",
+  "componentMoved": "元件已在 {name} 中移動。",
+  "page": "頁面",
+  "noComponents": "還沒有元件。",
+  "dragHint": "拖曳以重新排序；或使用移動控制項",
+  "moveToPage": "移動到頁面...",
+  "layoutControls": "{name} 的版面控制項",
+  "drag": "拖曳 {name}",
+  "moveUp": "上移 {name}",
+  "moveDown": "下移 {name}",
+  "moveToPageFor": "將 {name} 移動到頁面"
+}

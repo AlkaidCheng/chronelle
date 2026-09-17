@@ -1,0 +1,16 @@
+{
+  "discard": "Discard",
+  "keepEditing": "Keep editing",
+  "history": "History",
+  "shortcutTitle": "Cmd/Ctrl + Enter from an editor field",
+  "checkFields": "Check the fields.",
+  "saving": "Saving...",
+  "savingChanges": "Saving changes...",
+  "saved": "Saved successfully.",
+  "saveStatus": "Save status",
+  "refreshLatest": "Refresh latest",
+  "draftKept": "Your draft is still here. Use {submit} to submit it again.",
+  "refreshOnlyChecks": "Refreshing only checks for updated data.",
+  "failureRetry": "The last save could not be confirmed. Retry unchanged fields to reuse the same save attempt.",
+  "failureRefresh": "The last save could not be confirmed. Refresh latest before trying again."
+}

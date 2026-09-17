@@ -14,7 +14,7 @@ async function signIn(page: Page) {
   return email;
 }
 
-test("recovers Event drafts through native Back and Forward", async ({
+test("recovers Event drafts through native Back and Forward @webkit-desktop @webkit-mobile", async ({
   page,
   request,
 }, testInfo) => {
@@ -41,7 +41,7 @@ test("recovers Event drafts through native Back and Forward", async ({
 });
 
 for (const kind of ["create", "edit"] as const)
-  test(`settles a pending ${kind} save across native navigation`, async ({
+  test(`settles a pending ${kind} save across native navigation @webkit-desktop @webkit-mobile`, async ({
     page,
   }) => {
     await signIn(page);

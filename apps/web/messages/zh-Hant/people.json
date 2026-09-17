@@ -1,0 +1,40 @@
+{
+  "title": "參與者",
+  "filterByName": "依名稱篩選參與者",
+  "find": "尋找參與者",
+  "refresh": "重新整理參與者",
+  "new": "新增參與者",
+  "countLabel": "參與者數",
+  "count": "已載入 {count} 位參與者",
+  "all": "全部參與者",
+  "listLabel": "參與者",
+  "loading": "正在載入參與者",
+  "empty": "尚無參與者",
+  "noMatch": "沒有符合的參與者",
+  "layouts": {
+    "list": "列表",
+    "cards": "名片"
+  },
+  "account": "帳號",
+  "accounts": {
+    "all": "所有人",
+    "friend": "好友",
+    "invited": "已邀請",
+    "linked": "已有帳號",
+    "unlinked": "沒有帳號"
+  },
+  "me": "這是我",
+  "hasAccount": "已有帳號",
+  "addPerson": "新增參與者",
+  "newPersonName": "新參與者",
+  "personName": "參與者名稱",
+  "open": "開啟 {name}",
+  "actionsFor": "{name} 的動作",
+  "menu": {
+    "edit": "編輯",
+    "history": "歷史",
+    "moveToTrash": "移到垃圾桶"
+  },
+  "friend": "好友",
+  "invited": "已邀請"
+}

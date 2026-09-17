@@ -1,0 +1,12 @@
+{
+  "monthAndYear": "Month and year",
+  "placeholder": "October 2027, 2027-10, 10/2027",
+  "chooseShowing": "Choose a month and year, showing {title}",
+  "choose": "Choose a month and year",
+  "month": "Month",
+  "year": "Year",
+  "closeChooser": "Close the month and year chooser",
+  "previousMonth": "Previous month",
+  "nextMonth": "Next month",
+  "today": "Today"
+}

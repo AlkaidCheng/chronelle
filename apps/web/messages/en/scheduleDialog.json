@@ -1,0 +1,10 @@
+{
+  "checkSchedule": "Check the schedule.",
+  "discardTitle": "Discard schedule item?",
+  "title": "Add schedule item",
+  "close": "Close schedule creation",
+  "unsaved": "The name and schedule entered here will be cleared.",
+  "name": "Schedule item",
+  "namePlaceholder": "Guest arrival",
+  "add": "Add to schedule"
+}

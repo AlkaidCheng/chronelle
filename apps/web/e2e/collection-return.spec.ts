@@ -3,7 +3,7 @@ import { expect, test } from "./fixtures";
 import { exerciseCollectionReturn } from "./helpers/collection-return";
 import { moveToTrash } from "./helpers/lifecycle";
 
-test("returns to filtered loaded Events without persisting private criteria", async ({
+test("returns to filtered loaded Events without persisting private criteria @webkit-desktop @webkit-mobile", async ({
   page,
   request,
 }, testInfo) => {

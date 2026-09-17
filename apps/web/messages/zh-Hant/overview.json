@@ -1,0 +1,16 @@
+{
+  "transactions": "{count} 筆交易",
+  "eyebrow": "總覽",
+  "title": "你的活動，一目了然。",
+  "intro": "多一點結構，計畫就更清晰。選一個檢視，讓細節持續推進。",
+  "privateTitle": "私密的相關項目",
+  "privateNote": "{count} 個相關項目在你的權限範圍之外。",
+  "openTodos": "未完成的待辦",
+  "scheduled": "已安排的項目",
+  "expenses": "已記錄的支出",
+  "reminders": "提醒",
+  "files": "活動檔案",
+  "people": "參與者",
+  "nextUp": "接下來",
+  "nothingUpcoming": "暫無即將到來的事項。準備好後，新增日程項目、有到期日的任務或提醒。"
+}

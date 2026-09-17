@@ -1,0 +1,15 @@
+{
+  "event": "Event",
+  "task": "Task",
+  "expense": "Expense",
+  "reminder": "Reminder",
+  "document": "Document",
+  "person": "Person",
+  "events": "Events",
+  "tasks": "Tasks",
+  "expenses": "Expenses",
+  "reminders": "Reminders",
+  "documents": "Documents",
+  "people": "People",
+  "scheduledEvent": "Scheduled event"
+}

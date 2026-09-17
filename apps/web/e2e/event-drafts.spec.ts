@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 import { expect, test } from "./fixtures";
 import { exerciseEventDrafts } from "./helpers/event-drafts";
 
-test("protects creation drafts and creates exactly one canonical date-only event", async ({
+test("protects creation drafts and creates exactly one canonical date-only event @webkit-desktop @webkit-mobile", async ({
   page,
   request,
 }, testInfo) => {

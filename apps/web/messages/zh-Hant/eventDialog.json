@@ -1,0 +1,11 @@
+{
+  "checkSchedule": "請檢查日程。",
+  "discardTitle": "捨棄此活動？",
+  "title": "建立活動",
+  "close": "關閉活動建立",
+  "unsaved": "活動名稱和日程尚未儲存。",
+  "name": "活動名稱",
+  "namePlaceholder": "你在規劃什麼？",
+  "creating": "建立中…",
+  "create": "建立活動"
+}

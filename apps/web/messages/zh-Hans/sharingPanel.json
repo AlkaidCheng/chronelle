@@ -1,0 +1,23 @@
+{
+  "title": "共享",
+  "collaboratorEmail": "协作者邮箱",
+  "access": "权限",
+  "roles": {
+    "viewer": "查看者",
+    "editor": "编辑者",
+    "owner": "所有者"
+  },
+  "sharing": "共享中…",
+  "shareEvent": "共享活动",
+  "shareWithPeople": "与参与者共享",
+  "peopleWithAccess": "可访问的人",
+  "loadingCollaborators": "正在加载协作者",
+  "onlyYou": "只有你可以访问",
+  "inheritedResources": "继承的资源",
+  "inheritedNote": "停止继承可让某个相关对象保持私密。",
+  "noResources": "没有相关资源",
+  "id": "ID {id}",
+  "inherits": "继承活动权限",
+  "privateScope": "私密范围",
+  "makePrivate": "设为私密"
+}

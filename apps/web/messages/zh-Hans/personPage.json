@@ -1,0 +1,25 @@
+{
+  "allPeople": "全部参与者",
+  "loading": "正在加载参与者",
+  "edit": "编辑参与者",
+  "copyLink": "复制链接",
+  "linkCopied": "链接已复制。",
+  "linkNotCopied": "链接无法复制。",
+  "sections": "参与者栏目",
+  "tabs": {
+    "overview": "概览",
+    "events": "活动",
+    "tasks": "任务"
+  },
+  "details": "详情",
+  "fullName": "全名",
+  "contacts": "联系方式",
+  "noDetails": "还没有联系方式或字段。",
+  "description": "描述",
+  "noDescription": "还没有描述。",
+  "loadingEvents": "正在加载活动",
+  "noEvents": "尚未参与任何活动",
+  "loadingTasks": "正在加载任务",
+  "noTasks": "没有分配的任务",
+  "loadMoreTasks": "加载更多任务"
+}

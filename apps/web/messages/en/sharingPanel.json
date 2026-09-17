@@ -1,0 +1,23 @@
+{
+  "title": "Sharing",
+  "collaboratorEmail": "Collaborator email",
+  "access": "Access",
+  "roles": {
+    "viewer": "Viewer",
+    "editor": "Editor",
+    "owner": "Owner"
+  },
+  "sharing": "Sharing...",
+  "shareEvent": "Share event",
+  "shareWithPeople": "Share with people",
+  "peopleWithAccess": "People with access",
+  "loadingCollaborators": "Loading collaborators",
+  "onlyYou": "Only you have access",
+  "inheritedResources": "Inherited resources",
+  "inheritedNote": "Stop inheritance to keep one related object private.",
+  "noResources": "No related resources",
+  "id": "ID {id}",
+  "inherits": "Inherits Event access",
+  "privateScope": "Private scope",
+  "makePrivate": "Make private"
+}

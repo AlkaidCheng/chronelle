@@ -1,0 +1,54 @@
+{
+  "columns": {
+    "task": "Task",
+    "due": "Due",
+    "status": "Status"
+  },
+  "assignedTo": "Assigned to ",
+  "at": "At ",
+  "labels": "Labels",
+  "subtasksDone": "{done} of {total} subtasks done",
+  "complete": "Complete {name}",
+  "reopen": "Reopen {name}",
+  "actionsFor": "Actions for {name}",
+  "nowDue": "Now {day}",
+  "nowDueAt": "Now {day}, {time}",
+  "menu": {
+    "edit": "Edit",
+    "complete": "Complete",
+    "reopen": "Reopen",
+    "moveUp": "Move up",
+    "moveDown": "Move down",
+    "due": "Due",
+    "noDate": "No date",
+    "addSubtask": "Add subtask",
+    "duplicate": "Duplicate",
+    "copyLink": "Copy link",
+    "history": "History",
+    "moveToTrash": "Move to Trash"
+  },
+  "said": {
+    "completed": "{name} completed.",
+    "reopened": "{name} reopened.",
+    "moved": "{name} moved.",
+    "position": "{name} is now {at} of {total}.",
+    "noDueDate": "{name} has no due date now.",
+    "due": "{name} is due {day}.",
+    "duplicated": "Duplicated {name}.",
+    "linkCopied": "Link copied.",
+    "linkNotCopied": "The link could not be copied."
+  },
+  "groups": {
+    "overdue": "Overdue",
+    "noDueDate": "No due date"
+  },
+  "status": {
+    "todo": "To do",
+    "in_progress": "In progress",
+    "done": "Done",
+    "cancelled": "Cancelled",
+    "pending": "Pending",
+    "dismissed": "Dismissed",
+    "triggered": "Triggered"
+  }
+}

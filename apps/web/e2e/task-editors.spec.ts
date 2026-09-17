@@ -24,7 +24,7 @@ async function openTaskEvent(page: Page, request: APIRequestContext) {
   return { event, headers };
 }
 
-test("creates and edits one canonical Task through focused surfaces", async ({
+test("creates and edits one canonical Task through focused surfaces @webkit-desktop @webkit-mobile", async ({
   page,
   request,
 }, testInfo) => {
@@ -62,7 +62,7 @@ test("creates and edits one canonical Task through focused surfaces", async ({
   ).toHaveCount(1);
 });
 
-test("retries a lost Task creation response without duplicating its resource or link", async ({
+test("retries a lost Task creation response without duplicating its resource or link @webkit-desktop @webkit-mobile", async ({
   page,
   request,
 }) => {

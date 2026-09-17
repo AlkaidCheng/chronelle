@@ -3,7 +3,7 @@ import { expect, test } from "./fixtures";
 import { exerciseWorkspaceCommands } from "./helpers/workspace-commands";
 import { searchEntry } from "./helpers/quiet-chrome";
 
-test("protects Task editor focus and navigates without saving discarded fields", async ({
+test("protects Task editor focus and navigates without saving discarded fields @webkit-desktop @webkit-mobile", async ({
   page,
   request,
 }, testInfo) => {
@@ -31,7 +31,7 @@ test("protects Task editor focus and navigates without saving discarded fields",
   ).toEqual(event);
 });
 
-test("persists shortcut opt-out and synchronizes another tab", async ({
+test("persists shortcut opt-out and synchronizes another tab @webkit-desktop @webkit-mobile", async ({
   page,
   context,
 }) => {

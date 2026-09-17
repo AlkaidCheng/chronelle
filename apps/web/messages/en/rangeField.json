@@ -1,0 +1,13 @@
+{
+  "notSet": "not set",
+  "summary": "Dates: {dates}",
+  "startDate": "Start date",
+  "endDate": "End date",
+  "placeholder": "Sep 21, tomorrow, 2030-09-21",
+  "optional": "Optional",
+  "unreadable": "Not a date the picker knows. Try Sep 21, 21 Sep, 9/21, tomorrow, or 2030-09-21.",
+  "startFirst": "Choose a start date first.",
+  "endBeforeStart": "The end cannot come before the start.",
+  "shortcuts": "Schedule shortcuts",
+  "noDates": "No dates"
+}

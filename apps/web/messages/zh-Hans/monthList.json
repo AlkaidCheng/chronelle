@@ -1,0 +1,12 @@
+{
+  "monthAndYear": "月份与年份",
+  "placeholder": "2027年10月、2027-10、10/2027",
+  "chooseShowing": "选择月份与年份，当前显示 {title}",
+  "choose": "选择月份与年份",
+  "month": "月份",
+  "year": "年份",
+  "closeChooser": "关闭月份与年份选择器",
+  "previousMonth": "上个月",
+  "nextMonth": "下个月",
+  "today": "今天"
+}

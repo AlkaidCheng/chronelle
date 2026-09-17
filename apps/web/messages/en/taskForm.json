@@ -1,0 +1,16 @@
+{
+  "discardTitle": "Discard task changes?",
+  "editTitle": "Edit task",
+  "addSubtaskTitle": "Add subtask",
+  "addTitle": "Add task",
+  "close": "Close task editor",
+  "viewHistory": "View task history",
+  "unsaved": "Your task changes have not been saved.",
+  "subtaskOf": "A subtask of {parent}.",
+  "name": "Task",
+  "namePlaceholder": "Confirm the guest list",
+  "location": "Location",
+  "locationPlaceholder": "Where it happens",
+  "create": "Create task",
+  "save": "Save task"
+}

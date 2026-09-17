@@ -1,0 +1,25 @@
+{
+  "sharePeople": "与参与者共享",
+  "friends": "好友",
+  "others": "其他参与者",
+  "byEmail": "通过邮箱",
+  "peopleWithAccess": "可访问的人",
+  "onlyYou": "目前只有你可以访问",
+  "shareWith": "{count, plural, =0 {共享} other {与 # 人共享}}",
+  "sharing": "共享中…",
+  "hasAccount": "已有账号",
+  "invitedAccessFollows": "已邀请，加入后即可访问",
+  "invitationOnShare": "{email}；将发送邀请，加入后即可访问",
+  "accessFollows": "加入后即可访问",
+  "accessFor": "{name} 的访问权限",
+  "sharedAs": "已共享为{role}",
+  "queued": "等待对方加入",
+  "invitationSent": "已发送邀请，加入后即可访问",
+  "failed": "无法完成共享。",
+  "nobody": "为参与者添加邮箱或关联账号后即可共享。",
+  "roles": {
+    "viewer": "查看者",
+    "editor": "编辑者",
+    "owner": "拥有者"
+  }
+}

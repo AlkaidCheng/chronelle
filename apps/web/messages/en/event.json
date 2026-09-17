@@ -1,0 +1,33 @@
+{
+  "allEvents": "All events",
+  "connecting": "Connecting your event plan",
+  "loadingView": "Loading this view",
+  "setDates": "Set dates",
+  "edit": "Edit event",
+  "viewerAccess": "Viewer access",
+  "share": "Share event",
+  "actionsFor": "Actions for {name}",
+  "copyLink": "Copy link",
+  "linkCopied": "Link copied.",
+  "moveToTrash": "Move to Trash",
+  "viewSelect": "Event view",
+  "pagesLabel": "Pages",
+  "viewsLabel": "Event views",
+  "addPage": "Add page",
+  "addPageDescription": "Create a named page in this event",
+  "addAPage": "Add a page",
+  "noPages": "No pages yet.",
+  "optionsFor": "Options for {name}",
+  "arrange": "Arrange layout",
+  "doneArranging": "Done arranging",
+  "pageOptions": "Page options",
+  "layoutHistory": "Layout history",
+  "commands": {
+    "history": "Event history",
+    "historyDescription": "Review changes to {name}",
+    "edit": "Edit event",
+    "editDescription": "Edit {name}",
+    "share": "Share event",
+    "shareDescription": "Manage access to {name}"
+  }
+}

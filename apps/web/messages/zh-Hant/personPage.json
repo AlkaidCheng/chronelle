@@ -1,0 +1,25 @@
+{
+  "allPeople": "全部參與者",
+  "loading": "正在載入參與者",
+  "edit": "編輯參與者",
+  "copyLink": "複製連結",
+  "linkCopied": "已複製連結。",
+  "linkNotCopied": "無法複製連結。",
+  "sections": "參與者欄目",
+  "tabs": {
+    "overview": "總覽",
+    "events": "活動",
+    "tasks": "任務"
+  },
+  "details": "詳細資料",
+  "fullName": "全名",
+  "contacts": "聯絡方式",
+  "noDetails": "尚無聯絡方式或欄位。",
+  "description": "描述",
+  "noDescription": "尚無描述。",
+  "loadingEvents": "正在載入活動",
+  "noEvents": "尚未參與任何活動",
+  "loadingTasks": "正在載入任務",
+  "noTasks": "沒有指派的任務",
+  "loadMoreTasks": "載入更多任務"
+}

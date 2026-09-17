@@ -1,0 +1,19 @@
+{
+  "eyebrow": "待處理事項",
+  "title": "任務",
+  "intro": "你看得到的每一項任務，無論獨立還是屬於某個活動，都依你的順序排列。",
+  "new": "新增任務",
+  "filterByName": "依名稱篩選任務",
+  "find": "尋找任務…",
+  "refresh": "重新整理任務",
+  "countLabel": "任務數",
+  "count": "已載入 {count} 項任務",
+  "all": "全部任務",
+  "loading": "正在載入任務",
+  "emptyTitle": "目前沒有要做的事",
+  "emptyDescription": "選擇「新增任務」加入獨立任務，或在活動中加入任務，它們也會出現在這裡。",
+  "noMatchTitle": "沒有符合的任務",
+  "noMatchDescription": "換個名稱試試，或調整篩選條件。",
+  "loadMore": "載入更多任務",
+  "loadingMore": "正在載入更多任務…"
+}

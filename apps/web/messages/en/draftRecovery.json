@@ -1,0 +1,27 @@
+{
+  "saving": {
+    "event": "Saving event",
+    "task": "Saving task",
+    "expense": "Saving expense",
+    "reminder": "Saving reminder",
+    "person": "Saving person"
+  },
+  "resumeTitle": "Resume your draft?",
+  "close": "Close draft recovery",
+  "inProgress": "Your save is still in progress. You can close this panel.",
+  "kept": {
+    "event": "Your entered event name and schedule are kept in this tab. Current access is checked before resuming.",
+    "task": "Your entered task name and due time are kept in this tab. Current access is checked before resuming.",
+    "expense": "Your entered expense name, amount, currency and transaction time are kept in this tab. Current access is checked before resuming.",
+    "reminder": "Your entered reminder name and time are kept in this tab. Current access is checked before resuming.",
+    "person": "Your entered person's name, email, account link and fields are kept in this tab. Current access is checked before resuming."
+  },
+  "failedRetry": "The previous save could not be confirmed. Resume and retry unchanged fields to reuse the same save attempt.",
+  "failedCheck": "The previous save could not be confirmed. Check whether it was saved before trying again.",
+  "discard": "Discard draft",
+  "checking": "Checking access...",
+  "resume": "Resume draft",
+  "lastSaveFailed": "The last save failed. Check for a saved event before submitting again.",
+  "full": "Draft recovery is full while other saves are pending. Keep this editor open.",
+  "stays": "Drafts stay in this tab until reload or sign-out."
+}

@@ -1,0 +1,16 @@
+{
+  "period": "时段",
+  "previous": {
+    "week": "上一周",
+    "month": "上一个月"
+  },
+  "this": {
+    "week": "本周",
+    "month": "本月"
+  },
+  "next": {
+    "week": "下一周",
+    "month": "下一个月"
+  },
+  "dayCell": "{day}{count, plural, =0 {} other {，# 项}}"
+}

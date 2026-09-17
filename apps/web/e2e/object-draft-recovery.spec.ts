@@ -18,7 +18,7 @@ async function signIn(page: Page) {
 
 for (const kind of ["task", "expense", "reminder"] as const) {
   const { field, view, projection } = planningEditors[kind];
-  test(`recovers ${kind} creation and edits through browser navigation`, async ({
+  test(`recovers ${kind} creation and edits through browser navigation @webkit-desktop @webkit-mobile`, async ({
     page,
   }, testInfo) => {
     await signIn(page);
@@ -27,7 +27,7 @@ for (const kind of ["task", "expense", "reminder"] as const) {
   });
 
   for (const outcome of ["success", "lost response"] as const)
-    test(`settles ${kind} creation ${outcome} after leaving its event`, async ({
+    test(`settles ${kind} creation ${outcome} after leaving its event @webkit-desktop @webkit-mobile`, async ({
       page,
       request,
     }) => {

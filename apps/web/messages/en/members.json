@@ -1,0 +1,15 @@
+{
+  "title": "Members",
+  "loading": "Loading members",
+  "addFriend": "Add a friend",
+  "friend": "Friend",
+  "access": "Access",
+  "add": "Add",
+  "personal": "Personal workspace",
+  "noFriends": "Befriend someone first to add them here.",
+  "roles": {
+    "viewer": "Viewer",
+    "editor": "Editor",
+    "owner": "Owner"
+  }
+}

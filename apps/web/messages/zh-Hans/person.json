@@ -1,0 +1,17 @@
+{
+  "nickname": "昵称",
+  "description": "描述",
+  "contacts": "联系方式",
+  "contactKinds": {
+    "email": "邮箱",
+    "phone": "电话",
+    "other": "其他"
+  },
+  "contactKind": "联系方式 {n} 的类型",
+  "contactValue": "联系方式 {n} 的内容",
+  "removeContact": "移除联系方式 {n}",
+  "addContact": "添加联系方式",
+  "labels": "标签",
+  "linkToFriend": "关联好友",
+  "noFriendLink": "未关联好友"
+}

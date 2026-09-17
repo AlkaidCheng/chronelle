@@ -1,0 +1,15 @@
+{
+  "title": "成員",
+  "loading": "正在載入成員",
+  "addFriend": "新增好友",
+  "friend": "好友",
+  "access": "存取權限",
+  "add": "新增",
+  "personal": "個人工作區",
+  "noFriends": "先新增好友，才能將其加入此處。",
+  "roles": {
+    "viewer": "檢視者",
+    "editor": "編輯者",
+    "owner": "擁有者"
+  }
+}

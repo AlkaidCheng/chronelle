@@ -1,0 +1,25 @@
+{
+  "sharePeople": "Share with people",
+  "friends": "Friends",
+  "others": "Others in People",
+  "byEmail": "By email",
+  "peopleWithAccess": "People with access",
+  "onlyYou": "Only you have access",
+  "shareWith": "{count, plural, =0 {Share with people} one {Share with # person} other {Share with # people}}",
+  "sharing": "Sharing...",
+  "hasAccount": "Has an account",
+  "invitedAccessFollows": "Invited; access follows when they join",
+  "invitationOnShare": "{email}; an invitation goes out and access follows when they join",
+  "accessFollows": "Access follows when they join",
+  "accessFor": "Access for {name}",
+  "sharedAs": "Shared as {role}",
+  "queued": "Waiting for them to join",
+  "invitationSent": "Invitation sent; access follows when they join",
+  "failed": "The share could not be completed.",
+  "nobody": "Give a person an email or link their account to share with them.",
+  "roles": {
+    "viewer": "Viewer",
+    "editor": "Editor",
+    "owner": "Owner"
+  }
+}

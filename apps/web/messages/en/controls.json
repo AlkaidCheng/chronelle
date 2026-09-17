@@ -1,0 +1,24 @@
+{
+  "layout": "Layout",
+  "sort": "Sort",
+  "filter": "Filter",
+  "filterCount": "{count, plural, one {# filter} other {# filters}}",
+  "show": "Show",
+  "open": "Open",
+  "all": "All",
+  "done": "Done",
+  "hasTime": "Has a time",
+  "overdue": "Overdue",
+  "label": "Label",
+  "anyLabel": "Any label",
+  "assignee": "Assignee",
+  "anyone": "Anyone",
+  "me": "Me",
+  "clearFilters": "Clear filters",
+  "sorts": {
+    "manual": "Manual",
+    "due": "By due",
+    "name": "By name",
+    "updated": "By updated"
+  }
+}

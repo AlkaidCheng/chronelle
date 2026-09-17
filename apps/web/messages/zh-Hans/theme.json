@@ -1,0 +1,39 @@
+{
+  "title": "主题",
+  "mode": "模式",
+  "appearance": "外观",
+  "system": "跟随系统",
+  "light": "浅色",
+  "dark": "深色",
+  "palette": "配色",
+  "colorPalette": "配色",
+  "density": "密度",
+  "comfortable": "宽松",
+  "compact": "紧凑",
+  "motion": "动效",
+  "reduced": "减弱",
+  "language": "语言",
+  "reset": "重置显示设置",
+  "customize": "自定义",
+  "customizeAppearance": "自定义外观",
+  "closeDialog": "关闭外观设置",
+  "dialogIntro": "把这里变成你的空间。更改会立即在此浏览器生效，不影响任何人的工作区。",
+  "lightAndDark": "浅色与深色",
+  "lightAndDarkNote": "每套配色都有两种模式。跟随系统即跟随你的设备。",
+  "comfortableNote": "记录之间留更多空间",
+  "compactNote": "行距更紧，控件保持原尺寸",
+  "motionSystemNote": "遵循设备的动效偏好",
+  "motionReducedNote": "尽量减少移动和过渡",
+  "storageNote": "仅在浏览器存储可用时保存。重置只影响显示设置，不会影响你的活动或文件。",
+  "done": "完成",
+  "palettes": {
+    "paper": "墨与纸",
+    "celadon": "青瓷",
+    "neutral": "素色"
+  },
+  "paletteDescriptions": {
+    "paper": "暖象牙白与朱红",
+    "celadon": "瓷青绿与冷墨色",
+    "neutral": "沉静的中性色与蓝"
+  }
+}

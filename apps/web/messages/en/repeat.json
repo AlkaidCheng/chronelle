@@ -1,0 +1,27 @@
+{
+  "choices": {
+    "daily": "Every day",
+    "weekdays": "Every weekday",
+    "weekly": "Every week",
+    "biweekly": "Every 2 weeks",
+    "monthly": "Every month",
+    "yearly": "Every year"
+  },
+  "summary": {
+    "daily": "every day",
+    "weekdays": "every weekday",
+    "weekly": "every week",
+    "biweekly": "every 2 weeks",
+    "monthly": "every month",
+    "yearly": "every year"
+  },
+  "until": "{rule} until {date}",
+  "short": {
+    "daily": "repeats daily",
+    "weekdays": "repeats on weekdays",
+    "weekly": "repeats weekly",
+    "biweekly": "repeats every 2 weeks",
+    "monthly": "repeats monthly",
+    "yearly": "repeats yearly"
+  }
+}

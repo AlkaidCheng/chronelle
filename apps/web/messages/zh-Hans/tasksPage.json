@@ -1,0 +1,19 @@
+{
+  "eyebrow": "待处理事项",
+  "title": "任务",
+  "intro": "你能看到的每一项任务，无论独立还是属于某个活动，都按你的顺序排列。",
+  "new": "新建任务",
+  "filterByName": "按名称筛选任务",
+  "find": "查找任务…",
+  "refresh": "刷新任务",
+  "countLabel": "任务数",
+  "count": "已加载 {count} 项任务",
+  "all": "全部任务",
+  "loading": "正在加载任务",
+  "emptyTitle": "暂时没有要做的事",
+  "emptyDescription": "选择“新建任务”添加独立任务，或在活动中添加任务，它们也会出现在这里。",
+  "noMatchTitle": "没有匹配的任务",
+  "noMatchDescription": "换个名称试试，或调整筛选条件。",
+  "loadMore": "加载更多任务",
+  "loadingMore": "正在加载更多任务…"
+}

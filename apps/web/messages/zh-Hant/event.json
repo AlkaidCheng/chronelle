@@ -1,0 +1,33 @@
+{
+  "allEvents": "全部活動",
+  "connecting": "正在連接你的活動計畫",
+  "loadingView": "正在載入此檢視",
+  "setDates": "設定日期",
+  "edit": "編輯活動",
+  "viewerAccess": "僅可檢視",
+  "share": "分享活動",
+  "actionsFor": "{name} 的動作",
+  "copyLink": "複製連結",
+  "linkCopied": "已複製連結。",
+  "moveToTrash": "移到垃圾桶",
+  "viewSelect": "活動檢視",
+  "pagesLabel": "頁面",
+  "viewsLabel": "活動檢視",
+  "addPage": "新增頁面",
+  "addPageDescription": "在此活動中建立一個命名頁面",
+  "addAPage": "新增頁面",
+  "noPages": "尚無頁面。",
+  "optionsFor": "{name} 的選項",
+  "arrange": "調整版面",
+  "doneArranging": "完成調整",
+  "pageOptions": "頁面選項",
+  "layoutHistory": "版面歷史",
+  "commands": {
+    "history": "活動歷史",
+    "historyDescription": "檢視 {name} 的變更",
+    "edit": "編輯活動",
+    "editDescription": "編輯 {name}",
+    "share": "分享活動",
+    "shareDescription": "管理 {name} 的存取權限"
+  }
+}

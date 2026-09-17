@@ -1,0 +1,14 @@
+{
+  "summary": "Assignee: {name}",
+  "unassigned": "Unassigned",
+  "assigned": "Assigned",
+  "assignTo": "Assign to",
+  "loadFailed": "People could not be loaded.",
+  "loading": "Loading people...",
+  "meSuffix": " (me)",
+  "newPerson": "New person",
+  "adding": "Adding...",
+  "add": "Add person",
+  "assignToMe": "Assign to me",
+  "addFailed": "The person could not be added."
+}

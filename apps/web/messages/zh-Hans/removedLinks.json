@@ -1,0 +1,27 @@
+{
+  "title": "已移除的关联",
+  "intro": "在不复制或更改任一对象的情况下恢复关联。这里只显示两端都可用且来源可编辑的关联。",
+  "linkType": "关联类型",
+  "allTypes": "全部关联类型",
+  "types": {
+    "includes": "包含",
+    "reminds_about": "提醒关于",
+    "attached_to": "附加于",
+    "related_to": "相关于"
+  },
+  "refresh": "刷新关联",
+  "loading": "正在加载已移除的关联",
+  "emptyTitle": "没有可恢复的关联",
+  "emptyDescription": "请先从回收站恢复已删除的对象。已存在的等效关联不能重复恢复。",
+  "linkLabel": "{type} · 关联 v{version}",
+  "previewRecovery": "预览关联恢复",
+  "loadingMore": "正在加载关联…",
+  "loadMore": "加载更多已移除的关联",
+  "recoverTitle": "恢复关联",
+  "recovered": "关联已恢复。两个对象都未更改。",
+  "recoveringVersion": "正在恢复关联版本 {version}。内容和权限保持不变。",
+  "reviewed": "我已核对此关联。",
+  "recovering": "恢复中…",
+  "confirm": "确认恢复关联",
+  "refreshNote": "请关闭此预览并刷新活动后再试。"
+}

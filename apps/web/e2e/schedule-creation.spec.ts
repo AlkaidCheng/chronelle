@@ -5,7 +5,7 @@ import {
   prepareScheduleCreation,
 } from "./helpers/schedule-creation";
 
-test("creates one linked schedule item when retrying a lost response", async ({
+test("creates one linked schedule item when retrying a lost response @webkit-desktop @webkit-mobile", async ({
   page,
   request,
 }, testInfo) => {

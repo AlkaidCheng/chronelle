@@ -1,0 +1,25 @@
+{
+  "pages": "Pages",
+  "overview": "Overview",
+  "todos": "To-dos",
+  "calendar": "Calendar",
+  "timeline": "Timeline",
+  "itinerary": "Itinerary",
+  "expenses": "Expenses",
+  "reminders": "Reminders",
+  "files": "Files",
+  "people": "People",
+  "sharing": "Sharing",
+  "removedLinks": "Removed links",
+  "descriptions": {
+    "todos": "Add tasks and track what needs doing.",
+    "calendar": "Plan dates, times, and multi-day activities.",
+    "timeline": "See dated plans, tasks, spending, and reminders in order.",
+    "itinerary": "Follow the running order of your scheduled activities.",
+    "expenses": "Record transactions and see totals by currency.",
+    "reminders": "Track upcoming nudges. Notifications are not sent yet.",
+    "files": "Manage private attachments on this event, its tasks, and expenses.",
+    "people": "See who is involved in this event, as namecards."
+  },
+  "loading": "Loading {name}"
+}

@@ -1,0 +1,12 @@
+{
+  "labels": {
+    "blank": "空白",
+    "gathering": "聚会",
+    "multiDay": "多日"
+  },
+  "descriptions": {
+    "blank": "一个空页面。只添加你需要的组件。",
+    "gathering": "做准备、跟进流程并记录支出。",
+    "multiDay": "把已安排的活动和有用的文件放在一起。"
+  }
+}

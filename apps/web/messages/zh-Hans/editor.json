@@ -1,0 +1,16 @@
+{
+  "discard": "放弃",
+  "keepEditing": "继续编辑",
+  "history": "历史",
+  "shortcutTitle": "在编辑字段中按 Cmd/Ctrl + Enter",
+  "checkFields": "请检查各字段。",
+  "saving": "保存中…",
+  "savingChanges": "正在保存更改…",
+  "saved": "已保存。",
+  "saveStatus": "保存状态",
+  "refreshLatest": "刷新到最新",
+  "draftKept": "草稿仍在。点击“{submit}”可再次提交。",
+  "refreshOnlyChecks": "刷新只会检查是否有更新的数据。",
+  "failureRetry": "上次保存未能确认。保持字段不变再试一次，可复用同一次保存。",
+  "failureRefresh": "上次保存未能确认。请先刷新到最新再重试。"
+}

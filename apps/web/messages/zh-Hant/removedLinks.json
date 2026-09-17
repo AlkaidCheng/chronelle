@@ -1,0 +1,27 @@
+{
+  "title": "已移除的關聯",
+  "intro": "在不複製或變更任一物件的情況下復原關聯。這裡只顯示兩端都可用且來源可編輯的關聯。",
+  "linkType": "關聯類型",
+  "allTypes": "全部關聯類型",
+  "types": {
+    "includes": "包含",
+    "reminds_about": "提醒關於",
+    "attached_to": "附加於",
+    "related_to": "相關於"
+  },
+  "refresh": "重新整理關聯",
+  "loading": "正在載入已移除的關聯",
+  "emptyTitle": "沒有可復原的關聯",
+  "emptyDescription": "請先從垃圾桶復原已刪除的物件。已存在的等效關聯不能重複復原。",
+  "linkLabel": "{type} · 關聯 v{version}",
+  "previewRecovery": "預覽關聯復原",
+  "loadingMore": "正在載入關聯…",
+  "loadMore": "載入更多已移除的關聯",
+  "recoverTitle": "復原關聯",
+  "recovered": "關聯已復原。兩個物件都未變更。",
+  "recoveringVersion": "正在復原關聯版本 {version}。內容和權限保持不變。",
+  "reviewed": "我已核對此關聯。",
+  "recovering": "復原中…",
+  "confirm": "確認復原關聯",
+  "refreshNote": "請關閉此預覽並重新整理活動後再試。"
+}

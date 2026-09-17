@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 import { expect, test } from "./fixtures";
 import { exerciseComponentCatalog } from "./helpers/component-catalog";
 
-test("inserts repeated component views without copying canonical records", async ({
+test("inserts repeated component views without copying canonical records @webkit-desktop @webkit-mobile", async ({
   page,
   request,
 }, testInfo) => {

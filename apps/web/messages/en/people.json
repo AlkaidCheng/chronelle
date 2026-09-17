@@ -1,0 +1,40 @@
+{
+  "title": "People",
+  "filterByName": "Filter people by name",
+  "find": "Find a person",
+  "refresh": "Refresh people",
+  "new": "New person",
+  "countLabel": "People count",
+  "count": "{count, plural, one {# person loaded} other {# people loaded}}",
+  "all": "Everyone",
+  "listLabel": "People",
+  "loading": "Loading people",
+  "empty": "No people yet",
+  "noMatch": "No matching people",
+  "layouts": {
+    "list": "List",
+    "cards": "Namecards"
+  },
+  "account": "Account",
+  "accounts": {
+    "all": "Everyone",
+    "friend": "Friends",
+    "invited": "Invited",
+    "linked": "Has an account",
+    "unlinked": "No account"
+  },
+  "me": "This is me",
+  "hasAccount": "Has an account",
+  "addPerson": "Add a person",
+  "newPersonName": "New person",
+  "personName": "Person name",
+  "open": "Open {name}",
+  "actionsFor": "Actions for {name}",
+  "menu": {
+    "edit": "Edit",
+    "history": "History",
+    "moveToTrash": "Move to Trash"
+  },
+  "friend": "Friend",
+  "invited": "Invited"
+}

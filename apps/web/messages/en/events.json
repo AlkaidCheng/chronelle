@@ -1,0 +1,39 @@
+{
+  "title": "Events",
+  "filterByName": "Filter events by name",
+  "find": "Find an event",
+  "filterMenu": "Filter events",
+  "sortMenu": "Sort events",
+  "layoutMenu": "Event layout",
+  "refresh": "Refresh events",
+  "new": "New event",
+  "countLabel": "Event count",
+  "count": "{count, plural, one {# event loaded} other {# events loaded}}",
+  "all": "All events",
+  "loading": "Loading events",
+  "empty": "No events yet",
+  "noMatch": "No matching events",
+  "clearFilters": "Clear filters",
+  "loadMore": "Load more events",
+  "loadingMore": "Loading more events...",
+  "filters": {
+    "all": "All events",
+    "upcoming": "Upcoming & ongoing",
+    "unscheduled": "Unscheduled",
+    "past": "Past"
+  },
+  "sorts": {
+    "date": "Event date",
+    "updated": "Recently updated",
+    "name": "Name A-Z"
+  },
+  "layouts": {
+    "grid": "Grid",
+    "list": "List"
+  },
+  "period": {
+    "upcoming": "Scheduled",
+    "past": "Past event",
+    "unscheduled": "Date to be decided"
+  }
+}

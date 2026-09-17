@@ -1,0 +1,8 @@
+{
+  "notFoundTitle": "这个页面不在这里",
+  "notFoundText": "链接可能已更改。从你的工作区重新开始会更顺手。",
+  "errorTitle": "这个页面被打断了",
+  "errorText": "你保存的计划仍然在。请重新打开页面，或返回活动。未保存的更改可能需要重新输入。",
+  "tryAgain": "重试",
+  "backToEvents": "返回活动"
+}

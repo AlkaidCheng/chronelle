@@ -9,7 +9,7 @@ const collections = (page: Page) =>
 const shownCollections = (page: Page) =>
   collections(page).getByRole("link").allTextContents();
 
-test("keeps the rail's order and hidden collections on the account", async ({
+test("keeps the rail's order and hidden collections on the account @webkit-desktop", async ({
   page,
 }, testInfo) => {
   const email = `sidebar-${randomUUID()}@example.test`;

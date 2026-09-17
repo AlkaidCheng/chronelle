@@ -3,7 +3,7 @@ import { eventResponseSchema } from "@chronelle/schemas";
 import { expect, test } from "./fixtures";
 import { expectDates, setDates } from "./helpers/range-picker";
 
-test("creates a date-only range and switches to multi-day exact times", async ({
+test("creates a date-only range and switches to multi-day exact times @webkit-desktop @webkit-mobile", async ({
   page,
   request,
 }) => {
@@ -81,7 +81,7 @@ for (const display of [
   test.describe(`${display.locale} in ${display.timezoneId}`, () => {
     test.use({ locale: display.locale, timezoneId: display.timezoneId });
 
-    test("keeps date badges consistent across event and planning views", async ({
+    test("keeps date badges consistent across event and planning views @webkit-desktop @webkit-mobile", async ({
       page,
       request,
     }, testInfo) => {

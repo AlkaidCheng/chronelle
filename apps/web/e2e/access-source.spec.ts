@@ -19,7 +19,7 @@ const signOut = async (page: Page) => {
 
 const accessLine = (page: Page) => page.locator(".access-line");
 
-test("names where a grantee's access comes from, and nothing on the owner's own records", async ({
+test("names where a grantee's access comes from, and nothing on the owner's own records @webkit-desktop", async ({
   page,
   request,
 }) => {

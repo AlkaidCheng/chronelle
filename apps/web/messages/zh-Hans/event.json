@@ -1,0 +1,33 @@
+{
+  "allEvents": "全部活动",
+  "connecting": "正在连接你的活动计划",
+  "loadingView": "正在加载此视图",
+  "setDates": "设置日期",
+  "edit": "编辑活动",
+  "viewerAccess": "仅可查看",
+  "share": "共享活动",
+  "actionsFor": "{name} 的操作",
+  "copyLink": "复制链接",
+  "linkCopied": "链接已复制。",
+  "moveToTrash": "移到回收站",
+  "viewSelect": "活动视图",
+  "pagesLabel": "页面",
+  "viewsLabel": "活动视图",
+  "addPage": "添加页面",
+  "addPageDescription": "在此活动中创建一个命名页面",
+  "addAPage": "添加页面",
+  "noPages": "还没有页面。",
+  "optionsFor": "{name} 的选项",
+  "arrange": "调整布局",
+  "doneArranging": "完成调整",
+  "pageOptions": "页面选项",
+  "layoutHistory": "布局历史",
+  "commands": {
+    "history": "活动历史",
+    "historyDescription": "查看 {name} 的更改",
+    "edit": "编辑活动",
+    "editDescription": "编辑 {name}",
+    "share": "共享活动",
+    "shareDescription": "管理 {name} 的访问权限"
+  }
+}

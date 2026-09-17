@@ -9,7 +9,7 @@ const signIn = async (page: Page, name: string, email: string) => {
   await expect(page).toHaveURL(/\/events$/u);
 };
 
-test("shares an event with a friend and queues one for a person without an account", async ({
+test("shares an event with a friend and queues one for a person without an account @webkit-desktop", async ({
   page,
   request,
 }) => {
@@ -144,7 +144,7 @@ test("shares an event with a friend and queues one for a person without an accou
   expect(errors).toEqual([]);
 });
 
-test("adds a friend to the workspace as a member from Settings", async ({
+test("adds a friend to the workspace as a member from Settings @webkit-desktop", async ({
   page,
   request,
 }) => {

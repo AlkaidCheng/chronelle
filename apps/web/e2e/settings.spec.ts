@@ -51,7 +51,7 @@ async function choose(page: Page, group: string, name: string) {
   await expect(radio).toBeChecked();
 }
 
-test("keeps the language, clock, zone, and week on the account and applies them everywhere", async ({
+test("keeps the language, clock, zone, and week on the account and applies them everywhere @webkit-desktop", async ({
   page,
 }) => {
   const email = `settings-${randomUUID()}@example.test`;

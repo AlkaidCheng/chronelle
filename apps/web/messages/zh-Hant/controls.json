@@ -1,0 +1,24 @@
+{
+  "layout": "版面",
+  "sort": "排序",
+  "filter": "篩選",
+  "filterCount": "{count} 項篩選",
+  "show": "顯示",
+  "open": "未完成",
+  "all": "全部",
+  "done": "已完成",
+  "hasTime": "有指定時間",
+  "overdue": "已逾期",
+  "label": "標籤",
+  "anyLabel": "任何標籤",
+  "assignee": "負責人",
+  "anyone": "任何人",
+  "me": "我",
+  "clearFilters": "清除篩選",
+  "sorts": {
+    "manual": "手動",
+    "due": "到期日",
+    "name": "名稱",
+    "updated": "更新時間"
+  }
+}

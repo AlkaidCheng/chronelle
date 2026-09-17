@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 import { expect, test } from "./fixtures";
 import { exerciseEventArrange } from "./helpers/event-arrange";
 
-test("arranges without losing drafts and preserves canonical records through layout recovery", async ({
+test("arranges without losing drafts and preserves canonical records through layout recovery @webkit-desktop @webkit-mobile", async ({
   page,
   request,
 }, testInfo) => {

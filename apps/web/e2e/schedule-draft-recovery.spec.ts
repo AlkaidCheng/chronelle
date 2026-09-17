@@ -11,7 +11,7 @@ import {
 } from "./helpers/schedule-draft-recovery";
 
 for (const outcome of ["success", "lost response"] as const)
-  test(`recovers schedule drafts and settles a ${outcome} across navigation`, async ({
+  test(`recovers schedule drafts and settles a ${outcome} across navigation @webkit-desktop @webkit-mobile`, async ({
     page,
     request,
   }, testInfo) => {

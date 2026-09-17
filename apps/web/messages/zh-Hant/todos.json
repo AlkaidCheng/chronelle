@@ -1,0 +1,9 @@
+{
+  "title": "待辦",
+  "open": "{count} 項未完成",
+  "openOf": "{total} 項未完成中的 {shown} 項",
+  "addTask": "新增任務",
+  "empty": "尚無任務",
+  "nothingInView": "此檢視中沒有內容",
+  "noDueDateGroup": "無到期日"
+}

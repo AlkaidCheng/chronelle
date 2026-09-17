@@ -6,7 +6,7 @@ import {
 } from "./helpers/context-commands";
 import { switchWorkspace } from "./helpers/quiet-chrome";
 
-test("opens event controls through Commands and saves only explicit layout changes", async ({
+test("opens event controls through Commands and saves only explicit layout changes @webkit-desktop @webkit-mobile", async ({
   page,
   request,
 }, testInfo) => {
@@ -45,7 +45,7 @@ test("opens event controls through Commands and saves only explicit layout chang
   ).toEqual(event);
 });
 
-test("limits Viewer commands and denies history after access is revoked", async ({
+test("limits Viewer commands and denies history after access is revoked @webkit-desktop @webkit-mobile", async ({
   page,
   request,
 }) => {

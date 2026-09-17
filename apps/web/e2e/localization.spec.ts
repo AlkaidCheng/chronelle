@@ -102,7 +102,7 @@ const english = {
   group: "Language",
 };
 
-test("switches the workspace to Simplified and Traditional Chinese and back", async ({
+test("switches the workspace to Simplified and Traditional Chinese and back @webkit-desktop @webkit-mobile", async ({
   page,
 }) => {
   // One walk through every localized surface: longer than the default budget
@@ -285,7 +285,7 @@ test("switches the workspace to Simplified and Traditional Chinese and back", as
   await expect(page.locator("html")).toHaveAttribute("lang", "en");
 });
 
-test("renders the first paint in the browser's language and keeps a chosen one", async ({
+test("renders the first paint in the browser's language and keeps a chosen one @webkit-desktop @webkit-mobile", async ({
   browser,
 }) => {
   const context = await browser.newContext({ locale: "zh-TW" });

@@ -1,0 +1,16 @@
+{
+  "edit": "撤销编辑",
+  "redoEdit": "重做编辑",
+  "named": "撤销：{command}",
+  "redoNamed": "重做：{command}",
+  "nothing": "没有可撤销的操作",
+  "nothingRedo": "没有可重做的操作",
+  "changedElsewhere": "此后已被他人更改",
+  "commands": {
+    "rename": "重命名 {name}",
+    "complete": "完成 {name}",
+    "reopen": "重新打开 {name}",
+    "move": "移动 {name}",
+    "edit": "编辑 {name}"
+  }
+}

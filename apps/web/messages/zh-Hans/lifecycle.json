@@ -1,0 +1,9 @@
+{
+  "actionsFor": "{name}的操作",
+  "actions": "操作",
+  "checking": "正在检查可用操作",
+  "removeNote": "记录本身保留；关联可从“已移除的关联”中恢复。",
+  "trashNote": "从所有视图中隐藏；所有者可从回收站恢复。",
+  "saving": "保存中…",
+  "noActions": "当前访问权限下没有可用的删除操作。"
+}

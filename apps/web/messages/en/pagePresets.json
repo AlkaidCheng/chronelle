@@ -1,0 +1,12 @@
+{
+  "labels": {
+    "blank": "Blank",
+    "gathering": "Gathering",
+    "multiDay": "Multi-day"
+  },
+  "descriptions": {
+    "blank": "An empty page. Add only the components you need.",
+    "gathering": "Prepare, follow the running order, and track spending.",
+    "multiDay": "Keep scheduled activities and useful documents together."
+  }
+}

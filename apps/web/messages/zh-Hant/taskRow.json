@@ -1,0 +1,54 @@
+{
+  "columns": {
+    "task": "任務",
+    "due": "到期",
+    "status": "狀態"
+  },
+  "assignedTo": "負責人：",
+  "at": "地點：",
+  "labels": "標籤",
+  "subtasksDone": "{total} 項子任務已完成 {done} 項",
+  "complete": "完成 {name}",
+  "reopen": "重新開啟 {name}",
+  "actionsFor": "{name} 的動作",
+  "nowDue": "目前為{day}",
+  "nowDueAt": "目前為{day} {time}",
+  "menu": {
+    "edit": "編輯",
+    "complete": "完成",
+    "reopen": "重新開啟",
+    "moveUp": "上移",
+    "moveDown": "下移",
+    "due": "到期日",
+    "noDate": "無日期",
+    "addSubtask": "新增子任務",
+    "duplicate": "建立副本",
+    "copyLink": "複製連結",
+    "history": "歷史",
+    "moveToTrash": "移到垃圾桶"
+  },
+  "said": {
+    "completed": "{name} 已完成。",
+    "reopened": "{name} 已重新開啟。",
+    "moved": "{name} 已移動。",
+    "position": "{name} 現在位於第 {at} 項，共 {total} 項。",
+    "noDueDate": "{name} 已取消到期日。",
+    "due": "{name} 的到期日為{day}。",
+    "duplicated": "已建立 {name} 的副本。",
+    "linkCopied": "已複製連結。",
+    "linkNotCopied": "無法複製連結。"
+  },
+  "groups": {
+    "overdue": "已逾期",
+    "noDueDate": "無到期日"
+  },
+  "status": {
+    "todo": "待辦",
+    "in_progress": "進行中",
+    "done": "已完成",
+    "cancelled": "已取消",
+    "pending": "待觸發",
+    "dismissed": "已忽略",
+    "triggered": "已觸發"
+  }
+}

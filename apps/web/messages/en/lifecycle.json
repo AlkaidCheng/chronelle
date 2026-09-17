@@ -1,0 +1,9 @@
+{
+  "actionsFor": "Actions for {name}",
+  "actions": "Actions",
+  "checking": "Checking available actions",
+  "removeNote": "The record itself stays; the link can be recovered from Removed links.",
+  "trashNote": "Hidden from every view; an Owner can restore it from Trash.",
+  "saving": "Saving...",
+  "noActions": "No deletion actions are available with your current access."
+}

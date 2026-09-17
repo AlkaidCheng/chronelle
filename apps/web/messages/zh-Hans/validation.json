@@ -1,0 +1,30 @@
+{
+  "locationLength": "地点请控制在 {limit} 个字符以内。",
+  "durationRange": "时长最多为一天。",
+  "dueDateForTime": "设置截止时间前请先选择截止日期。",
+  "dueTimeForDuration": "设置时长前请先选择截止时间。",
+  "dueDateForRepeat": "重复需要一个起始的截止日期。",
+  "validDueDate": "请选择有效的截止日期。",
+  "repeatEndAfterDue": "重复的结束日期不能早于截止日期。",
+  "repeatOffered": "请选择选择器提供的重复方式。",
+  "validRepeatEnd": "请选择有效的重复结束日期。",
+  "validInstant": {
+    "due": "请选择有效的截止日期和时间。",
+    "transaction": "请选择有效的交易日期和时间。",
+    "reminder": "请选择有效的提醒日期和时间。"
+  },
+  "unavailableInstant": {
+    "due": "此本地时间不存在，请选择另一个截止时间。",
+    "transaction": "此本地时间不存在，请选择另一个交易时间。",
+    "reminder": "此本地时间不存在，请选择另一个提醒时间。"
+  },
+  "transactionInstant": "请选择交易日期和时间。",
+  "reminderInstant": "请选择提醒日期和时间。",
+  "validDateTime": "请输入有效的日期和时间（HH:mm）。",
+  "clockChange": "由于时钟调整，此本地时间不存在，请选择另一个时间。",
+  "startDate": "请选择开始日期。",
+  "validCalendarDates": "请输入有效的日期。",
+  "endBeforeStartDate": "结束日期不能早于开始日期。",
+  "endAndTime": "请同时填写结束日期和时间，或都留空。",
+  "endBeforeStartTime": "结束时间不能早于开始时间。"
+}

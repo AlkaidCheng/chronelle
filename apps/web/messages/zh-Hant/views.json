@@ -1,0 +1,25 @@
+{
+  "pages": "頁面",
+  "overview": "概覽",
+  "todos": "待辦",
+  "calendar": "日曆",
+  "timeline": "時間軸",
+  "itinerary": "行程",
+  "expenses": "支出",
+  "reminders": "提醒",
+  "files": "檔案",
+  "people": "參與者",
+  "sharing": "共享",
+  "removedLinks": "已移除的關聯",
+  "descriptions": {
+    "todos": "新增任務，跟進待辦事項。",
+    "calendar": "安排日期、時間和多日活動。",
+    "timeline": "依序檢視有日期的計畫、任務、支出和提醒。",
+    "itinerary": "依序跟進已安排的活動。",
+    "expenses": "記錄交易並依幣別檢視合計。",
+    "reminders": "跟進即將到來的提醒。暫不發送通知。",
+    "files": "管理此活動及其任務、支出的私密附件。",
+    "people": "以名片檢視參與此活動的人。"
+  },
+  "loading": "正在載入{name}"
+}

@@ -1,0 +1,19 @@
+{
+  "title": "標籤",
+  "close": "關閉標籤",
+  "choose": "選擇標籤",
+  "loadFailed": "標籤載入失敗。",
+  "loading": "正在載入標籤…",
+  "noneYet": "還沒有標籤。在下方新增一個。",
+  "none": "還沒有標籤。",
+  "newLabel": "新標籤",
+  "adding": "新增中…",
+  "add": "新增標籤",
+  "addFailed": "無法新增標籤。",
+  "nameOf": "{name}的名稱",
+  "renaming": "重新命名中…",
+  "rename": "重新命名",
+  "keep": "保留",
+  "changeFailed": "變更失敗。",
+  "removing": "正在移除…"
+}

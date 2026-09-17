@@ -1,0 +1,43 @@
+{
+  "title": "Saved elsewhere while you edited",
+  "theirs": "{name}, {when}",
+  "someone": "Someone",
+  "mine": "Your draft",
+  "keepMine": "Keep mine",
+  "takeTheirs": "Take theirs",
+  "merge": "Merge fields",
+  "kept": "kept",
+  "saveMerged": "Save merged version",
+  "field": "Field",
+  "empty": "(empty)",
+  "fields": {
+    "displayName": "Name",
+    "dueDate": "Due date",
+    "dueTime": "Due time",
+    "duration": "Duration",
+    "repeat": "Repeat",
+    "repeatUntil": "Repeat until",
+    "assignee": "Assignee",
+    "location": "Location",
+    "labels": "Labels",
+    "amount": "Amount",
+    "currency": "Currency",
+    "occurredAt": "Date",
+    "remindAt": "Reminder time",
+    "mode": "Schedule",
+    "startDate": "Start date",
+    "endDate": "End date",
+    "startTime": "Start time",
+    "endTime": "End time",
+    "nickname": "Nickname",
+    "description": "Description",
+    "userId": "Account",
+    "contacts": "Contacts",
+    "properties": "Fields"
+  },
+  "modes": {
+    "dates": "Dates",
+    "timed": "Dates and times",
+    "unscheduled": "Not scheduled"
+  }
+}

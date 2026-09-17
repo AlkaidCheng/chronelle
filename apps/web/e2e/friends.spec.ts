@@ -25,7 +25,7 @@ async function openFriends(page: Page, name: string) {
   ).toBeVisible();
 }
 
-test("connects two accounts through a request and links a person to the friend", async ({
+test("connects two accounts through a request and links a person to the friend @webkit-desktop", async ({
   page,
   request,
 }) => {
@@ -153,7 +153,7 @@ test("connects two accounts through a request and links a person to the friend",
   expect(errors).toEqual([]);
 });
 
-test("invites an address without an account and keeps it under Sent", async ({
+test("invites an address without an account and keeps it under Sent @webkit-desktop", async ({
   page,
 }) => {
   const anaEmail = `ana-${randomUUID()}@example.test`;

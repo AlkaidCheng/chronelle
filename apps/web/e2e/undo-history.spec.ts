@@ -10,7 +10,7 @@ async function openMore(page: Page, eventName: string) {
   return page.getByRole("menu", { name: `Actions for ${eventName}` });
 }
 
-test("undoes and redoes edits by name, keeps layout undo apart, and previews history rows", async ({
+test("undoes and redoes edits by name, keeps layout undo apart, and previews history rows @webkit-desktop @webkit-mobile", async ({
   page,
   request,
 }) => {

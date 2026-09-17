@@ -1,0 +1,27 @@
+{
+  "title": "Removed links",
+  "intro": "Restore a context link without copying or changing either object. Only links with live, accessible endpoints and an editable source appear here.",
+  "linkType": "Link type",
+  "allTypes": "All link types",
+  "types": {
+    "includes": "includes",
+    "reminds_about": "reminds about",
+    "attached_to": "attached to",
+    "related_to": "related to"
+  },
+  "refresh": "Refresh links",
+  "loading": "Loading removed links",
+  "emptyTitle": "No recoverable links",
+  "emptyDescription": "Recover deleted objects from Trash first. An equivalent active link cannot be recovered twice.",
+  "linkLabel": "{type} · link v{version}",
+  "previewRecovery": "Preview link recovery",
+  "loadingMore": "Loading links...",
+  "loadMore": "Load more removed links",
+  "recoverTitle": "Recover context link",
+  "recovered": "Link recovered. Neither canonical object was changed.",
+  "recoveringVersion": "Recovering link version {version}. Content and permissions stay unchanged.",
+  "reviewed": "I reviewed this link.",
+  "recovering": "Recovering...",
+  "confirm": "Confirm link recovery",
+  "refreshNote": "Close this preview and refresh the Event before trying again."
+}
