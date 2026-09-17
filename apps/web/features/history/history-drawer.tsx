@@ -216,6 +216,9 @@ export function HistoryDrawer({
         <div>
           <p className="eyebrow">Object history</p>
           <h2 id={headingId}>{displayName}</h2>
+          <code className="history-object-id" title="Object ID">
+            {objectId}
+          </code>
         </div>
         <button
           className="button button-quiet"

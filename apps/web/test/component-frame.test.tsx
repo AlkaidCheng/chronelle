@@ -60,13 +60,7 @@ describe("component frame", () => {
   });
 
   it("reads a count beside the title when the component keeps one", () => {
-    render(
-      <PanelHeading
-        count="2 of 5 open"
-        description="Next steps."
-        title="To-dos"
-      />,
-    );
+    render(<PanelHeading count="2 of 5 open" title="To-dos" />);
     expect(screen.getByText("2 of 5 open")).toHaveClass("panel-count");
     expect(screen.getByRole("heading", { name: "To-dos" })).toBeVisible();
   });

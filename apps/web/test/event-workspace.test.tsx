@@ -201,30 +201,33 @@ describe("EventWorkspace", () => {
     },
   );
 
-  it.each(["todos", "calendar", "expenses", "reminders"])(
-    "gives viewers a read-only %s empty state",
-    async (view) => {
-      window.history.replaceState(null, "", `/events/plan?view=${view}`);
-      vi.stubGlobal(
-        "fetch",
-        vi.fn<typeof globalThis.fetch>(async (input) => {
-          const path = requestPath(input);
-          if (path.endsWith("/access"))
-            return jsonResponse({ resourceId: eventId, actions: ["view"] });
-          if (path === `/api/events/${eventId}`) return jsonResponse(rootEvent);
-          return jsonResponse({ sourceEventId: eventId, items: [] });
-        }),
-      );
-      render(<EventWorkspace eventId={eventId} />, { wrapper: Providers });
-      expect(await screen.findByText(/This event is read-only/)).toBeVisible();
-      expect(
-        screen.queryByRole("textbox", {
-          name: /Task|Schedule item|Expense|Reminder/,
-        }),
-      ).toBeNull();
-      expect(screen.queryByText(/form above/)).toBeNull();
-    },
-  );
+  it.each([
+    ["todos", "No tasks yet"],
+    ["calendar", "Nothing scheduled"],
+    ["expenses", "No expenses recorded"],
+    ["reminders", "No reminders"],
+  ])("gives viewers a read-only %s empty state", async (view, title) => {
+    window.history.replaceState(null, "", `/events/plan?view=${view}`);
+    vi.stubGlobal(
+      "fetch",
+      vi.fn<typeof globalThis.fetch>(async (input) => {
+        const path = requestPath(input);
+        if (path.endsWith("/access"))
+          return jsonResponse({ resourceId: eventId, actions: ["view"] });
+        if (path === `/api/events/${eventId}`) return jsonResponse(rootEvent);
+        return jsonResponse({ sourceEventId: eventId, items: [] });
+      }),
+    );
+    render(<EventWorkspace eventId={eventId} />, { wrapper: Providers });
+    // The empty state is its title alone; a viewer gets no way to add.
+    expect(await screen.findByRole("heading", { name: title })).toBeVisible();
+    expect(
+      screen.queryByRole("textbox", {
+        name: /Task|Schedule item|Expense|Reminder/,
+      }),
+    ).toBeNull();
+    expect(screen.queryByRole("button", { name: /^Add / })).toBeNull();
+  });
 
   it.each(
     ["resource", "access", "todos"].flatMap((source) =>
@@ -654,9 +657,6 @@ describe("EventWorkspace", () => {
     expect(
       await screen.findByRole("heading", { name: "Guest arrival" }),
     ).toBeVisible();
-    expect(
-      within(screen.getByRole("tabpanel")).getByLabelText("Object ID"),
-    ).toHaveValue(scheduledEventId);
 
     // The Calendar's agenda view is the running order the Itinerary showed.
     expect(screen.queryByRole("tab", { name: "Itinerary" })).toBeNull();
@@ -666,17 +666,11 @@ describe("EventWorkspace", () => {
       screen.getByRole("heading", { name: "Guest arrival" }),
     ).toBeVisible();
     expect(screen.getByText("01")).toBeVisible();
-    expect(
-      within(screen.getByRole("tabpanel")).getByLabelText("Object ID"),
-    ).toHaveValue(scheduledEventId);
 
     await user.click(screen.getByRole("tab", { name: "Timeline" }));
     expect(
       screen.getByRole("heading", { name: "Guest arrival" }),
     ).toBeVisible();
-    expect(
-      within(screen.getByRole("tabpanel")).getByLabelText("Object ID"),
-    ).toHaveValue(scheduledEventId);
     await waitFor(() => {
       expect(fetch).toHaveBeenCalledWith(
         `/api/events/${eventId}/resources`,
@@ -1035,11 +1029,6 @@ describe("EventWorkspace", () => {
     taskDocumentsFail = false;
     await user.click(screen.getByRole("button", { name: "Try again" }));
     expect(await screen.findByText("No files attached")).toBeVisible();
-    expect(
-      screen.getByText(
-        "Choose a file above to attach it without exposing a public URL.",
-      ),
-    ).toBeVisible();
     expect(screen.queryByText("Private attachments")).toBeNull();
 
     // While an upload runs, the file and target controls are held and the

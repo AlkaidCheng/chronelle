@@ -44,7 +44,6 @@ export function PeoplePanel({
   return (
     <section className="planning-panel">
       <PanelHeading
-        description="Who this event involves, as namecards; edit a person to keep their details."
         title="People"
         action={
           canEdit ? (
@@ -63,14 +62,7 @@ export function PeoplePanel({
         }
       />
       {persons.length === 0 ? (
-        <EmptyState
-          description={
-            canEdit
-              ? "Add the people this event involves; their namecards appear here."
-              : "No one is listed for this event yet."
-          }
-          title="No people yet"
-        />
+        <EmptyState title="No people yet" />
       ) : (
         <ul aria-label="People" className="person-grid">
           {persons.map((person) => (

@@ -2617,7 +2617,6 @@ ul.resource-list {
 
 .resource-list-cell .task-check svg,
 .resource-list-cell .date-tile,
-.resource-list-cell .object-details,
 .resource-list-cell .status-chip,
 .resource-list-cell .task-assignee,
 .resource-list-cell .task-location,
@@ -3390,6 +3389,14 @@ ul.resource-list {
 .history-drawer::backdrop {
   background: var(--scrim);
 }
+.history-object-id {
+  color: var(--muted);
+  display: block;
+  font-size: 0.72rem;
+  margin-top: 4px;
+  overflow-wrap: anywhere;
+}
+
 .history-header {
   display: flex;
   justify-content: space-between;
@@ -4415,29 +4422,6 @@ html:has(.event-create-dialog[open]) {
 .read-only-badge svg {
   height: 14px;
   width: 14px;
-}
-.object-details {
-  position: relative;
-  font-size: 0.75rem;
-  color: var(--muted);
-}
-.object-details summary {
-  cursor: pointer;
-  padding: 6px 0;
-}
-.object-details label {
-  display: grid;
-  gap: 6px;
-  padding: 12px;
-  border: 1px solid var(--line);
-  background: var(--surface);
-  max-width: 100%;
-}
-.object-details input {
-  width: min(34ch, 100%);
-  max-width: 100%;
-  font-family: monospace;
-  padding: 8px;
 }
 
 /* Quiet chrome: the sidebar's lower entries, icon controls, menus, and the event strip. */

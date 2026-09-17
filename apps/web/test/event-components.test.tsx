@@ -1112,9 +1112,11 @@ describe("insertable event components", () => {
     expect(
       screen.queryByRole("row", { name: /Confirm the garden venue/ }),
     ).toBeNull();
-    // The filters combine; a match-less pair shows why the list is empty.
+    // The filters combine; a match-less pair leaves the view empty.
     await choose("Me");
-    expect(screen.getByText("No tasks match these filters.")).toBeVisible();
+    expect(
+      screen.getByRole("heading", { name: "Nothing in this view" }),
+    ).toBeVisible();
     await choose("Any label");
     expect(screen.getByRole("row", { name: /Call the band/ })).toBeVisible();
     expect(screen.queryByRole("row", { name: /Order the cake/ })).toBeNull();
@@ -1755,11 +1757,8 @@ describe("insertable event components", () => {
       wrapper: Providers,
     });
     expect(await screen.findByText("Read-only files")).toBeVisible();
-    // The Files empty state reads like every other viewer's.
     expect(
-      await screen.findByText(
-        "Shared files will appear here when available. This event is read-only.",
-      ),
+      await screen.findByRole("heading", { name: "No files attached" }),
     ).toBeVisible();
     for (const label of [
       "Arrange layout",

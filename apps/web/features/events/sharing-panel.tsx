@@ -142,10 +142,7 @@ export function SharingPanel({
           />
         ) : null}
         {shares.data?.items.length === 0 ? (
-          <EmptyState
-            description="Share with a development user who has signed in at least once."
-            title="Only you have access"
-          />
+          <EmptyState title="Only you have access" />
         ) : null}
         <div className="share-list">
           {shares.data?.items.map((grant) => (
@@ -183,10 +180,7 @@ export function SharingPanel({
           <span>{resources.length}</span>
         </div>
         {resources.length === 0 ? (
-          <EmptyState
-            description="Related planning objects will appear here."
-            title="No related resources"
-          />
+          <EmptyState title="No related resources" />
         ) : (
           <div className="scope-list">
             {resources.map((resource) => {

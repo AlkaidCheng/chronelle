@@ -8,21 +8,18 @@ import { eventComponentViews } from "../../lib/event-components";
 
 /**
  * The heading every Event component shares: title, a count when the
- * component keeps one, one line of purpose, then its controls and one
- * action.
+ * component keeps one, then its controls and one action.
  */
 export function PanelHeading({
   action,
   controls,
   count,
-  description,
   title,
 }: {
   readonly action?: ReactNode;
   readonly controls?: ReactNode;
   /** What the component holds, read beside the title: "3 open". */
   readonly count?: string | undefined;
-  readonly description: string;
   readonly title: string;
 }) {
   return (
@@ -30,7 +27,6 @@ export function PanelHeading({
       <div>
         <h2>{title}</h2>
         {count === undefined ? null : <p className="panel-count">{count}</p>}
-        <p>{description}</p>
       </div>
       {controls === undefined && action === undefined ? null : (
         <div className="panel-tools">

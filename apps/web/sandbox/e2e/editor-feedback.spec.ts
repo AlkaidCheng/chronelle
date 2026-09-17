@@ -20,10 +20,19 @@ test("explains empty Viewer panels and reports saved tasks offline", async ({
     page.getByRole("heading", { name: "Empty plan", exact: true }),
   ).toBeVisible();
   await page.getByLabel("Preview role").selectOption("viewer");
-  for (const view of ["To-dos", "Calendar", "Expenses", "Reminders"]) {
+  // A viewer's empty component is its title alone, with no way to add.
+  for (const [view, title] of [
+    ["To-dos", "No tasks yet"],
+    ["Calendar", "Nothing scheduled"],
+    ["Expenses", "No expenses recorded"],
+    ["Reminders", "No reminders"],
+  ] as const) {
     await page.getByRole("tab", { name: view, exact: true }).click();
-    await expect(page.getByText(/This event is read-only/)).toBeVisible();
+    await expect(
+      page.getByRole("heading", { name: title, exact: true }),
+    ).toBeVisible();
     await expect(page.locator(".editor-form")).toHaveCount(0);
+    await expect(page.getByRole("button", { name: /^Add / })).toHaveCount(0);
   }
   await page.screenshot({
     path: testInfo.outputPath("viewer-empty-state.png"),

@@ -10,7 +10,6 @@ import type {
 } from "@chronelle/schemas";
 import { useCallback, useMemo, useState } from "react";
 import { EmptyState, ErrorNotice } from "../../components/feedback";
-import { ObjectDetails } from "../../components/object-details";
 import { useQuickAddSlots } from "../../components/quick-add-row";
 import { RowMenu, type RowMenuEntry } from "../../components/row-menu";
 import {
@@ -259,7 +258,6 @@ export function TasksPanel({
             ? `${openCount} open`
             : `${shownOpen} of ${openCount} open`
         }
-        description="Keep the next steps clear. Drag a task to reorder it; tasks stay in sync across your plans."
         title="To-dos"
       />
       {canEdit && isAdding ? (
@@ -277,17 +275,8 @@ export function TasksPanel({
           parent={parent}
         />
       ) : null}
-      {filteredTasks.length === 0 ? (
+      {filteredTasks.length === 0 && (tasks.length > 0 || !canEdit) ? (
         <EmptyState
-          description={
-            tasks.length === 0
-              ? canEdit
-                ? "Use Add task to choose the next step."
-                : "Tasks will appear here when available. This event is read-only."
-              : filterCount > 1 || filters.status === "all"
-                ? "No tasks match these filters."
-                : `There are no ${filters.status} tasks.`
-          }
           title={tasks.length === 0 ? "No tasks yet" : "Nothing in this view"}
         />
       ) : null}
@@ -397,7 +386,6 @@ export function CalendarPanel({
               : ""
             : formatEventSchedule(item)}
         </p>
-        <ObjectDetails id={item.id} />
       </div>
       {rowActions(item)}
     </article>
@@ -426,7 +414,6 @@ export function CalendarPanel({
             />
           )
         }
-        description="See what is happening and when, as a list, a running order, a week, or a month."
         title="Calendar"
       />
       {isAdding && canEdit ? (
@@ -437,14 +424,7 @@ export function CalendarPanel({
         />
       ) : null}
       {items.length === 0 ? (
-        <EmptyState
-          description={
-            canEdit
-              ? "Use Add schedule item to plan a date or time."
-              : "Scheduled items will appear here when available. This event is read-only."
-          }
-          title="Nothing scheduled"
-        />
+        <EmptyState title="Nothing scheduled" />
       ) : view === "agenda" ? (
         <ol className="itinerary-list">
           {items.map((item, index) => (
@@ -457,7 +437,6 @@ export function CalendarPanel({
                   {formatEventSchedule(item)}
                 </time>
                 <h3>{item.displayName}</h3>
-                <ObjectDetails id={item.id} />
                 {rowActions(item)}
               </div>
             </li>
@@ -499,15 +478,9 @@ export function TimelinePanel({
 }) {
   return (
     <section className="planning-panel">
-      <PanelHeading
-        description="The full picture, in order: your schedule, tasks, expenses, and reminders."
-        title="Timeline"
-      />
+      <PanelHeading title="Timeline" />
       {timeline.items.length === 0 ? (
-        <EmptyState
-          description="Dated schedule items, tasks, expenses, and reminders appear here automatically."
-          title="No timeline entries"
-        />
+        <EmptyState title="No timeline entries" />
       ) : (
         <ol className="timeline-list">
           {timeline.items.map((item) => (
@@ -523,7 +496,6 @@ export function TimelinePanel({
                   {objectTypeLabel(item.objectType)}
                 </span>
                 <h3>{item.displayName}</h3>
-                <ObjectDetails id={item.canonicalObjectId} />
                 <RowActions>
                   <HistoryButton
                     objectId={item.canonicalObjectId}
@@ -586,7 +558,6 @@ export function ExpensesPanel({
             : formatTime(expense.occurredAt)}
         </span>
         <h3>{expense.displayName}</h3>
-        <ObjectDetails id={expense.id} />
       </div>
       <strong className="money-value">
         {formatMoney(expense.amount, expense.currency)}
@@ -645,7 +616,6 @@ export function ExpensesPanel({
             />
           )
         }
-        description="Historical transactions stay independent from the plans they support."
         title="Expenses"
         action={
           canEdit ? (
@@ -682,14 +652,7 @@ export function ExpensesPanel({
         </div>
       ) : null}
       {expenses.length === 0 ? (
-        <EmptyState
-          description={
-            canEdit
-              ? "Use Add expense to record a transaction."
-              : "Recorded transactions will appear here when available. This event is read-only."
-          }
-          title="No expenses recorded"
-        />
+        <EmptyState title="No expenses recorded" />
       ) : view === "by-day" ? (
         <div className="day-groups">
           {groups.map((group) => (
@@ -960,7 +923,6 @@ export function RemindersPanel({
             : formatTime(reminder.remindAt)}
         </span>
         <h3>{reminder.displayName}</h3>
-        <ObjectDetails id={reminder.id} />
       </div>
       <StatusChip status={reminder.status} />
       {menu(reminder, rows)}
@@ -1015,7 +977,6 @@ export function RemindersPanel({
             />
           )
         }
-        description="Keep track of what needs a nudge. Reminders are recorded here; notifications are not sent yet."
         title="Reminders"
         action={
           canEdit ? (
@@ -1037,15 +998,8 @@ export function RemindersPanel({
         />
       ) : null}
       {view === "week" || view === "month" ? null : notice}
-      {reminders.length === 0 ? (
-        <EmptyState
-          description={
-            canEdit
-              ? "Record a reminder when you know the time."
-              : "Reminders will appear here when available. This event is read-only."
-          }
-          title="No reminders"
-        />
+      {reminders.length === 0 && !canEdit ? (
+        <EmptyState title="No reminders" />
       ) : null}
       {reminders.length === 0 && canEdit ? (
         <div className="quick-add-item quick-add-empty">

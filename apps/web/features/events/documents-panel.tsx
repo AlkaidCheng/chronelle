@@ -97,10 +97,7 @@ export function DocumentsPanel({
 
   return (
     <section className="planning-panel documents-panel">
-      <PanelHeading
-        description="Private attachments stay connected to one canonical Event, Task, or Expense."
-        title="Files"
-      />
+      <PanelHeading title="Files" />
 
       <label className="field attachment-target" htmlFor={targetInputId}>
         <span>Show files attached to</span>
@@ -200,14 +197,7 @@ export function DocumentsPanel({
             </div>
           ) : null}
           {attachments.data.items.length === 0 ? (
-            <EmptyState
-              description={
-                canEdit
-                  ? "Choose a file above to attach it without exposing a public URL."
-                  : "Shared files will appear here when available. This event is read-only."
-              }
-              title="No files attached"
-            />
+            <EmptyState title="No files attached" />
           ) : (
             <div className="attachment-list">
               {attachments.data.items.map((attachment) => {
