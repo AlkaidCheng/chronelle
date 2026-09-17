@@ -1,0 +1,19 @@
+{
+  "menu": {
+    "edit": "Edit",
+    "dismiss": "Dismiss",
+    "moveUp": "Move up",
+    "moveDown": "Move down",
+    "snooze": "Snooze",
+    "history": "History",
+    "moveToTrash": "Move to Trash"
+  },
+  "snoozeNote": "Now {day}, {time}",
+  "actionsFor": "Actions for {name}",
+  "said": {
+    "dismissed": "{name} dismissed.",
+    "moved": "{name} moved.",
+    "position": "{name} is now {at} of {total}.",
+    "due": "{name} is due {day}."
+  }
+}

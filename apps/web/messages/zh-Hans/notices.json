@@ -1,0 +1,19 @@
+{
+  "somethingWrong": "出了点问题",
+  "newerVersion": "有更新的版本",
+  "refreshing": "正在刷新…",
+  "refreshLatest": "刷新到最新",
+  "tryAgain": "重试",
+  "incomplete": "请求未能完成。",
+  "loading": "正在加载",
+  "codes": {
+    "version_conflict": "对象在你读取该版本之后已被更改。",
+    "workspace_unavailable": "你已无法访问此工作区。",
+    "network_error": "无法连接服务器。请检查网络后重试。",
+    "request_failed": "请求未能完成。",
+    "internal_error": "服务器遇到问题。请稍后重试。",
+    "invalid_credentials": "邮箱或密码不正确。",
+    "email_unverified": "请先确认邮箱，再登录。",
+    "principal_unavailable": "会话已结束。请重新登录。"
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "title": "标签",
+  "close": "关闭标签",
+  "choose": "选择标签",
+  "loadFailed": "标签加载失败。",
+  "loading": "正在加载标签…",
+  "noneYet": "还没有标签。在下方添加一个。",
+  "none": "还没有标签。",
+  "newLabel": "新标签",
+  "adding": "添加中…",
+  "add": "添加标签",
+  "addFailed": "无法添加标签。",
+  "nameOf": "{name}的名称",
+  "renaming": "重命名中…",
+  "rename": "重命名",
+  "keep": "保留",
+  "changeFailed": "更改失败。",
+  "removing": "正在移除…"
+}

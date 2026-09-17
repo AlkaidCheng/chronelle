@@ -1,0 +1,13 @@
+{
+  "taskToList": "Add a task to the list",
+  "taskWith": "Add a task with {day}",
+  "taskFor": "Add a task for {day}",
+  "newTask": "New task",
+  "taskName": "Task name",
+  "addTask": "Add task",
+  "reminderToList": "Add a reminder to the list",
+  "reminderFor": "Add a reminder for {day}",
+  "newReminder": "New reminder",
+  "reminderName": "Reminder name",
+  "addReminder": "Add reminder"
+}

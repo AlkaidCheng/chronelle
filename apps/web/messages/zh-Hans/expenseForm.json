@@ -1,0 +1,17 @@
+{
+  "checkTime": "请检查交易时间。",
+  "discardTitle": "放弃支出更改？",
+  "editTitle": "编辑支出",
+  "addTitle": "添加支出",
+  "close": "关闭支出编辑器",
+  "viewHistory": "查看支出历史",
+  "unsaved": "支出更改尚未保存。",
+  "name": "支出",
+  "namePlaceholder": "场地押金",
+  "amount": "金额",
+  "currency": "币种",
+  "date": "日期",
+  "timeIn": "交易时间以 {zone} 为准。",
+  "create": "记录支出",
+  "save": "保存支出"
+}

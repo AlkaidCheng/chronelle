@@ -1,0 +1,10 @@
+{
+  "movedToTrash": "已移到回收站",
+  "removedFromEvent": "已从此活动中移除",
+  "shareRemoved": "已移除共享",
+  "memberRemoved": "已移除成员",
+  "friendRemoved": "已移除好友",
+  "invitationWithdrawn": "已撤回邀请",
+  "personUnlinked": "已取消关联参与者",
+  "undo": "撤销"
+}

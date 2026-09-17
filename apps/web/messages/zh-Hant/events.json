@@ -1,0 +1,39 @@
+{
+  "title": "活動",
+  "filterByName": "依名稱篩選活動",
+  "find": "尋找活動",
+  "filterMenu": "篩選活動",
+  "sortMenu": "活動排序",
+  "layoutMenu": "活動版面",
+  "refresh": "重新整理活動",
+  "new": "新增活動",
+  "countLabel": "活動數",
+  "count": "已載入 {count} 個活動",
+  "all": "全部活動",
+  "loading": "正在載入活動",
+  "empty": "尚無活動",
+  "noMatch": "沒有符合的活動",
+  "clearFilters": "清除篩選",
+  "loadMore": "載入更多活動",
+  "loadingMore": "正在載入更多活動…",
+  "filters": {
+    "all": "全部活動",
+    "upcoming": "即將開始與進行中",
+    "unscheduled": "未定日期",
+    "past": "已結束"
+  },
+  "sorts": {
+    "date": "活動日期",
+    "updated": "最近更新",
+    "name": "名稱"
+  },
+  "layouts": {
+    "grid": "格狀",
+    "list": "列表"
+  },
+  "period": {
+    "upcoming": "已安排",
+    "past": "已結束",
+    "unscheduled": "日期待定"
+  }
+}

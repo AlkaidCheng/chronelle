@@ -1,0 +1,19 @@
+{
+  "events": "Events",
+  "tasks": "Tasks",
+  "people": "People",
+  "search": "Search",
+  "trash": "Trash",
+  "searchAndCommands": "Search and commands",
+  "workspaceNavigation": "Workspace navigation",
+  "skipToContent": "Skip to content",
+  "openingWorkspace": "Opening your workspace",
+  "collections": "Collections",
+  "customize": "Customize sidebar",
+  "customizeHint": "Drag to reorder, tap the eye to hide or show.",
+  "done": "Done",
+  "more": "More",
+  "hide": "Hide {name}",
+  "show": "Show {name}",
+  "move": "Move {name}"
+}

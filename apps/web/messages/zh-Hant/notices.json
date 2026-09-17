@@ -1,0 +1,19 @@
+{
+  "somethingWrong": "發生了問題",
+  "newerVersion": "有更新的版本",
+  "refreshing": "正在重新整理…",
+  "refreshLatest": "重新整理到最新",
+  "tryAgain": "再試一次",
+  "incomplete": "請求未能完成。",
+  "loading": "正在載入",
+  "codes": {
+    "version_conflict": "物件在你讀取該版本之後已被變更。",
+    "workspace_unavailable": "你已無法存取此工作區。",
+    "network_error": "無法連線到伺服器。請檢查網路後再試一次。",
+    "request_failed": "請求未能完成。",
+    "internal_error": "伺服器發生問題。請稍後再試。",
+    "invalid_credentials": "電子郵件或密碼不正確。",
+    "email_unverified": "請先確認電子郵件，再登入。",
+    "principal_unavailable": "工作階段已結束。請重新登入。"
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "title": "共享",
+  "collaboratorEmail": "協作者電子郵件",
+  "access": "權限",
+  "roles": {
+    "viewer": "檢視者",
+    "editor": "編輯者",
+    "owner": "擁有者"
+  },
+  "sharing": "共享中…",
+  "shareEvent": "共享活動",
+  "shareWithPeople": "與參與者共享",
+  "peopleWithAccess": "可存取的人",
+  "loadingCollaborators": "正在載入協作者",
+  "onlyYou": "只有你可以存取",
+  "inheritedResources": "繼承的資源",
+  "inheritedNote": "停止繼承可讓某個相關物件保持私密。",
+  "noResources": "沒有相關資源",
+  "id": "ID {id}",
+  "inherits": "繼承活動權限",
+  "privateScope": "私密範圍",
+  "makePrivate": "設為私密"
+}

@@ -1,0 +1,19 @@
+{
+  "eyebrow": "What needs doing",
+  "title": "Tasks",
+  "intro": "Every task you can see, on its own or inside an event, in your order.",
+  "new": "New task",
+  "filterByName": "Filter tasks by name",
+  "find": "Find a task...",
+  "refresh": "Refresh tasks",
+  "countLabel": "Task count",
+  "count": "{count, plural, one {# task loaded} other {# tasks loaded}}",
+  "all": "All tasks",
+  "loading": "Loading tasks",
+  "emptyTitle": "Nothing to do yet",
+  "emptyDescription": "Choose New task for something to do on its own, or add tasks inside an event and find them here too.",
+  "noMatchTitle": "No matching tasks",
+  "noMatchDescription": "Try another name or change your filters.",
+  "loadMore": "Load more tasks",
+  "loadingMore": "Loading more tasks..."
+}

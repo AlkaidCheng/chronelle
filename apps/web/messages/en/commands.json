@@ -1,0 +1,41 @@
+{
+  "destinations": {
+    "events": "Browse your plans",
+    "tasks": "Everything you have to do",
+    "people": "Who your plans involve",
+    "search": "Find objects you can access",
+    "trash": "Review recoverable objects"
+  },
+  "recordDescription": "{type} / {state}",
+  "detailUnavailable": "Detail page unavailable",
+  "openEvent": "Open event",
+  "title": "Search",
+  "close": "Close search",
+  "scope": "Find records or open tools in {workspace}.",
+  "find": "Find a command",
+  "listLabel": "Commands",
+  "groups": {
+    "context": "Event actions",
+    "navigation": "Navigation",
+    "record": "Records"
+  },
+  "current": "Current",
+  "searching": "Searching records...",
+  "loadFailed": "Records could not be loaded. Navigation and event tools still work.",
+  "retry": "Retry record search",
+  "noRecords": "No accessible records found. Try another phrase.",
+  "noMatch": "No matching commands. Enter at least two letters or numbers to find records.",
+  "showingEight": "Showing eight records. Refine your phrase or open Search for all results.",
+  "openFull": "Open full Search",
+  "shortcuts": "Keyboard shortcuts",
+  "openShortcut": "<kbd>Cmd/Ctrl + K</kbd> opens Search outside editors and dialogs. Use Up/Down to choose a result, Enter to open it, and Escape to close.",
+  "enableCommand": "Enable command shortcut",
+  "componentShortcut": "Add component shortcut",
+  "off": "Off",
+  "componentNote": "Opens the picker from the selected event page, outside editors and dialogs. Requires edit access and room on the page.",
+  "enableSubmit": "Enable editor submit shortcut",
+  "submitNote": "<kbd>Cmd/Ctrl + Enter</kbd> saves from an event, schedule, task, expense, or reminder field. Save validation still applies.",
+  "buttonsNote": "Buttons remain available without shortcuts. These choices are saved on this browser when storage is available. Native text undo is unchanged.",
+  "reset": "Reset keyboard shortcuts",
+  "undoShortcut": "<kbd>Cmd/Ctrl + Z</kbd> undoes your last edit outside text fields, and the last layout change while arranging; <kbd>Shift + Cmd/Ctrl + Z</kbd> redoes it."
+}

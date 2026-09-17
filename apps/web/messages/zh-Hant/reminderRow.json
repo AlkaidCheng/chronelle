@@ -1,0 +1,19 @@
+{
+  "menu": {
+    "edit": "編輯",
+    "dismiss": "忽略",
+    "moveUp": "上移",
+    "moveDown": "下移",
+    "snooze": "延後",
+    "history": "歷史",
+    "moveToTrash": "移到垃圾桶"
+  },
+  "snoozeNote": "目前為 {day}，{time}",
+  "actionsFor": "{name} 的操作",
+  "said": {
+    "dismissed": "已忽略{name}。",
+    "moved": "已移動{name}。",
+    "position": "{name}現在是第 {at} 項，共 {total} 項。",
+    "due": "{name}的提醒時間為{day}。"
+  }
+}

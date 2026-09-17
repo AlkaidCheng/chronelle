@@ -1,0 +1,16 @@
+{
+  "language": "Language",
+  "timeZone": "Time zone",
+  "timeZoneNote": "Times are shown in this zone. Device follows wherever you are.",
+  "deviceZone": "Device: {zone} ({offset})",
+  "searchZones": "Search time zones",
+  "otherZones": "Other",
+  "timeFormat": "Time format",
+  "fromLanguage": "From language",
+  "twelveHour": "12-hour",
+  "twentyFourHour": "24-hour",
+  "now": "Now: {time}",
+  "weekStart": "Week starts on",
+  "monday": "Monday",
+  "sunday": "Sunday"
+}

@@ -1,0 +1,43 @@
+{
+  "title": "編輯期間已在別處儲存",
+  "theirs": "{name}，{when}",
+  "someone": "某人",
+  "mine": "你的草稿",
+  "keepMine": "保留我的",
+  "takeTheirs": "採用對方的",
+  "merge": "合併欄位",
+  "kept": "已保留",
+  "saveMerged": "儲存合併後的版本",
+  "field": "欄位",
+  "empty": "（空）",
+  "fields": {
+    "displayName": "名稱",
+    "dueDate": "到期日",
+    "dueTime": "到期時間",
+    "duration": "時長",
+    "repeat": "重複",
+    "repeatUntil": "重複至",
+    "assignee": "負責人",
+    "location": "地點",
+    "labels": "標籤",
+    "amount": "金額",
+    "currency": "貨幣",
+    "occurredAt": "日期",
+    "remindAt": "提醒時間",
+    "mode": "日程",
+    "startDate": "開始日期",
+    "endDate": "結束日期",
+    "startTime": "開始時間",
+    "endTime": "結束時間",
+    "nickname": "暱稱",
+    "description": "描述",
+    "userId": "帳號",
+    "contacts": "聯絡方式",
+    "properties": "欄位"
+  },
+  "modes": {
+    "dates": "日期",
+    "timed": "日期和時間",
+    "unscheduled": "未安排"
+  }
+}

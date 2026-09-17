@@ -1,0 +1,16 @@
+{
+  "edit": "Undo edit",
+  "redoEdit": "Redo edit",
+  "named": "Undo: {command}",
+  "redoNamed": "Redo: {command}",
+  "nothing": "Nothing to undo",
+  "nothingRedo": "Nothing to redo",
+  "changedElsewhere": "Changed by someone else since",
+  "commands": {
+    "rename": "rename {name}",
+    "complete": "complete {name}",
+    "reopen": "reopen {name}",
+    "move": "move {name}",
+    "edit": "edit {name}"
+  }
+}

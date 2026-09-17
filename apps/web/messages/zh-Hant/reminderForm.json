@@ -1,0 +1,15 @@
+{
+  "checkTime": "請檢查提醒時間。",
+  "discardTitle": "捨棄提醒變更？",
+  "editTitle": "編輯提醒",
+  "addTitle": "新增提醒",
+  "close": "關閉提醒編輯器",
+  "viewHistory": "檢視提醒歷史",
+  "unsaved": "提醒變更尚未儲存。",
+  "name": "提醒",
+  "namePlaceholder": "確認賓客名單",
+  "time": "提醒時間",
+  "timeIn": "僅作記錄，不會發送通知。時間以 {zone} 為準。",
+  "create": "記錄提醒",
+  "save": "儲存提醒"
+}

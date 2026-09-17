@@ -1,0 +1,19 @@
+{
+  "somethingWrong": "Something went wrong",
+  "newerVersion": "A newer version is available",
+  "refreshing": "Refreshing...",
+  "refreshLatest": "Refresh latest",
+  "tryAgain": "Try again",
+  "incomplete": "The request could not be completed.",
+  "loading": "Loading",
+  "codes": {
+    "version_conflict": "The object changed after the supplied version was read.",
+    "workspace_unavailable": "This workspace is no longer available to you.",
+    "network_error": "The server could not be reached. Check your connection and try again.",
+    "request_failed": "The request could not be completed.",
+    "internal_error": "The server ran into a problem. Try again in a moment.",
+    "invalid_credentials": "The email or password is not right.",
+    "email_unverified": "Confirm your email before signing in.",
+    "principal_unavailable": "Your session has ended. Sign in again."
+  }
+}

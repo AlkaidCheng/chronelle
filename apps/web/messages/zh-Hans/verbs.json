@@ -1,0 +1,11 @@
+{
+  "moveToTrash": "移到回收站",
+  "removeFromEvent": "从此活动中移除",
+  "unlinkPerson": "取消关联参与者",
+  "removeShare": "移除共享",
+  "removeMember": "移除成员",
+  "removeFriend": "移除好友",
+  "withdrawInvitation": "撤回邀请",
+  "removeLabel": "移除标签",
+  "removeLabelNamed": "移除{name}"
+}

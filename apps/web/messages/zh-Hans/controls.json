@@ -1,0 +1,24 @@
+{
+  "layout": "布局",
+  "sort": "排序",
+  "filter": "筛选",
+  "filterCount": "{count} 项筛选",
+  "show": "显示",
+  "open": "未完成",
+  "all": "全部",
+  "done": "已完成",
+  "hasTime": "有具体时间",
+  "overdue": "已逾期",
+  "label": "标签",
+  "anyLabel": "任意标签",
+  "assignee": "负责人",
+  "anyone": "任何人",
+  "me": "我",
+  "clearFilters": "清除筛选",
+  "sorts": {
+    "manual": "手动",
+    "due": "截止日期",
+    "name": "名称",
+    "updated": "更新时间"
+  }
+}

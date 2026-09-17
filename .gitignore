@@ -10,6 +10,7 @@ playwright-report/
 test-results/
 *.tsbuildinfo
 .eslintcache
+apps/web/messages/*.json
 
 # Local runtime data
 .chronelle/

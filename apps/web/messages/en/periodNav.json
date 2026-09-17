@@ -1,0 +1,16 @@
+{
+  "period": "Period",
+  "previous": {
+    "week": "Previous week",
+    "month": "Previous month"
+  },
+  "this": {
+    "week": "This week",
+    "month": "This month"
+  },
+  "next": {
+    "week": "Next week",
+    "month": "Next month"
+  },
+  "dayCell": "{day}{count, plural, =0 {} one {, # item} other {, # items}}"
+}

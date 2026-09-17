@@ -1,0 +1,22 @@
+{
+  "doneArranging": "完成排列",
+  "doneArrangingDescription": "隐藏布局控件；移动已保存",
+  "arrange": "排列布局",
+  "arrangeDescription": "显示页面与组件的移动控件",
+  "addComponent": "添加组件",
+  "addComponentDescription": "为 {name} 选择组件",
+  "pages": "活动页面",
+  "saving": "正在保存布局...",
+  "pageEarlier": "页面已前移。",
+  "pageLater": "页面已后移。",
+  "componentMoved": "组件已在 {name} 中移动。",
+  "page": "页面",
+  "noComponents": "还没有组件。",
+  "dragHint": "拖动以重新排序；或使用移动控件",
+  "moveToPage": "移动到页面...",
+  "layoutControls": "{name} 的布局控件",
+  "drag": "拖动 {name}",
+  "moveUp": "上移 {name}",
+  "moveDown": "下移 {name}",
+  "moveToPageFor": "将 {name} 移动到页面"
+}

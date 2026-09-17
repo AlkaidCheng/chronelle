@@ -1,0 +1,19 @@
+{
+  "events": "活动",
+  "tasks": "任务",
+  "people": "参与者",
+  "search": "搜索",
+  "trash": "回收站",
+  "searchAndCommands": "搜索与命令",
+  "workspaceNavigation": "工作区导航",
+  "skipToContent": "跳到内容",
+  "openingWorkspace": "正在打开工作区",
+  "collections": "集合",
+  "customize": "自定义侧边栏",
+  "customizeHint": "拖动以调整顺序，点击眼睛以隐藏或显示。",
+  "done": "完成",
+  "more": "更多",
+  "hide": "隐藏{name}",
+  "show": "显示{name}",
+  "move": "移动{name}"
+}

@@ -1,0 +1,15 @@
+{
+  "checkTime": "请检查提醒时间。",
+  "discardTitle": "放弃提醒更改？",
+  "editTitle": "编辑提醒",
+  "addTitle": "添加提醒",
+  "close": "关闭提醒编辑器",
+  "viewHistory": "查看提醒历史",
+  "unsaved": "提醒更改尚未保存。",
+  "name": "提醒",
+  "namePlaceholder": "确认宾客名单",
+  "time": "提醒时间",
+  "timeIn": "仅作记录，不会发送通知。时间以 {zone} 为准。",
+  "create": "记录提醒",
+  "save": "保存提醒"
+}

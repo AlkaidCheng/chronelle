@@ -1,0 +1,11 @@
+{
+  "moveToTrash": "Move to Trash",
+  "removeFromEvent": "Remove from this event",
+  "unlinkPerson": "Unlink person",
+  "removeShare": "Remove share",
+  "removeMember": "Remove member",
+  "removeFriend": "Remove friend",
+  "withdrawInvitation": "Withdraw invitation",
+  "removeLabel": "Remove label",
+  "removeLabelNamed": "Remove {name}"
+}

@@ -1,0 +1,27 @@
+{
+  "choices": {
+    "daily": "每天",
+    "weekdays": "每个工作日",
+    "weekly": "每周",
+    "biweekly": "每两周",
+    "monthly": "每月",
+    "yearly": "每年"
+  },
+  "summary": {
+    "daily": "每天",
+    "weekdays": "每个工作日",
+    "weekly": "每周",
+    "biweekly": "每两周",
+    "monthly": "每月",
+    "yearly": "每年"
+  },
+  "until": "{rule}，直到 {date}",
+  "short": {
+    "daily": "每天重复",
+    "weekdays": "每个工作日重复",
+    "weekly": "每周重复",
+    "biweekly": "每两周重复",
+    "monthly": "每月重复",
+    "yearly": "每年重复"
+  }
+}

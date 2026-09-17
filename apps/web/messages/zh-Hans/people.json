@@ -1,0 +1,40 @@
+{
+  "title": "参与者",
+  "filterByName": "按名称筛选参与者",
+  "find": "查找参与者",
+  "refresh": "刷新参与者",
+  "new": "新建参与者",
+  "countLabel": "参与者数",
+  "count": "已加载 {count} 位参与者",
+  "all": "全部参与者",
+  "listLabel": "参与者",
+  "loading": "正在加载参与者",
+  "empty": "还没有参与者",
+  "noMatch": "没有匹配的参与者",
+  "layouts": {
+    "list": "列表",
+    "cards": "名片"
+  },
+  "account": "账号",
+  "accounts": {
+    "all": "所有人",
+    "friend": "好友",
+    "invited": "已邀请",
+    "linked": "已有账号",
+    "unlinked": "没有账号"
+  },
+  "me": "这是我",
+  "hasAccount": "已有账号",
+  "addPerson": "添加参与者",
+  "newPersonName": "新参与者",
+  "personName": "参与者名称",
+  "open": "打开 {name}",
+  "actionsFor": "{name} 的操作",
+  "menu": {
+    "edit": "编辑",
+    "history": "历史",
+    "moveToTrash": "移到回收站"
+  },
+  "friend": "好友",
+  "invited": "已邀请"
+}

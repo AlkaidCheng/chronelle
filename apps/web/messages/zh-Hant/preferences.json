@@ -1,0 +1,16 @@
+{
+  "language": "語言",
+  "timeZone": "時區",
+  "timeZoneNote": "時間依此時區顯示。「裝置」會隨你所在的地方改變。",
+  "deviceZone": "裝置：{zone}（{offset}）",
+  "searchZones": "搜尋時區",
+  "otherZones": "其他",
+  "timeFormat": "時間格式",
+  "fromLanguage": "跟隨語言",
+  "twelveHour": "12 小時制",
+  "twentyFourHour": "24 小時制",
+  "now": "現在：{time}",
+  "weekStart": "一週開始於",
+  "monday": "週一",
+  "sunday": "週日"
+}

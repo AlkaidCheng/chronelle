@@ -1,0 +1,21 @@
+{
+  "summary": "Due: {due}",
+  "noDate": "No date",
+  "dueDate": "Due date",
+  "placeholder": "Sep 21, tomorrow, 2030-09-21",
+  "unreadable": "Not a date the picker knows. Try Sep 21, 21 Sep, 9/21, tomorrow, or 2030-09-21.",
+  "dueOn": "Due {weekday}{relative, select, today {, today} tomorrow {, tomorrow} other {}}.",
+  "shortcuts": "Due shortcuts",
+  "removeTime": "Remove time",
+  "addTime": "Add time",
+  "dueTime": "Due time",
+  "duration": "Duration",
+  "noDuration": "No duration",
+  "timesIn": "Times are in {zone}.",
+  "repeat": "Repeat",
+  "noRepeat": "Does not repeat",
+  "until": "Until",
+  "optional": "Optional",
+  "untilUnreadable": "Not a date the picker knows. Try Sep 21, 21 Sep, 9/21, or 2030-09-21.",
+  "untilEarly": "The end cannot come before the due date."
+}

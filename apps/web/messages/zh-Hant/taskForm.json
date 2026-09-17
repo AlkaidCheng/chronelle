@@ -1,0 +1,16 @@
+{
+  "discardTitle": "捨棄任務變更？",
+  "editTitle": "編輯任務",
+  "addSubtaskTitle": "新增子任務",
+  "addTitle": "新增任務",
+  "close": "關閉任務編輯器",
+  "viewHistory": "檢視任務歷史",
+  "unsaved": "任務變更尚未儲存。",
+  "subtaskOf": "{parent}的子任務。",
+  "name": "任務",
+  "namePlaceholder": "確認賓客名單",
+  "location": "地點",
+  "locationPlaceholder": "在哪裡進行",
+  "create": "建立任務",
+  "save": "儲存任務"
+}

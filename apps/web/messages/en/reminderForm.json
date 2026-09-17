@@ -1,0 +1,15 @@
+{
+  "checkTime": "Check the reminder time.",
+  "discardTitle": "Discard reminder changes?",
+  "editTitle": "Edit reminder",
+  "addTitle": "Add reminder",
+  "close": "Close reminder editor",
+  "viewHistory": "View reminder history",
+  "unsaved": "Your reminder changes have not been saved.",
+  "name": "Reminder",
+  "namePlaceholder": "Confirm the guest list",
+  "time": "Reminder time",
+  "timeIn": "Recorded only; no notification is sent. Time in {zone}.",
+  "create": "Record reminder",
+  "save": "Save reminder"
+}

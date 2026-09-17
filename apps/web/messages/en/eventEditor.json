@@ -1,0 +1,11 @@
+{
+  "checkSchedule": "Check the schedule.",
+  "discardTitle": "Discard changes?",
+  "title": "Edit event",
+  "close": "Close event editor",
+  "viewHistory": "View event history",
+  "history": "History",
+  "unsaved": "Your changes have not been saved.",
+  "name": "Name",
+  "save": "Save event"
+}

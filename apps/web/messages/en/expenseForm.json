@@ -1,0 +1,17 @@
+{
+  "checkTime": "Check the transaction time.",
+  "discardTitle": "Discard expense changes?",
+  "editTitle": "Edit expense",
+  "addTitle": "Add expense",
+  "close": "Close expense editor",
+  "viewHistory": "View expense history",
+  "unsaved": "Your expense changes have not been saved.",
+  "name": "Expense",
+  "namePlaceholder": "Venue deposit",
+  "amount": "Amount",
+  "currency": "Currency",
+  "date": "Date",
+  "timeIn": "Transaction time in {zone}.",
+  "create": "Record expense",
+  "save": "Save expense"
+}

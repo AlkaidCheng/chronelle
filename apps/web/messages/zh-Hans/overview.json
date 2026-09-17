@@ -1,0 +1,16 @@
+{
+  "transactions": "{count} 笔交易",
+  "eyebrow": "概览",
+  "title": "你的活动，一目了然。",
+  "intro": "多一点结构，计划就更清晰。选一个视图，让细节持续推进。",
+  "privateTitle": "私密的相关项目",
+  "privateNote": "{count} 个相关项目在你的权限范围之外。",
+  "openTodos": "未完成的待办",
+  "scheduled": "已安排的项目",
+  "expenses": "已记录的支出",
+  "reminders": "提醒",
+  "files": "活动文件",
+  "people": "参与者",
+  "nextUp": "接下来",
+  "nothingUpcoming": "暂无即将到来的事项。准备好后，添加日程项、带截止日期的任务或提醒。"
+}

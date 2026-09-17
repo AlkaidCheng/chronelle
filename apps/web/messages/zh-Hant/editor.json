@@ -1,0 +1,16 @@
+{
+  "discard": "捨棄",
+  "keepEditing": "繼續編輯",
+  "history": "歷史",
+  "shortcutTitle": "在編輯欄位中按 Cmd/Ctrl + Enter",
+  "checkFields": "請檢查各欄位。",
+  "saving": "儲存中…",
+  "savingChanges": "正在儲存變更…",
+  "saved": "已儲存。",
+  "saveStatus": "儲存狀態",
+  "refreshLatest": "重新整理至最新",
+  "draftKept": "草稿仍在。按「{submit}」可再次送出。",
+  "refreshOnlyChecks": "重新整理只會檢查是否有更新的資料。",
+  "failureRetry": "上次儲存未能確認。保持欄位不變再試一次，可沿用同一次儲存。",
+  "failureRefresh": "上次儲存未能確認。請先重新整理至最新再重試。"
+}

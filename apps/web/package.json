@@ -4,12 +4,13 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "pnpm --filter @chronelle/api-client build && next build",
-    "dev": "pnpm --filter @chronelle/api-client build && next dev",
+    "build": "pnpm messages && pnpm --filter @chronelle/api-client build && next build",
+    "dev": "pnpm messages && pnpm --filter @chronelle/api-client build && next dev",
+    "messages": "node scripts/build-messages.mjs",
     "start": "node scripts/start-standalone.mjs",
-    "sandbox": "pnpm --filter @chronelle/api-client build && node sandbox/build.mjs",
-    "test": "pnpm --filter @chronelle/api-client build && vitest run",
-    "typecheck": "pnpm --filter @chronelle/api-client build && tsc -p tsconfig.json --noEmit"
+    "sandbox": "pnpm messages && pnpm --filter @chronelle/api-client build && node sandbox/build.mjs",
+    "test": "pnpm messages && pnpm --filter @chronelle/api-client build && vitest run",
+    "typecheck": "pnpm messages && pnpm --filter @chronelle/api-client build && tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
     "@chronelle/api-client": "workspace:*",

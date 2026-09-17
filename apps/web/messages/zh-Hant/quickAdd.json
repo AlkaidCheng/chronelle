@@ -1,0 +1,13 @@
+{
+  "taskToList": "在列表中新增任務",
+  "taskWith": "新增{day}的任務",
+  "taskFor": "新增 {day} 的任務",
+  "newTask": "新任務",
+  "taskName": "任務名稱",
+  "addTask": "新增任務",
+  "reminderToList": "在列表中新增提醒",
+  "reminderFor": "新增 {day} 的提醒",
+  "newReminder": "新提醒",
+  "reminderName": "提醒名稱",
+  "addReminder": "新增提醒"
+}

@@ -1,0 +1,16 @@
+{
+  "discardTitle": "放弃任务更改？",
+  "editTitle": "编辑任务",
+  "addSubtaskTitle": "添加子任务",
+  "addTitle": "添加任务",
+  "close": "关闭任务编辑器",
+  "viewHistory": "查看任务历史",
+  "unsaved": "任务更改尚未保存。",
+  "subtaskOf": "{parent}的子任务。",
+  "name": "任务",
+  "namePlaceholder": "确认宾客名单",
+  "location": "地点",
+  "locationPlaceholder": "在哪里进行",
+  "create": "创建任务",
+  "save": "保存任务"
+}

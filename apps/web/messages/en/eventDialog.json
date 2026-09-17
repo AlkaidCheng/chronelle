@@ -1,0 +1,11 @@
+{
+  "checkSchedule": "Check the schedule.",
+  "discardTitle": "Discard this event?",
+  "title": "Create an event",
+  "close": "Close event creation",
+  "unsaved": "Your event name and schedule have not been saved.",
+  "name": "Event name",
+  "namePlaceholder": "What are you planning?",
+  "creating": "Creating...",
+  "create": "Create event"
+}

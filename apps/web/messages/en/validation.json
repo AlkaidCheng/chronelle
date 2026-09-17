@@ -1,0 +1,30 @@
+{
+  "locationLength": "Keep the location to {limit} characters.",
+  "durationRange": "Choose a duration of up to a day.",
+  "dueDateForTime": "Choose a due date for the due time.",
+  "dueTimeForDuration": "Choose a due time for the duration.",
+  "dueDateForRepeat": "Choose a due date to repeat from.",
+  "validDueDate": "Choose a valid due date.",
+  "repeatEndAfterDue": "Choose a repeat end on or after the due date.",
+  "repeatOffered": "Choose a repeat the picker offers.",
+  "validRepeatEnd": "Choose a valid repeat end.",
+  "validInstant": {
+    "due": "Choose a valid due date and time.",
+    "transaction": "Choose a valid transaction date and time.",
+    "reminder": "Choose a valid reminder date and time."
+  },
+  "unavailableInstant": {
+    "due": "This local time is unavailable. Choose another due time.",
+    "transaction": "This local time is unavailable. Choose another transaction time.",
+    "reminder": "This local time is unavailable. Choose another reminder time."
+  },
+  "transactionInstant": "Choose a transaction date and time.",
+  "reminderInstant": "Choose a reminder date and time.",
+  "validDateTime": "Enter a valid date and time (HH:mm).",
+  "clockChange": "This local time does not exist because the clock changes. Choose another time.",
+  "startDate": "Choose a start date.",
+  "validCalendarDates": "Enter valid calendar dates.",
+  "endBeforeStartDate": "End date must not precede start date.",
+  "endAndTime": "Provide both an end date and time, or leave both empty.",
+  "endBeforeStartTime": "End time must not precede start time."
+}

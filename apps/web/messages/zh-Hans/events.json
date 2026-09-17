@@ -1,0 +1,39 @@
+{
+  "title": "活动",
+  "filterByName": "按名称筛选活动",
+  "find": "查找活动",
+  "filterMenu": "筛选活动",
+  "sortMenu": "活动排序",
+  "layoutMenu": "活动布局",
+  "refresh": "刷新活动",
+  "new": "新建活动",
+  "countLabel": "活动数",
+  "count": "已加载 {count} 个活动",
+  "all": "全部活动",
+  "loading": "正在加载活动",
+  "empty": "还没有活动",
+  "noMatch": "没有匹配的活动",
+  "clearFilters": "清除筛选",
+  "loadMore": "加载更多活动",
+  "loadingMore": "正在加载更多活动…",
+  "filters": {
+    "all": "全部活动",
+    "upcoming": "即将开始与进行中",
+    "unscheduled": "未定日期",
+    "past": "已结束"
+  },
+  "sorts": {
+    "date": "活动日期",
+    "updated": "最近更新",
+    "name": "名称"
+  },
+  "layouts": {
+    "grid": "网格",
+    "list": "列表"
+  },
+  "period": {
+    "upcoming": "已安排",
+    "past": "已结束",
+    "unscheduled": "日期待定"
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "edit": "復原編輯",
+  "redoEdit": "重做編輯",
+  "named": "復原：{command}",
+  "redoNamed": "重做：{command}",
+  "nothing": "沒有可復原的操作",
+  "nothingRedo": "沒有可重做的操作",
+  "changedElsewhere": "此後已被他人變更",
+  "commands": {
+    "rename": "重新命名 {name}",
+    "complete": "完成 {name}",
+    "reopen": "重新開啟 {name}",
+    "move": "移動 {name}",
+    "edit": "編輯 {name}"
+  }
+}

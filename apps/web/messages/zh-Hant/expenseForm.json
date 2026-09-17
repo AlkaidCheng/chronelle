@@ -1,0 +1,17 @@
+{
+  "checkTime": "請檢查交易時間。",
+  "discardTitle": "捨棄支出變更？",
+  "editTitle": "編輯支出",
+  "addTitle": "新增支出",
+  "close": "關閉支出編輯器",
+  "viewHistory": "檢視支出歷史",
+  "unsaved": "支出變更尚未儲存。",
+  "name": "支出",
+  "namePlaceholder": "場地訂金",
+  "amount": "金額",
+  "currency": "幣別",
+  "date": "日期",
+  "timeIn": "交易時間以 {zone} 為準。",
+  "create": "記錄支出",
+  "save": "儲存支出"
+}

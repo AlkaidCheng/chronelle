@@ -1,0 +1,11 @@
+{
+  "nothingScheduled": "Nothing scheduled",
+  "unscheduled": "Unscheduled",
+  "noTimeline": "No timeline entries",
+  "dayTotal": "Day total",
+  "totalRecorded": "Total recorded",
+  "noExpenses": "No expenses recorded",
+  "undated": "Undated",
+  "noReminders": "No reminders",
+  "totalsByCurrency": "Totals by currency"
+}

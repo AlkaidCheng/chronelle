@@ -1,0 +1,20 @@
+{
+  "title": "Settings",
+  "sections": "Settings sections",
+  "account": "Account",
+  "preferences": "Preferences",
+  "languageTime": "Language & time",
+  "appearance": "Appearance",
+  "displayName": "Display name",
+  "email": "Email",
+  "noEmail": "No email on this account",
+  "password": "Password",
+  "passwordNote": "Change it with a code sent to your email.",
+  "changePassword": "Change password",
+  "sessions": "Sessions",
+  "signOutEverywhere": "Sign out everywhere",
+  "signOutEverywhereNote": "Ends every session of this account, including this one.",
+  "appearanceNote": "Appearance is kept on this browser. The Theme entry in the rail holds the same choices.",
+  "workspace": "Workspace",
+  "members": "Members"
+}

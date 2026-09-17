@@ -1,0 +1,19 @@
+{
+  "title": "Labels",
+  "close": "Close labels",
+  "choose": "Choose labels",
+  "loadFailed": "Labels could not be loaded.",
+  "loading": "Loading labels...",
+  "noneYet": "No labels yet. Add one below.",
+  "none": "No labels yet.",
+  "newLabel": "New label",
+  "adding": "Adding...",
+  "add": "Add label",
+  "addFailed": "The label could not be added.",
+  "nameOf": "Name of {name}",
+  "renaming": "Renaming...",
+  "rename": "Rename",
+  "keep": "Keep",
+  "changeFailed": "The change failed.",
+  "removing": "Removing..."
+}

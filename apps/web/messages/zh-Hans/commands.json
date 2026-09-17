@@ -1,0 +1,41 @@
+{
+  "destinations": {
+    "events": "浏览你的计划",
+    "tasks": "所有要做的事",
+    "people": "你的计划涉及的人",
+    "search": "查找你可访问的对象",
+    "trash": "查看可恢复的对象"
+  },
+  "recordDescription": "{type} / {state}",
+  "detailUnavailable": "详情页不可用",
+  "openEvent": "打开活动",
+  "title": "搜索",
+  "close": "关闭搜索",
+  "scope": "在 {workspace} 中查找记录或打开工具。",
+  "find": "查找命令",
+  "listLabel": "命令",
+  "groups": {
+    "context": "活动操作",
+    "navigation": "导航",
+    "record": "记录"
+  },
+  "current": "当前",
+  "searching": "正在搜索记录…",
+  "loadFailed": "无法加载记录。导航和活动工具仍可使用。",
+  "retry": "重试搜索记录",
+  "noRecords": "没有找到可访问的记录。试试其他词。",
+  "noMatch": "没有匹配的命令。输入至少两个字母或数字以查找记录。",
+  "showingEight": "只显示八条记录。请细化搜索词，或打开搜索查看全部结果。",
+  "openFull": "打开完整搜索",
+  "shortcuts": "键盘快捷键",
+  "openShortcut": "在编辑器和对话框之外，<kbd>Cmd/Ctrl + K</kbd> 打开搜索。用上下方向键选择结果，Enter 打开，Escape 关闭。",
+  "enableCommand": "启用命令快捷键",
+  "componentShortcut": "添加组件快捷键",
+  "off": "关闭",
+  "componentNote": "在编辑器和对话框之外，从所选活动页面打开组件选择器。需要编辑权限，且页面有空位。",
+  "enableSubmit": "启用编辑器提交快捷键",
+  "submitNote": "<kbd>Cmd/Ctrl + Enter</kbd> 可从活动、日程、任务、支出或提醒的字段中保存。保存校验仍然生效。",
+  "buttonsNote": "没有快捷键时按钮仍可使用。这些选择会在存储可用时保存在此浏览器上。原生文本撤销不受影响。",
+  "reset": "重置键盘快捷键",
+  "undoShortcut": "<kbd>Cmd/Ctrl + Z</kbd> 在文本框之外撤销你的上一次编辑，排列时则撤销上一次布局更改；<kbd>Shift + Cmd/Ctrl + Z</kbd> 重做。"
+}

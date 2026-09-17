@@ -1,0 +1,8 @@
+{
+  "notFoundTitle": "This page is not here",
+  "notFoundText": "The link may have changed. Your workspace is a good place to start again.",
+  "errorTitle": "Something interrupted this page",
+  "errorText": "Your saved plans are still there. Try opening the page again, or return to your events. Any unsaved changes may need to be entered again.",
+  "tryAgain": "Try again",
+  "backToEvents": "Back to events"
+}

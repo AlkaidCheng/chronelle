@@ -1,0 +1,7 @@
+{
+  "trash": "Move {name} to Trash? You can restore it from Trash.",
+  "removeShare": "{name} will lose access to {resource}.",
+  "removeMember": "{name} will lose access to this workspace.",
+  "removeFriend": "Shares you gave each other stay until removed.",
+  "removeLabel": "Every task loses {name}."
+}

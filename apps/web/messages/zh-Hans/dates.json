@@ -1,0 +1,18 @@
+{
+  "notScheduled": "未安排",
+  "tbd": "待定",
+  "noDay": "-",
+  "today": "今天",
+  "tomorrow": "明天",
+  "inWords": {
+    "today": "今天",
+    "tomorrow": "明天"
+  },
+  "hint": "{date}（{relative}）",
+  "range": "{start} 至 {end}",
+  "duration": {
+    "minutes": "{minutes} 分钟",
+    "hours": "{hours} 小时",
+    "hoursMinutes": "{hours} 小时 {minutes} 分钟"
+  }
+}

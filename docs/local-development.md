@@ -395,12 +395,20 @@ in each engine.
 
 ## Adding a language
 
-The web app's strings live in one catalog per locale under
-`apps/web/messages/` (`en.json`, `zh-Hans.json`, `zh-Hant.json`), keyed by
-feature namespace and identifier, never by English text. `apps/web/i18n/`
-holds the locale list, the request-time negotiation, the cookie preference,
-and the catalog loader. Adding a language is one catalog file plus one entry
-in `apps/web/i18n/locales.ts`:
+The web app's strings live under `apps/web/messages/<locale>/`, one JSON
+file per feature namespace (`nav.json`, `settings.json`, ...), keyed by
+identifier, never by English text. `pnpm --filter @chronelle/web messages`
+assembles them into one catalog per locale (`apps/web/messages/en.json` and
+the others), which is a build output: it is ignored by git, and the `build`,
+`dev`, `sandbox`, `test`, and `typecheck` scripts of the web package run the
+generator first. The bare `vitest run` form does not, so run the generator
+once before it, or any of those scripts. The generator refuses a namespace
+file present in one locale and missing in another, and a file whose top
+level is not an object. Two changes touch the same file only when they touch
+the same namespace, which keeps parallel work free of catalog conflicts.
+`apps/web/i18n/` holds the locale list, the request-time negotiation, the
+cookie preference, and the catalog loader. Adding a language is one
+directory of namespace files plus one entry in `apps/web/i18n/locales.ts`:
 
 ```ts
 { tag: "ja", native: "<the language's name in itself>", fallbacks: ["en"] }
@@ -411,8 +419,8 @@ The Language control, `<html lang>`, the Accept-Language negotiation (extend
 and the fallback chain all read that list. A key the new catalog lacks renders
 from the next locale in `fallbacks`, so a partial catalog never shows a bare
 key, but `apps/web/test/i18n-catalogs.test.ts` fails the build until every key
-of `en.json` exists in the new catalog with the same ICU parameters and no
-extras. Keep messages in ICU: plurals as
+of the English catalog exists in the new one with the same ICU parameters and
+no extras, and every locale carries the same namespace files. Keep messages in ICU: plurals as
 `{count, plural, one {# task} other {# tasks}}`, named parameters, no string
 concatenation in components. Components read strings with `useTranslations`;
 helpers outside React use `tr()` from `apps/web/i18n/active-locale.ts`, which

@@ -1,0 +1,20 @@
+{
+  "title": "設定",
+  "sections": "設定項目",
+  "account": "帳號",
+  "preferences": "偏好設定",
+  "languageTime": "語言與時間",
+  "appearance": "外觀",
+  "displayName": "顯示名稱",
+  "email": "電子郵件",
+  "noEmail": "此帳號沒有電子郵件",
+  "password": "密碼",
+  "passwordNote": "透過寄到電子郵件的驗證碼變更。",
+  "changePassword": "變更密碼",
+  "sessions": "登入工作階段",
+  "signOutEverywhere": "登出所有裝置",
+  "signOutEverywhereNote": "結束此帳號的所有工作階段，包括目前這一個。",
+  "appearanceNote": "外觀設定儲存在此瀏覽器中。側欄的「主題」提供相同的選項。",
+  "workspace": "工作區",
+  "members": "成員"
+}
