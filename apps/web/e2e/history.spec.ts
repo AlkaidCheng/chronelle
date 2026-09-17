@@ -90,8 +90,10 @@ test("compares and restores history while preserving an open draft", async ({
   await expect(page.getByLabel("Name", { exact: true })).toHaveValue(
     "Unsaved local draft",
   );
+  // The restored version is newer than the draft's base: the editor
+  // compares the two and offers the ways out instead of saving.
   await expect(
-    page.getByRole("button", { name: "Discard draft and load latest" }),
+    page.getByRole("button", { name: "Take theirs", exact: true }),
   ).toBeVisible();
   await expect(page.getByRole("button", { name: "Save event" })).toBeDisabled();
   expect(

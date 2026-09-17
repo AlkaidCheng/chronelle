@@ -1,5 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { expect, test } from "./fixtures";
+import { moveToTrash, removeFromEvent } from "./helpers/lifecycle";
+import { openTrash } from "./helpers/quiet-chrome";
 import { chooseRowAction } from "./helpers/row-menu";
 
 test("recovers canonical objects and independent context links", async ({
@@ -79,16 +81,7 @@ test("recovers canonical objects and independent context links", async ({
   expect(await dialog.evaluate((element) => element.matches(":modal"))).toBe(
     true,
   );
-  await dialog.getByRole("button", { name: "Remove context link" }).click();
-  await expect(
-    dialog.getByRole("button", { name: "Confirm removal" }),
-  ).toBeDisabled();
-  await dialog.getByRole("checkbox").check();
-  await dialog.getByRole("button", { name: "Confirm removal" }).click();
-  await expect(dialog.getByRole("status")).toHaveText(
-    "Link removed. The canonical object remains available.",
-  );
-  await page.keyboard.press("Escape");
+  await removeFromEvent(page, dialog);
   await expect(row).not.toBeVisible();
   for (const relationId of additionalLinks) {
     const removed = await request.delete(
@@ -137,16 +130,8 @@ test("recovers canonical objects and independent context links", async ({
   await page.getByRole("tab", { name: "To-dos" }).click();
   await expect(row).toBeVisible();
   await chooseRowAction(page, row, "Move to Trash");
-  dialog = page.getByRole("dialog");
-  await dialog
-    .getByRole("button", { name: "Move to Trash", exact: true })
-    .click();
-  await dialog.getByRole("checkbox").check();
-  await dialog.getByRole("button", { name: "Confirm move to Trash" }).click();
-  await expect(dialog.getByRole("status")).toHaveText(
-    "Moved to Trash. No related objects were deleted.",
-  );
-  await dialog.getByRole("link", { name: "Open Trash" }).click();
+  await moveToTrash(page, page.getByRole("dialog"));
+  await openTrash(page);
   await page.getByLabel("Object type").selectOption("task");
   expect(
     await page.evaluate(
@@ -198,16 +183,8 @@ test("recovers canonical objects and independent context links", async ({
   await page
     .getByRole("menuitem", { name: "Move to Trash", exact: true })
     .click();
-  dialog = page.getByRole("dialog");
-  await dialog
-    .getByRole("button", { name: "Move to Trash", exact: true })
-    .click();
-  await dialog.getByRole("checkbox").check();
-  await dialog.getByRole("button", { name: "Confirm move to Trash" }).click();
-  await expect(dialog.getByRole("status")).toHaveText(
-    "Moved to Trash. No related objects were deleted.",
-  );
-  await dialog.getByRole("link", { name: "Open Trash" }).click();
+  await moveToTrash(page, page.getByRole("dialog"));
+  await openTrash(page);
   await page
     .getByRole("button", { name: "Preview recovery for Recovery workshop" })
     .click();

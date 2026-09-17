@@ -130,10 +130,17 @@ test("connects two accounts through a request and links a person to the friend",
   await signOut(page);
   await signInAs(page, "Ben", benEmail);
   await openFriends(page, "Ben");
-  await page
-    .getByRole("region", { name: /^Friends/ })
-    .getByRole("button", { name: "Remove", exact: true })
+  const friends = page.getByRole("region", { name: /^Friends/ });
+  await friends
+    .getByRole("button", { name: "Remove friend", exact: true })
     .click();
+  await expect(friends).toContainText(
+    "Shares you gave each other stay until removed.",
+  );
+  await friends
+    .getByRole("button", { name: "Remove friend", exact: true })
+    .click();
+  await expect(page.locator(".notice-toast")).toContainText("Friend removed");
   await expect(
     page.getByText("No friends yet", { exact: false }),
   ).toBeVisible();
@@ -168,6 +175,8 @@ test("invites an address without an account and keeps it under Sent", async ({
   const sent = page.getByRole("region", { name: /^Sent/ });
   await expect(sent).toContainText(newcomer);
   await expect(sent).toContainText("Sign-up link valid until");
-  await sent.getByRole("button", { name: "Withdraw", exact: true }).click();
+  await sent
+    .getByRole("button", { name: "Withdraw invitation", exact: true })
+    .click();
   await expect(page.getByRole("region", { name: /^Sent/ })).toHaveCount(0);
 });

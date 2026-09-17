@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { expect, test } from "./fixtures";
 import { exerciseCollectionReturn } from "./helpers/collection-return";
+import { moveToTrash } from "./helpers/lifecycle";
 
 test("returns to filtered loaded Events without persisting private criteria", async ({
   page,
@@ -34,16 +35,7 @@ test("returns to filtered loaded Events without persisting private criteria", as
   await page
     .getByRole("menuitem", { name: "Move to Trash", exact: true })
     .click();
-  const dialog = page.getByRole("dialog");
-  await dialog
-    .getByRole("button", { name: "Move to Trash", exact: true })
-    .click();
-  await dialog.getByRole("checkbox").check();
-  await dialog.getByRole("button", { name: "Confirm move to Trash" }).click();
-  await expect(dialog.getByRole("status")).toHaveText(
-    "Moved to Trash. No related objects were deleted.",
-  );
-  await page.keyboard.press("Escape");
+  await moveToTrash(page, page.getByRole("dialog"));
   await page.getByRole("link", { name: /All events/ }).click();
   await expect(
     page.getByText("No matching events", { exact: true }),

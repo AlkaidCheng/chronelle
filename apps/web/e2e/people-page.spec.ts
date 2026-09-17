@@ -1,6 +1,8 @@
 import { randomUUID } from "node:crypto";
 import { expect, test } from "./fixtures";
+import { moveToTrash } from "./helpers/lifecycle";
 import { exercisePeoplePage } from "./helpers/people-page";
+import { openTrash } from "./helpers/quiet-chrome";
 import { chooseRowAction } from "./helpers/row-menu";
 
 test("keeps people as rows and namecards with a page for each", async ({
@@ -74,20 +76,12 @@ test("keeps people as rows and namecards with a page for each", async ({
   await page.getByRole("link", { name: "All people", exact: true }).click();
   const adam = page.getByRole("listitem", { name: "adam", exact: true });
   await chooseRowAction(page, adam, "Move to Trash");
-  let dialog = page.getByRole("dialog");
-  await dialog
-    .getByRole("button", { name: "Move to Trash", exact: true })
-    .click();
-  await dialog.getByRole("checkbox").check();
-  await dialog.getByRole("button", { name: "Confirm move to Trash" }).click();
-  await expect(dialog.getByRole("status")).toHaveText(
-    "Moved to Trash. No related objects were deleted.",
-  );
-  await dialog.getByRole("link", { name: "Open Trash" }).click();
+  await moveToTrash(page, page.getByRole("dialog"));
+  await openTrash(page);
   await page
     .getByRole("button", { name: "Preview recovery for adam", exact: true })
     .click();
-  dialog = page.getByRole("dialog");
+  const dialog = page.getByRole("dialog");
   await dialog.getByRole("checkbox").check();
   await dialog.getByRole("button", { name: "Confirm recovery" }).click();
   await expect(dialog.getByRole("status")).toContainText(
