@@ -1,4 +1,5 @@
 import { expect, type Page, type TestInfo } from "@playwright/test";
+import { openTrash } from "./quiet-chrome";
 
 export const navigationPageNames = [
   "Preparation and reservations for a summer together",
@@ -69,10 +70,7 @@ export async function exercisePageNavigation(page: Page, testInfo: TestInfo) {
   await expect(
     page.getByRole("heading", { name: navigationPageNames[2], exact: true }),
   ).toBeVisible();
-  await page.getByRole("link", { name: "Trash", exact: true }).click();
-  await expect(
-    page.getByRole("heading", { name: "Trash", exact: true }),
-  ).toBeVisible();
+  await openTrash(page);
   await page.goBack();
   await expect(
     page.getByRole("heading", { name: navigationPageNames[2], exact: true }),

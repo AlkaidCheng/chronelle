@@ -1,6 +1,6 @@
 import { expect, type Page, type TestInfo } from "@playwright/test";
 import { expectReadablePalette } from "./appearance";
-import { openThemePanel } from "./quiet-chrome";
+import { moreTrigger, openThemePanel } from "./quiet-chrome";
 
 export async function openDisplaySettings(page: Page) {
   const trigger = page.getByRole("button", { name: "Customize appearance" });
@@ -113,9 +113,7 @@ export async function exerciseThemePanel(page: Page, testInfo: TestInfo) {
     panel.getByRole("button", { name: "Reset display settings" }),
   ).toHaveCSS("transition-duration", /^(1e-05|0\.00001)s$/);
   await page.keyboard.press("Escape");
-  await expect(
-    page.getByRole("button", { name: "Theme", exact: true }),
-  ).toBeFocused();
+  await expect(moreTrigger(page)).toBeFocused();
   await page.reload();
   await expect(page.locator("html")).toHaveAttribute("data-palette", "neutral");
   await expect(page.locator("html")).toHaveAttribute("data-density", "compact");

@@ -1,6 +1,6 @@
 import { expect, type Page, type TestInfo } from "@playwright/test";
 import { expectHorizontalReflow } from "./page-navigation";
-import { openAccountMenu, openThemePanel } from "./quiet-chrome";
+import { moreTrigger, openAccountMenu, openThemePanel } from "./quiet-chrome";
 
 export async function exerciseWorkspaceUtilities(
   page: Page,
@@ -9,10 +9,24 @@ export async function exerciseWorkspaceUtilities(
   const navigation = page.getByRole("navigation", {
     name: "Workspace navigation",
   });
-  for (const name of ["Events", "Tasks", "People", "Trash"])
+  for (const name of ["Events", "Tasks", "People"])
     await expect(
       navigation.getByRole("link", { name, exact: true }),
     ).toBeVisible();
+  await expect(navigation.getByRole("link", { name: "Trash" })).toHaveCount(0);
+  await moreTrigger(page).click();
+  const more = page.getByRole("menu", { name: "More", exact: true });
+  await expect(
+    more.getByRole("menuitem", { name: "Trash", exact: true }),
+  ).toHaveAttribute("href", /\/trash$/u);
+  // Arranging the rail is a desktop task: a phone's More does not offer it.
+  const phone = (page.viewportSize()?.width ?? 1280) <= 760;
+  await expect(
+    more.getByRole("menuitem", { name: "Customize sidebar", exact: true }),
+  ).toHaveCount(phone ? 0 : 1);
+  await page.keyboard.press("Escape");
+  await expect(more).toHaveCount(0);
+  await expect(moreTrigger(page)).toBeFocused();
   await expect(
     navigation.getByRole("button", {
       name: "Search and commands",
@@ -52,9 +66,7 @@ export async function exerciseWorkspaceUtilities(
   ).toBeFocused();
   await page.keyboard.press("Escape");
   await expect(theme).toHaveCount(0);
-  await expect(
-    page.getByRole("button", { name: "Theme", exact: true }),
-  ).toBeFocused();
+  await expect(moreTrigger(page)).toBeFocused();
 
   await page.getByRole("tab", { name: "To-dos", exact: true }).click();
   await page.getByRole("button", { name: /^Filter/ }).click();
@@ -101,9 +113,7 @@ export async function exerciseWorkspaceUtilities(
   await expectHorizontalReflow(page);
   await page.setViewportSize({ width: 320, height: 568 });
   await page.keyboard.press("Escape");
-  await expect(
-    page.getByRole("button", { name: "Theme", exact: true }),
-  ).toBeFocused();
+  await expect(moreTrigger(page)).toBeFocused();
   await expectHorizontalReflow(page);
   await page.screenshot({
     path: testInfo.outputPath("workspace-navigation-narrow.png"),
