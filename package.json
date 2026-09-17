@@ -34,7 +34,7 @@
   },
   "devDependencies": {
     "@biomejs/biome": "2.5.13",
-    "@cloudbase/js-sdk": "3.9.3",
+    "@cloudbase/js-sdk": "3.9.4",
     "@playwright/test": "1.62.0",
     "@types/node": "26.5.1",
     "@types/react": "19.3.0",

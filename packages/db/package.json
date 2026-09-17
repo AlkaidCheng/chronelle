@@ -26,7 +26,7 @@
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
-    "@cloudbase/js-sdk": "3.9.3",
+    "@cloudbase/js-sdk": "3.9.4",
     "drizzle-orm": "0.45.2",
     "postgres": "3.4.9",
     "uuid": "14.0.2",
