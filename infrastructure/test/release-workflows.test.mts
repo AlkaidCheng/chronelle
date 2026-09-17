@@ -83,7 +83,13 @@ describe("container release boundary", () => {
       uses: "./.github/workflows/ci.yml",
       with: { retain_images: true },
     });
-    for (const name of ["quality", "browser-tests", "sandbox", "containers"]) {
+    for (const name of [
+      "quality-static",
+      "quality-tests",
+      "browser-tests",
+      "sandbox",
+      "containers",
+    ]) {
       const job = ci.jobs[name];
       expect(job.needs).toBeUndefined();
       expect(job["continue-on-error"]).toBeUndefined();
@@ -106,9 +112,25 @@ describe("container release boundary", () => {
     expect(publisher.needs).toBe("validate");
     expect(publisher.if).toBeUndefined();
     expect(publisher["continue-on-error"]).toBeUndefined();
+    // The two halves of the quality gate run every command `pnpm check` runs.
+    const { scripts } = JSON.parse(
+      readFileSync(resolve(root, "package.json"), "utf8"),
+    );
+    const commands = (script: string): string[] =>
+      scripts[script].split(" && ").map((command: string) => command.trim());
+    const halves = new Set([
+      ...commands("check:static"),
+      ...commands("check:tests"),
+    ]);
+    for (const command of commands("check")) expect(halves).toContain(command);
     expect(
-      ci.jobs.quality.steps.some(
-        (step: { run?: string }) => step.run === "pnpm check",
+      ci.jobs["quality-static"].steps.some(
+        (step: { run?: string }) => step.run === "pnpm check:static",
+      ),
+    ).toBe(true);
+    expect(
+      ci.jobs["quality-tests"].steps.some(
+        (step: { run?: string }) => step.run === "pnpm check:tests",
       ),
     ).toBe(true);
     expect(
@@ -159,13 +181,45 @@ describe("container release boundary", () => {
     }
   });
 
+  it("keeps the required quality check dependent on both halves", () => {
+    const gate = ci.jobs.quality;
+    expect(gate.needs).toEqual(["quality-static", "quality-tests"]);
+    expect(gate.if).toBe("always()");
+    expect(gate["continue-on-error"]).toBeUndefined();
+    expect(gate.steps).toHaveLength(1);
+    const [step] = gate.steps;
+    expect(step["continue-on-error"]).toBeUndefined();
+    expect(step.if).toBeUndefined();
+    expect(step.env).toEqual({
+      STATIC_RESULT: `\${{ needs.quality-static.result }}`,
+      TESTS_RESULT: `\${{ needs.quality-tests.result }}`,
+    });
+    for (const browser of ["success", "failure", "cancelled", "skipped"]) {
+      for (const sandbox of ["success", "failure", "cancelled", "skipped"]) {
+        const result = spawnSync("sh", ["-e", "-c", step.run], {
+          env: {
+            ...process.env,
+            STATIC_RESULT: browser,
+            TESTS_RESULT: sandbox,
+          },
+        });
+        expect(result.error).toBeUndefined();
+        expect(result.status === 0, `${browser} / ${sandbox}`).toBe(
+          browser === "success" && sandbox === "success",
+        );
+      }
+    }
+  });
+
   it("uses the runner PostgreSQL client without refreshing unrelated repositories", () => {
-    expect(ci.jobs.quality.steps).toContainEqual({
+    expect(ci.jobs["quality-tests"].steps).toContainEqual({
       name: "Verify PostgreSQL client",
       run: "psql --version",
     });
-    for (const step of ci.jobs.quality.steps as { run?: string }[]) {
-      expect(step.run ?? "").not.toContain("apt-get");
+    for (const name of ["quality-static", "quality-tests"]) {
+      for (const step of ci.jobs[name].steps as { run?: string }[]) {
+        expect(step.run ?? "").not.toContain("apt-get");
+      }
     }
   });
 

@@ -5,38 +5,41 @@ const databaseUrl =
   process.env.DATABASE_URL ??
   "postgresql://chronelle:chronelle_dev@localhost:5432/chronelle";
 const isCi = process.env.CI === "true";
-/** `E2E_SHARD=current/total` runs one slice of the suite, one runner each in CI. */
-const shard = (() => {
-  const match = /^(\d+)\/(\d+)$/u.exec(process.env.E2E_SHARD ?? "");
-  return match
-    ? { current: Number(match[1]), total: Number(match[2]) }
-    : undefined;
-})();
+/**
+ * `E2E_PROJECT=name` runs one browser project, one runner each in CI: a WebKit
+ * journey costs almost twice a Chromium one, so slicing by project balances
+ * the runners better than slicing the list by count.
+ */
+const onlyProject = process.env.E2E_PROJECT;
+
+const allProjects = [
+  {
+    name: "chromium-desktop",
+    use: { ...devices["Desktop Chrome"] },
+  },
+  {
+    name: "chromium-mobile",
+    use: { ...devices["Pixel 5"] },
+  },
+  {
+    name: "webkit-desktop",
+    grep: /@webkit-desktop/,
+    use: { ...devices["Desktop Safari"] },
+  },
+  {
+    name: "webkit-mobile",
+    grep: /@webkit-mobile/,
+    use: { ...devices["iPhone 13"] },
+  },
+];
 
 export default defineConfig({
   expect: { timeout: 10_000 },
   fullyParallel: false,
   outputDir: "test-results/playwright",
-  projects: [
-    {
-      name: "chromium-desktop",
-      use: { ...devices["Desktop Chrome"] },
-    },
-    {
-      name: "chromium-mobile",
-      use: { ...devices["Pixel 5"] },
-    },
-    {
-      name: "webkit-desktop",
-      grep: /@webkit-desktop/,
-      use: { ...devices["Desktop Safari"] },
-    },
-    {
-      name: "webkit-mobile",
-      grep: /@webkit-mobile/,
-      use: { ...devices["iPhone 13"] },
-    },
-  ],
+  projects: allProjects.filter(
+    (project) => onlyProject === undefined || project.name === onlyProject,
+  ),
   // CI keeps the annotations and lists every test's duration for tuning.
   reporter: isCi ? [["github"], ["list"]] : "list",
   retries: isCi ? 1 : 0,
@@ -74,7 +77,6 @@ export default defineConfig({
       url: "http://127.0.0.1:3000/sign-in",
     },
   ],
-  ...(shard === undefined ? {} : { shard }),
   // A CI runner has four vCPUs shared with both servers and PostgreSQL; two
   // browsers keep them busy without starving one another.
   workers: isCi ? 2 : 1,

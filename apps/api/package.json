@@ -12,7 +12,9 @@
     "dev": "pnpm --filter @chronelle/schemas build && pnpm --filter @chronelle/object-model build && tsx watch src/server.ts",
     "start": "node dist/server.js",
     "test": "pnpm --filter @chronelle/schemas build && pnpm --filter @chronelle/object-model build && vitest run",
-    "typecheck": "pnpm --filter @chronelle/schemas build && pnpm --filter @chronelle/object-model build && tsc -p tsconfig.json --noEmit"
+    "test:unit": "vitest run",
+    "typecheck": "pnpm --filter @chronelle/schemas build && pnpm --filter @chronelle/object-model build && tsc -p tsconfig.json --noEmit",
+    "typecheck:unit": "tsc -p tsconfig.json --noEmit"
   },
   "devDependencies": {
     "@types/nodemailer": "^8.0.1",

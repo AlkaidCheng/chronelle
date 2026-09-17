@@ -241,8 +241,12 @@ The database tests create and drop disposable PostgreSQL databases. Start the
 Compose service first and provide `TEST_DATABASE_URL` when not using the local
 defaults.
 
+`pnpm check` builds the workspace packages once, then type-checks and tests
+every package in parallel (four at a time) before building the applications.
 Individual checks are available as `pnpm format:check`, `pnpm lint`,
-`pnpm typecheck`, `pnpm test`, and `pnpm build`.
+`pnpm typecheck`, `pnpm test`, and `pnpm build`; the `typecheck` and `test`
+scripts of each package rebuild their upstream packages first, and their
+`typecheck:unit` and `test:unit` forms assume that build has happened.
 
 Install the pinned browser builds once, then run the real-browser release gate
 against the PostgreSQL service:
@@ -256,10 +260,12 @@ The browser gate runs the same canonical Event creation and search path at
 desktop and narrow-mobile widths. It also checks tab-keyboard behavior, the
 skip link, and horizontal overflow. Targeted desktop/mobile WebKit cases cover
 Event scheduling, date formatting, and creation-dialog focus. CI uses the pinned
-Playwright image and splits this gate into three shards, one runner each with
-two workers (`E2E_SHARD=current/total` selects a slice locally too). The offline
-sandbox suite runs in a separate concurrent job with four workers. The required
-`browser` check succeeds only when every shard and the sandbox suite pass. Local
+Playwright image and runs one browser project per runner with two workers
+(`E2E_PROJECT=name` selects one project locally too); a WebKit journey costs
+almost twice a Chromium one, so slicing by project keeps the runners even. The
+offline sandbox suite runs in a separate concurrent job with four workers. The
+required `browser` check succeeds only when every project and the sandbox suite
+pass. Local
 browser runs use one worker; pass `--workers=4` to Playwright to exercise
 concurrent execution locally.
 Engine emulation does not replace manual screen-reader or physical-device testing.

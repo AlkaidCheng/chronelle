@@ -10,7 +10,9 @@
     "start": "node scripts/start-standalone.mjs",
     "sandbox": "pnpm messages && pnpm --filter @chronelle/api-client build && node sandbox/build.mjs",
     "test": "pnpm messages && pnpm --filter @chronelle/api-client build && vitest run",
-    "typecheck": "pnpm messages && pnpm --filter @chronelle/api-client build && tsc -p tsconfig.json --noEmit"
+    "test:unit": "pnpm messages && vitest run",
+    "typecheck": "pnpm messages && pnpm --filter @chronelle/api-client build && tsc -p tsconfig.json --noEmit",
+    "typecheck:unit": "pnpm messages && tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
     "@chronelle/api-client": "workspace:*",

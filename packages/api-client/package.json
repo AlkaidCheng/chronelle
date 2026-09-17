@@ -12,7 +12,9 @@
   "scripts": {
     "build": "pnpm --filter @chronelle/schemas build && tsc -p tsconfig.build.json",
     "test": "pnpm --filter @chronelle/schemas build && vitest run",
-    "typecheck": "pnpm --filter @chronelle/schemas build && tsc -p tsconfig.json --noEmit"
+    "test:unit": "vitest run",
+    "typecheck": "pnpm --filter @chronelle/schemas build && tsc -p tsconfig.json --noEmit",
+    "typecheck:unit": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
     "@chronelle/schemas": "workspace:*",

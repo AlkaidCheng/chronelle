@@ -23,7 +23,9 @@
     "build": "tsc -p tsconfig.build.json",
     "migrate": "tsx src/cli.ts",
     "test": "vitest run",
-    "typecheck": "tsc -p tsconfig.json --noEmit"
+    "test:unit": "vitest run",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "typecheck:unit": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
     "@cloudbase/js-sdk": "3.9.4",
