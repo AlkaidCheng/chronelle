@@ -9,6 +9,7 @@ import {
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { MoreMenu } from "../components/more-menu";
+import { NoticesProvider } from "../components/notices";
 
 const router = vi.hoisted(() => ({ refresh: vi.fn() }));
 vi.mock("next/navigation", () => ({ useRouter: () => router }));
@@ -28,10 +29,10 @@ afterEach(() => {
 function renderMenu() {
   const onCustomize = vi.fn();
   render(
-    <>
+    <NoticesProvider>
       <MoreMenu onCustomize={onCustomize} />
       <button type="button">Elsewhere</button>
-    </>,
+    </NoticesProvider>,
   );
   return {
     onCustomize,
@@ -40,20 +41,38 @@ function renderMenu() {
   };
 }
 
-it("opens a menu with Trash, Theme, and Customize sidebar, and starts customizing", async () => {
+it("opens a menu with Trash, Theme, Customize sidebar, Keyboard shortcuts, and Help, and starts customizing", async () => {
   const { onCustomize, trigger, user } = renderMenu();
   await user.click(trigger);
   const menu = screen.getByRole("menu", { name: "More" });
+  expect(
+    within(menu)
+      .getAllByRole("menuitem")
+      .map((item) => item.textContent),
+  ).toEqual([
+    "Trash",
+    "Theme",
+    "Customize sidebar",
+    "Keyboard shortcuts",
+    "Help",
+  ]);
   expect(within(menu).getByRole("menuitem", { name: "Trash" })).toHaveAttribute(
     "href",
     "/trash",
   );
   expect(within(menu).getByRole("menuitem", { name: "Trash" })).toHaveFocus();
+  // Keyboard shortcuts and Help have no surface yet: choosing one closes
+  // the menu and says so in a passing notice.
   await user.keyboard("{End}");
-  expect(
-    within(menu).getByRole("menuitem", { name: "Customize sidebar" }),
-  ).toHaveFocus();
+  expect(within(menu).getByRole("menuitem", { name: "Help" })).toHaveFocus();
   await user.keyboard("{Enter}");
+  expect(screen.queryByRole("menu")).not.toBeInTheDocument();
+  expect(screen.getByRole("status")).toHaveTextContent(
+    "Help is not available yet",
+  );
+  expect(onCustomize).not.toHaveBeenCalled();
+  await user.click(trigger);
+  await user.click(screen.getByRole("menuitem", { name: "Customize sidebar" }));
   expect(onCustomize).toHaveBeenCalledTimes(1);
   expect(screen.queryByRole("menu")).not.toBeInTheDocument();
 });

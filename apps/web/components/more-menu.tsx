@@ -3,7 +3,15 @@
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useId, useRef, useState } from "react";
-import { MoreGridIcon, PencilIcon, ThemeIcon, TrashIcon } from "./icons";
+import {
+  HelpIcon,
+  KeyboardIcon,
+  MoreGridIcon,
+  PencilIcon,
+  ThemeIcon,
+  TrashIcon,
+} from "./icons";
+import { useNotices } from "./notices";
 import {
   focusFirstMenuItem,
   moveMenuFocus,
@@ -13,9 +21,11 @@ import { ThemePanel } from "./theme-panel";
 
 /**
  * The More control beside the profile block: what acts on the app rather
- * than on records. Trash, Theme (the panel opens beside the rail), and
- * Customize sidebar. Escape or a press outside closes the menu or the panel
- * and, from the keyboard, returns focus to the control.
+ * than on records. Trash, Theme (the panel opens beside the rail),
+ * Customize sidebar, then Keyboard shortcuts and Help, which have no
+ * surface yet: choosing one posts a passing notice saying so. Escape or a
+ * press outside closes the menu or the panel and, from the keyboard,
+ * returns focus to the control.
  */
 export function MoreMenu({
   onCustomize,
@@ -27,6 +37,7 @@ export function MoreMenu({
   const id = useId();
   const t = useTranslations("nav");
   const theme = useTranslations("theme");
+  const { post } = useNotices();
   const root = useRef<HTMLDivElement>(null);
   const trigger = useRef<HTMLButtonElement>(null);
   const menu = useRef<HTMLDivElement>(null);
@@ -47,6 +58,10 @@ export function MoreMenu({
     setThemeOpen(false);
     if (byKeyboard) trigger.current?.focus();
   }, []);
+  function notYet(name: string) {
+    setOpen(false);
+    post({ message: t("notAvailableYet", { name }) });
+  }
 
   return (
     <div className="more-menu" ref={root}>
@@ -113,6 +128,26 @@ export function MoreMenu({
           >
             <PencilIcon />
             <span>{t("customize")}</span>
+          </button>
+          <button
+            type="button"
+            role="menuitem"
+            tabIndex={-1}
+            className="quiet-menu-item"
+            onClick={() => notYet(t("keyboardShortcuts"))}
+          >
+            <KeyboardIcon />
+            <span>{t("keyboardShortcuts")}</span>
+          </button>
+          <button
+            type="button"
+            role="menuitem"
+            tabIndex={-1}
+            className="quiet-menu-item"
+            onClick={() => notYet(t("help"))}
+          >
+            <HelpIcon />
+            <span>{t("help")}</span>
           </button>
         </div>
       ) : null}
