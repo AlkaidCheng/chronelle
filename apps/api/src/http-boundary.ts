@@ -41,6 +41,7 @@ import {
   FriendUnavailableError,
   InvalidFriendRequestError,
 } from "./friends/friend-store.js";
+import { WorkspaceMemberConflictError } from "./workspaces/membership-store.js";
 
 const domainErrors = [
   [StorageInventoryBusyError, 429, "inventory_busy"],
@@ -60,6 +61,7 @@ const domainErrors = [
   [FriendConflictError, 409, "friend_conflict"],
   [FriendLimitError, 429, "friend_limit"],
   [InvalidFriendRequestError, 400, "invalid_request"],
+  [WorkspaceMemberConflictError, 409, "member_conflict"],
 ] as const;
 
 function resolveHttpError(error: unknown): HttpError {

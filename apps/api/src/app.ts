@@ -22,6 +22,7 @@ import { registerRequestContext } from "./request-context.js";
 import { registerRevisionRoutes } from "./revisions/routes.js";
 import { registerSearchRoutes } from "./search/routes.js";
 import { registerSharingRoutes } from "./sharing/routes.js";
+import { registerWorkspaceRoutes } from "./workspaces/routes.js";
 import { registerStorageInventoryRoutes } from "./storage-inventory/routes.js";
 
 export function buildApp(
@@ -47,6 +48,7 @@ export function buildApp(
   registerEventPageRoutes(app, dependencies);
   registerSearchRoutes(app, dependencies);
   registerSharingRoutes(app, dependencies);
+  registerWorkspaceRoutes(app, dependencies);
   registerRevisionRoutes(app, dependencies);
   registerRecoveryRoutes(app, dependencies);
   registerCommandRoutes(app, dependencies);

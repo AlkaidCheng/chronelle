@@ -8,6 +8,7 @@ import {
   auditEvents,
   createId,
   resourceGrants,
+  userConnections,
   users,
   workspaceMembers,
 } from "@chronelle/db";
@@ -284,7 +285,7 @@ describe.sequential("CloudBase sharing writes", () => {
         PrincipalUnavailableError.name,
         PrincipalUnavailableError.name,
         PrincipalUnavailableError.name,
-        "Name exactly one of principalEmail and personId.",
+        "Name exactly one of principalEmail, personId, and friendId.",
       ],
       audits: [
         {
@@ -302,6 +303,97 @@ describe.sequential("CloudBase sharing writes", () => {
             principalId: granteeId,
             role: "viewer",
             personId: byEmail.id,
+          },
+          grantIdPresent: true,
+        },
+      ],
+    });
+  });
+
+  it("shares with a friend through the caller's accepted connection", async () => {
+    const db = harness.database.connection.db;
+    // The owner's friend; a request still waiting; a friendship between two
+    // other accounts.
+    const account = async (name: string) => {
+      const id = createId();
+      await db.insert(users).values({
+        id,
+        identityProvider: "test",
+        providerSubject: id,
+        displayName: name,
+        email: `${id}@example.test`,
+      });
+      return id;
+    };
+    const friendId = await account("Friend");
+    const waitingId = await account("Waiting");
+    const strangerA = await account("Stranger A");
+    const strangerB = await account("Stranger B");
+    const connection = async (
+      requesterId: string,
+      addresseeId: string,
+      status: "accepted" | "pending",
+    ) => {
+      const id = createId();
+      await db.insert(userConnections).values({
+        id,
+        requesterId,
+        addresseeId,
+        status,
+      });
+      return id;
+    };
+    const accepted = await connection(friendId, harness.ownerId, "accepted");
+    const waiting = await connection(harness.ownerId, waitingId, "pending");
+    const foreign = await connection(strangerA, strangerB, "accepted");
+    const results = [];
+    for (const [, services] of backends()) {
+      const event = await reference.objects.createEvent(context(), {
+        displayName: "With a friend",
+      });
+      const shared = await services.shares.share(context(), {
+        resourceId: event.id,
+        friendId: accepted,
+        role: "editor",
+      });
+      const refused: string[] = [];
+      for (const friend of [waiting, foreign, createId()])
+        refused.push(
+          (
+            await failure(() =>
+              services.shares.share(context(), {
+                resourceId: event.id,
+                friendId: friend,
+                role: "viewer",
+              }),
+            )
+          ).constructor.name,
+        );
+      results.push({
+        principalId: shared.principal.id === friendId,
+        displayName: shared.principal.displayName,
+        role: shared.role,
+        refused,
+        audits: await sharingAudits(event.id),
+      });
+    }
+    expect(results[1]).toEqual(results[0]);
+    expect(results[0]).toEqual({
+      principalId: true,
+      displayName: "Friend",
+      role: "editor",
+      refused: [
+        PrincipalUnavailableError.name,
+        PrincipalUnavailableError.name,
+        PrincipalUnavailableError.name,
+      ],
+      audits: [
+        {
+          action: "resource.shared",
+          metadata: {
+            principalId: friendId,
+            role: "editor",
+            friendId: accepted,
           },
           grantIdPresent: true,
         },

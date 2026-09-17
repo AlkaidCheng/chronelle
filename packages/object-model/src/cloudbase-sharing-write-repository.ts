@@ -51,6 +51,7 @@ export class CloudBaseSharingWriteRepository
         ? {}
         : { principal_email: input.principalEmail }),
       ...(input.personId === undefined ? {} : { person_id: input.personId }),
+      ...(input.friendId === undefined ? {} : { friend_id: input.friendId }),
     });
     return decodeGrant(row);
   }

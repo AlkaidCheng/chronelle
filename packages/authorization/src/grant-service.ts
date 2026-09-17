@@ -4,12 +4,13 @@ import {
   persons,
   resourceGrants,
   runAuditedMutation,
+  userConnections,
   users,
   type Database,
   type DatabaseTransaction,
   type Role,
 } from "@chronelle/db";
-import { and, eq, isNull } from "drizzle-orm";
+import { and, eq, isNull, or } from "drizzle-orm";
 
 import {
   AuthorizationDeniedError,
@@ -41,10 +42,12 @@ export interface GrantMutationContext {
   readonly requestId: string;
 }
 
-/** The grantee is an account email or a Person; exactly one is named. */
+/** The grantee is an account email, a Person, or a friend; exactly one is named. */
 export interface ShareResourceInput {
   readonly principalEmail?: string | undefined;
   readonly personId?: string | undefined;
+  /** An accepted connection of the acting account; the other side receives the role. */
+  readonly friendId?: string | undefined;
   readonly resourceId: string;
   readonly role: Role;
 }
@@ -86,11 +89,16 @@ export interface ShareWriteRepository {
   ): Promise<RevokedGrantResource>;
 }
 
+const granteeRule =
+  "Name exactly one of principalEmail, personId, and friendId.";
+
 /**
- * The account a share goes to: the one user with the named email, or the
+ * The account a share goes to: the one user with the named email, the
  * named Person's linked account (else the one user with the person's
- * email). A person the caller cannot view, or with no reachable account,
- * is as unavailable as an unknown email.
+ * email), or the other side of the caller's accepted connection. A person
+ * the caller cannot view, or with no reachable account, and a connection
+ * that is not the caller's and accepted, are as unavailable as an unknown
+ * email.
  */
 async function resolvePrincipal(
   transaction: DatabaseTransaction,
@@ -98,12 +106,50 @@ async function resolvePrincipal(
   principal: UserPrincipal,
   input: ShareResourceInput,
 ): Promise<{ id: string; displayName: string; email: string | null }> {
+  const named = [input.principalEmail, input.personId, input.friendId].filter(
+    (grantee) => grantee !== undefined,
+  ).length;
+  if (named !== 1) throw new InvalidShareError(granteeRule);
   let email = input.principalEmail;
+  if (input.friendId !== undefined) {
+    const [connection] = await transaction
+      .select({
+        requesterId: userConnections.requesterId,
+        addresseeId: userConnections.addresseeId,
+      })
+      .from(userConnections)
+      .where(
+        and(
+          eq(userConnections.id, input.friendId),
+          eq(userConnections.status, "accepted"),
+          or(
+            eq(userConnections.requesterId, principal.userId),
+            eq(userConnections.addresseeId, principal.userId),
+          ),
+        ),
+      )
+      .limit(1);
+    if (connection === undefined) throw new PrincipalUnavailableError();
+    const [friend] = await transaction
+      .select({
+        id: users.id,
+        displayName: users.displayName,
+        email: users.email,
+      })
+      .from(users)
+      .where(
+        eq(
+          users.id,
+          connection.requesterId === principal.userId
+            ? connection.addresseeId
+            : connection.requesterId,
+        ),
+      )
+      .limit(1);
+    if (friend === undefined) throw new PrincipalUnavailableError();
+    return friend;
+  }
   if (input.personId !== undefined) {
-    if (email !== undefined)
-      throw new InvalidShareError(
-        "Name exactly one of principalEmail and personId.",
-      );
     const [person] = await transaction
       .select({ userId: persons.userId, email: persons.email })
       .from(persons)
@@ -140,10 +186,7 @@ async function resolvePrincipal(
     if (person.email === null) throw new PrincipalUnavailableError();
     email = person.email.toLowerCase();
   }
-  if (email === undefined)
-    throw new InvalidShareError(
-      "Name exactly one of principalEmail and personId.",
-    );
+  if (email === undefined) throw new InvalidShareError(granteeRule);
   const [found, duplicate] = await transaction
     .select({
       id: users.id,
@@ -248,6 +291,9 @@ export class ResourceGrantService {
                   ...(input.personId === undefined
                     ? {}
                     : { personId: input.personId }),
+                  ...(input.friendId === undefined
+                    ? {}
+                    : { friendId: input.friendId }),
                 },
               },
             };

@@ -126,6 +126,7 @@ describe("runtime database privileges", () => {
           "persons",
           "user_connections",
           "user_invitations",
+          "pending_shares",
         ].includes(table.name),
       );
       expect(table.delete).toBe(
@@ -135,6 +136,7 @@ describe("runtime database privileges", () => {
           "task_labels",
           "person_contacts",
           "person_labels",
+          "workspace_members",
         ].includes(table.name),
       );
     }

@@ -85,6 +85,12 @@ export const cloudBaseRequiredFunctions: readonly string[] = [
   "chronelle_friend_remove",
   "chronelle_friend_resend",
   "chronelle_friend_invitations_claim",
+  "chronelle_pending_share_create",
+  "chronelle_pending_share_list",
+  "chronelle_pending_share_revoke",
+  "chronelle_workspace_member_list",
+  "chronelle_workspace_member_add",
+  "chronelle_workspace_member_remove",
 ];
 
 /** The log level for one gateway request: conflicts and denials are routine, failures are not. */

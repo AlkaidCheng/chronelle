@@ -170,6 +170,9 @@ export {
 export {
   authorizationActionSchema,
   objectAccessResponseSchema,
+  pendingShareCreateRequestSchema,
+  pendingShareRevocationResponseSchema,
+  pendingShareSchema,
   permissionScopeUpdateRequestSchema,
   roleSchema,
   shareCreateRequestSchema,
@@ -177,6 +180,9 @@ export {
   shareResponseSchema,
   shareRevocationResponseSchema,
   type ObjectAccessResponse,
+  type PendingShare,
+  type PendingShareCreateRequest,
+  type PendingShareRevocationResponse,
   type PermissionScopeUpdatePayload,
   type PermissionScopeUpdateRequest,
   type ShareCreatePayload,
@@ -185,6 +191,7 @@ export {
   type ShareResponse,
   type ShareRevocationResponse,
 } from "./sharing.js";
+export * from "./workspace-members.js";
 export * from "./commands.js";
 export * from "./event-pages.js";
 export * from "./storage-inventory.js";
