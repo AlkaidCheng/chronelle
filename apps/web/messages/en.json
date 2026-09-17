@@ -104,6 +104,67 @@
     "addContact": "Add contact",
     "labels": "Labels"
   },
+  "people": {
+    "title": "People",
+    "filterByName": "Filter people by name",
+    "find": "Find a person",
+    "refresh": "Refresh people",
+    "new": "New person",
+    "countLabel": "People count",
+    "count": "{count, plural, one {# person loaded} other {# people loaded}}",
+    "all": "Everyone",
+    "listLabel": "People",
+    "loading": "Loading people",
+    "empty": "No people yet",
+    "noMatch": "No matching people",
+    "layouts": {
+      "list": "List",
+      "cards": "Namecards"
+    },
+    "account": "Account",
+    "accounts": {
+      "all": "Everyone",
+      "linked": "Has an account",
+      "unlinked": "No account"
+    },
+    "me": "This is me",
+    "hasAccount": "Has an account",
+    "addPerson": "Add a person",
+    "newPersonName": "New person",
+    "personName": "Person name",
+    "open": "Open {name}",
+    "actionsFor": "Actions for {name}",
+    "menu": {
+      "edit": "Edit",
+      "history": "History",
+      "moveToTrash": "Move to Trash"
+    }
+  },
+  "personPage": {
+    "allPeople": "All people",
+    "loading": "Loading the person",
+    "edit": "Edit person",
+    "copyLink": "Copy link",
+    "linkCopied": "Link copied.",
+    "linkNotCopied": "The link could not be copied.",
+    "sections": "Person sections",
+    "tabs": {
+      "overview": "Overview",
+      "events": "Events",
+      "tasks": "Tasks"
+    },
+    "details": "Details",
+    "fullName": "Full name",
+    "contacts": "Contacts",
+    "noDetails": "No contacts or fields yet.",
+    "description": "Description",
+    "noDescription": "No description yet.",
+    "loadingEvents": "Loading events",
+    "noEvents": "Not part of any event yet",
+    "loadingTasks": "Loading tasks",
+    "noTasks": "No tasks assigned",
+    "loadMoreTasks": "Load more tasks"
+  },
   "events": {
     "title": "Events",
     "filterByName": "Filter events by name",

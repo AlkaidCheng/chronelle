@@ -206,9 +206,14 @@ describe("People component", () => {
     assert(mira);
     expect(mira.permissionScopeId).toBe(eventId);
 
-    // Removing the link keeps the person in the workspace.
+    // Removing the link, from the card's menu, keeps the person in the workspace.
     await user.click(
       screen.getByRole("button", { name: "Actions for Sam Lee" }),
+    );
+    await user.click(
+      within(await screen.findByRole("menu")).getByRole("menuitem", {
+        name: "Move to Trash",
+      }),
     );
     await user.click(
       await screen.findByRole("button", { name: "Remove context link" }),

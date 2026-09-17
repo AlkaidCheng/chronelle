@@ -9,6 +9,7 @@ import { ObjectSearch } from "../features/search/object-search";
 import { TrashWorkspace } from "../features/recovery/trash-workspace";
 import { TasksPage } from "../features/tasks/tasks-page";
 import { PeoplePage } from "../features/people/people-page";
+import { PersonPage } from "../features/people/person-page";
 import { SettingsPage } from "../features/settings/settings-page";
 import { store } from "./api-context";
 import { useAuthSession } from "./auth-session";
@@ -26,6 +27,7 @@ function Sandbox() {
   const session = useAuthSession();
   const [error, setError] = useState("");
   const eventId = /^\/events\/([\da-f-]+)$/.exec(pathname)?.[1];
+  const personId = /^\/people\/([\da-f-]+)$/.exec(pathname)?.[1];
   function reset() {
     if (
       !window.confirm(
@@ -85,6 +87,8 @@ function Sandbox() {
           <EventList />
         ) : pathname === "/tasks" ? (
           <TasksPage />
+        ) : personId ? (
+          <PersonPage key={personId} personId={personId} />
         ) : pathname === "/people" ? (
           <PeoplePage />
         ) : pathname === "/search" ? (
