@@ -2,6 +2,7 @@
 
 import type { EventResponse, TaskResponse } from "@chronelle/schemas";
 import Link from "next/link";
+import { AccessLine } from "../../components/access-line";
 import { useTranslations } from "next-intl";
 import { type KeyboardEvent, useRef, useState } from "react";
 
@@ -141,6 +142,7 @@ export function PersonPage({ personId }: { readonly personId: string }) {
               <PersonBadge account={account} />
               <PersonLabels labelNames={labelNames} person={record} />
             </p>
+            <AccessLine source={access.data?.source} />
           </div>
           <div className="event-actions">
             {canEdit ? (

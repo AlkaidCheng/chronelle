@@ -1752,6 +1752,55 @@ p[role="alert"] {
   margin-bottom: 0;
 }
 
+/* Where access comes from, under the heading of a record the caller does not own. */
+.access-line {
+  align-items: center;
+  color: var(--muted);
+  display: flex;
+  font-size: 0.85rem;
+  gap: 8px;
+  margin: 6px 0 0;
+}
+
+.access-line svg {
+  color: var(--muted);
+  height: 16px;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.7;
+  width: 16px;
+}
+
+.access-line-link {
+  background: none;
+  border: 0;
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
+  padding: 0;
+  text-decoration: underline;
+  text-decoration-color: var(--line-strong);
+  text-underline-offset: 3px;
+}
+
+.access-line-link:hover,
+.access-line-link:focus-visible {
+  color: var(--ink);
+  text-decoration-color: currentColor;
+}
+
+.event-inspector-fields > .access-line {
+  grid-column: 1 / -1;
+  margin: 0;
+}
+
+.share-grants {
+  color: var(--faint);
+  display: block;
+  font-size: 0.8rem;
+}
+
 .event-date svg {
   color: var(--muted);
   height: 18px;

@@ -1,8 +1,9 @@
 "use client";
 
-import type { TaskResponse } from "@chronelle/schemas";
+import type { AccessSource, TaskResponse } from "@chronelle/schemas";
 import { useTranslations } from "next-intl";
 import { type FormEvent, useMemo, useState } from "react";
+import { AccessLine } from "../../components/access-line";
 import { CountedField } from "../../components/counted-field";
 import { EditorForm } from "../../components/editor-form";
 import {
@@ -45,6 +46,8 @@ export interface SubtaskParent {
 }
 
 interface TaskFormProps {
+  /** Where the caller's access to an existing task comes from, named under the fields when indirect. */
+  readonly accessSource?: AccessSource | undefined;
   /** The Event a new task joins; absent, the task is created on its own. */
   readonly eventId?: string | undefined;
   readonly onCancel?: (() => void) | undefined;
@@ -81,6 +84,7 @@ export function TaskForm(props: TaskFormProps) {
 }
 
 function TaskEditor({
+  accessSource,
   eventId,
   draftId,
   initialDraft,
@@ -279,6 +283,7 @@ function TaskEditor({
         onSubmit={handleSubmit}
       >
         <div className="event-create-body event-inspector-fields">
+          {task === undefined ? null : <AccessLine source={accessSource} />}
           {parent && task === undefined ? (
             <p className="field-hint field-wide">
               {t("subtaskOf", { parent: parent.displayName })}

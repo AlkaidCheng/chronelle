@@ -112,6 +112,7 @@ describe("People component", () => {
           return Response.json({
             resourceId: eventId,
             actions: ["view", "edit", "share"],
+            source: { kind: "own" },
           });
         return store.fetch(input, options);
       }),

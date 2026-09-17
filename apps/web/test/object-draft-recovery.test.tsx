@@ -300,6 +300,7 @@ describe.each(draftKinds)("%s draft recovery", (kind) => {
               Response.json({
                 resourceId: mode === "create" ? eventId : resource.id,
                 actions: ["view", "edit"],
+                source: { kind: "own" },
               }),
             ),
           );
@@ -468,6 +469,7 @@ describe.each(draftKinds)("%s draft recovery", (kind) => {
             ? Response.json({
                 resourceId: mode === "create" ? eventId : resource.id,
                 actions: ["view"],
+                source: { kind: "own" },
               })
             : store.fetch(input, options),
         );

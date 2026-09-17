@@ -44,6 +44,7 @@ const editorAccess = {
   resourceId: eventId,
   role: "owner",
   actions: ["view", "edit", "share", "delete"],
+  source: { kind: "own" },
 };
 
 function Harness({

@@ -5,6 +5,7 @@ import { useTranslations } from "next-intl";
 import { useLayoutEffect, useRef, useState } from "react";
 
 import { ErrorNotice, LoadingState } from "../../components/feedback";
+import { AccessLine } from "../../components/access-line";
 import { IconButton } from "../../components/icon-button";
 import {
   CalendarIcon,
@@ -201,6 +202,12 @@ export function EventWorkspace({ eventId }: { readonly eventId: string }) {
                 {schedule}
               </p>
             )}
+            <AccessLine
+              onOpenSharing={
+                canShare ? () => setActiveTab("sharing") : undefined
+              }
+              source={access.source}
+            />
           </div>
           <div className="event-actions">
             {canEdit && schedule === "" ? (

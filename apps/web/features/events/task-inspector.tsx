@@ -26,6 +26,7 @@ export function TaskInspector({
       {(resource, refresh) => (
         <TaskForm
           key={taskId}
+          accessSource={access.data?.source}
           eventId={eventId}
           task={resource}
           onCancel={onClose}

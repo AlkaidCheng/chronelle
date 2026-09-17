@@ -1372,5 +1372,15 @@
       "month": "下一個月"
     },
     "dayCell": "{day}{count, plural, =0 {} other {，# 項}}"
+  },
+  "access": {
+    "sharedBy": "{name} 以{role}身份與你共享",
+    "throughEvent": "透過{event}，由 {name} 分享",
+    "grants": "也包括此活動的頁面、待辦、支出、檔案和早期版本",
+    "roles": {
+      "viewer": "檢視者",
+      "editor": "編輯者",
+      "owner": "擁有者"
+    }
   }
 }
