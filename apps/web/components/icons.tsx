@@ -80,9 +80,24 @@ export function PeopleIcon({ className }: IconProps) {
       viewBox="0 0 24 24"
     >
       <circle cx="9" cy="8" r="3.5" />
-      <path d="M3.5 19a5.5 5.5 0 0 1 11 0" />
-      <path d="M15.5 5.2a3.2 3.2 0 0 1 0 5.6" />
-      <path d="M16.5 14.2a4.8 4.8 0 0 1 3.9 4.8" />
+      <path d="M2.5 20a6.5 6.5 0 0 1 13 0" />
+      <circle cx="17" cy="9" r="2.5" />
+      <path d="M15.5 14.5a5 5 0 0 1 6 5" />
+    </svg>
+  );
+}
+
+/** A ticked box: the Tasks collection in the rail. */
+export function TasksIcon({ className }: IconProps) {
+  return (
+    <svg
+      aria-hidden="true"
+      className={className}
+      fill="none"
+      viewBox="0 0 24 24"
+    >
+      <path d="M9 11l3 3 8-8" />
+      <path d="M20 12v6a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h9" />
     </svg>
   );
 }

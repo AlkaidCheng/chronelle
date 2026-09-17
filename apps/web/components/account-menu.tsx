@@ -4,6 +4,7 @@ import type { SessionResponse } from "@chronelle/schemas";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useId, useRef, useState } from "react";
+import { personInitials } from "../lib/person-collection";
 import { CheckIcon, PeopleIcon, SettingsIcon, SignOutIcon } from "./icons";
 import {
   focusFirstMenuItem,
@@ -63,7 +64,7 @@ export function AccountMenu({
         ref={trigger}
       >
         <span className="profile-mark" aria-hidden="true">
-          {session.user.displayName.slice(0, 1).toUpperCase()}
+          {personInitials(session.user.displayName)}
           {pendingRequests > 0 ? <span className="profile-dot" /> : null}
         </span>
         <span className="profile-copy">

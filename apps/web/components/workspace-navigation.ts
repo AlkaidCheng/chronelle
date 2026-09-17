@@ -1,8 +1,8 @@
 import {
   CalendarIcon,
-  CheckIcon,
   PeopleIcon,
   SearchIcon,
+  TasksIcon,
   TrashIcon,
 } from "./icons";
 
@@ -16,7 +16,7 @@ export const workspaceDestinations = [
   {
     href: "/tasks",
     key: "tasks",
-    icon: CheckIcon,
+    icon: TasksIcon,
   },
   {
     href: "/people",
