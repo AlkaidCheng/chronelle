@@ -54,6 +54,9 @@ describe("object read repository boundary", () => {
     const repository: ObjectReadRepository = {
       getObject: vi.fn().mockResolvedValue(task),
       getAllowedActions: vi.fn().mockResolvedValue(["view"]),
+      getAccess: vi
+        .fn()
+        .mockResolvedValue({ actions: ["view"], source: { kind: "own" } }),
       listVisibleObjects: vi.fn().mockResolvedValue([task]),
     };
     const service = new EventPlanningObjectService(
@@ -71,6 +74,14 @@ describe("object read repository boundary", () => {
     await expect(
       service.getAllowedActions(principal, "task-1"),
     ).resolves.toEqual(["view"]);
+    await expect(service.getAccess(principal, "task-1")).resolves.toEqual({
+      actions: ["view"],
+      source: { kind: "own" },
+    });
+    expect(repository.getAccess).toHaveBeenCalledExactlyOnceWith(
+      principal,
+      "task-1",
+    );
     await expect(
       service.listVisibleObjects(principal, ["task-1"]),
     ).resolves.toEqual([task]);

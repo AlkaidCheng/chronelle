@@ -225,9 +225,41 @@ describe.sequential("Event sharing API", () => {
       method: "GET",
       url: `/api/objects/${event.id}/access`,
     });
+    const viewerAccess = objectAccessResponseSchema.parse(
+      viewerAccessResponse.json(),
+    );
+    expect(viewerAccess.actions).toEqual(["view"]);
+    // The viewer's access names the grant; a task under the event names the
+    // event its scope inherits from; the owner's own workspace names nothing.
+    expect(viewerAccess.source).toEqual({
+      kind: "direct",
+      grantedBy: { id: owner.user.id, displayName: "Event Owner" },
+      role: "viewer",
+    });
+    const viewerTaskAccess = objectAccessResponseSchema.parse(
+      (
+        await request(viewer, workspaceId, {
+          method: "GET",
+          url: `/api/objects/${task.id}/access`,
+        })
+      ).json(),
+    );
+    expect(viewerTaskAccess.source).toEqual({
+      kind: "inherited",
+      through: { id: event.id, displayName: "Shared launch" },
+      grantedBy: { id: owner.user.id, displayName: "Event Owner" },
+      role: "viewer",
+    });
     expect(
-      objectAccessResponseSchema.parse(viewerAccessResponse.json()).actions,
-    ).toEqual(["view"]);
+      objectAccessResponseSchema.parse(
+        (
+          await request(owner, workspaceId, {
+            method: "GET",
+            url: `/api/objects/${task.id}/access`,
+          })
+        ).json(),
+      ).source,
+    ).toEqual({ kind: "own" });
 
     const viewerDetailResponse = await request(viewer, workspaceId, {
       method: "GET",

@@ -124,6 +124,8 @@ export function cloudbaseObjectType(
 export interface CloudBasePrincipalAccess {
   readonly workspaceRole: Role | null;
   readonly grantRoles: ReadonlyMap<string, Role>;
+  /** The account that granted each active role, by resource. */
+  readonly grantors: ReadonlyMap<string, string>;
   rolesFor(
     object: CloudBaseObjectAccessRow,
     scopes: ReadonlyMap<string, CloudBaseObjectAccessRow>,
@@ -151,7 +153,7 @@ export async function readCloudBasePrincipalAccess(
       limit: 1,
     }),
     client.select<CloudBaseGrantRow>("resource_grants", {
-      columns: "resource_id,role,expires_at",
+      columns: "resource_id,role,expires_at,granted_by",
       filters: cloudbaseFilters(
         ["workspace_id", "eq", principal.workspaceId],
         ["principal_type", "eq", "user"],
@@ -165,13 +167,13 @@ export async function readCloudBasePrincipalAccess(
       ? null
       : cloudbaseRole(membership[0].role, "workspace role");
   const grantRoles = new Map<string, Role>();
+  const grantors = new Map<string, string>();
   for (const grant of grants) {
     const expiresAt = cloudbaseNullableDate(grant.expires_at, "grant expiry");
     if (expiresAt !== null && expiresAt <= now) continue;
-    grantRoles.set(
-      cloudbaseText(grant.resource_id, "grant resource"),
-      cloudbaseRole(grant.role, "grant role"),
-    );
+    const resourceId = cloudbaseText(grant.resource_id, "grant resource");
+    grantRoles.set(resourceId, cloudbaseRole(grant.role, "grant role"));
+    grantors.set(resourceId, cloudbaseText(grant.granted_by, "granted_by"));
   }
   const inWorkspace = (object: CloudBaseObjectAccessRow) =>
     cloudbaseText(object.workspace_id, "object workspace") ===
@@ -203,6 +205,7 @@ export async function readCloudBasePrincipalAccess(
   return {
     workspaceRole,
     grantRoles,
+    grantors,
     rolesFor,
     allows: (action, object, scopes) =>
       rolesFor(object, scopes).some((role) => roleAllows(role, action)),

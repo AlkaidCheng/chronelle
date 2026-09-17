@@ -802,6 +802,11 @@ export class EventPlanningObjectService {
     return this.#objectReads.getAllowedActions(principal, objectId);
   }
 
+  /** The actions and their source for a live object the principal can view. */
+  getAccess(principal: UserPrincipal, objectId: string) {
+    return this.#objectReads.getAccess(principal, objectId);
+  }
+
   /** Return visible canonical states in input order; unavailable IDs are omitted. */
   listVisibleObjects(
     principal: UserPrincipal,

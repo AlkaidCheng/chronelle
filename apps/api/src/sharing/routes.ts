@@ -57,11 +57,8 @@ export function registerSharingRoutes(
     async (request) => {
       const { id } = parseRequest(objectIdParamsSchema, request.params);
       const principal = requirePrincipal(request);
-      const actions = await dependencies.objects.getAllowedActions(
-        principal,
-        id,
-      );
-      return objectAccessResponseSchema.parse({ resourceId: id, actions });
+      const access = await dependencies.objects.getAccess(principal, id);
+      return objectAccessResponseSchema.parse({ resourceId: id, ...access });
     },
   );
 

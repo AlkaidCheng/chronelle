@@ -15,9 +15,20 @@ import {
   readCloudBaseViewableObjects,
   type CloudBasePrincipalAccess,
 } from "./cloudbase-object-read-support.js";
-import type { CloudBaseObjectRow } from "./cloudbase-read-support.js";
-import type { ObjectReadRepository } from "./object-reads.js";
+import {
+  cloudbaseFilters,
+  cloudbaseText,
+  type CloudBaseObjectRow,
+} from "./cloudbase-read-support.js";
+import type {
+  AccessSource,
+  AccountSummary,
+  ObjectAccess,
+  ObjectReadRepository,
+} from "./object-reads.js";
 import type { EventPlanningResource } from "./types.js";
+
+type UserNameRow = { readonly id: unknown; readonly display_name: unknown };
 
 /**
  * Read-only CloudBase adapter for single canonical objects. The principal's
@@ -61,6 +72,69 @@ export class CloudBaseObjectReadRepository implements ObjectReadRepository {
     return authorizationActions.filter((action) =>
       roles.some((role) => roleAllows(role, action)),
     );
+  }
+
+  async getAccess(
+    principal: UserPrincipal,
+    objectId: string,
+  ): Promise<ObjectAccess> {
+    const { access, object, scopes } = await this.#viewable(
+      principal,
+      objectId,
+    );
+    const roles = access.rolesFor(object, scopes);
+    return {
+      actions: authorizationActions.filter((action) =>
+        roles.some((role) => roleAllows(role, action)),
+      ),
+      source: await this.#accessSource(access, object, scopes, objectId),
+    };
+  }
+
+  async #accessSource(
+    access: CloudBasePrincipalAccess,
+    object: CloudBaseObjectRow,
+    scopes: ReadonlyMap<string, CloudBaseObjectRow>,
+    objectId: string,
+  ): Promise<AccessSource> {
+    if (access.workspaceRole !== null) return { kind: "own" };
+    const scopeId = cloudbaseText(
+      object.permission_scope_id,
+      "permission scope",
+    );
+    const direct = access.grantRoles.get(objectId);
+    if (direct !== undefined) {
+      const grantedBy = await this.#readAccount(access.grantors.get(objectId));
+      return { kind: "direct", grantedBy, role: direct };
+    }
+    const inherited = access.grantRoles.get(scopeId);
+    const scope = scopes.get(scopeId);
+    if (inherited === undefined || scope === undefined)
+      throw new AuthorizationDeniedError();
+    const grantedBy = await this.#readAccount(access.grantors.get(scopeId));
+    return {
+      kind: "inherited",
+      through: {
+        id: scopeId,
+        displayName: cloudbaseText(scope.display_name, "display name"),
+      },
+      grantedBy,
+      role: inherited,
+    };
+  }
+
+  async #readAccount(id: string | undefined): Promise<AccountSummary> {
+    if (id === undefined) throw new AuthorizationDeniedError();
+    const [row] = await this.#client.select<UserNameRow>("users", {
+      columns: "id,display_name",
+      filters: cloudbaseFilters(["id", "eq", id]),
+      limit: 1,
+    });
+    if (row === undefined) throw new AuthorizationDeniedError();
+    return {
+      id: cloudbaseText(row.id, "user id"),
+      displayName: cloudbaseText(row.display_name, "display name"),
+    };
   }
 
   async listVisibleObjects(
