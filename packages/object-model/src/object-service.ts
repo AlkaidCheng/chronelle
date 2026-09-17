@@ -11,6 +11,7 @@ import {
   labels,
   objectCreateCommands,
   objects,
+  personLabels,
   persons,
   reminders,
   taskLabels,
@@ -64,6 +65,13 @@ import {
 } from "./errors.js";
 import { readObjectState } from "./object-state.js";
 import { recordObjectRevision } from "./object-revisions.js";
+import {
+  assertPersonContacts,
+  assertPersonText,
+  firstPersonEmail,
+  requestedPersonContacts,
+  setPersonContacts,
+} from "./person-contacts.js";
 import type {
   CreateEventInput,
   CreateExpenseInput,
@@ -195,13 +203,12 @@ async function assertPersonState(
     throw new InvalidObjectStateError("email must be a valid address.");
 }
 
-/** Replaces a task's labels; every id must be a label of the workspace. */
-async function setTaskLabels(
+/** The distinct ids, every one a label of the workspace. */
+async function workspaceLabelIds(
   transaction: DatabaseTransaction,
   workspaceId: string,
-  taskId: string,
   labelIds: readonly string[],
-): Promise<void> {
+): Promise<string[]> {
   const ids = [...new Set(labelIds)];
   if (ids.length > 0) {
     const known = await transaction
@@ -213,6 +220,39 @@ async function setTaskLabels(
         "labelIds must name labels of this workspace.",
       );
   }
+  return ids;
+}
+
+/** Replaces a person's labels; every id must be a label of the workspace. */
+async function setPersonLabels(
+  transaction: DatabaseTransaction,
+  workspaceId: string,
+  personId: string,
+  labelIds: readonly string[],
+): Promise<void> {
+  const ids = await workspaceLabelIds(transaction, workspaceId, labelIds);
+  await transaction
+    .delete(personLabels)
+    .where(
+      and(
+        eq(personLabels.workspaceId, workspaceId),
+        eq(personLabels.personId, personId),
+      ),
+    );
+  if (ids.length > 0)
+    await transaction
+      .insert(personLabels)
+      .values(ids.map((labelId) => ({ workspaceId, personId, labelId })));
+}
+
+/** Replaces a task's labels; every id must be a label of the workspace. */
+async function setTaskLabels(
+  transaction: DatabaseTransaction,
+  workspaceId: string,
+  taskId: string,
+  labelIds: readonly string[],
+): Promise<void> {
+  const ids = await workspaceLabelIds(transaction, workspaceId, labelIds);
   await transaction
     .delete(taskLabels)
     .where(
@@ -684,25 +724,44 @@ export class EventPlanningObjectService {
       return this.#writes.person.create(context, input);
 
     const userId = input.userId ?? null;
-    const email = input.email ?? null;
+    const nickname = input.nickname ?? null;
+    const description = input.description ?? null;
+    const contacts = requestedPersonContacts(input, []) ?? [];
     const resource = await this.#createObject(
       context,
       "person",
       input,
       async (transaction, createdObjectId) => {
+        assertPersonContacts(contacts);
+        assertPersonText(nickname, description);
         await assertPersonState(
           transaction,
           context.principal.workspaceId,
           createdObjectId,
           userId,
-          email,
+          firstPersonEmail(contacts),
         );
         await transaction.insert(persons).values({
           objectId: createdObjectId,
           workspaceId: context.principal.workspaceId,
           userId,
-          email,
+          email: null,
+          nickname,
+          description,
         });
+        await setPersonContacts(
+          transaction,
+          context.principal.workspaceId,
+          createdObjectId,
+          contacts,
+        );
+        if (input.labelIds !== undefined)
+          await setPersonLabels(
+            transaction,
+            context.principal.workspaceId,
+            createdObjectId,
+            input.labelIds,
+          );
       },
     );
     return this.#requireType(resource, "person");
@@ -1012,23 +1071,32 @@ export class EventPlanningObjectService {
       "person",
     );
     const userId = input.userId === undefined ? current.userId : input.userId;
-    const email = input.email === undefined ? current.email : input.email;
+    const nickname =
+      input.nickname === undefined ? current.nickname : input.nickname;
+    const description =
+      input.description === undefined ? current.description : input.description;
+    const contacts = requestedPersonContacts(input, current.contacts);
 
     const resource = await this.#updateObject(
       context,
       current,
       input,
       async (transaction) => {
+        if (contacts !== undefined) assertPersonContacts(contacts);
+        assertPersonText(nickname, description);
         await assertPersonState(
           transaction,
           context.principal.workspaceId,
           objectId,
           userId,
-          email,
+          contacts === undefined ? current.email : firstPersonEmail(contacts),
         );
         const changes = {
           ...(input.userId !== undefined && { userId: input.userId }),
-          ...(input.email !== undefined && { email: input.email }),
+          ...(input.nickname !== undefined && { nickname: input.nickname }),
+          ...(input.description !== undefined && {
+            description: input.description,
+          }),
         };
         if (Object.keys(changes).length > 0) {
           await transaction
@@ -1041,6 +1109,20 @@ export class EventPlanningObjectService {
               ),
             );
         }
+        if (contacts !== undefined)
+          await setPersonContacts(
+            transaction,
+            context.principal.workspaceId,
+            objectId,
+            contacts,
+          );
+        if (input.labelIds !== undefined)
+          await setPersonLabels(
+            transaction,
+            context.principal.workspaceId,
+            objectId,
+            input.labelIds,
+          );
       },
     );
     return this.#requireType(resource, "person");

@@ -5,6 +5,8 @@ import {
   expenses,
   labels,
   objects,
+  personContacts,
+  personLabels,
   persons,
   reminders,
   taskLabels,
@@ -22,7 +24,20 @@ const labelIds = sql<string[]>`(
   WHERE ${taskLabels.workspaceId} = ${objects.workspaceId} AND ${taskLabels.taskId} = ${objects.id}
 )`;
 
-import type { EventPlanningResource } from "./types.js";
+// A person's contacts in kept order and labels in name order, read with its state.
+const contacts = sql<{ kind: PersonContact["kind"]; value: string }[]>`(
+  SELECT coalesce(jsonb_agg(jsonb_build_object('kind', ${personContacts.kind}, 'value', ${personContacts.value}) ORDER BY ${personContacts.position}), '[]'::jsonb)
+  FROM ${personContacts}
+  WHERE ${personContacts.workspaceId} = ${objects.workspaceId} AND ${personContacts.personId} = ${objects.id}
+)`;
+const personLabelIds = sql<string[]>`(
+  SELECT coalesce(array_agg(${labels.id} ORDER BY lower(${labels.name}), ${labels.id}), '{}')
+  FROM ${personLabels}
+  JOIN ${labels} ON ${labels.id} = ${personLabels.labelId}
+  WHERE ${personLabels.workspaceId} = ${objects.workspaceId} AND ${personLabels.personId} = ${objects.id}
+)`;
+
+import type { EventPlanningResource, PersonContact } from "./types.js";
 
 /** Read complete typed states in one statement, including tombstones. Callers authorize access. */
 export async function readObjectStates(
@@ -40,6 +55,8 @@ export async function readObjectStates(
       reminder: reminders,
       document: documents,
       person: persons,
+      contacts,
+      personLabelIds,
     })
     .from(objects)
     .leftJoin(
@@ -135,7 +152,12 @@ export async function readObjectStates(
       case "person":
         if (row.person) {
           const { objectId: _, workspaceId: __, ...content } = row.person;
-          return { ...common, ...content };
+          return {
+            ...common,
+            ...content,
+            contacts: row.contacts ?? [],
+            labelIds: row.personLabelIds ?? [],
+          };
         }
     }
     throw new Error("The canonical object is missing its typed state.");

@@ -1,7 +1,10 @@
 import { resolve } from "node:path";
 import {
   createId,
+  labels,
   objects,
+  personContacts,
+  personLabels,
   persons,
   resourceGrants,
   users,
@@ -97,10 +100,41 @@ describe("CloudBase person list contract", () => {
         workspaceId,
         userId: ownerId,
         email: "zoe@example.test",
+        nickname: "Zo",
+        description: "Plans the trips.",
       },
       { objectId: adam, workspaceId },
       { objectId: bea, workspaceId, email: "bea@example.test" },
       { objectId: gone, workspaceId },
+    ]);
+    // Zoe's contacts come in kept order and her labels in name order.
+    const familyId = createId();
+    const workId = createId();
+    await db.insert(labels).values([
+      { id: workId, workspaceId, name: "Work", createdBy: ownerId },
+      { id: familyId, workspaceId, name: "family", createdBy: ownerId },
+    ]);
+    await db.insert(personContacts).values([
+      {
+        id: createId(),
+        workspaceId,
+        personId: zoe,
+        kind: "phone",
+        value: "+1 555 0100",
+        position: 1,
+      },
+      {
+        id: createId(),
+        workspaceId,
+        personId: zoe,
+        kind: "email",
+        value: "zoe@example.test",
+        position: 0,
+      },
+    ]);
+    await db.insert(personLabels).values([
+      { workspaceId, personId: zoe, labelId: workId },
+      { workspaceId, personId: zoe, labelId: familyId },
     ]);
     await db.insert(resourceGrants).values({
       id: createId(),
@@ -138,6 +172,13 @@ describe("CloudBase person list contract", () => {
     expect(zoeOnly.items[0]).toMatchObject({
       email: "zoe@example.test",
       userId: ownerId,
+      nickname: "Zo",
+      description: "Plans the trips.",
+      contacts: [
+        { kind: "email", value: "zoe@example.test" },
+        { kind: "phone", value: "+1 555 0100" },
+      ],
+      labelIds: [familyId, workId],
     });
     expect(await cloudbase.listPersons(owner, { query: "ZO" })).toEqual(
       zoeOnly,

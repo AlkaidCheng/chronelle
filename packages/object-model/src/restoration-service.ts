@@ -33,6 +33,12 @@ import { readObjectState } from "./object-state.js";
 import type { ObjectLifecycleWriteRepository } from "./object-writes.js";
 import { recordObjectRevision } from "./object-revisions.js";
 import {
+  assertPersonText,
+  readPersonContacts,
+  requestedPersonContacts,
+  setPersonContacts,
+} from "./person-contacts.js";
+import {
   decodeRevisionSnapshot,
   type RevisionReadRepository,
 } from "./revision-reads.js";
@@ -420,16 +426,29 @@ export class ObjectRestorationService {
           ...content,
           expectedVersion: source.version,
         });
-        if (fields.email !== undefined)
+        const contacts = requestedPersonContacts(
+          fields,
+          await readPersonContacts(transaction, workspaceId, objectId),
+        );
+        const text = {
+          ...(fields.nickname !== undefined && { nickname: fields.nickname }),
+          ...(fields.description !== undefined && {
+            description: fields.description,
+          }),
+        };
+        assertPersonText(fields.nickname ?? null, fields.description ?? null);
+        if (Object.keys(text).length > 0)
           await transaction
             .update(persons)
-            .set({ email: fields.email })
+            .set(text)
             .where(
               and(
                 eq(persons.workspaceId, workspaceId),
                 eq(persons.objectId, objectId),
               ),
             );
+        if (contacts !== undefined)
+          await setPersonContacts(transaction, workspaceId, objectId, contacts);
         break;
       }
       case "expense":

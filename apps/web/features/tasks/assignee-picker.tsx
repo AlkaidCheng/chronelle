@@ -3,6 +3,7 @@
 import { useState } from "react";
 
 import { CountedField } from "../../components/counted-field";
+import { personDisplayName } from "../../lib/person-fields";
 import {
   useCreatePerson,
   usePersonsQuery,
@@ -126,7 +127,7 @@ function AssigneeChoices({
                   type="radio"
                 />
                 <span>
-                  {person.displayName}
+                  {personDisplayName(person)}
                   {person.id === myPerson?.id ? " (me)" : ""}
                 </span>
               </label>

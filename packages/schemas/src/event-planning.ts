@@ -180,13 +180,43 @@ export const reminderUpdateRequestSchema = z
 /** A Person's email as stored: trimmed, or null. */
 const personEmailSchema = z.string().trim().max(254).pipe(z.email()).nullable();
 
-// A Person is someone the workspace keeps track of: a display name, an
-// optional email, and an optional link to a workspace member's account
-// (userId), which belongs to one Person per workspace.
+/** Optional person text: trimmed, empty read as null. */
+const personTextSchema = (limit: number) =>
+  z
+    .string()
+    .trim()
+    .max(limit)
+    .nullable()
+    .transform((value) => (value === "" ? null : value));
+
+export const personContactKindSchema = z.enum(["email", "phone", "other"]);
+
+/** One way to reach a person: an email, a phone number, or anything else. */
+export const personContactSchema = z
+  .object({
+    kind: personContactKindSchema,
+    value: z.string().trim().min(1).max(254),
+  })
+  .refine(
+    (contact) =>
+      contact.kind !== "email" || z.email().safeParse(contact.value).success,
+    { message: "email must be a valid address.", path: ["value"] },
+  );
+
+// A Person is someone the workspace keeps track of: a display name, a
+// nickname shown in its place when present, a description, contacts in the
+// order kept, labels from the workspace vocabulary, and an optional link to
+// a workspace member's account (userId), which belongs to one Person per
+// workspace. `email` stays accepted for one release as the first email
+// contact: sending it replaces the email contacts and keeps the others.
 export const personCreateRequestSchema = z.object({
   ...createObjectShape,
   email: personEmailSchema.optional(),
   userId: objectIdSchema.nullable().optional(),
+  nickname: personTextSchema(240).optional(),
+  description: personTextSchema(2000).optional(),
+  contacts: z.array(personContactSchema).max(20).optional(),
+  labelIds: z.array(objectIdSchema).max(20).optional(),
 });
 
 export const personUpdateRequestSchema = z
@@ -194,6 +224,10 @@ export const personUpdateRequestSchema = z
     ...updateObjectShape,
     email: personEmailSchema.optional(),
     userId: objectIdSchema.nullable().optional(),
+    nickname: personTextSchema(240).optional(),
+    description: personTextSchema(2000).optional(),
+    contacts: z.array(personContactSchema).max(20).optional(),
+    labelIds: z.array(objectIdSchema).max(20).optional(),
   })
   .refine(hasUpdateFields, {
     message: "At least one update field is required.",
@@ -323,9 +357,17 @@ export const documentResponseSchema = z.object({
 export const personResponseSchema = z.object({
   ...canonicalObjectResponseShape,
   objectType: z.literal("person"),
+  /** The first email contact, or null. */
   email: z.string().nullable(),
   /** The workspace member this person is, when they have an account. */
   userId: objectIdSchema.nullable(),
+  nickname: z.string().nullable().default(null),
+  description: z.string().nullable().default(null),
+  contacts: z
+    .array(z.object({ kind: personContactKindSchema, value: z.string() }))
+    .default([]),
+  /** The person's labels in name order. */
+  labelIds: z.array(objectIdSchema).default([]),
 });
 
 export const eventPlanningResourceResponseSchema = z.discriminatedUnion(
@@ -456,6 +498,8 @@ export type ExpenseResponse = z.infer<typeof expenseResponseSchema>;
 export type ReminderResponse = z.infer<typeof reminderResponseSchema>;
 export type DocumentResponse = z.infer<typeof documentResponseSchema>;
 export type PersonResponse = z.infer<typeof personResponseSchema>;
+export type PersonContact = z.infer<typeof personContactSchema>;
+export type PersonContactKind = z.infer<typeof personContactKindSchema>;
 export type EventResourceProjectionResponse = z.infer<
   typeof eventResourceProjectionResponseSchema
 >;

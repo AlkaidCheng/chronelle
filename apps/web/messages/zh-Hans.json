@@ -89,6 +89,21 @@
     "monday": "周一",
     "sunday": "周日"
   },
+  "person": {
+    "nickname": "昵称",
+    "description": "描述",
+    "contacts": "联系方式",
+    "contactKinds": {
+      "email": "邮箱",
+      "phone": "电话",
+      "other": "其他"
+    },
+    "contactKind": "联系方式 {n} 的类型",
+    "contactValue": "联系方式 {n} 的内容",
+    "removeContact": "移除联系方式 {n}",
+    "addContact": "添加联系方式",
+    "labels": "标签"
+  },
   "events": {
     "title": "活动",
     "filterByName": "按名称筛选活动",

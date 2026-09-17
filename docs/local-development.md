@@ -101,7 +101,15 @@ write for every account preference; the function count is unchanged and the
 runtime role needs no change. Apply 0048 before deploying an API built from
 this change: the API's startup readiness check requires the new function,
 and an API built before it fails only the language change until it is
-redeployed.
+redeployed. Migration `0050_add_person_fields.sql` adds `persons.nickname`
+and `persons.description`, the `person_contacts` table (typed contacts in
+kept order, with one email contact backfilled per person that had an email)
+and the `person_labels` table, keeps `persons.email` as the first email
+contact through `chronelle_person_set_contacts`, and replaces the Person
+step functions in place; `chronelle_person_create` and
+`chronelle_person_update` keep their signatures, so the readiness check is
+unchanged, but the runtime role grants must be reapplied for the two new
+tables.
 
 Migration `0021_add_object_search_function.sql` adds `chronelle_object_search`,
 the read-only function the CloudBase search adapter calls. It changes no

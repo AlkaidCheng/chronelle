@@ -1,6 +1,7 @@
 "use client";
 
-import type { PersonResponse } from "@chronelle/schemas";
+import type { PersonContactKind, PersonResponse } from "@chronelle/schemas";
+import { useTranslations } from "next-intl";
 import { type FormEvent, useMemo, useState } from "react";
 import { CountedField } from "../../components/counted-field";
 import { EditorForm } from "../../components/editor-form";
@@ -17,11 +18,15 @@ import { useOpenHistory } from "../history/history-provider";
 import { useKeepEditorDraft } from "../../lib/editor-draft-context";
 import type { PersonDraftSnapshot } from "../../lib/editor-draft-store";
 import {
+  joinPersonContacts,
   joinPersonFields,
+  type PersonContactField,
   personFieldsPayload,
   readPersonFields,
+  splitPersonContacts,
   splitPersonFields,
 } from "../../lib/person-fields";
+import { LabelPicker } from "../tasks/label-picker";
 import {
   type ContextCreateAttempt,
   useCreatePerson,
@@ -41,6 +46,13 @@ interface PersonFormProps {
 // A new person's draft is keyed like a new Event's: its recovery checks the
 // session rather than an object's access.
 const newPersonDraft = { id: "person:new", accessId: "new" };
+
+const contactKinds: readonly PersonContactKind[] = ["email", "phone", "other"];
+const contactInputTypes: Record<PersonContactKind, string> = {
+  email: "email",
+  phone: "tel",
+  other: "text",
+};
 
 export function PersonForm(props: PersonFormProps) {
   const draftId = props.person?.id ?? newPersonDraft.id;
@@ -72,6 +84,7 @@ function PersonEditor({
   readonly draftId: string;
   readonly initialDraft: PersonDraftSnapshot | undefined;
 }) {
+  const t = useTranslations("person");
   const draft = useEditorDraft(latestPerson, readPersonFields, initialDraft);
   const person = draft.source;
   // A retained draft keeps its creation attempt, so a retry after a lost
@@ -98,8 +111,15 @@ function PersonEditor({
   const update = useUpdatePerson();
   const session = useSessionQuery();
   const people = usePersonsQuery();
-  const { displayName, email, userId, properties } = draft.fields;
+  const { displayName, nickname, description, userId, properties, labels } =
+    draft.fields;
   const fields = splitPersonFields(properties);
+  const contacts = splitPersonContacts(draft.fields.contacts);
+  const contactKindLabels: Record<PersonContactKind, string> = {
+    email: t("contactKinds.email"),
+    phone: t("contactKinds.phone"),
+    other: t("contactKinds.other"),
+  };
   const mutation = person === undefined ? create : update;
   const [fieldError, setFieldError] = useState("");
   const openHistory = useOpenHistory();
@@ -132,6 +152,10 @@ function PersonEditor({
 
   function changeFields(next: readonly { key: string; value: string }[]) {
     draft.change({ properties: joinPersonFields(next) });
+  }
+
+  function changeContacts(next: readonly PersonContactField[]) {
+    draft.change({ contacts: joinPersonContacts(next) });
   }
 
   function handleSubmit(formEvent: FormEvent<HTMLFormElement>) {
@@ -256,12 +280,11 @@ function PersonEditor({
           <CountedField
             className="field-wide"
             disabled={mutation.isPending}
-            label="Email"
-            limit={254}
-            onChange={(email) => draft.change({ email })}
-            placeholder="mira@example.com"
-            type="email"
-            value={email}
+            label={t("nickname")}
+            limit={240}
+            onChange={(nickname) => draft.change({ nickname })}
+            placeholder="Mira"
+            value={nickname}
           />
           {linkedElsewhere ? (
             <p className="field-hint field-wide">
@@ -291,6 +314,100 @@ function PersonEditor({
               </span>
             </label>
           )}
+          <fieldset className="person-fields field-wide">
+            <legend>{t("contacts")}</legend>
+            {contacts.length > 0 ? (
+              <ul className="person-field-rows">
+                {contacts.map((contact, index) => (
+                  // Rows have no identity of their own; their position is it.
+                  // biome-ignore lint/suspicious/noArrayIndexKey: positional rows
+                  <li key={index}>
+                    <label className="field person-contact-kind">
+                      <span className="visually-hidden">
+                        {t("contactKind", { n: index + 1 })}
+                      </span>
+                      <select
+                        disabled={mutation.isPending}
+                        onChange={(event) =>
+                          changeContacts(
+                            contacts.map((row, at) =>
+                              at === index
+                                ? {
+                                    ...row,
+                                    kind: event.target
+                                      .value as PersonContactKind,
+                                  }
+                                : row,
+                            ),
+                          )
+                        }
+                        value={contact.kind}
+                      >
+                        {contactKinds.map((kind) => (
+                          <option key={kind} value={kind}>
+                            {contactKindLabels[kind]}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <CountedField
+                      disabled={mutation.isPending}
+                      hideLabel
+                      label={t("contactValue", { n: index + 1 })}
+                      limit={254}
+                      onChange={(value) =>
+                        changeContacts(
+                          contacts.map((row, at) =>
+                            at === index ? { ...row, value } : row,
+                          ),
+                        )
+                      }
+                      type={contactInputTypes[contact.kind]}
+                      value={contact.value}
+                    />
+                    <button
+                      aria-label={t("removeContact", { n: index + 1 })}
+                      className="button button-quiet button-small"
+                      disabled={mutation.isPending}
+                      onClick={() =>
+                        changeContacts(contacts.filter((_, at) => at !== index))
+                      }
+                      type="button"
+                    >
+                      Remove
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            ) : null}
+            <button
+              className="button button-secondary button-small"
+              disabled={mutation.isPending || contacts.length >= 20}
+              onClick={() =>
+                changeContacts([...contacts, { kind: "email", value: "" }])
+              }
+              type="button"
+            >
+              {t("addContact")}
+            </button>
+          </fieldset>
+          <LabelPicker
+            disabled={mutation.isPending}
+            onChange={(labels) => draft.change({ labels })}
+            value={labels}
+          />
+          <label className="field field-wide">
+            <span>{t("description")}</span>
+            <textarea
+              disabled={mutation.isPending}
+              maxLength={2000}
+              onChange={(event) =>
+                draft.change({ description: event.target.value })
+              }
+              rows={3}
+              value={description}
+            />
+          </label>
           <fieldset className="person-fields field-wide">
             <legend>Fields</legend>
             {fields.length === 0 ? (

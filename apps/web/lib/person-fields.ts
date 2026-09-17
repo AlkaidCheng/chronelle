@@ -1,4 +1,6 @@
-import type { PersonResponse } from "@chronelle/schemas";
+import type { PersonContactKind, PersonResponse } from "@chronelle/schemas";
+
+import { joinLabelIds, splitLabelIds } from "./task-fields";
 
 /** One custom field as the editor holds it: the key and the value's text. */
 export interface PersonField {
@@ -6,21 +8,44 @@ export interface PersonField {
   readonly value: string;
 }
 
+/** One contact row as the editor holds it. */
+export interface PersonContactField {
+  readonly kind: PersonContactKind;
+  readonly value: string;
+}
+
+/** The name a person is shown by: the nickname when there is one. */
+export function personDisplayName(
+  person: Pick<PersonResponse, "displayName" | "nickname">,
+): string {
+  return person.nickname ?? person.displayName;
+}
+
 /**
- * The editor's person fields: the name, the email, the linked account, and
- * the custom properties as one JSON string of `[key, value]` entries, so an
- * unchanged set compares equal and rows keep their order.
+ * The editor's person fields: the name, the nickname, the description, the
+ * linked account, the contacts and the custom properties each as one JSON
+ * string of rows, and the labels as joined ids, so an unchanged set
+ * compares equal and rows keep their order.
  */
 export function readPersonFields(
   person?: Pick<
     PersonResponse,
-    "displayName" | "email" | "userId" | "customProperties"
+    | "displayName"
+    | "nickname"
+    | "description"
+    | "userId"
+    | "contacts"
+    | "labelIds"
+    | "customProperties"
   >,
 ) {
   return {
     displayName: person?.displayName ?? "",
-    email: person?.email ?? "",
+    nickname: person?.nickname ?? "",
+    description: person?.description ?? "",
     userId: person?.userId ?? "",
+    contacts: joinPersonContacts(person?.contacts ?? []),
+    labels: joinLabelIds(person?.labelIds ?? []),
     properties: joinPersonFields(
       Object.entries(person?.customProperties ?? {}).map(([key, value]) => ({
         key,
@@ -45,17 +70,31 @@ export function splitPersonFields(properties: string): PersonField[] {
   return entries.map(([key, value]) => ({ key, value }));
 }
 
+export function joinPersonContacts(
+  contacts: readonly PersonContactField[],
+): string {
+  return JSON.stringify(contacts.map(({ kind, value }) => [kind, value]));
+}
+
+export function splitPersonContacts(contacts = ""): PersonContactField[] {
+  if (contacts === "") return [];
+  const entries = JSON.parse(contacts) as [PersonContactKind, string][];
+  return entries.map(([kind, value]) => ({ kind, value }));
+}
+
 /**
- * The request from the fields: a trimmed name and email (null when empty),
- * the linked account (null when none), and the custom properties from the
- * rows with a key; a value that still reads as the source's JSON keeps its
- * original type, any other value is text.
+ * The request from the fields: a trimmed name, the nickname and description
+ * (null when empty), the linked account (null when none), the contacts with
+ * a value, the labels, and the custom properties from the rows with a key;
+ * a value that still reads as the source's JSON keeps its original type,
+ * any other value is text.
  */
 export function personFieldsPayload(
   fields: ReturnType<typeof readPersonFields>,
   source?: Pick<PersonResponse, "customProperties">,
 ) {
-  const email = fields.email.trim();
+  const nickname = fields.nickname.trim();
+  const description = fields.description.trim();
   const customProperties: Record<string, unknown> = {};
   for (const { key, value } of splitPersonFields(fields.properties)) {
     const name = key.trim();
@@ -69,8 +108,13 @@ export function personFieldsPayload(
   }
   return {
     displayName: fields.displayName,
-    email: email === "" ? null : email,
+    nickname: nickname === "" ? null : nickname,
+    description: description === "" ? null : description,
     userId: fields.userId === "" ? null : fields.userId,
+    contacts: splitPersonContacts(fields.contacts)
+      .map(({ kind, value }) => ({ kind, value: value.trim() }))
+      .filter(({ value }) => value !== ""),
+    labelIds: splitLabelIds(fields.labels),
     customProperties,
   };
 }

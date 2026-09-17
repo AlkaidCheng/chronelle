@@ -192,6 +192,35 @@ h3,
   overflow-wrap: anywhere;
 }
 
+.person-fullname {
+  color: var(--muted);
+  font-size: 0.82rem;
+  margin: -2px 0 0;
+  overflow-wrap: anywhere;
+}
+
+.person-contacts {
+  display: grid;
+  font-size: 0.85rem;
+  gap: 2px;
+  list-style: none;
+  margin: 0;
+  overflow-wrap: anywhere;
+  padding: 0;
+}
+
+.person-description {
+  font-size: 0.85rem;
+  margin: 2px 0 0;
+  overflow-wrap: anywhere;
+  white-space: pre-line;
+}
+
+.person-contact-kind {
+  flex: 0 0 auto;
+  margin: 0;
+}
+
 .person-fields-list {
   display: grid;
   gap: 4px 12px;

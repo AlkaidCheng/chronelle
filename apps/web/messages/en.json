@@ -89,6 +89,21 @@
     "monday": "Monday",
     "sunday": "Sunday"
   },
+  "person": {
+    "nickname": "Nickname",
+    "description": "Description",
+    "contacts": "Contacts",
+    "contactKinds": {
+      "email": "Email",
+      "phone": "Phone",
+      "other": "Other"
+    },
+    "contactKind": "Contact {n} kind",
+    "contactValue": "Contact {n} value",
+    "removeContact": "Remove contact {n}",
+    "addContact": "Add contact",
+    "labels": "Labels"
+  },
   "events": {
     "title": "Events",
     "filterByName": "Filter events by name",

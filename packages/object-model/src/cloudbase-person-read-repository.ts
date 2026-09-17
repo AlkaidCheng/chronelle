@@ -10,6 +10,8 @@ import {
   cloudbasePersonColumns,
   cloudbasePersonResource,
   cloudbaseText,
+  readCloudBasePersonContacts,
+  readCloudBasePersonLabels,
   readCloudBaseVisibility,
   readCloudBaseVisibleObjects,
 } from "./cloudbase-read-support.js";
@@ -71,11 +73,32 @@ export class CloudBasePersonReadRepository implements PersonReadRepository {
     const byId = new Map(
       rows.map((row) => [cloudbaseText(row.object_id, "person object"), row]),
     );
+    const ids = [...byId.keys()];
+    const contacts = await readCloudBasePersonContacts(
+      this.#client,
+      principal,
+      ids,
+    );
+    const labels = await readCloudBasePersonLabels(
+      this.#client,
+      principal,
+      ids,
+    );
     const query = input.query.toLocaleLowerCase();
     const items = objects
       .flatMap((object) => {
-        const row = byId.get(cloudbaseText(object.id, "object id"));
-        return row === undefined ? [] : [cloudbasePersonResource(object, row)];
+        const id = cloudbaseText(object.id, "object id");
+        const row = byId.get(id);
+        return row === undefined
+          ? []
+          : [
+              cloudbasePersonResource(
+                object,
+                row,
+                contacts.get(id) ?? [],
+                labels.get(id) ?? [],
+              ),
+            ];
       })
       .filter(
         (person) =>

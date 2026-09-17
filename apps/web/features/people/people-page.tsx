@@ -8,7 +8,11 @@ import {
   LoadingState,
 } from "../../components/feedback";
 import { PlusIcon, SearchIcon } from "../../components/icons";
-import { usePersonsQuery, useSessionQuery } from "../../lib/queries";
+import {
+  useLabelsQuery,
+  usePersonsQuery,
+  useSessionQuery,
+} from "../../lib/queries";
 import { PersonCard } from "./person-card";
 import { PersonForm } from "./person-form";
 import { PersonInspector } from "./person-inspector";
@@ -41,6 +45,7 @@ export function PeoplePage() {
     }
   }, []);
   const people = usePersonsQuery(true, { query: debouncedQuery });
+  const labels = useLabelsQuery();
   const session = useSessionQuery();
   const me = session.data?.user.id;
   const changingQuery = isComposing || query.trim() !== debouncedQuery;
@@ -184,6 +189,7 @@ export function PeoplePage() {
                 hidden={hidden}
                 isMe={me !== undefined && person.userId === me}
                 key={person.id}
+                labelNames={labels.data?.names}
                 onEdit={setEditingId}
                 person={person}
               />

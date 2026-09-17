@@ -126,6 +126,34 @@ function rankAmong(
   return rankAfter(last);
 }
 
+/**
+ * The contacts a person write asks for and the email that mirrors them:
+ * `contacts` as given, else a legacy `email` folded into the kept contacts
+ * (the address first, then the non-email contacts; null removes the email
+ * contacts), else nothing for unchanged.
+ */
+function personContactFields(
+  input: Record<string, unknown>,
+  current: readonly { kind: string; value: string }[],
+): Record<string, unknown> {
+  const contacts = input.contacts as
+    readonly { kind: string; value: string }[] | undefined;
+  const email = input.email as string | null | undefined;
+  const next =
+    contacts ??
+    (email === undefined
+      ? undefined
+      : [
+          ...(email === null ? [] : [{ kind: "email", value: email }]),
+          ...current.filter((contact) => contact.kind !== "email"),
+        ]);
+  if (next === undefined) return {};
+  return {
+    contacts: next,
+    email: next.find((contact) => contact.kind === "email")?.value ?? null,
+  };
+}
+
 function canonical(
   objectType: Resource["objectType"],
   input: Record<string, unknown>,
@@ -152,7 +180,14 @@ function canonical(
     expense: {},
     reminder: { status: "pending", rank: "00000001000" },
     document: {},
-    person: { email: null, userId: null },
+    person: {
+      email: null,
+      userId: null,
+      nickname: null,
+      description: null,
+      contacts: [],
+      labelIds: [],
+    },
   }[objectType];
   return eventPlanningResourceResponseSchema.parse({
     ...defaults,
@@ -530,9 +565,29 @@ export class SandboxStore {
   }
 
   // A person's linked account is the sample planner's and belongs to one
-  // person, as the API requires of a workspace member.
-  #checkPerson(person: Resource): Resource {
-    if (person.objectType !== "person") return person;
+  // person, as the API requires of a workspace member; the labels are the
+  // workspace's labels only, in name order.
+  #checkPerson(input: Resource): Resource {
+    if (input.objectType !== "person") return input;
+    const names = new Map(
+      this.#state.labels.map((label) => [label.id, label.name.toLowerCase()]),
+    );
+    if (input.labelIds.some((labelId) => !names.has(labelId)))
+      throw new SandboxError(
+        400,
+        "invalid_request",
+        "labelIds must name labels of this workspace.",
+      );
+    const labelIds = [...new Set(input.labelIds)].sort(
+      (first, second) =>
+        (names.get(first) ?? "").localeCompare(names.get(second) ?? "") ||
+        first.localeCompare(second),
+    );
+    const person = labelIds.every(
+      (labelId, at) => labelId === input.labelIds[at],
+    )
+      ? input
+      : { ...input, labelIds };
     if (person.userId !== null) {
       if (person.userId !== userId)
         throw new SandboxError(
@@ -1277,7 +1332,7 @@ export class SandboxStore {
       const person = this.#checkPerson(
         canonical(
           "person",
-          fields,
+          { ...fields, ...personContactFields(fields, []) },
           typeof permissionScopeId === "string" ? permissionScopeId : undefined,
         ),
       );
@@ -1437,6 +1492,8 @@ export class SandboxStore {
         // Clearing a repeat rule clears its end.
         if ("repeatRule" in patch && patch.repeatRule === null)
           patch.repeatUntil = null;
+        if (object.objectType === "person")
+          Object.assign(patch, personContactFields(patch, object.contacts));
         const saved = this.#checkPerson(
           this.#checkTask(
             eventPlanningResourceResponseSchema.parse({

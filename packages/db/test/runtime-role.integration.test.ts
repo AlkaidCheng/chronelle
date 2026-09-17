@@ -127,7 +127,13 @@ describe("runtime database privileges", () => {
         ].includes(table.name),
       );
       expect(table.delete).toBe(
-        ["resource_grants", "labels", "task_labels"].includes(table.name),
+        [
+          "resource_grants",
+          "labels",
+          "task_labels",
+          "person_contacts",
+          "person_labels",
+        ].includes(table.name),
       );
     }
   });

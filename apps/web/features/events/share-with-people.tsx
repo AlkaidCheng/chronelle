@@ -3,6 +3,7 @@
 import type { PersonResponse, ShareResponse } from "@chronelle/schemas";
 import { type FormEvent, useId, useState } from "react";
 
+import { personDisplayName } from "../../lib/person-fields";
 import { useShareResource } from "../../lib/queries";
 
 type SharedRole = "owner" | "viewer";
@@ -134,7 +135,7 @@ export function ShareWithPeople({
                       type="checkbox"
                     />
                     <span className="share-person-name">
-                      {person.displayName}
+                      {personDisplayName(person)}
                     </span>
                     <span className="share-person-reach">
                       {person.userId !== null

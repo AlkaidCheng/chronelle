@@ -57,8 +57,12 @@ const typedFields: Record<
     checksumSha256: field("File checksum", "text", false),
   },
   person: {
-    email: field("Email", "text"),
+    nickname: field("Nickname", "text"),
+    description: field("Description", "text"),
+    contacts: field("Contacts", "json"),
+    email: field("Email", "text", false),
     userId: field("Linked account", "text", false),
+    labelIds: field("Labels", "text", false),
   },
 };
 
