@@ -969,44 +969,61 @@ h3 {
   display: flex;
   flex-direction: column;
   height: 100vh;
-  padding: 28px 20px 22px;
+  padding: 20px 12px 12px;
   position: sticky;
   top: 0;
 }
 
 .sidebar .brand {
-  margin: 0 10px 42px;
+  font-size: 1.2rem;
+  gap: 10px;
+  margin: 0 8px 20px;
+}
+
+.sidebar .brand-mark {
+  border-radius: 8px;
+  font-size: 0.94rem;
+  height: 28px;
+  width: 28px;
 }
 
 .workspace-nav {
   display: grid;
-  gap: 7px;
+  gap: 2px;
 }
 
-.workspace-nav a,
-.workspace-nav button {
+.workspace-nav > a,
+.workspace-nav > button,
+.rail-row > a {
   align-items: center;
-  border-radius: 10px;
+  border-radius: 8px;
   color: var(--muted);
   display: flex;
-  font-size: 0.87rem;
-  font-weight: 650;
-  gap: 12px;
-  padding: 11px 12px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  gap: 11px;
+  padding: 7px 10px;
   text-decoration: none;
 }
 
-.workspace-nav button {
+.workspace-nav > button {
   background: none;
   border: 0;
   cursor: pointer;
   text-align: start;
 }
 
-.workspace-nav a:hover,
-.workspace-nav a.active,
-.workspace-nav button:hover,
-.workspace-nav button[aria-expanded="true"] {
+.workspace-nav > a:hover,
+.workspace-nav > button:hover,
+.rail-row > a:hover {
+  background: var(--surface-subtle);
+  color: var(--ink);
+}
+
+.workspace-nav > a.active,
+.workspace-nav > button.active,
+.workspace-nav > button[aria-expanded="true"],
+.rail-row > a.active {
   background: var(--accent-soft);
   color: var(--accent);
 }
@@ -1022,15 +1039,18 @@ h3 {
   stroke-width: 1.7;
 }
 
-.workspace-nav svg {
-  height: 19px;
-  width: 19px;
+.workspace-nav > a > svg,
+.workspace-nav > button > svg,
+.rail-row > a > svg {
+  flex: none;
+  height: 18px;
+  width: 18px;
 }
 
 .sidebar-footer {
   border-top: 1px solid var(--line);
   margin-top: auto;
-  padding: 12px 0 0;
+  padding: 10px 0 0;
 }
 
 .account-menu {
@@ -1042,21 +1062,32 @@ h3 {
   align-items: center;
   background: none;
   border: 0;
-  border-radius: 10px;
+  border-radius: 8px;
   color: inherit;
   cursor: pointer;
   display: grid;
   font: inherit;
   gap: 10px;
   grid-template-columns: auto minmax(0, 1fr);
-  padding: 8px;
+  padding: 7px 8px;
   text-align: start;
   width: 100%;
 }
 
 .account-trigger:hover,
 .account-trigger[aria-expanded="true"] {
-  background: var(--accent-soft);
+  background: var(--surface-subtle);
+}
+
+/* The profile block's mark is the demo's small avatar; the sharing panel
+   keeps the larger accent one. */
+.account-trigger .profile-mark {
+  background: var(--surface-subtle);
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 700;
+  height: 28px;
+  width: 28px;
 }
 
 .profile-mark {
@@ -1135,14 +1166,18 @@ h3 {
   outline-offset: 1px;
 }
 
+.profile-copy {
+  line-height: 1.2;
+}
+
 .profile-copy strong {
-  font-size: 0.76rem;
+  font-size: 0.81rem;
+  font-weight: 600;
 }
 
 .profile-copy span {
-  color: var(--muted);
-  font-size: 0.65rem;
-  margin-top: 2px;
+  color: var(--faint);
+  font-size: 0.72rem;
 }
 
 .icon-button {
@@ -3483,8 +3518,9 @@ ul.resource-list {
     width: 100%;
   }
 
-  .workspace-nav a,
-  .workspace-nav button {
+  .workspace-nav > a,
+  .workspace-nav > button,
+  .rail-row > a {
     justify-content: center;
     flex-direction: column;
     gap: 4px;
@@ -4866,33 +4902,31 @@ html:has(.event-create-dialog[open]) {
 /* The rail's Collections section and its customize mode. */
 .rail-heading {
   align-items: center;
-  color: var(--muted);
+  color: var(--faint);
   display: flex;
-  font-size: 0.68rem;
-  font-weight: 650;
+  font-size: 0.69rem;
+  font-weight: 600;
   letter-spacing: 0.06em;
-  margin-top: 10px;
-  min-height: 26px;
-  padding: 0 12px;
+  padding: 14px 10px 4px;
   text-transform: uppercase;
 }
 
 .rail-customize {
   background: none;
   border: 0;
-  border-radius: 6px;
-  color: var(--muted);
+  border-radius: 5px;
+  color: var(--faint);
   cursor: pointer;
   display: grid;
-  height: 22px;
+  height: 20px;
   margin-left: auto;
   opacity: 0;
   padding: 0;
   place-items: center;
-  width: 22px;
+  width: 20px;
 }
 
-.rail-heading:hover .rail-customize,
+.workspace-nav:hover .rail-customize,
 .rail-customize:focus-visible,
 .rail-customize[aria-pressed="true"] {
   opacity: 1;
@@ -4900,22 +4934,22 @@ html:has(.event-create-dialog[open]) {
 
 .rail-customize:hover,
 .rail-customize[aria-pressed="true"] {
-  background: var(--accent-soft);
-  color: var(--accent);
+  background: var(--surface-subtle);
+  color: var(--ink);
 }
 
 .rail-customize svg {
-  height: 14px;
+  height: 13px;
   stroke: currentColor;
   stroke-linecap: round;
   stroke-linejoin: round;
   stroke-width: 1.7;
-  width: 14px;
+  width: 13px;
 }
 
 .rail-collections {
   display: grid;
-  gap: 7px;
+  gap: 2px;
   list-style: none;
   margin: 0;
   padding: 0;
@@ -4923,7 +4957,7 @@ html:has(.event-create-dialog[open]) {
 
 .rail-row {
   align-items: center;
-  border-radius: 10px;
+  border-radius: 8px;
   display: flex;
   min-width: 0;
 }
@@ -4949,12 +4983,24 @@ html:has(.event-create-dialog[open]) {
   box-shadow: 0 2px 0 0 var(--accent);
 }
 
+/* Customize mode: the grip leads the row, the eye ends it, and the row
+   itself is the drag handle; the link keeps its size so nothing shifts. */
 .rail-collections[data-customizing] .rail-row {
   cursor: grab;
+  padding-left: 6px;
 }
 
 .rail-collections[data-customizing] .rail-row > a {
-  padding-left: 4px;
+  padding-left: 6px;
+}
+
+/* While customizing, the open collection's tint spans the grip and the eye too. */
+.rail-collections[data-customizing] .rail-row:has(> a.active) {
+  background: var(--accent-soft);
+}
+
+.rail-collections[data-customizing] .rail-row > a.active {
+  background: none;
 }
 
 .rail-grip,
@@ -4962,15 +5008,15 @@ html:has(.event-create-dialog[open]) {
   align-items: center;
   background: none;
   border: 0;
-  border-radius: 6px;
-  color: var(--muted);
+  border-radius: 5px;
+  color: var(--faint);
   cursor: pointer;
   display: flex;
   flex-shrink: 0;
-  height: 28px;
+  height: 22px;
   justify-content: center;
   padding: 0;
-  width: 22px;
+  width: 14px;
 }
 
 .rail-grip {
@@ -4979,23 +5025,23 @@ html:has(.event-create-dialog[open]) {
 
 .rail-eye {
   margin-right: 4px;
-  width: 28px;
+  width: 22px;
 }
 
-.rail-grip:hover,
 .rail-eye:hover {
-  background: var(--accent-soft);
-  color: var(--accent);
+  background: var(--surface-subtle);
+  color: var(--ink);
 }
 
 .rail-grip svg,
 .rail-eye svg {
-  height: 15px;
+  flex: none;
+  height: 14px;
   stroke: currentColor;
   stroke-linecap: round;
   stroke-linejoin: round;
   stroke-width: 1.7;
-  width: 15px;
+  width: 14px;
 }
 
 .rail-grip svg {
@@ -5006,9 +5052,9 @@ html:has(.event-create-dialog[open]) {
   border: 1px dashed var(--line-strong);
   border-radius: 8px;
   color: var(--muted);
-  font-size: 0.78rem;
+  font-size: 0.76rem;
   line-height: 1.4;
-  margin: 10px 4px 0;
+  margin: 8px 6px 0;
   padding: 8px 10px;
 }
 
@@ -5018,20 +5064,27 @@ html:has(.event-create-dialog[open]) {
   color: var(--accent);
   cursor: pointer;
   font: inherit;
-  font-weight: 650;
+  font-weight: 600;
+  margin-left: 6px;
   padding: 0;
 }
 
-/* The More control beside the profile block and its menu, which opens upward. */
+/* The More control beside the profile block; its menu opens upward from
+   the footer's left edge, like the account menu. */
 .sidebar-footer {
   align-items: center;
   display: flex;
-  gap: 2px;
+  gap: 4px;
+  position: relative;
 }
 
 .sidebar-footer .account-menu {
   flex: 1;
   min-width: 0;
+}
+
+.more-menu {
+  position: static;
 }
 
 .more-trigger {
@@ -5043,17 +5096,16 @@ html:has(.event-create-dialog[open]) {
   cursor: pointer;
   display: flex;
   flex-shrink: 0;
-  height: 34px;
+  height: 32px;
   justify-content: center;
-  margin-top: 6px;
   padding: 0;
-  width: 34px;
+  width: 32px;
 }
 
 .more-trigger:hover,
 .more-trigger[aria-expanded="true"] {
-  background: var(--accent-soft);
-  color: var(--accent);
+  background: var(--surface-subtle);
+  color: var(--ink);
 }
 
 .more-trigger svg {
@@ -5063,24 +5115,6 @@ html:has(.event-create-dialog[open]) {
   stroke-linejoin: round;
   stroke-width: 1.7;
   width: 18px;
-}
-
-.more-menu-list {
-  bottom: calc(100% + 6px);
-  right: 0;
-  top: auto;
-  width: min(220px, calc(100vw - 32px));
-}
-
-.account-trigger {
-  border-radius: 10px;
-  margin-top: 6px;
-}
-
-.account-trigger:hover,
-.account-trigger[aria-expanded="true"] {
-  background: none;
-  color: var(--accent);
 }
 
 .quiet-menu {
@@ -5113,7 +5147,14 @@ html:has(.event-create-dialog[open]) {
   bottom: calc(100% + 6px);
   left: 0;
   top: auto;
-  width: min(260px, calc(100vw - 32px));
+  width: min(236px, calc(100vw - 32px));
+}
+
+.more-menu-list {
+  bottom: calc(100% + 6px);
+  left: 0;
+  top: auto;
+  width: min(232px, calc(100vw - 32px));
 }
 
 .theme-panel {
