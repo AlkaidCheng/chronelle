@@ -269,15 +269,28 @@ describe.sequential("CloudBase restoration reads", () => {
     }
     expect(results[1]).toEqual(results[0]);
     // Newest first: the metadata-only version changed no content; version 2
-    // changed eight fields, of which three are named; the first has no
-    // earlier version to compare with.
+    // changed eight fields, of which three are named; the first lists the
+    // content it started with, as changes from nothing.
     expect(results[0]?.full).toEqual([
       { mutationKind: "updated", changedFields: [], changedFieldCount: 0 },
       expect.objectContaining({
         mutationKind: "updated",
         changedFieldCount: 8,
       }),
-      { mutationKind: "created", changedFields: [], changedFieldCount: 0 },
+      expect.objectContaining({
+        mutationKind: "created",
+        changedFieldCount: 7,
+        changedFields: [
+          expect.objectContaining({
+            field: "displayName",
+            after: "Launch night",
+            beforePresent: false,
+            afterPresent: true,
+          }),
+          expect.objectContaining({ field: "startsAt", beforePresent: false }),
+          expect.objectContaining({ field: "endsAt", beforePresent: false }),
+        ],
+      }),
     ]);
     expect(results[0]?.full[1]?.changedFields).toEqual([
       expect.objectContaining({
@@ -296,7 +309,7 @@ describe.sequential("CloudBase restoration reads", () => {
       changedFieldCount: 8,
     });
     expect(results[0]?.task.map((row) => row.changedFieldCount)).toEqual([
-      0, 0, 0,
+      0, 0, 2,
     ]);
   });
 

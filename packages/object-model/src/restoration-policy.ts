@@ -120,6 +120,50 @@ export function compareRevisionContent(
   return changes;
 }
 
+/** A value the initial summary names: set, and not an empty text or list. */
+function isSet(value: unknown): boolean {
+  if (value === null || value === undefined || value === "") return false;
+  return !(Array.isArray(value) && value.length === 0);
+}
+
+/**
+ * The content a first revision starts with, as changes from nothing: the
+ * name, the typed fields that are set (a rank is an ordering key, not
+ * content), then the custom properties, each with no earlier value.
+ */
+export function initialRevisionContent(
+  snapshot: RevisionSnapshot,
+): RevisionFieldChange[] {
+  const definitions = {
+    displayName: field("Name", "text"),
+    ...typedFields[snapshot.objectType],
+  };
+  const values = snapshot as unknown as Record<string, unknown>;
+  const changes: RevisionFieldChange[] = [];
+  for (const [key, definition] of Object.entries(definitions)) {
+    if (key === "rank" || !isSet(values[key])) continue;
+    changes.push({
+      field: key,
+      ...definition,
+      before: null,
+      after: values[key],
+      beforePresent: false,
+      afterPresent: true,
+    });
+  }
+  for (const key of Object.keys(snapshot.customProperties).sort()) {
+    changes.push({
+      field: `customProperties.${key}`,
+      ...field(`Custom property: ${key}`, "json"),
+      before: null,
+      after: snapshot.customProperties[key] ?? null,
+      beforePresent: false,
+      afterPresent: true,
+    });
+  }
+  return changes;
+}
+
 export function preservedRevisionFields(
   objectType: RevisionSnapshot["objectType"],
 ): string[] {

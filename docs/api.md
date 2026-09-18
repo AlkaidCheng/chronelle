@@ -262,8 +262,9 @@ with `GET /api/objects/:id/revisions/:version`. Pass the returned
 The limit is 1-100. Each summary carries `changedFields`, up to three public
 content fields that differ from the previous revision with their before and
 after values, and `changedFieldCount`, the number of all such fields, so a
-history row can preview its change without a comparison request; the oldest
-known revision summarizes as unchanged. No total counts, security metadata, or
+history row can preview its change without a comparison request; the first
+revision lists the content it started with (`beforePresent` false on each
+field). No total counts, security metadata, or
 private storage keys are returned. See [Object revisions](revisions.md) for
 authorization semantics.
 
