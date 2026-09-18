@@ -1,6 +1,7 @@
 import { expect, type Page, type TestInfo } from "@playwright/test";
 import { expectHorizontalReflow } from "./page-navigation";
 import { searchEntry } from "./quiet-chrome";
+import { openEventView } from "./event-view";
 import { openTaskEditor } from "./task-add";
 
 export async function exerciseEditorSubmit(page: Page, testInfo: TestInfo) {
@@ -48,7 +49,7 @@ export async function exerciseEditorSubmit(page: Page, testInfo: TestInfo) {
   await expect(
     page.getByRole("heading", { name: "Editor shortcut plan", exact: true }),
   ).toBeVisible();
-  await page.getByRole("tab", { name: "To-dos", exact: true }).click();
+  await openEventView(page, "To-dos");
   await openTaskEditor(page);
   const task = page.getByLabel("Task", { exact: true });
   const save = page.getByRole("button", { name: "Create task", exact: true });

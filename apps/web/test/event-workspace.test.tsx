@@ -420,7 +420,12 @@ describe("EventWorkspace", () => {
         name: /Task|Schedule item|Expense|Reminder/,
       }),
     ).toBeNull();
-    expect(screen.queryByRole("button", { name: /^Add / })).toBeNull();
+    // The only add control a viewer keeps is the strip's own gallery.
+    expect(
+      screen
+        .queryAllByRole("button", { name: /^Add / })
+        .map((button) => button.getAttribute("aria-label")),
+    ).toEqual(["Add a view"]);
   });
 
   it.each(
@@ -832,6 +837,7 @@ describe("EventWorkspace", () => {
     expect(
       fetch.mock.calls.map(([input]) => requestPath(input)).sort(),
     ).toEqual([
+      "/api/auth/session",
       `/api/events/${eventId}`,
       `/api/events/${eventId}/detail`,
       `/api/events/${eventId}/layout`,
@@ -1708,5 +1714,171 @@ describe("EventWorkspace", () => {
           .closest("li") as HTMLElement,
       ).getByText(/already Viewer/),
     ).toBeVisible();
+  });
+
+  it("keeps the account's tabs for the event: the gallery adds and removes a view, Manage tabs hides and reorders", async () => {
+    window.history.replaceState(null, "", "/events/plan?view=todos");
+    const session = {
+      principal: { type: "user", userId, workspaceId },
+      user: {
+        id: userId,
+        displayName: "Planner",
+        email: "planner@example.test",
+        locale: null,
+        timeZone: null,
+        hourCycle: null,
+        weekStart: null,
+        rail: {},
+        eventTabs: { [eventId]: { removed: ["files"] } },
+      },
+      workspace: { id: workspaceId, displayName: "Personal" },
+      availableWorkspaces: [{ id: workspaceId, displayName: "Personal" }],
+    };
+    const layout = {
+      eventId,
+      version: 1,
+      updatedAt: rootEvent.createdAt,
+      pages: [
+        {
+          id: "019d6e7d-0000-7000-8000-000000000050",
+          name: "Plan",
+          components: [],
+        },
+      ],
+    };
+    const patches: unknown[] = [];
+    vi.stubGlobal(
+      "fetch",
+      vi.fn<typeof globalThis.fetch>(async (input, init) => {
+        const path = requestPath(input);
+        if (path === "/api/auth/session") return jsonResponse(session);
+        if (path === "/api/auth/me" && init?.method === "PATCH") {
+          const body = JSON.parse(String(init.body)) as {
+            eventTabs: Record<string, unknown>;
+          };
+          patches.push(body.eventTabs[eventId]);
+          session.user.eventTabs = {
+            ...session.user.eventTabs,
+            ...(body.eventTabs as Record<string, { removed: string[] }>),
+          };
+          return jsonResponse(session.user);
+        }
+        if (path.endsWith("/access"))
+          return jsonResponse({
+            resourceId: eventId,
+            actions: ["view", "edit", "share"],
+            source: { kind: "own" },
+          });
+        if (path === `/api/events/${eventId}`) return jsonResponse(rootEvent);
+        if (path === `/api/events/${eventId}/layout`)
+          return jsonResponse(layout);
+        return jsonResponse({ sourceEventId: eventId, items: [] });
+      }),
+    );
+    const user = userEvent.setup();
+    render(<EventWorkspace eventId={eventId} />, { wrapper: Providers });
+    const tabNames = () =>
+      screen.getAllByRole("tab").map((tab) => tab.textContent);
+    await screen.findByRole("tab", { name: "To-dos", selected: true });
+    // The stored preference leaves Files off the strip.
+    await waitFor(() => expect(tabNames()).not.toContain("Files"));
+    expect(tabNames()).toEqual([
+      "Overview",
+      "To-dos",
+      "Calendar",
+      "Timeline",
+      "Expenses",
+      "Reminders",
+      "People",
+      "Sharing",
+      "Removed links",
+    ]);
+
+    // The gallery: Files comes back at the end; Timeline goes; the
+    // dialog stays open; a fixed view offers no switch.
+    await user.click(screen.getByRole("button", { name: "Add a view" }));
+    const gallery = await screen.findByRole("dialog", {
+      name: "Add to Launch night",
+    });
+    const card = (name: RegExp) =>
+      within(gallery).getByRole("button", { name });
+    expect(card(/^Files/)).toHaveAttribute("aria-pressed", "false");
+    expect(card(/^To-dos/)).toHaveAttribute("aria-disabled", "true");
+    await user.click(card(/^Files/));
+    await user.click(card(/^Timeline/));
+    expect(gallery).toBeVisible();
+    await waitFor(() =>
+      expect(card(/^Timeline/)).toHaveAttribute("aria-pressed", "false"),
+    );
+    expect(patches).toEqual([
+      expect.objectContaining({ removed: [] }),
+      expect.objectContaining({ removed: ["timeline"] }),
+    ]);
+    expect(tabNames()).toEqual([
+      "Overview",
+      "To-dos",
+      "Calendar",
+      "Expenses",
+      "Reminders",
+      "People",
+      "Sharing",
+      "Removed links",
+      "Files",
+    ]);
+    await user.click(within(gallery).getByRole("button", { name: "Done" }));
+
+    // Manage tabs: the eye hides Expenses (kept in the list), the grip's
+    // arrow key moves Calendar down past it and Reminders, a fixed view
+    // has no cross.
+    await user.click(
+      screen.getByRole("button", { name: "Actions for Launch night" }),
+    );
+    await user.click(screen.getByRole("menuitem", { name: "Manage tabs" }));
+    const manage = await screen.findByRole("dialog", { name: "Manage tabs" });
+    expect(
+      within(manage).queryByRole("button", { name: /^Remove Overview/ }),
+    ).toBeNull();
+    expect(
+      within(manage).getByRole("button", {
+        name: "Remove Calendar from the event",
+      }),
+    ).toBeVisible();
+    await user.click(
+      within(manage).getByRole("button", { name: "Hide Expenses" }),
+    );
+    expect(
+      within(manage).getByRole("button", { name: "Show Expenses" }),
+    ).toBeVisible();
+    within(manage).getByRole("button", { name: "Move Calendar" }).focus();
+    await user.keyboard("{ArrowDown}{ArrowDown}");
+    await waitFor(() =>
+      expect(tabNames()).toEqual([
+        "Overview",
+        "To-dos",
+        "Reminders",
+        "Calendar",
+        "People",
+        "Sharing",
+        "Removed links",
+        "Files",
+      ]),
+    );
+    expect(patches.at(-1)).toEqual({
+      order: [
+        "overview",
+        "todos",
+        "expenses",
+        "reminders",
+        "calendar",
+        "people",
+        "sharing",
+        "removed-links",
+        "files",
+      ],
+      hidden: ["expenses"],
+      removed: ["timeline"],
+    });
+    await user.click(within(manage).getByRole("button", { name: "Done" }));
+    expect(screen.queryByRole("dialog")).toBeNull();
   });
 });

@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import { expect, test } from "./fixtures";
 import { openSearchPage } from "./helpers/quiet-chrome";
 import { openTaskEditor } from "./helpers/task-add";
+import { openEventView } from "./helpers/event-view";
 
 test("creates and retrieves one canonical Event at responsive widths", async ({
   page,
@@ -52,9 +53,9 @@ test("creates and retrieves one canonical Event at responsive widths", async ({
   expect((await creation).status()).toBe(201);
   await expect(page.getByText("Confirm venue", { exact: true })).toBeVisible();
   await page.reload();
-  await page.getByRole("tab", { name: "To-dos" }).click();
+  await openEventView(page, "To-dos");
   await expect(page.getByText("Confirm venue", { exact: true })).toBeVisible();
-  await page.getByRole("tab", { name: "Sharing" }).click();
+  await openEventView(page, "Sharing");
   await expect(
     page.getByRole("heading", { name: "People with access", exact: true }),
   ).toBeVisible();

@@ -4,10 +4,11 @@ import { expectToken } from "./appearance";
 import { expectHorizontalReflow } from "./page-navigation";
 import { chooseRowAction, rowMenuButton } from "./row-menu";
 import { openTaskEditor } from "./task-add";
+import { openEventView } from "./event-view";
 
 export async function exerciseTaskEditors(page: Page, testInfo: TestInfo) {
   const viewport = page.viewportSize();
-  await page.getByRole("tab", { name: "To-dos", exact: true }).click();
+  await openEventView(page, "To-dos");
   const panel = page.locator(".planning-panel").filter({
     has: page.getByRole("heading", { name: "To-dos", exact: true }),
   });

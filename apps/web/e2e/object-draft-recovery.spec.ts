@@ -7,6 +7,7 @@ import {
   planningEditors,
 } from "./helpers/object-draft-recovery";
 import { openPlanningEditor } from "./helpers/task-add";
+import { openEventView } from "./helpers/event-view";
 
 async function signIn(page: Page) {
   const email = `task-recovery-${randomUUID()}@example.test`;
@@ -35,13 +36,8 @@ for (const kind of ["task", "expense", "reminder"] as const) {
       const email = await signIn(page);
       const { eventUrl, collectionUrl } = await createRecoveryEvent(page);
       const eventId = new URL(eventUrl).pathname.split("/").at(-1);
-      await page.getByRole("tab", { name: "Overview", exact: true }).click();
-      await page
-        .getByRole("tab", {
-          name: view,
-          exact: true,
-        })
-        .click();
+      await openEventView(page, "Overview");
+      await openEventView(page, view);
       await openPlanningEditor(page, kind);
       const name = page.getByLabel(field, {
         exact: true,

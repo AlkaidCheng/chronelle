@@ -7,7 +7,7 @@ import {
 } from "@chronelle/db";
 
 import type { AuthIdentity } from "../authentication/auth-provider.js";
-import { WorkspaceUnavailableError } from "../errors.js";
+import { InvalidRequestError, WorkspaceUnavailableError } from "../errors.js";
 import {
   type CloudBaseRow as Row,
   instant,
@@ -161,9 +161,14 @@ export class CloudBaseIdentityStore implements IdentityStore {
             week_start: preferences.weekStart,
           }),
           ...(preferences.rail !== undefined && { rail: preferences.rail }),
+          ...(preferences.eventTabs !== undefined && {
+            event_tabs: preferences.eventTabs,
+          }),
         },
       });
     } catch (error) {
+      if (error instanceof CloudBaseRpcError && error.code.endsWith("PT422"))
+        throw new InvalidRequestError();
       if (error instanceof CloudBaseRpcError)
         throw new Error(`Identity persistence failed: ${error.message}`);
       throw error;

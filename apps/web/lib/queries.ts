@@ -61,6 +61,7 @@ import {
 } from "./commands";
 import { personDisplayName } from "./person-fields";
 import { useAuthSession } from "./auth-session";
+import { mergeEventTabs } from "./event-tabs";
 import type { EventView } from "./event-views";
 import { newId } from "./new-id";
 
@@ -185,6 +186,12 @@ export function useUpdatePreferences() {
               weekStart: input.weekStart,
             }),
             ...(input.rail !== undefined && { rail: input.rail ?? {} }),
+            ...(input.eventTabs !== undefined && {
+              eventTabs: mergeEventTabs(
+                previous.user.eventTabs,
+                input.eventTabs,
+              ),
+            }),
           },
         });
       return { previous };

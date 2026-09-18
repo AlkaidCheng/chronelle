@@ -17,6 +17,7 @@ import {
   MoreIcon,
   PencilIcon,
   ShareIcon,
+  TabsIcon,
   TrashIcon,
 } from "../../components/icons";
 import {
@@ -39,16 +40,15 @@ import { UndoMenuItems } from "../../components/undo-menu-items";
 import { HistoryButton } from "../history/history-button";
 import { useOpenLifecycle } from "../recovery/lifecycle-provider";
 import { RemovedLinksPanel } from "../recovery/removed-links-panel";
-import {
-  eventViewLabel,
-  eventViews as tabs,
-  type EventView as TabId,
-} from "../../lib/event-views";
+import { eventViewLabel, type EventView as TabId } from "../../lib/event-views";
 import { useEventView } from "../../lib/use-event-view";
 import { EventOverview } from "./event-overview";
 import { EventPages } from "./event-pages";
 import { EventStrip } from "./event-strip";
+import { EventViewGallery } from "./event-view-gallery";
+import { ManageTabsDialog } from "./manage-tabs-dialog";
 import { useEventPagesState } from "./use-event-pages";
+import { useEventTabs } from "./use-event-tabs";
 import {
   CommandScope,
   type ContextCommand,
@@ -69,6 +69,9 @@ export function EventWorkspace({ eventId }: { readonly eventId: string }) {
     );
   useForgetInaccessibleEventDrafts(eventId, accessLost);
   const [editing, setEditing] = useState<"name" | "schedule" | null>(null);
+  const [tabsDialog, setTabsDialog] = useState<"gallery" | "manage" | null>(
+    null,
+  );
   const [copied, setCopied] = useState("");
   // A tab's view is chosen for the session; page components save theirs.
   const [tabView, setTabView] = useState<{
@@ -87,7 +90,12 @@ export function EventWorkspace({ eventId }: { readonly eventId: string }) {
     view.current?.focus();
     focusView.current = false;
   }, [activeTab]);
-  const tabButtons = useRef(new Map<TabId, HTMLButtonElement>());
+  const canShare = queries.access.data?.actions.includes("share") ?? false;
+  const eventTabs = useEventTabs(
+    eventId,
+    pagesState.pages.map((page) => page.id),
+    canShare,
+  );
   const essentialQueries = [queries.event, queries.access];
   const failedQuery =
     essentialQueries.find(
@@ -137,13 +145,24 @@ export function EventWorkspace({ eventId }: { readonly eventId: string }) {
     return null;
   }
 
-  const canShare = access.actions.includes("share");
   const canDelete = access.actions.includes("delete");
-  const visibleTabs = tabs.filter(
-    (tab) => tab.id !== "pages" && (tab.id !== "sharing" || canShare),
-  );
   const shownTab =
     activeTab === "sharing" && !canShare ? "overview" : activeTab;
+  // The strip lists the account's arrangement; a view reached by its
+  // address or from the Overview shows even while hidden (in its place)
+  // or removed (at the end).
+  const arrangedViews = eventTabs.arranged.order.filter(
+    (view) => !eventTabs.arranged.hidden.has(view) || view === shownTab,
+  );
+  const stripViews =
+    shownTab === "pages" || arrangedViews.includes(shownTab)
+      ? arrangedViews
+      : [...arrangedViews, shownTab];
+  const stripPages = pagesState.pages.filter(
+    (page) =>
+      !eventTabs.arranged.hidden.has(page.id) ||
+      (shownTab === "pages" && page.id === pagesState.selectedPage?.id),
+  );
   const schedule = formatEventSchedule(event);
   const commands: ContextCommand[] = [
     ...pagesState.commands,
@@ -276,6 +295,12 @@ export function EventWorkspace({ eventId }: { readonly eventId: string }) {
                   {t("arrange")}
                 </MenuItem>
               ) : null}
+              <MenuItem
+                icon={<TabsIcon />}
+                onSelect={() => setTabsDialog("manage")}
+              >
+                {t("manageTabs")}
+              </MenuItem>
               <MenuItem icon={<LinkIcon />} onSelect={copyLink}>
                 {t("copyLink")}
               </MenuItem>
@@ -317,15 +342,15 @@ export function EventWorkspace({ eventId }: { readonly eventId: string }) {
           onChange={(event) => setActiveTab(event.target.value as TabId)}
         >
           <option value="pages">{eventViewLabel("pages")}</option>
-          {visibleTabs.map((tab) => (
-            <option value={tab.id} key={tab.id}>
-              {eventViewLabel(tab.id)}
+          {stripViews.map((view) => (
+            <option value={view} key={view}>
+              {eventViewLabel(view)}
             </option>
           ))}
         </select>
       </label>
       <EventStrip
-        pages={pagesState.pages}
+        pages={stripPages}
         selectedPageId={pagesState.selectedPage?.id}
         showingPages={shownTab === "pages"}
         onSelectPage={(pageId) => {
@@ -350,16 +375,13 @@ export function EventWorkspace({ eventId }: { readonly eventId: string }) {
               }
             : undefined
         }
-        views={visibleTabs.map((tab) => ({
-          id: tab.id,
-          label: eventViewLabel(tab.id),
+        views={stripViews.map((view) => ({
+          id: view,
+          label: eventViewLabel(view),
         }))}
         activeView={shownTab}
         onSelectView={setActiveTab}
-        tabRef={(tab, element) => {
-          if (element === null) tabButtons.current.delete(tab);
-          else tabButtons.current.set(tab, element);
-        }}
+        onAddView={() => setTabsDialog("gallery")}
       />
       {shownTab === "pages" ? (
         <EventPages
@@ -422,6 +444,28 @@ export function EventWorkspace({ eventId }: { readonly eventId: string }) {
         </div>
       )}
       {pagesState.dialog}
+      {tabsDialog === "gallery" ? (
+        <EventViewGallery
+          eventName={event.displayName}
+          tabs={eventTabs}
+          onClose={() => setTabsDialog(null)}
+        />
+      ) : null}
+      {tabsDialog === "manage" ? (
+        <ManageTabsDialog
+          eventId={eventId}
+          layout={layout.data}
+          canEdit={canEdit}
+          tabs={eventTabs}
+          onClose={() => setTabsDialog(null)}
+          onNewPage={() => {
+            setTabsDialog(null);
+            setActiveTab("pages");
+            pagesState.setAdding({ pageId: null });
+          }}
+          onAddView={() => setTabsDialog("gallery")}
+        />
+      ) : null}
     </main>
   );
 }

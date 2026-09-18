@@ -1,0 +1,17 @@
+{
+  "title": "Manage tabs",
+  "intro": "Drag a row, or press its grip and use the arrow keys, to reorder. The eye hides a tab but keeps it here; the cross takes a view off the event (its records stay; the gallery brings it back).",
+  "pages": "Pages",
+  "views": "Views",
+  "newPage": "New page",
+  "addView": "Add view",
+  "noPages": "No pages yet.",
+  "move": "Move {name}",
+  "hide": "Hide {name}",
+  "show": "Show {name}",
+  "remove": "Remove {name} from the event",
+  "hidden": "hidden",
+  "note": "Overview, To-dos, Sharing and Removed links can be hidden but not removed.",
+  "close": "Close",
+  "done": "Done"
+}

@@ -6,6 +6,8 @@ import {
   workspaceMembers,
   workspaces,
   type Database,
+  type EventTabsPreferenceRow,
+  type EventTabsRow,
   type RailPreferenceRow,
   type UserRow,
   type WorkspaceRow,
@@ -13,7 +15,7 @@ import {
 import { and, eq, inArray, sql } from "drizzle-orm";
 
 import type { AuthIdentity } from "../authentication/auth-provider.js";
-import { WorkspaceUnavailableError } from "../errors.js";
+import { InvalidRequestError, WorkspaceUnavailableError } from "../errors.js";
 
 /** The rows a sign-in produces, and whether the personal workspace was created by it. */
 export interface SignInResult {
@@ -53,14 +55,23 @@ export interface IdentityStore {
   ): Promise<UserRow>;
 }
 
-/** The account preferences a store merges; an absent or undefined key keeps its value and null clears it. */
+/**
+ * The account preferences a store merges; an absent or undefined key keeps
+ * its value and null clears it. `eventTabs` merges one event at a time:
+ * an object replaces that event's tabs and null drops them.
+ */
 export interface UserPreferences {
   readonly locale?: string | null | undefined;
   readonly timeZone?: string | null | undefined;
   readonly hourCycle?: "h12" | "h23" | null | undefined;
   readonly weekStart?: 1 | 7 | null | undefined;
   readonly rail?: RailPreferenceRow | null | undefined;
+  readonly eventTabs?:
+    Readonly<Record<string, EventTabsPreferenceRow | null>> | undefined;
 }
+
+/** How many events keep tab preferences on one account. */
+export const eventTabsLimit = 200;
 
 /** The PostgreSQL store: each read runs in one repeatable-read snapshot with the authorization evaluator. */
 export class PostgresIdentityStore implements IdentityStore {
@@ -189,29 +200,59 @@ export class PostgresIdentityStore implements IdentityStore {
     userId: string,
     preferences: UserPreferences,
   ): Promise<UserRow> {
-    const [updated] = await this.#database
-      .update(users)
-      .set({
-        ...(preferences.locale !== undefined && { locale: preferences.locale }),
-        ...(preferences.timeZone !== undefined && {
-          timeZone: preferences.timeZone,
-        }),
-        ...(preferences.hourCycle !== undefined && {
-          hourCycle: preferences.hourCycle,
-        }),
-        ...(preferences.weekStart !== undefined && {
-          weekStart: preferences.weekStart,
-        }),
-        ...(preferences.rail !== undefined && {
-          rail: preferences.rail ?? {},
-        }),
-        updatedAt: sql`GREATEST(now(), ${users.createdAt})`,
-      })
-      .where(eq(users.id, userId))
-      .returning();
-    if (updated === undefined) throw new Error("The user does not exist.");
-    return updated;
+    return this.#database.transaction(async (transaction) => {
+      const eventTabs =
+        preferences.eventTabs === undefined
+          ? undefined
+          : await mergeEventTabs(transaction, userId, preferences.eventTabs);
+      const [updated] = await transaction
+        .update(users)
+        .set({
+          ...(preferences.locale !== undefined && {
+            locale: preferences.locale,
+          }),
+          ...(preferences.timeZone !== undefined && {
+            timeZone: preferences.timeZone,
+          }),
+          ...(preferences.hourCycle !== undefined && {
+            hourCycle: preferences.hourCycle,
+          }),
+          ...(preferences.weekStart !== undefined && {
+            weekStart: preferences.weekStart,
+          }),
+          ...(preferences.rail !== undefined && {
+            rail: preferences.rail ?? {},
+          }),
+          ...(eventTabs !== undefined && { eventTabs }),
+          updatedAt: sql`GREATEST(now(), ${users.createdAt})`,
+        })
+        .where(eq(users.id, userId))
+        .returning();
+      if (updated === undefined) throw new Error("The user does not exist.");
+      return updated;
+    });
   }
+}
+
+/** The stored tabs with the request's events replaced or dropped, locked for the update that follows. */
+async function mergeEventTabs(
+  transaction: Pick<Database, "select">,
+  userId: string,
+  changes: Readonly<Record<string, EventTabsPreferenceRow | null>>,
+): Promise<EventTabsRow> {
+  const [row] = await transaction
+    .select({ eventTabs: users.eventTabs })
+    .from(users)
+    .where(eq(users.id, userId))
+    .for("update");
+  const next: Record<string, EventTabsPreferenceRow> = { ...row?.eventTabs };
+  for (const [eventId, tabs] of Object.entries(changes)) {
+    if (tabs === null) delete next[eventId];
+    else next[eventId] = tabs;
+  }
+  if (Object.keys(next).length > eventTabsLimit)
+    throw new InvalidRequestError();
+  return next;
 }
 
 async function findUser(

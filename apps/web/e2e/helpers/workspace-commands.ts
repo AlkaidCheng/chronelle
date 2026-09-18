@@ -2,6 +2,7 @@ import { expect, type Page, type TestInfo } from "@playwright/test";
 import { expectHorizontalReflow } from "./page-navigation";
 import { openThemePanel, searchEntry } from "./quiet-chrome";
 import { openTaskEditor } from "./task-add";
+import { openEventView } from "./event-view";
 
 export async function exerciseWorkspaceCommands(
   page: Page,
@@ -14,7 +15,7 @@ export async function exerciseWorkspaceCommands(
   const results = dialog.getByRole("listbox", {
     name: "Commands",
   });
-  await page.getByRole("tab", { name: "To-dos", exact: true }).click();
+  await openEventView(page, "To-dos");
   await openTaskEditor(page);
   const draft = page.getByLabel("Task", { exact: true });
   await draft.fill("Unsaved command draft");

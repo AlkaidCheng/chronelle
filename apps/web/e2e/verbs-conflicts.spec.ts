@@ -7,6 +7,7 @@ import {
   removeFromEvent,
 } from "./helpers/lifecycle";
 import { chooseRowAction } from "./helpers/row-menu";
+import { openEventView } from "./helpers/event-view";
 
 async function signInAs(page: Page, name: string, email: string) {
   await page.goto("/sign-in/development");
@@ -39,7 +40,7 @@ async function openEvent(page: Page, name: string) {
   await expect(
     page.getByRole("heading", { level: 1, name, exact: true }),
   ).toBeVisible();
-  await page.getByRole("tab", { name: "To-dos", exact: true }).click();
+  await openEventView(page, "To-dos");
 }
 
 test("names removals by what reverses them and never reports one that was refused @webkit-desktop", async ({
@@ -94,7 +95,7 @@ test("names removals by what reverses them and never reports one that was refuse
   await chooseRowAction(page, table, "Move to Trash");
   await removeFromEvent(page, page.getByRole("dialog"));
   await expect(table).toHaveCount(0);
-  await page.getByRole("tab", { name: "Removed links" }).click();
+  await openEventView(page, "Removed links");
   await page
     .getByRole("article")
     .filter({ hasText: "Borrow the long table" })
@@ -104,11 +105,11 @@ test("names removals by what reverses them and never reports one that was refuse
   await recovery.getByRole("checkbox").check();
   await recovery.getByRole("button", { name: "Confirm link recovery" }).click();
   await recovery.getByRole("button", { name: "Close", exact: true }).click();
-  await page.getByRole("tab", { name: "To-dos", exact: true }).click();
+  await openEventView(page, "To-dos");
   await expect(table).toBeVisible();
 
   // Removing a share says who loses what; the other account then has none.
-  await page.getByRole("tab", { name: "Sharing", exact: true }).click();
+  await openEventView(page, "Sharing");
   const access = page.locator(".share-list");
   const carolRow = access.locator("article", { hasText: "Carol" });
   await carolRow.getByRole("button", { name: "Remove share" }).click();

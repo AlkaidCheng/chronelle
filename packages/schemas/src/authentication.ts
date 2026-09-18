@@ -65,11 +65,31 @@ export const railPreferenceSchema = z.object({
   hidden: z.array(collectionKeySchema).max(50).optional(),
 });
 
+const tabKeySchema = z.string().min(1).max(40);
+
+/**
+ * How an event's tab strip lists that event's pages and views for the
+ * account: `order` names view keys first to last, `hidden` the view keys
+ * and page ids left out of the strip but kept, and `removed` the view keys
+ * taken off the event until added again, each optional. A key the app
+ * does not know is kept and ignored.
+ */
+export const eventTabsPreferenceSchema = z.object({
+  order: z.array(tabKeySchema).max(40).optional(),
+  hidden: z.array(tabKeySchema).max(40).optional(),
+  removed: z.array(tabKeySchema).max(40).optional(),
+});
+
+/** Tab preferences keyed by event id. */
+export const eventTabsSchema = z.record(z.uuid(), eventTabsPreferenceSchema);
+
 /**
  * The preferences kept on the account. Each key is optional; a key that is
  * present replaces the stored value, and null clears it so the device or the
  * language decides again (the rail returns to its default order). An empty
- * object changes nothing.
+ * object changes nothing. `eventTabs` merges one event at a time: an
+ * object replaces that event's tabs and null drops them, while events not
+ * named keep theirs.
  */
 export const preferencesRequestSchema = z.object({
   locale: localeTagSchema.nullable().optional(),
@@ -77,6 +97,9 @@ export const preferencesRequestSchema = z.object({
   hourCycle: hourCycleSchema.nullable().optional(),
   weekStart: weekStartSchema.nullable().optional(),
   rail: railPreferenceSchema.nullable().optional(),
+  eventTabs: z
+    .record(z.uuid(), eventTabsPreferenceSchema.nullable())
+    .optional(),
 });
 
 export const emailRequestSchema = z.object({
@@ -113,6 +136,7 @@ const userSchema = z.object({
   hourCycle: hourCycleSchema.nullable().default(null),
   weekStart: weekStartSchema.nullable().default(null),
   rail: railPreferenceSchema.default({}),
+  eventTabs: eventTabsSchema.default({}),
 });
 
 /** The account as the session and account routes return it. */
@@ -181,4 +205,6 @@ export type PreferencesRequest = z.infer<typeof preferencesRequestSchema>;
 export type HourCycle = z.infer<typeof hourCycleSchema>;
 export type WeekStart = z.infer<typeof weekStartSchema>;
 export type RailPreference = z.infer<typeof railPreferenceSchema>;
+export type EventTabsPreference = z.infer<typeof eventTabsPreferenceSchema>;
+export type EventTabs = z.infer<typeof eventTabsSchema>;
 export type UserResponse = z.infer<typeof userResponseSchema>;

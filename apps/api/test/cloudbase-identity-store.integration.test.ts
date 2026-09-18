@@ -326,7 +326,10 @@ describe.sequential("CloudBase identity store", () => {
       hourCycle: users.hourCycle,
       weekStart: users.weekStart,
       rail: users.rail,
+      eventTabs: users.eventTabs,
     };
+    const kyoto = "01a0b355-cad8-73d2-89f8-0a12abf666a8";
+    const lisbon = "01a0b355-cad8-73d2-89f8-0a12abf666a9";
     const outcome = (attempt: Promise<unknown>) =>
       attempt
         .then(() => "accepted")
@@ -342,15 +345,20 @@ describe.sequential("CloudBase identity store", () => {
         hourCycle: null,
         weekStart: null,
         rail: {},
+        eventTabs: {},
       });
       const chosen = await store.updatePreferences(signedIn.user.id, {
         locale: "zh-Hant",
         timeZone: "Asia/Taipei",
         rail: { order: ["people", "events", "tasks"], hidden: ["tasks"] },
+        eventTabs: {
+          [kyoto]: { order: ["todos", "overview"], removed: ["timeline"] },
+        },
       });
       const merged = await store.updatePreferences(signedIn.user.id, {
         hourCycle: "h23",
         weekStart: 7,
+        eventTabs: { [lisbon]: { hidden: ["files"] } },
       });
       const read = await store.resolveSession(
         identity(`pref-${name}`),
@@ -361,6 +369,7 @@ describe.sequential("CloudBase identity store", () => {
         locale: null,
         hourCycle: null,
         rail: null,
+        eventTabs: { [kyoto]: { hidden: ["sharing"] }, [lisbon]: null },
       });
       const refusals = {
         locale: await outcome(
@@ -389,6 +398,35 @@ describe.sequential("CloudBase identity store", () => {
             rail: { order: [1] as unknown as string[] },
           }),
         ),
+        eventTabsKey: await outcome(
+          store.updatePreferences(signedIn.user.id, {
+            eventTabs: { plan: { order: ["todos"] } },
+          }),
+        ),
+        eventTabsShape: await outcome(
+          store.updatePreferences(signedIn.user.id, {
+            eventTabs: { [kyoto]: { order: "todos" as unknown as string[] } },
+          }),
+        ),
+        eventTabsLength: await outcome(
+          store.updatePreferences(signedIn.user.id, {
+            eventTabs: {
+              [kyoto]: {
+                hidden: Array.from({ length: 41 }, (_, index) => `k${index}`),
+              },
+            },
+          }),
+        ),
+        eventTabsCount: await outcome(
+          store.updatePreferences(signedIn.user.id, {
+            eventTabs: Object.fromEntries(
+              Array.from({ length: 200 }, (_, index) => [
+                `01a0b355-cad8-73d2-89f8-${String(index).padStart(12, "0")}`,
+                {},
+              ]),
+            ),
+          }),
+        ),
         unknownUser: await outcome(
           store.updatePreferences(createId(), { locale: "en" }),
         ),
@@ -403,6 +441,7 @@ describe.sequential("CloudBase identity store", () => {
         hourCycle: user.hourCycle,
         weekStart: user.weekStart,
         rail: user.rail,
+        eventTabs: user.eventTabs,
       });
       results[name] = {
         chosen: shape(chosen),
@@ -423,6 +462,9 @@ describe.sequential("CloudBase identity store", () => {
         hourCycle: null,
         weekStart: null,
         rail: { order: ["people", "events", "tasks"], hidden: ["tasks"] },
+        eventTabs: {
+          [kyoto]: { order: ["todos", "overview"], removed: ["timeline"] },
+        },
       },
       merged: {
         locale: "zh-Hant",
@@ -430,6 +472,10 @@ describe.sequential("CloudBase identity store", () => {
         hourCycle: "h23",
         weekStart: 7,
         rail: { order: ["people", "events", "tasks"], hidden: ["tasks"] },
+        eventTabs: {
+          [kyoto]: { order: ["todos", "overview"], removed: ["timeline"] },
+          [lisbon]: { hidden: ["files"] },
+        },
       },
       read: {
         locale: "zh-Hant",
@@ -437,6 +483,10 @@ describe.sequential("CloudBase identity store", () => {
         hourCycle: "h23",
         weekStart: 7,
         rail: { order: ["people", "events", "tasks"], hidden: ["tasks"] },
+        eventTabs: {
+          [kyoto]: { order: ["todos", "overview"], removed: ["timeline"] },
+          [lisbon]: { hidden: ["files"] },
+        },
       },
       untouched: {
         locale: "zh-Hant",
@@ -444,6 +494,10 @@ describe.sequential("CloudBase identity store", () => {
         hourCycle: "h23",
         weekStart: 7,
         rail: { order: ["people", "events", "tasks"], hidden: ["tasks"] },
+        eventTabs: {
+          [kyoto]: { order: ["todos", "overview"], removed: ["timeline"] },
+          [lisbon]: { hidden: ["files"] },
+        },
       },
       cleared: {
         locale: null,
@@ -451,6 +505,7 @@ describe.sequential("CloudBase identity store", () => {
         hourCycle: null,
         weekStart: 7,
         rail: {},
+        eventTabs: { [kyoto]: { hidden: ["sharing"] } },
       },
       stored: {
         locale: null,
@@ -458,6 +513,7 @@ describe.sequential("CloudBase identity store", () => {
         hourCycle: null,
         weekStart: 7,
         rail: {},
+        eventTabs: { [kyoto]: { hidden: ["sharing"] } },
       },
       refusals: {
         locale: "refused",
@@ -466,6 +522,10 @@ describe.sequential("CloudBase identity store", () => {
         weekStart: "refused",
         railList: "refused",
         railKeys: "refused",
+        eventTabsKey: "refused",
+        eventTabsShape: "refused",
+        eventTabsLength: "refused",
+        eventTabsCount: "refused",
         unknownUser: "refused",
       },
       touched: true,

@@ -3,6 +3,7 @@ import { chooseLayout } from "./component-views";
 import { setDue } from "./due-picker";
 import { today } from "./today";
 import { openTaskEditor } from "./task-add";
+import { openEventView } from "./event-view";
 
 /**
  * Adds tasks from the quick row at the end of the Tasks page: Enter adds
@@ -51,7 +52,7 @@ export async function exerciseQuickAddOnTasksPage(page: Page) {
  * the next 9:00, a day group at 9:00 that day). Returns what was added.
  */
 export async function exerciseQuickAddInEvent(page: Page) {
-  await page.getByRole("tab", { name: "To-dos", exact: true }).click();
+  await openEventView(page, "To-dos");
   const todos = page.locator(".planning-panel").filter({
     has: page.getByRole("heading", { name: "To-dos", exact: true }),
   });
@@ -94,7 +95,7 @@ export async function exerciseQuickAddInEvent(page: Page) {
   await expect(todayGroup.getByText("Light the candles")).toBeVisible();
   await field.press("Escape");
 
-  await page.getByRole("tab", { name: "Reminders", exact: true }).click();
+  await openEventView(page, "Reminders");
   const reminders = page.locator(".planning-panel").filter({
     has: page.getByRole("heading", { name: "Reminders", exact: true }),
   });

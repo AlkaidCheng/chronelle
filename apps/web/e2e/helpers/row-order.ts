@@ -2,6 +2,7 @@ import { expect, type Locator, type Page } from "@playwright/test";
 import { chooseLayout } from "./component-views";
 import { chooseRowAction, dragRow, rowMenuButton } from "./row-menu";
 import { openTaskEditor } from "./task-add";
+import { openEventView } from "./event-view";
 
 /** Opens the Sort menu and chooses an order by its label. */
 async function chooseSort(page: Page, name: string) {
@@ -28,7 +29,7 @@ async function orderOf(rows: Locator, wanted: readonly string[]) {
  * move is one versioned write of the moved task.
  */
 export async function exerciseRowOrder(page: Page) {
-  await page.getByRole("tab", { name: "To-dos", exact: true }).click();
+  await openEventView(page, "To-dos");
   const panel = page.locator(".planning-panel").filter({
     has: page.getByRole("heading", { name: "To-dos", exact: true }),
   });

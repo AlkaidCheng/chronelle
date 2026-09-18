@@ -35,6 +35,11 @@ export function eventViewLabel(view: EventView): string {
   return tr("views")(viewKeys[view]);
 }
 
+/** What a view shows, in one line in the active language. */
+export function eventViewDescription(view: EventView): string {
+  return tr("views.descriptions")(viewKeys[view]);
+}
+
 export function parseEventView(value: string | null): EventView {
   // The Itinerary tab folded into the Calendar; its links still open.
   if (value === "itinerary") return "calendar";

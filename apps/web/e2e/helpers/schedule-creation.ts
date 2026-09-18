@@ -2,10 +2,11 @@ import { expect, type Page, type TestInfo } from "@playwright/test";
 import { expectToken } from "./appearance";
 import { expectHorizontalReflow } from "./page-navigation";
 import { datesSummary, dayName, expectDates } from "./range-picker";
+import { openEventView } from "./event-view";
 
 export async function prepareScheduleCreation(page: Page, testInfo: TestInfo) {
-  await page.getByRole("tab", { name: "Overview", exact: true }).click();
-  await page.getByRole("tab", { name: "Calendar", exact: true }).click();
+  await openEventView(page, "Overview");
+  await openEventView(page, "Calendar");
   const panel = page.locator(".planning-panel").filter({
     has: page.getByRole("heading", { name: "Calendar", exact: true }),
   });
@@ -87,7 +88,7 @@ export async function expectCreatedSchedule(page: Page) {
   await expect(
     page.getByRole("heading", { name: "Garden arrival", exact: true }),
   ).toHaveCount(1);
-  await page.getByRole("tab", { name: "Timeline", exact: true }).click();
+  await openEventView(page, "Timeline");
   await expect(
     page.getByRole("heading", { name: "Garden arrival", exact: true }),
   ).toHaveCount(1);

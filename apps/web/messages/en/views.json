@@ -12,14 +12,18 @@
   "sharing": "Sharing",
   "removedLinks": "Removed links",
   "descriptions": {
-    "todos": "Add tasks and track what needs doing.",
-    "calendar": "Plan dates, times, and multi-day activities.",
-    "timeline": "See dated plans, tasks, spending, and reminders in order.",
-    "itinerary": "Follow the running order of your scheduled activities.",
-    "expenses": "Record transactions and see totals by currency.",
-    "reminders": "Track upcoming nudges. Notifications are not sent yet.",
-    "files": "Manage private attachments on this event, its tasks, and expenses.",
-    "people": "See who is involved in this event, as namecards."
+    "pages": "Your own pages, laid out from components.",
+    "overview": "What the event holds, at a glance.",
+    "todos": "Tasks with due dates, assignees and labels.",
+    "calendar": "Scheduled items by day, week or month.",
+    "timeline": "Everything dated, in the order it happens.",
+    "itinerary": "The running order of scheduled activities.",
+    "expenses": "What was spent, with totals by currency.",
+    "reminders": "Nudges at a time. Notifications are not sent yet.",
+    "files": "Attachments kept with the event, its tasks and expenses.",
+    "people": "Who is part of the event, as namecards.",
+    "sharing": "Who has access, and as what.",
+    "removedLinks": "Links taken off the event, ready to recover."
   },
   "loading": "Loading {name}"
 }

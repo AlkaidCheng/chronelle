@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import { eventResponseSchema } from "@chronelle/schemas";
 import { expect, test } from "./fixtures";
 import { expectDates, setDates } from "./helpers/range-picker";
+import { openEventView } from "./helpers/event-view";
 
 test("creates a date-only range and switches to multi-day exact times @webkit-desktop @webkit-mobile", async ({
   page,
@@ -156,7 +157,7 @@ for (const display of [
       await expect(undated.locator(".event-date-mark span")).toHaveText("TBD");
       await expect(undated.locator(".event-date-mark strong")).toHaveText("-");
       await card.click();
-      await page.getByRole("tab", { name: "Calendar", exact: true }).click();
+      await openEventView(page, "Calendar");
       const calendar = page
         .locator(".resource-list article")
         .filter({ hasText: "Scheduled item" });
@@ -170,7 +171,7 @@ for (const display of [
         path: testInfo.outputPath("calendar-date.png"),
         fullPage: true,
       });
-      await page.getByRole("tab", { name: "Reminders", exact: true }).click();
+      await openEventView(page, "Reminders");
       await expect(page.locator(".date-tile span")).toHaveText(
         month.toUpperCase(),
       );

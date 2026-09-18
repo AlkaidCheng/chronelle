@@ -3,6 +3,7 @@ import {
   expectCreatedSchedule,
   prepareScheduleCreation,
 } from "../../e2e/helpers/schedule-creation";
+import { openEventView } from "../../e2e/helpers/event-view";
 
 const sandboxUrl = new URL(
   "../../../../.chronelle/sandbox/chronelle.html",
@@ -29,7 +30,7 @@ test("creates a canonical schedule item in a focused offline dialog", async ({
     page.getByRole("heading", { name: "Garden arrival", exact: true }),
   ).toHaveCount(1);
   await page.getByLabel("Preview role").selectOption("viewer");
-  await page.getByRole("tab", { name: "Calendar", exact: true }).click();
+  await openEventView(page, "Calendar");
   await expect(
     page.getByRole("button", { name: "Add schedule item" }),
   ).toHaveCount(0);

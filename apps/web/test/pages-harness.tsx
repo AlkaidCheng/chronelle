@@ -33,7 +33,6 @@ export function PagesHarness({
         views={[]}
         activeView="pages"
         onSelectView={() => {}}
-        tabRef={() => {}}
       />
       <EventPages
         layout={state.layout}
