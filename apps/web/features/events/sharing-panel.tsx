@@ -17,6 +17,7 @@ import { LockIcon, ShareIcon } from "../../components/icons";
 import { useNotices } from "../../components/notices";
 import { shortId } from "../../lib/format";
 import { useFriendsQuery } from "../../lib/friend-queries";
+import { personInitials } from "../../lib/person-collection";
 import {
   usePersonsQuery,
   useRefreshEvent,
@@ -29,7 +30,7 @@ import {
 } from "../../lib/queries";
 import { ShareWithPeople, shareRows } from "./share-with-people";
 
-type SharedRole = "owner" | "viewer";
+type SharedRole = "owner" | "editor" | "viewer";
 
 function relatedResources(
   detail: EventDetailResponse,
@@ -124,148 +125,172 @@ export function SharingPanel({
     );
   }
 
+  const me = session.data?.user;
+  const mine = me !== undefined && detail.event.createdBy === me.id;
   return (
-    <section className="planning-panel sharing-panel">
-      <header className="panel-heading">
-        <div>
-          <h2>{tp("title")}</h2>
-        </div>
-        <ShareIcon />
-      </header>
+    <div className="sharing-view">
+      <section className="quiet-panel share-box sharing-panel">
+        <header className="quiet-panel-head share-box-head">
+          <h2>{detail.event.displayName}</h2>
+        </header>
+        <p className="share-sub">{tp("followsNote")}</p>
 
-      <ShareWithPeople
-        eventId={eventId}
-        legend={t("sharePeople")}
-        rows={rows}
-      />
+        <ShareWithPeople
+          eventId={eventId}
+          legend={t("sharePeople")}
+          rows={rows}
+        />
 
-      <form className="share-form surface-subtle" onSubmit={handleShare}>
-        <span className="share-group-title">{t("byEmail")}</span>
-        <label className="field field-wide">
-          <span>{tp("collaboratorEmail")}</span>
-          <input
-            autoComplete="email"
-            onChange={(input) => setPrincipalEmail(input.target.value)}
-            placeholder="collaborator@example.com"
-            required
-            type="email"
-            value={principalEmail}
-          />
-        </label>
-        <label className="field">
-          <span>{tp("access")}</span>
-          <select
-            onChange={(input) => setRole(input.target.value as SharedRole)}
-            value={role}
-          >
-            <option value="viewer">{tp("roles.viewer")}</option>
-            <option value="owner">{tp("roles.owner")}</option>
-          </select>
-        </label>
-        <button
-          className="button button-primary"
-          disabled={share.isPending}
-          type="submit"
-        >
-          {share.isPending ? tp("sharing") : tp("shareEvent")}
-        </button>
-        {share.isError ? <ErrorNotice error={share.error} /> : null}
-      </form>
-
-      <div className="sharing-section">
-        <div className="section-title-row">
-          <h3>{t("peopleWithAccess")}</h3>
-          <span>{(shares.data?.items.length ?? 0) + pending.length}</span>
-        </div>
-        {shares.isPending ? (
-          <LoadingState label={tp("loadingCollaborators")} />
-        ) : null}
-        {shares.isError ? (
-          <ErrorNotice
-            error={shares.error}
-            onRefresh={() => void shares.refetch()}
-          />
-        ) : null}
-        {shares.data?.items.length === 0 && pending.length === 0 ? (
-          <EmptyState title={t("onlyYou")} />
-        ) : null}
-        <div className="share-list">
-          {shares.data?.items.map((grant) => (
-            <article key={grant.id}>
-              <span className="profile-mark" aria-hidden="true">
-                {grant.principal.displayName.slice(0, 1).toUpperCase()}
-              </span>
-              <div>
-                <strong>{grant.principal.displayName}</strong>
-                <span>{grant.principal.email}</span>
-                <span className="share-grants">{access("grants")}</span>
-              </div>
-              <span className={`status-chip status-${grant.role}`}>
-                {grant.role}
-              </span>
-              <ConfirmAction
-                disabled={revoke.isPending}
-                label={verbs("removeShare")}
-                onConfirm={() => removeShare(grant)}
-                pending={revoke.isPending}
-                question={confirm("removeShare", {
-                  name: grant.principal.displayName,
-                  resource: detail.event.displayName,
-                })}
+        <form className="share-group share-email" onSubmit={handleShare}>
+          <span className="share-group-title">{t("byEmail")}</span>
+          <div className="share-email-row">
+            <label className="share-email-field">
+              <span className="visually-hidden">{tp("collaboratorEmail")}</span>
+              <input
+                autoComplete="email"
+                onChange={(input) => setPrincipalEmail(input.target.value)}
+                placeholder="name@example.com"
+                required
+                type="email"
+                value={principalEmail}
               />
-            </article>
-          ))}
-          {pending.map((item) => {
-            const name = item.person?.displayName ?? item.email ?? "";
-            return (
-              <article className="share-pending" key={item.id}>
-                <span className="profile-mark" aria-hidden="true">
-                  {name.slice(0, 1).toUpperCase()}
+            </label>
+            <label className="share-email-role">
+              <span className="visually-hidden">{tp("access")}</span>
+              <select
+                className="share-person-role"
+                onChange={(input) => setRole(input.target.value as SharedRole)}
+                value={role}
+              >
+                <option value="viewer">{tp("roles.viewer")}</option>
+                <option value="editor">{tp("roles.editor")}</option>
+                <option value="owner">{tp("roles.owner")}</option>
+              </select>
+            </label>
+            <button
+              className="button button-secondary"
+              disabled={share.isPending}
+              type="submit"
+            >
+              {share.isPending ? tp("sharing") : tp("add")}
+            </button>
+          </div>
+          {share.isError ? <ErrorNotice error={share.error} /> : null}
+        </form>
+
+        <div className="sharing-section access-section">
+          <div className="section-title-row">
+            <h3 className="share-group-title">{t("peopleWithAccess")}</h3>
+          </div>
+          {shares.isPending ? (
+            <LoadingState label={tp("loadingCollaborators")} />
+          ) : null}
+          {shares.isError ? (
+            <ErrorNotice
+              error={shares.error}
+              onRefresh={() => void shares.refetch()}
+            />
+          ) : null}
+          {!mine && shares.data?.items.length === 0 && pending.length === 0 ? (
+            <EmptyState title={t("onlyYou")} />
+          ) : null}
+          <div className="share-list">
+            {mine && me !== undefined ? (
+              <article className="share-owner">
+                <span
+                  aria-hidden="true"
+                  className="person-avatar person-avatar-linked"
+                >
+                  {personInitials(me.displayName)}
                 </span>
                 <div>
-                  <strong>{name}</strong>
-                  <span>
-                    {item.person === null ? t("accessFollows") : item.email}
-                    {item.person === null
-                      ? null
-                      : ` \u00b7 ${t("accessFollows")}`}
-                  </span>
+                  <strong>{me.displayName}</strong>
+                  <span className="share-you">{tp("you")}</span>
                 </div>
-                <span className={`status-chip status-${item.role}`}>
-                  {t(`roles.${item.role}` as "roles.viewer")}
-                </span>
-                <button
-                  className="button button-quiet button-small"
-                  disabled={revokePending.isPending}
-                  onClick={() =>
-                    revokePending.mutate(item.id, {
-                      onSuccess: () => post({ message: done("shareRemoved") }),
-                    })
-                  }
-                  type="button"
-                >
-                  {verbs("removeShare")}
-                </button>
+                <span className="share-role">{tp("roles.owner")}</span>
+                <span />
               </article>
-            );
-          })}
-        </div>
-        {revoke.isError ? <ErrorNotice error={revoke.error} /> : null}
-        {revokePending.isError ? (
-          <ErrorNotice error={revokePending.error} />
-        ) : null}
-      </div>
-
-      <div className="sharing-section">
-        <div className="section-title-row">
-          <div>
-            <h3>{tp("inheritedResources")}</h3>
-            <p>{tp("inheritedNote")}</p>
+            ) : null}
+            {shares.data?.items.map((grant) => (
+              <article key={grant.id}>
+                <span
+                  aria-hidden="true"
+                  className="person-avatar person-avatar-linked"
+                >
+                  {personInitials(grant.principal.displayName)}
+                </span>
+                <div>
+                  <strong>{grant.principal.displayName}</strong>
+                  <span className="share-you">{grant.principal.email}</span>
+                  <span className="share-grants">{access("grants")}</span>
+                </div>
+                <span className="share-role">
+                  {tp(`roles.${grant.role}` as "roles.viewer")}
+                </span>
+                <ConfirmAction
+                  className="link-button link-button-quiet"
+                  disabled={revoke.isPending}
+                  label={verbs("removeShare")}
+                  onConfirm={() => removeShare(grant)}
+                  pending={revoke.isPending}
+                  question={confirm("removeShare", {
+                    name: grant.principal.displayName,
+                    resource: detail.event.displayName,
+                  })}
+                />
+              </article>
+            ))}
+            {pending.map((item) => {
+              const name = item.person?.displayName ?? item.email ?? "";
+              return (
+                <article className="share-pending" key={item.id}>
+                  <span aria-hidden="true" className="person-avatar">
+                    {personInitials(name)}
+                  </span>
+                  <div>
+                    <strong>{name}</strong>
+                    <span className="share-you">
+                      {item.person === null ? t("accessFollows") : item.email}
+                      {item.person === null
+                        ? null
+                        : ` \u00b7 ${t("accessFollows")}`}
+                    </span>
+                  </div>
+                  <span className="share-role">
+                    {t(`roles.${item.role}` as "roles.viewer")}
+                  </span>
+                  <button
+                    className="link-button link-button-quiet"
+                    disabled={revokePending.isPending}
+                    onClick={() =>
+                      revokePending.mutate(item.id, {
+                        onSuccess: () =>
+                          post({ message: done("shareRemoved") }),
+                      })
+                    }
+                    type="button"
+                  >
+                    {verbs("removeShare")}
+                  </button>
+                </article>
+              );
+            })}
           </div>
-          <span>{resources.length}</span>
+          {revoke.isError ? <ErrorNotice error={revoke.error} /> : null}
+          {revokePending.isError ? (
+            <ErrorNotice error={revokePending.error} />
+          ) : null}
         </div>
+      </section>
+
+      <section className="quiet-panel share-box">
+        <header className="quiet-panel-head">
+          <h2>{tp("inheritedResources")}</h2>
+          <span className="quiet-panel-count">{resources.length}</span>
+        </header>
+        <p className="share-sub">{tp("inheritedNote")}</p>
         {resources.length === 0 ? (
-          <EmptyState title={tp("noResources")} />
+          <p className="kv-empty">{tp("noResources")}</p>
         ) : (
           <div className="scope-list">
             {resources.map((resource) => {
@@ -314,7 +339,7 @@ export function SharingPanel({
             onRefresh={() => void refresh().then(() => updateScope.reset())}
           />
         ) : null}
-      </div>
-    </section>
+      </section>
+    </div>
   );
 }

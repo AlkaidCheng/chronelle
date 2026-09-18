@@ -1339,7 +1339,7 @@ describe("EventWorkspace", () => {
       screen.getByLabelText("Collaborator email"),
       "viewer@example.com",
     );
-    await user.click(screen.getByRole("button", { name: "Share event" }));
+    await user.click(screen.getByRole("button", { name: "Add" }));
 
     expect(await screen.findByText("viewer@example.com")).toBeVisible();
     expect(screen.getByText("Event Viewer")).toBeVisible();
@@ -1619,7 +1619,7 @@ describe("EventWorkspace", () => {
         friendList
           .getByRole("checkbox", { name: /^Mei / })
           .closest("li") as HTMLElement,
-      ).getByText("Viewer", { selector: ".status-chip" }),
+      ).getByText(/already Viewer/),
     ).toBeVisible();
   });
 });

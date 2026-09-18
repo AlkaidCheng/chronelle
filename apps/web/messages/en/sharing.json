@@ -21,5 +21,9 @@
     "viewer": "Viewer",
     "editor": "Editor",
     "owner": "Owner"
-  }
+  },
+  "already": "already {role}",
+  "copyLink": "Copy link",
+  "linkCopied": "Link copied.",
+  "linkNotCopied": "The link could not be copied."
 }

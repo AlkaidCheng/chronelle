@@ -19,5 +19,8 @@
   "id": "ID {id}",
   "inherits": "继承活动权限",
   "privateScope": "私密范围",
-  "makePrivate": "设为私密"
+  "makePrivate": "设为私密",
+  "followsNote": "活动上的一切都会跟随共享：页面、待办、支出、文件。若要共享整个工作区，请在“工作区”的“成员”中添加好友。",
+  "add": "添加",
+  "you": "（你）"
 }

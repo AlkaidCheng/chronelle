@@ -10,6 +10,7 @@ import type {
 import { useTranslations } from "next-intl";
 import { type FormEvent, useId, useState } from "react";
 
+import { personInitials } from "../../lib/person-collection";
 import { personDisplayName } from "../../lib/person-fields";
 import { useQueuePendingShare, useShareResource } from "../../lib/queries";
 
@@ -143,9 +144,18 @@ export function ShareWithPeople({
   const [roles, setRoles] = useState(() => new Map<string, SharedRole>());
   const [outcomes, setOutcomes] = useState(() => new Map<string, Outcome>());
   const [isSharing, setIsSharing] = useState(false);
+  const [copied, setCopied] = useState("");
   const chosen = rows.filter((row) => selected.has(row.key));
   const roleOf = (row: ShareRow): SharedRole =>
     roles.get(row.key) ?? (row.held === "owner" ? "owner" : "viewer");
+
+  function copyLink() {
+    const link = `${window.location.origin}/events/${eventId}`;
+    navigator.clipboard
+      ?.writeText(link)
+      .then(() => setCopied(t("linkCopied")))
+      .catch(() => setCopied(t("linkNotCopied")));
+  }
 
   async function handleShare(formEvent: FormEvent<HTMLFormElement>) {
     formEvent.preventDefault();
@@ -209,32 +219,43 @@ export function ShareWithPeople({
         <span className="share-group-title" id={`${id}-${name}`}>
           {t(name)}
         </span>
-        <ul aria-labelledby={`${id}-${name}`}>
+        <ul aria-labelledby={`${id}-${name}`} className="pick-list">
           {members.map((row) => {
             const outcome = outcomes.get(row.key);
+            const ticked = selected.has(row.key);
+            const waits = row.kind === "invited" || row.kind === "new";
             return (
-              <li key={row.key}>
+              <li
+                className={`pick-row${waits && !ticked ? " pick-row-off" : ""}`}
+                key={row.key}
+              >
                 <label className="share-person">
                   <input
-                    checked={selected.has(row.key)}
+                    checked={ticked}
                     onChange={(input) => toggle(row.key, input.target.checked)}
                     type="checkbox"
                   />
-                  <span className="share-person-name">{row.name}</span>
-                  <span className="share-person-reach">
-                    {row.kind === "member"
-                      ? t("hasAccount")
-                      : row.kind === "invited"
-                        ? t("invitedAccessFollows")
-                        : row.kind === "new"
-                          ? t("invitationOnShare", { email: row.reach ?? "" })
-                          : row.reach}
+                  <span
+                    aria-hidden="true"
+                    className={`person-avatar person-avatar-pick${waits ? "" : " person-avatar-linked"}`}
+                  >
+                    {personInitials(row.name)}
                   </span>
-                  {row.held === undefined ? null : (
-                    <span className={`status-chip status-${row.held}`}>
-                      {t(`roles.${row.held}` as "roles.viewer")}
+                  <span className="share-person-copy">
+                    <span className="share-person-name">{row.name}</span>
+                    <span className="share-person-reach">
+                      {row.kind === "member"
+                        ? t("hasAccount")
+                        : row.kind === "invited"
+                          ? t("invitedAccessFollows")
+                          : row.kind === "new"
+                            ? t("invitationOnShare", { email: row.reach ?? "" })
+                            : row.reach}
+                      {row.held === undefined
+                        ? null
+                        : ` \u00b7 ${t("already", { role: t(`roles.${row.held}` as "roles.viewer") })}`}
                     </span>
-                  )}
+                  </span>
                 </label>
                 <select
                   aria-label={t("accessFor", { name: row.name })}
@@ -280,9 +301,9 @@ export function ShareWithPeople({
   };
 
   return (
-    <form className="share-people surface-subtle" onSubmit={handleShare}>
+    <form className="share-people" onSubmit={handleShare}>
       <fieldset className="share-people-list" disabled={isSharing}>
-        <legend>{legend}</legend>
+        <legend className="visually-hidden">{legend}</legend>
         {rows.length === 0 ? (
           <p className="field-hint">{t("nobody")}</p>
         ) : (
@@ -294,6 +315,16 @@ export function ShareWithPeople({
       </fieldset>
       {rows.length === 0 ? null : (
         <div className="share-people-actions">
+          <span className="share-copied" role="status">
+            {copied}
+          </span>
+          <button
+            className="button button-quiet"
+            onClick={copyLink}
+            type="button"
+          >
+            {t("copyLink")}
+          </button>
           <button
             className="button button-primary"
             disabled={isSharing || chosen.length === 0}

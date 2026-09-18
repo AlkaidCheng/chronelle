@@ -2069,7 +2069,8 @@ p[role="alert"] {
 .share-grants {
   color: var(--faint);
   display: block;
-  font-size: 0.8rem;
+  font-size: 0.74rem;
+  width: 100%;
 }
 
 .event-date svg {
@@ -4610,38 +4611,80 @@ html:has(.event-create-dialog[open]) {
 
 .share-people-list ul {
   display: grid;
-  gap: 6px;
   list-style: none;
   margin: 0;
   padding: 0;
 }
 
-.share-people-list li {
+/* One person to share with: the tick, the mark, the name over the reach,
+   and the role at the end; a row that waits on an invitation is dimmed
+   until it is ticked. */
+.pick-row {
   align-items: center;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px 12px;
+  border-radius: 8px;
+  display: grid;
+  gap: 6px 10px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  padding: 5px 4px;
+}
+
+.pick-row:hover {
+  background: var(--surface-subtle);
+}
+
+.pick-row-off {
+  opacity: 0.6;
+}
+
+.pick-row-off .share-person-role {
+  visibility: hidden;
 }
 
 .share-person {
   align-items: center;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
+  cursor: pointer;
+  display: grid;
+  gap: 10px;
+  grid-template-columns: 18px 32px minmax(0, 1fr);
+  min-width: 0;
+}
+
+.share-person input[type="checkbox"] {
+  accent-color: var(--accent);
+  height: 15px;
+  margin: 0;
+  width: 15px;
+}
+
+.person-avatar-pick {
+  height: 32px;
+  width: 32px;
+}
+
+.share-person-copy {
+  display: grid;
+  line-height: 1.2;
+  min-width: 0;
 }
 
 .share-person-name {
+  font-size: 0.86rem;
   font-weight: 600;
 }
 
 .share-person-reach {
-  color: var(--muted);
-  font-size: 0.85rem;
+  color: var(--faint);
+  font-size: 0.76rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .share-outcome {
   color: var(--muted);
-  font-size: 0.85rem;
+  font-size: 0.78rem;
+  grid-column: 1 / -1;
+  padding-left: 60px;
 }
 
 .share-outcome-failed {
@@ -4649,10 +4692,18 @@ html:has(.event-create-dialog[open]) {
 }
 
 .share-people-actions {
-  align-items: end;
+  align-items: center;
   display: flex;
   flex-wrap: wrap;
-  gap: 12px;
+  gap: 8px;
+  justify-content: flex-end;
+  margin-top: 4px;
+}
+
+.share-copied {
+  color: var(--muted);
+  font-size: 0.78rem;
+  margin-right: auto;
 }
 
 /* The share list's groups (Friends, Others in People, By email) and the
@@ -4667,12 +4718,122 @@ html:has(.event-create-dialog[open]) {
 }
 
 .share-group-title {
-  color: var(--muted);
+  color: var(--faint);
   display: block;
-  font-size: 0.72rem;
-  font-weight: 700;
+  font-size: 0.7rem;
+  font-weight: 600;
   letter-spacing: 0.05em;
+  margin: 0;
   text-transform: uppercase;
+}
+
+/* The share box: the event named as its heading, a note on what follows,
+   the groups, then the people with access under a rule. */
+.sharing-view {
+  display: grid;
+  gap: 14px;
+  max-width: 560px;
+}
+
+.share-box-head h2 {
+  font-size: 1.3rem;
+}
+
+.share-sub {
+  color: var(--muted);
+  font-size: 0.8rem;
+  margin: -4px 0 14px;
+}
+
+.share-email-row {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+}
+
+/* The field, the role, and Add share one 32px height. */
+.share-email-field input,
+.share-email-role select {
+  background: var(--canvas);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: var(--ink);
+  font: inherit;
+  font-size: 0.82rem;
+  height: 32px;
+  min-height: 0;
+  padding: 0 10px;
+}
+
+.share-email-field input {
+  width: 100%;
+}
+
+.share-email-role select {
+  padding-right: 8px;
+}
+
+.share-email-field input:focus-visible,
+.share-email-role select:focus-visible {
+  border-color: var(--line-strong);
+  outline: 0;
+}
+
+.share-email-row > .button {
+  font-size: 0.82rem;
+  min-height: 32px;
+  padding: 4px 14px;
+}
+
+.share-people-actions .button {
+  font-size: 0.84rem;
+  min-height: 32px;
+  padding: 4px 14px;
+}
+
+.access-section {
+  border-top: 1px solid var(--line);
+  margin-top: 16px;
+  padding-top: 10px;
+}
+
+.access-section .section-title-row {
+  margin-bottom: 4px;
+}
+
+.access-section .section-title-row h3 {
+  font-size: 0.7rem;
+}
+
+.share-list article {
+  align-items: center;
+  border-top: 0;
+  display: grid;
+  gap: 10px;
+  grid-template-columns: 28px minmax(0, 1fr) auto auto;
+  padding: 6px 0;
+}
+
+.share-list article > div {
+  align-items: baseline;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 6px;
+}
+
+.share-list article > div strong {
+  font-size: 0.86rem;
+  font-weight: 500;
+}
+
+.share-you {
+  color: var(--faint);
+  font-size: 0.8rem;
+}
+
+.share-role {
+  color: var(--muted);
+  font-size: 0.78rem;
 }
 
 .share-person-role {
