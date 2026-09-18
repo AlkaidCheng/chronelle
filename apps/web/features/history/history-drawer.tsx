@@ -10,7 +10,7 @@ import { useEffect, useId, useRef, useState } from "react";
 import { ErrorNotice, LoadingState, Notice } from "../../components/feedback";
 import { tr } from "../../i18n/active-locale";
 import { formatCalendarDate } from "../../lib/event-schedule";
-import { formatDateTime, shortId } from "../../lib/format";
+import { formatDateTime, formatMoment, shortId } from "../../lib/format";
 import {
   useObjectHistory,
   useRestorePreview,
@@ -67,6 +67,11 @@ function displayValue(
   if (value === null) return t("empty");
   if (change.field === "assigneeId" && typeof value === "string")
     return names.people.get(value) ?? value;
+  if (change.field === "status" && typeof value === "string") {
+    const status = tr("taskRow.status");
+    const key = value as Parameters<typeof status>[0];
+    return status.has(key) ? status(key) : value;
+  }
   if (change.field === "labelIds" && Array.isArray(value))
     return value
       .map((id) => (typeof id === "string" ? (names.labels.get(id) ?? id) : ""))
@@ -93,7 +98,8 @@ function fieldLabel(change: RevisionFieldChange): string {
 
 /**
  * One line per changed field for a history row: the field, the value it
- * had (struck through), and the value it took, all on one line.
+ * had (struck through), and the value it took, all on one line; a field
+ * with no earlier value, as on the first revision, shows the value alone.
  */
 function ChangePreview({
   changes,
@@ -111,14 +117,20 @@ function ChangePreview({
     <ul className="history-change-lines">
       {changes.map((change) => (
         <li key={change.field}>
-          {t.rich("changeLine", {
-            field: fieldLabel(change),
-            before: line(displayValue(change, "before", names)),
-            after: line(displayValue(change, "after", names)),
-            f: (chunks) => <span className="history-field">{chunks}</span>,
-            from: (chunks) => <s className="history-from">{chunks}</s>,
-            to: (chunks) => <span className="history-to">{chunks}</span>,
-          })}
+          {change.beforePresent
+            ? t.rich("changeLine", {
+                field: fieldLabel(change),
+                before: line(displayValue(change, "before", names)),
+                after: line(displayValue(change, "after", names)),
+                f: (chunks) => <span className="history-field">{chunks}</span>,
+                from: (chunks) => <s className="history-from">{chunks}</s>,
+                to: (chunks) => <span className="history-to">{chunks}</span>,
+              })
+            : t.rich("initialLine", {
+                field: fieldLabel(change),
+                after: line(displayValue(change, "after", names)),
+                f: (chunks) => <span className="history-field">{chunks}</span>,
+              })}
         </li>
       ))}
       {count > changes.length ? (
@@ -338,7 +350,7 @@ export function HistoryDrawer({
                     </span>
                   </p>
                   <p className="history-meta">
-                    {formatDateTime(revision.createdAt)}
+                    {formatMoment(revision.createdAt)}
                     {" \u00b7 "}
                     {revision.actorType === "system"
                       ? t("system")

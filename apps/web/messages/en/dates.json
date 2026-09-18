@@ -4,6 +4,7 @@
   "noDay": "-",
   "today": "Today",
   "tomorrow": "Tomorrow",
+  "yesterday": "Yesterday",
   "inWords": {
     "today": "today",
     "tomorrow": "tomorrow"
@@ -14,5 +15,6 @@
     "minutes": "{minutes} min",
     "hours": "{hours} h",
     "hoursMinutes": "{hours} h {minutes} min"
-  }
+  },
+  "moment": "{day}, {time}"
 }

@@ -4,6 +4,7 @@
   "noDay": "-",
   "today": "今天",
   "tomorrow": "明天",
+  "yesterday": "昨天",
   "inWords": {
     "today": "今天",
     "tomorrow": "明天"
@@ -14,5 +15,6 @@
     "minutes": "{minutes} 分鐘",
     "hours": "{hours} 小時",
     "hoursMinutes": "{hours} 小時 {minutes} 分鐘"
-  }
+  },
+  "moment": "{day} {time}"
 }

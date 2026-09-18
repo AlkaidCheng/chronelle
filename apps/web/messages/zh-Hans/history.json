@@ -85,6 +85,7 @@
     "customProperty": "自定义属性：{name}"
   },
   "changeLine": "<f>{field}：</f><from>{before}</from> <to>改为</to> {after}",
+  "initialLine": "<f>{field}：</f>{after}",
   "more": "另有 {count} 个字段",
   "kindContent": "已编辑（内容）",
   "kindLayout": "已排列（布局）",

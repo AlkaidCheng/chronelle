@@ -85,6 +85,7 @@
     "customProperty": "Custom property: {name}"
   },
   "changeLine": "<f>{field}:</f> <from>{before}</from> <to>to</to> {after}",
+  "initialLine": "<f>{field}:</f> {after}",
   "more": "+{count, plural, one {# field} other {# fields}}",
   "kindContent": "Edited (content)",
   "kindLayout": "Arranged (layout)",
