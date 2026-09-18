@@ -1508,6 +1508,49 @@ export class SandboxStore {
       );
       return { items, nextCursor: null, asOf: new Date(now).toISOString() };
     }
+    if (id && collection === "persons" && operation === "shares") {
+      // The sample account holds every grant: what the workspace shared
+      // with the person's account (the linked one, else the friend with
+      // the person's email, as a share resolves it), and what waits on
+      // their invitation.
+      const person = this.#personCard(id);
+      if (person === undefined)
+        throw new SandboxError(404, "not_found", "Record is unavailable.");
+      const account =
+        person.userId ??
+        this.#state.friends.friends.find(
+          (friend) => person.email !== null && friend.email === person.email,
+        )?.userId ??
+        null;
+      const shared = (resourceId: string) => this.#object(resourceId);
+      const items = [
+        ...this.#state.shares
+          .filter((grant) => account !== null && grant.principal.id === account)
+          .map((grant) => ({
+            id: grant.id,
+            kind: "grant" as const,
+            direction: "outgoing" as const,
+            resourceId: grant.resourceId,
+            objectType: shared(grant.resourceId).objectType,
+            displayName: shared(grant.resourceId).displayName,
+            role: grant.role,
+            createdAt: grant.createdAt,
+          })),
+        ...this.#state.pendingShares
+          .filter((share) => share.person?.id === id)
+          .map((share) => ({
+            id: share.id,
+            kind: "pending" as const,
+            direction: "outgoing" as const,
+            resourceId: share.resourceId,
+            objectType: shared(share.resourceId).objectType,
+            displayName: shared(share.resourceId).displayName,
+            role: share.role,
+            createdAt: share.createdAt,
+          })),
+      ].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+      return { items };
+    }
     if (
       id &&
       (collection === "tasks" ||

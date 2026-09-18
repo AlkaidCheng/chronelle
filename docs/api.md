@@ -808,6 +808,7 @@ account lookup by email happens only through an invitation.
 | -------- | ------------------------------- | ---------------------------------------------- |
 | `GET`    | `/objects/:id/access`           | The caller's allowed actions and access source |
 | `GET`    | `/objects/:id/shares`           | List active direct grants and waiting shares   |
+| `GET`    | `/persons/:id/shares`           | What is shared each way with a person          |
 | `POST`   | `/shares`                       | Create or replace a direct user grant          |
 | `DELETE` | `/shares/:id`                   | Revoke a direct grant                          |
 | `POST`   | `/shares/pending`               | Queue a share for a person without an account  |
@@ -847,6 +848,22 @@ shares waiting on a request or invitation the caller's account sent, each
 person, email, grantedBy, createdAt }`: `kind` is `connection` (a request to
 an account) or `invitation` (a sign-up link to an address) and `itemId` that
 item; `person` is the card the share was ticked from, or null.
+
+`GET /persons/:id/shares` returns `{ items }` for a Person of the caller's
+workspace, to a member of that workspace who can view the person: what is
+shared each way between the caller and the person, newest first, each
+`{ id, kind, direction, resourceId, objectType, displayName, role,
+createdAt }`. `direction` is `outgoing` for a live grant the caller's
+workspace holds for the person's account or a share queued for the person
+(`kind: "pending"`, waiting on an invitation), and `incoming` for a live
+grant the person's account gave the caller, in any workspace. The person's
+account is the linked one, else the one account with the person's email, as
+`POST /shares` resolves a person grantee; a person with neither has queued
+shares only. Expired grants and records in Trash are left out. A person the
+caller cannot view, one of a workspace the caller is only a guest of (a
+grant on the card, no membership), or none, is HTTP 404. Both backends read
+the same rows (`chronelle_person_shares_list`, migration 0054, on the rpc
+path).
 
 `POST /shares/pending` accepts `resourceId`, `personId`, and `role` for a
 Person with no linked account. When a request or invitation from the caller

@@ -88,6 +88,7 @@ export const cloudBaseRequiredFunctions: readonly string[] = [
   "chronelle_pending_share_create",
   "chronelle_pending_share_list",
   "chronelle_pending_share_revoke",
+  "chronelle_person_shares_list",
   "chronelle_workspace_member_list",
   "chronelle_workspace_member_add",
   "chronelle_workspace_member_remove",

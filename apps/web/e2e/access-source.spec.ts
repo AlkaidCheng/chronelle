@@ -93,6 +93,12 @@ test("names where a grantee's access comes from, and nothing on the owner's own 
   });
   await expect(through).toHaveAttribute("href", `/events/${trip.id}`);
   await expect(page.getByRole("button", { name: "Edit" })).toHaveCount(0);
+  // A card reached through a share is not the reader's: nothing is shared
+  // with it from here, and there is no Share with them.
+  await expect(page.getByRole("tab", { name: "Shared" })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: /^Share with/ })).toHaveCount(
+    0,
+  );
   await through.click();
   await expect(
     page.getByRole("heading", { level: 1, name: "Kyoto in November" }),

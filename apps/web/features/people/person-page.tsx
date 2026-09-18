@@ -18,6 +18,7 @@ import {
   LinkIcon,
   MoreIcon,
   PencilIcon,
+  ShareIcon,
   TrashIcon,
 } from "../../components/icons";
 import {
@@ -29,6 +30,7 @@ import { UndoMenuItems } from "../../components/undo-menu-items";
 import { formatEventSchedule } from "../../lib/event-schedule";
 import { personAccount } from "../../lib/person-collection";
 import { personDisplayName, propertyText } from "../../lib/person-fields";
+import { useFriendsQuery } from "../../lib/friend-queries";
 import {
   useLabelsQuery,
   usePersonEditorQueries,
@@ -44,18 +46,26 @@ import { HistoryButton } from "../history/history-button";
 import { useOpenLifecycle } from "../recovery/lifecycle-provider";
 import { PersonConnection } from "./person-connection";
 import { PersonInspector } from "./person-inspector";
+import { PersonShared } from "./person-shared";
+import { ShareWithPersonDialog } from "./share-with-person-dialog";
 import { PersonAvatar, PersonBadge, PersonLabels } from "./person-row";
 
-type PersonTab = "overview" | "events" | "tasks";
+type PersonTab = "overview" | "shared" | "events" | "tasks";
 
-const personTabs: readonly PersonTab[] = ["overview", "events", "tasks"];
+const personTabs: readonly PersonTab[] = [
+  "overview",
+  "shared",
+  "events",
+  "tasks",
+];
 
 /**
  * One person's page: the nickname as the title with the full name, the
- * account badge and the labels under it; Edit, History, and More (Copy
- * link, Move to Trash); then Overview (the details that exist, the
- * description when there is one, and the connection), the Events the
- * person is part of, and the Tasks assigned to them.
+ * account badge and the labels under it; Edit, Share with the person,
+ * History, and More (Copy link, Move to Trash); then Overview (the details
+ * that exist, the description when there is one, the connection, and what
+ * is shared each way), Shared in full, the Events the person is part of,
+ * and the Tasks assigned to them.
  */
 export function PersonPage({ personId }: { readonly personId: string }) {
   const t = useTranslations("personPage");
@@ -63,12 +73,14 @@ export function PersonPage({ personId }: { readonly personId: string }) {
   const contactKinds = useTranslations("person");
   const { person, access } = usePersonEditorQueries(personId);
   const session = useSessionQuery();
+  const friends = useFriendsQuery();
   const connections = usePersonConnections();
   const labelNames = useLabelsQuery().data?.names;
   const openLifecycle = useOpenLifecycle();
   const [tab, setTab] = useState<PersonTab>("overview");
   const [isEditing, setIsEditing] = useState(false);
   const [isInviting, setIsInviting] = useState(false);
+  const [isSharing, setIsSharing] = useState(false);
   const [copied, setCopied] = useState("");
   const tabs = useRef(new Map<PersonTab, HTMLButtonElement>());
 
@@ -97,6 +109,25 @@ export function PersonPage({ personId }: { readonly personId: string }) {
   const canEdit = actions.includes("edit");
   const canDelete = actions.includes("delete");
   const account = personAccount(record, session.data?.user.id, connections);
+  // What is shared with the person, and sharing with them, belong to the
+  // workspace's members; a card reached through a share has neither.
+  const own = access.data?.source.kind === "own";
+  const tabChoices = own
+    ? personTabs
+    : personTabs.filter((choice) => choice !== "shared");
+  // A share by person reaches the linked account, else the one account
+  // with the person's email; a friend's address stands for one here.
+  const hasAccount =
+    account === "friend" ||
+    account === "linked" ||
+    (friends.data?.friends ?? []).some((friend) =>
+      record.contacts.some(
+        (contact) =>
+          contact.kind === "email" &&
+          friend.email !== null &&
+          contact.value.toLowerCase() === friend.email.toLowerCase(),
+      ),
+    );
   const fields = Object.entries(record.customProperties);
   const hasDetails =
     record.nickname !== null ||
@@ -113,16 +144,16 @@ export function PersonPage({ personId }: { readonly personId: string }) {
   }
 
   function onTabKeyDown(event: KeyboardEvent<HTMLButtonElement>) {
-    const at = personTabs.indexOf(tab);
+    const at = tabChoices.indexOf(tab);
     const next =
       event.key === "ArrowRight"
-        ? personTabs[(at + 1) % personTabs.length]
+        ? tabChoices[(at + 1) % tabChoices.length]
         : event.key === "ArrowLeft"
-          ? personTabs[(at - 1 + personTabs.length) % personTabs.length]
+          ? tabChoices[(at - 1 + tabChoices.length) % tabChoices.length]
           : event.key === "Home"
-            ? personTabs[0]
+            ? tabChoices[0]
             : event.key === "End"
-              ? personTabs[personTabs.length - 1]
+              ? tabChoices[tabChoices.length - 1]
               : undefined;
     if (next === undefined) return;
     event.preventDefault();
@@ -158,6 +189,14 @@ export function PersonPage({ personId }: { readonly personId: string }) {
             {canEdit ? (
               <IconButton label={t("edit")} onClick={() => setIsEditing(true)}>
                 <PencilIcon />
+              </IconButton>
+            ) : null}
+            {own && account !== "me" ? (
+              <IconButton
+                label={t("shareWith", { name })}
+                onClick={() => setIsSharing(true)}
+              >
+                <ShareIcon />
               </IconButton>
             ) : null}
             <HistoryButton
@@ -199,7 +238,7 @@ export function PersonPage({ personId }: { readonly personId: string }) {
       </header>
 
       <div aria-label={t("sections")} className="tab-list" role="tablist">
-        {personTabs.map((choice) => (
+        {tabChoices.map((choice) => (
           <button
             aria-controls={`person-panel-${choice}`}
             aria-selected={tab === choice}
@@ -301,8 +340,18 @@ export function PersonPage({ personId }: { readonly personId: string }) {
                 onLink={() => setIsEditing(true)}
                 person={record}
               />
+              {own ? (
+                <PersonShared
+                  onSeeAll={() => setTab("shared")}
+                  personId={record.id}
+                  personName={name}
+                  variant="panel"
+                />
+              ) : null}
             </div>
           </div>
+        ) : tab === "shared" ? (
+          <PersonShared personId={record.id} personName={name} variant="tab" />
         ) : tab === "events" ? (
           <PersonEvents personId={record.id} />
         ) : (
@@ -320,6 +369,14 @@ export function PersonPage({ personId }: { readonly personId: string }) {
         <InviteFriendDialog
           onClose={() => setIsInviting(false)}
           personId={record.id}
+        />
+      ) : null}
+      {isSharing ? (
+        <ShareWithPersonDialog
+          hasAccount={hasAccount}
+          onClose={() => setIsSharing(false)}
+          person={record}
+          personName={name}
         />
       ) : null}
     </main>

@@ -76,6 +76,7 @@ import {
   type PersonCreatePayload,
   type PersonListQueryInput,
   type PersonListResponse,
+  type PersonShareListResponse,
   type PersonResourceProjectionResponse,
   type PersonResponse,
   type PersonUpdatePayload,
@@ -130,6 +131,7 @@ import {
   sessionRevocationResponseSchema,
   pendingShareRevocationResponseSchema,
   pendingShareSchema,
+  personShareListResponseSchema,
   shareListResponseSchema,
   shareResponseSchema,
   shareRevocationResponseSchema,
@@ -915,6 +917,14 @@ export class ChronelleApiClient {
     return this.#request(
       `/api/objects/${id}/access`,
       objectAccessResponseSchema,
+    );
+  }
+
+  /** What is shared each way with a person of the workspace, newest first. */
+  listPersonShares(personId: string): Promise<PersonShareListResponse> {
+    return this.#request(
+      `/api/persons/${personId}/shares`,
+      personShareListResponseSchema,
     );
   }
 

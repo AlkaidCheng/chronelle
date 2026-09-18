@@ -129,17 +129,30 @@ rows keep the avatar, the names, and the menu.
 
 A person's page (People, then a row or card) shows the nickname as its title
 with the full name, the badge, and the labels under it; Edit (the person
-editor), History, and More (Copy link, Move to Trash); then three tabs.
-Overview is two columns. Details is a key-value list of what the person
-has (Nickname, each contact by kind, the custom fields, Labels) and nothing
-for what they lack, or one line, No details yet; Description appears only
-when there is one. Connection names the account behind the card: a friend
-("Linked to your friend Mei Lin", friends since when, and "Member of this
-workspace as editor" when they are), an account that is not a friend, an
-invitation sent from the card (with Resend and Withdraw), or "Not linked to
-an account" with Link to a friend and, when the card has an email, Invite a
-friend; Unlink person sits there for a linked card. Events lists the events
-the person is part of, each a link with its dates. Tasks lists the tasks assigned to them, open
+editor), Share with them (for anyone but the user's own card), History, and
+More (Copy link, Move to Trash); then four tabs: Overview, Shared, Events,
+Tasks. Overview is two columns. Details is a key-value list of what the
+person has (Nickname, each contact by kind, the custom fields, Labels) and
+nothing for what they lack, or one line, No details yet; Description appears
+only when there is one. Connection names the account behind the card: a
+friend ("Linked to your friend Mei Lin", friends since when, and "Member of
+this workspace as editor" when they are), an account that is not a friend,
+an invitation sent from the card (with Resend and Withdraw), or "Not linked
+to an account" with Link to a friend and, when the card has an email, Invite
+a friend; Unlink person sits there for a linked card. Shared, under
+Connection, lists what is shared each way with the person, newest first:
+one line per record with its mark (event, task, expense, reminder, file,
+person), its name (a link when the record has a page), the role, and who
+shared it ("you shared", "Mei shared", or "queued" for a share that waits
+on the person's invitation). The panel shows the newest five with a count
+and "All 8 in Shared", which opens the Shared tab, where the same rows run
+in full; "Nothing shared yet" stands in for an empty list. The person here
+is the account the card is linked to, or the one account with the card's
+email, so a share made from an event's Sharing tab, and one the person made
+to this account, both appear. A card reached through a share (another
+workspace's) has no Shared panel, tab, or Share action. Events lists the
+events the person is part
+of, each a link with its dates. Tasks lists the tasks assigned to them, open
 and done, each a link to where it lives. The editor takes the name, nickname,
 This is me (offered when the person is unlinked or already this user's; one
 person per account), the contacts as kind/value rows with Add contact and
@@ -149,6 +162,19 @@ Remove. Editing keeps a field's original type unless its text changes.
 Assignee chips, the assignee and share pickers, and the event People
 component all name a person by their nickname when one exists. Search and
 Trash filter by People, and Trash restores them.
+
+Share with Mei (the share mark in the page's actions) shares one of the
+account's events with the person without leaving their page: a dialog with
+a search for the event (asked of the server after a typing pause, newest
+change first), the matches as a list to pick one from with its dates, a
+role (Viewer or Editor), and Share. A friend, a linked card, or a card whose
+email is a friend's is granted at once ("Kyoto in November shared as
+viewer"); a card with an email and no account is invited and the share
+waits ("Kyoto in November queued; access follows when they join"), as from
+the event's Sharing tab; a card with neither says "Give the person an email
+or link their account to share with them." The outcome stays in the dialog
+so another event can follow; Done closes it, and the Shared panel already
+lists the new row.
 
 An event page can carry a People component (also an event view and an
 overview card) that shows the people the event involves as the same

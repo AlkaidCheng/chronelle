@@ -133,6 +133,10 @@ members. Migration `0053_add_user_event_tabs_preference.sql` adds
 whose values are objects with `order`, `hidden`, and `removed` arrays of up
 to 40 strings) and redefines `chronelle_user_preferences_update` to merge it
 one event at a time; the function count is unchanged and the runtime role
+needs no change. Migration `0054_add_person_shares_list.sql` adds
+`chronelle_person_shares_list`, the read behind `GET /api/persons/:id/shares`
+on the rpc path (the readiness check requires it); it changes no table, and
+the runtime role, which reads the same rows through the PostgreSQL store,
 needs no change.
 
 Migration `0021_add_object_search_function.sql` adds `chronelle_object_search`,
