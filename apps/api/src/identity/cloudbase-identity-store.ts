@@ -7,7 +7,12 @@ import {
 } from "@chronelle/db";
 
 import type { AuthIdentity } from "../authentication/auth-provider.js";
-import { InvalidRequestError, WorkspaceUnavailableError } from "../errors.js";
+import {
+  InvalidRequestError,
+  UsernameTakenError,
+  UserUnavailableError,
+  WorkspaceUnavailableError,
+} from "../errors.js";
 import {
   type CloudBaseRow as Row,
   instant,
@@ -17,11 +22,49 @@ import {
   workspaceRow,
 } from "./cloudbase-rows.js";
 import type {
+  AccountUpdate,
+  FriendRelation,
   IdentitySessionRows,
   IdentityStore,
   SignInResult,
   UserPreferences,
+  UserSummary,
 } from "./identity-store.js";
+
+const relations = ["none", "friend", "requested", "incoming"] as const;
+
+function userSummary(value: unknown): UserSummary {
+  const row = record(value, "user summary");
+  const relation = row.relation;
+  if (
+    typeof relation !== "string" ||
+    !(relations as readonly string[]).includes(relation)
+  )
+    throw new Error("CloudBase returned an invalid relation.");
+  return {
+    id: text(row.id, "user id"),
+    displayName: text(row.displayName, "display name"),
+    username: text(row.username, "username"),
+    relation: relation as FriendRelation,
+  };
+}
+
+/** The account errors for the statuses the functions raise; anything else is a transport failure. */
+function accountFailure(error: unknown): Error {
+  if (error instanceof CloudBaseRpcError) {
+    switch (error.status) {
+      case 404:
+        return new UserUnavailableError();
+      case 409:
+        return new UsernameTakenError();
+      case 422:
+        return new InvalidRequestError();
+      default:
+        return new Error(`Identity persistence failed: ${error.message}`);
+    }
+  }
+  return error instanceof Error ? error : new Error(String(error));
+}
 
 const filters = (
   ...items: readonly [string, CloudBaseRdbFilter["operator"], unknown][]
@@ -30,8 +73,11 @@ const filters = (
 
 /**
  * Identity persistence through the gateway: the sign-in as
- * chronelle_identity_sign_in, the account preferences as
- * chronelle_user_preferences_update,
+ * chronelle_identity_sign_in (which gives a new account its username), the
+ * account preferences as
+ * chronelle_user_preferences_update, the discovery switches as
+ * chronelle_account_update, Find people as chronelle_users_search and
+ * chronelle_user_lookup (migration 0055),
  * and the user, workspace, membership, and grant reads through the table
  * route with the same access rules as the PostgreSQL store (membership, or an unexpired grant on a live object, or
  * an Owner grant on any object). The reads of one session are sequential
@@ -60,12 +106,11 @@ export class CloudBaseIdentityStore implements IdentityStore {
         provider_subject: identity.subject,
         email: identity.email ?? null,
         display_name: identity.displayName,
+        username: identity.username ?? null,
         request_id: requestId,
       });
     } catch (error) {
-      if (error instanceof CloudBaseRpcError)
-        throw new Error(`Identity persistence failed: ${error.message}`);
-      throw error;
+      throw accountFailure(error);
     }
     const signedIn = record(result, "sign-in result");
     return {
@@ -174,6 +219,75 @@ export class CloudBaseIdentityStore implements IdentityStore {
       throw error;
     }
     return userRow(record(result, "user"));
+  }
+
+  async updateAccount(
+    userId: string,
+    account: AccountUpdate,
+  ): Promise<UserRow> {
+    let result: unknown;
+    try {
+      result = await this.#client.rpc("chronelle_account_update", {
+        user_id: userId,
+        patch: {
+          ...(account.findByName !== undefined && {
+            findByName: account.findByName,
+          }),
+          ...(account.findByEmail !== undefined && {
+            findByEmail: account.findByEmail,
+          }),
+        },
+      });
+    } catch (error) {
+      throw accountFailure(error);
+    }
+    return userRow(record(result, "user"));
+  }
+
+  async searchUsers(
+    userId: string,
+    query: string,
+  ): Promise<readonly UserSummary[]> {
+    let result: unknown;
+    try {
+      result = await this.#client.rpc("chronelle_users_search", {
+        user_id: userId,
+        query,
+      });
+    } catch (error) {
+      throw accountFailure(error);
+    }
+    const items = record(result, "search").items;
+    if (!Array.isArray(items))
+      throw new Error("CloudBase returned an invalid search.");
+    return items.map(userSummary);
+  }
+
+  async usernameAvailable(username: string): Promise<boolean> {
+    let result: unknown;
+    try {
+      result = await this.#client.rpc("chronelle_username_available", {
+        candidate: username,
+      });
+    } catch (error) {
+      throw accountFailure(error);
+    }
+    if (typeof result !== "boolean")
+      throw new Error("CloudBase returned an invalid availability.");
+    return result;
+  }
+
+  async lookupUser(userId: string, username: string): Promise<UserSummary> {
+    let result: unknown;
+    try {
+      result = await this.#client.rpc("chronelle_user_lookup", {
+        user_id: userId,
+        username,
+      });
+    } catch (error) {
+      throw accountFailure(error);
+    }
+    return userSummary(result);
   }
 
   /** Workspaces where the user holds an unexpired grant on a live object, or an Owner grant on any object. */

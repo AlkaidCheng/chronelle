@@ -4,9 +4,11 @@ import type { UserPrincipal } from "@chronelle/authorization";
 import type { AuthIdentity } from "../authentication/auth-provider.js";
 import { UnauthenticatedError } from "../errors.js";
 import {
+  type AccountUpdate,
   PostgresIdentityStore,
   type IdentityStore,
   type UserPreferences,
+  type UserSummary,
 } from "./identity-store.js";
 
 export interface IdentitySession {
@@ -49,6 +51,26 @@ export class WorkspaceIdentityService {
     preferences: UserPreferences,
   ): Promise<UserRow> {
     return this.#store.updatePreferences(userId, preferences);
+  }
+
+  /** Sets the discovery switches. */
+  updateAccount(userId: string, account: AccountUpdate): Promise<UserRow> {
+    return this.#store.updateAccount(userId, account);
+  }
+
+  /** Find people, as each account lets itself be found. */
+  searchUsers(userId: string, query: string): Promise<readonly UserSummary[]> {
+    return this.#store.searchUsers(userId, query);
+  }
+
+  /** The account behind a code, by username. */
+  lookupUser(userId: string, username: string): Promise<UserSummary> {
+    return this.#store.lookupUser(userId, username);
+  }
+
+  /** Whether a username is free, for the sign-up screen. */
+  usernameAvailable(username: string): Promise<boolean> {
+    return this.#store.usernameAvailable(username);
   }
 
   async listAccessibleWorkspaces(

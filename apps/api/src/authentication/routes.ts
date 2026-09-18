@@ -1,16 +1,27 @@
 import {
+  accountUpdateRequestSchema,
   developmentSignInRequestSchema,
   developmentSignInResponseSchema,
   preferencesRequestSchema,
   sessionRevocationResponseSchema,
   sessionResponseSchema,
+  usernameAvailabilityQuerySchema,
+  usernameAvailabilityResponseSchema,
+  usernameParamsSchema,
   userResponseSchema,
+  userSearchQuerySchema,
+  userSearchResponseSchema,
+  userSummarySchema,
 } from "@chronelle/schemas";
 import type { UserRow } from "@chronelle/db";
 import type { FastifyInstance, FastifyRequest } from "fastify";
 
 import type { WorkspaceIdentityService } from "../identity/workspace-identity-service.js";
-import { InvalidRequestError, UnauthenticatedError } from "../errors.js";
+import {
+  InvalidRequestError,
+  SearchLimitError,
+  UnauthenticatedError,
+} from "../errors.js";
 import { readBearerToken } from "../request-context.js";
 import { parseRequest } from "../request-validation.js";
 import {
@@ -27,6 +38,31 @@ export interface DevelopmentAuthenticationRouteDependencies {
 export interface SessionRouteDependencies {
   readonly identity: WorkspaceIdentityService;
   readonly sessions: SessionAuthProvider;
+  /** How many searches one account may run in a minute. */
+  readonly searchesPerMinute?: number | undefined;
+}
+
+/** Searches per account in the last minute, kept in memory per process. */
+class SearchAllowance {
+  readonly #limit: number;
+  readonly #recent = new Map<string, number[]>();
+
+  constructor(limit: number) {
+    this.#limit = limit;
+  }
+
+  take(userId: string, now: number): boolean {
+    const since = now - 60_000;
+    const times = (this.#recent.get(userId) ?? []).filter((at) => at > since);
+    if (times.length >= this.#limit) {
+      this.#recent.set(userId, times);
+      return false;
+    }
+    times.push(now);
+    this.#recent.set(userId, times);
+    if (this.#recent.size > 10_000) this.#recent.clear();
+    return true;
+  }
 }
 
 export function registerDevelopmentAuthenticationRoute(
@@ -62,6 +98,9 @@ export function userPayload(user: UserRow) {
     id: user.id,
     displayName: user.displayName,
     email: user.email,
+    username: user.username,
+    findByName: user.findByName,
+    findByEmail: user.findByEmail,
     locale: user.locale,
     timeZone: user.timeZone,
     hourCycle: user.hourCycle,
@@ -135,6 +174,74 @@ export function registerSessionRoutes(
         input,
       );
       return userResponseSchema.parse(userPayload(user));
+    },
+  );
+
+  // The discovery switches: each key present replaces the stored value.
+  // The username is chosen once, at sign-up, and is not changed here.
+  app.patch(
+    "/api/account",
+    { preHandler: app.authenticate },
+    async (request) => {
+      if (request.identitySession === null) {
+        throw new UnauthenticatedError();
+      }
+      const input = parseRequest(accountUpdateRequestSchema, request.body);
+      const user = await dependencies.identity.updateAccount(
+        request.identitySession.user.id,
+        input,
+      );
+      return userResponseSchema.parse(userPayload(user));
+    },
+  );
+
+  // Whether a username is free, for the sign-up screen, which needs no
+  // session; usernames are public handles, and the answer is capped per
+  // address like a search.
+  const searches = new SearchAllowance(dependencies.searchesPerMinute ?? 60);
+  app.get("/api/auth/username-available", async (request) => {
+    const { username } = parseRequest(
+      usernameAvailabilityQuerySchema,
+      request.query,
+    );
+    if (!searches.take(`ip:${request.ip}`, Date.now()))
+      throw new SearchLimitError();
+    return usernameAvailabilityResponseSchema.parse({
+      available: await dependencies.identity.usernameAvailable(username),
+    });
+  });
+
+  // Find people: accounts by @username, name, or exact email, as each
+  // account lets itself be found; at most ten, the searcher left out.
+  app.get(
+    "/api/users/search",
+    { preHandler: app.authenticate },
+    async (request) => {
+      if (request.identitySession === null) {
+        throw new UnauthenticatedError();
+      }
+      const { q } = parseRequest(userSearchQuerySchema, request.query);
+      const userId = request.identitySession.user.id;
+      if (!searches.take(userId, Date.now())) throw new SearchLimitError();
+      const items = await dependencies.identity.searchUsers(userId, q);
+      return userSearchResponseSchema.parse({ items });
+    },
+  );
+
+  // The account behind a code, by username.
+  app.get(
+    "/api/users/:username",
+    { preHandler: app.authenticate },
+    async (request) => {
+      if (request.identitySession === null) {
+        throw new UnauthenticatedError();
+      }
+      const { username } = parseRequest(usernameParamsSchema, request.params);
+      const summary = await dependencies.identity.lookupUser(
+        request.identitySession.user.id,
+        username,
+      );
+      return userSummarySchema.parse(summary);
     },
   );
 

@@ -30,6 +30,12 @@ export function nullableInstant(value: unknown, field: string): Date | null {
   return value === null || value === undefined ? null : instant(value, field);
 }
 
+export function flag(value: unknown, field: string): boolean {
+  if (typeof value !== "boolean")
+    throw new Error(`CloudBase returned an invalid ${field}.`);
+  return value;
+}
+
 function nullableInteger(value: unknown, field: string): number | null {
   if (value === null || value === undefined) return null;
   if (typeof value === "number" && Number.isInteger(value)) return value;
@@ -88,6 +94,9 @@ export function userRow(row: CloudBaseRow): UserRow {
     providerSubject: text(row.provider_subject, "provider subject"),
     email: nullableText(row.email, "email"),
     displayName: text(row.display_name, "display name"),
+    username: text(row.username, "username"),
+    findByName: flag(row.find_by_name, "find_by_name"),
+    findByEmail: flag(row.find_by_email, "find_by_email"),
     locale: nullableText(row.locale, "locale"),
     timeZone: nullableText(row.time_zone, "time zone"),
     hourCycle: nullableText(row.hour_cycle, "hour cycle"),

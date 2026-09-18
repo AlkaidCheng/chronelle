@@ -57,6 +57,14 @@ import {
   friendItemStateResponseSchema,
   friendSchema,
   friendsResponseSchema,
+  type AccountUpdateRequest,
+  type FriendRequestRequest,
+  type UsernameAvailabilityResponse,
+  usernameAvailabilityResponseSchema,
+  type UserSearchResponse,
+  type UserSummary,
+  userSearchResponseSchema,
+  userSummarySchema,
   type LabelCreateRequest,
   type LabelListResponse,
   type LabelResponse,
@@ -314,6 +322,41 @@ export class ChronelleApiClient {
     );
   }
 
+  /** Who can find the account, by name and by email. */
+  updateAccount(input: AccountUpdateRequest): Promise<UserResponse> {
+    return this.#request(
+      "/api/account",
+      userResponseSchema,
+      jsonRequest(input, "PATCH"),
+    );
+  }
+
+  /** Whether a username is free, for the sign-up screen; needs no session. */
+  usernameAvailable(username: string): Promise<UsernameAvailabilityResponse> {
+    return this.#request(
+      `/api/auth/username-available?username=${encodeURIComponent(username)}`,
+      usernameAvailabilityResponseSchema,
+      {},
+      false,
+    );
+  }
+
+  /** Find people by @username, name, or exact email, as each account allows. */
+  searchUsers(query: string): Promise<UserSearchResponse> {
+    return this.#request(
+      `/api/users/search?q=${encodeURIComponent(query)}`,
+      userSearchResponseSchema,
+    );
+  }
+
+  /** The account behind a code, by username. */
+  getUser(username: string): Promise<UserSummary> {
+    return this.#request(
+      `/api/users/${encodeURIComponent(username)}`,
+      userSummarySchema,
+    );
+  }
+
   /** Creates an unverified password account; a verification code is emailed. */
   signUp(input: SignUpRequest): Promise<AcceptedResponse> {
     return this.#request(
@@ -397,6 +440,15 @@ export class ChronelleApiClient {
   }
 
   /** Invites an address: a request to its account, or a sign-up link to it. */
+  /** A request to an account found by search or by its code. */
+  requestFriend(input: FriendRequestRequest): Promise<SentInvitation> {
+    return this.#request(
+      "/api/friends/requests",
+      sentInvitationSchema,
+      jsonRequest(input, "POST"),
+    );
+  }
+
   inviteFriend(input: FriendInvitationPayload): Promise<SentInvitation> {
     return this.#request(
       "/api/friends/invitations",

@@ -32,6 +32,13 @@ export interface InviteFriendInput {
   readonly personId?: string | undefined;
 }
 
+/** A request to an account by id, optionally from a person card. */
+export interface RequestFriendInput {
+  readonly userId: string;
+  readonly message?: string | undefined;
+  readonly personId?: string | undefined;
+}
+
 /** The account and workspace a friend action runs in. */
 export interface FriendActor {
   readonly userId: string;
@@ -104,6 +111,24 @@ export class FriendService {
       requestId,
     });
     await this.#send(outcome, token);
+    return outcome;
+  }
+
+  /** A request to an account by id; the recipient is emailed as for a request to a known address. */
+  async request(
+    actor: FriendActor,
+    input: RequestFriendInput,
+    requestId: string,
+  ): Promise<InviteOutcome> {
+    const outcome = await this.#store.request(actor.userId, {
+      addresseeId: input.userId,
+      message: input.message ?? null,
+      personId: input.personId ?? null,
+      workspaceId: input.personId === undefined ? null : actor.workspaceId,
+      dailyLimit: this.#dailyLimit,
+      requestId,
+    });
+    await this.#send(outcome, "");
     return outcome;
   }
 

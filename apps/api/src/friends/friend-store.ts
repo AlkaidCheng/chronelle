@@ -89,6 +89,16 @@ export interface InviteInput {
   readonly requestId: string;
 }
 
+/** A request to an account by id, from Find people or the code page. */
+export interface RequestInput {
+  readonly addresseeId: string;
+  readonly message: string | null;
+  readonly personId: string | null;
+  readonly workspaceId: string | null;
+  readonly dailyLimit: number;
+  readonly requestId: string;
+}
+
 export interface ResendInput {
   readonly tokenDigest: string;
   readonly expiresAt: Date;
@@ -147,6 +157,7 @@ export class InvalidFriendRequestError extends Error {
 export interface FriendStore {
   list(userId: string): Promise<FriendsSnapshot>;
   invite(userId: string, input: InviteInput): Promise<InviteOutcome>;
+  request(userId: string, input: RequestInput): Promise<InviteOutcome>;
   respond(
     userId: string,
     connectionId: string,
@@ -297,32 +308,7 @@ export class PostgresFriendStore implements FriendStore {
           input.workspaceId,
           input.personId,
         );
-      if (input.dailyLimit > 0) {
-        const since = new Date(sentAt.getTime() - 86_400_000);
-        const [connections] = await transaction
-          .select({ count: sql<number>`count(*)::int` })
-          .from(userConnections)
-          .where(
-            and(
-              eq(userConnections.requesterId, userId),
-              gt(userConnections.createdAt, since),
-            ),
-          );
-        const [invitations] = await transaction
-          .select({ count: sql<number>`count(*)::int` })
-          .from(userInvitations)
-          .where(
-            and(
-              eq(userInvitations.requesterId, userId),
-              gt(userInvitations.createdAt, since),
-            ),
-          );
-        if (
-          (connections?.count ?? 0) + (invitations?.count ?? 0) >=
-          input.dailyLimit
-        )
-          throw new FriendLimitError("Too many invitations today.");
-      }
+      await assertDailyAllowance(transaction, userId, sentAt, input.dailyLimit);
       const recipients = await transaction
         .select()
         .from(users)
@@ -433,6 +419,82 @@ export class PostgresFriendStore implements FriendStore {
         item: sentInvitation(invitation),
         recipient: null,
         sender,
+      };
+    });
+  }
+
+  async request(userId: string, input: RequestInput): Promise<InviteOutcome> {
+    return this.#database.transaction(async (transaction) => {
+      const me = await requireUser(transaction, userId);
+      const home = await homeWorkspace(transaction, userId);
+      const sentAt = this.#clock();
+      const [recipient] = await transaction
+        .select()
+        .from(users)
+        .where(eq(users.id, input.addresseeId))
+        .limit(1);
+      if (recipient === undefined)
+        throw new FriendUnavailableError("The person is unavailable.");
+      if (input.addresseeId === userId)
+        throw new InvalidFriendRequestError("You cannot add yourself.");
+      if (!validMessage(input.message))
+        throw new InvalidFriendRequestError(
+          "message is at most 500 characters.",
+        );
+      if ((input.personId === null) !== (input.workspaceId === null))
+        throw new InvalidFriendRequestError(
+          "personId names a person of the current workspace.",
+        );
+      if (input.personId !== null && input.workspaceId !== null)
+        await assertInvitablePerson(
+          transaction,
+          userId,
+          input.workspaceId,
+          input.personId,
+        );
+      await assertDailyAllowance(transaction, userId, sentAt, input.dailyLimit);
+      const existing = await liveConnection(transaction, userId, recipient.id);
+      if (existing !== undefined) {
+        if (existing.status === "accepted")
+          throw new FriendConflictError("You are already friends.");
+        if (existing.requesterId === userId)
+          throw new FriendConflictError("An invitation is already waiting.");
+        throw new FriendConflictError("This person has already invited you.");
+      }
+      const [connection] = await transaction
+        .insert(userConnections)
+        .values({
+          id: createId(),
+          requesterId: userId,
+          addresseeId: recipient.id,
+          status: "pending",
+          message: input.message,
+          personId: input.personId,
+          workspaceId: input.workspaceId,
+          createdAt: sentAt,
+          lastSentAt: sentAt,
+        })
+        .returning();
+      if (connection === undefined)
+        throw new Error("The connection was not recorded.");
+      await audit(
+        transaction,
+        home,
+        userId,
+        "friend.invited",
+        input.requestId,
+        {
+          connectionId: connection.id,
+          addresseeId: recipient.id,
+        },
+      );
+      return {
+        kind: "connection",
+        item: sentConnection(
+          await connectionView(transaction, connection, userId),
+        ),
+        recipient: contactOf(recipient),
+        sender: senderOf(me),
       };
     });
   }
@@ -832,6 +894,37 @@ async function assertInvitablePerson(
     throw new InvalidFriendRequestError(
       "personId must name an unlinked person you can view.",
     );
+}
+
+/** Requests and invitations share one daily allowance; zero means none. */
+async function assertDailyAllowance(
+  transaction: DatabaseTransaction,
+  userId: string,
+  sentAt: Date,
+  dailyLimit: number,
+): Promise<void> {
+  if (dailyLimit <= 0) return;
+  const since = new Date(sentAt.getTime() - 86_400_000);
+  const [connections] = await transaction
+    .select({ count: sql<number>`count(*)::int` })
+    .from(userConnections)
+    .where(
+      and(
+        eq(userConnections.requesterId, userId),
+        gt(userConnections.createdAt, since),
+      ),
+    );
+  const [invitations] = await transaction
+    .select({ count: sql<number>`count(*)::int` })
+    .from(userInvitations)
+    .where(
+      and(
+        eq(userInvitations.requesterId, userId),
+        gt(userInvitations.createdAt, since),
+      ),
+    );
+  if ((connections?.count ?? 0) + (invitations?.count ?? 0) >= dailyLimit)
+    throw new FriendLimitError("Too many invitations today.");
 }
 
 async function liveConnection(

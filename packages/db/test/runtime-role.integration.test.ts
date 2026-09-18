@@ -189,6 +189,15 @@ describe("runtime database privileges", () => {
     await expect(
       runtime`SELECT runtime_probe_function()`,
     ).rejects.toMatchObject({ code: "42501" });
+    // Find people runs on this path: the fold and the trigram similarity
+    // are the functions the role may execute, and nothing else of the kind.
+    const accented = "Zo\u00eb  M\u00fcller";
+    expect(
+      await runtime`SELECT chronelle_search_fold(${accented}) AS folded, similarity('chen wei', 'chen') > 0 AS scored, 'chen wei' % 'chen wei' AS near`,
+    ).toEqual([{ folded: "zoe muller", scored: true, near: true }]);
+    await expect(
+      runtime`SELECT chronelle_username_available('anyone')`,
+    ).rejects.toMatchObject({ code: "42501" });
   });
 
   it.each([

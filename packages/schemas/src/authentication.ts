@@ -26,10 +26,21 @@ export const localeTagSchema = z
   .max(35)
   .regex(/^[a-z]{2,3}(-[A-Za-z0-9]{2,8})*$/);
 
+/**
+ * The handle every account carries, whatever it signed up with: 3 to 30
+ * letters, digits, hyphens or underscores, starting with a letter; unique
+ * without regard to case.
+ */
+export const usernameSchema = z
+  .string()
+  .regex(/^[A-Za-z][A-Za-z0-9_-]{2,29}$/u);
+
 export const signUpRequestSchema = z.object({
   displayName: z.string().trim().min(1).max(120),
   email: emailSchema,
   password: passwordSchema,
+  /** The username chosen at sign-up; without one the account gets one from its name. */
+  username: usernameSchema.optional(),
   locale: localeTagSchema.optional(),
   /** The token of the friend invitation the sign-up link carried. */
   invitationToken: z.string().trim().min(1).max(256).optional(),
@@ -127,10 +138,35 @@ export const acceptedResponseSchema = z.object({
   accepted: z.literal(true),
 });
 
+/**
+ * The account fields the account route changes: who can find the account,
+ * by name and by email; finding it by username is always on. A key that is
+ * present replaces the stored value. The username is not among them: it is
+ * chosen once, at sign-up.
+ */
+export const accountUpdateRequestSchema = z
+  .object({
+    findByName: z.boolean().optional(),
+    findByEmail: z.boolean().optional(),
+  })
+  .strict();
+
+/** Whether a username is free, asked before signing up. */
+export const usernameAvailabilityQuerySchema = z.object({
+  username: z.string().min(1).max(30),
+});
+
+export const usernameAvailabilityResponseSchema = z.object({
+  available: z.boolean(),
+});
+
 const userSchema = z.object({
   id: z.uuid(),
   displayName: z.string(),
   email: z.email().nullable(),
+  username: usernameSchema,
+  findByName: z.boolean().default(true),
+  findByEmail: z.boolean().default(true),
   locale: z.string().nullable().default(null),
   timeZone: z.string().nullable().default(null),
   hourCycle: hourCycleSchema.nullable().default(null),
@@ -202,6 +238,10 @@ export type SessionRevocationResponse = z.infer<
 >;
 export type ApiErrorResponse = z.infer<typeof apiErrorResponseSchema>;
 export type PreferencesRequest = z.infer<typeof preferencesRequestSchema>;
+export type AccountUpdateRequest = z.infer<typeof accountUpdateRequestSchema>;
+export type UsernameAvailabilityResponse = z.infer<
+  typeof usernameAvailabilityResponseSchema
+>;
 export type HourCycle = z.infer<typeof hourCycleSchema>;
 export type WeekStart = z.infer<typeof weekStartSchema>;
 export type RailPreference = z.infer<typeof railPreferenceSchema>;

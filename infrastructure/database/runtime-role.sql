@@ -87,6 +87,17 @@ GRANT DELETE ON public.resource_grants, public.labels, public.task_labels,
 TO :"runtime_role";
 
 -- New tables and functions require an explicit runtime privilege review.
+-- Find people runs on the PostgreSQL path with the folded name and the
+-- trigram similarity: the fold function and the extension functions
+-- behind it and the % operator.
+GRANT EXECUTE ON FUNCTION
+  public.chronelle_search_fold(text),
+  public.unaccent(text),
+  public.unaccent(regdictionary, text),
+  public.similarity(text, text),
+  public.similarity_op(text, text)
+  TO :"runtime_role";
+
 ALTER DEFAULT PRIVILEGES REVOKE ALL ON TABLES FROM PUBLIC, :"runtime_role";
 ALTER DEFAULT PRIVILEGES IN SCHEMA public REVOKE ALL ON TABLES FROM PUBLIC, :"runtime_role";
 ALTER DEFAULT PRIVILEGES REVOKE ALL ON SEQUENCES FROM PUBLIC, :"runtime_role";

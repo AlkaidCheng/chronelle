@@ -77,3 +77,24 @@ export class CredentialLockedError extends HttpError {
     this.name = "CredentialLockedError";
   }
 }
+
+export class UsernameTakenError extends HttpError {
+  constructor() {
+    super(409, "username_taken", "That username is taken.");
+    this.name = "UsernameTakenError";
+  }
+}
+
+export class UserUnavailableError extends HttpError {
+  constructor() {
+    super(404, "user_unavailable", "The user is unavailable.");
+    this.name = "UserUnavailableError";
+  }
+}
+
+export class SearchLimitError extends HttpError {
+  constructor() {
+    super(429, "search_limit", "Too many searches; try again in a minute.");
+    this.name = "SearchLimitError";
+  }
+}

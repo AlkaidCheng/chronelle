@@ -57,6 +57,45 @@ export const sentInvitationSchema = z.object({
   expiresAt: dateTimeSchema.nullable(),
 });
 
+/**
+ * A request to an account found by search or by its code; the same request
+ * an invitation to a known address makes, so it waits on the other
+ * account's Friends page.
+ */
+export const friendRequestRequestSchema = z.object({
+  userId: idSchema,
+  message: z.string().trim().min(1).max(500).optional(),
+  personId: idSchema.optional(),
+});
+
+/** How the caller and another account stand. */
+export const friendRelationSchema = z.enum([
+  "none",
+  "friend",
+  "requested",
+  "incoming",
+]);
+
+/** An account as Find people and the code page show it. */
+export const userSummarySchema = z.object({
+  id: idSchema,
+  displayName: z.string(),
+  username: z.string(),
+  relation: friendRelationSchema,
+});
+
+export const userSearchResponseSchema = z.object({
+  items: z.array(userSummarySchema),
+});
+
+export const userSearchQuerySchema = z.object({
+  q: z.string().max(254).default(""),
+});
+
+export const usernameParamsSchema = z.object({
+  username: z.string().min(1).max(30),
+});
+
 export const friendsResponseSchema = z.object({
   friends: z.array(friendSchema),
   incoming: z.array(friendRequestSchema),
@@ -78,6 +117,10 @@ export type FriendInvitationPayload = z.input<
   typeof friendInvitationRequestSchema
 >;
 export type Friend = z.infer<typeof friendSchema>;
+export type FriendRequestRequest = z.infer<typeof friendRequestRequestSchema>;
+export type FriendRelation = z.infer<typeof friendRelationSchema>;
+export type UserSummary = z.infer<typeof userSummarySchema>;
+export type UserSearchResponse = z.infer<typeof userSearchResponseSchema>;
 export type FriendRequest = z.infer<typeof friendRequestSchema>;
 export type SentInvitation = z.infer<typeof sentInvitationSchema>;
 export type FriendsResponse = z.infer<typeof friendsResponseSchema>;

@@ -137,7 +137,21 @@ needs no change. Migration `0054_add_person_shares_list.sql` adds
 `chronelle_person_shares_list`, the read behind `GET /api/persons/:id/shares`
 on the rpc path (the readiness check requires it); it changes no table, and
 the runtime role, which reads the same rows through the PostgreSQL store,
-needs no change.
+needs no change. Migration `0055_add_username_and_discovery.sql` adds
+`users.username` (required, unique without regard to case, checked for
+shape; every existing account gets one from its display name, oldest first,
+and a trigger gives one to any insert that brings none), `users.find_by_name`,
+and `users.find_by_email` (true by default); replaces
+`chronelle_identity_sign_in` with one that takes the username sign-up chose
+(the old five-argument function is dropped, so the API built from 0055 must
+start after it); and adds `chronelle_username_available`,
+`chronelle_account_update`, `chronelle_users_search`,
+`chronelle_user_lookup`, and `chronelle_friend_request`, which the readiness
+check requires. It also installs the `pg_trgm` and `unaccent` extensions
+(both trusted, so the migrating role needs no superuser), adds
+`chronelle_search_fold` and two trigram indexes on `users` for Find people,
+and the runtime role script grants `EXECUTE` on the fold, `unaccent`, and
+`similarity` functions, so the script is reapplied after this migration.
 
 Migration `0021_add_object_search_function.sql` adds `chronelle_object_search`,
 the read-only function the CloudBase search adapter calls. It changes no
