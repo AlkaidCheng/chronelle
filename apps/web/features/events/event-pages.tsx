@@ -9,15 +9,14 @@ import {
   type RefObject,
 } from "react";
 import type { UseQueryResult } from "@tanstack/react-query";
-import type {
-  EventComponentKind,
-  EventLayoutResponse,
-  EventPage,
-} from "@chronelle/schemas";
+import type { EventLayoutResponse, EventPage } from "@chronelle/schemas";
 import { ErrorNotice, LoadingState } from "../../components/feedback";
+import { CheckIcon } from "../../components/icons";
+import { ViewMark } from "../../components/view-marks";
 import { useUpdateEventLayout } from "../../lib/event-layout-queries";
 import { useSessionDialog } from "../../lib/use-session-dialog";
 import {
+  type AddableEventComponentKind,
   componentKindDescription,
   componentKindLabel,
   findEventComponents,
@@ -28,6 +27,13 @@ import { AddEventPageDialog } from "./add-event-page-dialog";
 import type { LayoutUndoControls, PageDrop } from "./use-event-pages";
 import { newId } from "../../lib/new-id";
 
+/**
+ * Add a component to a page: the gallery's cards, one per kind the page
+ * may hold, narrowed by the search. A card adds its component at once and
+ * the dialog closes; a kind the page or another page already holds says
+ * so on its card, since another view of the same records is fine. Enter
+ * in the search adds the first card shown.
+ */
 function AddComponentDialog({
   layout,
   pageId,
@@ -40,39 +46,36 @@ function AddComponentDialog({
   readonly onSaved: (pageId: string, message: string) => void;
 }) {
   const [source] = useState(layout);
-  const [kind, setKind] = useState<EventComponentKind>("todos");
   const [search, setSearch] = useState("");
   const options = findEventComponents(search);
-  const selectedKind = options.includes(kind) ? kind : options[0];
   const target = source.pages.find((page) => page.id === pageId);
-  const alreadyHere = target?.components.some(
-    (component) => component.kind === selectedKind,
-  );
-  const usedElsewhere = source.pages.some(
-    (page) =>
-      page.id !== pageId &&
-      page.components.some((component) => component.kind === selectedKind),
-  );
+  const usedOn = (kind: AddableEventComponentKind) =>
+    target?.components.some((component) => component.kind === kind)
+      ? "onThisPage"
+      : source.pages.some(
+            (page) =>
+              page.id !== pageId &&
+              page.components.some((component) => component.kind === kind),
+          )
+        ? "onAnotherPage"
+        : null;
   const t = useTranslations("componentDialog");
   const common = useTranslations("common");
   const save = useUpdateEventLayout(layout.eventId);
   const dialog = useSessionDialog(onClose);
   const nameInput = useRef<HTMLInputElement>(null);
+  const firstCard = useRef<HTMLButtonElement>(null);
   useEffect(() => {
     nameInput.current?.focus();
   }, []);
 
-  function submit(event: FormEvent) {
-    event.preventDefault();
-    if (save.isPending || !selectedKind) return;
+  function add(kind: AddableEventComponentKind) {
+    if (save.isPending) return;
     const pages: EventPage[] = source.pages.map((page) =>
       page.id === pageId
         ? {
             ...page,
-            components: [
-              ...page.components,
-              { id: newId(), kind: selectedKind ?? kind },
-            ],
+            components: [...page.components, { id: newId(), kind }],
           }
         : page,
     );
@@ -83,7 +86,7 @@ function AddComponentDialog({
           onSaved(
             pageId,
             t("added", {
-              component: componentKindLabel(selectedKind),
+              component: componentKindLabel(kind),
               page: target?.name ?? "",
             }),
           );
@@ -93,10 +96,16 @@ function AddComponentDialog({
     );
   }
 
+  function submit(event: FormEvent) {
+    event.preventDefault();
+    const first = options[0];
+    if (first !== undefined) add(first);
+  }
+
   return (
     <dialog
       ref={dialog}
-      className="event-create-dialog component-catalog-dialog"
+      className="event-create-dialog gallery-dialog component-catalog-dialog"
       aria-labelledby="page-content-heading"
       onCancel={(event) => {
         event.preventDefault();
@@ -145,50 +154,53 @@ function AddComponentDialog({
                   !event.ctrlKey &&
                   !event.metaKey &&
                   !event.shiftKey &&
-                  !event.repeat &&
-                  selectedKind
+                  !event.repeat
                 ) {
                   event.preventDefault();
-                  dialog.current
-                    ?.querySelector<HTMLInputElement>(
-                      'input[name="component-kind"]:checked',
-                    )
-                    ?.focus();
+                  firstCard.current?.focus();
                 }
               }}
             />
           </label>
-          <p className="catalog-context" role="status">
-            {selectedKind && (alreadyHere || usedElsewhere)
-              ? t(alreadyHere ? "usedHere" : "usedElsewhere", {
-                  component: componentKindLabel(selectedKind),
-                })
-              : t("intro")}
-          </p>
-          <fieldset className="component-picker" disabled={save.isPending}>
-            <legend>{t("choose")}</legend>
-            {options.map((option) => (
-              <label key={option} className="component-choice">
-                <input
-                  type="radio"
-                  name="component-kind"
-                  value={option}
-                  aria-labelledby={`component-${option}-label`}
-                  aria-describedby={`component-${option}-description`}
-                  checked={selectedKind === option}
-                  onChange={() => setKind(option)}
-                />
-                <span>
-                  <strong id={`component-${option}-label`}>
-                    {componentKindLabel(option)}
-                  </strong>
-                  <span id={`component-${option}-description`}>
-                    {componentKindDescription(option)}
-                  </span>
-                </span>
-              </label>
-            ))}
-          </fieldset>
+          <div className="gallery-scroll">
+            <div className="gallery-grid">
+              {options.map((option, index) => {
+                const used = usedOn(option);
+                return (
+                  <button
+                    key={option}
+                    ref={index === 0 ? firstCard : undefined}
+                    type="button"
+                    className="gallery-card"
+                    aria-label={t("addNamed", {
+                      component: componentKindLabel(option),
+                    })}
+                    aria-describedby={`component-${option}-description`}
+                    data-used={used ?? undefined}
+                    disabled={save.isPending}
+                    onClick={() => add(option)}
+                  >
+                    <span className="gallery-glyph">
+                      <ViewMark view={option} />
+                    </span>
+                    <strong>{componentKindLabel(option)}</strong>
+                    <span
+                      className="gallery-line"
+                      id={`component-${option}-description`}
+                    >
+                      {componentKindDescription(option)}
+                    </span>
+                    {used === null ? null : (
+                      <span className="gallery-mark">
+                        <CheckIcon />
+                        {t(used)}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
           {options.length === 0 ? (
             <p role="status">
               {t("noMatch")}{" "}
@@ -215,17 +227,6 @@ function AddComponentDialog({
             onClick={onClose}
           >
             {common("cancel")}
-          </button>
-          <button
-            type="submit"
-            className="button button-primary"
-            disabled={save.isPending || !selectedKind}
-          >
-            {save.isPending
-              ? t("saving")
-              : selectedKind
-                ? t("addNamed", { component: componentKindLabel(selectedKind) })
-                : t("add")}
           </button>
         </footer>
       </form>

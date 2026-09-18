@@ -14,7 +14,6 @@ export async function exerciseEventArrange(page: Page, testInfo: TestInfo) {
       .getByRole("button", { name: "Add component", exact: true })
       .click();
     const picker = page.getByRole("dialog", { name: "Add a component" });
-    await picker.getByRole("radio", { name: new RegExp(`^${label}`) }).check();
     await picker
       .getByRole("button", { name: `Add ${label}`, exact: true })
       .click();

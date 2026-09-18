@@ -1419,7 +1419,7 @@ describe("insertable event components", () => {
     expect(screen.getByRole("heading", { name: "To-dos" })).toBeVisible();
   });
 
-  it("offers all component kinds in a focused picker and preserves selection on a stale save", async () => {
+  it("offers every component kind as a card and keeps the dialog open on a stale save", async () => {
     const pages = [page("Plan", [])];
     await client.updateEventLayout(eventId, { expectedVersion: 0, pages });
     const user = userEvent.setup();
@@ -1429,17 +1429,19 @@ describe("insertable event components", () => {
     });
     await user.click(trigger);
     const dialog = within(screen.getByRole("dialog"));
-    expect(dialog.getAllByRole("radio")).toHaveLength(7);
+    expect(dialog.getAllByRole("button", { name: /^Add / })).toHaveLength(7);
     expect(
       dialog.getByRole("searchbox", { name: "Find a component" }),
     ).toHaveFocus();
-    await user.click(dialog.getByRole("radio", { name: /^Calendar/ }));
+    expect(
+      dialog.getByRole("button", { name: "Add Calendar" }),
+    ).toHaveAccessibleDescription(/schedule/i);
     await client.updateEventLayout(eventId, { expectedVersion: 1, pages });
     await user.click(dialog.getByRole("button", { name: "Add Calendar" }));
     expect(await dialog.findByRole("alert")).toHaveTextContent(
       "A newer version is available",
     );
-    expect(dialog.getByRole("radio", { name: /^Calendar/ })).toBeChecked();
+    expect(dialog.getByRole("button", { name: "Add Calendar" })).toBeEnabled();
     expect((await client.getEventLayout(eventId)).pages).toEqual(pages);
     await user.click(dialog.getByRole("button", { name: "Cancel" }));
     expect(trigger).toHaveFocus();
@@ -1465,11 +1467,11 @@ describe("insertable event components", () => {
     const search = screen.getByRole("searchbox", { name: "Find a component" });
     expect(search).toHaveFocus();
     await user.type(search, "/unknown");
-    expect(
-      within(screen.getByRole("dialog")).getByRole("button", {
-        name: "Add component",
-      }),
-    ).toBeDisabled();
+    const dialog = within(screen.getByRole("dialog"));
+    expect(dialog.queryAllByRole("button", { name: /^Add / })).toHaveLength(0);
+    expect(dialog.getByRole("status")).toHaveTextContent(
+      "No matching components.",
+    );
     await user.clear(search);
     await user.type(search, "/calendar{Enter}");
     expect(
@@ -1490,7 +1492,7 @@ describe("insertable event components", () => {
     ).toBeNull();
   });
 
-  it("explains repeated views and adds only a layout reference to the selected page", async () => {
+  it("marks repeated views on their cards and adds only a layout reference to the selected page", async () => {
     const pages = [page("Preparation", ["todos"]), page("On the day", [])];
     const before = await client.getEventDetail(eventId);
     await client.updateEventLayout(eventId, { expectedVersion: 0, pages });
@@ -1502,17 +1504,20 @@ describe("insertable event components", () => {
     const search = dialog.getByRole("searchbox", { name: "Find a component" });
     expect(search).toHaveAccessibleDescription("Add to On the day.");
     expect(
-      dialog.getByText(/To-dos is already used on another page/),
-    ).toBeVisible();
+      dialog.getByRole("button", { name: "Add To-dos" }),
+    ).toHaveTextContent("On another page");
+    expect(
+      dialog.getByRole("button", { name: "Add Calendar" }),
+    ).not.toHaveTextContent(/On /);
     vi.mocked(fetch).mockClear();
     await user.type(search, "no matching view");
-    expect(dialog.queryAllByRole("radio")).toHaveLength(0);
+    expect(dialog.queryAllByRole("button", { name: /^Add / })).toHaveLength(0);
     await user.click(dialog.getByRole("button", { name: "Clear search" }));
     expect(search).toHaveFocus();
-    expect(dialog.getAllByRole("radio")).toHaveLength(7);
+    expect(dialog.getAllByRole("button", { name: /^Add / })).toHaveLength(7);
     await user.type(search, "checklist");
     await user.keyboard("{ArrowDown}");
-    expect(dialog.getByRole("radio", { name: "To-dos" })).toHaveFocus();
+    expect(dialog.getByRole("button", { name: "Add To-dos" })).toHaveFocus();
     expect(fetch).not.toHaveBeenCalled();
     await user.click(dialog.getByRole("button", { name: "Add To-dos" }));
     expect(
@@ -1527,8 +1532,8 @@ describe("insertable event components", () => {
     expect(await client.getEventDetail(eventId)).toEqual(before);
     await user.click(screen.getByRole("button", { name: "Add component" }));
     expect(
-      screen.getByText(/To-dos is already used on this page/),
-    ).toBeVisible();
+      screen.getByRole("button", { name: "Add To-dos" }),
+    ).toHaveTextContent("On this page");
     await user.click(screen.getByRole("button", { name: "Cancel" }));
     expect((await client.getEventLayout(eventId)).version).toBe(2);
   });
@@ -1562,7 +1567,8 @@ describe("insertable event components", () => {
     });
     await user.click(dialog.getByRole("button", { name: "Add To-dos" }));
     expect(search).toBeDisabled();
-    expect(dialog.getByRole("button", { name: "Saving..." })).toBeDisabled();
+    expect(dialog.getByRole("button", { name: "Add To-dos" })).toBeDisabled();
+    expect(dialog.getByRole("button", { name: "Add Calendar" })).toBeDisabled();
     expect(dialog.getByRole("button", { name: "Cancel" })).toBeDisabled();
     fireEvent(element, new Event("cancel", { cancelable: true }));
     expect(element).toBeVisible();

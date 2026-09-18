@@ -5,17 +5,13 @@
   "addTo": "Add to {page}.",
   "find": "Find a component",
   "placeholder": "Try /calendar or expenses",
-  "usedHere": "{component} is already used on this page. You can add another view of the same records.",
-  "usedElsewhere": "{component} is already used on another page. You can add another view of the same records.",
-  "intro": "Add a view of this event's records, without creating or copying them.",
-  "choose": "Choose a component",
   "noMatch": "No matching components. Try calendar, to-dos, or files.",
   "clearSearch": "Clear search",
-  "saving": "Saving...",
   "addNamed": "Add {component}",
-  "add": "Add component",
   "refreshLatest": "Refresh latest",
   "loadingPages": "Loading event pages",
   "pageUnavailable": "The requested page is unavailable.",
-  "showing": "Showing {name}."
+  "showing": "Showing {name}.",
+  "onThisPage": "On this page",
+  "onAnotherPage": "On another page"
 }

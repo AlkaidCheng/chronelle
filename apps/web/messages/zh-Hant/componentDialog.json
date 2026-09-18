@@ -5,17 +5,13 @@
   "addTo": "新增到{page}。",
   "find": "尋找元件",
   "placeholder": "試試 /calendar 或 支出",
-  "usedHere": "此頁面已使用{component}。你可以再新增一個同一記錄的檢視。",
-  "usedElsewhere": "另一頁面已使用{component}。你可以再新增一個同一記錄的檢視。",
-  "intro": "新增此活動記錄的一個檢視，不會建立或複製記錄。",
-  "choose": "選擇元件",
   "noMatch": "沒有相符的元件。試試日曆、待辦或檔案。",
   "clearSearch": "清除搜尋",
-  "saving": "儲存中…",
   "addNamed": "新增{component}",
-  "add": "新增元件",
   "refreshLatest": "重新整理至最新",
   "loadingPages": "正在載入活動頁面",
   "pageUnavailable": "要求的頁面不可用。",
-  "showing": "正在顯示{name}。"
+  "showing": "正在顯示{name}。",
+  "onThisPage": "已在本頁",
+  "onAnotherPage": "已在其他頁"
 }

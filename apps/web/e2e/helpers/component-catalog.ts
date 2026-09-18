@@ -22,29 +22,24 @@ export async function exerciseComponentCatalog(page: Page, testInfo: TestInfo) {
   await page.keyboard.press("Enter");
   await expect(search).toBeFocused();
   await expect(search).toHaveAccessibleDescription(`Add to ${destination}.`);
-  await expect(picker.getByRole("radio")).toHaveCount(7);
+  const cards = picker.getByRole("button", { name: /^Add / });
+  await expect(cards).toHaveCount(7);
+  // A kind another page holds says so on its card; the rest say nothing.
+  const todos = picker.getByRole("button", { name: "Add To-dos", exact: true });
+  await expect(todos).toContainText("On another page");
   await expect(
-    picker.getByText(/To-dos is already used on another page/),
-  ).toBeVisible();
+    picker.getByRole("button", { name: "Add Calendar", exact: true }),
+  ).not.toContainText("On ");
   await page.keyboard.press("ArrowDown");
-  await expect(
-    picker.getByRole("radio", { name: "To-dos", exact: true }),
-  ).toBeFocused();
-  await page.keyboard.press("ArrowDown");
-  await expect(
-    picker.getByRole("radio", { name: "Calendar", exact: true }),
-  ).toBeChecked();
-  await expect(
-    picker.getByRole("button", { name: "Add Calendar" }),
-  ).toBeEnabled();
+  await expect(todos).toBeFocused();
   await search.fill("not a component");
-  await expect(picker.getByRole("radio")).toHaveCount(0);
-  await expect(
-    picker.getByRole("button", { name: "Add component" }),
-  ).toBeDisabled();
+  await expect(cards).toHaveCount(0);
+  await expect(picker.getByRole("status")).toContainText(
+    "No matching components.",
+  );
   await picker.getByRole("button", { name: "Clear search" }).click();
   await expect(search).toBeFocused();
-  await expect(picker.getByRole("radio")).toHaveCount(7);
+  await expect(cards).toHaveCount(7);
   await picker.screenshot({
     path: testInfo.outputPath("catalog-default.png"),
     animations: "disabled",
@@ -53,9 +48,7 @@ export async function exerciseComponentCatalog(page: Page, testInfo: TestInfo) {
     await page.emulateMedia({ colorScheme });
     await page.setViewportSize({ width: 320, height: 568 });
     await search.fill("alerts");
-    await expect(
-      picker.getByRole("radio", { name: "Reminders", exact: true }),
-    ).toBeChecked();
+    await expect(cards).toHaveCount(1);
     await expect(
       picker.getByText(/Notifications are not sent yet/),
     ).toBeVisible();
@@ -69,9 +62,7 @@ export async function exerciseComponentCatalog(page: Page, testInfo: TestInfo) {
     });
   }
   await search.fill("checklist");
-  await expect(
-    picker.getByText(/To-dos is already used on another page/),
-  ).toBeInViewport();
+  await expect(todos).toBeInViewport();
   await picker.screenshot({
     path: testInfo.outputPath("catalog-repeated-view.png"),
     animations: "disabled",
@@ -83,9 +74,7 @@ export async function exerciseComponentCatalog(page: Page, testInfo: TestInfo) {
     page.getByText(`To-dos added to ${destination}.`, { exact: true }),
   ).toBeVisible();
   await add.click();
-  await expect(
-    picker.getByText(/To-dos is already used on this page/),
-  ).toBeVisible();
+  await expect(todos).toContainText("On this page");
   await page.keyboard.press("Escape");
   await expect(add).toBeFocused();
   await page.reload();

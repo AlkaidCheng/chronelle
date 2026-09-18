@@ -592,20 +592,22 @@ undo/redo, and saved layout history. Add page, Add component, and insertion
 shortcuts work in either mode. An event with no pages offers Add a page; a
 page with no components offers Add component; neither explains itself.
 
-The component catalog names its destination page and searches all seven kinds
-by name, description, or ordinary terms such as checklist, costs, and documents.
-Slash prefixes and full-width Latin characters are accepted. Arrow Down from
-search focuses the selected native radio; arrow keys then select a choice.
-The visible selection and Add label agree, including when filtering selects
-the first matching kind. An empty result disables insertion and offers Clear
-search. Composition-confirming Enter does not insert a component.
+The component catalog names its destination page and shows the seven kinds
+as the gallery's cards (a mark, the name, one line), narrowed by a search
+over name, description, or ordinary terms such as checklist, costs, and
+documents. Slash prefixes and full-width Latin characters are accepted.
+Pressing a card adds that component to the page and closes the dialog;
+Enter in the search adds the first card shown, and Arrow Down from the
+search focuses it. An empty result shows no cards and offers Clear search.
+Composition-confirming Enter does not insert a component.
 
-The catalog explains when the selected kind is already used on this page or
-another page. Adding another view is allowed and does not copy canonical
-records. Successful insertion names the component and destination. Closing the
-dialog restores focus; losing Edit access discards the open catalog. Pending
-saves lock selection and dismissal. Conflicts retain the selected choice and
-captured source version; close and reopen to retry against the latest layout.
+A card says "On this page" or "On another page" when the page or another
+page already holds that kind; adding another view is allowed and does not
+copy canonical records. Successful insertion names the component and
+destination. Closing the dialog restores focus; losing Edit access discards
+the open catalog. A pending save locks the cards and dismissal. A conflict
+keeps the dialog open with the captured source version; close and reopen to
+retry against the latest layout.
 
 The mode is local to the open event and session. It survives page selection,
 but resets on leaving the Pages view, reload, event/session changes, and loss
