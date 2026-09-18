@@ -20,5 +20,9 @@
   "noFriends": "還沒有好友。透過電子郵件邀請一位吧。",
   "since": "自 {date}",
   "sentOn": "傳送於 {date}",
-  "linkUntil": "註冊連結有效期至 {date}"
+  "linkUntil": "註冊連結有效期至 {date}",
+  "intro": "好友屬於你的帳號，而不是某個工作區。在每個工作區中，由你決定好友能看到什麼：透過「成員」共用整個工作區，或透過「共用」共用單一活動和任務。",
+  "wantsToConnect": "想要加你為好友",
+  "sentAgo": "已傳送，{when}",
+  "noAccountYet": "尚無帳號"
 }
