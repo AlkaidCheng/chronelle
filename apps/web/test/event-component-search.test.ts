@@ -17,7 +17,10 @@ describe("component catalog search", () => {
     // Every kind the schema knows is either offered or the retired alias.
     expect(
       eventComponentKindSchema.options.filter(
-        (kind) => !addableEventComponentKinds.includes(kind),
+        (kind) =>
+          !(
+            addableEventComponentKinds as readonly EventComponentKind[]
+          ).includes(kind),
       ),
     ).toEqual(["itinerary"]);
   });
