@@ -14,7 +14,7 @@ import { personInitials } from "../../lib/person-collection";
 import { personDisplayName } from "../../lib/person-fields";
 import { useQueuePendingShare, useShareResource } from "../../lib/queries";
 
-type SharedRole = "owner" | "viewer";
+type SharedRole = "owner" | "editor" | "viewer";
 
 type Outcome =
   | { readonly kind: "shared"; readonly role: SharedRole }
@@ -36,7 +36,7 @@ export interface ShareRow {
   readonly friendId: string | null;
   readonly personId: string | null;
   /** The role the account already holds, or the queued share waits with. */
-  readonly held: string | undefined;
+  readonly held: SharedRole | undefined;
 }
 
 export interface ShareRowContext {
@@ -147,7 +147,7 @@ export function ShareWithPeople({
   const [copied, setCopied] = useState("");
   const chosen = rows.filter((row) => selected.has(row.key));
   const roleOf = (row: ShareRow): SharedRole =>
-    roles.get(row.key) ?? (row.held === "owner" ? "owner" : "viewer");
+    roles.get(row.key) ?? row.held ?? "viewer";
 
   function copyLink() {
     const link = `${window.location.origin}/events/${eventId}`;
@@ -170,19 +170,13 @@ export function ShareWithPeople({
             friendId: row.friendId,
             role,
           });
-          results.set(row.key, {
-            kind: "shared",
-            role: grant.role === "owner" ? "owner" : "viewer",
-          });
+          results.set(row.key, { kind: "shared", role: grant.role });
         } else if (row.kind === "member" && row.personId !== null) {
           const grant = await share.mutateAsync({
             personId: row.personId,
             role,
           });
-          results.set(row.key, {
-            kind: "shared",
-            role: grant.role === "owner" ? "owner" : "viewer",
-          });
+          results.set(row.key, { kind: "shared", role: grant.role });
         } else if (row.personId !== null) {
           await queue.mutateAsync({ personId: row.personId, role });
           results.set(row.key, { kind: "queued", invited: row.kind === "new" });
@@ -272,6 +266,7 @@ export function ShareWithPeople({
                   value={roleOf(row)}
                 >
                   <option value="viewer">{t("roles.viewer")}</option>
+                  <option value="editor">{t("roles.editor")}</option>
                   <option value="owner">{t("roles.owner")}</option>
                 </select>
                 {outcome === undefined ? null : (
