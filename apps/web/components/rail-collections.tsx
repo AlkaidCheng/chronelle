@@ -11,10 +11,9 @@ import {
   useState,
 } from "react";
 
+import { moveKey, placeKey } from "../lib/key-order";
 import {
   arrangeRail,
-  moveKey,
-  placeKey,
   type RailArrangement,
   railPreferenceOf,
 } from "../lib/rail-preference";

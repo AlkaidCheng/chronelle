@@ -1,11 +1,7 @@
 import { describe, expect, it } from "vitest";
 
-import {
-  arrangeRail,
-  moveKey,
-  placeKey,
-  railPreferenceOf,
-} from "../lib/rail-preference";
+import { moveKey, placeKey } from "../lib/key-order";
+import { arrangeRail, railPreferenceOf } from "../lib/rail-preference";
 
 const known = ["events", "tasks", "people"];
 
