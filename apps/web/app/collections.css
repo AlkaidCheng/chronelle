@@ -179,6 +179,10 @@
     flex-direction: column;
     gap: 20px;
   }
+  /* Stacked, the title takes its own height, not the row's flex basis. */
+  .event-title-row > div:first-child {
+    flex-basis: auto;
+  }
 }
 @media (max-width: 760px) {
   .mobile-view-select {
