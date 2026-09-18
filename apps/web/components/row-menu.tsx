@@ -11,6 +11,7 @@ import {
 } from "react";
 import { createPortal } from "react-dom";
 
+import { capMenu, fitMenu, viewportSize } from "../lib/menu-placement";
 import { MoreIcon } from "./icons";
 import { useMenuDismissal } from "./quiet-menu";
 
@@ -79,20 +80,23 @@ export function RowMenu({
   );
 
   // The menu sits at the button's corner, above it when the viewport
-  // below is short; its height changes with the list shown, so the place
-  // is measured again when the choices swap in or out.
+  // below is short, and scrolls inside when it fits neither way; its
+  // height changes with the list shown, so the place is measured again
+  // when the choices swap in or out.
   const shown = open ? (view ?? -1) : null;
   useLayoutEffect(() => {
     if (shown === null) return;
     const anchor = button.current?.getBoundingClientRect();
-    const height = menu.current?.offsetHeight ?? 0;
-    if (anchor === undefined) return;
-    const below = anchor.bottom + gap;
+    const element = menu.current;
+    if (anchor === undefined || element === null) return;
+    capMenu(element, null);
+    const fit = fitMenu(anchor, element.offsetHeight, gap);
+    capMenu(element, fit.maxHeight);
     const top =
-      below + height > window.innerHeight && anchor.top - gap - height > 0
-        ? anchor.top - gap - height
-        : below;
-    setPlace({ top, right: window.innerWidth - anchor.right });
+      fit.side === "above"
+        ? anchor.top - gap - element.offsetHeight
+        : anchor.bottom + gap;
+    setPlace({ top, right: viewportSize().width - anchor.right });
     // The first choice takes focus in a choice list, past its back entry.
     menu.current
       ?.querySelector<HTMLElement>(
@@ -104,16 +108,22 @@ export function RowMenu({
   useEffect(() => {
     if (!open) return;
     const onMove = () => close(false);
+    // The page moving under the menu closes it (the menu scrolling inside
+    // itself does not); the frame that opens it may still be settling its
+    // own scroll.
+    const onScroll = (event: Event) => {
+      if (event.target instanceof Node && menu.current?.contains(event.target))
+        return;
+      close(false);
+    };
     window.addEventListener("resize", onMove);
-    // The page moving under the menu closes it; the frame that opens it
-    // may still be settling its own scroll.
     const frame = window.requestAnimationFrame(() =>
-      document.addEventListener("scroll", onMove, true),
+      document.addEventListener("scroll", onScroll, true),
     );
     return () => {
       window.cancelAnimationFrame(frame);
       window.removeEventListener("resize", onMove);
-      document.removeEventListener("scroll", onMove, true);
+      document.removeEventListener("scroll", onScroll, true);
     };
   }, [close, open]);
 
@@ -273,7 +283,7 @@ export function RowMenu({
           if (anchor !== undefined)
             setPlace({
               top: anchor.bottom + gap,
-              right: window.innerWidth - anchor.right,
+              right: viewportSize().width - anchor.right,
             });
           setOpen(true);
         }}

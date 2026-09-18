@@ -4,6 +4,7 @@ import {
   createContext,
   type KeyboardEvent as ReactKeyboardEvent,
   type ReactNode,
+  type RefObject,
   useCallback,
   useContext,
   useEffect,
@@ -12,11 +13,63 @@ import {
   useRef,
   useState,
 } from "react";
+import {
+  capMenu,
+  fitMenu,
+  menuEdge,
+  viewportSize,
+} from "../lib/menu-placement";
 import { IconButton } from "./icon-button";
 
 const CloseContext = createContext<((returnFocus?: boolean) => void) | null>(
   null,
 );
+
+/**
+ * Keeps an open list inside the viewport. It opens upward when it would
+ * run under the bottom (or the phone's rail) and there is room above
+ * (`data-place="up"`, which the stylesheet anchors to the control's top),
+ * and is capped to the roomier side and scrolls when it fits neither. A
+ * list cut off at a side of the viewport swaps its horizontal anchor
+ * (`data-align`) when the other edge fits it whole, else keeps its side
+ * and is nudged into view.
+ */
+export function useMenuPlacement(
+  open: boolean,
+  menu: RefObject<HTMLElement | null>,
+) {
+  useLayoutEffect(() => {
+    const element = menu.current;
+    if (!open || element === null) return;
+    delete element.dataset.place;
+    delete element.dataset.align;
+    element.style.marginLeft = "";
+    capMenu(element, null);
+    const anchor = element.offsetParent?.getBoundingClientRect();
+    if (anchor === undefined) return;
+    const fit = fitMenu(anchor, element.offsetHeight, 4);
+    if (fit.side === "above") element.dataset.place = "up";
+    capMenu(element, fit.maxHeight);
+    const bounds = element.getBoundingClientRect();
+    if (sidewaysOverflow(bounds) === 0) return;
+    const { width } = viewportSize();
+    element.dataset.align = bounds.right > width ? "end" : "start";
+    if (sidewaysOverflow(element.getBoundingClientRect()) === 0) return;
+    delete element.dataset.align;
+    element.style.marginLeft = `${
+      bounds.right > width
+        ? width - bounds.right - menuEdge
+        : menuEdge - bounds.left
+    }px`;
+  }, [open, menu]);
+}
+
+/** How far a list runs past the viewport's left or right edge. */
+function sidewaysOverflow(bounds: DOMRect): number {
+  return (
+    Math.max(0, bounds.right - viewportSize().width) + Math.max(0, -bounds.left)
+  );
+}
 
 /**
  * Closes an open menu on Escape anywhere in the document or on a press
@@ -108,25 +161,11 @@ export function QuietMenu({
   readonly value?: string;
 }) {
   const [open, setOpen] = useState(false);
-  const [side, setSide] = useState(align);
   const id = useId();
   const root = useRef<HTMLDivElement>(null);
   const trigger = useRef<HTMLButtonElement>(null);
   const menu = useRef<HTMLDivElement>(null);
-
-  // Keep the list inside the viewport: flip it when the preferred side would
-  // run off the document's edge, which otherwise scrolls the page sideways.
-  useLayoutEffect(() => {
-    if (!open) {
-      setSide(align);
-      return;
-    }
-    const bounds = menu.current?.getBoundingClientRect();
-    if (!bounds) return;
-    const width = document.documentElement.clientWidth;
-    if (align === "start" && bounds.right > width) setSide("end");
-    else if (align === "end" && bounds.left < 0) setSide("start");
-  }, [open, align]);
+  useMenuPlacement(open, menu);
 
   useEffect(() => {
     if (open) focusFirstMenuItem(menu.current);
@@ -167,7 +206,7 @@ export function QuietMenu({
             id={`${id}-menu`}
             role="menu"
             aria-label={label}
-            className={`quiet-menu-list quiet-menu-${side}`}
+            className={`quiet-menu-list quiet-menu-${align}`}
             onKeyDown={onKeyDown}
           >
             {children}

@@ -9,7 +9,7 @@ import {
   useRef,
   useState,
 } from "react";
-import { useMenuDismissal } from "./quiet-menu";
+import { useMenuDismissal, useMenuPlacement } from "./quiet-menu";
 
 /** One line of a heading menu: a choice, a toggle, an action, a section label, or a rule. */
 export type HeadMenuEntry =
@@ -70,6 +70,7 @@ export function HeadMenu({
   const root = useRef<HTMLDivElement>(null);
   const trigger = useRef<HTMLButtonElement>(null);
   const menu = useRef<HTMLDivElement>(null);
+  useMenuPlacement(open, menu);
 
   useEffect(() => {
     if (!open) return;

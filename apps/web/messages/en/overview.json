@@ -1,16 +1,14 @@
 {
+  "glance": "At a glance",
   "transactions": "{count, plural, one {# transaction} other {# transactions}}",
-  "eyebrow": "At a glance",
-  "title": "Your event, connected.",
-  "intro": "A little structure, a clearer plan. Pick a view to keep the details moving.",
   "privateTitle": "Private related items",
   "privateNote": "{count, plural, one {# related item is} other {# related items are}} outside your permission scope.",
   "openTodos": "Open to-dos",
   "scheduled": "Scheduled items",
-  "expenses": "Recorded expenses",
+  "expenses": "Expenses",
   "reminders": "Reminders",
-  "files": "Event files",
+  "files": "Files",
   "people": "People",
   "nextUp": "Next up",
-  "nothingUpcoming": "Nothing upcoming. Add a schedule item, a task with a due date, or a reminder when you are ready."
+  "nothingUpcoming": "Nothing upcoming."
 }

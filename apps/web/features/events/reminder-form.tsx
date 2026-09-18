@@ -2,7 +2,7 @@
 
 import type { ReminderResponse } from "@chronelle/schemas";
 import { useTranslations } from "next-intl";
-import { type FormEvent, useMemo, useState } from "react";
+import { type FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { CountedField } from "../../components/counted-field";
 import { EditorForm } from "../../components/editor-form";
 import {
@@ -15,6 +15,7 @@ import {
   reminderFieldsPayload,
 } from "../../lib/reminder-fields";
 import { shownTimeZone } from "../../i18n/active-preferences";
+import { toDateTimeInput } from "../../lib/format";
 import {
   eventCreationDraftKeys,
   type ReminderDraftSnapshot,
@@ -39,6 +40,9 @@ interface ReminderFormProps {
   readonly onCancel?: (() => void) | undefined;
   readonly onRefresh?: (() => Promise<void>) | undefined;
   readonly reminder?: ReminderResponse | undefined;
+  /** What a new reminder starts with when it comes from a quick add row: the typed name and the row's instant. */
+  readonly start?:
+    { readonly displayName: string; readonly remindAt: string } | undefined;
 }
 
 export function ReminderForm(props: ReminderFormProps) {
@@ -69,6 +73,7 @@ function ReminderEditor({
   onCancel,
   onRefresh,
   reminder: latestReminder,
+  start,
 }: ReminderFormProps & {
   readonly draftId: string;
   readonly initialDraft: ReminderDraftSnapshot | undefined;
@@ -79,6 +84,18 @@ function ReminderEditor({
     readReminderFields,
     initialDraft,
   );
+  // A quick add row's typed name and instant seed a fresh draft once; a
+  // recovered draft keeps what it had.
+  const seeded = useRef(false);
+  useEffect(() => {
+    if (seeded.current || start === undefined || initialDraft !== undefined)
+      return;
+    seeded.current = true;
+    draft.change({
+      ...(start.displayName === "" ? {} : { displayName: start.displayName }),
+      remindAt: toDateTimeInput(start.remindAt),
+    });
+  }, [draft, initialDraft, start]);
   const reminder = draft.source;
   const [attempt] = useState<ContextCreateAttempt>(
     () => initialDraft?.creationAttempt ?? { current: null },

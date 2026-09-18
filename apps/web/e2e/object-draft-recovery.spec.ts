@@ -6,6 +6,7 @@ import {
   revisitObjectView,
   planningEditors,
 } from "./helpers/object-draft-recovery";
+import { openPlanningEditor } from "./helpers/task-add";
 
 async function signIn(page: Page) {
   const email = `task-recovery-${randomUUID()}@example.test`;
@@ -41,11 +42,7 @@ for (const kind of ["task", "expense", "reminder"] as const) {
           exact: true,
         })
         .click();
-      const add = page.getByRole("button", {
-        name: `Add ${kind}`,
-        exact: true,
-      });
-      await add.click();
+      await openPlanningEditor(page, kind);
       const name = page.getByLabel(field, {
         exact: true,
       });
@@ -60,7 +57,7 @@ for (const kind of ["task", "expense", "reminder"] as const) {
           .getByLabel("Reminder time", { exact: true })
           .fill("2030-07-03T11:30");
       await revisitObjectView(page);
-      await add.click();
+      await openPlanningEditor(page, kind);
       await page
         .getByRole("button", { name: "Resume draft", exact: true })
         .click();
@@ -97,7 +94,7 @@ for (const kind of ["task", "expense", "reminder"] as const) {
       await expect(page.getByRole("dialog")).toHaveCount(0);
       for (let index = 0; index < 3; index++) await page.goForward();
       await expect(page).toHaveURL(todosUrl);
-      await add.click();
+      await openPlanningEditor(page, kind);
       const saving = page.getByRole("dialog", {
         name: `Saving ${kind}`,
         exact: true,

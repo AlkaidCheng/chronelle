@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { expect, test, type APIRequestContext, type Page } from "./fixtures";
 import { exerciseTaskEditors } from "./helpers/task-editors";
+import { openTaskEditor } from "./helpers/task-add";
 
 async function openTaskEvent(page: Page, request: APIRequestContext) {
   const email = `task-editor-${randomUUID()}@example.test`;
@@ -68,7 +69,7 @@ test("retries a lost Task creation response without duplicating its resource or 
 }) => {
   const { event, headers } = await openTaskEvent(page, request);
   await page.getByRole("tab", { name: "To-dos", exact: true }).click();
-  await page.getByRole("button", { name: "Add task", exact: true }).click();
+  await openTaskEditor(page);
   const dialog = page.getByRole("dialog", { name: "Add task", exact: true });
   const name = dialog.getByLabel("Task", { exact: true });
   await name.fill("Confirm the garden gate");

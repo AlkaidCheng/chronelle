@@ -3,6 +3,7 @@ import { expect, test } from "./fixtures";
 import { moveToTrash, removeFromEvent } from "./helpers/lifecycle";
 import { openTrash } from "./helpers/quiet-chrome";
 import { chooseRowAction } from "./helpers/row-menu";
+import { openTaskEditor } from "./helpers/task-add";
 
 test("recovers canonical objects and independent context links", async ({
   page,
@@ -21,7 +22,7 @@ test("recovers canonical objects and independent context links", async ({
   await expect(page).toHaveURL(/\/events\/[0-9a-f-]+$/u);
   const eventUrl = page.url();
   await page.getByRole("tab", { name: "To-dos" }).click();
-  await page.getByRole("button", { name: "Add task", exact: true }).click();
+  await openTaskEditor(page);
   await page.getByLabel("Task", { exact: true }).fill("Reserve room");
   const created = page.waitForResponse(
     (response) =>

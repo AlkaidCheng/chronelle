@@ -2,10 +2,12 @@
   "columns": {
     "task": "Task",
     "due": "Due",
-    "status": "Status"
+    "status": "Status",
+    "who": "People and labels"
   },
   "assignedTo": "Assigned to ",
   "at": "At ",
+  "partOf": "Part of {parent}",
   "labels": "Labels",
   "subtasksDone": "{done} of {total} subtasks done",
   "complete": "Complete {name}",

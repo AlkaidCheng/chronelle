@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { expect, test } from "./fixtures";
 import { openSearchPage } from "./helpers/quiet-chrome";
+import { openTaskEditor } from "./helpers/task-add";
 
 test("creates and retrieves one canonical Event at responsive widths", async ({
   page,
@@ -40,7 +41,7 @@ test("creates and retrieves one canonical Event at responsive widths", async ({
     "true",
   );
 
-  await page.getByRole("button", { name: "Add task", exact: true }).click();
+  await openTaskEditor(page);
   await page.getByLabel("Task", { exact: true }).fill("Confirm venue");
   const creation = page.waitForResponse(
     (response) =>

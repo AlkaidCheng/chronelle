@@ -2,10 +2,12 @@
   "columns": {
     "task": "任務",
     "due": "到期",
-    "status": "狀態"
+    "status": "狀態",
+    "who": "夥伴與標籤"
   },
   "assignedTo": "負責人：",
   "at": "地點：",
+  "partOf": "屬於 {parent}",
   "labels": "標籤",
   "subtasksDone": "{total} 項子任務已完成 {done} 項",
   "complete": "完成 {name}",

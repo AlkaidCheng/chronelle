@@ -9,5 +9,7 @@
   "reminderFor": "Add a reminder for {day}",
   "newReminder": "New reminder",
   "reminderName": "Reminder name",
-  "addReminder": "Add reminder"
+  "addReminder": "Add reminder",
+  "taskDetails": "Add task with details",
+  "reminderDetails": "Add reminder with details"
 }

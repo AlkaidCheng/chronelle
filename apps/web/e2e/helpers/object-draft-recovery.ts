@@ -3,6 +3,7 @@ import { expectDue, setDue } from "./due-picker";
 import { expectToken } from "./appearance";
 import { expectHorizontalReflow } from "./page-navigation";
 import { chooseRowAction, rowMenuButton } from "./row-menu";
+import { openPlanningEditor } from "./task-add";
 
 export const planningEditors = {
   task: {
@@ -51,7 +52,7 @@ export async function exerciseObjectRecovery(
       exact: true,
     })
     .click();
-  const add = page.getByRole("button", { name: `Add ${kind}`, exact: true });
+  const openEditor = () => openPlanningEditor(page, kind);
   const name = page.getByLabel(field, { exact: true });
   const recovery = page.getByRole("dialog", {
     name: "Resume your draft?",
@@ -61,7 +62,7 @@ export async function exerciseObjectRecovery(
     name: "Resume draft",
     exact: true,
   });
-  await add.click();
+  await openEditor();
   await name.fill("Pack the lanterns");
   if (kind === "expense") {
     await page.getByLabel("Amount", { exact: true }).fill("-0.0001");
@@ -73,7 +74,7 @@ export async function exerciseObjectRecovery(
   if (kind === "task") await setDue(page.getByRole("dialog"), timeValue);
   else await page.getByLabel(timeLabel, { exact: true }).fill(timeValue);
   await revisitObjectView(page);
-  await add.click();
+  await openEditor();
   await expect(recovery).toBeVisible();
   await expect(name).toHaveCount(0);
   await expect(resume).toBeFocused();
@@ -186,19 +187,19 @@ export async function exerciseObjectRecovery(
     ).toHaveCount(0);
     await page.keyboard.press("Escape");
   }
-  await add.click();
+  await openEditor();
   await name.fill("Discard this plan");
   await revisitObjectView(page);
-  await add.click();
+  await openEditor();
   await recovery
     .getByRole("button", { name: "Discard draft", exact: true })
     .click();
-  await add.click();
+  await openEditor();
   await expect(name).toHaveValue("");
   await name.fill("Reload clears this draft");
   page.once("dialog", (dialog) => dialog.accept());
   await page.reload();
-  await add.click();
+  await openEditor();
   await expect(name).toHaveValue("");
   await page.getByRole("button", { name: "Cancel", exact: true }).click();
   await expect(

@@ -22,18 +22,30 @@ export function QuickAddTask({
   dayLabel,
   dueOn,
   eventId,
+  onDetails,
   slots,
 }: {
   /** The day group's heading, named in the row's accessible name. */
   readonly dayLabel?: string | undefined;
   readonly dueOn: DayKey | null;
   readonly eventId?: string | undefined;
+  /** Opens the full editor with the typed name and the row's day. */
+  readonly onDetails?:
+    ((displayName: string, dueOn: DayKey | null) => void) | undefined;
   readonly slots: QuickAddSlots;
 }) {
   const t = useTranslations("quickAdd");
   const create = useCreateTask(eventId);
   return (
     <QuickAddRow
+      details={
+        onDetails === undefined
+          ? undefined
+          : {
+              label: t("taskDetails"),
+              open: (displayName) => onDetails(displayName, dueOn),
+            }
+      }
       label={
         dayLabel === undefined
           ? t("taskToList")

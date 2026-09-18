@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { expect, test } from "./fixtures";
+import { openTaskEditor } from "./helpers/task-add";
 
 test("saves composed pages through the API and keeps canonical tasks after layout removal", async ({
   page,
@@ -34,7 +35,7 @@ test("saves composed pages through the API and keeps canonical tasks after layou
     .getByRole("button", { name: "Add component", exact: true })
     .click();
   await page.getByRole("button", { name: "Add To-dos", exact: true }).click();
-  await page.getByRole("button", { name: "Add task", exact: true }).click();
+  await openTaskEditor(page);
   await page.getByLabel("Task", { exact: true }).fill("Pack for the trip");
   const created = page.waitForResponse(
     (response) =>

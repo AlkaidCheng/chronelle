@@ -3,6 +3,7 @@ import { expectDue, setDue } from "./due-picker";
 import { expectToken } from "./appearance";
 import { expectHorizontalReflow } from "./page-navigation";
 import { chooseRowAction, rowMenuButton } from "./row-menu";
+import { openTaskEditor } from "./task-add";
 
 export async function exerciseTaskEditors(page: Page, testInfo: TestInfo) {
   const viewport = page.viewportSize();
@@ -14,8 +15,7 @@ export async function exerciseTaskEditors(page: Page, testInfo: TestInfo) {
   const before = await panel.boundingBox();
   expect(before).not.toBeNull();
   await expect(page.getByLabel("Task", { exact: true })).toHaveCount(0);
-  const add = page.getByRole("button", { name: "Add task", exact: true });
-  await add.click();
+  await openTaskEditor(page);
   const create = page.getByRole("dialog", { name: "Add task", exact: true });
   const name = create.getByLabel("Task", { exact: true });
   await expect(name).toBeFocused();
@@ -47,7 +47,9 @@ export async function exerciseTaskEditors(page: Page, testInfo: TestInfo) {
   }
   await name.press("ControlOrMeta+Enter");
   await expect(page.getByRole("dialog")).toHaveCount(0);
-  await expect(add).toBeFocused();
+  await expect(
+    page.getByRole("button", { name: "Add a task to the list", exact: true }),
+  ).toBeFocused();
   let row = page.getByRole("row").filter({ hasText: "Pack garden supplies" });
   await expect(row).toHaveCount(1);
   await expect(row).toContainText("30 min");

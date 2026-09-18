@@ -20,6 +20,7 @@ import {
 } from "../components/context-commands";
 import { EventWorkspace } from "../features/events/event-workspace";
 import { queryKeys } from "../lib/queries";
+import { openTaskEditor } from "./quick-add-support";
 import { setDates } from "./range-picker-support";
 
 const workspaceId = "019d6e7d-0000-7000-8000-000000000001";
@@ -470,7 +471,7 @@ describe("EventWorkspace", () => {
         </WorkspaceCommandProvider>,
         { wrapper: Providers },
       );
-      await user.click(await screen.findByRole("button", { name: "Add task" }));
+      await openTaskEditor(user);
       const input = await screen.findByRole("textbox", { name: "Task" });
       expect(
         screen.getByLabelText("Available event actions"),
@@ -503,8 +504,7 @@ describe("EventWorkspace", () => {
         screen.getByRole("button", { name: "Refetch event data" }),
       );
       await waitFor(() => expect(screen.queryByRole("alert")).toBeNull());
-      if (status !== 503)
-        await user.click(screen.getByRole("button", { name: "Add task" }));
+      if (status !== 503) await openTaskEditor(user);
       expect(await screen.findByRole("textbox", { name: "Task" })).toHaveValue(
         status === 503 ? "Keep my draft" : "",
       );
@@ -721,7 +721,7 @@ describe("EventWorkspace", () => {
     ).toHaveTextContent("This view is temporarily unavailable.");
     expect(screen.getByLabelText("Name")).toHaveValue("My event draft");
     await user.click(screen.getByRole("tab", { name: "Overview" }));
-    expect(await screen.findByText("Your event, connected.")).toBeVisible();
+    expect(await screen.findByText("Next up")).toBeVisible();
     expect(screen.getByLabelText("Name")).toHaveValue("My event draft");
   });
 
@@ -828,7 +828,7 @@ describe("EventWorkspace", () => {
     ).toBeVisible();
     const overviewTab = screen.getByRole("tab", { name: "Overview" });
     expect(overviewTab).toHaveAttribute("aria-selected", "true");
-    await screen.findByText("Your event, connected.");
+    await screen.findByText("Next up");
     expect(
       fetch.mock.calls.map(([input]) => requestPath(input)).sort(),
     ).toEqual([
@@ -888,7 +888,7 @@ describe("EventWorkspace", () => {
       ),
     ).toHaveLength(1);
     await user.click(screen.getByRole("tab", { name: "Overview" }));
-    await screen.findByText("Your event, connected.");
+    await screen.findByText("Next up");
     await waitFor(() =>
       expect(
         fetch.mock.calls.filter(([input]) =>

@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { expect, test } from "./fixtures";
+import { openTaskEditor } from "./helpers/task-add";
 
 test("retains a failed task draft and saves only after an explicit retry @webkit-desktop @webkit-mobile", async ({
   page,
@@ -14,8 +15,7 @@ test("retains a failed task draft and saves only after an explicit retry @webkit
   await page.getByLabel("Event name", { exact: true }).fill("Planning review");
   await page.getByRole("button", { name: "Create event", exact: true }).click();
   await page.getByRole("tab", { name: "To-dos", exact: true }).click();
-  const addTask = page.getByRole("button", { name: "Add task", exact: true });
-  await addTask.click();
+  await openTaskEditor(page);
   const form = page
     .locator("form")
     .filter({ has: page.getByLabel("Task", { exact: true }) });
@@ -74,7 +74,9 @@ test("retains a failed task draft and saves only after an explicit retry @webkit
   expect(commands).toHaveLength(2);
   finishSave?.();
   await expect(page.getByRole("dialog")).toHaveCount(0);
-  await expect(addTask).toBeFocused();
+  await expect(
+    page.getByRole("button", { name: "Add a task to the list", exact: true }),
+  ).toBeFocused();
   await expect(page.getByText("Confirm guests", { exact: true })).toHaveCount(
     1,
   );
@@ -84,7 +86,7 @@ test("retains a failed task draft and saves only after an explicit retry @webkit
     path: testInfo.outputPath("task-save-success.png"),
     fullPage: true,
   });
-  await addTask.click();
+  await openTaskEditor(page);
   await expect(form.getByLabel("Task", { exact: true })).toHaveValue("");
   await form.getByLabel("Task", { exact: true }).fill("Next task");
   await expect(form.getByRole("status", { name: "Save status" })).toBeEmpty();

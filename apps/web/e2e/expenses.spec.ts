@@ -55,7 +55,7 @@ test("preserves exact expense amounts through editing and currency summaries @we
   await expect(page).toHaveURL(/\/events$/u);
   await page.getByRole("link", { name: /Expense plan/ }).click();
   await page.getByRole("tab", { name: "Overview", exact: true }).click();
-  const summary = page.getByRole("button", { name: /Recorded expenses/ });
+  const summary = page.getByRole("button", { name: /^Expenses/ });
   await expect(summary).toContainText("$999,999,999,999,999.9998");
   await page.screenshot({
     path: testInfo.outputPath("exact-money-overview.png"),

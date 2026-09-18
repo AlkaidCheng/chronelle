@@ -93,7 +93,7 @@ describe("TasksPage", () => {
     expect(sample).toBeVisible();
     // A task inside an event names it and links to it.
     expect(
-      within(sample).getByRole("link", { name: "in Autumn gathering" }),
+      within(sample).getByRole("link", { name: "Autumn gathering" }),
     ).toHaveAttribute("href", expect.stringMatching(/^\/events\//));
     // The Filter menu chooses the status; it stays open between choices
     // and the button counts what differs from Open.
@@ -847,7 +847,7 @@ describe("TasksPage", () => {
     });
     expect(copy).toBeVisible();
     expect(
-      within(copy).getByRole("link", { name: "in Autumn gathering" }),
+      within(copy).getByRole("link", { name: "Autumn gathering" }),
     ).toBeVisible();
     const listed = (await (
       await store.fetch("/api/tasks?filter=all&sort=manual")

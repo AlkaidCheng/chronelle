@@ -82,7 +82,7 @@ test("organizes events and keeps navigation usable across reloads and screen siz
   await expect(page).toHaveURL(/\/events\/[0-9a-f-]+$/u);
   await page.getByRole("tab", { name: "Overview", exact: true }).click();
   await expect(
-    page.getByRole("heading", { name: "Your event, connected." }),
+    page.getByRole("heading", { name: "Next up", exact: true }),
   ).toBeVisible();
   await expect(
     page.getByRole("heading", { name: "Autumn gathering", exact: true }),
@@ -103,8 +103,9 @@ test("organizes events and keeps navigation usable across reloads and screen siz
     "aria-selected",
     "true",
   );
+  // An editable empty collection is its add row alone.
   await expect(
-    page.getByRole("heading", { name: "Nothing scheduled" }),
+    page.getByRole("button", { name: "Add schedule item", exact: true }),
   ).toBeVisible();
   expect(viewRequests.some((path) => path.endsWith("/calendar"))).toBe(true);
   expect(viewRequests.some((path) => path.endsWith("/detail"))).toBe(false);
@@ -125,7 +126,7 @@ test("organizes events and keeps navigation usable across reloads and screen siz
   await page.getByRole("button", { name: "Discard", exact: true }).click();
   await page.getByRole("tab", { name: "Overview" }).click();
   await expect(
-    page.getByRole("heading", { name: "Your event, connected." }),
+    page.getByRole("heading", { name: "Next up", exact: true }),
   ).toBeVisible();
   expect(viewRequests.some((path) => path.endsWith("/detail"))).toBe(true);
   await expect(
