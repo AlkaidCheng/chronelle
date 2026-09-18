@@ -334,8 +334,9 @@ pnpm check
 ```
 
 The gate builds the workspace packages once, then runs every package's
-`typecheck:unit` and `test:unit` in parallel, four at a time, and builds the
-two applications last. Run `pnpm --filter @chronelle/<pkg> test` for one
+`typecheck:unit` four at a time, every package's `test:unit` one package at a
+time (the browser-side suites time out when they share the runner's CPUs with
+the database suites), and builds the two applications last. Run `pnpm --filter @chronelle/<pkg> test` for one
 package (it rebuilds its upstream packages first) or `pnpm test:units` after
 `pnpm build:packages` for all of them at once.
 
