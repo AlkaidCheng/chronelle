@@ -13,6 +13,7 @@ import {
   useRef,
   useState,
 } from "react";
+import { capMenu, fitMenu } from "../lib/menu-placement";
 import { IconButton } from "./icon-button";
 
 const CloseContext = createContext<((returnFocus?: boolean) => void) | null>(
@@ -20,23 +21,12 @@ const CloseContext = createContext<((returnFocus?: boolean) => void) | null>(
 );
 
 /**
- * Closes an open menu on Escape anywhere in the document or on a press
- * outside it. The document listens for Escape because a pointer press does
- * not focus the pressed control in every browser, so a key handler on the
- * list alone would miss it.
- */
-/** What a menu keeps clear of at the bottom: the rail on a phone, a hair elsewhere. */
-function reservedBottom(): number {
-  return typeof window.matchMedia === "function" &&
-    window.matchMedia("(max-width: 760px)").matches
-    ? 96
-    : 8;
-}
-
-/**
- * Opens a list upward when it would run under the bottom of the viewport
- * (or the phone's rail) and there is more room above: the list gets
- * `data-place="up"`, which the stylesheet anchors to the control's top.
+ * Keeps an open list inside the viewport. It opens upward when it would
+ * run under the bottom (or the phone's rail) and there is room above
+ * (`data-place="up"`, which the stylesheet anchors to the control's top),
+ * is capped to the roomier side and scrolls when it fits neither, and
+ * swaps its horizontal anchor (`data-align`) when its aligned edge would
+ * cut it off at a side of the viewport.
  */
 export function useMenuPlacement(
   open: boolean,
@@ -46,13 +36,25 @@ export function useMenuPlacement(
     const element = menu.current;
     if (!open || element === null) return;
     delete element.dataset.place;
+    delete element.dataset.align;
+    capMenu(element, null);
+    const anchor = element.offsetParent?.getBoundingClientRect();
+    if (anchor === undefined) return;
+    const fit = fitMenu(anchor, element.offsetHeight, 4);
+    if (fit.side === "above") element.dataset.place = "up";
+    capMenu(element, fit.maxHeight);
     const bounds = element.getBoundingClientRect();
-    const limit = window.innerHeight - reservedBottom();
-    if (bounds.bottom > limit && bounds.top - bounds.height > 0)
-      element.dataset.place = "up";
+    if (bounds.left < 0) element.dataset.align = "start";
+    else if (bounds.right > window.innerWidth) element.dataset.align = "end";
   }, [open, menu]);
 }
 
+/**
+ * Closes an open menu on Escape anywhere in the document or on a press
+ * outside it. The document listens for Escape because a pointer press does
+ * not focus the pressed control in every browser, so a key handler on the
+ * list alone would miss it.
+ */
 export function useMenuDismissal(
   open: boolean,
   contains: (target: Node) => boolean,

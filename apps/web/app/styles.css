@@ -5779,6 +5779,19 @@ html:has(.event-create-dialog[open]) {
   top: auto;
 }
 
+/* A list cut off at a side of the viewport anchors to its other edge. */
+.quiet-menu-list[data-align="start"],
+.head-menu-list[data-align="start"] {
+  left: 0;
+  right: auto;
+}
+
+.quiet-menu-list[data-align="end"],
+.head-menu-list[data-align="end"] {
+  left: auto;
+  right: 0;
+}
+
 .quiet-menu-start {
   left: 0;
 }
