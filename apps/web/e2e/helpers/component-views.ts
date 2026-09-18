@@ -1,6 +1,7 @@
 import { expect, type Locator, type Page } from "@playwright/test";
 import { setDue } from "./due-picker";
 import { today } from "./today";
+import { openTaskEditor } from "./task-add";
 
 /** Opens a panel's Layout menu and chooses a template by its name. */
 export async function chooseLayout(panel: Locator, name: string) {
@@ -33,7 +34,7 @@ export async function exerciseComponentViews(page: Page) {
   const todos = page.locator(".planning-panel").filter({
     has: page.getByRole("heading", { name: "To-dos", exact: true }),
   });
-  await todos.getByRole("button", { name: "Add task", exact: true }).click();
+  await openTaskEditor(page, todos);
   const editor = page.getByRole("dialog", { name: "Add task", exact: true });
   await editor.getByLabel("Task", { exact: true }).fill("Book the room");
   await setDue(editor, "2031-03-05", "09:30");
@@ -42,7 +43,7 @@ export async function exerciseComponentViews(page: Page) {
     .click();
   await expect(editor).toHaveCount(0);
   // A second task due on the same date, with no time.
-  await todos.getByRole("button", { name: "Add task", exact: true }).click();
+  await openTaskEditor(page, todos);
   await editor.getByLabel("Task", { exact: true }).fill("Send the agenda");
   await setDue(editor, "2031-03-05");
   await editor
@@ -50,7 +51,7 @@ export async function exerciseComponentViews(page: Page) {
     .click();
   await expect(editor).toHaveCount(0);
   // A third task due today, which the week and month views open on.
-  await todos.getByRole("button", { name: "Add task", exact: true }).click();
+  await openTaskEditor(page, todos);
   await editor.getByLabel("Task", { exact: true }).fill("Confirm the caterer");
   await setDue(editor, today());
   await editor

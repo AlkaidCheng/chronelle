@@ -9,9 +9,9 @@ import type {
   TimelineResponse,
 } from "@chronelle/schemas";
 import { useTranslations } from "next-intl";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { EmptyState, ErrorNotice } from "../../components/feedback";
-import { useQuickAddSlots } from "../../components/quick-add-row";
+import { AddRow, useQuickAddSlots } from "../../components/quick-add-row";
 import { RowMenu, type RowMenuEntry } from "../../components/row-menu";
 import {
   byRank,
@@ -133,7 +133,21 @@ export function TasksPanel({
     overdue: false,
   });
   const [sort, setSort] = useState<TaskSort>("manual");
-  const [isAdding, setIsAdding] = useState(false);
+  // The full editor for a new task opens from a quick add row, with what
+  // was typed there and the row's day.
+  const [adding, setAdding] = useState<{
+    displayName: string;
+    dueOn: string | null;
+  } | null>(null);
+  const panel = useRef<HTMLElement>(null);
+  const closeAdding = useCallback(() => {
+    setAdding(null);
+    // The editor returns focus to the row it came from, which is closed by then.
+    setTimeout(
+      () => panel.current?.querySelector<HTMLElement>(".quick-add")?.focus(),
+      0,
+    );
+  }, []);
   const [parent, setParent] = useState<SubtaskParent | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const refresh = useRefreshEvent(eventId);
@@ -225,19 +239,8 @@ export function TasksPanel({
   const shownOpen = filteredTasks.filter(isOpen).length;
 
   return (
-    <section className="planning-panel">
+    <section className="planning-panel" ref={panel}>
       <PanelHeading
-        action={
-          canEdit ? (
-            <button
-              className="button button-secondary"
-              type="button"
-              onClick={() => setIsAdding(true)}
-            >
-              {t("addTask")}
-            </button>
-          ) : undefined
-        }
         controls={
           <div className="head-controls">
             <TaskSortControl onChange={setSort} sort={sort} />
@@ -265,11 +268,12 @@ export function TasksPanel({
         }
         title={t("title")}
       />
-      {canEdit && isAdding ? (
+      {canEdit && adding !== null ? (
         <TaskForm
           key={eventId}
           eventId={eventId}
-          onCancel={() => setIsAdding(false)}
+          onCancel={closeAdding}
+          start={adding}
         />
       ) : null}
       {canEdit && parent !== null ? (
@@ -291,6 +295,9 @@ export function TasksPanel({
             dayLabel={view === "by-day" ? t("noDueDateGroup") : undefined}
             dueOn={null}
             eventId={eventId}
+            onDetails={(displayName, dueOn) =>
+              setAdding({ displayName, dueOn })
+            }
             slots={quickAdd}
           />
         </div>
@@ -301,6 +308,9 @@ export function TasksPanel({
           eventId={eventId}
           labelNames={labels.data?.names}
           manual={sort === "manual"}
+          onAddDetails={(displayName, dueOn) =>
+            setAdding({ displayName, dueOn })
+          }
           onAddSubtask={addSubtask}
           onEdit={setEditingId}
           onRefresh={refresh}
@@ -400,17 +410,6 @@ export function CalendarPanel({
   return (
     <section className="planning-panel">
       <PanelHeading
-        action={
-          canEdit ? (
-            <button
-              className="button button-secondary"
-              onClick={() => setIsAdding(true)}
-              type="button"
-            >
-              {panels("addScheduleItem")}
-            </button>
-          ) : undefined
-        }
         controls={
           onChangeView === undefined ? undefined : (
             <LayoutControl
@@ -431,7 +430,9 @@ export function CalendarPanel({
         />
       ) : null}
       {items.length === 0 ? (
-        <EmptyState title={panels("nothingScheduled")} />
+        canEdit ? null : (
+          <EmptyState title={panels("nothingScheduled")} />
+        )
       ) : view === "agenda" ? (
         <ol className="itinerary-list">
           {items.map((item, index) => (
@@ -467,6 +468,15 @@ export function CalendarPanel({
           {items.map((item) => scheduleRow(item))}
         </div>
       )}
+      {canEdit ? (
+        <div className="quick-add-item">
+          <AddRow
+            aria-haspopup="dialog"
+            label={panels("addScheduleItem")}
+            onOpen={() => setIsAdding(true)}
+          />
+        </div>
+      ) : null}
       {!canEdit || editingEvent === undefined ? null : (
         <ScheduleItemInspector
           key={editingEvent.id}
@@ -628,17 +638,6 @@ export function ExpensesPanel({
           )
         }
         title={views("expenses")}
-        action={
-          canEdit ? (
-            <button
-              className="button button-secondary"
-              type="button"
-              onClick={() => setIsAdding(true)}
-            >
-              {panels("addExpense")}
-            </button>
-          ) : null
-        }
       />
       {canEdit && isAdding ? (
         <ExpenseForm
@@ -663,7 +662,9 @@ export function ExpensesPanel({
         </div>
       ) : null}
       {expenses.length === 0 ? (
-        <EmptyState title={panels("noExpenses")} />
+        canEdit ? null : (
+          <EmptyState title={panels("noExpenses")} />
+        )
       ) : view === "by-day" ? (
         <div className="day-groups">
           {groups.map((group) => (
@@ -694,6 +695,15 @@ export function ExpensesPanel({
       ) : (
         <div className="resource-list">{expenses.map(expenseRow)}</div>
       )}
+      {canEdit ? (
+        <div className="quick-add-item">
+          <AddRow
+            aria-haspopup="dialog"
+            label={panels("addExpense")}
+            onOpen={() => setIsAdding(true)}
+          />
+        </div>
+      ) : null}
       {canEdit && editingId ? (
         <ExpenseInspector
           key={editingId}
@@ -724,7 +734,20 @@ export function RemindersPanel({
   const panels = useTranslations("panels");
   const views = useTranslations("views");
   const t = useTranslations("reminderRow");
-  const [isAdding, setIsAdding] = useState(false);
+  // The full editor for a new reminder opens from a quick add row, with
+  // what was typed there and the row's instant.
+  const [adding, setAdding] = useState<{
+    displayName: string;
+    remindAt: string;
+  } | null>(null);
+  const panel = useRef<HTMLElement>(null);
+  const closeAdding = useCallback(() => {
+    setAdding(null);
+    setTimeout(
+      () => panel.current?.querySelector<HTMLElement>(".quick-add")?.focus(),
+      0,
+    );
+  }, []);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [announcement, setAnnouncement] = useState("");
   const update = useUpdateReminder();
@@ -994,7 +1017,7 @@ export function RemindersPanel({
   );
 
   return (
-    <section className="planning-panel">
+    <section className="planning-panel" ref={panel}>
       <PanelHeading
         controls={
           onChangeView === undefined ? undefined : (
@@ -1007,23 +1030,13 @@ export function RemindersPanel({
           )
         }
         title={views("reminders")}
-        action={
-          canEdit ? (
-            <button
-              className="button button-secondary"
-              type="button"
-              onClick={() => setIsAdding(true)}
-            >
-              {panels("addReminder")}
-            </button>
-          ) : null
-        }
       />
-      {canEdit && isAdding ? (
+      {canEdit && adding !== null ? (
         <ReminderForm
           key={eventId}
           eventId={eventId}
-          onCancel={() => setIsAdding(false)}
+          onCancel={closeAdding}
+          start={adding}
         />
       ) : null}
       {view === "week" || view === "month" ? null : notice}
@@ -1032,7 +1045,14 @@ export function RemindersPanel({
       ) : null}
       {reminders.length === 0 && canEdit ? (
         <div className="quick-add-item quick-add-empty">
-          <QuickAddReminder day={null} eventId={eventId} slots={quickAdd} />
+          <QuickAddReminder
+            day={null}
+            eventId={eventId}
+            onDetails={(displayName, remindAt) =>
+              setAdding({ displayName, remindAt })
+            }
+            slots={quickAdd}
+          />
         </div>
       ) : null}
       {reminders.length === 0 ? null : view === "by-day" ? (
@@ -1058,6 +1078,9 @@ export function RemindersPanel({
                       day={group.key}
                       dayLabel={group.label[0]}
                       eventId={eventId}
+                      onDetails={(displayName, remindAt) =>
+                        setAdding({ displayName, remindAt })
+                      }
                       slots={quickAdd}
                     />
                   </div>
@@ -1081,7 +1104,14 @@ export function RemindersPanel({
           {reminders.map((reminder) => reminderRow(reminder, reminders, "all"))}
           {canEdit ? (
             <div className="quick-add-item">
-              <QuickAddReminder day={null} eventId={eventId} slots={quickAdd} />
+              <QuickAddReminder
+                day={null}
+                eventId={eventId}
+                onDetails={(displayName, remindAt) =>
+                  setAdding({ displayName, remindAt })
+                }
+                slots={quickAdd}
+              />
             </div>
           ) : null}
         </div>

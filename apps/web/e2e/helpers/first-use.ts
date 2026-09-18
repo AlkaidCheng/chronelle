@@ -91,7 +91,11 @@ export async function createFirstPlan(page: Page, testInfo: TestInfo) {
   await expect(page.locator(".composition-hint")).toHaveCount(0);
   await activateWithKeyboard(
     page,
-    page.getByRole("button", { name: "Add task", exact: true }),
+    page.getByRole("button", { name: "Add a task to the list", exact: true }),
+  );
+  await activateWithKeyboard(
+    page,
+    page.getByRole("button", { name: "Add task with details", exact: true }),
   );
   await expect(page.getByLabel("Task", { exact: true })).toBeFocused();
   expect(

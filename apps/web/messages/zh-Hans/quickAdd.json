@@ -9,5 +9,7 @@
   "reminderFor": "添加 {day} 的提醒",
   "newReminder": "新提醒",
   "reminderName": "提醒名称",
-  "addReminder": "添加提醒"
+  "addReminder": "添加提醒",
+  "taskDetails": "添加任务并填写详情",
+  "reminderDetails": "添加提醒并填写详情"
 }

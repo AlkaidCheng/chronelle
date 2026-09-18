@@ -1,6 +1,7 @@
 import { expect, type Page, type TestInfo } from "@playwright/test";
 import { expectHorizontalReflow } from "./page-navigation";
 import { openThemePanel, searchEntry } from "./quiet-chrome";
+import { openTaskEditor } from "./task-add";
 
 export async function exerciseWorkspaceCommands(
   page: Page,
@@ -14,8 +15,7 @@ export async function exerciseWorkspaceCommands(
     name: "Commands",
   });
   await page.getByRole("tab", { name: "To-dos", exact: true }).click();
-  const addTask = page.getByRole("button", { name: "Add task", exact: true });
-  await addTask.click();
+  await openTaskEditor(page);
   const draft = page.getByLabel("Task", { exact: true });
   await draft.fill("Unsaved command draft");
   await page.keyboard.press("Control+k");
@@ -26,7 +26,9 @@ export async function exerciseWorkspaceCommands(
   await expect(draft).toHaveValue("Unsaved command draft");
   await page.keyboard.press("Escape");
   await page.getByRole("button", { name: "Discard", exact: true }).click();
-  await expect(addTask).toBeFocused();
+  await expect(
+    page.getByRole("button", { name: "Add a task to the list", exact: true }),
+  ).toBeFocused();
   await page.getByRole("button", { name: /^Filter/ }).click();
   await page.getByRole("menuitemradio", { name: "All", exact: true }).click();
   await page.keyboard.press("Escape");

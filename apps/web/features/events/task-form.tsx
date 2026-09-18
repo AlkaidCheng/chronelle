@@ -2,7 +2,7 @@
 
 import type { AccessSource, TaskResponse } from "@chronelle/schemas";
 import { useTranslations } from "next-intl";
-import { type FormEvent, useMemo, useState } from "react";
+import { type FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { AccessLine } from "../../components/access-line";
 import { CountedField } from "../../components/counted-field";
 import { EditorForm } from "../../components/editor-form";
@@ -58,6 +58,9 @@ interface TaskFormProps {
   readonly onRefresh?: (() => Promise<void>) | undefined;
   /** Makes a new task a subtask of this one. */
   readonly parent?: SubtaskParent | undefined;
+  /** What a new task starts with when it comes from a quick add row: the typed name and the row's day. */
+  readonly start?:
+    { readonly displayName: string; readonly dueOn: string | null } | undefined;
   readonly task?: TaskResponse | undefined;
 }
 
@@ -95,6 +98,7 @@ function TaskEditor({
   onCancel,
   onRefresh,
   parent,
+  start,
   task: latestTask,
 }: TaskFormProps & {
   readonly draftId: string;
@@ -103,6 +107,18 @@ function TaskEditor({
   const conflictSlot = useConflictSlot();
   const draft = useEditorDraft(latestTask, readTaskFields, initialDraft);
   const task = draft.source;
+  // A quick add row's typed name and day seed a fresh draft once; a
+  // recovered draft keeps what it had.
+  const seeded = useRef(false);
+  useEffect(() => {
+    if (seeded.current || start === undefined || initialDraft !== undefined)
+      return;
+    seeded.current = true;
+    draft.change({
+      ...(start.displayName === "" ? {} : { displayName: start.displayName }),
+      ...(start.dueOn === null ? {} : { dueDate: start.dueOn }),
+    });
+  }, [draft, initialDraft, start]);
   const [attempt] = useState<ContextCreateAttempt>(
     () => initialDraft?.creationAttempt ?? { current: null },
   );

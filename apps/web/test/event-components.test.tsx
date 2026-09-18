@@ -44,6 +44,7 @@ import {
 import { queryKeys } from "../lib/queries";
 import { SandboxStore, sandboxWorkspaceId } from "../sandbox/store";
 import { PagesHarness } from "./pages-harness";
+import { openTaskEditor } from "./quick-add-support";
 import { chooseRowAction } from "./row-menu-support";
 
 let store: SandboxStore;
@@ -617,7 +618,7 @@ describe("insertable event components", () => {
         </>,
         { wrapper: Providers },
       );
-      await user.click(await screen.findByRole("button", { name: "Add task" }));
+      await openTaskEditor(user);
       const input = await screen.findByRole("textbox", { name: "Task" });
       await user.type(input, "Unfinished plan");
       fail = true;
@@ -631,8 +632,7 @@ describe("insertable event components", () => {
       fail = false;
       await user.click(screen.getByRole("button", { name: "Refresh latest" }));
       await waitFor(() => expect(screen.queryByRole("alert")).toBeNull());
-      if (status !== 503)
-        await user.click(screen.getByRole("button", { name: "Add task" }));
+      if (status !== 503) await openTaskEditor(user);
       expect(await screen.findByRole("textbox", { name: "Task" })).toHaveValue(
         status === 503 ? "Unfinished plan" : "",
       );
@@ -1480,7 +1480,7 @@ describe("insertable event components", () => {
         (item) => item.kind,
       ),
     ).toEqual(["todos", "calendar"]);
-    await user.click(screen.getByRole("button", { name: "Add task" }));
+    await openTaskEditor(user);
     const input = screen.getByRole("textbox", { name: "Task" });
     await user.type(input, "Plan / review");
     expect(input).toHaveValue("Plan / review");

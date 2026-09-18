@@ -6,6 +6,7 @@ import { useId, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
 import { EmptyState, ErrorNotice } from "../../components/feedback";
+import { AddRow } from "../../components/quick-add-row";
 import { useFriendsQuery } from "../../lib/friend-queries";
 import { personDisplayName } from "../../lib/person-fields";
 import {
@@ -65,26 +66,11 @@ export function PeoplePanel({
   );
   return (
     <section className="planning-panel">
-      <PanelHeading
-        title={t("title")}
-        action={
-          canEdit ? (
-            <button
-              aria-haspopup="dialog"
-              className="button button-secondary"
-              onClick={(event) => {
-                event.currentTarget.focus();
-                setIsAdding(true);
-              }}
-              type="button"
-            >
-              {t("addPerson")}
-            </button>
-          ) : null
-        }
-      />
+      <PanelHeading title={t("title")} />
       {persons.length === 0 ? (
-        <EmptyState title={t("empty")} />
+        canEdit ? null : (
+          <EmptyState title={t("empty")} />
+        )
       ) : (
         <PersonListing
           context={{
@@ -100,6 +86,15 @@ export function PeoplePanel({
           layout="cards"
         />
       )}
+      {canEdit ? (
+        <div className="quick-add-item quick-add-people">
+          <AddRow
+            aria-haspopup="dialog"
+            label={t("addPerson")}
+            onOpen={() => setIsAdding(true)}
+          />
+        </div>
+      ) : null}
       {canShare && rows.length > 0 ? (
         <details className="share-people-disclosure">
           <summary>{t("shareAll")}</summary>

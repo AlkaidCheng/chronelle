@@ -3,7 +3,8 @@
 import { type FormEvent, useEffect, useMemo, useRef, useState } from "react";
 
 import { ErrorNotice } from "./feedback";
-import { PlusIcon } from "./icons";
+import { IconButton } from "./icon-button";
+import { PencilIcon, PlusIcon } from "./icons";
 
 /** What a quick add row holds: whether it is open, the typed name, a refusal. */
 export interface QuickAddState {
@@ -43,12 +44,46 @@ export function useQuickAddSlots(): QuickAddSlots {
 }
 
 /**
+ * A quiet "Add expense" line on the rows' own grid that opens the
+ * collection's editor: the add control of a collection that has no
+ * quick add of its own.
+ */
+export function AddRow({
+  label,
+  onOpen,
+  ...rest
+}: {
+  /** The words of the row, also its accessible name unless one is given. */
+  readonly label: string;
+  readonly onOpen: () => void;
+  readonly "aria-haspopup"?: "dialog" | undefined;
+}) {
+  return (
+    <button
+      className="quick-add"
+      onClick={(event) => {
+        // The row keeps focus so a dialog it opens can return it.
+        event.currentTarget.focus();
+        onOpen();
+      }}
+      type="button"
+      {...rest}
+    >
+      <PlusIcon />
+      <span>{label}</span>
+    </button>
+  );
+}
+
+/**
  * The last row of a collection: a quiet "Add task" line on the rows' own
  * grid that becomes a name field in place. Enter adds the name and keeps
  * the field open for the next one; Escape, or leaving the field empty,
  * puts the row back. A refused add keeps the typed name under a notice.
+ * With `details`, the open row offers the full editor for what was typed.
  */
 export function QuickAddRow({
+  details,
   label,
   name,
   onAdd,
@@ -57,6 +92,10 @@ export function QuickAddRow({
   slots,
   text,
 }: {
+  /** The full editor, opened with the typed name: its accessible name and what it does. */
+  readonly details?:
+    | { readonly label: string; readonly open: (displayName: string) => void }
+    | undefined;
   /** The accessible name of the closed row, e.g. "Add a task for Sep 21". */
   readonly label: string;
   /** The accessible name of the field, e.g. "New task". */
@@ -139,6 +178,20 @@ export function QuickAddRow({
         />
         {error === null ? null : <ErrorNotice error={error} />}
       </div>
+      {details === undefined ? null : (
+        <IconButton
+          className="quick-add-details"
+          label={details.label}
+          onClick={() => {
+            const typed = value.trim();
+            close();
+            details.open(typed);
+          }}
+          onMouseDown={(event) => event.preventDefault()}
+        >
+          <PencilIcon />
+        </IconButton>
+      )}
     </form>
   );
 }

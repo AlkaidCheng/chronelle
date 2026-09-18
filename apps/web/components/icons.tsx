@@ -456,6 +456,19 @@ export function RefreshIcon({ className }: IconProps) {
   );
 }
 
+export function ChevronRightIcon({ className }: IconProps) {
+  return (
+    <svg
+      aria-hidden="true"
+      className={className}
+      fill="none"
+      viewBox="0 0 24 24"
+    >
+      <path d="M9 6l6 6-6 6" />
+    </svg>
+  );
+}
+
 export function ChevronLeftIcon({ className }: IconProps) {
   return (
     <svg

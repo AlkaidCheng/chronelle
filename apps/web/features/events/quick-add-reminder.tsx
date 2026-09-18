@@ -20,12 +20,16 @@ export function QuickAddReminder({
   day,
   dayLabel,
   eventId,
+  onDetails,
   slots,
 }: {
   readonly day: DayKey | null;
   /** The day group's heading, named in the row's accessible name. */
   readonly dayLabel?: string | undefined;
   readonly eventId: string;
+  /** Opens the full editor with the typed name and the row's instant. */
+  readonly onDetails?:
+    ((displayName: string, remindAt: string) => void) | undefined;
   readonly slots: QuickAddSlots;
 }) {
   const t = useTranslations("quickAdd");
@@ -33,6 +37,15 @@ export function QuickAddReminder({
   const nextDay = instantDay(quickReminderInstant(day, new Date()));
   return (
     <QuickAddRow
+      details={
+        onDetails === undefined
+          ? undefined
+          : {
+              label: t("reminderDetails"),
+              open: (displayName) =>
+                onDetails(displayName, quickReminderInstant(day, new Date())),
+            }
+      }
       label={
         dayLabel === undefined
           ? t("reminderToList")

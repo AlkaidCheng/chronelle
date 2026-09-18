@@ -148,6 +148,7 @@ export function TaskListView({
   parents,
   period,
   progress,
+  onAddDetails,
   quickAdd,
   tasks,
   view,
@@ -174,6 +175,9 @@ export function TaskListView({
   /** Subtask progress of each parent, by parent ID. */
   readonly progress: Readonly<Record<string, TaskProgress>>;
   /** The state of the quick add rows, owned by the container. */
+  /** Opens the full editor for a new task with what a quick add row typed and its day. */
+  readonly onAddDetails?:
+    ((displayName: string, dueOn: DayKey | null) => void) | undefined;
   readonly quickAdd: QuickAddSlots;
   readonly tasks: readonly TaskResponse[];
   readonly view: EventComponentView;
@@ -705,6 +709,7 @@ export function TaskListView({
                   }
                   dueOn={group.key === "undated" ? null : group.key}
                   eventId={eventId}
+                  onDetails={onAddDetails}
                   slots={quickAdd}
                 />
               </div>
@@ -752,7 +757,12 @@ export function TaskListView({
       </table>
       {canEdit ? (
         <div className="quick-add-item quick-add-table">
-          <QuickAddTask dueOn={null} eventId={eventId} slots={quickAdd} />
+          <QuickAddTask
+            dueOn={null}
+            eventId={eventId}
+            onDetails={onAddDetails}
+            slots={quickAdd}
+          />
         </div>
       ) : null}
     </div>

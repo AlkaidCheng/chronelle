@@ -1,6 +1,7 @@
 import { expect, type Locator, type Page } from "@playwright/test";
 import { chooseLayout } from "./component-views";
 import { chooseRowAction, dragRow, rowMenuButton } from "./row-menu";
+import { openTaskEditor } from "./task-add";
 
 /** Opens the Sort menu and chooses an order by its label. */
 async function chooseSort(page: Page, name: string) {
@@ -33,7 +34,7 @@ export async function exerciseRowOrder(page: Page) {
   });
   await expect(panel).toBeVisible();
   for (const name of names) {
-    await panel.getByRole("button", { name: "Add task", exact: true }).click();
+    await openTaskEditor(page, panel);
     const editor = page.getByRole("dialog", { name: "Add task", exact: true });
     await editor.getByLabel("Task", { exact: true }).fill(name);
     await editor

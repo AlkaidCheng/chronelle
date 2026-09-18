@@ -2,6 +2,7 @@ import { expect, type Page } from "@playwright/test";
 import { chooseLayout } from "./component-views";
 import { setDue } from "./due-picker";
 import { today } from "./today";
+import { openTaskEditor } from "./task-add";
 
 /**
  * Adds tasks from the quick row at the end of the Tasks page: Enter adds
@@ -55,7 +56,7 @@ export async function exerciseQuickAddInEvent(page: Page) {
     has: page.getByRole("heading", { name: "To-dos", exact: true }),
   });
   // A task due today, so the by-day view has a day group to add to.
-  await todos.getByRole("button", { name: "Add task", exact: true }).click();
+  await openTaskEditor(page, todos);
   const editor = page.getByRole("dialog", { name: "Add task", exact: true });
   await editor.getByLabel("Task", { exact: true }).fill("Greet the guests");
   await setDue(editor, today());

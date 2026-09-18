@@ -172,10 +172,12 @@ describe("People component", () => {
         <EventComponent canEdit eventId={eventId} kind="people" />
       </Providers>,
     );
-    expect(await screen.findByText("No people yet")).toBeVisible();
+    // An editable empty collection is its add row alone.
+    const addPerson = await screen.findByRole("button", { name: "Add person" });
+    expect(screen.queryByText("No people yet")).toBeNull();
 
     // A person the workspace knows is offered by name and included.
-    await user.click(screen.getByRole("button", { name: "Add person" }));
+    await user.click(addPerson);
     const dialog = await screen.findByRole("dialog", { name: "Add person" });
     await user.click(
       await within(dialog).findByRole("button", { name: "Add Sam Lee" }),

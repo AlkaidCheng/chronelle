@@ -23,9 +23,9 @@ test("creates and edits a canonical Task through focused offline surfaces", asyn
       .filter({ hasText: "Pack garden supplies and chairs" }),
   ).toHaveCount(1);
   await page.getByLabel("Preview role").selectOption("viewer");
-  await expect(
-    page.getByRole("button", { name: "Add task", exact: true }),
-  ).toHaveCount(0);
+  await expect(page.getByRole("button", { name: /^Add a task/ })).toHaveCount(
+    0,
+  );
   await expect(
     page.getByRole("button", {
       name: "Complete Pack garden supplies and chairs",
