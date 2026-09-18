@@ -139,25 +139,10 @@ export function QuietMenu({
   readonly value?: string;
 }) {
   const [open, setOpen] = useState(false);
-  const [side, setSide] = useState(align);
   const id = useId();
   const root = useRef<HTMLDivElement>(null);
   const trigger = useRef<HTMLButtonElement>(null);
   const menu = useRef<HTMLDivElement>(null);
-
-  // Keep the list inside the viewport: flip it when the preferred side would
-  // run off the document's edge, which otherwise scrolls the page sideways.
-  useLayoutEffect(() => {
-    if (!open) {
-      setSide(align);
-      return;
-    }
-    const bounds = menu.current?.getBoundingClientRect();
-    if (!bounds) return;
-    const width = document.documentElement.clientWidth;
-    if (align === "start" && bounds.right > width) setSide("end");
-    else if (align === "end" && bounds.left < 0) setSide("start");
-  }, [open, align]);
   useMenuPlacement(open, menu);
 
   useEffect(() => {
@@ -199,7 +184,7 @@ export function QuietMenu({
             id={`${id}-menu`}
             role="menu"
             aria-label={label}
-            className={`quiet-menu-list quiet-menu-${side}`}
+            className={`quiet-menu-list quiet-menu-${align}`}
             onKeyDown={onKeyDown}
           >
             {children}
