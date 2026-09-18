@@ -61,7 +61,6 @@ test("composes planning and private-file components with canonical updates and v
       .getByRole("button", { name: "Add component", exact: true })
       .click();
     const dialog = page.getByRole("dialog", { name: "Add a component" });
-    await dialog.getByRole("radio", { name: new RegExp(`^${label}`) }).check();
     await dialog
       .getByRole("button", { name: `Add ${label}`, exact: true })
       .click();

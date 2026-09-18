@@ -28,7 +28,6 @@ export async function exerciseComponentViews(page: Page) {
     .getByRole("button", { name: "Add component", exact: true })
     .click();
   const picker = page.getByRole("dialog", { name: "Add a component" });
-  await picker.getByRole("radio", { name: /^To-dos/ }).check();
   await picker.getByRole("button", { name: "Add To-dos", exact: true }).click();
   await expect(picker).toHaveCount(0);
   const todos = page.locator(".planning-panel").filter({
@@ -162,7 +161,6 @@ export async function exerciseComponentViews(page: Page) {
   await page
     .getByRole("button", { name: "Add component", exact: true })
     .click();
-  await picker.getByRole("radio", { name: /^Expenses/ }).check();
   await picker
     .getByRole("button", { name: "Add Expenses", exact: true })
     .click();

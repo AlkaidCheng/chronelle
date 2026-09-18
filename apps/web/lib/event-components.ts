@@ -83,10 +83,24 @@ export function describeShownView(view: EventComponentView): string {
   return tr("layouts.shown")(viewKeys[view]);
 }
 
-/** The kinds a page may add; retired aliases are left out. */
-export const addableEventComponentKinds: readonly EventComponentKind[] =
+/** A retired kind kept for saved layouts, shown as another kind's view. */
+type AliasedEventComponentKind = {
+  [K in EventComponentKind]: (typeof eventComponents)[K] extends {
+    readonly aliasOf: unknown;
+  }
+    ? K
+    : never;
+}[EventComponentKind];
+
+/** A kind a page may add: every kind but the retired aliases. */
+export type AddableEventComponentKind = Exclude<
+  EventComponentKind,
+  AliasedEventComponentKind
+>;
+
+export const addableEventComponentKinds: readonly AddableEventComponentKind[] =
   eventComponentKindSchema.options.filter(
-    (kind) => aliasOf(kind) === undefined,
+    (kind): kind is AddableEventComponentKind => aliasOf(kind) === undefined,
   );
 
 function aliasOf(kind: EventComponentKind) {
@@ -134,7 +148,9 @@ export function viewOf(component: {
     : (views[0] ?? "list");
 }
 
-export function findEventComponents(query: string): EventComponentKind[] {
+export function findEventComponents(
+  query: string,
+): AddableEventComponentKind[] {
   const terms = query
     .normalize("NFKC")
     .toLowerCase()

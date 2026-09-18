@@ -35,11 +35,13 @@ test("inserts mixed components offline and edits one schedule across three proje
     await expect(
       dialog.getByRole("searchbox", { name: "Find a component" }),
     ).toBeFocused();
-    await dialog.getByRole("radio", { name: new RegExp(`^${label}`) }).check();
-    if (label === "Calendar") {
+    if (label === "Timeline") {
+      await expect(
+        dialog.getByRole("button", { name: "Add Timeline", exact: true }),
+      ).toBeInViewport();
       await expect(
         dialog.getByRole("button", { name: "Add Calendar", exact: true }),
-      ).toBeInViewport();
+      ).toContainText("On this page");
       await page.screenshot({
         path: testInfo.outputPath("component-picker.png"),
       });
