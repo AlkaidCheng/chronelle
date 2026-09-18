@@ -1,7 +1,7 @@
 {
   "doneArranging": "完成排列",
   "doneArrangingDescription": "隱藏版面控制項；移動已儲存",
-  "arrange": "排列版面",
+  "arrange": "排列元件",
   "arrangeDescription": "顯示頁面與元件的移動控制項",
   "addComponent": "新增元件",
   "addComponentDescription": "為 {name} 選擇元件",
@@ -18,5 +18,13 @@
   "drag": "拖曳 {name}",
   "moveUp": "上移 {name}",
   "moveDown": "下移 {name}",
-  "moveToPageFor": "將 {name} 移動到頁面"
+  "moveToPageFor": "將 {name} 移動到頁面",
+  "arranging": "正在排列元件",
+  "done": "完成",
+  "movePageEarlier": "頁面前移",
+  "movePageLater": "頁面後移",
+  "up": "上移",
+  "down": "下移",
+  "pageFull": "{name}（已滿）",
+  "dropAtEnd": "放到 {name} 末尾"
 }

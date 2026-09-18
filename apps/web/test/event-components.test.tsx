@@ -131,7 +131,7 @@ async function choosePageOption(
   await user.click(screen.getByRole("menuitem", { name }));
 }
 const arrange = (user: ReturnType<typeof userEvent.setup>) =>
-  choosePageOption(user, "Arrange layout");
+  choosePageOption(user, "Arrange components");
 
 function RefreshProbe() {
   const cache = useQueryClient();
@@ -1645,6 +1645,53 @@ describe("insertable event components", () => {
     expect(await client.getEventDetail(eventId)).toEqual(before);
   });
 
+  it("takes a move back and brings it again from the arrange bar", async () => {
+    await client.updateEventLayout(eventId, {
+      expectedVersion: 0,
+      pages: [page("Work", ["todos", "calendar"])],
+    });
+    const user = userEvent.setup();
+    render(<PagesHarness eventId={eventId} canEdit />, { wrapper: Providers });
+    await screen.findByRole("region", { name: "Event pages" });
+    expect(
+      screen.queryByRole("group", { name: "Arranging components" }),
+    ).toBeNull();
+    await arrange(user);
+    const bar = screen.getByRole("group", { name: "Arranging components" });
+    const undo = within(bar).getByRole("button", {
+      name: "Undo layout change",
+    });
+    const redo = within(bar).getByRole("button", {
+      name: "Redo layout change",
+    });
+    const order = () =>
+      screen
+        .getAllByRole("region", { name: /component \d/ })
+        .map((item) => item.getAttribute("aria-label"));
+    expect(undo).toBeDisabled();
+    expect(redo).toBeDisabled();
+    await user.click(screen.getByRole("button", { name: "Move To-dos down" }));
+    await waitFor(() => expect(undo).toBeEnabled());
+    expect(order()).toEqual(["Calendar component 1", "To-dos component 2"]);
+    await user.click(undo);
+    await waitFor(() =>
+      expect(order()).toEqual(["To-dos component 1", "Calendar component 2"]),
+    );
+    await waitFor(() => expect(redo).toBeEnabled());
+    expect(undo).toBeDisabled();
+    await user.click(redo);
+    await waitFor(() =>
+      expect(order()).toEqual(["Calendar component 1", "To-dos component 2"]),
+    );
+    expect((await client.getEventLayout(eventId)).version).toBe(4);
+    await user.click(
+      within(bar).getByRole("button", { name: "Done arranging" }),
+    );
+    expect(
+      screen.queryByRole("group", { name: "Arranging components" }),
+    ).toBeNull();
+  });
+
   it("keeps the displayed layout on conflict and requires a refresh before retrying", async () => {
     const pages = [page("Work", ["todos", "calendar"]), page("Day", [])];
     await client.updateEventLayout(eventId, { expectedVersion: 0, pages });
@@ -1762,7 +1809,7 @@ describe("insertable event components", () => {
     ).toBeVisible();
     expect(screen.queryByText("Attach a file")).toBeNull();
     for (const label of [
-      "Arrange layout",
+      "Arrange components",
       "Add component",
       "Add page",
       "Add schedule item",

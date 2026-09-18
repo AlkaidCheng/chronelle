@@ -44,7 +44,7 @@ test("persists composition moves through the authorized versioned layout API", a
   await page.getByRole("button", { name: "Continue", exact: true }).click();
   await expect(page).toHaveURL(/\/events$/);
   await page.goto(`/events/${event.id}`);
-  await choosePageOption(page, "Arrange layout");
+  await choosePageOption(page, "Arrange components");
   const changed = page.waitForResponse(
     (response) =>
       response.url().endsWith("/layout") &&
@@ -94,7 +94,7 @@ test("persists composition moves through the authorized versioned layout API", a
   ).toEqual(event);
   await page.reload();
   await expect(page.getByRole("button", { name: /^Move / })).toHaveCount(0);
-  await choosePageOption(page, "Arrange layout");
+  await choosePageOption(page, "Arrange components");
   await expect(
     page.getByRole("heading", { name: "Day", exact: true }),
   ).toBeVisible();

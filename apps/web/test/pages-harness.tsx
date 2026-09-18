@@ -45,6 +45,7 @@ export function PagesHarness({
         onAddingChange={state.setAdding}
         arranging={state.arranging}
         onArrangingChange={state.setArranging}
+        layoutUndo={state.layoutUndo}
         pageDrop={state.pageDrop}
       />
       {state.dialog}

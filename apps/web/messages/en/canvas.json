@@ -1,7 +1,7 @@
 {
   "doneArranging": "Done arranging",
   "doneArrangingDescription": "Hide layout controls; moves are already saved",
-  "arrange": "Arrange layout",
+  "arrange": "Arrange components",
   "arrangeDescription": "Show page and component move controls",
   "addComponent": "Add component",
   "addComponentDescription": "Choose a component for {name}",
@@ -18,5 +18,13 @@
   "drag": "Drag {name}",
   "moveUp": "Move {name} up",
   "moveDown": "Move {name} down",
-  "moveToPageFor": "Move {name} to page"
+  "moveToPageFor": "Move {name} to page",
+  "arranging": "Arranging components",
+  "done": "Done",
+  "movePageEarlier": "Move page earlier",
+  "movePageLater": "Move page later",
+  "up": "Up",
+  "down": "Down",
+  "pageFull": "{name} (full)",
+  "dropAtEnd": "Drop at end of {name}"
 }

@@ -4424,6 +4424,62 @@ html:has(.event-create-dialog[open]) {
   flex-wrap: wrap;
   gap: 6px;
 }
+/* While arranging, one dashed bar above the components names the mode
+   and holds layout undo, redo, and Done. */
+.arrange-bar {
+  align-items: center;
+  border: 1px dashed var(--line-strong);
+  border-radius: 10px;
+  color: var(--muted);
+  display: flex;
+  font-size: 0.8rem;
+  gap: 6px;
+  margin: 0 0 16px;
+  min-width: 0;
+  padding: 6px 10px;
+}
+
+.arrange-bar > svg {
+  flex: none;
+  height: 17px;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.7;
+  width: 17px;
+}
+
+.arrange-bar-title {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.arrange-bar-done {
+  background: none;
+  border: 0;
+  border-radius: 7px;
+  color: var(--accent);
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 600;
+  min-height: 32px;
+  padding: 0 8px;
+}
+
+.arrange-bar-done:hover,
+.arrange-bar-done:focus-visible {
+  background: var(--surface-subtle);
+}
+
+.arrange-bar-done:disabled {
+  color: var(--faint);
+  cursor: default;
+}
+
 .composition-hint {
   color: var(--muted);
   font-size: 0.85rem;

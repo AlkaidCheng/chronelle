@@ -18,11 +18,11 @@ test("keeps offline arrangement local and resets it when preview access changes"
   await page.goto(sandboxUrl);
   await page.getByRole("link", { name: /Autumn gathering/ }).click();
   await exerciseEventArrange(page, testInfo);
-  await choosePageOption(page, "Arrange layout");
+  await choosePageOption(page, "Arrange components");
   await page.getByLabel("Preview role").selectOption("viewer");
   await expect(
     page.getByRole("button", {
-      name: /Arrange layout|Done arranging|^Move |^Drag /,
+      name: /Arrange components|Done arranging|^Move |^Drag /,
     }),
   ).toHaveCount(0);
   const commands = await openCommands(page);

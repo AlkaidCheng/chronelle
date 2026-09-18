@@ -19,7 +19,13 @@ import {
   type ContextCommand,
 } from "../../components/context-commands";
 import { ErrorNotice } from "../../components/feedback";
-import { PlusIcon } from "../../components/icons";
+import { IconButton } from "../../components/icon-button";
+import {
+  ArrangeIcon,
+  PlusIcon,
+  RedoIcon,
+  UndoIcon,
+} from "../../components/icons";
 import {
   componentKindLabel,
   describeShownView,
@@ -37,7 +43,7 @@ import {
   useComponentShortcut,
 } from "../../lib/use-component-shortcut";
 import { EventComponent } from "./event-component";
-import type { PageDrop } from "./use-event-pages";
+import type { LayoutUndoControls, PageDrop } from "./use-event-pages";
 
 export function EventPageCanvas({
   layout,
@@ -49,6 +55,7 @@ export function EventPageCanvas({
   onRefresh,
   arranging,
   onArrangingChange,
+  layoutUndo,
   pageDrop,
 }: {
   readonly layout: EventLayoutResponse;
@@ -60,10 +67,13 @@ export function EventPageCanvas({
   readonly onRefresh: () => Promise<unknown>;
   readonly arranging: boolean;
   readonly onArrangingChange: (arranging: boolean) => void;
+  /** Undo and redo of layout changes for the arrange bar; without them the bar has only Done. */
+  readonly layoutUndo?: LayoutUndoControls | undefined;
   readonly pageDrop?: RefObject<PageDrop | null> | undefined;
 }) {
   const t = useTranslations("event");
   const tc = useTranslations("canvas");
+  const tl = useTranslations("layoutRecovery");
   const save = useUpdateEventLayout(layout.eventId);
   const shortcut = useComponentShortcut();
   const locked = useRef(false);
@@ -365,7 +375,7 @@ export function EventPageCanvas({
                       )
                     }
                   >
-                    Move page earlier
+                    {tc("movePageEarlier")}
                   </button>
                   <button
                     type="button"
@@ -386,29 +396,9 @@ export function EventPageCanvas({
                       )
                     }
                   >
-                    Move page later
+                    {tc("movePageLater")}
                   </button>
                 </>
-              ) : null}
-              {isArranging ? (
-                <button
-                  ref={doneButton}
-                  type="button"
-                  className="button button-secondary button-small"
-                  disabled={save.isPending}
-                  onClick={() => {
-                    if (locked.current) return;
-                    endDrag();
-                    onArrangingChange(false);
-                    document
-                      .querySelector<HTMLElement>(
-                        '.event-strip-menu [aria-haspopup="menu"]',
-                      )
-                      ?.focus();
-                  }}
-                >
-                  Done arranging
-                </button>
               ) : null}
               {canAdd ? (
                 <button
@@ -419,11 +409,54 @@ export function EventPageCanvas({
                   disabled={save.isPending}
                   onClick={onAddComponent}
                 >
-                  Add component
+                  {tc("addComponent")}
                 </button>
               ) : null}
             </div>
           </div>
+          {isArranging ? (
+            <fieldset aria-label={tc("arranging")} className="arrange-bar">
+              <ArrangeIcon />
+              <span className="arrange-bar-title">{tc("arranging")}</span>
+              {layoutUndo === undefined ? null : (
+                <>
+                  <IconButton
+                    disabled={!layoutUndo.canUndo}
+                    label={tl("undoLabel")}
+                    onClick={layoutUndo.onUndo}
+                  >
+                    <UndoIcon />
+                  </IconButton>
+                  <IconButton
+                    disabled={!layoutUndo.canRedo}
+                    label={tl("redoLabel")}
+                    onClick={layoutUndo.onRedo}
+                  >
+                    <RedoIcon />
+                  </IconButton>
+                </>
+              )}
+              <button
+                ref={doneButton}
+                type="button"
+                className="arrange-bar-done"
+                aria-label={tc("doneArranging")}
+                disabled={save.isPending}
+                onClick={() => {
+                  if (locked.current) return;
+                  endDrag();
+                  onArrangingChange(false);
+                  document
+                    .querySelector<HTMLElement>(
+                      '.event-strip-menu [aria-haspopup="menu"]',
+                    )
+                    ?.focus();
+                }}
+              >
+                {tc("done")}
+              </button>
+            </fieldset>
+          ) : null}
           {selected.components.length === 0 && !canEdit ? (
             <div className="event-pages-empty">
               <p>{tc("noComponents")}</p>
@@ -481,7 +514,7 @@ export function EventPageCanvas({
                           )
                         }
                       >
-                        Up
+                        {tc("up")}
                       </button>
                       <button
                         type="button"
@@ -499,7 +532,7 @@ export function EventPageCanvas({
                           )
                         }
                       >
-                        Down
+                        {tc("down")}
                       </button>
                       {layout.pages.length > 1 ? (
                         <select
@@ -520,8 +553,9 @@ export function EventPageCanvas({
                                 value={page.id}
                                 disabled={page.components.length >= 20}
                               >
-                                {page.name}
-                                {page.components.length >= 20 ? " (full)" : ""}
+                                {page.components.length >= 20
+                                  ? tc("pageFull", { name: page.name })
+                                  : page.name}
                               </option>
                             ))}
                         </select>
@@ -546,7 +580,7 @@ export function EventPageCanvas({
           </div>
           {isArranging && dragging ? (
             <div className="component-drop-end" {...dropProps(selected, null)}>
-              Drop at end of {selected.name}
+              {tc("dropAtEnd", { name: selected.name })}
             </div>
           ) : null}
         </>

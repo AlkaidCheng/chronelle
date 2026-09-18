@@ -257,6 +257,22 @@ export function SearchIcon({ className }: IconProps) {
   );
 }
 
+/** Three blocks in two rows: arranging the components of a page. */
+export function ArrangeIcon({ className }: IconProps) {
+  return (
+    <svg
+      aria-hidden="true"
+      className={className}
+      fill="none"
+      viewBox="0 0 24 24"
+    >
+      <rect x="4" y="4" width="16" height="6" rx="1.5" />
+      <rect x="4" y="14" width="7" height="6" rx="1.5" />
+      <rect x="13" y="14" width="7" height="6" rx="1.5" />
+    </svg>
+  );
+}
+
 export function LayoutIcon({ className }: IconProps) {
   return (
     <svg

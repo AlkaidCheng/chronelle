@@ -1,7 +1,13 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { type ReactNode, useEffect, useRef, useState } from "react";
+import {
+  type ReactNode,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import type { ContextCommand } from "../../components/context-commands";
 import { MoreIcon } from "../../components/icons";
 import { MenuItem, QuietMenu } from "../../components/quiet-menu";
@@ -21,6 +27,14 @@ import { LayoutRecoveryDialog } from "./layout-recovery";
 export interface PageDrop {
   readonly allowed: (pageId: string) => boolean;
   readonly drop: (pageId: string) => void;
+}
+
+/** Undo and redo of layout changes, as the arrange bar offers them. */
+export interface LayoutUndoControls {
+  readonly canUndo: boolean;
+  readonly canRedo: boolean;
+  readonly onUndo: () => void;
+  readonly onRedo: () => void;
 }
 
 /**
@@ -63,24 +77,49 @@ export function useEventPagesState(eventId: string, canEdit: boolean) {
   const undoState = undo.data;
   const rewind = restore.mutate;
   const rewinding = restore.isPending || saving;
+  const canMoveLayout = (direction: "undo" | "redo") =>
+    canEdit &&
+    !rewinding &&
+    layoutVersion !== undefined &&
+    undoState.version === layoutVersion &&
+    undoState[direction].length > 0;
+  const moveLayout = useCallback(
+    (direction: "undo" | "redo") => {
+      const targetVersion = undoState[direction].at(-1);
+      if (
+        !canEdit ||
+        rewinding ||
+        layoutVersion === undefined ||
+        undoState.version !== layoutVersion ||
+        targetVersion === undefined
+      )
+        return;
+      rewind({
+        expectedVersion: layoutVersion,
+        targetVersion,
+        intent: direction,
+      });
+    },
+    [canEdit, layoutVersion, undoState, rewinding, rewind],
+  );
   useEffect(() => {
     if (!arranging || !canEdit || layoutVersion === undefined) return;
     function onKeyDown(event: KeyboardEvent) {
       const direction = undoDirection(event);
       if (direction === null) return;
       event.preventDefault();
-      const targetVersion = undoState[direction].at(-1);
-      if (rewinding || undoState.version !== layoutVersion) return;
-      if (targetVersion === undefined) return;
-      rewind({
-        expectedVersion: layoutVersion,
-        targetVersion,
-        intent: direction,
-      });
+      moveLayout(direction);
     }
     document.addEventListener("keydown", onKeyDown, true);
     return () => document.removeEventListener("keydown", onKeyDown, true);
-  }, [arranging, canEdit, layoutVersion, undoState, rewinding, rewind]);
+  }, [arranging, canEdit, layoutVersion, moveLayout]);
+  /** The arrange bar's undo and redo of layout changes. */
+  const layoutUndo: LayoutUndoControls = {
+    canUndo: canMoveLayout("undo"),
+    canRedo: canMoveLayout("redo"),
+    onUndo: () => moveLayout("undo"),
+    onRedo: () => moveLayout("redo"),
+  };
   const addPageButton = useRef<HTMLButtonElement>(null);
   /** The canvas registers how a dragged component lands on a page button. */
   const pageDrop = useRef<PageDrop | null>(null);
@@ -149,6 +188,8 @@ export function useEventPagesState(eventId: string, canEdit: boolean) {
     setAdding,
     arranging,
     setArranging,
+    canArrange,
+    layoutUndo,
     canAddPage,
     canAddComponent,
     addPageButton,

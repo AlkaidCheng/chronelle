@@ -8,6 +8,7 @@ import { ErrorNotice, LoadingState } from "../../components/feedback";
 import { AccessLine } from "../../components/access-line";
 import { IconButton } from "../../components/icon-button";
 import {
+  ArrangeIcon,
   CalendarIcon,
   CalendarPlusIcon,
   ChevronLeftIcon,
@@ -264,6 +265,17 @@ export function EventWorkspace({ eventId }: { readonly eventId: string }) {
                   <MenuSeparator />
                 </>
               ) : null}
+              {pagesState.canArrange && !pagesState.arranging ? (
+                <MenuItem
+                  icon={<ArrangeIcon />}
+                  onSelect={() => {
+                    setActiveTab("pages");
+                    pagesState.setArranging(true);
+                  }}
+                >
+                  {t("arrange")}
+                </MenuItem>
+              ) : null}
               <MenuItem icon={<LinkIcon />} onSelect={copyLink}>
                 {t("copyLink")}
               </MenuItem>
@@ -361,6 +373,7 @@ export function EventWorkspace({ eventId }: { readonly eventId: string }) {
           onAddingChange={pagesState.setAdding}
           arranging={pagesState.arranging}
           onArrangingChange={pagesState.setArranging}
+          layoutUndo={pagesState.layoutUndo}
           pageDrop={pagesState.pageDrop}
         />
       ) : (

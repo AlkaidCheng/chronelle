@@ -80,7 +80,7 @@ export async function createFirstPlan(page: Page, testInfo: TestInfo) {
     page.getByRole("heading", { name: "To-dos", exact: true }),
   ).toBeVisible();
   await expect(page.locator(".composition-hint")).toHaveCount(0);
-  await choosePageOptionWithKeyboard(page, "Arrange layout");
+  await choosePageOptionWithKeyboard(page, "Arrange components");
   await expect(
     page.getByRole("button", { name: "Done arranging", exact: true }),
   ).toBeVisible();

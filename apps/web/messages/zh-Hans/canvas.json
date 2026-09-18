@@ -1,7 +1,7 @@
 {
   "doneArranging": "完成排列",
   "doneArrangingDescription": "隐藏布局控件；移动已保存",
-  "arrange": "排列布局",
+  "arrange": "排列组件",
   "arrangeDescription": "显示页面与组件的移动控件",
   "addComponent": "添加组件",
   "addComponentDescription": "为 {name} 选择组件",
@@ -18,5 +18,13 @@
   "drag": "拖动 {name}",
   "moveUp": "上移 {name}",
   "moveDown": "下移 {name}",
-  "moveToPageFor": "将 {name} 移动到页面"
+  "moveToPageFor": "将 {name} 移动到页面",
+  "arranging": "正在排列组件",
+  "done": "完成",
+  "movePageEarlier": "页面前移",
+  "movePageLater": "页面后移",
+  "up": "上移",
+  "down": "下移",
+  "pageFull": "{name}（已满）",
+  "dropAtEnd": "放到 {name} 末尾"
 }
