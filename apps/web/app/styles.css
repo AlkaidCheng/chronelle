@@ -121,13 +121,11 @@ h3,
 }
 
 .task-label {
-  background: var(--accent-soft);
+  border: 1px solid var(--line);
   border-radius: 999px;
-  color: var(--accent);
-  font-size: 0.66rem;
-  font-weight: 700;
-  letter-spacing: 0.02em;
-  padding: 2px 8px;
+  color: var(--muted);
+  font-size: 0.7rem;
+  padding: 1px 7px;
 }
 
 .person-grid {
@@ -815,14 +813,10 @@ h3,
 }
 
 .task-assignee {
-  border: 1px solid var(--line);
-  border-radius: 999px;
   color: var(--muted);
-  font-size: 0.66rem;
-  font-weight: 700;
-  letter-spacing: 0.02em;
-  padding: 2px 8px;
-  width: fit-content;
+  font-size: 0.76rem;
+  font-weight: 500;
+  white-space: nowrap;
 }
 
 .label-picker,
@@ -894,15 +888,11 @@ h3,
 }
 
 .task-progress {
-  background: var(--surface-subtle);
-  border-radius: 999px;
   color: var(--muted);
   display: inline-flex;
-  font-size: 0.66rem;
-  font-weight: 700;
+  font-size: 0.76rem;
+  font-weight: 500;
   justify-self: start;
-  letter-spacing: 0.04em;
-  padding: 2px 8px;
 }
 
 svg {
@@ -2649,6 +2639,107 @@ p[role="alert"] {
   text-align: right;
 }
 
+/* Task rows describe themselves: the column names stay for assistive
+   technology only, and the row is the check, the name over its meta line,
+   the people and labels at the right, and the menu. */
+.task-table {
+  min-width: 0;
+}
+
+.task-table thead {
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  height: 1px;
+  overflow: hidden;
+  position: absolute;
+  white-space: nowrap;
+  width: 1px;
+}
+
+.task-table td {
+  color: var(--ink);
+  font-size: 0.86rem;
+  padding: 9px 8px;
+  vertical-align: middle;
+}
+
+.task-table td:first-child {
+  padding-left: 0;
+  width: 34px;
+}
+
+.task-table td:nth-child(3) {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.task-table td:last-child {
+  padding-right: 0;
+  width: 40px;
+}
+
+.task-table tr.is-done .resource-copy > strong {
+  color: var(--muted);
+  text-decoration: line-through;
+}
+
+/* The name, then one line for when, how far along, how it repeats, where. */
+.resource-copy > strong {
+  font-weight: 500;
+}
+
+.task-meta {
+  align-items: center;
+  color: var(--muted);
+  display: flex;
+  flex-wrap: wrap;
+  font-size: 0.76rem;
+  gap: 2px 10px;
+  line-height: 1.35;
+  margin: 2px 0 0;
+}
+
+.task-meta > * {
+  align-items: center;
+  display: inline-flex;
+  gap: 4px;
+}
+
+.task-meta svg {
+  flex: none;
+  height: 12px;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.8;
+  width: 12px;
+}
+
+.task-due.is-late {
+  color: var(--danger);
+}
+
+.task-due.is-today {
+  color: var(--accent);
+}
+
+.task-status {
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  font-size: 0.7rem;
+  padding: 0 7px;
+}
+
+.task-aside {
+  align-items: center;
+  color: var(--faint);
+  display: inline-flex;
+  flex-wrap: wrap;
+  font-size: 0.76rem;
+  gap: 6px;
+  justify-content: flex-end;
+}
+
 .primary-cell {
   display: grid;
   gap: 4px;
@@ -2988,8 +3079,17 @@ ul.resource-list {
 .resource-list h3,
 .resource-list li > .resource-copy > strong {
   display: block;
-  font-size: 0.95rem;
-  margin-bottom: 5px;
+  font-size: 0.86rem;
+  margin-bottom: 0;
+}
+
+.resource-list li > .task-aside {
+  margin-left: auto;
+}
+
+.resource-list li.is-done > .resource-copy > strong {
+  color: var(--muted);
+  text-decoration: line-through;
 }
 
 .day-groups {

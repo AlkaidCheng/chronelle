@@ -19,7 +19,7 @@ import { useTranslations } from "next-intl";
 import { type ReactNode, useCallback, useMemo, useState } from "react";
 
 import { ErrorNotice } from "../../components/feedback";
-import { CheckIcon } from "../../components/icons";
+import { CalendarIcon, CheckIcon, SubtaskIcon } from "../../components/icons";
 import type { QuickAddSlots } from "../../components/quick-add-row";
 import { RowMenu, type RowMenuEntry } from "../../components/row-menu";
 import { tr } from "../../i18n/active-locale";
@@ -35,15 +35,19 @@ import {
   placeByDay,
   taskDay,
 } from "../../lib/day-placement";
-import { dayInWords, dueShortcuts } from "../../lib/due-choices";
+import {
+  dayInWords,
+  describeRepeatShort,
+  dueShortcuts,
+} from "../../lib/due-choices";
 import { formatTime } from "../../lib/format";
 import { useDuplicateTask, useUpdateTask } from "../../lib/queries";
-import { dueOnDay, formatTaskDue, formatTaskWhen } from "../../lib/task-due";
+import { formatCalendarDate } from "../../lib/event-schedule";
+import { dueOnDay, formatTaskTime } from "../../lib/task-due";
 import { groupTasksByDay } from "../../lib/task-groups";
 import { nestTasks } from "../../lib/task-tree";
 import type { Period } from "../../lib/use-period";
 import { type RowDrop, useRowDrag } from "../../lib/use-row-drag";
-import { StatusChip } from "../events/component-frame";
 import { PeriodView, type RowMode } from "../events/period-view";
 import { useOpenHistory } from "../history/history-provider";
 import { useOpenLifecycle } from "../recovery/lifecycle-provider";
@@ -75,14 +79,20 @@ const listGroup = "all";
 // loses the focus a row's button holds.
 interface TaskTableMeta {
   readonly check: (task: TaskResponse) => ReactNode;
-  readonly context: (task: TaskResponse) => ReactNode;
-  readonly lineage: (task: TaskResponse, nested: boolean) => ReactNode;
+  /** The name over its meta line; a row nested under its parent leaves the parent out. */
+  readonly copy: (
+    task: TaskResponse,
+    showDate: boolean,
+    nested: boolean,
+  ) => ReactNode;
+  /** The assignee and the labels, at the row's right. */
+  readonly aside: (task: TaskResponse) => ReactNode;
+  readonly present: ReadonlySet<string>;
   readonly menu: (
     task: TaskResponse,
     rows: readonly TaskResponse[],
   ) => ReactNode;
   readonly ordered: readonly TaskResponse[];
-  readonly present: ReadonlySet<string>;
 }
 
 function tableMeta(table: Table<TaskResponse>): TaskTableMeta {
@@ -97,27 +107,21 @@ const taskColumns = [
   taskColumn.accessor("displayName", {
     header: () => tr("taskRow.columns")("task"),
     cell: ({ row, table }) => {
-      const { context, lineage, present } = tableMeta(table);
+      const { copy, present } = tableMeta(table);
       const nested =
         row.original.parentTaskId !== null &&
         present.has(row.original.parentTaskId);
       return (
-        <div className={`primary-cell${nested ? " task-nested" : ""}`}>
-          <strong>{row.original.displayName}</strong>
-          {lineage(row.original, nested)}
-          {context(row.original)}
+        <div className={`resource-copy${nested ? " task-nested" : ""}`}>
+          {copy(row.original, true, nested)}
         </div>
       );
     },
   }),
   taskColumn.display({
-    id: "due",
-    header: () => tr("taskRow.columns")("due"),
-    cell: ({ row }) => formatTaskDue(row.original),
-  }),
-  taskColumn.accessor("status", {
-    header: () => tr("taskRow.columns")("status"),
-    cell: ({ getValue }) => <StatusChip status={getValue()} />,
+    id: "aside",
+    header: () => tr("taskRow.columns")("who"),
+    cell: ({ row, table }) => tableMeta(table).aside(row.original),
   }),
   taskColumn.display({
     id: "actions",
@@ -190,13 +194,95 @@ export function TaskListView({
   );
   const [announcement, setAnnouncement] = useState("");
   const t = useTranslations("taskRow");
+  const statusLabel = useTranslations("taskRow.status");
   const todos = useTranslations("todos");
   const openHistory = useOpenHistory();
   const openLifecycle = useOpenLifecycle();
-  const lineage = useCallback(
-    (task: TaskResponse, nested: boolean) => {
+  const today = dayKeyOf(new Date());
+  /** The name, then one meta line: when it is due (late, today), how far along, how it repeats, where, whose part it is. */
+  const copy = useCallback(
+    (task: TaskResponse, showDate: boolean, nested: boolean) => {
       const count = progress[task.id];
       const parent = parents[task.id];
+      const day = taskDay(task);
+      const open = task.status !== "done" && task.status !== "cancelled";
+      const when =
+        task.dueAt !== null
+          ? formatTaskTime(task, showDate)
+          : task.dueOn !== null && showDate
+            ? formatCalendarDate(task.dueOn)
+            : "";
+      const repeat = describeRepeatShort(task.repeatRule);
+      const tone =
+        !open || day === null
+          ? ""
+          : day < today
+            ? " is-late"
+            : day === today
+              ? " is-today"
+              : "";
+      const found = contexts?.[task.id];
+      const status =
+        task.status === "in_progress" || task.status === "cancelled" ? (
+          <span className="task-status">{statusLabel(task.status)}</span>
+        ) : null;
+      const parts: ReactNode[] = [];
+      if (when !== "")
+        parts.push(
+          <span className={`task-due${tone}`} key="due">
+            <CalendarIcon />
+            {when}
+          </span>,
+        );
+      if (count !== undefined)
+        parts.push(
+          <span className="task-progress" key="progress">
+            <SubtaskIcon />
+            <span aria-hidden="true">
+              {count.done}/{count.total}
+            </span>
+            <span className="visually-hidden">
+              {t("subtasksDone", { done: count.done, total: count.total })}
+            </span>
+          </span>,
+        );
+      if (repeat !== "") parts.push(<span key="repeat">{repeat}</span>);
+      if (status !== null) parts.push(<span key="status">{status}</span>);
+      if (task.location !== null)
+        parts.push(
+          <span className="task-location" key="location">
+            <span className="visually-hidden">{t("at")}</span>
+            {task.location}
+          </span>,
+        );
+      if (parent !== undefined && !nested)
+        parts.push(
+          <span className="task-parent" key="parent">
+            {t("partOf", { parent: parent.displayName })}
+          </span>,
+        );
+      if (found !== undefined)
+        parts.push(
+          <Link
+            className="task-context"
+            href={`/events/${found.eventId}`}
+            key="context"
+          >
+            {found.displayName}
+          </Link>,
+        );
+      return (
+        <>
+          <strong>{task.displayName}</strong>
+          {parts.length === 0 ? null : <p className="task-meta">{parts}</p>}
+        </>
+      );
+    },
+    [contexts, parents, progress, statusLabel, t, today],
+  );
+  /** The assignee and the labels, faint at the row's right. */
+  const aside = useCallback(
+    (task: TaskResponse) => {
       const named = task.labelIds.flatMap((id) => {
         const name = labelNames?.get(id);
         return name === undefined ? [] : [{ id, name }];
@@ -205,18 +291,13 @@ export function TaskListView({
         task.assigneeId === null
           ? undefined
           : personNames?.get(task.assigneeId);
+      if (assignee === undefined && named.length === 0) return null;
       return (
-        <>
+        <div className="task-aside">
           {assignee === undefined ? null : (
             <span className="task-assignee">
               <span className="visually-hidden">{t("assignedTo")}</span>
               {assignee}
-            </span>
-          )}
-          {task.location === null ? null : (
-            <span className="task-location">
-              <span className="visually-hidden">{t("at")}</span>
-              {task.location}
             </span>
           )}
           {named.length > 0 ? (
@@ -228,34 +309,10 @@ export function TaskListView({
               ))}
             </ul>
           ) : null}
-          {count === undefined ? null : (
-            <span className="task-progress">
-              <span aria-hidden="true">
-                {count.done}/{count.total}
-              </span>
-              <span className="visually-hidden">
-                {t("subtasksDone", { done: count.done, total: count.total })}
-              </span>
-            </span>
-          )}
-          {parent !== undefined && !nested ? (
-            <span className="task-parent">Part of {parent.displayName}</span>
-          ) : null}
-        </>
+        </div>
       );
     },
-    [labelNames, parents, personNames, progress, t],
-  );
-  const context = useCallback(
-    (task: TaskResponse) => {
-      const found = contexts?.[task.id];
-      return found === undefined ? null : (
-        <Link className="task-context" href={`/events/${found.eventId}`}>
-          in {found.displayName}
-        </Link>
-      );
-    },
-    [contexts],
+    [labelNames, personNames, t],
   );
   const update = useUpdateTask();
   const duplicate = useDuplicateTask();
@@ -597,8 +654,8 @@ export function TaskListView({
     ],
   );
   const meta = useMemo<TaskTableMeta>(
-    () => ({ check, context, lineage, menu, ordered, present }),
-    [check, context, lineage, menu, ordered, present],
+    () => ({ aside, check, copy, menu, ordered, present }),
+    [aside, check, copy, menu, ordered, present],
   );
   const table = useReactTable({
     columns: taskColumns,
@@ -650,15 +707,8 @@ export function TaskListView({
       {...rowProps(task.id)}
     >
       {check(task)}
-      <div className="resource-copy">
-        <strong>{task.displayName}</strong>
-        {lineage(task, false)}
-        {formatTaskWhen(task, showDate) !== "" ? (
-          <p>{formatTaskWhen(task, showDate)}</p>
-        ) : null}
-        {context(task)}
-      </div>
-      <StatusChip status={task.status} />
+      <div className="resource-copy">{copy(task, showDate, false)}</div>
+      {aside(task)}
       {menu(task, rows)}
     </li>
   );
@@ -721,7 +771,7 @@ export function TaskListView({
   return (
     <div className="table-wrap">
       {notice}
-      <table className="data-table">
+      <table className="data-table task-table">
         <thead>
           {table.getHeaderGroups().map((headerGroup) => (
             <tr key={headerGroup.id}>
@@ -741,7 +791,10 @@ export function TaskListView({
         <tbody {...groupProps(listGroup)}>
           {table.getRowModel().rows.map((tableRow) => (
             <tr
-              className={rowClass(listGroup, tableRow.id)}
+              className={rowClasses(
+                rowClass(listGroup, tableRow.id),
+                tableRow.original.status === "done",
+              )}
               id={`task-${tableRow.id}`}
               key={tableRow.id}
               {...rowProps(tableRow.id)}

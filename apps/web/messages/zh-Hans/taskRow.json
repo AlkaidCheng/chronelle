@@ -2,10 +2,12 @@
   "columns": {
     "task": "任务",
     "due": "截止",
-    "status": "状态"
+    "status": "状态",
+    "who": "伙伴与标签"
   },
   "assignedTo": "负责人：",
   "at": "地点：",
+  "partOf": "属于 {parent}",
   "labels": "标签",
   "subtasksDone": "{total} 项子任务已完成 {done} 项",
   "complete": "完成 {name}",

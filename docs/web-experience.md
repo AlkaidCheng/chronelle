@@ -525,7 +525,10 @@ not yet reviewed the two Chinese catalogs; wording may change.
   selected page in view on resize. The page heading retains its full name, and
   the quiet Events link above the title returns to the collection. An undated
   event shows no date line; Set dates opens the editor on the schedule.
-- Overview counts and Next up use the authorized Event detail response.
+- The Overview lists what the event holds as rows (Open to-dos, Scheduled
+  items, Expenses, Reminders, Files, People), each with its count and a way
+  into that view, then Next up as one row; there is no introduction above
+  them. Overview counts and Next up use the authorized Event detail response.
   Next up excludes past dates, completed/cancelled tasks, dismissed/triggered
   reminders, and expenses. Time-dependent views refresh every minute and when
   returning to the tab. An ongoing schedule item remains on the Calendar but
@@ -879,14 +882,29 @@ screen-reader announcements require manual assistive-technology validation.
 
 ## Component views
 
-The seven Event components share one frame. Each opens with its title, a
-light count where the component keeps one, its Layout, Sort, and Filter
-controls, and at most one action: Add task, Add schedule item, Add expense,
-or Add reminder for members who can edit. No line of purpose sits under a
-heading. Every component's states use the same pieces: one loading line, one
-empty state that is its title alone for a viewer and, where the collection
-takes a quick row, that row alone for an editor, and one error notice with a
-retry (or, for a failed upload or download, Dismiss). Attachments outside the
+The seven Event components share one frame. In a tab view it has no box of
+its own (the tabs frame it); on an event page it keeps its card. Each opens
+on one head line: its title in body type, a faint count where the component
+keeps one, and its Layout, Sort, and Filter controls as quiet words at the
+right. Nothing sits under the heading, and no Add button sits beside it: a
+collection adds through the row at its end. To-dos and Reminders have a
+quick add row that takes a name in place, and while it is open a pencil
+beside the field (Add task with details, Add reminder with details) opens
+the full editor with what was typed and the row's day; Calendar, Expenses
+and People end on a quiet row (Add schedule item, Add expense, Add person)
+that opens their editor. Every component's states use the same pieces: one
+loading line, one empty state that is its title alone for a viewer and the
+add row alone for an editor, and one error notice with a retry (or, for a
+failed upload or download, Dismiss).
+
+A task row is its check, its name, and one meta line under the name: the
+due date or time with a calendar mark (in the danger tone when overdue, the
+accent when today), how many subtasks are done, how it repeats, In progress
+or Cancelled when that is its state, its location, the parent it is part of,
+and, outside the event, the event it belongs to as a link; the assignee and
+the labels sit faint at the row's right, and the row menu appears on hover.
+There are no column headers and no status chip: an empty circle is to do, a
+filled one is done, and a done row is struck through. Attachments outside the
 viewer's permission scope are counted in a Private attachments note, as the
 Overview counts private related items. Calendar and Expenses rows carry their
 actions in one group and one order across views: the row's own action first

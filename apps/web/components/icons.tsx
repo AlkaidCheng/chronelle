@@ -456,6 +456,21 @@ export function RefreshIcon({ className }: IconProps) {
   );
 }
 
+/** A branch turning down and right: subtasks under a task. */
+export function SubtaskIcon({ className }: IconProps) {
+  return (
+    <svg
+      aria-hidden="true"
+      className={className}
+      fill="none"
+      viewBox="0 0 24 24"
+    >
+      <path d="M6 4v10a3 3 0 0 0 3 3h9" />
+      <path d="M15 14l3 3-3 3" />
+    </svg>
+  );
+}
+
 export function ChevronRightIcon({ className }: IconProps) {
   return (
     <svg
