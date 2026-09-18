@@ -3,6 +3,7 @@
 import { ApiClientError } from "@chronelle/api-client";
 import { useTranslations } from "next-intl";
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { ErrorNotice } from "../../components/feedback";
 import { EditorSubmitButton } from "../../components/editor-form";
 import { useCanonicalInvalidation } from "../../lib/queries";
@@ -28,8 +29,7 @@ interface EditorControlsProps<Fields extends Record<string, string>> {
    * The record behind the draft, for the comparison a stale write shows;
    * absent while creating, when no other version can exist.
    */
-  readonly conflict?:
-    { readonly objectId: string; readonly format?: FieldFormatter } | undefined;
+  readonly conflict?: EditorConflict | undefined;
   readonly onCancel?: (() => void) | undefined;
   readonly onRefresh?: (() => Promise<void>) | undefined;
   readonly submitLabel: string;
@@ -38,6 +38,25 @@ interface EditorControlsProps<Fields extends Record<string, string>> {
 
 const isStaleWrite = (error: unknown) =>
   error instanceof ApiClientError && error.code === "version_conflict";
+
+/** The record behind a draft, and where its form shows the comparison. */
+export interface EditorConflict {
+  readonly objectId: string;
+  readonly format?: FieldFormatter | undefined;
+  /** The element at the top of the fields that takes the comparison; the footer takes it without one. */
+  readonly slot?: HTMLElement | null | undefined;
+}
+
+/**
+ * The place a form gives a stale write's comparison, at the top of its
+ * fields: render the element with `ref`, pass `slot` in the conflict. A
+ * callback ref, so the comparison can portal there from the first render
+ * after the element mounts.
+ */
+export function useConflictSlot() {
+  const [slot, setSlot] = useState<HTMLElement | null>(null);
+  return { slot, ref: setSlot };
+}
 
 export function EditorControls<Fields extends Record<string, string>>({
   draft,
@@ -115,9 +134,32 @@ export function EditorControls<Fields extends Record<string, string>>({
   }, [draft.hasNewerVersion]);
 
   const comparing = draft.hasNewerVersion && conflict !== undefined;
+  const comparison = comparing ? (
+    <ConflictNotice
+      draft={draft}
+      format={conflict.format}
+      objectId={conflict.objectId}
+      onKeepMine={() => {
+        submitOnceRebased.current = true;
+        mutation.reset();
+        draft.rebase(draft.fields);
+      }}
+      onMerge={(fields) => {
+        submitOnceRebased.current = true;
+        mutation.reset();
+        draft.rebase(fields);
+      }}
+      onTakeTheirs={() => {
+        draft.loadLatest();
+        mutation.reset();
+        setRefreshError(null);
+      }}
+    />
+  ) : null;
 
   return (
     <>
+      {conflict?.slot ? createPortal(comparison, conflict.slot) : comparison}
       {mutation.isError && !comparing ? (
         <>
           <ErrorNotice
@@ -164,28 +206,6 @@ export function EditorControls<Fields extends Record<string, string>>({
             ? t("saved")
             : ""}
       </p>
-      {comparing ? (
-        <ConflictNotice
-          draft={draft}
-          format={conflict.format}
-          objectId={conflict.objectId}
-          onKeepMine={() => {
-            submitOnceRebased.current = true;
-            mutation.reset();
-            draft.rebase(draft.fields);
-          }}
-          onMerge={(fields) => {
-            submitOnceRebased.current = true;
-            mutation.reset();
-            draft.rebase(fields);
-          }}
-          onTakeTheirs={() => {
-            draft.loadLatest();
-            mutation.reset();
-            setRefreshError(null);
-          }}
-        />
-      ) : null}
     </>
   );
 }

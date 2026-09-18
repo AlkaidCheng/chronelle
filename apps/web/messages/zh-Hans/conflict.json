@@ -7,6 +7,7 @@
   "takeTheirs": "采用对方的",
   "merge": "合并字段",
   "kept": "已保留",
+  "unchanged": "未改动",
   "saveMerged": "保存合并后的版本",
   "field": "字段",
   "empty": "（空）",
@@ -39,5 +40,6 @@
     "dates": "日期",
     "timed": "日期和时间",
     "unscheduled": "未安排"
-  }
+  },
+  "draftKept": "你的草稿会保留，直到你做出选择。"
 }

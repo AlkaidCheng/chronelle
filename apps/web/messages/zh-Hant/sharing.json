@@ -1,7 +1,7 @@
 {
-  "sharePeople": "與參與者分享",
+  "sharePeople": "與夥伴分享",
   "friends": "好友",
-  "others": "其他參與者",
+  "others": "其他夥伴",
   "byEmail": "透過電子郵件",
   "peopleWithAccess": "可存取的人",
   "onlyYou": "目前只有你可以存取",
@@ -16,7 +16,7 @@
   "queued": "等待對方加入",
   "invitationSent": "已傳送邀請，加入後即可存取",
   "failed": "無法完成分享。",
-  "nobody": "為參與者新增電子郵件或連結帳號後即可分享。",
+  "nobody": "為夥伴新增電子郵件或連結帳號後即可分享。",
   "roles": {
     "viewer": "檢視者",
     "editor": "編輯者",

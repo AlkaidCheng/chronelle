@@ -7,6 +7,7 @@
   "takeTheirs": "Take theirs",
   "merge": "Merge fields",
   "kept": "kept",
+  "unchanged": "unchanged",
   "saveMerged": "Save merged version",
   "field": "Field",
   "empty": "(empty)",
@@ -39,5 +40,6 @@
     "dates": "Dates",
     "timed": "Dates and times",
     "unscheduled": "Not scheduled"
-  }
+  },
+  "draftKept": "Your draft is kept until you choose."
 }

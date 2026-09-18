@@ -36,7 +36,7 @@ export async function exerciseEventArrange(page: Page, testInfo: TestInfo) {
   const commands = await openCommands(page);
   await commands
     .getByRole("combobox", { name: "Find a command" })
-    .fill("Arrange layout");
+    .fill("Arrange components");
   await page.keyboard.press("Enter");
   const done = page.getByRole("button", {
     name: "Done arranging",
@@ -64,7 +64,7 @@ export async function exerciseEventArrange(page: Page, testInfo: TestInfo) {
       animations: "disabled",
       path: testInfo.outputPath(`event-quiet-${colorScheme}.png`),
     });
-    await choosePageOption(page, "Arrange layout");
+    await choosePageOption(page, "Arrange components");
     await expectHorizontalReflow(page);
     await expect(done).toBeVisible();
     await expect(controls.first()).toBeVisible();
@@ -83,13 +83,13 @@ export async function exerciseEventArrange(page: Page, testInfo: TestInfo) {
     await expect(filter).toHaveClass(/is-active/);
   }
 
-  await choosePageOption(page, "Arrange layout");
+  await choosePageOption(page, "Arrange components");
   await openCommands(page);
   await commands.getByRole("option", { name: /Done arranging/ }).click();
   await expect(arrange).toBeFocused();
   await expect(controls).toHaveCount(0);
   await expect(filter).toHaveClass(/is-active/);
-  await choosePageOption(page, "Arrange layout");
+  await choosePageOption(page, "Arrange components");
   await page.reload();
   await expect(arrange).toBeVisible();
   await expect(controls).toHaveCount(0);

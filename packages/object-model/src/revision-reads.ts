@@ -19,7 +19,10 @@ import {
 import { and, desc, eq, lt } from "drizzle-orm";
 
 import { InvalidObjectStateError } from "./errors.js";
-import { compareRevisionContent } from "./restoration-policy.js";
+import {
+  compareRevisionContent,
+  initialRevisionContent,
+} from "./restoration-policy.js";
 
 export interface RevisionSummary {
   readonly id: string;
@@ -69,20 +72,26 @@ export interface RevisionReadRepository {
 export const revisionSummaryFieldLimit = 3;
 
 /** Both backends summarize a row the same way: `changedFields` is the first
- * three differences and `changedFieldCount` all of them; the oldest known
- * revision, and one whose snapshot cannot be read, summarize as unchanged. */
+ * three differences and `changedFieldCount` all of them; the first revision
+ * lists the content it started with, and one whose snapshot cannot be read
+ * summarizes as unchanged. */
 export function summarizeRevisionChanges(
   previous: { schemaVersion: number; snapshot: unknown } | undefined,
   current: { schemaVersion: number; snapshot: unknown },
 ): Pick<RevisionSummary, "changedFields" | "changedFieldCount"> {
-  if (previous === undefined)
-    return { changedFields: [], changedFieldCount: 0 };
   let changes: RevisionFieldChange[];
   try {
-    changes = compareRevisionContent(
-      decodeRevisionSnapshot(previous.schemaVersion, previous.snapshot),
-      decodeRevisionSnapshot(current.schemaVersion, current.snapshot),
+    const snapshot = decodeRevisionSnapshot(
+      current.schemaVersion,
+      current.snapshot,
     );
+    changes =
+      previous === undefined
+        ? initialRevisionContent(snapshot)
+        : compareRevisionContent(
+            decodeRevisionSnapshot(previous.schemaVersion, previous.snapshot),
+            snapshot,
+          );
   } catch {
     return { changedFields: [], changedFieldCount: 0 };
   }

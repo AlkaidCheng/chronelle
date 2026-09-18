@@ -10,14 +10,37 @@ import { useEffect, useId, useRef, useState } from "react";
 import { ErrorNotice, LoadingState, Notice } from "../../components/feedback";
 import { tr } from "../../i18n/active-locale";
 import { formatCalendarDate } from "../../lib/event-schedule";
-import { formatDateTime, shortId } from "../../lib/format";
+import { formatDateTime, formatMoment, shortId } from "../../lib/format";
 import {
   useObjectHistory,
   useRestorePreview,
   useRestoreRevision,
   useRevisionComparison,
 } from "../../lib/history-queries";
+import { personDisplayName } from "../../lib/person-fields";
+import { useLabelsQuery, usePersonsQuery } from "../../lib/queries";
 import { useSessionDialog } from "../../lib/use-session-dialog";
+
+/** Names for the ids a change carries: people for assignees, labels for label lists. */
+interface ChangeNames {
+  readonly people: ReadonlyMap<string, string>;
+  readonly labels: ReadonlyMap<string, string>;
+}
+
+const noNames: ChangeNames = { people: new Map(), labels: new Map() };
+
+/** The workspace's people and labels, by id, so a change reads as names. */
+function useChangeNames(): ChangeNames {
+  const persons = usePersonsQuery();
+  const labels = useLabelsQuery();
+  const people = new Map(
+    (persons.data?.items ?? []).map((person) => [
+      person.id,
+      personDisplayName(person),
+    ]),
+  );
+  return { people, labels: labels.data?.names ?? new Map() };
+}
 
 const actionKeys = {
   recovered: "recovered",
@@ -34,6 +57,7 @@ const calendarDate = /^\d{4}-\d{2}-\d{2}$/u;
 function displayValue(
   change: RevisionFieldChange,
   side: "before" | "after",
+  names: ChangeNames = noNames,
 ): string {
   const t = tr("history.values");
   const present =
@@ -41,6 +65,17 @@ function displayValue(
   if (!present) return t("notSet");
   const value = change[side];
   if (value === null) return t("empty");
+  if (change.field === "assigneeId" && typeof value === "string")
+    return names.people.get(value) ?? value;
+  if (change.field === "status" && typeof value === "string") {
+    const status = tr("taskRow.status");
+    const key = value as Parameters<typeof status>[0];
+    return status.has(key) ? status(key) : value;
+  }
+  if (change.field === "labelIds" && Array.isArray(value))
+    return value
+      .map((id) => (typeof id === "string" ? (names.labels.get(id) ?? id) : ""))
+      .join(", ");
   if (change.valueType === "datetime" && typeof value === "string")
     return formatDateTime(value);
   if (typeof value === "string" && calendarDate.test(value))
@@ -61,13 +96,19 @@ function fieldLabel(change: RevisionFieldChange): string {
   return t.has(key) ? t(key) : change.label;
 }
 
-/** One line per changed field, values on one line, for a history row. */
+/**
+ * One line per changed field for a history row: the field, the value it
+ * had (struck through), and the value it took, all on one line; a field
+ * with no earlier value, as on the first revision, shows the value alone.
+ */
 function ChangePreview({
   changes,
   count,
+  names,
 }: {
   readonly changes: readonly RevisionFieldChange[];
   readonly count: number;
+  readonly names: ChangeNames;
 }) {
   const t = useTranslations("history");
   if (changes.length === 0) return null;
@@ -76,15 +117,24 @@ function ChangePreview({
     <ul className="history-change-lines">
       {changes.map((change) => (
         <li key={change.field}>
-          {t("changeLine", {
-            field: fieldLabel(change),
-            before: line(displayValue(change, "before")),
-            after: line(displayValue(change, "after")),
-          })}
+          {change.beforePresent
+            ? t.rich("changeLine", {
+                field: fieldLabel(change),
+                before: line(displayValue(change, "before", names)),
+                after: line(displayValue(change, "after", names)),
+                f: (chunks) => <span className="history-field">{chunks}</span>,
+                from: (chunks) => <s className="history-from">{chunks}</s>,
+                to: (chunks) => <span className="history-to">{chunks}</span>,
+              })
+            : t.rich("initialLine", {
+                field: fieldLabel(change),
+                after: line(displayValue(change, "after", names)),
+                f: (chunks) => <span className="history-field">{chunks}</span>,
+              })}
         </li>
       ))}
       {count > changes.length ? (
-        <li className="muted">
+        <li className="history-more">
           {t("more", { count: count - changes.length })}
         </li>
       ) : null}
@@ -100,6 +150,7 @@ function ChangeList({
   readonly preview?: boolean;
 }) {
   const t = useTranslations("history");
+  const names = useChangeNames();
   return changes.length === 0 ? (
     <p className="muted">{t("noDifferences")}</p>
   ) : (
@@ -114,7 +165,7 @@ function ChangeList({
           </dt>
           <dd>
             <span>{preview ? t("current") : t("before")}</span>
-            <pre>{displayValue(change, "before")}</pre>
+            <pre>{displayValue(change, "before", names)}</pre>
           </dd>
           <dd>
             <span>
@@ -124,7 +175,7 @@ function ChangeList({
                   : t("historicalOnly")
                 : t("after")}
             </span>
-            <pre>{displayValue(change, "after")}</pre>
+            <pre>{displayValue(change, "after", names)}</pre>
           </dd>
         </div>
       ))}
@@ -249,6 +300,7 @@ export function HistoryDrawer({
   const revisions = history.data?.pages.flatMap((page) => page.items) ?? [];
   const newest = revisions[0]?.objectVersion;
   const comparisonRegion = useRef<HTMLElement>(null);
+  const names = useChangeNames();
   const isComparing = from !== null && to !== null;
   useEffect(() => {
     if (isComparing) comparisonRegion.current?.focus();
@@ -265,9 +317,6 @@ export function HistoryDrawer({
         <div>
           <p className="eyebrow">{t("eyebrow")}</p>
           <h2 id={headingId}>{displayName}</h2>
-          <code className="history-object-id" title={t("objectId")}>
-            {objectId}
-          </code>
         </div>
         <button
           className="button button-quiet"
@@ -278,7 +327,6 @@ export function HistoryDrawer({
           {t("closeShort")}
         </button>
       </header>
-      <p className="muted">{t("intro")}</p>
       {message ? <Notice tone="success">{message}</Notice> : null}
       {history.isError ? (
         <ErrorNotice
@@ -292,32 +340,39 @@ export function HistoryDrawer({
           <ol className="history-list">
             {revisions.map((revision) => (
               <li key={revision.id}>
-                <div>
-                  <strong>
-                    {t("version", { version: revision.objectVersion })}
-                  </strong>{" "}
-                  <span>
-                    {t(`actions.${actionKeys[revision.mutationKind]}`)}
-                  </span>
-                  <p>
-                    {formatDateTime(revision.createdAt)} /{" "}
+                <div className="history-row-copy">
+                  <p className="history-row-head">
+                    <strong>
+                      {t("version", { version: revision.objectVersion })}
+                    </strong>
+                    <span className="history-kind">
+                      {t(`actions.${actionKeys[revision.mutationKind]}`)}
+                    </span>
+                  </p>
+                  <p className="history-meta">
+                    {formatMoment(revision.createdAt)}
+                    {" \u00b7 "}
                     {revision.actorType === "system"
                       ? t("system")
                       : (revision.actorDisplayName ??
                         `${revision.actorType.replace("_", " ")} ${shortId(revision.actorId ?? "")}`)}
                   </p>
                   {revision.mutationKind === "baseline" ? (
-                    <p>{t("baselineNote")}</p>
+                    <p className="history-meta">{t("baselineNote")}</p>
                   ) : (
                     <ChangePreview
                       changes={revision.changedFields}
                       count={revision.changedFieldCount}
+                      names={names}
                     />
                   )}
                 </div>
                 <div className="history-actions">
                   <button
-                    className="button button-quiet button-small"
+                    aria-label={t("compare", {
+                      version: revision.objectVersion,
+                    })}
+                    className="link-button link-button-quiet"
                     type="button"
                     onClick={() => {
                       setFrom(revision.objectVersion);
@@ -326,10 +381,13 @@ export function HistoryDrawer({
                       setMessage(null);
                     }}
                   >
-                    {t("compare", { version: revision.objectVersion })}
+                    {t("compareShort")}
                   </button>
                   <button
-                    className="button button-secondary button-small"
+                    aria-label={t("preview", {
+                      version: revision.objectVersion,
+                    })}
+                    className="link-button link-button-quiet"
                     type="button"
                     onClick={() => {
                       setRestoreVersion(revision.objectVersion);
@@ -338,7 +396,7 @@ export function HistoryDrawer({
                       setMessage(null);
                     }}
                   >
-                    {t("preview", { version: revision.objectVersion })}
+                    {t("previewShort")}
                   </button>
                 </div>
               </li>

@@ -100,3 +100,20 @@ export function undoDirection(
     return null;
   return event.shiftKey ? "redo" : "undo";
 }
+
+/**
+ * The undo and redo shortcuts as a menu shows them: "Cmd Z" and
+ * "Shift Cmd Z" on Apple platforms, "Ctrl Z" and "Shift Ctrl Z" elsewhere,
+ * each with the `aria-keyshortcuts` value the keys map to.
+ */
+export function undoShortcuts() {
+  const apple =
+    typeof navigator !== "undefined" &&
+    /Mac|iPhone|iPad|iPod/u.test(navigator.platform);
+  const modifier = apple ? "Cmd" : "Ctrl";
+  const key = apple ? "Meta" : "Control";
+  return {
+    undo: { label: `${modifier} Z`, keys: `${key}+z` },
+    redo: { label: `Shift ${modifier} Z`, keys: `Shift+${key}+z` },
+  } as const;
+}

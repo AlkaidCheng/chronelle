@@ -7,5 +7,9 @@
   "noExpenses": "No expenses recorded",
   "undated": "Undated",
   "noReminders": "No reminders",
-  "totalsByCurrency": "Totals by currency"
+  "totalsByCurrency": "Totals by currency",
+  "addScheduleItem": "Add schedule item",
+  "addExpense": "Add expense",
+  "addReminder": "Add reminder",
+  "edit": "Edit"
 }

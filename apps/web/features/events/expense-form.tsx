@@ -9,7 +9,7 @@ import {
   DiscardActions,
   EditorDialogHeader,
 } from "../../components/editor-dialog-controls";
-import { EditorControls } from "./editor-controls";
+import { EditorControls, useConflictSlot } from "./editor-controls";
 import {
   readExpenseFields,
   expenseFieldsPayload,
@@ -73,6 +73,7 @@ function ExpenseEditor({
   readonly draftId: string;
   readonly initialDraft: ExpenseDraftSnapshot | undefined;
 }) {
+  const conflictSlot = useConflictSlot();
   const draft = useEditorDraft(latestExpense, readExpenseFields, initialDraft);
   const expense = draft.source;
   const [attempt] = useState<ContextCreateAttempt>(
@@ -227,6 +228,7 @@ function ExpenseEditor({
         onSubmit={handleSubmit}
       >
         <div className="event-create-body event-inspector-fields">
+          <div className="editor-conflict-slot" ref={conflictSlot.ref} />
           <CountedField
             className="field-wide"
             disabled={mutation.isPending}
@@ -288,7 +290,9 @@ function ExpenseEditor({
         <footer className="event-inspector-footer">
           <EditorControls
             conflict={
-              expense === undefined ? undefined : { objectId: expense.id }
+              expense === undefined
+                ? undefined
+                : { objectId: expense.id, slot: conflictSlot.slot }
             }
             disabled={!recovery.isRetained}
             draft={draft}

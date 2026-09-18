@@ -7,6 +7,7 @@
   "takeTheirs": "採用對方的",
   "merge": "合併欄位",
   "kept": "已保留",
+  "unchanged": "未更動",
   "saveMerged": "儲存合併後的版本",
   "field": "欄位",
   "empty": "（空）",
@@ -39,5 +40,6 @@
     "dates": "日期",
     "timed": "日期和時間",
     "unscheduled": "未安排"
-  }
+  },
+  "draftKept": "你的草稿會保留，直到你做出選擇。"
 }

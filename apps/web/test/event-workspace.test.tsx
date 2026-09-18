@@ -201,6 +201,92 @@ describe("EventWorkspace", () => {
     },
   );
 
+  it("starts arranging from the More menu, on the Pages view", async () => {
+    window.history.replaceState(null, "", "/events/plan?view=todos");
+    // The page strip measures itself.
+    vi.stubGlobal(
+      "ResizeObserver",
+      class {
+        observe = vi.fn();
+        unobserve = vi.fn();
+        disconnect = vi.fn();
+      },
+    );
+    const layout = {
+      eventId,
+      version: 1,
+      updatedAt: rootEvent.createdAt,
+      pages: [
+        {
+          id: "019d6e7d-0000-7000-8000-000000000050",
+          name: "Plan",
+          components: [
+            { id: "019d6e7d-0000-7000-8000-000000000051", kind: "todos" },
+          ],
+        },
+      ],
+    };
+    vi.stubGlobal(
+      "fetch",
+      vi.fn<typeof globalThis.fetch>(async (input) => {
+        const path = requestPath(input);
+        if (path.endsWith("/access"))
+          return jsonResponse({
+            resourceId: eventId,
+            actions: ["view", "edit"],
+            source: { kind: "own" },
+          });
+        if (path === `/api/events/${eventId}`) return jsonResponse(rootEvent);
+        if (path === `/api/events/${eventId}/layout`)
+          return jsonResponse(layout);
+        return jsonResponse({ sourceEventId: eventId, items: [] });
+      }),
+    );
+    const user = userEvent.setup();
+    render(<EventWorkspace eventId={eventId} />, { wrapper: Providers });
+    expect(
+      await screen.findByRole("tab", { name: "To-dos", selected: true }),
+    ).toBeVisible();
+    const more = () =>
+      screen.getByRole("button", {
+        name: `Actions for ${rootEvent.displayName}`,
+      });
+    await user.click(more());
+    const undo = await screen.findByRole("menuitem", { name: /^Undo edit/ });
+    expect(undo).toHaveAttribute(
+      "aria-keyshortcuts",
+      expect.stringMatching(/\+z$/),
+    );
+    await user.click(
+      screen.getByRole("menuitem", { name: "Arrange components" }),
+    );
+    // The Pages view comes forward, its page current in the strip.
+    const bar = await screen.findByRole("group", {
+      name: "Arranging components",
+    });
+    expect(screen.getByRole("button", { name: "Plan" })).toHaveAttribute(
+      "aria-current",
+      "page",
+    );
+    expect(screen.queryByRole("tab", { selected: true })).toBeNull();
+    expect(
+      within(bar).getByRole("button", { name: "Done arranging" }),
+    ).toBeVisible();
+    // While arranging, the menu no longer offers to start.
+    await user.click(more());
+    await screen.findByRole("menuitem", { name: /^Undo edit/ });
+    expect(
+      screen.queryByRole("menuitem", { name: "Arrange components" }),
+    ).toBeNull();
+    await user.keyboard("{Escape}");
+    await user.click(
+      within(bar).getByRole("button", { name: "Done arranging" }),
+    );
+    expect(
+      screen.queryByRole("group", { name: "Arranging components" }),
+    ).toBeNull();
+  });
+
   it("names where a grantee's access comes from and opens Sharing for an owner", async () => {
     window.history.replaceState(null, "", "/events/plan?view=todos");
     const source = {

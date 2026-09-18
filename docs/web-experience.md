@@ -276,23 +276,24 @@ reads the command this browser ran ("Undo: rename Kyoto in November"), and is
 disabled with the reason when the head is not reachable (Nothing to undo, or
 Changed by someone else since, when another account edited the record). After
 a reload the items still work but name nothing. Cmd/Ctrl + Z and Shift +
-Cmd/Ctrl + Z run them outside text fields and dialogs; while arranging a page,
+Cmd/Ctrl + Z run them outside text fields and dialogs, and each item shows its
+keys for the platform at its end; while arranging a page,
 or inside the Page options dialog, the same keys move the layout stack instead
 (Undo layout change, Redo layout change, as the dialog's controls read). The
 palette's shortcut list names both.
 
 The rail and palette share one catalog of Events, Search, and Trash routes.
 On an event, a separate Event actions group offers Edit event, Share event,
-Event history, Add page, Add component, and Arrange layout when their controls are
+Event history, Add page, Add component, and Arrange components when their controls are
 available. Viewers receive only Event history. An open event editor does not
 offer Edit event again. Add page needs edit access and no pending layout save;
-Add component and Arrange layout also need the Pages view. Insertion also requires room within layout limits;
-Arrange layout requires an existing page. Add component names its
+Add component and Arrange components also need the Pages view. Insertion also requires room within layout limits;
+Arrange components requires an existing page. Add component names its
 selected page. These actions open existing controls; they do not save, insert,
 share, or restore data immediately.
 
 The palette closes before focusing and activating the original control;
-Arrange layout runs from the page menu and lands focus on Done arranging. Editors
+Arrange components runs from the page menu and lands focus on Done arranging. Editors
 focus their first field, sharing focuses its view, and dialogs return focus to
 their original control. Removed actions do not shift keyboard selection onto
 another action. Mounted owners publish explicit button references through the
@@ -538,7 +539,7 @@ event-timezone display are a follow-up.
 
 Start with an Event name; dates can wait. Add a named page such as Preparation,
 then add only the components it needs. Empty pages explain this next step;
-movement controls and instructions appear only in Arrange layout mode. Viewers see
+movement controls and instructions appear only in Arrange components mode. Viewers see
 read-only explanations without instructions to use unavailable controls.
 
 Add a page offers Blank (the default), Gathering (To-dos, Calendar as an
@@ -555,9 +556,10 @@ in the active page's menu.
 Preview and cancellation perform no writes. Save failures preserve the name
 and preset; after a conflict, close and reopen to review the latest layout.
 
-Arrange layout, in the active page's menu, reveals page ordering, component
-move buttons, cross-page moves, and drag handles, including dropping a
-component on another page in the strip. Done arranging, in the page heading,
+Arrange components, in the event's More menu and in the active page's menu,
+reveals page ordering, component move buttons, cross-page moves, and drag
+handles, including dropping a component on another page in the strip; from the
+More menu it also brings the Pages view forward. Done arranging, in the page heading,
 hides these tools without saving again and returns focus to the page menu;
 each move saves immediately through the existing versioned layout API. Page
 options (Layout history for viewers) stays in the same menu for removal,
@@ -583,7 +585,7 @@ captured source version; close and reopen to retry against the latest layout.
 The mode is local to the open event and session. It survives page selection,
 but resets on leaving the Pages view, reload, event/session changes, and loss
 of edit access. Toggling keeps mounted components and unsaved form values.
-The palette offers the same Arrange layout / Done arranging action, withheld
+The palette offers the same Arrange components / Done arranging action, withheld
 during an in-flight canvas save. No global Escape shortcut is added, so native
 editors and dialogs retain ownership of their keys. Mode changes do not write
 layout versions or audit events; layout mutations retain concurrency and
@@ -674,11 +676,14 @@ The inspector edits the same canonical Event using its pinned source version.
 History is available inside the inspector without dismissing the draft. Closing
 history returns focus to its inspector control. Restoring a version leaves
 unsaved fields intact and requires explicitly loading the latest source to save.
-Each history row names its kind, Edited (content) for a saved edit, and
-previews its change: up to three changed fields as "Due date: Oct 3, 2030 to
-Oct 4, 2030" with the values in the display language and zone, then how many
-more fields changed; the list carries the summary, so no row asks the server
-before Compare. Layout history rows in Page options read Arranged (layout) and
+Each history row names its kind, Edited (content) for a saved edit, when it was
+saved ("Today, 09:12", "Yesterday, 18:40", then "Sep 12, 21:05", with the year
+only when it differs) and by whom, and previews its change: up to three changed
+fields as "Due date: Oct 3, 2030 to Oct 4, 2030", the earlier value struck
+through, the values in the display language and zone (people and labels by
+name, a status by its label), then how many more fields changed; the Created
+row lists the content the record started with. The list carries the summary,
+so no row asks the server before Compare. Layout history rows in Page options read Arranged (layout) and
 say what moved: "Moved Calendar above To-dos", "Added page Packing", "Removed
 component Map".
 
@@ -718,17 +723,20 @@ error visible.
 
 A save refused because the record changed since the draft was opened reads
 the newest version at once, and a newer version arriving while a draft is
-open is shown the same way: a comparison under the form headed Saved
-elsewhere while you edited, with the author and time of the newest version.
-Its table lists only the fields that differ, one column for the draft and one
-for the newest version, named by the editor's own labels (a task's labels and
-assignee by name, an event's schedule mode in words). Three ways out: Keep
-mine saves the draft over the newest version as a new version, so History
-keeps theirs; Take theirs loads the newest version and drops the draft; Merge
-fields turns the table into a choice per field, where a field only one side
-changed is kept from that side and marked kept, a field both sides changed
-starts on theirs and is highlighted, and Save merged version saves the result
-as one version. A newer version is never announced alone.
+open is shown the same way: a comparison at the top of the form's fields
+headed Saved elsewhere while you edited, with the author of the newest
+version and how long ago it was saved ("Mei, 4 minutes ago. Your draft is
+kept until you choose."). Its table lists only the fields that differ, one
+column for the draft and one for the newest version, named by the editor's
+own labels (a task's labels and assignee by name, an event's schedule mode in
+words); a field only the draft changed is marked kept, and one only the
+newest version changed reads unchanged on the draft's side. Three ways out:
+Keep mine saves the draft over the newest version as a new version, so
+History keeps theirs; Take theirs loads the newest version and drops the
+draft; Merge fields turns the table into a choice per field, where a field
+only one side changed is kept from that side, a field both sides changed
+starts on theirs, and Save merged version saves the result as one version. A
+newer version is never announced alone.
 
 ## Removing things
 

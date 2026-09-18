@@ -30,7 +30,7 @@ import {
 } from "../../lib/queries";
 import { useEditorDraft } from "../../lib/use-editor-draft";
 import { usePlanningEditorDialog } from "../../lib/use-planning-editor-dialog";
-import { EditorControls } from "../events/editor-controls";
+import { EditorControls, useConflictSlot } from "../events/editor-controls";
 import {
   EditorDraftRecovery,
   EditorDraftStatus,
@@ -87,6 +87,7 @@ function PersonEditor({
 }) {
   const t = useTranslations("person");
   const te = useTranslations("personEditor");
+  const conflictSlot = useConflictSlot();
   const draft = useEditorDraft(latestPerson, readPersonFields, initialDraft);
   const person = draft.source;
   // A retained draft keeps its creation attempt, so a retry after a lost
@@ -277,6 +278,7 @@ function PersonEditor({
         onSubmit={handleSubmit}
       >
         <div className="event-create-body event-inspector-fields">
+          <div className="editor-conflict-slot" ref={conflictSlot.ref} />
           <CountedField
             className="field-wide"
             disabled={mutation.isPending}
@@ -514,7 +516,9 @@ function PersonEditor({
         <footer className="event-inspector-footer">
           <EditorControls
             conflict={
-              person === undefined ? undefined : { objectId: person.id }
+              person === undefined
+                ? undefined
+                : { objectId: person.id, slot: conflictSlot.slot }
             }
             disabled={!recovery.isRetained}
             draft={draft}

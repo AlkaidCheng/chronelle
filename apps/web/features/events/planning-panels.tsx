@@ -368,7 +368,7 @@ export function CalendarPanel({
           onClick={() => setEditingId(item.id)}
           type="button"
         >
-          Edit
+          {panels("edit")}
         </button>
       ) : null}
       <HistoryButton objectId={item.id} displayName={item.displayName} />
@@ -407,7 +407,7 @@ export function CalendarPanel({
               onClick={() => setIsAdding(true)}
               type="button"
             >
-              Add schedule item
+              {panels("addScheduleItem")}
             </button>
           ) : undefined
         }
@@ -580,7 +580,7 @@ export function ExpensesPanel({
             onClick={() => setEditingId(expense.id)}
             type="button"
           >
-            Edit
+            {panels("edit")}
           </button>
         ) : null}
         <HistoryButton
@@ -635,7 +635,7 @@ export function ExpensesPanel({
               type="button"
               onClick={() => setIsAdding(true)}
             >
-              Add expense
+              {panels("addExpense")}
             </button>
           ) : null
         }
@@ -1014,7 +1014,7 @@ export function RemindersPanel({
               type="button"
               onClick={() => setIsAdding(true)}
             >
-              Add reminder
+              {panels("addReminder")}
             </button>
           ) : null
         }

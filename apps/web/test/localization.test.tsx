@@ -122,7 +122,7 @@ it("words the rail and the Events page in Simplified Chinese", async () => {
   const rail = await screen.findByRole("navigation", {
     name: "\u5de5\u4f5c\u533a\u5bfc\u822a",
   });
-  expect(rail).toHaveTextContent("\u53c2\u4e0e\u8005");
+  expect(rail).toHaveTextContent("\u4f19\u4f34");
   expect(rail).toHaveTextContent("\u96c6\u5408");
   // Trash sits under More, which is wordy in its own language too.
   await userEvent.click(screen.getByRole("button", { name: "\u66f4\u591a" }));

@@ -25,7 +25,8 @@ import {
 import { isTemporaryReadError } from "../../lib/query-errors";
 import { EventPageCanvas } from "./event-page-canvas";
 import { AddEventPageDialog } from "./add-event-page-dialog";
-import type { PageDrop } from "./use-event-pages";
+import type { LayoutUndoControls, PageDrop } from "./use-event-pages";
+import { newId } from "../../lib/new-id";
 
 function AddComponentDialog({
   layout,
@@ -70,7 +71,7 @@ function AddComponentDialog({
             ...page,
             components: [
               ...page.components,
-              { id: crypto.randomUUID(), kind: selectedKind ?? kind },
+              { id: newId(), kind: selectedKind ?? kind },
             ],
           }
         : page,
@@ -246,6 +247,7 @@ export function EventPages({
   onAddingChange,
   arranging,
   onArrangingChange,
+  layoutUndo,
   pageDrop,
 }: {
   readonly layout: UseQueryResult<EventLayoutResponse>;
@@ -257,6 +259,7 @@ export function EventPages({
   readonly onAddingChange: (adding: EventPagesAdding | null) => void;
   readonly arranging: boolean;
   readonly onArrangingChange: (arranging: boolean) => void;
+  readonly layoutUndo?: LayoutUndoControls | undefined;
   readonly pageDrop?: RefObject<PageDrop | null> | undefined;
 }) {
   const t = useTranslations("componentDialog");
@@ -316,6 +319,7 @@ export function EventPages({
         onRefresh={() => layout.refetch()}
         arranging={arranging}
         onArrangingChange={onArrangingChange}
+        layoutUndo={layoutUndo}
         pageDrop={pageDrop}
       />
       {adding && canEdit ? (

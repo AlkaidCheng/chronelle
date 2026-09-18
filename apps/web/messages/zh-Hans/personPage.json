@@ -1,11 +1,11 @@
 {
-  "allPeople": "全部参与者",
-  "loading": "正在加载参与者",
-  "edit": "编辑参与者",
+  "allPeople": "全部伙伴",
+  "loading": "正在加载伙伴",
+  "edit": "编辑伙伴",
   "copyLink": "复制链接",
   "linkCopied": "链接已复制。",
   "linkNotCopied": "链接无法复制。",
-  "sections": "参与者栏目",
+  "sections": "伙伴栏目",
   "tabs": {
     "overview": "概览",
     "events": "活动",

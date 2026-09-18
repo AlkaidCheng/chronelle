@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { revisionSnapshotSchema } from "@chronelle/schemas";
 import {
   compareRevisionContent,
+  initialRevisionContent,
   selectRestorableContent,
 } from "../src/restoration-policy.js";
 
@@ -46,6 +47,35 @@ describe("restoration content policy", () => {
       },
       { field: "endsOn", before: null, after: "2030-07-12", restorable: true },
       { field: "startsAt", after: null, restorable: true },
+    ]);
+  });
+  it("lists a first revision's set content as changes from nothing", () => {
+    const task = revisionSnapshotSchema.parse({
+      ...envelope,
+      objectType: "task",
+      displayName: "Book the ryokan",
+      status: "todo",
+      dueOn: "2026-10-03",
+      dueAt: null,
+      location: "",
+      labelIds: [],
+      completedAt: null,
+      customProperties: { notes: "Garden room" },
+    });
+    expect(initialRevisionContent(task)).toEqual([
+      expect.objectContaining({
+        field: "displayName",
+        after: "Book the ryokan",
+        beforePresent: false,
+        afterPresent: true,
+      }),
+      expect.objectContaining({ field: "status", after: "todo" }),
+      expect.objectContaining({ field: "dueOn", after: "2026-10-03" }),
+      expect.objectContaining({
+        field: "customProperties.notes",
+        after: "Garden room",
+        beforePresent: false,
+      }),
     ]);
   });
   it("ignores key ordering and distinguishes missing custom properties from null", () => {

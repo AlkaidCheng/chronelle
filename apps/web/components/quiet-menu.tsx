@@ -178,6 +178,12 @@ export function QuietMenu({
   );
 }
 
+/** A keyboard shortcut as a menu item shows it: the label people read, and the `aria-keyshortcuts` value. */
+export interface MenuShortcut {
+  readonly label: string;
+  readonly keys: string;
+}
+
 export function MenuItem({
   children,
   onSelect,
@@ -186,6 +192,7 @@ export function MenuItem({
   tone = "neutral",
   icon,
   hint,
+  shortcut,
 }: {
   readonly children: ReactNode;
   readonly onSelect: () => void;
@@ -195,11 +202,14 @@ export function MenuItem({
   readonly icon?: ReactNode;
   /** A second line under the label: what the item will do, or why it cannot. */
   readonly hint?: string | undefined;
+  /** The keys that run the item from outside the menu, shown at its end. */
+  readonly shortcut?: MenuShortcut | undefined;
 }) {
   const close = useContext(CloseContext);
   const shared = {
     type: "button" as const,
     "aria-disabled": disabled || undefined,
+    "aria-keyshortcuts": shortcut?.keys,
     tabIndex: -1,
     className: `quiet-menu-item quiet-menu-${tone}`,
     title: hint,
@@ -212,12 +222,12 @@ export function MenuItem({
   const body = (
     <>
       {icon}
-      <span>
-        {children}
-        {hint === undefined ? null : (
-          <span className="quiet-menu-hint">{hint}</span>
-        )}
-      </span>
+      <span>{children}</span>
+      {shortcut === undefined ? null : (
+        <span aria-hidden="true" className="quiet-menu-key">
+          {shortcut.label}
+        </span>
+      )}
       {checked ? (
         <svg
           aria-hidden="true"
@@ -227,6 +237,9 @@ export function MenuItem({
           <path d="M5 12l4 4L19 6" />
         </svg>
       ) : null}
+      {hint === undefined ? null : (
+        <span className="quiet-menu-hint">{hint}</span>
+      )}
     </>
   );
   if (checked !== undefined)

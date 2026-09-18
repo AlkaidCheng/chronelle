@@ -3,12 +3,12 @@
   "unassigned": "未指派",
   "assigned": "已指派",
   "assignTo": "指派給",
-  "loadFailed": "參與者載入失敗。",
-  "loading": "正在載入參與者…",
+  "loadFailed": "夥伴載入失敗。",
+  "loading": "正在載入夥伴…",
   "meSuffix": "（我）",
-  "newPerson": "新參與者",
+  "newPerson": "新夥伴",
   "adding": "新增中…",
-  "add": "新增參與者",
+  "add": "新增夥伴",
   "assignToMe": "指派給我",
-  "addFailed": "無法新增參與者。"
+  "addFailed": "無法新增夥伴。"
 }

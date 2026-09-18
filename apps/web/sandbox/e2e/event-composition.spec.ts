@@ -52,7 +52,7 @@ test("composes offline with search, drag or touch controls, and persistent cross
   }
   const blocks = page.locator(".event-component-block");
   await expect(page.getByRole("button", { name: /^Move / })).toHaveCount(0);
-  await choosePageOption(page, "Arrange layout");
+  await choosePageOption(page, "Arrange components");
   if (isMobile)
     await page
       .getByRole("button", { name: "Move Calendar up", exact: true })

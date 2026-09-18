@@ -1,6 +1,6 @@
 import { activeLocale, tr } from "../i18n/active-locale";
 import { instantOptions } from "../i18n/active-preferences";
-import { instantWallInput, wallInstant } from "./zone";
+import { instantDayKey, instantWallInput, wallInstant } from "./zone";
 
 /** An instant as the wall clock of the active zone, for a datetime-local field. */
 export function toDateTimeInput(value: string | null): string {
@@ -46,6 +46,35 @@ export function formatTime(
 ): string {
   return new Intl.DateTimeFormat(locale, {
     timeStyle: "short",
+    ...instantOptions(),
+  }).format(new Date(value));
+}
+
+/**
+ * A moment as a ledger reads it: "Today, 09:12" or "Yesterday, 18:40" for
+ * the last two days, otherwise the day with its time ("Sep 12, 21:05"),
+ * and the year only when it is not the current one.
+ */
+export function formatMoment(
+  value: string,
+  locale: string = activeLocale(),
+  now: Date = new Date(),
+): string {
+  const t = tr("dates");
+  const day = instantDayKey(value);
+  const today = instantDayKey(now);
+  const yesterday = instantDayKey(new Date(now.getTime() - 86_400_000));
+  if (day === today || day === yesterday)
+    return t("moment", {
+      day: t(day === today ? "today" : "yesterday"),
+      time: formatTime(value, locale),
+    });
+  return new Intl.DateTimeFormat(locale, {
+    month: "short",
+    day: "numeric",
+    ...(day.slice(0, 4) === today.slice(0, 4) ? {} : { year: "numeric" }),
+    hour: "numeric",
+    minute: "2-digit",
     ...instantOptions(),
   }).format(new Date(value));
 }

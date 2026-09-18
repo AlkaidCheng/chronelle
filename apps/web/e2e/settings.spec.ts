@@ -6,7 +6,7 @@ import { setDue } from "./helpers/due-picker";
 // The Chinese strings the journey looks for, as escapes so the spec stays
 // ASCII like the rest of the suite.
 const hans = {
-  people: "\u53c2\u4e0e\u8005",
+  people: "\u4f19\u4f34",
   settings: "\u8bbe\u7f6e",
   language: "\u8bed\u8a00",
   simplified: "\u7b80\u4f53\u4e2d\u6587",

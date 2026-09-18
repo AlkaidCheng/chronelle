@@ -3,6 +3,7 @@ import {
   formatDatePart,
   formatDateTime,
   formatDuration,
+  formatMoment,
   fromDateTimeInput,
   toDateTimeInput,
 } from "../lib/format";
@@ -55,6 +56,46 @@ describe("date display", () => {
     expect(() => formatDateTime("invalid")).toThrow(RangeError);
     expect(() => toDateTimeInput("invalid")).toThrow(RangeError);
     expect(() => fromDateTimeInput("invalid")).toThrow(RangeError);
+  });
+});
+
+describe("a moment on a ledger", () => {
+  const now = new Date(2026, 8, 17, 21, 5);
+  const at = (date: Date) => date.toISOString();
+  const time = (date: Date) =>
+    new Intl.DateTimeFormat("en", { timeStyle: "short" }).format(date);
+
+  it("names today and yesterday with the time", () => {
+    const earlier = new Date(2026, 8, 17, 9, 12);
+    const yesterday = new Date(2026, 8, 16, 18, 40);
+    expect(formatMoment(at(earlier), "en", now)).toBe(
+      `Today, ${time(earlier)}`,
+    );
+    expect(formatMoment(at(yesterday), "en", now)).toBe(
+      `Yesterday, ${time(yesterday)}`,
+    );
+  });
+
+  it("gives an older moment its day, and the year only when it differs", () => {
+    const thisYear = new Date(2026, 8, 2, 10, 31);
+    const lastYear = new Date(2025, 11, 24, 8, 0);
+    expect(formatMoment(at(thisYear), "en", now)).toBe(
+      new Intl.DateTimeFormat("en", {
+        month: "short",
+        day: "numeric",
+        hour: "numeric",
+        minute: "2-digit",
+      }).format(thisYear),
+    );
+    expect(formatMoment(at(lastYear), "en", now)).toBe(
+      new Intl.DateTimeFormat("en", {
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+        hour: "numeric",
+        minute: "2-digit",
+      }).format(lastYear),
+    );
   });
 });
 

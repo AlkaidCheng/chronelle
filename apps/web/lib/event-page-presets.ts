@@ -4,6 +4,7 @@ import type {
   EventPage,
 } from "@chronelle/schemas";
 import { tr } from "../i18n/active-locale";
+import { newId } from "./new-id";
 
 export type EventPagePresetId = "blank" | "gathering" | "multi-day";
 
@@ -49,12 +50,12 @@ export function presetPageName(id: EventPagePresetId): string {
 /** Create layout identities only; component views use existing event records. */
 export function createPresetPage(preset: EventPagePreset): EventPage {
   return {
-    id: crypto.randomUUID(),
+    id: newId(),
     name: presetPageName(preset.id),
     components: preset.components.map((component) =>
       typeof component === "string"
-        ? { id: crypto.randomUUID(), kind: component }
-        : { id: crypto.randomUUID(), ...component },
+        ? { id: newId(), kind: component }
+        : { id: newId(), ...component },
     ),
   };
 }
