@@ -8,6 +8,7 @@
   "sections": "Person sections",
   "tabs": {
     "overview": "Overview",
+    "shared": "Shared",
     "events": "Events",
     "tasks": "Tasks"
   },
@@ -34,5 +35,30 @@
   "memberAs": "Member of this workspace as <b>{role}</b>",
   "linkToFriend": "Link to a friend",
   "invite": "Invite a friend",
-  "resend": "Resend"
+  "resend": "Resend",
+  "shared": "Shared",
+  "loadingShared": "Loading what is shared",
+  "noShared": "Nothing shared yet",
+  "youShared": "you shared",
+  "theyShared": "{name} shared",
+  "queued": "queued",
+  "allShared": "All {count} in Shared",
+  "shareWith": "Share with {name}",
+  "shareDialog": {
+    "title": "Share with {name}",
+    "intro": "Pick an event of yours; {name} gets the role on it and everything inside it.",
+    "find": "Find an event",
+    "placeholder": "Type an event name",
+    "events": "Events",
+    "noEvents": "No event matches.",
+    "role": "Role",
+    "share": "Share",
+    "sharing": "Sharing...",
+    "shared": "{event} shared as {role}",
+    "queued": "{event} queued; access follows when they join",
+    "failed": "The share could not be completed.",
+    "nobody": "Give the person an email or link their account to share with them.",
+    "close": "Close",
+    "done": "Done"
+  }
 }

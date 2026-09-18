@@ -85,6 +85,7 @@ export const queryKeys = {
   persons: ["persons"] as const,
   access: (eventId: string) => ["event", eventId, "access"] as const,
   shares: (eventId: string) => ["event", eventId, "shares"] as const,
+  personShares: (personId: string) => ["person", personId, "shares"] as const,
   attachments: (parentObjectId: string) =>
     ["object", parentObjectId, "documents"] as const,
   session: ["session"] as const,
@@ -500,6 +501,18 @@ export function useSharesQuery(eventId: string, enabled: boolean) {
   });
 }
 
+/** What is shared each way with a person, for the person's page. */
+export function usePersonSharesQuery(personId: string) {
+  const client = useApiClient();
+  const { credential } = useAuthSession();
+  return useQuery({
+    enabled: credential !== null,
+    queryFn: ({ signal }) =>
+      client.withSignal(signal).listPersonShares(personId),
+    queryKey: queryKeys.personShares(personId),
+  });
+}
+
 export function useTaskEditorQueries(taskId: string) {
   const { resource: task, access } = useObjectEditorQueries(
     taskId,
@@ -741,6 +754,7 @@ export function useShareResource(eventId: string) {
       await Promise.all([
         invalidate(),
         queryClient.invalidateQueries({ queryKey: queryKeys.session }),
+        queryClient.invalidateQueries({ queryKey: ["person"] }),
       ]);
     },
   });
@@ -756,6 +770,7 @@ export function useRevokeShare() {
       await Promise.all([
         invalidate(),
         queryClient.invalidateQueries({ queryKey: queryKeys.session }),
+        queryClient.invalidateQueries({ queryKey: ["person"] }),
       ]);
     },
   });
@@ -772,6 +787,7 @@ export function useQueuePendingShare(eventId: string) {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: queryKeys.shares(eventId) }),
         queryClient.invalidateQueries({ queryKey: queryKeys.friends }),
+        queryClient.invalidateQueries({ queryKey: ["person"] }),
       ]);
     },
   });
@@ -783,9 +799,10 @@ export function useRevokePendingShare(eventId: string) {
   return useMutation({
     mutationFn: (pendingId: string) => client.revokePendingShare(pendingId),
     onSuccess: async () => {
-      await queryClient.invalidateQueries({
-        queryKey: queryKeys.shares(eventId),
-      });
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: queryKeys.shares(eventId) }),
+        queryClient.invalidateQueries({ queryKey: ["person"] }),
+      ]);
     },
   });
 }

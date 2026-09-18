@@ -8,6 +8,7 @@
   "sections": "伙伴栏目",
   "tabs": {
     "overview": "概览",
+    "shared": "共享",
     "events": "活动",
     "tasks": "任务"
   },
@@ -34,5 +35,30 @@
   "memberAs": "本工作区成员，角色为 <b>{role}</b>",
   "linkToFriend": "关联好友",
   "invite": "邀请好友",
-  "resend": "重发"
+  "resend": "重发",
+  "shared": "共享",
+  "loadingShared": "正在加载共享内容",
+  "noShared": "还没有共享内容",
+  "youShared": "你共享的",
+  "theyShared": "{name} 共享的",
+  "queued": "排队中",
+  "allShared": "在“共享”中查看全部 {count} 项",
+  "shareWith": "与 {name} 共享",
+  "shareDialog": {
+    "title": "与 {name} 共享",
+    "intro": "选择你的一个活动；{name} 将获得该活动及其中一切内容的相应角色。",
+    "find": "查找活动",
+    "placeholder": "输入活动名称",
+    "events": "活动",
+    "noEvents": "没有匹配的活动。",
+    "role": "角色",
+    "share": "共享",
+    "sharing": "正在共享...",
+    "shared": "已将 {event} 共享为{role}",
+    "queued": "{event} 已排队；对方加入后即可访问",
+    "failed": "共享未能完成。",
+    "nobody": "为该伙伴填写邮箱或关联账户后才能共享。",
+    "close": "关闭",
+    "done": "完成"
+  }
 }

@@ -284,4 +284,78 @@ describe("PersonPage", () => {
     const editor = await screen.findByRole("dialog", { name: "Edit person" });
     expect(within(editor).getByLabelText("Nickname")).toHaveValue("Bee");
   });
+
+  it("lists what is shared each way with the person and shares an event from the page", async () => {
+    const user = userEvent.setup();
+    // A card with the sample friend's email stands for her account.
+    const created = await store.fetch("/api/persons", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        displayName: "Mei Lin",
+        nickname: "Mei",
+        contacts: [{ kind: "email", value: "mei.lin@example.test" }],
+      }),
+    });
+    const person = (await created.json()) as { id: string };
+    const events = (await (
+      await store.fetch("/api/events?limit=20")
+    ).json()) as {
+      items: { id: string; displayName: string }[];
+    };
+    const gathering = events.items.find(
+      (event) => event.displayName === "Autumn gathering",
+    );
+    if (gathering === undefined) throw new Error("no sample event");
+    await store.fetch("/api/shares", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        resourceId: gathering.id,
+        personId: person.id,
+        role: "editor",
+      }),
+    });
+
+    render(
+      <Providers>
+        <PersonPage personId={person.id} />
+      </Providers>,
+    );
+    await screen.findByRole("heading", { level: 1, name: "Mei" });
+    const panel = await screen.findByRole("region", { name: "Shared" });
+    const row = await within(panel).findByRole("listitem");
+    expect(row).toHaveTextContent("Autumn gathering");
+    expect(row).toHaveTextContent("editor");
+    expect(row).toHaveTextContent("you shared");
+    expect(
+      within(row).getByRole("link", { name: "Autumn gathering" }),
+    ).toHaveAttribute("href", `/events/${gathering.id}`);
+    // The tab lists the same rows in full.
+    await user.click(screen.getByRole("tab", { name: "Shared" }));
+    const tab = screen.getByRole("tabpanel");
+    expect(within(tab).getAllByRole("listitem")).toHaveLength(1);
+
+    // Share with Mei: one of the account's events, chosen from the list,
+    // with a role; the grant shows in the outcome and the list.
+    await user.click(screen.getByRole("button", { name: "Share with Mei" }));
+    const dialog = await screen.findByRole("dialog", {
+      name: "Share with Mei",
+    });
+    expect(within(dialog).getByLabelText("Find an event")).toHaveFocus();
+    await user.click(
+      within(dialog).getByRole("radio", { name: /Autumn gathering/ }),
+    );
+    await user.selectOptions(within(dialog).getByLabelText("Role"), "viewer");
+    await user.click(within(dialog).getByRole("button", { name: "Share" }));
+    expect(await within(dialog).findByRole("status")).toHaveTextContent(
+      "Autumn gathering shared as viewer",
+    );
+    await user.click(within(dialog).getByRole("button", { name: "Done" }));
+    await waitFor(() =>
+      expect(
+        within(screen.getByRole("tabpanel")).getByRole("listitem"),
+      ).toHaveTextContent("viewer"),
+    );
+  });
 });
