@@ -6985,14 +6985,30 @@ html:has(.event-create-dialog[open]) {
   min-width: 0;
 }
 
-.notice-toast .button-secondary {
-  background: transparent;
-  border-color: color-mix(in srgb, currentColor 40%, transparent);
+/* The action is the underlined word of the design, in the notice's own ink. */
+.notice-toast-action {
+  background: none;
+  border: 0;
+  border-radius: 6px;
   color: inherit;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 650;
+  margin-left: auto;
+  min-height: 32px;
+  padding: 0 4px;
+  text-decoration: underline;
+  text-underline-offset: 3px;
 }
 
-.notice-toast .button-secondary:hover {
+.notice-toast-action:hover,
+.notice-toast-action:focus-visible {
   background: color-mix(in srgb, currentColor 12%, transparent);
+}
+
+.notice-toast-action:disabled {
+  cursor: default;
+  opacity: 0.6;
 }
 
 .notice-toast-close {

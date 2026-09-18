@@ -103,7 +103,7 @@ function NoticeStack({
           <span>{entry.message}</span>
           {entry.action === undefined ? null : (
             <button
-              className="button button-secondary button-small"
+              className="notice-toast-action"
               disabled={busy === entry.id}
               onClick={() => {
                 setBusy(entry.id);
