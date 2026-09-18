@@ -11,7 +11,7 @@ import {
 } from "react";
 import { createPortal } from "react-dom";
 
-import { capMenu, fitMenu } from "../lib/menu-placement";
+import { capMenu, fitMenu, viewportSize } from "../lib/menu-placement";
 import { MoreIcon } from "./icons";
 import { useMenuDismissal } from "./quiet-menu";
 
@@ -96,7 +96,7 @@ export function RowMenu({
       fit.side === "above"
         ? anchor.top - gap - element.offsetHeight
         : anchor.bottom + gap;
-    setPlace({ top, right: window.innerWidth - anchor.right });
+    setPlace({ top, right: viewportSize().width - anchor.right });
     // The first choice takes focus in a choice list, past its back entry.
     menu.current
       ?.querySelector<HTMLElement>(
@@ -283,7 +283,7 @@ export function RowMenu({
           if (anchor !== undefined)
             setPlace({
               top: anchor.bottom + gap,
-              right: window.innerWidth - anchor.right,
+              right: viewportSize().width - anchor.right,
             });
           setOpen(true);
         }}

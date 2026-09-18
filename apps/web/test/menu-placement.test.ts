@@ -5,13 +5,19 @@ import { fitMenu } from "../lib/menu-placement";
 const anchor = (top: number, height = 36) =>
   ({ top, bottom: top + height }) as DOMRect;
 
+const viewportHeight = (height: number) =>
+  Object.defineProperty(document.documentElement, "clientHeight", {
+    configurable: true,
+    value: height,
+  });
+
 afterEach(() => {
   vi.unstubAllGlobals();
 });
 
 describe("fitMenu", () => {
   it("opens below when the list fits under the control", () => {
-    vi.stubGlobal("innerHeight", 720);
+    viewportHeight(720);
     expect(fitMenu(anchor(100), 300, 4)).toEqual({
       side: "below",
       maxHeight: null,
@@ -19,7 +25,7 @@ describe("fitMenu", () => {
   });
 
   it("opens above when the list only fits over the control", () => {
-    vi.stubGlobal("innerHeight", 720);
+    viewportHeight(720);
     expect(fitMenu(anchor(500), 300, 4)).toEqual({
       side: "above",
       maxHeight: null,
@@ -27,7 +33,7 @@ describe("fitMenu", () => {
   });
 
   it("caps the list to the roomier side when it fits neither", () => {
-    vi.stubGlobal("innerHeight", 720);
+    viewportHeight(720);
     // Below: 720 - 8 - 340 - 4 = 368; above: 300 - 4 - 8 = 288.
     expect(fitMenu(anchor(300, 40), 400, 4)).toEqual({
       side: "below",
@@ -41,7 +47,7 @@ describe("fitMenu", () => {
   });
 
   it("keeps clear of the rail on a phone", () => {
-    vi.stubGlobal("innerHeight", 851);
+    viewportHeight(851);
     vi.stubGlobal(
       "matchMedia",
       vi.fn(() => ({ matches: true })),

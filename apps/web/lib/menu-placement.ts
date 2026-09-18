@@ -5,8 +5,23 @@ export interface MenuFit {
   readonly maxHeight: number | null;
 }
 
-/** A list stays this clear of the viewport's top edge. */
-const edge = 8;
+/** A list stays this clear of the viewport's edges. */
+export const menuEdge = 8;
+
+/**
+ * The layout viewport in CSS pixels. A phone zooms out when content runs
+ * past its width, and `window.innerWidth` grows with it; the root
+ * element's client size keeps the width the page was laid out for.
+ */
+export function viewportSize(): {
+  readonly width: number;
+  readonly height: number;
+} {
+  return {
+    width: document.documentElement.clientWidth,
+    height: document.documentElement.clientHeight,
+  };
+}
 
 /** What a list keeps clear of at the bottom: the rail on a phone, a hair elsewhere. */
 export function reservedBottom(): number {
@@ -23,8 +38,8 @@ export function reservedBottom(): number {
  * the phone's rail.
  */
 export function fitMenu(anchor: DOMRect, height: number, gap: number): MenuFit {
-  const below = window.innerHeight - reservedBottom() - anchor.bottom - gap;
-  const above = anchor.top - gap - edge;
+  const below = viewportSize().height - reservedBottom() - anchor.bottom - gap;
+  const above = anchor.top - gap - menuEdge;
   if (height <= below) return { side: "below", maxHeight: null };
   if (height <= above) return { side: "above", maxHeight: null };
   return above > below

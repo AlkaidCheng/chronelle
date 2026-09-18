@@ -13,7 +13,12 @@ import {
   useRef,
   useState,
 } from "react";
-import { capMenu, fitMenu } from "../lib/menu-placement";
+import {
+  capMenu,
+  fitMenu,
+  menuEdge,
+  viewportSize,
+} from "../lib/menu-placement";
 import { IconButton } from "./icon-button";
 
 const CloseContext = createContext<((returnFocus?: boolean) => void) | null>(
@@ -24,9 +29,10 @@ const CloseContext = createContext<((returnFocus?: boolean) => void) | null>(
  * Keeps an open list inside the viewport. It opens upward when it would
  * run under the bottom (or the phone's rail) and there is room above
  * (`data-place="up"`, which the stylesheet anchors to the control's top),
- * is capped to the roomier side and scrolls when it fits neither, and
- * swaps its horizontal anchor (`data-align`) when its aligned edge would
- * cut it off at a side of the viewport.
+ * and is capped to the roomier side and scrolls when it fits neither. A
+ * list cut off at a side of the viewport swaps its horizontal anchor
+ * (`data-align`) when the other edge fits it whole, else keeps its side
+ * and is nudged into view.
  */
 export function useMenuPlacement(
   open: boolean,
@@ -37,6 +43,7 @@ export function useMenuPlacement(
     if (!open || element === null) return;
     delete element.dataset.place;
     delete element.dataset.align;
+    element.style.marginLeft = "";
     capMenu(element, null);
     const anchor = element.offsetParent?.getBoundingClientRect();
     if (anchor === undefined) return;
@@ -44,9 +51,24 @@ export function useMenuPlacement(
     if (fit.side === "above") element.dataset.place = "up";
     capMenu(element, fit.maxHeight);
     const bounds = element.getBoundingClientRect();
-    if (bounds.left < 0) element.dataset.align = "start";
-    else if (bounds.right > window.innerWidth) element.dataset.align = "end";
+    if (sidewaysOverflow(bounds) === 0) return;
+    const { width } = viewportSize();
+    element.dataset.align = bounds.right > width ? "end" : "start";
+    if (sidewaysOverflow(element.getBoundingClientRect()) === 0) return;
+    delete element.dataset.align;
+    element.style.marginLeft = `${
+      bounds.right > width
+        ? width - bounds.right - menuEdge
+        : menuEdge - bounds.left
+    }px`;
   }, [open, menu]);
+}
+
+/** How far a list runs past the viewport's left or right edge. */
+function sidewaysOverflow(bounds: DOMRect): number {
+  return (
+    Math.max(0, bounds.right - viewportSize().width) + Math.max(0, -bounds.left)
+  );
 }
 
 /**
