@@ -67,6 +67,7 @@ export function userPayload(user: UserRow) {
     hourCycle: user.hourCycle,
     weekStart: user.weekStart,
     rail: user.rail,
+    eventTabs: user.eventTabs,
   };
 }
 

@@ -23,6 +23,7 @@ const user: UserRow = {
   hourCycle: null,
   weekStart: null,
   rail: {},
+  eventTabs: {},
   createdAt: now,
   updatedAt: now,
 };

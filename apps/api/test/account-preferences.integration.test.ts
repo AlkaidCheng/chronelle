@@ -92,6 +92,7 @@ describe("the preferences kept on the account", () => {
       hourCycle: null,
       weekStart: null,
       rail: {},
+      eventTabs: {},
     });
 
     const chosen = await app.inject({
@@ -110,6 +111,7 @@ describe("the preferences kept on the account", () => {
       hourCycle: null,
       weekStart: null,
       rail: {},
+      eventTabs: {},
     });
 
     const session = await app.inject({
@@ -249,6 +251,97 @@ describe("the preferences kept on the account", () => {
       );
     }
     expect(userResponseSchema.parse((await patch({})).json()).rail).toEqual({});
+  });
+
+  it("merges an event's tabs one event at a time, drops them with null, and keeps up to 200 events", async () => {
+    const signedIn = await signIn();
+    const patch = (payload: Record<string, unknown>) =>
+      app.inject({
+        method: "PATCH",
+        url: "/api/auth/me",
+        headers: bearer(signedIn.accessToken),
+        payload,
+      });
+    const kyoto = "01a0b355-cad8-73d2-89f8-0a12abf666a8";
+    const lisbon = "01a0b355-cad8-73d2-89f8-0a12abf666a9";
+
+    const arranged = await patch({
+      eventTabs: {
+        [kyoto]: { order: ["todos", "overview"], removed: ["timeline"] },
+      },
+    });
+    expect(arranged.statusCode).toBe(200);
+    expect(userResponseSchema.parse(arranged.json()).eventTabs).toEqual({
+      [kyoto]: { order: ["todos", "overview"], removed: ["timeline"] },
+    });
+
+    // A second event joins; the first keeps its tabs. Another preference
+    // leaves both alone.
+    const joined = await patch({
+      eventTabs: { [lisbon]: { hidden: ["files", "page-1"] } },
+    });
+    expect(userResponseSchema.parse(joined.json()).eventTabs).toEqual({
+      [kyoto]: { order: ["todos", "overview"], removed: ["timeline"] },
+      [lisbon]: { hidden: ["files", "page-1"] },
+    });
+    const clocked = await patch({ weekStart: 7 });
+    expect(userResponseSchema.parse(clocked.json()).eventTabs).toEqual({
+      [kyoto]: { order: ["todos", "overview"], removed: ["timeline"] },
+      [lisbon]: { hidden: ["files", "page-1"] },
+    });
+
+    // An object replaces one event's tabs whole; null drops them; the
+    // session read shows the same.
+    const replaced = await patch({
+      eventTabs: { [kyoto]: { hidden: ["sharing"] }, [lisbon]: null },
+    });
+    expect(userResponseSchema.parse(replaced.json()).eventTabs).toEqual({
+      [kyoto]: { hidden: ["sharing"] },
+    });
+    const session = await app.inject({
+      method: "GET",
+      url: "/api/auth/session",
+      headers: bearer(signedIn.accessToken),
+    });
+    expect(sessionResponseSchema.parse(session.json()).user.eventTabs).toEqual({
+      [kyoto]: { hidden: ["sharing"] },
+    });
+
+    for (const eventTabs of [
+      "todos",
+      ["todos"],
+      { plan: {} },
+      { [kyoto]: "todos" },
+      { [kyoto]: { order: "todos" } },
+      { [kyoto]: { hidden: [1] } },
+      { [kyoto]: { removed: [""] } },
+      {
+        [kyoto]: {
+          order: Array.from({ length: 41 }, (_, index) => `k${index}`),
+        },
+      },
+    ]) {
+      const refused = await patch({ eventTabs });
+      expect(refused.statusCode, JSON.stringify(eventTabs)).toBe(400);
+      expect(apiErrorResponseSchema.parse(refused.json()).error.code).toBe(
+        "invalid_request",
+      );
+    }
+
+    // Tabs are kept for up to 200 events; the 201st is refused and the
+    // stored ones stay.
+    const many = Object.fromEntries(
+      Array.from({ length: 199 }, (_, index) => [
+        `01a0b355-cad8-73d2-89f8-${String(index).padStart(12, "0")}`,
+        { hidden: ["files"] },
+      ]),
+    );
+    expect((await patch({ eventTabs: many })).statusCode).toBe(200);
+    const overflow = await patch({ eventTabs: { [lisbon]: {} } });
+    expect(overflow.statusCode).toBe(400);
+    expect(
+      Object.keys(userResponseSchema.parse((await patch({})).json()).eventTabs),
+    ).toHaveLength(200);
   });
 
   it("refuses a value that is not a language tag, a zone, a clock, or a week start, and an unauthenticated change", async () => {

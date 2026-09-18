@@ -128,7 +128,12 @@ check requires the six), and replaces `chronelle_friend_respond`,
 `chronelle_friend_withdraw`, and `chronelle_friend_invitations_claim` in
 place so answering a request settles the shares waiting on it; the runtime
 role grants are reapplied for the new table and for deleting workspace
-members.
+members. Migration `0053_add_user_event_tabs_preference.sql` adds
+`users.event_tabs` (`{}` by default, checked as an object keyed by event id
+whose values are objects with `order`, `hidden`, and `removed` arrays of up
+to 40 strings) and redefines `chronelle_user_preferences_update` to merge it
+one event at a time; the function count is unchanged and the runtime role
+needs no change.
 
 Migration `0021_add_object_search_function.sql` adds `chronelle_object_search`,
 the read-only function the CloudBase search adapter calls. It changes no

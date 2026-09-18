@@ -1,4 +1,5 @@
 import type {
+  EventTabsRow,
   RailPreferenceRow,
   UserRow,
   UserSessionRow,
@@ -51,6 +52,29 @@ function railPreference(value: unknown): RailPreferenceRow {
   return { ...list("order"), ...list("hidden") };
 }
 
+/** The tab preferences as stored: an object keyed by event id whose lists hold strings. */
+function eventTabs(value: unknown): EventTabsRow {
+  const rows = record(value, "event tabs");
+  return Object.fromEntries(
+    Object.entries(rows).map(([eventId, tabs]) => {
+      const row = record(tabs, "event tabs entry");
+      const list = (name: "order" | "hidden" | "removed") => {
+        if (row[name] === undefined) return {};
+        if (
+          !Array.isArray(row[name]) ||
+          !row[name].every((key) => typeof key === "string")
+        )
+          throw new Error(`CloudBase returned an invalid event tabs ${name}.`);
+        return { [name]: row[name] as string[] };
+      };
+      return [
+        eventId,
+        { ...list("order"), ...list("hidden"), ...list("removed") },
+      ];
+    }),
+  );
+}
+
 export function record(value: unknown, label: string): CloudBaseRow {
   if (value === null || typeof value !== "object" || Array.isArray(value))
     throw new Error(`CloudBase returned an invalid ${label}.`);
@@ -69,6 +93,7 @@ export function userRow(row: CloudBaseRow): UserRow {
     hourCycle: nullableText(row.hour_cycle, "hour cycle"),
     weekStart: nullableInteger(row.week_start, "week start"),
     rail: railPreference(row.rail),
+    eventTabs: eventTabs(row.event_tabs),
     createdAt: instant(row.created_at, "created_at"),
     updatedAt: instant(row.updated_at, "updated_at"),
   };

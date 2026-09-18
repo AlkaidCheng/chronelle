@@ -105,6 +105,10 @@ export const users = pgTable("users", {
     .$type<RailPreferenceRow>()
     .notNull()
     .default(sql`'{}'::jsonb`),
+  eventTabs: jsonb("event_tabs")
+    .$type<EventTabsRow>()
+    .notNull()
+    .default(sql`'{}'::jsonb`),
   createdAt: createCreatedAtColumn(),
   updatedAt: createUpdatedAtColumn(),
 });
@@ -114,6 +118,20 @@ export interface RailPreferenceRow {
   readonly order?: readonly string[] | undefined;
   readonly hidden?: readonly string[] | undefined;
 }
+
+/**
+ * How an event's tab strip lists its pages and views for the user: view
+ * keys first to last, keys and page ids left out of the strip, and view
+ * keys taken off the event.
+ */
+export interface EventTabsPreferenceRow {
+  readonly order?: readonly string[] | undefined;
+  readonly hidden?: readonly string[] | undefined;
+  readonly removed?: readonly string[] | undefined;
+}
+
+/** Tab preferences keyed by event id. */
+export type EventTabsRow = Readonly<Record<string, EventTabsPreferenceRow>>;
 
 // Credential and session clocks carry millisecond precision so the API's comparisons agree with the functions'.
 const createSessionInstantColumn = (name: string) =>
