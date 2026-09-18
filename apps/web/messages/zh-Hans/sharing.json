@@ -1,7 +1,7 @@
 {
-  "sharePeople": "与参与者共享",
+  "sharePeople": "与伙伴共享",
   "friends": "好友",
-  "others": "其他参与者",
+  "others": "其他伙伴",
   "byEmail": "通过邮箱",
   "peopleWithAccess": "可访问的人",
   "onlyYou": "目前只有你可以访问",
@@ -16,7 +16,7 @@
   "queued": "等待对方加入",
   "invitationSent": "已发送邀请，加入后即可访问",
   "failed": "无法完成共享。",
-  "nobody": "为参与者添加邮箱或关联账号后即可共享。",
+  "nobody": "为伙伴添加邮箱或关联账号后即可共享。",
   "roles": {
     "viewer": "查看者",
     "editor": "编辑者",
