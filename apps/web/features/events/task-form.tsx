@@ -11,7 +11,7 @@ import {
   EditorDialogHeader,
 } from "../../components/editor-dialog-controls";
 import type { FieldFormatter } from "./conflict-notice";
-import { EditorControls } from "./editor-controls";
+import { EditorControls, useConflictSlot } from "./editor-controls";
 import {
   locationLimit,
   readTaskFields,
@@ -100,6 +100,7 @@ function TaskEditor({
   readonly draftId: string;
   readonly initialDraft: TaskDraftSnapshot | undefined;
 }) {
+  const conflictSlot = useConflictSlot();
   const draft = useEditorDraft(latestTask, readTaskFields, initialDraft);
   const task = draft.source;
   const [attempt] = useState<ContextCreateAttempt>(
@@ -301,6 +302,7 @@ function TaskEditor({
         onSubmit={handleSubmit}
       >
         <div className="event-create-body event-inspector-fields">
+          <div className="editor-conflict-slot" ref={conflictSlot.ref} />
           {task === undefined ? null : <AccessLine source={accessSource} />}
           {parent && task === undefined ? (
             <p className="field-hint field-wide">
@@ -353,7 +355,11 @@ function TaskEditor({
             conflict={
               task === undefined
                 ? undefined
-                : { objectId: task.id, format: formatTaskField }
+                : {
+                    objectId: task.id,
+                    format: formatTaskField,
+                    slot: conflictSlot.slot,
+                  }
             }
             disabled={!recovery.isRetained}
             draft={draft}

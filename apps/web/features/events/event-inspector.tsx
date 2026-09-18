@@ -32,7 +32,7 @@ import { useSessionDialog } from "../../lib/use-session-dialog";
 import { useDiscardConfirmation } from "../../lib/use-discard-confirmation";
 import { useOpenHistory } from "../history/history-provider";
 import type { FieldFormatter } from "./conflict-notice";
-import { EditorControls } from "./editor-controls";
+import { EditorControls, useConflictSlot } from "./editor-controls";
 import { EventScheduleFields } from "./event-schedule-fields";
 
 interface EventInspectorProps {
@@ -66,6 +66,7 @@ function EventInspectorForm({
 }: EventInspectorProps & {
   readonly initialDraft: EventDraftSnapshot | undefined;
 }) {
+  const conflictSlot = useConflictSlot();
   const draft = useEditorDraft(latestEvent, readEventFields, initialDraft);
   const snapshot = useMemo<EventDraftSnapshot>(
     () => ({ ...draft.snapshot, kind: "event" }),
@@ -215,6 +216,7 @@ function EventInspectorForm({
         onSubmit={handleSubmit}
       >
         <div className="event-create-body event-inspector-fields">
+          <div className="editor-conflict-slot" ref={conflictSlot.ref} />
           <CountedField
             className="field-wide"
             disabled={update.isPending}
@@ -240,7 +242,11 @@ function EventInspectorForm({
         </div>
         <footer className="event-inspector-footer">
           <EditorControls
-            conflict={{ objectId: event.id, format: formatEventField }}
+            conflict={{
+              objectId: event.id,
+              format: formatEventField,
+              slot: conflictSlot.slot,
+            }}
             draft={draft}
             mutation={update}
             onCancel={requestClose}

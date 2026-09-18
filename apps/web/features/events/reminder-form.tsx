@@ -9,7 +9,7 @@ import {
   DiscardActions,
   EditorDialogHeader,
 } from "../../components/editor-dialog-controls";
-import { EditorControls } from "./editor-controls";
+import { EditorControls, useConflictSlot } from "./editor-controls";
 import {
   readReminderFields,
   reminderFieldsPayload,
@@ -73,6 +73,7 @@ function ReminderEditor({
   readonly draftId: string;
   readonly initialDraft: ReminderDraftSnapshot | undefined;
 }) {
+  const conflictSlot = useConflictSlot();
   const draft = useEditorDraft(
     latestReminder,
     readReminderFields,
@@ -231,6 +232,7 @@ function ReminderEditor({
         onSubmit={handleSubmit}
       >
         <div className="event-create-body event-inspector-fields">
+          <div className="editor-conflict-slot" ref={conflictSlot.ref} />
           <CountedField
             className="field-wide"
             disabled={mutation.isPending}
@@ -262,7 +264,9 @@ function ReminderEditor({
         <footer className="event-inspector-footer">
           <EditorControls
             conflict={
-              reminder === undefined ? undefined : { objectId: reminder.id }
+              reminder === undefined
+                ? undefined
+                : { objectId: reminder.id, slot: conflictSlot.slot }
             }
             disabled={!recovery.isRetained}
             draft={draft}

@@ -1,11 +1,12 @@
 "use client";
 
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { useId, useState } from "react";
 import { Notice } from "../../components/feedback";
 import { formatCalendarDate } from "../../lib/event-schedule";
 import { formatDateTime } from "../../lib/format";
 import { useObjectHistory } from "../../lib/history-queries";
+import { formatRelativeTime } from "../../lib/relative-time";
 
 /** The editor's draft against the newest version, both pinned to one base. */
 export interface ConflictDraft<Fields extends Record<string, string>> {
@@ -65,10 +66,12 @@ function rows<Fields extends Record<string, string>>(
 
 /**
  * A stale write, compared: the fields that differ between the draft and the
- * newest version, with the author and time of theirs, and three ways out.
- * Keep mine writes the draft over the newest version; Take theirs loads it
- * and drops the draft; Merge fields chooses per field, where a field only
- * one side changed is kept from that side.
+ * newest version, with the author and how long ago theirs was saved, and
+ * three ways out. A field only one side changed is marked: kept on the
+ * draft's side, unchanged where theirs moved on. Keep mine writes the draft
+ * over the newest version; Take theirs loads it and drops the draft; Merge
+ * fields chooses per field, where a field only one side changed is kept
+ * from that side.
  */
 export function ConflictNotice<Fields extends Record<string, string>>({
   draft,
@@ -87,12 +90,20 @@ export function ConflictNotice<Fields extends Record<string, string>>({
 }) {
   const t = useTranslations("conflict");
   const names = useTranslations("conflict.fields");
+  const locale = useLocale();
   const history = useObjectHistory(objectId);
   const id = useId();
   const [merging, setMerging] = useState(false);
   const [chosen, setChosen] = useState<Record<string, "mine" | "theirs">>({});
   const newest = history.data?.pages[0]?.items[0];
   const author = newest?.actorDisplayName ?? t("someone");
+  const theirs =
+    newest === undefined
+      ? author
+      : t("theirs", {
+          name: author,
+          when: formatRelativeTime(newest.createdAt, locale),
+        });
   const differences = rows(draft);
   const show = (key: string, value: string) =>
     format?.(key, value) ??
@@ -114,20 +125,17 @@ export function ConflictNotice<Fields extends Record<string, string>>({
   return (
     <Notice role="alert" title={t("title")} tone="warning">
       <p className="conflict-meta">
-        {newest === undefined
-          ? null
-          : `${t("theirs", {
-              name: author,
-              when: formatDateTime(newest.createdAt),
-            })}. `}
+        {newest === undefined ? null : `${theirs}. `}
         {t("draftKept")}
       </p>
       <table className="conflict-table">
         <thead>
           <tr>
-            <th scope="col">{t("field")}</th>
+            <th scope="col">
+              <span className="visually-hidden">{t("field")}</span>
+            </th>
             <th scope="col">{t("mine")}</th>
-            <th scope="col">{author}</th>
+            <th scope="col">{theirs}</th>
           </tr>
         </thead>
         <tbody>
@@ -162,10 +170,12 @@ export function ConflictNotice<Fields extends Record<string, string>>({
                       />
                       {show(row.key, row.mine)}
                     </label>
+                  ) : row.changedBy === "theirs" ? (
+                    <span className="conflict-same">{t("unchanged")}</span>
                   ) : (
                     show(row.key, row.mine)
                   )}
-                  {merging && !choice && picked === "mine" ? (
+                  {!choice && picked === "mine" ? (
                     <span className="conflict-chip">{t("kept")}</span>
                   ) : null}
                 </td>

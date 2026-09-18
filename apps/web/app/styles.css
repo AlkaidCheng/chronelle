@@ -7029,45 +7029,65 @@ html:has(.event-create-dialog[open]) {
   }
 }
 
-/* A stale write compared: mine and theirs per field, three ways out. */
+/* A stale write compared, at the top of the editor's fields: mine and
+   theirs per field on one surface, three ways out. */
+.editor-conflict-slot {
+  display: contents;
+}
+
+.editor-conflict-slot > .notice {
+  grid-column: 1 / -1;
+  margin: 0;
+}
+
 .notice .conflict-meta {
   color: var(--muted);
   font-size: 0.86rem;
-  margin: 2px 0 8px;
+  margin: 2px 0 10px;
 }
 
 .conflict-table {
-  border-collapse: collapse;
+  background: var(--surface);
+  border-collapse: separate;
+  border-radius: 8px;
+  border-spacing: 0;
   font-size: 0.86rem;
-  margin: 0 0 10px;
+  margin: 0 0 12px;
+  overflow: hidden;
   width: 100%;
 }
 
 .conflict-table th,
 .conflict-table td {
-  border-top: 1px solid var(--line);
-  padding: 6px 10px 6px 0;
+  border-bottom: 1px solid var(--line);
+  color: var(--ink);
+  padding: 7px 10px;
   text-align: left;
   vertical-align: top;
 }
 
+.conflict-table tbody tr:last-child th,
+.conflict-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
 .conflict-table thead th {
-  border-top: 0;
-  color: var(--muted);
-  font-size: 0.72rem;
-  font-weight: 700;
+  color: var(--faint);
+  font-size: 0.7rem;
+  font-weight: 600;
   letter-spacing: 0.05em;
   text-transform: uppercase;
 }
 
 .conflict-table tbody th {
-  color: var(--muted);
-  font-weight: 600;
-  width: 28%;
+  color: var(--faint);
+  font-weight: 500;
+  white-space: nowrap;
+  width: 24%;
 }
 
-.conflict-both td {
-  background: color-mix(in srgb, var(--accent) 8%, transparent);
+.conflict-same {
+  color: var(--faint);
 }
 
 .conflict-table td.conflict-kept {
@@ -7081,12 +7101,9 @@ html:has(.event-create-dialog[open]) {
 }
 
 .conflict-chip {
-  border: 1px solid var(--line);
-  border-radius: 999px;
-  color: var(--muted);
-  font-size: 0.72rem;
+  color: var(--faint);
+  font-size: 0.78rem;
   margin-left: 6px;
-  padding: 0 7px;
 }
 
 .conflict-actions {

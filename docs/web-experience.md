@@ -723,17 +723,20 @@ error visible.
 
 A save refused because the record changed since the draft was opened reads
 the newest version at once, and a newer version arriving while a draft is
-open is shown the same way: a comparison under the form headed Saved
-elsewhere while you edited, with the author and time of the newest version.
-Its table lists only the fields that differ, one column for the draft and one
-for the newest version, named by the editor's own labels (a task's labels and
-assignee by name, an event's schedule mode in words). Three ways out: Keep
-mine saves the draft over the newest version as a new version, so History
-keeps theirs; Take theirs loads the newest version and drops the draft; Merge
-fields turns the table into a choice per field, where a field only one side
-changed is kept from that side and marked kept, a field both sides changed
-starts on theirs and is highlighted, and Save merged version saves the result
-as one version. A newer version is never announced alone.
+open is shown the same way: a comparison at the top of the form's fields
+headed Saved elsewhere while you edited, with the author of the newest
+version and how long ago it was saved ("Mei, 4 minutes ago. Your draft is
+kept until you choose."). Its table lists only the fields that differ, one
+column for the draft and one for the newest version, named by the editor's
+own labels (a task's labels and assignee by name, an event's schedule mode in
+words); a field only the draft changed is marked kept, and one only the
+newest version changed reads unchanged on the draft's side. Three ways out:
+Keep mine saves the draft over the newest version as a new version, so
+History keeps theirs; Take theirs loads the newest version and drops the
+draft; Merge fields turns the table into a choice per field, where a field
+only one side changed is kept from that side, a field both sides changed
+starts on theirs, and Save merged version saves the result as one version. A
+newer version is never announced alone.
 
 ## Removing things
 
