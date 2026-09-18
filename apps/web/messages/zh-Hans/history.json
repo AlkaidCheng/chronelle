@@ -32,10 +32,8 @@
   "confirmRestore": "确认还原",
   "nothingToRestore": "没有可还原的更改，或你的访问权限为只读。",
   "eyebrow": "对象历史",
-  "objectId": "对象 ID",
   "close": "关闭历史",
   "closeShort": "关闭",
-  "intro": "同一对象的已保存版本。历史遵循当前访问权限。",
   "loading": "正在加载历史",
   "version": "版本 {version}",
   "system": "系统",
@@ -86,8 +84,10 @@
     "userId": "关联账号",
     "customProperty": "自定义属性：{name}"
   },
-  "changeLine": "{field}：{before} 改为 {after}",
+  "changeLine": "<f>{field}：</f><from>{before}</from> <to>改为</to> {after}",
   "more": "另有 {count} 个字段",
   "kindContent": "已编辑（内容）",
-  "kindLayout": "已排列（布局）"
+  "kindLayout": "已排列（布局）",
+  "compareShort": "比较",
+  "previewShort": "预览"
 }

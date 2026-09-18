@@ -3976,14 +3976,6 @@ ul.resource-list {
 .history-drawer::backdrop {
   background: var(--scrim);
 }
-.history-object-id {
-  color: var(--muted);
-  display: block;
-  font-size: 0.72rem;
-  margin-top: 4px;
-  overflow-wrap: anywhere;
-}
-
 .history-header {
   display: flex;
   justify-content: space-between;
@@ -3996,33 +3988,78 @@ ul.resource-list {
 .history-header > button {
   flex-shrink: 0;
 }
+/* The saved versions as one card of rows: the version with its kind as a
+   chip, when and by whom, then up to three changed fields, the value it
+   had struck through before the value it took; Compare and Preview at
+   the end. */
 .history-list {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 12px;
   list-style: none;
-  margin: 24px 0;
+  margin: 18px 0 0;
+  overflow: hidden;
   padding: 0;
 }
 .history-list > li {
-  display: flex;
-  justify-content: space-between;
   align-items: start;
-  flex-wrap: wrap;
+  border-top: 1px solid var(--line);
+  display: grid;
   gap: 12px;
-  padding: 16px 0;
-  border-bottom: 1px solid var(--line);
+  grid-template-columns: minmax(0, 1fr) auto;
+  padding: 12px 16px;
 }
-.history-list p {
-  font-size: 0.82rem;
-  margin: 6px 0 0;
+.history-list > li:first-child {
+  border-top: 0;
+}
+.history-row-copy {
+  min-width: 0;
+}
+.history-row-head {
+  align-items: baseline;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0;
+}
+.history-row-head strong {
+  font-weight: 600;
+}
+.history-kind {
+  background: var(--surface-subtle);
+  border-radius: 4px;
+  color: var(--muted);
+  font-size: 0.72rem;
+  padding: 1px 7px;
+}
+.history-kind-layout {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+.history-meta {
+  color: var(--faint);
+  font-size: 0.76rem;
+  margin: 2px 0 0;
 }
 .history-actions {
+  align-items: start;
   display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
+  gap: 4px;
+}
+.history-actions .link-button {
+  border-radius: 6px;
+  padding: 4px 8px;
+}
+.history-actions .link-button:hover {
+  background: var(--surface-subtle);
+  text-decoration: none;
 }
 /* A row's preview of its change: one line per field, values on one line. */
 .history-change-lines {
-  color: var(--muted);
+  color: var(--ink);
+  display: grid;
   font-size: 0.8rem;
+  gap: 2px;
   list-style: none;
   margin: 6px 0 0;
   padding: 0;
@@ -4032,11 +4069,18 @@ ul.resource-list {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.history-kind {
-  color: var(--muted);
-  font-size: 0.78rem;
-  font-weight: 500;
-  margin: 2px 0 0;
+.history-field,
+.history-to,
+.history-more {
+  color: var(--faint);
+}
+.history-from {
+  color: var(--faint);
+  text-decoration: line-through;
+}
+.history-more {
+  color: var(--accent);
+  font-size: 0.76rem;
 }
 .history-preview,
 .history-comparison {

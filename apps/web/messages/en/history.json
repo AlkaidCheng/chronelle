@@ -32,10 +32,8 @@
   "confirmRestore": "Confirm restore",
   "nothingToRestore": "There are no eligible changes to restore, or your access is read-only.",
   "eyebrow": "Object history",
-  "objectId": "Object ID",
   "close": "Close history",
   "closeShort": "Close",
-  "intro": "Saved versions of one canonical object. History follows current access.",
   "loading": "Loading history",
   "version": "Version {version}",
   "system": "System",
@@ -86,8 +84,10 @@
     "userId": "Linked account",
     "customProperty": "Custom property: {name}"
   },
-  "changeLine": "{field}: {before} to {after}",
+  "changeLine": "<f>{field}:</f> <from>{before}</from> <to>to</to> {after}",
   "more": "+{count, plural, one {# field} other {# fields}}",
   "kindContent": "Edited (content)",
-  "kindLayout": "Arranged (layout)"
+  "kindLayout": "Arranged (layout)",
+  "compareShort": "Compare",
+  "previewShort": "Preview"
 }

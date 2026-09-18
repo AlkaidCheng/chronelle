@@ -32,10 +32,8 @@
   "confirmRestore": "確認還原",
   "nothingToRestore": "沒有可還原的變更，或你的存取權限為唯讀。",
   "eyebrow": "物件歷史",
-  "objectId": "物件 ID",
   "close": "關閉歷史",
   "closeShort": "關閉",
-  "intro": "同一物件的已儲存版本。歷史遵循目前存取權限。",
   "loading": "正在載入歷史",
   "version": "版本 {version}",
   "system": "系統",
@@ -86,8 +84,10 @@
     "userId": "連結帳號",
     "customProperty": "自訂屬性：{name}"
   },
-  "changeLine": "{field}：{before} 改為 {after}",
+  "changeLine": "<f>{field}：</f><from>{before}</from> <to>改為</to> {after}",
   "more": "另有 {count} 個欄位",
   "kindContent": "已編輯（內容）",
-  "kindLayout": "已排列（版面）"
+  "kindLayout": "已排列（版面）",
+  "compareShort": "比較",
+  "previewShort": "預覽"
 }
