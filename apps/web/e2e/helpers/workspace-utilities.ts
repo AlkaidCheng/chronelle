@@ -1,6 +1,7 @@
 import { expect, type Page, type TestInfo } from "@playwright/test";
 import { expectHorizontalReflow } from "./page-navigation";
 import { moreTrigger, openAccountMenu, openThemePanel } from "./quiet-chrome";
+import { openEventView } from "./event-view";
 
 export async function exerciseWorkspaceUtilities(
   page: Page,
@@ -68,7 +69,7 @@ export async function exerciseWorkspaceUtilities(
   await expect(theme).toHaveCount(0);
   await expect(moreTrigger(page)).toBeFocused();
 
-  await page.getByRole("tab", { name: "To-dos", exact: true }).click();
+  await openEventView(page, "To-dos");
   await page.getByRole("button", { name: /^Filter/ }).click();
   await page.getByRole("menuitemradio", { name: "All", exact: true }).click();
   await page.keyboard.press("Escape");

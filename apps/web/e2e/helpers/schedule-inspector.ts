@@ -1,13 +1,14 @@
 import { expect, type Page, type TestInfo } from "@playwright/test";
 import { expectToken } from "./appearance";
 import { expectHorizontalReflow } from "./page-navigation";
+import { openEventView } from "./event-view";
 
 export async function exerciseScheduleInspector(
   page: Page,
   testInfo: TestInfo,
 ) {
-  await page.getByRole("tab", { name: "Overview", exact: true }).click();
-  await page.getByRole("tab", { name: "Calendar", exact: true }).click();
+  await openEventView(page, "Overview");
+  await openEventView(page, "Calendar");
   const calendarUrl = page.url();
   const calendar = page
     .locator(".planning-panel")
@@ -86,7 +87,7 @@ export async function exerciseScheduleInspector(
       exact: true,
     }),
   ).toBeVisible();
-  await page.getByRole("tab", { name: "Timeline", exact: true }).click();
+  await openEventView(page, "Timeline");
   await expect(
     page.getByRole("heading", {
       name: "Recovered schedule item",

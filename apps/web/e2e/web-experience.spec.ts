@@ -6,6 +6,7 @@ import {
   chooseEventFilter,
   signOutFromMenu,
 } from "./helpers/quiet-chrome";
+import { openEventView } from "./helpers/event-view";
 
 test("organizes events and keeps navigation usable across reloads and screen sizes", async ({
   page,
@@ -80,7 +81,7 @@ test("organizes events and keeps navigation usable across reloads and screen siz
   await expect(page.getByRole("button", { name: "New event" })).toBeFocused();
   await page.getByRole("link", { name: /Autumn gathering/u }).click();
   await expect(page).toHaveURL(/\/events\/[0-9a-f-]+$/u);
-  await page.getByRole("tab", { name: "Overview", exact: true }).click();
+  await openEventView(page, "Overview");
   await expect(
     page.getByRole("heading", { name: "Next up", exact: true }),
   ).toBeVisible();
@@ -91,7 +92,7 @@ test("organizes events and keeps navigation usable across reloads and screen siz
     path: testInfo.outputPath("event-overview.png"),
     fullPage: true,
   });
-  await page.getByRole("tab", { name: "Calendar", exact: true }).click();
+  await openEventView(page, "Calendar");
   await expect(page).toHaveURL(/\?view=calendar$/u);
   const viewRequests: string[] = [];
   page.on("request", (request) => {
@@ -109,7 +110,7 @@ test("organizes events and keeps navigation usable across reloads and screen siz
   ).toBeVisible();
   expect(viewRequests.some((path) => path.endsWith("/calendar"))).toBe(true);
   expect(viewRequests.some((path) => path.endsWith("/detail"))).toBe(false);
-  await page.getByRole("tab", { name: "To-dos" }).click();
+  await openEventView(page, "To-dos");
   await page.goBack();
   await expect(page.getByRole("tab", { name: "Calendar" })).toHaveAttribute(
     "aria-selected",
@@ -124,7 +125,7 @@ test("organizes events and keeps navigation usable across reloads and screen siz
   );
   await page.getByRole("button", { name: "Cancel", exact: true }).click();
   await page.getByRole("button", { name: "Discard", exact: true }).click();
-  await page.getByRole("tab", { name: "Overview" }).click();
+  await openEventView(page, "Overview");
   await expect(
     page.getByRole("heading", { name: "Next up", exact: true }),
   ).toBeVisible();

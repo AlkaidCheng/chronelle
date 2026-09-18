@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { openEventPage } from "../../e2e/helpers/event-view";
 
 const sandboxUrl = new URL(
   "../../../../.chronelle/sandbox/chronelle.html",
@@ -76,10 +77,7 @@ test("composes named pages with canonical tasks and preserves the layout offline
       exact: true,
     })
     .click();
-  await page
-    .getByRole("navigation", { name: "Pages", exact: true })
-    .getByRole("button", { name: "Preparation", exact: true })
-    .click();
+  await openEventPage(page, "Preparation");
   await page.getByRole("button", { name: /^Filter/ }).click();
   await page.getByRole("menuitemradio", { name: "All", exact: true }).click();
   await page.keyboard.press("Escape");

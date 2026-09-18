@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import { expect, type Page, test } from "./fixtures";
 import { switchWorkspace } from "./helpers/quiet-chrome";
 import { chooseRowAction } from "./helpers/row-menu";
+import { openEventView } from "./helpers/event-view";
 
 const signIn = async (page: Page, name: string, email: string) => {
   await page.goto("/sign-in/development");
@@ -104,7 +105,7 @@ test("names where a grantee's access comes from, and nothing on the owner's own 
   await expect(accessLine(page).getByRole("button")).toHaveText(
     "Shared with you by Ana as owner",
   );
-  await page.getByRole("tab", { name: "To-dos", exact: true }).click();
+  await openEventView(page, "To-dos");
   const row = page.getByRole("row", { name: /Book the counter seats/ });
   await chooseRowAction(page, row, "Edit");
   const editor = page.getByRole("dialog", { name: "Edit task", exact: true });

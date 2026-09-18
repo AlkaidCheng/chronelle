@@ -5,6 +5,7 @@ import {
   eventResponseSchema,
   expenseResponseSchema,
 } from "@chronelle/schemas";
+import { openEventView } from "./helpers/event-view";
 
 test("preserves exact expense amounts through editing and currency summaries @webkit-desktop @webkit-mobile", async ({
   page,
@@ -54,7 +55,7 @@ test("preserves exact expense amounts through editing and currency summaries @we
   await page.getByRole("button", { name: "Continue" }).click();
   await expect(page).toHaveURL(/\/events$/u);
   await page.getByRole("link", { name: /Expense plan/ }).click();
-  await page.getByRole("tab", { name: "Overview", exact: true }).click();
+  await openEventView(page, "Overview");
   const summary = page.getByRole("button", { name: /^Expenses/ });
   await expect(summary).toContainText("$999,999,999,999,999.9998");
   await page.screenshot({
@@ -95,7 +96,7 @@ test("preserves exact expense amounts through editing and currency summaries @we
   await expect(page.getByLabel("Totals by currency")).toContainText(
     "$999,999,999,999,999.9996",
   );
-  await page.getByRole("tab", { name: "Overview", exact: true }).click();
+  await openEventView(page, "Overview");
   await expect(summary).toContainText("$999,999,999,999,999.9996");
 
   await summary.click();
@@ -162,7 +163,7 @@ test("preserves exact expense amounts through editing and currency summaries @we
     path: testInfo.outputPath("exact-money-expenses.png"),
     fullPage: true,
   });
-  await page.getByRole("tab", { name: "Overview", exact: true }).click();
+  await openEventView(page, "Overview");
   await expect(summary).toContainText("3 transactions");
   await page.reload();
   await expect(summary).toContainText("3 transactions");

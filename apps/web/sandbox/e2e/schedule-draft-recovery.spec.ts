@@ -8,6 +8,7 @@ import {
   inspectScheduleRecovery,
   reopenScheduleDraft,
 } from "../../e2e/helpers/schedule-draft-recovery";
+import { openEventView } from "../../e2e/helpers/event-view";
 
 const sandboxUrl = new URL(
   "../../../../.chronelle/sandbox/chronelle.html",
@@ -30,7 +31,7 @@ test("recovers and explicitly discards schedule drafts through offline navigatio
     .getByLabel("Schedule item", { exact: true })
     .press("ControlOrMeta+Enter");
   await expectCreatedSchedule(page);
-  await page.getByRole("tab", { name: "Calendar", exact: true }).click();
+  await openEventView(page, "Calendar");
   await page
     .getByRole("button", { name: "Add schedule item", exact: true })
     .click();

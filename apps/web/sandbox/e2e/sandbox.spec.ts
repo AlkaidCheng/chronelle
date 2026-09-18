@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { openEventView } from "../../e2e/helpers/event-view";
 
 const sandboxUrl = new URL(
   "../../../../.chronelle/sandbox/chronelle.html",
@@ -25,7 +26,7 @@ test("standalone screens work offline and preserve browser edits", async ({
     path: testInfo.outputPath("event-overview.png"),
     fullPage: true,
   });
-  await page.getByRole("tab", { name: "Calendar", exact: true }).click();
+  await openEventView(page, "Calendar");
   await expect(
     page.getByText("Welcome and coffee", { exact: true }),
   ).toBeVisible();

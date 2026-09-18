@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { openEventView } from "../../e2e/helpers/event-view";
 
 const sandboxUrl = new URL(
   "../../../../.chronelle/sandbox/chronelle.html",
@@ -27,19 +28,22 @@ test("explains empty Viewer panels and reports saved tasks offline", async ({
     ["Expenses", "No expenses recorded"],
     ["Reminders", "No reminders"],
   ] as const) {
-    await page.getByRole("tab", { name: view, exact: true }).click();
+    await openEventView(page, view);
     await expect(
       page.getByRole("heading", { name: title, exact: true }),
     ).toBeVisible();
     await expect(page.locator(".editor-form")).toHaveCount(0);
-    await expect(page.getByRole("button", { name: /^Add / })).toHaveCount(0);
+    // The strip's gallery is the one add control a viewer keeps.
+    await expect(
+      page.getByRole("button", { name: /^Add (?!a view$)/ }),
+    ).toHaveCount(0);
   }
   await page.screenshot({
     path: testInfo.outputPath("viewer-empty-state.png"),
     fullPage: true,
   });
   await page.getByLabel("Preview role").selectOption("owner");
-  await page.getByRole("tab", { name: "To-dos", exact: true }).click();
+  await openEventView(page, "To-dos");
   await page
     .getByRole("button", { name: /^Add a task/ })
     .first()

@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import { expect, type Page, test } from "./fixtures";
 import { moreTrigger } from "./helpers/quiet-chrome";
 import { setDates } from "./helpers/range-picker";
+import { openEventView } from "./helpers/event-view";
 
 // The Chinese strings the journey looks for, as escapes so the spec stays
 // ASCII like the rest of the suite.
@@ -208,7 +209,7 @@ test("switches the workspace to Simplified and Traditional Chinese and back @web
 
   // The event's People view, its Add person dialog, the person editor
   // opened from the card, and the Share view read in the language too.
-  await page.getByRole("tab", { name: hans.people, exact: true }).click();
+  await openEventView(page, hans.people);
   await page.getByRole("button", { name: hans.addPerson, exact: true }).click();
   const addPerson = page.getByRole("dialog", {
     name: hans.addPerson,

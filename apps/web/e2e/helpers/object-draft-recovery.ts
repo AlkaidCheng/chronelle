@@ -4,6 +4,7 @@ import { expectToken } from "./appearance";
 import { expectHorizontalReflow } from "./page-navigation";
 import { chooseRowAction, rowMenuButton } from "./row-menu";
 import { openPlanningEditor } from "./task-add";
+import { openEventView } from "./event-view";
 
 export const planningEditors = {
   task: {
@@ -45,13 +46,8 @@ export async function exerciseObjectRecovery(
   const { field, timeLabel, view } = planningEditors[kind];
   const rowRole = kind === "task" ? "row" : "article";
 
-  await page.getByRole("tab", { name: "Overview", exact: true }).click();
-  await page
-    .getByRole("tab", {
-      name: view,
-      exact: true,
-    })
-    .click();
+  await openEventView(page, "Overview");
+  await openEventView(page, view);
   const openEditor = () => openPlanningEditor(page, kind);
   const name = page.getByLabel(field, { exact: true });
   const recovery = page.getByRole("dialog", {

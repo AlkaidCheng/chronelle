@@ -1,5 +1,6 @@
 import { expect, type Page, type TestInfo } from "@playwright/test";
 import { openTrash } from "./quiet-chrome";
+import { openEventPage, openEventView } from "./event-view";
 
 export const navigationPageNames = [
   "Preparation and reservations for a summer together",
@@ -52,12 +53,12 @@ export async function exercisePageNavigation(page: Page, testInfo: TestInfo) {
   const pages = page.getByRole("navigation", { name: "Pages", exact: true });
   const pageButton = (name: string) =>
     pages.getByRole("button", { name, exact: true });
-  await pageButton(navigationPageNames[2]).click();
+  await openEventPage(page, navigationPageNames[2]);
   await expect(
     page.getByRole("heading", { name: navigationPageNames[2], exact: true }),
   ).toBeVisible();
   const bookmark = page.url();
-  await pageButton(navigationPageNames[1]).click();
+  await openEventPage(page, navigationPageNames[1]);
   await page.goBack();
   await expect(
     page.getByRole("heading", { name: navigationPageNames[2], exact: true }),
@@ -89,8 +90,8 @@ export async function exercisePageNavigation(page: Page, testInfo: TestInfo) {
     .getByRole("button", { name: "Close event editor", exact: true })
     .click();
   await page.getByRole("button", { name: "Discard", exact: true }).click();
-  await page.getByRole("tab", { name: "To-dos", exact: true }).click();
-  await pageButton(navigationPageNames[2]).click();
+  await openEventView(page, "To-dos");
+  await openEventPage(page, navigationPageNames[2]);
   await expect(
     page.getByRole("heading", { name: navigationPageNames[2], exact: true }),
   ).toBeVisible();

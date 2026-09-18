@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { expect, test } from "./fixtures";
 import { openTaskEditor } from "./helpers/task-add";
+import { openEventView } from "./helpers/event-view";
 
 test("retains a failed task draft and saves only after an explicit retry @webkit-desktop @webkit-mobile", async ({
   page,
@@ -14,7 +15,7 @@ test("retains a failed task draft and saves only after an explicit retry @webkit
   await page.getByRole("button", { name: "New event", exact: true }).click();
   await page.getByLabel("Event name", { exact: true }).fill("Planning review");
   await page.getByRole("button", { name: "Create event", exact: true }).click();
-  await page.getByRole("tab", { name: "To-dos", exact: true }).click();
+  await openEventView(page, "To-dos");
   await openTaskEditor(page);
   const form = page
     .locator("form")
