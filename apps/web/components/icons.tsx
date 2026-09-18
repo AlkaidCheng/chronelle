@@ -194,9 +194,10 @@ export function ShareIcon({ className }: IconProps) {
       fill="none"
       viewBox="0 0 24 24"
     >
-      <circle cx="8" cy="8" r="3" />
-      <circle cx="17" cy="9" r="2.5" />
-      <path d="M3.5 19c.5-3.5 2-5 4.5-5s4 1.5 4.5 5M14 15c2.5-.5 4.5.5 5.5 3" />
+      <circle cx="18" cy="5" r="2.5" />
+      <circle cx="6" cy="12" r="2.5" />
+      <circle cx="18" cy="19" r="2.5" />
+      <path d="M8.2 10.8l7.6-4.6M8.2 13.2l7.6 4.6" />
     </svg>
   );
 }

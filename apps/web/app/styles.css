@@ -2024,23 +2024,35 @@ p[role="alert"] {
 }
 
 /* Where access comes from, under the heading of a record the caller does not own. */
+/* Where access comes from: one pill under the heading, in the design's
+   bordered form, that opens the Sharing view when the reader may share. */
 .access-line {
   align-items: center;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 999px;
   color: var(--muted);
-  display: flex;
-  font-size: 0.85rem;
-  gap: 8px;
-  margin: 6px 0 0;
+  display: inline-flex;
+  font-size: 0.8rem;
+  gap: 6px;
+  margin: 8px 0 0;
+  padding: 3px 10px 3px 8px;
+}
+
+.access-line:has(.access-line-link):hover {
+  border-color: var(--line-strong);
+  color: var(--ink);
 }
 
 .access-line svg {
-  color: var(--muted);
-  height: 16px;
+  color: inherit;
+  flex: none;
+  height: 13px;
   stroke: currentColor;
   stroke-linecap: round;
   stroke-linejoin: round;
   stroke-width: 1.7;
-  width: 16px;
+  width: 13px;
 }
 
 .access-line-link {
@@ -2050,19 +2062,21 @@ p[role="alert"] {
   cursor: pointer;
   font: inherit;
   padding: 0;
-  text-decoration: underline;
-  text-decoration-color: var(--line-strong);
-  text-underline-offset: 3px;
+  text-decoration: none;
 }
 
 .access-line-link:hover,
 .access-line-link:focus-visible {
   color: var(--ink);
-  text-decoration-color: currentColor;
+}
+
+.access-line-link:focus-visible {
+  outline-offset: 4px;
 }
 
 .event-inspector-fields > .access-line {
   grid-column: 1 / -1;
+  justify-self: start;
   margin: 0;
 }
 
