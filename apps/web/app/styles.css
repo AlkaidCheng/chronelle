@@ -4707,6 +4707,311 @@ html:has(.event-create-dialog[open]) {
   gap: 16px;
 }
 
+/* The gallery: the event's views as cards with a two-tone mark, in a grid
+   that scrolls inside the dialog. A card is a switch: dashed once added. */
+.gallery-dialog {
+  width: min(720px, calc(100vw - 24px));
+}
+
+.gallery-dialog .event-create-body {
+  gap: 14px;
+}
+
+.gallery-intro,
+.manage-tabs-intro,
+.manage-tabs-note {
+  color: var(--muted);
+  font-size: 0.86rem;
+  line-height: 1.5;
+  margin: 0;
+}
+
+.gallery-scroll {
+  margin: 0 -2px;
+  max-height: min(62vh, 560px);
+  overflow: auto;
+  overscroll-behavior: contain;
+  padding: 2px;
+}
+
+.gallery-grid {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+}
+
+.gallery-card {
+  align-content: start;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  color: var(--ink);
+  cursor: pointer;
+  display: grid;
+  font: inherit;
+  gap: 8px;
+  justify-items: start;
+  min-height: 132px;
+  padding: 14px 14px 12px;
+  position: relative;
+  text-align: left;
+}
+
+.gallery-card:hover {
+  background: var(--surface-subtle);
+  border-color: var(--line-strong);
+}
+
+.gallery-card[data-added] {
+  border-style: dashed;
+}
+
+.gallery-card[data-fixed] {
+  cursor: default;
+}
+
+.gallery-card[data-fixed]:hover {
+  background: var(--surface);
+  border-color: var(--line);
+}
+
+.gallery-card > strong {
+  font-size: 0.88rem;
+  font-weight: 620;
+}
+
+.gallery-line {
+  color: var(--muted);
+  font-size: 0.78rem;
+  line-height: 1.35;
+}
+
+.gallery-glyph {
+  background: var(--accent-soft);
+  border-radius: 12px;
+  color: var(--accent);
+  display: grid;
+  height: 44px;
+  place-items: center;
+  width: 44px;
+}
+
+.gallery-card[data-added] .gallery-glyph {
+  background: var(--surface-subtle);
+  color: var(--muted);
+}
+
+.gallery-glyph .view-mark {
+  height: 26px;
+  width: 26px;
+}
+
+.gallery-mark {
+  align-items: center;
+  color: var(--success);
+  display: inline-flex;
+  font-size: 0.72rem;
+  font-weight: 600;
+  gap: 4px;
+  position: absolute;
+  right: 10px;
+  top: 10px;
+}
+
+.gallery-mark svg {
+  height: 13px;
+  stroke: currentColor;
+  stroke-width: 2.2;
+  width: 13px;
+}
+
+.view-mark {
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.5;
+}
+
+.view-mark .view-mark-soft {
+  fill: currentColor;
+  opacity: 0.25;
+  stroke: none;
+}
+
+/* Manage tabs: one list per side of the bar, each capped and scrolling;
+   drag or the grip's arrow keys reorder, the eye hides, the cross removes. */
+.manage-tabs-dialog {
+  width: min(460px, calc(100vw - 24px));
+}
+
+.manage-tabs-dialog .event-create-body {
+  gap: 12px;
+}
+
+.manage-tabs-section {
+  display: grid;
+  gap: 4px;
+}
+
+.manage-tabs-heading {
+  align-items: center;
+  color: var(--faint);
+  display: flex;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  margin: 4px 0 0;
+  text-transform: uppercase;
+}
+
+.manage-tabs-action {
+  background: none;
+  border: 0;
+  color: var(--accent);
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0;
+  margin-left: auto;
+  padding: 4px 0;
+  text-transform: none;
+}
+
+.manage-tabs-action:hover {
+  text-decoration: underline;
+}
+
+.manage-tabs-empty {
+  color: var(--faint);
+  font-size: 0.86rem;
+  margin: 0;
+  padding: 7px 6px;
+}
+
+.manage-tabs-list {
+  list-style: none;
+  margin: 0;
+  max-height: 196px;
+  overflow: auto;
+  overscroll-behavior: contain;
+  padding: 0;
+  scrollbar-gutter: stable;
+}
+
+.manage-tabs-row {
+  align-items: center;
+  border-radius: 8px;
+  display: grid;
+  font-size: 0.86rem;
+  gap: 10px;
+  grid-template-columns: 14px 18px minmax(0, 1fr) auto auto;
+  padding: 5px 6px;
+}
+
+.manage-tabs-row:hover {
+  background: var(--surface-subtle);
+}
+
+.manage-tabs-row[data-hidden] {
+  color: var(--muted);
+}
+
+.manage-tabs-row[data-dragging] {
+  opacity: 0.4;
+}
+
+.manage-tabs-row[data-drop="before"] {
+  box-shadow: 0 -2px 0 0 var(--accent);
+}
+
+.manage-tabs-row[data-drop="after"] {
+  box-shadow: 0 2px 0 0 var(--accent);
+}
+
+.manage-tabs-grip {
+  align-items: center;
+  background: none;
+  border: 0;
+  border-radius: 5px;
+  color: var(--faint);
+  cursor: grab;
+  display: flex;
+  height: 22px;
+  justify-content: center;
+  padding: 0;
+  width: 14px;
+}
+
+.manage-tabs-grip svg {
+  height: 14px;
+  width: 14px;
+}
+
+.manage-tabs-mark {
+  color: var(--muted);
+  display: grid;
+  place-items: center;
+}
+
+.manage-tabs-mark .view-mark {
+  height: 16px;
+  width: 16px;
+}
+
+.manage-tabs-name {
+  align-items: center;
+  display: flex;
+  gap: 8px;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.manage-tabs-state {
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  color: var(--faint);
+  font-size: 0.68rem;
+  padding: 0 6px;
+}
+
+.manage-tabs-control {
+  background: none;
+  border: 0;
+  border-radius: 6px;
+  color: var(--faint);
+  cursor: pointer;
+  display: grid;
+  font: inherit;
+  font-size: 1.05rem;
+  height: 26px;
+  line-height: 1;
+  padding: 0;
+  place-items: center;
+  width: 26px;
+}
+
+.manage-tabs-control svg {
+  height: 14px;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.7;
+  width: 14px;
+}
+
+.manage-tabs-control:hover {
+  background: var(--surface);
+  color: var(--ink);
+}
+
+.manage-tabs-remove:hover {
+  color: var(--danger);
+}
+
 .page-preset-dialog .event-create-body {
   gap: 16px;
 }
@@ -6370,62 +6675,68 @@ html:has(.event-create-dialog[open]) {
   gap: 2px;
 }
 
+/* The strip under the event title: pages, a bar, then the views, on one
+   line that never wraps; what does not fit folds into the chip at its end. */
 .event-strip {
   align-items: center;
   border-bottom: 1px solid var(--line-strong);
   display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
+  gap: 2px;
   margin-top: 20px;
   min-width: 0;
+  /* Sideways overflow is clipped until the fold settles; the menus that
+     hang below a control stay in view. */
+  overflow-x: clip;
+  overflow-y: visible;
 }
 
+.event-strip [hidden] {
+  display: none;
+}
+
+/* Inside the strip the tab list is one part of the line, not the phone's
+   full-bleed scroller. */
 .event-strip .tab-list {
   border-bottom: 0;
-  flex: 1 1 360px;
-  min-width: 0;
+  flex: none;
+  gap: 2px;
+  margin: 0;
+  overflow: visible;
+  padding: 0;
 }
 
 .event-strip-pages {
   align-items: center;
   display: flex;
-  flex: 0 1 auto;
+  flex: none;
   gap: 2px;
-  max-width: 100%;
-  min-width: 0;
 }
 
-.event-strip-scroller {
-  display: flex;
-  flex: 0 1 auto;
-  gap: 2px;
-  min-width: 0;
-  overflow-x: auto;
-  scrollbar-width: none;
-}
-
-.event-strip-scroller > button {
+.event-strip .event-tab {
   background: transparent;
   border: 0;
   border-bottom: 2px solid transparent;
   color: var(--muted);
   cursor: pointer;
-  font-size: 0.78rem;
-  font-weight: 700;
+  flex: none;
+  font-size: 0.82rem;
+  font-weight: 600;
   margin-bottom: -1px;
-  max-width: min(220px, 100%);
+  max-width: min(220px, 36vw);
   overflow: hidden;
-  padding: 14px 12px 13px;
+  padding: 11px 11px 10px;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.event-strip-scroller > button:hover,
-.event-strip-scroller > button[aria-current="page"] {
+.event-strip .event-tab:hover,
+.event-strip .event-tab[aria-current="page"],
+.event-strip .event-tab.active {
   color: var(--accent);
 }
 
-.event-strip-scroller > button[aria-current="page"] {
+.event-strip .event-tab[aria-current="page"],
+.event-strip .event-tab.active {
   border-bottom-color: var(--accent);
 }
 
@@ -6446,12 +6757,35 @@ html:has(.event-create-dialog[open]) {
   width: 15px;
 }
 
-.event-strip-gap {
+.event-strip-bar {
   background: var(--line-strong);
-  flex-shrink: 0;
-  height: 16px;
+  flex: none;
+  height: 18px;
   margin: 0 6px;
   width: 1px;
+}
+
+.event-strip-end {
+  align-items: center;
+  display: inline-flex;
+  flex: none;
+  gap: 2px;
+}
+
+/* The fold chip: a text control in the icon control's place, without its tooltip. */
+.event-strip-more .icon-control {
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  color: var(--muted);
+  font-size: 0.75rem;
+  font-weight: 600;
+  height: 26px;
+  padding: 0 9px;
+  width: auto;
+}
+
+.event-strip-more .icon-control::after {
+  content: none;
 }
 
 .event-pages {
@@ -6608,10 +6942,6 @@ html:has(.event-create-dialog[open]) {
 
   .mobile-view-select {
     margin-top: 16px;
-  }
-
-  .event-strip-gap {
-    display: none;
   }
 }
 

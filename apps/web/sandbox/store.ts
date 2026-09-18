@@ -51,6 +51,7 @@ import {
   workspaceMemberSchema,
 } from "@chronelle/schemas";
 import { eventPeriod } from "../lib/event-collection";
+import { mergeEventTabs } from "../lib/event-tabs";
 import { compareNames } from "../lib/format";
 import { sandboxStorageKey } from "./storage-key";
 
@@ -68,10 +69,10 @@ interface State {
   relations: RelationResponse[];
   layouts: EventLayoutResponse[];
   labels: LabelResponse[];
-  /** The sample account's language, zone, clock, week start, and rail, as Settings and the rail keep them. */
+  /** The sample account's language, zone, clock, week start, rail, and event tabs, as Settings, the rail, and the strips keep them. */
   preferences: Pick<
     Preferences,
-    "locale" | "timeZone" | "hourCycle" | "weekStart" | "rail"
+    "locale" | "timeZone" | "hourCycle" | "weekStart" | "rail" | "eventTabs"
   >;
   /** The sample account's friends, requests, and sent invitations, as the Friends page keeps them. */
   friends: FriendsResponse;
@@ -137,6 +138,7 @@ const defaultPreferences: State["preferences"] = {
   hourCycle: null,
   weekStart: null,
   rail: {},
+  eventTabs: {},
 };
 
 class SandboxError extends Error {
@@ -445,6 +447,7 @@ function parseState(raw: string): State {
       hourCycle: true,
       weekStart: true,
       rail: true,
+      eventTabs: true,
     })
     .parse("preferences" in value ? value.preferences : {});
   const friends = friendsResponseSchema.parse(
@@ -1761,6 +1764,10 @@ export class SandboxStore {
             input.rail === undefined
               ? this.#state.preferences.rail
               : (input.rail ?? {}),
+          eventTabs: mergeEventTabs(
+            this.#state.preferences.eventTabs,
+            input.eventTabs,
+          ),
         },
       });
       return this.#user();

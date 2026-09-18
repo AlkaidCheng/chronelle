@@ -514,17 +514,39 @@ not yet reviewed the two Chinese catalogs; wording may change.
   Storage restrictions do not prevent using either layout.
 - Event views have bookmarkable URLs, such as `/events/OBJECT_ID?view=calendar`.
   Reload and browser Back/Forward preserve the selected view. A mobile view
-  selector provides direct access to views beyond the visible tab strip.
-  Close the Event inspector before using background page navigation.
+  selector lists the views on the strip (and the one shown, if it is off the
+  strip). A view reached by its address shows even while hidden from or
+  removed off the strip. Close the Event inspector before using background
+  page navigation.
 - Named pages use the independent `page` query parameter. Selecting a view
   preserves the selected page; reload and browser Back/Forward restore it.
   A missing page shows an explanation and the first available page. This is
   navigation state, not an Event or layout mutation, and conveys no access.
-- The event strip holds the pages first, a plus to add one, then the data
-  views (Overview, To-dos, and the rest); it scrolls sideways and keeps the
-  selected page in view on resize. The page heading retains its full name, and
-  the quiet Events link above the title returns to the collection. An undated
-  event shows no date line; Set dates opens the editor on the schedule.
+- The event strip holds the pages first, a plus to add one (the Add page
+  dialog), a bar, then the views the account keeps on the event, and a plus
+  that opens the gallery. The strip never wraps: the tabs that do not fit
+  fold, from the end, into one chip ("+N more") that lists them; the current
+  tab never folds. The page heading retains its full name, and the quiet
+  Events link above the title returns to the collection. An undated event
+  shows no date line; Set dates opens the editor on the schedule.
+- The gallery (Add a view, or Add view in Manage tabs) shows every
+  specialized view as a card with a mark, a name and one line: To-dos,
+  Calendar, Timeline, Expenses, Reminders, Files, People, and Sharing for an
+  account that may share. A card is a switch: pressing it puts the view on
+  the strip, at the end, or takes it off the event again; the dialog stays
+  open. To-dos and Sharing are always on. Taking a view off changes no
+  records; it comes back with everything in it.
+- Manage tabs (the event's More menu) lists the pages and the views in two
+  lists, each capped in height and scrolling. A row drags to reorder, or its
+  grip moves it with the arrow keys; the eye hides a tab but keeps it listed;
+  the cross takes a view off the event. Overview, To-dos, Sharing and Removed
+  links can be hidden but not removed; pages are removed through their own
+  options. New page opens the Add page dialog; Add view opens the gallery.
+  Page order is the event's layout, shared by everyone with access and undone
+  like any layout change; the views' order and the hidden and removed sets
+  are the account's own, kept per event with the account preferences and
+  applied on every device. A hidden view is still reached from the Overview
+  rows and from its address.
 - The Overview lists what the event holds as rows (Open to-dos, Scheduled
   items, Expenses, Reminders, Files, People), each with its count and a way
   into that view, then Next up as one row; there is no introduction above

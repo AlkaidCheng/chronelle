@@ -652,3 +652,17 @@ export function RedoIcon({ className }: IconProps) {
     </svg>
   );
 }
+
+export function TabsIcon({ className }: IconProps) {
+  return (
+    <svg
+      aria-hidden="true"
+      className={className}
+      fill="none"
+      viewBox="0 0 24 24"
+    >
+      <rect x="3" y="7" width="18" height="13" rx="2" />
+      <path d="M3 11h18M7 7V5.5A1.5 1.5 0 0 1 8.5 4h3A1.5 1.5 0 0 1 13 5.5V7" />
+    </svg>
+  );
+}
