@@ -153,15 +153,24 @@ export function QuickAddRow({
   return (
     <form
       className="quick-add is-open"
+      onBlur={(event) => {
+        // Leaving the empty row (not moving within it) puts it back.
+        if (
+          !isPending &&
+          value.trim() === "" &&
+          !(
+            event.relatedTarget instanceof Node &&
+            event.currentTarget.contains(event.relatedTarget)
+          )
+        )
+          close();
+      }}
       onSubmit={(event) => void submit(event)}
     >
       <PlusIcon />
       <div className="quick-add-field">
         <input
           aria-label={name}
-          onBlur={() => {
-            if (!isPending && value.trim() === "") close();
-          }}
           onChange={(event) =>
             slots.update(slot, { value: event.target.value, error: null })
           }

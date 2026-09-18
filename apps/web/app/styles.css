@@ -5765,6 +5765,20 @@ html:has(.event-create-dialog[open]) {
   right: 0;
 }
 
+/* A list that would run under the viewport's bottom (or the phone's rail)
+   opens upward instead. */
+.quiet-menu-list[data-place="up"] {
+  bottom: calc(100% + 4px);
+  top: auto;
+}
+
+.head-menu-list[data-place="up"] {
+  bottom: 100%;
+  margin-bottom: 4px;
+  margin-top: 0;
+  top: auto;
+}
+
 .quiet-menu-start {
   left: 0;
 }

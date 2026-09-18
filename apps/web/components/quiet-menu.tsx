@@ -4,6 +4,7 @@ import {
   createContext,
   type KeyboardEvent as ReactKeyboardEvent,
   type ReactNode,
+  type RefObject,
   useCallback,
   useContext,
   useEffect,
@@ -24,6 +25,34 @@ const CloseContext = createContext<((returnFocus?: boolean) => void) | null>(
  * not focus the pressed control in every browser, so a key handler on the
  * list alone would miss it.
  */
+/** What a menu keeps clear of at the bottom: the rail on a phone, a hair elsewhere. */
+function reservedBottom(): number {
+  return typeof window.matchMedia === "function" &&
+    window.matchMedia("(max-width: 760px)").matches
+    ? 96
+    : 8;
+}
+
+/**
+ * Opens a list upward when it would run under the bottom of the viewport
+ * (or the phone's rail) and there is more room above: the list gets
+ * `data-place="up"`, which the stylesheet anchors to the control's top.
+ */
+export function useMenuPlacement(
+  open: boolean,
+  menu: RefObject<HTMLElement | null>,
+) {
+  useLayoutEffect(() => {
+    const element = menu.current;
+    if (!open || element === null) return;
+    delete element.dataset.place;
+    const bounds = element.getBoundingClientRect();
+    const limit = window.innerHeight - reservedBottom();
+    if (bounds.bottom > limit && bounds.top - bounds.height > 0)
+      element.dataset.place = "up";
+  }, [open, menu]);
+}
+
 export function useMenuDismissal(
   open: boolean,
   contains: (target: Node) => boolean,
@@ -127,6 +156,7 @@ export function QuietMenu({
     if (align === "start" && bounds.right > width) setSide("end");
     else if (align === "end" && bounds.left < 0) setSide("start");
   }, [open, align]);
+  useMenuPlacement(open, menu);
 
   useEffect(() => {
     if (open) focusFirstMenuItem(menu.current);

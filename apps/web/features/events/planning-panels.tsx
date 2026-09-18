@@ -9,7 +9,14 @@ import type {
   TimelineResponse,
 } from "@chronelle/schemas";
 import { useTranslations } from "next-intl";
-import { useCallback, useMemo, useRef, useState } from "react";
+import {
+  type RefObject,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { EmptyState, ErrorNotice } from "../../components/feedback";
 import { AddRow, useQuickAddSlots } from "../../components/quick-add-row";
 import { RowMenu, type RowMenuEntry } from "../../components/row-menu";
@@ -111,6 +118,25 @@ function namedChoices(
   );
 }
 
+/**
+ * Brings focus back to a panel's add row once its editor closes. The row the
+ * editor came from is closed by then, and the list may replace the row as it
+ * takes its first item, so for a moment after the close every render that
+ * finds focus lost (on the body or the workspace) moves it to the row.
+ */
+function useReturnFocusToAddRow(panel: RefObject<HTMLElement | null>) {
+  const until = useRef(0);
+  useEffect(() => {
+    if (Date.now() > until.current) return;
+    const active = document.activeElement;
+    if (active === document.body || active?.id === "workspace-content")
+      panel.current?.querySelector<HTMLElement>(".quick-add")?.focus();
+  });
+  return useCallback(() => {
+    until.current = Date.now() + 1500;
+  }, []);
+}
+
 export function TasksPanel({
   canEdit,
   eventId,
@@ -140,14 +166,11 @@ export function TasksPanel({
     dueOn: string | null;
   } | null>(null);
   const panel = useRef<HTMLElement>(null);
+  const returnFocus = useReturnFocusToAddRow(panel);
   const closeAdding = useCallback(() => {
     setAdding(null);
-    // The editor returns focus to the row it came from, which is closed by then.
-    setTimeout(
-      () => panel.current?.querySelector<HTMLElement>(".quick-add")?.focus(),
-      0,
-    );
-  }, []);
+    returnFocus();
+  }, [returnFocus]);
   const [parent, setParent] = useState<SubtaskParent | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const refresh = useRefreshEvent(eventId);
@@ -741,13 +764,11 @@ export function RemindersPanel({
     remindAt: string;
   } | null>(null);
   const panel = useRef<HTMLElement>(null);
+  const returnFocus = useReturnFocusToAddRow(panel);
   const closeAdding = useCallback(() => {
     setAdding(null);
-    setTimeout(
-      () => panel.current?.querySelector<HTMLElement>(".quick-add")?.focus(),
-      0,
-    );
-  }, []);
+    returnFocus();
+  }, [returnFocus]);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [announcement, setAnnouncement] = useState("");
   const update = useUpdateReminder();

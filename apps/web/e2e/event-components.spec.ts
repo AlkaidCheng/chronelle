@@ -126,7 +126,10 @@ test("composes planning and private-file components with canonical updates and v
     has: page.getByRole("heading", { name: "Reminders", exact: true }),
   });
   await reminder
-    .getByRole("button", { name: "Add reminder", exact: true })
+    .getByRole("button", { name: "Add a reminder to the list", exact: true })
+    .click();
+  await page
+    .getByRole("button", { name: "Add reminder with details", exact: true })
     .click();
   const reminderDialog = page.getByRole("dialog", {
     name: "Add reminder",
