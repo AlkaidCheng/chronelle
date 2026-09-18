@@ -13,16 +13,18 @@ import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 
 import { readLocaleChoice } from "../i18n/locale-preference";
+import { takeAfterSignIn } from "./after-sign-in";
 import { useApiClient } from "./api-context";
 import { useAuthSession } from "./auth-session";
 import { useAdoptAccountLocale } from "./queries";
 
-/** Leaves an account screen once a session exists. */
+/** Leaves an account screen once a session exists, for the page that asked for one, else Events. */
 export function useRedirectWhenSignedIn(): void {
   const auth = useAuthSession();
   const router = useRouter();
   useEffect(() => {
-    if (auth.isHydrated && auth.credential !== null) router.replace("/events");
+    if (auth.isHydrated && auth.credential !== null)
+      router.replace(takeAfterSignIn() ?? "/events");
   }, [auth.credential, auth.isHydrated, router]);
 }
 

@@ -16,5 +16,15 @@
   "signOutEverywhereNote": "結束此帳號的所有工作階段，包括目前這一個。",
   "appearanceNote": "外觀設定儲存在此瀏覽器中。側欄的「主題」提供相同的選項。",
   "workspace": "工作區",
-  "members": "成員"
+  "members": "成員",
+  "username": "使用者名稱",
+  "usernameNote": "註冊時選定，目前不可更改。你的 QR 碼和個人連結都使用它。",
+  "whoCanFind": "誰能找到你",
+  "byUsername": "透過使用者名稱",
+  "byUsernameNote": "一律開啟。@{username} 是好友找到你的方式，也是 QR 碼的內容。",
+  "byName": "透過姓名",
+  "byNameNote": "在「尋找夥伴」中輸入「{name}」。",
+  "byEmail": "透過電郵",
+  "byEmailNote": "輸入 {email} 的人能看到你。關閉後對方什麼也看不到。",
+  "byEmailNoteNone": "此帳戶沒有可供尋找的電郵。"
 }

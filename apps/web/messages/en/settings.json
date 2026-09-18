@@ -16,5 +16,15 @@
   "signOutEverywhereNote": "Ends every session of this account, including this one.",
   "appearanceNote": "Appearance is kept on this browser. The Theme entry in the rail holds the same choices.",
   "workspace": "Workspace",
-  "members": "Members"
+  "members": "Members",
+  "username": "Username",
+  "usernameNote": "Chosen at sign-up; it cannot be changed yet. Your code and your profile link use it.",
+  "whoCanFind": "Who can find you",
+  "byUsername": "By username",
+  "byUsernameNote": "Always. @{username} is how friends find you and what your code says.",
+  "byName": "By name",
+  "byNameNote": "\"{name}\" in Find people.",
+  "byEmail": "By email",
+  "byEmailNote": "Someone who types {email} sees you. Off, they see nothing.",
+  "byEmailNoteNone": "This account has no email to be found by."
 }

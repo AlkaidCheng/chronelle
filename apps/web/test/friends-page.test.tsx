@@ -151,6 +151,75 @@ describe("the Friends page", () => {
     );
   });
 
+  it("finds people by name, @username, or email as they allow, and sends a request from a row", async () => {
+    const user = userEvent.setup();
+    render(<FriendsPage />, { wrapper });
+    await user.click(
+      await screen.findByRole("button", { name: "Invite a friend" }),
+    );
+    const dialog = within(
+      screen.getByRole("dialog", { name: "Invite a friend" }),
+    );
+    const search = dialog.getByRole("searchbox", { name: "Find people" });
+    await user.type(search, "chen");
+    const results = await dialog.findByRole("list", { name: "Find people" });
+    // Chen Shy hides her name; Chen Li is found; a friend and a requester
+    // show their state instead of Add friend.
+    await waitFor(() => expect(results).toHaveTextContent("Chen Li"));
+    expect(results).not.toHaveTextContent("Chen Shy");
+    expect(within(results).getByText("@chen-li")).toBeVisible();
+    await user.clear(search);
+    await user.type(search, "@shy");
+    await waitFor(() =>
+      expect(
+        dialog.getByRole("list", { name: "Find people" }),
+      ).toHaveTextContent("Chen Shy"),
+    );
+    await user.clear(search);
+    await user.type(search, "tomas.b@example.test");
+    await waitFor(() =>
+      expect(dialog.getByRole("status")).toHaveTextContent("No one matches"),
+    );
+    await user.clear(search);
+    await user.type(search, "mei");
+    await waitFor(() =>
+      expect(
+        dialog.getByRole("list", { name: "Find people" }),
+      ).toHaveTextContent("Friends"),
+    );
+    await user.clear(search);
+    await user.type(search, "chen li");
+    const row = await dialog.findByRole("list", { name: "Find people" });
+    await waitFor(() => expect(row).toHaveTextContent("Chen Li"));
+    await user.click(within(row).getByRole("button", { name: "Add friend" }));
+    await waitFor(() => expect(row).toHaveTextContent("Request sent"));
+    expect(requests).toContainEqual({
+      method: "POST",
+      path: "/api/friends/requests",
+      body: { userId: "00000000-0000-4000-8000-000000000005" },
+    });
+    await user.keyboard("{Escape}");
+    await waitFor(() =>
+      expect(screen.getByRole("region", { name: /Sent/ })).toHaveTextContent(
+        "chen.li@example.test",
+      ),
+    );
+  });
+
+  it("shows the account's code with its link", async () => {
+    const user = userEvent.setup();
+    render(<FriendsPage />, { wrapper });
+    await user.click(await screen.findByRole("button", { name: "Your code" }));
+    const dialog = within(screen.getByRole("dialog", { name: "Your code" }));
+    expect(dialog.getByRole("img", { name: /QR code/ })).toBeVisible();
+    expect(dialog.getByText("@planner")).toBeVisible();
+    expect(dialog.getByText(/\/u\/planner$/)).toBeVisible();
+    await user.click(dialog.getByRole("button", { name: "Copy link" }));
+    expect(requests.some((request) => request.path === "/api/account")).toBe(
+      false,
+    );
+  });
+
   it("removes a friend", async () => {
     const user = userEvent.setup();
     render(<FriendsPage />, { wrapper });

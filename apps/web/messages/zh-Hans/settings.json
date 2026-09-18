@@ -16,5 +16,15 @@
   "signOutEverywhereNote": "结束此账号的所有会话，包括当前这个。",
   "appearanceNote": "外观设置保存在此浏览器中。侧栏的“主题”提供同样的选项。",
   "workspace": "工作区",
-  "members": "成员"
+  "members": "成员",
+  "username": "用户名",
+  "usernameNote": "注册时选定，目前不可更改。你的二维码和个人链接都使用它。",
+  "whoCanFind": "谁能找到你",
+  "byUsername": "通过用户名",
+  "byUsernameNote": "始终开启。@{username} 是好友找到你的方式，也是二维码的内容。",
+  "byName": "通过姓名",
+  "byNameNote": "在“查找伙伴”中输入“{name}”。",
+  "byEmail": "通过邮箱",
+  "byEmailNote": "输入 {email} 的人能看到你。关闭后对方什么也看不到。",
+  "byEmailNoteNone": "此账户没有可供查找的邮箱。"
 }

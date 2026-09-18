@@ -8,12 +8,15 @@ import { useMutation } from "@tanstack/react-query";
 import { ErrorNotice } from "../../components/feedback";
 import { useApiClient } from "../../lib/api-context";
 import { useAuthSession } from "../../lib/auth-session";
+import { useUpdateAccount } from "../../lib/friend-queries";
 import { useSessionQuery } from "../../lib/queries";
 
 /**
- * The account: the name and email as the account holds them (the API
- * offers no change to either), the password screen, and a way to end every
- * session of the account, this one included.
+ * The account: the name, username, and email as the account holds them
+ * (the API offers no change to any of them; the username was chosen at
+ * sign-up), who can find the account (by username always; by name and by
+ * email as switches), the password screen, and a way to end every session
+ * of the account, this one included.
  */
 export function AccountSettings() {
   const t = useTranslations("settings");
@@ -21,6 +24,7 @@ export function AccountSettings() {
   const client = useApiClient();
   const auth = useAuthSession();
   const router = useRouter();
+  const account = useUpdateAccount();
   const signOutEverywhere = useMutation({
     mutationFn: () => client.signOutEverywhere(),
     onSuccess: () => {
@@ -37,10 +41,81 @@ export function AccountSettings() {
           <dd>{user?.displayName ?? ""}</dd>
         </div>
         <div>
+          <dt>{t("username")}</dt>
+          <dd>{user === undefined ? "" : `@${user.username}`}</dd>
+        </div>
+        <div>
           <dt>{t("email")}</dt>
           <dd>{user?.email ?? t("noEmail")}</dd>
         </div>
       </dl>
+      <p className="settings-note">{t("usernameNote")}</p>
+      <section aria-labelledby="who-can-find" className="settings-discovery">
+        <h3 className="settings-discovery-title" id="who-can-find">
+          {t("whoCanFind")}
+        </h3>
+        <div className="settings-switch">
+          <div>
+            <strong className="settings-switch-title">{t("byUsername")}</strong>
+            <p className="settings-switch-note">
+              {t("byUsernameNote", { username: user?.username ?? "" })}
+            </p>
+          </div>
+          <input
+            aria-checked="true"
+            aria-label={t("byUsername")}
+            checked
+            className="settings-switch-input"
+            disabled
+            readOnly
+            role="switch"
+            type="checkbox"
+          />
+        </div>
+        <div className="settings-switch">
+          <div>
+            <strong className="settings-switch-title">{t("byName")}</strong>
+            <p className="settings-switch-note">
+              {t("byNameNote", { name: user?.displayName ?? "" })}
+            </p>
+          </div>
+          <input
+            aria-checked={user?.findByName ?? true}
+            aria-label={t("byName")}
+            checked={user?.findByName ?? true}
+            className="settings-switch-input"
+            disabled={account.isPending || user === undefined}
+            onChange={(event) =>
+              account.mutate({ findByName: event.target.checked })
+            }
+            role="switch"
+            type="checkbox"
+          />
+        </div>
+        <div className="settings-switch">
+          <div>
+            <strong className="settings-switch-title">{t("byEmail")}</strong>
+            <p className="settings-switch-note">
+              {user?.email
+                ? t("byEmailNote", { email: user.email })
+                : t("byEmailNoteNone")}
+            </p>
+          </div>
+          <input
+            aria-checked={user?.findByEmail ?? true}
+            aria-label={t("byEmail")}
+            checked={user?.findByEmail ?? true}
+            className="settings-switch-input"
+            disabled={account.isPending || user === undefined || !user.email}
+            onChange={(event) =>
+              account.mutate({ findByEmail: event.target.checked })
+            }
+            role="switch"
+            type="checkbox"
+          />
+        </div>
+      </section>
+      {account.isError ? <ErrorNotice error={account.error} /> : null}
       <div className="settings-row">
         <div>
           <h3>{t("password")}</h3>

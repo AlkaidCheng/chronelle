@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import { act, render, screen, cleanup } from "@testing-library/react";
+import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, expect, it, vi } from "vitest";
 
@@ -61,6 +61,17 @@ vi.mock("next/navigation", () => ({
   useRouter: () => router,
   useSearchParams: () => searchParams,
 }));
+const availability = vi.hoisted(() => ({
+  data: undefined as { available: boolean } | undefined,
+}));
+vi.mock("../lib/friend-queries", () => ({
+  useUsernameAvailableQuery: (username: string, enabled: boolean) => ({
+    data:
+      enabled && username !== ""
+        ? { available: username.toLowerCase() !== "taken_one" }
+        : availability.data,
+  }),
+}));
 vi.mock("../lib/account-queries", () => ({
   useRedirectWhenSignedIn: () => undefined,
   useSignUp: () => mutations.signUp,
@@ -99,14 +110,30 @@ it("sign-up submits the account and moves to the code screen for that email", as
       options?.onSuccess?.(),
   );
   const { user } = await renderScreen(() => <SignUpPage />);
-  await user.type(screen.getByLabelText("Name"), "Person");
+  await user.type(screen.getByLabelText("Name"), "Mira Planner");
+  // The username follows the name until edited, and says when it is free.
+  const username = screen.getByRole("textbox", { name: "Username" });
+  expect(username).toHaveValue("mira-planner");
+  await waitFor(() =>
+    expect(screen.getByRole("status")).toHaveTextContent("Available"),
+  );
+  await user.clear(username);
+  await user.type(username, "taken_one");
+  await waitFor(() =>
+    expect(screen.getByRole("status")).toHaveTextContent("Taken"),
+  );
+  await user.clear(username);
+  await user.type(username, "mira_p");
+  await user.type(screen.getByLabelText("Name"), "!");
+  expect(username).toHaveValue("mira_p");
   await user.type(screen.getByLabelText("Email"), "p@example.test");
   await user.type(screen.getByLabelText("Password"), "correct horse battery");
   await user.click(screen.getByRole("button", { name: "Create account" }));
   expect(mutations.signUp.mutate.mock.calls[0]?.[0]).toEqual({
-    displayName: "Person",
+    displayName: "Mira Planner!",
     email: "p@example.test",
     password: "correct horse battery",
+    username: "mira_p",
   });
   expect(router.push).toHaveBeenCalledWith(
     "/verify-email?email=p%40example.test",

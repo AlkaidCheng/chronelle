@@ -4,7 +4,12 @@ import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { ConfirmAction } from "../../components/confirm-action";
 import { ErrorNotice, LoadingState } from "../../components/feedback";
-import { ClockIcon, MailIcon, UserPlusIcon } from "../../components/icons";
+import {
+  ClockIcon,
+  GridIcon,
+  MailIcon,
+  UserPlusIcon,
+} from "../../components/icons";
 import { useNotices } from "../../components/notices";
 import {
   useAcceptFriendRequest,
@@ -19,6 +24,7 @@ import { usePersonsQuery, useSessionQuery } from "../../lib/queries";
 import { formatRelativeTime } from "../../lib/relative-time";
 import { useDisplayPreferences } from "../../lib/use-display-preferences";
 import { InviteFriendDialog } from "./invite-friend-dialog";
+import { YourCodeDialog } from "./your-code-dialog";
 
 /**
  * Friends, reached from the profile menu. Friends belong to the account,
@@ -26,7 +32,8 @@ import { InviteFriendDialog } from "./invite-friend-dialog";
  * name, and what was sent and still waits (a request to an account, or an
  * invitation to an address without one). A sent row names the person of
  * this workspace the invitation went from, when there is one. Every action
- * answers at once; the list reads again after it.
+ * answers at once; the list reads again after it. Your code shows the QR
+ * code and link others scan to send a request.
  */
 export function FriendsPage() {
   const t = useTranslations("friends");
@@ -36,6 +43,7 @@ export function FriendsPage() {
   const { post } = useNotices();
   const friends = useFriendsQuery();
   const [inviting, setInviting] = useState(false);
+  const [showingCode, setShowingCode] = useState(false);
   const { locale, instant } = useDisplayPreferences();
   const accept = useAcceptFriendRequest();
   const decline = useDeclineFriendRequest();
@@ -70,19 +78,33 @@ export function FriendsPage() {
     <main className="workspace-page friends-page" tabIndex={-1}>
       <header className="quiet-heading">
         <h1>{t("title")}</h1>
-        <button
-          aria-haspopup="dialog"
-          className="button button-primary"
-          onClick={() => setInviting(true)}
-          type="button"
-        >
-          <UserPlusIcon />
-          {t("invite")}
-        </button>
+        <div className="quiet-heading-actions">
+          <button
+            aria-haspopup="dialog"
+            className="button button-secondary"
+            onClick={() => setShowingCode(true)}
+            type="button"
+          >
+            <GridIcon />
+            {t("yourCode")}
+          </button>
+          <button
+            aria-haspopup="dialog"
+            className="button button-primary"
+            onClick={() => setInviting(true)}
+            type="button"
+          >
+            <UserPlusIcon />
+            {t("invite")}
+          </button>
+        </div>
       </header>
       <p className="page-intro">{t("intro")}</p>
       {inviting ? (
         <InviteFriendDialog onClose={() => setInviting(false)} />
+      ) : null}
+      {showingCode ? (
+        <YourCodeDialog onClose={() => setShowingCode(false)} />
       ) : null}
       {friends.isError ? (
         <ErrorNotice
