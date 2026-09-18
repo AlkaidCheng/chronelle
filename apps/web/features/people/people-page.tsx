@@ -3,13 +3,14 @@
 import { useTranslations } from "next-intl";
 import { useEffect, useMemo, useState } from "react";
 
-import {
-  EmptyState,
-  ErrorNotice,
-  LoadingState,
-} from "../../components/feedback";
+import { ErrorNotice, LoadingState } from "../../components/feedback";
 import { IconButton } from "../../components/icon-button";
-import { PlusIcon, RefreshIcon, SearchIcon } from "../../components/icons";
+import {
+  PlusIcon,
+  RefreshIcon,
+  SearchIcon,
+  UserPlusIcon,
+} from "../../components/icons";
 import { useQuickAddSlots } from "../../components/quick-add-row";
 import {
   activePersonFilterCount,
@@ -27,23 +28,25 @@ import {
   useSessionQuery,
 } from "../../lib/queries";
 import { usePersonConnections } from "../../lib/use-person-connections";
+import { InviteFriendDialog } from "../friends/invite-friend-dialog";
 import {
+  PersonChips,
   PersonFilterControl,
   PersonLayoutControl,
   PersonSortControl,
 } from "./person-controls";
 import { PersonForm } from "./person-form";
 import { PersonInspector } from "./person-inspector";
-import { QuickAddPerson } from "./quick-add-person";
 import { PersonListing } from "./person-row";
 
 const layoutStorageKey = "chronelle.people-layout";
 
 /**
  * Everyone the workspace keeps track of, as rows or as namecards, in name
- * order unless another is chosen, narrowed by account and label. The
- * layout is a device preference like the Event collection's; the filter,
- * sort, and name query live with the tab.
+ * order unless another is chosen, narrowed by connection and label from
+ * the Filter menu or the chips under the toolbar. The layout is a device
+ * preference like the Event collection's; the filter, sort, and name
+ * query live with the tab. Invite a friend opens from the toolbar too.
  */
 export function PeoplePage() {
   const t = useTranslations("people");
@@ -55,6 +58,7 @@ export function PeoplePage() {
   const [sort, setSort] = useState<PersonSort>("name");
   const [layout, setLayout] = useState<PersonLayout>("list");
   const [isAdding, setIsAdding] = useState(false);
+  const [isInviting, setIsInviting] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   useEffect(() => {
     if (isComposing) return;
@@ -93,6 +97,7 @@ export function PeoplePage() {
     }
   }
 
+  const labelChoices = labels.data?.items ?? [];
   const context = {
     canEdit: true,
     connections,
@@ -124,7 +129,7 @@ export function PeoplePage() {
           </label>
           <PersonFilterControl
             filters={filters}
-            labels={labels.data?.items ?? []}
+            labels={labelChoices}
             onChange={setFilters}
           />
           <PersonSortControl onChange={setSort} sort={sort} />
@@ -135,6 +140,16 @@ export function PeoplePage() {
             onClick={() => void people.refetch()}
           >
             <RefreshIcon />
+          </IconButton>
+          <IconButton
+            aria-haspopup="dialog"
+            label={t("invite")}
+            onClick={(event) => {
+              event.currentTarget.focus();
+              setIsInviting(true);
+            }}
+          >
+            <UserPlusIcon />
           </IconButton>
           <IconButton
             aria-haspopup="dialog"
@@ -149,9 +164,17 @@ export function PeoplePage() {
           </IconButton>
         </div>
       </header>
+      <PersonChips
+        filters={filters}
+        labels={labelChoices}
+        onChange={setFilters}
+      />
 
       {isAdding ? (
         <PersonForm key="new" onCancel={() => setIsAdding(false)} />
+      ) : null}
+      {isInviting ? (
+        <InviteFriendDialog onClose={() => setIsInviting(false)} />
       ) : null}
 
       <section aria-labelledby="people-heading" className="event-list-section">
@@ -177,29 +200,26 @@ export function PeoplePage() {
             onRefresh={() => void people.refetch()}
           />
         ) : null}
-        {!changingQuery && people.data && items.length === 0 ? (
-          <div className="collection-empty">
-            <EmptyState title={filtered ? t("noMatch") : t("empty")} />
-            {filtered ? (
-              <button
-                className="button button-secondary"
-                onClick={() => {
-                  setQuery("");
-                  setFilters(defaultPersonFilters);
-                }}
-                type="button"
-              >
-                {controls("clearFilters")}
-              </button>
-            ) : null}
-            <div className="quick-add-item quick-add-empty">
-              <QuickAddPerson slots={quickAdd} />
-            </div>
-          </div>
-        ) : null}
-        {items.length > 0 ? (
+        {!changingQuery && people.data ? (
           <PersonListing
             context={context}
+            empty={
+              <>
+                <span>{filtered ? t("noMatch") : t("empty")}</span>
+                {filtered ? (
+                  <button
+                    className="link-button"
+                    onClick={() => {
+                      setQuery("");
+                      setFilters(defaultPersonFilters);
+                    }}
+                    type="button"
+                  >
+                    {controls("clearFilters")}
+                  </button>
+                ) : null}
+              </>
+            }
             items={items}
             label={t("listLabel")}
             layout={layout}

@@ -169,9 +169,38 @@ describe("PeoplePage", () => {
       Array.from(all.children).map((item) => item.getAttribute("aria-label")),
     ).toEqual(["adam", "Mira"]);
 
+    // The chips under the toolbar hold the same filters: a label chip
+    // narrows the list, and pressed again lets every label through.
+    const labelChips = within(screen.getByRole("group", { name: "Labels" }));
+    await user.click(labelChips.getByRole("button", { name: "family" }));
+    expect(labelChips.getByRole("button", { name: "family" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+    expect(await screen.findByText("1 person loaded")).toBeInTheDocument();
+    await user.click(labelChips.getByRole("button", { name: "family" }));
+    expect(await screen.findByText("2 people loaded")).toBeInTheDocument();
+    expect(
+      within(screen.getByRole("group", { name: "Account" })).getByRole(
+        "button",
+        { name: "Everyone" },
+      ),
+    ).toHaveAttribute("aria-pressed", "true");
+
+    // Invite a friend opens from the toolbar.
+    await user.click(screen.getByRole("button", { name: "Invite a friend" }));
+    expect(
+      screen.getByRole("dialog", { name: "Invite a friend" }),
+    ).toBeVisible();
+    await user.keyboard("{Escape}");
+
     // Namecards show the same people, and the device remembers the layout.
-    await user.click(screen.getByRole("button", { name: /^Layout/ }));
-    await user.click(screen.getByRole("menuitemradio", { name: "Namecards" }));
+    const layout = within(screen.getByRole("group", { name: "Layout" }));
+    expect(layout.getByRole("button", { name: "List" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+    await user.click(layout.getByRole("button", { name: "Namecards" }));
     const cards = await screen.findByRole("list", { name: "People" });
     expect(cards).toHaveClass("person-grid");
     expect(stored["chronelle.people-layout"]).toBe("cards");

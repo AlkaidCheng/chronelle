@@ -139,15 +139,19 @@ h3,
   padding: 0;
 }
 
-/* The list layout: one row per person on a shared grid; a press on the
-   row opens the person, the name being the link. */
-.person-list {
+/* The list layout: one card holding a row per person on a shared grid,
+   then the add row; a press on a row opens the person, the name being
+   the link. */
+.person-list-card {
   background: var(--surface);
   border: 1px solid var(--line);
-  border-radius: 14px;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.person-list {
   list-style: none;
   margin: 0;
-  overflow: hidden;
   padding: 0;
 }
 
@@ -155,12 +159,12 @@ h3,
   align-items: center;
   border-top: 1px solid var(--line);
   display: grid;
-  gap: 8px 14px;
+  gap: 8px 12px;
   grid-template-columns:
-    36px minmax(140px, 1.2fr) minmax(140px, 1fr) minmax(0, 0.9fr)
-    auto 32px;
+    36px minmax(160px, 1.2fr) minmax(150px, 1fr) minmax(120px, 0.9fr)
+    120px 32px;
   min-height: 52px;
-  padding: 8px 14px;
+  padding: 9px 14px;
 }
 
 .person-row:first-child {
@@ -174,10 +178,80 @@ h3,
 
 .person-row .row-more {
   margin-left: 0;
+  opacity: 1;
 }
 
-.person-row .task-labels {
+.person-row-cell {
+  min-width: 0;
+}
+
+.person-row .person-labels {
   margin: 0;
+}
+
+/* The add row and the empty note close the card, under the rows. */
+.person-add-row,
+.person-empty {
+  border-top: 1px solid var(--line);
+  color: var(--faint);
+  font-size: 0.84rem;
+  margin: 0;
+  min-height: 52px;
+}
+
+.person-list-card > .person-add-row:first-child,
+.person-list-card > .person-empty:first-child {
+  border-top: 0;
+}
+
+.person-empty {
+  align-items: center;
+  display: flex;
+  gap: 12px;
+  padding: 12px 14px;
+}
+
+.person-add-row {
+  padding: 8px 14px;
+}
+
+.person-add-row .quick-add {
+  gap: 12px;
+  grid-template-columns: 36px minmax(0, 1fr);
+  min-height: 36px;
+}
+
+.person-add-row .quick-add:hover,
+.person-add-row .quick-add.is-open {
+  color: var(--ink);
+}
+
+.person-add-row .quick-add > svg {
+  border: 1px dashed var(--line-strong);
+  border-radius: 50%;
+  box-sizing: border-box;
+  height: 28px;
+  padding: 6px;
+  width: 28px;
+}
+
+.person-add-row .quick-add.is-open > svg {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.link-button {
+  background: none;
+  border: 0;
+  color: var(--accent);
+  cursor: pointer;
+  font: inherit;
+  font-weight: 600;
+  padding: 0;
+}
+
+.link-button:hover {
+  text-decoration: underline;
 }
 
 .person-row-badge {
@@ -219,18 +293,36 @@ h3,
 }
 
 .person-row .person-contacts,
-.person-row .task-labels,
+.person-row .person-labels,
 .person-row .row-more,
 .person-card .person-contacts,
-.person-card .task-labels,
+.person-card .person-labels,
 .person-card .row-more {
   position: relative;
   z-index: 1;
 }
 
-.person-fullname {
+/* Labels on a person: small tags in the subtle surface. */
+.person-labels {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.person-label {
+  background: var(--surface-subtle);
+  border-radius: 4px;
   color: var(--muted);
-  font-size: 0.82rem;
+  font-size: 0.7rem;
+  padding: 1px 7px;
+}
+
+.person-fullname {
+  color: var(--faint);
+  font-size: 0.78rem;
   overflow-wrap: anywhere;
 }
 
@@ -279,7 +371,7 @@ h3,
   margin-top: auto;
 }
 
-.person-card-foot .task-labels {
+.person-card-foot .person-labels {
   margin: 0 0 0 auto;
 }
 
@@ -323,19 +415,30 @@ h3,
   padding-left: 14px;
 }
 
+/* Among namecards the add card opens the row; the row itself shows only while open. */
+.quick-add-cards:not(:has(.is-open)) {
+  display: none;
+}
+
+/* The avatar: initials in the subtle surface, in the accent for an account. */
 .person-avatar {
   align-items: center;
-  background: var(--accent-soft);
+  background: var(--surface-subtle);
   border-radius: 999px;
-  color: var(--accent);
+  color: var(--muted);
   display: inline-flex;
   flex: none;
-  font-size: 0.78rem;
+  font-size: 0.74rem;
   font-weight: 700;
-  height: 36px;
+  height: 28px;
   justify-content: center;
-  letter-spacing: 0.04em;
-  width: 36px;
+  letter-spacing: 0.02em;
+  width: 28px;
+}
+
+.person-avatar-linked {
+  background: var(--accent-soft);
+  color: var(--accent);
 }
 
 .person-avatar-card {
@@ -347,19 +450,35 @@ h3,
 .person-avatar-page {
   font-family: var(--font-display);
   font-size: 1.4rem;
+  font-weight: 600;
   height: 64px;
   letter-spacing: 0;
   width: 64px;
 }
 
+/* The connection badge: Friend in the success tone with a tick, Invited
+   in the warning tone with a clock, This is me in the accent, the rest
+   outlined. */
 .person-badge {
+  align-items: center;
   border: 1px solid var(--line);
   border-radius: 999px;
-  color: var(--muted);
-  font-size: 0.72rem;
+  color: var(--faint);
+  display: inline-flex;
+  font-size: 0.7rem;
   font-weight: 600;
-  padding: 1px 8px;
+  gap: 5px;
+  padding: 2px 8px;
   white-space: nowrap;
+}
+
+.person-badge svg {
+  height: 11px;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 2;
+  width: 11px;
 }
 
 .person-badge-me {
@@ -369,24 +488,38 @@ h3,
 }
 
 .person-badge-friend {
-  background: var(--accent-soft);
+  background: var(--success-soft);
   border-color: transparent;
-  color: var(--accent);
+  color: var(--success);
 }
 
 .person-badge-invited {
-  border-style: dashed;
+  background: var(--warning-soft);
+  border-color: transparent;
+  color: var(--warning);
+}
+
+.person-badge-linked {
+  color: var(--muted);
 }
 
 .person-email {
-  font-size: 0.85rem;
+  color: inherit;
+  font-size: inherit;
   overflow-wrap: anywhere;
+  text-decoration: none;
+}
+
+.person-email:hover {
+  text-decoration: underline;
 }
 
 .person-contacts {
+  color: var(--muted);
   display: grid;
-  font-size: 0.85rem;
+  font-size: 0.8rem;
   gap: 2px;
+  line-height: 1.3;
   list-style: none;
   margin: 0;
   overflow-wrap: anywhere;
@@ -451,7 +584,7 @@ h3,
   margin: 6px 0 0;
 }
 
-.person-subline .task-labels {
+.person-subline .person-labels {
   margin: 0;
 }
 
@@ -494,7 +627,7 @@ h3,
   }
 
   .person-row .person-contacts,
-  .person-row .task-labels,
+  .person-row .person-labels,
   .person-row-badge {
     display: none;
   }
@@ -5458,7 +5591,8 @@ html:has(.event-create-dialog[open]) {
   color: var(--on-accent);
 }
 
-.icon-control[data-tip]::after {
+.icon-control[data-tip]::after,
+.quiet-segment button[data-tip]::after {
   display: none;
   background: var(--ink);
   border-radius: 5px;
@@ -5479,7 +5613,9 @@ html:has(.event-create-dialog[open]) {
 }
 
 .icon-control[data-tip]:hover::after,
-.icon-control[data-tip]:focus-visible::after {
+.icon-control[data-tip]:focus-visible::after,
+.quiet-segment button[data-tip]:hover::after,
+.quiet-segment button[data-tip]:focus-visible::after {
   display: block;
   opacity: 1;
 }
@@ -5522,28 +5658,31 @@ html:has(.event-create-dialog[open]) {
 }
 
 .quiet-tools .icon-control-primary {
-  margin-left: 8px;
+  margin-left: 6px;
 }
 
 .inline-search {
   align-items: center;
-  border-bottom: 1px solid var(--line);
-  color: var(--muted);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: var(--faint);
   display: inline-flex;
-  gap: 8px;
-  margin-right: 10px;
-  padding: 4px 2px;
-  width: min(240px, 100%);
+  gap: 6px;
+  margin-right: 8px;
+  padding: 0 10px;
+  width: 200px;
 }
 
 .inline-search:focus-within {
-  border-bottom-color: var(--accent);
+  border-color: var(--line-strong);
+  color: var(--muted);
 }
 
 .inline-search svg {
   flex-shrink: 0;
-  height: 17px;
-  width: 17px;
+  height: 14px;
+  width: 14px;
 }
 
 .inline-search input {
@@ -5551,11 +5690,106 @@ html:has(.event-create-dialog[open]) {
   border: 0;
   color: var(--ink);
   font: inherit;
-  font-size: 0.86rem;
-  min-height: 32px;
+  font-size: 0.82rem;
+  min-height: 30px;
   min-width: 0;
   outline: 0;
   width: 100%;
+}
+
+.inline-search input::placeholder {
+  color: var(--faint);
+}
+
+/* A segmented control among the quiet tools: one pressed choice, in ink. */
+.quiet-segment {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  display: inline-grid;
+  grid-auto-flow: column;
+  margin: 0 2px;
+  min-width: 0;
+  overflow: hidden;
+  padding: 0;
+}
+
+.quiet-segment button {
+  align-items: center;
+  background: none;
+  border: 0;
+  color: var(--muted);
+  cursor: pointer;
+  display: inline-flex;
+  height: 30px;
+  justify-content: center;
+  padding: 0 10px;
+  position: relative;
+}
+
+.quiet-segment button svg {
+  height: 15px;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.7;
+  width: 15px;
+}
+
+.quiet-segment button:hover {
+  background: var(--surface-subtle);
+  color: var(--ink);
+}
+
+.quiet-segment button[aria-pressed="true"] {
+  background: var(--ink);
+  color: var(--canvas);
+}
+
+.quiet-segment button:focus-visible {
+  outline-offset: -3px;
+}
+
+/* Chips under a toolbar: the choice in force is filled with ink. */
+.chip-rows {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  justify-content: space-between;
+  margin: -10px 0 14px;
+}
+
+.chip-row {
+  border: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0;
+  min-width: 0;
+  padding: 0;
+}
+
+.chip {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  color: var(--muted);
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.74rem;
+  line-height: 1.45;
+  padding: 2px 8px;
+}
+
+.chip:hover {
+  border-color: var(--line-strong);
+  color: var(--ink);
+}
+
+.chip[aria-pressed="true"] {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--canvas);
 }
 
 .inline-search input::-webkit-search-cancel-button {
@@ -5824,7 +6058,12 @@ html:has(.event-create-dialog[open]) {
   }
 
   .quiet-tools .inline-search {
+    margin-right: 0;
     width: 100%;
+  }
+
+  .chip-rows {
+    margin-top: 0;
   }
 
   .mobile-view-select {

@@ -5,7 +5,13 @@ import Link from "next/link";
 import { useTranslations } from "next-intl";
 import type { ReactNode } from "react";
 
-import { MailIcon, PhoneIcon, PlusIcon } from "../../components/icons";
+import {
+  CheckIcon,
+  ClockIcon,
+  MailIcon,
+  PhoneIcon,
+  PlusIcon,
+} from "../../components/icons";
 import type { QuickAddSlots } from "../../components/quick-add-row";
 import { RowMenu, type RowMenuEntry } from "../../components/row-menu";
 import {
@@ -19,29 +25,39 @@ import { useOpenHistory } from "../history/history-provider";
 import { useOpenLifecycle } from "../recovery/lifecycle-provider";
 import { QuickAddPerson, quickAddPersonSlot } from "./quick-add-person";
 
-/** The letters that stand for a person, sized for a row, a card, or a page. */
+/** What the signed-in account knows about the account behind a person. */
+export type PersonAccountState = "me" | "friend" | "linked" | "invited" | null;
+
+/**
+ * The letters that stand for a person, sized for a row, a card, or a
+ * page; in the accent when the person stands for an account.
+ */
 export function PersonAvatar({
+  linked = false,
   name,
   size = "row",
 }: {
+  readonly linked?: boolean;
   readonly name: string;
   readonly size?: "row" | "card" | "page";
 }) {
   return (
-    <span aria-hidden="true" className={`person-avatar person-avatar-${size}`}>
+    <span
+      aria-hidden="true"
+      className={`person-avatar person-avatar-${size}${linked ? " person-avatar-linked" : ""}`}
+    >
       {personInitials(name)}
     </span>
   );
 }
 
-/** "This is me", "Friend", "Has an account", or "Invited"; nothing for an unlinked person. */
+/** "This is me", "Friend", "Invited", "Has an account", or "No account". */
 export function PersonBadge({
   account,
 }: {
-  readonly account: "me" | "friend" | "linked" | "invited" | null;
+  readonly account: PersonAccountState;
 }) {
   const t = useTranslations("people");
-  if (account === null) return null;
   const label =
     account === "me"
       ? t("me")
@@ -49,9 +65,15 @@ export function PersonBadge({
         ? t("friend")
         : account === "invited"
           ? t("invited")
-          : t("hasAccount");
+          : account === "linked"
+            ? t("hasAccount")
+            : t("accounts.unlinked");
   return (
-    <span className={`person-badge person-badge-${account}`}>{label}</span>
+    <span className={`person-badge person-badge-${account ?? "none"}`}>
+      {account === "friend" ? <CheckIcon /> : null}
+      {account === "invited" ? <ClockIcon /> : null}
+      {label}
+    </span>
   );
 }
 
@@ -69,9 +91,9 @@ export function PersonLabels({
   });
   if (labels.length === 0) return null;
   return (
-    <ul aria-label={t("labels")} className="task-labels">
+    <ul aria-label={t("labels")} className="person-labels">
       {labels.map((label) => (
-        <li className="task-label" key={label.id}>
+        <li className="person-label" key={label.id}>
           {label.name}
         </li>
       ))}
@@ -179,7 +201,8 @@ function usePersonMenu() {
  * One person as a row: the avatar, the nickname over the full name (or
  * the name alone) as the link to their page (stretched over the row, so a
  * press anywhere but on a control opens the person), the contacts, the
- * labels, the account badge, and the row menu.
+ * labels, the account badge, and the row menu. Every cell renders, so
+ * the columns line up when a person has no contact or label.
  */
 export function PersonRow({
   context,
@@ -191,9 +214,10 @@ export function PersonRow({
   const t = useTranslations("people");
   const menu = usePersonMenu();
   const name = personDisplayName(person);
+  const account = personAccount(person, context.me, context.connections);
   return (
     <li aria-label={name} className="person-row" id={`person-${person.id}`}>
-      <PersonAvatar name={name} />
+      <PersonAvatar linked={account !== null} name={name} />
       <div className="person-names">
         <Link
           aria-label={t("open", { name })}
@@ -206,12 +230,14 @@ export function PersonRow({
           <span className="person-fullname">{person.displayName}</span>
         ) : null}
       </div>
-      <PersonContacts person={person} />
-      <PersonLabels labelNames={context.labelNames} person={person} />
+      <div className="person-row-cell">
+        <PersonContacts person={person} />
+      </div>
+      <div className="person-row-cell">
+        <PersonLabels labelNames={context.labelNames} person={person} />
+      </div>
       <span className="person-row-badge">
-        <PersonBadge
-          account={personAccount(person, context.me, context.connections)}
-        />
+        <PersonBadge account={account} />
       </span>
       {menu(person, context)}
     </li>
@@ -233,10 +259,11 @@ export function PersonNamecard({
   const t = useTranslations("people");
   const menu = usePersonMenu();
   const name = personDisplayName(person);
+  const account = personAccount(person, context.me, context.connections);
   return (
     <li aria-label={name} className="person-card" id={`person-${person.id}`}>
       <div className="person-card-top">
-        <PersonAvatar name={name} size="card" />
+        <PersonAvatar linked={account !== null} name={name} size="card" />
         <div className="person-names">
           <Link
             aria-label={t("open", { name })}
@@ -256,9 +283,7 @@ export function PersonNamecard({
         <p className="person-description">{person.description}</p>
       ) : null}
       <div className="person-card-foot">
-        <PersonBadge
-          account={personAccount(person, context.me, context.connections)}
-        />
+        <PersonBadge account={account} />
         <PersonLabels labelNames={context.labelNames} person={person} />
       </div>
     </li>
@@ -268,16 +293,20 @@ export function PersonNamecard({
 /**
  * The people of a collection in the chosen layout, ending with the quick
  * add row when the collection takes one (and, among namecards, a card
- * that opens that row).
+ * that opens that row). The list is one card: its rows, what stands in
+ * for them while there are none, then the add row.
  */
 export function PersonListing({
   context,
+  empty,
   items,
   label,
   layout,
   quickAdd,
 }: {
   readonly context: PersonRowContext;
+  /** What the list says while it has no rows: the title, and what to do about it. */
+  readonly empty?: ReactNode;
   readonly items: readonly PersonResponse[];
   /** The accessible name of the list. */
   readonly label: string;
@@ -285,39 +314,63 @@ export function PersonListing({
   readonly quickAdd?: QuickAddSlots | undefined;
 }) {
   const t = useTranslations("people");
-  const Item = layout === "cards" ? PersonNamecard : PersonRow;
-  let addCard: ReactNode = null;
-  if (layout === "cards" && quickAdd !== undefined && context.canEdit)
-    addCard = (
-      <li className="person-card person-add-card">
-        <button
-          className="person-add-card-button"
-          onClick={() => quickAdd.update(quickAddPersonSlot, { isOpen: true })}
-          type="button"
-        >
-          <PlusIcon />
-          <span>{t("addPerson")}</span>
-        </button>
-      </li>
+  const adding = quickAdd !== undefined && context.canEdit;
+  const emptyNote =
+    items.length === 0 && empty !== undefined ? (
+      <p className="person-empty">{empty}</p>
+    ) : null;
+  if (layout === "cards")
+    return (
+      <>
+        {emptyNote}
+        {items.length > 0 || adding ? (
+          <ul aria-label={label} className="person-grid">
+            {items.map((person) => (
+              <PersonNamecard
+                context={context}
+                key={person.id}
+                person={person}
+              />
+            ))}
+            {adding ? (
+              <li className="person-card person-add-card">
+                <button
+                  className="person-add-card-button"
+                  onClick={() =>
+                    quickAdd.update(quickAddPersonSlot, { isOpen: true })
+                  }
+                  type="button"
+                >
+                  <PlusIcon />
+                  <span>{t("addPerson")}</span>
+                </button>
+              </li>
+            ) : null}
+          </ul>
+        ) : null}
+        {adding ? (
+          <div className="quick-add-item quick-add-people quick-add-cards">
+            <QuickAddPerson slots={quickAdd} />
+          </div>
+        ) : null}
+      </>
     );
+  if (items.length === 0 && emptyNote === null && !adding) return null;
   return (
-    <>
-      {items.length > 0 || addCard !== null ? (
-        <ul
-          aria-label={label}
-          className={layout === "cards" ? "person-grid" : "person-list"}
-        >
+    <div className="person-list-card">
+      {items.length > 0 ? (
+        <ul aria-label={label} className="person-list">
           {items.map((person) => (
-            <Item context={context} key={person.id} person={person} />
+            <PersonRow context={context} key={person.id} person={person} />
           ))}
-          {addCard}
         </ul>
       ) : null}
-      {quickAdd !== undefined && context.canEdit ? (
-        <div className="quick-add-item quick-add-people">
+      {emptyNote}
+      {adding ? (
+        <div className="person-add-row">
           <QuickAddPerson slots={quickAdd} />
         </div>
       ) : null}
-    </>
+    </div>
   );
 }
