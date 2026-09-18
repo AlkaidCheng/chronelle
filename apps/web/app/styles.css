@@ -3663,34 +3663,34 @@ ul.resource-list {
   font-size: 1.35rem;
 }
 
+/* One quiet total line under the expenses, by currency. */
 .total-row {
   align-items: baseline;
-  background: var(--accent-soft);
-  border-radius: 10px;
-  color: var(--accent);
+  border-top: 1px solid var(--line);
+  color: var(--muted);
   flex-wrap: wrap;
+  font-size: 0.8rem;
   gap: 12px;
-  margin: 10px 0 20px;
-  padding: 14px 16px;
+  margin: 8px 0 0;
+  padding: 10px 4px 0 42px;
 }
 
 .total-row span,
 .money-totals dt {
-  font-size: 0.7rem;
-  font-weight: 750;
-  text-transform: uppercase;
+  font-size: 0.8rem;
 }
 
 .total-row strong {
-  font-family: var(--font-display);
-  font-size: 1.15rem;
-  font-weight: 500;
+  color: var(--ink);
+  font-size: 0.86rem;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
 }
 
 .money-value {
-  font-family: var(--font-display);
-  font-size: 1.1rem;
-  font-weight: 500;
+  font-size: 0.86rem;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
   min-width: 0;
   overflow-wrap: anywhere;
 }

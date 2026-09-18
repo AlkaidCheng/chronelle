@@ -646,21 +646,6 @@ export function ExpensesPanel({
           onCancel={() => setIsAdding(false)}
         />
       ) : null}
-      {totals.length > 0 ? (
-        <div className="total-row">
-          <span>{panels("totalRecorded")}</span>
-          <dl aria-label={panels("totalsByCurrency")} className="money-totals">
-            {totals.map(({ amount, currency }) => (
-              <div key={currency}>
-                <dt>{currency}</dt>
-                <dd>
-                  <strong>{formatMoney(amount, currency)}</strong>
-                </dd>
-              </div>
-            ))}
-          </dl>
-        </div>
-      ) : null}
       {expenses.length === 0 ? (
         canEdit ? null : (
           <EmptyState title={panels("noExpenses")} />
@@ -702,6 +687,21 @@ export function ExpensesPanel({
             label={panels("addExpense")}
             onOpen={() => setIsAdding(true)}
           />
+        </div>
+      ) : null}
+      {totals.length > 0 ? (
+        <div className="total-row">
+          <span>{panels("totalRecorded")}</span>
+          <dl aria-label={panels("totalsByCurrency")} className="money-totals">
+            {totals.map(({ amount, currency }) => (
+              <div key={currency}>
+                <dt>{currency}</dt>
+                <dd>
+                  <strong>{formatMoney(amount, currency)}</strong>
+                </dd>
+              </div>
+            ))}
+          </dl>
         </div>
       ) : null}
       {canEdit && editingId ? (
