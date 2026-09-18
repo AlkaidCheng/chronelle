@@ -5,6 +5,7 @@ import type {
   CommandStateResponse,
 } from "@chronelle/schemas";
 import type { QueryClient } from "@tanstack/react-query";
+import { newId } from "./new-id";
 
 export const commandsKey = ["commands"] as const;
 
@@ -81,7 +82,7 @@ export async function executeCommand(
 ): Promise<CommandReceipt> {
   const attempt = (state: CommandStateResponse) =>
     client.executeCommand({
-      operationId: crypto.randomUUID(),
+      operationId: newId(),
       expectedStackVersion: state.version,
       edits: [edit],
     });

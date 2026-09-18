@@ -62,6 +62,7 @@ import {
 import { personDisplayName } from "./person-fields";
 import { useAuthSession } from "./auth-session";
 import type { EventView } from "./event-views";
+import { newId } from "./new-id";
 
 export const queryKeys = {
   events: ["events"] as const,
@@ -318,7 +319,7 @@ export function useCreatePerson(retainedAttempt?: ContextCreateAttempt) {
 function commandFor(attempt: ContextCreateAttempt, input: unknown): string {
   const key = JSON.stringify(input);
   if (attempt.current?.key !== key)
-    attempt.current = { key, commandId: crypto.randomUUID() };
+    attempt.current = { key, commandId: newId() };
   return attempt.current.commandId;
 }
 
@@ -980,7 +981,7 @@ export function useCommandTransition(direction: "undo" | "redo") {
           "The command stack changed. Refresh before undoing or redoing.",
         );
       const input = {
-        operationId: crypto.randomUUID(),
+        operationId: newId(),
         commandId: head.commandId,
         expectedStackVersion: state.version,
       };
@@ -1026,9 +1027,9 @@ export function useDuplicateTask() {
         rank,
       };
       if (eventId === undefined)
-        return client.createTask({ ...fields, commandId: crypto.randomUUID() });
+        return client.createTask({ ...fields, commandId: newId() });
       const result = await client.createEventResource(eventId, {
-        commandId: crypto.randomUUID(),
+        commandId: newId(),
         resource: { objectType: "task", ...fields },
       });
       return result.resource;

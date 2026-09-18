@@ -26,6 +26,7 @@ import { isTemporaryReadError } from "../../lib/query-errors";
 import { EventPageCanvas } from "./event-page-canvas";
 import { AddEventPageDialog } from "./add-event-page-dialog";
 import type { PageDrop } from "./use-event-pages";
+import { newId } from "../../lib/new-id";
 
 function AddComponentDialog({
   layout,
@@ -70,7 +71,7 @@ function AddComponentDialog({
             ...page,
             components: [
               ...page.components,
-              { id: crypto.randomUUID(), kind: selectedKind ?? kind },
+              { id: newId(), kind: selectedKind ?? kind },
             ],
           }
         : page,
