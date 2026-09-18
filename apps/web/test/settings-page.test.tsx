@@ -138,6 +138,30 @@ describe("the Settings page", () => {
     ).toHaveAttribute("href", "/reset-password");
   });
 
+  it("shows the username as chosen at sign-up and keeps who can find the account", async () => {
+    const user = userEvent.setup();
+    render(<SettingsPage section="account" />, { wrapper });
+    await screen.findByText("@planner");
+    expect(screen.getByText(/cannot be changed yet/)).toBeVisible();
+    expect(
+      screen.queryByRole("textbox", { name: "Username" }),
+    ).not.toBeInTheDocument();
+    const byUsername = screen.getByRole("switch", { name: "By username" });
+    expect(byUsername).toBeChecked();
+    expect(byUsername).toBeDisabled();
+    const byEmail = screen.getByRole("switch", { name: "By email" });
+    expect(byEmail).toBeChecked();
+    await user.click(byEmail);
+    await waitFor(() => expect(byEmail).not.toBeChecked());
+    expect(requests).toContainEqual({
+      method: "PATCH",
+      path: "/api/account",
+      body: { findByEmail: false },
+    });
+    expect(screen.getByRole("switch", { name: "By name" })).toBeChecked();
+    expect(screen.getByText(/@planner is how friends find you/)).toBeVisible();
+  });
+
   it("signs out everywhere through DELETE /api/auth/sessions and leaves for sign-in", async () => {
     const user = userEvent.setup();
     render(<SettingsPage section="account" />, { wrapper });

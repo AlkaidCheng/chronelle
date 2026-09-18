@@ -3,13 +3,15 @@
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { type FormEvent, Suspense, useState } from "react";
+import { type FormEvent, Suspense, useEffect, useState } from "react";
 
 import { AccountPage } from "../../components/account-page";
 import { AppearanceSettings } from "../../components/appearance-settings";
 import { ErrorNotice } from "../../components/feedback";
 import { useRedirectWhenSignedIn, useSignUp } from "../../lib/account-queries";
 import { useAuthSession } from "../../lib/auth-session";
+import { useUsernameAvailableQuery } from "../../lib/friend-queries";
+import { suggestUsername, usernameShape } from "../../lib/username";
 
 function SignUpForm() {
   const t = useTranslations("auth");
@@ -21,15 +23,43 @@ function SignUpForm() {
   const [displayName, setDisplayName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  // The username follows the name until it is edited by hand.
+  const [username, setUsername] = useState("");
+  const [usernameTouched, setUsernameTouched] = useState(false);
+  const [debounced, setDebounced] = useState("");
+  useEffect(() => {
+    const timer = window.setTimeout(() => setDebounced(username), 250);
+    return () => window.clearTimeout(timer);
+  }, [username]);
+  const wellFormed = usernameShape.test(debounced);
+  const availability = useUsernameAvailableQuery(debounced, wellFormed);
+  const usernameState =
+    debounced === ""
+      ? null
+      : !wellFormed
+        ? "invalid"
+        : availability.data === undefined
+          ? null
+          : availability.data.available
+            ? "available"
+            : "taken";
   useRedirectWhenSignedIn();
+
+  function chooseName(next: string) {
+    setDisplayName(next);
+    if (!usernameTouched)
+      setUsername(next.trim() === "" ? "" : suggestUsername(next));
+  }
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (!usernameShape.test(username)) return;
     signUp.mutate(
       {
         displayName,
         email,
         password,
+        username,
         ...(invitationToken !== null && { invitationToken }),
       },
       {
@@ -54,11 +84,51 @@ function SignUpForm() {
             autoComplete="name"
             disabled={!auth.isHydrated}
             maxLength={120}
-            onChange={(event) => setDisplayName(event.target.value)}
+            onChange={(event) => chooseName(event.target.value)}
             required
             value={displayName}
           />
         </label>
+        <label className="field">
+          <span>{t("username")}</span>
+          <span className="username-input">
+            <span aria-hidden="true" className="username-at">
+              @
+            </span>
+            <input
+              aria-describedby="sign-up-username-hint"
+              autoCapitalize="none"
+              autoComplete="username"
+              className="username-field"
+              disabled={!auth.isHydrated}
+              maxLength={30}
+              onChange={(event) => {
+                setUsernameTouched(true);
+                setUsername(event.target.value.trim());
+              }}
+              pattern="[A-Za-z][A-Za-z0-9_-]{2,29}"
+              required
+              value={username}
+            />
+          </span>
+        </label>
+        <p
+          className={`username-availability username-availability-${usernameState ?? "none"}`}
+          role="status"
+        >
+          {usernameState === null
+            ? ""
+            : t(
+                usernameState === "available"
+                  ? "usernameAvailable"
+                  : usernameState === "taken"
+                    ? "usernameTaken"
+                    : "usernameInvalid",
+              )}
+        </p>
+        <small className="field-hint" id="sign-up-username-hint">
+          {t("usernameHint")}
+        </small>
         <label className="field">
           <span>{t("email")}</span>
           <input

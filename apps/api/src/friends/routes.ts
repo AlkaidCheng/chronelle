@@ -2,6 +2,7 @@ import {
   acceptedResponseSchema,
   friendInvitationRequestSchema,
   friendItemParamsSchema,
+  friendRequestRequestSchema,
   friendItemStateResponseSchema,
   friendSchema,
   friendsResponseSchema,
@@ -58,9 +59,10 @@ function sentPayload(item: SentItem) {
 }
 
 /**
- * Friends belong to the account: the list, invitations by email, answers
- * to requests, withdrawals, removals, and sending again. A person named by
- * an invitation is one of the current workspace.
+ * Friends belong to the account: the list, requests to accounts by id,
+ * invitations by email, answers to requests, withdrawals, removals, and
+ * sending again. A person named by a request or an invitation is one of
+ * the current workspace.
  */
 export function registerFriendRoutes(
   app: FastifyInstance,
@@ -75,6 +77,24 @@ export function registerFriendRoutes(
       sent: snapshot.sent.map(sentPayload),
     });
   });
+
+  // A request to an account found by search or by its code.
+  app.post(
+    "/api/friends/requests",
+    { preHandler: app.authenticate },
+    async (request, reply) => {
+      const actor = actorOf(request);
+      const input = parseRequest(friendRequestRequestSchema, request.body);
+      const outcome = await dependencies.friends.request(
+        actor,
+        input,
+        request.id,
+      );
+      return reply
+        .code(201)
+        .send(sentInvitationSchema.parse(sentPayload(outcome.item)));
+    },
+  );
 
   app.post(
     "/api/friends/invitations",

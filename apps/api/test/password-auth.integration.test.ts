@@ -168,6 +168,74 @@ describe.sequential("password authentication API", () => {
     );
   });
 
+  it("keeps the username chosen at sign-up, gives one from the name otherwise, and refuses a taken one", async () => {
+    // Free until taken, and never of the wrong shape.
+    const free = await app.inject({
+      method: "GET",
+      url: "/api/auth/username-available?username=Mira_Planner",
+    });
+    expect(free.statusCode).toBe(200);
+    expect(free.json()).toEqual({ available: true });
+    expect(
+      (
+        await app.inject({
+          method: "GET",
+          url: "/api/auth/username-available?username=1bad",
+        })
+      ).json(),
+    ).toEqual({ available: false });
+
+    const chosen = await post("/api/auth/sign-up", {
+      ...account,
+      username: "Mira_Planner",
+    });
+    expect(chosen.statusCode).toBe(202);
+    const verified = await post("/api/auth/verify-email", {
+      email: account.email,
+      code: email.codeFor(normalizedEmail),
+    });
+    expect(signInResponseSchema.parse(verified.json()).user.username).toBe(
+      "Mira_Planner",
+    );
+    expect(
+      (
+        await app.inject({
+          method: "GET",
+          url: "/api/auth/username-available?username=mira_planner",
+        })
+      ).json(),
+    ).toEqual({ available: false });
+
+    // Another account cannot take it in any case; without a choice the
+    // name gives the username, numbered past the ones that exist.
+    const taken = await post("/api/auth/sign-up", {
+      ...account,
+      email: "second@example.test",
+      username: "mira_planner",
+    });
+    expect(taken.statusCode).toBe(409);
+    expect(apiErrorResponseSchema.parse(taken.json()).error.code).toBe(
+      "username_taken",
+    );
+    const unnamed = await post("/api/auth/sign-up", {
+      ...account,
+      email: "third@example.test",
+    });
+    expect(unnamed.statusCode).toBe(202);
+    const third = await post("/api/auth/verify-email", {
+      email: "third@example.test",
+      code: email.codeFor("third@example.test"),
+    });
+    // "Person" is the name; the first account chose its own, so "person" is free.
+    expect(signInResponseSchema.parse(third.json()).user.username).toBe(
+      "person",
+    );
+    expect(
+      (await post("/api/auth/sign-up", { ...account, username: "1bad" }))
+        .statusCode,
+    ).toBe(400);
+  });
+
   it("rejects a second sign-up for the same email and a wrong password", async () => {
     await signUpAndVerify();
 

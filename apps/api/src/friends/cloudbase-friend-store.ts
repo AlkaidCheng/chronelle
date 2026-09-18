@@ -20,6 +20,7 @@ import {
   type InviteInput,
   type InviteOutcome,
   type ItemState,
+  type RequestInput,
   type ResendInput,
   type Sender,
   type SentItem,
@@ -138,7 +139,8 @@ function failure(error: unknown): Error {
 
 /**
  * Friend persistence through the gateway: the chronelle_friend_* functions
- * (migration 0051), with the PostgreSQL store's semantics and messages.
+ * (migrations 0051 and 0055), with the PostgreSQL store's semantics and
+ * messages.
  */
 export class CloudBaseFriendStore implements FriendStore {
   readonly #client: Pick<CloudBaseRdbClient, "rpc">;
@@ -177,6 +179,20 @@ export class CloudBaseFriendStore implements FriendStore {
         workspace_id: input.workspaceId,
         token_digest: input.tokenDigest,
         expires_at: input.expiresAt.toISOString(),
+        daily_limit: input.dailyLimit,
+        request_id: input.requestId,
+      }),
+    );
+  }
+
+  async request(userId: string, input: RequestInput): Promise<InviteOutcome> {
+    return inviteOutcome(
+      await this.#call("chronelle_friend_request", {
+        user_id: userId,
+        addressee_id: input.addresseeId,
+        message: input.message,
+        person_id: input.personId,
+        workspace_id: input.workspaceId,
         daily_limit: input.dailyLimit,
         request_id: input.requestId,
       }),

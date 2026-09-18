@@ -47,6 +47,46 @@ web app does not know is kept as given and ignored on read. Both backends
 write through one merging function, `chronelle_user_preferences_update`
 (migrations 0049 and 0053).
 
+The user also carries `username`, `findByName`, and `findByEmail` (true
+until switched off): the handle every account has, 3 to 30 letters, digits,
+hyphens or underscores starting with a letter and unique without regard to
+case, and who may find the account (by username always). Sign-up may choose
+the username (`POST /api/auth/sign-up` takes `username?`; 409
+`username_taken` when another account holds it in any case, 400 for the
+wrong shape); an account created without choosing, by sign-up or by any
+sign-in that makes one, gets one from its display name (its letters and
+digits, lowercased, hyphens between, `user` when the name gives nothing),
+numbered from 2 when taken. `GET /api/auth/username-available?username=`
+answers `{ available }` without a session, false as well for the wrong
+shape, capped per address like a search. The username is not changed
+afterwards: `PATCH /api/account` takes any subset of `{ findByName,
+findByEmail }` and refuses a `username` key (400 `invalid_request`); a key
+present replaces the stored value, and the response is the user. Both
+backends write through `chronelle_identity_sign_in` and
+`chronelle_account_update` (migration 0055), and every insert into `users`
+gets a username from the name when it brings none.
+
+`GET /api/users/search?q=` finds people for the signed-in account:
+`@name` matches usernames that start so; an exact address matches the one
+account with that email that allows it; any other text (two characters or
+more) matches, among accounts that allow it, names that contain it or come
+close to it, and usernames that start so. Names and the text are folded
+first (accents dropped, lowercased, one space between words; `pg_trgm` and
+`unaccent`), a near miss is a trigram similarity of 0.45 or more (a typo in
+a full name clears it, a shared word does not) and is tried from four
+characters, and trigram indexes on the folded name and the username serve
+the candidates. The answer is `{ items }` of at most ten `{ id,
+displayName, username, relation }`, ranked: the exact username, a username
+prefix, a name whose word starts with the text, a name that contains it,
+then by similarity, then by name; the searcher is left out. `relation` is
+`none`, `friend`, `requested` (a request the caller sent waits), or
+`incoming` (a request to the caller waits). More than sixty searches in a
+minute by one account answer 429 `search_limit`.
+`GET /api/users/:username` answers the same summary for one account by
+username (case-insensitively), 404 `user_unavailable` when none has it. Both
+backends read through `chronelle_users_search`, `chronelle_user_lookup`,
+and `chronelle_username_available`.
+
 `DELETE /api/auth/session` revokes the presented token and
 `DELETE /api/auth/sessions` revokes every session of the user, this one
 included; both return `{ revoked }` with the number of live sessions that
@@ -763,6 +803,16 @@ item is a `connection` (a request to the account that has the address) or an
 `invitation` (an address without an account, which gets a sign-up link and
 an `expiresAt`); a caller cannot tell from the response whether an address
 has an account except through what the recipient does.
+
+`POST /api/friends/requests` with `{ userId, message?, personId? }` sends
+a request to an account found by search or by its code: the same pending
+connection an invitation to a known address makes, emailed to the account
+and answered on its Friends page, with the same refusals (400
+`invalid_request` for the caller's own id or a bad note, 404
+`friend_unavailable` for an unknown id, 409 `friend_conflict` when a
+request or connection already stands, 429 `friend_limit` within the same
+daily allowance as invitations) and the sent item as the answer (201). Both
+backends write through `chronelle_friend_request` (migration 0055).
 
 `POST /api/friends/invitations` with `{ email, message?, personId? }`
 (message up to 500 characters; `personId` a live, unlinked person of the

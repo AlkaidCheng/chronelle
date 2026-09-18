@@ -32,6 +32,8 @@ export interface SignUpInput {
   readonly email: string;
   readonly password: string;
   readonly displayName: string;
+  /** The username chosen at sign-up; without one the account gets one from its name. */
+  readonly username?: string | undefined;
   /** The language the sign-up screen was in; kept on the account and used for its emails. */
   readonly locale?: string | undefined;
 }
@@ -150,7 +152,10 @@ export class PasswordAuthService {
       throw new EmailTakenError();
     const passwordHash = await hashPassword(input.password);
     const session = await this.#identity.signIn(
-      this.#identityFor(input.email, input.displayName),
+      {
+        ...this.#identityFor(input.email, input.displayName),
+        ...(input.username !== undefined && { username: input.username }),
+      },
       requestId,
     );
     try {

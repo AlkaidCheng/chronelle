@@ -1,0 +1,17 @@
+{
+  "title": "Chronelle",
+  "loading": "正在尋找",
+  "unavailable": "沒有帳戶使用這個 QR 碼。請索取新的連結。",
+  "signInFirst": "登入後即可查看對方並加為好友。",
+  "signIn": "登入",
+  "signedInAs": "你正以 {name} 的身分登入",
+  "notYou": "不是你？登出",
+  "addFriend": "加為好友",
+  "adding": "傳送中...",
+  "requestSent": "請求已送出。對方會在好友頁面回覆。",
+  "alreadyFriends": "你們已經是好友。",
+  "wantsYou": "{name} 已向你送出請求，請在好友頁面回覆。",
+  "openFriends": "開啟好友",
+  "yourself": "這是你自己的 QR 碼。",
+  "openChronelle": "開啟 Chronelle"
+}

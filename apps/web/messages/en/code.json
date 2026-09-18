@@ -1,0 +1,17 @@
+{
+  "title": "Chronelle",
+  "loading": "Looking the code up",
+  "unavailable": "No account has this code. Ask for a new link.",
+  "signInFirst": "Sign in to see who this is and add them as a friend.",
+  "signIn": "Sign in",
+  "signedInAs": "You are signed in as {name}",
+  "notYou": "Not you? Sign out",
+  "addFriend": "Add friend",
+  "adding": "Sending...",
+  "requestSent": "Request sent. They answer on their Friends page.",
+  "alreadyFriends": "You are already friends.",
+  "wantsYou": "{name} already sent you a request. Answer it on your Friends page.",
+  "openFriends": "Open Friends",
+  "yourself": "This is your own code.",
+  "openChronelle": "Open Chronelle"
+}

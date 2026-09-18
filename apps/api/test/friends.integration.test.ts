@@ -12,6 +12,9 @@ import {
   friendsResponseSchema,
   personResponseSchema,
   sentInvitationSchema,
+  userResponseSchema,
+  userSearchResponseSchema,
+  userSummarySchema,
 } from "@chronelle/schemas";
 import type { FastifyInstance } from "fastify";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
@@ -502,5 +505,168 @@ describe("friends", () => {
     expect(
       (await app.inject({ method: "GET", url: "/api/friends" })).statusCode,
     ).toBe(401);
+  });
+
+  it("finds people by username, name, or email as they allow, and sends a request by id", async () => {
+    const ana = await signIn("ana@example.test", "Ana Lopez");
+    const ben = await signIn("ben@example.test", "Ben Okafor");
+    const cid = await signIn("cid@example.test", "Cid Lopez");
+    const account = async (
+      headers: Record<string, string>,
+      payload: Record<string, unknown>,
+    ) => app.inject({ method: "PATCH", url: "/api/account", headers, payload });
+
+    // Usernames came from the names at sign-in; the switches change here,
+    // the username does not.
+    expect(ben.user.username).toBe("ben-okafor");
+    expect(cid.user.username).toBe("cid-lopez");
+    const hidden = await account(cid.headers, { findByName: false });
+    expect(hidden.statusCode).toBe(200);
+    expect(userResponseSchema.parse(hidden.json())).toMatchObject({
+      username: "cid-lopez",
+      findByName: false,
+      findByEmail: true,
+    });
+    expect(
+      (await account(cid.headers, { username: "another" })).statusCode,
+    ).toBe(400);
+    // The session carries the account fields.
+    const session = await app.inject({
+      method: "GET",
+      url: "/api/auth/session",
+      headers: cid.headers,
+    });
+    expect(session.json().user).toMatchObject({
+      username: "cid-lopez",
+      findByName: false,
+      findByEmail: true,
+    });
+
+    const search = async (headers: Record<string, string>, q: string) => {
+      const response = await app.inject({
+        method: "GET",
+        url: `/api/users/search?q=${encodeURIComponent(q)}`,
+        headers,
+      });
+      expect(response.statusCode).toBe(200);
+      return userSearchResponseSchema.parse(response.json()).items;
+    };
+    // By name, Cid is hidden; by @username and by email he is found.
+    expect(await search(ana.headers, "lopez")).toEqual([]);
+    expect(await search(ana.headers, "@cid")).toEqual([
+      {
+        id: cid.user.id,
+        displayName: "Cid Lopez",
+        username: "cid-lopez",
+        relation: "none",
+      },
+    ]);
+    expect(await search(ana.headers, "cid@example.test")).toHaveLength(1);
+    expect(await search(ana.headers, "okafor")).toEqual([
+      {
+        id: ben.user.id,
+        displayName: "Ben Okafor",
+        username: "ben-okafor",
+        relation: "none",
+      },
+    ]);
+    // Hidden by email: nothing, and the shape stays the same.
+    await account(ben.headers, { findByEmail: false });
+    expect(await search(ana.headers, "ben@example.test")).toEqual([]);
+
+    // The code page's lookup, then a request by id, seen from both sides.
+    const lookup = await app.inject({
+      method: "GET",
+      url: "/api/users/BEN-OKAFOR",
+      headers: ana.headers,
+    });
+    expect(lookup.statusCode).toBe(200);
+    expect(userSummarySchema.parse(lookup.json())).toEqual({
+      id: ben.user.id,
+      displayName: "Ben Okafor",
+      username: "ben-okafor",
+      relation: "none",
+    });
+    expect(
+      (
+        await app.inject({
+          method: "GET",
+          url: "/api/users/nobody",
+          headers: ana.headers,
+        })
+      ).statusCode,
+    ).toBe(404);
+    const sent = await app.inject({
+      method: "POST",
+      url: "/api/friends/requests",
+      headers: ana.headers,
+      payload: { userId: ben.user.id, message: "Found you by name" },
+    });
+    expect(sent.statusCode).toBe(201);
+    const item = sentInvitationSchema.parse(sent.json());
+    expect(item).toMatchObject({
+      kind: "connection",
+      email: "ben@example.test",
+      message: "Found you by name",
+    });
+    expect(email.latestTo("ben@example.test").text).toContain("Ana Lopez");
+    expect((await search(ana.headers, "okafor"))[0]?.relation).toBe(
+      "requested",
+    );
+    expect((await search(ben.headers, "ana@example.test"))[0]?.relation).toBe(
+      "incoming",
+    );
+    expect((await friendsOf(ben.headers)).incoming[0]?.message).toBe(
+      "Found you by name",
+    );
+    const again = await app.inject({
+      method: "POST",
+      url: "/api/friends/requests",
+      headers: ana.headers,
+      payload: { userId: ben.user.id },
+    });
+    expect(again.statusCode).toBe(409);
+    expect(
+      (
+        await app.inject({
+          method: "POST",
+          url: "/api/friends/requests",
+          headers: ana.headers,
+          payload: { userId: ana.user.id },
+        })
+      ).statusCode,
+    ).toBe(400);
+    expect(
+      (
+        await app.inject({
+          method: "POST",
+          url: "/api/friends/requests",
+          headers: ana.headers,
+          payload: { userId: "00000000-0000-7000-8000-000000000000" },
+        })
+      ).statusCode,
+    ).toBe(404);
+    // Without a session nothing is served.
+    for (const url of ["/api/users/search?q=ben", "/api/users/ben-okafor"])
+      expect((await app.inject({ method: "GET", url })).statusCode).toBe(401);
+    expect(
+      (await app.inject({ method: "PATCH", url: "/api/account", payload: {} }))
+        .statusCode,
+    ).toBe(401);
+  });
+
+  it("caps searches per account per minute", async () => {
+    const ana = await signIn("ana@example.test", "Ana");
+    let last = 0;
+    for (let index = 0; index < 61; index += 1) {
+      last = (
+        await app.inject({
+          method: "GET",
+          url: "/api/users/search?q=an",
+          headers: ana.headers,
+        })
+      ).statusCode;
+    }
+    expect(last).toBe(429);
   });
 });

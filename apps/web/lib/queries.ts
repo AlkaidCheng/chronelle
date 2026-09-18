@@ -86,6 +86,8 @@ export const queryKeys = {
   access: (eventId: string) => ["event", eventId, "access"] as const,
   shares: (eventId: string) => ["event", eventId, "shares"] as const,
   personShares: (personId: string) => ["person", personId, "shares"] as const,
+  userSearch: (query: string) => ["users", "search", query] as const,
+  user: (username: string) => ["users", "by-username", username] as const,
   attachments: (parentObjectId: string) =>
     ["object", parentObjectId, "documents"] as const,
   session: ["session"] as const,

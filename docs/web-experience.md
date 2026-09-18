@@ -1,10 +1,17 @@
 # Web experience
 
 Accounts are email and password. Sign in at `/sign-in`; Create an account
-(`/sign-up`) asks for a name, email, and a password of at least ten
-characters, then moves to `/verify-email` for the six-digit code sent to the
-address (Send a new code issues another; a sign-in attempt on an unverified
-address also sends one and lands on the same screen). Forgot your password?
+(`/sign-up`) asks for a name, a username, an email, and a password of at
+least ten characters, then moves to `/verify-email` for the six-digit code
+sent to the address (Send a new code issues another; a sign-in attempt on an
+unverified address also sends one and lands on the same screen). The
+username (3 to 30 letters, digits, hyphens or underscores, starting with a
+letter; unique without regard to case) is the handle friends find the
+account by; the field follows the name until it is edited, and says whether
+what it holds is Available, Taken, or not a valid username. Every account
+has one: an account created without choosing (the development sign-in
+today; other sign-in methods later) gets one from its name, numbered when
+that is taken. It is not changed afterwards. Forgot your password?
 (`/reset-password`) sends a code to the account's email, then takes the code
 and a new password; the reset signs every other session of the account out.
 Each screen redirects to the collection once a session exists, and Sign out
@@ -255,14 +262,31 @@ address and how long ago, their note; Accept, Decline), Friends (name and
 address on one line, since when, Remove friend), and Sent (the person of
 this workspace the invitation went from, or the address; a badge, Sent how
 long ago for a request to an account or No account yet with the sign-up
-link's validity for an address; Resend, Withdraw). Invite a friend opens a dialog: a person
-of the current workspace who has an email and no account link, or Someone
-new by address, and an optional note; the address is emailed a request when
-it has an account and a sign-up link otherwise. A sign-up link opens
+link's validity for an address; Resend, Withdraw). Invite a friend opens a dialog with two
+ways in. Find people, at the top, searches the accounts as each lets itself
+be found: a name (two characters or more, contained, case-insensitively), an
+@username (starting so), or an exact email; the searcher is never in the
+results. Each result shows the name and username with one action: Add friend
+sends the ordinary request (with the note below when there is one, and from
+a card, linking the card when they accept), or the state that already holds
+(Friends, Request sent, Wants to connect). Nothing matching says so and
+points at the section below, Not on Chronelle yet?: a person of the current
+workspace who has an email and no account link, or Someone new by address,
+and an optional note; the address is emailed a request when it has an
+account and a sign-up link otherwise. A sign-up link opens
 `/sign-up?invitation=...`; the account it creates finds the request on its
 Friends page. In the person editor, Link to a friend offers the account's
 friends beside This is me, so a card of any workspace can be the friend;
-accepting a request that came from a card links the card by itself.
+accepting a request that came from a card links the card by itself. From a
+card's Invite a friend, the search starts with the card's name.
+
+Your code, beside Invite a friend, shows the account's QR code and profile
+link (`/u/<username>`) with Copy link; anyone who scans or opens it sees the
+name and username with Add friend, or how the two already stand, after
+signing in (the page returns there after the sign-in) and never their own
+code as anything but their own.
+
+## Workspace commands
 
 ## Workspace commands
 
@@ -416,9 +440,12 @@ the light paper color; the running page follows the selected appearance.
 Settings (`/settings`, from the profile menu) lists its sections at the left
 and opens one at the right; each section has its own address. Account shows
 the display name and email as the account holds them (neither can be changed
-here yet), links to the password screen, and offers Sign out everywhere,
-which ends every session of the account, this one included, and returns to
-sign-in. Under Preferences, Language & time holds the language, the time
+here yet) and the username as chosen at sign-up, which cannot be changed
+yet; Who can find you, with By username always on,
+and By name and By email as switches the account turns off to be left out of
+Find people by that key (By email is off for an account without one); links
+to the password screen; and Sign out everywhere, which ends every session of
+the account, this one included, and returns to sign-in. Under Preferences, Language & time holds the language, the time
 zone, the time format, and the first day of the week, all kept on the
 account and applied at once; Appearance repeats the Theme panel's mode,
 palette, density, and motion choices, which stay on the browser. Under

@@ -16,6 +16,8 @@ import {
   type FriendsResponse,
   friendInvitationRequestSchema,
   friendsResponseSchema,
+  accountUpdateRequestSchema,
+  friendRequestRequestSchema,
   type PendingShare,
   pendingShareCreateRequestSchema,
   pendingShareSchema,
@@ -72,7 +74,15 @@ interface State {
   /** The sample account's language, zone, clock, week start, rail, and event tabs, as Settings, the rail, and the strips keep them. */
   preferences: Pick<
     Preferences,
-    "locale" | "timeZone" | "hourCycle" | "weekStart" | "rail" | "eventTabs"
+    | "locale"
+    | "timeZone"
+    | "hourCycle"
+    | "weekStart"
+    | "rail"
+    | "eventTabs"
+    | "username"
+    | "findByName"
+    | "findByEmail"
   >;
   /** The sample account's friends, requests, and sent invitations, as the Friends page keeps them. */
   friends: FriendsResponse;
@@ -139,7 +149,57 @@ const defaultPreferences: State["preferences"] = {
   weekStart: null,
   rail: {},
   eventTabs: {},
+  username: "planner",
+  findByName: true,
+  findByEmail: true,
 };
+
+/**
+ * The accounts Find people can reach in the sandbox, beside the friends
+ * and requesters the Friends page already knows: how they let themselves
+ * be found, and their handle.
+ */
+const sampleAccounts: readonly {
+  readonly id: string;
+  readonly displayName: string;
+  readonly username: string;
+  readonly email: string;
+  readonly findByName: boolean;
+  readonly findByEmail: boolean;
+}[] = [
+  {
+    id: friendUserId,
+    displayName: "Mei Lin",
+    username: "meilin",
+    email: "mei.lin@example.test",
+    findByName: true,
+    findByEmail: true,
+  },
+  {
+    id: "00000000-0000-4000-8000-000000000004",
+    displayName: "Tomas Berg",
+    username: "tomasb",
+    email: "tomas.b@example.test",
+    findByName: true,
+    findByEmail: false,
+  },
+  {
+    id: "00000000-0000-4000-8000-000000000005",
+    displayName: "Chen Li",
+    username: "chen-li",
+    email: "chen.li@example.test",
+    findByName: true,
+    findByEmail: true,
+  },
+  {
+    id: "00000000-0000-4000-8000-000000000006",
+    displayName: "Chen Shy",
+    username: "shychen",
+    email: "shy@example.test",
+    findByName: false,
+    findByEmail: true,
+  },
+];
 
 class SandboxError extends Error {
   constructor(
@@ -448,8 +508,16 @@ function parseState(raw: string): State {
       weekStart: true,
       rail: true,
       eventTabs: true,
+      username: true,
+      findByName: true,
+      findByEmail: true,
     })
-    .parse("preferences" in value ? value.preferences : {});
+    .parse({
+      username: defaultPreferences.username,
+      ...("preferences" in value && typeof value.preferences === "object"
+        ? value.preferences
+        : {}),
+    });
   const friends = friendsResponseSchema.parse(
     "friends" in value ? value.friends : defaultFriends,
   );
@@ -571,6 +639,38 @@ export class SandboxStore {
         "friend_unavailable",
         `The ${what} does not exist.`,
       );
+    if (method === "POST" && id === "requests" && !operation) {
+      // A request to a sample account by id, as Find people sends it.
+      const input = friendRequestRequestSchema.parse(body);
+      const account = sampleAccounts.find((a) => a.id === input.userId);
+      if (account === undefined) throw notFound("person");
+      const relation = this.#summary(account).relation;
+      if (relation !== "none")
+        throw new SandboxError(
+          409,
+          "friend_conflict",
+          relation === "friend"
+            ? "You are already friends."
+            : relation === "requested"
+              ? "An invitation is already waiting."
+              : "This person has already invited you.",
+        );
+      const item = {
+        id: crypto.randomUUID(),
+        kind: "connection" as const,
+        email: account.email,
+        message: input.message ?? null,
+        personId: input.personId ?? null,
+        workspaceId: input.personId === undefined ? null : sandboxWorkspaceId,
+        createdAt: timestamp,
+        expiresAt: null,
+      };
+      this.#commit({
+        ...this.#state,
+        friends: { ...friends, sent: [item, ...friends.sent] },
+      });
+      return item;
+    }
     if (method === "POST" && id === "invitations" && !operation) {
       const input = friendInvitationRequestSchema.parse(body);
       if (input.email === "planner@example.test")
@@ -1261,6 +1361,27 @@ export class SandboxStore {
     };
   }
 
+  /** An account as Find people shows it, with how it stands to the sample account. */
+  #summary(account: (typeof sampleAccounts)[number]) {
+    const friends = this.#state.friends;
+    const relation = friends.friends.some((f) => f.userId === account.id)
+      ? "friend"
+      : friends.incoming.some((r) => r.requester.userId === account.id)
+        ? "incoming"
+        : friends.sent.some(
+              (item) =>
+                item.kind === "connection" && item.email === account.email,
+            )
+          ? "requested"
+          : "none";
+    return {
+      id: account.id,
+      displayName: account.displayName,
+      username: account.username,
+      relation,
+    };
+  }
+
   #read(url: URL, role: "owner" | "viewer"): unknown {
     const [, , collection, id, operation, action] = url.pathname.split("/");
     const all = this.#state.objects.filter(
@@ -1273,6 +1394,44 @@ export class SandboxStore {
         ),
       };
     if (collection === "friends" && !id) return this.#state.friends;
+    if (collection === "users" && id === "search") {
+      const q = (url.searchParams.get("q") ?? "").trim();
+      const found =
+        q.length < 2
+          ? []
+          : q.startsWith("@")
+            ? sampleAccounts.filter((account) =>
+                account.username
+                  .toLowerCase()
+                  .startsWith(q.slice(1).toLowerCase()),
+              )
+            : q.includes("@")
+              ? sampleAccounts.filter(
+                  (account) =>
+                    account.findByEmail && account.email === q.toLowerCase(),
+                )
+              : sampleAccounts.filter(
+                  (account) =>
+                    (account.findByName &&
+                      account.displayName
+                        .toLowerCase()
+                        .includes(q.toLowerCase())) ||
+                    account.username.toLowerCase().startsWith(q.toLowerCase()),
+                );
+      return { items: found.slice(0, 10).map((a) => this.#summary(a)) };
+    }
+    if (collection === "users" && id) {
+      const account = sampleAccounts.find(
+        (candidate) => candidate.username.toLowerCase() === id.toLowerCase(),
+      );
+      if (account === undefined)
+        throw new SandboxError(
+          404,
+          "user_unavailable",
+          "The user is unavailable.",
+        );
+      return this.#summary(account);
+    }
     if (
       collection === "workspaces" &&
       id === "current" &&
@@ -1781,12 +1940,30 @@ export class SandboxStore {
       (method === "POST" || method === "PATCH" || method === "DELETE")
     )
       return this.#labelWrite(method, id, url, body);
+    if (collection === "account" && !id && method === "PATCH") {
+      // The discovery switches; the username was chosen at sign-up.
+      const input = accountUpdateRequestSchema.parse(body);
+      this.#commit({
+        ...this.#state,
+        preferences: {
+          ...this.#state.preferences,
+          ...(input.findByName !== undefined && {
+            findByName: input.findByName,
+          }),
+          ...(input.findByEmail !== undefined && {
+            findByEmail: input.findByEmail,
+          }),
+        },
+      });
+      return this.#user();
+    }
     if (collection === "auth" && id === "me" && method === "PATCH") {
       // Settings keeps the sample account's preferences; absent keys stay.
       const input = preferencesRequestSchema.parse(body);
       this.#commit({
         ...this.#state,
         preferences: {
+          ...this.#state.preferences,
           locale:
             input.locale === undefined
               ? this.#state.preferences.locale

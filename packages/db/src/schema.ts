@@ -97,6 +97,12 @@ export const users = pgTable("users", {
   providerSubject: text("provider_subject").notNull(),
   email: text("email"),
   displayName: text("display_name").notNull(),
+  /** Every account has one; an insert that leaves it empty gets one from the name in the database. */
+  username: text("username")
+    .notNull()
+    .$defaultFn(() => ""),
+  findByName: boolean("find_by_name").notNull().default(true),
+  findByEmail: boolean("find_by_email").notNull().default(true),
   locale: text("locale"),
   timeZone: text("time_zone"),
   hourCycle: text("hour_cycle"),

@@ -1530,7 +1530,12 @@ describe("EventWorkspace", () => {
       if (path === "/api/auth/session")
         return jsonResponse({
           principal: { type: "user", userId, workspaceId },
-          user: { id: userId, displayName: "Owner", email: null },
+          user: {
+            id: userId,
+            displayName: "Owner",
+            email: null,
+            username: "owner",
+          },
           workspace: { id: workspaceId, displayName: "Home" },
           availableWorkspaces: [{ id: workspaceId, displayName: "Home" }],
         });
@@ -1724,6 +1729,7 @@ describe("EventWorkspace", () => {
         id: userId,
         displayName: "Planner",
         email: "planner@example.test",
+        username: "planner",
         locale: null,
         timeZone: null,
         hourCycle: null,
