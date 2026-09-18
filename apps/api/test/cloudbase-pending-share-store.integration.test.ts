@@ -18,6 +18,7 @@ import {
   type TestDatabase,
 } from "@chronelle/db/testing";
 import type { EventPlanningObjectService } from "@chronelle/object-model";
+import type { ResourceGrantService } from "@chronelle/authorization";
 import { and, asc, eq, inArray } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
@@ -32,10 +33,15 @@ import {
 } from "../src/friends/friend-store.js";
 import { PostgresIdentityStore } from "../src/identity/identity-store.js";
 import { CloudBasePendingShareStore } from "../src/sharing/cloudbase-pending-share-store.js";
+import { CloudBasePersonShareStore } from "../src/sharing/cloudbase-person-share-store.js";
 import {
   type PendingShareStore,
   PostgresPendingShareStore,
 } from "../src/sharing/pending-share-store.js";
+import {
+  type PersonShareStore,
+  PostgresPersonShareStore,
+} from "../src/sharing/person-share-store.js";
 import { CloudBaseMembershipStore } from "../src/workspaces/cloudbase-membership-store.js";
 import {
   type MembershipStore,
@@ -52,6 +58,7 @@ import {
 let database: TestDatabase;
 let identity: PostgresIdentityStore;
 let objects: EventPlanningObjectService;
+let shares: ResourceGrantService;
 let counter = 0;
 
 const clock = () => new Date("2030-08-01T12:00:00.000Z");
@@ -63,6 +70,7 @@ const requestId = () =>
 interface Backend {
   readonly friends: FriendStore;
   readonly pending: PendingShareStore;
+  readonly personShares: PersonShareStore;
   readonly members: MembershipStore;
 }
 
@@ -101,18 +109,22 @@ beforeAll(async () => {
     resolve(import.meta.dirname, "../../../infrastructure/migrations"),
   );
   identity = new PostgresIdentityStore(database.connection.db);
-  objects = createDevelopmentAppDependencies(database.connection, {
+  const dependencies = createDevelopmentAppDependencies(database.connection, {
     clock,
-  }).objects;
+  });
+  objects = dependencies.objects;
+  shares = dependencies.shares;
   const rpc = createCloudBaseRpcDouble(database.connection.sql);
   reference = {
     friends: new PostgresFriendStore(database.connection.db, clock),
     pending: new PostgresPendingShareStore(database.connection.db, clock),
+    personShares: new PostgresPersonShareStore(database.connection.db, clock),
     members: new PostgresMembershipStore(database.connection.db),
   };
   cloudbase = {
     friends: new CloudBaseFriendStore({ rpc }),
     pending: new CloudBasePendingShareStore({ rpc }),
+    personShares: new CloudBasePersonShareStore({ rpc }),
     members: new CloudBaseMembershipStore({ rpc }),
   };
 });
@@ -624,5 +636,164 @@ describe.each(backends())("%s workspace members", (name, backend) => {
       ],
       ["workspace.member_removed", { memberId: ben.user.id, role: "editor" }],
     ]);
+  });
+});
+
+describe.each(backends())("%s person shares", (name, backend) => {
+  it("lists what is shared each way with a person, queued shares included, and leaves out the expired, the trashed, and the unviewable", async () => {
+    const ana = await account(`${name}-share-ana`);
+    const ben = await account(`${name}-share-ben`);
+    const context = () => ({
+      principal: ana.principal,
+      requestId: requestId(),
+    });
+    // Ben's card carries his account email; the card is not linked yet.
+    const card = await objects.createPerson(context(), {
+      displayName: "Benjamin",
+      email: `${name}-share-ben@example.test`,
+    });
+    const kyoto = await objects.createEvent(context(), {
+      displayName: "Kyoto",
+    });
+    const supper = await objects.createEvent(context(), {
+      displayName: "Harvest supper",
+    });
+    const lapsed = await objects.createEvent(context(), {
+      displayName: "Lapsed",
+    });
+    const cider = await objects.createTask(context(), {
+      displayName: "Order the cider",
+    });
+    const spring = await objects.createEvent(
+      { principal: ben.principal, requestId: requestId() },
+      { displayName: "Spring cleaning" },
+    );
+
+    // Nothing shared yet, either way.
+    expect(await backend().personShares.list(ana.principal, card.id)).toEqual(
+      [],
+    );
+
+    // Ana shares two records with Ben's account through the card and the
+    // email; Ben shares one back; one grant has expired; one record goes
+    // to Trash after being shared.
+    const kyotoGrant = await shares.share(context(), {
+      resourceId: kyoto.id,
+      personId: card.id,
+      role: "editor",
+    });
+    const ciderGrant = await shares.share(context(), {
+      resourceId: cider.id,
+      principalEmail: `${name}-share-ben@example.test`,
+      role: "viewer",
+    });
+    const springGrant = await shares.share(
+      { principal: ben.principal, requestId: requestId() },
+      {
+        resourceId: spring.id,
+        principalEmail: `${name}-share-ana@example.test`,
+        role: "viewer",
+      },
+    );
+    const lapsedGrant = await shares.share(context(), {
+      resourceId: lapsed.id,
+      personId: card.id,
+      role: "viewer",
+    });
+    await database.connection.db
+      .update(resourceGrants)
+      .set({
+        createdAt: new Date("2019-12-01T00:00:00.000Z"),
+        expiresAt: new Date("2020-01-01T00:00:00.000Z"),
+      })
+      .where(eq(resourceGrants.id, lapsedGrant.id));
+    await shares.share(context(), {
+      resourceId: supper.id,
+      personId: card.id,
+      role: "viewer",
+    });
+    await objects.softDelete(context(), supper.id, supper.version);
+
+    const listed = await backend().personShares.list(ana.principal, card.id);
+    expect(listed.map(({ createdAt, ...item }) => item)).toEqual([
+      {
+        id: springGrant.id,
+        kind: "grant",
+        direction: "incoming",
+        resourceId: spring.id,
+        objectType: "event",
+        displayName: "Spring cleaning",
+        role: "viewer",
+      },
+      {
+        id: ciderGrant.id,
+        kind: "grant",
+        direction: "outgoing",
+        resourceId: cider.id,
+        objectType: "task",
+        displayName: "Order the cider",
+        role: "viewer",
+      },
+      {
+        id: kyotoGrant.id,
+        kind: "grant",
+        direction: "outgoing",
+        resourceId: kyoto.id,
+        objectType: "event",
+        displayName: "Kyoto",
+        role: "editor",
+      },
+    ]);
+    for (const item of listed) expect(item.createdAt).toBeInstanceOf(Date);
+
+    // A queued share for an invited person lists as pending until it is
+    // granted; Ben, no member of Ana's workspace, is refused Ana's cards,
+    // even one shared with him, as is a card that does not exist.
+    const priya = await objects.createPerson(context(), {
+      displayName: "Priya",
+      email: `${name}-share-priya@example.test`,
+    });
+    const sent = await invite(
+      backend(),
+      ana,
+      `${name}-share-priya@example.test`,
+      { personId: priya.id, workspaceId: ana.workspaceId },
+    );
+    const queued = await backend().pending.queue(context(), {
+      resourceId: kyoto.id,
+      role: "viewer",
+      itemId: sent.item.id,
+      personId: priya.id,
+    });
+    expect(
+      (await backend().personShares.list(ana.principal, priya.id)).map(
+        ({ createdAt, ...item }) => item,
+      ),
+    ).toEqual([
+      {
+        id: queued.id,
+        kind: "pending",
+        direction: "outgoing",
+        resourceId: kyoto.id,
+        objectType: "event",
+        displayName: "Kyoto",
+        role: "viewer",
+      },
+    ]);
+    const guest = { ...ben.principal, workspaceId: ana.workspaceId };
+    await expect(backend().personShares.list(guest, card.id)).rejects.toThrow(
+      AuthorizationDeniedError,
+    );
+    await shares.share(context(), {
+      resourceId: priya.id,
+      principalEmail: `${name}-share-ben@example.test`,
+      role: "viewer",
+    });
+    await expect(backend().personShares.list(guest, priya.id)).rejects.toThrow(
+      AuthorizationDeniedError,
+    );
+    await expect(
+      backend().personShares.list(ana.principal, requestId()),
+    ).rejects.toThrow(AuthorizationDeniedError);
   });
 });

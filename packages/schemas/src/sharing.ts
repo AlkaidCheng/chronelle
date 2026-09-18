@@ -98,6 +98,34 @@ export const shareRevocationResponseSchema = z.object({
   revokedAt: dateTimeSchema,
 });
 
+/**
+ * One thing shared between the caller and a person: a grant the caller's
+ * workspace holds for the person's account (`outgoing`), a share queued
+ * for the person while an invitation waits (`pending`), or a grant the
+ * person's account gave the caller (`incoming`).
+ */
+export const personShareSchema = z.object({
+  id: idSchema,
+  kind: z.enum(["grant", "pending"]),
+  direction: z.enum(["outgoing", "incoming"]),
+  resourceId: idSchema,
+  objectType: z.enum([
+    "event",
+    "task",
+    "expense",
+    "reminder",
+    "document",
+    "person",
+  ]),
+  displayName: z.string(),
+  role: roleSchema,
+  createdAt: dateTimeSchema,
+});
+
+export const personShareListResponseSchema = z.object({
+  items: z.array(personShareSchema),
+});
+
 const accountSummarySchema = z.object({
   id: idSchema,
   displayName: z.string(),
@@ -140,6 +168,10 @@ export type ShareResponse = z.infer<typeof shareResponseSchema>;
 export type ShareListResponse = z.infer<typeof shareListResponseSchema>;
 export type ShareRevocationResponse = z.infer<
   typeof shareRevocationResponseSchema
+>;
+export type PersonShare = z.infer<typeof personShareSchema>;
+export type PersonShareListResponse = z.infer<
+  typeof personShareListResponseSchema
 >;
 export type PendingShare = z.infer<typeof pendingShareSchema>;
 export type PendingShareCreateRequest = z.infer<

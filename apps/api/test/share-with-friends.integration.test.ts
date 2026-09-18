@@ -12,6 +12,7 @@ import {
   friendsResponseSchema,
   pendingShareSchema,
   personResponseSchema,
+  personShareListResponseSchema,
   sentInvitationSchema,
   sessionResponseSchema,
   shareListResponseSchema,
@@ -199,6 +200,101 @@ describe("sharing with friends", () => {
       items: [{ principal: { id: ben.user.id }, role: "editor" }],
       pending: [],
     });
+  });
+
+  it("lists what is shared each way with a person", async () => {
+    const ana = await signIn("ana@example.test", "Ana");
+    const ben = await signIn("ben@example.test", "Ben");
+    const eve = await signIn("eve@example.test", "Eve");
+    const kyoto = await createEvent(ana.headers, "Kyoto in November");
+    const spring = await createEvent(ben.headers, "Spring cleaning");
+    const card = personResponseSchema.parse(
+      (
+        await app.inject({
+          method: "POST",
+          url: "/api/persons",
+          headers: ana.headers,
+          payload: { displayName: "Ben", email: "ben@example.test" },
+        })
+      ).json(),
+    );
+    const listing = (headers: Headers, personId: string) =>
+      app.inject({
+        method: "GET",
+        url: `/api/persons/${personId}/shares`,
+        headers,
+      });
+    expect(
+      personShareListResponseSchema.parse(
+        (await listing(ana.headers, card.id)).json(),
+      ),
+    ).toEqual({ items: [] });
+
+    // Ana shares Kyoto with Ben's card; Ben shares Spring cleaning with Ana.
+    const outgoing = shareResponseSchema.parse(
+      (
+        await app.inject({
+          method: "POST",
+          url: "/api/shares",
+          headers: ana.headers,
+          payload: { resourceId: kyoto.id, personId: card.id, role: "editor" },
+        })
+      ).json(),
+    );
+    const incoming = shareResponseSchema.parse(
+      (
+        await app.inject({
+          method: "POST",
+          url: "/api/shares",
+          headers: ben.headers,
+          payload: {
+            resourceId: spring.id,
+            principalEmail: "ana@example.test",
+            role: "viewer",
+          },
+        })
+      ).json(),
+    );
+    const listed = await listing(ana.headers, card.id);
+    expect(listed.statusCode).toBe(200);
+    expect(personShareListResponseSchema.parse(listed.json())).toEqual({
+      items: [
+        {
+          id: incoming.id,
+          kind: "grant",
+          direction: "incoming",
+          resourceId: spring.id,
+          objectType: "event",
+          displayName: "Spring cleaning",
+          role: "viewer",
+          createdAt: incoming.createdAt,
+        },
+        {
+          id: outgoing.id,
+          kind: "grant",
+          direction: "outgoing",
+          resourceId: kyoto.id,
+          objectType: "event",
+          displayName: "Kyoto in November",
+          role: "editor",
+          createdAt: outgoing.createdAt,
+        },
+      ],
+    });
+    // Eve cannot see Ana's card; a card that does not exist reads the same,
+    // and neither reveals whether the card exists.
+    expect(
+      (
+        await listing(
+          { ...eve.headers, "x-workspace-id": ana.workspace.id },
+          card.id,
+        )
+      ).statusCode,
+    ).toBe(404);
+    expect(
+      (await listing(ana.headers, "01a0b5d1-0000-7000-8000-000000000000"))
+        .statusCode,
+    ).toBe(404);
   });
 
   it("queues a share for an unlinked person, invites them, and grants it when they accept", async () => {

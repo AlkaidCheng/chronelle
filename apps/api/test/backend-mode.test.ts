@@ -76,6 +76,7 @@ describe("resolveBackend", () => {
         "chronelle_friend_remove",
         "chronelle_friend_resend",
         "chronelle_friend_invitations_claim",
+        "chronelle_person_shares_list",
       ]),
     );
     expect(cloudBaseRequiredFunctions).toContain("chronelle_backend_readiness");

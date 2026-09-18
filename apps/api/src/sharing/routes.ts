@@ -12,6 +12,7 @@ import {
   pendingShareRevocationResponseSchema,
   pendingShareSchema,
   permissionScopeUpdateRequestSchema,
+  personShareListResponseSchema,
   shareCreateRequestSchema,
   shareListResponseSchema,
   shareResponseSchema,
@@ -24,11 +25,13 @@ import { requirePrincipal } from "../request-context.js";
 import { parseRequest } from "../request-validation.js";
 import type { PendingShareService } from "./pending-share-service.js";
 import type { PendingShareView } from "./pending-share-store.js";
+import type { PersonShareStore } from "./person-share-store.js";
 
 export interface SharingRouteDependencies {
   readonly objects: EventPlanningObjectService;
   readonly shares: ResourceGrantService;
   readonly pendingShares: PendingShareService;
+  readonly personShares: PersonShareStore;
 }
 
 function mutationContext(request: FastifyRequest): GrantMutationContext {
@@ -75,6 +78,27 @@ export function registerSharingRoutes(
       return shareListResponseSchema.parse({
         items: grants.map(serializeShare),
         pending: pending.map(serializePending),
+      });
+    },
+  );
+
+  // What is shared each way with a person of the caller's workspace: its
+  // live grants for the person's account, the shares queued for the
+  // person, and the grants the person's account gave the caller.
+  app.get(
+    "/api/persons/:id/shares",
+    { preHandler: app.authenticate },
+    async (request) => {
+      const { id } = parseRequest(objectIdParamsSchema, request.params);
+      const items = await dependencies.personShares.list(
+        requirePrincipal(request),
+        id,
+      );
+      return personShareListResponseSchema.parse({
+        items: items.map((item) => ({
+          ...item,
+          createdAt: item.createdAt.toISOString(),
+        })),
       });
     },
   );

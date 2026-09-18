@@ -73,6 +73,11 @@ import { PostgresFriendStore } from "./friends/friend-store.js";
 import { CloudBasePendingShareStore } from "./sharing/cloudbase-pending-share-store.js";
 import { PendingShareService } from "./sharing/pending-share-service.js";
 import { PostgresPendingShareStore } from "./sharing/pending-share-store.js";
+import { CloudBasePersonShareStore } from "./sharing/cloudbase-person-share-store.js";
+import {
+  type PersonShareStore,
+  PostgresPersonShareStore,
+} from "./sharing/person-share-store.js";
 import { CloudBaseMembershipStore } from "./workspaces/cloudbase-membership-store.js";
 import {
   type MembershipStore,
@@ -104,6 +109,7 @@ export interface AppDependencies {
   readonly search: CanonicalObjectSearchService;
   readonly shares: ResourceGrantService;
   readonly pendingShares: PendingShareService;
+  readonly personShares: PersonShareStore;
   readonly members: MembershipStore;
   readonly storageInventory: StorageInventoryService;
 }
@@ -256,6 +262,10 @@ export function createAppDependencies(
     objects,
     options.clock,
   );
+  const personShares =
+    options.cloudBaseRdb === undefined
+      ? new PostgresPersonShareStore(connection.db, options.clock)
+      : new CloudBasePersonShareStore(options.cloudBaseRdb);
   const members =
     options.cloudBaseRdb === undefined
       ? new PostgresMembershipStore(connection.db)
@@ -322,6 +332,7 @@ export function createAppDependencies(
       reads?.grants,
     ),
     pendingShares,
+    personShares,
     members,
     projections: new EventPlanningProjectionService(
       connection.db,
