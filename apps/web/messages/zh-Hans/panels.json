@@ -7,5 +7,9 @@
   "noExpenses": "暂无支出记录",
   "undated": "无日期",
   "noReminders": "暂无提醒",
-  "totalsByCurrency": "按货币合计"
+  "totalsByCurrency": "按货币合计",
+  "addScheduleItem": "添加日程项",
+  "addExpense": "添加支出",
+  "addReminder": "添加提醒",
+  "edit": "编辑"
 }
