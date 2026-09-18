@@ -375,7 +375,9 @@ WebKit desktop, `@webkit-mobile` for WebKit mobile, and a test may carry both
 (`test("title @webkit-desktop @webkit-mobile", async ...)`). A new journey
 adds its tags in its own file; `playwright.config.ts` needs no edit. On
 Linux, use `playwright install --with-deps` to install the required system
-libraries as well.
+libraries as well. The journeys start their servers on ports 3000 and 4000;
+`E2E_WEB_PORT` and `E2E_API_PORT` move them, so the suite can run beside a
+local deployment that holds the defaults.
 
 Production browser specs import `test` from `apps/web/e2e/fixtures.ts`.
 Its independent API verification client closes connections between requests,

@@ -6,6 +6,12 @@ const databaseUrl =
   "postgresql://chronelle:chronelle_dev@localhost:5432/chronelle";
 const isCi = process.env.CI === "true";
 /**
+ * `E2E_WEB_PORT` and `E2E_API_PORT` move the journeys' servers off 3000 and
+ * 4000, so they can run beside a local deployment that holds those ports.
+ */
+const webPort = process.env.E2E_WEB_PORT ?? "3000";
+const apiPort = process.env.E2E_API_PORT ?? "4000";
+/**
  * `E2E_PROJECT=name` runs one browser project, one runner each in CI: a WebKit
  * journey costs almost twice a Chromium one, so slicing by project balances
  * the runners better than slicing the list by count.
@@ -45,7 +51,7 @@ export default defineConfig({
   retries: isCi ? 1 : 0,
   testDir: "./apps/web/e2e",
   use: {
-    baseURL: "http://127.0.0.1:3000",
+    baseURL: `http://127.0.0.1:${webPort}`,
     screenshot: "only-on-failure",
     trace: "retain-on-failure",
   },
@@ -54,7 +60,7 @@ export default defineConfig({
       command: "pnpm --filter @chronelle/api start",
       env: {
         API_HOST: "127.0.0.1",
-        API_PORT: "4000",
+        API_PORT: apiPort,
         DATABASE_URL: databaseUrl,
         DOCUMENT_TRANSFER_TTL_SECONDS: "60",
         ENABLE_DEVELOPMENT_AUTH: "true",
@@ -62,19 +68,19 @@ export default defineConfig({
       },
       reuseExistingServer: !isCi,
       timeout: 60_000,
-      url: "http://127.0.0.1:4000/api/health",
+      url: `http://127.0.0.1:${apiPort}/api/health`,
     },
     {
       command: "pnpm --filter @chronelle/web start",
       env: {
-        API_INTERNAL_URL: "http://127.0.0.1:4000",
+        API_INTERNAL_URL: `http://127.0.0.1:${apiPort}`,
         HOSTNAME: "127.0.0.1",
-        PORT: "3000",
+        PORT: webPort,
         WEB_DEVELOPMENT_SIGN_IN: "true",
       },
       reuseExistingServer: !isCi,
       timeout: 60_000,
-      url: "http://127.0.0.1:3000/sign-in",
+      url: `http://127.0.0.1:${webPort}/sign-in`,
     },
   ],
   // A CI runner has four vCPUs shared with both servers and PostgreSQL; two
