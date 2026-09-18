@@ -37,7 +37,12 @@ test("compares and restores history while preserving an open draft @webkit-deskt
   await expect(
     dialog.getByRole("combobox", { name: "After", exact: true }),
   ).toHaveValue("2");
-  await expect(dialog.getByText(original, { exact: true })).toBeVisible();
+  // The rows strike the earlier name through; the comparison prints it.
+  await expect(
+    dialog
+      .getByRole("region", { name: "Version comparison" })
+      .getByText(original, { exact: true }),
+  ).toBeVisible();
   await dialog.getByRole("button", { name: "Preview v1" }).click();
   await expect(
     dialog.getByRole("heading", { name: "Restore version 1" }),

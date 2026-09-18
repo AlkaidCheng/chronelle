@@ -44,7 +44,8 @@ test("starts an undated plan with the keyboard and reopens it after recovery @we
     page,
     page.getByRole("button", { name: "Actions for A first gathering" }),
   );
-  await page.keyboard.press("ArrowDown");
+  // End reaches the last item however many the menu offers before it.
+  await page.keyboard.press("End");
   await expect(
     page.getByRole("menuitem", { name: "Move to Trash", exact: true }),
   ).toBeFocused();
