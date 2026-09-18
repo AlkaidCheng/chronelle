@@ -3,6 +3,7 @@
 import { useTranslations } from "next-intl";
 import { useId, useState } from "react";
 import { Notice } from "../../components/feedback";
+import { formatCalendarDate } from "../../lib/event-schedule";
 import { formatDateTime } from "../../lib/format";
 import { useObjectHistory } from "../../lib/history-queries";
 
@@ -15,6 +16,16 @@ export interface ConflictDraft<Fields extends Record<string, string>> {
 
 /** Shows a field's value the way the editor names it; empty reads as such. */
 export type FieldFormatter = (key: string, value: string) => string | undefined;
+
+const calendarDate = /^\d{4}-\d{2}-\d{2}$/u;
+const localDateTime = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/u;
+
+/** A date or date-time the editor keeps as an input value, in the display locale. */
+function formatFieldValue(value: string): string {
+  if (calendarDate.test(value)) return formatCalendarDate(value);
+  if (localDateTime.test(value)) return formatDateTime(value);
+  return value;
+}
 
 interface Row {
   readonly key: string;
@@ -84,7 +95,8 @@ export function ConflictNotice<Fields extends Record<string, string>>({
   const author = newest?.actorDisplayName ?? t("someone");
   const differences = rows(draft);
   const show = (key: string, value: string) =>
-    format?.(key, value) ?? (value === "" ? t("empty") : value);
+    format?.(key, value) ??
+    (value === "" ? t("empty") : formatFieldValue(value));
   const label = (field: string) => {
     const key = field as Parameters<typeof names>[0];
     return names.has(key) ? names(key) : field;
@@ -101,14 +113,15 @@ export function ConflictNotice<Fields extends Record<string, string>>({
 
   return (
     <Notice role="alert" title={t("title")} tone="warning">
-      {newest === undefined ? null : (
-        <p className="conflict-meta">
-          {t("theirs", {
-            name: author,
-            when: formatDateTime(newest.createdAt),
-          })}
-        </p>
-      )}
+      <p className="conflict-meta">
+        {newest === undefined
+          ? null
+          : `${t("theirs", {
+              name: author,
+              when: formatDateTime(newest.createdAt),
+            })}. `}
+        {t("draftKept")}
+      </p>
       <table className="conflict-table">
         <thead>
           <tr>

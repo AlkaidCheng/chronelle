@@ -118,6 +118,28 @@ export function EditorControls<Fields extends Record<string, string>>({
 
   return (
     <>
+      {comparing ? (
+        <ConflictNotice
+          draft={draft}
+          format={conflict.format}
+          objectId={conflict.objectId}
+          onKeepMine={() => {
+            submitOnceRebased.current = true;
+            mutation.reset();
+            draft.rebase(draft.fields);
+          }}
+          onMerge={(fields) => {
+            submitOnceRebased.current = true;
+            mutation.reset();
+            draft.rebase(fields);
+          }}
+          onTakeTheirs={() => {
+            draft.loadLatest();
+            mutation.reset();
+            setRefreshError(null);
+          }}
+        />
+      ) : null}
       {mutation.isError && !comparing ? (
         <>
           <ErrorNotice
@@ -164,28 +186,6 @@ export function EditorControls<Fields extends Record<string, string>>({
             ? t("saved")
             : ""}
       </p>
-      {comparing ? (
-        <ConflictNotice
-          draft={draft}
-          format={conflict.format}
-          objectId={conflict.objectId}
-          onKeepMine={() => {
-            submitOnceRebased.current = true;
-            mutation.reset();
-            draft.rebase(draft.fields);
-          }}
-          onMerge={(fields) => {
-            submitOnceRebased.current = true;
-            mutation.reset();
-            draft.rebase(fields);
-          }}
-          onTakeTheirs={() => {
-            draft.loadLatest();
-            mutation.reset();
-            setRefreshError(null);
-          }}
-        />
-      ) : null}
     </>
   );
 }
