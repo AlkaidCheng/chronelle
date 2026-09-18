@@ -57,9 +57,11 @@ test("creates and retrieves one canonical Event at responsive widths", async ({
   await expect(
     page.getByRole("heading", { name: "People with access", exact: true }),
   ).toBeVisible();
-  await expect(
-    page.getByRole("heading", { name: "Only you have access", exact: true }),
-  ).toBeVisible();
+  // The owner heads the list; nobody else has access yet.
+  const access = page.locator(".share-list article");
+  await expect(access).toHaveCount(1);
+  await expect(access.first()).toContainText("(you)");
+  await expect(access.first()).toContainText("Owner");
 
   await openSearchPage(page);
   await page.getByLabel("Keywords").fill("launch plan");

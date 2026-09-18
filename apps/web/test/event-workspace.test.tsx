@@ -1332,14 +1332,15 @@ describe("EventWorkspace", () => {
     );
 
     await user.click(await screen.findByRole("tab", { name: "Sharing" }));
+    // Every role the API takes is offered: Viewer, Editor, Owner.
     expect(screen.getByRole("option", { name: "Viewer" })).toBeVisible();
+    expect(screen.getByRole("option", { name: "Editor" })).toBeVisible();
     expect(screen.getByRole("option", { name: "Owner" })).toBeVisible();
-    expect(screen.queryByRole("option", { name: "Editor" })).toBeNull();
     await user.type(
       screen.getByLabelText("Collaborator email"),
       "viewer@example.com",
     );
-    await user.click(screen.getByRole("button", { name: "Share event" }));
+    await user.click(screen.getByRole("button", { name: "Add" }));
 
     expect(await screen.findByText("viewer@example.com")).toBeVisible();
     expect(screen.getByText("Event Viewer")).toBeVisible();
@@ -1619,7 +1620,7 @@ describe("EventWorkspace", () => {
         friendList
           .getByRole("checkbox", { name: /^Mei / })
           .closest("li") as HTMLElement,
-      ).getByText("Viewer", { selector: ".status-chip" }),
+      ).getByText(/already Viewer/),
     ).toBeVisible();
   });
 });

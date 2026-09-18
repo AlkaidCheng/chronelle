@@ -89,8 +89,11 @@ test("shares an event with the people the workspace knows", async ({
       )
     ).status(),
   ).toBe(200);
+  // The view is in the URL, so the reload lands on Sharing again.
   await page.reload();
-  await page.getByRole("button", { name: "Share event", exact: true }).click();
+  await expect(
+    page.getByRole("tab", { name: "Sharing", selected: true }),
+  ).toBeVisible();
   await expect(access.getByText("Reader", { exact: true })).toBeVisible();
   await expect(access.getByText(/Access follows when they join/)).toHaveCount(
     0,
@@ -107,6 +110,6 @@ test("shares an event with the people the workspace knows", async ({
   await expect(
     friends.getByRole("checkbox", { name: /Reader Person/ }),
   ).toBeVisible();
-  await expect(friends.locator(".status-chip")).toHaveText("Viewer");
+  await expect(friends.getByText(/already Viewer/)).toBeVisible();
   expect(errors).toEqual([]);
 });

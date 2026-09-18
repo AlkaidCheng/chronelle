@@ -246,12 +246,13 @@ test("switches the workspace to Simplified and Traditional Chinese and back @web
   await page
     .getByRole("button", { name: hans.shareEvent, exact: true })
     .click();
+  // The Sharing view is a box headed by the event's name; its tab and its
+  // groups carry the translated vocabulary.
   await expect(
-    page.getByRole("heading", {
-      level: 2,
-      name: hans.sharingView,
-      exact: true,
-    }),
+    page.getByRole("tab", { name: hans.sharingView, selected: true }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("heading", { level: 2, name: "Summer vacation" }),
   ).toBeVisible();
   await expect(
     page.getByText(hans.othersInPeople, { exact: true }),

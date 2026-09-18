@@ -5,6 +5,7 @@
   "memberRemoved": "Member removed",
   "friendRemoved": "Friend removed",
   "invitationWithdrawn": "Invitation withdrawn",
+  "invitationResent": "Invitation sent again",
   "personUnlinked": "Person unlinked",
   "undo": "Undo"
 }

@@ -4,7 +4,7 @@ import type { EventResponse, TaskResponse } from "@chronelle/schemas";
 import Link from "next/link";
 import { AccessLine } from "../../components/access-line";
 import { useTranslations } from "next-intl";
-import { type KeyboardEvent, useRef, useState } from "react";
+import { Fragment, type KeyboardEvent, useRef, useState } from "react";
 
 import {
   EmptyState,
@@ -20,7 +20,6 @@ import {
   PencilIcon,
   TrashIcon,
 } from "../../components/icons";
-import { useNotices } from "../../components/notices";
 import {
   MenuItem,
   MenuSeparator,
@@ -36,20 +35,16 @@ import {
   usePersonEventsQuery,
   useSessionQuery,
   useTasksQuery,
-  useUpdatePerson,
 } from "../../lib/queries";
 import { formatTaskWhen } from "../../lib/task-due";
 import { usePersonConnections } from "../../lib/use-person-connections";
 import { StatusChip } from "../events/component-frame";
+import { InviteFriendDialog } from "../friends/invite-friend-dialog";
 import { HistoryButton } from "../history/history-button";
 import { useOpenLifecycle } from "../recovery/lifecycle-provider";
+import { PersonConnection } from "./person-connection";
 import { PersonInspector } from "./person-inspector";
-import {
-  PersonAvatar,
-  PersonBadge,
-  PersonContacts,
-  PersonLabels,
-} from "./person-row";
+import { PersonAvatar, PersonBadge, PersonLabels } from "./person-row";
 
 type PersonTab = "overview" | "events" | "tasks";
 
@@ -58,16 +53,14 @@ const personTabs: readonly PersonTab[] = ["overview", "events", "tasks"];
 /**
  * One person's page: the nickname as the title with the full name, the
  * account badge and the labels under it; Edit, History, and More (Copy
- * link, Move to Trash); then Overview (the details and the description),
- * the Events the person is part of, and the Tasks assigned to them.
+ * link, Move to Trash); then Overview (the details that exist, the
+ * description when there is one, and the connection), the Events the
+ * person is part of, and the Tasks assigned to them.
  */
 export function PersonPage({ personId }: { readonly personId: string }) {
   const t = useTranslations("personPage");
   const people = useTranslations("people");
-  const verbs = useTranslations("verbs");
-  const done = useTranslations("done");
-  const { post } = useNotices();
-  const update = useUpdatePerson();
+  const contactKinds = useTranslations("person");
   const { person, access } = usePersonEditorQueries(personId);
   const session = useSessionQuery();
   const connections = usePersonConnections();
@@ -75,6 +68,7 @@ export function PersonPage({ personId }: { readonly personId: string }) {
   const openLifecycle = useOpenLifecycle();
   const [tab, setTab] = useState<PersonTab>("overview");
   const [isEditing, setIsEditing] = useState(false);
+  const [isInviting, setIsInviting] = useState(false);
   const [copied, setCopied] = useState("");
   const tabs = useRef(new Map<PersonTab, HTMLButtonElement>());
 
@@ -104,6 +98,11 @@ export function PersonPage({ personId }: { readonly personId: string }) {
   const canDelete = actions.includes("delete");
   const account = personAccount(record, session.data?.user.id, connections);
   const fields = Object.entries(record.customProperties);
+  const hasDetails =
+    record.nickname !== null ||
+    record.contacts.length > 0 ||
+    fields.length > 0 ||
+    record.labelIds.length > 0;
 
   function copyLink() {
     const link = `${window.location.origin}/people/${record.id}`;
@@ -139,7 +138,11 @@ export function PersonPage({ personId }: { readonly personId: string }) {
           {people("title")}
         </Link>
         <div className="event-title-row person-title-row">
-          <PersonAvatar name={name} size="page" />
+          <PersonAvatar
+            linked={record.userId !== null}
+            name={name}
+            size="page"
+          />
           <div className="person-titles">
             <h1>{name}</h1>
             <p className="person-subline">
@@ -175,30 +178,6 @@ export function PersonPage({ personId }: { readonly personId: string }) {
               <MenuItem icon={<LinkIcon />} onSelect={copyLink}>
                 {t("copyLink")}
               </MenuItem>
-              {canEdit &&
-              record.userId !== null &&
-              record.userId !== session.data?.user.id ? (
-                <MenuItem
-                  icon={<LinkIcon />}
-                  onSelect={() =>
-                    update.mutate(
-                      {
-                        id: record.id,
-                        input: {
-                          expectedVersion: record.version,
-                          userId: null,
-                        },
-                      },
-                      {
-                        onSuccess: () =>
-                          post({ message: done("personUnlinked") }),
-                      },
-                    )
-                  }
-                >
-                  {verbs("unlinkPerson")}
-                </MenuItem>
-              ) : null}
               {canDelete ? (
                 <>
                   <MenuSeparator />
@@ -249,50 +228,80 @@ export function PersonPage({ personId }: { readonly personId: string }) {
       >
         {tab === "overview" ? (
           <div className="person-overview">
-            <section className="planning-panel">
-              <header className="panel-heading">
-                <div>
-                  <h2>{t("details")}</h2>
-                </div>
-              </header>
-              <dl className="person-details">
-                {record.nickname !== null ? (
-                  <div>
-                    <dt>{t("fullName")}</dt>
-                    <dd>{record.displayName}</dd>
-                  </div>
-                ) : null}
-                {record.contacts.length > 0 ? (
-                  <div>
-                    <dt>{t("contacts")}</dt>
-                    <dd>
-                      <PersonContacts person={record} withIcons />
-                    </dd>
-                  </div>
-                ) : null}
-                {fields.map(([key, value]) => (
-                  <div key={key}>
-                    <dt>{key}</dt>
-                    <dd>{propertyText(value)}</dd>
-                  </div>
-                ))}
-              </dl>
-              {record.contacts.length === 0 && fields.length === 0 ? (
-                <p className="muted">{t("noDetails")}</p>
+            <div className="person-overview-column">
+              <section aria-labelledby="person-details" className="quiet-panel">
+                <header className="quiet-panel-head">
+                  <h2 id="person-details">{t("details")}</h2>
+                </header>
+                {hasDetails ? (
+                  <dl className="kv-list">
+                    {record.nickname !== null ? (
+                      <>
+                        <dt>{t("nickname")}</dt>
+                        <dd>{record.nickname}</dd>
+                      </>
+                    ) : null}
+                    {record.contacts.map((contact, index) => (
+                      // Contacts have no identity of their own; their position is it.
+                      // biome-ignore lint/suspicious/noArrayIndexKey: positional rows
+                      <Fragment key={index}>
+                        <dt>{contactKinds(`contactKinds.${contact.kind}`)}</dt>
+                        <dd>
+                          {contact.kind === "email" ? (
+                            <a href={`mailto:${contact.value}`}>
+                              {contact.value}
+                            </a>
+                          ) : contact.kind === "phone" ? (
+                            <a href={`tel:${contact.value}`}>{contact.value}</a>
+                          ) : (
+                            contact.value
+                          )}
+                        </dd>
+                      </Fragment>
+                    ))}
+                    {fields.map(([key, value]) => (
+                      <Fragment key={key}>
+                        <dt>{key}</dt>
+                        <dd>{propertyText(value)}</dd>
+                      </Fragment>
+                    ))}
+                    {record.labelIds.length > 0 ? (
+                      <>
+                        <dt>{t("labels")}</dt>
+                        <dd>
+                          <PersonLabels
+                            labelNames={labelNames}
+                            person={record}
+                          />
+                        </dd>
+                      </>
+                    ) : null}
+                  </dl>
+                ) : (
+                  <p className="kv-empty">{t("noDetails")}</p>
+                )}
+              </section>
+              {record.description !== null ? (
+                <section
+                  aria-labelledby="person-description"
+                  className="quiet-panel"
+                >
+                  <header className="quiet-panel-head">
+                    <h2 id="person-description">{t("description")}</h2>
+                  </header>
+                  <p className="person-description">{record.description}</p>
+                </section>
               ) : null}
-            </section>
-            <section className="planning-panel">
-              <header className="panel-heading">
-                <div>
-                  <h2>{t("description")}</h2>
-                </div>
-              </header>
-              {record.description === null ? (
-                <p className="muted">{t("noDescription")}</p>
-              ) : (
-                <p className="person-description">{record.description}</p>
-              )}
-            </section>
+            </div>
+            <div className="person-overview-column">
+              <PersonConnection
+                account={account}
+                canEdit={canEdit}
+                onInvite={() => setIsInviting(true)}
+                onLink={() => setIsEditing(true)}
+                person={record}
+              />
+            </div>
           </div>
         ) : tab === "events" ? (
           <PersonEvents personId={record.id} />
@@ -304,6 +313,12 @@ export function PersonPage({ personId }: { readonly personId: string }) {
         <PersonInspector
           key={record.id}
           onClose={() => setIsEditing(false)}
+          personId={record.id}
+        />
+      ) : null}
+      {isInviting ? (
+        <InviteFriendDialog
+          onClose={() => setIsInviting(false)}
           personId={record.id}
         />
       ) : null}

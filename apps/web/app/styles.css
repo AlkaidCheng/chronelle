@@ -558,6 +558,11 @@ h3,
   overflow-wrap: anywhere;
 }
 
+.quiet-panel > .person-description {
+  color: var(--ink);
+  line-height: 1.5;
+}
+
 /* The person page: the avatar beside the title, the names and badge
    under it, then the tabs and one panel. */
 .person-title-row {
@@ -593,32 +598,130 @@ h3,
 }
 
 .person-overview {
+  align-items: start;
   display: grid;
-  gap: 14px;
-  grid-template-columns: minmax(0, 1.4fr) minmax(240px, 1fr);
+  gap: 18px;
+  grid-template-columns: minmax(0, 1.4fr) minmax(260px, 1fr);
 }
 
-.person-details {
+.person-overview-column {
   display: grid;
+  gap: 14px;
+  min-width: 0;
+}
+
+/* A quiet panel: a bordered card with a display heading and an optional
+   count, sized to its content. Person overview, Friends, and Share use it. */
+.quiet-panel {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  min-width: 0;
+  padding: 16px 18px 14px;
+}
+
+.quiet-panel-head {
+  align-items: baseline;
+  display: flex;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.quiet-panel-head h2 {
+  font: 400 1.2rem/1.1 var(--font-display);
+  letter-spacing: -0.01em;
+  margin: 0;
+}
+
+.quiet-panel-count {
+  color: var(--faint);
+  font-size: 0.8rem;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Key-value details: the label column in the faint tone, values in ink. */
+.kv-list {
+  display: grid;
+  font-size: 0.84rem;
+  gap: 7px 12px;
+  grid-template-columns: 110px minmax(0, 1fr);
+  margin: 0;
+}
+
+.kv-list dt {
+  color: var(--faint);
+  margin: 0;
+}
+
+.kv-list dd {
+  color: var(--ink);
+  margin: 0;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.kv-list dd a {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+.kv-list dd a:hover {
+  text-decoration: underline;
+}
+
+.kv-list dd a[href^="tel:"] {
+  color: inherit;
+}
+
+.kv-list .person-labels {
+  margin: 0;
+}
+
+.kv-empty {
+  color: var(--faint);
+  font-size: 0.84rem;
+  margin: 0;
+}
+
+/* The Connection panel's lines: an icon, the fact, and a date at the end. */
+.connection-lines {
+  display: grid;
+  font-size: 0.84rem;
+  gap: 10px;
+}
+
+.connection-line {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
   gap: 8px;
   margin: 0;
 }
 
-.person-details > div {
-  display: grid;
-  gap: 4px 12px;
-  grid-template-columns: 110px minmax(0, 1fr);
-}
-
-.person-details dt {
+.connection-line > svg {
   color: var(--faint);
-  font-size: 0.85rem;
+  flex: none;
+  height: 15px;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.7;
+  width: 15px;
 }
 
-.person-details dd {
-  margin: 0;
-  min-width: 0;
-  overflow-wrap: anywhere;
+.connection-line b {
+  font-weight: 600;
+}
+
+.connection-when {
+  color: var(--faint);
+  font-size: 0.76rem;
+  margin-left: auto;
+}
+
+.connection-actions {
+  gap: 14px;
+  margin-top: 2px;
 }
 
 @media (max-width: 760px) {
@@ -1966,7 +2069,8 @@ p[role="alert"] {
 .share-grants {
   color: var(--faint);
   display: block;
-  font-size: 0.8rem;
+  font-size: 0.74rem;
+  width: 100%;
 }
 
 .event-date svg {
@@ -4507,38 +4611,80 @@ html:has(.event-create-dialog[open]) {
 
 .share-people-list ul {
   display: grid;
-  gap: 6px;
   list-style: none;
   margin: 0;
   padding: 0;
 }
 
-.share-people-list li {
+/* One person to share with: the tick, the mark, the name over the reach,
+   and the role at the end; a row that waits on an invitation is dimmed
+   until it is ticked. */
+.pick-row {
   align-items: center;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px 12px;
+  border-radius: 8px;
+  display: grid;
+  gap: 6px 10px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  padding: 5px 4px;
+}
+
+.pick-row:hover {
+  background: var(--surface-subtle);
+}
+
+.pick-row-off {
+  opacity: 0.6;
+}
+
+.pick-row-off .share-person-role {
+  visibility: hidden;
 }
 
 .share-person {
   align-items: center;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
+  cursor: pointer;
+  display: grid;
+  gap: 10px;
+  grid-template-columns: 18px 32px minmax(0, 1fr);
+  min-width: 0;
+}
+
+.share-person input[type="checkbox"] {
+  accent-color: var(--accent);
+  height: 15px;
+  margin: 0;
+  width: 15px;
+}
+
+.person-avatar-pick {
+  height: 32px;
+  width: 32px;
+}
+
+.share-person-copy {
+  display: grid;
+  line-height: 1.2;
+  min-width: 0;
 }
 
 .share-person-name {
+  font-size: 0.86rem;
   font-weight: 600;
 }
 
 .share-person-reach {
-  color: var(--muted);
-  font-size: 0.85rem;
+  color: var(--faint);
+  font-size: 0.76rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .share-outcome {
   color: var(--muted);
-  font-size: 0.85rem;
+  font-size: 0.78rem;
+  grid-column: 1 / -1;
+  padding-left: 60px;
 }
 
 .share-outcome-failed {
@@ -4546,10 +4692,18 @@ html:has(.event-create-dialog[open]) {
 }
 
 .share-people-actions {
-  align-items: end;
+  align-items: center;
   display: flex;
   flex-wrap: wrap;
-  gap: 12px;
+  gap: 8px;
+  justify-content: flex-end;
+  margin-top: 4px;
+}
+
+.share-copied {
+  color: var(--muted);
+  font-size: 0.78rem;
+  margin-right: auto;
 }
 
 /* The share list's groups (Friends, Others in People, By email) and the
@@ -4564,12 +4718,122 @@ html:has(.event-create-dialog[open]) {
 }
 
 .share-group-title {
-  color: var(--muted);
+  color: var(--faint);
   display: block;
-  font-size: 0.72rem;
-  font-weight: 700;
+  font-size: 0.7rem;
+  font-weight: 600;
   letter-spacing: 0.05em;
+  margin: 0;
   text-transform: uppercase;
+}
+
+/* The share box: the event named as its heading, a note on what follows,
+   the groups, then the people with access under a rule. */
+.sharing-view {
+  display: grid;
+  gap: 14px;
+  max-width: 560px;
+}
+
+.share-box-head h2 {
+  font-size: 1.3rem;
+}
+
+.share-sub {
+  color: var(--muted);
+  font-size: 0.8rem;
+  margin: -4px 0 14px;
+}
+
+.share-email-row {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+}
+
+/* The field, the role, and Add share one 32px height. */
+.share-email-field input,
+.share-email-role select {
+  background: var(--canvas);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: var(--ink);
+  font: inherit;
+  font-size: 0.82rem;
+  height: 32px;
+  min-height: 0;
+  padding: 0 10px;
+}
+
+.share-email-field input {
+  width: 100%;
+}
+
+.share-email-role select {
+  padding-right: 8px;
+}
+
+.share-email-field input:focus-visible,
+.share-email-role select:focus-visible {
+  border-color: var(--line-strong);
+  outline: 0;
+}
+
+.share-email-row > .button {
+  font-size: 0.82rem;
+  min-height: 32px;
+  padding: 4px 14px;
+}
+
+.share-people-actions .button {
+  font-size: 0.84rem;
+  min-height: 32px;
+  padding: 4px 14px;
+}
+
+.access-section {
+  border-top: 1px solid var(--line);
+  margin-top: 16px;
+  padding-top: 10px;
+}
+
+.access-section .section-title-row {
+  margin-bottom: 4px;
+}
+
+.access-section .section-title-row h3 {
+  font-size: 0.7rem;
+}
+
+.share-list article {
+  align-items: center;
+  border-top: 0;
+  display: grid;
+  gap: 10px;
+  grid-template-columns: 28px minmax(0, 1fr) auto auto;
+  padding: 6px 0;
+}
+
+.share-list article > div {
+  align-items: baseline;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 6px;
+}
+
+.share-list article > div strong {
+  font-size: 0.86rem;
+  font-weight: 500;
+}
+
+.share-you {
+  color: var(--faint);
+  font-size: 0.8rem;
+}
+
+.share-role {
+  color: var(--muted);
+  font-size: 0.78rem;
 }
 
 .share-person-role {
@@ -6354,108 +6618,146 @@ html:has(.event-create-dialog[open]) {
   text-align: center;
 }
 
+/* The Friends page: an intro line, then Requests, Friends, and Sent as
+   quiet panels, each row one line. */
+.page-intro {
+  color: var(--muted);
+  font-size: 0.84rem;
+  margin: -14px 0 0;
+  max-width: 640px;
+}
+
 .friends-layout {
   display: grid;
-  gap: 28px;
-  max-width: 680px;
+  gap: 14px;
+  margin-top: 16px;
+  max-width: 640px;
 }
 
-.friends-group h2 {
-  align-items: baseline;
-  display: flex;
-  font-size: 1.15rem;
-  gap: 8px;
-  margin: 0 0 10px;
-}
-
-.friends-count {
-  color: var(--muted);
-  font-size: 0.85rem;
-  font-weight: 500;
-}
-
-.friends-list {
-  background: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: 12px;
+.request-list,
+.srow-list {
   list-style: none;
   margin: 0;
   padding: 0;
 }
 
-.friends-row {
-  align-items: center;
-  border-top: 1px solid var(--line);
-  display: flex;
-  gap: 12px;
-  padding: 12px 16px;
-}
-
-.friends-row:first-child {
-  border-top: 0;
-}
-
-.friends-request {
-  align-items: flex-start;
-}
-
-.friend-mark {
-  align-items: center;
-  background: var(--surface-subtle);
-  border-radius: 50%;
-  color: var(--muted);
-  display: flex;
-  flex-shrink: 0;
-  font-size: 0.8rem;
-  font-weight: 700;
-  height: 34px;
-  justify-content: center;
-  width: 34px;
-}
-
-.friend-mark-linked {
-  background: var(--accent-soft);
-  color: var(--accent);
-}
-
-.friends-row-body {
+.request-row {
   display: grid;
-  flex: 1;
+  gap: 12px;
+  grid-template-columns: 44px minmax(0, 1fr);
+  padding: 6px 0 4px;
+}
+
+.request-body {
+  display: grid;
   gap: 6px;
   min-width: 0;
 }
 
-.friends-row-body p {
-  display: grid;
-  line-height: 1.3;
+.request-line {
+  font-size: 0.86rem;
   margin: 0;
 }
 
-.friends-meta,
-.friends-since {
+.request-line strong {
+  font-weight: 600;
+}
+
+.request-verb {
+  color: var(--faint);
+}
+
+.request-meta {
+  color: var(--faint);
+  font-size: 0.76rem;
+}
+
+.request-note {
+  border-left: 2px solid var(--line);
   color: var(--muted);
-  font-size: 0.85rem;
+  font-size: 0.84rem;
+  margin: 0;
+  padding-left: 10px;
+}
+
+.request-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+/* A shared row: a mark, the name with its address, then what stands at
+   the end (a date, a badge, quiet actions). */
+.srow {
+  align-items: center;
+  border-top: 1px solid var(--line);
+  display: grid;
+  font-size: 0.84rem;
+  gap: 10px;
+  grid-template-columns: 22px minmax(0, 1fr) auto auto;
+  padding: 8px 0;
+}
+
+.srow:first-child {
+  border-top: 0;
+}
+
+.srow-sent {
+  grid-template-columns: 22px minmax(0, 1fr) auto auto auto;
+}
+
+.srow > svg {
+  color: var(--faint);
+  height: 15px;
+  justify-self: center;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.7;
+  width: 15px;
+}
+
+.srow-name {
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.friends-note {
-  border-left: 2px solid var(--line);
-  color: var(--muted);
-  font-size: 0.9rem;
-  margin: 0;
-  padding-left: 10px;
+.srow-meta {
+  color: var(--faint);
 }
 
-.friends-actions {
-  display: flex;
-  gap: 8px;
+.srow-sub {
+  color: var(--faint);
+  display: block;
+  font-size: 0.74rem;
 }
 
-.friends-empty {
-  color: var(--muted);
-  margin: 0;
+.srow-dir {
+  color: var(--faint);
+  font-size: 0.76rem;
+}
+
+.srow .person-badge {
+  justify-self: start;
+}
+
+.person-avatar-mini {
+  font-size: 0.6rem;
+  height: 22px;
+  width: 22px;
+}
+
+.link-button-quiet {
+  color: var(--faint);
+  font-size: 0.78rem;
+  font-weight: 500;
+}
+
+.link-button-quiet:hover {
+  color: var(--ink);
+  text-decoration: none;
 }
 
 .invite-form {
@@ -6468,12 +6770,18 @@ html:has(.event-create-dialog[open]) {
 }
 
 @media (max-width: 760px) {
-  .friends-row {
-    flex-wrap: wrap;
+  .srow,
+  .srow-sent {
+    grid-template-columns: 22px minmax(0, 1fr);
   }
 
-  .friends-since {
-    width: 100%;
+  .srow > :nth-child(n + 3) {
+    grid-column: 2;
+    justify-self: start;
+  }
+
+  .page-intro {
+    margin-top: 0;
   }
 }
 

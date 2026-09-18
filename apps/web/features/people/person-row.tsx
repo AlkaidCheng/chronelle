@@ -217,7 +217,7 @@ export function PersonRow({
   const account = personAccount(person, context.me, context.connections);
   return (
     <li aria-label={name} className="person-row" id={`person-${person.id}`}>
-      <PersonAvatar linked={account !== null} name={name} />
+      <PersonAvatar linked={person.userId !== null} name={name} />
       <div className="person-names">
         <Link
           aria-label={t("open", { name })}
@@ -263,7 +263,7 @@ export function PersonNamecard({
   return (
     <li aria-label={name} className="person-card" id={`person-${person.id}`}>
       <div className="person-card-top">
-        <PersonAvatar linked={account !== null} name={name} size="card" />
+        <PersonAvatar linked={person.userId !== null} name={name} size="card" />
         <div className="person-names">
           <Link
             aria-label={t("open", { name })}

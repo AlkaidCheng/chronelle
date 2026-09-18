@@ -21,5 +21,9 @@
     "viewer": "檢視者",
     "editor": "編輯者",
     "owner": "擁有者"
-  }
+  },
+  "already": "已是{role}",
+  "copyLink": "複製連結",
+  "linkCopied": "已複製連結。",
+  "linkNotCopied": "無法複製連結。"
 }

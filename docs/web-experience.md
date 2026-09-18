@@ -130,9 +130,16 @@ rows keep the avatar, the names, and the menu.
 A person's page (People, then a row or card) shows the nickname as its title
 with the full name, the badge, and the labels under it; Edit (the person
 editor), History, and More (Copy link, Move to Trash); then three tabs.
-Overview holds Details (the full name under a nickname, the contacts, the
-custom fields) and Description. Events lists the events the person is part
-of, each a link with its dates. Tasks lists the tasks assigned to them, open
+Overview is two columns. Details is a key-value list of what the person
+has (Nickname, each contact by kind, the custom fields, Labels) and nothing
+for what they lack, or one line, No details yet; Description appears only
+when there is one. Connection names the account behind the card: a friend
+("Linked to your friend Mei Lin", friends since when, and "Member of this
+workspace as editor" when they are), an account that is not a friend, an
+invitation sent from the card (with Resend and Withdraw), or "Not linked to
+an account" with Link to a friend and, when the card has an email, Invite a
+friend; Unlink person sits there for a linked card. Events lists the events
+the person is part of, each a link with its dates. Tasks lists the tasks assigned to them, open
 and done, each a link to where it lives. The editor takes the name, nickname,
 This is me (offered when the person is unlinked or already this user's; one
 person per account), the contacts as kind/value rows with Add contact and
@@ -150,14 +157,19 @@ the event, by name, or takes a new person's name and creates them inside the
 event. A card's Actions offer Remove from this event, which takes the person out
 of the event and leaves them in the workspace, as well as Move to Trash.
 
-The Sharing tab of an event, offered to its owners, shares it in three
-groups. Friends lists the account's friends (by their card's name when the
-workspace has one), each with a role beside the name and the role they
-already hold; Others in People lists the workspace's other people who can be
-reached: one with an account here, one already invited from their card, or
-one with an email and no account, whose row says an invitation goes out;
-By email takes a Collaborator email. Tick any number, choose Viewer or Owner
-beside each, and Share with N people applies every row in turn: a friend or
+The Sharing tab of an event, offered to its owners, is one box headed by
+the event's name, with a note that everything on the event (pages, to-dos,
+expenses, files) follows a share, and three groups. Friends lists the
+account's friends (by their card's name when the workspace has one), each
+with a mark, the role they already hold under the name, and a role beside
+it; Others in People lists the workspace's other people who can be reached:
+one with an account here, one already invited from their card, or one with
+an email and no account, whose row says an invitation goes out (a row that
+waits on an invitation is dimmed until ticked); By email is one row: the
+address, a role, and Add, which grants at once. Tick any number, choose
+Viewer, Editor, or Owner beside each (an editor can change the event but
+not delete or share it), and Share with N people applies every row in turn;
+Copy link beside it copies the event's address. A friend or
 an account is granted at once ("Shared as Viewer"), a person with an email
 is invited and the share waits ("Invitation sent; access follows when they
 join"), an invited person's share waits on the invitation already sent
@@ -211,10 +223,13 @@ limit is reached.
 
 Friends (`/friends`, from the profile menu, whose entry carries the number
 of requests waiting and whose profile block shows a dot then) belong to the
-account, not to a workspace. The page lists Requests (Accept, Decline; the
-requester's name, email, and note), Friends (name, email, since when,
-Remove), and Sent (the address, when it was sent or until when its sign-up
-link is valid, Resend, Withdraw). Invite a friend opens a dialog: a person
+account, not to a workspace. The page opens with a line on what friends are
+for, then three panels with counts: Requests (who wants to connect, their
+address and how long ago, their note; Accept, Decline), Friends (name and
+address on one line, since when, Remove friend), and Sent (the person of
+this workspace the invitation went from, or the address; a badge, Sent how
+long ago for a request to an account or No account yet with the sign-up
+link's validity for an address; Resend, Withdraw). Invite a friend opens a dialog: a person
 of the current workspace who has an email and no account link, or Someone
 new by address, and an optional note; the address is emailed a request when
 it has an account and a sign-up link otherwise. A sign-up link opens

@@ -20,5 +20,9 @@
   "noFriends": "还没有好友。通过邮箱邀请一位吧。",
   "since": "自 {date}",
   "sentOn": "发送于 {date}",
-  "linkUntil": "注册链接有效期至 {date}"
+  "linkUntil": "注册链接有效期至 {date}",
+  "intro": "好友属于你的账号，而不是某个工作区。在每个工作区中，由你决定好友能看到什么：通过“成员”共享整个工作区，或通过“共享”共享单个活动和任务。",
+  "wantsToConnect": "想要添加你为好友",
+  "sentAgo": "已发送，{when}",
+  "noAccountYet": "尚无账号"
 }

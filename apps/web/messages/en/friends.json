@@ -18,7 +18,11 @@
   "decline": "Decline",
   "resend": "Resend",
   "noFriends": "No friends yet. Invite someone by email.",
-  "since": "Since {date}",
+  "since": "since {date}",
   "sentOn": "Sent {date}",
-  "linkUntil": "Sign-up link valid until {date}"
+  "linkUntil": "Sign-up link valid until {date}",
+  "intro": "Friends belong to your account, not to a workspace. In each workspace you choose what a friend can see: a whole workspace through Members, or single events and tasks through Share.",
+  "wantsToConnect": "wants to connect",
+  "sentAgo": "Sent {when}",
+  "noAccountYet": "No account yet"
 }
