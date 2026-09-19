@@ -44,6 +44,14 @@ import {
   formatEventSchedule,
 } from "../../lib/event-schedule";
 import {
+  expenseSheet,
+  reminderSheet,
+  scheduleSheet,
+  shownInPeriod,
+  taskSheet,
+  timelineSheet,
+} from "../../lib/export/sheets";
+import {
   compareNames,
   formatDatePart,
   formatDateTime,
@@ -60,7 +68,7 @@ import {
 import { instantOnDay } from "../../lib/task-due";
 import { sortTasks, type TaskSort } from "../../lib/task-sort";
 import { deriveTaskTree } from "../../lib/task-tree";
-import { usePeriod } from "../../lib/use-period";
+import { periodRange, usePeriod } from "../../lib/use-period";
 import { type RowDrop, useRowDrag } from "../../lib/use-row-drag";
 import { HistoryButton } from "../history/history-button";
 import { useOpenHistory } from "../history/history-provider";
@@ -92,6 +100,7 @@ import {
 import { CreateScheduleDialog } from "./create-schedule-dialog";
 import { ExpenseForm } from "./expense-form";
 import { ExpenseInspector } from "./expense-inspector";
+import { ExportControl } from "./export-control";
 import { PeriodView, type RowMode } from "./period-view";
 import { QuickAddReminder } from "./quick-add-reminder";
 import { ReminderForm } from "./reminder-form";
@@ -161,6 +170,8 @@ export function TasksPanel({
   readonly view?: EventComponentView;
 }) {
   const t = useTranslations("todos");
+  const controls = useTranslations("controls");
+  const exports = useTranslations("export");
   const [filters, setFilters] = useState<TaskFilters>({
     ...defaultTaskFilters,
     timed: false,
@@ -268,6 +279,16 @@ export function TasksPanel({
   }, [activeAssignee, activeLabel, filters, sort, tasks]);
   const openCount = tasks.filter(isOpen).length;
   const shownOpen = filteredTasks.filter(isOpen).length;
+  // The printed page names the sort and the filters the list is read with.
+  const shownAs = [
+    controls(activeFilters.status),
+    ...(activeFilters.timed === true ? [controls("hasTime")] : []),
+    ...(activeFilters.overdue === true ? [controls("overdue")] : []),
+    ...(activeLabel === "" ? [] : [labels.data?.names.get(activeLabel) ?? ""]),
+    ...(activeAssignee === ""
+      ? []
+      : [persons.data?.names.get(activeAssignee) ?? ""]),
+  ].join(", ");
 
   return (
     <section className={panelClasses(view)} ref={panel}>
@@ -290,8 +311,25 @@ export function TasksPanel({
                 views={viewsOf("todos")}
               />
             )}
+            <ExportControl
+              eventId={eventId}
+              panel={panel}
+              sheet={(event) =>
+                taskSheet(filteredTasks, {
+                  event,
+                  labels: labels.data?.names,
+                  persons: persons.data?.names,
+                })
+              }
+              view="todos"
+              viewName={t("title")}
+            />
           </div>
         }
+        caption={exports("caption", {
+          sort: controls(`sorts.${sort}`),
+          filter: shownAs,
+        })}
         count={
           filterCount === 0
             ? t("open", { count: openCount })
@@ -386,6 +424,7 @@ export function CalendarPanel({
   const [isAdding, setIsAdding] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const editingEvent = items.find(({ id }) => id === editingId);
+  const panel = useRef<HTMLElement>(null);
   const period = usePeriod(view);
   const placed = useMemo(
     () =>
@@ -445,17 +484,34 @@ export function CalendarPanel({
     </article>
   );
   return (
-    <section className={panelClasses(view)}>
+    <section className={panelClasses(view)} ref={panel}>
       <PanelHeading
         controls={
-          onChangeView === undefined ? undefined : (
-            <LayoutControl
-              busy={isSavingView ?? false}
-              onChange={onChangeView}
-              view={view}
-              views={viewsOf("calendar")}
+          <div className="head-controls">
+            {onChangeView === undefined ? null : (
+              <LayoutControl
+                busy={isSavingView ?? false}
+                onChange={onChangeView}
+                view={view}
+                views={viewsOf("calendar")}
+              />
+            )}
+            <ExportControl
+              eventId={eventId}
+              panel={panel}
+              sheet={() =>
+                scheduleSheet(
+                  shownInPeriod(
+                    items,
+                    eventDays,
+                    periodRange(view, period.cursor),
+                  ),
+                )
+              }
+              view="calendar"
+              viewName={views("calendar")}
             />
-          )
+          </div>
         }
         title={views("calendar")}
       />
@@ -530,16 +586,30 @@ export function CalendarPanel({
  * menu, shown on hover or focus, so the list reads as dates and names.
  */
 export function TimelinePanel({
+  eventId,
   timeline,
 }: {
+  readonly eventId: string;
   readonly timeline: TimelineResponse;
 }) {
   const panels = useTranslations("panels");
   const views = useTranslations("views");
   const openHistory = useOpenHistory();
+  const panel = useRef<HTMLElement>(null);
   return (
-    <section className="planning-panel panel-column">
-      <PanelHeading title={views("timeline")} />
+    <section className="planning-panel panel-column" ref={panel}>
+      <PanelHeading
+        controls={
+          <ExportControl
+            eventId={eventId}
+            panel={panel}
+            sheet={() => timelineSheet(timeline.items)}
+            view="timeline"
+            viewName={views("timeline")}
+          />
+        }
+        title={views("timeline")}
+      />
       {timeline.items.length === 0 ? (
         <EmptyState title={panels("noTimeline")} />
       ) : (
@@ -607,6 +677,7 @@ export function ExpensesPanel({
   const [isAdding, setIsAdding] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const totals = useMemo(() => sumMoneyByCurrency(expenses), [expenses]);
+  const panel = useRef<HTMLElement>(null);
   const period = usePeriod(view);
   const placed = useMemo(
     () =>
@@ -675,17 +746,36 @@ export function ExpensesPanel({
   );
 
   return (
-    <section className={panelClasses(view)}>
+    <section className={panelClasses(view)} ref={panel}>
       <PanelHeading
         controls={
-          onChangeView === undefined ? undefined : (
-            <LayoutControl
-              busy={isSavingView ?? false}
-              onChange={onChangeView}
-              view={view}
-              views={viewsOf("expenses")}
+          <div className="head-controls">
+            {onChangeView === undefined ? null : (
+              <LayoutControl
+                busy={isSavingView ?? false}
+                onChange={onChangeView}
+                view={view}
+                views={viewsOf("expenses")}
+              />
+            )}
+            <ExportControl
+              eventId={eventId}
+              panel={panel}
+              sheet={() =>
+                expenseSheet(
+                  view === "by-day"
+                    ? groups.flatMap((group) => group.items)
+                    : shownInPeriod(
+                        expenses,
+                        (expense) => [expenseDay(expense)],
+                        periodRange(view, period.cursor),
+                      ),
+                )
+              }
+              view="expenses"
+              viewName={views("expenses")}
             />
-          )
+          </div>
         }
         title={views("expenses")}
       />
@@ -1068,14 +1158,33 @@ export function RemindersPanel({
     <section className={panelClasses(view)} ref={panel}>
       <PanelHeading
         controls={
-          onChangeView === undefined ? undefined : (
-            <LayoutControl
-              busy={isSavingView ?? false}
-              onChange={onChangeView}
-              view={view}
-              views={viewsOf("reminders")}
+          <div className="head-controls">
+            {onChangeView === undefined ? null : (
+              <LayoutControl
+                busy={isSavingView ?? false}
+                onChange={onChangeView}
+                view={view}
+                views={viewsOf("reminders")}
+              />
+            )}
+            <ExportControl
+              eventId={eventId}
+              panel={panel}
+              sheet={() =>
+                reminderSheet(
+                  view === "by-day"
+                    ? groups.flatMap((group) => group.items)
+                    : shownInPeriod(
+                        reminders,
+                        (reminder) => [reminderDay(reminder)],
+                        periodRange(view, period.cursor),
+                      ),
+                )
+              }
+              view="reminders"
+              viewName={views("reminders")}
             />
-          )
+          </div>
         }
         title={views("reminders")}
       />

@@ -6,6 +6,7 @@ import type { ReactNode } from "react";
 
 import "./styles.css";
 import "./collections.css";
+import "./print.css";
 import { Providers } from "./providers";
 import { LocaleSync } from "../i18n/locale-sync";
 import { displayBootstrap } from "../lib/display-preferences";

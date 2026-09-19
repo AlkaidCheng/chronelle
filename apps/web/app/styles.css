@@ -2789,9 +2789,11 @@ p[role="alert"] {
   color: var(--accent);
 }
 
-/* Sort, Filter, and Layout: quiet controls that open one narrow menu each. */
+/* Sort, Filter, Layout, and Export: quiet controls that open one narrow
+   menu each; on a narrow screen they run on to a second line. */
 .head-controls {
   display: inline-flex;
+  flex-wrap: wrap;
   gap: 2px;
 }
 
@@ -2814,6 +2816,26 @@ p[role="alert"] {
 .head-menu-button.is-active {
   background: var(--accent-soft);
   color: var(--accent);
+}
+
+/* On a phone the controls show their symbols alone, a touch larger; the
+   words stay in the markup as each button's name. */
+@media (max-width: 600px) {
+  .head-menu-button {
+    gap: 0;
+    min-height: 40px;
+    padding: 6px;
+  }
+
+  .head-menu-text {
+    clip: rect(0 0 0 0);
+    clip-path: inset(50%);
+    height: 1px;
+    overflow: hidden;
+    position: absolute;
+    white-space: nowrap;
+    width: 1px;
+  }
 }
 
 .head-menu-list {

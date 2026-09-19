@@ -27,6 +27,7 @@ import { useAuthSession } from "./auth-session";
 import Link, { usePathname } from "./router";
 import "../app/styles.css";
 import "../app/collections.css";
+import "../app/print.css";
 import "./sandbox.css";
 
 function Sandbox() {

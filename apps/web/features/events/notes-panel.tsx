@@ -10,11 +10,13 @@ import { SortIcon } from "../../components/icons";
 import { LinkedText } from "../../components/linked-text";
 import { AddRow } from "../../components/quick-add-row";
 import { RowMenu, type RowMenuEntry } from "../../components/row-menu";
+import { noteSheet } from "../../lib/export/sheets";
 import { formatMoment } from "../../lib/format";
 import { notePreview } from "../../lib/note-fields";
 import { useOpenHistory } from "../history/history-provider";
 import { useOpenLifecycle } from "../recovery/lifecycle-provider";
 import { PanelHeading } from "./component-frame";
+import { ExportControl } from "./export-control";
 import { NoteForm } from "./note-form";
 import { NoteInspector } from "./note-inspector";
 
@@ -42,6 +44,7 @@ export function NotesPanel({
   const t = useTranslations("notes");
   const views = useTranslations("views");
   const controls = useTranslations("controls");
+  const exports = useTranslations("export");
   const locale = useLocale();
   const [isAdding, setIsAdding] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -99,21 +102,31 @@ export function NotesPanel({
     <section className="planning-panel panel-column" ref={panel}>
       <PanelHeading
         controls={
-          <HeadMenu
-            active={sort !== "edited"}
-            entries={noteSorts.map((choice) => ({
-              kind: "radio",
-              label: t(`sorts.${choice}`),
-              checked: choice === sort,
-              onSelect: () => {
-                if (choice !== sort) onChangeSort(choice);
-              },
-            }))}
-            icon={<SortIcon />}
-            label={controls("sort")}
-            name={sort === "edited" ? undefined : t(`sorts.${sort}`)}
-          />
+          <div className="head-controls">
+            <HeadMenu
+              active={sort !== "edited"}
+              entries={noteSorts.map((choice) => ({
+                kind: "radio",
+                label: t(`sorts.${choice}`),
+                checked: choice === sort,
+                onSelect: () => {
+                  if (choice !== sort) onChangeSort(choice);
+                },
+              }))}
+              icon={<SortIcon />}
+              label={controls("sort")}
+              name={sort === "edited" ? undefined : t(`sorts.${sort}`)}
+            />
+            <ExportControl
+              eventId={eventId}
+              panel={panel}
+              sheet={() => noteSheet(notes)}
+              view="notes"
+              viewName={views("notes")}
+            />
+          </div>
         }
+        caption={exports("sortOnly", { sort: t(`sorts.${sort}`) })}
         count={
           notes.length === 0 ? undefined : t("count", { count: notes.length })
         }

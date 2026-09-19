@@ -33,11 +33,13 @@ import {
   itineraryDays,
 } from "../../lib/day-sheet";
 import { viewsOf } from "../../lib/event-components";
+import { itinerarySheet } from "../../lib/export/sheets";
 import { formatTime } from "../../lib/format";
 import { usePersonsQuery, useUpdateTask } from "../../lib/queries";
 import { deriveTaskTree } from "../../lib/task-tree";
 import { LayoutControl, PanelHeading } from "./component-frame";
 import { CreateScheduleDialog } from "./create-schedule-dialog";
+import { ExportControl } from "./export-control";
 
 /** How far a finger travels across the sheet to turn a day. */
 const swipeDistance = 48;
@@ -130,8 +132,9 @@ export function ItineraryPanel({
 
   const viewLabel = (option: EventComponentView) =>
     option === "list" ? t("allDays") : t("day");
+  const panel = useRef<HTMLElement>(null);
   return (
-    <section className="planning-panel panel-column">
+    <section className="planning-panel panel-column" ref={panel}>
       <PanelHeading
         action={
           <button
@@ -143,15 +146,24 @@ export function ItineraryPanel({
           </button>
         }
         controls={
-          onChangeView === undefined ? undefined : (
-            <LayoutControl
-              busy={isSavingView ?? false}
-              labelOf={viewLabel}
-              onChange={onChangeView}
-              view={view}
-              views={viewsOf("itinerary")}
+          <div className="head-controls">
+            {onChangeView === undefined ? null : (
+              <LayoutControl
+                busy={isSavingView ?? false}
+                labelOf={viewLabel}
+                onChange={onChangeView}
+                view={view}
+                views={viewsOf("itinerary")}
+              />
+            )}
+            <ExportControl
+              eventId={eventId}
+              panel={panel}
+              sheet={() => itinerarySheet(sheets)}
+              view="itinerary"
+              viewName={views("itinerary")}
             />
-          )
+          </div>
         }
         count={
           view === "list"
