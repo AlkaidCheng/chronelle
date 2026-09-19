@@ -1,6 +1,12 @@
 import { expect, test } from "@playwright/test";
 import { selectLeapDayRange } from "../../e2e/helpers/calendar-keyboard";
-import { dayName, expectDates } from "../../e2e/helpers/range-picker";
+import {
+  datesRow,
+  dayName,
+  expectDates,
+  expectNoDates,
+  openDatePanel,
+} from "../../e2e/helpers/date-rows";
 
 const sandboxUrl = new URL(
   "../../../../.chronelle/sandbox/chronelle.html",
@@ -27,19 +33,22 @@ test("navigates months and years without changing the selected range", async ({
   await page.screenshot({
     path: testInfo.outputPath("keyboard-date-range.png"),
   });
+  // The first Escape closes the panel, focus back on its row; the next asks.
+  await page.keyboard.press("Escape");
+  await expect(datesRow(dialog)).toBeFocused();
   await page.keyboard.press("Escape");
   await page.getByRole("button", { name: "Discard", exact: true }).click();
   await expect(dialog).toHaveCount(0);
   await expect(trigger).toBeFocused();
 });
 
-test("chooses a range by dragging across days and clears it with No dates", async ({
+test("chooses a span by dragging across days and clears it from the typed field", async ({
   page,
 }) => {
   await page.goto(sandboxUrl);
   await page.getByRole("button", { name: "New event", exact: true }).click();
   const dialog = page.getByRole("dialog", { name: "Create an event" });
-  await dialog.getByRole("switch", { name: "Set dates" }).check();
+  await openDatePanel(dialog, datesRow(dialog));
   await dialog
     .getByRole("button", { name: /^Choose a month and year/ })
     .click();
@@ -63,8 +72,8 @@ test("chooses a range by dragging across days and clears it with No dates", asyn
   // A plain click after the drag starts a new range.
   await dialog.getByRole("button", { name: dayName("2030-07-20") }).click();
   await expectDates(dialog, "Jul 20, 2030");
-  await dialog.getByRole("button", { name: "No dates", exact: true }).click();
-  await expectDates(dialog, "not set");
+  await dialog.getByLabel("Type a date", { exact: true }).fill("");
+  await expectNoDates(dialog);
   await expect(
     dialog.locator('.month-list-day[aria-pressed="true"]'),
   ).toHaveCount(0);

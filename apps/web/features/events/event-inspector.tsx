@@ -19,7 +19,7 @@ import {
 import { eventSchedulePayload } from "../../lib/event-schedule";
 import { DescriptionField } from "../../components/description-field";
 import { descriptionPayload } from "../../lib/description-field";
-import { locationLimit, locationPayload } from "../../lib/location-field";
+import { locationPayload } from "../../lib/location-field";
 import { useKeepEditorDraft } from "../../lib/editor-draft-context";
 import {
   readEventFields,
@@ -36,7 +36,7 @@ import { useDiscardConfirmation } from "../../lib/use-discard-confirmation";
 import { useOpenHistory } from "../history/history-provider";
 import type { FieldFormatter } from "./conflict-notice";
 import { EditorControls, useConflictSlot } from "./editor-controls";
-import { EventScheduleFields } from "./event-schedule-fields";
+import { ScheduleRows } from "./schedule-rows";
 
 interface EventInspectorProps {
   readonly event: EventResponse;
@@ -44,8 +44,6 @@ interface EventInspectorProps {
   readonly title?: string;
   /** Where the editor opens: the name, or the schedule when setting dates. */
   readonly initialFocus?: "name" | "schedule";
-  /** Offers the Place field under the schedule, as a schedule item's editor does. */
-  readonly withPlace?: boolean;
 }
 
 export function EventInspector(props: EventInspectorProps) {
@@ -68,7 +66,6 @@ function EventInspectorForm({
   initialDraft,
   title,
   initialFocus = "name",
-  withPlace = false,
 }: EventInspectorProps & {
   readonly initialDraft: EventDraftSnapshot | undefined;
 }) {
@@ -97,7 +94,6 @@ function EventInspectorForm({
   const refresh = useRefreshEvent(event.id, { throwOnError: true });
   const { displayName } = draft.fields;
   const t = useTranslations("eventEditor");
-  const fields = useTranslations("scheduleFields");
   const [scheduleError, setScheduleError] = useState("");
 
   const {
@@ -116,11 +112,11 @@ function EventInspectorForm({
   useEffect(() => {
     const name = nameInput.current;
     if (initialFocus === "schedule") {
-      const toggle = name
+      const dates = name
         ?.closest("dialog")
-        ?.querySelector<HTMLElement>('[data-schedule-toggle="dates"]');
-      if (toggle) {
-        toggle.focus();
+        ?.querySelector<HTMLElement>(".schedule-rows .field-row-main");
+      if (dates) {
+        dates.focus();
         return;
       }
     }
@@ -136,13 +132,11 @@ function EventInspectorForm({
     )
       return;
     let schedule: ReturnType<typeof eventSchedulePayload>;
-    let place: { location: string | null } | undefined;
+    let place: { location: string | null };
     let description: string | null;
     try {
       schedule = eventSchedulePayload(draft.fields);
-      place = withPlace
-        ? { location: locationPayload(draft.fields.location) }
-        : undefined;
+      place = { location: locationPayload(draft.fields.location) };
       description = descriptionPayload(draft.fields.description);
       setScheduleError("");
     } catch (error) {
@@ -175,7 +169,7 @@ function EventInspectorForm({
   return (
     <dialog
       ref={dialog}
-      className="event-create-dialog event-inspector"
+      className="event-create-dialog"
       aria-labelledby={headingId}
       onCancel={(event) => {
         event.preventDefault();
@@ -251,29 +245,22 @@ function EventInspectorForm({
             }}
             value={draft.fields.description}
           />
-          <EventScheduleFields
-            value={draft.fields}
+          <ScheduleRows
+            disabled={update.isPending}
             onChange={(fields) => {
               draft.change(fields);
               setScheduleError("");
               if (update.isSuccess) update.reset();
             }}
-            disabled={update.isPending}
-          />
-          {withPlace ? (
-            <CountedField
-              className="field-wide"
-              disabled={update.isPending}
-              hint={fields("placeHint")}
-              label={fields("place")}
-              limit={locationLimit}
-              onChange={(location) => {
+            place={{
+              value: draft.fields.location,
+              onChange: (location) => {
                 draft.change({ location });
                 if (update.isSuccess) update.reset();
-              }}
-              value={draft.fields.location}
-            />
-          ) : null}
+              },
+            }}
+            value={draft.fields}
+          />
           {scheduleError && <p role="alert">{scheduleError}</p>}
           <EditorDraftStatus {...recovery} />
         </div>

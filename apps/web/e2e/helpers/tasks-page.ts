@@ -1,6 +1,6 @@
 import { expect, type Page } from "@playwright/test";
 import { chooseLayout } from "./component-views";
-import { setDue } from "./due-picker";
+import { setDue } from "./date-rows";
 import { chooseRowAction } from "./row-menu";
 import { today } from "./today";
 

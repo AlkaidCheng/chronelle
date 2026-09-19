@@ -1,5 +1,11 @@
 import { expect, type Page, type TestInfo } from "@playwright/test";
-import { expectDue, setDue } from "./due-picker";
+import {
+  expectDue,
+  expectMoment,
+  momentRows,
+  setDue,
+  setMoment,
+} from "./date-rows";
 import { expectToken } from "./appearance";
 import { expectHorizontalReflow } from "./page-navigation";
 import { chooseRowAction, rowMenuButton } from "./row-menu";
@@ -9,19 +15,19 @@ import { openEventView } from "./event-view";
 export const planningEditors = {
   task: {
     field: "Task",
-    timeLabel: "Due date",
+    timeRow: /^(Set due date|Due date)/,
     view: "To-dos",
     projection: "todos",
   },
   expense: {
     field: "Expense",
-    timeLabel: "Date",
+    timeRow: momentRows.expense,
     view: "Expenses",
     projection: "expenses",
   },
   reminder: {
     field: "Reminder",
-    timeLabel: "Reminder time",
+    timeRow: momentRows.reminder,
     view: "Reminders",
     projection: "reminders",
   },
@@ -43,7 +49,7 @@ export async function exerciseObjectRecovery(
   testInfo: TestInfo,
   kind: keyof typeof planningEditors,
 ) {
-  const { field, timeLabel, view } = planningEditors[kind];
+  const { field, timeRow, view } = planningEditors[kind];
   const rowRole = kind === "task" ? "row" : "article";
 
   await openEventView(page, "Overview");
@@ -64,11 +70,11 @@ export async function exerciseObjectRecovery(
     await page.getByLabel("Amount", { exact: true }).fill("-0.0001");
     await page.getByLabel("Currency", { exact: true }).fill("CNY");
   }
-  // The task editor takes a date behind its Due control; the others take
-  // one instant.
-  const timeValue = kind === "task" ? "2030-07-03" : "2030-07-03T11:30";
-  if (kind === "task") await setDue(page.getByRole("dialog"), timeValue);
-  else await page.getByLabel(timeLabel, { exact: true }).fill(timeValue);
+  // The task editor takes a day on its Due row; the others take a day and
+  // a time on theirs.
+  if (kind === "task") await setDue(page.getByRole("dialog"), "2030-07-03");
+  else
+    await setMoment(page.getByRole("dialog"), timeRow, "2030-07-03", "11:30");
   await revisitObjectView(page);
   await openEditor();
   await expect(recovery).toBeVisible();
@@ -99,8 +105,11 @@ export async function exerciseObjectRecovery(
   await expect(name).toBeFocused();
   if (kind === "task") await expectDue(page.getByRole("dialog"), "Jul 3, 2030");
   else
-    await expect(page.getByLabel(timeLabel, { exact: true })).toHaveValue(
-      timeValue,
+    await expectMoment(
+      page.getByRole("dialog"),
+      timeRow,
+      "Jul 3, 2030",
+      "11:30 AM",
     );
   if (kind === "expense") {
     await expect(page.getByLabel("Amount", { exact: true })).toHaveValue(
@@ -121,7 +130,11 @@ export async function exerciseObjectRecovery(
       await expectToken(editor, "background-color", "surface");
       await expectToken(editor, "color", "ink");
       await expectToken(editor.getByRole("heading"), "color", "ink");
-      await expectToken(editor.locator(".field-hint"), "color", "ink");
+      await expectToken(
+        editor.locator(".field-row-value").first(),
+        "color",
+        "ink",
+      );
       await page.evaluate(
         () =>
           new Promise<void>((resolve) =>

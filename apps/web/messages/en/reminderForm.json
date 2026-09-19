@@ -9,7 +9,10 @@
   "name": "Reminder",
   "namePlaceholder": "Confirm the guest list",
   "time": "Reminder time",
-  "timeIn": "Recorded only; no notification is sent. Time in {zone}.",
+  "setTime": "Set reminder time",
+  "timeHint": "The day and time it comes due",
+  "clearTime": "Clear reminder time",
+  "recordedOnly": "Recorded only; no notification is sent.",
   "create": "Record reminder",
   "save": "Save reminder"
 }

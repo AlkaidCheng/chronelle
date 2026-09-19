@@ -4,6 +4,7 @@ import {
   type Page,
   type TestInfo,
 } from "@playwright/test";
+import { expectNoDates } from "./date-rows";
 import { expectHorizontalReflow } from "./page-navigation";
 import { choosePageOptionWithKeyboard } from "./quiet-chrome";
 
@@ -32,9 +33,7 @@ export async function createFirstPlan(page: Page, testInfo: TestInfo) {
   );
   const create = page.getByRole("dialog", { name: "Create an event" });
   await expect(create.getByLabel("Event name")).toBeFocused();
-  await expect(
-    create.getByRole("switch", { name: "Set dates" }),
-  ).not.toBeChecked();
+  await expectNoDates(create);
   await page.keyboard.insertText("A first gathering");
   await page.keyboard.press("Enter");
   await expect(

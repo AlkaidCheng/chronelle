@@ -1,4 +1,5 @@
 import { expect, type Page, type TestInfo } from "@playwright/test";
+import { setDates, setTimes } from "./date-rows";
 import { expectHorizontalReflow } from "./page-navigation";
 import { searchEntry } from "./quiet-chrome";
 import { openEventView } from "./event-view";
@@ -35,10 +36,17 @@ export async function exerciseEditorSubmit(page: Page, testInfo: TestInfo) {
     });
     await expect(dialog).toBeVisible();
   }
-  await dialog.getByRole("switch", { name: "Set dates", exact: true }).click();
+  // A span with a start time alone is refused, and the alert clears with the times.
+  await setDates(dialog, "2030-07-03", "2030-07-05");
+  await setTimes(dialog, "09:00");
   await name.press("Control+Enter");
-  await expect(dialog.getByRole("alert")).toHaveText("Choose a start date.");
-  await dialog.getByRole("switch", { name: "Set dates", exact: true }).click();
+  await expect(dialog.getByRole("alert")).toHaveText(
+    "Provide both an end date and time, or leave both empty.",
+  );
+  await dialog
+    .getByRole("button", { name: "Clear times", exact: true })
+    .click();
+  await expect(dialog.getByRole("alert")).toHaveCount(0);
   await page.setViewportSize({ width: 320, height: 568 });
   await expectHorizontalReflow(page);
   await page.screenshot({

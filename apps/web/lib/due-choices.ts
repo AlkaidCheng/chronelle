@@ -8,10 +8,14 @@ import {
   parseDayKey,
 } from "./day-placement";
 
+/** The durations a timed task offers, in minutes. */
+export const durationChoices = [
+  15, 30, 45, 60, 90, 120, 180, 240, 480,
+] as const;
+
 /** A quick way to a due day, with the day it means. */
 export interface DueShortcut {
-  readonly id:
-    "today" | "tomorrow" | "later-this-week" | "weekend" | "next-week";
+  readonly id: "today" | "tomorrow" | "next-week" | "next-weekend";
   readonly label: string;
   readonly day: DayKey;
   /** For a schedule, the last day the shortcut spans: the weekend's Sunday. */
@@ -19,43 +23,30 @@ export interface DueShortcut {
 }
 
 /**
- * The shortcuts a day allows: Today, Tomorrow, Later this week (two days
- * on while that is still Friday or earlier), This weekend (the coming
- * Saturday, not on a weekend, spanning to Sunday for a schedule), and Next
- * week (the coming Monday). Every one stays offered; the control marks the
- * one matching the choice.
+ * The four shortcuts every day offers: Today, Tomorrow, Next week (the
+ * coming Monday) and Next weekend (the coming Saturday, spanning to its
+ * Sunday for a schedule). The control marks the one matching the choice.
  */
 export function dueShortcuts(clock: Date): DueShortcut[] {
   const t = tr("dueChoices");
   const now = instantDate(clock);
-  const today = dayKeyOf(now);
   const day = now.getDay(); // 0 Sunday .. 6 Saturday
-  const shortcuts: DueShortcut[] = [];
-  shortcuts.push({ id: "today", label: t("today"), day: today });
-  shortcuts.push({
-    id: "tomorrow",
-    label: t("tomorrow"),
-    day: dayKeyOf(addDays(now, 1)),
-  });
-  if (day >= 1 && day <= 3)
-    shortcuts.push({
-      id: "later-this-week",
-      label: t("laterThisWeek"),
-      day: dayKeyOf(addDays(now, 2)),
-    });
-  if (day >= 1 && day <= 5)
-    shortcuts.push({
-      id: "weekend",
-      label: t("thisWeekend"),
-      day: dayKeyOf(addDays(now, 6 - day)),
-      through: dayKeyOf(addDays(now, 7 - day)),
-    });
-  shortcuts.push({
-    id: "next-week",
-    label: t("nextWeek"),
-    day: dayKeyOf(addDays(now, day === 0 ? 1 : 8 - day)),
-  });
-  return shortcuts;
+  const saturday = day === 6 ? 7 : 6 - day;
+  return [
+    { id: "today", label: t("today"), day: dayKeyOf(now) },
+    { id: "tomorrow", label: t("tomorrow"), day: dayKeyOf(addDays(now, 1)) },
+    {
+      id: "next-week",
+      label: t("nextWeek"),
+      day: dayKeyOf(addDays(now, day === 0 ? 1 : 8 - day)),
+    },
+    {
+      id: "next-weekend",
+      label: t("nextWeekend"),
+      day: dayKeyOf(addDays(now, saturday)),
+      through: dayKeyOf(addDays(now, saturday + 1)),
+    },
+  ];
 }
 
 const repeatRules: readonly TaskRepeatRule[] = [

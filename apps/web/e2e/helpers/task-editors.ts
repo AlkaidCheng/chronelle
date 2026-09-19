@@ -1,5 +1,5 @@
 import { expect, type Page, type TestInfo } from "@playwright/test";
-import { expectDue, setDue } from "./due-picker";
+import { expectDue, setDue } from "./date-rows";
 import { expectToken } from "./appearance";
 import { expectHorizontalReflow } from "./page-navigation";
 import { chooseRowAction, rowMenuButton } from "./row-menu";
@@ -23,7 +23,10 @@ export async function exerciseTaskEditors(page: Page, testInfo: TestInfo) {
   expect((await panel.boundingBox())?.height).toBe(before?.height);
   await name.fill("Pack garden supplies");
   await setDue(create, "2030-07-03", "11:30", 30);
-  await expectDue(create, "Jul 3, 2030, 11:30 AM, 30 min");
+  await expectDue(create, "Jul 3, 2030, 11:30 AM");
+  await expect(create.getByLabel("Duration", { exact: true })).toHaveValue(
+    "30",
+  );
   await name.press("Escape");
   const keep = page.getByRole("button", { name: "Keep editing", exact: true });
   await expect(keep).toBeFocused();
@@ -59,7 +62,8 @@ export async function exerciseTaskEditors(page: Page, testInfo: TestInfo) {
   const edit = page.getByRole("dialog", { name: "Edit task", exact: true });
   const editorName = edit.getByLabel("Task", { exact: true });
   await expect(editorName).toBeFocused();
-  await expectDue(edit, "Jul 3, 2030, 11:30 AM, 30 min");
+  await expectDue(edit, "Jul 3, 2030, 11:30 AM");
+  await expect(edit.getByLabel("Duration", { exact: true })).toHaveValue("30");
   await editorName.fill("Pack garden supplies and chairs");
   await page.screenshot({ path: testInfo.outputPath("task-edit-context.png") });
   for (const colorScheme of ["light", "dark"] as const) {

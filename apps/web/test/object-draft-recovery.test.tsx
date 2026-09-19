@@ -30,30 +30,33 @@ import { ReminderForm } from "../features/events/reminder-form";
 import { ReminderInspector } from "../features/events/reminder-inspector";
 import { useAuthSession } from "../lib/auth-session";
 import { describeDueDay } from "../lib/due-choices";
+import { formatDateTime, fromDateTimeInput } from "../lib/format";
+import { dateRow, setRowDate } from "./date-rows";
 import { useApiClient } from "../lib/api-context";
 import { queryKeys } from "../lib/queries";
 import { SandboxStore, sandboxWorkspaceId } from "../sandbox/store";
 
 const draftKinds = ["task", "expense", "reminder"] as const;
 describe.each(draftKinds)("%s draft recovery", (kind) => {
-  const { field, timeLabel, createLabel, schema, Form } = {
+  // The row of the moment each kind keeps, unset and set.
+  const { field, timeRow, createLabel, schema, Form } = {
     task: {
       field: "Task",
-      timeLabel: "Due date",
+      timeRow: /^(Set due date|Due date)/,
       createLabel: "Create task",
       schema: taskResponseSchema,
       Form: TaskForm,
     },
     expense: {
       field: "Expense",
-      timeLabel: "Date",
+      timeRow: /^(Set the day it was paid|Paid on)/,
       createLabel: "Record expense",
       schema: expenseResponseSchema,
       Form: ExpenseForm,
     },
     reminder: {
       field: "Reminder",
-      timeLabel: "Reminder time",
+      timeRow: /^(Set reminder time|Reminder time)/,
       createLabel: "Record reminder",
       schema: reminderResponseSchema,
       Form: ReminderForm,
@@ -174,9 +177,7 @@ describe.each(draftKinds)("%s draft recovery", (kind) => {
         target: { value: "-12.3400" },
       });
     if (mode === "create" && kind === "reminder")
-      fireEvent.change(screen.getByLabelText(timeLabel), {
-        target: { value: "2030-07-03T11:30" },
-      });
+      await setRowDate(user, timeRow, "2030-07-03", "11:30");
     return user;
   }
 
@@ -325,11 +326,13 @@ describe.each(draftKinds)("%s draft recovery", (kind) => {
       "checks fresh access before resuming a %s draft",
       async (mode) => {
         const user = await begin(mode);
-        // The task's due sits behind its disclosure.
-        if (kind === "task") await user.click(screen.getByText(/^Due: /));
-        const due = screen.getByLabelText(timeLabel);
-        const edited = kind === "task" ? "2030-07-04" : "2030-07-04T10:15";
-        fireEvent.change(due, { target: { value: edited } });
+        const edited = "2030-07-04";
+        await setRowDate(
+          user,
+          timeRow,
+          edited,
+          kind === "task" ? undefined : "10:15",
+        );
         const session = sessionStorage.getItem("chronelle.session");
         navigateAway();
         expect(unloadIsPrevented()).toBe(true);
@@ -352,11 +355,11 @@ describe.each(draftKinds)("%s draft recovery", (kind) => {
           "Pack the lanterns",
         );
         expect(screen.getByLabelText(field)).toHaveFocus();
-        if (kind === "task")
-          expect(screen.getByText(/^Due: /)).toHaveTextContent(
-            `Due: ${describeDueDay(edited, new Date())}`,
-          );
-        else expect(screen.getByLabelText(timeLabel)).toHaveValue(edited);
+        expect(dateRow(timeRow)).toHaveTextContent(
+          kind === "task"
+            ? describeDueDay(edited, new Date())
+            : formatDateTime(fromDateTimeInput(`${edited}T10:15`)),
+        );
         expect(fetch).toHaveBeenCalledWith(
           expect.stringContaining(
             `/objects/${mode === "create" ? eventId : resource.id}/access`,

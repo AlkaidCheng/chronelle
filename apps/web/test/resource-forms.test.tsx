@@ -18,6 +18,8 @@ import { TaskForm } from "../features/events/task-form";
 
 import { EventInspector } from "../features/events/event-inspector";
 import { CreateScheduleDialog } from "../features/events/create-schedule-dialog";
+import { formatDateTime, fromDateTimeInput } from "../lib/format";
+import { dateRow, setDates, setRowDate, setTimes } from "./date-rows";
 import { withCommands } from "./helpers/command-fetch";
 
 const objectId = "019d6e7d-0000-7000-8000-000000000010";
@@ -158,7 +160,7 @@ describe("versioned editor drafts", () => {
   });
 
   it.each(["event", "schedule"])(
-    "clears %s validation when dates are turned off",
+    "clears %s validation when the times are cleared",
     async (kind) => {
       const user = userEvent.setup();
       const event = { ...eventResource(1, "Plan"), startsAt: null };
@@ -170,15 +172,16 @@ describe("versioned editor drafts", () => {
         ),
         { wrapper: Providers },
       );
-      if (kind === "event")
-        await user.click(screen.getByRole("switch", { name: "Set dates" }));
+      // A span with only a start time asks for the end's time too.
+      await setDates(user, "2030-07-03", "2030-07-05");
+      await setTimes(user, "09:00");
       const form = view.container.querySelector("form");
       if (form === null) throw new Error("Editor form not found.");
       fireEvent.submit(form);
       expect(screen.getByRole("alert")).toHaveTextContent(
-        "Choose a start date.",
+        "Provide both an end date and time, or leave both empty.",
       );
-      await user.click(screen.getByRole("switch", { name: "Set dates" }));
+      await user.click(screen.getByRole("button", { name: "Clear times" }));
       expect(screen.queryByRole("alert")).toBeNull();
     },
   );
@@ -215,16 +218,21 @@ describe("versioned editor drafts", () => {
     fireEvent.change(screen.getByLabelText("Currency"), {
       target: { value: "EUR" },
     });
-    fireEvent.change(screen.getByLabelText("Date"), {
-      target: { value: "2026-10-15T10:00" },
-    });
+    await setRowDate(
+      user,
+      /^(Set the day it was paid|Paid on)/,
+      "2026-10-15",
+      "10:00",
+    );
+    const paidOn = formatDateTime(fromDateTimeInput("2026-10-15T10:00"));
+    expect(dateRow(/^Paid on/)).toHaveTextContent(paidOn);
     await user.click(screen.getByRole("button", { name: "Record expense" }));
     await waitFor(() =>
       expect(screen.getByLabelText("Expense")).toHaveValue(""),
     );
     expect(screen.getByLabelText("Amount")).toHaveValue("");
     expect(screen.getByLabelText("Currency")).toHaveValue("EUR");
-    expect(screen.getByLabelText("Date")).toHaveValue("2026-10-15T10:00");
+    expect(dateRow(/^Paid on/)).toHaveTextContent(paidOn);
     expect(
       screen.getByRole("button", { name: "Record expense" }),
     ).toBeEnabled();

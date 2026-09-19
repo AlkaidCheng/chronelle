@@ -1,6 +1,6 @@
 import { expect, type Page } from "@playwright/test";
 import { chooseLayout } from "./component-views";
-import { setDue } from "./due-picker";
+import { setDue } from "./date-rows";
 import { today } from "./today";
 import { openTaskEditor } from "./task-add";
 import { openEventView } from "./event-view";

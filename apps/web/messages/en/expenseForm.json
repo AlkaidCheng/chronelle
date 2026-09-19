@@ -10,8 +10,10 @@
   "namePlaceholder": "Venue deposit",
   "amount": "Amount",
   "currency": "Currency",
-  "date": "Date",
-  "timeIn": "Transaction time in {zone}.",
+  "date": "Paid on",
+  "setDate": "Set the day it was paid",
+  "dateHint": "The day and time of the transaction",
+  "clearDate": "Clear the day it was paid",
   "create": "Record expense",
   "save": "Save expense"
 }

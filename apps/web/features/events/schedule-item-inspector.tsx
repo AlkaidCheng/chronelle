@@ -44,7 +44,6 @@ export function ScheduleItemInspector({
         event={event.data}
         onClose={onClose}
         title={t("title")}
-        withPlace
       />
     );
 

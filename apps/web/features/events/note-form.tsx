@@ -156,7 +156,7 @@ function NoteEditor({
   return (
     <dialog
       ref={dialog}
-      className={`event-create-dialog${note ? " event-inspector" : ""}`}
+      className="event-create-dialog"
       aria-labelledby={headingId}
       onCancel={(event) => {
         event.preventDefault();

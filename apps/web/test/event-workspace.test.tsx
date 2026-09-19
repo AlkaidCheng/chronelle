@@ -22,7 +22,7 @@ import { EventWorkspace } from "../features/events/event-workspace";
 import { personEmail } from "../lib/person-fields";
 import { queryKeys } from "../lib/queries";
 import { openTaskEditor } from "./quick-add-support";
-import { setDates } from "./range-picker-support";
+import { setDates, setTimes } from "./date-rows";
 
 const workspaceId = "019d6e7d-0000-7000-8000-000000000001";
 const userId = "019d6e7d-0000-7000-8000-000000000002";
@@ -864,10 +864,7 @@ describe("EventWorkspace", () => {
     );
     await user.type(screen.getByLabelText("Schedule item"), "Guest arrival");
     await setDates(user, "2026-10-15");
-    await user.click(screen.getByRole("switch", { name: "Add times" }));
-    fireEvent.change(screen.getByLabelText("Start time"), {
-      target: { value: "17:30" },
-    });
+    await setTimes(user, "17:30");
     await user.click(screen.getByRole("button", { name: "Add to schedule" }));
 
     expect(

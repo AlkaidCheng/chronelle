@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { expect, test, type Page } from "./fixtures";
+import { momentRows, setMoment } from "./helpers/date-rows";
 import { createRecoveryEvent } from "./helpers/event-draft-recovery";
 import {
   exerciseObjectRecovery,
@@ -46,12 +47,14 @@ for (const kind of ["task", "expense", "reminder"] as const) {
       if (kind === "expense") {
         await page.getByLabel("Amount", { exact: true }).fill("-12.3400");
         await page.getByLabel("Currency", { exact: true }).fill("CNY");
-        await page.getByLabel("Date", { exact: true }).fill("2030-07-03T11:30");
       }
-      if (kind === "reminder")
-        await page
-          .getByLabel("Reminder time", { exact: true })
-          .fill("2030-07-03T11:30");
+      if (kind !== "task")
+        await setMoment(
+          page.getByRole("dialog"),
+          momentRows[kind],
+          "2030-07-03",
+          "11:30",
+        );
       await revisitObjectView(page);
       await openPlanningEditor(page, kind);
       await page

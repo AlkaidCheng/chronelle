@@ -262,6 +262,6 @@ describe("the Itinerary panel", () => {
     expect(
       screen.getByRole("dialog", { name: "Add schedule item" }),
     ).toBeVisible();
-    expect(screen.getByLabelText("Place")).toBeVisible();
+    expect(screen.getByRole("button", { name: /^Add a place/ })).toBeVisible();
   });
 });

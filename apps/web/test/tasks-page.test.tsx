@@ -14,6 +14,7 @@ import { Providers } from "../app/providers";
 import { TasksPage } from "../features/tasks/tasks-page";
 import { monthDays } from "../lib/day-placement";
 import { SandboxStore, sandboxWorkspaceId } from "../sandbox/store";
+import { setRowDate } from "./date-rows";
 import { chooseRowAction, installPointerEvents } from "./row-menu-support";
 
 vi.mock("next/navigation", () => ({
@@ -542,8 +543,7 @@ describe("TasksPage", () => {
     await user.click(screen.getByRole("button", { name: "New task" }));
     const editor = screen.getByRole("dialog", { name: "Add task" });
     await user.type(within(editor).getByLabelText("Task"), "Water the plants");
-    await user.click(within(editor).getByText(/^Due: /));
-    await user.type(within(editor).getByLabelText("Due date"), "2031-04-02");
+    await setRowDate(user, /^Set due date/, "2031-04-02", undefined, editor);
     await user.click(
       within(editor).getByRole("button", { name: "Create task" }),
     );

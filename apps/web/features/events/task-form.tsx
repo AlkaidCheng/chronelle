@@ -30,7 +30,9 @@ import {
 } from "./editor-draft-recovery";
 import { usePlanningEditorDialog } from "../../lib/use-planning-editor-dialog";
 import { useOpenHistory } from "../history/history-provider";
-import { DuePicker } from "../../components/due-picker";
+import { DueRow } from "../../components/due-row";
+import { durationChoices } from "../../lib/due-choices";
+import { formatDuration } from "../../lib/format";
 import { AssigneePicker } from "../tasks/assignee-picker";
 import { LabelPicker } from "../tasks/label-picker";
 import { useEditorDraft } from "../../lib/use-editor-draft";
@@ -169,6 +171,7 @@ function TaskEditor({
     return undefined;
   };
   const t = useTranslations("taskForm");
+  const dueField = useTranslations("dueField");
   const editor = useTranslations("editor");
   const [fieldError, setFieldError] = useState("");
   const openHistory = useOpenHistory();
@@ -260,7 +263,7 @@ function TaskEditor({
   return (
     <dialog
       ref={dialog}
-      className={`event-create-dialog${task ? " event-inspector" : ""}`}
+      className="event-create-dialog"
       aria-labelledby={headingId}
       onCancel={(event) => {
         event.preventDefault();
@@ -344,15 +347,38 @@ function TaskEditor({
             onChange={(description) => draft.change({ description })}
             value={description}
           />
-          <DuePicker
+          <DueRow
             disabled={mutation.isPending}
             dueDate={dueDate}
             dueTime={dueTime}
-            duration={duration}
-            onChange={(due) => draft.change(due)}
+            onChange={(due) =>
+              draft.change({
+                ...due,
+                // A duration needs a time to run from.
+                duration: due.dueTime === "" ? "" : duration,
+              })
+            }
             repeat={repeat}
             repeatUntil={repeatUntil}
           />
+          <label className="field">
+            <span id={`${headingId}-duration`}>{dueField("duration")}</span>
+            <select
+              aria-labelledby={`${headingId}-duration`}
+              disabled={mutation.isPending || dueTime === ""}
+              onChange={(input) =>
+                draft.change({ duration: input.target.value })
+              }
+              value={duration}
+            >
+              <option value="">{dueField("noDuration")}</option>
+              {durationChoices.map((minutes) => (
+                <option key={minutes} value={String(minutes)}>
+                  {formatDuration(minutes)}
+                </option>
+              ))}
+            </select>
+          </label>
           <CountedField
             className="field-wide"
             disabled={mutation.isPending}

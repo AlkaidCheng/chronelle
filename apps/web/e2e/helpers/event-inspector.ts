@@ -1,4 +1,5 @@
 import { expect, type Page, type TestInfo } from "@playwright/test";
+import { closeDatePanel, datesRow, openDatePanel } from "./date-rows";
 import { expectHorizontalReflow } from "./page-navigation";
 
 export async function exerciseEventInspector(page: Page, testInfo: TestInfo) {
@@ -65,9 +66,7 @@ export async function exerciseEventInspector(page: Page, testInfo: TestInfo) {
   for (const colorScheme of ["light", "dark"] as const) {
     await page.emulateMedia({ colorScheme, reducedMotion: "reduce" });
     await page.setViewportSize({ width: 320, height: 568 });
-    await inspector
-      .getByRole("switch", { name: "Set dates", exact: true })
-      .check();
+    await openDatePanel(inspector, datesRow(inspector));
     await expect(inspector.getByRole("table").first()).toBeVisible();
     await expect(
       inspector.getByRole("button", { name: "Save event", exact: true }),
@@ -84,9 +83,7 @@ export async function exerciseEventInspector(page: Page, testInfo: TestInfo) {
     await page.screenshot({
       path: testInfo.outputPath(`inspector-${colorScheme}.png`),
     });
-    await inspector
-      .getByRole("switch", { name: "Set dates", exact: true })
-      .uncheck();
+    await closeDatePanel(inspector);
   }
   await inspector.getByRole("button", { name: "Cancel", exact: true }).click();
   await confirmation

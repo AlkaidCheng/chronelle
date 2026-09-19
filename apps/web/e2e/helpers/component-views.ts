@@ -1,5 +1,5 @@
 import { expect, type Locator, type Page } from "@playwright/test";
-import { setDue } from "./due-picker";
+import { setDue } from "./date-rows";
 import { today } from "./today";
 import { openTaskEditor } from "./task-add";
 

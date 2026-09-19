@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { expect, test } from "./fixtures";
 import { selectLeapDayRange } from "./helpers/calendar-keyboard";
+import { datesRow } from "./helpers/date-rows";
 
 test("keeps date navigation and dialog return focus usable across browser engines @webkit-desktop @webkit-mobile", async ({
   page,
@@ -26,6 +27,9 @@ test("keeps date navigation and dialog return focus usable across browser engine
     ),
   ).toBe(true);
   await page.screenshot({ path: testInfo.outputPath("keyboard-schedule.png") });
+  // The first Escape closes the panel, focus back on its row; the next asks.
+  await page.keyboard.press("Escape");
+  await expect(datesRow(dialog)).toBeFocused();
   await page.keyboard.press("Escape");
   await page.getByRole("button", { name: "Discard", exact: true }).click();
   await expect(dialog).toHaveCount(0);

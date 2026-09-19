@@ -10,8 +10,10 @@
   "namePlaceholder": "场地押金",
   "amount": "金额",
   "currency": "币种",
-  "date": "日期",
-  "timeIn": "交易时间以 {zone} 为准。",
+  "date": "支付日期",
+  "setDate": "设置支付日期",
+  "dateHint": "交易的日期和时间",
+  "clearDate": "清除支付日期",
   "create": "记录支出",
   "save": "保存支出"
 }

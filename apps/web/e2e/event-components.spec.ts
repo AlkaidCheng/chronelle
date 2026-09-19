@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { expect, test } from "./fixtures";
+import { momentRows, setMoment } from "./helpers/date-rows";
 import { signOutFromMenu } from "./helpers/quiet-chrome";
 
 test("composes planning and private-file components with canonical updates and viewer access", async ({
@@ -137,9 +138,7 @@ test("composes planning and private-file components with canonical updates and v
   await reminderDialog
     .getByLabel("Reminder", { exact: true })
     .fill("Confirm arrival time");
-  await reminderDialog
-    .getByLabel("Reminder time", { exact: true })
-    .fill("2030-07-03T10:00");
+  await setMoment(reminderDialog, momentRows.reminder, "2030-07-03", "10:00");
   await reminderDialog
     .getByRole("button", { name: "Record reminder", exact: true })
     .click();

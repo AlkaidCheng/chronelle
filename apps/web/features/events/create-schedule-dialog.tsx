@@ -20,7 +20,7 @@ import { ErrorNotice } from "../../components/feedback";
 import { eventSchedulePayload } from "../../lib/event-schedule";
 import { DescriptionField } from "../../components/description-field";
 import { descriptionPayload } from "../../lib/description-field";
-import { locationLimit, locationPayload } from "../../lib/location-field";
+import { locationPayload } from "../../lib/location-field";
 import { shownTimeZone } from "../../i18n/active-preferences";
 import {
   useCreateScheduledEvent,
@@ -35,7 +35,7 @@ import {
 import { useDiscardConfirmation } from "../../lib/use-discard-confirmation";
 import { useEditorDraft } from "../../lib/use-editor-draft";
 import { useSessionDialog } from "../../lib/use-session-dialog";
-import { EventScheduleFields } from "./event-schedule-fields";
+import { ScheduleRows } from "./schedule-rows";
 import {
   EditorDraftRecovery,
   EditorDraftStatus,
@@ -82,14 +82,7 @@ function CreateScheduleForm({
   const draft = useEditorDraft<
     EventResponse,
     ReturnType<typeof readEventFields>
-  >(
-    undefined,
-    () => ({
-      ...readEventFields(),
-      mode: "dates",
-    }),
-    initialDraft,
-  );
+  >(undefined, () => readEventFields(), initialDraft);
   const [attempt] = useState<ContextCreateAttempt>(
     () => initialDraft?.creationAttempt ?? { current: null },
   );
@@ -106,7 +99,6 @@ function CreateScheduleForm({
   );
   const mutation = useCreateScheduledEvent(eventId, attempt);
   const t = useTranslations("scheduleDialog");
-  const fields = useTranslations("scheduleFields");
   const editor = useTranslations("editor");
   const common = useTranslations("common");
   const [scheduleError, setScheduleError] = useState("");
@@ -211,22 +203,17 @@ function CreateScheduleForm({
             onChange={(description) => draft.change({ description })}
             value={draft.fields.description}
           />
-          <EventScheduleFields
-            value={draft.fields}
+          <ScheduleRows
+            disabled={mutation.isPending}
             onChange={(fields) => {
               draft.change(fields);
               setScheduleError("");
             }}
-            disabled={mutation.isPending}
-          />
-          <CountedField
-            className="field-wide"
-            disabled={mutation.isPending}
-            hint={fields("placeHint")}
-            label={fields("place")}
-            limit={locationLimit}
-            onChange={(location) => draft.change({ location })}
-            value={draft.fields.location}
+            place={{
+              value: draft.fields.location,
+              onChange: (location) => draft.change({ location }),
+            }}
+            value={draft.fields}
           />
           {scheduleError && <p role="alert">{scheduleError}</p>}
           {mutation.isError && <ErrorNotice error={mutation.error} />}

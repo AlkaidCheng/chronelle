@@ -709,3 +709,58 @@ export function SidebarIcon({ className }: IconProps) {
     </svg>
   );
 }
+
+export function TodayIcon({ className }: IconProps) {
+  return (
+    <svg
+      aria-hidden="true"
+      className={className}
+      fill="none"
+      viewBox="0 0 24 24"
+    >
+      <rect x="4" y="5" width="16" height="15" rx="3" />
+      <path d="M4 10h16M8 3v4M16 3v4M12 13.5v4M10.5 15l1.5-1.5" />
+    </svg>
+  );
+}
+
+export function NextWeekIcon({ className }: IconProps) {
+  return (
+    <svg
+      aria-hidden="true"
+      className={className}
+      fill="none"
+      viewBox="0 0 24 24"
+    >
+      <rect x="3" y="5" width="18" height="14" rx="3" />
+      <path d="M8 12h8M13 9l3 3-3 3" />
+    </svg>
+  );
+}
+
+export function WeekendIcon({ className }: IconProps) {
+  return (
+    <svg
+      aria-hidden="true"
+      className={className}
+      fill="none"
+      viewBox="0 0 24 24"
+    >
+      <path d="M4 12a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v5H4z" />
+      <path d="M6 10V7a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v3M5 17v2M19 17v2" />
+    </svg>
+  );
+}
+
+export function RepeatIcon({ className }: IconProps) {
+  return (
+    <svg
+      aria-hidden="true"
+      className={className}
+      fill="none"
+      viewBox="0 0 24 24"
+    >
+      <path d="M4 10a6 6 0 0 1 6-6h9M17 1l3 3-3 3M20 14a6 6 0 0 1-6 6H5M7 23l-3-3 3-3" />
+    </svg>
+  );
+}

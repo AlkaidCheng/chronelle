@@ -1,14 +1,14 @@
 {
   "legend": "日程",
+  "dates": "日期",
   "setDates": "设置日期",
-  "datesOn": "选择一天或一段日期",
-  "datesOff": "在确定前先留空",
-  "addTimes": "添加时间",
-  "timesNote": "可选的开始和结束时间",
-  "startTime": "开始时间",
-  "endTime": "结束时间",
-  "endTimeOptional": "结束时间（可选）",
-  "timesIn": "时间以 {zone} 为准。",
+  "clearDates": "清除日期",
+  "times": "时间",
+  "setTimes": "设置时间",
+  "allDay": "全天",
+  "clearTimes": "清除时间",
   "place": "地点",
-  "placeHint": "在哪里进行，像告诉别人那样写。行程会在时间旁显示它。"
+  "addPlace": "添加地点",
+  "placeHint": "在哪里进行，像告诉别人那样写。行程会在时间旁显示它。",
+  "clearPlace": "清除地点"
 }

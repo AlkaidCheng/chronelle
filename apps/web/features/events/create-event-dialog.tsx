@@ -22,7 +22,8 @@ import {
 import { useCreateEvent } from "../../lib/queries";
 import { useSessionDialog } from "../../lib/use-session-dialog";
 import { useDiscardConfirmation } from "../../lib/use-discard-confirmation";
-import { EventScheduleFields } from "./event-schedule-fields";
+import { locationPayload } from "../../lib/location-field";
+import { ScheduleRows } from "./schedule-rows";
 
 interface CreateEventDialogProps {
   readonly onCreated: (id: string) => void;
@@ -85,9 +86,11 @@ function CreateEventForm({
       return;
     let timing: ReturnType<typeof eventSchedulePayload>;
     let description: string | null;
+    let location: string | null;
     try {
       timing = eventSchedulePayload(schedule);
       description = descriptionPayload(draft.fields.description);
+      location = locationPayload(draft.fields.location);
       setScheduleError("");
     } catch (error) {
       setScheduleError(
@@ -101,6 +104,7 @@ function CreateEventForm({
           displayName,
           description,
           ...timing,
+          location,
           timezone: shownTimeZone(),
         }),
       (created) => {
@@ -184,13 +188,17 @@ function CreateEventForm({
             onChange={(description) => draft.change({ description })}
             value={draft.fields.description}
           />
-          <EventScheduleFields
-            value={schedule}
+          <ScheduleRows
+            disabled={createEvent.isPending}
             onChange={(change) => {
               draft.change(change);
               setScheduleError("");
             }}
-            disabled={createEvent.isPending}
+            place={{
+              value: draft.fields.location,
+              onChange: (location) => draft.change({ location }),
+            }}
+            value={schedule}
           />
           {scheduleError && <p role="alert">{scheduleError}</p>}
           {createEvent.isError && <ErrorNotice error={createEvent.error} />}

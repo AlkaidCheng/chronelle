@@ -208,7 +208,9 @@ test("adds a trip's itinerary, reads a day sheet with places and gaps, turns day
   // Add schedule item from the sheet is the Calendar's dialog, with the Place.
   await page.getByRole("button", { name: "Add schedule item" }).click();
   const dialog = page.getByRole("dialog", { name: "Add schedule item" });
-  await expect(dialog.getByLabel("Place")).toBeVisible();
+  await expect(
+    dialog.getByRole("button", { name: /^Add a place/ }),
+  ).toBeVisible();
   await dialog.getByRole("button", { name: "Cancel" }).click();
   await expect(dialog).toBeHidden();
 });

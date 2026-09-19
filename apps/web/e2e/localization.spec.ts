@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { expect, type Page, test } from "./fixtures";
 import { moreTrigger } from "./helpers/quiet-chrome";
-import { setDates } from "./helpers/range-picker";
+import { setDates } from "./helpers/date-rows";
 import { openEventView } from "./helpers/event-view";
 
 // The Chinese strings the journey looks for, as escapes so the spec stays
@@ -22,11 +22,11 @@ const hans = {
   range: "2030\u5e747\u67083\u65e5 \u81f3 2030\u5e747\u670812\u65e5",
   newTask: "\u65b0\u5efa\u4efb\u52a1",
   addTask: "\u6dfb\u52a0\u4efb\u52a1",
-  dueSummary: /^\u622a\u6b62\uff1a/,
-  noDate: "\u65e0\u65e5\u671f",
-  dueDate: "\u622a\u6b62\u65e5\u671f",
+  setDue: /^\u8bbe\u7f6e\u622a\u6b62\u65e5\u671f/,
+  dueRow: /^\u622a\u6b62\u65e5\u671f/,
+  typeDate: "\u8f93\u5165\u65e5\u671f",
   tomorrow: "\u660e\u5929",
-  dueTomorrow: /\uff08\u660e\u5929\uff09\u3002$/,
+  dueTomorrow: /\uff08\u660e\u5929\uff09$/,
   search: "\u641c\u7d22",
   addPerson: "\u6dfb\u52a0\u4f19\u4f34",
   newPerson: "\u65b0\u4f19\u4f34",
@@ -117,7 +117,6 @@ test("switches the workspace to Simplified and Traditional Chinese and back @web
   await expect(page.locator("html")).toHaveAttribute("lang", "en");
   await page.getByRole("button", { name: "New event", exact: true }).click();
   await page.getByLabel("Event name", { exact: true }).fill("Summer vacation");
-  await page.getByRole("switch", { name: "Set dates" }).check();
   const editor = page.getByRole("dialog", { name: "Create an event" });
   await setDates(editor, "2030-07-03", "2030-07-12");
   await page.getByRole("button", { name: "Create event", exact: true }).click();
@@ -160,22 +159,19 @@ test("switches the workspace to Simplified and Traditional Chinese and back @web
   ).toBeVisible();
   await expect(page.getByText(hans.range)).toBeVisible();
 
-  // The editors and pages read in the language too: the Due control of a
-  // new task takes "tomorrow" typed in Chinese, and Trash, Search, History,
-  // and the command palette open in it.
+  // The editors and pages read in the language too: the Due row of a new
+  // task opens the date panel, which takes "tomorrow" typed in Chinese, and
+  // Trash, Search, History, and the command palette open in it.
   await page.goto("/tasks");
   await page.getByRole("button", { name: hans.newTask, exact: true }).click();
   const taskEditor = page.getByRole("dialog", { name: hans.addTask });
+  await taskEditor.getByRole("button", { name: hans.setDue }).click();
+  const typed = taskEditor.getByLabel(hans.typeDate, { exact: true });
+  await typed.fill(hans.tomorrow);
   await expect(
-    taskEditor.locator("summary", { hasText: hans.dueSummary }),
-  ).toContainText(hans.noDate);
-  await taskEditor.locator("summary", { hasText: hans.dueSummary }).click();
-  await taskEditor
-    .getByLabel(hans.dueDate, { exact: true })
-    .fill(hans.tomorrow);
-  await expect(taskEditor.locator(".field-hint").first()).toHaveText(
-    hans.dueTomorrow,
-  );
+    taskEditor.getByRole("button", { name: hans.dueRow }),
+  ).toHaveText(hans.dueTomorrow);
+  await typed.press("Escape");
   await page.keyboard.press("Escape");
   await page.getByRole("button", { name: hans.discard, exact: true }).click();
   await page.goto("/trash");
