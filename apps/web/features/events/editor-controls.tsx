@@ -9,7 +9,9 @@ import { EditorSubmitButton } from "../../components/editor-form";
 import { useCanonicalInvalidation } from "../../lib/queries";
 import { ConflictNotice, type FieldFormatter } from "./conflict-notice";
 
-interface EditorControlsProps<Fields extends Record<string, string>> {
+interface EditorControlsProps<
+  Fields extends Record<string, string | undefined>,
+> {
   readonly draft: {
     readonly fields: Fields;
     readonly baseline: Fields;
@@ -58,7 +60,9 @@ export function useConflictSlot() {
   return { slot, ref: setSlot };
 }
 
-export function EditorControls<Fields extends Record<string, string>>({
+export function EditorControls<
+  Fields extends Record<string, string | undefined>,
+>({
   draft,
   mutation,
   conflict,

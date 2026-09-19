@@ -113,6 +113,7 @@ export function EventComponent({
               canEdit={canEdit}
               isSavingView={isSavingView}
               onChangeView={onChangeView}
+              sections={tasks.sections}
               tasks={tasks.items}
               view={view}
             />
@@ -201,6 +202,7 @@ export function EventComponent({
               expenses={expenses.items}
               isSavingView={isSavingView}
               onChangeView={onChangeView}
+              sections={expenses.sections}
               view={view}
             />
           )}

@@ -2,6 +2,7 @@
 
 import type {
   EventComponentView,
+  SectionResponse,
   TaskContext,
   TaskParent,
   TaskProgress,
@@ -18,6 +19,7 @@ import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { type ReactNode, useCallback, useMemo, useState } from "react";
 
+import { DragCard } from "../../components/drag-card";
 import { ErrorNotice } from "../../components/feedback";
 import { CalendarIcon, CheckIcon, SubtaskIcon } from "../../components/icons";
 import type { QuickAddSlots } from "../../components/quick-add-row";
@@ -44,13 +46,22 @@ import { formatTime } from "../../lib/format";
 import { useDuplicateTask, useUpdateTask } from "../../lib/queries";
 import { formatCalendarDate } from "../../lib/event-schedule";
 import { dueOnDay, formatTaskTime } from "../../lib/task-due";
+import { groupBySection } from "../../lib/section-groups";
 import { groupTasksByDay } from "../../lib/task-groups";
 import { nestTasks } from "../../lib/task-tree";
 import type { Period } from "../../lib/use-period";
-import { type RowDrop, useRowDrag } from "../../lib/use-row-drag";
+import { type RowDrop, rowsWithGap, useRowDrag } from "../../lib/use-row-drag";
 import { PeriodView, type RowMode } from "../events/period-view";
 import { useOpenHistory } from "../history/history-provider";
 import { useOpenLifecycle } from "../recovery/lifecycle-provider";
+import {
+  AddSectionLine,
+  DragGrip,
+  SectionEditor,
+  SectionHead,
+  SectionTitle,
+} from "../sections/section-parts";
+import { useSectionEditing } from "../sections/use-sections";
 import { QuickAddTask } from "./quick-add-task";
 
 const taskColumn = createColumnHelper<TaskResponse>();
@@ -60,25 +71,33 @@ export function resourceListClass(mode: RowMode): string {
   return `resource-list${mode === "compact" ? " resource-list-compact" : mode === "cell" ? " resource-list-cell" : ""}`;
 }
 
-/** A row's classes: the drag state and, for a done row, is-done. */
+/** A row's classes: the drag state, is-done for a done row, and the grip's anchor when it holds one. */
 export function rowClasses(
   dragClass: string | undefined,
   done: boolean,
+  grip = false,
 ): string | undefined {
-  const classes = [dragClass, done ? "is-done" : undefined].filter(
-    (name) => name !== undefined,
-  );
+  const classes = [
+    dragClass,
+    done ? "is-done" : undefined,
+    grip ? "grip-anchor" : undefined,
+  ].filter((name) => name !== undefined);
   return classes.length === 0 ? undefined : classes.join(" ");
 }
 
 /** The one group of the list view; by day, groups carry their own keys. */
 const listGroup = "all";
+/** The group the sections of a sectioned list move within, and the prefix of their row ids. */
+const sectionsGroup = "sections";
+const sectionRow = "section:";
 
 // The renderers of one render, read through the table's meta so the column
 // definitions never change: a changed cell definition remounts the cell and
 // loses the focus a row's button holds.
 interface TaskTableMeta {
   readonly check: (task: TaskResponse) => ReactNode;
+  /** The grip in the gutter at the row's left, when the rows may be moved. */
+  readonly grip: (task: TaskResponse) => ReactNode;
   /** The name over its meta line; a row nested under its parent leaves the parent out. */
   readonly copy: (
     task: TaskResponse,
@@ -102,7 +121,12 @@ function tableMeta(table: Table<TaskResponse>): TaskTableMeta {
 const taskColumns = [
   taskColumn.display({
     id: "complete",
-    cell: ({ row, table }) => tableMeta(table).check(row.original),
+    cell: ({ row, table }) => (
+      <>
+        {tableMeta(table).grip(row.original)}
+        {tableMeta(table).check(row.original)}
+      </>
+    ),
   }),
   taskColumn.accessor("displayName", {
     header: () => tr("taskRow.columns")("task"),
@@ -154,6 +178,7 @@ export function TaskListView({
   progress,
   onAddDetails,
   quickAdd,
+  sections,
   tasks,
   view,
 }: {
@@ -178,11 +203,18 @@ export function TaskListView({
   readonly period: Period;
   /** Subtask progress of each parent, by parent ID. */
   readonly progress: Readonly<Record<string, TaskProgress>>;
-  /** The state of the quick add rows, owned by the container. */
-  /** Opens the full editor for a new task with what a quick add row typed and its day. */
+  /** Opens the full editor for a new task with what a quick add row typed, its day, and its section. */
   readonly onAddDetails?:
-    ((displayName: string, dueOn: DayKey | null) => void) | undefined;
+    | ((
+        displayName: string,
+        dueOn: DayKey | null,
+        sectionId: string | null,
+      ) => void)
+    | undefined;
+  /** The state of the quick add rows, owned by the container. */
   readonly quickAdd: QuickAddSlots;
+  /** The sections of the Event's To-dos; the list layout groups by them. */
+  readonly sections?: readonly SectionResponse[] | undefined;
   readonly tasks: readonly TaskResponse[];
   readonly view: EventComponentView;
 }) {
@@ -401,12 +433,57 @@ export function TaskListView({
     },
     [change, t],
   );
+  // The list layout of an Event's To-dos groups by section: the loose
+  // tasks first, then each section with its own rows and add row.
+  const sectioned = sections !== undefined && view === "list";
+  const sectionEditing = useSectionEditing(
+    eventId ?? "",
+    "todos",
+    sections ?? [],
+  );
+  const bySection = useMemo(
+    () => groupBySection(ordered, sections ?? []),
+    [ordered, sections],
+  );
   const onDrop = useCallback(
     (id: string, drop: RowDrop) => {
+      if (id.startsWith(sectionRow)) {
+        sectionEditing.place(
+          id.slice(sectionRow.length),
+          drop.rowIds.map((rowId) => rowId.slice(sectionRow.length)),
+          drop.index,
+        );
+        return;
+      }
       const task = byId.get(id);
       if (task === undefined) return;
-      const from = groupOf.get(id) ?? listGroup;
       const rows = drop.rowIds.flatMap((rowId) => byId.get(rowId) ?? []);
+      if (sectioned) {
+        // A drop names the section by its group; the rank places the task
+        // among that section's rows, and both travel in one write.
+        const sectionId = drop.groupKey === "" ? null : drop.groupKey;
+        const from = task.sectionId ?? "";
+        const fromRows =
+          from === ""
+            ? bySection.loose
+            : (bySection.groups.find((group) => group.section.id === from)
+                ?.items ?? []);
+        if (
+          drop.groupKey === from &&
+          staysInPlace(fromRows, id, rows, drop.index)
+        )
+          return;
+        change(
+          task,
+          {
+            rank: rankAtIndex(rows, drop.index),
+            ...(sectionId !== task.sectionId && { sectionId }),
+          },
+          t("said.moved", { name: task.displayName }),
+        );
+        return;
+      }
+      const from = groupOf.get(id) ?? listGroup;
       if (
         drop.groupKey === from &&
         staysInPlace(rowsOf(from), id, rows, drop.index)
@@ -428,25 +505,57 @@ export function TaskListView({
       }
       change(task, { rank }, t("said.moved", { name: task.displayName }));
     },
-    [byId, change, groupOf, moveToDay, rowsOf, t],
+    [
+      byId,
+      bySection,
+      change,
+      groupOf,
+      moveToDay,
+      rowsOf,
+      sectionEditing,
+      sectioned,
+      t,
+    ],
   );
-  // Overdue keeps its dates: only its own rows may be reordered there.
+  // A section moves among the sections only, a task among the rows only;
+  // Overdue keeps its dates, so only its own rows may be reordered there.
   const canDrop = useCallback(
     (groupKey: string, id: string) =>
-      groupKey !== "overdue" || groupOf.get(id) === "overdue",
+      id.startsWith(sectionRow)
+        ? groupKey === sectionsGroup
+        : groupKey !== sectionsGroup &&
+          (groupKey !== "overdue" || groupOf.get(id) === "overdue"),
     [groupOf],
   );
   const labelOf = useCallback(
-    (id: string) => byId.get(id)?.displayName ?? "",
-    [byId],
+    (id: string) =>
+      id.startsWith(sectionRow)
+        ? (sections?.find(
+            (section) => section.id === id.slice(sectionRow.length),
+          )?.name ?? "")
+        : (byId.get(id)?.displayName ?? ""),
+    [byId, sections],
   );
   const reorder = manual && canEdit;
-  const { drag, groupProps, rowClass, rowProps } = useRowDrag({
-    canDrop,
-    enabled: reorder && (view === "list" || view === "by-day"),
-    labelOf,
-    onDrop,
-  });
+  const { drag, gapAt, gripProps, groupProps, rootProps, rowClass, rowProps } =
+    useRowDrag({
+      canDrop,
+      enabled: reorder && (view === "list" || view === "by-day"),
+      labelOf,
+      onDrop,
+    });
+  const sectionT = useTranslations("sections");
+  /** The grip in the gutter at a row's left edge, when the rows may be moved. */
+  const grip = useCallback(
+    (task: TaskResponse) =>
+      reorder && (view === "list" || view === "by-day") ? (
+        <DragGrip
+          label={sectionT("move", { name: task.displayName })}
+          {...gripProps(task.id)}
+        />
+      ) : null,
+    [gripProps, reorder, sectionT, view],
+  );
 
   const check = useCallback(
     (task: TaskResponse) => {
@@ -654,8 +763,8 @@ export function TaskListView({
     ],
   );
   const meta = useMemo<TaskTableMeta>(
-    () => ({ aside, check, copy, menu, ordered, present }),
-    [aside, check, copy, menu, ordered, present],
+    () => ({ aside, check, copy, grip, menu, ordered, present }),
+    [aside, check, copy, grip, menu, ordered, present],
   );
   const table = useReactTable({
     columns: taskColumns,
@@ -665,7 +774,33 @@ export function TaskListView({
     meta,
   });
 
-  const error = update.isError ? update : duplicate.isError ? duplicate : null;
+  const error = update.isError
+    ? update
+    : duplicate.isError
+      ? duplicate
+      : sectionEditing.error;
+  /** The lifted row's line as the card that follows the pointer. */
+  const card = () => {
+    if (drag === null) return null;
+    if (drag.id.startsWith(sectionRow)) {
+      const section = sections?.find(
+        (candidate) => candidate.id === drag.id.slice(sectionRow.length),
+      );
+      return section === undefined ? null : (
+        <div className="section-head section-head-card">
+          <SectionTitle section={section} />
+        </div>
+      );
+    }
+    const task = byId.get(drag.id);
+    return task === undefined ? null : (
+      <div className="row-drag-line">
+        {check(task)}
+        <div className="resource-copy">{copy(task, true, false)}</div>
+        {aside(task)}
+      </div>
+    );
+  };
   const notice = (
     <>
       {error === null ? null : (
@@ -675,20 +810,9 @@ export function TaskListView({
         />
       )}
       <p aria-live="polite" className="visually-hidden" role="status">
-        {announcement}
+        {announcement || sectionEditing.announcement}
       </p>
-      {drag === null ? null : (
-        <div
-          aria-hidden="true"
-          className="row-drag-ghost"
-          style={{
-            transform: `translate(${drag.x}px, ${drag.y}px)`,
-            width: drag.width,
-          }}
-        >
-          {drag.label}
-        </div>
-      )}
+      <DragCard drag={drag}>{card()}</DragCard>
     </>
   );
   const row = (
@@ -701,17 +825,36 @@ export function TaskListView({
       className={rowClasses(
         rowClass(groupKey, task.id),
         task.status === "done",
+        reorder,
       )}
       id={`task-${task.id}`}
       key={task.id}
       {...rowProps(task.id)}
     >
+      {grip(task)}
       {check(task)}
       <div className="resource-copy">{copy(task, showDate, false)}</div>
       {aside(task)}
       {menu(task, rows)}
     </li>
   );
+  /** The gap a lifted row will fill, among a list's rows. */
+  const listGap = (height: number, key: string) => (
+    <li aria-hidden="true" className="row-gap" key={key} style={{ height }} />
+  );
+  const listRows = (
+    items: readonly TaskResponse[],
+    showDate: boolean,
+    groupKey: string,
+  ) =>
+    rowsWithGap(
+      groupKey,
+      items,
+      drag,
+      gapAt,
+      (task) => row(task, showDate, items, groupKey),
+      listGap,
+    );
   if (view === "week" || view === "month")
     return (
       <PeriodView
@@ -731,12 +874,13 @@ export function TaskListView({
     );
   if (view === "by-day")
     return (
-      <div className="day-groups">
+      <div className="day-groups" {...rootProps()}>
         {notice}
         {groups.map((group) => (
           <section
             aria-label={group.label.join(", ")}
             className={`day-group day-group-${group.tone}`}
+            data-drop-zone=""
             key={group.key}
           >
             <h3 className="day-group-heading">
@@ -744,10 +888,11 @@ export function TaskListView({
                 <span key={part}>{part}</span>
               ))}
             </h3>
-            <ul className="resource-list" {...groupProps(group.key)}>
-              {group.tasks.map((task) =>
-                row(task, group.tone === "overdue", group.tasks, group.key),
-              )}
+            <ul
+              className={`resource-list${reorder ? " has-grips" : ""}`}
+              {...groupProps(group.key)}
+            >
+              {listRows(group.tasks, group.tone === "overdue", group.key)}
             </ul>
             {canEdit && group.tone !== "overdue" ? (
               <div className="quick-add-item">
@@ -768,56 +913,237 @@ export function TaskListView({
         ))}
       </div>
     );
+  const header = (
+    <thead>
+      {table.getHeaderGroups().map((headerGroup) => (
+        <tr key={headerGroup.id}>
+          {headerGroup.headers.map((header) => (
+            <th key={header.id}>
+              {header.isPlaceholder
+                ? null
+                : flexRender(
+                    header.column.columnDef.header,
+                    header.getContext(),
+                  )}
+            </th>
+          ))}
+        </tr>
+      ))}
+    </thead>
+  );
+  const tableRows = table.getRowModel().rowsById;
+  const tableRow = (task: TaskResponse, groupKey: string) => {
+    const found = tableRows[task.id];
+    if (found === undefined) return null;
+    return (
+      <tr
+        className={rowClasses(
+          rowClass(groupKey, task.id),
+          task.status === "done",
+        )}
+        id={`task-${task.id}`}
+        key={task.id}
+        {...rowProps(task.id)}
+      >
+        {found.getVisibleCells().map((cell, at) => (
+          <td
+            className={at === 0 && reorder ? "grip-anchor" : undefined}
+            key={cell.id}
+          >
+            {flexRender(cell.column.columnDef.cell, cell.getContext())}
+          </td>
+        ))}
+      </tr>
+    );
+  };
+  const columns = taskColumns.length;
+  /** The gap a lifted row will fill, among a table's rows. */
+  const tableGap = (height: number, key: string) => (
+    <tr key={key}>
+      <td aria-hidden="true" className="row-gap-cell" colSpan={columns}>
+        <div className="row-gap-fill" style={{ height }} />
+      </td>
+    </tr>
+  );
+  const tableClass = `data-table task-table${reorder ? " has-grips" : ""}`;
+  if (!sectioned)
+    return (
+      <div className="table-wrap" {...rootProps()}>
+        {notice}
+        <table className={tableClass}>
+          {header}
+          <tbody {...groupProps(listGroup)}>
+            {rowsWithGap(
+              listGroup,
+              ordered,
+              drag,
+              gapAt,
+              (task) => tableRow(task, listGroup),
+              tableGap,
+            )}
+          </tbody>
+        </table>
+        {canEdit ? (
+          <div className="quick-add-item quick-add-table">
+            <QuickAddTask
+              dueOn={null}
+              eventId={eventId}
+              onDetails={onAddDetails}
+              slots={quickAdd}
+            />
+          </div>
+        ) : null}
+      </div>
+    );
+
+  // The loose tasks first, then each section: its head (or its editor),
+  // its rows, its own add row, and an Add section line after it; the
+  // first Add section line follows the loose tasks.
+  const { editing } = sectionEditing;
+  const addRow = (sectionId: string | null) =>
+    canEdit ? (
+      <tr>
+        <td className="table-add-cell" colSpan={columns}>
+          <div className="quick-add-item">
+            <QuickAddTask
+              dueOn={null}
+              eventId={eventId}
+              onDetails={onAddDetails}
+              sectionId={sectionId}
+              slots={quickAdd}
+            />
+          </div>
+        </td>
+      </tr>
+    ) : null;
+  const addSection = (after: string | null) =>
+    canEdit ? (
+      <tr>
+        <td className="table-add-section-cell" colSpan={columns}>
+          {editing?.kind === "add" && editing.after === after ? (
+            <SectionEditor
+              busy={sectionEditing.pending}
+              onCancel={sectionEditing.cancel}
+              onSave={sectionEditing.save}
+            />
+          ) : (
+            <AddSectionLine
+              disabled={sectionEditing.pending}
+              onOpen={() => sectionEditing.openAdd(after)}
+            />
+          )}
+        </td>
+      </tr>
+    ) : null;
+  const sectionGap = (height: number, key: string) => (
+    <tbody key={key}>
+      <tr>
+        <td
+          aria-hidden="true"
+          className="row-gap-cell section-gap-cell"
+          colSpan={columns}
+        >
+          <div className="row-gap-fill" style={{ height }} />
+        </td>
+      </tr>
+    </tbody>
+  );
+  const sectionIds = bySection.groups.map(({ section }) => ({
+    id: `${sectionRow}${section.id}`,
+  }));
   return (
-    <div className="table-wrap">
+    <div className="table-wrap sectioned-list" {...rootProps()}>
       {notice}
-      <table className="data-table task-table">
-        <thead>
-          {table.getHeaderGroups().map((headerGroup) => (
-            <tr key={headerGroup.id}>
-              {headerGroup.headers.map((header) => (
-                <th key={header.id}>
-                  {header.isPlaceholder
-                    ? null
-                    : flexRender(
-                        header.column.columnDef.header,
-                        header.getContext(),
-                      )}
-                </th>
-              ))}
-            </tr>
-          ))}
-        </thead>
-        <tbody {...groupProps(listGroup)}>
-          {table.getRowModel().rows.map((tableRow) => (
-            <tr
-              className={rowClasses(
-                rowClass(listGroup, tableRow.id),
-                tableRow.original.status === "done",
-              )}
-              id={`task-${tableRow.id}`}
-              key={tableRow.id}
-              {...rowProps(tableRow.id)}
-            >
-              {tableRow.getVisibleCells().map((cell) => (
-                <td key={cell.id}>
-                  {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                </td>
-              ))}
-            </tr>
-          ))}
+      <table className={tableClass} {...groupProps(sectionsGroup)}>
+        {header}
+        <tbody data-drop-zone="" {...groupProps("")}>
+          {rowsWithGap(
+            "",
+            bySection.loose,
+            drag,
+            gapAt,
+            (task) => tableRow(task, ""),
+            tableGap,
+          )}
+          {addRow(null)}
+          {addSection(null)}
         </tbody>
+        {rowsWithGap(
+          sectionsGroup,
+          sectionIds,
+          drag,
+          gapAt,
+          ({ id }) => {
+            const sectionId = id.slice(sectionRow.length);
+            const group = bySection.groups.find(
+              (candidate) => candidate.section.id === sectionId,
+            );
+            if (group === undefined) return null;
+            const { section, items } = group;
+            const at = bySection.groups.indexOf(group);
+            const open = items.filter(
+              (task) => task.status !== "done" && task.status !== "cancelled",
+            ).length;
+            return (
+              <tbody
+                className={`section-body${rowClass(sectionsGroup, id) === undefined ? "" : ` ${rowClass(sectionsGroup, id)}`}`}
+                data-drop-zone=""
+                data-row-id={id}
+                key={id}
+                {...groupProps(section.id)}
+              >
+                <tr>
+                  <td className="section-head-cell" colSpan={columns}>
+                    {editing?.kind === "edit" && editing.id === section.id ? (
+                      <SectionEditor
+                        busy={sectionEditing.pending}
+                        onCancel={sectionEditing.cancel}
+                        onSave={sectionEditing.save}
+                        section={section}
+                      />
+                    ) : (
+                      <SectionHead
+                        canEdit={canEdit}
+                        figure={open}
+                        grip={
+                          reorder ? (
+                            <DragGrip
+                              className="section-head-grip"
+                              label={sectionT("moveSection", {
+                                name: section.name,
+                              })}
+                              {...gripProps(id)}
+                            />
+                          ) : null
+                        }
+                        isFirst={at === 0}
+                        isLast={at === bySection.groups.length - 1}
+                        onDelete={() => sectionEditing.destroy(section.id)}
+                        onEdit={() => sectionEditing.openEdit(section.id)}
+                        onMove={(direction) =>
+                          sectionEditing.move(section.id, direction)
+                        }
+                        section={section}
+                      />
+                    )}
+                  </td>
+                </tr>
+                {rowsWithGap(
+                  section.id,
+                  items,
+                  drag,
+                  gapAt,
+                  (task) => tableRow(task, section.id),
+                  tableGap,
+                )}
+                {addRow(section.id)}
+                {addSection(section.id)}
+              </tbody>
+            );
+          },
+          sectionGap,
+        )}
       </table>
-      {canEdit ? (
-        <div className="quick-add-item quick-add-table">
-          <QuickAddTask
-            dueOn={null}
-            eventId={eventId}
-            onDetails={onAddDetails}
-            slots={quickAdd}
-          />
-        </div>
-      ) : null}
     </div>
   );
 }

@@ -1,0 +1,28 @@
+{
+  "add": "添加分组",
+  "name": "分组名称",
+  "description": "描述（可选）",
+  "edit": "编辑分组",
+  "moveUp": "上移",
+  "moveDown": "下移",
+  "delete": "删除分组",
+  "deleteHint": "其中的任务留在列表中",
+  "deleteHintExpenses": "其中的开支留在列表中",
+  "keys": "Enter 保存，Esc 取消",
+  "save": "保存",
+  "cancel": "取消",
+  "actionsFor": "{name} 的操作",
+  "move": "移动 {name}",
+  "moveSection": "移动分组 {name}",
+  "field": "分组",
+  "none": "未分组",
+  "open": "{count} 项待办",
+  "total": "合计 {total}",
+  "said": {
+    "added": "已添加分组 {name}。",
+    "saved": "已保存分组 {name}。",
+    "moved": "已移动分组 {name}。",
+    "placed": "{name} 已移动。",
+    "deleted": "已删除分组 {name}。{hint}。"
+  }
+}

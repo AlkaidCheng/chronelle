@@ -1,8 +1,8 @@
 "use client";
 
-import type { ExpenseResponse } from "@chronelle/schemas";
+import type { ExpenseResponse, SectionResponse } from "@chronelle/schemas";
 import { useTranslations } from "next-intl";
-import { type FormEvent, useMemo, useState } from "react";
+import { type FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { CountedField } from "../../components/counted-field";
 import { EditorForm } from "../../components/editor-form";
 import {
@@ -10,6 +10,7 @@ import {
   EditorDialogHeader,
 } from "../../components/editor-dialog-controls";
 import { EditorControls, useConflictSlot } from "./editor-controls";
+import { SectionField } from "../sections/section-field";
 import {
   readExpenseFields,
   expenseFieldsPayload,
@@ -39,6 +40,10 @@ interface ExpenseFormProps {
   readonly onCancel?: (() => void) | undefined;
   readonly onRefresh?: (() => Promise<void>) | undefined;
   readonly expense?: ExpenseResponse | undefined;
+  /** The sections of the Event's Expenses, which the editor offers as the expense's section. */
+  readonly sections?: readonly SectionResponse[] | undefined;
+  /** The section a new expense starts in when it comes from a section's add row. */
+  readonly startSectionId?: string | null | undefined;
 }
 
 export function ExpenseForm(props: ExpenseFormProps) {
@@ -68,6 +73,8 @@ function ExpenseEditor({
   initialDraft,
   onCancel,
   onRefresh,
+  sections,
+  startSectionId,
   expense: latestExpense,
 }: ExpenseFormProps & {
   readonly draftId: string;
@@ -76,6 +83,19 @@ function ExpenseEditor({
   const conflictSlot = useConflictSlot();
   const draft = useEditorDraft(latestExpense, readExpenseFields, initialDraft);
   const expense = draft.source;
+  // A section's add row seeds a fresh draft once; a recovered draft keeps its own.
+  const seeded = useRef(false);
+  useEffect(() => {
+    if (
+      seeded.current ||
+      startSectionId === null ||
+      startSectionId === undefined ||
+      initialDraft !== undefined
+    )
+      return;
+    seeded.current = true;
+    draft.change({ section: startSectionId });
+  }, [draft, initialDraft, startSectionId]);
   const [attempt] = useState<ContextCreateAttempt>(
     () => initialDraft?.creationAttempt ?? { current: null },
   );
@@ -97,7 +117,7 @@ function ExpenseEditor({
   const create = useCreateExpense(eventId, attempt);
   const update = useUpdateExpense();
   const refresh = useRefreshEvent(eventId, { throwOnError: true });
-  const { displayName, amount, currency, occurredAt } = draft.fields;
+  const { displayName, amount, currency, occurredAt, section } = draft.fields;
   const mutation = expense === undefined ? create : update;
   const t = useTranslations("expenseForm");
   const editor = useTranslations("editor");
@@ -281,6 +301,14 @@ function ExpenseEditor({
             value={occurredAt}
           />
           {timeError && <p role="alert">{timeError}</p>}
+          {sections === undefined ? null : (
+            <SectionField
+              disabled={mutation.isPending}
+              onChange={(section) => draft.change({ section })}
+              sections={sections}
+              value={section ?? ""}
+            />
+          )}
         </div>
         <footer className="event-inspector-footer">
           <EditorControls

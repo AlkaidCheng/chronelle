@@ -1,0 +1,28 @@
+{
+  "add": "新增分組",
+  "name": "分組名稱",
+  "description": "描述（可選）",
+  "edit": "編輯分組",
+  "moveUp": "上移",
+  "moveDown": "下移",
+  "delete": "刪除分組",
+  "deleteHint": "其中的任務留在列表中",
+  "deleteHintExpenses": "其中的開支留在列表中",
+  "keys": "Enter 儲存，Esc 取消",
+  "save": "儲存",
+  "cancel": "取消",
+  "actionsFor": "{name} 的動作",
+  "move": "移動 {name}",
+  "moveSection": "移動分組 {name}",
+  "field": "分組",
+  "none": "未分組",
+  "open": "{count} 項待辦",
+  "total": "合計 {total}",
+  "said": {
+    "added": "已新增分組 {name}。",
+    "saved": "已儲存分組 {name}。",
+    "moved": "已移動分組 {name}。",
+    "placed": "{name} 已移動。",
+    "deleted": "已刪除分組 {name}。{hint}。"
+  }
+}

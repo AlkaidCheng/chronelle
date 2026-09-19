@@ -48,9 +48,12 @@ const gap = 4;
  * focus to the button when it closes.
  */
 export function RowMenu({
+  className,
   entries,
   label,
 }: {
+  /** A class beside the button's own, for where it sits. */
+  readonly className?: string | undefined;
   readonly entries: readonly RowMenuEntry[];
   readonly label: string;
 }) {
@@ -271,7 +274,7 @@ export function RowMenu({
         aria-expanded={open}
         aria-haspopup="menu"
         aria-label={label}
-        className="row-more"
+        className={`row-more${className === undefined ? "" : ` ${className}`}`}
         onClick={() => {
           if (open) {
             close(false);

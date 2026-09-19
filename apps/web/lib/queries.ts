@@ -29,6 +29,8 @@ import type {
   ReminderUpdatePayload,
   NoteListQuery,
   NoteUpdatePayload,
+  SectionCreateRequest,
+  SectionUpdateRequest,
   SessionResponse,
   ShareCreatePayload,
   WorkspaceMemberAddRequest,
@@ -407,6 +409,45 @@ export function useDeleteLabel() {
       id: string;
       expectedVersion: number;
     }) => client.deleteLabel(id, expectedVersion),
+    onSuccess: () => {
+      void invalidate();
+    },
+  });
+}
+
+/**
+ * A section of an Event's To-dos or Expenses. Each write refreshes the
+ * Event's projections, which carry the sections and each record's section.
+ */
+export function useCreateSection(eventId: string) {
+  const client = useApiClient();
+  const invalidate = useCanonicalInvalidation();
+  return useMutation({
+    mutationFn: (input: SectionCreateRequest) =>
+      client.createSection(eventId, input),
+    onSuccess: () => {
+      void invalidate();
+    },
+  });
+}
+
+export function useUpdateSection() {
+  const client = useApiClient();
+  const invalidate = useCanonicalInvalidation();
+  return useMutation({
+    mutationFn: ({ id, input }: { id: string; input: SectionUpdateRequest }) =>
+      client.updateSection(id, input),
+    onSuccess: () => {
+      void invalidate();
+    },
+  });
+}
+
+export function useDeleteSection() {
+  const client = useApiClient();
+  const invalidate = useCanonicalInvalidation();
+  return useMutation({
+    mutationFn: (id: string) => client.deleteSection(id),
     onSuccess: () => {
       void invalidate();
     },

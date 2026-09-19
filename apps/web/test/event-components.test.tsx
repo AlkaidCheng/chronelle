@@ -1197,11 +1197,12 @@ describe("insertable event components", () => {
       .getByText("To-dos")
       .closest("section") as HTMLElement;
     await within(todos).findByText("Call the band");
+    // The task rows only: the header, the add row, and the Add section
+    // line are rows of the table too.
     const taskNames = () =>
-      within(todos)
-        .getAllByRole("row")
-        .slice(1)
-        .map((row) => row.querySelector("strong")?.textContent);
+      Array.from(todos.querySelectorAll("tr[data-row-id]")).map(
+        (row) => row.querySelector("strong")?.textContent,
+      );
     expect(taskNames()).toEqual([
       "Confirm the garden venue",
       "Order the cake",
