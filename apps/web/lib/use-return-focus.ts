@@ -31,3 +31,7 @@ export const addRowSelector = ".quick-add";
 /** A task's row button, where focus returns after its editor closes. */
 export const rowSelector = (taskId: string) =>
   `[id="task-${taskId}"] .row-press`;
+
+/** A record's row button by the row's id, where focus returns after its composer saves. */
+export const recordRowSelector = (rowId: string) =>
+  `[id="${rowId}"] .row-press`;

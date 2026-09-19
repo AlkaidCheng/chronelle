@@ -41,7 +41,10 @@ import {
   taskDay,
 } from "../../lib/day-placement";
 import { dayInWords, dueShortcuts } from "../../lib/due-choices";
-import type { EventFields } from "../../lib/editor-draft-store";
+import {
+  type EventFields,
+  eventCreationDraftKeys,
+} from "../../lib/editor-draft-store";
 import { viewsOf } from "../../lib/event-components";
 import {
   formatCalendarDate,
@@ -76,6 +79,7 @@ import { useOpenRow } from "../../lib/use-open-row";
 import { periodRange, usePeriod } from "../../lib/use-period";
 import {
   addRowSelector,
+  recordRowSelector,
   rowSelector,
   useReturnFocus,
 } from "../../lib/use-return-focus";
@@ -511,7 +515,10 @@ export function CalendarPanel({
       item={item}
       onMore={(fields) => setEditing({ id: item.id, start: fields })}
       onRefresh={refresh}
-      onSaved={() => setAnnouncement(composerT("saved"))}
+      onSaved={() => {
+        setAnnouncement(composerT("saved"));
+        returnFocus(recordRowSelector(`schedule-${item.id}`));
+      }}
       slotKey={recordComposerKey("event", item.id)}
       slots={composer}
     />
@@ -525,7 +532,11 @@ export function CalendarPanel({
       composer.open === recordComposerKey("event", item.id)
     )
       return (
-        <article className="composer-row" key={item.id}>
+        <article
+          className="composer-row"
+          id={`schedule-${item.id}`}
+          key={item.id}
+        >
           {composerFor(item)}
         </article>
       );
@@ -538,7 +549,7 @@ export function CalendarPanel({
           ? () => setEditing({ id: item.id })
           : undefined;
     return (
-      <article key={item.id}>
+      <article id={`schedule-${item.id}`} key={item.id}>
         <div className="resource-copy">
           <RowPress name={item.displayName} onPress={onPress}>
             <h3>{item.displayName}</h3>
@@ -673,9 +684,12 @@ export function CalendarPanel({
                 slots={composer}
               />
             }
+            draftId={eventCreationDraftKeys(eventId).schedule}
             label={panels("addScheduleItem")}
+            onRecover={() => setEditing({ id: null })}
             slotKey={addSlot}
             slots={composer}
+            suspended={editing !== null}
           />
         </div>
       ) : null}
@@ -1029,7 +1043,10 @@ export function ExpensesPanel({
       expense={expense}
       onMore={(fields) => setEditing({ id: expense.id, start: fields })}
       onRefresh={refresh}
-      onSaved={() => setAnnouncement(composerT("saved"))}
+      onSaved={() => {
+        setAnnouncement(composerT("saved"));
+        returnFocus(recordRowSelector(`expense-${expense.id}`));
+      }}
       slotKey={recordComposerKey("expense", expense.id)}
       slots={composer}
     />
@@ -1196,6 +1213,8 @@ export function ExpensesPanel({
   const addRow = (sectionId: string | null, sectionName?: string) => {
     if (!canEdit) return null;
     const slotKey = addComposerKey(sectionId === null ? "list" : sectionId);
+    const draftKey = eventCreationDraftKeys(eventId).expense;
+    const draftId = sectionId === null ? draftKey : `${draftKey}:${sectionId}`;
     return (
       <div className="quick-add-item">
         <AddRecordRow
@@ -1206,6 +1225,7 @@ export function ExpensesPanel({
           }
           composer={
             <ExpenseComposer
+              draftKey={draftId}
               eventId={eventId}
               onMore={(fields) => setEditing({ id: null, start: fields })}
               onRefresh={refresh}
@@ -1214,9 +1234,12 @@ export function ExpensesPanel({
               {...(sectioned ? { sectionId } : {})}
             />
           }
+          draftId={draftId}
           label={panels("addExpense")}
+          onRecover={() => setEditing({ id: null })}
           slotKey={slotKey}
           slots={composer}
+          suspended={editing !== null}
         />
       </div>
     );
@@ -1694,7 +1717,10 @@ export function RemindersPanel({
       eventId={eventId}
       onMore={(fields) => setEditing({ id: reminder.id, start: fields })}
       onRefresh={refresh}
-      onSaved={() => setAnnouncement(composerT("saved"))}
+      onSaved={() => {
+        setAnnouncement(composerT("saved"));
+        returnFocus(recordRowSelector(`reminder-${reminder.id}`));
+      }}
       reminder={reminder}
       slotKey={recordComposerKey("reminder", reminder.id)}
       slots={composer}
@@ -1779,6 +1805,8 @@ export function RemindersPanel({
   /** The add row of the list or of a day group, or its open composer. */
   const addRow = (day: DayKey | null, dayLabel?: string) => {
     const slotKey = addComposerKey(day === null ? "list" : `day:${day}`);
+    const draftKey = eventCreationDraftKeys(eventId).reminder;
+    const draftId = day === null ? draftKey : `${draftKey}:${day}`;
     return (
       <AddRecordRow
         ariaLabel={
@@ -1789,6 +1817,7 @@ export function RemindersPanel({
         composer={
           <ReminderComposer
             day={day}
+            draftKey={draftId}
             eventId={eventId}
             onMore={(fields) => setEditing({ id: null, start: fields })}
             onRefresh={refresh}
@@ -1796,9 +1825,12 @@ export function RemindersPanel({
             slots={composer}
           />
         }
+        draftId={draftId}
         label={panels("addReminder")}
+        onRecover={() => setEditing({ id: null })}
         slotKey={slotKey}
         slots={composer}
+        suspended={editing !== null}
       />
     );
   };

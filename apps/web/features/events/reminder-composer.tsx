@@ -58,6 +58,7 @@ const defaultTime = "09:00";
  */
 export function ReminderComposer({
   day = null,
+  draftKey,
   eventId,
   now = new Date(),
   onMore,
@@ -69,6 +70,11 @@ export function ReminderComposer({
 }: {
   /** The day a new reminder starts due on: a day group's add row. */
   readonly day?: DayKey | null | undefined;
+  /**
+   * The key a new record's draft is kept under, when the add row is not the
+   * list's own (a day's); the dialog's key otherwise.
+   */
+  readonly draftKey?: string | undefined;
   readonly eventId: string;
   /** Today, for tests. */
   readonly now?: Date;
@@ -85,7 +91,8 @@ export function ReminderComposer({
 }) {
   const t = useTranslations("composer");
   const rows = useTranslations("rows");
-  const draftId = latest?.id ?? eventCreationDraftKeys(eventId).reminder;
+  const draftId =
+    latest?.id ?? draftKey ?? eventCreationDraftKeys(eventId).reminder;
   const kept = useKeptEditorDraft(draftId);
   const [initial] = useState<ReminderDraftSnapshot | undefined>(() =>
     kept !== undefined && !kept.pending && kept.snapshot.kind === "reminder"

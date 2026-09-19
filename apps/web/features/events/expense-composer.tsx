@@ -51,6 +51,7 @@ const defaultTime = "12:00";
  * dialog uses. More hands the fields to the full editor.
  */
 export function ExpenseComposer({
+  draftKey,
   eventId,
   expense: latest,
   now = new Date(),
@@ -61,6 +62,11 @@ export function ExpenseComposer({
   slotKey,
   slots,
 }: {
+  /**
+   * The key a new record's draft is kept under, when the add row is not the
+   * list's own (a section's, a day's); the dialog's key otherwise.
+   */
+  readonly draftKey?: string | undefined;
   readonly eventId: string;
   /** The expense being edited; absent for a new one. */
   readonly expense?: ExpenseResponse | undefined;
@@ -83,7 +89,8 @@ export function ExpenseComposer({
   const t = useTranslations("composer");
   const rows = useTranslations("rows");
   const form = useTranslations("expenseForm");
-  const draftId = latest?.id ?? eventCreationDraftKeys(eventId).expense;
+  const draftId =
+    latest?.id ?? draftKey ?? eventCreationDraftKeys(eventId).expense;
   const kept = useKeptEditorDraft(draftId);
   const [initial] = useState<ExpenseDraftSnapshot | undefined>(() =>
     kept !== undefined && !kept.pending && kept.snapshot.kind === "expense"
