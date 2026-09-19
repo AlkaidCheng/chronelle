@@ -1152,7 +1152,8 @@ Calendar and Reminders mark each row with the same date tile as the Events
 collection, the month above the day. Task and reminder statuses read as
 labels (To do, In progress, Done, Cancelled; Pending, Triggered, Dismissed),
 and the Timeline names each entry's kind the way the other views do (Scheduled
-event, Task, Expense, Reminder). Calendar, Expenses, and Reminders rows keep
+event, Task, Expense, Reminder); a Timeline entry's history is in its row
+menu, shown on hover or focus. Calendar, Expenses, and Reminders rows keep
 their date mark, text, and actions on one line and wrap the actions under the
 text on narrow screens.
 
