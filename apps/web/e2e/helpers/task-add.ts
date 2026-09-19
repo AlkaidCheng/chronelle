@@ -1,8 +1,9 @@
 import type { Locator, Page } from "@playwright/test";
 
 /**
- * Opens the full editor for a new task the way a person does: the quick
- * add row (the first one in scope), then its details control.
+ * Opens the full editor for a new task the way a person does: the add row
+ * (the first one in scope) opens the composer, and More at its foot opens
+ * the editor with the composer's fields.
  */
 export async function openTaskEditor(
   page: Page,
@@ -12,9 +13,10 @@ export async function openTaskEditor(
 }
 
 /**
- * Opens the editor for a new record of a kind: a task or a reminder through
- * its quick add row and the row's details control, an expense or a schedule
- * item through the add row at the end of its collection.
+ * Opens the editor for a new record of a kind: a task through its add row's
+ * composer and More, a reminder through its quick add row and the row's
+ * details control, an expense or a schedule item through the add row at
+ * the end of its collection.
  */
 export async function openPlanningEditor(
   page: Page,
@@ -31,6 +33,10 @@ export async function openPlanningEditor(
     .getByRole("button", { name: new RegExp(`^Add a ${kind}`) })
     .first()
     .click();
+  if (kind === "task") {
+    await page.getByRole("button", { name: /^More: / }).click();
+    return;
+  }
   await page
     .getByRole("button", { name: `Add ${kind} with details`, exact: true })
     .click();

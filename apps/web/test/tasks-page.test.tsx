@@ -258,6 +258,8 @@ describe("TasksPage", () => {
     await screen.findByText("1 task loaded");
     const row = screen.getByRole("row", { name: /Confirm the garden venue/ });
     await chooseRowAction(user, row, "Edit");
+    // The row opens in place; More reaches the full editor.
+    await user.click(await screen.findByRole("button", { name: /^More: / }));
     const editor = await screen.findByRole("dialog", { name: "Edit task" });
     // The picker opens on demand.
     await user.click(within(editor).getByText("Labels"));
@@ -342,6 +344,8 @@ describe("TasksPage", () => {
     await screen.findByText("1 task loaded");
     const row = screen.getByRole("row", { name: /Confirm the garden venue/ });
     await chooseRowAction(user, row, "Edit");
+    // The row opens in place; More reaches the full editor.
+    await user.click(await screen.findByRole("button", { name: /^More: / }));
     const editor = await screen.findByRole("dialog", { name: "Edit task" });
     // The picker reads the people when it opens; a new person is selected
     // as soon as they exist.
@@ -417,6 +421,8 @@ describe("TasksPage", () => {
     await screen.findByText("1 task loaded");
     const row = screen.getByRole("row", { name: /Confirm the garden venue/ });
     await chooseRowAction(user, row, "Edit");
+    // The row opens in place; More reaches the full editor.
+    await user.click(await screen.findByRole("button", { name: /^More: / }));
     const editor = await screen.findByRole("dialog", { name: "Edit task" });
     // The picker reads the people when it opens; a new person is selected
     // as soon as they exist.
@@ -492,6 +498,8 @@ describe("TasksPage", () => {
     await screen.findByText("1 task loaded");
     const row = screen.getByRole("row", { name: /Confirm the garden venue/ });
     await chooseRowAction(user, row, "Edit");
+    // The row opens in place; More reaches the full editor.
+    await user.click(await screen.findByRole("button", { name: /^More: / }));
     const editor = await screen.findByRole("dialog", { name: "Edit task" });
     await user.type(
       within(editor).getByLabelText("Location"),
@@ -510,6 +518,7 @@ describe("TasksPage", () => {
     // The field counts its characters and stops at the limit: a longer
     // paste is cut to 240 and the count turns red at 240 / 240.
     await chooseRowAction(user, placed, "Edit");
+    await user.click(await screen.findByRole("button", { name: /^More: / }));
     const full = await screen.findByRole("dialog", { name: "Edit task" });
     const field = within(full).getByLabelText("Location");
     expect(within(full).getByText("10 / 240")).not.toHaveClass(
@@ -524,14 +533,23 @@ describe("TasksPage", () => {
     await waitFor(() =>
       expect(screen.queryByRole("dialog", { name: "Edit task" })).toBeNull(),
     );
-    // Reopening shows the trimmed location; clearing it removes the line.
+    // Reopening the row shows the trimmed location on its chip; clearing
+    // the chip and saving removes the line.
     await chooseRowAction(user, placed, "Edit");
-    const again = await screen.findByRole("dialog", { name: "Edit task" });
-    expect(within(again).getByLabelText("Location")).toHaveValue("The garden");
-    await user.clear(within(again).getByLabelText("Location"));
-    await user.click(within(again).getByRole("button", { name: "Save task" }));
+    const again = await screen.findByRole("form", {
+      name: "Edit Confirm the garden venue",
+    });
+    expect(
+      within(again).getByRole("button", { name: "Location: The garden" }),
+    ).toBeVisible();
+    await user.click(
+      within(again).getByRole("button", { name: "Clear Location" }),
+    );
+    await user.click(within(again).getByRole("button", { name: "Save" }));
     await waitFor(() =>
-      expect(screen.queryByRole("dialog", { name: "Edit task" })).toBeNull(),
+      expect(
+        screen.queryByRole("form", { name: "Edit Confirm the garden venue" }),
+      ).toBeNull(),
     );
     await waitFor(() => expect(screen.queryByText("The garden")).toBeNull());
   });

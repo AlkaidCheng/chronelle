@@ -1,11 +1,10 @@
-import { expect, type Page, type TestInfo } from "@playwright/test";
 import {
-  expectDue,
-  expectMoment,
-  momentRows,
-  setDue,
-  setMoment,
-} from "./date-rows";
+  expect,
+  type Locator,
+  type Page,
+  type TestInfo,
+} from "@playwright/test";
+import { expectDue, expectMoment, momentRows, setMoment } from "./date-rows";
 import { expectToken } from "./appearance";
 import { expectHorizontalReflow } from "./page-navigation";
 import { chooseRowAction, rowMenuButton } from "./row-menu";
@@ -33,6 +32,91 @@ export const planningEditors = {
   },
 } as const;
 
+/**
+ * A task's drafts live in its row's composer: a composer left with text
+ * (an add row's, a row's, or the dialog More opens from it) is found open
+ * again with the text after leaving the view and coming back; Escape
+ * discards it, and a reload clears it.
+ */
+async function exerciseTaskComposerRecovery(page: Page) {
+  await openEventView(page, "Overview");
+  await openEventView(page, "To-dos");
+  const addRow = page.getByRole("button", {
+    name: "Add a task to the list",
+    exact: true,
+  });
+  const adding = page.getByRole("form", { name: "New task", exact: true });
+  const name = adding.getByLabel("Task name", { exact: true });
+  await addRow.click();
+  await name.fill("Pack the lanterns");
+  await setDueChip(adding, "2030-07-03");
+  await revisitObjectView(page);
+  // The composer comes back open with its text and its chip.
+  await expect(name).toHaveValue("Pack the lanterns");
+  await expect(
+    adding.getByRole("button", { name: "Due: Jul 3, 2030", exact: true }),
+  ).toBeVisible();
+  // More opens the dialog with the composer's fields; leaving the dialog
+  // with them keeps the same draft, found in the composer again.
+  await adding.getByRole("button", { name: /^More: / }).click();
+  const dialog = page.getByRole("dialog", { name: "Add task", exact: true });
+  const dialogName = dialog.getByLabel("Task", { exact: true });
+  await expect(dialogName).toHaveValue("Pack the lanterns");
+  await expectDue(dialog, "Jul 3, 2030");
+  await dialogName.fill("Pack the lanterns tonight");
+  await revisitObjectView(page);
+  await expect(name).toHaveValue("Pack the lanterns tonight");
+  await name.press("Enter");
+  const row = page.getByRole("row").filter({ hasText: "Pack the lanterns" });
+  await expect(row).toHaveCount(1);
+  await expect(name).toHaveValue("");
+  await name.press("Escape");
+  await expect(adding).toHaveCount(0);
+  await expectHorizontalReflow(page);
+
+  // A row's composer keeps its text the same way.
+  await chooseRowAction(page, row, "Edit");
+  const editing = page.getByRole("form", { name: /^Edit Pack the lanterns/ });
+  const editingName = editing.getByLabel("Task name", { exact: true });
+  await editingName.fill("Pack the lanterns and candles");
+  await revisitObjectView(page);
+  await expect(editingName).toHaveValue("Pack the lanterns and candles");
+  await expect(editingName).toBeFocused();
+  await editingName.press("Enter");
+  await expect(editing).toHaveCount(0);
+  await expect(
+    page.getByRole("row").filter({ hasText: "Pack the lanterns and candles" }),
+  ).toHaveCount(1);
+
+  // Escape discards a draft; a reload clears one.
+  await addRow.click();
+  await name.fill("Discard this plan");
+  await revisitObjectView(page);
+  await expect(name).toHaveValue("Discard this plan");
+  await name.press("Escape");
+  await expect(adding).toHaveCount(0);
+  await addRow.click();
+  await expect(name).toHaveValue("");
+  await name.fill("Reload clears this draft");
+  page.once("dialog", (dialog) => dialog.accept());
+  await page.reload();
+  await addRow.click();
+  await expect(name).toHaveValue("");
+  await adding.getByRole("button", { name: "Cancel", exact: true }).click();
+  await expect(
+    page.getByRole("row").filter({ hasText: "Pack the lanterns and candles" }),
+  ).toHaveCount(1);
+}
+
+/** Types a day into a composer's Due chip and closes its panel. */
+async function setDueChip(composer: Locator, day: string) {
+  await composer.getByRole("button", { name: /^Due/ }).click();
+  const typed = composer.getByLabel("Type a date", { exact: true });
+  await typed.fill(day);
+  await typed.press("Escape");
+  await expect(typed).toHaveCount(0);
+}
+
 export async function revisitObjectView(page: Page) {
   const url = page.url();
   const length = await page.evaluate(() => history.length);
@@ -49,8 +133,11 @@ export async function exerciseObjectRecovery(
   testInfo: TestInfo,
   kind: keyof typeof planningEditors,
 ) {
+  if (kind === "task") {
+    await exerciseTaskComposerRecovery(page);
+    return;
+  }
   const { field, timeRow, view } = planningEditors[kind];
-  const rowRole = kind === "task" ? "row" : "article";
 
   await openEventView(page, "Overview");
   await openEventView(page, view);
@@ -70,11 +157,8 @@ export async function exerciseObjectRecovery(
     await page.getByLabel("Amount", { exact: true }).fill("-0.0001");
     await page.getByLabel("Currency", { exact: true }).fill("CNY");
   }
-  // The task editor takes a day on its Due row; the others take a day and
-  // a time on theirs.
-  if (kind === "task") await setDue(page.getByRole("dialog"), "2030-07-03");
-  else
-    await setMoment(page.getByRole("dialog"), timeRow, "2030-07-03", "11:30");
+  // The editor takes a day and a time on its row.
+  await setMoment(page.getByRole("dialog"), timeRow, "2030-07-03", "11:30");
   await revisitObjectView(page);
   await openEditor();
   await expect(recovery).toBeVisible();
@@ -103,14 +187,12 @@ export async function exerciseObjectRecovery(
   await resume.click();
   await expect(name).toHaveValue("Pack the lanterns");
   await expect(name).toBeFocused();
-  if (kind === "task") await expectDue(page.getByRole("dialog"), "Jul 3, 2030");
-  else
-    await expectMoment(
-      page.getByRole("dialog"),
-      timeRow,
-      "Jul 3, 2030",
-      "11:30 AM",
-    );
+  await expectMoment(
+    page.getByRole("dialog"),
+    timeRow,
+    "Jul 3, 2030",
+    "11:30 AM",
+  );
   if (kind === "expense") {
     await expect(page.getByLabel("Amount", { exact: true })).toHaveValue(
       "-0.0001",
@@ -119,43 +201,43 @@ export async function exerciseObjectRecovery(
       "CNY",
     );
   }
-  if (kind !== "task") {
-    for (const colorScheme of ["light", "dark"] as const) {
-      await page.emulateMedia({ colorScheme, reducedMotion: "reduce" });
-      const editor = page.getByRole("dialog", {
-        name: `Add ${kind}`,
-        exact: true,
-      });
-      await expect(page.locator("html")).toHaveCSS("color-scheme", colorScheme);
-      await expectToken(editor, "background-color", "surface");
-      await expectToken(editor, "color", "ink");
-      await expectToken(editor.getByRole("heading"), "color", "ink");
-      await expectToken(
-        editor.locator(".field-row-value").first(),
-        "color",
-        "ink",
-      );
-      await page.evaluate(
-        () =>
-          new Promise<void>((resolve) =>
-            requestAnimationFrame(() => requestAnimationFrame(() => resolve())),
-          ),
-      );
-      await expectHorizontalReflow(page);
-      await expect(
-        editor.getByRole("button", { name: `Record ${kind}`, exact: true }),
-      ).toBeInViewport();
-      await page.screenshot({
-        path: testInfo.outputPath(`${kind}-editor-${colorScheme}.png`),
-      });
-    }
+  for (const colorScheme of ["light", "dark"] as const) {
+    await page.emulateMedia({ colorScheme, reducedMotion: "reduce" });
+    const editor = page.getByRole("dialog", {
+      name: `Add ${kind}`,
+      exact: true,
+    });
+    await expect(page.locator("html")).toHaveCSS("color-scheme", colorScheme);
+    await expectToken(editor, "background-color", "surface");
+    await expectToken(editor, "color", "ink");
+    await expectToken(editor.getByRole("heading"), "color", "ink");
+    await expectToken(
+      editor.locator(".field-row-value").first(),
+      "color",
+      "ink",
+    );
+    await page.evaluate(
+      () =>
+        new Promise<void>((resolve) =>
+          requestAnimationFrame(() => requestAnimationFrame(() => resolve())),
+        ),
+    );
+    await expectHorizontalReflow(page);
+    await expect(
+      editor.getByRole("button", { name: `Record ${kind}`, exact: true }),
+    ).toBeInViewport();
+    await page.screenshot({
+      path: testInfo.outputPath(`${kind}-editor-${colorScheme}.png`),
+    });
   }
   await name.press("ControlOrMeta+Enter");
   await expect(page.getByRole("dialog")).toHaveCount(0);
-  const row = page.getByRole(rowRole).filter({ hasText: "Pack the lanterns" });
+  const row = page
+    .getByRole("article")
+    .filter({ hasText: "Pack the lanterns" });
   await expect(row).toHaveCount(1);
   await expectHorizontalReflow(page);
-  // Task and reminder rows keep Edit in their menu; an expense row shows it.
+  // A reminder row keeps Edit in its menu; an expense row shows it.
   const menuButton =
     kind === "expense"
       ? row.getByRole("button", { name: "Edit", exact: true })

@@ -2,7 +2,7 @@ import { expect, type Page, type TestInfo } from "@playwright/test";
 import { expectDue, setDue } from "./date-rows";
 import { expectToken } from "./appearance";
 import { expectHorizontalReflow } from "./page-navigation";
-import { chooseRowAction, rowMenuButton } from "./row-menu";
+import { chooseRowAction } from "./row-menu";
 import { openTaskEditor } from "./task-add";
 import { openEventView } from "./event-view";
 
@@ -58,7 +58,9 @@ export async function exerciseTaskEditors(page: Page, testInfo: TestInfo) {
   await expect(row).toHaveCount(1);
   await expect(row).toContainText("30 min");
   if (viewport) await page.setViewportSize(viewport);
+  // The row's Edit opens it in place; More reaches the full editor.
   await chooseRowAction(page, row, "Edit");
+  await page.getByRole("button", { name: /^More: / }).click();
   const edit = page.getByRole("dialog", { name: "Edit task", exact: true });
   const editorName = edit.getByLabel("Task", { exact: true });
   await expect(editorName).toBeFocused();
@@ -85,7 +87,10 @@ export async function exerciseTaskEditors(page: Page, testInfo: TestInfo) {
     .getByRole("row")
     .filter({ hasText: "Pack garden supplies and chairs" });
   await expect(row).toHaveCount(1);
-  await expect(rowMenuButton(row)).toBeFocused();
+  // The editor closed from the composer's More, so focus returns to the row.
+  await expect(
+    row.getByRole("button", { name: "Edit Pack garden supplies and chairs" }),
+  ).toBeFocused();
   await row
     .getByRole("button", {
       name: "Complete Pack garden supplies and chairs",
