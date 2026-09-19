@@ -6,6 +6,9 @@ import {
 import { tr } from "../i18n/active-locale";
 import { editedInstant } from "./edited-instant";
 import { toDateTimeInput } from "./format";
+import { locationPayload } from "./location-field";
+
+export { locationLimit } from "./location-field";
 
 /**
  * The editor's due fields: a calendar date, an optional local time, and an
@@ -51,9 +54,6 @@ export function readTaskFields(
   };
 }
 
-/** The most characters a location may hold once trimmed. */
-export const locationLimit = 240;
-
 export function joinLabelIds(labelIds: readonly string[]): string {
   return [...new Set(labelIds)].sort().join(",");
 }
@@ -77,10 +77,7 @@ export function taskFieldsPayload(
 ) {
   const v = tr("validation");
   const assigneeId = fields.assignee === "" ? null : fields.assignee;
-  const location =
-    fields.location.trim() === "" ? null : fields.location.trim();
-  if (location !== null && location.length > locationLimit)
-    throw new Error(v("locationLength", { limit: locationLimit }));
+  const location = locationPayload(fields.location);
   const labelIds = splitLabelIds(fields.labels);
   const durationMinutes =
     fields.duration === "" ? null : Number(fields.duration);
