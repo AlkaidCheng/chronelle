@@ -787,29 +787,47 @@ empty states are not notices and keep their own quiet styling.
 
 ## Date and dialog navigation
 
-The Event and schedule item editors set their dates behind a Dates disclosure
-that reads the range as exact dates (Dates: Jul 3, 2030 to Jul 12, 2030, or
-not set), open until a start is chosen. Open, it holds a Start date and an End
-date field that take typed dates in the shapes the Due control reads, the
-shortcuts a weekday allows (Today, Tomorrow, Later this week, This weekend as
-Saturday to Sunday, Next week) with No dates, and the same month list as the
-Due control: one six-week month at a time, extending as it is scrolled, with the
-month and year chooser above it. The first day chosen on the list starts the
-range and the second ends it; pressing on a day and dragging across others
-chooses the span between them (mouse or pen; touch scrolls the list); a start
-typed after the end clears the end, and an end before the start is refused
-with a note until it is fixed. Arrow keys move by day or week; Home/End move
-to the week's edges; Page Up/Down moves one month, or one year with Shift,
-clamping to the last day of the target month; Enter or Space chooses. One day
-in the list participates in Tab order. Moving through the list never changes
-the selection or submits the editor.
+Every editor is a centred dialog. The Event and schedule item editors carry
+their schedule as three rows, each with its symbol: the dates (a calendar),
+the times (a clock) and the place (a pin). A row reads what is set (Dates:
+Jul 3, 2030 to Jul 12, 2030; Times: 9:30 AM to 6:00 PM; the place as typed)
+with a clear at its end, or, while unset, what it is for (Set dates with "A
+day, or a span of days"; Set times with "All day"; Add a place). The dates
+and times rows open the date panel under the row, on that part; the place row
+edits its text in place (up to 240 characters, trimmed on save, Enter or
+Escape returning to the row).
 
-Add times starts with empty fields until times are explicitly entered. Switching
-back to dates retains entered times in the current form but does not save them.
-Clearing the End date field also clears its time, including a temporarily
-hidden time.
-For a timed plan on one day, the end time can remain unspecified even when both
-selected dates are the same. A multi-day timed plan requires an end time.
+The date panel is the one control every date field opens, under its row on
+wide screens and as a sheet from the bottom of the screen under 600px. At the
+top a typed field takes a date in the shapes the panel reads (an ISO date,
+today, tomorrow, next week, Sep 21 or 21 Sep with an optional year, 9/21) or a
+span as "Sep 21 to Sep 23", with a note for text it cannot read or an end
+before its start; Enter applies and closes. Under it, four shortcuts always
+listed with the day they mean (Today, Tomorrow, Next week as the coming
+Monday, Next weekend as the coming Saturday, which a span takes through
+Sunday), the one matching the choice pressed. Then the months as one
+continuous list: one six-week month at a time, Sunday-first headings, today
+outlined, past days and weekends muted, the chosen days marked and a span
+tinted, extending as it is scrolled, with the month heading's Previous,
+Today and Next and its month and year chooser (a typed field such as October
+2027, 2027-10 or 10/2027 above a month grid and a year grid, the list behind
+following each choice until Done, Enter, Escape or a click outside closes it).
+For a single date a day press sets it and closes the panel; for a span the
+first press starts it and the second ends it, and pressing on a day and
+dragging across others chooses the days between (mouse or pen; touch scrolls
+the list). Arrow keys move by day or week; Home/End move to the week's edges;
+Page Up/Down moves one month, or one year with Shift, clamping to the last
+day of the target month; Enter or Space chooses. One day in the list
+participates in Tab order, and moving through the list never changes the
+selection or submits the editor. At the foot, Time (Times for a span)
+unfolds the time fields in place once a day is set, a single Time for a
+moment or Start and End for a span, with Remove time folding them back and
+clearing the times; the times row opens the panel with them unfolded. Escape,
+or a press outside, closes the panel, and a keyboard close returns focus to
+the row.
+
+An end time on one day keeps that day as the span's end; a multi-day timed
+plan requires an end time, refused with a note on save until both are given.
 Pending saves disable the entire schedule. Existing date ordering, local-time
 validation, optimistic concurrency and authorization remain unchanged.
 
@@ -868,11 +886,11 @@ Temporary item-read failures hide the editor until an explicit retry; the kept
 draft can then be resumed.
 
 Add schedule item opens a focused creation dialog without moving the Calendar
-list. Dates start enabled with no selected date or invented time; they can be
-turned off. Under Set dates, Place takes where the item happens as one line
-of up to 240 characters ("Where it happens, as you would tell someone. The
-itinerary shows it beside the time."); it is optional, trimmed on save, and
-the same field opens in Edit. A Calendar row with a place shows it after the
+list. Its dates, times and place rows start unset, with no invented date or
+time. The place row takes where the item happens as one line of up to 240
+characters ("Where it happens, as you would tell someone. The itinerary shows
+it beside the time."); it is optional, trimmed on save, and the same row
+opens in Edit. A Calendar row with a place shows it after the
 schedule, with a pin, on its list rows. Cancel and Escape confirm dismissal of changed fields. Keep editing
 preserves the form, calendar position and focus. An in-flight save disables
 editing and dismissal. Failed saves retain input; unchanged retries reuse the
@@ -957,31 +975,18 @@ faintly on hover. The inspector checks fresh canonical Task data and its own
 edit permission before exposing fields, even when a cached copy is present.
 Temporary refetch failures preserve mounted input; denied access hides it.
 History remains available inside the editor, and changed source versions require
-an explicit refresh/load-latest decision. The editor's Due control reads the
-choice when closed as the exact date (Due: No date, or Sep 21, 2026, with
-"(today)" or "(tomorrow)" as a hint and the time when one is set) and opens
-to a Due date field that shows the exact date and takes a typed one (an ISO
-date, today, tomorrow, next week, Sep 21 or 21 Sep with an optional year, or
-9/21, with a hint for text it cannot read); shortcuts for the days a weekday
-allows (Today, Tomorrow, Later this week, This weekend, Next week, No date),
-all of them always listed with the one matching the choice marked; and the
-months as one continuous list showing a month at a time, Sunday-first
-headings, today outlined, past days and weekends muted, the chosen day
-marked, extending as it is scrolled, with the schedule picker's keyboard moves (arrows by day and week, Page Up and
-Down by month, Home and End to the week's edges, Enter to choose). The month
-heading names the month at the top; Previous, Today, and Next move it, and
-choosing the heading opens a focused chooser over the list: a typed field
-(October 2027, 2027-10, 10/2027) above a month grid and a scrollable year
-grid with the current ones marked. The month and the year are chosen
-independently and the list behind follows each choice until Done, Enter,
-Escape, or a click outside closes the chooser. Add time reveals the Due time field and a Duration select (No duration,
-15 min to 8 h), which waits for a time; Remove time clears both. A Repeat
-select (Does not repeat, Every day, Every weekday, Every week, Every 2 weeks,
-Every month, Every year) waits for a date; a rule reveals an Until field that
+an explicit refresh/load-latest decision. The editor's Due row reads the
+choice as the exact date (Sep 21, 2026, with "(today)" or "(tomorrow)" as a
+hint, the time when one is set, and the rule: "Sep 19, 2026, every week until
+Oct 31, 2026") with a clear at its end, or Set due date with "A day, a time,
+and a rule" while unset, and opens the date panel with Time and Repeat at its
+foot. Time unfolds a single time field; Repeat unfolds a select (Does not
+repeat, Every day, Every weekday, Every week, Every 2 weeks, Every month,
+Every year) that waits for a date, and a rule reveals an Until field that
 takes a typed date, optional, refused with a note when it comes before the
-due, and dropped when the due moves past it; the closed control reads the
-rule ("Sep 19, 2026, every week until Oct 31, 2026"). No date clears
-everything. A date alone makes the task due that
+due, and dropped when the due moves past it. Duration is its own field under
+the row (No duration, 15 min to 8 h), waiting for a time and cleared with it.
+Clearing the due clears its time and rule. A date alone makes the task due that
 whole day (shown as the date, ahead of timed tasks that day, and in the
 Timeline as a dated entry); a date with a time makes it due at that local
 instant. Name-only edits preserve the exact stored due instant, and
