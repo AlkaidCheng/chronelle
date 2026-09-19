@@ -43,6 +43,8 @@ export interface EventResource extends CanonicalObjectResource {
   readonly isAllDay: boolean;
   /** Where the event happens, as text. */
   readonly location: string | null;
+  /** Plain text about the event, line breaks kept. */
+  readonly description: string | null;
   readonly objectType: "event";
   readonly startsAt: Date | null;
   readonly timezone: string | null;
@@ -66,6 +68,8 @@ export interface TaskResource extends CanonicalObjectResource {
   readonly assigneeId: string | null;
   /** Where the task happens, as text. */
   readonly location: string | null;
+  /** Plain text about the task, line breaks kept. */
+  readonly description: string | null;
   /** The task's place in manual order. */
   readonly rank: string;
   /** The task's labels in name order. */
@@ -192,6 +196,7 @@ export interface CreateEventInput extends CreateObjectFields {
   readonly endsAt?: Date | null | undefined;
   readonly isAllDay?: boolean | undefined;
   readonly location?: string | null | undefined;
+  readonly description?: string | null | undefined;
   readonly startsAt?: Date | null | undefined;
   readonly timezone?: string | null | undefined;
 }
@@ -206,6 +211,7 @@ export interface CreateTaskInput extends CreateObjectFields {
   readonly parentTaskId?: string | null | undefined;
   readonly assigneeId?: string | null | undefined;
   readonly location?: string | null | undefined;
+  readonly description?: string | null | undefined;
   /** The task's place in manual order; absent puts it last. */
   readonly rank?: string | undefined;
   /** The task's labels as a whole; absent leaves them empty. */
@@ -259,6 +265,7 @@ export interface UpdateEventInput extends UpdateObjectFields {
   readonly endsAt?: Date | null | undefined;
   readonly isAllDay?: boolean | undefined;
   readonly location?: string | null | undefined;
+  readonly description?: string | null | undefined;
   readonly startsAt?: Date | null | undefined;
   readonly timezone?: string | null | undefined;
 }
@@ -273,6 +280,7 @@ export interface UpdateTaskInput extends UpdateObjectFields {
   readonly parentTaskId?: string | null | undefined;
   readonly assigneeId?: string | null | undefined;
   readonly location?: string | null | undefined;
+  readonly description?: string | null | undefined;
   readonly rank?: string | undefined;
   /** The task's labels as a whole; absent leaves them unchanged. */
   readonly labelIds?: readonly string[] | undefined;

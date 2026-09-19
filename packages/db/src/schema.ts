@@ -545,6 +545,7 @@ export const events = pgTable("events", {
   timezone: text("timezone"),
   isAllDay: boolean("is_all_day").notNull().default(false),
   location: text("location"),
+  description: text("description"),
 });
 
 export const tasks = pgTable("tasks", {
@@ -564,6 +565,7 @@ export const tasks = pgTable("tasks", {
   parentTaskId: uuid("parent_task_id"),
   assigneePersonId: uuid("assignee_person_id"),
   location: text("location"),
+  description: text("description"),
   rank: text("rank").notNull().default("00000001000"),
 });
 

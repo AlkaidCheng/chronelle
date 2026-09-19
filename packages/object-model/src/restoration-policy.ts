@@ -26,6 +26,7 @@ const typedFields: Record<
     timezone: field("Time zone", "text"),
     isAllDay: field("All day", "boolean"),
     location: field("Location", "text"),
+    description: field("Description", "text"),
   },
   task: {
     status: field("Status", "text"),
@@ -37,6 +38,7 @@ const typedFields: Record<
     parentTaskId: field("Parent task", "text", false),
     assigneeId: field("Assignee", "text", false),
     location: field("Location", "text"),
+    description: field("Description", "text"),
     rank: field("Order", "text", false),
     labelIds: field("Labels", "text", false),
     completedAt: field("Completed", "datetime"),

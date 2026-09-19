@@ -268,6 +268,59 @@ describe.sequential("CloudBase Event writes", () => {
     ]);
   });
 
+  it("keep an event's description with its line breaks and refuse a padded or long one alike", async () => {
+    const outcomes: string[][] = [];
+    for (const [, service] of backends(reference, cloudbase)) {
+      const created = await service.createEvent(context(), {
+        displayName: "Described",
+        startsOn: "2030-11-02",
+        endsOn: "2030-11-06",
+        isAllDay: true,
+        description:
+          "Five days in Kyoto.\nThe Tanakas host dinner on the second.",
+      });
+      expect(created.description).toBe(
+        "Five days in Kyoto.\nThe Tanakas host dinner on the second.",
+      );
+      const revised = await service.updateEvent(context(), created.id, {
+        expectedVersion: 1,
+        description: "Four days in Kyoto.",
+      });
+      expect(revised.description).toBe("Four days in Kyoto.");
+      expect(
+        (await service.getEvent(context().principal, created.id)).description,
+      ).toBe("Four days in Kyoto.");
+      const cleared = await service.updateEvent(context(), created.id, {
+        expectedVersion: 2,
+        description: null,
+      });
+      expect(cleared.description).toBeNull();
+      const seen: string[] = [];
+      for (const attempt of [
+        () =>
+          service.createEvent(context(), {
+            displayName: "x",
+            description: " padded ",
+          }),
+        () =>
+          service.updateEvent(context(), created.id, {
+            expectedVersion: 3,
+            description: "x".repeat(2001),
+          }),
+      ]) {
+        const error = await failure(attempt);
+        expect(error).toBeInstanceOf(InvalidObjectStateError);
+        seen.push(error.message);
+      }
+      outcomes.push(seen);
+    }
+    expect(outcomes[1]).toEqual(outcomes[0]);
+    expect(outcomes[0]).toEqual([
+      "description is 1 to 2000 characters without surrounding spaces.",
+      "description is 1 to 2000 characters without surrounding spaces.",
+    ]);
+  });
+
   it("refuse to update an object without a revision baseline", async () => {
     const messages: string[] = [];
     for (const [, service] of backends(reference, cloudbase)) {

@@ -23,6 +23,7 @@ const event = {
   timezone: "America/Los_Angeles",
   isAllDay: false,
   location: null,
+  description: null,
 } as const;
 
 const documentId = "019d6e7d-0000-7000-8000-000000000010";

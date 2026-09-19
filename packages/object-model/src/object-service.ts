@@ -403,6 +403,19 @@ async function nextRank(
   return rankAfter(last === null ? null : last.padStart(11, "0"));
 }
 
+/** A description (of a Task or an Event), when set, is 1 to 2,000 trimmed characters. */
+function assertDescription(description: string | null): void {
+  if (
+    description !== null &&
+    (description !== description.trim() ||
+      description.length < 1 ||
+      description.length > 2000)
+  )
+    throw new InvalidObjectStateError(
+      "description is 1 to 2000 characters without surrounding spaces.",
+    );
+}
+
 /** A location (of a Task or an Event), when set, is 1 to 240 trimmed characters. */
 function assertLocation(location: string | null): void {
   if (
@@ -593,8 +606,10 @@ export class EventPlanningObjectService {
     const startsOn = input.startsOn ?? null;
     const endsOn = input.endsOn ?? null;
     const location = input.location ?? null;
+    const description = input.description ?? null;
     assertEventState(startsAt, endsAt, timezone, startsOn, endsOn);
     assertLocation(location);
+    assertDescription(description);
     if (this.#writes.event !== undefined)
       return this.#writes.event.create(context, input);
 
@@ -613,6 +628,7 @@ export class EventPlanningObjectService {
           timezone,
           isAllDay: input.isAllDay ?? false,
           location,
+          description,
         });
       },
     );
@@ -640,7 +656,9 @@ export class EventPlanningObjectService {
     const parentTaskId = input.parentTaskId ?? null;
     const assigneeId = input.assigneeId ?? null;
     const location = input.location ?? null;
+    const description = input.description ?? null;
     assertLocation(location);
+    assertDescription(description);
     const resource = await this.#createObject(
       context,
       "task",
@@ -671,6 +689,7 @@ export class EventPlanningObjectService {
           parentTaskId,
           assigneePersonId: assigneeId,
           location,
+          description,
           rank:
             input.rank ??
             (await nextRank(transaction, tasks, context.principal.workspaceId)),
@@ -940,6 +959,7 @@ export class EventPlanningObjectService {
     const endsOn = input.endsOn === undefined ? current.endsOn : input.endsOn;
     assertEventState(startsAt, endsAt, timezone, startsOn, endsOn);
     if (input.location !== undefined) assertLocation(input.location);
+    if (input.description !== undefined) assertDescription(input.description);
 
     const resource = await this.#updateObject(
       context,
@@ -954,6 +974,9 @@ export class EventPlanningObjectService {
           ...(input.timezone !== undefined && { timezone: input.timezone }),
           ...(input.isAllDay !== undefined && { isAllDay: input.isAllDay }),
           ...(input.location !== undefined && { location: input.location }),
+          ...(input.description !== undefined && {
+            description: input.description,
+          }),
         };
         if (Object.keys(changes).length > 0) {
           await transaction
@@ -1006,6 +1029,7 @@ export class EventPlanningObjectService {
           : input.repeatUntil;
     assertTaskRepeat(dueOn, dueAt, repeatRule, repeatUntil);
     if (input.location !== undefined) assertLocation(input.location);
+    if (input.description !== undefined) assertDescription(input.description);
     if (input.rank !== undefined) assertRank(input.rank);
 
     const resource = await this.#updateObject(
@@ -1042,6 +1066,9 @@ export class EventPlanningObjectService {
             assigneePersonId: input.assigneeId,
           }),
           ...(input.location !== undefined && { location: input.location }),
+          ...(input.description !== undefined && {
+            description: input.description,
+          }),
           ...(input.dueOn !== undefined && { dueOn: input.dueOn }),
           ...(input.dueAt !== undefined && { dueAt: input.dueAt }),
           ...(input.durationMinutes !== undefined && {
