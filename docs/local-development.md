@@ -220,6 +220,20 @@ and Expense serialize, insert, validate, and apply functions in place to
 carry `sectionId`. The API built from it starts after it, and the runtime
 role script is reapplied for its grants on `sections`.
 
+Migration `0063_narrow_grants_to_views_and_sections.sql` adds
+`resource_grants.scope` (a view of the Event, or `all`), `section_id`, and
+the generated `scope_key` that widens the unique key to one grant per scope;
+a trigger keeps a narrowed grant on an Event and its section in that view;
+`chronelle_grant_admits` decides what a narrowing reaches, and
+`chronelle_can_view`, `chronelle_can_edit`, `chronelle_can_edit_live`,
+`chronelle_can_delete`, `chronelle_can_recover`, `chronelle_held_role`,
+`chronelle_person_shares_list`, and `chronelle_section_list` are redefined
+in place to apply it (`chronelle_section_visible` narrows the section
+listing); `chronelle_resource_share` is replaced with one that takes the
+scope, the section, and an already granted account by id, so the API built
+from it starts after it. The runtime role needs no change. Existing grants
+read as whole (`scope = 'all'`).
+
 Migration `0021_add_object_search_function.sql` adds `chronelle_object_search`,
 the read-only function the CloudBase search adapter calls. It changes no
 tables and needs no baseline.

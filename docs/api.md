@@ -986,16 +986,16 @@ account lookup by email happens only through an invitation.
 
 ## Access and sharing
 
-| Method   | Path                            | Behavior                                       |
-| -------- | ------------------------------- | ---------------------------------------------- |
-| `GET`    | `/objects/:id/access`           | The caller's allowed actions and access source |
-| `GET`    | `/objects/:id/shares`           | List active direct grants and waiting shares   |
-| `GET`    | `/persons/:id/shares`           | What is shared each way with a person          |
-| `POST`   | `/shares`                       | Create or replace a direct user grant          |
-| `DELETE` | `/shares/:id`                   | Revoke a direct grant                          |
-| `POST`   | `/shares/pending`               | Queue a share for a person without an account  |
-| `DELETE` | `/shares/pending/:id`           | Take a waiting share back                      |
-| `PATCH`  | `/objects/:id/permission-scope` | Change inheritance with a version              |
+| Method   | Path                            | Behavior                                                                        |
+| -------- | ------------------------------- | ------------------------------------------------------------------------------- |
+| `GET`    | `/objects/:id/access`           | The caller's allowed actions and access source                                  |
+| `GET`    | `/objects/:id/shares`           | List active direct grants and waiting shares                                    |
+| `GET`    | `/persons/:id/shares`           | What is shared each way with a person                                           |
+| `POST`   | `/shares`                       | Create or replace a direct user grant, whole or narrowed to a view or a section |
+| `DELETE` | `/shares/:id`                   | Revoke a direct grant                                                           |
+| `POST`   | `/shares/pending`               | Queue a share for a person without an account                                   |
+| `DELETE` | `/shares/pending/:id`           | Take a waiting share back                                                       |
+| `PATCH`  | `/objects/:id/permission-scope` | Change inheritance with a version                                               |
 
 `GET /objects/:id/access` answers `{ resourceId, actions, source }` for a
 live object the caller can view. `source` says where that access comes from:
@@ -1008,8 +1008,9 @@ inherited one. Both backends derive the source from the same membership,
 grant, and scope rows in the same snapshot as the actions; nothing the caller
 can view lacks one of the three.
 
-`POST /shares` accepts `resourceId`, an Owner, Editor, or Viewer `role`, and
-the grantee as exactly one of `principalEmail`, `personId`, and `friendId`.
+`POST /shares` accepts `resourceId`, an Owner, Editor, or Viewer `role`, an
+optional `scope`, and the grantee as exactly one of `principalEmail`,
+`personId`, `friendId`, and `principalId`.
 An email names the one account with that address. A Person of the workspace
 names its linked account, or else the one account whose email equals any
 of the card's email contacts and that lets itself be found by email
@@ -1020,14 +1021,41 @@ from `GET /api/friends`); the other side receives the role. A person the
 caller cannot view, a person in Trash, one that reaches no account, an
 email that matches no account or several, or a connection that is not the
 caller's and accepted is `principal_unavailable` (HTTP 404), and naming two
-grantees or none is HTTP 400. Both backends resolve a card the same way
-(`chronelle_person_account`, migration 0057, on the rpc path; the readiness
-check requires it). The recipient must already have a Chronelle
-identity. Repeating the request for the same resource and user replaces the
-active role rather than creating a duplicate grant; the audit event of a
-share by person carries `personId` and one by friend `friendId`. Only
-callers with Share permission can read or mutate grants; user and person
-lookup happens after that authorization check.
+grantees or none is HTTP 400. A `principalId` names an account that already
+holds a grant on the resource, as a share sheet does when it changes a
+role; any other account is `principal_unavailable`. Both backends resolve a
+card the same way (`chronelle_person_account`, migration 0057, on the rpc
+path; the readiness check requires it). The recipient must already have a
+Chronelle identity. Repeating the request for the same resource, user, and
+scope replaces the active role rather than creating a duplicate grant; the
+audit event of a share by person carries `personId`, one by friend
+`friendId`, and a narrowed one its `scope`. Only callers with Share
+permission can read or mutate grants; user and person lookup happens after
+that authorization check.
+
+`scope` narrows a share of an Event to one of its views: `{ view }` with
+`view` one of `todos`, `calendar`, `itinerary`, `expenses`, `reminders`, and
+`notes`, or `{ view, sectionId }` for one section of To-dos or Expenses. A
+narrowed share opens the Event itself with view alone (so the page opens,
+whatever the role) and gives its role on the records the view shows (tasks
+for To-dos, schedule items for Calendar and Itinerary, expenses, reminders,
+notes) or on the section's records; the other views' records are absent
+from the Event's projections and unavailable one by one, never refused with
+an error. One grant stands per resource, account, and scope, so the same
+account may hold To-dos at viewer and Expenses at editor beside a whole
+share; a whole share sees everything. A scope on a resource that is not an
+Event, or a section that is not of that view of that Event, is
+`invalid_share` (HTTP 400). Deleting a section ends the grants narrowed to
+it. Every share read carries `scope`: `null` for a whole share, else
+`{ view, sectionId }` (`GET /objects/:id/shares`, `GET /persons/:id/shares`,
+the response of `POST /shares`). `GET /objects/:id/access` on an Event
+carries `narrowing`: `null` when the caller sees all of it (a member or a
+whole share), else `{ views, sections }` with the views shared whole and the
+sections shared on their own, which the event page uses to list the shared
+views alone. Both backends decide the same way (`chronelle_grant_admits` in
+every `chronelle_can_*` function and the held role; the readiness check
+requires it and `chronelle_section_visible`, which narrows
+`GET /events/:id/sections`).
 
 `GET /objects/:id/shares` returns `{ items, pending }`. `pending` lists the
 shares waiting on a request or invitation the caller's account sent, each

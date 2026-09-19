@@ -276,6 +276,31 @@ pages, to-dos, expenses, files, and earlier versions"), and the shares still
 waiting ("Access follows when they join"), each with Remove. A whole
 workspace is shared by making a friend a member (see Settings).
 
+A share can be narrowed to one view of the event, or to one section of
+To-dos or Expenses. Share ends the head row of To-dos, Calendar, Timeline,
+Itinerary, Expenses, Reminders, and Notes for whoever may share the event,
+after Export (on a phone, its symbol alone like the other head-row
+controls). It opens a sheet under the control named "Share To-dos" (or the
+view's name): a line saying that everyone here sees that view of the event,
+and its sections unless a section is shared on its own; the people who see
+it, each with an avatar, a role (Viewer or Editor) that changes in place,
+and a remove; Add people, which unfolds the same picker of friends and
+people with an account; and Done. Share section in a section's menu opens
+the same sheet for that section alone ("Share Venue"), with the line that
+everyone here sees this section's records and the rest of the view stays as
+shared. Escape or a press outside closes the sheet; on a phone it rises from
+the bottom edge. Someone who holds only narrowed shares of an event opens
+its page with the shared views alone on the strip (a view holding a shared
+section counts), no pages, and no controls that share; the views show the
+records the share admits and nothing else, and a section shared on its own
+appears with its rows while the view's other rows stay out. Such a share
+gives view on the event itself whatever its role: the role applies to the
+records. People with access in the Sharing view names what a narrowed share
+opens under the person ("Shared: To-dos", "Shared section: Venue"), whole
+shares first. The same person may hold several narrowed shares of one event
+at different roles; a whole share stands beside them. Deleting a section
+ends the shares narrowed to it.
+
 Where access comes from is named on the record when it is not the reader's
 own workspace. Under the heading of an event, a person's page, or a task's
 editor, one quiet line reads "Shared with you by Mei as editor" for a grant
