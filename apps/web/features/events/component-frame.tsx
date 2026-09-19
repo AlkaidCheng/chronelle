@@ -47,11 +47,14 @@ export function PanelHeading({
  */
 export function LayoutControl({
   busy = false,
+  labelOf = componentViewLabel,
   onChange,
   view,
   views,
 }: {
   readonly busy?: boolean;
+  /** What a view is called on this kind, when not the shared name ("Day" for the itinerary's by-day). */
+  readonly labelOf?: (view: EventComponentView) => string;
   readonly onChange: (view: EventComponentView) => void;
   readonly view: EventComponentView;
   readonly views: readonly EventComponentView[];
@@ -63,7 +66,7 @@ export function LayoutControl({
       busy={busy}
       entries={views.map((option) => ({
         kind: "radio",
-        label: componentViewLabel(option),
+        label: labelOf(option),
         checked: option === view,
         onSelect: () => {
           if (option !== view) onChange(option);
@@ -71,7 +74,7 @@ export function LayoutControl({
       }))}
       icon={<LayoutIcon />}
       label={t("layout")}
-      name={componentViewLabel(view)}
+      name={labelOf(view)}
     />
   );
 }

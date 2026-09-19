@@ -60,6 +60,15 @@ const marks: Record<EventView, ReactNode> = {
       <rect className={soft} x="13" y="13" width="5" height="3" rx="1" />
     </>
   ),
+  itinerary: (
+    <>
+      <path className={soft} d="M6 4h12v16H6z" />
+      <path d="M6 4h12v16H6z" />
+      <path d="M9 8h6M9 12h6M9 16h3" />
+      <circle cx="17.5" cy="16.5" r="3" />
+      <path d="M17.5 15v1.5l1 1" />
+    </>
+  ),
   timeline: (
     <>
       <path d="M7 8.3v1.6M7 14.3v1.6" />

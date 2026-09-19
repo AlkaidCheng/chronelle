@@ -1,0 +1,18 @@
+{
+  "day": "Day",
+  "allDays": "All days",
+  "copyDay": "Copy day",
+  "copied": "Day copied.",
+  "today": "Today",
+  "previousDay": "Previous day",
+  "nextDay": "Next day",
+  "dayOf": "Day {n} of {total}",
+  "allDay": "All day",
+  "gapMinutes": "{minutes} min free",
+  "gapHours": "{hours} h free",
+  "gapHoursMinutes": "{hours} h {minutes} min free",
+  "dueToday": "Due today",
+  "dueAt": "due {time}",
+  "untimed": "Not yet timed",
+  "empty": "Nothing scheduled this day."
+}

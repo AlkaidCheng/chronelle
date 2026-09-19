@@ -9,14 +9,17 @@ import {
   type RefObject,
 } from "react";
 import type { UseQueryResult } from "@tanstack/react-query";
-import type { EventLayoutResponse, EventPage } from "@chronelle/schemas";
+import type {
+  EventComponentKind,
+  EventLayoutResponse,
+  EventPage,
+} from "@chronelle/schemas";
 import { ErrorNotice, LoadingState } from "../../components/feedback";
 import { CheckIcon } from "../../components/icons";
 import { ViewMark } from "../../components/view-marks";
 import { useUpdateEventLayout } from "../../lib/event-layout-queries";
 import { useSessionDialog } from "../../lib/use-session-dialog";
 import {
-  type AddableEventComponentKind,
   componentKindDescription,
   componentKindLabel,
   findEventComponents,
@@ -49,7 +52,7 @@ function AddComponentDialog({
   const [search, setSearch] = useState("");
   const options = findEventComponents(search);
   const target = source.pages.find((page) => page.id === pageId);
-  const usedOn = (kind: AddableEventComponentKind) =>
+  const usedOn = (kind: EventComponentKind) =>
     target?.components.some((component) => component.kind === kind)
       ? "onThisPage"
       : source.pages.some(
@@ -69,7 +72,7 @@ function AddComponentDialog({
     nameInput.current?.focus();
   }, []);
 
-  function add(kind: AddableEventComponentKind) {
+  function add(kind: EventComponentKind) {
     if (save.isPending) return;
     const pages: EventPage[] = source.pages.map((page) =>
       page.id === pageId

@@ -11,13 +11,11 @@ import { tr } from "../../i18n/active-locale";
 import { useApiClient } from "../../lib/api-context";
 import { useAuthSession } from "../../lib/auth-session";
 import { useForgetInaccessibleEventDrafts } from "../../lib/editor-draft-context";
-import {
-  componentKindLabel,
-  resolveEventComponent,
-} from "../../lib/event-components";
-import { queryKeys } from "../../lib/queries";
+import { componentKindLabel, viewOf } from "../../lib/event-components";
+import { queryKeys, useEventWorkspaceQueries } from "../../lib/queries";
 import { isTemporaryReadError } from "../../lib/query-errors";
 import { DocumentsPanel } from "./documents-panel";
+import { ItineraryPanel } from "./itinerary-panel";
 import { PeoplePanel } from "./people-panel";
 import {
   CalendarPanel,
@@ -93,11 +91,8 @@ export function EventComponent({
 }) {
   const client = useApiClient();
   useForgetInaccessibleEventDrafts(eventId, !canEdit);
-  // A retired kind renders as the kind and view it stands for.
-  const { kind, view } = resolveEventComponent({
-    kind: storedKind,
-    view: storedView,
-  });
+  const kind = storedKind;
+  const view = viewOf({ kind, view: storedView });
   const label = componentKindLabel(kind);
   switch (kind) {
     case "todos":
@@ -152,8 +147,39 @@ export function EventComponent({
         </Projection>
       );
     case "itinerary":
-      // Resolved to the Calendar above; kept for the exhaustive switch.
-      return null;
+      return (
+        <Projection
+          eventId={eventId}
+          label={label}
+          queryKey={queryKeys.itinerary(eventId)}
+          load={(signal) =>
+            client.withSignal(signal).getEventItinerary(eventId)
+          }
+        >
+          {(itinerary) => (
+            <Projection
+              eventId={eventId}
+              label={label}
+              queryKey={queryKeys.todos(eventId)}
+              load={(signal) =>
+                client.withSignal(signal).getEventTodos(eventId)
+              }
+            >
+              {(todos) => (
+                <ItineraryComponent
+                  canEdit={canEdit}
+                  eventId={eventId}
+                  isSavingView={isSavingView}
+                  items={itinerary.items}
+                  onChangeView={onChangeView}
+                  tasks={todos.items}
+                  view={view}
+                />
+              )}
+            </Projection>
+          )}
+        </Projection>
+      );
     case "expenses":
       return (
         <Projection
@@ -232,4 +258,24 @@ export function EventComponent({
         </Projection>
       );
   }
+}
+
+/** The day sheet needs the event's own dates for the days it turns. */
+function ItineraryComponent(
+  props: Omit<Parameters<typeof ItineraryPanel>[0], "event">,
+) {
+  const { event } = useEventWorkspaceQueries(props.eventId, null);
+  return (
+    <ItineraryPanel
+      {...props}
+      event={
+        event.data ?? {
+          startsOn: null,
+          endsOn: null,
+          startsAt: null,
+          endsAt: null,
+        }
+      }
+    />
+  );
 }
