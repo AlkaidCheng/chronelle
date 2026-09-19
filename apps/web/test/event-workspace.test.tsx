@@ -1464,7 +1464,8 @@ describe("EventWorkspace", () => {
     });
     // Mei is a friend with a card; Ivo a friend without one; Mira another
     // account here; Sam has an email contact; Pat was invited from their
-    // card; Nobody has neither; Me is the acting user's own card.
+    // card; Nobody has neither, so a link would go out; Me is the acting
+    // user's own card.
     const people = [
       person("019d6e7d-0000-7000-8000-000000000050", {
         displayName: "Mei Lin",
@@ -1514,6 +1515,8 @@ describe("EventWorkspace", () => {
           id: "019d6e7d-0000-7000-8000-000000000073",
           kind: "invitation",
           email: "pat@example.com",
+          channel: "email",
+          inviteUrl: "https://chronelle.example/invite/pat-token-0000000001",
           message: null,
           personId: "019d6e7d-0000-7000-8000-000000000055",
           workspaceId,
@@ -1637,8 +1640,8 @@ describe("EventWorkspace", () => {
       screen.getByRole("list", { name: "Others in People" }),
     );
     // Friends come first, by their card's name when they have one; the
-    // other people with an account, an invitation, or an email follow. The
-    // acting user's own card and a person with neither are not offered.
+    // other people with an account, an invitation, an email, or nothing
+    // but a link to come follow. The acting user's own card is not offered.
     expect(
       friendList
         .getAllByRole("checkbox")
@@ -1646,13 +1649,13 @@ describe("EventWorkspace", () => {
     ).toHaveLength(2);
     expect(friendList.getByRole("checkbox", { name: /^Mei / })).toBeVisible();
     expect(friendList.getByRole("checkbox", { name: /Ivo/ })).toBeVisible();
-    expect(others.getAllByRole("checkbox")).toHaveLength(3);
+    expect(others.getAllByRole("checkbox")).toHaveLength(4);
     expect(others.getByText("Has an account")).toBeVisible();
     expect(
       others.getByText("Invited; access follows when they join"),
     ).toBeVisible();
     expect(others.getByText(/sam@example\.com; an invitation/)).toBeVisible();
-    expect(others.queryByText("Nobody")).toBeNull();
+    expect(others.getByText("No email; you send them the link")).toBeVisible();
     expect(others.queryByText("Me")).toBeNull();
     const shareButton = screen.getByRole("button", { name: /^Share with/ });
     expect(shareButton).toBeDisabled();

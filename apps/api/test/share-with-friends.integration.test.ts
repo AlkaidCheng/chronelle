@@ -6,10 +6,11 @@ import {
   type TestDatabase,
 } from "@chronelle/db/testing";
 import {
-  apiErrorResponseSchema,
   developmentSignInResponseSchema,
   eventResponseSchema,
   friendsResponseSchema,
+  invitationAcceptResponseSchema,
+  invitationPeekResponseSchema,
   pendingShareSchema,
   personResponseSchema,
   personShareListResponseSchema,
@@ -346,13 +347,18 @@ describe("sharing with friends", () => {
     });
     const notice = email.latestTo("priya@example.test");
     expect(notice.subject).toBe("Chronelle: Ana invited you");
-    const link =
-      /https:\/\/chronelle\.example\/sign-up\?invitation=([\w-]+)/u.exec(
-        notice.text,
-      );
+    const link = /https:\/\/chronelle\.example\/invite\/([\w-]+)/u.exec(
+      notice.text,
+    );
     expect(link).not.toBeNull();
     expect((await friendsOf(ana.headers)).sent).toMatchObject([
-      { id: pending.itemId, kind: "invitation", personId: priya.id },
+      {
+        id: pending.itemId,
+        kind: "invitation",
+        channel: "email",
+        inviteUrl: link?.[0],
+        personId: priya.id,
+      },
     ]);
     // Ticking her again changes the role without a second invitation.
     const again = await app.inject({
@@ -374,19 +380,36 @@ describe("sharing with friends", () => {
       items: [],
       pending: [{ id: pending.id, role: "editor", kind: "invitation" }],
     });
-    // A person without an email cannot be invited.
-    const refused = await app.inject({
+    // A person without an email is queued behind a link Ana hands on.
+    const behindLink = await app.inject({
       method: "POST",
       url: "/api/shares/pending",
       headers: ana.headers,
       payload: { resourceId: event.id, personId: nameless.id, role: "viewer" },
     });
-    expect(refused.statusCode).toBe(400);
-    expect(apiErrorResponseSchema.parse(refused.json()).error.message).toBe(
-      "Give the person an email to invite them.",
+    expect(behindLink.statusCode).toBe(201);
+    const forGrandpa = pendingShareSchema.parse(behindLink.json());
+    expect(forGrandpa).toMatchObject({
+      kind: "invitation",
+      person: { id: nameless.id, displayName: "Grandpa" },
+      email: null,
+    });
+    const grandpasLink = (await friendsOf(ana.headers)).sent.find(
+      (item) => item.id === forGrandpa.itemId,
     );
+    expect(grandpasLink).toMatchObject({
+      kind: "invitation",
+      channel: "link",
+      email: null,
+      personId: nameless.id,
+    });
+    expect(grandpasLink?.inviteUrl).toMatch(
+      /^https:\/\/chronelle\.example\/invite\/[\w-]+$/u,
+    );
+    expect(email.messages).toHaveLength(1);
 
-    // Priya signs up with the link and accepts: the share becomes a grant.
+    // Priya signs up through the link: the invitation stays open for the
+    // claim page, where Accept makes the friendship and grants the share.
     const signedUp = await app.inject({
       method: "POST",
       url: "/api/auth/sign-up",
@@ -411,19 +434,35 @@ describe("sharing with friends", () => {
     const priyaHeaders = bearer(verified.json().accessToken);
     expect(await sharesOf(ana.headers, event.id)).toMatchObject({
       items: [],
-      pending: [{ id: pending.id, kind: "connection", role: "editor" }],
+      pending: [
+        { id: pending.id, kind: "invitation", role: "editor" },
+        { id: forGrandpa.id, kind: "invitation", role: "viewer" },
+      ],
     });
-    const request = (await friendsOf(priyaHeaders)).incoming[0];
-    if (request === undefined) throw new Error("no request");
-    expect(
-      (
-        await app.inject({
-          method: "POST",
-          url: `/api/friends/requests/${request.id}/accept`,
-          headers: priyaHeaders,
-        })
-      ).statusCode,
-    ).toBe(200);
+    expect((await friendsOf(priyaHeaders)).incoming).toEqual([]);
+    const peeked = await app.inject({
+      method: "GET",
+      url: `/api/invitations/${link?.[1]}`,
+    });
+    expect(peeked.statusCode).toBe(200);
+    expect(invitationPeekResponseSchema.parse(peeked.json())).toMatchObject({
+      requester: { displayName: "Ana" },
+      queued: [{ displayName: "Mum's 70th", role: "editor" }],
+      status: "open",
+    });
+    const accepted = await app.inject({
+      method: "POST",
+      url: `/api/invitations/${link?.[1]}/accept`,
+      headers: priyaHeaders,
+    });
+    expect(accepted.statusCode).toBe(200);
+    expect(invitationAcceptResponseSchema.parse(accepted.json())).toEqual({
+      friendship: "made",
+      shared: [
+        { resourceId: event.id, displayName: "Mum's 70th", role: "editor" },
+      ],
+      alreadyHad: [],
+    });
     expect(await sharesOf(ana.headers, event.id)).toMatchObject({
       items: [
         {
@@ -435,8 +474,21 @@ describe("sharing with friends", () => {
           grantedBy: ana.user.id,
         },
       ],
-      pending: [],
+      pending: [{ id: forGrandpa.id, kind: "invitation", role: "viewer" }],
     });
+    // The card is linked to the new account, and the friendship stands.
+    expect(
+      (
+        await app.inject({
+          method: "GET",
+          url: `/api/persons/${priya.id}`,
+          headers: ana.headers,
+        })
+      ).json().userId,
+    ).toBe(verified.json().user.id);
+    expect((await friendsOf(ana.headers)).friends).toMatchObject([
+      { userId: verified.json().user.id, displayName: "Priya" },
+    ]);
     // Priya sees the event in Ana's workspace, which is now among hers.
     expect(
       (

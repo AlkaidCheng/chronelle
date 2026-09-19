@@ -9,6 +9,7 @@ import {
   text,
 } from "../identity/cloudbase-rows.js";
 import {
+  type AcceptOutcome,
   type AccountContact,
   type ConnectionView,
   FriendConflictError,
@@ -17,9 +18,11 @@ import {
   type FriendsSnapshot,
   FriendUnavailableError,
   InvalidFriendRequestError,
+  type InvitationPeek,
   type InviteInput,
   type InviteOutcome,
   type ItemState,
+  type QueuedRecord,
   type RequestInput,
   type ResendInput,
   type Sender,
@@ -67,15 +70,60 @@ function connectionView(row: CloudBaseRow): ConnectionView {
 }
 
 function sentItem(row: CloudBaseRow): SentItem {
+  const kind = oneOf(row.kind, ["connection", "invitation"], "kind");
   return {
     id: text(row.id, "item id"),
-    kind: oneOf(row.kind, ["connection", "invitation"], "kind"),
-    email: text(row.email, "email"),
+    kind,
+    email: nullableText(row.email, "email"),
+    channel:
+      kind === "connection"
+        ? null
+        : oneOf(row.channel, ["email", "link"], "channel"),
+    token: nullableText(row.token, "token"),
     message: nullableText(row.message, "message"),
     personId: nullableText(row.personId, "personId"),
     workspaceId: nullableText(row.workspaceId, "workspaceId"),
     createdAt: instant(row.createdAt, "createdAt"),
     expiresAt: nullableInstant(row.expiresAt, "expiresAt"),
+  };
+}
+
+function queuedRecord(row: CloudBaseRow): QueuedRecord {
+  return {
+    resourceId: text(row.resourceId, "resourceId"),
+    displayName: text(row.displayName, "record name"),
+    role: oneOf(row.role, ["owner", "editor", "viewer"], "role"),
+  };
+}
+
+function invitationPeek(value: unknown): InvitationPeek {
+  const row = record(value, "invitation");
+  const requester = record(row.requester, "requester");
+  return {
+    requester: {
+      displayName: text(requester.displayName, "requester name"),
+      username: text(requester.username, "requester username"),
+    },
+    message: nullableText(row.message, "message"),
+    queued: list(row.queued, "queued").map(queuedRecord),
+    expiresAt: instant(row.expiresAt, "expiresAt"),
+    status: oneOf(
+      row.status,
+      ["open", "used", "withdrawn", "expired"],
+      "invitation status",
+    ),
+  };
+}
+
+function acceptOutcome(value: unknown): AcceptOutcome {
+  const row = record(value, "accept outcome");
+  return {
+    friendship: oneOf(row.friendship, ["made", "existing"], "friendship"),
+    connection: connectionView(record(row.connection, "connection")),
+    shared: list(row.shared, "shared").map(queuedRecord),
+    alreadyHad: list(row.alreadyHad, "alreadyHad").map(queuedRecord),
+    personId: nullableText(row.personId, "personId"),
+    workspaceId: nullableText(row.workspaceId, "workspaceId"),
   };
 }
 
@@ -139,8 +187,8 @@ function failure(error: unknown): Error {
 
 /**
  * Friend persistence through the gateway: the chronelle_friend_* functions
- * (migrations 0051 and 0055), with the PostgreSQL store's semantics and
- * messages.
+ * (migrations 0051, 0055, and 0058), with the PostgreSQL store's semantics
+ * and messages.
  */
 export class CloudBaseFriendStore implements FriendStore {
   readonly #client: Pick<CloudBaseRdbClient, "rpc">;
@@ -177,6 +225,8 @@ export class CloudBaseFriendStore implements FriendStore {
         message: input.message,
         person_id: input.personId,
         workspace_id: input.workspaceId,
+        channel: input.channel,
+        token: input.token,
         token_digest: input.tokenDigest,
         expires_at: input.expiresAt.toISOString(),
         daily_limit: input.dailyLimit,
@@ -252,13 +302,60 @@ export class CloudBaseFriendStore implements FriendStore {
     input: ResendInput,
   ): Promise<InviteOutcome> {
     return inviteOutcome(
-      await this.#call("chronelle_friend_resend", {
+      await this.#call(
+        "chronelle_friend_resend",
+        this.#renewal(userId, itemId, input),
+      ),
+    );
+  }
+
+  async link(
+    userId: string,
+    itemId: string,
+    input: ResendInput,
+  ): Promise<InviteOutcome> {
+    return inviteOutcome(
+      await this.#call(
+        "chronelle_friend_link",
+        this.#renewal(userId, itemId, input),
+      ),
+    );
+  }
+
+  #renewal(
+    userId: string,
+    itemId: string,
+    input: ResendInput,
+  ): Record<string, unknown> {
+    return {
+      user_id: userId,
+      item_id: itemId,
+      token: input.token,
+      token_digest: input.tokenDigest,
+      expires_at: input.expiresAt.toISOString(),
+      min_interval_seconds: Math.ceil(input.minIntervalMs / 1000),
+      request_id: input.requestId,
+    };
+  }
+
+  async peek(tokenDigest: string): Promise<InvitationPeek> {
+    return invitationPeek(
+      await this.#call("chronelle_friend_invitation_peek", {
+        token_digest: tokenDigest,
+      }),
+    );
+  }
+
+  async accept(
+    userId: string,
+    tokenDigest: string,
+    requestId: string,
+  ): Promise<AcceptOutcome> {
+    return acceptOutcome(
+      await this.#call("chronelle_friend_invitation_accept", {
         user_id: userId,
-        item_id: itemId,
-        token_digest: input.tokenDigest,
-        expires_at: input.expiresAt.toISOString(),
-        min_interval_seconds: Math.ceil(input.minIntervalMs / 1000),
-        request_id: input.requestId,
+        token_digest: tokenDigest,
+        request_id: requestId,
       }),
     );
   }

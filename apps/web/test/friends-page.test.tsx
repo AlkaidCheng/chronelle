@@ -89,7 +89,12 @@ describe("the Friends page", () => {
     expect(friends).toHaveTextContent("mei.lin@example.test");
     const sent = screen.getByRole("region", { name: /Sent/ });
     expect(sent).toHaveTextContent("priya@example.test");
-    expect(sent).toHaveTextContent("Sign-up link valid until");
+    expect(sent).toHaveTextContent("Email");
+    expect(sent).toHaveTextContent("One use. Valid until");
+    expect(
+      within(sent).getByRole("button", { name: "Copy link" }),
+    ).toBeVisible();
+    expect(within(sent).getByRole("button", { name: "Resend" })).toBeVisible();
 
     await user.click(
       within(requestsSection).getByRole("button", { name: "Accept" }),
@@ -109,21 +114,41 @@ describe("the Friends page", () => {
     });
   });
 
-  it("invites someone new by email with a note and lists it under Sent", async () => {
+  it("invites someone new by email with a note, shows the link, and lists it under Sent", async () => {
     const user = userEvent.setup();
     render(<FriendsPage />, { wrapper });
     await user.click(
       await screen.findByRole("button", { name: "Invite a friend" }),
     );
     const dialog = screen.getByRole("dialog", { name: "Invite a friend" });
-    await user.type(within(dialog).getByLabelText("Email"), "dan@example.test");
+    expect(
+      within(dialog).getByRole("button", { name: "Send by email" }),
+    ).toBeDisabled();
+    await user.type(
+      within(dialog).getByLabelText("Email (optional)"),
+      "dan@example.test",
+    );
     await user.type(
       within(dialog).getByLabelText("Note (optional)"),
       "Join us here.",
     );
     await user.click(
-      within(dialog).getByRole("button", { name: "Send invitation" }),
+      within(dialog).getByRole("button", { name: "Send by email" }),
     );
+    // The link is shown with its code and end, then Done closes.
+    expect(
+      await within(dialog).findByText("Sent by email to dan@example.test."),
+    ).toBeVisible();
+    expect(within(dialog).getByText(/^One use\. Valid until/)).toBeVisible();
+    expect(
+      within(dialog).getByRole("img", {
+        name: "QR code of the invitation link",
+      }),
+    ).toBeVisible();
+    expect(
+      within(dialog).getByText(/^https:\/\/sandbox\.invalid\/invite\//),
+    ).toBeVisible();
+    await user.click(within(dialog).getByRole("button", { name: "Done" }));
     await waitFor(() =>
       expect(screen.queryByRole("dialog")).not.toBeInTheDocument(),
     );
@@ -135,7 +160,11 @@ describe("the Friends page", () => {
     expect(requests).toContainEqual({
       method: "POST",
       path: "/api/friends/invitations",
-      body: { email: "dan@example.test", message: "Join us here." },
+      body: {
+        channel: "email",
+        email: "dan@example.test",
+        message: "Join us here.",
+      },
     });
     // Withdrawing takes it back out.
     const sent = screen.getByRole("region", { name: /Sent/ });
@@ -149,6 +178,57 @@ describe("the Friends page", () => {
         screen.getByRole("region", { name: /Sent/ }),
       ).not.toHaveTextContent("dan@example.test"),
     );
+  });
+
+  it("creates a link for someone new without an address, and makes a new one from Sent", async () => {
+    const user = userEvent.setup();
+    render(<FriendsPage />, { wrapper });
+    await user.click(
+      await screen.findByRole("button", { name: "Invite a friend" }),
+    );
+    const dialog = screen.getByRole("dialog", { name: "Invite a friend" });
+    await user.click(
+      within(dialog).getByRole("button", { name: "Create link" }),
+    );
+    expect(
+      await within(dialog).findByText(
+        "Send it in WeChat, a message, or any way you like.",
+      ),
+    ).toBeVisible();
+    const shown = within(dialog).getByText(
+      /^https:\/\/sandbox\.invalid\/invite\//,
+    ).textContent;
+    expect(requests).toContainEqual({
+      method: "POST",
+      path: "/api/friends/invitations",
+      body: { channel: "link" },
+    });
+    await user.click(within(dialog).getByRole("button", { name: "Done" }));
+    // The Sent row reads Link with Copy link, New link, and Withdraw; a
+    // new link replaces the token.
+    const sent = await screen.findByRole("region", { name: /Sent/ });
+    const row = within(sent).getByText("Invitation link").closest("li");
+    if (row === null) throw new Error("no row");
+    expect(row).toHaveTextContent("Link");
+    expect(
+      within(row).getByRole("button", { name: "Copy link" }),
+    ).toBeVisible();
+    expect(
+      within(row).queryByRole("button", { name: "Resend" }),
+    ).not.toBeInTheDocument();
+    await user.click(within(row).getByRole("button", { name: "New link" }));
+    await waitFor(() =>
+      expect(
+        requests.filter((request) => request.path.endsWith("/link")),
+      ).toHaveLength(1),
+    );
+    const renewed = (await store
+      .fetch("/api/friends")
+      .then((r) => r.json())) as {
+      sent: { inviteUrl: string | null; channel: string | null }[];
+    };
+    const link = renewed.sent.find((item) => item.channel === "link");
+    expect(link?.inviteUrl).not.toBe(shown);
   });
 
   it("finds people by name, @username, or email as they allow, and sends a request from a row", async () => {

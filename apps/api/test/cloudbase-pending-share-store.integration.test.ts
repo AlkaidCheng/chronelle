@@ -139,23 +139,31 @@ const backends = () =>
     ["cloudbase", () => cloudbase],
   ] as const;
 
+/** A token as the service makes one: 32 bytes, URL-safe, here from a seed. */
+const token = (seed: string) =>
+  createHash("sha256").update(`token:${seed}`).digest("base64url");
+
 const invite = (
   backend: Backend,
   from: Account,
-  email: string,
+  email: string | null,
   extra: Record<string, unknown> = {},
-) =>
-  backend.friends.invite(from.user.id, {
+) => {
+  const seed = `${email}${counter}${Math.random()}`;
+  return backend.friends.invite(from.user.id, {
     email,
+    channel: email === null ? "link" : "email",
     message: null,
     personId: null,
     workspaceId: null,
-    tokenDigest: digest(`${email}${counter}${Math.random()}`),
+    token: token(seed),
+    tokenDigest: digest(seed),
     expiresAt: new Date("2030-08-15T12:00:00.000Z"),
     dailyLimit: 0,
     requestId: requestId(),
     ...extra,
   });
+};
 
 async function grantsOf(resourceId: string) {
   const rows = await database.connection.db
@@ -304,9 +312,9 @@ describe.each(backends())("%s pending shares", (name, backend) => {
       { principal: ana.principal, requestId: requestId() },
       { displayName: "Mum's 70th" },
     );
-    const token = digest(`${name}-priya-token`);
     const sent = await invite(backend(), ana, `${name}-priya@example.test`, {
-      tokenDigest: token,
+      token: token(`${name}-priya-token`),
+      tokenDigest: digest(`${name}-priya-token`),
     });
     expect(sent.kind).toBe("invitation");
     const queued = await backend().pending.queue(
@@ -323,11 +331,13 @@ describe.each(backends())("%s pending shares", (name, backend) => {
       person: null,
       email: `${name}-priya@example.test`,
     });
+    // Priya signs up with the address on her own; the invitation becomes
+    // a request and the share follows it.
     const priya = await account(`${name}-priya`);
     expect(
       await backend().friends.claimInvitations(
         priya.user.id,
-        token,
+        null,
         requestId(),
       ),
     ).toBe(1);
@@ -416,6 +426,7 @@ describe.each(backends())("%s pending shares", (name, backend) => {
     // share, and an unknown person are refused with the same messages.
     const foreign = await invite(backend(), eve, `${name}-lben@example.test`);
     const toFinn = await invite(backend(), ana, `${name}-lfinn@example.test`, {
+      token: token(`${name}-finn`),
       tokenDigest: digest(`${name}-finn`),
     });
     const refusals: string[] = [];
@@ -477,6 +488,123 @@ describe.each(backends())("%s pending shares", (name, backend) => {
         (entry) => entry.action,
       ),
     ).toEqual(["resource.share_queue_revoked"]);
+  });
+
+  it("queues behind a link for a card without an email and applies the shares at accept, keeping a higher role and skipping Trash", async () => {
+    const ana = await account(`${name}-kana`);
+    const context = () => ({
+      principal: ana.principal,
+      requestId: requestId(),
+    });
+    const card = await objects.createPerson(context(), {
+      displayName: "Priya",
+      contacts: [{ kind: "phone", value: "+44 7700 900123" }],
+    });
+    const kyoto = await objects.createEvent(context(), {
+      displayName: "Kyoto",
+    });
+    const lisbon = await objects.createEvent(context(), {
+      displayName: "Lisbon",
+    });
+    const old = await objects.createEvent(context(), { displayName: "Old" });
+    const link = await invite(backend(), ana, null, {
+      personId: card.id,
+      workspaceId: ana.workspaceId,
+      token: token(`${name}-priya-link`),
+      tokenDigest: digest(`${name}-priya-link`),
+    });
+    expect(link.item).toMatchObject({
+      kind: "invitation",
+      email: null,
+      channel: "link",
+      personId: card.id,
+    });
+    // One pending invitation per card.
+    await expect(
+      invite(backend(), ana, null, {
+        personId: card.id,
+        workspaceId: ana.workspaceId,
+      }),
+    ).rejects.toThrow("An invitation is already waiting.");
+    for (const [resourceId, role] of [
+      [kyoto.id, "viewer"],
+      [lisbon.id, "viewer"],
+      [old.id, "editor"],
+    ] as const) {
+      const queued = await backend().pending.queue(context(), {
+        resourceId,
+        role,
+        itemId: link.item.id,
+        personId: card.id,
+      });
+      expect(queued).toMatchObject({
+        kind: "invitation",
+        itemId: link.item.id,
+        person: { id: card.id, displayName: "Priya" },
+        email: null,
+      });
+    }
+    expect(
+      (await backend().friends.peek(digest(`${name}-priya-link`))).queued,
+    ).toEqual([
+      { resourceId: kyoto.id, displayName: "Kyoto", role: "viewer" },
+      { resourceId: lisbon.id, displayName: "Lisbon", role: "viewer" },
+      { resourceId: old.id, displayName: "Old", role: "editor" },
+    ]);
+
+    // Before the accept: Lisbon is shared with Priya's account as editor
+    // already, and Old goes to Trash.
+    const priya = await account(`${name}-kpriya`);
+    await shares.share(context(), {
+      resourceId: lisbon.id,
+      principalEmail: `${name}-kpriya@example.test`,
+      role: "editor",
+    });
+    await objects.softDelete(context(), old.id, old.version);
+    expect(
+      (await backend().friends.peek(digest(`${name}-priya-link`))).queued,
+    ).toHaveLength(2);
+
+    const accepted = await backend().friends.accept(
+      priya.user.id,
+      digest(`${name}-priya-link`),
+      requestId(),
+    );
+    expect(accepted).toMatchObject({
+      friendship: "made",
+      connection: { status: "accepted", userId: ana.user.id },
+      shared: [{ resourceId: kyoto.id, displayName: "Kyoto", role: "viewer" }],
+      alreadyHad: [
+        { resourceId: lisbon.id, displayName: "Lisbon", role: "editor" },
+      ],
+      personId: card.id,
+      workspaceId: ana.workspaceId,
+    });
+    expect(await grantsOf(kyoto.id)).toEqual([
+      { principalId: priya.user.id, role: "viewer", grantedBy: ana.user.id },
+    ]);
+    expect(await grantsOf(lisbon.id)).toEqual([
+      { principalId: priya.user.id, role: "editor", grantedBy: ana.user.id },
+    ]);
+    expect(await grantsOf(old.id)).toEqual([]);
+    expect(await backend().pending.list(ana.principal, kyoto.id)).toEqual([]);
+    expect(await backend().pending.list(ana.principal, lisbon.id)).toEqual([]);
+    expect(
+      (await backend().friends.list(ana.user.id)).friends.map((f) => f.userId),
+    ).toEqual([priya.user.id]);
+    expect(
+      (await auditsOf(ana.workspaceId, ["resource.shared"])).map(
+        (entry) => entry.metadata,
+      ),
+    ).toEqual([
+      { principalId: priya.user.id, role: "editor" },
+      {
+        principalId: priya.user.id,
+        role: "viewer",
+        acceptedBy: priya.user.id,
+        personId: card.id,
+      },
+    ]);
   });
 });
 

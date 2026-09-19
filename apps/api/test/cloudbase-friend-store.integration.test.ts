@@ -1,7 +1,12 @@
 import { createHash } from "node:crypto";
 import { resolve } from "node:path";
 
-import { auditEvents, persons, type UserRow } from "@chronelle/db";
+import {
+  auditEvents,
+  persons,
+  type UserRow,
+  userInvitations,
+} from "@chronelle/db";
 import {
   applyMigrations,
   createCloudBaseRpcDouble,
@@ -73,23 +78,39 @@ const backends = () =>
     ["cloudbase", () => cloudbase],
   ] as const;
 
+/** A token as the service makes one: 32 bytes, URL-safe, here from a seed. */
+const token = (seed: string) =>
+  createHash("sha256").update(`token:${seed}`).digest("base64url");
+
 describe.each(backends())("%s friend store", (name, store) => {
   const invite = (
     userId: string,
-    email: string,
+    email: string | null,
     extra: Record<string, unknown> = {},
-  ) =>
-    store().invite(userId, {
+  ) => {
+    const seed = `${name}${email}${counter}`;
+    return store().invite(userId, {
       email,
+      channel: email === null ? "link" : "email",
       message: null,
       personId: null,
       workspaceId: null,
-      tokenDigest: digest(`${name}${email}${counter}`),
+      token: token(seed),
+      tokenDigest: digest(seed),
       expiresAt: new Date("2030-08-15T12:00:00.000Z"),
       dailyLimit: 0,
       requestId: requestId(),
       ...extra,
     });
+  };
+  const renewal = (seed: string, extra: Record<string, unknown> = {}) => ({
+    token: token(seed),
+    tokenDigest: digest(seed),
+    expiresAt: new Date("2030-08-15T12:00:00.000Z"),
+    minIntervalMs: 0,
+    requestId: requestId(),
+    ...extra,
+  });
 
   it("invites an account, lists it on both sides, accepts, and removes", async () => {
     const ana = await account(`${name}-ana`);
@@ -183,19 +204,13 @@ describe.each(backends())("%s friend store", (name, store) => {
     const ben = await account(`${name}-eben`);
     const first = await invite(ana.id, `${name}-eben@example.test`);
     await expect(
-      store().resend(ana.id, first.item.id, {
-        tokenDigest: digest("b"),
-        expiresAt: new Date("2030-08-15T12:00:00.000Z"),
-        minIntervalMs: 60_000,
-        requestId: requestId(),
-      }),
+      store().resend(
+        ana.id,
+        first.item.id,
+        renewal("b", { minIntervalMs: 60_000 }),
+      ),
     ).rejects.toThrow(new FriendLimitError("Wait before sending again."));
-    const resent = await store().resend(ana.id, first.item.id, {
-      tokenDigest: digest("b"),
-      expiresAt: new Date("2030-08-15T12:00:00.000Z"),
-      minIntervalMs: 0,
-      requestId: requestId(),
-    });
+    const resent = await store().resend(ana.id, first.item.id, renewal("b"));
     expect(resent.kind).toBe("connection");
     expect(resent.recipient?.userId).toBe(ben.id);
 
@@ -250,6 +265,7 @@ describe.each(backends())("%s friend store", (name, store) => {
     const ana = await account(`${name}-fana`);
     const sent = await invite(ana.id, `${name}-new@example.test`, {
       message: "Come along",
+      token: token(`${name}new`),
       tokenDigest: digest(`${name}new`),
     });
     expect(sent.kind).toBe("invitation");
@@ -257,6 +273,8 @@ describe.each(backends())("%s friend store", (name, store) => {
     expect(sent.item).toMatchObject({
       kind: "invitation",
       email: `${name}-new@example.test`,
+      channel: "email",
+      token: token(`${name}new`),
       message: "Come along",
       expiresAt: new Date("2030-08-15T12:00:00.000Z"),
     });
@@ -264,30 +282,27 @@ describe.each(backends())("%s friend store", (name, store) => {
     await expect(invite(ana.id, `${name}-new@example.test`)).rejects.toThrow(
       new FriendConflictError("An invitation is already waiting."),
     );
-    const renewed = await store().resend(ana.id, sent.item.id, {
-      tokenDigest: digest(`${name}renewed`),
-      expiresAt: new Date("2030-08-20T12:00:00.000Z"),
-      minIntervalMs: 0,
-      requestId: requestId(),
-    });
+    const renewed = await store().resend(
+      ana.id,
+      sent.item.id,
+      renewal(`${name}renewed`, {
+        expiresAt: new Date("2030-08-20T12:00:00.000Z"),
+      }),
+    );
     expect(renewed).toMatchObject({
       kind: "invitation",
       recipient: null,
       item: {
         id: sent.item.id,
+        token: token(`${name}renewed`),
         expiresAt: new Date("2030-08-20T12:00:00.000Z"),
       },
     });
 
-    // The new account claims by token, then sees the request from Ana.
+    // Signing up with the address (and no link, or another link) turns
+    // the invitation into a request from Ana; signing up through the link
+    // itself would leave it open for the claim page.
     const newcomer = await account(`${name}-new`);
-    expect(
-      await store().claimInvitations(
-        newcomer.id,
-        digest("unknown"),
-        requestId(),
-      ),
-    ).toBe(1);
     expect(
       await store().claimInvitations(
         newcomer.id,
@@ -295,6 +310,17 @@ describe.each(backends())("%s friend store", (name, store) => {
         requestId(),
       ),
     ).toBe(0);
+    expect((await store().list(newcomer.id)).incoming).toEqual([]);
+    expect(
+      await store().claimInvitations(
+        newcomer.id,
+        digest("unknown"),
+        requestId(),
+      ),
+    ).toBe(1);
+    expect(await store().claimInvitations(newcomer.id, null, requestId())).toBe(
+      0,
+    );
     const view = await store().list(newcomer.id);
     expect(view.incoming).toMatchObject([
       { userId: ana.id, message: "Come along", direction: "received" },
@@ -304,6 +330,7 @@ describe.each(backends())("%s friend store", (name, store) => {
     ]);
     // A withdrawn invitation is gone for good.
     const other = await invite(ana.id, `${name}-gone@example.test`, {
+      token: token(`${name}gone`),
       tokenDigest: digest(`${name}gone`),
     });
     expect(await store().withdraw(ana.id, other.item.id, requestId())).toEqual({
@@ -313,6 +340,186 @@ describe.each(backends())("%s friend store", (name, store) => {
     });
     const gone = await account(`${name}-gone`);
     expect(await store().claimInvitations(gone.id, null, requestId())).toBe(0);
+  });
+
+  it("makes a link without an address, renews it, peeks it, and reconciles the accept", async () => {
+    const ana = await account(`${name}-lana`);
+    const seed = `${name}-first-link`;
+    const sent = await invite(ana.id, null, {
+      message: "Scan me",
+      token: token(seed),
+      tokenDigest: digest(seed),
+    });
+    expect(sent).toMatchObject({
+      kind: "invitation",
+      recipient: null,
+      item: {
+        kind: "invitation",
+        email: null,
+        channel: "link",
+        token: token(seed),
+        message: "Scan me",
+        expiresAt: new Date("2030-08-15T12:00:00.000Z"),
+      },
+    });
+    // Links for someone new do not collide; an emailed one is required to have an address.
+    const second = await invite(ana.id, null);
+    expect(second.item.id).not.toBe(sent.item.id);
+    await expect(invite(ana.id, null, { channel: "email" })).rejects.toThrow(
+      new InvalidFriendRequestError("Give an email to send the invitation to."),
+    );
+    // A link without an address cannot be emailed, but can be renewed.
+    await expect(
+      store().resend(ana.id, sent.item.id, renewal(`${name}-resent`)),
+    ).rejects.toThrow(
+      new InvalidFriendRequestError(
+        "The invitation has no address to send to.",
+      ),
+    );
+    await expect(
+      store().link(
+        ana.id,
+        sent.item.id,
+        renewal(`${name}-early`, { minIntervalMs: 60_000 }),
+      ),
+    ).rejects.toThrow(new FriendLimitError("Wait before sending again."));
+    const renewed = await store().link(
+      ana.id,
+      sent.item.id,
+      renewal(`${name}-renewed`, {
+        expiresAt: new Date("2030-08-20T12:00:00.000Z"),
+      }),
+    );
+    expect(renewed.item).toMatchObject({
+      id: sent.item.id,
+      channel: "link",
+      token: token(`${name}-renewed`),
+      expiresAt: new Date("2030-08-20T12:00:00.000Z"),
+    });
+    await expect(store().peek(digest(seed))).rejects.toThrow(
+      new FriendUnavailableError("The invitation does not exist."),
+    );
+    expect(await store().peek(digest(`${name}-renewed`))).toEqual({
+      requester: { displayName: `Person ${name}-lana`, username: ana.username },
+      message: "Scan me",
+      queued: [],
+      expiresAt: new Date("2030-08-20T12:00:00.000Z"),
+      status: "open",
+    });
+
+    // The requester's own link is refused; a newcomer's accept makes the friendship at once.
+    await expect(
+      store().accept(ana.id, digest(`${name}-renewed`), requestId()),
+    ).rejects.toThrow(
+      new InvalidFriendRequestError("This is your own invitation link."),
+    );
+    const cleo = await account(`${name}-lcleo`);
+    const accepted = await store().accept(
+      cleo.id,
+      digest(`${name}-renewed`),
+      requestId(),
+    );
+    expect(accepted).toMatchObject({
+      friendship: "made",
+      connection: {
+        status: "accepted",
+        direction: "received",
+        userId: ana.id,
+        message: "Scan me",
+      },
+      shared: [],
+      alreadyHad: [],
+      personId: null,
+      workspaceId: null,
+    });
+    expect(accepted.connection.respondedAt).toBeInstanceOf(Date);
+    expect((await store().list(ana.id)).friends).toMatchObject([
+      { id: accepted.connection.id, userId: cleo.id, direction: "sent" },
+    ]);
+    expect((await store().list(ana.id)).sent).toMatchObject([
+      { id: second.item.id },
+    ]);
+    await expect(
+      store().accept(cleo.id, digest(`${name}-renewed`), requestId()),
+    ).rejects.toThrow(
+      new FriendConflictError("This invitation was already accepted."),
+    );
+    expect((await store().peek(digest(`${name}-renewed`))).status).toBe("used");
+
+    // A friend who opens another link keeps the friendship; a pending
+    // request either way is resolved into it.
+    const forFriend = await invite(ana.id, null, {
+      token: token(`${name}-again`),
+      tokenDigest: digest(`${name}-again`),
+    });
+    expect(
+      await store().accept(cleo.id, digest(`${name}-again`), requestId()),
+    ).toMatchObject({
+      friendship: "existing",
+      connection: { id: accepted.connection.id, status: "accepted" },
+    });
+    expect(forFriend.item.id).not.toBe(accepted.connection.id);
+    const dan = await account(`${name}-ldan`);
+    const request = await store().request(dan.id, {
+      addresseeId: ana.id,
+      message: null,
+      personId: null,
+      workspaceId: null,
+      dailyLimit: 0,
+      requestId: requestId(),
+    });
+    expect(request.item.kind).toBe("connection");
+    await invite(ana.id, null, {
+      token: token(`${name}-dan`),
+      tokenDigest: digest(`${name}-dan`),
+    });
+    expect(
+      await store().accept(dan.id, digest(`${name}-dan`), requestId()),
+    ).toMatchObject({
+      friendship: "made",
+      connection: { id: request.item.id, status: "accepted", userId: ana.id },
+    });
+    expect((await store().list(dan.id)).friends).toMatchObject([
+      { id: request.item.id, userId: ana.id },
+    ]);
+
+    // A withdrawn link and an expired one are refused and say so.
+    const withdrawn = await invite(ana.id, null, {
+      token: token(`${name}-withdrawn`),
+      tokenDigest: digest(`${name}-withdrawn`),
+    });
+    await store().withdraw(ana.id, withdrawn.item.id, requestId());
+    expect((await store().peek(digest(`${name}-withdrawn`))).status).toBe(
+      "withdrawn",
+    );
+    const eve = await account(`${name}-leve`);
+    await expect(
+      store().accept(eve.id, digest(`${name}-withdrawn`), requestId()),
+    ).rejects.toThrow(
+      new FriendConflictError("This invitation is no longer open."),
+    );
+    const stale = await invite(ana.id, null, {
+      token: token(`${name}-stale`),
+      tokenDigest: digest(`${name}-stale`),
+    });
+    await database.connection.db
+      .update(userInvitations)
+      .set({
+        createdAt: new Date("2020-01-01T00:00:00.000Z"),
+        expiresAt: new Date("2020-01-15T00:00:00.000Z"),
+      })
+      .where(eq(userInvitations.id, stale.item.id));
+    expect((await store().peek(digest(`${name}-stale`))).status).toBe(
+      "expired",
+    );
+    await expect(
+      store().accept(eve.id, digest(`${name}-stale`), requestId()),
+    ).rejects.toThrow(new FriendConflictError("This invitation has expired."));
+    await expect(
+      store().accept(eve.id, digest("nowhere"), requestId()),
+    ).rejects.toThrow(
+      new FriendUnavailableError("The invitation does not exist."),
+    );
   });
 
   it("refuses an unknown card and accepts an unlinked, viewable one", async () => {

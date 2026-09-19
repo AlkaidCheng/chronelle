@@ -126,6 +126,27 @@ describe("the Welcome step", () => {
     expect(me.user.onboardedAt).not.toBeNull();
   });
 
+  it("returns to the page that was waiting on the sign-in once the step is done", async () => {
+    const user = userEvent.setup();
+    window.sessionStorage.setItem(
+      "chronelle.after-sign-in",
+      "/invite/abcdefghijklmnopqrstuvwxyz0123456789",
+    );
+    render(<WelcomePage />, { wrapper });
+    await user.type(
+      await screen.findByRole("textbox", { name: "Name" }),
+      "Mira Planner",
+    );
+    await user.click(screen.getByRole("button", { name: "Continue" }));
+    await waitFor(() =>
+      expect(router.replace).toHaveBeenCalledWith(
+        "/invite/abcdefghijklmnopqrstuvwxyz0123456789",
+      ),
+    );
+    expect(router.replace).not.toHaveBeenCalledWith("/events");
+    expect(window.sessionStorage.getItem("chronelle.after-sign-in")).toBeNull();
+  });
+
   it("sends an account past the step on to the workspace, and a visitor to sign in", async () => {
     saved = null;
     store = new SandboxStore(storage);

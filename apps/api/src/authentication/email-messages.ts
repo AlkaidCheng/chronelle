@@ -57,7 +57,7 @@ const english: CodeEmailMessages = {
     expiresInDays,
   }) => ({
     subject: `${productName}: ${senderName} invited you`,
-    text: `${senderName} (${senderEmail}) invited you to ${productName}.${quoted(message, "Their note:")} Create your account here: ${link} The link is valid for ${expiresInDays} days. If you do not know ${senderName}, ignore this message.`,
+    text: `${senderName} (${senderEmail}) invited you to ${productName}.${quoted(message, "Their note:")} Accept the invitation here: ${link} The link is valid for ${expiresInDays} days. If you do not know ${senderName}, ignore this message.`,
   }),
 };
 
@@ -79,7 +79,7 @@ const simplifiedChinese: CodeEmailMessages = {
     expiresInDays,
   }) => ({
     subject: `${productName}：${senderName} 邀请您加入`,
-    text: `${senderName}（${senderEmail}）邀请您加入 ${productName}。${message === null ? "" : `对方留言：“${message}” `}请通过此链接创建账号：${link} 链接 ${expiresInDays} 天内有效。如果您不认识 ${senderName}，请忽略这封邮件。`,
+    text: `${senderName}（${senderEmail}）邀请您加入 ${productName}。${message === null ? "" : `对方留言：“${message}” `}请通过此链接接受邀请：${link} 链接 ${expiresInDays} 天内有效。如果您不认识 ${senderName}，请忽略这封邮件。`,
   }),
 };
 
@@ -101,7 +101,7 @@ const traditionalChinese: CodeEmailMessages = {
     expiresInDays,
   }) => ({
     subject: `${productName}：${senderName} 邀請您加入`,
-    text: `${senderName}（${senderEmail}）邀請您加入 ${productName}。${message === null ? "" : `對方留言：「${message}」 `}請透過此連結建立帳號：${link} 連結 ${expiresInDays} 天內有效。如果您不認識 ${senderName}，請忽略這封郵件。`,
+    text: `${senderName}（${senderEmail}）邀請您加入 ${productName}。${message === null ? "" : `對方留言：「${message}」 `}請透過此連結接受邀請：${link} 連結 ${expiresInDays} 天內有效。如果您不認識 ${senderName}，請忽略這封郵件。`,
   }),
 };
 

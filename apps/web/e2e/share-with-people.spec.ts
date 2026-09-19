@@ -46,11 +46,15 @@ test("shares an event with the people the workspace knows", async ({
   await page.getByRole("button", { name: "Continue", exact: true }).click();
   await page.getByRole("link", { name: /Reading circle/ }).click();
   await page.getByRole("button", { name: "Share event", exact: true }).click();
-  // The person with an email is offered among the other people; the tick
-  // sends them a request and the share waits on it.
+  // Both cards are offered among the other people: the one with an email
+  // is invited at it once ticked (the share waits on the request), the one
+  // without gets a link the sharer hands on.
   const others = page.getByRole("list", { name: "Others in People" });
-  await expect(others.getByRole("checkbox")).toHaveCount(1);
+  await expect(others.getByRole("checkbox")).toHaveCount(2);
   await expect(others.getByText(new RegExp(readerEmail, "i"))).toBeVisible();
+  await expect(
+    others.getByText("No email; you send them the link"),
+  ).toBeVisible();
   await expect(page.getByRole("list", { name: "Friends" })).toHaveCount(0);
   const shareButton = page.getByRole("button", { name: /^Share with/ });
   await expect(shareButton).toBeDisabled();

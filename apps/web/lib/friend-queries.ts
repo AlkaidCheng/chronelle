@@ -176,6 +176,38 @@ export function useResendInvitation() {
   );
 }
 
+/** New link: the invitation's token is replaced, and the link handed out before stops working. */
+export function useRenewInvitationLink() {
+  return useFriendsMutation((client, id: string) =>
+    client.renewFriendInvitationLink(id),
+  );
+}
+
 export function useRemoveFriend() {
   return useFriendsMutation((client, id: string) => client.removeFriend(id));
+}
+
+/** What an invitation link opens, for the claim page; no session is needed. */
+export function useInvitationPeekQuery(token: string) {
+  const client = useApiClient();
+  return useQuery({
+    enabled: token !== "",
+    queryFn: ({ signal }) => client.withSignal(signal).peekInvitation(token),
+    queryKey: ["invitation", token] as const,
+    retry: false,
+  });
+}
+
+/** Accept on the claim page: the friendship, the shares, and (maybe) a card linked. */
+export function useAcceptInvitation() {
+  const client = useApiClient();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (token: string) => client.acceptInvitation(token),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: queryKeys.friends });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.session });
+      void queryClient.invalidateQueries({ queryKey: ["invitation"] });
+    },
+  });
 }

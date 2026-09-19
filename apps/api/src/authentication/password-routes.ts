@@ -45,8 +45,9 @@ export function registerPasswordRoutes(
   app.post("/api/auth/sign-up", async (request, reply) => {
     const input = parseRequest(signUpRequestSchema, request.body);
     const user = await dependencies.passwordAuth.signUp(input, request.id);
-    // The invitations waiting for this address become friend requests,
-    // whether or not the sign-up link carried a token.
+    // The invitations addressed to this email become friend requests; the
+    // one whose link the sign-up was opened from stays open, for the claim
+    // page to accept explicitly after the Welcome step.
     await dependencies.friends.claimInvitations(
       user.id,
       input.invitationToken ?? null,

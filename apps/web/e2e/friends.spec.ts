@@ -59,22 +59,23 @@ test("connects two accounts through a request and links a person to the friend @
     name: "Invite a friend",
     exact: true,
   });
-  await dialog.getByLabel("Email", { exact: true }).fill(benEmail);
+  await dialog.getByLabel("Email (optional)", { exact: true }).fill(benEmail);
   await dialog.getByLabel("Note (optional)").fill("Climbing on Saturday?");
   await dialog
-    .getByRole("button", { name: "Send invitation", exact: true })
+    .getByRole("button", { name: "Send by email", exact: true })
     .click();
+  // An address with an account gets a request, so there is no link to show.
   await expect(dialog).toHaveCount(0);
   const sent = page.getByRole("region", { name: /^Sent/ });
   await expect(sent).toContainText(benEmail);
-  await expect(sent).toContainText("Sent");
+  await expect(sent).toContainText("Request");
   // The same address cannot be invited twice while it waits.
   await page
     .getByRole("button", { name: "Invite a friend", exact: true })
     .click();
-  await dialog.getByLabel("Email", { exact: true }).fill(benEmail);
+  await dialog.getByLabel("Email (optional)", { exact: true }).fill(benEmail);
   await dialog
-    .getByRole("button", { name: "Send invitation", exact: true })
+    .getByRole("button", { name: "Send by email", exact: true })
     .click();
   await expect(dialog.getByRole("alert")).toContainText(
     "An invitation is already waiting.",
@@ -153,7 +154,7 @@ test("connects two accounts through a request and links a person to the friend @
   expect(errors).toEqual([]);
 });
 
-test("invites an address without an account and keeps it under Sent @webkit-desktop", async ({
+test("invites an address without an account, shows the link, and keeps it under Sent @webkit-desktop", async ({
   page,
 }) => {
   const anaEmail = `ana-${randomUUID()}@example.test`;
@@ -167,14 +168,29 @@ test("invites an address without an account and keeps it under Sent @webkit-desk
     name: "Invite a friend",
     exact: true,
   });
-  await dialog.getByLabel("Email", { exact: true }).fill(newcomer);
+  await dialog.getByLabel("Email (optional)", { exact: true }).fill(newcomer);
   await dialog
-    .getByRole("button", { name: "Send invitation", exact: true })
+    .getByRole("button", { name: "Send by email", exact: true })
     .click();
+  // The link is shown with its code and end; Done closes.
+  await expect(dialog).toContainText(`Sent by email to ${newcomer}.`);
+  await expect(dialog).toContainText("One use. Valid until");
+  await expect(
+    dialog.getByRole("img", { name: "QR code of the invitation link" }),
+  ).toBeVisible();
+  await expect(dialog.locator(".invite-link-url")).toContainText("/invite/");
+  await dialog.getByRole("button", { name: "Done", exact: true }).click();
   await expect(dialog).toHaveCount(0);
   const sent = page.getByRole("region", { name: /^Sent/ });
   await expect(sent).toContainText(newcomer);
-  await expect(sent).toContainText("Sign-up link valid until");
+  await expect(sent).toContainText("Email");
+  await expect(sent).toContainText("One use. Valid until");
+  await expect(
+    sent.getByRole("button", { name: "Copy link", exact: true }),
+  ).toBeVisible();
+  await expect(
+    sent.getByRole("button", { name: "Resend", exact: true }),
+  ).toBeVisible();
   await sent
     .getByRole("button", { name: "Withdraw invitation", exact: true })
     .click();

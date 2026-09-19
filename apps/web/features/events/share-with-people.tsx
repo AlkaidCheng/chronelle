@@ -10,6 +10,8 @@ import type {
 import { useTranslations } from "next-intl";
 import { type FormEvent, useId, useState } from "react";
 
+import { copyText } from "../../lib/copy-text";
+import { useFriendsQuery } from "../../lib/friend-queries";
 import { personInitials } from "../../lib/person-collection";
 import { personDisplayName, personEmail } from "../../lib/person-fields";
 import { useQueuePendingShare, useShareResource } from "../../lib/queries";
@@ -18,14 +20,20 @@ type SharedRole = "owner" | "editor" | "viewer";
 
 type Outcome =
   | { readonly kind: "shared"; readonly role: SharedRole }
-  | { readonly kind: "queued"; readonly invited: boolean }
+  | {
+      readonly kind: "queued";
+      readonly invited: boolean;
+      /** The invitation link the share waits on, when the person has no address. */
+      readonly link: string | null;
+    }
   | { readonly kind: "failed"; readonly message: string };
 
 /**
  * One line of the share list: a friend (shared through the connection), a
  * person with an account here (shared through the card), a person already
- * invited (the share waits on that invitation), or a person with an email
- * and no account (the invitation goes out with the share).
+ * invited (the share waits on that invitation), or a person without an
+ * account (an invitation goes out with the share: emailed when the card
+ * has an address, else a link the sharer hands on).
  */
 export interface ShareRow {
   readonly key: string;
@@ -90,22 +98,14 @@ export function shareRows(context: ShareRowContext): ShareRow[] {
         (context.workspaceId === undefined ||
           item.workspaceId === context.workspaceId),
     );
-    const email = personEmail(person);
     const kind =
-      person.userId !== null
-        ? "member"
-        : invited
-          ? "invited"
-          : email !== null
-            ? "new"
-            : null;
-    if (kind === null) continue;
+      person.userId !== null ? "member" : invited ? "invited" : "new";
     rows.push({
       key: `person:${person.id}`,
       group: "others",
       kind,
       name: personDisplayName(person),
-      reach: kind === "member" ? null : email,
+      reach: kind === "member" ? null : personEmail(person),
       friendId: null,
       personId: person.id,
       held:
@@ -121,9 +121,9 @@ export function shareRows(context: ShareRowContext): ShareRow[] {
  * Shares one resource with several people in one go: friends first with
  * the role beside each name, then the other people the workspace knows.
  * A friend or a person with an account is granted at once; an invited
- * person's share waits on the invitation; a person with only an email is
- * invited and the share waits. Each row is one request, so a refusal
- * leaves the others standing.
+ * person's share waits on the invitation; a person without an account is
+ * invited (by email, or by a link shown with Copy link) and the share
+ * waits. Each row is one request, so a refusal leaves the others standing.
  */
 export function ShareWithPeople({
   eventId,
@@ -141,6 +141,7 @@ export function ShareWithPeople({
   const id = useId();
   const share = useShareResource(eventId);
   const queue = useQueuePendingShare(eventId);
+  const friends = useFriendsQuery();
   const [selected, setSelected] = useState(() => new Set(initialSelected));
   const [roles, setRoles] = useState(() => new Map<string, SharedRole>());
   const [outcomes, setOutcomes] = useState(() => new Map<string, Outcome>());
@@ -150,12 +151,12 @@ export function ShareWithPeople({
   const roleOf = (row: ShareRow): SharedRole =>
     roles.get(row.key) ?? row.held ?? "viewer";
 
+  async function copy(link: string) {
+    setCopied((await copyText(link)) ? t("linkCopied") : t("linkNotCopied"));
+  }
+
   function copyLink() {
-    const link = `${window.location.origin}/events/${eventId}`;
-    navigator.clipboard
-      ?.writeText(link)
-      .then(() => setCopied(t("linkCopied")))
-      .catch(() => setCopied(t("linkNotCopied")));
+    void copy(`${window.location.origin}/events/${eventId}`);
   }
 
   async function handleShare(formEvent: FormEvent<HTMLFormElement>) {
@@ -179,8 +180,21 @@ export function ShareWithPeople({
           });
           results.set(row.key, { kind: "shared", role: grant.role });
         } else if (row.personId !== null) {
-          await queue.mutateAsync({ personId: row.personId, role });
-          results.set(row.key, { kind: "queued", invited: row.kind === "new" });
+          const pending = await queue.mutateAsync({
+            personId: row.personId,
+            role,
+          });
+          const link =
+            pending.email === null
+              ? ((await friends.refetch()).data?.sent.find(
+                  (item) => item.id === pending.itemId,
+                )?.inviteUrl ?? null)
+              : null;
+          results.set(row.key, {
+            kind: "queued",
+            invited: row.kind === "new",
+            link,
+          });
         }
       } catch (error) {
         results.set(row.key, {
@@ -244,7 +258,9 @@ export function ShareWithPeople({
                         : row.kind === "invited"
                           ? t("invitedAccessFollows")
                           : row.kind === "new"
-                            ? t("invitationOnShare", { email: row.reach ?? "" })
+                            ? row.reach === null
+                              ? t("noEmailLink")
+                              : t("invitationOnShare", { email: row.reach })
                             : row.reach}
                       {row.held === undefined
                         ? null
@@ -282,10 +298,21 @@ export function ShareWithPeople({
                     {outcome.kind === "shared"
                       ? t("sharedAs", { role: t(`roles.${outcome.role}`) })
                       : outcome.kind === "queued"
-                        ? outcome.invited
-                          ? t("invitationSent")
-                          : t("queued")
+                        ? outcome.link !== null
+                          ? t("waitingOnLink")
+                          : outcome.invited
+                            ? t("invitationSent")
+                            : t("queued")
                         : outcome.message}
+                    {outcome.kind === "queued" && outcome.link !== null ? (
+                      <button
+                        className="link-button share-outcome-copy"
+                        onClick={() => copy(outcome.link ?? "")}
+                        type="button"
+                      >
+                        {t("copyInvite")}
+                      </button>
+                    ) : null}
                   </span>
                 )}
               </li>

@@ -28,6 +28,7 @@ import {
   developmentIdentity,
   developmentIdentityProvider,
 } from "./development-identity.js";
+import { SearchAllowance } from "./search-allowance.js";
 import type { SessionAuthProvider } from "./session-auth-provider.js";
 
 export interface DevelopmentAuthenticationRouteDependencies {
@@ -40,29 +41,6 @@ export interface SessionRouteDependencies {
   readonly sessions: SessionAuthProvider;
   /** How many searches one account may run in a minute. */
   readonly searchesPerMinute?: number | undefined;
-}
-
-/** Searches per account in the last minute, kept in memory per process. */
-class SearchAllowance {
-  readonly #limit: number;
-  readonly #recent = new Map<string, number[]>();
-
-  constructor(limit: number) {
-    this.#limit = limit;
-  }
-
-  take(userId: string, now: number): boolean {
-    const since = now - 60_000;
-    const times = (this.#recent.get(userId) ?? []).filter((at) => at > since);
-    if (times.length >= this.#limit) {
-      this.#recent.set(userId, times);
-      return false;
-    }
-    times.push(now);
-    this.#recent.set(userId, times);
-    if (this.#recent.size > 10_000) this.#recent.clear();
-    return true;
-  }
 }
 
 export function registerDevelopmentAuthenticationRoute(

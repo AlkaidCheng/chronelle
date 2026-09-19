@@ -1100,6 +1100,8 @@ describe("friends", () => {
       id: friend.id,
       kind: "invitation",
       email: "dan@example.test",
+      channel: "email",
+      inviteUrl: "https://chronelle.example/invite/token-0000000000000001",
       message: null,
       personId: null,
       workspaceId: null,
@@ -1116,6 +1118,45 @@ describe("friends", () => {
         method: "POST",
         body: JSON.stringify({ email: "Dan@example.test" }),
       }),
+    );
+    // A link: no address, made with Create link, renewed with New link.
+    const link = { ...sent, email: null, channel: "link" };
+    fetch.mockResolvedValueOnce(Response.json(link, { status: 201 }));
+    expect(await client.inviteFriend({ channel: "link" })).toEqual(link);
+    fetch.mockResolvedValueOnce(Response.json(link));
+    expect(await client.renewFriendInvitationLink(friend.id)).toEqual(link);
+    expect(fetch).toHaveBeenLastCalledWith(
+      `/api/friends/invitations/${friend.id}/link`,
+      expect.objectContaining({ method: "POST" }),
+    );
+    // The claim page: the peek needs no session, the accept does.
+    const peek = {
+      requester: { displayName: "Ana", username: "ana" },
+      message: "Come along.",
+      queued: [{ resourceId: friend.id, displayName: "Kyoto", role: "viewer" }],
+      expiresAt: "2030-08-15T12:00:00.000Z",
+      status: "open",
+    };
+    fetch.mockResolvedValueOnce(Response.json(peek));
+    expect(await client.peekInvitation("token-0000000000000001")).toEqual(peek);
+    expect(fetch.mock.lastCall?.[0]).toBe(
+      "/api/invitations/token-0000000000000001",
+    );
+    expect(
+      new Headers(fetch.mock.lastCall?.[1]?.headers).get("authorization"),
+    ).toBeNull();
+    const accepted = {
+      friendship: "made",
+      shared: peek.queued,
+      alreadyHad: [],
+    };
+    fetch.mockResolvedValueOnce(Response.json(accepted));
+    expect(await client.acceptInvitation("token-0000000000000001")).toEqual(
+      accepted,
+    );
+    expect(fetch).toHaveBeenLastCalledWith(
+      "/api/invitations/token-0000000000000001/accept",
+      expect.objectContaining({ method: "POST" }),
     );
 
     fetch.mockResolvedValueOnce(Response.json(friend));

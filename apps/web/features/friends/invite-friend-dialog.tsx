@@ -1,6 +1,7 @@
 "use client";
 
 import { useTranslations } from "next-intl";
+import type { SentInvitation } from "@chronelle/schemas";
 import { type FormEvent, useEffect, useId, useRef, useState } from "react";
 
 import { ErrorNotice } from "../../components/feedback";
@@ -14,6 +15,7 @@ import { personInitials } from "../../lib/person-collection";
 import { personDisplayName, personEmail } from "../../lib/person-fields";
 import { usePersonsQuery, useSessionQuery } from "../../lib/queries";
 import { useSessionDialog } from "../../lib/use-session-dialog";
+import { InvitationLinkPanel } from "./invitation-link-panel";
 
 const someoneNew = "";
 
@@ -21,11 +23,12 @@ const someoneNew = "";
  * Invite a friend. Find people first: accounts by name, @username, or
  * email, as each lets itself be found, each with Add friend or the state
  * that already holds. Below, for someone not on Chronelle yet: a person of
- * the current workspace who has an email and no account link, or someone
- * new by address, with an optional note; the request or invitation is
- * sent on submit and the dialog closes. From a card, the search starts
- * with the card's name so a match shows first, and a request from a row
- * links the card when they accept.
+ * the current workspace without an account link, or someone new, an
+ * optional email, and a note; Send by email emails the invitation link
+ * (an address that has an account gets a request instead, and the dialog
+ * closes), Create link shows it with its QR code to pass on any way. From
+ * a card, the search starts with the card's name so a match shows first,
+ * and a request or invitation from the card links it when they accept.
  */
 export function InviteFriendDialog({
   onClose,
@@ -44,14 +47,15 @@ export function InviteFriendDialog({
   const request = useRequestFriend();
   const me = session.data?.user.id;
   const candidates = (people.data?.items ?? []).filter(
-    (person) => person.userId === null && personEmail(person) !== null,
+    (person) => person.userId === null,
   );
   const [personId, setPersonId] = useState(initialPersonId);
   const chosen = candidates.find((person) => person.id === personId);
-  const chosenEmail = chosen === undefined ? null : personEmail(chosen);
-  const [email, setEmail] = useState(chosenEmail ?? "");
+  const cardEmail = chosen === undefined ? null : personEmail(chosen);
+  const [email, setEmail] = useState(cardEmail ?? "");
   const [message, setMessage] = useState("");
-  const address = chosenEmail ?? email;
+  const address = (cardEmail ?? email).trim();
+  const [made, setMade] = useState<SentInvitation | null>(null);
   const [query, setQuery] = useState("");
   const [debounced, setDebounced] = useState("");
   const search = useUserSearchQuery(debounced);
@@ -78,8 +82,8 @@ export function InviteFriendDialog({
   function choosePerson(next: string) {
     setPersonId(next);
     const person = candidates.find((candidate) => candidate.id === next);
-    const seed = person === undefined ? null : personEmail(person);
-    if (seed !== null) setEmail(seed);
+    const known = person === undefined ? null : personEmail(person);
+    if (known !== null) setEmail(known);
   }
 
   function addFriend(userId: string) {
@@ -91,17 +95,27 @@ export function InviteFriendDialog({
     });
   }
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    if (address.trim() === "" || invite.isPending) return;
+  function send(channel: "email" | "link") {
+    if (invite.isPending) return;
+    if (channel === "email" && address === "") return;
     invite.mutate(
       {
-        email: address,
+        channel,
+        ...(address !== "" && { email: address }),
         ...(message.trim() !== "" && { message: message.trim() }),
         ...(chosen !== undefined && { personId: chosen.id }),
       },
-      { onSuccess: onClose },
+      {
+        // An address with an account got a request; there is no link to show.
+        onSuccess: (item) =>
+          item.kind === "connection" ? onClose() : setMade(item),
+      },
     );
+  }
+
+  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    send(address === "" ? "link" : "email");
   }
 
   return (
@@ -209,61 +223,90 @@ export function InviteFriendDialog({
           </p>
         ) : null}
         {request.isError ? <ErrorNotice error={request.error} /> : null}
-        <h3 className="invite-section">{t("notYet")}</h3>
-        <p className="field-hint">{t("inviteNote")}</p>
-        <label className="field">
-          <span>{t("person")}</span>
-          <select
-            onChange={(event) => choosePerson(event.target.value)}
-            value={personId}
-          >
-            <option value={someoneNew}>{t("someoneNew")}</option>
-            {candidates
-              .filter((person) => person.userId !== me)
-              .map((person) => (
-                <option key={person.id} value={person.id}>
-                  {personDisplayName(person)}
-                </option>
-              ))}
-          </select>
-        </label>
-        <label className="field">
-          <span>{t("email")}</span>
-          <input
-            autoComplete="off"
-            disabled={chosen !== undefined}
-            onChange={(event) => setEmail(event.target.value)}
-            required
-            type="email"
-            value={address}
-          />
-        </label>
-        <label className="field">
-          <span>{t("note")}</span>
-          <textarea
-            maxLength={500}
-            onChange={(event) => setMessage(event.target.value)}
-            rows={3}
-            value={message}
-          />
-        </label>
-        {invite.isError ? <ErrorNotice error={invite.error} /> : null}
-        <div className="form-actions">
-          <button
-            className="button button-quiet"
-            onClick={onClose}
-            type="button"
-          >
-            {t("cancel")}
-          </button>
-          <button
-            className="button button-primary"
-            disabled={address.trim() === "" || invite.isPending}
-            type="submit"
-          >
-            {invite.isPending ? t("sending") : t("send")}
-          </button>
-        </div>
+        {made !== null ? (
+          <>
+            <h3 className="invite-section">{t("linkReady")}</h3>
+            <InvitationLinkPanel item={made} />
+            <div className="form-actions">
+              <button
+                className="button button-primary"
+                onClick={onClose}
+                type="button"
+              >
+                {t("done")}
+              </button>
+            </div>
+          </>
+        ) : (
+          <>
+            <h3 className="invite-section">{t("notYet")}</h3>
+            <p className="field-hint">{t("inviteNote")}</p>
+            <label className="field">
+              <span>{t("person")}</span>
+              <select
+                onChange={(event) => choosePerson(event.target.value)}
+                value={personId}
+              >
+                <option value={someoneNew}>{t("someoneNew")}</option>
+                {candidates
+                  .filter((person) => person.userId !== me)
+                  .map((person) => (
+                    <option key={person.id} value={person.id}>
+                      {personDisplayName(person)}
+                    </option>
+                  ))}
+              </select>
+            </label>
+            <label className="field">
+              <span>{t("email")}</span>
+              <input
+                autoComplete="off"
+                disabled={cardEmail !== null}
+                onChange={(event) => setEmail(event.target.value)}
+                type="email"
+                value={cardEmail ?? email}
+              />
+            </label>
+            <label className="field">
+              <span>{t("note")}</span>
+              <textarea
+                maxLength={500}
+                onChange={(event) => setMessage(event.target.value)}
+                rows={3}
+                value={message}
+              />
+            </label>
+            {invite.isError ? <ErrorNotice error={invite.error} /> : null}
+            <div className="form-actions">
+              <button
+                className="button button-quiet"
+                onClick={onClose}
+                type="button"
+              >
+                {t("cancel")}
+              </button>
+              <button
+                className="button button-secondary"
+                disabled={invite.isPending}
+                onClick={() => send("link")}
+                type="button"
+              >
+                {invite.isPending && invite.variables?.channel === "link"
+                  ? t("creating")
+                  : t("createLink")}
+              </button>
+              <button
+                className="button button-primary"
+                disabled={address === "" || invite.isPending}
+                type="submit"
+              >
+                {invite.isPending && invite.variables?.channel === "email"
+                  ? t("sending")
+                  : t("sendByEmail")}
+              </button>
+            </div>
+          </>
+        )}
       </form>
     </dialog>
   );

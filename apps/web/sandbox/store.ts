@@ -19,6 +19,7 @@ import {
   accountUpdateRequestSchema,
   friendRequestRequestSchema,
   type PendingShare,
+  type QueuedRecord,
   pendingShareCreateRequestSchema,
   pendingShareSchema,
   type LabelResponse,
@@ -125,6 +126,8 @@ const defaultFriends: FriendsResponse = {
       id: "00000000-0000-4000-8000-0000000000f3",
       kind: "invitation",
       email: "priya@example.test",
+      channel: "email",
+      inviteUrl: inviteLink("sample-invitation-priya-0001"),
       message: null,
       personId: null,
       workspaceId: null,
@@ -133,6 +136,65 @@ const defaultFriends: FriendsResponse = {
     },
   ],
 };
+
+/** The claim page's address for a token, on the sandbox origin. */
+function inviteLink(token: string): string {
+  return `https://sandbox.invalid/invite/${token}`;
+}
+
+/** The token an invitation link carries, or null for another address. */
+function inviteToken(link: string | null): string | null {
+  return link === null ? null : link.slice(link.lastIndexOf("/") + 1);
+}
+
+/**
+ * Invitation links other accounts sent the sample account, for the claim
+ * page: one from an account that is not a friend yet, with a share
+ * waiting on it, and one from a friend.
+ */
+const sampleInvitations: readonly {
+  readonly token: string;
+  readonly requester: {
+    readonly id: string;
+    readonly displayName: string;
+    readonly username: string;
+    readonly email: string;
+  };
+  readonly message: string | null;
+  readonly queued: QueuedRecord[];
+  readonly expiresAt: string;
+}[] = [
+  {
+    token: "sample-invitation-chen-li-0001",
+    requester: {
+      id: "00000000-0000-4000-8000-000000000005",
+      displayName: "Chen Li",
+      username: "chen-li",
+      email: "chen.li@example.test",
+    },
+    message: "Join us for the Kyoto trip planning.",
+    queued: [
+      {
+        resourceId: "00000000-0000-4000-8000-0000000000e1",
+        displayName: "Kyoto in November",
+        role: "viewer",
+      },
+    ],
+    expiresAt: "2026-10-02T10:00:00.000Z",
+  },
+  {
+    token: "sample-invitation-mei-lin-0001",
+    requester: {
+      id: friendUserId,
+      displayName: "Mei Lin",
+      username: "meilin",
+      email: "mei.lin@example.test",
+    },
+    message: null,
+    queued: [],
+    expiresAt: "2026-10-02T10:00:00.000Z",
+  },
+];
 
 const defaultMember: WorkspaceMember = {
   userId,
@@ -647,6 +709,8 @@ export class SandboxStore {
         id: crypto.randomUUID(),
         kind: "connection" as const,
         email: account.email,
+        channel: null,
+        inviteUrl: null,
         message: input.message ?? null,
         personId: input.personId ?? null,
         workspaceId: input.personId === undefined ? null : sandboxWorkspaceId,
@@ -660,28 +724,42 @@ export class SandboxStore {
       return item;
     }
     if (method === "POST" && id === "invitations" && !operation) {
+      // By email (a request when a sample account has the address, else an
+      // emailed link) or as a link to hand on; one pending invitation per
+      // address and per card.
       const input = friendInvitationRequestSchema.parse(body);
-      if (input.email === "planner@example.test")
+      const email = input.email ?? null;
+      if (email === "planner@example.test")
         throw new SandboxError(
           400,
           "invalid_request",
           "You cannot invite yourself.",
         );
+      const account = sampleAccounts.find((a) => a.email === email);
+      if (account !== undefined)
+        return this.#friendWrite("POST", "requests", undefined, undefined, {
+          userId: account.id,
+          ...(input.message !== undefined && { message: input.message }),
+          ...(input.personId !== undefined && { personId: input.personId }),
+        });
       if (
-        friends.sent.some((item) => item.email === input.email) ||
-        friends.friends.some((friend) => friend.email === input.email)
+        friends.sent.some(
+          (item) =>
+            (email !== null && item.email === email) ||
+            (input.personId !== undefined && item.personId === input.personId),
+        )
       )
         throw new SandboxError(
           409,
           "friend_conflict",
-          friends.friends.some((friend) => friend.email === input.email)
-            ? "You are already friends."
-            : "An invitation is already waiting.",
+          "An invitation is already waiting.",
         );
       const item = {
         id: crypto.randomUUID(),
         kind: "invitation" as const,
-        email: input.email,
+        email,
+        channel: input.channel,
+        inviteUrl: inviteLink(crypto.randomUUID()),
         message: input.message ?? null,
         personId: input.personId ?? null,
         workspaceId: input.personId === undefined ? null : sandboxWorkspaceId,
@@ -698,11 +776,36 @@ export class SandboxStore {
       method === "POST" &&
       id === "invitations" &&
       operation &&
-      action === "resend"
+      (action === "resend" || action === "link")
     ) {
-      if (!friends.sent.some((item) => item.id === operation))
-        throw notFound("invitation");
-      return { accepted: true };
+      // Sending again needs an address; a new link replaces the token.
+      const item = friends.sent.find((sent) => sent.id === operation);
+      if (item === undefined) throw notFound("invitation");
+      if (action === "resend") {
+        if (item.kind === "invitation" && item.email === null)
+          throw new SandboxError(
+            400,
+            "invalid_request",
+            "The invitation has no address to send to.",
+          );
+        return { accepted: true };
+      }
+      if (item.kind !== "invitation") throw notFound("invitation");
+      const renewed = {
+        ...item,
+        inviteUrl: inviteLink(crypto.randomUUID()),
+        expiresAt: new Date(Date.now() + 14 * 86_400_000).toISOString(),
+      };
+      this.#commit({
+        ...this.#state,
+        friends: {
+          ...friends,
+          sent: friends.sent.map((sent) =>
+            sent.id === operation ? renewed : sent,
+          ),
+        },
+      });
+      return renewed;
     }
     if (method === "DELETE" && id === "invitations" && operation) {
       if (!friends.sent.some((item) => item.id === operation))
@@ -877,16 +980,12 @@ export class SandboxStore {
       let item = friends.sent.find((sent) => sent.personId === person.id);
       if (item === undefined) {
         const email = personEmail(person);
-        if (email === null)
-          throw new SandboxError(
-            400,
-            "invalid_request",
-            "Give the person an email to invite them.",
-          );
         item = {
           id: crypto.randomUUID(),
           kind: "invitation",
           email,
+          channel: email === null ? "link" : "email",
+          inviteUrl: inviteLink(crypto.randomUUID()),
           message: null,
           personId: person.id,
           workspaceId: sandboxWorkspaceId,
@@ -1431,6 +1530,47 @@ export class SandboxStore {
                     account.username.toLowerCase().startsWith(q.toLowerCase()),
                 );
       return { items: found.slice(0, 10).map((a) => this.#summary(a)) };
+    }
+    if (collection === "invitations" && id && !operation) {
+      // What a link opens: one the sample account sent (its own), or one
+      // of the sample links sent to it.
+      const own = this.#state.friends.sent.find(
+        (item) => inviteToken(item.inviteUrl) === id,
+      );
+      if (own !== undefined)
+        return {
+          requester: {
+            displayName: this.#state.preferences.displayName,
+            username: this.#state.preferences.username,
+          },
+          message: own.message,
+          queued: this.#state.pendingShares
+            .filter((share) => share.itemId === own.id)
+            .map((share) => ({
+              resourceId: share.resourceId,
+              displayName: this.#object(share.resourceId).displayName,
+              role: share.role,
+            })),
+          expiresAt: own.expiresAt,
+          status: "open",
+        };
+      const sample = sampleInvitations.find((entry) => entry.token === id);
+      if (sample === undefined)
+        throw new SandboxError(
+          404,
+          "friend_unavailable",
+          "The invitation does not exist.",
+        );
+      return {
+        requester: {
+          displayName: sample.requester.displayName,
+          username: sample.requester.username,
+        },
+        message: sample.message,
+        queued: sample.queued,
+        expiresAt: sample.expiresAt,
+        status: "open",
+      };
     }
     if (collection === "users" && id) {
       const account = sampleAccounts.find(
@@ -2012,6 +2152,59 @@ export class SandboxStore {
       return { revoked: 1 };
     if (collection === "friends")
       return this.#friendWrite(method, id, operation, action, body);
+    if (
+      collection === "invitations" &&
+      id &&
+      operation === "accept" &&
+      method === "POST"
+    ) {
+      if (
+        this.#state.friends.sent.some(
+          (item) => inviteToken(item.inviteUrl) === id,
+        )
+      )
+        throw new SandboxError(
+          400,
+          "invalid_request",
+          "This is your own invitation link.",
+        );
+      const sample = sampleInvitations.find((entry) => entry.token === id);
+      if (sample === undefined)
+        throw new SandboxError(
+          404,
+          "friend_unavailable",
+          "The invitation does not exist.",
+        );
+      const friends = this.#state.friends;
+      const standing = friends.friends.find(
+        (friend) => friend.userId === sample.requester.id,
+      );
+      if (standing === undefined)
+        this.#commit({
+          ...this.#state,
+          friends: {
+            ...friends,
+            incoming: friends.incoming.filter(
+              (request) => request.requester.userId !== sample.requester.id,
+            ),
+            friends: [
+              ...friends.friends,
+              {
+                id: crypto.randomUUID(),
+                userId: sample.requester.id,
+                displayName: sample.requester.displayName,
+                email: sample.requester.email,
+                since: new Date().toISOString(),
+              },
+            ].sort((a, b) => a.displayName.localeCompare(b.displayName)),
+          },
+        });
+      return {
+        friendship: standing === undefined ? "made" : "existing",
+        shared: sample.queued,
+        alreadyHad: [],
+      };
+    }
     if (collection === "shares")
       return this.#shareWrite(method, id, operation, body);
     if (

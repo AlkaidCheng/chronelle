@@ -25,10 +25,10 @@ export interface QueueForPersonInput {
 /**
  * Shares that wait for a person to join: when a request or invitation the
  * acting account sent already names the person, the share is queued on
- * it; otherwise the person's email is invited (a request to the account
- * that has it, a sign-up link to an address without one) and the share
- * queued on what was sent. The share is granted when the request is
- * accepted.
+ * it; otherwise the person is invited (a request to the account that has
+ * their email, an emailed link to an address without one, a link to hand
+ * on for a card without an address) and the share queued on what was
+ * sent. The share is granted when the request or the link is accepted.
  */
 export class PendingShareService {
   readonly #store: PendingShareStore;
@@ -73,17 +73,15 @@ export class PendingShareService {
     );
     let itemId = sent?.id;
     if (itemId === undefined) {
-      const email = firstPersonEmail(person.contacts);
-      if (email === null)
-        throw new InvalidFriendRequestError(
-          "Give the person an email to invite them.",
-        );
+      // A card with an email contact is invited by email; one without gets
+      // a link the sharer hands on. A person's address is kept as written;
+      // an invitation names it the way the account does.
+      const address = firstPersonEmail(person.contacts);
       const outcome = await this.#friends.invite(
         { userId: principal.userId, workspaceId: principal.workspaceId },
         {
-          // A person's address is kept as written; an invitation names it
-          // the way the account does.
-          email: email.trim().toLowerCase(),
+          channel: address === null ? "link" : "email",
+          ...(address !== null && { email: address.trim().toLowerCase() }),
           personId: input.personId,
         },
         context.requestId,

@@ -3,8 +3,12 @@ import {
   createId,
   type Database,
   type DatabaseTransaction,
+  type InvitationChannel,
   objects,
+  pendingShares,
   persons,
+  resourceGrants,
+  type Role,
   type UserConnectionRow,
   type UserInvitationRow,
   type UserRow,
@@ -37,11 +41,17 @@ export interface ConnectionView {
   readonly respondedAt: Date | null;
 }
 
-/** Something the account sent and is still waiting on. */
+/**
+ * Something the account sent and is still waiting on: a request to an
+ * account, or an invitation, which is a link (its token is kept so the
+ * link can be copied again) that was emailed or handed on.
+ */
 export interface SentItem {
   readonly id: string;
   readonly kind: "connection" | "invitation";
-  readonly email: string;
+  readonly email: string | null;
+  readonly channel: InvitationChannel | null;
+  readonly token: string | null;
   readonly message: string | null;
   readonly personId: string | null;
   readonly workspaceId: string | null;
@@ -79,10 +89,13 @@ export interface InviteOutcome {
 }
 
 export interface InviteInput {
-  readonly email: string;
+  /** Required to send by email; kept, when given, on a link. */
+  readonly email: string | null;
+  readonly channel: InvitationChannel;
   readonly message: string | null;
   readonly personId: string | null;
   readonly workspaceId: string | null;
+  readonly token: string;
   readonly tokenDigest: string;
   readonly expiresAt: Date;
   readonly dailyLimit: number;
@@ -99,7 +112,9 @@ export interface RequestInput {
   readonly requestId: string;
 }
 
+/** A fresh token for an invitation sent again or given a new link. */
 export interface ResendInput {
+  readonly token: string;
   readonly tokenDigest: string;
   readonly expiresAt: Date;
   readonly minIntervalMs: number;
@@ -110,6 +125,35 @@ export interface ItemState {
   readonly id: string;
   readonly kind: "connection" | "invitation";
   readonly status: "withdrawn" | "removed";
+}
+
+/** A record a share was queued for, by name and role. */
+export interface QueuedRecord {
+  readonly resourceId: string;
+  readonly displayName: string;
+  readonly role: Role;
+}
+
+/** An invitation as the claim page shows it before anyone accepts. */
+export interface InvitationPeek {
+  readonly requester: {
+    readonly displayName: string;
+    readonly username: string;
+  };
+  readonly message: string | null;
+  readonly queued: readonly QueuedRecord[];
+  readonly expiresAt: Date;
+  readonly status: "open" | "used" | "withdrawn" | "expired";
+}
+
+/** What accepting an invitation changed. */
+export interface AcceptOutcome {
+  readonly friendship: "made" | "existing";
+  readonly connection: ConnectionView;
+  readonly shared: readonly QueuedRecord[];
+  readonly alreadyHad: readonly QueuedRecord[];
+  readonly personId: string | null;
+  readonly workspaceId: string | null;
 }
 
 /** The request, invitation, or friend does not exist for this account. */
@@ -146,13 +190,15 @@ export class InvalidFriendRequestError extends Error {
 
 /**
  * Friend persistence: what an account sees (its friends, the requests
- * waiting for it, what it sent), inviting an address (a pending
- * connection when one account has it, else an invitation keyed by the
- * digest of a sign-up token), answering, withdrawing, removing, sending
- * again, and turning the invitations waiting for a new account into
- * requests. One live connection per pair, one pending invitation per
- * requester and address, a daily cap on invitations, a resend interval,
- * and every change audited in the actor's personal workspace.
+ * waiting for it, what it sent), inviting (a pending connection when one
+ * account has the address, else an invitation: a link kept as its token
+ * and the token's digest, emailed or handed on), answering, withdrawing,
+ * removing, sending again, a new link, turning the invitations addressed
+ * to a new account into requests, and the claim page's peek and accept.
+ * One live connection per pair, one pending invitation per requester and
+ * address and per requester and card, a daily cap on invitations, a
+ * resend interval, and every change audited in the actor's personal
+ * workspace.
  */
 export interface FriendStore {
   list(userId: string): Promise<FriendsSnapshot>;
@@ -179,14 +225,33 @@ export interface FriendStore {
     itemId: string,
     input: ResendInput,
   ): Promise<InviteOutcome>;
+  /** A fresh token for a pending invitation; the link handed out before stops working. */
+  link(
+    userId: string,
+    itemId: string,
+    input: ResendInput,
+  ): Promise<InviteOutcome>;
+  /**
+   * Turns the invitations addressed to a new account's email into
+   * requests, except the one whose link the sign-up carried (by digest):
+   * that stays open for the claim page.
+   */
   claimInvitations(
     userId: string,
     tokenDigest: string | null,
     requestId: string,
   ): Promise<number>;
+  peek(tokenDigest: string): Promise<InvitationPeek>;
+  accept(
+    userId: string,
+    tokenDigest: string,
+    requestId: string,
+  ): Promise<AcceptOutcome>;
 }
 
 const digestShape = /^[0-9a-f]{64}$/u;
+const tokenShape = /^[A-Za-z0-9_-]{16,128}$/u;
+const roleRank: Record<Role, number> = { owner: 3, editor: 2, viewer: 1 };
 
 /** The address an account is reached at: its email, else the subject it signed up with. */
 export function accountEmail(user: UserRow): string {
@@ -289,7 +354,11 @@ export class PostgresFriendStore implements FriendStore {
       const me = await requireUser(transaction, userId);
       const home = await homeWorkspace(transaction, userId);
       const sentAt = this.#clock();
-      if (!validAddress(input.email))
+      if (input.channel === "email" && input.email === null)
+        throw new InvalidFriendRequestError(
+          "Give an email to send the invitation to.",
+        );
+      if (input.email !== null && !validAddress(input.email))
         throw new InvalidFriendRequestError("email must be a valid address.");
       if (input.email === accountEmail(me))
         throw new InvalidFriendRequestError("You cannot invite yourself.");
@@ -309,15 +378,18 @@ export class PostgresFriendStore implements FriendStore {
           input.personId,
         );
       await assertDailyAllowance(transaction, userId, sentAt, input.dailyLimit);
-      const recipients = await transaction
-        .select()
-        .from(users)
-        .where(
-          eq(
-            sql`lower(coalesce(${users.email}, ${users.providerSubject}))`,
-            input.email,
-          ),
-        );
+      const recipients =
+        input.email === null
+          ? []
+          : await transaction
+              .select()
+              .from(users)
+              .where(
+                eq(
+                  sql`lower(coalesce(${users.email}, ${users.providerSubject}))`,
+                  input.email,
+                ),
+              );
       if (recipients.length > 1)
         throw new InvalidFriendRequestError(
           "The email belongs to more than one account.",
@@ -379,14 +451,28 @@ export class PostgresFriendStore implements FriendStore {
         .where(
           and(
             eq(userInvitations.requesterId, userId),
-            eq(userInvitations.email, input.email),
             eq(userInvitations.status, "pending"),
+            or(
+              input.email === null
+                ? sql`false`
+                : eq(userInvitations.email, input.email),
+              input.personId === null || input.workspaceId === null
+                ? sql`false`
+                : and(
+                    eq(userInvitations.workspaceId, input.workspaceId),
+                    eq(userInvitations.personId, input.personId),
+                  ),
+            ),
           ),
         )
         .limit(1);
       if (waiting !== undefined)
         throw new FriendConflictError("An invitation is already waiting.");
-      if (!digestShape.test(input.tokenDigest) || input.expiresAt <= sentAt)
+      if (
+        !tokenShape.test(input.token) ||
+        !digestShape.test(input.tokenDigest) ||
+        input.expiresAt <= sentAt
+      )
         throw new InvalidFriendRequestError("The invitation token is invalid.");
       const [invitation] = await transaction
         .insert(userInvitations)
@@ -394,10 +480,12 @@ export class PostgresFriendStore implements FriendStore {
           id: createId(),
           requesterId: userId,
           email: input.email,
+          channel: input.channel,
           message: input.message,
           personId: input.personId,
           workspaceId: input.workspaceId,
           status: "pending",
+          token: input.token,
           tokenDigest: input.tokenDigest,
           createdAt: sentAt,
           lastSentAt: sentAt,
@@ -410,7 +498,9 @@ export class PostgresFriendStore implements FriendStore {
         transaction,
         home,
         userId,
-        "friend.invitation_sent",
+        input.channel === "email"
+          ? "friend.invitation_sent"
+          : "friend.invitation_linked",
         input.requestId,
         { invitationId: invitation.id },
       );
@@ -707,37 +797,14 @@ export class PostgresFriendStore implements FriendStore {
           sender,
         };
       }
-      const [invitation] = await transaction
-        .select()
-        .from(userInvitations)
-        .where(
-          and(
-            eq(userInvitations.id, itemId),
-            eq(userInvitations.requesterId, userId),
-            eq(userInvitations.status, "pending"),
-          ),
-        )
-        .for("update");
-      if (invitation === undefined)
-        throw new FriendUnavailableError("The invitation does not exist.");
-      if (
-        invitation.lastSentAt.getTime() + input.minIntervalMs >
-        sentAt.getTime()
-      )
-        throw new FriendLimitError("Wait before sending again.");
-      if (!digestShape.test(input.tokenDigest) || input.expiresAt <= sentAt)
-        throw new InvalidFriendRequestError("The invitation token is invalid.");
-      const [renewed] = await transaction
-        .update(userInvitations)
-        .set({
-          tokenDigest: input.tokenDigest,
-          expiresAt: input.expiresAt,
-          lastSentAt: sentAt,
-        })
-        .where(eq(userInvitations.id, itemId))
-        .returning();
-      if (renewed === undefined)
-        throw new Error("The invitation was not updated.");
+      const renewed = await rotateInvitation(
+        transaction,
+        userId,
+        itemId,
+        input,
+        true,
+        sentAt,
+      );
       await audit(
         transaction,
         home,
@@ -755,6 +822,40 @@ export class PostgresFriendStore implements FriendStore {
     });
   }
 
+  async link(
+    userId: string,
+    itemId: string,
+    input: ResendInput,
+  ): Promise<InviteOutcome> {
+    return this.#database.transaction(async (transaction) => {
+      const me = await requireUser(transaction, userId);
+      const home = await homeWorkspace(transaction, userId);
+      const sentAt = this.#clock();
+      const renewed = await rotateInvitation(
+        transaction,
+        userId,
+        itemId,
+        input,
+        false,
+        sentAt,
+      );
+      await audit(
+        transaction,
+        home,
+        userId,
+        "friend.invitation_renewed",
+        input.requestId,
+        { invitationId: renewed.id },
+      );
+      return {
+        kind: "invitation",
+        item: sentInvitation(renewed),
+        recipient: null,
+        sender: senderOf(me),
+      };
+    });
+  }
+
   async claimInvitations(
     userId: string,
     tokenDigest: string | null,
@@ -763,10 +864,10 @@ export class PostgresFriendStore implements FriendStore {
     return this.#database.transaction(async (transaction) => {
       const me = await requireUser(transaction, userId);
       const claimedAt = this.#clock();
-      const byToken =
+      const notCarried =
         tokenDigest === null
-          ? sql`false`
-          : eq(userInvitations.tokenDigest, tokenDigest);
+          ? sql`true`
+          : sql`${userInvitations.tokenDigest} <> ${tokenDigest}`;
       const waiting = await transaction
         .select()
         .from(userInvitations)
@@ -775,7 +876,8 @@ export class PostgresFriendStore implements FriendStore {
             eq(userInvitations.status, "pending"),
             gt(userInvitations.expiresAt, claimedAt),
             sql`${userInvitations.requesterId} <> ${userId}`,
-            or(eq(userInvitations.email, accountEmail(me)), byToken),
+            eq(userInvitations.email, accountEmail(me)),
+            notCarried,
           ),
         )
         .orderBy(asc(userInvitations.createdAt))
@@ -834,6 +936,328 @@ export class PostgresFriendStore implements FriendStore {
       return claimed;
     });
   }
+
+  async peek(tokenDigest: string): Promise<InvitationPeek> {
+    return this.#database.transaction(async (transaction) => {
+      const now = this.#clock();
+      const [invitation] = await transaction
+        .select()
+        .from(userInvitations)
+        .where(eq(userInvitations.tokenDigest, tokenDigest))
+        .limit(1);
+      if (invitation === undefined)
+        throw new FriendUnavailableError("The invitation does not exist.");
+      const requester = await requireUser(transaction, invitation.requesterId);
+      const queued = await transaction
+        .select({
+          resourceId: objects.id,
+          displayName: objects.displayName,
+          role: pendingShares.role,
+        })
+        .from(pendingShares)
+        .innerJoin(
+          objects,
+          and(
+            eq(objects.workspaceId, pendingShares.workspaceId),
+            eq(objects.id, pendingShares.resourceId),
+          ),
+        )
+        .where(
+          and(
+            eq(pendingShares.invitationId, invitation.id),
+            eq(pendingShares.status, "pending"),
+            isNull(objects.deletedAt),
+          ),
+        )
+        .orderBy(asc(pendingShares.createdAt), asc(pendingShares.id));
+      return {
+        requester: {
+          displayName: requester.displayName,
+          username: requester.username,
+        },
+        message: invitation.message,
+        queued,
+        expiresAt: invitation.expiresAt,
+        status:
+          invitation.status === "consumed"
+            ? "used"
+            : invitation.status === "withdrawn"
+              ? "withdrawn"
+              : invitation.expiresAt > now
+                ? "open"
+                : "expired",
+      };
+    });
+  }
+
+  async accept(
+    userId: string,
+    tokenDigest: string,
+    requestId: string,
+  ): Promise<AcceptOutcome> {
+    return this.#database.transaction(async (transaction) => {
+      await requireUser(transaction, userId);
+      const home = await homeWorkspace(transaction, userId);
+      const acceptedAt = this.#clock();
+      const [invitation] = await transaction
+        .select()
+        .from(userInvitations)
+        .where(eq(userInvitations.tokenDigest, tokenDigest))
+        .for("update");
+      if (invitation === undefined)
+        throw new FriendUnavailableError("The invitation does not exist.");
+      if (invitation.requesterId === userId)
+        throw new InvalidFriendRequestError(
+          "This is your own invitation link.",
+        );
+      if (invitation.status === "consumed")
+        throw new FriendConflictError("This invitation was already accepted.");
+      if (invitation.status !== "pending")
+        throw new FriendConflictError("This invitation is no longer open.");
+      if (invitation.expiresAt <= acceptedAt)
+        throw new FriendConflictError("This invitation has expired.");
+      await transaction
+        .update(userInvitations)
+        .set({ status: "consumed", consumedAt: acceptedAt, consumedBy: userId })
+        .where(eq(userInvitations.id, invitation.id));
+
+      let friendship: AcceptOutcome["friendship"];
+      let connection = await liveConnection(
+        transaction,
+        invitation.requesterId,
+        userId,
+      );
+      if (connection === undefined) {
+        [connection] = await transaction
+          .insert(userConnections)
+          .values({
+            id: createId(),
+            requesterId: invitation.requesterId,
+            addresseeId: userId,
+            status: "accepted",
+            message: invitation.message,
+            personId: invitation.personId,
+            workspaceId: invitation.workspaceId,
+            createdAt: acceptedAt,
+            lastSentAt: acceptedAt,
+            respondedAt: acceptedAt,
+          })
+          .returning();
+        if (connection === undefined)
+          throw new Error("The connection was not recorded.");
+        friendship = "made";
+      } else if (connection.status === "pending") {
+        [connection] = await transaction
+          .update(userConnections)
+          .set({
+            status: "accepted",
+            respondedAt: laterOf(acceptedAt, connection),
+          })
+          .where(eq(userConnections.id, connection.id))
+          .returning();
+        if (connection === undefined)
+          throw new Error("The connection was not updated.");
+        friendship = "made";
+      } else {
+        friendship = "existing";
+      }
+      await audit(
+        transaction,
+        home,
+        userId,
+        "friend.invitation_accepted",
+        requestId,
+        {
+          invitationId: invitation.id,
+          connectionId: connection.id,
+          requesterId: invitation.requesterId,
+          friendship,
+        },
+      );
+      if (friendship === "made")
+        await settlePendingShares(
+          transaction,
+          connection,
+          userId,
+          requestId,
+          acceptedAt,
+        );
+
+      const shared: QueuedRecord[] = [];
+      const alreadyHad: QueuedRecord[] = [];
+      const waiting = await transaction
+        .select()
+        .from(pendingShares)
+        .where(
+          and(
+            eq(pendingShares.invitationId, invitation.id),
+            eq(pendingShares.status, "pending"),
+          ),
+        )
+        .orderBy(asc(pendingShares.createdAt), asc(pendingShares.id))
+        .for("update");
+      for (const pending of waiting) {
+        const [record] = await transaction
+          .select({
+            displayName: objects.displayName,
+            shareable: sql<boolean>`chronelle_can_share(${pending.workspaceId}::uuid, ${pending.grantedBy}::uuid, ${pending.resourceId}::uuid)`,
+            held: sql<Role | null>`chronelle_held_role(${pending.workspaceId}::uuid, ${userId}::uuid, ${pending.resourceId}::uuid)`,
+          })
+          .from(objects)
+          .where(
+            and(
+              eq(objects.workspaceId, pending.workspaceId),
+              eq(objects.id, pending.resourceId),
+            ),
+          )
+          .limit(1);
+        const lapse = () =>
+          transaction
+            .update(pendingShares)
+            .set({ status: "lapsed", resolvedAt: laterOf(acceptedAt, pending) })
+            .where(eq(pendingShares.id, pending.id));
+        if (
+          record === undefined ||
+          pending.grantedBy === userId ||
+          !record.shareable
+        ) {
+          await lapse();
+          continue;
+        }
+        const named = {
+          resourceId: pending.resourceId,
+          displayName: record.displayName,
+        };
+        if (
+          record.held !== null &&
+          roleRank[record.held] >= roleRank[pending.role]
+        ) {
+          await lapse();
+          alreadyHad.push({ ...named, role: record.held });
+          continue;
+        }
+        const [grant] = await transaction
+          .insert(resourceGrants)
+          .values({
+            id: createId(),
+            workspaceId: pending.workspaceId,
+            resourceId: pending.resourceId,
+            principalId: userId,
+            role: pending.role,
+            grantedBy: pending.grantedBy,
+          })
+          .onConflictDoUpdate({
+            target: [
+              resourceGrants.workspaceId,
+              resourceGrants.resourceId,
+              resourceGrants.principalType,
+              resourceGrants.principalId,
+            ],
+            set: {
+              role: pending.role,
+              grantedBy: pending.grantedBy,
+              expiresAt: null,
+            },
+          })
+          .returning();
+        if (grant === undefined) throw new Error("The grant was not recorded.");
+        await transaction.insert(auditEvents).values({
+          id: createId(),
+          workspaceId: pending.workspaceId,
+          actorType: "user",
+          actorId: pending.grantedBy,
+          action: "resource.shared",
+          resourceId: pending.resourceId,
+          requestId,
+          metadata: {
+            grantId: grant.id,
+            principalId: userId,
+            role: grant.role,
+            pendingShareId: pending.id,
+            acceptedBy: userId,
+            ...(pending.personId === null
+              ? {}
+              : { personId: pending.personId }),
+          },
+        });
+        await transaction
+          .update(pendingShares)
+          .set({
+            status: "granted",
+            grantId: grant.id,
+            resolvedAt: laterOf(acceptedAt, pending),
+          })
+          .where(eq(pendingShares.id, pending.id));
+        shared.push({ ...named, role: grant.role });
+      }
+
+      return {
+        friendship,
+        connection: await connectionView(transaction, connection, userId),
+        shared,
+        alreadyHad,
+        personId: invitation.personId,
+        workspaceId: invitation.workspaceId,
+      };
+    });
+  }
+}
+
+/**
+ * Gives a pending invitation the caller sent a fresh token and expiry,
+ * refused inside the resend interval; sending it by email needs an
+ * address and marks the invitation as emailed from then on.
+ */
+async function rotateInvitation(
+  transaction: DatabaseTransaction,
+  userId: string,
+  itemId: string,
+  input: ResendInput,
+  emailed: boolean,
+  sentAt: Date,
+): Promise<UserInvitationRow> {
+  const [invitation] = await transaction
+    .select()
+    .from(userInvitations)
+    .where(
+      and(
+        eq(userInvitations.id, itemId),
+        eq(userInvitations.requesterId, userId),
+        eq(userInvitations.status, "pending"),
+      ),
+    )
+    .for("update");
+  if (invitation === undefined)
+    throw new FriendUnavailableError("The invitation does not exist.");
+  if (emailed && invitation.email === null)
+    throw new InvalidFriendRequestError(
+      "The invitation has no address to send to.",
+    );
+  if (invitation.lastSentAt.getTime() + input.minIntervalMs > sentAt.getTime())
+    throw new FriendLimitError("Wait before sending again.");
+  if (
+    !tokenShape.test(input.token) ||
+    !digestShape.test(input.tokenDigest) ||
+    input.expiresAt <= sentAt
+  )
+    throw new InvalidFriendRequestError("The invitation token is invalid.");
+  const [renewed] = await transaction
+    .update(userInvitations)
+    .set({
+      token: input.token,
+      tokenDigest: input.tokenDigest,
+      expiresAt: input.expiresAt,
+      lastSentAt: sentAt,
+      ...(emailed && { channel: "email" as const }),
+    })
+    .where(eq(userInvitations.id, itemId))
+    .returning();
+  if (renewed === undefined) throw new Error("The invitation was not updated.");
+  return renewed;
+}
+
+function laterOf(instant: Date, row: { createdAt: Date }): Date {
+  return instant.getTime() >= row.createdAt.getTime() ? instant : row.createdAt;
 }
 
 async function requireUser(
@@ -998,7 +1422,9 @@ function sentConnection(view: ConnectionView): SentItem {
   return {
     id: view.id,
     kind: "connection",
-    email: view.email ?? "",
+    email: view.email,
+    channel: null,
+    token: null,
     message: view.message,
     personId: view.personId,
     workspaceId: view.workspaceId,
@@ -1012,6 +1438,8 @@ function sentInvitation(row: UserInvitationRow): SentItem {
     id: row.id,
     kind: "invitation",
     email: row.email,
+    channel: row.channel,
+    token: row.token,
     message: row.message,
     personId: row.personId,
     workspaceId: row.workspaceId,
