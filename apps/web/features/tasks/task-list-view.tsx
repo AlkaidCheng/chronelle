@@ -236,7 +236,7 @@ export function TaskListView({
   /** Offers a subtask under a task that has no parent of its own. */
   readonly onAddSubtask?: ((task: TaskResponse) => void) | undefined;
   /** Opens the full editor for a task with the fields its composer holds. */
-  readonly onEdit: (taskId: string, fields: TaskFields) => void;
+  readonly onEdit: (taskId: string, fields: Partial<TaskFields>) => void;
   /** Reloads the container after a failed change. */
   readonly onRefresh: () => Promise<unknown>;
   /** The parent of each subtask, by subtask ID. */
@@ -246,7 +246,7 @@ export function TaskListView({
   /** Subtask progress of each parent, by parent ID. */
   readonly progress: Readonly<Record<string, TaskProgress>>;
   /** Opens the full editor for a new task with the fields an add row's composer holds. */
-  readonly onAddDetails: (fields: TaskFields) => void;
+  readonly onAddDetails: (fields: Partial<TaskFields>) => void;
   /** The sections of the Event's To-dos; the list layout groups by them. */
   readonly sections?: readonly SectionResponse[] | undefined;
   readonly tasks: readonly TaskResponse[];

@@ -17,7 +17,7 @@ import {
 import { PlusIcon, SearchIcon } from "../../components/icons";
 import { useComposerSlots } from "../../lib/composer-slots";
 import { rowSelector, useReturnFocus } from "../../lib/use-return-focus";
-import { emptyTaskFields, type TaskFields } from "../../lib/task-fields";
+import type { TaskFields } from "../../lib/task-fields";
 import { LayoutControl } from "../events/component-frame";
 import { type SubtaskParent, TaskForm } from "../events/task-form";
 import { TaskInspector } from "../events/task-inspector";
@@ -64,11 +64,11 @@ export function TasksPage() {
   const { status: filter, label, assignee } = filters;
   // The full editor for a new task opens from the header, or from an add
   // row's composer with its fields; for a task, from its row's composer.
-  const [adding, setAdding] = useState<TaskFields | null>(null);
+  const [adding, setAdding] = useState<Partial<TaskFields> | null>(null);
   const [parent, setParent] = useState<SubtaskParent | null>(null);
   const [editing, setEditing] = useState<{
     readonly id: string;
-    readonly start: TaskFields;
+    readonly start: Partial<TaskFields>;
   } | null>(null);
   const composer = useComposerSlots();
   const pageRoot = useRef<HTMLElement>(null);
@@ -174,7 +174,7 @@ export function TasksPage() {
           className="button button-primary"
           onClick={(event) => {
             event.currentTarget.focus();
-            setAdding(emptyTaskFields);
+            setAdding({});
           }}
           type="button"
         >

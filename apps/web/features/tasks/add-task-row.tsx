@@ -72,7 +72,7 @@ export function AddTaskRow({
   /** Today, for tests. */
   readonly now?: Date | undefined;
   /** Opens the full editor for a new task with the composer's fields. */
-  readonly onMore: (fields: TaskFields) => void;
+  readonly onMore: (fields: Partial<TaskFields>) => void;
   readonly onRefresh: () => Promise<unknown>;
   /** The section of the Event's To-dos the row adds to; null for none. */
   readonly section?: SectionResponse | null | undefined;

@@ -37,6 +37,7 @@ import {
   emptyTaskFields,
   locationLimit,
   readTaskFields,
+  setTaskFields,
   splitLabelIds,
   type TaskFields,
   taskFieldsPayload,
@@ -83,7 +84,7 @@ export function TaskComposer({
   /** Today, for tests. */
   readonly now?: Date;
   /** Opens the full editor with the composer's fields. */
-  readonly onMore: (fields: TaskFields) => void;
+  readonly onMore: (fields: Partial<TaskFields>) => void;
   /** Reloads the list, so a stale save can be compared with the newest version. */
   readonly onRefresh: () => Promise<unknown>;
   /** A saved edit, for the list to announce. */
@@ -456,7 +457,7 @@ export function TaskComposer({
         onOpen: () => {
           const current = fields;
           discard();
-          onMore(current);
+          onMore(setTaskFields(current));
         },
       }}
       name={{

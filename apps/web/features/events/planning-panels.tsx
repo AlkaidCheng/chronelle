@@ -176,7 +176,7 @@ export function TasksPanel({
   const [sort, setSort] = useState<TaskSort>("manual");
   // The full editor for a new task opens from an add row's composer with
   // its fields, and for a task from its row's composer.
-  const [adding, setAdding] = useState<TaskFields | null>(null);
+  const [adding, setAdding] = useState<Partial<TaskFields> | null>(null);
   const composer = useComposerSlots();
   const panel = useRef<HTMLElement>(null);
   const returnFocus = useReturnFocus(panel);
@@ -187,7 +187,7 @@ export function TasksPanel({
   const [parent, setParent] = useState<SubtaskParent | null>(null);
   const [editing, setEditing] = useState<{
     readonly id: string;
-    readonly start: TaskFields;
+    readonly start: Partial<TaskFields>;
   } | null>(null);
   const closeEditing = useCallback(() => {
     setEditing((current) => {
