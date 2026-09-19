@@ -76,6 +76,9 @@ export function EventOverview({
           </div>
         </div>
       ) : null}
+      {detail.event.description === null ? null : (
+        <p className="overview-description">{detail.event.description}</p>
+      )}
       <ul className="glance">
         <OverviewRow
           count={String(openTasks.length)}

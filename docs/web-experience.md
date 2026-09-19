@@ -819,7 +819,11 @@ emulated offline mode fails to load local files before the application runs.
 ## Editor feedback and refresh
 
 Edit event opens a right-side modal inspector on wide screens and a full-width
-editor on narrow screens. The underlying page stays in place but is inert.
+editor on narrow screens. Under the name, Description takes plain text of up
+to 2,000 characters, line breaks kept; it shows under the event's date line
+and at the top of the Overview, and an emptied field clears it. The same
+field sits under the name in the schedule item and task editors. The
+underlying page stays in place but is inert.
 Fields scroll independently from save actions. Escape, Cancel and Close confirm
 changed fields with Keep editing or Discard; unchanged or reverted fields close
 immediately. Confirmation retains field values, calendar navigation and focus.

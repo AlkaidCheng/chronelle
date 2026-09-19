@@ -23,12 +23,16 @@ import {
 const families = {
   event: {
     migration: "0012",
-    input: { startsAt: "2030-10-16T18:00:00.000Z", timezone: "UTC" },
+    input: {
+      startsAt: "2030-10-16T18:00:00.000Z",
+      timezone: "UTC",
+      description: "Contract probe",
+    },
     invalidChange: { timezone: "Not/AZone" },
   },
   task: {
     migration: "0013",
-    input: { dueAt: "2030-10-16T18:00:00.000Z" },
+    input: { dueAt: "2030-10-16T18:00:00.000Z", description: "Contract probe" },
     invalidChange: { status: "done" },
   },
   expense: {

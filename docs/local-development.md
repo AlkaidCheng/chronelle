@@ -199,6 +199,14 @@ readiness check requires, and the write core, restore, search, and relation
 rule are redefined in place to admit the type. The API built from it starts
 after it, and the runtime role script is reapplied for its grants on `notes`.
 
+Migration `0061_add_event_and_task_descriptions.sql` adds `events.description`
+and `tasks.description` (null, or 1 to 2,000 trimmed characters) with
+`chronelle_assert_description`, redefines the Event and Task serialize,
+insert, validate, and apply functions in place to carry them, and redefines
+`chronelle_command_content` so a reversible command carries the description.
+The API built from it can start before or after it (an older API leaves the
+column null); the runtime role needs no change.
+
 Migration `0021_add_object_search_function.sql` adds `chronelle_object_search`,
 the read-only function the CloudBase search adapter calls. It changes no
 tables and needs no baseline.

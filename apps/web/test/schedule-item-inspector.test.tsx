@@ -41,6 +41,7 @@ const event = {
   timezone: "UTC",
   isAllDay: false,
   location: null,
+  description: null,
 };
 const editorAccess = {
   resourceId: eventId,
@@ -175,6 +176,46 @@ describe("schedule item inspector", () => {
       expect.objectContaining({
         expectedVersion: event.version,
         location: "Camellia Flower, Ninenzaka",
+      }),
+    ]);
+  });
+
+  it("offers the Description field, prefilled, and saves a trimmed one", async () => {
+    const patches: unknown[] = [];
+    const described = { ...event, description: "Meet at the main gate." };
+    vi.stubGlobal(
+      "fetch",
+      withCommands(async (input, options) => {
+        if (options?.method === "PATCH") {
+          const body = JSON.parse(String(options.body));
+          patches.push(body);
+          const { expectedVersion: _expected, ...changes } = body;
+          return Response.json({
+            ...described,
+            ...changes,
+            version: described.version + 1,
+          });
+        }
+        return Response.json(
+          String(input).endsWith("/access") ? editorAccess : described,
+        );
+      }),
+    );
+    const onClose = vi.fn();
+    const user = userEvent.setup();
+    render(<ScheduleItemInspector eventId={eventId} onClose={onClose} />, {
+      wrapper: Providers,
+    });
+    const description = await screen.findByLabelText("Description");
+    expect(description).toHaveValue("Meet at the main gate.");
+    await user.clear(description);
+    await user.type(description, "  Meet at the side gate.  ");
+    await user.click(screen.getByRole("button", { name: "Save event" }));
+    await waitFor(() => expect(onClose).toHaveBeenCalled());
+    expect(patches).toEqual([
+      expect.objectContaining({
+        expectedVersion: described.version,
+        description: "Meet at the side gate.",
       }),
     ]);
   });

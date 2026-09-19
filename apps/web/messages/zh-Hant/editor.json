@@ -12,5 +12,7 @@
   "draftKept": "草稿仍在。按「{submit}」可再次送出。",
   "refreshOnlyChecks": "重新整理只會檢查是否有更新的資料。",
   "failureRetry": "上次儲存未能確認。保持欄位不變再試一次，可沿用同一次儲存。",
-  "failureRefresh": "上次儲存未能確認。請先重新整理至最新再重試。"
+  "failureRefresh": "上次儲存未能確認。請先重新整理至最新再重試。",
+  "description": "描述",
+  "descriptionPlaceholder": "新增描述"
 }

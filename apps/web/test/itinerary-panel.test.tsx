@@ -52,6 +52,7 @@ function item(
     timezone: "Asia/Tokyo",
     isAllDay: false,
     location: null,
+    description: null,
     ...fields,
   };
 }

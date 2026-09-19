@@ -465,6 +465,55 @@ describe.sequential("CloudBase Task writes", () => {
     ]);
   });
 
+  it("keep a task's description with its line breaks and refuse a padded or long one alike", async () => {
+    const outcomes: string[][] = [];
+    for (const [, service] of backends(reference, cloudbase)) {
+      const created = await service.createTask(context(), {
+        displayName: "Described",
+        description: "Compare the morning slots.\nPay the deposit by Friday.",
+      });
+      expect(created.description).toBe(
+        "Compare the morning slots.\nPay the deposit by Friday.",
+      );
+      const revised = await service.updateTask(context(), created.id, {
+        expectedVersion: 1,
+        description: "Pay the deposit by Friday.",
+      });
+      expect(revised.description).toBe("Pay the deposit by Friday.");
+      expect(
+        (await service.getTask(context().principal, created.id)).description,
+      ).toBe("Pay the deposit by Friday.");
+      const cleared = await service.updateTask(context(), created.id, {
+        expectedVersion: 2,
+        description: null,
+      });
+      expect(cleared.description).toBeNull();
+      const seen: string[] = [];
+      for (const attempt of [
+        () =>
+          service.createTask(context(), {
+            displayName: "x",
+            description: " padded ",
+          }),
+        () =>
+          service.updateTask(context(), created.id, {
+            expectedVersion: 3,
+            description: "x".repeat(2001),
+          }),
+      ]) {
+        const error = await failure(attempt);
+        expect(error).toBeInstanceOf(InvalidObjectStateError);
+        seen.push(error.message);
+      }
+      outcomes.push(seen);
+    }
+    expect(outcomes[1]).toEqual(outcomes[0]);
+    expect(outcomes[0]).toEqual([
+      "description is 1 to 2000 characters without surrounding spaces.",
+      "description is 1 to 2000 characters without surrounding spaces.",
+    ]);
+  });
+
   it("keep a task's location as text and refuse a padded or long one alike", async () => {
     const outcomes: string[][] = [];
     for (const [, service] of backends(reference, cloudbase)) {

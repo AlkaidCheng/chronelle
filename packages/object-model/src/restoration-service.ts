@@ -360,6 +360,7 @@ export class ObjectRestorationService {
             timezone: fields.timezone,
             isAllDay: fields.isAllDay,
             location: fields.location,
+            description: fields.description,
           })
           .where(
             and(
@@ -394,6 +395,7 @@ export class ObjectRestorationService {
                 : (fields.repeatUntil ?? null),
             completedAt: fields.completedAt,
             location: fields.location,
+            description: fields.description,
           })
           .where(
             and(

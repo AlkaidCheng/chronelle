@@ -48,6 +48,7 @@ function event(
     timezone: null,
     isAllDay: false,
     location: null,
+    description: null,
     ...schedule,
   };
 }
@@ -63,6 +64,7 @@ function task(id: string, dueAt: Date | null): TaskResource {
     parentTaskId: null,
     assigneeId: null,
     location: null,
+    description: null,
     durationMinutes: null,
     repeatRule: null,
     repeatUntil: null,

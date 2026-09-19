@@ -273,6 +273,25 @@ describe("Event inspector", () => {
     });
   });
 
+  it("saves the description with its line breaks and clears it with an empty field", async () => {
+    const user = await openInspector();
+    const description = screen.getByLabelText("Description");
+    expect(description).toHaveValue("");
+    await user.type(
+      description,
+      "Bring a lantern.{Enter}The gate closes at nine.",
+    );
+    await user.click(screen.getByRole("button", { name: "Save event" }));
+    await waitFor(() =>
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument(),
+    );
+    const saved = await (await store.fetch(`/api/events/${initial.id}`)).json();
+    expect(saved).toMatchObject({
+      version: 2,
+      description: "Bring a lantern.\nThe gate closes at nine.",
+    });
+  });
+
   it.each(["Sign out", "Switch workspace"])(
     "clears a private draft immediately on %s",
     async (action) => {

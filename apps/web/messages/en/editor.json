@@ -12,5 +12,7 @@
   "draftKept": "Your draft is still here. Use {submit} to submit it again.",
   "refreshOnlyChecks": "Refreshing only checks for updated data.",
   "failureRetry": "The last save could not be confirmed. Retry unchanged fields to reuse the same save attempt.",
-  "failureRefresh": "The last save could not be confirmed. Refresh latest before trying again."
+  "failureRefresh": "The last save could not be confirmed. Refresh latest before trying again.",
+  "description": "Description",
+  "descriptionPlaceholder": "Add a description"
 }

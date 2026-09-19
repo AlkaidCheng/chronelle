@@ -17,6 +17,8 @@ import {
   EditorDialogHeader,
 } from "../../components/editor-dialog-controls";
 import { eventSchedulePayload } from "../../lib/event-schedule";
+import { DescriptionField } from "../../components/description-field";
+import { descriptionPayload } from "../../lib/description-field";
 import { locationLimit, locationPayload } from "../../lib/location-field";
 import { useKeepEditorDraft } from "../../lib/editor-draft-context";
 import {
@@ -135,11 +137,13 @@ function EventInspectorForm({
       return;
     let schedule: ReturnType<typeof eventSchedulePayload>;
     let place: { location: string | null } | undefined;
+    let description: string | null;
     try {
       schedule = eventSchedulePayload(draft.fields);
       place = withPlace
         ? { location: locationPayload(draft.fields.location) }
         : undefined;
+      description = descriptionPayload(draft.fields.description);
       setScheduleError("");
     } catch (error) {
       setScheduleError(
@@ -153,6 +157,7 @@ function EventInspectorForm({
           id: event.id,
           input: {
             displayName,
+            description,
             ...schedule,
             ...place,
             expectedVersion: event.version,
@@ -237,6 +242,14 @@ function EventInspectorForm({
             onChange={(displayName) => draft.change({ displayName })}
             required
             value={displayName}
+          />
+          <DescriptionField
+            disabled={update.isPending}
+            onChange={(description) => {
+              draft.change({ description });
+              if (update.isSuccess) update.reset();
+            }}
+            value={draft.fields.description}
           />
           <EventScheduleFields
             value={draft.fields}

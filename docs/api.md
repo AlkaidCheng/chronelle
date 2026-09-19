@@ -767,6 +767,14 @@ projections; it is restorable content, and a reversible command that edits
 an Event carries it with the rest of the content. Deploy migration 0059
 before this API.
 
+An Event and a Task carry a `description`: plain text of up to 2,000
+characters, line breaks kept, trimmed at the boundary; an empty string and
+`null` alike clear it, absent leaves it unchanged; padded or longer text is
+refused with `description is 1 to 2000 characters without surrounding
+spaces.` Responses carry `description`, null when unset; it is restorable
+content, and a reversible command carries it with the rest. Deploy
+migration 0061 before this API.
+
 ## Event projections
 
 The typed client can read just the canonical Event for a header or editor:

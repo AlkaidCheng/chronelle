@@ -30,7 +30,7 @@ import type {
 export const cloudbaseObjectColumns =
   "id,workspace_id,object_type,display_name,created_by,permission_scope_id,created_at,updated_at,version,archived_at,deleted_at,custom_properties,metadata";
 export const cloudbaseEventColumns =
-  "object_id,workspace_id,starts_at,ends_at,starts_on,ends_on,timezone,is_all_day,location";
+  "object_id,workspace_id,starts_at,ends_at,starts_on,ends_on,timezone,is_all_day,location,description";
 export const cloudbasePersonColumns =
   "object_id,workspace_id,user_id,nickname,description";
 export const cloudbaseNoteColumns = "object_id,workspace_id,body";
@@ -61,6 +61,7 @@ export type CloudBaseEventRow = {
   readonly timezone: unknown;
   readonly is_all_day: unknown;
   readonly location: unknown;
+  readonly description: unknown;
 };
 
 export type CloudBaseTaskRow = {
@@ -76,6 +77,7 @@ export type CloudBaseTaskRow = {
   readonly parent_task_id: unknown;
   readonly assignee_person_id: unknown;
   readonly location: unknown;
+  readonly description: unknown;
   readonly rank: unknown;
 };
 
@@ -324,6 +326,7 @@ export function cloudbaseTaskResource(
       "assignee_person_id",
     ),
     location: cloudbaseNullableText(task.location, "location"),
+    description: cloudbaseNullableText(task.description, "description"),
     rank: cloudbaseText(task.rank, "rank"),
     labelIds: [...labelIds],
   };
@@ -673,6 +676,7 @@ export function cloudbaseEventResource(
     timezone: cloudbaseNullableText(event.timezone, "timezone"),
     isAllDay: cloudbaseBoolean(event.is_all_day, "is_all_day"),
     location: cloudbaseNullableText(event.location, "location"),
+    description: cloudbaseNullableText(event.description, "description"),
   };
 }
 
@@ -844,7 +848,7 @@ export async function readCloudBaseObjectRows(
 }
 
 export const cloudbaseTaskColumns =
-  "object_id,workspace_id,status,due_on,due_at,duration_minutes,repeat_rule,repeat_until,completed_at,parent_task_id,assignee_person_id,location,rank";
+  "object_id,workspace_id,status,due_on,due_at,duration_minutes,repeat_rule,repeat_until,completed_at,parent_task_id,assignee_person_id,location,description,rank";
 
 export async function readCloudBaseTasks(
   client: CloudBaseRdbReader,

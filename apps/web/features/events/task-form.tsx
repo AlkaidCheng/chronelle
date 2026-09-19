@@ -5,6 +5,7 @@ import { useTranslations } from "next-intl";
 import { type FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { AccessLine } from "../../components/access-line";
 import { CountedField } from "../../components/counted-field";
+import { DescriptionField } from "../../components/description-field";
 import { EditorForm } from "../../components/editor-form";
 import {
   DiscardActions,
@@ -149,6 +150,7 @@ function TaskEditor({
     repeatUntil,
     assignee,
     location,
+    description,
     labels,
   } = draft.fields;
   const mutation = task === undefined ? create : update;
@@ -234,6 +236,7 @@ function TaskEditor({
             repeatUntil: "",
             assignee: "",
             location: "",
+            description: "",
             labels: "",
           });
           onCancel?.();
@@ -335,6 +338,11 @@ function TaskEditor({
             placeholder={t("namePlaceholder")}
             required
             value={displayName}
+          />
+          <DescriptionField
+            disabled={mutation.isPending}
+            onChange={(description) => draft.change({ description })}
+            value={description}
           />
           <DuePicker
             disabled={mutation.isPending}

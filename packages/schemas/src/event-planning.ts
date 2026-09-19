@@ -58,8 +58,16 @@ export const objectDeletionQuerySchema = z.object({
   expectedVersion: z.coerce.number().int().positive(),
 });
 
-// An Event and a Task alike may name where they happen as text (location).
+// An Event and a Task alike may name where they happen as text (location)
+// and carry a description: plain text of up to 2,000 characters, line
+// breaks kept, an empty one read as none.
 const locationSchema = z.string().trim().min(1).max(240).nullable();
+const descriptionSchema = z
+  .string()
+  .trim()
+  .max(2000)
+  .nullable()
+  .transform((value) => (value === "" ? null : value));
 
 export const eventCreateRequestSchema = z.object({
   ...createObjectShape,
@@ -70,6 +78,7 @@ export const eventCreateRequestSchema = z.object({
   timezone: z.string().trim().min(1).max(120).nullable().optional(),
   isAllDay: z.boolean().optional(),
   location: locationSchema.optional(),
+  description: descriptionSchema.optional(),
 });
 
 export const eventUpdateRequestSchema = z
@@ -82,6 +91,7 @@ export const eventUpdateRequestSchema = z
     timezone: z.string().trim().min(1).max(120).nullable().optional(),
     isAllDay: z.boolean().optional(),
     location: locationSchema.optional(),
+    description: descriptionSchema.optional(),
   })
   .refine(hasUpdateFields, {
     message: "At least one update field is required.",
@@ -109,6 +119,7 @@ export const taskCreateRequestSchema = z.object({
   parentTaskId: objectIdSchema.nullable().optional(),
   assigneeId: objectIdSchema.nullable().optional(),
   location: locationSchema.optional(),
+  description: descriptionSchema.optional(),
   /** The task's place in manual order; absent puts it last. */
   rank: rankSchema.optional(),
   /** The task's labels as a whole; absent leaves them unchanged. */
@@ -128,6 +139,7 @@ export const taskUpdateRequestSchema = z
     parentTaskId: objectIdSchema.nullable().optional(),
     assigneeId: objectIdSchema.nullable().optional(),
     location: locationSchema.optional(),
+    description: descriptionSchema.optional(),
     rank: rankSchema.optional(),
     labelIds: z.array(objectIdSchema).max(20).optional(),
   })
@@ -285,6 +297,8 @@ export const eventResponseSchema = z.object({
   isAllDay: z.boolean(),
   /** Where the event happens, as text. */
   location: z.string().nullable().default(null),
+  /** Plain text about the event, line breaks kept. */
+  description: z.string().nullable().default(null),
 });
 
 export const eventListResponseSchema = z.object({
@@ -311,6 +325,8 @@ export const taskResponseSchema = z.object({
   assigneeId: objectIdSchema.nullable().default(null),
   /** Where the task happens, as text. */
   location: z.string().nullable().default(null),
+  /** Plain text about the task, line breaks kept. */
+  description: z.string().nullable().default(null),
   /** The task's place in manual order. */
   rank: z.string().default("00000001000"),
   /** The task's labels in name order. */

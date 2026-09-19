@@ -6,6 +6,7 @@ import {
 import { tr } from "../i18n/active-locale";
 import { editedInstant } from "./edited-instant";
 import { toDateTimeInput } from "./format";
+import { descriptionPayload } from "./description-field";
 import { locationPayload } from "./location-field";
 
 export { locationLimit } from "./location-field";
@@ -27,6 +28,7 @@ export function readTaskFields(
     | "repeatUntil"
     | "assigneeId"
     | "location"
+    | "description"
     | "labelIds"
   >,
 ) {
@@ -49,6 +51,7 @@ export function readTaskFields(
     // The assignee's person id; empty for an unassigned task.
     assignee: task?.assigneeId ?? "",
     location: task?.location ?? "",
+    description: task?.description ?? "",
     // Label ids as one sorted string, so an unchanged set compares equal.
     labels: joinLabelIds(task?.labelIds ?? []),
   };
@@ -78,6 +81,7 @@ export function taskFieldsPayload(
   const v = tr("validation");
   const assigneeId = fields.assignee === "" ? null : fields.assignee;
   const location = locationPayload(fields.location);
+  const description = descriptionPayload(fields.description);
   const labelIds = splitLabelIds(fields.labels);
   const durationMinutes =
     fields.duration === "" ? null : Number(fields.duration);
@@ -101,6 +105,7 @@ export function taskFieldsPayload(
       ...repeat,
       assigneeId,
       location,
+      description,
       labelIds,
     };
   }
@@ -118,6 +123,7 @@ export function taskFieldsPayload(
       ...repeat,
       assigneeId,
       location,
+      description,
       labelIds,
     };
   }
@@ -133,6 +139,7 @@ export function taskFieldsPayload(
     ...repeat,
     assigneeId,
     location,
+    description,
     labelIds,
   };
 }

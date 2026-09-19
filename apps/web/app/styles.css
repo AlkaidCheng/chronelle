@@ -2254,6 +2254,23 @@ p[role="alert"] {
   margin-bottom: 0;
 }
 
+/* The event's description under its date line, and at the top of the
+   Overview: plain text with its line breaks, as many lines as it has. */
+.event-description,
+.overview-description {
+  color: var(--muted);
+  font-size: 0.92rem;
+  line-height: 1.5;
+  margin: 8px 0 0;
+  max-width: 64ch;
+  white-space: pre-wrap;
+}
+
+.overview-description {
+  color: var(--ink);
+  margin: 0 0 14px;
+}
+
 /* Where access comes from, under the heading of a record the caller does not own. */
 /* Where access comes from: one pill under the heading, in the design's
    bordered form, that opens the Sharing view when the reader may share. */

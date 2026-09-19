@@ -354,6 +354,7 @@ function canonical(
       timezone: null,
       isAllDay: false,
       location: null,
+      description: null,
     },
     task: {
       dueOn: null,
@@ -366,6 +367,7 @@ function canonical(
       parentTaskId: null,
       assigneeId: null,
       location: null,
+      description: null,
       rank: "00000001000",
       labelIds: [],
     },

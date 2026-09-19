@@ -26,5 +26,6 @@
   "validCalendarDates": "Enter valid calendar dates.",
   "endBeforeStartDate": "End date must not precede start date.",
   "endAndTime": "Provide both an end date and time, or leave both empty.",
-  "endBeforeStartTime": "End time must not precede start time."
+  "endBeforeStartTime": "End time must not precede start time.",
+  "descriptionLength": "Keep the description to {limit} characters."
 }

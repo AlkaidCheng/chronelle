@@ -29,6 +29,7 @@ const event: EventResponse = {
   endsOn: null,
   isAllDay: false,
   location: null,
+  description: null,
 };
 const task: TaskResponse = {
   ...event,
@@ -39,6 +40,7 @@ const task: TaskResponse = {
   parentTaskId: null,
   assigneeId: null,
   location: null,
+  description: null,
   durationMinutes: null,
   repeatRule: null,
   repeatUntil: null,

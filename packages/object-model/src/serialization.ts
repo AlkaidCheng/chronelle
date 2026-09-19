@@ -33,6 +33,7 @@ export function serializeResource(resource: EventPlanningResource) {
         timezone: resource.timezone,
         isAllDay: resource.isAllDay,
         location: resource.location,
+        description: resource.description,
       };
     case "task":
       return {
@@ -48,6 +49,7 @@ export function serializeResource(resource: EventPlanningResource) {
         parentTaskId: resource.parentTaskId,
         assigneeId: resource.assigneeId,
         location: resource.location,
+        description: resource.description,
         rank: resource.rank,
         labelIds: [...resource.labelIds],
       };

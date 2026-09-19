@@ -84,6 +84,7 @@ describe("CloudBaseTaskWriteRepository", () => {
         parentTaskId: null,
         assigneeId: null,
         location: null,
+        description: null,
         labelIds: [],
       });
     }
