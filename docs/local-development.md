@@ -375,6 +375,44 @@ loaded pages and starts a new period reference time. A failed continuation can
 be retried without discarding earlier cards. Grid/list layout stays local to
 the browser; Event data and ordering remain server-owned.
 
+## Test accounts and data
+
+`pnpm seed:test-data` creates three accounts with representative data on
+whichever backend the environment names, through the API's own HTTP
+contract (the app is injected in-process, so validation, authorization,
+audit, and revisions apply as for any client). The password comes from
+`SEED_PASSWORD` (or `--password`), at least ten characters; `WEB_PUBLIC_URL`
+is the origin the invitation link points at (`http://localhost:3000` by
+default). Against the local database:
+
+```bash
+SEED_PASSWORD='choose a long one' pnpm seed:test-data
+```
+
+| Sign in as   | Name       | Language, time zone, clock                        |
+| ------------ | ---------- | ------------------------------------------------- |
+| `mei-lin`    | Mei Lin    | the browser's, Asia/Shanghai, 24-hour             |
+| `kai-tanaka` | Kai Tanaka | Simplified Chinese, Asia/Tokyo, 24-hour           |
+| `ana-souza`  | Ana Souza  | Traditional Chinese, America/Los_Angeles, 12-hour |
+
+Mei plans Kyoto in November (five days of schedule items with their
+places, an all-day day, tasks with subtasks and an assignee, expenses in
+two currencies, reminders, three people, three notes, one of them with
+two versions, a task in Trash) and a Team offsite that spans the day the
+seed runs, so Today, Due today, and the Itinerary's now bar show
+something; she also has a plain dated event, tasks outside any event, one
+of them repeating, three labels, Kai as a friend with Kyoto shared as
+viewer, a share for the Tanakas waiting on an emailed invitation, an open
+invitation link (printed at the end, for the claim page), and Ana's
+pending friend request. Kai reads Simplified Chinese and shares his
+birthday dinner with Mei as editor; Ana has a trip and the request to
+Mei. Every account is past the Welcome step and can be found by email.
+
+The set is idempotent by username: when the accounts exist the seed signs
+them in and leaves their data alone (it says so); to seed again, start from
+an empty database. An account that exists with another password stops the
+run with a message.
+
 ## Services
 
 Docker Compose starts PostgreSQL on the configured `POSTGRES_PORT`. Application
