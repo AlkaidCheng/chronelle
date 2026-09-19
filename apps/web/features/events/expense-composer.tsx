@@ -47,8 +47,8 @@ const defaultTime = "12:00";
  * and Paid on (the date panel with the time) as chips. With an expense it
  * edits that expense in place and saves one versioned update; without one
  * it adds expenses, Enter adding and keeping the composer open for the
- * next. Its fields are a draft in the tab under the key the expense's
- * dialog uses. More hands the fields to the full editor.
+ * next. Its fields are a draft in the tab. More hands the fields to the
+ * full editor.
  */
 export function ExpenseComposer({
   draftKey,
@@ -62,10 +62,7 @@ export function ExpenseComposer({
   slotKey,
   slots,
 }: {
-  /**
-   * The key a new record's draft is kept under, when the add row is not the
-   * list's own (a section's, a day's); the dialog's key otherwise.
-   */
+  /** The key a new expense's draft is kept under, apart from the dialog's. */
   readonly draftKey?: string | undefined;
   readonly eventId: string;
   /** The expense being edited; absent for a new one. */

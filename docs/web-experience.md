@@ -1028,9 +1028,11 @@ refused before any request, the Amount panel opening on the notice. A
 Timeline entry reads its record before the composer takes the entry's
 place. Each kind's More opens its dialog (Add schedule item or Edit
 schedule item, Add reminder or Edit reminder, Add expense or Edit
-expense) with the composer's fields; a save on its way, or one that
-failed, opens the dialog from the add row itself, which shows the save
-and asks about it. The rows read as the To-dos rows do: the name over one
+expense) with the composer's fields. Each composer keeps its drafts apart
+from its dialog's, as the task's does: an add row's composer left with
+text is found open again, and a draft left in the dialog (or a save on
+its way there) is the dialog's, offered as Resume your draft when More
+reaches it again. The rows read as the To-dos rows do: the name over one
 meta line with its symbols (the dates and the place; the moment; the day
 paid, the amount at the row's end).
 Completion and reopening remain direct row actions through the check, a
@@ -1362,9 +1364,8 @@ a task or a schedule item is a column once the record carries one.
 
 ## Recorded reminders
 
-Add reminder opens the reminder's composer in the list; More on it, or a
-save the composer cannot settle, opens the focused dialog with a name and
-required Reminder time. Record reminder and Save reminder submit explicitly.
+Add reminder opens the reminder's composer in the list; More on it opens
+the focused dialog with a name and required Reminder time. Record reminder and Save reminder submit explicitly.
 No notification is sent; the form states this limitation before saving.
 Edit loads the canonical Reminder and its current access, not an editable
 copy of a projection row. Name-only edits preserve the original precise
@@ -1379,8 +1380,8 @@ settle independently of slow projection refreshes.
 
 ## Expense amounts
 
-Add expense opens the expense's composer in the list; More on it, or a save
-the composer cannot settle, opens the focused dialog. Edit in the dialog
+Add expense opens the expense's composer in the list; More on it opens
+the focused dialog. Edit in the dialog
 reads the canonical Expense and its own current access before showing
 fields. Record expense and Save expense are explicit actions. Pending
 saves disable fields and dismissal, failed saves preserve input,

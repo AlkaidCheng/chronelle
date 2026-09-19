@@ -71,10 +71,11 @@ export function describeSchedule(fields: EventFields): string {
  * With an item it edits that item in place and saves one versioned
  * update; without one it adds items to the event's schedule, Enter adding
  * and keeping the composer open for the next. Its fields are a draft in
- * the tab under the key the item's dialog uses, so an unsaved composer
- * left behind is found again. More hands the fields to the full editor.
+ * the tab, so an unsaved composer left behind is found again. More hands
+ * the fields to the full editor.
  */
 export function ScheduleComposer({
+  draftKey,
   eventId,
   item: latest,
   now = new Date(),
@@ -84,6 +85,8 @@ export function ScheduleComposer({
   slotKey,
   slots,
 }: {
+  /** The key a new item's draft is kept under, apart from the dialog's. */
+  readonly draftKey?: string | undefined;
   readonly eventId: string;
   /** The schedule item being edited; absent for a new one. */
   readonly item?: EventResponse | undefined;
@@ -101,7 +104,8 @@ export function ScheduleComposer({
   const t = useTranslations("composer");
   const rows = useTranslations("rows");
   const modes = useTranslations("conflict.modes");
-  const draftId = latest?.id ?? eventCreationDraftKeys(eventId).schedule;
+  const draftId =
+    latest?.id ?? draftKey ?? eventCreationDraftKeys(eventId).schedule;
   const kept = useKeptEditorDraft(draftId);
   const [initial] = useState<EventDraftSnapshot | undefined>(() =>
     kept !== undefined && !kept.pending && kept.snapshot.kind === "event"

@@ -53,8 +53,8 @@ const defaultTime = "09:00";
  * reminder in place and saves one versioned update; without one it adds
  * reminders, Enter adding and keeping the composer open for the next,
  * each due at nine on the row's day (the next nine for the list's row).
- * Its fields are a draft in the tab under the key the reminder's dialog
- * uses. More hands the fields to the full editor.
+ * Its fields are a draft in the tab. More hands the fields to the full
+ * editor.
  */
 export function ReminderComposer({
   day = null,
@@ -70,10 +70,7 @@ export function ReminderComposer({
 }: {
   /** The day a new reminder starts due on: a day group's add row. */
   readonly day?: DayKey | null | undefined;
-  /**
-   * The key a new record's draft is kept under, when the add row is not the
-   * list's own (a day's); the dialog's key otherwise.
-   */
+  /** The key a new reminder's draft is kept under, apart from the dialog's. */
   readonly draftKey?: string | undefined;
   readonly eventId: string;
   /** Today, for tests. */

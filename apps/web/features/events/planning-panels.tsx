@@ -107,7 +107,7 @@ import {
   rowClasses,
   TaskListView,
 } from "../tasks/task-list-view";
-import { AddRecordRow } from "./add-record-row";
+import { AddRecordRow, addRecordDraftId } from "./add-record-row";
 import {
   LayoutControl,
   objectTypeLabel,
@@ -583,6 +583,10 @@ export function CalendarPanel({
     );
   };
   const addSlot = addComposerKey("schedule");
+  const addDraftId = addRecordDraftId(
+    eventCreationDraftKeys(eventId).schedule,
+    null,
+  );
   return (
     <section className={panelClasses(view)} ref={panel}>
       <PanelHeading
@@ -677,6 +681,7 @@ export function CalendarPanel({
           <AddRecordRow
             composer={
               <ScheduleComposer
+                draftKey={addDraftId}
                 eventId={eventId}
                 onMore={(fields) => setEditing({ id: null, start: fields })}
                 onRefresh={refresh}
@@ -684,12 +689,10 @@ export function CalendarPanel({
                 slots={composer}
               />
             }
-            draftId={eventCreationDraftKeys(eventId).schedule}
+            draftId={addDraftId}
             label={panels("addScheduleItem")}
-            onRecover={() => setEditing({ id: null })}
             slotKey={addSlot}
             slots={composer}
-            suspended={editing !== null}
           />
         </div>
       ) : null}
@@ -1213,8 +1216,10 @@ export function ExpensesPanel({
   const addRow = (sectionId: string | null, sectionName?: string) => {
     if (!canEdit) return null;
     const slotKey = addComposerKey(sectionId === null ? "list" : sectionId);
-    const draftKey = eventCreationDraftKeys(eventId).expense;
-    const draftId = sectionId === null ? draftKey : `${draftKey}:${sectionId}`;
+    const draftId = addRecordDraftId(
+      eventCreationDraftKeys(eventId).expense,
+      sectionId === null ? null : `section:${sectionId}`,
+    );
     return (
       <div className="quick-add-item">
         <AddRecordRow
@@ -1236,10 +1241,8 @@ export function ExpensesPanel({
           }
           draftId={draftId}
           label={panels("addExpense")}
-          onRecover={() => setEditing({ id: null })}
           slotKey={slotKey}
           slots={composer}
-          suspended={editing !== null}
         />
       </div>
     );
@@ -1805,8 +1808,10 @@ export function RemindersPanel({
   /** The add row of the list or of a day group, or its open composer. */
   const addRow = (day: DayKey | null, dayLabel?: string) => {
     const slotKey = addComposerKey(day === null ? "list" : `day:${day}`);
-    const draftKey = eventCreationDraftKeys(eventId).reminder;
-    const draftId = day === null ? draftKey : `${draftKey}:${day}`;
+    const draftId = addRecordDraftId(
+      eventCreationDraftKeys(eventId).reminder,
+      day,
+    );
     return (
       <AddRecordRow
         ariaLabel={
@@ -1827,10 +1832,8 @@ export function RemindersPanel({
         }
         draftId={draftId}
         label={panels("addReminder")}
-        onRecover={() => setEditing({ id: null })}
         slotKey={slotKey}
         slots={composer}
-        suspended={editing !== null}
       />
     );
   };
