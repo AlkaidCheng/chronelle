@@ -7087,6 +7087,15 @@ html:has(.event-create-dialog[open]) {
   transform: none;
 }
 
+/* Where the page's gutter is narrower than the control, the page starts
+   below it rather than beside it. */
+@media (min-width: 761px) and (max-width: 1400px) {
+  html[data-sidebar="collapsed"] .workspace-page,
+  html[data-sidebar="collapsed"] .event-workspace {
+    padding-top: 60px;
+  }
+}
+
 .icon-static {
   cursor: default;
 }
