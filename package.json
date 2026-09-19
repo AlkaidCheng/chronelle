@@ -20,6 +20,7 @@
     "cloudbase:linked-contract": "pnpm --filter @chronelle/db build && node --env-file-if-exists=.env infrastructure/scripts/cloudbase-linked-contract.mjs",
     "cloudbase:probe": "node --env-file-if-exists=.env infrastructure/scripts/cloudbase-sdk-probe.mjs",
     "cloudbase:read-contract": "pnpm --filter @chronelle/schemas build && pnpm --filter @chronelle/authorization build && pnpm --filter @chronelle/db build && pnpm --filter @chronelle/object-model build && node --env-file-if-exists=.env infrastructure/scripts/cloudbase-read-contract.mjs",
+    "seed:test-data": "pnpm --filter @chronelle/api build && node --env-file-if-exists=.env apps/api/dist/seed-test-data.js",
     "cloudbase:rpc-contract": "pnpm --filter @chronelle/db build && node --env-file-if-exists=.env infrastructure/scripts/cloudbase-rpc-contract.mjs",
     "cloudbase:write-contract": "pnpm --filter @chronelle/db build && node --env-file-if-exists=.env infrastructure/scripts/cloudbase-write-contract.mjs",
     "db:baseline-revisions": "pnpm --filter @chronelle/object-model build && pnpm --filter @chronelle/object-model baseline-revisions",
