@@ -13,15 +13,17 @@ the layout does not delete business objects or relations.
 
 ## Components
 
-| Kind        | Content                                                                   |
-| ----------- | ------------------------------------------------------------------------- |
-| `todos`     | Tasks with completion controls and independent local filters              |
-| `calendar`  | Scheduled Events, including date-only ranges, with creation and editing   |
-| `timeline`  | Dated Events, Tasks, Expenses, and Reminders in chronological order       |
-| `itinerary` | One day at a time: the timed items in order, their places, the free time  |
-| `expenses`  | Historical transactions with totals kept separate by currency             |
-| `reminders` | Recorded reminders with editing and dismissal; notifications are not sent |
-| `files`     | Authorized private attachments for the Event and its Tasks and Expenses   |
+| Kind        | Content                                                                    |
+| ----------- | -------------------------------------------------------------------------- |
+| `todos`     | Tasks with completion controls and independent local filters               |
+| `calendar`  | Scheduled Events, including date-only ranges, with creation and editing    |
+| `timeline`  | Dated Events, Tasks, Expenses, and Reminders in chronological order        |
+| `itinerary` | One day at a time: the timed items in order, their places, the free time   |
+| `expenses`  | Historical transactions with totals kept separate by currency              |
+| `reminders` | Recorded reminders with editing and dismissal; notifications are not sent  |
+| `files`     | Authorized private attachments for the Event and its Tasks and Expenses    |
+| `people`    | The people the Event involves, as namecards                                |
+| `notes`     | The Event's Notes as cards, newest edit first or by title, opened in place |
 
 Only components on the selected page are mounted. Repeated components share
 query results and in-flight requests, while controls such as task filters and
