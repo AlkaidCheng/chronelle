@@ -198,6 +198,37 @@ test("keeps the account's tabs for an event through the gallery, Manage tabs, th
     page.getByRole("tab", { name: "Timeline", exact: true }),
   ).toHaveAttribute("aria-selected", "true");
   expect(await stripTabs(page)).toContain("Timeline");
+
+  // A touch held on a tab opens Manage tabs; a tap still selects. The
+  // press is a touch pointer, whichever browser runs the journey, with an
+  // id of its own: the browser's mouse pointer is 1, and WebKit reports it
+  // leaving the strip when the synthetic touch lands elsewhere.
+  const held = page.getByRole("tab", { name: "Overview", exact: true });
+  const press = async (kind: "pointerdown" | "pointerup") => {
+    const box = await held.boundingBox();
+    if (box === null) throw new Error("The Overview tab is not on the strip.");
+    await held.dispatchEvent(kind, {
+      bubbles: true,
+      button: 0,
+      clientX: box.x + box.width / 2,
+      clientY: box.y + box.height / 2,
+      isPrimary: true,
+      pointerId: 42,
+      pointerType: "touch",
+    });
+  };
+  await press("pointerdown");
+  await page.waitForTimeout(700);
+  await press("pointerup");
+  await expect(manage).toBeVisible();
+  await expect(held).not.toHaveAttribute("aria-selected", "true");
+  await manage.getByRole("button", { name: "Done", exact: true }).click();
+  await expect(manage).toHaveCount(0);
+  await press("pointerdown");
+  await press("pointerup");
+  await held.click();
+  await expect(held).toHaveAttribute("aria-selected", "true");
+
   await page.setViewportSize({ width: 1280, height: 800 });
   await expect(chip).toHaveCount(0);
   expect((await stripTabs(page)).length).toBe(8);
