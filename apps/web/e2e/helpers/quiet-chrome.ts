@@ -38,7 +38,7 @@ export async function openAccountMenu(page: Page) {
   return menu;
 }
 
-/** The More control beside the profile block: Trash, Theme, Customize sidebar. */
+/** The More control beside the profile block: Trash, Theme, Customize sidebar, Keyboard shortcuts, Help. */
 export const moreTrigger = (page: Page) => page.locator(".more-trigger");
 
 export async function openMoreMenu(page: Page) {
