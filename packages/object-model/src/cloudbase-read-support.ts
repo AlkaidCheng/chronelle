@@ -29,7 +29,7 @@ import type {
 export const cloudbaseObjectColumns =
   "id,workspace_id,object_type,display_name,created_by,permission_scope_id,created_at,updated_at,version,archived_at,deleted_at,custom_properties,metadata";
 export const cloudbaseEventColumns =
-  "object_id,workspace_id,starts_at,ends_at,starts_on,ends_on,timezone,is_all_day";
+  "object_id,workspace_id,starts_at,ends_at,starts_on,ends_on,timezone,is_all_day,location";
 export const cloudbasePersonColumns =
   "object_id,workspace_id,user_id,nickname,description";
 
@@ -58,6 +58,7 @@ export type CloudBaseEventRow = {
   readonly ends_on: unknown;
   readonly timezone: unknown;
   readonly is_all_day: unknown;
+  readonly location: unknown;
 };
 
 export type CloudBaseTaskRow = {
@@ -647,6 +648,7 @@ export function cloudbaseEventResource(
     endsOn: cloudbaseNullableText(event.ends_on, "ends_on"),
     timezone: cloudbaseNullableText(event.timezone, "timezone"),
     isAllDay: cloudbaseBoolean(event.is_all_day, "is_all_day"),
+    location: cloudbaseNullableText(event.location, "location"),
   };
 }
 

@@ -41,6 +41,8 @@ export interface EventResource extends CanonicalObjectResource {
   readonly endsOn: string | null;
   readonly endsAt: Date | null;
   readonly isAllDay: boolean;
+  /** Where the event happens, as text. */
+  readonly location: string | null;
   readonly objectType: "event";
   readonly startsAt: Date | null;
   readonly timezone: string | null;
@@ -182,6 +184,7 @@ export interface CreateEventInput extends CreateObjectFields {
   readonly endsOn?: string | null | undefined;
   readonly endsAt?: Date | null | undefined;
   readonly isAllDay?: boolean | undefined;
+  readonly location?: string | null | undefined;
   readonly startsAt?: Date | null | undefined;
   readonly timezone?: string | null | undefined;
 }
@@ -243,6 +246,7 @@ export interface UpdateEventInput extends UpdateObjectFields {
   readonly endsOn?: string | null | undefined;
   readonly endsAt?: Date | null | undefined;
   readonly isAllDay?: boolean | undefined;
+  readonly location?: string | null | undefined;
   readonly startsAt?: Date | null | undefined;
   readonly timezone?: string | null | undefined;
 }

@@ -543,6 +543,7 @@ export const events = pgTable("events", {
   endsAt: timestamp("ends_at", { mode: "date", withTimezone: true }),
   timezone: text("timezone"),
   isAllDay: boolean("is_all_day").notNull().default(false),
+  location: text("location"),
 });
 
 export const tasks = pgTable("tasks", {

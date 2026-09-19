@@ -729,6 +729,15 @@ Partial updates validate against current content; invalid ranges and mixed
 precision return 400. Stale versions still return 409. See
 [Event schedules](object-model.md#event-schedules) for storage and timezone semantics.
 
+An Event may name where it happens through `location`, the same text a
+Task carries (1 to 240 characters, trimmed at the boundary; `null` clears it,
+absent leaves it unchanged; padded or longer text is refused with
+`location is 1 to 240 characters without surrounding spaces.`). Responses
+carry `location`, null when unset, and so do the calendar and itinerary
+projections; it is restorable content, and a reversible command that edits
+an Event carries it with the rest of the content. Deploy migration 0059
+before this API.
+
 ## Event projections
 
 The typed client can read just the canonical Event for a header or editor:

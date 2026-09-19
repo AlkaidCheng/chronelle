@@ -32,6 +32,7 @@ export function serializeResource(resource: EventPlanningResource) {
         endsAt: serializeDate(resource.endsAt),
         timezone: resource.timezone,
         isAllDay: resource.isAllDay,
+        location: resource.location,
       };
     case "task":
       return {

@@ -399,8 +399,8 @@ async function nextRank(
   return rankAfter(last === null ? null : last.padStart(11, "0"));
 }
 
-/** The location, when set, is 1 to 240 trimmed characters. */
-function assertTaskLocation(location: string | null): void {
+/** A location (of a Task or an Event), when set, is 1 to 240 trimmed characters. */
+function assertLocation(location: string | null): void {
   if (
     location !== null &&
     (location !== location.trim() ||
@@ -580,7 +580,9 @@ export class EventPlanningObjectService {
     const timezone = input.timezone ?? null;
     const startsOn = input.startsOn ?? null;
     const endsOn = input.endsOn ?? null;
+    const location = input.location ?? null;
     assertEventState(startsAt, endsAt, timezone, startsOn, endsOn);
+    assertLocation(location);
     if (this.#writes.event !== undefined)
       return this.#writes.event.create(context, input);
 
@@ -598,6 +600,7 @@ export class EventPlanningObjectService {
           endsOn,
           timezone,
           isAllDay: input.isAllDay ?? false,
+          location,
         });
       },
     );
@@ -625,7 +628,7 @@ export class EventPlanningObjectService {
     const parentTaskId = input.parentTaskId ?? null;
     const assigneeId = input.assigneeId ?? null;
     const location = input.location ?? null;
-    assertTaskLocation(location);
+    assertLocation(location);
     const resource = await this.#createObject(
       context,
       "task",
@@ -892,6 +895,7 @@ export class EventPlanningObjectService {
       input.startsOn === undefined ? current.startsOn : input.startsOn;
     const endsOn = input.endsOn === undefined ? current.endsOn : input.endsOn;
     assertEventState(startsAt, endsAt, timezone, startsOn, endsOn);
+    if (input.location !== undefined) assertLocation(input.location);
 
     const resource = await this.#updateObject(
       context,
@@ -905,6 +909,7 @@ export class EventPlanningObjectService {
           ...(input.endsAt !== undefined && { endsAt: input.endsAt }),
           ...(input.timezone !== undefined && { timezone: input.timezone }),
           ...(input.isAllDay !== undefined && { isAllDay: input.isAllDay }),
+          ...(input.location !== undefined && { location: input.location }),
         };
         if (Object.keys(changes).length > 0) {
           await transaction
@@ -956,7 +961,7 @@ export class EventPlanningObjectService {
           ? current.repeatUntil
           : input.repeatUntil;
     assertTaskRepeat(dueOn, dueAt, repeatRule, repeatUntil);
-    if (input.location !== undefined) assertTaskLocation(input.location);
+    if (input.location !== undefined) assertLocation(input.location);
     if (input.rank !== undefined) assertRank(input.rank);
 
     const resource = await this.#updateObject(

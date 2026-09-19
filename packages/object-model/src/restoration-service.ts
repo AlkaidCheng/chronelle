@@ -357,6 +357,7 @@ export class ObjectRestorationService {
             endsAt: fields.endsAt,
             timezone: fields.timezone,
             isAllDay: fields.isAllDay,
+            location: fields.location,
           })
           .where(
             and(
