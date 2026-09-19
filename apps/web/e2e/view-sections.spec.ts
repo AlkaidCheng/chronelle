@@ -126,7 +126,9 @@ test("splits To-dos and Expenses into sections, places records by add row, edito
   // Section field on the phone.
   const hall = todos.getByRole("row", { name: /Book the hall/ });
   if (isMobile) {
+    // The row's Edit opens it in place; More reaches the dialog's Section.
     await chooseRowAction(page, hall, "Edit");
+    await page.getByRole("button", { name: /^More: / }).click();
     const taskEditor = page.getByRole("dialog", { name: "Edit task" });
     await taskEditor.getByLabel("Section", { exact: true }).selectOption({
       label: "Music",

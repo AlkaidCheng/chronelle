@@ -176,8 +176,11 @@ test("compares a stale write side by side and saves each way out @webkit-desktop
 
   const editor = (tab: Page) =>
     tab.getByRole("dialog", { name: "Edit task", exact: true });
+  // The row menu's Edit opens the row in place; More at the composer's
+  // foot reaches the dialog, where the comparison is exercised.
   async function openEditor(tab: Page, name: string): Promise<Locator> {
     await chooseRowAction(tab, taskRow(tab, name), "Edit");
+    await tab.getByRole("button", { name: /^More: / }).click();
     await expect(editor(tab)).toBeVisible();
     return editor(tab);
   }

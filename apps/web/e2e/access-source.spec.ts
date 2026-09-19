@@ -113,7 +113,9 @@ test("names where a grantee's access comes from, and nothing on the owner's own 
   );
   await openEventView(page, "To-dos");
   const row = page.getByRole("row", { name: /Book the counter seats/ });
+  // The row's Edit opens it in place; More reaches the full editor.
   await chooseRowAction(page, row, "Edit");
+  await page.getByRole("button", { name: /^More: / }).click();
   const editor = page.getByRole("dialog", { name: "Edit task", exact: true });
   const editorLine = editor.getByRole("link", {
     name: "Through Kaiseki dinner, shared by Ana",

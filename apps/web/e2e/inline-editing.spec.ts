@@ -53,7 +53,11 @@ test("edits a task row in place: chips, Save, Cancel, a stale save, and the row 
   const name = composer.getByLabel("Task name", { exact: true });
   await expect(name).toBeFocused();
   await expect(name).toHaveValue("Book the ryokan");
-  await expect(row).toHaveCount(0);
+  // The row's button gives way to the composer in its place.
+  await expect(
+    page.getByRole("button", { name: "Edit Book the ryokan" }),
+  ).toHaveCount(0);
+  await expect(composer).toBeVisible();
 
   // The Due chip opens the date panel; a shortcut sets the day and the chip
   // reads it. Assignee lists the people with Assign to me; Labels is the
@@ -82,18 +86,28 @@ test("edits a task row in place: chips, Save, Cancel, a stale save, and the row 
   await expect(
     composer.getByRole("button", { name: "Labels: Travel", exact: true }),
   ).toBeVisible();
+  // The clear empties the field and leaves the checklist open for another
+  // choice; Escape from the checklist closes it and returns to the chip.
   await composer.getByRole("button", { name: "Clear Labels" }).click();
-  await expect(labels).toHaveCount(0);
   await expect(
     composer.getByRole("button", { name: "Labels", exact: true }),
   ).toBeVisible();
+  const travel = labels.getByRole("checkbox", { name: "Travel" });
+  await expect(travel).not.toBeChecked();
+  await travel.focus();
+  await page.keyboard.press("Escape");
+  await expect(labels).toHaveCount(0);
+  await expect(
+    composer.getByRole("button", { name: "Labels", exact: true }),
+  ).toBeFocused();
   await page.screenshot({ path: testInfo.outputPath("row-composer.png") });
 
-  // Save writes one update carrying the row's version; the row reads it.
+  // Save writes one update carrying the row's version (a content command,
+  // so it can be undone); the row reads it.
   const saved = page.waitForResponse(
     (response) =>
-      response.url().endsWith(`/api/tasks/${task.id}`) &&
-      response.request().method() === "PATCH",
+      response.url().endsWith("/api/commands") &&
+      response.request().method() === "POST",
   );
   await composer.getByRole("button", { name: "Save", exact: true }).click();
   expect((await saved).status()).toBe(200);
@@ -141,7 +155,7 @@ test("edits a task row in place: chips, Save, Cancel, a stale save, and the row 
   await expect(
     composer.getByRole("button", { name: "Location: Kyoto", exact: true }),
   ).toBeVisible();
-  await page.keyboard.press("Escape");
+  await name.press("Escape");
   await expect(composer).toHaveCount(0);
   await expect(row.getByText("Kyoto")).toBeVisible();
   expect(errors).toEqual([]);
@@ -170,6 +184,7 @@ test("asks before another row opens over unsaved changes, and keeps a row's draf
   await page.getByLabel("Name", { exact: true }).fill("Planner");
   await page.getByLabel("Email").fill(email);
   await page.getByRole("button", { name: "Continue", exact: true }).click();
+  await expect(page).toHaveURL(/\/events$/u);
   await page.goto("/tasks");
   const lanterns = page.getByRole("row", { name: /Pack the lanterns/ });
   const flowers = page.getByRole("row", { name: /Order the flowers/ });
