@@ -1,0 +1,18 @@
+{
+  "day": "單日",
+  "allDays": "全部日期",
+  "copyDay": "複製當天",
+  "copied": "已複製當天。",
+  "today": "今天",
+  "previousDay": "前一天",
+  "nextDay": "後一天",
+  "dayOf": "第 {n} 天，共 {total} 天",
+  "allDay": "全天",
+  "gapMinutes": "空檔 {minutes} 分鐘",
+  "gapHours": "空檔 {hours} 小時",
+  "gapHoursMinutes": "空檔 {hours} 小時 {minutes} 分鐘",
+  "dueToday": "今天到期",
+  "dueAt": "{time} 到期",
+  "untimed": "尚未安排時間",
+  "empty": "這一天沒有安排。"
+}

@@ -11,18 +11,16 @@ export const eventComponents = {
     views: ["list", "by-day", "week", "month"],
   },
   calendar: {
-    keywords: "schedule activities agenda itinerary running order",
+    keywords: "schedule activities agenda running order",
     views: ["list", "agenda", "week", "month"],
   },
   timeline: {
     keywords: "chronological overview",
     views: ["list"],
   },
-  // A kind saved layouts may still carry; it shows as the Calendar's agenda.
   itinerary: {
-    keywords: "agenda schedule",
-    views: ["list"],
-    aliasOf: { kind: "calendar", view: "agenda" },
+    keywords: "day sheet places trip running order",
+    views: ["by-day", "list"],
   },
   expenses: {
     keywords: "costs spending payments",
@@ -47,11 +45,6 @@ export const eventComponents = {
     keywords: string;
     /** The views the kind offers, the first being its default. */
     views: readonly EventComponentView[];
-    /** A retired kind that renders as another kind's view; not offered anew. */
-    aliasOf?: {
-      readonly kind: EventComponentKind;
-      readonly view: EventComponentView;
-    };
   }
 >;
 
@@ -70,7 +63,7 @@ export function componentViewLabel(view: EventComponentView): string {
 
 /** A component kind's name in the active language. */
 export function componentKindLabel(kind: EventComponentKind): string {
-  return tr("views")(kind === "itinerary" ? "itinerary" : kind);
+  return tr("views")(kind);
 }
 
 /** What a component kind is for, in the active language. */
@@ -83,56 +76,15 @@ export function describeShownView(view: EventComponentView): string {
   return tr("layouts.shown")(viewKeys[view]);
 }
 
-/** A retired kind kept for saved layouts, shown as another kind's view. */
-type AliasedEventComponentKind = {
-  [K in EventComponentKind]: (typeof eventComponents)[K] extends {
-    readonly aliasOf: unknown;
-  }
-    ? K
-    : never;
-}[EventComponentKind];
+/** The kinds a page may add, in the gallery's order. */
+export const eventComponentKinds: readonly EventComponentKind[] =
+  eventComponentKindSchema.options;
 
-/** A kind a page may add: every kind but the retired aliases. */
-export type AddableEventComponentKind = Exclude<
-  EventComponentKind,
-  AliasedEventComponentKind
->;
-
-export const addableEventComponentKinds: readonly AddableEventComponentKind[] =
-  eventComponentKindSchema.options.filter(
-    (kind): kind is AddableEventComponentKind => aliasOf(kind) === undefined,
-  );
-
-function aliasOf(kind: EventComponentKind) {
-  const entry: {
-    readonly aliasOf?: {
-      readonly kind: EventComponentKind;
-      readonly view: EventComponentView;
-    };
-    readonly keywords: string;
-  } = eventComponents[kind];
-  return entry.aliasOf;
-}
-
-/** The kind and view a component renders as, aliases resolved. */
-export function resolveEventComponent(component: {
-  readonly kind: EventComponentKind;
-  readonly view?: EventComponentView | undefined;
-}): { readonly kind: EventComponentKind; readonly view: EventComponentView } {
-  const alias = aliasOf(component.kind);
-  if (alias !== undefined) return alias;
-  return { kind: component.kind, view: viewOf(component) };
-}
-
-/** The views a kind offers, the first being its default; an alias offers its target's. */
+/** The views a kind offers, the first being its default. */
 export function viewsOf(
   kind: EventComponentKind,
 ): readonly EventComponentView[] {
-  const alias = aliasOf(kind);
-  if (alias !== undefined) return viewsOf(alias.kind);
-  const entry: { views?: readonly EventComponentView[] } =
-    eventComponents[kind];
-  return entry.views ?? ["list"];
+  return eventComponents[kind].views;
 }
 
 /** The view a component shows: its own when the kind offers it, else the default. */
@@ -140,17 +92,13 @@ export function viewOf(component: {
   readonly kind: EventComponentKind;
   readonly view?: EventComponentView | undefined;
 }): EventComponentView {
-  const alias = aliasOf(component.kind);
-  if (alias !== undefined) return alias.view;
   const views = viewsOf(component.kind);
   return component.view !== undefined && views.includes(component.view)
     ? component.view
     : (views[0] ?? "list");
 }
 
-export function findEventComponents(
-  query: string,
-): AddableEventComponentKind[] {
+export function findEventComponents(query: string): EventComponentKind[] {
   const terms = query
     .normalize("NFKC")
     .toLowerCase()
@@ -158,7 +106,7 @@ export function findEventComponents(
     .replace(/^\//, "")
     .split(/[\s-]+/)
     .filter(Boolean);
-  return addableEventComponentKinds.filter((kind) => {
+  return eventComponentKinds.filter((kind) => {
     const text = [
       kind,
       eventComponents[kind].keywords,

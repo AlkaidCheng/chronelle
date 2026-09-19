@@ -3904,6 +3904,229 @@ ul.resource-list {
   border-top: 0;
 }
 
+/* The Itinerary's day sheet: the day line, then the sheet's rows in a
+   time column, a copy column, and a duration column. */
+.day-sheet-nav {
+  align-items: center;
+  color: var(--muted);
+  display: flex;
+  font-size: 0.82rem;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.day-sheet-turn {
+  height: 26px;
+  width: 26px;
+}
+
+.day-sheet-day {
+  color: var(--ink);
+  font-size: 0.875rem;
+}
+
+.day-sheet-today {
+  background: none;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  color: var(--muted);
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.75rem;
+  padding: 3px 8px;
+}
+
+.day-sheet-today:hover:not(:disabled) {
+  border-color: var(--line-strong);
+  color: var(--ink);
+}
+
+.day-sheet-today:disabled {
+  cursor: default;
+  opacity: 0.55;
+}
+
+.day-sheet {
+  margin-top: 10px;
+}
+
+.day-sheet-heading {
+  background: var(--surface);
+  border-bottom: 1px solid var(--line);
+  font-size: 0.875rem;
+  margin: 18px 0 0;
+  padding: 8px 0;
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+.day-sheet-allday {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  list-style: none;
+  margin: 0;
+  padding: 8px 0 4px;
+}
+
+.day-sheet-pill {
+  background: var(--accent-soft);
+  border-radius: 999px;
+  color: var(--accent);
+  font-size: 0.78rem;
+  font-weight: 600;
+  padding: 3px 9px;
+}
+
+.day-sheet-rows,
+.day-sheet-tasks {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.day-sheet-row {
+  align-items: baseline;
+  border-top: 1px solid var(--line);
+  display: grid;
+  gap: 12px;
+  grid-template-columns: 96px minmax(0, 1fr) auto;
+  padding: 11px 0;
+  position: relative;
+}
+
+/* The item happening now carries the accent bar, as the calendar's now row. */
+.day-sheet-row[data-now]::before {
+  background: var(--accent);
+  border-radius: 2px;
+  bottom: 0;
+  content: "";
+  left: -12px;
+  position: absolute;
+  top: 0;
+  width: 3px;
+}
+
+.day-sheet-time {
+  color: var(--ink);
+  display: grid;
+  font-size: 0.84rem;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+
+.day-sheet-time-none {
+  color: var(--faint);
+  font-weight: 500;
+}
+
+.day-sheet-end {
+  color: var(--faint);
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.day-sheet-duration-folded {
+  color: var(--faint);
+  display: none;
+  font-size: 0.72rem;
+  font-weight: 500;
+}
+
+.day-sheet-copy {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.day-sheet-name {
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.day-sheet-name[data-done] {
+  color: var(--muted);
+  text-decoration: line-through;
+}
+
+.day-sheet-meta {
+  align-items: center;
+  color: var(--muted);
+  display: inline-flex;
+  flex-wrap: wrap;
+  font-size: 0.78rem;
+  gap: 4px;
+}
+
+.day-sheet-duration {
+  color: var(--faint);
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.day-sheet-gap {
+  color: var(--faint);
+  display: grid;
+  font-size: 0.75rem;
+  font-style: italic;
+  gap: 12px;
+  grid-template-columns: 96px 1fr;
+  padding: 5px 0;
+}
+
+.day-sheet-gap::before {
+  content: "";
+}
+
+.day-sheet-section {
+  border-top: 1px solid var(--line);
+  color: var(--faint);
+  font-size: 0.69rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  margin: 18px 0 0;
+  padding-top: 10px;
+  text-transform: uppercase;
+}
+
+.day-sheet-task {
+  align-items: center;
+  border-top: 1px solid var(--line);
+  display: grid;
+  gap: 10px;
+  grid-template-columns: 22px minmax(0, 1fr) auto;
+  padding: 9px 0;
+}
+
+.day-sheet-task .day-sheet-name {
+  font-weight: 500;
+}
+
+.day-sheet-who {
+  color: var(--faint);
+  font-size: 0.75rem;
+}
+
+@media (max-width: 760px) {
+  /* The time column narrows and the duration folds into it. */
+  .day-sheet-row {
+    grid-template-columns: 74px minmax(0, 1fr);
+  }
+
+  .day-sheet-gap {
+    grid-template-columns: 74px 1fr;
+  }
+
+  .day-sheet-duration {
+    display: none;
+  }
+
+  .day-sheet-duration-folded {
+    display: block;
+  }
+}
+
 .itinerary-number {
   color: var(--muted);
   font-family: var(--font-display);
