@@ -21,6 +21,8 @@ import {
   CloudBaseLabelRepository,
   CloudBaseObjectLifecycleWriteRepository,
   CloudBaseObjectReadRepository,
+  CloudBaseNoteReadRepository,
+  CloudBaseNoteWriteRepository,
   CloudBasePersonReadRepository,
   CloudBasePersonWriteRepository,
   CloudBaseProjectionReadRepository,
@@ -205,6 +207,7 @@ export function createAppDependencies(
           expense: new CloudBaseExpenseWriteRepository(options.cloudBaseRdb),
           reminder: new CloudBaseReminderWriteRepository(options.cloudBaseRdb),
           person: new CloudBasePersonWriteRepository(options.cloudBaseRdb),
+          note: new CloudBaseNoteWriteRepository(options.cloudBaseRdb),
           eventContext: new CloudBaseEventContextWriteRepository(
             options.cloudBaseRdb,
           ),
@@ -342,6 +345,9 @@ export function createAppDependencies(
       options.cloudBaseRdb === undefined
         ? undefined
         : new CloudBaseProjectionReadRepository(options.cloudBaseRdb),
+      options.cloudBaseRdb === undefined
+        ? undefined
+        : new CloudBaseNoteReadRepository(options.cloudBaseRdb),
     ),
   };
 }

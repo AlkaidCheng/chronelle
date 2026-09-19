@@ -82,6 +82,13 @@ import {
   objectAccessResponseSchema,
   objectDeletionResponseSchema,
   objectSearchResponseSchema,
+  type NoteCreatePayload,
+  type NoteListQueryInput,
+  type NoteListResponse,
+  type NoteResponse,
+  type NoteUpdatePayload,
+  noteListResponseSchema,
+  noteResponseSchema,
   type PasswordResetConfirmRequest,
   type PasswordSignInRequest,
   type PermissionScopeUpdatePayload,
@@ -760,6 +767,22 @@ export class ChronelleApiClient {
     );
   }
 
+  createNote(input: NoteCreatePayload): Promise<NoteResponse> {
+    return this.#request(
+      "/api/notes",
+      noteResponseSchema,
+      jsonRequest(input, "POST"),
+    );
+  }
+
+  updateNote(id: string, input: NoteUpdatePayload): Promise<NoteResponse> {
+    return this.#request(
+      `/api/notes/${id}`,
+      noteResponseSchema,
+      jsonRequest(input, "PATCH"),
+    );
+  }
+
   listDocumentAttachments(
     parentObjectId: string,
   ): Promise<DocumentAttachmentListResponse> {
@@ -952,6 +975,10 @@ export class ChronelleApiClient {
     return this.#request(`/api/persons/${id}`, personResponseSchema);
   }
 
+  getNote(id: string): Promise<NoteResponse> {
+    return this.#request(`/api/notes/${id}`, noteResponseSchema);
+  }
+
   getEventLayout(id: string): Promise<EventLayoutResponse> {
     return this.#request(`/api/events/${id}/layout`, eventLayoutResponseSchema);
   }
@@ -1128,6 +1155,18 @@ export class ChronelleApiClient {
     return this.#request(
       `/api/events/${id}/people`,
       personResourceProjectionResponseSchema,
+    );
+  }
+
+  /** The Event's notes, last edited first unless sorted by title. */
+  getEventNotes(
+    id: string,
+    input: NoteListQueryInput = {},
+  ): Promise<NoteListResponse> {
+    const query = input.sort === undefined ? "" : `?sort=${input.sort}`;
+    return this.#request(
+      `/api/events/${id}/notes${query}`,
+      noteListResponseSchema,
     );
   }
 
