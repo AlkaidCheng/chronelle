@@ -38,14 +38,16 @@ export function installPointerEvents(): () => void {
 
 /**
  * Gives jsdom a layout for a drag: every row is 40px tall in document
- * order, a group or zone spans its rows, and an empty one sits below every
- * row. Returns the spy so a test can restore it.
+ * order; a group, a zone, or a section that holds rows spans them, and an
+ * empty one sits below every row. Returns the spy so a test can restore it.
  */
 export function installRowLayout(rowHeight = 40) {
   return vi
     .spyOn(Element.prototype, "getBoundingClientRect")
     .mockImplementation(function (this: Element) {
-      const rows = Array.from(document.querySelectorAll("[data-row-id]"));
+      const rows = Array.from(
+        document.querySelectorAll("[data-row-id]"),
+      ).filter((row) => row.querySelector("[data-row-id]") === null);
       const box = (top: number, bottom: number) =>
         ({
           top,
