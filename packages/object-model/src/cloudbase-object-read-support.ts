@@ -53,7 +53,8 @@ const typedColumns: Readonly<
 > = {
   event: cloudbaseEventColumns,
   task: cloudbaseTaskColumns,
-  expense: "object_id,workspace_id,amount::text,currency,occurred_at",
+  expense:
+    "object_id,workspace_id,amount::text,currency,occurred_at,section_id",
   reminder: "object_id,workspace_id,remind_at,status,rank",
   document:
     "object_id,workspace_id,storage_provider,storage_key,original_filename,mime_type,size_bytes::text,checksum_sha256,encryption_mode",

@@ -3,6 +3,7 @@ import type {
   PersonContactKind,
   RelationType,
   ReminderStatus,
+  SectionView,
   TaskRepeatRule,
   TaskStatus,
 } from "@chronelle/db";
@@ -72,6 +73,8 @@ export interface TaskResource extends CanonicalObjectResource {
   readonly description: string | null;
   /** The task's place in manual order. */
   readonly rank: string;
+  /** The section of its Event's To-dos the task sits in, if any. */
+  readonly sectionId: string | null;
   /** The task's labels in name order. */
   readonly labelIds: readonly string[];
   readonly status: TaskStatus;
@@ -82,6 +85,8 @@ export interface ExpenseResource extends CanonicalObjectResource {
   readonly currency: string;
   readonly objectType: "expense";
   readonly occurredAt: Date;
+  /** The section of its Event's Expenses the expense sits in, if any. */
+  readonly sectionId: string | null;
 }
 
 export interface ReminderResource extends CanonicalObjectResource {
@@ -90,6 +95,23 @@ export interface ReminderResource extends CanonicalObjectResource {
   readonly status: ReminderStatus;
   /** The reminder's place in manual order. */
   readonly rank: string;
+}
+
+/**
+ * A named group in one view of an Event: a vocabulary of the Event, not a
+ * canonical object, so it has no version, no Trash, and no history.
+ */
+export interface SectionResource {
+  readonly id: string;
+  readonly workspaceId: string;
+  readonly eventId: string;
+  readonly view: SectionView;
+  readonly name: string;
+  readonly description: string | null;
+  /** The section's place among its siblings. */
+  readonly rank: string;
+  readonly createdAt: Date;
+  readonly updatedAt: Date;
 }
 
 export interface DocumentResource extends CanonicalObjectResource {
@@ -214,6 +236,8 @@ export interface CreateTaskInput extends CreateObjectFields {
   readonly description?: string | null | undefined;
   /** The task's place in manual order; absent puts it last. */
   readonly rank?: string | undefined;
+  /** A section of the To-dos of the Event the task is created in. */
+  readonly sectionId?: string | null | undefined;
   /** The task's labels as a whole; absent leaves them empty. */
   readonly labelIds?: readonly string[] | undefined;
   readonly status?: TaskStatus | undefined;
@@ -223,6 +247,8 @@ export interface CreateExpenseInput extends CreateObjectFields {
   readonly amount: string;
   readonly currency: string;
   readonly occurredAt: Date;
+  /** A section of the Expenses of the Event the expense is created in. */
+  readonly sectionId?: string | null | undefined;
 }
 
 export interface CreateReminderInput extends CreateObjectFields {
@@ -282,6 +308,7 @@ export interface UpdateTaskInput extends UpdateObjectFields {
   readonly location?: string | null | undefined;
   readonly description?: string | null | undefined;
   readonly rank?: string | undefined;
+  readonly sectionId?: string | null | undefined;
   /** The task's labels as a whole; absent leaves them unchanged. */
   readonly labelIds?: readonly string[] | undefined;
   readonly status?: TaskStatus | undefined;
@@ -291,6 +318,7 @@ export interface UpdateExpenseInput extends UpdateObjectFields {
   readonly amount?: string | undefined;
   readonly currency?: string | undefined;
   readonly occurredAt?: Date | undefined;
+  readonly sectionId?: string | null | undefined;
 }
 
 export interface UpdateReminderInput extends UpdateObjectFields {
@@ -384,11 +412,15 @@ export interface EventResourceProjection {
 
 export interface TaskResourceProjection {
   readonly items: readonly TaskResource[];
+  /** The sections of the Event's To-dos in their order. */
+  readonly sections: readonly SectionResource[];
   readonly sourceEventId: string;
 }
 
 export interface ExpenseResourceProjection {
   readonly items: readonly ExpenseResource[];
+  /** The sections of the Event's Expenses in their order. */
+  readonly sections: readonly SectionResource[];
   readonly sourceEventId: string;
 }
 

@@ -56,7 +56,7 @@ import type {
 // to text so the row carries the column's canonical text under its own name.
 
 const expenseColumns =
-  "object_id,workspace_id,amount::text,currency,occurred_at";
+  "object_id,workspace_id,amount::text,currency,occurred_at,section_id";
 const reminderColumns = "object_id,workspace_id,remind_at,status,rank";
 const documentColumns =
   "object_id,workspace_id,storage_provider,storage_key,original_filename,mime_type,size_bytes::text,checksum_sha256,encryption_mode";

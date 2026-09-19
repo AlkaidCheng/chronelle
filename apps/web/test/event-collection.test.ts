@@ -45,6 +45,7 @@ const task: TaskResponse = {
   repeatRule: null,
   repeatUntil: null,
   rank: "00000001000",
+  sectionId: null,
   labelIds: [],
   completedAt: null,
   status: "todo",
@@ -96,6 +97,7 @@ describe("next planning item", () => {
           amount: "100.00",
           currency: "USD",
           occurredAt: new Date(now).toISOString(),
+          sectionId: null,
         },
       ],
       reminders: [

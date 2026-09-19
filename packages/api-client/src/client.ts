@@ -75,6 +75,13 @@ import {
   type LabelUpdateRequest,
   labelListResponseSchema,
   labelResponseSchema,
+  type SectionCreateRequest,
+  type SectionListResponse,
+  type SectionResponse,
+  type SectionUpdateRequest,
+  type SectionView,
+  sectionListResponseSchema,
+  sectionResponseSchema,
   maximumDocumentSizeBytes,
   type ObjectAccessResponse,
   type ObjectSearchQueryInput,
@@ -564,6 +571,44 @@ export class ChronelleApiClient {
       labelResponseSchema,
       { method: "DELETE" },
     );
+  }
+
+  listSections(
+    eventId: string,
+    view: SectionView,
+  ): Promise<SectionListResponse> {
+    return this.#request(
+      `/api/events/${eventId}/sections?view=${view}`,
+      sectionListResponseSchema,
+    );
+  }
+
+  createSection(
+    eventId: string,
+    input: SectionCreateRequest,
+  ): Promise<SectionResponse> {
+    return this.#request(
+      `/api/events/${eventId}/sections`,
+      sectionResponseSchema,
+      jsonRequest(input, "POST"),
+    );
+  }
+
+  updateSection(
+    id: string,
+    input: SectionUpdateRequest,
+  ): Promise<SectionResponse> {
+    return this.#request(
+      `/api/sections/${id}`,
+      sectionResponseSchema,
+      jsonRequest(input, "PATCH"),
+    );
+  }
+
+  deleteSection(id: string): Promise<SectionResponse> {
+    return this.#request(`/api/sections/${id}`, sectionResponseSchema, {
+      method: "DELETE",
+    });
   }
 
   listTasks(input: TaskListQueryInput = {}): Promise<TaskListResponse> {

@@ -17,6 +17,8 @@ import {
   personLabels,
   persons,
   reminders,
+  type SectionView,
+  sections,
   type TaskRepeatRule,
   taskLabels,
   tasks,
@@ -105,6 +107,9 @@ type TypedInsert = (
 type TypedUpdate = (transaction: DatabaseTransaction) => Promise<void>;
 
 const currencyPattern = /^[A-Z]{3}$/;
+/** The section rule's refusal, shared with the database functions. */
+export const sectionMemberMessage =
+  "sectionId must name a section of this view of the record's Event.";
 const amountPattern = /^-?\d{1,15}(?:\.\d{1,4})?$/;
 
 function assertValidDate(value: Date, fieldName: string): void {
@@ -461,6 +466,38 @@ async function assertTaskAssignee(
 }
 
 /**
+ * A record's section, when set, is one of the given view of the Event whose
+ * scope the record inherits; a self-scoped record belongs to no Event's view.
+ */
+async function assertSectionMember(
+  transaction: DatabaseTransaction,
+  workspaceId: string,
+  scopeId: string,
+  objectId: string,
+  sectionId: string | null,
+  view: SectionView,
+): Promise<void> {
+  if (sectionId === null) return;
+  const [section] =
+    scopeId === objectId
+      ? []
+      : await transaction
+          .select({ id: sections.id })
+          .from(sections)
+          .where(
+            and(
+              eq(sections.workspaceId, workspaceId),
+              eq(sections.id, sectionId),
+              eq(sections.eventId, scopeId),
+              eq(sections.view, view),
+            ),
+          )
+          .limit(1);
+  if (section === undefined)
+    throw new InvalidObjectStateError(sectionMemberMessage);
+}
+
+/**
  * The parent rules, checked inside the write transaction: the parent is a
  * live task of the workspace with no parent of its own, the task has no
  * subtasks itself, and both share one permission scope.
@@ -657,6 +694,7 @@ export class EventPlanningObjectService {
     const assigneeId = input.assigneeId ?? null;
     const location = input.location ?? null;
     const description = input.description ?? null;
+    const sectionId = input.sectionId ?? null;
     assertLocation(location);
     assertDescription(description);
     const resource = await this.#createObject(
@@ -676,6 +714,14 @@ export class EventPlanningObjectService {
           context.principal.workspaceId,
           assigneeId,
         );
+        await assertSectionMember(
+          transaction,
+          context.principal.workspaceId,
+          input.permissionScopeId ?? createdObjectId,
+          createdObjectId,
+          sectionId,
+          "todos",
+        );
         await transaction.insert(tasks).values({
           objectId: createdObjectId,
           workspaceId: context.principal.workspaceId,
@@ -693,6 +739,7 @@ export class EventPlanningObjectService {
           rank:
             input.rank ??
             (await nextRank(transaction, tasks, context.principal.workspaceId)),
+          sectionId,
         });
         if (input.labelIds !== undefined)
           await setTaskLabels(
@@ -719,12 +766,21 @@ export class EventPlanningObjectService {
       "expense",
       input,
       async (transaction, createdObjectId) => {
+        await assertSectionMember(
+          transaction,
+          context.principal.workspaceId,
+          input.permissionScopeId ?? createdObjectId,
+          createdObjectId,
+          input.sectionId ?? null,
+          "expenses",
+        );
         await transaction.insert(expenses).values({
           objectId: createdObjectId,
           workspaceId: context.principal.workspaceId,
           amount: input.amount,
           currency: input.currency,
           occurredAt: input.occurredAt,
+          sectionId: input.sectionId ?? null,
         });
       },
     );
@@ -1057,6 +1113,15 @@ export class EventPlanningObjectService {
             context.principal.workspaceId,
             input.assigneeId,
           );
+        if (input.sectionId !== undefined)
+          await assertSectionMember(
+            transaction,
+            context.principal.workspaceId,
+            current.permissionScopeId,
+            current.id,
+            input.sectionId,
+            "todos",
+          );
         const changes = {
           ...(input.status !== undefined && { status: input.status }),
           ...(input.parentTaskId !== undefined && {
@@ -1083,6 +1148,7 @@ export class EventPlanningObjectService {
             completedAt: input.completedAt,
           }),
           ...(input.rank !== undefined && { rank: input.rank }),
+          ...(input.sectionId !== undefined && { sectionId: input.sectionId }),
         };
         if (input.labelIds !== undefined)
           await setTaskLabels(
@@ -1128,12 +1194,22 @@ export class EventPlanningObjectService {
       current,
       input,
       async (transaction) => {
+        if (input.sectionId !== undefined)
+          await assertSectionMember(
+            transaction,
+            context.principal.workspaceId,
+            current.permissionScopeId,
+            current.id,
+            input.sectionId,
+            "expenses",
+          );
         const changes = {
           ...(input.amount !== undefined && { amount: input.amount }),
           ...(input.currency !== undefined && { currency: input.currency }),
           ...(input.occurredAt !== undefined && {
             occurredAt: input.occurredAt,
           }),
+          ...(input.sectionId !== undefined && { sectionId: input.sectionId }),
         };
         if (Object.keys(changes).length > 0) {
           await transaction

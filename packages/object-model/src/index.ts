@@ -73,6 +73,15 @@ export {
   type LabelResource,
   type LabelWriteRepository,
 } from "./labels.js";
+export { CloudBaseSectionRepository } from "./cloudbase-section-repository.js";
+export {
+  PostgresSectionRepository,
+  SectionService,
+  type CreateSectionInput,
+  type SectionReadRepository,
+  type SectionWriteRepository,
+  type UpdateSectionInput,
+} from "./sections.js";
 export { CloudBaseTaskWriteRepository } from "./cloudbase-task-write-repository.js";
 export {
   PostgresEventReadRepository,

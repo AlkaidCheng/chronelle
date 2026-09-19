@@ -79,6 +79,7 @@ export type CloudBaseTaskRow = {
   readonly location: unknown;
   readonly description: unknown;
   readonly rank: unknown;
+  readonly section_id: unknown;
 };
 
 export type CloudBaseExpenseRow = {
@@ -87,6 +88,7 @@ export type CloudBaseExpenseRow = {
   readonly amount: unknown;
   readonly currency: unknown;
   readonly occurred_at: unknown;
+  readonly section_id: unknown;
 };
 
 export type CloudBaseReminderRow = {
@@ -328,6 +330,7 @@ export function cloudbaseTaskResource(
     location: cloudbaseNullableText(task.location, "location"),
     description: cloudbaseNullableText(task.description, "description"),
     rank: cloudbaseText(task.rank, "rank"),
+    sectionId: cloudbaseNullableText(task.section_id, "section_id"),
     labelIds: [...labelIds],
   };
 }
@@ -534,6 +537,7 @@ export function cloudbaseExpenseResource(
     amount: cloudbaseText(expense.amount, "amount"),
     currency: cloudbaseText(expense.currency, "currency"),
     occurredAt: cloudbaseDate(expense.occurred_at, "occurred_at"),
+    sectionId: cloudbaseNullableText(expense.section_id, "section_id"),
   };
 }
 
@@ -848,7 +852,7 @@ export async function readCloudBaseObjectRows(
 }
 
 export const cloudbaseTaskColumns =
-  "object_id,workspace_id,status,due_on,due_at,duration_minutes,repeat_rule,repeat_until,completed_at,parent_task_id,assignee_person_id,location,description,rank";
+  "object_id,workspace_id,status,due_on,due_at,duration_minutes,repeat_rule,repeat_until,completed_at,parent_task_id,assignee_person_id,location,description,rank,section_id";
 
 export async function readCloudBaseTasks(
   client: CloudBaseRdbReader,

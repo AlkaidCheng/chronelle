@@ -51,6 +51,7 @@ export function serializeResource(resource: EventPlanningResource) {
         location: resource.location,
         description: resource.description,
         rank: resource.rank,
+        sectionId: resource.sectionId,
         labelIds: [...resource.labelIds],
       };
     case "expense":
@@ -60,6 +61,7 @@ export function serializeResource(resource: EventPlanningResource) {
         amount: resource.amount,
         currency: resource.currency,
         occurredAt: resource.occurredAt.toISOString(),
+        sectionId: resource.sectionId,
       };
     case "reminder":
       return {
