@@ -791,9 +791,9 @@ Every editor is a centred dialog. The Event and schedule item editors carry
 their schedule as three rows, each with its symbol: the dates (a calendar),
 the times (a clock) and the place (a pin). A row reads what is set (Dates:
 Jul 3, 2030 to Jul 12, 2030; Times: 9:30 AM to 6:00 PM; the place as typed)
-with a clear at its end, or, while unset, what it is for (Set dates with "A
-day, or a span of days"; Set times with "All day"; Add a place). The dates
-and times rows open the date panel under the row, on that part; the place row
+with a clear at its end, or, while unset, what it is for (Set dates; Set
+times with "All day" under it; Add a place). The dates and times rows open
+the date panel beside the row, on that part; the place row
 edits its text in place (up to 240 characters, trimmed on save, Enter or
 Escape returning to the row).
 
