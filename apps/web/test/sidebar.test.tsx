@@ -2,6 +2,7 @@
 
 import {
   cleanup,
+  fireEvent,
   render,
   screen,
   waitFor,
@@ -13,6 +14,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { Providers } from "../app/providers";
 import { WorkspaceShell } from "../components/workspace-shell";
 import { SandboxStore, sandboxWorkspaceId } from "../sandbox/store";
+import { installPointerEvents } from "./row-menu-support";
 
 const router = vi.hoisted(() => ({
   push: vi.fn(),
@@ -146,6 +148,90 @@ describe("the rail", () => {
       "aria-current",
       "page",
     );
+  });
+
+  it("drags a row by its grip with a finger, drops it where the finger rests, and puts it back on Escape", async () => {
+    const restorePointerEvents = installPointerEvents();
+    try {
+      const user = userEvent.setup();
+      await renderShell();
+      await user.click(
+        screen.getByRole("button", { name: "Customize sidebar" }),
+      );
+      // jsdom lays nothing out: each row reports a 30px band in order.
+      const rows = within(
+        screen.getByRole("list", { name: "Collections" }),
+      ).getAllByRole("listitem");
+      rows.forEach((row, index) => {
+        vi.spyOn(row, "getBoundingClientRect").mockImplementation(
+          () =>
+            ({
+              top: index * 30,
+              bottom: index * 30 + 30,
+              height: 30,
+              left: 0,
+              right: 200,
+              width: 200,
+              x: 0,
+              y: index * 30,
+              toJSON: () => ({}),
+            }) as DOMRect,
+        );
+      });
+      const grip = screen.getByRole("button", { name: "Move People" });
+      const touch = { pointerId: 1, pointerType: "touch", isPrimary: true };
+
+      // Lifted at 75, moved to 10: above the first row's middle, so it lands first.
+      fireEvent.pointerDown(grip, { ...touch, clientX: 10, clientY: 75 });
+      expect(rows[2]).toHaveAttribute("data-lifted");
+      fireEvent.pointerMove(document, { ...touch, clientX: 10, clientY: 10 });
+      expect(rows[2]).toHaveStyle({ transform: "translateY(-65px)" });
+      expect(rows[0]).toHaveAttribute("data-drop", "before");
+      fireEvent.pointerUp(document, { ...touch, clientX: 10, clientY: 10 });
+      await waitFor(() =>
+        expect(collectionNames()).toEqual(["People", "Events", "Tasks"]),
+      );
+      expect(document.querySelector("[data-lifted]")).toBeNull();
+      await waitFor(() =>
+        expect(
+          requests.filter((request) => request.method === "PATCH"),
+        ).toEqual([
+          {
+            method: "PATCH",
+            path: "/api/auth/me",
+            body: {
+              rail: { order: ["people", "events", "tasks"], hidden: [] },
+            },
+          },
+        ]),
+      );
+
+      // A mouse press on the grip is not a touch drag.
+      fireEvent.pointerDown(
+        screen.getByRole("button", { name: "Move Tasks" }),
+        {
+          pointerId: 2,
+          pointerType: "mouse",
+          clientX: 10,
+          clientY: 75,
+        },
+      );
+      expect(document.querySelector("[data-lifted]")).toBeNull();
+
+      // Escape puts a lifted row back without a change.
+      const tasks = screen.getByRole("button", { name: "Move Tasks" });
+      fireEvent.pointerDown(tasks, { ...touch, clientX: 10, clientY: 75 });
+      fireEvent.pointerMove(document, { ...touch, clientX: 10, clientY: 10 });
+      expect(document.querySelector("[data-lifted]")).not.toBeNull();
+      fireEvent.keyDown(document, { key: "Escape" });
+      expect(document.querySelector("[data-lifted]")).toBeNull();
+      expect(collectionNames()).toEqual(["People", "Events", "Tasks"]);
+      expect(
+        requests.filter((request) => request.method === "PATCH"),
+      ).toHaveLength(1);
+    } finally {
+      restorePointerEvents();
+    }
   });
 
   it("starts customizing from More and shows hidden collections dimmed until shown again", async () => {

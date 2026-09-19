@@ -6,6 +6,7 @@ import { useTranslations } from "next-intl";
 import {
   type DragEvent,
   type KeyboardEvent as ReactKeyboardEvent,
+  type PointerEvent as ReactPointerEvent,
   useId,
   useRef,
   useState,
@@ -24,11 +25,12 @@ import { railCollectionKeys, railCollections } from "./workspace-navigation";
 /**
  * The Collections section of the rail: the workspace collections in the
  * account's order, without the hidden ones (a hidden collection still shows
- * while it is the open page). Customize mode adds a grip to each row (drag,
- * or the arrow keys on the grip, reorder) and an eye that hides or shows
- * it; every change is kept on the account at once, the rows showing the
- * choice until the account has answered. A row's link does not navigate
- * while customizing, so a press that starts a drag stays on the page.
+ * while it is the open page). Customize mode adds a grip to each row (drag
+ * the row with a mouse, drag the grip with a finger, or the arrow keys on
+ * the grip, reorder) and an eye that hides or shows it; every change is
+ * kept on the account at once, the rows showing the choice until the
+ * account has answered. A row's link does not navigate while customizing,
+ * so a press that starts a drag stays on the page.
  */
 export function RailCollections({
   pathname,
@@ -47,6 +49,11 @@ export function RailCollections({
   const inFlight = useRef(0);
   const [dragging, setDragging] = useState<string | null>(null);
   const [dropBefore, setDropBefore] = useState<string | null | undefined>();
+  const list = useRef<HTMLUListElement>(null);
+  // A finger's drag: the row it lifted and how far, and the place it would
+  // drop, kept outside the render for the document listeners.
+  const [lift, setLift] = useState<{ key: string; dy: number } | null>(null);
+  const touchDrop = useRef<string | null | undefined>(undefined);
 
   const stored = pending ?? session.data?.user.rail ?? {};
   const arranged = arrangeRail(stored, railCollectionKeys);
@@ -107,6 +114,86 @@ export function RailCollections({
     setDropBefore(undefined);
   }
 
+  /** The row a point would drop before, among the rows other than `key`; null past the last. */
+  function dropTargetAt(y: number, key: string): string | null {
+    const rows = Array.from(
+      list.current?.querySelectorAll<HTMLElement>("li[data-key]") ?? [],
+    );
+    for (const row of rows) {
+      if (row.dataset.key === key) continue;
+      const bounds = row.getBoundingClientRect();
+      if (y < bounds.top + bounds.height / 2) return row.dataset.key ?? null;
+    }
+    return null;
+  }
+
+  /**
+   * A finger on the grip lifts the row at once (the grip is a handle, so
+   * no long press stands between the touch and the drag) and the row
+   * follows it; the finger lifting drops it, a cancel or Escape puts it
+   * back. The mouse keeps the row's own drag.
+   */
+  function onGripPointerDown(
+    event: ReactPointerEvent<HTMLButtonElement>,
+    key: string,
+  ) {
+    if (event.pointerType !== "touch" || !customizing || lift !== null) return;
+    event.preventDefault();
+    const grip = event.currentTarget;
+    const { pointerId, clientY: startY } = event;
+    if (typeof grip.setPointerCapture === "function") {
+      try {
+        grip.setPointerCapture(pointerId);
+      } catch {
+        // A pointer that has already left keeps the drag on the document.
+      }
+    }
+    touchDrop.current = undefined;
+    setDragging(key);
+    setDropBefore(undefined);
+    setLift({ key, dy: 0 });
+    const move = (moved: PointerEvent) => {
+      if (moved.pointerId !== pointerId) return;
+      const drop = dropTargetAt(moved.clientY, key);
+      touchDrop.current = drop;
+      setLift({ key, dy: moved.clientY - startY });
+      setDropBefore(drop);
+    };
+    const settle = (commit: boolean) => {
+      cleanup();
+      const drop = touchDrop.current;
+      if (commit && drop !== undefined) {
+        const order = placeKey(arranged.order, key, drop);
+        if (order !== arranged.order) keep({ order, hidden: arranged.hidden });
+      }
+      touchDrop.current = undefined;
+      setLift(null);
+      setDragging(null);
+      setDropBefore(undefined);
+    };
+    const end = (ended: PointerEvent) => {
+      if (ended.pointerId !== pointerId) return;
+      settle(ended.type === "pointerup");
+    };
+    const cancelKey = (pressed: KeyboardEvent) => {
+      if (pressed.key === "Escape") settle(false);
+    };
+    // The page must not scroll under the lifted row.
+    const hold = (touch: TouchEvent) => touch.preventDefault();
+    const cleanup = () => {
+      document.removeEventListener("pointermove", move);
+      document.removeEventListener("pointerup", end);
+      document.removeEventListener("pointercancel", end);
+      document.removeEventListener("keydown", cancelKey);
+      document.removeEventListener("touchmove", hold);
+    };
+    document.addEventListener("pointermove", move);
+    document.addEventListener("pointerup", end);
+    document.addEventListener("pointercancel", end);
+    document.addEventListener("keydown", cancelKey);
+    document.addEventListener("touchmove", hold, { passive: false });
+  }
+
   return (
     <>
       <div className="rail-heading">
@@ -125,6 +212,7 @@ export function RailCollections({
         className="rail-collections"
         data-customizing={customizing || undefined}
         aria-labelledby={`${id}-heading`}
+        ref={list}
       >
         {rows.map((collection) => {
           const name = t(collection.key);
@@ -134,6 +222,7 @@ export function RailCollections({
             <li
               key={collection.key}
               className="rail-row"
+              data-key={collection.key}
               data-hidden={hidden || undefined}
               data-drop={
                 dragging !== null && dropBefore === collection.key
@@ -145,6 +234,12 @@ export function RailCollections({
                     : undefined
               }
               data-dragging={dragging === collection.key || undefined}
+              data-lifted={lift?.key === collection.key || undefined}
+              style={
+                lift?.key === collection.key
+                  ? { transform: `translateY(${lift.dy}px)` }
+                  : undefined
+              }
             >
               {customizing ? (
                 <button
@@ -152,6 +247,9 @@ export function RailCollections({
                   className="rail-grip"
                   aria-label={t("move", { name })}
                   onKeyDown={(event) => onGripKeyDown(event, collection.key)}
+                  onPointerDown={(event) =>
+                    onGripPointerDown(event, collection.key)
+                  }
                 >
                   <GripIcon />
                 </button>

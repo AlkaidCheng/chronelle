@@ -45,15 +45,18 @@ page's actions); the Search page stays reachable from the palette.
 
 The Collections section is the person's to arrange: a pencil beside the
 heading (shown on hover or focus), or More then Customize sidebar, opens
-customize mode, where each row gains a grip and an eye. Dragging a row, or
-the up and down arrow keys on its grip, reorders the collections; the eye
-hides a collection from the rail or shows it again (a hidden collection stays
-dimmed in customize mode, and still shows while it is the open page). Each
-change is kept on the account at once, so the order and the hidden set follow
-the person across devices, and Done ends customize mode. A collection that
-ships later appends in its default place. The bottom bar on a phone lists the
-collections in the kept order; arranging them is a desktop task, and More does not
-offer it there.
+customize mode, where each row gains a grip and an eye. Dragging a row with
+a mouse, dragging its grip with a finger (the row lifts and follows the
+finger; lifting the finger drops it where it rests, Escape or a cancelled
+touch puts it back; the grip alone refuses the browser's touch gestures, so
+the rest of the rail still scrolls), or the up and down arrow keys on the
+grip, reorders the collections; the eye hides a collection from the rail or
+shows it again (a hidden collection stays dimmed in customize mode, and
+still shows while it is the open page). Each change is kept on the account
+at once, so the order and the hidden set follow the person across devices,
+and Done ends customize mode. A collection that ships later appends in its
+default place. The bottom bar on a phone lists the collections in the kept
+order and offers no arranging; More does not offer it there.
 
 More holds what acts on the app rather than on records: Trash, Theme, and
 Customize sidebar. Theme opens a panel beside the rail with the mode (System,

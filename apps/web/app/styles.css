@@ -6065,6 +6065,15 @@ html:has(.event-create-dialog[open]) {
   box-shadow: 0 2px 0 0 var(--accent);
 }
 
+/* A row a finger lifted by its grip follows the finger over the others. */
+.rail-row[data-lifted] {
+  background: var(--surface);
+  box-shadow: 0 6px 20px rgb(0 0 0 / 0.16);
+  opacity: 1;
+  position: relative;
+  z-index: 1;
+}
+
 /* Customize mode: the grip leads the row, the eye ends it, and the row
    itself is the drag handle; the link keeps its size so nothing shifts. */
 .rail-collections[data-customizing] .rail-row {
@@ -6101,8 +6110,11 @@ html:has(.event-create-dialog[open]) {
   width: 14px;
 }
 
+/* The grip alone refuses the browser's touch gestures, so a finger on it
+   drags the row while the rest of the rail still scrolls. */
 .rail-grip {
   cursor: grab;
+  touch-action: none;
 }
 
 .rail-eye {
