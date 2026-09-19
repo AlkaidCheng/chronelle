@@ -18,6 +18,8 @@ import {
 } from "../../components/editor-dialog-controls";
 import { ErrorNotice } from "../../components/feedback";
 import { eventSchedulePayload } from "../../lib/event-schedule";
+import { DescriptionField } from "../../components/description-field";
+import { descriptionPayload } from "../../lib/description-field";
 import { locationLimit, locationPayload } from "../../lib/location-field";
 import { shownTimeZone } from "../../i18n/active-preferences";
 import {
@@ -126,9 +128,11 @@ function CreateScheduleForm({
     if (mutation.isPending || isConfirming || !recovery.isRetained) return;
     let schedule: ReturnType<typeof eventSchedulePayload>;
     let location: string | null;
+    let description: string | null;
     try {
       schedule = eventSchedulePayload(draft.fields);
       location = locationPayload(draft.fields.location);
+      description = descriptionPayload(draft.fields.description);
       setScheduleError("");
     } catch (error) {
       setScheduleError(
@@ -144,6 +148,7 @@ function CreateScheduleForm({
           isAllDay: false,
           timezone: shownTimeZone(),
           location,
+          description,
         }),
       onClose,
     );
@@ -200,6 +205,11 @@ function CreateScheduleForm({
             placeholder={t("namePlaceholder")}
             required
             value={draft.fields.displayName}
+          />
+          <DescriptionField
+            disabled={mutation.isPending}
+            onChange={(description) => draft.change({ description })}
+            value={draft.fields.description}
           />
           <EventScheduleFields
             value={draft.fields}

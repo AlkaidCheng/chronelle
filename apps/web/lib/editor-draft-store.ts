@@ -21,6 +21,7 @@ export function readEventFields(event?: EventResponse) {
     displayName: event?.displayName ?? "",
     ...readEventSchedule(event),
     location: event?.location ?? "",
+    description: event?.description ?? "",
   };
 }
 

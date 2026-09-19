@@ -494,6 +494,34 @@ describe("schedule creation dialog", () => {
     ).toMatchObject({ location: "Fushimi Inari Taisha, main gate" });
   });
 
+  it("sends a trimmed description with its line breaks, and none for an empty one", async () => {
+    const request = vi.fn<typeof fetch>((input, options) =>
+      store.fetch(input, options),
+    );
+    vi.stubGlobal("fetch", request);
+    const user = await openEditor();
+    await user.type(screen.getByLabelText("Schedule item"), "Lower loop");
+    await user.click(screen.getByRole("switch", { name: "Set dates" }));
+    const description = screen.getByLabelText("Description");
+    expect(description).toHaveAttribute("placeholder", "Add a description");
+    await user.type(
+      description,
+      "  Meet at the main gate.{Enter}Bring coins for the shrines.  ",
+    );
+    await user.click(screen.getByRole("button", { name: "Add to schedule" }));
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+    const post = request.mock.calls.find(
+      ([, options]) => options?.method === "POST",
+    );
+    expect(JSON.parse(String(post?.[1]?.body))).toMatchObject({
+      resource: {
+        objectType: "event",
+        displayName: "Lower loop",
+        description: "Meet at the main gate.\nBring coins for the shrines.",
+      },
+    });
+  });
+
   it("blocks duplicate submission and dismissal while the linked create is pending", async () => {
     let release!: () => void;
     const pending = new Promise<void>((resolve) => {

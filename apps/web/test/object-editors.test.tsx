@@ -343,6 +343,37 @@ describe.each(["task", "expense"] as const)("focused %s editors", (kind) => {
       },
     );
 
+    it("offers a Description on a task and sends it trimmed", async () => {
+      if (kind !== "task") return;
+      const fetch = vi.fn<typeof globalThis.fetch>(async (input, init) => {
+        if (init?.method === "PATCH")
+          return Response.json({
+            ...resource,
+            description: "Eight so far.",
+            version: 2,
+          });
+        return Response.json(
+          String(input).endsWith("/access") ? access : resource,
+        );
+      });
+      vi.stubGlobal("fetch", withCommands(fetch));
+      const user = userEvent.setup();
+      render(<Harness />, { wrapper: Providers });
+      await user.click(screen.getByRole("button", { name: "Open resource" }));
+      const description = await screen.findByLabelText("Description");
+      expect(description).toHaveValue("");
+      await user.type(description, "  Eight so far.  ");
+      await user.click(screen.getByRole("button", { name: saveLabel }));
+      await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+      const patch = fetch.mock.calls.find(
+        ([, init]) => init?.method === "PATCH",
+      );
+      expect(JSON.parse(String(patch?.[1]?.body))).toMatchObject({
+        description: "Eight so far.",
+        expectedVersion: 1,
+      });
+    });
+
     it("preserves the exact source instant in a name-only versioned update", async () => {
       const fetch = vi.fn<typeof globalThis.fetch>(async (input, init) => {
         if (init?.method === "PATCH")
@@ -378,6 +409,7 @@ describe.each(["task", "expense"] as const)("focused %s editors", (kind) => {
               repeatUntil: null,
               assigneeId: null,
               location: null,
+              description: null,
               labelIds: [],
             }
           : {

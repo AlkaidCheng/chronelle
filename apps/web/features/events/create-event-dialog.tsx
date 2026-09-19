@@ -3,8 +3,10 @@ import { type FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import type { EventResponse } from "@chronelle/schemas";
 
 import { CountedField } from "../../components/counted-field";
+import { DescriptionField } from "../../components/description-field";
 import { ErrorNotice } from "../../components/feedback";
 import { EditorForm, EditorSubmitButton } from "../../components/editor-form";
+import { descriptionPayload } from "../../lib/description-field";
 import { eventSchedulePayload } from "../../lib/event-schedule";
 import { shownTimeZone } from "../../i18n/active-preferences";
 import { useEditorDraft } from "../../lib/use-editor-draft";
@@ -82,8 +84,10 @@ function CreateEventForm({
     if (createEvent.isPending || confirmingDiscard || !recovery.isRetained)
       return;
     let timing: ReturnType<typeof eventSchedulePayload>;
+    let description: string | null;
     try {
       timing = eventSchedulePayload(schedule);
+      description = descriptionPayload(draft.fields.description);
       setScheduleError("");
     } catch (error) {
       setScheduleError(
@@ -95,6 +99,7 @@ function CreateEventForm({
       () =>
         createEvent.mutateAsync({
           displayName,
+          description,
           ...timing,
           timezone: shownTimeZone(),
         }),
@@ -173,6 +178,11 @@ function CreateEventForm({
             placeholder={t("namePlaceholder")}
             required
             value={displayName}
+          />
+          <DescriptionField
+            disabled={createEvent.isPending}
+            onChange={(description) => draft.change({ description })}
+            value={draft.fields.description}
           />
           <EventScheduleFields
             value={schedule}

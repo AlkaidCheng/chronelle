@@ -10,6 +10,7 @@ const empty = {
   repeatUntil: "",
   assignee: "",
   location: "",
+  description: "",
   labels: "",
 };
 
@@ -26,6 +27,7 @@ describe("Task field conversion", () => {
       repeatUntil: "",
       assignee: "",
       location: "",
+      description: "",
       labels: "",
     });
     expect(taskFieldsPayload(empty)).toEqual({
@@ -37,6 +39,7 @@ describe("Task field conversion", () => {
       repeatUntil: null,
       assigneeId: null,
       location: null,
+      description: null,
       labelIds: [],
     });
   });
@@ -53,6 +56,7 @@ describe("Task field conversion", () => {
         repeatUntil: null,
         assigneeId: "u1",
         location: "The garden",
+        description: "Two bags and the cooler.",
         labelIds: ["b", "a", "b"],
       }),
     ).toEqual({
@@ -64,6 +68,7 @@ describe("Task field conversion", () => {
       repeatUntil: "",
       assignee: "u1",
       location: "The garden",
+      description: "Two bags and the cooler.",
       labels: "a,b",
     });
     expect(taskFieldsPayload({ ...empty, labels: "a,b" }).labelIds).toEqual([
@@ -85,6 +90,7 @@ describe("Task field conversion", () => {
       repeatUntil: null,
       assigneeId: null,
       location: null,
+      description: null,
       labelIds: [],
     });
     expect(
@@ -98,6 +104,7 @@ describe("Task field conversion", () => {
       repeatUntil: null,
       assigneeId: null,
       location: null,
+      description: null,
       labelIds: [],
     });
   });
@@ -113,6 +120,7 @@ describe("Task field conversion", () => {
       repeatUntil: null,
       assigneeId: null,
       location: null,
+      description: null,
       labelIds: [],
     };
     const fields = readTaskFields(source);
@@ -125,6 +133,7 @@ describe("Task field conversion", () => {
       repeatUntil: "",
       assignee: "",
       location: "",
+      description: "",
       labels: "",
     });
     expect(
@@ -138,6 +147,7 @@ describe("Task field conversion", () => {
       repeatUntil: null,
       assigneeId: null,
       location: null,
+      description: null,
       labelIds: [],
     });
   });
@@ -160,6 +170,7 @@ describe("Task field conversion", () => {
       repeatUntil: null,
       assigneeId: null,
       location: null,
+      description: null,
       labelIds: [],
     });
   });
@@ -195,6 +206,7 @@ describe("Task field conversion", () => {
         repeatUntil: null,
         assigneeId: null,
         location: null,
+        description: null,
         labelIds: [],
       }).duration,
     ).toBe("90");
@@ -233,6 +245,7 @@ describe("Task field conversion", () => {
       repeatUntil: "2030-08-01",
       assigneeId: null,
       location: null,
+      description: null,
       labelIds: [],
     });
     expect(fields.repeat).toBe("weekly");

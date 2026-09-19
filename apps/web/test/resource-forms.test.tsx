@@ -46,6 +46,7 @@ const eventResource = (version: number, displayName: string) => ({
   endsOn: null,
   isAllDay: false,
   location: null,
+  description: null,
 });
 
 const taskResource = (version: number, displayName: string) =>
@@ -61,6 +62,7 @@ const taskResource = (version: number, displayName: string) =>
     parentTaskId: null,
     assigneeId: null,
     location: null,
+    description: null,
     durationMinutes: null,
     repeatRule: null,
     repeatUntil: null,

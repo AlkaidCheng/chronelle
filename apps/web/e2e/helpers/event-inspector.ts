@@ -100,15 +100,31 @@ export async function exerciseEventInspector(page: Page, testInfo: TestInfo) {
   await trigger.click();
   await expect(name).toHaveValue("Garden evening");
   await name.fill("Saved garden evening");
+  // The description is kept with its line breaks and shown under the title.
+  await inspector
+    .getByRole("textbox", { name: "Description", exact: true })
+    .fill("Bring a lantern.\nThe gate closes at nine.");
   await name.press("Control+Enter");
   await expect(inspector).toHaveCount(0);
   await expect(
     page.getByRole("heading", { name: "Saved garden evening", exact: true }),
   ).toBeVisible();
+  await expect(page.locator(".event-description")).toHaveText(
+    "Bring a lantern.\nThe gate closes at nine.",
+  );
   await expect(trigger).toBeFocused();
   expect(page.url()).toBe(eventUrl);
   await page.reload();
   await expect(
     page.getByRole("heading", { name: "Saved garden evening", exact: true }),
   ).toBeVisible();
+  await expect(page.locator(".event-description")).toContainText(
+    "The gate closes at nine.",
+  );
+  await trigger.click();
+  await expect(
+    inspector.getByRole("textbox", { name: "Description", exact: true }),
+  ).toHaveValue("Bring a lantern.\nThe gate closes at nine.");
+  await inspector.getByRole("button", { name: "Cancel", exact: true }).click();
+  await expect(inspector).toHaveCount(0);
 }

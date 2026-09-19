@@ -26,5 +26,6 @@
   "validCalendarDates": "请输入有效的日期。",
   "endBeforeStartDate": "结束日期不能早于开始日期。",
   "endAndTime": "请同时填写结束日期和时间，或都留空。",
-  "endBeforeStartTime": "结束时间不能早于开始时间。"
+  "endBeforeStartTime": "结束时间不能早于开始时间。",
+  "descriptionLength": "描述请控制在 {limit} 个字符以内。"
 }

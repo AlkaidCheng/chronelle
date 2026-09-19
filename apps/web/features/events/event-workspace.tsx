@@ -223,6 +223,9 @@ export function EventWorkspace({ eventId }: { readonly eventId: string }) {
                 {schedule}
               </p>
             )}
+            {event.description === null ? null : (
+              <p className="event-description">{event.description}</p>
+            )}
             <AccessLine
               onOpenSharing={
                 canShare ? () => setActiveTab("sharing") : undefined

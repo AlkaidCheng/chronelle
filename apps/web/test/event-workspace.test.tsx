@@ -52,6 +52,7 @@ const rootEvent = {
   endsOn: null,
   isAllDay: false,
   location: null,
+  description: null,
 } as const;
 
 const documentAttachment = {

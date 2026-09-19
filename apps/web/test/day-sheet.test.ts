@@ -45,6 +45,7 @@ function item(
     timezone: "Asia/Tokyo",
     isAllDay: false,
     location: null,
+    description: null,
     ...fields,
   };
 }
@@ -69,6 +70,7 @@ function task(
     parentTaskId: null,
     assigneeId: null,
     location: null,
+    description: null,
     rank: "00000001000",
     labelIds: [],
     ...fields,
