@@ -7,6 +7,8 @@
   "searchAndCommands": "搜尋與指令",
   "workspaceNavigation": "工作區導覽",
   "skipToContent": "跳至內容",
+  "collapseSidebar": "收合側邊欄",
+  "expandSidebar": "展開側邊欄",
   "openingWorkspace": "正在開啟工作區",
   "collections": "集合",
   "customize": "自訂側邊欄",

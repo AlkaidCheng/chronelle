@@ -3,6 +3,8 @@ export const displayChoices = {
   palette: ["paper", "celadon", "neutral"],
   density: ["comfortable", "compact"],
   motion: ["system", "reduced"],
+  /** The desktop sidebar, shown or collapsed to the content's edge. */
+  sidebar: ["open", "collapsed"],
 } as const;
 
 export type DisplayPreference = keyof typeof displayChoices;

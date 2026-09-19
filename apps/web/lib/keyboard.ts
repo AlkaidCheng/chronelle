@@ -26,6 +26,22 @@ export function canOpenCommands(event: KeyboardEvent) {
   );
 }
 
+/**
+ * Cmd/Ctrl+\ collapses or expands the sidebar, outside text fields and
+ * dialogs; the window's width decides whether there is a sidebar to fold.
+ */
+export function canToggleSidebar(event: KeyboardEvent) {
+  return (
+    canUseShortcut(event) &&
+    !event.shiftKey &&
+    event.metaKey !== event.ctrlKey &&
+    event.key === "\\" &&
+    event.target instanceof Element &&
+    (event.target === document.body ||
+      event.target.closest(".workspace-shell") !== null)
+  );
+}
+
 export function canInsertComponent(
   event: KeyboardEvent,
   scope: HTMLElement,

@@ -59,6 +59,19 @@ and Done ends customize mode. A collection that ships later appends in its
 default place. The bottom bar on a phone lists the collections in the kept
 order and offers no arranging; More does not offer it there.
 
+On a window wide enough for the sidebar, a control beside the brand collapses
+it: the sidebar slides off the left edge as the content follows (at once when
+motion is reduced), leaves the tab order, and a single control at the
+content's top-left brings it back; each hands focus to the other, so the
+keyboard keeps its place. Cmd/Ctrl + \ does the same outside text fields and
+dialogs, and the palette's Keyboard shortcuts section names it. The choice is
+kept on this device under `chronelle.sidebar` (absent while open, `collapsed`
+otherwise) and applied before the first paint like the theme, so a reload
+never shows the sidebar first; Reset display settings opens it again with the
+other display choices. A phone never folds: below the sidebar width the
+bottom bar stays, neither control shows, the shortcut does nothing, and a
+choice kept from a wide window waits until the window is wide again.
+
 More holds what acts on the app rather than on records: Trash, Theme,
 Customize sidebar, Keyboard shortcuts, and Help. Theme opens a panel beside
 the rail with the mode (System, Light, Dark), the palette, density, and
@@ -398,7 +411,9 @@ Cmd/Ctrl + Z run them outside text fields and dialogs, and each item shows its
 keys for the platform at its end; while arranging a page,
 or inside the Page options dialog, the same keys move the layout stack instead
 (Undo layout change, Redo layout change, as the dialog's controls read). The
-palette's shortcut list names both.
+palette's shortcut list names both, and Cmd/Ctrl + \, which collapses or
+expands the desktop sidebar (see the rail above); none of the three has a
+setting.
 
 The rail and palette share one catalog of Events, Search, and Trash routes.
 On an event, a separate Event actions group offers Edit event, Share event,

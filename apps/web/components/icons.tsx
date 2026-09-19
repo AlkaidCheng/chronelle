@@ -694,3 +694,18 @@ export function TabsIcon({ className }: IconProps) {
     </svg>
   );
 }
+
+/** A window with its sidebar: the panel and the line where the sidebar ends. */
+export function SidebarIcon({ className }: IconProps) {
+  return (
+    <svg
+      aria-hidden="true"
+      className={className}
+      fill="none"
+      viewBox="0 0 24 24"
+    >
+      <rect x="3" y="5" width="18" height="14" rx="2.5" />
+      <path d="M9.5 5v14M5.5 9h1.5M5.5 12h1.5" />
+    </svg>
+  );
+}
