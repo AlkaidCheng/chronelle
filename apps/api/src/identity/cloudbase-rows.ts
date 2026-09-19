@@ -97,6 +97,7 @@ export function userRow(row: CloudBaseRow): UserRow {
     username: text(row.username, "username"),
     findByName: flag(row.find_by_name, "find_by_name"),
     findByEmail: flag(row.find_by_email, "find_by_email"),
+    onboardedAt: nullableInstant(row.onboarded_at, "onboarded_at"),
     locale: nullableText(row.locale, "locale"),
     timeZone: nullableText(row.time_zone, "time zone"),
     hourCycle: nullableText(row.hour_cycle, "hour cycle"),

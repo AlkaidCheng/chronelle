@@ -15,7 +15,10 @@ import {
 } from "@chronelle/db";
 import { and, eq, inArray, ne, sql } from "drizzle-orm";
 
-import type { AuthIdentity } from "../authentication/auth-provider.js";
+import {
+  type AuthIdentity,
+  passwordIdentityProvider,
+} from "../authentication/auth-provider.js";
 import {
   InvalidRequestError,
   UserUnavailableError,
@@ -70,8 +73,12 @@ export interface IdentityStore {
  * an absent key keeps its value. The username is chosen once, at sign-up.
  */
 export interface AccountUpdate {
+  /** The name, 1 to 120 characters, trimmed. */
+  readonly displayName?: string | undefined;
   readonly findByName?: boolean | undefined;
   readonly findByEmail?: boolean | undefined;
+  /** Marks the Welcome step completed; an account already past it keeps its moment. */
+  readonly onboarded?: true | undefined;
 }
 
 /** How the viewer and another account stand. */
@@ -120,10 +127,12 @@ export class PostgresIdentityStore implements IdentityStore {
   ): Promise<SignInResult> {
     return runAuditedMutation(this.#database, async (transaction) => {
       // An account that exists keeps its username; a new one gets the one
-      // sign-up chose, else one from its name. A concurrent first sign-in
-      // of the same identity, or of another taking the same username,
-      // conflicts on insert: the identity is read again, and a username
-      // taken meanwhile is assigned again.
+      // sign-up chose, else one from its name. A password account has the
+      // Welcome step ahead; any other brings its name and counts as
+      // completed. A concurrent first sign-in of the same identity, or of
+      // another taking the same username, conflicts on insert: the
+      // identity is read again, and a username taken meanwhile is assigned
+      // again.
       let user = await findUser(transaction, identity);
       for (let attempt = 0; user === null && attempt < 3; attempt += 1) {
         const [createdUser] = await transaction
@@ -139,6 +148,10 @@ export class PostgresIdentityStore implements IdentityStore {
               identity.displayName,
               identity.username,
             ),
+            onboardedAt:
+              identity.provider === passwordIdentityProvider
+                ? null
+                : new Date(),
           })
           .onConflictDoNothing()
           .returning();
@@ -281,14 +294,24 @@ export class PostgresIdentityStore implements IdentityStore {
     userId: string,
     account: AccountUpdate,
   ): Promise<UserRow> {
+    const displayName = account.displayName?.trim();
+    if (
+      displayName !== undefined &&
+      (displayName === "" || displayName.length > 120)
+    )
+      throw new InvalidRequestError();
     const [updated] = await this.#database
       .update(users)
       .set({
+        ...(displayName !== undefined && { displayName }),
         ...(account.findByName !== undefined && {
           findByName: account.findByName,
         }),
         ...(account.findByEmail !== undefined && {
           findByEmail: account.findByEmail,
+        }),
+        ...(account.onboarded === true && {
+          onboardedAt: sql`COALESCE(${users.onboardedAt}, now())`,
         }),
         updatedAt: sql`GREATEST(now(), ${users.createdAt})`,
       })

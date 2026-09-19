@@ -14,8 +14,10 @@ import {
 } from "@chronelle/db";
 import { and, desc, eq, gt, isNull, sql } from "drizzle-orm";
 
+import { passwordIdentityProvider } from "./auth-provider.js";
+
 /** The provider name password accounts are recorded under; the subject is the normalized email. */
-export const passwordIdentityProvider = "password";
+export { passwordIdentityProvider };
 
 /** A password account: the user and its credential. */
 export interface PasswordAccount {
@@ -62,7 +64,8 @@ export interface CredentialStore {
     userId: string,
     passwordHash: string,
   ): Promise<UserCredentialRow>;
-  findAccount(email: string): Promise<PasswordAccount | null>;
+  /** The account behind a login: an email when it holds an "@", else a username without regard to case. */
+  findAccount(login: string): Promise<PasswordAccount | null>;
   recordAttempt(
     userId: string,
     succeeded: boolean,
@@ -133,7 +136,7 @@ export class PostgresCredentialStore implements CredentialStore {
     });
   }
 
-  async findAccount(email: string): Promise<PasswordAccount | null> {
+  async findAccount(login: string): Promise<PasswordAccount | null> {
     const [found] = await this.#database
       .select({ user: users, credential: userCredentials })
       .from(users)
@@ -141,7 +144,9 @@ export class PostgresCredentialStore implements CredentialStore {
       .where(
         and(
           eq(users.identityProvider, passwordIdentityProvider),
-          eq(users.providerSubject, email),
+          login.includes("@")
+            ? eq(users.providerSubject, login)
+            : eq(sql`lower(${users.username})`, login.toLowerCase()),
         ),
       )
       .limit(1);

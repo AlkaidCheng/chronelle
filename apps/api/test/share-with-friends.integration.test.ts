@@ -387,6 +387,7 @@ describe("sharing with friends", () => {
       payload: {
         displayName: "Priya",
         email: "priya@example.test",
+        username: "priya",
         password: "correct horse battery",
         invitationToken: link?.[1],
       },

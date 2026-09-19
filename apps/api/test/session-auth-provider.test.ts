@@ -21,6 +21,7 @@ const user: UserRow = {
   username: "person",
   findByName: true,
   findByEmail: true,
+  onboardedAt: now,
   locale: null,
   timeZone: null,
   hourCycle: null,

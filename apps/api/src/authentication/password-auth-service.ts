@@ -31,9 +31,10 @@ import {
 export interface SignUpInput {
   readonly email: string;
   readonly password: string;
-  readonly displayName: string;
-  /** The username chosen at sign-up; without one the account gets one from its name. */
-  readonly username?: string | undefined;
+  /** The username chosen at sign-up. */
+  readonly username: string;
+  /** The name; without one the account is named as its username until the Welcome step. */
+  readonly displayName?: string | undefined;
   /** The language the sign-up screen was in; kept on the account and used for its emails. */
   readonly locale?: string | undefined;
 }
@@ -44,7 +45,8 @@ export interface VerifyEmailInput {
 }
 
 export interface SignInInput {
-  readonly email: string;
+  /** The email of the account, or its username. */
+  readonly login: string;
   readonly password: string;
 }
 
@@ -101,7 +103,8 @@ const defaultIssuePolicy: IssuePolicy = {
  * Email and password accounts: sign-up records an unverified credential and
  * emails a code; verifying the code (or completing a password reset, which
  * proves the same control of the mailbox) marks the email verified and
- * signs the user in; sign-in checks the password against the stored hash,
+ * signs the user in; sign-in, by email or by username, checks the password
+ * against the stored hash,
  * counts failures toward a temporary lock, and refuses an unverified
  * account while re-sending its code; a password reset replaces the hash and
  * ends every session of the user. Responses never reveal whether an email
@@ -153,8 +156,8 @@ export class PasswordAuthService {
     const passwordHash = await hashPassword(input.password);
     const session = await this.#identity.signIn(
       {
-        ...this.#identityFor(input.email, input.displayName),
-        ...(input.username !== undefined && { username: input.username }),
+        ...this.#identityFor(input.email, input.displayName ?? input.username),
+        username: input.username,
       },
       requestId,
     );
@@ -199,7 +202,7 @@ export class PasswordAuthService {
     input: SignInInput,
     requestId: string,
   ): Promise<PasswordSession> {
-    const account = await this.#credentials.findAccount(input.email);
+    const account = await this.#credentials.findAccount(input.login);
     if (account === null) {
       await verifyPassword(input.password, await this.#decoyHash);
       throw new InvalidCredentialsError();

@@ -230,12 +230,16 @@ export class CloudBaseIdentityStore implements IdentityStore {
       result = await this.#client.rpc("chronelle_account_update", {
         user_id: userId,
         patch: {
+          ...(account.displayName !== undefined && {
+            displayName: account.displayName,
+          }),
           ...(account.findByName !== undefined && {
             findByName: account.findByName,
           }),
           ...(account.findByEmail !== undefined && {
             findByEmail: account.findByEmail,
           }),
+          ...(account.onboarded === true && { onboarded: true }),
         },
       });
     } catch (error) {

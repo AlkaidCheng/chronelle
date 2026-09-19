@@ -98,6 +98,7 @@ const sessionOf = async (token: string) =>
 const account = {
   email: "Person@Example.test",
   password: "correct horse battery",
+  username: "person",
   displayName: "Person",
 };
 const normalizedEmail = "person@example.test";
@@ -123,7 +124,7 @@ describe.sequential("password authentication API", () => {
     expect(email.messages[0]?.to).toBe(normalizedEmail);
 
     const early = await post("/api/auth/sign-in", {
-      email: account.email,
+      login: account.email,
       password: account.password,
     });
     expect(early.statusCode).toBe(403);
@@ -152,11 +153,20 @@ describe.sequential("password authentication API", () => {
     expect((await sessionOf(session.accessToken)).statusCode).toBe(200);
 
     const signedIn = await post("/api/auth/sign-in", {
-      email: account.email,
+      login: account.email,
       password: account.password,
     });
     expect(signedIn.statusCode).toBe(200);
     expect(signInResponseSchema.parse(signedIn.json()).user.id).toBe(
+      session.user.id,
+    );
+    // The username signs in as well, in any case.
+    const byUsername = await post("/api/auth/sign-in", {
+      login: "PERSON",
+      password: account.password,
+    });
+    expect(byUsername.statusCode).toBe(200);
+    expect(signInResponseSchema.parse(byUsername.json()).user.id).toBe(
       session.user.id,
     );
     const audits = await testDatabase.connection.db
@@ -168,7 +178,7 @@ describe.sequential("password authentication API", () => {
     );
   });
 
-  it("keeps the username chosen at sign-up, gives one from the name otherwise, and refuses a taken one", async () => {
+  it("keeps the username chosen at sign-up, refuses a taken one, and names the account by it until the Welcome step", async () => {
     // Free until taken, and never of the wrong shape.
     const free = await app.inject({
       method: "GET",
@@ -206,8 +216,8 @@ describe.sequential("password authentication API", () => {
       ).json(),
     ).toEqual({ available: false });
 
-    // Another account cannot take it in any case; without a choice the
-    // name gives the username, numbered past the ones that exist.
+    // Another account cannot take it in any case, and none is created
+    // without one or with one of the wrong shape.
     const taken = await post("/api/auth/sign-up", {
       ...account,
       email: "second@example.test",
@@ -217,23 +227,62 @@ describe.sequential("password authentication API", () => {
     expect(apiErrorResponseSchema.parse(taken.json()).error.code).toBe(
       "username_taken",
     );
-    const unnamed = await post("/api/auth/sign-up", {
-      ...account,
-      email: "third@example.test",
-    });
-    expect(unnamed.statusCode).toBe(202);
-    const third = await post("/api/auth/verify-email", {
-      email: "third@example.test",
-      code: email.codeFor("third@example.test"),
-    });
-    // "Person" is the name; the first account chose its own, so "person" is free.
-    expect(signInResponseSchema.parse(third.json()).user.username).toBe(
-      "person",
-    );
+    const { username: _unchosen, ...withoutUsername } = account;
+    expect(
+      (
+        await post("/api/auth/sign-up", {
+          ...withoutUsername,
+          email: "third@example.test",
+        })
+      ).statusCode,
+    ).toBe(400);
     expect(
       (await post("/api/auth/sign-up", { ...account, username: "1bad" }))
         .statusCode,
     ).toBe(400);
+
+    // Without a name, the account is named as its username and has the
+    // Welcome step ahead; that step gives the name and completes it once.
+    const { displayName: _unnamed, ...withoutName } = account;
+    const unnamed = await post("/api/auth/sign-up", {
+      ...withoutName,
+      email: "third@example.test",
+      username: "third-person",
+    });
+    expect(unnamed.statusCode).toBe(202);
+    const third = signInResponseSchema.parse(
+      (
+        await post("/api/auth/verify-email", {
+          email: "third@example.test",
+          code: email.codeFor("third@example.test"),
+        })
+      ).json(),
+    );
+    expect(third.user).toMatchObject({
+      displayName: "third-person",
+      username: "third-person",
+      onboardedAt: null,
+    });
+    const named = await app.inject({
+      method: "PATCH",
+      url: "/api/account",
+      headers: { authorization: `Bearer ${third.accessToken}` },
+      payload: { displayName: "  Third Person ", onboarded: true },
+    });
+    expect(named.statusCode).toBe(200);
+    expect(named.json()).toMatchObject({ displayName: "Third Person" });
+    const onboardedAt: unknown = named.json().onboardedAt;
+    expect(typeof onboardedAt).toBe("string");
+    const again = await app.inject({
+      method: "PATCH",
+      url: "/api/account",
+      headers: { authorization: `Bearer ${third.accessToken}` },
+      payload: { onboarded: true },
+    });
+    expect(again.json().onboardedAt).toBe(onboardedAt);
+    expect((await sessionOf(third.accessToken)).json().user.displayName).toBe(
+      "Third Person",
+    );
   });
 
   it("rejects a second sign-up for the same email and a wrong password", async () => {
@@ -246,7 +295,7 @@ describe.sequential("password authentication API", () => {
     );
 
     const wrong = await post("/api/auth/sign-in", {
-      email: account.email,
+      login: account.email,
       password: "not the password",
     });
     expect(wrong.statusCode).toBe(401);
@@ -254,7 +303,7 @@ describe.sequential("password authentication API", () => {
       "invalid_credentials",
     );
     const unknown = await post("/api/auth/sign-in", {
-      email: "nobody@example.test",
+      login: "nobody@example.test",
       password: "not the password",
     });
     expect(unknown.statusCode).toBe(401);
@@ -271,13 +320,13 @@ describe.sequential("password authentication API", () => {
       attempt += 1
     ) {
       const failed = await post("/api/auth/sign-in", {
-        email: account.email,
+        login: account.email,
         password: "wrong",
       });
       expect(failed.statusCode).toBe(401);
     }
     const locking = await post("/api/auth/sign-in", {
-      email: account.email,
+      login: account.email,
       password: "wrong",
     });
     expect(locking.statusCode).toBe(429);
@@ -285,7 +334,7 @@ describe.sequential("password authentication API", () => {
       "credential_locked",
     );
     const evenCorrect = await post("/api/auth/sign-in", {
-      email: account.email,
+      login: account.email,
       password: account.password,
     });
     expect(evenCorrect.statusCode).toBe(429);
@@ -323,7 +372,7 @@ describe.sequential("password authentication API", () => {
     const second = signInResponseSchema.parse(
       (
         await post("/api/auth/sign-in", {
-          email: account.email,
+          login: account.email,
           password: account.password,
         })
       ).json(),
@@ -355,7 +404,7 @@ describe.sequential("password authentication API", () => {
     expect(
       (
         await post("/api/auth/sign-in", {
-          email: account.email,
+          login: account.email,
           password: account.password,
         })
       ).statusCode,
@@ -363,7 +412,7 @@ describe.sequential("password authentication API", () => {
     expect(
       (
         await post("/api/auth/sign-in", {
-          email: account.email,
+          login: account.email,
           password: "a brand new passphrase",
         })
       ).statusCode,
@@ -428,7 +477,8 @@ describe.sequential("password authentication API", () => {
       ["/api/auth/sign-up", { ...account, password: "short" }],
       ["/api/auth/sign-up", { ...account, email: "not-an-email" }],
       ["/api/auth/verify-email", { email: account.email, code: "12345" }],
-      ["/api/auth/sign-in", { email: account.email }],
+      ["/api/auth/sign-in", { login: account.email }],
+      ["/api/auth/sign-in", { email: account.email, password: "x" }],
       [
         "/api/auth/password-reset/confirm",
         { email: account.email, code: "123456", password: "short" },

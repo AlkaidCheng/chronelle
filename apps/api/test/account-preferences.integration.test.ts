@@ -90,6 +90,8 @@ describe("the preferences kept on the account", () => {
       username: "owner",
       findByName: true,
       findByEmail: true,
+      // A development identity brings its name: no Welcome step ahead.
+      onboardedAt: expect.any(String),
       locale: null,
       timeZone: null,
       hourCycle: null,
@@ -112,6 +114,7 @@ describe("the preferences kept on the account", () => {
       username: "owner",
       findByName: true,
       findByEmail: true,
+      onboardedAt: expect.any(String),
       locale: "zh-Hant",
       timeZone: null,
       hourCycle: null,
@@ -406,6 +409,7 @@ describe("the preferences kept on the account", () => {
       url: "/api/auth/sign-up",
       payload: {
         email: "reader@example.test",
+        username: "reader",
         password: "correct horse battery",
         displayName: "Reader",
         locale: "zh-Hans",
@@ -436,6 +440,7 @@ describe("the preferences kept on the account", () => {
       url: "/api/auth/sign-up",
       payload: {
         email: "plain@example.test",
+        username: "plain",
         password: "correct horse battery",
         displayName: "Plain",
       },
