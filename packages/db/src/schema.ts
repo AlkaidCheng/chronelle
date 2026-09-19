@@ -636,8 +636,6 @@ export const persons = pgTable("persons", {
   objectType: text("object_type").$type<"person">().notNull().default("person"),
   /** The workspace member this person is, when they have an account. */
   userId: uuid("user_id"),
-  /** The first email contact, kept in step with person_contacts. */
-  email: text("email"),
   nickname: text("nickname"),
   description: text("description"),
 });

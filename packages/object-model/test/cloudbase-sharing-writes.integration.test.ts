@@ -180,11 +180,13 @@ describe.sequential("CloudBase sharing writes", () => {
     ]);
   });
 
-  it("shares with a person through the linked account or the person's email", async () => {
+  it("shares with a person through the linked account, else the one account found by any email contact", async () => {
     const db = harness.database.connection.db;
-    // A member with a linked person; the grantee reachable by a person's
-    // email (in another case); two accounts with one email; and people
-    // with no account: unlinked without email, and in the Trash.
+    // A member with a linked person whose contacts name another account;
+    // the grantee reachable by a person's second email contact; an
+    // account that is not found by email; two accounts with one email;
+    // and people with no account: unlinked without contacts, and in the
+    // Trash.
     const memberId = createId();
     await db.insert(users).values({
       id: memberId,
@@ -197,6 +199,15 @@ describe.sequential("CloudBase sharing writes", () => {
       workspaceId: harness.workspaceId,
       userId: memberId,
       role: "editor",
+    });
+    const hiddenId = createId();
+    await db.insert(users).values({
+      id: hiddenId,
+      identityProvider: "test",
+      providerSubject: hiddenId,
+      displayName: "Hidden",
+      email: "hidden@example.test",
+      findByEmail: false,
     });
     for (const id of [createId(), createId()])
       await db.insert(users).values({
@@ -211,11 +222,22 @@ describe.sequential("CloudBase sharing writes", () => {
         displayName: "Someone",
         ...input,
       });
-    const linked = await person({ userId: memberId });
-    const byEmail = await person({ email: granteeEmail.toUpperCase() });
-    const twins = await person({ email: "twins@example.test" });
+    const email = (value: string) => ({ kind: "email", value }) as const;
+    const linked = await person({
+      userId: memberId,
+      contacts: [email(granteeEmail)],
+    });
+    const byContact = await person({
+      contacts: [
+        { kind: "phone", value: "+1 555 0100" },
+        email("nobody@example.test"),
+        email(granteeEmail.toUpperCase()),
+      ],
+    });
+    const hidden = await person({ contacts: [email("hidden@example.test")] });
+    const twins = await person({ contacts: [email("twins@example.test")] });
     const unreachable = await person({});
-    const trashed = await person({ email: granteeEmail });
+    const trashed = await person({ contacts: [email(granteeEmail)] });
     await reference.objects.softDelete(context(), trashed.id, trashed.version);
     const results = [];
     for (const [, services] of backends()) {
@@ -227,13 +249,19 @@ describe.sequential("CloudBase sharing writes", () => {
         personId: linked.id,
         role: "editor",
       });
-      const viaEmail = await services.shares.share(context(), {
+      const viaContact = await services.shares.share(context(), {
         resourceId: event.id,
-        personId: byEmail.id,
+        personId: byContact.id,
         role: "viewer",
       });
       const refused: string[] = [];
-      for (const personId of [twins.id, unreachable.id, trashed.id, createId()])
+      for (const personId of [
+        hidden.id,
+        twins.id,
+        unreachable.id,
+        trashed.id,
+        createId(),
+      ])
         refused.push(
           (
             await failure(() =>
@@ -263,10 +291,10 @@ describe.sequential("CloudBase sharing writes", () => {
           email: viaLink.principal.email,
           role: viaLink.role,
         },
-        viaEmail: {
-          principalId: viaEmail.principal.id === granteeId,
-          email: viaEmail.principal.email,
-          role: viaEmail.role,
+        viaContact: {
+          principalId: viaContact.principal.id === granteeId,
+          email: viaContact.principal.email,
+          role: viaContact.role,
         },
         refused,
         audits: await sharingAudits(event.id),
@@ -279,8 +307,9 @@ describe.sequential("CloudBase sharing writes", () => {
         email: "member@example.test",
         role: "editor",
       },
-      viaEmail: { principalId: true, email: granteeEmail, role: "viewer" },
+      viaContact: { principalId: true, email: granteeEmail, role: "viewer" },
       refused: [
+        PrincipalUnavailableError.name,
         PrincipalUnavailableError.name,
         PrincipalUnavailableError.name,
         PrincipalUnavailableError.name,
@@ -302,7 +331,7 @@ describe.sequential("CloudBase sharing writes", () => {
           metadata: {
             principalId: granteeId,
             role: "viewer",
-            personId: byEmail.id,
+            personId: byContact.id,
           },
           grantIdPresent: true,
         },

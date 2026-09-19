@@ -523,11 +523,11 @@ describe("browser sandbox", () => {
     const zoe = await client.createPerson({ displayName: "Zoe" });
     const adam = await client.createPerson({
       displayName: "adam",
-      email: "adam@example.test",
+      contacts: [{ kind: "email", value: "adam@example.test" }],
     });
     expect(zoe).toMatchObject({
       objectType: "person",
-      email: null,
+      contacts: [],
       userId: null,
       version: 1,
     });

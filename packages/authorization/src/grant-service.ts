@@ -1,6 +1,7 @@
 import {
   createId,
   objects,
+  personAccountId,
   persons,
   resourceGrants,
   runAuditedMutation,
@@ -94,11 +95,11 @@ const granteeRule =
 
 /**
  * The account a share goes to: the one user with the named email, the
- * named Person's linked account (else the one user with the person's
- * email), or the other side of the caller's accepted connection. A person
- * the caller cannot view, or with no reachable account, and a connection
- * that is not the caller's and accepted, are as unavailable as an unknown
- * email.
+ * account the named Person stands for (its link, else the one account one
+ * of its email contacts reaches that can be found by email), or the other
+ * side of the caller's accepted connection. A person the caller cannot
+ * view, or with no reachable account, and a connection that is not the
+ * caller's and accepted, are as unavailable as an unknown email.
  */
 async function resolvePrincipal(
   transaction: DatabaseTransaction,
@@ -110,7 +111,6 @@ async function resolvePrincipal(
     (grantee) => grantee !== undefined,
   ).length;
   if (named !== 1) throw new InvalidShareError(granteeRule);
-  let email = input.principalEmail;
   if (input.friendId !== undefined) {
     const [connection] = await transaction
       .select({
@@ -151,7 +151,7 @@ async function resolvePrincipal(
   }
   if (input.personId !== undefined) {
     const [person] = await transaction
-      .select({ userId: persons.userId, email: persons.email })
+      .select({ objectId: persons.objectId })
       .from(persons)
       .innerJoin(
         objects,
@@ -170,23 +170,26 @@ async function resolvePrincipal(
       )
       .limit(1);
     if (person === undefined) throw new PrincipalUnavailableError();
-    if (person.userId !== null) {
-      const [linked] = await transaction
-        .select({
-          id: users.id,
-          displayName: users.displayName,
-          email: users.email,
-        })
-        .from(users)
-        .where(eq(users.id, person.userId))
-        .limit(1);
-      if (linked === undefined) throw new PrincipalUnavailableError();
-      return linked;
-    }
-    if (person.email === null) throw new PrincipalUnavailableError();
-    email = person.email.toLowerCase();
+    const accountId = await personAccountId(
+      transaction,
+      principal.workspaceId,
+      person.objectId,
+    );
+    if (accountId === null) throw new PrincipalUnavailableError();
+    const [account] = await transaction
+      .select({
+        id: users.id,
+        displayName: users.displayName,
+        email: users.email,
+      })
+      .from(users)
+      .where(eq(users.id, accountId))
+      .limit(1);
+    if (account === undefined) throw new PrincipalUnavailableError();
+    return account;
   }
-  if (email === undefined) throw new InvalidShareError(granteeRule);
+  if (input.principalEmail === undefined)
+    throw new InvalidShareError(granteeRule);
   const [found, duplicate] = await transaction
     .select({
       id: users.id,
@@ -194,7 +197,7 @@ async function resolvePrincipal(
       email: users.email,
     })
     .from(users)
-    .where(eq(users.email, email))
+    .where(eq(users.email, input.principalEmail))
     .limit(2);
   if (found === undefined || duplicate !== undefined)
     throw new PrincipalUnavailableError();

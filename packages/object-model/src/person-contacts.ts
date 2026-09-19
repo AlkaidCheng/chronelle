@@ -2,7 +2,6 @@ import {
   createId,
   personContactKinds,
   personContacts,
-  persons,
   type DatabaseTransaction,
 } from "@chronelle/db";
 import { and, asc, eq } from "drizzle-orm";
@@ -13,30 +12,7 @@ import type { PersonContact } from "./types.js";
 /** The most contacts a Person keeps. */
 export const personContactLimit = 20;
 
-/**
- * The contacts a create or update asks for: `contacts` as given, else a
- * legacy `email` folded into the kept contacts (the address first, then the
- * non-email contacts; null removes the email contacts), else undefined for
- * unchanged.
- */
-export function requestedPersonContacts(
-  input: {
-    readonly contacts?: readonly PersonContact[] | undefined;
-    readonly email?: string | null | undefined;
-  },
-  current: readonly PersonContact[],
-): readonly PersonContact[] | undefined {
-  if (input.contacts !== undefined) return input.contacts;
-  if (input.email === undefined) return undefined;
-  return [
-    ...(input.email === null
-      ? []
-      : [{ kind: "email" as const, value: input.email }]),
-    ...current.filter((contact) => contact.kind !== "email"),
-  ];
-}
-
-/** The first email contact, which persons.email mirrors. */
+/** The first email contact, the address an invitation from the card goes to. */
 export function firstPersonEmail(
   contacts: readonly PersonContact[],
 ): string | null {
@@ -115,7 +91,7 @@ export async function readPersonContacts(
   return rows;
 }
 
-/** Replaces a Person's contacts and keeps persons.email as the first email. */
+/** Replaces a Person's contacts. */
 export async function setPersonContacts(
   transaction: DatabaseTransaction,
   workspaceId: string,
@@ -141,11 +117,5 @@ export async function setPersonContacts(
         value: contact.value,
         position,
       })),
-    );
-  await transaction
-    .update(persons)
-    .set({ email: firstPersonEmail(contacts) })
-    .where(
-      and(eq(persons.workspaceId, workspaceId), eq(persons.objectId, personId)),
     );
 }

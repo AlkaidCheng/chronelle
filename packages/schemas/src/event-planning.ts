@@ -177,9 +177,6 @@ export const reminderUpdateRequestSchema = z
     message: "At least one update field is required.",
   });
 
-/** A Person's email as stored: trimmed, or null. */
-const personEmailSchema = z.string().trim().max(254).pipe(z.email()).nullable();
-
 /** Optional person text: trimmed, empty read as null. */
 const personTextSchema = (limit: number) =>
   z
@@ -207,11 +204,9 @@ export const personContactSchema = z
 // nickname shown in its place when present, a description, contacts in the
 // order kept, labels from the workspace vocabulary, and an optional link to
 // a workspace member's account (userId), which belongs to one Person per
-// workspace. `email` stays accepted for one release as the first email
-// contact: sending it replaces the email contacts and keeps the others.
+// workspace.
 export const personCreateRequestSchema = z.object({
   ...createObjectShape,
-  email: personEmailSchema.optional(),
   userId: objectIdSchema.nullable().optional(),
   nickname: personTextSchema(240).optional(),
   description: personTextSchema(2000).optional(),
@@ -222,7 +217,6 @@ export const personCreateRequestSchema = z.object({
 export const personUpdateRequestSchema = z
   .object({
     ...updateObjectShape,
-    email: personEmailSchema.optional(),
     userId: objectIdSchema.nullable().optional(),
     nickname: personTextSchema(240).optional(),
     description: personTextSchema(2000).optional(),
@@ -357,8 +351,6 @@ export const documentResponseSchema = z.object({
 export const personResponseSchema = z.object({
   ...canonicalObjectResponseShape,
   objectType: z.literal("person"),
-  /** The first email contact, or null. */
-  email: z.string().nullable(),
   /** The workspace member this person is, when they have an account. */
   userId: objectIdSchema.nullable(),
   nickname: z.string().nullable().default(null),

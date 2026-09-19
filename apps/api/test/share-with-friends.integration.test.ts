@@ -214,7 +214,10 @@ describe("sharing with friends", () => {
           method: "POST",
           url: "/api/persons",
           headers: ana.headers,
-          payload: { displayName: "Ben", email: "ben@example.test" },
+          payload: {
+            displayName: "Ben",
+            contacts: [{ kind: "email", value: "ben@example.test" }],
+          },
         })
       ).json(),
     );
@@ -306,7 +309,10 @@ describe("sharing with friends", () => {
           method: "POST",
           url: "/api/persons",
           headers: ana.headers,
-          payload: { displayName: "Priya Raman", email: "Priya@Example.test" },
+          payload: {
+            displayName: "Priya Raman",
+            contacts: [{ kind: "email", value: "Priya@Example.test" }],
+          },
         })
       ).json(),
     );
@@ -467,7 +473,10 @@ describe("sharing with friends", () => {
             method: "POST",
             url: "/api/persons",
             headers: ana.headers,
-            payload: { displayName: name, email: address },
+            payload: {
+              displayName: name,
+              contacts: [{ kind: "email", value: address }],
+            },
           })
         ).json(),
       );

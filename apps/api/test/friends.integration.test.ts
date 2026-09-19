@@ -130,7 +130,10 @@ describe("friends", () => {
           method: "POST",
           url: "/api/persons",
           headers: ana.headers,
-          payload: { displayName: "Benjamin", email: "ben@example.test" },
+          payload: {
+            displayName: "Benjamin",
+            contacts: [{ kind: "email", value: "ben@example.test" }],
+          },
         })
       ).json(),
     );

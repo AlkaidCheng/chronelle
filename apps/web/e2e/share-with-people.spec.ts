@@ -25,9 +25,13 @@ test("shares an event with the people the workspace knows", async ({
       data: { displayName: "Reading circle" },
     })
   ).json();
-  // One person reaches an account through their email; one reaches none.
+  // One person reaches an account through an email contact; one reaches
+  // none.
   for (const data of [
-    { displayName: "Reader Person", email: readerEmail.toUpperCase() },
+    {
+      displayName: "Reader Person",
+      contacts: [{ kind: "email", value: readerEmail.toUpperCase() }],
+    },
     { displayName: "No Account" },
   ])
     expect(

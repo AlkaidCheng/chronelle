@@ -158,7 +158,19 @@ account counts as completed), redefines `chronelle_identity_sign_in` and
 step ahead; the name and the step's completion are set through the
 account update), and replaces `chronelle_password_credential_lookup` with
 one that takes a login, an email or a username. The API built from it
-starts after it.
+starts after it. Migration `0057_resolve_persons_by_contacts.sql` drops
+`persons.email` (the mirror of the first email contact) with its check
+constraint and the `chronelle_person_first_email` and
+`chronelle_person_contacts_with_email` helpers; adds
+`chronelle_person_account`, the account a card stands for (the linked one,
+else the one account whose email equals any email contact of the card and
+that can be found by email), which the readiness check requires; redefines
+`chronelle_resource_share` and `chronelle_person_shares_list` in place to
+use it, and the person insert, validate, serialize, contact, and request
+helpers in place without the column; and replaces the four-argument
+`chronelle_assert_person_state` with a three-argument one (the old one is
+dropped). The API built from it starts after it; the runtime role needs no
+change.
 
 Migration `0021_add_object_search_function.sql` adds `chronelle_object_search`,
 the read-only function the CloudBase search adapter calls. It changes no

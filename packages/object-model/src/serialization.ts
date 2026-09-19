@@ -81,7 +81,6 @@ export function serializeResource(resource: EventPlanningResource) {
       return {
         ...canonical,
         objectType: "person" as const,
-        email: resource.email,
         userId: resource.userId,
         nickname: resource.nickname,
         description: resource.description,

@@ -171,9 +171,11 @@ shared it ("you shared", "Mei shared", or "queued" for a share that waits
 on the person's invitation). The panel shows the newest five with a count
 and "All 8 in Shared", which opens the Shared tab, where the same rows run
 in full; "Nothing shared yet" stands in for an empty list. The person here
-is the account the card is linked to, or the one account with the card's
-email, so a share made from an event's Sharing tab, and one the person made
-to this account, both appear. A card reached through a share (another
+is the account the card is linked to, or the one account that any of the
+card's email contacts reaches and that lets itself be found by email (a
+card whose contacts reach two accounts, or only accounts that hide from
+email, reaches none), so a share made from an event's Sharing tab, and one
+the person made to this account, both appear. A card reached through a share (another
 workspace's) has no Shared panel, tab, or Share action. Events lists the
 events the person is part
 of, each a link with its dates. Tasks lists the tasks assigned to them, open
@@ -191,12 +193,13 @@ Share with Mei (the share mark in the page's actions) shares one of the
 account's events with the person without leaving their page: a dialog with
 a search for the event (asked of the server after a typing pause, newest
 change first), the matches as a list to pick one from with its dates, a
-role (Viewer or Editor), and Share. A friend, a linked card, or a card whose
-email is a friend's is granted at once ("Kyoto in November shared as
-viewer"); a card with an email and no account is invited and the share
-waits ("Kyoto in November queued; access follows when they join"), as from
-the event's Sharing tab; a card with neither says "Give the person an email
-or link their account to share with them." The outcome stays in the dialog
+role (Viewer or Editor), and Share. A friend, a linked card, or a card one
+of whose email contacts is a friend's is granted at once ("Kyoto in
+November shared as viewer"); a card with an email contact and no account
+is invited at its first email and the share waits ("Kyoto in November
+queued; access follows when they join"), as from the event's Sharing tab;
+a card with neither says "Give the person an email or link their account
+to share with them." The outcome stays in the dialog
 so another event can follow; Done closes it, and the Shared panel already
 lists the new row.
 
@@ -221,8 +224,8 @@ Viewer, Editor, or Owner beside each (an editor can change the event but
 not delete or share it), and Share with N people applies every row in turn;
 Copy link beside it copies the event's address. A friend or
 an account is granted at once ("Shared as Viewer"), a person with an email
-is invited and the share waits ("Invitation sent; access follows when they
-join"), an invited person's share waits on the invitation already sent
+contact is invited at the first one and the share waits ("Invitation sent;
+access follows when they join"), an invited person's share waits on the invitation already sent
 ("Waiting for them to join"), and a refusal stays beside the name with the
 row ticked for another try. A waiting share is granted the moment the
 request is accepted and lapses when it is declined or withdrawn. The People

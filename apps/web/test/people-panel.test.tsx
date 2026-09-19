@@ -96,7 +96,7 @@ describe("People component", () => {
       resource: {
         objectType: "person",
         displayName: "Sam Lee",
-        email: "sam@example.com",
+        contacts: [{ kind: "email", value: "sam@example.com" }],
       },
     });
     await client.createEventResource(eventId, {

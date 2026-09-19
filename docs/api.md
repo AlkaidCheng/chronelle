@@ -457,18 +457,19 @@ linking the Person to an account. `userId` must name a member of the
 workspace, of any role, or a friend of one (see Friends), and each account belongs to at most
 one Person of the workspace; a violation returns HTTP 400 with
 `userId must name a member of this workspace or a friend of one.` or
-`userId is already linked to another person.`. Responses carry `email` as
-the first email contact (null when there is none). Requests may still send
-`email` in place of `contacts`: it replaces the email contacts, first, and
-keeps the other contacts, and `null` removes them; `contacts` wins when both
-are sent. `null` clears the nickname, description, or linked account on an
+`userId is already linked to another person.`. The contacts are the only
+place a Person keeps an address: there is no `email` field on a Person,
+and a request that still sends one is read without it like any unknown
+key. `null` clears the nickname, description, or linked account on an
 update; absent leaves each unchanged, as do absent `contacts` and
 `labelIds`. People are created, read (`GET /persons/:id`), updated, trashed,
 recovered, searched (`objectType=person`), and versioned like every object;
 a revision restore brings back the nickname, description, and contacts but
-never the linked account or the labels. Deploy migration 0050 before this
-API and reapply the runtime role grants, which cover the `person_contacts`
-and `person_labels` tables.
+never the linked account or the labels (a revision taken before migration
+0057 still holds an `email`, which the restore ignores). Deploy migration
+0050 before this API and reapply the runtime role grants, which cover the
+`person_contacts` and `person_labels` tables; deploy 0057, which drops the
+Person `email` column, before the API built from it starts.
 
 `GET /persons` lists every live Person the caller may view in the active
 workspace, ordered by name without regard to case, then ID; `query` matches
@@ -889,13 +890,18 @@ can view lacks one of the three.
 `POST /shares` accepts `resourceId`, an Owner, Editor, or Viewer `role`, and
 the grantee as exactly one of `principalEmail`, `personId`, and `friendId`.
 An email names the one account with that address. A Person of the workspace
-names its linked account, or else the one account whose email is the
-person's. A friend names an accepted connection of the caller (an id from
-`GET /api/friends`); the other side receives the role. A person the caller
-cannot view, a person in Trash, one with neither an account nor an email, an
+names its linked account, or else the one account whose email equals any
+of the card's email contacts and that lets itself be found by email
+(`findByEmail`); the order of the contacts does not matter, and a card
+whose contacts reach two accounts, or only accounts that hide from email,
+reaches none. A friend names an accepted connection of the caller (an id
+from `GET /api/friends`); the other side receives the role. A person the
+caller cannot view, a person in Trash, one that reaches no account, an
 email that matches no account or several, or a connection that is not the
 caller's and accepted is `principal_unavailable` (HTTP 404), and naming two
-grantees or none is HTTP 400. The recipient must already have a Chronelle
+grantees or none is HTTP 400. Both backends resolve a card the same way
+(`chronelle_person_account`, migration 0057, on the rpc path; the readiness
+check requires it). The recipient must already have a Chronelle
 identity. Repeating the request for the same resource and user replaces the
 active role rather than creating a duplicate grant; the audit event of a
 share by person carries `personId` and one by friend `friendId`. Only
@@ -917,9 +923,9 @@ createdAt }`. `direction` is `outgoing` for a live grant the caller's
 workspace holds for the person's account or a share queued for the person
 (`kind: "pending"`, waiting on an invitation), and `incoming` for a live
 grant the person's account gave the caller, in any workspace. The person's
-account is the linked one, else the one account with the person's email, as
-`POST /shares` resolves a person grantee; a person with neither has queued
-shares only. Expired grants and records in Trash are left out. A person the
+account is the one `POST /shares` resolves for a person grantee (the linked
+one, else the one account an email contact reaches); a person that reaches
+none has queued shares only. Expired grants and records in Trash are left out. A person the
 caller cannot view, one of a workspace the caller is only a guest of (a
 grant on the card, no membership), or none, is HTTP 404. Both backends read
 the same rows (`chronelle_person_shares_list`, migration 0054, on the rpc
@@ -928,10 +934,10 @@ path).
 `POST /shares/pending` accepts `resourceId`, `personId`, and `role` for a
 Person with no linked account. When a request or invitation from the caller
 already names the person, the share is queued on it; otherwise the person's
-email is invited as `POST /api/friends/invitations` would (a request to the
-account that has the address, a sign-up link to one without) and the share
-queued on what was sent. A person with an account here is HTTP 400 (share
-with them directly), as is one with no email. The response is the pending
+first email contact is invited as `POST /api/friends/invitations` would (a
+request to the account that has the address, a sign-up link to one without)
+and the share queued on what was sent. A person with an account here is
+HTTP 400 (share with them directly), as is one with no email contact. The response is the pending
 share (201); queuing the same person and resource again changes the role.
 The share is granted, with the usual `resource.shared` audit event carrying
 `pendingShareId`, when the request is accepted; it lapses when the request

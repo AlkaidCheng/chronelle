@@ -269,7 +269,7 @@ describe("canonical cache invalidation", () => {
       .mockImplementation(async (input) =>
         Response.json(
           String(input).endsWith("/api/persons")
-            ? { ...task, objectType: "person", email: null, userId: null }
+            ? { ...task, objectType: "person", userId: null, contacts: [] }
             : task,
         ),
       );

@@ -64,11 +64,11 @@ describe.sequential("CloudBase Person writes", () => {
       const bare = await service.createPerson(context(), {
         displayName: "Mira",
       });
-      expect(bare.email).toBeNull();
+      expect(bare.contacts).toEqual([]);
       expect(bare.userId).toBeNull();
       const linked = await service.createPerson(context(), {
         displayName: "Sam Lee",
-        email: "sam@example.test",
+        contacts: [{ kind: "email", value: "sam@example.test" }],
         userId: harness.viewerId,
         customProperties: { phone: "+1 555 0100", birthday: "1990-04-02" },
         metadata: { source: "test" },
@@ -88,14 +88,14 @@ describe.sequential("CloudBase Person writes", () => {
           {
             expectedVersion: 1,
             displayName: "Mira Chen",
-            email: "mira@example.test",
+            contacts: [{ kind: "email", value: "mira@example.test" }],
             customProperties: { phone: "+1 555 0101" },
             metadata: {},
           },
         ),
         await service.updatePerson(context(), linked.id, {
           expectedVersion: 1,
-          email: null,
+          contacts: [],
           userId: null,
         }),
       );
@@ -126,9 +126,11 @@ describe.sequential("CloudBase Person writes", () => {
       shape(pgCleared as PersonResource),
     );
     expect(cbRenamed?.version).toBe(2);
-    expect(cbRenamed?.email).toBe("mira@example.test");
+    expect(cbRenamed?.contacts).toEqual([
+      { kind: "email", value: "mira@example.test" },
+    ]);
     expect(cbRenamed?.customProperties).toEqual({ phone: "+1 555 0101" });
-    expect(cbCleared?.email).toBeNull();
+    expect(cbCleared?.contacts).toEqual([]);
     expect(cbCleared?.userId).toBeNull();
 
     for (const [pg, cb] of [[pgBare, cbBare]] as const) {
@@ -166,12 +168,12 @@ describe.sequential("CloudBase Person writes", () => {
         () =>
           service.createPerson(context(), {
             displayName: "x",
-            email: " spaced@example.test",
+            contacts: [{ kind: "email", value: " spaced@example.test" }],
           }),
         () =>
           service.updatePerson(context(), owner.id, {
             expectedVersion: 1,
-            email: "no-at-sign",
+            contacts: [{ kind: "email", value: "no-at-sign" }],
           }),
       ]) {
         const error = await failure(attempt);
@@ -182,7 +184,7 @@ describe.sequential("CloudBase Person writes", () => {
       const same = await service.updatePerson(context(), owner.id, {
         expectedVersion: 1,
         userId: harness.ownerId,
-        email: "owner@example.test",
+        contacts: [{ kind: "email", value: "owner@example.test" }],
       });
       expect(same.version).toBe(2);
       expect(
@@ -252,25 +254,30 @@ describe.sequential("CloudBase Person writes", () => {
         ],
         labelIds: [workId, familyId],
       });
-      // The email mirrors the first email contact; labels come in name order.
-      expect(created.email).toBe("mei@example.test");
+      // Contacts keep their order; labels come in name order.
+      expect(created.contacts).toEqual([
+        { kind: "phone", value: "+1 555 0100" },
+        { kind: "email", value: "mei@example.test" },
+      ]);
       expect(created.labelIds).toEqual([familyId, workId]);
-      // A legacy email replaces the email contacts, first, and keeps the rest.
-      const legacy = await service.updatePerson(context(), created.id, {
+      // A new list replaces the contacts as a whole.
+      const reordered = await service.updatePerson(context(), created.id, {
         expectedVersion: 1,
-        email: "mei.lin@example.test",
+        contacts: [
+          { kind: "email", value: "mei.lin@example.test" },
+          { kind: "phone", value: "+1 555 0100" },
+        ],
       });
-      expect(legacy.contacts).toEqual([
+      expect(reordered.contacts).toEqual([
         { kind: "email", value: "mei.lin@example.test" },
         { kind: "phone", value: "+1 555 0100" },
       ]);
       const cleared = await service.updatePerson(context(), created.id, {
         expectedVersion: 2,
-        email: null,
+        contacts: [{ kind: "phone", value: "+1 555 0100" }],
         nickname: null,
         labelIds: [],
       });
-      expect(cleared.email).toBeNull();
       expect(cleared.contacts).toEqual([
         { kind: "phone", value: "+1 555 0100" },
       ]);
@@ -283,7 +290,7 @@ describe.sequential("CloudBase Person writes", () => {
       });
       expect(emptied.contacts).toEqual([]);
       expect(emptied.description).toBeNull();
-      results.push([created, legacy, cleared, emptied]);
+      results.push([created, reordered, cleared, emptied]);
     }
     const [pg, cb] = results as [PersonResource[], PersonResource[]];
     for (const [index, resource] of cb.entries())

@@ -57,8 +57,6 @@ import type { ObjectWriteRepositories } from "./object-writes.js";
 import {
   assertPersonContacts,
   assertPersonText,
-  firstPersonEmail,
-  requestedPersonContacts,
   setPersonContacts,
 } from "./person-contacts.js";
 import {
@@ -151,15 +149,14 @@ function assertEventState(
 
 /**
  * A Person's linked account is a member of the workspace or a friend of one
- * and belongs to one Person; an email is a trimmed address. Checked inside the write
- * transaction, with the messages the database functions use.
+ * and belongs to one Person. Checked inside the write transaction, with the
+ * messages the database functions use.
  */
 async function assertPersonState(
   transaction: DatabaseTransaction,
   workspaceId: string,
   objectId: string,
   userId: string | null,
-  email: string | null,
 ): Promise<void> {
   if (userId !== null) {
     const [member] = await transaction
@@ -217,14 +214,6 @@ async function assertPersonState(
         "userId is already linked to another person.",
       );
   }
-  if (
-    email !== null &&
-    (email !== email.trim() ||
-      email.length < 3 ||
-      email.length > 254 ||
-      email.indexOf("@") < 1)
-  )
-    throw new InvalidObjectStateError("email must be a valid address.");
 }
 
 /** The distinct ids, every one a label of the workspace. */
@@ -750,7 +739,7 @@ export class EventPlanningObjectService {
     const userId = input.userId ?? null;
     const nickname = input.nickname ?? null;
     const description = input.description ?? null;
-    const contacts = requestedPersonContacts(input, []) ?? [];
+    const contacts = input.contacts ?? [];
     const resource = await this.#createObject(
       context,
       "person",
@@ -763,13 +752,11 @@ export class EventPlanningObjectService {
           context.principal.workspaceId,
           createdObjectId,
           userId,
-          firstPersonEmail(contacts),
         );
         await transaction.insert(persons).values({
           objectId: createdObjectId,
           workspaceId: context.principal.workspaceId,
           userId,
-          email: null,
           nickname,
           description,
         });
@@ -1104,7 +1091,7 @@ export class EventPlanningObjectService {
       input.nickname === undefined ? current.nickname : input.nickname;
     const description =
       input.description === undefined ? current.description : input.description;
-    const contacts = requestedPersonContacts(input, current.contacts);
+    const contacts = input.contacts;
 
     const resource = await this.#updateObject(
       context,
@@ -1118,7 +1105,6 @@ export class EventPlanningObjectService {
           context.principal.workspaceId,
           objectId,
           userId,
-          contacts === undefined ? current.email : firstPersonEmail(contacts),
         );
         const changes = {
           ...(input.userId !== undefined && { userId: input.userId }),

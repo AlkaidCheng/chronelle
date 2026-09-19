@@ -21,6 +21,15 @@ export function personDisplayName(
   return person.nickname ?? person.displayName;
 }
 
+/** The first email contact of a card, the address an invitation from it goes to; null when there is none. */
+export function personEmail(
+  person: Pick<PersonResponse, "contacts">,
+): string | null {
+  return (
+    person.contacts.find((contact) => contact.kind === "email")?.value ?? null
+  );
+}
+
 /**
  * The editor's person fields: the name, the nickname, the description, the
  * linked account, the contacts and the custom properties each as one JSON

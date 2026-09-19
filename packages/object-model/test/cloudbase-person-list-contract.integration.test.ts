@@ -99,12 +99,11 @@ describe("CloudBase person list contract", () => {
         objectId: zoe,
         workspaceId,
         userId: ownerId,
-        email: "zoe@example.test",
         nickname: "Zo",
         description: "Plans the trips.",
       },
       { objectId: adam, workspaceId },
-      { objectId: bea, workspaceId, email: "bea@example.test" },
+      { objectId: bea, workspaceId },
       { objectId: gone, workspaceId },
     ]);
     // Zoe's contacts come in kept order and her labels in name order.
@@ -170,7 +169,6 @@ describe("CloudBase person list contract", () => {
     const zoeOnly = await postgres.listPersons(owner, { query: "ZO" });
     expect(ids(zoeOnly)).toEqual([zoe]);
     expect(zoeOnly.items[0]).toMatchObject({
-      email: "zoe@example.test",
       userId: ownerId,
       nickname: "Zo",
       description: "Plans the trips.",

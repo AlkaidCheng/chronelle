@@ -11,7 +11,7 @@ import {
   useUserSearchQuery,
 } from "../../lib/friend-queries";
 import { personInitials } from "../../lib/person-collection";
-import { personDisplayName } from "../../lib/person-fields";
+import { personDisplayName, personEmail } from "../../lib/person-fields";
 import { usePersonsQuery, useSessionQuery } from "../../lib/queries";
 import { useSessionDialog } from "../../lib/use-session-dialog";
 
@@ -44,13 +44,14 @@ export function InviteFriendDialog({
   const request = useRequestFriend();
   const me = session.data?.user.id;
   const candidates = (people.data?.items ?? []).filter(
-    (person) => person.userId === null && person.email !== null,
+    (person) => person.userId === null && personEmail(person) !== null,
   );
   const [personId, setPersonId] = useState(initialPersonId);
   const chosen = candidates.find((person) => person.id === personId);
-  const [email, setEmail] = useState(chosen?.email ?? "");
+  const chosenEmail = chosen === undefined ? null : personEmail(chosen);
+  const [email, setEmail] = useState(chosenEmail ?? "");
   const [message, setMessage] = useState("");
-  const address = chosen?.email ?? email;
+  const address = chosenEmail ?? email;
   const [query, setQuery] = useState("");
   const [debounced, setDebounced] = useState("");
   const search = useUserSearchQuery(debounced);
@@ -77,7 +78,8 @@ export function InviteFriendDialog({
   function choosePerson(next: string) {
     setPersonId(next);
     const person = candidates.find((candidate) => candidate.id === next);
-    if (person?.email) setEmail(person.email);
+    const seed = person === undefined ? null : personEmail(person);
+    if (seed !== null) setEmail(seed);
   }
 
   function addFriend(userId: string) {
