@@ -47,6 +47,7 @@ function event(
     endsOn: null,
     timezone: null,
     isAllDay: false,
+    location: null,
     ...schedule,
   };
 }

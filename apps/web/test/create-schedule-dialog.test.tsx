@@ -458,6 +458,42 @@ describe("schedule creation dialog", () => {
     expect(unloadIsPrevented()).toBe(false);
   });
 
+  it("sends a trimmed place from under Set dates and the calendar carries it", async () => {
+    const request = vi.fn<typeof fetch>((input, options) =>
+      store.fetch(input, options),
+    );
+    vi.stubGlobal("fetch", request);
+    const user = await openEditor();
+    await user.type(screen.getByLabelText("Schedule item"), "Lower loop");
+    await user.click(screen.getByRole("switch", { name: "Set dates" }));
+    const place = screen.getByLabelText("Place");
+    expect(place).toHaveAccessibleDescription(
+      /The itinerary shows it beside the time/,
+    );
+    await user.type(place, "  Fushimi Inari Taisha, main gate  ");
+    expect(screen.getByText("35 / 240")).toBeVisible();
+    await user.click(screen.getByRole("button", { name: "Add to schedule" }));
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+    const post = request.mock.calls.find(
+      ([, options]) => options?.method === "POST",
+    );
+    expect(JSON.parse(String(post?.[1]?.body))).toMatchObject({
+      resource: {
+        objectType: "event",
+        displayName: "Lower loop",
+        location: "Fushimi Inari Taisha, main gate",
+      },
+    });
+    const calendar = await (
+      await store.fetch(`/api/events/${eventId}/calendar`)
+    ).json();
+    expect(
+      calendar.items.find(
+        (item: { displayName: string }) => item.displayName === "Lower loop",
+      ),
+    ).toMatchObject({ location: "Fushimi Inari Taisha, main gate" });
+  });
+
   it("blocks duplicate submission and dismissal while the linked create is pending", async () => {
     let release!: () => void;
     const pending = new Promise<void>((resolve) => {

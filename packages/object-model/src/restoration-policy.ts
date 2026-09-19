@@ -25,6 +25,7 @@ const typedFields: Record<
     endsAt: field("Ends", "datetime"),
     timezone: field("Time zone", "text"),
     isAllDay: field("All day", "boolean"),
+    location: field("Location", "text"),
   },
   task: {
     status: field("Status", "text"),

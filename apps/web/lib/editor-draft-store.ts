@@ -15,7 +15,11 @@ import type { readReminderFields } from "./reminder-fields";
 import type { readPersonFields } from "./person-fields";
 
 export function readEventFields(event?: EventResponse) {
-  return { displayName: event?.displayName ?? "", ...readEventSchedule(event) };
+  return {
+    displayName: event?.displayName ?? "",
+    ...readEventSchedule(event),
+    location: event?.location ?? "",
+  };
 }
 
 export type EventDraftSnapshot = EditorDraftSnapshot<

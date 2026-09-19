@@ -345,7 +345,13 @@ function canonical(
   const id = crypto.randomUUID();
   const timestamp = new Date().toISOString();
   const defaults = {
-    event: { startsAt: null, endsAt: null, timezone: null, isAllDay: false },
+    event: {
+      startsAt: null,
+      endsAt: null,
+      timezone: null,
+      isAllDay: false,
+      location: null,
+    },
     task: {
       dueOn: null,
       dueAt: null,

@@ -17,6 +17,7 @@ import {
   EditorDialogHeader,
 } from "../../components/editor-dialog-controls";
 import { eventSchedulePayload } from "../../lib/event-schedule";
+import { locationLimit, locationPayload } from "../../lib/location-field";
 import { useKeepEditorDraft } from "../../lib/editor-draft-context";
 import {
   readEventFields,
@@ -41,6 +42,8 @@ interface EventInspectorProps {
   readonly title?: string;
   /** Where the editor opens: the name, or the schedule when setting dates. */
   readonly initialFocus?: "name" | "schedule";
+  /** Offers the Place field under the schedule, as a schedule item's editor does. */
+  readonly withPlace?: boolean;
 }
 
 export function EventInspector(props: EventInspectorProps) {
@@ -63,6 +66,7 @@ function EventInspectorForm({
   initialDraft,
   title,
   initialFocus = "name",
+  withPlace = false,
 }: EventInspectorProps & {
   readonly initialDraft: EventDraftSnapshot | undefined;
 }) {
@@ -91,6 +95,7 @@ function EventInspectorForm({
   const refresh = useRefreshEvent(event.id, { throwOnError: true });
   const { displayName } = draft.fields;
   const t = useTranslations("eventEditor");
+  const fields = useTranslations("scheduleFields");
   const [scheduleError, setScheduleError] = useState("");
 
   const {
@@ -129,8 +134,12 @@ function EventInspectorForm({
     )
       return;
     let schedule: ReturnType<typeof eventSchedulePayload>;
+    let place: { location: string | null } | undefined;
     try {
       schedule = eventSchedulePayload(draft.fields);
+      place = withPlace
+        ? { location: locationPayload(draft.fields.location) }
+        : undefined;
       setScheduleError("");
     } catch (error) {
       setScheduleError(
@@ -145,6 +154,7 @@ function EventInspectorForm({
           input: {
             displayName,
             ...schedule,
+            ...place,
             expectedVersion: event.version,
             isAllDay: draft.fields.mode === "timed" && event.isAllDay,
             timezone: event.timezone,
@@ -237,6 +247,20 @@ function EventInspectorForm({
             }}
             disabled={update.isPending}
           />
+          {withPlace ? (
+            <CountedField
+              className="field-wide"
+              disabled={update.isPending}
+              hint={fields("placeHint")}
+              label={fields("place")}
+              limit={locationLimit}
+              onChange={(location) => {
+                draft.change({ location });
+                if (update.isSuccess) update.reset();
+              }}
+              value={draft.fields.location}
+            />
+          ) : null}
           {scheduleError && <p role="alert">{scheduleError}</p>}
           <EditorDraftStatus {...recovery} />
         </div>

@@ -18,6 +18,7 @@ import {
   useState,
 } from "react";
 import { EmptyState, ErrorNotice } from "../../components/feedback";
+import { PinIcon } from "../../components/icons";
 import { AddRow, useQuickAddSlots } from "../../components/quick-add-row";
 import { RowMenu, type RowMenuEntry } from "../../components/row-menu";
 import {
@@ -425,6 +426,12 @@ export function CalendarPanel({
               ? formatTime(item.startsAt)
               : ""
             : formatEventSchedule(item)}
+          {mode !== "cell" && item.location !== null ? (
+            <span className="schedule-place">
+              <PinIcon className="schedule-place-icon" />
+              {item.location}
+            </span>
+          ) : null}
         </p>
       </div>
       {rowActions(item)}

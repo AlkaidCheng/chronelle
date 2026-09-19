@@ -45,6 +45,7 @@ const eventResource = (version: number, displayName: string) => ({
   startsOn: null,
   endsOn: null,
   isAllDay: false,
+  location: null,
 });
 
 const taskResource = (version: number, displayName: string) =>

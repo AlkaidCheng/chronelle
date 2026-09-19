@@ -8,5 +8,7 @@
   "startTime": "Start time",
   "endTime": "End time",
   "endTimeOptional": "End time (optional)",
-  "timesIn": "Times in {zone}."
+  "timesIn": "Times in {zone}.",
+  "place": "Place",
+  "placeHint": "Where it happens, as you would tell someone. The itinerary shows it beside the time."
 }

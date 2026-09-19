@@ -219,6 +219,55 @@ describe.sequential("CloudBase Event writes", () => {
     );
   });
 
+  it("keep an event's location as text and refuse a padded or long one alike", async () => {
+    const outcomes: string[][] = [];
+    for (const [, service] of backends(reference, cloudbase)) {
+      const created = await service.createEvent(context(), {
+        displayName: "Placed",
+        startsAt: new Date("2030-11-03T00:30:00.000Z"),
+        endsAt: new Date("2030-11-03T02:30:00.000Z"),
+        location: "Fushimi Inari Taisha, main gate",
+      });
+      expect(created.location).toBe("Fushimi Inari Taisha, main gate");
+      const moved = await service.updateEvent(context(), created.id, {
+        expectedVersion: 1,
+        location: "The lower loop",
+      });
+      expect(moved.location).toBe("The lower loop");
+      expect(
+        (await service.getEvent(context().principal, created.id)).location,
+      ).toBe("The lower loop");
+      const cleared = await service.updateEvent(context(), created.id, {
+        expectedVersion: 2,
+        location: null,
+      });
+      expect(cleared.location).toBeNull();
+      const seen: string[] = [];
+      for (const attempt of [
+        () =>
+          service.createEvent(context(), {
+            displayName: "x",
+            location: " padded ",
+          }),
+        () =>
+          service.updateEvent(context(), created.id, {
+            expectedVersion: 3,
+            location: "x".repeat(241),
+          }),
+      ]) {
+        const error = await failure(attempt);
+        expect(error).toBeInstanceOf(InvalidObjectStateError);
+        seen.push(error.message);
+      }
+      outcomes.push(seen);
+    }
+    expect(outcomes[1]).toEqual(outcomes[0]);
+    expect(outcomes[0]).toEqual([
+      "location is 1 to 240 characters without surrounding spaces.",
+      "location is 1 to 240 characters without surrounding spaces.",
+    ]);
+  });
+
   it("refuse to update an object without a revision baseline", async () => {
     const messages: string[] = [];
     for (const [, service] of backends(reference, cloudbase)) {

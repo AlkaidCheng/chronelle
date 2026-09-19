@@ -183,6 +183,14 @@ start after it), redefines `chronelle_friend_invitation_json` and
 the runtime role needs no change. Invitation links point at
 `WEB_PUBLIC_URL` (`http://localhost:3000` when unset).
 
+Migration `0059_add_event_location.sql` adds `events.location` (null, or 1
+to 240 trimmed characters, the same rule as a Task's) with
+`chronelle_assert_event_location`, redefines `chronelle_serialize_event`
+and the Event insert, validate, and apply functions in place to carry it,
+and redefines `chronelle_command_content` so a reversible Event command
+carries the place. The API built from it can start before or after it (an
+older API leaves the column null); the runtime role needs no change.
+
 Migration `0021_add_object_search_function.sql` adds `chronelle_object_search`,
 the read-only function the CloudBase search adapter calls. It changes no
 tables and needs no baseline.

@@ -16,6 +16,7 @@ import { ScheduleItemInspector } from "../features/events/schedule-item-inspecto
 import { useEditorDraftStore } from "../lib/editor-draft-context";
 import { readEventFields } from "../lib/editor-draft-store";
 import { queryKeys } from "../lib/queries";
+import { withCommands } from "./helpers/command-fetch";
 
 const eventId = "019d6e7d-0000-7000-8000-000000000010";
 const workspaceId = "019d6e7d-0000-7000-8000-000000000001";
@@ -39,6 +40,7 @@ const event = {
   endsOn: "2030-07-05",
   timezone: "UTC",
   isAllDay: false,
+  location: null,
 };
 const editorAccess = {
   resourceId: eventId,
@@ -137,6 +139,44 @@ describe("schedule item inspector", () => {
     expect(fetch.mock.calls.map(([url]) => String(url))).toContainEqual(
       expect.stringContaining(`/events/${eventId}`),
     );
+  });
+
+  it("offers the Place field and saves it with the schedule", async () => {
+    const patches: unknown[] = [];
+    vi.stubGlobal(
+      "fetch",
+      withCommands(async (input, options) => {
+        if (options?.method === "PATCH") {
+          const body = JSON.parse(String(options.body));
+          patches.push(body);
+          const { expectedVersion: _expected, ...changes } = body;
+          return Response.json({
+            ...event,
+            ...changes,
+            version: event.version + 1,
+          });
+        }
+        return Response.json(
+          String(input).endsWith("/access") ? editorAccess : event,
+        );
+      }),
+    );
+    const onClose = vi.fn();
+    const user = userEvent.setup();
+    render(<ScheduleItemInspector eventId={eventId} onClose={onClose} />, {
+      wrapper: Providers,
+    });
+    const place = await screen.findByLabelText("Place");
+    expect(place).toHaveValue("");
+    await user.type(place, " Camellia Flower, Ninenzaka ");
+    await user.click(screen.getByRole("button", { name: "Save event" }));
+    await waitFor(() => expect(onClose).toHaveBeenCalled());
+    expect(patches).toEqual([
+      expect.objectContaining({
+        expectedVersion: event.version,
+        location: "Camellia Flower, Ninenzaka",
+      }),
+    ]);
   });
 
   it("keeps fields and their original version when closing is cancelled", async () => {

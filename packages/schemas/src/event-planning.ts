@@ -57,6 +57,9 @@ export const objectDeletionQuerySchema = z.object({
   expectedVersion: z.coerce.number().int().positive(),
 });
 
+// An Event and a Task alike may name where they happen as text (location).
+const locationSchema = z.string().trim().min(1).max(240).nullable();
+
 export const eventCreateRequestSchema = z.object({
   ...createObjectShape,
   startsOn: calendarDateSchema.nullable().optional(),
@@ -65,6 +68,7 @@ export const eventCreateRequestSchema = z.object({
   endsAt: nullableDateTimeInputSchema.optional(),
   timezone: z.string().trim().min(1).max(120).nullable().optional(),
   isAllDay: z.boolean().optional(),
+  location: locationSchema.optional(),
 });
 
 export const eventUpdateRequestSchema = z
@@ -76,6 +80,7 @@ export const eventUpdateRequestSchema = z
     endsAt: nullableDateTimeInputSchema.optional(),
     timezone: z.string().trim().min(1).max(120).nullable().optional(),
     isAllDay: z.boolean().optional(),
+    location: locationSchema.optional(),
   })
   .refine(hasUpdateFields, {
     message: "At least one update field is required.",
@@ -89,7 +94,6 @@ export const eventUpdateRequestSchema = z
 // and name where it happens as text (location). A task due at an instant
 // may say how long it takes (durationMinutes, 1 to 1440). A task with a due
 // may repeat (repeatRule), optionally until a last date (repeatUntil).
-const taskLocationSchema = z.string().trim().min(1).max(240).nullable();
 const taskDurationSchema = z.number().int().min(1).max(1440).nullable();
 
 export const taskCreateRequestSchema = z.object({
@@ -103,7 +107,7 @@ export const taskCreateRequestSchema = z.object({
   completedAt: nullableDateTimeInputSchema.optional(),
   parentTaskId: objectIdSchema.nullable().optional(),
   assigneeId: objectIdSchema.nullable().optional(),
-  location: taskLocationSchema.optional(),
+  location: locationSchema.optional(),
   /** The task's place in manual order; absent puts it last. */
   rank: rankSchema.optional(),
   /** The task's labels as a whole; absent leaves them unchanged. */
@@ -122,7 +126,7 @@ export const taskUpdateRequestSchema = z
     completedAt: nullableDateTimeInputSchema.optional(),
     parentTaskId: objectIdSchema.nullable().optional(),
     assigneeId: objectIdSchema.nullable().optional(),
-    location: taskLocationSchema.optional(),
+    location: locationSchema.optional(),
     rank: rankSchema.optional(),
     labelIds: z.array(objectIdSchema).max(20).optional(),
   })
@@ -258,6 +262,8 @@ export const eventResponseSchema = z.object({
   endsAt: nullableDateTimeResponseSchema,
   timezone: z.string().nullable(),
   isAllDay: z.boolean(),
+  /** Where the event happens, as text. */
+  location: z.string().nullable().default(null),
 });
 
 export const eventListResponseSchema = z.object({

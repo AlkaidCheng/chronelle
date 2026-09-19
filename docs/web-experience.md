@@ -835,7 +835,11 @@ draft can then be resumed.
 
 Add schedule item opens a focused creation dialog without moving the Calendar
 list. Dates start enabled with no selected date or invented time; they can be
-turned off. Cancel and Escape confirm dismissal of changed fields. Keep editing
+turned off. Under Set dates, Place takes where the item happens as one line
+of up to 240 characters ("Where it happens, as you would tell someone. The
+itinerary shows it beside the time."); it is optional, trimmed on save, and
+the same field opens in Edit. A Calendar row with a place shows it after the
+schedule, with a pin, on its list rows. Cancel and Escape confirm dismissal of changed fields. Keep editing
 preserves the form, calendar position and focus. An in-flight save disables
 editing and dismissal. Failed saves retain input; unchanged retries reuse the
 linked-create command identity, including after draft recovery. Successful creation closes the
