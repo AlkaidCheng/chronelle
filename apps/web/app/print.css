@@ -1,0 +1,120 @@
+/* Printing one view.
+
+   Export as PDF marks the document with the view being printed
+   (data-printing on the root) and the view's panel (data-printing="true"),
+   then opens the browser's print dialog, which offers Save as PDF. Marked,
+   the page holds the event's name and dates and that one view alone, black
+   on white, its rows kept whole across pages, with nothing to click on it.
+   The marks are cleared when the dialog closes, so an ordinary print of the
+   page is untouched by these rules. */
+
+/* The line under a view's title naming its sort and filter: on paper only. */
+.print-caption {
+  display: none;
+}
+
+@media print {
+  @page {
+    margin: 16mm;
+  }
+
+  :root[data-printing] {
+    background: #fff;
+    color: #000;
+  }
+
+  :root[data-printing] body {
+    background: #fff;
+    color: #000;
+  }
+
+  /* The shell and the event page as one column with no chrome. */
+  :root[data-printing] .workspace-shell {
+    display: block;
+    min-height: 0;
+  }
+
+  :root[data-printing] .event-workspace {
+    max-width: none;
+    padding: 0;
+  }
+
+  :root[data-printing] .event-hero {
+    margin-bottom: 18px;
+  }
+
+  :root[data-printing] .event-hero h1 {
+    font-size: 1.6rem;
+    margin-bottom: 4px;
+  }
+
+  :root[data-printing] .event-pages {
+    background: none;
+    border: 0;
+    min-height: 0;
+    padding: 0;
+  }
+
+  :root[data-printing] .planning-panel {
+    background: none;
+    border: 0;
+    border-radius: 0;
+    padding: 0;
+  }
+
+  :root[data-printing] .panel-column {
+    max-width: none;
+  }
+
+  :root[data-printing] .print-caption {
+    color: #000;
+    display: block;
+    flex-basis: 100%;
+  }
+
+  /* What is not the view: the sidebar, the page tabs, the other components
+     on the page, and every control that only acts on the screen. */
+  :root[data-printing] .skip-link,
+  :root[data-printing] .sidebar,
+  :root[data-printing] .up-link,
+  :root[data-printing] .event-actions,
+  :root[data-printing] .access-line,
+  :root[data-printing] .event-strip,
+  :root[data-printing] .composition-actions,
+  :root[data-printing] .component-toolbar,
+  :root[data-printing] .event-component-block:not(:has([data-printing="true"])),
+  :root[data-printing] .panel-tools,
+  :root[data-printing] .quick-add-item,
+  :root[data-printing] .task-check,
+  :root[data-printing] .row-actions,
+  :root[data-printing] .row-menu,
+  :root[data-printing] .row-more,
+  :root[data-printing] .period-steps,
+  :root[data-printing] .day-sheet-turn,
+  :root[data-printing] .day-sheet-today {
+    display: none;
+  }
+
+  /* A task on the day sheet loses its check column with the check. */
+  :root[data-printing] .day-sheet-task {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  /* A row, a card, or a day stays on one page. */
+  :root[data-printing] .resource-list > *,
+  :root[data-printing] .itinerary-list > li,
+  :root[data-printing] .timeline-list > li,
+  :root[data-printing] .day-sheet-row,
+  :root[data-printing] .day-sheet-task,
+  :root[data-printing] .note-card,
+  :root[data-printing] .month-week {
+    break-inside: avoid;
+  }
+
+  /* A day's heading stays with its first rows. */
+  :root[data-printing] .day-sheet-heading,
+  :root[data-printing] .day-group-heading,
+  :root[data-printing] .week-day-heading {
+    break-after: avoid;
+  }
+}

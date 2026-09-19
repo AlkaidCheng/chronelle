@@ -1092,8 +1092,10 @@ Reminders are not on the sheet; they have their own view.
 The seven Event components share one frame. In a tab view it has no box of
 its own (the tabs frame it); on an event page it keeps its card. Each opens
 on one head line: its title in body type, a faint count where the component
-keeps one, and its Layout, Sort, and Filter controls as quiet words at the
-right. A component that lists records (To-dos, Timeline, Itinerary,
+keeps one, and its Layout, Sort, Filter, and Export controls as quiet words
+at the right, each with its symbol; on a phone (under 600px) the symbols
+show alone, a touch larger, and the words stay as the buttons' names. A
+component that lists records (To-dos, Timeline, Itinerary,
 Expenses, Reminders, Files, Notes, and the Calendar in its list and by-day
 layouts) keeps to one 800px column, heading and rows alike, so a name and
 what sits at the row's end stay close; the week and month grids and the
@@ -1223,6 +1225,32 @@ longer carry falls back to any, and these choices last for the session rather
 than being saved with the layout. On a page, the choice of layout is part of
 the layout: it saves at once for everyone on the Event, shows in layout
 history, and undo covers it. Viewers see the saved layout without a control.
+
+### Export
+
+Export ends the head row of To-dos, Calendar, Timeline, Itinerary, Expenses,
+Reminders, and Notes, a quiet word with the download mark beside Sort, Filter,
+and Layout, for editors and viewers alike. It opens two plain items. Export
+as PDF prints the view as it is shown, through the browser's print dialog
+(which offers Save as PDF): the page holds the event's name and dates, the
+view's title and count, a line naming the sort and filter where the view
+has them ("Sort: By due. Show: Open, Venue."), and the rows, black on white,
+each row kept whole across pages; the sidebar, the tabs, the other
+components on the page, the controls, the add rows, and the row menus are
+left off. Export data (CSV) saves the same rows as a comma-separated file
+named "Event - View - date" (a character a file system refuses becomes a
+space), opening with a byte-order mark so a spreadsheet reads it as UTF-8,
+its column headings in the shown language, dates as YYYY-MM-DD and times on
+the 24-hour clock in the shown time zone. What is exported is what is shown:
+the To-dos file follows Sort and Filter, and names the assignee and the
+labels; the Calendar, Expenses, and Reminders files hold the list, by-day, or
+the shown week or month (with the undated rows the grid lists apart); the
+Itinerary file holds the shown day, or every day in All days, each day in
+the order its page reads (the items running over the day, the timed rows
+with their start and end, the tasks due, then the items without a time);
+the Timeline file holds each record's kind, name, and moment; the Notes file
+holds each note's title, whole text, last edit, and editor. A description on
+a task or a schedule item is a column once the record carries one.
 
 ## Recorded reminders
 

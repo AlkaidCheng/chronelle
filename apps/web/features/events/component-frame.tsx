@@ -14,11 +14,14 @@ import { componentViewLabel } from "../../lib/event-components";
  */
 export function PanelHeading({
   action,
+  caption,
   controls,
   count,
   title,
 }: {
   readonly action?: ReactNode;
+  /** The sort and filter the view is read with, printed under the title. */
+  readonly caption?: string | undefined;
   readonly controls?: ReactNode;
   /** What the component holds, read beside the title: "3 open". */
   readonly count?: string | undefined;
@@ -29,6 +32,9 @@ export function PanelHeading({
       <div>
         <h2>{title}</h2>
         {count === undefined ? null : <p className="panel-count">{count}</p>}
+        {caption === undefined ? null : (
+          <p className="print-caption">{caption}</p>
+        )}
       </div>
       {controls === undefined && action === undefined ? null : (
         <div className="panel-tools">

@@ -147,7 +147,9 @@ export function EventComponent({
           queryKey={queryKeys.timeline(eventId)}
           load={(signal) => client.withSignal(signal).getEventTimeline(eventId)}
         >
-          {(timeline) => <TimelinePanel timeline={timeline} />}
+          {(timeline) => (
+            <TimelinePanel eventId={eventId} timeline={timeline} />
+          )}
         </Projection>
       );
     case "itinerary":

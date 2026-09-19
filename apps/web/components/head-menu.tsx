@@ -132,11 +132,11 @@ export function HeadMenu({
       >
         {icon}
         {name === undefined ? (
-          <span>{label}</span>
+          <span className="head-menu-text">{label}</span>
         ) : (
           <>
             <span className="visually-hidden">{label}: </span>
-            <span>{name}</span>
+            <span className="head-menu-text">{name}</span>
           </>
         )}
       </button>
