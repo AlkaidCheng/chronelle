@@ -65,6 +65,7 @@ export function TrashWorkspace() {
             <option value="reminder">{types("reminders")}</option>
             <option value="document">{types("documents")}</option>
             <option value="person">{types("people")}</option>
+            <option value="note">{types("notes")}</option>
           </select>
         </label>
         <button

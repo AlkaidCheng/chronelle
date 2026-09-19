@@ -38,6 +38,10 @@ export const eventComponents = {
     keywords: "persons contacts attendees guests",
     views: ["list"],
   },
+  notes: {
+    keywords: "text memo address remember",
+    views: ["list"],
+  },
 } satisfies Record<
   EventComponentKind,
   {

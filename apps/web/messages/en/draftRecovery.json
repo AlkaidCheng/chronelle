@@ -4,7 +4,8 @@
     "task": "Saving task",
     "expense": "Saving expense",
     "reminder": "Saving reminder",
-    "person": "Saving person"
+    "person": "Saving person",
+    "note": "Saving note"
   },
   "resumeTitle": "Resume your draft?",
   "close": "Close draft recovery",
@@ -14,7 +15,8 @@
     "task": "Your entered task name and due time are kept in this tab. Current access is checked before resuming.",
     "expense": "Your entered expense name, amount, currency and transaction time are kept in this tab. Current access is checked before resuming.",
     "reminder": "Your entered reminder name and time are kept in this tab. Current access is checked before resuming.",
-    "person": "Your entered person's name, email, account link and fields are kept in this tab. Current access is checked before resuming."
+    "person": "Your entered person's name, email, account link and fields are kept in this tab. Current access is checked before resuming.",
+    "note": "Your entered note title and text are kept in this tab. Current access is checked before resuming."
   },
   "failedRetry": "The previous save could not be confirmed. Resume and retry unchanged fields to reuse the same save attempt.",
   "failedCheck": "The previous save could not be confirmed. Check whether it was saved before trying again.",

@@ -11,6 +11,7 @@ export const eventViews = [
   { id: "reminders" },
   { id: "files" },
   { id: "people" },
+  { id: "notes" },
   { id: "sharing" },
   { id: "removed-links" },
 ] as const;
@@ -28,6 +29,7 @@ const viewKeys = {
   reminders: "reminders",
   files: "files",
   people: "people",
+  notes: "notes",
   sharing: "sharing",
   "removed-links": "removedLinks",
 } as const satisfies Record<EventView, string>;

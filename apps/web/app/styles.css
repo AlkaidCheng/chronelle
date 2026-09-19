@@ -18,7 +18,8 @@ body {
 
 button,
 input,
-select {
+select,
+textarea {
   font: inherit;
 }
 
@@ -1202,6 +1203,7 @@ h3 {
 
 .field input,
 .field select,
+.field textarea,
 .compact-field input,
 .compact-field select {
   background: var(--field-surface, var(--surface));
@@ -1221,6 +1223,7 @@ h3 {
 
 .field input:focus,
 .field select:focus,
+.field textarea:focus,
 .compact-field input:focus,
 .compact-field select:focus {
   border-color: var(--accent);
@@ -3291,6 +3294,83 @@ tr.is-drop-after > td {
 .resource-list {
   display: grid;
   gap: 10px;
+}
+
+/* Notes: a card per note, the text folded to two lines until opened. */
+.note-list {
+  display: grid;
+  gap: 10px;
+}
+
+.note-card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  display: grid;
+  gap: 4px;
+  padding: 12px 14px;
+}
+
+.note-card:hover,
+.note-card[data-open] {
+  border-color: var(--line-strong);
+}
+
+.note-title {
+  font-size: 0.9rem;
+  font-weight: 600;
+  line-height: 1.35;
+  margin: 0;
+}
+
+.note-toggle {
+  background: none;
+  border: 0;
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
+  padding: 0;
+  text-align: start;
+  width: 100%;
+}
+
+.note-preview {
+  -webkit-box-orient: vertical;
+  color: var(--muted);
+  display: -webkit-box;
+  font-size: 0.82rem;
+  -webkit-line-clamp: 2;
+  margin: 0;
+  overflow: hidden;
+  white-space: pre-line;
+}
+
+.note-body {
+  color: var(--ink);
+  font-size: 0.85rem;
+  margin: 4px 0 0;
+  overflow-wrap: anywhere;
+  white-space: pre-line;
+}
+
+.note-link {
+  color: var(--accent);
+  text-decoration: underline;
+}
+
+.note-by {
+  align-items: center;
+  color: var(--faint);
+  display: flex;
+  font-size: 0.78rem;
+  gap: 10px;
+  justify-content: space-between;
+  margin-top: 2px;
+}
+
+.note-body-field {
+  line-height: 1.5;
+  resize: vertical;
 }
 
 ul.resource-list {

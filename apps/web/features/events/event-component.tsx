@@ -3,9 +3,10 @@
 import type {
   EventComponentKind,
   EventComponentView,
+  NoteListQuery,
 } from "@chronelle/schemas";
 import { useQuery } from "@tanstack/react-query";
-import type { ReactNode } from "react";
+import { type ReactNode, useState } from "react";
 import { ErrorNotice, LoadingState } from "../../components/feedback";
 import { tr } from "../../i18n/active-locale";
 import { useApiClient } from "../../lib/api-context";
@@ -16,6 +17,7 @@ import { queryKeys, useEventWorkspaceQueries } from "../../lib/queries";
 import { isTemporaryReadError } from "../../lib/query-errors";
 import { DocumentsPanel } from "./documents-panel";
 import { ItineraryPanel } from "./itinerary-panel";
+import { NotesPanel } from "./notes-panel";
 import { PeoplePanel } from "./people-panel";
 import {
   CalendarPanel,
@@ -91,6 +93,8 @@ export function EventComponent({
 }) {
   const client = useApiClient();
   useForgetInaccessibleEventDrafts(eventId, !canEdit);
+  // The Notes order is a reading choice, kept while the component is open.
+  const [noteSort, setNoteSort] = useState<NoteListQuery["sort"]>("edited");
   const kind = storedKind;
   const view = viewOf({ kind, view: storedView });
   const label = componentKindLabel(kind);
@@ -253,6 +257,27 @@ export function EventComponent({
               canEdit={canEdit}
               eventId={eventId}
               persons={people.items}
+            />
+          )}
+        </Projection>
+      );
+    case "notes":
+      return (
+        <Projection
+          eventId={eventId}
+          label={label}
+          queryKey={queryKeys.notes(eventId, noteSort)}
+          load={(signal) =>
+            client.withSignal(signal).getEventNotes(eventId, { sort: noteSort })
+          }
+        >
+          {(page) => (
+            <NotesPanel
+              canEdit={canEdit}
+              eventId={eventId}
+              notes={page.items}
+              onChangeSort={setNoteSort}
+              sort={noteSort}
             />
           )}
         </Projection>

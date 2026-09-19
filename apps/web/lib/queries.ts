@@ -27,6 +27,8 @@ import type {
   PendingShareCreateRequest,
   PreferencesRequest,
   ReminderUpdatePayload,
+  NoteListQuery,
+  NoteUpdatePayload,
   SessionResponse,
   ShareCreatePayload,
   WorkspaceMemberAddRequest,
@@ -79,6 +81,8 @@ export const queryKeys = {
   expenses: (eventId: string) => ["event", eventId, "expenses"] as const,
   reminders: (eventId: string) => ["event", eventId, "reminders"] as const,
   people: (eventId: string) => ["event", eventId, "people"] as const,
+  notes: (eventId: string, sort: NoteListQuery["sort"]) =>
+    ["event", eventId, "notes", sort] as const,
   search: (input: ObjectSearchQueryInput) => ["search", input] as const,
   tasks: ["tasks"] as const,
   labels: ["labels"] as const,
@@ -573,6 +577,14 @@ export function usePersonEventsQuery(personId: string) {
     },
     queryKey: [...queryKeys.objectResource(personId), "events"],
   });
+}
+
+export function useNoteEditorQueries(noteId: string) {
+  const { resource: note, access } = useObjectEditorQueries(
+    noteId,
+    (client, id) => client.getNote(id),
+  );
+  return { note, access };
 }
 
 export function useReminderEditorQueries(reminderId: string) {
@@ -1090,6 +1102,23 @@ export function useCreateReminder(
   attempt?: ContextCreateAttempt,
 ) {
   return useCreateInContext(eventId, "reminder", attempt);
+}
+
+/** Creates a note inside an Event: the note and its inclusion in one command. */
+export function useCreateNote(eventId: string, attempt?: ContextCreateAttempt) {
+  return useCreateInContext(eventId, "note", attempt);
+}
+
+export function useUpdateNote() {
+  const client = useApiClient();
+  const invalidate = useCanonicalInvalidation();
+  return useMutation({
+    mutationFn: ({ id, input }: { id: string; input: NoteUpdatePayload }) =>
+      client.updateNote(id, input),
+    onSuccess: () => {
+      void invalidate();
+    },
+  });
 }
 
 export function useUpdateReminder() {

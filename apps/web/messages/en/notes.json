@@ -1,0 +1,17 @@
+{
+  "add": "Add note",
+  "count": "{count, plural, one {# note} other {# notes}}",
+  "edited": "Edited {when}",
+  "editedBy": "Edited {when} by {name}",
+  "empty": "No notes yet.",
+  "sorts": {
+    "edited": "Last edited",
+    "title": "By title"
+  },
+  "menu": {
+    "edit": "Edit",
+    "history": "History",
+    "moveToTrash": "Move to Trash"
+  },
+  "actionsFor": "Actions for {name}"
+}

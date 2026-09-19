@@ -1,0 +1,12 @@
+{
+  "title": "筆記",
+  "editTitle": "編輯筆記",
+  "discardTitle": "捨棄筆記變更？",
+  "close": "關閉筆記編輯器",
+  "viewHistory": "查看筆記歷史",
+  "unsaved": "筆記變更尚未儲存。",
+  "name": "標題",
+  "body": "內文",
+  "bodyHint": "純文字。換行會保留，閱讀時連結可點按。",
+  "save": "儲存"
+}

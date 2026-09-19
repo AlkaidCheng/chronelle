@@ -9,6 +9,7 @@
   "reminders": "提醒",
   "files": "檔案",
   "people": "夥伴",
+  "notes": "筆記",
   "sharing": "共享",
   "removedLinks": "已移除的關聯",
   "descriptions": {
@@ -22,6 +23,7 @@
     "reminders": "定時提醒；暫不發送通知。",
     "files": "附在活動及其任務、支出上的檔案。",
     "people": "活動裡有誰，以名片呈現。",
+    "notes": "隨活動保存的文字：計劃、地址、要記住的事。",
     "sharing": "誰有存取權限，以及是什麼角色。",
     "removedLinks": "從活動中移除的關聯，可隨時復原。"
   },

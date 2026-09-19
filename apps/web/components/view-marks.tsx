@@ -112,6 +112,13 @@ const marks: Record<EventView, ReactNode> = {
       <path d="M15.5 14.5a5 5 0 0 1 6 5" />
     </>
   ),
+  notes: (
+    <>
+      <path className={soft} d="M5 4h10l4 4v12H5z" />
+      <path d="M5 4h10l4 4v12H5z" />
+      <path d="M15 4v4h4M8 12h8M8 16h5" />
+    </>
+  ),
   sharing: (
     <>
       <circle className={soft} cx="18" cy="5" r="3" />

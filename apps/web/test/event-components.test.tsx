@@ -1431,7 +1431,7 @@ describe("insertable event components", () => {
     });
     await user.click(trigger);
     const dialog = within(screen.getByRole("dialog"));
-    expect(dialog.getAllByRole("button", { name: /^Add / })).toHaveLength(8);
+    expect(dialog.getAllByRole("button", { name: /^Add / })).toHaveLength(9);
     expect(
       dialog.getByRole("searchbox", { name: "Find a component" }),
     ).toHaveFocus();
@@ -1516,7 +1516,7 @@ describe("insertable event components", () => {
     expect(dialog.queryAllByRole("button", { name: /^Add / })).toHaveLength(0);
     await user.click(dialog.getByRole("button", { name: "Clear search" }));
     expect(search).toHaveFocus();
-    expect(dialog.getAllByRole("button", { name: /^Add / })).toHaveLength(8);
+    expect(dialog.getAllByRole("button", { name: /^Add / })).toHaveLength(9);
     await user.type(search, "checklist");
     await user.keyboard("{ArrowDown}");
     expect(dialog.getByRole("button", { name: "Add To-dos" })).toHaveFocus();

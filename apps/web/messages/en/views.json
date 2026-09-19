@@ -9,6 +9,7 @@
   "reminders": "Reminders",
   "files": "Files",
   "people": "People",
+  "notes": "Notes",
   "sharing": "Sharing",
   "removedLinks": "Removed links",
   "descriptions": {
@@ -22,6 +23,7 @@
     "reminders": "Nudges at a time. Notifications are not sent yet.",
     "files": "Attachments kept with the event, its tasks and expenses.",
     "people": "Who is part of the event, as namecards.",
+    "notes": "Free text kept with the event: plans, addresses, what to remember.",
     "sharing": "Who has access, and as what.",
     "removedLinks": "Links taken off the event, ready to recover."
   },

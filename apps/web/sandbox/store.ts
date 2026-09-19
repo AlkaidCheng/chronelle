@@ -30,6 +30,9 @@ import {
   nextTaskDueAt,
   nextTaskDueDate,
   objectSearchQuerySchema,
+  noteCreateRequestSchema,
+  noteListQuerySchema,
+  noteUpdateRequestSchema,
   personCreateRequestSchema,
   personListQuerySchema,
   personUpdateRequestSchema,
@@ -1870,7 +1873,8 @@ export class SandboxStore {
       (collection === "tasks" ||
         collection === "expenses" ||
         collection === "reminders" ||
-        collection === "persons") &&
+        collection === "persons" ||
+        collection === "notes") &&
       !operation
     ) {
       const object = this.#object(id);
@@ -2008,6 +2012,30 @@ export class SandboxStore {
           documents: [],
           lockedRelationCount: 0,
         };
+      if (operation === "notes") {
+        // The sample planner writes every version here, so each note names
+        // them; the newest edit first, or titles without regard to case.
+        const query = noteListQuerySchema.parse(
+          Object.fromEntries(url.searchParams),
+        );
+        const notes = children
+          .filter((child) => child.objectType === "note")
+          .sort((a, b) =>
+            query.sort === "title"
+              ? a.displayName.toLowerCase() < b.displayName.toLowerCase()
+                ? -1
+                : a.displayName.toLowerCase() > b.displayName.toLowerCase()
+                  ? 1
+                  : a.id.localeCompare(b.id)
+              : b.updatedAt.localeCompare(a.updatedAt) ||
+                a.id.localeCompare(b.id),
+          )
+          .map((note) => ({
+            ...note,
+            editedBy: this.#state.preferences.displayName,
+          }));
+        return { sourceEventId: id, items: notes };
+      }
       const projections: Record<string, Resource[]> = {
         todos: tasks,
         calendar: events,
@@ -2302,6 +2330,25 @@ export class SandboxStore {
       this.#rememberCreate(commandId, fields, person.id);
       return person;
     }
+    if (method === "POST" && collection === "notes" && !id) {
+      const input = JSON.parse(
+        JSON.stringify(noteCreateRequestSchema.parse(body)),
+      ) as Record<string, unknown>;
+      const { permissionScopeId, commandId, ...fields } = input;
+      const replay = this.#replayCreate(commandId, fields);
+      if (replay !== undefined) return replay;
+      const note = canonical(
+        "note",
+        fields,
+        typeof permissionScopeId === "string" ? permissionScopeId : undefined,
+      );
+      this.#commit({
+        ...this.#state,
+        objects: [...this.#state.objects, note],
+      });
+      this.#rememberCreate(commandId, fields, note.id);
+      return note;
+    }
     if (method === "POST" && collection === "tasks" && !id) {
       const input = JSON.parse(
         JSON.stringify(taskCreateRequestSchema.parse(body)),
@@ -2563,6 +2610,7 @@ export class SandboxStore {
         expenses: { type: "expense", schema: expenseUpdateRequestSchema },
         reminders: { type: "reminder", schema: reminderUpdateRequestSchema },
         persons: { type: "person", schema: personUpdateRequestSchema },
+        notes: { type: "note", schema: noteUpdateRequestSchema },
       };
       const contract =
         collection && Object.hasOwn(contracts, collection)

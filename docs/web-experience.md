@@ -218,6 +218,21 @@ the event, by name, or takes a new person's name and creates them inside the
 event. A card's Actions offer Remove from this event, which takes the person out
 of the event and leaves them in the workspace, as well as Move to Trash.
 
+Notes (a gallery card, "Free text kept with the event: plans, addresses,
+what to remember.") lists the event's notes as cards: the title, the first
+two lines of the text, and "Edited today, 09:12 by Mei", who wrote the
+note's current version. Pressing the title opens the note in place, the
+whole text with its line breaks and each web address a link that opens in
+a new tab; a second press folds it. Last edited first; Sort offers By
+title. A card's Actions offer Edit, History, and Move to Trash (a viewer
+sees History alone). Add note opens the editor every record has: Title,
+Text (a growing field with the hint "Plain text. Line breaks are kept and
+links open when the note is read."), Cancel, Save. A note is an object of
+the event like a task: it is versioned (a stale save is a conflict, never
+an overwrite), kept as a draft in the tab until saved, listed in History
+with the text as the changed field, moved to Trash and recovered from it,
+and found by Search by its title only.
+
 The Sharing tab of an event, offered to its owners, is one box headed by
 the event's name, with a note that everything on the event (pages, to-dos,
 expenses, files) follows a share, and three groups. Friends lists the
@@ -560,7 +575,7 @@ Every screen of the web app reads in the chosen language: the shell and
 rail, the command palette and its shortcut settings, the Events page, the
 event page with its strip, Overview, pages, and layout controls, every panel
 (To-dos, Calendar, Timeline, Itinerary, Expenses, Reminders, Files, People,
-Sharing, Removed links), the Tasks and People collections, the person page, the event,
+Notes, Sharing, Removed links), the Tasks and People collections, the person page, the event,
 schedule item, task, expense, reminder, and person editors with the Due and
 date-range pickers, the month list, the period navigation, the label and
 assignee pickers, the page and component dialogs, layout and draft recovery,
@@ -640,8 +655,8 @@ not yet reviewed the two Chinese catalogs; wording may change.
   shows no date line; Set dates opens the editor on the schedule.
 - The gallery (Add a view, or Add view in Manage tabs) shows every
   specialized view as a card with a mark, a name and one line: To-dos,
-  Calendar, Timeline, Itinerary, Expenses, Reminders, Files, People, and
-  Sharing for an account that may share. A card is a switch: pressing it puts the view on
+  Calendar, Timeline, Itinerary, Expenses, Reminders, Files, People, Notes,
+  and Sharing for an account that may share. A card is a switch: pressing it puts the view on
   the strip, at the end, or takes it off the event again; the dialog stays
   open. To-dos and Sharing are always on. Taking a view off changes no
   records; it comes back with everything in it.
