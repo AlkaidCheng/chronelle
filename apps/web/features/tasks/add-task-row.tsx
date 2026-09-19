@@ -2,10 +2,12 @@
 
 import type { SectionResponse } from "@chronelle/schemas";
 import { useTranslations } from "next-intl";
+import { useEffect } from "react";
 
 import { PlusIcon } from "../../components/icons";
 import { addComposerKey, type ComposerSlots } from "../../lib/composer-slots";
 import type { DayKey } from "../../lib/day-placement";
+import { useEditorDraftStore } from "../../lib/editor-draft-context";
 import { eventCreationDraftKeys } from "../../lib/editor-draft-store";
 import type { TaskFields } from "../../lib/task-fields";
 import { standaloneTaskDraftId, TaskComposer } from "./task-composer";
@@ -81,10 +83,18 @@ export function AddTaskRow({
   const t = useTranslations("quickAdd");
   const sectionId = section?.id ?? null;
   const slotKey = addComposerKey(addTaskSlot(dueOn, sectionId));
-  if (slots.open === slotKey)
+  const draftId = addTaskDraftId(eventId, dueOn, sectionId);
+  // A composer left open in this tab, its draft kept, opens again when the
+  // row comes back, with nothing else open in the list.
+  const store = useEditorDraftStore();
+  const { open, request } = slots;
+  useEffect(() => {
+    if (open === null && store.get(draftId) !== undefined) request(slotKey);
+  }, [draftId, open, request, slotKey, store]);
+  if (open === slotKey)
     return (
       <TaskComposer
-        draftId={addTaskDraftId(eventId, dueOn, sectionId)}
+        draftId={draftId}
         dueOn={dueOn}
         eventId={eventId}
         onMore={onMore}

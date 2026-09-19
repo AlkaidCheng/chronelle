@@ -7,7 +7,7 @@ import {
   type TaskResponse,
 } from "@chronelle/schemas";
 import { useTranslations } from "next-intl";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import {
   EmptyState,
@@ -16,6 +16,7 @@ import {
 } from "../../components/feedback";
 import { PlusIcon, SearchIcon } from "../../components/icons";
 import { useComposerSlots } from "../../lib/composer-slots";
+import { rowSelector, useReturnFocus } from "../../lib/use-return-focus";
 import { emptyTaskFields, type TaskFields } from "../../lib/task-fields";
 import { LayoutControl } from "../events/component-frame";
 import { type SubtaskParent, TaskForm } from "../events/task-form";
@@ -70,6 +71,14 @@ export function TasksPage() {
     readonly start: TaskFields;
   } | null>(null);
   const composer = useComposerSlots();
+  const pageRoot = useRef<HTMLElement>(null);
+  const returnFocus = useReturnFocus(pageRoot);
+  const closeEditing = useCallback(() => {
+    setEditing((current) => {
+      if (current !== null) returnFocus(rowSelector(current.id));
+      return null;
+    });
+  }, [returnFocus]);
   useEffect(() => {
     if (isComposing) return;
     const timer = window.setTimeout(() => setDebouncedQuery(query.trim()), 250);
@@ -153,7 +162,7 @@ export function TasksPage() {
   }
 
   return (
-    <main className="workspace-page" tabIndex={-1}>
+    <main className="workspace-page" ref={pageRoot} tabIndex={-1}>
       <header className="page-heading split-heading collection-column">
         <div>
           <p className="eyebrow">{t("eyebrow")}</p>
@@ -349,7 +358,7 @@ export function TasksPage() {
       {editing !== null ? (
         <TaskInspector
           key={editing.id}
-          onClose={() => setEditing(null)}
+          onClose={closeEditing}
           start={editing.start}
           taskId={editing.id}
         />

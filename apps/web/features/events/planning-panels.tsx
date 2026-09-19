@@ -10,15 +10,7 @@ import type {
   TimelineResponse,
 } from "@chronelle/schemas";
 import { useTranslations } from "next-intl";
-import {
-  Fragment,
-  type RefObject,
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import { Fragment, useCallback, useMemo, useRef, useState } from "react";
 import { DragCard } from "../../components/drag-card";
 import { EmptyState, ErrorNotice } from "../../components/feedback";
 import { PinIcon } from "../../components/icons";
@@ -76,6 +68,11 @@ import type { TaskFields } from "../../lib/task-fields";
 import { sortTasks, type TaskSort } from "../../lib/task-sort";
 import { deriveTaskTree } from "../../lib/task-tree";
 import { periodRange, usePeriod } from "../../lib/use-period";
+import {
+  addRowSelector,
+  rowSelector,
+  useReturnFocus,
+} from "../../lib/use-return-focus";
 import { type RowDrop, rowsWithGap, useRowDrag } from "../../lib/use-row-drag";
 import { HistoryButton } from "../history/history-button";
 import { useOpenHistory } from "../history/history-provider";
@@ -143,25 +140,6 @@ function namedChoices(
   );
 }
 
-/**
- * Brings focus back to a panel's add row once its editor closes. The row the
- * editor came from is closed by then, and the list may replace the row as it
- * takes its first item, so for a moment after the close every render that
- * finds focus lost (on the body or the workspace) moves it to the row.
- */
-function useReturnFocusToAddRow(panel: RefObject<HTMLElement | null>) {
-  const until = useRef(0);
-  useEffect(() => {
-    if (Date.now() > until.current) return;
-    const active = document.activeElement;
-    if (active === document.body || active?.id === "workspace-content")
-      panel.current?.querySelector<HTMLElement>(".quick-add")?.focus();
-  });
-  return useCallback(() => {
-    until.current = Date.now() + 1500;
-  }, []);
-}
-
 /** A panel's classes: the list column for a list layout, the page for a period grid. */
 function panelClasses(view: EventComponentView): string {
   return view === "week" || view === "month"
@@ -201,16 +179,22 @@ export function TasksPanel({
   const [adding, setAdding] = useState<TaskFields | null>(null);
   const composer = useComposerSlots();
   const panel = useRef<HTMLElement>(null);
-  const returnFocus = useReturnFocusToAddRow(panel);
+  const returnFocus = useReturnFocus(panel);
   const closeAdding = useCallback(() => {
     setAdding(null);
-    returnFocus();
+    returnFocus(addRowSelector);
   }, [returnFocus]);
   const [parent, setParent] = useState<SubtaskParent | null>(null);
   const [editing, setEditing] = useState<{
     readonly id: string;
     readonly start: TaskFields;
   } | null>(null);
+  const closeEditing = useCallback(() => {
+    setEditing((current) => {
+      if (current !== null) returnFocus(rowSelector(current.id));
+      return null;
+    });
+  }, [returnFocus]);
   const refresh = useRefreshEvent(eventId);
   const period = usePeriod(view);
   // The projection holds every task of the Event, so the tree is derived here.
@@ -413,7 +397,7 @@ export function TasksPanel({
         <TaskInspector
           key={editing.id}
           eventId={eventId}
-          onClose={() => setEditing(null)}
+          onClose={closeEditing}
           sections={sections}
           start={editing.start}
           taskId={editing.id}
@@ -1183,10 +1167,10 @@ export function RemindersPanel({
     remindAt: string;
   } | null>(null);
   const panel = useRef<HTMLElement>(null);
-  const returnFocus = useReturnFocusToAddRow(panel);
+  const returnFocus = useReturnFocus(panel);
   const closeAdding = useCallback(() => {
     setAdding(null);
-    returnFocus();
+    returnFocus(addRowSelector);
   }, [returnFocus]);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [announcement, setAnnouncement] = useState("");

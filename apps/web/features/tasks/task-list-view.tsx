@@ -70,7 +70,7 @@ import {
   SectionTitle,
 } from "../sections/section-parts";
 import { useSectionEditing } from "../sections/use-sections";
-import { AddTaskRow } from "./add-task-row";
+import { AddTaskRow, addTaskDraftId } from "./add-task-row";
 import { TaskComposer } from "./task-composer";
 
 const taskColumn = createColumnHelper<TaskResponse>();
@@ -276,8 +276,9 @@ export function TaskListView({
     [canEdit, composer],
   );
   // A row left open in this tab, its draft kept, opens again when the
-  // list comes back; a row that left the list closes its composer, so a
-  // row that cannot be shown never holds the question.
+  // list comes back (an add row left open finds its own draft); a row that
+  // left the list closes its composer, so a row that cannot be shown never
+  // holds the question.
   const openRow =
     composer.open?.startsWith("task:") === true
       ? composer.open.slice("task:".length)
@@ -291,15 +292,25 @@ export function TaskListView({
       return;
     }
     if (composer.open !== null || !canEdit) return;
+    // An add row's draft (the list's, or a section's) reopens that row.
+    const addDrafts = [
+      addTaskDraftId(eventId, null),
+      ...(sections ?? []).map((section) =>
+        addTaskDraftId(eventId, null, section.id),
+      ),
+    ];
+    if (addDrafts.some((id) => store.get(id) !== undefined)) return;
     const left = tasks.find((task) => store.get(task.id) !== undefined);
     if (left !== undefined) requestComposer(rowComposerKey(left.id));
   }, [
     canEdit,
     closeComposer,
     composer.open,
+    eventId,
     openRow,
     openRowShown,
     requestComposer,
+    sections,
     store,
     tasks,
   ]);
