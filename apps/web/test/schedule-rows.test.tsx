@@ -62,10 +62,10 @@ describe("scheduleChange", () => {
 });
 
 describe("the schedule rows", () => {
-  it("read what is unset with a hint, and what is set with a clear", async () => {
+  it("read what is unset, the times row with All day, and what is set with a clear", async () => {
     const user = userEvent.setup();
     render(<Harness />, { wrapper: Providers });
-    expect(dateRow(/^Set dates/)).toHaveTextContent("A day, or a span of days");
+    expect(dateRow(/^Set dates/)).toHaveTextContent(/^Set dates$/);
     expect(dateRow(/^Set times/)).toHaveTextContent("All day");
     expect(screen.queryByRole("button", { name: "Clear dates" })).toBeNull();
 

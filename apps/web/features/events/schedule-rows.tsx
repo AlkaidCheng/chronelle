@@ -122,7 +122,6 @@ export function ScheduleRows({
         clearLabel={t("clearDates")}
         disabled={disabled}
         expanded={open === "dates"}
-        hint={t("datesHint")}
         icon={<CalendarIcon className="field-row-icon" />}
         label={hasDates ? t("dates") : t("setDates")}
         onClear={() =>
@@ -183,7 +182,6 @@ export function ScheduleRows({
           buttonRef={placeButton}
           clearLabel={t("clearPlace")}
           disabled={disabled}
-          hint={t("placeHint")}
           icon={<PinIcon className="field-row-icon" />}
           label={place.value === "" ? t("addPlace") : t("place")}
           onClear={() => place.onChange("")}

@@ -2,7 +2,6 @@
   "legend": "Schedule",
   "dates": "Dates",
   "setDates": "Set dates",
-  "datesHint": "A day, or a span of days",
   "clearDates": "Clear dates",
   "times": "Times",
   "setTimes": "Set times",
