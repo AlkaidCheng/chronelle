@@ -30,7 +30,6 @@ test("keeps people as rows and namecards with a page for each", async ({
     {
       displayName: name,
       nickname: "Mira",
-      email: "mira@example.test",
       contacts: [
         { kind: "email", value: "mira@example.test" },
         { kind: "phone", value: "+1 555 0100" },

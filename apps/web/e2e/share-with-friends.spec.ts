@@ -52,7 +52,10 @@ test("shares an event with a friend and queues one for a person without an accou
     (
       await request.post("/api/persons", {
         headers: anaHeaders,
-        data: { displayName: "Priya Raman", email: priyaEmail },
+        data: {
+          displayName: "Priya Raman",
+          contacts: [{ kind: "email", value: priyaEmail }],
+        },
       })
     ).status(),
   ).toBe(201);
