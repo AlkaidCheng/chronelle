@@ -172,6 +172,17 @@ helpers in place without the column; and replaces the four-argument
 dropped). The API built from it starts after it; the runtime role needs no
 change.
 
+Migration `0058_add_invitation_links.sql` makes `user_invitations.email`
+nullable and adds `channel` (email or link) and the token itself; it
+replaces `chronelle_friend_invite` and `chronelle_friend_resend` with
+versions that take the token and the channel (the API built from 0058 must
+start after it), redefines `chronelle_friend_invitation_json` and
+`chronelle_friend_invitations_claim` in place, and adds
+`chronelle_friend_link`, `chronelle_friend_invitation_peek`, and
+`chronelle_friend_invitation_accept`, which the readiness check requires;
+the runtime role needs no change. Invitation links point at
+`WEB_PUBLIC_URL` (`http://localhost:3000` when unset).
+
 Migration `0021_add_object_search_function.sql` adds `chronelle_object_search`,
 the read-only function the CloudBase search adapter calls. It changes no
 tables and needs no baseline.

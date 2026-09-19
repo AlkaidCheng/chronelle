@@ -116,12 +116,13 @@ is forwarded unchanged; the browser client does not keep the token.
 (password 10 to 256 characters; `displayName` optional, the account being
 named as its username until the Welcome step gives the name; `locale` the
 language of the sign-up screen, kept on the account; `invitationToken` the
-token a friend invitation's sign-up link carried, see Friends) records an
-unverified account and emails
+token of the invitation link the sign-up was opened from, see Friends)
+records an unverified account and emails
 a six-digit code in the account's language (English when none); the response
 is 202 `{ accepted: true }`, or 409 `email_taken`. The friend invitations
-waiting for the address become requests on the new account whether or not a
-token was sent.
+addressed to the email become requests on the new account, except the one
+whose token was sent: that link stays open for the claim page, where the
+new account accepts it explicitly.
 `POST /api/auth/verify-email` with `{ email, code }` verifies the address
 and signs the account in with the sign-in response above; a wrong, expired,
 or exhausted code (five wrong guesses) is 400 `verification_invalid`, and
@@ -808,12 +809,15 @@ accepting. `GET /api/friends` returns `{ friends, incoming, sent }`:
 `displayName`, `email`, and `since`), in name order; `incoming` the requests
 waiting for the caller's answer (`id`, `requester` with `userId`,
 `displayName`, `email`, the `message`, `createdAt`), newest first; `sent`
-what the caller sent and still waits (`id`, `kind`, `email`, `message`,
-`personId`, `workspaceId`, `createdAt`, `expiresAt`), newest first. A sent
-item is a `connection` (a request to the account that has the address) or an
-`invitation` (an address without an account, which gets a sign-up link and
-an `expiresAt`); a caller cannot tell from the response whether an address
-has an account except through what the recipient does.
+what the caller sent and still waits (`id`, `kind`, `email`, `channel`,
+`inviteUrl`, `message`, `personId`, `workspaceId`, `createdAt`,
+`expiresAt`), newest first. A sent item is a `connection` (a request to the
+account that has the address; `channel` and `inviteUrl` null) or an
+`invitation`: a link, kept as its `inviteUrl` (`<WEB_PUBLIC_URL>/invite/<token>`)
+so it can be copied again, with `channel` `email` when it was emailed to the
+address or `link` when the caller hands it on (`email` then null unless one
+was given), and an `expiresAt`. A caller cannot tell from the response
+whether an address has an account except through what the recipient does.
 
 `POST /api/friends/requests` with `{ userId, message?, personId? }` sends
 a request to an account found by search or by its code: the same pending
@@ -825,21 +829,52 @@ request or connection already stands, 429 `friend_limit` within the same
 daily allowance as invitations) and the sent item as the answer (201). Both
 backends write through `chronelle_friend_request` (migration 0055).
 
-`POST /api/friends/invitations` with `{ email, message?, personId? }`
-(message up to 500 characters; `personId` a live, unlinked person of the
-current workspace the caller can view, the card the invitation comes from)
-answers 201 with the sent item. When exactly one account has the address a
-pending connection is made and that account is emailed in its language;
-otherwise an invitation is recorded with the digest of a token and the
-address is emailed, in the caller's language, a link to
-`/sign-up?invitation=<token>` valid for fourteen days. Refusals: 400
-`invalid_request` for the caller's own address (`You cannot invite
-yourself.`), an untrimmed or overlong note, a card that is not an unlinked
-person the caller can view, or an address that belongs to more than one
-account; 409 `friend_conflict` when a request or connection already stands
-(`You are already friends.`, `An invitation is already waiting.`, `This
-person has already invited you.`); 429 `friend_limit` after fifty
-invitations in a day (`Too many invitations today.`).
+`POST /api/friends/invitations` with `{ channel?, email?, message?, personId? }`
+(`channel` `email`, the default, or `link`; `email` required to send by
+email and kept when given on a link; message up to 500 characters;
+`personId` a live, unlinked person of the current workspace the caller can
+view, the card the invitation comes from) answers 201 with the sent item.
+When exactly one account has the address a pending connection is made and
+that account is emailed in its language, whichever channel was asked for;
+otherwise an invitation is recorded with a token (kept, with its digest)
+valid for fourteen days, and by email the address is emailed the link
+`<WEB_PUBLIC_URL>/invite/<token>` in the caller's language, while a link is
+answered for the caller to hand on. Refusals: 400 `invalid_request` for a
+send by email without an address, the caller's own address (`You cannot
+invite yourself.`), an untrimmed or overlong note, a card that is not an
+unlinked person the caller can view, or an address that belongs to more
+than one account; 409 `friend_conflict` when a request or connection
+already stands (`You are already friends.`, `An invitation is already
+waiting.`, `This person has already invited you.`) or an invitation from
+the same card still waits; 429 `friend_limit` after fifty invitations in a
+day (`Too many invitations today.`).
+
+`POST /api/friends/invitations/:id/link` gives a pending invitation the
+caller sent a fresh token and expiry, so the link handed out before stops
+working, and answers the sent item with the new `inviteUrl`; when the
+invitation has an address the new link is emailed again. At most once a
+minute per item (429 `friend_limit`, `Wait before sending again.`).
+
+`GET /api/invitations/:token` needs no session and answers what the claim
+page shows: `{ requester: { displayName, username }, message, queued:
+[{ resourceId, displayName, role }], expiresAt, status }`, `queued` the live
+records with a share waiting on the invitation and `status` one of `open`,
+`used`, `withdrawn`, `expired`; an unknown token is 404 `friend_unavailable`,
+a malformed one 400, and one address may open at most sixty links a minute
+(429 `search_limit`). `POST /api/invitations/:token/accept` (authenticated)
+accepts the invitation as the caller and answers `{ friendship, shared,
+alreadyHad }`: `friendship` `made` (no connection stood, or a pending
+request either way became the accepted one, whose queued shares settle as
+for an accepted request) or `existing`; `shared` the records the shares
+queued on the invitation were granted for, by name and role; `alreadyHad`
+those the caller already held with the same or a higher role (the queued
+share lapses; a record in Trash lapses silently). The link is consumed, and
+the card the invitation came from is linked to the caller as for an
+accepted request. Refusals: 400 `invalid_request` for the caller's own link
+(`This is your own invitation link.`); 409 `friend_conflict` for a link
+already accepted (`This invitation was already accepted.`), withdrawn
+(`This invitation is no longer open.`), or expired (`This invitation has
+expired.`); 404 for an unknown token.
 
 `POST /api/friends/requests/:id/accept` makes the two accounts friends and
 answers with the friend; when the request came from a person card, that card
@@ -849,8 +884,9 @@ the card is still unlinked and the account has no card there yet.
 `DELETE /api/friends/invitations/:id` withdraws a pending request or
 invitation the caller sent (`{ id, status: "withdrawn" }`), and
 `POST /api/friends/invitations/:id/resend` emails it again (202; an
-invitation takes a fresh token and expiry), at most once a minute per item
-(429 `friend_limit`, `Wait before sending again.`). `DELETE /api/friends/:id`
+invitation takes a fresh token and expiry and counts as emailed from then
+on; one without an address is 400 `invalid_request`), at most once a minute
+per item (429 `friend_limit`, `Wait before sending again.`). `DELETE /api/friends/:id`
 ends an accepted connection from either side (`{ id, status: "removed" }`);
 person links made through it stay, and are unlinked from the person editor.
 A request, invitation, or friend that is not the caller's, or is no longer
@@ -858,7 +894,9 @@ pending or accepted, is 404 `friend_unavailable`. Every change is recorded
 in the actor's personal workspace (`friend.invited`,
 `friend.invitation_sent`, `friend.accepted`, `friend.declined`,
 `friend.withdrawn`, `friend.invitation_withdrawn`, `friend.removed`,
-`friend.resent`, `friend.invitation_resent`, `friend.invitation_claimed`).
+`friend.resent`, `friend.invitation_resent`, `friend.invitation_linked`,
+`friend.invitation_renewed`, `friend.invitation_claimed`,
+`friend.invitation_accepted`).
 Both backends write through the `chronelle_friend_*` functions (migration
 0051). A connection exposes only display name and email to the other side;
 account lookup by email happens only through an invitation.
@@ -933,15 +971,17 @@ path).
 
 `POST /shares/pending` accepts `resourceId`, `personId`, and `role` for a
 Person with no linked account. When a request or invitation from the caller
-already names the person, the share is queued on it; otherwise the person's
-first email contact is invited as `POST /api/friends/invitations` would (a
-request to the account that has the address, a sign-up link to one without)
-and the share queued on what was sent. A person with an account here is
-HTTP 400 (share with them directly), as is one with no email contact. The response is the pending
-share (201); queuing the same person and resource again changes the role.
-The share is granted, with the usual `resource.shared` audit event carrying
-`pendingShareId`, when the request is accepted; it lapses when the request
-is declined or withdrawn. `DELETE /shares/pending/:id` takes a waiting
+already names the person, the share is queued on it; otherwise the person
+is invited as `POST /api/friends/invitations` would (a request to the
+account that has the card's first email contact, an emailed link to an
+address without one, a link for the caller to hand on when the card has no
+email) and the share queued on what was sent. A person with an account here
+is HTTP 400 (share with them directly). The response is the pending share
+(201; `email` null behind a link); queuing the same person and resource
+again changes the role. The share is granted, with the usual
+`resource.shared` audit event carrying `pendingShareId`, when the request
+or the link is accepted; it lapses when the request is declined or
+withdrawn. `DELETE /shares/pending/:id` takes a waiting
 share back for a caller who could revoke a grant on the resource and
 answers `{ id, revokedAt }`. Queuing writes `resource.share_queued` and
 taking back `resource.share_queue_revoked`.

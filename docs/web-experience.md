@@ -164,9 +164,13 @@ nothing for what they lack, or one line, No details yet; Description appears
 only when there is one. Connection names the account behind the card: a
 friend ("Linked to your friend Mei Lin", friends since when, and "Member of
 this workspace as editor" when they are), an account that is not a friend,
-an invitation sent from the card (with Resend and Withdraw), or "Not linked
-to an account" with Link to a friend and, when the card has an email, Invite
-a friend; Unlink person sits there for a linked card. Shared, under
+a request sent from the card ("Request sent to ben@example.test", with
+Withdraw), an invitation sent from the card ("Invitation sent to
+ben@example.test" or "Invitation link created 18 Sep 2026", "One use. Valid
+until 2 Oct 2026.", with Copy link, Send by email when the card has an
+address, New link, and Withdraw), or "Not linked to an account" with Link
+to a friend and Invite a friend; Unlink person sits there for a linked
+card. Shared, under
 Connection, lists what is shared each way with the person, newest first:
 one line per record with its mark (event, task, expense, reminder, file,
 person), its name (a link when the record has a page), the role, and who
@@ -201,10 +205,10 @@ of whose email contacts is a friend's is granted at once ("Kyoto in
 November shared as viewer"); a card with an email contact and no account
 is invited at its first email and the share waits ("Kyoto in November
 queued; access follows when they join"), as from the event's Sharing tab;
-a card with neither says "Give the person an email or link their account
-to share with them." The outcome stays in the dialog
-so another event can follow; Done closes it, and the Shared panel already
-lists the new row.
+a card with neither is queued behind an invitation link the sharer hands
+on ("Kyoto in November queued; waiting on the link", with Copy link). The
+outcome stays in the dialog so another event can follow; Done closes it,
+and the Shared panel already lists the new row.
 
 An event page can carry a People component (also an event view and an
 overview card) that shows the people the event involves as the same
@@ -218,20 +222,23 @@ the event's name, with a note that everything on the event (pages, to-dos,
 expenses, files) follows a share, and three groups. Friends lists the
 account's friends (by their card's name when the workspace has one), each
 with a mark, the role they already hold under the name, and a role beside
-it; Others in People lists the workspace's other people who can be reached:
-one with an account here, one already invited from their card, or one with
-an email and no account, whose row says an invitation goes out (a row that
-waits on an invitation is dimmed until ticked); By email is one row: the
+it; Others in People lists the workspace's other people: one with an
+account here, one already invited from their card, one with an email and
+no account, whose row says an invitation goes out, or one with no email,
+whose row says "No email; you send them the link" (a row that waits on an
+invitation is dimmed until ticked); By email is one row: the
 address, a role, and Add, which grants at once. Tick any number, choose
 Viewer, Editor, or Owner beside each (an editor can change the event but
 not delete or share it), and Share with N people applies every row in turn;
 Copy link beside it copies the event's address. A friend or
 an account is granted at once ("Shared as Viewer"), a person with an email
 contact is invited at the first one and the share waits ("Invitation sent;
-access follows when they join"), an invited person's share waits on the invitation already sent
-("Waiting for them to join"), and a refusal stays beside the name with the
-row ticked for another try. A waiting share is granted the moment the
-request is accepted and lapses when it is declined or withdrawn. The People
+access follows when they join"), a person without one gets an invitation
+link the sharer passes on ("Waiting on the link", with Copy link), an
+invited person's share waits on the invitation already sent ("Waiting for
+them to join"), and a refusal stays beside the name with the row ticked for
+another try. A waiting share is granted the moment the request or the link
+is accepted and lapses when it is declined or withdrawn. The People
 component offers owners Share with everyone here, the same control with the
 event's own people ticked. People with access lists the accounts that hold a
 grant, each with what the grant gives under the name ("Also this event's
@@ -283,9 +290,11 @@ account, not to a workspace. The page opens with a line on what friends are
 for, then three panels with counts: Requests (who wants to connect, their
 address and how long ago, their note; Accept, Decline), Friends (name and
 address on one line, since when, Remove friend), and Sent (the person of
-this workspace the invitation went from, or the address; a badge, Sent how
-long ago for a request to an account or No account yet with the sign-up
-link's validity for an address; Resend, Withdraw). Invite a friend opens a dialog with two
+this workspace the invitation went from, the address, or "Invitation link";
+a line Request, Email, or Link with how long ago or "One use. Valid until 2
+Oct 2026."; a badge, Sent how long ago for a request or No account yet for
+an invitation; Copy link for an invitation, Resend for a request or an
+emailed invitation or New link for a link, Withdraw). Invite a friend opens a dialog with two
 ways in. Find people, at the top, searches the accounts as each lets itself
 be found: a name (two characters or more, contained, case-insensitively), an
 @username (starting so), or an exact email; the searcher is never in the
@@ -294,11 +303,31 @@ sends the ordinary request (with the note below when there is one, and from
 a card, linking the card when they accept), or the state that already holds
 (Friends, Request sent, Wants to connect). Nothing matching says so and
 points at the section below, Not on Chronelle yet?: a person of the current
-workspace who has an email and no account link, or Someone new by address,
-and an optional note; the address is emailed a request when it has an
-account and a sign-up link otherwise. A sign-up link opens
-`/sign-up?invitation=...`; the account it creates finds the request on its
-Friends page. In the person editor, Link to a friend offers the account's
+workspace without an account link, or Someone new, an optional email, and
+an optional note, then Send by email or Create link. An invitation is a
+link: Send by email emails it to the address (an address with an account
+gets a request instead and the dialog closes); Create link needs no
+address. Either way the dialog then shows the link, its QR code, "One use.
+Valid until 2 Oct 2026.", how it was sent ("Sent by email to ..." or "Send
+it in WeChat, a message, or any way you like."), Copy link, and Done.
+
+The link opens the claim page (`/invite/<token>`), in the one-column account
+frame: who invited you ("Ana invited you to be friends on Chronelle" with
+the username), the note, and what becomes visible once accepted ("Kyoto in
+November as viewer"). Signed out, it offers Sign in and Create an account,
+both returning here (a new account completes the Welcome step first, and
+the sign-up carries the token as `/sign-up?invitation=...`). Signed in, it
+names the account ("You are signed in as Ben", "Not you? Switch account")
+and offers Accept or Not now; nothing happens without Accept. Accepting says
+"You and Ana are now friends." or "You were already friends.", then what
+became shared ("Kyoto in November is shared with you as viewer.") and what
+the account already had ("You already had access to ..."), with Open
+Chronelle; the card the invitation came from is linked, as after an
+accepted request. The account's own link says "This is your own invitation
+link."; a used one "This invitation was already accepted."; a withdrawn one
+"This invitation is no longer open."; an expired one "This invitation
+expired on 2 Oct 2026."; an unknown one "No invitation has this link."
+In the person editor, Link to a friend offers the account's
 friends beside This is me, so a card of any workspace can be the friend;
 accepting a request that came from a card links the card by itself. From a
 card's Invite a friend, the search starts with the card's name.
