@@ -48,7 +48,7 @@ import { EventStrip } from "./event-strip";
 import { EventViewGallery } from "./event-view-gallery";
 import { ManageTabsDialog } from "./manage-tabs-dialog";
 import { useEventPagesState } from "./use-event-pages";
-import { useEventTabs } from "./use-event-tabs";
+import { narrowedViews, useEventTabs } from "./use-event-tabs";
 import {
   CommandScope,
   type ContextCommand,
@@ -91,10 +91,12 @@ export function EventWorkspace({ eventId }: { readonly eventId: string }) {
     focusView.current = false;
   }, [activeTab]);
   const canShare = queries.access.data?.actions.includes("share") ?? false;
+  const narrowing = queries.access.data?.narrowing ?? null;
   const eventTabs = useEventTabs(
     eventId,
     pagesState.pages.map((page) => page.id),
     canShare,
+    narrowing,
   );
   const essentialQueries = [queries.event, queries.access];
   const failedQuery =
@@ -146,8 +148,15 @@ export function EventWorkspace({ eventId }: { readonly eventId: string }) {
   }
 
   const canDelete = access.actions.includes("delete");
+  // A narrowed viewer lands on the first shared view; the pages and the
+  // views outside the shares are not theirs to open.
+  const admitted = narrowedViews(narrowing);
   const shownTab =
-    activeTab === "sharing" && !canShare ? "overview" : activeTab;
+    admitted !== null && (activeTab === "pages" || !admitted.has(activeTab))
+      ? (eventTabs.known[0] ?? "overview")
+      : activeTab === "sharing" && !canShare
+        ? "overview"
+        : activeTab;
   // The strip lists the account's arrangement; a view reached by its
   // address or from the Overview shows even while hidden (in its place)
   // or removed (at the end).
@@ -158,11 +167,14 @@ export function EventWorkspace({ eventId }: { readonly eventId: string }) {
     shownTab === "pages" || arrangedViews.includes(shownTab)
       ? arrangedViews
       : [...arrangedViews, shownTab];
-  const stripPages = pagesState.pages.filter(
-    (page) =>
-      !eventTabs.arranged.hidden.has(page.id) ||
-      (shownTab === "pages" && page.id === pagesState.selectedPage?.id),
-  );
+  const stripPages =
+    admitted === null
+      ? pagesState.pages.filter(
+          (page) =>
+            !eventTabs.arranged.hidden.has(page.id) ||
+            (shownTab === "pages" && page.id === pagesState.selectedPage?.id),
+        )
+      : [];
   const schedule = formatEventSchedule(event);
   const commands: ContextCommand[] = [
     ...pagesState.commands,

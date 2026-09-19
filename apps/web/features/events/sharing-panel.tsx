@@ -15,10 +15,12 @@ import {
 } from "../../components/feedback";
 import { LockIcon, ShareIcon } from "../../components/icons";
 import { useNotices } from "../../components/notices";
+import { eventViewLabel } from "../../lib/event-views";
 import { shortId } from "../../lib/format";
 import { useFriendsQuery } from "../../lib/friend-queries";
 import { personInitials } from "../../lib/person-collection";
 import {
+  useEventSectionsQuery,
   usePersonsQuery,
   useRefreshEvent,
   useRevokePendingShare,
@@ -53,6 +55,7 @@ export function SharingPanel({
 }) {
   const t = useTranslations("sharing");
   const tp = useTranslations("sharingPanel");
+  const shareT = useTranslations("share");
   const access = useTranslations("access");
   const types = useTranslations("objectTypes");
   const verbs = useTranslations("verbs");
@@ -60,6 +63,29 @@ export function SharingPanel({
   const done = useTranslations("done");
   const { post } = useNotices();
   const shares = useSharesQuery(eventId, true);
+  const narrowed = (shares.data?.items ?? []).some(
+    (grant) => grant.scope !== null,
+  );
+  const sections = useEventSectionsQuery(eventId, narrowed);
+  // What a narrowed grant opens, under the person: the view, or the section.
+  function scopeLine(grant: ShareResponse): string | null {
+    if (grant.scope === null) return null;
+    if (grant.scope.sectionId === null)
+      return shareT("sharedView", { name: eventViewLabel(grant.scope.view) });
+    const section = sections.data?.find(
+      (item) => item.id === grant.scope?.sectionId,
+    );
+    return shareT("sharedSection", {
+      name: section?.name ?? eventViewLabel(grant.scope.view),
+    });
+  }
+  // Whole grants first, then the narrowed ones under their view.
+  const listed = [...(shares.data?.items ?? [])].sort(
+    (a, b) =>
+      Number(a.scope !== null) - Number(b.scope !== null) ||
+      (a.scope?.view ?? "").localeCompare(b.scope?.view ?? "") ||
+      (a.scope?.sectionId ?? "").localeCompare(b.scope?.sectionId ?? ""),
+  );
   const share = useShareResource(eventId);
   const revoke = useRevokeShare();
   const revokePending = useRevokePendingShare(eventId);
@@ -85,6 +111,7 @@ export function SharingPanel({
                     share.mutateAsync({
                       principalEmail: email,
                       role: grant.role,
+                      ...(grant.scope === null ? {} : { scope: grant.scope }),
                     }),
                 },
               }),
@@ -211,7 +238,7 @@ export function SharingPanel({
                 <span />
               </article>
             ) : null}
-            {shares.data?.items.map((grant) => (
+            {listed.map((grant) => (
               <article key={grant.id}>
                 <span
                   aria-hidden="true"
@@ -222,7 +249,13 @@ export function SharingPanel({
                 <div>
                   <strong>{grant.principal.displayName}</strong>
                   <span className="share-you">{grant.principal.email}</span>
-                  <span className="share-grants">{access("grants")}</span>
+                  {grant.scope === null ? (
+                    <span className="share-grants">{access("grants")}</span>
+                  ) : (
+                    <span className="share-grants share-scope">
+                      {scopeLine(grant)}
+                    </span>
+                  )}
                 </div>
                 <span className="share-role">
                   {tp(`roles.${grant.role}` as "roles.viewer")}

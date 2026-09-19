@@ -6,6 +6,7 @@ import type {
   PersonResponse,
   SentInvitation,
   ShareResponse,
+  ShareScope,
 } from "@chronelle/schemas";
 import { useTranslations } from "next-intl";
 import { type FormEvent, useId, useState } from "react";
@@ -130,12 +131,15 @@ export function ShareWithPeople({
   initialSelected = [],
   legend,
   rows,
+  scope,
 }: {
   readonly eventId: string;
   /** Row keys ticked when the control opens. */
   readonly initialSelected?: readonly string[];
   readonly legend: string;
   readonly rows: readonly ShareRow[];
+  /** The view or section the shares are narrowed to; absent for the whole event. */
+  readonly scope?: ShareScope | undefined;
 }) {
   const t = useTranslations("sharing");
   const id = useId();
@@ -171,12 +175,14 @@ export function ShareWithPeople({
           const grant = await share.mutateAsync({
             friendId: row.friendId,
             role,
+            ...(scope === undefined ? {} : { scope }),
           });
           results.set(row.key, { kind: "shared", role: grant.role });
         } else if (row.kind === "member" && row.personId !== null) {
           const grant = await share.mutateAsync({
             personId: row.personId,
             role,
+            ...(scope === undefined ? {} : { scope }),
           });
           results.set(row.key, { kind: "shared", role: grant.role });
         } else if (row.personId !== null) {

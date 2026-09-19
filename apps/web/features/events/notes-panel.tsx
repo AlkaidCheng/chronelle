@@ -17,6 +17,7 @@ import { useOpenHistory } from "../history/history-provider";
 import { useOpenLifecycle } from "../recovery/lifecycle-provider";
 import { PanelHeading } from "./component-frame";
 import { ExportControl } from "./export-control";
+import { ShareControl } from "./share-control";
 import { NoteForm } from "./note-form";
 import { NoteInspector } from "./note-inspector";
 
@@ -121,6 +122,11 @@ export function NotesPanel({
               eventId={eventId}
               panel={panel}
               sheet={() => noteSheet(notes)}
+              view="notes"
+              viewName={views("notes")}
+            />
+            <ShareControl
+              eventId={eventId}
               view="notes"
               viewName={views("notes")}
             />

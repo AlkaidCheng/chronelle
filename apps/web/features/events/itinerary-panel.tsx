@@ -40,6 +40,7 @@ import { deriveTaskTree } from "../../lib/task-tree";
 import { LayoutControl, PanelHeading } from "./component-frame";
 import { CreateScheduleDialog } from "./create-schedule-dialog";
 import { ExportControl } from "./export-control";
+import { ShareControl } from "./share-control";
 
 /** How far a finger travels across the sheet to turn a day. */
 const swipeDistance = 48;
@@ -160,6 +161,11 @@ export function ItineraryPanel({
               eventId={eventId}
               panel={panel}
               sheet={() => itinerarySheet(sheets)}
+              view="itinerary"
+              viewName={views("itinerary")}
+            />
+            <ShareControl
+              eventId={eventId}
               view="itinerary"
               viewName={views("itinerary")}
             />

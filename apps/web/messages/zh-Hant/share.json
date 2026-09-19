@@ -1,0 +1,21 @@
+{
+  "view": "共享",
+  "viewTitle": "共享{name}",
+  "section": "共享分組",
+  "viewHint": "此處的每個人都能看到此活動的{what}及其分組（單獨共享的分組除外）。",
+  "sectionHint": "此處的每個人都能看到此分組的記錄；檢視的其餘部分按原共享設定。",
+  "addPeople": "新增成員",
+  "done": "完成",
+  "nobody": "目前只有你能看到。",
+  "roleFor": "{name}的角色",
+  "remove": "移除{name}",
+  "removed": "已移除共享。",
+  "changed": "已更改角色。",
+  "sharedView": "已共享：{name}",
+  "sharedSection": "已共享分組：{name}",
+  "roles": {
+    "viewer": "檢視者",
+    "editor": "編輯者",
+    "owner": "擁有者"
+  }
+}

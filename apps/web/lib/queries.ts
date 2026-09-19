@@ -91,6 +91,7 @@ export const queryKeys = {
   persons: ["persons"] as const,
   access: (eventId: string) => ["event", eventId, "access"] as const,
   shares: (eventId: string) => ["event", eventId, "shares"] as const,
+  sections: (eventId: string) => ["event", eventId, "sections"] as const,
   personShares: (personId: string) => ["person", personId, "shares"] as const,
   userSearch: (query: string) => ["users", "search", query] as const,
   user: (username: string) => ["users", "by-username", username] as const,
@@ -538,6 +539,24 @@ export function useEventWorkspaceQueries(
   return { event, detail, access };
 }
 
+/** The sections of an Event's To-dos and Expenses together, to name a share narrowed to one. */
+export function useEventSectionsQuery(eventId: string, enabled: boolean) {
+  const client = useApiClient();
+  const { credential } = useAuthSession();
+  return useQuery({
+    enabled: enabled && credential !== null,
+    queryFn: async ({ signal }) => {
+      const reader = client.withSignal(signal);
+      const [todos, expenses] = await Promise.all([
+        reader.listSections(eventId, "todos"),
+        reader.listSections(eventId, "expenses"),
+      ]);
+      return [...todos.items, ...expenses.items];
+    },
+    queryKey: queryKeys.sections(eventId),
+  });
+}
+
 export function useSharesQuery(eventId: string, enabled: boolean) {
   const client = useApiClient();
   const { credential } = useAuthSession();
@@ -783,17 +802,18 @@ export function useUpdateEvent() {
   });
 }
 
-/** The caller's actions on an Event. */
+/** The caller's actions on an Event; nothing is read without an Event. */
 export function useEventAccessQuery(
-  eventId: string,
+  eventId: string | undefined,
   refetchOnMount: true | "always" = true,
 ) {
   const client = useApiClient();
   const { credential } = useAuthSession();
   return useQuery({
-    enabled: credential !== null,
-    queryFn: ({ signal }) => client.withSignal(signal).getObjectAccess(eventId),
-    queryKey: queryKeys.access(eventId),
+    enabled: credential !== null && eventId !== undefined,
+    queryFn: ({ signal }) =>
+      client.withSignal(signal).getObjectAccess(eventId ?? ""),
+    queryKey: queryKeys.access(eventId ?? ""),
     refetchOnMount,
   });
 }

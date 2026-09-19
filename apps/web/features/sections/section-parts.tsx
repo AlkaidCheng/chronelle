@@ -14,6 +14,7 @@ import {
 
 import { GripIcon } from "../../components/icons";
 import { RowMenu, type RowMenuEntry } from "../../components/row-menu";
+import { ShareSheet } from "../events/share-sheet";
 
 /** What the section editor saves: a name and a description, trimmed. */
 export interface SectionDraft {
@@ -181,10 +182,13 @@ export function DragGrip({
 /**
  * A section's head: the grip, the name in bold with the description muted
  * under it, a faint figure at the right (the open count or the total), and
- * the quiet menu with Edit section, Move up, Move down, and Delete section.
+ * the quiet menu with Edit section, Share section for whoever may share
+ * the Event, Move up, Move down, and Delete section. Share section opens
+ * the share sheet under the head, narrowed to the section.
  */
 export function SectionHead({
   canEdit,
+  canShare = false,
   figure,
   grip,
   isFirst,
@@ -195,6 +199,7 @@ export function SectionHead({
   section,
 }: {
   readonly canEdit: boolean;
+  readonly canShare?: boolean;
   /** The open count or the section's total, faint at the right. */
   readonly figure?: ReactNode;
   readonly grip?: ReactNode;
@@ -206,8 +211,19 @@ export function SectionHead({
   readonly section: SectionResponse;
 }) {
   const t = useTranslations("sections");
+  const share = useTranslations("share");
+  const [sharing, setSharing] = useState(false);
   const entries: RowMenuEntry[] = [
     { kind: "action", label: t("edit"), onSelect: onEdit },
+    ...(canShare
+      ? [
+          {
+            kind: "action" as const,
+            label: share("section"),
+            onSelect: () => setSharing(true),
+          },
+        ]
+      : []),
     {
       kind: "action",
       label: t("moveUp"),
@@ -240,6 +256,15 @@ export function SectionHead({
           className="section-head-menu"
           entries={entries}
           label={t("actionsFor", { name: section.name })}
+        />
+      ) : null}
+      {sharing ? (
+        <ShareSheet
+          eventId={section.eventId}
+          hint={share("sectionHint")}
+          name={section.name}
+          onClose={() => setSharing(false)}
+          scope={{ view: section.view, sectionId: section.id }}
         />
       ) : null}
     </div>

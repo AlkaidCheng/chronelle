@@ -70,6 +70,7 @@ import {
   SectionTitle,
 } from "../sections/section-parts";
 import { useSectionEditing } from "../sections/use-sections";
+import { useCanShareEvent } from "../events/share-control";
 import { AddTaskRow, addTaskDraftId } from "./add-task-row";
 import { TaskComposer, taskComposerDraftId } from "./task-composer";
 
@@ -524,6 +525,7 @@ export function TaskListView({
   // The list layout of an Event's To-dos groups by section: the loose
   // tasks first, then each section with its own rows and add row.
   const sectioned = sections !== undefined && view === "list";
+  const canShare = useCanShareEvent(eventId);
   const sectionEditing = useSectionEditing(
     eventId ?? "",
     "todos",
@@ -1230,6 +1232,7 @@ export function TaskListView({
                     ) : (
                       <SectionHead
                         canEdit={canEdit}
+                        canShare={canShare}
                         figure={open}
                         grip={
                           reorder ? (
