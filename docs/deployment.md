@@ -280,6 +280,27 @@ unused; nothing else changes. The operating procedure, including the order
 of migrations and the verification commands, is in
 [the CloudBase backend runbook](cloudbase-backend-runbook.md).
 
+### Seed the test accounts
+
+After a deployment to a testing environment, `pnpm seed:test-data` creates
+the three test accounts and their data (listed in
+[local development](local-development.md#test-accounts-and-data)) through
+the gateway, the way the deployed API serves them:
+
+```bash
+CHRONELLE_BACKEND=cloudbase CLOUDBASE_ENV_ID=... CLOUDBASE_APIKEY=... \
+  WEB_PUBLIC_URL=https://<the web service's public origin> \
+  SEED_PASSWORD='choose a long one' pnpm seed:test-data
+```
+
+The values are the ones the API service runs with (the root `.env` holds
+the staging pair; `node --env-file-if-exists=.env` loads it). The migrations
+the API needs must be applied first, as for the API itself. The seed prints
+the accounts, the password, what it created, and Mei's open invitation
+link; on a second run it reports the accounts as existing and creates
+nothing. It never runs on its own at deployment: an operator runs it once
+per environment, after a data wipe when a fresh set is wanted.
+
 ## Containerized web
 
 Build the UI image from the repository root:
