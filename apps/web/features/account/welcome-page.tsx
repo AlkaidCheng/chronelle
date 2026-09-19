@@ -9,6 +9,7 @@ import { ErrorNotice, LoadingState } from "../../components/feedback";
 import type { HourCycle } from "../../i18n/active-preferences";
 import { isLocale, type LocaleChoice } from "../../i18n/locale-preference";
 import { locales } from "../../i18n/locales";
+import { takeAfterSignIn } from "../../lib/after-sign-in";
 import { useAuthSession } from "../../lib/auth-session";
 import { useUpdateAccount } from "../../lib/friend-queries";
 import { personInitials } from "../../lib/person-collection";
@@ -23,8 +24,10 @@ import { TimeZoneField } from "../settings/language-time-settings";
  * The Welcome step, once, after the first sign-in of a new account: the
  * name, the language, the time zone, and the clock, then the workspace.
  * The time zone and clock start as the device's; every value can be
- * changed later in Settings. An account past the step goes on to the
- * workspace; a signed-out visitor to the sign-in screen.
+ * changed later in Settings. Continue goes on to the page that was waiting
+ * on the sign-in (an invitation link), else the workspace; an account past
+ * the step goes to the workspace; a signed-out visitor to the sign-in
+ * screen.
  */
 export function WelcomePage() {
   const t = useTranslations("auth");
@@ -76,7 +79,7 @@ export function WelcomePage() {
         adoptLocale(updated);
       }
       await account.mutateAsync({ displayName: name, onboarded: true });
-      router.replace("/events");
+      router.replace(takeAfterSignIn() ?? "/events");
     } catch {
       // The notice below shows the failure; the form stays for another try.
     } finally {

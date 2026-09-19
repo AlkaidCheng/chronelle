@@ -8120,3 +8120,64 @@ html:has(.event-create-dialog[open]) {
   position: static;
   justify-self: end;
 }
+
+/* An invitation link once made: the QR code, the link, and when it ends. */
+.invite-link {
+  display: grid;
+  gap: 12px;
+  justify-items: center;
+}
+
+.invite-link-card {
+  width: 100%;
+}
+
+.invite-link-url {
+  user-select: all;
+}
+
+.invite-link-until {
+  color: var(--faint);
+  font-size: 0.8rem;
+  margin: 0;
+}
+
+.invite-link-copy {
+  justify-self: center;
+}
+
+/* The claim page an invitation link opens. */
+.invite-card {
+  gap: 16px;
+}
+
+.invite-note {
+  border-left: 3px solid var(--line);
+  color: var(--muted);
+  font-style: italic;
+  margin: 0;
+  padding: 2px 0 2px 12px;
+}
+
+.invite-queued {
+  display: grid;
+  gap: 6px;
+}
+
+.invite-records {
+  display: grid;
+  font-size: 0.92rem;
+  gap: 4px;
+  list-style: disc;
+  margin: 0;
+  padding-left: 20px;
+}
+
+.invite-record-had {
+  color: var(--faint);
+}
+
+.share-outcome-copy {
+  font-size: inherit;
+  margin-left: 8px;
+}

@@ -128,8 +128,8 @@ describe("People component", () => {
         selector: "summary",
       }),
     );
-    // Mei is offered under Friends and Sam under the other people, both
-    // ticked; the person with neither is not offered.
+    // Mei is offered under Friends, Sam and the person with neither under
+    // the other people, all ticked; the last would be invited by a link.
     const friends = within(
       await screen.findByRole("list", { name: "Friends" }),
     );
@@ -138,7 +138,19 @@ describe("People component", () => {
     );
     expect(friends.getByRole("checkbox", { name: /Mei Lin/ })).toBeChecked();
     expect(others.getByRole("checkbox", { name: /Sam Lee/ })).toBeChecked();
-    expect(others.queryByText("No account")).toBeNull();
+    const nobody = others.getByRole("checkbox", { name: /No account/ });
+    expect(nobody).toBeChecked();
+    expect(
+      within(nobody.closest("li") as HTMLElement).getByText(
+        "No email; you send them the link",
+      ),
+    ).toBeVisible();
+    // Only Mei and Sam stay ticked.
+    for (const box of others.getAllByRole("checkbox")) {
+      const row = box.closest("li");
+      if (row !== null && !/Sam Lee/.test(row.textContent ?? ""))
+        await user.click(box);
+    }
     await user.selectOptions(
       screen.getByRole("combobox", { name: "Access for Mei Lin" }),
       "owner",

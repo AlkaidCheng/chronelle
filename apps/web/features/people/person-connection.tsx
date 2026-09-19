@@ -10,8 +10,12 @@ import {
   UserPlusIcon,
 } from "../../components/icons";
 import { useNotices } from "../../components/notices";
+import { useState } from "react";
+
+import { copyText } from "../../lib/copy-text";
 import {
   useFriendsQuery,
+  useRenewInvitationLink,
   useResendInvitation,
   useWithdrawInvitation,
 } from "../../lib/friend-queries";
@@ -22,9 +26,12 @@ import type { PersonAccountState } from "./person-row";
 /**
  * The Connection panel of a person's page: what account stands behind the
  * card. A friend is named with the date the connection was made and, when
- * the friend belongs to this workspace, their role; an invitation sent
- * from the card shows when, with Resend and Withdraw; a card without an
- * account offers to link or invite. Unlink takes the account off the card.
+ * the friend belongs to this workspace, their role; a request sent from
+ * the card shows the address, with Withdraw; an invitation shows whether
+ * it was emailed or made as a link and until when it is valid, with Copy
+ * link, Send by email (when it has an address), New link, and Withdraw; a
+ * card without an account offers to link or invite. Unlink takes the
+ * account off the card.
  */
 export function PersonConnection({
   account,
@@ -51,7 +58,9 @@ export function PersonConnection({
   const workspace = useWorkspaceMembersQuery();
   const update = useUpdatePerson();
   const resend = useResendInvitation();
+  const renew = useRenewInvitationLink();
   const withdraw = useWithdrawInvitation();
+  const [copied, setCopied] = useState("");
   const day = (iso: string) =>
     new Intl.DateTimeFormat(locale, {
       day: "numeric",
@@ -68,7 +77,16 @@ export function PersonConnection({
   const invitation = friends.data?.sent.find(
     (candidate) => candidate.personId === person.id,
   );
-  const canInvite = person.contacts.some((contact) => contact.kind === "email");
+  const acting = resend.isPending || renew.isPending || withdraw.isPending;
+
+  async function copyInvite() {
+    if (invitation?.inviteUrl == null) return;
+    setCopied(
+      (await copyText(invitation.inviteUrl))
+        ? t("linkCopied")
+        : t("linkNotCopied"),
+    );
+  }
 
   function unlink() {
     update.mutate(
@@ -113,12 +131,27 @@ export function PersonConnection({
           <p className="connection-line">
             <ClockIcon />
             <span>
-              {t.rich("invitationSent", {
-                email: invitation.email,
-                b: (chunks) => <b>{chunks}</b>,
-              })}
+              {invitation.kind === "connection"
+                ? t.rich("requestSent", {
+                    email: invitation.email ?? "",
+                    b: (chunks) => <b>{chunks}</b>,
+                  })
+                : invitation.channel === "email" && invitation.email !== null
+                  ? t.rich("invitationSent", {
+                      email: invitation.email,
+                      b: (chunks) => <b>{chunks}</b>,
+                    })
+                  : t("linkCreated", { date: day(invitation.createdAt) })}
             </span>
-            <span className="connection-when">{day(invitation.createdAt)}</span>
+            {invitation.expiresAt === null ? (
+              <span className="connection-when">
+                {day(invitation.createdAt)}
+              </span>
+            ) : (
+              <span className="connection-when">
+                {t("validUntil", { date: day(invitation.expiresAt) })}
+              </span>
+            )}
           </p>
         ) : (
           <p className="connection-line">
@@ -150,22 +183,51 @@ export function PersonConnection({
               </button>
             ) : account === "invited" && invitation !== undefined ? (
               <>
+                {invitation.inviteUrl === null ? null : (
+                  <button
+                    className="link-button"
+                    disabled={acting}
+                    onClick={copyInvite}
+                    type="button"
+                  >
+                    {t("copyInvite")}
+                  </button>
+                )}
+                {invitation.kind === "connection" ||
+                invitation.email !== null ? (
+                  <button
+                    className="link-button"
+                    disabled={acting}
+                    onClick={() =>
+                      resend.mutate(invitation.id, {
+                        onSuccess: () =>
+                          post({ message: done("invitationResent") }),
+                      })
+                    }
+                    type="button"
+                  >
+                    {invitation.kind === "connection"
+                      ? t("resend")
+                      : t("sendByEmail")}
+                  </button>
+                ) : null}
+                {invitation.kind === "invitation" ? (
+                  <button
+                    className="link-button"
+                    disabled={acting}
+                    onClick={() =>
+                      renew.mutate(invitation.id, {
+                        onSuccess: () => post({ message: done("linkRenewed") }),
+                      })
+                    }
+                    type="button"
+                  >
+                    {t("newLink")}
+                  </button>
+                ) : null}
                 <button
                   className="link-button"
-                  disabled={resend.isPending || withdraw.isPending}
-                  onClick={() =>
-                    resend.mutate(invitation.id, {
-                      onSuccess: () =>
-                        post({ message: done("invitationResent") }),
-                    })
-                  }
-                  type="button"
-                >
-                  {t("resend")}
-                </button>
-                <button
-                  className="link-button"
-                  disabled={resend.isPending || withdraw.isPending}
+                  disabled={acting}
                   onClick={() =>
                     withdraw.mutate(invitation.id, {
                       onSuccess: () =>
@@ -176,21 +238,22 @@ export function PersonConnection({
                 >
                   {verbs("withdrawInvitation")}
                 </button>
+                <span className="visually-hidden" role="status">
+                  {copied}
+                </span>
               </>
             ) : account === null ? (
               <>
                 <button className="link-button" onClick={onLink} type="button">
                   {t("linkToFriend")}
                 </button>
-                {canInvite ? (
-                  <button
-                    className="link-button"
-                    onClick={onInvite}
-                    type="button"
-                  >
-                    {t("invite")}
-                  </button>
-                ) : null}
+                <button
+                  className="link-button"
+                  onClick={onInvite}
+                  type="button"
+                >
+                  {t("invite")}
+                </button>
               </>
             ) : null}
           </p>

@@ -6,7 +6,9 @@ type Role = ShareResponse["role"];
 import { useTranslations } from "next-intl";
 import { type FormEvent, useEffect, useId, useRef, useState } from "react";
 import { ErrorNotice } from "../../components/feedback";
+import { copyText } from "../../lib/copy-text";
 import { formatEventSchedule } from "../../lib/event-schedule";
+import { useFriendsQuery } from "../../lib/friend-queries";
 import {
   useEventsQuery,
   useQueuePendingShare,
@@ -16,7 +18,12 @@ import { useSessionDialog } from "../../lib/use-session-dialog";
 
 type Outcome =
   | { readonly kind: "shared"; readonly event: string; readonly role: Role }
-  | { readonly kind: "queued"; readonly event: string }
+  | {
+      readonly kind: "queued";
+      readonly event: string;
+      /** The invitation link the share waits on, when the person has no address. */
+      readonly link: string | null;
+    }
   | { readonly kind: "failed"; readonly message: string };
 
 /**
@@ -24,7 +31,9 @@ type Outcome =
  * a searchable list, choose the role, and Share. A person with an account
  * (linked, or the one account with their email) is granted at once; an
  * invited person's share waits on the invitation, which goes out when none
- * does. The dialog stays open with the outcome so another event can follow.
+ * does (emailed, or a link to hand on with Copy link when the card has no
+ * address). The dialog stays open with the outcome so another event can
+ * follow.
  */
 export function ShareWithPersonDialog({
   person,
@@ -32,13 +41,14 @@ export function ShareWithPersonDialog({
   hasAccount,
   onClose,
 }: {
-  readonly person: Pick<PersonResponse, "id" | "contacts">;
+  readonly person: Pick<PersonResponse, "id">;
   readonly personName: string;
   /** Whether the person stands for an account here, so a grant applies at once. */
   readonly hasAccount: boolean;
   readonly onClose: () => void;
 }) {
   const t = useTranslations("personPage.shareDialog");
+  const page = useTranslations("personPage");
   const roles = useTranslations("access");
   const dialog = useSessionDialog(onClose);
   const id = useId();
@@ -47,7 +57,9 @@ export function ShareWithPersonDialog({
   const [eventId, setEventId] = useState<string | null>(null);
   const [role, setRole] = useState<Role>("viewer");
   const [outcome, setOutcome] = useState<Outcome | null>(null);
+  const [copied, setCopied] = useState("");
   const search = useRef<HTMLInputElement>(null);
+  const friends = useFriendsQuery();
   const events = useEventsQuery({
     query: debounced,
     filter: "all",
@@ -55,8 +67,6 @@ export function ShareWithPersonDialog({
   });
   const items = events.data?.items ?? [];
   const chosen = items.find((event) => event.id === eventId);
-  const canShare =
-    hasAccount || person.contacts.some((contact) => contact.kind === "email");
 
   useEffect(() => {
     search.current?.focus();
@@ -83,8 +93,14 @@ export function ShareWithPersonDialog({
           role: grant.role,
         });
       } else {
-        await queue.mutateAsync({ personId: person.id, role });
-        setOutcome({ kind: "queued", event: chosen.displayName });
+        const pending = await queue.mutateAsync({ personId: person.id, role });
+        const link =
+          pending.email === null
+            ? ((await friends.refetch()).data?.sent.find(
+                (item) => item.id === pending.itemId,
+              )?.inviteUrl ?? null)
+            : null;
+        setOutcome({ kind: "queued", event: chosen.displayName, link });
       }
       setEventId(null);
     } catch (error) {
@@ -119,65 +135,59 @@ export function ShareWithPersonDialog({
         </button>
       </header>
       <form className="event-create-body" onSubmit={submit} aria-busy={busy}>
-        {canShare ? (
-          <>
-            <p className="field-hint">{t("intro", { name: personName })}</p>
-            <label className="field">
-              <span>{t("find")}</span>
-              <input
-                autoComplete="off"
-                maxLength={240}
-                onChange={(event) => setQuery(event.target.value)}
-                placeholder={t("placeholder")}
-                ref={search}
-                type="search"
-                value={query}
-              />
-            </label>
-            <fieldset className="share-person-events" disabled={busy}>
-              <legend>{t("events")}</legend>
-              {items.length === 0 && !events.isPending ? (
-                <p className="kv-empty">{t("noEvents")}</p>
-              ) : (
-                <ul className="share-person-list">
-                  {items.map((event) => {
-                    const when = formatEventSchedule(event);
-                    return (
-                      <li key={event.id}>
-                        <label className="share-person-choice">
-                          <input
-                            checked={eventId === event.id}
-                            name={`${id}-event`}
-                            onChange={() => setEventId(event.id)}
-                            type="radio"
-                            value={event.id}
-                          />
-                          <span>
-                            <strong>{event.displayName}</strong>
-                            {when === "" ? null : <small>{when}</small>}
-                          </span>
-                        </label>
-                      </li>
-                    );
-                  })}
-                </ul>
-              )}
-            </fieldset>
-            <label className="field share-person-role">
-              <span>{t("role")}</span>
-              <select
-                disabled={busy}
-                onChange={(event) => setRole(event.target.value as Role)}
-                value={role}
-              >
-                <option value="viewer">{roles("roles.viewer")}</option>
-                <option value="editor">{roles("roles.editor")}</option>
-              </select>
-            </label>
-          </>
-        ) : (
-          <p className="field-hint">{t("nobody")}</p>
-        )}
+        <p className="field-hint">{t("intro", { name: personName })}</p>
+        <label className="field">
+          <span>{t("find")}</span>
+          <input
+            autoComplete="off"
+            maxLength={240}
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder={t("placeholder")}
+            ref={search}
+            type="search"
+            value={query}
+          />
+        </label>
+        <fieldset className="share-person-events" disabled={busy}>
+          <legend>{t("events")}</legend>
+          {items.length === 0 && !events.isPending ? (
+            <p className="kv-empty">{t("noEvents")}</p>
+          ) : (
+            <ul className="share-person-list">
+              {items.map((event) => {
+                const when = formatEventSchedule(event);
+                return (
+                  <li key={event.id}>
+                    <label className="share-person-choice">
+                      <input
+                        checked={eventId === event.id}
+                        name={`${id}-event`}
+                        onChange={() => setEventId(event.id)}
+                        type="radio"
+                        value={event.id}
+                      />
+                      <span>
+                        <strong>{event.displayName}</strong>
+                        {when === "" ? null : <small>{when}</small>}
+                      </span>
+                    </label>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </fieldset>
+        <label className="field share-person-role">
+          <span>{t("role")}</span>
+          <select
+            disabled={busy}
+            onChange={(event) => setRole(event.target.value as Role)}
+            value={role}
+          >
+            <option value="viewer">{roles("roles.viewer")}</option>
+            <option value="editor">{roles("roles.editor")}</option>
+          </select>
+        </label>
         {outcome === null ? null : outcome.kind === "failed" ? (
           <ErrorNotice error={new Error(outcome.message)} />
         ) : (
@@ -187,7 +197,27 @@ export function ShareWithPersonDialog({
                   event: outcome.event,
                   role: roles(`roles.${outcome.role}`),
                 })
-              : t("queued", { event: outcome.event })}
+              : outcome.link === null
+                ? t("queued", { event: outcome.event })
+                : t("waitingOnLink", { event: outcome.event })}
+            {outcome.kind === "queued" && outcome.link !== null ? (
+              <>
+                <button
+                  className="link-button share-outcome-copy"
+                  onClick={async () =>
+                    setCopied(
+                      (await copyText(outcome.link ?? ""))
+                        ? page("linkCopied")
+                        : page("linkNotCopied"),
+                    )
+                  }
+                  type="button"
+                >
+                  {t("copyInvite")}
+                </button>
+                <span className="visually-hidden">{copied}</span>
+              </>
+            ) : null}
           </p>
         )}
         <div className="form-actions">
@@ -199,15 +229,13 @@ export function ShareWithPersonDialog({
           >
             {t("done")}
           </button>
-          {canShare ? (
-            <button
-              className="button button-primary"
-              disabled={busy || chosen === undefined}
-              type="submit"
-            >
-              {busy ? t("sharing") : t("share")}
-            </button>
-          ) : null}
+          <button
+            className="button button-primary"
+            disabled={busy || chosen === undefined}
+            type="submit"
+          >
+            {busy ? t("sharing") : t("share")}
+          </button>
         </div>
       </form>
     </dialog>

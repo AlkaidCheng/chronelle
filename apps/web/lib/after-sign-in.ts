@@ -1,10 +1,12 @@
 /**
  * Where to go after signing in, when a page that needs a session was
  * opened without one: kept on this tab, and only for the paths that make
- * sense to return to (a profile code today).
+ * sense to return to (a profile code, an invitation link). A new account
+ * passes through the Welcome step first, which takes the path in turn.
  */
 const storageKey = "chronelle.after-sign-in";
-const allowed = /^\/u\/[A-Za-z][A-Za-z0-9_-]{2,29}$/u;
+const allowed =
+  /^\/(u\/[A-Za-z][A-Za-z0-9_-]{2,29}|invite\/[A-Za-z0-9_-]{16,128})$/u;
 
 export function rememberAfterSignIn(path: string): void {
   if (!allowed.test(path)) return;

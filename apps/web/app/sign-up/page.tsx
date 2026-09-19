@@ -8,6 +8,7 @@ import { type FormEvent, Suspense, useEffect, useState } from "react";
 import { AccountPage } from "../../components/account-page";
 import { ErrorNotice } from "../../components/feedback";
 import { useRedirectWhenSignedIn, useSignUp } from "../../lib/account-queries";
+import { rememberAfterSignIn } from "../../lib/after-sign-in";
 import { useAuthSession } from "../../lib/auth-session";
 import { useUsernameAvailableQuery } from "../../lib/friend-queries";
 import { usernameShape } from "../../lib/username";
@@ -15,7 +16,9 @@ import { usernameShape } from "../../lib/username";
 /**
  * Create an account: the email, the password, and the username, whose
  * availability is checked as typed. The name and the display preferences
- * are asked on the Welcome step after the email is confirmed.
+ * are asked on the Welcome step after the email is confirmed. Opened from
+ * an invitation link, the sign-up carries the token and returns to the
+ * link's page after Welcome, where Accept is explicit.
  */
 function SignUpForm() {
   const t = useTranslations("auth");
@@ -45,6 +48,10 @@ function SignUpForm() {
             ? "available"
             : "taken";
   useRedirectWhenSignedIn();
+  useEffect(() => {
+    if (invitationToken !== null)
+      rememberAfterSignIn(`/invite/${invitationToken}`);
+  }, [invitationToken]);
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();

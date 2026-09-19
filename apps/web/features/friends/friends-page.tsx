@@ -7,15 +7,18 @@ import { ErrorNotice, LoadingState } from "../../components/feedback";
 import {
   ClockIcon,
   GridIcon,
+  LinkIcon,
   MailIcon,
   UserPlusIcon,
 } from "../../components/icons";
 import { useNotices } from "../../components/notices";
+import { copyText } from "../../lib/copy-text";
 import {
   useAcceptFriendRequest,
   useDeclineFriendRequest,
   useFriendsQuery,
   useRemoveFriend,
+  useRenewInvitationLink,
   useResendInvitation,
   useWithdrawInvitation,
 } from "../../lib/friend-queries";
@@ -29,11 +32,12 @@ import { YourCodeDialog } from "./your-code-dialog";
 /**
  * Friends, reached from the profile menu. Friends belong to the account,
  * not to a workspace: the requests waiting for an answer, the friends by
- * name, and what was sent and still waits (a request to an account, or an
- * invitation to an address without one). A sent row names the person of
- * this workspace the invitation went from, when there is one. Every action
- * answers at once; the list reads again after it. Your code shows the QR
- * code and link others scan to send a request.
+ * name, and what was sent and still waits: a request to an account, or an
+ * invitation link, emailed or handed on. A sent row names the person of
+ * this workspace the invitation went from, when there is one, and offers
+ * Copy link, Resend (an emailed one) or New link, and Withdraw. Every
+ * action answers at once; the list reads again after it. Your code shows
+ * the QR code and link others scan to send a request.
  */
 export function FriendsPage() {
   const t = useTranslations("friends");
@@ -49,16 +53,21 @@ export function FriendsPage() {
   const decline = useDeclineFriendRequest();
   const withdraw = useWithdrawInvitation();
   const resend = useResendInvitation();
+  const renew = useRenewInvitationLink();
   const remove = useRemoveFriend();
+  const [copied, setCopied] = useState("");
   const busy =
     accept.isPending ||
     decline.isPending ||
     withdraw.isPending ||
     resend.isPending ||
+    renew.isPending ||
     remove.isPending;
-  const failure = [accept, decline, withdraw, resend, remove].find(
+  const failure = [accept, decline, withdraw, resend, renew, remove].find(
     (mutation) => mutation.isError,
   );
+  const copyInvite = async (link: string) =>
+    setCopied((await copyText(link)) ? t("linkCopied") : t("linkNotCopied"));
   const session = useSessionQuery();
   const persons = usePersonsQuery();
   const day = (iso: string) =>
@@ -235,22 +244,30 @@ export function FriendsPage() {
               <ul className="srow-list">
                 {friends.data.sent.map((item) => {
                   const name = personNameOf(item.personId, item.workspaceId);
+                  const kind =
+                    item.kind === "connection"
+                      ? "kindRequest"
+                      : item.channel === "email"
+                        ? "kindEmail"
+                        : "kindLink";
                   return (
                     <li className="srow srow-sent" key={item.id}>
-                      <MailIcon />
+                      {kind === "kindLink" ? <LinkIcon /> : <MailIcon />}
                       <span className="srow-name">
-                        {name ?? item.email}
-                        {name === undefined ? null : (
+                        {name ?? item.email ?? t("invitationLink")}
+                        {name === undefined || item.email === null ? null : (
                           <span className="srow-meta">
                             {" \u00b7 "}
                             {item.email}
                           </span>
                         )}
-                        {item.expiresAt === null ? null : (
-                          <span className="srow-sub">
-                            {t("linkUntil", { date: day(item.expiresAt) })}
-                          </span>
-                        )}
+                        <span className="srow-sub">
+                          {t(kind)}
+                          {" \u00b7 "}
+                          {item.expiresAt === null
+                            ? t("sentAgo", { when: ago(item.createdAt) })
+                            : t("validUntil", { date: day(item.expiresAt) })}
+                        </span>
                       </span>
                       <span className="person-badge person-badge-invited">
                         <ClockIcon />
@@ -258,14 +275,45 @@ export function FriendsPage() {
                           ? t("sentAgo", { when: ago(item.createdAt) })
                           : t("noAccountYet")}
                       </span>
-                      <button
-                        className="link-button link-button-quiet"
-                        disabled={busy}
-                        onClick={() => resend.mutate(item.id)}
-                        type="button"
-                      >
-                        {t("resend")}
-                      </button>
+                      {item.inviteUrl === null ? null : (
+                        <button
+                          className="link-button link-button-quiet"
+                          disabled={busy}
+                          onClick={() => copyInvite(item.inviteUrl ?? "")}
+                          type="button"
+                        >
+                          {t("copyLink")}
+                        </button>
+                      )}
+                      {kind === "kindLink" ? (
+                        <button
+                          className="link-button link-button-quiet"
+                          disabled={busy}
+                          onClick={() =>
+                            renew.mutate(item.id, {
+                              onSuccess: () =>
+                                post({ message: done("linkRenewed") }),
+                            })
+                          }
+                          type="button"
+                        >
+                          {t("newLink")}
+                        </button>
+                      ) : (
+                        <button
+                          className="link-button link-button-quiet"
+                          disabled={busy}
+                          onClick={() =>
+                            resend.mutate(item.id, {
+                              onSuccess: () =>
+                                post({ message: done("invitationResent") }),
+                            })
+                          }
+                          type="button"
+                        >
+                          {t("resend")}
+                        </button>
+                      )}
                       <button
                         className="link-button link-button-quiet"
                         disabled={busy}
@@ -283,6 +331,9 @@ export function FriendsPage() {
                   );
                 })}
               </ul>
+              <p className="visually-hidden" role="status">
+                {copied}
+              </p>
             </section>
           ) : null}
         </div>
