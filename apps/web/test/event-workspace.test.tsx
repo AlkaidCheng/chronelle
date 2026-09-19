@@ -522,8 +522,7 @@ describe("EventWorkspace", () => {
     ["todos", "todos"],
     ["calendar", "calendar"],
     ["timeline", "timeline"],
-    // The Itinerary tab folded into the Calendar; its link still opens.
-    ["itinerary", "calendar"],
+    ["itinerary", "itinerary"],
     ["expenses", "expenses"],
     ["reminders", "reminders"],
   ])(
@@ -540,6 +539,9 @@ describe("EventWorkspace", () => {
             source: { kind: "own" },
           });
         if (path === `/api/events/${eventId}/${view}`)
+          return jsonResponse({ sourceEventId: eventId, items: [] });
+        // The Itinerary composes its sheet from the to-dos as well.
+        if (view === "itinerary" && path === `/api/events/${eventId}/todos`)
           return jsonResponse({ sourceEventId: eventId, items: [] });
         return jsonResponse(
           { error: { code: "not_found", message: "Unexpected request" } },
@@ -871,8 +873,7 @@ describe("EventWorkspace", () => {
       await screen.findByRole("heading", { name: "Guest arrival" }),
     ).toBeVisible();
 
-    // The Calendar's agenda view is the running order the Itinerary showed.
-    expect(screen.queryByRole("tab", { name: "Itinerary" })).toBeNull();
+    // The Calendar's agenda view is the running order in one list.
     await user.click(screen.getByRole("button", { name: /^Layout: / }));
     await user.click(screen.getByRole("menuitemradio", { name: "Agenda" }));
     expect(
@@ -1798,6 +1799,7 @@ describe("EventWorkspace", () => {
       "To-dos",
       "Calendar",
       "Timeline",
+      "Itinerary",
       "Expenses",
       "Reminders",
       "People",
@@ -1829,6 +1831,7 @@ describe("EventWorkspace", () => {
       "Overview",
       "To-dos",
       "Calendar",
+      "Itinerary",
       "Expenses",
       "Reminders",
       "People",
@@ -1861,11 +1864,12 @@ describe("EventWorkspace", () => {
       within(manage).getByRole("button", { name: "Show Expenses" }),
     ).toBeVisible();
     within(manage).getByRole("button", { name: "Move Calendar" }).focus();
-    await user.keyboard("{ArrowDown}{ArrowDown}");
+    await user.keyboard("{ArrowDown}{ArrowDown}{ArrowDown}");
     await waitFor(() =>
       expect(tabNames()).toEqual([
         "Overview",
         "To-dos",
+        "Itinerary",
         "Reminders",
         "Calendar",
         "People",
@@ -1878,6 +1882,7 @@ describe("EventWorkspace", () => {
       order: [
         "overview",
         "todos",
+        "itinerary",
         "expenses",
         "reminders",
         "calendar",

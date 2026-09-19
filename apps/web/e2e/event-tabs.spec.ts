@@ -73,6 +73,7 @@ test("keeps the account's tabs for an event through the gallery, Manage tabs, th
     "Overview",
     "To-dos",
     "Calendar",
+    "Itinerary",
     "Expenses",
     "Reminders",
     "People",
@@ -82,7 +83,8 @@ test("keeps the account's tabs for an event through the gallery, Manage tabs, th
   ]);
 
   // Manage tabs from the More menu: the eye hides Expenses, the grip's
-  // arrow keys move Calendar down two places, and Overview has no cross.
+  // arrow keys move Calendar down three places (past Itinerary, the hidden
+  // Expenses, and Reminders), and Overview has no cross.
   await page
     .getByRole("button", { name: "Actions for Harvest supper", exact: true })
     .click();
@@ -108,6 +110,7 @@ test("keeps the account's tabs for an event through the gallery, Manage tabs, th
     .focus();
   await page.keyboard.press("ArrowDown");
   await page.keyboard.press("ArrowDown");
+  await page.keyboard.press("ArrowDown");
   await expect(
     manage.getByRole("button", { name: "Move Calendar", exact: true }),
   ).toBeFocused();
@@ -117,6 +120,7 @@ test("keeps the account's tabs for an event through the gallery, Manage tabs, th
   expect(await viewTabs(page)).toEqual([
     "Overview",
     "To-dos",
+    "Itinerary",
     "Reminders",
     "Calendar",
     "People",
@@ -134,6 +138,7 @@ test("keeps the account's tabs for an event through the gallery, Manage tabs, th
   expect(await viewTabs(page)).toEqual([
     "Overview",
     "To-dos",
+    "Itinerary",
     "Reminders",
     "Calendar",
     "People",
@@ -147,6 +152,7 @@ test("keeps the account's tabs for an event through the gallery, Manage tabs, th
       order: [
         "overview",
         "todos",
+        "itinerary",
         "expenses",
         "reminders",
         "calendar",
@@ -231,5 +237,5 @@ test("keeps the account's tabs for an event through the gallery, Manage tabs, th
 
   await page.setViewportSize({ width: 1280, height: 800 });
   await expect(chip).toHaveCount(0);
-  expect((await stripTabs(page)).length).toBe(8);
+  expect((await stripTabs(page)).length).toBe(9);
 });

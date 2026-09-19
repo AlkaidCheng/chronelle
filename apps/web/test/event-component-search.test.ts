@@ -4,38 +4,25 @@ import {
   type EventComponentKind,
 } from "@chronelle/schemas";
 import {
-  addableEventComponentKinds,
+  eventComponentKinds,
   findEventComponents,
-  resolveEventComponent,
   viewOf,
   viewsOf,
 } from "../lib/event-components";
 
 describe("component catalog search", () => {
   it.each(["", "  ", "/"])("lists the full catalog for %j", (query) => {
-    expect(findEventComponents(query)).toEqual(addableEventComponentKinds);
-    // Every kind the schema knows is either offered or the retired alias.
-    expect(
-      eventComponentKindSchema.options.filter(
-        (kind) =>
-          !(
-            addableEventComponentKinds as readonly EventComponentKind[]
-          ).includes(kind),
-      ),
-    ).toEqual(["itinerary"]);
+    expect(findEventComponents(query)).toEqual(eventComponentKinds);
+    // Every kind the schema knows is offered.
+    expect(eventComponentKinds).toEqual(eventComponentKindSchema.options);
   });
 
-  it("renders a saved itinerary as the Calendar's agenda", () => {
-    expect(resolveEventComponent({ kind: "itinerary" })).toEqual({
-      kind: "calendar",
-      view: "agenda",
-    });
-    expect(viewOf({ kind: "itinerary", view: "list" })).toBe("agenda");
-    expect(viewsOf("itinerary")).toEqual(viewsOf("calendar"));
-    expect(resolveEventComponent({ kind: "calendar", view: "week" })).toEqual({
-      kind: "calendar",
-      view: "week",
-    });
+  it("shows an itinerary one day at a time, or every day, by its own view", () => {
+    expect(viewsOf("itinerary")).toEqual(["by-day", "list"]);
+    expect(viewOf({ kind: "itinerary" })).toBe("by-day");
+    expect(viewOf({ kind: "itinerary", view: "list" })).toBe("list");
+    // A view the kind does not offer falls back to its default.
+    expect(viewOf({ kind: "itinerary", view: "week" })).toBe("by-day");
   });
 
   it.each<[string, EventComponentKind[]]>([
@@ -43,8 +30,9 @@ describe("component catalog search", () => {
     ["\uff43\uff41\uff4c\uff45\uff4e\uff44\uff41\uff52", ["calendar"]],
     ["to do", ["todos"]],
     ["checklist", ["todos"]],
-    ["running order", ["calendar"]],
-    ["itinerary", ["calendar"]],
+    ["running order", ["calendar", "itinerary"]],
+    ["itinerary", ["itinerary"]],
+    ["day sheet", ["itinerary"]],
     ["costs", ["expenses"]],
     ["documents", ["files"]],
     ["alerts", ["reminders"]],

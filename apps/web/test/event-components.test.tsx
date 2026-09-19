@@ -37,7 +37,7 @@ import {
   parseDayKey,
 } from "../lib/day-placement";
 import {
-  addableEventComponentKinds,
+  eventComponentKinds,
   componentKindLabel,
   eventComponents,
 } from "../lib/event-components";
@@ -1295,7 +1295,7 @@ describe("insertable event components", () => {
     const pages = [page("Plan", eventComponentKindSchema.options)];
     await client.updateEventLayout(eventId, { expectedVersion: 0, pages });
     render(<PagesHarness eventId={eventId} canEdit />, { wrapper: Providers });
-    for (const kind of addableEventComponentKinds) {
+    for (const kind of eventComponentKinds) {
       expect(
         (
           await screen.findAllByRole("heading", {
@@ -1304,12 +1304,12 @@ describe("insertable event components", () => {
         )[0],
       ).toBeVisible();
     }
-    // The saved itinerary renders as a second Calendar, in its agenda view.
+    // The itinerary is its own component: one day sheet, beside one Calendar.
     expect(screen.getAllByRole("heading", { name: "Calendar" })).toHaveLength(
-      2,
+      1,
     );
-    expect(screen.queryByRole("heading", { name: "Itinerary" })).toBeNull();
-    expect(document.querySelectorAll(".itinerary-list")).toHaveLength(1);
+    expect(screen.getByRole("heading", { name: "Itinerary" })).toBeVisible();
+    expect(document.querySelectorAll(".day-sheet")).toHaveLength(1);
     expect(await screen.findByText("Attach a file")).toBeVisible();
     expect(await client.getEventDetail(eventId)).toEqual(before);
     expect(
@@ -1431,7 +1431,7 @@ describe("insertable event components", () => {
     });
     await user.click(trigger);
     const dialog = within(screen.getByRole("dialog"));
-    expect(dialog.getAllByRole("button", { name: /^Add / })).toHaveLength(7);
+    expect(dialog.getAllByRole("button", { name: /^Add / })).toHaveLength(8);
     expect(
       dialog.getByRole("searchbox", { name: "Find a component" }),
     ).toHaveFocus();
@@ -1516,7 +1516,7 @@ describe("insertable event components", () => {
     expect(dialog.queryAllByRole("button", { name: /^Add / })).toHaveLength(0);
     await user.click(dialog.getByRole("button", { name: "Clear search" }));
     expect(search).toHaveFocus();
-    expect(dialog.getAllByRole("button", { name: /^Add / })).toHaveLength(7);
+    expect(dialog.getAllByRole("button", { name: /^Add / })).toHaveLength(8);
     await user.type(search, "checklist");
     await user.keyboard("{ArrowDown}");
     expect(dialog.getByRole("button", { name: "Add To-dos" })).toHaveFocus();
@@ -1828,9 +1828,11 @@ describe("insertable event components", () => {
     ]) {
       expect(screen.queryByRole("button", { name: label })).toBeNull();
     }
-    expect(
-      screen.getByRole("button", { name: "Complete Confirm the garden venue" }),
-    ).toBeDisabled();
+    // The task is due today, so To-dos and the Itinerary both list it.
+    for (const check of screen.getAllByRole("button", {
+      name: "Complete Confirm the garden venue",
+    }))
+      expect(check).toBeDisabled();
     expect(screen.queryByRole("button", { name: /^Drag / })).toBeNull();
     expect(screen.queryByRole("button", { name: /^Move / })).toBeNull();
     const user = userEvent.setup();
