@@ -3496,9 +3496,14 @@ tr:hover .row-grip {
   opacity: 1;
 }
 
-.section-head-cell {
+.task-table td.section-head-cell {
   border-top: 0;
-  padding: 18px 0 0;
+  padding: 4px 0 0;
+}
+
+/* The first row under a section head sits on the head's rule alone. */
+.task-table tr:has(> .section-head-cell) + tr > td {
+  border-top: 0;
 }
 
 .table-add-cell {
@@ -3510,7 +3515,7 @@ tr:hover .row-grip {
   padding: var(--row-padding) 12px var(--row-padding) 2px;
 }
 
-.table-add-section-cell {
+.task-table td.table-add-section-cell {
   border-top: 0;
   padding: 0;
 }
