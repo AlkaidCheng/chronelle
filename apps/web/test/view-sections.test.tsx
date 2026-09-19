@@ -404,20 +404,16 @@ describe("sections in To-dos", () => {
     expect(moved?.sectionId).toBe(music.id);
     expect(moved?.version).toBe(2);
     // One write carried the section and the rank.
-    const patches = vi
+    interface Command {
+      readonly edits: readonly { readonly patch: Record<string, unknown> }[];
+    }
+    const commands = vi
       .mocked(globalThis.fetch)
-      .mock.calls.filter(
-        ([, init]) => init?.method === "PATCH" || init?.method === "POST",
-      )
-      .map(
-        ([, init]) => JSON.parse(String(init?.body)) as Record<string, unknown>,
-      )
-      .filter((body) => "edits" in body);
-    expect(patches).toHaveLength(1);
-    const [command] = patches as readonly {
-      edits: readonly { patch: Record<string, unknown> }[];
-    }[];
-    const edit = command?.edits[0]?.patch;
+      .mock.calls.filter(([, init]) => init?.method === "POST")
+      .map(([, init]) => JSON.parse(String(init?.body)) as Partial<Command>)
+      .filter((body): body is Command => Array.isArray(body.edits));
+    expect(commands).toHaveLength(1);
+    const edit = commands[0]?.edits[0]?.patch;
     expect(edit).toMatchObject({ sectionId: music.id });
     expect(edit?.rank).toBeDefined();
 
