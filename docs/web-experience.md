@@ -559,8 +559,8 @@ codes without a translation.
 Every screen of the web app reads in the chosen language: the shell and
 rail, the command palette and its shortcut settings, the Events page, the
 event page with its strip, Overview, pages, and layout controls, every panel
-(To-dos, Calendar, Timeline, Expenses, Reminders, Files, People, Sharing,
-Removed links), the Tasks and People collections, the person page, the event,
+(To-dos, Calendar, Timeline, Itinerary, Expenses, Reminders, Files, People,
+Sharing, Removed links), the Tasks and People collections, the person page, the event,
 schedule item, task, expense, reminder, and person editors with the Due and
 date-range pickers, the month list, the period navigation, the label and
 assignee pickers, the page and component dialogs, layout and draft recovery,
@@ -640,8 +640,8 @@ not yet reviewed the two Chinese catalogs; wording may change.
   shows no date line; Set dates opens the editor on the schedule.
 - The gallery (Add a view, or Add view in Manage tabs) shows every
   specialized view as a card with a mark, a name and one line: To-dos,
-  Calendar, Timeline, Expenses, Reminders, Files, People, and Sharing for an
-  account that may share. A card is a switch: pressing it puts the view on
+  Calendar, Timeline, Itinerary, Expenses, Reminders, Files, People, and
+  Sharing for an account that may share. A card is a switch: pressing it puts the view on
   the strip, at the end, or takes it off the event again; the dialog stays
   open. To-dos and Sharing are always on. Taking a view off changes no
   records; it comes back with everything in it.
@@ -1019,6 +1019,40 @@ desktop/mobile Chromium and WebKit. The offline Chromium suite also checks
 Viewer empty states. Live-region semantics have automated coverage, but actual
 screen-reader announcements require manual assistive-technology validation.
 
+## The Itinerary
+
+The Itinerary answers "what does Tuesday look like": one day at a time,
+the running order with start and end, where each item happens, and the
+free time between items. Its card reads "One day at a time: the running
+order with times, places and the gaps between." Under the heading ("Day 2
+of 5") sit the Layout control with Day and All days, and Copy day; then the
+day line: Previous day, the day name ("Tue, Nov 3"), Next day, and Today
+(enabled when today is one of the itinerary's days). The days it turns are
+the event's own dates and every day a schedule item falls on; it opens on
+today when that is one of them, else on the first.
+
+The sheet lists, in order: date-only items that span several days or are
+all-day as pills at the top; the timed items as rows with the start over
+the end in a tabular time column, the name, the place with a pin on the
+meta line, and the duration at the right ("2 h", "30 min"), the item
+happening now carrying the accent bar at the left; free time of fifteen
+minutes or more between two rows as one faint italic line ("30 min free",
+"2 h free"; shorter gaps are not shown); Due today, the tasks whose due
+falls on the day as check rows with the assignee and "2 of 3 subtasks done"
+or "due 18:00", ticking completing the task as in To-dos; Not yet timed,
+the date-only items on that one day with a dash for a time; and Add
+schedule item, the Calendar's dialog. A day with nothing on it says
+"Nothing scheduled this day."
+
+All days stacks every day's sheet under a sticky day line, for reading the
+whole trip. Copy day puts the shown day on the clipboard as plain text (the
+day name, the all-day items, then one line per row as
+`09:30-11:30  Fushimi Inari, the lower loop - Fushimi Inari Taisha, main gate`,
+and the untimed items with a dash) and says "Day copied."; a browser without
+a clipboard says nothing. On a phone the time column narrows, the duration
+folds under the times, and a horizontal swipe across the sheet turns a day.
+Reminders are not on the sheet; they have their own view.
+
 ## Component views
 
 The seven Event components share one frame. In a tab view it has no box of
@@ -1123,9 +1157,8 @@ Expenses and Reminders offer List, By day, By week, and Calendar as well: a
 transaction sits on the day it happened and a reminder on the day it is due;
 an expense day heading carries the day's totals by currency, and a calendar
 cell shows each amount or time with the name (a dismissed or triggered
-reminder struck through). A page that carries an Itinerary component (a
-retired kind) shows the Calendar in its Agenda view, and choosing another
-layout on it saves it as a Calendar. The event's own tabs (To-dos, Calendar,
+reminder struck through). The Itinerary offers Day and All days (below).
+The event's own tabs (To-dos, Calendar,
 and the rest) offer the same Layout control; a tab's choice lasts for the
 session, while a page component's is saved with the layout. Above a week or
 a calendar, open tasks whose due has passed sit in an Overdue strip and tasks

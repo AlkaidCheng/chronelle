@@ -18,7 +18,7 @@ the layout does not delete business objects or relations.
 | `todos`     | Tasks with completion controls and independent local filters              |
 | `calendar`  | Scheduled Events, including date-only ranges, with creation and editing   |
 | `timeline`  | Dated Events, Tasks, Expenses, and Reminders in chronological order       |
-| `itinerary` | Retired: a saved one shows as the Calendar in its `agenda` view           |
+| `itinerary` | One day at a time: the timed items in order, their places, the free time  |
 | `expenses`  | Historical transactions with totals kept separate by currency             |
 | `reminders` | Recorded reminders with editing and dismissal; notifications are not sent |
 | `files`     | Authorized private attachments for the Event and its Tasks and Expenses   |
@@ -50,11 +50,10 @@ transaction sits on the local day it happened, a reminder on the local day it
 is due, and an expense day (a by-day heading or the day under a month) carries
 the day's totals by currency. Tasks without a due date and unscheduled items
 are listed under the week or the month. The period shown opens on today, moves with Previous,
-Today, and Next, and is not saved; only the view is. A layout may still carry
-the retired `itinerary` kind: it renders as the Calendar in its `agenda` view,
-the picker does not offer it, and choosing a view on it saves the component
-as `calendar` with that view under the same id (earlier layout versions keep
-what they stored). Members who can edit choose the view from a View
+Today, and Next, and is not saved; only the view is. The Itinerary offers
+`by-day` (one day, its default) and `list` (All days, every day stacked under
+its own day line); a layout that carried the kind before it had a sheet of
+its own shows the day sheet now. Members who can edit choose the view from a View
 control in the component heading, outside Arrange mode. The choice is saved on
 the layout component, so everyone on the Event sees the same view, it appears
 in layout history, and undo and restore cover it. Viewers see the saved view
