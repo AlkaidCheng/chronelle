@@ -131,7 +131,7 @@ export function ItineraryPanel({
   const viewLabel = (option: EventComponentView) =>
     option === "list" ? t("allDays") : t("day");
   return (
-    <section className="planning-panel">
+    <section className="planning-panel panel-column">
       <PanelHeading
         action={
           <button

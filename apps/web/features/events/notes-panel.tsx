@@ -96,7 +96,7 @@ export function NotesPanel({
   };
 
   return (
-    <section className="planning-panel" ref={panel}>
+    <section className="planning-panel panel-column" ref={panel}>
       <PanelHeading
         controls={
           <HeadMenu

@@ -118,7 +118,7 @@ export function DocumentsPanel({
   const items = attachments.data?.items ?? [];
 
   return (
-    <section className="planning-panel documents-panel">
+    <section className="planning-panel panel-column documents-panel">
       <PanelHeading
         controls={
           <HeadMenu

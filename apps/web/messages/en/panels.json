@@ -11,5 +11,9 @@
   "addScheduleItem": "Add schedule item",
   "addExpense": "Add expense",
   "addReminder": "Add reminder",
-  "edit": "Edit"
+  "edit": "Edit",
+  "menu": {
+    "history": "History"
+  },
+  "actionsFor": "Actions for {name}"
 }

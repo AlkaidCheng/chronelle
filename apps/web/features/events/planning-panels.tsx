@@ -138,6 +138,13 @@ function useReturnFocusToAddRow(panel: RefObject<HTMLElement | null>) {
   }, []);
 }
 
+/** A panel's classes: the list column for a list layout, the page for a period grid. */
+function panelClasses(view: EventComponentView): string {
+  return view === "week" || view === "month"
+    ? "planning-panel"
+    : "planning-panel panel-column";
+}
+
 export function TasksPanel({
   canEdit,
   eventId,
@@ -263,7 +270,7 @@ export function TasksPanel({
   const shownOpen = filteredTasks.filter(isOpen).length;
 
   return (
-    <section className="planning-panel" ref={panel}>
+    <section className={panelClasses(view)} ref={panel}>
       <PanelHeading
         controls={
           <div className="head-controls">
@@ -438,7 +445,7 @@ export function CalendarPanel({
     </article>
   );
   return (
-    <section className="planning-panel">
+    <section className={panelClasses(view)}>
       <PanelHeading
         controls={
           onChangeView === undefined ? undefined : (
@@ -518,6 +525,10 @@ export function CalendarPanel({
   );
 }
 
+/**
+ * The event's records in date order. An entry's history is in its row
+ * menu, shown on hover or focus, so the list reads as dates and names.
+ */
 export function TimelinePanel({
   timeline,
 }: {
@@ -525,8 +536,9 @@ export function TimelinePanel({
 }) {
   const panels = useTranslations("panels");
   const views = useTranslations("views");
+  const openHistory = useOpenHistory();
   return (
-    <section className="planning-panel">
+    <section className="planning-panel panel-column">
       <PanelHeading title={views("timeline")} />
       {timeline.items.length === 0 ? (
         <EmptyState title={panels("noTimeline")} />
@@ -545,13 +557,21 @@ export function TimelinePanel({
                   {objectTypeLabel(item.objectType)}
                 </span>
                 <h3>{item.displayName}</h3>
-                <RowActions>
-                  <HistoryButton
-                    objectId={item.canonicalObjectId}
-                    displayName={item.displayName}
-                  />
-                </RowActions>
               </div>
+              <RowMenu
+                entries={[
+                  {
+                    kind: "action",
+                    label: panels("menu.history"),
+                    onSelect: () =>
+                      openHistory({
+                        objectId: item.canonicalObjectId,
+                        displayName: item.displayName,
+                      }),
+                  },
+                ]}
+                label={panels("actionsFor", { name: item.displayName })}
+              />
             </li>
           ))}
         </ol>
@@ -655,7 +675,7 @@ export function ExpensesPanel({
   );
 
   return (
-    <section className="planning-panel">
+    <section className={panelClasses(view)}>
       <PanelHeading
         controls={
           onChangeView === undefined ? undefined : (
@@ -1045,7 +1065,7 @@ export function RemindersPanel({
   );
 
   return (
-    <section className="planning-panel" ref={panel}>
+    <section className={panelClasses(view)} ref={panel}>
       <PanelHeading
         controls={
           onChangeView === undefined ? undefined : (
