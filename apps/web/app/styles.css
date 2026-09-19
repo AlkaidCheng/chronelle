@@ -951,6 +951,23 @@ h3,
   font-size: 0.73rem;
 }
 
+.schedule-place {
+  align-items: center;
+  color: var(--muted);
+  display: inline-flex;
+  gap: 4px;
+  margin-left: 10px;
+}
+
+.schedule-place-icon {
+  height: 13px;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.7;
+  width: 13px;
+}
+
 .field > .field-count {
   color: var(--muted);
   font-size: 0.73rem;
@@ -961,6 +978,13 @@ h3,
 .field > .field-count-full {
   color: var(--danger);
   font-weight: 700;
+}
+
+.field > .field-hint-line {
+  color: var(--muted);
+  font-size: 0.78rem;
+  line-height: 1.45;
+  margin-top: -4px;
 }
 
 .task-assignee {

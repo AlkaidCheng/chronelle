@@ -18,6 +18,7 @@ import {
 } from "../../components/editor-dialog-controls";
 import { ErrorNotice } from "../../components/feedback";
 import { eventSchedulePayload } from "../../lib/event-schedule";
+import { locationLimit, locationPayload } from "../../lib/location-field";
 import { shownTimeZone } from "../../i18n/active-preferences";
 import {
   useCreateScheduledEvent,
@@ -103,6 +104,7 @@ function CreateScheduleForm({
   );
   const mutation = useCreateScheduledEvent(eventId, attempt);
   const t = useTranslations("scheduleDialog");
+  const fields = useTranslations("scheduleFields");
   const editor = useTranslations("editor");
   const common = useTranslations("common");
   const [scheduleError, setScheduleError] = useState("");
@@ -123,8 +125,10 @@ function CreateScheduleForm({
     event.preventDefault();
     if (mutation.isPending || isConfirming || !recovery.isRetained) return;
     let schedule: ReturnType<typeof eventSchedulePayload>;
+    let location: string | null;
     try {
       schedule = eventSchedulePayload(draft.fields);
+      location = locationPayload(draft.fields.location);
       setScheduleError("");
     } catch (error) {
       setScheduleError(
@@ -139,6 +143,7 @@ function CreateScheduleForm({
           ...schedule,
           isAllDay: false,
           timezone: shownTimeZone(),
+          location,
         }),
       onClose,
     );
@@ -203,6 +208,15 @@ function CreateScheduleForm({
               setScheduleError("");
             }}
             disabled={mutation.isPending}
+          />
+          <CountedField
+            className="field-wide"
+            disabled={mutation.isPending}
+            hint={fields("placeHint")}
+            label={fields("place")}
+            limit={locationLimit}
+            onChange={(location) => draft.change({ location })}
+            value={draft.fields.location}
           />
           {scheduleError && <p role="alert">{scheduleError}</p>}
           {mutation.isError && <ErrorNotice error={mutation.error} />}

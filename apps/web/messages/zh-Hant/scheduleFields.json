@@ -8,5 +8,7 @@
   "startTime": "開始時間",
   "endTime": "結束時間",
   "endTimeOptional": "結束時間（可選）",
-  "timesIn": "時間以 {zone} 為準。"
+  "timesIn": "時間以 {zone} 為準。",
+  "place": "地點",
+  "placeHint": "在哪裡進行，像告訴別人那樣寫。行程會在時間旁顯示它。"
 }

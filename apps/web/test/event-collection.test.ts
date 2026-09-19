@@ -28,6 +28,7 @@ const event: EventResponse = {
   startsOn: null,
   endsOn: null,
   isAllDay: false,
+  location: null,
 };
 const task: TaskResponse = {
   ...event,
