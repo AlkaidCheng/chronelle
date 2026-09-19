@@ -3,21 +3,25 @@
 import type { SectionResponse } from "@chronelle/schemas";
 
 import { useTaskEditorQueries } from "../../lib/queries";
+import type { TaskFields } from "../../lib/task-fields";
 import { TaskForm } from "./task-form";
 import { ObjectEditorAccess } from "./object-editor-access";
 
 export function TaskInspector({
   eventId,
-  sections,
-  taskId,
   onClose,
+  sections,
+  start,
+  taskId,
 }: {
   /** The Event the inspector was opened from, if any. */
   readonly eventId?: string | undefined;
+  readonly onClose: () => void;
   /** The sections of that Event's To-dos, offered as the task's section. */
   readonly sections?: readonly SectionResponse[] | undefined;
+  /** The fields the task's composer held when it handed over to the editor. */
+  readonly start?: Partial<TaskFields> | undefined;
   readonly taskId: string;
-  readonly onClose: () => void;
 }) {
   const { task, access } = useTaskEditorQueries(taskId);
   return (
@@ -33,10 +37,11 @@ export function TaskInspector({
           key={taskId}
           accessSource={access.data?.source}
           eventId={eventId}
-          sections={sections}
-          task={resource}
           onCancel={onClose}
           onRefresh={refresh}
+          sections={sections}
+          start={start}
+          task={resource}
         />
       )}
     </ObjectEditorAccess>

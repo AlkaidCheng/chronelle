@@ -15,7 +15,8 @@ import {
   LoadingState,
 } from "../../components/feedback";
 import { PlusIcon, SearchIcon } from "../../components/icons";
-import { useQuickAddSlots } from "../../components/quick-add-row";
+import { useComposerSlots } from "../../lib/composer-slots";
+import { emptyTaskFields, type TaskFields } from "../../lib/task-fields";
 import { LayoutControl } from "../events/component-frame";
 import { type SubtaskParent, TaskForm } from "../events/task-form";
 import { TaskInspector } from "../events/task-inspector";
@@ -31,7 +32,7 @@ import {
   useTasksQuery,
 } from "../../lib/queries";
 import { ManageLabelsButton } from "./label-manager";
-import { QuickAddTask } from "./quick-add-task";
+import { AddTaskRow } from "./add-task-row";
 import {
   defaultTaskFilters,
   type TaskFilters,
@@ -60,9 +61,15 @@ export function TasksPage() {
     useState<NonNullable<TaskListQuery["sort"]>>("manual");
   const [view, setView] = useState<EventComponentView>("list");
   const { status: filter, label, assignee } = filters;
-  const [isAdding, setIsAdding] = useState(false);
+  // The full editor for a new task opens from the header, or from an add
+  // row's composer with its fields; for a task, from its row's composer.
+  const [adding, setAdding] = useState<TaskFields | null>(null);
   const [parent, setParent] = useState<SubtaskParent | null>(null);
-  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editing, setEditing] = useState<{
+    readonly id: string;
+    readonly start: TaskFields;
+  } | null>(null);
+  const composer = useComposerSlots();
   useEffect(() => {
     if (isComposing) return;
     const timer = window.setTimeout(() => setDebouncedQuery(query.trim()), 250);
@@ -113,7 +120,6 @@ export function TasksPage() {
       session.data !== undefined && person.userId === session.data.user.id,
   );
   const refresh = useRefreshEvent(undefined);
-  const quickAdd = useQuickAddSlots();
   const changingQuery = isComposing || query.trim() !== debouncedQuery;
   const items = changingQuery ? [] : (tasks.data?.items ?? []);
   const filtered =
@@ -159,7 +165,7 @@ export function TasksPage() {
           className="button button-primary"
           onClick={(event) => {
             event.currentTarget.focus();
-            setIsAdding(true);
+            setAdding(emptyTaskFields);
           }}
           type="button"
         >
@@ -168,8 +174,8 @@ export function TasksPage() {
         </button>
       </header>
 
-      {isAdding ? (
-        <TaskForm key="new" onCancel={() => setIsAdding(false)} />
+      {adding !== null ? (
+        <TaskForm key="new" onCancel={() => setAdding(null)} start={adding} />
       ) : null}
       {parent !== null ? (
         <TaskForm
@@ -263,12 +269,14 @@ export function TasksPage() {
               title={t("emptyTitle")}
             />
             <div className="quick-add-item quick-add-empty">
-              <QuickAddTask
+              <AddTaskRow
                 dayLabel={
                   view === "by-day" ? todos("noDueDateGroup") : undefined
                 }
                 dueOn={null}
-                slots={quickAdd}
+                onMore={setAdding}
+                onRefresh={refresh}
+                slots={composer}
               />
             </div>
           </>
@@ -295,12 +303,14 @@ export function TasksPage() {
               {controls("clearFilters")}
             </button>
             <div className="quick-add-item quick-add-empty">
-              <QuickAddTask
+              <AddTaskRow
                 dayLabel={
                   view === "by-day" ? todos("noDueDateGroup") : undefined
                 }
                 dueOn={null}
-                slots={quickAdd}
+                onMore={setAdding}
+                onRefresh={refresh}
+                slots={composer}
               />
             </div>
           </div>
@@ -309,17 +319,18 @@ export function TasksPage() {
         (range !== null && tasks.data !== undefined && !changingQuery) ? (
           <TaskListView
             canEdit
+            composer={composer}
             contexts={tasks.data?.contexts}
             labelNames={labels.data?.names}
             manual={sort === "manual"}
+            onAddDetails={setAdding}
             onAddSubtask={addSubtask}
             personNames={persons.data?.names}
-            onEdit={setEditingId}
+            onEdit={(id, start) => setEditing({ id, start })}
             onRefresh={refresh}
             parents={tasks.data?.parents ?? {}}
             period={period}
             progress={tasks.data?.progress ?? {}}
-            quickAdd={quickAdd}
             tasks={items}
             view={view}
           />
@@ -335,11 +346,12 @@ export function TasksPage() {
           </button>
         ) : null}
       </section>
-      {editingId ? (
+      {editing !== null ? (
         <TaskInspector
-          key={editingId}
-          taskId={editingId}
-          onClose={() => setEditingId(null)}
+          key={editing.id}
+          onClose={() => setEditing(null)}
+          start={editing.start}
+          taskId={editing.id}
         />
       ) : null}
     </main>

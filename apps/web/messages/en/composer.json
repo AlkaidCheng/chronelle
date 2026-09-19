@@ -1,0 +1,18 @@
+{
+  "taskName": "Task name",
+  "newTask": "New task",
+  "addTask": "Add task",
+  "save": "Save",
+  "more": "More",
+  "moreLabel": "More: duration, subtasks, history",
+  "keys": "Enter saves, Esc cancels",
+  "due": "Due",
+  "assignee": "Assignee",
+  "labels": "Labels",
+  "location": "Location",
+  "locationPlaceholder": "Where it happens",
+  "clear": "Clear {field}",
+  "saved": "Saved.",
+  "added": "Added.",
+  "unsaved": "This row has unsaved changes. Discard them?"
+}

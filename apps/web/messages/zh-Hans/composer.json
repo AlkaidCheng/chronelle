@@ -1,0 +1,18 @@
+{
+  "taskName": "任务名称",
+  "newTask": "新任务",
+  "addTask": "添加任务",
+  "save": "保存",
+  "more": "更多",
+  "moreLabel": "更多：时长、子任务、历史",
+  "keys": "Enter 保存，Esc 取消",
+  "due": "截止",
+  "assignee": "负责人",
+  "labels": "标签",
+  "location": "地点",
+  "locationPlaceholder": "在哪里进行",
+  "clear": "清除{field}",
+  "saved": "已保存。",
+  "added": "已添加。",
+  "unsaved": "此行有未保存的修改，要放弃吗？"
+}

@@ -764,3 +764,47 @@ export function RepeatIcon({ className }: IconProps) {
     </svg>
   );
 }
+
+/** One person: the assignee chip. */
+export function UserIcon({ className }: IconProps) {
+  return (
+    <svg
+      aria-hidden="true"
+      className={className}
+      fill="none"
+      viewBox="0 0 24 24"
+    >
+      <circle cx="12" cy="8" r="3.5" />
+      <path d="M5.5 20a6.5 6.5 0 0 1 13 0" />
+    </svg>
+  );
+}
+
+/** A tag: the labels chip. */
+export function TagIcon({ className }: IconProps) {
+  return (
+    <svg
+      aria-hidden="true"
+      className={className}
+      fill="none"
+      viewBox="0 0 24 24"
+    >
+      <path d="M3.5 12.5V5a1.5 1.5 0 0 1 1.5-1.5h7.5l8 8-9 9z" />
+      <circle cx="8" cy="8" r="1.2" />
+    </svg>
+  );
+}
+
+/** Three lines of text: the description field. */
+export function LinesIcon({ className }: IconProps) {
+  return (
+    <svg
+      aria-hidden="true"
+      className={className}
+      fill="none"
+      viewBox="0 0 24 24"
+    >
+      <path d="M4 7h16M4 12h16M4 17h10" />
+    </svg>
+  );
+}

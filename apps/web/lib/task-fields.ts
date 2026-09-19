@@ -75,6 +75,9 @@ export type TaskFields = {
   readonly section?: string | undefined;
 };
 
+/** The fields of a task that has nothing set: what an add composer starts with. */
+export const emptyTaskFields: TaskFields = readTaskFields();
+
 export function joinLabelIds(labelIds: readonly string[]): string {
   return [...new Set(labelIds)].sort().join(",");
 }

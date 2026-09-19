@@ -30,6 +30,7 @@ import {
   rankForStep,
   staysInPlace,
 } from "../../lib/collection-order";
+import { useComposerSlots } from "../../lib/composer-slots";
 import { groupByDay } from "../../lib/day-groups";
 import { groupBySection } from "../../lib/section-groups";
 import {
@@ -71,6 +72,7 @@ import {
   useUpdateReminder,
 } from "../../lib/queries";
 import { instantOnDay } from "../../lib/task-due";
+import type { TaskFields } from "../../lib/task-fields";
 import { sortTasks, type TaskSort } from "../../lib/task-sort";
 import { deriveTaskTree } from "../../lib/task-tree";
 import { periodRange, usePeriod } from "../../lib/use-period";
@@ -89,7 +91,7 @@ import {
   SectionTitle,
 } from "../sections/section-parts";
 import { useSectionEditing } from "../sections/use-sections";
-import { QuickAddTask } from "../tasks/quick-add-task";
+import { AddTaskRow } from "../tasks/add-task-row";
 import {
   activeFilterCount,
   defaultTaskFilters,
@@ -194,13 +196,10 @@ export function TasksPanel({
     overdue: false,
   });
   const [sort, setSort] = useState<TaskSort>("manual");
-  // The full editor for a new task opens from a quick add row, with what
-  // was typed there, the row's day, and its section.
-  const [adding, setAdding] = useState<{
-    displayName: string;
-    dueOn: string | null;
-    sectionId: string | null;
-  } | null>(null);
+  // The full editor for a new task opens from an add row's composer with
+  // its fields, and for a task from its row's composer.
+  const [adding, setAdding] = useState<TaskFields | null>(null);
+  const composer = useComposerSlots();
   const panel = useRef<HTMLElement>(null);
   const returnFocus = useReturnFocusToAddRow(panel);
   const closeAdding = useCallback(() => {
@@ -208,10 +207,12 @@ export function TasksPanel({
     returnFocus();
   }, [returnFocus]);
   const [parent, setParent] = useState<SubtaskParent | null>(null);
-  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editing, setEditing] = useState<{
+    readonly id: string;
+    readonly start: TaskFields;
+  } | null>(null);
   const refresh = useRefreshEvent(eventId);
   const period = usePeriod(view);
-  const quickAdd = useQuickAddSlots();
   // The projection holds every task of the Event, so the tree is derived here.
   const tree = useMemo(() => deriveTaskTree(tasks), [tasks]);
   const labels = useLabelsQuery();
@@ -378,46 +379,44 @@ export function TasksPanel({
       ) : null}
       {filteredTasks.length === 0 && canEdit ? (
         <div className="quick-add-item quick-add-empty">
-          <QuickAddTask
+          <AddTaskRow
             dayLabel={view === "by-day" ? t("noDueDateGroup") : undefined}
             dueOn={null}
             eventId={eventId}
-            onDetails={(displayName, dueOn, sectionId) =>
-              setAdding({ displayName, dueOn, sectionId })
-            }
-            slots={quickAdd}
+            onMore={setAdding}
+            onRefresh={refresh}
+            slots={composer}
           />
         </div>
       ) : null}
       {filteredTasks.length === 0 ? null : (
         <TaskListView
           canEdit={canEdit}
+          composer={composer}
           eventId={eventId}
           labelNames={labels.data?.names}
           manual={sort === "manual"}
-          onAddDetails={(displayName, dueOn, sectionId) =>
-            setAdding({ displayName, dueOn, sectionId })
-          }
+          onAddDetails={setAdding}
           onAddSubtask={addSubtask}
-          onEdit={setEditingId}
+          onEdit={(id, start) => setEditing({ id, start })}
           onRefresh={refresh}
           parents={tree.parents}
           period={period}
           personNames={persons.data?.names}
           progress={tree.progress}
-          quickAdd={quickAdd}
           sections={sections}
           tasks={filteredTasks}
           view={view}
         />
       )}
-      {canEdit && editingId ? (
+      {canEdit && editing !== null ? (
         <TaskInspector
-          key={editingId}
+          key={editing.id}
           eventId={eventId}
+          onClose={() => setEditing(null)}
           sections={sections}
-          taskId={editingId}
-          onClose={() => setEditingId(null)}
+          start={editing.start}
+          taskId={editing.id}
         />
       ) : null}
     </section>

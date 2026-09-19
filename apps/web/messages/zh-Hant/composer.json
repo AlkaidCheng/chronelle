@@ -1,0 +1,18 @@
+{
+  "taskName": "任務名稱",
+  "newTask": "新任務",
+  "addTask": "新增任務",
+  "save": "儲存",
+  "more": "更多",
+  "moreLabel": "更多：時長、子任務、歷史",
+  "keys": "Enter 儲存，Esc 取消",
+  "due": "截止",
+  "assignee": "負責人",
+  "labels": "標籤",
+  "location": "地點",
+  "locationPlaceholder": "在哪裡進行",
+  "clear": "清除{field}",
+  "saved": "已儲存。",
+  "added": "已新增。",
+  "unsaved": "此列有未儲存的修改，要放棄嗎？"
+}

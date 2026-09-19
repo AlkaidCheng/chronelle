@@ -1,0 +1,117 @@
+"use client";
+
+import type { SectionResponse } from "@chronelle/schemas";
+import { useTranslations } from "next-intl";
+
+import { PlusIcon } from "../../components/icons";
+import { addComposerKey, type ComposerSlots } from "../../lib/composer-slots";
+import type { DayKey } from "../../lib/day-placement";
+import { eventCreationDraftKeys } from "../../lib/editor-draft-store";
+import type { TaskFields } from "../../lib/task-fields";
+import { standaloneTaskDraftId, TaskComposer } from "./task-composer";
+
+// The row that adds a task with no due date is one slot in every view, so
+// the composer under an empty by-day view carries over to the No due date
+// group.
+const undatedSlot = "undated";
+
+/** The slot of an add row: the list, a day group, or a section. */
+export const addTaskSlot = (
+  dueOn: DayKey | null,
+  sectionId: string | null = null,
+) =>
+  sectionId !== null
+    ? `section:${sectionId}`
+    : dueOn === null
+      ? undatedSlot
+      : `day:${dueOn}`;
+
+/**
+ * The draft key of an add row's composer: the one the Event's task dialog
+ * uses, so a composer left behind and the dialog find the same draft; a
+ * day group's or a section's row keeps its own.
+ */
+export function addTaskDraftId(
+  eventId: string | undefined,
+  dueOn: DayKey | null,
+  sectionId: string | null = null,
+): string {
+  const base =
+    eventId === undefined
+      ? standaloneTaskDraftId
+      : eventCreationDraftKeys(eventId).task;
+  if (sectionId !== null) return `${base}:section:${sectionId}`;
+  return dueOn === null ? base : `${base}:${dueOn}`;
+}
+
+/**
+ * The last row of a task list, of one of its day groups, or of a section:
+ * a quiet "Add task" line that opens the composer, empty, with the name
+ * focused. A task added under a day is due on that day; one added under a
+ * section starts in it; one added to the list has neither. The task goes
+ * through the same creation request as the dialog's, inside the Event
+ * when the list belongs to one.
+ */
+export function AddTaskRow({
+  dayLabel,
+  dueOn,
+  eventId,
+  now,
+  onMore,
+  onRefresh,
+  section = null,
+  sections,
+  slots,
+}: {
+  /** The day group's heading, named in the row's accessible name. */
+  readonly dayLabel?: string | undefined;
+  readonly dueOn: DayKey | null;
+  readonly eventId?: string | undefined;
+  /** Today, for tests. */
+  readonly now?: Date | undefined;
+  /** Opens the full editor for a new task with the composer's fields. */
+  readonly onMore: (fields: TaskFields) => void;
+  readonly onRefresh: () => Promise<unknown>;
+  /** The section of the Event's To-dos the row adds to; null for none. */
+  readonly section?: SectionResponse | null | undefined;
+  /** The sections of the Event's To-dos, when the list has them. */
+  readonly sections?: readonly SectionResponse[] | undefined;
+  readonly slots: ComposerSlots;
+}) {
+  const t = useTranslations("quickAdd");
+  const sectionId = section?.id ?? null;
+  const slotKey = addComposerKey(addTaskSlot(dueOn, sectionId));
+  if (slots.open === slotKey)
+    return (
+      <TaskComposer
+        draftId={addTaskDraftId(eventId, dueOn, sectionId)}
+        dueOn={dueOn}
+        eventId={eventId}
+        onMore={onMore}
+        onRefresh={onRefresh}
+        sectionId={sections === undefined ? undefined : sectionId}
+        slotKey={slotKey}
+        slots={slots}
+        {...(now === undefined ? {} : { now })}
+      />
+    );
+  return (
+    <button
+      aria-label={
+        section !== null
+          ? t("taskToSection", { section: section.name })
+          : dayLabel === undefined
+            ? t("taskToList")
+            : dueOn === null
+              ? t("taskWith", { day: dayLabel })
+              : t("taskFor", { day: dayLabel })
+      }
+      className="quick-add"
+      onClick={() => slots.request(slotKey)}
+      type="button"
+    >
+      <PlusIcon />
+      <span>{t("addTask")}</span>
+    </button>
+  );
+}

@@ -17,14 +17,20 @@ import {
 } from "@tanstack/react-table";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
-import { type ReactNode, useCallback, useMemo, useState } from "react";
+import {
+  type ReactNode,
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 
 import { DragCard } from "../../components/drag-card";
 import { ErrorNotice } from "../../components/feedback";
 import { CalendarIcon, CheckIcon, SubtaskIcon } from "../../components/icons";
-import type { QuickAddSlots } from "../../components/quick-add-row";
 import { RowMenu, type RowMenuEntry } from "../../components/row-menu";
 import { tr } from "../../i18n/active-locale";
+import { type ComposerSlots, rowComposerKey } from "../../lib/composer-slots";
 import {
   rankAtIndex,
   rankBetweenRows,
@@ -42,10 +48,12 @@ import {
   describeRepeatShort,
   dueShortcuts,
 } from "../../lib/due-choices";
+import { useEditorDraftStore } from "../../lib/editor-draft-context";
 import { formatTime } from "../../lib/format";
 import { useDuplicateTask, useUpdateTask } from "../../lib/queries";
 import { formatCalendarDate } from "../../lib/event-schedule";
 import { dueOnDay, formatTaskTime } from "../../lib/task-due";
+import type { TaskFields } from "../../lib/task-fields";
 import { groupBySection } from "../../lib/section-groups";
 import { groupTasksByDay } from "../../lib/task-groups";
 import { nestTasks } from "../../lib/task-tree";
@@ -62,7 +70,8 @@ import {
   SectionTitle,
 } from "../sections/section-parts";
 import { useSectionEditing } from "../sections/use-sections";
-import { QuickAddTask } from "./quick-add-task";
+import { AddTaskRow } from "./add-task-row";
+import { TaskComposer } from "./task-composer";
 
 const taskColumn = createColumnHelper<TaskResponse>();
 
@@ -104,6 +113,8 @@ interface TaskTableMeta {
     showDate: boolean,
     nested: boolean,
   ) => ReactNode;
+  /** Opens the row in place, when the rows may be edited. */
+  readonly press: ((task: TaskResponse) => void) | undefined;
   /** The assignee and the labels, at the row's right. */
   readonly aside: (task: TaskResponse) => ReactNode;
   readonly present: ReadonlySet<string>;
@@ -116,6 +127,28 @@ interface TaskTableMeta {
 
 function tableMeta(table: Table<TaskResponse>): TaskTableMeta {
   return table.options.meta as TaskTableMeta;
+}
+
+/**
+ * A row's name and meta line as one button, "Edit <name>", that opens the
+ * row in place; the copy alone where the rows cannot be edited.
+ */
+function pressable(
+  task: TaskResponse,
+  copy: ReactNode,
+  press: ((task: TaskResponse) => void) | undefined,
+): ReactNode {
+  if (press === undefined) return copy;
+  return (
+    <button
+      aria-label={tr("rows")("edit", { name: task.displayName })}
+      className="row-press"
+      onClick={() => press(task)}
+      type="button"
+    >
+      {copy}
+    </button>
+  );
 }
 
 const taskColumns = [
@@ -131,13 +164,13 @@ const taskColumns = [
   taskColumn.accessor("displayName", {
     header: () => tr("taskRow.columns")("task"),
     cell: ({ row, table }) => {
-      const { copy, present } = tableMeta(table);
+      const { copy, present, press } = tableMeta(table);
       const nested =
         row.original.parentTaskId !== null &&
         present.has(row.original.parentTaskId);
       return (
         <div className={`resource-copy${nested ? " task-nested" : ""}`}>
-          {copy(row.original, true, nested)}
+          {pressable(row.original, copy(row.original, true, nested), press)}
         </div>
       );
     },
@@ -160,15 +193,20 @@ const taskColumns = [
  * The tasks of one container as a table (list) or grouped by due day, with
  * the same completion check and row menu in both. The container decides
  * which tasks arrive and, when it is an Event, names it so row actions
- * keep their context. Under manual order a row can be dragged to another
- * place or day, or moved a step from its menu.
+ * keep their context. Pressing a row's name opens it in place as the
+ * composer; the add row at the end of the list, of a day group, or of a
+ * section opens the composer empty. Under manual order a row can be
+ * dragged to another place, day, or section, or moved a step from its
+ * menu.
  */
 export function TaskListView({
   canEdit,
+  composer,
   contexts,
   eventId,
   labelNames,
   manual = false,
+  now,
   onAddSubtask,
   personNames,
   onEdit,
@@ -177,12 +215,13 @@ export function TaskListView({
   period,
   progress,
   onAddDetails,
-  quickAdd,
   sections,
   tasks,
   view,
 }: {
   readonly canEdit: boolean;
+  /** Which composer is open, owned by the container. */
+  readonly composer: ComposerSlots;
   /** The Event each task belongs to, by task ID, when the container spans Events. */
   readonly contexts?: Readonly<Record<string, TaskContext>> | undefined;
   readonly eventId?: string | undefined;
@@ -190,11 +229,14 @@ export function TaskListView({
   readonly labelNames?: ReadonlyMap<string, string> | undefined;
   /** The tasks arrive in manual order, so they may be reordered. */
   readonly manual?: boolean | undefined;
+  /** Today, for tests. */
+  readonly now?: Date | undefined;
   /** People's names by id; an assignee the container has not loaded shows nothing. */
   readonly personNames?: ReadonlyMap<string, string> | undefined;
   /** Offers a subtask under a task that has no parent of its own. */
   readonly onAddSubtask?: ((task: TaskResponse) => void) | undefined;
-  readonly onEdit: (taskId: string) => void;
+  /** Opens the full editor for a task with the fields its composer holds. */
+  readonly onEdit: (taskId: string, fields: TaskFields) => void;
   /** Reloads the container after a failed change. */
   readonly onRefresh: () => Promise<unknown>;
   /** The parent of each subtask, by subtask ID. */
@@ -203,16 +245,8 @@ export function TaskListView({
   readonly period: Period;
   /** Subtask progress of each parent, by parent ID. */
   readonly progress: Readonly<Record<string, TaskProgress>>;
-  /** Opens the full editor for a new task with what a quick add row typed, its day, and its section. */
-  readonly onAddDetails?:
-    | ((
-        displayName: string,
-        dueOn: DayKey | null,
-        sectionId: string | null,
-      ) => void)
-    | undefined;
-  /** The state of the quick add rows, owned by the container. */
-  readonly quickAdd: QuickAddSlots;
+  /** Opens the full editor for a new task with the fields an add row's composer holds. */
+  readonly onAddDetails: (fields: TaskFields) => void;
   /** The sections of the Event's To-dos; the list layout groups by them. */
   readonly sections?: readonly SectionResponse[] | undefined;
   readonly tasks: readonly TaskResponse[];
@@ -230,7 +264,45 @@ export function TaskListView({
   const todos = useTranslations("todos");
   const openHistory = useOpenHistory();
   const openLifecycle = useOpenLifecycle();
+  const composerT = useTranslations("composer");
+  const store = useEditorDraftStore();
   const today = dayKeyOf(new Date());
+  /** Opens a row in place as the composer. */
+  const press = useMemo(
+    () =>
+      canEdit
+        ? (task: TaskResponse) => composer.request(rowComposerKey(task.id))
+        : undefined,
+    [canEdit, composer],
+  );
+  // A row left open in this tab, its draft kept, opens again when the
+  // list comes back; a row that left the list closes its composer, so a
+  // row that cannot be shown never holds the question.
+  const openRow =
+    composer.open?.startsWith("task:") === true
+      ? composer.open.slice("task:".length)
+      : null;
+  const openRowShown =
+    openRow !== null && tasks.some((task) => task.id === openRow);
+  const { request: requestComposer, close: closeComposer } = composer;
+  useEffect(() => {
+    if (openRow !== null && !openRowShown) {
+      closeComposer(rowComposerKey(openRow));
+      return;
+    }
+    if (composer.open !== null || !canEdit) return;
+    const left = tasks.find((task) => store.get(task.id) !== undefined);
+    if (left !== undefined) requestComposer(rowComposerKey(left.id));
+  }, [
+    canEdit,
+    closeComposer,
+    composer.open,
+    openRow,
+    openRowShown,
+    requestComposer,
+    store,
+    tasks,
+  ]);
   /** The name, then one meta line: when it is due (late, today), how far along, how it repeats, where, whose part it is. */
   const copy = useCallback(
     (task: TaskResponse, showDate: boolean, nested: boolean) => {
@@ -600,7 +672,7 @@ export function TaskListView({
           {
             kind: "action",
             label: t("menu.edit"),
-            onSelect: () => onEdit(task.id),
+            onSelect: () => composer.request(rowComposerKey(task.id)),
           },
           {
             kind: "action",
@@ -751,12 +823,12 @@ export function TaskListView({
     [
       canEdit,
       change,
+      composer,
       contexts,
       duplicateTask,
       eventId,
       moveToDay,
       onAddSubtask,
-      onEdit,
       openHistory,
       openLifecycle,
       reorder,
@@ -764,8 +836,8 @@ export function TaskListView({
     ],
   );
   const meta = useMemo<TaskTableMeta>(
-    () => ({ aside, check, copy, grip, menu, ordered, present }),
-    [aside, check, copy, grip, menu, ordered, present],
+    () => ({ aside, check, copy, grip, menu, ordered, present, press }),
+    [aside, check, copy, grip, menu, ordered, present, press],
   );
   const table = useReactTable({
     columns: taskColumns,
@@ -816,29 +888,76 @@ export function TaskListView({
       <DragCard drag={drag}>{card()}</DragCard>
     </>
   );
+  /** The composer a pressed row becomes, editing that task in place. */
+  const composerFor = (task: TaskResponse) => (
+    <TaskComposer
+      draftId={task.id}
+      eventId={eventId}
+      onMore={(fields) => onEdit(task.id, fields)}
+      onRefresh={onRefresh}
+      onSaved={() => setAnnouncement(composerT("saved"))}
+      slotKey={rowComposerKey(task.id)}
+      slots={composer}
+      task={task}
+      {...(now === undefined ? {} : { now })}
+    />
+  );
+  /** The add row of the list, of a day group, or of a section, or its open composer. */
+  const addRow = (
+    dueOn: DayKey | null,
+    dayLabel?: string,
+    section: SectionResponse | null = null,
+  ) => (
+    <AddTaskRow
+      dueOn={dueOn}
+      eventId={eventId}
+      onMore={onAddDetails}
+      onRefresh={onRefresh}
+      section={section}
+      sections={sections}
+      slots={composer}
+      {...(dayLabel === undefined ? {} : { dayLabel })}
+      {...(now === undefined ? {} : { now })}
+    />
+  );
   const row = (
     task: TaskResponse,
     showDate: boolean,
     rows: readonly TaskResponse[],
     groupKey: string,
-  ) => (
-    <li
-      className={rowClasses(
-        rowClass(groupKey, task.id),
-        task.status === "done",
-        reorder,
-      )}
-      id={`task-${task.id}`}
-      key={task.id}
-      {...rowProps(task.id)}
-    >
-      {grip(task)}
-      {check(task)}
-      <div className="resource-copy">{copy(task, showDate, false)}</div>
-      {aside(task)}
-      {menu(task, rows)}
-    </li>
-  );
+    mode: RowMode = "full",
+  ) => {
+    if (mode === "full" && composer.open === rowComposerKey(task.id))
+      return (
+        <li className="composer-row" id={`task-${task.id}`} key={task.id}>
+          {composerFor(task)}
+        </li>
+      );
+    return (
+      <li
+        className={rowClasses(
+          rowClass(groupKey, task.id),
+          task.status === "done",
+          reorder,
+        )}
+        id={`task-${task.id}`}
+        key={task.id}
+        {...rowProps(task.id)}
+      >
+        {grip(task)}
+        {check(task)}
+        <div className="resource-copy">
+          {pressable(
+            task,
+            copy(task, showDate, false),
+            mode === "full" ? press : undefined,
+          )}
+        </div>
+        {aside(task)}
+        {menu(task, rows)}
+      </li>
+    );
+  };
   /** The gap a lifted row will fill, among a list's rows. */
   const listGap = (height: number, key: string) => (
     <li aria-hidden="true" className="row-gap" key={key} style={{ height }} />
@@ -865,7 +984,9 @@ export function TaskListView({
         placed={placed}
         renderList={(items, mode) => (
           <ul className={resourceListClass(mode)}>
-            {items.map((task) => row(task, mode === "full", items, listGroup))}
+            {items.map((task) =>
+              row(task, mode === "full", items, listGroup, mode),
+            )}
           </ul>
         )}
         undated={undated}
@@ -897,17 +1018,12 @@ export function TaskListView({
             </ul>
             {canEdit && group.tone !== "overdue" ? (
               <div className="quick-add-item">
-                <QuickAddTask
-                  dayLabel={
-                    group.key === "undated"
-                      ? todos("noDueDateGroup")
-                      : group.label[0]
-                  }
-                  dueOn={group.key === "undated" ? null : group.key}
-                  eventId={eventId}
-                  onDetails={onAddDetails}
-                  slots={quickAdd}
-                />
+                {addRow(
+                  group.key === "undated" ? null : group.key,
+                  group.key === "undated"
+                    ? todos("noDueDateGroup")
+                    : group.label[0],
+                )}
               </div>
             ) : null}
           </section>
@@ -936,6 +1052,12 @@ export function TaskListView({
   const tableRow = (task: TaskResponse, groupKey: string) => {
     const found = tableRows[task.id];
     if (found === undefined) return null;
+    if (composer.open === rowComposerKey(task.id))
+      return (
+        <tr className="composer-row" id={`task-${task.id}`} key={task.id}>
+          <td colSpan={taskColumns.length}>{composerFor(task)}</td>
+        </tr>
+      );
     return (
       <tr
         className={rowClasses(
@@ -985,14 +1107,7 @@ export function TaskListView({
           </tbody>
         </table>
         {canEdit ? (
-          <div className="quick-add-item quick-add-table">
-            <QuickAddTask
-              dueOn={null}
-              eventId={eventId}
-              onDetails={onAddDetails}
-              slots={quickAdd}
-            />
-          </div>
+          <div className="quick-add-item quick-add-table">{addRow(null)}</div>
         ) : null}
       </div>
     );
@@ -1001,19 +1116,12 @@ export function TaskListView({
   // its rows, its own add row, and an Add section line after it; the
   // first Add section line follows the loose tasks.
   const { editing } = sectionEditing;
-  const addRow = (section: SectionResponse | null) =>
+  const sectionAddRow = (section: SectionResponse | null) =>
     canEdit ? (
       <tr>
         <td className="table-add-cell" colSpan={columns}>
           <div className="quick-add-item">
-            <QuickAddTask
-              dueOn={null}
-              eventId={eventId}
-              onDetails={onAddDetails}
-              sectionId={section?.id ?? null}
-              sectionName={section?.name}
-              slots={quickAdd}
-            />
+            {addRow(null, undefined, section)}
           </div>
         </td>
       </tr>
@@ -1067,7 +1175,7 @@ export function TaskListView({
             (task) => tableRow(task, ""),
             tableGap,
           )}
-          {addRow(null)}
+          {sectionAddRow(null)}
           {addSection(null)}
         </tbody>
         {rowsWithGap(
@@ -1138,7 +1246,7 @@ export function TaskListView({
                   (task) => tableRow(task, section.id),
                   tableGap,
                 )}
-                {addRow(section)}
+                {sectionAddRow(section)}
                 {addSection(section.id)}
               </tbody>
             );
