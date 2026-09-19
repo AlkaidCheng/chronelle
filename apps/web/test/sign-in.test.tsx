@@ -78,22 +78,27 @@ it("enables the password sign-in only after hydration and submits the credential
     expect(
       view.getByRole("link", { name: "Forgot password?" }),
     ).toHaveAttribute("href", "/reset-password");
-    // The language and theme menus sit in the footer under the card.
-    const theme = view.getByRole("combobox", { name: "Theme" });
-    expect(theme).toHaveValue("system");
-    const language = view.getByRole("combobox", { name: "Language" });
-    expect(language).toHaveValue("system");
+    // The language and theme menus sit in the footer under the card, each
+    // a chip naming its choice that opens the choices as a menu.
+    const user = userEvent.setup();
+    expect(view.getByRole("button", { name: "Theme: System" })).toHaveAttribute(
+      "aria-haspopup",
+      "menu",
+    );
+    await user.click(view.getByRole("button", { name: "Language: System" }));
+    const language = view.getByRole("menu", { name: "Language" });
     expect(
       within(language)
-        .getAllByRole("option")
-        .map((option) => option.textContent),
+        .getAllByRole("menuitemradio")
+        .map((item) => [item.textContent, item.getAttribute("aria-checked")]),
     ).toEqual([
-      "System",
-      "English",
-      "\u7b80\u4f53\u4e2d\u6587",
-      "\u7e41\u9ad4\u4e2d\u6587",
+      ["System", "true"],
+      ["English", "false"],
+      ["\u7b80\u4f53\u4e2d\u6587", "false"],
+      ["\u7e41\u9ad4\u4e2d\u6587", "false"],
     ]);
-    const user = userEvent.setup();
+    await user.keyboard("{Escape}");
+    expect(view.queryByRole("menu", { name: "Language" })).toBeNull();
     await user.type(
       view.getByLabelText("Username or email address"),
       "planner",

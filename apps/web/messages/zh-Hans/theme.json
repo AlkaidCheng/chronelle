@@ -12,6 +12,8 @@
   "motion": "动效",
   "reduced": "减弱",
   "language": "语言",
+  "languageMenu": "语言：{language}",
+  "themeMenu": "主题：{theme}",
   "reset": "重置显示设置",
   "customize": "自定义",
   "done": "完成",

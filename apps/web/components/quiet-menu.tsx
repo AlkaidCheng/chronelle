@@ -139,13 +139,16 @@ export function focusFirstMenuItem(menu: HTMLElement | null) {
 }
 
 /**
- * A quiet icon control that opens a small menu beneath it. Arrow keys move
- * between items, Escape or a press outside closes it, and focus returns to
- * the control. `checked` on an item renders a radio-style entry.
+ * A quiet control that opens a small menu beneath it: an icon control, or
+ * with `text` a chip that shows the icon and that text (the current choice,
+ * for a menu that picks one). Arrow keys move between items, Escape or a
+ * press outside closes it, and focus returns to the control. `checked` on
+ * an item renders a radio-style entry.
  */
 export function QuietMenu({
   label,
   icon,
+  text,
   children,
   align = "end",
   active = false,
@@ -154,6 +157,7 @@ export function QuietMenu({
 }: {
   readonly label: string;
   readonly icon: ReactNode;
+  readonly text?: string | undefined;
   readonly children: ReactNode;
   readonly align?: "start" | "end";
   readonly active?: boolean;
@@ -187,18 +191,34 @@ export function QuietMenu({
 
   return (
     <div className={`quiet-menu ${className}`.trim()} ref={root}>
-      <IconButton
-        ref={trigger}
-        label={label}
-        aria-haspopup="menu"
-        aria-expanded={open}
-        aria-controls={`${id}-menu`}
-        data-active={active || undefined}
-        data-value={value}
-        onClick={() => setOpen((current) => !current)}
-      >
-        {icon}
-      </IconButton>
+      {text === undefined ? (
+        <IconButton
+          ref={trigger}
+          label={label}
+          aria-haspopup="menu"
+          aria-expanded={open}
+          aria-controls={`${id}-menu`}
+          data-active={active || undefined}
+          data-value={value}
+          onClick={() => setOpen((current) => !current)}
+        >
+          {icon}
+        </IconButton>
+      ) : (
+        <button
+          ref={trigger}
+          type="button"
+          className="quiet-menu-chip"
+          aria-haspopup="menu"
+          aria-expanded={open}
+          aria-controls={`${id}-menu`}
+          data-value={value}
+          onClick={() => setOpen((current) => !current)}
+        >
+          {icon}
+          <span>{text}</span>
+        </button>
+      )}
       {open ? (
         <CloseContext.Provider value={close}>
           <div

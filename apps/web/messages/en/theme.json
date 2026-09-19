@@ -12,6 +12,8 @@
   "motion": "Motion",
   "reduced": "Reduced",
   "language": "Language",
+  "languageMenu": "Language: {language}",
+  "themeMenu": "Theme: {theme}",
   "reset": "Reset display settings",
   "customize": "Customize",
   "done": "Done",

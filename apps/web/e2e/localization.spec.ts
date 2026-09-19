@@ -302,10 +302,13 @@ test("renders the first paint in the browser's language and keeps a chosen one @
       }),
     ).toBeVisible();
     // A chosen language wins over the browser's on the next request too;
-    // outside a session the compact menu at the bottom holds the choice.
+    // outside a session the chip at the bottom opens the choice as a menu.
     await page
-      .getByRole("combobox", { name: hant.group, exact: true })
-      .selectOption("en");
+      .getByRole("button", { name: new RegExp(`^${hant.group}\uff1a`, "u") })
+      .click();
+    await page
+      .getByRole("menuitemradio", { name: "English", exact: true })
+      .click();
     await expect(page.locator("html")).toHaveAttribute("lang", "en");
     await page.reload();
     await expect(page.locator("html")).toHaveAttribute("lang", "en");

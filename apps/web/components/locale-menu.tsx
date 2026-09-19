@@ -1,54 +1,44 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { useId } from "react";
 
-import {
-  isLocale,
-  type LocaleChoice,
-  useLocaleChoice,
-} from "../i18n/locale-preference";
+import { useLocaleChoice } from "../i18n/locale-preference";
 import { locales } from "../i18n/locales";
 import { GlobeIcon } from "./icons";
+import { MenuItem, QuietMenu } from "./quiet-menu";
 
 /**
- * A compact language menu for the screens outside a session: a globe, the
- * word Language (visible when asked, for a footer beside another menu), and
- * a select with System and each language in itself. Settings holds the
- * full control once signed in.
+ * The language menu of the screens outside a session: a chip that reads
+ * "Language: English" and opens System and each language in itself.
+ * Settings holds the full control once signed in.
  */
-export function LocaleMenu({
-  labelled = false,
-}: {
-  readonly labelled?: boolean | undefined;
-}) {
-  const id = useId();
+export function LocaleMenu() {
   const t = useTranslations("theme");
   const { choice, setChoice } = useLocaleChoice();
+  const current =
+    locales.find((locale) => locale.tag === choice)?.native ?? t("system");
   return (
-    <div className="locale-menu">
-      <GlobeIcon className="locale-menu-icon" />
-      <label
-        className={labelled ? "locale-menu-label" : "visually-hidden"}
-        htmlFor={id}
+    <QuietMenu
+      align="start"
+      icon={<GlobeIcon className="quiet-menu-chip-icon" />}
+      label={t("language")}
+      text={t("languageMenu", { language: current })}
+    >
+      <MenuItem
+        checked={choice === "system"}
+        onSelect={() => setChoice("system")}
       >
-        {t("language")}
-      </label>
-      <select
-        id={id}
-        value={choice}
-        onChange={(event) => {
-          const next = event.target.value;
-          setChoice(isLocale(next) ? next : ("system" satisfies LocaleChoice));
-        }}
-      >
-        <option value="system">{t("system")}</option>
-        {locales.map((locale) => (
-          <option key={locale.tag} lang={locale.tag} value={locale.tag}>
-            {locale.native}
-          </option>
-        ))}
-      </select>
-    </div>
+        {t("system")}
+      </MenuItem>
+      {locales.map((locale) => (
+        <MenuItem
+          key={locale.tag}
+          checked={choice === locale.tag}
+          onSelect={() => setChoice(locale.tag)}
+        >
+          <span lang={locale.tag}>{locale.native}</span>
+        </MenuItem>
+      ))}
+    </QuietMenu>
   );
 }
