@@ -1180,7 +1180,7 @@ h3 {
 .field select,
 .compact-field input,
 .compact-field select {
-  background: var(--surface);
+  background: var(--field-surface, var(--surface));
   border: 1px solid var(--line-strong);
   border-radius: 9px;
   color: var(--ink);
@@ -1238,7 +1238,9 @@ h3 {
   font-size: 1.25rem;
 }
 
+/* The card's fields take the canvas colour, set off from the card's surface. */
 .account-card {
+  --field-surface: var(--canvas);
   background: var(--surface);
   border: 1px solid var(--line);
   border-radius: 12px;
@@ -1264,14 +1266,14 @@ h3 {
 }
 
 .account-intro {
-  font-size: 0.95rem;
+  font-size: 0.875rem;
   margin-top: -6px;
   overflow-wrap: anywhere;
 }
 
 .account-fine,
 .account-hint {
-  font-size: 0.82rem;
+  font-size: 0.78rem;
 }
 
 .account-fine {
@@ -1286,7 +1288,7 @@ h3 {
 
 .account-field-hint {
   color: var(--muted);
-  font-size: 0.82rem;
+  font-size: 0.78rem;
   line-height: 1.45;
   margin: 0;
 }
@@ -1350,6 +1352,8 @@ h3 {
   border: 1px solid var(--line);
   border-radius: 12px;
   color: var(--muted);
+  font-size: 0.875rem;
+  line-height: 1.45;
   margin: 0;
   padding: 14px 24px;
   text-align: center;
@@ -1370,6 +1374,7 @@ h3 {
   align-items: center;
   color: var(--faint);
   display: flex;
+  font-size: 0.78rem;
   gap: 6px;
   margin-top: 6px;
 }
