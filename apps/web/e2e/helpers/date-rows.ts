@@ -129,8 +129,19 @@ export async function setMoment(
   await closeDatePanel(editor);
 }
 
-/** Expects a moment's row to read the day and time, as "Jul 3, 2030, 11:30 AM". */
-export async function expectMoment(editor: Locator, row: RegExp, text: string) {
-  const escaped = text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  await expect(dateRow(editor, row)).toHaveText(new RegExp(`: ${escaped}$`));
+/**
+ * Expects a moment's row to read the day and time. The row uses the
+ * locale's date-time format, whose separator differs between engines
+ * ("Jul 3, 2030, 11:30 AM" or "Jul 3, 2030 at 11:30 AM").
+ */
+export async function expectMoment(
+  editor: Locator,
+  row: RegExp,
+  day: string,
+  time: string,
+) {
+  const literal = (text: string) => text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  await expect(dateRow(editor, row)).toHaveText(
+    new RegExp(`: ${literal(day)}(,| at) ${literal(time)}$`),
+  );
 }

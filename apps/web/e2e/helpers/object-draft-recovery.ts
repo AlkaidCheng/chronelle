@@ -108,7 +108,8 @@ export async function exerciseObjectRecovery(
     await expectMoment(
       page.getByRole("dialog"),
       timeRow,
-      "Jul 3, 2030, 11:30 AM",
+      "Jul 3, 2030",
+      "11:30 AM",
     );
   if (kind === "expense") {
     await expect(page.getByLabel("Amount", { exact: true })).toHaveValue(
