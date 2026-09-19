@@ -382,6 +382,7 @@ export function EventWorkspace({ eventId }: { readonly eventId: string }) {
         activeView={shownTab}
         onSelectView={setActiveTab}
         onAddView={() => setTabsDialog("gallery")}
+        onManageTabs={() => setTabsDialog("manage")}
       />
       {shownTab === "pages" ? (
         <EventPages

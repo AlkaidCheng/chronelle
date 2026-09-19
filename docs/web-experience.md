@@ -609,8 +609,10 @@ not yet reviewed the two Chinese catalogs; wording may change.
   the strip, at the end, or takes it off the event again; the dialog stays
   open. To-dos and Sharing are always on. Taking a view off changes no
   records; it comes back with everything in it.
-- Manage tabs (the event's More menu) lists the pages and the views in two
-  lists, each capped in height and scrolling. A row drags to reorder, or its
+- Manage tabs (the event's More menu; on a touch screen, a tab or the fold
+  chip held for half a second, a lift before that being the tap and a move
+  the scroll) lists the pages and the views in two lists, each capped in
+  height and scrolling. A row drags to reorder, or its
   grip moves it with the arrow keys; the eye hides a tab but keeps it listed;
   the cross takes a view off the event. Overview, To-dos, Sharing and Removed
   links can be hidden but not removed; pages are removed through their own

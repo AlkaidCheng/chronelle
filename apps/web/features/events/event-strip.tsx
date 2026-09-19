@@ -18,6 +18,7 @@ import { MenuItem, QuietMenu } from "../../components/quiet-menu";
 import type { EventView } from "../../lib/event-views";
 import { canInsertComponent } from "../../lib/keyboard";
 import { useComponentShortcut } from "../../lib/use-component-shortcut";
+import { useLongPress } from "../../lib/use-long-press";
 import type { PageDrop } from "./use-event-pages";
 
 /**
@@ -26,6 +27,7 @@ import type { PageDrop } from "./use-event-pages";
  * plus that opens the gallery. The strip never wraps: the tabs that do not
  * fit fold into one chip at the end that lists them; the current tab never
  * folds. Page buttons navigate; the views are tabs with arrow-key movement.
+ * On a touch screen, holding a tab or the chip opens Manage tabs.
  */
 export function EventStrip({
   pages,
@@ -42,6 +44,7 @@ export function EventStrip({
   activeView,
   onSelectView,
   onAddView,
+  onManageTabs,
 }: {
   readonly pages: readonly EventPage[];
   readonly selectedPageId: string | undefined;
@@ -59,6 +62,8 @@ export function EventStrip({
   readonly onSelectView: (view: EventView) => void;
   /** Opens the gallery; absent when the account cannot arrange the strip. */
   readonly onAddView?: (() => void) | undefined;
+  /** Opens Manage tabs, from a touch held on a tab or the fold chip. */
+  readonly onManageTabs?: (() => void) | undefined;
 }) {
   const t = useTranslations("event");
   const strip = useRef<HTMLDivElement>(null);
@@ -71,6 +76,17 @@ export function EventStrip({
       ? null
       : `page:${selectedPageId}`
     : `view:${activeView}`;
+  // The held tab or chip takes focus first, so the dialog returns to it.
+  const longPress = useLongPress(
+    (target) =>
+      target.closest<HTMLButtonElement>(
+        '[data-tab-key], [data-strip-chip] [aria-haspopup="menu"]',
+      ),
+    (element) => {
+      element.focus();
+      onManageTabs?.();
+    },
+  );
 
   function dropProps(pageId: string) {
     const allowed = () => pageDrop?.current?.allowed(pageId) ?? false;
@@ -177,7 +193,11 @@ export function EventStrip({
   const foldedCount = foldedPages.length + foldedViews.length;
 
   return (
-    <div className="event-strip" ref={strip}>
+    <div
+      className="event-strip"
+      ref={strip}
+      {...(onManageTabs ? longPress : {})}
+    >
       {pages.length > 0 || canAddPage ? (
         <nav
           aria-label={t("pagesLabel")}
