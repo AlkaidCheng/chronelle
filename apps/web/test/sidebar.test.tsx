@@ -13,6 +13,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { Providers } from "../app/providers";
 import { WorkspaceShell } from "../components/workspace-shell";
+import {
+  displayBootstrap,
+  displayStorageKey,
+} from "../lib/display-preferences";
 import { SandboxStore, sandboxWorkspaceId } from "../sandbox/store";
 import { installPointerEvents } from "./row-menu-support";
 
@@ -64,15 +68,14 @@ afterEach(() => {
   vi.restoreAllMocks();
   vi.unstubAllGlobals();
   window.sessionStorage.clear();
+  delete document.documentElement.dataset.sidebar;
 });
 
-/** Renders the shell and waits for the session to open the rail. */
-async function renderShell() {
+/** Renders the shell around a page and waits for the session to open the rail. */
+async function renderShell(page = <p>Page</p>) {
   render(
     <Providers>
-      <WorkspaceShell>
-        <p>Page</p>
-      </WorkspaceShell>
+      <WorkspaceShell>{page}</WorkspaceShell>
     </Providers>,
   );
   await screen.findByRole("navigation", { name: "Workspace navigation" });
@@ -248,5 +251,102 @@ describe("the rail", () => {
     await waitFor(() => expect(saved).toContain('"hidden":[]'));
     await user.click(screen.getByRole("button", { name: "Done" }));
     expect(collectionNames()).toEqual(["Events", "Tasks", "People"]);
+  });
+});
+
+describe("the sidebar toggle", () => {
+  const sidebarKey = displayStorageKey("sidebar");
+  const collapseControl = () =>
+    screen.getByRole("button", { name: "Collapse sidebar" });
+  const expandControl = () =>
+    screen.getByRole("button", { name: "Expand sidebar" });
+  const expandControlIfShown = () =>
+    screen.queryByRole("button", { name: "Expand sidebar" });
+  const aside = () => document.querySelector("aside.sidebar");
+  /** A window wide enough for the sidebar, or a phone with its bar. */
+  const windowWidth = (wide: boolean) =>
+    vi.stubGlobal(
+      "matchMedia",
+      vi.fn((query: string) => ({
+        matches: wide && query === "(min-width: 761px)",
+        media: query,
+        addEventListener: () => {},
+        removeEventListener: () => {},
+      })),
+    );
+
+  it("collapses from the head, hands focus to the edge control, and expands from there", async () => {
+    const user = userEvent.setup();
+    await renderShell();
+    expect(expandControlIfShown()).toBeNull();
+    expect(collapseControl()).toHaveAttribute(
+      "aria-keyshortcuts",
+      "Meta+\\ Control+\\",
+    );
+
+    await user.click(collapseControl());
+    expect(document.documentElement.dataset.sidebar).toBe("collapsed");
+    expect(window.localStorage.getItem(sidebarKey)).toBe("collapsed");
+    expect(aside()).toHaveAttribute("inert");
+    expect(expandControl()).toHaveFocus();
+
+    await user.click(expandControl());
+    expect(document.documentElement.dataset.sidebar).toBe("open");
+    expect(window.localStorage.getItem(sidebarKey)).toBeNull();
+    expect(aside()).not.toHaveAttribute("inert");
+    expect(collapseControl()).toHaveFocus();
+    expect(expandControlIfShown()).toBeNull();
+  });
+
+  it("folds with Cmd/Ctrl+\\ on a wide window, outside text fields", async () => {
+    windowWidth(true);
+    await renderShell(<input aria-label="Page field" />);
+
+    fireEvent.keyDown(document.body, { key: "\\", metaKey: true });
+    expect(document.documentElement.dataset.sidebar).toBe("collapsed");
+    await waitFor(() => expect(expandControl()).toHaveFocus());
+
+    fireEvent.keyDown(document.body, { key: "\\", ctrlKey: true });
+    expect(document.documentElement.dataset.sidebar).toBe("open");
+    await waitFor(() => expect(collapseControl()).toHaveFocus());
+
+    // A backslash typed into a field, with Shift, or bare is not the shortcut.
+    const field = screen.getByRole("textbox", { name: "Page field" });
+    fireEvent.keyDown(field, { key: "\\", metaKey: true });
+    fireEvent.keyDown(document.body, {
+      key: "\\",
+      metaKey: true,
+      shiftKey: true,
+    });
+    fireEvent.keyDown(document.body, { key: "\\" });
+    expect(document.documentElement.dataset.sidebar).toBe("open");
+  });
+
+  it("leaves a phone's bar alone: the shortcut does nothing below the sidebar width", async () => {
+    windowWidth(false);
+    await renderShell();
+    fireEvent.keyDown(document.body, { key: "\\", metaKey: true });
+    expect(document.documentElement.dataset.sidebar).toBe("open");
+    expect(window.localStorage.getItem(sidebarKey)).toBeNull();
+    expect(expandControlIfShown()).toBeNull();
+    expect(aside()).not.toHaveAttribute("inert");
+
+    // A choice made on a wide window does not fold the phone's bar either.
+    cleanup();
+    window.localStorage.setItem(sidebarKey, "collapsed");
+    new Function(displayBootstrap)();
+    await renderShell();
+    expect(expandControlIfShown()).toBeNull();
+    expect(aside()).not.toHaveAttribute("inert");
+  });
+
+  it("remembers a collapsed sidebar on this device from the first paint", async () => {
+    window.localStorage.setItem(sidebarKey, "collapsed");
+    new Function(displayBootstrap)();
+    expect(document.documentElement.dataset.sidebar).toBe("collapsed");
+    await renderShell();
+    expect(expandControl()).toBeVisible();
+    expect(aside()).toHaveAttribute("inert");
+    expect(document.documentElement.dataset.sidebar).toBe("collapsed");
   });
 });

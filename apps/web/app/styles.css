@@ -1432,10 +1432,29 @@ h3 {
   grid-template-columns: 1fr 1fr;
 }
 
+/* A collapsed sidebar keeps its width and slides off the left edge as its
+   column closes, at the same pace, so its right edge stays on the content's
+   in both directions. The root's data-sidebar comes from the bootstrap
+   script before the first paint, so a collapsed sidebar never flashes; the
+   shell marks it inert, which keeps it out of the tab order without a
+   visibility change (one would hold focus off the head control for a frame
+   under reduced motion). */
 .workspace-shell {
   display: grid;
-  grid-template-columns: 232px minmax(0, 1fr);
+  grid-template-columns: var(--sidebar-column, 232px) minmax(0, 1fr);
   min-height: 100vh;
+  transition: grid-template-columns 180ms ease;
+}
+
+@media (min-width: 761px) {
+  .workspace-shell {
+    --sidebar-width: 232px;
+  }
+
+  html[data-sidebar="collapsed"] {
+    --sidebar-column: 0px;
+    --sidebar-shift: -100% 0;
+  }
 }
 
 .sidebar {
@@ -1448,12 +1467,28 @@ h3 {
   padding: 20px 12px 12px;
   position: sticky;
   top: 0;
+  transition: translate 180ms ease;
+  translate: var(--sidebar-shift, none);
+  width: var(--sidebar-width, auto);
+}
+
+.sidebar-head {
+  align-items: center;
+  display: flex;
+  gap: 4px;
+  justify-content: space-between;
+  margin: 0 0 20px;
 }
 
 .sidebar .brand {
   font-size: 1.2rem;
   gap: 10px;
-  margin: 0 8px 20px;
+  margin: 0 8px;
+  min-width: 0;
+}
+
+.sidebar-collapse {
+  flex-shrink: 0;
 }
 
 .sidebar .brand-mark {
@@ -4445,7 +4480,9 @@ ul.resource-list {
     z-index: 20;
   }
 
-  .sidebar > .brand {
+  /* The phone's bar has no brand and nothing to fold. */
+  .sidebar-head,
+  .sidebar-expand {
     display: none;
   }
 
@@ -7031,6 +7068,32 @@ html:has(.event-create-dialog[open]) {
 
 .icon-control[aria-expanded="true"][data-tip]::after {
   opacity: 0;
+}
+
+/* Brings a collapsed sidebar back, at the content's top-left edge; a
+   bordered surface so it reads on any page beneath it. */
+.sidebar-expand {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  left: 12px;
+  position: fixed;
+  top: 12px;
+  z-index: 15;
+}
+
+/* Its tip hangs to the right, off the window's edge otherwise. */
+.sidebar-expand[data-tip]::after {
+  left: 0;
+  transform: none;
+}
+
+/* Where the page's gutter is narrower than the control, the page starts
+   below it rather than beside it. */
+@media (min-width: 761px) and (max-width: 1400px) {
+  html[data-sidebar="collapsed"] .workspace-page,
+  html[data-sidebar="collapsed"] .event-workspace {
+    padding-top: 60px;
+  }
 }
 
 .icon-static {

@@ -37,5 +37,6 @@
   "submitNote": "<kbd>Cmd/Ctrl + Enter</kbd> 可從活動、日程、任務、支出或提醒的欄位中儲存。儲存驗證仍然生效。",
   "buttonsNote": "沒有快速鍵時按鈕仍可使用。這些選擇會在儲存空間可用時儲存在此瀏覽器上。原生文字復原不受影響。",
   "reset": "重設鍵盤快速鍵",
-  "undoShortcut": "<kbd>Cmd/Ctrl + Z</kbd> 在文字欄位之外復原你的上一次編輯，排列時則復原上一次版面變更；<kbd>Shift + Cmd/Ctrl + Z</kbd> 重做。"
+  "undoShortcut": "<kbd>Cmd/Ctrl + Z</kbd> 在文字欄位之外復原你的上一次編輯，排列時則復原上一次版面變更；<kbd>Shift + Cmd/Ctrl + Z</kbd> 重做。",
+  "sidebarShortcut": "在編輯器和對話框之外，<kbd>Cmd/Ctrl + \\</kbd> 在寬視窗上收合或展開側邊欄；此選擇會儲存在本裝置上。"
 }

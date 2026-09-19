@@ -7,6 +7,8 @@
   "searchAndCommands": "Search and commands",
   "workspaceNavigation": "Workspace navigation",
   "skipToContent": "Skip to content",
+  "collapseSidebar": "Collapse sidebar",
+  "expandSidebar": "Expand sidebar",
   "openingWorkspace": "Opening your workspace",
   "collections": "Collections",
   "customize": "Customize sidebar",

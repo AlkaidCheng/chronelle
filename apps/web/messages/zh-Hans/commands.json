@@ -37,5 +37,6 @@
   "submitNote": "<kbd>Cmd/Ctrl + Enter</kbd> 可从活动、日程、任务、支出或提醒的字段中保存。保存校验仍然生效。",
   "buttonsNote": "没有快捷键时按钮仍可使用。这些选择会在存储可用时保存在此浏览器上。原生文本撤销不受影响。",
   "reset": "重置键盘快捷键",
-  "undoShortcut": "<kbd>Cmd/Ctrl + Z</kbd> 在文本框之外撤销你的上一次编辑，排列时则撤销上一次布局更改；<kbd>Shift + Cmd/Ctrl + Z</kbd> 重做。"
+  "undoShortcut": "<kbd>Cmd/Ctrl + Z</kbd> 在文本框之外撤销你的上一次编辑，排列时则撤销上一次布局更改；<kbd>Shift + Cmd/Ctrl + Z</kbd> 重做。",
+  "sidebarShortcut": "在编辑器和对话框之外，<kbd>Cmd/Ctrl + \\</kbd> 在宽窗口上收起或展开侧边栏；此选择会保存在本设备上。"
 }

@@ -37,5 +37,6 @@
   "submitNote": "<kbd>Cmd/Ctrl + Enter</kbd> saves from an event, schedule, task, expense, or reminder field. Save validation still applies.",
   "buttonsNote": "Buttons remain available without shortcuts. These choices are saved on this browser when storage is available. Native text undo is unchanged.",
   "reset": "Reset keyboard shortcuts",
-  "undoShortcut": "<kbd>Cmd/Ctrl + Z</kbd> undoes your last edit outside text fields, and the last layout change while arranging; <kbd>Shift + Cmd/Ctrl + Z</kbd> redoes it."
+  "undoShortcut": "<kbd>Cmd/Ctrl + Z</kbd> undoes your last edit outside text fields, and the last layout change while arranging; <kbd>Shift + Cmd/Ctrl + Z</kbd> redoes it.",
+  "sidebarShortcut": "<kbd>Cmd/Ctrl + \\</kbd> collapses or expands the sidebar on a wide window, outside editors and dialogs; the choice is kept on this device."
 }

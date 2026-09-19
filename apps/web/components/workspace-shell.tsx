@@ -20,6 +20,11 @@ import { ErrorNotice, LoadingState } from "./feedback";
 import { MoreMenu } from "./more-menu";
 import { RailCollections } from "./rail-collections";
 import { SearchEntry } from "./search-entry";
+import {
+  SidebarCollapseControl,
+  SidebarExpandControl,
+  useSidebar,
+} from "./sidebar-toggle";
 
 export function WorkspaceShell({ children }: { readonly children: ReactNode }) {
   const { credential, isHydrated, signOut, switchWorkspace } = useAuthSession();
@@ -30,6 +35,7 @@ export function WorkspaceShell({ children }: { readonly children: ReactNode }) {
   const t = useTranslations("nav");
   const adoptLocale = useAdoptAccountLocale();
   const [customizing, setCustomizing] = useState(false);
+  const sidebar = useSidebar();
   useContentUndoShortcut();
 
   useEffect(() => {
@@ -119,11 +125,14 @@ export function WorkspaceShell({ children }: { readonly children: ReactNode }) {
           <a className="skip-link" href="#workspace-content">
             {t("skipToContent")}
           </a>
-          <aside className="sidebar">
-            <Link className="brand" href="/events">
-              <span className="brand-mark">C</span>
-              <span>Chronelle</span>
-            </Link>
+          <aside className="sidebar" inert={sidebar.collapsed}>
+            <div className="sidebar-head">
+              <Link className="brand" href="/events">
+                <span className="brand-mark">C</span>
+                <span>Chronelle</span>
+              </Link>
+              <SidebarCollapseControl sidebar={sidebar} />
+            </div>
             <nav
               aria-label={t("workspaceNavigation")}
               className="workspace-nav"
@@ -149,6 +158,7 @@ export function WorkspaceShell({ children }: { readonly children: ReactNode }) {
             </div>
           </aside>
           <div className="workspace-main">
+            <SidebarExpandControl sidebar={sidebar} />
             <div id="workspace-content" tabIndex={-1}>
               {children}
             </div>
