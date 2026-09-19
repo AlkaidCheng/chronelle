@@ -108,8 +108,12 @@ export async function exerciseQuickAddInEvent(page: Page) {
   await reminders
     .getByRole("button", { name: "Add a reminder to the list", exact: true })
     .click();
-  const reminderField = reminders.getByLabel("New reminder", { exact: true });
+  // The list's composer starts with the next nine o'clock on its chip.
+  const reminderField = reminders.getByLabel("Reminder", { exact: true });
   await expect(reminderField).toBeFocused();
+  await expect(
+    reminders.getByRole("button", { name: /^Remind at: .*9:00/ }),
+  ).toBeVisible();
   await reminderField.fill("Ring the bell");
   await reminderField.press("Enter");
   await expect(

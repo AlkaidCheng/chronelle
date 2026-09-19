@@ -39,6 +39,9 @@ for (const kind of ["task", "expense", "reminder"] as const) {
       const eventId = new URL(eventUrl).pathname.split("/").at(-1);
       await openEventView(page, "Overview");
       await openEventView(page, view);
+      // The dialog, reached through the composer's More, keeps the save's
+      // command across navigation; the composer finds the draft again and
+      // hands it back to the dialog.
       await openPlanningEditor(page, kind);
       const name = page.getByLabel(field, {
         exact: true,
@@ -57,9 +60,6 @@ for (const kind of ["task", "expense", "reminder"] as const) {
         );
       await revisitObjectView(page);
       await openPlanningEditor(page, kind);
-      await page
-        .getByRole("button", { name: "Resume draft", exact: true })
-        .click();
       await expect(name).toHaveValue("Confirm the lantern delivery");
       const endpoint = `/api/events/${eventId}/resources`;
       const committed = Promise.withResolvers<void>();

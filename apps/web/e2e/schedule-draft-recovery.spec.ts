@@ -63,6 +63,8 @@ for (const outcome of ["success", "lost response"] as const)
     ).toBeVisible();
     for (let step = 0; step < 3; step++) await page.goForward();
     await expect(page).toHaveURL(calendarUrl);
+    // A save on its way keeps the add row closed to the composer; the row
+    // opens the dialog, which shows the save.
     await page
       .getByRole("button", { name: "Add schedule item", exact: true })
       .click();
