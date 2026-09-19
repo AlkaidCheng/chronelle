@@ -818,6 +818,21 @@ export function useEventAccessQuery(
   });
 }
 
+/**
+ * The caller's actions on an Event as the page has read them, without a
+ * read of its own: a control inside a view follows the event page's
+ * access, and reads nothing when shown on its own.
+ */
+export function useKnownEventAccess(eventId: string | undefined) {
+  const client = useApiClient();
+  return useQuery({
+    enabled: false,
+    queryFn: ({ signal }) =>
+      client.withSignal(signal).getObjectAccess(eventId ?? ""),
+    queryKey: queryKeys.access(eventId ?? ""),
+  });
+}
+
 export function useShareResource(eventId: string) {
   const client = useApiClient();
   const queryClient = useQueryClient();

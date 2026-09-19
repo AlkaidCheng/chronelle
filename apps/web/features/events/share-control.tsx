@@ -5,12 +5,12 @@ import { useTranslations } from "next-intl";
 import { useCallback, useRef, useState } from "react";
 
 import { ShareIcon } from "../../components/icons";
-import { useEventAccessQuery } from "../../lib/queries";
+import { useKnownEventAccess } from "../../lib/queries";
 import { ShareSheet } from "./share-sheet";
 
-/** Whether the account may share the Event, which the view controls and section menus follow. */
+/** Whether the account may share the Event, as the event page read it; the view controls and section menus follow. */
 export function useCanShareEvent(eventId: string | undefined): boolean {
-  const access = useEventAccessQuery(eventId);
+  const access = useKnownEventAccess(eventId);
   return access.data?.actions.includes("share") ?? false;
 }
 
