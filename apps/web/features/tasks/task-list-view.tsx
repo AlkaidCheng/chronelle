@@ -71,7 +71,7 @@ import {
 } from "../sections/section-parts";
 import { useSectionEditing } from "../sections/use-sections";
 import { AddTaskRow, addTaskDraftId } from "./add-task-row";
-import { TaskComposer } from "./task-composer";
+import { TaskComposer, taskComposerDraftId } from "./task-composer";
 
 const taskColumn = createColumnHelper<TaskResponse>();
 
@@ -292,15 +292,20 @@ export function TaskListView({
       return;
     }
     if (composer.open !== null || !canEdit) return;
-    // An add row's draft (the list's, or a section's) reopens that row.
+    // A draft whose save is still in flight is left to settle; an add
+    // row's draft (the list's, or a section's) reopens that row.
+    const kept = (id: string) => {
+      const draft = store.get(id);
+      return draft !== undefined && !draft.pending;
+    };
     const addDrafts = [
       addTaskDraftId(eventId, null),
       ...(sections ?? []).map((section) =>
         addTaskDraftId(eventId, null, section.id),
       ),
     ];
-    if (addDrafts.some((id) => store.get(id) !== undefined)) return;
-    const left = tasks.find((task) => store.get(task.id) !== undefined);
+    if (addDrafts.some(kept)) return;
+    const left = tasks.find((task) => kept(taskComposerDraftId(task.id)));
     if (left !== undefined) requestComposer(rowComposerKey(left.id));
   }, [
     canEdit,
@@ -902,7 +907,7 @@ export function TaskListView({
   /** The composer a pressed row becomes, editing that task in place. */
   const composerFor = (task: TaskResponse) => (
     <TaskComposer
-      draftId={task.id}
+      draftId={taskComposerDraftId(task.id)}
       eventId={eventId}
       onMore={(fields) => onEdit(task.id, fields)}
       onRefresh={onRefresh}

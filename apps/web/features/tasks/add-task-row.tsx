@@ -29,19 +29,20 @@ export const addTaskSlot = (
       : `day:${dueOn}`;
 
 /**
- * The draft key of an add row's composer: the one the Event's task dialog
- * uses, so a composer left behind and the dialog find the same draft; a
- * day group's or a section's row keeps its own.
+ * The draft key of an add row's composer, apart from the Event's task
+ * dialog's (which keeps a save in flight or one whose answer was lost for
+ * its own recovery); a day group's or a section's row keeps its own.
  */
 export function addTaskDraftId(
   eventId: string | undefined,
   dueOn: DayKey | null,
   sectionId: string | null = null,
 ): string {
-  const base =
+  const base = `${
     eventId === undefined
       ? standaloneTaskDraftId
-      : eventCreationDraftKeys(eventId).task;
+      : eventCreationDraftKeys(eventId).task
+  }:composer`;
   if (sectionId !== null) return `${base}:section:${sectionId}`;
   return dueOn === null ? base : `${base}:${dueOn}`;
 }
@@ -85,11 +86,13 @@ export function AddTaskRow({
   const slotKey = addComposerKey(addTaskSlot(dueOn, sectionId));
   const draftId = addTaskDraftId(eventId, dueOn, sectionId);
   // A composer left open in this tab, its draft kept, opens again when the
-  // row comes back, with nothing else open in the list.
+  // row comes back, with nothing else open in the list; a draft whose
+  // save is still in flight is left to settle.
   const store = useEditorDraftStore();
   const { open, request } = slots;
   useEffect(() => {
-    if (open === null && store.get(draftId) !== undefined) request(slotKey);
+    const kept = store.get(draftId);
+    if (open === null && kept !== undefined && !kept.pending) request(slotKey);
   }, [draftId, open, request, slotKey, store]);
   if (open === slotKey)
     return (

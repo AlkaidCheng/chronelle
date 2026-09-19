@@ -56,13 +56,21 @@ const nameLimit = 240;
 export const standaloneTaskDraftId = "task:new";
 
 /**
+ * The draft key of a task row's composer. The composer keeps its drafts
+ * apart from the dialog's: the dialog owns a save in flight and a save
+ * whose answer was lost (retried with the same command), which its
+ * recovery surfaces carry and the composer has no place for.
+ */
+export const taskComposerDraftId = (taskId: string) => `composer:${taskId}`;
+
+/**
  * The composer for a task: the name and description, then Due (the date
  * panel with Time and Repeat), Assignee, Labels, and Location as chips.
  * With a task it edits that task in place and saves one versioned update;
  * without one it adds tasks, Enter adding and keeping the composer open
- * for the next. Its fields are a draft in the tab under `draftId`, the
- * key the task's dialog uses too, so an unsaved composer left behind is
- * found again. More hands the fields to the full editor.
+ * for the next. Its fields are a draft in the tab under `draftId`, so an
+ * unsaved composer left behind is found open again. More hands the set
+ * fields to the full editor, whose own drafts stay its own.
  */
 export function TaskComposer({
   dueOn = null,

@@ -997,10 +997,12 @@ fields, and Take theirs, as the dialog does. Esc or Cancel closes the row
 unchanged. One row is open at a time: pressing another closes the first,
 and when the first holds unsaved changes it asks "This row has unsaved
 changes. Discard them?" with Discard (the other opens) and Keep editing.
-An open composer's fields are a draft in the tab under the task's key, the
-key its dialog uses: leaving the view and coming back finds the row open
-with the text, and the same for an add row left with text, whether the
-text was typed in the composer or in the dialog More opened from it.
+An open composer's fields are a draft in the tab of its own: leaving the
+view and coming back finds the row open with the text, and the same for
+an add row left with text. The dialog keeps its drafts as before, apart
+from the composer's: a dialog left with text, a save still in flight, or a
+save whose answer was lost is offered as Resume / Discard when More
+reaches the dialog again, so the retry keeps the same command.
 
 More at the composer's foot opens the task dialog with the composer's
 fields, for what the composer does not carry: the duration, a subtask, the
@@ -1029,9 +1031,9 @@ whole day (shown as the date, ahead of timed tasks that day, and in the
 Timeline as a dated entry); a date with a time makes it due at that local
 instant. Name-only edits preserve the exact stored due instant, and
 unavailable local times are rejected. Task drafts survive client-side navigation within the authenticated
-tab: a row's composer opens again with its text, and the dialog opened from
-the header's New task offers Resume / Discard before exposing retained
-values. Creation drafts belong to their parent Event; edits follow the
+tab: a row's composer opens again with its text, and the dialog (opened
+from the header's New task, or through a composer's More) offers Resume /
+Discard before exposing retained values. Creation drafts belong to their parent Event; edits follow the
 canonical Task across contexts. Resume checks fresh parent access for creation and the Task's
 own access for editing. Layout or projection access denial clears parent-scoped
 drafts without changing independently authorized canonical Task drafts.
