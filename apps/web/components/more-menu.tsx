@@ -11,6 +11,7 @@ import {
   ThemeIcon,
   TrashIcon,
 } from "./icons";
+import { openCommandPalette } from "../lib/command-palette";
 import { useNotices } from "./notices";
 import {
   focusFirstMenuItem,
@@ -22,10 +23,11 @@ import { ThemePanel } from "./theme-panel";
 /**
  * The More control beside the profile block: what acts on the app rather
  * than on records. Trash, Theme (the panel opens beside the rail),
- * Customize sidebar, then Keyboard shortcuts and Help, which have no
- * surface yet: choosing one posts a passing notice saying so. Escape or a
- * press outside closes the menu or the panel and, from the keyboard,
- * returns focus to the control.
+ * Customize sidebar, Keyboard shortcuts (the command palette, opened at
+ * its shortcuts section), then Help, which has no surface yet: choosing it
+ * posts a passing notice saying so. Escape or a press outside closes the
+ * menu, the panel, or the palette and, from the keyboard, returns focus to
+ * the control.
  */
 export function MoreMenu({
   onCustomize,
@@ -61,6 +63,13 @@ export function MoreMenu({
   function notYet(name: string) {
     setOpen(false);
     post({ message: t("notAvailableYet", { name }) });
+  }
+  // The control takes focus before the palette opens, so closing the
+  // palette returns focus here, as closing the Theme panel does.
+  function openShortcuts() {
+    setOpen(false);
+    trigger.current?.focus();
+    openCommandPalette({ section: "shortcuts" });
   }
 
   return (
@@ -134,7 +143,8 @@ export function MoreMenu({
             role="menuitem"
             tabIndex={-1}
             className="quiet-menu-item"
-            onClick={() => notYet(t("keyboardShortcuts"))}
+            aria-haspopup="dialog"
+            onClick={openShortcuts}
           >
             <KeyboardIcon />
             <span>{t("keyboardShortcuts")}</span>

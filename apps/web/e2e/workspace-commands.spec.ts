@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { expect, test } from "./fixtures";
 import { exerciseWorkspaceCommands } from "./helpers/workspace-commands";
-import { searchEntry } from "./helpers/quiet-chrome";
+import { moreTrigger, openMoreMenu, searchEntry } from "./helpers/quiet-chrome";
 
 test("protects Task editor focus and navigates without saving discarded fields @webkit-desktop @webkit-mobile", async ({
   page,
@@ -64,4 +64,44 @@ test("persists shortcut opt-out and synchronizes another tab @webkit-desktop @we
   await page.keyboard.press("Control+k");
   await expect(page.getByRole("dialog", { name: "Search" })).toBeVisible();
   await other.close();
+});
+
+test("opens the palette at its Keyboard shortcuts section from More and returns focus there @webkit-desktop @webkit-mobile", async ({
+  page,
+}) => {
+  await page.goto("/sign-in/development");
+  await page.getByLabel("Name", { exact: true }).fill("Keyboard planner");
+  await page.getByLabel("Email").fill(`more-${randomUUID()}@example.test`);
+  await page.getByRole("button", { name: "Continue", exact: true }).click();
+  await expect(page).toHaveURL(/\/events$/u);
+  const more = await openMoreMenu(page);
+  await more
+    .getByRole("menuitem", { name: "Keyboard shortcuts", exact: true })
+    .click();
+  const palette = page.getByRole("dialog", { name: "Search" });
+  await expect(palette).toBeVisible();
+  await expect(more).toHaveCount(0);
+  // The section is open and its first choice has focus; no typing needed.
+  await expect(palette.locator("details.command-help")).toHaveAttribute(
+    "open",
+    "",
+  );
+  await expect(
+    palette.getByRole("checkbox", { name: "Enable command shortcut" }),
+  ).toBeFocused();
+  await expect(
+    palette.getByRole("button", { name: "Reset keyboard shortcuts" }),
+  ).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(palette).toHaveCount(0);
+  await expect(moreTrigger(page)).toBeFocused();
+  // From the Search entry the section stays folded and the field has focus.
+  await searchEntry(page).click();
+  await expect(palette).toBeVisible();
+  await expect(palette.locator("details.command-help")).not.toHaveAttribute(
+    "open",
+  );
+  await expect(
+    palette.getByRole("combobox", { name: "Find a command" }),
+  ).toBeFocused();
 });
