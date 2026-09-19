@@ -26,10 +26,11 @@ export function useSectionEditing(
   eventId: string,
   view: SectionView,
   sections: readonly SectionResponse[],
+  /** Says what a write did, in the view's live region. */
+  say: (words: string) => void,
 ) {
   const t = useTranslations("sections");
   const [editing, setEditing] = useState<SectionEditing | null>(null);
-  const [announcement, setAnnouncement] = useState("");
   const create = useCreateSection(eventId);
   const update = useUpdateSection();
   const remove = useDeleteSection();
@@ -59,7 +60,7 @@ export function useSectionEditing(
           {
             onSuccess: (section) => {
               setEditing(null);
-              setAnnouncement(t("said.added", { name: section.name }));
+              say(t("said.added", { name: section.name }));
             },
           },
         );
@@ -69,12 +70,12 @@ export function useSectionEditing(
           {
             onSuccess: (section) => {
               setEditing(null);
-              setAnnouncement(t("said.saved", { name: section.name }));
+              say(t("said.saved", { name: section.name }));
             },
           },
         );
     },
-    [create, editing, t, update, view],
+    [create, editing, say, t, update, view],
   );
 
   /** A step up or down from the menu or the grip's arrow keys. */
@@ -86,12 +87,11 @@ export function useSectionEditing(
       update.mutate(
         { id, input: { afterSectionId: after } },
         {
-          onSuccess: () =>
-            setAnnouncement(t("said.moved", { name: section?.name ?? "" })),
+          onSuccess: () => say(t("said.moved", { name: section?.name ?? "" })),
         },
       );
     },
-    [sections, t, update],
+    [say, sections, t, update],
   );
 
   /** A drop among the other sections, by its index among them. */
@@ -101,12 +101,11 @@ export function useSectionEditing(
       update.mutate(
         { id, input: { afterSectionId: sectionAfterIndex(others, index) } },
         {
-          onSuccess: () =>
-            setAnnouncement(t("said.moved", { name: section?.name ?? "" })),
+          onSuccess: () => say(t("said.moved", { name: section?.name ?? "" })),
         },
       );
     },
-    [sections, t, update],
+    [say, sections, t, update],
   );
 
   const destroy = useCallback(
@@ -117,7 +116,7 @@ export function useSectionEditing(
           setEditing((current) =>
             current?.kind === "edit" && current.id === id ? null : current,
           );
-          setAnnouncement(
+          say(
             t("said.deleted", {
               name: section?.name ?? "",
               hint:
@@ -127,11 +126,10 @@ export function useSectionEditing(
         },
       });
     },
-    [remove, sections, t, view],
+    [remove, say, sections, t, view],
   );
 
   return {
-    announcement,
     cancel,
     destroy,
     editing,

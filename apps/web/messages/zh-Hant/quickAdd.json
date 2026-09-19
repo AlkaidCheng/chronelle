@@ -10,6 +10,7 @@
   "newReminder": "新提醒",
   "reminderName": "提醒名稱",
   "addReminder": "新增提醒",
+  "taskToSection": "向分組 {section} 新增任務",
   "taskDetails": "新增任務並填寫詳情",
   "reminderDetails": "新增提醒並填寫詳情"
 }

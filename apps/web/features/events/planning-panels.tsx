@@ -713,7 +713,12 @@ export function ExpensesPanel({
   const period = usePeriod(view);
   const refresh = useRefreshEvent(eventId);
   const update = useUpdateExpense();
-  const sectionEditing = useSectionEditing(eventId, "expenses", sections);
+  const sectionEditing = useSectionEditing(
+    eventId,
+    "expenses",
+    sections,
+    setAnnouncement,
+  );
   const byId = useMemo(
     () => new Map(expenses.map((expense) => [expense.id, expense])),
     [expenses],
@@ -976,7 +981,7 @@ export function ExpensesPanel({
         />
       )}
       <p aria-live="polite" className="visually-hidden" role="status">
-        {announcement || sectionEditing.announcement}
+        {announcement}
       </p>
       <DragCard drag={drag}>{card()}</DragCard>
     </>

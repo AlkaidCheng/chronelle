@@ -24,6 +24,7 @@ export function QuickAddTask({
   eventId,
   onDetails,
   sectionId = null,
+  sectionName,
   slots,
 }: {
   /** The day group's heading, named in the row's accessible name. */
@@ -40,6 +41,8 @@ export function QuickAddTask({
     | undefined;
   /** The section of the Event's To-dos the row adds to; null for none. */
   readonly sectionId?: string | null | undefined;
+  /** The section's name, named in the row's accessible name. */
+  readonly sectionName?: string | undefined;
   readonly slots: QuickAddSlots;
 }) {
   const t = useTranslations("quickAdd");
@@ -55,11 +58,13 @@ export function QuickAddTask({
             }
       }
       label={
-        dayLabel === undefined
-          ? t("taskToList")
-          : dueOn === null
-            ? t("taskWith", { day: dayLabel })
-            : t("taskFor", { day: dayLabel })
+        sectionName !== undefined
+          ? t("taskToSection", { section: sectionName })
+          : dayLabel === undefined
+            ? t("taskToList")
+            : dueOn === null
+              ? t("taskWith", { day: dayLabel })
+              : t("taskFor", { day: dayLabel })
       }
       name={t("newTask")}
       onAdd={(displayName) =>

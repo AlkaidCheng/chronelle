@@ -440,6 +440,7 @@ export function TaskListView({
     eventId ?? "",
     "todos",
     sections ?? [],
+    setAnnouncement,
   );
   const bySection = useMemo(
     () => groupBySection(ordered, sections ?? []),
@@ -810,7 +811,7 @@ export function TaskListView({
         />
       )}
       <p aria-live="polite" className="visually-hidden" role="status">
-        {announcement || sectionEditing.announcement}
+        {announcement}
       </p>
       <DragCard drag={drag}>{card()}</DragCard>
     </>
@@ -959,7 +960,7 @@ export function TaskListView({
   const columns = taskColumns.length;
   /** The gap a lifted row will fill, among a table's rows. */
   const tableGap = (height: number, key: string) => (
-    <tr key={key}>
+    <tr className="row-gap-row" key={key}>
       <td aria-hidden="true" className="row-gap-cell" colSpan={columns}>
         <div className="row-gap-fill" style={{ height }} />
       </td>
@@ -1000,7 +1001,7 @@ export function TaskListView({
   // its rows, its own add row, and an Add section line after it; the
   // first Add section line follows the loose tasks.
   const { editing } = sectionEditing;
-  const addRow = (sectionId: string | null) =>
+  const addRow = (section: SectionResponse | null) =>
     canEdit ? (
       <tr>
         <td className="table-add-cell" colSpan={columns}>
@@ -1009,7 +1010,8 @@ export function TaskListView({
               dueOn={null}
               eventId={eventId}
               onDetails={onAddDetails}
-              sectionId={sectionId}
+              sectionId={section?.id ?? null}
+              sectionName={section?.name}
               slots={quickAdd}
             />
           </div>
@@ -1036,7 +1038,7 @@ export function TaskListView({
       </tr>
     ) : null;
   const sectionGap = (height: number, key: string) => (
-    <tbody key={key}>
+    <tbody className="row-gap-row" key={key}>
       <tr>
         <td
           aria-hidden="true"
@@ -1136,7 +1138,7 @@ export function TaskListView({
                   (task) => tableRow(task, section.id),
                   tableGap,
                 )}
-                {addRow(section.id)}
+                {addRow(section)}
                 {addSection(section.id)}
               </tbody>
             );
