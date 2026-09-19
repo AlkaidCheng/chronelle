@@ -2,12 +2,13 @@ import { randomUUID } from "node:crypto";
 import { expect, type Page, test } from "./fixtures";
 import { latestCodeFor } from "./helpers/mailbox";
 
-/** Signs the browser in as a development identity, leaving any session first. */
+/** Signs the browser in as a development identity, leaving any session first, and waits for the workspace. */
 async function signInAs(page: Page, name: string, email: string) {
   await page.goto("/sign-in/development");
   await page.getByLabel("Name", { exact: true }).fill(name);
   await page.getByLabel("Email").fill(email);
   await page.getByRole("button", { name: "Continue", exact: true }).click();
+  await expect(page).toHaveURL(/\/events$/u);
 }
 
 async function signOut(page: Page, name: string) {
@@ -73,9 +74,9 @@ test("invites a card with only a phone by a link; the link makes the friendship,
     name: "Invite a friend",
     exact: true,
   });
-  await expect(dialog.getByLabel("Person", { exact: true })).toHaveValue(
-    card.id,
-  );
+  await expect(
+    dialog.getByRole("combobox", { name: "Person", exact: true }),
+  ).toHaveValue(card.id);
   await expect(
     dialog.getByRole("button", { name: "Send by email", exact: true }),
   ).toBeDisabled();

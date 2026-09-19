@@ -48,9 +48,13 @@ export function WelcomePage() {
   useEffect(() => {
     if (auth.isHydrated && auth.credential === null) router.replace("/sign-in");
   }, [auth.credential, auth.isHydrated, router]);
+  // An account past the step, whether it arrived that way or completed the
+  // step just now, goes on to the page that was waiting on the sign-in (an
+  // invitation link), else the workspace. This is the one place that
+  // navigates: Continue only saves, and the updated session brings it here.
   useEffect(() => {
     if (user !== undefined && user.onboardedAt !== null)
-      router.replace("/events");
+      router.replace(takeAfterSignIn() ?? "/events");
   }, [router, user]);
 
   const languageChoice: LocaleChoice =
@@ -79,7 +83,6 @@ export function WelcomePage() {
         adoptLocale(updated);
       }
       await account.mutateAsync({ displayName: name, onboarded: true });
-      router.replace(takeAfterSignIn() ?? "/events");
     } catch {
       // The notice below shows the failure; the form stays for another try.
     } finally {
