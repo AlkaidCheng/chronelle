@@ -9,6 +9,7 @@ import {
   reopenScheduleDraft,
 } from "../../e2e/helpers/schedule-draft-recovery";
 import { openEventView } from "../../e2e/helpers/event-view";
+import { revisitObjectView } from "../../e2e/helpers/object-draft-recovery";
 
 const sandboxUrl = new URL(
   "../../../../.chronelle/sandbox/chronelle.html",
@@ -39,8 +40,8 @@ test("recovers and explicitly discards schedule drafts through offline navigatio
   const name = page.getByLabel("Schedule item", { exact: true });
   await addRow.click();
   await name.fill("Discarded arrival");
-  await reopenScheduleDraft(page);
-  // The composer comes back with the draft; Escape discards it.
+  await revisitObjectView(page);
+  // The composer comes back with its own draft; Escape discards it.
   await expect(name).toHaveValue("Discarded arrival");
   await name.press("Escape");
   await addRow.click();

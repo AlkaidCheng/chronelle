@@ -252,7 +252,8 @@ test("edits a schedule row, an expense row, and a Timeline entry in place, and r
     has: page.getByRole("heading", { name: "Calendar", exact: true }),
   });
   await pressRow(calendar, "Fushimi Inari");
-  const schedule = composer(page, "Edit Fushimi Inari");
+  // The composer is named for the row, which the first save renames.
+  const schedule = page.getByRole("form", { name: /^Edit Fushimi Inari/ });
   const name = schedule.getByLabel("Schedule item", { exact: true });
   await expect(name).toBeFocused();
   await expect(chip(schedule, /^Dates: /)).toContainText("Nov 3, 2030");
@@ -296,7 +297,7 @@ test("edits a schedule row, an expense row, and a Timeline entry in place, and r
     .click();
   await expect(name).toHaveValue("Fushimi Inari, the lower loop");
   await expect(chip(schedule, /^Place: Inari station$/)).toBeVisible();
-  await page.keyboard.press("Escape");
+  await name.press("Escape");
   await expect(schedule).toHaveCount(0);
 
   // An Expenses row edits its amount through the chip's panel.

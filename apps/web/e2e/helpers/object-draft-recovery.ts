@@ -209,17 +209,18 @@ export async function revisitObjectView(page: Page) {
 
 /**
  * A record's drafts live in its row's composer: a composer left with text
- * (an add row's, a row's, or the dialog More opens from it) is found open
- * again with the text after leaving the view and coming back; Escape
- * discards it, and a reload clears it.
+ * (an add row's or a row's) is found open again with the text after
+ * leaving the view and coming back; Escape discards it, and a reload
+ * clears it. The dialog More opens keeps a draft of its own, offered as
+ * Resume your draft when More reaches it again.
  */
 export async function exerciseObjectRecovery(
   page: Page,
   testInfo: TestInfo,
   kind: Kind,
 ) {
-  // A task's composer keeps its drafts apart from its dialog's; the other
-  // kinds share one draft between the composer and the dialog More opens.
+  // Every kind's composer keeps its drafts apart from its dialog's; the
+  // task's flow stays its own function, the other kinds share one.
   if (kind === "task") {
     await exerciseTaskComposerRecovery(page);
     return;
@@ -274,17 +275,30 @@ export async function exerciseObjectRecovery(
       "CNY",
     );
   }
+  // Leaving the dialog with them keeps the dialog's draft, which More
+  // offers to resume once the add row opens the composer again.
   await dialogName.fill("Pack the lanterns tonight");
   await revisitObjectView(page);
-  await expect(name).toHaveValue("Pack the lanterns tonight");
-  await name.press("Enter");
+  await expect(adding).toHaveCount(0);
+  await addRow.click();
+  await expect(name).toHaveValue("");
+  await adding.getByRole("button", { name: /^More: / }).click();
+  const recovery = page.getByRole("dialog", {
+    name: "Resume your draft?",
+    exact: true,
+  });
+  await expect(recovery).toBeVisible();
+  await recovery
+    .getByRole("button", { name: "Resume draft", exact: true })
+    .click();
+  await expect(dialogName).toHaveValue("Pack the lanterns tonight");
+  await expectDialogMoment(dialog, kind);
+  await dialogName.press("ControlOrMeta+Enter");
+  await expect(page.getByRole("dialog")).toHaveCount(0);
   const row = page
     .getByRole(editor.rowRole)
     .filter({ hasText: "Pack the lanterns" });
   await expect(row).toHaveCount(1);
-  await expect(name).toHaveValue("");
-  await name.press("Escape");
-  await expect(adding).toHaveCount(0);
   await expectHorizontalReflow(page);
 
   // A row's composer keeps its text the same way.

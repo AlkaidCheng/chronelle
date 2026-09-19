@@ -12,52 +12,56 @@ export async function reopenScheduleDraft(page: Page) {
   await page.goForward();
   await expect(page).toHaveURL(calendarUrl);
   expect(await page.evaluate(() => window.history.length)).toBe(historyLength);
-}
-
-/**
- * The draft the dialog kept is found by the add row's composer, which
- * comes back open with the name and the dates on its chip; More hands it
- * to the dialog again.
- */
-export async function inspectScheduleRecovery(page: Page, testInfo: TestInfo) {
+  // The dialog's draft is its own: the add row opens the composer empty,
+  // and More reaches the dialog, which offers the draft.
+  await page
+    .getByRole("button", { name: "Add schedule item", exact: true })
+    .click();
   const adding = page.getByRole("form", {
     name: "New schedule item",
     exact: true,
   });
-  const name = adding.getByLabel("Schedule item", { exact: true });
-  await expect(name).toHaveValue("Garden arrival");
-  await expect(name).toBeFocused();
-  await expect(
-    adding.getByRole("button", { name: /^Dates: Jul 3, 2030 to Jul 5, 2030/ }),
-  ).toBeVisible();
+  await expect(adding.getByLabel("Schedule item", { exact: true })).toHaveValue(
+    "",
+  );
+  await adding.getByRole("button", { name: /^More: / }).click();
+}
+
+export async function inspectScheduleRecovery(page: Page, testInfo: TestInfo) {
+  const recovery = page.getByRole("dialog", {
+    name: "Resume your draft?",
+    exact: true,
+  });
+  await expect(recovery).toBeVisible();
+  await expect(page.getByLabel("Schedule item", { exact: true })).toHaveCount(
+    0,
+  );
+  const resume = recovery.getByRole("button", {
+    name: "Resume draft",
+    exact: true,
+  });
+  await expect(resume).toBeFocused();
   for (const colorScheme of ["light", "dark"] as const) {
     await page.emulateMedia({ colorScheme, reducedMotion: "reduce" });
     await page.setViewportSize({ width: 320, height: 568 });
-    await expectToken(adding, "background-color", "surface");
-    await expectToken(name, "color", "ink");
-    for (const set of await adding.locator(".chip.is-set").all())
-      await expectToken(set, "color", "ink");
+    await expectToken(recovery, "background-color", "surface");
+    await expectToken(recovery, "color", "ink");
+    await expectToken(recovery.getByRole("heading"), "color", "ink");
+    for (const paragraph of await recovery.locator("p").all())
+      await expectToken(paragraph, "color", "ink");
     await expectHorizontalReflow(page);
-    await adding
-      .getByRole("button", { name: "Add to schedule", exact: true })
-      .scrollIntoViewIfNeeded();
-    await expect(
-      adding.getByRole("button", { name: "Add to schedule", exact: true }),
-    ).toBeInViewport();
+    await expect(resume).toBeInViewport();
     await page.screenshot({
       path: testInfo.outputPath(`schedule-recovery-${colorScheme}.png`),
     });
   }
-  await adding.getByRole("button", { name: /^More: / }).click();
-  const dialog = page.getByRole("dialog", {
-    name: "Add schedule item",
-    exact: true,
-  });
-  await expect(dialog.getByLabel("Schedule item", { exact: true })).toHaveValue(
+  await resume.click();
+  await expect(page.getByLabel("Schedule item", { exact: true })).toHaveValue(
     "Garden arrival",
   );
-  await expect(
-    dialog.getByLabel("Schedule item", { exact: true }),
-  ).toBeFocused();
-  await expectDates(dialog, "Jul 3, 2030 to Jul 5, 2030");
+  await expect(page.getByLabel("Schedule item", { exact: true })).toBeFocused();
+  await expectDates(
+    page.getByRole("dialog", { name: "Add schedule item", exact: true }),
+    "Jul 3, 2030 to Jul 5, 2030",
+  );
 }

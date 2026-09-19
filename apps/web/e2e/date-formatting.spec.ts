@@ -154,26 +154,29 @@ for (const display of [
       const undated = page.getByRole("link", { name: /Unscheduled plan/ });
       await expect(undated.locator(".event-date-mark span")).toHaveText("TBD");
       await expect(undated.locator(".event-date-mark strong")).toHaveText("-");
+      // The Calendar and Reminders rows read the moment on their meta line,
+      // in the same month and day the badge shows; the separator before the
+      // time differs between engines (", " or " at ").
+      const onTheDay = new RegExp(
+        `^${month} ${Number(display.day)}, 2026(,| at) `,
+      );
       await card.click();
       await openEventView(page, "Calendar");
       const calendar = page
         .locator(".resource-list article")
         .filter({ hasText: "Scheduled item" });
-      await expect(calendar.locator(".date-tile span")).toHaveText(
-        month.toUpperCase(),
-      );
-      await expect(calendar.locator(".date-tile strong")).toHaveText(
-        display.day,
-      );
+      await expect(calendar.locator(".row-when")).toHaveText(onTheDay);
       await page.screenshot({
         path: testInfo.outputPath("calendar-date.png"),
         fullPage: true,
       });
       await openEventView(page, "Reminders");
-      await expect(page.locator(".date-tile span")).toHaveText(
-        month.toUpperCase(),
-      );
-      await expect(page.locator(".date-tile strong")).toHaveText(display.day);
+      await expect(
+        page
+          .locator(".resource-list article")
+          .filter({ hasText: "Planning reminder" })
+          .locator(".row-when"),
+      ).toHaveText(onTheDay);
       expect(errors).toEqual([]);
     });
   });

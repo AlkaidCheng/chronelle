@@ -186,14 +186,17 @@ test("splits To-dos and Expenses into sections, places records by add row, edito
     "Book the caterer": null,
   });
 
-  // Expenses: a section, an expense added from its add row with the
-  // section chosen, the total on the head, and the expense moved out
-  // through its editor.
+  // Expenses: a section, an expense added from its add row's composer into
+  // the section (More shows the dialog with the section chosen), the total
+  // on the head, and the expense moved out through its editor.
   await openEventView(page, "Expenses");
   const expenses = page.locator(".planning-panel").filter({
     has: page.getByRole("heading", { name: "Expenses", exact: true }),
   });
   await expect(expenses).toBeVisible();
+  await expect(
+    expenses.getByRole("button", { name: "Add expense", exact: true }),
+  ).toBeVisible();
   const line = expenses.getByRole("button", { name: "Add section" }).first();
   await line.hover();
   await line.click();
@@ -203,8 +206,16 @@ test("splits To-dos and Expenses into sections, places records by add row, edito
   const travel = expenses.getByRole("region", { name: "Travel" });
   await expect(travel).toBeVisible();
   await travel
-    .getByRole("button", { name: "Add expense", exact: true })
+    .getByRole("button", { name: "Add an expense to Travel", exact: true })
     .click();
+  const expenseComposer = travel.getByRole("form", {
+    name: "New expense",
+    exact: true,
+  });
+  await expenseComposer
+    .getByLabel("What was paid for", { exact: true })
+    .fill("Train fare");
+  await expenseComposer.getByRole("button", { name: /^More: / }).click();
   const expenseEditor = page.getByRole("dialog", {
     name: "Add expense",
     exact: true,
@@ -217,7 +228,9 @@ test("splits To-dos and Expenses into sections, places records by add row, edito
       .getByLabel("Section", { exact: true })
       .locator("option:checked"),
   ).toHaveText("Travel");
-  await expenseEditor.getByLabel("Expense", { exact: true }).fill("Train fare");
+  await expect(
+    expenseEditor.getByLabel("Expense", { exact: true }),
+  ).toHaveValue("Train fare");
   await expenseEditor.getByLabel("Amount", { exact: true }).fill("42.50");
   await expenseEditor
     .getByRole("button", { name: "Record expense", exact: true })
@@ -226,7 +239,12 @@ test("splits To-dos and Expenses into sections, places records by add row, edito
   await expect(travel.getByText("Train fare")).toBeVisible();
   await expect(travel.locator(".section-figure")).toContainText("42.50");
 
-  await travel.getByRole("button", { name: "Edit", exact: true }).click();
+  // The row opens in place; More reaches the dialog's Section field.
+  await travel.getByRole("button", { name: "Edit Train fare" }).click();
+  await travel
+    .getByRole("form", { name: "Edit Train fare" })
+    .getByRole("button", { name: /^More: / })
+    .click();
   const editExpense = page.getByRole("dialog", { name: "Edit expense" });
   await editExpense
     .getByLabel("Section", { exact: true })
