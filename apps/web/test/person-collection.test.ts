@@ -22,7 +22,6 @@ function person(
     displayName,
     nickname: null,
     description: null,
-    email: null,
     userId: null,
     contacts: [],
     labelIds: [],

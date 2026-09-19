@@ -11,7 +11,7 @@ import { useTranslations } from "next-intl";
 import { type FormEvent, useId, useState } from "react";
 
 import { personInitials } from "../../lib/person-collection";
-import { personDisplayName } from "../../lib/person-fields";
+import { personDisplayName, personEmail } from "../../lib/person-fields";
 import { useQueuePendingShare, useShareResource } from "../../lib/queries";
 
 type SharedRole = "owner" | "editor" | "viewer";
@@ -90,12 +90,13 @@ export function shareRows(context: ShareRowContext): ShareRow[] {
         (context.workspaceId === undefined ||
           item.workspaceId === context.workspaceId),
     );
+    const email = personEmail(person);
     const kind =
       person.userId !== null
         ? "member"
         : invited
           ? "invited"
-          : person.email !== null
+          : email !== null
             ? "new"
             : null;
     if (kind === null) continue;
@@ -104,7 +105,7 @@ export function shareRows(context: ShareRowContext): ShareRow[] {
       group: "others",
       kind,
       name: personDisplayName(person),
-      reach: kind === "member" ? null : person.email,
+      reach: kind === "member" ? null : email,
       friendId: null,
       personId: person.id,
       held:

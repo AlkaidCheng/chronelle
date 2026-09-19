@@ -266,32 +266,13 @@ function rankAmong(
   return rankAfter(last);
 }
 
-/**
- * The contacts a person write asks for and the email that mirrors them:
- * `contacts` as given, else a legacy `email` folded into the kept contacts
- * (the address first, then the non-email contacts; null removes the email
- * contacts), else nothing for unchanged.
- */
-function personContactFields(
-  input: Record<string, unknown>,
-  current: readonly { kind: string; value: string }[],
-): Record<string, unknown> {
-  const contacts = input.contacts as
-    readonly { kind: string; value: string }[] | undefined;
-  const email = input.email as string | null | undefined;
-  const next =
-    contacts ??
-    (email === undefined
-      ? undefined
-      : [
-          ...(email === null ? [] : [{ kind: "email", value: email }]),
-          ...current.filter((contact) => contact.kind !== "email"),
-        ]);
-  if (next === undefined) return {};
-  return {
-    contacts: next,
-    email: next.find((contact) => contact.kind === "email")?.value ?? null,
-  };
+/** The first email contact of a card, the address an invitation from it goes to. */
+function personEmail(
+  person: Extract<Resource, { objectType: "person" }>,
+): string | null {
+  return (
+    person.contacts.find((contact) => contact.kind === "email")?.value ?? null
+  );
 }
 
 function canonical(
@@ -321,7 +302,6 @@ function canonical(
     reminder: { status: "pending", rank: "00000001000" },
     document: {},
     person: {
-      email: null,
       userId: null,
       nickname: null,
       description: null,
@@ -786,10 +766,36 @@ export class SandboxStore {
     return undefined;
   }
 
+  /**
+   * The friend a card stands for, as a share resolves it: the linked
+   * account first, else the one friend whose email equals any of the
+   * card's email contacts and who lets themselves be found by email.
+   */
+  #personAccount(person: Extract<Resource, { objectType: "person" }>) {
+    const friends = this.#state.friends.friends;
+    if (person.userId !== null)
+      return friends.find((friend) => friend.userId === person.userId);
+    const emails = new Set(
+      person.contacts
+        .filter((contact) => contact.kind === "email")
+        .map((contact) => contact.value.toLowerCase()),
+    );
+    const matches = friends.filter(
+      (friend) =>
+        friend.email !== null &&
+        emails.has(friend.email) &&
+        (sampleAccounts.find((account) => account.id === friend.userId)
+          ?.findByEmail ??
+          true),
+    );
+    return matches.length === 1 ? matches[0] : undefined;
+  }
+
   // Shares: a grant to a friend (by the connection), to a person with an
-  // account, or to an address that is a friend's; a share for a person
-  // without an account waits on an invitation to their email, sent when
-  // none waits, and is granted when that invitation is accepted here.
+  // account (the linked one, else the one found by an email contact), or
+  // to an address that is a friend's; a share for a person without an
+  // account waits on an invitation to their email, sent when none waits,
+  // and is granted when that invitation is accepted here.
   #shareWrite(
     method: string,
     id: string | undefined,
@@ -822,12 +828,10 @@ export class SandboxStore {
             : this.#personCard(input.personId);
         if (input.personId !== undefined && person === undefined)
           throw unavailable();
-        const email = person?.email ?? input.principalEmail;
-        const friend = friends.find(
-          (item) =>
-            (person?.userId !== null && item.userId === person?.userId) ||
-            (email !== undefined && item.email === email),
-        );
+        const friend =
+          person !== undefined
+            ? this.#personAccount(person)
+            : friends.find((item) => item.email === input.principalEmail);
         if (friend === undefined) throw unavailable();
         principal = {
           id: friend.userId,
@@ -872,7 +876,8 @@ export class SandboxStore {
       let friends = this.#state.friends;
       let item = friends.sent.find((sent) => sent.personId === person.id);
       if (item === undefined) {
-        if (person.email === null)
+        const email = personEmail(person);
+        if (email === null)
           throw new SandboxError(
             400,
             "invalid_request",
@@ -881,7 +886,7 @@ export class SandboxStore {
         item = {
           id: crypto.randomUUID(),
           kind: "invitation",
-          email: person.email,
+          email,
           message: null,
           personId: person.id,
           workspaceId: sandboxWorkspaceId,
@@ -1676,18 +1681,14 @@ export class SandboxStore {
     }
     if (id && collection === "persons" && operation === "shares") {
       // The sample account holds every grant: what the workspace shared
-      // with the person's account (the linked one, else the friend with
-      // the person's email, as a share resolves it), and what waits on
+      // with the person's account (the linked one, else the friend found
+      // by an email contact, as a share resolves it), and what waits on
       // their invitation.
       const person = this.#personCard(id);
       if (person === undefined)
         throw new SandboxError(404, "not_found", "Record is unavailable.");
       const account =
-        person.userId ??
-        this.#state.friends.friends.find(
-          (friend) => person.email !== null && friend.email === person.email,
-        )?.userId ??
-        null;
+        person.userId ?? this.#personAccount(person)?.userId ?? null;
       const shared = (resourceId: string) => this.#object(resourceId);
       const items = [
         ...this.#state.shares
@@ -2089,7 +2090,7 @@ export class SandboxStore {
       const person = this.#checkPerson(
         canonical(
           "person",
-          { ...fields, ...personContactFields(fields, []) },
+          fields,
           typeof permissionScopeId === "string" ? permissionScopeId : undefined,
         ),
       );
@@ -2381,8 +2382,6 @@ export class SandboxStore {
         // Clearing a repeat rule clears its end.
         if ("repeatRule" in patch && patch.repeatRule === null)
           patch.repeatUntil = null;
-        if (object.objectType === "person")
-          Object.assign(patch, personContactFields(patch, object.contacts));
         const saved = this.#checkPerson(
           this.#checkTask(
             eventPlanningResourceResponseSchema.parse({

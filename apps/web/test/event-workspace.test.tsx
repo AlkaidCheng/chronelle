@@ -19,6 +19,7 @@ import {
   WorkspaceCommandProvider,
 } from "../components/context-commands";
 import { EventWorkspace } from "../features/events/event-workspace";
+import { personEmail } from "../lib/person-fields";
 import { queryKeys } from "../lib/queries";
 import { openTaskEditor } from "./quick-add-support";
 import { setDates } from "./range-picker-support";
@@ -1457,13 +1458,13 @@ describe("EventWorkspace", () => {
       startsAt: null,
       endsAt: null,
       timezone: null,
-      email: null,
       userId: null,
+      contacts: [],
       ...fields,
     });
     // Mei is a friend with a card; Ivo a friend without one; Mira another
-    // account here; Sam has an email; Pat was invited from their card;
-    // Nobody has neither; Me is the acting user's own card.
+    // account here; Sam has an email contact; Pat was invited from their
+    // card; Nobody has neither; Me is the acting user's own card.
     const people = [
       person("019d6e7d-0000-7000-8000-000000000050", {
         displayName: "Mei Lin",
@@ -1476,11 +1477,11 @@ describe("EventWorkspace", () => {
       }),
       person("019d6e7d-0000-7000-8000-000000000052", {
         displayName: "Sam",
-        email: "sam@example.com",
+        contacts: [{ kind: "email", value: "sam@example.com" }],
       }),
       person("019d6e7d-0000-7000-8000-000000000055", {
         displayName: "Pat",
-        email: "pat@example.com",
+        contacts: [{ kind: "email", value: "pat@example.com" }],
       }),
       person("019d6e7d-0000-7000-8000-000000000053", {
         displayName: "Nobody",
@@ -1575,7 +1576,7 @@ describe("EventWorkspace", () => {
           kind: "invitation",
           itemId: "019d6e7d-0000-7000-8000-000000000073",
           person: { id: body.personId, displayName: card?.displayName ?? "" },
-          email: card?.email ?? null,
+          email: card === undefined ? null : personEmail(card),
           grantedBy: userId,
           createdAt: "2026-09-02T20:05:00.000Z",
         };
