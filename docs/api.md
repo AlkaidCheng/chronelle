@@ -950,7 +950,7 @@ lookup happens after that authorization check.
 shares waiting on a request or invitation the caller's account sent, each
 `{ id, workspaceId, resourceId, role, status: "pending", kind, itemId,
 person, email, grantedBy, createdAt }`: `kind` is `connection` (a request to
-an account) or `invitation` (a sign-up link to an address) and `itemId` that
+an account) or `invitation` (a link, emailed or handed on) and `itemId` that
 item; `person` is the card the share was ticked from, or null.
 
 `GET /persons/:id/shares` returns `{ items }` for a Person of the caller's

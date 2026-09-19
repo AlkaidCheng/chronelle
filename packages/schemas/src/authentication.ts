@@ -43,7 +43,7 @@ export const signUpRequestSchema = z.object({
   /** The name; the Welcome step asks for it after the email is confirmed when sign-up brings none. */
   displayName: z.string().trim().min(1).max(120).optional(),
   locale: localeTagSchema.optional(),
-  /** The token of the friend invitation the sign-up link carried. */
+  /** The token of the invitation link the sign-up was opened from; it stays open for the claim page. */
   invitationToken: z.string().trim().min(1).max(256).optional(),
 });
 
