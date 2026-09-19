@@ -1,6 +1,7 @@
 import type {
   EventResponse,
   ExpenseResponse,
+  NoteResponse,
   PersonResponse,
   ReminderResponse,
   TaskResponse,
@@ -13,6 +14,7 @@ import type { readTaskFields } from "./task-fields";
 import type { readExpenseFields } from "./expense-fields";
 import type { readReminderFields } from "./reminder-fields";
 import type { readPersonFields } from "./person-fields";
+import type { readNoteFields } from "./note-fields";
 
 export function readEventFields(event?: EventResponse) {
   return {
@@ -56,12 +58,21 @@ export type PersonDraftSnapshot = EditorDraftSnapshot<
   readonly creationAttempt?: ContextCreateAttempt;
 };
 
+export type NoteDraftSnapshot = EditorDraftSnapshot<
+  NoteResponse,
+  ReturnType<typeof readNoteFields>
+> & {
+  readonly kind: "note";
+  readonly creationAttempt?: ContextCreateAttempt;
+};
+
 export type RetainedDraftSnapshot =
   | EventDraftSnapshot
   | TaskDraftSnapshot
   | ExpenseDraftSnapshot
   | ReminderDraftSnapshot
-  | PersonDraftSnapshot;
+  | PersonDraftSnapshot
+  | NoteDraftSnapshot;
 
 export function eventCreationDraftKeys(eventId: string) {
   return {
@@ -69,6 +80,7 @@ export function eventCreationDraftKeys(eventId: string) {
     task: `task:${eventId}`,
     expense: `expense:${eventId}`,
     reminder: `reminder:${eventId}`,
+    note: `note:${eventId}`,
   };
 }
 

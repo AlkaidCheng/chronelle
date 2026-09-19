@@ -1,0 +1,17 @@
+{
+  "add": "添加笔记",
+  "count": "{count} 条笔记",
+  "edited": "{when}编辑",
+  "editedBy": "{when} 由 {name} 编辑",
+  "empty": "还没有笔记。",
+  "sorts": {
+    "edited": "最近编辑",
+    "title": "按标题"
+  },
+  "menu": {
+    "edit": "编辑",
+    "history": "历史",
+    "moveToTrash": "移到回收站"
+  },
+  "actionsFor": "{name} 的操作"
+}

@@ -1,0 +1,17 @@
+{
+  "add": "新增筆記",
+  "count": "{count} 則筆記",
+  "edited": "{when}編輯",
+  "editedBy": "{when} 由 {name} 編輯",
+  "empty": "還沒有筆記。",
+  "sorts": {
+    "edited": "最近編輯",
+    "title": "依標題"
+  },
+  "menu": {
+    "edit": "編輯",
+    "history": "歷史",
+    "moveToTrash": "移到垃圾桶"
+  },
+  "actionsFor": "{name} 的操作"
+}

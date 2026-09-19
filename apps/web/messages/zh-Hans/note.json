@@ -1,0 +1,12 @@
+{
+  "title": "笔记",
+  "editTitle": "编辑笔记",
+  "discardTitle": "放弃笔记更改？",
+  "close": "关闭笔记编辑器",
+  "viewHistory": "查看笔记历史",
+  "unsaved": "笔记更改尚未保存。",
+  "name": "标题",
+  "body": "正文",
+  "bodyHint": "纯文本。换行会保留，阅读时链接可点击。",
+  "save": "保存"
+}

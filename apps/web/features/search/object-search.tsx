@@ -25,6 +25,7 @@ const searchableTypes = [
   "reminder",
   "document",
   "person",
+  "note",
 ] as const;
 
 function SearchResultCard({ result }: { readonly result: ObjectSearchResult }) {

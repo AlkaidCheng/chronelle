@@ -1,0 +1,12 @@
+{
+  "title": "Note",
+  "editTitle": "Edit note",
+  "discardTitle": "Discard note changes?",
+  "close": "Close note editor",
+  "viewHistory": "View note history",
+  "unsaved": "Your note changes have not been saved.",
+  "name": "Title",
+  "body": "Text",
+  "bodyHint": "Plain text. Line breaks are kept and links open when the note is read.",
+  "save": "Save"
+}
