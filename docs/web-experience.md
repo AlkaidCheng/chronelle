@@ -1074,7 +1074,12 @@ The seven Event components share one frame. In a tab view it has no box of
 its own (the tabs frame it); on an event page it keeps its card. Each opens
 on one head line: its title in body type, a faint count where the component
 keeps one, and its Layout, Sort, and Filter controls as quiet words at the
-right. Nothing sits under the heading, and no Add button sits beside it: a
+right. A component that lists records (To-dos, Timeline, Itinerary,
+Expenses, Reminders, Files, Notes, and the Calendar in its list and by-day
+layouts) keeps to one 800px column, heading and rows alike, so a name and
+what sits at the row's end stay close; the week and month grids and the
+namecards take the page, as do the Events, Tasks, and People collections'
+lists and their search rows. Nothing sits under the heading, and no Add button sits beside it: a
 collection adds through the row at its end. To-dos and Reminders have a
 quick add row that takes a name in place, and while it is open a pencil
 beside the field (Add task with details, Add reminder with details) opens

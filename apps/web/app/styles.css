@@ -2402,6 +2402,18 @@ p[role="alert"] {
   padding: var(--card-padding);
 }
 
+/* A panel that lists records keeps to the list column, heading and all;
+   the grids (a month, the namecards) take the page. */
+.panel-column {
+  max-width: var(--list-column);
+}
+
+/* The collection pages: the toolbar, the count, and the rows share the
+   column too. */
+.collection-column {
+  max-width: var(--list-column);
+}
+
 /* One head line: the title in body type, the count faint beside it, the
    controls as quiet words at the right. */
 .panel-heading {

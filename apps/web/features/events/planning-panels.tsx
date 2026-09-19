@@ -138,6 +138,13 @@ function useReturnFocusToAddRow(panel: RefObject<HTMLElement | null>) {
   }, []);
 }
 
+/** A panel's classes: the list column for a list layout, the page for a period grid. */
+function panelClasses(view: EventComponentView): string {
+  return view === "week" || view === "month"
+    ? "planning-panel"
+    : "planning-panel panel-column";
+}
+
 export function TasksPanel({
   canEdit,
   eventId,
@@ -263,7 +270,7 @@ export function TasksPanel({
   const shownOpen = filteredTasks.filter(isOpen).length;
 
   return (
-    <section className="planning-panel" ref={panel}>
+    <section className={panelClasses(view)} ref={panel}>
       <PanelHeading
         controls={
           <div className="head-controls">
@@ -438,7 +445,7 @@ export function CalendarPanel({
     </article>
   );
   return (
-    <section className="planning-panel">
+    <section className={panelClasses(view)}>
       <PanelHeading
         controls={
           onChangeView === undefined ? undefined : (
@@ -655,7 +662,7 @@ export function ExpensesPanel({
   );
 
   return (
-    <section className="planning-panel">
+    <section className={panelClasses(view)}>
       <PanelHeading
         controls={
           onChangeView === undefined ? undefined : (
@@ -1045,7 +1052,7 @@ export function RemindersPanel({
   );
 
   return (
-    <section className="planning-panel" ref={panel}>
+    <section className={panelClasses(view)} ref={panel}>
       <PanelHeading
         controls={
           onChangeView === undefined ? undefined : (

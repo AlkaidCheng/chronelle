@@ -95,7 +95,7 @@ export function EventList() {
   const sorts = ["date", "updated", "name"] as const;
   return (
     <main className="workspace-page" ref={container} tabIndex={-1}>
-      <header className="quiet-heading">
+      <header className="quiet-heading collection-column">
         <h1>{t("title")}</h1>
         <div className="quiet-tools">
           <label className="inline-search">
@@ -194,7 +194,7 @@ export function EventList() {
 
       <section
         aria-labelledby="event-list-heading"
-        className="event-list-section"
+        className="event-list-section collection-column"
       >
         <p
           aria-label={t("countLabel")}

@@ -108,7 +108,7 @@ export function PeoplePage() {
 
   return (
     <main className="workspace-page" tabIndex={-1}>
-      <header className="quiet-heading">
+      <header className="quiet-heading collection-column">
         <h1>{t("title")}</h1>
         <div className="quiet-tools">
           <label className="inline-search">
@@ -177,7 +177,10 @@ export function PeoplePage() {
         <InviteFriendDialog onClose={() => setIsInviting(false)} />
       ) : null}
 
-      <section aria-labelledby="people-heading" className="event-list-section">
+      <section
+        aria-labelledby="people-heading"
+        className="event-list-section collection-column"
+      >
         <p
           aria-label={t("countLabel")}
           className="visually-hidden"

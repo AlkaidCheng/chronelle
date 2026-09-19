@@ -148,7 +148,7 @@ export function TasksPage() {
 
   return (
     <main className="workspace-page" tabIndex={-1}>
-      <header className="page-heading split-heading">
+      <header className="page-heading split-heading collection-column">
         <div>
           <p className="eyebrow">{t("eyebrow")}</p>
           <h1>{t("title")}</h1>
@@ -181,7 +181,7 @@ export function TasksPage() {
 
       <section
         aria-labelledby="task-list-heading"
-        className="event-list-section"
+        className="event-list-section collection-column"
       >
         <div className="collection-toolbar">
           <label className="collection-search">
