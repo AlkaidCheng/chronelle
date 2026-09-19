@@ -400,6 +400,7 @@ See [Recovery](recovery.md) for authorization, pagination, and rollout semantics
 | `POST`   | `/reminders`                     | Create a Reminder                   |
 | `GET`    | `/persons`                       | List visible People in name order   |
 | `POST`   | `/persons`                       | Create a Person                     |
+| `POST`   | `/notes`                         | Create a Note                       |
 | `GET`    | `/{type}/:id`                    | Read the requested typed object     |
 | `PATCH`  | `/{type}/:id`                    | Update with `expectedVersion`       |
 | `GET`    | `/objects/:id`                   | Read any supported canonical object |
@@ -550,6 +551,34 @@ another shape is refused with `rank is a position in manual order.`.
 Responses carry `rank`; `GET /tasks?sort=manual` lists by it. The rank is
 content the revision history records but never restores. Deploy migration
 0046 before this API.
+
+## Notes
+
+A Note is free text kept with an Event: a canonical object like the others,
+with the title as its `displayName` and a plain-text `body` (at most 20,000
+characters, line breaks kept as sent, empty by default), versioned, audited,
+trashed and recovered, restored from history, and searched by its title. A
+note is usually created inside an Event through `POST /api/events/:id/resources`
+with `objectType: "note"`, which includes it in the Event and gives it the
+Event's permission scope, so everyone who may edit the Event may edit the
+note; `POST /api/notes` creates one on its own. `PATCH /api/notes/:id` takes
+the last observed `expectedVersion` with any of `displayName`, `body`,
+`customProperties`, and `metadata`; a stale version is HTTP 409
+`version_conflict`, a body over the limit HTTP 400 with `body must be text
+of at most 20000 characters.`. History compares the text as the field
+`body` ("Text"); restoring an earlier revision brings its title and text
+back as a new version. Search matches titles only. Deploy migration 0060
+before this API and reapply the runtime role grants, which cover the new
+table.
+
+`GET /api/events/:id/notes?sort=edited|title` is the Notes projection: the
+live notes the Event includes that the caller may view, each note with
+`editedBy`, the display name of the account whose revision is its current
+version (null when the account is not known). `edited`, the default, lists
+the newest edit first; `title` orders by title without regard to case; ties
+break by id. A caller who cannot view the Event gets HTTP 404. The
+projection answers on both backends: PostgreSQL composes it from the
+relations and revisions, the gateway calls `chronelle_note_list`.
 
 ## Labels
 
@@ -760,6 +789,7 @@ when a view needs them.
 | `GET`  | `/events/:id/expenses`  | Included Expenses in reverse time order    |
 | `GET`  | `/events/:id/reminders` | Included Reminders ordered by trigger time |
 | `GET`  | `/events/:id/people`    | Included People in name order              |
+| `GET`  | `/events/:id/notes`     | Included Notes, newest edit first (Notes)  |
 
 Every projection is computed from active relationships and canonical rows. It
 does not create projection-owned data. Every included resource is separately
