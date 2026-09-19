@@ -77,6 +77,7 @@ test("keeps the account's tabs for an event through the gallery, Manage tabs, th
     "Expenses",
     "Reminders",
     "People",
+    "Notes",
     "Sharing",
     "Removed links",
     "Timeline",
@@ -124,6 +125,7 @@ test("keeps the account's tabs for an event through the gallery, Manage tabs, th
     "Reminders",
     "Calendar",
     "People",
+    "Notes",
     "Sharing",
     "Removed links",
     "Timeline",
@@ -142,6 +144,7 @@ test("keeps the account's tabs for an event through the gallery, Manage tabs, th
     "Reminders",
     "Calendar",
     "People",
+    "Notes",
     "Sharing",
     "Removed links",
     "Timeline",
@@ -157,6 +160,7 @@ test("keeps the account's tabs for an event through the gallery, Manage tabs, th
         "reminders",
         "calendar",
         "people",
+        "notes",
         "sharing",
         "removed-links",
         "timeline",
@@ -237,5 +241,5 @@ test("keeps the account's tabs for an event through the gallery, Manage tabs, th
 
   await page.setViewportSize({ width: 1280, height: 800 });
   await expect(chip).toHaveCount(0);
-  expect((await stripTabs(page)).length).toBe(9);
+  expect((await stripTabs(page)).length).toBe(10);
 });

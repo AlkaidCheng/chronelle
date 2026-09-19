@@ -23,7 +23,7 @@ export async function exerciseComponentCatalog(page: Page, testInfo: TestInfo) {
   await expect(search).toBeFocused();
   await expect(search).toHaveAccessibleDescription(`Add to ${destination}.`);
   const cards = picker.getByRole("button", { name: /^Add / });
-  await expect(cards).toHaveCount(8);
+  await expect(cards).toHaveCount(9);
   // A kind another page holds says so on its card; the rest say nothing.
   const todos = picker.getByRole("button", { name: "Add To-dos", exact: true });
   await expect(todos).toContainText("On another page");
@@ -39,7 +39,7 @@ export async function exerciseComponentCatalog(page: Page, testInfo: TestInfo) {
   );
   await picker.getByRole("button", { name: "Clear search" }).click();
   await expect(search).toBeFocused();
-  await expect(cards).toHaveCount(8);
+  await expect(cards).toHaveCount(9);
   await picker.screenshot({
     path: testInfo.outputPath("catalog-default.png"),
     animations: "disabled",
