@@ -3,9 +3,11 @@
 import { useTranslations } from "next-intl";
 import {
   type KeyboardEvent as ReactKeyboardEvent,
+  type RefObject,
   useCallback,
   useEffect,
   useId,
+  useLayoutEffect,
   useRef,
   useState,
 } from "react";
@@ -31,7 +33,7 @@ import {
   WeekendIcon,
 } from "./icons";
 import { MonthList } from "./month-list";
-import { useMenuDismissal, useMenuPlacement } from "./quiet-menu";
+import { useMenuDismissal } from "./quiet-menu";
 
 /** One moment: a calendar day and, when set, a local time of day. */
 export interface DayValue {
@@ -125,6 +127,55 @@ function textOf(props: DatePanelProps): string {
  * A day press sets a single date and closes; for a span it sets the start,
  * then the end, and stays open. Escape and a press outside close it.
  */
+/**
+ * Keeps the panel against the viewport under (or, without room, above) the
+ * row that opened it. The panel is fixed rather than absolute because the
+ * editors' bodies scroll and would clip a child that ran past them; on a
+ * phone the stylesheet makes it a sheet and the position is left alone.
+ */
+function usePanelPlacement(panel: RefObject<HTMLDivElement | null>) {
+  useLayoutEffect(() => {
+    const element = panel.current;
+    const opener = element?.parentElement;
+    if (!element || !opener) return;
+    const place = () => {
+      if (
+        typeof window.matchMedia === "function" &&
+        window.matchMedia("(max-width: 600px)").matches
+      ) {
+        element.style.left = "";
+        element.style.top = "";
+        element.style.maxHeight = "";
+        return;
+      }
+      const gap = 4;
+      const edge = 12;
+      const anchor = opener.getBoundingClientRect();
+      const height = element.offsetHeight;
+      const below = window.innerHeight - anchor.bottom - gap - edge;
+      const above = anchor.top - gap - edge;
+      const up = height > below && above > below;
+      const room = Math.max(160, up ? above : below);
+      element.style.maxHeight = `${room}px`;
+      const shown = Math.min(height, room);
+      const top = up ? anchor.top - gap - shown : anchor.bottom + gap;
+      const left = Math.min(
+        Math.max(edge, anchor.left),
+        window.innerWidth - element.offsetWidth - edge,
+      );
+      element.style.top = `${Math.max(edge, top)}px`;
+      element.style.left = `${left}px`;
+    };
+    place();
+    window.addEventListener("resize", place);
+    window.addEventListener("scroll", place, true);
+    return () => {
+      window.removeEventListener("resize", place);
+      window.removeEventListener("scroll", place, true);
+    };
+  }, [panel]);
+}
+
 export function DatePanel(props: DatePanelProps) {
   const {
     label,
@@ -180,7 +231,7 @@ export function DatePanel(props: DatePanelProps) {
     setUntilText(until === "" ? "" : exactDueDay(until));
   }
 
-  useMenuPlacement(true, panel);
+  usePanelPlacement(panel);
   const contains = useCallback(
     (target: Node) =>
       panel.current?.contains(target) === true ||

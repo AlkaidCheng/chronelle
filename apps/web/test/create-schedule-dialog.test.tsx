@@ -499,7 +499,6 @@ describe("schedule creation dialog", () => {
     vi.stubGlobal("fetch", request);
     const user = await openEditor();
     await user.type(screen.getByLabelText("Schedule item"), "Lower loop");
-    await user.click(screen.getByRole("switch", { name: "Set dates" }));
     const description = screen.getByLabelText("Description");
     expect(description).toHaveAttribute("placeholder", "Add a description");
     await user.type(

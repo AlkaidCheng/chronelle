@@ -5067,22 +5067,12 @@ ul.resource-list {
   border: 1px solid var(--line);
   border-radius: 12px;
   box-shadow: 0 12px 32px rgb(0 0 0 / 0.14);
-  display: grid;
-  left: 0;
-  position: absolute;
-  top: calc(100% + 4px);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  position: fixed;
   width: min(320px, calc(100vw - 32px));
-  z-index: 20;
-}
-
-.date-panel[data-place="up"] {
-  bottom: calc(100% + 4px);
-  top: auto;
-}
-
-.date-panel[data-align="end"] {
-  left: auto;
-  right: 0;
+  z-index: 40;
 }
 
 .date-panel-typed {
@@ -5162,6 +5152,9 @@ ul.resource-list {
 }
 
 .date-panel-months {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
   padding: 6px 10px 2px;
 }
 
@@ -5237,9 +5230,7 @@ ul.resource-list {
 
 /* On a phone the panel is a sheet from the bottom of the screen. */
 @media (max-width: 600px) {
-  .date-panel,
-  .date-panel[data-place="up"],
-  .date-panel[data-align="end"] {
+  .date-panel {
     border-radius: 16px 16px 0 0;
     bottom: 0;
     left: 0;
