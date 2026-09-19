@@ -6302,6 +6302,36 @@ html:has(.event-create-dialog[open]) {
   z-index: 20;
 }
 
+/* A menu opened from a chip that names its current choice ("Theme: Dark"). */
+.quiet-menu-chip {
+  align-items: center;
+  background: none;
+  border: 0;
+  border-radius: 6px;
+  color: var(--muted);
+  cursor: pointer;
+  display: inline-flex;
+  font: inherit;
+  gap: 5px;
+  padding: 4px 8px;
+}
+
+.quiet-menu-chip:hover,
+.quiet-menu-chip[aria-expanded="true"] {
+  background: var(--surface-subtle);
+  color: var(--ink);
+}
+
+.quiet-menu-chip-icon {
+  flex: none;
+  height: 16px;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.7;
+  width: 16px;
+}
+
 /* An item is one row: the icon, the label, then the keys or the check at
    the end; a hint, when there is one, takes a second line under the label. */
 .quiet-menu-item {
@@ -7308,43 +7338,6 @@ html:has(.event-create-dialog[open]) {
   max-width: 440px;
 }
 
-/* The language and theme menus of the screens outside a session. */
-.locale-menu {
-  align-items: center;
-  color: var(--muted);
-  display: inline-flex;
-  gap: 6px;
-}
-
-.locale-menu-label {
-  font-size: 0.8rem;
-}
-
-.locale-menu-icon {
-  height: 16px;
-  stroke: currentColor;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-  stroke-width: 1.7;
-  width: 16px;
-}
-
-.locale-menu select {
-  background: transparent;
-  border: 1px solid transparent;
-  border-radius: 8px;
-  color: var(--muted);
-  font: inherit;
-  font-size: 0.8rem;
-  padding: 6px 8px;
-}
-
-.locale-menu select:hover,
-.locale-menu select:focus {
-  border-color: var(--line-strong);
-  color: var(--ink);
-}
-
 @media (max-width: 760px) {
   /* The column may shrink below the section list, which then scrolls sideways
      on its own instead of widening the page. */
@@ -8122,6 +8115,7 @@ html:has(.event-create-dialog[open]) {
 }
 
 .code-language {
-  position: static;
+  font-size: 0.78rem;
   justify-self: end;
+  position: static;
 }

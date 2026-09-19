@@ -27,13 +27,13 @@ export function AccountPage({
       <div className="account-foot">
         {languageMenu ? (
           <>
-            <LocaleMenu labelled />
+            <LocaleMenu />
             <span aria-hidden="true" className="account-foot-dot">
               &middot;
             </span>
           </>
         ) : null}
-        <ThemeMenu labelled />
+        <ThemeMenu />
       </div>
     </main>
   );

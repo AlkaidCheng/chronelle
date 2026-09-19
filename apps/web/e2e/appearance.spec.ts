@@ -4,6 +4,16 @@ import { exerciseAppearance } from "./helpers/appearance";
 import { exerciseThemePanel } from "./helpers/display-settings";
 import { openThemePanel } from "./helpers/quiet-chrome";
 
+/** The footer's theme chip, which names the current choice ("Theme: Dark"). */
+const themeChip = (page: Page) =>
+  page.getByRole("button", { name: /^Theme:/u });
+
+/** Opens the footer's theme menu and picks a choice by its label. */
+const chooseTheme = async (page: Page, choice: string) => {
+  await themeChip(page).click();
+  await page.getByRole("menuitemradio", { name: choice, exact: true }).click();
+};
+
 const signIn = async (page: Page, name: string) => {
   await page.goto("/sign-in/development");
   await page.getByLabel("Name", { exact: true }).fill(name);
@@ -98,7 +108,7 @@ test("applies a saved appearance before application JavaScript loads @webkit-des
   await page.goto("/sign-in/development");
   await expect(page.locator("html")).toHaveCSS("color-scheme", "dark");
   // The footer's theme menu is in the server markup, before any script.
-  await expect(page.getByRole("combobox", { name: "Theme" })).toBeVisible();
+  await expect(themeChip(page)).toBeVisible();
   await expect(page.locator("html")).toHaveAttribute("data-appearance", "dark");
   await expect(page.locator("html")).toHaveAttribute("data-palette", "celadon");
   await expect(page.locator("html")).toHaveAttribute("data-density", "compact");
@@ -118,15 +128,12 @@ test("synchronizes the theme menu across tabs @webkit-desktop @webkit-mobile", a
   await expect(
     other.getByRole("button", { name: "Continue", exact: true }),
   ).toBeEnabled();
-  const theme = page.getByRole("combobox", { name: "Theme" });
-  await theme.selectOption("light");
-  await expect(other.getByRole("combobox", { name: "Theme" })).toHaveValue(
-    "light",
-  );
-  await theme.selectOption("dark");
+  await chooseTheme(page, "Light");
+  await expect(themeChip(other)).toHaveText("Theme: Light");
+  await chooseTheme(page, "Dark");
   await expect(other.locator("html")).toHaveCSS("color-scheme", "dark");
-  await other.getByRole("combobox", { name: "Theme" }).selectOption("system");
-  await expect(theme).toHaveValue("system");
+  await chooseTheme(other, "System");
+  await expect(themeChip(page)).toHaveText("Theme: System");
   await other.close();
 });
 
@@ -147,7 +154,7 @@ test("falls back from invalid storage and allows a page-only override when write
     page.getByRole("button", { name: "Continue", exact: true }),
   ).toBeEnabled();
   await expect(page.locator("html")).toHaveCSS("color-scheme", "light");
-  await page.getByRole("combobox", { name: "Theme" }).selectOption("dark");
+  await chooseTheme(page, "Dark");
   await expect(page.locator("html")).toHaveCSS("color-scheme", "dark");
   await page.reload();
   await expect(page.locator("html")).toHaveCSS("color-scheme", "light");

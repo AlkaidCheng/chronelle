@@ -2,7 +2,8 @@
 
 Accounts are email and password. Every account screen is one column: the
 brand, a card with the form, where there is one a line pointing to the
-other screen below it, and a footer with the Language and Theme menus. Sign
+other screen below it, and a footer with the Language and Theme menus, each
+a chip naming its choice ("Theme: System") that opens the choices. Sign
 in (`/sign-in`) takes the username or the email address of the account and
 the password, with Forgot password? beside the Password label and New to
 Chronelle? Create an account below. Create your Chronelle account
