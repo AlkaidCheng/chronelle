@@ -6,7 +6,6 @@
   "light": "Light",
   "dark": "Dark",
   "palette": "Palette",
-  "colorPalette": "Color palette",
   "density": "Density",
   "comfortable": "Comfortable",
   "compact": "Compact",
@@ -15,25 +14,10 @@
   "language": "Language",
   "reset": "Reset display settings",
   "customize": "Customize",
-  "customizeAppearance": "Customize appearance",
-  "closeDialog": "Close appearance settings",
-  "dialogIntro": "Make this space yours. Changes apply immediately on this browser, without changing anyone else's workspace.",
-  "lightAndDark": "Light and dark",
-  "lightAndDarkNote": "Every palette supports both. System follows your device.",
-  "comfortableNote": "More space between records",
-  "compactNote": "Closer rows, full-size controls",
-  "motionSystemNote": "Respect device motion preferences",
-  "motionReducedNote": "Minimize movement and transitions",
-  "storageNote": "Saved only when browser storage is available. Reset affects display settings only, never your events or files.",
   "done": "Done",
   "palettes": {
     "paper": "Ink & Paper",
     "celadon": "Celadon",
     "neutral": "Modern Neutral"
-  },
-  "paletteDescriptions": {
-    "paper": "Warm ivory and vermilion",
-    "celadon": "Porcelain greens and cool ink",
-    "neutral": "Quiet neutrals and blue"
   }
 }

@@ -6,13 +6,17 @@ import { useTranslations } from "next-intl";
 import { type FormEvent, Suspense, useEffect, useState } from "react";
 
 import { AccountPage } from "../../components/account-page";
-import { AppearanceSettings } from "../../components/appearance-settings";
 import { ErrorNotice } from "../../components/feedback";
 import { useRedirectWhenSignedIn, useSignUp } from "../../lib/account-queries";
 import { useAuthSession } from "../../lib/auth-session";
 import { useUsernameAvailableQuery } from "../../lib/friend-queries";
-import { suggestUsername, usernameShape } from "../../lib/username";
+import { usernameShape } from "../../lib/username";
 
+/**
+ * Create an account: the email, the password, and the username, whose
+ * availability is checked as typed. The name and the display preferences
+ * are asked on the Welcome step after the email is confirmed.
+ */
 function SignUpForm() {
   const t = useTranslations("auth");
   const auth = useAuthSession();
@@ -20,12 +24,9 @@ function SignUpForm() {
   const parameters = useSearchParams();
   const invitationToken = parameters.get("invitation");
   const signUp = useSignUp();
-  const [displayName, setDisplayName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  // The username follows the name until it is edited by hand.
   const [username, setUsername] = useState("");
-  const [usernameTouched, setUsernameTouched] = useState(false);
   const [debounced, setDebounced] = useState("");
   useEffect(() => {
     const timer = window.setTimeout(() => setDebounced(username), 250);
@@ -45,18 +46,11 @@ function SignUpForm() {
             : "taken";
   useRedirectWhenSignedIn();
 
-  function chooseName(next: string) {
-    setDisplayName(next);
-    if (!usernameTouched)
-      setUsername(next.trim() === "" ? "" : suggestUsername(next));
-  }
-
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!usernameShape.test(username)) return;
     signUp.mutate(
       {
-        displayName,
         email,
         password,
         username,
@@ -71,64 +65,8 @@ function SignUpForm() {
 
   return (
     <AccountPage>
-      <form className="sign-in-form" onSubmit={handleSubmit}>
-        <AppearanceSettings />
-        <div>
-          <p className="eyebrow">{t("signUp.eyebrow")}</p>
-          <h2>{t("signUp.title")}</h2>
-          <p className="form-intro">{t("signUp.intro")}</p>
-        </div>
-        <label className="field">
-          <span>{t("name")}</span>
-          <input
-            autoComplete="name"
-            disabled={!auth.isHydrated}
-            maxLength={120}
-            onChange={(event) => chooseName(event.target.value)}
-            required
-            value={displayName}
-          />
-        </label>
-        <label className="field">
-          <span>{t("username")}</span>
-          <span className="username-input">
-            <span aria-hidden="true" className="username-at">
-              @
-            </span>
-            <input
-              aria-describedby="sign-up-username-hint"
-              autoCapitalize="none"
-              autoComplete="username"
-              className="username-field"
-              disabled={!auth.isHydrated}
-              maxLength={30}
-              onChange={(event) => {
-                setUsernameTouched(true);
-                setUsername(event.target.value.trim());
-              }}
-              pattern="[A-Za-z][A-Za-z0-9_-]{2,29}"
-              required
-              value={username}
-            />
-          </span>
-        </label>
-        <p
-          className={`username-availability username-availability-${usernameState ?? "none"}`}
-          role="status"
-        >
-          {usernameState === null
-            ? ""
-            : t(
-                usernameState === "available"
-                  ? "usernameAvailable"
-                  : usernameState === "taken"
-                    ? "usernameTaken"
-                    : "usernameInvalid",
-              )}
-        </p>
-        <small className="field-hint" id="sign-up-username-hint">
-          {t("usernameHint")}
-        </small>
+      <form className="account-card" onSubmit={handleSubmit}>
+        <h1 className="account-title">{t("signUp.title")}</h1>
         <label className="field">
           <span>{t("email")}</span>
           <input
@@ -140,23 +78,62 @@ function SignUpForm() {
             value={email}
           />
         </label>
-        <label className="field">
-          <span>{t("password")}</span>
-          <input
-            aria-describedby="sign-up-password-hint"
-            autoComplete="new-password"
-            disabled={!auth.isHydrated}
-            maxLength={256}
-            minLength={10}
-            onChange={(event) => setPassword(event.target.value)}
-            required
-            type="password"
-            value={password}
-          />
-        </label>
-        <small className="field-hint" id="sign-up-password-hint">
-          {t("passwordHint")}
-        </small>
+        <div className="account-field">
+          <label className="field">
+            <span>{t("password")}</span>
+            <input
+              aria-describedby="sign-up-password-hint"
+              autoComplete="new-password"
+              disabled={!auth.isHydrated}
+              maxLength={256}
+              minLength={10}
+              onChange={(event) => setPassword(event.target.value)}
+              required
+              type="password"
+              value={password}
+            />
+          </label>
+          <small className="account-field-hint" id="sign-up-password-hint">
+            {t("signUp.passwordHint")}
+          </small>
+        </div>
+        <div className="account-field">
+          <label className="field">
+            <span>{t("username")}</span>
+            <span className="username-input">
+              <span aria-hidden="true" className="username-at">
+                @
+              </span>
+              <input
+                aria-describedby="sign-up-username-hint"
+                autoCapitalize="none"
+                autoComplete="username"
+                className="username-field"
+                disabled={!auth.isHydrated}
+                maxLength={30}
+                onChange={(event) => setUsername(event.target.value.trim())}
+                pattern="[A-Za-z][A-Za-z0-9_-]{2,29}"
+                required
+                value={username}
+              />
+            </span>
+          </label>
+          <p
+            className={`username-availability username-availability-${usernameState ?? "none"}`}
+            role="status"
+          >
+            {usernameState === null
+              ? ""
+              : usernameState === "available"
+                ? t("signUp.usernameAvailable", { username: debounced })
+                : usernameState === "taken"
+                  ? t("signUp.usernameTaken", { username: debounced })
+                  : t("signUp.usernameInvalid")}
+          </p>
+          <small className="account-field-hint" id="sign-up-username-hint">
+            {t("signUp.usernameHint")}
+          </small>
+        </div>
         {signUp.isError ? <ErrorNotice error={signUp.error} /> : null}
         <button
           className="button button-primary button-wide"
@@ -165,10 +142,14 @@ function SignUpForm() {
         >
           {signUp.isPending ? t("signUp.pending") : t("signUp.submit")}
         </button>
-        <p className="form-links">
-          <Link href="/sign-in">{t("signUp.haveAccount")}</Link>
-        </p>
+        <p className="account-fine">{t("signUp.fine")}</p>
       </form>
+      <p className="account-aside">
+        {t("signUp.haveAccount")}{" "}
+        <Link className="account-aside-link" href="/sign-in">
+          {t("signUp.signIn")}
+        </Link>
+      </p>
     </AccountPage>
   );
 }

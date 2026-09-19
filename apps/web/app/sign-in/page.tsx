@@ -4,10 +4,9 @@ import { ApiClientError } from "@chronelle/api-client";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { type FormEvent, useState } from "react";
+import { type FormEvent, useId, useState } from "react";
 
 import { AccountPage } from "../../components/account-page";
-import { AppearanceSettings } from "../../components/appearance-settings";
 import { ErrorNotice } from "../../components/feedback";
 import {
   usePasswordSignIn,
@@ -15,19 +14,21 @@ import {
 } from "../../lib/account-queries";
 import { useAuthSession } from "../../lib/auth-session";
 
+/** Sign in with the username or the email of the account and its password. */
 export default function SignInPage() {
   const t = useTranslations("auth");
   const auth = useAuthSession();
   const router = useRouter();
   const signIn = usePasswordSignIn();
-  const [email, setEmail] = useState("");
+  const [login, setLogin] = useState("");
   const [password, setPassword] = useState("");
+  const passwordId = useId();
   useRedirectWhenSignedIn();
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     signIn.mutate(
-      { email, password },
+      { login, password },
       {
         onError: (error) => {
           // The address is registered but not yet verified; a fresh code was
@@ -36,7 +37,11 @@ export default function SignInPage() {
             error instanceof ApiClientError &&
             error.code === "email_unverified"
           )
-            router.push(`/verify-email?email=${encodeURIComponent(email)}`);
+            router.push(
+              login.includes("@")
+                ? `/verify-email?email=${encodeURIComponent(login)}`
+                : "/verify-email",
+            );
         },
       },
     );
@@ -44,35 +49,36 @@ export default function SignInPage() {
 
   return (
     <AccountPage>
-      <form className="sign-in-form" onSubmit={handleSubmit}>
-        <AppearanceSettings />
-        <div>
-          <p className="eyebrow">{t("signIn.eyebrow")}</p>
-          <h2>{t("signIn.title")}</h2>
-          <p className="form-intro">{t("signIn.intro")}</p>
-        </div>
+      <form className="account-card" onSubmit={handleSubmit}>
+        <h1 className="account-title">{t("signIn.title")}</h1>
         <label className="field">
-          <span>{t("email")}</span>
+          <span>{t("signIn.login")}</span>
           <input
-            autoComplete="email"
+            autoCapitalize="none"
+            autoComplete="username"
             disabled={!auth.isHydrated}
-            onChange={(event) => setEmail(event.target.value)}
+            onChange={(event) => setLogin(event.target.value)}
             required
-            type="email"
-            value={email}
+            value={login}
           />
         </label>
-        <label className="field">
-          <span>{t("password")}</span>
+        <div className="field">
+          <span className="field-head">
+            <label htmlFor={passwordId}>{t("password")}</label>
+            <Link className="field-head-link" href="/reset-password">
+              {t("signIn.forgot")}
+            </Link>
+          </span>
           <input
             autoComplete="current-password"
             disabled={!auth.isHydrated}
+            id={passwordId}
             onChange={(event) => setPassword(event.target.value)}
             required
             type="password"
             value={password}
           />
-        </label>
+        </div>
         {signIn.isError ? <ErrorNotice error={signIn.error} /> : null}
         <button
           className="button button-primary button-wide"
@@ -81,11 +87,13 @@ export default function SignInPage() {
         >
           {signIn.isPending ? t("signIn.pending") : t("signIn.submit")}
         </button>
-        <p className="form-links">
-          <Link href="/sign-up">{t("signIn.createAccount")}</Link>
-          <Link href="/reset-password">{t("signIn.forgot")}</Link>
-        </p>
       </form>
+      <p className="account-aside">
+        {t("signIn.new")}{" "}
+        <Link className="account-aside-link" href="/sign-up">
+          {t("signIn.createAccount")}
+        </Link>
+      </p>
     </AccountPage>
   );
 }

@@ -1,22 +1,35 @@
 # Web experience
 
-Accounts are email and password. Sign in at `/sign-in`; Create an account
-(`/sign-up`) asks for a name, a username, an email, and a password of at
-least ten characters, then moves to `/verify-email` for the six-digit code
-sent to the address (Send a new code issues another; a sign-in attempt on an
-unverified address also sends one and lands on the same screen). The
-username (3 to 30 letters, digits, hyphens or underscores, starting with a
-letter; unique without regard to case) is the handle friends find the
-account by; the field follows the name until it is edited, and says whether
-what it holds is Available, Taken, or not a valid username. Every account
-has one: an account created without choosing (the development sign-in
-today; other sign-in methods later) gets one from its name, numbered when
-that is taken. It is not changed afterwards. Forgot your password?
-(`/reset-password`) sends a code to the account's email, then takes the code
-and a new password; the reset signs every other session of the account out.
-Each screen redirects to the collection once a session exists, and Sign out
-ends the session on the server as well as in the tab. The development
-sign-in (name and email, no password) lives at `/sign-in/development` and
+Accounts are email and password. Every account screen is one column: the
+brand, a card with the form, where there is one a line pointing to the
+other screen below it, and a footer with the Language and Theme menus. Sign
+in (`/sign-in`) takes the username or the email address of the account and
+the password, with Forgot password? beside the Password label and New to
+Chronelle? Create an account below. Create your Chronelle account
+(`/sign-up`) asks for the email, a password of at least ten characters, and
+a username (3 to 30 letters, digits, hyphens or underscores, starting with a
+letter; unique without regard to case), which is the handle friends find
+the account by and cannot be changed later; the line under the field says
+whether what it holds is available, not available, or not a valid
+username, and every hint on these screens is a rule in a full sentence.
+Create account moves to `/verify-email`, which names the address in its
+sentence and takes the six-digit code sent to it (Send a new code issues
+another; a sign-in attempt on an unverified address also sends one and
+lands on the same screen; the screen opened by hand asks for the address
+too). The first sign-in of a new account then opens Welcome (`/welcome`),
+once: the account's `@username` and email at the top, then the Name
+(required), the Language (Browser default, or one of the languages), the
+Time zone and the Clock (the device's until changed), and Continue, which
+opens the workspace; the step comes back until it is completed, and the
+account is named as its username until then. An account created any other
+way (the development sign-in today; other sign-in methods later) brings its
+name, gets a username from it, numbered when that is taken, and has no
+Welcome step. Reset your password (`/reset-password`) takes the email
+address, then the code sent to it and a new password; the reset signs every
+other session of the account out. Each screen redirects to the collection
+once a session exists, and Sign out ends the session on the server as well
+as in the tab. The development sign-in (name and email, no password) lives
+at `/sign-in/development` and
 exists only where the web server is started with
 `WEB_DEVELOPMENT_SIGN_IN=true`.
 
@@ -397,8 +410,8 @@ usable but cannot guarantee persistence. Sandbox file storage depends on the
 browser and file location.
 
 The Theme panel previews Ink & Paper, Celadon, and Modern Neutral in the
-current light/dark mode (sign-in keeps its Customize dialog for the same
-choices). Choosing a palette does not change that mode. Comfortable/Compact
+current light/dark mode; outside a session the account screens' footer
+offers the mode alone. Choosing a palette does not change that mode. Comfortable/Compact
 density changes Event-card and record-row spacing without shrinking controls.
 Motion follows the device by default; Reduced minimizes transitions and
 movement even when the device allows them. Device-level reduced motion always
@@ -438,10 +451,10 @@ the light paper color; the running page follows the selected appearance.
 ## Settings
 
 Settings (`/settings`, from the profile menu) lists its sections at the left
-and opens one at the right; each section has its own address. Account shows
-the display name and email as the account holds them (neither can be changed
-here yet) and the username as chosen at sign-up, which cannot be changed
-yet; Who can find you, with By username always on,
+and opens one at the right; each section has its own address. Account holds
+the Name, changed here with Save name, the username as chosen at sign-up,
+which cannot be changed, and the email as the account holds it; Who can
+find you, with By username always on,
 and By name and By email as switches the account turns off to be left out of
 Find people by that key (By email is off for an account without one); links
 to the password screen; and Sign out everywhere, which ends every session of
@@ -532,7 +545,10 @@ event's History, and the command palette in it, add a person to an event's
 People view and open the person editor, open the Share view and read its
 groups, return to System, and render
 the sign-in screen from a `zh-TW` browser, choosing English from its compact
-menu. A Settings journey (Chromium and WebKit desktop) opens Settings from the
+menu. An account journey (Chromium and WebKit desktop) creates an account
+with a username, reads the code from the journeys' mailbox file, completes
+Welcome with a name and a 24-hour clock, finds both in Settings, and signs
+in again by username. A Settings journey (Chromium and WebKit desktop) opens Settings from the
 profile menu, changes the language and back, chooses a 24-hour clock, the UTC
 zone, and a Monday week, sees a timed task and the week strip follow, reads
 every choice back after a reload, and signs out everywhere. Unit tests hold

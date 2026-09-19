@@ -4,7 +4,6 @@ import { useTranslations } from "next-intl";
 import { type FormEvent, useState } from "react";
 
 import { AccountPage } from "../../../components/account-page";
-import { AppearanceSettings } from "../../../components/appearance-settings";
 import { ErrorNotice } from "../../../components/feedback";
 import { useRedirectWhenSignedIn } from "../../../lib/account-queries";
 import { useAuthSession } from "../../../lib/auth-session";
@@ -24,15 +23,11 @@ export function DevelopmentSignInForm() {
   }
 
   return (
-    <AccountPage footnote={t("development.footnote")}>
-      <form className="sign-in-form" onSubmit={handleSubmit}>
-        <AppearanceSettings />
-        <div>
-          <span className="preview-label">{t("development.preview")}</span>
-          <p className="eyebrow">{t("development.eyebrow")}</p>
-          <h2>{t("development.title")}</h2>
-          <p className="form-intro">{t("development.intro")}</p>
-        </div>
+    <AccountPage>
+      <form className="account-card" onSubmit={handleSubmit}>
+        <span className="preview-label">{t("development.preview")}</span>
+        <h1 className="account-title">{t("development.title")}</h1>
+        <p className="account-intro">{t("development.intro")}</p>
         <label className="field">
           <span>{t("name")}</span>
           <input
@@ -67,7 +62,7 @@ export function DevelopmentSignInForm() {
             ? t("development.pending")
             : t("development.continue")}
         </button>
-        <p className="privacy-note">{t("development.privacy")}</p>
+        <p className="account-fine">{t("development.privacy")}</p>
       </form>
     </AccountPage>
   );
