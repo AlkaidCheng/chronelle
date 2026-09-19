@@ -167,7 +167,10 @@ describe("schedule item inspector", () => {
     render(<ScheduleItemInspector eventId={eventId} onClose={onClose} />, {
       wrapper: Providers,
     });
-    const place = await screen.findByLabelText("Place");
+    await user.click(
+      await screen.findByRole("button", { name: /^Add a place/ }),
+    );
+    const place = screen.getByLabelText("Place");
     expect(place).toHaveValue("");
     await user.type(place, " Camellia Flower, Ninenzaka ");
     await user.click(screen.getByRole("button", { name: "Save event" }));

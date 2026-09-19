@@ -1,7 +1,7 @@
 import { expect, type Page, type TestInfo } from "@playwright/test";
 import { expectToken } from "./appearance";
 import { expectHorizontalReflow } from "./page-navigation";
-import { expectDates } from "./range-picker";
+import { expectDates } from "./date-rows";
 
 export async function reopenScheduleDraft(page: Page) {
   const calendarUrl = page.url();

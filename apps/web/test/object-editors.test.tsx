@@ -160,7 +160,7 @@ describe.each(["task", "expense"] as const)("focused %s editors", (kind) => {
         resource.displayName,
       );
       expect(screen.getByLabelText(field)).toHaveFocus();
-      expect(screen.getByRole("dialog")).toHaveClass("event-inspector");
+      expect(screen.getByRole("dialog")).toHaveClass("event-create-dialog");
     });
 
     it.each([401, 403, 404, "viewer"] as const)(

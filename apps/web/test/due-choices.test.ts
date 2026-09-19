@@ -14,33 +14,30 @@ import { parseDayKey } from "../lib/day-placement";
 const at = (key: string) => parseDayKey(key);
 
 describe("due choices", () => {
-  it("offers the shortcuts a weekday allows, with the days they mean", () => {
+  it("offers the same four shortcuts every day, with the days they mean", () => {
     // 2030-03-05 is a Tuesday.
     const tuesday = dueShortcuts(at("2030-03-05"));
     expect(tuesday.map(({ id, day }) => [id, day])).toEqual([
       ["today", "2030-03-05"],
       ["tomorrow", "2030-03-06"],
-      ["later-this-week", "2030-03-07"],
-      ["weekend", "2030-03-09"],
       ["next-week", "2030-03-11"],
+      ["next-weekend", "2030-03-09"],
     ]);
-    // Thursday: two days on is Saturday, so no Later this week.
-    expect(dueShortcuts(at("2030-03-07")).map(({ id }) => id)).toEqual([
-      "today",
-      "tomorrow",
-      "weekend",
-      "next-week",
-    ]);
-    // Saturday: no weekend shortcut; next week is Monday.
+    // The weekend runs through its Sunday.
+    expect(tuesday.at(-1)?.through).toBe("2030-03-10");
+    // Saturday: the coming weekend is a week on; next week is Monday.
     expect(
       dueShortcuts(at("2030-03-09")).map(({ id, day }) => [id, day]),
     ).toEqual([
       ["today", "2030-03-09"],
       ["tomorrow", "2030-03-10"],
       ["next-week", "2030-03-11"],
+      ["next-weekend", "2030-03-16"],
     ]);
-    // Sunday: next week is tomorrow's Monday.
-    expect(dueShortcuts(at("2030-03-10")).at(-1)?.day).toBe("2030-03-11");
+    // Sunday: next week is tomorrow's Monday; the weekend is the coming Saturday.
+    const sunday = dueShortcuts(at("2030-03-10"));
+    expect(sunday[2]?.day).toBe("2030-03-11");
+    expect(sunday[3]?.day).toBe("2030-03-16");
   });
 
   it("describes a day as its exact date, with today or tomorrow as a hint", () => {

@@ -406,7 +406,7 @@ describe("schedule creation dialog", () => {
     await user.click(screen.getByRole("button", { name: "Keep editing" }));
     expect(name).toHaveFocus();
     expect(name).toHaveValue("Garden welcome");
-    expect(screen.getByRole("table", { name: "July 2030" })).toBeVisible();
+    expect(dateRow(/^Dates/)).toHaveTextContent("Dates: Jul 3, 2030");
     await user.click(screen.getByRole("button", { name: "Cancel" }));
     await user.click(screen.getByRole("button", { name: "Discard" }));
     expect(unloadIsPrevented()).toBe(false);

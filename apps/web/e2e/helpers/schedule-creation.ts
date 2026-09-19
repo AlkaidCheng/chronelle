@@ -1,7 +1,13 @@
 import { expect, type Page, type TestInfo } from "@playwright/test";
 import { expectToken } from "./appearance";
 import { expectHorizontalReflow } from "./page-navigation";
-import { datesSummary, dayName, expectDates } from "./range-picker";
+import {
+  closeDatePanel,
+  datesRow,
+  dayName,
+  expectDates,
+  openDatePanel,
+} from "./date-rows";
 import { openEventView } from "./event-view";
 
 export async function prepareScheduleCreation(page: Page, testInfo: TestInfo) {
@@ -24,7 +30,8 @@ export async function prepareScheduleCreation(page: Page, testInfo: TestInfo) {
   await expect(name).toBeFocused();
   expect((await panel.boundingBox())?.height).toBe(before?.height);
   await name.fill("Garden arrival");
-  // The chooser brings July 2030 to the top; two clicks choose the range.
+  // The chooser brings July 2030 to the top; two clicks choose the span.
+  await openDatePanel(dialog, datesRow(dialog));
   await dialog
     .getByRole("button", { name: /^Choose a month and year/ })
     .click();
@@ -33,7 +40,7 @@ export async function prepareScheduleCreation(page: Page, testInfo: TestInfo) {
   await dialog.getByRole("button", { name: dayName("2030-07-03") }).click();
   await dialog.getByRole("button", { name: dayName("2030-07-05") }).click();
   await expectDates(dialog, "Jul 3, 2030 to Jul 5, 2030");
-  await datesSummary(dialog).click();
+  await closeDatePanel(dialog);
   await name.press("Escape");
   const confirmation = page.getByRole("dialog", {
     name: "Discard schedule item?",
@@ -53,7 +60,7 @@ export async function prepareScheduleCreation(page: Page, testInfo: TestInfo) {
     await expectToken(dialog, "color", "ink");
     await expectToken(dialog.getByRole("heading"), "color", "ink");
     for (const text of await dialog
-      .locator(".schedule-toggle strong, .range-picker summary")
+      .locator(".field-row-value:not(.is-unset)")
       .all())
       await expectToken(text, "color", "ink");
     await page.evaluate(

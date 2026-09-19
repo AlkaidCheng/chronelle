@@ -1,5 +1,5 @@
 import { expect, type Page, type TestInfo } from "@playwright/test";
-import { expectDates, setDates } from "./range-picker";
+import { expectDates, expectNoDates, setDates } from "./date-rows";
 
 export async function exerciseEventDrafts(page: Page, testInfo: TestInfo) {
   const trigger = page.getByRole("button", { name: "New event", exact: true });
@@ -17,7 +17,6 @@ export async function exerciseEventDrafts(page: Page, testInfo: TestInfo) {
   await trigger.click();
   const name = editor.getByLabel("Event name", { exact: true });
   await name.fill("Summer gathering");
-  await editor.getByRole("switch", { name: "Set dates" }).check();
   await setDates(editor, "2030-07-03", "2030-07-12");
   await name.focus();
   await page.keyboard.press("Escape");
@@ -36,7 +35,6 @@ export async function exerciseEventDrafts(page: Page, testInfo: TestInfo) {
   await page.keyboard.press("Enter");
   await expect(name).toBeFocused();
   await expect(name).toHaveValue("Summer gathering");
-  await expect(editor.getByRole("table", { name: "July 2030" })).toBeVisible();
   await expectDates(editor, "Jul 3, 2030 to Jul 12, 2030");
   await editor.getByRole("button", { name: "Close event creation" }).click();
   await page.keyboard.press("Escape");
@@ -84,9 +82,7 @@ export async function exerciseEventDrafts(page: Page, testInfo: TestInfo) {
   await expect(trigger).toBeFocused();
   await trigger.click();
   await expect(name).toHaveValue("");
-  await expect(
-    editor.getByRole("switch", { name: "Set dates" }),
-  ).not.toBeChecked();
+  await expectNoDates(editor);
   await page.keyboard.press("Escape");
   await expect(trigger).toBeFocused();
 }

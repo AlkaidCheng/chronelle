@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { expect, type Page, test } from "./fixtures";
 import { moreTrigger } from "./helpers/quiet-chrome";
-import { setDates } from "./helpers/range-picker";
+import { setDates } from "./helpers/date-rows";
 import { openEventView } from "./helpers/event-view";
 
 // The Chinese strings the journey looks for, as escapes so the spec stays
@@ -117,7 +117,6 @@ test("switches the workspace to Simplified and Traditional Chinese and back @web
   await expect(page.locator("html")).toHaveAttribute("lang", "en");
   await page.getByRole("button", { name: "New event", exact: true }).click();
   await page.getByLabel("Event name", { exact: true }).fill("Summer vacation");
-  await page.getByRole("switch", { name: "Set dates" }).check();
   const editor = page.getByRole("dialog", { name: "Create an event" });
   await setDates(editor, "2030-07-03", "2030-07-12");
   await page.getByRole("button", { name: "Create event", exact: true }).click();

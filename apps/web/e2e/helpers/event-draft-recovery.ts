@@ -1,7 +1,7 @@
 import { expect, type Page, type TestInfo } from "@playwright/test";
 import { expectHorizontalReflow } from "./page-navigation";
 import { expectToken } from "./appearance";
-import { expectDates, setDates } from "./range-picker";
+import { expectDates, setDates } from "./date-rows";
 
 export async function createRecoveryEvent(page: Page) {
   await expect(
@@ -29,7 +29,6 @@ export async function exerciseEventDraftRecovery(
   await page
     .getByLabel("Name", { exact: true })
     .fill("Recovered garden evening");
-  await page.getByRole("switch", { name: "Set dates", exact: true }).check();
   await setDates(page.getByRole("dialog"), "2030-07-03", "2030-07-12");
 
   for (let index = 0; index < 2; index++) {

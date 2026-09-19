@@ -1,7 +1,12 @@
 import { randomUUID } from "node:crypto";
 import { eventResponseSchema } from "@chronelle/schemas";
 import { expect, test } from "./fixtures";
-import { expectDates, setDates } from "./helpers/range-picker";
+import {
+  expectDates,
+  expectTimes,
+  setDates,
+  setTimes,
+} from "./helpers/date-rows";
 import { openEventView } from "./helpers/event-view";
 
 test("creates a date-only range and switches to multi-day exact times @webkit-desktop @webkit-mobile", async ({
@@ -21,7 +26,6 @@ test("creates a date-only range and switches to multi-day exact times @webkit-de
   await page.getByRole("button", { name: "Continue" }).click();
   await page.getByRole("button", { name: "New event", exact: true }).click();
   await page.getByLabel("Event name", { exact: true }).fill("Summer vacation");
-  await page.getByRole("switch", { name: "Set dates" }).check();
   const editor = page.getByRole("dialog", { name: "Create an event" });
   await setDates(editor, "2030-07-03", "2030-07-12");
   await page.getByRole("button", { name: "Create event", exact: true }).click();
@@ -44,9 +48,8 @@ test("creates a date-only range and switches to multi-day exact times @webkit-de
   await expect(page.getByLabel("Object ID", { exact: true })).toBeHidden();
   await page.reload();
   await page.getByRole("button", { name: "Edit event", exact: true }).click();
-  await page.getByRole("switch", { name: "Add times" }).check();
-  await page.getByLabel("Start time", { exact: true }).fill("09:30");
-  await page.getByLabel("End time", { exact: true }).fill("18:00");
+  const edit = page.getByRole("dialog", { name: "Edit event", exact: true });
+  await setTimes(edit, "09:30", "18:00");
   await page.getByRole("button", { name: "Save event", exact: true }).click();
   await expect(
     page.getByRole("dialog", { name: "Edit event", exact: true }),
@@ -58,13 +61,8 @@ test("creates a date-only range and switches to multi-day exact times @webkit-de
   ).toBeGreaterThan(8 * 86_400_000);
   await page.reload();
   await page.getByRole("button", { name: "Edit event", exact: true }).click();
-  await expectDates(
-    page.getByRole("dialog", { name: "Edit event", exact: true }),
-    "Jul 3, 2030 to Jul 12, 2030",
-  );
-  await expect(page.getByLabel("Start time", { exact: true })).toHaveValue(
-    "09:30",
-  );
+  await expectDates(edit, "Jul 3, 2030 to Jul 12, 2030");
+  await expectTimes(edit, "9:30 AM to 6:00 PM");
 });
 
 // Dates are worded in the application's language, which is negotiated from

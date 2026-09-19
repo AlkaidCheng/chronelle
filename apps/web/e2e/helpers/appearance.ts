@@ -5,7 +5,7 @@ import {
   type TestInfo,
 } from "@playwright/test";
 import { selectLeapDayRange } from "./calendar-keyboard";
-import { expectDates } from "./range-picker";
+import { closeDatePanel, expectDates } from "./date-rows";
 import { openThemePanel } from "./quiet-chrome";
 
 export async function expectReadablePalette(page: Page) {
@@ -118,6 +118,7 @@ export async function exerciseAppearance(
   await expectDates(dialog, "Feb 28, 2028 to Mar 1, 2028");
   await expectReadablePalette(page);
   await page.emulateMedia({ colorScheme: appearance });
+  await closeDatePanel(dialog);
   await dialog
     .getByRole("button", { name: "Create event", exact: true })
     .click();

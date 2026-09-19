@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { expectTimes } from "../../e2e/helpers/date-rows";
 import { exerciseScheduleRefinement } from "../../e2e/helpers/schedule-refinement";
 
 const sandboxUrl = new URL(
@@ -17,11 +18,9 @@ test("refines schedules offline with explicit times and retained dates", async (
   await exerciseScheduleRefinement(page, testInfo);
   await page.reload();
   await page.getByRole("button", { name: "Edit event", exact: true }).click();
-  await expect(page.getByLabel("Start time", { exact: true })).toHaveValue(
-    "10:00",
+  await expectTimes(
+    page.getByRole("dialog", { name: "Edit event", exact: true }),
+    "10:00 AM to 11:00 AM",
   );
-  await expect(
-    page.getByLabel("End time (optional)", { exact: true }),
-  ).toHaveValue("11:00");
   expect(errors).toEqual([]);
 });

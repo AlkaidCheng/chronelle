@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { expect, type Page, test } from "./fixtures";
 import { chooseLayout } from "./helpers/component-views";
-import { setDue } from "./helpers/due-picker";
+import { setDue } from "./helpers/date-rows";
 
 // The Chinese strings the journey looks for, as escapes so the spec stays
 // ASCII like the rest of the suite.

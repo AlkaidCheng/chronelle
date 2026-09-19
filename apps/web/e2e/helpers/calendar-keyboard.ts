@@ -1,9 +1,15 @@
 import { expect, type Page } from "@playwright/test";
-import { dayName, expectDates } from "./range-picker";
+import {
+  datesRow,
+  dayName,
+  expectDates,
+  expectNoDates,
+  openDatePanel,
+} from "./date-rows";
 
 export async function selectLeapDayRange(page: Page) {
   const dialog = page.getByRole("dialog", { name: "Create an event" });
-  await dialog.getByRole("switch", { name: "Set dates" }).check();
+  await openDatePanel(dialog, datesRow(dialog));
   await dialog
     .getByRole("button", { name: /^Choose a month and year/ })
     .click();
@@ -35,7 +41,7 @@ export async function selectLeapDayRange(page: Page) {
   await expect(
     dialog.getByRole("button", { name: dayName("2028-02-28") }),
   ).toBeFocused();
-  await expectDates(dialog, "not set");
+  await expectNoDates(dialog);
   await page.keyboard.press("Enter");
   await page.keyboard.press("ArrowRight");
   await page.keyboard.press("ArrowRight");
