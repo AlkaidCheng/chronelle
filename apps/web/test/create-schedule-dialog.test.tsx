@@ -12,6 +12,7 @@ import userEvent from "@testing-library/user-event";
 import { useState } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { Providers } from "../app/providers";
+import { CreateScheduleDialog } from "../features/events/create-schedule-dialog";
 import { CalendarPanel } from "../features/events/planning-panels";
 import { useAuthSession } from "../lib/auth-session";
 import { SandboxStore, sandboxWorkspaceId } from "../sandbox/store";
@@ -21,9 +22,12 @@ let store: SandboxStore;
 let eventId: string;
 let otherEventId: string;
 
+// The dialog under test, opened from a row of its own: the Calendar's add
+// row opens the composer, which reaches the dialog through More.
 function Harness({ canEdit = true }: { canEdit?: boolean }) {
   const session = useAuthSession();
   const [visible, setVisible] = useState(true);
+  const [adding, setAdding] = useState(false);
   const [parentId, setParentId] = useState(eventId);
   return (
     <>
@@ -52,14 +56,18 @@ function Harness({ canEdit = true }: { canEdit?: boolean }) {
       >
         Switch parent
       </button>
-      {visible && (
-        <CalendarPanel
+      {visible && canEdit ? (
+        <button type="button" onClick={() => setAdding(true)}>
+          Add schedule item
+        </button>
+      ) : null}
+      {visible && canEdit && adding ? (
+        <CreateScheduleDialog
           key={parentId}
-          canEdit={canEdit}
           eventId={parentId}
-          items={[]}
+          onClose={() => setAdding(false)}
         />
-      )}
+      ) : null}
     </>
   );
 }
@@ -571,11 +579,16 @@ describe("schedule creation dialog", () => {
 
   it("removes creation when parent edit access is withdrawn", async () => {
     const user = userEvent.setup();
-    const view = render(<Harness />, { wrapper: Providers });
+    const view = render(
+      <CalendarPanel canEdit eventId={eventId} items={[]} />,
+      { wrapper: Providers },
+    );
     await user.click(screen.getByRole("button", { name: "Add schedule item" }));
     await user.type(screen.getByLabelText("Schedule item"), "Private plan");
-    view.rerender(<Harness canEdit={false} />);
-    expect(screen.queryByRole("dialog")).toBeNull();
+    view.rerender(
+      <CalendarPanel canEdit={false} eventId={eventId} items={[]} />,
+    );
+    expect(screen.queryByLabelText("Schedule item")).toBeNull();
     expect(
       screen.queryByRole("button", { name: "Add schedule item" }),
     ).toBeNull();
