@@ -216,7 +216,7 @@ function PersonEditor({
   return (
     <dialog
       ref={dialog}
-      className={`event-create-dialog${person ? " event-inspector" : ""}`}
+      className="event-create-dialog"
       aria-labelledby={headingId}
       onCancel={(event) => {
         event.preventDefault();

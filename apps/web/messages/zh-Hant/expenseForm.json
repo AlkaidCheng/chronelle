@@ -10,8 +10,10 @@
   "namePlaceholder": "場地訂金",
   "amount": "金額",
   "currency": "幣別",
-  "date": "日期",
-  "timeIn": "交易時間以 {zone} 為準。",
+  "date": "支付日期",
+  "setDate": "設定支付日期",
+  "dateHint": "交易的日期和時間",
+  "clearDate": "清除支付日期",
   "create": "記錄支出",
   "save": "儲存支出"
 }

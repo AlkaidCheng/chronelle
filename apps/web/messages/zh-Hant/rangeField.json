@@ -1,13 +1,3 @@
 {
-  "notSet": "未設定",
-  "summary": "日期：{dates}",
-  "startDate": "開始日期",
-  "endDate": "結束日期",
-  "placeholder": "9月21日、明天、2030-09-21",
-  "optional": "可選",
-  "unreadable": "無法辨識的日期。試試 9月21日、明天或 2030-09-21。",
-  "startFirst": "請先選擇開始日期。",
-  "endBeforeStart": "結束不能早於開始。",
-  "shortcuts": "日程快捷選項",
-  "noDates": "無日期"
+  "notSet": "未設定"
 }

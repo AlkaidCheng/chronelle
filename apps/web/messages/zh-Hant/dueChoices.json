@@ -1,7 +1,6 @@
 {
   "today": "今天",
   "tomorrow": "明天",
-  "laterThisWeek": "本週稍後",
-  "thisWeekend": "本週末",
-  "nextWeek": "下週"
+  "nextWeek": "下週",
+  "nextWeekend": "下個週末"
 }

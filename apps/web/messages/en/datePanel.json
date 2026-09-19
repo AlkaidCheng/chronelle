@@ -1,0 +1,21 @@
+{
+  "typeDate": "Type a date",
+  "placeholder": "Sep 21, tomorrow, 2030-09-21",
+  "spanPlaceholder": "Sep 21, tomorrow, Sep 21 to Sep 23",
+  "shortcuts": "Shortcuts",
+  "unreadable": "Not a date the panel knows. Try Sep 21, 21 Sep, 9/21, tomorrow, or 2030-09-21.",
+  "endBeforeStart": "The end cannot come before the start.",
+  "time": "Time",
+  "times": "Times",
+  "startTime": "Start",
+  "endTime": "End",
+  "removeTime": "Remove time",
+  "removeTimes": "Remove times",
+  "timesIn": "Times are in {zone}.",
+  "repeat": "Repeat",
+  "noRepeat": "Does not repeat",
+  "until": "Until",
+  "optional": "Optional",
+  "untilUnreadable": "Not a date the panel knows. Try Sep 21, 21 Sep, 9/21, or 2030-09-21.",
+  "untilEarly": "The end cannot come before the due date."
+}

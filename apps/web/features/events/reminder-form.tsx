@@ -14,7 +14,7 @@ import {
   readReminderFields,
   reminderFieldsPayload,
 } from "../../lib/reminder-fields";
-import { shownTimeZone } from "../../i18n/active-preferences";
+import { MomentRow } from "../../components/moment-row";
 import { toDateTimeInput } from "../../lib/format";
 import {
   eventCreationDraftKeys,
@@ -187,7 +187,7 @@ function ReminderEditor({
   return (
     <dialog
       ref={dialog}
-      className={`event-create-dialog${reminder ? " event-inspector" : ""}`}
+      className="event-create-dialog"
       aria-labelledby={headingId}
       onCancel={(event) => {
         event.preventDefault();
@@ -261,21 +261,17 @@ function ReminderEditor({
             required
             value={displayName}
           />
-          <label className="field">
-            <span>{t("time")}</span>
-            <input
-              disabled={mutation.isPending}
-              onChange={(input) =>
-                draft.change({ remindAt: input.target.value })
-              }
-              required
-              type="datetime-local"
-              value={remindAt}
-            />
-          </label>
-          <p className="field-hint">
-            {t("timeIn", { zone: shownTimeZone().replaceAll("_", " ") })}
-          </p>
+          <MomentRow
+            clearLabel={t("clearTime")}
+            defaultTime="09:00"
+            disabled={mutation.isPending}
+            hint={t("timeHint")}
+            label={t("time")}
+            onChange={(remindAt) => draft.change({ remindAt })}
+            setLabel={t("setTime")}
+            value={remindAt}
+          />
+          <p className="field-hint">{t("recordedOnly")}</p>
           {timeError && <p role="alert">{timeError}</p>}
         </div>
         <footer className="event-inspector-footer">

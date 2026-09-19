@@ -14,7 +14,7 @@ import {
   readExpenseFields,
   expenseFieldsPayload,
 } from "../../lib/expense-fields";
-import { shownTimeZone } from "../../i18n/active-preferences";
+import { MomentRow } from "../../components/moment-row";
 import {
   eventCreationDraftKeys,
   type ExpenseDraftSnapshot,
@@ -166,7 +166,7 @@ function ExpenseEditor({
   return (
     <dialog
       ref={dialog}
-      className={`event-create-dialog${expense ? " event-inspector" : ""}`}
+      className="event-create-dialog"
       aria-labelledby={headingId}
       onCancel={(event) => {
         event.preventDefault();
@@ -270,21 +270,16 @@ function ExpenseEditor({
               />
             </label>
           </div>
-          <label className="field">
-            <span>{t("date")}</span>
-            <input
-              disabled={mutation.isPending}
-              onChange={(input) =>
-                draft.change({ occurredAt: input.target.value })
-              }
-              required
-              type="datetime-local"
-              value={occurredAt}
-            />
-          </label>
-          <p className="field-hint">
-            {t("timeIn", { zone: shownTimeZone().replaceAll("_", " ") })}
-          </p>
+          <MomentRow
+            clearLabel={t("clearDate")}
+            defaultTime="12:00"
+            disabled={mutation.isPending}
+            hint={t("dateHint")}
+            label={t("date")}
+            onChange={(occurredAt) => draft.change({ occurredAt })}
+            setLabel={t("setDate")}
+            value={occurredAt}
+          />
           {timeError && <p role="alert">{timeError}</p>}
         </div>
         <footer className="event-inspector-footer">

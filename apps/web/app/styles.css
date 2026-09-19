@@ -996,9 +996,7 @@ h3,
 }
 
 .label-picker,
-.assignee-picker,
-.due-picker,
-.range-picker {
+.assignee-picker {
   border: 1px solid var(--line);
   border-radius: 12px;
   margin: 0;
@@ -1006,9 +1004,7 @@ h3,
 }
 
 .label-picker summary,
-.assignee-picker summary,
-.due-picker summary,
-.range-picker summary {
+.assignee-picker summary {
   cursor: pointer;
   font-size: 0.78rem;
   font-weight: 700;
@@ -4947,19 +4943,314 @@ ul.resource-list {
     grid-template-columns: minmax(0, 1fr);
   }
 }
-.event-schedule-fields {
+/* The schedule as rows: dates, times, place, each with its symbol. */
+.schedule-rows {
   border: 0;
-  padding: 0;
+  border-top: 1px solid var(--line);
+  display: grid;
   margin: 0;
   min-width: 0;
+  padding: 0;
   width: 100%;
-  display: grid;
-  gap: 16px;
 }
-.event-schedule-fields .field-hint {
-  margin: 0;
+
+/* A row of an editor for a field set through a control under it. */
+.field-row {
+  align-items: center;
+  border-bottom: 1px solid var(--line);
+  display: flex;
+  gap: 4px;
+  position: relative;
+}
+
+.field-row-main {
+  align-items: center;
+  background: none;
+  border: 0;
+  border-radius: 8px;
+  color: var(--ink);
+  cursor: pointer;
+  display: flex;
+  flex: 1 1 auto;
+  font: inherit;
+  gap: 12px;
+  min-height: 52px;
+  min-width: 0;
+  padding: 10px 6px;
+  text-align: left;
+}
+
+.field-row-main:hover,
+.field-row-main[aria-expanded="true"] {
+  background: var(--surface-subtle);
+}
+
+.field-row-main:disabled {
+  cursor: default;
+  opacity: 0.6;
+}
+
+.field-row-icon {
   color: var(--muted);
+  flex-shrink: 0;
+  height: 20px;
+  stroke: currentColor;
+  stroke-width: 1.6;
+  width: 20px;
+}
+
+.field-row-text {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.field-row-value {
+  font-size: 0.9rem;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.field-row-hint {
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+/* Until set, the row reads the field's name in the muted colour. */
+.field-row-value.is-unset {
+  color: var(--muted);
+  font-weight: 500;
+}
+
+.field-row-clear {
+  align-items: center;
+  background: none;
+  border: 0;
+  border-radius: 999px;
+  color: var(--faint);
+  cursor: pointer;
+  display: inline-flex;
+  flex-shrink: 0;
+  font-size: 1.1rem;
+  height: 28px;
+  justify-content: center;
+  line-height: 1;
+  width: 28px;
+}
+
+.field-row-clear:hover {
+  background: var(--surface-subtle);
+  color: var(--ink);
+}
+
+.field-row.is-editing {
+  gap: 12px;
+  padding: 10px 6px;
+}
+
+.field-row-input {
+  background: var(--surface);
+  border: 1px solid var(--line-strong);
+  border-radius: 8px;
+  color: var(--ink);
+  flex: 1 1 auto;
+  font: inherit;
+  font-size: 0.9rem;
+  min-height: 36px;
+  min-width: 0;
+  padding: 6px 10px;
+}
+
+/* The date panel: a typed field, four shortcuts, the months, then the foot. */
+.date-panel {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  box-shadow: 0 12px 32px rgb(0 0 0 / 0.14);
+  display: grid;
+  left: 0;
+  position: absolute;
+  top: calc(100% + 4px);
+  width: min(320px, calc(100vw - 32px));
+  z-index: 20;
+}
+
+.date-panel[data-place="up"] {
+  bottom: calc(100% + 4px);
+  top: auto;
+}
+
+.date-panel[data-align="end"] {
+  left: auto;
+  right: 0;
+}
+
+.date-panel-typed {
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  border-radius: 12px 12px 0 0;
+  color: var(--ink);
+  font: inherit;
+  font-size: 0.9rem;
+  padding: 12px 14px;
+  width: 100%;
+}
+
+.date-panel-typed:focus-visible {
+  background: var(--surface-subtle);
+  outline: none;
+}
+
+.date-panel-typed[aria-invalid="true"] {
+  color: var(--danger);
+}
+
+.date-panel-hint {
+  color: var(--muted);
+  font-size: 0.78rem;
+  margin: 0;
+  padding: 6px 14px 0;
+}
+
+.date-panel-shortcuts {
+  border-bottom: 1px solid var(--line);
+  display: grid;
+  gap: 1px;
+  list-style: none;
+  margin: 0;
+  padding: 6px;
+}
+
+.date-panel-shortcuts button {
+  align-items: center;
+  background: none;
+  border: 0;
+  border-radius: 7px;
+  color: var(--ink);
+  cursor: pointer;
+  display: flex;
+  font: inherit;
   font-size: 0.85rem;
+  gap: 10px;
+  padding: 7px 8px;
+  text-align: left;
+  width: 100%;
+}
+
+.date-panel-shortcuts button:hover {
+  background: var(--surface-subtle);
+}
+
+.date-panel-shortcuts button[aria-pressed="true"] {
+  background: var(--accent-soft);
+  box-shadow: inset 2px 0 0 var(--accent);
+}
+
+.date-panel-shortcut-icon {
+  color: var(--accent);
+  height: 15px;
+  stroke: currentColor;
+  stroke-width: 1.6;
+  width: 15px;
+}
+
+.date-panel-shortcut-day {
+  color: var(--muted);
+  font-size: 0.78rem;
+  margin-left: auto;
+}
+
+.date-panel-months {
+  padding: 6px 10px 2px;
+}
+
+.date-panel-foot {
+  border-top: 1px solid var(--line);
+  display: grid;
+  gap: 6px;
+  padding: 8px 10px 10px;
+}
+
+.date-panel-line {
+  align-items: center;
+  background: none;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: var(--ink);
+  cursor: pointer;
+  display: flex;
+  font: inherit;
+  font-size: 0.85rem;
+  gap: 8px;
+  padding: 8px 10px;
+  width: 100%;
+}
+
+.date-panel-line:hover {
+  background: var(--surface-subtle);
+}
+
+.date-panel-line:disabled {
+  cursor: default;
+  opacity: 0.5;
+}
+
+.date-panel-line-icon {
+  color: var(--muted);
+  height: 16px;
+  stroke: currentColor;
+  stroke-width: 1.6;
+  width: 16px;
+}
+
+.date-panel-times,
+.date-panel-repeat {
+  align-items: end;
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+}
+
+.date-panel-time {
+  display: grid;
+  gap: 4px;
+}
+
+.date-panel-time-label {
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.date-panel-field {
+  background: var(--canvas);
+  border: 1px solid var(--line-strong);
+  border-radius: 7px;
+  color: var(--ink);
+  font: inherit;
+  font-size: 0.85rem;
+  min-height: 34px;
+  padding: 0 8px;
+  width: 100%;
+}
+
+/* On a phone the panel is a sheet from the bottom of the screen. */
+@media (max-width: 600px) {
+  .date-panel,
+  .date-panel[data-place="up"],
+  .date-panel[data-align="end"] {
+    border-radius: 16px 16px 0 0;
+    bottom: 0;
+    left: 0;
+    margin: 0;
+    max-height: 85dvh;
+    overflow-y: auto;
+    position: fixed;
+    right: 0;
+    top: auto;
+    width: 100vw;
+  }
 }
 .event-create-dialog {
   width: min(500px, calc(100vw - 24px));
@@ -4984,20 +5275,6 @@ html:has(.event-create-dialog[open]) {
 .event-create-dialog::backdrop {
   background: var(--scrim);
 }
-.event-create-dialog.event-inspector {
-  inset: 0 0 0 auto;
-  width: min(560px, 100vw);
-  max-width: 100vw;
-  height: 100dvh;
-  max-height: 100dvh;
-  margin: 0;
-  border-radius: 20px 0 0 20px;
-}
-.event-inspector .event-inspector-form {
-  flex: 1;
-  gap: 0;
-  overflow: hidden;
-}
 .event-create-dialog [hidden] {
   display: none;
 }
@@ -5014,10 +5291,6 @@ html:has(.event-create-dialog[open]) {
   border-top: 1px solid var(--line);
 }
 @media (max-width: 560px) {
-  .event-create-dialog.event-inspector {
-    border: 0;
-    border-radius: 0;
-  }
   .event-inspector-footer {
     padding-inline: 18px;
     padding-bottom: max(16px, env(safe-area-inset-bottom));
@@ -5064,76 +5337,6 @@ html:has(.event-create-dialog[open]) {
   justify-content: flex-end;
   padding: 18px 28px;
   border-top: 1px solid var(--line);
-}
-.schedule-toggle {
-  position: relative;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  min-height: 48px;
-  cursor: pointer;
-}
-.schedule-toggle svg {
-  width: 22px;
-  height: 22px;
-  stroke: currentColor;
-  stroke-width: 1.6;
-  flex-shrink: 0;
-  color: var(--muted);
-}
-.schedule-toggle > span:first-of-type {
-  flex: 1;
-}
-.schedule-toggle strong,
-.schedule-toggle small {
-  display: block;
-}
-.schedule-toggle strong {
-  font-size: 0.9rem;
-  font-weight: 600;
-}
-.schedule-toggle small {
-  margin-top: 4px;
-  font-size: 0.8rem;
-  color: var(--muted);
-}
-.schedule-toggle input {
-  position: absolute;
-  right: 0;
-  width: 44px;
-  height: 44px;
-  margin: 0;
-  opacity: 0;
-}
-.switch-track {
-  width: 40px;
-  height: 24px;
-  flex-shrink: 0;
-  padding: 3px;
-  border-radius: 20px;
-  background: var(--line-strong);
-}
-.switch-track::after {
-  content: "";
-  display: block;
-  width: 18px;
-  height: 18px;
-  background: var(--on-accent);
-  border-radius: 50%;
-}
-.schedule-toggle input:checked + .switch-track {
-  background: var(--accent);
-}
-.schedule-toggle input:checked + .switch-track::after {
-  transform: translateX(16px);
-}
-.schedule-toggle input:focus-visible + .switch-track {
-  outline: 3px solid var(--focus);
-  outline-offset: 3px;
-}
-.time-toggle {
-  border-top: 1px solid var(--line);
-  padding-top: 16px;
 }
 @media (max-width: 480px) {
   .event-create-header {
@@ -6024,50 +6227,6 @@ html:has(.event-create-dialog[open]) {
   padding: 10px 4px 0;
 }
 
-.due-panel,
-.range-panel {
-  display: grid;
-  gap: 12px;
-  margin-top: 10px;
-}
-
-.due-panel .field-hint,
-.range-panel .field-hint {
-  margin: 0;
-}
-
-/* Start and End side by side, stacked where the editor is narrow. */
-.range-fields {
-  display: grid;
-  gap: 10px;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-}
-
-.day-shortcuts {
-  display: grid;
-  gap: 4px;
-  list-style: none;
-  margin: 0;
-  padding: 0;
-}
-
-.day-shortcuts button {
-  display: flex;
-  justify-content: space-between;
-  text-align: left;
-  width: 100%;
-}
-
-.day-shortcut-day {
-  color: var(--muted);
-  font-weight: 500;
-}
-
-.day-shortcuts button[aria-pressed="true"] {
-  background: var(--accent-soft);
-  box-shadow: inset 2px 0 0 var(--accent);
-}
-
 .month-list {
   position: relative;
 }
@@ -6322,30 +6481,6 @@ html:has(.event-create-dialog[open]) {
 .month-list-months.is-draggable {
   touch-action: pan-y;
   user-select: none;
-}
-
-.due-time {
-  display: grid;
-  gap: 8px;
-  justify-items: start;
-}
-
-.due-time-fields {
-  display: grid;
-  gap: 10px;
-  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-  width: 100%;
-}
-
-/* Repeat and its optional end, side by side where the editor is wide. */
-.due-repeat {
-  display: grid;
-  gap: 10px;
-  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-}
-
-.due-repeat .field-hint {
-  grid-column: 1 / -1;
 }
 
 /* Kept for the rows that still show an object's details and a viewer badge. */

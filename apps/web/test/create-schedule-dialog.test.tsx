@@ -15,7 +15,7 @@ import { Providers } from "../app/providers";
 import { CalendarPanel } from "../features/events/planning-panels";
 import { useAuthSession } from "../lib/auth-session";
 import { SandboxStore, sandboxWorkspaceId } from "../sandbox/store";
-import { setDates } from "./range-picker-support";
+import { dateRow, setDates } from "./date-rows";
 
 let store: SandboxStore;
 let eventId: string;
@@ -118,7 +118,6 @@ async function reopen(user: ReturnType<typeof userEvent.setup>) {
 async function enterDraft() {
   const user = await openEditor();
   await user.type(screen.getByLabelText("Schedule item"), "Private arrival");
-  await user.click(screen.getByRole("switch", { name: "Set dates" }));
   return user;
 }
 
@@ -149,7 +148,7 @@ describe("schedule drafts across navigation", () => {
       check.resolve(await store.fetch(`/api/events/${eventId}`)),
     );
     expect(await screen.findByDisplayValue("Private arrival")).toHaveFocus();
-    expect(screen.getByRole("switch", { name: "Set dates" })).not.toBeChecked();
+    expect(dateRow(/^Set dates/)).toBeVisible();
     expect(fetch).toHaveBeenCalledWith(
       `/api/objects/${eventId}/access`,
       expect.anything(),
@@ -326,7 +325,6 @@ describe("schedule drafts across navigation", () => {
           screen.getByLabelText("Schedule item"),
           "Private arrival",
         );
-        await user.click(screen.getByRole("switch", { name: "Set dates" }));
       } else {
         await user.click(screen.getByRole("button", { name: "Resume draft" }));
         await user.type(
@@ -425,7 +423,6 @@ describe("schedule creation dialog", () => {
     vi.stubGlobal("fetch", request);
     const user = await openEditor();
     await user.type(screen.getByLabelText("Schedule item"), "Arrival");
-    await user.click(screen.getByRole("switch", { name: "Set dates" }));
     await user.click(screen.getByRole("button", { name: "Add to schedule" }));
     expect(await screen.findByRole("alert")).toHaveTextContent(
       "could not be reached",
@@ -465,13 +462,14 @@ describe("schedule creation dialog", () => {
     vi.stubGlobal("fetch", request);
     const user = await openEditor();
     await user.type(screen.getByLabelText("Schedule item"), "Lower loop");
-    await user.click(screen.getByRole("switch", { name: "Set dates" }));
+    // The place row opens its text in place, with the hint as its placeholder.
+    await user.click(screen.getByRole("button", { name: /^Add a place/ }));
     const place = screen.getByLabelText("Place");
-    expect(place).toHaveAccessibleDescription(
-      /The itinerary shows it beside the time/,
+    expect(place).toHaveAttribute(
+      "placeholder",
+      expect.stringMatching(/The itinerary shows it beside the time/),
     );
     await user.type(place, "  Fushimi Inari Taisha, main gate  ");
-    expect(screen.getByText("35 / 240")).toBeVisible();
     await user.click(screen.getByRole("button", { name: "Add to schedule" }));
     await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
     const post = request.mock.calls.find(
@@ -534,7 +532,6 @@ describe("schedule creation dialog", () => {
     vi.stubGlobal("fetch", request);
     const user = await openEditor();
     await user.type(screen.getByLabelText("Schedule item"), "Arrival");
-    await user.click(screen.getByRole("switch", { name: "Set dates" }));
     await user.click(screen.getByRole("button", { name: "Add to schedule" }));
     expect(screen.getByRole("button", { name: "Cancel" })).toBeDisabled();
     expect(

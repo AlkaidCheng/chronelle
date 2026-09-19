@@ -1,21 +1,9 @@
 {
-  "summary": "截止：{due}",
   "noDate": "无日期",
   "dueDate": "截止日期",
-  "placeholder": "9月21日、明天、2030-09-21",
-  "unreadable": "无法识别的日期。试试 9月21日、明天或 2030-09-21。",
-  "dueOn": "截止于{weekday}{relative, select, today {（今天）} tomorrow {（明天）} other {}}。",
-  "shortcuts": "截止快捷选项",
-  "removeTime": "移除时间",
-  "addTime": "添加时间",
-  "dueTime": "截止时间",
+  "setDue": "设置截止日期",
+  "hint": "日期、时间和重复规则",
+  "clear": "清除截止日期",
   "duration": "时长",
-  "noDuration": "无时长",
-  "timesIn": "时间以 {zone} 为准。",
-  "repeat": "重复",
-  "noRepeat": "不重复",
-  "until": "直到",
-  "optional": "可选",
-  "untilUnreadable": "无法识别的日期。试试 9月21日或 2030-09-21。",
-  "untilEarly": "结束日期不能早于截止日期。"
+  "noDuration": "无时长"
 }

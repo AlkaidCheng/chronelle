@@ -1,14 +1,15 @@
 {
   "legend": "Schedule",
+  "dates": "Dates",
   "setDates": "Set dates",
-  "datesOn": "Choose a day or date range",
-  "datesOff": "Leave open until you know",
-  "addTimes": "Add times",
-  "timesNote": "Optional start and end times",
-  "startTime": "Start time",
-  "endTime": "End time",
-  "endTimeOptional": "End time (optional)",
-  "timesIn": "Times in {zone}.",
+  "datesHint": "A day, or a span of days",
+  "clearDates": "Clear dates",
+  "times": "Times",
+  "setTimes": "Set times",
+  "allDay": "All day",
+  "clearTimes": "Clear times",
   "place": "Place",
-  "placeHint": "Where it happens, as you would tell someone. The itinerary shows it beside the time."
+  "addPlace": "Add a place",
+  "placeHint": "Where it happens, as you would tell someone. The itinerary shows it beside the time.",
+  "clearPlace": "Clear place"
 }

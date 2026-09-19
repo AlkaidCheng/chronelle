@@ -14,7 +14,7 @@ import { Providers } from "../app/providers";
 import { CreateEventDialog } from "../features/events/create-event-dialog";
 import { useAuthSession } from "../lib/auth-session";
 import { SandboxStore, sandboxWorkspaceId } from "../sandbox/store";
-import { setDates } from "./range-picker-support";
+import { dateRow, setDates } from "./date-rows";
 
 let store: SandboxStore;
 const onCreated = vi.fn();
@@ -119,7 +119,6 @@ describe("event creation drafts", () => {
       const user = await openEditor();
       const name = screen.getByLabelText("Event name");
       await user.type(name, "Garden evening");
-      await user.click(screen.getByRole("switch", { name: "Set dates" }));
       await setDates(user, "2030-07-03", "2030-07-12");
       name.focus();
       const returnTarget =
@@ -146,10 +145,9 @@ describe("event creation drafts", () => {
       );
       expect(returnTarget).toHaveFocus();
       expect(name).toHaveValue("Garden evening");
-      expect(screen.getByRole("table", { name: "July 2030" })).toBeVisible();
-      expect(
-        screen.getByText("Dates: Jul 3, 2030 to Jul 12, 2030"),
-      ).toBeVisible();
+      expect(dateRow(/^Dates/)).toHaveTextContent(
+        "Dates: Jul 3, 2030 to Jul 12, 2030",
+      );
       fireEvent(
         screen.getByRole("dialog"),
         new Event("cancel", { cancelable: true }),
@@ -169,13 +167,13 @@ describe("event creation drafts", () => {
     expect(unloadIsPrevented()).toBe(false);
     await user.click(screen.getByRole("button", { name: "New event" }));
     expect(screen.getByLabelText("Event name")).toHaveValue("");
-    expect(screen.getByRole("switch", { name: "Set dates" })).not.toBeChecked();
+    expect(dateRow(/^Set dates/)).toBeVisible();
     expect(fetch).not.toHaveBeenCalled();
   });
 
   it("protects a schedule-only draft but permits closing reverted empty fields", async () => {
     const user = await openEditor();
-    await user.click(screen.getByRole("switch", { name: "Set dates" }));
+    await setDates(user, "2030-07-03");
     fireEvent(
       screen.getByRole("dialog"),
       new Event("cancel", { cancelable: true }),
@@ -184,7 +182,7 @@ describe("event creation drafts", () => {
       screen.getByRole("dialog", { name: "Discard this event?" }),
     ).toBeVisible();
     await user.click(screen.getByRole("button", { name: "Keep editing" }));
-    await user.click(screen.getByRole("switch", { name: "Set dates" }));
+    await user.click(screen.getByRole("button", { name: "Clear dates" }));
     await user.type(screen.getByLabelText("Event name"), "Temporary");
     await user.clear(screen.getByLabelText("Event name"));
     expect(unloadIsPrevented()).toBe(false);

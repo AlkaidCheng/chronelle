@@ -1,21 +1,9 @@
 {
-  "summary": "到期：{due}",
   "noDate": "無日期",
   "dueDate": "到期日",
-  "placeholder": "9月21日、明天、2030-09-21",
-  "unreadable": "無法辨識的日期。試試 9月21日、明天或 2030-09-21。",
-  "dueOn": "到期於{weekday}{relative, select, today {（今天）} tomorrow {（明天）} other {}}。",
-  "shortcuts": "到期快捷選項",
-  "removeTime": "移除時間",
-  "addTime": "新增時間",
-  "dueTime": "到期時間",
+  "setDue": "設定到期日",
+  "hint": "日期、時間和重複規則",
+  "clear": "清除到期日",
   "duration": "時長",
-  "noDuration": "無時長",
-  "timesIn": "時間以 {zone} 為準。",
-  "repeat": "重複",
-  "noRepeat": "不重複",
-  "until": "直到",
-  "optional": "可選",
-  "untilUnreadable": "無法辨識的日期。試試 9月21日或 2030-09-21。",
-  "untilEarly": "結束日期不能早於到期日。"
+  "noDuration": "無時長"
 }
