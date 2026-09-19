@@ -60,7 +60,6 @@ const typedFields: Record<
     nickname: field("Nickname", "text"),
     description: field("Description", "text"),
     contacts: field("Contacts", "json"),
-    email: field("Email", "text", false),
     userId: field("Linked account", "text", false),
     labelIds: field("Labels", "text", false),
   },

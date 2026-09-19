@@ -204,7 +204,10 @@ describe.each(backends())("%s pending shares", (name, backend) => {
     );
     const card = await objects.createPerson(
       { principal: ana.principal, requestId: requestId() },
-      { displayName: "Benjamin", email: `${name}-ben@example.test` },
+      {
+        displayName: "Benjamin",
+        contacts: [{ kind: "email", value: `${name}-ben@example.test` }],
+      },
     );
     const sent = await invite(backend(), ana, `${name}-ben@example.test`, {
       personId: card.id,
@@ -650,7 +653,7 @@ describe.each(backends())("%s person shares", (name, backend) => {
     // Ben's card carries his account email; the card is not linked yet.
     const card = await objects.createPerson(context(), {
       displayName: "Benjamin",
-      email: `${name}-share-ben@example.test`,
+      contacts: [{ kind: "email", value: `${name}-share-ben@example.test` }],
     });
     const kyoto = await objects.createEvent(context(), {
       displayName: "Kyoto",
@@ -751,7 +754,7 @@ describe.each(backends())("%s person shares", (name, backend) => {
     // even one shared with him, as is a card that does not exist.
     const priya = await objects.createPerson(context(), {
       displayName: "Priya",
-      email: `${name}-share-priya@example.test`,
+      contacts: [{ kind: "email", value: `${name}-share-priya@example.test` }],
     });
     const sent = await invite(
       backend(),

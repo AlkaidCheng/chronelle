@@ -73,7 +73,7 @@ describe("persons API", () => {
       role: "editor",
     });
 
-    // A person needs only a name; email and a linked account are optional.
+    // A person needs only a name; contacts and a linked account are optional.
     const created = await app.inject({
       method: "POST",
       url: "/api/persons",
@@ -85,7 +85,7 @@ describe("persons API", () => {
     expect(mira).toMatchObject({
       objectType: "person",
       displayName: "Mira",
-      email: null,
+      contacts: [],
       userId: null,
       version: 1,
     });
@@ -95,14 +95,16 @@ describe("persons API", () => {
       headers: ownerHeaders,
       payload: {
         displayName: "sam lee",
-        email: " sam@example.test ",
+        contacts: [{ kind: "email", value: " sam@example.test " }],
         userId: editor.user.id,
         customProperties: { phone: "+1 555 0100" },
       },
     });
     expect(samResponse.statusCode).toBe(201);
     const sam = personResponseSchema.parse(samResponse.json());
-    expect(sam.email).toBe("sam@example.test");
+    expect(sam.contacts).toEqual([
+      { kind: "email", value: "sam@example.test" },
+    ]);
     expect(sam.userId).toBe(editor.user.id);
 
     // The list comes in case-insensitive name order and narrows by query.
@@ -167,7 +169,10 @@ describe("persons API", () => {
           method: "POST",
           url: "/api/persons",
           headers: ownerHeaders,
-          payload: { displayName: "x", email: "not-an-address" },
+          payload: {
+            displayName: "x",
+            contacts: [{ kind: "email", value: "not-an-address" }],
+          },
         })
       ).statusCode,
     ).toBe(400);
@@ -179,14 +184,14 @@ describe("persons API", () => {
       payload: {
         expectedVersion: 1,
         displayName: "Mira Chen",
-        email: "mira@example.test",
+        contacts: [{ kind: "email", value: "mira@example.test" }],
         userId: owner.user.id,
       },
     });
     expect(updated.statusCode).toBe(200);
     expect(personResponseSchema.parse(updated.json())).toMatchObject({
       displayName: "Mira Chen",
-      email: "mira@example.test",
+      contacts: [{ kind: "email", value: "mira@example.test" }],
       userId: owner.user.id,
       version: 2,
     });
@@ -214,8 +219,8 @@ describe("persons API", () => {
       ).statusCode,
     ).toBe(404);
 
-    // Trash and recovery apply as to any canonical object; the email of an
-    // earlier revision can be restored while the linked account stays.
+    // Trash and recovery apply as to any canonical object; the contacts of
+    // an earlier revision can be restored while the linked account stays.
     const deleted = await app.inject({
       method: "DELETE",
       url: `/api/objects/${sam.id}?expectedVersion=1`,
@@ -248,7 +253,7 @@ describe("persons API", () => {
     expect(restored.statusCode).toBe(200);
     expect(personResponseSchema.parse(restored.json())).toMatchObject({
       displayName: "Mira",
-      email: null,
+      contacts: [],
       userId: owner.user.id,
       version: 3,
     });
@@ -287,7 +292,6 @@ describe("persons API", () => {
     expect(mei).toMatchObject({
       nickname: "Mei",
       description: "Sister.",
-      email: "mei@example.test",
       contacts: [
         { kind: "phone", value: "+1 555 0100" },
         { kind: "email", value: "mei@example.test" },
@@ -295,22 +299,24 @@ describe("persons API", () => {
       labelIds: [family.id],
     });
 
-    // A legacy email replaces the email contacts, first, and keeps the rest;
-    // an empty nickname reads as none.
-    const legacy = await app.inject({
+    // A new list replaces the contacts as a whole, in the order given; an
+    // empty nickname reads as none.
+    const reordered = await app.inject({
       method: "PATCH",
       url: `/api/persons/${mei.id}`,
       headers: ownerHeaders,
       payload: {
         expectedVersion: 1,
-        email: "mei.lin@example.test",
+        contacts: [
+          { kind: "email", value: "mei.lin@example.test" },
+          { kind: "phone", value: "+1 555 0100" },
+        ],
         nickname: "",
       },
     });
-    expect(legacy.statusCode).toBe(200);
-    expect(personResponseSchema.parse(legacy.json())).toMatchObject({
+    expect(reordered.statusCode).toBe(200);
+    expect(personResponseSchema.parse(reordered.json())).toMatchObject({
       nickname: null,
-      email: "mei.lin@example.test",
       contacts: [
         { kind: "email", value: "mei.lin@example.test" },
         { kind: "phone", value: "+1 555 0100" },
@@ -353,7 +359,6 @@ describe("persons API", () => {
     });
     expect(emptied.statusCode).toBe(200);
     expect(personResponseSchema.parse(emptied.json())).toMatchObject({
-      email: null,
       contacts: [],
       labelIds: [],
     });
@@ -367,7 +372,6 @@ describe("persons API", () => {
     expect(personResponseSchema.parse(restored.json())).toMatchObject({
       nickname: "Mei",
       description: "Sister.",
-      email: "mei@example.test",
       contacts: [
         { kind: "phone", value: "+1 555 0100" },
         { kind: "email", value: "mei@example.test" },

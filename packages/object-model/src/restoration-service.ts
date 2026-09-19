@@ -32,12 +32,7 @@ import type { ObjectReadRepository } from "./object-reads.js";
 import { readObjectState } from "./object-state.js";
 import type { ObjectLifecycleWriteRepository } from "./object-writes.js";
 import { recordObjectRevision } from "./object-revisions.js";
-import {
-  assertPersonText,
-  readPersonContacts,
-  requestedPersonContacts,
-  setPersonContacts,
-} from "./person-contacts.js";
+import { assertPersonText, setPersonContacts } from "./person-contacts.js";
 import {
   decodeRevisionSnapshot,
   type RevisionReadRepository,
@@ -426,10 +421,7 @@ export class ObjectRestorationService {
           ...content,
           expectedVersion: source.version,
         });
-        const contacts = requestedPersonContacts(
-          fields,
-          await readPersonContacts(transaction, workspaceId, objectId),
-        );
+        const contacts = fields.contacts;
         const text = {
           ...(fields.nickname !== undefined && { nickname: fields.nickname }),
           ...(fields.description !== undefined && {

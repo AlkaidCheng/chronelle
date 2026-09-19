@@ -514,10 +514,20 @@ describe.sequential("Event sharing API", () => {
     );
   });
 
-  it("shares with a person through the account the person's email names", async () => {
+  it("shares with a person through the one account any email contact names, unless it hides from email", async () => {
     const owner = await signIn("owner@example.com", "Event Owner");
     const viewer = await signIn("viewer@example.com", "Event Viewer");
+    const hider = await signIn("hider@example.com", "Event Hider");
     const workspaceId = owner.workspace.id;
+    expect(
+      (
+        await request(hider, hider.workspace.id, {
+          method: "PATCH",
+          url: "/api/account",
+          payload: { findByEmail: false },
+        })
+      ).statusCode,
+    ).toBe(200);
     const event = eventResponseSchema.parse(
       (
         await request(owner, workspaceId, {
@@ -537,7 +547,18 @@ describe.sequential("Event sharing API", () => {
           })
         ).json(),
       );
-    const reachable = await person({ email: "Viewer@example.com" });
+    // The account's address is the card's second email contact; a card
+    // with only the hidden account's address reaches nobody.
+    const reachable = await person({
+      contacts: [
+        { kind: "phone", value: "+1 555 0100" },
+        { kind: "email", value: "reader@example.com" },
+        { kind: "email", value: "Viewer@example.com" },
+      ],
+    });
+    const hidden = await person({
+      contacts: [{ kind: "email", value: "hider@example.com" }],
+    });
     const unreachable = await person({});
     const shared = await request(owner, workspaceId, {
       method: "POST",
@@ -563,6 +584,11 @@ describe.sequential("Event sharing API", () => {
       request(owner, workspaceId, {
         method: "POST",
         url: "/api/shares",
+        payload: { resourceId: event.id, personId: hidden.id, role: "viewer" },
+      }),
+      request(owner, workspaceId, {
+        method: "POST",
+        url: "/api/shares",
         payload: {
           resourceId: event.id,
           personId: reachable.id,
@@ -577,7 +603,7 @@ describe.sequential("Event sharing API", () => {
       }),
     ]);
     expect(refused.map(({ statusCode }) => statusCode)).toEqual([
-      404, 400, 400,
+      404, 404, 400, 400,
     ]);
     // The editor now reaches the event; the person grants nothing by itself.
     const access = await request(viewer, workspaceId, {

@@ -3,7 +3,10 @@ import type {
   UserPrincipal,
 } from "@chronelle/authorization";
 import type { Role } from "@chronelle/db";
-import type { EventPlanningObjectService } from "@chronelle/object-model";
+import {
+  type EventPlanningObjectService,
+  firstPersonEmail,
+} from "@chronelle/object-model";
 
 import type { FriendService } from "../friends/friend-service.js";
 import { InvalidFriendRequestError } from "../friends/friend-store.js";
@@ -70,7 +73,8 @@ export class PendingShareService {
     );
     let itemId = sent?.id;
     if (itemId === undefined) {
-      if (person.email === null)
+      const email = firstPersonEmail(person.contacts);
+      if (email === null)
         throw new InvalidFriendRequestError(
           "Give the person an email to invite them.",
         );
@@ -79,7 +83,7 @@ export class PendingShareService {
         {
           // A person's address is kept as written; an invitation names it
           // the way the account does.
-          email: person.email.trim().toLowerCase(),
+          email: email.trim().toLowerCase(),
           personId: input.personId,
         },
         context.requestId,

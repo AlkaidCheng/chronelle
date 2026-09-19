@@ -444,7 +444,7 @@ describe.sequential("CloudBase projection read contract", () => {
       ].map((row) => ({ ...row, workspaceId, status: "pending" as const })),
     );
     await db.insert(persons).values([
-      { objectId: zoePersonId, workspaceId, email: "zoe@example.test" },
+      { objectId: zoePersonId, workspaceId },
       { objectId: adamPersonId, workspaceId },
     ]);
     await db.insert(documents).values(

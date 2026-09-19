@@ -31,7 +31,7 @@ export const cloudbaseObjectColumns =
 export const cloudbaseEventColumns =
   "object_id,workspace_id,starts_at,ends_at,starts_on,ends_on,timezone,is_all_day";
 export const cloudbasePersonColumns =
-  "object_id,workspace_id,user_id,email,nickname,description";
+  "object_id,workspace_id,user_id,nickname,description";
 
 export type CloudBaseObjectRow = {
   readonly id: unknown;
@@ -108,7 +108,6 @@ export type CloudBasePersonRow = {
   readonly object_id: unknown;
   readonly workspace_id: unknown;
   readonly user_id: unknown;
-  readonly email: unknown;
   readonly nickname: unknown;
   readonly description: unknown;
 };
@@ -558,7 +557,6 @@ export function cloudbasePersonResource(
   return {
     ...cloudbaseCanonicalFields(object, person, "person"),
     objectType: "person",
-    email: cloudbaseNullableText(person.email, "email"),
     userId: cloudbaseNullableText(person.user_id, "user_id"),
     nickname: cloudbaseNullableText(person.nickname, "nickname"),
     description: cloudbaseNullableText(person.description, "description"),

@@ -104,8 +104,6 @@ export interface PersonContact {
 }
 
 export interface PersonResource extends CanonicalObjectResource {
-  /** The first email contact, or null. */
-  readonly email: string | null;
   readonly objectType: "person";
   /** The workspace member this person is, when they have an account. */
   readonly userId: string | null;
@@ -219,8 +217,6 @@ export interface CreateReminderInput extends CreateObjectFields {
 }
 
 export interface CreatePersonInput extends CreateObjectFields {
-  /** The first email contact; `contacts` wins when both are given. */
-  readonly email?: string | null | undefined;
   readonly userId?: string | null | undefined;
   readonly nickname?: string | null | undefined;
   readonly description?: string | null | undefined;
@@ -280,8 +276,6 @@ export interface UpdateReminderInput extends UpdateObjectFields {
 }
 
 export interface UpdatePersonInput extends UpdateObjectFields {
-  /** Replaces the email contacts and keeps the others; `contacts` wins when both are given. */
-  readonly email?: string | null | undefined;
   readonly userId?: string | null | undefined;
   readonly nickname?: string | null | undefined;
   readonly description?: string | null | undefined;

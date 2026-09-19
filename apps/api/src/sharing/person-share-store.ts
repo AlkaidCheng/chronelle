@@ -8,10 +8,10 @@ import {
   objects,
   type ObjectType,
   pendingShares,
+  personAccountId,
   persons,
   resourceGrants,
   type Role,
-  users,
   workspaceMembers,
 } from "@chronelle/db";
 import { and, eq, gt, isNull, or, sql } from "drizzle-orm";
@@ -64,7 +64,7 @@ export class PostgresPersonShareStore implements PersonShareStore {
       this.#database,
       async (transaction, authorization) => {
         const [person] = await transaction
-          .select({ userId: persons.userId, email: persons.email })
+          .select({ objectId: persons.objectId })
           .from(persons)
           .where(
             and(
@@ -89,7 +89,11 @@ export class PostgresPersonShareStore implements PersonShareStore {
           id: personId,
           workspaceId: principal.workspaceId,
         });
-        const account = await personAccount(transaction, person);
+        const account = await personAccountId(
+          transaction,
+          principal.workspaceId,
+          person.objectId,
+        );
         const now = this.#clock();
         const live = or(
           isNull(resourceGrants.expiresAt),
@@ -177,22 +181,4 @@ export class PostgresPersonShareStore implements PersonShareStore {
       },
     );
   }
-}
-
-/**
- * The account a person stands for: the linked one, else the one account
- * with the person's email, as a share names its grantee; null when neither.
- */
-async function personAccount(
-  transaction: Pick<Database, "select">,
-  person: { readonly userId: string | null; readonly email: string | null },
-): Promise<string | null> {
-  if (person.userId !== null) return person.userId;
-  if (person.email === null) return null;
-  const accounts = await transaction
-    .select({ id: users.id })
-    .from(users)
-    .where(eq(users.email, person.email.toLowerCase()))
-    .limit(2);
-  return accounts.length === 1 ? (accounts[0]?.id ?? null) : null;
 }

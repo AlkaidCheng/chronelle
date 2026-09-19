@@ -30,4 +30,5 @@ export {
   createCloudBaseRdbClient,
 } from "./cloudbase-rdb.js";
 export { createId } from "./ids.js";
+export { personAccountId } from "./person-account.js";
 export * from "./schema.js";

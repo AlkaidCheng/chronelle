@@ -6,6 +6,7 @@ export {
   type DocumentTransferWriteRepository,
 } from "./document-transfers.js";
 export { EventPlanningObjectService } from "./object-service.js";
+export { firstPersonEmail } from "./person-contacts.js";
 export {
   isCompatibleRelation,
   ObjectRelationService,
