@@ -85,6 +85,7 @@
   :root[data-printing] .event-component-block:not(:has([data-printing="true"])),
   :root[data-printing] .panel-tools,
   :root[data-printing] .quick-add-item,
+  :root[data-printing] .task-check,
   :root[data-printing] .row-actions,
   :root[data-printing] .row-menu,
   :root[data-printing] .row-more,
@@ -92,6 +93,11 @@
   :root[data-printing] .day-sheet-turn,
   :root[data-printing] .day-sheet-today {
     display: none;
+  }
+
+  /* A task on the day sheet loses its check column with the check. */
+  :root[data-printing] .day-sheet-task {
+    grid-template-columns: minmax(0, 1fr) auto;
   }
 
   /* A row, a card, or a day stays on one page. */
