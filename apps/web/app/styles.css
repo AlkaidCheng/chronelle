@@ -6880,6 +6880,15 @@ html:has(.event-create-dialog[open]) {
   white-space: nowrap;
 }
 
+/* A touch held on a tab or the chip opens Manage tabs: no callout or
+   selection meanwhile, and no tap delay. */
+.event-strip .event-tab,
+.event-strip-more .icon-control {
+  -webkit-touch-callout: none;
+  touch-action: manipulation;
+  user-select: none;
+}
+
 .event-strip .event-tab:hover,
 .event-strip .event-tab[aria-current="page"],
 .event-strip .event-tab.active {
