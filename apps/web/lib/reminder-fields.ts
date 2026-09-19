@@ -14,8 +14,11 @@ export function readReminderFields(
   };
 }
 
+/** The fields a reminder's editors hold: the name and the moment as a datetime-local value. */
+export type ReminderFields = ReturnType<typeof readReminderFields>;
+
 export function reminderFieldsPayload(
-  fields: ReturnType<typeof readReminderFields>,
+  fields: ReminderFields,
   source?: Pick<ReminderResponse, "remindAt">,
 ) {
   const remindAt = editedInstant(fields.remindAt, source?.remindAt, "reminder");

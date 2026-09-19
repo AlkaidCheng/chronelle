@@ -3766,8 +3766,9 @@ ul.resource-list {
   padding: 0;
 }
 
-.resource-list article,
-.resource-list li {
+/* The rows alone: a composer opened in a row carries lists of its own. */
+.resource-list > article,
+.resource-list > li {
   align-items: center;
   border-top: 1px solid var(--line);
   display: flex;
@@ -3776,8 +3777,8 @@ ul.resource-list {
   padding: calc(var(--row-padding) + 3px) 4px;
 }
 
-.resource-list article:first-child,
-.resource-list li:first-child {
+.resource-list > article:first-child,
+.resource-list > li:first-child {
   border-top: 0;
 }
 
@@ -3791,17 +3792,29 @@ ul.resource-list {
 }
 
 .resource-list h3,
-.resource-list li > .resource-copy > strong {
+.resource-list :is(li > .resource-copy, .row-press) > strong {
   display: block;
   font-size: 0.86rem;
   margin-bottom: 0;
 }
 
-.resource-list li > .task-aside {
+.resource-list h3 {
+  font-weight: 600;
+}
+
+/* The row's meta line: when, and where, each with its symbol. */
+.row-when,
+.row-where {
+  align-items: center;
+  display: inline-flex;
+  gap: 4px;
+}
+
+.resource-list > li > .task-aside {
   margin-left: auto;
 }
 
-.resource-list li.is-done > .resource-copy > strong {
+.resource-list > li.is-done > .resource-copy > strong {
   color: var(--muted);
   text-decoration: line-through;
 }
@@ -4065,7 +4078,8 @@ ul.resource-list {
   display: none;
 }
 
-.resource-list-cell .resource-copy {
+.resource-list-cell .resource-copy,
+.resource-list-cell .resource-copy > .row-press {
   align-items: baseline;
   display: flex;
   flex: 1 1 auto;
@@ -4073,8 +4087,14 @@ ul.resource-list {
   min-width: 0;
 }
 
-.resource-list-cell .resource-copy > strong,
-.resource-list-cell .resource-copy > h3 {
+.resource-list-cell .resource-copy > .row-press {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+}
+
+.resource-list-cell :is(.resource-copy, .row-press) > strong,
+.resource-list-cell :is(.resource-copy, .row-press) > h3 {
   flex: 1 1 auto;
   font-size: 0.78rem;
   margin: 0;
@@ -4084,7 +4104,7 @@ ul.resource-list {
   white-space: nowrap;
 }
 
-.resource-list-cell .resource-copy > p,
+.resource-list-cell :is(.resource-copy, .row-press) > p,
 .resource-list-cell .money-value {
   color: var(--muted);
   flex: 0 1 auto;
@@ -4097,7 +4117,7 @@ ul.resource-list {
   white-space: nowrap;
 }
 
-.resource-list-cell .resource-copy > p:empty {
+.resource-list-cell :is(.resource-copy, .row-press) > p:empty {
   display: none;
 }
 
@@ -4106,8 +4126,8 @@ ul.resource-list {
   padding-left: 0;
 }
 
-.resource-list-cell .is-done > .resource-copy > strong,
-.resource-list-cell .is-done > .resource-copy > h3 {
+.resource-list-cell .is-done :is(.resource-copy, .row-press) > strong,
+.resource-list-cell .is-done :is(.resource-copy, .row-press) > h3 {
   color: var(--muted);
   text-decoration: line-through;
 }
@@ -4149,8 +4169,8 @@ ul.resource-list {
     height: 64px;
   }
 
-  .resource-list-cell .resource-copy > strong,
-  .resource-list-cell .resource-copy > h3 {
+  .resource-list-cell :is(.resource-copy, .row-press) > strong,
+  .resource-list-cell :is(.resource-copy, .row-press) > h3 {
     font-size: 0.72rem;
   }
 }
@@ -4974,8 +4994,8 @@ ul.resource-list {
     grid-column: 2;
   }
 
-  .resource-list article,
-  .resource-list li {
+  .resource-list > article,
+  .resource-list > li {
     align-items: start;
   }
 
@@ -5728,9 +5748,27 @@ ul.resource-list {
   padding: 0;
 }
 
-.resource-list > li.composer-row {
+.resource-list > li.composer-row,
+.resource-list > article.composer-row,
+.itinerary-list > li.composer-row {
   display: block;
   padding: 0;
+}
+
+/* A Timeline entry opened in place spans the entry's columns; the line of
+   dots pauses at it. */
+.timeline-list > li.composer-row {
+  display: block;
+  padding-bottom: 18px;
+}
+
+.timeline-list > li.composer-row::before {
+  display: none;
+}
+
+/* The amount and its currency in one chip's panel. */
+.chip-panel .chip-money {
+  margin: 0;
 }
 
 .quick-add-item > .composer {

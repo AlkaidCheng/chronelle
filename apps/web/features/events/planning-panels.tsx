@@ -10,19 +10,26 @@ import type {
   TimelineResponse,
 } from "@chronelle/schemas";
 import { useTranslations } from "next-intl";
-import { Fragment, useCallback, useMemo, useRef, useState } from "react";
+import {
+  Fragment,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { DragCard } from "../../components/drag-card";
 import { EmptyState, ErrorNotice } from "../../components/feedback";
-import { PinIcon } from "../../components/icons";
-import { AddRow, useQuickAddSlots } from "../../components/quick-add-row";
+import { BellIcon, CalendarIcon, PinIcon } from "../../components/icons";
 import { RowMenu, type RowMenuEntry } from "../../components/row-menu";
+import { RowPress } from "../../components/row-press";
 import {
   byRank,
   rankAtIndex,
   rankForStep,
   staysInPlace,
 } from "../../lib/collection-order";
-import { useComposerSlots } from "../../lib/composer-slots";
+import { addComposerKey, useComposerSlots } from "../../lib/composer-slots";
 import { groupByDay } from "../../lib/day-groups";
 import { groupBySection } from "../../lib/section-groups";
 import {
@@ -34,10 +41,10 @@ import {
   taskDay,
 } from "../../lib/day-placement";
 import { dayInWords, dueShortcuts } from "../../lib/due-choices";
+import type { EventFields } from "../../lib/editor-draft-store";
 import { viewsOf } from "../../lib/event-components";
 import {
   formatCalendarDate,
-  formatEventDatePart,
   formatEventSchedule,
 } from "../../lib/event-schedule";
 import {
@@ -48,12 +55,8 @@ import {
   taskSheet,
   timelineSheet,
 } from "../../lib/export/sheets";
-import {
-  compareNames,
-  formatDatePart,
-  formatDateTime,
-  formatTime,
-} from "../../lib/format";
+import type { ExpenseFields } from "../../lib/expense-fields";
+import { compareNames, formatDateTime, formatTime } from "../../lib/format";
 import { formatMoney, sumMoneyByCurrency } from "../../lib/money";
 import {
   useLabelsQuery,
@@ -63,10 +66,13 @@ import {
   useUpdateExpense,
   useUpdateReminder,
 } from "../../lib/queries";
+import { recordComposerKey } from "../../lib/record-composers";
+import type { ReminderFields } from "../../lib/reminder-fields";
 import { instantOnDay } from "../../lib/task-due";
 import type { TaskFields } from "../../lib/task-fields";
 import { sortTasks, type TaskSort } from "../../lib/task-sort";
 import { deriveTaskTree } from "../../lib/task-tree";
+import { useOpenRow } from "../../lib/use-open-row";
 import { periodRange, usePeriod } from "../../lib/use-period";
 import {
   addRowSelector,
@@ -74,12 +80,8 @@ import {
   useReturnFocus,
 } from "../../lib/use-return-focus";
 import { type RowDrop, rowsWithGap, useRowDrag } from "../../lib/use-row-drag";
-import { HistoryButton } from "../history/history-button";
 import { useOpenHistory } from "../history/history-provider";
-import {
-  LifecycleButton,
-  useOpenLifecycle,
-} from "../recovery/lifecycle-provider";
+import { useOpenLifecycle } from "../recovery/lifecycle-provider";
 import {
   AddSectionLine,
   DragGrip,
@@ -101,25 +103,31 @@ import {
   rowClasses,
   TaskListView,
 } from "../tasks/task-list-view";
+import { AddRecordRow } from "./add-record-row";
 import {
-  DateTile,
   LayoutControl,
   objectTypeLabel,
   PanelHeading,
-  RowActions,
   StatusChip,
 } from "./component-frame";
 import { CreateScheduleDialog } from "./create-schedule-dialog";
+import { ExpenseComposer } from "./expense-composer";
 import { ExpenseForm } from "./expense-form";
 import { ExpenseInspector } from "./expense-inspector";
 import { ExportControl } from "./export-control";
 import { PeriodView, type RowMode } from "./period-view";
-import { QuickAddReminder } from "./quick-add-reminder";
+import { ReminderComposer } from "./reminder-composer";
 import { ReminderForm } from "./reminder-form";
 import { ReminderInspector } from "./reminder-inspector";
+import { ScheduleComposer } from "./schedule-composer";
 import { ScheduleItemInspector } from "./schedule-item-inspector";
 import { type SubtaskParent, TaskForm } from "./task-form";
 import { TaskInspector } from "./task-inspector";
+import {
+  type TimelineEntry,
+  TimelineEntryComposer,
+  type TimelineMore,
+} from "./timeline-entry";
 
 function isOpen(task: TaskResponse): boolean {
   return task.status !== "done" && task.status !== "cancelled";
@@ -424,11 +432,27 @@ export function CalendarPanel({
 }) {
   const panels = useTranslations("panels");
   const views = useTranslations("views");
-  const [isAdding, setIsAdding] = useState(false);
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const editingEvent = items.find(({ id }) => id === editingId);
+  const composerT = useTranslations("composer");
+  // The full editor: an item's, or a new item's when the add row's composer
+  // hands over to it, each with the composer's fields.
+  const [editing, setEditing] = useState<{
+    readonly id: string | null;
+    readonly start?: Partial<EventFields>;
+  } | null>(null);
+  const [announcement, setAnnouncement] = useState("");
   const panel = useRef<HTMLElement>(null);
+  const returnFocus = useReturnFocus(panel);
   const period = usePeriod(view);
+  const refresh = useRefreshEvent(eventId);
+  const composer = useComposerSlots();
+  const openHistory = useOpenHistory();
+  const openLifecycle = useOpenLifecycle();
+  const press = useOpenRow({
+    canEdit,
+    kind: "event",
+    rows: items,
+    slots: composer,
+  });
   const placed = useMemo(
     () =>
       view === "week" || view === "month"
@@ -443,49 +467,111 @@ export function CalendarPanel({
         : [],
     [items, view],
   );
-  const rowActions = (item: EventResponse) => (
-    <RowActions>
-      {canEdit ? (
-        <button
-          className="button button-quiet button-small"
-          onClick={() => setEditingId(item.id)}
-          type="button"
-        >
-          {panels("edit")}
-        </button>
-      ) : null}
-      <HistoryButton objectId={item.id} displayName={item.displayName} />
-      {canEdit ? <LifecycleButton target={{ ...item, eventId }} /> : null}
-    </RowActions>
+  const closeEditor = () => {
+    setEditing(null);
+    returnFocus(addRowSelector);
+  };
+  const menu = (item: EventResponse) => (
+    <RowMenu
+      entries={[
+        ...(press === undefined
+          ? []
+          : [
+              {
+                kind: "action" as const,
+                label: panels("menu.edit"),
+                onSelect: () => press(item.id),
+              },
+            ]),
+        {
+          kind: "action",
+          label: panels("menu.history"),
+          onSelect: () =>
+            openHistory({ objectId: item.id, displayName: item.displayName }),
+        },
+        ...(canEdit
+          ? [
+              { kind: "rule" as const },
+              {
+                kind: "action" as const,
+                label: panels("menu.moveToTrash"),
+                danger: true,
+                onSelect: () => openLifecycle({ ...item, eventId }),
+              },
+            ]
+          : []),
+      ]}
+      label={panels("actionsFor", { name: item.displayName })}
+    />
   );
-  // A calendar cell reads the start time alone; the day is the cell's.
-  const scheduleRow = (item: EventResponse, mode: RowMode = "full") => (
-    <article key={item.id}>
-      <DateTile
-        dateTime={item.startsOn ?? item.startsAt ?? undefined}
-        day={formatEventDatePart(item, "day")}
-        month={formatEventDatePart(item, "month")}
-      />
-      <div className="resource-copy">
-        <span className="object-label">{objectTypeLabel("event")}</span>
-        <h3>{item.displayName}</h3>
-        <p>
-          {mode === "cell"
-            ? item.startsAt !== null && item.startsOn === null
-              ? formatTime(item.startsAt)
-              : ""
-            : formatEventSchedule(item)}
-          {mode !== "cell" && item.location !== null ? (
-            <span className="schedule-place">
-              <PinIcon className="schedule-place-icon" />
-              {item.location}
-            </span>
-          ) : null}
-        </p>
-      </div>
-      {rowActions(item)}
-    </article>
+  /** The composer a pressed row becomes, editing that item in place. */
+  const composerFor = (item: EventResponse) => (
+    <ScheduleComposer
+      eventId={eventId}
+      item={item}
+      onMore={(fields) => setEditing({ id: item.id, start: fields })}
+      onRefresh={refresh}
+      onSaved={() => setAnnouncement(composerT("saved"))}
+      slotKey={recordComposerKey("event", item.id)}
+      slots={composer}
+    />
   );
+  // A calendar cell reads the start time alone; the day is the cell's, and
+  // a press there opens the full editor, the cell having no room for the
+  // composer.
+  const scheduleRow = (item: EventResponse, mode: RowMode = "full") => {
+    if (
+      mode === "full" &&
+      composer.open === recordComposerKey("event", item.id)
+    )
+      return (
+        <article className="composer-row" key={item.id}>
+          {composerFor(item)}
+        </article>
+      );
+    const onPress =
+      mode === "full"
+        ? press === undefined
+          ? undefined
+          : () => press(item.id)
+        : canEdit
+          ? () => setEditing({ id: item.id })
+          : undefined;
+    return (
+      <article key={item.id}>
+        <div className="resource-copy">
+          <RowPress name={item.displayName} onPress={onPress}>
+            <h3>{item.displayName}</h3>
+            {mode === "cell" ? (
+              <p>
+                {item.startsAt !== null && item.startsOn === null
+                  ? formatTime(item.startsAt)
+                  : ""}
+              </p>
+            ) : (
+              <p className="task-meta">
+                <time
+                  className="row-when"
+                  dateTime={item.startsOn ?? item.startsAt ?? undefined}
+                >
+                  <CalendarIcon />
+                  {formatEventSchedule(item)}
+                </time>
+                {item.location !== null ? (
+                  <span className="row-where">
+                    <PinIcon />
+                    {item.location}
+                  </span>
+                ) : null}
+              </p>
+            )}
+          </RowPress>
+        </div>
+        {menu(item)}
+      </article>
+    );
+  };
+  const addSlot = addComposerKey("schedule");
   return (
     <section className={panelClasses(view)} ref={panel}>
       <PanelHeading
@@ -518,33 +604,44 @@ export function CalendarPanel({
         }
         title={views("calendar")}
       />
-      {isAdding && canEdit ? (
-        <CreateScheduleDialog
-          key={eventId}
-          eventId={eventId}
-          onClose={() => setIsAdding(false)}
-        />
-      ) : null}
+      <p aria-live="polite" className="visually-hidden" role="status">
+        {announcement}
+      </p>
       {items.length === 0 ? (
         canEdit ? null : (
           <EmptyState title={panels("nothingScheduled")} />
         )
       ) : view === "agenda" ? (
         <ol className="itinerary-list">
-          {items.map((item, index) => (
-            <li key={item.id}>
-              <span className="itinerary-number">
-                {String(index + 1).padStart(2, "0")}
-              </span>
-              <div>
-                <time dateTime={item.startsOn ?? item.startsAt ?? undefined}>
-                  {formatEventSchedule(item)}
-                </time>
-                <h3>{item.displayName}</h3>
-                {rowActions(item)}
-              </div>
-            </li>
-          ))}
+          {items.map((item, index) =>
+            composer.open === recordComposerKey("event", item.id) ? (
+              <li className="composer-row" key={item.id}>
+                {composerFor(item)}
+              </li>
+            ) : (
+              <li key={item.id}>
+                <span className="itinerary-number">
+                  {String(index + 1).padStart(2, "0")}
+                </span>
+                <div>
+                  <RowPress
+                    name={item.displayName}
+                    onPress={
+                      press === undefined ? undefined : () => press(item.id)
+                    }
+                  >
+                    <time
+                      dateTime={item.startsOn ?? item.startsAt ?? undefined}
+                    >
+                      {formatEventSchedule(item)}
+                    </time>
+                    <h3>{item.displayName}</h3>
+                  </RowPress>
+                  {menu(item)}
+                </div>
+              </li>
+            ),
+          )}
         </ol>
       ) : view === "week" || view === "month" ? (
         <PeriodView
@@ -566,18 +663,35 @@ export function CalendarPanel({
       )}
       {canEdit ? (
         <div className="quick-add-item">
-          <AddRow
-            aria-haspopup="dialog"
+          <AddRecordRow
+            composer={
+              <ScheduleComposer
+                eventId={eventId}
+                onMore={(fields) => setEditing({ id: null, start: fields })}
+                onRefresh={refresh}
+                slotKey={addSlot}
+                slots={composer}
+              />
+            }
             label={panels("addScheduleItem")}
-            onOpen={() => setIsAdding(true)}
+            slotKey={addSlot}
+            slots={composer}
           />
         </div>
       ) : null}
-      {!canEdit || editingEvent === undefined ? null : (
+      {!canEdit || editing === null ? null : editing.id === null ? (
+        <CreateScheduleDialog
+          key={eventId}
+          eventId={eventId}
+          onClose={closeEditor}
+          start={editing.start}
+        />
+      ) : (
         <ScheduleItemInspector
-          key={editingEvent.id}
-          eventId={editingEvent.id}
-          onClose={() => setEditingId(null)}
+          key={editing.id}
+          eventId={editing.id}
+          onClose={closeEditor}
+          start={editing.start}
         />
       )}
     </section>
@@ -585,13 +699,16 @@ export function CalendarPanel({
 }
 
 /**
- * The event's records in date order. An entry's history is in its row
- * menu, shown on hover or focus, so the list reads as dates and names.
+ * The event's records in date order. Pressing an entry opens its record
+ * in place as the composer; an entry's history is in its row menu, shown
+ * on hover or focus, so the list reads as dates and names.
  */
 export function TimelinePanel({
+  canEdit,
   eventId,
   timeline,
 }: {
+  readonly canEdit: boolean;
   readonly eventId: string;
   readonly timeline: TimelineResponse;
 }) {
@@ -599,6 +716,20 @@ export function TimelinePanel({
   const views = useTranslations("views");
   const openHistory = useOpenHistory();
   const panel = useRef<HTMLElement>(null);
+  const refresh = useRefreshEvent(eventId);
+  const composer = useComposerSlots();
+  const [more, setMore] = useState<TimelineMore | null>(null);
+  // An entry whose record left the Timeline closes its composer.
+  const { open, close } = composer;
+  useEffect(() => {
+    if (
+      open === null ||
+      timeline.items.some((entry) => timelineEntryKey(entry) === open)
+    )
+      return;
+    close(open);
+  }, [close, open, timeline.items]);
+  const closeEditor = () => setMore(null);
   return (
     <section className="planning-panel panel-column" ref={panel}>
       <PanelHeading
@@ -617,41 +748,108 @@ export function TimelinePanel({
         <EmptyState title={panels("noTimeline")} />
       ) : (
         <ol className="timeline-list">
-          {timeline.items.map((item) => (
-            <li key={`${item.objectType}:${item.canonicalObjectId}`}>
-              <span className={`timeline-dot object-${item.objectType}`} />
-              <time dateTime={item.occursOn ?? item.occursAt ?? undefined}>
-                {item.occursOn
-                  ? formatCalendarDate(item.occursOn)
-                  : formatDateTime(item.occursAt)}
-              </time>
-              <div>
-                <span className="object-label">
-                  {objectTypeLabel(item.objectType)}
-                </span>
-                <h3>{item.displayName}</h3>
-              </div>
-              <RowMenu
-                entries={[
-                  {
-                    kind: "action",
-                    label: panels("menu.history"),
-                    onSelect: () =>
-                      openHistory({
-                        objectId: item.canonicalObjectId,
-                        displayName: item.displayName,
-                      }),
-                  },
-                ]}
-                label={panels("actionsFor", { name: item.displayName })}
-              />
-            </li>
-          ))}
+          {timeline.items.map((item) =>
+            composer.open === timelineEntryKey(item) ? (
+              <li className="composer-row" key={timelineEntryKey(item)}>
+                <TimelineEntryComposer
+                  entry={item}
+                  eventId={eventId}
+                  onMore={setMore}
+                  onRefresh={refresh}
+                  slots={composer}
+                />
+              </li>
+            ) : (
+              <li key={timelineEntryKey(item)}>
+                <span className={`timeline-dot object-${item.objectType}`} />
+                <time dateTime={item.occursOn ?? item.occursAt ?? undefined}>
+                  {item.occursOn
+                    ? formatCalendarDate(item.occursOn)
+                    : formatDateTime(item.occursAt)}
+                </time>
+                <div>
+                  <RowPress
+                    name={item.displayName}
+                    onPress={
+                      canEdit
+                        ? () => composer.request(timelineEntryKey(item))
+                        : undefined
+                    }
+                  >
+                    <span className="object-label">
+                      {objectTypeLabel(item.objectType)}
+                    </span>
+                    <h3>{item.displayName}</h3>
+                  </RowPress>
+                </div>
+                <RowMenu
+                  entries={[
+                    ...(canEdit
+                      ? [
+                          {
+                            kind: "action" as const,
+                            label: panels("menu.edit"),
+                            onSelect: () =>
+                              composer.request(timelineEntryKey(item)),
+                          },
+                        ]
+                      : []),
+                    {
+                      kind: "action",
+                      label: panels("menu.history"),
+                      onSelect: () =>
+                        openHistory({
+                          objectId: item.canonicalObjectId,
+                          displayName: item.displayName,
+                        }),
+                    },
+                  ]}
+                  label={panels("actionsFor", { name: item.displayName })}
+                />
+              </li>
+            ),
+          )}
         </ol>
+      )}
+      {more === null ? null : more.kind === "task" ? (
+        <TaskInspector
+          key={more.id}
+          eventId={eventId}
+          onClose={closeEditor}
+          start={more.fields}
+          taskId={more.id}
+        />
+      ) : more.kind === "event" ? (
+        <ScheduleItemInspector
+          key={more.id}
+          eventId={more.id}
+          onClose={closeEditor}
+          start={more.fields}
+        />
+      ) : more.kind === "reminder" ? (
+        <ReminderInspector
+          key={more.id}
+          eventId={eventId}
+          onClose={closeEditor}
+          reminderId={more.id}
+          start={more.fields}
+        />
+      ) : (
+        <ExpenseInspector
+          key={more.id}
+          eventId={eventId}
+          expenseId={more.id}
+          onClose={closeEditor}
+          start={more.fields}
+        />
       )}
     </section>
   );
 }
+
+/** The key of a Timeline entry's composer: its record. */
+const timelineEntryKey = (entry: TimelineEntry) =>
+  recordComposerKey(entry.objectType, entry.canonicalObjectId);
 
 /** The local day a transaction happened. */
 const expenseDay = (expense: ExpenseResponse) => instantDay(expense.occurredAt);
@@ -685,17 +883,23 @@ export function ExpensesPanel({
   const panels = useTranslations("panels");
   const views = useTranslations("views");
   const sectionT = useTranslations("sections");
-  // The editor for a new expense opens from an add row, in that row's section.
-  const [adding, setAdding] = useState<{ sectionId: string | null } | null>(
-    null,
-  );
-  const [editingId, setEditingId] = useState<string | null>(null);
+  const composerT = useTranslations("composer");
+  // The full editor: an expense's, or a new expense's when an add row's
+  // composer hands over to it, each with the composer's fields.
+  const [editing, setEditing] = useState<{
+    readonly id: string | null;
+    readonly start?: Partial<ExpenseFields>;
+  } | null>(null);
   const [announcement, setAnnouncement] = useState("");
   const totals = useMemo(() => sumMoneyByCurrency(expenses), [expenses]);
   const panel = useRef<HTMLElement>(null);
+  const returnFocus = useReturnFocus(panel);
   const period = usePeriod(view);
   const refresh = useRefreshEvent(eventId);
   const update = useUpdateExpense();
+  const openHistory = useOpenHistory();
+  const openLifecycle = useOpenLifecycle();
+  const composer = useComposerSlots();
   const sectionEditing = useSectionEditing(
     eventId,
     "expenses",
@@ -717,6 +921,12 @@ export function ExpensesPanel({
         : new Map<DayKey, ExpenseResponse[]>(),
     [expenses, view],
   );
+  const press = useOpenRow({
+    canEdit,
+    kind: "expense",
+    rows: expenses,
+    slots: composer,
+  });
   // The list and by-day layouts group by section; within a section the
   // rows keep their order by date, or their day groups.
   const sectioned = view === "list" || view === "by-day";
@@ -772,54 +982,130 @@ export function ExpensesPanel({
   const reorder = canEdit && sectioned;
   const { drag, gapAt, gripProps, groupProps, rootProps, rowClass, rowProps } =
     useRowDrag({ canDrop, enabled: reorder, labelOf, onDrop });
-
-  const expenseLine = (expense: ExpenseResponse) => (
+  const closeEditor = () => {
+    setEditing(null);
+    returnFocus(addRowSelector);
+  };
+  const menu = (expense: ExpenseResponse) => (
+    <RowMenu
+      entries={[
+        ...(press === undefined
+          ? []
+          : [
+              {
+                kind: "action" as const,
+                label: panels("menu.edit"),
+                onSelect: () => press(expense.id),
+              },
+            ]),
+        {
+          kind: "action",
+          label: panels("menu.history"),
+          onSelect: () =>
+            openHistory({
+              objectId: expense.id,
+              displayName: expense.displayName,
+            }),
+        },
+        ...(canEdit
+          ? [
+              { kind: "rule" as const },
+              {
+                kind: "action" as const,
+                label: panels("menu.moveToTrash"),
+                danger: true,
+                onSelect: () => openLifecycle({ ...expense, eventId }),
+              },
+            ]
+          : []),
+      ]}
+      label={panels("actionsFor", { name: expense.displayName })}
+    />
+  );
+  /** The composer a pressed row becomes, editing that expense in place. */
+  const composerFor = (expense: ExpenseResponse) => (
+    <ExpenseComposer
+      eventId={eventId}
+      expense={expense}
+      onMore={(fields) => setEditing({ id: expense.id, start: fields })}
+      onRefresh={refresh}
+      onSaved={() => setAnnouncement(composerT("saved"))}
+      slotKey={recordComposerKey("expense", expense.id)}
+      slots={composer}
+    />
+  );
+  // The name over the day it was paid; a cell reads the time alone.
+  const expenseLine = (expense: ExpenseResponse, mode: RowMode) => (
     <>
       <div className="resource-copy">
-        <span className="object-label">
-          {view === "list" || view === "week"
-            ? formatDateTime(expense.occurredAt)
-            : formatTime(expense.occurredAt)}
-        </span>
-        <h3>{expense.displayName}</h3>
+        <RowPress
+          name={expense.displayName}
+          onPress={
+            mode === "full"
+              ? press === undefined
+                ? undefined
+                : () => press(expense.id)
+              : canEdit
+                ? () => setEditing({ id: expense.id })
+                : undefined
+          }
+        >
+          <h3>{expense.displayName}</h3>
+          {mode === "cell" ? (
+            <p>{formatTime(expense.occurredAt)}</p>
+          ) : (
+            <p className="task-meta">
+              <time className="row-when" dateTime={expense.occurredAt}>
+                <CalendarIcon />
+                {view === "list" || view === "week"
+                  ? formatDateTime(expense.occurredAt)
+                  : formatTime(expense.occurredAt)}
+              </time>
+            </p>
+          )}
+        </RowPress>
       </div>
       <strong className="money-value">
         {formatMoney(expense.amount, expense.currency)}
       </strong>
     </>
   );
-  const expenseRow = (expense: ExpenseResponse, groupKey = "all") => (
-    <article
-      className={rowClasses(rowClass(groupKey, expense.id), false, reorder)}
-      id={`expense-${expense.id}`}
-      key={expense.id}
-      {...rowProps(expense.id)}
-    >
-      {reorder ? (
-        <DragGrip
-          label={sectionT("move", { name: expense.displayName })}
-          {...gripProps(expense.id)}
-        />
-      ) : null}
-      {expenseLine(expense)}
-      <RowActions>
-        {canEdit ? (
-          <button
-            className="button button-quiet button-small"
-            onClick={() => setEditingId(expense.id)}
-            type="button"
-          >
-            {panels("edit")}
-          </button>
+  const expenseRow = (
+    expense: ExpenseResponse,
+    groupKey = "all",
+    mode: RowMode = "full",
+  ) => {
+    if (
+      mode === "full" &&
+      composer.open === recordComposerKey("expense", expense.id)
+    )
+      return (
+        <article
+          className="composer-row"
+          id={`expense-${expense.id}`}
+          key={expense.id}
+        >
+          {composerFor(expense)}
+        </article>
+      );
+    return (
+      <article
+        className={rowClasses(rowClass(groupKey, expense.id), false, reorder)}
+        id={`expense-${expense.id}`}
+        key={expense.id}
+        {...rowProps(expense.id)}
+      >
+        {reorder ? (
+          <DragGrip
+            label={sectionT("move", { name: expense.displayName })}
+            {...gripProps(expense.id)}
+          />
         ) : null}
-        <HistoryButton
-          objectId={expense.id}
-          displayName={expense.displayName}
-        />
-        {canEdit ? <LifecycleButton target={{ ...expense, eventId }} /> : null}
-      </RowActions>
-    </article>
-  );
+        {expenseLine(expense, mode)}
+        {menu(expense)}
+      </article>
+    );
+  };
   const gapRow = (height: number, key: string) => (
     <div aria-hidden="true" className="row-gap" key={key} style={{ height }} />
   );
@@ -836,7 +1122,7 @@ export function ExpensesPanel({
     mode: RowMode,
   ) => (
     <div className={resourceListClass(mode)}>
-      {dayExpenses.map((expense) => expenseRow(expense))}
+      {dayExpenses.map((expense) => expenseRow(expense, "all", mode))}
       {mode === "full" ? (
         <p className="day-group-sum">
           <span>{panels("dayTotal")}</span>
@@ -906,20 +1192,39 @@ export function ExpensesPanel({
       </div>
     );
   };
-  const addRow = (sectionId: string | null) =>
-    canEdit ? (
+  /** The add row of the list or of a section, or its open composer, adding into that section. */
+  const addRow = (sectionId: string | null, sectionName?: string) => {
+    if (!canEdit) return null;
+    const slotKey = addComposerKey(sectionId === null ? "list" : sectionId);
+    return (
       <div className="quick-add-item">
-        <AddRow
-          aria-haspopup="dialog"
+        <AddRecordRow
+          ariaLabel={
+            sectionName === undefined
+              ? panels("addExpense")
+              : panels("addExpenseTo", { section: sectionName })
+          }
+          composer={
+            <ExpenseComposer
+              eventId={eventId}
+              onMore={(fields) => setEditing({ id: null, start: fields })}
+              onRefresh={refresh}
+              slotKey={slotKey}
+              slots={composer}
+              {...(sectioned ? { sectionId } : {})}
+            />
+          }
           label={panels("addExpense")}
-          onOpen={() => setAdding({ sectionId })}
+          slotKey={slotKey}
+          slots={composer}
         />
       </div>
-    ) : null;
-  const { editing } = sectionEditing;
+    );
+  };
+  const { editing: sectionEdit } = sectionEditing;
   const addSection = (after: string | null) =>
     canEdit ? (
-      editing?.kind === "add" && editing.after === after ? (
+      sectionEdit?.kind === "add" && sectionEdit.after === after ? (
         <SectionEditor
           busy={sectionEditing.pending}
           onCancel={sectionEditing.cancel}
@@ -951,7 +1256,7 @@ export function ExpensesPanel({
     }
     const expense = byId.get(drag.id);
     return expense === undefined ? null : (
-      <div className="row-drag-line">{expenseLine(expense)}</div>
+      <div className="row-drag-line">{expenseLine(expense, "full")}</div>
     );
   };
   const error = update.isError ? update : sectionEditing.error;
@@ -1011,15 +1316,6 @@ export function ExpensesPanel({
         }
         title={views("expenses")}
       />
-      {canEdit && adding !== null ? (
-        <ExpenseForm
-          key={eventId}
-          eventId={eventId}
-          onCancel={() => setAdding(null)}
-          sections={sections}
-          startSectionId={adding.sectionId}
-        />
-      ) : null}
       {sectioned ? notice : null}
       {expenses.length === 0 && sections.length === 0 && !canEdit ? (
         <EmptyState title={panels("noExpenses")} />
@@ -1056,7 +1352,8 @@ export function ExpensesPanel({
                     data-row-id={id}
                     key={id}
                   >
-                    {editing?.kind === "edit" && editing.id === section.id ? (
+                    {sectionEdit?.kind === "edit" &&
+                    sectionEdit.id === section.id ? (
                       <SectionEditor
                         busy={sectionEditing.pending}
                         onCancel={sectionEditing.cancel}
@@ -1089,7 +1386,7 @@ export function ExpensesPanel({
                       />
                     )}
                     {sectionRows(items, section.id)}
-                    {addRow(section.id)}
+                    {addRow(section.id, section.name)}
                     {addSection(section.id)}
                   </section>
                 );
@@ -1129,15 +1426,24 @@ export function ExpensesPanel({
           </dl>
         </div>
       ) : null}
-      {canEdit && editingId ? (
-        <ExpenseInspector
-          key={editingId}
+      {!canEdit || editing === null ? null : editing.id === null ? (
+        <ExpenseForm
+          key={eventId}
           eventId={eventId}
-          expenseId={editingId}
-          onClose={() => setEditingId(null)}
+          onCancel={closeEditor}
           sections={sections}
+          start={editing.start}
         />
-      ) : null}
+      ) : (
+        <ExpenseInspector
+          key={editing.id}
+          eventId={eventId}
+          expenseId={editing.id}
+          onClose={closeEditor}
+          sections={sections}
+          start={editing.start}
+        />
+      )}
     </section>
   );
 }
@@ -1160,32 +1466,38 @@ export function RemindersPanel({
   const panels = useTranslations("panels");
   const views = useTranslations("views");
   const t = useTranslations("reminderRow");
-  // The full editor for a new reminder opens from a quick add row, with
-  // what was typed there and the row's instant.
-  const [adding, setAdding] = useState<{
-    displayName: string;
-    remindAt: string;
+  const composerT = useTranslations("composer");
+  // The full editor: a reminder's, or a new reminder's when an add row's
+  // composer hands over to it, each with the composer's fields.
+  const [editing, setEditing] = useState<{
+    readonly id: string | null;
+    readonly start?: Partial<ReminderFields>;
   } | null>(null);
   const panel = useRef<HTMLElement>(null);
   const returnFocus = useReturnFocus(panel);
-  const closeAdding = useCallback(() => {
-    setAdding(null);
+  const closeEditor = useCallback(() => {
+    setEditing(null);
     returnFocus(addRowSelector);
   }, [returnFocus]);
-  const [editingId, setEditingId] = useState<string | null>(null);
   const [announcement, setAnnouncement] = useState("");
   const update = useUpdateReminder();
   const refresh = useRefreshEvent(eventId);
   const period = usePeriod(view);
   const openHistory = useOpenHistory();
   const openLifecycle = useOpenLifecycle();
+  const composer = useComposerSlots();
   // The projection lists by time; the component keeps its manual order.
   const reminders = useMemo(() => [...listed].sort(byRank), [listed]);
   const byId = useMemo(
     () => new Map(reminders.map((reminder) => [reminder.id, reminder])),
     [reminders],
   );
-  const quickAdd = useQuickAddSlots();
+  const press = useOpenRow({
+    canEdit,
+    kind: "reminder",
+    rows: reminders,
+    slots: composer,
+  });
   const placed = useMemo(
     () =>
       view === "week" || view === "month"
@@ -1296,7 +1608,7 @@ export function RemindersPanel({
           {
             kind: "action",
             label: t("menu.edit"),
-            onSelect: () => setEditingId(reminder.id),
+            onSelect: () => press?.(reminder.id),
           },
           ...(reminder.status === "pending"
             ? [
@@ -1376,54 +1688,120 @@ export function RemindersPanel({
       />
     );
   };
+  /** The composer a pressed row becomes, editing that reminder in place. */
+  const composerFor = (reminder: ReminderResponse) => (
+    <ReminderComposer
+      eventId={eventId}
+      onMore={(fields) => setEditing({ id: reminder.id, start: fields })}
+      onRefresh={refresh}
+      onSaved={() => setAnnouncement(composerT("saved"))}
+      reminder={reminder}
+      slotKey={recordComposerKey("reminder", reminder.id)}
+      slots={composer}
+    />
+  );
   const reminderRow = (
     reminder: ReminderResponse,
     rows: readonly ReminderResponse[],
     groupKey: string,
-  ) => (
-    <article
-      className={rowClasses(
-        rowClass(groupKey, reminder.id),
-        reminder.status !== "pending",
-        reorder,
-      )}
-      id={`reminder-${reminder.id}`}
-      key={reminder.id}
-      {...rowProps(reminder.id)}
-    >
-      {reorder ? (
-        <DragGrip
-          label={sectionT("move", { name: reminder.displayName })}
-          {...gripProps(reminder.id)}
-        />
-      ) : null}
-      <DateTile
-        dateTime={reminder.remindAt}
-        day={formatDatePart(reminder.remindAt, "day")}
-        month={formatDatePart(reminder.remindAt, "month")}
-      />
-      <div className="resource-copy">
-        <span className="object-label">
-          {view === "list"
-            ? formatDateTime(reminder.remindAt)
-            : formatTime(reminder.remindAt)}
-        </span>
-        <h3>{reminder.displayName}</h3>
-      </div>
-      <StatusChip status={reminder.status} />
-      {menu(reminder, rows)}
-    </article>
-  );
+    mode: RowMode = "full",
+  ) => {
+    if (
+      mode === "full" &&
+      composer.open === recordComposerKey("reminder", reminder.id)
+    )
+      return (
+        <article
+          className="composer-row"
+          id={`reminder-${reminder.id}`}
+          key={reminder.id}
+        >
+          {composerFor(reminder)}
+        </article>
+      );
+    const onPress =
+      mode === "full"
+        ? press === undefined
+          ? undefined
+          : () => press(reminder.id)
+        : canEdit
+          ? () => setEditing({ id: reminder.id })
+          : undefined;
+    return (
+      <article
+        className={rowClasses(
+          rowClass(groupKey, reminder.id),
+          reminder.status !== "pending",
+          reorder,
+        )}
+        id={`reminder-${reminder.id}`}
+        key={reminder.id}
+        {...rowProps(reminder.id)}
+      >
+        {reorder ? (
+          <DragGrip
+            label={sectionT("move", { name: reminder.displayName })}
+            {...gripProps(reminder.id)}
+          />
+        ) : null}
+        <div className="resource-copy">
+          <RowPress name={reminder.displayName} onPress={onPress}>
+            <h3>{reminder.displayName}</h3>
+            {mode === "cell" ? (
+              <p>{formatTime(reminder.remindAt)}</p>
+            ) : (
+              <p className="task-meta">
+                <time className="row-when" dateTime={reminder.remindAt}>
+                  <BellIcon />
+                  {view === "list"
+                    ? formatDateTime(reminder.remindAt)
+                    : formatTime(reminder.remindAt)}
+                </time>
+              </p>
+            )}
+          </RowPress>
+        </div>
+        <StatusChip status={reminder.status} />
+        {menu(reminder, rows)}
+      </article>
+    );
+  };
   const reminderList = (
     dayReminders: readonly ReminderResponse[],
     mode: RowMode,
   ) => (
     <div className={resourceListClass(mode)}>
       {dayReminders.map((reminder) =>
-        reminderRow(reminder, dayReminders, "all"),
+        reminderRow(reminder, dayReminders, "all", mode),
       )}
     </div>
   );
+  /** The add row of the list or of a day group, or its open composer. */
+  const addRow = (day: DayKey | null, dayLabel?: string) => {
+    const slotKey = addComposerKey(day === null ? "list" : `day:${day}`);
+    return (
+      <AddRecordRow
+        ariaLabel={
+          dayLabel === undefined
+            ? panels("addReminderToList")
+            : panels("addReminderFor", { day: dayLabel })
+        }
+        composer={
+          <ReminderComposer
+            day={day}
+            eventId={eventId}
+            onMore={(fields) => setEditing({ id: null, start: fields })}
+            onRefresh={refresh}
+            slotKey={slotKey}
+            slots={composer}
+          />
+        }
+        label={panels("addReminder")}
+        slotKey={slotKey}
+        slots={composer}
+      />
+    );
+  };
   const notice = (
     <>
       {update.isError ? (
@@ -1479,29 +1857,12 @@ export function RemindersPanel({
         }
         title={views("reminders")}
       />
-      {canEdit && adding !== null ? (
-        <ReminderForm
-          key={eventId}
-          eventId={eventId}
-          onCancel={closeAdding}
-          start={adding}
-        />
-      ) : null}
       {view === "week" || view === "month" ? null : notice}
       {reminders.length === 0 && !canEdit ? (
         <EmptyState title={panels("noReminders")} />
       ) : null}
       {reminders.length === 0 && canEdit ? (
-        <div className="quick-add-item quick-add-empty">
-          <QuickAddReminder
-            day={null}
-            eventId={eventId}
-            onDetails={(displayName, remindAt) =>
-              setAdding({ displayName, remindAt })
-            }
-            slots={quickAdd}
-          />
-        </div>
+        <div className="quick-add-item quick-add-empty">{addRow(null)}</div>
       ) : null}
       {reminders.length === 0 ? null : view === "by-day" ? (
         <div className="day-groups" {...rootProps()}>
@@ -1531,15 +1892,7 @@ export function RemindersPanel({
                 )}
                 {canEdit ? (
                   <div className="quick-add-item">
-                    <QuickAddReminder
-                      day={group.key}
-                      dayLabel={group.label[0]}
-                      eventId={eventId}
-                      onDetails={(displayName, remindAt) =>
-                        setAdding({ displayName, remindAt })
-                      }
-                      slots={quickAdd}
-                    />
+                    {addRow(group.key, group.label[0])}
                   </div>
                 ) : null}
               </div>
@@ -1571,25 +1924,24 @@ export function RemindersPanel({
             gapRow,
           )}
           {canEdit ? (
-            <div className="quick-add-item">
-              <QuickAddReminder
-                day={null}
-                eventId={eventId}
-                onDetails={(displayName, remindAt) =>
-                  setAdding({ displayName, remindAt })
-                }
-                slots={quickAdd}
-              />
-            </div>
+            <div className="quick-add-item">{addRow(null)}</div>
           ) : null}
         </div>
       )}
-      {!canEdit || editingId === null ? null : (
-        <ReminderInspector
-          key={editingId}
+      {!canEdit || editing === null ? null : editing.id === null ? (
+        <ReminderForm
+          key={eventId}
           eventId={eventId}
-          onClose={() => setEditingId(null)}
-          reminderId={editingId}
+          onCancel={closeEditor}
+          start={editing.start}
+        />
+      ) : (
+        <ReminderInspector
+          key={editing.id}
+          eventId={eventId}
+          onClose={closeEditor}
+          reminderId={editing.id}
+          start={editing.start}
         />
       )}
     </section>

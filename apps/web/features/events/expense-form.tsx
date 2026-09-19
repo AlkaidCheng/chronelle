@@ -12,8 +12,9 @@ import {
 import { EditorControls, useConflictSlot } from "./editor-controls";
 import { SectionField } from "../sections/section-field";
 import {
-  readExpenseFields,
+  type ExpenseFields,
   expenseFieldsPayload,
+  readExpenseFields,
 } from "../../lib/expense-fields";
 import { MomentRow } from "../../components/moment-row";
 import {
@@ -42,8 +43,8 @@ interface ExpenseFormProps {
   readonly expense?: ExpenseResponse | undefined;
   /** The sections of the Event's Expenses, which the editor offers as the expense's section. */
   readonly sections?: readonly SectionResponse[] | undefined;
-  /** The section a new expense starts in when it comes from a section's add row. */
-  readonly startSectionId?: string | null | undefined;
+  /** The fields the editor starts with when a composer hands over to it, its section among them. */
+  readonly start?: Partial<ExpenseFields> | undefined;
 }
 
 export function ExpenseForm(props: ExpenseFormProps) {
@@ -74,28 +75,24 @@ function ExpenseEditor({
   onCancel,
   onRefresh,
   sections,
-  startSectionId,
   expense: latestExpense,
+  start,
 }: ExpenseFormProps & {
   readonly draftId: string;
   readonly initialDraft: ExpenseDraftSnapshot | undefined;
 }) {
   const conflictSlot = useConflictSlot();
   const draft = useEditorDraft(latestExpense, readExpenseFields, initialDraft);
-  const expense = draft.source;
-  // A section's add row seeds a fresh draft once; a recovered draft keeps its own.
+  // A composer's fields seed a fresh draft once; a recovered draft keeps
+  // what it had.
   const seeded = useRef(false);
   useEffect(() => {
-    if (
-      seeded.current ||
-      startSectionId === null ||
-      startSectionId === undefined ||
-      initialDraft !== undefined
-    )
+    if (seeded.current || start === undefined || initialDraft !== undefined)
       return;
     seeded.current = true;
-    draft.change({ section: startSectionId });
-  }, [draft, initialDraft, startSectionId]);
+    draft.change(start);
+  }, [draft, initialDraft, start]);
+  const expense = draft.source;
   const [attempt] = useState<ContextCreateAttempt>(
     () => initialDraft?.creationAttempt ?? { current: null },
   );

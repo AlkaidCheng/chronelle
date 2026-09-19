@@ -1,17 +1,21 @@
 "use client";
 
 import { useReminderEditorQueries } from "../../lib/queries";
+import type { ReminderFields } from "../../lib/reminder-fields";
 import { ReminderForm } from "./reminder-form";
 import { ObjectEditorAccess } from "./object-editor-access";
 
 export function ReminderInspector({
   eventId,
-  reminderId,
   onClose,
+  reminderId,
+  start,
 }: {
   readonly eventId: string;
-  readonly reminderId: string;
   readonly onClose: () => void;
+  readonly reminderId: string;
+  /** The fields the reminder's composer held when it handed over to the editor. */
+  readonly start?: Partial<ReminderFields> | undefined;
 }) {
   const { reminder, access } = useReminderEditorQueries(reminderId);
   return (
@@ -29,6 +33,7 @@ export function ReminderInspector({
           reminder={resource}
           onCancel={onClose}
           onRefresh={refresh}
+          start={start}
         />
       )}
     </ObjectEditorAccess>

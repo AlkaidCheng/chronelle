@@ -31,6 +31,7 @@ import {
   readEventFields,
   eventCreationDraftKeys,
   type EventDraftSnapshot,
+  type EventFields,
 } from "../../lib/editor-draft-store";
 import { useDiscardConfirmation } from "../../lib/use-discard-confirmation";
 import { useEditorDraft } from "../../lib/use-editor-draft";
@@ -44,11 +45,14 @@ import {
 interface CreateScheduleDialogProps {
   readonly eventId: string;
   readonly onClose: () => void;
+  /** The fields the editor starts with when a composer hands over to it. */
+  readonly start?: Partial<EventFields> | undefined;
 }
 
 export function CreateScheduleDialog({
   eventId,
   onClose,
+  start,
 }: CreateScheduleDialogProps) {
   const draftId = eventCreationDraftKeys(eventId).schedule;
   return (
@@ -64,6 +68,7 @@ export function CreateScheduleDialog({
           draftId={draftId}
           initialDraft={initialDraft}
           onClose={onClose}
+          start={start}
         />
       )}
     </EditorDraftRecovery>
@@ -75,14 +80,25 @@ function CreateScheduleForm({
   draftId,
   initialDraft,
   onClose,
+  start,
 }: CreateScheduleDialogProps & {
   readonly draftId: string;
   readonly initialDraft: EventDraftSnapshot | undefined;
 }) {
-  const draft = useEditorDraft<
-    EventResponse,
-    ReturnType<typeof readEventFields>
-  >(undefined, () => readEventFields(), initialDraft);
+  const draft = useEditorDraft<EventResponse, EventFields>(
+    undefined,
+    () => readEventFields(),
+    initialDraft,
+  );
+  // A composer's fields seed a fresh draft once; a recovered draft keeps
+  // what it had.
+  const seeded = useRef(false);
+  useEffect(() => {
+    if (seeded.current || start === undefined || initialDraft !== undefined)
+      return;
+    seeded.current = true;
+    draft.change(start);
+  }, [draft, initialDraft, start]);
   const [attempt] = useState<ContextCreateAttempt>(
     () => initialDraft?.creationAttempt ?? { current: null },
   );

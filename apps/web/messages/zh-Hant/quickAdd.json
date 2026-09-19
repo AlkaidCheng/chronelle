@@ -5,12 +5,6 @@
   "newTask": "新任務",
   "taskName": "任務名稱",
   "addTask": "新增任務",
-  "reminderToList": "在列表中新增提醒",
-  "reminderFor": "新增 {day} 的提醒",
-  "newReminder": "新提醒",
-  "reminderName": "提醒名稱",
-  "addReminder": "新增提醒",
   "taskToSection": "向分組 {section} 新增任務",
-  "taskDetails": "新增任務並填寫詳情",
-  "reminderDetails": "新增提醒並填寫詳情"
+  "taskDetails": "新增任務並填寫詳情"
 }

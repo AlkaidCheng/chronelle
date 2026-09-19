@@ -149,7 +149,11 @@ export function EventComponent({
           load={(signal) => client.withSignal(signal).getEventTimeline(eventId)}
         >
           {(timeline) => (
-            <TimelinePanel eventId={eventId} timeline={timeline} />
+            <TimelinePanel
+              canEdit={canEdit}
+              eventId={eventId}
+              timeline={timeline}
+            />
           )}
         </Projection>
       );
