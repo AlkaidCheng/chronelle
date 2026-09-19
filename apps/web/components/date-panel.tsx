@@ -128,10 +128,12 @@ function textOf(props: DatePanelProps): string {
  * then the end, and stays open. Escape and a press outside close it.
  */
 /**
- * Keeps the panel against the viewport under (or, without room, above) the
- * row that opened it. The panel is fixed rather than absolute because the
- * editors' bodies scroll and would clip a child that ran past them; on a
- * phone the stylesheet makes it a sheet and the position is left alone.
+ * Keeps the panel against the viewport by the row that opened it: under
+ * the row, above it when only that side holds the whole panel, and over
+ * the row when neither does (a short window), so the months always show.
+ * The panel is fixed rather than absolute because the editors' bodies
+ * scroll and would clip a child that ran past them; on a phone the
+ * stylesheet makes it a sheet and the position is left alone.
  */
 function usePanelPlacement(panel: RefObject<HTMLDivElement | null>) {
   useLayoutEffect(() => {
@@ -151,14 +153,21 @@ function usePanelPlacement(panel: RefObject<HTMLDivElement | null>) {
       const gap = 4;
       const edge = 12;
       const anchor = opener.getBoundingClientRect();
+      // The height the panel asks for, free of an earlier cap.
+      element.style.maxHeight = "";
       const height = element.offsetHeight;
       const below = window.innerHeight - anchor.bottom - gap - edge;
       const above = anchor.top - gap - edge;
-      const up = height > below && above > below;
-      const room = Math.max(160, up ? above : below);
-      element.style.maxHeight = `${room}px`;
-      const shown = Math.min(height, room);
-      const top = up ? anchor.top - gap - shown : anchor.bottom + gap;
+      let top = anchor.bottom + gap;
+      let room = below;
+      if (height > below && height <= above) {
+        top = anchor.top - gap - height;
+        room = above;
+      } else if (height > below) {
+        room = Math.min(height, window.innerHeight - 2 * edge);
+        top = Math.min(top, window.innerHeight - edge - room);
+      }
+      element.style.maxHeight = `${Math.max(160, room)}px`;
       const left = Math.min(
         Math.max(edge, anchor.left),
         window.innerWidth - element.offsetWidth - edge,
@@ -166,12 +175,18 @@ function usePanelPlacement(panel: RefObject<HTMLDivElement | null>) {
       element.style.top = `${Math.max(edge, top)}px`;
       element.style.left = `${left}px`;
     };
+    // The months scrolling inside the panel move nothing outside it.
+    const onScroll = (event: Event) => {
+      if (event.target instanceof Node && element.contains(event.target))
+        return;
+      place();
+    };
     place();
     window.addEventListener("resize", place);
-    window.addEventListener("scroll", place, true);
+    window.addEventListener("scroll", onScroll, true);
     return () => {
       window.removeEventListener("resize", place);
-      window.removeEventListener("scroll", place, true);
+      window.removeEventListener("scroll", onScroll, true);
     };
   }, [panel]);
 }
