@@ -57,9 +57,15 @@ async function acceptLayout(
   await cache.invalidateQueries({ queryKey: historyKey(layout.eventId) });
 }
 
+/**
+ * The undo and redo stacks of an event's layout, kept in the query cache
+ * for the tab's lifetime. The mutations write it; the query is never
+ * fetched, and its fetch function only names the empty state.
+ */
 export function useLayoutUndo(eventId: string) {
   return useQuery({
     queryKey: undoKey(eventId),
+    queryFn: () => emptyLayoutUndo,
     initialData: emptyLayoutUndo,
     enabled: false,
     staleTime: Infinity,
