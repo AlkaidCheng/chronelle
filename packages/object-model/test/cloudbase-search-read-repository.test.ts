@@ -154,7 +154,7 @@ describe("CloudBaseSearchReadRepository", () => {
     ["a missing items list", { next: null }],
     [
       "an item with an unknown object type",
-      { items: [{ ...page.items[0], objectType: "note" }], next: null },
+      { items: [{ ...page.items[0], objectType: "recipe" }], next: null },
     ],
     [
       "an item with a non-positive version",

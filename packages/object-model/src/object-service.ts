@@ -11,6 +11,7 @@ import {
   expenses,
   labels,
   type ObjectType,
+  notes,
   objectCreateCommands,
   objects,
   personLabels,
@@ -72,6 +73,7 @@ import {
 import type {
   CreateEventInput,
   CreateExpenseInput,
+  CreateNoteInput,
   CreateObjectFields,
   CreatePersonInput,
   CreateReminderInput,
@@ -81,12 +83,14 @@ import type {
   EventResource,
   ExpenseResource,
   MutationContext,
+  NoteResource,
   ObjectDeletionResource,
   PersonResource,
   ReminderResource,
   TaskResource,
   UpdateEventInput,
   UpdateExpenseInput,
+  UpdateNoteInput,
   UpdateObjectFields,
   UpdatePermissionScopeInput,
   UpdatePersonInput,
@@ -544,6 +548,14 @@ function assertExpenseState(
   assertValidDate(occurredAt, "occurredAt");
 }
 
+/** A Note's text is at most 20,000 characters; line breaks and surrounding spaces are kept. */
+function assertNoteState(body: string): void {
+  if (body.length > 20_000)
+    throw new InvalidObjectStateError(
+      "body must be text of at most 20000 characters.",
+    );
+}
+
 export class EventPlanningObjectService {
   readonly #clock: () => Date;
   readonly #database: AuthorizationDatabase;
@@ -781,6 +793,30 @@ export class EventPlanningObjectService {
     return this.#requireType(resource, "person");
   }
 
+  async createNote(
+    context: MutationContext,
+    input: CreateNoteInput,
+  ): Promise<NoteResource> {
+    const body = input.body ?? "";
+    assertNoteState(body);
+    if (this.#writes.note !== undefined)
+      return this.#writes.note.create(context, input);
+
+    const resource = await this.#createObject(
+      context,
+      "note",
+      input,
+      async (transaction, createdObjectId) => {
+        await transaction.insert(notes).values({
+          objectId: createdObjectId,
+          workspaceId: context.principal.workspaceId,
+          body,
+        });
+      },
+    );
+    return this.#requireType(resource, "note");
+  }
+
   getObject(
     principal: UserPrincipal,
     objectId: string,
@@ -864,6 +900,14 @@ export class EventPlanningObjectService {
   ): Promise<PersonResource> {
     const resource = await this.#objectReads.getObject(principal, objectId);
     return this.#requireType(resource, "person");
+  }
+
+  async getNote(
+    principal: UserPrincipal,
+    objectId: string,
+  ): Promise<NoteResource> {
+    const resource = await this.#objectReads.getObject(principal, objectId);
+    return this.#requireType(resource, "note");
   }
 
   async getDocument(
@@ -1146,6 +1190,39 @@ export class EventPlanningObjectService {
       },
     );
     return this.#requireType(resource, "person");
+  }
+
+  async updateNote(
+    context: MutationContext,
+    objectId: string,
+    input: UpdateNoteInput,
+  ): Promise<NoteResource> {
+    if (input.body !== undefined) assertNoteState(input.body);
+    if (this.#writes.note !== undefined)
+      return this.#writes.note.update(context, objectId, input);
+    const current = this.#requireType(
+      await this.#getEditableObject(context.principal, objectId),
+      "note",
+    );
+
+    const resource = await this.#updateObject(
+      context,
+      current,
+      input,
+      async (transaction) => {
+        if (input.body !== undefined)
+          await transaction
+            .update(notes)
+            .set({ body: input.body })
+            .where(
+              and(
+                eq(notes.workspaceId, context.principal.workspaceId),
+                eq(notes.objectId, objectId),
+              ),
+            );
+      },
+    );
+    return this.#requireType(resource, "note");
   }
 
   async updateReminder(

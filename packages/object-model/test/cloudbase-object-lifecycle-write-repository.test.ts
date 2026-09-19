@@ -118,8 +118,8 @@ describe("CloudBaseObjectLifecycleWriteRepository", () => {
     );
     const unknown = new CloudBaseObjectLifecycleWriteRepository({
       rpc: vi.fn().mockResolvedValue({
-        object: { ...object, object_type: "note" },
-        note: {},
+        object: { ...object, object_type: "recipe" },
+        recipe: {},
       }),
     });
     await expect(unknown.recover(context, objectId, 2)).rejects.toThrow(

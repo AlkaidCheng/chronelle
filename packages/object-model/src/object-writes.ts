@@ -16,17 +16,20 @@ import type {
   ObjectDeletionResource,
   ObjectRelationResource,
   CreateExpenseInput,
+  CreateNoteInput,
   CreatePersonInput,
   CreateReminderInput,
   CreateTaskInput,
   EventResource,
   ExpenseResource,
   MutationContext,
+  NoteResource,
   PersonResource,
   ReminderResource,
   TaskResource,
   UpdateEventInput,
   UpdateExpenseInput,
+  UpdateNoteInput,
   UpdatePersonInput,
   UpdateReminderInput,
   UpdateTaskInput,
@@ -76,6 +79,11 @@ export type PersonWriteRepository = ObjectWriteRepository<
   CreatePersonInput,
   UpdatePersonInput,
   PersonResource
+>;
+export type NoteWriteRepository = ObjectWriteRepository<
+  CreateNoteInput,
+  UpdateNoteInput,
+  NoteResource
 >;
 
 /**
@@ -207,6 +215,7 @@ export interface ObjectWriteRepositories {
   readonly expense?: ExpenseWriteRepository | undefined;
   readonly reminder?: ReminderWriteRepository | undefined;
   readonly person?: PersonWriteRepository | undefined;
+  readonly note?: NoteWriteRepository | undefined;
   readonly eventContext?: EventContextWriteRepository | undefined;
   readonly relation?: RelationWriteRepository | undefined;
   readonly objectLifecycle?: ObjectLifecycleWriteRepository | undefined;

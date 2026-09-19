@@ -2,6 +2,7 @@ import type { UserPrincipal } from "@chronelle/authorization";
 import type {
   CreateEventInput,
   CreateExpenseInput,
+  CreateNoteInput,
   CreatePersonInput,
   CreateReminderInput,
   CreateTaskInput,
@@ -13,6 +14,7 @@ import type {
   EventContextService,
   UpdateEventInput,
   UpdateExpenseInput,
+  UpdateNoteInput,
   UpdatePersonInput,
   UpdateReminderInput,
   UpdateTaskInput,
@@ -36,6 +38,11 @@ import {
   objectDeletionResponseSchema,
   objectIdParamsSchema,
   personCreateRequestSchema,
+  noteCreateRequestSchema,
+  noteListQuerySchema,
+  noteListResponseSchema,
+  noteResponseSchema,
+  noteUpdateRequestSchema,
   personListQuerySchema,
   personListResponseSchema,
   personResourceProjectionResponseSchema,
@@ -245,6 +252,16 @@ export function registerEventPlanningRoutes(
     update: (context, id, input) =>
       dependencies.objects.updatePerson(context, id, input),
   });
+  registerTypedObjectRoutes<CreateNoteInput, UpdateNoteInput>(app, {
+    collectionPath: "notes",
+    createSchema: noteCreateRequestSchema,
+    updateSchema: noteUpdateRequestSchema,
+    responseSchema: noteResponseSchema,
+    create: (context, input) => dependencies.objects.createNote(context, input),
+    get: (principal, id) => dependencies.objects.getNote(principal, id),
+    update: (context, id, input) =>
+      dependencies.objects.updateNote(context, id, input),
+  });
 
   app.get(
     "/api/objects/:id",
@@ -446,6 +463,25 @@ export function registerEventPlanningRoutes(
       return personResourceProjectionResponseSchema.parse(
         serializeResourceProjection(projection),
       );
+    },
+  );
+  app.get(
+    "/api/events/:id/notes",
+    { preHandler: app.authenticate },
+    async (request) => {
+      const { id } = parseRequest(objectIdParamsSchema, request.params);
+      const page = await dependencies.projections.getNotes(
+        requirePrincipal(request),
+        id,
+        parseRequest(noteListQuerySchema, request.query),
+      );
+      return noteListResponseSchema.parse({
+        sourceEventId: page.sourceEventId,
+        items: page.items.map((item) => ({
+          ...serializeResource(item),
+          editedBy: item.editedBy,
+        })),
+      });
     },
   );
 }

@@ -5,11 +5,13 @@
   "reminder": "Reminder",
   "document": "Document",
   "person": "Person",
+  "note": "Note",
   "events": "Events",
   "tasks": "Tasks",
   "expenses": "Expenses",
   "reminders": "Reminders",
   "documents": "Documents",
   "people": "People",
+  "notes": "Notes",
   "scheduledEvent": "Scheduled event"
 }

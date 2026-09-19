@@ -22,6 +22,7 @@ export const objectTypes = [
   "reminder",
   "document",
   "person",
+  "note",
 ] as const;
 export type ObjectType = (typeof objectTypes)[number];
 
@@ -653,6 +654,14 @@ export const persons = pgTable("persons", {
   userId: uuid("user_id"),
   nickname: text("nickname"),
   description: text("description"),
+});
+
+/** A Note's text; the title is the object's display name. */
+export const notes = pgTable("notes", {
+  objectId: uuid("object_id").primaryKey(),
+  workspaceId: uuid("workspace_id").notNull(),
+  objectType: text("object_type").$type<"note">().notNull().default("note"),
+  body: text("body").notNull().default(""),
 });
 
 export const personContactKinds = ["email", "phone", "other"] as const;

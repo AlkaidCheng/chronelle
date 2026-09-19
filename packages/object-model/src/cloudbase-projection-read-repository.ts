@@ -13,6 +13,7 @@ import {
   type CloudBaseDocumentRow,
   type CloudBaseEventRow,
   type CloudBaseExpenseRow,
+  type CloudBaseNoteRow,
   type CloudBaseObjectRow,
   type CloudBasePersonRow,
   type CloudBaseReminderRow,
@@ -24,6 +25,8 @@ import {
   cloudbaseEventResource,
   cloudbaseExpenseResource,
   cloudbaseFilters,
+  cloudbaseNoteColumns,
+  cloudbaseNoteResource,
   cloudbasePersonColumns,
   cloudbasePersonResource,
   cloudbaseReminderResource,
@@ -284,6 +287,7 @@ export class CloudBaseProjectionReadRepository implements ProjectionReadReposito
       reminders,
       documents,
       persons,
+      notes,
       taskLabels,
       personContacts,
       personLabels,
@@ -324,6 +328,12 @@ export class CloudBaseProjectionReadRepository implements ProjectionReadReposito
         cloudbasePersonColumns,
         idsOf("person"),
       ),
+      this.#typedRows<CloudBaseNoteRow>(
+        principal,
+        "notes",
+        cloudbaseNoteColumns,
+        idsOf("note"),
+      ),
       readCloudBaseTaskLabels(this.#client, principal, idsOf("task")),
       readCloudBasePersonContacts(this.#client, principal, idsOf("person")),
       readCloudBasePersonLabels(this.#client, principal, idsOf("person")),
@@ -353,6 +363,8 @@ export class CloudBaseProjectionReadRepository implements ProjectionReadReposito
           personContacts.get(objectId(object)) ?? [],
           personLabels.get(objectId(object)) ?? [],
         ),
+      note: (object) =>
+        cloudbaseNoteResource(object, requireTyped(notes, object)),
     };
     return rows.map((row) => decode[objectType(row)](row));
   }

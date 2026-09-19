@@ -64,6 +64,9 @@ const typedFields: Record<
     userId: field("Linked account", "text", false),
     labelIds: field("Labels", "text", false),
   },
+  note: {
+    body: field("Text", "text"),
+  },
 };
 
 /** Compare public content only; permission and storage internals are never inspected. */

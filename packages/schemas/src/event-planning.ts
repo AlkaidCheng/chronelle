@@ -21,6 +21,7 @@ const objectTypeSchema = z.enum([
   "reminder",
   "document",
   "person",
+  "note",
 ]);
 const taskStatusSchema = z.enum(["todo", "in_progress", "done", "cancelled"]);
 const reminderStatusSchema = z.enum([
@@ -231,6 +232,26 @@ export const personUpdateRequestSchema = z
     message: "At least one update field is required.",
   });
 
+/** A Note's text: plain text with its line breaks, at most 20,000 characters. */
+export const noteBodySchema = z.string().max(20_000);
+
+// A Note is free text kept with an Event: the title is the object's display
+// name, the body plain text. Versioned, audited, trashed, restored, and
+// searched by title like every object; shared through the Event's scope.
+export const noteCreateRequestSchema = z.object({
+  ...createObjectShape,
+  body: noteBodySchema.optional(),
+});
+
+export const noteUpdateRequestSchema = z
+  .object({
+    ...updateObjectShape,
+    body: noteBodySchema.optional(),
+  })
+  .refine(hasUpdateFields, {
+    message: "At least one update field is required.",
+  });
+
 export const relationCreateRequestSchema = z.object({
   relationType: relationTypeSchema,
   targetObjectId: objectIdSchema,
@@ -368,6 +389,12 @@ export const personResponseSchema = z.object({
   labelIds: z.array(objectIdSchema).default([]),
 });
 
+export const noteResponseSchema = z.object({
+  ...canonicalObjectResponseShape,
+  objectType: z.literal("note"),
+  body: z.string().default(""),
+});
+
 export const eventPlanningResourceResponseSchema = z.discriminatedUnion(
   "objectType",
   [
@@ -377,6 +404,7 @@ export const eventPlanningResourceResponseSchema = z.discriminatedUnion(
     reminderResponseSchema,
     documentResponseSchema,
     personResponseSchema,
+    noteResponseSchema,
   ],
 );
 
@@ -476,6 +504,11 @@ export type ReminderCreateRequest = z.infer<typeof reminderCreateRequestSchema>;
 export type ReminderCreatePayload = z.input<typeof reminderCreateRequestSchema>;
 export type ReminderUpdateRequest = z.infer<typeof reminderUpdateRequestSchema>;
 export type ReminderUpdatePayload = z.input<typeof reminderUpdateRequestSchema>;
+export type NoteCreateRequest = z.infer<typeof noteCreateRequestSchema>;
+export type NoteCreatePayload = z.input<typeof noteCreateRequestSchema>;
+export type NoteUpdateRequest = z.infer<typeof noteUpdateRequestSchema>;
+export type NoteUpdatePayload = z.input<typeof noteUpdateRequestSchema>;
+export type NoteResponse = z.infer<typeof noteResponseSchema>;
 export type PersonCreateRequest = z.infer<typeof personCreateRequestSchema>;
 export type PersonCreatePayload = z.input<typeof personCreateRequestSchema>;
 export type PersonUpdateRequest = z.infer<typeof personUpdateRequestSchema>;

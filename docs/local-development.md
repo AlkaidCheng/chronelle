@@ -191,6 +191,14 @@ and redefines `chronelle_command_content` so a reversible Event command
 carries the place. The API built from it can start before or after it (an
 older API leaves the column null); the runtime role needs no change.
 
+Migration `0060_add_notes.sql` adds the Note object type: `objects_type_valid`
+admits `note`, the `notes` table holds the text (at most 20,000 characters),
+`chronelle_assert_note_state` and the `chronelle_note_*` steps supply the
+family to the write core, `chronelle_note_list` is the Notes projection the
+readiness check requires, and the write core, restore, search, and relation
+rule are redefined in place to admit the type. The API built from it starts
+after it, and the runtime role script is reapplied for its grants on `notes`.
+
 Migration `0021_add_object_search_function.sql` adds `chronelle_object_search`,
 the read-only function the CloudBase search adapter calls. It changes no
 tables and needs no baseline.

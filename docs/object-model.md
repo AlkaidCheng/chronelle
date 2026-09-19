@@ -43,6 +43,13 @@ sign-in creates the corresponding owner membership in the same transaction.
   key, original filename, MIME type, byte size, SHA-256 checksum, and the
   provider's encryption mode. File bytes never enter PostgreSQL, and storage
   keys never enter public API responses.
+- `Person` stores who the workspace keeps track of: an optional linked
+  account, a nickname, a description, contacts, and labels.
+- `Note` stores free text kept with an Event: the title is the object's
+  display name, `body` the plain text with its line breaks (at most 20,000
+  characters). A note is versioned, audited, trashed, restored, searched by
+  title, and shared through the Event's scope like every object; who wrote
+  its current version comes from the revision ledger, not from a column.
 
 These fields make the first capabilities executable without freezing a richer
 event-planning schema. Additional details can use `custom_properties` until a

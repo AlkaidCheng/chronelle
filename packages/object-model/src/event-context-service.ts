@@ -119,6 +119,8 @@ export class EventContextService {
               return objects.createReminder(context, fields);
             case "person":
               return objects.createPerson(context, fields);
+            case "note":
+              return objects.createNote(context, fields);
           }
         })();
         const relation = await new ObjectRelationService({

@@ -80,7 +80,8 @@ GRANT SELECT, INSERT, UPDATE ON
   public.expenses, public.reminders, public.document_transfer_authorizations,
   public.command_stacks, public.user_sessions, public.user_credentials,
   public.email_verifications, public.labels, public.task_labels,
-  public.persons, public.user_connections, public.user_invitations, public.pending_shares
+  public.persons, public.user_connections, public.user_invitations, public.pending_shares,
+  public.notes
 TO :"runtime_role";
 GRANT DELETE ON public.resource_grants, public.labels, public.task_labels,
   public.person_contacts, public.person_labels, public.workspace_members

@@ -50,6 +50,14 @@ export { CloudBaseStorageInventoryReadRepository } from "./cloudbase-storage-inv
 export { CloudBaseReminderWriteRepository } from "./cloudbase-reminder-write-repository.js";
 export { CloudBasePersonWriteRepository } from "./cloudbase-person-write-repository.js";
 export { CloudBasePersonReadRepository } from "./cloudbase-person-read-repository.js";
+export { CloudBaseNoteWriteRepository } from "./cloudbase-note-write-repository.js";
+export { CloudBaseNoteReadRepository } from "./cloudbase-note-read-repository.js";
+export {
+  PostgresNoteReadRepository,
+  type NoteListItem,
+  type NotePage,
+  type NoteReadRepository,
+} from "./note-list.js";
 export {
   PostgresPersonReadRepository,
   type PersonPage,
@@ -119,6 +127,7 @@ export type {
   RelationWriteRepository,
   ReminderWriteRepository,
   PersonWriteRepository,
+  NoteWriteRepository,
   TaskWriteRepository,
 } from "./object-writes.js";
 export {
