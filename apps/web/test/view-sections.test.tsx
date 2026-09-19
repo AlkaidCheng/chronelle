@@ -21,6 +21,7 @@ import {
 
 import { Providers } from "../app/providers";
 import { groupBySection, sectionAfterStep } from "../lib/section-groups";
+import { setAmountChip } from "./record-composers";
 import { SandboxStore, sandboxWorkspaceId } from "../sandbox/store";
 import { PagesHarness } from "./pages-harness";
 import {
@@ -511,10 +512,31 @@ describe("sections in Expenses", () => {
     expect(within(travelSection).getByText("Taxi")).toBeVisible();
     expect(within(travelSection).queryByText("Deposit")).toBeNull();
 
-    // The section's add row opens the editor with the section chosen.
+    // The section's add row opens the composer, which adds into the section;
+    // More hands the dialog the section too.
     await user.click(
-      within(travelSection).getByRole("button", { name: "Add expense" }),
+      within(travelSection).getByRole("button", {
+        name: "Add an expense to Travel",
+      }),
     );
+    const adding = within(travelSection).getByRole("form", {
+      name: "New expense",
+    });
+    await user.type(
+      within(adding).getByLabelText("What was paid for"),
+      "Ferry",
+    );
+    await setAmountChip(user, "12", undefined, adding);
+    await user.click(within(adding).getByLabelText("What was paid for"));
+    await user.keyboard("{Enter}");
+    await waitFor(() =>
+      expect(within(travelSection).getByText("Ferry")).toBeVisible(),
+    );
+    const ferry = (await client.getEventExpenses(eventId)).items.find(
+      (expense) => expense.displayName === "Ferry",
+    );
+    expect(ferry?.sectionId).toBe(travel.id);
+    await user.click(within(adding).getByRole("button", { name: /^More/ }));
     const dialog = await screen.findByRole("dialog", { name: "Add expense" });
     expect(within(dialog).getByLabelText("Section")).toHaveValue(travel.id);
     await user.keyboard("{Escape}");

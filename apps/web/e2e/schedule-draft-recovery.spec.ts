@@ -9,6 +9,7 @@ import {
   inspectScheduleRecovery,
   reopenScheduleDraft,
 } from "./helpers/schedule-draft-recovery";
+import { openPlanningEditor } from "./helpers/task-add";
 
 for (const outcome of ["success", "lost response"] as const)
   test(`recovers schedule drafts and settles a ${outcome} across navigation @webkit-desktop @webkit-mobile`, async ({
@@ -63,9 +64,9 @@ for (const outcome of ["success", "lost response"] as const)
     ).toBeVisible();
     for (let step = 0; step < 3; step++) await page.goForward();
     await expect(page).toHaveURL(calendarUrl);
-    await page
-      .getByRole("button", { name: "Add schedule item", exact: true })
-      .click();
+    // The save on its way is the dialog's: the add row opens the composer
+    // empty, and More reaches the dialog, which shows the save.
+    await openPlanningEditor(page, "schedule item");
     const saving = page.getByRole("dialog", {
       name: "Saving event",
       exact: true,

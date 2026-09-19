@@ -14,5 +14,21 @@
   "clear": "Clear {field}",
   "saved": "Saved.",
   "added": "Added.",
-  "unsaved": "This row has unsaved changes. Discard them?"
+  "unsaved": "This row has unsaved changes. Discard them?",
+  "newScheduleItem": "New schedule item",
+  "scheduleName": "Schedule item",
+  "addScheduleItem": "Add to schedule",
+  "newReminder": "New reminder",
+  "reminderName": "Reminder",
+  "addReminder": "Add reminder",
+  "newExpense": "New expense",
+  "expenseName": "What was paid for",
+  "addExpense": "Add expense",
+  "moreRecordLabel": "More: the full editor, history",
+  "dates": "Dates",
+  "place": "Place",
+  "remindAt": "Remind at",
+  "amount": "Amount",
+  "paidOn": "Paid on",
+  "amountNeeded": "Enter an amount and a three-letter currency."
 }

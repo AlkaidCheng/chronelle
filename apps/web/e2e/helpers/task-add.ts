@@ -12,32 +12,24 @@ export async function openTaskEditor(
   await openPlanningEditor(page, "task", scope);
 }
 
+/** The add row of each kind; the first in scope for the kinds with day groups. */
+const addRows = {
+  task: /^Add a task/,
+  reminder: /^Add a reminder/,
+  expense: /^Add expense$/,
+  "schedule item": /^Add schedule item$/,
+} as const;
+
 /**
- * Opens the editor for a new record of a kind: a task through its add row's
- * composer and More, a reminder through its quick add row and the row's
- * details control, an expense or a schedule item through the add row at
- * the end of its collection.
+ * Opens the editor for a new record of a kind the way a person does: the
+ * add row at the end of its list opens the composer, and More at the
+ * composer's foot opens the editor with the composer's fields.
  */
 export async function openPlanningEditor(
   page: Page,
-  kind: "task" | "reminder" | "expense" | "schedule item",
+  kind: keyof typeof addRows,
   scope: Locator | Page = page,
 ): Promise<void> {
-  if (kind === "expense" || kind === "schedule item") {
-    await scope
-      .getByRole("button", { name: `Add ${kind}`, exact: true })
-      .click();
-    return;
-  }
-  await scope
-    .getByRole("button", { name: new RegExp(`^Add a ${kind}`) })
-    .first()
-    .click();
-  if (kind === "task") {
-    await page.getByRole("button", { name: /^More: / }).click();
-    return;
-  }
-  await page
-    .getByRole("button", { name: `Add ${kind} with details`, exact: true })
-    .click();
+  await scope.getByRole("button", { name: addRows[kind] }).first().click();
+  await page.getByRole("button", { name: /^More: / }).click();
 }

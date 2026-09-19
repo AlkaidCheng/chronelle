@@ -418,7 +418,8 @@ describe("quick add", () => {
         "listitem",
       ),
     ).toHaveLength(2);
-    // The Reminders list's row carries over to the list after the first one.
+    // The Reminders list's composer carries over to the list after the
+    // first one.
     const reminders = panel("Reminders");
     await user.click(
       reminders.getByRole("button", { name: "Add a reminder to the list" }),
@@ -429,7 +430,7 @@ describe("quick add", () => {
         reminders.getByRole("heading", { name: "Open the gates" }),
       ).toBeVisible(),
     );
-    field = reminders.getByLabelText("New reminder");
+    field = reminders.getByLabelText("Reminder");
     expect(field).toHaveFocus();
     expect(field).toHaveValue("");
     await user.keyboard("Light the brazier{Enter}");
@@ -438,6 +439,6 @@ describe("quick add", () => {
         reminders.getByRole("heading", { name: "Light the brazier" }),
       ).toBeVisible(),
     );
-    expect(reminders.getByLabelText("New reminder")).toHaveFocus();
+    expect(reminders.getByLabelText("Reminder")).toHaveFocus();
   });
 });

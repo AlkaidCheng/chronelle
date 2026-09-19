@@ -6,6 +6,14 @@ import {
   expenseResponseSchema,
 } from "@chronelle/schemas";
 import { openEventView } from "./helpers/event-view";
+import {
+  chip,
+  composer,
+  openAddComposer,
+  pressRow,
+  setAmountChip,
+  submitComposer,
+} from "./helpers/record-composers";
 
 test("preserves exact expense amounts through editing and currency summaries @webkit-desktop @webkit-mobile", async ({
   page,
@@ -72,14 +80,15 @@ test("preserves exact expense amounts through editing and currency summaries @we
   ).toBeVisible();
   await expect(page.getByText("-$0.0001", { exact: true })).toBeVisible();
 
-  await deposit.getByRole("button", { name: "Edit", exact: true }).click();
-  const editor = page.getByRole("dialog", {
-    name: "Edit expense",
-    exact: true,
-  });
-  await expect(editor.getByLabel("Expense", { exact: true })).toBeFocused();
+  // The row opens in place; the Amount chip's panel keeps the exact text.
+  await pressRow(deposit, "Venue deposit");
+  const editor = composer(page, "Edit Venue deposit");
+  await expect(
+    editor.getByLabel("What was paid for", { exact: true }),
+  ).toBeFocused();
+  await chip(editor, /^Amount/).click();
   expect(
-    await page.locator(".money-grid").evaluate((grid) => {
+    await page.locator(".chip-panel .money-grid").evaluate((grid) => {
       const bounds = grid.getBoundingClientRect();
       return [...grid.querySelectorAll("input")].every((input) => {
         const field = input.getBoundingClientRect();
@@ -87,9 +96,15 @@ test("preserves exact expense amounts through editing and currency summaries @we
       });
     }),
   ).toBe(true);
-  await expect(editor.getByLabel("Amount")).toHaveValue("999999999999999.9999");
-  await editor.getByLabel("Amount").fill("999999999999999.9997");
-  await editor.getByRole("button", { name: "Save expense" }).click();
+  const amountField = editor.getByRole("textbox", {
+    name: "Amount",
+    exact: true,
+  });
+  await expect(amountField).toHaveValue("999999999999999.9999");
+  await amountField.fill("999999999999999.9997");
+  await amountField.press("Enter");
+  await editor.getByRole("button", { name: "Save", exact: true }).click();
+  await expect(editor).toHaveCount(0);
   await expect(
     deposit.getByText("$999,999,999,999,999.9997", { exact: true }),
   ).toBeVisible();
@@ -100,9 +115,17 @@ test("preserves exact expense amounts through editing and currency summaries @we
   await expect(summary).toContainText("$999,999,999,999,999.9996");
 
   await summary.click();
-  await page.getByRole("button", { name: "Add expense", exact: true }).click();
-  await page.getByLabel("Expense", { exact: true }).fill("Supplies");
-  const amount = page.getByLabel("Amount", { exact: true });
+  // The add row's composer refuses an amount the API would, before any
+  // request, and opens the Amount chip on the refusal.
+  const adding = await openAddComposer(
+    page.locator(".planning-panel").filter({
+      has: page.getByRole("heading", { name: "Expenses", exact: true }),
+    }),
+    "Add expense",
+    "New expense",
+    "Supplies",
+  );
+  const name = adding.getByLabel("What was paid for", { exact: true });
   let invalidWrites = 0;
   const countWrites = (request: import("@playwright/test").Request) => {
     if (
@@ -113,27 +136,25 @@ test("preserves exact expense amounts through editing and currency summaries @we
   };
   page.on("request", countWrites);
   for (const invalid of ["1.00001", "1,25", "-", "1000000000000000"]) {
-    await amount.fill(invalid);
-    await amount.press("ControlOrMeta+Enter");
-    expect(
-      await amount.evaluate(
-        (input: HTMLInputElement) => input.validity.patternMismatch,
-      ),
-    ).toBe(true);
+    await setAmountChip(adding, invalid);
+    await name.press("ControlOrMeta+Enter");
+    await expect(adding.getByRole("alert")).toHaveText(
+      "Enter an amount and a three-letter currency.",
+    );
     await expect(
-      page.getByRole("dialog", { name: "Add expense", exact: true }),
-    ).toBeVisible();
+      adding.getByRole("textbox", { name: "Amount", exact: true }),
+    ).toBeFocused();
+    await page.keyboard.press("Escape");
   }
   expect(invalidWrites).toBe(0);
   page.off("request", countWrites);
-  await page.getByLabel("Amount").fill("1.0001");
-  await page.getByLabel("Currency", { exact: true }).fill("EUR");
+  await setAmountChip(adding, "1.0001", "EUR");
   const created = page.waitForResponse(
     (response) =>
       response.url().endsWith(`/api/events/${event.id}/resources`) &&
       response.request().method() === "POST",
   );
-  await page.getByRole("button", { name: "Record expense" }).click();
+  await submitComposer(adding);
   const response = await created;
   expect(response.status()).toBe(201);
   expect(
@@ -143,7 +164,9 @@ test("preserves exact expense amounts through editing and currency summaries @we
     amount: "1.0001",
     currency: "EUR",
   });
-  await expect(page.getByRole("dialog")).toHaveCount(0);
+  await expect(name).toHaveValue("");
+  await page.keyboard.press("Escape");
+  await expect(adding).toHaveCount(0);
   await expect(
     page.getByRole("button", { name: "Add expense", exact: true }),
   ).toBeFocused();

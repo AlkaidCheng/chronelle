@@ -5,12 +5,6 @@
   "newTask": "New task",
   "taskName": "Task name",
   "addTask": "Add task",
-  "reminderToList": "Add a reminder to the list",
-  "reminderFor": "Add a reminder for {day}",
-  "newReminder": "New reminder",
-  "reminderName": "Reminder name",
-  "addReminder": "Add reminder",
   "taskToSection": "Add a task to {section}",
-  "taskDetails": "Add task with details",
-  "reminderDetails": "Add reminder with details"
+  "taskDetails": "Add task with details"
 }

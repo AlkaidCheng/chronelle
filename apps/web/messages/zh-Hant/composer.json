@@ -14,5 +14,21 @@
   "clear": "清除{field}",
   "saved": "已儲存。",
   "added": "已新增。",
-  "unsaved": "此列有未儲存的修改，要放棄嗎？"
+  "unsaved": "此列有未儲存的修改，要放棄嗎？",
+  "newScheduleItem": "新日程項目",
+  "scheduleName": "日程項目",
+  "addScheduleItem": "加入日程",
+  "newReminder": "新提醒",
+  "reminderName": "提醒",
+  "addReminder": "新增提醒",
+  "newExpense": "新支出",
+  "expenseName": "支付項目",
+  "addExpense": "新增支出",
+  "moreRecordLabel": "更多：完整編輯器、歷史",
+  "dates": "日期",
+  "place": "地點",
+  "remindAt": "提醒時間",
+  "amount": "金額",
+  "paidOn": "支付日期",
+  "amountNeeded": "請輸入金額和三位字母的幣種。"
 }

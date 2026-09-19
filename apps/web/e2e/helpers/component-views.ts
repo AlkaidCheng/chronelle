@@ -1,3 +1,8 @@
+import {
+  openAddComposer,
+  setAmountChip,
+  submitComposer,
+} from "./record-composers";
 import { expect, type Locator, type Page } from "@playwright/test";
 import { setDue } from "./date-rows";
 import { today } from "./today";
@@ -168,18 +173,18 @@ export async function exerciseComponentViews(page: Page) {
   const expenses = page.locator(".planning-panel").filter({
     has: page.getByRole("heading", { name: "Expenses", exact: true }),
   });
-  await expenses
-    .getByRole("button", { name: "Add expense", exact: true })
-    .click();
-  const expenseEditor = page.getByRole("dialog", {
-    name: "Add expense",
-    exact: true,
-  });
-  await expenseEditor.getByLabel("Expense", { exact: true }).fill("Napkins");
-  await expenseEditor.getByLabel("Amount", { exact: true }).fill("12.50");
-  await expenseEditor
-    .getByRole("button", { name: "Record expense", exact: true })
-    .click();
+  const expenseEditor = await openAddComposer(
+    expenses,
+    "Add expense",
+    "New expense",
+    "Napkins",
+  );
+  await setAmountChip(expenseEditor, "12.50");
+  await submitComposer(expenseEditor);
+  await expect(
+    expenseEditor.getByLabel("What was paid for", { exact: true }),
+  ).toHaveValue("");
+  await page.keyboard.press("Escape");
   await expect(expenseEditor).toHaveCount(0);
   await chooseLayout(expenses, "Calendar");
   await expect(expenses.locator(".month-day.is-today")).toContainText(

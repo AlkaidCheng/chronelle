@@ -9,6 +9,7 @@ import {
   openDatePanel,
 } from "./date-rows";
 import { openEventView } from "./event-view";
+import { openAddComposer } from "./record-composers";
 
 export async function prepareScheduleCreation(page: Page, testInfo: TestInfo) {
   await openEventView(page, "Overview");
@@ -19,17 +20,25 @@ export async function prepareScheduleCreation(page: Page, testInfo: TestInfo) {
   await expect(panel).toBeVisible();
   const before = await panel.boundingBox();
   expect(before).not.toBeNull();
-  await page
-    .getByRole("button", { name: "Add schedule item", exact: true })
-    .click();
+  // The add row opens the composer in the list; More hands its fields to
+  // the dialog, which the rest of the journey drives.
+  const adding = await openAddComposer(
+    panel,
+    "Add schedule item",
+    "New schedule item",
+    "Garden arrival",
+  );
+  expect((await panel.boundingBox())?.height).toBeGreaterThan(
+    before?.height ?? 0,
+  );
+  await adding.getByRole("button", { name: /^More: / }).click();
   const dialog = page.getByRole("dialog", {
     name: "Add schedule item",
     exact: true,
   });
   const name = dialog.getByLabel("Schedule item", { exact: true });
   await expect(name).toBeFocused();
-  expect((await panel.boundingBox())?.height).toBe(before?.height);
-  await name.fill("Garden arrival");
+  await expect(name).toHaveValue("Garden arrival");
   // The chooser brings July 2030 to the top; two clicks choose the span.
   await openDatePanel(dialog, datesRow(dialog));
   await dialog

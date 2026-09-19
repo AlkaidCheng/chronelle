@@ -4,6 +4,7 @@ import { useTranslations } from "next-intl";
 import { type ReactNode, useEffect } from "react";
 import { ErrorNotice, LoadingState } from "../../components/feedback";
 import { useEditorDraftStore } from "../../lib/editor-draft-context";
+import type { EventFields } from "../../lib/editor-draft-store";
 import { useEventWorkspaceQueries } from "../../lib/queries";
 import { isTemporaryReadError } from "../../lib/query-errors";
 import { useSessionDialog } from "../../lib/use-session-dialog";
@@ -12,9 +13,12 @@ import { EventInspector } from "./event-inspector";
 export function ScheduleItemInspector({
   eventId,
   onClose,
+  start,
 }: {
   readonly eventId: string;
   readonly onClose: () => void;
+  /** The fields the item's composer held when it handed over to the editor. */
+  readonly start?: Partial<EventFields> | undefined;
 }) {
   const t = useTranslations("scheduleItemEditor");
   const { event, access } = useEventWorkspaceQueries(eventId, null, "always");
@@ -43,6 +47,7 @@ export function ScheduleItemInspector({
         key={eventId}
         event={event.data}
         onClose={onClose}
+        start={start}
         title={t("title")}
       />
     );

@@ -5,12 +5,6 @@
   "newTask": "新任务",
   "taskName": "任务名称",
   "addTask": "添加任务",
-  "reminderToList": "向列表添加提醒",
-  "reminderFor": "添加 {day} 的提醒",
-  "newReminder": "新提醒",
-  "reminderName": "提醒名称",
-  "addReminder": "添加提醒",
   "taskToSection": "向分组 {section} 添加任务",
-  "taskDetails": "添加任务并填写详情",
-  "reminderDetails": "添加提醒并填写详情"
+  "taskDetails": "添加任务并填写详情"
 }

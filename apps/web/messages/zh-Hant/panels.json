@@ -11,9 +11,13 @@
   "addScheduleItem": "新增日程項目",
   "addExpense": "新增支出",
   "addReminder": "新增提醒",
-  "edit": "編輯",
   "menu": {
-    "history": "歷史"
+    "edit": "編輯",
+    "history": "歷史",
+    "moveToTrash": "移到垃圾桶"
   },
-  "actionsFor": "{name} 的操作"
+  "actionsFor": "{name} 的操作",
+  "addReminderToList": "向清單新增提醒",
+  "addReminderFor": "為 {day} 新增提醒",
+  "addExpenseTo": "向分組 {section} 新增支出"
 }

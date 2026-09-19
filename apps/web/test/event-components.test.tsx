@@ -1011,7 +1011,7 @@ describe("insertable event components", () => {
     ).toBeVisible();
     expect(within(todayCell).getByText("$18.50")).toBeVisible();
     expect(
-      within(todayCell).getAllByRole("button", { name: "Edit" }),
+      within(todayCell).getAllByRole("button", { name: /^Edit / }),
     ).toHaveLength(2);
     await waitFor(async () =>
       expect(

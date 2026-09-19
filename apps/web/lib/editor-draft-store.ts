@@ -25,10 +25,16 @@ export function readEventFields(event?: EventResponse) {
   };
 }
 
+/** The fields an Event's editors hold: the name, the schedule, the place, the description. */
+export type EventFields = ReturnType<typeof readEventFields>;
+
 export type EventDraftSnapshot = EditorDraftSnapshot<
   EventResponse,
-  ReturnType<typeof readEventFields>
-> & { readonly kind: "event"; readonly creationAttempt?: ContextCreateAttempt };
+  EventFields
+> & {
+  readonly kind: "event";
+  readonly creationAttempt?: ContextCreateAttempt;
+};
 
 export type TaskDraftSnapshot = EditorDraftSnapshot<
   TaskResponse,

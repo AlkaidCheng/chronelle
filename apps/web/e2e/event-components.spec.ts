@@ -1,7 +1,14 @@
 import { randomUUID } from "node:crypto";
 import { expect, test } from "./fixtures";
-import { momentRows, setMoment } from "./helpers/date-rows";
 import { signOutFromMenu } from "./helpers/quiet-chrome";
+import {
+  composer,
+  openAddComposer,
+  pressRow,
+  setAmountChip,
+  setMomentChip,
+  submitComposer,
+} from "./helpers/record-composers";
 
 test("composes planning and private-file components with canonical updates and viewer access", async ({
   page,
@@ -73,44 +80,34 @@ test("composes planning and private-file components with canonical updates and v
   const calendar = page.locator(".planning-panel").filter({
     has: page.getByRole("heading", { name: "Calendar", exact: true }),
   });
-  await calendar.getByRole("button", { name: "Edit", exact: true }).click();
-  const inspector = page.getByRole("dialog", { name: "Edit schedule item" });
+  // A row opens in place as the composer; Save writes the row's update.
+  await pressRow(calendar, "Mountain stay");
+  const inspector = composer(page, "Edit Mountain stay");
   await inspector
-    .getByLabel("Name", { exact: true })
+    .getByLabel("Schedule item", { exact: true })
     .fill("Mountain cabin stay");
-  await inspector
-    .getByRole("button", { name: "Save event", exact: true })
-    .click();
+  await inspector.getByRole("button", { name: "Save", exact: true }).click();
+  await expect(inspector).toHaveCount(0);
   await expect(
     page.getByRole("heading", { name: "Mountain cabin stay", exact: true }),
   ).toHaveCount(2);
   const expense = page.locator(".planning-panel").filter({
     has: page.getByRole("heading", { name: "Expenses", exact: true }),
   });
-  await expense
-    .getByRole("button", { name: "Add expense", exact: true })
-    .click();
-  const expenseEditor = page.getByRole("dialog", {
-    name: "Add expense",
-    exact: true,
-  });
-  await expenseEditor
-    .getByLabel("Expense", { exact: true })
-    .fill("Cabin deposit");
-  await expenseEditor.getByLabel("Amount", { exact: true }).fill("120.25");
-  expect(
-    await expenseEditor
-      .locator("form")
-      .evaluate((form: HTMLFormElement) => form.checkValidity()),
-  ).toBe(true);
+  // The add row opens the composer; Enter adds and keeps it open.
+  const expenseEditor = await openAddComposer(
+    expense,
+    "Add expense",
+    "New expense",
+    "Cabin deposit",
+  );
+  await setAmountChip(expenseEditor, "120.25");
   const expenseCreated = page.waitForResponse(
     (response) =>
       response.url().endsWith(`/api/events/${event.id}/resources`) &&
       response.request().method() === "POST",
   );
-  await expenseEditor
-    .getByRole("button", { name: "Record expense", exact: true })
-    .click();
+  await submitComposer(expenseEditor);
   const expenseResponse = await expenseCreated;
   expect(expenseResponse.status()).toBe(201);
   expect((await expenseResponse.json()).resource).toMatchObject({
@@ -118,6 +115,10 @@ test("composes planning and private-file components with canonical updates and v
     displayName: "Cabin deposit",
     amount: "120.2500",
   });
+  await expect(
+    expenseEditor.getByLabel("What was paid for", { exact: true }),
+  ).toHaveValue("");
+  await page.keyboard.press("Escape");
   await expect(expenseEditor).toHaveCount(0);
   await expect(
     page.getByRole("heading", { name: "Cabin deposit", exact: true }),
@@ -125,23 +126,18 @@ test("composes planning and private-file components with canonical updates and v
   const reminder = page.locator(".planning-panel").filter({
     has: page.getByRole("heading", { name: "Reminders", exact: true }),
   });
-  await reminder
-    .getByRole("button", { name: "Add a reminder to the list", exact: true })
-    .click();
-  await page
-    .getByRole("button", { name: "Add reminder with details", exact: true })
-    .click();
-  const reminderDialog = page.getByRole("dialog", {
-    name: "Add reminder",
-    exact: true,
-  });
-  await reminderDialog
-    .getByLabel("Reminder", { exact: true })
-    .fill("Confirm arrival time");
-  await setMoment(reminderDialog, momentRows.reminder, "2030-07-03", "10:00");
-  await reminderDialog
-    .getByRole("button", { name: "Record reminder", exact: true })
-    .click();
+  const reminderDialog = await openAddComposer(
+    reminder,
+    "Add a reminder to the list",
+    "New reminder",
+    "Confirm arrival time",
+  );
+  await setMomentChip(reminderDialog, /^Remind at/, "2030-07-03", "10:00");
+  await submitComposer(reminderDialog);
+  await expect(
+    reminderDialog.getByLabel("Reminder", { exact: true }),
+  ).toHaveValue("");
+  await page.keyboard.press("Escape");
   await expect(
     page.getByRole("heading", { name: "Confirm arrival time", exact: true }),
   ).toHaveCount(2);
@@ -238,9 +234,7 @@ test("composes planning and private-file components with canonical updates and v
   await expect(
     page.getByRole("button", { name: "Add component", exact: true }),
   ).toHaveCount(0);
-  await expect(
-    page.getByRole("button", { name: "Edit", exact: true }),
-  ).toHaveCount(0);
+  await expect(page.locator(".row-press")).toHaveCount(0);
   await showFilesOf("Expense: Cabin deposit");
   await expect(files.getByText("receipt.txt", { exact: true })).toBeVisible();
   await expect(files.getByLabel("Choose a private file")).toHaveCount(0);

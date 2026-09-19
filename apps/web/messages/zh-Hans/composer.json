@@ -14,5 +14,21 @@
   "clear": "清除{field}",
   "saved": "已保存。",
   "added": "已添加。",
-  "unsaved": "此行有未保存的修改，要放弃吗？"
+  "unsaved": "此行有未保存的修改，要放弃吗？",
+  "newScheduleItem": "新日程项",
+  "scheduleName": "日程项",
+  "addScheduleItem": "加入日程",
+  "newReminder": "新提醒",
+  "reminderName": "提醒",
+  "addReminder": "添加提醒",
+  "newExpense": "新支出",
+  "expenseName": "支付项目",
+  "addExpense": "添加支出",
+  "moreRecordLabel": "更多：完整编辑器、历史",
+  "dates": "日期",
+  "place": "地点",
+  "remindAt": "提醒时间",
+  "amount": "金额",
+  "paidOn": "支付日期",
+  "amountNeeded": "请输入金额和三位字母的币种。"
 }

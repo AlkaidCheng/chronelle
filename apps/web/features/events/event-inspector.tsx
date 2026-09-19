@@ -24,6 +24,7 @@ import { useKeepEditorDraft } from "../../lib/editor-draft-context";
 import {
   readEventFields,
   type EventDraftSnapshot,
+  type EventFields,
 } from "../../lib/editor-draft-store";
 import {
   EditorDraftRecovery,
@@ -44,6 +45,8 @@ interface EventInspectorProps {
   readonly title?: string;
   /** Where the editor opens: the name, or the schedule when setting dates. */
   readonly initialFocus?: "name" | "schedule";
+  /** The fields the editor starts with when a composer hands over to it. */
+  readonly start?: Partial<EventFields> | undefined;
 }
 
 export function EventInspector(props: EventInspectorProps) {
@@ -66,11 +69,21 @@ function EventInspectorForm({
   initialDraft,
   title,
   initialFocus = "name",
+  start,
 }: EventInspectorProps & {
   readonly initialDraft: EventDraftSnapshot | undefined;
 }) {
   const conflictSlot = useConflictSlot();
   const draft = useEditorDraft(latestEvent, readEventFields, initialDraft);
+  // A composer's fields seed a fresh draft once; a recovered draft keeps
+  // what it had.
+  const seeded = useRef(false);
+  useEffect(() => {
+    if (seeded.current || start === undefined || initialDraft !== undefined)
+      return;
+    seeded.current = true;
+    draft.change(start);
+  }, [draft, initialDraft, start]);
   const snapshot = useMemo<EventDraftSnapshot>(
     () => ({ ...draft.snapshot, kind: "event" }),
     [draft.snapshot],

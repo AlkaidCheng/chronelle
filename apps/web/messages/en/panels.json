@@ -11,9 +11,13 @@
   "addScheduleItem": "Add schedule item",
   "addExpense": "Add expense",
   "addReminder": "Add reminder",
-  "edit": "Edit",
   "menu": {
-    "history": "History"
+    "edit": "Edit",
+    "history": "History",
+    "moveToTrash": "Move to Trash"
   },
-  "actionsFor": "Actions for {name}"
+  "actionsFor": "Actions for {name}",
+  "addReminderToList": "Add a reminder to the list",
+  "addReminderFor": "Add a reminder for {day}",
+  "addExpenseTo": "Add an expense to {section}"
 }

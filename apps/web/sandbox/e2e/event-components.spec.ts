@@ -57,12 +57,17 @@ test("inserts mixed components offline and edits one schedule across three proje
   const calendar = page.locator(".planning-panel").filter({
     has: page.getByRole("heading", { name: "Calendar", exact: true }),
   });
-  await calendar.getByRole("button", { name: "Edit", exact: true }).click();
-  const inspector = page.getByRole("dialog", { name: "Edit schedule item" });
-  await inspector.getByLabel("Name", { exact: true }).fill("Garden welcome");
-  await inspector
-    .getByRole("button", { name: "Save event", exact: true })
+  // The row opens in place as the composer; Save writes the row's update.
+  await calendar
+    .getByRole("button", { name: /^Edit / })
+    .first()
     .click();
+  const inspector = calendar.getByRole("form", { name: /^Edit / });
+  await inspector
+    .getByLabel("Schedule item", { exact: true })
+    .fill("Garden welcome");
+  await inspector.getByRole("button", { name: "Save", exact: true }).click();
+  await expect(inspector).toHaveCount(0);
   await expect(
     page.getByRole("heading", { name: "Garden welcome", exact: true }),
   ).toHaveCount(2);
@@ -88,8 +93,6 @@ test("inserts mixed components offline and edits one schedule across three proje
   await expect(
     page.getByRole("button", { name: "Add component", exact: true }),
   ).toHaveCount(0);
-  await expect(
-    page.getByRole("button", { name: "Edit", exact: true }),
-  ).toHaveCount(0);
+  await expect(page.locator(".row-press")).toHaveCount(0);
   expect(errors).toEqual([]);
 });

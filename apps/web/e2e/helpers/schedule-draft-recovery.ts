@@ -12,9 +12,19 @@ export async function reopenScheduleDraft(page: Page) {
   await page.goForward();
   await expect(page).toHaveURL(calendarUrl);
   expect(await page.evaluate(() => window.history.length)).toBe(historyLength);
+  // The dialog's draft is its own: the add row opens the composer empty,
+  // and More reaches the dialog, which offers the draft.
   await page
     .getByRole("button", { name: "Add schedule item", exact: true })
     .click();
+  const adding = page.getByRole("form", {
+    name: "New schedule item",
+    exact: true,
+  });
+  await expect(adding.getByLabel("Schedule item", { exact: true })).toHaveValue(
+    "",
+  );
+  await adding.getByRole("button", { name: /^More: / }).click();
 }
 
 export async function inspectScheduleRecovery(page: Page, testInfo: TestInfo) {

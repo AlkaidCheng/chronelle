@@ -9,6 +9,7 @@ import {
   reopenScheduleDraft,
 } from "../../e2e/helpers/schedule-draft-recovery";
 import { openEventView } from "../../e2e/helpers/event-view";
+import { revisitObjectView } from "../../e2e/helpers/object-draft-recovery";
 
 const sandboxUrl = new URL(
   "../../../../.chronelle/sandbox/chronelle.html",
@@ -32,33 +33,24 @@ test("recovers and explicitly discards schedule drafts through offline navigatio
     .press("ControlOrMeta+Enter");
   await expectCreatedSchedule(page);
   await openEventView(page, "Calendar");
-  await page
-    .getByRole("button", { name: "Add schedule item", exact: true })
-    .click();
-  await page
-    .getByLabel("Schedule item", { exact: true })
-    .fill("Discarded arrival");
-  await reopenScheduleDraft(page);
-  await page
-    .getByRole("button", { name: "Discard draft", exact: true })
-    .click();
-  await page
-    .getByRole("button", { name: "Add schedule item", exact: true })
-    .click();
-  await expect(page.getByLabel("Schedule item", { exact: true })).toHaveValue(
-    "",
-  );
-  await page
-    .getByLabel("Schedule item", { exact: true })
-    .fill("Reload clears this draft");
+  const addRow = page.getByRole("button", {
+    name: "Add schedule item",
+    exact: true,
+  });
+  const name = page.getByLabel("Schedule item", { exact: true });
+  await addRow.click();
+  await name.fill("Discarded arrival");
+  await revisitObjectView(page);
+  // The composer comes back with its own draft; Escape discards it.
+  await expect(name).toHaveValue("Discarded arrival");
+  await name.press("Escape");
+  await addRow.click();
+  await expect(name).toHaveValue("");
+  await name.fill("Reload clears this draft");
   page.once("dialog", (dialog) => dialog.accept());
   await page.reload();
-  await page
-    .getByRole("button", { name: "Add schedule item", exact: true })
-    .click();
-  await expect(page.getByLabel("Schedule item", { exact: true })).toHaveValue(
-    "",
-  );
+  await addRow.click();
+  await expect(name).toHaveValue("");
   await page.getByRole("button", { name: "Cancel", exact: true }).click();
   await expect(
     page.getByRole("heading", { name: "Garden arrival", exact: true }),

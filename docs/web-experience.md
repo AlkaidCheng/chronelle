@@ -164,9 +164,9 @@ another account here, "Invited" while a request or invitation sent from the
 card waits), and the row menu (Edit, History, Move to Trash). Namecards show the same people as cards with the contacts under
 their icons, the description, and the badge and labels at the foot; the menu
 shows on hover or focus. A press on a row or card opens the person's page.
-Both layouts end with Add a person, a quick add row like the Reminders':
-Enter creates a person with the typed name and keeps the field open for the
-next; among namecards a dashed card opens the same row. At a phone width the
+Both layouts end with Add a person, a quick add row that takes a name in
+place: Enter creates a person with the typed name and keeps the field open
+for the next; among namecards a dashed card opens the same row. At a phone width the
 rows keep the avatar, the names, and the menu.
 
 A person's page (People, then a row or card) shows the nickname as its title
@@ -964,10 +964,11 @@ without a date; Overdue has none). The Tasks page has the same row, and a
 task added there stands on its own. A refused save keeps the composer under
 the usual error notice. An empty collection shows the row under its empty
 state, so the first item is added the same way. Reminders end with an Add
-reminder row that takes a name in place: a reminder added under a day is
-due at 9:00 that day, one added to the list at the next 9:00; while the
-field is open a pencil beside it (Add reminder with details) opens the
-editor with what was typed. Viewers see no such rows.
+reminder row that opens the reminder's composer the same way: a reminder
+added under a day starts due at 9:00 that day, one added to the list at
+the next 9:00, the moment on its Remind at chip. Calendar and Expenses
+rows end on Add schedule item and Add expense, which open their kinds'
+composers (below). Viewers see no such rows.
 
 A task row is a button: its name and meta line, named "Edit <name>", open
 the row in place as the composer, prefilled with the task, on the To-dos
@@ -1009,6 +1010,31 @@ fields, for what the composer does not carry: the duration, a subtask, the
 full history. The dialog keeps the underlying list in place and confirms
 dirty dismissal; Create task and Save task commit explicitly, and when it
 closes focus returns to the row it came from, or to the add row.
+
+Schedule items, reminders, and expenses open in place the same way. A
+Calendar row (in the list, agenda, and by-day layouts; the week and month
+cells open the dialog), a Reminders row, an Expenses row (inside its
+section too), and a Timeline entry are buttons named "Edit <name>" that
+swap the row for the kind's composer, and their row menus keep Edit with
+History and Move to Trash (a reminder's menu keeps Dismiss, Snooze, and
+its moves). A schedule item's composer carries the name and description
+with two chips: Dates opens the date panel as a span, its times at the
+foot ("Dates: Nov 3, 2026, 8:00 AM to 9:00 AM"), and Place is a text
+field. A reminder's carries the name and Remind at, the date panel with
+the time unfolded. An expense's carries the name, Amount, whose panel
+holds the amount and its three-letter currency ("Amount: JPY 48,000"),
+and Paid on, the date panel with the time; an expense with no amount is
+refused before any request, the Amount panel opening on the notice. A
+Timeline entry reads its record before the composer takes the entry's
+place. Each kind's More opens its dialog (Add schedule item or Edit
+schedule item, Add reminder or Edit reminder, Add expense or Edit
+expense) with the composer's fields. Each composer keeps its drafts apart
+from its dialog's, as the task's does: an add row's composer left with
+text is found open again, and a draft left in the dialog (or a save on
+its way there) is the dialog's, offered as Resume your draft when More
+reaches it again. The rows read as the To-dos rows do: the name over one
+meta line with its symbols (the dates and the place; the moment; the day
+paid, the amount at the row's end).
 Completion and reopening remain direct row actions through the check, a
 filled circle whose tick previews faintly on hover. The inspector checks
 fresh canonical Task data and its own edit permission before exposing
@@ -1149,10 +1175,9 @@ namecards take the page, as do the Events, Tasks, and People collections'
 lists and their search rows. Nothing sits under the heading, and no Add button sits beside it: a
 collection adds through the row at its end. To-dos' row opens the
 composer, whose chips carry the task's fields and whose More opens the full
-editor with them; Reminders' row takes a name in place, and while it is open
-a pencil beside the field (Add reminder with details) opens the full editor
-with what was typed and the row's day; Calendar, Expenses and People end on
-a quiet row (Add schedule item, Add expense, Add person) that opens their
+editor with them; Calendar, Reminders, and Expenses end on the same kind of
+row (Add schedule item, Add reminder, Add expense) opening their kinds'
+composers, and People on a quiet row (Add person) that opens the person
 editor. Every component's states use the same pieces: one
 loading line, one empty state that is its title alone for a viewer and the
 add row alone for an editor, and one error notice with a retry (or, for a
@@ -1167,10 +1192,10 @@ the labels sit faint at the row's right, and the row menu appears on hover.
 There are no column headers and no status chip: an empty circle is to do, a
 filled one is done, and a done row is struck through. Attachments outside the
 viewer's permission scope are counted in a Private attachments note, as the
-Overview counts private related items. Calendar and Expenses rows carry their
-actions in one group and one order across views: the row's own action first
-(Edit), then History, then Actions, which opens the record's Actions dialog.
-Viewers see only History.
+Overview counts private related items. Calendar, Expenses, and Reminders
+rows carry their actions in one row menu, in one order across views: Edit
+first, then History, then Move to Trash, which opens the record's Actions
+dialog. Viewers see only History.
 
 Files is its rows: the file's name, its size and the day it was added, a
 Download icon, and a row menu (Actions for the file's name) with Download,
@@ -1253,14 +1278,15 @@ keys do the same. A section is not versioned and not in Trash: restoring an
 older revision of a task leaves it where it is, and a deleted section is
 gone.
 
-Calendar and Reminders mark each row with the same date tile as the Events
-collection, the month above the day. Task and reminder statuses read as
-labels (To do, In progress, Done, Cancelled; Pending, Triggered, Dismissed),
-and the Timeline names each entry's kind the way the other views do (Scheduled
+Calendar, Reminders, and Expenses rows read as the To-dos rows do: the
+name over one meta line with a symbol for the dates or the moment and one
+for the place, the amount at an expense row's end, a reminder's status as
+a label (Pending, Triggered, Dismissed), and the row menu on hover. Task
+statuses read as labels too (To do, In progress, Done, Cancelled), and the
+Timeline names each entry's kind the way the other views do (Scheduled
 event, Task, Expense, Reminder); a Timeline entry's history is in its row
-menu, shown on hover or focus. Calendar, Expenses, and Reminders rows keep
-their date mark, text, and actions on one line and wrap the actions under the
-text on narrow screens.
+menu, shown on hover or focus, and the entry opens in place as its
+record's composer.
 
 A component's kind decides which records it holds; its layout decides how
 they are laid out, and the heading carries one Layout control, an icon with
@@ -1338,12 +1364,13 @@ a task or a schedule item is a column once the record carries one.
 
 ## Recorded reminders
 
-Add reminder opens a focused dialog with a name and required Reminder time.
-Record reminder and Save reminder submit explicitly. No notification is sent;
-the form states this limitation before saving. Edit loads the canonical Reminder
-and its current access, not an editable copy of a projection row. Name-only edits
-preserve the original precise instant, and metadata edits do not reset status.
-The existing Dismiss action remains available for pending reminders.
+Add reminder opens the reminder's composer in the list; More on it opens
+the focused dialog with a name and required Reminder time. Record reminder and Save reminder submit explicitly.
+No notification is sent; the form states this limitation before saving.
+Edit loads the canonical Reminder and its current access, not an editable
+copy of a projection row. Name-only edits preserve the original precise
+instant, and metadata edits do not reset status. The existing Dismiss
+action remains available for pending reminders.
 
 Reminder drafts share the same tab-local recovery, parent creation keys,
 canonical edit keys, original versions and unchanged-retry identity as other
@@ -1353,9 +1380,11 @@ settle independently of slow projection refreshes.
 
 ## Expense amounts
 
-Add expense opens a focused dialog; Edit reads the canonical Expense and its own
-current access before showing fields. Record expense and Save expense are explicit
-actions. Pending saves disable fields and dismissal, failed saves preserve input,
+Add expense opens the expense's composer in the list; More on it opens
+the focused dialog. Edit in the dialog
+reads the canonical Expense and its own current access before showing
+fields. Record expense and Save expense are explicit actions. Pending
+saves disable fields and dismissal, failed saves preserve input,
 and dirty dismissal offers Keep editing or Discard. History remains available in
 the editor. Cmd/Ctrl+Enter follows the shared shortcut preference and native
 validation, including required transaction time and exact decimal input.
