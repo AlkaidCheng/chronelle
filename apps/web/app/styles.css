@@ -4562,6 +4562,21 @@ ul.resource-list {
   .panel-tools > .button {
     align-self: flex-start;
   }
+}
+
+/* On a phone the symbols fit beside the title, as the demo draws the head
+   row; a text action still runs on to the next line. */
+@media (max-width: 600px) {
+  .panel-heading {
+    align-items: center;
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+
+  .panel-tools {
+    justify-content: flex-end;
+    margin-left: auto;
+  }
 
   .form-grid,
   .inline-editor,
