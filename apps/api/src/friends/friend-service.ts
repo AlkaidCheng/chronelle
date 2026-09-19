@@ -2,11 +2,14 @@ import type { EventPlanningObjectService } from "@chronelle/object-model";
 import { messagesFor } from "../authentication/email-messages.js";
 import type { EmailSender } from "../authentication/email-sender.js";
 import type {
+  AcceptOutcome,
   ConnectionView,
   FriendStore,
   FriendsSnapshot,
+  InvitationPeek,
   InviteOutcome,
   ItemState,
+  SentItem,
 } from "./friend-store.js";
 import {
   digestInvitationToken,
@@ -15,21 +18,40 @@ import {
 
 export interface FriendServiceOptions {
   readonly clock?: (() => Date) | undefined;
-  /** The web origin the sign-up link in an invitation email points at. */
+  /** The web origin an invitation link points at. */
   readonly webBaseUrl?: string | undefined;
   readonly productName?: string | undefined;
   /** Invitations one account may send in a day; 0 for no cap. */
   readonly dailyLimit?: number | undefined;
-  /** How long a sign-up link stays valid. */
+  /** How long an invitation link stays valid. */
   readonly invitationTtlMs?: number | undefined;
   /** The least time between two sends of one request or invitation. */
   readonly resendIntervalMs?: number | undefined;
 }
 
+/**
+ * An invitation: by email (the address is required and the link is
+ * emailed), or as a link the caller hands on (an address, when given, is
+ * kept so the link can be emailed later).
+ */
 export interface InviteFriendInput {
-  readonly email: string;
+  readonly channel: "email" | "link";
+  readonly email?: string | undefined;
   readonly message?: string | undefined;
   readonly personId?: string | undefined;
+}
+
+/** A sent item with the link its token opens, when it is an invitation. */
+export interface SentItemView extends SentItem {
+  readonly inviteUrl: string | null;
+}
+
+export interface InviteView extends InviteOutcome {
+  readonly item: SentItemView;
+}
+
+export interface FriendsView extends FriendsSnapshot {
+  readonly sent: readonly SentItemView[];
 }
 
 /** A request to an account by id, optionally from a person card. */
@@ -50,13 +72,14 @@ const defaultInvitationTtlMs = 14 * 24 * 60 * 60 * 1000;
 const defaultResendIntervalMs = 60_000;
 
 /**
- * Friends: the account's connections and requests, invitations by email
- * (a request to the account that has the address, or a sign-up link to an
- * address without one), answers, withdrawals, removals, and sending again.
- * Every send emails the recipient in their language (the sender's for an
- * address without an account). Accepting a request that came from a
- * person card links that card to the new friend, as the requester, when
- * the card is still unlinked and the friend has no card there yet.
+ * Friends: the account's connections and requests, invitations (a request
+ * to the account that has the address, else a link, emailed or handed on
+ * by the sender), answers, withdrawals, removals, sending again, a new
+ * link, and the claim page's peek and accept. Every email goes out in the
+ * recipient's language (the sender's for an address without an account).
+ * Accepting a request or an invitation that came from a person card links
+ * that card to the new friend, as the requester, when the card is still
+ * unlinked and the friend has no card there yet.
  */
 export class FriendService {
   readonly #store: FriendStore;
@@ -90,28 +113,42 @@ export class FriendService {
       options.resendIntervalMs ?? defaultResendIntervalMs;
   }
 
-  list(userId: string): Promise<FriendsSnapshot> {
-    return this.#store.list(userId);
+  async list(userId: string): Promise<FriendsView> {
+    const snapshot = await this.#store.list(userId);
+    return { ...snapshot, sent: snapshot.sent.map((item) => this.#view(item)) };
   }
 
+  /** The claim page's address for an invitation token. */
+  inviteUrl(token: string): string {
+    return `${this.#webBaseUrl}/invite/${encodeURIComponent(token)}`;
+  }
+
+  /**
+   * Invites by email or as a link: an address one account has makes a
+   * request to it either way; otherwise an invitation, emailed when the
+   * channel is email.
+   */
   async invite(
     actor: FriendActor,
     input: InviteFriendInput,
     requestId: string,
-  ): Promise<InviteOutcome> {
+  ): Promise<InviteView> {
     const token = generateInvitationToken();
     const outcome = await this.#store.invite(actor.userId, {
-      email: input.email,
+      email: input.email ?? null,
+      channel: input.channel,
       message: input.message ?? null,
       personId: input.personId ?? null,
       workspaceId: input.personId === undefined ? null : actor.workspaceId,
+      token,
       tokenDigest: digestInvitationToken(token),
       expiresAt: new Date(this.#clock().getTime() + this.#invitationTtlMs),
       dailyLimit: this.#dailyLimit,
       requestId,
     });
-    await this.#send(outcome, token);
-    return outcome;
+    if (outcome.kind === "connection" || input.channel === "email")
+      await this.#send(outcome);
+    return this.#outcome(outcome);
   }
 
   /** A request to an account by id; the recipient is emailed as for a request to a known address. */
@@ -119,7 +156,7 @@ export class FriendService {
     actor: FriendActor,
     input: RequestFriendInput,
     requestId: string,
-  ): Promise<InviteOutcome> {
+  ): Promise<InviteView> {
     const outcome = await this.#store.request(actor.userId, {
       addresseeId: input.userId,
       message: input.message ?? null,
@@ -128,8 +165,8 @@ export class FriendService {
       dailyLimit: this.#dailyLimit,
       requestId,
     });
-    await this.#send(outcome, "");
-    return outcome;
+    await this.#send(outcome);
+    return this.#outcome(outcome);
   }
 
   async respond(
@@ -164,23 +201,40 @@ export class FriendService {
     return this.#store.remove(userId, connectionId, requestId);
   }
 
+  /** Sends a request or an addressed invitation again; an invitation takes a fresh link. */
   async resend(
     userId: string,
     itemId: string,
     requestId: string,
-  ): Promise<InviteOutcome> {
-    const token = generateInvitationToken();
-    const outcome = await this.#store.resend(userId, itemId, {
-      tokenDigest: digestInvitationToken(token),
-      expiresAt: new Date(this.#clock().getTime() + this.#invitationTtlMs),
-      minIntervalMs: this.#resendIntervalMs,
-      requestId,
-    });
-    await this.#send(outcome, token);
-    return outcome;
+  ): Promise<InviteView> {
+    const outcome = await this.#store.resend(
+      userId,
+      itemId,
+      this.#renewal(requestId),
+    );
+    await this.#send(outcome);
+    return this.#outcome(outcome);
   }
 
-  /** The invitations waiting for a new account become requests; the token is optional. */
+  /** New link: a fresh token for an invitation; emailed again when it has an address. */
+  async link(
+    userId: string,
+    itemId: string,
+    requestId: string,
+  ): Promise<InviteView> {
+    const outcome = await this.#store.link(
+      userId,
+      itemId,
+      this.#renewal(requestId),
+    );
+    if (outcome.item.email !== null) await this.#send(outcome);
+    return this.#outcome(outcome);
+  }
+
+  /**
+   * The invitations addressed to a new account's email become requests;
+   * the link the sign-up carried, if any, stays open for the claim page.
+   */
   claimInvitations(
     userId: string,
     token: string | null,
@@ -193,7 +247,58 @@ export class FriendService {
     );
   }
 
-  async #send(outcome: InviteOutcome, token: string): Promise<void> {
+  /** What the claim page shows for a link, to anyone who has it. */
+  peek(token: string): Promise<InvitationPeek> {
+    return this.#store.peek(digestInvitationToken(token));
+  }
+
+  /** Accepts the invitation a link opens, then links the card it came from. */
+  async accept(
+    userId: string,
+    token: string,
+    requestId: string,
+  ): Promise<AcceptOutcome> {
+    const outcome = await this.#store.accept(
+      userId,
+      digestInvitationToken(token),
+      requestId,
+    );
+    // The card is the invitation's, whichever connection stood before.
+    await this.#linkCard(
+      {
+        ...outcome.connection,
+        personId: outcome.personId,
+        workspaceId: outcome.workspaceId,
+      },
+      userId,
+      requestId,
+    );
+    return outcome;
+  }
+
+  #renewal(requestId: string) {
+    const token = generateInvitationToken();
+    return {
+      token,
+      tokenDigest: digestInvitationToken(token),
+      expiresAt: new Date(this.#clock().getTime() + this.#invitationTtlMs),
+      minIntervalMs: this.#resendIntervalMs,
+      requestId,
+    };
+  }
+
+  #view(item: SentItem): SentItemView {
+    return {
+      ...item,
+      inviteUrl: item.token === null ? null : this.inviteUrl(item.token),
+    };
+  }
+
+  #outcome(outcome: InviteOutcome): InviteView {
+    return { ...outcome, item: this.#view(outcome.item) };
+  }
+
+  async #send(outcome: InviteOutcome): Promise<void> {
     const { sender, item } = outcome;
     if (outcome.recipient !== null) {
       const message = messagesFor(outcome.recipient.locale).friendRequestEmail({
@@ -205,12 +310,13 @@ export class FriendService {
       await this.#email.send({ to: outcome.recipient.email, ...message });
       return;
     }
+    if (item.email === null || item.token === null) return;
     const message = messagesFor(sender.locale).friendInvitationEmail({
       productName: this.#productName,
       senderName: sender.displayName,
       senderEmail: sender.email,
       message: item.message,
-      link: `${this.#webBaseUrl}/sign-up?invitation=${encodeURIComponent(token)}`,
+      link: this.inviteUrl(item.token),
       expiresInDays: Math.max(
         1,
         Math.round(this.#invitationTtlMs / 86_400_000),

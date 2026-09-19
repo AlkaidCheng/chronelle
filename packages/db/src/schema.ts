@@ -223,13 +223,21 @@ export const userConnections = pgTable(
 export const invitationStatuses = ["pending", "consumed", "withdrawn"] as const;
 export type InvitationStatus = (typeof invitationStatuses)[number];
 
-/** An invitation to an address without an account, keyed by its token's digest. */
+export const invitationChannels = ["email", "link"] as const;
+export type InvitationChannel = (typeof invitationChannels)[number];
+
+/**
+ * An invitation for someone without an account: a link, kept as its token
+ * (so it can be copied again) and the token's digest (the lookup key),
+ * emailed to an address or handed on by the requester.
+ */
 export const userInvitations = pgTable(
   "user_invitations",
   {
     id: uuid("id").primaryKey(),
     requesterId: uuid("requester_id").notNull(),
-    email: text("email").notNull(),
+    email: text("email"),
+    channel: text("channel").$type<InvitationChannel>().notNull(),
     message: text("message"),
     personId: uuid("person_id"),
     workspaceId: uuid("workspace_id"),
@@ -237,6 +245,7 @@ export const userInvitations = pgTable(
       .$type<InvitationStatus>()
       .notNull()
       .default("pending"),
+    token: text("token"),
     tokenDigest: text("token_digest").notNull(),
     createdAt: createSessionInstantColumn("created_at").notNull().defaultNow(),
     lastSentAt: createSessionInstantColumn("last_sent_at")
@@ -250,6 +259,11 @@ export const userInvitations = pgTable(
     uniqueIndex("user_invitations_pending_idx")
       .on(table.requesterId, table.email)
       .where(sql`${table.status} = 'pending'`),
+    uniqueIndex("user_invitations_pending_person_idx")
+      .on(table.requesterId, table.workspaceId, table.personId)
+      .where(
+        sql`${table.status} = 'pending' AND ${table.personId} IS NOT NULL`,
+      ),
     uniqueIndex("user_invitations_token_idx").on(table.tokenDigest),
   ],
 );

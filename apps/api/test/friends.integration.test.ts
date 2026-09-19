@@ -10,6 +10,8 @@ import {
   developmentSignInResponseSchema,
   friendSchema,
   friendsResponseSchema,
+  invitationAcceptResponseSchema,
+  invitationPeekResponseSchema,
   personResponseSchema,
   sentInvitationSchema,
   userResponseSchema,
@@ -375,7 +377,7 @@ describe("friends", () => {
     ).toBe(400);
   });
 
-  it("invites an address without an account and turns it into a request at sign-up", async () => {
+  it("invites an address without an account and turns it into a request when that address signs up", async () => {
     const ana = await signIn("ana@example.test", "Ana");
     const card = personResponseSchema.parse(
       (
@@ -396,27 +398,32 @@ describe("friends", () => {
     const item = sentInvitationSchema.parse(sent.json());
     expect(item).toMatchObject({
       kind: "invitation",
+      channel: "email",
       email: "dan@example.test",
     });
+    expect(item.inviteUrl).toMatch(
+      /^https:\/\/chronelle\.example\/invite\/[\w-]+$/u,
+    );
     expect(item.expiresAt).toBe("2030-08-15T12:00:00.000Z");
-    // The email carries a sign-up link with the token, in Ana's language.
+    // The email carries the link, in Ana's language.
     const notice = email.latestTo("dan@example.test");
     expect(notice.subject).toBe("Chronelle: Ana invited you");
-    const link =
-      /https:\/\/chronelle\.example\/sign-up\?invitation=([\w-]+)/u.exec(
-        notice.text,
-      );
-    expect(link).not.toBeNull();
+    expect(notice.text).toContain(item.inviteUrl);
     expect(notice.text).toContain("14 days");
     expect((await friendsOf(ana.headers)).sent).toMatchObject([
       { id: item.id, kind: "invitation", email: "dan@example.test" },
     ]);
-    // The same address cannot be invited twice while it waits.
+    // The same address, and the same card, cannot be invited twice while it waits.
     expect(
       (await invite(ana.headers, { email: "dan@example.test" })).statusCode,
     ).toBe(409);
+    expect(
+      (await invite(ana.headers, { channel: "link", personId: card.id }))
+        .statusCode,
+    ).toBe(409);
 
-    // Dan signs up with the link: the invitation becomes a request from Ana.
+    // Dan signs up with the address on his own: the invitation becomes a
+    // request from Ana, with the card.
     const signedUp = await app.inject({
       method: "POST",
       url: "/api/auth/sign-up",
@@ -425,7 +432,6 @@ describe("friends", () => {
         email: "dan@example.test",
         username: "dan",
         password: "correct horse battery",
-        invitationToken: link?.[1],
       },
     });
     expect(signedUp.statusCode).toBe(202);
@@ -467,6 +473,200 @@ describe("friends", () => {
       headers: ana.headers,
     });
     expect(linked.json().userId).toBe(verified.json().user.id);
+  });
+
+  it("makes a link for a card without an email, renews it, and reconciles the claim", async () => {
+    const ana = await signIn("ana@example.test", "Ana");
+    const card = personResponseSchema.parse(
+      (
+        await app.inject({
+          method: "POST",
+          url: "/api/persons",
+          headers: ana.headers,
+          payload: {
+            displayName: "Grandpa",
+            contacts: [{ kind: "phone", value: "+44 7700 900123" }],
+          },
+        })
+      ).json(),
+    );
+    const made = await invite(ana.headers, {
+      channel: "link",
+      personId: card.id,
+      message: "Scan this.",
+    });
+    expect(made.statusCode).toBe(201);
+    const link = sentInvitationSchema.parse(made.json());
+    expect(link).toMatchObject({
+      kind: "invitation",
+      channel: "link",
+      email: null,
+      personId: card.id,
+      message: "Scan this.",
+    });
+    const tokenOf = (item: { inviteUrl: string | null }) =>
+      /\/invite\/([\w-]+)$/u.exec(item.inviteUrl ?? "")?.[1] ?? "";
+    expect(tokenOf(link)).not.toBe("");
+    expect(email.messages).toHaveLength(0);
+    // Sending by email needs an address; a new link replaces the token.
+    expect(
+      (
+        await app.inject({
+          method: "POST",
+          url: `/api/friends/invitations/${link.id}/resend`,
+          headers: ana.headers,
+        })
+      ).statusCode,
+    ).toBe(400);
+    now = new Date("2030-08-01T12:02:00.000Z");
+    const renewed = await app.inject({
+      method: "POST",
+      url: `/api/friends/invitations/${link.id}/link`,
+      headers: ana.headers,
+    });
+    expect(renewed.statusCode).toBe(200);
+    const fresh = sentInvitationSchema.parse(renewed.json());
+    expect(fresh.id).toBe(link.id);
+    expect(tokenOf(fresh)).not.toBe(tokenOf(link));
+    expect(fresh.expiresAt).toBe("2030-08-15T12:02:00.000Z");
+    expect(
+      (
+        await app.inject({
+          method: "GET",
+          url: `/api/invitations/${tokenOf(link)}`,
+        })
+      ).statusCode,
+    ).toBe(404);
+
+    // Anyone with the link sees who invited them; Ana's own link is refused.
+    const peeked = await app.inject({
+      method: "GET",
+      url: `/api/invitations/${tokenOf(fresh)}`,
+    });
+    expect(peeked.statusCode).toBe(200);
+    expect(invitationPeekResponseSchema.parse(peeked.json())).toEqual({
+      requester: { displayName: "Ana", username: ana.user.username },
+      message: "Scan this.",
+      queued: [],
+      expiresAt: "2030-08-15T12:02:00.000Z",
+      status: "open",
+    });
+    const own = await app.inject({
+      method: "POST",
+      url: `/api/invitations/${tokenOf(fresh)}/accept`,
+      headers: ana.headers,
+    });
+    expect(own.statusCode).toBe(400);
+    expect(apiErrorResponseSchema.parse(own.json()).error.message).toBe(
+      "This is your own invitation link.",
+    );
+
+    // Ben, an existing account with a different email, accepts: friends at
+    // once, and the card is linked to him.
+    const ben = await signIn("ben@example.test", "Ben");
+    const accepted = await app.inject({
+      method: "POST",
+      url: `/api/invitations/${tokenOf(fresh)}/accept`,
+      headers: ben.headers,
+    });
+    expect(accepted.statusCode).toBe(200);
+    expect(invitationAcceptResponseSchema.parse(accepted.json())).toEqual({
+      friendship: "made",
+      shared: [],
+      alreadyHad: [],
+    });
+    expect((await friendsOf(ana.headers)).friends).toMatchObject([
+      { userId: ben.user.id, displayName: "Ben" },
+    ]);
+    expect((await friendsOf(ana.headers)).sent).toEqual([]);
+    expect(
+      (
+        await app.inject({
+          method: "GET",
+          url: `/api/persons/${card.id}`,
+          headers: ana.headers,
+        })
+      ).json().userId,
+    ).toBe(ben.user.id);
+    // The link is spent.
+    const again = await app.inject({
+      method: "POST",
+      url: `/api/invitations/${tokenOf(fresh)}/accept`,
+      headers: ben.headers,
+    });
+    expect(again.statusCode).toBe(409);
+    expect(
+      invitationPeekResponseSchema.parse(
+        (
+          await app.inject({
+            method: "GET",
+            url: `/api/invitations/${tokenOf(fresh)}`,
+          })
+        ).json(),
+      ).status,
+    ).toBe("used");
+
+    // A friend who opens another link keeps the friendship; a withdrawn
+    // link says so; a bad token is refused before any lookup. (The next
+    // day, so the accepted connection no longer counts against the cap.)
+    now = new Date("2030-08-02T12:03:00.000Z");
+    const another = sentInvitationSchema.parse(
+      (await invite(ana.headers, { channel: "link" })).json(),
+    );
+    expect(
+      invitationAcceptResponseSchema.parse(
+        (
+          await app.inject({
+            method: "POST",
+            url: `/api/invitations/${tokenOf(another)}/accept`,
+            headers: ben.headers,
+          })
+        ).json(),
+      ).friendship,
+    ).toBe("existing");
+    const withdrawn = sentInvitationSchema.parse(
+      (await invite(ana.headers, { channel: "link" })).json(),
+    );
+    await app.inject({
+      method: "DELETE",
+      url: `/api/friends/invitations/${withdrawn.id}`,
+      headers: ana.headers,
+    });
+    expect(
+      invitationPeekResponseSchema.parse(
+        (
+          await app.inject({
+            method: "GET",
+            url: `/api/invitations/${tokenOf(withdrawn)}`,
+          })
+        ).json(),
+      ).status,
+    ).toBe("withdrawn");
+    expect(
+      (await app.inject({ method: "GET", url: "/api/invitations/short" }))
+        .statusCode,
+    ).toBe(400);
+    expect(
+      (
+        await app.inject({
+          method: "POST",
+          url: `/api/invitations/${tokenOf(withdrawn)}/accept`,
+        })
+      ).statusCode,
+    ).toBe(401);
+  });
+
+  it("caps how often one address may open invitation links", async () => {
+    let last = 0;
+    for (let index = 0; index < 61; index += 1) {
+      last = (
+        await app.inject({
+          method: "GET",
+          url: "/api/invitations/aaaaaaaaaaaaaaaaaaaaaaaa",
+        })
+      ).statusCode;
+    }
+    expect(last).toBe(429);
   });
 
   it("keeps friends on the account and out of reach of other accounts", async () => {

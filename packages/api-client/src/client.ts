@@ -57,6 +57,10 @@ import {
   friendItemStateResponseSchema,
   friendSchema,
   friendsResponseSchema,
+  type InvitationAcceptResponse,
+  type InvitationPeekResponse,
+  invitationAcceptResponseSchema,
+  invitationPeekResponseSchema,
   type AccountUpdateRequest,
   type FriendRequestRequest,
   type UsernameAvailabilityResponse,
@@ -439,7 +443,6 @@ export class ChronelleApiClient {
     return this.#request("/api/friends", friendsResponseSchema);
   }
 
-  /** Invites an address: a request to its account, or a sign-up link to it. */
   /** A request to an account found by search or by its code. */
   requestFriend(input: FriendRequestRequest): Promise<SentInvitation> {
     return this.#request(
@@ -449,6 +452,7 @@ export class ChronelleApiClient {
     );
   }
 
+  /** Invites by email (a request to the address's account, else an emailed link) or as a link to hand on. */
   inviteFriend(input: FriendInvitationPayload): Promise<SentInvitation> {
     return this.#request(
       "/api/friends/invitations",
@@ -461,6 +465,33 @@ export class ChronelleApiClient {
     return this.#request(
       `/api/friends/invitations/${id}/resend`,
       acceptedResponseSchema,
+      { method: "POST" },
+    );
+  }
+
+  /** New link: a fresh token for the invitation; the one handed out before stops working. */
+  renewFriendInvitationLink(id: string): Promise<SentInvitation> {
+    return this.#request(
+      `/api/friends/invitations/${id}/link`,
+      sentInvitationSchema,
+      { method: "POST" },
+    );
+  }
+
+  /** What an invitation link opens, without a session. */
+  peekInvitation(token: string): Promise<InvitationPeekResponse> {
+    return this.#request(
+      `/api/invitations/${encodeURIComponent(token)}`,
+      invitationPeekResponseSchema,
+      {},
+      false,
+    );
+  }
+
+  acceptInvitation(token: string): Promise<InvitationAcceptResponse> {
+    return this.#request(
+      `/api/invitations/${encodeURIComponent(token)}/accept`,
+      invitationAcceptResponseSchema,
       { method: "POST" },
     );
   }
