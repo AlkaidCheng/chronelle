@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { taskRepeatRuleSchema } from "./task-repeat.js";
 import { rankSchema } from "./rank.js";
+import { sectionResponseSchema } from "./sections.js";
 import { calendarDateSchema } from "./event-calendar-dates.js";
 import { cursorTokenSchema } from "./pagination.js";
 import { relationTypeSchema } from "./relation-list.js";
@@ -122,6 +123,8 @@ export const taskCreateRequestSchema = z.object({
   description: descriptionSchema.optional(),
   /** The task's place in manual order; absent puts it last. */
   rank: rankSchema.optional(),
+  /** A section of the To-dos of the Event the task belongs to. */
+  sectionId: objectIdSchema.nullable().optional(),
   /** The task's labels as a whole; absent leaves them unchanged. */
   labelIds: z.array(objectIdSchema).max(20).optional(),
 });
@@ -141,6 +144,7 @@ export const taskUpdateRequestSchema = z
     location: locationSchema.optional(),
     description: descriptionSchema.optional(),
     rank: rankSchema.optional(),
+    sectionId: objectIdSchema.nullable().optional(),
     labelIds: z.array(objectIdSchema).max(20).optional(),
   })
   .refine(hasUpdateFields, {
@@ -162,6 +166,8 @@ export const expenseCreateRequestSchema = z.object({
   amount: amountSchema,
   currency: currencySchema,
   occurredAt: dateTimeInputSchema,
+  /** A section of the Expenses of the Event the expense belongs to. */
+  sectionId: objectIdSchema.nullable().optional(),
 });
 
 export const expenseUpdateRequestSchema = z
@@ -170,6 +176,7 @@ export const expenseUpdateRequestSchema = z
     amount: amountSchema.optional(),
     currency: currencySchema.optional(),
     occurredAt: dateTimeInputSchema.optional(),
+    sectionId: objectIdSchema.nullable().optional(),
   })
   .refine(hasUpdateFields, {
     message: "At least one update field is required.",
@@ -329,6 +336,8 @@ export const taskResponseSchema = z.object({
   description: z.string().nullable().default(null),
   /** The task's place in manual order. */
   rank: z.string().default("00000001000"),
+  /** The section of its Event's To-dos the task sits in, if any. */
+  sectionId: objectIdSchema.nullable().default(null),
   /** The task's labels in name order. */
   labelIds: z.array(objectIdSchema).default([]),
 });
@@ -369,6 +378,8 @@ export const expenseResponseSchema = z.object({
   amount: z.string(),
   currency: z.string(),
   occurredAt: dateTimeResponseSchema,
+  /** The section of its Event's Expenses the expense sits in, if any. */
+  sectionId: objectIdSchema.nullable().default(null),
 });
 
 export const reminderResponseSchema = z.object({
@@ -473,11 +484,15 @@ export const eventResourceProjectionResponseSchema = z.object({
 export const taskResourceProjectionResponseSchema = z.object({
   sourceEventId: objectIdSchema,
   items: z.array(taskResponseSchema),
+  /** The sections of the Event's To-dos in their order. */
+  sections: z.array(sectionResponseSchema).default([]),
 });
 
 export const expenseResourceProjectionResponseSchema = z.object({
   sourceEventId: objectIdSchema,
   items: z.array(expenseResponseSchema),
+  /** The sections of the Event's Expenses in their order. */
+  sections: z.array(sectionResponseSchema).default([]),
 });
 
 export const personResourceProjectionResponseSchema = z.object({

@@ -281,7 +281,10 @@ describe("CloudBaseObjectReadRepository", () => {
         "documents",
         "object_id,workspace_id,storage_provider,storage_key,original_filename,mime_type,size_bytes::text,checksum_sha256,encryption_mode",
       ],
-      ["expenses", "object_id,workspace_id,amount::text,currency,occurred_at"],
+      [
+        "expenses",
+        "object_id,workspace_id,amount::text,currency,occurred_at,section_id",
+      ],
     ]);
     await expect(
       repository.getObject(reader, privateId),

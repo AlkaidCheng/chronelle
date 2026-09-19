@@ -9,7 +9,9 @@ import { useObjectHistory } from "../../lib/history-queries";
 import { formatRelativeTime } from "../../lib/relative-time";
 
 /** The editor's draft against the newest version, both pinned to one base. */
-export interface ConflictDraft<Fields extends Record<string, string>> {
+export interface ConflictDraft<
+  Fields extends Record<string, string | undefined>,
+> {
   readonly fields: Fields;
   readonly baseline: Fields;
   readonly theirs: Fields | undefined;
@@ -36,7 +38,7 @@ interface Row {
   readonly changedBy: "mine" | "theirs" | "both";
 }
 
-function rows<Fields extends Record<string, string>>(
+function rows<Fields extends Record<string, string | undefined>>(
   draft: ConflictDraft<Fields>,
 ): Row[] {
   const theirs = draft.theirs;
@@ -73,7 +75,9 @@ function rows<Fields extends Record<string, string>>(
  * fields chooses per field, where a field only one side changed is kept
  * from that side.
  */
-export function ConflictNotice<Fields extends Record<string, string>>({
+export function ConflictNotice<
+  Fields extends Record<string, string | undefined>,
+>({
   draft,
   format,
   objectId,
@@ -116,7 +120,7 @@ export function ConflictNotice<Fields extends Record<string, string>>({
     row.changedBy === "both" ? (chosen[row.key] ?? "theirs") : row.changedBy;
 
   function merged(): Fields {
-    const result: Record<string, string> = { ...draft.baseline };
+    const result: Record<string, string | undefined> = { ...draft.baseline };
     for (const row of differences)
       result[row.key] = side(row) === "mine" ? row.mine : row.theirs;
     return result as Fields;

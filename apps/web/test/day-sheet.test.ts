@@ -72,6 +72,7 @@ function task(
     location: null,
     description: null,
     rank: "00000001000",
+    sectionId: null,
     labelIds: [],
     ...fields,
   };

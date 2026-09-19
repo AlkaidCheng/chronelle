@@ -3,6 +3,7 @@ import {
   bigint,
   boolean,
   date,
+  index,
   integer,
   jsonb,
   numeric,
@@ -567,7 +568,44 @@ export const tasks = pgTable("tasks", {
   location: text("location"),
   description: text("description"),
   rank: text("rank").notNull().default("00000001000"),
+  sectionId: uuid("section_id"),
 });
+
+export const sectionViews = ["todos", "expenses"] as const;
+export type SectionView = (typeof sectionViews)[number];
+
+/**
+ * A named group in an Event's To-dos or Expenses view: a vocabulary of the
+ * Event, not a canonical object. Deleting one leaves its records loose.
+ */
+export const sections = pgTable(
+  "sections",
+  {
+    id: uuid("id").primaryKey(),
+    workspaceId: uuid("workspace_id").notNull(),
+    eventId: uuid("event_id").notNull(),
+    view: text("view").$type<SectionView>().notNull(),
+    name: text("name").notNull(),
+    description: text("description"),
+    rank: text("rank").notNull(),
+    createdBy: uuid("created_by").notNull(),
+    createdAt: timestamp("created_at", { mode: "date", withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { mode: "date", withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    index("sections_event_view_idx").on(
+      table.workspaceId,
+      table.eventId,
+      table.view,
+      table.rank,
+      table.id,
+    ),
+  ],
+);
 
 export const labels = pgTable(
   "labels",
@@ -615,6 +653,7 @@ export const expenses = pgTable("expenses", {
     mode: "date",
     withTimezone: true,
   }).notNull(),
+  sectionId: uuid("section_id"),
 });
 
 export const reminders = pgTable("reminders", {

@@ -411,11 +411,13 @@ describe.each(["task", "expense"] as const)("focused %s editors", (kind) => {
               location: null,
               description: null,
               labelIds: [],
+              sectionId: null,
             }
           : {
               amount: resource.amount,
               currency: resource.currency,
               occurredAt: resource.occurredAt,
+              sectionId: null,
             }),
         expectedVersion: 1,
       });

@@ -8,6 +8,7 @@ import type {
   RelationDeletionResource,
   PersonResourceProjection,
   ReminderResourceProjection,
+  SectionResource,
   TaskResourceProjection,
   TimelineProjection,
 } from "@chronelle/object-model";
@@ -57,6 +58,17 @@ export function serializeResourceProjection(
   return {
     sourceEventId: projection.sourceEventId,
     items: projection.items.map(serializeResource),
+    ...("sections" in projection && {
+      sections: projection.sections.map(serializeSection),
+    }),
+  };
+}
+
+export function serializeSection(section: SectionResource) {
+  return {
+    ...section,
+    createdAt: section.createdAt.toISOString(),
+    updatedAt: section.updatedAt.toISOString(),
   };
 }
 

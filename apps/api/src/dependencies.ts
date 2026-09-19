@@ -32,6 +32,7 @@ import {
   CloudBaseReminderWriteRepository,
   CloudBaseRevisionReadRepository,
   CloudBaseSearchReadRepository,
+  CloudBaseSectionRepository,
   CloudBaseSharingWriteRepository,
   CloudBaseStorageInventoryReadRepository,
   CloudBaseTaskReadRepository,
@@ -47,7 +48,9 @@ import {
   ObjectRestorationService,
   ObjectRevisionService,
   PostgresLabelRepository,
+  PostgresSectionRepository,
   ReversibleCommandService,
+  SectionService,
   StorageInventoryService,
 } from "@chronelle/object-model";
 import {
@@ -100,6 +103,7 @@ export interface AppDependencies {
   readonly identity: WorkspaceIdentityService;
   readonly objects: EventPlanningObjectService;
   readonly labels: LabelService;
+  readonly sections: SectionService;
   readonly projections: EventPlanningProjectionService;
   readonly relations: ObjectRelationService;
   readonly revisions: ObjectRevisionService;
@@ -243,6 +247,17 @@ export function createAppDependencies(
       ? postgresLabels
       : labelRepository,
   );
+  const postgresSections = new PostgresSectionRepository(connection.db);
+  const cloudBaseSections =
+    options.cloudBaseRdb === undefined
+      ? undefined
+      : new CloudBaseSectionRepository(options.cloudBaseRdb);
+  const sections = new SectionService(
+    cloudBaseSections ?? postgresSections,
+    cloudBaseSections === undefined || options.cloudBaseWrites !== true
+      ? postgresSections
+      : cloudBaseSections,
+  );
   const storage =
     options.storage ??
     new LocalFilesystemStorageProvider({
@@ -290,6 +305,7 @@ export function createAppDependencies(
     identity,
     objects,
     labels,
+    sections,
     relations: new ObjectRelationService(
       connection.db,
       undefined,
@@ -348,6 +364,7 @@ export function createAppDependencies(
       options.cloudBaseRdb === undefined
         ? undefined
         : new CloudBaseNoteReadRepository(options.cloudBaseRdb),
+      cloudBaseSections,
     ),
   };
 }

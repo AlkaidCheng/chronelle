@@ -1163,16 +1163,53 @@ To-dos and Reminders components list by it, as does the Tasks page under its
 Manual sort. Under manual order a row can be dragged by pressing anywhere on
 it and moving a few pixels (on touch, by holding it first), so a click on the
 check, the name, or the menu keeps its meaning and the click that ends a drag
-does nothing; a ghost of the name follows the pointer and a line marks the
-place. Dropping between two rows takes the midpoint of their positions, so
-only the moved record is written, as one versioned update the history and
-undo cover. In the by-day view a drop under another day's rows moves the due
-(or the reminder's time) to that day, keeping the time of day; a drop under
-No due date clears the due; Overdue takes only its own rows back. Move up and
-Move down do the same one step at a time from the keyboard, announcing the
-new position, and a status line reads out every move, due change, and copied
-link. Under another sort on the Tasks page rows do not drag and the steps
-are not offered.
+does nothing; a six-dot grip in the gutter at the row's left edge, shown on
+hover and focus (and always on touch), lifts the row at once. The lifted row
+leaves the list as a card of its own line, with a shadow and a slight tilt,
+that follows the pointer; a gap of its height marks where it will land and
+the other rows make room, so nothing overlaps. The gap follows the pointer's
+height alone: the nearest row, before or after its middle, or an empty group
+under the pointer, so dragging along the grips' column or past the list's
+edge still moves it. Letting go fills the gap. Dropping between two rows
+takes the midpoint of their positions, so only the moved record is written,
+as one versioned update the history and undo cover. In the by-day view a
+drop under another day's rows moves the due (or the reminder's time) to that
+day, keeping the time of day; a drop under No due date clears the due;
+Overdue takes only its own rows back. The grip is a button (Reorder, then the
+name): its arrow keys move the gap a place, Enter or Space drops the row
+there, and Escape puts it back; Move up and Move down in the menu do the
+same one step at a time, announcing the new position, and a status line
+reads out every move, due change, and copied link. Under another sort on the
+Tasks page rows do not drag and the steps are not offered.
+
+### Sections
+
+An Event's To-dos (in the list layout) and Expenses (list and by day) can be
+split into sections. The rows outside any section come first, without a
+heading; then each section: its name in bold with its description muted
+under it, a faint figure at the right (the open count of a To-dos section,
+the total by currency of an Expenses section), a quiet menu on hover or
+focus with Edit section, Move up, Move down, and Delete section, the
+section's rows, and the section's own add row, so a task or an expense added
+there lands in that section (the add row reads "Add a task to {section}",
+and an expense's editor opens with the section chosen). Add section is a
+thin accent line with a pill, shown on hover and focus after the loose rows
+and after each section; it opens an editor in place with a name field, a
+description field, Save and Cancel: Enter saves, Escape cancels, and an
+empty name cannot save. Edit section opens the same editor prefilled in the
+head's place. Delete section removes the heading and leaves its records in
+the list, loose; the status line says so.
+
+Sections belong to one view of one Event, so the Tasks page and the other
+views ignore them, and a record carries at most one, offered as a Section
+choice in the task and expense editors (No section, or one of the view's).
+Dragging a row's grip moves it within its section, into another, or to the
+end of an empty one, in one write that carries the task's rank and section
+(an expense keeps its order by date, so only its section changes); dragging
+a section's grip moves the section among the sections, and the grip's arrow
+keys do the same. A section is not versioned and not in Trash: restoring an
+older revision of a task leaves it where it is, and a deleted section is
+gone.
 
 Calendar and Reminders mark each row with the same date tile as the Events
 collection, the month above the day. Task and reminder statuses read as

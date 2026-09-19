@@ -23,15 +23,26 @@ export function QuickAddTask({
   dueOn,
   eventId,
   onDetails,
+  sectionId = null,
+  sectionName,
   slots,
 }: {
   /** The day group's heading, named in the row's accessible name. */
   readonly dayLabel?: string | undefined;
   readonly dueOn: DayKey | null;
   readonly eventId?: string | undefined;
-  /** Opens the full editor with the typed name and the row's day. */
+  /** Opens the full editor with the typed name, the row's day, and its section. */
   readonly onDetails?:
-    ((displayName: string, dueOn: DayKey | null) => void) | undefined;
+    | ((
+        displayName: string,
+        dueOn: DayKey | null,
+        sectionId: string | null,
+      ) => void)
+    | undefined;
+  /** The section of the Event's To-dos the row adds to; null for none. */
+  readonly sectionId?: string | null | undefined;
+  /** The section's name, named in the row's accessible name. */
+  readonly sectionName?: string | undefined;
   readonly slots: QuickAddSlots;
 }) {
   const t = useTranslations("quickAdd");
@@ -43,20 +54,34 @@ export function QuickAddTask({
           ? undefined
           : {
               label: t("taskDetails"),
-              open: (displayName) => onDetails(displayName, dueOn),
+              open: (displayName) => onDetails(displayName, dueOn, sectionId),
             }
       }
       label={
-        dayLabel === undefined
-          ? t("taskToList")
-          : dueOn === null
-            ? t("taskWith", { day: dayLabel })
-            : t("taskFor", { day: dayLabel })
+        sectionName !== undefined
+          ? t("taskToSection", { section: sectionName })
+          : dayLabel === undefined
+            ? t("taskToList")
+            : dueOn === null
+              ? t("taskWith", { day: dayLabel })
+              : t("taskFor", { day: dayLabel })
       }
       name={t("newTask")}
-      onAdd={(displayName) => create.mutateAsync({ displayName, dueOn })}
+      onAdd={(displayName) =>
+        create.mutateAsync({
+          displayName,
+          dueOn,
+          ...(sectionId === null ? {} : { sectionId }),
+        })
+      }
       placeholder={t("taskName")}
-      slot={dueOn === null ? undatedTaskSlot : `day:${dueOn}`}
+      slot={
+        sectionId !== null
+          ? `section:${sectionId}`
+          : dueOn === null
+            ? undatedTaskSlot
+            : `day:${dueOn}`
+      }
       slots={slots}
       text={t("addTask")}
     />

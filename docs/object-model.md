@@ -50,6 +50,13 @@ sign-in creates the corresponding owner membership in the same transaction.
   characters). A note is versioned, audited, trashed, restored, searched by
   title, and shared through the Event's scope like every object; who wrote
   its current version comes from the revision ledger, not from a column.
+- `Section` is not an object: it is a named group in one view of an Event
+  (To-dos or Expenses), a vocabulary of the Event the way labels are of the
+  workspace, with a name, an optional description, and a place among its
+  siblings in the rank scheme Tasks use. A Task or Expense carries at most
+  one section, only of the matching view of the Event whose scope it
+  inherits; the section is not versioned, trashed, or restored, and deleting
+  one leaves its records in the view without a section.
 
 These fields make the first capabilities executable without freezing a richer
 event-planning schema. Additional details can use `custom_properties` until a

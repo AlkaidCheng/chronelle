@@ -30,9 +30,15 @@ const families = {
     },
     invalidChange: { timezone: "Not/AZone" },
   },
+  // A standalone probe carries no section (0062); a section of an Event's
+  // view is exercised by the parity tests, not against staging.
   task: {
     migration: "0013",
-    input: { dueAt: "2030-10-16T18:00:00.000Z", description: "Contract probe" },
+    input: {
+      dueAt: "2030-10-16T18:00:00.000Z",
+      description: "Contract probe",
+      sectionId: null,
+    },
     invalidChange: { status: "done" },
   },
   expense: {
@@ -41,6 +47,7 @@ const families = {
       amount: "12.5",
       currency: "EUR",
       occurredAt: "2030-10-16T18:00:00.000Z",
+      sectionId: null,
     },
     invalidChange: { currency: "eur" },
   },

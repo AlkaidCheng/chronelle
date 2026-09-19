@@ -207,6 +207,19 @@ insert, validate, and apply functions in place to carry them, and redefines
 The API built from it can start before or after it (an older API leaves the
 column null); the runtime role needs no change.
 
+Migration `0062_add_view_sections.sql` adds the `sections` table (a named
+group in an Event's To-dos or Expenses view, with a description and a rank
+in the scheme Tasks use), `tasks.section_id` and `expenses.section_id`
+(cleared when the section is deleted), the `chronelle_section_create`,
+`chronelle_section_update`, `chronelle_section_delete`, and
+`chronelle_section_list` functions the readiness check requires,
+`chronelle_rank_between` (the shared package's `rankBetween()` in SQL),
+`chronelle_assert_section_member` (a record carries only a section of the
+matching view of the Event whose scope it inherits), and redefines the Task
+and Expense serialize, insert, validate, and apply functions in place to
+carry `sectionId`. The API built from it starts after it, and the runtime
+role script is reapplied for its grants on `sections`.
+
 Migration `0021_add_object_search_function.sql` adds `chronelle_object_search`,
 the read-only function the CloudBase search adapter calls. It changes no
 tables and needs no baseline.

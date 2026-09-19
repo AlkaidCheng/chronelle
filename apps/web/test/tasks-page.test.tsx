@@ -2,7 +2,6 @@
 
 import {
   cleanup,
-  fireEvent,
   render,
   screen,
   waitFor,
@@ -15,7 +14,12 @@ import { TasksPage } from "../features/tasks/tasks-page";
 import { monthDays } from "../lib/day-placement";
 import { SandboxStore, sandboxWorkspaceId } from "../sandbox/store";
 import { setRowDate } from "./date-rows";
-import { chooseRowAction, installPointerEvents } from "./row-menu-support";
+import {
+  chooseRowAction,
+  firePointer,
+  installPointerEvents,
+  installRowLayout,
+} from "./row-menu-support";
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: vi.fn(), replace: vi.fn() }),
@@ -716,52 +720,27 @@ describe("TasksPage", () => {
       "Call the band",
     ]);
     // jsdom has no layout: rows are 40px tall in document order, and the
-    // pointer is over whichever group the test names.
-    vi.spyOn(Element.prototype, "getBoundingClientRect").mockImplementation(
-      function (this: Element) {
-        const rows = Array.from(document.querySelectorAll("[data-row-id]"));
-        const at = rows.indexOf(this.closest("[data-row-id]") ?? this);
-        const top = at < 0 ? 0 : at * 40;
-        return {
-          top,
-          bottom: top + 40,
-          height: 40,
-          left: 0,
-          right: 600,
-          width: 600,
-        } as DOMRect;
-      },
-    );
-    const target = { current: null as Element | null };
-    document.elementFromPoint = () => target.current;
-    const pointer = (
-      type: "pointerDown" | "pointerMove" | "pointerUp",
-      element: Element | Document,
-      x: number,
-      y: number,
-      pointerId: number,
-    ) =>
-      fireEvent[type](element, {
-        button: 0,
-        clientX: x,
-        clientY: y,
-        pointerId,
-        pointerType: "mouse",
-      });
+    // landing spot follows the pointer's height alone, the nearest row,
+    // before or after its middle.
+    installRowLayout();
+    const pointer = firePointer;
     const cake = screen.getByRole("row", { name: /Order the cake/ });
-    target.current = cake.closest("tbody");
     pointer("pointerDown", cake, 10, 60, 1);
     // A short move is still a click; nothing is dragged yet.
     pointer("pointerMove", document, 12, 62, 1);
-    expect(document.querySelector(".row-drag-ghost")).toBeNull();
+    expect(document.querySelector(".row-drag-card")).toBeNull();
     pointer("pointerMove", document, 10, 5, 1);
-    expect(document.querySelector(".row-drag-ghost")).toHaveTextContent(
+    // The lifted row leaves the list as a card, and a gap of its height
+    // sits where it will land: above the first row.
+    expect(document.querySelector(".row-drag-card")).toHaveTextContent(
       "Order the cake",
     );
     expect(cake).toHaveClass("is-dragging");
-    expect(
+    const gap = document.querySelector(".row-gap-cell");
+    expect(gap).not.toBeNull();
+    expect(gap?.closest("tr")?.nextElementSibling).toBe(
       screen.getByRole("row", { name: /Confirm the garden venue/ }),
-    ).toHaveClass("is-drop-before");
+    );
     pointer("pointerUp", document, 10, 5, 1);
     await waitFor(() =>
       expect(rowNames()).toEqual([
@@ -770,15 +749,16 @@ describe("TasksPage", () => {
         "Call the band",
       ]),
     );
-    expect(document.querySelector(".row-drag-ghost")).toBeNull();
+    expect(document.querySelector(".row-drag-card")).toBeNull();
+    expect(document.querySelector(".row-gap-cell")).toBeNull();
     expect(screen.getByRole("status", { name: "" })).toHaveTextContent(
       "Order the cake moved.",
     );
     // The click that ended the drag opened nothing.
     expect(screen.queryByRole("dialog")).toBeNull();
 
-    // By day, a drop under another day's rows sets the due to that day and
-    // ranks the task after the rows there.
+    // By day, a drop just under another day's row (past its middle) sets the
+    // due to that day and ranks the task after the rows there.
     await chooseLayout(user, "By day");
     const today = screen.getByRole("region", { name: /Today/ });
     expect(within(today).getByText("Call the band")).toBeVisible();
@@ -789,10 +769,9 @@ describe("TasksPage", () => {
       .closest("li");
     expect(undatedRow).not.toBeNull();
     if (undatedRow === null) return;
-    target.current = today.querySelector("[data-drop-group]");
     pointer("pointerDown", undatedRow, 10, 60, 2);
-    pointer("pointerMove", document, 10, 400, 2);
-    pointer("pointerUp", document, 10, 400, 2);
+    pointer("pointerMove", document, 10, 39, 2);
+    pointer("pointerUp", document, 10, 39, 2);
     await waitFor(() =>
       expect(
         within(screen.getByRole("region", { name: /Today/ })).getByText(

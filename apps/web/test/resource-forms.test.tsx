@@ -70,6 +70,7 @@ const taskResource = (version: number, displayName: string) =>
     repeatUntil: null,
     rank: "00000001000",
     labelIds: [] as string[],
+    sectionId: null,
   }) as const;
 
 const expenseResource = (version: number, displayName: string) =>
@@ -81,6 +82,7 @@ const expenseResource = (version: number, displayName: string) =>
     amount: "25.0000",
     currency: "USD",
     occurredAt: "2026-09-02T20:00:00.000Z",
+    sectionId: null,
   }) as const;
 
 const reminderResource = (version: number, displayName: string) =>

@@ -1,0 +1,28 @@
+{
+  "add": "Add section",
+  "name": "Section name",
+  "description": "Description (optional)",
+  "edit": "Edit section",
+  "moveUp": "Move up",
+  "moveDown": "Move down",
+  "delete": "Delete section",
+  "deleteHint": "Its tasks stay in the list",
+  "deleteHintExpenses": "Its expenses stay in the list",
+  "keys": "Enter saves, Esc cancels",
+  "save": "Save",
+  "cancel": "Cancel",
+  "actionsFor": "Actions for {name}",
+  "move": "Reorder {name}",
+  "moveSection": "Reorder section {name}",
+  "field": "Section",
+  "none": "No section",
+  "open": "{count} open",
+  "total": "Total {total}",
+  "said": {
+    "added": "Section {name} added.",
+    "saved": "Section {name} saved.",
+    "moved": "Section {name} moved.",
+    "placed": "{name} moved.",
+    "deleted": "Section {name} deleted. {hint}."
+  }
+}

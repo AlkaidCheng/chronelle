@@ -30,8 +30,8 @@ export function readTaskFields(
     | "location"
     | "description"
     | "labelIds"
-  >,
-) {
+  > & { readonly sectionId?: string | null | undefined },
+): TaskFields {
   const [dueDate = "", dueTime = ""] =
     task?.dueOn !== null && task?.dueOn !== undefined
       ? [task.dueOn, ""]
@@ -54,8 +54,26 @@ export function readTaskFields(
     description: task?.description ?? "",
     // Label ids as one sorted string, so an unchanged set compares equal.
     labels: joinLabelIds(task?.labelIds ?? []),
+    // The section's id, empty for a loose task; a source that names no
+    // section (a draft kept before the field existed) leaves it out.
+    ...(task?.sectionId === undefined ? {} : { section: task.sectionId ?? "" }),
   };
 }
+
+/** The editor's flat fields, every one text. */
+export type TaskFields = {
+  readonly displayName: string;
+  readonly dueDate: string;
+  readonly dueTime: string;
+  readonly duration: string;
+  readonly repeat: string;
+  readonly repeatUntil: string;
+  readonly assignee: string;
+  readonly location: string;
+  readonly description: string;
+  readonly labels: string;
+  readonly section?: string | undefined;
+};
 
 export function joinLabelIds(labelIds: readonly string[]): string {
   return [...new Set(labelIds)].sort().join(",");
@@ -75,7 +93,7 @@ export const durationLimit = 1440;
  * without a date, and a repeat's end before the date.
  */
 export function taskFieldsPayload(
-  fields: ReturnType<typeof readTaskFields>,
+  fields: TaskFields,
   source?: Pick<TaskResponse, "dueAt">,
 ) {
   const v = tr("validation");
@@ -83,6 +101,7 @@ export function taskFieldsPayload(
   const location = locationPayload(fields.location);
   const description = descriptionPayload(fields.description);
   const labelIds = splitLabelIds(fields.labels);
+  const sectionId = sectionPayload(fields.section);
   const durationMinutes =
     fields.duration === "" ? null : Number(fields.duration);
   if (
@@ -107,6 +126,7 @@ export function taskFieldsPayload(
       location,
       description,
       labelIds,
+      ...sectionId,
     };
   }
   if (!/^\d{4}-\d{2}-\d{2}$/.test(fields.dueDate))
@@ -125,6 +145,7 @@ export function taskFieldsPayload(
       location,
       description,
       labelIds,
+      ...sectionId,
     };
   }
   return {
@@ -141,7 +162,19 @@ export function taskFieldsPayload(
     location,
     description,
     labelIds,
+    ...sectionId,
   };
+}
+
+/**
+ * The section as the API takes it: null clears it, an id names it, and a
+ * draft kept before the field existed leaves it unchanged.
+ */
+export function sectionPayload(
+  section: string | undefined,
+): { sectionId: string | null } | Record<never, never> {
+  if (section === undefined) return {};
+  return { sectionId: section === "" ? null : section };
 }
 
 /** The rule and its end as the API takes them; an end needs a rule. */

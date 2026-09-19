@@ -5,11 +5,13 @@ import type {
   EventResponse,
   ExpenseResponse,
   ReminderResponse,
+  SectionResponse,
   TaskResponse,
   TimelineResponse,
 } from "@chronelle/schemas";
 import { useTranslations } from "next-intl";
 import {
+  Fragment,
   type RefObject,
   useCallback,
   useEffect,
@@ -17,6 +19,7 @@ import {
   useRef,
   useState,
 } from "react";
+import { DragCard } from "../../components/drag-card";
 import { EmptyState, ErrorNotice } from "../../components/feedback";
 import { PinIcon } from "../../components/icons";
 import { AddRow, useQuickAddSlots } from "../../components/quick-add-row";
@@ -28,6 +31,7 @@ import {
   staysInPlace,
 } from "../../lib/collection-order";
 import { groupByDay } from "../../lib/day-groups";
+import { groupBySection } from "../../lib/section-groups";
 import {
   type DayKey,
   dayKeyOf,
@@ -63,19 +67,28 @@ import {
   usePersonsQuery,
   useRefreshEvent,
   useSessionQuery,
+  useUpdateExpense,
   useUpdateReminder,
 } from "../../lib/queries";
 import { instantOnDay } from "../../lib/task-due";
 import { sortTasks, type TaskSort } from "../../lib/task-sort";
 import { deriveTaskTree } from "../../lib/task-tree";
 import { periodRange, usePeriod } from "../../lib/use-period";
-import { type RowDrop, useRowDrag } from "../../lib/use-row-drag";
+import { type RowDrop, rowsWithGap, useRowDrag } from "../../lib/use-row-drag";
 import { HistoryButton } from "../history/history-button";
 import { useOpenHistory } from "../history/history-provider";
 import {
   LifecycleButton,
   useOpenLifecycle,
 } from "../recovery/lifecycle-provider";
+import {
+  AddSectionLine,
+  DragGrip,
+  SectionEditor,
+  SectionHead,
+  SectionTitle,
+} from "../sections/section-parts";
+import { useSectionEditing } from "../sections/use-sections";
 import { QuickAddTask } from "../tasks/quick-add-task";
 import {
   activeFilterCount,
@@ -159,6 +172,7 @@ export function TasksPanel({
   eventId,
   isSavingView = false,
   onChangeView,
+  sections = [],
   tasks,
   view = "list",
 }: {
@@ -166,6 +180,8 @@ export function TasksPanel({
   readonly eventId: string;
   readonly isSavingView?: boolean;
   readonly onChangeView?: ((view: EventComponentView) => void) | undefined;
+  /** The sections of the Event's To-dos in their order. */
+  readonly sections?: readonly SectionResponse[] | undefined;
   readonly tasks: readonly TaskResponse[];
   readonly view?: EventComponentView;
 }) {
@@ -179,10 +195,11 @@ export function TasksPanel({
   });
   const [sort, setSort] = useState<TaskSort>("manual");
   // The full editor for a new task opens from a quick add row, with what
-  // was typed there and the row's day.
+  // was typed there, the row's day, and its section.
   const [adding, setAdding] = useState<{
     displayName: string;
     dueOn: string | null;
+    sectionId: string | null;
   } | null>(null);
   const panel = useRef<HTMLElement>(null);
   const returnFocus = useReturnFocusToAddRow(panel);
@@ -342,6 +359,7 @@ export function TasksPanel({
           key={eventId}
           eventId={eventId}
           onCancel={closeAdding}
+          sections={sections}
           start={adding}
         />
       ) : null}
@@ -364,8 +382,8 @@ export function TasksPanel({
             dayLabel={view === "by-day" ? t("noDueDateGroup") : undefined}
             dueOn={null}
             eventId={eventId}
-            onDetails={(displayName, dueOn) =>
-              setAdding({ displayName, dueOn })
+            onDetails={(displayName, dueOn, sectionId) =>
+              setAdding({ displayName, dueOn, sectionId })
             }
             slots={quickAdd}
           />
@@ -377,8 +395,8 @@ export function TasksPanel({
           eventId={eventId}
           labelNames={labels.data?.names}
           manual={sort === "manual"}
-          onAddDetails={(displayName, dueOn) =>
-            setAdding({ displayName, dueOn })
+          onAddDetails={(displayName, dueOn, sectionId) =>
+            setAdding({ displayName, dueOn, sectionId })
           }
           onAddSubtask={addSubtask}
           onEdit={setEditingId}
@@ -388,6 +406,7 @@ export function TasksPanel({
           personNames={persons.data?.names}
           progress={tree.progress}
           quickAdd={quickAdd}
+          sections={sections}
           tasks={filteredTasks}
           view={view}
         />
@@ -396,6 +415,7 @@ export function TasksPanel({
         <TaskInspector
           key={editingId}
           eventId={eventId}
+          sections={sections}
           taskId={editingId}
           onClose={() => setEditingId(null)}
         />
@@ -657,12 +677,17 @@ const expenseDay = (expense: ExpenseResponse) => instantDay(expense.occurredAt);
 const reminderDay = (reminder: ReminderResponse) =>
   instantDay(reminder.remindAt);
 
+/** The prefix of a section's row id among the rows a drag may lift. */
+const sectionRow = "section:";
+const sectionsGroup = "sections";
+
 export function ExpensesPanel({
   canEdit,
   eventId,
   expenses,
   isSavingView,
   onChangeView,
+  sections = [],
   view = "list",
 }: {
   readonly canEdit: boolean;
@@ -670,15 +695,38 @@ export function ExpensesPanel({
   readonly expenses: readonly ExpenseResponse[];
   readonly isSavingView?: boolean | undefined;
   readonly onChangeView?: ((view: EventComponentView) => void) | undefined;
+  /** The sections of the Event's Expenses in their order. */
+  readonly sections?: readonly SectionResponse[] | undefined;
   readonly view?: EventComponentView;
 }) {
   const panels = useTranslations("panels");
   const views = useTranslations("views");
-  const [isAdding, setIsAdding] = useState(false);
+  const sectionT = useTranslations("sections");
+  // The editor for a new expense opens from an add row, in that row's section.
+  const [adding, setAdding] = useState<{ sectionId: string | null } | null>(
+    null,
+  );
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [announcement, setAnnouncement] = useState("");
   const totals = useMemo(() => sumMoneyByCurrency(expenses), [expenses]);
   const panel = useRef<HTMLElement>(null);
   const period = usePeriod(view);
+  const refresh = useRefreshEvent(eventId);
+  const update = useUpdateExpense();
+  const sectionEditing = useSectionEditing(
+    eventId,
+    "expenses",
+    sections,
+    setAnnouncement,
+  );
+  const byId = useMemo(
+    () => new Map(expenses.map((expense) => [expense.id, expense])),
+    [expenses],
+  );
+  const bySection = useMemo(
+    () => groupBySection(expenses, sections),
+    [expenses, sections],
+  );
   const placed = useMemo(
     () =>
       view === "week" || view === "month"
@@ -686,13 +734,64 @@ export function ExpensesPanel({
         : new Map<DayKey, ExpenseResponse[]>(),
     [expenses, view],
   );
-  const groups = useMemo(
-    () =>
-      view === "by-day" ? groupByDay(expenses, expenseDay, new Date()) : [],
-    [expenses, view],
+  // The list and by-day layouts group by section; within a section the
+  // rows keep their order by date, or their day groups.
+  const sectioned = view === "list" || view === "by-day";
+  const dayGroupsOf = useCallback(
+    (items: readonly ExpenseResponse[]) =>
+      view === "by-day" ? groupByDay(items, expenseDay, new Date()) : [],
+    [view],
   );
-  const expenseRow = (expense: ExpenseResponse) => (
-    <article key={expense.id}>
+  // An expense keeps its place by date, so a drop changes only its section;
+  // a section's drop places it among the others.
+  const onDrop = useCallback(
+    (id: string, drop: RowDrop) => {
+      if (id.startsWith(sectionRow)) {
+        sectionEditing.place(
+          id.slice(sectionRow.length),
+          drop.rowIds.map((rowId) => rowId.slice(sectionRow.length)),
+          drop.index,
+        );
+        return;
+      }
+      const expense = byId.get(id);
+      if (expense === undefined) return;
+      const sectionId = drop.groupKey === "" ? null : drop.groupKey;
+      if (sectionId === expense.sectionId) return;
+      update.mutate(
+        { id, input: { expectedVersion: expense.version, sectionId } },
+        {
+          onSuccess: () =>
+            setAnnouncement(
+              sectionT("said.placed", { name: expense.displayName }),
+            ),
+        },
+      );
+    },
+    [byId, sectionT, sectionEditing, update],
+  );
+  const canDrop = useCallback(
+    (groupKey: string, id: string) =>
+      id.startsWith(sectionRow)
+        ? groupKey === sectionsGroup
+        : groupKey !== sectionsGroup,
+    [],
+  );
+  const labelOf = useCallback(
+    (id: string) =>
+      id.startsWith(sectionRow)
+        ? (sections.find(
+            (section) => section.id === id.slice(sectionRow.length),
+          )?.name ?? "")
+        : (byId.get(id)?.displayName ?? ""),
+    [byId, sections],
+  );
+  const reorder = canEdit && sectioned;
+  const { drag, gapAt, gripProps, groupProps, rootProps, rowClass, rowProps } =
+    useRowDrag({ canDrop, enabled: reorder, labelOf, onDrop });
+
+  const expenseLine = (expense: ExpenseResponse) => (
+    <>
       <div className="resource-copy">
         <span className="object-label">
           {view === "list" || view === "week"
@@ -704,6 +803,22 @@ export function ExpensesPanel({
       <strong className="money-value">
         {formatMoney(expense.amount, expense.currency)}
       </strong>
+    </>
+  );
+  const expenseRow = (expense: ExpenseResponse, groupKey = "all") => (
+    <article
+      className={rowClasses(rowClass(groupKey, expense.id), false, reorder)}
+      id={`expense-${expense.id}`}
+      key={expense.id}
+      {...rowProps(expense.id)}
+    >
+      {reorder ? (
+        <DragGrip
+          label={sectionT("move", { name: expense.displayName })}
+          {...gripProps(expense.id)}
+        />
+      ) : null}
+      {expenseLine(expense)}
       <RowActions>
         {canEdit ? (
           <button
@@ -722,10 +837,13 @@ export function ExpensesPanel({
       </RowActions>
     </article>
   );
+  const gapRow = (height: number, key: string) => (
+    <div aria-hidden="true" className="row-gap" key={key} style={{ height }} />
+  );
   // A day's totals by currency, in the heading of a by-day group and under a month's day.
-  const dayTotals = (dayExpenses: readonly ExpenseResponse[]) => (
+  const moneyTotals = (items: readonly ExpenseResponse[]) => (
     <span className="day-group-totals">
-      {sumMoneyByCurrency(dayExpenses).map(({ amount, currency }) => (
+      {sumMoneyByCurrency(items).map(({ amount, currency }) => (
         <span key={currency}>{formatMoney(amount, currency)}</span>
       ))}
     </span>
@@ -735,14 +853,138 @@ export function ExpensesPanel({
     mode: RowMode,
   ) => (
     <div className={resourceListClass(mode)}>
-      {dayExpenses.map(expenseRow)}
+      {dayExpenses.map((expense) => expenseRow(expense))}
       {mode === "full" ? (
         <p className="day-group-sum">
           <span>{panels("dayTotal")}</span>
-          {dayTotals(dayExpenses)}
+          {moneyTotals(dayExpenses)}
         </p>
       ) : null}
     </div>
+  );
+  /**
+   * The rows of one section (or the loose ones) as one drop group: a plain
+   * list, or by day their day groups, the gap counted across the days.
+   */
+  const sectionRows = (items: readonly ExpenseResponse[], groupKey: string) => {
+    if (view !== "by-day")
+      return (
+        <div
+          className={`resource-list${reorder ? " has-grips" : ""}`}
+          {...groupProps(groupKey)}
+        >
+          {rowsWithGap(
+            groupKey,
+            items,
+            drag,
+            gapAt,
+            (expense) => expenseRow(expense, groupKey),
+            gapRow,
+          )}
+        </div>
+      );
+    let index = 0;
+    const gap = () => {
+      const height = gapAt(groupKey, index);
+      return height === null ? null : gapRow(height, `gap:${index}`);
+    };
+    const days = dayGroupsOf(items).map((group) => (
+      <section
+        aria-label={group.label.join(", ")}
+        className={`day-group day-group-${group.tone}`}
+        key={group.key}
+      >
+        <h3 className="day-group-heading">
+          {group.label.map((part) => (
+            <span key={part}>{part}</span>
+          ))}
+          {moneyTotals(group.items)}
+        </h3>
+        <div className={`resource-list${reorder ? " has-grips" : ""}`}>
+          {group.items.map((expense) => {
+            if (drag !== null && expense.id === drag.id)
+              return expenseRow(expense, groupKey);
+            const before = gap();
+            index += 1;
+            return (
+              <Fragment key={expense.id}>
+                {before}
+                {expenseRow(expense, groupKey)}
+              </Fragment>
+            );
+          })}
+        </div>
+      </section>
+    ));
+    return (
+      <div className="day-groups section-days" {...groupProps(groupKey)}>
+        {days}
+        {gap()}
+      </div>
+    );
+  };
+  const addRow = (sectionId: string | null) =>
+    canEdit ? (
+      <div className="quick-add-item">
+        <AddRow
+          aria-haspopup="dialog"
+          label={panels("addExpense")}
+          onOpen={() => setAdding({ sectionId })}
+        />
+      </div>
+    ) : null;
+  const { editing } = sectionEditing;
+  const addSection = (after: string | null) =>
+    canEdit ? (
+      editing?.kind === "add" && editing.after === after ? (
+        <SectionEditor
+          busy={sectionEditing.pending}
+          onCancel={sectionEditing.cancel}
+          onSave={sectionEditing.save}
+        />
+      ) : (
+        <AddSectionLine
+          disabled={sectionEditing.pending}
+          onOpen={() => sectionEditing.openAdd(after)}
+        />
+      )
+    ) : null;
+  const sectionGap = (height: number, key: string) => (
+    <div aria-hidden="true" className="section-gap" key={key}>
+      <div className="row-gap-fill" style={{ height }} />
+    </div>
+  );
+  const card = () => {
+    if (drag === null) return null;
+    if (drag.id.startsWith(sectionRow)) {
+      const section = sections.find(
+        (candidate) => candidate.id === drag.id.slice(sectionRow.length),
+      );
+      return section === undefined ? null : (
+        <div className="section-head section-head-card">
+          <SectionTitle section={section} />
+        </div>
+      );
+    }
+    const expense = byId.get(drag.id);
+    return expense === undefined ? null : (
+      <div className="row-drag-line">{expenseLine(expense)}</div>
+    );
+  };
+  const error = update.isError ? update : sectionEditing.error;
+  const notice = (
+    <>
+      {error === null ? null : (
+        <ErrorNotice
+          error={error.error}
+          onRefresh={() => void refresh().then(() => error.reset())}
+        />
+      )}
+      <p aria-live="polite" className="visually-hidden" role="status">
+        {announcement}
+      </p>
+      <DragCard drag={drag}>{card()}</DragCard>
+    </>
   );
 
   return (
@@ -763,8 +1005,15 @@ export function ExpensesPanel({
               panel={panel}
               sheet={() =>
                 expenseSheet(
-                  view === "by-day"
-                    ? groups.flatMap((group) => group.items)
+                  sectioned
+                    ? [
+                        bySection.loose,
+                        ...bySection.groups.map((group) => group.items),
+                      ].flatMap((items) =>
+                        view === "by-day"
+                          ? dayGroupsOf(items).flatMap((group) => group.items)
+                          : items,
+                      )
                     : shownInPeriod(
                         expenses,
                         (expense) => [expenseDay(expense)],
@@ -779,56 +1028,109 @@ export function ExpensesPanel({
         }
         title={views("expenses")}
       />
-      {canEdit && isAdding ? (
+      {canEdit && adding !== null ? (
         <ExpenseForm
           key={eventId}
           eventId={eventId}
-          onCancel={() => setIsAdding(false)}
+          onCancel={() => setAdding(null)}
+          sections={sections}
+          startSectionId={adding.sectionId}
         />
       ) : null}
-      {expenses.length === 0 ? (
-        canEdit ? null : (
-          <EmptyState title={panels("noExpenses")} />
-        )
-      ) : view === "by-day" ? (
-        <div className="day-groups">
-          {groups.map((group) => (
-            <section
-              aria-label={group.label.join(", ")}
-              className={`day-group day-group-${group.tone}`}
-              key={group.key}
-            >
-              <h3 className="day-group-heading">
-                {group.label.map((part) => (
-                  <span key={part}>{part}</span>
-                ))}
-                {dayTotals(group.items)}
-              </h3>
-              <div className="resource-list">{group.items.map(expenseRow)}</div>
-            </section>
-          ))}
+      {sectioned ? notice : null}
+      {expenses.length === 0 && sections.length === 0 && !canEdit ? (
+        <EmptyState title={panels("noExpenses")} />
+      ) : null}
+      {sectioned ? (
+        <div className="sectioned-list" {...rootProps()}>
+          <div data-drop-zone="">
+            {sectionRows(bySection.loose, "")}
+            {addRow(null)}
+          </div>
+          {addSection(null)}
+          <div {...groupProps(sectionsGroup)}>
+            {rowsWithGap(
+              sectionsGroup,
+              bySection.groups.map(({ section }) => ({
+                id: `${sectionRow}${section.id}`,
+              })),
+              drag,
+              gapAt,
+              ({ id }) => {
+                const group = bySection.groups.find(
+                  (candidate) =>
+                    candidate.section.id === id.slice(sectionRow.length),
+                );
+                if (group === undefined) return null;
+                const { section, items } = group;
+                const at = bySection.groups.indexOf(group);
+                const lifted = rowClass(sectionsGroup, id);
+                return (
+                  <section
+                    aria-label={section.name}
+                    className={`list-section${lifted === undefined ? "" : ` ${lifted}`}`}
+                    data-drop-zone=""
+                    data-row-id={id}
+                    key={id}
+                  >
+                    {editing?.kind === "edit" && editing.id === section.id ? (
+                      <SectionEditor
+                        busy={sectionEditing.pending}
+                        onCancel={sectionEditing.cancel}
+                        onSave={sectionEditing.save}
+                        section={section}
+                      />
+                    ) : (
+                      <SectionHead
+                        canEdit={canEdit}
+                        figure={items.length === 0 ? null : moneyTotals(items)}
+                        grip={
+                          reorder ? (
+                            <DragGrip
+                              className="section-head-grip"
+                              label={sectionT("moveSection", {
+                                name: section.name,
+                              })}
+                              {...gripProps(id)}
+                            />
+                          ) : null
+                        }
+                        isFirst={at === 0}
+                        isLast={at === bySection.groups.length - 1}
+                        onDelete={() => sectionEditing.destroy(section.id)}
+                        onEdit={() => sectionEditing.openEdit(section.id)}
+                        onMove={(direction) =>
+                          sectionEditing.move(section.id, direction)
+                        }
+                        section={section}
+                      />
+                    )}
+                    {sectionRows(items, section.id)}
+                    {addRow(section.id)}
+                    {addSection(section.id)}
+                  </section>
+                );
+              },
+              sectionGap,
+            )}
+          </div>
         </div>
-      ) : view === "week" || view === "month" ? (
-        <PeriodView
-          period={period}
-          placed={placed}
-          renderList={expenseList}
-          undated={[]}
-          undatedLabel={panels("undated")}
-          view={view}
-        />
       ) : (
-        <div className="resource-list">{expenses.map(expenseRow)}</div>
+        <>
+          {expenses.length === 0 ||
+          (view !== "week" && view !== "month") ? null : (
+            <PeriodView
+              period={period}
+              placed={placed}
+              renderList={expenseList}
+              undated={[]}
+              undatedLabel={panels("undated")}
+              view={view}
+            />
+          )}
+          {addRow(null)}
+        </>
       )}
-      {canEdit ? (
-        <div className="quick-add-item">
-          <AddRow
-            aria-haspopup="dialog"
-            label={panels("addExpense")}
-            onOpen={() => setIsAdding(true)}
-          />
-        </div>
-      ) : null}
       {totals.length > 0 ? (
         <div className="total-row">
           <span>{panels("totalRecorded")}</span>
@@ -850,6 +1152,7 @@ export function ExpensesPanel({
           eventId={eventId}
           expenseId={editingId}
           onClose={() => setEditingId(null)}
+          sections={sections}
         />
       ) : null}
     </section>
@@ -977,11 +1280,14 @@ export function RemindersPanel({
     (id: string) => byId.get(id)?.displayName ?? "",
     [byId],
   );
-  const { drag, groupProps, rowClass, rowProps } = useRowDrag({
-    enabled: canEdit && (view === "list" || view === "by-day"),
-    labelOf,
-    onDrop,
-  });
+  const reorder = canEdit && (view === "list" || view === "by-day");
+  const { drag, gapAt, gripProps, groupProps, rootProps, rowClass, rowProps } =
+    useRowDrag({
+      enabled: reorder,
+      labelOf,
+      onDrop,
+    });
+  const sectionT = useTranslations("sections");
   const menu = (
     reminder: ReminderResponse,
     rows: readonly ReminderResponse[],
@@ -1096,11 +1402,18 @@ export function RemindersPanel({
       className={rowClasses(
         rowClass(groupKey, reminder.id),
         reminder.status !== "pending",
+        reorder,
       )}
       id={`reminder-${reminder.id}`}
       key={reminder.id}
       {...rowProps(reminder.id)}
     >
+      {reorder ? (
+        <DragGrip
+          label={sectionT("move", { name: reminder.displayName })}
+          {...gripProps(reminder.id)}
+        />
+      ) : null}
       <DateTile
         dateTime={reminder.remindAt}
         day={formatDatePart(reminder.remindAt, "day")}
@@ -1139,19 +1452,14 @@ export function RemindersPanel({
       <p aria-live="polite" className="visually-hidden" role="status">
         {announcement}
       </p>
-      {drag === null ? null : (
-        <div
-          aria-hidden="true"
-          className="row-drag-ghost"
-          style={{
-            transform: `translate(${drag.x}px, ${drag.y}px)`,
-            width: drag.width,
-          }}
-        >
-          {drag.label}
-        </div>
-      )}
+      <DragCard drag={drag}>
+        {drag === null ? null : (byId.get(drag.id)?.displayName ?? "")}
+      </DragCard>
     </>
+  );
+  /** The gap a lifted reminder will fill, among a list's rows. */
+  const gapRow = (height: number, key: string) => (
+    <div aria-hidden="true" className="row-gap" key={key} style={{ height }} />
   );
 
   return (
@@ -1213,11 +1521,12 @@ export function RemindersPanel({
         </div>
       ) : null}
       {reminders.length === 0 ? null : view === "by-day" ? (
-        <div className="day-groups">
+        <div className="day-groups" {...rootProps()}>
           {groups.map((group) => (
             <section
               aria-label={group.label.join(", ")}
               className={`day-group day-group-${group.tone}`}
+              data-drop-zone=""
               key={group.key}
             >
               <h3 className="day-group-heading">
@@ -1225,9 +1534,17 @@ export function RemindersPanel({
                   <span key={part}>{part}</span>
                 ))}
               </h3>
-              <div className="resource-list" {...groupProps(group.key)}>
-                {group.items.map((reminder) =>
-                  reminderRow(reminder, group.items, group.key),
+              <div
+                className={`resource-list${reorder ? " has-grips" : ""}`}
+                {...groupProps(group.key)}
+              >
+                {rowsWithGap(
+                  group.key,
+                  group.items,
+                  drag,
+                  gapAt,
+                  (reminder) => reminderRow(reminder, group.items, group.key),
+                  gapRow,
                 )}
                 {canEdit ? (
                   <div className="quick-add-item">
@@ -1257,8 +1574,19 @@ export function RemindersPanel({
           view={view}
         />
       ) : (
-        <div className="resource-list" {...groupProps("all")}>
-          {reminders.map((reminder) => reminderRow(reminder, reminders, "all"))}
+        <div
+          className={`resource-list${reorder ? " has-grips" : ""}`}
+          {...rootProps()}
+          {...groupProps("all")}
+        >
+          {rowsWithGap(
+            "all",
+            reminders,
+            drag,
+            gapAt,
+            (reminder) => reminderRow(reminder, reminders, "all"),
+            gapRow,
+          )}
           {canEdit ? (
             <div className="quick-add-item">
               <QuickAddReminder

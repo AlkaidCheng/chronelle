@@ -21,7 +21,8 @@ export function rowMenuButton(row: Locator): Locator {
 /**
  * Drags a row by pressing anywhere on it and moving past the threshold,
  * then drops it over the target row's upper half (before it) or lower
- * half (after it).
+ * half (after it). The lifted row leaves the list as a card, and a gap
+ * marks where it lands.
  */
 export async function dragRow(
   page: Page,
@@ -37,7 +38,7 @@ export async function dragRow(
   await page.mouse.move(source.x + 40, source.y + source.height / 2 + 12, {
     steps: 4,
   });
-  await expect(page.locator(".row-drag-ghost")).toBeVisible();
+  await expect(page.locator(".row-drag-card")).toBeVisible();
   await target.scrollIntoViewIfNeeded();
   const destination = await target.boundingBox();
   if (!destination) throw new Error("The target row is not visible");
@@ -46,9 +47,15 @@ export async function dragRow(
       ? destination.y + destination.height * 0.25
       : destination.y + destination.height * 0.8;
   await page.mouse.move(destination.x + 40, y, { steps: 6 });
-  await expect(target).toHaveClass(
-    place === "before" ? /is-drop-before/ : /is-drop-after/,
-  );
+  const gap = page.locator(".row-gap, .row-gap-row");
+  await expect(gap).toHaveCount(1);
+  await expect(
+    target.locator(
+      place === "before"
+        ? "xpath=preceding-sibling::*[1]"
+        : "xpath=following-sibling::*[1]",
+    ),
+  ).toHaveClass(/row-gap/);
   await page.mouse.up();
-  await expect(page.locator(".row-drag-ghost")).toHaveCount(0);
+  await expect(page.locator(".row-drag-card")).toHaveCount(0);
 }

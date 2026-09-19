@@ -3267,7 +3267,9 @@ article:focus-within .row-more,
   padding: 4px 10px 2px;
 }
 
-/* Rows in manual order: the pressed row fades, a line marks the drop. */
+/* Rows in manual order: the lifted row leaves the list as a card that
+   follows the pointer, a gap of its height marks where it will land, and
+   the grip in the gutter at the row's left edge lifts it. */
 [data-row-id] {
   touch-action: pan-y;
 }
@@ -3283,43 +3285,346 @@ article:focus-within .row-more,
 }
 
 [data-row-id].is-dragging {
-  opacity: 0.35;
+  display: none;
 }
 
-li.is-drop-before,
-article.is-drop-before {
-  box-shadow: inset 0 3px 0 0 var(--accent);
+[data-row-id].is-lifted {
+  opacity: 0.45;
 }
 
-li.is-drop-after,
-article.is-drop-after {
-  box-shadow: inset 0 -3px 0 0 var(--accent);
+/* The gap: a dashed slot the lifted row's height; in a table it fills a
+   cell of its own row. */
+.row-gap,
+.row-gap-fill {
+  background: color-mix(in srgb, var(--accent-soft) 60%, transparent);
+  border: 1.5px dashed var(--line-strong);
+  border-radius: 10px;
+  box-sizing: border-box;
 }
 
-tr.is-drop-before > td {
-  box-shadow: inset 0 3px 0 0 var(--accent);
+.row-gap {
+  margin: 4px 0;
+  padding: 0;
 }
 
-tr.is-drop-after > td {
-  box-shadow: inset 0 -3px 0 0 var(--accent);
+.row-gap-cell {
+  border: 0;
+  padding: 4px 0;
 }
 
-.row-drag-ghost {
+.section-gap-cell {
+  padding: 6px 0;
+}
+
+.section-gap {
+  padding: 6px 0;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .row-gap,
+  .row-gap-fill {
+    transition: height 120ms ease;
+  }
+}
+
+.row-drag-card {
   background: var(--surface);
-  border: 1px solid var(--line);
+  border: 1px solid var(--line-strong);
   border-radius: 10px;
   box-shadow: var(--shadow);
-  font-weight: 600;
   left: 0;
-  opacity: 0.95;
+  opacity: 0.96;
   overflow: hidden;
-  padding: 8px 12px;
+  padding: 6px 10px;
   pointer-events: none;
   position: fixed;
-  text-overflow: ellipsis;
   top: 0;
-  white-space: nowrap;
   z-index: 31;
+}
+
+.row-drag-line {
+  align-items: center;
+  display: flex;
+  gap: 12px 18px;
+}
+
+/* The grip sits in a gutter beside the list, visible on hover and focus
+   and always on touch; the list makes room for it, and the row or cell
+   that holds it anchors it. */
+.has-grips {
+  margin-left: 22px;
+}
+
+.grip-anchor {
+  position: relative;
+}
+
+.row-grip {
+  align-items: center;
+  background: none;
+  border: 0;
+  border-radius: 6px;
+  color: var(--faint);
+  cursor: grab;
+  display: inline-flex;
+  height: 24px;
+  justify-content: center;
+  left: -22px;
+  opacity: 0;
+  padding: 0;
+  position: absolute;
+  top: 50%;
+  touch-action: none;
+  transform: translateY(-50%);
+  width: 18px;
+}
+
+@media (hover: none) {
+  .row-grip {
+    opacity: 0.6;
+  }
+}
+
+.row-grip-icon {
+  fill: currentColor;
+  height: 14px;
+  width: 14px;
+}
+
+.row-grip:hover {
+  background: var(--surface-subtle);
+  color: var(--muted);
+  opacity: 1;
+}
+
+.row-grip:focus-visible {
+  opacity: 1;
+  outline: 2px solid var(--focus);
+  outline-offset: 1px;
+}
+
+.row-grip[aria-pressed="true"] {
+  color: var(--accent);
+  opacity: 1;
+}
+
+.is-dragging-row .row-grip {
+  cursor: grabbing;
+}
+
+tr:hover .row-grip {
+  opacity: 1;
+}
+
+.grip-anchor:hover > .row-grip {
+  opacity: 1;
+}
+
+/* Sections: a head with the name in bold and the description muted under
+   it, a faint figure at the right, the quiet menu; then the rows and the
+   section's own add row. Add section is a thin accent line with a pill. */
+.sectioned-list {
+  padding-left: 22px;
+}
+
+.sectioned-list .has-grips {
+  margin-left: 0;
+}
+
+.list-section {
+  margin-top: 18px;
+}
+
+.section-head {
+  align-items: flex-start;
+  border-bottom: 1px solid var(--line-strong);
+  display: flex;
+  gap: 8px;
+  padding: 6px 2px 8px;
+  position: relative;
+}
+
+.section-head-card {
+  border: 0;
+  padding: 0;
+}
+
+.section-head-grip {
+  top: 10px;
+  transform: none;
+}
+
+.section-head:hover > .section-head-grip {
+  opacity: 1;
+}
+
+.section-title {
+  display: grid;
+  flex: 1 1 auto;
+  gap: 1px;
+  min-width: 0;
+  text-align: left;
+}
+
+.section-name {
+  font-size: 0.92rem;
+  font-weight: 700;
+}
+
+.section-description {
+  color: var(--muted);
+  font-size: 0.78rem;
+  white-space: pre-line;
+}
+
+.section-figure {
+  color: var(--faint);
+  display: inline-flex;
+  font-size: 0.78rem;
+  gap: 8px;
+  margin-top: 3px;
+  white-space: nowrap;
+}
+
+.section-head-menu {
+  margin-left: 0;
+  margin-top: -3px;
+}
+
+.section-head:hover > .section-head-menu,
+.section-head:focus-within > .section-head-menu {
+  opacity: 1;
+}
+
+.task-table td.section-head-cell {
+  border-top: 0;
+  padding: 4px 0 0;
+}
+
+/* The first row under a section head sits on the head's rule alone. */
+.task-table tr:has(> .section-head-cell) + tr > td {
+  border-top: 0;
+}
+
+.table-add-cell {
+  border-top: 1px solid var(--line);
+  padding: 0;
+}
+
+.table-add-cell > .quick-add-item {
+  padding: var(--row-padding) 12px var(--row-padding) 2px;
+}
+
+.task-table td.table-add-section-cell {
+  border-top: 0;
+  padding: 0;
+}
+
+.add-section {
+  align-items: center;
+  display: flex;
+  height: 22px;
+  justify-content: center;
+  margin: 2px 0;
+  opacity: 0;
+  position: relative;
+}
+
+.add-section::before {
+  background: var(--accent);
+  content: "";
+  height: 1px;
+  left: 0;
+  opacity: 0.5;
+  position: absolute;
+  right: 0;
+  top: 50%;
+}
+
+@media (hover: none) {
+  .add-section {
+    opacity: 0.7;
+  }
+}
+
+.add-section:hover,
+.add-section:focus-within {
+  opacity: 1;
+}
+
+.add-section-pill {
+  background: var(--canvas);
+  border: 0;
+  border-radius: 999px;
+  color: var(--accent);
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.76rem;
+  font-weight: 700;
+  padding: 2px 10px;
+  position: relative;
+}
+
+.add-section-pill:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 1px;
+}
+
+.section-editor {
+  display: grid;
+  gap: 8px;
+  margin: 8px 0 10px;
+}
+
+.section-editor-name,
+.section-editor-description {
+  background: var(--surface);
+  border: 1px solid var(--line-strong);
+  border-radius: 9px;
+  color: var(--ink);
+  font: inherit;
+  padding: 9px 12px;
+  width: 100%;
+}
+
+.section-editor-name {
+  font-weight: 700;
+  min-height: 40px;
+}
+
+.section-editor-description {
+  line-height: 1.4;
+  min-height: 64px;
+  resize: none;
+}
+
+.section-editor-name:focus,
+.section-editor-description:focus {
+  border-color: var(--accent);
+  outline: 3px solid var(--focus);
+}
+
+.section-editor-foot {
+  align-items: center;
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.section-editor-keys {
+  color: var(--faint);
+  font-size: 0.74rem;
+  margin-right: auto;
+}
+
+.section-editor-error {
+  color: var(--danger);
+  font-size: 0.8rem;
+  margin: 0;
+}
+
+.section-field {
+  margin-top: 4px;
 }
 
 .status-chip {

@@ -1,6 +1,10 @@
 "use client";
 
-import type { AccessSource, TaskResponse } from "@chronelle/schemas";
+import type {
+  AccessSource,
+  SectionResponse,
+  TaskResponse,
+} from "@chronelle/schemas";
 import { useTranslations } from "next-intl";
 import { type FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { AccessLine } from "../../components/access-line";
@@ -35,6 +39,7 @@ import { durationChoices } from "../../lib/due-choices";
 import { formatDuration } from "../../lib/format";
 import { AssigneePicker } from "../tasks/assignee-picker";
 import { LabelPicker } from "../tasks/label-picker";
+import { SectionField } from "../sections/section-field";
 import { useEditorDraft } from "../../lib/use-editor-draft";
 import {
   type ContextCreateAttempt,
@@ -61,9 +66,16 @@ interface TaskFormProps {
   readonly onRefresh?: (() => Promise<void>) | undefined;
   /** Makes a new task a subtask of this one. */
   readonly parent?: SubtaskParent | undefined;
-  /** What a new task starts with when it comes from a quick add row: the typed name and the row's day. */
+  /** The sections of the Event's To-dos, which the editor offers as the task's section. */
+  readonly sections?: readonly SectionResponse[] | undefined;
+  /** What a new task starts with when it comes from a quick add row: the typed name, the row's day, and its section. */
   readonly start?:
-    { readonly displayName: string; readonly dueOn: string | null } | undefined;
+    | {
+        readonly displayName: string;
+        readonly dueOn: string | null;
+        readonly sectionId?: string | null | undefined;
+      }
+    | undefined;
   readonly task?: TaskResponse | undefined;
 }
 
@@ -101,6 +113,7 @@ function TaskEditor({
   onCancel,
   onRefresh,
   parent,
+  sections,
   start,
   task: latestTask,
 }: TaskFormProps & {
@@ -120,6 +133,9 @@ function TaskEditor({
     draft.change({
       ...(start.displayName === "" ? {} : { displayName: start.displayName }),
       ...(start.dueOn === null ? {} : { dueDate: start.dueOn }),
+      ...(start.sectionId === null || start.sectionId === undefined
+        ? {}
+        : { section: start.sectionId }),
     });
   }, [draft, initialDraft, start]);
   const [attempt] = useState<ContextCreateAttempt>(
@@ -154,6 +170,7 @@ function TaskEditor({
     location,
     description,
     labels,
+    section,
   } = draft.fields;
   const mutation = task === undefined ? create : update;
   // The comparison names labels and the assignee rather than showing ids;
@@ -241,6 +258,7 @@ function TaskEditor({
             location: "",
             description: "",
             labels: "",
+            section: "",
           });
           onCancel?.();
         },
@@ -399,6 +417,14 @@ function TaskEditor({
             onChange={(labels) => draft.change({ labels })}
             value={labels}
           />
+          {sections === undefined ? null : (
+            <SectionField
+              disabled={mutation.isPending}
+              onChange={(section) => draft.change({ section })}
+              sections={sections}
+              value={section ?? ""}
+            />
+          )}
         </div>
         <footer className="event-inspector-footer">
           <EditorControls

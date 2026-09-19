@@ -69,6 +69,7 @@ function task(id: string, dueAt: Date | null): TaskResource {
     repeatRule: null,
     repeatUntil: null,
     rank: "00000001000",
+    sectionId: null,
     labelIds: [],
   };
 }
@@ -106,6 +107,8 @@ function service(
       {} as Database,
       undefined,
       repository,
+      undefined,
+      { listSections: vi.fn().mockResolvedValue([]) },
     ),
   };
 }
@@ -147,7 +150,7 @@ describe("projection read repository boundary", () => {
       "root",
       ["task"],
     );
-    expect(todos).toMatchObject({ sourceEventId: "root" });
+    expect(todos).toMatchObject({ sourceEventId: "root", sections: [] });
     expect(todos.items.map(({ id }) => id)).toEqual([
       "sooner",
       "later",

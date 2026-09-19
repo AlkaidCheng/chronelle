@@ -630,6 +630,42 @@ its live, viewable subtasks, and `parents` maps each listed subtask ID to
 `{ taskId, displayName }` of its parent when the caller may view it. The
 typed client exposes `listTasks(input)`.
 
+## Sections
+
+| Method   | Path                               | Behavior                                                               |
+| -------- | ---------------------------------- | ---------------------------------------------------------------------- |
+| `GET`    | `/events/:id/sections?view=<view>` | The sections of one view of the Event in their order                   |
+| `POST`   | `/events/:id/sections`             | Create (`{ view, name, description?, afterSectionId? }`)               |
+| `PATCH`  | `/sections/:id`                    | Rename, describe, or move (`name?`, `description?`, `afterSectionId?`) |
+| `DELETE` | `/sections/:id`                    | Delete; its records stay in the view without a section                 |
+
+A section is a named group in an Event's To-dos or Expenses view (`view` is
+`todos` or `expenses`): a vocabulary of the Event the way labels are of the
+workspace, not a canonical object, so it has no version, no Trash, and no
+history. Its `name` is 1 to 120 characters and its `description` up to 2,000,
+both trimmed at the boundary (an empty description is none). Sections keep a
+manual order through `rank` in the scheme Tasks use: `afterSectionId` on
+create or update names the section to place it after, `null` places it
+first, and leaving it out on create places it last (on update, leaves it
+where it is); naming a section of another view or Event is HTTP 400.
+Whoever may view the Event lists its sections; whoever may edit the Event
+creates, changes, and deletes them (HTTP 404 otherwise, as for the Event).
+
+A Task or Expense carries at most one section through `sectionId` on create
+and update (`null` clears it, absent leaves it unchanged) and returns it as
+`sectionId`, null when loose. The section must belong to the matching view
+(`todos` for a Task, `expenses` for an Expense) of the Event the record
+belongs to, the one whose permission scope it inherits, whether the record
+is created in that Event's context or through the plain routes with
+`permissionScopeId`; a standalone record takes no section. Any other section
+is refused with `sectionId must name a section of this view of the record's
+Event.` (HTTP 400). A section is not restorable content: restoring an older
+revision leaves the record where it is, and moving a record between sections
+writes its `sectionId` (and, for a Task, its `rank`) in one update. The
+To-dos and Expenses projections carry `sections` in order beside `items`.
+Deploy migration 0062 before this API and reapply the runtime role grants,
+which cover the new table.
+
 ## Search
 
 | Method | Path      | Behavior                                   |
@@ -787,17 +823,17 @@ This uses the existing `GET /api/events/:id` route and validates its response.
 It does not load related collections; `getEventDetail(eventId)` provides those
 when a view needs them.
 
-| Method | Path                    | Result                                     |
-| ------ | ----------------------- | ------------------------------------------ |
-| `GET`  | `/events/:id/detail`    | Event plus related typed collections       |
-| `GET`  | `/events/:id/todos`     | Included Tasks ordered by due date or time |
-| `GET`  | `/events/:id/calendar`  | Included scheduled Events                  |
-| `GET`  | `/events/:id/timeline`  | Dated included resources in time order     |
-| `GET`  | `/events/:id/itinerary` | Included scheduled Events                  |
-| `GET`  | `/events/:id/expenses`  | Included Expenses in reverse time order    |
-| `GET`  | `/events/:id/reminders` | Included Reminders ordered by trigger time |
-| `GET`  | `/events/:id/people`    | Included People in name order              |
-| `GET`  | `/events/:id/notes`     | Included Notes, newest edit first (Notes)  |
+| Method | Path                    | Result                                      |
+| ------ | ----------------------- | ------------------------------------------- |
+| `GET`  | `/events/:id/detail`    | Event plus related typed collections        |
+| `GET`  | `/events/:id/todos`     | Included Tasks by due, with `sections`      |
+| `GET`  | `/events/:id/calendar`  | Included scheduled Events                   |
+| `GET`  | `/events/:id/timeline`  | Dated included resources in time order      |
+| `GET`  | `/events/:id/itinerary` | Included scheduled Events                   |
+| `GET`  | `/events/:id/expenses`  | Included Expenses, newest first, `sections` |
+| `GET`  | `/events/:id/reminders` | Included Reminders ordered by trigger time  |
+| `GET`  | `/events/:id/people`    | Included People in name order               |
+| `GET`  | `/events/:id/notes`     | Included Notes, newest edit first (Notes)   |
 
 Every projection is computed from active relationships and canonical rows. It
 does not create projection-owned data. Every included resource is separately

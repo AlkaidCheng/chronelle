@@ -27,6 +27,11 @@ import {
   labelDeleteQuerySchema,
   labelResponseSchema,
   labelUpdateRequestSchema,
+  sectionCreateRequestSchema,
+  sectionListQuerySchema,
+  type SectionResponse,
+  sectionResponseSchema,
+  sectionUpdateRequestSchema,
   nextTaskDueAt,
   nextTaskDueDate,
   objectSearchQuerySchema,
@@ -56,6 +61,7 @@ import {
   workspaceMemberAddRequestSchema,
   workspaceMemberSchema,
 } from "@chronelle/schemas";
+import { byRank, rankBetweenRows } from "../lib/collection-order";
 import { eventPeriod } from "../lib/event-collection";
 import { mergeEventTabs } from "../lib/event-tabs";
 import { compareNames } from "../lib/format";
@@ -75,6 +81,8 @@ interface State {
   relations: RelationResponse[];
   layouts: EventLayoutResponse[];
   labels: LabelResponse[];
+  /** The sections of the sample events' To-dos and Expenses. */
+  sections: SectionResponse[];
   /** The sample account's name, language, zone, clock, week start, rail, and event tabs, as Settings, the rail, and the strips keep them. */
   preferences: Pick<
     Preferences,
@@ -472,6 +480,7 @@ function seed(): State {
   return {
     layouts: [],
     labels: [],
+    sections: [],
     objects: [
       event,
       canonical("event", { displayName: "A quiet studio weekend" }),
@@ -558,6 +567,10 @@ function parseState(raw: string): State {
     .array()
     .max(200)
     .parse("labels" in value ? value.labels : []);
+  const sections = sectionResponseSchema
+    .array()
+    .max(500)
+    .parse("sections" in value ? value.sections : []);
   const preferences = userResponseSchema
     .pick({
       displayName: true,
@@ -597,6 +610,7 @@ function parseState(raw: string): State {
     relations,
     layouts: layouts.sort((a, b) => b.version - a.version),
     labels,
+    sections,
     preferences,
     friends,
     shares,
@@ -1132,6 +1146,135 @@ export class SandboxStore {
     throw new SandboxError(404, "sandbox_route", "Unknown sandbox route.");
   }
 
+  /** The sections of one view of an event in their order. */
+  #sectionsOf(eventId: string, view: string): SectionResponse[] {
+    return this.#state.sections
+      .filter((section) => section.eventId === eventId && section.view === view)
+      .sort((a, b) => byRank(a, b));
+  }
+
+  // A record carries only a section of the matching view of the event it
+  // belongs to; a standalone record takes none.
+  #checkSection(record: Resource): Resource {
+    if (record.objectType !== "task" && record.objectType !== "expense")
+      return record;
+    if (record.sectionId === null) return record;
+    const view = record.objectType === "task" ? "todos" : "expenses";
+    const section = this.#state.sections.find(
+      (candidate) => candidate.id === record.sectionId,
+    );
+    if (
+      section === undefined ||
+      section.view !== view ||
+      section.eventId !== record.permissionScopeId ||
+      record.permissionScopeId === record.id
+    )
+      throw new SandboxError(
+        400,
+        "invalid_request",
+        "sectionId must name a section of this view of the record's Event.",
+      );
+    return record;
+  }
+
+  // Sections: a vocabulary of an event's To-dos or Expenses, placed among
+  // their siblings by rank; deleting one leaves its records loose.
+  #sectionWrite(
+    method: string,
+    collection: string | undefined,
+    id: string | undefined,
+    body: unknown,
+  ): SectionResponse {
+    const timestamp = new Date().toISOString();
+    const rankAt = (
+      eventId: string,
+      view: string,
+      sectionId: string | null,
+      after: string | null | undefined,
+    ) => {
+      const siblings = this.#sectionsOf(eventId, view).filter(
+        (section) => section.id !== sectionId,
+      );
+      if (after === undefined)
+        return rankBetweenRows(siblings.at(-1), undefined);
+      const at =
+        after === null
+          ? -1
+          : siblings.findIndex((section) => section.id === after);
+      if (after !== null && at < 0)
+        throw new SandboxError(
+          400,
+          "invalid_request",
+          "afterSectionId must name another section of this view.",
+        );
+      return rankBetweenRows(siblings[at], siblings[at + 1]);
+    };
+    if (method === "POST" && collection === "events" && id) {
+      const event = this.#object(id);
+      if (event.objectType !== "event")
+        throw new SandboxError(404, "not_found", "The event is unavailable.");
+      const input = sectionCreateRequestSchema.parse(body);
+      const section = sectionResponseSchema.parse({
+        id: crypto.randomUUID(),
+        workspaceId: sandboxWorkspaceId,
+        eventId: id,
+        view: input.view,
+        name: input.name,
+        description: input.description ?? null,
+        rank: rankAt(id, input.view, null, input.afterSectionId),
+        createdAt: timestamp,
+        updatedAt: timestamp,
+      });
+      this.#commit({
+        ...this.#state,
+        sections: [...this.#state.sections, section],
+      });
+      return section;
+    }
+    const current = this.#state.sections.find((section) => section.id === id);
+    if (current === undefined)
+      throw new SandboxError(404, "not_found", "The section is unavailable.");
+    if (method === "PATCH") {
+      const input = sectionUpdateRequestSchema.parse(body);
+      const section = {
+        ...current,
+        ...(input.name === undefined ? {} : { name: input.name }),
+        ...(input.description === undefined
+          ? {}
+          : { description: input.description }),
+        ...(input.afterSectionId === undefined
+          ? {}
+          : {
+              rank: rankAt(
+                current.eventId,
+                current.view,
+                current.id,
+                input.afterSectionId,
+              ),
+            }),
+        updatedAt: timestamp,
+      };
+      this.#commit({
+        ...this.#state,
+        sections: this.#state.sections.map((item) =>
+          item.id === id ? section : item,
+        ),
+      });
+      return section;
+    }
+    this.#commit({
+      ...this.#state,
+      sections: this.#state.sections.filter((item) => item.id !== id),
+      objects: this.#state.objects.map((object) =>
+        (object.objectType === "task" || object.objectType === "expense") &&
+        object.sectionId === id
+          ? { ...object, sectionId: null }
+          : object,
+      ),
+    });
+    return current;
+  }
+
   // Labels: unique names per workspace, versioned renames and deletes, and
   // every task keeps only labels that exist.
   #labelWrite(
@@ -1308,8 +1451,10 @@ export class SandboxStore {
   }
 
   // A task's assignee is a live person of the workspace and its labels are
-  // the workspace's labels only, in name order.
+  // the workspace's labels only, in name order; a task or an expense sits
+  // in a section of its event's view or in none.
   #checkTask(task: Resource): Resource {
+    this.#checkSection(task);
     if (task.objectType !== "task") return task;
     // The duration and repeat rules the API enforces; the schema already
     // bounds the values.
@@ -1926,6 +2071,12 @@ export class SandboxStore {
           actions: role === "owner" ? ["view", "edit"] : ["view"],
           source: { kind: "own" },
         };
+      if (operation === "sections") {
+        const { view } = sectionListQuerySchema.parse(
+          Object.fromEntries(url.searchParams),
+        );
+        return { items: this.#sectionsOf(id, view) };
+      }
       if (operation === "documents")
         return { items: [], lockedAttachmentCount: 0 };
       if (operation === "shares")
@@ -2047,7 +2198,15 @@ export class SandboxStore {
         people: persons,
       };
       const projection = projections[operation];
-      if (projection) return { sourceEventId: id, items: projection };
+      if (projection)
+        return {
+          sourceEventId: id,
+          items: projection,
+          // To-dos and Expenses carry their sections in order.
+          ...(operation === "todos" || operation === "expenses"
+            ? { sections: this.#sectionsOf(id, operation) }
+            : {}),
+        };
       if (operation === "timeline")
         return {
           sourceEventId: id,
@@ -2126,6 +2285,16 @@ export class SandboxStore {
       (method === "POST" || method === "PATCH" || method === "DELETE")
     )
       return this.#labelWrite(method, id, url, body);
+    if (
+      (method === "POST" &&
+        collection === "events" &&
+        operation === "sections") ||
+      ((method === "PATCH" || method === "DELETE") &&
+        collection === "sections" &&
+        id &&
+        !operation)
+    )
+      return this.#sectionWrite(method, collection, id, body);
     if (collection === "account" && !id && method === "PATCH") {
       // The name, the discovery switches, and the Welcome step's
       // completion; the username was chosen at sign-up.

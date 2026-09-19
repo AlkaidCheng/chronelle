@@ -10,6 +10,7 @@
   "newReminder": "New reminder",
   "reminderName": "Reminder name",
   "addReminder": "Add reminder",
+  "taskToSection": "Add a task to {section}",
   "taskDetails": "Add task with details",
   "reminderDetails": "Add reminder with details"
 }

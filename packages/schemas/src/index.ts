@@ -58,6 +58,7 @@ export * from "./friends.js";
 export * from "./note-list.js";
 export * from "./person-list.js";
 export * from "./labels.js";
+export * from "./sections.js";
 export * from "./relation-list.js";
 export {
   objectSearchQuerySchema,

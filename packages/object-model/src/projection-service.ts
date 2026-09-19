@@ -16,6 +16,10 @@ import {
 } from "./note-list.js";
 import { EventPlanningObjectService } from "./object-service.js";
 import { comparePersonNames } from "./person-list.js";
+import {
+  PostgresSectionRepository,
+  type SectionReadRepository,
+} from "./sections.js";
 import type {
   DocumentResource,
   EventDetailProjection,
@@ -320,18 +324,22 @@ export class EventPlanningProjectionService {
   readonly #calendarReads: CalendarReadRepository;
   readonly #projectionReads: ProjectionReadRepository;
   readonly #noteReads: NoteReadRepository;
+  readonly #sectionReads: SectionReadRepository;
 
   constructor(
     database: Database,
     calendarReads?: CalendarReadRepository,
     projectionReads?: ProjectionReadRepository,
     noteReads?: NoteReadRepository,
+    sectionReads?: SectionReadRepository,
   ) {
     this.#calendarReads =
       calendarReads ?? new PostgresCalendarReadRepository(database);
     this.#projectionReads =
       projectionReads ?? new PostgresProjectionReadRepository(database);
     this.#noteReads = noteReads ?? new PostgresNoteReadRepository(database);
+    this.#sectionReads =
+      sectionReads ?? new PostgresSectionRepository(database);
   }
 
   async getDetail(
@@ -373,12 +381,17 @@ export class EventPlanningProjectionService {
     const resources = await this.#getProjectionResources(principal, eventId, [
       "task",
     ]);
+    const sections = await this.#sectionReads.listSections(
+      principal,
+      eventId,
+      "todos",
+    );
     // A date-only due sorts at the start of its day (UTC), before any
     // timed task that day, and undated tasks come last.
     const items = resources.sort((first, second) =>
       compareDates(dueInstant(first), dueInstant(second), first.id, second.id),
     );
-    return { sourceEventId: eventId, items };
+    return { sourceEventId: eventId, items, sections };
   }
 
   async getCalendar(
@@ -409,10 +422,15 @@ export class EventPlanningProjectionService {
     const resources = await this.#getProjectionResources(principal, eventId, [
       "expense",
     ]);
+    const sections = await this.#sectionReads.listSections(
+      principal,
+      eventId,
+      "expenses",
+    );
     const items = resources.sort((first, second) =>
       compareDates(second.occurredAt, first.occurredAt, second.id, first.id),
     );
-    return { sourceEventId: eventId, items };
+    return { sourceEventId: eventId, items, sections };
   }
 
   async getReminders(
