@@ -147,11 +147,36 @@ describe.each(backends())("%s account store", (name, identity, friendStore) => {
     expect(await identity().usernameAvailable("1abc")).toBe(false);
   });
 
-  it("sets the discovery switches and keeps the username as chosen", async () => {
+  it("sets the name and the discovery switches, completes the Welcome step once, and keeps the username as chosen", async () => {
     const ana = await account(`${name}-acct-ana`, undefined, `${name}-Ana`);
     expect(ana.username).toBe(`${name}-Ana`);
     expect(ana.findByName).toBe(true);
     expect(ana.findByEmail).toBe(true);
+    // An identity that is not a password account brings its name.
+    expect(ana.onboardedAt).not.toBeNull();
+    // A password account has the Welcome step ahead until it says so;
+    // the moment then stays.
+    const pw = await identity().signIn(
+      {
+        provider: "password",
+        subject: `${name}-pw@example.test`,
+        email: `${name}-pw@example.test`,
+        displayName: `${name}-pw`,
+        username: `${name}-pw`,
+      },
+      "00000000-0000-7000-8000-000000000042",
+    );
+    expect(pw.user.onboardedAt).toBeNull();
+    const named = await identity().updateAccount(pw.user.id, {
+      displayName: `  ${name} Person  `,
+      onboarded: true,
+    });
+    expect(named.displayName).toBe(`${name} Person`);
+    expect(named.onboardedAt).not.toBeNull();
+    const once = await identity().updateAccount(pw.user.id, {
+      onboarded: true,
+    });
+    expect(once.onboardedAt?.getTime()).toBe(named.onboardedAt?.getTime());
     const hidden = await identity().updateAccount(ana.id, {
       findByEmail: false,
     });

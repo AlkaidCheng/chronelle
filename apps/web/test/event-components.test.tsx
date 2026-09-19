@@ -903,8 +903,10 @@ describe("insertable event components", () => {
     const monthCells = monthDays(new Date());
     const cells = todos.getAllByRole("cell");
     expect(cells).toHaveLength(monthCells.length);
+    // The last cell ends the week of the month's last day; the sample task
+    // two weeks out lands on it on some days, so only the day is checked.
     expect(cells.at(-1)).toHaveAccessibleName(
-      fullDay(monthCells.at(-1) as DayKey),
+      new RegExp(`^${fullDay(monthCells.at(-1) as DayKey)}(,|$)`),
     );
     await waitFor(async () => expect(await version()).toBe(3));
 

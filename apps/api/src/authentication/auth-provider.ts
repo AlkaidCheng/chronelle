@@ -10,3 +10,6 @@ export interface AuthIdentity {
 export interface AuthProvider {
   authenticate(accessToken: string): Promise<AuthIdentity | null>;
 }
+
+/** The identity provider of email and password accounts. */
+export const passwordIdentityProvider = "password";

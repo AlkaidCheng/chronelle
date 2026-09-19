@@ -17,6 +17,7 @@ const session = {
     username: "planner",
     findByName: true,
     findByEmail: true,
+    onboardedAt: "2026-09-01T09:00:00.000Z",
     locale: null,
     timeZone: null,
     hourCycle: null,

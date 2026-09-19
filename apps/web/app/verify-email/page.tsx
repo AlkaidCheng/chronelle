@@ -6,7 +6,6 @@ import { useTranslations } from "next-intl";
 import { type FormEvent, Suspense, useState } from "react";
 
 import { AccountPage } from "../../components/account-page";
-import { AppearanceSettings } from "../../components/appearance-settings";
 import { ErrorNotice } from "../../components/feedback";
 import {
   useRedirectWhenSignedIn,
@@ -15,13 +14,18 @@ import {
 } from "../../lib/account-queries";
 import { useAuthSession } from "../../lib/auth-session";
 
+/**
+ * The code step: the six digits sent to the address the link carried, or
+ * to the address typed here when the screen was opened by hand.
+ */
 function VerifyEmailForm() {
   const t = useTranslations("auth");
   const auth = useAuthSession();
   const parameters = useSearchParams();
   const verify = useVerifyEmail();
   const resend = useResendVerification();
-  const [email, setEmail] = useState(parameters.get("email") ?? "");
+  const known = parameters.get("email");
+  const [email, setEmail] = useState(known ?? "");
   const [code, setCode] = useState("");
   useRedirectWhenSignedIn();
 
@@ -32,28 +36,31 @@ function VerifyEmailForm() {
 
   return (
     <AccountPage>
-      <form className="sign-in-form" onSubmit={handleSubmit}>
-        <AppearanceSettings />
-        <div>
-          <p className="eyebrow">{t("verify.eyebrow")}</p>
-          <h2>{t("verify.title")}</h2>
-          <p className="form-intro">{t("verify.intro")}</p>
-        </div>
-        <label className="field">
-          <span>{t("email")}</span>
-          <input
-            autoComplete="email"
-            disabled={!auth.isHydrated}
-            onChange={(event) => setEmail(event.target.value)}
-            required
-            type="email"
-            value={email}
-          />
-        </label>
+      <form className="account-card" onSubmit={handleSubmit}>
+        <h1 className="account-title">{t("verify.title")}</h1>
+        <p className="account-intro">
+          {known === null
+            ? t("verify.introNoEmail")
+            : t("verify.intro", { email: known })}
+        </p>
+        {known === null ? (
+          <label className="field">
+            <span>{t("email")}</span>
+            <input
+              autoComplete="email"
+              disabled={!auth.isHydrated}
+              onChange={(event) => setEmail(event.target.value)}
+              required
+              type="email"
+              value={email}
+            />
+          </label>
+        ) : null}
         <label className="field">
           <span>{t("verify.code")}</span>
           <input
             autoComplete="one-time-code"
+            className="account-code-input"
             disabled={!auth.isHydrated}
             inputMode="numeric"
             maxLength={6}
@@ -66,7 +73,7 @@ function VerifyEmailForm() {
         {verify.isError ? <ErrorNotice error={verify.error} /> : null}
         {resend.isError ? <ErrorNotice error={resend.error} /> : null}
         {resend.isSuccess ? (
-          <p className="form-note" role="status">
+          <p className="account-hint" role="status">
             {t("verify.resent")}
           </p>
         ) : null}
@@ -77,16 +84,20 @@ function VerifyEmailForm() {
         >
           {verify.isPending ? t("verify.pending") : t("verify.submit")}
         </button>
-        <button
-          className="button button-secondary button-wide"
-          disabled={!auth.isHydrated || resend.isPending || email.length === 0}
-          onClick={() => resend.mutate({ email })}
-          type="button"
-        >
-          {t("verify.resend")}
-        </button>
-        <p className="form-links">
-          <Link href="/sign-in">{t("backToSignIn")}</Link>
+        <p className="account-links">
+          <button
+            className="account-link"
+            disabled={
+              !auth.isHydrated || resend.isPending || email.length === 0
+            }
+            onClick={() => resend.mutate({ email })}
+            type="button"
+          >
+            {t("verify.resend")}
+          </button>
+          <Link className="account-link" href="/sign-in">
+            {t("backToSignIn")}
+          </Link>
         </p>
       </form>
     </AccountPage>

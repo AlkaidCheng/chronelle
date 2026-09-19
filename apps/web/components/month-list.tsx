@@ -227,7 +227,13 @@ export function MonthList({
       const target = container.querySelector<HTMLElement>(
         `[data-month="${month}"]`,
       );
-      if (target) container.scrollTop = target.offsetTop;
+      if (target) {
+        container.scrollTop = target.offsetTop;
+        // The list itself may sit below the fold of a scrolling dialog
+        // (the shortcuts above it vary with the weekday); the month shown
+        // at the top of the list is brought into view as well.
+        container.scrollIntoView({ block: "nearest" });
+      }
     }
     const day = focusRequested.current;
     if (day !== null) {

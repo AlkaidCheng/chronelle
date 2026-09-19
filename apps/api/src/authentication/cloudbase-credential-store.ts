@@ -99,9 +99,9 @@ export class CloudBaseCredentialStore implements CredentialStore {
     return credentialRow(record(created, "credential"));
   }
 
-  async findAccount(email: string): Promise<PasswordAccount | null> {
+  async findAccount(login: string): Promise<PasswordAccount | null> {
     const found = await this.#call("chronelle_password_credential_lookup", {
-      email,
+      login,
     });
     if (found === null || found === undefined) return null;
     const row = record(found, "account");

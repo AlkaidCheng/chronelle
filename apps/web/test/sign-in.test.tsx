@@ -62,7 +62,7 @@ it("enables the password sign-in only after hydration and submits the credential
   const { container, view, hydrate } = await renderHydrated(element);
   let root: Root | undefined;
   try {
-    expect(view.getByLabelText("Email")).toBeDisabled();
+    expect(view.getByLabelText("Username or email address")).toBeDisabled();
     expect(view.getByLabelText("Password")).toBeDisabled();
     expect(view.getByRole("button", { name: "Sign in" })).toBeDisabled();
     root = await hydrate();
@@ -71,14 +71,16 @@ it("enables the password sign-in only after hydration and submits the credential
     await act(async () => {
       await new Promise((resolve) => setTimeout(resolve, 0));
     });
-    expect(view.getByLabelText("Email")).toBeEnabled();
+    expect(view.getByLabelText("Username or email address")).toBeEnabled();
     expect(
       view.getByRole("link", { name: "Create an account" }),
     ).toHaveAttribute("href", "/sign-up");
     expect(
-      view.getByRole("link", { name: "Forgot your password?" }),
+      view.getByRole("link", { name: "Forgot password?" }),
     ).toHaveAttribute("href", "/reset-password");
-    // The compact language menu sits at the bottom of the form column.
+    // The language and theme menus sit in the footer under the card.
+    const theme = view.getByRole("combobox", { name: "Theme" });
+    expect(theme).toHaveValue("system");
     const language = view.getByRole("combobox", { name: "Language" });
     expect(language).toHaveValue("system");
     expect(
@@ -92,12 +94,15 @@ it("enables the password sign-in only after hydration and submits the credential
       "\u7e41\u9ad4\u4e2d\u6587",
     ]);
     const user = userEvent.setup();
-    await user.type(view.getByLabelText("Email"), "planner@example.test");
+    await user.type(
+      view.getByLabelText("Username or email address"),
+      "planner",
+    );
     await user.type(view.getByLabelText("Password"), "correct horse battery");
     await user.click(view.getByRole("button", { name: "Sign in" }));
     expect(passwordSignIn.mutate).toHaveBeenCalledOnce();
     expect(passwordSignIn.mutate.mock.calls[0]?.[0]).toEqual({
-      email: "planner@example.test",
+      login: "planner",
       password: "correct horse battery",
     });
   } finally {

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useMutation } from "@tanstack/react-query";
+import { type FormEvent, useState } from "react";
 
 import { ErrorNotice } from "../../components/feedback";
 import { useApiClient } from "../../lib/api-context";
@@ -12,11 +13,11 @@ import { useUpdateAccount } from "../../lib/friend-queries";
 import { useSessionQuery } from "../../lib/queries";
 
 /**
- * The account: the name, username, and email as the account holds them
- * (the API offers no change to any of them; the username was chosen at
- * sign-up), who can find the account (by username always; by name and by
- * email as switches), the password screen, and a way to end every session
- * of the account, this one included.
+ * The account: the name (changeable here), the username and email as the
+ * account holds them (the username was chosen at sign-up), who can find
+ * the account (by username always; by name and by email as switches), the
+ * password screen, and a way to end every session of the account, this one
+ * included.
  */
 export function AccountSettings() {
   const t = useTranslations("settings");
@@ -33,13 +34,44 @@ export function AccountSettings() {
     },
   });
   const user = session.data?.user;
+  // The name as typed; null until edited, so a server change shows through.
+  const [draft, setDraft] = useState<string | null>(null);
+  const name = draft ?? user?.displayName ?? "";
+  const nameChanged =
+    draft !== null && draft.trim() !== "" && draft.trim() !== user?.displayName;
+
+  function saveName(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!nameChanged || draft === null) return;
+    account.mutate(
+      { displayName: draft.trim() },
+      { onSuccess: () => setDraft(null) },
+    );
+  }
+
   return (
     <>
+      <form className="settings-name" onSubmit={saveName}>
+        <label className="field settings-name-field">
+          <span>{t("displayName")}</span>
+          <input
+            autoComplete="name"
+            disabled={user === undefined || account.isPending}
+            maxLength={120}
+            onChange={(event) => setDraft(event.target.value)}
+            required
+            value={name}
+          />
+        </label>
+        <button
+          className="button button-secondary"
+          disabled={!nameChanged || account.isPending}
+          type="submit"
+        >
+          {t("saveName")}
+        </button>
+      </form>
       <dl className="settings-facts">
-        <div>
-          <dt>{t("displayName")}</dt>
-          <dd>{user?.displayName ?? ""}</dd>
-        </div>
         <div>
           <dt>{t("username")}</dt>
           <dd>{user === undefined ? "" : `@${user.username}`}</dd>

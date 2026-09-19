@@ -1,23 +1,25 @@
 import { randomUUID } from "node:crypto";
-import { expect, test } from "./fixtures";
+import { expect, type Page, test } from "./fixtures";
 import { exerciseAppearance } from "./helpers/appearance";
-import {
-  exerciseDisplaySettings,
-  openDisplaySettings,
-} from "./helpers/display-settings";
+import { exerciseThemePanel } from "./helpers/display-settings";
+import { openThemePanel } from "./helpers/quiet-chrome";
+
+const signIn = async (page: Page, name: string) => {
+  await page.goto("/sign-in/development");
+  await page.getByLabel("Name", { exact: true }).fill(name);
+  await page.getByLabel("Email").fill(`${randomUUID()}@example.test`);
+  await page.getByRole("button", { name: "Continue", exact: true }).click();
+  await expect(page).toHaveURL(/\/events$/u);
+};
 
 test("customizes palettes, density, and motion independently @webkit-desktop @webkit-mobile", async ({
   page,
 }, testInfo) => {
-  await page.goto("/sign-in/development");
-  await expect(
-    page.getByRole("button", { name: "Continue", exact: true }),
-  ).toBeEnabled();
-  await page.getByLabel("Name", { exact: true }).fill("Retained sign-in draft");
-  await exerciseDisplaySettings(page, testInfo);
+  await signIn(page, "Appearance planner");
+  await exerciseThemePanel(page, testInfo);
 });
 
-test("preserves an underlying form and applies other-tab palette changes with settings closed @webkit-desktop @webkit-mobile", async ({
+test("preserves an underlying form and applies another tab's palette and density @webkit-desktop @webkit-mobile", async ({
   page,
   context,
 }) => {
@@ -26,19 +28,16 @@ test("preserves an underlying form and applies other-tab palette changes with se
     page.getByRole("button", { name: "Continue", exact: true }),
   ).toBeEnabled();
   await page.getByLabel("Name", { exact: true }).fill("Retained sign-in draft");
-  const dialog = await openDisplaySettings(page);
-  await dialog.getByRole("radio", { name: /Celadon/ }).check();
-  await page.keyboard.press("Escape");
+  const other = await context.newPage();
+  await signIn(other, "Appearance planner");
+  const panel = await openThemePanel(other);
+  await panel.getByRole("radio", { name: /^Compact/ }).check();
+  await panel.getByRole("radio", { name: /Modern Neutral/ }).check();
+  await expect(page.locator("html")).toHaveAttribute("data-palette", "neutral");
+  await expect(page.locator("html")).toHaveAttribute("data-density", "compact");
   await expect(page.getByLabel("Name", { exact: true })).toHaveValue(
     "Retained sign-in draft",
   );
-  const other = await context.newPage();
-  await other.goto("/sign-in/development");
-  const settings = await openDisplaySettings(other);
-  await settings.getByRole("radio", { name: /^Compact/ }).check();
-  await settings.getByRole("radio", { name: /Modern Neutral/ }).check();
-  await expect(page.locator("html")).toHaveAttribute("data-palette", "neutral");
-  await expect(page.locator("html")).toHaveAttribute("data-density", "compact");
   const canvas = await page
     .locator("html")
     .evaluate((element) => getComputedStyle(element).backgroundColor);
@@ -98,16 +97,15 @@ test("applies a saved appearance before application JavaScript loads @webkit-des
   await page.route(/\/_next\/static\/.*\.js(?:\?|$)/, (route) => route.abort());
   await page.goto("/sign-in/development");
   await expect(page.locator("html")).toHaveCSS("color-scheme", "dark");
-  await expect(
-    page.getByRole("button", { name: "Customize appearance" }),
-  ).toBeDisabled();
+  // The footer's theme menu is in the server markup, before any script.
+  await expect(page.getByRole("combobox", { name: "Theme" })).toBeVisible();
   await expect(page.locator("html")).toHaveAttribute("data-appearance", "dark");
   await expect(page.locator("html")).toHaveAttribute("data-palette", "celadon");
   await expect(page.locator("html")).toHaveAttribute("data-density", "compact");
   await expect(page.locator("html")).toHaveAttribute("data-motion", "reduced");
 });
 
-test("supports keyboard selection and synchronizes appearance across tabs @webkit-desktop @webkit-mobile", async ({
+test("synchronizes the theme menu across tabs @webkit-desktop @webkit-mobile", async ({
   page,
   context,
 }) => {
@@ -120,23 +118,15 @@ test("supports keyboard selection and synchronizes appearance across tabs @webki
   await expect(
     other.getByRole("button", { name: "Continue", exact: true }),
   ).toBeEnabled();
-  await page.getByRole("radio", { name: "System", exact: true }).focus();
-  await page.keyboard.press("ArrowRight");
-  await expect(
-    page.getByRole("radio", { name: "Light", exact: true }),
-  ).toBeChecked();
-  await expect(
-    other.getByRole("radio", { name: "Light", exact: true }),
-  ).toBeChecked();
-  await page.keyboard.press("ArrowRight");
-  await expect(
-    page.getByRole("radio", { name: "Dark", exact: true }),
-  ).toBeChecked();
+  const theme = page.getByRole("combobox", { name: "Theme" });
+  await theme.selectOption("light");
+  await expect(other.getByRole("combobox", { name: "Theme" })).toHaveValue(
+    "light",
+  );
+  await theme.selectOption("dark");
   await expect(other.locator("html")).toHaveCSS("color-scheme", "dark");
-  await other.getByRole("radio", { name: "System", exact: true }).check();
-  await expect(
-    page.getByRole("radio", { name: "System", exact: true }),
-  ).toBeChecked();
+  await other.getByRole("combobox", { name: "Theme" }).selectOption("system");
+  await expect(theme).toHaveValue("system");
   await other.close();
 });
 
@@ -157,7 +147,7 @@ test("falls back from invalid storage and allows a page-only override when write
     page.getByRole("button", { name: "Continue", exact: true }),
   ).toBeEnabled();
   await expect(page.locator("html")).toHaveCSS("color-scheme", "light");
-  await page.getByRole("radio", { name: "Dark", exact: true }).check();
+  await page.getByRole("combobox", { name: "Theme" }).selectOption("dark");
   await expect(page.locator("html")).toHaveCSS("color-scheme", "dark");
   await page.reload();
   await expect(page.locator("html")).toHaveCSS("color-scheme", "light");

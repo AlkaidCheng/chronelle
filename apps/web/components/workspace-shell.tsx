@@ -38,6 +38,12 @@ export function WorkspaceShell({ children }: { readonly children: ReactNode }) {
     }
   }, [credential, isHydrated, router]);
 
+  // A new account completes the Welcome step before anything else.
+  const onboarded = session.data?.user.onboardedAt;
+  useEffect(() => {
+    if (onboarded === null) router.replace("/welcome");
+  }, [onboarded, router]);
+
   // A session found through the cookie has not passed through sign-in, so
   // the browser's language and the account's are reconciled here.
   const accountLocale = session.data?.user.locale;
@@ -64,7 +70,12 @@ export function WorkspaceShell({ children }: { readonly children: ReactNode }) {
     }
   }, [credential, router, session.error, signOut, switchWorkspace]);
 
-  if (!isHydrated || credential === null || session.isPending) {
+  if (
+    !isHydrated ||
+    credential === null ||
+    session.isPending ||
+    onboarded === null
+  ) {
     return (
       <main className="centered-page">
         <LoadingState label={t("openingWorkspace")} />

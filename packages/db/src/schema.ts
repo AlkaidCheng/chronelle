@@ -103,6 +103,8 @@ export const users = pgTable("users", {
     .$defaultFn(() => ""),
   findByName: boolean("find_by_name").notNull().default(true),
   findByEmail: boolean("find_by_email").notNull().default(true),
+  /** When the Welcome step was completed; null while it is due. */
+  onboardedAt: timestamp("onboarded_at", { mode: "date", withTimezone: true }),
   locale: text("locale"),
   timeZone: text("time_zone"),
   hourCycle: text("hour_cycle"),

@@ -50,21 +50,29 @@ write through one merging function, `chronelle_user_preferences_update`
 The user also carries `username`, `findByName`, and `findByEmail` (true
 until switched off): the handle every account has, 3 to 30 letters, digits,
 hyphens or underscores starting with a letter and unique without regard to
-case, and who may find the account (by username always). Sign-up may choose
-the username (`POST /api/auth/sign-up` takes `username?`; 409
+case, and who may find the account (by username always). Password sign-up
+chooses the username (`POST /api/auth/sign-up` takes `username`; 409
 `username_taken` when another account holds it in any case, 400 for the
-wrong shape); an account created without choosing, by sign-up or by any
-sign-in that makes one, gets one from its display name (its letters and
-digits, lowercased, hyphens between, `user` when the name gives nothing),
-numbered from 2 when taken. `GET /api/auth/username-available?username=`
-answers `{ available }` without a session, false as well for the wrong
-shape, capped per address like a search. The username is not changed
-afterwards: `PATCH /api/account` takes any subset of `{ findByName,
-findByEmail }` and refuses a `username` key (400 `invalid_request`); a key
-present replaces the stored value, and the response is the user. Both
-backends write through `chronelle_identity_sign_in` and
-`chronelle_account_update` (migration 0055), and every insert into `users`
-gets a username from the name when it brings none.
+wrong shape); an account created by any other sign-in gets one from its
+display name (its letters and digits, lowercased, hyphens between, `user`
+when the name gives nothing), numbered from 2 when taken.
+`GET /api/auth/username-available?username=` answers `{ available }`
+without a session, false as well for the wrong shape, capped per address
+like a search. The username is not changed afterwards.
+
+The user also carries `onboardedAt`: null while the Welcome step is due,
+which a password account has ahead of it after its email is confirmed (it
+is created named as its username); an account from any other sign-in, and
+every account that existed before the step, counts as completed.
+`PATCH /api/account` takes any subset of `{ displayName, findByName,
+findByEmail, onboarded }` (`displayName` 1 to 120 characters, trimmed;
+`onboarded` only `true`, which sets `onboardedAt` once and leaves an
+earlier moment alone) and refuses a `username` key (400
+`invalid_request`); a key present replaces the stored value, and the
+response is the user. Both backends write through
+`chronelle_identity_sign_in` and `chronelle_account_update` (migrations
+0055 and 0056), and every insert into `users` gets a username from the
+name when it brings none.
 
 `GET /api/users/search?q=` finds people for the signed-in account:
 `@name` matches usernames that start so; an exact address matches the one
@@ -104,10 +112,12 @@ is forwarded unchanged; the browser client does not keep the token.
 
 ### Email and password accounts
 
-`POST /api/auth/sign-up` with `{ displayName, email, password, locale?, invitationToken? }`
-(password 10 to 256 characters; `locale` the language of the sign-up screen,
-kept on the account; `invitationToken` the token a friend invitation's
-sign-up link carried, see Friends) records an unverified account and emails
+`POST /api/auth/sign-up` with `{ email, password, username, displayName?, locale?, invitationToken? }`
+(password 10 to 256 characters; `displayName` optional, the account being
+named as its username until the Welcome step gives the name; `locale` the
+language of the sign-up screen, kept on the account; `invitationToken` the
+token a friend invitation's sign-up link carried, see Friends) records an
+unverified account and emails
 a six-digit code in the account's language (English when none); the response
 is 202 `{ accepted: true }`, or 409 `email_taken`. The friend invitations
 waiting for the address become requests on the new account whether or not a
@@ -121,9 +131,9 @@ issued at most once a minute and five times an hour per account and
 purpose; a request inside those limits is accepted but sends nothing, so
 the answer never reveals whether the address has an account.
 
-`POST /api/auth/sign-in` with `{ email, password }` returns the sign-in
-response, 401 `invalid_credentials` for an unknown address or wrong
-password, 403 `email_unverified` for an account whose address is not yet
+`POST /api/auth/sign-in` with `{ login, password }`, `login` the email of
+the account or its username in any case, returns the sign-in response, 401
+`invalid_credentials` for an unknown login or wrong password, 403 `email_unverified` for an account whose address is not yet
 verified (a fresh code is emailed), or 429 `credential_locked` after ten
 wrong passwords, for fifteen minutes.
 

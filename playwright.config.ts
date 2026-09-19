@@ -63,6 +63,11 @@ export default defineConfig({
         API_PORT: apiPort,
         DATABASE_URL: databaseUrl,
         DOCUMENT_TRANSFER_TTL_SECONDS: "60",
+        // The account journeys read the emailed codes from this mailbox
+        // file (`apps/web/e2e/helpers/mailbox.ts`); the path is relative to
+        // the API package, where the script runs.
+        EMAIL_FILE_PATH: ".chronelle/e2e-emails.jsonl",
+        EMAIL_PROVIDER: "file",
         ENABLE_DEVELOPMENT_AUTH: "true",
         LOCAL_STORAGE_ROOT: ".chronelle/e2e-storage",
       },

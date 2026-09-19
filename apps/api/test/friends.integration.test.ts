@@ -420,6 +420,7 @@ describe("friends", () => {
       payload: {
         displayName: "Dan",
         email: "dan@example.test",
+        username: "dan",
         password: "correct horse battery",
         invitationToken: link?.[1],
       },

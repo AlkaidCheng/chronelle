@@ -104,33 +104,45 @@ async function renderScreen(screenElement: () => React.ReactElement) {
   };
 }
 
-it("sign-up submits the account and moves to the code screen for that email", async () => {
+it("sign-up asks for the email, the password, and a username it checks as typed, then moves to the code screen", async () => {
   mutations.signUp.mutate.mockImplementation(
     (_input: unknown, options?: { onSuccess?: () => void }) =>
       options?.onSuccess?.(),
   );
   const { user } = await renderScreen(() => <SignUpPage />);
-  await user.type(screen.getByLabelText("Name"), "Mira Planner");
-  // The username follows the name until edited, and says when it is free.
+  // No name here: the Welcome step asks for it after the code.
+  expect(screen.queryByLabelText("Name")).not.toBeInTheDocument();
   const username = screen.getByRole("textbox", { name: "Username" });
-  expect(username).toHaveValue("mira-planner");
-  await waitFor(() =>
-    expect(screen.getByRole("status")).toHaveTextContent("Available"),
-  );
-  await user.clear(username);
   await user.type(username, "taken_one");
   await waitFor(() =>
-    expect(screen.getByRole("status")).toHaveTextContent("Taken"),
+    expect(screen.getByRole("status")).toHaveTextContent(
+      "taken_one is not available.",
+    ),
+  );
+  await user.clear(username);
+  await user.type(username, "1bad");
+  await waitFor(() =>
+    expect(screen.getByRole("status")).toHaveTextContent(
+      "This username is not valid.",
+    ),
   );
   await user.clear(username);
   await user.type(username, "mira_p");
-  await user.type(screen.getByLabelText("Name"), "!");
-  expect(username).toHaveValue("mira_p");
+  await waitFor(() =>
+    expect(screen.getByRole("status")).toHaveTextContent(
+      "mira_p is available.",
+    ),
+  );
+  expect(
+    screen.getByText(/Usernames may contain letters, digits, hyphens/),
+  ).toBeVisible();
   await user.type(screen.getByLabelText("Email"), "p@example.test");
   await user.type(screen.getByLabelText("Password"), "correct horse battery");
+  expect(
+    screen.getByText("Passwords must be at least 10 characters long."),
+  ).toBeVisible();
   await user.click(screen.getByRole("button", { name: "Create account" }));
   expect(mutations.signUp.mutate.mock.calls[0]?.[0]).toEqual({
-    displayName: "Mira Planner!",
     email: "p@example.test",
     password: "correct horse battery",
     username: "mira_p",
@@ -138,11 +150,18 @@ it("sign-up submits the account and moves to the code screen for that email", as
   expect(router.push).toHaveBeenCalledWith(
     "/verify-email?email=p%40example.test",
   );
+  expect(screen.getByRole("link", { name: "Sign in" })).toHaveAttribute(
+    "href",
+    "/sign-in",
+  );
 });
 
-it("verify-email prefills the address, submits the code, and can request another", async () => {
+it("verify-email names the address from the link, submits the code, and can request another", async () => {
   const { user } = await renderScreen(() => <VerifyEmailPage />);
-  expect(screen.getByLabelText("Email")).toHaveValue("p@example.test");
+  expect(screen.queryByLabelText("Email")).not.toBeInTheDocument();
+  expect(
+    screen.getByText(/Enter the six-digit code sent to p@example\.test\./),
+  ).toBeVisible();
   await user.type(screen.getByLabelText("Verification code"), "123456");
   await user.click(screen.getByRole("button", { name: "Confirm" }));
   expect(mutations.verify.mutate.mock.calls[0]?.[0]).toEqual({
@@ -168,7 +187,9 @@ it("reset-password asks for the email first, then the code and new password", as
     email: "p@example.test",
   });
   rerender();
-  expect(screen.getByLabelText("Email")).toBeDisabled();
+  // The code step names the address instead of asking for it again.
+  expect(screen.queryByLabelText("Email")).not.toBeInTheDocument();
+  expect(screen.getByText(/code sent to p@example\.test/)).toBeVisible();
   await user.type(screen.getByLabelText("Reset code"), "654321");
   await user.type(
     screen.getByLabelText("New password"),

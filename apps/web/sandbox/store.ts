@@ -71,9 +71,10 @@ interface State {
   relations: RelationResponse[];
   layouts: EventLayoutResponse[];
   labels: LabelResponse[];
-  /** The sample account's language, zone, clock, week start, rail, and event tabs, as Settings, the rail, and the strips keep them. */
+  /** The sample account's name, language, zone, clock, week start, rail, and event tabs, as Settings, the rail, and the strips keep them. */
   preferences: Pick<
     Preferences,
+    | "displayName"
     | "locale"
     | "timeZone"
     | "hourCycle"
@@ -83,6 +84,7 @@ interface State {
     | "username"
     | "findByName"
     | "findByEmail"
+    | "onboardedAt"
   >;
   /** The sample account's friends, requests, and sent invitations, as the Friends page keeps them. */
   friends: FriendsResponse;
@@ -143,6 +145,7 @@ const defaultMember: WorkspaceMember = {
 };
 
 const defaultPreferences: State["preferences"] = {
+  displayName: "Sample planner",
   locale: null,
   timeZone: null,
   hourCycle: null,
@@ -152,6 +155,7 @@ const defaultPreferences: State["preferences"] = {
   username: "planner",
   findByName: true,
   findByEmail: true,
+  onboardedAt: "2026-09-01T09:00:00.000Z",
 };
 
 /**
@@ -502,6 +506,7 @@ function parseState(raw: string): State {
     .parse("labels" in value ? value.labels : []);
   const preferences = userResponseSchema
     .pick({
+      displayName: true,
       locale: true,
       timeZone: true,
       hourCycle: true,
@@ -511,9 +516,12 @@ function parseState(raw: string): State {
       username: true,
       findByName: true,
       findByEmail: true,
+      onboardedAt: true,
     })
     .parse({
+      displayName: defaultPreferences.displayName,
       username: defaultPreferences.username,
+      onboardedAt: defaultPreferences.onboardedAt,
       ...("preferences" in value && typeof value.preferences === "object"
         ? value.preferences
         : {}),
@@ -1355,7 +1363,6 @@ export class SandboxStore {
   #user(): Preferences {
     return {
       id: userId,
-      displayName: "Sample planner",
       email: "planner@example.test",
       ...this.#state.preferences,
     };
@@ -1941,17 +1948,25 @@ export class SandboxStore {
     )
       return this.#labelWrite(method, id, url, body);
     if (collection === "account" && !id && method === "PATCH") {
-      // The discovery switches; the username was chosen at sign-up.
+      // The name, the discovery switches, and the Welcome step's
+      // completion; the username was chosen at sign-up.
       const input = accountUpdateRequestSchema.parse(body);
       this.#commit({
         ...this.#state,
         preferences: {
           ...this.#state.preferences,
+          ...(input.displayName !== undefined && {
+            displayName: input.displayName,
+          }),
           ...(input.findByName !== undefined && {
             findByName: input.findByName,
           }),
           ...(input.findByEmail !== undefined && {
             findByEmail: input.findByEmail,
+          }),
+          ...(input.onboarded === true && {
+            onboardedAt:
+              this.#state.preferences.onboardedAt ?? new Date().toISOString(),
           }),
         },
       });

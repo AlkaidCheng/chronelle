@@ -157,7 +157,7 @@ export function CodePage({ username }: { readonly username: string }) {
           <span>{t("title")}</span>
         </a>
         {body}
-        <div className="sign-in-language code-language">
+        <div className="code-language">
           <LocaleMenu />
         </div>
       </section>

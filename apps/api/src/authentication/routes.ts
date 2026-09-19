@@ -101,6 +101,7 @@ export function userPayload(user: UserRow) {
     username: user.username,
     findByName: user.findByName,
     findByEmail: user.findByEmail,
+    onboardedAt: user.onboardedAt?.toISOString() ?? null,
     locale: user.locale,
     timeZone: user.timeZone,
     hourCycle: user.hourCycle,

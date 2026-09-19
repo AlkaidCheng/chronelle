@@ -1076,10 +1076,6 @@ h3 {
   text-transform: uppercase;
 }
 
-.eyebrow-light {
-  color: var(--muted);
-}
-
 .brand {
   align-items: center;
   display: inline-flex;
@@ -1102,11 +1098,6 @@ h3 {
   height: 32px;
   justify-content: center;
   width: 32px;
-}
-
-.brand-light .brand-mark {
-  background: var(--accent-soft);
-  color: var(--accent);
 }
 
 .button {
@@ -1231,106 +1222,182 @@ h3 {
   width: 17px;
 }
 
-.sign-in-page {
-  background: var(--surface);
-  display: grid;
-  grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.05fr);
-  min-height: 100vh;
-}
-
-.sign-in-intro {
-  background: var(--accent-soft);
-  color: var(--ink);
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  min-height: 100vh;
-  padding: 46px clamp(38px, 6vw, 88px);
-  overflow: clip;
-  position: relative;
-}
-
-.sign-in-intro > div {
-  max-width: 570px;
-  position: relative;
-  z-index: 1;
-}
-
-.sign-in-intro h1 {
-  font-size: clamp(3rem, 5vw, 5.5rem);
-  line-height: 1.03;
-  margin-bottom: 28px;
-}
-
-.sign-in-intro > div > p:last-child {
-  color: var(--muted);
-  font-size: 1.06rem;
-  line-height: 1.65;
-  max-width: 510px;
-}
-
-.sign-in-footnote {
-  color: var(--muted);
-  font-size: 0.72rem;
-  letter-spacing: 0.13em;
-  margin-bottom: 0;
-  text-transform: uppercase;
-}
-
-.sign-in-form-wrap {
-  align-items: center;
-  display: flex;
-  justify-content: center;
-  padding: 56px;
-}
-
-.sign-in-form {
+/* The account screens: the brand above one column, a card with the form,
+   a line below it pointing to the other screen, and a quiet footer. */
+.account-page {
+  align-content: start;
+  background: var(--canvas);
   display: grid;
   gap: 22px;
-  max-width: 410px;
-  width: 100%;
+  justify-items: center;
+  min-height: 100vh;
+  padding: 44px 16px 40px;
 }
 
-.sign-in-form h2 {
-  font-size: clamp(2.3rem, 4vw, 3.3rem);
-  line-height: 1;
-  margin-bottom: 16px;
+.account-brand {
+  font-size: 1.25rem;
 }
 
-.form-intro,
-.privacy-note {
+.account-card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  display: grid;
+  gap: 16px;
+  padding: 24px 24px 22px;
+  width: min(100%, 400px);
+}
+
+.account-title {
+  font-size: 1.65rem;
+  line-height: 1.2;
+  margin: 0;
+  text-wrap: balance;
+}
+
+.account-intro,
+.account-fine,
+.account-hint {
   color: var(--muted);
-  line-height: 1.55;
+  line-height: 1.5;
+  margin: 0;
 }
 
-.form-intro {
+.account-intro {
   font-size: 0.95rem;
-  margin-bottom: 4px;
+  margin-top: -6px;
+  overflow-wrap: anywhere;
 }
 
-.form-links {
+.account-fine,
+.account-hint {
+  font-size: 0.82rem;
+}
+
+.account-fine {
+  margin-top: -4px;
+}
+
+/* A field with the lines under it (a hint, an availability line). */
+.account-field {
+  display: grid;
+  gap: 6px;
+}
+
+.account-field-hint {
+  color: var(--muted);
+  font-size: 0.82rem;
+  line-height: 1.45;
+  margin: 0;
+}
+
+.field-head {
+  align-items: baseline;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+}
+
+.field-head-link {
+  color: var(--accent);
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.field-head-link:hover {
+  text-decoration: underline;
+}
+
+.account-code-input {
+  font-family: var(--font-mono);
+  font-size: 1.35rem;
+  letter-spacing: 0.35em;
+  padding-left: calc(12px + 0.35em);
+  text-align: center;
+}
+
+.account-links {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px 20px;
-  font-size: 0.92rem;
+  font-size: 0.9rem;
+  gap: 8px 16px;
+  justify-content: center;
+  margin: 0;
 }
 
-.form-note {
+.account-link {
+  background: none;
+  border: 0;
+  color: var(--accent);
+  cursor: pointer;
+  font: inherit;
+  padding: 0;
+  text-decoration: none;
+}
+
+.account-link:hover {
+  text-decoration: underline;
+}
+
+.account-link:disabled {
+  color: var(--faint);
+  cursor: default;
+  text-decoration: none;
+}
+
+.account-aside {
+  border: 1px solid var(--line);
+  border-radius: 12px;
   color: var(--muted);
-  font-size: 0.92rem;
-  line-height: 1.5;
-}
-
-.sign-in-form .field-hint {
-  color: var(--muted);
-  font-size: 0.85rem;
-}
-
-.privacy-note {
-  font-size: 0.72rem;
-  margin: -5px auto 0;
-  max-width: 330px;
+  margin: 0;
+  padding: 14px 24px;
   text-align: center;
+  width: min(100%, 400px);
+}
+
+.account-aside-link {
+  color: var(--accent);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.account-aside-link:hover {
+  text-decoration: underline;
+}
+
+.account-foot {
+  align-items: center;
+  color: var(--faint);
+  display: flex;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.account-foot-dot {
+  opacity: 0.6;
+}
+
+.account-who {
+  align-items: center;
+  display: flex;
+  gap: 12px;
+  margin-bottom: -4px;
+}
+
+.account-who-names {
+  display: grid;
+  line-height: 1.25;
+}
+
+.account-who-names small {
+  color: var(--muted);
+}
+
+.account-row {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: 1fr 1fr;
 }
 
 .workspace-shell {
@@ -3988,29 +4055,16 @@ ul.resource-list {
 }
 
 @media (max-width: 760px) {
-  .sign-in-page {
+  .account-page {
+    padding-top: 28px;
+  }
+
+  .account-card {
+    padding: 20px 18px;
+  }
+
+  .account-row {
     grid-template-columns: 1fr;
-  }
-
-  .sign-in-intro {
-    min-height: 42vh;
-    padding: 28px 24px 42px;
-  }
-
-  .sign-in-intro .brand {
-    margin-bottom: 76px;
-  }
-
-  .sign-in-intro h1 {
-    font-size: clamp(2.8rem, 13vw, 4.7rem);
-  }
-
-  .sign-in-footnote {
-    display: none;
-  }
-
-  .sign-in-form-wrap {
-    padding: 42px 24px 56px;
   }
 
   .workspace-shell {
@@ -7055,7 +7109,6 @@ html:has(.event-create-dialog[open]) {
   :is(
     .eyebrow,
     .object-label,
-    .sign-in-footnote,
     .head-menu-label,
     .data-table th,
     .status-chip,
@@ -7140,6 +7193,19 @@ html:has(.event-create-dialog[open]) {
   margin: 0;
 }
 
+.settings-name {
+  align-items: end;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 18px;
+}
+
+.settings-name-field {
+  flex: 1 1 220px;
+  max-width: 360px;
+}
+
 .settings-facts {
   display: grid;
   gap: 14px;
@@ -7216,22 +7282,16 @@ html:has(.event-create-dialog[open]) {
   max-width: 440px;
 }
 
-/* The language menu of the screens outside a session. */
-.sign-in-form-wrap {
-  position: relative;
-}
-
-.sign-in-language {
-  bottom: 20px;
-  position: absolute;
-  right: 24px;
-}
-
+/* The language and theme menus of the screens outside a session. */
 .locale-menu {
   align-items: center;
   color: var(--muted);
   display: inline-flex;
   gap: 6px;
+}
+
+.locale-menu-label {
+  font-size: 0.8rem;
 }
 
 .locale-menu-icon {
@@ -7284,11 +7344,6 @@ html:has(.event-create-dialog[open]) {
   .settings-row {
     align-items: start;
     flex-direction: column;
-  }
-
-  .sign-in-language {
-    position: static;
-    text-align: right;
   }
 }
 
@@ -7783,20 +7838,24 @@ html:has(.event-create-dialog[open]) {
   max-width: 420px;
 }
 
+/* The username field carries its "@" inside, before the text. */
 .username-input {
-  align-items: center;
-  display: flex;
-  gap: 6px;
+  display: block;
+  position: relative;
 }
 
 .username-at {
   color: var(--faint);
+  font-weight: 600;
+  left: 13px;
+  pointer-events: none;
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
 }
 
-.username-field {
-  flex: 1;
-  max-width: 260px;
-  min-width: 0;
+.field .username-field {
+  padding-left: 30px;
 }
 
 .username-availability {
@@ -7805,7 +7864,7 @@ html:has(.event-create-dialog[open]) {
   display: inline-flex;
   font-size: 0.78rem;
   gap: 5px;
-  margin: 6px 0 0;
+  margin: 0;
   min-height: 1.2em;
 }
 

@@ -36,11 +36,12 @@ export const usernameSchema = z
   .regex(/^[A-Za-z][A-Za-z0-9_-]{2,29}$/u);
 
 export const signUpRequestSchema = z.object({
-  displayName: z.string().trim().min(1).max(120),
   email: emailSchema,
   password: passwordSchema,
-  /** The username chosen at sign-up; without one the account gets one from its name. */
-  username: usernameSchema.optional(),
+  /** The username chosen at sign-up. */
+  username: usernameSchema,
+  /** The name; the Welcome step asks for it after the email is confirmed when sign-up brings none. */
+  displayName: z.string().trim().min(1).max(120).optional(),
   locale: localeTagSchema.optional(),
   /** The token of the friend invitation the sign-up link carried. */
   invitationToken: z.string().trim().min(1).max(256).optional(),
@@ -122,8 +123,17 @@ export const verifyEmailRequestSchema = z.object({
   code: verificationCodeSchema,
 });
 
+/**
+ * A sign-in by the email of the account or by its username: a login with
+ * an "@" is an address and is normalized as one.
+ */
 export const passwordSignInRequestSchema = z.object({
-  email: emailSchema,
+  login: z
+    .string()
+    .trim()
+    .min(1)
+    .max(254)
+    .transform((login) => (login.includes("@") ? login.toLowerCase() : login)),
   password: z.string().min(1).max(256),
 });
 
@@ -139,15 +149,18 @@ export const acceptedResponseSchema = z.object({
 });
 
 /**
- * The account fields the account route changes: who can find the account,
- * by name and by email; finding it by username is always on. A key that is
- * present replaces the stored value. The username is not among them: it is
- * chosen once, at sign-up.
+ * The account fields the account route changes: the name, who can find
+ * the account (by name and by email; finding it by username is always
+ * on), and the completion of the Welcome step. A key that is present
+ * replaces the stored value. The username is not among them: it is chosen
+ * once, at sign-up.
  */
 export const accountUpdateRequestSchema = z
   .object({
+    displayName: z.string().trim().min(1).max(120).optional(),
     findByName: z.boolean().optional(),
     findByEmail: z.boolean().optional(),
+    onboarded: z.literal(true).optional(),
   })
   .strict();
 
@@ -167,6 +180,8 @@ const userSchema = z.object({
   username: usernameSchema,
   findByName: z.boolean().default(true),
   findByEmail: z.boolean().default(true),
+  /** When the Welcome step was completed; null while it is due. */
+  onboardedAt: z.string().nullable().default(null),
   locale: z.string().nullable().default(null),
   timeZone: z.string().nullable().default(null),
   hourCycle: hourCycleSchema.nullable().default(null),

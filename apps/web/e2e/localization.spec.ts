@@ -297,7 +297,7 @@ test("renders the first paint in the browser's language and keeps a chosen one @
     await expect(page.locator("html")).toHaveAttribute("lang", "zh-Hant");
     await expect(
       page.getByRole("heading", {
-        level: 2,
+        level: 1,
         name: "\u958b\u555f\u4f60\u7684\u5de5\u4f5c\u5340",
       }),
     ).toBeVisible();
@@ -310,7 +310,7 @@ test("renders the first paint in the browser's language and keeps a chosen one @
     await page.reload();
     await expect(page.locator("html")).toHaveAttribute("lang", "en");
     await expect(
-      page.getByRole("heading", { level: 2, name: "Open your workspace" }),
+      page.getByRole("heading", { level: 1, name: "Open your workspace" }),
     ).toBeVisible();
   } finally {
     await context.close();

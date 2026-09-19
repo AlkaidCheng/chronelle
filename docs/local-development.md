@@ -152,6 +152,13 @@ check requires. It also installs the `pg_trgm` and `unaccent` extensions
 `chronelle_search_fold` and two trigram indexes on `users` for Find people,
 and the runtime role script grants `EXECUTE` on the fold, `unaccent`, and
 `similarity` functions, so the script is reapplied after this migration.
+Migration 0056 adds `users.onboarded_at` (the Welcome step; every existing
+account counts as completed), redefines `chronelle_identity_sign_in` and
+`chronelle_account_update` in place (a password account starts with the
+step ahead; the name and the step's completion are set through the
+account update), and replaces `chronelle_password_credential_lookup` with
+one that takes a login, an email or a username. The API built from it
+starts after it.
 
 Migration `0021_add_object_search_function.sql` adds `chronelle_object_search`,
 the read-only function the CloudBase search adapter calls. It changes no

@@ -137,12 +137,15 @@ const readable = (zone: string) => zone.replaceAll("_", " ");
 /**
  * The time zone: Device (named, with its offset) or any zone the browser
  * knows, grouped by region with its current offset; a search field above
- * the list narrows it by name or offset.
+ * the list narrows it by name or offset. Compact, it is the select alone,
+ * for the Welcome step.
  */
-function TimeZoneField({
+export function TimeZoneField({
+  compact = false,
   onChange,
   value,
 }: {
+  readonly compact?: boolean | undefined;
   readonly onChange: (timeZone: string | null) => void;
   readonly value: string | null;
 }) {
@@ -182,7 +185,7 @@ function TimeZoneField({
     entry.offset.toLowerCase().includes(needle);
   const device = deviceTimeZone();
   return (
-    <div className="settings-group settings-zone">
+    <div className={compact ? "field" : "settings-group settings-zone"}>
       <label className="field">
         <span>{t("timeZone")}</span>
         <select
@@ -214,17 +217,21 @@ function TimeZoneField({
           })}
         </select>
       </label>
-      <label className="field settings-zone-search">
-        <span className="visually-hidden">{t("searchZones")}</span>
-        <input
-          aria-controls={`${id}-zone`}
-          onChange={(event) => setQuery(event.target.value)}
-          placeholder={t("searchZones")}
-          type="search"
-          value={query}
-        />
-      </label>
-      <p className="settings-note">{t("timeZoneNote")}</p>
+      {compact ? null : (
+        <>
+          <label className="field settings-zone-search">
+            <span className="visually-hidden">{t("searchZones")}</span>
+            <input
+              aria-controls={`${id}-zone`}
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder={t("searchZones")}
+              type="search"
+              value={query}
+            />
+          </label>
+          <p className="settings-note">{t("timeZoneNote")}</p>
+        </>
+      )}
     </div>
   );
 }

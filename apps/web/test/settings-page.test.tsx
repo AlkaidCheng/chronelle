@@ -131,18 +131,42 @@ describe("the Settings page", () => {
     expect(
       screen.getByRole("heading", { level: 2, name: "Account" }),
     ).toBeVisible();
-    await screen.findByText("Sample planner");
+    await waitFor(() =>
+      expect(screen.getByRole("textbox", { name: "Name" })).toHaveValue(
+        "Sample planner",
+      ),
+    );
     expect(screen.getByText("planner@example.test")).toBeVisible();
     expect(
       screen.getByRole("link", { name: "Change password" }),
     ).toHaveAttribute("href", "/reset-password");
   });
 
+  it("changes the name through PATCH /api/account and keeps it on the session", async () => {
+    const user = userEvent.setup();
+    render(<SettingsPage section="account" />, { wrapper });
+    const name = await screen.findByRole("textbox", { name: "Name" });
+    await waitFor(() => expect(name).toHaveValue("Sample planner"));
+    const save = screen.getByRole("button", { name: "Save name" });
+    expect(save).toBeDisabled();
+    await user.clear(name);
+    await user.type(name, "  Mira Planner ");
+    expect(save).toBeEnabled();
+    await user.click(save);
+    await waitFor(() => expect(save).toBeDisabled());
+    expect(requests).toContainEqual({
+      method: "PATCH",
+      path: "/api/account",
+      body: { displayName: "Mira Planner" },
+    });
+    expect(name).toHaveValue("Mira Planner");
+  });
+
   it("shows the username as chosen at sign-up and keeps who can find the account", async () => {
     const user = userEvent.setup();
     render(<SettingsPage section="account" />, { wrapper });
     await screen.findByText("@planner");
-    expect(screen.getByText(/cannot be changed yet/)).toBeVisible();
+    expect(screen.getByText(/cannot be changed\./)).toBeVisible();
     expect(
       screen.queryByRole("textbox", { name: "Username" }),
     ).not.toBeInTheDocument();

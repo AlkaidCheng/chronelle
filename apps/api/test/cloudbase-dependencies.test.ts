@@ -99,7 +99,7 @@ const reads: Record<
     ),
   "POST /api/auth/sign-in (credential lookup)": (dependencies) =>
     dependencies.passwordAuth.signIn(
-      { email: "person@example.test", password: "correct horse battery" },
+      { login: "person@example.test", password: "correct horse battery" },
       "00000000-0000-7000-8000-000000000006",
     ),
 };

@@ -59,8 +59,9 @@ export function useUserLookupQuery(username: string, enabled = true) {
 }
 
 /**
- * The discovery switches. The session shows the change at once and again
- * from the server's reply; a refusal puts the previous values back.
+ * The name, the discovery switches, and the Welcome step's completion.
+ * The session shows the change at once and again from the server's reply;
+ * a refusal puts the previous values back.
  */
 export function useUpdateAccount() {
   const client = useApiClient();
@@ -77,6 +78,9 @@ export function useUpdateAccount() {
           ...previous,
           user: {
             ...previous.user,
+            ...(input.displayName !== undefined && {
+              displayName: input.displayName.trim(),
+            }),
             ...(input.findByName !== undefined && {
               findByName: input.findByName,
             }),
