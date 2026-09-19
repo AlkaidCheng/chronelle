@@ -259,8 +259,9 @@ describe("sections in To-dos", () => {
     await user.click(
       within(foodBody).getByRole("button", { name: "Add a task to Food" }),
     );
+    // The section's add row opens the composer, its section preset.
     await user.type(
-      within(foodBody).getByRole("textbox", { name: "New task" }),
+      within(foodBody).getByRole("textbox", { name: "Task name" }),
       "Book the caterer{Enter}",
     );
     await waitFor(() =>

@@ -106,7 +106,7 @@ afterEach(() => {
 });
 
 describe("quick add", () => {
-  it("adds tasks to the list from the row at its end and keeps the field open", async () => {
+  it("adds tasks to the list from the row at its end and keeps the composer open", async () => {
     const user = userEvent.setup();
     render(
       <Providers>
@@ -117,16 +117,18 @@ describe("quick add", () => {
     const open = screen.getByRole("button", { name: "Add a task to the list" });
     expect(open).toHaveTextContent("Add task");
     await user.click(open);
-    const field = screen.getByLabelText("New task");
+    const composer = screen.getByRole("form", { name: "New task" });
+    const field = within(composer).getByLabelText("Task name");
     expect(field).toHaveFocus();
     await user.keyboard("Buy stamps{Enter}");
     expect(
       await screen.findByRole("row", { name: /Buy stamps/ }),
     ).toBeVisible();
-    // The field stays open, empty, and focused for the next one.
-    expect(screen.getByLabelText("New task")).toBe(field);
+    // The composer stays open, empty, and focused for the next one.
+    expect(within(composer).getByLabelText("Task name")).toBe(field);
     expect(field).toHaveValue("");
     expect(field).toHaveFocus();
+    expect(within(composer).getByRole("status")).toHaveTextContent("Added.");
     await user.keyboard("Order the cake{Enter}");
     expect(
       await screen.findByRole("row", { name: /Order the cake/ }),
@@ -142,21 +144,21 @@ describe("quick add", () => {
       [null, null],
       [null, null],
     ]);
-    // Escape puts the row back; so does leaving the empty field.
+    // Escape puts the row back; so does Cancel.
     await user.keyboard("{Escape}");
-    expect(screen.queryByLabelText("New task")).toBeNull();
+    expect(screen.queryByRole("form", { name: "New task" })).toBeNull();
     await user.click(
       screen.getByRole("button", { name: "Add a task to the list" }),
     );
-    expect(screen.getByLabelText("New task")).toHaveFocus();
-    await user.tab();
-    expect(screen.queryByLabelText("New task")).toBeNull();
+    expect(screen.getByLabelText("Task name")).toHaveFocus();
+    await user.click(screen.getByRole("button", { name: "Cancel" }));
+    expect(screen.queryByRole("form", { name: "New task" })).toBeNull();
     expect(
       screen.getByRole("button", { name: "Add a task to the list" }),
     ).toBeVisible();
   });
 
-  it("keeps a typed name the field cannot leave and one the server refuses", async () => {
+  it("keeps a typed name when focus leaves the composer, and adds nothing without one", async () => {
     const user = userEvent.setup();
     render(
       <Providers>
@@ -167,22 +169,17 @@ describe("quick add", () => {
     await user.click(
       screen.getByRole("button", { name: "Add a task to the list" }),
     );
-    const field = screen.getByLabelText("New task");
+    const field = screen.getByLabelText("Task name");
     await user.keyboard("Half a thought");
-    await user.tab();
-    expect(screen.getByLabelText("New task")).toBe(field);
+    await user.click(screen.getByRole("heading", { name: "Tasks", level: 1 }));
+    expect(screen.getByLabelText("Task name")).toBe(field);
     expect(field).toHaveValue("Half a thought");
+    // A name is required: without one there is nothing to add.
     await user.clear(field);
-    await user.click(field);
-    await user.keyboard(`${"a".repeat(241)}{Enter}`);
-    expect(await screen.findByRole("alert")).toHaveTextContent(
-      "Something went wrong",
-    );
-    expect(field).toHaveValue("a".repeat(241));
-    expect(field).toHaveFocus();
-    await user.keyboard("{Backspace}");
-    expect(screen.queryByRole("alert")).toBeNull();
+    expect(screen.getByRole("button", { name: "Add task" })).toBeDisabled();
+    await user.keyboard("{Enter}");
     expect(screen.getByText("1 task loaded")).toBeVisible();
+    expect(screen.getByLabelText("Task name")).toBe(field);
   });
 
   it("dates a task added under a day group and times reminders at 9:00", async () => {
@@ -379,7 +376,7 @@ describe("quick add", () => {
     ).toBeNull();
   });
 
-  it("keeps the field open, focused, and empty across the first item, in the list and by day", async () => {
+  it("keeps the composer open, focused, and empty across the first item, in the list and by day", async () => {
     const user = userEvent.setup();
     const event = await client.createEvent({ displayName: "Winter market" });
     pathname = `/events/${event.id}`;
@@ -409,7 +406,7 @@ describe("quick add", () => {
       expect(todos.getByText("Pitch the stalls")).toBeVisible(),
     );
     expect(todos.queryByRole("heading", { name: "No tasks yet" })).toBeNull();
-    let field = todos.getByLabelText("New task");
+    let field = todos.getByLabelText("Task name");
     expect(field).toHaveFocus();
     expect(field).toHaveValue("");
     await user.keyboard("String the lights{Enter}");

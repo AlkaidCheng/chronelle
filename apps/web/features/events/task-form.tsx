@@ -21,6 +21,7 @@ import {
   locationLimit,
   readTaskFields,
   splitLabelIds,
+  type TaskFields,
   taskFieldsPayload,
 } from "../../lib/task-fields";
 import {
@@ -68,14 +69,8 @@ interface TaskFormProps {
   readonly parent?: SubtaskParent | undefined;
   /** The sections of the Event's To-dos, which the editor offers as the task's section. */
   readonly sections?: readonly SectionResponse[] | undefined;
-  /** What a new task starts with when it comes from a quick add row: the typed name, the row's day, and its section. */
-  readonly start?:
-    | {
-        readonly displayName: string;
-        readonly dueOn: string | null;
-        readonly sectionId?: string | null | undefined;
-      }
-    | undefined;
+  /** The fields the editor starts with when a composer hands over to it. */
+  readonly start?: Partial<TaskFields> | undefined;
   readonly task?: TaskResponse | undefined;
 }
 
@@ -123,20 +118,14 @@ function TaskEditor({
   const conflictSlot = useConflictSlot();
   const draft = useEditorDraft(latestTask, readTaskFields, initialDraft);
   const task = draft.source;
-  // A quick add row's typed name and day seed a fresh draft once; a
-  // recovered draft keeps what it had.
+  // A composer's fields seed a fresh draft once; a recovered draft keeps
+  // what it had.
   const seeded = useRef(false);
   useEffect(() => {
     if (seeded.current || start === undefined || initialDraft !== undefined)
       return;
     seeded.current = true;
-    draft.change({
-      ...(start.displayName === "" ? {} : { displayName: start.displayName }),
-      ...(start.dueOn === null ? {} : { dueDate: start.dueOn }),
-      ...(start.sectionId === null || start.sectionId === undefined
-        ? {}
-        : { section: start.sectionId }),
-    });
+    draft.change(start);
   }, [draft, initialDraft, start]);
   const [attempt] = useState<ContextCreateAttempt>(
     () => initialDraft?.creationAttempt ?? { current: null },

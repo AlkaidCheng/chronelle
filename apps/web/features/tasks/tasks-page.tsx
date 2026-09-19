@@ -7,7 +7,7 @@ import {
   type TaskResponse,
 } from "@chronelle/schemas";
 import { useTranslations } from "next-intl";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import {
   EmptyState,
@@ -15,7 +15,9 @@ import {
   LoadingState,
 } from "../../components/feedback";
 import { PlusIcon, SearchIcon } from "../../components/icons";
-import { useQuickAddSlots } from "../../components/quick-add-row";
+import { useComposerSlots } from "../../lib/composer-slots";
+import { rowSelector, useReturnFocus } from "../../lib/use-return-focus";
+import type { TaskFields } from "../../lib/task-fields";
 import { LayoutControl } from "../events/component-frame";
 import { type SubtaskParent, TaskForm } from "../events/task-form";
 import { TaskInspector } from "../events/task-inspector";
@@ -31,7 +33,7 @@ import {
   useTasksQuery,
 } from "../../lib/queries";
 import { ManageLabelsButton } from "./label-manager";
-import { QuickAddTask } from "./quick-add-task";
+import { AddTaskRow } from "./add-task-row";
 import {
   defaultTaskFilters,
   type TaskFilters,
@@ -60,9 +62,23 @@ export function TasksPage() {
     useState<NonNullable<TaskListQuery["sort"]>>("manual");
   const [view, setView] = useState<EventComponentView>("list");
   const { status: filter, label, assignee } = filters;
-  const [isAdding, setIsAdding] = useState(false);
+  // The full editor for a new task opens from the header, or from an add
+  // row's composer with its fields; for a task, from its row's composer.
+  const [adding, setAdding] = useState<Partial<TaskFields> | null>(null);
   const [parent, setParent] = useState<SubtaskParent | null>(null);
-  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editing, setEditing] = useState<{
+    readonly id: string;
+    readonly start: Partial<TaskFields>;
+  } | null>(null);
+  const composer = useComposerSlots();
+  const pageRoot = useRef<HTMLElement>(null);
+  const returnFocus = useReturnFocus(pageRoot);
+  const closeEditing = useCallback(() => {
+    setEditing((current) => {
+      if (current !== null) returnFocus(rowSelector(current.id));
+      return null;
+    });
+  }, [returnFocus]);
   useEffect(() => {
     if (isComposing) return;
     const timer = window.setTimeout(() => setDebouncedQuery(query.trim()), 250);
@@ -113,7 +129,6 @@ export function TasksPage() {
       session.data !== undefined && person.userId === session.data.user.id,
   );
   const refresh = useRefreshEvent(undefined);
-  const quickAdd = useQuickAddSlots();
   const changingQuery = isComposing || query.trim() !== debouncedQuery;
   const items = changingQuery ? [] : (tasks.data?.items ?? []);
   const filtered =
@@ -147,7 +162,7 @@ export function TasksPage() {
   }
 
   return (
-    <main className="workspace-page" tabIndex={-1}>
+    <main className="workspace-page" ref={pageRoot} tabIndex={-1}>
       <header className="page-heading split-heading collection-column">
         <div>
           <p className="eyebrow">{t("eyebrow")}</p>
@@ -159,7 +174,7 @@ export function TasksPage() {
           className="button button-primary"
           onClick={(event) => {
             event.currentTarget.focus();
-            setIsAdding(true);
+            setAdding({});
           }}
           type="button"
         >
@@ -168,8 +183,8 @@ export function TasksPage() {
         </button>
       </header>
 
-      {isAdding ? (
-        <TaskForm key="new" onCancel={() => setIsAdding(false)} />
+      {adding !== null ? (
+        <TaskForm key="new" onCancel={() => setAdding(null)} start={adding} />
       ) : null}
       {parent !== null ? (
         <TaskForm
@@ -263,12 +278,14 @@ export function TasksPage() {
               title={t("emptyTitle")}
             />
             <div className="quick-add-item quick-add-empty">
-              <QuickAddTask
+              <AddTaskRow
                 dayLabel={
                   view === "by-day" ? todos("noDueDateGroup") : undefined
                 }
                 dueOn={null}
-                slots={quickAdd}
+                onMore={setAdding}
+                onRefresh={refresh}
+                slots={composer}
               />
             </div>
           </>
@@ -295,12 +312,14 @@ export function TasksPage() {
               {controls("clearFilters")}
             </button>
             <div className="quick-add-item quick-add-empty">
-              <QuickAddTask
+              <AddTaskRow
                 dayLabel={
                   view === "by-day" ? todos("noDueDateGroup") : undefined
                 }
                 dueOn={null}
-                slots={quickAdd}
+                onMore={setAdding}
+                onRefresh={refresh}
+                slots={composer}
               />
             </div>
           </div>
@@ -309,17 +328,18 @@ export function TasksPage() {
         (range !== null && tasks.data !== undefined && !changingQuery) ? (
           <TaskListView
             canEdit
+            composer={composer}
             contexts={tasks.data?.contexts}
             labelNames={labels.data?.names}
             manual={sort === "manual"}
+            onAddDetails={setAdding}
             onAddSubtask={addSubtask}
             personNames={persons.data?.names}
-            onEdit={setEditingId}
+            onEdit={(id, start) => setEditing({ id, start })}
             onRefresh={refresh}
             parents={tasks.data?.parents ?? {}}
             period={period}
             progress={tasks.data?.progress ?? {}}
-            quickAdd={quickAdd}
             tasks={items}
             view={view}
           />
@@ -335,11 +355,12 @@ export function TasksPage() {
           </button>
         ) : null}
       </section>
-      {editingId ? (
+      {editing !== null ? (
         <TaskInspector
-          key={editingId}
-          taskId={editingId}
-          onClose={() => setEditingId(null)}
+          key={editing.id}
+          onClose={closeEditing}
+          start={editing.start}
+          taskId={editing.id}
         />
       ) : null}
     </main>

@@ -52,7 +52,8 @@ export function AssigneePicker({
   );
 }
 
-function AssigneeChoices({
+/** The people as a choice, with Unassigned, a new person, and Assign to me: the picker's body and the chip's control. */
+export function AssigneeChoices({
   disabled,
   onChange,
   persons,

@@ -75,6 +75,20 @@ export type TaskFields = {
   readonly section?: string | undefined;
 };
 
+/** The fields of a task that has nothing set: what an add composer starts with. */
+export const emptyTaskFields: TaskFields = readTaskFields();
+
+/**
+ * The fields a composer hands to the dialog: those that are set, so a
+ * dialog opened from an untouched composer opens clean, and one opened
+ * from a composer with a name, a day, or a section starts with them.
+ */
+export function setTaskFields(fields: TaskFields): Partial<TaskFields> {
+  return Object.fromEntries(
+    Object.entries(fields).filter(([, value]) => value !== ""),
+  ) as Partial<TaskFields>;
+}
+
 export function joinLabelIds(labelIds: readonly string[]): string {
   return [...new Set(labelIds)].sort().join(",");
 }

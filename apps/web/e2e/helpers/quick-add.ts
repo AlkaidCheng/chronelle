@@ -6,9 +6,9 @@ import { openTaskEditor } from "./task-add";
 import { openEventView } from "./event-view";
 
 /**
- * Adds tasks from the quick row at the end of the Tasks page: Enter adds
- * the name and keeps the field open and empty, Escape puts the row back,
- * and leaving the empty field does too. Returns the names added.
+ * Adds tasks from the add row at the end of the Tasks page: Enter adds the
+ * name and keeps the composer open and empty, Escape puts the row back, and
+ * Cancel does too. Returns the names added.
  */
 export async function exerciseQuickAddOnTasksPage(page: Page) {
   await page
@@ -21,7 +21,8 @@ export async function exerciseQuickAddOnTasksPage(page: Page) {
     exact: true,
   });
   await open.click();
-  const field = page.getByLabel("New task", { exact: true });
+  const composer = page.getByRole("form", { name: "New task", exact: true });
+  const field = composer.getByLabel("Task name", { exact: true });
   await expect(field).toBeFocused();
   await field.fill("Pay the deposit");
   await field.press("Enter");
@@ -34,22 +35,23 @@ export async function exerciseQuickAddOnTasksPage(page: Page) {
   await field.press("Enter");
   await expect(page.getByRole("row", { name: /Order the cake/ })).toBeVisible();
   await field.press("Escape");
-  await expect(field).toHaveCount(0);
+  await expect(composer).toHaveCount(0);
   await expect(open).toBeVisible();
-  // Leaving the empty field puts the row back as well.
+  // Cancel puts the row back as well.
   await open.click();
   await expect(field).toBeFocused();
-  await page.getByRole("heading", { name: "Tasks", level: 1 }).click();
-  await expect(field).toHaveCount(0);
+  await composer.getByRole("button", { name: "Cancel", exact: true }).click();
+  await expect(composer).toHaveCount(0);
   await expect(open).toBeVisible();
   return ["Pay the deposit", "Order the cake"];
 }
 
 /**
- * Inside an open Event, adds tasks from the quick rows of the To-dos tab
- * (the list, the No due date group, and today's group, which takes the
- * day as the due date) and reminders from the Reminders tab (the list at
- * the next 9:00, a day group at 9:00 that day). Returns what was added.
+ * Inside an open Event, adds tasks from the add rows of the To-dos tab
+ * (the list, the No due date group, and today's group, which starts the
+ * composer with the day as the due date) and reminders from the quick rows
+ * of the Reminders tab (the list at the next 9:00, a day group at 9:00 that
+ * day). Returns what was added.
  */
 export async function exerciseQuickAddInEvent(page: Page) {
   await openEventView(page, "To-dos");
@@ -68,7 +70,7 @@ export async function exerciseQuickAddInEvent(page: Page) {
   await todos
     .getByRole("button", { name: "Add a task to the list", exact: true })
     .click();
-  const field = todos.getByLabel("New task", { exact: true });
+  const field = todos.getByLabel("Task name", { exact: true });
   await expect(field).toBeFocused();
   await field.fill("Set up chairs");
   await field.press("Enter");
@@ -90,6 +92,10 @@ export async function exerciseQuickAddInEvent(page: Page) {
   await field.press("Escape");
   const todayGroup = todos.locator("section.day-group-today");
   await todayGroup.getByRole("button", { name: /^Add a task for / }).click();
+  // The group's composer starts with the day set on its Due chip.
+  await expect(
+    todayGroup.getByRole("button", { name: /^Due: .*\(today\)/ }),
+  ).toBeVisible();
   await field.fill("Light the candles");
   await field.press("Enter");
   await expect(todayGroup.getByText("Light the candles")).toBeVisible();

@@ -10,15 +10,7 @@ import type {
   TimelineResponse,
 } from "@chronelle/schemas";
 import { useTranslations } from "next-intl";
-import {
-  Fragment,
-  type RefObject,
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import { Fragment, useCallback, useMemo, useRef, useState } from "react";
 import { DragCard } from "../../components/drag-card";
 import { EmptyState, ErrorNotice } from "../../components/feedback";
 import { PinIcon } from "../../components/icons";
@@ -30,6 +22,7 @@ import {
   rankForStep,
   staysInPlace,
 } from "../../lib/collection-order";
+import { useComposerSlots } from "../../lib/composer-slots";
 import { groupByDay } from "../../lib/day-groups";
 import { groupBySection } from "../../lib/section-groups";
 import {
@@ -71,9 +64,15 @@ import {
   useUpdateReminder,
 } from "../../lib/queries";
 import { instantOnDay } from "../../lib/task-due";
+import type { TaskFields } from "../../lib/task-fields";
 import { sortTasks, type TaskSort } from "../../lib/task-sort";
 import { deriveTaskTree } from "../../lib/task-tree";
 import { periodRange, usePeriod } from "../../lib/use-period";
+import {
+  addRowSelector,
+  rowSelector,
+  useReturnFocus,
+} from "../../lib/use-return-focus";
 import { type RowDrop, rowsWithGap, useRowDrag } from "../../lib/use-row-drag";
 import { HistoryButton } from "../history/history-button";
 import { useOpenHistory } from "../history/history-provider";
@@ -89,7 +88,7 @@ import {
   SectionTitle,
 } from "../sections/section-parts";
 import { useSectionEditing } from "../sections/use-sections";
-import { QuickAddTask } from "../tasks/quick-add-task";
+import { AddTaskRow } from "../tasks/add-task-row";
 import {
   activeFilterCount,
   defaultTaskFilters,
@@ -141,25 +140,6 @@ function namedChoices(
   );
 }
 
-/**
- * Brings focus back to a panel's add row once its editor closes. The row the
- * editor came from is closed by then, and the list may replace the row as it
- * takes its first item, so for a moment after the close every render that
- * finds focus lost (on the body or the workspace) moves it to the row.
- */
-function useReturnFocusToAddRow(panel: RefObject<HTMLElement | null>) {
-  const until = useRef(0);
-  useEffect(() => {
-    if (Date.now() > until.current) return;
-    const active = document.activeElement;
-    if (active === document.body || active?.id === "workspace-content")
-      panel.current?.querySelector<HTMLElement>(".quick-add")?.focus();
-  });
-  return useCallback(() => {
-    until.current = Date.now() + 1500;
-  }, []);
-}
-
 /** A panel's classes: the list column for a list layout, the page for a period grid. */
 function panelClasses(view: EventComponentView): string {
   return view === "week" || view === "month"
@@ -194,24 +174,29 @@ export function TasksPanel({
     overdue: false,
   });
   const [sort, setSort] = useState<TaskSort>("manual");
-  // The full editor for a new task opens from a quick add row, with what
-  // was typed there, the row's day, and its section.
-  const [adding, setAdding] = useState<{
-    displayName: string;
-    dueOn: string | null;
-    sectionId: string | null;
-  } | null>(null);
+  // The full editor for a new task opens from an add row's composer with
+  // its fields, and for a task from its row's composer.
+  const [adding, setAdding] = useState<Partial<TaskFields> | null>(null);
+  const composer = useComposerSlots();
   const panel = useRef<HTMLElement>(null);
-  const returnFocus = useReturnFocusToAddRow(panel);
+  const returnFocus = useReturnFocus(panel);
   const closeAdding = useCallback(() => {
     setAdding(null);
-    returnFocus();
+    returnFocus(addRowSelector);
   }, [returnFocus]);
   const [parent, setParent] = useState<SubtaskParent | null>(null);
-  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editing, setEditing] = useState<{
+    readonly id: string;
+    readonly start: Partial<TaskFields>;
+  } | null>(null);
+  const closeEditing = useCallback(() => {
+    setEditing((current) => {
+      if (current !== null) returnFocus(rowSelector(current.id));
+      return null;
+    });
+  }, [returnFocus]);
   const refresh = useRefreshEvent(eventId);
   const period = usePeriod(view);
-  const quickAdd = useQuickAddSlots();
   // The projection holds every task of the Event, so the tree is derived here.
   const tree = useMemo(() => deriveTaskTree(tasks), [tasks]);
   const labels = useLabelsQuery();
@@ -378,46 +363,44 @@ export function TasksPanel({
       ) : null}
       {filteredTasks.length === 0 && canEdit ? (
         <div className="quick-add-item quick-add-empty">
-          <QuickAddTask
+          <AddTaskRow
             dayLabel={view === "by-day" ? t("noDueDateGroup") : undefined}
             dueOn={null}
             eventId={eventId}
-            onDetails={(displayName, dueOn, sectionId) =>
-              setAdding({ displayName, dueOn, sectionId })
-            }
-            slots={quickAdd}
+            onMore={setAdding}
+            onRefresh={refresh}
+            slots={composer}
           />
         </div>
       ) : null}
       {filteredTasks.length === 0 ? null : (
         <TaskListView
           canEdit={canEdit}
+          composer={composer}
           eventId={eventId}
           labelNames={labels.data?.names}
           manual={sort === "manual"}
-          onAddDetails={(displayName, dueOn, sectionId) =>
-            setAdding({ displayName, dueOn, sectionId })
-          }
+          onAddDetails={setAdding}
           onAddSubtask={addSubtask}
-          onEdit={setEditingId}
+          onEdit={(id, start) => setEditing({ id, start })}
           onRefresh={refresh}
           parents={tree.parents}
           period={period}
           personNames={persons.data?.names}
           progress={tree.progress}
-          quickAdd={quickAdd}
           sections={sections}
           tasks={filteredTasks}
           view={view}
         />
       )}
-      {canEdit && editingId ? (
+      {canEdit && editing !== null ? (
         <TaskInspector
-          key={editingId}
+          key={editing.id}
           eventId={eventId}
+          onClose={closeEditing}
           sections={sections}
-          taskId={editingId}
-          onClose={() => setEditingId(null)}
+          start={editing.start}
+          taskId={editing.id}
         />
       ) : null}
     </section>
@@ -1184,10 +1167,10 @@ export function RemindersPanel({
     remindAt: string;
   } | null>(null);
   const panel = useRef<HTMLElement>(null);
-  const returnFocus = useReturnFocusToAddRow(panel);
+  const returnFocus = useReturnFocus(panel);
   const closeAdding = useCallback(() => {
     setAdding(null);
-    returnFocus();
+    returnFocus(addRowSelector);
   }, [returnFocus]);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [announcement, setAnnouncement] = useState("");

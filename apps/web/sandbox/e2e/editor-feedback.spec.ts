@@ -48,9 +48,7 @@ test("explains empty Viewer panels and reports saved tasks offline", async ({
     .getByRole("button", { name: /^Add a task/ })
     .first()
     .click();
-  await page
-    .getByRole("button", { name: "Add task with details", exact: true })
-    .click();
+  await page.getByRole("button", { name: /^More: / }).click();
   await page.getByLabel("Task", { exact: true }).fill("Check the venue");
   await page.getByRole("button", { name: "Create task", exact: true }).click();
   await expect(page.getByRole("dialog")).toHaveCount(0);
@@ -64,9 +62,7 @@ test("explains empty Viewer panels and reports saved tasks offline", async ({
     .getByRole("button", { name: /^Add a task/ })
     .first()
     .click();
-  await page
-    .getByRole("button", { name: "Add task with details", exact: true })
-    .click();
+  await page.getByRole("button", { name: /^More: / }).click();
   await expect(page.getByLabel("Task", { exact: true })).toHaveValue("");
   await page.getByLabel("Task", { exact: true }).fill("Check the guest list");
   await expect(page.getByRole("status", { name: "Save status" })).toBeEmpty();

@@ -37,7 +37,8 @@ export function LabelPicker({
   );
 }
 
-function LabelChoices({
+/** The labels as a checklist with a field to add one: the picker's body and the chip's control. */
+export function LabelChoices({
   disabled,
   onChange,
   value,

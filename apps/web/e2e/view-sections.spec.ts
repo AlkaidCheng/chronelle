@@ -48,7 +48,7 @@ test("splits To-dos and Expenses into sections, places records by add row, edito
   });
   await expect(todos).toBeVisible();
   const quickAdd = async (name: string) => {
-    const field = todos.getByLabel("New task", { exact: true });
+    const field = todos.getByLabel("Task name", { exact: true });
     await todos
       .getByRole("button", { name: "Add a task to the list", exact: true })
       .click();
@@ -97,7 +97,7 @@ test("splits To-dos and Expenses into sections, places records by add row, edito
   await sectionOf("Catering")
     .getByRole("button", { name: "Add a task to Catering", exact: true })
     .click();
-  const field = todos.getByLabel("New task", { exact: true });
+  const field = todos.getByLabel("Task name", { exact: true });
   await field.fill("Book the caterer");
   await field.press("Enter");
   await expect(
@@ -126,7 +126,9 @@ test("splits To-dos and Expenses into sections, places records by add row, edito
   // Section field on the phone.
   const hall = todos.getByRole("row", { name: /Book the hall/ });
   if (isMobile) {
+    // The row's Edit opens it in place; More reaches the dialog's Section.
     await chooseRowAction(page, hall, "Edit");
+    await page.getByRole("button", { name: /^More: / }).click();
     const taskEditor = page.getByRole("dialog", { name: "Edit task" });
     await taskEditor.getByLabel("Section", { exact: true }).selectOption({
       label: "Music",

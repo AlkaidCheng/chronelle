@@ -49,15 +49,24 @@ export async function exerciseTasksPage(page: Page, member: string) {
   // Outside any event, the row names none.
   await expect(row.getByRole("link", { name: /^in / })).toHaveCount(0);
 
-  // A label added from the editor is selected at once, shows on the row,
-  // and filters the list.
+  // A label added from the row's Labels chip is selected at once, shows on
+  // the row, and filters the list.
   await chooseRowAction(page, row, "Edit");
-  const edit = page.getByRole("dialog", { name: "Edit task", exact: true });
-  await edit.getByText("Labels", { exact: true }).click();
-  await edit.getByPlaceholder("New label").fill("Paperwork");
-  await edit.getByRole("button", { name: "Add label", exact: true }).click();
-  await expect(edit.getByRole("checkbox", { name: "Paperwork" })).toBeChecked();
-  await edit.getByRole("button", { name: "Save task", exact: true }).click();
+  const edit = page.getByRole("form", {
+    name: "Edit Renew the passport",
+    exact: true,
+  });
+  await edit.getByRole("button", { name: "Labels", exact: true }).click();
+  const labels = page.getByRole("dialog", { name: "Labels", exact: true });
+  await labels.getByPlaceholder("New label").fill("Paperwork");
+  await labels.getByRole("button", { name: "Add label", exact: true }).click();
+  await expect(
+    labels.getByRole("checkbox", { name: "Paperwork" }),
+  ).toBeChecked();
+  await expect(
+    edit.getByRole("button", { name: "Labels: Paperwork", exact: true }),
+  ).toBeVisible();
+  await edit.getByRole("button", { name: "Save", exact: true }).click();
   await expect(edit).toHaveCount(0);
   await expect(
     row.getByRole("list", { name: "Labels" }).getByText("Paperwork"),
@@ -70,16 +79,22 @@ export async function exerciseTasksPage(page: Page, member: string) {
   await expect(row).toBeVisible();
   await chooseFilter(page, "Any label");
 
-  // Assign to me creates the signed-in user's person and selects it; the
-  // row names the assignee and the Me filter finds the task.
+  // Assign to me, on the row's Assignee chip, creates the signed-in user's
+  // person and selects it; the row names the assignee and the Me filter
+  // finds the task.
   await chooseRowAction(page, row, "Edit");
-  await edit.getByText("Assignee: Unassigned", { exact: true }).click();
-  await edit.getByRole("button", { name: "Assign to me", exact: true }).click();
+  await edit.getByRole("button", { name: "Assignee", exact: true }).click();
+  const assignee = page.getByRole("dialog", { name: "Assignee", exact: true });
+  await assignee
+    .getByRole("button", { name: "Assign to me", exact: true })
+    .click();
   await expect(
-    edit.getByRole("radio", { name: `${member} (me)`, exact: true }),
+    assignee.getByRole("radio", { name: `${member} (me)`, exact: true }),
   ).toBeChecked();
-  await expect(edit.getByText(`Assignee: ${member}`)).toBeVisible();
-  await edit.getByRole("button", { name: "Save task", exact: true }).click();
+  await expect(
+    edit.getByRole("button", { name: `Assignee: ${member}`, exact: true }),
+  ).toBeVisible();
+  await edit.getByRole("button", { name: "Save", exact: true }).click();
   await expect(edit).toHaveCount(0);
   await expect(row.getByText(`Assigned to ${member}`)).toBeAttached();
   await chooseFilter(page, "Me");

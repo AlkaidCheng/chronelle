@@ -92,9 +92,12 @@ export async function createFirstPlan(page: Page, testInfo: TestInfo) {
     page,
     page.getByRole("button", { name: "Add a task to the list", exact: true }),
   );
+  // The add row opens the composer with the name focused; More at its foot
+  // reaches the full editor.
+  await expect(page.getByLabel("Task name", { exact: true })).toBeFocused();
   await activateWithKeyboard(
     page,
-    page.getByRole("button", { name: "Add task with details", exact: true }),
+    page.getByRole("button", { name: /^More: / }),
   );
   await expect(page.getByLabel("Task", { exact: true })).toBeFocused();
   expect(
