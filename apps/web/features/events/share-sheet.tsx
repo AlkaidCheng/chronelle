@@ -3,9 +3,11 @@
 import type { ShareResponse, ShareScope } from "@chronelle/schemas";
 import { useTranslations } from "next-intl";
 import {
+  type RefObject,
   useCallback,
   useEffect,
   useId,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -41,6 +43,68 @@ export function grantHasScope(
 }
 
 /**
+ * Keeps the sheet against the viewport under the right edge of the head
+ * or control that opened it, above it when only that side has room, and
+ * re-places it as the page or a list scrolls. The sheet is fixed rather
+ * than absolute because a section's head sits inside a scrolling list
+ * that would clip it; on a phone the stylesheet makes it a bottom sheet
+ * and the position is left alone.
+ */
+function useSheetPlacement(sheet: RefObject<HTMLDivElement | null>) {
+  useLayoutEffect(() => {
+    const element = sheet.current;
+    const opener = element?.parentElement;
+    if (!element || !opener) return;
+    const place = () => {
+      if (
+        typeof window.matchMedia === "function" &&
+        window.matchMedia("(max-width: 600px)").matches
+      ) {
+        element.style.left = "";
+        element.style.top = "";
+        element.style.maxHeight = "";
+        return;
+      }
+      const gap = 6;
+      const edge = 12;
+      const anchor = opener.getBoundingClientRect();
+      element.style.maxHeight = "";
+      const height = element.offsetHeight;
+      const below = window.innerHeight - anchor.bottom - gap - edge;
+      const above = anchor.top - gap - edge;
+      let top = anchor.bottom + gap;
+      let room = below;
+      if (height > below && height <= above) {
+        top = anchor.top - gap - height;
+        room = above;
+      } else if (height > below) {
+        room = Math.min(height, window.innerHeight - 2 * edge);
+        top = Math.min(top, window.innerHeight - edge - room);
+      }
+      element.style.maxHeight = `${Math.max(160, room)}px`;
+      const left = Math.min(
+        Math.max(edge, anchor.right - element.offsetWidth),
+        window.innerWidth - element.offsetWidth - edge,
+      );
+      element.style.top = `${Math.max(edge, top)}px`;
+      element.style.left = `${left}px`;
+    };
+    const onScroll = (event: Event) => {
+      if (event.target instanceof Node && element.contains(event.target))
+        return;
+      place();
+    };
+    place();
+    window.addEventListener("resize", place);
+    window.addEventListener("scroll", onScroll, true);
+    return () => {
+      window.removeEventListener("resize", place);
+      window.removeEventListener("scroll", onScroll, true);
+    };
+  }, [sheet]);
+}
+
+/**
  * The sheet that shares one view of an Event, or one section of it,
  * under the control that opened it: the people who see it with their
  * role, Add people unfolding the picker, and Done. Escape and a press
@@ -71,6 +135,7 @@ export function ShareSheet({
   const persons = usePersonsQuery();
   const friends = useFriendsQuery();
   const [adding, setAdding] = useState(false);
+  useSheetPlacement(sheet);
 
   useEffect(() => {
     sheet.current
