@@ -295,7 +295,7 @@ export async function exerciseObjectRecovery(
   await page.getByRole("button", { name: "Cancel", exact: true }).click();
   await expect(
     page
-      .getByRole(rowRole)
+      .getByRole("article")
       .filter({ hasText: "Pack the lanterns and candles" }),
   ).toHaveCount(1);
 }
