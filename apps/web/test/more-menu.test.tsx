@@ -61,8 +61,9 @@ it("opens a menu with Trash, Theme, Customize sidebar, Keyboard shortcuts, and H
     "/trash",
   );
   expect(within(menu).getByRole("menuitem", { name: "Trash" })).toHaveFocus();
-  // Keyboard shortcuts and Help have no surface yet: choosing one closes
-  // the menu and says so in a passing notice.
+  // Help has no surface yet: choosing it closes the menu and says so in a
+  // passing notice. Keyboard shortcuts opens the command palette; the
+  // palette's own tests cover that.
   await user.keyboard("{End}");
   expect(within(menu).getByRole("menuitem", { name: "Help" })).toHaveFocus();
   await user.keyboard("{Enter}");

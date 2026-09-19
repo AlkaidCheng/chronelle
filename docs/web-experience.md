@@ -55,9 +55,13 @@ ships later appends in its default place. The bottom bar on a phone lists the
 collections in the kept order; arranging them is a desktop task, and More does not
 offer it there.
 
-More holds what acts on the app rather than on records: Trash, Theme, and
-Customize sidebar. Theme opens a panel beside the rail with the mode (System,
-Light, Dark), the palette, density, and motion choices, and a reset. The
+More holds what acts on the app rather than on records: Trash, Theme,
+Customize sidebar, Keyboard shortcuts, and Help. Theme opens a panel beside
+the rail with the mode (System, Light, Dark), the palette, density, and
+motion choices, and a reset. Keyboard shortcuts opens the command palette at
+its Keyboard shortcuts section, expanded with its first choice focused, so
+the shortcut settings and their reset are reached without typing; Help has
+no surface yet and says so in a passing notice. The
 profile block at the foot of the rail opens the account menu: the account,
 the workspaces the person can open (the current one checked), Settings, and
 Sign out. Escape or a press elsewhere closes any of these and returns focus to

@@ -3,6 +3,7 @@
 import { usePathname, useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useEffect, useId, useRef, useState } from "react";
+import type { CommandPaletteSection } from "../lib/command-palette";
 import { flushSync } from "react-dom";
 import { useAuthSession } from "../lib/auth-session";
 import { useCommandSearch } from "../lib/use-command-search";
@@ -48,11 +49,14 @@ export function WorkspaceCommands({
   shortcutEnabled,
   onShortcutChange,
   onClose,
+  section,
 }: {
   readonly workspaceName: string;
   readonly shortcutEnabled: boolean;
   readonly onShortcutChange: (enabled: boolean) => void;
   readonly onClose: () => void;
+  /** Opened at the Keyboard shortcuts section, expanded, its first control focused. */
+  readonly section?: CommandPaletteSection | undefined;
 }) {
   const t = useTranslations("commands");
   const nav = useTranslations("nav");
@@ -73,6 +77,7 @@ export function WorkspaceCommands({
   const componentShortcut = useComponentShortcut();
   const editorShortcut = useEditorShortcut();
   const input = useRef<HTMLInputElement>(null);
+  const firstShortcutControl = useRef<HTMLInputElement>(null);
   const activeOption = useRef<HTMLButtonElement>(null);
   const [isComposing, setIsComposing] = useState(false);
   const backdropPress = useRef(false);
@@ -103,8 +108,9 @@ export function WorkspaceCommands({
   useEffect(() => {
     if (selectedId === null && firstMatchId) setSelectedId(firstMatchId);
   }, [selectedId, firstMatchId]);
+  // biome-ignore lint/correctness/useExhaustiveDependencies: The section decides the first focus once, at mount.
   useEffect(() => {
-    input.current?.focus();
+    (section === "shortcuts" ? firstShortcutControl : input).current?.focus();
   }, []);
   // biome-ignore lint/correctness/useExhaustiveDependencies: The selected command changes which option must be visible.
   useEffect(() => {
@@ -321,7 +327,7 @@ export function WorkspaceCommands({
             {t("openFull")}
           </button>
         )}
-        <details className="command-help">
+        <details className="command-help" open={section === "shortcuts"}>
           <summary>{t("shortcuts")}</summary>
           <p>
             {t.rich("openShortcut", {
@@ -335,6 +341,7 @@ export function WorkspaceCommands({
           </p>
           <label>
             <input
+              ref={firstShortcutControl}
               type="checkbox"
               checked={shortcutEnabled}
               onChange={(event) => onShortcutChange(event.target.checked)}

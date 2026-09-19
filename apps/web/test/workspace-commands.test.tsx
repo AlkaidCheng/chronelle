@@ -9,6 +9,8 @@ import {
 import userEvent from "@testing-library/user-event";
 import { StrictMode, useRef, useState } from "react";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
+import { MoreMenu } from "../components/more-menu";
+import { NoticesProvider } from "../components/notices";
 import { SearchEntry } from "../components/search-entry";
 import { AuthSessionProvider, useAuthSession } from "../lib/auth-session";
 import { useComponentShortcut } from "../lib/use-component-shortcut";
@@ -243,6 +245,52 @@ it.each(["ctrlKey", "metaKey"])(
     expect(trigger()).toHaveFocus();
   },
 );
+
+it("opens at the Keyboard shortcuts section from More, and closing returns focus to More", async () => {
+  render(
+    <AuthSessionProvider>
+      <NoticesProvider>
+        <div className="workspace-shell">
+          <SearchEntry workspaceName="Personal" />
+          <MoreMenu onCustomize={() => undefined} />
+          <div id="workspace-content" tabIndex={-1} />
+        </div>
+      </NoticesProvider>
+    </AuthSessionProvider>,
+  );
+  const user = userEvent.setup();
+  const more = screen.getByRole("button", { name: "More" });
+  await user.click(more);
+  await user.click(
+    screen.getByRole("menuitem", { name: "Keyboard shortcuts" }),
+  );
+  expect(screen.queryByRole("menu")).not.toBeInTheDocument();
+  expect(palette()).toBeVisible();
+  const details = palette().querySelector("details.command-help");
+  expect(details).toHaveAttribute("open");
+  const enable = screen.getByRole("checkbox", {
+    name: "Enable command shortcut",
+  });
+  expect(enable).toHaveFocus();
+  expect(
+    screen.getByRole("button", { name: "Reset keyboard shortcuts" }),
+  ).toBeVisible();
+  // The search field is still there, unfocused, for a search from here.
+  expect(
+    screen.getByRole("combobox", { name: "Find a command" }),
+  ).not.toHaveFocus();
+  fireEvent(palette(), new Event("cancel", { cancelable: true }));
+  expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  expect(more).toHaveFocus();
+  // From the entry itself the section stays folded and the field has focus.
+  await user.click(trigger());
+  expect(palette().querySelector("details.command-help")).not.toHaveAttribute(
+    "open",
+  );
+  expect(
+    screen.getByRole("combobox", { name: "Find a command" }),
+  ).toHaveFocus();
+});
 
 it("supports disable, reload, storage synchronization, and a visible fallback", async () => {
   const user = setup();
