@@ -4,6 +4,38 @@ const idSchema = z.uuid();
 const dateTimeSchema = z.iso.datetime();
 
 export const roleSchema = z.enum(["owner", "editor", "viewer"]);
+
+/** The views of an Event a share can be narrowed to. */
+export const shareViewSchema = z.enum([
+  "todos",
+  "calendar",
+  "itinerary",
+  "expenses",
+  "reminders",
+  "notes",
+]);
+
+/**
+ * The narrowing of a share: one view of the Event, and one of the view's
+ * sections when `sectionId` names one (To-dos and Expenses only). A share
+ * without a scope covers the whole record.
+ */
+export const shareScopeSchema = z.object({
+  view: shareViewSchema,
+  sectionId: idSchema.nullable().default(null),
+});
+
+/**
+ * What of an Event a viewer sees through narrowed shares alone: the views
+ * shared whole and the sections shared on their own. Null when the viewer
+ * sees all of it.
+ */
+export const shareNarrowingSchema = z
+  .object({
+    views: z.array(shareViewSchema),
+    sections: z.array(z.object({ id: idSchema, view: shareViewSchema })),
+  })
+  .nullable();
 export const authorizationActionSchema = z.enum([
   "view",
   "comment",
@@ -16,8 +48,10 @@ export const authorizationActionSchema = z.enum([
 /**
  * A share names its grantee as an account email, as a Person of the
  * workspace (whose linked account, else the one account with the person's
- * email, receives the role), or as a friend of the acting account by the
- * connection's id.
+ * email, receives the role), as a friend of the acting account by the
+ * connection's id, or as the id of an account that already holds a share
+ * of the record (changing its role). `scope` narrows the share to one view
+ * of an Event, or to one section of that view.
  */
 export const shareCreateRequestSchema = z
   .object({
@@ -28,14 +62,19 @@ export const shareCreateRequestSchema = z
       .optional(),
     personId: idSchema.optional(),
     friendId: idSchema.optional(),
+    principalId: idSchema.optional(),
     role: roleSchema,
+    scope: shareScopeSchema.optional(),
   })
   .refine(
     (value) =>
-      [value.principalEmail, value.personId, value.friendId].filter(
-        (grantee) => grantee !== undefined,
-      ).length === 1,
-    "Name exactly one of principalEmail, personId, and friendId.",
+      [
+        value.principalEmail,
+        value.personId,
+        value.friendId,
+        value.principalId,
+      ].filter((grantee) => grantee !== undefined).length === 1,
+    "Name exactly one of principalEmail, personId, friendId, and principalId.",
   );
 
 /**
@@ -86,6 +125,7 @@ export const shareResponseSchema = z.object({
   grantedBy: idSchema,
   createdAt: dateTimeSchema,
   expiresAt: dateTimeSchema.nullable(),
+  scope: shareScopeSchema.nullable().default(null),
 });
 
 export const shareListResponseSchema = z.object({
@@ -120,6 +160,7 @@ export const personShareSchema = z.object({
   displayName: z.string(),
   role: roleSchema,
   createdAt: dateTimeSchema,
+  scope: shareScopeSchema.nullable().default(null),
 });
 
 export const personShareListResponseSchema = z.object({
@@ -155,6 +196,8 @@ export const objectAccessResponseSchema = z.object({
   resourceId: idSchema,
   actions: z.array(authorizationActionSchema),
   source: accessSourceSchema,
+  /** For an Event: the views and sections narrowed shares open, or null for all of it. */
+  narrowing: shareNarrowingSchema.default(null),
 });
 
 export const permissionScopeUpdateRequestSchema = z.object({
@@ -162,6 +205,9 @@ export const permissionScopeUpdateRequestSchema = z.object({
   permissionScopeId: idSchema,
 });
 
+export type ShareView = z.infer<typeof shareViewSchema>;
+export type ShareScope = z.infer<typeof shareScopeSchema>;
+export type ShareNarrowing = z.infer<typeof shareNarrowingSchema>;
 export type ShareCreateRequest = z.infer<typeof shareCreateRequestSchema>;
 export type ShareCreatePayload = z.input<typeof shareCreateRequestSchema>;
 export type ShareResponse = z.infer<typeof shareResponseSchema>;

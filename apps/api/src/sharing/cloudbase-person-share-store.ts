@@ -9,6 +9,7 @@ import {
   roles,
 } from "@chronelle/db";
 
+import { cloudbaseScopeJson } from "@chronelle/object-model";
 import { instant, record, text } from "../identity/cloudbase-rows.js";
 import type {
   PersonShareStore,
@@ -36,6 +37,7 @@ function shareView(value: unknown): PersonShareView {
     displayName: text(row.displayName, "displayName"),
     role: oneOf(row.role, roles, "role"),
     createdAt: instant(row.createdAt, "createdAt"),
+    scope: cloudbaseScopeJson(row.scope),
   };
 }
 

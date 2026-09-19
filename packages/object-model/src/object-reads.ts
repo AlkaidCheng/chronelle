@@ -2,6 +2,7 @@ import {
   AuthorizationDeniedError,
   withReadAuthorization,
   type AuthorizationAction,
+  type GrantNarrowing,
   type AuthorizationDatabase,
   type UserPrincipal,
 } from "@chronelle/authorization";
@@ -51,6 +52,8 @@ export type AccessSource =
 export interface ObjectAccess {
   readonly actions: readonly AuthorizationAction[];
   readonly source: AccessSource;
+  /** For an Event: what of it narrowed grants open; null for all of it. */
+  readonly narrowing: GrantNarrowing | null;
 }
 
 /**
@@ -156,13 +159,15 @@ export class PostgresObjectReadRepository implements ObjectReadRepository {
           objectId,
           "view",
         );
-        const actions = await authorization.allowedActions(principal, {
-          id: objectId,
-          workspaceId: principal.workspaceId,
-        });
+        const resource = { id: objectId, workspaceId: principal.workspaceId };
+        const [actions, narrowing] = await Promise.all([
+          authorization.allowedActions(principal, resource),
+          authorization.narrowing(principal, resource),
+        ]);
         return {
           actions,
           source: await readAccessSource(transaction, principal, object),
+          narrowing,
         };
       },
     );

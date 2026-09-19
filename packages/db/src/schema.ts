@@ -33,6 +33,18 @@ export type Role = (typeof roles)[number];
 export const principalTypes = ["user"] as const;
 export type PrincipalType = (typeof principalTypes)[number];
 
+/** The views of an Event a grant can be narrowed to; "all" is the whole Event. */
+export const grantScopes = [
+  "all",
+  "todos",
+  "calendar",
+  "itinerary",
+  "expenses",
+  "reminders",
+  "notes",
+] as const;
+export type GrantScope = (typeof grantScopes)[number];
+
 export const relationTypes = [
   "includes",
   "reminds_about",
@@ -384,6 +396,14 @@ export const resourceGrants = pgTable("resource_grants", {
   grantedBy: uuid("granted_by").notNull(),
   createdAt: createCreatedAtColumn(),
   expiresAt: timestamp("expires_at", { mode: "date", withTimezone: true }),
+  /** The view the grant is narrowed to; "all" for the whole resource. */
+  scope: text("scope").$type<GrantScope>().notNull().default("all"),
+  /** The section the grant is narrowed to, with a "todos" or "expenses" scope. */
+  sectionId: uuid("section_id"),
+  /** scope and section as one key, so one grant stands per scope of a resource and principal. */
+  scopeKey: text("scope_key")
+    .notNull()
+    .generatedAlwaysAs(sql`scope || ':' || COALESCE(section_id::text, '')`),
 });
 
 export const auditEvents = pgTable("audit_events", {

@@ -17,6 +17,7 @@ import {
   cloudbaseDate,
   cloudbaseNullableDate,
   cloudbaseNullableText,
+  cloudbaseScopeJson,
   cloudbaseResourceFromRows,
   cloudbaseText,
 } from "./cloudbase-read-support.js";
@@ -52,6 +53,17 @@ export class CloudBaseSharingWriteRepository
         : { principal_email: input.principalEmail }),
       ...(input.personId === undefined ? {} : { person_id: input.personId }),
       ...(input.friendId === undefined ? {} : { friend_id: input.friendId }),
+      ...(input.principalId === undefined
+        ? {}
+        : { principal_id: input.principalId }),
+      ...(input.scope === undefined
+        ? {}
+        : {
+            scope: input.scope.view,
+            ...(input.scope.sectionId === null
+              ? {}
+              : { section_id: input.scope.sectionId }),
+          }),
     });
     return decodeGrant(row);
   }
@@ -136,6 +148,7 @@ function decodeGrant(row: unknown): ResourceGrantResource {
     grantedBy: cloudbaseText(grant.granted_by, "granted_by"),
     createdAt: cloudbaseDate(grant.created_at, "created_at"),
     expiresAt: cloudbaseNullableDate(grant.expires_at, "expires_at"),
+    scope: cloudbaseScopeJson(grant.scope),
     principal: {
       id: cloudbaseText(principal.id, "principal id"),
       displayName: cloudbaseText(

@@ -1,12 +1,18 @@
 import {
   AuthorizationDeniedError,
+  type GrantNarrowing,
+  type ShareScope,
+  type ShareView,
   type UserPrincipal,
+  viewObjectTypes,
 } from "@chronelle/authorization";
 import {
+  grantScopes,
   personContactKinds,
   relationTypes,
   type CloudBaseRdbFilter,
   type CloudBaseRdbReader,
+  type GrantScope,
   type ObjectType,
   type ReminderStatus,
   type RelationType,
@@ -143,7 +149,182 @@ export type CloudBaseGrantRow = {
   readonly role: unknown;
   readonly expires_at: unknown;
   readonly granted_by?: unknown;
+  /** Absent from a row read without the column: the whole resource. */
+  readonly scope?: unknown;
+  readonly section_id?: unknown;
 };
+
+/** An active grant of the principal, with its narrowing. */
+export interface CloudBaseGrant {
+  readonly resourceId: string;
+  readonly role: string;
+  readonly grantedBy: string | null;
+  readonly scope: GrantScope;
+  readonly sectionId: string | null;
+}
+
+export const cloudbaseGrantColumns =
+  "resource_id,role,expires_at,granted_by,scope,section_id";
+
+/** Reads the principal's grants that are active at the instant, with their narrowing. */
+export async function readCloudBaseGrants(
+  client: CloudBaseRdbReader,
+  principal: UserPrincipal,
+  now: Date,
+): Promise<readonly CloudBaseGrant[]> {
+  const rows = await client.select<CloudBaseGrantRow>("resource_grants", {
+    columns: cloudbaseGrantColumns,
+    filters: cloudbaseFilters(
+      ["workspace_id", "eq", principal.workspaceId],
+      ["principal_type", "eq", "user"],
+      ["principal_id", "eq", principal.userId],
+    ),
+  });
+  return rows.flatMap((row) => {
+    const expiresAt = cloudbaseNullableDate(row.expires_at, "grant expiry");
+    if (expiresAt !== null && expiresAt <= now) return [];
+    const scope =
+      row.scope === undefined ? "all" : cloudbaseText(row.scope, "grant scope");
+    if (!grantScopes.includes(scope as GrantScope))
+      throw new Error("CloudBase returned an invalid grant scope.");
+    return [
+      {
+        resourceId: cloudbaseText(row.resource_id, "grant resource"),
+        role: cloudbaseText(row.role, "grant role"),
+        grantedBy:
+          row.granted_by === undefined
+            ? null
+            : cloudbaseText(row.granted_by, "granted_by"),
+        scope: scope as GrantScope,
+        sectionId:
+          row.section_id === undefined
+            ? null
+            : cloudbaseNullableText(row.section_id, "grant section"),
+      },
+    ];
+  });
+}
+
+/** A grant's narrowing from its `scope` and `section_id` columns; a row without the columns is whole. */
+export function cloudbaseGrantScope(
+  scope: unknown,
+  sectionId: unknown,
+): ShareScope | null {
+  const view =
+    scope === undefined ? "all" : cloudbaseText(scope, "grant scope");
+  if (!grantScopes.includes(view as GrantScope))
+    throw new Error("CloudBase returned an invalid grant scope.");
+  if (view === "all") return null;
+  return {
+    view: view as ShareView,
+    sectionId:
+      sectionId === undefined
+        ? null
+        : cloudbaseNullableText(sectionId, "grant section"),
+  };
+}
+
+/** A grant's narrowing as chronelle_resource_share returns it: null, or the view and section. */
+export function cloudbaseScopeJson(value: unknown): ShareScope | null {
+  if (value === undefined || value === null) return null;
+  if (typeof value !== "object")
+    throw new Error("CloudBase returned an invalid grant scope.");
+  const record = value as {
+    readonly view?: unknown;
+    readonly sectionId?: unknown;
+  };
+  const scope = cloudbaseGrantScope(record.view, record.sectionId ?? null);
+  if (scope === null)
+    throw new Error("CloudBase returned an invalid grant scope.");
+  return scope;
+}
+
+/**
+ * The records of the sections the principal's grants are narrowed to, by
+ * section, read once so a section-scoped grant can be applied to a row
+ * without its typed state.
+ */
+export async function readCloudBaseSectionMembers(
+  client: CloudBaseRdbReader,
+  principal: UserPrincipal,
+  grants: readonly CloudBaseGrant[],
+): Promise<ReadonlyMap<string, ReadonlySet<string>>> {
+  const members = new Map<string, Set<string>>();
+  const sectionIds = [
+    ...new Set(
+      grants.flatMap((grant) =>
+        grant.sectionId === null ? [] : [grant.sectionId],
+      ),
+    ),
+  ];
+  if (sectionIds.length === 0) return members;
+  for (const table of ["tasks", "expenses"] as const) {
+    const rows = await client.select<{
+      readonly object_id: unknown;
+      readonly section_id: unknown;
+    }>(table, {
+      columns: "object_id,section_id",
+      filters: cloudbaseFilters(
+        ["workspace_id", "eq", principal.workspaceId],
+        ["section_id", "in", sectionIds],
+      ),
+    });
+    for (const row of rows) {
+      const sectionId = cloudbaseText(row.section_id, "section");
+      const set = members.get(sectionId) ?? new Set<string>();
+      set.add(cloudbaseText(row.object_id, "object id"));
+      members.set(sectionId, set);
+    }
+  }
+  return members;
+}
+
+/**
+ * Whether a grant's narrowing admits a record reached through the grant's
+ * scope: a whole grant admits everything; a view admits the records it
+ * shows; a section admits its own tasks or expenses. The same rule as
+ * chronelle_grant_admits.
+ */
+export function cloudbaseGrantAdmits(
+  grant: CloudBaseGrant,
+  objectId: string,
+  objectType: string,
+  sectionMembers: ReadonlyMap<string, ReadonlySet<string>>,
+): boolean {
+  if (grant.scope === "all") return true;
+  if (!viewObjectTypes[grant.scope].includes(objectType)) return false;
+  return (
+    grant.sectionId === null ||
+    (sectionMembers.get(grant.sectionId)?.has(objectId) ?? false)
+  );
+}
+
+/**
+ * What of a resource the principal sees through narrowed grants alone,
+ * or null for all of it (a member, or a whole grant).
+ */
+export function cloudbaseNarrowing(
+  workspaceRole: string | null,
+  grants: readonly CloudBaseGrant[],
+  resourceId: string,
+): GrantNarrowing | null {
+  if (workspaceRole !== null) return null;
+  const own = grants.filter((grant) => grant.resourceId === resourceId);
+  if (own.some((grant) => grant.scope === "all")) return null;
+  const views = new Set<ShareView>();
+  const narrowed: { id: string; view: ShareView }[] = [];
+  for (const grant of own) {
+    if (grant.scope === "all") continue;
+    if (grant.sectionId === null) views.add(grant.scope);
+    else narrowed.push({ id: grant.sectionId, view: grant.scope });
+  }
+  return {
+    views: [...views].sort(),
+    sections: narrowed
+      .filter((section) => !views.has(section.view))
+      .sort((a, b) => a.id.localeCompare(b.id)),
+  };
+}
 
 type WorkspaceMemberRow = { readonly role: unknown };
 
@@ -688,13 +869,8 @@ export interface CloudBaseVisibility {
   readonly canView: (row: CloudBaseObjectRow) => boolean;
   readonly resourceIds: readonly string[];
   readonly workspaceRole: string | null;
-}
-
-function activeGrant(row: CloudBaseGrantRow, now: Date): boolean {
-  const role = cloudbaseText(row.role, "grant role");
-  if (!viewRoles.has(role)) return false;
-  const expiresAt = cloudbaseNullableDate(row.expires_at, "grant expiry");
-  return expiresAt === null || expiresAt > now;
+  /** What of a resource the principal sees through narrowed grants alone; null for all of it. */
+  readonly narrowing: (resourceId: string) => GrantNarrowing | null;
 }
 
 export async function readCloudBaseVisibility(
@@ -702,6 +878,7 @@ export async function readCloudBaseVisibility(
   principal: UserPrincipal,
   clock: () => Date,
 ): Promise<CloudBaseVisibility> {
+  const now = clock();
   const [membership, grants] = await Promise.all([
     client.select<WorkspaceMemberRow>("workspace_members", {
       columns: "role",
@@ -711,41 +888,46 @@ export async function readCloudBaseVisibility(
       ),
       limit: 1,
     }),
-    client.select<CloudBaseGrantRow>("resource_grants", {
-      columns: "resource_id,role,expires_at",
-      filters: cloudbaseFilters(
-        ["workspace_id", "eq", principal.workspaceId],
-        ["principal_type", "eq", "user"],
-        ["principal_id", "eq", principal.userId],
-      ),
-    }),
+    readCloudBaseGrants(client, principal, now),
   ]);
   const workspaceRole =
     membership[0] === undefined
       ? null
       : cloudbaseText(membership[0].role, "workspace role");
-  const now = clock();
-  const resourceIds = grants.map((grant) =>
-    cloudbaseText(grant.resource_id, "grant resource"),
+  const sectionMembers = await readCloudBaseSectionMembers(
+    client,
+    principal,
+    grants,
   );
+  const resourceIds = [...new Set(grants.map((grant) => grant.resourceId))];
   return {
     workspaceRole,
     resourceIds,
     canView: (row) => {
       if (workspaceRole !== null && viewRoles.has(workspaceRole)) return true;
       const objectId = cloudbaseText(row.id, "object id");
+      const objectType = cloudbaseText(row.object_type, "object type");
       const scopeId = cloudbaseText(
         row.permission_scope_id,
         "permission scope",
       );
+      // A grant on the object itself opens it whatever its narrowing; one
+      // on the object's scope reaches it only where the narrowing admits.
       return grants.some(
         (grant) =>
-          activeGrant(grant, now) &&
-          [objectId, scopeId].includes(
-            cloudbaseText(grant.resource_id, "grant resource"),
-          ),
+          viewRoles.has(grant.role) &&
+          (grant.resourceId === objectId ||
+            (grant.resourceId === scopeId &&
+              cloudbaseGrantAdmits(
+                grant,
+                objectId,
+                objectType,
+                sectionMembers,
+              ))),
       );
     },
+    narrowing: (resourceId) =>
+      cloudbaseNarrowing(workspaceRole, grants, resourceId),
   };
 }
 

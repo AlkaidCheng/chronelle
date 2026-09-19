@@ -855,6 +855,7 @@ describe.each(backends())("%s person shares", (name, backend) => {
         objectType: "event",
         displayName: "Spring cleaning",
         role: "viewer",
+        scope: null,
       },
       {
         id: ciderGrant.id,
@@ -864,6 +865,7 @@ describe.each(backends())("%s person shares", (name, backend) => {
         objectType: "task",
         displayName: "Order the cider",
         role: "viewer",
+        scope: null,
       },
       {
         id: kyotoGrant.id,
@@ -873,6 +875,7 @@ describe.each(backends())("%s person shares", (name, backend) => {
         objectType: "event",
         displayName: "Kyoto",
         role: "editor",
+        scope: null,
       },
     ]);
     for (const item of listed) expect(item.createdAt).toBeInstanceOf(Date);
@@ -909,6 +912,7 @@ describe.each(backends())("%s person shares", (name, backend) => {
         objectType: "event",
         displayName: "Kyoto",
         role: "viewer",
+        scope: null,
       },
     ]);
     const guest = { ...ben.principal, workspaceId: ana.workspaceId };

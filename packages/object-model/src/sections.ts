@@ -113,10 +113,8 @@ export class PostgresSectionRepository
     return withReadAuthorization(
       this.#database,
       async (transaction, authorization) => {
-        await authorization.assertCan(principal, "view", {
-          id: eventId,
-          workspaceId: principal.workspaceId,
-        });
+        const event = { id: eventId, workspaceId: principal.workspaceId };
+        await authorization.assertCan(principal, "view", event);
         const rows = await transaction
           .select()
           .from(sections)
@@ -128,7 +126,16 @@ export class PostgresSectionRepository
             ),
           )
           .orderBy(asc(sections.rank), asc(sections.id));
-        return rows.map(sectionResource);
+        // A viewer whose grants are narrowed sees the view's sections when
+        // the view is shared whole, else the sections shared on their own.
+        const narrowing = await authorization.narrowing(principal, event);
+        const shown =
+          narrowing === null || narrowing.views.includes(view)
+            ? rows
+            : rows.filter((row) =>
+                narrowing.sections.some((section) => section.id === row.id),
+              );
+        return shown.map(sectionResource);
       },
     );
   }

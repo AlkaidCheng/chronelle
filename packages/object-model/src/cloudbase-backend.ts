@@ -33,6 +33,8 @@ export const cloudBaseObjectModelFunctions: readonly string[] = [
   "chronelle_object_restore",
   "chronelle_resource_share",
   "chronelle_resource_share_revoke",
+  "chronelle_grant_admits",
+  "chronelle_section_visible",
   "chronelle_object_scope_update",
   "chronelle_object_search",
   "chronelle_event_layout_update",

@@ -87,7 +87,8 @@ export class CloudBaseObjectReadRepository implements ObjectReadRepository {
       actions: authorizationActions.filter((action) =>
         roles.some((role) => roleAllows(role, action)),
       ),
-      source: await this.#accessSource(access, object, scopes, objectId),
+      source: await this.#accessSource(access, object, scopes),
+      narrowing: access.narrowing(objectId),
     };
   }
 
@@ -95,23 +96,22 @@ export class CloudBaseObjectReadRepository implements ObjectReadRepository {
     access: CloudBasePrincipalAccess,
     object: CloudBaseObjectRow,
     scopes: ReadonlyMap<string, CloudBaseObjectRow>,
-    objectId: string,
   ): Promise<AccessSource> {
     if (access.workspaceRole !== null) return { kind: "own" };
     const scopeId = cloudbaseText(
       object.permission_scope_id,
       "permission scope",
     );
-    const direct = access.grantRoles.get(objectId);
-    if (direct !== undefined) {
-      const grantedBy = await this.#readAccount(access.grantors.get(objectId));
-      return { kind: "direct", grantedBy, role: direct };
+    const direct = access.directGrant(object);
+    if (direct !== null) {
+      const grantedBy = await this.#readAccount(direct.grantedBy);
+      return { kind: "direct", grantedBy, role: direct.role };
     }
-    const inherited = access.grantRoles.get(scopeId);
+    const inherited = access.inheritedGrant(object, scopes);
     const scope = scopes.get(scopeId);
-    if (inherited === undefined || scope === undefined)
+    if (inherited === null || scope === undefined)
       throw new AuthorizationDeniedError();
-    const grantedBy = await this.#readAccount(access.grantors.get(scopeId));
+    const grantedBy = await this.#readAccount(inherited.grantedBy);
     return {
       kind: "inherited",
       through: {
@@ -119,12 +119,12 @@ export class CloudBaseObjectReadRepository implements ObjectReadRepository {
         displayName: cloudbaseText(scope.display_name, "display name"),
       },
       grantedBy,
-      role: inherited,
+      role: inherited.role,
     };
   }
 
-  async #readAccount(id: string | undefined): Promise<AccountSummary> {
-    if (id === undefined) throw new AuthorizationDeniedError();
+  async #readAccount(id: string | null): Promise<AccountSummary> {
+    if (id === null) throw new AuthorizationDeniedError();
     const [row] = await this.#client.select<UserNameRow>("users", {
       columns: "id,display_name",
       filters: cloudbaseFilters(["id", "eq", id]),

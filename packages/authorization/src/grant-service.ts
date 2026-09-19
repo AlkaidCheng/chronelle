@@ -5,6 +5,7 @@ import {
   persons,
   resourceGrants,
   runAuditedMutation,
+  sections,
   userConnections,
   users,
   type Database,
@@ -16,6 +17,7 @@ import { and, eq, isNull, or } from "drizzle-orm";
 import {
   AuthorizationDeniedError,
   type AuthorizationService,
+  type ShareScope,
   type UserPrincipal,
 } from "./authorization.js";
 import { withStableAuthorization } from "./authorization-transaction.js";
@@ -43,14 +45,22 @@ export interface GrantMutationContext {
   readonly requestId: string;
 }
 
-/** The grantee is an account email, a Person, or a friend; exactly one is named. */
+/**
+ * The grantee is an account email, a Person, a friend, or the id of an
+ * account that already holds a grant on the resource; exactly one is
+ * named. A `scope` narrows the share to one view of an Event, and to one
+ * of the view's sections when it names one.
+ */
 export interface ShareResourceInput {
   readonly principalEmail?: string | undefined;
   readonly personId?: string | undefined;
   /** An accepted connection of the acting account; the other side receives the role. */
   readonly friendId?: string | undefined;
+  /** An account already granted on the resource, as the share sheet changes its role. */
+  readonly principalId?: string | undefined;
   readonly resourceId: string;
   readonly role: Role;
+  readonly scope?: ShareScope | undefined;
 }
 
 export interface ResourceGrantResource {
@@ -65,6 +75,8 @@ export interface ResourceGrantResource {
   };
   readonly resourceId: string;
   readonly role: Role;
+  /** The view and section the grant is narrowed to; null for the whole resource. */
+  readonly scope: ShareScope | null;
   readonly workspaceId: string;
 }
 
@@ -91,7 +103,59 @@ export interface ShareWriteRepository {
 }
 
 const granteeRule =
-  "Name exactly one of principalEmail, personId, and friendId.";
+  "Name exactly one of principalEmail, personId, friendId, and principalId.";
+
+/** The grant's narrowing as the API reads it. */
+export function grantScopeOf(grant: {
+  readonly scope: string;
+  readonly sectionId: string | null;
+}): ShareScope | null {
+  return grant.scope === "all"
+    ? null
+    : { view: grant.scope as ShareScope["view"], sectionId: grant.sectionId };
+}
+
+/**
+ * A narrowed share names an Event, and its section belongs to that
+ * Event's view of the same name.
+ */
+async function assertScope(
+  transaction: DatabaseTransaction,
+  principal: UserPrincipal,
+  input: ShareResourceInput,
+): Promise<void> {
+  if (input.scope === undefined) return;
+  const [event] = await transaction
+    .select({ id: objects.id })
+    .from(objects)
+    .where(
+      and(
+        eq(objects.workspaceId, principal.workspaceId),
+        eq(objects.id, input.resourceId),
+        eq(objects.objectType, "event"),
+      ),
+    )
+    .limit(1);
+  if (event === undefined)
+    throw new InvalidShareError("A share narrowed to a view names an Event.");
+  if (input.scope.sectionId === null) return;
+  const [section] = await transaction
+    .select({ id: sections.id })
+    .from(sections)
+    .where(
+      and(
+        eq(sections.id, input.scope.sectionId),
+        eq(sections.workspaceId, principal.workspaceId),
+        eq(sections.eventId, input.resourceId),
+        eq(sections.view, input.scope.view as "todos" | "expenses"),
+      ),
+    )
+    .limit(1);
+  if (section === undefined)
+    throw new InvalidShareError(
+      "The section is not a section of that view of the Event.",
+    );
+}
 
 /**
  * The account a share goes to: the one user with the named email, the
@@ -107,10 +171,35 @@ async function resolvePrincipal(
   principal: UserPrincipal,
   input: ShareResourceInput,
 ): Promise<{ id: string; displayName: string; email: string | null }> {
-  const named = [input.principalEmail, input.personId, input.friendId].filter(
-    (grantee) => grantee !== undefined,
-  ).length;
+  const named = [
+    input.principalEmail,
+    input.personId,
+    input.friendId,
+    input.principalId,
+  ].filter((grantee) => grantee !== undefined).length;
   if (named !== 1) throw new InvalidShareError(granteeRule);
+  if (input.principalId !== undefined) {
+    const [account] = await transaction
+      .select({
+        id: users.id,
+        displayName: users.displayName,
+        email: users.email,
+      })
+      .from(users)
+      .innerJoin(
+        resourceGrants,
+        and(
+          eq(resourceGrants.workspaceId, principal.workspaceId),
+          eq(resourceGrants.resourceId, input.resourceId),
+          eq(resourceGrants.principalType, "user"),
+          eq(resourceGrants.principalId, users.id),
+        ),
+      )
+      .where(eq(users.id, input.principalId))
+      .limit(1);
+    if (account === undefined) throw new PrincipalUnavailableError();
+    return account;
+  }
   if (input.friendId !== undefined) {
     const [connection] = await transaction
       .select({
@@ -235,6 +324,7 @@ export class ResourceGrantService {
           id: input.resourceId,
           workspaceId: context.principal.workspaceId,
         });
+        await assertScope(transaction, context.principal, input);
         const principal = await resolvePrincipal(
           transaction,
           authorization,
@@ -259,6 +349,8 @@ export class ResourceGrantService {
                 principalId: principal.id,
                 role: input.role,
                 grantedBy: context.principal.userId,
+                scope: input.scope?.view ?? "all",
+                sectionId: input.scope?.sectionId ?? null,
               })
               .onConflictDoUpdate({
                 target: [
@@ -266,6 +358,7 @@ export class ResourceGrantService {
                   resourceGrants.resourceId,
                   resourceGrants.principalType,
                   resourceGrants.principalId,
+                  resourceGrants.scopeKey,
                 ],
                 set: {
                   role: input.role,
@@ -297,13 +390,14 @@ export class ResourceGrantService {
                   ...(input.friendId === undefined
                     ? {}
                     : { friendId: input.friendId }),
+                  ...(input.scope === undefined ? {} : { scope: input.scope }),
                 },
               },
             };
           },
         );
 
-        return { ...grant, principal };
+        return { ...grant, scope: grantScopeOf(grant), principal };
       },
     );
   }

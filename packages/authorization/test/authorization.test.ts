@@ -43,6 +43,7 @@ describe("AuthorizationService", () => {
       findResourceRoles: vi.fn(),
       findWorkspaceRole: vi.fn(),
       hasWorkspaceAccess: vi.fn(),
+      findGrantNarrowing: vi.fn(),
       listAccessibleWorkspaceIds: vi.fn(),
     };
     const policy = new AuthorizationService(store, () => evaluatedAt);
@@ -67,6 +68,7 @@ describe("AuthorizationService", () => {
         .mockResolvedValue(new Map([[resource.id, ["viewer"]]])),
       findWorkspaceRole: vi.fn(),
       hasWorkspaceAccess: vi.fn(),
+      findGrantNarrowing: vi.fn(),
       listAccessibleWorkspaceIds: vi.fn(),
     };
     const policy = new AuthorizationService(store, clock);
@@ -117,6 +119,7 @@ describe("AuthorizationService", () => {
       findResourceRoles: vi.fn().mockRejectedValue(failure),
       findWorkspaceRole: vi.fn(),
       hasWorkspaceAccess: vi.fn(),
+      findGrantNarrowing: vi.fn(),
       listAccessibleWorkspaceIds: vi.fn(),
     };
     const policy = new AuthorizationService(store);
@@ -139,6 +142,7 @@ describe("AuthorizationService", () => {
           .mockResolvedValue(new Map([[resource.id, ["owner"]]])),
         findWorkspaceRole: vi.fn().mockResolvedValue(role),
         hasWorkspaceAccess: vi.fn(),
+        findGrantNarrowing: vi.fn(),
         listAccessibleWorkspaceIds: vi.fn(),
       };
       const check = new AuthorizationService(store).assertWorkspaceOwner(
@@ -159,6 +163,7 @@ describe("AuthorizationService", () => {
       findResourceRoles: vi.fn().mockResolvedValue(new Map()),
       findWorkspaceRole: vi.fn(),
       hasWorkspaceAccess: vi.fn(),
+      findGrantNarrowing: vi.fn(),
       listAccessibleWorkspaceIds: vi.fn(),
     };
     const authorization = new AuthorizationService(store);
@@ -185,6 +190,7 @@ describe("AuthorizationService", () => {
         .mockResolvedValue(new Map([[resource.id, ["viewer", "editor"]]])),
       findWorkspaceRole: vi.fn().mockResolvedValue("owner"),
       hasWorkspaceAccess: vi.fn().mockResolvedValue(true),
+      findGrantNarrowing: vi.fn().mockResolvedValue(null),
       listAccessibleWorkspaceIds: vi.fn().mockResolvedValue([]),
     };
     const authorization = new AuthorizationService(store);
@@ -202,6 +208,7 @@ describe("AuthorizationService", () => {
       findResourceRoles,
       findWorkspaceRole: vi.fn(),
       hasWorkspaceAccess: vi.fn(),
+      findGrantNarrowing: vi.fn(),
       listAccessibleWorkspaceIds: vi.fn(),
     };
     const authorization = new AuthorizationService(store);
@@ -222,6 +229,7 @@ describe("AuthorizationService", () => {
       findResourceRoles: vi.fn().mockResolvedValue(new Map()),
       findWorkspaceRole: vi.fn().mockResolvedValue(null),
       hasWorkspaceAccess: vi.fn().mockResolvedValue(false),
+      findGrantNarrowing: vi.fn().mockResolvedValue(null),
       listAccessibleWorkspaceIds: vi.fn().mockResolvedValue([]),
     };
     const authorization = new AuthorizationService(store);
@@ -243,6 +251,7 @@ describe("AuthorizationService", () => {
       findResourceRoles: vi.fn(),
       findWorkspaceRole,
       hasWorkspaceAccess: vi.fn(),
+      findGrantNarrowing: vi.fn(),
       listAccessibleWorkspaceIds: vi.fn(),
     };
     const authorization = new AuthorizationService(store);
@@ -267,6 +276,7 @@ describe("AuthorizationService", () => {
         .mockResolvedValue(new Map([[resource.id, ["viewer", "owner"]]])),
       findWorkspaceRole: vi.fn(),
       hasWorkspaceAccess: vi.fn(),
+      findGrantNarrowing: vi.fn(),
       listAccessibleWorkspaceIds: vi.fn(),
     };
     const authorization = new AuthorizationService(store);

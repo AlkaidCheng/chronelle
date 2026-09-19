@@ -562,6 +562,7 @@ describe("CloudBaseGrantReadRepository", () => {
         grantedBy: ownerId,
         createdAt: new Date("2029-12-02T00:00:00.000Z"),
         expiresAt: null,
+        scope: null,
         principal: { id: readerId, displayName: "Reader", email: null },
       },
     ]);

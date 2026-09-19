@@ -340,6 +340,7 @@ export async function settlePendingShares(
             resourceGrants.resourceId,
             resourceGrants.principalType,
             resourceGrants.principalId,
+            resourceGrants.scopeKey,
           ],
           set: {
             role: pending.role,

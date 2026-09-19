@@ -3,7 +3,7 @@ import { and, asc, eq, gt, isNull, or } from "drizzle-orm";
 
 import type { UserPrincipal } from "./authorization.js";
 import { withReadAuthorization } from "./authorization-transaction.js";
-import type { ResourceGrantResource } from "./grant-service.js";
+import { grantScopeOf, type ResourceGrantResource } from "./grant-service.js";
 
 /**
  * Read boundary for the grants on one resource. Implementations evaluate the
@@ -47,6 +47,8 @@ export class PostgresGrantReadRepository implements GrantReadRepository {
             grantedBy: resourceGrants.grantedBy,
             createdAt: resourceGrants.createdAt,
             expiresAt: resourceGrants.expiresAt,
+            scope: resourceGrants.scope,
+            sectionId: resourceGrants.sectionId,
             principalId: users.id,
             principalDisplayName: users.displayName,
             principalEmail: users.email,
@@ -73,6 +75,7 @@ export class PostgresGrantReadRepository implements GrantReadRepository {
           grantedBy: grant.grantedBy,
           createdAt: grant.createdAt,
           expiresAt: grant.expiresAt,
+          scope: grantScopeOf(grant),
           principal: {
             id: grant.principalId,
             displayName: grant.principalDisplayName,

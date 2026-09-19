@@ -942,7 +942,17 @@ export class SandboxStore {
       const input = shareCreateRequestSchema.parse(body);
       const friends = this.#state.friends.friends;
       let principal: ShareResponse["principal"] | undefined;
-      if (input.friendId !== undefined) {
+      if (input.principalId !== undefined) {
+        // An account already granted on the record, as the share sheet
+        // changes its role.
+        const held = this.#state.shares.find(
+          (item) =>
+            item.resourceId === input.resourceId &&
+            item.principal.id === input.principalId,
+        );
+        if (held === undefined) throw unavailable();
+        principal = held.principal;
+      } else if (input.friendId !== undefined) {
         const friend = friends.find((item) => item.id === input.friendId);
         if (friend === undefined) throw unavailable();
         principal = {
@@ -969,6 +979,11 @@ export class SandboxStore {
           email: friend.email,
         };
       }
+      const scope = input.scope ?? null;
+      const sameScope = (item: ShareResponse) =>
+        item.scope?.view === scope?.view &&
+        (item.scope?.sectionId ?? null) === (scope?.sectionId ?? null);
+      // One grant per scope of a record and person, refreshed in place.
       const grant: ShareResponse = {
         id: crypto.randomUUID(),
         workspaceId: sandboxWorkspaceId,
@@ -978,6 +993,7 @@ export class SandboxStore {
         grantedBy: userId,
         createdAt: timestamp,
         expiresAt: null,
+        scope,
       };
       this.#commit({
         ...this.#state,
@@ -985,7 +1001,8 @@ export class SandboxStore {
           ...this.#state.shares.filter(
             (item) =>
               item.resourceId !== grant.resourceId ||
-              item.principal.id !== principal.id,
+              item.principal.id !== principal.id ||
+              !sameScope(item),
           ),
           grant,
         ],
@@ -2070,6 +2087,7 @@ export class SandboxStore {
           resourceId: id,
           actions: role === "owner" ? ["view", "edit"] : ["view"],
           source: { kind: "own" },
+          narrowing: null,
         };
       if (operation === "sections") {
         const { view } = sectionListQuerySchema.parse(
