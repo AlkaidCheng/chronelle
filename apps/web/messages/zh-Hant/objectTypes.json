@@ -5,11 +5,13 @@
   "reminder": "提醒",
   "document": "檔案",
   "person": "夥伴",
+  "note": "筆記",
   "events": "活動",
   "tasks": "任務",
   "expenses": "支出",
   "reminders": "提醒",
   "documents": "檔案",
   "people": "夥伴",
+  "notes": "筆記",
   "scheduledEvent": "已安排的活動"
 }

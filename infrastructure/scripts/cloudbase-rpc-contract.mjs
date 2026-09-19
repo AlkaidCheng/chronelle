@@ -50,6 +50,11 @@ const families = {
     input: { email: "contract@example.test" },
     invalidChange: { email: "no-at-sign" },
   },
+  note: {
+    migration: "0060",
+    input: { body: "Contract note" },
+    invalidChange: { body: "x".repeat(20001) },
+  },
 };
 
 const required = [

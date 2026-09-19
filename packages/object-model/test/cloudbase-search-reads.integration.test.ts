@@ -443,7 +443,7 @@ describe.sequential("CloudBase search reads", () => {
     for (const [args, message] of [
       [{ page_limit: 0 }, "The page limit is invalid."],
       [{ page_limit: 51 }, "The page limit is invalid."],
-      [{ object_type: "note" }, "The object type is invalid."],
+      [{ object_type: "recipe" }, "The object type is invalid."],
       [{ query: "   " }, "The search query is invalid."],
     ] as const) {
       expect(await call(args)).toMatchObject({

@@ -6,8 +6,14 @@ import {
   type Database,
   type DatabaseTransaction,
 } from "@chronelle/db";
+import type { NoteListQueryInput } from "@chronelle/schemas";
 import { and, eq, inArray, isNull } from "drizzle-orm";
 
+import {
+  type NotePage,
+  type NoteReadRepository,
+  PostgresNoteReadRepository,
+} from "./note-list.js";
 import { EventPlanningObjectService } from "./object-service.js";
 import { comparePersonNames } from "./person-list.js";
 import type {
@@ -17,6 +23,7 @@ import type {
   EventResource,
   EventResourceProjection,
   ExpenseResourceProjection,
+  NoteResource,
   PersonResource,
   PersonResourceProjection,
   ReminderResourceProjection,
@@ -57,7 +64,7 @@ function isResource<Type extends EventPlanningResource["objectType"]>(
 
 type TimelineResource = Exclude<
   EventPlanningResource,
-  DocumentResource | PersonResource
+  DocumentResource | PersonResource | NoteResource
 >;
 
 /** The typed object families a focused projection selects from an Event's `includes` relations. */
@@ -312,16 +319,19 @@ function timelineItem(resource: TimelineResource): TimelineItem[] {
 export class EventPlanningProjectionService {
   readonly #calendarReads: CalendarReadRepository;
   readonly #projectionReads: ProjectionReadRepository;
+  readonly #noteReads: NoteReadRepository;
 
   constructor(
     database: Database,
     calendarReads?: CalendarReadRepository,
     projectionReads?: ProjectionReadRepository,
+    noteReads?: NoteReadRepository,
   ) {
     this.#calendarReads =
       calendarReads ?? new PostgresCalendarReadRepository(database);
     this.#projectionReads =
       projectionReads ?? new PostgresProjectionReadRepository(database);
+    this.#noteReads = noteReads ?? new PostgresNoteReadRepository(database);
   }
 
   async getDetail(
@@ -429,6 +439,15 @@ export class EventPlanningProjectionService {
       sourceEventId: eventId,
       items: resources.sort(comparePersonNames),
     };
+  }
+
+  /** The Event's notes, last edited first or by title, each with who wrote its current version. */
+  getNotes(
+    principal: UserPrincipal,
+    eventId: string,
+    input: NoteListQueryInput = {},
+  ): Promise<NotePage> {
+    return this.#noteReads.listNotes(principal, eventId, input);
   }
 
   async getTimeline(

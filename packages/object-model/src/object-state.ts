@@ -4,6 +4,7 @@ import {
   events,
   expenses,
   labels,
+  notes,
   objects,
   personContacts,
   personLabels,
@@ -57,6 +58,7 @@ export async function readObjectStates(
       person: persons,
       contacts,
       personLabelIds,
+      note: notes,
     })
     .from(objects)
     .leftJoin(
@@ -99,6 +101,13 @@ export async function readObjectStates(
       and(
         eq(persons.workspaceId, objects.workspaceId),
         eq(persons.objectId, objects.id),
+      ),
+    )
+    .leftJoin(
+      notes,
+      and(
+        eq(notes.workspaceId, objects.workspaceId),
+        eq(notes.objectId, objects.id),
       ),
     )
     .where(condition)
@@ -158,6 +167,12 @@ export async function readObjectStates(
             contacts: row.contacts ?? [],
             labelIds: row.personLabelIds ?? [],
           };
+        }
+        break;
+      case "note":
+        if (row.note) {
+          const { objectId: _, workspaceId: __, ...content } = row.note;
+          return { ...common, ...content };
         }
     }
     throw new Error("The canonical object is missing its typed state.");

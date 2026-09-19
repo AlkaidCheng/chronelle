@@ -14,6 +14,7 @@ import {
 import {
   cloudbaseEventColumns,
   cloudbaseFilters,
+  cloudbaseNoteColumns,
   cloudbaseNullableDate,
   cloudbaseObjectColumns,
   cloudbasePersonColumns,
@@ -57,6 +58,7 @@ const typedColumns: Readonly<
   document:
     "object_id,workspace_id,storage_provider,storage_key,original_filename,mime_type,size_bytes::text,checksum_sha256,encryption_mode",
   person: cloudbasePersonColumns,
+  note: cloudbaseNoteColumns,
 };
 
 const typedTables: Readonly<
@@ -68,6 +70,7 @@ const typedTables: Readonly<
   reminder: "reminders",
   document: "documents",
   person: "persons",
+  note: "notes",
 };
 
 const objectTypeNames = Object.keys(typedTables);

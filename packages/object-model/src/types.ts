@@ -118,6 +118,12 @@ export interface PersonResource extends CanonicalObjectResource {
   readonly labelIds: readonly string[];
 }
 
+/** Free text kept with an Event: the title is the display name, the body plain text with its line breaks. */
+export interface NoteResource extends CanonicalObjectResource {
+  readonly objectType: "note";
+  readonly body: string;
+}
+
 export interface DocumentAttachmentResource {
   readonly relationVersion: number;
   readonly document: DocumentResource;
@@ -168,7 +174,8 @@ export type EventPlanningResource =
   | ExpenseResource
   | ReminderResource
   | DocumentResource
-  | PersonResource;
+  | PersonResource
+  | NoteResource;
 
 export interface CreateObjectFields {
   /** Binds the creation to one command of the caller; a repeat returns the created object. */
@@ -229,6 +236,11 @@ export interface CreatePersonInput extends CreateObjectFields {
   readonly labelIds?: readonly string[] | undefined;
 }
 
+export interface CreateNoteInput extends CreateObjectFields {
+  /** The text; absent leaves it empty. */
+  readonly body?: string | undefined;
+}
+
 export interface UpdateObjectFields {
   readonly customProperties?: JsonObject | undefined;
   readonly displayName?: string | undefined;
@@ -287,6 +299,10 @@ export interface UpdatePersonInput extends UpdateObjectFields {
   readonly contacts?: readonly PersonContact[] | undefined;
   /** The person's labels as a whole; absent leaves them unchanged. */
   readonly labelIds?: readonly string[] | undefined;
+}
+
+export interface UpdateNoteInput extends UpdateObjectFields {
+  readonly body?: string | undefined;
 }
 
 export interface ObjectDeletionResource {

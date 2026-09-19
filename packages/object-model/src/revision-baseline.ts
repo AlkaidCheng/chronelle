@@ -39,7 +39,7 @@ export async function baselineObjectRevisions(
 ): Promise<number> {
   return database.transaction(async (transaction) => {
     await transaction.execute(
-      sql`LOCK TABLE objects, events, tasks, expenses, reminders, documents, persons, object_revisions IN SHARE ROW EXCLUSIVE MODE`,
+      sql`LOCK TABLE objects, events, tasks, expenses, reminders, documents, persons, notes, object_revisions IN SHARE ROW EXCLUSIVE MODE`,
     );
     const requestId = createId();
     let afterId: string | undefined;

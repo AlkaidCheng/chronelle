@@ -19,6 +19,7 @@ import type {
   EventPlanningResource,
   EventResource,
   ExpenseResource,
+  NoteResource,
   ObjectRelationResource,
   PersonContact,
   PersonResource,
@@ -32,6 +33,7 @@ export const cloudbaseEventColumns =
   "object_id,workspace_id,starts_at,ends_at,starts_on,ends_on,timezone,is_all_day,location";
 export const cloudbasePersonColumns =
   "object_id,workspace_id,user_id,nickname,description";
+export const cloudbaseNoteColumns = "object_id,workspace_id,body";
 
 export type CloudBaseObjectRow = {
   readonly id: unknown;
@@ -111,6 +113,12 @@ export type CloudBasePersonRow = {
   readonly user_id: unknown;
   readonly nickname: unknown;
   readonly description: unknown;
+};
+
+export type CloudBaseNoteRow = {
+  readonly object_id: unknown;
+  readonly workspace_id: unknown;
+  readonly body: unknown;
 };
 
 export type CloudBaseRelationWriteRow = {
@@ -566,6 +574,20 @@ export function cloudbasePersonResource(
   };
 }
 
+export function cloudbaseNoteResource(
+  object: CloudBaseObjectRow,
+  note: CloudBaseNoteRow,
+): NoteResource {
+  // The text is any string, the empty one included.
+  if (typeof note.body !== "string")
+    throw new Error("CloudBase returned an invalid body.");
+  return {
+    ...cloudbaseCanonicalFields(object, note, "note"),
+    objectType: "note",
+    body: note.body,
+  };
+}
+
 /** Decodes `{ object, <typed> }` rows of any canonical type, as chronelle_object_rows returns them. */
 export function cloudbaseResourceFromRows(
   rows: unknown,
@@ -602,6 +624,8 @@ export function cloudbaseResourceFromRows(
         cloudbasePersonContacts(record.contacts),
         cloudbaseLabelIds(record.labels),
       );
+    case "note":
+      return cloudbaseNoteResource(object, typed as CloudBaseNoteRow);
     default:
       throw new Error(
         `CloudBase returned an unknown object type ${objectType}.`,

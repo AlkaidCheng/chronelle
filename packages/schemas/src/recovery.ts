@@ -17,7 +17,15 @@ export const trashQuerySchema = z
     limit: z.coerce.number().int().min(1).max(100).default(20),
     cursor: cursorTokenSchema.optional(),
     objectType: z
-      .enum(["event", "task", "expense", "reminder", "document", "person"])
+      .enum([
+        "event",
+        "task",
+        "expense",
+        "reminder",
+        "document",
+        "person",
+        "note",
+      ])
       .optional(),
     scopeId: z.uuid().optional(),
   })
@@ -36,6 +44,7 @@ export const trashItemSchema = z.object({
     "reminder",
     "document",
     "person",
+    "note",
   ]),
   displayName: z.string(),
   version: versionSchema,

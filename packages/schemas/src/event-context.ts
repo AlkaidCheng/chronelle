@@ -3,6 +3,7 @@ import { z } from "zod";
 import {
   eventCreateRequestSchema,
   expenseCreateRequestSchema,
+  noteCreateRequestSchema,
   personCreateRequestSchema,
   reminderCreateRequestSchema,
   taskCreateRequestSchema,
@@ -32,6 +33,10 @@ export const eventContextCreateRequestSchema = z
       personCreateRequestSchema
         .omit({ permissionScopeId: true, commandId: true })
         .extend({ objectType: z.literal("person") })
+        .strict(),
+      noteCreateRequestSchema
+        .omit({ permissionScopeId: true, commandId: true })
+        .extend({ objectType: z.literal("note") })
         .strict(),
     ]),
   })

@@ -10,6 +10,7 @@ import {
   tasks,
   reminders,
   persons,
+  notes,
   objects,
   objectRevisions,
   type Database,
@@ -21,6 +22,7 @@ import {
   taskUpdateRequestSchema,
   reminderUpdateRequestSchema,
   personUpdateRequestSchema,
+  noteUpdateRequestSchema,
   type RevisionComparisonQuery,
   type RevisionRestoreRequest,
   type RevisionSnapshot,
@@ -442,6 +444,23 @@ export class ObjectRestorationService {
             );
         if (contacts !== undefined)
           await setPersonContacts(transaction, workspaceId, objectId, contacts);
+        break;
+      }
+      case "note": {
+        const fields = noteUpdateRequestSchema.parse({
+          ...content,
+          expectedVersion: source.version,
+        });
+        if (fields.body !== undefined)
+          await transaction
+            .update(notes)
+            .set({ body: fields.body })
+            .where(
+              and(
+                eq(notes.workspaceId, workspaceId),
+                eq(notes.objectId, objectId),
+              ),
+            );
         break;
       }
       case "expense":

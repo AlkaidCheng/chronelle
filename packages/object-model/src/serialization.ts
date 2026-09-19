@@ -88,5 +88,11 @@ export function serializeResource(resource: EventPlanningResource) {
         contacts: resource.contacts.map((contact) => ({ ...contact })),
         labelIds: [...resource.labelIds],
       };
+    case "note":
+      return {
+        ...canonical,
+        objectType: "note" as const,
+        body: resource.body,
+      };
   }
 }

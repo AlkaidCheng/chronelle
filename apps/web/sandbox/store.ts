@@ -376,6 +376,7 @@ function canonical(
       contacts: [],
       labelIds: [],
     },
+    note: { body: "" },
   }[objectType];
   return eventPlanningResourceResponseSchema.parse({
     ...defaults,
@@ -2024,7 +2025,8 @@ export class SandboxStore {
             .flatMap<TimelineResponse["items"][number]>((child) => {
               if (
                 child.objectType === "document" ||
-                child.objectType === "person"
+                child.objectType === "person" ||
+                child.objectType === "note"
               )
                 return [];
               const occursOn =

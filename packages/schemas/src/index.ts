@@ -55,6 +55,7 @@ export * from "./event-context.js";
 export * from "./event-list.js";
 export * from "./task-list.js";
 export * from "./friends.js";
+export * from "./note-list.js";
 export * from "./person-list.js";
 export * from "./labels.js";
 export * from "./relation-list.js";
@@ -106,6 +107,10 @@ export {
   objectDeletionQuerySchema,
   objectDeletionResponseSchema,
   objectIdParamsSchema,
+  noteBodySchema,
+  noteCreateRequestSchema,
+  noteResponseSchema,
+  noteUpdateRequestSchema,
   personContactKindSchema,
   personContactSchema,
   personCreateRequestSchema,
@@ -145,6 +150,11 @@ export {
   type ExpenseResponse,
   type ExpenseUpdateRequest,
   type ExpenseUpdatePayload,
+  type NoteCreateRequest,
+  type NoteCreatePayload,
+  type NoteResponse,
+  type NoteUpdateRequest,
+  type NoteUpdatePayload,
   type PersonCreateRequest,
   type PersonCreatePayload,
   type PersonContact,

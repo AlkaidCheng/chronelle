@@ -4,6 +4,7 @@ import {
   documentResponseSchema,
   eventResponseSchema,
   expenseResponseSchema,
+  noteResponseSchema,
   personResponseSchema,
   reminderResponseSchema,
   taskResponseSchema,
@@ -22,6 +23,7 @@ export const revisionSnapshotSchema = z.discriminatedUnion("objectType", [
     encryptionMode: true,
   }),
   personResponseSchema.omit(privateFields),
+  noteResponseSchema.omit(privateFields),
 ]);
 
 const versionSchema = z.number().int().positive().max(2_147_483_647);
