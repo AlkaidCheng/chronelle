@@ -110,7 +110,8 @@ extends the list page by page.
 
 The page offers the same List, By day, By week, and Calendar layouts as the
 To-dos component, from the same rows: the completion check, the name and its
-details, the status, and the row menu. The week and the calendar ask the server for the tasks
+details (a button that opens the row in place as the composer), the status,
+and the row menu. The week and the calendar ask the server for the tasks
 due on the days shown (in the browser's time zone) and load all of them, so
 Load more does not appear there; tasks with no due date are in no week or
 month, and the other filters still apply. Moving the period asks again. A task inside an event names that event under its title, as a link to
@@ -163,7 +164,7 @@ another account here, "Invited" while a request or invitation sent from the
 card waits), and the row menu (Edit, History, Move to Trash). Namecards show the same people as cards with the contacts under
 their icons, the description, and the badge and labels at the foot; the menu
 shows on hover or focus. A press on a row or card opens the person's page.
-Both layouts end with Add a person, a quick add row like the task lists':
+Both layouts end with Add a person, a quick add row like the Reminders':
 Enter creates a person with the typed name and keeps the field open for the
 next; among namecards a dashed card opens the same row. At a phone width the
 rows keep the avatar, the names, and the menu.
@@ -953,29 +954,66 @@ a share given again. It leaves after a while or on its close control. A
 refused action keeps its row and explains under it; no notice is posted.
 
 Every task list ends with a quiet Add task row, on the rows' own grid: a
-plus where the check sits and the words where a name sits. Choosing it turns
-the words into a name field in place; Enter creates the task with that name
-and nothing else, then keeps the field open and empty for the next one;
-Escape, or leaving the field empty, puts the row back. In the by-day view each
-day group has its own row, and a task added there is due on that day (the No
-due date group adds one without a date; Overdue has none). The Tasks page has
-the same row, and a task added there stands on its own. A refused name stays
-in the field under the usual error notice. An empty collection shows the row
-under its empty state, so the first item is added the same way. Reminders end
-with an Add reminder
-row that works the same way: a reminder added under a day is due at 9:00 that
-day, one added to the list at the next 9:00; the editor changes the time.
-Viewers see no such rows.
+plus where the check sits and the words where a name sits. Choosing it opens
+the composer in its place, empty, with the name focused. Enter creates the
+task with what the composer holds and keeps it open and empty for the next
+one, "Added." read to assistive technology; Escape or Cancel closes it. In
+the by-day view each day group has its own row, and a task added there
+starts with that day on its Due chip (the No due date group adds one
+without a date; Overdue has none). The Tasks page has the same row, and a
+task added there stands on its own. A refused save keeps the composer under
+the usual error notice. An empty collection shows the row under its empty
+state, so the first item is added the same way. Reminders end with an Add
+reminder row that takes a name in place: a reminder added under a day is
+due at 9:00 that day, one added to the list at the next 9:00; while the
+field is open a pencil beside it (Add reminder with details) opens the
+editor with what was typed. Viewers see no such rows.
 
-To-dos uses Add task to open a focused creation dialog and Edit to open a Task
-inspector. Both keep the underlying list in place and confirm dirty dismissal;
-Create task and Save task commit explicitly. Completion and reopening remain
-direct row actions through the check, a filled circle whose tick previews
-faintly on hover. The inspector checks fresh canonical Task data and its own
-edit permission before exposing fields, even when a cached copy is present.
-Temporary refetch failures preserve mounted input; denied access hides it.
-History remains available inside the editor, and changed source versions require
-an explicit refresh/load-latest decision. The editor's Due row reads the
+A task row is a button: its name and meta line, named "Edit <name>", open
+the row in place as the composer, prefilled with the task, on the To-dos
+list, its day groups, and the Tasks collection (the week and month grids
+keep the dialog through the row menu). The check, the assignee and labels
+at the row's end, and the row menu keep their own actions, and the menu's
+Edit opens the composer too. The composer is a card in the list: the name
+(bold, one line), the description under a dashed rule, then one chip per
+field, and a foot with More, the keys hint "Enter saves, Esc cancels",
+Cancel, and Save (Add task on the add row). A chip is the field's control,
+the one the dialog uses, opened under the chip when pressed: Due opens the
+date panel with Time and Repeat at its foot; Assignee lists the workspace's
+people with Unassigned, a new person, and Assign to me; Labels is the
+checklist with a field for a new label; Location is a text field, Enter
+closing it. A set chip reads its value ("Due: Nov 3, 2030 (tomorrow)",
+"Labels: Travel, Venue") with a clear at its end, and a due today reads in
+the accent; an unset chip reads the field's name, muted, so every field is
+in view without a dialog. Escape closes an open chip's control first, and
+the composer next, handing focus back to the chip or the row. Under 600px
+the chips wrap and a chip's control opens as a sheet from the bottom of
+the screen.
+
+Enter or Save writes one update carrying the row's version, "Saved." read
+to assistive technology; a stale save (the task saved elsewhere while the
+row was open) shows the comparison above the chips with Keep mine, Merge
+fields, and Take theirs, as the dialog does. Esc or Cancel closes the row
+unchanged. One row is open at a time: pressing another closes the first,
+and when the first holds unsaved changes it asks "This row has unsaved
+changes. Discard them?" with Discard (the other opens) and Keep editing.
+An open composer's fields are a draft in the tab under the task's key, the
+key its dialog uses: leaving the view and coming back finds the row open
+with the text, and the same for an add row left with text, whether the
+text was typed in the composer or in the dialog More opened from it.
+
+More at the composer's foot opens the task dialog with the composer's
+fields, for what the composer does not carry: the duration, a subtask, the
+full history. The dialog keeps the underlying list in place and confirms
+dirty dismissal; Create task and Save task commit explicitly, and when it
+closes focus returns to the row it came from, or to the add row.
+Completion and reopening remain direct row actions through the check, a
+filled circle whose tick previews faintly on hover. The inspector checks
+fresh canonical Task data and its own edit permission before exposing
+fields, even when a cached copy is present. Temporary refetch failures
+preserve mounted input; denied access hides it. History remains available
+inside the editor, and changed source versions require an explicit
+refresh/load-latest decision. The editor's Due row reads the
 choice as the exact date (Sep 21, 2026, with "(today)" or "(tomorrow)" as a
 hint, the time when one is set, and the rule: "Sep 19, 2026, every week until
 Oct 31, 2026") with a clear at its end, or Set due date with "A day, a time,
@@ -991,9 +1029,10 @@ whole day (shown as the date, ahead of timed tasks that day, and in the
 Timeline as a dated entry); a date with a time makes it due at that local
 instant. Name-only edits preserve the exact stored due instant, and
 unavailable local times are rejected. Task drafts survive client-side navigation within the authenticated
-tab. Add task or Edit offers Resume / Discard before exposing retained values.
-Creation drafts belong to their parent Event; edits follow the canonical Task
-across contexts. Resume checks fresh parent access for creation and the Task's
+tab: a row's composer opens again with its text, and the dialog opened from
+the header's New task offers Resume / Discard before exposing retained
+values. Creation drafts belong to their parent Event; edits follow the
+canonical Task across contexts. Resume checks fresh parent access for creation and the Task's
 own access for editing. Layout or projection access denial clears parent-scoped
 drafts without changing independently authorized canonical Task drafts.
 
@@ -1106,12 +1145,13 @@ layouts) keeps to one 800px column, heading and rows alike, so a name and
 what sits at the row's end stay close; the week and month grids and the
 namecards take the page, as do the Events, Tasks, and People collections'
 lists and their search rows. Nothing sits under the heading, and no Add button sits beside it: a
-collection adds through the row at its end. To-dos and Reminders have a
-quick add row that takes a name in place, and while it is open a pencil
-beside the field (Add task with details, Add reminder with details) opens
-the full editor with what was typed and the row's day; Calendar, Expenses
-and People end on a quiet row (Add schedule item, Add expense, Add person)
-that opens their editor. Every component's states use the same pieces: one
+collection adds through the row at its end. To-dos' row opens the
+composer, whose chips carry the task's fields and whose More opens the full
+editor with them; Reminders' row takes a name in place, and while it is open
+a pencil beside the field (Add reminder with details) opens the full editor
+with what was typed and the row's day; Calendar, Expenses and People end on
+a quiet row (Add schedule item, Add expense, Add person) that opens their
+editor. Every component's states use the same pieces: one
 loading line, one empty state that is its title alone for a viewer and the
 add row alone for an editor, and one error notice with a retry (or, for a
 failed upload or download, Dismiss).
