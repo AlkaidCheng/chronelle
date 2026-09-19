@@ -77,6 +77,7 @@ describe("CloudBaseSharingWriteRepository", () => {
       grantedBy: userId,
       createdAt: new Date("2030-08-01T12:00:00.000Z"),
       expiresAt: null,
+      scope: null,
       principal: {
         id: granteeId,
         displayName: "Grantee",

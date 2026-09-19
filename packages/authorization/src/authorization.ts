@@ -1,4 +1,4 @@
-import type { Role } from "@chronelle/db";
+import type { GrantScope, Role } from "@chronelle/db";
 import type { SQL } from "drizzle-orm";
 
 export const authorizationActions = [
@@ -20,6 +20,51 @@ export interface UserPrincipal {
 export interface ResourceRef {
   readonly id: string;
   readonly workspaceId: string;
+}
+
+/** A view of an Event a grant can be narrowed to. */
+export type ShareView = Exclude<GrantScope, "all">;
+
+/** The narrowing of one grant: a view of the Event, and a section of it when narrower. */
+export interface ShareScope {
+  readonly view: ShareView;
+  readonly sectionId: string | null;
+}
+
+export const shareViews: readonly ShareView[] = [
+  "todos",
+  "calendar",
+  "itinerary",
+  "expenses",
+  "reminders",
+  "notes",
+];
+
+/** The object types a view shows, which a grant narrowed to it admits. */
+export const viewObjectTypes: Readonly<Record<ShareView, readonly string[]>> = {
+  todos: ["task"],
+  calendar: ["event"],
+  itinerary: ["event"],
+  expenses: ["expense"],
+  reminders: ["reminder"],
+  notes: ["note"],
+};
+
+/**
+ * What of an Event a principal sees through narrowed grants alone: the
+ * views shared whole, and the sections shared on their own. Absent when
+ * the principal is a member or holds a whole grant, and so sees everything.
+ */
+export interface GrantNarrowing {
+  readonly views: readonly ShareView[];
+  readonly sections: readonly {
+    readonly id: string;
+    readonly view: ShareView;
+  }[];
+}
+
+export interface GrantNarrowingQuery extends WorkspaceAccessQuery {
+  readonly resourceId: string;
 }
 
 export interface ResourceRolesQuery {
@@ -48,6 +93,9 @@ export type WorkspaceRoleQuery = Omit<WorkspaceAccessQuery, "evaluatedAt">;
 
 export interface AuthorizationStore {
   resourcePredicate(query: ResourceAccessQuery): SQL;
+  findGrantNarrowing(
+    query: GrantNarrowingQuery,
+  ): Promise<GrantNarrowing | null>;
   findRecoverableResourceIds(
     query: ResourceRolesQuery,
   ): Promise<ReadonlySet<string>>;
@@ -221,6 +269,20 @@ export class AuthorizationService {
     return this.#store.listAccessibleWorkspaceIds({
       evaluatedAt: this.#clock(),
       userId,
+    });
+  }
+
+  /** The views and sections of an Event the principal sees through narrowed grants alone, or null for all of it. */
+  async narrowing(
+    principal: UserPrincipal,
+    resource: ResourceRef,
+  ): Promise<GrantNarrowing | null> {
+    if (resource.workspaceId !== principal.workspaceId) return null;
+    return this.#store.findGrantNarrowing({
+      evaluatedAt: this.#clock(),
+      resourceId: resource.id,
+      userId: principal.userId,
+      workspaceId: principal.workspaceId,
     });
   }
 }

@@ -199,9 +199,7 @@ export class CloudBaseRecoveryReadRepository implements RecoveryReadRepository {
         columns: trashColumns,
         filters,
       });
-    const owned = [...access.grantRoles]
-      .filter(([, role]) => role === "owner")
-      .map(([resourceId]) => resourceId);
+    const owned = access.ownedResourceIds;
     const rows = new Map<string, TrashRow>();
     for (const column of ["id", "permission_scope_id"] as const) {
       for (let start = 0; start < owned.length; start += cloudbaseIdBatchSize) {

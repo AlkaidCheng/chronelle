@@ -203,6 +203,9 @@ export {
   shareListResponseSchema,
   shareResponseSchema,
   shareRevocationResponseSchema,
+  shareNarrowingSchema,
+  shareScopeSchema,
+  shareViewSchema,
   type AccessSource,
   type ObjectAccessResponse,
   type PendingShare,
@@ -217,6 +220,9 @@ export {
   type ShareListResponse,
   type ShareResponse,
   type ShareRevocationResponse,
+  type ShareNarrowing,
+  type ShareScope,
+  type ShareView,
 } from "./sharing.js";
 export * from "./workspace-members.js";
 export * from "./commands.js";

@@ -272,6 +272,7 @@ describe("sharing with friends", () => {
           displayName: "Spring cleaning",
           role: "viewer",
           createdAt: incoming.createdAt,
+          scope: null,
         },
         {
           id: outgoing.id,
@@ -282,6 +283,7 @@ describe("sharing with friends", () => {
           displayName: "Kyoto in November",
           role: "editor",
           createdAt: outgoing.createdAt,
+          scope: null,
         },
       ],
     });

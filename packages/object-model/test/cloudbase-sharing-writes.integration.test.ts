@@ -314,7 +314,7 @@ describe.sequential("CloudBase sharing writes", () => {
         PrincipalUnavailableError.name,
         PrincipalUnavailableError.name,
         PrincipalUnavailableError.name,
-        "Name exactly one of principalEmail, personId, and friendId.",
+        "Name exactly one of principalEmail, personId, friendId, and principalId.",
       ],
       audits: [
         {

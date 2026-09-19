@@ -2885,6 +2885,142 @@ p[role="alert"] {
   z-index: 4;
 }
 
+/* The share sheet, under the Share control or a section's head: what is
+   shared, the people who see it with their role, Add people, Done. */
+.share-sheet {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  box-shadow: var(--shadow);
+  color: var(--ink);
+  cursor: default;
+  display: grid;
+  font-weight: 400;
+  gap: 10px;
+  overflow-y: auto;
+  padding: 12px;
+  position: fixed;
+  text-align: left;
+  width: min(320px, calc(100vw - 32px));
+  z-index: 40;
+}
+
+.share-sheet h3 {
+  font-size: 0.9rem;
+  font-weight: 700;
+  line-height: 1.3;
+  margin: 0;
+}
+
+.share-sheet-hint,
+.share-sheet-empty {
+  color: var(--muted);
+  font-size: 0.8rem;
+  margin: 0;
+}
+
+.share-sheet-people {
+  display: grid;
+  gap: 4px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.share-sheet-people li {
+  align-items: center;
+  display: flex;
+  font-size: 0.84rem;
+  gap: 8px;
+}
+
+.share-sheet-who {
+  align-items: center;
+  display: flex;
+  flex: 1 1 auto;
+  gap: 8px;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.share-sheet-who .person-avatar {
+  font-size: 0.64rem;
+  height: 22px;
+  width: 22px;
+}
+
+.share-sheet-role {
+  background: var(--canvas);
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  color: var(--ink);
+  font: inherit;
+  font-size: 0.8rem;
+  height: 28px;
+  padding: 0 6px;
+}
+
+.share-sheet-remove {
+  background: none;
+  border: 0;
+  border-radius: 6px;
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 1rem;
+  height: 28px;
+  line-height: 1;
+  width: 28px;
+}
+
+.share-sheet-remove:hover {
+  background: var(--surface-subtle);
+  color: var(--ink);
+}
+
+.share-sheet-add {
+  align-items: center;
+  background: none;
+  border: 0;
+  color: var(--accent);
+  cursor: pointer;
+  display: flex;
+  font: inherit;
+  font-size: 0.84rem;
+  font-weight: 600;
+  gap: 6px;
+  justify-self: start;
+  padding: 0;
+}
+
+.share-sheet-add svg {
+  height: 14px;
+  width: 14px;
+}
+
+.share-sheet .share-people {
+  gap: 8px;
+}
+
+.share-sheet-foot {
+  display: flex;
+  justify-content: flex-end;
+}
+
+/* On a phone the sheet rises from the bottom edge. */
+@media (max-width: 600px) {
+  .share-sheet {
+    border-radius: 14px 14px 0 0;
+    bottom: 0;
+    left: 0;
+    max-height: 80vh;
+    right: 0;
+    top: auto;
+    width: auto;
+  }
+}
+
 .head-menu-list [role^="menuitem"] {
   align-items: center;
   background: none;

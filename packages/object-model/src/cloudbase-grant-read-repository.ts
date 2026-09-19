@@ -18,6 +18,7 @@ import {
 import {
   cloudbaseDate,
   cloudbaseFilters,
+  cloudbaseGrantScope,
   cloudbaseNullableDate,
   cloudbaseNullableText,
   cloudbaseText,
@@ -32,6 +33,8 @@ type GrantRow = {
   readonly created_at: unknown;
   readonly expires_at: unknown;
   readonly principal_id: unknown;
+  readonly scope?: unknown;
+  readonly section_id?: unknown;
 };
 
 type UserRow = {
@@ -72,7 +75,7 @@ export class CloudBaseGrantReadRepository implements GrantReadRepository {
     if (!access.canRecover(resource)) throw new AuthorizationDeniedError();
     const rows = await this.#client.select<GrantRow>("resource_grants", {
       columns:
-        "id,workspace_id,resource_id,role,granted_by,created_at,expires_at,principal_id",
+        "id,workspace_id,resource_id,role,granted_by,created_at,expires_at,principal_id,scope,section_id",
       filters: cloudbaseFilters(
         ["workspace_id", "eq", principal.workspaceId],
         ["resource_id", "eq", resourceId],
@@ -97,6 +100,7 @@ export class CloudBaseGrantReadRepository implements GrantReadRepository {
           grantedBy: cloudbaseText(row.granted_by, "granted_by"),
           createdAt: cloudbaseDate(row.created_at, "created_at"),
           expiresAt,
+          scope: cloudbaseGrantScope(row.scope, row.section_id),
           principalId: cloudbaseText(row.principal_id, "grant principal"),
         },
       ];

@@ -1,0 +1,21 @@
+{
+  "view": "Share",
+  "viewTitle": "Share {name}",
+  "section": "Share section",
+  "viewHint": "Everyone here sees {what} of this event, and its sections unless a section is shared on its own.",
+  "sectionHint": "Everyone here sees this section's records; the rest of the view stays as shared.",
+  "addPeople": "Add people",
+  "done": "Done",
+  "nobody": "Only you see this so far.",
+  "roleFor": "Role for {name}",
+  "remove": "Remove {name}",
+  "removed": "Share removed.",
+  "changed": "Role changed.",
+  "sharedView": "Shared: {name}",
+  "sharedSection": "Shared section: {name}",
+  "roles": {
+    "viewer": "Viewer",
+    "editor": "Editor",
+    "owner": "Owner"
+  }
+}

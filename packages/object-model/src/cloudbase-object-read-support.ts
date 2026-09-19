@@ -2,6 +2,7 @@ import {
   AuthorizationDeniedError,
   roleAllows,
   type AuthorizationAction,
+  type GrantNarrowing,
   type UserPrincipal,
 } from "@chronelle/authorization";
 import {
@@ -20,11 +21,15 @@ import {
   cloudbasePersonColumns,
   cloudbaseResourceFromRows,
   cloudbaseTaskColumns,
+  cloudbaseGrantAdmits,
+  cloudbaseNarrowing,
+  readCloudBaseGrants,
   readCloudBasePersonContacts,
   readCloudBasePersonLabels,
+  readCloudBaseSectionMembers,
   readCloudBaseTaskLabels,
   cloudbaseText,
-  type CloudBaseGrantRow,
+  type CloudBaseGrant,
   type CloudBaseObjectRow,
 } from "./cloudbase-read-support.js";
 import type { EventPlanningResource } from "./types.js";
@@ -125,11 +130,25 @@ export function cloudbaseObjectType(
  * `canRecover` reproduces the recovery predicate, which survives deletion of
  * both the object and its scope.
  */
+/** The grant that reaches an object, with the role it gives there. */
+export interface CloudBaseGrantSource {
+  readonly role: Role;
+  readonly grantedBy: string | null;
+}
+
 export interface CloudBasePrincipalAccess {
   readonly workspaceRole: Role | null;
-  readonly grantRoles: ReadonlyMap<string, Role>;
-  /** The account that granted each active role, by resource. */
-  readonly grantors: ReadonlyMap<string, string>;
+  /** The resources the principal holds any active grant on. */
+  readonly grantedResourceIds: readonly string[];
+  /** The resources the principal holds a whole owner grant on. */
+  readonly ownedResourceIds: readonly string[];
+  /** The grant on the object itself: its role, or view alone when narrowed. */
+  directGrant(object: CloudBaseObjectAccessRow): CloudBaseGrantSource | null;
+  /** The grant on the object's live scope whose narrowing admits it. */
+  inheritedGrant(
+    object: CloudBaseObjectAccessRow,
+    scopes: ReadonlyMap<string, CloudBaseObjectAccessRow>,
+  ): CloudBaseGrantSource | null;
   rolesFor(
     object: CloudBaseObjectAccessRow,
     scopes: ReadonlyMap<string, CloudBaseObjectAccessRow>,
@@ -140,13 +159,22 @@ export interface CloudBasePrincipalAccess {
     scopes: ReadonlyMap<string, CloudBaseObjectAccessRow>,
   ): boolean;
   canRecover(object: CloudBaseObjectAccessRow): boolean;
+  /** What of a resource the principal sees through narrowed grants alone; null for all of it. */
+  narrowing(resourceId: string): GrantNarrowing | null;
 }
+
+const rankOfRole: Readonly<Record<Role, number>> = {
+  owner: 3,
+  editor: 2,
+  viewer: 1,
+};
 
 export async function readCloudBasePrincipalAccess(
   client: CloudBaseRdbReader,
   principal: UserPrincipal,
   clock: () => Date,
 ): Promise<CloudBasePrincipalAccess> {
+  const now = clock();
   const [membership, grants] = await Promise.all([
     client.select<WorkspaceMemberRow>("workspace_members", {
       columns: "role",
@@ -156,32 +184,72 @@ export async function readCloudBasePrincipalAccess(
       ),
       limit: 1,
     }),
-    client.select<CloudBaseGrantRow>("resource_grants", {
-      columns: "resource_id,role,expires_at,granted_by",
-      filters: cloudbaseFilters(
-        ["workspace_id", "eq", principal.workspaceId],
-        ["principal_type", "eq", "user"],
-        ["principal_id", "eq", principal.userId],
-      ),
-    }),
+    readCloudBaseGrants(client, principal, now),
   ]);
-  const now = clock();
   const workspaceRole =
     membership[0] === undefined
       ? null
       : cloudbaseRole(membership[0].role, "workspace role");
-  const grantRoles = new Map<string, Role>();
-  const grantors = new Map<string, string>();
+  const sectionMembers = await readCloudBaseSectionMembers(
+    client,
+    principal,
+    grants,
+  );
+  const grantsOn = new Map<string, CloudBaseGrant[]>();
   for (const grant of grants) {
-    const expiresAt = cloudbaseNullableDate(grant.expires_at, "grant expiry");
-    if (expiresAt !== null && expiresAt <= now) continue;
-    const resourceId = cloudbaseText(grant.resource_id, "grant resource");
-    grantRoles.set(resourceId, cloudbaseRole(grant.role, "grant role"));
-    grantors.set(resourceId, cloudbaseText(grant.granted_by, "granted_by"));
+    cloudbaseRole(grant.role, "grant role");
+    const held = grantsOn.get(grant.resourceId) ?? [];
+    held.push(grant);
+    grantsOn.set(grant.resourceId, held);
   }
   const inWorkspace = (object: CloudBaseObjectAccessRow) =>
     cloudbaseText(object.workspace_id, "object workspace") ===
     principal.workspaceId;
+  // The strongest of several grants on one resource, as the SQL store
+  // reads the highest role; a narrowed grant on the object itself gives
+  // view alone, so the Event page opens.
+  const strongest = (sources: readonly CloudBaseGrantSource[]) =>
+    sources.reduce<CloudBaseGrantSource | null>(
+      (best, source) =>
+        best === null || rankOfRole[source.role] > rankOfRole[best.role]
+          ? source
+          : best,
+      null,
+    );
+  const directGrant: CloudBasePrincipalAccess["directGrant"] = (object) =>
+    strongest(
+      (grantsOn.get(cloudbaseObjectId(object)) ?? []).map((grant) => ({
+        role: grant.scope === "all" ? (grant.role as Role) : "viewer",
+        grantedBy: grant.grantedBy,
+      })),
+    );
+  const inheritedGrant: CloudBasePrincipalAccess["inheritedGrant"] = (
+    object,
+    scopes,
+  ) => {
+    const objectId = cloudbaseObjectId(object);
+    const objectType = cloudbaseText(object.object_type, "object type");
+    const scopeId = cloudbaseText(
+      object.permission_scope_id,
+      "permission scope",
+    );
+    const scope = scopes.get(scopeId);
+    if (
+      scope === undefined ||
+      cloudbaseNullableDate(scope.deleted_at, "deleted_at") !== null
+    )
+      return null;
+    return strongest(
+      (grantsOn.get(scopeId) ?? [])
+        .filter((grant) =>
+          cloudbaseGrantAdmits(grant, objectId, objectType, sectionMembers),
+        )
+        .map((grant) => ({
+          role: grant.role as Role,
+          grantedBy: grant.grantedBy,
+        })),
+    );
+  };
   const rolesFor: CloudBasePrincipalAccess["rolesFor"] = (object, scopes) => {
     if (
       !inWorkspace(object) ||
@@ -190,37 +258,49 @@ export async function readCloudBasePrincipalAccess(
       return [];
     const found: Role[] = [];
     if (workspaceRole !== null) found.push(workspaceRole);
-    const direct = grantRoles.get(cloudbaseObjectId(object));
-    if (direct !== undefined) found.push(direct);
-    const scopeId = cloudbaseText(
-      object.permission_scope_id,
-      "permission scope",
-    );
-    const scope = scopes.get(scopeId);
-    const inherited = grantRoles.get(scopeId);
-    if (
-      inherited !== undefined &&
-      scope !== undefined &&
-      cloudbaseNullableDate(scope.deleted_at, "deleted_at") === null
-    )
-      found.push(inherited);
+    const direct = directGrant(object);
+    if (direct !== null) found.push(direct.role);
+    const inherited = inheritedGrant(object, scopes);
+    if (inherited !== null) found.push(inherited.role);
     return found;
   };
   return {
     workspaceRole,
-    grantRoles,
-    grantors,
+    grantedResourceIds: [...grantsOn.keys()],
+    ownedResourceIds: [...grantsOn]
+      .filter(([, held]) =>
+        held.some((grant) => grant.role === "owner" && grant.scope === "all"),
+      )
+      .map(([resourceId]) => resourceId),
+    directGrant,
+    inheritedGrant,
     rolesFor,
     allows: (action, object, scopes) =>
       rolesFor(object, scopes).some((role) => roleAllows(role, action)),
+    // Recovery reaches tombstones through a whole owner grant on the
+    // object, or an owner grant on its scope that admits it.
     canRecover: (object) => {
       if (!inWorkspace(object)) return false;
       if (workspaceRole === "owner") return true;
-      return [
-        cloudbaseObjectId(object),
-        cloudbaseText(object.permission_scope_id, "permission scope"),
-      ].some((resourceId) => grantRoles.get(resourceId) === "owner");
+      const objectId = cloudbaseObjectId(object);
+      const objectType = cloudbaseText(object.object_type, "object type");
+      const scopeId = cloudbaseText(
+        object.permission_scope_id,
+        "permission scope",
+      );
+      return (
+        (grantsOn.get(objectId) ?? []).some(
+          (grant) => grant.role === "owner" && grant.scope === "all",
+        ) ||
+        (grantsOn.get(scopeId) ?? []).some(
+          (grant) =>
+            grant.role === "owner" &&
+            cloudbaseGrantAdmits(grant, objectId, objectType, sectionMembers),
+        )
+      );
     },
+    narrowing: (resourceId) =>
+      cloudbaseNarrowing(workspaceRole, grants, resourceId),
   };
 }
 

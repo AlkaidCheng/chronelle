@@ -8,6 +8,7 @@ export {
 export { recoveryAccessPredicate } from "./recovery-policy.js";
 export { DrizzleAuthorizationStore } from "./drizzle-authorization-store.js";
 export {
+  grantScopeOf,
   InvalidShareError,
   PrincipalUnavailableError,
   ResourceGrantService,

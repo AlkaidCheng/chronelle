@@ -350,6 +350,7 @@ describe.sequential("authorized read snapshots", () => {
         grantedBy: { id: owner.user.id, displayName: "Planner" },
         role: "viewer",
       },
+      narrowing: null,
     });
   });
 

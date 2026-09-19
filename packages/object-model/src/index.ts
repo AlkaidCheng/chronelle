@@ -33,6 +33,7 @@ export { CloudBaseDocumentTransferWriteRepository } from "./cloudbase-document-t
 export { CloudBaseProjectionReadRepository } from "./cloudbase-projection-read-repository.js";
 export { CloudBaseEventReadRepository } from "./cloudbase-event-read-repository.js";
 export { CloudBaseGrantReadRepository } from "./cloudbase-grant-read-repository.js";
+export { cloudbaseScopeJson } from "./cloudbase-read-support.js";
 export { CloudBaseObjectReadRepository } from "./cloudbase-object-read-repository.js";
 export { CloudBaseRecoveryReadRepository } from "./cloudbase-recovery-read-repository.js";
 export { CloudBaseRelationReadRepository } from "./cloudbase-relation-read-repository.js";

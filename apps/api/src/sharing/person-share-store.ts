@@ -1,5 +1,7 @@
 import {
   AuthorizationDeniedError,
+  grantScopeOf,
+  type ShareScope,
   type UserPrincipal,
   withReadAuthorization,
 } from "@chronelle/authorization";
@@ -32,6 +34,8 @@ export interface PersonShareView {
   readonly displayName: string;
   readonly role: Role;
   readonly createdAt: Date;
+  /** The view and section a grant is narrowed to; null for the whole record or a queued share. */
+  readonly scope: ShareScope | null;
 }
 
 /**
@@ -113,6 +117,8 @@ export class PostgresPersonShareStore implements PersonShareStore {
                   id: resourceGrants.id,
                   role: resourceGrants.role,
                   createdAt: resourceGrants.createdAt,
+                  grantScope: resourceGrants.scope,
+                  sectionId: resourceGrants.sectionId,
                   direction: sql<"outgoing" | "incoming">`CASE
                     WHEN ${resourceGrants.principalId} = ${account}::uuid THEN 'outgoing'
                     ELSE 'incoming' END`,
@@ -166,11 +172,16 @@ export class PostgresPersonShareStore implements PersonShareStore {
             ),
           );
         const items: PersonShareView[] = [
-          ...grants.map((row) => ({ ...row, kind: "grant" as const })),
+          ...grants.map(({ grantScope, sectionId, ...row }) => ({
+            ...row,
+            kind: "grant" as const,
+            scope: grantScopeOf({ scope: grantScope, sectionId }),
+          })),
           ...queued.map((row) => ({
             ...row,
             kind: "pending" as const,
             direction: "outgoing" as const,
+            scope: null,
           })),
         ];
         return items.sort(

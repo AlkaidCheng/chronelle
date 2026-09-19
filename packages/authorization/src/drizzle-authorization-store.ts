@@ -9,12 +9,14 @@ import {
 } from "@chronelle/db";
 import { and, eq, gt, inArray, isNull, or, sql, type SQL } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
-import { recoveryAccessPredicate } from "./recovery-policy.js";
-import { roleAllows } from "./authorization.js";
+import { grantAdmits, recoveryAccessPredicate } from "./recovery-policy.js";
+import { roleAllows, type ShareView } from "./authorization.js";
 
 import type {
   AccessibleWorkspaceQuery,
   AuthorizationStore,
+  GrantNarrowing,
+  GrantNarrowingQuery,
   ResourceRolesQuery,
   ResourceAccessQuery,
   WorkspaceAccessQuery,
@@ -151,8 +153,14 @@ export class DrizzleAuthorizationStore implements AuthorizationStore {
           eq(workspaceMembers.userId, query.userId),
         ),
       );
+    // A grant narrowed to a view gives its role on the records the view
+    // shows and view alone on the Event itself, so the page opens.
     const directRole = this.#database
-      .select({ role: direct.role })
+      .select({
+        role: sql<Role>`CASE WHEN direct_grant.scope = 'all' THEN direct_grant.role ELSE 'viewer' END`.as(
+          "direct_grant_role",
+        ),
+      })
       .from(direct)
       .where(and(activeGrant(direct), eq(direct.resourceId, objects.id)));
     const inheritedRole = this.#database
@@ -170,6 +178,7 @@ export class DrizzleAuthorizationStore implements AuthorizationStore {
         and(
           activeGrant(inherited),
           eq(inherited.resourceId, objects.permissionScopeId),
+          grantAdmits(inherited, objects),
         ),
       );
     // Batch joins and scalar predicates reuse identical role queries.
@@ -177,6 +186,54 @@ export class DrizzleAuthorizationStore implements AuthorizationStore {
       membership,
       direct: directRole,
       inherited: inheritedRole,
+    };
+  }
+
+  async findGrantNarrowing(
+    query: GrantNarrowingQuery,
+  ): Promise<GrantNarrowing | null> {
+    const [membership] = await this.#database
+      .select({ userId: workspaceMembers.userId })
+      .from(workspaceMembers)
+      .where(
+        and(
+          eq(workspaceMembers.workspaceId, query.workspaceId),
+          eq(workspaceMembers.userId, query.userId),
+        ),
+      )
+      .limit(1);
+    if (membership !== undefined) return null;
+    const grants = await this.#database
+      .select({
+        scope: resourceGrants.scope,
+        sectionId: resourceGrants.sectionId,
+      })
+      .from(resourceGrants)
+      .where(
+        and(
+          eq(resourceGrants.workspaceId, query.workspaceId),
+          eq(resourceGrants.resourceId, query.resourceId),
+          eq(resourceGrants.principalType, "user"),
+          eq(resourceGrants.principalId, query.userId),
+          or(
+            isNull(resourceGrants.expiresAt),
+            gt(resourceGrants.expiresAt, query.evaluatedAt),
+          ),
+        ),
+      );
+    if (grants.some((grant) => grant.scope === "all")) return null;
+    const views = new Set<ShareView>();
+    const narrowed: { id: string; view: ShareView }[] = [];
+    for (const grant of grants) {
+      if (grant.scope === "all") continue;
+      if (grant.sectionId === null) views.add(grant.scope);
+      else narrowed.push({ id: grant.sectionId, view: grant.scope });
+    }
+    return {
+      views: [...views].sort(),
+      sections: narrowed
+        .filter((section) => !views.has(section.view))
+        .sort((a, b) => a.id.localeCompare(b.id)),
     };
   }
 

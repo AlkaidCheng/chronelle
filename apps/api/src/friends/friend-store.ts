@@ -1152,6 +1152,7 @@ export class PostgresFriendStore implements FriendStore {
               resourceGrants.resourceId,
               resourceGrants.principalType,
               resourceGrants.principalId,
+              resourceGrants.scopeKey,
             ],
             set: {
               role: pending.role,

@@ -180,6 +180,17 @@ to its own ID makes it private without deleting the object or its `includes`
 relationship. That change increments the same canonical version used by every
 projection.
 
+A grant on an Event may be narrowed (`resource_grants.scope`, one of the
+Event's views or `all`; `section_id` for one section of To-dos or Expenses).
+The narrowing is applied where a child is reached through the Event's scope:
+the grant admits the object types the view shows, or the section's own tasks
+or expenses (`chronelle_grant_admits`), and on the Event itself gives view
+alone. Both evaluators apply the rule, the Drizzle store in SQL and the
+CloudBase adapters in application code with the section memberships read
+once. The unique key is `(workspace, resource, principal, scope, section)`,
+so an account holds one grant per scope; a section's deletion cascades to
+the grants narrowed to it. Membership and whole grants are unchanged.
+
 ## Lifecycle
 
 Objects begin at version 1. Application updates require `expectedVersion`,

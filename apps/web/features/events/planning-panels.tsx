@@ -119,6 +119,7 @@ import { ExpenseComposer } from "./expense-composer";
 import { ExpenseForm } from "./expense-form";
 import { ExpenseInspector } from "./expense-inspector";
 import { ExportControl } from "./export-control";
+import { ShareControl, useCanShareEvent } from "./share-control";
 import { PeriodView, type RowMode } from "./period-view";
 import { ReminderComposer } from "./reminder-composer";
 import { ReminderForm } from "./reminder-form";
@@ -335,6 +336,11 @@ export function TasksPanel({
                   persons: persons.data?.names,
                 })
               }
+              view="todos"
+              viewName={t("title")}
+            />
+            <ShareControl
+              eventId={eventId}
               view="todos"
               viewName={t("title")}
             />
@@ -612,6 +618,11 @@ export function CalendarPanel({
                   ),
                 )
               }
+              view="calendar"
+              viewName={views("calendar")}
+            />
+            <ShareControl
+              eventId={eventId}
               view="calendar"
               viewName={views("calendar")}
             />
@@ -909,6 +920,7 @@ export function ExpensesPanel({
   } | null>(null);
   const [announcement, setAnnouncement] = useState("");
   const totals = useMemo(() => sumMoneyByCurrency(expenses), [expenses]);
+  const canShare = useCanShareEvent(eventId);
   const panel = useRef<HTMLElement>(null);
   const returnFocus = useReturnFocus(panel);
   const period = usePeriod(view);
@@ -1338,6 +1350,11 @@ export function ExpensesPanel({
               view="expenses"
               viewName={views("expenses")}
             />
+            <ShareControl
+              eventId={eventId}
+              view="expenses"
+              viewName={views("expenses")}
+            />
           </div>
         }
         title={views("expenses")}
@@ -1389,6 +1406,7 @@ export function ExpensesPanel({
                     ) : (
                       <SectionHead
                         canEdit={canEdit}
+                        canShare={canShare}
                         figure={items.length === 0 ? null : moneyTotals(items)}
                         grip={
                           reorder ? (
@@ -1885,6 +1903,11 @@ export function RemindersPanel({
                       ),
                 )
               }
+              view="reminders"
+              viewName={views("reminders")}
+            />
+            <ShareControl
+              eventId={eventId}
               view="reminders"
               viewName={views("reminders")}
             />
