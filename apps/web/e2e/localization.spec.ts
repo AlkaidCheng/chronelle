@@ -49,7 +49,7 @@ const hans = {
   objectHistory: "\u5bf9\u8c61\u5386\u53f2",
   closeHistory: "\u5173\u95ed\u5386\u53f2",
   searchAndCommands: "\u641c\u7d22\u4e0e\u547d\u4ee4",
-  findCommand: "\u67e5\u627e\u547d\u4ee4",
+  searchRecords: "\u641c\u7d22\u8bb0\u5f55\u548c\u547d\u4ee4",
   discard: "\u653e\u5f03",
 };
 const hant = {
@@ -200,8 +200,8 @@ test("switches the workspace to Simplified and Traditional Chinese and back @web
     .getByRole("button", { name: hans.searchAndCommands, exact: true })
     .click();
   await expect(
-    page.getByLabel(hans.findCommand, { exact: true }),
-  ).toBeVisible();
+    page.getByRole("combobox", { name: hans.searchRecords, exact: true }),
+  ).toBeFocused();
   await page.keyboard.press("Escape");
 
   // The event's People view, its Add person dialog, the person editor
