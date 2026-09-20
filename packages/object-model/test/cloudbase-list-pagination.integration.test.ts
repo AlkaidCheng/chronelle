@@ -47,6 +47,84 @@ async function fixture() {
 }
 
 describe.sequential("CloudBase bounded list hydration", () => {
+  it.each(["event", "task", "person"] as const)(
+    "omits a %s moved into a private scope before hydration",
+    async (objectType) => {
+      const harness = await fixture();
+      const db = harness.database.connection.db;
+      const sharedScope = createId();
+      const privateScope = createId();
+      const objectId = objectType === "event" ? sharedScope : createId();
+      await db.insert(objects).values([
+        ...[sharedScope, privateScope].map((id) => ({
+          id,
+          workspaceId: harness.workspaceId,
+          objectType: "event" as const,
+          displayName: "Event scope",
+          permissionScopeId: id,
+          createdBy: harness.ownerId,
+        })),
+        ...(objectType === "event"
+          ? []
+          : [
+              {
+                id: objectId,
+                workspaceId: harness.workspaceId,
+                objectType,
+                displayName: "Shared record",
+                permissionScopeId: sharedScope,
+                createdBy: harness.ownerId,
+              },
+            ]),
+      ]);
+      await db
+        .insert(events)
+        .values(
+          [sharedScope, privateScope].map((objectId) => ({
+            objectId,
+            workspaceId: harness.workspaceId,
+          })),
+        );
+      if (objectType !== "event")
+        await db
+          .insert(objectType === "task" ? tasks : persons)
+          .values({ objectId, workspaceId: harness.workspaceId });
+      await db.insert(resourceGrants).values({
+        id: createId(),
+        workspaceId: harness.workspaceId,
+        resourceId: sharedScope,
+        principalId: harness.viewerId,
+        role: "viewer",
+        grantedBy: harness.ownerId,
+      });
+      const client = {
+        ...createCloudBaseLiveReader(db),
+        async rpc<T>(name: string, args?: Record<string, unknown>) {
+          const result = await harness.rpc<T>(name, args);
+          await db
+            .update(objects)
+            .set({
+              permissionScopeId: privateScope,
+              displayName: "Private revision",
+            })
+            .where(eq(objects.id, objectId));
+          return result;
+        },
+      };
+      const viewer = { ...harness.principal, userId: harness.viewerId };
+      const page =
+        objectType === "event"
+          ? await new CloudBaseEventReadRepository(client).listEvents(viewer)
+          : objectType === "task"
+            ? await new CloudBaseTaskReadRepository(client).listTasks(viewer)
+            : await new CloudBasePersonReadRepository(client).listPersons(
+                viewer,
+              );
+      expect(page.items).toEqual([]);
+      expect(JSON.stringify(page)).not.toContain("Private revision");
+    },
+  );
+
   it("bounds updated/manual candidates and hydrates only one page of canonical payloads", async () => {
     const harness = await fixture();
     const db = harness.database.connection.db;

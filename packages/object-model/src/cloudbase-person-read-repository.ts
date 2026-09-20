@@ -12,6 +12,7 @@ import {
   readCloudBasePersonContacts,
   readCloudBasePersonLabels,
   readCloudBaseObjects,
+  readCloudBaseVisibility,
 } from "./cloudbase-read-support.js";
 import {
   cloudbaseListRows,
@@ -40,11 +41,15 @@ export class CloudBasePersonReadRepository implements PersonReadRepository {
     options: PersonListQueryInput = {},
   ): Promise<PersonPage> {
     const input = personListQuerySchema.parse(options);
-    const raw = await this.#client.rpc("chronelle_person_list_candidates", {
-      workspace_id: principal.workspaceId,
-      user_id: principal.userId,
-      access_at: this.#clock().toISOString(),
-    });
+    const now = this.#clock();
+    const [raw, visibility] = await Promise.all([
+      this.#client.rpc("chronelle_person_list_candidates", {
+        workspace_id: principal.workspaceId,
+        user_id: principal.userId,
+        access_at: now.toISOString(),
+      }),
+      readCloudBaseVisibility(this.#client, principal, () => now),
+    ]);
     const query = input.query.toLocaleLowerCase();
     const ids = cloudbaseListRows(raw)
       .map((row) => ({
@@ -87,7 +92,9 @@ export class CloudBasePersonReadRepository implements PersonReadRepository {
       rows.map((row) => [cloudbaseText(row.object_id, "person object"), row]),
     );
     const objectsById = new Map(
-      objects.map((object) => [cloudbaseText(object.id, "object id"), object]),
+      objects
+        .filter((object) => visibility.canView(object))
+        .map((object) => [cloudbaseText(object.id, "object id"), object]),
     );
     const items = ids.flatMap((id) => {
       const object = objectsById.get(id);

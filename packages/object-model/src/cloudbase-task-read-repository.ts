@@ -259,7 +259,9 @@ export class CloudBaseTaskReadRepository implements TaskReadRepository {
       readCloudBaseTaskLabels(this.#client, principal, ids),
     ]);
     const objectsById = new Map(
-      objects.map((object) => [cloudbaseText(object.id, "object id"), object]),
+      objects
+        .filter((object) => visibility.canView(object))
+        .map((object) => [cloudbaseText(object.id, "object id"), object]),
     );
     const tasksById = new Map(
       taskRows.map((task) => [cloudbaseText(task.object_id, "task id"), task]),

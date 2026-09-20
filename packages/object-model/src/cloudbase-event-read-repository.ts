@@ -262,7 +262,9 @@ export class CloudBaseEventReadRepository implements EventReadRepository {
       readCloudBaseEventsById(this.#client, ids),
     ]);
     const objectsById = new Map(
-      objects.map((object) => [cloudbaseText(object.id, "object id"), object]),
+      objects
+        .filter((object) => object.permission_scope_id === object.id)
+        .map((object) => [cloudbaseText(object.id, "object id"), object]),
     );
     const eventsById = new Map(
       eventRows.map((event) => [
