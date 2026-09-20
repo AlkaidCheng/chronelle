@@ -251,6 +251,10 @@ test("gives the phone an app bar whose menu opens the sidebar as a drawer, with 
   await expect(account).toBeInViewport();
   await expect(page.locator(".sheet-identity")).toContainText("Ben Wu");
   await expect(page.locator(".sheet-identity")).toContainText(benEmail);
+  // Safari on an iPhone offers Install app (the home-screen steps) too.
+  const ios = await page.evaluate(() =>
+    /iPhone|iPad|iPod/.test(navigator.userAgent),
+  );
   await expect(account.getByRole("menuitem")).toHaveText([
     /^Friends/,
     "Settings",
@@ -258,6 +262,7 @@ test("gives the phone an app bar whose menu opens the sidebar as a drawer, with 
     "Trash",
     "Theme",
     "Customize sidebar",
+    ...(ios ? ["Install app"] : []),
     "Help",
   ]);
   await expect(
