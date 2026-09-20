@@ -30,11 +30,12 @@ import { ShareWithPeople, shareRows } from "./share-with-people";
 
 type SheetRole = "viewer" | "editor";
 
-/** Whether a grant carries exactly this narrowing. */
+/** Whether a grant carries exactly this narrowing, or none when `scope` is null (the whole Event). */
 export function grantHasScope(
   grant: Pick<ShareResponse, "scope">,
-  scope: ShareScope,
+  scope: ShareScope | null,
 ): boolean {
+  if (scope === null) return grant.scope === null;
   return (
     grant.scope !== null &&
     grant.scope.view === scope.view &&
@@ -105,7 +106,7 @@ function useSheetPlacement(sheet: RefObject<HTMLDivElement | null>) {
 }
 
 /**
- * The sheet that shares one view of an Event, or one section of it,
+ * The sheet that shares an Event, one view of it, or one section of it,
  * under the control that opened it: the people who see it with their
  * role, Add people unfolding the picker, and Done. Escape and a press
  * outside close it; a keyboard close returns focus to the opener.
@@ -119,10 +120,11 @@ export function ShareSheet({
 }: {
   readonly eventId: string;
   readonly hint: string;
-  /** What is shared, as people read it: the view's name or the section's. */
+  /** What is shared, as people read it: the event's name, the view's, or the section's. */
   readonly name: string;
   readonly onClose: (byKeyboard: boolean) => void;
-  readonly scope: ShareScope;
+  /** The view or section shared, or null for the whole Event. */
+  readonly scope: ShareScope | null;
 }) {
   const t = useTranslations("share");
   const id = useId();
@@ -176,7 +178,11 @@ export function ShareSheet({
 
   function changeRole(grant: ShareResponse, role: SheetRole) {
     share.mutate(
-      { principalId: grant.principal.id, role, scope },
+      {
+        principalId: grant.principal.id,
+        role,
+        ...(scope === null ? {} : { scope }),
+      },
       { onSuccess: () => post({ message: t("changed") }) },
     );
   }
@@ -244,7 +250,7 @@ export function ShareSheet({
           eventId={eventId}
           legend={t("addPeople")}
           rows={rows}
-          scope={scope}
+          scope={scope ?? undefined}
         />
       ) : (
         <button

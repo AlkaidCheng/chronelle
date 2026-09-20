@@ -4,7 +4,13 @@ import type { EventResponse } from "@chronelle/schemas";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { type MouseEventHandler, useEffect, useState } from "react";
+import {
+  type MouseEventHandler,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 
 import {
   EmptyState,
@@ -13,16 +19,17 @@ import {
 } from "../../components/feedback";
 import { IconButton } from "../../components/icon-button";
 import {
-  ArrowIcon,
   FilterIcon,
   GridIcon,
   ListIcon,
   PlusIcon,
   RefreshIcon,
   SearchIcon,
+  ShareIcon,
   SortIcon,
 } from "../../components/icons";
 import { MenuItem, QuietMenu } from "../../components/quiet-menu";
+import { RowMenu, type RowMenuEntry } from "../../components/row-menu";
 import { eventPeriod } from "../../lib/event-collection";
 import {
   useEventCollectionReturn,
@@ -32,9 +39,115 @@ import {
   formatEventDatePart,
   formatEventSchedule,
 } from "../../lib/event-schedule";
-import { useEventsQuery } from "../../lib/queries";
+import { useEventAccessQuery, useEventsQuery } from "../../lib/queries";
+import { useOpenHistory } from "../history/history-provider";
+import { useOpenLifecycle } from "../recovery/lifecycle-provider";
 import { CreateEventDialog } from "./create-event-dialog";
+import { EventInspector } from "./event-inspector";
+import { ShareSheet } from "./share-sheet";
 
+/**
+ * The card's controls at its right edge: Share, opening the sheet that
+ * shares the whole Event, and the row menu (Edit event, History, Share,
+ * Move to Trash). They sit beside the card's link, not inside it. The
+ * Event's access is read once the card is hovered or focused, so the
+ * menu offers only what the account may do; Share shows until the
+ * access says otherwise.
+ */
+function EventCardActions({
+  armed,
+  event,
+}: {
+  readonly armed: boolean;
+  readonly event: EventResponse;
+}) {
+  const t = useTranslations("events");
+  const share = useTranslations("share");
+  const openHistory = useOpenHistory();
+  const openLifecycle = useOpenLifecycle();
+  const access = useEventAccessQuery(armed ? event.id : undefined);
+  const [sharing, setSharing] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const shareButton = useRef<HTMLButtonElement>(null);
+  const closeSheet = useCallback((byKeyboard: boolean) => {
+    setSharing(false);
+    if (byKeyboard) shareButton.current?.focus();
+  }, []);
+  const actions = access.data?.actions;
+  const may = (action: "edit" | "share" | "delete") =>
+    actions?.includes(action) ?? false;
+  const canShare = actions === undefined || may("share");
+  const entries: RowMenuEntry[] = [];
+  if (may("edit"))
+    entries.push({
+      kind: "action",
+      label: t("menu.edit"),
+      onSelect: () => setEditing(true),
+    });
+  entries.push({
+    kind: "action",
+    label: t("menu.history"),
+    onSelect: () =>
+      openHistory({ objectId: event.id, displayName: event.displayName }),
+  });
+  if (canShare)
+    entries.push({
+      kind: "action",
+      label: t("menu.share"),
+      onSelect: () => setSharing(true),
+    });
+  if (may("delete"))
+    entries.push(
+      { kind: "rule" },
+      {
+        kind: "action",
+        label: t("menu.moveToTrash"),
+        danger: true,
+        onSelect: () => openLifecycle(event),
+      },
+    );
+  return (
+    <>
+      <div className="event-card-actions">
+        {canShare ? (
+          <div className="event-card-share">
+            <IconButton
+              aria-expanded={sharing}
+              aria-haspopup="dialog"
+              label={t("menu.share")}
+              onClick={() => setSharing((current) => !current)}
+              ref={shareButton}
+            >
+              <ShareIcon />
+            </IconButton>
+            {sharing ? (
+              <ShareSheet
+                eventId={event.id}
+                hint={share("eventHint")}
+                name={event.displayName}
+                onClose={closeSheet}
+                scope={null}
+              />
+            ) : null}
+          </div>
+        ) : null}
+        <RowMenu
+          entries={entries}
+          label={t("actionsFor", { name: event.displayName })}
+        />
+      </div>
+      {editing ? (
+        <EventInspector event={event} onClose={() => setEditing(false)} />
+      ) : null}
+    </>
+  );
+}
+
+/**
+ * One compact object: the date tile, the name, the dates, and a third
+ * line for sharing; the whole card is the link. A past or undated event
+ * reads muted in its tile.
+ */
 function EventCard({
   event,
   now,
@@ -45,28 +158,43 @@ function EventCard({
   readonly onOpen: MouseEventHandler<HTMLAnchorElement>;
 }) {
   const t = useTranslations("events");
+  const dates = useTranslations("dates");
+  const [armed, setArmed] = useState(false);
+  const period = eventPeriod(event, now);
+  const arm = () => setArmed(true);
   return (
-    <Link
-      className="event-card"
-      data-event-id={event.id}
-      href={`/events/${event.id}`}
-      onClick={onOpen}
+    <article
+      className={`event-card-shell period-${period}`}
+      onFocus={arm}
+      onPointerEnter={arm}
     >
-      <div className="event-date-mark">
-        <span>{formatEventDatePart(event, "month").toUpperCase()}</span>
-        <strong>{formatEventDatePart(event, "day")}</strong>
-      </div>
-      <div className="event-card-copy">
-        <span className={`object-label period-${eventPeriod(event, now)}`}>
-          {t(`period.${eventPeriod(event, now)}`)}
-        </span>
-        <h2>{event.displayName}</h2>
-        <p>{formatEventSchedule(event)}</p>
-      </div>
-      <span aria-hidden="true" className="card-arrow">
-        <ArrowIcon />
-      </span>
-    </Link>
+      <Link
+        className="event-card"
+        data-event-id={event.id}
+        href={`/events/${event.id}`}
+        onClick={onOpen}
+      >
+        <div className="event-date-mark">
+          {period === "unscheduled" ? (
+            <strong className="event-date-tbd">{dates("tbd")}</strong>
+          ) : (
+            <>
+              <span>{formatEventDatePart(event, "month").toUpperCase()}</span>
+              <strong>{formatEventDatePart(event, "day")}</strong>
+            </>
+          )}
+        </div>
+        <div className="event-card-copy">
+          <h2>{event.displayName}</h2>
+          <p>
+            {period === "unscheduled"
+              ? t("undated")
+              : formatEventSchedule(event)}
+          </p>
+        </div>
+      </Link>
+      <EventCardActions armed={armed} event={event} />
+    </article>
   );
 }
 
@@ -95,25 +223,25 @@ export function EventList() {
   const sorts = ["date", "updated", "name"] as const;
   return (
     <main className="workspace-page" ref={container} tabIndex={-1}>
-      <header className="quiet-heading collection-column">
+      <header className="quiet-heading events-heading events-column">
         <h1>{t("title")}</h1>
+        <label className="inline-search events-search">
+          <SearchIcon />
+          <span className="visually-hidden">{t("filterByName")}</span>
+          <input
+            type="search"
+            value={query}
+            onChange={(event) => change({ query: event.target.value })}
+            onCompositionStart={() => setIsComposing(true)}
+            onCompositionEnd={(event) => {
+              change({ query: event.currentTarget.value });
+              setIsComposing(false);
+            }}
+            placeholder={t("find")}
+            maxLength={240}
+          />
+        </label>
         <div className="quiet-tools">
-          <label className="inline-search">
-            <SearchIcon />
-            <span className="visually-hidden">{t("filterByName")}</span>
-            <input
-              type="search"
-              value={query}
-              onChange={(event) => change({ query: event.target.value })}
-              onCompositionStart={() => setIsComposing(true)}
-              onCompositionEnd={(event) => {
-                change({ query: event.currentTarget.value });
-                setIsComposing(false);
-              }}
-              placeholder={t("find")}
-              maxLength={240}
-            />
-          </label>
           <QuietMenu
             label={t("filterMenu")}
             icon={<FilterIcon />}
@@ -194,7 +322,9 @@ export function EventList() {
 
       <section
         aria-labelledby="event-list-heading"
-        className="event-list-section collection-column"
+        className={`event-list-section ${
+          layout === "list" ? "collection-column" : "events-column"
+        }`}
       >
         <p
           aria-label={t("countLabel")}

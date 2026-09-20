@@ -31,9 +31,12 @@
     "grid": "格狀",
     "list": "列表"
   },
-  "period": {
-    "upcoming": "已安排",
-    "past": "已結束",
-    "unscheduled": "日期待定"
+  "undated": "日期待定",
+  "actionsFor": "{name} 的動作",
+  "menu": {
+    "edit": "編輯活動",
+    "history": "歷史",
+    "share": "分享",
+    "moveToTrash": "移到垃圾桶"
   }
 }

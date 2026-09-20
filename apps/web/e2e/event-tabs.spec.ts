@@ -42,6 +42,27 @@ test("keeps the account's tabs for an event through the gallery, Manage tabs, th
     page.getByRole("tab", { name: "To-dos", exact: true }),
   ).toHaveAttribute("aria-selected", "true");
 
+  // Add page sits at the strip's left edge; its tip reads whole inside
+  // the viewport rather than clipped by the strip.
+  if (!phone) {
+    const addPage = page.getByRole("button", { name: "Add page", exact: true });
+    await addPage.hover();
+    await expect
+      .poll(() =>
+        addPage.evaluate((button) => {
+          const tip = window.getComputedStyle(button, "::after");
+          const left = Number.parseFloat(tip.left);
+          const right = left + Number.parseFloat(tip.width);
+          return {
+            display: tip.display,
+            inside: left >= 12 && right <= window.innerWidth - 12,
+          };
+        }),
+      )
+      .toEqual({ display: "block", inside: true });
+    await page.mouse.move(0, 0);
+  }
+
   // The gallery: a card is a switch. Timeline leaves the strip and comes
   // back at its end; the dialog stays open throughout.
   await page.getByRole("button", { name: "Add a view", exact: true }).click();

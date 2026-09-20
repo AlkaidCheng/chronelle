@@ -104,7 +104,7 @@ export function formatEventDatePart(
   return new Intl.DateTimeFormat(activeLocale(), {
     ...(part === "month"
       ? { month: "short" as const }
-      : { day: "2-digit" as const }),
+      : { day: "numeric" as const }),
     ...(event.startsOn ? { timeZone: "UTC" } : instantOptions()),
   }).format(new Date(event.startsOn ? `${value}T00:00:00Z` : value));
 }
