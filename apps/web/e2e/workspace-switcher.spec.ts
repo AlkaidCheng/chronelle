@@ -1,9 +1,9 @@
 import { randomUUID } from "node:crypto";
 import { expect, test } from "./fixtures";
 import {
+  accountBlock,
   openWorkspaceSwitcher,
   workspaceEntry,
-  workspaceLine,
   workspaceSwitcher,
 } from "./helpers/quiet-chrome";
 
@@ -101,36 +101,51 @@ test("lists the workspaces shared with the account by when they were last opened
   await page.getByRole("button", { name: "Continue", exact: true }).click();
   await expect(page).toHaveURL(/\/events$/);
 
-  // The switcher: the account's own workspace first and ticked, the shared
-  // ones by name while none has been opened, each with its owner's name.
-  const line = workspaceLine(page);
-  await expect(line).toContainText(reader.workspace.displayName);
+  // The rail's foot names the current workspace under the account: the
+  // account's own reads "Personal". The switcher, reached through the
+  // account menu, lists it first and ticked with the home mark and the
+  // account's name under it; the shared ones read their owner's name with
+  // the role under it, by name while none has been opened, with the
+  // owner's initials as their mark.
+  const block = accountBlock(page);
+  await expect(block).toContainText("Personal");
   const menu = await openWorkspaceSwitcher(page);
   const search = menu.getByRole("searchbox", { name: "Find a workspace" });
   await expect(search).toBeFocused();
   const entries = menu.getByRole("menuitemradio");
   await expect(entries).toHaveCount(sharers.length + 1);
-  await expect(menu).not.toContainText(stranger.workspace.displayName);
+  await expect(menu).not.toContainText("Only Shares");
   await expect(entries.first()).toHaveAttribute("aria-checked", "true");
-  await expect(entries.first()).toContainText(reader.workspace.displayName);
-  await expect(entries.first()).toContainText("Personal workspace");
-  await expect(entries.nth(1)).toContainText(workspaces["Ana Souza"] ?? "");
+  await expect(entries.first()).toContainText("Personal");
+  await expect(entries.first()).toContainText("Switcher planner");
+  await expect(entries.first().locator(".workspace-mark-home")).toHaveCount(1);
   await expect(entries.nth(1)).toContainText("Ana Souza");
+  await expect(entries.nth(1)).toContainText("Viewer");
+  await expect(entries.nth(1)).not.toContainText("workspace");
   await expect(entries.nth(1)).not.toContainText("Opened");
+  await expect(entries.nth(1).locator(".workspace-mark")).toHaveText("AS");
   await expect(
     menu.getByRole("menuitem", { name: "Members", exact: true }),
   ).toHaveAttribute("href", /\/settings\/members$/u);
 
-  // The search narrows by the owner's name; Escape closes and returns focus.
+  // The search narrows by the owner's name; Escape leads back to the
+  // account menu, and again to the block.
   await search.fill("kai");
   await expect(entries).toHaveCount(1);
-  await expect(entries.first()).toContainText(workspaces["Kai Tanaka"] ?? "");
+  await expect(entries.first()).toContainText("Kai Tanaka");
   await search.fill("nobody here");
   await expect(entries).toHaveCount(0);
   await expect(menu.getByText("No workspace matches.")).toBeVisible();
   await page.keyboard.press("Escape");
   await expect(menu).toHaveCount(0);
-  await expect(line).toBeFocused();
+  const account = page.getByRole("menu", { name: "Account", exact: true });
+  await expect(account).toBeVisible();
+  await expect(
+    account.getByRole("menuitem", { name: "Switch workspace...", exact: true }),
+  ).toBeFocused();
+  await page.keyboard.press("Escape");
+  await expect(account).toHaveCount(0);
+  await expect(block).toBeFocused();
 
   // Opening a workspace notes the moment on the account, so it leads the
   // shared list, ticked, with when it was opened. Each switch waits for
@@ -144,28 +159,30 @@ test("lists the workspaces shared with the account by when they were last opened
     await openWorkspaceSwitcher(page);
     await workspaceEntry(page, name).click();
     expect((await noted).ok()).toBe(true);
-    await expect(line).toContainText(name);
+    await expect(block).toContainText(name);
   };
-  await switchTo(workspaces["Kai Tanaka"] ?? "");
+  await switchTo("Kai Tanaka");
   await expect(
     page.getByRole("link", { name: /Kai Tanaka's plan/ }),
   ).toBeVisible();
   await openWorkspaceSwitcher(page);
-  await expect(entries.nth(1)).toContainText(workspaces["Kai Tanaka"] ?? "");
+  await expect(entries.nth(1)).toContainText("Kai Tanaka");
   await expect(entries.nth(1)).toHaveAttribute("aria-checked", "true");
   await expect(entries.nth(1)).toContainText("Opened");
-  await expect(entries.nth(2)).toContainText(workspaces["Ana Souza"] ?? "");
+  await expect(entries.nth(2)).toContainText("Ana Souza");
+  await page.keyboard.press("Escape");
   await page.keyboard.press("Escape");
 
   // A second switch right after keeps the first note: the most recent
   // leads and the earlier one follows.
-  await switchTo(workspaces["Ben Wu"] ?? "");
+  await switchTo("Ben Wu");
   await openWorkspaceSwitcher(page);
-  await expect(entries.nth(1)).toContainText(workspaces["Ben Wu"] ?? "");
+  await expect(entries.nth(1)).toContainText("Ben Wu");
   await expect(entries.nth(1)).toHaveAttribute("aria-checked", "true");
-  await expect(entries.nth(2)).toContainText(workspaces["Kai Tanaka"] ?? "");
+  await expect(entries.nth(2)).toContainText("Kai Tanaka");
   await expect(entries.nth(2)).toContainText("Opened");
-  await expect(entries.nth(3)).toContainText(workspaces["Ana Souza"] ?? "");
+  await expect(entries.nth(3)).toContainText("Ana Souza");
+  await page.keyboard.press("Escape");
   await page.keyboard.press("Escape");
 
   // The order is the account's: a fresh session reads it back.
@@ -189,14 +206,15 @@ test("lists the workspaces shared with the account by when they were last opened
     role: "viewer",
   });
   await page.reload();
-  await expect(line).toContainText(workspaces["Ben Wu"] ?? "");
+  await expect(block).toContainText("Ben Wu");
   await openWorkspaceSwitcher(page);
-  await expect(entries.nth(1)).toContainText(workspaces["Ben Wu"] ?? "");
-  await expect(entries.nth(2)).toContainText(workspaces["Kai Tanaka"] ?? "");
+  await expect(entries.nth(1)).toContainText("Ben Wu");
+  await expect(entries.nth(2)).toContainText("Kai Tanaka");
   await expect(entries.nth(2)).toContainText("Opened");
   await page.keyboard.press("Escape");
+  await page.keyboard.press("Escape");
 
-  // The shortcut opens and closes the switcher from the page.
+  // The shortcut opens and closes the switcher's list from the page.
   await page.getByRole("heading", { name: "Events", exact: true }).click();
   await page.keyboard.press("ControlOrMeta+Shift+K");
   await expect(workspaceSwitcher(page)).toBeVisible();
@@ -204,7 +222,7 @@ test("lists the workspaces shared with the account by when they were last opened
   await expect(workspaceSwitcher(page)).toHaveCount(0);
 });
 
-test("keeps the workspace control in the phone's bar with the switcher under it @webkit-mobile", async ({
+test("reaches the switcher from the phone's bar, its list under the bar @webkit-mobile", async ({
   page,
   request,
 }, testInfo) => {
@@ -217,19 +235,19 @@ test("keeps the workspace control in the phone's bar with the switcher under it 
     data: { email, displayName: "Phone planner" },
   });
   expect(readerResponse.ok()).toBe(true);
-  const reader = await readerResponse.json();
   await page.goto("/sign-in/development");
   await page.getByLabel("Name", { exact: true }).fill("Phone planner");
   await page.getByLabel("Email").fill(email);
   await page.getByRole("button", { name: "Continue", exact: true }).click();
   await expect(page).toHaveURL(/\/events$/);
-  const line = workspaceLine(page);
-  await expect(line).toBeInViewport();
+  const block = accountBlock(page);
+  await expect(block).toBeInViewport();
   const menu = await openWorkspaceSwitcher(page);
   await expect(menu).toBeInViewport();
-  await expect(
-    workspaceEntry(page, reader.workspace.displayName),
-  ).toHaveAttribute("aria-checked", "true");
+  await expect(workspaceEntry(page, "Personal")).toHaveAttribute(
+    "aria-checked",
+    "true",
+  );
   await expect(
     menu.getByRole("menuitem", { name: "Members", exact: true }),
   ).toBeInViewport();

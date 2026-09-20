@@ -145,9 +145,8 @@ test("shows the events shared with an account beside its own, opens one in place
   ).toBeVisible();
   await page.getByRole("tab", { name: "To-dos", exact: true }).click();
   await expect(page.getByText("Book the ryokan")).toBeVisible();
-  await expect(
-    page.getByRole("button", { name: /^Workspace: / }),
-  ).toContainText(ben.workspace.displayName);
+  // The rail stays on Ben's own workspace: the account block still reads Personal.
+  await expect(page.locator(".account-trigger")).toContainText("Personal");
   await page.getByRole("link", { name: "All events", exact: true }).click();
   await expect(page).toHaveURL(/\/events$/u);
 

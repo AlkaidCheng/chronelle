@@ -172,7 +172,7 @@ test("searches the workspace the account is in and rechecks withdrawn access @we
   await input.press("Escape");
   // In the owner's workspace a member finds every record of it; the
   // search runs in the workspace the account is in.
-  await switchWorkspace(page, owner.workspace.displayName);
+  await switchWorkspace(page, owner.user.displayName);
   await openCommands(page);
   await input.fill("gathering");
   await expect(

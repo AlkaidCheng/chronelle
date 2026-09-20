@@ -78,7 +78,7 @@ test("limits Viewer commands and denies history after access is revoked @webkit-
   await page.getByLabel("Name", { exact: true }).fill("Viewer");
   await page.getByLabel("Email").fill(email);
   await page.getByRole("button", { name: "Continue", exact: true }).click();
-  await switchWorkspace(page, owner.workspace.displayName);
+  await switchWorkspace(page, owner.user.displayName);
   await page.getByRole("link", { name: /Shared gathering/ }).click();
   const commands = await openCommands(page);
   await expect(

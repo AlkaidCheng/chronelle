@@ -63,7 +63,7 @@ test("rejects a workspace choice whose membership was withdrawn @webkit-desktop 
   await page.getByRole("button", { name: "Continue", exact: true }).click();
   await expect(page).toHaveURL(/\/events$/);
   const menu = await openWorkspaceSwitcher(page);
-  const ownerWorkspace = workspaceEntry(page, owner.workspace.displayName);
+  const ownerWorkspace = workspaceEntry(page, owner.user.displayName);
   await expect(ownerWorkspace).toHaveCount(1);
   expect(
     (
@@ -81,12 +81,11 @@ test("rejects a workspace choice whose membership was withdrawn @webkit-desktop 
   await deniedSession;
   await expect(menu).toHaveCount(0);
   await openWorkspaceSwitcher(page);
-  await expect(
-    workspaceEntry(page, viewer.workspace.displayName),
-  ).toHaveAttribute("aria-checked", "true");
-  await expect(workspaceEntry(page, owner.workspace.displayName)).toHaveCount(
-    0,
+  await expect(workspaceEntry(page, "Personal")).toHaveAttribute(
+    "aria-checked",
+    "true",
   );
+  await expect(workspaceEntry(page, owner.user.displayName)).toHaveCount(0);
   await page.keyboard.press("Escape");
   await expect(
     page.getByRole("link", { name: /Private shared event/ }),
