@@ -1,4 +1,5 @@
-import type { CloudBaseRdbReader, CloudBaseRdbQuery } from "@chronelle/db";
+import type { CloudBaseRdbQuery } from "@chronelle/db";
+import type { CloudBaseListClient } from "../src/cloudbase-list-candidates.js";
 import { describe, expect, it } from "vitest";
 
 import { CloudBaseEventReadRepository } from "../src/cloudbase-event-read-repository.js";
@@ -55,8 +56,27 @@ function matches(row: Record<string, unknown>, query: CloudBaseRdbQuery) {
   });
 }
 
-function client(granted = true): CloudBaseRdbReader {
+function client(granted = true): CloudBaseListClient {
   return {
+    async rpc<T>() {
+      const rows = granted
+        ? objects.slice(0, 2).map((object) => ({
+            ...object,
+            ...eventRows.find((event) => event.object_id === object.id),
+            own: false,
+          }))
+        : [];
+      return {
+        rows,
+        counts: {
+          all: rows.length,
+          mine: 0,
+          shared: rows.length,
+          upcoming: rows.length,
+          past: 0,
+        },
+      } as T;
+    },
     capabilities: {
       transactions: false,
       nativeTcp: false,

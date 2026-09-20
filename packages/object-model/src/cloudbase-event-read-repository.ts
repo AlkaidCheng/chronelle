@@ -1,26 +1,28 @@
 import { createHash } from "node:crypto";
 
 import type { UserPrincipal } from "@chronelle/authorization";
-import type { CloudBaseRdbReader } from "@chronelle/db";
 import {
   type EventListCursor,
   type EventListQuery,
   type EventListQueryInput,
   eventListCursorSchema,
+  eventListCountsSchema,
   eventListQuerySchema,
 } from "@chronelle/schemas";
 import {
+  cloudbaseListRows,
+  type CloudBaseListClient,
+} from "./cloudbase-list-candidates.js";
+import {
+  cloudbaseDate,
   cloudbaseEventResource,
+  cloudbaseNullableDate,
+  cloudbaseNullableText,
   cloudbaseText,
-  isCloudBaseRootObject,
   readCloudBaseDisplayNames,
   readCloudBaseEventObjectsById,
   readCloudBaseEventsById,
-  readCloudBaseGrantsHeld,
   readCloudBaseGrantsOn,
-  readCloudBaseMemberWorkspaceIds,
-  readCloudBaseObjects,
-  type CloudBaseObjectRow,
 } from "./cloudbase-read-support.js";
 import { decodeCursor, encodeCursor } from "./cursor.js";
 import { InvalidObjectStateError } from "./errors.js";
@@ -32,11 +34,23 @@ import {
 } from "./event-list.js";
 import type { EventResource } from "./types.js";
 
+type EventCandidate = Pick<
+  EventResource,
+  | "id"
+  | "workspaceId"
+  | "displayName"
+  | "updatedAt"
+  | "startsAt"
+  | "endsAt"
+  | "startsOn"
+  | "endsOn"
+> & { readonly own: boolean };
+
 function cursorTimestamp(value: Date): string {
   return value.toISOString().replace("Z", "000Z");
 }
 
-function schedulePosition(event: EventResource): Date | null {
+function schedulePosition(event: EventCandidate): Date | null {
   if (event.startsAt !== null) return event.startsAt;
   return event.startsOn === null
     ? null
@@ -75,7 +89,7 @@ function readCursor(
 }
 
 function matchesPeriod(
-  event: EventResource,
+  event: EventCandidate,
   filter: EventListQuery["filter"],
   asOf: Date,
 ): boolean {
@@ -93,7 +107,7 @@ function matchesPeriod(
         (endAt !== null && endAt.getTime() >= asOf.getTime());
 }
 
-function compareName(first: EventResource, second: EventResource): number {
+function compareName(first: EventCandidate, second: EventCandidate): number {
   return (
     first.displayName
       .toLocaleLowerCase()
@@ -102,7 +116,7 @@ function compareName(first: EventResource, second: EventResource): number {
   );
 }
 
-function compareDate(first: EventResource, second: EventResource): number {
+function compareDate(first: EventCandidate, second: EventCandidate): number {
   const firstDate = schedulePosition(first);
   const secondDate = schedulePosition(second);
   if (firstDate === null && secondDate !== null) return 1;
@@ -113,7 +127,7 @@ function compareDate(first: EventResource, second: EventResource): number {
   );
 }
 
-function compareUpdated(first: EventResource, second: EventResource): number {
+function compareUpdated(first: EventCandidate, second: EventCandidate): number {
   return (
     second.updatedAt.getTime() - first.updatedAt.getTime() ||
     first.id.localeCompare(second.id)
@@ -121,7 +135,7 @@ function compareUpdated(first: EventResource, second: EventResource): number {
 }
 
 function afterCursor(
-  event: EventResource,
+  event: EventCandidate,
   cursor: EventListCursor,
   sort: EventListQuery["sort"],
 ): boolean {
@@ -149,7 +163,7 @@ function afterCursor(
 }
 
 function pageCursor(
-  event: EventResource,
+  event: EventCandidate,
   context: string,
   asOf: string,
 ): string {
@@ -169,11 +183,11 @@ function pageCursor(
 
 /** Read-only CloudBase event list with the PostgreSQL cursor envelope. */
 export class CloudBaseEventReadRepository implements EventReadRepository {
-  readonly #client: CloudBaseRdbReader;
+  readonly #client: CloudBaseListClient;
   readonly #clock: () => Date;
 
   constructor(
-    client: CloudBaseRdbReader,
+    client: CloudBaseListClient,
     clock: () => Date = () => new Date(),
   ) {
     this.#client = client;
@@ -189,59 +203,48 @@ export class CloudBaseEventReadRepository implements EventReadRepository {
     const cursor = readCursor(input.cursor, context);
     const asOf = cursor === undefined ? this.#clock() : new Date(cursor.asOf);
     const now = this.#clock();
-    // The account's own workspace's root Events, as its member, beside the
-    // root Events an active grant shares with it from workspaces it does
-    // not belong to; the same two sets the PostgreSQL predicates select.
-    const [memberWorkspaceIds, held] = await Promise.all([
-      readCloudBaseMemberWorkspaceIds(this.#client, principal.userId),
-      readCloudBaseGrantsHeld(this.#client, principal.userId, now),
-    ]);
-    const sharedIds = [
-      ...new Set(
-        held
-          .filter((grant) => !memberWorkspaceIds.has(grant.workspaceId))
-          .map((grant) => grant.resourceId),
-      ),
-    ];
-    const [ownObjects, sharedObjects] = await Promise.all([
-      memberWorkspaceIds.has(principal.workspaceId)
-        ? readCloudBaseObjects(this.#client, principal, undefined, "event")
-        : Promise.resolve([] as readonly CloudBaseObjectRow[]),
-      readCloudBaseEventObjectsById(this.#client, sharedIds),
-    ]);
-    const own = ownObjects.filter(isCloudBaseRootObject);
-    const shared = sharedObjects.filter(isCloudBaseRootObject);
-    const objects =
-      input.scope === "all"
-        ? [...own, ...shared]
-        : input.scope === "mine"
-          ? own
-          : shared;
-    const allObjects = [...own, ...shared];
-    const eventRows = await readCloudBaseEventsById(
-      this.#client,
-      allObjects.map((object) => cloudbaseText(object.id, "object id")),
+    // Locale-sensitive matching stays in JavaScript. For an empty query the
+    // database can count all chips and bound the updated-order keyset itself.
+    const queryCounts = cursor === undefined && input.query !== "";
+    const bounded = input.query === "" && input.sort === "updated";
+    const result = await this.#client.rpc<{ rows: unknown; counts: unknown }>(
+      "chronelle_event_list_candidates",
+      {
+        workspace_id: principal.workspaceId,
+        user_id: principal.userId,
+        access_at: now.toISOString(),
+        as_of: asOf.toISOString(),
+        list_scope: queryCounts ? "all" : input.scope,
+        period: queryCounts ? "all" : input.filter,
+        page_limit: bounded ? input.limit + 1 : null,
+        after_position: bounded ? (cursor ?? null) : null,
+        include_counts: cursor === undefined && !queryCounts,
+      },
     );
-    const byId = new Map(
-      eventRows.map((event) => [
-        cloudbaseText(event.object_id, "event object"),
-        event,
-      ]),
+    const candidates = cloudbaseListRows(result.rows).map(
+      (row): EventCandidate => ({
+        id: cloudbaseText(row.id, "object id"),
+        workspaceId: cloudbaseText(row.workspace_id, "workspace id"),
+        displayName: cloudbaseText(row.display_name, "display name"),
+        updatedAt: cloudbaseDate(row.updated_at, "updated_at"),
+        startsAt: cloudbaseNullableDate(row.starts_at, "starts_at"),
+        endsAt: cloudbaseNullableDate(row.ends_at, "ends_at"),
+        startsOn: cloudbaseNullableText(row.starts_on, "starts_on"),
+        endsOn: cloudbaseNullableText(row.ends_on, "ends_on"),
+        own: row.own === true,
+      }),
     );
-    const resources = (rows: readonly CloudBaseObjectRow[]) =>
-      rows.flatMap((object) => {
-        const event = byId.get(cloudbaseText(object.id, "object id"));
-        return event === undefined
-          ? []
-          : [cloudbaseEventResource(object, event)];
-      });
-    const matching = (event: EventResource) =>
+    const matching = (event: EventCandidate) =>
       input.query === "" ||
       event.displayName
         .toLocaleLowerCase()
         .includes(input.query.toLocaleLowerCase());
-    let events = resources(objects).filter(
-      (event) => matching(event) && matchesPeriod(event, input.filter, asOf),
+    let events = candidates.filter(
+      (event) =>
+        matching(event) &&
+        matchesPeriod(event, input.filter, asOf) &&
+        (input.scope === "all" ||
+          (input.scope === "mine" ? event.own : !event.own)),
     );
     events.sort(
       input.sort === "name"
@@ -253,19 +256,43 @@ export class CloudBaseEventReadRepository implements EventReadRepository {
     if (cursor !== undefined)
       events = events.filter((event) => afterCursor(event, cursor, input.sort));
     const page = events.slice(0, input.limit);
+    const ids = page.map((event) => event.id);
+    const [objects, eventRows] = await Promise.all([
+      readCloudBaseEventObjectsById(this.#client, ids),
+      readCloudBaseEventsById(this.#client, ids),
+    ]);
+    const objectsById = new Map(
+      objects.map((object) => [cloudbaseText(object.id, "object id"), object]),
+    );
+    const eventsById = new Map(
+      eventRows.map((event) => [
+        cloudbaseText(event.object_id, "event id"),
+        event,
+      ]),
+    );
+    const resources = page.flatMap(({ id }) => {
+      const object = objectsById.get(id);
+      const event = eventsById.get(id);
+      return object === undefined || event === undefined
+        ? []
+        : [cloudbaseEventResource(object, event)];
+    });
     const items = await this.#withAccess(
       principal.userId,
-      memberWorkspaceIds,
-      page,
+      new Set(
+        page.filter((event) => event.own).map((event) => event.workspaceId),
+      ),
+      resources,
       now,
     );
     // The chips count the whole list once, under the query alone.
-    let counts = null;
-    if (cursor === undefined) {
-      const everything = resources(allObjects).filter(matching);
-      const mine = everything.filter((event) =>
-        memberWorkspaceIds.has(event.workspaceId),
-      ).length;
+    let counts =
+      result.counts === null
+        ? null
+        : eventListCountsSchema.parse(result.counts);
+    if (queryCounts) {
+      const everything = candidates.filter(matching);
+      const mine = everything.filter((event) => event.own).length;
       counts = {
         all: everything.length,
         mine,
@@ -284,7 +311,7 @@ export class CloudBaseEventReadRepository implements EventReadRepository {
       counts,
       nextCursor:
         events.length > input.limit && page.at(-1) !== undefined
-          ? pageCursor(page.at(-1) as EventResource, context, asOfValue)
+          ? pageCursor(page.at(-1) as EventCandidate, context, asOfValue)
           : null,
     };
   }

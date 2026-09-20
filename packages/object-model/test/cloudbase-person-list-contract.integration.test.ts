@@ -14,6 +14,7 @@ import {
 import {
   applyMigrations,
   createTestDatabase,
+  createCloudBaseRpcDouble,
   type TestDatabase,
 } from "@chronelle/db/testing";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
@@ -143,12 +144,11 @@ describe("CloudBase person list contract", () => {
       role: "viewer",
       grantedBy: ownerId,
     });
-    const clock = () => new Date("2030-01-01T00:00:00.000Z");
     const postgres = new PostgresPersonReadRepository(db);
-    const cloudbase = new CloudBasePersonReadRepository(
-      await snapshotClient(db),
-      clock,
-    );
+    const cloudbase = new CloudBasePersonReadRepository({
+      ...(await snapshotClient(db)),
+      rpc: createCloudBaseRpcDouble(database.connection.sql),
+    });
     const ids = (page: {
       readonly items: readonly { readonly id: string }[];
     }) => page.items.map(({ id }) => id);

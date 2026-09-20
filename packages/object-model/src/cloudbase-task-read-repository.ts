@@ -1,5 +1,4 @@
 import type { UserPrincipal } from "@chronelle/authorization";
-import type { CloudBaseRdbReader } from "@chronelle/db";
 import {
   taskListCursorSchema,
   taskListQuerySchema,
@@ -9,6 +8,9 @@ import {
 } from "@chronelle/schemas";
 
 import {
+  cloudbaseDate,
+  cloudbaseNullableDate,
+  cloudbaseNullableText,
   cloudbaseTaskResource,
   cloudbaseText,
   readCloudBaseInclusionsOf,
@@ -18,8 +20,11 @@ import {
   readCloudBaseTaskLabels,
   readCloudBaseTasks,
   readCloudBaseVisibility,
-  readCloudBaseVisibleObjects,
 } from "./cloudbase-read-support.js";
+import {
+  cloudbaseListRows,
+  type CloudBaseListClient,
+} from "./cloudbase-list-candidates.js";
 import { decodeCursor, encodeCursor } from "./cursor.js";
 import { InvalidObjectStateError } from "./errors.js";
 import {
@@ -32,12 +37,17 @@ import {
 } from "./task-list.js";
 import type { TaskResource } from "./types.js";
 
+type TaskCandidate = Pick<
+  TaskResource,
+  "id" | "displayName" | "updatedAt" | "dueAt" | "dueOn" | "rank"
+>;
+
 function cursorTimestamp(value: Date): string {
   return value.toISOString().replace("Z", "000Z");
 }
 
 /** Where a task sits in due order: its instant, or the start of its date in UTC. */
-function duePosition(task: TaskResource): Date | null {
+function duePosition(task: TaskCandidate): Date | null {
   if (task.dueOn !== null) return new Date(`${task.dueOn}T00:00:00Z`);
   return task.dueAt;
 }
@@ -58,15 +68,6 @@ function readCursor(
   );
 }
 
-function matchesStatus(
-  task: TaskResource,
-  filter: TaskListQuery["filter"],
-): boolean {
-  if (filter === "all") return true;
-  if (filter === "done") return task.status === "done";
-  return task.status === "todo" || task.status === "in_progress";
-}
-
 /** The calendar day of an instant in a time zone, as YYYY-MM-DD. */
 function dayIn(instant: Date, timezone: string): string {
   const parts = new Intl.DateTimeFormat("en-US", {
@@ -81,12 +82,12 @@ function dayIn(instant: Date, timezone: string): string {
 }
 
 /** The day a task is due in the query's time zone; none when undated. */
-function dueDay(task: TaskResource, timezone: string): string | null {
+function dueDay(task: TaskCandidate, timezone: string): string | null {
   if (task.dueOn !== null) return task.dueOn;
   return task.dueAt === null ? null : dayIn(task.dueAt, timezone);
 }
 
-function matchesDueRange(task: TaskResource, input: TaskListQuery): boolean {
+function matchesDueRange(task: TaskCandidate, input: TaskListQuery): boolean {
   if (input.dueFrom === undefined && input.dueTo === undefined) return true;
   const day = dueDay(task, input.timezone);
   return (
@@ -96,7 +97,7 @@ function matchesDueRange(task: TaskResource, input: TaskListQuery): boolean {
   );
 }
 
-function compareName(first: TaskResource, second: TaskResource): number {
+function compareName(first: TaskCandidate, second: TaskCandidate): number {
   return (
     first.displayName
       .toLocaleLowerCase()
@@ -105,7 +106,7 @@ function compareName(first: TaskResource, second: TaskResource): number {
   );
 }
 
-function compareDue(first: TaskResource, second: TaskResource): number {
+function compareDue(first: TaskCandidate, second: TaskCandidate): number {
   const firstDue = duePosition(first);
   const secondDue = duePosition(second);
   if (firstDue === null && secondDue !== null) return 1;
@@ -116,14 +117,14 @@ function compareDue(first: TaskResource, second: TaskResource): number {
   );
 }
 
-function compareRank(first: TaskResource, second: TaskResource): number {
+function compareRank(first: TaskCandidate, second: TaskCandidate): number {
   return (
     (first.rank < second.rank ? -1 : first.rank > second.rank ? 1 : 0) ||
     first.id.localeCompare(second.id)
   );
 }
 
-function compareUpdated(first: TaskResource, second: TaskResource): number {
+function compareUpdated(first: TaskCandidate, second: TaskCandidate): number {
   return (
     second.updatedAt.getTime() - first.updatedAt.getTime() ||
     first.id.localeCompare(second.id)
@@ -131,7 +132,7 @@ function compareUpdated(first: TaskResource, second: TaskResource): number {
 }
 
 function afterCursor(
-  task: TaskResource,
+  task: TaskCandidate,
   cursor: TaskListCursor,
   sort: TaskListQuery["sort"],
 ): boolean {
@@ -162,7 +163,11 @@ function afterCursor(
   return name > cursor.name || (name === cursor.name && task.id > cursor.id);
 }
 
-function pageCursor(task: TaskResource, context: string, asOf: string): string {
+function pageCursor(
+  task: TaskCandidate,
+  context: string,
+  asOf: string,
+): string {
   const due = duePosition(task);
   return encodeCursor({
     formatVersion: 1,
@@ -178,11 +183,11 @@ function pageCursor(task: TaskResource, context: string, asOf: string): string {
 
 /** Read-only CloudBase task list with the PostgreSQL cursor envelope. */
 export class CloudBaseTaskReadRepository implements TaskReadRepository {
-  readonly #client: CloudBaseRdbReader;
+  readonly #client: CloudBaseListClient;
   readonly #clock: () => Date;
 
   constructor(
-    client: CloudBaseRdbReader,
+    client: CloudBaseListClient,
     clock: () => Date = () => new Date(),
   ) {
     this.#client = client;
@@ -197,46 +202,42 @@ export class CloudBaseTaskReadRepository implements TaskReadRepository {
     const context = taskListContext(principal, input);
     const cursor = readCursor(input.cursor, context);
     const asOf = cursor === undefined ? this.#clock() : new Date(cursor.asOf);
-    const visibility = await readCloudBaseVisibility(
-      this.#client,
-      principal,
-      this.#clock,
-    );
-    const objects = await readCloudBaseVisibleObjects(
-      this.#client,
-      principal,
-      visibility,
-      "task",
-    );
-    const objectIds = objects.map((object) =>
-      cloudbaseText(object.id, "object id"),
-    );
-    const [taskRows, taskLabels] = await Promise.all([
-      readCloudBaseTasks(this.#client, principal, objectIds),
-      readCloudBaseTaskLabels(this.#client, principal, objectIds),
+    const now = this.#clock();
+    // Keep locale and IANA calendar-day semantics in this runtime. Without
+    // those filters, updated/manual order can use a bounded SQL keyset.
+    const bounded =
+      input.query === "" &&
+      input.dueFrom === undefined &&
+      input.dueTo === undefined &&
+      (input.sort === "updated" || input.sort === "manual");
+    const [raw, visibility] = await Promise.all([
+      this.#client.rpc("chronelle_task_list_candidates", {
+        workspace_id: principal.workspaceId,
+        user_id: principal.userId,
+        status_filter: input.filter,
+        label_id: input.label ?? null,
+        assignee_id: input.assignee ?? null,
+        list_sort: input.sort,
+        page_limit: bounded ? input.limit + 1 : null,
+        after_position: bounded ? (cursor ?? null) : null,
+        access_at: now.toISOString(),
+      }),
+      readCloudBaseVisibility(this.#client, principal, () => now),
     ]);
-    const byId = new Map(
-      taskRows.map((task) => [
-        cloudbaseText(task.object_id, "task object"),
-        task,
-      ]),
-    );
-    let tasks = objects.flatMap((object) => {
-      const id = cloudbaseText(object.id, "object id");
-      const task = byId.get(id);
-      return task === undefined
-        ? []
-        : [cloudbaseTaskResource(object, task, taskLabels.get(id) ?? [])];
-    });
+    let tasks = cloudbaseListRows(raw).map((row): TaskCandidate => ({
+      id: cloudbaseText(row.id, "task id"),
+      displayName: cloudbaseText(row.display_name, "display name"),
+      updatedAt: cloudbaseDate(row.updated_at, "updated_at"),
+      dueAt: cloudbaseNullableDate(row.due_at, "due_at"),
+      dueOn: cloudbaseNullableText(row.due_on, "due_on"),
+      rank: cloudbaseText(row.rank, "rank"),
+    }));
     tasks = tasks.filter(
       (task) =>
         (input.query === "" ||
           task.displayName
             .toLocaleLowerCase()
             .includes(input.query.toLocaleLowerCase())) &&
-        matchesStatus(task, input.filter) &&
-        (input.label === undefined || task.labelIds.includes(input.label)) &&
-        (input.assignee === undefined || task.assigneeId === input.assignee) &&
         matchesDueRange(task, input),
     );
     tasks.sort(
@@ -250,7 +251,26 @@ export class CloudBaseTaskReadRepository implements TaskReadRepository {
     );
     if (cursor !== undefined)
       tasks = tasks.filter((task) => afterCursor(task, cursor, input.sort));
-    const page = tasks.slice(0, input.limit);
+    const candidates = tasks.slice(0, input.limit);
+    const ids = candidates.map((task) => task.id);
+    const [objects, taskRows, taskLabels] = await Promise.all([
+      readCloudBaseObjects(this.#client, principal, ids, "task"),
+      readCloudBaseTasks(this.#client, principal, ids),
+      readCloudBaseTaskLabels(this.#client, principal, ids),
+    ]);
+    const objectsById = new Map(
+      objects.map((object) => [cloudbaseText(object.id, "object id"), object]),
+    );
+    const tasksById = new Map(
+      taskRows.map((task) => [cloudbaseText(task.object_id, "task id"), task]),
+    );
+    const page = candidates.flatMap(({ id }) => {
+      const object = objectsById.get(id);
+      const task = tasksById.get(id);
+      return object === undefined || task === undefined
+        ? []
+        : [cloudbaseTaskResource(object, task, taskLabels.get(id) ?? [])];
+    });
     const asOfValue = cursor?.asOf ?? cursorTimestamp(asOf);
     // The including Event, only where the caller may view it; the earliest
     // inclusion names the context when more than one Event includes a task.
@@ -349,8 +369,8 @@ export class CloudBaseTaskReadRepository implements TaskReadRepository {
       parents,
       asOf: asOfValue,
       nextCursor:
-        tasks.length > input.limit && page.at(-1) !== undefined
-          ? pageCursor(page.at(-1) as TaskResource, context, asOfValue)
+        tasks.length > input.limit && candidates.at(-1) !== undefined
+          ? pageCursor(candidates.at(-1) as TaskCandidate, context, asOfValue)
           : null,
     };
   }
