@@ -1,10 +1,10 @@
 import { expect, type Page, type TestInfo } from "@playwright/test";
 import { expectHorizontalReflow } from "./page-navigation";
 import {
+  accountBlock,
   moreTrigger,
   openAccountMenu,
   openThemePanel,
-  workspaceLine,
   workspaceSwitcher,
 } from "./quiet-chrome";
 import { openEventView } from "./event-view";
@@ -40,8 +40,13 @@ export async function exerciseWorkspaceUtilities(
       exact: true,
     }),
   ).toBeVisible();
-  const account = page.locator(".account-trigger");
+  // The rail's foot is one block: the account's name with the current
+  // workspace under it. Its menu starts with the account, then the
+  // Workspace section (the current one ticked, Switch workspace...),
+  // then Friends, Settings, Sign out.
+  const account = accountBlock(page);
   await expect(account).toHaveCount(1);
+  await expect(account).toContainText("Personal");
   await account.focus();
   await page.keyboard.press("Enter");
   const menu = page.getByRole("menu", { name: "Account", exact: true });
@@ -49,10 +54,16 @@ export async function exerciseWorkspaceUtilities(
   await page.screenshot({
     path: testInfo.outputPath("account-menu.png"),
   });
-  // The account menu is the account alone: the workspaces live in the
-  // switcher above the profile block.
-  await expect(menu.getByRole("menuitem", { name: /^Friends/ })).toBeFocused();
-  await expect(menu.getByRole("menuitemradio")).toHaveCount(0);
+  const current = menu.getByRole("menuitemradio", { checked: true });
+  await expect(current).toHaveCount(1);
+  await expect(current).toContainText("Personal");
+  await expect(current).toBeFocused();
+  const switchItem = menu.getByRole("menuitem", {
+    name: "Switch workspace...",
+    exact: true,
+  });
+  await expect(switchItem).toBeVisible();
+  await expect(menu.getByRole("menuitem", { name: /^Friends/ })).toBeVisible();
   await expect(
     menu.getByRole("menuitem", { name: "Settings", exact: true }),
   ).toBeVisible();
@@ -67,15 +78,15 @@ export async function exerciseWorkspaceUtilities(
   await expect(menu).toHaveCount(0);
   await expect(account).toBeFocused();
 
-  const line = workspaceLine(page);
-  await expect(line).toHaveCount(1);
-  await line.focus();
+  // Switch workspace... replaces the menu with the switcher's list; Escape
+  // leads back to the menu at that entry, and again to the block.
   await page.keyboard.press("Enter");
+  await switchItem.click();
   const switcher = workspaceSwitcher(page);
   await expect(switcher).toBeVisible();
-  const current = switcher.getByRole("menuitemradio", { checked: true });
-  await expect(current).toHaveCount(1);
-  await expect(current).toBeFocused();
+  const listed = switcher.getByRole("menuitemradio", { checked: true });
+  await expect(listed).toHaveCount(1);
+  await expect(listed).toBeFocused();
   await expect(
     switcher.getByRole("menuitem", { name: "Members", exact: true }),
   ).toHaveAttribute("href", /\/settings\/members$/u);
@@ -84,7 +95,10 @@ export async function exerciseWorkspaceUtilities(
   });
   await page.keyboard.press("Escape");
   await expect(switcher).toHaveCount(0);
-  await expect(line).toBeFocused();
+  await expect(switchItem).toBeFocused();
+  await page.keyboard.press("Escape");
+  await expect(menu).toHaveCount(0);
+  await expect(account).toBeFocused();
 
   const theme = await openThemePanel(page);
   await expect(
@@ -122,11 +136,13 @@ export async function exerciseWorkspaceUtilities(
     path: testInfo.outputPath("account-menu-narrow.png"),
   });
   await page.keyboard.press("Escape");
-  await line.click();
+  await account.click();
+  await switchItem.click();
   await expectHorizontalReflow(page);
   await expect(
     switcher.getByRole("menuitem", { name: "Members", exact: true }),
   ).toBeInViewport();
+  await page.keyboard.press("Escape");
   await page.keyboard.press("Escape");
   await openThemePanel(page);
   await theme

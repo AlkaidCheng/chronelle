@@ -1728,10 +1728,17 @@ h3 {
   display: grid;
   font: inherit;
   gap: 10px;
-  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-columns: auto minmax(0, 1fr) auto;
   padding: 7px 8px;
   text-align: start;
   width: 100%;
+}
+
+/* The block's second line is the current workspace; the caret says the block opens. */
+.account-caret {
+  color: var(--faint);
+  height: 16px;
+  width: 16px;
 }
 
 .account-trigger:hover,
@@ -8194,18 +8201,6 @@ html:has(.event-create-dialog[open]) {
   position: relative;
 }
 
-.workspace-switcher {
-  position: relative;
-}
-
-/* The workspace control takes the footer's first row; the profile block
-   and More share the second. */
-.sidebar-footer .workspace-switcher {
-  flex: 0 0 100%;
-  margin-bottom: 4px;
-  min-width: 0;
-}
-
 .sidebar-footer .account-menu {
   flex: 1;
   min-width: 0;
@@ -8304,6 +8299,11 @@ html:has(.event-create-dialog[open]) {
   min-width: 0;
   top: auto;
   width: min(236px, calc(100vw - 32px));
+}
+
+/* The switcher's list takes the menu's place, wider for the owners' names and the search. */
+.account-menu-list.is-workspace {
+  width: min(300px, calc(100vw - 32px));
 }
 
 .more-menu-list {
@@ -8474,28 +8474,8 @@ html:has(.event-create-dialog[open]) {
   overflow-wrap: anywhere;
 }
 
-/* The current workspace is a control of its own above the profile block:
-   a mark, the name, and a caret, opening the switcher upward. */
-.workspace-line {
-  align-items: center;
-  background: var(--canvas);
-  border: 1px solid var(--line);
-  border-radius: 9px;
-  color: inherit;
-  cursor: pointer;
-  display: flex;
-  font: inherit;
-  gap: 8px;
-  padding: 6px 8px;
-  text-align: start;
-  width: 100%;
-}
-
-.workspace-line:hover,
-.workspace-line[aria-expanded="true"] {
-  border-color: var(--line-strong);
-}
-
+/* A workspace's squared mark: the home symbol for the account's own, the
+   owner's initials for a shared one. */
 .workspace-mark {
   align-items: center;
   background: var(--surface-subtle);
@@ -8510,29 +8490,31 @@ html:has(.event-create-dialog[open]) {
   width: 22px;
 }
 
-.workspace-line-name {
-  flex: 1;
-  font-size: 0.85rem;
-  font-weight: 600;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.workspace-caret {
-  color: var(--faint);
-  flex: none;
-  height: 16px;
-  width: 16px;
+.workspace-mark-home {
+  fill: none;
+  height: 13px;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.7;
+  width: 13px;
 }
 
 .workspace-switcher-list {
-  bottom: calc(100% + 6px);
-  left: 0;
-  min-width: 0;
-  top: auto;
-  width: min(300px, calc(100vw - 32px));
+  display: grid;
+  gap: 1px;
+}
+
+/* The list's first row leads back to the menu it opened from. */
+.workspace-back {
+  color: var(--muted);
+  font-size: 0.8rem;
+  min-height: 32px;
+}
+
+.quiet-menu-more {
+  color: var(--faint);
+  margin-left: auto;
 }
 
 .workspace-search {
@@ -9360,6 +9342,10 @@ html:has(.event-create-dialog[open]) {
   }
 
   /* The mark stands alone; the name and workspace stay in the accessible name. */
+  .account-trigger .account-caret {
+    display: none;
+  }
+
   .account-trigger .profile-copy {
     clip: rect(0 0 0 0);
     clip-path: inset(50%);
@@ -9385,35 +9371,6 @@ html:has(.event-create-dialog[open]) {
 
   .sidebar-footer .account-menu {
     flex: none;
-  }
-
-  /* The bar keeps the workspace as its mark and caret; the switcher opens
-     under the bar and takes the width the list needs. */
-  .sidebar-footer .workspace-switcher {
-    flex: none;
-    margin: 0;
-  }
-
-  .workspace-line {
-    padding: 5px 6px;
-    width: auto;
-  }
-
-  .workspace-line-name {
-    clip: rect(0 0 0 0);
-    clip-path: inset(50%);
-    height: 1px;
-    overflow: hidden;
-    position: absolute;
-    white-space: nowrap;
-    width: 1px;
-  }
-
-  .workspace-switcher-list {
-    bottom: auto;
-    left: auto;
-    right: 0;
-    top: calc(100% + 6px);
   }
 
   /* The bottom bar lists the collections in the kept order; arranging them is a desktop task. */

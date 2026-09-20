@@ -29,6 +29,20 @@ export function GridIcon() {
     </svg>
   );
 }
+/** Two arrows passing each other: a switch from one thing to another. */
+export function SwitchIcon({ className }: IconProps) {
+  return (
+    <svg
+      aria-hidden="true"
+      className={className}
+      fill="none"
+      viewBox="0 0 24 24"
+    >
+      <path d="M5 8h13l-3.5-3.5M19 16H6l3.5 3.5" />
+    </svg>
+  );
+}
+
 export function ListIcon() {
   return (
     <svg aria-hidden="true" fill="none" viewBox="0 0 24 24">

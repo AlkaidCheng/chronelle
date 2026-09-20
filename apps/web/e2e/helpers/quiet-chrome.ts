@@ -38,16 +38,21 @@ export async function openAccountMenu(page: Page) {
   return menu;
 }
 
-/** The current workspace's control above the profile block, which opens the switcher. */
-export const workspaceLine = (page: Page) =>
-  page.getByRole("button", { name: /^Workspace: / });
+/** The rail's foot: the account's name with the current workspace under it, which opens the account menu. */
+export const accountBlock = (page: Page) => page.locator(".account-trigger");
 
 export const workspaceSwitcher = (page: Page) =>
   page.getByRole("menu", { name: "Switch workspace", exact: true });
 
+/** Opens the switcher's list through the account menu's Switch workspace... entry. */
 export async function openWorkspaceSwitcher(page: Page) {
   const menu = workspaceSwitcher(page);
-  if (!(await menu.isVisible())) await workspaceLine(page).click();
+  if (!(await menu.isVisible())) {
+    const account = await openAccountMenu(page);
+    await account
+      .getByRole("menuitem", { name: "Switch workspace...", exact: true })
+      .click();
+  }
   await expect(menu).toBeVisible();
   return menu;
 }
@@ -93,16 +98,20 @@ export const chooseEventFilter = (page: Page, label: string) =>
 export const chooseEventLayout = (page: Page, label: "Grid" | "List") =>
   chooseFromMenu(page, "Event layout", label);
 
-/** The switcher's entry for the named workspace: its name leads the accessible name, the owner, role, and recency follow. */
-export const workspaceEntry = (page: Page, name: string) =>
+/**
+ * The switcher's entry for a workspace by its title: "Personal" for the
+ * account's own, the owner's name for one shared with it. The title leads
+ * the accessible name; the role and recency follow.
+ */
+export const workspaceEntry = (page: Page, title: string) =>
   workspaceSwitcher(page).getByRole("menuitemradio", {
-    name: new RegExp(`^${name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}`),
+    name: new RegExp(`^${title.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}`),
   });
 
-/** Switches to the named workspace from the switcher. */
-export async function switchWorkspace(page: Page, name: string) {
+/** Switches to the workspace with the given title from the switcher. */
+export async function switchWorkspace(page: Page, title: string) {
   const menu = await openWorkspaceSwitcher(page);
-  await workspaceEntry(page, name).click();
+  await workspaceEntry(page, title).click();
   await expect(menu).toHaveCount(0);
 }
 

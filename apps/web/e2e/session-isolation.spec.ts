@@ -71,7 +71,7 @@ test("isolates a delayed collection page across workspace changes and sign-out",
     );
     await page.getByRole("button", { name: "Load more events" }).click();
     await delayed.promise;
-    await switchWorkspace(page, second.workspace.displayName);
+    await switchWorkspace(page, second.user.displayName);
     await expect(
       page.getByRole("link", { name: /Shared collection item/u }),
     ).toBeVisible();

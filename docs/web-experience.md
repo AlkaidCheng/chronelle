@@ -37,8 +37,8 @@ exists only where the web server is started with
 Chronelle opens into an event collection, with workspace-wide Tasks and People
 alongside it. Desktop navigation stays on the left: Search at the top, then a
 Collections section (Events, Tasks, People) in the order the account keeps,
-then the current workspace as a control of its own, then the profile block
-with a More control beside it. Mobile navigation remains at the bottom with
+then the account block (the account's name with the current workspace
+under it) with a More control beside it. Mobile navigation remains at the bottom with
 space for the device's safe area, in the same order, and the workspace,
 account, and More controls sit in a slim bar at the top. There
 is no other header: each page starts with its own title. Search in the rail
@@ -80,13 +80,20 @@ motion choices, and a reset. Keyboard shortcuts opens the command palette at
 its Keyboard shortcuts section, expanded with its first choice focused, so
 the shortcut settings and their reset are reached without typing; Help has
 no surface yet and says so in a passing notice. The
-profile block at the foot of the rail (the account's name and email) opens
-the account menu: the account, Friends, Settings, and Sign out. Above it the
-current workspace (a mark, its name, a caret) opens the workspace switcher:
-Yours first (the account's own workspace), then Shared with you, each with
-the name of the account it belongs to, the role held there, and when it was
-last opened, most recently opened first and those never opened after them
-by name; the current one is ticked. The switcher lists memberships alone: a
+account block at the foot of the rail (the account's avatar and name, the
+current workspace in small text under it, a caret) opens the account menu:
+the account's name and email, then a Workspace section with the current
+workspace ticked and Switch workspace..., then Friends, Settings, and Sign
+out. Switch workspace... replaces the menu with the workspace switcher until
+Escape or its first row leads back: Yours first (the account's own
+workspace), then Shared with you, most recently opened first and those
+never opened after them by name; the current one is ticked. A workspace
+reads by the person behind it: the account's own is "Personal" with the
+account's name under it and a home symbol as its mark; one shared with the
+account reads its owner's name with the role held there and when it was
+last opened under it, the owner's initials as its mark; one its owner
+renamed reads that name with the owner under it. The account's own
+initials appear on its round avatar alone. The switcher lists memberships alone: a
 workspace reached only through an event shared with the account is absent,
 since that event shows in the account's own Events list. Past six
 workspaces a search field narrows the list by name or owner; the shared

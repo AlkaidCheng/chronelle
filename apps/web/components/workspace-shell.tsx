@@ -19,7 +19,6 @@ import {
   timePreferencesOf,
 } from "../lib/use-display-preferences";
 import { AccountMenu } from "./account-menu";
-import { WorkspaceSwitcher } from "./workspace-switcher";
 import { WorkspaceCommandProvider } from "./context-commands";
 import { ErrorNotice, LoadingState } from "./feedback";
 import { MoreMenu } from "./more-menu";
@@ -175,13 +174,10 @@ export function WorkspaceShell({ children }: { readonly children: ReactNode }) {
               />
             </nav>
             <div className="sidebar-footer">
-              <WorkspaceSwitcher
-                session={currentSession}
-                onSwitch={changeWorkspace}
-              />
               <AccountMenu
                 session={currentSession}
                 pendingRequests={friends.data?.incoming.length ?? 0}
+                onSwitch={changeWorkspace}
                 onSignOut={leaveWorkspace}
               />
               <MoreMenu onCustomize={() => setCustomizing(true)} />
