@@ -8,12 +8,40 @@ import {
   useId,
 } from "react";
 
+/** How close to the limit a field's count starts to show. */
+const countWithin = 20;
+
 /**
- * A bounded text field that counts its characters ("n / limit") as the
- * user types, stops at the limit (a longer paste or composition is cut to
- * it), and turns the count red when the limit is reached. The label names
- * the input on its own; the count, and a hint when there is one, are its
- * description.
+ * A bounded field's count ("n / limit"): shown once the text is within the
+ * last twenty characters of the limit, red at the limit, and absent the
+ * rest of the time, so a field far from its limit carries no number.
+ */
+export function FieldCount({
+  id,
+  limit,
+  value,
+}: {
+  readonly id: string;
+  readonly limit: number;
+  readonly value: string;
+}) {
+  return (
+    <span
+      aria-live="polite"
+      className={`field-count${value.length >= limit ? " field-count-full" : ""}`}
+      id={id}
+    >
+      {value.length >= limit - countWithin ? `${value.length} / ${limit}` : ""}
+    </span>
+  );
+}
+
+/**
+ * A bounded text field that counts its characters ("n / limit") once the
+ * text nears the limit, stops at the limit (a longer paste or composition
+ * is cut to it), and turns the count red when the limit is reached. The
+ * label names the input on its own; the count, and a hint when there is
+ * one, are its description.
  */
 export function CountedField({
   className = "",
@@ -67,13 +95,7 @@ export function CountedField({
         ref={inputRef}
         value={value}
       />
-      <span
-        aria-live="polite"
-        className={`field-count${value.length >= limit ? " field-count-full" : ""}`}
-        id={countId}
-      >
-        {value.length} / {limit}
-      </span>
+      <FieldCount id={countId} limit={limit} value={value} />
       {hint === undefined ? null : (
         <span className="field-hint-line" id={hintId}>
           {hint}

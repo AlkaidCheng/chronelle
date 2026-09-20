@@ -515,13 +515,17 @@ describe("TasksPage", () => {
     expect(within(placed).getByText("The garden")).toHaveTextContent(
       "At The garden",
     );
-    // The field counts its characters and stops at the limit: a longer
-    // paste is cut to 240 and the count turns red at 240 / 240.
+    // The field counts its characters only within the last twenty of the
+    // limit and stops there: a longer paste is cut to 240 and the count
+    // turns red at 240 / 240.
     await chooseRowAction(user, placed, "Edit");
     await user.click(await screen.findByRole("button", { name: /^More: / }));
     const full = await screen.findByRole("dialog", { name: "Edit task" });
     const field = within(full).getByLabelText("Location");
-    expect(within(full).getByText("10 / 240")).not.toHaveClass(
+    expect(within(full).queryByText("10 / 240")).toBeNull();
+    await user.clear(field);
+    await user.paste("x".repeat(220));
+    expect(within(full).getByText("220 / 240")).not.toHaveClass(
       "field-count-full",
     );
     await user.clear(field);

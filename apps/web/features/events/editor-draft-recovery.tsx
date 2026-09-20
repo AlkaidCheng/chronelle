@@ -231,13 +231,17 @@ export function EditorDraftStatus({
   readonly failureMessage?: string | undefined;
 }) {
   const t = useTranslations("draftRecovery");
+  const message = !isRetained
+    ? t("full")
+    : failed
+      ? (failureMessage ?? t("lastSaveFailed"))
+      : "";
   return (
-    <p className="editor-help" role="status">
-      {!isRetained
-        ? t("full")
-        : failed
-          ? (failureMessage ?? t("lastSaveFailed"))
-          : t("stays")}
+    <p
+      className={message === "" ? "visually-hidden" : "editor-help"}
+      role="status"
+    >
+      {message}
     </p>
   );
 }
