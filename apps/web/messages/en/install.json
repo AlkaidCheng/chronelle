@@ -1,0 +1,8 @@
+{
+  "title": "Install app",
+  "dialogTitle": "Install Chronelle",
+  "iosStep1": "Tap Share in Safari's toolbar.",
+  "iosStep2": "Choose Add to Home Screen.",
+  "note": "Runs from your home screen like an app; nothing else changes.",
+  "browserMenu": "Install from your browser's menu."
+}

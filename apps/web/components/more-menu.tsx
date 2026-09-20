@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 import {
+  DownloadIcon,
   HelpIcon,
   KeyboardIcon,
   MoreGridIcon,
@@ -12,6 +13,7 @@ import {
   TrashIcon,
 } from "./icons";
 import { openCommandPalette } from "../lib/command-palette";
+import { useInstallControl } from "./install-app";
 import { useNotices } from "./notices";
 import {
   focusFirstMenuItem,
@@ -24,10 +26,11 @@ import { ThemePanel } from "./theme-panel";
  * The More control beside the profile block: what acts on the app rather
  * than on records. Trash, Theme (the panel opens beside the rail),
  * Customize sidebar, Keyboard shortcuts (the command palette, opened at
- * its shortcuts section), then Help, which has no surface yet: choosing it
- * posts a passing notice saying so. Escape or a press outside closes the
- * menu, the panel, or the palette and, from the keyboard, returns focus to
- * the control.
+ * its shortcuts section), Install app while the browser can install it
+ * from here, then Help, which has no surface yet: choosing it posts a
+ * passing notice saying so. Escape or a press outside closes the menu,
+ * the panel, or the palette and, from the keyboard, returns focus to the
+ * control.
  */
 export function MoreMenu({
   onCustomize,
@@ -39,6 +42,8 @@ export function MoreMenu({
   const id = useId();
   const t = useTranslations("nav");
   const theme = useTranslations("theme");
+  const installText = useTranslations("install");
+  const install = useInstallControl();
   const { post } = useNotices();
   const root = useRef<HTMLDivElement>(null);
   const trigger = useRef<HTMLButtonElement>(null);
@@ -149,6 +154,24 @@ export function MoreMenu({
             <KeyboardIcon />
             <span>{t("keyboardShortcuts")}</span>
           </button>
+          {install.mode === "none" ? null : (
+            <button
+              type="button"
+              role="menuitem"
+              tabIndex={-1}
+              className="quiet-menu-item"
+              aria-haspopup={install.mode === "ios" ? "dialog" : undefined}
+              onClick={() => {
+                // As for the palette: closing the steps returns focus here.
+                setOpen(false);
+                trigger.current?.focus();
+                install.activate();
+              }}
+            >
+              <DownloadIcon />
+              <span>{installText("title")}</span>
+            </button>
+          )}
           <button
             type="button"
             role="menuitem"
@@ -162,6 +185,7 @@ export function MoreMenu({
         </div>
       ) : null}
       <ThemePanel open={themeOpen} onClose={closeTheme} />
+      {install.steps}
     </div>
   );
 }
