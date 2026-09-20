@@ -170,10 +170,23 @@ describe("Notes component", () => {
       "Coins for the shrines,{enter}a folding umbrella.",
     );
     expect(
+      within(editor).queryByText(/Line breaks are kept/),
+    ).not.toBeInTheDocument();
+    await user.click(
+      within(editor).getByRole("button", { name: "About this editor" }),
+    );
+    expect(
       within(editor).getByText(
         "Plain text. Line breaks are kept and links open when the note is read.",
       ),
     ).toBeVisible();
+    await user.keyboard("{Escape}");
+    expect(
+      within(editor).queryByText(/Line breaks are kept/),
+    ).not.toBeInTheDocument();
+    expect(
+      within(editor).getByRole("button", { name: "About this editor" }),
+    ).toHaveFocus();
     await user.click(within(editor).getByRole("button", { name: "Save" }));
     await waitFor(() =>
       expect(screen.queryByRole("dialog", { name: "Note" })).toBeNull(),

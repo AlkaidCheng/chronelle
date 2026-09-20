@@ -553,7 +553,10 @@ describe("insertable event components", () => {
       await user.click(screen.getByRole("button", { name: "Add a page" }));
       const dialog = within(screen.getByRole("dialog", { name: "Add a page" }));
       const name = dialog.getByRole("textbox", { name: "Page name" });
-      expect(name).toHaveAccessibleDescription(/Pages organize this event/);
+      expect(name).not.toHaveAccessibleDescription(/Pages organize/);
+      expect(
+        dialog.getByRole("button", { name: "About this dialog" }),
+      ).toHaveAttribute("aria-expanded", "false");
       await user.type(name, "Preparation");
       await user.click(dialog.getByRole("button", { name: "Add page" }));
       await screen.findByRole("heading", { name: "Preparation" });
