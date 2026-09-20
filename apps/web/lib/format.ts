@@ -2,6 +2,23 @@ import { activeLocale, tr } from "../i18n/active-locale";
 import { instantOptions } from "../i18n/active-preferences";
 import { instantDayKey, instantWallInput, wallInstant } from "./zone";
 
+const dateFormats = new Map<string, Intl.DateTimeFormat>();
+const nameCollators = new Map<string, Intl.Collator>();
+
+function dateFormat(locale: string, options: Intl.DateTimeFormatOptions) {
+  // Device-default formatters must follow system timezone changes.
+  if (options.timeZone === undefined)
+    return new Intl.DateTimeFormat(locale, options);
+  const key = JSON.stringify([locale, options]);
+  let format = dateFormats.get(key);
+  if (format === undefined) {
+    format = new Intl.DateTimeFormat(locale, options);
+    if (dateFormats.size >= 48) dateFormats.clear();
+    dateFormats.set(key, format);
+  }
+  return format;
+}
+
 /** An instant as the wall clock of the active zone, for a datetime-local field. */
 export function toDateTimeInput(value: string | null): string {
   if (value === null) {
@@ -33,7 +50,7 @@ export function formatDateTime(
   locale: string = activeLocale(),
 ): string {
   if (value === null) return tr("dates")("notScheduled");
-  return new Intl.DateTimeFormat(locale, {
+  return dateFormat(locale, {
     dateStyle: "medium",
     timeStyle: "short",
     ...instantOptions(),
@@ -44,7 +61,7 @@ export function formatTime(
   value: string,
   locale: string = activeLocale(),
 ): string {
-  return new Intl.DateTimeFormat(locale, {
+  return dateFormat(locale, {
     timeStyle: "short",
     ...instantOptions(),
   }).format(new Date(value));
@@ -69,7 +86,7 @@ export function formatMoment(
       day: t(day === today ? "today" : "yesterday"),
       time: formatTime(value, locale),
     });
-  return new Intl.DateTimeFormat(locale, {
+  return dateFormat(locale, {
     month: "short",
     day: "numeric",
     ...(day.slice(0, 4) === today.slice(0, 4) ? {} : { year: "numeric" }),
@@ -96,7 +113,7 @@ export function formatDatePart(
   locale: string = activeLocale(),
 ): string {
   if (value === null) return tr("dates")(part === "month" ? "tbd" : "noDay");
-  return new Intl.DateTimeFormat(locale, {
+  return dateFormat(locale, {
     ...(part === "month" ? { month: "short" } : { day: "2-digit" }),
     ...instantOptions(),
   }).format(new Date(value));
@@ -122,5 +139,11 @@ export function formatBytes(sizeBytes: number): string {
  * and accent aside.
  */
 export function compareNames(a: string, b: string): number {
-  return a.localeCompare(b, activeLocale(), { sensitivity: "base" });
+  const locale = activeLocale();
+  let collator = nameCollators.get(locale);
+  if (collator === undefined) {
+    collator = new Intl.Collator(locale, { sensitivity: "base" });
+    nameCollators.set(locale, collator);
+  }
+  return collator.compare(a, b);
 }

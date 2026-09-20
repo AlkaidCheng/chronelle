@@ -22,6 +22,18 @@ function task(
 }
 
 describe("task tree", () => {
+  it("keeps large sibling groups in order without modifying input records", () => {
+    const parent = Object.freeze(task("Plan"));
+    const siblings = Array.from({ length: 10_000 }, (_, index) =>
+      Object.freeze(task(String(index), parent.id)),
+    );
+    const orphan = Object.freeze(task("Orphan", "missing"));
+    const input = Object.freeze([...siblings, orphan, parent]);
+    const ordered = nestTasks(input);
+    expect(ordered).toEqual([orphan, parent, ...siblings]);
+    expect(ordered[2]).toBe(siblings[0]);
+    expect(input[0]).toBe(siblings[0]);
+  });
   it("counts subtasks per parent and names present parents", () => {
     const parent = task("Plan");
     const done = task("Book", parent.id, "done");
