@@ -25,6 +25,7 @@
     "cloudbase:write-contract": "pnpm --filter @chronelle/db build && node --env-file-if-exists=.env infrastructure/scripts/cloudbase-write-contract.mjs",
     "db:baseline-revisions": "pnpm --filter @chronelle/object-model build && pnpm --filter @chronelle/object-model baseline-revisions",
     "db:migrate": "pnpm --filter @chronelle/db migrate",
+    "db:footprint": "pnpm --filter @chronelle/db footprint",
     "dev": "pnpm --filter @chronelle/schemas build && pnpm --filter @chronelle/object-model build && pnpm --filter @chronelle/api-client build && pnpm --parallel --filter @chronelle/api --filter @chronelle/web dev",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
