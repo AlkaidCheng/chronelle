@@ -259,17 +259,21 @@ export async function readCloudBaseSectionMembers(
     ),
   ];
   if (sectionIds.length === 0) return members;
-  for (const table of ["tasks", "expenses"] as const) {
-    const rows = await client.select<{
-      readonly object_id: unknown;
-      readonly section_id: unknown;
-    }>(table, {
-      columns: "object_id,section_id",
-      filters: cloudbaseFilters(
-        ["workspace_id", "eq", principal.workspaceId],
-        ["section_id", "in", sectionIds],
-      ),
-    });
+  const sections = await Promise.all(
+    (["tasks", "expenses"] as const).map((table) =>
+      client.select<{
+        readonly object_id: unknown;
+        readonly section_id: unknown;
+      }>(table, {
+        columns: "object_id,section_id",
+        filters: cloudbaseFilters(
+          ["workspace_id", "eq", principal.workspaceId],
+          ["section_id", "in", sectionIds],
+        ),
+      }),
+    ),
+  );
+  for (const rows of sections) {
     for (const row of rows) {
       const sectionId = cloudbaseText(row.section_id, "section");
       const set = members.get(sectionId) ?? new Set<string>();
@@ -900,10 +904,15 @@ export async function readCloudBaseVisibility(
     principal,
     grants,
   );
-  const resourceIds = [...new Set(grants.map((grant) => grant.resourceId))];
+  const grantsByResource = new Map<string, CloudBaseGrant[]>();
+  for (const grant of grants) {
+    const own = grantsByResource.get(grant.resourceId);
+    if (own === undefined) grantsByResource.set(grant.resourceId, [grant]);
+    else own.push(grant);
+  }
   return {
     workspaceRole,
-    resourceIds,
+    resourceIds: [...grantsByResource.keys()],
     canView: (row) => {
       if (workspaceRole !== null && viewRoles.has(workspaceRole)) return true;
       const objectId = cloudbaseText(row.id, "object id");
@@ -914,21 +923,24 @@ export async function readCloudBaseVisibility(
       );
       // A grant on the object itself opens it whatever its narrowing; one
       // on the object's scope reaches it only where the narrowing admits.
-      return grants.some(
+      if (
+        grantsByResource
+          .get(objectId)
+          ?.some((grant) => viewRoles.has(grant.role))
+      )
+        return true;
+      return (grantsByResource.get(scopeId) ?? []).some(
         (grant) =>
           viewRoles.has(grant.role) &&
-          (grant.resourceId === objectId ||
-            (grant.resourceId === scopeId &&
-              cloudbaseGrantAdmits(
-                grant,
-                objectId,
-                objectType,
-                sectionMembers,
-              ))),
+          cloudbaseGrantAdmits(grant, objectId, objectType, sectionMembers),
       );
     },
     narrowing: (resourceId) =>
-      cloudbaseNarrowing(workspaceRole, grants, resourceId),
+      cloudbaseNarrowing(
+        workspaceRole,
+        grantsByResource.get(resourceId) ?? [],
+        resourceId,
+      ),
   };
 }
 
@@ -962,11 +974,12 @@ export async function readCloudBaseVisibleObjects(
     ),
   ]);
   const rows = [...direct, ...inherited];
-  return rows.filter(
-    (row, index) =>
-      rows.findIndex((candidate) => candidate.id === row.id) === index &&
-      visibility.canView(row),
-  );
+  const seen = new Set<unknown>();
+  return rows.filter((row) => {
+    if (seen.has(row.id)) return false;
+    seen.add(row.id);
+    return visibility.canView(row);
+  });
 }
 
 export async function readCloudBaseObjects(
