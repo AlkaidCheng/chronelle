@@ -1,9 +1,9 @@
 import { expect, type Page, type TestInfo } from "@playwright/test";
 import { expectHorizontalReflow } from "./page-navigation";
-import { searchEntry } from "./quiet-chrome";
+import { pressSearchEntry } from "./quiet-chrome";
 
 export async function openCommands(page: Page) {
-  await searchEntry(page).click();
+  await pressSearchEntry(page);
   return page.getByRole("dialog", { name: "Search", exact: true });
 }
 

@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import type { Page } from "@playwright/test";
 import { expect, test } from "./fixtures";
-import { moreTrigger } from "./helpers/quiet-chrome";
+import { moreControl, openMoreMenu } from "./helpers/quiet-chrome";
 
 async function signIn(page: Page, name: string) {
   await page.goto("/sign-in/development");
@@ -39,21 +39,21 @@ test("raises the browser's install prompt from More and from Settings @webkit-de
   page,
 }) => {
   await signIn(page, "Installer");
-  await moreTrigger(page).click();
-  const more = page.getByRole("menu", { name: "More", exact: true });
+  let more = await openMoreMenu(page);
   // Nothing to offer until the browser raises its prompt.
   await expect(
     more.getByRole("menuitem", { name: "Install app", exact: true }),
   ).toHaveCount(0);
   await page.keyboard.press("Escape");
+  await expect(more).toHaveCount(0);
   await raiseInstallPrompt(page);
-  await moreTrigger(page).click();
+  more = await openMoreMenu(page);
   await more
     .getByRole("menuitem", { name: "Install app", exact: true })
     .click();
   await expect.poll(() => promptedCount(page)).toBe(1);
   // Accepted: the control is spent.
-  await moreTrigger(page).click();
+  more = await openMoreMenu(page);
   await expect(
     more.getByRole("menuitem", { name: "Install app", exact: true }),
   ).toHaveCount(0);
@@ -85,9 +85,9 @@ test.describe("on Safari for iPhone", () => {
     page,
   }) => {
     await signIn(page, "Installer");
-    await moreTrigger(page).click();
-    await page
-      .getByRole("menu", { name: "More", exact: true })
+    await (
+      await openMoreMenu(page)
+    )
       .getByRole("menuitem", { name: "Install app", exact: true })
       .click();
     const steps = page.getByRole("dialog", { name: "Install Chronelle" });
@@ -98,6 +98,6 @@ test.describe("on Safari for iPhone", () => {
     ]);
     await steps.getByRole("button", { name: "Done", exact: true }).click();
     await expect(steps).toHaveCount(0);
-    await expect(moreTrigger(page)).toBeFocused();
+    await expect(moreControl(page)).toBeFocused();
   });
 });

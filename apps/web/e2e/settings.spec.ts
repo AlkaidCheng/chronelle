@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { expect, type Page, test } from "./fixtures";
+import { openCollection } from "./helpers/quiet-chrome";
 import { chooseLayout } from "./helpers/component-views";
 import { setDue } from "./helpers/date-rows";
 
@@ -62,10 +63,7 @@ test("keeps the language, clock, zone, and week on the account and applies them 
   await expect(page).toHaveURL(/\/events$/u);
 
   // A timed task shows the clock and the zone in force.
-  await page
-    .getByRole("navigation", { name: "Workspace navigation" })
-    .getByRole("link", { name: "Tasks", exact: true })
-    .click();
+  await openCollection(page, "Tasks");
   await page.getByRole("button", { name: "New task", exact: true }).click();
   const editor = page.getByRole("dialog", { name: "Add task", exact: true });
   await editor.getByLabel("Task", { exact: true }).fill("Morning standup");
@@ -140,10 +138,7 @@ test("keeps the language, clock, zone, and week on the account and applies them 
   // The week starts on Monday once chosen, whatever the language says.
   await choose(page, "Week starts on", "Monday");
 
-  await page
-    .getByRole("navigation", { name: "Workspace navigation" })
-    .getByRole("link", { name: "Tasks", exact: true })
-    .click();
+  await openCollection(page, "Tasks");
   await expect(row).toContainText(
     await shown(page, dueInstant, { timeZone: "UTC", hourCycle: "h23" }),
   );

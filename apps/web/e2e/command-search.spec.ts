@@ -3,7 +3,7 @@ import { expect, test, type Page } from "./fixtures";
 import { exerciseCommandSearch } from "./helpers/command-search";
 import { openCommands } from "./helpers/context-commands";
 import { addMember } from "./helpers/membership";
-import { switchWorkspace } from "./helpers/quiet-chrome";
+import { menuControl, switchWorkspace } from "./helpers/quiet-chrome";
 
 async function signIn(page: Page, email: string) {
   await page.goto("/sign-in/development");
@@ -79,6 +79,14 @@ test("limits the palette to eight records and opens full Search for remaining re
   const records = dialog
     .getByRole("group", { name: "Records" })
     .getByRole("option");
+  // Across the phone breakpoint the sidebar is remounted with its palette;
+  // opened again, the same search bounds the list.
+  await expect(menuControl(page)).toBeVisible();
+  if (!(await dialog.isVisible())) {
+    await openCommands(page);
+    await input.fill("findable");
+    await expect(records).toHaveCount(8);
+  }
   for (const colorScheme of ["light", "dark"] as const) {
     await page.emulateMedia({ colorScheme });
     await input.press("ArrowUp");

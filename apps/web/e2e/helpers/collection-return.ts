@@ -3,6 +3,7 @@ import {
   chooseEventFilter,
   chooseEventLayout,
   chooseEventSort,
+  openCollection,
   openSearchPage,
 } from "./quiet-chrome";
 
@@ -82,11 +83,8 @@ export async function exerciseCollectionReturn(
   await expect(
     page.getByText("No matching events", { exact: true }),
   ).toBeVisible();
-  const navigation = page.getByRole("navigation", {
-    name: "Workspace navigation",
-  });
   await openSearchPage(page);
-  await navigation.getByRole("link", { name: "Events", exact: true }).click();
+  await openCollection(page, "Events");
   await expect(input).toHaveValue("No matching private plans");
   await expect(
     page.getByText("No matching events", { exact: true }),

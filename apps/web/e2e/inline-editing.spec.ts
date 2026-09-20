@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { expect, test } from "./fixtures";
 import { openEventView } from "./helpers/event-view";
+import { openCollection } from "./helpers/quiet-chrome";
 import { chooseRowAction } from "./helpers/row-menu";
 
 test("edits a task row in place: chips, Save, Cancel, a stale save, and the row menu's Edit @webkit-desktop", async ({
@@ -208,7 +209,7 @@ test("asks before another row opens over unsaved changes, and keeps a row's draf
   ).toHaveCount(0);
 
   // Leaving the page and coming back finds the row open with the text.
-  await page.getByRole("link", { name: "Events", exact: true }).first().click();
+  await openCollection(page, "Events");
   await expect(page).toHaveURL(/\/events$/u);
   await page.goBack();
   await expect(page).toHaveURL(/\/tasks$/u);

@@ -1,6 +1,11 @@
 import { randomUUID } from "node:crypto";
 import { expect, type Page, test } from "./fixtures";
-import { moreTrigger } from "./helpers/quiet-chrome";
+import {
+  closeDrawer,
+  isPhone,
+  moreControl,
+  workspaceNavigation,
+} from "./helpers/quiet-chrome";
 import { setDates } from "./helpers/date-rows";
 import { openEventView } from "./helpers/event-view";
 
@@ -136,11 +141,15 @@ test("switches the workspace to Simplified and Traditional Chinese and back @web
   await expect(
     page.getByRole("heading", { level: 1, name: hans.settings, exact: true }),
   ).toBeVisible();
-  const rail = page.getByRole("navigation", { name: hans.navigation });
+  const rail = await workspaceNavigation(page, hans.navigation);
   await expect(rail).toContainText(hans.people);
-  await moreTrigger(page).click();
+  await closeDrawer(page);
+  await moreControl(page).click();
   await expect(
-    page.getByRole("menu", { name: hans.more, exact: true }),
+    page.getByRole(isPhone(page) ? "group" : "menu", {
+      name: hans.more,
+      exact: true,
+    }),
   ).toContainText(hans.trash);
   await page.keyboard.press("Escape");
   await page.goto(eventUrl);
@@ -149,8 +158,12 @@ test("switches the workspace to Simplified and Traditional Chinese and back @web
   ).toContainText(hans.files);
   await expect(page.locator(".event-date")).toHaveText(hans.range);
   await expect(
-    rail.getByRole("link", { name: hans.events, exact: true }),
+    (await workspaceNavigation(page, hans.navigation)).getByRole("link", {
+      name: hans.events,
+      exact: true,
+    }),
   ).toHaveCount(1);
+  await closeDrawer(page);
   await page.goto("/events");
   await expect(
     page.getByRole("heading", { level: 1, name: hans.events, exact: true }),
@@ -196,6 +209,7 @@ test("switches the workspace to Simplified and Traditional Chinese and back @web
   await page
     .getByRole("button", { name: hans.closeHistory, exact: true })
     .click();
+  await workspaceNavigation(page, hans.navigation);
   await page
     .getByRole("button", { name: hans.searchAndCommands, exact: true })
     .click();

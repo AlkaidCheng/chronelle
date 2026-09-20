@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import type { APIRequestContext } from "@playwright/test";
 import { expect, test } from "./fixtures";
+import { openCollection } from "./helpers/quiet-chrome";
 
 /** Two development accounts made friends through a request and its acceptance. */
 async function befriend(
@@ -50,10 +51,7 @@ test("links a person to an account from the Name field @webkit-desktop", async (
   await page.getByLabel("Email").fill(anaEmail);
   await page.getByRole("button", { name: "Continue", exact: true }).click();
   await expect(page).toHaveURL(/\/events$/u);
-  await page
-    .getByRole("navigation", { name: "Workspace navigation" })
-    .getByRole("link", { name: "People", exact: true })
-    .click();
+  await openCollection(page, "People");
   await page.getByRole("button", { name: "New person", exact: true }).click();
   const editor = page.getByRole("dialog", { name: "Add person", exact: true });
 

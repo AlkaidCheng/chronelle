@@ -2,7 +2,13 @@ import { randomUUID } from "node:crypto";
 import type { Locator, Page } from "@playwright/test";
 import { expect, test } from "./fixtures";
 import { keyboardSection } from "./helpers/keyboard-settings";
-import { moreTrigger, openMoreMenu } from "./helpers/quiet-chrome";
+import {
+  closeDrawer,
+  drawer,
+  moreTrigger,
+  openMoreMenu,
+  workspaceNavigation,
+} from "./helpers/quiet-chrome";
 
 const collections = (page: Page) =>
   page.getByRole("list", { name: "Collections", exact: true });
@@ -38,16 +44,36 @@ test("keeps the rail's order and hidden collections on the account @webkit-deskt
   await page.getByLabel("Email").fill(email);
   await page.getByRole("button", { name: "Continue", exact: true }).click();
   await expect(page).toHaveURL(/\/events$/u);
+  await workspaceNavigation(page);
   await expect
     .poll(() => shownCollections(page))
     .toEqual(["Events", "Tasks", "People"]);
 
-  // A phone shows the kept order and does not offer arranging.
+  // A phone arranges in its drawer: Customize sidebar from the account
+  // sheet opens it with Done in the Collections heading (a finger's long
+  // press on a collection gets there too, in the phone chrome journey).
   if (testInfo.project.name.endsWith("mobile")) {
+    await closeDrawer(page);
     const more = await openMoreMenu(page);
+    await more
+      .getByRole("menuitem", { name: "Customize sidebar", exact: true })
+      .click();
+    await expect(drawer(page)).toBeVisible();
+    await page.getByRole("button", { name: "Hide Tasks", exact: true }).click();
     await expect(
-      more.getByRole("menuitem", { name: "Customize sidebar", exact: true }),
-    ).toHaveCount(0);
+      page.getByRole("button", { name: "Show Tasks", exact: true }),
+    ).toHaveAttribute("aria-pressed", "true");
+    await page.getByRole("button", { name: "Done", exact: true }).click();
+    await expect
+      .poll(() => shownCollections(page))
+      .toEqual(["Events", "People"]);
+    await expect(page.getByRole("button", { name: /^Move /u })).toHaveCount(0);
+    await closeDrawer(page);
+    await page.reload();
+    await workspaceNavigation(page);
+    await expect
+      .poll(() => shownCollections(page))
+      .toEqual(["Events", "People"]);
     return;
   }
 

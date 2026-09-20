@@ -1,5 +1,6 @@
 import { expect, type Locator, type Page } from "@playwright/test";
 import { chooseLayout } from "./component-views";
+import { openCollection } from "./quiet-chrome";
 import { chooseRowAction, dragRow, rowMenuButton } from "./row-menu";
 import { openTaskEditor } from "./task-add";
 import { openEventView } from "./event-view";
@@ -124,10 +125,7 @@ export async function exerciseRowOrder(page: Page) {
   await chooseLayout(panel, "List");
 
   // The Tasks page lists in the same manual order and drags in its table.
-  await page
-    .getByRole("navigation", { name: "Workspace navigation" })
-    .getByRole("link", { name: "Tasks", exact: true })
-    .click();
+  await openCollection(page, "Tasks");
   await expect(page).toHaveURL(/\/tasks$/);
   // Manual is the default order, so the Sort button reads only its name.
   await expect(

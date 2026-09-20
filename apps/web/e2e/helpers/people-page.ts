@@ -1,5 +1,10 @@
 import { expect, type Page } from "@playwright/test";
 
+import {
+  closeDrawer,
+  openCollection,
+  workspaceNavigation,
+} from "./quiet-chrome";
 import { chooseRowAction } from "./row-menu";
 
 /** Chooses one of a quiet heading menu's choices. */
@@ -25,20 +30,19 @@ async function chooseLayout(page: Page, choice: "List" | "Namecards") {
  * name.
  */
 export async function exercisePeoplePage(page: Page) {
-  await page
-    .getByRole("navigation", { name: "Workspace navigation" })
-    .getByRole("link", { name: "People", exact: true })
-    .click();
+  await openCollection(page, "People");
   await expect(page).toHaveURL(/\/people$/);
   await expect(
     page.getByRole("heading", { name: "People", level: 1 }),
   ).toBeVisible();
   // The page keeps the rail, with its own entry marked as the current one.
   await expect(
-    page
-      .getByRole("navigation", { name: "Workspace navigation" })
-      .getByRole("link", { name: "People", exact: true }),
+    (await workspaceNavigation(page)).getByRole("link", {
+      name: "People",
+      exact: true,
+    }),
   ).toHaveAttribute("aria-current", "page");
+  await closeDrawer(page);
 
   // Quick add creates the person with the name and keeps the field open.
   await page.getByRole("button", { name: "Add a person", exact: true }).click();

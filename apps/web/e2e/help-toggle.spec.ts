@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import type { Locator, Page } from "@playwright/test";
 import { expect, test } from "./fixtures";
+import { openCollection } from "./helpers/quiet-chrome";
 
 const control = (scope: Locator | Page, surface: "editor" | "dialog") =>
   scope.getByRole("button", { name: `About this ${surface}`, exact: true });
@@ -70,10 +71,7 @@ test("keeps exposition behind the help control of a dialog and off the pages", a
 
   // The task editor from the Tasks page, and the person editor from the
   // People page, carry their own entries.
-  await page
-    .getByRole("navigation", { name: "Workspace navigation" })
-    .getByRole("link", { name: "Tasks", exact: true })
-    .click();
+  await openCollection(page, "Tasks");
   await page.getByRole("button", { name: "New task", exact: true }).click();
   const task = page.getByRole("dialog", { name: "Add task", exact: true });
   await control(task, "editor").click();
@@ -85,10 +83,7 @@ test("keeps exposition behind the help control of a dialog and off the pages", a
   await page.keyboard.press("Escape");
   await expect(task).toHaveCount(0);
 
-  await page
-    .getByRole("navigation", { name: "Workspace navigation" })
-    .getByRole("link", { name: "People", exact: true })
-    .click();
+  await openCollection(page, "People");
   await page.getByRole("button", { name: "New person", exact: true }).click();
   const person = page.getByRole("dialog", { name: "Add person", exact: true });
   await control(person, "editor").click();

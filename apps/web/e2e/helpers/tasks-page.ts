@@ -1,6 +1,11 @@
 import { expect, type Page } from "@playwright/test";
 import { chooseLayout } from "./component-views";
 import { setDue } from "./date-rows";
+import {
+  closeDrawer,
+  openCollection,
+  workspaceNavigation,
+} from "./quiet-chrome";
 import { chooseRowAction } from "./row-menu";
 import { today } from "./today";
 
@@ -19,20 +24,19 @@ async function chooseFilter(page: Page, name: string) {
  * and places a task due today in the week and the month.
  */
 export async function exerciseTasksPage(page: Page, member: string) {
-  await page
-    .getByRole("navigation", { name: "Workspace navigation" })
-    .getByRole("link", { name: "Tasks", exact: true })
-    .click();
+  await openCollection(page, "Tasks");
   await expect(page).toHaveURL(/\/tasks$/);
   await expect(
     page.getByRole("heading", { name: "Tasks", level: 1 }),
   ).toBeVisible();
   // The page keeps the rail, with its own entry marked as the current one.
   await expect(
-    page
-      .getByRole("navigation", { name: "Workspace navigation" })
-      .getByRole("link", { name: "Tasks", exact: true }),
+    (await workspaceNavigation(page)).getByRole("link", {
+      name: "Tasks",
+      exact: true,
+    }),
   ).toHaveAttribute("aria-current", "page");
+  await closeDrawer(page);
   await page.getByRole("button", { name: "New task", exact: true }).click();
   const editor = page.getByRole("dialog", { name: "Add task", exact: true });
   await editor.getByLabel("Task", { exact: true }).fill("Renew the passport");
@@ -94,6 +98,9 @@ export async function exerciseTasksPage(page: Page, member: string) {
   await expect(
     edit.getByRole("button", { name: `Assignee: ${member}`, exact: true }),
   ).toBeVisible();
+  // The picker closes before Save: on a phone it rises over the composer.
+  await page.keyboard.press("Escape");
+  await expect(assignee).toHaveCount(0);
   await edit.getByRole("button", { name: "Save", exact: true }).click();
   await expect(edit).toHaveCount(0);
   await expect(row.getByText(`Assigned to ${member}`)).toBeAttached();
