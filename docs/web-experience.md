@@ -86,8 +86,11 @@ current workspace (a mark, its name, a caret) opens the workspace switcher:
 Yours first (the account's own workspace), then Shared with you, each with
 the name of the account it belongs to, the role held there, and when it was
 last opened, most recently opened first and those never opened after them
-by name; the current one is ticked. Past six workspaces a search field
-narrows the list by name or owner; the shared ones scroll inside the list.
+by name; the current one is ticked. The switcher lists memberships alone: a
+workspace reached only through an event shared with the account is absent,
+since that event shows in the account's own Events list. Past six
+workspaces a search field narrows the list by name or owner; the shared
+ones scroll inside the list.
 Members at the foot opens the settings page's Members section, and
 Cmd/Ctrl+Shift+K opens the switcher from anywhere in the workspace. Opening
 a workspace notes the moment on the account, so the order follows the person
@@ -102,13 +105,32 @@ it at the left, then, at the right edge, quiet Filter (All, Upcoming &
 ongoing, Unscheduled, Past), Sort (Event date, Recently updated, Name A-Z),
 and Layout (Grid, List) menus, Refresh, and the single filled New event
 control; on a phone the title and the controls share the first row and the
-filter takes the whole second. The count of loaded events is announced to
-assistive technology and not shown.
+filter takes the whole second. Under the head one row of chips, All, Mine,
+Shared with me, Upcoming, and Past, each with its count for the typed name
+(the counts come with the list's first page); one chip is pressed at a
+time, All meaning no scope and no period, and Clear filters resets the
+chips with the name. The count of loaded events is announced to assistive
+technology and not shown.
+
+The list holds the events shared with the account beside its own, from
+whichever workspace they live in, so a share needs no workspace switch to
+be found: a card shared with the account is the same card, its third line
+carrying the tag "Shared by Mei Lin" and the role held (Viewer when every
+grant is narrowed to a view); one of the account's own that others hold
+reads "Shared with 2" there; the rest keep the line empty so every card
+keeps its height. Opening a shared card opens the event page directly, in
+the event's own workspace, with the access line under the title naming the
+sharer; the rail stays on the account's workspace, and its Tasks and People
+collections stay the workspace's own. A shared card's Share control shows
+only when the role allows sharing, and its menu offers Leave this event in
+place of Move to Trash: the card goes at once and a notice offers Undo for
+a few seconds; the account's grants are dropped once the notice has gone
+without it, so an Undo costs nothing and needs no share to be given back.
 
 Each event is one compact card of a fixed height: a date tile (the month
 over the day; TBD for an event without a date; muted for a past one), the
 name on one line, the dates on a muted line under it ("Date to be decided"
-for an undated event), and a third line kept for sharing. The whole card is
+for an undated event), and the third line for sharing. The whole card is
 the link; there is no period label and no arrow. The Grid layout is two
 columns of cards in a wider column than the lists; the List layout is the
 same object as rows in the lists' column, ruled like the other lists. Two
