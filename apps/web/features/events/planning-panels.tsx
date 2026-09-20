@@ -567,13 +567,18 @@ export function CalendarPanel({
               </p>
             ) : (
               <p className="task-meta">
-                <time
-                  className="row-when"
-                  dateTime={item.startsOn ?? item.startsAt ?? undefined}
-                >
-                  <CalendarIcon />
-                  {formatEventSchedule(item)}
-                </time>
+                {/* A day's card sits under its date, so it carries the time alone. */}
+                {mode === "card" && item.startsOn !== null ? null : (
+                  <time
+                    className="row-when"
+                    dateTime={item.startsOn ?? item.startsAt ?? undefined}
+                  >
+                    <CalendarIcon />
+                    {mode === "card" && item.startsAt !== null
+                      ? formatTime(item.startsAt)
+                      : formatEventSchedule(item)}
+                  </time>
+                )}
                 {item.location !== null ? (
                   <span className="row-where">
                     <PinIcon />

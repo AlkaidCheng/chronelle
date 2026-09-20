@@ -140,17 +140,22 @@ export function PeriodNav({
 
 /**
  * Seven columns for the week the cursor falls in, the account's first day
- * first, today marked, scrolling sideways where the panel is narrow; each
- * column renders what the container places on that day.
+ * first, today marked, each at least 180px wide so a title reads as words,
+ * scrolling sideways where the panel is narrower than that; each column
+ * renders what the container places on that day, then the container's
+ * footer for the day.
  */
 export function WeekStrip({
   cursor,
   renderDay,
+  renderFooter,
   today = new Date(),
 }: {
   readonly cursor: Date;
-  /** The nodes of one day, or nothing for an empty column. */
+  /** The nodes of one day, its rows even when it holds none. */
   readonly renderDay: (day: DayKey) => ReactNode;
+  /** What ends a column, under its rows. */
+  readonly renderFooter?: ((day: DayKey) => ReactNode) | undefined;
   /** The present instant; its day is marked in the account's zone. */
   readonly today?: Date;
 }) {
@@ -166,6 +171,7 @@ export function WeekStrip({
             <li
               aria-label={fullDayTitle.format(date)}
               className={`week-day${day === todayKey ? " is-today" : ""}`}
+              data-drop-zone=""
               key={day}
             >
               <h3 className="week-day-heading">
@@ -176,6 +182,7 @@ export function WeekStrip({
                 </small>
               </h3>
               <div className="week-day-items">{renderDay(day)}</div>
+              {renderFooter?.(day)}
             </li>
           );
         })}
