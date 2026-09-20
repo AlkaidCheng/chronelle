@@ -12,6 +12,52 @@ const eventId = "first-event";
 const otherEventId = "second-event";
 
 describe("resource invalidation", () => {
+  it("refreshes a pending share's person name in every sharing context", async () => {
+    const client = new QueryClient();
+    const shares = (displayName: string) => ({
+      items: [],
+      pending: [
+        { id: "pending-share", person: { id: resourceId, displayName } },
+      ],
+    });
+    const observers = [eventId, otherEventId].map((id) => {
+      const queryKey = ["event", id, "shares"];
+      const queryFn = vi.fn(async () => shares("Updated name"));
+      client.setQueryData(queryKey, shares("Original name"));
+      const observer = new QueryObserver(client, {
+        queryKey,
+        queryFn,
+        staleTime: Infinity,
+      });
+      return { queryKey, queryFn, unsubscribe: observer.subscribe(() => {}) };
+    });
+    const todos = vi.fn(async () => ({ items: [] }));
+    const todoKey = ["event", eventId, "todos"];
+    client.setQueryData(todoKey, { items: [] });
+    const unsubscribeTodos = new QueryObserver(client, {
+      queryKey: todoKey,
+      queryFn: todos,
+      staleTime: Infinity,
+    }).subscribe(() => {});
+    try {
+      await invalidateResourceQueries(client, {
+        id: resourceId,
+        objectType: "person",
+      });
+      for (const observer of observers) {
+        expect(observer.queryFn).toHaveBeenCalledTimes(1);
+        expect(client.getQueryData(observer.queryKey)).toEqual(
+          shares("Updated name"),
+        );
+      }
+      expect(todos).not.toHaveBeenCalled();
+    } finally {
+      for (const observer of observers) observer.unsubscribe();
+      unsubscribeTodos();
+      client.clear();
+    }
+  });
+
   it.each(["event", "task", "expense"] as const)(
     "refreshes file target labels after %s edits",
     async (objectType) => {
@@ -88,7 +134,7 @@ describe("resource invalidation", () => {
     ["task", ["detail", "todos", "timeline"]],
     ["expense", ["detail", "expenses", "timeline"]],
     ["reminder", ["detail", "reminders", "timeline"]],
-    ["person", ["detail", "people"]],
+    ["person", ["detail", "people", "shares"]],
     ["note", ["detail", "notes"]],
     ["document", ["detail"]],
   ] as const)(
@@ -104,6 +150,7 @@ describe("resource invalidation", () => {
         "expenses",
         "reminders",
         "people",
+        "shares",
         "notes",
         "resource",
         "access",

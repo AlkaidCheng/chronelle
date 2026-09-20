@@ -8,7 +8,7 @@ const projections: Record<ChangedResource["objectType"], readonly string[]> = {
   task: ["detail", "todos", "timeline", "attachment-targets"],
   expense: ["detail", "expenses", "timeline", "attachment-targets"],
   reminder: ["detail", "reminders", "timeline"],
-  person: ["detail", "people"],
+  person: ["detail", "people", "shares"],
   note: ["detail", "notes"],
   document: ["detail"],
 };
