@@ -242,7 +242,7 @@ export function EventList() {
   const router = useRouter();
   const [isCreating, setIsCreating] = useState(false);
   const { criteria, change, layout, changeLayout } = useEventCollectionState();
-  const { query, filter, sort } = criteria;
+  const { query, scope, filter, sort } = criteria;
   const [debouncedQuery, setDebouncedQuery] = useState(query.trim());
   const [isComposing, setIsComposing] = useState(false);
   useEffect(() => {
@@ -250,15 +250,33 @@ export function EventList() {
     const timer = window.setTimeout(() => setDebouncedQuery(query.trim()), 250);
     return () => window.clearTimeout(timer);
   }, [query, isComposing]);
-  const events = useEventsQuery({ query: debouncedQuery, filter, sort });
+  const events = useEventsQuery({
+    query: debouncedQuery,
+    scope,
+    filter,
+    sort,
+  });
   const changingQuery = isComposing || query.trim() !== debouncedQuery;
   const { container, remember } = useEventCollectionReturn(
     events.isSuccess && !events.isFetching && !changingQuery,
   );
   const items = changingQuery ? [] : (events.data?.items ?? []);
   const now = Date.parse(events.data?.asOf ?? "");
-  const filtered = debouncedQuery !== "" || filter !== "all";
+  const filtered = debouncedQuery !== "" || scope !== "all" || filter !== "all";
   const filters = ["all", "upcoming", "unscheduled", "past"] as const;
+  // The chips: the scope, then the two periods; one chip is pressed at a
+  // time, All being both scope and period unset.
+  const chips = [
+    { key: "all", scope: "all", filter: "all" },
+    { key: "mine", scope: "mine", filter: "all" },
+    { key: "shared", scope: "shared", filter: "all" },
+    { key: "upcoming", scope: "all", filter: "upcoming" },
+    { key: "past", scope: "all", filter: "past" },
+  ] as const;
+  const counts = events.data?.counts ?? null;
+  const pressedChip =
+    chips.find((chip) => chip.scope === scope && chip.filter === filter)?.key ??
+    null;
   const sorts = ["date", "updated", "name"] as const;
   return (
     <main className="workspace-page" ref={container} tabIndex={-1}>
@@ -352,6 +370,29 @@ export function EventList() {
         </div>
       </header>
 
+      <div
+        aria-label={t("chipsLabel")}
+        className="event-chips events-column"
+        role="group"
+      >
+        {chips.map((chip) => (
+          <button
+            aria-pressed={pressedChip === chip.key}
+            className="event-chip"
+            key={chip.key}
+            onClick={() => change({ scope: chip.scope, filter: chip.filter })}
+            type="button"
+          >
+            {t(`chips.${chip.key}`)}
+            {counts === null ||
+            chip.key === "upcoming" ||
+            chip.key === "past" ? null : (
+              <span className="event-chip-count">{counts[chip.key]}</span>
+            )}
+          </button>
+        ))}
+      </div>
+
       {isCreating ? (
         <CreateEventDialog
           onClose={() => setIsCreating(false)}
@@ -407,7 +448,7 @@ export function EventList() {
               className="button button-secondary"
               type="button"
               onClick={() => {
-                change({ query: "", filter: "all" });
+                change({ query: "", scope: "all", filter: "all" });
               }}
             >
               {t("clearFilters")}
