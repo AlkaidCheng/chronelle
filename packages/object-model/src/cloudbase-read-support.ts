@@ -16,6 +16,7 @@ import {
   type ObjectType,
   type ReminderStatus,
   type RelationType,
+  type Role,
   type TaskRepeatRule,
   type TaskStatus,
 } from "@chronelle/db";
@@ -1131,6 +1132,150 @@ export async function readCloudBaseInclusionsOf(
       cloudbaseText(first.id, "relation id").localeCompare(
         cloudbaseText(second.id, "relation id"),
       ),
+  );
+}
+
+/** The workspaces the account belongs to, whichever it acts in. */
+export async function readCloudBaseMemberWorkspaceIds(
+  client: CloudBaseRdbReader,
+  userId: string,
+): Promise<ReadonlySet<string>> {
+  const rows = await client.select<{ readonly workspace_id: unknown }>(
+    "workspace_members",
+    {
+      columns: "workspace_id",
+      filters: cloudbaseFilters(["user_id", "eq", userId]),
+    },
+  );
+  return new Set(
+    rows.map((row) => cloudbaseText(row.workspace_id, "workspace id")),
+  );
+}
+
+/** An active grant as the Events list reads it, on any Event in any workspace. */
+export interface CloudBaseEventGrant {
+  readonly workspaceId: string;
+  readonly resourceId: string;
+  readonly principalId: string;
+  readonly role: Role;
+  readonly scope: string;
+  readonly grantedBy: string;
+}
+
+type EventGrantRow = {
+  readonly workspace_id: unknown;
+  readonly resource_id: unknown;
+  readonly principal_id: unknown;
+  readonly role: unknown;
+  readonly scope: unknown;
+  readonly granted_by: unknown;
+  readonly expires_at: unknown;
+};
+
+function eventGrants(
+  rows: readonly EventGrantRow[],
+  now: Date,
+): CloudBaseEventGrant[] {
+  return rows.flatMap((row) => {
+    const expiresAt = cloudbaseNullableDate(row.expires_at, "grant expiry");
+    if (expiresAt !== null && expiresAt <= now) return [];
+    const role = cloudbaseText(row.role, "grant role");
+    if (!viewRoles.has(role)) return [];
+    return [
+      {
+        workspaceId: cloudbaseText(row.workspace_id, "grant workspace"),
+        resourceId: cloudbaseText(row.resource_id, "grant resource"),
+        principalId: cloudbaseText(row.principal_id, "grant principal"),
+        role: role as Role,
+        scope: cloudbaseText(row.scope, "grant scope"),
+        grantedBy: cloudbaseText(row.granted_by, "granted_by"),
+      },
+    ];
+  });
+}
+
+const eventGrantColumns =
+  "workspace_id,resource_id,principal_id,role,scope,granted_by,expires_at";
+
+/** The account's active grants across every workspace: the Events shared with it. */
+export async function readCloudBaseGrantsHeld(
+  client: CloudBaseRdbReader,
+  userId: string,
+  now: Date,
+): Promise<readonly CloudBaseEventGrant[]> {
+  const rows = await client.select<EventGrantRow>("resource_grants", {
+    columns: eventGrantColumns,
+    filters: cloudbaseFilters(
+      ["principal_type", "eq", "user"],
+      ["principal_id", "eq", userId],
+    ),
+  });
+  return eventGrants(rows, now);
+}
+
+/** Every account's active grants on the given Events, for their access lines. */
+export async function readCloudBaseGrantsOn(
+  client: CloudBaseRdbReader,
+  resourceIds: readonly string[],
+  now: Date,
+): Promise<readonly CloudBaseEventGrant[]> {
+  if (resourceIds.length === 0) return [];
+  const rows = await client.select<EventGrantRow>("resource_grants", {
+    columns: eventGrantColumns,
+    filters: cloudbaseFilters(
+      ["principal_type", "eq", "user"],
+      ["resource_id", "in", resourceIds],
+    ),
+  });
+  return eventGrants(rows, now);
+}
+
+/** Live Events by id, whichever workspace holds them. */
+export async function readCloudBaseEventObjectsById(
+  client: CloudBaseRdbReader,
+  ids: readonly string[],
+): Promise<readonly CloudBaseObjectRow[]> {
+  if (ids.length === 0) return [];
+  return client.select<CloudBaseObjectRow>("objects", {
+    columns: cloudbaseObjectColumns,
+    filters: cloudbaseFilters(
+      ["object_type", "eq", "event"],
+      ["deleted_at", "is", null],
+      ["id", "in", ids],
+    ),
+  });
+}
+
+/** The Event rows by object id, whichever workspace holds them. */
+export async function readCloudBaseEventsById(
+  client: CloudBaseRdbReader,
+  ids: readonly string[],
+): Promise<readonly CloudBaseEventRow[]> {
+  if (ids.length === 0) return [];
+  return client.select<CloudBaseEventRow>("events", {
+    columns: cloudbaseEventColumns,
+    filters: cloudbaseFilters(["object_id", "in", ids]),
+  });
+}
+
+/** The display names of the given accounts. */
+export async function readCloudBaseDisplayNames(
+  client: CloudBaseRdbReader,
+  userIds: readonly string[],
+): Promise<ReadonlyMap<string, string>> {
+  if (userIds.length === 0) return new Map();
+  const rows = await client.select<{
+    readonly id: unknown;
+    readonly display_name: unknown;
+  }>("users", {
+    columns: "id,display_name",
+    filters: cloudbaseFilters(["id", "in", userIds]),
+  });
+  return new Map(
+    rows.map((row) => [
+      cloudbaseText(row.id, "user id"),
+      cloudbaseText(row.display_name, "display name"),
+    ]),
   );
 }
 

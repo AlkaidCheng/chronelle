@@ -13,6 +13,7 @@ export {
   PrincipalUnavailableError,
   ResourceGrantService,
   type GrantMutationContext,
+  type LeftResource,
   type ResourceGrantResource,
   type RevokedGrantResource,
   type ShareResourceInput,

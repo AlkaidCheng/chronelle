@@ -19,6 +19,7 @@ describe("event read repository boundary", () => {
       items: [],
       nextCursor: null,
       asOf: "2030-01-01T00:00:00.000Z",
+      counts: null,
     } satisfies EventPage;
     const listEvents = vi.fn().mockResolvedValue(page);
     const repository: EventReadRepository = { listEvents };

@@ -16,6 +16,7 @@ import {
   shareCreateRequestSchema,
   shareListResponseSchema,
   shareResponseSchema,
+  shareLeaveResponseSchema,
   shareRevocationResponseSchema,
 } from "@chronelle/schemas";
 import type { FastifyInstance, FastifyRequest } from "fastify";
@@ -161,6 +162,25 @@ export function registerSharingRoutes(
       return shareRevocationResponseSchema.parse({
         id: revoked.id,
         revokedAt: revoked.revokedAt.toISOString(),
+      });
+    },
+  );
+
+  // The grantee's own way out of a share: drops every grant the account
+  // holds on the resource, in the resource's workspace.
+  app.post(
+    "/api/objects/:id/leave",
+    { preHandler: app.authenticate },
+    async (request) => {
+      const { id } = parseRequest(objectIdParamsSchema, request.params);
+      const left = await dependencies.shares.leave(
+        mutationContext(request),
+        id,
+      );
+      return shareLeaveResponseSchema.parse({
+        resourceId: left.resourceId,
+        grantIds: left.grantIds,
+        leftAt: left.leftAt.toISOString(),
       });
     },
   );

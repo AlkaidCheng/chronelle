@@ -12,7 +12,7 @@ import {
   type DatabaseTransaction,
   type Role,
 } from "@chronelle/db";
-import { and, eq, isNull, or } from "drizzle-orm";
+import { and, asc, eq, inArray, isNull, or } from "drizzle-orm";
 
 import {
   AuthorizationDeniedError,
@@ -85,6 +85,13 @@ export interface RevokedGrantResource {
   readonly revokedAt: Date;
 }
 
+/** The grants a principal gave up on a resource by leaving it. */
+export interface LeftResource {
+  readonly resourceId: string;
+  readonly grantIds: readonly string[];
+  readonly leftAt: Date;
+}
+
 /**
  * Share writes: granting a role to a user and revoking a grant, each with
  * its audit event. Implementations own the transaction; the service keeps
@@ -100,6 +107,11 @@ export interface ShareWriteRepository {
     grantId: string,
     revokedAt: Date,
   ): Promise<RevokedGrantResource>;
+  leave(
+    context: GrantMutationContext,
+    resourceId: string,
+    leftAt: Date,
+  ): Promise<LeftResource>;
 }
 
 const granteeRule =
@@ -472,6 +484,70 @@ export class ResourceGrantService {
               resourceId: grant.resourceId,
               requestId: context.requestId,
               metadata: { grantId: deleted.id },
+            },
+          };
+        });
+      },
+    );
+  }
+
+  /**
+   * Drops every grant the acting account holds on the resource: the
+   * grantee's own way out of a share. A member of the workspace holds no
+   * grant to give up, and reads the resource as unavailable here.
+   */
+  async leave(
+    context: GrantMutationContext,
+    resourceId: string,
+  ): Promise<LeftResource> {
+    if (this.#writes !== undefined)
+      return this.#writes.leave(context, resourceId, this.#clock());
+    return withStableAuthorization(
+      this.#database,
+      context.principal.workspaceId,
+      async (transaction) => {
+        const grants = await transaction
+          .select({ id: resourceGrants.id })
+          .from(resourceGrants)
+          .innerJoin(
+            objects,
+            and(
+              eq(objects.workspaceId, resourceGrants.workspaceId),
+              eq(objects.id, resourceGrants.resourceId),
+              isNull(objects.deletedAt),
+            ),
+          )
+          .where(
+            and(
+              eq(resourceGrants.workspaceId, context.principal.workspaceId),
+              eq(resourceGrants.resourceId, resourceId),
+              eq(resourceGrants.principalType, "user"),
+              eq(resourceGrants.principalId, context.principal.userId),
+            ),
+          )
+          .orderBy(asc(resourceGrants.createdAt), asc(resourceGrants.id));
+        if (grants.length === 0) throw new AuthorizationDeniedError();
+        const grantIds = grants.map((grant) => grant.id);
+        const leftAt = this.#clock();
+        return runAuditedMutation(transaction, async (transaction) => {
+          await transaction
+            .delete(resourceGrants)
+            .where(
+              and(
+                eq(resourceGrants.workspaceId, context.principal.workspaceId),
+                inArray(resourceGrants.id, grantIds),
+              ),
+            );
+          return {
+            value: { resourceId, grantIds, leftAt },
+            audit: {
+              workspaceId: context.principal.workspaceId,
+              actorType: "user",
+              actorId: context.principal.userId,
+              action: "resource.share_left",
+              resourceId,
+              requestId: context.requestId,
+              metadata: { grantIds },
             },
           };
         });

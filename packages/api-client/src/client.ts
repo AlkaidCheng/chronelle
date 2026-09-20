@@ -144,6 +144,7 @@ import {
   type ShareCreatePayload,
   type ShareListResponse,
   type ShareResponse,
+  type ShareLeaveResponse,
   type ShareRevocationResponse,
   type WorkspaceMember,
   type WorkspaceMemberAddRequest,
@@ -160,6 +161,7 @@ import {
   personShareListResponseSchema,
   shareListResponseSchema,
   shareResponseSchema,
+  shareLeaveResponseSchema,
   shareRevocationResponseSchema,
   workspaceMemberListResponseSchema,
   workspaceMemberRemovalResponseSchema,
@@ -1098,6 +1100,13 @@ export class ChronelleApiClient {
   revokeShare(id: string): Promise<ShareRevocationResponse> {
     return this.#request(`/api/shares/${id}`, shareRevocationResponseSchema, {
       method: "DELETE",
+    });
+  }
+
+  /** Gives up every grant the account holds on the object: the grantee's way out of a share. */
+  leaveObject(id: string): Promise<ShareLeaveResponse> {
+    return this.#request(`/api/objects/${id}/leave`, shareLeaveResponseSchema, {
+      method: "POST",
     });
   }
 

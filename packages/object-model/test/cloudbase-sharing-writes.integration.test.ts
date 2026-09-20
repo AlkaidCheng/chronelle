@@ -27,7 +27,8 @@ import {
   type WriteHarness,
 } from "./cloudbase-write-harness.js";
 
-// chronelle_resource_share, chronelle_resource_share_revoke, and
+// chronelle_resource_share, chronelle_resource_share_revoke,
+// chronelle_resource_share_leave, and
 // chronelle_object_scope_update must leave what ResourceGrantService and
 // EventPlanningObjectService.updatePermissionScope leave: the grant rows,
 // the audit events, and the scope revision; and they must refuse the same
@@ -94,6 +95,7 @@ async function sharingAudits(resourceId: string) {
         inArray(auditEvents.action, [
           "resource.shared",
           "resource.share_revoked",
+          "resource.share_left",
         ]),
       ),
     )
@@ -426,6 +428,79 @@ describe.sequential("CloudBase sharing writes", () => {
           },
           grantIdPresent: true,
         },
+      ],
+    });
+  });
+
+  it("lets the grantee leave with the same grants gone and the same audit", async () => {
+    const results = [];
+    for (const [, services] of backends()) {
+      const event = await reference.objects.createEvent(context(), {
+        displayName: "Left",
+      });
+      const whole = await services.shares.share(context(), {
+        resourceId: event.id,
+        principalEmail: granteeEmail,
+        role: "viewer",
+      });
+      const todos = await services.shares.share(context(), {
+        resourceId: event.id,
+        principalEmail: granteeEmail,
+        role: "editor",
+        scope: { view: "todos", sectionId: null },
+      });
+      // The owner holds no grant to give up; a stranger neither.
+      const refused = [
+        await failure(() => services.shares.leave(context(), event.id)),
+        await failure(() =>
+          services.shares.leave(context(harness.viewerId), event.id),
+        ),
+      ].map((error) => error.constructor.name);
+      const left = await services.shares.leave(context(granteeId), event.id);
+      const remaining = await harness.database.connection.db
+        .select({ id: resourceGrants.id })
+        .from(resourceGrants)
+        .where(eq(resourceGrants.resourceId, event.id));
+      const again = (
+        await failure(() => services.shares.leave(context(granteeId), event.id))
+      ).constructor.name;
+      const expected = [whole.id, todos.id].sort();
+      const sameGrants = (ids: unknown) =>
+        Array.isArray(ids) && [...ids].sort().join() === expected.join();
+      results.push({
+        refused,
+        left: {
+          resourceMatches: left.resourceId === event.id,
+          grantsMatch: sameGrants(left.grantIds),
+          leftAt: left.leftAt,
+        },
+        remaining: remaining.length,
+        again,
+        audits: (await sharingAudits(event.id)).map((entry) => [
+          entry.action,
+          entry.action === "resource.share_left"
+            ? { grantsMatch: sameGrants(entry.metadata.grantIds) }
+            : entry.metadata,
+        ]),
+      });
+    }
+    expect(results[1]).toEqual(results[0]);
+    expect(results[0]).toEqual({
+      refused: [AuthorizationDeniedError.name, AuthorizationDeniedError.name],
+      left: { resourceMatches: true, grantsMatch: true, leftAt: clock() },
+      remaining: 0,
+      again: AuthorizationDeniedError.name,
+      audits: [
+        ["resource.shared", { principalId: granteeId, role: "viewer" }],
+        [
+          "resource.shared",
+          {
+            principalId: granteeId,
+            role: "editor",
+            scope: { view: "todos", sectionId: null },
+          },
+        ],
+        ["resource.share_left", { grantsMatch: true }],
       ],
     });
   });

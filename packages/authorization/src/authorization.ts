@@ -93,6 +93,13 @@ export type WorkspaceRoleQuery = Omit<WorkspaceAccessQuery, "evaluatedAt">;
 
 export interface AuthorizationStore {
   resourcePredicate(query: ResourceAccessQuery): SQL;
+  /** Live objects of the query's workspace the user reaches as its member. */
+  memberPredicate(query: WorkspaceAccessQuery): SQL;
+  /**
+   * Live objects, in any workspace the user is not a member of, that an
+   * active grant on the object itself lets the user view.
+   */
+  sharedPredicate(query: AccessibleWorkspaceQuery): SQL;
   findGrantNarrowing(
     query: GrantNarrowingQuery,
   ): Promise<GrantNarrowing | null>;
@@ -154,6 +161,23 @@ export class AuthorizationService {
       evaluatedAt: this.#clock(),
       userId: principal.userId,
       workspaceId: principal.workspaceId,
+    });
+  }
+
+  /** Filter the workspace's objects to the ones the principal reaches as a member. */
+  memberResourcePredicate(principal: UserPrincipal): SQL {
+    return this.#store.memberPredicate({
+      evaluatedAt: this.#clock(),
+      userId: principal.userId,
+      workspaceId: principal.workspaceId,
+    });
+  }
+
+  /** Filter objects across workspaces to the ones shared with the principal from workspaces it does not belong to. */
+  sharedResourcePredicate(principal: UserPrincipal): SQL {
+    return this.#store.sharedPredicate({
+      evaluatedAt: this.#clock(),
+      userId: principal.userId,
     });
   }
 

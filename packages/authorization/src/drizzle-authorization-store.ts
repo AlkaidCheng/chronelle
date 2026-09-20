@@ -7,7 +7,18 @@ import {
   type DatabaseTransaction,
   type Role,
 } from "@chronelle/db";
-import { and, eq, gt, inArray, isNull, or, sql, type SQL } from "drizzle-orm";
+import {
+  and,
+  eq,
+  exists,
+  gt,
+  inArray,
+  isNull,
+  notExists,
+  or,
+  sql,
+  type SQL,
+} from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { grantAdmits, recoveryAccessPredicate } from "./recovery-policy.js";
 import { roleAllows, type ShareView } from "./authorization.js";
@@ -52,6 +63,51 @@ export class DrizzleAuthorizationStore implements AuthorizationStore {
         ),
       ),
     )})`;
+  }
+
+  memberPredicate(query: WorkspaceAccessQuery): SQL {
+    const membership = this.#database
+      .select({ userId: workspaceMembers.userId })
+      .from(workspaceMembers)
+      .where(
+        and(
+          eq(workspaceMembers.workspaceId, objects.workspaceId),
+          eq(workspaceMembers.userId, query.userId),
+        ),
+      );
+    return sql`(${and(
+      eq(objects.workspaceId, query.workspaceId),
+      isNull(objects.deletedAt),
+      exists(membership),
+    )})`;
+  }
+
+  sharedPredicate(query: AccessibleWorkspaceQuery): SQL {
+    const membership = this.#database
+      .select({ userId: workspaceMembers.userId })
+      .from(workspaceMembers)
+      .where(
+        and(
+          eq(workspaceMembers.workspaceId, objects.workspaceId),
+          eq(workspaceMembers.userId, query.userId),
+        ),
+      );
+    const grant = this.#database
+      .select({ id: resourceGrants.id })
+      .from(resourceGrants)
+      .where(
+        and(
+          eq(resourceGrants.workspaceId, objects.workspaceId),
+          eq(resourceGrants.resourceId, objects.id),
+          eq(resourceGrants.principalType, "user"),
+          eq(resourceGrants.principalId, query.userId),
+          or(
+            isNull(resourceGrants.expiresAt),
+            gt(resourceGrants.expiresAt, query.evaluatedAt),
+          ),
+        ),
+      );
+    return sql`(${and(isNull(objects.deletedAt), notExists(membership), exists(grant))})`;
   }
 
   async findRecoverableResourceIds(

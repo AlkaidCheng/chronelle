@@ -76,6 +76,7 @@ const snapshotTables = {
   object_relations: objectRelations,
   objects,
   resource_grants: resourceGrants,
+  users,
   workspace_members: workspaceMembers,
 } as const;
 
@@ -93,19 +94,23 @@ function gatewayRow(
 }
 
 /**
- * Serves the workspace rows PostgreSQL holds through the RDB transport
- * boundary, so both adapters read one dataset.
+ * Serves the rows PostgreSQL holds through the RDB transport boundary, so
+ * both adapters read one dataset: one workspace's rows, or every
+ * workspace's when none is named, with the accounts either way.
  */
 async function snapshotClient(
   db: Database,
-  workspaceId: string,
+  workspaceId?: string,
 ): Promise<CloudBaseRdbReader> {
   const rows = new Map<string, Record<string, unknown>[]>();
   for (const [name, table] of Object.entries(snapshotTables)) {
-    const records = await db
-      .select()
-      .from(table)
-      .where(eq(table.workspaceId, workspaceId));
+    const records =
+      workspaceId === undefined || !("workspaceId" in table)
+        ? await db.select().from(table)
+        : await db
+            .select()
+            .from(table)
+            .where(eq(table.workspaceId, workspaceId));
     rows.set(
       name,
       records.map((record) =>
@@ -332,5 +337,226 @@ describe.sequential("CloudBase read contract", () => {
         new Set([privateChildId, rootId, unrelatedId]),
       );
     }
+  });
+
+  it("matches PostgreSQL for the events shared from other workspaces, with their access and counts", async () => {
+    const db = database.connection.db;
+    const meiId = createId();
+    const kaiId = createId();
+    const anaId = createId();
+    const meiWorkspace = createId();
+    const kaiWorkspace = createId();
+    const kyotoId = createId();
+    const aloneId = createId();
+    const weddingId = createId();
+    const expiredId = createId();
+    await db.insert(users).values(
+      [
+        [meiId, "Mei Lin"],
+        [kaiId, "Kai Tanaka"],
+        [anaId, "Ana Souza"],
+      ].map(([id, displayName]) => ({
+        id: id as string,
+        identityProvider: "test",
+        providerSubject: id as string,
+        displayName: displayName as string,
+      })),
+    );
+    await db.insert(workspaces).values([
+      { id: meiWorkspace, createdBy: meiId, displayName: "Mei" },
+      { id: kaiWorkspace, createdBy: kaiId, displayName: "Kai" },
+    ]);
+    await db.insert(workspaceMembers).values([
+      { workspaceId: meiWorkspace, userId: meiId, role: "owner" },
+      { workspaceId: kaiWorkspace, userId: kaiId, role: "owner" },
+    ]);
+    await db.insert(objects).values(
+      [
+        [kyotoId, meiWorkspace, meiId, "Kyoto in November"],
+        [aloneId, meiWorkspace, meiId, "Mei alone"],
+        [expiredId, meiWorkspace, meiId, "Expired share"],
+        [weddingId, kaiWorkspace, kaiId, "Wedding countdown"],
+      ].map(([id, workspaceId, createdBy, displayName]) => ({
+        id: id as string,
+        workspaceId: workspaceId as string,
+        createdBy: createdBy as string,
+        displayName: displayName as string,
+        permissionScopeId: id as string,
+        objectType: "event" as const,
+      })),
+    );
+    await db.insert(events).values([
+      { objectId: kyotoId, workspaceId: meiWorkspace, startsOn: "2030-11-02" },
+      { objectId: aloneId, workspaceId: meiWorkspace, startsOn: "2020-06-01" },
+      {
+        objectId: expiredId,
+        workspaceId: meiWorkspace,
+        startsOn: "2030-03-01",
+      },
+      {
+        objectId: weddingId,
+        workspaceId: kaiWorkspace,
+        startsAt: new Date("2030-10-11T10:00:00Z"),
+        timezone: "UTC",
+      },
+    ]);
+    await db.insert(resourceGrants).values([
+      {
+        id: createId(),
+        workspaceId: meiWorkspace,
+        resourceId: kyotoId,
+        principalId: kaiId,
+        role: "viewer",
+        grantedBy: meiId,
+      },
+      {
+        id: createId(),
+        workspaceId: meiWorkspace,
+        resourceId: kyotoId,
+        principalId: kaiId,
+        role: "editor",
+        grantedBy: meiId,
+        scope: "todos",
+      },
+      {
+        id: createId(),
+        workspaceId: meiWorkspace,
+        resourceId: expiredId,
+        principalId: kaiId,
+        role: "viewer",
+        grantedBy: meiId,
+        createdAt: new Date("2020-01-01T00:00:00Z"),
+        expiresAt: new Date("2020-12-31T00:00:00Z"),
+      },
+      {
+        id: createId(),
+        workspaceId: kaiWorkspace,
+        resourceId: weddingId,
+        principalId: meiId,
+        role: "editor",
+        grantedBy: kaiId,
+      },
+      {
+        id: createId(),
+        workspaceId: kaiWorkspace,
+        resourceId: weddingId,
+        principalId: anaId,
+        role: "viewer",
+        grantedBy: kaiId,
+      },
+    ]);
+
+    // Both backends read at the wall clock, so the periods agree.
+    const clock = () => new Date();
+    const cloudbaseClient = await snapshotClient(db);
+    const postgresEvents = new PostgresEventReadRepository(db);
+    const cloudbaseEvents = new CloudBaseEventReadRepository(
+      cloudbaseClient,
+      clock,
+    );
+    const kai = {
+      type: "user" as const,
+      userId: kaiId,
+      workspaceId: kaiWorkspace,
+    };
+    const mei = {
+      type: "user" as const,
+      userId: meiId,
+      workspaceId: meiWorkspace,
+    };
+    const summary = (
+      page: Awaited<ReturnType<EventReadRepository["listEvents"]>>,
+    ) => ({
+      items: page.items.map((item) => ({
+        id: item.id,
+        workspaceId: item.workspaceId,
+        access: item.access,
+      })),
+      counts: page.counts,
+      more: page.nextCursor !== null,
+    });
+
+    for (const [principal, scope, expected] of [
+      [
+        kai,
+        "all",
+        {
+          items: [
+            {
+              id: weddingId,
+              workspaceId: kaiWorkspace,
+              access: { sharedBy: null, role: null, sharedWith: 2 },
+            },
+            {
+              id: kyotoId,
+              workspaceId: meiWorkspace,
+              access: {
+                sharedBy: { userId: meiId, displayName: "Mei Lin" },
+                role: "viewer",
+                sharedWith: 0,
+              },
+            },
+          ],
+          counts: { all: 2, mine: 1, shared: 1, upcoming: 2, past: 0 },
+          more: false,
+        },
+      ],
+      [
+        kai,
+        "mine",
+        {
+          items: [
+            {
+              id: weddingId,
+              workspaceId: kaiWorkspace,
+              access: { sharedBy: null, role: null, sharedWith: 2 },
+            },
+          ],
+          counts: { all: 2, mine: 1, shared: 1, upcoming: 2, past: 0 },
+          more: false,
+        },
+      ],
+      [
+        mei,
+        "shared",
+        {
+          items: [
+            {
+              id: weddingId,
+              workspaceId: kaiWorkspace,
+              access: {
+                sharedBy: { userId: kaiId, displayName: "Kai Tanaka" },
+                role: "editor",
+                sharedWith: 0,
+              },
+            },
+          ],
+          counts: { all: 4, mine: 3, shared: 1, upcoming: 3, past: 1 },
+          more: false,
+        },
+      ],
+    ] as const) {
+      const input = { scope, sort: "date" as const, limit: 10 };
+      const postgresPage = await postgresEvents.listEvents(principal, input);
+      const cloudbasePage = await cloudbaseEvents.listEvents(principal, input);
+      expect(summary(postgresPage)).toEqual(expected);
+      expect(summary(cloudbasePage)).toEqual(summary(postgresPage));
+    }
+    // A later page carries no counts on either backend.
+    const first = await postgresEvents.listEvents(mei, { limit: 2 });
+    const cursor = first.nextCursor ?? "";
+    expect(cursor).not.toBe("");
+    const postgresRest = await postgresEvents.listEvents(mei, {
+      limit: 2,
+      cursor,
+    });
+    const cloudbaseRest = await cloudbaseEvents.listEvents(mei, {
+      limit: 2,
+      cursor:
+        (await cloudbaseEvents.listEvents(mei, { limit: 2 })).nextCursor ?? "",
+    });
+    expect(postgresRest.counts).toBeNull();
+    expect(cloudbaseRest.counts).toBeNull();
+    expect(summary(cloudbaseRest).items).toEqual(summary(postgresRest).items);
   });
 });

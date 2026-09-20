@@ -194,7 +194,10 @@ export function registerEventPlanningRoutes(
     );
     return eventListResponseSchema.parse({
       ...events,
-      items: events.items.map(serializeResource),
+      items: events.items.map((item) => ({
+        ...serializeResource(item),
+        access: item.access,
+      })),
     });
   });
 

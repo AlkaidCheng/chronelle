@@ -13,13 +13,23 @@ import {
   cloudbaseEventResource,
   cloudbaseText,
   isCloudBaseRootObject,
-  readCloudBaseEvents,
-  readCloudBaseVisibility,
-  readCloudBaseVisibleObjects,
+  readCloudBaseDisplayNames,
+  readCloudBaseEventObjectsById,
+  readCloudBaseEventsById,
+  readCloudBaseGrantsHeld,
+  readCloudBaseGrantsOn,
+  readCloudBaseMemberWorkspaceIds,
+  readCloudBaseObjects,
+  type CloudBaseObjectRow,
 } from "./cloudbase-read-support.js";
 import { decodeCursor, encodeCursor } from "./cursor.js";
 import { InvalidObjectStateError } from "./errors.js";
-import type { EventPage, EventReadRepository } from "./event-list.js";
+import {
+  eventListAccess,
+  type EventListItem,
+  type EventPage,
+  type EventReadRepository,
+} from "./event-list.js";
 import type { EventResource } from "./types.js";
 
 function cursorTimestamp(value: Date): string {
@@ -39,6 +49,7 @@ function contextHash(principal: UserPrincipal, input: EventListQuery): string {
       JSON.stringify([
         principal.userId,
         principal.workspaceId,
+        input.scope,
         input.query,
         input.filter,
         input.sort,
@@ -177,22 +188,39 @@ export class CloudBaseEventReadRepository implements EventReadRepository {
     const context = contextHash(principal, input);
     const cursor = readCursor(input.cursor, context);
     const asOf = cursor === undefined ? this.#clock() : new Date(cursor.asOf);
-    const visibility = await readCloudBaseVisibility(
+    const now = this.#clock();
+    // The account's own workspace's root Events, as its member, beside the
+    // root Events an active grant shares with it from workspaces it does
+    // not belong to; the same two sets the PostgreSQL predicates select.
+    const [memberWorkspaceIds, held] = await Promise.all([
+      readCloudBaseMemberWorkspaceIds(this.#client, principal.userId),
+      readCloudBaseGrantsHeld(this.#client, principal.userId, now),
+    ]);
+    const sharedIds = [
+      ...new Set(
+        held
+          .filter((grant) => !memberWorkspaceIds.has(grant.workspaceId))
+          .map((grant) => grant.resourceId),
+      ),
+    ];
+    const [ownObjects, sharedObjects] = await Promise.all([
+      memberWorkspaceIds.has(principal.workspaceId)
+        ? readCloudBaseObjects(this.#client, principal, undefined, "event")
+        : Promise.resolve([] as readonly CloudBaseObjectRow[]),
+      readCloudBaseEventObjectsById(this.#client, sharedIds),
+    ]);
+    const own = ownObjects.filter(isCloudBaseRootObject);
+    const shared = sharedObjects.filter(isCloudBaseRootObject);
+    const objects =
+      input.scope === "all"
+        ? [...own, ...shared]
+        : input.scope === "mine"
+          ? own
+          : shared;
+    const allObjects = [...own, ...shared];
+    const eventRows = await readCloudBaseEventsById(
       this.#client,
-      principal,
-      this.#clock,
-    );
-    // The list shows root Events only, matching the PostgreSQL query.
-    const objects = (
-      await readCloudBaseVisibleObjects(this.#client, principal, visibility)
-    ).filter(isCloudBaseRootObject);
-    const objectIds = objects.map((object) =>
-      cloudbaseText(object.id, "object id"),
-    );
-    const eventRows = await readCloudBaseEvents(
-      this.#client,
-      principal,
-      objectIds,
+      allObjects.map((object) => cloudbaseText(object.id, "object id")),
     );
     const byId = new Map(
       eventRows.map((event) => [
@@ -200,17 +228,20 @@ export class CloudBaseEventReadRepository implements EventReadRepository {
         event,
       ]),
     );
-    let events = objects.flatMap((object) => {
-      const event = byId.get(cloudbaseText(object.id, "object id"));
-      return event === undefined ? [] : [cloudbaseEventResource(object, event)];
-    });
-    events = events.filter(
-      (event) =>
-        (input.query === "" ||
-          event.displayName
-            .toLocaleLowerCase()
-            .includes(input.query.toLocaleLowerCase())) &&
-        matchesPeriod(event, input.filter, asOf),
+    const resources = (rows: readonly CloudBaseObjectRow[]) =>
+      rows.flatMap((object) => {
+        const event = byId.get(cloudbaseText(object.id, "object id"));
+        return event === undefined
+          ? []
+          : [cloudbaseEventResource(object, event)];
+      });
+    const matching = (event: EventResource) =>
+      input.query === "" ||
+      event.displayName
+        .toLocaleLowerCase()
+        .includes(input.query.toLocaleLowerCase());
+    let events = resources(objects).filter(
+      (event) => matching(event) && matchesPeriod(event, input.filter, asOf),
     );
     events.sort(
       input.sort === "name"
@@ -222,14 +253,66 @@ export class CloudBaseEventReadRepository implements EventReadRepository {
     if (cursor !== undefined)
       events = events.filter((event) => afterCursor(event, cursor, input.sort));
     const page = events.slice(0, input.limit);
+    const items = await this.#withAccess(
+      principal.userId,
+      memberWorkspaceIds,
+      page,
+      now,
+    );
+    // The chips count the whole list once, under the query alone.
+    let counts = null;
+    if (cursor === undefined) {
+      const everything = resources(allObjects).filter(matching);
+      const mine = everything.filter((event) =>
+        memberWorkspaceIds.has(event.workspaceId),
+      ).length;
+      counts = {
+        all: everything.length,
+        mine,
+        shared: everything.length - mine,
+        upcoming: everything.filter((event) =>
+          matchesPeriod(event, "upcoming", asOf),
+        ).length,
+        past: everything.filter((event) => matchesPeriod(event, "past", asOf))
+          .length,
+      };
+    }
     const asOfValue = cursor?.asOf ?? cursorTimestamp(asOf);
     return {
-      items: page,
+      items,
       asOf: asOfValue,
+      counts,
       nextCursor:
         events.length > input.limit && page.at(-1) !== undefined
           ? pageCursor(page.at(-1) as EventResource, context, asOfValue)
           : null,
     };
+  }
+
+  async #withAccess(
+    userId: string,
+    memberWorkspaceIds: ReadonlySet<string>,
+    page: readonly EventResource[],
+    now: Date,
+  ): Promise<EventListItem[]> {
+    if (page.length === 0) return [];
+    const grants = await readCloudBaseGrantsOn(
+      this.#client,
+      page.map((event) => event.id),
+      now,
+    );
+    const displayNames = await readCloudBaseDisplayNames(this.#client, [
+      ...new Set(grants.map((grant) => grant.grantedBy)),
+    ]);
+    return page.map((event) => ({
+      ...event,
+      access: eventListAccess(
+        event,
+        userId,
+        memberWorkspaceIds,
+        grants,
+        displayNames,
+      ),
+    }));
   }
 }

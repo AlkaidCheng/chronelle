@@ -138,6 +138,13 @@ export const shareRevocationResponseSchema = z.object({
   revokedAt: dateTimeSchema,
 });
 
+/** The grants the caller gave up on a resource by leaving it. */
+export const shareLeaveResponseSchema = z.object({
+  resourceId: idSchema,
+  grantIds: z.array(idSchema),
+  leftAt: dateTimeSchema,
+});
+
 /**
  * One thing shared between the caller and a person: a grant the caller's
  * workspace holds for the person's account (`outgoing`), a share queued
@@ -215,6 +222,7 @@ export type ShareListResponse = z.infer<typeof shareListResponseSchema>;
 export type ShareRevocationResponse = z.infer<
   typeof shareRevocationResponseSchema
 >;
+export type ShareLeaveResponse = z.infer<typeof shareLeaveResponseSchema>;
 export type PersonShare = z.infer<typeof personShareSchema>;
 export type PersonShareListResponse = z.infer<
   typeof personShareListResponseSchema
