@@ -23,6 +23,7 @@ export const eventComponentViewSchema = z.enum([
   "agenda",
   "by-day",
   "week",
+  "board",
   "month",
 ]);
 

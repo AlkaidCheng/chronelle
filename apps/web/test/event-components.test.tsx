@@ -780,13 +780,13 @@ describe("insertable event components", () => {
     expect(
       layout.pages[0]?.components.map((component) => component.view),
     ).toEqual(["by-day", undefined]);
-    // Calendar offers its own layouts: list, agenda, week, calendar.
+    // Calendar offers its own layouts: list, agenda, week, board, calendar.
     const layouts = screen.getAllByRole("button", { name: /^Layout: / });
     expect(layouts).toHaveLength(2);
     await user.click(layouts[1] as HTMLElement);
     expect(
       screen.getAllByRole("menuitemradio").map((item) => item.textContent),
-    ).toEqual(["List", "Agenda", "By week", "Calendar"]);
+    ).toEqual(["List", "Agenda", "By week", "Board", "Calendar"]);
     await user.keyboard("{Escape}");
     unmount();
 

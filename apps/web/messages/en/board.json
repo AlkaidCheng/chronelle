@@ -1,0 +1,9 @@
+{
+  "overdue": "Overdue",
+  "today": "Today",
+  "noDay": "No due date",
+  "reschedule": "Reschedule",
+  "rescheduled": "Moved {count, plural, one {# task} other {# tasks}} to today.",
+  "count": "{count, plural, one {# item} other {# items}}",
+  "rescheduledReminders": "Moved {count, plural, one {# reminder} other {# reminders}} to today."
+}
