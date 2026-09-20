@@ -30,7 +30,7 @@ import {
   staysInPlace,
 } from "../../lib/collection-order";
 import { addComposerKey, useComposerSlots } from "../../lib/composer-slots";
-import { groupByDay } from "../../lib/day-groups";
+import { dayGroupLabel, groupByDay } from "../../lib/day-groups";
 import { groupBySection } from "../../lib/section-groups";
 import {
   type DayKey,
@@ -120,7 +120,13 @@ import { ExpenseForm } from "./expense-form";
 import { ExpenseInspector } from "./expense-inspector";
 import { ExportControl } from "./export-control";
 import { ShareControl, useCanShareEvent } from "./share-control";
-import { PeriodView, type RowMode } from "./period-view";
+import {
+  BoardView,
+  boardColumns,
+  overdueGroup,
+  PeriodView,
+  type RowMode,
+} from "./period-view";
 import { ReminderComposer } from "./reminder-composer";
 import { ReminderForm } from "./reminder-form";
 import { ReminderInspector } from "./reminder-inspector";
@@ -153,11 +159,14 @@ function namedChoices(
   );
 }
 
-/** A panel's classes: the list column for a list layout, the page for a period grid. */
+/** Whether a view places its rows by day: the week, the board, and the calendar. */
+function placesByDay(view: EventComponentView): boolean {
+  return view === "week" || view === "board" || view === "month";
+}
+
+/** A panel's classes: the list column for a list layout, the page for a period grid or the board. */
 function panelClasses(view: EventComponentView): string {
-  return view === "week" || view === "month"
-    ? "planning-panel"
-    : "planning-panel panel-column";
+  return placesByDay(view) ? "planning-panel" : "planning-panel panel-column";
 }
 
 export function TasksPanel({
@@ -465,14 +474,14 @@ export function CalendarPanel({
   });
   const placed = useMemo(
     () =>
-      view === "week" || view === "month"
+      placesByDay(view)
         ? placeByDay(items, eventDays)
         : new Map<DayKey, EventResponse[]>(),
     [items, view],
   );
   const unscheduled = useMemo(
     () =>
-      view === "week" || view === "month"
+      placesByDay(view)
         ? items.filter((item) => eventDays(item).length === 0)
         : [],
     [items, view],
@@ -593,6 +602,11 @@ export function CalendarPanel({
       </article>
     );
   };
+  const scheduleList = (dayItems: readonly EventResponse[], mode: RowMode) => (
+    <div className={resourceListClass(mode)}>
+      {dayItems.map((item) => scheduleRow(item, mode))}
+    </div>
+  );
   const addSlot = addComposerKey("schedule");
   const addDraftId = addRecordDraftId(
     eventCreationDraftKeys(eventId).schedule,
@@ -674,15 +688,20 @@ export function CalendarPanel({
             ),
           )}
         </ol>
+      ) : view === "board" ? (
+        <BoardView
+          columns={boardColumns({
+            placed,
+            undated: unscheduled,
+            undatedLabel: panels("unscheduled"),
+          })}
+          renderList={scheduleList}
+        />
       ) : view === "week" || view === "month" ? (
         <PeriodView
           period={period}
           placed={placed}
-          renderList={(dayItems, mode) => (
-            <div className={resourceListClass(mode)}>
-              {dayItems.map((item) => scheduleRow(item, mode))}
-            </div>
-          )}
+          renderList={scheduleList}
           undated={unscheduled}
           undatedLabel={panels("unscheduled")}
           view={view}
@@ -950,7 +969,7 @@ export function ExpensesPanel({
   );
   const placed = useMemo(
     () =>
-      view === "week" || view === "month"
+      placesByDay(view)
         ? placeByDay(expenses, (expense) => [expenseDay(expense)])
         : new Map<DayKey, ExpenseResponse[]>(),
     [expenses, view],
@@ -1446,8 +1465,15 @@ export function ExpensesPanel({
         </div>
       ) : (
         <>
-          {expenses.length === 0 ||
-          (view !== "week" && view !== "month") ? null : (
+          {expenses.length === 0 ? null : view === "board" ? (
+            <BoardView
+              columns={boardColumns({
+                placed,
+                undatedLabel: panels("undated"),
+              })}
+              renderList={expenseList}
+            />
+          ) : view === "week" || view === "month" ? (
             <PeriodView
               period={period}
               placed={placed}
@@ -1456,7 +1482,7 @@ export function ExpensesPanel({
               undatedLabel={panels("undated")}
               view={view}
             />
-          )}
+          ) : null}
           {addRow(null)}
         </>
       )}
@@ -1516,6 +1542,7 @@ export function RemindersPanel({
   const views = useTranslations("views");
   const t = useTranslations("reminderRow");
   const composerT = useTranslations("composer");
+  const board = useTranslations("board");
   // The full editor: a reminder's, or a new reminder's when an add row's
   // composer hands over to it, each with the composer's fields.
   const [editing, setEditing] = useState<{
@@ -1549,22 +1576,54 @@ export function RemindersPanel({
   });
   const placed = useMemo(
     () =>
-      view === "week" || view === "month"
+      placesByDay(view)
         ? placeByDay(reminders, (reminder) => [reminderDay(reminder)])
         : new Map<DayKey, ReminderResponse[]>(),
     [reminders, view],
+  );
+  // On the board an open reminder whose day has passed sits in Overdue alone.
+  const overdue = useMemo(() => {
+    if (view !== "board") return [];
+    const today = dayKeyOf(new Date());
+    return reminders.filter(
+      (reminder) =>
+        reminderDay(reminder) < today &&
+        (reminder.status === "pending" || reminder.status === "triggered"),
+    );
+  }, [reminders, view]);
+  const overdueIds = useMemo(
+    () => new Set(overdue.map((reminder) => reminder.id)),
+    [overdue],
   );
   const groups = useMemo(
     () =>
       view === "by-day" ? groupByDay(reminders, reminderDay, new Date()) : [],
     [reminders, view],
   );
+  /** The group a reminder's row sits in: its day by day and on the board (Overdue when late), else the one list. */
+  const groupOf = useCallback(
+    (reminder: ReminderResponse): string =>
+      view === "by-day"
+        ? reminderDay(reminder)
+        : view === "board"
+          ? overdueIds.has(reminder.id)
+            ? overdueGroup
+            : reminderDay(reminder)
+          : "all",
+    [overdueIds, view],
+  );
   const rowsOf = useCallback(
-    (groupKey: string): readonly ReminderResponse[] =>
-      groupKey === "all"
-        ? reminders
-        : (groups.find((group) => group.key === groupKey)?.items ?? []),
-    [groups, reminders],
+    (groupKey: string): readonly ReminderResponse[] => {
+      if (groupKey === "all") return reminders;
+      if (view === "board")
+        return groupKey === overdueGroup
+          ? overdue
+          : (placed.get(groupKey) ?? []).filter(
+              (reminder) => !overdueIds.has(reminder.id),
+            );
+      return groups.find((group) => group.key === groupKey)?.items ?? [];
+    },
+    [groups, overdue, overdueIds, placed, reminders, view],
   );
   const change = useCallback(
     (
@@ -1597,11 +1656,31 @@ export function RemindersPanel({
       ),
     [change, t],
   );
+  const { mutateAsync: updateAsync } = update;
+  /** Every overdue reminder moved to today, one versioned write each, said once. */
+  const rescheduleOverdue = useCallback(async () => {
+    const day = dayKeyOf(new Date());
+    const moved = await Promise.allSettled(
+      overdue.map((reminder) =>
+        updateAsync({
+          id: reminder.id,
+          input: {
+            expectedVersion: reminder.version,
+            remindAt: instantOnDay(reminder.remindAt, day),
+          },
+        }),
+      ),
+    );
+    const count = moved.filter(
+      (result) => result.status === "fulfilled",
+    ).length;
+    if (count > 0) setAnnouncement(board("rescheduledReminders", { count }));
+  }, [board, overdue, updateAsync]);
   const onDrop = useCallback(
     (id: string, drop: RowDrop) => {
       const reminder = byId.get(id);
       if (reminder === undefined) return;
-      const from = view === "by-day" ? reminderDay(reminder) : "all";
+      const from = groupOf(reminder);
       const rows = drop.rowIds.flatMap((rowId) => byId.get(rowId) ?? []);
       if (
         drop.groupKey === from &&
@@ -1609,7 +1688,11 @@ export function RemindersPanel({
       )
         return;
       const rank = rankAtIndex(rows, drop.index);
-      if (drop.groupKey !== "all" && drop.groupKey !== from)
+      if (
+        drop.groupKey !== "all" &&
+        drop.groupKey !== overdueGroup &&
+        drop.groupKey !== reminderDay(reminder)
+      )
         snooze(reminder, drop.groupKey, rank);
       else
         change(
@@ -1618,15 +1701,23 @@ export function RemindersPanel({
           t("said.moved", { name: reminder.displayName }),
         );
     },
-    [byId, change, rowsOf, snooze, t, view],
+    [byId, change, groupOf, rowsOf, snooze, t],
+  );
+  // Overdue keeps its dates, so only its own rows may be reordered there.
+  const canDrop = useCallback(
+    (groupKey: string, id: string) =>
+      groupKey !== overdueGroup || (view === "board" && overdueIds.has(id)),
+    [overdueIds, view],
   );
   const labelOf = useCallback(
     (id: string) => byId.get(id)?.displayName ?? "",
     [byId],
   );
-  const reorder = canEdit && (view === "list" || view === "by-day");
+  const reorder =
+    canEdit && (view === "list" || view === "by-day" || view === "board");
   const { drag, gapAt, gripProps, groupProps, rootProps, rowClass, rowProps } =
     useRowDrag({
+      canDrop,
       enabled: reorder,
       labelOf,
       onDrop,
@@ -1805,7 +1896,7 @@ export function RemindersPanel({
               <p className="task-meta">
                 <time className="row-when" dateTime={reminder.remindAt}>
                   <BellIcon />
-                  {view === "list"
+                  {view === "list" || groupKey === overdueGroup
                     ? formatDateTime(reminder.remindAt)
                     : formatTime(reminder.remindAt)}
                 </time>
@@ -1818,16 +1909,32 @@ export function RemindersPanel({
       </article>
     );
   };
+  // A day's rows in a week's column or a calendar cell; on the board a
+  // column is a drop group of its own, so its rows carry the gap a lifted
+  // reminder will fill.
   const reminderList = (
     dayReminders: readonly ReminderResponse[],
     mode: RowMode,
-  ) => (
-    <div className={resourceListClass(mode)}>
-      {dayReminders.map((reminder) =>
-        reminderRow(reminder, dayReminders, "all", mode),
-      )}
-    </div>
-  );
+    groupKey: string,
+  ) =>
+    view === "board" ? (
+      <div className={resourceListClass(mode)} {...groupProps(groupKey)}>
+        {rowsWithGap(
+          groupKey,
+          dayReminders,
+          drag,
+          gapAt,
+          (reminder) => reminderRow(reminder, dayReminders, groupKey, mode),
+          gapRow,
+        )}
+      </div>
+    ) : (
+      <div className={resourceListClass(mode)}>
+        {dayReminders.map((reminder) =>
+          reminderRow(reminder, dayReminders, "all", mode),
+        )}
+      </div>
+    );
   /** The add row of the list or of a day group, or its open composer. */
   const addRow = (day: DayKey | null, dayLabel?: string) => {
     const slotKey = addComposerKey(day === null ? "list" : `day:${day}`);
@@ -1920,7 +2027,7 @@ export function RemindersPanel({
         }
         title={views("reminders")}
       />
-      {view === "week" || view === "month" ? null : notice}
+      {placesByDay(view) ? null : notice}
       {reminders.length === 0 && !canEdit ? (
         <EmptyState title={panels("noReminders")} />
       ) : null}
@@ -1962,6 +2069,41 @@ export function RemindersPanel({
             </section>
           ))}
         </div>
+      ) : view === "board" ? (
+        <BoardView
+          columns={boardColumns({
+            overdue,
+            overdueAction:
+              canEdit && overdue.length > 0 ? (
+                <button
+                  className="board-action"
+                  onClick={() => void rescheduleOverdue()}
+                  type="button"
+                >
+                  {board("reschedule")}
+                </button>
+              ) : undefined,
+            overdueLabel: board("overdue"),
+            placed,
+            undatedLabel: panels("undated"),
+          })}
+          notice={notice}
+          renderFooter={
+            canEdit
+              ? (column) =>
+                  column.day === null ? null : (
+                    <div className="quick-add-item week-day-add">
+                      {addRow(
+                        column.day,
+                        dayGroupLabel(column.day, new Date()).label[0],
+                      )}
+                    </div>
+                  )
+              : undefined
+          }
+          renderList={reminderList}
+          rootProps={rootProps()}
+        />
       ) : view === "week" || view === "month" ? (
         <PeriodView
           notice={notice}

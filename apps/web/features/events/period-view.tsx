@@ -2,8 +2,14 @@
 
 import type { ReactNode } from "react";
 
-import { MonthGrid, PeriodNav, WeekStrip } from "../../components/period-views";
-import type { DayKey } from "../../lib/day-placement";
+import {
+  type BoardColumn,
+  BoardStrip,
+  MonthGrid,
+  PeriodNav,
+  WeekStrip,
+} from "../../components/period-views";
+import { type DayKey, instantDay } from "../../lib/day-placement";
 import type { Period } from "../../lib/use-period";
 
 /** How a container renders its rows: in full, as a card in a week's column, or as one line for a calendar cell. */
@@ -12,6 +18,110 @@ export type RowMode = "full" | "card" | "cell";
 /** The group key of a strip's rows; a day's rows take the day as their key. */
 export const overdueGroup = "overdue";
 export const undatedGroup = "undated";
+
+/**
+ * The columns of a container's board: Overdue first when anything is
+ * overdue, Today always, then each later or earlier day that holds
+ * something in date order, the undated last. An overdue item sits in
+ * Overdue alone, not in its day as well, so a column never repeats a row.
+ */
+export function boardColumns<Item extends { readonly id: string }>({
+  overdue = [],
+  overdueAction,
+  overdueLabel = "",
+  placed,
+  today = new Date(),
+  undated = [],
+  undatedLabel,
+}: {
+  readonly overdue?: readonly Item[];
+  readonly overdueAction?: ReactNode;
+  readonly overdueLabel?: string;
+  readonly placed: ReadonlyMap<DayKey, readonly Item[]>;
+  readonly today?: Date;
+  readonly undated?: readonly Item[];
+  readonly undatedLabel: string;
+}): BoardColumn<Item>[] {
+  const todayKey = instantDay(today);
+  const overdueIds = new Set(overdue.map((item) => item.id));
+  const dayColumn = (day: DayKey): BoardColumn<Item> => ({
+    key: day,
+    day,
+    items: (placed.get(day) ?? []).filter((item) => !overdueIds.has(item.id)),
+    tone: day === todayKey ? "today" : "plain",
+  });
+  // Today leads the days; the days before it hold only what is done or
+  // dismissed, so they read after the present, still in date order.
+  const days = [...placed.keys()]
+    .filter((day) => day !== todayKey)
+    .sort()
+    .map(dayColumn)
+    .filter((column) => column.items.length > 0);
+  return [
+    ...(overdue.length === 0
+      ? []
+      : [
+          {
+            key: overdueGroup,
+            day: null,
+            items: overdue,
+            label: overdueLabel,
+            tone: "overdue" as const,
+            action: overdueAction,
+          },
+        ]),
+    dayColumn(todayKey),
+    ...days,
+    ...(undated.length === 0
+      ? []
+      : [
+          {
+            key: undatedGroup,
+            day: null,
+            items: undated,
+            label: undatedLabel,
+            tone: "undated" as const,
+          },
+        ]),
+  ];
+}
+
+/**
+ * A container's board: the columns of `boardColumns` scrolling sideways,
+ * the rows of each rendered by the container as cards, a footer under
+ * them so a column may end in an add row presetting its day.
+ */
+export function BoardView<Item extends { readonly id: string }>({
+  columns,
+  notice,
+  renderFooter,
+  renderList,
+  rootProps,
+}: {
+  readonly columns: readonly BoardColumn<Item>[];
+  readonly notice?: ReactNode;
+  /** What a column ends with; the day is null for a strip's column. */
+  readonly renderFooter?:
+    ((column: BoardColumn<Item>) => ReactNode) | undefined;
+  readonly renderList: (
+    items: readonly Item[],
+    mode: RowMode,
+    groupKey: string,
+  ) => ReactNode;
+  readonly rootProps?:
+    { readonly [attribute: `data-${string}`]: string } | undefined;
+}) {
+  return (
+    <div className="period-view board-view" {...rootProps}>
+      {notice}
+      <BoardStrip
+        columns={columns}
+        renderColumn={(column) => renderList(column.items, "card", column.key)}
+        renderFooter={renderFooter}
+      />
+    </div>
+  );
+}
 
 /**
  * A container's week or calendar: the items that have no cell (overdue,

@@ -191,6 +191,90 @@ export function WeekStrip({
   );
 }
 
+/** One column of a board: a day, or a strip's items (overdue, undated) as a column. */
+export interface BoardColumn<Item> {
+  /** The drop group of the column's rows: the day, or the strip's key. */
+  readonly key: string;
+  /** The day the column holds; null for a strip's column. */
+  readonly day: DayKey | null;
+  readonly items: readonly Item[];
+  /** The label of a strip's column; a day names itself. */
+  readonly label?: string | undefined;
+  readonly tone: "overdue" | "today" | "plain" | "undated";
+  /** A control at the column's head, such as Overdue's Reschedule. */
+  readonly action?: ReactNode;
+}
+
+/**
+ * Columns that scroll sideways, one per day that holds something in date
+ * order, with the strips' columns at either end: Overdue first and Today
+ * always (even empty, so its add row has a home), the undated last. Each
+ * column renders what the container places in it, then the container's
+ * footer; a phone shows one column and a half at a time.
+ */
+export function BoardStrip<Item>({
+  columns,
+  renderColumn,
+  renderFooter,
+}: {
+  readonly columns: readonly BoardColumn<Item>[];
+  /** The nodes of one column, its rows even when it holds none. */
+  readonly renderColumn: (column: BoardColumn<Item>) => ReactNode;
+  /** What ends a column, under its rows. */
+  readonly renderFooter?:
+    ((column: BoardColumn<Item>) => ReactNode) | undefined;
+}) {
+  const { locale } = useDisplayPreferences();
+  const { weekdayShort, dayTitle, fullDayTitle } = formatsFor(locale);
+  const board = tr("board");
+  const heading = (column: BoardColumn<Item>) => {
+    if (column.day === null) {
+      const label = column.label ?? "";
+      return { title: label, name: label, after: null };
+    }
+    const date = parseDayKey(column.day);
+    return {
+      title: dayTitle.format(date),
+      name: fullDayTitle.format(date),
+      after:
+        column.tone === "today" ? board("today") : weekdayShort.format(date),
+    };
+  };
+  return (
+    <div className="board-scroll">
+      <ol className="board-strip">
+        {columns.map((column) => {
+          const { title, name, after } = heading(column);
+          return (
+            <li
+              aria-label={name}
+              className={`board-column is-${column.tone}`}
+              data-drop-zone=""
+              key={column.key}
+            >
+              <h3 className="board-heading">
+                <span className="board-title">
+                  {title}
+                  {after === null ? null : <small> &middot; {after}</small>}
+                </span>
+                <span className="board-count">
+                  <span className="visually-hidden">
+                    {board("count", { count: column.items.length })}
+                  </span>
+                  <span aria-hidden="true">{column.items.length}</span>
+                </span>
+                {column.action}
+              </h3>
+              <div className="board-items">{renderColumn(column)}</div>
+              {renderFooter?.(column)}
+            </li>
+          );
+        })}
+      </ol>
+    </div>
+  );
+}
+
 /** How many rows a month cell shows before folding the rest behind "+N more". */
 export const monthCellRows = 3;
 

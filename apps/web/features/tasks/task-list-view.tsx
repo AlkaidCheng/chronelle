@@ -60,7 +60,14 @@ import { groupTasksByDay } from "../../lib/task-groups";
 import { nestTasks } from "../../lib/task-tree";
 import type { Period } from "../../lib/use-period";
 import { type RowDrop, rowsWithGap, useRowDrag } from "../../lib/use-row-drag";
-import { PeriodView, type RowMode, undatedGroup } from "../events/period-view";
+import {
+  BoardView,
+  boardColumns,
+  overdueGroup,
+  PeriodView,
+  type RowMode,
+  undatedGroup,
+} from "../events/period-view";
 import { useOpenHistory } from "../history/history-provider";
 import { useOpenLifecycle } from "../recovery/lifecycle-provider";
 import {
@@ -267,8 +274,11 @@ export function TaskListView({
   const openHistory = useOpenHistory();
   const openLifecycle = useOpenLifecycle();
   const composerT = useTranslations("composer");
+  const board = useTranslations("board");
   const store = useEditorDraftStore();
   const today = dayKeyOf(new Date());
+  // The week, the calendar, and the board place the tasks by day.
+  const byDay = view === "week" || view === "month" || view === "board";
   /** Opens a row in place as the composer. */
   const press = useMemo(
     () =>
@@ -449,50 +459,23 @@ export function TaskListView({
   );
   const placed = useMemo(
     () =>
-      view === "week" || view === "month"
+      byDay
         ? placeByDay(tasks, (task) => {
             const day = taskDay(task);
             return day === null ? [] : [day];
           })
         : new Map<DayKey, TaskResponse[]>(),
-    [tasks, view],
+    [byDay, tasks],
   );
   const undated = useMemo(
-    () =>
-      view === "week" || view === "month"
-        ? tasks.filter((task) => taskDay(task) === null)
-        : [],
-    [tasks, view],
-  );
-  // Which group each task sits in, for a drop that keeps its place or a
-  // step that stays among its rows: by day its day group, by week its
-  // day's column (or the undated strip), else the one list.
-  const groupOf = useMemo(() => {
-    const keys = new Map<string, string>();
-    if (view === "by-day")
-      for (const group of groups)
-        for (const task of group.tasks) keys.set(task.id, group.key);
-    else if (view === "week")
-      for (const task of tasks)
-        keys.set(task.id, taskDay(task) ?? undatedGroup);
-    else for (const task of ordered) keys.set(task.id, listGroup);
-    return keys;
-  }, [groups, ordered, tasks, view]);
-  const rowsOf = useCallback(
-    (groupKey: string): readonly TaskResponse[] =>
-      groupKey === listGroup
-        ? ordered
-        : view === "week"
-          ? groupKey === undatedGroup
-            ? undated
-            : (placed.get(groupKey) ?? [])
-          : (groups.find((group) => group.key === groupKey)?.tasks ?? []),
-    [groups, ordered, placed, undated, view],
+    () => (byDay ? tasks.filter((task) => taskDay(task) === null) : []),
+    [byDay, tasks],
   );
   // Open tasks whose day has passed sit in a strip as well as in their day,
-  // since the day may be outside the period shown.
+  // since the day may be outside the period shown; on the board they sit
+  // in the Overdue column alone.
   const overdue = useMemo(() => {
-    if (view !== "week" && view !== "month") return [];
+    if (!byDay) return [];
     const today = dayKeyOf(new Date());
     return tasks.filter((task) => {
       const day = taskDay(task);
@@ -503,7 +486,53 @@ export function TaskListView({
         task.status !== "cancelled"
       );
     });
-  }, [tasks, view]);
+  }, [byDay, tasks]);
+  const overdueIds = useMemo(
+    () => new Set(overdue.map((task) => task.id)),
+    [overdue],
+  );
+  // Which group each task sits in, for a drop that keeps its place or a
+  // step that stays among its rows: by day its day group, by week its
+  // day's column (or the undated strip), on the board its column, else
+  // the one list.
+  const groupOf = useMemo(() => {
+    const keys = new Map<string, string>();
+    if (view === "by-day")
+      for (const group of groups)
+        for (const task of group.tasks) keys.set(task.id, group.key);
+    else if (view === "week")
+      for (const task of tasks)
+        keys.set(task.id, taskDay(task) ?? undatedGroup);
+    else if (view === "board")
+      for (const task of tasks)
+        keys.set(
+          task.id,
+          overdueIds.has(task.id)
+            ? overdueGroup
+            : (taskDay(task) ?? undatedGroup),
+        );
+    else for (const task of ordered) keys.set(task.id, listGroup);
+    return keys;
+  }, [groups, ordered, overdueIds, tasks, view]);
+  const rowsOf = useCallback(
+    (groupKey: string): readonly TaskResponse[] => {
+      if (groupKey === listGroup) return ordered;
+      if (view === "week")
+        return groupKey === undatedGroup
+          ? undated
+          : (placed.get(groupKey) ?? []);
+      if (view === "board")
+        return groupKey === undatedGroup
+          ? undated
+          : groupKey === overdueGroup
+            ? overdue
+            : (placed.get(groupKey) ?? []).filter(
+                (task) => !overdueIds.has(task.id),
+              );
+      return groups.find((group) => group.key === groupKey)?.tasks ?? [];
+    },
+    [groups, ordered, overdue, overdueIds, placed, undated, view],
+  );
 
   /** One versioned update of the task with the given changes, announced. */
   const change = useCallback(
@@ -531,6 +560,23 @@ export function TaskListView({
     },
     [change, t],
   );
+  const { mutateAsync: updateTaskAsync } = update;
+  /** Every overdue task moved to today, one versioned write each, said once. */
+  const rescheduleOverdue = useCallback(async () => {
+    const day = dayKeyOf(new Date());
+    const moved = await Promise.allSettled(
+      overdue.map((task) =>
+        updateTaskAsync({
+          id: task.id,
+          input: { expectedVersion: task.version, ...dueOnDay(task, day) },
+        }),
+      ),
+    );
+    const count = moved.filter(
+      (result) => result.status === "fulfilled",
+    ).length;
+    if (count > 0) setAnnouncement(board("rescheduled", { count }));
+  }, [board, overdue, updateTaskAsync]);
   // The list layout of an Event's To-dos groups by section: the loose
   // tasks first, then each section with its own rows and add row.
   const sectioned = sections !== undefined && view === "list";
@@ -915,7 +961,7 @@ export function TaskListView({
       <div className="row-drag-line">
         {check(task)}
         <div className="resource-copy">
-          {copy(task, view !== "week", false)}
+          {copy(task, view !== "week" && view !== "board", false)}
         </div>
         {aside(task)}
       </div>
@@ -1026,6 +1072,81 @@ export function TaskListView({
       (task) => row(task, showDate, items, groupKey),
       listGap,
     );
+  /** The rows of a day's column, a strip, or a calendar cell, in the mode the view asks for. */
+  const placedRows = (
+    items: readonly TaskResponse[],
+    mode: RowMode,
+    groupKey: string,
+  ) => (
+    <ul
+      className={`${resourceListClass(mode)}${draggable && mode === "full" ? " has-grips" : ""}`}
+      {...(mode === "cell" ? {} : groupProps(groupKey))}
+    >
+      {mode === "cell"
+        ? items.map((task) => row(task, false, items, groupKey, mode))
+        : rowsWithGap(
+            groupKey,
+            items,
+            drag,
+            gapAt,
+            // A card names its day only in Overdue, whose rows span days.
+            (task) =>
+              row(
+                task,
+                mode === "full" || groupKey === overdueGroup,
+                items,
+                groupKey,
+                mode,
+              ),
+            listGap,
+          )}
+    </ul>
+  );
+  /** A day's add row under its column, presetting the day (none for no day). */
+  const dayAddRow = (day: DayKey | null) => (
+    <div className="quick-add-item week-day-add">
+      {addRow(
+        day,
+        day === null
+          ? t("groups.noDueDate")
+          : dayGroupLabel(day, new Date()).label[0],
+      )}
+    </div>
+  );
+  // The board: a column per day that holds something, Overdue and Today
+  // first, the undated last; a drop on a column writes its day, and
+  // Overdue's head moves every overdue task to today at once.
+  if (view === "board")
+    return (
+      <BoardView
+        columns={boardColumns({
+          overdue,
+          overdueAction:
+            canEdit && overdue.length > 0 ? (
+              <button
+                className="board-action"
+                onClick={() => void rescheduleOverdue()}
+                type="button"
+              >
+                {board("reschedule")}
+              </button>
+            ) : undefined,
+          overdueLabel: board("overdue"),
+          placed,
+          undated,
+          undatedLabel: t("groups.noDueDate"),
+        })}
+        notice={notice}
+        renderFooter={
+          canEdit
+            ? (column) =>
+                column.tone === "overdue" ? null : dayAddRow(column.day)
+            : undefined
+        }
+        renderList={placedRows}
+        rootProps={rootProps()}
+      />
+    );
   // By week each day's rows are cards in its column and a drop target of
   // its own, the strips above are lists; a drop on a day writes that day.
   if (view === "week" || view === "month")
@@ -1035,32 +1156,8 @@ export function TaskListView({
         overdue={overdue}
         period={period}
         placed={placed}
-        renderDayFooter={
-          canEdit && view === "week"
-            ? (day) => (
-                <div className="quick-add-item week-day-add">
-                  {addRow(day, dayGroupLabel(day, new Date()).label[0])}
-                </div>
-              )
-            : undefined
-        }
-        renderList={(items, mode, groupKey) => (
-          <ul
-            className={`${resourceListClass(mode)}${draggable && mode === "full" ? " has-grips" : ""}`}
-            {...(mode === "cell" ? {} : groupProps(groupKey))}
-          >
-            {mode === "cell"
-              ? items.map((task) => row(task, false, items, groupKey, mode))
-              : rowsWithGap(
-                  groupKey,
-                  items,
-                  drag,
-                  gapAt,
-                  (task) => row(task, mode === "full", items, groupKey, mode),
-                  listGap,
-                )}
-          </ul>
-        )}
+        renderDayFooter={canEdit && view === "week" ? dayAddRow : undefined}
+        renderList={placedRows}
         rootProps={rootProps()}
         undated={undated}
         undatedLabel={t("groups.noDueDate")}

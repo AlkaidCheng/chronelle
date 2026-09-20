@@ -139,8 +139,8 @@ label, and Anyone), and Layout. The sort, status, label, and assignee are
 applied by the server, so a page holds only what matches. Load more tasks
 extends the list page by page.
 
-The page offers the same List, By day, By week, and Calendar layouts as the
-To-dos component, from the same rows: the completion check, the name and its
+The page offers the same List, By day, By week, Board, and Calendar layouts
+as the To-dos component, from the same rows: the completion check, the name and its
 details (a button that opens the row in place as the composer), the status,
 and the row menu. The week and the calendar ask the server for the tasks
 due on the days shown (in the browser's time zone) and load all of them, so
@@ -1391,7 +1391,17 @@ when they appear), each column at least 180px wide so the grid takes the
 page's full measure and scrolls sideways below seven such columns, a card
 dragged to another column taking that day as its due date, the menu's Edit
 opening the full editor, and each day ending in an Add task row that shows
-on hover and presets the day; and Calendar, the month's weeks as a grid of day
+on hover and presets the day; Board, one column per day that holds a task,
+in date order and scrolling sideways (260px columns; a phone shows one and a
+half), with two fixed columns first: Overdue, the open tasks whose day has
+passed, oldest first, with Reschedule at its head moving them all to today
+(one write per task, said once as "Moved n tasks to today."), and Today,
+which stays even when empty so its add row has a home; the days between are
+absent, so a month of tasks reads in one sweep; the columns hold the week's
+cards, an overdue task sitting in Overdue alone, a card dragged to another
+column taking that day, each column ending in an Add task row that presets
+its day, and tasks with no due date closing the board as a last column; and
+Calendar, the month's weeks as a grid of day
 cells with the weekday names and day numbers at the right, today a filled
 circle, the days of other months muted and the first of a month named, and
 the grid ending with the week that holds the month's last day. Each calendar
@@ -1399,14 +1409,18 @@ cell holds its tasks as compact rows (a dot, the name clipped, the time at
 the right, done ones struck through), three of them and then "+n more",
 which opens the rest in place. Calendar offers List; Agenda, the numbered
 running order of its items with the same Edit, History, and Actions on each;
-and By week and Calendar, a scheduled item sitting on every day it covers,
-the week's columns holding the same cards as To-dos (the time or the place
-under the name).
-Expenses and Reminders offer List, By day, By week, and Calendar as well: a
-transaction sits on the day it happened and a reminder on the day it is due;
-an expense day heading carries the day's totals by currency, and a calendar
-cell shows each amount or time with the name (a dismissed or triggered
-reminder struck through). The Itinerary offers Day and All days (below).
+and By week, Board, and Calendar, a scheduled item sitting on every day it
+covers, the week's columns holding the same cards as To-dos (the time or the
+place under the name).
+Expenses and Reminders offer List, By day, By week, Board, and Calendar as
+well: a transaction sits on the day it happened and a reminder on the day it
+is due; an expense day heading carries the day's totals by currency, and a
+calendar cell shows each amount or time with the name (a dismissed or
+triggered reminder struck through). The Board of Reminders has an Overdue
+column too (a pending or triggered reminder whose day has passed), with
+Reschedule moving them to today; the Calendar's and the Expenses' boards
+start at the earliest day with content, Today among their columns. The
+Itinerary offers Day and All days (below).
 The event's own tabs (To-dos, Calendar,
 and the rest) offer the same Layout control; a tab's choice lasts for the
 session, while a page component's is saved with the layout. Above a week or
