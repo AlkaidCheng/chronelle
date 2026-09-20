@@ -140,11 +140,12 @@ it("opens the switcher with Yours first, then Shared with you by recency, the cu
   await user.click(trigger);
   const menu = screen.getByRole("menu", { name: "Switch workspace" });
   const items = screen.getAllByRole("menuitemradio");
+  // Memberships alone: a workspace reached through shares (no role) is
+  // absent, its events showing in the account's own Events list.
   expect(items.map((item) => item.textContent)).toEqual([
     "PWPlanner's workspacePersonal workspace",
     "KTKai Tanaka's workspaceKai Tanaka · Editor · Opened yesterday",
     "ASAna Souza's workspaceAna Souza · Viewer · Opened last week",
-    "MLMei Lin's workspaceMei Lin",
   ]);
   expect(items[0]).toHaveAttribute("aria-checked", "true");
   expect(items[0]).toHaveFocus();
@@ -188,7 +189,7 @@ it("offers a search past six workspaces that narrows the list by name or owner",
   await user.click(trigger);
   const search = screen.getByRole("searchbox", { name: "Find a workspace" });
   expect(search).toHaveFocus();
-  expect(screen.getAllByRole("menuitemradio")).toHaveLength(8);
+  expect(screen.getAllByRole("menuitemradio")).toHaveLength(7);
   await user.type(search, "guide 2");
   expect(
     screen.getAllByRole("menuitemradio").map((item) => item.textContent),

@@ -1,6 +1,7 @@
 import {
   InvalidShareError,
   type GrantMutationContext,
+  type LeftResource,
   type ResourceGrantResource,
   type RevokedGrantResource,
   type ShareResourceInput,
@@ -26,8 +27,8 @@ import type { PermissionScopeWriteRepository } from "./object-writes.js";
 import type { EventPlanningResource, MutationContext } from "./types.js";
 
 /**
- * Sharing through chronelle_resource_share and
- * chronelle_resource_share_revoke, and permission-scope changes through
+ * Sharing through chronelle_resource_share, chronelle_resource_share_revoke,
+ * and chronelle_resource_share_leave, and permission-scope changes through
  * chronelle_object_scope_update. Each call is one transaction that applies
  * the service's authorization, state, version, audit, and revision rules.
  */
@@ -82,6 +83,27 @@ export class CloudBaseSharingWriteRepository
     return {
       id: cloudbaseText(record.id, "grant id"),
       revokedAt: cloudbaseDate(record.revokedAt, "revokedAt"),
+    };
+  }
+
+  async leave(
+    context: GrantMutationContext,
+    resourceId: string,
+    leftAt: Date,
+  ): Promise<LeftResource> {
+    const row = await this.#call("chronelle_resource_share_leave", {
+      ...principalArguments(context),
+      resource_id: resourceId,
+      left_at: leftAt.toISOString(),
+    });
+    const record = asRecord(row, "leave");
+    const grantIds = Array.isArray(record.grantIds) ? record.grantIds : null;
+    if (grantIds === null)
+      throw new Error("CloudBase returned an invalid leave.");
+    return {
+      resourceId: cloudbaseText(record.resourceId, "resource id"),
+      grantIds: grantIds.map((id) => cloudbaseText(id, "grant id")),
+      leftAt: cloudbaseDate(record.leftAt, "leftAt"),
     };
   }
 

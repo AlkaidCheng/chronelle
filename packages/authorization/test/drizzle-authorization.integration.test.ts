@@ -292,6 +292,82 @@ describe.sequential("DrizzleAuthorizationStore", () => {
     ).resolves.toBe(false);
   });
 
+  it("lists a member's own objects apart from the ones shared from other workspaces", async () => {
+    const db = testDatabase.connection.db;
+    const home = await createWorkspace(db, "list-home");
+    const other = await createWorkspace(db, "list-other");
+    const joined = await createWorkspace(db, "list-joined");
+    const ownEvent = await createObject(db, home, "Own event");
+    const sharedEvent = await createObject(db, other, "Shared event");
+    const expiredEvent = await createObject(db, other, "Expired share");
+    const memberEvent = await createObject(db, joined, "Member event");
+    await createObject(db, other, "Not shared");
+    await db.insert(workspaceMembers).values({
+      workspaceId: joined.workspaceId,
+      userId: home.ownerId,
+      role: "editor",
+    });
+    await db.insert(resourceGrants).values([
+      {
+        id: createId(),
+        workspaceId: other.workspaceId,
+        resourceId: sharedEvent,
+        principalId: home.ownerId,
+        role: "viewer",
+        grantedBy: other.ownerId,
+      },
+      {
+        id: createId(),
+        workspaceId: other.workspaceId,
+        resourceId: expiredEvent,
+        principalId: home.ownerId,
+        role: "viewer",
+        grantedBy: other.ownerId,
+        expiresAt: new Date(evaluatedAt.getTime() - 1),
+      },
+      {
+        id: createId(),
+        workspaceId: joined.workspaceId,
+        resourceId: memberEvent,
+        principalId: home.ownerId,
+        role: "viewer",
+        grantedBy: joined.ownerId,
+      },
+    ]);
+    const authorization = new AuthorizationService(
+      new DrizzleAuthorizationStore(db),
+      () => evaluatedAt,
+    );
+    const principal = {
+      type: "user" as const,
+      userId: home.ownerId,
+      workspaceId: home.workspaceId,
+    };
+    const names = async (predicate: ReturnType<typeof sql>) =>
+      (
+        await db
+          .select({ name: objects.displayName })
+          .from(objects)
+          .where(predicate)
+          .orderBy(objects.displayName)
+      ).map((row) => row.name);
+    await expect(
+      names(authorization.memberResourcePredicate(principal)),
+    ).resolves.toEqual(["Own event"]);
+    // A grant in a workspace the account belongs to is not a share to list.
+    await expect(
+      names(authorization.sharedResourcePredicate(principal)),
+    ).resolves.toEqual(["Shared event"]);
+    await expect(
+      names(
+        authorization.memberResourcePredicate({
+          ...principal,
+          workspaceId: other.workspaceId,
+        }),
+      ),
+    ).resolves.toEqual([]);
+  });
+
   it("inherits one scope grant while self-scope stops inheritance", async () => {
     const fixture = await createWorkspace(
       testDatabase.connection.db,

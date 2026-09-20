@@ -623,8 +623,22 @@ describe.sequential("event page layouts", () => {
         })
       ).statusCode,
     ).toBe(404);
+    // The viewer reaches the shared Event from their own workspace too: the
+    // request follows the object's workspace. A stranger does not.
+    expect(
+      (await app.inject({ url, headers: viewer.headers })).statusCode,
+    ).toBe(200);
+    expect(
+      (
+        await app.inject({
+          method: "PATCH",
+          url,
+          headers: viewer.headers,
+          payload: { expectedVersion: 0, pages: [] },
+        })
+      ).statusCode,
+    ).toBe(404);
     for (const headers of [
-      viewer.headers,
       stranger.headers,
       { ...stranger.headers, "x-workspace-id": owner.session.workspace.id },
     ]) {

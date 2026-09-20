@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { expect, test } from "./fixtures";
+import { addMember } from "./helpers/membership";
 import { signOutFromMenu, switchWorkspace } from "./helpers/quiet-chrome";
 
 test("isolates a delayed collection page across workspace changes and sign-out", async ({
@@ -35,12 +36,9 @@ test("isolates a delayed collection page across workspace changes and sign-out",
     data: { displayName: "Shared collection item", timezone: "UTC" },
   });
   expect(sharedEvent.status()).toBe(201);
-  const shared = await sharedEvent.json();
-  const grant = await request.post("/api/shares", {
-    headers: { authorization: `Bearer ${second.accessToken}` },
-    data: { resourceId: shared.id, principalEmail: email, role: "viewer" },
-  });
-  expect(grant.status()).toBe(201);
+  // The planner joins the second workspace as a member, so the switcher
+  // lists it.
+  await addMember(request, second, { ...first, email });
 
   const errors: string[] = [];
   page.on("pageerror", (error) => errors.push(error.message));

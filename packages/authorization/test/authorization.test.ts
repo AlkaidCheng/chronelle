@@ -44,6 +44,8 @@ describe("AuthorizationService", () => {
       findWorkspaceRole: vi.fn(),
       hasWorkspaceAccess: vi.fn(),
       findGrantNarrowing: vi.fn(),
+      memberPredicate: vi.fn(),
+      sharedPredicate: vi.fn(),
       listAccessibleWorkspaceIds: vi.fn(),
     };
     const policy = new AuthorizationService(store, () => evaluatedAt);
@@ -53,6 +55,34 @@ describe("AuthorizationService", () => {
       evaluatedAt,
       userId: principal.userId,
       workspaceId: principal.workspaceId,
+    });
+  });
+  it("binds the member and shared list predicates to the principal and clock", () => {
+    const evaluatedAt = new Date("2030-01-01T00:00:00Z");
+    const member = sql`member`;
+    const shared = sql`shared`;
+    const store: AuthorizationStore = {
+      resourcePredicate: vi.fn(),
+      findRecoverableResourceIds: vi.fn(),
+      findResourceRoles: vi.fn(),
+      findWorkspaceRole: vi.fn(),
+      hasWorkspaceAccess: vi.fn(),
+      findGrantNarrowing: vi.fn(),
+      listAccessibleWorkspaceIds: vi.fn(),
+      memberPredicate: vi.fn().mockReturnValue(member),
+      sharedPredicate: vi.fn().mockReturnValue(shared),
+    };
+    const policy = new AuthorizationService(store, () => evaluatedAt);
+    expect(policy.memberResourcePredicate(principal)).toBe(member);
+    expect(store.memberPredicate).toHaveBeenCalledExactlyOnceWith({
+      evaluatedAt,
+      userId: principal.userId,
+      workspaceId: principal.workspaceId,
+    });
+    expect(policy.sharedResourcePredicate(principal)).toBe(shared);
+    expect(store.sharedPredicate).toHaveBeenCalledExactlyOnceWith({
+      evaluatedAt,
+      userId: principal.userId,
     });
   });
   it("preserves input order while deduplicating same-workspace policy reads", async () => {
@@ -69,6 +99,8 @@ describe("AuthorizationService", () => {
       findWorkspaceRole: vi.fn(),
       hasWorkspaceAccess: vi.fn(),
       findGrantNarrowing: vi.fn(),
+      memberPredicate: vi.fn(),
+      sharedPredicate: vi.fn(),
       listAccessibleWorkspaceIds: vi.fn(),
     };
     const policy = new AuthorizationService(store, clock);
@@ -120,6 +152,8 @@ describe("AuthorizationService", () => {
       findWorkspaceRole: vi.fn(),
       hasWorkspaceAccess: vi.fn(),
       findGrantNarrowing: vi.fn(),
+      memberPredicate: vi.fn(),
+      sharedPredicate: vi.fn(),
       listAccessibleWorkspaceIds: vi.fn(),
     };
     const policy = new AuthorizationService(store);
@@ -143,6 +177,8 @@ describe("AuthorizationService", () => {
         findWorkspaceRole: vi.fn().mockResolvedValue(role),
         hasWorkspaceAccess: vi.fn(),
         findGrantNarrowing: vi.fn(),
+        memberPredicate: vi.fn(),
+        sharedPredicate: vi.fn(),
         listAccessibleWorkspaceIds: vi.fn(),
       };
       const check = new AuthorizationService(store).assertWorkspaceOwner(
@@ -164,6 +200,8 @@ describe("AuthorizationService", () => {
       findWorkspaceRole: vi.fn(),
       hasWorkspaceAccess: vi.fn(),
       findGrantNarrowing: vi.fn(),
+      memberPredicate: vi.fn(),
+      sharedPredicate: vi.fn(),
       listAccessibleWorkspaceIds: vi.fn(),
     };
     const authorization = new AuthorizationService(store);
@@ -191,6 +229,8 @@ describe("AuthorizationService", () => {
       findWorkspaceRole: vi.fn().mockResolvedValue("owner"),
       hasWorkspaceAccess: vi.fn().mockResolvedValue(true),
       findGrantNarrowing: vi.fn().mockResolvedValue(null),
+      memberPredicate: vi.fn(),
+      sharedPredicate: vi.fn(),
       listAccessibleWorkspaceIds: vi.fn().mockResolvedValue([]),
     };
     const authorization = new AuthorizationService(store);
@@ -209,6 +249,8 @@ describe("AuthorizationService", () => {
       findWorkspaceRole: vi.fn(),
       hasWorkspaceAccess: vi.fn(),
       findGrantNarrowing: vi.fn(),
+      memberPredicate: vi.fn(),
+      sharedPredicate: vi.fn(),
       listAccessibleWorkspaceIds: vi.fn(),
     };
     const authorization = new AuthorizationService(store);
@@ -230,6 +272,8 @@ describe("AuthorizationService", () => {
       findWorkspaceRole: vi.fn().mockResolvedValue(null),
       hasWorkspaceAccess: vi.fn().mockResolvedValue(false),
       findGrantNarrowing: vi.fn().mockResolvedValue(null),
+      memberPredicate: vi.fn(),
+      sharedPredicate: vi.fn(),
       listAccessibleWorkspaceIds: vi.fn().mockResolvedValue([]),
     };
     const authorization = new AuthorizationService(store);
@@ -252,6 +296,8 @@ describe("AuthorizationService", () => {
       findWorkspaceRole,
       hasWorkspaceAccess: vi.fn(),
       findGrantNarrowing: vi.fn(),
+      memberPredicate: vi.fn(),
+      sharedPredicate: vi.fn(),
       listAccessibleWorkspaceIds: vi.fn(),
     };
     const authorization = new AuthorizationService(store);
@@ -277,6 +323,8 @@ describe("AuthorizationService", () => {
       findWorkspaceRole: vi.fn(),
       hasWorkspaceAccess: vi.fn(),
       findGrantNarrowing: vi.fn(),
+      memberPredicate: vi.fn(),
+      sharedPredicate: vi.fn(),
       listAccessibleWorkspaceIds: vi.fn(),
     };
     const authorization = new AuthorizationService(store);

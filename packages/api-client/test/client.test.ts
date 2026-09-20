@@ -806,10 +806,14 @@ describe("ChronelleApiClient", () => {
   });
 
   it("adds the active identity and workspace to protected requests", async () => {
+    const listed = {
+      ...event,
+      access: { sharedBy: null, role: null, sharedWith: 0 },
+    };
     const fetch = vi.fn<typeof globalThis.fetch>().mockResolvedValue(
       new Response(
         JSON.stringify({
-          items: [event],
+          items: [listed],
           nextCursor: null,
           asOf: event.updatedAt,
         }),
@@ -829,9 +833,10 @@ describe("ChronelleApiClient", () => {
     });
 
     await expect(client.listEvents()).resolves.toEqual({
-      items: [event],
+      items: [listed],
       nextCursor: null,
       asOf: event.updatedAt,
+      counts: null,
     });
     const [url, request] = fetch.mock.calls[0] ?? [];
     const headers = new Headers(request?.headers);

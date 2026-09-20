@@ -3,6 +3,12 @@
 Most `/api` routes accept and return JSON; document transfers carry file bytes.
 Protected routes require a bearer token issued by a sign-in. Send
 `x-workspace-id` when operating outside the identity's personal workspace.
+A route that names an object in its `id` parameter acts in that object's
+workspace when the caller may enter it (a member, or an account holding an
+active grant there), whatever the header says: an Event shared from another
+workspace opens, with every route under it, from the caller's own session.
+An object out of reach, or an identifier that is not an object's, leaves
+the request where the header put it.
 
 Protected database reads evaluate permissions and assemble data in the same
 snapshot. A read in progress may finish with the earlier authorized version
@@ -192,18 +198,34 @@ examples, object preconditions, idempotency, and explicit eligibility limits.
 
 ## Event collection
 
-`GET /api/events` returns `{ items, nextCursor, asOf }`. It lists active,
-self-scoped Events in the selected workspace with current View permission.
-Scoped itinerary Events remain in their parent's projections. Permission and
-content are read in one snapshot; private candidates cannot consume the limit.
+`GET /api/events` returns `{ items, nextCursor, asOf, counts }`. It lists
+active, self-scoped Events the caller may view: the ones of the selected
+workspace when the caller belongs to it (`mine`), and the ones an active
+grant shares with the caller from workspaces the caller does not belong to
+(`shared`), whichever workspace they live in. Scoped itinerary Events remain
+in their parent's projections. Permission and content are read in one
+snapshot; private candidates cannot consume the limit.
 
 | Parameter | Values and default                                          |
 | --------- | ----------------------------------------------------------- |
 | `limit`   | 1-50, default 20                                            |
 | `query`   | Trimmed name substring, up to 240 characters, default empty |
+| `scope`   | `all` (default), `mine`, or `shared`                        |
 | `filter`  | `all` (default), `upcoming`, `past`, or `unscheduled`       |
 | `sort`    | `date` (default), `name`, or `updated`                      |
 | `cursor`  | Previous `nextCursor`; omit to start a new collection read  |
+
+Each item is the Event with its `workspaceId` and an `access` object:
+`sharedBy` (`{ userId, displayName }` of the account that gave the caller
+the share, or null for the caller's own), `role` (the role the caller
+holds through the share, `viewer` when every grant is narrowed to a view;
+null for the caller's own), and `sharedWith` (for the caller's own Events,
+how many other accounts hold an active grant on it; 0 for a share). The
+first page carries `counts` for the typed query alone, `{ all, mine,
+shared, upcoming, past }`; continuation pages carry `counts: null`. Both
+backends read the same two sets: PostgreSQL through the member and shared
+predicates of the authorization store, the gateway through the account's
+memberships and grants across workspaces.
 
 Name matching is case-insensitive; `%`, `_`, and backslash are literal
 characters, not wildcard syntax. `unscheduled` means no start date or time. A timed
@@ -1001,6 +1023,7 @@ account lookup by email happens only through an invitation.
 | `GET`    | `/persons/:id/shares`           | What is shared each way with a person                                           |
 | `POST`   | `/shares`                       | Create or replace a direct user grant, whole or narrowed to a view or a section |
 | `DELETE` | `/shares/:id`                   | Revoke a direct grant                                                           |
+| `POST`   | `/objects/:id/leave`            | Give up every grant the caller holds on the resource                            |
 | `POST`   | `/shares/pending`               | Queue a share for a person without an account                                   |
 | `DELETE` | `/shares/pending/:id`           | Take a waiting share back                                                       |
 | `PATCH`  | `/objects/:id/permission-scope` | Change inheritance with a version                                               |
@@ -1064,6 +1087,16 @@ views alone. Both backends decide the same way (`chronelle_grant_admits` in
 every `chronelle_can_*` function and the held role; the readiness check
 requires it and `chronelle_section_visible`, which narrows
 `GET /events/:id/sections`).
+
+`POST /objects/:id/leave` is the grantee's own way out of a share: it
+deletes every grant the calling account holds on the resource, whole or
+narrowed, in the resource's workspace, and answers
+`{ resourceId, grantIds, leftAt }` with one `resource.share_left` audit
+event naming the grants. A caller holding no grant there (a member of the
+workspace, a stranger, or one who already left) gets 404. The web app
+sends it when the notice offering Undo expires, so the event returns to
+the list until then. Both backends: PostgreSQL directly, the gateway
+through `chronelle_resource_share_leave` (migration 0065).
 
 `GET /objects/:id/shares` returns `{ items, pending }`. `pending` lists the
 shares waiting on a request or invitation the caller's account sent, each

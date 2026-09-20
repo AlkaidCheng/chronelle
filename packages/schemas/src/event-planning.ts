@@ -5,6 +5,8 @@ import { sectionResponseSchema } from "./sections.js";
 import { calendarDateSchema } from "./event-calendar-dates.js";
 import { cursorTokenSchema } from "./pagination.js";
 import { relationTypeSchema } from "./relation-list.js";
+import { eventListCountsSchema } from "./event-list.js";
+import { roleSchema } from "./sharing.js";
 
 const jsonObjectSchema = z.record(z.string(), z.unknown());
 const objectIdSchema = z.uuid();
@@ -308,10 +310,29 @@ export const eventResponseSchema = z.object({
   description: z.string().nullable().default(null),
 });
 
+/**
+ * How the caller reaches a listed Event: through a share, with who gave it
+ * and the role held, or as their own, with how many accounts it is shared
+ * with.
+ */
+export const eventListAccessSchema = z.object({
+  sharedBy: z
+    .object({ userId: objectIdSchema, displayName: z.string() })
+    .nullable(),
+  role: roleSchema.nullable(),
+  sharedWith: z.number().int().nonnegative(),
+});
+
+export const eventListItemSchema = eventResponseSchema.extend({
+  access: eventListAccessSchema,
+});
+
 export const eventListResponseSchema = z.object({
-  items: z.array(eventResponseSchema),
+  items: z.array(eventListItemSchema),
   nextCursor: cursorTokenSchema.nullable(),
   asOf: dateTimeResponseSchema,
+  /** The chip counts for the query, on the first page only. */
+  counts: eventListCountsSchema.nullable().default(null),
 });
 
 export const taskResponseSchema = z.object({
@@ -550,6 +571,8 @@ export type EventPlanningResourceResponse = z.infer<
   typeof eventPlanningResourceResponseSchema
 >;
 export type EventResponse = z.infer<typeof eventResponseSchema>;
+export type EventListAccess = z.infer<typeof eventListAccessSchema>;
+export type EventListItem = z.infer<typeof eventListItemSchema>;
 export type EventListResponse = z.infer<typeof eventListResponseSchema>;
 export type TaskListResponse = z.infer<typeof taskListResponseSchema>;
 export type TaskContext = z.infer<typeof taskContextSchema>;

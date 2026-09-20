@@ -237,11 +237,24 @@ describe.sequential("object revisions", () => {
         headers: headers(viewer, owner.workspace.id),
       });
       expect(visible.statusCode).toBe(200);
+      // The request follows the object's workspace, so the viewer and the
+      // owner reach it from any workspace header; an unrelated account
+      // never does.
       for (const credential of [
-        headers(unrelated, owner.workspace.id),
         headers(viewer),
         headers(owner, viewer.workspace.id),
       ]) {
+        expect(
+          (
+            await app.inject({
+              method: "GET",
+              url: `/api/objects/${task.id}/revisions${suffix}`,
+              headers: credential,
+            })
+          ).statusCode,
+        ).toBe(200);
+      }
+      for (const credential of [headers(unrelated, owner.workspace.id)]) {
         const denied = await app.inject({
           method: "GET",
           url: `/api/objects/${task.id}/revisions${suffix}`,

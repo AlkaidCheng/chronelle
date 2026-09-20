@@ -27,9 +27,12 @@ test("lists the workspaces shared with the account by when they were last opened
   });
   expect(readerResponse.ok()).toBe(true);
   const reader = await readerResponse.json();
-  // Seven people each share an event with the reader: their workspaces
-  // become reachable through the shares, and the list passes the six that
-  // bring the search field.
+  // Seven people each make the reader a member of their workspace: the
+  // list holds memberships alone (an event shared on its own shows in
+  // the reader's Events list instead), and passes the six that bring the
+  // search field. One of them also shares an event only, which must not
+  // add a workspace.
+  const readerHeaders = { authorization: `Bearer ${reader.accessToken}` };
   const workspaces: Record<string, string> = {};
   for (const name of sharers) {
     const sharerResponse = await request.post("/api/auth/development/sign-in", {
@@ -47,13 +50,50 @@ test("lists the workspaces shared with the account by when they were last opened
       data: { displayName: `${name}'s plan` },
     });
     expect(created.status()).toBe(201);
-    const event = await created.json();
-    const shared = await request.post("/api/shares", {
+    const sent = await (
+      await request.post("/api/friends/invitations", {
+        headers,
+        data: { email },
+      })
+    ).json();
+    const accepted = await request.post(
+      `/api/friends/requests/${sent.id}/accept`,
+      { headers: readerHeaders },
+    );
+    expect(accepted.status()).toBe(200);
+    const friend = await accepted.json();
+    const joined = await request.post("/api/workspaces/current/members", {
       headers,
-      data: { resourceId: event.id, principalEmail: email, role: "viewer" },
+      data: { friendId: friend.id, role: "viewer" },
     });
-    expect(shared.status()).toBe(201);
+    expect(joined.status()).toBe(201);
   }
+  const strangerResponse = await request.post("/api/auth/development/sign-in", {
+    data: {
+      email: `stranger-${randomUUID()}@example.test`,
+      displayName: "Only Shares",
+    },
+  });
+  const stranger = await strangerResponse.json();
+  const strangerHeaders = { authorization: `Bearer ${stranger.accessToken}` };
+  const strangerEvent = await (
+    await request.post("/api/events", {
+      headers: strangerHeaders,
+      data: { displayName: "Only shared" },
+    })
+  ).json();
+  expect(
+    (
+      await request.post("/api/shares", {
+        headers: strangerHeaders,
+        data: {
+          resourceId: strangerEvent.id,
+          principalEmail: email,
+          role: "viewer",
+        },
+      })
+    ).status(),
+  ).toBe(201);
 
   await page.goto("/sign-in/development");
   await page.getByLabel("Name", { exact: true }).fill("Switcher planner");
@@ -70,6 +110,7 @@ test("lists the workspaces shared with the account by when they were last opened
   await expect(search).toBeFocused();
   const entries = menu.getByRole("menuitemradio");
   await expect(entries).toHaveCount(sharers.length + 1);
+  await expect(menu).not.toContainText(stranger.workspace.displayName);
   await expect(entries.first()).toHaveAttribute("aria-checked", "true");
   await expect(entries.first()).toContainText(reader.workspace.displayName);
   await expect(entries.first()).toContainText("Personal workspace");
@@ -145,7 +186,7 @@ test("lists the workspaces shared with the account by when they were last opened
   expect(kai).toMatchObject({
     personal: false,
     ownerDisplayName: "Kai Tanaka",
-    role: null,
+    role: "viewer",
   });
   await page.reload();
   await expect(line).toContainText(workspaces["Ben Wu"] ?? "");

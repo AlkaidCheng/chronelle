@@ -34,13 +34,20 @@ export class WorkspaceIdentityService {
     return toSession(user, workspace);
   }
 
+  /**
+   * The session for a request: in the requested workspace, or, when the
+   * request names an object the user may reach in another workspace, in
+   * that one, so a shared Event opens without a switch.
+   */
   async resolvePrincipal(
     identity: AuthIdentity,
     requestedWorkspaceId?: string,
+    objectId?: string,
   ): Promise<IdentitySession> {
     const session = await this.#store.resolveSession(
       identity,
       requestedWorkspaceId,
+      objectId,
     );
     if (session === null) throw new UnauthenticatedError();
     return toSession(session.user, session.workspace);

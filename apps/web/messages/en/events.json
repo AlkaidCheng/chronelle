@@ -38,5 +38,18 @@
     "history": "History",
     "share": "Share",
     "moveToTrash": "Move to Trash"
-  }
+  },
+  "chips": {
+    "all": "All",
+    "mine": "Mine",
+    "shared": "Shared with me",
+    "upcoming": "Upcoming",
+    "past": "Past"
+  },
+  "chipsLabel": "Which events",
+  "sharedBy": "Shared by {name}",
+  "sharedWith": "Shared with {count}",
+  "leave": "Leave this event",
+  "left": "You left {name}.",
+  "undoLeave": "Undo"
 }

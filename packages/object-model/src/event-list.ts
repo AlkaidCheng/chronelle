@@ -4,10 +4,18 @@ import {
   type AuthorizationDatabase,
   type UserPrincipal,
 } from "@chronelle/authorization";
-import { events, objects } from "@chronelle/db";
+import {
+  events,
+  objects,
+  resourceGrants,
+  roles,
+  users,
+  type Role,
+} from "@chronelle/db";
 import {
   eventListCursorSchema,
   eventListQuerySchema,
+  type EventListCounts,
   type EventListCursor,
   type EventListQuery,
   type EventListQueryInput,
@@ -25,6 +33,7 @@ import {
   lt,
   or,
   sql,
+  type SQL,
 } from "drizzle-orm";
 
 import { decodeCursor, encodeCursor } from "./cursor.js";
@@ -32,10 +41,91 @@ import { InvalidObjectStateError } from "./errors.js";
 import { readObjectStates } from "./object-state.js";
 import type { EventResource } from "./types.js";
 
+/**
+ * How the account reaches a listed Event: through a share from a workspace
+ * it does not belong to (who gave it, the role held), or as its own, with
+ * how many accounts hold a grant on it.
+ */
+export interface EventListAccess {
+  readonly sharedBy: {
+    readonly userId: string;
+    readonly displayName: string;
+  } | null;
+  readonly role: Role | null;
+  readonly sharedWith: number;
+}
+
+export interface EventListItem extends EventResource {
+  readonly access: EventListAccess;
+}
+
 export interface EventPage {
-  readonly items: EventResource[];
+  readonly items: EventListItem[];
   readonly nextCursor: string | null;
   readonly asOf: string;
+  /** The chip counts for the query, on the first page only. */
+  readonly counts: EventListCounts | null;
+}
+
+/** An active grant on a listed Event, as both backends read them. */
+export interface EventGrantRow {
+  readonly resourceId: string;
+  readonly principalId: string;
+  readonly role: Role;
+  readonly scope: string;
+  readonly grantedBy: string;
+}
+
+const roleRank: Readonly<Record<Role, number>> = {
+  owner: 3,
+  editor: 2,
+  viewer: 1,
+};
+
+/**
+ * The access of each listed Event from its active grants and the account's
+ * memberships: an Event in a workspace the account belongs to is its own,
+ * counting the other accounts granted on it; any other is a share, read
+ * through the account's widest grant.
+ */
+export function eventListAccess(
+  event: Pick<EventResource, "id" | "workspaceId">,
+  userId: string,
+  memberWorkspaceIds: ReadonlySet<string>,
+  grants: readonly EventGrantRow[],
+  displayNames: ReadonlyMap<string, string>,
+): EventListAccess {
+  const own = grants.filter((grant) => grant.resourceId === event.id);
+  if (memberWorkspaceIds.has(event.workspaceId)) {
+    return {
+      sharedBy: null,
+      role: null,
+      sharedWith: new Set(
+        own
+          .filter((grant) => grant.principalId !== userId)
+          .map((grant) => grant.principalId),
+      ).size,
+    };
+  }
+  const held = own
+    .filter((grant) => grant.principalId === userId)
+    .sort(
+      (first, second) =>
+        Number(second.scope === "all") - Number(first.scope === "all") ||
+        roleRank[second.role] - roleRank[first.role],
+    );
+  const widest = held[0];
+  if (widest === undefined)
+    return { sharedBy: null, role: null, sharedWith: 0 };
+  return {
+    sharedBy: {
+      userId: widest.grantedBy,
+      displayName: displayNames.get(widest.grantedBy) ?? "",
+    },
+    // A grant narrowed to a view opens the Event to view alone.
+    role: widest.scope === "all" ? widest.role : "viewer",
+    sharedWith: 0,
+  };
 }
 
 /**
@@ -168,6 +258,7 @@ export async function listEventPage(
       JSON.stringify([
         principal.userId,
         principal.workspaceId,
+        input.scope,
         input.query,
         input.filter,
         input.sort,
@@ -181,6 +272,22 @@ export async function listEventPage(
   const pattern = `%${input.query.replace(/[\\%_]/g, "\\$&")}%`;
 
   return withReadAuthorization(database, async (transaction, authorization) => {
+    // The account's own workspace's Events beside the ones shared with it
+    // from workspaces it does not belong to; one keyset over both.
+    const mine = authorization.memberResourcePredicate(principal);
+    const shared = authorization.sharedResourcePredicate(principal);
+    const scoped =
+      input.scope === "all"
+        ? or(mine, shared)
+        : input.scope === "mine"
+          ? mine
+          : shared;
+    const rootEvent = and(
+      eq(objects.objectType, "event"),
+      eq(objects.permissionScopeId, objects.id),
+    );
+    const matching =
+      input.query === "" ? undefined : ilike(objects.displayName, pattern);
     const rows = await transaction
       .select({
         id: objects.id,
@@ -190,6 +297,8 @@ export async function listEventPage(
           string | null
         >`to_char(${schedulePosition} AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"')`,
         updatedAt: sql<string>`to_char(${objects.updatedAt} AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"')`,
+        // The account's own, as a member of the Event's workspace, or a share.
+        own: sql<boolean>`(${mine})`,
       })
       .from(objects)
       .innerJoin(
@@ -201,10 +310,9 @@ export async function listEventPage(
       )
       .where(
         and(
-          eq(objects.objectType, "event"),
-          eq(objects.permissionScopeId, objects.id),
-          authorization.resourcePredicate(principal, "view"),
-          input.query === "" ? undefined : ilike(objects.displayName, pattern),
+          rootEvent,
+          scoped,
+          matching,
           periodPredicate(input.filter, asOf),
           after,
         ),
@@ -218,17 +326,14 @@ export async function listEventPage(
         ? []
         : await readObjectStates(
             transaction,
-            and(
-              eq(objects.workspaceId, principal.workspaceId),
-              inArray(
-                objects.id,
-                page.map(({ id }) => id),
-              ),
+            inArray(
+              objects.id,
+              page.map(({ id }) => id),
             ),
             input.limit,
           );
     const byId = new Map(states.map((state) => [state.id, state]));
-    const items = page.map(({ id }) => {
+    const resources = page.map(({ id }) => {
       const event = byId.get(id);
       if (event?.objectType !== "event")
         throw new InvalidObjectStateError(
@@ -236,19 +341,145 @@ export async function listEventPage(
         );
       return event;
     });
+    const ownIds = new Set(page.filter((row) => row.own).map(({ id }) => id));
+    const items = await withAccess(
+      transaction,
+      principal,
+      resources,
+      ownIds,
+      asOf,
+    );
+    // The chips count the whole list once, under the query alone.
+    const counts =
+      cursor === undefined
+        ? await countEvents(
+            transaction,
+            { rootEvent, mine, shared, matching },
+            asOf,
+          )
+        : null;
     const last = page.at(-1);
     return {
       items,
       asOf,
+      counts,
       nextCursor:
         rows.length > input.limit && last !== undefined
           ? encodeCursor({
               formatVersion: 1,
               context,
               asOf,
-              ...last,
+              id: last.id,
+              name: last.name,
+              startsAt: last.startsAt,
+              updatedAt: last.updatedAt,
             } satisfies EventListCursor)
           : null,
     };
   });
+}
+
+type ListTransaction = Parameters<
+  Parameters<typeof withReadAuthorization>[1]
+>[0];
+
+/**
+ * Each Event of the page with its access: one read of the page's active
+ * grants with their grantors' names; the page query already said which
+ * Events are the member's own.
+ */
+async function withAccess(
+  transaction: ListTransaction,
+  principal: UserPrincipal,
+  resources: readonly EventResource[],
+  ownIds: ReadonlySet<string>,
+  asOf: string,
+): Promise<EventListItem[]> {
+  if (resources.length === 0) return [];
+  const grants = await transaction
+    .select({
+      resourceId: resourceGrants.resourceId,
+      principalId: resourceGrants.principalId,
+      role: resourceGrants.role,
+      scope: resourceGrants.scope,
+      grantedBy: resourceGrants.grantedBy,
+      grantorName: users.displayName,
+    })
+    .from(resourceGrants)
+    .leftJoin(users, eq(users.id, resourceGrants.grantedBy))
+    .where(
+      and(
+        inArray(
+          resourceGrants.resourceId,
+          resources.map((event) => event.id),
+        ),
+        eq(resourceGrants.principalType, "user"),
+        inArray(resourceGrants.role, roles),
+        or(
+          isNull(resourceGrants.expiresAt),
+          gt(resourceGrants.expiresAt, sql`${asOf}::timestamptz`),
+        ),
+      ),
+    );
+  const displayNames = new Map(
+    grants.flatMap((grant) =>
+      grant.grantorName === null ? [] : [[grant.grantedBy, grant.grantorName]],
+    ),
+  );
+  return resources.map((event) => ({
+    ...event,
+    access: eventListAccess(
+      event,
+      principal.userId,
+      ownIds.has(event.id) ? new Set([event.workspaceId]) : new Set(),
+      grants,
+      displayNames,
+    ),
+  }));
+}
+
+/** The chip counts under the typed query: own and shared Events, and the periods of both. */
+async function countEvents(
+  transaction: ListTransaction,
+  predicates: {
+    readonly rootEvent: SQL | undefined;
+    readonly mine: SQL;
+    readonly shared: SQL;
+    readonly matching: SQL | undefined;
+  },
+  asOf: string,
+): Promise<EventListCounts> {
+  const count = (condition: SQL | undefined) =>
+    sql<number>`count(*) FILTER (WHERE ${condition ?? sql`true`})::int`;
+  const [row] = await transaction
+    .select({
+      mine: count(predicates.mine),
+      shared: count(predicates.shared),
+      upcoming: count(periodPredicate("upcoming", asOf)),
+      past: count(periodPredicate("past", asOf)),
+    })
+    .from(objects)
+    .innerJoin(
+      events,
+      and(
+        eq(events.objectId, objects.id),
+        eq(events.workspaceId, objects.workspaceId),
+      ),
+    )
+    .where(
+      and(
+        predicates.rootEvent,
+        or(predicates.mine, predicates.shared),
+        predicates.matching,
+      ),
+    );
+  const mine = row?.mine ?? 0;
+  const shared = row?.shared ?? 0;
+  return {
+    all: mine + shared,
+    mine,
+    shared,
+    upcoming: row?.upcoming ?? 0,
+    past: row?.past ?? 0,
+  };
 }

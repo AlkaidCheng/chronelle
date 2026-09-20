@@ -39,8 +39,13 @@ const another = {
   id: "019d6e7d-0000-7000-8000-000000000011",
   displayName: "Another plan",
 };
+const own = { sharedBy: null, role: null, sharedWith: 0 };
 const page = (items: (typeof event)[], nextCursor: string | null = null) =>
-  Response.json({ items, nextCursor, asOf: "2026-09-07T00:00:00.000000Z" });
+  Response.json({
+    items: items.map((item) => ({ ...item, access: own })),
+    nextCursor,
+    asOf: "2026-09-07T00:00:00.000000Z",
+  });
 
 describe("EventList", () => {
   beforeEach(() => {
@@ -85,7 +90,7 @@ describe("EventList", () => {
       screen.queryByRole("link", { name: /Garden gathering/ }),
     ).not.toBeInTheDocument();
     expect(fetch.mock.calls[1]?.[0]).toBe(
-      "/api/events?query=&filter=all&sort=date&cursor=next_page",
+      "/api/events?query=&scope=all&filter=all&sort=date&cursor=next_page",
     );
     await user.click(screen.getByRole("button", { name: "Sort events" }));
     await user.click(screen.getByRole("menuitemradio", { name: "Name A-Z" }));
@@ -93,7 +98,7 @@ describe("EventList", () => {
     await user.click(screen.getByRole("button", { name: "Refresh events" }));
     expect(await screen.findByText("1 event loaded")).toBeVisible();
     expect(fetch.mock.calls.slice(2).map(([url]) => url)).toEqual(
-      Array(2).fill("/api/events?query=&filter=all&sort=name"),
+      Array(2).fill("/api/events?query=&scope=all&filter=all&sort=name"),
     );
   });
 
@@ -115,7 +120,7 @@ describe("EventList", () => {
     expect(await screen.findByText("No matching events")).toBeVisible();
     expect(fetch).toHaveBeenCalledTimes(2);
     expect(fetch.mock.calls[1]?.[0]).toBe(
-      "/api/events?query=missing&filter=all&sort=date",
+      "/api/events?query=missing&scope=all&filter=all&sort=date",
     );
     await user.click(screen.getByRole("button", { name: "Filter events" }));
     await user.click(
@@ -123,7 +128,7 @@ describe("EventList", () => {
     );
     await waitFor(() => expect(fetch).toHaveBeenCalledTimes(3));
     expect(fetch.mock.calls[2]?.[0]).toBe(
-      "/api/events?query=missing&filter=upcoming&sort=date",
+      "/api/events?query=missing&scope=all&filter=upcoming&sort=date",
     );
   });
 
@@ -162,7 +167,9 @@ describe("EventList", () => {
     await user.click(screen.getByRole("button", { name: "Try again" }));
     expect(await screen.findByText("2 events loaded")).toBeVisible();
     expect(fetch.mock.calls.slice(1).map(([url]) => url)).toEqual(
-      Array(3).fill("/api/events?query=&filter=all&sort=date&cursor=next_page"),
+      Array(3).fill(
+        "/api/events?query=&scope=all&filter=all&sort=date&cursor=next_page",
+      ),
     );
   });
 

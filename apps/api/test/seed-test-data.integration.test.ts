@@ -155,7 +155,7 @@ describe.each(Object.entries(backends))(
         const events = (
           await app.inject({
             method: "GET",
-            url: "/api/events?query=&filter=all&sort=date",
+            url: "/api/events?query=&scope=mine&filter=all&sort=date",
             headers: mei.headers,
           })
         ).json() as {
@@ -166,6 +166,25 @@ describe.each(Object.entries(backends))(
           "Quarterly budget review",
           "Team offsite",
         ]);
+        // Kai's share reaches Mei's own list beside her events.
+        const shared = (
+          await app.inject({
+            method: "GET",
+            url: "/api/events?query=&scope=shared&filter=all&sort=date",
+            headers: mei.headers,
+          })
+        ).json() as {
+          items: {
+            displayName: string;
+            access: { sharedBy: { displayName: string } | null };
+          }[];
+        };
+        expect(
+          shared.items.map((event) => [
+            event.displayName,
+            event.access.sharedBy?.displayName,
+          ]),
+        ).toEqual([["Kai's birthday dinner", "Kai Tanaka"]]);
 
         // Kyoto: the itinerary carries the places, a share waits on the
         // Tanakas, Trash holds the dropped task, the note has two versions.
@@ -249,7 +268,7 @@ describe.each(Object.entries(backends))(
         const eventsAgain = (
           await app.inject({
             method: "GET",
-            url: "/api/events?query=&filter=all&sort=date",
+            url: "/api/events?query=&scope=mine&filter=all&sort=date",
             headers: mei.headers,
           })
         ).json() as { items: unknown[] };

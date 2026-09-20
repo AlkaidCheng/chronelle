@@ -289,7 +289,9 @@ describe.sequential("batched canonical reads", () => {
         .where(inArray(objects.id, ids));
       queryCount = 0;
       const roots = await reader.listEvents({ ...principal, userId: ownerId });
-      expect(queryCount).toBe(3);
+      // The snapshot, the page, its hydration, the page's grants with
+      // their grantors, and the first page's chip counts.
+      expect(queryCount).toBe(5);
       expect(roots.items).toHaveLength(Math.min(count + 2, 20));
       expect(roots.items.some(({ id }) => id === hiddenId)).toBe(true);
       expect(roots.nextCursor === null).toBe(count + 2 <= 20);

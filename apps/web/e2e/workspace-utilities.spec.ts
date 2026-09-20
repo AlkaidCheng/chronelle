@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { expect, test } from "./fixtures";
+import { addMember } from "./helpers/membership";
 import { openWorkspaceSwitcher, workspaceEntry } from "./helpers/quiet-chrome";
 import { exerciseWorkspaceUtilities } from "./helpers/workspace-utilities";
 
@@ -32,7 +33,7 @@ test("keeps workspace utilities accessible without changing Event data @webkit-d
   ).toEqual(event);
 });
 
-test("rejects a workspace choice whose last grant was revoked @webkit-desktop @webkit-mobile", async ({
+test("rejects a workspace choice whose membership was withdrawn @webkit-desktop @webkit-mobile", async ({
   page,
   request,
 }) => {
@@ -53,13 +54,9 @@ test("rejects a workspace choice whose last grant was revoked @webkit-desktop @w
     data: { displayName: "Private shared event" },
   });
   expect(created.status()).toBe(201);
-  const event = await created.json();
-  const shared = await request.post("/api/shares", {
-    headers,
-    data: { resourceId: event.id, principalEmail: email, role: "viewer" },
-  });
-  expect(shared.status()).toBe(201);
-  const grant = await shared.json();
+  // The viewer joins the owner's workspace; the switcher lists the
+  // membership, and the choice fails once the owner withdraws it.
+  await addMember(request, owner, { ...viewer, email });
   await page.goto("/sign-in/development");
   await page.getByLabel("Name", { exact: true }).fill("Viewer");
   await page.getByLabel("Email").fill(email);
@@ -69,7 +66,12 @@ test("rejects a workspace choice whose last grant was revoked @webkit-desktop @w
   const ownerWorkspace = workspaceEntry(page, owner.workspace.displayName);
   await expect(ownerWorkspace).toHaveCount(1);
   expect(
-    (await request.delete(`/api/shares/${grant.id}`, { headers })).ok(),
+    (
+      await request.delete(
+        `/api/workspaces/current/members/${viewer.user.id}`,
+        { headers },
+      )
+    ).ok(),
   ).toBe(true);
   const deniedSession = page.waitForResponse(
     (response) =>

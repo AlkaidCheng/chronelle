@@ -1,6 +1,7 @@
 import { withReadAuthorization } from "@chronelle/authorization";
 import {
   createId,
+  objects,
   runAuditedMutation,
   userConnections,
   users,
@@ -59,7 +60,9 @@ export interface AccessibleWorkspaceRow extends WorkspaceRow {
  * one transaction), the session for an authenticated identity in a
  * requested or the personal workspace (null when the user is unknown or
  * has no personal workspace; a workspace error when the user may not enter
- * the workspace), and the workspaces the user may enter through membership
+ * the workspace; the workspace of the object a request names, when the
+ * user may enter it, over the requested one, so a share opens where it
+ * lives), and the workspaces the user may enter through membership
  * or an active grant (each with its owner's name and the user's role), and
  * the preferences kept on the account (the language, time zone, clock, and
  * week start; a key that is present replaces the stored value, null clears
@@ -71,6 +74,7 @@ export interface IdentityStore {
   resolveSession(
     identity: AuthIdentity,
     requestedWorkspaceId: string | undefined,
+    objectId?: string | undefined,
   ): Promise<IdentitySessionRows | null>;
   listAccessibleWorkspaces(
     userId: string,
@@ -241,6 +245,7 @@ export class PostgresIdentityStore implements IdentityStore {
   async resolveSession(
     identity: AuthIdentity,
     requestedWorkspaceId: string | undefined,
+    objectId?: string | undefined,
   ): Promise<IdentitySessionRows | null> {
     return withReadAuthorization(
       this.#database,
@@ -252,7 +257,23 @@ export class PostgresIdentityStore implements IdentityStore {
           user.id,
         );
         if (personalWorkspace === null) return null;
-        const workspaceId = requestedWorkspaceId ?? personalWorkspace.id;
+        let workspaceId = requestedWorkspaceId ?? personalWorkspace.id;
+        if (objectId !== undefined) {
+          const [object] = await transaction
+            .select({ workspaceId: objects.workspaceId })
+            .from(objects)
+            .where(eq(objects.id, objectId))
+            .limit(1);
+          if (
+            object !== undefined &&
+            object.workspaceId !== workspaceId &&
+            (await authorization.canAccessWorkspace(
+              user.id,
+              object.workspaceId,
+            ))
+          )
+            workspaceId = object.workspaceId;
+        }
         if (!(await authorization.canAccessWorkspace(user.id, workspaceId)))
           throw new WorkspaceUnavailableError();
         const [workspace] = await transaction

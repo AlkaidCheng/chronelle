@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import { expect, test, type Page } from "./fixtures";
 import { exerciseCommandSearch } from "./helpers/command-search";
 import { openCommands } from "./helpers/context-commands";
+import { addMember } from "./helpers/membership";
 import { switchWorkspace } from "./helpers/quiet-chrome";
 
 async function signIn(page: Page, email: string) {
@@ -99,7 +100,7 @@ test("limits the palette to eight records and opens full Search for remaining re
   await expect(page.getByText("10 loaded", { exact: true })).toBeVisible();
 });
 
-test("filters workspace and private records and rechecks revoked access @webkit-desktop @webkit-mobile", async ({
+test("searches the workspace the account is in and rechecks withdrawn access @webkit-desktop @webkit-mobile", async ({
   page,
   request,
 }) => {
@@ -108,6 +109,7 @@ test("filters workspace and private records and rechecks revoked access @webkit-
     data: { email, displayName: "Viewer" },
   });
   expect(viewerResponse.ok()).toBe(true);
+  const searcher = await viewerResponse.json();
   const ownerResponse = await request.post("/api/auth/development/sign-in", {
     data: {
       email: `owner-search-${randomUUID()}@example.test`,
@@ -156,12 +158,10 @@ test("filters workspace and private records and rechecks revoked access @webkit-
       ).toBe(true);
     }
   }
-  const shared = await request.post("/api/shares", {
-    headers,
-    data: { resourceId: event.id, principalEmail: email, role: "viewer" },
-  });
-  expect(shared.status()).toBe(201);
-  const grant = await shared.json();
+  // The searcher joins the owner's workspace as a member: the switcher
+  // lists memberships alone, and the search runs in the workspace it is
+  // in.
+  await addMember(request, owner, { ...searcher, email });
   await signIn(page, email);
   const dialog = await openCommands(page);
   const input = dialog.getByRole("combobox");
@@ -170,15 +170,21 @@ test("filters workspace and private records and rechecks revoked access @webkit-
     dialog.getByText("No accessible records found. Try another phrase."),
   ).toBeVisible();
   await input.press("Escape");
+  // In the owner's workspace a member finds every record of it; the
+  // search runs in the workspace the account is in.
   await switchWorkspace(page, owner.workspace.displayName);
   await openCommands(page);
   await input.fill("gathering");
   await expect(
     dialog.getByRole("group", { name: "Records" }).getByRole("option"),
-  ).toHaveCount(2);
-  await expect(dialog.getByRole("option", { name: /Private/ })).toHaveCount(0);
+  ).toHaveCount(4);
   expect(
-    (await request.delete(`/api/shares/${grant.id}`, { headers })).ok(),
+    (
+      await request.delete(
+        `/api/workspaces/current/members/${searcher.user.id}`,
+        { headers },
+      )
+    ).ok(),
   ).toBe(true);
   const denied = page.waitForResponse(
     (response) =>

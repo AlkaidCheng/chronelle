@@ -398,9 +398,21 @@ describe.sequential("event collection pagination", () => {
     expect(
       (await reader.listEvents({ ...principal, userId: createId() })).items,
     ).toEqual([]);
+    // From another workspace the grantee still lists the share (it follows
+    // the account), while the member lists nothing of it.
     expect(
-      (await reader.listEvents({ ...principal, workspaceId: createId() }))
-        .items,
+      (
+        await reader.listEvents({ ...principal, workspaceId: createId() })
+      ).items.map(({ id }) => id),
+    ).toEqual([root]);
+    expect(
+      (
+        await reader.listEvents({
+          ...principal,
+          userId: ownerId,
+          workspaceId: createId(),
+        })
+      ).items,
     ).toEqual([]);
   });
 

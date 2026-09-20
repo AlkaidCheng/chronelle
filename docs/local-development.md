@@ -241,6 +241,14 @@ workspace id whose values are strings) and redefines
 keeping the 50 most recent instants; the function count is unchanged and
 the runtime role needs no change.
 
+Migration `0065_add_share_leave_function.sql` adds
+`chronelle_resource_share_leave`, the function the CloudBase sharing
+adapter calls when a grantee leaves an Event: it deletes every grant the
+account holds on the resource in the workspace and writes one
+`resource.share_left` audit event. The readiness check requires it, so the
+API built from it starts after it. It changes no tables, needs no
+baseline, and the runtime role needs no change.
+
 Migration `0021_add_object_search_function.sql` adds `chronelle_object_search`,
 the read-only function the CloudBase search adapter calls. It changes no
 tables and needs no baseline.

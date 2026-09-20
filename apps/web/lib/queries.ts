@@ -319,7 +319,11 @@ function pageItems<T extends { readonly id: string }>(
 }
 
 function selectEventItems(data: InfiniteData<EventListResponse>) {
-  return { items: pageItems(data.pages), asOf: data.pages[0]?.asOf };
+  return {
+    items: pageItems(data.pages),
+    asOf: data.pages[0]?.asOf,
+    counts: data.pages[0]?.counts ?? null,
+  };
 }
 
 function selectTaskItems(data: InfiniteData<TaskListResponse>) {
@@ -756,6 +760,16 @@ export function useRefreshEvent(
       queryClient.invalidateQueries({ queryKey: queryKeys.events }, options),
     ]);
   };
+}
+
+/** Gives up the account's grants on an Event: the grantee's way out of a share. */
+export function useLeaveEventMutation() {
+  const client = useApiClient();
+  const invalidate = useCanonicalInvalidation();
+  return useMutation({
+    mutationFn: (eventId: string) => client.leaveObject(eventId),
+    onSettled: () => void invalidate(),
+  });
 }
 
 export function useCanonicalInvalidation() {

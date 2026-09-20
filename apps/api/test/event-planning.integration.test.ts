@@ -948,7 +948,6 @@ describe.sequential("event-planning API", () => {
       for (const inaccessibleHeaders of [
         headers(unrelated),
         headers(unrelated, owner.workspace.id),
-        headers(viewer),
       ]) {
         const denied = await app.inject({
           method: "GET",
@@ -957,6 +956,15 @@ describe.sequential("event-planning API", () => {
         });
         expect(denied.statusCode).toBe(404);
       }
+      // The viewer's own session reaches the event too: the route takes
+      // the workspace from the event it names.
+      const inPlace = await app.inject({
+        method: "GET",
+        url: `/api/events/${event.id}/${projection}`,
+        headers: headers(viewer),
+      });
+      expect(inPlace.statusCode).toBe(200);
+      expect(inPlace.json()).toEqual(response.json());
     }
 
     const viewerRelationsResponse = await app.inject({

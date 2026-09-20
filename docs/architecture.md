@@ -30,7 +30,10 @@ the common `objects` table holds identity and lifecycle fields.
 - `packages/api-client` owns authenticated REST transport, response validation,
   and normalized client errors.
 - `apps/api` owns thin HTTP transport, authentication-provider composition,
-  request principal resolution, and personal-workspace bootstrap.
+  request principal resolution (the workspace a request acts in comes from
+  the object it names when the caller may enter that workspace, else from
+  the header or the personal workspace; the decision itself is unchanged),
+  and personal-workspace bootstrap.
 - `packages/authorization` owns the central permission policy, audited direct
   grant lifecycle, and PostgreSQL-backed access lookup.
 - `packages/object-model` owns canonical Event, Task, Expense, Reminder, and

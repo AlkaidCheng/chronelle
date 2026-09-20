@@ -1983,16 +1983,33 @@ export class SandboxStore {
         Object.fromEntries(url.searchParams),
       );
       const now = Date.now();
-      const items = all
+      // The sample account belongs to its one workspace and holds no share
+      // from another, so every event is its own; the share line counts
+      // the accounts it shared the event with.
+      const named = all
         .filter((object) => object.objectType === "event")
+        .filter((event) =>
+          event.displayName.toLowerCase().includes(query.query.toLowerCase()),
+        );
+      const items = named
         .filter(
           (event) =>
-            event.displayName
-              .toLowerCase()
-              .includes(query.query.toLowerCase()) &&
+            query.scope !== "shared" &&
             (query.filter === "all" ||
               eventPeriod(event, now) === query.filter),
-        );
+        )
+        .map((event) => ({
+          ...event,
+          access: {
+            sharedBy: null,
+            role: null,
+            sharedWith: new Set(
+              this.#state.shares
+                .filter((grant) => grant.resourceId === event.id)
+                .map((grant) => grant.principal.id),
+            ).size,
+          },
+        }));
       items.sort((a, b) =>
         query.sort === "name"
           ? compareNames(a.displayName, b.displayName)
@@ -2002,7 +2019,22 @@ export class SandboxStore {
                 b.startsOn ?? b.startsAt ?? "z",
               ),
       );
-      return { items, nextCursor: null, asOf: new Date(now).toISOString() };
+      const counts = {
+        all: named.length,
+        mine: named.length,
+        shared: 0,
+        upcoming: named.filter(
+          (event) => eventPeriod(event, now) === "upcoming",
+        ).length,
+        past: named.filter((event) => eventPeriod(event, now) === "past")
+          .length,
+      };
+      return {
+        items,
+        nextCursor: null,
+        asOf: new Date(now).toISOString(),
+        counts,
+      };
     }
     if (id && collection === "persons" && operation === "shares") {
       // The sample account holds every grant: what the workspace shared
