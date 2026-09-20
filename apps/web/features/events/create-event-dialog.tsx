@@ -5,6 +5,7 @@ import type { EventResponse } from "@chronelle/schemas";
 import { CountedField } from "../../components/counted-field";
 import { DescriptionField } from "../../components/description-field";
 import { ErrorNotice } from "../../components/feedback";
+import { EditorDialogHeader } from "../../components/editor-dialog-controls";
 import { EditorForm, EditorSubmitButton } from "../../components/editor-form";
 import { descriptionPayload } from "../../lib/description-field";
 import { eventSchedulePayload } from "../../lib/event-schedule";
@@ -21,6 +22,7 @@ import {
 } from "./editor-draft-recovery";
 import { useCreateEvent } from "../../lib/queries";
 import { useSessionDialog } from "../../lib/use-session-dialog";
+import { useDialogHelp } from "../../lib/use-dialog-help";
 import { useDiscardConfirmation } from "../../lib/use-discard-confirmation";
 import { locationPayload } from "../../lib/location-field";
 import { ScheduleRows } from "./schedule-rows";
@@ -75,6 +77,7 @@ function CreateEventForm({
     onClose,
   });
   const dialog = useSessionDialog(onClose);
+  const help = useDialogHelp("event");
   const nameInput = useRef<HTMLInputElement>(null);
   useEffect(() => {
     nameInput.current?.focus();
@@ -124,21 +127,15 @@ function CreateEventForm({
         requestClose();
       }}
     >
-      <header className="event-create-header">
-        <h2 id="new-event-heading">
-          {confirmingDiscard ? t("discardTitle") : t("title")}
-        </h2>
-        <button
-          hidden={confirmingDiscard}
-          type="button"
-          className="dialog-close"
-          aria-label={t("close")}
-          disabled={createEvent.isPending}
-          onClick={requestClose}
-        >
-          &#215;
-        </button>
-      </header>
+      <EditorDialogHeader
+        headingId="new-event-heading"
+        title={confirmingDiscard ? t("discardTitle") : t("title")}
+        closeLabel={t("close")}
+        isConfirming={confirmingDiscard}
+        isPending={createEvent.isPending}
+        onClose={requestClose}
+        help={help}
+      />
       {confirmingDiscard && (
         <>
           <div className="event-create-body">

@@ -553,7 +553,10 @@ describe("insertable event components", () => {
       await user.click(screen.getByRole("button", { name: "Add a page" }));
       const dialog = within(screen.getByRole("dialog", { name: "Add a page" }));
       const name = dialog.getByRole("textbox", { name: "Page name" });
-      expect(name).toHaveAccessibleDescription(/Pages organize this event/);
+      expect(name).not.toHaveAccessibleDescription(/Pages organize/);
+      expect(
+        dialog.getByRole("button", { name: "About this dialog" }),
+      ).toHaveAttribute("aria-expanded", "false");
       await user.type(name, "Preparation");
       await user.click(dialog.getByRole("button", { name: "Add page" }));
       await screen.findByRole("heading", { name: "Preparation" });
@@ -1156,10 +1159,12 @@ describe("insertable event components", () => {
       pages: [page("Plan", ["todos", "reminders"])],
     });
     // Created in one order, due in the other: the rows follow creation.
+    // Both days lie beyond the coming Monday, so the Next week snooze
+    // below always moves the reminder, whatever day the test runs on.
     const later = new Date();
-    later.setDate(later.getDate() + 3);
+    later.setDate(later.getDate() + 10);
     const soon = new Date();
-    soon.setDate(soon.getDate() + 1);
+    soon.setDate(soon.getDate() + 8);
     const create = async (
       resource:
         | { objectType: "task"; displayName: string; dueAt: string }

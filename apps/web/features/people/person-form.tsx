@@ -29,6 +29,7 @@ import {
   useUpdatePerson,
 } from "../../lib/queries";
 import { useEditorDraft } from "../../lib/use-editor-draft";
+import { useDialogHelp } from "../../lib/use-dialog-help";
 import { usePlanningEditorDialog } from "../../lib/use-planning-editor-dialog";
 import { EditorControls, useConflictSlot } from "../events/editor-controls";
 import {
@@ -163,6 +164,7 @@ function PersonEditor({
     mutation,
     onClose: close,
   });
+  const help = useDialogHelp("person");
 
   function changeFields(next: readonly { key: string; value: string }[]) {
     draft.change({ properties: joinPersonFields(next) });
@@ -236,6 +238,7 @@ function PersonEditor({
         isConfirming={isConfirming}
         isPending={mutation.isPending}
         onClose={requestClose}
+        help={help}
       >
         {person && (
           <button

@@ -240,8 +240,9 @@ whole text with its line breaks and each web address a link that opens in
 a new tab; a second press folds it. Last edited first; Sort offers By
 title. A card's Actions offer Edit, History, and Move to Trash (a viewer
 sees History alone). Add note opens the editor every record has: Title,
-Text (a growing field with the hint "Plain text. Line breaks are kept and
-links open when the note is read."), Cancel, Save. A note is an object of
+Text (a growing field; the editor's help explains that the text is plain,
+line breaks kept and links opening when the note is read), Cancel, Save. A
+note is an object of
 the event like a task: it is versioned (a stale save is a conflict, never
 an overwrite), kept as a draft in the tab until saved, listed in History
 with the text as the changed field, moved to Trash and recovered from it,
@@ -708,7 +709,8 @@ not yet reviewed the two Chinese catalogs; wording may change.
   grip moves it with the arrow keys; the eye hides a tab but keeps it listed;
   the cross takes a view off the event. Overview, To-dos, Sharing and Removed
   links can be hidden but not removed; pages are removed through their own
-  options. New page opens the Add page dialog; Add view opens the gallery.
+  options (the dialog's help says so; the list itself carries no notes).
+  New page opens the Add page dialog; Add view opens the gallery.
   Page order is the event's layout, shared by everyone with access and undone
   like any layout change; the views' order and the hidden and removed sets
   are the account's own, kept per event with the account preferences and
@@ -813,7 +815,19 @@ empty states are not notices and keep their own quiet styling.
 
 ## Date and dialog navigation
 
-Every editor is a centred dialog. The Event and schedule item editors carry
+Every editor is a centred dialog. Its header ends in its controls: any the
+dialog adds (History), a quiet question mark, then the close. The question
+mark is the one place for exposition ("About this editor", or "About this
+dialog" for Add a page and Manage tabs): it opens a popover under the header's
+right edge of short titled entries about that dialog (what linking a person
+to an account does, what fields are for, how drafts behave, that a reminder
+sends no notification, what a page preset adds, how tabs reorder and which
+cannot be removed), none of them needed to use the dialog. Escape and a press
+outside close it, Escape returning focus to the control; the dialog stays
+open either way. The pages and panels that are always in view carry no help
+control, so the default screen shows none.
+
+The Event and schedule item editors carry
 their schedule as three rows, each with its symbol: the dates (a calendar),
 the times (a clock) and the place (a pin). A row reads what is set (Dates:
 Jul 3, 2030 to Jul 12, 2030; Times: 9:30 AM to 6:00 PM; the place as typed)
@@ -1391,7 +1405,7 @@ a task or a schedule item is a column once the record carries one.
 
 Add reminder opens the reminder's composer in the list; More on it opens
 the focused dialog with a name and required Reminder time. Record reminder and Save reminder submit explicitly.
-No notification is sent; the form states this limitation before saving.
+No notification is sent; the dialog's help states this limitation.
 Edit loads the canonical Reminder and its current access, not an editable
 copy of a projection row. Name-only edits preserve the original precise
 instant, and metadata edits do not reset status. The existing Dismiss

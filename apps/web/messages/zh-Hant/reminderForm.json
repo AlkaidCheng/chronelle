@@ -12,7 +12,6 @@
   "setTime": "設定提醒時間",
   "timeHint": "到期的日期和時間",
   "clearTime": "清除提醒時間",
-  "recordedOnly": "僅作記錄，不會發送通知。",
   "create": "記錄提醒",
   "save": "儲存提醒"
 }

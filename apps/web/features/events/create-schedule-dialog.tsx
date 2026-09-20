@@ -33,6 +33,7 @@ import {
   type EventDraftSnapshot,
   type EventFields,
 } from "../../lib/editor-draft-store";
+import { useDialogHelp } from "../../lib/use-dialog-help";
 import { useDiscardConfirmation } from "../../lib/use-discard-confirmation";
 import { useEditorDraft } from "../../lib/use-editor-draft";
 import { useSessionDialog } from "../../lib/use-session-dialog";
@@ -127,6 +128,7 @@ function CreateScheduleForm({
       isPending: mutation.isPending,
       onClose,
     });
+  const help = useDialogHelp("event");
 
   useEffect(() => {
     nameInput.current?.focus();
@@ -179,6 +181,7 @@ function CreateScheduleForm({
         isConfirming={isConfirming}
         isPending={mutation.isPending}
         onClose={requestClose}
+        help={help}
       />
       {isConfirming && (
         <>

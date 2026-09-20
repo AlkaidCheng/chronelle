@@ -8,6 +8,7 @@ import {
   type ReactNode,
   useState,
 } from "react";
+import { EditorDialogHeader } from "../../components/editor-dialog-controls";
 import { ErrorNotice } from "../../components/feedback";
 import { EyeIcon, EyeOffIcon, GripIcon } from "../../components/icons";
 import { ViewMark } from "../../components/view-marks";
@@ -15,6 +16,7 @@ import { useUpdateEventLayout } from "../../lib/event-layout-queries";
 import { fixedViews } from "../../lib/event-tabs";
 import { type EventView, eventViewLabel } from "../../lib/event-views";
 import { moveKey, placeKey } from "../../lib/key-order";
+import { useDialogHelp } from "../../lib/use-dialog-help";
 import { useSessionDialog } from "../../lib/use-session-dialog";
 import type { EventTabsState } from "./use-event-tabs";
 
@@ -54,6 +56,7 @@ export function ManageTabsDialog({
 }) {
   const t = useTranslations("manageTabs");
   const dialog = useSessionDialog(onClose);
+  const help = useDialogHelp("tabs");
   const save = useUpdateEventLayout(eventId);
   const pages = layout?.pages ?? [];
   const pageOrder = pages.map((page) => page.id);
@@ -90,19 +93,14 @@ export function ManageTabsDialog({
         onClose();
       }}
     >
-      <header className="event-create-header">
-        <h2 id="manage-tabs-heading">{t("title")}</h2>
-        <button
-          type="button"
-          className="dialog-close"
-          aria-label={t("close")}
-          onClick={onClose}
-        >
-          &#215;
-        </button>
-      </header>
+      <EditorDialogHeader
+        headingId="manage-tabs-heading"
+        title={t("title")}
+        closeLabel={t("close")}
+        onClose={onClose}
+        help={help}
+      />
       <div className="event-create-body">
-        <p className="manage-tabs-intro">{t("intro")}</p>
         <TabList
           heading={t("pages")}
           action={canEdit ? { label: t("newPage"), onSelect: onNewPage } : null}
@@ -127,7 +125,6 @@ export function ManageTabsDialog({
           }
           onToggleHidden={tabs.toggleHidden}
         />
-        <p className="manage-tabs-note">{t("note")}</p>
       </div>
       <footer className="event-create-footer">
         <button

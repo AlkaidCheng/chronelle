@@ -1,13 +1,11 @@
 {
   "title": "Add a page",
   "close": "Close page dialog",
-  "intro": "Pages organize this event. Start blank or choose a few useful views.",
   "name": "Page name",
   "namePlaceholder": "Preparation, travel, or anything you need",
   "startWith": "Start with",
   "preview": "Page preview",
   "newPage": "New page",
-  "addsNote": "Adds one page of event-wide views. Existing pages and records stay unchanged.",
   "limit": "This page exceeds a layout limit. Choose Blank or remove an unused page or component first.",
   "saving": "Saving...",
   "add": "Add page",

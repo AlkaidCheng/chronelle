@@ -52,9 +52,9 @@ export async function createFirstPlan(page: Page, testInfo: TestInfo) {
 
   await activateWithKeyboard(page, addPage);
   const dialog = page.getByRole("dialog", { name: "Add a page" });
-  await expect(dialog.getByLabel("Page name")).toHaveAccessibleDescription(
-    /Pages organize this event/,
-  );
+  await expect(
+    dialog.getByRole("button", { name: "About this dialog" }),
+  ).toBeVisible();
   await page.keyboard.press("Escape");
   await expect(addPage).toBeFocused();
   await page.keyboard.press("Enter");
