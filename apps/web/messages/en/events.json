@@ -50,5 +50,6 @@
   "sharedBy": "Shared by {name}",
   "sharedWith": "Shared with {count}",
   "leave": "Leave this event",
-  "left": "You left {name}."
+  "left": "You left {name}.",
+  "undoLeave": "Undo"
 }

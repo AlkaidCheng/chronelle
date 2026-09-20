@@ -50,5 +50,6 @@
   "sharedBy": "共享自 {name}",
   "sharedWith": "已共享給 {count} 人",
   "leave": "退出此活動",
-  "left": "已退出{name}。"
+  "left": "已退出{name}。",
+  "undoLeave": "復原"
 }

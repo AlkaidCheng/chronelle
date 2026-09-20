@@ -29,6 +29,7 @@ import {
   SortIcon,
 } from "../../components/icons";
 import { MenuItem, QuietMenu } from "../../components/quiet-menu";
+import { useNotices } from "../../components/notices";
 import { RowMenu, type RowMenuEntry } from "../../components/row-menu";
 import { eventPeriod } from "../../lib/event-collection";
 import {
@@ -39,7 +40,11 @@ import {
   formatEventDatePart,
   formatEventSchedule,
 } from "../../lib/event-schedule";
-import { useEventAccessQuery, useEventsQuery } from "../../lib/queries";
+import {
+  useEventAccessQuery,
+  useEventsQuery,
+  useLeaveEventMutation,
+} from "../../lib/queries";
 import { useOpenHistory } from "../history/history-provider";
 import { useOpenLifecycle } from "../recovery/lifecycle-provider";
 import { CreateEventDialog } from "./create-event-dialog";
@@ -57,14 +62,17 @@ import { ShareSheet } from "./share-sheet";
 function EventCardActions({
   armed,
   event,
+  onLeave,
 }: {
   readonly armed: boolean;
   readonly event: EventListItem;
+  readonly onLeave: (event: EventListItem) => void;
 }) {
   const t = useTranslations("events");
   const share = useTranslations("share");
   const openHistory = useOpenHistory();
   const openLifecycle = useOpenLifecycle();
+  const shared = event.access.sharedBy !== null;
   const access = useEventAccessQuery(armed ? event.id : undefined);
   const [sharing, setSharing] = useState(false);
   const [editing, setEditing] = useState(false);
@@ -76,7 +84,11 @@ function EventCardActions({
   const actions = access.data?.actions;
   const may = (action: "edit" | "share" | "delete") =>
     actions?.includes(action) ?? false;
-  const canShare = actions === undefined || may("share");
+  // A shared card's Share shows only when the role allows it; an own
+  // card's shows until the access says otherwise.
+  const canShare = shared
+    ? event.access.role === "owner" || may("share")
+    : actions === undefined || may("share");
   const entries: RowMenuEntry[] = [];
   if (may("edit"))
     entries.push({
@@ -96,7 +108,17 @@ function EventCardActions({
       label: t("menu.share"),
       onSelect: () => setSharing(true),
     });
-  if (may("delete"))
+  if (shared)
+    entries.push(
+      { kind: "rule" },
+      {
+        kind: "action",
+        label: t("leave"),
+        danger: true,
+        onSelect: () => onLeave(event),
+      },
+    );
+  else if (may("delete"))
     entries.push(
       { kind: "rule" },
       {
@@ -188,10 +210,12 @@ function EventCard({
   event,
   now,
   onOpen,
+  onLeave,
 }: {
   readonly event: EventListItem;
   readonly now: number;
   readonly onOpen: MouseEventHandler<HTMLAnchorElement>;
+  readonly onLeave: (event: EventListItem) => void;
 }) {
   const t = useTranslations("events");
   const dates = useTranslations("dates");
@@ -232,15 +256,52 @@ function EventCard({
           <EventShareLine event={event} />
         </div>
       </Link>
-      <EventCardActions armed={armed} event={event} />
+      <EventCardActions armed={armed} event={event} onLeave={onLeave} />
     </article>
   );
+}
+
+/**
+ * Leaving is immediate on the page and settles when the notice leaves:
+ * the card goes at once and the notice offers Undo; the grants are
+ * dropped once the notice has gone without it, so an Undo costs nothing
+ * and needs no share to be given back.
+ */
+function useLeaveEvents() {
+  const t = useTranslations("events");
+  const { post } = useNotices();
+  const leave = useLeaveEventMutation();
+  const [leaving, setLeaving] = useState<ReadonlySet<string>>(new Set());
+  const hide = (id: string, hidden: boolean) =>
+    setLeaving((current) => {
+      const next = new Set(current);
+      if (hidden) next.add(id);
+      else next.delete(id);
+      return next;
+    });
+  return {
+    leaving,
+    leave: (event: EventListItem) => {
+      hide(event.id, true);
+      post({
+        message: t("left", { name: event.displayName }),
+        action: {
+          label: t("undoLeave"),
+          run: async () => hide(event.id, false),
+        },
+        onSettle: () => {
+          leave.mutate(event.id, { onSettled: () => hide(event.id, false) });
+        },
+      });
+    },
+  };
 }
 
 export function EventList() {
   const t = useTranslations("events");
   const router = useRouter();
   const [isCreating, setIsCreating] = useState(false);
+  const leaving = useLeaveEvents();
   const { criteria, change, layout, changeLayout } = useEventCollectionState();
   const { query, scope, filter, sort } = criteria;
   const [debouncedQuery, setDebouncedQuery] = useState(query.trim());
@@ -260,7 +321,11 @@ export function EventList() {
   const { container, remember } = useEventCollectionReturn(
     events.isSuccess && !events.isFetching && !changingQuery,
   );
-  const items = changingQuery ? [] : (events.data?.items ?? []);
+  const items = changingQuery
+    ? []
+    : (events.data?.items ?? []).filter(
+        (event) => !leaving.leaving.has(event.id),
+      );
   const now = Date.parse(events.data?.asOf ?? "");
   const filtered = debouncedQuery !== "" || scope !== "all" || filter !== "all";
   const filters = ["all", "upcoming", "unscheduled", "past"] as const;
@@ -461,6 +526,7 @@ export function EventList() {
               event={event}
               now={now}
               key={event.id}
+              onLeave={leaving.leave}
               onOpen={(click) => remember(event.id, click)}
             />
           ))}

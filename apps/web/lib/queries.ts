@@ -762,6 +762,16 @@ export function useRefreshEvent(
   };
 }
 
+/** Gives up the account's grants on an Event: the grantee's way out of a share. */
+export function useLeaveEventMutation() {
+  const client = useApiClient();
+  const invalidate = useCanonicalInvalidation();
+  return useMutation({
+    mutationFn: (eventId: string) => client.leaveObject(eventId),
+    onSettled: () => void invalidate(),
+  });
+}
+
 export function useCanonicalInvalidation() {
   const queryClient = useQueryClient();
   return () =>

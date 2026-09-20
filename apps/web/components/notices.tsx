@@ -19,6 +19,12 @@ export interface PostedNotice {
     /** Runs the action; a rejection replaces the notice with its message. */
     readonly run: () => Promise<unknown>;
   };
+  /**
+   * Runs once the notice has left without its action: after its time, or
+   * on its close button. A step held back for the action's window lands
+   * here.
+   */
+  readonly onSettle?: () => void;
 }
 
 interface NoticeEntry extends PostedNotice {
@@ -44,19 +50,37 @@ export function NoticesProvider({
 }) {
   const [entries, setEntries] = useState<readonly NoticeEntry[]>([]);
   const counter = useRef(0);
-  const dismiss = useCallback((id: number) => {
-    setEntries((current) => current.filter((entry) => entry.id !== id));
+  // The settle steps of the notices still waiting; one runs when its
+  // notice leaves without its action, whether by time, by the close
+  // button, or by being pushed out by newer notices.
+  const settles = useRef(new Map<number, () => void>());
+  const settle = useCallback((id: number) => {
+    const step = settles.current.get(id);
+    settles.current.delete(id);
+    step?.();
   }, []);
+  const dismiss = useCallback(
+    (id: number, acted = false) => {
+      setEntries((current) => current.filter((entry) => entry.id !== id));
+      if (acted) settles.current.delete(id);
+      else settle(id);
+    },
+    [settle],
+  );
   const post = useCallback(
     (notice: PostedNotice) => {
       const id = ++counter.current;
-      setEntries((current) => [
-        ...current.slice(1 - shownAtOnce),
-        { ...notice, id, tone: "success" },
-      ]);
+      if (notice.onSettle !== undefined)
+        settles.current.set(id, notice.onSettle);
+      setEntries((current) => {
+        const kept = current.slice(1 - shownAtOnce);
+        for (const pushed of current.slice(0, current.length - kept.length))
+          settle(pushed.id);
+        return [...kept, { ...notice, id, tone: "success" }];
+      });
       window.setTimeout(() => dismiss(id), dismissAfterMs);
     },
-    [dismiss],
+    [dismiss, settle],
   );
   const fail = useCallback((id: number, message: string) => {
     setEntries((current) =>
@@ -85,7 +109,7 @@ function NoticeStack({
   onFail,
 }: {
   readonly entries: readonly NoticeEntry[];
-  readonly onDismiss: (id: number) => void;
+  readonly onDismiss: (id: number, acted?: boolean) => void;
   readonly onFail: (id: number, message: string) => void;
 }) {
   const common = useTranslations("common");
@@ -109,7 +133,7 @@ function NoticeStack({
                 setBusy(entry.id);
                 entry.action
                   ?.run()
-                  .then(() => onDismiss(entry.id))
+                  .then(() => onDismiss(entry.id, true))
                   .catch((error: unknown) => onFail(entry.id, describe(error)))
                   .finally(() => setBusy(null));
               }}
