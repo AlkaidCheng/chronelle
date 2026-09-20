@@ -635,7 +635,8 @@ to the password screen; and Sign out everywhere, which ends every session of
 the account, this one included, and returns to sign-in. Under Preferences, Language & time holds the language, the time
 zone, the time format, and the first day of the week, all kept on the
 account and applied at once; Appearance repeats the Theme panel's mode,
-palette, density, and motion choices, which stay on the browser. Under
+palette, density, and motion choices, which stay on the browser, and
+carries the Install app control (see Install as an app). Under
 Workspace, Members lists the current workspace's members with their roles
 (the personal owner first, marked Personal workspace, and Friend beside a
 member who is one); an Owner adds a friend as Viewer or Editor from the
@@ -1584,16 +1585,31 @@ pagination. Navigation state contains no copied canonical records and never
 grants access. The session boundary owns both the query cache and collection
 return state.
 
-The manifest and the app icon provide standalone presentation metadata. The
-icon is one mark everywhere: the serif C of the rail's brand tile, drawn as
-a path in `apps/web/app/icon.svg` (the tab), with the raster set the home
-screen and iOS ask for (`public/icons/icon-192.png`, `icon-512.png`, a
-maskable `icon-maskable-512.png` whose glyph stays inside the central safe
-zone, and `app/apple-icon.png` at 180) rendered from that SVG by
-`node infrastructure/scripts/render-icons.mjs`; edit the SVG and rerun the
-script rather than editing a PNG. This release does not promise offline
-support or cross-browser installation.
-Private API responses are not cached and no service worker is registered.
+## Install as an app
+
+The app installs from its own control rather than from the browser's
+timing. Where the browser can install web apps (Chrome and its relatives on
+Android and the desktop), More offers Install app as soon as the browser
+has made its prompt available, and Settings > Appearance carries the same
+control; choosing it raises the browser's prompt, and once accepted the
+control goes. Safari on iPhone and iPad never prompts, so there the
+control opens the two steps instead: Share in Safari's toolbar, then Add
+to Home Screen. Other browsers install from their own menu, which the
+Settings row says. Installed, the app opens from the home screen as its
+own window (standalone display on both platforms); the account, the data,
+and everything else are unchanged.
+
+The manifest (`id`, `scope`, and `start_url` at the root, standalone
+display, the icons) and the app icon provide the presentation metadata.
+The icon is one mark everywhere: the serif C of the rail's brand tile,
+drawn as a path in `apps/web/app/icon.svg` (the tab), with the raster set
+the home screen and iOS ask for (`public/icons/icon-192.png`,
+`icon-512.png`, a maskable `icon-maskable-512.png` whose glyph stays
+inside the central safe zone, and `app/apple-icon.png` at 180) rendered
+from that SVG by `node infrastructure/scripts/render-icons.mjs`; edit the
+SVG and rerun the script rather than editing a PNG. This release does not
+promise offline support. Private API responses are not cached and no
+service worker is registered.
 
 See [Deployment](deployment.md) for the production-build workflow and public
 launch requirements.
