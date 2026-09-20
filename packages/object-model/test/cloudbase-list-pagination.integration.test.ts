@@ -77,14 +77,12 @@ describe.sequential("CloudBase bounded list hydration", () => {
               },
             ]),
       ]);
-      await db
-        .insert(events)
-        .values(
-          [sharedScope, privateScope].map((objectId) => ({
-            objectId,
-            workspaceId: harness.workspaceId,
-          })),
-        );
+      await db.insert(events).values(
+        [sharedScope, privateScope].map((objectId) => ({
+          objectId,
+          workspaceId: harness.workspaceId,
+        })),
+      );
       if (objectType !== "event")
         await db
           .insert(objectType === "task" ? tasks : persons)
