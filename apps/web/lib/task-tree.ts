@@ -39,11 +39,11 @@ export function nestTasks(tasks: readonly TaskResponse[]): TaskResponse[] {
   const present = new Set(tasks.map((task) => task.id));
   const children = new Map<string, TaskResponse[]>();
   for (const task of tasks)
-    if (task.parentTaskId !== null && present.has(task.parentTaskId))
-      children.set(task.parentTaskId, [
-        ...(children.get(task.parentTaskId) ?? []),
-        task,
-      ]);
+    if (task.parentTaskId !== null && present.has(task.parentTaskId)) {
+      const siblings = children.get(task.parentTaskId);
+      if (siblings === undefined) children.set(task.parentTaskId, [task]);
+      else siblings.push(task);
+    }
   const ordered: TaskResponse[] = [];
   for (const task of tasks) {
     if (task.parentTaskId !== null && present.has(task.parentTaskId)) continue;
