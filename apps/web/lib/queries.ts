@@ -68,6 +68,7 @@ import { useAuthSession } from "./auth-session";
 import { mergeEventTabs } from "./event-tabs";
 import type { EventView } from "./event-views";
 import { newId } from "./new-id";
+import { mergeWorkspaceRecency } from "./workspace-recency";
 
 export const queryKeys = {
   events: ["events"] as const,
@@ -172,6 +173,36 @@ export function useAdoptAccountLocale() {
  * change at once and again from the server's reply; a refusal puts the
  * previous values back.
  */
+/**
+ * Notes on the account that a workspace was just opened, for the switcher's
+ * order. Unlike a settings change it leaves the session query alone (the
+ * new workspace's session may still be loading) and shows nothing ahead
+ * of the reply; a failed note leaves the order as it was.
+ */
+export function useNoteWorkspaceOpened() {
+  const client = useApiClient();
+  const queryClient = useQueryClient();
+  return useCallback(
+    (workspaceId: string) => {
+      void client
+        .updatePreferences({
+          workspaceRecency: { [workspaceId]: new Date().toISOString() },
+        })
+        .then((updated) => {
+          queryClient.setQueryData<SessionResponse>(
+            queryKeys.session,
+            (session) =>
+              session === undefined ? session : { ...session, user: updated },
+          );
+        })
+        .catch(() => {
+          // The switcher keeps the order it had; the next switch notes again.
+        });
+    },
+    [client, queryClient],
+  );
+}
+
 export function useUpdatePreferences() {
   const client = useApiClient();
   const queryClient = useQueryClient();
@@ -200,6 +231,12 @@ export function useUpdatePreferences() {
               eventTabs: mergeEventTabs(
                 previous.user.eventTabs,
                 input.eventTabs,
+              ),
+            }),
+            ...(input.workspaceRecency !== undefined && {
+              workspaceRecency: mergeWorkspaceRecency(
+                previous.user.workspaceRecency,
+                input.workspaceRecency,
               ),
             }),
           },

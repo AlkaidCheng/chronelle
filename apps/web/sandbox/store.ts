@@ -64,6 +64,7 @@ import {
 import { byRank, rankBetweenRows } from "../lib/collection-order";
 import { eventPeriod } from "../lib/event-collection";
 import { mergeEventTabs } from "../lib/event-tabs";
+import { mergeWorkspaceRecency } from "../lib/workspace-recency";
 import { compareNames } from "../lib/format";
 import { sandboxStorageKey } from "./storage-key";
 
@@ -71,6 +72,13 @@ export { sandboxStorageKey };
 export const sandboxWorkspaceId = "00000000-0000-4000-8000-000000000001";
 const userId = "00000000-0000-4000-8000-000000000002";
 const workspace = { id: sandboxWorkspaceId, displayName: "Design playground" };
+/** The sample account's own workspace, as the session lists it for the switcher. */
+const accessibleWorkspace = {
+  ...workspace,
+  personal: true,
+  ownerDisplayName: "Sample planner",
+  role: "owner" as const,
+};
 const maximumCharacters = 1_000_000;
 type StoragePort = Pick<Storage, "getItem" | "setItem">;
 type RelationResponse = ReturnType<typeof relationResponseSchema.parse>;
@@ -83,7 +91,7 @@ interface State {
   labels: LabelResponse[];
   /** The sections of the sample events' To-dos and Expenses. */
   sections: SectionResponse[];
-  /** The sample account's name, language, zone, clock, week start, rail, and event tabs, as Settings, the rail, and the strips keep them. */
+  /** The sample account's name, language, zone, clock, week start, rail, event tabs, and workspace recency, as Settings, the rail, the strips, and the switcher keep them. */
   preferences: Pick<
     Preferences,
     | "displayName"
@@ -93,6 +101,7 @@ interface State {
     | "weekStart"
     | "rail"
     | "eventTabs"
+    | "workspaceRecency"
     | "username"
     | "findByName"
     | "findByEmail"
@@ -225,6 +234,7 @@ const defaultPreferences: State["preferences"] = {
   weekStart: null,
   rail: {},
   eventTabs: {},
+  workspaceRecency: {},
   username: "planner",
   findByName: true,
   findByEmail: true,
@@ -580,6 +590,7 @@ function parseState(raw: string): State {
       weekStart: true,
       rail: true,
       eventTabs: true,
+      workspaceRecency: true,
       username: true,
       findByName: true,
       findByEmail: true,
@@ -1769,7 +1780,7 @@ export class SandboxStore {
         user: this.#user(),
         principal: { type: "user", userId, workspaceId: sandboxWorkspaceId },
         workspace,
-        availableWorkspaces: [workspace],
+        availableWorkspaces: [accessibleWorkspace],
       };
     if (collection === "commands") return this.#commandState();
     if (collection === "trash") return { items: [], nextCursor: null };
@@ -2368,6 +2379,10 @@ export class SandboxStore {
           eventTabs: mergeEventTabs(
             this.#state.preferences.eventTabs,
             input.eventTabs,
+          ),
+          workspaceRecency: mergeWorkspaceRecency(
+            this.#state.preferences.workspaceRecency,
+            input.workspaceRecency,
           ),
         },
       });

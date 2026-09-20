@@ -1,6 +1,12 @@
 import { expect, type Page, type TestInfo } from "@playwright/test";
 import { expectHorizontalReflow } from "./page-navigation";
-import { moreTrigger, openAccountMenu, openThemePanel } from "./quiet-chrome";
+import {
+  moreTrigger,
+  openAccountMenu,
+  openThemePanel,
+  workspaceLine,
+  workspaceSwitcher,
+} from "./quiet-chrome";
 import { openEventView } from "./event-view";
 
 export async function exerciseWorkspaceUtilities(
@@ -43,7 +49,10 @@ export async function exerciseWorkspaceUtilities(
   await page.screenshot({
     path: testInfo.outputPath("account-menu.png"),
   });
-  await expect(menu.getByRole("menuitemradio").first()).toBeFocused();
+  // The account menu is the account alone: the workspaces live in the
+  // switcher above the profile block.
+  await expect(menu.getByRole("menuitem", { name: /^Friends/ })).toBeFocused();
+  await expect(menu.getByRole("menuitemradio")).toHaveCount(0);
   await expect(
     menu.getByRole("menuitem", { name: "Settings", exact: true }),
   ).toBeVisible();
@@ -57,6 +66,25 @@ export async function exerciseWorkspaceUtilities(
   await page.keyboard.press("Escape");
   await expect(menu).toHaveCount(0);
   await expect(account).toBeFocused();
+
+  const line = workspaceLine(page);
+  await expect(line).toHaveCount(1);
+  await line.focus();
+  await page.keyboard.press("Enter");
+  const switcher = workspaceSwitcher(page);
+  await expect(switcher).toBeVisible();
+  const current = switcher.getByRole("menuitemradio", { checked: true });
+  await expect(current).toHaveCount(1);
+  await expect(current).toBeFocused();
+  await expect(
+    switcher.getByRole("menuitem", { name: "Members", exact: true }),
+  ).toHaveAttribute("href", /\/settings\/members$/u);
+  await page.screenshot({
+    path: testInfo.outputPath("workspace-switcher.png"),
+  });
+  await page.keyboard.press("Escape");
+  await expect(switcher).toHaveCount(0);
+  await expect(line).toBeFocused();
 
   const theme = await openThemePanel(page);
   await expect(
@@ -93,6 +121,12 @@ export async function exerciseWorkspaceUtilities(
   await page.screenshot({
     path: testInfo.outputPath("account-menu-narrow.png"),
   });
+  await page.keyboard.press("Escape");
+  await line.click();
+  await expectHorizontalReflow(page);
+  await expect(
+    switcher.getByRole("menuitem", { name: "Members", exact: true }),
+  ).toBeInViewport();
   await page.keyboard.press("Escape");
   await openThemePanel(page);
   await theme

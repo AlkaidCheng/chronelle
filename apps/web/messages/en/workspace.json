@@ -1,0 +1,11 @@
+{
+  "current": "Workspace",
+  "switch": "Switch workspace",
+  "find": "Find a workspace",
+  "yours": "Yours",
+  "shared": "Shared with you",
+  "personal": "Personal workspace",
+  "opened": "Opened {when}",
+  "members": "Members",
+  "noMatch": "No workspace matches."
+}
