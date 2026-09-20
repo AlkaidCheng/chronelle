@@ -23,6 +23,7 @@ WORKDIR /app
 
 COPY --from=build /app/apps/web/.next/standalone ./
 COPY --from=build /app/apps/web/.next/static ./apps/web/.next/static
+COPY --from=build /app/apps/web/public ./apps/web/public
 RUN mkdir -p apps/web/.next/cache && chown node:node apps/web/.next/cache
 
 USER node

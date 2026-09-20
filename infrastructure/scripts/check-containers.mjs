@@ -152,6 +152,10 @@ try {
   const asset = html.match(/src="([^"]*\/_next\/static\/[^"]+\.js)"/u)?.[1];
   assert(asset, "The page must reference a built JavaScript asset.");
   await request(asset);
+  // The manifest's raster icons come from the public directory, which the
+  // standalone build leaves out and the image copies on its own.
+  const manifest = await (await request("/manifest.webmanifest")).json();
+  for (const icon of manifest.icons) await request(icon.src);
   assert.equal((await (await request("/api/health")).json()).status, "ok");
   await request("/api/events", {}, 401);
   const identity = {
