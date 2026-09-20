@@ -4,6 +4,7 @@ import {
   exerciseContextCommands,
   openCommands,
 } from "./helpers/context-commands";
+import { addMember } from "./helpers/membership";
 import { switchWorkspace } from "./helpers/quiet-chrome";
 
 test("opens event controls through Commands and saves only explicit layout changes @webkit-desktop @webkit-mobile", async ({
@@ -69,12 +70,10 @@ test("limits Viewer commands and denies history after access is revoked @webkit-
   });
   expect(created.status()).toBe(201);
   const event = await created.json();
-  const shared = await request.post("/api/shares", {
-    headers,
-    data: { resourceId: event.id, principalEmail: email, role: "viewer" },
-  });
-  expect(shared.status()).toBe(201);
-  const grant = await shared.json();
+  // The viewer joins the owner's workspace as a member: the switcher
+  // lists memberships alone.
+  const viewerAccount = await viewer.json();
+  await addMember(request, owner, { ...viewerAccount, email });
   await page.goto("/sign-in/development");
   await page.getByLabel("Name", { exact: true }).fill("Viewer");
   await page.getByLabel("Email").fill(email);
@@ -91,7 +90,12 @@ test("limits Viewer commands and denies history after access is revoked @webkit-
     }),
   ).toHaveCount(0);
   expect(
-    (await request.delete(`/api/shares/${grant.id}`, { headers })).ok(),
+    (
+      await request.delete(
+        `/api/workspaces/current/members/${viewerAccount.user.id}`,
+        { headers },
+      )
+    ).ok(),
   ).toBe(true);
   const denied = page.waitForResponse(
     (response) =>

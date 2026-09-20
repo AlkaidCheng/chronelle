@@ -1,6 +1,5 @@
 import { randomUUID } from "node:crypto";
 import { expect, type Page, test } from "./fixtures";
-import { switchWorkspace } from "./helpers/quiet-chrome";
 import { chooseRowAction } from "./helpers/row-menu";
 import { openEventView } from "./helpers/event-view";
 
@@ -72,10 +71,10 @@ test("names where a grantee's access comes from, and nothing on the owner's own 
     errors.push(error.message);
   });
 
-  // Ben, in Ana's workspace: the event names its grant, and the person
-  // created inside it names the event and links to it.
+  // Ben, from his own Events list, where Ana's shares appear: the event
+  // names its grant, and the person created inside it names the event and
+  // links to it.
   await signIn(page, "Ben", benEmail);
-  await switchWorkspace(page, ana.workspace.displayName);
   await page.getByRole("link", { name: /Kyoto in November/ }).click();
   await expect(
     page.getByRole("heading", { level: 1, name: "Kyoto in November" }),

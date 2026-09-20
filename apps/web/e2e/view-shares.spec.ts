@@ -1,7 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { expect, type Page, test } from "./fixtures";
 import { openEventView } from "./helpers/event-view";
-import { switchWorkspace } from "./helpers/quiet-chrome";
 
 const signIn = async (page: Page, name: string, email: string) => {
   await page.goto("/sign-in/development");
@@ -113,10 +112,10 @@ test("shares one view, then one section, and the friend sees that alone; the Sha
     page.getByRole("button", { name: "Share", exact: true }),
   ).toBeFocused();
 
-  // Ben, in Ana's workspace, opens the event: To-dos alone, its rows, no pages.
+  // Ben opens the event from his own list, where Ana's share appears:
+  // To-dos alone, its rows, no pages.
   await signOut(page, "Ana");
   await signIn(page, "Ben", benEmail);
-  await switchWorkspace(page, ana.workspace.displayName);
   await page.getByRole("link", { name: /Kyoto in November/ }).click();
   await expect(
     page.getByRole("heading", { level: 1, name: "Kyoto in November" }),
@@ -186,7 +185,6 @@ test("shares one view, then one section, and the friend sees that alone; the Sha
   // Ben sees the section's task alone.
   await signOut(page, "Ana");
   await signIn(page, "Ben", benEmail);
-  await switchWorkspace(page, ana.workspace.displayName);
   await page.getByRole("link", { name: /Kyoto in November/ }).click();
   await expect(tabs.getByRole("tab")).toHaveText(["To-dos"]);
   await expect(page.getByText("Book the hall")).toBeVisible();
