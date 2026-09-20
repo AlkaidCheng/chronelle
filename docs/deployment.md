@@ -249,6 +249,13 @@ reapplied; 0044 the Task duration; 0045 the Task repeat rule; 0046 the manual or
 flags are staged opt-ins and the API still connects to `DATABASE_URL` at
 startup; the CloudBase backend below removes that connection.
 
+Migration `0066_resolve_identity_session.sql` adds the read-only
+`chronelle_identity_session_resolve` function for identity and workspace
+resolution. Apply it through the console SQL editor before redeploying the
+CloudBase API: readiness requires the function. It changes no tables, needs no
+revision baseline or runtime role changes, and remains compatible with older
+API versions. PostgreSQL TCP deployments apply it with `pnpm db:migrate`.
+
 ### Run on the CloudBase backend
 
 `CHRONELLE_BACKEND=cloudbase` serves every read and write from the gateway.
