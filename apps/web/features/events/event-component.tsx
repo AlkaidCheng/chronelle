@@ -5,7 +5,7 @@ import type {
   EventComponentView,
   NoteListQuery,
 } from "@chronelle/schemas";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, type UseQueryResult } from "@tanstack/react-query";
 import { type ReactNode, useState } from "react";
 import { ErrorNotice, LoadingState } from "../../components/feedback";
 import { tr } from "../../i18n/active-locale";
@@ -27,25 +27,40 @@ import {
   TimelinePanel,
 } from "./planning-panels";
 
-function Projection<T>({
-  eventId,
-  queryKey,
-  load,
-  label,
-  children,
-}: {
+function useProjection<T>(
+  queryKey: readonly string[],
+  load: (signal: AbortSignal) => Promise<T>,
+) {
+  const { credential } = useAuthSession();
+  return useQuery({
+    queryKey,
+    enabled: credential !== null,
+    queryFn: ({ signal }) => load(signal),
+  });
+}
+
+function Projection<T>(props: {
   readonly eventId: string;
   readonly queryKey: readonly string[];
   readonly load: (signal: AbortSignal) => Promise<T>;
   readonly label: string;
   readonly children: (projection: T) => ReactNode;
 }) {
-  const { credential } = useAuthSession();
-  const query = useQuery({
-    queryKey,
-    enabled: credential !== null,
-    queryFn: ({ signal }) => load(signal),
-  });
+  const query = useProjection(props.queryKey, props.load);
+  return <ProjectionResult {...props} query={query} />;
+}
+
+function ProjectionResult<T>({
+  eventId,
+  query,
+  label,
+  children,
+}: {
+  readonly eventId: string;
+  readonly query: UseQueryResult<T>;
+  readonly label: string;
+  readonly children: (projection: T) => ReactNode;
+}) {
   useForgetInaccessibleEventDrafts(
     eventId,
     query.isError && !isTemporaryReadError(query.error),
@@ -159,37 +174,14 @@ export function EventComponent({
       );
     case "itinerary":
       return (
-        <Projection
+        <ItineraryProjection
+          canEdit={canEdit}
           eventId={eventId}
+          isSavingView={isSavingView}
           label={label}
-          queryKey={queryKeys.itinerary(eventId)}
-          load={(signal) =>
-            client.withSignal(signal).getEventItinerary(eventId)
-          }
-        >
-          {(itinerary) => (
-            <Projection
-              eventId={eventId}
-              label={label}
-              queryKey={queryKeys.todos(eventId)}
-              load={(signal) =>
-                client.withSignal(signal).getEventTodos(eventId)
-              }
-            >
-              {(todos) => (
-                <ItineraryComponent
-                  canEdit={canEdit}
-                  eventId={eventId}
-                  isSavingView={isSavingView}
-                  items={itinerary.items}
-                  onChangeView={onChangeView}
-                  tasks={todos.items}
-                  view={view}
-                />
-              )}
-            </Projection>
-          )}
-        </Projection>
+          onChangeView={onChangeView}
+          view={view}
+        />
       );
     case "expenses":
       return (
@@ -239,15 +231,17 @@ export function EventComponent({
         <Projection
           eventId={eventId}
           label={label}
-          queryKey={queryKeys.detail(eventId)}
-          load={(signal) => client.withSignal(signal).getEventDetail(eventId)}
+          queryKey={[...queryKeys.event(eventId), "attachment-targets"]}
+          load={(signal) =>
+            client.withSignal(signal).getEventAttachmentTargets(eventId)
+          }
         >
-          {(detail) => (
+          {(targets) => (
             <DocumentsPanel
-              event={detail.event}
+              event={targets.event}
               canEdit={canEdit}
-              tasks={detail.tasks}
-              expenses={detail.expenses}
+              tasks={targets.tasks}
+              expenses={targets.expenses}
             />
           )}
         </Projection>
@@ -291,6 +285,37 @@ export function EventComponent({
         </Projection>
       );
   }
+}
+
+function ItineraryProjection({
+  label,
+  ...props
+}: Omit<Parameters<typeof ItineraryPanel>[0], "event" | "items" | "tasks"> & {
+  readonly label: string;
+}) {
+  const client = useApiClient();
+  const { eventId } = props;
+  const itinerary = useProjection(queryKeys.itinerary(eventId), (signal) =>
+    client.withSignal(signal).getEventItinerary(eventId),
+  );
+  const todos = useProjection(queryKeys.todos(eventId), (signal) =>
+    client.withSignal(signal).getEventTodos(eventId),
+  );
+  return (
+    <ProjectionResult eventId={eventId} label={label} query={itinerary}>
+      {(itineraryPage) => (
+        <ProjectionResult eventId={eventId} label={label} query={todos}>
+          {(todoPage) => (
+            <ItineraryComponent
+              {...props}
+              items={itineraryPage.items}
+              tasks={todoPage.items}
+            />
+          )}
+        </ProjectionResult>
+      )}
+    </ProjectionResult>
+  );
 }
 
 /** The day sheet needs the event's own dates for the days it turns. */

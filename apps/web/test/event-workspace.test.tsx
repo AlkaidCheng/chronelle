@@ -926,6 +926,8 @@ describe("EventWorkspace", () => {
     const fetch = vi.fn<typeof globalThis.fetch>(async (input) => {
       const path = requestPath(input);
       if (path === `/api/events/${eventId}`) return jsonResponse(rootEvent);
+      if (path === `/api/events/${eventId}/attachment-targets`)
+        return jsonResponse({ event: rootEvent, tasks: [task], expenses: [] });
       if (path === `/api/events/${eventId}/detail`) {
         return jsonResponse({
           event: rootEvent,
@@ -1051,6 +1053,8 @@ describe("EventWorkspace", () => {
     const fetch = vi.fn<typeof globalThis.fetch>(async (input, init) => {
       const path = requestPath(input);
       if (path === `/api/events/${eventId}`) return jsonResponse(rootEvent);
+      if (path === `/api/events/${eventId}/attachment-targets`)
+        return jsonResponse({ event: rootEvent, tasks: [task], expenses: [] });
       if (path === `/api/events/${eventId}/detail`) {
         return jsonResponse({
           event: rootEvent,
@@ -1169,6 +1173,8 @@ describe("EventWorkspace", () => {
     const fetch = vi.fn<typeof globalThis.fetch>(async (input, init) => {
       const path = requestPath(input);
       if (path === `/api/events/${eventId}`) return jsonResponse(rootEvent);
+      if (path === `/api/events/${eventId}/attachment-targets`)
+        return jsonResponse({ event: rootEvent, tasks: [task], expenses: [] });
       if (path === `/api/events/${eventId}/detail`)
         return jsonResponse({
           event: rootEvent,
@@ -1282,6 +1288,8 @@ describe("EventWorkspace", () => {
     const fetch = vi.fn<typeof globalThis.fetch>(async (input, init) => {
       const path = requestPath(input);
       if (path === `/api/events/${eventId}`) return jsonResponse(rootEvent);
+      if (path === `/api/events/${eventId}/attachment-targets`)
+        return jsonResponse({ event: rootEvent, tasks: [], expenses: [] });
       if (path === `/api/events/${eventId}/detail`)
         return jsonResponse({
           event: rootEvent,

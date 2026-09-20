@@ -7,6 +7,7 @@ import {
 } from "@chronelle/schemas";
 import { useQueryClient } from "@tanstack/react-query";
 import {
+  act,
   cleanup,
   fireEvent,
   render,
@@ -160,6 +161,86 @@ function CommandProbe() {
 }
 
 describe("insertable event components", () => {
+  it.each([200, 404])(
+    "loads itinerary and to-dos concurrently behind the itinerary's loading and access state (%s)",
+    async (status) => {
+      await client.updateEventLayout(eventId, {
+        expectedVersion: 0,
+        pages: [page("Day", ["itinerary"])],
+      });
+      const release = Promise.withResolvers<void>();
+      const fetch = vi.fn<typeof globalThis.fetch>(async (input, options) => {
+        if (String(input).endsWith("/itinerary")) {
+          await release.promise;
+          if (status === 404)
+            return Response.json(
+              {
+                error: {
+                  code: "not_found",
+                  message: "The itinerary is unavailable.",
+                  requestId: "request",
+                },
+              },
+              { status },
+            );
+        }
+        return store.fetch(input, options);
+      });
+      vi.stubGlobal("fetch", fetch);
+      render(<PagesHarness eventId={eventId} canEdit />, {
+        wrapper: Providers,
+      });
+      try {
+        await waitFor(() => {
+          for (const view of ["itinerary", "todos"])
+            expect(
+              fetch.mock.calls.filter(([url]) =>
+                String(url).endsWith(`/${view}`),
+              ),
+            ).toHaveLength(1);
+        });
+        expect(screen.queryByRole("heading", { name: "Itinerary" })).toBeNull();
+      } finally {
+        await act(async () => release.resolve());
+      }
+      if (status === 200)
+        expect(
+          await screen.findByRole("heading", { name: "Itinerary" }),
+        ).toBeVisible();
+      else {
+        expect(
+          await screen.findByText("The itinerary is unavailable."),
+        ).toBeVisible();
+        expect(screen.queryByText("Confirm the garden venue")).toBeNull();
+      }
+    },
+  );
+
+  it("loads the Files target names without the full event detail", async () => {
+    await client.updateEventLayout(eventId, {
+      expectedVersion: 0,
+      pages: [page("Files", ["files"])],
+    });
+    const detail = await client.getEventDetail(eventId);
+    const summary = ({
+      id,
+      displayName,
+    }: {
+      id: string;
+      displayName: string;
+    }) => ({ id, displayName });
+    await expect(client.getEventAttachmentTargets(eventId)).resolves.toEqual({
+      event: summary(detail.event),
+      tasks: detail.tasks.map(summary),
+      expenses: detail.expenses.map(summary),
+    });
+    render(<PagesHarness eventId={eventId} canEdit />, { wrapper: Providers });
+    await screen.findByRole("heading", { name: "Files" });
+    const requests = vi.mocked(fetch).mock.calls.map(([url]) => String(url));
+    expect(requests).toContain(`/api/events/${eventId}/attachment-targets`);
+    expect(requests).not.toContain(`/api/events/${eventId}/detail`);
+  });
+
   it("previews presets locally and preserves custom names and the underlying Task view on cancel", async () => {
     const pages = [page("Plan", ["todos"])];
     await client.updateEventLayout(eventId, { expectedVersion: 0, pages });
@@ -1322,7 +1403,9 @@ describe("insertable event components", () => {
       screen.getAllByText("Welcome and coffee", { exact: true }),
     ).toHaveLength(3);
     const paths = vi.mocked(fetch).mock.calls.map(([input]) => String(input));
-    expect(paths.filter((path) => path.endsWith("/detail"))).toHaveLength(1);
+    expect(
+      paths.filter((path) => path.endsWith("/attachment-targets")),
+    ).toHaveLength(1);
     expect(paths.filter((path) => path.endsWith("/calendar"))).toHaveLength(1);
   });
 
