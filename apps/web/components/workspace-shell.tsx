@@ -18,10 +18,12 @@ import {
   DisplayPreferencesProvider,
   timePreferencesOf,
 } from "../lib/use-display-preferences";
+import { useIsPhone } from "../lib/use-media";
 import { AccountMenu } from "./account-menu";
 import { WorkspaceCommandProvider } from "./context-commands";
 import { ErrorNotice, LoadingState } from "./feedback";
 import { MoreMenu } from "./more-menu";
+import { PhoneChrome } from "./phone-chrome";
 import { RailCollections } from "./rail-collections";
 import { SearchEntry } from "./search-entry";
 import {
@@ -44,6 +46,7 @@ export function WorkspaceShell({ children }: { readonly children: ReactNode }) {
   const noteWorkspaceOpened = useNoteWorkspaceOpened();
   const [customizing, setCustomizing] = useState(false);
   const sidebar = useSidebar();
+  const phone = useIsPhone();
   useContentUndoShortcut();
 
   // Opening another workspace notes the moment on the account, so the
@@ -151,35 +154,49 @@ export function WorkspaceShell({ children }: { readonly children: ReactNode }) {
           <a className="skip-link" href="#workspace-content">
             {t("skipToContent")}
           </a>
-          <aside className="sidebar" inert={sidebar.collapsed}>
-            <div className="sidebar-head">
-              <Link className="brand" href="/events">
-                <span className="brand-mark">C</span>
-                <span>Chronelle</span>
-              </Link>
-              <SidebarCollapseControl sidebar={sidebar} />
-            </div>
-            <nav
-              aria-label={t("workspaceNavigation")}
-              className="workspace-nav"
-            >
-              <SearchEntry current={pathname.startsWith("/search")} />
-              <RailCollections
-                pathname={pathname}
-                customizing={customizing}
-                onCustomize={setCustomizing}
-              />
-            </nav>
-            <div className="sidebar-footer">
-              <AccountMenu
-                session={currentSession}
-                pendingRequests={friends.data?.incoming.length ?? 0}
-                onSwitch={changeWorkspace}
-                onSignOut={leaveWorkspace}
-              />
-              <MoreMenu onCustomize={() => setCustomizing(true)} />
-            </div>
-          </aside>
+          {phone ? (
+            // The phone has no rail: the app bar's menu opens the sidebar
+            // as a drawer, and its other controls open sheets.
+            <PhoneChrome
+              session={currentSession}
+              pathname={pathname}
+              pendingRequests={friends.data?.incoming.length ?? 0}
+              customizing={customizing}
+              onCustomize={setCustomizing}
+              onSwitch={changeWorkspace}
+              onSignOut={leaveWorkspace}
+            />
+          ) : (
+            <aside className="sidebar" inert={sidebar.collapsed}>
+              <div className="sidebar-head">
+                <Link className="brand" href="/events">
+                  <span className="brand-mark">C</span>
+                  <span>Chronelle</span>
+                </Link>
+                <SidebarCollapseControl sidebar={sidebar} />
+              </div>
+              <nav
+                aria-label={t("workspaceNavigation")}
+                className="workspace-nav"
+              >
+                <SearchEntry current={pathname.startsWith("/search")} />
+                <RailCollections
+                  pathname={pathname}
+                  customizing={customizing}
+                  onCustomize={setCustomizing}
+                />
+              </nav>
+              <div className="sidebar-footer">
+                <AccountMenu
+                  session={currentSession}
+                  pendingRequests={friends.data?.incoming.length ?? 0}
+                  onSwitch={changeWorkspace}
+                  onSignOut={leaveWorkspace}
+                />
+                <MoreMenu onCustomize={() => setCustomizing(true)} />
+              </div>
+            </aside>
+          )}
           <div className="workspace-main">
             <SidebarExpandControl sidebar={sidebar} />
             <div id="workspace-content" tabIndex={-1}>

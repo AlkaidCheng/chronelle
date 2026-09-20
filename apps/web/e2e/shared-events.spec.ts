@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { expect, type Page, test } from "./fixtures";
+import { isPhone, workspaceBlock } from "./helpers/quiet-chrome";
 import { chooseRowAction } from "./helpers/row-menu";
 
 const signIn = async (page: Page, name: string, email: string) => {
@@ -134,19 +135,25 @@ test("shows the events shared with an account beside its own, opens one in place
   await page.keyboard.press("Escape");
 
   // Opening the shared card lands on the event page in Ana's workspace,
-  // with the access line, without a workspace switch.
+  // with the access line (a tag beside the date on a phone), without a
+  // workspace switch.
   await kyotoCard.click();
   await expect(page).toHaveURL(new RegExp(`/events/${kyoto.id}$`, "u"));
   await expect(
     page.getByRole("heading", { name: "Kyoto in November", level: 1 }),
   ).toBeVisible();
-  await expect(
-    page.getByText("Shared with you by Ana as viewer"),
-  ).toBeVisible();
+  if (isPhone(page))
+    await expect(page.locator(".event-access-tag")).toHaveText(
+      /Shared by Ana.*Viewer/,
+    );
+  else
+    await expect(
+      page.getByText("Shared with you by Ana as viewer"),
+    ).toBeVisible();
   await page.getByRole("tab", { name: "To-dos", exact: true }).click();
   await expect(page.getByText("Book the ryokan")).toBeVisible();
-  // The rail stays on Ben's own workspace: the account block still reads Personal.
-  await expect(page.locator(".account-trigger")).toContainText("Personal");
+  // The chrome stays on Ben's own workspace: the block that names it still reads Personal.
+  await expect(workspaceBlock(page)).toContainText("Personal");
   await page.getByRole("link", { name: "All events", exact: true }).click();
   await expect(page).toHaveURL(/\/events$/u);
 

@@ -1,8 +1,9 @@
 import { randomUUID } from "node:crypto";
 import { expect, test } from "./fixtures";
 import {
-  accountBlock,
+  isPhone,
   openWorkspaceSwitcher,
+  workspaceBlock,
   workspaceEntry,
   workspaceSwitcher,
 } from "./helpers/quiet-chrome";
@@ -101,13 +102,14 @@ test("lists the workspaces shared with the account by when they were last opened
   await page.getByRole("button", { name: "Continue", exact: true }).click();
   await expect(page).toHaveURL(/\/events$/);
 
-  // The rail's foot names the current workspace under the account: the
-  // account's own reads "Personal". The switcher, reached through the
-  // account menu, lists it first and ticked with the home mark and the
-  // account's name under it; the shared ones read their owner's name with
-  // the role under it, by name while none has been opened, with the
+  // The rail's foot names the current workspace under the account, and the
+  // phone's app bar beside its mark: the account's own reads "Personal".
+  // The switcher, reached through the account menu or the phone's
+  // workspace control, lists it first and ticked with the home mark and
+  // the account's name under it; the shared ones read their owner's name
+  // with the role under it, by name while none has been opened, with the
   // owner's initials as their mark.
-  const block = accountBlock(page);
+  const block = workspaceBlock(page);
   await expect(block).toContainText("Personal");
   const menu = await openWorkspaceSwitcher(page);
   const search = menu.getByRole("searchbox", { name: "Find a workspace" });
@@ -129,7 +131,8 @@ test("lists the workspaces shared with the account by when they were last opened
   ).toHaveAttribute("href", /\/settings\/members$/u);
 
   // The search narrows by the owner's name; Escape leads back to the
-  // account menu, and again to the block.
+  // account menu, and again to the block (the phone's sheet, straight
+  // back to its control).
   await search.fill("kai");
   await expect(entries).toHaveCount(1);
   await expect(entries.first()).toContainText("Kai Tanaka");
@@ -138,13 +141,18 @@ test("lists the workspaces shared with the account by when they were last opened
   await expect(menu.getByText("No workspace matches.")).toBeVisible();
   await page.keyboard.press("Escape");
   await expect(menu).toHaveCount(0);
-  const account = page.getByRole("menu", { name: "Account", exact: true });
-  await expect(account).toBeVisible();
-  await expect(
-    account.getByRole("menuitem", { name: "Switch workspace...", exact: true }),
-  ).toBeFocused();
-  await page.keyboard.press("Escape");
-  await expect(account).toHaveCount(0);
+  if (!isPhone(page)) {
+    const account = page.getByRole("menu", { name: "Account", exact: true });
+    await expect(account).toBeVisible();
+    await expect(
+      account.getByRole("menuitem", {
+        name: "Switch workspace...",
+        exact: true,
+      }),
+    ).toBeFocused();
+    await page.keyboard.press("Escape");
+    await expect(account).toHaveCount(0);
+  }
   await expect(block).toBeFocused();
 
   // Opening a workspace notes the moment on the account, so it leads the
@@ -240,7 +248,7 @@ test("reaches the switcher from the phone's bar, its list under the bar @webkit-
   await page.getByLabel("Email").fill(email);
   await page.getByRole("button", { name: "Continue", exact: true }).click();
   await expect(page).toHaveURL(/\/events$/);
-  const block = accountBlock(page);
+  const block = workspaceBlock(page);
   await expect(block).toBeInViewport();
   const menu = await openWorkspaceSwitcher(page);
   await expect(menu).toBeInViewport();

@@ -5,7 +5,15 @@ import {
   setKeyboardPreferences,
 } from "./helpers/keyboard-settings";
 import { exerciseWorkspaceCommands } from "./helpers/workspace-commands";
-import { moreTrigger, openMoreMenu, searchEntry } from "./helpers/quiet-chrome";
+import {
+  closeDrawer,
+  moreControl,
+  openMoreMenu,
+  pressSearchEntry,
+  searchEntry,
+  searchReturn,
+  workspaceNavigation,
+} from "./helpers/quiet-chrome";
 
 test("protects Task editor focus and navigates without saving discarded fields @webkit-desktop @webkit-mobile", async ({
   page,
@@ -28,6 +36,7 @@ test("protects Task editor focus and navigates without saving discarded fields @
   await page.getByLabel("Name", { exact: true }).fill("Event planner");
   await page.getByLabel("Email").fill(email);
   await page.getByRole("button", { name: "Continue", exact: true }).click();
+  await expect(page).toHaveURL(/\/events$/u);
   await page.getByRole("link", { name: /An afternoon together/ }).click();
   await exerciseWorkspaceCommands(page, testInfo);
   expect(
@@ -43,11 +52,16 @@ test("persists shortcut opt-out and synchronizes another tab @webkit-desktop @we
   await page.getByLabel("Name", { exact: true }).fill("Keyboard planner");
   await page.getByLabel("Email").fill(`shortcuts-${randomUUID()}@example.test`);
   await page.getByRole("button", { name: "Continue", exact: true }).click();
+  await expect(page).toHaveURL(/\/events$/u);
   const trigger = searchEntry(page);
   await setKeyboardPreferences(page, { command: "disabled" });
   await page.reload();
-  await trigger.focus();
+  // The entry is read in the phone's drawer, and the key pressed with it
+  // closed, from the page.
+  await workspaceNavigation(page);
   await expect(trigger).not.toHaveAttribute("aria-keyshortcuts");
+  await closeDrawer(page);
+  await searchReturn(page).focus();
   await page.keyboard.press("Control+k");
   await expect(page.getByRole("dialog")).toHaveCount(0);
   const other = await context.newPage();
@@ -55,11 +69,13 @@ test("persists shortcut opt-out and synchronizes another tab @webkit-desktop @we
   await other.evaluate(() =>
     localStorage.removeItem("chronelle.command-shortcut"),
   );
+  await workspaceNavigation(page);
   await expect(trigger).toHaveAttribute(
     "aria-keyshortcuts",
     "Control+k Meta+k",
   );
-  await trigger.focus();
+  await closeDrawer(page);
+  await searchReturn(page).focus();
   await page.keyboard.press("Control+k");
   await expect(page.getByRole("dialog", { name: "Search" })).toBeVisible();
   await other.close();
@@ -92,7 +108,7 @@ test("leads from More to the Keyboard settings, where the Search shortcut is swi
   ).toBeVisible();
   // The palette itself carries no settings: the field has focus, the keys
   // read under the results, and Escape returns focus to the entry.
-  await searchEntry(page).click();
+  await pressSearchEntry(page);
   const palette = page.getByRole("dialog", { name: "Search" });
   await expect(palette).toBeVisible();
   await expect(
@@ -102,6 +118,6 @@ test("leads from More to the Keyboard settings, where the Search shortcut is swi
   await expect(palette.locator("footer.command-keys")).toBeVisible();
   await page.keyboard.press("Escape");
   await expect(palette).toHaveCount(0);
-  await expect(searchEntry(page)).toBeFocused();
-  await expect(moreTrigger(page)).toBeVisible();
+  await expect(searchReturn(page)).toBeFocused();
+  await expect(moreControl(page)).toBeVisible();
 });

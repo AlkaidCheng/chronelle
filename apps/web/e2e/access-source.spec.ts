@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { expect, type Page, test } from "./fixtures";
+import { isPhone } from "./helpers/quiet-chrome";
 import { chooseRowAction } from "./helpers/row-menu";
 import { openEventView } from "./helpers/event-view";
 
@@ -18,6 +19,7 @@ const signOut = async (page: Page) => {
 };
 
 const accessLine = (page: Page) => page.locator(".access-line");
+const accessTag = (page: Page) => page.locator(".event-access-tag");
 
 test("names where a grantee's access comes from, and nothing on the owner's own records @webkit-desktop", async ({
   page,
@@ -79,8 +81,16 @@ test("names where a grantee's access comes from, and nothing on the owner's own 
   await expect(
     page.getByRole("heading", { level: 1, name: "Kyoto in November" }),
   ).toBeVisible();
-  await expect(accessLine(page)).toHaveText("Shared with you by Ana as viewer");
-  await expect(accessLine(page).getByRole("button")).toHaveCount(0);
+  // A phone reads the share as a tag beside the date in place of the line.
+  if (isPhone(page)) {
+    await expect(accessLine(page)).toBeHidden();
+    await expect(accessTag(page)).toHaveText(/Shared by Ana.*Viewer/);
+  } else {
+    await expect(accessLine(page)).toHaveText(
+      "Shared with you by Ana as viewer",
+    );
+    await expect(accessLine(page).getByRole("button")).toHaveCount(0);
+  }
   await expect(page.getByRole("tab", { name: "Sharing" })).toHaveCount(0);
 
   await page.goto(`/people/${mei.id}`);
@@ -107,9 +117,12 @@ test("names where a grantee's access comes from, and nothing on the owner's own 
   // the dinner and reaches its Sharing view.
   await page.goto("/events");
   await page.getByRole("link", { name: /Kaiseki dinner/ }).click();
-  await expect(accessLine(page).getByRole("button")).toHaveText(
-    "Shared with you by Ana as owner",
-  );
+  if (isPhone(page))
+    await expect(accessTag(page)).toHaveText(/Shared by Ana.*Owner/);
+  else
+    await expect(accessLine(page).getByRole("button")).toHaveText(
+      "Shared with you by Ana as owner",
+    );
   await openEventView(page, "To-dos");
   const row = page.getByRole("row", { name: /Book the counter seats/ });
   // The row's Edit opens it in place; More reaches the full editor.

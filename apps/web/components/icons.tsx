@@ -395,6 +395,20 @@ export function EyeOffIcon({ className }: IconProps) {
   );
 }
 
+/** Three lines: the phone's menu control, opening the sidebar as a drawer. */
+export function MenuIcon({ className }: IconProps) {
+  return (
+    <svg
+      aria-hidden="true"
+      className={className}
+      fill="none"
+      viewBox="0 0 24 24"
+    >
+      <path d="M4 7h16M4 12h16M4 17h16" />
+    </svg>
+  );
+}
+
 export function MoreGridIcon({ className }: IconProps) {
   return (
     <svg

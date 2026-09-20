@@ -1,6 +1,7 @@
 import { expect, type Page } from "@playwright/test";
 import { chooseLayout } from "./component-views";
 import { setDue } from "./date-rows";
+import { openCollection } from "./quiet-chrome";
 import { today } from "./today";
 import { openTaskEditor } from "./task-add";
 import { openEventView } from "./event-view";
@@ -11,10 +12,7 @@ import { openEventView } from "./event-view";
  * Cancel does too. Returns the names added.
  */
 export async function exerciseQuickAddOnTasksPage(page: Page) {
-  await page
-    .getByRole("navigation", { name: "Workspace navigation" })
-    .getByRole("link", { name: "Tasks", exact: true })
-    .click();
+  await openCollection(page, "Tasks");
   await expect(page).toHaveURL(/\/tasks$/);
   const open = page.getByRole("button", {
     name: "Add a task to the list",

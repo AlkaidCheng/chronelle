@@ -4,7 +4,9 @@ import {
   chooseEventLayout,
   chooseEventSort,
   chooseEventFilter,
+  closeDrawer,
   signOutFromMenu,
+  workspaceNavigation,
 } from "./helpers/quiet-chrome";
 import { openEventView } from "./helpers/event-view";
 
@@ -49,9 +51,15 @@ test("organizes events and keeps navigation usable across reloads and screen siz
   await expect(page.getByRole("status", { name: "Event count" })).toHaveText(
     "4 events loaded",
   );
+  // The sidebar's Events entry is current: in the rail, or in the phone's
+  // drawer, opened and closed around the look.
   await expect(
-    page.getByRole("link", { name: "Events", exact: true }),
+    (await workspaceNavigation(page)).getByRole("link", {
+      name: "Events",
+      exact: true,
+    }),
   ).toHaveAttribute("aria-current", "page");
+  await closeDrawer(page);
   await page.screenshot({
     path: testInfo.outputPath("events-grid.png"),
     fullPage: true,
@@ -150,11 +158,9 @@ test("organizes events and keeps navigation usable across reloads and screen siz
     await expect(account).toHaveAttribute("aria-expanded", "false");
   }
   if (testInfo.project.name === "chromium-mobile") {
-    await page.getByLabel("Event view", { exact: true }).selectOption("files");
-    await expect(page.getByRole("tab", { name: "Files" })).toHaveAttribute(
-      "aria-selected",
-      "true",
-    );
+    // The phone keeps the strip: a view past its width opens from the fold
+    // chip. The avatar opens the account sheet, and Escape returns to it.
+    await openEventView(page, "Files");
     const account = page.locator(".account-trigger");
     await account.click();
     await expect(
@@ -167,11 +173,7 @@ test("organizes events and keeps navigation usable across reloads and screen siz
       page.getByRole("menuitem", { name: "Sign out", exact: true }),
     ).toHaveCount(0);
   }
-  if (testInfo.project.name === "chromium-mobile") {
-    await page.locator(".account-trigger").click();
-  } else {
-    await page.locator(".account-trigger").click();
-  }
+  await page.locator(".account-trigger").click();
   expect(
     await page.evaluate(
       () =>

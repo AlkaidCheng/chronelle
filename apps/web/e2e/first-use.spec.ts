@@ -3,11 +3,11 @@ import { expect, test } from "./fixtures";
 import {
   activateWithKeyboard,
   createFirstPlan,
+  openTrashWithKeyboard,
   tabTo,
 } from "./helpers/first-use";
 import { outcomeNotice } from "./helpers/lifecycle";
 import { expectHorizontalReflow } from "./helpers/page-navigation";
-import { moreTrigger } from "./helpers/quiet-chrome";
 
 test("starts an undated plan with the keyboard and reopens it after recovery @webkit-desktop @webkit-mobile", async ({
   page,
@@ -62,11 +62,7 @@ test("starts an undated plan with the keyboard and reopens it after recovery @we
   );
   await expect(actions).toHaveCount(0);
   await expect(outcomeNotice(page, "Moved to Trash")).toBeVisible();
-  await activateWithKeyboard(page, moreTrigger(page));
-  await activateWithKeyboard(
-    page,
-    page.getByRole("menuitem", { name: "Trash", exact: true }),
-  );
+  await openTrashWithKeyboard(page);
   await tabTo(page, page.getByLabel("Object type"));
   await page.keyboard.press("End");
   await page.keyboard.press("Enter");

@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 import { expect, test } from "./fixtures";
 import { moveToTrash } from "./helpers/lifecycle";
 import { exercisePeoplePage } from "./helpers/people-page";
-import { openTrash } from "./helpers/quiet-chrome";
+import { openCollection, openTrash } from "./helpers/quiet-chrome";
 import { chooseRowAction } from "./helpers/row-menu";
 
 test("keeps people as rows and namecards with a page for each", async ({
@@ -44,10 +44,7 @@ test("keeps people as rows and namecards with a page for each", async ({
 
   // A task assigned to the person names them by nickname, and the
   // person's page lists it under Tasks.
-  await page
-    .getByRole("navigation", { name: "Workspace navigation" })
-    .getByRole("link", { name: "Tasks", exact: true })
-    .click();
+  await openCollection(page, "Tasks");
   await page.getByRole("button", { name: "New task", exact: true }).click();
   const editor = page.getByRole("dialog", { name: "Add task", exact: true });
   await editor.getByLabel("Task", { exact: true }).fill("Call about the trip");

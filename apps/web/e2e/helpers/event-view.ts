@@ -1,14 +1,15 @@
 import { expect, type Page } from "@playwright/test";
 
+// The chip and its menu by their place in the strip, whatever the language.
 const foldChip = (page: Page) =>
-  page.getByRole("button", { name: /more tabs?$/ });
+  page.locator("[data-strip-chip] .event-strip-more").getByRole("button");
 
 /** Picks a tab folded away at the strip's end from the chip that lists them. */
 async function pickFoldedTab(page: Page, name: string): Promise<boolean> {
   const chip = foldChip(page);
   if (!(await chip.isVisible())) return false;
   await chip.click();
-  const menu = page.getByRole("menu", { name: /more tabs?$/ });
+  const menu = page.locator("[data-strip-chip]").getByRole("menu");
   await expect(menu).toBeVisible();
   const item = menu.getByRole("menuitem", { name, exact: true });
   if (await item.isVisible()) {
@@ -22,22 +23,17 @@ async function pickFoldedTab(page: Page, name: string): Promise<boolean> {
 /**
  * Opens one of the event's views: through its tab when the strip shows it,
  * else from the chip that lists the tabs folded away when the width runs
- * out, else through the phone's view select.
+ * out.
  */
 export async function openEventView(page: Page, name: string): Promise<void> {
   const tab = page.getByRole("tab", { name, exact: true });
-  const select = page.locator(".mobile-view-select select");
   await expect
     .poll(
-      async () =>
-        (await tab.isVisible()) ||
-        (await foldChip(page).isVisible()) ||
-        (await select.isVisible()),
+      async () => (await tab.isVisible()) || (await foldChip(page).isVisible()),
     )
     .toBe(true);
   if (await tab.isVisible()) await tab.click();
-  else if (!(await pickFoldedTab(page, name)))
-    await select.selectOption({ label: name });
+  else await pickFoldedTab(page, name);
   // The chosen view's tab is current, and a current tab never folds.
   await expect(tab).toHaveAttribute("aria-selected", "true");
 }

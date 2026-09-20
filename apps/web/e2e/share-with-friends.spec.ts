@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { expect, type Page, test } from "./fixtures";
+import { openCollection } from "./helpers/quiet-chrome";
 
 const signIn = async (page: Page, name: string, email: string) => {
   await page.goto("/sign-in/development");
@@ -140,7 +141,7 @@ test("shares an event with a friend and queues one for a person without an accou
   ).toEqual([]);
   // The People page marks Priya as invited and Ben, whose card the accept
   // linked, as a friend.
-  await page.getByRole("link", { name: "People", exact: true }).click();
+  await openCollection(page, "People");
   await expect(
     page.getByRole("listitem", { name: "Priya Raman", exact: true }),
   ).toContainText("Invited");

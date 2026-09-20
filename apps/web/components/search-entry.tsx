@@ -4,14 +4,16 @@ import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { canOpenCommands } from "../lib/keyboard";
+import { subscribeCommandPalette } from "../lib/command-palette";
 import { useCommandShortcut } from "../lib/shortcut-preference";
 import { SearchIcon } from "./icons";
 import { WorkspaceCommands } from "./workspace-commands";
 
 /**
  * The sidebar's Search entry: one palette for records, navigation, and the
- * current page's actions, opened from the entry or with Cmd/Ctrl+K. The
- * key hint shows on keyboard devices only; the shortcut stays bound.
+ * current page's actions, opened from the entry, with Cmd/Ctrl+K, or by a
+ * request from elsewhere in the shell (the phone's drawer, once closed).
+ * The key hint shows on keyboard devices only; the shortcut stays bound.
  */
 export function SearchEntry({
   current = false,
@@ -19,6 +21,7 @@ export function SearchEntry({
   readonly current?: boolean;
 }) {
   const [open, setOpen] = useState(false);
+  useEffect(() => subscribeCommandPalette(() => setOpen(true)), []);
   const t = useTranslations("nav");
   const shortcut = useCommandShortcut();
   const enabled = shortcut.value === "enabled";

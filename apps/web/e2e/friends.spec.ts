@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { expect, type Page, test } from "./fixtures";
+import { openCollection } from "./helpers/quiet-chrome";
 
 /** Signs the browser in as a development identity, leaving any session first. */
 async function signInAs(page: Page, name: string, email: string) {
@@ -106,10 +107,7 @@ test("connects two accounts through a request and links a person to the friend @
     "Ben",
   );
   await expect(page.getByRole("region", { name: /^Sent/ })).toHaveCount(0);
-  await page
-    .getByRole("navigation", { name: "Workspace navigation" })
-    .getByRole("link", { name: "People", exact: true })
-    .click();
+  await openCollection(page, "People");
   await page.getByRole("button", { name: "New person", exact: true }).click();
   const editor = page.getByRole("dialog", { name: "Add person", exact: true });
   // The typed name narrows the accounts under the field to Ben; the pick

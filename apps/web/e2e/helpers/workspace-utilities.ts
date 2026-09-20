@@ -2,9 +2,14 @@ import { expect, type Page, type TestInfo } from "@playwright/test";
 import { expectHorizontalReflow } from "./page-navigation";
 import {
   accountBlock,
+  closeDrawer,
+  drawer,
+  isPhone,
+  menuControl,
   moreTrigger,
   openAccountMenu,
   openThemePanel,
+  workspaceNavigation,
   workspaceSwitcher,
 } from "./quiet-chrome";
 import { openEventView } from "./event-view";
@@ -13,9 +18,11 @@ export async function exerciseWorkspaceUtilities(
   page: Page,
   testInfo: TestInfo,
 ) {
-  const navigation = page.getByRole("navigation", {
-    name: "Workspace navigation",
-  });
+  if (isPhone(page)) {
+    await exercisePhoneUtilities(page, testInfo);
+    return;
+  }
+  const navigation = await workspaceNavigation(page);
   for (const name of ["Events", "Tasks", "People"])
     await expect(
       navigation.getByRole("link", { name, exact: true }),
@@ -26,11 +33,9 @@ export async function exerciseWorkspaceUtilities(
   await expect(
     more.getByRole("menuitem", { name: "Trash", exact: true }),
   ).toHaveAttribute("href", /\/trash$/u);
-  // Arranging the rail is a desktop task: a phone's More does not offer it.
-  const phone = (page.viewportSize()?.width ?? 1280) <= 760;
   await expect(
     more.getByRole("menuitem", { name: "Customize sidebar", exact: true }),
-  ).toHaveCount(phone ? 0 : 1);
+  ).toHaveCount(1);
   await page.keyboard.press("Escape");
   await expect(more).toHaveCount(0);
   await expect(moreTrigger(page)).toBeFocused();
@@ -126,8 +131,125 @@ export async function exerciseWorkspaceUtilities(
   await expect(filter).toHaveClass(/is-active/);
   expect(page.url()).toBe(eventUrl);
 
-  await page.setViewportSize({ width: 320, height: 568 });
+  await exerciseNarrowChrome(page, testInfo);
+}
+
+/**
+ * The phone's chrome: the app bar's menu opens the sidebar as a drawer
+ * with the collections; the avatar opens the account sheet, with More's
+ * entries as its second group; the workspace control opens the switcher
+ * as a sheet; Theme opens as a sheet from More. A filter on the page
+ * survives a sheet opened and dismissed.
+ */
+async function exercisePhoneUtilities(page: Page, testInfo: TestInfo) {
+  const navigation = await workspaceNavigation(page);
+  for (const name of ["Events", "Tasks", "People"])
+    await expect(
+      navigation.getByRole("link", { name, exact: true }),
+    ).toBeVisible();
+  await expect(navigation.getByRole("link", { name: "Trash" })).toHaveCount(0);
+  await expect(
+    navigation.getByRole("button", {
+      name: "Search and commands",
+      exact: true,
+    }),
+  ).toBeVisible();
+  await page.screenshot({ path: testInfo.outputPath("drawer.png") });
+  await page.keyboard.press("Escape");
+  await expect(drawer(page)).toBeHidden();
+  await expect(menuControl(page)).toBeFocused();
+
+  // The account sheet: the account's name and email, then Friends,
+  // Settings, Sign out, then what More offers; Trash is a link there and
+  // Customize sidebar is offered, as the drawer arranges with Done.
+  const account = accountBlock(page);
+  await expect(account).toHaveCount(1);
+  await account.click();
+  const menu = page.getByRole("menu", { name: "Account", exact: true });
+  await expect(menu).toBeVisible();
+  await expect(menu.getByRole("menuitem", { name: /^Friends/ })).toBeFocused();
+  await page.screenshot({ path: testInfo.outputPath("account-sheet.png") });
+  await expect(
+    menu.getByRole("menuitem", { name: "Settings", exact: true }),
+  ).toBeVisible();
+  await expect(
+    menu.getByRole("menuitem", { name: "Sign out", exact: true }),
+  ).toBeVisible();
+  const more = menu.getByRole("group", { name: "More", exact: true });
+  await expect(
+    more.getByRole("menuitem", { name: "Trash", exact: true }),
+  ).toHaveAttribute("href", /\/trash$/u);
+  await expect(
+    more.getByRole("menuitem", { name: "Customize sidebar", exact: true }),
+  ).toBeVisible();
+  // One menu: End reaches the last of More's entries.
+  await page.keyboard.press("End");
+  await expect(
+    more.getByRole("menuitem", { name: "Help", exact: true }),
+  ).toBeFocused();
+  await page.keyboard.press("Escape");
+  await expect(menu).toHaveCount(0);
+  await expect(account).toBeFocused();
+
+  // The workspace control opens the switcher as its own sheet: the
+  // current workspace ticked and focused, Members at its foot.
+  const control = page.getByRole("button", { name: /^Workspace: / });
+  await expect(control).toContainText("Personal");
+  await control.click();
+  const switcher = workspaceSwitcher(page);
+  await expect(switcher).toBeVisible();
+  const listed = switcher.getByRole("menuitemradio", { checked: true });
+  await expect(listed).toHaveCount(1);
+  await expect(listed).toContainText("Personal");
+  await expect(listed).toBeFocused();
+  await expect(
+    switcher.getByRole("menuitem", { name: "Members", exact: true }),
+  ).toHaveAttribute("href", /\/settings\/members$/u);
+  await page.screenshot({
+    path: testInfo.outputPath("workspace-switcher.png"),
+  });
+  await page.keyboard.press("Escape");
+  await expect(switcher).toHaveCount(0);
+  await expect(control).toBeFocused();
+
+  const theme = await openThemePanel(page);
+  await expect(
+    theme.getByRole("group", { name: "Appearance" }).getByRole("radio", {
+      name: "System",
+      exact: true,
+    }),
+  ).toBeFocused();
+  await page.keyboard.press("Escape");
+  await expect(theme).toHaveCount(0);
+  await expect(account).toBeFocused();
+
+  await openEventView(page, "To-dos");
+  await page.getByRole("button", { name: /^Filter/ }).click();
+  await page.getByRole("menuitemradio", { name: "All", exact: true }).click();
+  await page.keyboard.press("Escape");
+  const filter = page.getByRole("button", {
+    name: "Filter: 1 filter",
+    exact: true,
+  });
+  const eventUrl = page.url();
   await openAccountMenu(page);
+  await page.mouse.click(2, 2);
+  await expect(menu).toHaveCount(0);
+  await expect(filter).toHaveClass(/is-active/);
+  expect(page.url()).toBe(eventUrl);
+  await closeDrawer(page);
+
+  await exerciseNarrowChrome(page, testInfo);
+}
+
+/**
+ * The phone chrome at the narrowest width, whichever width the journey
+ * began at: the sheets stay within the viewport, nothing reflows
+ * sideways, and the theme sheet's foot is reachable in landscape.
+ */
+async function exerciseNarrowChrome(page: Page, testInfo: TestInfo) {
+  await page.setViewportSize({ width: 320, height: 568 });
+  const menu = await openAccountMenu(page);
   await expectHorizontalReflow(page);
   await expect(
     menu.getByRole("menuitem", { name: "Sign out", exact: true }),
@@ -136,15 +258,17 @@ export async function exerciseWorkspaceUtilities(
     path: testInfo.outputPath("account-menu-narrow.png"),
   });
   await page.keyboard.press("Escape");
-  await account.click();
-  await switchItem.click();
+  await expect(menu).toHaveCount(0);
+  await page.getByRole("button", { name: /^Workspace: / }).click();
+  const switcher = workspaceSwitcher(page);
+  await expect(switcher).toBeVisible();
   await expectHorizontalReflow(page);
   await expect(
     switcher.getByRole("menuitem", { name: "Members", exact: true }),
   ).toBeInViewport();
   await page.keyboard.press("Escape");
-  await page.keyboard.press("Escape");
-  await openThemePanel(page);
+  await expect(switcher).toHaveCount(0);
+  const theme = await openThemePanel(page);
   await theme
     .getByRole("group", { name: "Appearance" })
     .getByRole("radio", { name: "Dark", exact: true })
@@ -164,9 +288,15 @@ export async function exerciseWorkspaceUtilities(
   await expectHorizontalReflow(page);
   await page.setViewportSize({ width: 320, height: 568 });
   await page.keyboard.press("Escape");
-  await expect(moreTrigger(page)).toBeFocused();
+  await expect(theme).toHaveCount(0);
+  await expect(accountBlock(page)).toBeFocused();
+  const navigation = await workspaceNavigation(page);
+  await expect(
+    navigation.getByRole("link", { name: "People", exact: true }),
+  ).toBeInViewport();
   await expectHorizontalReflow(page);
   await page.screenshot({
     path: testInfo.outputPath("workspace-navigation-narrow.png"),
   });
+  await closeDrawer(page);
 }

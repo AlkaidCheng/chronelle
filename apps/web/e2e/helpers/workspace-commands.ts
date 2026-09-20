@@ -6,7 +6,14 @@ import {
 } from "@playwright/test";
 import { isKeyboardDevice, setKeyboardPreferences } from "./keyboard-settings";
 import { expectHorizontalReflow } from "./page-navigation";
-import { openThemePanel, searchEntry } from "./quiet-chrome";
+import {
+  closeDrawer,
+  openThemePanel,
+  pressSearchEntry,
+  searchEntry,
+  searchReturn,
+  workspaceNavigation,
+} from "./quiet-chrome";
 import { openTaskEditor } from "./task-add";
 import { openEventView } from "./event-view";
 
@@ -16,7 +23,6 @@ export async function exerciseWorkspaceCommands(
 ) {
   const errors: string[] = [];
   page.on("pageerror", (error) => errors.push(error.message));
-  const trigger = searchEntry(page);
   const dialog = page.getByRole("dialog", { name: "Search", exact: true });
   const results = dialog.getByRole("listbox", {
     name: "Commands",
@@ -43,7 +49,7 @@ export async function exerciseWorkspaceCommands(
     name: "Filter: 1 filter",
     exact: true,
   });
-  await trigger.focus();
+  await searchReturn(page).focus();
   await page.keyboard.press("Control+k");
   const input = dialog.getByRole("combobox", {
     name: "Search records and commands",
@@ -88,11 +94,11 @@ export async function exerciseWorkspaceCommands(
     ).toBe(true);
   }
   await page.keyboard.press("Escape");
-  await expect(trigger).toBeFocused();
+  await expect(searchReturn(page)).toBeFocused();
   await expect(filter).toHaveClass(/is-active/);
 
   await page.setViewportSize({ width: 320, height: 568 });
-  await trigger.click();
+  await pressSearchEntry(page);
   await expectHorizontalReflow(page);
   await input.fill("trash");
   await expect(dialog.getByRole("option", { name: /Trash/ })).toBeInViewport();
@@ -101,7 +107,7 @@ export async function exerciseWorkspaceCommands(
     path: testInfo.outputPath("commands-narrow.png"),
   });
   await dialog.getByRole("button", { name: "Close search" }).click();
-  await expect(trigger).toBeFocused();
+  await expect(searchReturn(page)).toBeFocused();
   const enable = (section: Locator) =>
     section.getByRole("switch", { name: "Open Search", exact: true });
   await setKeyboardPreferences(page, { command: "disabled" }, async () => {
@@ -109,10 +115,12 @@ export async function exerciseWorkspaceCommands(
       path: testInfo.outputPath("keyboard-settings-narrow.png"),
     });
   });
-  await trigger.focus();
+  await searchReturn(page).focus();
   await page.keyboard.press("Control+k");
   await expect(dialog).toHaveCount(0);
-  await expect(trigger.locator("kbd")).toHaveCount(0);
+  // The entry's badge: read in the phone's drawer, hidden there on touch.
+  const badge = searchEntry(page).locator("kbd");
+  await expect(badge).toHaveCount(0);
   await setKeyboardPreferences(
     page,
     { command: "enabled" },
@@ -120,8 +128,10 @@ export async function exerciseWorkspaceCommands(
       await expect(enable(section)).not.toBeChecked();
     },
   );
-  if (keyboard) await expect(trigger.locator("kbd")).toBeVisible();
-  else await expect(trigger.locator("kbd")).toBeHidden();
+  await workspaceNavigation(page);
+  if (keyboard) await expect(badge).toBeVisible();
+  else await expect(badge).toBeHidden();
+  await closeDrawer(page);
 
   const theme = await openThemePanel(page);
   await theme
@@ -130,7 +140,7 @@ export async function exerciseWorkspaceCommands(
     .check();
   await page.keyboard.press("Escape");
   await expect(theme).toHaveCount(0);
-  await trigger.click();
+  await pressSearchEntry(page);
   await expectHorizontalReflow(page);
   await page.screenshot({
     path: testInfo.outputPath("commands-dark-narrow.png"),
@@ -149,7 +159,7 @@ export async function exerciseWorkspaceCommands(
   await page.keyboard.press("Enter");
   await expect(page).toHaveURL(/\/search$/);
   await expect(dialog).toHaveCount(0);
-  await trigger.click();
+  await pressSearchEntry(page);
   await dialog.getByRole("option", { name: /Trash/ }).click();
   await expect(page).toHaveURL(/\/trash$/);
   expect(errors).toEqual([]);

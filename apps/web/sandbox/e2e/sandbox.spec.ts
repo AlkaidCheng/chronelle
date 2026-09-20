@@ -1,5 +1,6 @@
 import { expect, test } from "@playwright/test";
 import { openEventView } from "../../e2e/helpers/event-view";
+import { openCollection } from "../../e2e/helpers/quiet-chrome";
 
 const sandboxUrl = new URL(
   "../../../../.chronelle/sandbox/chronelle.html",
@@ -42,7 +43,7 @@ test("standalone screens work offline and preserve browser edits", async ({
     page.getByRole("button", { name: "Edit event", exact: true }),
   ).toHaveCount(0);
   await page.getByLabel("Preview role").selectOption("owner");
-  await page.getByRole("link", { name: "Events", exact: true }).first().click();
+  await openCollection(page, "Events");
   await page.getByRole("button", { name: "New event", exact: true }).click();
   await page
     .getByLabel("Event name", { exact: true })

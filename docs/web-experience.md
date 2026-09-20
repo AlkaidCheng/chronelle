@@ -38,12 +38,19 @@ Chronelle opens into an event collection, with workspace-wide Tasks and People
 alongside it. Desktop navigation stays on the left: Search at the top, then a
 Collections section (Events, Tasks, People) in the order the account keeps,
 then the account block (the account's name with the current workspace
-under it) with a More control beside it. Mobile navigation remains at the bottom with
-space for the device's safe area, in the same order, and the workspace,
-account, and More controls sit in a slim bar at the top. There
-is no other header: each page starts with its own title. Search in the rail
-opens the one palette (records, destinations including Trash, and the current
-page's actions); the Search page stays reachable from the palette.
+under it) with a More control beside it. A phone (under 760px) has no rail
+and no bottom bar: an app bar fixed at the top of every page holds a menu
+control at the left, the current workspace beside it (its mark and name),
+and the account's avatar at the right, with space for the device's safe
+area. The menu control opens the sidebar as a drawer from the left edge (the
+brand with a close control, Search, and the Collections in the kept order,
+the open page current as on the rail) over a scrim; choosing a collection
+opens it and closes the drawer, Escape, the scrim, or the close control
+closes it, and focus returns to the menu control. There is no other header:
+each page starts with its own title. Search in the rail, or in the drawer,
+opens the one palette (records, destinations including Trash, and the
+current page's actions); the Search page stays reachable from the palette,
+and on a phone closing the palette returns focus to the menu control.
 
 The Collections section is the person's to arrange: a pencil beside the
 heading (shown on hover or focus), or More then Customize sidebar, opens
@@ -57,8 +64,11 @@ shows it again (a hidden collection stays dimmed in customize mode, and
 still shows while it is the open page). Each change is kept on the account
 at once, so the order and the hidden set follow the person across devices,
 and Done ends customize mode. A collection that ships later appends in its
-default place. The bottom bar on a phone lists the collections in the kept
-order and offers no arranging; More does not offer it there.
+default place. The phone's drawer has no pencil: a finger held half a
+second on a collection enters customize mode in place (the tap that follows
+stays on the page), the Collections heading reads "Collections - Done" until
+Done is chosen, and Customize sidebar in the account sheet opens the drawer
+already customizing.
 
 On a window wide enough for the sidebar, a control beside the brand collapses
 it: the sidebar slides off the left edge as the content follows (at once when
@@ -70,8 +80,9 @@ kept on this device under `chronelle.sidebar` (absent while open, `collapsed`
 otherwise) and applied before the first paint like the theme, so a reload
 never shows the sidebar first; Reset display settings opens it again with the
 other display choices. A phone never folds: below the sidebar width the
-bottom bar stays, neither control shows, the shortcut does nothing, and a
-choice kept from a wide window waits until the window is wide again.
+app bar and its drawer stand in, neither control shows, the shortcut does
+nothing, and a choice kept from a wide window waits until the window is wide
+again.
 
 More holds what acts on the app rather than on records: Trash, Theme,
 Customize sidebar, Keyboard shortcuts, and Help. Theme opens a panel beside
@@ -105,6 +116,20 @@ focus to its control; none navigates or discards the current Event draft. A
 workspace or session change uses the existing session boundary to cancel
 pending requests and clear protected state. Workspace choices come from the
 authorized session response; choosing one never grants access by itself.
+
+On a phone these surfaces are sheets that rise from the bottom edge and
+never leave the screen, each a modal dialog with a scrim and a handle at
+its top (a pull down on the handle, a press on it or on the scrim, or Escape
+closes it, and focus returns to the control that opened it). The workspace
+control in the app bar (the home mark and "Personal", or the owner's
+initials and name) opens the switcher's list as a sheet, without the way
+back the rail's list has; Cmd/Ctrl+Shift+K opens and closes it too. The
+avatar opens the account sheet: the account's name and email, Friends (with
+the requests waiting), Settings, Sign out, then More's entries as a second
+group of the same menu (Trash, Theme, Customize sidebar, Help, and Keyboard
+shortcuts on a keyboard device), so the arrow keys walk the whole list.
+Theme opens its own sheet with the same controls as the rail's panel, and
+Customize sidebar opens the drawer customizing.
 
 The Events page is one row: the title with the inline name filter beside
 it at the left, then, at the right edge, quiet Filter (All, Upcoming &
@@ -774,9 +799,9 @@ not yet reviewed the two Chinese catalogs; wording may change.
   storage; no object data, search text, or permissions are persisted there.
   Storage restrictions do not prevent using either layout.
 - Event views have bookmarkable URLs, such as `/events/OBJECT_ID?view=calendar`.
-  Reload and browser Back/Forward preserve the selected view. A mobile view
-  selector lists the views on the strip (and the one shown, if it is off the
-  strip). A view reached by its address shows even while hidden from or
+  Reload and browser Back/Forward preserve the selected view. A phone keeps
+  the strip, folded past its width into the chip, with no separate view
+  select. A view reached by its address shows even while hidden from or
   removed off the strip. Close the Event inspector before using background
   page navigation.
 - Named pages use the independent `page` query parameter. Selecting a view
@@ -789,7 +814,11 @@ not yet reviewed the two Chinese catalogs; wording may change.
   fold, from the end, into one chip ("+N more") that lists them; the current
   tab never folds. The page heading retains its full name, and the quiet
   Events link above the title returns to the collection. An undated event
-  shows no date line; Set dates opens the editor on the schedule.
+  shows no date line; Set dates opens the editor on the schedule. On a phone
+  the head is compact: the Events link and the actions share the first row,
+  the title sits under them, and a share reads as a tag beside the date
+  ("Shared by Chen Li" and the role) in place of the access line; the Events
+  page's chips sit closer above the cards.
 - The gallery (Add a view, or Add view in Manage tabs) shows every
   specialized view as a card with a mark, a name and one line: To-dos,
   Calendar, Timeline, Itinerary, Expenses, Reminders, Files, People, Notes,

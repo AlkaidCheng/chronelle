@@ -1,5 +1,6 @@
 import { expect, type Page, type TestInfo } from "@playwright/test";
 import { expectDates, expectNoDates, setDates } from "./date-rows";
+import { openCollection } from "./quiet-chrome";
 
 export async function exerciseEventDrafts(page: Page, testInfo: TestInfo) {
   const trigger = page.getByRole("button", { name: "New event", exact: true });
@@ -72,7 +73,7 @@ export async function exerciseEventDrafts(page: Page, testInfo: TestInfo) {
   await expect(page.locator(".event-date")).toHaveText(
     "Jul 3, 2030 to Jul 12, 2030",
   );
-  await page.getByRole("link", { name: "Events", exact: true }).first().click();
+  await openCollection(page, "Events");
   await trigger.click();
   await name.fill("Discarded idea");
   await page.keyboard.press("Escape");

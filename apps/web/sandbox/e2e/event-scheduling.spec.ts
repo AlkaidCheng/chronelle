@@ -10,6 +10,7 @@ import {
   setDates,
   timesRow,
 } from "../../e2e/helpers/date-rows";
+import { openCollection } from "../../e2e/helpers/quiet-chrome";
 
 const sandboxUrl = new URL(
   "../../../../.chronelle/sandbox/chronelle.html",
@@ -199,7 +200,7 @@ test("creation makes the background inert and allows a single day or no dates", 
     .getByRole("button", { name: "Create event", exact: true })
     .click();
   await expect(page.locator(".event-date")).toHaveText("Apr 4, 2028");
-  await page.getByRole("link", { name: "Events", exact: true }).first().click();
+  await openCollection(page, "Events");
   await trigger.click();
   await dialog.getByLabel("Event name", { exact: true }).fill("Unscheduled");
   await setDates(dialog, "Apr 4, 2028");

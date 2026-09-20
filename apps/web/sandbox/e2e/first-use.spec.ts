@@ -2,7 +2,9 @@ import { expect, test } from "@playwright/test";
 import {
   activateWithKeyboard,
   createFirstPlan,
+  openTrashWithKeyboard,
 } from "../../e2e/helpers/first-use";
+import { isPhone, menuControl } from "../../e2e/helpers/quiet-chrome";
 import { sandboxStorageKey } from "../storage-key";
 
 const sandboxUrl = new URL(
@@ -27,21 +29,18 @@ test("starts with an empty offline workspace and composes only selected componen
   page.on("pageerror", (error) => errors.push(error.message));
   await page.goto(sandboxUrl);
   await createFirstPlan(page, testInfo);
-  const navigation = page.getByRole("navigation", {
-    name: "Workspace navigation",
-  });
-  // Trash sits under More; the menu's first entry takes focus when it opens.
-  await activateWithKeyboard(page, page.locator(".more-trigger"));
-  await expect(
-    page.getByRole("menuitem", { name: "Trash", exact: true }),
-  ).toBeFocused();
-  await page.keyboard.press("Enter");
+  // Trash sits under More, reached with the keyboard.
+  await openTrashWithKeyboard(page);
   await expect(
     page.getByRole("heading", { name: "No recoverable objects" }),
   ).toBeVisible();
+  // Events from the sidebar: the phone's drawer opens from its menu control.
+  if (isPhone(page)) await activateWithKeyboard(page, menuControl(page));
   await activateWithKeyboard(
     page,
-    navigation.getByRole("link", { name: "Events", exact: true }),
+    page
+      .getByRole("navigation", { name: "Workspace navigation" })
+      .getByRole("link", { name: "Events", exact: true }),
   );
   await activateWithKeyboard(
     page,

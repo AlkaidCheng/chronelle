@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { expect, type Page, test } from "./fixtures";
+import { openEventView } from "./helpers/event-view";
 
 /** The tabs on the strip, pages and views, as they read left to right. */
 async function stripTabs(page: Page): Promise<string[]> {
@@ -202,13 +203,13 @@ test("keeps the account's tabs for an event through the gallery, Manage tabs, th
     page.getByRole("tab", { name: "Files", exact: true }),
   ).toHaveAttribute("aria-selected", "true");
   if (phone) {
-    // The phone's select lists the strip's views, plus the one shown.
-    const select = page.getByLabel("Event view", { exact: true });
-    await expect(select).toHaveValue("files");
-    await select.selectOption("todos");
-    expect(await select.locator("option").allTextContents()).not.toContain(
-      "Expenses",
-    );
+    // The phone keeps the strip, folded past its width into the chip; a
+    // hidden view is not on it while another is shown.
+    await expect(page.locator(".mobile-view-select")).toHaveCount(0);
+    await openEventView(page, "To-dos");
+    await expect(
+      page.getByRole("tab", { name: "Expenses", exact: true }),
+    ).toHaveCount(0);
   }
 
   // The strip never wraps: at a narrow width the end folds into one chip

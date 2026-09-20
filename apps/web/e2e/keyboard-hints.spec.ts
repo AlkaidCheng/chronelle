@@ -1,7 +1,14 @@
 import { randomUUID } from "node:crypto";
 import { expect, test } from "./fixtures";
 import { keyboardSection } from "./helpers/keyboard-settings";
-import { openMoreMenu, searchEntry } from "./helpers/quiet-chrome";
+import {
+  closeDrawer,
+  openMoreMenu,
+  pressSearchEntry,
+  searchEntry,
+  searchReturn,
+  workspaceNavigation,
+} from "./helpers/quiet-chrome";
 
 async function signIn(page: import("@playwright/test").Page) {
   await page.goto("/sign-in/development");
@@ -20,22 +27,23 @@ test("shows shortcut symbols and the keyboard settings on a keyboard device alon
     () => window.matchMedia("(hover: hover) and (pointer: fine)").matches,
   );
   expect(keyboard).toBe(!isMobile);
+  // The entry is read in the phone's drawer; the badge hides there on touch.
   const entry = searchEntry(page);
   const badge = entry.locator("kbd");
+  await workspaceNavigation(page);
+  if (keyboard) await expect(badge).toBeVisible();
+  else await expect(badge).toBeHidden();
+  await closeDrawer(page);
   const more = await openMoreMenu(page);
   const shortcuts = more.getByRole("menuitem", {
     name: "Keyboard shortcuts",
     exact: true,
   });
-  if (keyboard) {
-    await expect(badge).toBeVisible();
-    await expect(shortcuts).toBeVisible();
-  } else {
-    await expect(badge).toBeHidden();
-    await expect(shortcuts).toHaveCount(0);
-  }
+  if (keyboard) await expect(shortcuts).toBeVisible();
+  else await expect(shortcuts).toHaveCount(0);
   await page.keyboard.press("Escape");
-  await entry.click();
+  await expect(more).toHaveCount(0);
+  await pressSearchEntry(page);
   const palette = page.getByRole("dialog", { name: "Search", exact: true });
   await expect(
     palette.getByRole("combobox", { name: "Search records and commands" }),
@@ -68,8 +76,10 @@ test("shows shortcut symbols and the keyboard settings on a keyboard device alon
   await expect(search).toBeChecked();
   await search.uncheck();
   await page.goto("/events");
+  await workspaceNavigation(page);
   await expect(badge).toHaveCount(0);
-  await entry.focus();
+  await closeDrawer(page);
+  await searchReturn(page).focus();
   await page.keyboard.press("ControlOrMeta+k");
   await expect(palette).toHaveCount(0);
   await page.goto("/settings/keyboard");
