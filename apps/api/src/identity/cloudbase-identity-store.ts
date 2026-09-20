@@ -124,6 +124,7 @@ export class CloudBaseIdentityStore implements IdentityStore {
   async resolveSession(
     identity: AuthIdentity,
     requestedWorkspaceId: string | undefined,
+    objectId?: string | undefined,
   ): Promise<IdentitySessionRows | null> {
     const [userFound] = await this.#client.select<Row>("users", {
       filters: filters(
@@ -139,7 +140,22 @@ export class CloudBaseIdentityStore implements IdentityStore {
       limit: 1,
     });
     if (personal === undefined) return null;
-    const workspaceId = requestedWorkspaceId ?? workspaceRow(personal).id;
+    let workspaceId = requestedWorkspaceId ?? workspaceRow(personal).id;
+    if (objectId !== undefined) {
+      const [object] = await this.#client.select<Row>("objects", {
+        columns: "workspace_id",
+        filters: filters(["id", "eq", objectId]),
+        limit: 1,
+      });
+      const owner =
+        object === undefined ? null : text(object.workspace_id, "workspace_id");
+      if (
+        owner !== null &&
+        owner !== workspaceId &&
+        (await this.#canAccessWorkspace(user.id, owner))
+      )
+        workspaceId = owner;
+    }
     if (!(await this.#canAccessWorkspace(user.id, workspaceId)))
       throw new WorkspaceUnavailableError();
     const [found] = await this.#client.select<Row>("workspaces", {

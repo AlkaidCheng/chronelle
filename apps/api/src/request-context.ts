@@ -59,6 +59,18 @@ function readWorkspaceId(
   return result.data;
 }
 
+/**
+ * The object a route names in its `id` parameter, when it is one; the
+ * session then follows the object's workspace, so a share opens where it
+ * lives. Any other identifier in that place leaves the session where the
+ * header put it.
+ */
+function readObjectId(params: unknown): string | undefined {
+  if (params === null || typeof params !== "object") return undefined;
+  const result = z.uuid().safeParse((params as { id?: unknown }).id);
+  return result.success ? result.data : undefined;
+}
+
 export function registerRequestContext(
   app: FastifyInstance,
   dependencies: RequestContextDependencies,
@@ -76,6 +88,7 @@ export function registerRequestContext(
     const session = await dependencies.identity.resolvePrincipal(
       identity,
       workspaceId,
+      readObjectId(request.params),
     );
     request.identitySession = session;
     request.principal = session.principal;
