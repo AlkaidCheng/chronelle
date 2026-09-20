@@ -1,0 +1,47 @@
+{
+  "open": "About this {surface}",
+  "surface": {
+    "editor": "editor",
+    "dialog": "dialog"
+  },
+  "drafts": {
+    "title": "Drafts",
+    "body": "Unsaved changes stay in this tab until reload or sign-out, and are offered again when the editor reopens."
+  },
+  "schedule": {
+    "title": "Schedule",
+    "body": "Dates, times, and a place can be set now or later. The itinerary shows the place beside its time."
+  },
+  "reminder": {
+    "title": "Reminders",
+    "body": "A reminder is recorded on the event; no notification is sent."
+  },
+  "noteText": {
+    "title": "Text",
+    "body": "Plain text. Line breaks are kept and links open when the note is read."
+  },
+  "accounts": {
+    "title": "Accounts",
+    "body": "The Name field lists your own account and your friends as you type; picking one links the card to that account and fills in its contacts. A linked card reaches that account for shares and invitations; clear the mark in the field to unlink and keep the name."
+  },
+  "fields": {
+    "title": "Fields",
+    "body": "Anything worth keeping about a person: a birthday, a dietary note."
+  },
+  "pages": {
+    "title": "Pages",
+    "body": "Pages organize this event. Start blank or choose a few useful views."
+  },
+  "presets": {
+    "title": "Presets",
+    "body": "A preset adds one page of event-wide views. Existing pages and records stay unchanged."
+  },
+  "tabs": {
+    "title": "Reordering",
+    "body": "Drag a row, or press its grip and use the arrow keys, to reorder. The eye hides a tab but keeps it here; the cross takes a view off the event (its records stay; the gallery brings it back)."
+  },
+  "fixedTabs": {
+    "title": "Fixed tabs",
+    "body": "Overview, To-dos, Sharing and Removed links can be hidden but not removed."
+  }
+}

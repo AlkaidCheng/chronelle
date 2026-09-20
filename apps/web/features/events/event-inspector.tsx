@@ -33,6 +33,7 @@ import {
 import { useRefreshEvent, useUpdateEvent } from "../../lib/queries";
 import { useEditorDraft } from "../../lib/use-editor-draft";
 import { useSessionDialog } from "../../lib/use-session-dialog";
+import { useDialogHelp } from "../../lib/use-dialog-help";
 import { useDiscardConfirmation } from "../../lib/use-discard-confirmation";
 import { useOpenHistory } from "../history/history-provider";
 import type { FieldFormatter } from "./conflict-notice";
@@ -120,6 +121,7 @@ function EventInspectorForm({
     onClose,
   });
   const dialog = useSessionDialog(onClose);
+  const help = useDialogHelp("event");
   const nameInput = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -196,6 +198,7 @@ function EventInspectorForm({
         isConfirming={confirmingDiscard}
         isPending={update.isPending}
         onClose={requestClose}
+        help={help}
       >
         <button
           hidden={confirmingDiscard}

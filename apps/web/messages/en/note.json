@@ -7,6 +7,5 @@
   "unsaved": "Your note changes have not been saved.",
   "name": "Title",
   "body": "Text",
-  "bodyHint": "Plain text. Line breaks are kept and links open when the note is read.",
   "save": "Save"
 }

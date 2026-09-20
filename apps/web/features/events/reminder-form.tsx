@@ -25,6 +25,7 @@ import {
   EditorDraftRecovery,
   EditorDraftStatus,
 } from "./editor-draft-recovery";
+import { useDialogHelp } from "../../lib/use-dialog-help";
 import { usePlanningEditorDialog } from "../../lib/use-planning-editor-dialog";
 import { useOpenHistory } from "../history/history-provider";
 import { useEditorDraft } from "../../lib/use-editor-draft";
@@ -138,6 +139,7 @@ function ReminderEditor({
     mutation,
     onClose: close,
   });
+  const help = useDialogHelp("reminder");
 
   function handleSubmit(formEvent: FormEvent<HTMLFormElement>) {
     formEvent.preventDefault();
@@ -203,6 +205,7 @@ function ReminderEditor({
         isConfirming={isConfirming}
         isPending={mutation.isPending}
         onClose={requestClose}
+        help={help}
       >
         {reminder && (
           <button
@@ -267,7 +270,6 @@ function ReminderEditor({
             setLabel={t("setTime")}
             value={remindAt}
           />
-          <p className="field-hint">{t("recordedOnly")}</p>
           {timeError && <p role="alert">{timeError}</p>}
         </div>
         <footer className="event-inspector-footer">

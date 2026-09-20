@@ -4,8 +4,10 @@ import { useTranslations } from "next-intl";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { eventPagesSchema, type EventLayoutResponse } from "@chronelle/schemas";
 import { CountedField } from "../../components/counted-field";
+import { EditorDialogHeader } from "../../components/editor-dialog-controls";
 import { ErrorNotice } from "../../components/feedback";
 import { useUpdateEventLayout } from "../../lib/event-layout-queries";
+import { useDialogHelp } from "../../lib/use-dialog-help";
 import { useSessionDialog } from "../../lib/use-session-dialog";
 import {
   createPresetPage,
@@ -39,6 +41,7 @@ export function AddEventPageDialog({
   const candidate = eventPagesSchema.safeParse([...source.pages, page]);
   const save = useUpdateEventLayout(layout.eventId);
   const dialog = useSessionDialog(onClose);
+  const help = useDialogHelp("page");
   const nameInput = useRef<HTMLInputElement>(null);
   useEffect(() => {
     nameInput.current?.focus();
@@ -71,18 +74,14 @@ export function AddEventPageDialog({
         if (!save.isPending) onClose();
       }}
     >
-      <header className="event-create-header">
-        <h2 id="page-content-heading">{t("title")}</h2>
-        <button
-          type="button"
-          className="dialog-close"
-          aria-label={t("close")}
-          disabled={save.isPending}
-          onClick={onClose}
-        >
-          &#215;
-        </button>
-      </header>
+      <EditorDialogHeader
+        headingId="page-content-heading"
+        title={t("title")}
+        closeLabel={t("close")}
+        isPending={save.isPending}
+        onClose={onClose}
+        help={help}
+      />
       <form
         onSubmit={submit}
         aria-busy={save.isPending}
@@ -95,11 +94,7 @@ export function AddEventPageDialog({
         }}
       >
         <div className="event-create-body">
-          <p className="field-hint" id="page-name-hint">
-            {t("intro")}
-          </p>
           <CountedField
-            aria-describedby="page-name-hint"
             disabled={save.isPending}
             inputRef={nameInput}
             label={t("name")}
@@ -137,7 +132,6 @@ export function AddEventPageDialog({
                 ))}
               </ol>
             ) : null}
-            <p className="field-hint">{t("addsNote")}</p>
           </section>
           {page.name && !candidate.success ? (
             <p role="status">{t("limit")}</p>

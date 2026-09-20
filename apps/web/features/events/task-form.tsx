@@ -33,6 +33,7 @@ import {
   EditorDraftRecovery,
   EditorDraftStatus,
 } from "./editor-draft-recovery";
+import { useDialogHelp } from "../../lib/use-dialog-help";
 import { usePlanningEditorDialog } from "../../lib/use-planning-editor-dialog";
 import { useOpenHistory } from "../history/history-provider";
 import { DueRow } from "../../components/due-row";
@@ -199,6 +200,7 @@ function TaskEditor({
     mutation,
     onClose: close,
   });
+  const help = useDialogHelp("task");
 
   function handleSubmit(formEvent: FormEvent<HTMLFormElement>) {
     formEvent.preventDefault();
@@ -292,6 +294,7 @@ function TaskEditor({
         isConfirming={isConfirming}
         isPending={mutation.isPending}
         onClose={requestClose}
+        help={help}
       >
         {task && (
           <button

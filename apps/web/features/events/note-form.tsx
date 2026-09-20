@@ -24,6 +24,7 @@ import {
   EditorDraftRecovery,
   EditorDraftStatus,
 } from "./editor-draft-recovery";
+import { useDialogHelp } from "../../lib/use-dialog-help";
 import { usePlanningEditorDialog } from "../../lib/use-planning-editor-dialog";
 import { useOpenHistory } from "../history/history-provider";
 import { useEditorDraft } from "../../lib/use-editor-draft";
@@ -118,6 +119,7 @@ function NoteEditor({
     mutation,
     onClose: close,
   });
+  const help = useDialogHelp("note");
 
   function handleSubmit(formEvent: FormEvent<HTMLFormElement>) {
     formEvent.preventDefault();
@@ -172,6 +174,7 @@ function NoteEditor({
         isConfirming={isConfirming}
         isPending={mutation.isPending}
         onClose={requestClose}
+        help={help}
       >
         {note && (
           <button
@@ -232,7 +235,6 @@ function NoteEditor({
               value={body}
             />
           </label>
-          <p className="field-hint">{t("bodyHint")}</p>
         </div>
         <footer className="event-inspector-footer">
           <EditorControls
