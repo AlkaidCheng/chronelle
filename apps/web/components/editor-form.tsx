@@ -60,23 +60,12 @@ export function EditorSubmitButton(
   const shortcut = useEditorShortcut();
   const enabled = shortcut.value === "enabled" && !props.disabled;
   return (
-    <>
-      <button
-        {...props}
-        type="submit"
-        data-editor-submit=""
-        aria-keyshortcuts={enabled ? "Control+Enter Meta+Enter" : undefined}
-        title={enabled ? t("shortcutTitle") : undefined}
-      />
-      {shortcut.value === "enabled" && (
-        <span
-          className="editor-shortcut-hint"
-          aria-hidden="true"
-          data-unavailable={!enabled}
-        >
-          <kbd>Cmd/Ctrl + Enter</kbd>
-        </span>
-      )}
-    </>
+    <button
+      {...props}
+      type="submit"
+      data-editor-submit=""
+      aria-keyshortcuts={enabled ? "Control+Enter Meta+Enter" : undefined}
+      title={enabled ? t("shortcutTitle") : undefined}
+    />
   );
 }

@@ -96,20 +96,47 @@ describe("PeoplePage", () => {
     expect(list).toHaveClass("person-list");
     expect(screen.getByText("1 person loaded")).toBeInTheDocument();
 
-    // The row menu edits: a nickname, the link to the signed-in user, an
-    // email, a label, and a field.
+    // The row menu edits: a nickname, the link to the signed-in user from
+    // the Name field's lookup (which fills the name and the account's
+    // email; the name is typed back), an email, a label, and a field.
     await openRowMenu(mira, "Edit");
     const editor = await screen.findByRole("dialog", { name: "Edit person" });
     await user.type(within(editor).getByLabelText("Nickname"), "Mira");
-    await user.click(within(editor).getByLabelText("This is me"));
+    const name = within(editor).getByRole("combobox", { name: "Name" });
+    await user.click(name);
+    const accounts = await within(editor).findByRole("listbox", {
+      name: "Accounts",
+    });
+    expect(within(accounts).getAllByRole("option")).toHaveLength(1);
+    await user.click(
+      within(accounts).getByRole("option", {
+        name: "Sample planner planner@example.test You",
+      }),
+    );
+    expect(name).toHaveValue("Sample planner");
+    expect(within(editor).getByText("You")).toBeVisible();
+    expect(
+      within(editor).getByRole("button", {
+        name: "Email: planner@example.test",
+      }),
+    ).toBeVisible();
+    await user.click(
+      within(editor).getByRole("button", { name: "Remove contact 1" }),
+    );
+    await user.clear(name);
+    await user.type(name, "Mira Chen");
+    expect(within(editor).queryByRole("listbox")).toBeNull();
     await user.click(
       within(editor).getByRole("button", { name: "Add contact" }),
     );
     await user.type(
       within(editor).getByLabelText("Contact 1 value"),
-      "mira@example.test",
+      "mira@example.test{Enter}",
     );
-    await user.click(within(editor).getByText("Labels"));
+    expect(
+      within(editor).getByRole("button", { name: "Email: mira@example.test" }),
+    ).toHaveFocus();
+    await user.click(within(editor).getByRole("button", { name: "Labels" }));
     await user.type(within(editor).getByLabelText("New label"), "family");
     await user.click(within(editor).getByRole("button", { name: "Add label" }));
     await waitFor(() =>
@@ -117,7 +144,12 @@ describe("PeoplePage", () => {
         within(editor).getByRole("checkbox", { name: "family" }),
       ).toBeChecked(),
     );
+    await user.keyboard("{Escape}");
+    expect(
+      within(editor).getByRole("button", { name: "Labels: family" }),
+    ).toHaveFocus();
     await user.click(within(editor).getByRole("button", { name: "Add field" }));
+    expect(within(editor).getByLabelText("Field 1 name")).toHaveFocus();
     await user.type(within(editor).getByLabelText("Field 1 name"), "diet");
     await user.type(
       within(editor).getByLabelText("Field 1 value"),

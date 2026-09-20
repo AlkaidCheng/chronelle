@@ -801,3 +801,32 @@ export function LinesIcon({ className }: IconProps) {
     </svg>
   );
 }
+
+/** A table cell: a custom field. */
+export function FieldIcon({ className }: IconProps) {
+  return (
+    <svg
+      aria-hidden="true"
+      className={className}
+      fill="none"
+      viewBox="0 0 24 24"
+    >
+      <rect height="14" rx="2" width="18" x="3" y="5" />
+      <path d="M3 10h18M9 10v9" />
+    </svg>
+  );
+}
+
+/** A plus: a row that adds one more of something. */
+export function AddIcon({ className }: IconProps) {
+  return (
+    <svg
+      aria-hidden="true"
+      className={className}
+      fill="none"
+      viewBox="0 0 24 24"
+    >
+      <path d="M12 5v14M5 12h14" />
+    </svg>
+  );
+}

@@ -35,7 +35,8 @@ const hans = {
   edit: "\u7f16\u8f91",
   editPerson: "\u7f16\u8f91\u4f19\u4f34",
   name: "\u59d3\u540d",
-  thisIsMe: "\u8fd9\u662f\u6211",
+  accounts: "\u8d26\u6237",
+  you: "\u6211",
   addContact: "\u6dfb\u52a0\u8054\u7cfb\u65b9\u5f0f",
   contactValue: "\u8054\u7cfb\u65b9\u5f0f 1 \u7684\u5185\u5bb9",
   savePerson: "\u4fdd\u5b58\u4f19\u4f34",
@@ -224,10 +225,24 @@ test("switches the workspace to Simplified and Traditional Chinese and back @web
     name: hans.editPerson,
     exact: true,
   });
-  await expect(personEditor.getByLabel(hans.name, { exact: true })).toHaveValue(
-    "Lin Wei",
-  );
-  await expect(personEditor.getByLabel(hans.thisIsMe)).toBeVisible();
+  const personName = personEditor.getByRole("combobox", {
+    name: hans.name,
+    exact: true,
+  });
+  await expect(personName).toHaveValue("Lin Wei");
+  // The Name field's lookup lists the signed-in user's own account,
+  // tagged in the language; Escape puts it away.
+  await personName.click();
+  const accounts = personEditor.getByRole("listbox", {
+    name: hans.accounts,
+    exact: true,
+  });
+  await expect(accounts.getByRole("option")).toHaveText([
+    new RegExp(`${hans.you}$`),
+  ]);
+  await personName.press("Escape");
+  await expect(accounts).toHaveCount(0);
+  await expect(personEditor).toBeVisible();
   // An email makes the person reachable, so Share lists them among the
   // other people of the workspace.
   await personEditor

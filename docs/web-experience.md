@@ -222,12 +222,25 @@ the person made to this account, both appear. A card reached through a share (an
 workspace's) has no Shared panel, tab, or Share action. Events lists the
 events the person is part
 of, each a link with its dates. Tasks lists the tasks assigned to them, open
-and done, each a link to where it lives. The editor takes the name, nickname,
-This is me (offered when the person is unlinked or already this user's; one
-person per account), the contacts as kind/value rows with Add contact and
-Remove, Labels (the same picker tasks use, with a field to add one), the
-description, and the custom fields as name/value rows with Add field and
-Remove. Editing keeps a field's original type unless its text changes.
+and done, each a link to where it lives. The editor is one column: the
+name with the nickname beside it, then rows in the idiom of the event
+editor's schedule rows (the field's symbol, its name while unset, its value
+with a clear once set). The Name field is also the account lookup: while it
+has focus and the card is unlinked, the accounts the card can be linked to
+list under it, the signed-in user's own first (tagged You, offered while no
+other card of the workspace is theirs) and then the friends whose name or
+email contains the typed text; arrow keys walk the list, Enter or a click
+picks, Escape closes it. A pick links the card, fills the name, and adds
+the account's email as a contact unless the contacts already carry it; the
+field then shows a mark at its right reading You or Friend whose clear
+unlinks and keeps the name (a card linked to another account reads Linked
+without a clear). The contact rows each carry their kind's symbol and open
+in place as kind + value when pressed; Add contact appends one already
+open, and a row left empty when editing ends goes. Labels opens the same
+checklist tasks use under its row and reads the chosen names; the
+description is a growing field; the custom fields are name/value rows with
+a remove, and Add field appends one with its name focused. Editing keeps a
+field's original type unless its text changes.
 Assignee chips, the assignee and share pickers, and the event People
 component all name a person by their nickname when one exists. Search and
 Trash filter by People, and Trash restores them.
@@ -354,10 +367,13 @@ weekly").
 
 Every bounded text field in an editor (the names of events, schedule items,
 tasks, expenses, reminders, pages, labels, and people; a person's email and
-fields; a task's location)
-counts its characters ("n / limit") as the user types and stops at the
-limit: a longer paste is cut to the limit, and the count turns red when the
-limit is reached.
+fields; a task's location) stops at its limit: a longer paste is cut to the
+limit. The count ("n / limit") shows only once the text is within the last
+twenty characters of the limit, and turns red when the limit is reached; a
+field far from its limit carries no number. The editors' footers carry no
+line under their buttons: neither a note that drafts stay in the tab (the
+recovery dialog says so when it matters) nor the submit shortcut's keys
+(the button's tooltip and its `aria-keyshortcuts` name them).
 
 ## Friends
 
@@ -404,9 +420,10 @@ accepted request. The account's own link says "This is your own invitation
 link."; a used one "This invitation was already accepted."; a withdrawn one
 "This invitation is no longer open."; an expired one "This invitation
 expired on 2 Oct 2026."; an unknown one "No invitation has this link."
-In the person editor, Link to a friend offers the account's
-friends beside This is me, so a card of any workspace can be the friend;
-accepting a request that came from a card links the card by itself. From a
+In the person editor, the Name field's lookup offers the account's
+friends after the account's own entry, so a card of any workspace can be
+the friend; accepting a request that came from a card links the card by
+itself. From a
 card's Invite a friend, the search starts with the card's name.
 
 Your code, beside Invite a friend, shows the account's QR code and profile
@@ -1132,8 +1149,8 @@ changes clear retained fields and retry identity. This is session-local recovery
 not durable offline storage.
 
 Cmd/Ctrl + Enter submits the focused native field in these editors, including
-the New event dialog. The save button shows a hint and exposes the binding to
-assistive technology. The shortcut requests a normal form submission through
+the New event dialog. The save button names the binding in its tooltip and
+exposes it to assistive technology. The shortcut requests a normal form submission through
 that button: required fields, amount patterns, schedule validation, pinned
 versions, mutation commands, and backend permissions all remain in effect.
 It also works when the save button itself has focus.

@@ -52,26 +52,50 @@ export async function exercisePeoplePage(page: Page) {
   await field.press("Escape");
   await expect(page.getByText("1 person loaded")).toBeAttached();
 
-  // Edit from the row menu: nickname, the link to the signed-in user,
-  // contacts, a label added from the editor, and a custom field.
+  // Edit from the row menu: nickname, the link to the signed-in user from
+  // the Name field's lookup (the pick fills the name and adds the account's
+  // email, both put back), contacts, a label added from the editor, and a
+  // custom field.
   await chooseRowAction(page, row, "Edit");
   const editor = page.getByRole("dialog", { name: "Edit person", exact: true });
   await editor.getByLabel("Nickname", { exact: true }).fill("Mira");
-  await editor.getByLabel("This is me").check();
+  const name = editor.getByRole("combobox", { name: "Name", exact: true });
+  await name.click();
+  const accounts = editor.getByRole("listbox", { name: "Accounts" });
+  await expect(accounts.getByRole("option")).toHaveCount(1);
+  await accounts.getByRole("option", { name: / You$/ }).click();
+  await expect(name).toHaveValue(/planner$/i);
+  await expect(editor.locator(".person-link-mark")).toHaveText(/^You/);
+  await expect(accounts).toHaveCount(0);
+  await editor
+    .getByRole("button", { name: "Remove contact 1", exact: true })
+    .click();
+  await name.fill("Mira Chen");
+  await expect(accounts).toHaveCount(0);
   await editor
     .getByRole("button", { name: "Add contact", exact: true })
     .click();
   await editor.getByLabel("Contact 1 value").fill("mira@example.test");
+  await editor.getByLabel("Contact 1 value").press("Enter");
+  await expect(
+    editor.getByRole("button", { name: "Email: mira@example.test" }),
+  ).toBeFocused();
   await editor
     .getByRole("button", { name: "Add contact", exact: true })
     .click();
   await editor.getByLabel("Contact 2 kind").selectOption("phone");
   await editor.getByLabel("Contact 2 value").fill("+1 555 0100");
-  await editor.getByText("Labels", { exact: true }).click();
+  await editor.getByLabel("Contact 2 value").press("Enter");
+  await editor.getByRole("button", { name: "Labels", exact: true }).click();
   await editor.getByPlaceholder("New label").fill("family");
   await editor.getByRole("button", { name: "Add label", exact: true }).click();
   await expect(editor.getByRole("checkbox", { name: "family" })).toBeChecked();
+  await page.keyboard.press("Escape");
+  await expect(
+    editor.getByRole("button", { name: "Labels: family", exact: true }),
+  ).toBeFocused();
   await editor.getByRole("button", { name: "Add field", exact: true }).click();
+  await expect(editor.getByLabel("Field 1 name")).toBeFocused();
   await editor.getByLabel("Field 1 name").fill("diet");
   await editor.getByLabel("Field 1 value").fill("Vegetarian");
   await editor

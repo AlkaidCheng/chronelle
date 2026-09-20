@@ -894,44 +894,206 @@ h3,
   }
 }
 
-.person-contact-kind {
-  flex: 0 0 auto;
-  margin: 0;
+/* The person editor: one column, the name with the nickname beside it, then
+   the editors' rows. */
+.person-dialog {
+  width: min(460px, calc(100vw - 24px));
 }
 
-.person-fields {
-  border: 1px solid var(--line);
-  border-radius: 12px;
+.person-editor-body {
+  gap: 12px;
+}
+
+.person-name-row {
   display: grid;
-  gap: 10px;
-  margin: 0;
-  padding: 10px 14px;
+  gap: 8px;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
 }
 
-.person-fields legend {
-  font-size: 0.78rem;
+.person-name-row .field {
+  margin: 0;
+}
+
+.person-name-row .field input {
+  font-weight: 600;
+}
+
+.person-name-wrap {
+  position: relative;
+}
+
+.person-name-wrap input {
+  padding-right: 40px;
+}
+
+.person-name-wrap.is-linked input {
+  padding-right: 100px;
+}
+
+.person-name-lens {
+  color: var(--faint);
+  height: 16px;
+  pointer-events: none;
+  position: absolute;
+  right: 13px;
+  stroke: currentColor;
+  stroke-width: 1.7;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 16px;
+}
+
+/* The account the card is linked to, marked inside the name field; its
+   clear unlinks and keeps the name. */
+.person-link-mark {
+  align-items: center;
+  background: var(--accent-soft);
+  border-radius: 999px;
+  color: var(--accent);
+  display: inline-flex;
+  font-size: 0.74rem;
   font-weight: 700;
-  padding: 0 4px;
+  gap: 3px;
+  line-height: 1;
+  padding: 3px 4px 3px 9px;
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
 }
 
-.person-field-rows {
+.person-link-mark-icon {
+  height: 12px;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  width: 12px;
+}
+
+.person-link-clear {
+  background: none;
+  border: 0;
+  border-radius: 999px;
+  color: inherit;
+  cursor: pointer;
   display: grid;
-  gap: 8px;
-  list-style: none;
-  margin: 0;
-  padding: 0;
+  font-size: 1rem;
+  height: 20px;
+  line-height: 1;
+  place-items: center;
+  width: 20px;
 }
 
-.person-field-rows li {
-  align-items: end;
+.person-link-clear:hover {
+  background: color-mix(in srgb, var(--accent) 18%, transparent);
+}
+
+.person-link-mark:has(.person-link-clear) {
+  padding-right: 2px;
+}
+
+.person-link-mark:not(:has(.person-link-clear)) {
+  padding-right: 9px;
+}
+
+/* The accounts under the name while it has focus: yourself first, then the
+   friends matching the typed text. */
+.person-lookup {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  box-shadow: 0 12px 32px rgb(0 0 0 / 0.14);
+  display: grid;
+  overflow-y: auto;
+  padding: 4px;
+  position: fixed;
+  z-index: 40;
+}
+
+@media (max-width: 600px) {
+  .person-lookup {
+    left: 0;
+    max-height: 240px;
+    position: absolute;
+    top: calc(100% + 4px);
+  }
+}
+
+.person-lookup-option {
+  align-items: center;
+  background: none;
+  border: 0;
+  border-radius: 7px;
+  color: var(--ink);
+  cursor: pointer;
   display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
+  font: inherit;
+  gap: 10px;
+  padding: 6px 8px;
+  text-align: left;
+  width: 100%;
 }
 
-.person-field-rows .field {
-  flex: 1 1 120px;
-  margin: 0;
+.person-lookup-option:hover,
+.person-lookup-option[aria-selected="true"] {
+  background: var(--surface-subtle);
+}
+
+.person-lookup-who {
+  display: grid;
+  flex: 1;
+  min-width: 0;
+}
+
+.person-lookup-who strong {
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.person-lookup-who small {
+  color: var(--faint);
+  font-size: 0.76rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.person-lookup-relation {
+  color: var(--faint);
+  flex: none;
+  font-size: 0.76rem;
+}
+
+.person-rows {
+  border-top: 1px solid var(--line);
+  display: grid;
+}
+
+.person-contact-editing .person-contact-kind {
+  flex: 0 0 auto;
+  width: auto;
+}
+
+.person-description-row {
+  align-items: flex-start;
+}
+
+/* The description edits in place as text on the row, no box around it. */
+.field-row-input.person-description-field {
+  background: none;
+  border: 0;
+  border-radius: 6px;
+  min-height: 32px;
+  padding: 6px 4px;
+  resize: none;
+}
+
+.field-row-input.person-description-field:focus-visible {
+  background: var(--surface-subtle);
+  outline: none;
+}
+
+.person-field-editing .person-field-name {
+  flex: 0 1 130px;
 }
 
 .shown-fields {
@@ -2865,22 +3027,6 @@ p[role="alert"] {
 
 .inline-editor .form-actions {
   grid-column: auto;
-}
-
-.form-actions:has([data-editor-submit]),
-.event-create-footer:has([data-editor-submit]) {
-  flex-wrap: wrap;
-}
-
-.editor-shortcut-hint {
-  flex-basis: 100%;
-  text-align: right;
-  font-size: 0.75rem;
-  color: var(--muted);
-}
-
-.editor-shortcut-hint[data-unavailable="true"] {
-  visibility: hidden;
 }
 
 .filter-row {

@@ -12,6 +12,9 @@
   "removeContact": "Remove contact {n}",
   "addContact": "Add contact",
   "labels": "Labels",
-  "linkToFriend": "Link to a friend",
-  "noFriendLink": "Not linked to a friend"
+  "you": "You",
+  "friend": "Friend",
+  "unlink": "Unlink",
+  "addDescription": "Add a description",
+  "clearLabels": "Clear labels"
 }
