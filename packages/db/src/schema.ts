@@ -131,6 +131,10 @@ export const users = pgTable("users", {
     .$type<EventTabsRow>()
     .notNull()
     .default(sql`'{}'::jsonb`),
+  workspaceRecency: jsonb("workspace_recency")
+    .$type<WorkspaceRecencyRow>()
+    .notNull()
+    .default(sql`'{}'::jsonb`),
   createdAt: createCreatedAtColumn(),
   updatedAt: createUpdatedAtColumn(),
 });
@@ -154,6 +158,9 @@ export interface EventTabsPreferenceRow {
 
 /** Tab preferences keyed by event id. */
 export type EventTabsRow = Readonly<Record<string, EventTabsPreferenceRow>>;
+
+/** When each workspace was last opened, keyed by workspace id: the instant as written. */
+export type WorkspaceRecencyRow = Readonly<Record<string, string>>;
 
 // Credential and session clocks carry millisecond precision so the API's comparisons agree with the functions'.
 const createSessionInstantColumn = (name: string) =>

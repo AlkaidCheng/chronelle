@@ -28,6 +28,7 @@ const user: UserRow = {
   weekStart: null,
   rail: {},
   eventTabs: {},
+  workspaceRecency: {},
   createdAt: now,
   updatedAt: now,
 };

@@ -234,6 +234,13 @@ scope, the section, and an already granted account by id, so the API built
 from it starts after it. The runtime role needs no change. Existing grants
 read as whole (`scope = 'all'`).
 
+Migration `0064_add_user_workspace_recency_preference.sql` adds
+`users.workspace_recency` (`{}` by default, checked as an object keyed by
+workspace id whose values are strings) and redefines
+`chronelle_user_preferences_update` to merge it one workspace at a time,
+keeping the 50 most recent instants; the function count is unchanged and
+the runtime role needs no change.
+
 Migration `0021_add_object_search_function.sql` adds `chronelle_object_search`,
 the read-only function the CloudBase search adapter calls. It changes no
 tables and needs no baseline.

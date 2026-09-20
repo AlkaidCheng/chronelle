@@ -86,6 +86,7 @@ export function userPayload(user: UserRow) {
     weekStart: user.weekStart,
     rail: user.rail,
     eventTabs: user.eventTabs,
+    workspaceRecency: user.workspaceRecency,
   };
 }
 
@@ -127,6 +128,9 @@ export function registerSessionRoutes(
         availableWorkspaces: availableWorkspaces.map((workspace) => ({
           id: workspace.id,
           displayName: workspace.displayName,
+          personal: workspace.personalOwnerId === session.user.id,
+          ownerDisplayName: workspace.ownerDisplayName,
+          role: workspace.role,
         })),
       });
     },

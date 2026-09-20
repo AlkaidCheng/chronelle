@@ -4,6 +4,7 @@ import type { UserPrincipal } from "@chronelle/authorization";
 import type { AuthIdentity } from "../authentication/auth-provider.js";
 import { UnauthenticatedError } from "../errors.js";
 import {
+  type AccessibleWorkspaceRow,
   type AccountUpdate,
   PostgresIdentityStore,
   type IdentityStore,
@@ -76,7 +77,7 @@ export class WorkspaceIdentityService {
   async listAccessibleWorkspaces(
     userId: string,
     activeWorkspaceId: string,
-  ): Promise<readonly WorkspaceRow[]> {
+  ): Promise<readonly AccessibleWorkspaceRow[]> {
     const available = [...(await this.#store.listAccessibleWorkspaces(userId))];
     available.sort((first, second) => {
       if (first.id === activeWorkspaceId) return -1;
