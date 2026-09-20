@@ -41,6 +41,7 @@ import {
   readCloudBaseVisibility,
 } from "./cloudbase-read-support.js";
 import type {
+  AttachmentTargetsReadResult,
   EventDetailReadResult,
   ProjectionObjectType,
   ProjectionReadRepository,
@@ -168,6 +169,31 @@ export class CloudBaseProjectionReadRepository implements ProjectionReadReposito
     };
   }
 
+  async readAttachmentTargets(
+    principal: UserPrincipal,
+    eventId: string,
+  ): Promise<AttachmentTargetsReadResult> {
+    const [context, targetIds] = await Promise.all([
+      this.#readRoot(principal, eventId),
+      readCloudBaseIncludes(this.#client, principal, eventId),
+    ]);
+    const { visible } = await this.#readTargetRows(
+      principal,
+      context,
+      targetIds,
+      ["task", "expense"],
+    );
+    const summary = (row: CloudBaseObjectRow) => ({
+      id: objectId(row),
+      displayName: cloudbaseText(row.display_name, "display name"),
+      objectType: objectType(row),
+    });
+    return {
+      event: { id: context.event.id, displayName: context.event.displayName },
+      included: visible.map(summary),
+    };
+  }
+
   /** The root Event the principal may view, or the denial the PostgreSQL path raises. */
   async #readRoot(
     principal: UserPrincipal,
@@ -225,6 +251,24 @@ export class CloudBaseProjectionReadRepository implements ProjectionReadReposito
     ids: readonly string[],
     objectTypes?: readonly ObjectType[],
   ): Promise<VisibleTargets> {
+    const { visible, lockedRelationCount } = await this.#readTargetRows(
+      principal,
+      context,
+      ids,
+      objectTypes,
+    );
+    return {
+      resources: await this.#typedResources(principal, visible),
+      lockedRelationCount,
+    };
+  }
+
+  async #readTargetRows(
+    principal: UserPrincipal,
+    context: RootContext,
+    ids: readonly string[],
+    objectTypes?: readonly ObjectType[],
+  ) {
     const candidates = await readCloudBaseObjectRows(
       this.#client,
       principal,
@@ -240,7 +284,7 @@ export class CloudBaseProjectionReadRepository implements ProjectionReadReposito
       [context.rootId],
     );
     return {
-      resources: await this.#typedResources(principal, visible),
+      visible,
       lockedRelationCount: live.length - visible.length,
     };
   }

@@ -497,6 +497,21 @@ export const eventDetailResponseSchema = z.object({
   lockedRelationCount: z.number().int().nonnegative(),
 });
 
+const attachmentTargetSchema = eventResponseSchema.pick({
+  id: true,
+  displayName: true,
+});
+
+export const eventAttachmentTargetsResponseSchema = z.object({
+  event: attachmentTargetSchema,
+  tasks: z.array(attachmentTargetSchema),
+  expenses: z.array(attachmentTargetSchema),
+});
+
+export type EventAttachmentTargetsResponse = z.infer<
+  typeof eventAttachmentTargetsResponseSchema
+>;
+
 export const eventResourceProjectionResponseSchema = z.object({
   sourceEventId: objectIdSchema,
   items: z.array(eventResponseSchema),

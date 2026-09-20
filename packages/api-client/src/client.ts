@@ -1,4 +1,6 @@
 import {
+  eventAttachmentTargetsResponseSchema,
+  type EventAttachmentTargetsResponse,
   type AcceptedResponse,
   acceptedResponseSchema,
   apiErrorResponseSchema,
@@ -1170,6 +1172,15 @@ export class ChronelleApiClient {
     return this.#request(
       `/api/events/${id}/todos`,
       taskResourceProjectionResponseSchema,
+    );
+  }
+
+  getEventAttachmentTargets(
+    id: string,
+  ): Promise<EventAttachmentTargetsResponse> {
+    return this.#request(
+      `/api/events/${id}/attachment-targets`,
+      eventAttachmentTargetsResponseSchema,
     );
   }
 

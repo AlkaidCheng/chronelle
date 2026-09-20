@@ -594,6 +594,25 @@ describe.sequential("CloudBase projection read contract", () => {
       expect(sortedDetail(cloudbaseDetail)).toEqual(
         sortedDetail(postgresDetail),
       );
+      const summary = ({
+        id,
+        displayName,
+      }: {
+        id: string;
+        displayName: string;
+      }) => ({ id, displayName });
+      for (const [service, detail] of [
+        [postgres, postgresDetail],
+        [cloudbase, cloudbaseDetail],
+      ] as const) {
+        await expect(
+          service.getAttachmentTargets(expected.principal, rootId),
+        ).resolves.toEqual({
+          event: summary(detail.event),
+          tasks: detail.tasks.map(summary),
+          expenses: detail.expenses.map(summary),
+        });
+      }
 
       const postgresTodos = await postgres.getTodos(expected.principal, rootId);
       expect(ids(postgresTodos.items)).toEqual(expected.tasks);
@@ -673,6 +692,9 @@ describe.sequential("CloudBase projection read contract", () => {
         await expect(service.getTodos(denied, eventId)).rejects.toBeInstanceOf(
           AuthorizationDeniedError,
         );
+        await expect(
+          service.getAttachmentTargets(denied, eventId),
+        ).rejects.toBeInstanceOf(AuthorizationDeniedError);
       }
     }
   });

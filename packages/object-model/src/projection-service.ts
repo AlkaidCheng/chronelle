@@ -6,7 +6,10 @@ import {
   type Database,
   type DatabaseTransaction,
 } from "@chronelle/db";
-import type { NoteListQueryInput } from "@chronelle/schemas";
+import type {
+  EventAttachmentTargetsResponse,
+  NoteListQueryInput,
+} from "@chronelle/schemas";
 import { and, eq, inArray, isNull } from "drizzle-orm";
 
 import {
@@ -114,6 +117,14 @@ export interface EventDetailReadResult {
   readonly lockedRelationCount: number;
 }
 
+export interface AttachmentTargetsReadResult {
+  readonly event: Pick<EventResource, "id" | "displayName">;
+  readonly included: readonly Pick<
+    EventPlanningResource,
+    "id" | "displayName" | "objectType"
+  >[];
+}
+
 /**
  * Read boundary for the Event detail, to-do, timeline, itinerary, expense,
  * and reminder projections. Every method authorizes the root Event for view,
@@ -122,6 +133,10 @@ export interface EventDetailReadResult {
  * shaping stay in the projection service so both backends share them.
  */
 export interface ProjectionReadRepository {
+  readAttachmentTargets(
+    principal: UserPrincipal,
+    eventId: string,
+  ): Promise<AttachmentTargetsReadResult>;
   listIncludedResources<Type extends ProjectionObjectType>(
     principal: UserPrincipal,
     eventId: string,
@@ -138,6 +153,57 @@ export class PostgresProjectionReadRepository implements ProjectionReadRepositor
 
   constructor(database: Database) {
     this.#database = database;
+  }
+
+  readAttachmentTargets(
+    principal: UserPrincipal,
+    eventId: string,
+  ): Promise<AttachmentTargetsReadResult> {
+    return withReadAuthorization(
+      this.#database,
+      async (transaction, authorization) => {
+        const reader = new EventPlanningObjectService({
+          database: transaction,
+          authorization,
+        });
+        const event = await reader.getEvent(principal, eventId);
+        const candidates = await transaction
+          .select({
+            id: objects.id,
+            displayName: objects.displayName,
+            objectType: objects.objectType,
+          })
+          .from(objectRelations)
+          .innerJoin(
+            objects,
+            and(
+              eq(objects.workspaceId, objectRelations.workspaceId),
+              eq(objects.id, objectRelations.targetObjectId),
+              isNull(objects.deletedAt),
+            ),
+          )
+          .where(
+            and(
+              eq(objectRelations.workspaceId, principal.workspaceId),
+              eq(objectRelations.sourceObjectId, eventId),
+              eq(objectRelations.relationType, "includes"),
+              isNull(objectRelations.deletedAt),
+            ),
+          );
+        const targets = candidates.filter(
+          ({ objectType }) => objectType === "task" || objectType === "expense",
+        );
+        const allowed = await authorization.canMany(
+          principal,
+          "view",
+          targets.map(({ id }) => ({ id, workspaceId: principal.workspaceId })),
+        );
+        return {
+          event: { id: event.id, displayName: event.displayName },
+          included: targets.filter((_, index) => allowed[index]),
+        };
+      },
+    );
   }
 
   listIncludedResources<Type extends ProjectionObjectType>(
@@ -340,6 +406,30 @@ export class EventPlanningProjectionService {
     this.#noteReads = noteReads ?? new PostgresNoteReadRepository(database);
     this.#sectionReads =
       sectionReads ?? new PostgresSectionRepository(database);
+  }
+
+  async getAttachmentTargets(
+    principal: UserPrincipal,
+    eventId: string,
+  ): Promise<EventAttachmentTargetsResponse> {
+    const { event, included } =
+      await this.#projectionReads.readAttachmentTargets(principal, eventId);
+    const summary = ({
+      id,
+      displayName,
+    }: {
+      id: string;
+      displayName: string;
+    }) => ({ id, displayName });
+    return {
+      event,
+      tasks: included
+        .filter(({ objectType }) => objectType === "task")
+        .map(summary),
+      expenses: included
+        .filter(({ objectType }) => objectType === "expense")
+        .map(summary),
+    };
   }
 
   async getDetail(

@@ -205,6 +205,15 @@ describe.sequential("CloudBase narrowed shares", () => {
         event.id,
         "todos",
       );
+      const targets = await backend.projections.getAttachmentTargets(
+        guest,
+        event.id,
+      );
+      expect(targets).toEqual({
+        event: { id: event.id, displayName: event.displayName },
+        tasks: todos.items.map(({ id, displayName }) => ({ id, displayName })),
+        expenses: [],
+      });
       const access = await backend.reads.getAccess(guest, event.id);
       let denied = false;
       try {

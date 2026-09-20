@@ -58,6 +58,29 @@ const documentAttachment = {
 } as const;
 
 describe("ChronelleApiClient", () => {
+  it("reads only the canonical attachment target names", async () => {
+    const page = {
+      event: { id: event.id, displayName: event.displayName },
+      tasks: [{ id: relationId, displayName: "Bring tickets" }],
+      expenses: [],
+    };
+    const fetch = vi.fn<typeof globalThis.fetch>(async () =>
+      Response.json(page),
+    );
+    const client = new ChronelleApiClient({
+      fetch,
+      getCredential: () => ({
+        accessToken: "test-session",
+        workspaceId: event.workspaceId,
+      }),
+    });
+    await expect(client.getEventAttachmentTargets(event.id)).resolves.toEqual(
+      page,
+    );
+    expect(fetch.mock.calls[0]?.[0]).toBe(
+      `/api/events/${event.id}/attachment-targets`,
+    );
+  });
   it("reads a canonical Reminder with workspace credentials and validates its response", async () => {
     const reminder = {
       ...event,
