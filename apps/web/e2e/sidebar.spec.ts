@@ -1,7 +1,8 @@
 import { randomUUID } from "node:crypto";
 import type { Locator, Page } from "@playwright/test";
 import { expect, test } from "./fixtures";
-import { moreTrigger, openMoreMenu, searchEntry } from "./helpers/quiet-chrome";
+import { keyboardSection } from "./helpers/keyboard-settings";
+import { moreTrigger, openMoreMenu } from "./helpers/quiet-chrome";
 
 const collections = (page: Page) =>
   page.getByRole("list", { name: "Collections", exact: true });
@@ -267,18 +268,18 @@ test("collapses the sidebar to the content's edge, remembers it on this device, 
     .poll(() => page.evaluate(() => localStorage.getItem("chronelle.sidebar")))
     .toBeNull();
 
-  // Cmd/Ctrl+\ toggles it from anywhere in the shell, and the palette lists
-  // the shortcut.
+  // Cmd/Ctrl+\ toggles it from anywhere in the shell, and the Keyboard
+  // settings list the shortcut.
   await page.keyboard.press("ControlOrMeta+Backslash");
   await expectFolded(sidebar);
   await expect(expand).toBeFocused();
   await page.keyboard.press("ControlOrMeta+Backslash");
   await expectShown(sidebar);
   await expect(collapse).toBeFocused();
-  await searchEntry(page).click();
-  const palette = page.getByRole("dialog", { name: "Search", exact: true });
-  await palette.getByText("Keyboard shortcuts", { exact: true }).click();
+  await page.goto("/settings/keyboard");
   await expect(
-    palette.getByText(/collapses or expands the sidebar/u),
+    keyboardSection(page).getByText("Collapse or expand the sidebar", {
+      exact: true,
+    }),
   ).toBeVisible();
 });

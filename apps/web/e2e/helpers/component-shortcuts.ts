@@ -1,6 +1,11 @@
-import { expect, type Page, type TestInfo } from "@playwright/test";
+import {
+  expect,
+  type Locator,
+  type Page,
+  type TestInfo,
+} from "@playwright/test";
+import { setKeyboardPreferences } from "./keyboard-settings";
 import { expectHorizontalReflow } from "./page-navigation";
-import { searchEntry } from "./quiet-chrome";
 
 export async function exerciseComponentShortcuts(
   page: Page,
@@ -20,8 +25,6 @@ export async function exerciseComponentShortcuts(
     name: "Add a component",
     exact: true,
   });
-  const commands = page.getByRole("dialog", { name: "Search", exact: true });
-  const trigger = searchEntry(page);
   await expect(add).toHaveAttribute("aria-keyshortcuts", "/");
   await tab.focus();
   for (const properties of [
@@ -58,17 +61,20 @@ export async function exerciseComponentShortcuts(
   await picker.getByRole("button", { name: "Close page dialog" }).click();
   await expect(tab).toBeFocused();
 
-  await trigger.click();
-  await commands.getByText("Keyboard shortcuts", { exact: true }).click();
-  const preference = commands.getByLabel("Add component shortcut");
-  await preference.selectOption("modified-slash");
-  await page.setViewportSize({ width: 320, height: 568 });
-  await expectHorizontalReflow(page);
-  await preference.scrollIntoViewIfNeeded();
-  await page.screenshot({
-    path: testInfo.outputPath("component-shortcuts-narrow.png"),
-  });
-  await page.keyboard.press("Escape");
+  const preference = (section: Locator) =>
+    section.getByRole("combobox", { name: "Add a component", exact: true });
+  await setKeyboardPreferences(
+    page,
+    { component: "modified-slash" },
+    async (section) => {
+      await page.setViewportSize({ width: 320, height: 568 });
+      await expectHorizontalReflow(page);
+      await preference(section).scrollIntoViewIfNeeded();
+      await page.screenshot({
+        path: testInfo.outputPath("component-shortcuts-narrow.png"),
+      });
+    },
+  );
   await expect(add).toHaveAttribute("aria-keyshortcuts", "Control+/ Meta+/");
   await tab.focus();
   await page.keyboard.press("/");
@@ -91,10 +97,7 @@ export async function exerciseComponentShortcuts(
     page.getByRole("region", { name: "Files component 1", exact: true }),
   ).toBeVisible();
 
-  await trigger.click();
-  await commands.getByText("Keyboard shortcuts", { exact: true }).click();
-  await preference.selectOption("disabled");
-  await page.keyboard.press("Escape");
+  await setKeyboardPreferences(page, { component: "disabled" });
   await expect(add).not.toHaveAttribute("aria-keyshortcuts");
   await tab.focus();
   await page.keyboard.press("/");
@@ -104,12 +107,8 @@ export async function exerciseComponentShortcuts(
   await expect(picker).toBeVisible();
   await page.keyboard.press("Escape");
   await expect(add).toBeFocused();
-  await trigger.click();
-  await commands.getByText("Keyboard shortcuts", { exact: true }).click();
-  await commands
-    .getByRole("button", { name: "Reset keyboard shortcuts" })
-    .click();
-  await expect(preference).toHaveValue("slash");
-  await page.keyboard.press("Escape");
+  await setKeyboardPreferences(page, "reset", async (section) => {
+    await expect(preference(section)).toHaveValue("disabled");
+  });
   await expect(add).toHaveAttribute("aria-keyshortcuts", "/");
 }

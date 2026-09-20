@@ -34,7 +34,9 @@ export async function exerciseEventArrange(page: Page, testInfo: TestInfo) {
 
   const commands = await openCommands(page);
   await commands
-    .getByRole("combobox", { name: "Find a command" })
+    .getByRole("combobox", {
+      name: "Search records and commands",
+    })
     .fill("Arrange components");
   await page.keyboard.press("Enter");
   const done = page.getByRole("button", {
