@@ -6,7 +6,7 @@ import { eq } from "drizzle-orm";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { createId } from "../src/ids.js";
-import { applyMigrations } from "../src/migrations.js";
+import { applyMigrations, discoverMigrations } from "../src/migrations.js";
 import {
   auditEvents,
   events,
@@ -116,7 +116,7 @@ describe.sequential("persistence kernel", () => {
         { DATABASE_URL: testDatabase.databaseUrl },
         migrationDirectory,
       ),
-    ).resolves.toBe(65);
+    ).resolves.toBe((await discoverMigrations(migrationDirectory)).length);
     await expect(
       applyMigrations(
         { DATABASE_URL: testDatabase.databaseUrl },
