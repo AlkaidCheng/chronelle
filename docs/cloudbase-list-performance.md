@@ -37,6 +37,12 @@ millisecond precision, matching the gateway-decoded timestamps and existing
 cursors. The permission rules, list counts, cursor envelopes, canonical IDs,
 contexts, and subtask progress remain unchanged.
 
+Hydration rechecks visibility after candidate selection. A grant revoked or an
+object moved into a private scope between those gateway reads can produce a
+page shorter than its limit while a continuation cursor remains set. The page
+omits inaccessible records; the cursor still advances past the selected
+candidates.
+
 ## Validation and deployment
 
 The integration fixture contains 320 events, 320 tasks, and 320 people, each with

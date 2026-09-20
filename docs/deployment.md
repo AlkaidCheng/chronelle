@@ -256,6 +256,15 @@ CloudBase API: readiness requires the function. It changes no tables, needs no
 revision baseline or runtime role changes, and remains compatible with older
 API versions. PostgreSQL TCP deployments apply it with `pnpm db:migrate`.
 
+Migration `0067_add_list_candidate_functions.sql` adds the read-only
+`chronelle_event_list_candidates`, `chronelle_task_list_candidates`, and
+`chronelle_person_list_candidates` functions and their shared collection
+helper. Apply it through the console SQL editor before redeploying the
+CloudBase API: readiness requires the three public functions. It changes no
+tables, needs no revision baseline or runtime role changes, and remains
+compatible with older API versions. PostgreSQL TCP deployments apply it with
+`pnpm db:migrate`.
+
 ### Run on the CloudBase backend
 
 `CHRONELLE_BACKEND=cloudbase` serves every read and write from the gateway.

@@ -257,6 +257,15 @@ through the CloudBase console SQL editor, before starting the updated API:
 readiness requires the function. It changes no tables, needs no revision
 baseline or runtime role changes, and is compatible with older API versions.
 
+Migration `0067_add_list_candidate_functions.sql` adds the read-only
+`chronelle_event_list_candidates`, `chronelle_task_list_candidates`, and
+`chronelle_person_list_candidates` functions and their shared collection
+helper. They select visible IDs and lightweight metadata before page hydration.
+Apply it with `pnpm db:migrate` locally, or through the CloudBase console SQL
+editor, before starting the updated API: readiness requires the three public
+functions. It changes no tables, needs no revision baseline or runtime role
+changes, and is compatible with older API versions.
+
 Migration `0021_add_object_search_function.sql` adds `chronelle_object_search`,
 the read-only function the CloudBase search adapter calls. It changes no
 tables and needs no baseline.
