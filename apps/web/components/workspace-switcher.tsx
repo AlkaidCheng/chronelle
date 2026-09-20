@@ -55,9 +55,15 @@ export function WorkspaceSwitcher({
   const menu = useRef<HTMLDivElement>(null);
   const search = useRef<HTMLInputElement>(null);
 
-  const searchable = session.availableWorkspaces.length > searchThreshold;
+  // The switcher lists memberships alone: a workspace reached through
+  // shares has no role here, and its shared events show in the account's
+  // own Events list instead.
+  const memberships = session.availableWorkspaces.filter(
+    (workspace) => workspace.role !== null,
+  );
+  const searchable = memberships.length > searchThreshold;
   const groups = groupWorkspaces(
-    matchWorkspaces(session.availableWorkspaces, query),
+    matchWorkspaces(memberships, query),
     session.user.workspaceRecency,
   );
   const empty = groups.yours.length + groups.shared.length === 0;
