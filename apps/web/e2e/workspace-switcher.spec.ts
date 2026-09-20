@@ -92,16 +92,20 @@ test("lists the workspaces shared with the account by when they were last opened
   await expect(line).toBeFocused();
 
   // Opening a workspace notes the moment on the account, so it leads the
-  // shared list, ticked, with when it was opened.
-  const noted = page.waitForResponse(
-    (response) =>
-      response.url().endsWith("/api/auth/me") &&
-      response.request().method() === "PATCH",
-  );
-  await openWorkspaceSwitcher(page);
-  await workspaceEntry(page, workspaces["Kai Tanaka"] ?? "").click();
-  expect((await noted).ok()).toBe(true);
-  await expect(line).toContainText(workspaces["Kai Tanaka"] ?? "");
+  // shared list, ticked, with when it was opened. Each switch waits for
+  // its note to be kept before the next.
+  const switchTo = async (name: string) => {
+    const noted = page.waitForResponse(
+      (response) =>
+        response.url().endsWith("/api/auth/me") &&
+        response.request().method() === "PATCH",
+    );
+    await openWorkspaceSwitcher(page);
+    await workspaceEntry(page, name).click();
+    expect((await noted).ok()).toBe(true);
+    await expect(line).toContainText(name);
+  };
+  await switchTo(workspaces["Kai Tanaka"] ?? "");
   await expect(
     page.getByRole("link", { name: /Kai Tanaka's plan/ }),
   ).toBeVisible();
@@ -112,27 +116,43 @@ test("lists the workspaces shared with the account by when they were last opened
   await expect(entries.nth(2)).toContainText(workspaces["Ana Souza"] ?? "");
   await page.keyboard.press("Escape");
 
+  // A second switch right after keeps the first note: the most recent
+  // leads and the earlier one follows.
+  await switchTo(workspaces["Ben Wu"] ?? "");
+  await openWorkspaceSwitcher(page);
+  await expect(entries.nth(1)).toContainText(workspaces["Ben Wu"] ?? "");
+  await expect(entries.nth(1)).toHaveAttribute("aria-checked", "true");
+  await expect(entries.nth(2)).toContainText(workspaces["Kai Tanaka"] ?? "");
+  await expect(entries.nth(2)).toContainText("Opened");
+  await expect(entries.nth(3)).toContainText(workspaces["Ana Souza"] ?? "");
+  await page.keyboard.press("Escape");
+
   // The order is the account's: a fresh session reads it back.
   const session = await (
     await request.get("/api/auth/session", {
       headers: { authorization: `Bearer ${reader.accessToken}` },
     })
   ).json();
-  const kai = session.availableWorkspaces.find(
-    (workspace: { displayName: string }) =>
-      workspace.displayName === workspaces["Kai Tanaka"],
+  const named = (name: string | undefined) =>
+    session.availableWorkspaces.find(
+      (workspace: { displayName: string }) => workspace.displayName === name,
+    );
+  const kai = named(workspaces["Kai Tanaka"]);
+  const ben = named(workspaces["Ben Wu"]);
+  expect(Object.keys(session.user.workspaceRecency).sort()).toEqual(
+    [kai.id, ben.id].sort(),
   );
-  expect(Object.keys(session.user.workspaceRecency)).toEqual([kai.id]);
   expect(kai).toMatchObject({
     personal: false,
     ownerDisplayName: "Kai Tanaka",
     role: null,
   });
   await page.reload();
-  await expect(line).toContainText(workspaces["Kai Tanaka"] ?? "");
+  await expect(line).toContainText(workspaces["Ben Wu"] ?? "");
   await openWorkspaceSwitcher(page);
-  await expect(entries.nth(1)).toContainText(workspaces["Kai Tanaka"] ?? "");
-  await expect(entries.nth(1)).toContainText("Opened");
+  await expect(entries.nth(1)).toContainText(workspaces["Ben Wu"] ?? "");
+  await expect(entries.nth(2)).toContainText(workspaces["Kai Tanaka"] ?? "");
+  await expect(entries.nth(2)).toContainText("Opened");
   await page.keyboard.press("Escape");
 
   // The shortcut opens and closes the switcher from the page.
