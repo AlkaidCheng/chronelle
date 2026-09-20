@@ -149,11 +149,13 @@ for (const display of [
         month.toUpperCase(),
       );
       await expect(card.locator(".event-date-mark strong")).toHaveText(
-        display.day,
+        String(Number(display.day)),
       );
       const undated = page.getByRole("link", { name: /Unscheduled plan/ });
-      await expect(undated.locator(".event-date-mark span")).toHaveText("TBD");
-      await expect(undated.locator(".event-date-mark strong")).toHaveText("-");
+      await expect(undated.locator(".event-date-mark strong")).toHaveText(
+        "TBD",
+      );
+      await expect(undated.locator(".event-date-mark span")).toHaveCount(0);
       // The Calendar and Reminders rows read the moment on their meta line,
       // in the same month and day the badge shows; the separator before the
       // time differs between engines (", " or " at ").

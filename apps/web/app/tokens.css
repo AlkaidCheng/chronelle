@@ -11,6 +11,8 @@
   /* The width a list of records reads at; wider rows leave the eye
      travelling between a name and what sits at its far end. */
   --list-column: 800px;
+  /* The events grid: two columns of compact cards. */
+  --events-column: 1000px;
 }
 
 /* Traditional Chinese picks the TC faces; the Latin faces stay first. */

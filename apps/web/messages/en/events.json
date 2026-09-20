@@ -31,9 +31,12 @@
     "grid": "Grid",
     "list": "List"
   },
-  "period": {
-    "upcoming": "Scheduled",
-    "past": "Past event",
-    "unscheduled": "Date to be decided"
+  "undated": "Date to be decided",
+  "actionsFor": "Actions for {name}",
+  "menu": {
+    "edit": "Edit event",
+    "history": "History",
+    "share": "Share",
+    "moveToTrash": "Move to Trash"
   }
 }

@@ -112,37 +112,27 @@
   font-size: 0.72rem;
   margin: 0;
 }
-.event-card-copy {
-  min-width: 0;
-}
+/* Grid: two columns of cards. List: the same object as rows, ruled like
+   the other lists, in their column. */
 .event-layout-grid {
-  grid-template-columns: repeat(auto-fill, minmax(min(260px, 100%), 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
 }
-.event-layout-grid .event-card {
-  align-items: start;
-  gap: 22px 12px;
-  grid-template-columns: minmax(0, 1fr) auto;
-  grid-template-rows: auto 1fr;
-  padding: var(--card-padding);
-}
-.event-layout-grid .event-card-copy {
-  grid-column: 1 / -1;
-  grid-row: 2;
-}
-.event-layout-grid .card-arrow {
-  grid-column: 2;
-  grid-row: 1;
-}
-.event-card-copy .object-label {
-  font-size: 0.6rem;
-  letter-spacing: 0.09em;
-}
-.period-past,
-.period-unscheduled {
-  color: var(--muted);
+.event-layout-list {
+  gap: 0;
 }
 .event-layout-list .event-card {
-  padding: calc(var(--row-padding) + 4px) 22px;
+  background: transparent;
+  border-radius: 0;
+  border-width: 0 0 1px;
+  height: 73px;
+  padding: 8px 4px;
+}
+.event-layout-list .event-card:hover {
+  background: color-mix(in srgb, var(--surface-subtle) 55%, transparent);
+  border-color: var(--line);
+}
+.event-layout-list .event-card-actions {
+  right: 4px;
 }
 .collection-empty {
   text-align: center;
@@ -205,12 +195,17 @@
   .collection-sort {
     flex: 1;
   }
-  .event-layout-list .event-card {
-    gap: 12px;
-    padding: max(12px, calc(var(--row-padding) + 2px));
+  .event-layout-grid {
+    grid-template-columns: 1fr;
   }
-  .event-layout-grid .event-card {
-    padding: min(20px, var(--card-padding));
+  /* On a phone the title and the controls share the first row and the
+     search takes the second. */
+  .events-heading {
+    gap: 10px;
+  }
+  .events-heading .events-search {
+    order: 3;
+    width: 100%;
   }
   .button-small {
     min-height: 44px;

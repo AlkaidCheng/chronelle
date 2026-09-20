@@ -1075,8 +1075,7 @@ svg {
 }
 
 .button svg,
-.icon-button svg,
-.card-arrow svg {
+.icon-button svg {
   width: 18px;
   height: 18px;
   flex-shrink: 0;
@@ -1992,33 +1991,160 @@ a.search-result:hover {
   min-width: 27px;
 }
 
+/* The events list: the head and the grid take a wider column than the
+   lists; the List layout keeps the lists' column. */
+.events-column {
+  max-width: var(--events-column);
+}
+
 .event-grid {
   display: grid;
-  gap: 14px;
+  gap: 10px;
+}
+
+/* One compact card: the date tile, three rows of text (the name, the
+   dates, a line for sharing), and the controls at the right edge. The
+   card is one fixed height so every card in the grid shares its
+   baselines; the link is the card, the controls sit beside it. */
+.event-card-shell {
+  position: relative;
 }
 
 .event-card {
-  align-items: center;
+  align-items: flex-start;
   background: var(--surface);
   border: 1px solid var(--line);
-  border-radius: 14px;
-  display: grid;
-  gap: 20px;
-  grid-template-columns: auto minmax(0, 1fr) auto;
-  padding: 20px 24px;
+  border-radius: 10px;
+  color: inherit;
+  display: flex;
+  gap: 12px;
+  height: 74px;
+  padding: 8px 12px;
   text-decoration: none;
-  transition:
-    border-color 150ms ease,
-    box-shadow 150ms ease,
-    transform 150ms ease;
+  transition: border-color 150ms ease;
 }
 
 .event-card:hover {
   border-color: var(--line-strong);
-  box-shadow: var(--shadow);
 }
 
-.event-date-mark,
+.event-date-mark {
+  align-items: center;
+  background: var(--accent-soft);
+  border-radius: 10px;
+  color: var(--accent);
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  gap: 2px;
+  height: 56px;
+  justify-content: center;
+  line-height: 1;
+  width: 52px;
+}
+
+.event-date-mark span {
+  font-size: 0.625rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+}
+
+.event-date-mark strong {
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  font-weight: 400;
+  line-height: 1;
+}
+
+.event-date-mark .event-date-tbd {
+  font-size: 1rem;
+}
+
+.period-past .event-date-mark,
+.period-unscheduled .event-date-mark {
+  background: var(--surface-subtle);
+  color: var(--muted);
+}
+
+.event-card-copy {
+  --card-title: inherit;
+  display: grid;
+  flex: 1;
+  min-width: 0;
+  /* The controls' gutter, so a long name never runs under them. */
+  padding-right: 60px;
+}
+
+.period-past .event-card-copy {
+  --card-title: var(--muted);
+}
+
+.event-card-copy h2 {
+  color: var(--card-title);
+  font-family: var(--font-body);
+  font-size: 0.9rem;
+  font-weight: 600;
+  letter-spacing: 0;
+  line-height: 18px;
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.event-card-copy p {
+  color: var(--muted);
+  font-size: 0.75rem;
+  line-height: 16px;
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* No transform here: the tips and the share sheet are fixed to the
+   viewport, and a transformed ancestor would contain them instead. The
+   controls take a smaller size than the page's through their variables. */
+.event-card-actions {
+  --icon-control-glyph: 16px;
+  --icon-control-radius: 7px;
+  --icon-control-size: 28px;
+  --row-more-radius: 7px;
+  --row-more-size: 28px;
+  align-items: center;
+  bottom: 0;
+  display: flex;
+  gap: 2px;
+  opacity: 0;
+  position: absolute;
+  right: 8px;
+  top: 0;
+  transition: opacity 120ms;
+}
+
+.event-card-shell:hover .event-card-actions,
+.event-card-shell:focus-within .event-card-actions,
+.event-card-actions:has([aria-expanded="true"]) {
+  opacity: 1;
+}
+
+.event-card-share {
+  position: relative;
+}
+
+@media (hover: none) {
+  .event-card-actions {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .event-card-actions {
+    transition: none;
+  }
+}
+
+/* The list rows of the records panels share the tile's form. */
 .date-tile {
   align-items: center;
   background: var(--accent-soft);
@@ -2031,14 +2157,12 @@ a.search-result:hover {
   width: 58px;
 }
 
-.event-date-mark span,
 .date-tile span {
   font-size: 0.6rem;
   font-weight: 800;
   letter-spacing: 0.08em;
 }
 
-.event-date-mark strong,
 .date-tile strong {
   font-family: var(--font-display);
   font-size: 1.42rem;
@@ -2047,25 +2171,9 @@ a.search-result:hover {
   margin-top: 2px;
 }
 
-.event-card-copy h2 {
-  font-size: 1.35rem;
-  margin-bottom: 6px;
-}
-
-.event-card-copy p {
-  color: var(--muted);
-  font-size: 0.8rem;
-  margin-bottom: 0;
-}
-
 .card-arrow {
   color: var(--muted);
   font-size: 1.05rem;
-  transition: transform 150ms ease;
-}
-
-.event-card:hover .card-arrow {
-  transform: translateX(3px);
 }
 
 .loading-state,
@@ -3263,22 +3371,23 @@ p[role="alert"] {
 }
 
 /* The row menu button shows on hover or focus; the row stays plain otherwise. */
+/* A container sets the size variable for a smaller button. */
 .row-more {
   align-items: center;
   background: transparent;
   border: 1px solid transparent;
-  border-radius: 8px;
+  border-radius: var(--row-more-radius, 8px);
   color: var(--muted);
   cursor: pointer;
   display: inline-flex;
   flex: none;
-  height: 30px;
+  height: var(--row-more-size, 30px);
   justify-content: center;
   margin-left: auto;
   opacity: 0;
   padding: 0;
   transition: opacity 120ms;
-  width: 30px;
+  width: var(--row-more-size, 30px);
 }
 
 .row-more svg {
@@ -7934,25 +8043,26 @@ html:has(.event-create-dialog[open]) {
   color: var(--ink);
 }
 
+/* A container sets the size variables for a smaller control. */
 .icon-control {
   align-items: center;
   background: none;
   border: 0;
-  border-radius: 9px;
+  border-radius: var(--icon-control-radius, 9px);
   color: var(--muted);
   cursor: pointer;
   display: inline-flex;
   flex-shrink: 0;
-  height: 36px;
+  height: var(--icon-control-size, 36px);
   justify-content: center;
   padding: 0;
   position: relative;
-  width: 36px;
+  width: var(--icon-control-size, 36px);
 }
 
 .icon-control svg {
-  height: 19px;
-  width: 19px;
+  height: var(--icon-control-glyph, 19px);
+  width: var(--icon-control-glyph, 19px);
   stroke: currentColor;
   stroke-linecap: round;
   stroke-linejoin: round;
@@ -8105,6 +8215,21 @@ html:has(.event-create-dialog[open]) {
 
 .inline-search input::placeholder {
   color: var(--faint);
+}
+
+/* The Events head: the search beside the title, the icon controls at
+   the right edge. */
+.events-heading {
+  justify-content: flex-start;
+}
+
+.events-heading .quiet-tools {
+  margin-left: auto;
+}
+
+.events-heading .events-search {
+  margin-right: 0;
+  width: 260px;
 }
 
 /* A segmented control among the quiet tools: one pressed choice, in ink. */

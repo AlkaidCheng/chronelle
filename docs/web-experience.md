@@ -87,11 +87,32 @@ workspace or session change uses the existing session boundary to cancel
 pending requests and clear protected state. Workspace choices come from the
 authorized session response; choosing one never grants access by itself.
 
-The Events page is one row: the title, an inline name filter, then quiet
-Filter (All, Upcoming & ongoing, Unscheduled, Past), Sort (Event date, Recently
-updated, Name A-Z), and Layout (Grid, List) menus, Refresh, and the single
-filled New event control. The count of loaded events is announced to assistive
-technology and not shown.
+The Events page is one row: the title with the inline name filter beside
+it at the left, then, at the right edge, quiet Filter (All, Upcoming &
+ongoing, Unscheduled, Past), Sort (Event date, Recently updated, Name A-Z),
+and Layout (Grid, List) menus, Refresh, and the single filled New event
+control; on a phone the title and the controls share the first row and the
+filter takes the whole second. The count of loaded events is announced to
+assistive technology and not shown.
+
+Each event is one compact card of a fixed height: a date tile (the month
+over the day; TBD for an event without a date; muted for a past one), the
+name on one line, the dates on a muted line under it ("Date to be decided"
+for an undated event), and a third line kept for sharing. The whole card is
+the link; there is no period label and no arrow. The Grid layout is two
+columns of cards in a wider column than the lists; the List layout is the
+same object as rows in the lists' column, ruled like the other lists. Two
+controls surface at a card's right edge on hover or focus (and stay
+visible on touch): Share, which opens the sheet that shares the whole
+event with friends and members at a role, and the row menu with Edit event
+(the event editor as a dialog), History, Share, and Move to Trash. The
+menu offers only what the account may do with that event, which it reads
+once the card is hovered or focused.
+
+A control's tooltip (the name of an icon control, on hover or focus) is
+placed under the control, centred when that fits and pulled inside the
+viewport by a small margin when the control sits near an edge; it is fixed
+to the viewport, so a strip that clips its overflow never cuts a tip.
 
 ## Tasks
 
