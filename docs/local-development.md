@@ -249,6 +249,14 @@ account holds on the resource in the workspace and writes one
 API built from it starts after it. It changes no tables, needs no
 baseline, and the runtime role needs no change.
 
+Migration `0066_resolve_identity_session.sql` adds the read-only
+`chronelle_identity_session_resolve` function. CloudBase session requests use
+it to resolve the user and reachable workspace in one snapshot, while resource
+authorization remains separate. Apply it with `pnpm db:migrate` locally, or
+through the CloudBase console SQL editor, before starting the updated API:
+readiness requires the function. It changes no tables, needs no revision
+baseline or runtime role changes, and is compatible with older API versions.
+
 Migration `0021_add_object_search_function.sql` adds `chronelle_object_search`,
 the read-only function the CloudBase search adapter calls. It changes no
 tables and needs no baseline.

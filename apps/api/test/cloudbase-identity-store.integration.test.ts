@@ -5,8 +5,10 @@ import {
   createId,
   objects,
   resourceGrants,
+  sections,
   users,
   workspaceMembers,
+  workspaces,
   type UserRow,
 } from "@chronelle/db";
 import {
@@ -18,17 +20,22 @@ import {
 } from "@chronelle/db/testing";
 import { EventPlanningObjectService } from "@chronelle/object-model";
 import { and, eq } from "drizzle-orm";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import Fastify from "fastify";
+import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 
 import type { AuthIdentity } from "../src/authentication/auth-provider.js";
-import { WorkspaceUnavailableError } from "../src/errors.js";
+import { CloudBaseSessionStore } from "../src/authentication/cloudbase-session-store.js";
+import { SessionAuthProvider } from "../src/authentication/session-auth-provider.js";
+import { HttpError, WorkspaceUnavailableError } from "../src/errors.js";
 import { CloudBaseIdentityStore } from "../src/identity/cloudbase-identity-store.js";
 import {
   PostgresIdentityStore,
   type IdentityStore,
 } from "../src/identity/identity-store.js";
+import { WorkspaceIdentityService } from "../src/identity/workspace-identity-service.js";
+import { registerRequestContext } from "../src/request-context.js";
 
-// chronelle_identity_sign_in and the gateway reads must leave and return
+// The identity RPCs and gateway reads must leave and return
 // what the PostgreSQL identity store leaves and returns: the user, the
 // personal workspace with its Owner membership, the audit event of each
 // sign-in, and the sessions and workspace lists the same access rules
@@ -98,6 +105,201 @@ function shape(rows: {
 }
 
 describe.sequential("CloudBase identity store", () => {
+  it("uses two gateway calls per authenticated request and rechecks live access", async () => {
+    const signedIn = await reference.signIn(
+      identity("request-budget"),
+      createId(),
+    );
+    const client = {
+      ...createCloudBaseLiveReader(database.connection.db),
+      rpc: createCloudBaseRpcDouble(database.connection.sql),
+    };
+    const rpc = vi.spyOn(client, "rpc");
+    const select = vi.spyOn(client, "select");
+    const sessions = new SessionAuthProvider(new CloudBaseSessionStore(client));
+    const issued = await sessions.issue(signedIn.user, "test");
+    const app = Fastify();
+    registerRequestContext(app, {
+      authProvider: sessions,
+      identity: new WorkspaceIdentityService(
+        database.connection.db,
+        new CloudBaseIdentityStore(client),
+      ),
+    });
+    app.setErrorHandler((error, _request, reply) => {
+      if (error instanceof HttpError)
+        return reply.code(error.statusCode).send({ code: error.code });
+      throw error;
+    });
+    app.get(
+      "/session",
+      { preHandler: app.authenticate },
+      async (request) => request.principal,
+    );
+    const request = () =>
+      app.inject({
+        method: "GET",
+        url: "/session",
+        headers: { authorization: `Bearer ${issued.accessToken}` },
+      });
+    try {
+      rpc.mockClear();
+      const response = await request();
+      expect(response.statusCode).toBe(200);
+      expect(response.json()).toEqual({
+        type: "user",
+        userId: signedIn.user.id,
+        workspaceId: signedIn.workspace.id,
+      });
+      expect(rpc.mock.calls.map(([name]) => name)).toEqual([
+        "chronelle_session_resolve",
+        "chronelle_identity_session_resolve",
+      ]);
+      expect(select).not.toHaveBeenCalled();
+
+      await database.connection.db
+        .delete(workspaceMembers)
+        .where(
+          and(
+            eq(workspaceMembers.workspaceId, signedIn.workspace.id),
+            eq(workspaceMembers.userId, signedIn.user.id),
+          ),
+        );
+      rpc.mockClear();
+      const denied = await request();
+      expect(denied.statusCode).toBe(404);
+      expect(denied.json()).toEqual({ code: "workspace_unavailable" });
+      expect(rpc).toHaveBeenCalledTimes(2);
+
+      await sessions.revoke(issued.accessToken, createId());
+      rpc.mockClear();
+      const revoked = await request();
+      expect(revoked.statusCode).toBe(401);
+      expect(revoked.json()).toEqual({ code: "unauthenticated" });
+      expect(rpc.mock.calls.map(([name]) => name)).toEqual([
+        "chronelle_session_resolve",
+      ]);
+    } finally {
+      await app.close();
+    }
+  });
+
+  it("keeps object routing and narrowed grants equivalent to PostgreSQL", async () => {
+    const db = database.connection.db;
+    const owner = await reference.signIn(identity("routing-owner"), createId());
+    const guestIdentity = identity("routing-guest");
+    const guest = await reference.signIn(guestIdentity, createId());
+    const service = new EventPlanningObjectService(db);
+    const shared = await service.createEvent(
+      {
+        principal: {
+          type: "user",
+          userId: owner.user.id,
+          workspaceId: owner.workspace.id,
+        },
+        requestId: createId(),
+      },
+      { displayName: "Shared planning" },
+    );
+    const sectionId = createId();
+    await db.insert(sections).values({
+      id: sectionId,
+      workspaceId: owner.workspace.id,
+      eventId: shared.id,
+      view: "todos",
+      name: "Preparation",
+      rank: "00000000500",
+      createdBy: owner.user.id,
+    });
+    const grantId = createId();
+    await db.insert(resourceGrants).values({
+      id: grantId,
+      workspaceId: owner.workspace.id,
+      resourceId: shared.id,
+      principalId: guest.user.id,
+      role: "viewer",
+      scope: "todos",
+      sectionId,
+      grantedBy: owner.user.id,
+    });
+    for (const [, store] of backends()) {
+      // A narrowed grant admits the workspace; individual resources and
+      // views still require their own authorization checks.
+      expect(
+        await store.resolveSession(guestIdentity, createId(), shared.id),
+      ).toEqual({ user: guest.user, workspace: owner.workspace });
+      expect(
+        await store.resolveSession(guestIdentity, undefined, createId()),
+      ).toEqual({ user: guest.user, workspace: guest.workspace });
+    }
+    await db.delete(resourceGrants).where(eq(resourceGrants.id, grantId));
+    for (const [, store] of backends()) {
+      expect(
+        await store.resolveSession(guestIdentity, undefined, shared.id),
+      ).toEqual({ user: guest.user, workspace: guest.workspace });
+      await expect(
+        store.resolveSession(guestIdentity, owner.workspace.id, shared.id),
+      ).rejects.toBeInstanceOf(WorkspaceUnavailableError);
+    }
+  });
+
+  it("requires a personal workspace even when another workspace was requested", async () => {
+    const person = identity("no-personal-workspace");
+    const signedIn = await reference.signIn(person, createId());
+    await database.connection.db
+      .update(workspaces)
+      .set({ personalOwnerId: null })
+      .where(eq(workspaces.id, signedIn.workspace.id));
+    for (const [, store] of backends()) {
+      await expect(
+        store.resolveSession(person, signedIn.workspace.id),
+      ).resolves.toBeNull();
+    }
+  });
+
+  it("uses the request's observation time at the exact grant-expiry boundary", async () => {
+    const db = database.connection.db;
+    const owner = await reference.signIn(identity("expiry-owner"), createId());
+    const guestIdentity = identity("expiry-guest");
+    const guest = await reference.signIn(guestIdentity, createId());
+    const shared = await new EventPlanningObjectService(db).createEvent(
+      {
+        principal: {
+          type: "user",
+          userId: owner.user.id,
+          workspaceId: owner.workspace.id,
+        },
+        requestId: createId(),
+      },
+      { displayName: "Expiring share" },
+    );
+    const expiresAt = new Date(Date.now() + 60_000);
+    await db.insert(resourceGrants).values({
+      id: createId(),
+      workspaceId: owner.workspace.id,
+      resourceId: shared.id,
+      principalId: guest.user.id,
+      role: "viewer",
+      grantedBy: owner.user.id,
+      expiresAt,
+    });
+    let observedAt = new Date(expiresAt.getTime() - 1);
+    const store = new CloudBaseIdentityStore(
+      {
+        ...createCloudBaseLiveReader(db),
+        rpc: createCloudBaseRpcDouble(database.connection.sql),
+      },
+      () => observedAt,
+    );
+    await expect(
+      store.resolveSession(guestIdentity, owner.workspace.id),
+    ).resolves.toEqual({ user: guest.user, workspace: owner.workspace });
+    observedAt = expiresAt;
+    await expect(
+      store.resolveSession(guestIdentity, owner.workspace.id),
+    ).rejects.toBeInstanceOf(WorkspaceUnavailableError);
+  });
+
   it("signs in with the same rows, membership, and audits", async () => {
     const results = [];
     for (const [label, store] of backends()) {

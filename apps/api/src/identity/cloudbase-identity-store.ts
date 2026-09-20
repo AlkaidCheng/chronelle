@@ -79,10 +79,9 @@ const filters = (
  * chronelle_user_preferences_update, the discovery switches as
  * chronelle_account_update, Find people as chronelle_users_search and
  * chronelle_user_lookup (migration 0055),
- * and the user, workspace, membership, and grant reads through the table
- * route with the same access rules as the PostgreSQL store (membership, or an unexpired grant on a live object, or
- * an Owner grant on any object). The reads of one session are sequential
- * requests rather than one snapshot.
+ * and session resolution through chronelle_identity_session_resolve.
+ * Session resolution evaluates the user, workspace, membership, and grants
+ * in one snapshot with the PostgreSQL store's workspace access rules.
  */
 export class CloudBaseIdentityStore implements IdentityStore {
   readonly #client: Pick<CloudBaseRdbClient, "select" | "rpc">;
@@ -126,61 +125,30 @@ export class CloudBaseIdentityStore implements IdentityStore {
     requestedWorkspaceId: string | undefined,
     objectId?: string | undefined,
   ): Promise<IdentitySessionRows | null> {
-    const [userFound] = await this.#client.select<Row>("users", {
-      filters: filters(
-        ["identity_provider", "eq", identity.provider],
-        ["provider_subject", "eq", identity.subject],
-      ),
-      limit: 1,
-    });
-    if (userFound === undefined) return null;
-    const user = userRow(userFound);
-    const [personal] = await this.#client.select<Row>("workspaces", {
-      filters: filters(["personal_owner_id", "eq", user.id]),
-      limit: 1,
-    });
-    if (personal === undefined) return null;
-    let workspaceId = requestedWorkspaceId ?? workspaceRow(personal).id;
-    if (objectId !== undefined) {
-      const [object] = await this.#client.select<Row>("objects", {
-        columns: "workspace_id",
-        filters: filters(["id", "eq", objectId]),
-        limit: 1,
+    let result: unknown;
+    try {
+      result = await this.#client.rpc("chronelle_identity_session_resolve", {
+        identity_provider: identity.provider,
+        provider_subject: identity.subject,
+        requested_workspace_id: requestedWorkspaceId ?? null,
+        object_id: objectId ?? null,
+        observed_at: this.#clock().toISOString(),
       });
-      const owner =
-        object === undefined ? null : text(object.workspace_id, "workspace_id");
+    } catch (error) {
       if (
-        owner !== null &&
-        owner !== workspaceId &&
-        (await this.#canAccessWorkspace(user.id, owner))
+        error instanceof CloudBaseRpcError &&
+        error.status === 404 &&
+        (error.code === "DATABASE_PT404" || error.code === "PT404")
       )
-        workspaceId = owner;
+        throw new WorkspaceUnavailableError();
+      throw error;
     }
-    if (!(await this.#canAccessWorkspace(user.id, workspaceId)))
-      throw new WorkspaceUnavailableError();
-    const [found] = await this.#client.select<Row>("workspaces", {
-      filters: filters(["id", "eq", workspaceId]),
-      limit: 1,
-    });
-    if (found === undefined) throw new WorkspaceUnavailableError();
-    return { user, workspace: workspaceRow(found) };
-  }
-
-  async #canAccessWorkspace(
-    userId: string,
-    workspaceId: string,
-  ): Promise<boolean> {
-    const membership = await this.#client.select<Row>("workspace_members", {
-      columns: "user_id",
-      filters: filters(
-        ["workspace_id", "eq", workspaceId],
-        ["user_id", "eq", userId],
-      ),
-      limit: 1,
-    });
-    if (membership.length > 0) return true;
-    const granted = await this.#grantedWorkspaceIds(userId, workspaceId);
-    return granted.has(workspaceId);
+    if (result === null) return null;
+    const resolved = record(result, "identity session");
+    return {
+      user: userRow(record(resolved.user, "user")),
+      workspace: workspaceRow(record(resolved.workspace, "workspace")),
+    };
   }
 
   async listAccessibleWorkspaces(
@@ -342,18 +310,12 @@ export class CloudBaseIdentityStore implements IdentityStore {
   }
 
   /** Workspaces where the user holds an unexpired grant on a live object, or an Owner grant on any object. */
-  async #grantedWorkspaceIds(
-    userId: string,
-    workspaceId?: string,
-  ): Promise<Set<string>> {
-    const scope: [string, CloudBaseRdbFilter["operator"], unknown][] =
-      workspaceId === undefined ? [] : [["workspace_id", "eq", workspaceId]];
+  async #grantedWorkspaceIds(userId: string): Promise<Set<string>> {
     const grants = await this.#client.select<Row>("resource_grants", {
       columns: "workspace_id,resource_id,role,expires_at",
       filters: filters(
         ["principal_type", "eq", "user"],
         ["principal_id", "eq", userId],
-        ...scope,
       ),
     });
     const now = this.#clock();

@@ -87,3 +87,29 @@ candidate scanning or sorting. Database statistics still affect lookup plans;
 the endpoint boundary avoids repeated workspace-wide policy evaluation from a
 flattened join. Removed-link scans remain iterative. Focused projection queries
 and recovery-list bounds require separate work.
+
+## CloudBase session resolution
+
+CloudBase resolves the authenticated identity and its selected workspace through
+`chronelle_identity_session_resolve` (migration `0066`). It reads the user,
+personal workspace, optional routed object, membership, and active grants in
+one database snapshot. Only the resolved user and workspace cross the gateway.
+
+A normal password-session request now needs two sequential gateway calls before
+resource-specific authorization: credential/session resolution and
+identity/workspace resolution, down from five for a workspace member. Shared
+object routing uses the same two-call budget, without additional grant or
+workspace table requests. These are transport counts, not production latency
+measurements.
+
+No authorization result is cached. Every request rechecks session revocation,
+membership, grant expiry, and deletion eligibility. Narrowed grants admit the
+workspace without granting unrestricted access to its objects or views; their
+existing resource-level checks remain mandatory. Provider authentication stays
+separate from workspace authorization, and the PostgreSQL TCP path is unchanged.
+
+Apply migration `0066` before deploying the API. CloudBase startup readiness
+requires the new function; the migration is additive and older API versions can
+continue using table reads. The identity-store integration fixture asserts the
+two-call HTTP request budget, immediate revocation, and parity with PostgreSQL
+for workspace selection and grant access.

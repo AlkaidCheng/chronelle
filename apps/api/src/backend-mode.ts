@@ -66,6 +66,7 @@ export function resolveBackend(
 export const cloudBaseRequiredFunctions: readonly string[] = [
   ...cloudBaseObjectModelFunctions,
   "chronelle_identity_sign_in",
+  "chronelle_identity_session_resolve",
   "chronelle_user_preferences_update",
   "chronelle_username_available",
   "chronelle_account_update",
