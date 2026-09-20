@@ -9,8 +9,10 @@ import { ApiClientProvider } from "../lib/api-context";
 import { AuthSessionProvider, useAuthSession } from "../lib/auth-session";
 import { EditorDraftProvider } from "../lib/editor-draft-context";
 import { EventCollectionProvider } from "../lib/event-collection-state";
+import { watchTips } from "../lib/tooltips";
 
 export function Providers({ children }: { readonly children: ReactNode }) {
+  useEffect(() => watchTips(document), []);
   return (
     <AuthSessionProvider>
       <SessionBoundary>{children}</SessionBoundary>
