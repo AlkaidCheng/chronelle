@@ -1159,10 +1159,12 @@ describe("insertable event components", () => {
       pages: [page("Plan", ["todos", "reminders"])],
     });
     // Created in one order, due in the other: the rows follow creation.
+    // Both days lie beyond the coming Monday, so the Next week snooze
+    // below always moves the reminder, whatever day the test runs on.
     const later = new Date();
-    later.setDate(later.getDate() + 3);
+    later.setDate(later.getDate() + 10);
     const soon = new Date();
-    soon.setDate(soon.getDate() + 1);
+    soon.setDate(soon.getDate() + 8);
     const create = async (
       resource:
         | { objectType: "task"; displayName: string; dueAt: string }
