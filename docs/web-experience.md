@@ -65,7 +65,7 @@ it: the sidebar slides off the left edge as the content follows (at once when
 motion is reduced), leaves the tab order, and a single control at the
 content's top-left brings it back; each hands focus to the other, so the
 keyboard keeps its place. Cmd/Ctrl + \ does the same outside text fields and
-dialogs, and the palette's Keyboard shortcuts section names it. The choice is
+dialogs, and Settings > Keyboard names it. The choice is
 kept on this device under `chronelle.sidebar` (absent while open, `collapsed`
 otherwise) and applied before the first paint like the theme, so a reload
 never shows the sidebar first; Reset display settings opens it again with the
@@ -76,10 +76,9 @@ choice kept from a wide window waits until the window is wide again.
 More holds what acts on the app rather than on records: Trash, Theme,
 Customize sidebar, Keyboard shortcuts, and Help. Theme opens a panel beside
 the rail with the mode (System, Light, Dark), the palette, density, and
-motion choices, and a reset. Keyboard shortcuts opens the command palette at
-its Keyboard shortcuts section, expanded with its first choice focused, so
-the shortcut settings and their reset are reached without typing; Help has
-no surface yet and says so in a passing notice. The
+motion choices, and a reset. Keyboard shortcuts opens Settings > Keyboard
+and shows only on a device with a keyboard; Help has no surface yet and
+says so in a passing notice. The
 account block at the foot of the rail (the account's avatar and name, the
 current workspace in small text under it, a caret) opens the account menu:
 the account's name and email, then a Workspace section with the current
@@ -475,33 +474,50 @@ code as anything but their own.
 
 ## Workspace commands
 
-Search in the rail opens a focused palette. Type an action or destination
-name or description, use Up/Down to choose a result, and press Enter to open
-it. Pointer selection also works. Escape, Close, or a backdrop press dismisses
-the palette and restores focus. Opening or closing it keeps the current draft;
-choosing another destination has the same draft behavior as the navigation rail.
+Search in the rail opens a focused palette: the field at the top, with the
+close control beside it, and the results grouped under it (the current
+page's actions, Navigation, Records). Type an action or destination name or
+description, use Up/Down to choose a result, and press Enter to open it.
+Pointer selection also works. Escape, Close, or a backdrop press dismisses
+the palette and restores focus. On a keyboard device a footer names the
+keys (Up/Down to choose, Enter to open, Esc to close); the palette carries
+no settings. Opening or closing it keeps the current draft; choosing
+another destination has the same draft behavior as the navigation rail.
+
+Shortcut symbols follow the keyboard: the Search entry's Cmd/Ctrl + K badge,
+the switcher's Cmd/Ctrl + Shift + K, and the palette's footer render only
+on a device with a fine pointer that can hover (`(hover: hover) and
+(pointer: fine)`); a touch phone shows none, while the shortcuts stay bound
+for a phone with a keyboard attached.
 
 Cmd/Ctrl + K opens Search outside text editors and dialogs. It ignores
-composition, repeated keydown, consumed events, and extra modifiers. Keyboard
-shortcuts inside the palette explains the controls and lets users disable this
-binding. The Search entry remains available. The preference is a
-browser-local `chronelle.command-shortcut` value: `disabled` opts out; absence
-or an unknown value enables the default. Same-origin tabs synchronize it.
-Blocked storage allows a current-page choice without guaranteeing persistence.
+composition, repeated keydown, consumed events, and extra modifiers.
+Settings > Keyboard, offered on keyboard devices only (More's Keyboard
+shortcuts item leads there), is one table of the shortcuts: Open Search
+(Cmd/Ctrl + K) with its switch, Undo the last edit (Cmd/Ctrl + Z, always on),
+Collapse or expand the sidebar (Cmd/Ctrl + \, always on), Add a component
+with its key choice, and Submit an editor (Cmd/Ctrl + Enter) with its
+switch; Reset keyboard shortcuts at the foot restores the defaults. On a
+touch device the section says it appears on devices with a keyboard, and
+the Settings navigation omits it. The Search entry remains available
+without the shortcut. The preference is a browser-local
+`chronelle.command-shortcut` value: `disabled` opts out; absence or an
+unknown value enables the default. Same-origin tabs synchronize it. Blocked
+storage allows a current-page choice without guaranteeing persistence.
 Display reset does not change shortcut preferences.
 
-The same help section offers `/`, `Cmd/Ctrl + /`, or Off for Add component.
-This action opens the existing picker only from within an editable event's
-page area; it does not insert immediately. Its independent browser-local key,
+Add a component offers `/`, `Cmd/Ctrl + /`, or Off. This action opens the
+existing picker only from within an editable event's page area; it does not
+insert immediately. Its independent browser-local key,
 `chronelle.component-shortcut`, accepts `slash`, `modified-slash`, or `disabled`.
 Missing, invalid, or unreadable values default to slash. Changes synchronize
 between mounted controls and same-origin tabs; blocked writes retain a
-current-page choice, including after closing the dialog. The editor-submit
-checkbox controls Cmd/Ctrl + Enter using `chronelle.editor-shortcut`:
-`disabled` opts out, while missing, unknown, or unreadable values enable it.
-All three shortcuts share the same storage and synchronization behavior.
-Reset keyboard shortcuts restores their defaults without changing appearance
-or clearing other browser data. Native text undo remains available in editors.
+current-page choice. The Submit an editor switch controls Cmd/Ctrl + Enter
+using `chronelle.editor-shortcut`: `disabled` opts out, while missing,
+unknown, or unreadable values enable it. All three shortcuts share the same
+storage and synchronization behavior. Reset keyboard shortcuts restores their
+defaults without changing appearance or clearing other browser data. Native
+text undo remains available in editors.
 
 Two undo stacks, each named for what it takes back. Content edits of Events and
 Tasks (a rename, a due date, a completion, a move in manual order) run as
@@ -636,7 +652,8 @@ the account, this one included, and returns to sign-in. Under Preferences, Langu
 zone, the time format, and the first day of the week, all kept on the
 account and applied at once; Appearance repeats the Theme panel's mode,
 palette, density, and motion choices, which stay on the browser, and
-carries the Install app control (see Install as an app). Under
+carries the Install app control (see Install as an app); Keyboard, on a
+keyboard device, holds the shortcut table described under Search. Under
 Workspace, Members lists the current workspace's members with their roles
 (the personal owner first, marked Personal workspace, and Friend beside a
 member who is one); an Owner adds a friend as Viewer or Editor from the

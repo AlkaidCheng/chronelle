@@ -1,5 +1,9 @@
 import { randomUUID } from "node:crypto";
 import { expect, test } from "./fixtures";
+import {
+  keyboardSection,
+  setKeyboardPreferences,
+} from "./helpers/keyboard-settings";
 import { exerciseWorkspaceCommands } from "./helpers/workspace-commands";
 import { moreTrigger, openMoreMenu, searchEntry } from "./helpers/quiet-chrome";
 
@@ -40,12 +44,7 @@ test("persists shortcut opt-out and synchronizes another tab @webkit-desktop @we
   await page.getByLabel("Email").fill(`shortcuts-${randomUUID()}@example.test`);
   await page.getByRole("button", { name: "Continue", exact: true }).click();
   const trigger = searchEntry(page);
-  await trigger.click();
-  await page.getByText("Keyboard shortcuts", { exact: true }).click();
-  await page
-    .getByRole("checkbox", { name: "Enable command shortcut" })
-    .uncheck();
-  await page.keyboard.press("Escape");
+  await setKeyboardPreferences(page, { command: "disabled" });
   await page.reload();
   await trigger.focus();
   await expect(trigger).not.toHaveAttribute("aria-keyshortcuts");
@@ -66,9 +65,11 @@ test("persists shortcut opt-out and synchronizes another tab @webkit-desktop @we
   await other.close();
 });
 
-test("opens the palette at its Keyboard shortcuts section from More and returns focus there @webkit-desktop @webkit-mobile", async ({
+test("leads from More to the Keyboard settings, where the Search shortcut is switched @webkit-desktop", async ({
   page,
+  isMobile,
 }) => {
+  test.skip(isMobile, "A touch device offers no keyboard settings.");
   await page.goto("/sign-in/development");
   await page.getByLabel("Name", { exact: true }).fill("Keyboard planner");
   await page.getByLabel("Email").fill(`more-${randomUUID()}@example.test`);
@@ -78,30 +79,29 @@ test("opens the palette at its Keyboard shortcuts section from More and returns 
   await more
     .getByRole("menuitem", { name: "Keyboard shortcuts", exact: true })
     .click();
+  await expect(page).toHaveURL(/\/settings\/keyboard$/u);
+  await expect(more).toHaveCount(0);
+  const section = keyboardSection(page);
+  const search = section.getByRole("switch", {
+    name: "Open Search",
+    exact: true,
+  });
+  await expect(search).toBeChecked();
+  await expect(
+    section.getByRole("button", { name: "Reset keyboard shortcuts" }),
+  ).toBeVisible();
+  // The palette itself carries no settings: the field has focus, the keys
+  // read under the results, and Escape returns focus to the entry.
+  await searchEntry(page).click();
   const palette = page.getByRole("dialog", { name: "Search" });
   await expect(palette).toBeVisible();
-  await expect(more).toHaveCount(0);
-  // The section is open and its first choice has focus; no typing needed.
-  await expect(palette.locator("details.command-help")).toHaveAttribute(
-    "open",
-    "",
-  );
   await expect(
-    palette.getByRole("checkbox", { name: "Enable command shortcut" }),
+    palette.getByRole("combobox", { name: "Search records and commands" }),
   ).toBeFocused();
-  await expect(
-    palette.getByRole("button", { name: "Reset keyboard shortcuts" }),
-  ).toBeVisible();
+  await expect(palette.getByText("Keyboard shortcuts")).toHaveCount(0);
+  await expect(palette.locator("footer.command-keys")).toBeVisible();
   await page.keyboard.press("Escape");
   await expect(palette).toHaveCount(0);
-  await expect(moreTrigger(page)).toBeFocused();
-  // From the Search entry the section stays folded and the field has focus.
-  await searchEntry(page).click();
-  await expect(palette).toBeVisible();
-  await expect(palette.locator("details.command-help")).not.toHaveAttribute(
-    "open",
-  );
-  await expect(
-    palette.getByRole("combobox", { name: "Find a command" }),
-  ).toBeFocused();
+  await expect(searchEntry(page)).toBeFocused();
+  await expect(moreTrigger(page)).toBeVisible();
 });

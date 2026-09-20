@@ -16,6 +16,16 @@ vi.mock("next/navigation", () => ({ useRouter: () => router }));
 
 beforeEach(() => {
   vi.stubGlobal("localStorage", window.sessionStorage);
+  // A keyboard device: the menu offers Keyboard shortcuts.
+  vi.stubGlobal(
+    "matchMedia",
+    vi.fn((query: string) => ({
+      matches: query === "(hover: hover) and (pointer: fine)",
+      media: query,
+      addEventListener: () => {},
+      removeEventListener: () => {},
+    })),
+  );
 });
 afterEach(() => {
   cleanup();
@@ -62,8 +72,11 @@ it("opens a menu with Trash, Theme, Customize sidebar, Keyboard shortcuts, and H
   );
   expect(within(menu).getByRole("menuitem", { name: "Trash" })).toHaveFocus();
   // Help has no surface yet: choosing it closes the menu and says so in a
-  // passing notice. Keyboard shortcuts opens the command palette; the
-  // palette's own tests cover that.
+  // passing notice. Keyboard shortcuts leads to the Keyboard settings on a
+  // keyboard device.
+  expect(
+    within(menu).getByRole("menuitem", { name: "Keyboard shortcuts" }),
+  ).toHaveAttribute("href", "/settings/keyboard");
   await user.keyboard("{End}");
   expect(within(menu).getByRole("menuitem", { name: "Help" })).toHaveFocus();
   await user.keyboard("{Enter}");

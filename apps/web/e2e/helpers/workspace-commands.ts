@@ -1,4 +1,10 @@
-import { expect, type Page, type TestInfo } from "@playwright/test";
+import {
+  expect,
+  type Locator,
+  type Page,
+  type TestInfo,
+} from "@playwright/test";
+import { isKeyboardDevice, setKeyboardPreferences } from "./keyboard-settings";
 import { expectHorizontalReflow } from "./page-navigation";
 import { openThemePanel, searchEntry } from "./quiet-chrome";
 import { openTaskEditor } from "./task-add";
@@ -39,7 +45,14 @@ export async function exerciseWorkspaceCommands(
   });
   await trigger.focus();
   await page.keyboard.press("Control+k");
-  const input = dialog.getByRole("combobox", { name: "Find a command" });
+  const input = dialog.getByRole("combobox", {
+    name: "Search records and commands",
+  });
+  // The key footer and the entry's badge belong to keyboard devices.
+  const keyboard = await isKeyboardDevice(page);
+  const keys = dialog.locator("footer.command-keys");
+  if (keyboard) await expect(keys).toBeVisible();
+  else await expect(keys).toBeHidden();
   await expect(input).toBeFocused();
   await expect(
     results.getByRole("group", { name: "Navigation" }).getByRole("option"),
@@ -84,23 +97,31 @@ export async function exerciseWorkspaceCommands(
   await input.fill("trash");
   await expect(dialog.getByRole("option", { name: /Trash/ })).toBeInViewport();
   await input.fill("");
-  await dialog.getByText("Keyboard shortcuts", { exact: true }).click();
-  const enable = dialog.getByRole("checkbox", {
-    name: "Enable command shortcut",
-  });
-  await enable.uncheck();
   await page.screenshot({
-    path: testInfo.outputPath("commands-help-narrow.png"),
+    path: testInfo.outputPath("commands-narrow.png"),
   });
   await dialog.getByRole("button", { name: "Close search" }).click();
   await expect(trigger).toBeFocused();
+  const enable = (section: Locator) =>
+    section.getByRole("switch", { name: "Open Search", exact: true });
+  await setKeyboardPreferences(page, { command: "disabled" }, async () => {
+    await page.screenshot({
+      path: testInfo.outputPath("keyboard-settings-narrow.png"),
+    });
+  });
+  await trigger.focus();
   await page.keyboard.press("Control+k");
   await expect(dialog).toHaveCount(0);
-  await trigger.click();
-  await dialog.getByText("Keyboard shortcuts", { exact: true }).click();
-  await expect(enable).not.toBeChecked();
-  await enable.check();
-  await page.keyboard.press("Escape");
+  await expect(trigger.locator("kbd")).toHaveCount(0);
+  await setKeyboardPreferences(
+    page,
+    { command: "enabled" },
+    async (section) => {
+      await expect(enable(section)).not.toBeChecked();
+    },
+  );
+  if (keyboard) await expect(trigger.locator("kbd")).toBeVisible();
+  else await expect(trigger.locator("kbd")).toBeHidden();
 
   const theme = await openThemePanel(page);
   await theme

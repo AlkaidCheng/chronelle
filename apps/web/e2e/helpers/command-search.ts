@@ -6,7 +6,9 @@ export async function exerciseCommandSearch(page: Page, testInfo: TestInfo) {
   const errors: string[] = [];
   page.on("pageerror", (error) => errors.push(error.message));
   const dialog = await openCommands(page);
-  const input = dialog.getByRole("combobox", { name: "Find a command" });
+  const input = dialog.getByRole("combobox", {
+    name: "Search records and commands",
+  });
   await expect(dialog.getByRole("group", { name: "Records" })).toHaveCount(0);
   await input.fill("autumn");
   const event = dialog.getByRole("option", { name: /Autumn gathering/ });

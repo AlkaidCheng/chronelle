@@ -11,8 +11,6 @@
   "openEvent": "開啟活動",
   "title": "搜尋",
   "close": "關閉搜尋",
-  "scope": "在 {workspace} 中尋找記錄或開啟工具。",
-  "find": "尋找指令",
   "listLabel": "指令",
   "groups": {
     "context": "活動操作",
@@ -27,16 +25,10 @@
   "noMatch": "沒有相符的指令。輸入至少兩個字母或數字以尋找記錄。",
   "showingEight": "只顯示八筆記錄。請細化搜尋詞，或開啟搜尋檢視全部結果。",
   "openFull": "開啟完整搜尋",
-  "shortcuts": "鍵盤快速鍵",
-  "openShortcut": "在編輯器和對話框之外，<kbd>Cmd/Ctrl + K</kbd> 開啟搜尋。用上下方向鍵選擇結果，Enter 開啟，Escape 關閉。",
-  "enableCommand": "啟用指令快速鍵",
-  "componentShortcut": "新增元件快速鍵",
-  "off": "關閉",
-  "componentNote": "在編輯器和對話框之外，從所選活動頁面開啟元件選擇器。需要編輯權限，且頁面有空位。",
-  "enableSubmit": "啟用編輯器送出快速鍵",
-  "submitNote": "<kbd>Cmd/Ctrl + Enter</kbd> 可從活動、日程、任務、支出或提醒的欄位中儲存。儲存驗證仍然生效。",
-  "buttonsNote": "沒有快速鍵時按鈕仍可使用。這些選擇會在儲存空間可用時儲存在此瀏覽器上。原生文字復原不受影響。",
-  "reset": "重設鍵盤快速鍵",
-  "undoShortcut": "<kbd>Cmd/Ctrl + Z</kbd> 在文字欄位之外復原你的上一次編輯，排列時則復原上一次版面變更；<kbd>Shift + Cmd/Ctrl + Z</kbd> 重做。",
-  "sidebarShortcut": "在編輯器和對話框之外，<kbd>Cmd/Ctrl + \\</kbd> 在寬視窗上收合或展開側邊欄；此選擇會儲存在本裝置上。"
+  "placeholder": "搜尋記錄和命令",
+  "keys": {
+    "choose": "選擇",
+    "open": "開啟",
+    "close": "關閉"
+  }
 }

@@ -5,12 +5,15 @@ import { useTranslations } from "next-intl";
 import type { ReactNode } from "react";
 
 import { AccountSettings } from "./account-settings";
+import { useKeyboardDevice } from "../../lib/use-keyboard-device";
 import { AppearanceSection } from "./appearance-section";
+import { KeyboardSection } from "./keyboard-section";
 import { LanguageTimeSettings } from "./language-time-settings";
 import { MembersSection } from "./members-section";
 
 /** The sections of Settings, each with its own address. */
-export type SettingsSection = "account" | "language" | "appearance" | "members";
+export type SettingsSection =
+  "account" | "language" | "appearance" | "keyboard" | "members";
 
 export const settingsSections: readonly {
   readonly id: SettingsSection;
@@ -19,14 +22,16 @@ export const settingsSections: readonly {
   { id: "account", href: "/settings" },
   { id: "language", href: "/settings/language" },
   { id: "appearance", href: "/settings/appearance" },
+  { id: "keyboard", href: "/settings/keyboard" },
   { id: "members", href: "/settings/members" },
 ];
 
 /**
  * Settings, reached from the profile menu: a list of sections at the left
- * (Account; under Preferences, Language & time and Appearance; under
- * Workspace, Members), the open section at the right. Each section has its own address, so it can be
- * bookmarked and reached again.
+ * (Account; under Preferences, Language & time, Appearance, and on a
+ * keyboard device Keyboard; under Workspace, Members), the open section at
+ * the right. Each section has its own address, so it can be bookmarked and
+ * reached again.
  */
 export function SettingsPage({
   section,
@@ -34,6 +39,7 @@ export function SettingsPage({
   readonly section: SettingsSection;
 }) {
   const t = useTranslations("settings");
+  const keyboard = useKeyboardDevice();
   const entry = (id: SettingsSection, label: string) => (
     <li>
       <Link
@@ -50,12 +56,14 @@ export function SettingsPage({
     account: t("account"),
     language: t("languageTime"),
     appearance: t("appearance"),
+    keyboard: t("keyboard"),
     members: t("members"),
   };
   const bodies: Record<SettingsSection, ReactNode> = {
     account: <AccountSettings />,
     language: <LanguageTimeSettings />,
     appearance: <AppearanceSection />,
+    keyboard: <KeyboardSection />,
     members: <MembersSection />,
   };
   return (
@@ -72,6 +80,7 @@ export function SettingsPage({
               <ul>
                 {entry("language", t("languageTime"))}
                 {entry("appearance", t("appearance"))}
+                {keyboard ? entry("keyboard", t("keyboard")) : null}
               </ul>
             </li>
             <li className="settings-nav-group">

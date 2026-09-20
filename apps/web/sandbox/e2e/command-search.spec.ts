@@ -16,7 +16,11 @@ test("finds sample records with the shared Commands UI while offline", async ({
   await exerciseCommandSearch(page, testInfo);
   await page.getByLabel("Preview role").selectOption("viewer");
   const dialog = await openCommands(page);
-  await dialog.getByRole("combobox", { name: "Find a command" }).fill("garden");
+  await dialog
+    .getByRole("combobox", {
+      name: "Search records and commands",
+    })
+    .fill("garden");
   await expect(
     dialog.getByRole("option", { name: /Confirm the garden venue/ }),
   ).toBeVisible();

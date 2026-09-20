@@ -12,7 +12,7 @@ import {
   ThemeIcon,
   TrashIcon,
 } from "./icons";
-import { openCommandPalette } from "../lib/command-palette";
+import { useKeyboardDevice } from "../lib/use-keyboard-device";
 import { useInstallControl } from "./install-app";
 import { useNotices } from "./notices";
 import {
@@ -25,12 +25,12 @@ import { ThemePanel } from "./theme-panel";
 /**
  * The More control beside the profile block: what acts on the app rather
  * than on records. Trash, Theme (the panel opens beside the rail),
- * Customize sidebar, Keyboard shortcuts (the command palette, opened at
- * its shortcuts section), Install app while the browser can install it
- * from here, then Help, which has no surface yet: choosing it posts a
- * passing notice saying so. Escape or a press outside closes the menu,
- * the panel, or the palette and, from the keyboard, returns focus to the
- * control.
+ * Customize sidebar, Keyboard shortcuts (the Keyboard section of
+ * Settings, offered on keyboard devices only), Install app while the
+ * browser can install it from here, then Help, which has no surface yet:
+ * choosing it posts a passing notice saying so. Escape or a press outside
+ * closes the menu or the panel and, from the keyboard, returns focus to
+ * the control.
  */
 export function MoreMenu({
   onCustomize,
@@ -45,6 +45,7 @@ export function MoreMenu({
   const installText = useTranslations("install");
   const install = useInstallControl();
   const { post } = useNotices();
+  const keyboard = useKeyboardDevice();
   const root = useRef<HTMLDivElement>(null);
   const trigger = useRef<HTMLButtonElement>(null);
   const menu = useRef<HTMLDivElement>(null);
@@ -68,13 +69,6 @@ export function MoreMenu({
   function notYet(name: string) {
     setOpen(false);
     post({ message: t("notAvailableYet", { name }) });
-  }
-  // The control takes focus before the palette opens, so closing the
-  // palette returns focus here, as closing the Theme panel does.
-  function openShortcuts() {
-    setOpen(false);
-    trigger.current?.focus();
-    openCommandPalette({ section: "shortcuts" });
   }
 
   return (
@@ -143,17 +137,18 @@ export function MoreMenu({
             <PencilIcon />
             <span>{t("customize")}</span>
           </button>
-          <button
-            type="button"
-            role="menuitem"
-            tabIndex={-1}
-            className="quiet-menu-item"
-            aria-haspopup="dialog"
-            onClick={openShortcuts}
-          >
-            <KeyboardIcon />
-            <span>{t("keyboardShortcuts")}</span>
-          </button>
+          {keyboard ? (
+            <Link
+              role="menuitem"
+              tabIndex={-1}
+              className="quiet-menu-item"
+              href="/settings/keyboard"
+              onClick={() => setOpen(false)}
+            >
+              <KeyboardIcon />
+              <span>{t("keyboardShortcuts")}</span>
+            </Link>
+          ) : null}
           {install.mode === "none" ? null : (
             <button
               type="button"

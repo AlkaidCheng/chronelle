@@ -1,7 +1,12 @@
-import { expect, type Page, type TestInfo } from "@playwright/test";
+import {
+  expect,
+  type Locator,
+  type Page,
+  type TestInfo,
+} from "@playwright/test";
 import { setDates, setTimes } from "./date-rows";
+import { setKeyboardPreferences } from "./keyboard-settings";
 import { expectHorizontalReflow } from "./page-navigation";
-import { searchEntry } from "./quiet-chrome";
 import { openEventView } from "./event-view";
 import { openTaskEditor } from "./task-add";
 
@@ -70,19 +75,19 @@ export async function exerciseEditorSubmit(page: Page, testInfo: TestInfo) {
   await expect(
     page.getByText("Keyboard-created task", { exact: true }),
   ).toHaveCount(1);
-  const commands = page.getByRole("dialog", { name: "Search", exact: true });
-  await searchEntry(page).click();
-  await commands.getByText("Keyboard shortcuts", { exact: true }).click();
-  const preference = commands.getByLabel("Enable editor submit shortcut", {
-    exact: true,
-  });
-  await preference.uncheck();
-  await preference.scrollIntoViewIfNeeded();
-  await expectHorizontalReflow(page);
-  await page.screenshot({
-    path: testInfo.outputPath("editor-submit-preference-narrow.png"),
-  });
-  await page.keyboard.press("Escape");
+  const preference = (section: Locator) =>
+    section.getByRole("switch", { name: "Submit an editor", exact: true });
+  await setKeyboardPreferences(
+    page,
+    { editor: "disabled" },
+    async (section) => {
+      await preference(section).scrollIntoViewIfNeeded();
+      await expectHorizontalReflow(page);
+      await page.screenshot({
+        path: testInfo.outputPath("editor-submit-preference-narrow.png"),
+      });
+    },
+  );
   await openTaskEditor(page);
   await task.fill("Retained draft");
   await expect(save).not.toHaveAttribute("aria-keyshortcuts");
@@ -99,14 +104,9 @@ export async function exerciseEditorSubmit(page: Page, testInfo: TestInfo) {
   await openTaskEditor(page);
   await expect(save).not.toHaveAttribute("aria-keyshortcuts");
   await page.keyboard.press("Escape");
-  await searchEntry(page).click();
-  await commands.getByText("Keyboard shortcuts", { exact: true }).click();
-  await expect(preference).not.toBeChecked();
-  await commands
-    .getByRole("button", { name: "Reset keyboard shortcuts" })
-    .click();
-  await expect(preference).toBeChecked();
-  await page.keyboard.press("Escape");
+  await setKeyboardPreferences(page, "reset", async (section) => {
+    await expect(preference(section)).not.toBeChecked();
+  });
   await openTaskEditor(page);
   await expect(save).toHaveAttribute(
     "aria-keyshortcuts",

@@ -114,6 +114,8 @@ function Sandbox() {
           <SettingsPage section="language" />
         ) : pathname === "/settings/appearance" ? (
           <SettingsPage section="appearance" />
+        ) : pathname === "/settings/keyboard" ? (
+          <SettingsPage section="keyboard" />
         ) : (
           <section className="panel">
             <h1>No account needed</h1>

@@ -158,7 +158,7 @@ export function WorkspaceSwitcherList({
         >
           <span>{t("members")}</span>
         </Link>
-        <kbd className="workspace-shortcut">
+        <kbd className="workspace-shortcut keyboard-only">
           <Shortcut />
         </kbd>
       </div>

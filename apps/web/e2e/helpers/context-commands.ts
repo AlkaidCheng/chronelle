@@ -14,7 +14,9 @@ export async function exerciseContextCommands(
 ) {
   const dialog = await openCommands(page);
   const results = dialog.getByRole("listbox", { name: "Commands" });
-  const input = dialog.getByRole("combobox", { name: "Find a command" });
+  const input = dialog.getByRole("combobox", {
+    name: "Search records and commands",
+  });
   await input.fill("Edit event");
   await input.press("Enter");
   await expect(dialog).toHaveCount(0);
