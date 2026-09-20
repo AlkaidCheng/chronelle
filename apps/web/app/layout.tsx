@@ -18,6 +18,11 @@ export const metadata: Metadata = {
     "A thoughtful home for your events, plans, and everyday details.",
   title: { default: "Chronelle", template: "%s | Chronelle" },
   robots: { index: false, follow: false },
+  // A home-screen install on iOS opens as its own window, as the
+  // manifest's standalone display asks elsewhere; the apple-prefixed tag
+  // covers iOS before 17.4, which ignores the standard one Next emits.
+  appleWebApp: { capable: true, title: "Chronelle", statusBarStyle: "default" },
+  other: { "apple-mobile-web-app-capable": "yes" },
 };
 
 export const viewport: Viewport = {

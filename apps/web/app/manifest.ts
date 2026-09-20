@@ -5,6 +5,7 @@ export default function manifest(): MetadataRoute.Manifest {
     background_color: "#f5f0e6",
     description: "Your life, connected across time.",
     display: "standalone",
+    id: "/",
     icons: [
       { src: "/icon.svg", sizes: "any", type: "image/svg+xml", purpose: "any" },
       {
@@ -27,6 +28,7 @@ export default function manifest(): MetadataRoute.Manifest {
       },
     ],
     name: "Chronelle",
+    scope: "/",
     short_name: "Chronelle",
     start_url: "/",
     theme_color: "#f5f0e6",
