@@ -106,16 +106,16 @@ for (const kind of ["task", "expense", "reminder"] as const) {
         saving.getByRole("button", { name: "Discard draft", exact: true }),
       ).toBeDisabled();
       const releaseRefresh = Promise.withResolvers<void>();
-      const accessEndpoint = `/api/objects/${eventId}/access`;
+      const projectionEndpoint = `/api/events/${eventId}/${projection}`;
       const refreshing =
         outcome === "success"
           ? page.waitForRequest((request) =>
-              request.url().endsWith(accessEndpoint),
+              request.url().endsWith(projectionEndpoint),
             )
           : undefined;
       if (outcome === "success")
         await page.route(
-          `**${accessEndpoint}`,
+          `**${projectionEndpoint}`,
           async (route) => {
             await releaseRefresh.promise;
             await route.continue();
