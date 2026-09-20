@@ -4,9 +4,9 @@ import type { QueryClient, QueryKey } from "@tanstack/react-query";
 type ChangedResource = Pick<EventPlanningResourceResponse, "id" | "objectType">;
 
 const projections: Record<ChangedResource["objectType"], readonly string[]> = {
-  event: ["detail", "calendar", "timeline", "itinerary"],
-  task: ["detail", "todos", "timeline"],
-  expense: ["detail", "expenses", "timeline"],
+  event: ["detail", "calendar", "timeline", "itinerary", "attachment-targets"],
+  task: ["detail", "todos", "timeline", "attachment-targets"],
+  expense: ["detail", "expenses", "timeline", "attachment-targets"],
   reminder: ["detail", "reminders", "timeline"],
   person: ["detail", "people"],
   note: ["detail", "notes"],

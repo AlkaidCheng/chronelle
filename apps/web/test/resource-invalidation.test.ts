@@ -12,6 +12,17 @@ const eventId = "first-event";
 const otherEventId = "second-event";
 
 describe("resource invalidation", () => {
+  it.each(["event", "task", "expense"] as const)(
+    "refreshes file target labels after %s edits",
+    async (objectType) => {
+      const client = new QueryClient();
+      const key = ["event", "context", "attachment-targets"];
+      client.setQueryData(key, { tasks: [] });
+      await invalidateResourceQueries(client, { id: "resource", objectType });
+      expect(client.getQueryState(key)?.isInvalidated).toBe(true);
+      client.clear();
+    },
+  );
   it("refetches a task's dependent reads across contexts and filtered lists only", async () => {
     const client = new QueryClient();
     const affected = [
