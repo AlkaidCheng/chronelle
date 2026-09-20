@@ -3,7 +3,6 @@
 import { usePathname, useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useEffect, useId, useRef, useState } from "react";
-import type { CommandPaletteSection } from "../lib/command-palette";
 import { flushSync } from "react-dom";
 import { useAuthSession } from "../lib/auth-session";
 import { useCommandSearch } from "../lib/use-command-search";
@@ -11,12 +10,6 @@ import { getSearchResultHref } from "../lib/search-result";
 import { SearchIcon } from "./icons";
 import { useContextCommands } from "./context-commands";
 import { useSessionDialog } from "../lib/use-session-dialog";
-import { useEditorShortcut } from "../lib/shortcut-preference";
-import {
-  componentShortcuts,
-  parseComponentShortcut,
-  useComponentShortcut,
-} from "../lib/use-component-shortcut";
 import { workspaceDestinations } from "./workspace-navigation";
 
 type Command =
@@ -44,19 +37,15 @@ function matchingCommands(commands: readonly Command[], query: string) {
   );
 }
 
+/**
+ * The Search dialog: the field at the top, the grouped results under it,
+ * and, on a keyboard device, a footer naming the keys. The keyboard
+ * settings live in Settings.
+ */
 export function WorkspaceCommands({
-  workspaceName,
-  shortcutEnabled,
-  onShortcutChange,
   onClose,
-  section,
 }: {
-  readonly workspaceName: string;
-  readonly shortcutEnabled: boolean;
-  readonly onShortcutChange: (enabled: boolean) => void;
   readonly onClose: () => void;
-  /** Opened at the Keyboard shortcuts section, expanded, its first control focused. */
-  readonly section?: CommandPaletteSection | undefined;
 }) {
   const t = useTranslations("commands");
   const nav = useTranslations("nav");
@@ -74,10 +63,7 @@ export function WorkspaceCommands({
     })),
   ];
   const dialog = useSessionDialog(onClose);
-  const componentShortcut = useComponentShortcut();
-  const editorShortcut = useEditorShortcut();
   const input = useRef<HTMLInputElement>(null);
-  const firstShortcutControl = useRef<HTMLInputElement>(null);
   const activeOption = useRef<HTMLButtonElement>(null);
   const [isComposing, setIsComposing] = useState(false);
   const backdropPress = useRef(false);
@@ -108,9 +94,8 @@ export function WorkspaceCommands({
   useEffect(() => {
     if (selectedId === null && firstMatchId) setSelectedId(firstMatchId);
   }, [selectedId, firstMatchId]);
-  // biome-ignore lint/correctness/useExhaustiveDependencies: The section decides the first focus once, at mount.
   useEffect(() => {
-    (section === "shortcuts" ? firstShortcutControl : input).current?.focus();
+    input.current?.focus();
   }, []);
   // biome-ignore lint/correctness/useExhaustiveDependencies: The selected command changes which option must be visible.
   useEffect(() => {
@@ -151,8 +136,7 @@ export function WorkspaceCommands({
     <dialog
       ref={dialog}
       className="event-create-dialog workspace-commands"
-      aria-labelledby={`${id}-title`}
-      aria-describedby={`${id}-scope`}
+      aria-label={t("title")}
       onCancel={(event) => {
         event.preventDefault();
         if (!isComposing) onClose();
@@ -166,8 +150,64 @@ export function WorkspaceCommands({
         backdropPress.current = false;
       }}
     >
-      <header className="event-create-header">
-        <h2 id={`${id}-title`}>{t("title")}</h2>
+      <div className="command-field">
+        <SearchIcon />
+        <input
+          ref={input}
+          aria-label={t("placeholder")}
+          placeholder={t("placeholder")}
+          role="combobox"
+          aria-autocomplete="list"
+          aria-expanded="true"
+          aria-controls={`${id}-results`}
+          aria-activedescendant={selected ? `${id}-${selected.id}` : undefined}
+          autoComplete="off"
+          maxLength={120}
+          value={query}
+          onChange={(event) => {
+            setQuery(event.target.value);
+            setSelectedId(
+              matchingCommands(commands, event.target.value)[0]?.id ?? null,
+            );
+          }}
+          onCompositionStart={() => {
+            setIsComposing(true);
+          }}
+          onCompositionEnd={() => {
+            setIsComposing(false);
+          }}
+          onKeyDown={(event) => {
+            if (
+              event.defaultPrevented ||
+              event.nativeEvent.isComposing ||
+              isComposing ||
+              event.keyCode === 229 ||
+              event.altKey ||
+              event.ctrlKey ||
+              event.metaKey ||
+              event.shiftKey
+            )
+              return;
+            if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+              event.preventDefault();
+              if (matches.length) {
+                const index = matches.findIndex(
+                  (command) => command.id === selected?.id,
+                );
+                const next =
+                  event.key === "ArrowDown"
+                    ? (index + 1) % matches.length
+                    : (index < 0
+                        ? matches.length - 1
+                        : index - 1 + matches.length) % matches.length;
+                setSelectedId(matches[next]?.id ?? null);
+              }
+            } else if (event.key === "Enter") {
+              event.preventDefault();
+              if (selected && !event.repeat) activate(selected);
+            }
+          }}
+        />
         <button
           type="button"
           className="dialog-close"
@@ -176,70 +216,8 @@ export function WorkspaceCommands({
         >
           &#215;
         </button>
-      </header>
+      </div>
       <div className="event-create-body command-body">
-        <p id={`${id}-scope`} className="field-hint">
-          {t("scope", { workspace: workspaceName })}
-        </p>
-        <label className="field">
-          {t("find")}
-          <input
-            ref={input}
-            role="combobox"
-            aria-autocomplete="list"
-            aria-expanded="true"
-            aria-controls={`${id}-results`}
-            aria-activedescendant={
-              selected ? `${id}-${selected.id}` : undefined
-            }
-            autoComplete="off"
-            maxLength={120}
-            value={query}
-            onChange={(event) => {
-              setQuery(event.target.value);
-              setSelectedId(
-                matchingCommands(commands, event.target.value)[0]?.id ?? null,
-              );
-            }}
-            onCompositionStart={() => {
-              setIsComposing(true);
-            }}
-            onCompositionEnd={() => {
-              setIsComposing(false);
-            }}
-            onKeyDown={(event) => {
-              if (
-                event.defaultPrevented ||
-                event.nativeEvent.isComposing ||
-                isComposing ||
-                event.keyCode === 229 ||
-                event.altKey ||
-                event.ctrlKey ||
-                event.metaKey ||
-                event.shiftKey
-              )
-                return;
-              if (event.key === "ArrowDown" || event.key === "ArrowUp") {
-                event.preventDefault();
-                if (matches.length) {
-                  const index = matches.findIndex(
-                    (command) => command.id === selected?.id,
-                  );
-                  const next =
-                    event.key === "ArrowDown"
-                      ? (index + 1) % matches.length
-                      : (index < 0
-                          ? matches.length - 1
-                          : index - 1 + matches.length) % matches.length;
-                  setSelectedId(matches[next]?.id ?? null);
-                }
-              } else if (event.key === "Enter") {
-                event.preventDefault();
-                if (selected && !event.repeat) activate(selected);
-              }
-            }}
-          />
-        </label>
         <div
           id={`${id}-results`}
           className="command-results"
@@ -327,81 +305,19 @@ export function WorkspaceCommands({
             {t("openFull")}
           </button>
         )}
-        <details className="command-help" open={section === "shortcuts"}>
-          <summary>{t("shortcuts")}</summary>
-          <p>
-            {t.rich("openShortcut", {
-              kbd: (chunks) => <kbd>{chunks}</kbd>,
-            })}
-          </p>
-          <p>
-            {t.rich("undoShortcut", {
-              kbd: (chunks) => <kbd>{chunks}</kbd>,
-            })}
-          </p>
-          <p>
-            {t.rich("sidebarShortcut", {
-              kbd: (chunks) => <kbd>{chunks}</kbd>,
-            })}
-          </p>
-          <label>
-            <input
-              ref={firstShortcutControl}
-              type="checkbox"
-              checked={shortcutEnabled}
-              onChange={(event) => onShortcutChange(event.target.checked)}
-            />{" "}
-            {t("enableCommand")}
-          </label>
-          <label className="field">
-            {t("componentShortcut")}
-            <select
-              value={componentShortcut.value}
-              onChange={(event) =>
-                componentShortcut.setValue(
-                  parseComponentShortcut(event.target.value),
-                )
-              }
-            >
-              {Object.entries(componentShortcuts).map(([value, choice]) => (
-                <option key={value} value={value}>
-                  {value === "disabled" ? t("off") : choice.label}
-                </option>
-              ))}
-            </select>
-          </label>
-          <p className="field-hint">{t("componentNote")}</p>
-          <label>
-            <input
-              type="checkbox"
-              checked={editorShortcut.value === "enabled"}
-              onChange={(event) =>
-                editorShortcut.setValue(
-                  event.target.checked ? "enabled" : "disabled",
-                )
-              }
-            />{" "}
-            {t("enableSubmit")}
-          </label>
-          <p className="field-hint">
-            {t.rich("submitNote", {
-              kbd: (chunks) => <kbd>{chunks}</kbd>,
-            })}
-          </p>
-          <p className="field-hint">{t("buttonsNote")}</p>
-          <button
-            type="button"
-            className="button button-quiet"
-            onClick={() => {
-              onShortcutChange(true);
-              componentShortcut.setValue("slash");
-              editorShortcut.setValue("enabled");
-            }}
-          >
-            {t("reset")}
-          </button>
-        </details>
       </div>
+      <footer className="command-keys keyboard-only" aria-hidden="true">
+        <span>
+          <kbd>&#8593;</kbd>
+          <kbd>&#8595;</kbd> {t("keys.choose")}
+        </span>
+        <span>
+          <kbd>Enter</kbd> {t("keys.open")}
+        </span>
+        <span>
+          <kbd>Esc</kbd> {t("keys.close")}
+        </span>
+      </footer>
     </dialog>
   );
 }

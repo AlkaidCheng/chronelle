@@ -163,10 +163,7 @@ export function WorkspaceShell({ children }: { readonly children: ReactNode }) {
               aria-label={t("workspaceNavigation")}
               className="workspace-nav"
             >
-              <SearchEntry
-                workspaceName={currentSession.workspace.displayName}
-                current={pathname.startsWith("/search")}
-              />
+              <SearchEntry current={pathname.startsWith("/search")} />
               <RailCollections
                 pathname={pathname}
                 customizing={customizing}

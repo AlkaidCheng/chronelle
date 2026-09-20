@@ -298,6 +298,60 @@ describe("the Settings page", () => {
     ).toBeVisible();
     expect(screen.queryByRole("group", { name: "Language" })).toBeNull();
   });
+
+  it("offers Keyboard on a keyboard device alone, with the shortcut table", async () => {
+    // Without a keyboard (no hover, no fine pointer) the section is absent
+    // from the navigation and a direct visit says so.
+    render(<SettingsPage section="keyboard" />, { wrapper });
+    expect(screen.queryByRole("link", { name: "Keyboard" })).toBeNull();
+    expect(
+      screen.getByText("This page appears on devices with a keyboard."),
+    ).toBeVisible();
+    expect(screen.queryByRole("table")).toBeNull();
+    cleanup();
+    vi.stubGlobal(
+      "matchMedia",
+      vi.fn((query: string) => ({
+        matches: query === "(hover: hover) and (pointer: fine)",
+        media: query,
+        addEventListener: () => {},
+        removeEventListener: () => {},
+      })),
+    );
+    render(<SettingsPage section="keyboard" />, { wrapper });
+    expect(screen.getByRole("link", { name: "Keyboard" })).toHaveAttribute(
+      "aria-current",
+      "page",
+    );
+    const table = within(screen.getByRole("table"));
+    expect(table.getAllByRole("row")).toHaveLength(6);
+    const search = table.getByRole("switch", { name: "Open Search" });
+    expect(search).toBeChecked();
+    const user = userEvent.setup();
+    await user.click(search);
+    expect(search).not.toBeChecked();
+    expect(window.localStorage.getItem("chronelle.command-shortcut")).toBe(
+      "disabled",
+    );
+    await user.selectOptions(
+      table.getByRole("combobox", { name: "Add a component" }),
+      "disabled",
+    );
+    expect(window.localStorage.getItem("chronelle.component-shortcut")).toBe(
+      "disabled",
+    );
+    expect(table.getAllByText("Always on")).toHaveLength(2);
+    await user.click(
+      screen.getByRole("button", { name: "Reset keyboard shortcuts" }),
+    );
+    expect(search).toBeChecked();
+    expect(
+      window.localStorage.getItem("chronelle.command-shortcut"),
+    ).toBeNull();
+    expect(
+      window.localStorage.getItem("chronelle.component-shortcut"),
+    ).toBeNull();
+  });
 });
 
 describe("useDisplayPreferences", () => {

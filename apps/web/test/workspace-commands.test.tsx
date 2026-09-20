@@ -12,6 +12,7 @@ import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { MoreMenu } from "../components/more-menu";
 import { NoticesProvider } from "../components/notices";
 import { SearchEntry } from "../components/search-entry";
+import { KeyboardSection } from "../features/settings/keyboard-section";
 import { AuthSessionProvider, useAuthSession } from "../lib/auth-session";
 import { useComponentShortcut } from "../lib/use-component-shortcut";
 import {
@@ -44,6 +45,15 @@ const descriptors = methods.map((method) =>
 beforeEach(() => {
   push.mockClear();
   vi.stubGlobal("localStorage", window.sessionStorage);
+  vi.stubGlobal(
+    "matchMedia",
+    vi.fn((query: string) => ({
+      matches: query === "(hover: hover) and (pointer: fine)",
+      media: query,
+      addEventListener: () => {},
+      removeEventListener: () => {},
+    })),
+  );
   window.localStorage.clear();
   delete document.documentElement.dataset.componentShortcut;
   delete document.documentElement.dataset.commandShortcut;
@@ -80,8 +90,9 @@ function Harness() {
   return (
     <div className="workspace-shell">
       <nav className="workspace-nav">
-        <SearchEntry workspaceName="Personal" />
+        <SearchEntry />
       </nav>
+      <KeyboardSection />
       <output aria-label="Component binding">{shortcut.value}</output>
       <input aria-label="Draft" />
       <div contentEditable suppressContentEditableWarning>
@@ -129,11 +140,18 @@ const trigger = () => {
 };
 const palette = () => screen.getByRole("dialog", { name: "Search" });
 const results = () => within(screen.getByRole("listbox", { name: "Commands" }));
+const searchSwitch = () => screen.getByRole("switch", { name: "Open Search" });
+const submitSwitch = () =>
+  screen.getByRole("switch", { name: "Submit an editor" });
+const componentSelect = () =>
+  screen.getByRole("combobox", { name: "Add a component" });
 
 it("filters destinations, navigates with arrows and Enter, and returns focus", async () => {
   const user = setup();
   await user.click(trigger());
-  const input = screen.getByRole("combobox", { name: "Find a command" });
+  const input = screen.getByRole("combobox", {
+    name: "Search records and commands",
+  });
   expect(input).toHaveFocus();
   expect(results().getAllByRole("option")).toHaveLength(5);
   await user.keyboard("{ArrowUp}");
@@ -159,7 +177,9 @@ it("filters destinations, navigates with arrows and Enter, and returns focus", a
 it("leaves an empty result inert and opens destinations by pointer", async () => {
   const user = setup();
   await user.click(trigger());
-  const input = screen.getByRole("combobox", { name: "Find a command" });
+  const input = screen.getByRole("combobox", {
+    name: "Search records and commands",
+  });
   await user.type(input, "not a command");
   expect(within(palette()).getByRole("status")).toHaveTextContent(
     "No matching commands",
@@ -231,7 +251,9 @@ it.each(["ctrlKey", "metaKey"])(
     expect(fireEvent.keyDown(trigger(), { key: "k", [modifier]: true })).toBe(
       false,
     );
-    const input = screen.getByRole("combobox", { name: "Find a command" });
+    const input = screen.getByRole("combobox", {
+      name: "Search records and commands",
+    });
     fireEvent.compositionStart(input);
     fireEvent.keyDown(input, { key: "Enter", keyCode: 229 });
     fireEvent(palette(), new Event("cancel", { cancelable: true }));
@@ -246,12 +268,12 @@ it.each(["ctrlKey", "metaKey"])(
   },
 );
 
-it("opens at the Keyboard shortcuts section from More, and closing returns focus to More", async () => {
+it("offers Keyboard shortcuts in More as a link to the Keyboard settings", async () => {
   render(
     <AuthSessionProvider>
       <NoticesProvider>
         <div className="workspace-shell">
-          <SearchEntry workspaceName="Personal" />
+          <SearchEntry />
           <MoreMenu onCustomize={() => undefined} />
           <div id="workspace-content" tabIndex={-1} />
         </div>
@@ -259,60 +281,30 @@ it("opens at the Keyboard shortcuts section from More, and closing returns focus
     </AuthSessionProvider>,
   );
   const user = userEvent.setup();
-  const more = screen.getByRole("button", { name: "More" });
-  await user.click(more);
-  await user.click(
-    screen.getByRole("menuitem", { name: "Keyboard shortcuts" }),
-  );
-  expect(screen.queryByRole("menu")).not.toBeInTheDocument();
-  expect(palette()).toBeVisible();
-  const details = palette().querySelector("details.command-help");
-  expect(details).toHaveAttribute("open");
-  const enable = screen.getByRole("checkbox", {
-    name: "Enable command shortcut",
-  });
-  expect(enable).toHaveFocus();
-  expect(
-    screen.getByRole("button", { name: "Reset keyboard shortcuts" }),
-  ).toBeVisible();
-  // The search field is still there, unfocused, for a search from here.
-  expect(
-    screen.getByRole("combobox", { name: "Find a command" }),
-  ).not.toHaveFocus();
-  fireEvent(palette(), new Event("cancel", { cancelable: true }));
-  expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
-  expect(more).toHaveFocus();
-  // From the entry itself the section stays folded and the field has focus.
+  await user.click(screen.getByRole("button", { name: "More" }));
+  const item = screen.getByRole("menuitem", { name: "Keyboard shortcuts" });
+  expect(item).toHaveAttribute("href", "/settings/keyboard");
+  // The palette itself carries no settings; the field has focus on open.
   await user.click(trigger());
-  expect(palette().querySelector("details.command-help")).not.toHaveAttribute(
-    "open",
-  );
   expect(
-    screen.getByRole("combobox", { name: "Find a command" }),
+    screen.getByRole("combobox", { name: "Search records and commands" }),
   ).toHaveFocus();
+  expect(screen.queryByText("Keyboard shortcuts")).not.toBeInTheDocument();
+  expect(palette().querySelector("footer.command-keys")).not.toBeNull();
 });
 
 it("supports disable, reload, storage synchronization, and a visible fallback", async () => {
   const user = setup();
-  await user.click(trigger());
-  await user.click(screen.getByText("Keyboard shortcuts"));
-  await user.click(
-    screen.getByRole("checkbox", { name: "Enable command shortcut" }),
-  );
+  await user.click(searchSwitch());
   expect(window.localStorage.getItem("chronelle.command-shortcut")).toBe(
     "disabled",
   );
-  await user.click(screen.getByRole("button", { name: "Close search" }));
   cleanup();
   setup();
   expect(fireEvent.keyDown(document.body, { key: "k", ctrlKey: true })).toBe(
     true,
   );
-  await user.click(trigger());
-  await user.click(screen.getByText("Keyboard shortcuts"));
-  expect(
-    screen.getByRole("checkbox", { name: "Enable command shortcut" }),
-  ).not.toBeChecked();
+  expect(searchSwitch()).not.toBeChecked();
   window.localStorage.removeItem("chronelle.command-shortcut");
   fireEvent(
     window,
@@ -322,9 +314,8 @@ it("supports disable, reload, storage synchronization, and a visible fallback", 
       storageArea: window.localStorage,
     }),
   );
-  expect(
-    screen.getByRole("checkbox", { name: "Enable command shortcut" }),
-  ).toBeChecked();
+  expect(searchSwitch()).toBeChecked();
+  await user.click(trigger());
   expect(results().getAllByRole("option")).toHaveLength(5);
 });
 
@@ -333,12 +324,7 @@ it("retains a page-only setting when storage writes fail", async () => {
   vi.spyOn(Storage.prototype, "setItem").mockImplementation(() => {
     throw new Error("blocked");
   });
-  await user.click(trigger());
-  await user.click(screen.getByText("Keyboard shortcuts"));
-  await user.click(
-    screen.getByRole("checkbox", { name: "Enable command shortcut" }),
-  );
-  await user.click(screen.getByRole("button", { name: "Close search" }));
+  await user.click(searchSwitch());
   expect(fireEvent.keyDown(document.body, { key: "k", ctrlKey: true })).toBe(
     true,
   );
@@ -349,9 +335,7 @@ it("retains a page-only setting when storage writes fail", async () => {
 it("shares component settings immediately and resets only keyboard preferences", async () => {
   const user = setup();
   window.localStorage.setItem("chronelle.palette", "neutral");
-  await user.click(trigger());
-  await user.click(screen.getByText("Keyboard shortcuts"));
-  const select = screen.getByLabelText("Add component shortcut");
+  const select = componentSelect();
   await user.selectOptions(select, "modified-slash");
   expect(screen.getByLabelText("Component binding")).toHaveTextContent(
     "modified-slash",
@@ -360,12 +344,8 @@ it("shares component settings immediately and resets only keyboard preferences",
     "modified-slash",
   );
   await user.selectOptions(select, "disabled");
-  await user.click(
-    screen.getByRole("checkbox", { name: "Enable command shortcut" }),
-  );
-  await user.click(
-    screen.getByRole("checkbox", { name: "Enable editor submit shortcut" }),
-  );
+  await user.click(searchSwitch());
+  await user.click(submitSwitch());
   expect(window.localStorage.getItem("chronelle.editor-shortcut")).toBe(
     "disabled",
   );
@@ -373,12 +353,8 @@ it("shares component settings immediately and resets only keyboard preferences",
     screen.getByRole("button", { name: "Reset keyboard shortcuts" }),
   );
   expect(select).toHaveValue("slash");
-  expect(
-    screen.getByRole("checkbox", { name: "Enable command shortcut" }),
-  ).toBeChecked();
-  expect(
-    screen.getByRole("checkbox", { name: "Enable editor submit shortcut" }),
-  ).toBeChecked();
+  expect(searchSwitch()).toBeChecked();
+  expect(submitSwitch()).toBeChecked();
   expect(window.localStorage.getItem("chronelle.editor-shortcut")).toBeNull();
   expect(
     window.localStorage.getItem("chronelle.component-shortcut"),
@@ -437,21 +413,13 @@ it("keeps component settings across dialog remounts when storage is blocked", as
   vi.spyOn(Storage.prototype, "setItem").mockImplementation(() => {
     throw new Error("blocked");
   });
-  await user.click(trigger());
-  await user.click(screen.getByText("Keyboard shortcuts"));
-  await user.selectOptions(
-    screen.getByLabelText("Add component shortcut"),
-    "disabled",
-  );
-  await user.click(screen.getByRole("button", { name: "Close search" }));
+  await user.selectOptions(componentSelect(), "disabled");
   expect(screen.getByLabelText("Component binding")).toHaveTextContent(
     "disabled",
   );
   await user.click(trigger());
-  await user.click(screen.getByText("Keyboard shortcuts"));
-  expect(screen.getByLabelText("Add component shortcut")).toHaveValue(
-    "disabled",
-  );
+  await user.click(screen.getByRole("button", { name: "Close search" }));
+  expect(componentSelect()).toHaveValue("disabled");
 });
 
 it("reads updated storage after all preference consumers remount", () => {
@@ -479,7 +447,7 @@ it("closes only on a full backdrop press", async () => {
   const user = setup();
   await user.click(trigger());
   fireEvent.pointerDown(
-    screen.getByRole("combobox", { name: "Find a command" }),
+    screen.getByRole("combobox", { name: "Search records and commands" }),
   );
   fireEvent.pointerUp(palette());
   expect(palette()).toBeInTheDocument();
@@ -575,7 +543,7 @@ it("groups current controls and hands focus to the latest existing handler after
   ).toHaveLength(5);
   view.rerender(<ContextHarness onEdit={latest} />);
   await user.type(
-    screen.getByRole("combobox", { name: "Find a command" }),
+    screen.getByRole("combobox", { name: "Search records and commands" }),
     "edit gathering",
   );
   await user.keyboard("{Enter}");
@@ -589,7 +557,9 @@ it("selects a matching context command that arrives after typing", async () => {
   const view = render(<ContextHarness mounted={false} onEdit={edit} />);
   const user = userEvent.setup();
   await user.click(trigger());
-  const input = screen.getByRole("combobox", { name: "Find a command" });
+  const input = screen.getByRole("combobox", {
+    name: "Search records and commands",
+  });
   await user.type(input, "Edit event");
   expect(input).not.toHaveAttribute("aria-activedescendant");
   view.rerender(<ContextHarness onEdit={edit} />);
@@ -613,7 +583,7 @@ it("does not replace a removed selection with another action", async () => {
   );
   view.rerender(<ContextHarness editable={false} onHistory={history} />);
   expect(
-    screen.getByRole("combobox", { name: "Find a command" }),
+    screen.getByRole("combobox", { name: "Search records and commands" }),
   ).not.toHaveAttribute("aria-activedescendant");
   await user.keyboard("{Enter}");
   expect(palette()).toBeInTheDocument();
@@ -683,9 +653,6 @@ it("invalidates an old action when its route changes during dialog dismissal", a
         <CommandOwner onEdit={edit} />
         {open && (
           <WorkspaceCommands
-            workspaceName="Personal"
-            shortcutEnabled
-            onShortcutChange={() => {}}
             onClose={() => {
               setOpen(false);
               setPathname("/search");

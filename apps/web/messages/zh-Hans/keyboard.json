@@ -1,0 +1,21 @@
+{
+  "title": "键盘",
+  "lead": "快捷键在编辑器和对话框之外通过键盘使用。这些选择保存在此浏览器上。",
+  "keyboardOnly": "此页只在有键盘的设备上出现。",
+  "action": "操作",
+  "shortcut": "快捷键",
+  "control": "设置",
+  "search": "打开搜索",
+  "searchNote": "上下方向键选择结果，Enter 打开，Escape 关闭。",
+  "undo": "撤销上一次编辑",
+  "undoNote": "在文本框之外；排列时撤销上一次布局更改；加 Shift 为重做。",
+  "sidebar": "折叠或展开侧栏",
+  "sidebarNote": "在宽窗口上；选择保存在此设备。",
+  "component": "添加组件",
+  "componentNote": "在所选活动页面打开组件选择器；需要编辑权限且页面有空位。",
+  "submit": "提交编辑器",
+  "submitNote": "从活动、日程、任务、支出或提醒的字段中保存；保存校验仍然生效。",
+  "alwaysOn": "始终开启",
+  "off": "关闭",
+  "reset": "重置键盘快捷键"
+}

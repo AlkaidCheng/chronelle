@@ -1,0 +1,21 @@
+{
+  "title": "鍵盤",
+  "lead": "快捷鍵在編輯器和對話方塊之外透過鍵盤使用。這些選擇儲存在此瀏覽器上。",
+  "keyboardOnly": "此頁只在有鍵盤的裝置上出現。",
+  "action": "操作",
+  "shortcut": "快捷鍵",
+  "control": "設定",
+  "search": "開啟搜尋",
+  "searchNote": "上下方向鍵選擇結果，Enter 開啟，Escape 關閉。",
+  "undo": "復原上一次編輯",
+  "undoNote": "在文字欄位之外；排列時復原上一次版面變更；加 Shift 為重做。",
+  "sidebar": "摺疊或展開側欄",
+  "sidebarNote": "在寬視窗上；選擇儲存在此裝置。",
+  "component": "新增元件",
+  "componentNote": "在所選活動頁面開啟元件選擇器；需要編輯權限且頁面有空位。",
+  "submit": "送出編輯器",
+  "submitNote": "從活動、行程、任務、支出或提醒的欄位中儲存；儲存驗證仍然生效。",
+  "alwaysOn": "始終開啟",
+  "off": "關閉",
+  "reset": "重設鍵盤快捷鍵"
+}

@@ -1,0 +1,21 @@
+{
+  "title": "Keyboard",
+  "lead": "Shortcuts work on a keyboard outside editors and dialogs. These choices are kept on this browser.",
+  "keyboardOnly": "This page appears on devices with a keyboard.",
+  "action": "Action",
+  "shortcut": "Shortcut",
+  "control": "Setting",
+  "search": "Open Search",
+  "searchNote": "Up and Down choose a result, Enter opens it, Escape closes.",
+  "undo": "Undo the last edit",
+  "undoNote": "Outside text fields, and the last layout change while arranging; with Shift, redo.",
+  "sidebar": "Collapse or expand the sidebar",
+  "sidebarNote": "On a wide window; the choice is kept on this device.",
+  "component": "Add a component",
+  "componentNote": "Opens the picker on the selected event page; needs edit access and room on the page.",
+  "submit": "Submit an editor",
+  "submitNote": "Saves from an event, schedule, task, expense, or reminder field; validation still applies.",
+  "alwaysOn": "Always on",
+  "off": "Off",
+  "reset": "Reset keyboard shortcuts"
+}

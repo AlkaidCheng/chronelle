@@ -36,7 +36,8 @@ const json = (body: unknown, status = 200) =>
   });
 const response = () => json({ items: [record], nextCursor: null });
 const fetch = vi.fn<typeof globalThis.fetch>();
-const input = () => screen.getByRole("combobox", { name: "Find a command" });
+const input = () =>
+  screen.getByRole("combobox", { name: "Search records and commands" });
 const options = () => within(screen.getByRole("listbox", { name: "Commands" }));
 const change = (query: string) =>
   fireEvent.change(input(), { target: { value: query } });
@@ -60,7 +61,7 @@ function Harness() {
   return (
     <>
       <nav className="workspace-nav">
-        <SearchEntry workspaceName="Personal" />
+        <SearchEntry />
       </nav>
       <button
         type="button"

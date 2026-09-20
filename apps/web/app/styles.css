@@ -1873,8 +1873,9 @@ h3 {
 .event-create-body.command-body {
   display: flex;
   flex-direction: column;
-  gap: 18px;
+  gap: 14px;
   min-height: 0;
+  padding: 10px 14px 14px;
 }
 
 .command-body > :not(.command-results) {
@@ -1959,28 +1960,184 @@ h3 {
   text-align: center;
 }
 
-.command-help {
-  border-top: 1px solid var(--line);
-  font-size: 0.85rem;
-  padding-top: 12px;
-}
-
-.command-help summary {
-  cursor: pointer;
-  min-height: 44px;
-  align-content: center;
-}
-
-.command-help label {
+/* The Search field: the symbol, the input, and the close control on one
+   row at the top of the dialog. */
+.command-field {
   align-items: center;
+  border-bottom: 1px solid var(--line);
   display: flex;
   gap: 10px;
-  min-height: 44px;
+  padding: 12px 14px 12px 18px;
 }
 
-.command-help .field {
+.command-field > svg {
+  color: var(--muted);
+  flex: none;
+  height: 18px;
+  width: 18px;
+}
+
+.command-field input {
+  background: transparent;
+  border: 0;
+  color: inherit;
+  flex: 1;
+  font-size: 1rem;
+  min-width: 0;
+  padding: 6px 0;
+}
+
+.command-field input:focus {
+  outline: none;
+}
+
+.command-field input::placeholder {
+  color: var(--faint);
+}
+
+.command-field .dialog-close {
+  height: 30px;
+  margin-left: 0;
+  width: 30px;
+}
+
+/* The keys a keyboard device can use, named under the results. */
+.command-keys {
+  border-top: 1px solid var(--line);
+  color: var(--faint);
+  display: flex;
+  flex-wrap: wrap;
+  font-size: 0.78rem;
+  gap: 14px;
+  padding: 8px 18px;
+}
+
+.command-keys span {
+  align-items: center;
+  display: inline-flex;
+  gap: 4px;
+}
+
+.command-keys kbd,
+.keyboard-keys kbd {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-bottom-width: 2px;
+  border-radius: 4px;
+  color: var(--muted);
+  font: 0.72rem var(--font-body);
+  padding: 1px 5px;
+}
+
+/* Shortcut symbols and the keyboard settings belong to devices with a
+   keyboard: a fine pointer that can hover. A touch phone shows none. */
+@media not ((hover: hover) and (pointer: fine)) {
+  .keyboard-only {
+    display: none;
+  }
+}
+
+/* Settings > Keyboard: one table of the shortcuts, their keys, and their
+   controls. */
+.settings-keyboard {
   display: grid;
-  margin-top: 12px;
+  gap: 16px;
+  justify-items: start;
+}
+
+.keyboard-table {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-collapse: separate;
+  border-radius: 12px;
+  border-spacing: 0;
+  font-size: 0.9rem;
+  overflow: hidden;
+  width: 100%;
+}
+
+.keyboard-table th {
+  color: var(--faint);
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  padding: 10px 14px 6px;
+  text-align: left;
+  text-transform: uppercase;
+}
+
+.keyboard-table td {
+  border-top: 1px solid var(--line);
+  padding: 10px 14px;
+  vertical-align: middle;
+}
+
+.keyboard-table td small {
+  color: var(--muted);
+  display: block;
+  font-size: 0.8rem;
+  line-height: 1.45;
+}
+
+.keyboard-table td:last-child {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.keyboard-keys {
+  display: inline-flex;
+  gap: 4px;
+  white-space: nowrap;
+}
+
+.keyboard-fixed {
+  color: var(--faint);
+  font-size: 0.8rem;
+}
+
+.keyboard-select {
+  background: var(--canvas);
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  color: inherit;
+  font: inherit;
+  font-size: 0.85rem;
+  padding: 4px 8px;
+}
+
+/* Narrow: each shortcut is a small stack, the action above its keys and
+   control, so the table never runs past the page. */
+@media (max-width: 600px) {
+  .keyboard-table,
+  .keyboard-table tbody,
+  .keyboard-table tr {
+    display: block;
+  }
+
+  .keyboard-table thead {
+    display: none;
+  }
+
+  .keyboard-table tr {
+    border-top: 1px solid var(--line);
+    display: grid;
+    grid-template-columns: 1fr auto;
+    padding: 10px 14px;
+  }
+
+  .keyboard-table tr:first-child {
+    border-top: 0;
+  }
+
+  .keyboard-table td {
+    border-top: 0;
+    padding: 0;
+  }
+
+  .keyboard-table td:first-child {
+    grid-column: 1 / -1;
+    padding-bottom: 8px;
+  }
 }
 
 /* One measure for the workspace pages and the event page: wide enough for
