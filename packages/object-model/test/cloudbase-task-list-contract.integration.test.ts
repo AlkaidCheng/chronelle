@@ -20,6 +20,7 @@ import type {
 import {
   applyMigrations,
   createTestDatabase,
+  createCloudBaseRpcDouble,
   type TestDatabase,
 } from "@chronelle/db/testing";
 import { eq, getTableColumns, type Table } from "drizzle-orm";
@@ -345,7 +346,13 @@ describe.sequential("CloudBase task list contract", () => {
     const clock = () => new Date("2030-01-01T00:00:00.000Z");
     const cloudbaseClient = await snapshotClient(db, workspaceId);
     const postgres = new PostgresTaskReadRepository(db);
-    const cloudbase = new CloudBaseTaskReadRepository(cloudbaseClient, clock);
+    const cloudbase = new CloudBaseTaskReadRepository(
+      {
+        ...cloudbaseClient,
+        rpc: createCloudBaseRpcDouble(database.connection.sql),
+      },
+      clock,
+    );
     const ids = (page: {
       readonly items: readonly { readonly id: string }[];
     }) => page.items.map(({ id }) => id);

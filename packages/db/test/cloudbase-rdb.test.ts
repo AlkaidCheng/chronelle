@@ -368,6 +368,7 @@ describe("CloudBase RDB client", () => {
     const response = { data: [{ id: "event-1" }] };
     const request = {
       eq: vi.fn().mockReturnThis(),
+      lt: vi.fn().mockReturnThis(),
       ilike: vi.fn().mockReturnThis(),
       in: vi.fn().mockReturnThis(),
       is: vi.fn().mockReturnThis(),
@@ -388,6 +389,7 @@ describe("CloudBase RDB client", () => {
           { column: "deleted_at", operator: "is", value: null },
           { column: "display_name", operator: "ilike", value: "%trip%" },
           { column: "object_type", operator: "in", value: ["event"] },
+          { column: "version", operator: "lt", value: 50 },
         ],
         order: [{ column: "starts_at", ascending: true, nullsFirst: false }],
         limit: 10,
@@ -399,6 +401,7 @@ describe("CloudBase RDB client", () => {
     expect(request.is).toHaveBeenCalledWith("deleted_at", null);
     expect(request.ilike).toHaveBeenCalledWith("display_name", "%trip%");
     expect(request.in).toHaveBeenCalledWith("object_type", ["event"]);
+    expect(request.lt).toHaveBeenCalledWith("version", 50);
     expect(request.order).toHaveBeenCalledWith("starts_at", {
       ascending: true,
       nullsFirst: false,
@@ -441,6 +444,7 @@ describe("CloudBase RDB client", () => {
       update(values: Record<string, unknown>): NeverQuery;
       delete(): NeverQuery;
       eq(column: string, value: unknown): NeverQuery;
+      lt(column: string, value: unknown): NeverQuery;
       ilike(column: string, value: string): NeverQuery;
       in(column: string, value: readonly unknown[]): NeverQuery;
       is(column: string, value: unknown): NeverQuery;

@@ -19,6 +19,7 @@ import type {
 import {
   applyMigrations,
   createTestDatabase,
+  createCloudBaseRpcDouble,
   type TestDatabase,
 } from "@chronelle/db/testing";
 import { eq, getTableColumns, type Table } from "drizzle-orm";
@@ -264,7 +265,10 @@ describe.sequential("CloudBase read contract", () => {
     const postgresEvents = new PostgresEventReadRepository(db);
     const postgresCalendar = new PostgresCalendarReadRepository(db);
     const cloudbaseEvents = new CloudBaseEventReadRepository(
-      cloudbaseClient,
+      {
+        ...cloudbaseClient,
+        rpc: createCloudBaseRpcDouble(database.connection.sql),
+      },
       clock,
     );
     const cloudbaseCalendar = new CloudBaseCalendarReadRepository(
@@ -451,7 +455,10 @@ describe.sequential("CloudBase read contract", () => {
     const cloudbaseClient = await snapshotClient(db);
     const postgresEvents = new PostgresEventReadRepository(db);
     const cloudbaseEvents = new CloudBaseEventReadRepository(
-      cloudbaseClient,
+      {
+        ...cloudbaseClient,
+        rpc: createCloudBaseRpcDouble(database.connection.sql),
+      },
       clock,
     );
     const kai = {

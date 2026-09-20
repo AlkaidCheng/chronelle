@@ -12,7 +12,7 @@ export interface CloudBaseRdbQuery {
 
 export interface CloudBaseRdbFilter {
   readonly column: string;
-  readonly operator: "eq" | "ilike" | "in" | "is";
+  readonly operator: "eq" | "ilike" | "in" | "is" | "lt";
   readonly value: unknown;
 }
 
@@ -81,6 +81,7 @@ interface RdbQuery<T> {
   update(values: Record<string, unknown>): RdbQuery<T>;
   delete(): RdbQuery<T>;
   eq(column: string, value: unknown): RdbQuery<T>;
+  lt(column: string, value: unknown): RdbQuery<T>;
   ilike(column: string, value: string): RdbQuery<T>;
   in(column: string, value: readonly unknown[]): RdbQuery<T>;
   is(column: string, value: unknown): RdbQuery<T>;
@@ -458,6 +459,9 @@ function applyFilters<T>(
     switch (filter.operator) {
       case "eq":
         filtered = filtered.eq(filter.column, filter.value);
+        break;
+      case "lt":
+        filtered = filtered.lt(filter.column, filter.value);
         break;
       case "ilike":
         filtered = filtered.ilike(filter.column, filter.value as string);

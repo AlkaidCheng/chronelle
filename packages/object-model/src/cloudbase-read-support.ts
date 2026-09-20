@@ -1148,23 +1148,6 @@ export async function readCloudBaseInclusionsOf(
   );
 }
 
-/** The workspaces the account belongs to, whichever it acts in. */
-export async function readCloudBaseMemberWorkspaceIds(
-  client: CloudBaseRdbReader,
-  userId: string,
-): Promise<ReadonlySet<string>> {
-  const rows = await client.select<{ readonly workspace_id: unknown }>(
-    "workspace_members",
-    {
-      columns: "workspace_id",
-      filters: cloudbaseFilters(["user_id", "eq", userId]),
-    },
-  );
-  return new Set(
-    rows.map((row) => cloudbaseText(row.workspace_id, "workspace id")),
-  );
-}
-
 /** An active grant as the Events list reads it, on any Event in any workspace. */
 export interface CloudBaseEventGrant {
   readonly workspaceId: string;
@@ -1209,22 +1192,6 @@ function eventGrants(
 
 const eventGrantColumns =
   "workspace_id,resource_id,principal_id,role,scope,granted_by,expires_at";
-
-/** The account's active grants across every workspace: the Events shared with it. */
-export async function readCloudBaseGrantsHeld(
-  client: CloudBaseRdbReader,
-  userId: string,
-  now: Date,
-): Promise<readonly CloudBaseEventGrant[]> {
-  const rows = await client.select<EventGrantRow>("resource_grants", {
-    columns: eventGrantColumns,
-    filters: cloudbaseFilters(
-      ["principal_type", "eq", "user"],
-      ["principal_id", "eq", userId],
-    ),
-  });
-  return eventGrants(rows, now);
-}
 
 /** Every account's active grants on the given Events, for their access lines. */
 export async function readCloudBaseGrantsOn(
@@ -1289,14 +1256,6 @@ export async function readCloudBaseDisplayNames(
       cloudbaseText(row.id, "user id"),
       cloudbaseText(row.display_name, "display name"),
     ]),
-  );
-}
-
-/** A root Event owns its permission scope; included children inherit a root's scope. */
-export function isCloudBaseRootObject(object: CloudBaseObjectRow): boolean {
-  return (
-    cloudbaseText(object.permission_scope_id, "permission scope") ===
-    cloudbaseText(object.id, "object id")
   );
 }
 

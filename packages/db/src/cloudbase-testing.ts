@@ -141,6 +141,8 @@ function matches(
       case "eq":
       case "is":
         return value === filter.value;
+      case "lt":
+        return value !== null && compareValues(value, filter.value) < 0;
       case "in":
         return (filter.value as readonly unknown[]).includes(value);
       case "ilike":
