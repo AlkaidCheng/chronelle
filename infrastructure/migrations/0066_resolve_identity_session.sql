@@ -8,7 +8,7 @@ CREATE FUNCTION chronelle_identity_session_resolve(
   object_id uuid,
   observed_at timestamptz
 )
-RETURNS jsonb LANGUAGE plpgsql STABLE SECURITY INVOKER AS $$
+RETURNS jsonb LANGUAGE plpgsql STABLE AS $$
 #variable_conflict use_variable
 DECLARE
   signed_in users%ROWTYPE;
