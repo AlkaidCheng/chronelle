@@ -308,59 +308,76 @@ describe("canonical cache invalidation", () => {
     expect(bodies[3].commandId).not.toBe(bodies[2].commandId);
   });
 
-  it("marks every cached context, search, and attachment list stale without eagerly refetching inactive queries", async () => {
-    const fetch = vi.fn<typeof globalThis.fetch>(async () =>
-      Response.json({
-        id: taskId,
-        workspaceId,
-        objectType: "task",
-        displayName: "Updated task",
-        permissionScopeId: eventId,
-        createdBy: workspaceId,
-        createdAt: "2026-09-02T20:00:00.000Z",
-        updatedAt: "2026-09-02T20:01:00.000Z",
-        version: 2,
-        archivedAt: null,
-        deletedAt: null,
-        customProperties: {},
-        metadata: {},
-        status: "done",
-        dueAt: null,
-        completedAt: "2026-09-02T20:01:00.000Z",
-      }),
-    );
-    vi.stubGlobal("fetch", withCommands(fetch));
-    const { result } = renderHook(
-      () => ({ client: useQueryClient(), mutation: useUpdateTask() }),
-      { wrapper: Providers },
-    );
-    const keys = [
-      queryKeys.events,
-      queryKeys.eventResource(eventId),
-      queryKeys.detail(eventId),
-      queryKeys.todos(eventId),
-      queryKeys.detail(otherEventId),
-      queryKeys.timeline(otherEventId),
-      queryKeys.search({ query: "task" }),
-      queryKeys.attachments(taskId),
-    ];
-    for (const key of [...keys, queryKeys.session])
-      result.current.client.setQueryData(key, {});
-
-    await act(() =>
-      result.current.mutation.mutateAsync({
-        id: taskId,
-        input: { expectedVersion: 1, status: "done" },
-      }),
-    );
-    await waitFor(() => expect(result.current.mutation.isSuccess).toBe(true));
-    for (const key of keys)
-      expect(result.current.client.getQueryState(key)?.isInvalidated).toBe(
-        true,
+  it.each([
+    ["content", { status: "done" }, false],
+    ["section membership", { sectionId: otherEventId }, true],
+    ["metadata", { metadata: { priority: "high" } }, true],
+  ] as const)(
+    "invalidates %s dependencies without refetching inactive queries",
+    async (_kind, patch, broad) => {
+      const fetch = vi.fn<typeof globalThis.fetch>(async () =>
+        Response.json({
+          id: taskId,
+          workspaceId,
+          objectType: "task",
+          displayName: "Updated task",
+          permissionScopeId: eventId,
+          createdBy: workspaceId,
+          createdAt: "2026-09-02T20:00:00.000Z",
+          updatedAt: "2026-09-02T20:01:00.000Z",
+          version: 2,
+          archivedAt: null,
+          deletedAt: null,
+          customProperties: {},
+          metadata: {},
+          status: "done",
+          dueAt: null,
+          completedAt: "2026-09-02T20:01:00.000Z",
+        }),
       );
-    expect(
-      result.current.client.getQueryState(queryKeys.session)?.isInvalidated,
-    ).toBe(false);
-    expect(fetch).toHaveBeenCalledTimes(1);
-  });
+      vi.stubGlobal("fetch", withCommands(fetch));
+      const { result } = renderHook(
+        () => ({ client: useQueryClient(), mutation: useUpdateTask() }),
+        { wrapper: Providers },
+      );
+      const keys = [
+        queryKeys.detail(eventId),
+        queryKeys.todos(eventId),
+        queryKeys.detail(otherEventId),
+        queryKeys.timeline(otherEventId),
+        queryKeys.search({ query: "task" }),
+        queryKeys.attachments(taskId),
+      ];
+      const unchanged = [
+        queryKeys.events,
+        queryKeys.eventResource(eventId),
+        queryKeys.access(eventId),
+        queryKeys.expenses(eventId),
+        queryKeys.labels,
+        queryKeys.persons,
+      ];
+      for (const key of [...keys, ...unchanged, queryKeys.session])
+        result.current.client.setQueryData(key, {});
+
+      await act(() =>
+        result.current.mutation.mutateAsync({
+          id: taskId,
+          input: { expectedVersion: 1, ...patch },
+        }),
+      );
+      await waitFor(() => expect(result.current.mutation.isSuccess).toBe(true));
+      for (const key of keys)
+        expect(result.current.client.getQueryState(key)?.isInvalidated).toBe(
+          true,
+        );
+      for (const key of unchanged)
+        expect(result.current.client.getQueryState(key)?.isInvalidated).toBe(
+          broad,
+        );
+      expect(
+        result.current.client.getQueryState(queryKeys.session)?.isInvalidated,
+      ).toBe(false);
+      expect(fetch).toHaveBeenCalledTimes(1);
+    },
+  );
 });

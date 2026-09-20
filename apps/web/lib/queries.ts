@@ -12,6 +12,7 @@ import type {
   EventUpdatePayload,
   EventListQueryInput,
   EventListResponse,
+  EventPlanningResourceResponse,
   TaskListQueryInput,
   TaskListResponse,
   LabelCreateRequest,
@@ -69,6 +70,7 @@ import { mergeEventTabs } from "./event-tabs";
 import type { EventView } from "./event-views";
 import { newId } from "./new-id";
 import { mergeWorkspaceRecency } from "./workspace-recency";
+import { invalidateResourceQueries } from "./resource-invalidation";
 
 export const queryKeys = {
   events: ["events"] as const,
@@ -383,7 +385,7 @@ export function usePersonsQuery(
  */
 export function useCreatePerson(retainedAttempt?: ContextCreateAttempt) {
   const client = useApiClient();
-  const invalidate = useCanonicalInvalidation();
+  const invalidate = useResourceInvalidation();
   const localAttempt = useRef<ContextCreateAttempt["current"]>(null);
   const attempt = retainedAttempt ?? localAttempt;
   return useMutation({
@@ -392,9 +394,9 @@ export function useCreatePerson(retainedAttempt?: ContextCreateAttempt) {
         ...input,
         commandId: commandFor(attempt, { person: input }),
       }),
-    onSuccess: () => {
+    onSuccess: (saved) => {
       attempt.current = null;
-      void invalidate();
+      void invalidate(saved);
     },
   });
 }
@@ -433,12 +435,12 @@ export function useIncludePerson(eventId: string) {
 
 export function useUpdatePerson() {
   const client = useApiClient();
-  const invalidate = useCanonicalInvalidation();
+  const invalidate = useResourceInvalidation();
   return useMutation({
     mutationFn: ({ id, input }: { id: string; input: PersonUpdatePayload }) =>
       client.updatePerson(id, input),
-    onSuccess: () => {
-      void invalidate();
+    onSuccess: (saved, { input }) => {
+      void invalidate(saved, input);
     },
   });
 }
@@ -790,6 +792,22 @@ export function useCanonicalInvalidation() {
     });
 }
 
+function useResourceInvalidation() {
+  const queryClient = useQueryClient();
+  const { signal } = useAuthSession();
+  const invalidate = useCanonicalInvalidation();
+  return (
+    resource: Pick<EventPlanningResourceResponse, "id" | "objectType">,
+    input?: { readonly metadata?: unknown; readonly sectionId?: unknown },
+  ) => {
+    if (signal.aborted) return Promise.resolve();
+    // Section membership and metadata can affect inherited visibility.
+    if (input && ("sectionId" in input || "metadata" in input))
+      return invalidate();
+    return invalidateResourceQueries(queryClient, resource);
+  };
+}
+
 export function useDocumentAttachments(parentObjectId: string) {
   const client = useApiClient();
   const { credential } = useAuthSession();
@@ -820,11 +838,11 @@ export function useDownloadDocument() {
 
 export function useCreateEvent() {
   const client = useApiClient();
-  const invalidate = useCanonicalInvalidation();
+  const invalidate = useResourceInvalidation();
   return useMutation({
     mutationFn: (input: EventCreatePayload) => client.createEvent(input),
-    onSuccess: () => {
-      void invalidate();
+    onSuccess: (saved) => {
+      void invalidate(saved);
     },
   });
 }
@@ -839,7 +857,7 @@ export function useUpdateEvent() {
   const client = useApiClient();
   const queryClient = useQueryClient();
   const { signal } = useAuthSession();
-  const invalidate = useCanonicalInvalidation();
+  const invalidate = useResourceInvalidation();
   return useMutation({
     mutationFn: async ({
       id,
@@ -867,14 +885,14 @@ export function useUpdateEvent() {
       );
       return saved;
     },
-    onSuccess: async (saved) => {
+    onSuccess: async (saved, { input }) => {
       const queryKey = queryKeys.eventResource(saved.id);
       await queryClient.cancelQueries({ queryKey, exact: true });
       if (signal.aborted) return;
       queryClient.setQueryData<EventResponse>(queryKey, (current) =>
         current && current.version > saved.version ? current : saved,
       );
-      void invalidate();
+      void invalidate(saved, input);
     },
   });
 }
@@ -1051,7 +1069,7 @@ function useCreateInContext<Type extends ContextResource["objectType"]>(
     "objectType"
   >;
   const client = useApiClient();
-  const invalidate = useCanonicalInvalidation();
+  const invalidate = useResourceInvalidation();
   const localAttempt = useRef<ContextCreateAttempt["current"]>(null);
   const attempt = retainedAttempt ?? localAttempt;
   return useMutation({
@@ -1078,10 +1096,10 @@ function useCreateInContext<Type extends ContextResource["objectType"]>(
       });
       return result.resource;
     },
-    onSuccess: () => {
+    onSuccess: (saved) => {
       attempt.current = null;
       // A confirmed write settles independently of projection refreshes.
-      void invalidate();
+      void invalidate(saved);
     },
   });
 }
@@ -1103,7 +1121,7 @@ export function useCreateTask(
 export function useUpdateTask() {
   const client = useApiClient();
   const queryClient = useQueryClient();
-  const invalidate = useCanonicalInvalidation();
+  const invalidate = useResourceInvalidation();
   return useMutation({
     mutationFn: async ({
       id,
@@ -1131,13 +1149,13 @@ export function useUpdateTask() {
       );
       return saved;
     },
-    onSuccess: (saved) => {
+    onSuccess: (saved, { input }) => {
       queryClient.setQueryData<TaskResponse>(
         queryKeys.objectResource(saved.id),
         (current) =>
           current && current.version > saved.version ? current : saved,
       );
-      void invalidate();
+      void invalidate(saved, input);
     },
   });
 }
@@ -1193,7 +1211,7 @@ export function useCommandTransition(direction: "undo" | "redo") {
  */
 export function useDuplicateTask() {
   const client = useApiClient();
-  const invalidate = useCanonicalInvalidation();
+  const invalidate = useResourceInvalidation();
   return useMutation({
     mutationFn: async ({
       eventId,
@@ -1225,8 +1243,8 @@ export function useDuplicateTask() {
       });
       return result.resource;
     },
-    onSuccess: () => {
-      void invalidate();
+    onSuccess: (saved) => {
+      void invalidate(saved);
     },
   });
 }
@@ -1240,12 +1258,12 @@ export function useCreateExpense(
 
 export function useUpdateExpense() {
   const client = useApiClient();
-  const invalidate = useCanonicalInvalidation();
+  const invalidate = useResourceInvalidation();
   return useMutation({
     mutationFn: ({ id, input }: { id: string; input: ExpenseUpdatePayload }) =>
       client.updateExpense(id, input),
-    onSuccess: () => {
-      void invalidate();
+    onSuccess: (saved, { input }) => {
+      void invalidate(saved, input);
     },
   });
 }
@@ -1264,24 +1282,24 @@ export function useCreateNote(eventId: string, attempt?: ContextCreateAttempt) {
 
 export function useUpdateNote() {
   const client = useApiClient();
-  const invalidate = useCanonicalInvalidation();
+  const invalidate = useResourceInvalidation();
   return useMutation({
     mutationFn: ({ id, input }: { id: string; input: NoteUpdatePayload }) =>
       client.updateNote(id, input),
-    onSuccess: () => {
-      void invalidate();
+    onSuccess: (saved, { input }) => {
+      void invalidate(saved, input);
     },
   });
 }
 
 export function useUpdateReminder() {
   const client = useApiClient();
-  const invalidate = useCanonicalInvalidation();
+  const invalidate = useResourceInvalidation();
   return useMutation({
     mutationFn: ({ id, input }: { id: string; input: ReminderUpdatePayload }) =>
       client.updateReminder(id, input),
-    onSuccess: () => {
-      void invalidate();
+    onSuccess: (saved, { input }) => {
+      void invalidate(saved, input);
     },
   });
 }
