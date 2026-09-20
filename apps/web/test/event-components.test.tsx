@@ -38,9 +38,8 @@ import {
   parseDayKey,
 } from "../lib/day-placement";
 import {
-  eventComponentKinds,
   componentKindLabel,
-  eventComponents,
+  eventComponentKinds,
 } from "../lib/event-components";
 import { queryKeys } from "../lib/queries";
 import { SandboxStore, sandboxWorkspaceId } from "../sandbox/store";
@@ -187,17 +186,21 @@ describe("insertable event components", () => {
         return store.fetch(input, options);
       });
       vi.stubGlobal("fetch", fetch);
-      render(<PagesHarness eventId={eventId} canEdit />, {
+      function ItineraryHarness() {
+        const cache = useQueryClient();
+        // Preserve the production retry count without its wall-clock delay.
+        cache.setQueryDefaults(queryKeys.itinerary(eventId), { retryDelay: 0 });
+        return <PagesHarness eventId={eventId} canEdit />;
+      }
+      const requestsFor = (view: string) =>
+        fetch.mock.calls.filter(([url]) => String(url).endsWith(`/${view}`));
+      render(<ItineraryHarness />, {
         wrapper: Providers,
       });
       try {
         await waitFor(() => {
           for (const view of ["itinerary", "todos"])
-            expect(
-              fetch.mock.calls.filter(([url]) =>
-                String(url).endsWith(`/${view}`),
-              ),
-            ).toHaveLength(1);
+            expect(requestsFor(view)).toHaveLength(1);
         });
         expect(screen.queryByRole("heading", { name: "Itinerary" })).toBeNull();
       } finally {
@@ -213,6 +216,8 @@ describe("insertable event components", () => {
         ).toBeVisible();
         expect(screen.queryByText("Confirm the garden venue")).toBeNull();
       }
+      expect(requestsFor("itinerary")).toHaveLength(status === 404 ? 2 : 1);
+      expect(requestsFor("todos")).toHaveLength(1);
     },
   );
 
