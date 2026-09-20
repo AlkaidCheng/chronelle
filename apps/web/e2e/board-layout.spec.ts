@@ -116,7 +116,11 @@ test("lays the To-dos out as a board of the days that hold tasks, Overdue and To
 
   // A drop on another column writes its day: the band moves to the soon
   // day, one versioned write of the moved task.
+  // The strip scrolls sideways (a phone shows a column and a half), so
+  // the source card is brought into view before the press and the target
+  // column while the card is lifted; the lifted card follows the pointer.
   const band = cardsOf(todayColumn).filter({ hasText: "Call the band" });
+  await band.scrollIntoViewIfNeeded();
   const box = await band.boundingBox();
   expect(box).not.toBeNull();
   if (box === null) return;
@@ -124,6 +128,7 @@ test("lays the To-dos out as a board of the days that hold tasks, Overdue and To
   await page.mouse.down();
   await page.mouse.move(box.x + 60, box.y + box.height / 2 + 12, { steps: 4 });
   await expect(page.locator(".row-drag-card")).toBeVisible();
+  await soon.scrollIntoViewIfNeeded();
   const soonBox = await soon.boundingBox();
   expect(soonBox).not.toBeNull();
   if (soonBox === null) return;
@@ -149,8 +154,16 @@ test("lays the To-dos out as a board of the days that hold tasks, Overdue and To
 
   // Today stays as a column even when empty, since its add row lives
   // there: the row presets today.
+  await todayColumn.scrollIntoViewIfNeeded();
   await expect(todayColumn).toBeVisible();
-  await todayColumn.getByRole("button", { name: /^Add a task for / }).click();
+  // The strip scrolls sideways under the page, so the row is pressed where
+  // it is measured rather than re-scrolled into place by the click.
+  const addRow = todayColumn.getByRole("button", { name: /^Add a task for / });
+  await addRow.scrollIntoViewIfNeeded();
+  const addBox = await addRow.boundingBox();
+  expect(addBox).not.toBeNull();
+  if (addBox === null) return;
+  await page.mouse.click(addBox.x + 30, addBox.y + addBox.height / 2);
   const composer = todayColumn.getByLabel("Task name", { exact: true });
   await expect(composer).toBeFocused();
   await composer.fill("Confirm the caterer");
@@ -170,6 +183,7 @@ test("lays the To-dos out as a board of the days that hold tasks, Overdue and To
 
   // Reschedule at Overdue's head moves every overdue task to today, each
   // its own versioned write, said once.
+  await overdue.scrollIntoViewIfNeeded();
   await overdue
     .getByRole("button", { name: "Reschedule", exact: true })
     .click();
