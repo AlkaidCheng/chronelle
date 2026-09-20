@@ -55,11 +55,12 @@ import { formatCalendarDate } from "../../lib/event-schedule";
 import { dueOnDay, formatTaskTime } from "../../lib/task-due";
 import type { TaskFields } from "../../lib/task-fields";
 import { groupBySection } from "../../lib/section-groups";
+import { dayGroupLabel } from "../../lib/day-groups";
 import { groupTasksByDay } from "../../lib/task-groups";
 import { nestTasks } from "../../lib/task-tree";
 import type { Period } from "../../lib/use-period";
 import { type RowDrop, rowsWithGap, useRowDrag } from "../../lib/use-row-drag";
-import { PeriodView, type RowMode } from "../events/period-view";
+import { PeriodView, type RowMode, undatedGroup } from "../events/period-view";
 import { useOpenHistory } from "../history/history-provider";
 import { useOpenLifecycle } from "../recovery/lifecycle-provider";
 import {
@@ -78,7 +79,7 @@ const taskColumn = createColumnHelper<TaskResponse>();
 
 /** The list's class for a row mode, shared by the containers that render rows. */
 export function resourceListClass(mode: RowMode): string {
-  return `resource-list${mode === "compact" ? " resource-list-compact" : mode === "cell" ? " resource-list-cell" : ""}`;
+  return `resource-list${mode === "card" ? " resource-list-cards" : mode === "cell" ? " resource-list-cell" : ""}`;
 }
 
 /** A row's classes: the drag state, is-done for a done row, and the grip's anchor when it holds one. */
@@ -446,23 +447,6 @@ export function TaskListView({
         : [],
     [manual, tasks, view],
   );
-  // Which group each task sits in, for a drop that keeps its place or a
-  // step that stays among its rows.
-  const groupOf = useMemo(() => {
-    const keys = new Map<string, string>();
-    if (view === "by-day")
-      for (const group of groups)
-        for (const task of group.tasks) keys.set(task.id, group.key);
-    else for (const task of ordered) keys.set(task.id, listGroup);
-    return keys;
-  }, [groups, ordered, view]);
-  const rowsOf = useCallback(
-    (groupKey: string): readonly TaskResponse[] =>
-      groupKey === listGroup
-        ? ordered
-        : (groups.find((group) => group.key === groupKey)?.tasks ?? []),
-    [groups, ordered],
-  );
   const placed = useMemo(
     () =>
       view === "week" || view === "month"
@@ -479,6 +463,31 @@ export function TaskListView({
         ? tasks.filter((task) => taskDay(task) === null)
         : [],
     [tasks, view],
+  );
+  // Which group each task sits in, for a drop that keeps its place or a
+  // step that stays among its rows: by day its day group, by week its
+  // day's column (or the undated strip), else the one list.
+  const groupOf = useMemo(() => {
+    const keys = new Map<string, string>();
+    if (view === "by-day")
+      for (const group of groups)
+        for (const task of group.tasks) keys.set(task.id, group.key);
+    else if (view === "week")
+      for (const task of tasks)
+        keys.set(task.id, taskDay(task) ?? undatedGroup);
+    else for (const task of ordered) keys.set(task.id, listGroup);
+    return keys;
+  }, [groups, ordered, tasks, view]);
+  const rowsOf = useCallback(
+    (groupKey: string): readonly TaskResponse[] =>
+      groupKey === listGroup
+        ? ordered
+        : view === "week"
+          ? groupKey === undatedGroup
+            ? undated
+            : (placed.get(groupKey) ?? [])
+          : (groups.find((group) => group.key === groupKey)?.tasks ?? []),
+    [groups, ordered, placed, undated, view],
   );
   // Open tasks whose day has passed sit in a strip as well as in their day,
   // since the day may be outside the period shown.
@@ -628,10 +637,13 @@ export function TaskListView({
     [byId, sections],
   );
   const reorder = manual && canEdit;
+  // The rows move by drag in the list, by day, and by week; a calendar
+  // cell is too small to drag from, so its rows step from the menu alone.
+  const draggable = reorder && view !== "month";
   const { drag, gapAt, gripProps, groupProps, rootProps, rowClass, rowProps } =
     useRowDrag({
       canDrop,
-      enabled: reorder && (view === "list" || view === "by-day"),
+      enabled: draggable,
       labelOf,
       onDrop,
     });
@@ -639,13 +651,13 @@ export function TaskListView({
   /** The grip in the gutter at a row's left edge, when the rows may be moved. */
   const grip = useCallback(
     (task: TaskResponse) =>
-      reorder && (view === "list" || view === "by-day") ? (
+      draggable ? (
         <DragGrip
           label={sectionT("move", { name: task.displayName })}
           {...gripProps(task.id)}
         />
       ) : null,
-    [gripProps, reorder, sectionT, view],
+    [draggable, gripProps, sectionT],
   );
 
   const check = useCallback(
@@ -678,8 +690,17 @@ export function TaskListView({
     },
     [canEdit, isUpdating, t, updateTask],
   );
+  /** Opens the full editor for a row too narrow for the composer: a card or a cell. */
+  const openEditor = useCallback(
+    (task: TaskResponse) => onEdit(task.id, {}),
+    [onEdit],
+  );
   const menu = useCallback(
-    (task: TaskResponse, rows: readonly TaskResponse[]) => {
+    (
+      task: TaskResponse,
+      rows: readonly TaskResponse[],
+      mode: RowMode = "full",
+    ) => {
       const isDone = task.status === "done";
       const now = new Date();
       const day = taskDay(task);
@@ -690,7 +711,10 @@ export function TaskListView({
           {
             kind: "action",
             label: t("menu.edit"),
-            onSelect: () => composer.request(rowComposerKey(task.id)),
+            onSelect: () =>
+              mode === "full"
+                ? composer.request(rowComposerKey(task.id))
+                : openEditor(task),
           },
           {
             kind: "action",
@@ -847,6 +871,7 @@ export function TaskListView({
       eventId,
       moveToDay,
       onAddSubtask,
+      openEditor,
       openHistory,
       openLifecycle,
       reorder,
@@ -884,10 +909,14 @@ export function TaskListView({
       );
     }
     const task = byId.get(drag.id);
+    // A card lifted from its day is the width of its column, so it carries
+    // the name alone; the day it lands on is the date.
     return task === undefined ? null : (
       <div className="row-drag-line">
         {check(task)}
-        <div className="resource-copy">{copy(task, true, false)}</div>
+        <div className="resource-copy">
+          {copy(task, view !== "week", false)}
+        </div>
         {aside(task)}
       </div>
     );
@@ -968,11 +997,15 @@ export function TaskListView({
           {pressable(
             task,
             copy(task, showDate, false),
-            mode === "full" ? press : undefined,
+            mode === "full"
+              ? press
+              : mode === "card" && canEdit
+                ? openEditor
+                : undefined,
           )}
         </div>
         {aside(task)}
-        {menu(task, rows)}
+        {menu(task, rows, mode)}
       </li>
     );
   };
@@ -993,6 +1026,8 @@ export function TaskListView({
       (task) => row(task, showDate, items, groupKey),
       listGap,
     );
+  // By week each day's rows are cards in its column and a drop target of
+  // its own, the strips above are lists; a drop on a day writes that day.
   if (view === "week" || view === "month")
     return (
       <PeriodView
@@ -1000,13 +1035,33 @@ export function TaskListView({
         overdue={overdue}
         period={period}
         placed={placed}
-        renderList={(items, mode) => (
-          <ul className={resourceListClass(mode)}>
-            {items.map((task) =>
-              row(task, mode === "full", items, listGroup, mode),
-            )}
+        renderDayFooter={
+          canEdit && view === "week"
+            ? (day) => (
+                <div className="quick-add-item week-day-add">
+                  {addRow(day, dayGroupLabel(day, new Date()).label[0])}
+                </div>
+              )
+            : undefined
+        }
+        renderList={(items, mode, groupKey) => (
+          <ul
+            className={`${resourceListClass(mode)}${draggable && mode === "full" ? " has-grips" : ""}`}
+            {...(mode === "cell" ? {} : groupProps(groupKey))}
+          >
+            {mode === "cell"
+              ? items.map((task) => row(task, false, items, groupKey, mode))
+              : rowsWithGap(
+                  groupKey,
+                  items,
+                  drag,
+                  gapAt,
+                  (task) => row(task, mode === "full", items, groupKey, mode),
+                  listGap,
+                )}
           </ul>
         )}
+        rootProps={rootProps()}
         undated={undated}
         undatedLabel={t("groups.noDueDate")}
         view={view}

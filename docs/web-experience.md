@@ -1372,8 +1372,16 @@ offers more than one. To-dos offers List, the table; By day, which groups
 tasks under Overdue, one heading per due date (Today and Tomorrow named, with
 the weekday), and No due date, showing each timed task's due time and nothing
 for a task due on the date itself; By week, seven columns Monday to Sunday
-with today marked and each task in its due day's column, scrolling sideways
-where the panel is narrow; and Calendar, the month's weeks as a grid of day
+with today's head in the accent and each task a bordered card in its due
+day's column (the check at the left, the title beside it on two lines at
+most, the due time or a label under it; cards 6px apart with no rule between
+them, the row menu at the card's top right and the grip at its left edge on
+hover or focus, the title keeping the menu's gutter free so nothing moves
+when they appear), each column at least 180px wide so the grid takes the
+page's full measure and scrolls sideways below seven such columns, a card
+dragged to another column taking that day as its due date, the menu's Edit
+opening the full editor, and each day ending in an Add task row that shows
+on hover and presets the day; and Calendar, the month's weeks as a grid of day
 cells with the weekday names and day numbers at the right, today a filled
 circle, the days of other months muted and the first of a month named, and
 the grid ending with the week that holds the month's last day. Each calendar
@@ -1381,7 +1389,9 @@ cell holds its tasks as compact rows (a dot, the name clipped, the time at
 the right, done ones struck through), three of them and then "+n more",
 which opens the rest in place. Calendar offers List; Agenda, the numbered
 running order of its items with the same Edit, History, and Actions on each;
-and By week and Calendar, a scheduled item sitting on every day it covers.
+and By week and Calendar, a scheduled item sitting on every day it covers,
+the week's columns holding the same cards as To-dos (the time or the place
+under the name).
 Expenses and Reminders offer List, By day, By week, and Calendar as well: a
 transaction sits on the day it happened and a reminder on the day it is due;
 an expense day heading carries the day's totals by currency, and a calendar

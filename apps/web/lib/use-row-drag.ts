@@ -50,10 +50,12 @@ type DragRoot = ParentNode & { querySelectorAll: Document["querySelectorAll"] };
  * starts a drag once it travels a few pixels (a long press on touch), so
  * clicks on the row keep their meaning; a press on the grip lifts the row
  * at once. The lifted row leaves the flow as a card that follows the
- * pointer, and a gap of its height marks where it will land, following
- * the pointer's height alone: the nearest row, before or after its middle,
- * or an empty group under the pointer. Letting go fills the gap. From the
- * keyboard, the grip's arrow keys move the gap a place and Enter drops.
+ * pointer, and a gap of its height marks where it will land: among the
+ * groups under the pointer's width (or the nearest to it, so columns side
+ * by side each take their own drops), the nearest row by height, before
+ * or after its middle, or an empty group under the pointer. Letting go
+ * fills the gap. From the keyboard, the grip's arrow keys move the gap a
+ * place and Enter drops.
  */
 export function useRowDrag({
   canDrop,
@@ -117,16 +119,28 @@ export function useRowDrag({
     }));
   }, []);
 
-  /** The gap's place for a pointer height: an empty group under it, else the nearest row. */
+  /**
+   * The gap's place for a pointer: among the groups whose zone is under its
+   * width, or the nearest zone to it, an empty group under its height, else
+   * the nearest row. Groups stacked in one column all hold the width, so
+   * the height alone decides there.
+   */
   const locate = useCallback(
-    (y: number): RowDrop | null => {
+    (x: number, y: number): RowDrop | null => {
       const current = dragRef.current;
       if (current === null) return null;
-      const candidates = places(current.id);
-      for (const { group, groupKey, rows } of candidates) {
-        if (rows.length > 0) continue;
-        const zone = group.closest<HTMLElement>("[data-drop-zone]") ?? group;
+      const zoned = places(current.id).map((place) => {
+        const zone =
+          place.group.closest<HTMLElement>("[data-drop-zone]") ?? place.group;
         const rect = zone.getBoundingClientRect();
+        const aside =
+          x < rect.left ? rect.left - x : x > rect.right ? x - rect.right : 0;
+        return { ...place, rect, aside };
+      });
+      const nearestAside = Math.min(...zoned.map((place) => place.aside));
+      const candidates = zoned.filter((place) => place.aside === nearestAside);
+      for (const { groupKey, rows, rect } of candidates) {
+        if (rows.length > 0) continue;
         if (rect.height > 0 && y >= rect.top && y <= rect.bottom)
           return { groupKey, index: 0, rowIds: [] };
       }
@@ -237,7 +251,7 @@ export function useRowDrag({
           ...dragRef.current,
           x: rect.left + (pointer.x - x),
           y: rect.top + (pointer.y - y),
-          drop: locate(pointer.y),
+          drop: locate(pointer.x, pointer.y),
         });
       };
       update({
