@@ -30,6 +30,7 @@ import { useEventWorkspaceQueries } from "../../lib/queries";
 import { useForgetInaccessibleEventDrafts } from "../../lib/editor-draft-context";
 import { isTemporaryReadError } from "../../lib/query-errors";
 import {
+  type AccessSource,
   eventComponentKindSchema,
   type EventComponentView,
 } from "@chronelle/schemas";
@@ -40,7 +41,7 @@ import { UndoMenuItems } from "../../components/undo-menu-items";
 import { HistoryButton } from "../history/history-button";
 import { useOpenLifecycle } from "../recovery/lifecycle-provider";
 import { RemovedLinksPanel } from "../recovery/removed-links-panel";
-import { eventViewLabel, type EventView as TabId } from "../../lib/event-views";
+import { eventViewLabel } from "../../lib/event-views";
 import { useEventView } from "../../lib/use-event-view";
 import { EventOverview } from "./event-overview";
 import { EventPages } from "./event-pages";
@@ -229,12 +230,15 @@ export function EventWorkspace({ eventId }: { readonly eventId: string }) {
         <div className="event-title-row">
           <div>
             <h1>{event.displayName}</h1>
-            {schedule === "" ? null : (
-              <p className="event-date">
-                <CalendarIcon />
-                {schedule}
-              </p>
-            )}
+            <div className="event-date-line">
+              {schedule === "" ? null : (
+                <p className="event-date">
+                  <CalendarIcon />
+                  {schedule}
+                </p>
+              )}
+              <EventAccessTag source={access.source} />
+            </div>
             {event.description === null ? null : (
               <p className="event-description">{event.description}</p>
             )}
@@ -349,21 +353,6 @@ export function EventWorkspace({ eventId }: { readonly eventId: string }) {
         ) : null}
       </header>
 
-      <label className="mobile-view-select compact-field">
-        <span>{t("viewSelect")}</span>
-        <select
-          aria-label={t("viewSelect")}
-          value={shownTab}
-          onChange={(event) => setActiveTab(event.target.value as TabId)}
-        >
-          <option value="pages">{eventViewLabel("pages")}</option>
-          {stripViews.map((view) => (
-            <option value={view} key={view}>
-              {eventViewLabel(view)}
-            </option>
-          ))}
-        </select>
-      </label>
       <EventStrip
         pages={stripPages}
         selectedPageId={pagesState.selectedPage?.id}
@@ -483,5 +472,29 @@ export function EventWorkspace({ eventId }: { readonly eventId: string }) {
         />
       ) : null}
     </main>
+  );
+}
+
+/**
+ * On a phone the access reads as the events list's tag on the date line:
+ * "Shared by {name}" and the role. The desktop keeps the access line's
+ * pill; the stylesheet shows one or the other.
+ */
+function EventAccessTag({
+  source,
+}: {
+  readonly source: AccessSource | undefined;
+}) {
+  const t = useTranslations("events");
+  const roles = useTranslations("members.roles");
+  if (source === undefined || source.kind === "own") return null;
+  return (
+    <span className="event-access-tag">
+      <span className="event-shared-by">
+        <ShareIcon />
+        {t("sharedBy", { name: source.grantedBy.displayName })}
+      </span>
+      <span className="event-shared-role">{roles(source.role)}</span>
+    </span>
   );
 }

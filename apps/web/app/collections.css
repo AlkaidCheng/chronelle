@@ -143,9 +143,6 @@
   margin-bottom: 0;
   padding-bottom: 24px;
 }
-.mobile-view-select {
-  display: none;
-}
 .route-state {
   margin: 80px auto;
   max-width: 640px;
@@ -175,13 +172,6 @@
   }
 }
 @media (max-width: 760px) {
-  .mobile-view-select {
-    display: grid;
-    margin-bottom: 14px;
-  }
-  .mobile-view-select select {
-    font-size: 1rem;
-  }
   .collection-heading .filter-row {
     gap: 2px;
   }
