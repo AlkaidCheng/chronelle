@@ -8,9 +8,11 @@ import {
   type ReactNode,
   useCallback,
   useEffect,
+  useLayoutEffect,
   useRef,
   useState,
 } from "react";
+import { openCommandPalette } from "../lib/command-palette";
 import { canSwitchWorkspace, isSwitchWorkspaceKeys } from "../lib/keyboard";
 import { personInitials } from "../lib/person-collection";
 import { useCurrentWorkspaceIdentity } from "../lib/use-workspace-identity";
@@ -63,14 +65,20 @@ export function PhoneChrome({
   readonly onSignOut: () => void;
 }) {
   const [sheet, setSheet] = useState<Sheet | null>(null);
+  // What a choice inside a sheet or the drawer opens next (the palette,
+  // or the drawer to customize), run once the modal has closed and given
+  // focus back to its control, so the next one takes focus from there.
+  const [next, setNext] = useState<{ run: () => void } | null>(null);
   const t = useTranslations("workspace");
   const account = useTranslations("account");
   const nav = useTranslations("nav");
+  const common = useTranslations("common");
   const theme = useTranslations("theme");
   const install = useInstallControl();
   const identity = useCurrentWorkspaceIdentity(session);
   const workspaceMenu = useRef<HTMLDivElement>(null);
   const accountMenu = useRef<HTMLDivElement>(null);
+  const themeSheet = useRef<HTMLDivElement>(null);
 
   const close = useCallback(() => setSheet(null), []);
   const closeDrawer = useCallback(() => {
@@ -99,13 +107,29 @@ export function PhoneChrome({
     return () => document.removeEventListener("keydown", onKeyDown);
   }, [sheet]);
 
-  // The account sheet opens on Friends; the switcher's list places its own focus.
+  // The account sheet opens on Friends and the theme sheet on the chosen
+  // appearance, as the rail's panels do; the switcher's list places its own.
   useEffect(() => {
     if (sheet === "account")
       accountMenu.current
         ?.querySelector<HTMLElement>('[role="menuitem"]')
         ?.focus();
+    if (sheet === "theme")
+      themeSheet.current?.querySelector<HTMLElement>("input:checked")?.focus();
   }, [sheet]);
+
+  // The sheets close in their own effects, before this one runs.
+  useEffect(() => {
+    if (sheet !== null || next === null) return;
+    setNext(null);
+    next.run();
+  }, [sheet, next]);
+
+  function closeThen(run: () => void) {
+    setSheet(null);
+    setNext({ run });
+  }
+  const openPalette = () => closeThen(() => openCommandPalette());
 
   function choose(workspace: AccessibleWorkspace) {
     close();
@@ -154,7 +178,8 @@ export function PhoneChrome({
           className="account-trigger phone-account"
           aria-haspopup="dialog"
           aria-expanded={sheet === "account"}
-          aria-label={account("menu")}
+          // Named by its person, as the rail's account block reads.
+          aria-label={session.user.displayName}
           onClick={() =>
             setSheet((open) => (open === "account" ? null : "account"))
           }
@@ -174,7 +199,7 @@ export function PhoneChrome({
           <button
             type="button"
             className="icon-control icon-control-quiet phone-drawer-close"
-            aria-label={nav("menu")}
+            aria-label={common("close")}
             onClick={closeDrawer}
           >
             <span aria-hidden="true">&#215;</span>
@@ -183,12 +208,20 @@ export function PhoneChrome({
         <nav
           aria-label={nav("workspaceNavigation")}
           className="workspace-nav"
-          // A collection chosen from the drawer closes it; the palette
-          // opens over the page once the drawer is gone.
+          // A collection chosen from the drawer closes it behind the
+          // navigation; Search (the one button here outside customizing)
+          // closes it and opens the palette over the page once it is gone.
           onClickCapture={(event) => {
-            if (customizing) return;
             const target = event.target as HTMLElement;
-            if (target.closest("a, button") !== null) setSheet(null);
+            // The palette is the Search entry's portal: under this nav in
+            // the tree, outside it on the page, and its clicks are its own.
+            if (customizing || !event.currentTarget.contains(target)) return;
+            if (target.closest("a") !== null) setSheet(null);
+            else if (target.closest("button") !== null) {
+              event.preventDefault();
+              event.stopPropagation();
+              openPalette();
+            }
           }}
         >
           <SearchEntry current={pathname.startsWith("/search")} />
@@ -229,6 +262,8 @@ export function PhoneChrome({
           <strong>{session.user.displayName}</strong>
           <span>{session.user.email}</span>
         </p>
+        {/* One menu, so the arrow keys walk from the account's entries
+            into More's group under them. */}
         <div
           ref={accountMenu}
           role="menu"
@@ -241,24 +276,22 @@ export function PhoneChrome({
             onSignOut={onSignOut}
             onChoose={close}
           />
-        </div>
-        <hr className="quiet-menu-separator" />
-        <div
-          role="menu"
-          aria-label={nav("more")}
-          className="sheet-menu"
-          onKeyDown={onMenuKeyDown}
-        >
-          <MoreMenuItems
-            onChoose={close}
-            onTheme={() => setSheet("theme")}
-            onCustomize={() => {
-              onCustomize(true);
-              setSheet("drawer");
-            }}
-            installMode={install.mode}
-            onInstall={install.activate}
-          />
+          <hr className="quiet-menu-separator" />
+          {/* biome-ignore lint/a11y/useSemanticElements: A group of menu items, not a form fieldset. */}
+          <div role="group" aria-label={nav("more")} className="sheet-menu">
+            <MoreMenuItems
+              onChoose={close}
+              onTheme={() => setSheet("theme")}
+              onCustomize={() =>
+                closeThen(() => {
+                  onCustomize(true);
+                  setSheet("drawer");
+                })
+              }
+              installMode={install.mode}
+              onInstall={() => closeThen(install.activate)}
+            />
+          </div>
         </div>
       </BottomSheet>
       <BottomSheet
@@ -266,7 +299,7 @@ export function PhoneChrome({
         label={theme("title")}
         onClose={close}
       >
-        <div className="sheet-theme">
+        <div className="sheet-theme" ref={themeSheet}>
           <ThemeControls />
         </div>
       </BottomSheet>
@@ -278,7 +311,9 @@ export function PhoneChrome({
 /**
  * The sidebar as a drawer from the left: a modal dialog with a scrim, so
  * focus stays inside while it is open and returns to the menu control;
- * Escape, the scrim, or its close control closes it.
+ * Escape, the scrim, or its close control closes it. Its content stays
+ * mounted while it is closed: the Search entry inside owns the palette
+ * and the Cmd/Ctrl+K that opens it, on the phone as on the rail.
  */
 function PhoneDrawer({
   open,
@@ -291,7 +326,7 @@ function PhoneDrawer({
 }) {
   const t = useTranslations("nav");
   const dialog = useRef<HTMLDialogElement>(null);
-  useEffect(() => {
+  useLayoutEffect(() => {
     const element = dialog.current;
     if (element === null) return;
     if (open && !element.open) element.showModal();
@@ -314,7 +349,7 @@ function PhoneDrawer({
         if (event.target === event.currentTarget) onClose();
       }}
     >
-      {open ? children : null}
+      {children}
     </dialog>
   );
 }

@@ -4,7 +4,7 @@ import { useTranslations } from "next-intl";
 import {
   type PointerEvent as ReactPointerEvent,
   type ReactNode,
-  useEffect,
+  useLayoutEffect,
   useRef,
 } from "react";
 
@@ -33,7 +33,9 @@ export function BottomSheet({
   const dialog = useRef<HTMLDialogElement>(null);
   const pull = useRef<{ id: number; y: number } | null>(null);
 
-  useEffect(() => {
+  // A layout effect, so the dialog is open before what is inside it
+  // places its focus in an effect of its own.
+  useLayoutEffect(() => {
     const element = dialog.current;
     if (element === null) return;
     if (open && !element.open) element.showModal();
@@ -52,12 +54,18 @@ export function BottomSheet({
   }
 
   return (
-    // biome-ignore lint/a11y/useKeyWithClickEvents: Escape closes the dialog through its cancel event; the click closes on the scrim alone.
     <dialog
       ref={dialog}
       className="bottom-sheet"
       aria-label={label}
       onCancel={(event) => {
+        event.preventDefault();
+        onClose();
+      }}
+      // Escape closes the sheet from anywhere inside it: a search field
+      // with text would otherwise take the key to clear itself.
+      onKeyDown={(event) => {
+        if (event.key !== "Escape" || event.nativeEvent.isComposing) return;
         event.preventDefault();
         onClose();
       }}

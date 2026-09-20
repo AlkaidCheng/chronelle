@@ -5793,7 +5793,8 @@ ul.resource-list {
     justify-content: flex-end;
   }
 
-  .event-hero .access-line {
+  /* The event page's tag stands in for its line; a person's page keeps the line. */
+  .event-workspace .event-hero .access-line {
     display: none;
   }
 
