@@ -1,9 +1,12 @@
-import type {
-  EventTabsRow,
-  RailPreferenceRow,
-  UserRow,
-  UserSessionRow,
-  WorkspaceRow,
+import {
+  roles,
+  type EventTabsRow,
+  type RailPreferenceRow,
+  type Role,
+  type UserRow,
+  type UserSessionRow,
+  type WorkspaceRecencyRow,
+  type WorkspaceRow,
 } from "@chronelle/db";
 
 /** A gateway row: the table's columns as JSON. */
@@ -81,10 +84,31 @@ function eventTabs(value: unknown): EventTabsRow {
   );
 }
 
+/** The last-opened instants as stored: an object keyed by workspace id whose values are strings. */
+function workspaceRecency(value: unknown): WorkspaceRecencyRow {
+  const rows = record(value, "workspace recency");
+  return Object.fromEntries(
+    Object.entries(rows).map(([workspaceId, openedAt]) => [
+      workspaceId,
+      text(openedAt, "workspace recency entry"),
+    ]),
+  );
+}
+
 export function record(value: unknown, label: string): CloudBaseRow {
   if (value === null || typeof value !== "object" || Array.isArray(value))
     throw new Error(`CloudBase returned an invalid ${label}.`);
   return value as CloudBaseRow;
+}
+
+/** A membership or grant role as stored. */
+export function role(value: unknown): Role {
+  if (
+    typeof value !== "string" ||
+    !(roles as readonly string[]).includes(value)
+  )
+    throw new Error("CloudBase returned an invalid role.");
+  return value as Role;
 }
 
 export function userRow(row: CloudBaseRow): UserRow {
@@ -104,6 +128,7 @@ export function userRow(row: CloudBaseRow): UserRow {
     weekStart: nullableInteger(row.week_start, "week start"),
     rail: railPreference(row.rail),
     eventTabs: eventTabs(row.event_tabs),
+    workspaceRecency: workspaceRecency(row.workspace_recency),
     createdAt: instant(row.created_at, "created_at"),
     updatedAt: instant(row.updated_at, "updated_at"),
   };

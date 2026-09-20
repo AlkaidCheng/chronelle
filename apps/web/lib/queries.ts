@@ -2,7 +2,7 @@
 
 import {
   ApiClientError,
-  type ChronelleApiClient,
+  ChronelleApiClient,
   type DocumentFileInput,
 } from "@chronelle/api-client";
 import type {
@@ -68,6 +68,7 @@ import { useAuthSession } from "./auth-session";
 import { mergeEventTabs } from "./event-tabs";
 import type { EventView } from "./event-views";
 import { newId } from "./new-id";
+import { mergeWorkspaceRecency } from "./workspace-recency";
 
 export const queryKeys = {
   events: ["events"] as const,
@@ -202,6 +203,12 @@ export function useUpdatePreferences() {
                 input.eventTabs,
               ),
             }),
+            ...(input.workspaceRecency !== undefined && {
+              workspaceRecency: mergeWorkspaceRecency(
+                previous.user.workspaceRecency,
+                input.workspaceRecency,
+              ),
+            }),
           },
         });
       return { previous };
@@ -216,6 +223,62 @@ export function useUpdatePreferences() {
       );
     },
   });
+}
+
+/**
+ * Notes on the account that a workspace was just opened, for the switcher's
+ * order. The note goes through a client of its own, since the session's
+ * client cancels its requests when the workspace changes again and the
+ * note must reach the account regardless. A session read that began
+ * before the note answers without it, so a read still in flight is
+ * waited for and the reply's instants are then put on whatever it
+ * brought, merged because two quick notes may answer in either order. A
+ * failed note leaves the order as it was.
+ */
+export function useNoteWorkspaceOpened() {
+  const { credential } = useAuthSession();
+  const queryClient = useQueryClient();
+  return useCallback(
+    (workspaceId: string) => {
+      if (credential === null) return;
+      const client = new ChronelleApiClient({
+        getCredential: () => credential,
+      });
+      void client
+        .updatePreferences({
+          workspaceRecency: { [workspaceId]: new Date().toISOString() },
+        })
+        .then(async (updated) => {
+          if (
+            queryClient.getQueryState(queryKeys.session)?.fetchStatus ===
+            "fetching"
+          )
+            await queryClient.invalidateQueries({
+              queryKey: queryKeys.session,
+            });
+          queryClient.setQueryData<SessionResponse>(
+            queryKeys.session,
+            (session) =>
+              session === undefined
+                ? session
+                : {
+                    ...session,
+                    user: {
+                      ...session.user,
+                      workspaceRecency: {
+                        ...session.user.workspaceRecency,
+                        ...updated.workspaceRecency,
+                      },
+                    },
+                  },
+          );
+        })
+        .catch(() => {
+          // The switcher keeps the order it had; the next switch notes again.
+        });
+    },
+    [credential, queryClient],
+  );
 }
 
 export function useEventsQuery(input: Omit<EventListQueryInput, "cursor">) {

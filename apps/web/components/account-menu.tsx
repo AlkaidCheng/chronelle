@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { personInitials } from "../lib/person-collection";
-import { CheckIcon, PeopleIcon, SettingsIcon, SignOutIcon } from "./icons";
+import { PeopleIcon, SettingsIcon, SignOutIcon } from "./icons";
 import {
   focusFirstMenuItem,
   moveMenuFocus,
@@ -16,20 +16,18 @@ interface AccountMenuProps {
   readonly session: SessionResponse;
   /** Friend requests waiting for an answer; shown on the Friends entry and as a dot on the profile block. */
   readonly pendingRequests?: number | undefined;
-  readonly onSwitchWorkspace: (workspaceId: string) => void;
   readonly onSignOut: () => void;
 }
 
 /**
- * The sidebar profile block opens a menu above it: the account, the
- * workspaces the person can open, Friends (with the requests waiting),
- * Settings, and sign out. Escape or a press outside closes it and returns
- * focus to the profile block.
+ * The sidebar profile block (the account's name and email) opens a menu
+ * above it: the account, Friends (with the requests waiting), Settings,
+ * and sign out. Escape or a press outside closes it and returns focus to
+ * the profile block.
  */
 export function AccountMenu({
   session,
   pendingRequests = 0,
-  onSwitchWorkspace,
   onSignOut,
 }: AccountMenuProps) {
   const [open, setOpen] = useState(false);
@@ -69,7 +67,7 @@ export function AccountMenu({
         </span>
         <span className="profile-copy">
           <strong>{session.user.displayName}</strong>
-          <span>{session.workspace.displayName}</span>
+          <span>{session.user.email}</span>
         </span>
       </button>
       {open ? (
@@ -87,28 +85,6 @@ export function AccountMenu({
             <strong>{session.user.displayName}</strong>
             <span>{session.user.email}</span>
           </p>
-          <hr className="quiet-menu-separator" />
-          <p className="quiet-menu-heading">{t("workspaces")}</p>
-          {session.availableWorkspaces.map((workspace) => {
-            const current = workspace.id === session.workspace.id;
-            return (
-              <button
-                key={workspace.id}
-                type="button"
-                role="menuitemradio"
-                aria-checked={current}
-                tabIndex={-1}
-                className="quiet-menu-item"
-                onClick={() => {
-                  setOpen(false);
-                  if (!current) onSwitchWorkspace(workspace.id);
-                }}
-              >
-                <span>{workspace.displayName}</span>
-                {current ? <CheckIcon className="quiet-menu-check" /> : null}
-              </button>
-            );
-          })}
           <hr className="quiet-menu-separator" />
           <Link
             role="menuitem"

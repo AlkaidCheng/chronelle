@@ -269,16 +269,20 @@ describe.sequential("CloudBase identity store", () => {
       await attempt("guestGranted", () =>
         store.resolveSession(identity("guest"), owner.workspace.id),
       );
-      seen.guestWorkspaces = (
-        await store.listAccessibleWorkspaces(guest.user.id)
-      )
-        .map((workspace) => workspace.displayName)
-        .sort();
-      seen.ownerWorkspaces = (
-        await store.listAccessibleWorkspaces(owner.user.id)
-      )
-        .map((workspace) => workspace.displayName)
-        .sort();
+      const listed = (userId: string) =>
+        store.listAccessibleWorkspaces(userId).then((rows) =>
+          rows
+            .map((workspace) => ({
+              displayName: workspace.displayName,
+              ownerDisplayName: workspace.ownerDisplayName,
+              role: workspace.role,
+            }))
+            .sort((first, second) =>
+              first.displayName.localeCompare(second.displayName),
+            ),
+        );
+      seen.guestWorkspaces = await listed(guest.user.id);
+      seen.ownerWorkspaces = await listed(owner.user.id);
       await db
         .delete(resourceGrants)
         .where(eq(resourceGrants.principalId, guest.user.id));
@@ -303,8 +307,27 @@ describe.sequential("CloudBase identity store", () => {
         user: shape(guest).user,
         workspace: shape(owner).workspace,
       },
-      guestWorkspaces: ["Person guest's workspace", "Person owner's workspace"],
-      ownerWorkspaces: ["Person owner's workspace"],
+      // A workspace reached through a share alone carries its owner's
+      // name and no role; a membership carries the role.
+      guestWorkspaces: [
+        {
+          displayName: "Person guest's workspace",
+          ownerDisplayName: "Person guest",
+          role: "owner",
+        },
+        {
+          displayName: "Person owner's workspace",
+          ownerDisplayName: "Person owner",
+          role: null,
+        },
+      ],
+      ownerWorkspaces: [
+        {
+          displayName: "Person owner's workspace",
+          ownerDisplayName: "Person owner",
+          role: "owner",
+        },
+      ],
       guestDeletedOwner: {
         user: shape(guest).user,
         workspace: shape(owner).workspace,
@@ -327,6 +350,7 @@ describe.sequential("CloudBase identity store", () => {
       weekStart: users.weekStart,
       rail: users.rail,
       eventTabs: users.eventTabs,
+      workspaceRecency: users.workspaceRecency,
     };
     const kyoto = "01a0b355-cad8-73d2-89f8-0a12abf666a8";
     const lisbon = "01a0b355-cad8-73d2-89f8-0a12abf666a9";
@@ -346,6 +370,7 @@ describe.sequential("CloudBase identity store", () => {
         weekStart: null,
         rail: {},
         eventTabs: {},
+        workspaceRecency: {},
       });
       const chosen = await store.updatePreferences(signedIn.user.id, {
         locale: "zh-Hant",
@@ -354,11 +379,13 @@ describe.sequential("CloudBase identity store", () => {
         eventTabs: {
           [kyoto]: { order: ["todos", "overview"], removed: ["timeline"] },
         },
+        workspaceRecency: { [kyoto]: "2026-09-20T00:10:00.000Z" },
       });
       const merged = await store.updatePreferences(signedIn.user.id, {
         hourCycle: "h23",
         weekStart: 7,
         eventTabs: { [lisbon]: { hidden: ["files"] } },
+        workspaceRecency: { [lisbon]: "2026-09-19T08:00:00+08:00" },
       });
       const read = await store.resolveSession(
         identity(`pref-${name}`),
@@ -370,6 +397,15 @@ describe.sequential("CloudBase identity store", () => {
         hourCycle: null,
         rail: null,
         eventTabs: { [kyoto]: { hidden: ["sharing"] }, [lisbon]: null },
+        workspaceRecency: { [kyoto]: "2026-09-21T00:00:00Z", [lisbon]: null },
+      });
+      const crowded = await store.updatePreferences(signedIn.user.id, {
+        workspaceRecency: Object.fromEntries(
+          Array.from({ length: 60 }, (_, index) => [
+            `01a0b355-cad8-73d2-89f8-${String(index).padStart(12, "0")}`,
+            `2026-01-${String((index % 28) + 1).padStart(2, "0")}T00:00:00Z`,
+          ]),
+        ),
       });
       const refusals = {
         locale: await outcome(
@@ -427,6 +463,21 @@ describe.sequential("CloudBase identity store", () => {
             ),
           }),
         ),
+        recencyKey: await outcome(
+          store.updatePreferences(signedIn.user.id, {
+            workspaceRecency: { plan: "2026-09-21T00:00:00Z" },
+          }),
+        ),
+        recencyShape: await outcome(
+          store.updatePreferences(signedIn.user.id, {
+            workspaceRecency: [kyoto] as unknown as Record<string, string>,
+          }),
+        ),
+        recencyInstant: await outcome(
+          store.updatePreferences(signedIn.user.id, {
+            workspaceRecency: { [kyoto]: "yesterday" },
+          }),
+        ),
         unknownUser: await outcome(
           store.updatePreferences(createId(), { locale: "en" }),
         ),
@@ -442,6 +493,7 @@ describe.sequential("CloudBase identity store", () => {
         weekStart: user.weekStart,
         rail: user.rail,
         eventTabs: user.eventTabs,
+        workspaceRecency: user.workspaceRecency,
       });
       results[name] = {
         chosen: shape(chosen),
@@ -449,6 +501,7 @@ describe.sequential("CloudBase identity store", () => {
         read: read === null ? null : shape(read.user),
         untouched: shape(untouched),
         cleared: shape(cleared),
+        crowded: Object.keys(crowded.workspaceRecency).sort(),
         stored: row,
         refusals,
         touched: chosen.updatedAt >= signedIn.user.updatedAt,
@@ -465,6 +518,7 @@ describe.sequential("CloudBase identity store", () => {
         eventTabs: {
           [kyoto]: { order: ["todos", "overview"], removed: ["timeline"] },
         },
+        workspaceRecency: { [kyoto]: "2026-09-20T00:10:00.000Z" },
       },
       merged: {
         locale: "zh-Hant",
@@ -475,6 +529,10 @@ describe.sequential("CloudBase identity store", () => {
         eventTabs: {
           [kyoto]: { order: ["todos", "overview"], removed: ["timeline"] },
           [lisbon]: { hidden: ["files"] },
+        },
+        workspaceRecency: {
+          [kyoto]: "2026-09-20T00:10:00.000Z",
+          [lisbon]: "2026-09-19T08:00:00+08:00",
         },
       },
       read: {
@@ -487,6 +545,10 @@ describe.sequential("CloudBase identity store", () => {
           [kyoto]: { order: ["todos", "overview"], removed: ["timeline"] },
           [lisbon]: { hidden: ["files"] },
         },
+        workspaceRecency: {
+          [kyoto]: "2026-09-20T00:10:00.000Z",
+          [lisbon]: "2026-09-19T08:00:00+08:00",
+        },
       },
       untouched: {
         locale: "zh-Hant",
@@ -498,6 +560,10 @@ describe.sequential("CloudBase identity store", () => {
           [kyoto]: { order: ["todos", "overview"], removed: ["timeline"] },
           [lisbon]: { hidden: ["files"] },
         },
+        workspaceRecency: {
+          [kyoto]: "2026-09-20T00:10:00.000Z",
+          [lisbon]: "2026-09-19T08:00:00+08:00",
+        },
       },
       cleared: {
         locale: null,
@@ -506,7 +572,19 @@ describe.sequential("CloudBase identity store", () => {
         weekStart: 7,
         rail: {},
         eventTabs: { [kyoto]: { hidden: ["sharing"] } },
+        workspaceRecency: { [kyoto]: "2026-09-21T00:00:00Z" },
       },
+      // The 50 most recent instants stay: the oldest days fall off, the
+      // key deciding between equal instants.
+      crowded: [
+        kyoto,
+        ...Array.from({ length: 60 }, (_, index) => index)
+          .filter((index) => index % 28 >= 4 || index === 3)
+          .map(
+            (index) =>
+              `01a0b355-cad8-73d2-89f8-${String(index).padStart(12, "0")}`,
+          ),
+      ].sort(),
       stored: {
         locale: null,
         timeZone: "Asia/Taipei",
@@ -514,6 +592,7 @@ describe.sequential("CloudBase identity store", () => {
         weekStart: 7,
         rail: {},
         eventTabs: { [kyoto]: { hidden: ["sharing"] } },
+        workspaceRecency: expect.any(Object),
       },
       refusals: {
         locale: "refused",
@@ -526,6 +605,9 @@ describe.sequential("CloudBase identity store", () => {
         eventTabsShape: "refused",
         eventTabsLength: "refused",
         eventTabsCount: "refused",
+        recencyKey: "refused",
+        recencyShape: "refused",
+        recencyInstant: "refused",
         unknownUser: "refused",
       },
       touched: true,

@@ -24,14 +24,27 @@ const session = {
     weekStart: null,
     rail: {},
     eventTabs: {},
+    workspaceRecency: {},
   },
   workspace: {
     id: "019d6e7d-0000-7000-8000-000000000001",
     displayName: "Personal",
   },
   availableWorkspaces: [
-    { id: "019d6e7d-0000-7000-8000-000000000001", displayName: "Personal" },
-    { id: "019d6e7d-0000-7000-8000-000000000003", displayName: "Shared" },
+    {
+      id: "019d6e7d-0000-7000-8000-000000000001",
+      displayName: "Personal",
+      personal: true,
+      ownerDisplayName: "Planner",
+      role: "owner" as const,
+    },
+    {
+      id: "019d6e7d-0000-7000-8000-000000000003",
+      displayName: "Shared",
+      personal: false,
+      ownerDisplayName: "Kai Tanaka",
+      role: "viewer" as const,
+    },
   ],
 };
 
@@ -39,35 +52,29 @@ afterEach(cleanup);
 
 function renderMenu(extra: { pendingRequests?: number } = {}) {
   const onSignOut = vi.fn();
-  const onSwitchWorkspace = vi.fn();
   render(
     <>
-      <AccountMenu
-        session={session}
-        onSwitchWorkspace={onSwitchWorkspace}
-        onSignOut={onSignOut}
-        {...extra}
-      />
+      <AccountMenu session={session} onSignOut={onSignOut} {...extra} />
       <button type="button">Elsewhere</button>
     </>,
   );
   return {
     onSignOut,
-    onSwitchWorkspace,
-    trigger: screen.getByRole("button", { name: "Planner Personal" }),
+    trigger: screen.getByRole("button", {
+      name: "Planner planner@example.com",
+    }),
     user: userEvent.setup(),
   };
 }
 
-it("opens a menu with the account, the workspaces, Friends, Settings, and sign out", async () => {
+it("opens a menu with the account, Friends, Settings, and sign out, and no workspace list", async () => {
   const { trigger, user } = renderMenu();
   await user.click(trigger);
   const menu = screen.getByRole("menu", { name: "Account" });
   expect(menu).toHaveTextContent("planner@example.com");
-  expect(
-    screen.getByRole("menuitemradio", { name: "Personal" }),
-  ).toHaveAttribute("aria-checked", "true");
-  expect(screen.getByRole("menuitemradio", { name: "Personal" })).toHaveFocus();
+  expect(screen.queryByRole("menuitemradio")).not.toBeInTheDocument();
+  expect(menu).not.toHaveTextContent("Shared");
+  expect(screen.getByRole("menuitem", { name: "Friends" })).toHaveFocus();
   expect(screen.getByRole("menuitem", { name: "Friends" })).toHaveAttribute(
     "href",
     "/friends",
@@ -84,19 +91,6 @@ it("opens a menu with the account, the workspaces, Friends, Settings, and sign o
   expect(screen.queryByRole("menu")).not.toBeInTheDocument();
 });
 
-it("switches only to another workspace and closes", async () => {
-  const { onSwitchWorkspace, trigger, user } = renderMenu();
-  await user.click(trigger);
-  await user.click(screen.getByRole("menuitemradio", { name: "Personal" }));
-  expect(onSwitchWorkspace).not.toHaveBeenCalled();
-  expect(screen.queryByRole("menu")).not.toBeInTheDocument();
-  await user.click(trigger);
-  await user.click(screen.getByRole("menuitemradio", { name: "Shared" }));
-  expect(onSwitchWorkspace).toHaveBeenCalledWith(
-    "019d6e7d-0000-7000-8000-000000000003",
-  );
-});
-
 it("signs out once and closes", async () => {
   const { onSignOut, trigger, user } = renderMenu();
   await user.click(trigger);
@@ -109,11 +103,11 @@ it("moves with arrow keys, closes on Escape, and returns focus to the profile", 
   const { trigger, user } = renderMenu();
   await user.click(trigger);
   await user.keyboard("{ArrowDown}");
-  expect(screen.getByRole("menuitemradio", { name: "Shared" })).toHaveFocus();
+  expect(screen.getByRole("menuitem", { name: "Settings" })).toHaveFocus();
   await user.keyboard("{End}");
   expect(screen.getByRole("menuitem", { name: "Sign out" })).toHaveFocus();
   await user.keyboard("{ArrowDown}");
-  expect(screen.getByRole("menuitemradio", { name: "Personal" })).toHaveFocus();
+  expect(screen.getByRole("menuitem", { name: "Friends" })).toHaveFocus();
   await user.keyboard("{Escape}");
   expect(screen.queryByRole("menu")).not.toBeInTheDocument();
   expect(trigger).toHaveFocus();

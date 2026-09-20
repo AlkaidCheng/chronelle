@@ -42,6 +42,31 @@ export function canToggleSidebar(event: KeyboardEvent) {
   );
 }
 
+/**
+ * Cmd/Ctrl+Shift+K opens the workspace switcher, outside text fields and
+ * dialogs (Cmd/Ctrl+Shift+W, the natural key, closes the window in every
+ * browser before a page sees it).
+ */
+export function canSwitchWorkspace(event: KeyboardEvent) {
+  return (
+    canUseShortcut(event) &&
+    isSwitchWorkspaceKeys(event) &&
+    event.target instanceof Element &&
+    (event.target === document.body ||
+      event.target.closest(".workspace-shell") !== null)
+  );
+}
+
+/** The switcher's keys alone, for the open switcher to close itself from its own search field. */
+export function isSwitchWorkspaceKeys(event: KeyboardEvent) {
+  return (
+    !event.altKey &&
+    event.shiftKey &&
+    event.metaKey !== event.ctrlKey &&
+    event.key.toLowerCase() === "k"
+  );
+}
+
 export function canInsertComponent(
   event: KeyboardEvent,
   scope: HTMLElement,

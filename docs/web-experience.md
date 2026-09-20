@@ -37,9 +37,10 @@ exists only where the web server is started with
 Chronelle opens into an event collection, with workspace-wide Tasks and People
 alongside it. Desktop navigation stays on the left: Search at the top, then a
 Collections section (Events, Tasks, People) in the order the account keeps,
-then the profile block with a More control beside it. Mobile navigation
-remains at the bottom with space for the device's safe area, in the same
-order, and the More and account controls sit in a slim bar at the top. There
+then the current workspace as a control of its own, then the profile block
+with a More control beside it. Mobile navigation remains at the bottom with
+space for the device's safe area, in the same order, and the workspace,
+account, and More controls sit in a slim bar at the top. There
 is no other header: each page starts with its own title. Search in the rail
 opens the one palette (records, destinations including Trash, and the current
 page's actions); the Search page stays reachable from the palette.
@@ -79,10 +80,19 @@ motion choices, and a reset. Keyboard shortcuts opens the command palette at
 its Keyboard shortcuts section, expanded with its first choice focused, so
 the shortcut settings and their reset are reached without typing; Help has
 no surface yet and says so in a passing notice. The
-profile block at the foot of the rail opens the account menu: the account,
-the workspaces the person can open (the current one checked), Settings, and
-Sign out. Escape or a press elsewhere closes any of these and returns focus to
-its control; none navigates or discards the current Event draft. A
+profile block at the foot of the rail (the account's name and email) opens
+the account menu: the account, Friends, Settings, and Sign out. Above it the
+current workspace (a mark, its name, a caret) opens the workspace switcher:
+Yours first (the account's own workspace), then Shared with you, each with
+the name of the account it belongs to, the role held there, and when it was
+last opened, most recently opened first and those never opened after them
+by name; the current one is ticked. Past six workspaces a search field
+narrows the list by name or owner; the shared ones scroll inside the list.
+Members at the foot opens the settings page's Members section, and
+Cmd/Ctrl+Shift+K opens the switcher from anywhere in the workspace. Opening
+a workspace notes the moment on the account, so the order follows the person
+across devices. Escape or a press elsewhere closes any of these and returns
+focus to its control; none navigates or discards the current Event draft. A
 workspace or session change uses the existing session boundary to cancel
 pending requests and clear protected state. Workspace choices come from the
 authorized session response; choosing one never grants access by itself.

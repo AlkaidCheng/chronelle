@@ -38,6 +38,20 @@ export async function openAccountMenu(page: Page) {
   return menu;
 }
 
+/** The current workspace's control above the profile block, which opens the switcher. */
+export const workspaceLine = (page: Page) =>
+  page.getByRole("button", { name: /^Workspace: / });
+
+export const workspaceSwitcher = (page: Page) =>
+  page.getByRole("menu", { name: "Switch workspace", exact: true });
+
+export async function openWorkspaceSwitcher(page: Page) {
+  const menu = workspaceSwitcher(page);
+  if (!(await menu.isVisible())) await workspaceLine(page).click();
+  await expect(menu).toBeVisible();
+  return menu;
+}
+
 /** The More control beside the profile block: Trash, Theme, Customize sidebar, Keyboard shortcuts, Help. */
 export const moreTrigger = (page: Page) => page.locator(".more-trigger");
 
@@ -79,10 +93,16 @@ export const chooseEventFilter = (page: Page, label: string) =>
 export const chooseEventLayout = (page: Page, label: "Grid" | "List") =>
   chooseFromMenu(page, "Event layout", label);
 
-/** Switches to the named workspace from the account menu. */
+/** The switcher's entry for the named workspace: its name leads the accessible name, the owner, role, and recency follow. */
+export const workspaceEntry = (page: Page, name: string) =>
+  workspaceSwitcher(page).getByRole("menuitemradio", {
+    name: new RegExp(`^${name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}`),
+  });
+
+/** Switches to the named workspace from the switcher. */
 export async function switchWorkspace(page: Page, name: string) {
-  const menu = await openAccountMenu(page);
-  await menu.getByRole("menuitemradio", { name, exact: true }).click();
+  const menu = await openWorkspaceSwitcher(page);
+  await workspaceEntry(page, name).click();
   await expect(menu).toHaveCount(0);
 }
 

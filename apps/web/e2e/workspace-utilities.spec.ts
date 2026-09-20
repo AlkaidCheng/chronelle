@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { expect, test } from "./fixtures";
-import { openAccountMenu } from "./helpers/quiet-chrome";
+import { openWorkspaceSwitcher, workspaceEntry } from "./helpers/quiet-chrome";
 import { exerciseWorkspaceUtilities } from "./helpers/workspace-utilities";
 
 test("keeps workspace utilities accessible without changing Event data @webkit-desktop @webkit-mobile", async ({
@@ -65,11 +65,8 @@ test("rejects a workspace choice whose last grant was revoked @webkit-desktop @w
   await page.getByLabel("Email").fill(email);
   await page.getByRole("button", { name: "Continue", exact: true }).click();
   await expect(page).toHaveURL(/\/events$/);
-  const menu = await openAccountMenu(page);
-  const ownerWorkspace = menu.getByRole("menuitemradio", {
-    name: owner.workspace.displayName,
-    exact: true,
-  });
+  const menu = await openWorkspaceSwitcher(page);
+  const ownerWorkspace = workspaceEntry(page, owner.workspace.displayName);
   await expect(ownerWorkspace).toHaveCount(1);
   expect(
     (await request.delete(`/api/shares/${grant.id}`, { headers })).ok(),
@@ -81,19 +78,13 @@ test("rejects a workspace choice whose last grant was revoked @webkit-desktop @w
   await ownerWorkspace.click();
   await deniedSession;
   await expect(menu).toHaveCount(0);
-  const returned = await openAccountMenu(page);
+  await openWorkspaceSwitcher(page);
   await expect(
-    returned.getByRole("menuitemradio", {
-      name: viewer.workspace.displayName,
-      exact: true,
-    }),
+    workspaceEntry(page, viewer.workspace.displayName),
   ).toHaveAttribute("aria-checked", "true");
-  await expect(
-    returned.getByRole("menuitemradio", {
-      name: owner.workspace.displayName,
-      exact: true,
-    }),
-  ).toHaveCount(0);
+  await expect(workspaceEntry(page, owner.workspace.displayName)).toHaveCount(
+    0,
+  );
   await page.keyboard.press("Escape");
   await expect(
     page.getByRole("link", { name: /Private shared event/ }),

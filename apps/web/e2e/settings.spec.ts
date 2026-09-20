@@ -88,7 +88,13 @@ test("keeps the language, clock, zone, and week on the account and applies them 
   await expect(
     sections.getByRole("link", { name: "Account", exact: true }),
   ).toHaveAttribute("aria-current", "page");
-  await expect(page.getByText(email, { exact: true })).toBeVisible();
+  // The rail's profile block carries the email too; the section's facts
+  // are the ones under test.
+  await expect(
+    page
+      .getByRole("region", { name: "Account", exact: true })
+      .getByText(email, { exact: true }),
+  ).toBeVisible();
   await expect(
     page.getByRole("link", { name: "Change password", exact: true }),
   ).toHaveAttribute("href", "/reset-password");

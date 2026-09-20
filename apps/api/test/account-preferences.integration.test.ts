@@ -98,6 +98,7 @@ describe("the preferences kept on the account", () => {
       weekStart: null,
       rail: {},
       eventTabs: {},
+      workspaceRecency: {},
     });
 
     const chosen = await app.inject({
@@ -121,6 +122,7 @@ describe("the preferences kept on the account", () => {
       weekStart: null,
       rail: {},
       eventTabs: {},
+      workspaceRecency: {},
     });
 
     const session = await app.inject({
@@ -351,6 +353,88 @@ describe("the preferences kept on the account", () => {
     expect(
       Object.keys(userResponseSchema.parse((await patch({})).json()).eventTabs),
     ).toHaveLength(200);
+  });
+
+  it("merges when each workspace was last opened one workspace at a time, drops it with null, and keeps the 50 most recent", async () => {
+    const signedIn = await signIn();
+    const patch = (payload: Record<string, unknown>) =>
+      app.inject({
+        method: "PATCH",
+        url: "/api/auth/me",
+        headers: bearer(signedIn.accessToken),
+        payload,
+      });
+    const kyoto = "01a0b355-cad8-73d2-89f8-0a12abf666a8";
+    const lisbon = "01a0b355-cad8-73d2-89f8-0a12abf666a9";
+    const recencyOf = (response: { json(): unknown }) =>
+      userResponseSchema.parse(response.json()).workspaceRecency;
+
+    const opened = await patch({
+      workspaceRecency: { [kyoto]: "2026-09-20T00:10:00.000Z" },
+    });
+    expect(opened.statusCode).toBe(200);
+    expect(recencyOf(opened)).toEqual({ [kyoto]: "2026-09-20T00:10:00.000Z" });
+
+    // A second workspace joins with its zone kept as written; the first
+    // keeps its instant, and another preference leaves both alone.
+    const joined = await patch({
+      workspaceRecency: { [lisbon]: "2026-09-19T08:00:00+08:00" },
+    });
+    expect(recencyOf(joined)).toEqual({
+      [kyoto]: "2026-09-20T00:10:00.000Z",
+      [lisbon]: "2026-09-19T08:00:00+08:00",
+    });
+    expect(recencyOf(await patch({ weekStart: 7 }))).toEqual({
+      [kyoto]: "2026-09-20T00:10:00.000Z",
+      [lisbon]: "2026-09-19T08:00:00+08:00",
+    });
+
+    // An instant replaces one workspace's entry; null drops it; the
+    // session read shows the same.
+    const replaced = await patch({
+      workspaceRecency: { [kyoto]: "2026-09-21T00:00:00Z", [lisbon]: null },
+    });
+    expect(recencyOf(replaced)).toEqual({ [kyoto]: "2026-09-21T00:00:00Z" });
+    const session = await app.inject({
+      method: "GET",
+      url: "/api/auth/session",
+      headers: bearer(signedIn.accessToken),
+    });
+    expect(
+      sessionResponseSchema.parse(session.json()).user.workspaceRecency,
+    ).toEqual({ [kyoto]: "2026-09-21T00:00:00Z" });
+
+    for (const workspaceRecency of [
+      "2026-09-21T00:00:00Z",
+      [kyoto],
+      { plan: "2026-09-21T00:00:00Z" },
+      { [kyoto]: "yesterday" },
+      { [kyoto]: "2026-09-21" },
+      { [kyoto]: 1_700_000_000 },
+      { [kyoto]: {} },
+    ]) {
+      const refused = await patch({ workspaceRecency });
+      expect(refused.statusCode, JSON.stringify(workspaceRecency)).toBe(400);
+      expect(apiErrorResponseSchema.parse(refused.json()).error.code).toBe(
+        "invalid_request",
+      );
+    }
+
+    // The 50 most recent instants are kept: the oldest fall off as more
+    // workspaces are opened.
+    const many = Object.fromEntries(
+      Array.from({ length: 60 }, (_, index) => [
+        `01a0b355-cad8-73d2-89f8-${String(index).padStart(12, "0")}`,
+        `2026-01-${String((index % 28) + 1).padStart(2, "0")}T00:00:00Z`,
+      ]),
+    );
+    const kept = recencyOf(await patch({ workspaceRecency: many }));
+    expect(Object.keys(kept)).toHaveLength(50);
+    expect(kept[kyoto]).toBe("2026-09-21T00:00:00Z");
+    expect(kept["01a0b355-cad8-73d2-89f8-000000000000"]).toBeUndefined();
+    expect(kept["01a0b355-cad8-73d2-89f8-000000000027"]).toBe(
+      "2026-01-28T00:00:00Z",
+    );
   });
 
   it("refuses a value that is not a language tag, a zone, a clock, or a week start, and an unauthenticated change", async () => {

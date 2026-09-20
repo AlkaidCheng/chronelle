@@ -30,22 +30,30 @@ arranged; and `eventTabs`, how each event's tab strip lists its pages and
 views for this account, an object keyed by event id whose values carry an
 optional `order` (view keys first to last), an optional `hidden` (view keys
 and page ids kept off the strip), and an optional `removed` (view keys taken
-off the event until added again), `{}` until arranged. `PATCH /api/auth/me`
-takes any subset of the six: a key that is present replaces the stored
-value, null clears it (the rail returns to `{}`), an absent key keeps it,
-and an empty object changes nothing; `eventTabs` merges one event at a
-time, an object replacing that event's tabs and null dropping them while
-events not named keep theirs. The response is the user as the next session
-read shows it; 400 `invalid_request` for a value of the wrong shape (a tag
-that is not a language tag, a zone that is not an IANA name or that the
-runtime does not know, a clock other than `h12` or `h23`, a week start
-other than 1 or 7, a rail whose lists are not arrays of up to 50 collection
-keys of 1 to 40 characters, event tabs keyed by something other than an
-event id or whose lists are not arrays of up to 40 keys of 1 to 40
-characters, or tabs for more than 200 events). A collection or view key the
-web app does not know is kept as given and ignored on read. Both backends
-write through one merging function, `chronelle_user_preferences_update`
-(migrations 0049 and 0053).
+off the event until added again), `{}` until arranged; and
+`workspaceRecency`, when the account last opened each workspace, an object
+keyed by workspace id whose value is an ISO 8601 instant as the client
+wrote it, `{}` until a workspace is switched to, which orders the
+workspace switcher on every device. `PATCH /api/auth/me` takes any subset
+of the seven: a key that is present replaces the stored value, null clears
+it (the rail returns to `{}`), an absent key keeps it, and an empty object
+changes nothing; `eventTabs` merges one event at a time, an object
+replacing that event's tabs and null dropping them while events not named
+keep theirs; `workspaceRecency` merges one workspace at a time the same
+way, an instant replacing when it was last opened and null dropping it,
+and the 50 most recent instants are kept. The response is the user as the
+next session read shows it; 400 `invalid_request` for a value of the wrong
+shape (a tag that is not a language tag, a zone that is not an IANA name or
+that the runtime does not know, a clock other than `h12` or `h23`, a week
+start other than 1 or 7, a rail whose lists are not arrays of up to 50
+collection keys of 1 to 40 characters, event tabs keyed by something other
+than an event id or whose lists are not arrays of up to 40 keys of 1 to 40
+characters, tabs for more than 200 events, or a workspace recency keyed by
+something other than a workspace id or whose value is not an instant with
+its zone). A collection or view key the web app does not know is kept as
+given and ignored on read. Both backends write through one merging
+function, `chronelle_user_preferences_update` (migrations 0049, 0053, and
+0064).
 
 The user also carries `username`, `findByName`, and `findByEmail` (true
 until switched off): the handle every account has, 3 to 30 letters, digits,
@@ -1103,7 +1111,12 @@ Selecting another scope requires a self-scoped Event in the same workspace and
 Share permission on both resources. Stale versions return `version_conflict`.
 
 The session response includes `availableWorkspaces`. It contains the personal
-workspace plus workspaces reached through live direct grants. Revoking the last
+workspace plus workspaces reached through membership or live direct grants,
+the current one first and the rest by name. Each carries `personal` (whether
+it is the account's own workspace), `ownerDisplayName` (the name of the
+account it belongs to: its personal owner, else its creator; null when that
+account is gone), and `role` (the role the account holds as a member;
+null when the workspace is reached through shares alone). Revoking the last
 grant makes that workspace unavailable on the next request.
 
 ## Workspace members

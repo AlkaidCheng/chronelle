@@ -135,7 +135,7 @@ test("organizes events and keeps navigation usable across reloads and screen siz
   ).toHaveCount(0);
 
   if (testInfo.project.name !== "chromium-mobile") {
-    const account = page.getByRole("button", { name: "Preview planner" });
+    const account = page.locator(".account-trigger");
     await expect(account).toHaveAttribute("aria-expanded", "false");
     await account.click();
     const signOut = page.getByRole("menuitem", {
@@ -160,7 +160,7 @@ test("organizes events and keeps navigation usable across reloads and screen siz
     await expect(
       page.getByRole("menuitem", { name: "Sign out", exact: true }),
     ).toBeVisible();
-    await page.getByRole("menuitemradio").first().focus();
+    await page.getByRole("menuitem", { name: /^Friends/ }).focus();
     await page.keyboard.press("Escape");
     await expect(account).toBeFocused();
     await expect(
@@ -170,7 +170,7 @@ test("organizes events and keeps navigation usable across reloads and screen siz
   if (testInfo.project.name === "chromium-mobile") {
     await page.locator(".account-trigger").click();
   } else {
-    await page.getByRole("button", { name: "Preview planner" }).click();
+    await page.locator(".account-trigger").click();
   }
   expect(
     await page.evaluate(

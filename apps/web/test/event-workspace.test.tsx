@@ -1540,7 +1540,15 @@ describe("EventWorkspace", () => {
             username: "owner",
           },
           workspace: { id: workspaceId, displayName: "Home" },
-          availableWorkspaces: [{ id: workspaceId, displayName: "Home" }],
+          availableWorkspaces: [
+            {
+              id: workspaceId,
+              displayName: "Home",
+              personal: true,
+              ownerDisplayName: "Owner",
+              role: "owner",
+            },
+          ],
         });
       if (path === `/api/events/${eventId}`) return jsonResponse(rootEvent);
       if (path === `/api/events/${eventId}/detail`)
@@ -1741,7 +1749,15 @@ describe("EventWorkspace", () => {
         eventTabs: { [eventId]: { removed: ["files"] } },
       },
       workspace: { id: workspaceId, displayName: "Personal" },
-      availableWorkspaces: [{ id: workspaceId, displayName: "Personal" }],
+      availableWorkspaces: [
+        {
+          id: workspaceId,
+          displayName: "Personal",
+          personal: true,
+          ownerDisplayName: "Planner",
+          role: "owner",
+        },
+      ],
     };
     const layout = {
       eventId,

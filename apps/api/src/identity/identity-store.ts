@@ -10,7 +10,9 @@ import {
   type EventTabsPreferenceRow,
   type EventTabsRow,
   type RailPreferenceRow,
+  type Role,
   type UserRow,
+  type WorkspaceRecencyRow,
   type WorkspaceRow,
 } from "@chronelle/db";
 import { and, eq, inArray, ne, sql } from "drizzle-orm";
@@ -40,16 +42,29 @@ export interface IdentitySessionRows {
 }
 
 /**
+ * A workspace the user may enter, with what the switcher shows beside its
+ * name: the display name of the account it belongs to (its personal owner,
+ * else its creator; null when that account is gone) and the role the user
+ * holds as a member, null when the workspace is reached through shares
+ * alone.
+ */
+export interface AccessibleWorkspaceRow extends WorkspaceRow {
+  readonly ownerDisplayName: string | null;
+  readonly role: Role | null;
+}
+
+/**
  * Identity persistence: sign-in (the user, their personal workspace, and
  * their Owner membership, created on first use, with the audit event, in
  * one transaction), the session for an authenticated identity in a
  * requested or the personal workspace (null when the user is unknown or
  * has no personal workspace; a workspace error when the user may not enter
  * the workspace), and the workspaces the user may enter through membership
- * or an active grant, and the preferences kept on the account (the
- * language, time zone, clock, and week start; a key that is present
- * replaces the stored value, null clears it, and an absent key keeps it;
- * the user is returned as the row then reads).
+ * or an active grant (each with its owner's name and the user's role), and
+ * the preferences kept on the account (the language, time zone, clock, and
+ * week start; a key that is present replaces the stored value, null clears
+ * it, and an absent key keeps it; the user is returned as the row then
+ * reads).
  */
 export interface IdentityStore {
   signIn(identity: AuthIdentity, requestId: string): Promise<SignInResult>;
@@ -57,7 +72,9 @@ export interface IdentityStore {
     identity: AuthIdentity,
     requestedWorkspaceId: string | undefined,
   ): Promise<IdentitySessionRows | null>;
-  listAccessibleWorkspaces(userId: string): Promise<readonly WorkspaceRow[]>;
+  listAccessibleWorkspaces(
+    userId: string,
+  ): Promise<readonly AccessibleWorkspaceRow[]>;
   updatePreferences(
     userId: string,
     preferences: UserPreferences,
@@ -99,6 +116,9 @@ export const searchLimit = 10;
  * The account preferences a store merges; an absent or undefined key keeps
  * its value and null clears it. `eventTabs` merges one event at a time:
  * an object replaces that event's tabs and null drops them.
+ * `workspaceRecency` merges one workspace at a time the same way: an
+ * instant (ISO 8601, kept as written) replaces when the workspace was last
+ * opened and null drops it; the most recent `workspaceRecencyLimit` stay.
  */
 export interface UserPreferences {
   readonly locale?: string | null | undefined;
@@ -108,10 +128,19 @@ export interface UserPreferences {
   readonly rail?: RailPreferenceRow | null | undefined;
   readonly eventTabs?:
     Readonly<Record<string, EventTabsPreferenceRow | null>> | undefined;
+  readonly workspaceRecency?:
+    Readonly<Record<string, string | null>> | undefined;
 }
 
 /** How many events keep tab preferences on one account. */
 export const eventTabsLimit = 200;
+
+/** How many workspaces keep a last-opened instant on one account. */
+export const workspaceRecencyLimit = 50;
+
+/** An ISO 8601 instant with its zone, as the preferences function admits it. */
+const instantShape =
+  /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{1,9})?(Z|[+-]\d{2}:\d{2})$/;
 
 /** The PostgreSQL store: each read runs in one repeatable-read snapshot with the authorization evaluator. */
 export class PostgresIdentityStore implements IdentityStore {
@@ -239,16 +268,39 @@ export class PostgresIdentityStore implements IdentityStore {
 
   async listAccessibleWorkspaces(
     userId: string,
-  ): Promise<readonly WorkspaceRow[]> {
+  ): Promise<readonly AccessibleWorkspaceRow[]> {
     return withReadAuthorization(
       this.#database,
       async (transaction, authorization) => {
         const ids = await authorization.listAccessibleWorkspaceIds(userId);
         if (ids.length === 0) return [];
-        return transaction
-          .select()
+        const rows = await transaction
+          .select({
+            workspace: workspaces,
+            ownerDisplayName: users.displayName,
+            role: workspaceMembers.role,
+          })
           .from(workspaces)
+          .leftJoin(
+            users,
+            eq(
+              users.id,
+              sql`coalesce(${workspaces.personalOwnerId}, ${workspaces.createdBy})`,
+            ),
+          )
+          .leftJoin(
+            workspaceMembers,
+            and(
+              eq(workspaceMembers.workspaceId, workspaces.id),
+              eq(workspaceMembers.userId, userId),
+            ),
+          )
           .where(inArray(workspaces.id, ids));
+        return rows.map((row) => ({
+          ...row.workspace,
+          ownerDisplayName: row.ownerDisplayName,
+          role: row.role,
+        }));
       },
     );
   }
@@ -262,6 +314,14 @@ export class PostgresIdentityStore implements IdentityStore {
         preferences.eventTabs === undefined
           ? undefined
           : await mergeEventTabs(transaction, userId, preferences.eventTabs);
+      const workspaceRecency =
+        preferences.workspaceRecency === undefined
+          ? undefined
+          : await mergeWorkspaceRecency(
+              transaction,
+              userId,
+              preferences.workspaceRecency,
+            );
       const [updated] = await transaction
         .update(users)
         .set({
@@ -281,6 +341,7 @@ export class PostgresIdentityStore implements IdentityStore {
             rail: preferences.rail ?? {},
           }),
           ...(eventTabs !== undefined && { eventTabs }),
+          ...(workspaceRecency !== undefined && { workspaceRecency }),
           updatedAt: sql`GREATEST(now(), ${users.createdAt})`,
         })
         .where(eq(users.id, userId))
@@ -510,6 +571,41 @@ async function mergeEventTabs(
   if (Object.keys(next).length > eventTabsLimit)
     throw new InvalidRequestError();
   return next;
+}
+
+/**
+ * The stored last-opened instants with the request's workspaces replaced
+ * or dropped and the most recent `workspaceRecencyLimit` kept, locked for
+ * the update that follows.
+ */
+async function mergeWorkspaceRecency(
+  transaction: Pick<Database, "select">,
+  userId: string,
+  changes: Readonly<Record<string, string | null>>,
+): Promise<WorkspaceRecencyRow> {
+  const [row] = await transaction
+    .select({ workspaceRecency: users.workspaceRecency })
+    .from(users)
+    .where(eq(users.id, userId))
+    .for("update");
+  const next: Record<string, string> = { ...row?.workspaceRecency };
+  for (const [workspaceId, openedAt] of Object.entries(changes)) {
+    if (openedAt === null) {
+      delete next[workspaceId];
+      continue;
+    }
+    if (!instantShape.test(openedAt) || Number.isNaN(Date.parse(openedAt)))
+      throw new InvalidRequestError();
+    next[workspaceId] = openedAt;
+  }
+  const kept = Object.entries(next)
+    .sort(
+      ([firstId, first], [secondId, second]) =>
+        Date.parse(second) - Date.parse(first) ||
+        firstId.localeCompare(secondId),
+    )
+    .slice(0, workspaceRecencyLimit);
+  return Object.fromEntries(kept);
 }
 
 async function findUser(

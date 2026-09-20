@@ -3,7 +3,6 @@ import {
   type CloudBaseRdbClient,
   type CloudBaseRdbFilter,
   type UserRow,
-  type WorkspaceRow,
 } from "@chronelle/db";
 
 import type { AuthIdentity } from "../authentication/auth-provider.js";
@@ -17,11 +16,13 @@ import {
   type CloudBaseRow as Row,
   instant,
   record,
+  role,
   text,
   userRow,
   workspaceRow,
 } from "./cloudbase-rows.js";
 import type {
+  AccessibleWorkspaceRow,
   AccountUpdate,
   FriendRelation,
   IdentitySessionRows,
@@ -168,20 +169,47 @@ export class CloudBaseIdentityStore implements IdentityStore {
 
   async listAccessibleWorkspaces(
     userId: string,
-  ): Promise<readonly WorkspaceRow[]> {
+  ): Promise<readonly AccessibleWorkspaceRow[]> {
     const memberships = await this.#client.select<Row>("workspace_members", {
-      columns: "workspace_id",
+      columns: "workspace_id,role",
       filters: filters(["user_id", "eq", userId]),
     });
+    const roles = new Map(
+      memberships.map((row) => [
+        text(row.workspace_id, "workspace id"),
+        role(row.role),
+      ]),
+    );
     const ids = new Set([
-      ...memberships.map((row) => text(row.workspace_id, "workspace id")),
+      ...roles.keys(),
       ...(await this.#grantedWorkspaceIds(userId)),
     ]);
     if (ids.size === 0) return [];
-    const rows = await this.#client.select<Row>("workspaces", {
-      filters: filters(["id", "in", [...ids]]),
+    const rows = (
+      await this.#client.select<Row>("workspaces", {
+        filters: filters(["id", "in", [...ids]]),
+      })
+    ).map(workspaceRow);
+    const ownerIds = new Set(
+      rows.map((workspace) => workspace.personalOwnerId ?? workspace.createdBy),
+    );
+    const owners = await this.#client.select<Row>("users", {
+      columns: "id,display_name",
+      filters: filters(["id", "in", [...ownerIds]]),
     });
-    return rows.map(workspaceRow);
+    const ownerNames = new Map(
+      owners.map((row) => [
+        text(row.id, "user id"),
+        text(row.display_name, "display name"),
+      ]),
+    );
+    return rows.map((workspace) => ({
+      ...workspace,
+      ownerDisplayName:
+        ownerNames.get(workspace.personalOwnerId ?? workspace.createdBy) ??
+        null,
+      role: roles.get(workspace.id) ?? null,
+    }));
   }
 
   async updatePreferences(
@@ -208,6 +236,9 @@ export class CloudBaseIdentityStore implements IdentityStore {
           ...(preferences.rail !== undefined && { rail: preferences.rail }),
           ...(preferences.eventTabs !== undefined && {
             event_tabs: preferences.eventTabs,
+          }),
+          ...(preferences.workspaceRecency !== undefined && {
+            workspace_recency: preferences.workspaceRecency,
           }),
         },
       });

@@ -8,13 +8,18 @@ import { type ReactNode, useEffect, useState } from "react";
 
 import { useAuthSession } from "../lib/auth-session";
 import { useFriendsQuery } from "../lib/friend-queries";
-import { useAdoptAccountLocale, useSessionQuery } from "../lib/queries";
+import {
+  useAdoptAccountLocale,
+  useNoteWorkspaceOpened,
+  useSessionQuery,
+} from "../lib/queries";
 import { useContentUndoShortcut } from "../lib/use-content-undo-shortcut";
 import {
   DisplayPreferencesProvider,
   timePreferencesOf,
 } from "../lib/use-display-preferences";
 import { AccountMenu } from "./account-menu";
+import { WorkspaceSwitcher } from "./workspace-switcher";
 import { WorkspaceCommandProvider } from "./context-commands";
 import { ErrorNotice, LoadingState } from "./feedback";
 import { MoreMenu } from "./more-menu";
@@ -26,6 +31,9 @@ import {
   useSidebar,
 } from "./sidebar-toggle";
 
+/** The workspace this tab has open, across the shell's remounts; null before sign-in and after sign-out. */
+let openedWorkspace: string | null = null;
+
 export function WorkspaceShell({ children }: { readonly children: ReactNode }) {
   const { credential, isHydrated, signOut, switchWorkspace } = useAuthSession();
   const router = useRouter();
@@ -34,9 +42,26 @@ export function WorkspaceShell({ children }: { readonly children: ReactNode }) {
   const friends = useFriendsQuery();
   const t = useTranslations("nav");
   const adoptLocale = useAdoptAccountLocale();
+  const noteWorkspaceOpened = useNoteWorkspaceOpened();
   const [customizing, setCustomizing] = useState(false);
   const sidebar = useSidebar();
   useContentUndoShortcut();
+
+  // Opening another workspace notes the moment on the account, so the
+  // switcher lists it by recency on every device. The note is written
+  // under the new session, after the switch has cancelled the old one's
+  // requests and remounted the shell; the workspace a tab signs in with
+  // is not a switch.
+  const workspaceId = credential?.workspaceId ?? null;
+  useEffect(() => {
+    if (
+      workspaceId !== null &&
+      openedWorkspace !== null &&
+      openedWorkspace !== workspaceId
+    )
+      noteWorkspaceOpened(workspaceId);
+    openedWorkspace = workspaceId;
+  }, [noteWorkspaceOpened, workspaceId]);
 
   useEffect(() => {
     if (isHydrated && credential === null) {
@@ -62,6 +87,7 @@ export function WorkspaceShell({ children }: { readonly children: ReactNode }) {
       session.error instanceof ApiClientError &&
       session.error.status === 401
     ) {
+      openedWorkspace = null;
       signOut();
       router.replace("/sign-in");
     }
@@ -104,6 +130,7 @@ export function WorkspaceShell({ children }: { readonly children: ReactNode }) {
   const activeWorkspaceId = credential.workspaceId;
 
   function leaveWorkspace() {
+    openedWorkspace = null;
     signOut();
     router.replace("/sign-in");
   }
@@ -148,10 +175,13 @@ export function WorkspaceShell({ children }: { readonly children: ReactNode }) {
               />
             </nav>
             <div className="sidebar-footer">
+              <WorkspaceSwitcher
+                session={currentSession}
+                onSwitch={changeWorkspace}
+              />
               <AccountMenu
                 session={currentSession}
                 pendingRequests={friends.data?.incoming.length ?? 0}
-                onSwitchWorkspace={changeWorkspace}
                 onSignOut={leaveWorkspace}
               />
               <MoreMenu onCustomize={() => setCustomizing(true)} />

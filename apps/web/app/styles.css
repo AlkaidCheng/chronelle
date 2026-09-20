@@ -8031,8 +8031,21 @@ html:has(.event-create-dialog[open]) {
 .sidebar-footer {
   align-items: center;
   display: flex;
+  flex-wrap: wrap;
   gap: 4px;
   position: relative;
+}
+
+.workspace-switcher {
+  position: relative;
+}
+
+/* The workspace control takes the footer's first row; the profile block
+   and More share the second. */
+.sidebar-footer .workspace-switcher {
+  flex: 0 0 100%;
+  margin-bottom: 4px;
+  min-width: 0;
 }
 
 .sidebar-footer .account-menu {
@@ -8301,6 +8314,173 @@ html:has(.event-create-dialog[open]) {
   font-size: 0.75rem;
   font-weight: 500;
   overflow-wrap: anywhere;
+}
+
+/* The current workspace is a control of its own above the profile block:
+   a mark, the name, and a caret, opening the switcher upward. */
+.workspace-line {
+  align-items: center;
+  background: var(--canvas);
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  color: inherit;
+  cursor: pointer;
+  display: flex;
+  font: inherit;
+  gap: 8px;
+  padding: 6px 8px;
+  text-align: start;
+  width: 100%;
+}
+
+.workspace-line:hover,
+.workspace-line[aria-expanded="true"] {
+  border-color: var(--line-strong);
+}
+
+.workspace-mark {
+  align-items: center;
+  background: var(--surface-subtle);
+  border-radius: 6px;
+  color: var(--muted);
+  display: inline-flex;
+  flex: none;
+  font-size: 0.66rem;
+  font-weight: 700;
+  height: 22px;
+  justify-content: center;
+  width: 22px;
+}
+
+.workspace-line-name {
+  flex: 1;
+  font-size: 0.85rem;
+  font-weight: 600;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.workspace-caret {
+  color: var(--faint);
+  flex: none;
+  height: 16px;
+  width: 16px;
+}
+
+.workspace-switcher-list {
+  bottom: calc(100% + 6px);
+  left: 0;
+  min-width: 0;
+  top: auto;
+  width: min(300px, calc(100vw - 32px));
+}
+
+.workspace-search {
+  align-items: center;
+  background: var(--canvas);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: var(--faint);
+  display: flex;
+  gap: 6px;
+  margin: 2px 2px 4px;
+  padding: 5px 8px;
+}
+
+.workspace-search:focus-within {
+  border-color: var(--line-strong);
+}
+
+.workspace-search-icon {
+  flex: none;
+  height: 15px;
+  width: 15px;
+}
+
+.workspace-search-input {
+  background: none;
+  border: 0;
+  color: var(--ink);
+  flex: 1;
+  font: inherit;
+  font-size: 0.82rem;
+  min-width: 0;
+  outline: none;
+  padding: 0;
+}
+
+/* The shared workspaces scroll inside the list, so twenty or two hundred
+   take the same room. */
+.workspace-switcher-scroll {
+  display: grid;
+  gap: 1px;
+  max-height: 230px;
+  overflow-y: auto;
+}
+
+.workspace-item {
+  flex-wrap: nowrap;
+  gap: 8px;
+  min-height: 40px;
+  padding: 5px 6px;
+}
+
+.workspace-item > span.workspace-mark {
+  background: var(--accent-soft);
+  color: var(--accent);
+  flex: none;
+  height: 24px;
+  width: 24px;
+}
+
+.workspace-item-copy {
+  display: grid;
+  flex: 1;
+  min-width: 0;
+}
+
+.workspace-item-name {
+  font-size: 0.85rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.workspace-item-copy small {
+  color: var(--faint);
+  font-size: 0.7rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.workspace-empty {
+  color: var(--muted);
+  font-size: 0.8rem;
+  margin: 0;
+  padding: 8px 10px;
+}
+
+.workspace-switcher-foot {
+  align-items: center;
+  display: flex;
+  justify-content: space-between;
+}
+
+.workspace-switcher-foot .quiet-menu-item {
+  color: var(--muted);
+  font-size: 0.8rem;
+  min-height: 32px;
+  width: auto;
+}
+
+.workspace-shortcut {
+  color: var(--faint);
+  font: inherit;
+  font-size: 0.72rem;
+  padding-right: 8px;
 }
 
 .theme-group {
@@ -8997,6 +9177,35 @@ html:has(.event-create-dialog[open]) {
 
   .sidebar-footer .account-menu {
     flex: none;
+  }
+
+  /* The bar keeps the workspace as its mark and caret; the switcher opens
+     under the bar and takes the width the list needs. */
+  .sidebar-footer .workspace-switcher {
+    flex: none;
+    margin: 0;
+  }
+
+  .workspace-line {
+    padding: 5px 6px;
+    width: auto;
+  }
+
+  .workspace-line-name {
+    clip: rect(0 0 0 0);
+    clip-path: inset(50%);
+    height: 1px;
+    overflow: hidden;
+    position: absolute;
+    white-space: nowrap;
+    width: 1px;
+  }
+
+  .workspace-switcher-list {
+    bottom: auto;
+    left: auto;
+    right: 0;
+    top: calc(100% + 6px);
   }
 
   /* The bottom bar lists the collections in the kept order; arranging them is a desktop task. */

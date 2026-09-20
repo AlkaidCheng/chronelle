@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import { roleSchema } from "./sharing.js";
+
 export const developmentSignInRequestSchema = z.object({
   displayName: z.string().trim().min(1).max(120),
   email: z.email().transform((email) => email.toLowerCase()),
@@ -96,12 +98,21 @@ export const eventTabsPreferenceSchema = z.object({
 export const eventTabsSchema = z.record(z.uuid(), eventTabsPreferenceSchema);
 
 /**
+ * When the account last opened each workspace, keyed by workspace id: the
+ * instant as written, for the switcher's order. The fifty most recent are
+ * kept.
+ */
+export const workspaceRecencySchema = z.record(z.uuid(), z.string());
+
+/**
  * The preferences kept on the account. Each key is optional; a key that is
  * present replaces the stored value, and null clears it so the device or the
  * language decides again (the rail returns to its default order). An empty
  * object changes nothing. `eventTabs` merges one event at a time: an
  * object replaces that event's tabs and null drops them, while events not
- * named keep theirs.
+ * named keep theirs. `workspaceRecency` merges one workspace at a time the
+ * same way, an instant replacing when it was last opened and null dropping
+ * it.
  */
 export const preferencesRequestSchema = z.object({
   locale: localeTagSchema.nullable().optional(),
@@ -111,6 +122,9 @@ export const preferencesRequestSchema = z.object({
   rail: railPreferenceSchema.nullable().optional(),
   eventTabs: z
     .record(z.uuid(), eventTabsPreferenceSchema.nullable())
+    .optional(),
+  workspaceRecency: z
+    .record(z.uuid(), z.iso.datetime({ offset: true }).nullable())
     .optional(),
 });
 
@@ -188,6 +202,7 @@ const userSchema = z.object({
   weekStart: weekStartSchema.nullable().default(null),
   rail: railPreferenceSchema.default({}),
   eventTabs: eventTabsSchema.default({}),
+  workspaceRecency: workspaceRecencySchema.default({}),
 });
 
 /** The account as the session and account routes return it. */
@@ -196,6 +211,19 @@ export const userResponseSchema = userSchema;
 export const workspaceSummarySchema = z.object({
   id: z.uuid(),
   displayName: z.string(),
+});
+
+/**
+ * A workspace the account may enter, as the switcher lists it: whether it
+ * is the account's personal workspace, the name of the account it belongs
+ * to (its personal owner, else its creator; null when that account is
+ * gone), and the role the account holds as a member, null when the
+ * workspace is reached through shares alone.
+ */
+export const accessibleWorkspaceSchema = workspaceSummarySchema.extend({
+  personal: z.boolean(),
+  ownerDisplayName: z.string().nullable(),
+  role: roleSchema.nullable(),
 });
 
 /** A sign-in of any kind: the bearer credential and the account behind it. */
@@ -217,7 +245,7 @@ export const sessionResponseSchema = z.object({
   }),
   user: userSchema,
   workspace: workspaceSummarySchema,
-  availableWorkspaces: z.array(workspaceSummarySchema),
+  availableWorkspaces: z.array(accessibleWorkspaceSchema),
 });
 
 /** The outcome of a sign-out: how many live sessions ended. */
@@ -262,4 +290,6 @@ export type WeekStart = z.infer<typeof weekStartSchema>;
 export type RailPreference = z.infer<typeof railPreferenceSchema>;
 export type EventTabsPreference = z.infer<typeof eventTabsPreferenceSchema>;
 export type EventTabs = z.infer<typeof eventTabsSchema>;
+export type WorkspaceRecency = z.infer<typeof workspaceRecencySchema>;
+export type AccessibleWorkspace = z.infer<typeof accessibleWorkspaceSchema>;
 export type UserResponse = z.infer<typeof userResponseSchema>;
