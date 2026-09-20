@@ -853,6 +853,15 @@ This uses the existing `GET /api/events/:id` route and validates its response.
 It does not load related collections; `getEventDetail(eventId)` provides those
 when a view needs them.
 
+The Files target selector uses `client.getEventAttachmentTargets(eventId)`
+(`GET /api/events/:id/attachment-targets`). It returns `{ event, tasks, expenses }`,
+with only `{ id, displayName }` for each target, in the same order as event detail.
+The Event and every target require view permission. Child typed state and document
+contents are not loaded; attachments are still read through their authorized
+parent-specific endpoint. The full detail endpoint is unchanged.
+Deploy the additive API endpoint before or together with the web bundle that
+uses it; no database migration is required.
+
 | Method | Path                    | Result                                      |
 | ------ | ----------------------- | ------------------------------------------- |
 | `GET`  | `/events/:id/detail`    | Event plus related typed collections        |

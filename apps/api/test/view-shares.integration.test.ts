@@ -8,6 +8,7 @@ import {
 } from "@chronelle/db/testing";
 import {
   developmentSignInResponseSchema,
+  eventAttachmentTargetsResponseSchema,
   eventResponseSchema,
   objectAccessResponseSchema,
   sectionListResponseSchema,
@@ -227,6 +228,24 @@ describe("shares narrowed to a view or a section", () => {
     expect(todos.items.map((item) => item.displayName)).toEqual([
       "Book the hall",
     ]);
+    const targets = await app.inject({
+      method: "GET",
+      url: `/api/events/${event.id}/attachment-targets`,
+      headers: guestHeaders,
+    });
+    expect(targets.statusCode).toBe(200);
+    expect(eventAttachmentTargetsResponseSchema.parse(targets.json())).toEqual({
+      event: { id: event.id, displayName: event.displayName },
+      tasks: todos.items.map(({ id, displayName }) => ({ id, displayName })),
+      expenses: [],
+    });
+    const stranger = await signIn("stranger@example.com", "Stranger");
+    const crossWorkspace = await app.inject({
+      method: "GET",
+      url: `/api/events/${event.id}/attachment-targets`,
+      headers: headers(stranger),
+    });
+    expect(crossWorkspace.statusCode).toBe(404);
     const sections = await app.inject({
       method: "GET",
       url: `/api/events/${event.id}/sections?view=todos`,

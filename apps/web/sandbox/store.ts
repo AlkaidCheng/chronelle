@@ -2226,6 +2226,17 @@ export class SandboxStore {
           documents: [],
           lockedRelationCount: 0,
         };
+      if (operation === "attachment-targets") {
+        const summary = ({ id, displayName }: Resource) => ({
+          id,
+          displayName,
+        });
+        return {
+          event: summary(object),
+          tasks: tasks.map(summary),
+          expenses: expenses.map(summary),
+        };
+      }
       if (operation === "notes") {
         // The sample planner writes every version here, so each note names
         // them; the newest edit first, or titles without regard to case.

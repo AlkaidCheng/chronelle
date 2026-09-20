@@ -93,6 +93,10 @@ function service(
   attached: readonly DocumentResource[] = [],
 ) {
   const repository: ProjectionReadRepository = {
+    readAttachmentTargets: vi.fn().mockResolvedValue({
+      event: { id: "root", displayName: "root" },
+      included: [],
+    }),
     listIncludedResources: vi.fn().mockResolvedValue(included),
     readEventDetail: vi.fn().mockResolvedValue({
       event: event("root"),

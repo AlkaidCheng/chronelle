@@ -22,6 +22,7 @@ import type {
 import {
   eventCreateRequestSchema,
   eventDetailResponseSchema,
+  eventAttachmentTargetsResponseSchema,
   eventListResponseSchema,
   eventListQuerySchema,
   taskListQuerySchema,
@@ -378,6 +379,20 @@ export function registerEventPlanningRoutes(
       );
       return taskResourceProjectionResponseSchema.parse(
         serializeResourceProjection(projection),
+      );
+    },
+  );
+
+  app.get(
+    "/api/events/:id/attachment-targets",
+    { preHandler: app.authenticate },
+    async (request) => {
+      const { id } = parseRequest(objectIdParamsSchema, request.params);
+      return eventAttachmentTargetsResponseSchema.parse(
+        await dependencies.projections.getAttachmentTargets(
+          requirePrincipal(request),
+          id,
+        ),
       );
     },
   );

@@ -237,6 +237,32 @@ function client(options: ClientOptions = {}): CloudBaseRdbReader {
 }
 
 describe("CloudBaseProjectionReadRepository", () => {
+  it("reads attachment target names without hydrating child tables", async () => {
+    const tables: string[] = [];
+    const repository = new CloudBaseProjectionReadRepository(
+      client({ tables }),
+      clock,
+    );
+    await expect(
+      repository.readAttachmentTargets(principal, "root"),
+    ).resolves.toEqual({
+      event: { id: "root", displayName: "Object root" },
+      included: [
+        { id: "task", displayName: "Object task", objectType: "task" },
+        { id: "expense", displayName: "Object expense", objectType: "expense" },
+      ],
+    });
+    expect(new Set(tables)).toEqual(
+      new Set([
+        "objects",
+        "events",
+        "object_relations",
+        "workspace_members",
+        "resource_grants",
+      ]),
+    );
+  });
+
   it("reads the detail rows a grant-only viewer may see, in relation order", async () => {
     const repository = new CloudBaseProjectionReadRepository(client(), clock);
     const detail = await repository.readEventDetail(principal, "root");
@@ -356,6 +382,9 @@ describe("CloudBaseProjectionReadRepository", () => {
     );
     await expect(
       expired.readEventDetail(principal, "root"),
+    ).rejects.toBeInstanceOf(AuthorizationDeniedError);
+    await expect(
+      expired.readAttachmentTargets(principal, "root"),
     ).rejects.toBeInstanceOf(AuthorizationDeniedError);
 
     const repository = new CloudBaseProjectionReadRepository(client(), clock);

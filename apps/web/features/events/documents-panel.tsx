@@ -1,10 +1,8 @@
 "use client";
 
 import {
-  type EventResponse,
-  type ExpenseResponse,
+  type EventAttachmentTargetsResponse,
   maximumDocumentSizeBytes,
-  type TaskResponse,
 } from "@chronelle/schemas";
 import { useTranslations } from "next-intl";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -56,10 +54,7 @@ export function DocumentsPanel({
   tasks,
 }: {
   readonly canEdit: boolean;
-  readonly event: EventResponse;
-  readonly expenses: readonly ExpenseResponse[];
-  readonly tasks: readonly TaskResponse[];
-}) {
+} & EventAttachmentTargetsResponse) {
   const t = useTranslations("files");
   const targets = useMemo<readonly AttachmentTarget[]>(
     () => [
