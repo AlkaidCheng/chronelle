@@ -2266,6 +2266,56 @@ a.search-result:hover {
   white-space: nowrap;
 }
 
+/* The third line: the sharer's tag and the role, or the count shared
+   with; an empty line on the other cards keeps every card's height. */
+.event-card-share-line {
+  align-items: center;
+  display: flex;
+  gap: 8px;
+  height: 18px;
+  margin-top: 4px;
+  min-width: 0;
+}
+
+.event-shared-by,
+.event-shared-with {
+  align-items: center;
+  display: inline-flex;
+  flex: none;
+  gap: 4px;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.event-shared-by svg,
+.event-shared-with svg {
+  flex: none;
+  height: 13px;
+  width: 13px;
+}
+
+.event-shared-by {
+  background: var(--accent-soft);
+  border-radius: 999px;
+  color: var(--accent);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  padding: 1px 7px;
+}
+
+.event-shared-with {
+  color: var(--faint);
+  font-size: 0.75rem;
+}
+
+.event-shared-role {
+  color: var(--faint);
+  font-size: 0.75rem;
+  white-space: nowrap;
+}
+
 /* No transform here: the tips and the share sheet are fixed to the
    viewport, and a transformed ancestor would contain them instead. The
    controls take a smaller size than the page's through their variables. */

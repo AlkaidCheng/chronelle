@@ -319,7 +319,11 @@ function pageItems<T extends { readonly id: string }>(
 }
 
 function selectEventItems(data: InfiniteData<EventListResponse>) {
-  return { items: pageItems(data.pages), asOf: data.pages[0]?.asOf };
+  return {
+    items: pageItems(data.pages),
+    asOf: data.pages[0]?.asOf,
+    counts: data.pages[0]?.counts ?? null,
+  };
 }
 
 function selectTaskItems(data: InfiniteData<TaskListResponse>) {

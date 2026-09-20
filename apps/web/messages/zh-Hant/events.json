@@ -38,5 +38,17 @@
     "history": "歷史",
     "share": "分享",
     "moveToTrash": "移到垃圾桶"
-  }
+  },
+  "chips": {
+    "all": "全部",
+    "mine": "我的",
+    "shared": "共享給我的",
+    "upcoming": "即將開始",
+    "past": "已結束"
+  },
+  "chipsLabel": "顯示哪些活動",
+  "sharedBy": "共享自 {name}",
+  "sharedWith": "已共享給 {count} 人",
+  "leave": "退出此活動",
+  "left": "已退出{name}。"
 }

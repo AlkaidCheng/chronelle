@@ -1,6 +1,6 @@
 "use client";
 
-import type { EventResponse } from "@chronelle/schemas";
+import type { EventListItem } from "@chronelle/schemas";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
@@ -59,7 +59,7 @@ function EventCardActions({
   event,
 }: {
   readonly armed: boolean;
-  readonly event: EventResponse;
+  readonly event: EventListItem;
 }) {
   const t = useTranslations("events");
   const share = useTranslations("share");
@@ -144,16 +144,52 @@ function EventCardActions({
 }
 
 /**
+ * The card's third line: who shared the event and the role held, for an
+ * event shared with the account; how many accounts it is shared with, for
+ * the account's own; empty otherwise, so every card keeps its height.
+ */
+function EventShareLine({ event }: { readonly event: EventListItem }) {
+  const t = useTranslations("events");
+  const roles = useTranslations("members.roles");
+  const { sharedBy, role, sharedWith } = event.access;
+  if (sharedBy !== null) {
+    return (
+      <p className="event-card-share-line">
+        <span className="event-shared-by">
+          <ShareIcon />
+          {t("sharedBy", { name: sharedBy.displayName })}
+        </span>
+        {role === null ? null : (
+          <span className="event-shared-role">{roles(role)}</span>
+        )}
+      </p>
+    );
+  }
+  if (sharedWith > 0) {
+    return (
+      <p className="event-card-share-line">
+        <span className="event-shared-with">
+          <ShareIcon />
+          {t("sharedWith", { count: sharedWith })}
+        </span>
+      </p>
+    );
+  }
+  return <p className="event-card-share-line" />;
+}
+
+/**
  * One compact object: the date tile, the name, the dates, and a third
  * line for sharing; the whole card is the link. A past or undated event
- * reads muted in its tile.
+ * reads muted in its tile. A shared card opens its event page directly:
+ * the API reads the workspace from the event.
  */
 function EventCard({
   event,
   now,
   onOpen,
 }: {
-  readonly event: EventResponse;
+  readonly event: EventListItem;
   readonly now: number;
   readonly onOpen: MouseEventHandler<HTMLAnchorElement>;
 }) {
@@ -164,7 +200,9 @@ function EventCard({
   const arm = () => setArmed(true);
   return (
     <article
-      className={`event-card-shell period-${period}`}
+      className={`event-card-shell period-${period}${
+        event.access.sharedBy === null ? "" : " event-card-shared"
+      }`}
       onFocus={arm}
       onPointerEnter={arm}
     >
@@ -191,6 +229,7 @@ function EventCard({
               ? t("undated")
               : formatEventSchedule(event)}
           </p>
+          <EventShareLine event={event} />
         </div>
       </Link>
       <EventCardActions armed={armed} event={event} />

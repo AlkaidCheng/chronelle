@@ -14,6 +14,7 @@ import {
 
 interface Criteria {
   readonly query: string;
+  readonly scope: EventListQuery["scope"];
   readonly filter: EventListQuery["filter"];
   readonly sort: EventListQuery["sort"];
 }
@@ -42,6 +43,7 @@ export function EventCollectionProvider({
 }) {
   const [criteria, setCriteria] = useState<Criteria>({
     query: "",
+    scope: "all",
     filter: "all",
     sort: "date",
   });
