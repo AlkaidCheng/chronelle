@@ -1577,8 +1577,15 @@ pagination. Navigation state contains no copied canonical records and never
 grants access. The session boundary owns both the query cache and collection
 return state.
 
-The manifest and vector app icon provide standalone presentation metadata.
-This release does not promise offline support or cross-browser installation.
+The manifest and the app icon provide standalone presentation metadata. The
+icon is one mark everywhere: the serif C of the rail's brand tile, drawn as
+a path in `apps/web/app/icon.svg` (the tab), with the raster set the home
+screen and iOS ask for (`public/icons/icon-192.png`, `icon-512.png`, a
+maskable `icon-maskable-512.png` whose glyph stays inside the central safe
+zone, and `app/apple-icon.png` at 180) rendered from that SVG by
+`node infrastructure/scripts/render-icons.mjs`; edit the SVG and rerun the
+script rather than editing a PNG. This release does not promise offline
+support or cross-browser installation.
 Private API responses are not cached and no service worker is registered.
 
 See [Deployment](deployment.md) for the production-build workflow and public
