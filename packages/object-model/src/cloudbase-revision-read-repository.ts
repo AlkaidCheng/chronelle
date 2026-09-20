@@ -94,9 +94,8 @@ function cloudbaseSummary(
 
 /**
  * Read-only CloudBase adapter for revision history. View access to the live
- * object is evaluated in application code; the page is ordered newest
- * version first from the full history because the transport has no range
- * filter on the version column.
+ * object is evaluated in application code; version keysets and limits keep
+ * the summary and snapshot reads proportional to the requested page.
  */
 export class CloudBaseRevisionReadRepository implements RevisionReadRepository {
   readonly #client: CloudBaseRdbReader;
@@ -117,27 +116,29 @@ export class CloudBaseRevisionReadRepository implements RevisionReadRepository {
   ): Promise<RevisionPage> {
     await this.#assertViewable(principal, objectId);
     const rows = (
-      await this.#readRevisions(summaryColumns, [
-        ...this.#objectFilters(principal, objectId),
-      ])
-    )
-      .map((row) => ({
-        row,
-        version: cloudbaseInteger(row.object_version, "object version"),
-      }))
-      .filter(
-        ({ version }) =>
-          input.beforeVersion === undefined || version < input.beforeVersion,
+      await this.#readRevisions(
+        summaryColumns,
+        [
+          ...this.#objectFilters(principal, objectId),
+          ...(input.beforeVersion === undefined
+            ? []
+            : cloudbaseFilters(["object_version", "lt", input.beforeVersion])),
+        ],
+        input.limit + 1,
       )
-      .sort((first, second) => second.version - first.version)
-      .slice(0, input.limit + 2);
+    ).map((row) => ({
+      row,
+      version: cloudbaseInteger(row.object_version, "object version"),
+    }));
     const page = rows.slice(0, input.limit).map(({ row }) => row);
-    const actorNames = await this.#readActorNames(page);
-    const snapshots = await this.#readSnapshots(
-      principal,
-      objectId,
-      rows.map(({ version }) => version),
-    );
+    const [actorNames, snapshots] = await Promise.all([
+      this.#readActorNames(page),
+      this.#readSnapshots(
+        principal,
+        objectId,
+        rows.map(({ version }) => version),
+      ),
+    ]);
     const items = page.map((row, index) => ({
       ...cloudbaseSummary(row, actorNames),
       ...summarizeRevisionChanges(
@@ -148,7 +149,6 @@ export class CloudBaseRevisionReadRepository implements RevisionReadRepository {
         },
       ),
     }));
-    rows.splice(input.limit + 1);
     return {
       items,
       nextBeforeVersion:
@@ -173,25 +173,31 @@ export class CloudBaseRevisionReadRepository implements RevisionReadRepository {
       1,
     );
     if (row === undefined) throw new AuthorizationDeniedError();
-    const actorNames = await this.#readActorNames([row]);
+    const [actorNames, [previous]] = await Promise.all([
+      this.#readActorNames([row]),
+      this.#readRevisions(
+        "object_version,snapshot_schema_version,snapshot",
+        [
+          ...this.#objectFilters(principal, objectId),
+          { column: "object_version", operator: "lt", value: version },
+        ],
+        1,
+      ),
+    ]);
     const summary = cloudbaseSummary(row, actorNames);
-    const previous = (
-      await this.#readRevisions(summaryColumns, [
-        ...this.#objectFilters(principal, objectId),
-      ])
-    )
-      .map((candidate) =>
-        cloudbaseInteger(candidate.object_version, "object version"),
-      )
-      .filter((candidate) => candidate < version)
-      .sort((first, second) => second - first)[0];
-    const snapshots =
+    const previousSnapshot =
       previous === undefined
-        ? new Map<number, { schemaVersion: number; snapshot: unknown }>()
-        : await this.#readSnapshots(principal, objectId, [previous]);
+        ? undefined
+        : {
+            schemaVersion: cloudbaseInteger(
+              previous.snapshot_schema_version,
+              "snapshot schema version",
+            ),
+            snapshot: previous.snapshot,
+          };
     return {
       ...summary,
-      ...summarizeRevisionChanges(snapshots.get(previous ?? -1), {
+      ...summarizeRevisionChanges(previousSnapshot, {
         schemaVersion: summary.snapshotSchemaVersion,
         snapshot: row.snapshot,
       }),
@@ -259,6 +265,7 @@ export class CloudBaseRevisionReadRepository implements RevisionReadRepository {
       columns,
       filters,
       limit,
+      order: [{ column: "object_version", ascending: false }],
     });
   }
 

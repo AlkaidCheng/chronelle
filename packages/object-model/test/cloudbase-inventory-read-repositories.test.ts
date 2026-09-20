@@ -159,6 +159,8 @@ type Rows = Readonly<Record<string, readonly Record<string, unknown>[]>>;
 function matches(row: Record<string, unknown>, query: CloudBaseRdbQuery) {
   return (query.filters ?? []).every((entry) => {
     const actual = row[entry.column];
+    if (entry.operator === "lt")
+      return (actual as number) < (entry.value as number);
     if (entry.operator === "in")
       return (entry.value as readonly unknown[]).includes(actual);
     return actual === entry.value;
@@ -689,6 +691,58 @@ describe("CloudBaseRevisionReadRepository", () => {
     await expect(
       repository.getRevision(reader, deletedId, 1),
     ).rejects.toBeInstanceOf(AuthorizationDeniedError);
+  });
+
+  it("bounds history pages and previous-version lookup independently of history length", async () => {
+    const history = Array.from({ length: 2_000 }, (_, index) => ({
+      ...revisions[0],
+      id: `00000000-0000-7000-8000-${(index + 1).toString().padStart(12, "0")}`,
+      object_version: index + 1,
+      snapshot_schema_version: 1,
+    }));
+    const gateway = client({
+      ...workspace([{ resource_id: rootId, role: "viewer" }]),
+      object_revisions: history,
+    });
+    const repository = new CloudBaseRevisionReadRepository(
+      gateway.reader,
+      clock,
+    );
+    const page = await repository.listRevisions(reader, rootId, {
+      limit: 20,
+      beforeVersion: 1_500,
+    });
+    expect(page.items).toHaveLength(20);
+    expect(page.items[0]?.objectVersion).toBe(1_499);
+    expect(page.nextBeforeVersion).toBe(1_480);
+    const summaries = gateway.queries.filter(
+      (read) =>
+        read.table === "object_revisions" &&
+        !read.query.columns?.split(",").includes("snapshot"),
+    );
+    expect(summaries[0]?.query).toMatchObject({
+      limit: 21,
+      order: [{ column: "object_version", ascending: false }],
+      filters: expect.arrayContaining([
+        { column: "object_version", operator: "lt", value: 1_500 },
+      ]),
+    });
+    gateway.queries.length = 0;
+    await repository.getRevision(reader, rootId, 1_200);
+    const previous = gateway.queries.find(
+      (read) =>
+        read.table === "object_revisions" &&
+        read.query.filters?.some((filter) => filter.operator === "lt"),
+    );
+    expect(previous?.query).toMatchObject({
+      limit: 1,
+      order: [{ column: "object_version", ascending: false }],
+    });
+    expect(previous?.query.filters).toContainEqual({
+      column: "object_version",
+      operator: "lt",
+      value: 1_200,
+    });
   });
 });
 
