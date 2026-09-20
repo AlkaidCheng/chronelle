@@ -41,6 +41,64 @@ interface AccountMenuProps {
 }
 
 /**
+ * The account's entries: Friends (with the requests waiting), Settings,
+ * and sign out. The rail's menu and the phone's account sheet both list
+ * them; `onChoose` runs as an entry is taken, before it acts.
+ */
+export function AccountMenuItems({
+  pendingRequests = 0,
+  onSignOut,
+  onChoose,
+}: {
+  readonly pendingRequests?: number | undefined;
+  readonly onSignOut: () => void;
+  readonly onChoose: () => void;
+}) {
+  const t = useTranslations("account");
+  return (
+    <>
+      <Link
+        role="menuitem"
+        tabIndex={-1}
+        className="quiet-menu-item"
+        href="/friends"
+        onClick={onChoose}
+      >
+        <PeopleIcon />
+        <span>{t("friends")}</span>
+        {pendingRequests > 0 ? (
+          <span className="menu-count">{pendingRequests}</span>
+        ) : null}
+      </Link>
+      <Link
+        role="menuitem"
+        tabIndex={-1}
+        className="quiet-menu-item"
+        href="/settings"
+        onClick={onChoose}
+      >
+        <SettingsIcon />
+        <span>{t("settings")}</span>
+      </Link>
+      <hr className="quiet-menu-separator" />
+      <button
+        type="button"
+        role="menuitem"
+        tabIndex={-1}
+        className="quiet-menu-item"
+        onClick={() => {
+          onChoose();
+          onSignOut();
+        }}
+      >
+        <SignOutIcon />
+        <span>{t("signOut")}</span>
+      </button>
+    </>
+  );
+}
+
+/**
  * The rail's foot as one block: the avatar, the account's name, and the
  * current workspace under it, opening a menu above it. The menu starts
  * with the account (its name and email), then the Workspace section (the
@@ -228,43 +286,11 @@ export function AccountMenu({
                 <ChevronRightIcon className="quiet-menu-more" />
               </button>
               <hr className="quiet-menu-separator" />
-              <Link
-                role="menuitem"
-                tabIndex={-1}
-                className="quiet-menu-item"
-                href="/friends"
-                onClick={() => close(false)}
-              >
-                <PeopleIcon />
-                <span>{t("friends")}</span>
-                {pendingRequests > 0 ? (
-                  <span className="menu-count">{pendingRequests}</span>
-                ) : null}
-              </Link>
-              <Link
-                role="menuitem"
-                tabIndex={-1}
-                className="quiet-menu-item"
-                href="/settings"
-                onClick={() => close(false)}
-              >
-                <SettingsIcon />
-                <span>{t("settings")}</span>
-              </Link>
-              <hr className="quiet-menu-separator" />
-              <button
-                type="button"
-                role="menuitem"
-                tabIndex={-1}
-                className="quiet-menu-item"
-                onClick={() => {
-                  close(false);
-                  onSignOut();
-                }}
-              >
-                <SignOutIcon />
-                <span>{t("signOut")}</span>
-              </button>
+              <AccountMenuItems
+                pendingRequests={pendingRequests}
+                onSignOut={onSignOut}
+                onChoose={() => close(false)}
+              />
             </>
           )}
         </div>

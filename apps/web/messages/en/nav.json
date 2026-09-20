@@ -18,6 +18,7 @@
   "customizeHint": "Drag to reorder, tap the eye to hide or show.",
   "done": "Done",
   "more": "More",
+  "menu": "Menu",
   "hide": "Hide {name}",
   "show": "Show {name}",
   "move": "Move {name}"

@@ -395,8 +395,8 @@ export function EyeOffIcon({ className }: IconProps) {
   );
 }
 
-/** The account's own workspace, as a mark: a house. */
-export function HomeIcon({ className }: IconProps) {
+/** Three lines: the phone's menu control, opening the sidebar as a drawer. */
+export function MenuIcon({ className }: IconProps) {
   return (
     <svg
       aria-hidden="true"
@@ -404,7 +404,7 @@ export function HomeIcon({ className }: IconProps) {
       fill="none"
       viewBox="0 0 24 24"
     >
-      <path d="M4 11l8-7 8 7v9h-5v-6H9v6H4z" />
+      <path d="M4 7h16M4 12h16M4 17h16" />
     </svg>
   );
 }

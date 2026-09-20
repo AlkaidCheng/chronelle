@@ -18,6 +18,7 @@
   "customizeHint": "拖动以调整顺序，点击眼睛以隐藏或显示。",
   "done": "完成",
   "more": "更多",
+  "menu": "菜单",
   "hide": "隐藏{name}",
   "show": "显示{name}",
   "move": "移动{name}"

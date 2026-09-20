@@ -20,7 +20,6 @@ import {
 } from "../lib/use-display-preferences";
 import { useIsPhone } from "../lib/use-media";
 import { AccountMenu } from "./account-menu";
-import { BottomSheet } from "./bottom-sheet";
 import { WorkspaceCommandProvider } from "./context-commands";
 import { ErrorNotice, LoadingState } from "./feedback";
 import { MoreMenu } from "./more-menu";
@@ -156,35 +155,37 @@ export function WorkspaceShell({ children }: { readonly children: ReactNode }) {
             {t("skipToContent")}
           </a>
           {phone ? (
+            // The phone has no rail: the app bar's menu opens the sidebar
+            // as a drawer, and its other controls open sheets.
             <PhoneChrome
               session={currentSession}
+              pathname={pathname}
               pendingRequests={friends.data?.incoming.length ?? 0}
+              customizing={customizing}
+              onCustomize={setCustomizing}
               onSwitch={changeWorkspace}
               onSignOut={leaveWorkspace}
-              onCustomize={() => setCustomizing(true)}
             />
-          ) : null}
-          <aside className="sidebar" inert={sidebar.collapsed}>
-            <div className="sidebar-head">
-              <Link className="brand" href="/events">
-                <span className="brand-mark">C</span>
-                <span>Chronelle</span>
-              </Link>
-              <SidebarCollapseControl sidebar={sidebar} />
-            </div>
-            <nav
-              aria-label={t("workspaceNavigation")}
-              className="workspace-nav"
-            >
-              <SearchEntry current={pathname.startsWith("/search")} />
-              <RailCollections
-                pathname={pathname}
-                customizing={!phone && customizing}
-                onCustomize={setCustomizing}
-                onLongPress={phone ? () => setCustomizing(true) : undefined}
-              />
-            </nav>
-            {phone ? null : (
+          ) : (
+            <aside className="sidebar" inert={sidebar.collapsed}>
+              <div className="sidebar-head">
+                <Link className="brand" href="/events">
+                  <span className="brand-mark">C</span>
+                  <span>Chronelle</span>
+                </Link>
+                <SidebarCollapseControl sidebar={sidebar} />
+              </div>
+              <nav
+                aria-label={t("workspaceNavigation")}
+                className="workspace-nav"
+              >
+                <SearchEntry current={pathname.startsWith("/search")} />
+                <RailCollections
+                  pathname={pathname}
+                  customizing={customizing}
+                  onCustomize={setCustomizing}
+                />
+              </nav>
               <div className="sidebar-footer">
                 <AccountMenu
                   session={currentSession}
@@ -194,26 +195,8 @@ export function WorkspaceShell({ children }: { readonly children: ReactNode }) {
                 />
                 <MoreMenu onCustomize={() => setCustomizing(true)} />
               </div>
-            )}
-          </aside>
-          {phone ? (
-            // A long press on a collection, or Customize sidebar in the
-            // account sheet, arranges the bar's collections in a sheet:
-            // the same rows, grips, and eyes as the rail's customize mode.
-            <BottomSheet
-              open={customizing}
-              label={t("customize")}
-              onClose={() => setCustomizing(false)}
-            >
-              <div className="sheet-customize">
-                <RailCollections
-                  pathname={pathname}
-                  customizing
-                  onCustomize={setCustomizing}
-                />
-              </div>
-            </BottomSheet>
-          ) : null}
+            </aside>
+          )}
           <div className="workspace-main">
             <SidebarExpandControl sidebar={sidebar} />
             <div id="workspace-content" tabIndex={-1}>

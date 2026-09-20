@@ -5730,47 +5730,18 @@ ul.resource-list {
     display: block;
   }
 
-  .sidebar {
-    bottom: 0;
-    flex-direction: row;
-    height: calc(72px + env(safe-area-inset-bottom));
-    left: 0;
-    padding: 8px 18px calc(8px + env(safe-area-inset-bottom));
-    position: fixed;
-    right: 0;
-    top: auto;
-    z-index: 20;
-  }
-
-  /* The phone's bar has no brand and nothing to fold. */
-  .sidebar-head,
+  /* The phone has no rail to fold: the drawer holds the collections. */
   .sidebar-expand {
     display: none;
   }
 
-  .workspace-nav {
-    grid-auto-columns: minmax(0, 1fr);
-    grid-auto-flow: column;
-    width: 100%;
-  }
-
-  .workspace-nav > a,
-  .workspace-nav > button,
-  .rail-row > a {
-    justify-content: center;
-    flex-direction: column;
-    gap: 4px;
-    font-size: 0.7rem;
-    padding: 6px;
-  }
-
   html {
-    scroll-padding-block: 90px calc(90px + env(safe-area-inset-bottom));
+    scroll-padding-block: 72px calc(24px + env(safe-area-inset-bottom));
   }
 
   .workspace-page,
   .event-workspace {
-    padding: 28px 18px calc(100px + env(safe-area-inset-bottom));
+    padding: 28px 18px calc(36px + env(safe-area-inset-bottom));
   }
 
   .split-heading {
@@ -9537,6 +9508,28 @@ html:has(.event-create-dialog[open]) {
   z-index: 20;
 }
 
+.phone-menu {
+  background: none;
+  border: 0;
+  border-radius: 9px;
+  color: var(--muted);
+  cursor: pointer;
+  display: grid;
+  flex: none;
+  height: 36px;
+  place-items: center;
+  width: 36px;
+}
+
+.phone-menu svg {
+  height: 20px;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.8;
+  width: 20px;
+}
+
 .phone-workspace {
   align-items: center;
   background: none;
@@ -9545,12 +9538,16 @@ html:has(.event-create-dialog[open]) {
   color: inherit;
   cursor: pointer;
   display: flex;
+  flex: 1;
   font: inherit;
   gap: 8px;
+  justify-content: flex-start;
   min-width: 0;
   padding: 6px 8px;
 }
 
+.phone-menu:hover,
+.phone-menu[aria-expanded="true"],
 .phone-workspace:hover,
 .phone-workspace[aria-expanded="true"],
 .phone-account:hover,
@@ -9563,15 +9560,6 @@ html:has(.event-create-dialog[open]) {
   color: var(--accent);
 }
 
-.phone-workspace .workspace-mark svg {
-  height: 13px;
-  stroke: currentColor;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-  stroke-width: 1.7;
-  width: 13px;
-}
-
 .phone-workspace-name {
   font-size: 0.92rem;
   font-weight: 650;
@@ -9581,6 +9569,7 @@ html:has(.event-create-dialog[open]) {
   white-space: nowrap;
 }
 
+/* The rail's account block is a full-width row; here it is the avatar alone. */
 .phone-account {
   background: none;
   border: 0;
@@ -9589,8 +9578,11 @@ html:has(.event-create-dialog[open]) {
   cursor: pointer;
   display: grid;
   flex: none;
+  gap: 0;
+  grid-template-columns: auto;
   padding: 4px;
   place-items: center;
+  width: auto;
 }
 
 .phone-account .profile-mark {
@@ -9661,41 +9653,68 @@ html:has(.event-create-dialog[open]) {
   padding: 4px 6px;
 }
 
-/* Customizing the bar in a sheet: the rows, grips, and eyes of the rail's
-   customize mode, stacked. */
-.sheet-customize {
-  display: grid;
-  gap: 4px;
-  padding: 0 4px;
+/* The sidebar as the phone's drawer: the rail's own layout in a modal
+   panel from the left edge, a scrim behind it, the safe areas kept clear. */
+.phone-drawer {
+  border: 0;
+  border-radius: 0 16px 16px 0;
+  border-right: 1px solid var(--line);
+  box-shadow: 12px 0 32px rgb(0 0 0 / 0.16);
+  height: 100%;
+  inset: 0 auto 0 0;
+  margin: 0;
+  max-height: none;
+  max-width: none;
+  overflow: auto;
+  padding: calc(20px + env(safe-area-inset-top, 0px)) 12px
+    calc(12px + env(safe-area-inset-bottom, 0px));
+  position: fixed;
+  transition: none;
+  translate: none;
+  width: min(300px, 84vw);
 }
 
-.sheet-customize .rail-row > a {
-  flex-direction: row;
-  font-size: 0.92rem;
-  justify-content: flex-start;
-  padding: 10px 8px;
+.phone-drawer:not([open]) {
+  display: none;
+}
+
+.phone-drawer::backdrop {
+  background: rgb(0 0 0 / 0.38);
+}
+
+.phone-drawer-close {
+  font-size: 1.3rem;
+  line-height: 1;
+}
+
+.phone-drawer .rail-row > a {
+  -webkit-touch-callout: none;
+  min-height: 44px;
+  user-select: none;
+}
+
+.phone-drawer .workspace-nav > button {
+  min-height: 44px;
+}
+
+/* Customizing in the drawer: the heading offers Done in place of the pencil. */
+.rail-heading-dot {
+  margin: 0 4px;
+}
+
+.rail-done {
+  background: none;
+  border: 0;
+  color: var(--accent);
+  cursor: pointer;
+  font: inherit;
+  font-weight: 700;
+  letter-spacing: inherit;
+  padding: 0;
+  text-transform: inherit;
 }
 
 @media (max-width: 760px) {
-  /* The bottom bar lists the collections in the kept order; a long press
-     opens the sheet that arranges them. */
-  .sidebar .rail-heading,
-  .sidebar .rail-customize-bar,
-  .sidebar .rail-grip,
-  .sidebar .rail-eye {
-    display: none;
-  }
-
-  .sidebar .rail-collections,
-  .sidebar .rail-row {
-    display: contents;
-  }
-
-  .sidebar .rail-row > a {
-    -webkit-touch-callout: none;
-    user-select: none;
-  }
-
   .workspace-page,
   .event-workspace {
     padding-top: calc(66px + env(safe-area-inset-top, 0px));

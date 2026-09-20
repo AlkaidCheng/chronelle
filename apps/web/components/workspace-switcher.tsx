@@ -21,8 +21,8 @@ interface WorkspaceSwitcherListProps {
   readonly session: SessionResponse;
   /** Chosen from the list; the current workspace closes the list without a switch. */
   readonly onChoose: (workspace: AccessibleWorkspace) => void;
-  /** The way back to the menu this list opened from, as its first row. */
-  readonly onBack: () => void;
+  /** The way back to the menu this list opened from, as its first row; a sheet of its own has none. */
+  readonly onBack?: (() => void) | undefined;
   /** Closes the menu the list lives in, after a link is followed. */
   readonly onClose: () => void;
 }
@@ -108,16 +108,18 @@ export function WorkspaceSwitcherList({
 
   return (
     <div className="workspace-switcher-list" ref={root}>
-      <button
-        type="button"
-        role="menuitem"
-        tabIndex={-1}
-        className="quiet-menu-item workspace-back"
-        onClick={onBack}
-      >
-        <ChevronLeftIcon />
-        <span>{t("section")}</span>
-      </button>
+      {onBack === undefined ? null : (
+        <button
+          type="button"
+          role="menuitem"
+          tabIndex={-1}
+          className="quiet-menu-item workspace-back"
+          onClick={onBack}
+        >
+          <ChevronLeftIcon />
+          <span>{t("section")}</span>
+        </button>
+      )}
       {searchable ? (
         <label className="workspace-search">
           <SearchIcon className="workspace-search-icon" />

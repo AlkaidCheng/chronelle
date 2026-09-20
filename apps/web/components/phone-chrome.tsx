@@ -1,98 +1,106 @@
 "use client";
 
 import type { AccessibleWorkspace, SessionResponse } from "@chronelle/schemas";
+import Link from "next/link";
 import { useTranslations } from "next-intl";
 import {
   type KeyboardEvent as ReactKeyboardEvent,
+  type ReactNode,
   useCallback,
   useEffect,
   useRef,
   useState,
 } from "react";
+import { canSwitchWorkspace, isSwitchWorkspaceKeys } from "../lib/keyboard";
 import { personInitials } from "../lib/person-collection";
+import { useCurrentWorkspaceIdentity } from "../lib/use-workspace-identity";
 import { AccountMenuItems } from "./account-menu";
 import { BottomSheet } from "./bottom-sheet";
-import { HomeIcon } from "./icons";
+import { MenuIcon } from "./icons";
 import { useInstallControl } from "./install-app";
 import { MoreMenuItems } from "./more-menu";
 import { moveMenuFocus } from "./quiet-menu";
+import { RailCollections } from "./rail-collections";
+import { SearchEntry } from "./search-entry";
 import { ThemeControls } from "./theme-controls";
-import { WorkspaceList } from "./workspace-list";
-import { useSwitcherShortcut } from "./workspace-switcher";
+import { WorkspaceMark } from "./workspace-mark";
+import {
+  WorkspaceSwitcherList,
+  switchWorkspaceShortcutKeys,
+} from "./workspace-switcher";
 
-type Sheet = "workspace" | "account" | "theme";
+type Sheet = "drawer" | "workspace" | "account" | "theme";
 
 /**
- * The phone's app bar and its sheets. At the left the current workspace
- * as a mark and its name (the home symbol and "Personal" for the
- * account's own workspace, the owner's initials and name for one shared
- * with it); at the right the account's avatar. Each opens a sheet from the
- * bottom of the screen: the switcher, or the account (Friends, Settings,
- * Sign out) with what More offers under it (Trash, Theme, Customize
- * sidebar, Help, and Keyboard shortcuts on a keyboard device).
- * Cmd/Ctrl+Shift+K opens the switcher sheet as it opens the rail's.
+ * The phone's app bar and what opens from it. At the left the menu
+ * control opens the sidebar as a drawer: the brand, then the collections
+ * (Search, Events, Tasks, People) in the account's order; a long press on
+ * one enters customization, and the Collections header offers Done until
+ * it is left. Beside it the current workspace as a mark and its name (the
+ * home symbol and "Personal" for the account's own, the owner's initials
+ * and name for one shared with it), opening the switcher as a sheet from
+ * the bottom; at the right the account's avatar, opening the account
+ * sheet: Friends, Settings, Sign out, and what More offers under them
+ * (Trash, Theme, Customize sidebar, Help, and Keyboard shortcuts on a
+ * keyboard device). Cmd/Ctrl+Shift+K opens the switcher sheet as it opens
+ * the rail's list.
  */
 export function PhoneChrome({
   session,
+  pathname,
   pendingRequests = 0,
+  customizing,
+  onCustomize,
   onSwitch,
   onSignOut,
-  onCustomize,
 }: {
   readonly session: SessionResponse;
+  readonly pathname: string;
   readonly pendingRequests?: number | undefined;
+  readonly customizing: boolean;
+  readonly onCustomize: (customizing: boolean) => void;
   readonly onSwitch: (workspaceId: string) => void;
   readonly onSignOut: () => void;
-  readonly onCustomize: () => void;
 }) {
   const [sheet, setSheet] = useState<Sheet | null>(null);
-  const [query, setQuery] = useState("");
   const t = useTranslations("workspace");
   const account = useTranslations("account");
   const nav = useTranslations("nav");
   const theme = useTranslations("theme");
   const install = useInstallControl();
+  const identity = useCurrentWorkspaceIdentity(session);
   const workspaceMenu = useRef<HTMLDivElement>(null);
   const accountMenu = useRef<HTMLDivElement>(null);
-  const search = useRef<HTMLInputElement>(null);
 
-  const current = session.availableWorkspaces.find(
-    (workspace) => workspace.id === session.workspace.id,
-  );
-  const personal = current?.personal ?? false;
-  const name = personal
-    ? t("personal")
-    : (current?.ownerDisplayName ?? session.workspace.displayName);
-
-  const close = useCallback(() => {
+  const close = useCallback(() => setSheet(null), []);
+  const closeDrawer = useCallback(() => {
     setSheet(null);
-    setQuery("");
-  }, []);
-  const contains = useCallback(
-    (target: Node) => workspaceMenu.current?.contains(target) ?? false,
-    [],
-  );
-  const toggleSwitcher = useCallback(
-    () => setSheet((open) => (open === "workspace" ? null : "workspace")),
-    [],
-  );
-  useSwitcherShortcut(sheet === "workspace", contains, close, toggleSwitcher);
+    onCustomize(false);
+  }, [onCustomize]);
 
-  // A sheet opens on its first entry: the switcher on the current
-  // workspace (or its search field), the account on Friends.
+  // Cmd/Ctrl+Shift+K toggles the switcher sheet; pressed inside it, closes it.
   useEffect(() => {
-    if (sheet === "workspace") {
-      if (search.current !== null) {
-        search.current.focus();
+    function onKeyDown(event: KeyboardEvent) {
+      if (
+        sheet === "workspace" &&
+        event.target instanceof Node &&
+        (workspaceMenu.current?.contains(event.target) ?? false) &&
+        isSwitchWorkspaceKeys(event)
+      ) {
+        event.preventDefault();
+        setSheet(null);
         return;
       }
-      const menu = workspaceMenu.current;
-      (
-        menu?.querySelector<HTMLElement>(
-          '[role="menuitemradio"][aria-checked="true"]',
-        ) ?? menu?.querySelector<HTMLElement>('[role^="menuitem"]')
-      )?.focus();
+      if (!canSwitchWorkspace(event)) return;
+      event.preventDefault();
+      setSheet((open) => (open === "workspace" ? null : "workspace"));
     }
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, [sheet]);
+
+  // The account sheet opens on Friends; the switcher's list places its own focus.
+  useEffect(() => {
     if (sheet === "account")
       accountMenu.current
         ?.querySelector<HTMLElement>('[role="menuitem"]')
@@ -105,7 +113,7 @@ export function PhoneChrome({
   }
   function onMenuKeyDown(event: ReactKeyboardEvent<HTMLDivElement>) {
     if (
-      event.target === search.current &&
+      event.target instanceof HTMLInputElement &&
       (event.key === "Home" || event.key === "End")
     )
       return;
@@ -117,20 +125,29 @@ export function PhoneChrome({
       <header className="phone-bar">
         <button
           type="button"
+          className="phone-menu"
+          aria-label={nav("menu")}
+          aria-haspopup="dialog"
+          aria-expanded={sheet === "drawer"}
+          onClick={() =>
+            setSheet((open) => (open === "drawer" ? null : "drawer"))
+          }
+        >
+          <MenuIcon />
+        </button>
+        <button
+          type="button"
           className="phone-workspace"
           aria-haspopup="dialog"
           aria-expanded={sheet === "workspace"}
-          aria-label={`${t("current")}: ${name}`}
-          onClick={toggleSwitcher}
+          aria-keyshortcuts={switchWorkspaceShortcutKeys}
+          aria-label={`${t("section")}: ${identity.title}`}
+          onClick={() =>
+            setSheet((open) => (open === "workspace" ? null : "workspace"))
+          }
         >
-          <span className="workspace-mark" aria-hidden="true">
-            {personal ? (
-              <HomeIcon />
-            ) : (
-              personInitials(current?.ownerDisplayName ?? name)
-            )}
-          </span>
-          <span className="phone-workspace-name">{name}</span>
+          <WorkspaceMark mark={identity.mark} />
+          <span className="phone-workspace-name">{identity.title}</span>
         </button>
         <button
           type="button"
@@ -148,6 +165,42 @@ export function PhoneChrome({
           </span>
         </button>
       </header>
+      <PhoneDrawer open={sheet === "drawer"} onClose={closeDrawer}>
+        <div className="sidebar-head">
+          <Link className="brand" href="/events" onClick={closeDrawer}>
+            <span className="brand-mark">C</span>
+            <span>Chronelle</span>
+          </Link>
+          <button
+            type="button"
+            className="icon-control icon-control-quiet phone-drawer-close"
+            aria-label={nav("menu")}
+            onClick={closeDrawer}
+          >
+            <span aria-hidden="true">&#215;</span>
+          </button>
+        </div>
+        <nav
+          aria-label={nav("workspaceNavigation")}
+          className="workspace-nav"
+          // A collection chosen from the drawer closes it; the palette
+          // opens over the page once the drawer is gone.
+          onClickCapture={(event) => {
+            if (customizing) return;
+            const target = event.target as HTMLElement;
+            if (target.closest("a, button") !== null) setSheet(null);
+          }}
+        >
+          <SearchEntry current={pathname.startsWith("/search")} />
+          <RailCollections
+            pathname={pathname}
+            customizing={customizing}
+            onCustomize={onCustomize}
+            onLongPress={() => onCustomize(true)}
+            headingDone
+          />
+        </nav>
+      </PhoneDrawer>
       <BottomSheet
         open={sheet === "workspace"}
         label={t("switch")}
@@ -157,16 +210,13 @@ export function PhoneChrome({
           ref={workspaceMenu}
           role="menu"
           aria-label={t("switch")}
-          className="sheet-menu workspace-switcher-list"
+          className="sheet-menu"
           onKeyDown={onMenuKeyDown}
         >
-          <WorkspaceList
+          <WorkspaceSwitcherList
             session={session}
-            query={query}
-            onQuery={setQuery}
             onChoose={choose}
-            onMembers={close}
-            searchRef={search}
+            onClose={close}
           />
         </div>
       </BottomSheet>
@@ -202,7 +252,10 @@ export function PhoneChrome({
           <MoreMenuItems
             onChoose={close}
             onTheme={() => setSheet("theme")}
-            onCustomize={onCustomize}
+            onCustomize={() => {
+              onCustomize(true);
+              setSheet("drawer");
+            }}
             installMode={install.mode}
             onInstall={install.activate}
           />
@@ -219,5 +272,49 @@ export function PhoneChrome({
       </BottomSheet>
       {install.steps}
     </>
+  );
+}
+
+/**
+ * The sidebar as a drawer from the left: a modal dialog with a scrim, so
+ * focus stays inside while it is open and returns to the menu control;
+ * Escape, the scrim, or its close control closes it.
+ */
+function PhoneDrawer({
+  open,
+  onClose,
+  children,
+}: {
+  readonly open: boolean;
+  readonly onClose: () => void;
+  readonly children: ReactNode;
+}) {
+  const t = useTranslations("nav");
+  const dialog = useRef<HTMLDialogElement>(null);
+  useEffect(() => {
+    const element = dialog.current;
+    if (element === null) return;
+    if (open && !element.open) element.showModal();
+    else if (!open && element.open) element.close();
+  }, [open]);
+  return (
+    // biome-ignore lint/a11y/useKeyWithClickEvents: Escape closes the dialog through its cancel event; the click closes on the scrim alone.
+    <dialog
+      ref={dialog}
+      className="phone-drawer sidebar"
+      aria-label={t("menu")}
+      onCancel={(event) => {
+        event.preventDefault();
+        onClose();
+      }}
+      onClose={() => {
+        if (open) onClose();
+      }}
+      onClick={(event) => {
+        if (event.target === event.currentTarget) onClose();
+      }}
+    >
+      {open ? children : null}
+    </dialog>
   );
 }

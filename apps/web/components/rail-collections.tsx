@@ -41,12 +41,15 @@ export function RailCollections({
   customizing,
   onCustomize,
   onLongPress,
+  headingDone = false,
 }: {
   readonly pathname: string;
   readonly customizing: boolean;
   readonly onCustomize: (customizing: boolean) => void;
-  /** On the phone's bar, a finger held on a collection enters customization instead of following its link. */
+  /** In the phone's drawer, a finger held on a collection enters customization instead of following its link. */
   readonly onLongPress?: (() => void) | undefined;
+  /** The drawer's way out of customization: Done in the heading, in place of the pencil and the hint bar. */
+  readonly headingDone?: boolean | undefined;
 }) {
   const t = useTranslations("nav");
   const id = useId();
@@ -229,15 +232,32 @@ export function RailCollections({
     <>
       <div className="rail-heading">
         <span id={`${id}-heading`}>{t("collections")}</span>
-        <button
-          type="button"
-          className="rail-customize"
-          aria-label={t("customize")}
-          aria-pressed={customizing}
-          onClick={() => onCustomize(!customizing)}
-        >
-          <PencilIcon />
-        </button>
+        {headingDone ? (
+          customizing ? (
+            <>
+              <span className="rail-heading-dot" aria-hidden="true">
+                &middot;
+              </span>
+              <button
+                type="button"
+                className="rail-done"
+                onClick={() => onCustomize(false)}
+              >
+                {t("done")}
+              </button>
+            </>
+          ) : null
+        ) : (
+          <button
+            type="button"
+            className="rail-customize"
+            aria-label={t("customize")}
+            aria-pressed={customizing}
+            onClick={() => onCustomize(!customizing)}
+          >
+            <PencilIcon />
+          </button>
+        )}
       </div>
       <ul
         className="rail-collections"
@@ -330,7 +350,7 @@ export function RailCollections({
           );
         })}
       </ul>
-      {customizing ? (
+      {customizing && !headingDone ? (
         <p className="rail-customize-bar">
           {t("customizeHint")}{" "}
           <button type="button" onClick={() => onCustomize(false)}>
