@@ -6,6 +6,7 @@ describe("Event collection contract", () => {
     expect(eventListQuerySchema.parse({})).toEqual({
       limit: 20,
       query: "",
+      scope: "all",
       filter: "all",
       sort: "date",
     });
@@ -20,6 +21,7 @@ describe("Event collection contract", () => {
     ).toEqual({
       limit: 50,
       query: "tea & cake",
+      scope: "all",
       filter: "upcoming",
       sort: "name",
       cursor: "opaque_page",

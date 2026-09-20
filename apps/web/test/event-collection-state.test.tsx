@@ -85,6 +85,7 @@ describe("collection return state", () => {
       act(transition);
       expect(result.current.collection.criteria).toEqual({
         query: "",
+        scope: "all",
         sort: "date",
         filter: "all",
       });

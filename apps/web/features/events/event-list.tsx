@@ -435,10 +435,9 @@ export function EventList() {
         </div>
       </header>
 
-      <div
+      <fieldset
         aria-label={t("chipsLabel")}
         className="event-chips events-column"
-        role="group"
       >
         {chips.map((chip) => (
           <button
@@ -456,7 +455,7 @@ export function EventList() {
             )}
           </button>
         ))}
-      </div>
+      </fieldset>
 
       {isCreating ? (
         <CreateEventDialog

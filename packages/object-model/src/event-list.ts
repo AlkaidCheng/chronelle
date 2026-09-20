@@ -10,7 +10,6 @@ import {
   resourceGrants,
   roles,
   users,
-  workspaceMembers,
   type Role,
 } from "@chronelle/db";
 import {
@@ -298,6 +297,8 @@ export async function listEventPage(
           string | null
         >`to_char(${schedulePosition} AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"')`,
         updatedAt: sql<string>`to_char(${objects.updatedAt} AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"')`,
+        // The account's own, as a member of the Event's workspace, or a share.
+        own: sql<boolean>`(${mine})`,
       })
       .from(objects)
       .innerJoin(
@@ -340,7 +341,14 @@ export async function listEventPage(
         );
       return event;
     });
-    const items = await withAccess(transaction, principal, resources, asOf);
+    const ownIds = new Set(page.filter((row) => row.own).map(({ id }) => id));
+    const items = await withAccess(
+      transaction,
+      principal,
+      resources,
+      ownIds,
+      asOf,
+    );
     // The chips count the whole list once, under the query alone.
     const counts =
       cursor === undefined
@@ -361,7 +369,10 @@ export async function listEventPage(
               formatVersion: 1,
               context,
               asOf,
-              ...last,
+              id: last.id,
+              name: last.name,
+              startsAt: last.startsAt,
+              updatedAt: last.updatedAt,
             } satisfies EventListCursor)
           : null,
     };
@@ -372,67 +383,55 @@ type ListTransaction = Parameters<
   Parameters<typeof withReadAuthorization>[1]
 >[0];
 
-/** Each Event of the page with its access, read from the grants of the page alone. */
+/**
+ * Each Event of the page with its access: one read of the page's active
+ * grants with their grantors' names; the page query already said which
+ * Events are the member's own.
+ */
 async function withAccess(
   transaction: ListTransaction,
   principal: UserPrincipal,
   resources: readonly EventResource[],
+  ownIds: ReadonlySet<string>,
   asOf: string,
 ): Promise<EventListItem[]> {
   if (resources.length === 0) return [];
-  const ids = resources.map((event) => event.id);
-  const workspaceIds = [
-    ...new Set(resources.map((event) => event.workspaceId)),
-  ];
-  const [memberships, grants] = await Promise.all([
-    transaction
-      .select({ workspaceId: workspaceMembers.workspaceId })
-      .from(workspaceMembers)
-      .where(
-        and(
-          eq(workspaceMembers.userId, principal.userId),
-          inArray(workspaceMembers.workspaceId, workspaceIds),
+  const grants = await transaction
+    .select({
+      resourceId: resourceGrants.resourceId,
+      principalId: resourceGrants.principalId,
+      role: resourceGrants.role,
+      scope: resourceGrants.scope,
+      grantedBy: resourceGrants.grantedBy,
+      grantorName: users.displayName,
+    })
+    .from(resourceGrants)
+    .leftJoin(users, eq(users.id, resourceGrants.grantedBy))
+    .where(
+      and(
+        inArray(
+          resourceGrants.resourceId,
+          resources.map((event) => event.id),
+        ),
+        eq(resourceGrants.principalType, "user"),
+        inArray(resourceGrants.role, roles),
+        or(
+          isNull(resourceGrants.expiresAt),
+          gt(resourceGrants.expiresAt, sql`${asOf}::timestamptz`),
         ),
       ),
-    transaction
-      .select({
-        resourceId: resourceGrants.resourceId,
-        principalId: resourceGrants.principalId,
-        role: resourceGrants.role,
-        scope: resourceGrants.scope,
-        grantedBy: resourceGrants.grantedBy,
-      })
-      .from(resourceGrants)
-      .where(
-        and(
-          inArray(resourceGrants.resourceId, ids),
-          eq(resourceGrants.principalType, "user"),
-          inArray(resourceGrants.role, roles),
-          or(
-            isNull(resourceGrants.expiresAt),
-            gt(resourceGrants.expiresAt, sql`${asOf}::timestamptz`),
-          ),
-        ),
-      ),
-  ]);
-  const grantorIds = [...new Set(grants.map((grant) => grant.grantedBy))];
-  const grantors =
-    grantorIds.length === 0
-      ? []
-      : await transaction
-          .select({ id: users.id, displayName: users.displayName })
-          .from(users)
-          .where(inArray(users.id, grantorIds));
-  const memberWorkspaceIds = new Set(memberships.map((row) => row.workspaceId));
+    );
   const displayNames = new Map(
-    grantors.map((user) => [user.id, user.displayName]),
+    grants.flatMap((grant) =>
+      grant.grantorName === null ? [] : [[grant.grantedBy, grant.grantorName]],
+    ),
   );
   return resources.map((event) => ({
     ...event,
     access: eventListAccess(
       event,
       principal.userId,
-      memberWorkspaceIds,
+      ownIds.has(event.id) ? new Set([event.workspaceId]) : new Set(),
       grants,
       displayNames,
     ),

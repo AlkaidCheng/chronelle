@@ -69,12 +69,36 @@ function client(granted = true): CloudBaseRdbReader {
         ) as unknown as readonly T[];
       if (table === "events") return eventRows as unknown as readonly T[];
       if (table === "workspace_members") return [] as readonly T[];
+      if (table === "users")
+        return [
+          { id: principal.userId, display_name: "Reader" },
+        ] as unknown as readonly T[];
+      // The principal's grants, read as the shares of an account that
+      // belongs to no workspace: each names its workspace and grantor.
       if (table === "resource_grants")
         return granted
           ? ([
-              { resource_id: firstId, role: "viewer", expires_at: null },
-              { resource_id: secondId, role: "viewer", expires_at: null },
-            ] as unknown as readonly T[])
+              {
+                workspace_id: workspaceId,
+                resource_id: firstId,
+                principal_type: "user",
+                principal_id: principal.userId,
+                role: "viewer",
+                scope: "all",
+                granted_by: principal.userId,
+                expires_at: null,
+              },
+              {
+                workspace_id: workspaceId,
+                resource_id: secondId,
+                principal_type: "user",
+                principal_id: principal.userId,
+                role: "viewer",
+                scope: "all",
+                granted_by: principal.userId,
+                expires_at: null,
+              },
+            ].filter((row) => matches(row, query)) as unknown as readonly T[])
           : ([] as readonly T[]);
       throw new Error(`unexpected table ${table}`);
     },

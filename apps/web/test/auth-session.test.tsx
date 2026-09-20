@@ -37,8 +37,15 @@ const event = {
   timezone: "UTC",
   isAllDay: false,
 };
+const own = { sharedBy: null, role: null, sharedWith: 0 };
+// The page serves both collections: the events list reads each item's
+// access, the search ignores it.
 const page = (items: (typeof event)[] = [], nextCursor: string | null = null) =>
-  Response.json({ items, nextCursor, asOf });
+  Response.json({
+    items: items.map((item) => ({ ...item, access: own })),
+    nextCursor,
+    asOf,
+  });
 const collections = [
   {
     name: "Events",
@@ -137,7 +144,11 @@ describe("client session isolation", () => {
     expect(result.current.cache).not.toBe(original);
     expect(originalSignal?.aborted).toBe(true);
     await act(async () => pending.resolve(page([event])));
-    expect(result.current.events.data).toEqual({ items: [], asOf });
+    expect(result.current.events.data).toEqual({
+      items: [],
+      asOf,
+      counts: null,
+    });
     expect(original.getQueryCache().getAll()).toHaveLength(0);
     expect(fetch).toHaveBeenCalledTimes(3);
     expect(

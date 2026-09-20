@@ -8973,10 +8973,13 @@ html:has(.event-create-dialog[open]) {
    Past, each with its count; compact enough for one row on a phone; the
    pressed one in ink. */
 .event-chips {
+  border: 0;
   display: flex;
   flex-wrap: wrap;
   gap: 4px;
-  margin-top: 16px;
+  margin: 16px 0 0;
+  min-width: 0;
+  padding: 0;
 }
 
 .event-chip {
