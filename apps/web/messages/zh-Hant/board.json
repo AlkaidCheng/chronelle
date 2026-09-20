@@ -1,0 +1,9 @@
+{
+  "overdue": "已逾期",
+  "today": "今天",
+  "noDay": "無截止日期",
+  "reschedule": "重新安排",
+  "rescheduled": "已把 {count} 項任務移到今天。",
+  "count": "{count} 項",
+  "rescheduledReminders": "已把 {count} 個提醒移到今天。"
+}

@@ -8,11 +8,11 @@ import { tr } from "../i18n/active-locale";
 export const eventComponents = {
   todos: {
     keywords: "tasks checklist todo",
-    views: ["list", "by-day", "week", "month"],
+    views: ["list", "by-day", "week", "board", "month"],
   },
   calendar: {
     keywords: "schedule activities agenda running order",
-    views: ["list", "agenda", "week", "month"],
+    views: ["list", "agenda", "week", "board", "month"],
   },
   timeline: {
     keywords: "chronological overview",
@@ -24,11 +24,11 @@ export const eventComponents = {
   },
   expenses: {
     keywords: "costs spending payments",
-    views: ["list", "by-day", "week", "month"],
+    views: ["list", "by-day", "week", "board", "month"],
   },
   reminders: {
     keywords: "alerts notifications",
-    views: ["list", "by-day", "week", "month"],
+    views: ["list", "by-day", "week", "board", "month"],
   },
   files: {
     keywords: "documents receipts",
@@ -57,6 +57,7 @@ const viewKeys = {
   agenda: "agenda",
   "by-day": "byDay",
   week: "week",
+  board: "board",
   month: "month",
 } as const satisfies Record<EventComponentView, string>;
 

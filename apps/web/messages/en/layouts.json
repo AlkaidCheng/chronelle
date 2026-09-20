@@ -3,12 +3,14 @@
   "agenda": "Agenda",
   "byDay": "By day",
   "week": "By week",
+  "board": "Board",
   "month": "Calendar",
   "shown": {
     "list": "Shown as a list.",
     "agenda": "Shown as an agenda.",
     "byDay": "Shown by day.",
     "week": "Shown by week.",
+    "board": "Shown as a board.",
     "month": "Shown as a calendar."
   }
 }

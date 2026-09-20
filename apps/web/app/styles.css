@@ -4444,6 +4444,13 @@ ul.resource-list {
   padding-right: 20px;
 }
 
+/* An expense card carries its amount under the copy, in the copy's column. */
+.resource-list-cards > article > .money-value {
+  font-size: 0.78rem;
+  grid-column: 2;
+  margin: 2px 0 0;
+}
+
 /* The column is a list item too, so the menu shows for its own card alone. */
 .resource-list-cards > li > .row-more,
 .resource-list-cards > article > .row-more {
@@ -4522,6 +4529,11 @@ ul.resource-list {
   width: 16px;
 }
 
+/* On the board the add row stays in view: a column is where a task lands. */
+.board-column .week-day-add > .quick-add {
+  opacity: 1;
+}
+
 .week-day:hover .week-day-add > .quick-add,
 .week-day:focus-within .week-day-add > .quick-add,
 .week-day-add > .quick-add:focus-visible {
@@ -4531,6 +4543,102 @@ ul.resource-list {
 @media (hover: none) {
   .week-day-add > .quick-add {
     opacity: 0.6;
+  }
+}
+
+/* Board: one column per day that holds something, Overdue and Today first,
+   scrolling sideways; the columns use the week's cards, a little roomier,
+   and each ends in an add row that stays in view. */
+.board-scroll {
+  overflow-x: auto;
+  scrollbar-gutter: stable;
+}
+
+.board-strip {
+  display: flex;
+  gap: 16px;
+  list-style: none;
+  margin: 0;
+  padding: 0 0 8px;
+  scroll-snap-type: x proximity;
+}
+
+.board-column {
+  align-content: start;
+  display: grid;
+  flex: 0 0 260px;
+  min-width: 0;
+  scroll-snap-align: start;
+}
+
+.board-heading {
+  align-items: baseline;
+  display: flex;
+  font-size: 0.85rem;
+  gap: 6px;
+  margin: 0 0 8px;
+  padding: 6px 2px;
+}
+
+.board-title small {
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 500;
+}
+
+.board-column.is-today .board-title {
+  color: var(--accent);
+}
+
+.board-column.is-overdue .board-title {
+  color: var(--danger);
+}
+
+.board-count {
+  color: var(--faint);
+  font-size: 0.78rem;
+  font-weight: 500;
+}
+
+.board-action {
+  background: none;
+  border: 0;
+  color: var(--accent);
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 600;
+  margin-left: auto;
+  padding: 0 4px;
+}
+
+.board-action:hover,
+.board-action:focus-visible {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.board-column .resource-list-cards > li,
+.board-column .resource-list-cards > article {
+  padding: 9px 10px;
+}
+
+.board-column
+  .resource-list-cards
+  :is(li > .resource-copy, .row-press)
+  > strong,
+.board-column .resource-list-cards h3 {
+  font-size: 0.85rem;
+}
+
+.board-column .resource-list-cards .resource-copy p,
+.board-column .resource-list-cards :is(li > .resource-copy, .row-press) > p {
+  font-size: 0.74rem;
+}
+
+@media (max-width: 600px) {
+  .board-column {
+    flex-basis: 66vw;
   }
 }
 
