@@ -265,6 +265,14 @@ tables, needs no revision baseline or runtime role changes, and remains
 compatible with older API versions. PostgreSQL TCP deployments apply it with
 `pnpm db:migrate`.
 
+Migration `0068_remove_redundant_grant_index.sql` drops only
+`resource_grants_resource_principal_idx`; the wider
+`resource_grants_principal_unique` index retains the same lookup prefix and
+enforces scoped uniqueness. It removes no records and needs no revision
+baseline, runtime role changes, or API redeployment. Apply it through the
+CloudBase console SQL editor, or with `pnpm db:migrate` for PostgreSQL TCP.
+The index drop briefly locks `resource_grants`, so use a quiet period.
+
 ### Run on the CloudBase backend
 
 `CHRONELLE_BACKEND=cloudbase` serves every read and write from the gateway.

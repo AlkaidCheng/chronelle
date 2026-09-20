@@ -218,6 +218,10 @@ Workspace owners can request a [read-only storage inventory](docs/storage-reconc
 that counts canonical/history references, pending uploads, and unreferenced files.
 It retains every file and returns no storage keys or cleanup instructions.
 
+Administrators with PostgreSQL access can inspect aggregate table, index, and
+optional revision sizes with `pnpm db:footprint`; see
+[Database storage](docs/database-storage.md) for costs and interpretation.
+
 The Search view queries canonical object names with an optional object-type
 filter. Results are restricted to the active workspace and independently
 authorized before the API returns them. Search stores no projection copy and

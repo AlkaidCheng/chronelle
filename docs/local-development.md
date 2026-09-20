@@ -266,6 +266,14 @@ editor, before starting the updated API: readiness requires the three public
 functions. It changes no tables, needs no revision baseline or runtime role
 changes, and is compatible with older API versions.
 
+Migration `0068_remove_redundant_grant_index.sql` drops only
+`resource_grants_resource_principal_idx`. The wider
+`resource_grants_principal_unique` index retains its lookup prefix and scoped
+uniqueness constraint; application records and history are unchanged. Apply it
+with `pnpm db:migrate` locally, or through the CloudBase console SQL editor.
+It briefly locks `resource_grants`, so use a quiet period. No revision baseline,
+runtime role changes, or API redeployment are needed.
+
 Migration `0021_add_object_search_function.sql` adds `chronelle_object_search`,
 the read-only function the CloudBase search adapter calls. It changes no
 tables and needs no baseline.
