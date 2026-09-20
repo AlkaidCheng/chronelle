@@ -395,6 +395,20 @@ export function EyeOffIcon({ className }: IconProps) {
   );
 }
 
+/** The account's own workspace, as a mark: a house. */
+export function HomeIcon({ className }: IconProps) {
+  return (
+    <svg
+      aria-hidden="true"
+      className={className}
+      fill="none"
+      viewBox="0 0 24 24"
+    >
+      <path d="M4 11l8-7 8 7v9h-5v-6H9v6H4z" />
+    </svg>
+  );
+}
+
 export function MoreGridIcon({ className }: IconProps) {
   return (
     <svg

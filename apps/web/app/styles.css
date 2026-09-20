@@ -2771,6 +2771,30 @@ p[role="alert"] {
   margin-bottom: 0;
 }
 
+/* The date line carries the phone's access tag beside the date; the
+   desktop shows the access line's pill under it instead. */
+.event-date-line {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 12px;
+}
+
+.event-date-line:empty {
+  display: none;
+}
+
+.event-access-tag {
+  align-items: center;
+  display: none;
+  gap: 8px;
+}
+
+.event-access-tag .event-shared-role {
+  color: var(--faint);
+  font-size: 0.78rem;
+}
+
 /* The event's description under its date line, and at the top of the
    Overview: plain text with its line breaks, as many lines as it has. */
 .event-description,
@@ -5744,21 +5768,6 @@ ul.resource-list {
     scroll-padding-block: 90px calc(90px + env(safe-area-inset-bottom));
   }
 
-  .mobile-workspace-name {
-    color: var(--muted);
-    font-size: 0.72rem;
-    display: block;
-    margin-top: 4px;
-    min-width: 0;
-    overflow-wrap: anywhere;
-    text-align: left;
-  }
-
-  .mobile-workspace-identity {
-    min-width: 0;
-    margin-right: 12px;
-  }
-
   .workspace-page,
   .event-workspace {
     padding: 28px 18px calc(100px + env(safe-area-inset-bottom));
@@ -5779,20 +5788,46 @@ ul.resource-list {
     font-size: clamp(2.2rem, 10vw, 3rem);
   }
 
-  .event-hero-topline {
-    margin-bottom: 24px;
+  /* The Events link and the actions share the first row; the title, the
+     date line with the access tag, and the description follow. */
+  .event-hero {
+    align-items: center;
+    column-gap: 12px;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .event-hero > .up-link {
+    grid-column: 1;
+    grid-row: 1;
+    margin-bottom: 0;
   }
 
   .event-title-row {
-    align-items: stretch;
-    flex-direction: column;
-  }
-  .event-title-row > div:first-child {
-    flex-basis: auto;
+    display: contents;
   }
 
-  .event-title-row > .button {
-    align-self: flex-start;
+  .event-title-row > div:first-child {
+    flex-basis: auto;
+    grid-column: 1 / -1;
+    grid-row: 2;
+    margin-top: 6px;
+  }
+
+  .event-actions {
+    flex-wrap: nowrap;
+    gap: 2px;
+    grid-column: 2;
+    grid-row: 1;
+    justify-content: flex-end;
+  }
+
+  .event-hero .access-line {
+    display: none;
+  }
+
+  .event-access-tag {
+    display: inline-flex;
   }
 
   .tab-list {
@@ -9131,7 +9166,7 @@ html:has(.event-create-dialog[open]) {
   display: flex;
   flex-wrap: wrap;
   gap: 4px;
-  margin: 16px 0 0;
+  margin: 16px 0 12px;
   min-width: 0;
   padding: 0;
 }
@@ -9484,91 +9519,186 @@ html:has(.event-create-dialog[open]) {
   stroke-width: 1.6;
 }
 
+/* The phone's app bar: the workspace at the left (its mark and name), the
+   account's avatar at the right, each opening a sheet from the bottom. */
+.phone-bar {
+  align-items: center;
+  background: var(--canvas);
+  border-bottom: 1px solid var(--line);
+  display: flex;
+  gap: 8px;
+  height: calc(52px + env(safe-area-inset-top, 0px));
+  justify-content: space-between;
+  left: 0;
+  padding: env(safe-area-inset-top, 0px) 10px 0 8px;
+  position: fixed;
+  right: 0;
+  top: 0;
+  z-index: 20;
+}
+
+.phone-workspace {
+  align-items: center;
+  background: none;
+  border: 0;
+  border-radius: 9px;
+  color: inherit;
+  cursor: pointer;
+  display: flex;
+  font: inherit;
+  gap: 8px;
+  min-width: 0;
+  padding: 6px 8px;
+}
+
+.phone-workspace:hover,
+.phone-workspace[aria-expanded="true"],
+.phone-account:hover,
+.phone-account[aria-expanded="true"] {
+  background: var(--surface-subtle);
+}
+
+.phone-workspace .workspace-mark {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.phone-workspace .workspace-mark svg {
+  height: 13px;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.7;
+  width: 13px;
+}
+
+.phone-workspace-name {
+  font-size: 0.92rem;
+  font-weight: 650;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.phone-account {
+  background: none;
+  border: 0;
+  border-radius: 999px;
+  color: inherit;
+  cursor: pointer;
+  display: grid;
+  flex: none;
+  padding: 4px;
+  place-items: center;
+}
+
+.phone-account .profile-mark {
+  font-size: 0.72rem;
+  height: 30px;
+  width: 30px;
+}
+
+/* A sheet from the bottom of the screen: rounded above, the safe area
+   kept clear below, a handle to pull it closed, and its menus as the
+   rail's popovers list them. */
+.bottom-sheet {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-bottom: 0;
+  border-radius: 18px 18px 0 0;
+  box-shadow: 0 -12px 32px rgb(0 0 0 / 0.16);
+  color: inherit;
+  inset: auto 0 0;
+  margin: 0;
+  max-height: min(80vh, 640px);
+  max-width: none;
+  overflow: auto;
+  padding: 0 10px calc(16px + env(safe-area-inset-bottom, 0px));
+  width: 100%;
+}
+
+.bottom-sheet::backdrop {
+  background: rgb(0 0 0 / 0.38);
+}
+
+.bottom-sheet-handle {
+  background: none;
+  border: 0;
+  cursor: pointer;
+  display: grid;
+  padding: 10px 0 8px;
+  place-items: center;
+  touch-action: none;
+  width: 100%;
+}
+
+.bottom-sheet-handle > span {
+  background: var(--line-strong);
+  border-radius: 999px;
+  display: block;
+  height: 4px;
+  opacity: 0.6;
+  width: 36px;
+}
+
+.sheet-menu {
+  display: grid;
+  gap: 2px;
+}
+
+.sheet-menu .quiet-menu-item {
+  min-height: 44px;
+}
+
+.sheet-identity {
+  padding: 4px 10px 10px;
+}
+
+.sheet-theme {
+  display: grid;
+  gap: 16px;
+  padding: 4px 6px;
+}
+
+/* Customizing the bar in a sheet: the rows, grips, and eyes of the rail's
+   customize mode, stacked. */
+.sheet-customize {
+  display: grid;
+  gap: 4px;
+  padding: 0 4px;
+}
+
+.sheet-customize .rail-row > a {
+  flex-direction: row;
+  font-size: 0.92rem;
+  justify-content: flex-start;
+  padding: 10px 8px;
+}
+
 @media (max-width: 760px) {
-  .sidebar-footer {
-    background: var(--canvas);
-    border-bottom: 1px solid var(--line);
-    display: flex;
-    gap: 2px;
-    justify-content: flex-end;
-    left: 0;
-    margin: 0;
-    padding: 8px 12px;
-    position: fixed;
-    right: 0;
-    top: 0;
-    z-index: 20;
-  }
-
-  .sidebar-entry {
-    padding: 8px 10px;
-    width: auto;
-  }
-
-  .account-trigger {
-    border: 0;
-    margin: 0;
-    padding: 6px 8px;
-    position: relative;
-    width: auto;
-  }
-
-  /* The mark stands alone; the name and workspace stay in the accessible name. */
-  .account-trigger .account-caret {
+  /* The bottom bar lists the collections in the kept order; a long press
+     opens the sheet that arranges them. */
+  .sidebar .rail-heading,
+  .sidebar .rail-customize-bar,
+  .sidebar .rail-grip,
+  .sidebar .rail-eye {
     display: none;
   }
 
-  .account-trigger .profile-copy {
-    clip: rect(0 0 0 0);
-    clip-path: inset(50%);
-    height: 1px;
-    overflow: hidden;
-    position: absolute;
-    white-space: nowrap;
-    width: 1px;
-  }
-
-  .account-menu-list,
-  .more-menu-list,
-  .theme-panel {
-    bottom: auto;
-    left: auto;
-    right: 0;
-    top: calc(100% + 6px);
-  }
-
-  .more-trigger {
-    margin: 0;
-  }
-
-  .sidebar-footer .account-menu {
-    flex: none;
-  }
-
-  /* The bottom bar lists the collections in the kept order; arranging them is a desktop task. */
-  .rail-heading,
-  .rail-customize-bar,
-  .rail-grip,
-  .rail-eye,
-  .more-customize {
-    display: none;
-  }
-
-  .rail-collections {
+  .sidebar .rail-collections,
+  .sidebar .rail-row {
     display: contents;
   }
 
-  .rail-row {
-    display: contents;
-  }
-
-  .theme-panel {
-    max-height: calc(100vh - 72px);
+  .sidebar .rail-row > a {
+    -webkit-touch-callout: none;
+    user-select: none;
   }
 
   .workspace-page,
   .event-workspace {
-    padding-top: 76px;
+    padding-top: calc(66px + env(safe-area-inset-top, 0px));
   }
 
   .quiet-tools .inline-search {
@@ -9578,10 +9708,6 @@ html:has(.event-create-dialog[open]) {
 
   .chip-rows {
     margin-top: 0;
-  }
-
-  .mobile-view-select {
-    margin-top: 16px;
   }
 }
 

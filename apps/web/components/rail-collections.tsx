@@ -6,6 +6,7 @@ import { useTranslations } from "next-intl";
 import {
   type DragEvent,
   type KeyboardEvent as ReactKeyboardEvent,
+  type MouseEvent as ReactMouseEvent,
   type PointerEvent as ReactPointerEvent,
   useId,
   useRef,
@@ -22,6 +23,9 @@ import { useSessionQuery, useUpdatePreferences } from "../lib/queries";
 import { EyeIcon, EyeOffIcon, GripIcon, PencilIcon } from "./icons";
 import { railCollectionKeys, railCollections } from "./workspace-navigation";
 
+/** How long a finger rests on a collection before the bar enters customization. */
+const longPressMs = 500;
+
 /**
  * The Collections section of the rail: the workspace collections in the
  * account's order, without the hidden ones (a hidden collection still shows
@@ -36,10 +40,13 @@ export function RailCollections({
   pathname,
   customizing,
   onCustomize,
+  onLongPress,
 }: {
   readonly pathname: string;
   readonly customizing: boolean;
   readonly onCustomize: (customizing: boolean) => void;
+  /** On the phone's bar, a finger held on a collection enters customization instead of following its link. */
+  readonly onLongPress?: (() => void) | undefined;
 }) {
   const t = useTranslations("nav");
   const id = useId();
@@ -54,6 +61,30 @@ export function RailCollections({
   // drop, kept outside the render for the document listeners.
   const [lift, setLift] = useState<{ key: string; dy: number } | null>(null);
   const touchDrop = useRef<string | null | undefined>(undefined);
+  // A finger held on a row: the timer that fires the long press, and
+  // whether it fired, so the click that follows the release stays put.
+  const hold = useRef<{ timer: number; fired: boolean } | null>(null);
+  const endHold = () => {
+    if (hold.current !== null) window.clearTimeout(hold.current.timer);
+    if (hold.current?.fired !== true) hold.current = null;
+  };
+  function onRowPointerDown(event: ReactPointerEvent<HTMLAnchorElement>) {
+    if (onLongPress === undefined || event.pointerType === "mouse") return;
+    endHold();
+    hold.current = {
+      fired: false,
+      timer: window.setTimeout(() => {
+        if (hold.current !== null) hold.current.fired = true;
+        onLongPress();
+      }, longPressMs),
+    };
+  }
+  function onRowClick(event: ReactMouseEvent<HTMLAnchorElement>) {
+    if (customizing || hold.current?.fired === true) {
+      event.preventDefault();
+      hold.current = null;
+    }
+  }
 
   const stored = pending ?? session.data?.user.rail ?? {};
   const arranged = arrangeRail(stored, railCollectionKeys);
@@ -270,9 +301,14 @@ export function RailCollections({
                   onDrop();
                 }}
                 onDragEnd={onDrop}
-                onClick={(event) => {
-                  if (customizing) event.preventDefault();
+                onPointerDown={onRowPointerDown}
+                onPointerUp={endHold}
+                onPointerCancel={endHold}
+                onPointerLeave={endHold}
+                onContextMenu={(event) => {
+                  if (onLongPress !== undefined) event.preventDefault();
                 }}
+                onClick={onRowClick}
               >
                 <collection.icon />
                 {name}

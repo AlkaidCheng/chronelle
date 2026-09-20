@@ -18,10 +18,13 @@ import {
   DisplayPreferencesProvider,
   timePreferencesOf,
 } from "../lib/use-display-preferences";
+import { useIsPhone } from "../lib/use-media";
 import { AccountMenu } from "./account-menu";
+import { BottomSheet } from "./bottom-sheet";
 import { WorkspaceCommandProvider } from "./context-commands";
 import { ErrorNotice, LoadingState } from "./feedback";
 import { MoreMenu } from "./more-menu";
+import { PhoneChrome } from "./phone-chrome";
 import { RailCollections } from "./rail-collections";
 import { SearchEntry } from "./search-entry";
 import {
@@ -44,6 +47,7 @@ export function WorkspaceShell({ children }: { readonly children: ReactNode }) {
   const noteWorkspaceOpened = useNoteWorkspaceOpened();
   const [customizing, setCustomizing] = useState(false);
   const sidebar = useSidebar();
+  const phone = useIsPhone();
   useContentUndoShortcut();
 
   // Opening another workspace notes the moment on the account, so the
@@ -151,6 +155,15 @@ export function WorkspaceShell({ children }: { readonly children: ReactNode }) {
           <a className="skip-link" href="#workspace-content">
             {t("skipToContent")}
           </a>
+          {phone ? (
+            <PhoneChrome
+              session={currentSession}
+              pendingRequests={friends.data?.incoming.length ?? 0}
+              onSwitch={changeWorkspace}
+              onSignOut={leaveWorkspace}
+              onCustomize={() => setCustomizing(true)}
+            />
+          ) : null}
           <aside className="sidebar" inert={sidebar.collapsed}>
             <div className="sidebar-head">
               <Link className="brand" href="/events">
@@ -166,20 +179,41 @@ export function WorkspaceShell({ children }: { readonly children: ReactNode }) {
               <SearchEntry current={pathname.startsWith("/search")} />
               <RailCollections
                 pathname={pathname}
-                customizing={customizing}
+                customizing={!phone && customizing}
                 onCustomize={setCustomizing}
+                onLongPress={phone ? () => setCustomizing(true) : undefined}
               />
             </nav>
-            <div className="sidebar-footer">
-              <AccountMenu
-                session={currentSession}
-                pendingRequests={friends.data?.incoming.length ?? 0}
-                onSwitch={changeWorkspace}
-                onSignOut={leaveWorkspace}
-              />
-              <MoreMenu onCustomize={() => setCustomizing(true)} />
-            </div>
+            {phone ? null : (
+              <div className="sidebar-footer">
+                <AccountMenu
+                  session={currentSession}
+                  pendingRequests={friends.data?.incoming.length ?? 0}
+                  onSwitch={changeWorkspace}
+                  onSignOut={leaveWorkspace}
+                />
+                <MoreMenu onCustomize={() => setCustomizing(true)} />
+              </div>
+            )}
           </aside>
+          {phone ? (
+            // A long press on a collection, or Customize sidebar in the
+            // account sheet, arranges the bar's collections in a sheet:
+            // the same rows, grips, and eyes as the rail's customize mode.
+            <BottomSheet
+              open={customizing}
+              label={t("customize")}
+              onClose={() => setCustomizing(false)}
+            >
+              <div className="sheet-customize">
+                <RailCollections
+                  pathname={pathname}
+                  customizing
+                  onCustomize={setCustomizing}
+                />
+              </div>
+            </BottomSheet>
+          ) : null}
           <div className="workspace-main">
             <SidebarExpandControl sidebar={sidebar} />
             <div id="workspace-content" tabIndex={-1}>
