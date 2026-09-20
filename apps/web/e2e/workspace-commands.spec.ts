@@ -36,6 +36,7 @@ test("protects Task editor focus and navigates without saving discarded fields @
   await page.getByLabel("Name", { exact: true }).fill("Event planner");
   await page.getByLabel("Email").fill(email);
   await page.getByRole("button", { name: "Continue", exact: true }).click();
+  await expect(page).toHaveURL(/\/events$/u);
   await page.getByRole("link", { name: /An afternoon together/ }).click();
   await exerciseWorkspaceCommands(page, testInfo);
   expect(
@@ -51,6 +52,7 @@ test("persists shortcut opt-out and synchronizes another tab @webkit-desktop @we
   await page.getByLabel("Name", { exact: true }).fill("Keyboard planner");
   await page.getByLabel("Email").fill(`shortcuts-${randomUUID()}@example.test`);
   await page.getByRole("button", { name: "Continue", exact: true }).click();
+  await expect(page).toHaveURL(/\/events$/u);
   const trigger = searchEntry(page);
   await setKeyboardPreferences(page, { command: "disabled" });
   await page.reload();
