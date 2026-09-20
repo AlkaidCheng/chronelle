@@ -12,6 +12,9 @@
   "removeContact": "移除联系方式 {n}",
   "addContact": "添加联系方式",
   "labels": "标签",
-  "linkToFriend": "关联好友",
-  "noFriendLink": "未关联好友"
+  "you": "我",
+  "friend": "好友",
+  "unlink": "取消关联",
+  "addDescription": "添加描述",
+  "clearLabels": "清除标签"
 }

@@ -112,10 +112,16 @@ test("connects two accounts through a request and links a person to the friend @
     .click();
   await page.getByRole("button", { name: "New person", exact: true }).click();
   const editor = page.getByRole("dialog", { name: "Add person", exact: true });
-  await editor.getByLabel("Name", { exact: true }).fill("Benjamin");
+  // The typed name narrows the accounts under the field to Ben; the pick
+  // links the card and fills his name, which the full name then replaces.
+  const name = editor.getByRole("combobox", { name: "Name", exact: true });
+  await name.fill("be");
   await editor
-    .getByLabel("Link to a friend")
-    .selectOption({ label: `Ben (${benEmail})` });
+    .getByRole("option", { name: `Ben ${benEmail} Friend`, exact: true })
+    .click();
+  await expect(name).toHaveValue("Ben");
+  await expect(editor.locator(".person-link-mark")).toHaveText(/^Friend/);
+  await name.fill("Benjamin");
   await editor.getByRole("button", { name: "Add person", exact: true }).click();
   await expect(editor).toHaveCount(0);
   const card = page.getByRole("listitem", { name: "Benjamin", exact: true });
