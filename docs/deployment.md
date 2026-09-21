@@ -309,6 +309,17 @@ migration denies `PUBLIC`, `anon`, and `authenticated` execution and grants
 `service_role` execution when those managed roles exist. PostgreSQL TCP
 deployments apply it with `pnpm db:migrate`.
 
+Migration `0070_add_person_list_hydration.sql` adds the read-only
+`chronelle_person_list_hydrate` function. CloudBase Person lists use it after
+candidate selection to load canonical rows, typed state, contacts, and labels
+in one gateway request. Apply it through the CloudBase console SQL editor
+before redeploying the API: readiness requires the function. It changes no
+tables, needs no revision baseline or PostgreSQL runtime-role changes, and
+remains compatible with older API versions. The migration denies `PUBLIC`,
+`anon`, and `authenticated` execution and grants `service_role` execution when
+those managed roles exist. PostgreSQL TCP deployments apply it with
+`pnpm db:migrate`.
+
 ### Run on the CloudBase backend
 
 `CHRONELLE_BACKEND=cloudbase` serves every read and write from the gateway.

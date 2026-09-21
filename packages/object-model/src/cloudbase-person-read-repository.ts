@@ -5,20 +5,51 @@ import {
 } from "@chronelle/schemas";
 
 import {
+  type CloudBaseObjectRow,
   type CloudBasePersonRow,
-  cloudbasePersonColumns,
+  cloudbasePersonContacts,
   cloudbasePersonResource,
   cloudbaseText,
-  readCloudBasePersonContacts,
-  readCloudBasePersonLabels,
-  readCloudBaseObjects,
-  readCloudBaseVisibility,
 } from "./cloudbase-read-support.js";
 import {
   cloudbaseListRows,
   type CloudBaseListClient,
 } from "./cloudbase-list-candidates.js";
 import type { PersonPage, PersonReadRepository } from "./person-list.js";
+
+function hydrationRecord<T>(
+  row: Record<string, unknown>,
+  field: "object" | "person",
+): T {
+  const value = row[field];
+  if (value === null || typeof value !== "object" || Array.isArray(value))
+    throw new Error("CloudBase returned invalid person hydration.");
+  return value as T;
+}
+
+function hydratedPeople(
+  value: unknown,
+): ReturnType<typeof cloudbasePersonResource>[] {
+  return cloudbaseListRows(value).map((row) => {
+    const labels = cloudbaseListRows(row.labels)
+      .map((label) => ({
+        id: cloudbaseText(label.id, "label id"),
+        name: cloudbaseText(label.name, "label name").toLowerCase(),
+      }))
+      .sort(
+        (first, second) =>
+          first.name.localeCompare(second.name) ||
+          first.id.localeCompare(second.id),
+      )
+      .map(({ id }) => id);
+    return cloudbasePersonResource(
+      hydrationRecord<CloudBaseObjectRow>(row, "object"),
+      hydrationRecord<CloudBasePersonRow>(row, "person"),
+      cloudbasePersonContacts(row.contacts),
+      labels,
+    );
+  });
+}
 
 /**
  * Locale-sensitive matching orders lightweight, authorized names before
@@ -42,14 +73,11 @@ export class CloudBasePersonReadRepository implements PersonReadRepository {
   ): Promise<PersonPage> {
     const input = personListQuerySchema.parse(options);
     const now = this.#clock();
-    const [raw, visibility] = await Promise.all([
-      this.#client.rpc("chronelle_person_list_candidates", {
-        workspace_id: principal.workspaceId,
-        user_id: principal.userId,
-        access_at: now.toISOString(),
-      }),
-      readCloudBaseVisibility(this.#client, principal, () => now),
-    ]);
+    const raw = await this.#client.rpc("chronelle_person_list_candidates", {
+      workspace_id: principal.workspaceId,
+      user_id: principal.userId,
+      access_at: now.toISOString(),
+    });
     const query = input.query.toLocaleLowerCase();
     const ids = cloudbaseListRows(raw)
       .map((row) => ({
@@ -68,48 +96,15 @@ export class CloudBasePersonReadRepository implements PersonReadRepository {
       .slice(0, input.limit)
       .map((row) => row.id);
     if (ids.length === 0) return { items: [] };
-    const [objects, rows, contacts, labels] = await Promise.all([
-      readCloudBaseObjects(this.#client, principal, ids, "person"),
-      this.#client.select<CloudBasePersonRow>("persons", {
-        columns: cloudbasePersonColumns,
-        filters: [
-          {
-            column: "workspace_id",
-            operator: "eq",
-            value: principal.workspaceId,
-          },
-          {
-            column: "object_id",
-            operator: "in",
-            value: ids,
-          },
-        ],
+    const people = hydratedPeople(
+      await this.#client.rpc("chronelle_person_list_hydrate", {
+        workspace_id: principal.workspaceId,
+        user_id: principal.userId,
+        person_ids: ids,
+        access_at: now.toISOString(),
       }),
-      readCloudBasePersonContacts(this.#client, principal, ids),
-      readCloudBasePersonLabels(this.#client, principal, ids),
-    ]);
-    const byId = new Map(
-      rows.map((row) => [cloudbaseText(row.object_id, "person object"), row]),
     );
-    const objectsById = new Map(
-      objects
-        .filter((object) => visibility.canView(object))
-        .map((object) => [cloudbaseText(object.id, "object id"), object]),
-    );
-    const items = ids.flatMap((id) => {
-      const object = objectsById.get(id);
-      const row = byId.get(id);
-      return row === undefined || object === undefined
-        ? []
-        : [
-            cloudbasePersonResource(
-              object,
-              row,
-              contacts.get(id) ?? [],
-              labels.get(id) ?? [],
-            ),
-          ];
-    });
-    return { items };
+    const byId = new Map(people.map((person) => [person.id, person]));
+    return { items: ids.flatMap((id) => byId.get(id) ?? []) };
   }
 }

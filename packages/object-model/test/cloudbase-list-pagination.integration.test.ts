@@ -165,6 +165,48 @@ describe.sequential("CloudBase bounded list hydration", () => {
     expect(selects).toEqual([]);
   });
 
+  it("hydrates a Person page with two RPCs and no table reads", async () => {
+    const harness = await fixture();
+    const db = harness.database.connection.db;
+    const personId = createId();
+    await db.insert(objects).values({
+      id: personId,
+      workspaceId: harness.workspaceId,
+      objectType: "person",
+      displayName: "Two-request person",
+      permissionScopeId: personId,
+      createdBy: harness.ownerId,
+    });
+    await db
+      .insert(persons)
+      .values({ objectId: personId, workspaceId: harness.workspaceId });
+    const reader = createCloudBaseLiveReader(db);
+    const selects: string[] = [];
+    const rpcs: string[] = [];
+    const client = {
+      ...reader,
+      async select<T>(table: string, query: CloudBaseRdbQuery = {}) {
+        selects.push(table);
+        return reader.select<T>(table, query);
+      },
+      async rpc<T>(name: string, args?: Record<string, unknown>) {
+        rpcs.push(name);
+        return harness.rpc<T>(name, args);
+      },
+    };
+
+    const page = await new CloudBasePersonReadRepository(client).listPersons(
+      harness.principal,
+    );
+
+    expect(page.items.map(({ id }) => id)).toEqual([personId]);
+    expect(rpcs).toEqual([
+      "chronelle_person_list_candidates",
+      "chronelle_person_list_hydrate",
+    ]);
+    expect(selects).toEqual([]);
+  });
+
   it("bounds updated/manual candidates and hydrates only one page of canonical payloads", async () => {
     const harness = await fixture();
     const db = harness.database.connection.db;

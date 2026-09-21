@@ -105,6 +105,7 @@ const benchmarkReadFunctions = new Set([
   "chronelle_event_list_candidates",
   "chronelle_identity_session_resolve",
   "chronelle_person_list_candidates",
+  "chronelle_person_list_hydrate",
   "chronelle_section_list",
   "chronelle_task_list_candidates",
   "chronelle_task_list_hydrate",
