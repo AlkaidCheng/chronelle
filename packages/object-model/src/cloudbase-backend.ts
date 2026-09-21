@@ -10,6 +10,7 @@ export const cloudBaseObjectModelFunctions: readonly string[] = [
   "chronelle_task_list_candidates",
   "chronelle_task_list_hydrate",
   "chronelle_person_list_candidates",
+  "chronelle_person_list_hydrate",
   "chronelle_backend_readiness",
   "chronelle_revision_baseline",
   "chronelle_event_create",

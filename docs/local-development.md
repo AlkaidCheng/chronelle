@@ -284,6 +284,16 @@ needs no revision baseline or PostgreSQL runtime-role changes, and is compatible
 with older API versions. On CloudBase it revokes browser-role execution and
 grants execution to `service_role` when those managed roles exist.
 
+Migration `0070_add_person_list_hydration.sql` adds the read-only
+`chronelle_person_list_hydrate` function. CloudBase Person lists use it after
+candidate selection to load canonical rows, typed state, contacts, and labels
+in one gateway request. Apply it with `pnpm db:migrate` locally, or through the
+CloudBase console SQL editor, before starting the updated API: readiness
+requires the function. It changes no tables, needs no revision baseline or
+PostgreSQL runtime-role changes, and is compatible with older API versions. On
+CloudBase it revokes browser-role execution and grants execution to
+`service_role` when those managed roles exist.
+
 Migration `0021_add_object_search_function.sql` adds `chronelle_object_search`,
 the read-only function the CloudBase search adapter calls. It changes no
 tables and needs no baseline.

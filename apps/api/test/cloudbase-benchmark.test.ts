@@ -44,12 +44,18 @@ describe("CloudBase benchmark metrics", () => {
     await expect(
       client.rpc("chronelle_task_list_hydrate", {}),
     ).resolves.toEqual([]);
+    await expect(
+      client.rpc("chronelle_person_list_hydrate", {}),
+    ).resolves.toEqual([]);
     expect(() => client.rpc("chronelle_event_create", {})).toThrow(
       "cannot perform mutations",
     );
     expect(() => client.insert("objects", [])).toThrow(
       "cannot perform mutations",
     );
-    expect(rpcCalls).toEqual(["chronelle_task_list_hydrate"]);
+    expect(rpcCalls).toEqual([
+      "chronelle_task_list_hydrate",
+      "chronelle_person_list_hydrate",
+    ]);
   });
 });
