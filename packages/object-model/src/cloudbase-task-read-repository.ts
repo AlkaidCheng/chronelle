@@ -8,18 +8,13 @@ import {
 } from "@chronelle/schemas";
 
 import {
+  type CloudBaseObjectRow,
+  type CloudBaseTaskRow,
   cloudbaseDate,
   cloudbaseNullableDate,
   cloudbaseNullableText,
   cloudbaseTaskResource,
   cloudbaseText,
-  readCloudBaseInclusionsOf,
-  readCloudBaseObjectRows,
-  readCloudBaseObjects,
-  readCloudBaseSubtasks,
-  readCloudBaseTaskLabels,
-  readCloudBaseTasks,
-  readCloudBaseVisibility,
 } from "./cloudbase-read-support.js";
 import {
   cloudbaseListRows,
@@ -41,6 +36,65 @@ type TaskCandidate = Pick<
   TaskResource,
   "id" | "displayName" | "updatedAt" | "dueAt" | "dueOn" | "rank"
 >;
+
+interface TaskHydration {
+  readonly objects: readonly CloudBaseObjectRow[];
+  readonly tasks: readonly CloudBaseTaskRow[];
+  readonly labels: readonly Record<string, unknown>[];
+  readonly contexts: readonly Record<string, unknown>[];
+  readonly subtasks: readonly Record<string, unknown>[];
+  readonly parents: readonly Record<string, unknown>[];
+}
+
+const emptyTaskHydration: TaskHydration = {
+  objects: [],
+  tasks: [],
+  labels: [],
+  contexts: [],
+  subtasks: [],
+  parents: [],
+};
+
+function taskHydration(value: unknown): TaskHydration {
+  if (value === null || typeof value !== "object" || Array.isArray(value))
+    throw new Error("CloudBase returned invalid task hydration.");
+  const result = value as Record<string, unknown>;
+  return {
+    objects: cloudbaseListRows(result.objects) as CloudBaseObjectRow[],
+    tasks: cloudbaseListRows(result.tasks) as CloudBaseTaskRow[],
+    labels: cloudbaseListRows(result.labels),
+    contexts: cloudbaseListRows(result.contexts),
+    subtasks: cloudbaseListRows(result.subtasks),
+    parents: cloudbaseListRows(result.parents),
+  };
+}
+
+function taskLabels(
+  rows: readonly Record<string, unknown>[],
+): ReadonlyMap<string, string[]> {
+  const labels = new Map<string, { id: string; name: string }[]>();
+  for (const row of rows) {
+    const taskId = cloudbaseText(row.task_id, "labelled task");
+    const entries = labels.get(taskId) ?? [];
+    entries.push({
+      id: cloudbaseText(row.label_id, "label id"),
+      name: cloudbaseText(row.label_name, "label name").toLowerCase(),
+    });
+    labels.set(taskId, entries);
+  }
+  return new Map(
+    [...labels].map(([taskId, entries]) => [
+      taskId,
+      entries
+        .sort(
+          (first, second) =>
+            first.name.localeCompare(second.name) ||
+            first.id.localeCompare(second.id),
+        )
+        .map(({ id }) => id),
+    ]),
+  );
+}
 
 function cursorTimestamp(value: Date): string {
   return value.toISOString().replace("Z", "000Z");
@@ -210,20 +264,17 @@ export class CloudBaseTaskReadRepository implements TaskReadRepository {
       input.dueFrom === undefined &&
       input.dueTo === undefined &&
       (input.sort === "updated" || input.sort === "manual");
-    const [raw, visibility] = await Promise.all([
-      this.#client.rpc("chronelle_task_list_candidates", {
-        workspace_id: principal.workspaceId,
-        user_id: principal.userId,
-        status_filter: input.filter,
-        label_id: input.label ?? null,
-        assignee_id: input.assignee ?? null,
-        list_sort: input.sort,
-        page_limit: bounded ? input.limit + 1 : null,
-        after_position: bounded ? (cursor ?? null) : null,
-        access_at: now.toISOString(),
-      }),
-      readCloudBaseVisibility(this.#client, principal, () => now),
-    ]);
+    const raw = await this.#client.rpc("chronelle_task_list_candidates", {
+      workspace_id: principal.workspaceId,
+      user_id: principal.userId,
+      status_filter: input.filter,
+      label_id: input.label ?? null,
+      assignee_id: input.assignee ?? null,
+      list_sort: input.sort,
+      page_limit: bounded ? input.limit + 1 : null,
+      after_position: bounded ? (cursor ?? null) : null,
+      access_at: now.toISOString(),
+    });
     let tasks = cloudbaseListRows(raw).map((row): TaskCandidate => ({
       id: cloudbaseText(row.id, "task id"),
       displayName: cloudbaseText(row.display_name, "display name"),
@@ -253,96 +304,51 @@ export class CloudBaseTaskReadRepository implements TaskReadRepository {
       tasks = tasks.filter((task) => afterCursor(task, cursor, input.sort));
     const candidates = tasks.slice(0, input.limit);
     const ids = candidates.map((task) => task.id);
-    const [objects, taskRows, taskLabels] = await Promise.all([
-      readCloudBaseObjects(this.#client, principal, ids, "task"),
-      readCloudBaseTasks(this.#client, principal, ids),
-      readCloudBaseTaskLabels(this.#client, principal, ids),
-    ]);
+    const hydration =
+      ids.length === 0
+        ? emptyTaskHydration
+        : taskHydration(
+            await this.#client.rpc("chronelle_task_list_hydrate", {
+              workspace_id: principal.workspaceId,
+              user_id: principal.userId,
+              task_ids: ids,
+              access_at: now.toISOString(),
+            }),
+          );
+    const labels = taskLabels(hydration.labels);
     const objectsById = new Map(
-      objects
-        .filter((object) => visibility.canView(object))
-        .map((object) => [cloudbaseText(object.id, "object id"), object]),
+      hydration.objects.map((object) => [
+        cloudbaseText(object.id, "object id"),
+        object,
+      ]),
     );
     const tasksById = new Map(
-      taskRows.map((task) => [cloudbaseText(task.object_id, "task id"), task]),
+      hydration.tasks.map((task) => [
+        cloudbaseText(task.object_id, "task id"),
+        task,
+      ]),
     );
     const page = candidates.flatMap(({ id }) => {
       const object = objectsById.get(id);
       const task = tasksById.get(id);
       return object === undefined || task === undefined
         ? []
-        : [cloudbaseTaskResource(object, task, taskLabels.get(id) ?? [])];
+        : [cloudbaseTaskResource(object, task, labels.get(id) ?? [])];
     });
     const asOfValue = cursor?.asOf ?? cursorTimestamp(asOf);
     // The including Event, only where the caller may view it; the earliest
     // inclusion names the context when more than one Event includes a task.
-    const inclusions = await readCloudBaseInclusionsOf(
-      this.#client,
-      principal,
-      page.map((task) => task.id),
-    );
-    const events = await readCloudBaseObjects(
-      this.#client,
-      principal,
-      [
-        ...new Set(
-          inclusions.map((row) => cloudbaseText(row.source_object_id, "event")),
-        ),
-      ],
-      "event",
-    );
-    const viewable = new Map(
-      events
-        .filter((row) => visibility.canView(row))
-        .map((row) => [
-          cloudbaseText(row.id, "event id"),
-          cloudbaseText(row.display_name, "display name"),
-        ]),
-    );
     const contexts: Record<string, TaskContext> = {};
-    for (const row of inclusions) {
-      const eventId = cloudbaseText(row.source_object_id, "event");
-      const displayName = viewable.get(eventId);
-      if (displayName !== undefined)
-        contexts[cloudbaseText(row.target_object_id, "task")] ??= {
-          eventId,
-          displayName,
-        };
+    for (const row of hydration.contexts) {
+      contexts[cloudbaseText(row.target_object_id, "task")] ??= {
+        eventId: cloudbaseText(row.source_object_id, "event"),
+        displayName: cloudbaseText(row.display_name, "display name"),
+      };
     }
     // Subtask progress of the listed parents and the parent of each listed
     // subtask, both through the same visibility as the tasks themselves.
-    const pageIds = page.map((task) => task.id);
-    const subtaskRows = await readCloudBaseSubtasks(
-      this.#client,
-      principal,
-      pageIds,
-    );
-    const parentIds = [
-      ...new Set(
-        page.flatMap((task) =>
-          task.parentTaskId === null ? [] : [task.parentTaskId],
-        ),
-      ),
-    ];
-    const relatedObjects = await readCloudBaseObjectRows(
-      this.#client,
-      principal,
-      [
-        ...new Set([
-          ...subtaskRows.map((row) => cloudbaseText(row.object_id, "task")),
-          ...parentIds,
-        ]),
-      ],
-      ["task"],
-    );
-    const viewableRows = new Map(
-      relatedObjects
-        .filter((row) => visibility.canView(row))
-        .map((row) => [cloudbaseText(row.id, "task id"), row]),
-    );
     const progress: Record<string, TaskProgress> = {};
-    for (const row of subtaskRows) {
-      if (!viewableRows.has(cloudbaseText(row.object_id, "task"))) continue;
+    for (const row of hydration.subtasks) {
       const parentId = cloudbaseText(row.parent_task_id, "parent task");
       const current = progress[parentId] ?? { done: 0, total: 0 };
       progress[parentId] = {
@@ -353,16 +359,11 @@ export class CloudBaseTaskReadRepository implements TaskReadRepository {
       };
     }
     const parents: Record<string, TaskParent> = {};
-    for (const task of page) {
-      const parent =
-        task.parentTaskId === null
-          ? undefined
-          : viewableRows.get(task.parentTaskId);
-      if (task.parentTaskId !== null && parent !== undefined)
-        parents[task.id] = {
-          taskId: task.parentTaskId,
-          displayName: cloudbaseText(parent.display_name, "display name"),
-        };
+    for (const row of hydration.parents) {
+      parents[cloudbaseText(row.task_id, "task")] = {
+        taskId: cloudbaseText(row.parent_task_id, "parent task"),
+        displayName: cloudbaseText(row.display_name, "display name"),
+      };
     }
     return {
       items: page,
