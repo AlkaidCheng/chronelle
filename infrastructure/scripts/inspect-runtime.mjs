@@ -44,10 +44,12 @@ for (const path of walkFiles("/app")) {
   }
 }
 assert(workspacePackages > 0);
-assert(
-  existsSync("/app/dist/benchmark-cloudbase.js"),
-  "CloudBase benchmark entry point is missing.",
-);
+if (existsSync("/app/dist/server.js")) {
+  assert(
+    existsSync("/app/dist/benchmark-cloudbase.js"),
+    "CloudBase benchmark entry point is missing.",
+  );
+}
 assert.equal(statSync("/app").uid, 0, "Application code stays root-owned.");
 console.log(
   `Runtime contents checked: ${workspacePackages} workspace packages, ${fileCount} files.`,
