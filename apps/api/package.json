@@ -8,6 +8,7 @@
     "dist/**/*.d.ts"
   ],
   "scripts": {
+    "benchmark:cloudbase": "node --env-file-if-exists=../../.env dist/benchmark-cloudbase.js",
     "build": "pnpm --filter @chronelle/schemas build && pnpm --filter @chronelle/object-model build && tsc -p tsconfig.build.json",
     "dev": "pnpm --filter @chronelle/schemas build && pnpm --filter @chronelle/object-model build && tsx watch src/server.ts",
     "start": "node dist/server.js",
