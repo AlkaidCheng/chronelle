@@ -2,7 +2,11 @@ import { randomUUID } from "node:crypto";
 import { expect, test } from "./fixtures";
 import { openEventView } from "./helpers/event-view";
 import { moveToTrash } from "./helpers/lifecycle";
-import { openSearchPage, openTrash } from "./helpers/quiet-chrome";
+import {
+  openCollection,
+  openSearchPage,
+  openTrash,
+} from "./helpers/quiet-chrome";
 import { chooseRowAction } from "./helpers/row-menu";
 
 test("keeps notes with an event: the gallery card, the editor, opening in place, history, Trash, and search @webkit-desktop", async ({
@@ -30,7 +34,10 @@ test("keeps notes with an event: the gallery card, the editor, opening in place,
   await page.getByLabel("Email").fill(email);
   await page.getByRole("button", { name: "Continue", exact: true }).click();
   await expect(page).toHaveURL(/\/events$/u);
-  await page.goto(`/events/${event.id}?view=todos`);
+  const eventLink = page.getByRole("link", { name: /Kyoto in November/u });
+  await expect(eventLink).toHaveAttribute("href", `/events/${event.id}`);
+  await eventLink.click();
+  await openEventView(page, "To-dos");
 
   // The gallery offers Notes as a card, on the strip like every view
   // until taken off; the card is a switch, so it reads pressed.
@@ -131,7 +138,9 @@ test("keeps notes with an event: the gallery card, the editor, opening in place,
     "Recovered as version",
   );
   await recovery.getByRole("button", { name: "Close", exact: true }).click();
-  await page.goto(`/events/${event.id}?view=notes`);
+  await openCollection(page, "Events");
+  await eventLink.click();
+  await openEventView(page, "Notes");
   await expect(page.locator(".note-card")).toHaveCount(2);
 
   // Search finds the note by its title, not its text.
