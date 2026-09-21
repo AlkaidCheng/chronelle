@@ -63,3 +63,9 @@ checks require the three public candidate functions and the Task hydration
 function. Both migrations are additive; an older API continues to work after
 they are applied. Production timings and query plans should be measured
 separately from the local transport and SQL regression tests.
+
+The deployed API image contains the read-only measurement command used for that
+timing check. Run `node dist/benchmark-cloudbase.js` in the API instance shell,
+or `pnpm cloudbase:benchmark` from a local checkout. The report includes p50 and
+p95 end-to-end latency, gateway-call counts, failures, and per-target calls; use
+`--workload tasks-manual` to isolate the two-request Task path.

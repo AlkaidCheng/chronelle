@@ -17,6 +17,7 @@
     "check:static": "pnpm format:check && pnpm lint && pnpm build:packages && pnpm typecheck:units && pnpm build:apps",
     "check:tests": "pnpm build:packages && pnpm test:infrastructure && pnpm test:units",
     "cloudbase:baseline": "pnpm --filter @chronelle/db build && node --env-file-if-exists=.env infrastructure/scripts/cloudbase-baseline.mjs",
+    "cloudbase:benchmark": "pnpm --filter @chronelle/api build && node --env-file-if-exists=.env apps/api/dist/benchmark-cloudbase.js",
     "cloudbase:linked-contract": "pnpm --filter @chronelle/db build && node --env-file-if-exists=.env infrastructure/scripts/cloudbase-linked-contract.mjs",
     "cloudbase:probe": "node --env-file-if-exists=.env infrastructure/scripts/cloudbase-sdk-probe.mjs",
     "cloudbase:read-contract": "pnpm --filter @chronelle/schemas build && pnpm --filter @chronelle/authorization build && pnpm --filter @chronelle/db build && pnpm --filter @chronelle/object-model build && node --env-file-if-exists=.env infrastructure/scripts/cloudbase-read-contract.mjs",

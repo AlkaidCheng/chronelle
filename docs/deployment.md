@@ -138,6 +138,31 @@ CloudBase RDB reads have a bounded 30-second request timeout by default. Set
 range when a deployment has a documented latency budget; it must not be used
 to mask gateway or quota failures.
 
+### Benchmark CloudBase reads
+
+The API image includes a read-only benchmark over the same identity, list, and
+event-panel adapters used by live requests. From a deployed API instance shell,
+where the CloudBase environment variables are already available, run:
+
+```bash
+node dist/benchmark-cloudbase.js
+```
+
+Use `--workload tasks-manual` for the optimized Task list alone, or `--json` for
+the full percentile and per-gateway-target report. `--samples` accepts 3-30
+measured runs and `--warmups` accepts 0-5 warm-up runs. Locally, the equivalent
+command builds the API first and reads the ignored root `.env`:
+
+```bash
+pnpm cloudbase:benchmark --workload tasks-manual
+```
+
+The benchmark automatically selects the populated member workspace with the
+most live objects. It reports only aggregate object counts and timing data; it
+does not print identities or object IDs. Its client rejects insert, update, and
+delete operations. Run it in staging because the repeated reads consume gateway
+quota and can add load to a production database.
+
 ### Run the real CloudBase read contract
 
 After the schemas and read adapters are built, run the opt-in, read-only staging
