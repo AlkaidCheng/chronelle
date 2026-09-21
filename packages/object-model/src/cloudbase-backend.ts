@@ -8,6 +8,7 @@ import type { CloudBaseRdbClient } from "@chronelle/db";
 export const cloudBaseObjectModelFunctions: readonly string[] = [
   "chronelle_event_list_candidates",
   "chronelle_task_list_candidates",
+  "chronelle_task_list_hydrate",
   "chronelle_person_list_candidates",
   "chronelle_backend_readiness",
   "chronelle_revision_baseline",

@@ -5,6 +5,12 @@ canonical records. Only the selected page loads full object properties and typed
 payloads, task labels, or person contacts and labels. PostgreSQL TCP repositories
 and public response schemas are unchanged.
 
+Task pages use one candidate RPC and one hydration RPC. The hydration function
+rechecks visibility and returns the selected canonical and typed rows, labels,
+visible Event contexts, parent names, and subtask progress from one database
+snapshot. It replaces the separate workspace, grant, object, typed-row, label,
+relation, and related-object gateway reads without moving list semantics into SQL.
+
 ## Bounded paths
 
 - Event lists with an empty text query and updated ordering request `limit + 1`
@@ -51,8 +57,9 @@ rows and hydrates at most 20 canonical rows per table. Name/date/due ordering st
 returns 320 lightweight candidates, but hydrates only 20 canonical objects. A
 2,000-revision fixture verifies bounded history and preceding-version queries.
 
-Apply `0067_add_list_candidate_functions.sql` before deploying the API. Startup
-readiness checks require its three public candidate functions. The migration is
-additive and independent of `0066`; an older API continues to work after it is
-applied. Production timings and query plans should be measured separately from the
-local transport and SQL regression tests.
+Apply `0067_add_list_candidate_functions.sql` and then
+`0069_add_task_list_hydration.sql` before deploying the API. Startup readiness
+checks require the three public candidate functions and the Task hydration
+function. Both migrations are additive; an older API continues to work after
+they are applied. Production timings and query plans should be measured
+separately from the local transport and SQL regression tests.

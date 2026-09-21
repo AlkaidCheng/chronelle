@@ -274,6 +274,16 @@ with `pnpm db:migrate` locally, or through the CloudBase console SQL editor.
 It briefly locks `resource_grants`, so use a quiet period. No revision baseline,
 runtime role changes, or API redeployment are needed.
 
+Migration `0069_add_task_list_hydration.sql` adds the read-only
+`chronelle_task_list_hydrate` function. CloudBase Task lists use it after
+candidate selection to load canonical rows, typed state, labels, visible Event
+contexts, parents, and subtask progress in one gateway request. Apply it with
+`pnpm db:migrate` locally, or through the CloudBase console SQL editor, before
+starting the updated API: readiness requires the function. It changes no tables,
+needs no revision baseline or PostgreSQL runtime-role changes, and is compatible
+with older API versions. On CloudBase it revokes browser-role execution and
+grants execution to `service_role` when those managed roles exist.
+
 Migration `0021_add_object_search_function.sql` adds `chronelle_object_search`,
 the read-only function the CloudBase search adapter calls. It changes no
 tables and needs no baseline.

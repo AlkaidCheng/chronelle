@@ -123,6 +123,48 @@ describe.sequential("CloudBase bounded list hydration", () => {
     },
   );
 
+  it("hydrates a Task page with two RPCs and no table reads", async () => {
+    const harness = await fixture();
+    const db = harness.database.connection.db;
+    const taskId = createId();
+    await db.insert(objects).values({
+      id: taskId,
+      workspaceId: harness.workspaceId,
+      objectType: "task",
+      displayName: "Two-request task",
+      permissionScopeId: taskId,
+      createdBy: harness.ownerId,
+    });
+    await db
+      .insert(tasks)
+      .values({ objectId: taskId, workspaceId: harness.workspaceId });
+    const reader = createCloudBaseLiveReader(db);
+    const selects: string[] = [];
+    const rpcs: string[] = [];
+    const client = {
+      ...reader,
+      async select<T>(table: string, query: CloudBaseRdbQuery = {}) {
+        selects.push(table);
+        return reader.select<T>(table, query);
+      },
+      async rpc<T>(name: string, args?: Record<string, unknown>) {
+        rpcs.push(name);
+        return harness.rpc<T>(name, args);
+      },
+    };
+
+    const page = await new CloudBaseTaskReadRepository(client).listTasks(
+      harness.principal,
+    );
+
+    expect(page.items.map(({ id }) => id)).toEqual([taskId]);
+    expect(rpcs).toEqual([
+      "chronelle_task_list_candidates",
+      "chronelle_task_list_hydrate",
+    ]);
+    expect(selects).toEqual([]);
+  });
+
   it("bounds updated/manual candidates and hydrates only one page of canonical payloads", async () => {
     const harness = await fixture();
     const db = harness.database.connection.db;
@@ -169,14 +211,16 @@ describe.sequential("CloudBase bounded list hydration", () => {
       },
       async rpc<T>(name: string, args?: Record<string, unknown>) {
         const result = await harness.rpc<T>(name, args);
-        const page = Array.isArray(result)
-          ? result
-          : (result as { rows: unknown[] }).rows;
-        candidates.push({
-          name,
-          count: page.length,
-          bytes: JSON.stringify(result).length,
-        });
+        if (name.endsWith("_list_candidates")) {
+          const page = Array.isArray(result)
+            ? result
+            : (result as { rows: unknown[] }).rows;
+          candidates.push({
+            name,
+            count: page.length,
+            bytes: JSON.stringify(result).length,
+          });
+        }
         return result;
       },
     };
