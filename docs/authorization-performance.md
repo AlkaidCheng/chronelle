@@ -30,6 +30,40 @@ predicates, a subsequent run measured 1.32/3.14/13.83 ms at 1/100/1,000 objects
 and 16.14 ms at 1,001 objects. Statement counts remain 1/1/1/2. These small
 timing differences are not a claim of a batch latency improvement.
 
+## Read-snapshot cache A/B
+
+Repeated decisions about the same canonical object within one read boundary
+reuse its role lookup. The cache belongs to the read-only repeatable-read
+transaction and is discarded with that transaction. Write transactions use the
+uncached store so a later decision can observe earlier writes in the same
+transaction.
+
+The paired fixture calls `can(principal, "view", resource)` followed by
+`allowedActions(principal, resource)`, matching the duplicate role lookup in an
+object access read. Its uncached control uses `DrizzleAuthorizationStore`
+directly. Its treatment uses the cache through the production
+`withReadAuthorization` boundary. Both variants run against the same PostgreSQL
+17 fixture, their order alternates within every pair, and transaction setup is
+outside the timer. Each of three independent runs used 10 warm-up pairs and 50
+measured pairs. Query counts are asserted; timings are reported without a
+pass/fail threshold.
+
+| Variant             | Policy statements |   Median range |      p95 range |
+| ------------------- | ----------------: | -------------: | -------------: |
+| Control             |                 2 | 1.835-2.004 ms | 2.595-3.548 ms |
+| Read-snapshot cache |                 1 | 0.971-1.035 ms | 1.208-1.632 ms |
+
+The treatment removed one of two policy statements. Across the three runs its
+median was 47-49% lower and its p95 was 52-55% lower. These are local paired
+measurements of the policy decision, not endpoint latency, production
+throughput, or an SLA.
+
+Entries are partitioned by principal, workspace, evaluation instant, and
+resource. Unavailable resources are cached as empty results. Concurrent checks
+share an in-flight lookup, while a failed lookup is evicted so the next check
+retries storage. No entry survives the authorization snapshot, and CloudBase
+authorization-bearing functions are unchanged.
+
 Run the reproducible policy fixture against the configured test database:
 
 ```sh
@@ -80,7 +114,9 @@ Batching bounds IDs and parameters per statement, not total response size.
 Returned state still uses memory proportional to visible objects, and a large
 read holds its snapshot connection across all chunks. Search limits returned
 rows after authorization, not the total database work needed to find and rank
-matches. No authorization cache, new index, or migration is introduced.
+matches. The read-snapshot cache retains role arrays only for canonical IDs
+checked by that transaction; no result crosses a transaction or request. No
+new index or migration is introduced.
 Event pages likewise bound hydration and response rows, not candidate filtering
 or sorting. Active relation pages bound transfer and response memory, not all
 candidate scanning or sorting. Database statistics still affect lookup plans;
@@ -102,11 +138,11 @@ object routing uses the same two-call budget, without additional grant or
 workspace table requests. These are transport counts, not production latency
 measurements.
 
-No authorization result is cached. Every request rechecks session revocation,
-membership, grant expiry, and deletion eligibility. Narrowed grants admit the
-workspace without granting unrestricted access to its objects or views; their
-existing resource-level checks remain mandatory. Provider authentication stays
-separate from workspace authorization, and the PostgreSQL TCP path is unchanged.
+No CloudBase authorization result is cached. Every request rechecks session
+revocation, membership, grant expiry, and deletion eligibility. Narrowed grants
+admit the workspace without granting unrestricted access to its objects or
+views; their existing resource-level checks remain mandatory. Provider
+authentication stays separate from workspace authorization.
 
 Apply migration `0066` before deploying the API. CloudBase startup readiness
 requires the new function; the migration is additive and older API versions can

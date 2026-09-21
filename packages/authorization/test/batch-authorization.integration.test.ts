@@ -42,6 +42,121 @@ afterAll(async () => {
 });
 
 describe.sequential("authorization query budgets", () => {
+  it("reuses a role lookup for repeated decisions in one read snapshot", async () => {
+    const db = database.connection.db;
+    const ownerId = createId();
+    const memberId = createId();
+    const workspaceId = createId();
+    const resourceId = createId();
+    await db.insert(users).values(
+      [ownerId, memberId].map((id) => ({
+        id,
+        identityProvider: "test",
+        providerSubject: id,
+        displayName: "Cache benchmark user",
+      })),
+    );
+    await db.insert(workspaces).values({
+      id: workspaceId,
+      displayName: "Cache benchmark workspace",
+      createdBy: ownerId,
+    });
+    await db.insert(workspaceMembers).values({
+      workspaceId,
+      userId: memberId,
+      role: "viewer",
+    });
+    await db.insert(objects).values({
+      id: resourceId,
+      workspaceId,
+      permissionScopeId: resourceId,
+      objectType: "event",
+      displayName: "Cache benchmark event",
+      createdBy: ownerId,
+    });
+
+    let queryCount = 0;
+    const measured = drizzle(database.connection.sql, {
+      schema,
+      logger: { logQuery: () => queryCount++ },
+    });
+    const principal = {
+      type: "user" as const,
+      userId: memberId,
+      workspaceId,
+    };
+    const resource = { id: resourceId, workspaceId };
+    const evaluatedAt = new Date("2030-01-02T00:00:00Z");
+
+    async function evaluate(policy: AuthorizationService) {
+      queryCount = 0;
+      const startedAt = performance.now();
+      const allowed = await policy.can(principal, "view", resource);
+      const actions = await policy.allowedActions(principal, resource);
+      return {
+        actions,
+        allowed,
+        elapsedMs: performance.now() - startedAt,
+        queries: queryCount,
+      };
+    }
+
+    async function run(cached: boolean) {
+      if (cached)
+        return withReadAuthorization(measured, (_transaction, policy) =>
+          evaluate(policy),
+        );
+      return measured.transaction(
+        (transaction) =>
+          evaluate(
+            new AuthorizationService(
+              new DrizzleAuthorizationStore(transaction),
+              () => evaluatedAt,
+            ),
+          ),
+        { isolationLevel: "repeatable read", accessMode: "read only" },
+      );
+    }
+
+    const control: Awaited<ReturnType<typeof run>>[] = [];
+    const treatment: Awaited<ReturnType<typeof run>>[] = [];
+    const warmups = 10;
+    const samples = 50;
+    for (let iteration = -warmups; iteration < samples; iteration += 1) {
+      const order = iteration % 2 === 0 ? [false, true] : [true, false];
+      for (const cached of order) {
+        const result = await run(cached);
+        expect(result.allowed).toBe(true);
+        expect(result.actions).toEqual(["view"]);
+        if (iteration >= 0) (cached ? treatment : control).push(result);
+      }
+    }
+
+    expect(control.map(({ queries }) => queries)).toEqual(
+      Array(samples).fill(2),
+    );
+    expect(treatment.map(({ queries }) => queries)).toEqual(
+      Array(samples).fill(1),
+    );
+    const distribution = (results: typeof control) => {
+      const values = results
+        .map(({ elapsedMs }) => elapsedMs)
+        .sort((left, right) => left - right);
+      const at = (fraction: number) =>
+        values[Math.ceil(values.length * fraction) - 1] ?? 0;
+      return { medianMs: at(0.5), p95Ms: at(0.95) };
+    };
+    console.info(
+      JSON.stringify({
+        workload: "repeated single-resource role decision",
+        samples,
+        warmups,
+        control: { queries: 2, ...distribution(control) },
+        treatment: { queries: 1, ...distribution(treatment) },
+      }),
+    );
+  });
+
   it.each([1, 100, 1000, 1001])(
     "evaluates %i scoped objects",
     async (count) => {

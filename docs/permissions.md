@@ -33,7 +33,9 @@ lists and projections, relation and attachment traversal, search, grant lists,
 history, restoration previews, Trash, command state, and inventory reference
 queries use this boundary.
 Nested readers share the same transaction and evaluator, including all members
-of a projection. No permission decision is cached across requests.
+of a projection. Repeated role lookups for the same principal and canonical
+object reuse that snapshot's result. The cache ends with the read transaction;
+no permission decision is cached across requests or protected writes.
 
 Grant expiry is evaluated at a fixed application-clock instant for each read
 boundary. A read already authorized in its snapshot may finish after revocation,

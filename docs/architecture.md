@@ -133,7 +133,8 @@ implementation. The database store batches role lookup, while object-model owns
 batched typed-state loading through `listVisibleObjects()` and `readObjectStates()`.
 No controller, projection, or React component implements role precedence.
 Statements handle at most 1,000 IDs at a time and share the owning snapshot;
-there is no cross-request permission cache. See
+repeated role lookups for the same canonical ID are memoized inside that
+read-only snapshot, and there is no cross-request permission cache. See
 [Authorization performance](authorization-performance.md) for query budgets.
 
 `ObjectRestorationService` owns typed comparison, preview, and content

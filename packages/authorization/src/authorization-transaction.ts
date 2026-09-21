@@ -11,6 +11,7 @@ import {
   AuthorizationService,
 } from "./authorization.js";
 import { DrizzleAuthorizationStore } from "./drizzle-authorization-store.js";
+import { ReadSnapshotAuthorizationStore } from "./read-snapshot-authorization-store.js";
 
 /** A transaction and its policy evaluator, owned by a snapshot or a protected mutation. */
 export interface AuthorizedTransaction {
@@ -42,7 +43,9 @@ export async function withReadAuthorization<Value>(
       return operation(
         transaction,
         new AuthorizationService(
-          new DrizzleAuthorizationStore(transaction),
+          new ReadSnapshotAuthorizationStore(
+            new DrizzleAuthorizationStore(transaction),
+          ),
           () => evaluatedAt,
         ),
       );
