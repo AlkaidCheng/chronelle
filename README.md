@@ -124,7 +124,11 @@ conflicts never overwrite silently, and bounded local drafts retain a stable
 creation command for safe retries. App visibility and network changes drive the
 same TanStack Query focus and online semantics used by the web client. CloudBase
 credentials remain transient; local storage retains only the opaque Chronelle
-session. See [WeChat Mini Program](docs/wechat.md).
+session. Lazy feature subpackages provide the Event editor and a layout-driven
+planning workspace whose pages render authorized canonical To-do, Calendar,
+Timeline, Itinerary, Expense, and Reminder projections. Removing a planning
+component changes only the Event layout, never the underlying object. See
+[WeChat Mini Program](docs/wechat.md).
 
 Open <http://localhost:3000/sign-in> to create a development session, then use
 the Events workspace to build an event plan. The web server forwards `/api`

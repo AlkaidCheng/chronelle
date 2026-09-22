@@ -8,6 +8,10 @@ export default defineAppConfig({
       root: "features/event-editor",
       pages: ["index"],
     },
+    {
+      root: "features/planning",
+      pages: ["index"],
+    },
   ],
   themeLocation: "theme.json",
   window: {

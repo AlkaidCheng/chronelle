@@ -7,13 +7,15 @@
 
 .back-button,
 .edit-button,
-.detail-button {
+.detail-button,
+.planning-link {
   border: 0;
 }
 
 .back-button::after,
 .edit-button::after,
-.detail-button::after {
+.detail-button::after,
+.planning-link::after {
   border: 0;
 }
 
@@ -58,6 +60,11 @@
   display: block;
 }
 
+.planning-link__title,
+.planning-link__detail {
+  display: block;
+}
+
 .detail-eyebrow,
 .detail-label {
   color: var(--chronelle-muted);
@@ -86,6 +93,34 @@
 
 .detail-date--muted {
   color: var(--chronelle-muted);
+}
+
+.planning-link {
+  display: block;
+  box-sizing: border-box;
+  width: 100%;
+  margin: 38rpx 0 0;
+  padding: 26rpx 28rpx;
+  border: 1rpx solid var(--chronelle-line-strong);
+  border-radius: 22rpx;
+  background: var(--chronelle-surface);
+  box-shadow: 0 12rpx 36rpx rgba(68, 47, 31, 0.045);
+  text-align: left;
+}
+
+.planning-link__title {
+  color: var(--chronelle-cinnabar);
+  font-family: "Songti SC", STSong, serif;
+  font-size: 29rpx;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.planning-link__detail {
+  margin-top: 8rpx;
+  color: var(--chronelle-muted);
+  font-size: 22rpx;
+  line-height: 1.55;
 }
 
 .detail-section {

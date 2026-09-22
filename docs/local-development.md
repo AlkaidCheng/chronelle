@@ -373,7 +373,10 @@ switching, canonical Event pagination, and Event overview reads. Its transport
 contract covers cancellation, deadlines, public health, protected reads, and
 credential headers. The native Event editor exercises the same create and
 versioned update routes with date, time, draft-retention, and idempotent retry
-coverage:
+coverage. The planning feature subpackage reads the existing authorized Event
+layout and canonical To-do, Calendar, Timeline, Itinerary, Expense, and Reminder
+projections; layout edits carry their expected version and never delete the
+objects shown by a component:
 
 ```bash
 pnpm --filter @chronelle/api-client test
