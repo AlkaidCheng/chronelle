@@ -113,9 +113,11 @@ pnpm dev:weapp
 pnpm wechat:bundle
 ```
 
-The W01 shell is deliberately offline. It proves the native build, theming,
-localization, and package budgets before authentication or live data are added.
-See [WeChat Mini Program](docs/wechat.md).
+The shell remains offline until WeChat identity lands in W03. The shared API
+client now has a cancelable Taro JSON transport, so later Mini Program screens
+can use the same runtime-validated REST contracts and authorization boundary as
+the web app without emulating browser networking or file APIs. See
+[WeChat Mini Program](docs/wechat.md).
 
 Open <http://localhost:3000/sign-in> to create a development session, then use
 the Events workspace to build an event plan. The web server forwards `/api`

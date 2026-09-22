@@ -5,7 +5,7 @@ Chronelle's WeChat Mini Program is a native Taro 4 application in
 not a second backend. Protected business data will continue to pass through the
 Fastify REST API and its centralized authorization decision.
 
-## W01 foundation
+## Implemented foundation
 
 The current slice provides one offline shell page with:
 
@@ -18,8 +18,35 @@ The current slice provides one offline shell page with:
 - a production package report with enforced main, subpackage, and total budgets;
 - unit coverage for locale selection and package accounting.
 
-It does not yet authenticate, call the API, or cache business data. Those
-capabilities belong to later vertical slices and must not bypass the API.
+The visible shell does not yet authenticate or cache business data. W02 adds
+the transport boundary used by future authenticated screens without adding a
+second data or permission path.
+
+## W02 API transport
+
+`ChronelleApiClient` owns request construction, bearer and workspace headers,
+runtime response validation, and safe API error translation. It now delegates
+JSON I/O through a small transport port:
+
+- the web adapter uses Fetch;
+- the Mini Program adapter uses `Taro.request` and its abortable request task;
+- both adapters enforce caller cancellation and a 30-second default deadline;
+- public health checks omit credentials, while protected session requests send
+  the opaque Chronelle bearer token and active workspace ID;
+- unreadable, failed, cancelled, and timed-out responses cross the same typed
+  client boundary.
+
+File hashing and binary transfer are separate capabilities. Browser defaults
+use Web Crypto and Fetch with a two-minute transfer deadline. The Mini Program
+does not pretend to provide those browser APIs; W07 will supply native WeChat
+hashing, upload, download, and file-opening adapters.
+
+The shared transport contract runs against both Fetch and Taro adapters. A
+Mini Program integration test also exercises `/api/health` and the protected
+`/api/auth/session` route through the production client and validates both
+responses with the shared schemas. W03 will add verified WeChat identity,
+revocable token persistence, and lifecycle ownership before the shell performs
+live requests.
 
 ## Local build
 
@@ -34,6 +61,17 @@ Open `apps/wechat` in WeChat DevTools. Its tracked `project.config.json` uses
 `touristappid` and points at `dist/weapp`. Store a real AppID and local DevTools
 settings in `apps/wechat/project.private.config.json`; it is gitignored and must
 not be committed.
+
+Run the transport and package tests with:
+
+```bash
+pnpm --filter @chronelle/api-client test
+pnpm --filter @chronelle/wechat test
+```
+
+A deployed Mini Program API origin must use HTTPS and be registered as a WeChat
+request domain. Keep API keys and the WeChat AppSecret on the server; the client
+will eventually persist only its opaque, revocable Chronelle session token.
 
 The production build disables DevTools-side ES5 conversion, style completion,
 and upload-time minification because Taro performs those transformations. The
