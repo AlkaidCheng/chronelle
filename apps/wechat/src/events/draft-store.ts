@@ -1,9 +1,14 @@
 import type { TaroStorage } from "../auth/session-store";
+import {
+  BoundedDraftStore,
+  editorDraftLifetimeMs,
+  maximumEditorDrafts,
+} from "../runtime/bounded-draft-store";
 import type { EventEditorFields, EventScheduleMode } from "./editor";
 
 export const eventDraftStorageKey = "chronelle.event-drafts.v1";
-export const maximumEventDrafts = 20;
-export const eventDraftLifetimeMs = 7 * 24 * 60 * 60_000;
+export const maximumEventDrafts = maximumEditorDrafts;
+export const eventDraftLifetimeMs = editorDraftLifetimeMs;
 
 export interface EventDraftIdentity {
   readonly eventId: string | null;
@@ -17,11 +22,6 @@ export interface EventDraftSnapshot extends EventDraftIdentity {
   readonly fields: EventEditorFields;
   readonly sourceVersion: number | null;
   readonly updatedAt: string;
-}
-
-interface StoredEventDrafts {
-  readonly drafts: readonly EventDraftSnapshot[];
-  readonly version: 1;
 }
 
 function isString(value: unknown, limit: number): value is string {
@@ -114,88 +114,19 @@ function identityKey(value: EventDraftIdentity): string {
   return `${value.userId}:${value.workspaceId}:${value.eventId ?? "new"}`;
 }
 
-export class EventDraftStore {
-  readonly #clock: () => Date;
-  readonly #storage: TaroStorage;
-  #pending: Promise<void> = Promise.resolve();
-
+export class EventDraftStore extends BoundedDraftStore<
+  EventDraftIdentity,
+  EventDraftSnapshot
+> {
   constructor(storage: TaroStorage, clock: () => Date = () => new Date()) {
-    this.#clock = clock;
-    this.#storage = storage;
-  }
-
-  async load(identity: EventDraftIdentity): Promise<EventDraftSnapshot | null> {
-    await this.#pending;
-    return (
-      (await this.#read()).find(
-        (draft) => identityKey(draft) === identityKey(identity),
-      ) ?? null
-    );
-  }
-
-  save(snapshot: EventDraftSnapshot): Promise<void> {
-    return this.#mutate(async () => {
-      const key = identityKey(snapshot);
-      const drafts = (await this.#read()).filter(
-        (draft) => identityKey(draft) !== key,
-      );
-      const stored: StoredEventDrafts = {
-        version: 1,
-        drafts: [snapshot, ...drafts]
-          .sort((first, second) =>
-            second.updatedAt.localeCompare(first.updatedAt),
-          )
-          .slice(0, maximumEventDrafts),
-      };
-      await this.#storage.setStorage({
-        key: eventDraftStorageKey,
-        data: stored,
-      });
+    super({
+      clock,
+      identityKey,
+      lifetimeMs: eventDraftLifetimeMs,
+      limit: maximumEventDrafts,
+      parse: parseDraft,
+      storage,
+      storageKey: eventDraftStorageKey,
     });
-  }
-
-  remove(identity: EventDraftIdentity): Promise<void> {
-    return this.#mutate(async () => {
-      const key = identityKey(identity);
-      const drafts = (await this.#read()).filter(
-        (draft) => identityKey(draft) !== key,
-      );
-      if (drafts.length === 0) {
-        await this.#storage.removeStorage({ key: eventDraftStorageKey });
-        return;
-      }
-      await this.#storage.setStorage({
-        key: eventDraftStorageKey,
-        data: { version: 1, drafts } satisfies StoredEventDrafts,
-      });
-    });
-  }
-
-  #mutate(operation: () => Promise<void>): Promise<void> {
-    const next = this.#pending.then(operation, operation);
-    this.#pending = next.catch(() => undefined);
-    return next;
-  }
-
-  async #read(): Promise<EventDraftSnapshot[]> {
-    let value: unknown;
-    try {
-      value = (await this.#storage.getStorage({ key: eventDraftStorageKey }))
-        .data;
-    } catch {
-      return [];
-    }
-    if (value === null || typeof value !== "object" || Array.isArray(value))
-      return [];
-    const envelope = value as Record<string, unknown>;
-    if (envelope.version !== 1 || !Array.isArray(envelope.drafts)) return [];
-    const cutoff = this.#clock().getTime() - eventDraftLifetimeMs;
-    return envelope.drafts
-      .map(parseDraft)
-      .filter(
-        (draft): draft is EventDraftSnapshot =>
-          draft !== null && Date.parse(draft.updatedAt) >= cutoff,
-      )
-      .slice(0, maximumEventDrafts);
   }
 }

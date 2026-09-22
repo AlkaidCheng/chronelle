@@ -5,6 +5,17 @@ import {
   type EventUpdatePayload,
 } from "@chronelle/schemas";
 
+import {
+  clockPattern,
+  localCalendarDate,
+  localParts,
+  supportedTimeZone,
+  WallClockError,
+  zonedInstant,
+} from "./wall-clock";
+
+export { localCalendarDate } from "./wall-clock";
+
 export type EventScheduleMode = "undated" | "dates" | "timed";
 
 export interface EventEditorFields {
@@ -41,16 +52,6 @@ export class EventEditorValidationError extends Error {
   }
 }
 
-const clockPattern = /^(?:[01]\d|2[0-3]):[0-5]\d$/u;
-
-function pad(value: number): string {
-  return String(value).padStart(2, "0");
-}
-
-export function localCalendarDate(now: Date = new Date()): string {
-  return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
-}
-
 export function emptyEventFields(
   timeZone: string,
   now: Date = new Date(),
@@ -66,35 +67,6 @@ export function emptyEventFields(
     startTime: "09:00",
     timeZone,
   };
-}
-
-function localParts(value: string, timeZone: string) {
-  const parts = new Intl.DateTimeFormat("en-US", {
-    day: "2-digit",
-    hour: "2-digit",
-    hourCycle: "h23",
-    minute: "2-digit",
-    month: "2-digit",
-    timeZone,
-    year: "numeric",
-  }).formatToParts(new Date(value));
-  const values = new Map(parts.map((part) => [part.type, part.value]));
-  return {
-    date: `${values.get("year")}-${values.get("month")}-${values.get("day")}`,
-    time: `${values.get("hour")}:${values.get("minute")}`,
-  };
-}
-
-function supportedTimeZone(preferred: string, fallback = "UTC"): string {
-  for (const candidate of [preferred, fallback, "UTC"]) {
-    try {
-      new Intl.DateTimeFormat("en-US", { timeZone: candidate }).format();
-      return candidate;
-    } catch {
-      // Try the account or UTC fallback when a device lacks this zone.
-    }
-  }
-  return "UTC";
 }
 
 export function fieldsFromEvent(
@@ -122,61 +94,6 @@ export function fieldsFromEvent(
     startTime: start.time,
     timeZone,
   };
-}
-
-function dateParts(value: string): [number, number, number] | null {
-  if (!calendarDateSchema.safeParse(value).success) return null;
-  const parts = value.split("-").map(Number);
-  return parts.length === 3
-    ? [parts[0] ?? 0, parts[1] ?? 0, parts[2] ?? 0]
-    : null;
-}
-
-function timeParts(value: string): [number, number] | null {
-  if (!clockPattern.test(value)) return null;
-  const parts = value.split(":").map(Number);
-  return parts.length === 2 ? [parts[0] ?? 0, parts[1] ?? 0] : null;
-}
-
-function zonedInstant(
-  dateValue: string,
-  timeValue: string,
-  timeZone: string,
-): string {
-  const date = dateParts(dateValue);
-  const time = timeParts(timeValue);
-  if (date === null || time === null)
-    throw new EventEditorValidationError("invalid-date");
-
-  const [year, month, day] = date;
-  const [hour, minute] = time;
-  const target = Date.UTC(year, month - 1, day, hour, minute);
-  let instant = target;
-  try {
-    for (let attempt = 0; attempt < 3; attempt++) {
-      const observed = localParts(new Date(instant).toISOString(), timeZone);
-      const observedDate = dateParts(observed.date);
-      const observedTime = timeParts(observed.time);
-      if (observedDate === null || observedTime === null)
-        throw new EventEditorValidationError("invalid-local-time");
-      instant +=
-        target -
-        Date.UTC(
-          observedDate[0],
-          observedDate[1] - 1,
-          observedDate[2],
-          observedTime[0],
-          observedTime[1],
-        );
-    }
-    const resolved = localParts(new Date(instant).toISOString(), timeZone);
-    if (resolved.date !== dateValue || resolved.time !== timeValue)
-      throw new EventEditorValidationError("invalid-local-time");
-  } catch (error) {
-    if (error instanceof EventEditorValidationError) throw error;
-    throw new EventEditorValidationError("invalid-time-zone");
-  }
-  return new Date(instant).toISOString();
 }
 
 function sharedPayload(fields: EventEditorFields) {
@@ -208,11 +125,11 @@ function schedulePayload(fields: EventEditorFields) {
     timezone: null,
   } as const;
   if (fields.mode === "undated") return cleared;
-  if (dateParts(fields.startDate) === null)
+  if (!calendarDateSchema.safeParse(fields.startDate).success)
     throw new EventEditorValidationError(
       fields.startDate.length === 0 ? "start-required" : "invalid-date",
     );
-  if (fields.endDate && dateParts(fields.endDate) === null)
+  if (fields.endDate && !calendarDateSchema.safeParse(fields.endDate).success)
     throw new EventEditorValidationError("invalid-date");
   if (fields.endDate && fields.endDate < fields.startDate)
     throw new EventEditorValidationError("end-before-start");
@@ -228,14 +145,22 @@ function schedulePayload(fields: EventEditorFields) {
     throw new EventEditorValidationError("start-required");
   if (Boolean(fields.endDate) !== Boolean(fields.endTime))
     throw new EventEditorValidationError("end-incomplete");
-  const startsAt = zonedInstant(
-    fields.startDate,
-    fields.startTime,
-    fields.timeZone,
-  );
-  const endsAt = fields.endDate
-    ? zonedInstant(fields.endDate, fields.endTime, fields.timeZone)
-    : null;
+  let startsAt: string;
+  let endsAt: string | null;
+  try {
+    startsAt = zonedInstant(
+      fields.startDate,
+      fields.startTime,
+      fields.timeZone,
+    );
+    endsAt = fields.endDate
+      ? zonedInstant(fields.endDate, fields.endTime, fields.timeZone)
+      : null;
+  } catch (error) {
+    if (error instanceof WallClockError)
+      throw new EventEditorValidationError(error.issue);
+    throw error;
+  }
   if (endsAt !== null && endsAt < startsAt)
     throw new EventEditorValidationError("end-before-start");
   return {

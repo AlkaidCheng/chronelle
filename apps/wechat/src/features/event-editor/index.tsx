@@ -10,6 +10,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 
 import { useSession } from "../../auth/session-context";
 import { canCreateInActiveWorkspace } from "../../auth/workspace-access";
+import { EditorFieldLabel, EditorStateCard } from "../../components/editor";
 import type { EventDraftSnapshot } from "../../events/draft-store";
 import {
   emptyEventFields,
@@ -32,13 +33,8 @@ import {
   type MessageKey,
 } from "../../i18n/catalog";
 import { useReadyAppRuntime } from "../../runtime/app-runtime";
-import {
-  EditorFieldLabel,
-  EditorStateCard,
-  EventConflictCard,
-  EventScheduleEditor,
-} from "./editor-components";
-import "./index.scss";
+import { EventConflictCard, EventScheduleEditor } from "./editor-components";
+import "../../styles/editor.scss";
 
 function issueMessage(issue: EventEditorIssue): MessageKey {
   const messages: Record<EventEditorIssue, MessageKey> = {

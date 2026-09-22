@@ -1,6 +1,7 @@
 import type { EventResponse, SessionResponse } from "@chronelle/schemas";
 import { Button, Picker, Text, View } from "@tarojs/components";
 
+import { EditorFieldLabel } from "../../components/editor";
 import type { EventDraftSnapshot } from "../../events/draft-store";
 import {
   fieldsFromEvent,
@@ -10,38 +11,6 @@ import {
 } from "../../events/editor";
 import { formatEventSchedule } from "../../events/format";
 import { getMessages, type AppLocale } from "../../i18n/catalog";
-
-export function EditorStateCard({
-  action,
-  detail,
-  onAction,
-  title,
-}: {
-  readonly action?: string | undefined;
-  readonly detail: string;
-  readonly onAction?: (() => void) | undefined;
-  readonly title: string;
-}) {
-  return (
-    <View className="editor-state">
-      <View className="editor-state__mark" aria-hidden />
-      <Text className="editor-state__title">{title}</Text>
-      <Text className="editor-state__detail">{detail}</Text>
-      {action && onAction ? (
-        <Button
-          className="editor-button editor-button--secondary"
-          onClick={onAction}
-        >
-          {action}
-        </Button>
-      ) : null}
-    </View>
-  );
-}
-
-export function EditorFieldLabel({ children }: { readonly children: string }) {
-  return <Text className="editor-label">{children}</Text>;
-}
 
 export function EventScheduleEditor({
   disabled,
