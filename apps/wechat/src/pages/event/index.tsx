@@ -137,7 +137,7 @@ function ReadyEventPage({
             className="edit-button"
             onClick={() =>
               void Taro.navigateTo({
-                url: `/pages/event-editor/index?id=${encodeURIComponent(event.id)}`,
+                url: `/features/event-editor/index?id=${encodeURIComponent(event.id)}`,
               })
             }
           >

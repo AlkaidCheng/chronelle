@@ -2,7 +2,13 @@ export default defineAppConfig({
   darkmode: true,
   entryPagePath: "pages/index/index",
   lazyCodeLoading: "requiredComponents",
-  pages: ["pages/index/index", "pages/event/index", "pages/event-editor/index"],
+  pages: ["pages/index/index", "pages/event/index"],
+  subPackages: [
+    {
+      root: "features/event-editor",
+      pages: ["index"],
+    },
+  ],
   themeLocation: "theme.json",
   window: {
     backgroundColor: "@backgroundColor",

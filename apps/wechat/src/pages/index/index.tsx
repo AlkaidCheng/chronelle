@@ -315,7 +315,7 @@ function EventWorkspace({ session }: { readonly session: SessionResponse }) {
             <Button
               className="new-event-button"
               onClick={() =>
-                void Taro.navigateTo({ url: "/pages/event-editor/index" })
+                void Taro.navigateTo({ url: "/features/event-editor/index" })
               }
             >
               {messages.newEvent}
