@@ -118,10 +118,13 @@ pnpm wechat:bundle
 
 The native shell restores and revokes Chronelle sessions, links an existing
 account explicitly, switches workspaces, pages through canonical Events, and
-shows an authorized Event overview. App visibility and network changes drive
-the same TanStack Query focus and online semantics used by the web client.
-CloudBase credentials remain transient; local storage retains only the opaque
-Chronelle session. See [WeChat Mini Program](docs/wechat.md).
+shows an authorized Event overview. Owners and editors can create or edit
+undated, date-only, timed, and multi-day Events with native pickers. Version
+conflicts never overwrite silently, and bounded local drafts retain a stable
+creation command for safe retries. App visibility and network changes drive the
+same TanStack Query focus and online semantics used by the web client. CloudBase
+credentials remain transient; local storage retains only the opaque Chronelle
+session. See [WeChat Mini Program](docs/wechat.md).
 
 Open <http://localhost:3000/sign-in> to create a development session, then use
 the Events workspace to build an event plan. The web server forwards `/api`

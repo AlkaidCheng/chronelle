@@ -125,9 +125,26 @@ function ReadyEventPage({
 
   return (
     <View className="detail-shell">
-      <Button className="back-button" onClick={() => void Taro.navigateBack()}>
-        {messages.backToEvents}
-      </Button>
+      <View className="detail-nav">
+        <Button
+          className="back-button"
+          onClick={() => void Taro.navigateBack()}
+        >
+          {messages.backToEvents}
+        </Button>
+        {access.actions.includes("edit") ? (
+          <Button
+            className="edit-button"
+            onClick={() =>
+              void Taro.navigateTo({
+                url: `/pages/event-editor/index?id=${encodeURIComponent(event.id)}`,
+              })
+            }
+          >
+            {messages.editEvent}
+          </Button>
+        ) : null}
+      </View>
       <Text className="detail-eyebrow">{messages.eventOverview}</Text>
       <Text className="detail-title">{event.displayName}</Text>
       <Text

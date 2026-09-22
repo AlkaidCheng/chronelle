@@ -11,6 +11,7 @@ import Taro, { usePullDownRefresh } from "@tarojs/taro";
 import { useMemo, useState } from "react";
 
 import { useSession } from "../../auth/session-context";
+import { canCreateInActiveWorkspace } from "../../auth/workspace-access";
 import { formatEventSchedule } from "../../events/format";
 import { useEventList } from "../../events/queries";
 import {
@@ -271,6 +272,7 @@ function EventWorkspace({ session }: { readonly session: SessionResponse }) {
     0,
     workspaces.findIndex((workspace) => workspace.id === session.workspace.id),
   );
+  const canCreate = canCreateInActiveWorkspace(session);
 
   return (
     <View className="workspace-shell">
@@ -290,24 +292,36 @@ function EventWorkspace({ session }: { readonly session: SessionResponse }) {
           <Text className="workspace-title">{messages.title}</Text>
           <Text className="workspace-description">{messages.description}</Text>
         </View>
-        <Picker
-          mode="selector"
-          range={workspaces.map((workspace) => workspace.displayName)}
-          value={selectedWorkspace}
-          onChange={(event) => {
-            const next = workspaces[Number(event.detail.value)];
-            if (next) void auth.switchWorkspace(next.id);
-          }}
-        >
-          <View className="workspace-picker">
-            <Text className="workspace-picker__label">
-              {messages.workspace}
-            </Text>
-            <Text className="workspace-picker__value">
-              {session.workspace.displayName}
-            </Text>
-          </View>
-        </Picker>
+        <View className="workspace-actions">
+          <Picker
+            mode="selector"
+            range={workspaces.map((workspace) => workspace.displayName)}
+            value={selectedWorkspace}
+            onChange={(event) => {
+              const next = workspaces[Number(event.detail.value)];
+              if (next) void auth.switchWorkspace(next.id);
+            }}
+          >
+            <View className="workspace-picker">
+              <Text className="workspace-picker__label">
+                {messages.workspace}
+              </Text>
+              <Text className="workspace-picker__value">
+                {session.workspace.displayName}
+              </Text>
+            </View>
+          </Picker>
+          {canCreate ? (
+            <Button
+              className="new-event-button"
+              onClick={() =>
+                void Taro.navigateTo({ url: "/pages/event-editor/index" })
+              }
+            >
+              {messages.newEvent}
+            </Button>
+          ) : null}
+        </View>
       </View>
 
       {events.isPending ? (

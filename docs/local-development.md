@@ -371,7 +371,9 @@ pnpm build:weapp
 The shell uses the shared production client for session hydration, workspace
 switching, canonical Event pagination, and Event overview reads. Its transport
 contract covers cancellation, deadlines, public health, protected reads, and
-credential headers:
+credential headers. The native Event editor exercises the same create and
+versioned update routes with date, time, draft-retention, and idempotent retry
+coverage:
 
 ```bash
 pnpm --filter @chronelle/api-client test

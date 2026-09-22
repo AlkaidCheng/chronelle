@@ -258,6 +258,33 @@
   margin: 62rpx 0 30rpx;
 }
 
+.workspace-actions {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: stretch;
+  gap: 12rpx;
+}
+
+.new-event-button {
+  display: flex;
+  min-height: 72rpx;
+  align-items: center;
+  justify-content: center;
+  padding: 0 22rpx;
+  border: 0;
+  border-radius: 16rpx;
+  margin: 0;
+  background: var(--chronelle-cinnabar);
+  color: #fffaf0;
+  font-size: 22rpx;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.new-event-button::after {
+  border: 0;
+}
+
 .workspace-title {
   font-size: 50rpx;
   line-height: 1.18;
@@ -378,5 +405,25 @@
 @media (prefers-reduced-motion: reduce) {
   .event-card {
     transition: none;
+  }
+}
+
+@media (max-width: 380px) {
+  .workspace-toolbar {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .workspace-actions {
+    width: 100%;
+  }
+
+  .workspace-actions picker {
+    min-width: 0;
+    flex: 1;
+  }
+
+  .workspace-picker {
+    min-width: 0;
   }
 }
