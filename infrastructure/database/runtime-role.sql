@@ -72,7 +72,7 @@ GRANT SELECT, INSERT ON
   public.users, public.documents, public.audit_events, public.object_revisions,
   public.event_context_commands, public.object_create_commands, public.reversible_commands,
   public.command_changes, public.command_receipts, public.event_page_revisions,
-  public.person_contacts, public.person_labels
+  public.person_contacts, public.person_labels, public.identity_exchanges
 TO :"runtime_role";
 GRANT SELECT, INSERT, UPDATE ON
   public.workspaces, public.workspace_members, public.objects,
@@ -81,7 +81,7 @@ GRANT SELECT, INSERT, UPDATE ON
   public.command_stacks, public.user_sessions, public.user_credentials,
   public.email_verifications, public.labels, public.task_labels,
   public.persons, public.user_connections, public.user_invitations, public.pending_shares,
-  public.notes, public.sections
+  public.notes, public.sections, public.user_identities
 TO :"runtime_role";
 GRANT DELETE ON public.resource_grants, public.labels, public.task_labels,
   public.person_contacts, public.person_labels, public.workspace_members, public.sections

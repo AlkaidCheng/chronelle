@@ -119,6 +119,7 @@ describe("runtime database privileges", () => {
           "document_transfer_authorizations",
           "command_stacks",
           "user_sessions",
+          "user_identities",
           "user_credentials",
           "email_verifications",
           "labels",

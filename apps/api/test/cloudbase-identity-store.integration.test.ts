@@ -6,10 +6,10 @@ import {
   objects,
   resourceGrants,
   sections,
+  type UserRow,
   users,
   workspaceMembers,
   workspaces,
-  type UserRow,
 } from "@chronelle/db";
 import {
   applyMigrations,
@@ -29,8 +29,8 @@ import { SessionAuthProvider } from "../src/authentication/session-auth-provider
 import { HttpError, WorkspaceUnavailableError } from "../src/errors.js";
 import { CloudBaseIdentityStore } from "../src/identity/cloudbase-identity-store.js";
 import {
-  PostgresIdentityStore,
   type IdentityStore,
+  PostgresIdentityStore,
 } from "../src/identity/identity-store.js";
 import { WorkspaceIdentityService } from "../src/identity/workspace-identity-service.js";
 import { registerRequestContext } from "../src/request-context.js";
@@ -153,7 +153,7 @@ describe.sequential("CloudBase identity store", () => {
       });
       expect(rpc.mock.calls.map(([name]) => name)).toEqual([
         "chronelle_session_resolve",
-        "chronelle_identity_session_resolve",
+        "chronelle_user_session_resolve",
       ]);
       expect(select).not.toHaveBeenCalled();
 
@@ -187,8 +187,7 @@ describe.sequential("CloudBase identity store", () => {
   it("keeps object routing and narrowed grants equivalent to PostgreSQL", async () => {
     const db = database.connection.db;
     const owner = await reference.signIn(identity("routing-owner"), createId());
-    const guestIdentity = identity("routing-guest");
-    const guest = await reference.signIn(guestIdentity, createId());
+    const guest = await reference.signIn(identity("routing-guest"), createId());
     const service = new EventPlanningObjectService(db);
     const shared = await service.createEvent(
       {
@@ -226,19 +225,19 @@ describe.sequential("CloudBase identity store", () => {
       // A narrowed grant admits the workspace; individual resources and
       // views still require their own authorization checks.
       expect(
-        await store.resolveSession(guestIdentity, createId(), shared.id),
+        await store.resolveSession(guest.user.id, createId(), shared.id),
       ).toEqual({ user: guest.user, workspace: owner.workspace });
       expect(
-        await store.resolveSession(guestIdentity, undefined, createId()),
+        await store.resolveSession(guest.user.id, undefined, createId()),
       ).toEqual({ user: guest.user, workspace: guest.workspace });
     }
     await db.delete(resourceGrants).where(eq(resourceGrants.id, grantId));
     for (const [, store] of backends()) {
       expect(
-        await store.resolveSession(guestIdentity, undefined, shared.id),
+        await store.resolveSession(guest.user.id, undefined, shared.id),
       ).toEqual({ user: guest.user, workspace: guest.workspace });
       await expect(
-        store.resolveSession(guestIdentity, owner.workspace.id, shared.id),
+        store.resolveSession(guest.user.id, owner.workspace.id, shared.id),
       ).rejects.toBeInstanceOf(WorkspaceUnavailableError);
     }
   });
@@ -252,7 +251,7 @@ describe.sequential("CloudBase identity store", () => {
       .where(eq(workspaces.id, signedIn.workspace.id));
     for (const [, store] of backends()) {
       await expect(
-        store.resolveSession(person, signedIn.workspace.id),
+        store.resolveSession(signedIn.user.id, signedIn.workspace.id),
       ).resolves.toBeNull();
     }
   });
@@ -260,8 +259,7 @@ describe.sequential("CloudBase identity store", () => {
   it("uses the request's observation time at the exact grant-expiry boundary", async () => {
     const db = database.connection.db;
     const owner = await reference.signIn(identity("expiry-owner"), createId());
-    const guestIdentity = identity("expiry-guest");
-    const guest = await reference.signIn(guestIdentity, createId());
+    const guest = await reference.signIn(identity("expiry-guest"), createId());
     const shared = await new EventPlanningObjectService(db).createEvent(
       {
         principal: {
@@ -292,11 +290,11 @@ describe.sequential("CloudBase identity store", () => {
       () => observedAt,
     );
     await expect(
-      store.resolveSession(guestIdentity, owner.workspace.id),
+      store.resolveSession(guest.user.id, owner.workspace.id),
     ).resolves.toEqual({ user: guest.user, workspace: owner.workspace });
     observedAt = expiresAt;
     await expect(
-      store.resolveSession(guestIdentity, owner.workspace.id),
+      store.resolveSession(guest.user.id, owner.workspace.id),
     ).rejects.toBeInstanceOf(WorkspaceUnavailableError);
   });
 
@@ -434,21 +432,21 @@ describe.sequential("CloudBase identity store", () => {
         }
       };
       await attempt("personal", () =>
-        store.resolveSession(identity("owner"), undefined),
+        store.resolveSession(owner.user.id, undefined),
       );
       await attempt("unknown", () =>
-        store.resolveSession(identity("nobody"), undefined),
+        store.resolveSession(createId(), undefined),
       );
       await attempt("guestBeforeGrant", () =>
-        store.resolveSession(identity("guest"), owner.workspace.id),
+        store.resolveSession(guest.user.id, owner.workspace.id),
       );
       await attempt("missingWorkspace", () =>
-        store.resolveSession(identity("owner"), createId()),
+        store.resolveSession(owner.user.id, createId()),
       );
       // A viewer grant on a deleted object grants nothing; an Owner grant on it still does.
       await grant(trashed.id, guest.user.id, "viewer");
       await attempt("guestDeletedViewer", () =>
-        store.resolveSession(identity("guest"), owner.workspace.id),
+        store.resolveSession(guest.user.id, owner.workspace.id),
       );
       await grant(
         shared.id,
@@ -457,7 +455,7 @@ describe.sequential("CloudBase identity store", () => {
         new Date(Date.now() - 60_000),
       );
       await attempt("guestExpired", () =>
-        store.resolveSession(identity("guest"), owner.workspace.id),
+        store.resolveSession(guest.user.id, owner.workspace.id),
       );
       await db
         .update(resourceGrants)
@@ -469,7 +467,7 @@ describe.sequential("CloudBase identity store", () => {
           ),
         );
       await attempt("guestGranted", () =>
-        store.resolveSession(identity("guest"), owner.workspace.id),
+        store.resolveSession(guest.user.id, owner.workspace.id),
       );
       const listed = (userId: string) =>
         store.listAccessibleWorkspaces(userId).then((rows) =>
@@ -490,7 +488,7 @@ describe.sequential("CloudBase identity store", () => {
         .where(eq(resourceGrants.principalId, guest.user.id));
       await grant(trashed.id, guest.user.id, "owner");
       await attempt("guestDeletedOwner", () =>
-        store.resolveSession(identity("guest"), owner.workspace.id),
+        store.resolveSession(guest.user.id, owner.workspace.id),
       );
       await db
         .delete(resourceGrants)
@@ -589,10 +587,7 @@ describe.sequential("CloudBase identity store", () => {
         eventTabs: { [lisbon]: { hidden: ["files"] } },
         workspaceRecency: { [lisbon]: "2026-09-19T08:00:00+08:00" },
       });
-      const read = await store.resolveSession(
-        identity(`pref-${name}`),
-        undefined,
-      );
+      const read = await store.resolveSession(signedIn.user.id, undefined);
       const untouched = await store.updatePreferences(signedIn.user.id, {});
       const cleared = await store.updatePreferences(signedIn.user.id, {
         locale: null,

@@ -2,7 +2,7 @@ import { createHash, randomBytes } from "node:crypto";
 
 import type { UserRow } from "@chronelle/db";
 
-import type { AuthIdentity, AuthProvider } from "./auth-provider.js";
+import type { AuthenticatedUser, AuthProvider } from "./auth-provider.js";
 import type { SessionStore } from "./session-store.js";
 
 /** Fourteen days. */
@@ -12,6 +12,11 @@ export const defaultSessionTtlMs = 14 * 24 * 60 * 60 * 1_000;
 export interface IssuedSession {
   readonly accessToken: string;
   readonly expiresAt: Date;
+}
+
+/** The public credential and its stored representation before persistence. */
+export interface SessionMaterial extends IssuedSession {
+  readonly tokenHash: string;
 }
 
 export interface SessionAuthProviderOptions {
@@ -24,12 +29,27 @@ export function hashAccessToken(accessToken: string): string {
   return createHash("sha256").update(accessToken).digest("hex");
 }
 
+export function createSessionMaterial(
+  sessionTtlMs: number,
+  now: Date,
+): SessionMaterial {
+  if (!Number.isSafeInteger(sessionTtlMs) || sessionTtlMs <= 0) {
+    throw new RangeError("Session TTL must be a positive integer.");
+  }
+  const accessToken = randomBytes(32).toString("base64url");
+  return {
+    accessToken,
+    tokenHash: hashAccessToken(accessToken),
+    expiresAt: new Date(now.getTime() + sessionTtlMs),
+  };
+}
+
 /**
  * Bearer credentials backed by the session store: issue creates a session
  * for a signed-in user and returns the random opaque token, authenticate
- * resolves a token to the identity of the user whose live session carries
- * its digest, and revoke and revokeAll end sessions. The token itself is
- * never stored.
+ * resolves a token to the canonical user whose live session carries its
+ * digest, and revoke and revokeAll end sessions. The token itself is never
+ * stored.
  */
 export class SessionAuthProvider implements AuthProvider {
   readonly #store: SessionStore;
@@ -47,29 +67,26 @@ export class SessionAuthProvider implements AuthProvider {
   }
 
   async issue(user: UserRow, identityProvider: string): Promise<IssuedSession> {
-    const accessToken = randomBytes(32).toString("base64url");
-    const expiresAt = new Date(this.#clock().getTime() + this.#sessionTtlMs);
+    const material = createSessionMaterial(this.#sessionTtlMs, this.#clock());
     await this.#store.create({
       userId: user.id,
-      tokenHash: hashAccessToken(accessToken),
+      tokenHash: material.tokenHash,
       identityProvider,
-      expiresAt,
+      expiresAt: material.expiresAt,
     });
-    return { accessToken, expiresAt };
+    return {
+      accessToken: material.accessToken,
+      expiresAt: material.expiresAt,
+    };
   }
 
-  async authenticate(accessToken: string): Promise<AuthIdentity | null> {
+  async authenticate(accessToken: string): Promise<AuthenticatedUser | null> {
     const resolved = await this.#store.resolve(
       hashAccessToken(accessToken),
       this.#clock(),
     );
     if (resolved === null) return null;
-    return {
-      provider: resolved.user.identityProvider,
-      subject: resolved.user.providerSubject,
-      email: resolved.user.email,
-      displayName: resolved.user.displayName,
-    };
+    return { userId: resolved.user.id };
   }
 
   revoke(accessToken: string, requestId: string): Promise<boolean> {

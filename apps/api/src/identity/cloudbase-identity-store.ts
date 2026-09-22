@@ -79,7 +79,7 @@ const filters = (
  * chronelle_user_preferences_update, the discovery switches as
  * chronelle_account_update, Find people as chronelle_users_search and
  * chronelle_user_lookup (migration 0055),
- * and session resolution through chronelle_identity_session_resolve.
+ * and session resolution through chronelle_user_session_resolve.
  * Session resolution evaluates the user, workspace, membership, and grants
  * in one snapshot with the PostgreSQL store's workspace access rules.
  */
@@ -121,15 +121,14 @@ export class CloudBaseIdentityStore implements IdentityStore {
   }
 
   async resolveSession(
-    identity: AuthIdentity,
+    userId: string,
     requestedWorkspaceId: string | undefined,
     objectId?: string | undefined,
   ): Promise<IdentitySessionRows | null> {
     let result: unknown;
     try {
-      result = await this.#client.rpc("chronelle_identity_session_resolve", {
-        identity_provider: identity.provider,
-        provider_subject: identity.subject,
+      result = await this.#client.rpc("chronelle_user_session_resolve", {
+        user_id: userId,
         requested_workspace_id: requestedWorkspaceId ?? null,
         object_id: objectId ?? null,
         observed_at: this.#clock().toISOString(),

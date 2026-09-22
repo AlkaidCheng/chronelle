@@ -1,20 +1,21 @@
 import { withReadAuthorization } from "@chronelle/authorization";
 import {
   createId,
-  objects,
-  runAuditedMutation,
-  userConnections,
-  users,
-  workspaceMembers,
-  workspaces,
   type Database,
   type EventTabsPreferenceRow,
   type EventTabsRow,
+  objects,
   type RailPreferenceRow,
   type Role,
+  runAuditedMutation,
   type UserRow,
+  userConnections,
+  userIdentities,
+  users,
   type WorkspaceRecencyRow,
   type WorkspaceRow,
+  workspaceMembers,
+  workspaces,
 } from "@chronelle/db";
 import { and, eq, inArray, ne, sql } from "drizzle-orm";
 
@@ -72,7 +73,7 @@ export interface AccessibleWorkspaceRow extends WorkspaceRow {
 export interface IdentityStore {
   signIn(identity: AuthIdentity, requestId: string): Promise<SignInResult>;
   resolveSession(
-    identity: AuthIdentity,
+    userId: string,
     requestedWorkspaceId: string | undefined,
     objectId?: string | undefined,
   ): Promise<IdentitySessionRows | null>;
@@ -194,6 +195,33 @@ export class PostgresIdentityStore implements IdentityStore {
         throw new Error("Identity persistence did not return a user.");
       }
 
+      await transaction
+        .insert(userIdentities)
+        .values({
+          id: createId(),
+          userId: user.id,
+          provider: identity.provider,
+          subject: identity.subject,
+        })
+        .onConflictDoNothing({
+          target: [userIdentities.provider, userIdentities.subject],
+        });
+      const linked = await findUser(transaction, identity);
+      if (linked?.id !== user.id) {
+        throw new Error("Identity persistence did not link the user.");
+      }
+      await transaction
+        .update(userIdentities)
+        .set({
+          lastUsedAt: sql`GREATEST(now(), ${userIdentities.createdAt})`,
+        })
+        .where(
+          and(
+            eq(userIdentities.provider, identity.provider),
+            eq(userIdentities.subject, identity.subject),
+          ),
+        );
+
       const [createdWorkspace] = await transaction
         .insert(workspaces)
         .values({
@@ -243,14 +271,14 @@ export class PostgresIdentityStore implements IdentityStore {
   }
 
   async resolveSession(
-    identity: AuthIdentity,
+    userId: string,
     requestedWorkspaceId: string | undefined,
     objectId?: string | undefined,
   ): Promise<IdentitySessionRows | null> {
     return withReadAuthorization(
       this.#database,
       async (transaction, authorization) => {
-        const user = await findUser(transaction, identity);
+        const user = await findUserById(transaction, userId);
         if (user === null) return null;
         const personalWorkspace = await findPersonalWorkspace(
           transaction,
@@ -635,13 +663,26 @@ async function findUser(
 ): Promise<UserRow | null> {
   const [user] = await database
     .select()
-    .from(users)
+    .from(userIdentities)
+    .innerJoin(users, eq(users.id, userIdentities.userId))
     .where(
       and(
-        eq(users.identityProvider, identity.provider),
-        eq(users.providerSubject, identity.subject),
+        eq(userIdentities.provider, identity.provider),
+        eq(userIdentities.subject, identity.subject),
       ),
     )
+    .limit(1);
+  return user?.users ?? null;
+}
+
+async function findUserById(
+  database: Pick<Database, "select">,
+  userId: string,
+): Promise<UserRow | null> {
+  const [user] = await database
+    .select()
+    .from(users)
+    .where(eq(users.id, userId))
     .limit(1);
   return user ?? null;
 }

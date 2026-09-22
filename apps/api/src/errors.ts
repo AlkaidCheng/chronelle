@@ -98,3 +98,37 @@ export class SearchLimitError extends HttpError {
     this.name = "SearchLimitError";
   }
 }
+
+/** All invalid, expired, replayed, conflicting, and unlinked WeChat proofs. */
+export class WeChatCredentialRejectedError extends HttpError {
+  constructor() {
+    super(
+      401,
+      "invalid_wechat_credential",
+      "The WeChat credential could not be accepted.",
+    );
+    this.name = "WeChatCredentialRejectedError";
+  }
+}
+
+export class AuthenticationLimitError extends HttpError {
+  constructor() {
+    super(
+      429,
+      "authentication_limited",
+      "Too many authentication attempts; try again in a minute.",
+    );
+    this.name = "AuthenticationLimitError";
+  }
+}
+
+export class IdentityProviderUnavailableError extends HttpError {
+  constructor() {
+    super(
+      503,
+      "identity_provider_unavailable",
+      "The identity provider is temporarily unavailable.",
+    );
+    this.name = "IdentityProviderUnavailableError";
+  }
+}

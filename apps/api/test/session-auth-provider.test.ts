@@ -98,16 +98,13 @@ describe("SessionAuthProvider", () => {
     expect(first.accessToken).not.toBe(second.accessToken);
   });
 
-  it("authenticates a token to the identity of the session's user", async () => {
+  it("authenticates a token to the canonical session user", async () => {
     const store = storeDouble();
     const provider = new SessionAuthProvider(store, { clock: () => now });
     const issued = await provider.issue(user, "password");
 
     await expect(provider.authenticate(issued.accessToken)).resolves.toEqual({
-      provider: "password",
-      subject: "person@example.test",
-      email: "person@example.test",
-      displayName: "Person",
+      userId: user.id,
     });
     expect(store.resolve).toHaveBeenCalledWith(
       hashAccessToken(issued.accessToken),

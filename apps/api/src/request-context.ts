@@ -79,14 +79,15 @@ export function registerRequestContext(
   app.decorateRequest("identitySession", null);
   app.decorate("authenticate", async (request: FastifyRequest) => {
     const accessToken = readBearerToken(request.headers.authorization);
-    const identity = await dependencies.authProvider.authenticate(accessToken);
-    if (identity === null) {
+    const authenticated =
+      await dependencies.authProvider.authenticate(accessToken);
+    if (authenticated === null) {
       throw new UnauthenticatedError();
     }
 
     const workspaceId = readWorkspaceId(request.headers["x-workspace-id"]);
     const session = await dependencies.identity.resolvePrincipal(
-      identity,
+      authenticated.userId,
       workspaceId,
       readObjectId(request.params),
     );

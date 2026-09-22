@@ -25,11 +25,11 @@ import type { FastifyInstance } from "fastify";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { buildApp } from "../src/app.js";
+import type { AuthProvider } from "../src/authentication/auth-provider.js";
 import {
   createAppDependencies,
   createDevelopmentAppDependencies,
 } from "../src/dependencies.js";
-import type { AuthProvider } from "../src/authentication/auth-provider.js";
 
 const migrationDirectory = resolve(
   import.meta.dirname,
@@ -248,10 +248,12 @@ describe.sequential("development authentication API", () => {
       displayName: "Replacement User",
       email: "replacement@example.com",
     };
-    await dependencies.identity.signIn(identity, createId());
+    const signedIn = await dependencies.identity.signIn(identity, createId());
     const replacementProvider: AuthProvider = {
       authenticate: async (accessToken) =>
-        accessToken === "replacement-token" ? identity : null,
+        accessToken === "replacement-token"
+          ? { userId: signedIn.user.id }
+          : null,
     };
 
     await app.close();

@@ -320,6 +320,30 @@ remains compatible with older API versions. The migration denies `PUBLIC`,
 those managed roles exist. PostgreSQL TCP deployments apply it with
 `pnpm db:migrate`.
 
+Migration `0071_add_linked_identities.sql` adds `user_identities` and
+`identity_exchanges`, backfills all existing external identities without
+changing canonical user IDs, and adds the user-session, WeChat exchange, and
+explicit-link functions required by the API. Apply it before deploying an API
+with `ENABLE_WECHAT_AUTH=true`. Reapply the PostgreSQL runtime-role policy for
+the new tables; on CloudBase, apply it through the console SQL editor before
+redeploying because readiness requires the three new functions. The migration
+retains the old identity columns and resolver during the rolling deployment.
+
+Enable the WeChat routes only after CloudBase authentication is configured:
+
+```dotenv
+ENABLE_WECHAT_AUTH=true
+CLOUDBASE_ENV_ID=your-cloudbase-environment-id
+CLOUDBASE_WECHAT_PROVIDER_IDS=wechat,weixin,wx,wx_openid
+CLOUDBASE_AUTH_TIMEOUT_MS=10000
+```
+
+Verify the provider identifiers against `/auth/v1/user/me` in the target
+environment. The API sends the end-user bearer token only to that endpoint and
+exchanges it for an opaque Chronelle session. Keep `CLOUDBASE_APIKEY` and any
+WeChat AppSecret server-side. To roll back the route without altering linked
+accounts, set `ENABLE_WECHAT_AUTH=false` and redeploy the API.
+
 ### Run on the CloudBase backend
 
 `CHRONELLE_BACKEND=cloudbase` serves every read and write from the gateway.

@@ -157,6 +157,23 @@ export const passwordResetConfirmRequestSchema = z.object({
   password: passwordSchema,
 });
 
+/** A short-lived CloudBase end-user token presented for exchange or linking. */
+export const weChatCredentialRequestSchema = z
+  .object({
+    accessToken: z.string().min(20).max(4_096),
+    deviceId: z
+      .string()
+      .min(1)
+      .max(72)
+      .regex(/^[A-Za-z0-9._:-]+$/u)
+      .optional(),
+  })
+  .strict();
+
+export const weChatIdentityLinkResponseSchema = z.object({
+  linked: z.literal(true),
+});
+
 /** A request that was accepted without revealing whether it applied to an account. */
 export const acceptedResponseSchema = z.object({
   accepted: z.literal(true),
@@ -273,6 +290,12 @@ export type VerifyEmailRequest = z.infer<typeof verifyEmailRequestSchema>;
 export type PasswordSignInRequest = z.infer<typeof passwordSignInRequestSchema>;
 export type PasswordResetConfirmRequest = z.infer<
   typeof passwordResetConfirmRequestSchema
+>;
+export type WeChatCredentialRequest = z.infer<
+  typeof weChatCredentialRequestSchema
+>;
+export type WeChatIdentityLinkResponse = z.infer<
+  typeof weChatIdentityLinkResponseSchema
 >;
 export type AcceptedResponse = z.infer<typeof acceptedResponseSchema>;
 export type SessionResponse = z.infer<typeof sessionResponseSchema>;

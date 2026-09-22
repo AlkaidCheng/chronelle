@@ -4,6 +4,7 @@ import {
   auditEvents,
   createId,
   emailVerifications,
+  userIdentities,
   users,
   workspaces,
 } from "@chronelle/db";
@@ -97,6 +98,12 @@ async function person(label: string, provider = passwordIdentityProvider) {
     })
     .returning();
   if (user === undefined) throw new Error("user insert returned nothing");
+  await db.insert(userIdentities).values({
+    id: createId(),
+    userId: user.id,
+    provider,
+    subject: email,
+  });
   const [workspace] = await db
     .insert(workspaces)
     .values({

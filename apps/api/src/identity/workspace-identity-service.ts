@@ -40,12 +40,12 @@ export class WorkspaceIdentityService {
    * that one, so a shared Event opens without a switch.
    */
   async resolvePrincipal(
-    identity: AuthIdentity,
+    userId: string,
     requestedWorkspaceId?: string,
     objectId?: string,
   ): Promise<IdentitySession> {
     const session = await this.#store.resolveSession(
-      identity,
+      userId,
       requestedWorkspaceId,
       objectId,
     );

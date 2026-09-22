@@ -21,6 +21,7 @@ import {
 import { FileEmailSender } from "./authentication/file-email-sender.js";
 import type { ThrottledIssue } from "./authentication/password-auth-service.js";
 import { SmtpEmailSender } from "./authentication/smtp-email-sender.js";
+import { CloudBaseWeChatIdentityVerifier } from "./authentication/wechat-identity-verifier.js";
 import {
   backendEnvironmentSchema,
   cloudBaseRequiredFunctions,
@@ -60,6 +61,17 @@ const runtimeEnvironmentSchema = backendEnvironmentSchema.extend({
   SMTP_URL: z.url().optional(),
   EMAIL_FROM: z.string().min(3).optional(),
   ENABLE_DEVELOPMENT_AUTH: z.stringbool().default(false),
+  ENABLE_WECHAT_AUTH: z.stringbool().default(false),
+  CLOUDBASE_WECHAT_PROVIDER_IDS: z
+    .string()
+    .min(1)
+    .default("wechat,weixin,wx,wx_openid"),
+  CLOUDBASE_AUTH_TIMEOUT_MS: z.coerce
+    .number()
+    .int()
+    .positive()
+    .max(30_000)
+    .default(10_000),
   /** The web origin that friend invitation emails link to for sign-up. */
   WEB_PUBLIC_URL: z.url().optional(),
   DOCUMENT_TRANSFER_TTL_SECONDS: z.coerce
@@ -109,6 +121,17 @@ const email = composeEmailSender(runtimeEnvironment, (message) =>
 const cloudBaseRdb = backend.cloudBaseReads
   ? await createCloudBaseClient((event) => logGatewayRequest(event))
   : undefined;
+const weChatIdentityVerifier = runtimeEnvironment.ENABLE_WECHAT_AUTH
+  ? new CloudBaseWeChatIdentityVerifier({
+      envId:
+        runtimeEnvironment.CLOUDBASE_ENV_ID ??
+        missingCloudBaseValue("CLOUDBASE_ENV_ID"),
+      providerIds: runtimeEnvironment.CLOUDBASE_WECHAT_PROVIDER_IDS.split(",")
+        .map((value) => value.trim())
+        .filter(Boolean),
+      requestTimeoutMs: runtimeEnvironment.CLOUDBASE_AUTH_TIMEOUT_MS,
+    })
+  : undefined;
 const composeDependencies = runtimeEnvironment.ENABLE_DEVELOPMENT_AUTH
   ? createDevelopmentAppDependencies
   : (
@@ -128,6 +151,7 @@ const dependencies = composeDependencies(database, {
       runtimeEnvironment.AUTH_VERIFICATION_TTL_MINUTES * 60_000,
     onThrottled: (event) => logThrottled(event),
   },
+  weChatIdentityVerifier,
   friends: { webBaseUrl: runtimeEnvironment.WEB_PUBLIC_URL },
 });
 const app = buildApp(dependencies, { logger: true });
@@ -170,9 +194,7 @@ for (const signal of ["SIGINT", "SIGTERM"] as const) {
 }
 
 function missingCloudBaseValue(name: string): never {
-  throw new Error(
-    `${name} is required when CLOUDBASE_READS_ENABLED=true or CHRONELLE_BACKEND=cloudbase.`,
-  );
+  throw new Error(`${name} is required by the enabled CloudBase features.`);
 }
 
 async function createCloudBaseClient(

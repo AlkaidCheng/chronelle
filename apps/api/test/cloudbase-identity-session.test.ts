@@ -5,12 +5,7 @@ import { WorkspaceUnavailableError } from "../src/errors.js";
 import { CloudBaseIdentityStore } from "../src/identity/cloudbase-identity-store.js";
 
 const observedAt = new Date("2030-08-01T12:00:00.000Z");
-const identity = {
-  provider: "test",
-  subject: "person",
-  email: null,
-  displayName: "Person",
-};
+const userId = "00000000-0000-7000-8000-000000000009";
 
 describe("CloudBase identity session boundary", () => {
   it("resolves through one RPC without table reads", async () => {
@@ -18,12 +13,11 @@ describe("CloudBase identity session boundary", () => {
     const select = vi.fn();
     const store = new CloudBaseIdentityStore({ rpc, select }, () => observedAt);
 
-    await expect(store.resolveSession(identity, undefined)).resolves.toBeNull();
+    await expect(store.resolveSession(userId, undefined)).resolves.toBeNull();
     expect(rpc).toHaveBeenCalledExactlyOnceWith(
-      "chronelle_identity_session_resolve",
+      "chronelle_user_session_resolve",
       {
-        identity_provider: "test",
-        provider_subject: "person",
+        user_id: userId,
         requested_workspace_id: null,
         object_id: null,
         observed_at: observedAt.toISOString(),
@@ -43,10 +37,10 @@ describe("CloudBase identity session boundary", () => {
     const objectId = "00000000-0000-7000-8000-000000000002";
 
     await expect(
-      store.resolveSession(identity, workspaceId, objectId),
+      store.resolveSession(userId, workspaceId, objectId),
     ).rejects.toBeInstanceOf(WorkspaceUnavailableError);
     expect(rpc).toHaveBeenCalledWith(
-      "chronelle_identity_session_resolve",
+      "chronelle_user_session_resolve",
       expect.objectContaining({
         requested_workspace_id: workspaceId,
         object_id: objectId,
@@ -64,7 +58,7 @@ describe("CloudBase identity session boundary", () => {
       const rpc = vi.fn().mockRejectedValue(failure);
       const store = new CloudBaseIdentityStore({ rpc, select: vi.fn() });
 
-      await expect(store.resolveSession(identity, undefined)).rejects.toBe(
+      await expect(store.resolveSession(userId, undefined)).rejects.toBe(
         failure,
       );
     },
@@ -74,7 +68,7 @@ describe("CloudBase identity session boundary", () => {
     const rpc = vi.fn().mockResolvedValue(undefined);
     const store = new CloudBaseIdentityStore({ rpc, select: vi.fn() });
 
-    await expect(store.resolveSession(identity, undefined)).rejects.toThrow(
+    await expect(store.resolveSession(userId, undefined)).rejects.toThrow(
       "CloudBase returned an invalid identity session.",
     );
   });

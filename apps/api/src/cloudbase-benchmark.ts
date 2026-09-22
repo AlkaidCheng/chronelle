@@ -2,9 +2,9 @@ import { setTimeout as delay } from "node:timers/promises";
 
 import type { UserPrincipal } from "@chronelle/authorization";
 import {
-  disconnectedDatabase,
   type CloudBaseRdbClient,
   type CloudBaseRequestEvent,
+  disconnectedDatabase,
 } from "@chronelle/db";
 import {
   CloudBaseCalendarReadRepository,
@@ -16,7 +16,6 @@ import {
   EventPlanningProjectionService,
 } from "@chronelle/object-model";
 
-import type { AuthIdentity } from "./authentication/auth-provider.js";
 import { CloudBaseIdentityStore } from "./identity/cloudbase-identity-store.js";
 
 export const cloudBaseBenchmarkWorkloads = [
@@ -34,8 +33,6 @@ export type CloudBaseBenchmarkWorkload =
 
 interface UserRow {
   readonly id: unknown;
-  readonly identity_provider: unknown;
-  readonly provider_subject: unknown;
 }
 
 interface MemberRow {
@@ -52,7 +49,6 @@ interface ObjectRow {
 
 interface BenchmarkFixture {
   readonly eventId: string;
-  readonly identity: AuthIdentity;
   readonly inventory: Readonly<Record<string, number>>;
   readonly principal: UserPrincipal;
 }
@@ -103,7 +99,7 @@ export interface CloudBaseBenchmarkOptions {
 
 const benchmarkReadFunctions = new Set([
   "chronelle_event_list_candidates",
-  "chronelle_identity_session_resolve",
+  "chronelle_user_session_resolve",
   "chronelle_person_list_candidates",
   "chronelle_person_list_hydrate",
   "chronelle_section_list",
@@ -162,7 +158,7 @@ async function discoverFixture(
 ): Promise<BenchmarkFixture> {
   const [users, members, objects] = await Promise.all([
     client.select<UserRow>("users", {
-      columns: "id,identity_provider,provider_subject",
+      columns: "id",
     }),
     client.select<MemberRow>("workspace_members", {
       columns: "workspace_id,user_id",
@@ -219,12 +215,6 @@ async function discoverFixture(
   }
   return {
     eventId: text(selected.event.id, "event id"),
-    identity: {
-      displayName: "Benchmark account",
-      email: null,
-      provider: text(selected.user.identity_provider, "identity provider"),
-      subject: text(selected.user.provider_subject, "identity subject"),
-    },
     inventory,
     principal: {
       type: "user",
@@ -292,7 +282,7 @@ export async function runCloudBaseBenchmark(
       label: "Authenticated identity resolution",
       run: async () =>
         (await identity.resolveSession(
-          fixture.identity,
+          fixture.principal.userId,
           fixture.principal.workspaceId,
         )) === null
           ? 0

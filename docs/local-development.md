@@ -294,6 +294,16 @@ PostgreSQL runtime-role changes, and is compatible with older API versions. On
 CloudBase it revokes browser-role execution and grants execution to
 `service_role` when those managed roles exist.
 
+Migration `0071_add_linked_identities.sql` adds normalized external identities
+and one-time identity exchanges. It backfills every existing provider into
+`user_identities` without changing `users.id`, then moves session resolution
+and password lookup to that table. It also adds
+`chronelle_user_session_resolve`, `chronelle_wechat_exchange`, and
+`chronelle_wechat_identity_link`. Apply it before starting an API with WeChat
+authentication enabled, then reapply `infrastructure/database/runtime-role.sql`
+for the two new tables. CloudBase deployments apply the migration in the
+console SQL editor; readiness requires all three functions.
+
 Migration `0021_add_object_search_function.sql` adds `chronelle_object_search`,
 the read-only function the CloudBase search adapter calls. It changes no
 tables and needs no baseline.
@@ -346,7 +356,7 @@ Open the `apps/wechat` directory in WeChat DevTools. `project.config.json`
 points DevTools at `dist/weapp` and uses `touristappid` for a credential-free
 shell preview. Put a real AppID and developer-only settings in
 `apps/wechat/project.private.config.json`; the repository ignores that file.
-The visible shell makes no network requests until W03 provides a verified
+The visible shell makes no network requests until W04 composes W03's verified
 identity and revocable token storage. W02's Taro transport can already run the
 shared production client; its contract covers cancellation, deadlines, public
 health, protected session reads, and credential headers:
@@ -360,6 +370,12 @@ Future live configuration must provide an HTTPS API origin registered in the
 Mini Program request-domain allowlist. Never place a CloudBase API key, WeChat
 AppSecret, or other server credential in Mini Program source or local project
 configuration.
+
+To exercise the W03 server boundary locally, apply migration 0071 and set
+`ENABLE_WECHAT_AUTH=true`, `CLOUDBASE_ENV_ID`, the provider identifiers returned
+by the environment, and optionally `CLOUDBASE_AUTH_TIMEOUT_MS`. The credential
+sent to `/api/auth/wechat` is an end-user CloudBase access token. It is verified
+remotely and exchanged for a Chronelle token; it is not the server API key.
 
 Open <http://localhost:3000/sign-in> and enter a name and email to create the
 local identity, then create an Event from the workspace. The browser talks only

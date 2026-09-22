@@ -9,6 +9,7 @@ import {
   type VerificationPurpose,
   emailVerifications,
   userCredentials,
+  userIdentities,
   users,
   workspaces,
 } from "@chronelle/db";
@@ -141,13 +142,17 @@ export class PostgresCredentialStore implements CredentialStore {
       .select({ user: users, credential: userCredentials })
       .from(users)
       .innerJoin(userCredentials, eq(userCredentials.userId, users.id))
-      .where(
+      .innerJoin(
+        userIdentities,
         and(
-          eq(users.identityProvider, passwordIdentityProvider),
-          login.includes("@")
-            ? eq(users.providerSubject, login)
-            : eq(sql`lower(${users.username})`, login.toLowerCase()),
+          eq(userIdentities.userId, users.id),
+          eq(userIdentities.provider, passwordIdentityProvider),
         ),
+      )
+      .where(
+        login.includes("@")
+          ? eq(userIdentities.subject, login)
+          : eq(sql`lower(${users.username})`, login.toLowerCase()),
       )
       .limit(1);
     return found ?? null;
