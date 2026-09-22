@@ -183,8 +183,11 @@ export function DocumentsPanel({
                 download.isPending && download.variables === file.id;
               const save = () =>
                 download.mutate(file.id, {
-                  onSuccess: (blob) =>
-                    saveDownload(blob, file.originalFilename),
+                  onSuccess: (bytes) =>
+                    saveDownload(
+                      new Blob([bytes], { type: file.mimeType }),
+                      file.originalFilename,
+                    ),
                 });
               const entries: RowMenuEntry[] = [
                 { kind: "action", label: t("download"), onSelect: save },

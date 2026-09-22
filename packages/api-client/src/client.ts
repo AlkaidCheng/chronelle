@@ -59,6 +59,8 @@ import {
   friendItemStateResponseSchema,
   friendSchema,
   friendsResponseSchema,
+  type HealthStatus,
+  healthStatusSchema,
   type InvitationAcceptResponse,
   type InvitationPeekResponse,
   invitationAcceptResponseSchema,
@@ -189,6 +191,19 @@ import {
 } from "@chronelle/schemas";
 import type { z } from "zod";
 
+import {
+  type BinaryTransfer,
+  type BinaryTransferResponse,
+  createFetchBinaryTransfer,
+  createFetchJsonTransport,
+  createWebCryptoFileHasher,
+  type FileHasher,
+  type HttpMethod,
+  type JsonTransport,
+  type JsonTransportResponse,
+  TransportError,
+} from "./transport.js";
+
 /**
  * The active session as the client presents it: the workspace every request
  * acts in, and the bearer token when the caller holds one. A browser client
@@ -201,10 +216,16 @@ export interface ApiCredential {
 }
 
 export interface ChronelleApiClientOptions {
-  readonly baseUrl?: string;
-  readonly fetch?: typeof globalThis.fetch;
-  readonly getCredential?: () => ApiCredential | null;
+  readonly baseUrl?: string | undefined;
+  readonly binaryTransfer?: BinaryTransfer | undefined;
+  readonly fetch?: typeof globalThis.fetch | undefined;
+  readonly fileHasher?: FileHasher | undefined;
+  readonly getCredential?: (() => ApiCredential | null) | undefined;
+  readonly requestTimeoutMs?: number | undefined;
   readonly signal?: AbortSignal | undefined;
+  readonly signals?: readonly AbortSignal[] | undefined;
+  readonly transferTimeoutMs?: number | undefined;
+  readonly transport?: JsonTransport | undefined;
 }
 
 export interface DocumentFileInput {
@@ -226,7 +247,19 @@ export class ApiClientError extends Error {
   }
 }
 
-function jsonRequest(body: unknown, method: string): RequestInit {
+interface JsonRequestOptions {
+  readonly body?: string | undefined;
+  readonly headers?: Readonly<Record<string, string>> | undefined;
+  readonly method?: HttpMethod | undefined;
+}
+
+interface BinaryRequestOptions {
+  readonly body?: ArrayBuffer | undefined;
+  readonly headers?: Readonly<Record<string, string>> | undefined;
+  readonly method: HttpMethod;
+}
+
+function jsonRequest(body: unknown, method: HttpMethod): JsonRequestOptions {
   return {
     body: JSON.stringify(body),
     headers: { "content-type": "application/json" },
@@ -234,27 +267,62 @@ function jsonRequest(body: unknown, method: string): RequestInit {
   };
 }
 
-function sha256Hex(bytes: ArrayBuffer): Promise<string> {
-  return globalThis.crypto.subtle
-    .digest("SHA-256", bytes)
-    .then((digest) =>
-      Array.from(new Uint8Array(digest), (byte) =>
-        byte.toString(16).padStart(2, "0"),
-      ).join(""),
-    );
+function positiveTimeout(value: number | undefined, fallback: number): number {
+  const timeout = value ?? fallback;
+  if (!Number.isSafeInteger(timeout) || timeout <= 0) {
+    throw new TypeError("Transport timeouts must be positive integers.");
+  }
+  return timeout;
+}
+
+function abortError(message: string): Error {
+  const error = new Error(message);
+  error.name = "AbortError";
+  return error;
 }
 
 export class ChronelleApiClient {
   readonly #baseUrl: string;
-  readonly #fetch: typeof globalThis.fetch;
+  readonly #binaryTransfer: BinaryTransfer | null;
+  readonly #fileHasher: FileHasher | null;
   readonly #getCredential: () => ApiCredential | null;
-  readonly #signal: AbortSignal | undefined;
+  readonly #requestTimeoutMs: number;
+  readonly #signals: readonly AbortSignal[];
+  readonly #transferTimeoutMs: number;
+  readonly #transport: JsonTransport;
 
   constructor(options: ChronelleApiClientOptions = {}) {
+    const fetchImplementation =
+      options.fetch ??
+      (typeof globalThis.fetch === "function"
+        ? globalThis.fetch.bind(globalThis)
+        : null);
+    if (options.transport === undefined && fetchImplementation === null) {
+      throw new TypeError("A JSON transport is required in this runtime.");
+    }
     this.#baseUrl = options.baseUrl?.replace(/\/$/, "") ?? "";
-    this.#fetch = options.fetch ?? globalThis.fetch.bind(globalThis);
+    this.#transport =
+      options.transport ?? createFetchJsonTransport(fetchImplementation!);
+    this.#binaryTransfer =
+      options.binaryTransfer ??
+      (fetchImplementation === null
+        ? null
+        : createFetchBinaryTransfer(fetchImplementation));
+    this.#fileHasher =
+      options.fileHasher ??
+      (typeof globalThis.crypto === "object" && globalThis.crypto?.subtle
+        ? createWebCryptoFileHasher(globalThis.crypto)
+        : null);
     this.#getCredential = options.getCredential ?? (() => null);
-    this.#signal = options.signal;
+    this.#requestTimeoutMs = positiveTimeout(options.requestTimeoutMs, 30_000);
+    this.#transferTimeoutMs = positiveTimeout(
+      options.transferTimeoutMs,
+      120_000,
+    );
+    this.#signals = [
+      ...(options.signals ?? []),
+      ...(options.signal === undefined ? [] : [options.signal]),
+    ];
   }
 
   /** Bind a request to both its caller's cancellation and the session lifetime. */
@@ -263,7 +331,9 @@ export class ChronelleApiClient {
   }
 
   #captureCredential(): ApiCredential | null {
-    this.#signal?.throwIfAborted();
+    if (this.#signals.some((signal) => signal.aborted)) {
+      throw abortError("The request was cancelled.");
+    }
     const credential = this.#getCredential();
     return credential === null ? null : { ...credential };
   }
@@ -274,7 +344,7 @@ export class ChronelleApiClient {
       current?.accessToken !== credential?.accessToken ||
       current?.workspaceId !== credential?.workspaceId
     ) {
-      throw new DOMException("The client session changed.", "AbortError");
+      throw abortError("The client session changed.");
     }
   }
 
@@ -282,16 +352,22 @@ export class ChronelleApiClient {
     const credential = this.#captureCredential();
     return new ChronelleApiClient({
       baseUrl: this.#baseUrl,
-      fetch: this.#fetch,
+      binaryTransfer: this.#binaryTransfer ?? undefined,
+      fileHasher: this.#fileHasher ?? undefined,
       getCredential: () => {
         this.#assertCurrent(credential);
         return credential;
       },
-      signal:
-        signal && this.#signal
-          ? AbortSignal.any([signal, this.#signal])
-          : (signal ?? this.#signal),
+      requestTimeoutMs: this.#requestTimeoutMs,
+      signals:
+        signal === undefined ? this.#signals : [signal, ...this.#signals],
+      transferTimeoutMs: this.#transferTimeoutMs,
+      transport: this.#transport,
     });
+  }
+
+  getHealth(): Promise<HealthStatus> {
+    return this.#request("/api/health", healthStatusSchema, {}, false);
   }
 
   signIn(input: DevelopmentSignInRequest): Promise<DevelopmentSignInResponse> {
@@ -880,6 +956,14 @@ export class ChronelleApiClient {
       );
     }
     const client = this.#createScopedClient();
+    const hasher = client.#fileHasher;
+    if (hasher === null || client.#binaryTransfer === null) {
+      throw new ApiClientError(
+        0,
+        "unsupported_runtime",
+        "File transfers are unavailable in this runtime.",
+      );
+    }
     const bytes = await file.arrayBuffer();
     client.#captureCredential();
     if (bytes.byteLength !== file.size) {
@@ -890,17 +974,21 @@ export class ChronelleApiClient {
       );
     }
     const authorization = await client.authorizeDocumentUpload({
-      checksumSha256: await sha256Hex(bytes),
+      checksumSha256: await hasher.sha256Hex(bytes),
       mimeType: file.type || "application/octet-stream",
       originalFilename: file.name,
       parentObjectId,
       sizeBytes: file.size,
     });
-    await client.#transfer(authorization.upload.url, {
-      body: bytes,
-      headers: authorization.upload.headers,
-      method: authorization.upload.method,
-    });
+    await client.#transfer(
+      authorization.upload.url,
+      {
+        body: bytes,
+        headers: authorization.upload.headers,
+        method: authorization.upload.method,
+      },
+      "none",
+    );
     return client.finalizeDocumentUpload(authorization.id);
   }
 
@@ -913,18 +1001,26 @@ export class ChronelleApiClient {
     );
   }
 
-  async downloadDocument(documentId: string): Promise<Blob> {
+  async downloadDocument(documentId: string): Promise<ArrayBuffer> {
     const client = this.#createScopedClient();
     const authorization = await client.authorizeDocumentDownload(documentId);
-    const response = await client.#transfer(authorization.download.url, {
-      headers: authorization.download.headers,
-      method: authorization.download.method,
-    });
-    try {
-      return await response.blob();
-    } finally {
-      client.#captureCredential();
+    const bytes = await client.#transfer(
+      authorization.download.url,
+      {
+        headers: authorization.download.headers,
+        method: authorization.download.method,
+      },
+      "bytes",
+    );
+    client.#captureCredential();
+    if (bytes === null) {
+      throw new ApiClientError(
+        0,
+        "invalid_response",
+        "The document transfer returned no file data.",
+      );
     }
+    return bytes;
   }
 
   deleteObject(id: string, expectedVersion: number) {
@@ -1238,11 +1334,11 @@ export class ChronelleApiClient {
   async #request<Result>(
     path: string,
     schema: z.ZodType<Result>,
-    request: RequestInit = {},
+    request: JsonRequestOptions = {},
     authorized = true,
   ): Promise<Result> {
     const credential = this.#captureCredential();
-    const headers = new Headers(request.headers);
+    const headers: Record<string, string> = { ...request.headers };
     if (authorized) {
       if (credential === null) {
         throw new ApiClientError(
@@ -1251,41 +1347,48 @@ export class ChronelleApiClient {
           "A Chronelle session is required.",
         );
       }
-      if (credential.accessToken !== undefined)
-        headers.set("authorization", `Bearer ${credential.accessToken}`);
-      headers.set("x-workspace-id", credential.workspaceId);
+      if (credential.accessToken !== undefined) {
+        headers.authorization = `Bearer ${credential.accessToken}`;
+      }
+      headers["x-workspace-id"] = credential.workspaceId;
     }
 
-    let response: Response;
+    let response: JsonTransportResponse;
     try {
-      response = await this.#fetch(`${this.#baseUrl}${path}`, {
-        ...request,
+      response = await this.#transport.request({
+        body: request.body,
         headers,
-        signal: this.#signal ?? null,
+        method: request.method ?? "GET",
+        signals: this.#signals,
+        timeoutMs: this.#requestTimeoutMs,
+        url: `${this.#baseUrl}${path}`,
       });
-    } catch {
+    } catch (error) {
       this.#assertCurrent(credential);
+      if (error instanceof TransportError && error.kind === "aborted") {
+        throw error;
+      }
       throw new ApiClientError(
         0,
-        "network_error",
-        "The Chronelle API could not be reached.",
+        error instanceof TransportError && error.kind === "timeout"
+          ? "request_timeout"
+          : "network_error",
+        error instanceof TransportError && error.kind === "timeout"
+          ? "The Chronelle API request timed out."
+          : "The Chronelle API could not be reached.",
       );
     }
     this.#assertCurrent(credential);
 
-    let body: unknown;
-    try {
-      body = await response.json();
-    } catch {
-      this.#assertCurrent(credential);
+    if (!response.payload.readable) {
       throw new ApiClientError(
         response.status,
         "invalid_response",
         "The Chronelle API returned an unreadable response.",
       );
     }
-    this.#assertCurrent(credential);
-    if (!response.ok) {
+    const body = response.payload.value;
+    if (response.status < 200 || response.status >= 300) {
       this.#throwParsedResponseError(response.status, body);
     }
     const parsed = schema.safeParse(body);
@@ -1303,45 +1406,60 @@ export class ChronelleApiClient {
     return /^https?:\/\//u.test(url) ? url : `${this.#baseUrl}${url}`;
   }
 
-  async #transfer(url: string, request: RequestInit): Promise<Response> {
+  async #transfer(
+    url: string,
+    request: BinaryRequestOptions,
+    responseBody: "bytes" | "none",
+  ): Promise<ArrayBuffer | null> {
     const credential = this.#captureCredential();
-    let response: Response;
-    try {
-      response = await this.#fetch(this.#resolveUrl(url), {
-        ...request,
-        signal: this.#signal ?? null,
-      });
-    } catch {
-      this.#assertCurrent(credential);
+    if (this.#binaryTransfer === null) {
       throw new ApiClientError(
         0,
-        "network_error",
-        "The document transfer could not be completed.",
+        "unsupported_runtime",
+        "File transfers are unavailable in this runtime.",
+      );
+    }
+    let response: BinaryTransferResponse;
+    try {
+      response = await this.#binaryTransfer.request({
+        body: request.body,
+        headers: request.headers ?? {},
+        method: request.method,
+        responseBody,
+        signals: this.#signals,
+        timeoutMs: this.#transferTimeoutMs,
+        url: this.#resolveUrl(url),
+      });
+    } catch (error) {
+      this.#assertCurrent(credential);
+      if (error instanceof TransportError && error.kind === "aborted") {
+        throw error;
+      }
+      throw new ApiClientError(
+        0,
+        error instanceof TransportError && error.kind === "timeout"
+          ? "request_timeout"
+          : "network_error",
+        error instanceof TransportError && error.kind === "timeout"
+          ? "The document transfer timed out."
+          : "The document transfer could not be completed.",
       );
     }
     this.#assertCurrent(credential);
-    if (!response.ok) {
-      try {
-        await this.#throwResponseError(response);
-      } finally {
-        this.#assertCurrent(credential);
+    if (response.status < 200 || response.status >= 300) {
+      if (response.errorPayload?.readable === true) {
+        this.#throwParsedResponseError(
+          response.status,
+          response.errorPayload.value,
+        );
       }
-    }
-    return response;
-  }
-
-  async #throwResponseError(response: Response): Promise<never> {
-    let body: unknown;
-    try {
-      body = await response.json();
-    } catch {
       throw new ApiClientError(
         response.status,
         "request_failed",
         "The document transfer could not be completed.",
       );
     }
-    return this.#throwParsedResponseError(response.status, body);
+    return response.bytes;
   }
 
   #throwParsedResponseError(status: number, body: unknown): never {

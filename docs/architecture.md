@@ -340,13 +340,15 @@ Backend authorization remains authoritative for every request.
 
 ## WeChat Mini Program boundary
 
-The Mini Program is a separate Taro presentation layer. Its W01 foundation is
-offline and contains no authentication or business-data transport. Later slices
-connect it through `ChronelleApiClient` transport ports so every protected read
-and mutation reaches the same Fastify routes, transaction-bound authorization,
-version checks, and audit ledger as the web client. CloudBase may bootstrap a
-verified WeChat identity, but it does not become an alternate data or permission
-boundary.
+The Mini Program is a separate Taro presentation layer. Its visible shell stays
+offline until identity is implemented, but `ChronelleApiClient` now delegates
+JSON I/O to platform-neutral transport contracts with Fetch and Taro adapters.
+Every future protected read and mutation therefore reaches the same Fastify
+routes, transaction-bound authorization, version checks, and audit ledger as the
+web client. File hashing and binary transfer are independent platform ports;
+Mini Program attachment support does not require browser-global emulation.
+CloudBase may bootstrap a verified WeChat identity, but it does not become an
+alternate data or permission boundary.
 
 Platform-specific concerns remain in `apps/wechat`: app lifecycle, network
 state, storage, file selection and transfer, touch navigation, safe areas, and

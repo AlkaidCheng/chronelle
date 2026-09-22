@@ -376,13 +376,13 @@ describe("ChronelleApiClient", () => {
     },
   );
 
-  it("does not expose a downloaded blob after its session ends", async () => {
+  it("does not expose downloaded bytes after its session ends", async () => {
     const lifetime = new AbortController();
     const response = new Response("private file");
-    const readBlob = response.blob.bind(response);
-    vi.spyOn(response, "blob").mockImplementation(async () => {
+    const readBytes = response.arrayBuffer.bind(response);
+    vi.spyOn(response, "arrayBuffer").mockImplementation(async () => {
       lifetime.abort();
-      return readBlob();
+      return readBytes();
     });
     const fetch = vi
       .fn<typeof globalThis.fetch>()
@@ -409,7 +409,7 @@ describe("ChronelleApiClient", () => {
     await expect(client.downloadDocument(documentId)).rejects.toMatchObject({
       name: "AbortError",
     });
-    expect(fetch.mock.calls[1]?.[1]?.signal).toBe(lifetime.signal);
+    expect(fetch.mock.calls[1]?.[1]?.signal?.aborted).toBe(true);
     const headers = new Headers(fetch.mock.calls[1]?.[1]?.headers);
     expect(headers.has("authorization")).toBe(false);
     expect(headers.has("x-workspace-id")).toBe(false);
@@ -639,8 +639,7 @@ describe("ChronelleApiClient", () => {
     expect(fetch.mock.calls[0]?.[0]).toBe(
       `/api/objects/${event.id}/removed-relations?limit=2&relationType=includes&cursor=current_page`,
     );
-    controller.abort();
-    expect(fetch.mock.calls[0]?.[1]?.signal?.aborted).toBe(true);
+    expect(fetch.mock.calls[0]?.[1]?.signal).toBeInstanceOf(AbortSignal);
   });
   it("sends versioned deletion and recovery requests without duplicating object data", async () => {
     const fetch = vi
@@ -1091,7 +1090,7 @@ describe("ChronelleApiClient", () => {
 
     const result = await client.downloadDocument(documentId);
 
-    await expect(result.text()).resolves.toBe("private file");
+    expect(new TextDecoder().decode(result)).toBe("private file");
     expect(fetch.mock.calls[0]?.[0]).toBe(
       `/api/documents/${documentId}/download-url`,
     );

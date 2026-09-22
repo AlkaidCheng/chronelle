@@ -346,7 +346,20 @@ Open the `apps/wechat` directory in WeChat DevTools. `project.config.json`
 points DevTools at `dist/weapp` and uses `touristappid` for a credential-free
 shell preview. Put a real AppID and developer-only settings in
 `apps/wechat/project.private.config.json`; the repository ignores that file.
-The W01 shell intentionally makes no network requests.
+The visible shell makes no network requests until W03 provides a verified
+identity and revocable token storage. W02's Taro transport can already run the
+shared production client; its contract covers cancellation, deadlines, public
+health, protected session reads, and credential headers:
+
+```bash
+pnpm --filter @chronelle/api-client test
+pnpm --filter @chronelle/wechat test
+```
+
+Future live configuration must provide an HTTPS API origin registered in the
+Mini Program request-domain allowlist. Never place a CloudBase API key, WeChat
+AppSecret, or other server credential in Mini Program source or local project
+configuration.
 
 Open <http://localhost:3000/sign-in> and enter a name and email to create the
 local identity, then create an Event from the workspace. The browser talks only
