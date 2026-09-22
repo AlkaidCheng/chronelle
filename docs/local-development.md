@@ -354,20 +354,32 @@ pnpm dev:weapp
 
 Open the `apps/wechat` directory in WeChat DevTools. `project.config.json`
 points DevTools at `dist/weapp` and uses `touristappid` for a credential-free
-shell preview. Put a real AppID and developer-only settings in
+configuration-state preview. Put a real AppID and developer-only settings in
 `apps/wechat/project.private.config.json`; the repository ignores that file.
-The visible shell makes no network requests until W04 composes W03's verified
-identity and revocable token storage. W02's Taro transport can already run the
-shared production client; its contract covers cancellation, deadlines, public
-health, protected session reads, and credential headers:
+
+Set the public build-time values before compiling. Use `false` for an
+independent Tencent CloudBase environment; use `true` only when the environment
+is associated with the Mini Program through WeChat Cloud Development:
+
+```bash
+export TARO_APP_API_BASE_URL=https://api.example.com
+export TARO_APP_CLOUDBASE_ENV_ID=your-cloudbase-environment-id
+export TARO_APP_CLOUDBASE_USE_WX_CLOUD=false
+pnpm build:weapp
+```
+
+The shell uses the shared production client for session hydration, workspace
+switching, canonical Event pagination, and Event overview reads. Its transport
+contract covers cancellation, deadlines, public health, protected reads, and
+credential headers:
 
 ```bash
 pnpm --filter @chronelle/api-client test
 pnpm --filter @chronelle/wechat test
 ```
 
-Future live configuration must provide an HTTPS API origin registered in the
-Mini Program request-domain allowlist. Never place a CloudBase API key, WeChat
+Live configuration must provide an HTTPS API origin registered in the Mini
+Program request-domain allowlist. Never place a CloudBase API key, WeChat
 AppSecret, or other server credential in Mini Program source or local project
 configuration.
 
@@ -376,6 +388,10 @@ To exercise the W03 server boundary locally, apply migration 0071 and set
 by the environment, and optionally `CLOUDBASE_AUTH_TIMEOUT_MS`. The credential
 sent to `/api/auth/wechat` is an end-user CloudBase access token. It is verified
 remotely and exchanged for a Chronelle token; it is not the server API key.
+The Mini Program obtains this short-lived credential through CloudBase OpenID
+sign-in and never persists it. If the identity is not linked, the user signs in
+once with an existing Chronelle account; the client links the verified identity
+explicitly and revokes the temporary password session if linking fails.
 
 Open <http://localhost:3000/sign-in> and enter a name and email to create the
 local identity, then create an Event from the workspace. The browser talks only

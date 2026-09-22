@@ -5,9 +5,9 @@ Chronelle's WeChat Mini Program is a native Taro 4 application in
 not a second backend. Protected business data will continue to pass through the
 Fastify REST API and its centralized authorization decision.
 
-## Implemented foundation
+## Implemented vertical slice
 
-The current foundation provides one offline shell page with:
+The current Mini Program provides:
 
 - a package-local React 18 and TypeScript 5 toolchain, isolated from the web
   application's React 19 runtime;
@@ -16,13 +16,18 @@ The current foundation provides one offline shell page with:
 - light and dark warm ink, cinnabar, and indigo tokens;
 - safe-area layout and reduced-motion defaults;
 - a production package report with enforced main, subpackage, and total budgets;
-- unit coverage for locale selection and package accounting.
+- a native WeChat sign-in and explicit existing-account linking flow;
+- session restoration, revocation, onboarding, and workspace switching;
+- lifecycle- and network-aware TanStack Query integration;
+- paginated canonical Event cards and an authorized Event overview;
+- pull-to-refresh, retry, offline, empty, and permission-loss states;
+- unit coverage for locale selection, runtime configuration, CloudBase proof
+  acquisition, session storage, lifecycle bridging, date formatting, transport,
+  and package accounting.
 
-The visible shell does not yet fetch business data. W02 provides its shared
-transport boundary, and W03 provides verified identity, explicit account
-linking, and revocable session storage without adding a second data or
-permission path. W04 will compose those capabilities into the native sign-in
-and read-only Event screens.
+Protected data always comes from the Chronelle REST API. Event list and detail
+screens retain the canonical object ID and version in their validated response;
+the UI does not display the implementation ID or create a Mini Program copy.
 
 ## W02 API transport
 
@@ -86,14 +91,42 @@ Provider ids must match the identifiers returned by the target CloudBase
 environment. `CLOUDBASE_APIKEY` remains a server-only database gateway
 credential and is not used as the end user's WeChat proof.
 
+## W04 native shell and Event reads
+
+The Mini Program uses CloudBase OpenID sign-in only to obtain a short-lived
+end-user proof. It exchanges that proof for a Chronelle-owned bearer session and
+does not persist the CloudBase token. An unrecognized WeChat identity can be
+linked only after the user signs in to an existing Chronelle account; a failed
+link revokes and removes that temporary password session.
+
+On launch, the shell restores the opaque Chronelle token and validates it with
+`GET /api/auth/session`. App show/hide events update TanStack Query focus, and
+native network changes update its online manager. Resume and reconnect therefore
+revalidate protected data. A workspace change cancels pending work, persists the
+new workspace selector beside the same token, and clears the cache before the
+next request.
+
+The Event collection calls `GET /api/events` with cursor pagination. Opening a
+card reads the same Event through `GET /api/events/:id` and its authoritative
+access explanation through `GET /api/objects/:id/access`. Date-only, multi-day,
+timed, and undated Events preserve their distinct semantics; timed values use
+the Event or account time zone and the account's clock preference.
+
 ## Local build
 
 Install workspace dependencies, then build once or start the watcher:
 
 ```bash
+TARO_APP_API_BASE_URL=https://api.example.com \
+TARO_APP_CLOUDBASE_ENV_ID=your-cloudbase-environment-id \
+TARO_APP_CLOUDBASE_USE_WX_CLOUD=false \
 pnpm build:weapp
-pnpm dev:weapp
 ```
+
+The API origin must be HTTPS outside loopback development. Set
+`TARO_APP_CLOUDBASE_USE_WX_CLOUD=true` only for an environment associated with
+the Mini Program through WeChat Cloud Development; an independent Tencent
+CloudBase environment uses the default `false` HTTP path.
 
 Open `apps/wechat` in WeChat DevTools. Its tracked `project.config.json` uses
 `touristappid` and points at `dist/weapp`. Store a real AppID and local DevTools

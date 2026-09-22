@@ -110,19 +110,18 @@ DevTools. The checked-in project uses the non-secret `touristappid`; keep a
 real AppID in `apps/wechat/project.private.config.json`, which is ignored:
 
 ```bash
+TARO_APP_API_BASE_URL=https://api.example.com \
+TARO_APP_CLOUDBASE_ENV_ID=your-cloudbase-environment-id \
 pnpm build:weapp
-pnpm dev:weapp
 pnpm wechat:bundle
 ```
 
-The W03 identity boundary is available to the Mini Program: CloudBase verifies
-the end-user credential on the server, Chronelle exchanges it for its own
-revocable session, and local storage retains only that session. The visible
-shell remains offline until W04 composes the sign-in lifecycle and read-only
-Event screens. The shared API client has a cancelable Taro JSON transport, so
-those screens use the same runtime-validated REST contracts and authorization
-boundary as the web app without emulating browser networking or file APIs. See
-[WeChat Mini Program](docs/wechat.md).
+The native shell restores and revokes Chronelle sessions, links an existing
+account explicitly, switches workspaces, pages through canonical Events, and
+shows an authorized Event overview. App visibility and network changes drive
+the same TanStack Query focus and online semantics used by the web client.
+CloudBase credentials remain transient; local storage retains only the opaque
+Chronelle session. See [WeChat Mini Program](docs/wechat.md).
 
 Open <http://localhost:3000/sign-in> to create a development session, then use
 the Events workspace to build an event plan. The web server forwards `/api`

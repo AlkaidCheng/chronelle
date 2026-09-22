@@ -1,11 +1,15 @@
 page {
   --chronelle-paper: #f5efe4;
   --chronelle-surface: #fffaf0;
+  --chronelle-surface-strong: #fffdf8;
   --chronelle-ink: #292521;
   --chronelle-muted: #716960;
   --chronelle-line: rgba(82, 65, 50, 0.18);
+  --chronelle-line-strong: rgba(82, 65, 50, 0.3);
   --chronelle-cinnabar: #a33c2f;
+  --chronelle-cinnabar-soft: rgba(163, 60, 47, 0.1);
   --chronelle-indigo: #48546d;
+  --chronelle-indigo-soft: rgba(72, 84, 109, 0.11);
 
   min-height: 100%;
   background: var(--chronelle-paper);
@@ -19,11 +23,15 @@ page {
   page {
     --chronelle-paper: #181716;
     --chronelle-surface: #23211f;
+    --chronelle-surface-strong: #2a2724;
     --chronelle-ink: #f3eadc;
     --chronelle-muted: #b9afa4;
     --chronelle-line: rgba(238, 220, 198, 0.18);
+    --chronelle-line-strong: rgba(238, 220, 198, 0.3);
     --chronelle-cinnabar: #dc7566;
+    --chronelle-cinnabar-soft: rgba(220, 117, 102, 0.13);
     --chronelle-indigo: #9aa8c5;
+    --chronelle-indigo-soft: rgba(154, 168, 197, 0.13);
   }
 }
 

@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   getMessages,
+  interpolate,
   resolveLocale,
   supportedLocales,
 } from "../src/i18n/catalog";
@@ -24,5 +25,11 @@ describe("Mini Program message catalog", () => {
         ),
       ).toBe(true);
     }
+  });
+
+  it("interpolates named values without dropping unknown placeholders", () => {
+    expect(
+      interpolate("Shared by {name} in {workspace}", { name: "Lin" }),
+    ).toBe("Shared by Lin in {workspace}");
   });
 });
