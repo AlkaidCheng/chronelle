@@ -335,6 +335,19 @@ pnpm dev
 The web app is served at <http://localhost:3000>. The API health endpoint is
 served at <http://localhost:4000/api/health>.
 
+The WeChat Mini Program is built separately from the browser development pair:
+
+```bash
+pnpm build:weapp
+pnpm dev:weapp
+```
+
+Open the `apps/wechat` directory in WeChat DevTools. `project.config.json`
+points DevTools at `dist/weapp` and uses `touristappid` for a credential-free
+shell preview. Put a real AppID and developer-only settings in
+`apps/wechat/project.private.config.json`; the repository ignores that file.
+The W01 shell intentionally makes no network requests.
+
 Open <http://localhost:3000/sign-in> and enter a name and email to create the
 local identity, then create an Event from the workspace. The browser talks only
 to the web origin. The Next.js route handler forwards `/api` to
@@ -538,7 +551,10 @@ pnpm check
 The gate builds the workspace packages once, then runs every package's
 `typecheck:unit` four at a time, every package's `test:unit` one package at a
 time (the browser-side suites time out when they share the runner's CPUs with
-the database suites), and builds the two applications last. Run `pnpm --filter @chronelle/<pkg> test` for one
+the database suites), and builds the three applications last. The WeChat build
+fails when the main package exceeds 1.5 MB, any subpackage exceeds 1.5 MB, or
+the combined package exceeds 15 MB. Run `pnpm wechat:bundle` to print the last
+production build's byte counts. Run `pnpm --filter @chronelle/<pkg> test` for one
 package (it rebuilds its upstream packages first) or `pnpm test:units` after
 `pnpm build:packages` for all of them at once.
 

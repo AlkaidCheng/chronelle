@@ -1,0 +1,123 @@
+.shell {
+  box-sizing: border-box;
+  display: flex;
+  min-height: 100vh;
+  flex-direction: column;
+  padding: calc(48rpx + env(safe-area-inset-top)) 40rpx
+    calc(32rpx + env(safe-area-inset-bottom));
+}
+
+.brand-row {
+  display: flex;
+  align-items: center;
+  gap: 20rpx;
+}
+
+.seal {
+  display: flex;
+  width: 64rpx;
+  height: 64rpx;
+  align-items: center;
+  justify-content: center;
+  border: 2rpx solid var(--chronelle-cinnabar);
+  color: var(--chronelle-cinnabar);
+  font-family: "Songti SC", STSong, serif;
+  font-size: 32rpx;
+}
+
+.brand,
+.eyebrow,
+.title,
+.description,
+.status-title,
+.status-detail,
+.footnote {
+  display: block;
+}
+
+.brand {
+  font-family: "Songti SC", STSong, serif;
+  font-size: 32rpx;
+  font-weight: 600;
+  letter-spacing: 1rpx;
+}
+
+.eyebrow,
+.footnote {
+  color: var(--chronelle-muted);
+  font-size: 20rpx;
+  letter-spacing: 3rpx;
+  text-transform: uppercase;
+}
+
+.hero {
+  margin: 144rpx 0 80rpx;
+}
+
+.title {
+  max-width: 620rpx;
+  font-family: "Songti SC", STSong, serif;
+  font-size: 72rpx;
+  font-weight: 600;
+  letter-spacing: -2rpx;
+  line-height: 1.2;
+}
+
+.description {
+  max-width: 620rpx;
+  margin-top: 36rpx;
+  color: var(--chronelle-muted);
+  font-size: 30rpx;
+  line-height: 1.8;
+}
+
+.status-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 24rpx;
+  padding: 30rpx;
+  border: 1rpx solid var(--chronelle-line);
+  border-radius: 24rpx;
+  background: var(--chronelle-surface);
+}
+
+.status-mark {
+  width: 16rpx;
+  height: 16rpx;
+  flex: 0 0 auto;
+  margin-top: 11rpx;
+  border-radius: 50%;
+  background: var(--chronelle-cinnabar);
+  box-shadow: 0 0 0 8rpx rgba(163, 60, 47, 0.12);
+}
+
+.status-copy {
+  min-width: 0;
+}
+
+.status-title {
+  color: var(--chronelle-indigo);
+  font-size: 28rpx;
+  font-weight: 600;
+  line-height: 1.45;
+}
+
+.status-detail {
+  margin-top: 8rpx;
+  color: var(--chronelle-muted);
+  font-size: 24rpx;
+  line-height: 1.65;
+}
+
+.footnote {
+  margin-top: auto;
+  padding-top: 72rpx;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .shell,
+  .status-card {
+    animation: none;
+    transition: none;
+  }
+}

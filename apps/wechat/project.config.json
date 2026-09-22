@@ -1,0 +1,13 @@
+{
+  "appid": "touristappid",
+  "compileType": "miniprogram",
+  "description": "Chronelle WeChat Mini Program",
+  "miniprogramRoot": "dist/weapp/",
+  "projectname": "chronelle",
+  "setting": {
+    "es6": false,
+    "minified": false,
+    "postcss": false,
+    "urlCheck": true
+  }
+}

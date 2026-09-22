@@ -24,6 +24,7 @@ For offline UI review without a server, database, or cloud account, run
 interactions, persistence limits, and testing. Use fictional data only.
 
 - Next.js, React, and strict TypeScript for the responsive web client
+- Taro 4 and React 18 for the native WeChat Mini Program client
 - TanStack Query and TanStack Table for server state and planning tables
 - Fastify and Zod for the typed REST API boundary
 - PostgreSQL with immutable SQL migrations and Drizzle query mappings
@@ -38,6 +39,7 @@ interactions, persistence limits, and testing. Use fictional data only.
 ```text
 apps/
   api/                  Fastify API application
+  wechat/               Taro WeChat Mini Program application
   web/                  Next.js web application
 packages/
   api-client/           Typed, runtime-validated REST client
@@ -52,8 +54,9 @@ infrastructure/
 docs/                   Implementation-facing documentation
 ```
 
-Presentation components stay with the web application until another client
-creates a concrete reason for a shared UI package.
+Web and Mini Program presentation components remain platform-specific. They
+share runtime contracts and, as the Mini Program becomes connected, the same
+typed REST API and canonical authorization boundary.
 
 ## Prerequisites
 
@@ -61,6 +64,7 @@ creates a concrete reason for a shared UI package.
 - pnpm 11.25
 - Docker with Docker Compose
 - PostgreSQL `psql` client 17 for the database privilege tests
+- WeChat DevTools for Mini Program preview and physical-device testing
 
 ## Environment
 
@@ -98,6 +102,20 @@ pnpm dev
 
 The web app listens on <http://localhost:3000>. The API health endpoint is
 available at <http://localhost:4000/api/health>.
+
+Build or watch the Mini Program separately, then open `apps/wechat` in WeChat
+DevTools. The checked-in project uses the non-secret `touristappid`; keep a
+real AppID in `apps/wechat/project.private.config.json`, which is ignored:
+
+```bash
+pnpm build:weapp
+pnpm dev:weapp
+pnpm wechat:bundle
+```
+
+The W01 shell is deliberately offline. It proves the native build, theming,
+localization, and package budgets before authentication or live data are added.
+See [WeChat Mini Program](docs/wechat.md).
 
 Open <http://localhost:3000/sign-in> to create a development session, then use
 the Events workspace to build an event plan. The web server forwards `/api`
@@ -246,7 +264,8 @@ Compose service first and provide `TEST_DATABASE_URL` when not using the local
 defaults.
 
 `pnpm check` builds the workspace packages once, then type-checks and tests
-every package in parallel (four at a time) before building the applications.
+every package in parallel (four at a time) before building the API, web, and
+WeChat applications. The WeChat build also enforces its package-size budgets.
 Individual checks are available as `pnpm format:check`, `pnpm lint`,
 `pnpm typecheck`, `pnpm test`, and `pnpm build`; the `typecheck` and `test`
 scripts of each package rebuild their upstream packages first, and their
