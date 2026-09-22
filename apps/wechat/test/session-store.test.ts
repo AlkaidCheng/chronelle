@@ -93,6 +93,35 @@ describe("WeChatSessionStore", () => {
     expect(revoker.signOutEverywhere).not.toHaveBeenCalled();
   });
 
+  it("switches workspaces without replacing the token or expiry", async () => {
+    const storage = storageDouble();
+    const sessions = new WeChatSessionStore(storage, () => now);
+    await sessions.save({
+      accessToken: "opaque-chronelle-session",
+      expiresAt: "2030-01-02T00:00:00.000Z",
+      workspace: { id: workspaceId },
+    });
+    const nextWorkspaceId = "00000000-0000-7000-8000-000000000002";
+
+    await expect(sessions.selectWorkspace(nextWorkspaceId)).resolves.toEqual({
+      accessToken: "opaque-chronelle-session",
+      workspaceId: nextWorkspaceId,
+    });
+    expect(storage.values.get(weChatSessionStorageKey)).toEqual({
+      accessToken: "opaque-chronelle-session",
+      expiresAt: "2030-01-02T00:00:00.000Z",
+      workspaceId: nextWorkspaceId,
+    });
+  });
+
+  it("refuses a workspace switch without an active session", async () => {
+    const sessions = new WeChatSessionStore(storageDouble(), () => now);
+
+    await expect(sessions.selectWorkspace(workspaceId)).rejects.toThrow(
+      "No active Chronelle session",
+    );
+  });
+
   it("revokes every session when requested", async () => {
     const sessions = new WeChatSessionStore(storageDouble(), () => now);
     const revoker = {

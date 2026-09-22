@@ -346,11 +346,10 @@ Backend authorization remains authoritative for every request.
 
 ## WeChat Mini Program boundary
 
-The Mini Program is a separate Taro presentation layer. Its visible shell stays
-offline until W04 composes the implemented identity lifecycle, but
-`ChronelleApiClient` delegates JSON I/O to platform-neutral transport contracts
-with Fetch and Taro adapters.
-Every future protected read and mutation therefore reaches the same Fastify
+The Mini Program is a separate Taro presentation layer. Its native shell
+composes the provider-neutral API client, verified identity exchange, and
+Chronelle session storage into workspace-scoped Event reads.
+Every protected read and mutation therefore reaches the same Fastify
 routes, transaction-bound authorization, version checks, and audit ledger as the
 web client. File hashing and binary transfer are independent platform ports;
 Mini Program attachment support does not require browser-global emulation.
@@ -362,6 +361,13 @@ Platform-specific concerns remain in `apps/wechat`: app lifecycle, network
 state, storage, file selection and transfer, touch navigation, safe areas, and
 Mini Program package structure. Schemas, canonical identifiers, REST behavior,
 and invalidation semantics remain shared. See [WeChat Mini Program](wechat.md).
+
+TanStack Query receives focus from Mini Program show/hide events and online
+state from native network events. Switching the active workspace cancels
+in-flight work, rewrites only the workspace selector beside the same bearer
+token, and clears the client cache before protected reads resume. Event list and
+overview responses retain the canonical ID and version returned by the API; the
+Mini Program does not create a parallel Event or calendar record.
 
 TanStack Query owns remote state and invalidation. Event detail, calendar,
 timeline, itinerary, expenses, reminders, and to-dos retain separate query

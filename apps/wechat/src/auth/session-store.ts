@@ -40,6 +40,7 @@ export class WeChatSessionStore {
   readonly #clock: () => Date;
   readonly #storage: TaroStorage;
   #credential: ApiCredential | null = null;
+  #session: StoredSession | null = null;
 
   constructor(storage: TaroStorage, clock: () => Date = () => new Date()) {
     this.#clock = clock;
@@ -56,6 +57,7 @@ export class WeChatSessionStore {
       ).data;
     } catch {
       this.#credential = null;
+      this.#session = null;
       return null;
     }
     const session = parseStoredSession(stored);
@@ -70,6 +72,7 @@ export class WeChatSessionStore {
       accessToken: session.accessToken,
       workspaceId: session.workspaceId,
     };
+    this.#session = session;
     return this.#credential;
   }
 
@@ -83,14 +86,34 @@ export class WeChatSessionStore {
       key: weChatSessionStorageKey,
       data: stored,
     });
+    this.#session = stored;
     this.#credential = {
       accessToken: stored.accessToken,
       workspaceId: stored.workspaceId,
     };
   }
 
+  async selectWorkspace(workspaceId: string): Promise<ApiCredential> {
+    if (this.#session === null) {
+      throw new Error("No active Chronelle session is available.");
+    }
+    const stored = parseStoredSession({ ...this.#session, workspaceId });
+    if (stored === null) throw new TypeError("The workspace id is invalid.");
+    await this.#storage.setStorage({
+      key: weChatSessionStorageKey,
+      data: stored,
+    });
+    this.#session = stored;
+    this.#credential = {
+      accessToken: stored.accessToken,
+      workspaceId: stored.workspaceId,
+    };
+    return this.#credential;
+  }
+
   async clear(): Promise<void> {
     this.#credential = null;
+    this.#session = null;
     await this.#storage.removeStorage({ key: weChatSessionStorageKey });
   }
 
