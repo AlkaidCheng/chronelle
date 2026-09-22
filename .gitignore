@@ -11,6 +11,8 @@ test-results/
 *.tsbuildinfo
 .eslintcache
 apps/web/messages/*.json
+apps/wechat/.swc/
+apps/wechat/.taro-cache/
 
 # Local runtime data
 .chronelle/
@@ -22,6 +24,7 @@ postgres-data/
 .env.*
 !.env.example
 *.local.json
+apps/wechat/project.private.config.json
 
 # Editors and operating systems
 .DS_Store

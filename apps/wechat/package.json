@@ -1,0 +1,47 @@
+{
+  "name": "@chronelle/wechat",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "pnpm build:weapp && pnpm bundle:check",
+    "build:weapp": "taro build --type weapp",
+    "bundle:check": "node --import tsx scripts/report-bundle.ts",
+    "bundle:report": "node --import tsx scripts/report-bundle.ts --json",
+    "dev:weapp": "taro build --type weapp --watch",
+    "test": "vitest run",
+    "test:unit": "vitest run",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "typecheck:unit": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@babel/runtime": "7.29.7",
+    "@tarojs/components": "4.2.1",
+    "@tarojs/helper": "4.2.1",
+    "@tarojs/plugin-framework-react": "4.2.1",
+    "@tarojs/plugin-platform-weapp": "4.2.1",
+    "@tarojs/react": "4.2.1",
+    "@tarojs/runtime": "4.2.1",
+    "@tarojs/shared": "4.2.1",
+    "@tarojs/taro": "4.2.1",
+    "react": "18.3.1",
+    "react-dom": "18.3.1"
+  },
+  "devDependencies": {
+    "@babel/core": "7.29.7",
+    "@babel/plugin-transform-class-properties": "7.25.9",
+    "@babel/preset-react": "7.29.7",
+    "@pmmmwh/react-refresh-webpack-plugin": "0.5.17",
+    "@tarojs/cli": "4.2.1",
+    "@tarojs/taro-loader": "4.2.1",
+    "@tarojs/webpack5-runner": "4.2.1",
+    "@types/react": "18.3.31",
+    "@types/webpack-env": "1.18.8",
+    "babel-preset-taro": "4.2.1",
+    "postcss": "8.5.26",
+    "react-refresh": "0.14.2",
+    "sass": "1.103.1",
+    "typescript": "5.9.3",
+    "webpack": "5.91.0"
+  }
+}

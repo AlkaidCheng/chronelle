@@ -10,8 +10,9 @@
     "pnpm": ">=11.25.0 <12"
   },
   "scripts": {
-    "build": "pnpm --filter @chronelle/schemas build && pnpm --filter @chronelle/db build && pnpm --filter @chronelle/authorization build && pnpm --filter @chronelle/storage build && pnpm --filter @chronelle/object-model build && pnpm --filter @chronelle/api-client build && pnpm --filter @chronelle/api build && pnpm --filter @chronelle/web build",
-    "build:apps": "pnpm --filter @chronelle/api build && pnpm --filter @chronelle/web build",
+    "build": "pnpm --filter @chronelle/schemas build && pnpm --filter @chronelle/db build && pnpm --filter @chronelle/authorization build && pnpm --filter @chronelle/storage build && pnpm --filter @chronelle/object-model build && pnpm --filter @chronelle/api-client build && pnpm --filter @chronelle/api build && pnpm --filter @chronelle/web build && pnpm --filter @chronelle/wechat build",
+    "build:apps": "pnpm --filter @chronelle/api build && pnpm --filter @chronelle/web build && pnpm --filter @chronelle/wechat build",
+    "build:weapp": "pnpm --filter @chronelle/wechat build",
     "build:packages": "pnpm --filter @chronelle/schemas build && pnpm --filter @chronelle/db build && pnpm --filter @chronelle/authorization build && pnpm --filter @chronelle/storage build && pnpm --filter @chronelle/object-model build && pnpm --filter @chronelle/api-client build",
     "check": "pnpm format:check && pnpm lint && pnpm build:packages && pnpm typecheck:units && pnpm test:infrastructure && pnpm test:units && pnpm build:apps",
     "check:static": "pnpm format:check && pnpm lint && pnpm build:packages && pnpm typecheck:units && pnpm build:apps",
@@ -28,17 +29,19 @@
     "db:migrate": "pnpm --filter @chronelle/db migrate",
     "db:footprint": "pnpm --filter @chronelle/db footprint",
     "dev": "pnpm --filter @chronelle/schemas build && pnpm --filter @chronelle/object-model build && pnpm --filter @chronelle/api-client build && pnpm --parallel --filter @chronelle/api --filter @chronelle/web dev",
+    "dev:weapp": "pnpm --filter @chronelle/wechat dev:weapp",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "lint": "biome lint apps packages infrastructure",
     "sandbox": "pnpm --filter @chronelle/web sandbox",
-    "test": "pnpm --filter @chronelle/schemas test && pnpm --filter @chronelle/db test && pnpm --filter @chronelle/authorization test && pnpm --filter @chronelle/storage test && pnpm --filter @chronelle/object-model test && pnpm --filter @chronelle/api-client test && pnpm --filter @chronelle/api test && pnpm --filter @chronelle/web test",
+    "test": "pnpm --filter @chronelle/schemas test && pnpm --filter @chronelle/db test && pnpm --filter @chronelle/authorization test && pnpm --filter @chronelle/storage test && pnpm --filter @chronelle/object-model test && pnpm --filter @chronelle/api-client test && pnpm --filter @chronelle/api test && pnpm --filter @chronelle/web test && pnpm --filter @chronelle/wechat test",
     "test:containers": "node infrastructure/scripts/check-containers.mjs",
     "test:e2e": "pnpm build && pnpm db:migrate && pnpm --filter @chronelle/object-model baseline-revisions && playwright test",
     "test:infrastructure": "tsc -p infrastructure/tsconfig.json && node --check infrastructure/scripts/check-containers.mjs && node --check infrastructure/scripts/check-recovery.mjs && node --check infrastructure/scripts/container-process.mjs && node --check infrastructure/scripts/inspect-runtime.mjs && node --check infrastructure/scripts/inspect-database.mjs && vitest run --config infrastructure/vitest.config.mts",
     "test:sandbox": "pnpm sandbox && playwright test --config apps/web/sandbox/playwright.config.ts",
     "test:units": "pnpm -r --workspace-concurrency=1 test:unit",
-    "typecheck": "pnpm --filter @chronelle/schemas typecheck && pnpm --filter @chronelle/db typecheck && pnpm --filter @chronelle/authorization typecheck && pnpm --filter @chronelle/storage typecheck && pnpm --filter @chronelle/object-model typecheck && pnpm --filter @chronelle/api-client typecheck && pnpm --filter @chronelle/api typecheck && pnpm --filter @chronelle/web typecheck",
+    "typecheck": "pnpm --filter @chronelle/schemas typecheck && pnpm --filter @chronelle/db typecheck && pnpm --filter @chronelle/authorization typecheck && pnpm --filter @chronelle/storage typecheck && pnpm --filter @chronelle/object-model typecheck && pnpm --filter @chronelle/api-client typecheck && pnpm --filter @chronelle/api typecheck && pnpm --filter @chronelle/web typecheck && pnpm --filter @chronelle/wechat typecheck",
+    "wechat:bundle": "pnpm --filter @chronelle/wechat bundle:report",
     "typecheck:units": "pnpm -r --parallel --workspace-concurrency=4 typecheck:unit"
   },
   "devDependencies": {

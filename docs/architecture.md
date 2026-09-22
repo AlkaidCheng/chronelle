@@ -4,9 +4,9 @@ The [browser-only design sandbox](browser-sandbox.md) is a separate offline buil
 of the existing web screens. Its build-time adapters use fictional browser-local
 data and do not participate in the production architecture described below.
 
-Chronelle starts as a TypeScript modular monolith in a pnpm workspace. The web
-and API applications deploy independently while domain contracts and database
-infrastructure remain explicit shared packages.
+Chronelle starts as a TypeScript modular monolith in a pnpm workspace. The web,
+WeChat Mini Program, and API applications build independently while domain
+contracts and database infrastructure remain explicit shared packages.
 
 The first product slice is event planning. Canonical `Event`, `Task`,
 `Expense`, `Reminder`, and `Document` records support event detail,
@@ -27,6 +27,9 @@ the common `objects` table holds identity and lifecycle fields.
 ## Current module boundaries
 
 - `apps/web` owns HTTP rendering and browser interaction.
+- `apps/wechat` owns native Mini Program rendering and platform lifecycle. It
+  uses Taro 4 with a package-local React 18 toolchain; it does not import the
+  Next.js component tree or read protected CloudBase tables directly.
 - `packages/api-client` owns authenticated REST transport, response validation,
   and normalized client errors.
 - `apps/api` owns thin HTTP transport, authentication-provider composition,
@@ -46,8 +49,8 @@ the common `objects` table holds identity and lifecycle fields.
   UUIDv7 generation, database connections, and persistence integrity tests.
 - `infrastructure/migrations` owns immutable PostgreSQL schema changes.
 
-Each package must hide a concrete domain decision; shared UI remains inside
-`apps/web` until more than one application needs it.
+Each package must hide a concrete domain decision. Web and Mini Program UI stay
+separate; only platform-neutral contracts and behavior move to shared packages.
 
 ## Persistence kernel
 
@@ -334,6 +337,21 @@ and an issued signed URL remains valid until expiry. Existing command IDs and
 version preconditions remain stable for uncertain retries within one active
 session; abandoned mutations are not automatically replayed in another session.
 Backend authorization remains authoritative for every request.
+
+## WeChat Mini Program boundary
+
+The Mini Program is a separate Taro presentation layer. Its W01 foundation is
+offline and contains no authentication or business-data transport. Later slices
+connect it through `ChronelleApiClient` transport ports so every protected read
+and mutation reaches the same Fastify routes, transaction-bound authorization,
+version checks, and audit ledger as the web client. CloudBase may bootstrap a
+verified WeChat identity, but it does not become an alternate data or permission
+boundary.
+
+Platform-specific concerns remain in `apps/wechat`: app lifecycle, network
+state, storage, file selection and transfer, touch navigation, safe areas, and
+Mini Program package structure. Schemas, canonical identifiers, REST behavior,
+and invalidation semantics remain shared. See [WeChat Mini Program](wechat.md).
 
 TanStack Query owns remote state and invalidation. Event detail, calendar,
 timeline, itinerary, expenses, reminders, and to-dos retain separate query

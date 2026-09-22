@@ -1,0 +1,34 @@
+page {
+  --chronelle-paper: #f5efe4;
+  --chronelle-surface: #fffaf0;
+  --chronelle-ink: #292521;
+  --chronelle-muted: #716960;
+  --chronelle-line: rgba(82, 65, 50, 0.18);
+  --chronelle-cinnabar: #a33c2f;
+  --chronelle-indigo: #48546d;
+
+  min-height: 100%;
+  background: var(--chronelle-paper);
+  color: var(--chronelle-ink);
+  font-family:
+    -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei",
+    sans-serif;
+}
+
+@media (prefers-color-scheme: dark) {
+  page {
+    --chronelle-paper: #181716;
+    --chronelle-surface: #23211f;
+    --chronelle-ink: #f3eadc;
+    --chronelle-muted: #b9afa4;
+    --chronelle-line: rgba(238, 220, 198, 0.18);
+    --chronelle-cinnabar: #dc7566;
+    --chronelle-indigo: #9aa8c5;
+  }
+}
+
+button,
+input,
+textarea {
+  font: inherit;
+}
