@@ -5,6 +5,7 @@ import Fastify, {
 } from "fastify";
 
 import { registerPasswordRoutes } from "./authentication/password-routes.js";
+import { registerWeChatAuthenticationRoutes } from "./authentication/wechat-routes.js";
 import {
   registerDevelopmentAuthenticationRoute,
   registerSessionRoutes,
@@ -42,6 +43,11 @@ export function buildApp(
     passwordAuth: dependencies.passwordAuth,
     friends: dependencies.friends,
   });
+  if (dependencies.weChatAuth !== null) {
+    registerWeChatAuthenticationRoutes(app, {
+      authentication: dependencies.weChatAuth,
+    });
+  }
   registerFriendRoutes(app, { friends: dependencies.friends });
   registerDocumentRoutes(app, dependencies);
   registerEventPlanningRoutes(app, dependencies);

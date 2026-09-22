@@ -69,6 +69,12 @@ import {
 } from "./authentication/password-auth-service.js";
 import { SessionAuthProvider } from "./authentication/session-auth-provider.js";
 import { PostgresSessionStore } from "./authentication/session-store.js";
+import { WeChatAuthenticationService } from "./authentication/wechat-auth-service.js";
+import {
+  CloudBaseWeChatAuthStore,
+  PostgresWeChatAuthStore,
+} from "./authentication/wechat-auth-store.js";
+import type { WeChatIdentityVerifier } from "./authentication/wechat-identity-verifier.js";
 import { CloudBaseFriendStore } from "./friends/cloudbase-friend-store.js";
 import {
   FriendService,
@@ -98,6 +104,7 @@ export interface AppDependencies {
   readonly developmentSignIn: boolean;
   readonly sessions: SessionAuthProvider;
   readonly passwordAuth: PasswordAuthService;
+  readonly weChatAuth: WeChatAuthenticationService | null;
   readonly friends: FriendService;
   readonly documents: DocumentService;
   readonly identity: WorkspaceIdentityService;
@@ -133,6 +140,8 @@ export interface AppDependencyOptions {
   /** Outbound email for verification codes; the log sender by default. */
   readonly email?: EmailSender | undefined;
   readonly passwordAuth?: PasswordAuthOptions | undefined;
+  /** Enables verified CloudBase-WeChat exchange and explicit account linking. */
+  readonly weChatIdentityVerifier?: WeChatIdentityVerifier | undefined;
   readonly friends?: FriendServiceOptions | undefined;
 }
 
@@ -191,6 +200,16 @@ export function createAppDependencies(
     options.email ?? discardingEmailSender,
     { clock: options.clock, ...options.passwordAuth },
   );
+  const weChatAuth =
+    options.weChatIdentityVerifier === undefined
+      ? null
+      : new WeChatAuthenticationService(
+          options.weChatIdentityVerifier,
+          options.cloudBaseRdb === undefined
+            ? new PostgresWeChatAuthStore(connection.db)
+            : new CloudBaseWeChatAuthStore(options.cloudBaseRdb),
+          { clock: options.clock, sessionTtlMs: options.sessionTtlMs },
+        );
   // Read adapters; a service without one reads PostgreSQL.
   const reads =
     options.cloudBaseRdb === undefined
@@ -295,6 +314,7 @@ export function createAppDependencies(
     developmentSignIn: false,
     sessions,
     passwordAuth,
+    weChatAuth,
     friends,
     documents: new DocumentService(connection.db, objects, storage, {
       clock: options.clock,

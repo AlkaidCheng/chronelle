@@ -7,8 +7,13 @@ export interface AuthIdentity {
   readonly username?: string | undefined;
 }
 
+/** A Chronelle account proven by an application session credential. */
+export interface AuthenticatedUser {
+  readonly userId: string;
+}
+
 export interface AuthProvider {
-  authenticate(accessToken: string): Promise<AuthIdentity | null>;
+  authenticate(accessToken: string): Promise<AuthenticatedUser | null>;
 }
 
 /** The identity provider of email and password accounts. */

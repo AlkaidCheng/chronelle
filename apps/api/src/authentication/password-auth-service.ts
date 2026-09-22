@@ -273,8 +273,11 @@ export class PasswordAuthService {
   }
 
   async #establish(user: UserRow, requestId: string): Promise<PasswordSession> {
+    if (user.email === null) {
+      throw new Error("A password account does not have an email address.");
+    }
     const session = await this.#identity.signIn(
-      this.#identityFor(user.providerSubject, user.displayName),
+      this.#identityFor(user.email, user.displayName),
       requestId,
     );
     const issued = await this.#sessions.issue(
@@ -288,6 +291,9 @@ export class PasswordAuthService {
     user: UserRow,
     purpose: "verify_email" | "reset_password",
   ): Promise<void> {
+    if (user.email === null) {
+      throw new Error("A password account does not have an email address.");
+    }
     const code = generateVerificationCode();
     const issued = await this.#credentials.issueVerification(
       user.id,
@@ -310,7 +316,7 @@ export class PasswordAuthService {
       purpose,
       expiresInMinutes: Math.round(this.#verificationTtlMs / 60_000),
     });
-    await this.#email.send({ to: user.providerSubject, ...message });
+    await this.#email.send({ to: user.email, ...message });
   }
 
   async #consumeCode(

@@ -10,6 +10,7 @@ import { applyMigrations, discoverMigrations } from "../src/migrations.js";
 import {
   auditEvents,
   events,
+  type ObjectType,
   objectRelations,
   objects,
   resourceGrants,
@@ -17,7 +18,6 @@ import {
   users,
   workspaceMembers,
   workspaces,
-  type ObjectType,
 } from "../src/schema.js";
 import { createTestDatabase, type TestDatabase } from "../src/testing.js";
 
@@ -145,6 +145,7 @@ describe.sequential("persistence kernel", () => {
       "event_page_revisions",
       "events",
       "expenses",
+      "identity_exchanges",
       "labels",
       "notes",
       "object_create_commands",
@@ -163,6 +164,7 @@ describe.sequential("persistence kernel", () => {
       "tasks",
       "user_connections",
       "user_credentials",
+      "user_identities",
       "user_invitations",
       "user_sessions",
       "users",
@@ -203,6 +205,51 @@ describe.sequential("persistence kernel", () => {
       permissionScopeId: eventId,
       version: 1,
     });
+  });
+
+  it("backfills normalized identities without changing canonical user ids", async () => {
+    const upgradeDirectory = await mkdtemp(
+      join(tmpdir(), "chronelle-identity-upgrade-"),
+    );
+    temporaryDirectories.push(upgradeDirectory);
+    await cp(migrationDirectory, upgradeDirectory, { recursive: true });
+    const identityMigration = "0071_add_linked_identities.sql";
+    await rm(join(upgradeDirectory, identityMigration));
+    await applyMigrations(
+      { DATABASE_URL: testDatabase.databaseUrl },
+      upgradeDirectory,
+    );
+
+    const userId = createId();
+    await testDatabase.connection.sql`
+      INSERT INTO users (id, identity_provider, provider_subject, email, display_name)
+      VALUES (${userId}, 'password', 'person@example.test', 'person@example.test', 'Person')
+    `;
+    await cp(
+      join(migrationDirectory, identityMigration),
+      join(upgradeDirectory, identityMigration),
+    );
+
+    await expect(
+      applyMigrations(
+        { DATABASE_URL: testDatabase.databaseUrl },
+        upgradeDirectory,
+      ),
+    ).resolves.toBe(1);
+    expect(
+      await testDatabase.connection.sql`
+        SELECT u.id, i.user_id, i.provider, i.subject
+        FROM users u JOIN user_identities i ON i.user_id = u.id
+        WHERE u.id = ${userId}
+      `,
+    ).toEqual([
+      {
+        id: userId,
+        user_id: userId,
+        provider: "password",
+        subject: "person@example.test",
+      },
+    ]);
   });
 
   it("rejects a changed migration after it has been applied", async () => {

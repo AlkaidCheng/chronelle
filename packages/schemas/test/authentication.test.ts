@@ -4,6 +4,8 @@ import {
   developmentSignInRequestSchema,
   developmentSignInResponseSchema,
   sessionResponseSchema,
+  weChatCredentialRequestSchema,
+  weChatIdentityLinkResponseSchema,
 } from "../src/authentication.js";
 
 describe("authentication schemas", () => {
@@ -36,5 +38,37 @@ describe("authentication schemas", () => {
         },
       }).success,
     ).toBe(false);
+  });
+
+  it("bounds CloudBase credentials without accepting extra fields", () => {
+    expect(
+      weChatCredentialRequestSchema.parse({
+        accessToken: "x".repeat(20),
+        deviceId: "device-1",
+      }),
+    ).toEqual({ accessToken: "x".repeat(20), deviceId: "device-1" });
+    expect(
+      weChatCredentialRequestSchema.safeParse({ accessToken: "short" }).success,
+    ).toBe(false);
+    expect(
+      weChatCredentialRequestSchema.safeParse({
+        accessToken: "x".repeat(4_097),
+      }).success,
+    ).toBe(false);
+    expect(
+      weChatCredentialRequestSchema.safeParse({
+        accessToken: "x".repeat(20),
+        deviceId: "contains spaces",
+      }).success,
+    ).toBe(false);
+    expect(
+      weChatCredentialRequestSchema.safeParse({
+        accessToken: "x".repeat(20),
+        profile: {},
+      }).success,
+    ).toBe(false);
+    expect(weChatIdentityLinkResponseSchema.parse({ linked: true })).toEqual({
+      linked: true,
+    });
   });
 });

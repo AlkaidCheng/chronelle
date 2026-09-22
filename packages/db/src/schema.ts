@@ -139,6 +139,74 @@ export const users = pgTable("users", {
   updatedAt: createUpdatedAtColumn(),
 });
 
+/**
+ * External sign-in identities linked to one canonical Chronelle account.
+ * Provider subjects are unique globally; one account may have one identity
+ * from each provider without changing its user id.
+ */
+export const userIdentities = pgTable(
+  "user_identities",
+  {
+    id: uuid("id").primaryKey(),
+    userId: uuid("user_id").notNull(),
+    provider: text("provider").notNull(),
+    subject: text("subject").notNull(),
+    metadata: createMetadataColumn(),
+    createdAt: createCreatedAtColumn(),
+    lastUsedAt: timestamp("last_used_at", {
+      mode: "date",
+      withTimezone: true,
+      precision: 3,
+    })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("user_identities_provider_subject_idx").on(
+      table.provider,
+      table.subject,
+    ),
+    uniqueIndex("user_identities_user_provider_idx").on(
+      table.userId,
+      table.provider,
+    ),
+  ],
+);
+
+export const identityExchangePurposes = ["sign_in", "link"] as const;
+export type IdentityExchangePurpose = (typeof identityExchangePurposes)[number];
+
+/** Digests of external bearer proofs already exchanged by the API. */
+export const identityExchanges = pgTable(
+  "identity_exchanges",
+  {
+    id: uuid("id").primaryKey(),
+    userId: uuid("user_id").notNull(),
+    provider: text("provider").notNull(),
+    proofHash: text("proof_hash").notNull(),
+    purpose: text("purpose").$type<IdentityExchangePurpose>().notNull(),
+    consumedAt: timestamp("consumed_at", {
+      mode: "date",
+      withTimezone: true,
+      precision: 3,
+    })
+      .notNull()
+      .defaultNow(),
+    expiresAt: timestamp("expires_at", {
+      mode: "date",
+      withTimezone: true,
+      precision: 3,
+    }).notNull(),
+  },
+  (table) => [
+    uniqueIndex("identity_exchanges_provider_proof_idx").on(
+      table.provider,
+      table.proofHash,
+    ),
+    index("identity_exchanges_expiry_idx").on(table.expiresAt),
+  ],
+);
+
 /** How the rail lists the workspace collections: keys first to last, and keys left out. */
 export interface RailPreferenceRow {
   readonly order?: readonly string[] | undefined;
@@ -814,6 +882,10 @@ export const eventPageRevisions = pgTable(
 
 export type UserRow = typeof users.$inferSelect;
 export type NewUserRow = typeof users.$inferInsert;
+export type UserIdentityRow = typeof userIdentities.$inferSelect;
+export type NewUserIdentityRow = typeof userIdentities.$inferInsert;
+export type IdentityExchangeRow = typeof identityExchanges.$inferSelect;
+export type NewIdentityExchangeRow = typeof identityExchanges.$inferInsert;
 export type UserSessionRow = typeof userSessions.$inferSelect;
 export type NewUserSessionRow = typeof userSessions.$inferInsert;
 export type UserCredentialRow = typeof userCredentials.$inferSelect;

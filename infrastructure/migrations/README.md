@@ -37,3 +37,10 @@ Migration 0010 adds date-only Event ranges with inclusive end dates and checks
 that prevent mixing date precision with timestamp precision. It preserves
 existing timed records and immutable snapshots. See
 [Event schedules](../../docs/object-model.md#event-schedules) for the API contract.
+
+Migration 0071 normalizes external providers in `user_identities` and records
+one-time identity proof digests in `identity_exchanges`. It backfills every
+existing user without changing canonical user IDs, keeps the prior identity
+columns during the rolling deployment, and adds atomic WeChat exchange and
+explicit-link functions. Reapply runtime role provisioning after migration so
+the API can read and write the two new tables.

@@ -75,8 +75,11 @@ typed services, and persists user/workspace Undo/Redo stacks and idempotent
 receipts in the same transaction. Existing mutation endpoints remain independent.
 See [Reversible content commands](commands.md) for eligibility and rollout.
 
-The Fastify API resolves each bearer credential through an `AuthProvider`, then
-maps the resulting external identity to a Chronelle user and active workspace.
+The Fastify API resolves each bearer credential through an `AuthProvider` to a
+canonical Chronelle user ID, then resolves the active workspace. External
+providers are normalized in `user_identities`; several explicitly linked
+providers may identify the same user without changing that user's ID, personal
+workspace, grants, objects, or audit history.
 The session provider backs that credential with the `user_sessions` table: a
 sign-in issues a random opaque token and stores only its SHA-256 digest with
 the expiry, a request resolves the digest to a live session and its user, and
@@ -91,9 +94,12 @@ API, never in SQL; codes are issued at most once a minute and five times an
 hour per account and purpose, refused ones silently); the development method
 is registered when explicitly
 enabled and asserts the submitted email. Outbound email is a port with a log
-sender for development and an SMTP sender for deployments. Further methods
-(external providers) can be added without changing sessions, workspace, or
-authorization services.
+sender for development and an SMTP sender for deployments. CloudBase WeChat
+authentication follows the same boundary: the server verifies the end-user
+token, consumes its digest once, and issues a normal Chronelle session. Linking
+requires an already authenticated user and never infers an account match from
+profile data. Further providers can be added without changing sessions,
+workspace, or authorization services.
 
 The first sign-in transaction creates one user, one personal workspace, one
 owner membership, and one audit event. A unique personal-owner constraint makes
@@ -341,14 +347,16 @@ Backend authorization remains authoritative for every request.
 ## WeChat Mini Program boundary
 
 The Mini Program is a separate Taro presentation layer. Its visible shell stays
-offline until identity is implemented, but `ChronelleApiClient` now delegates
-JSON I/O to platform-neutral transport contracts with Fetch and Taro adapters.
+offline until W04 composes the implemented identity lifecycle, but
+`ChronelleApiClient` delegates JSON I/O to platform-neutral transport contracts
+with Fetch and Taro adapters.
 Every future protected read and mutation therefore reaches the same Fastify
 routes, transaction-bound authorization, version checks, and audit ledger as the
 web client. File hashing and binary transfer are independent platform ports;
 Mini Program attachment support does not require browser-global emulation.
-CloudBase may bootstrap a verified WeChat identity, but it does not become an
-alternate data or permission boundary.
+CloudBase bootstraps a verified WeChat identity, but it does not become an
+alternate data or permission boundary. The client persists only the opaque
+Chronelle token; account linking is explicit and server-authorized.
 
 Platform-specific concerns remain in `apps/wechat`: app lifecycle, network
 state, storage, file selection and transfer, touch navigation, safe areas, and

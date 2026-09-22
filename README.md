@@ -79,9 +79,11 @@ provided through managed secret storage.
 
 `ENABLE_DEVELOPMENT_AUTH=true` enables the development sign-in, which asserts
 an identity from a submitted email without a password. Every sign-in records
-a session that survives API restarts until it expires or is revoked. A
-production deployment must compose a production identity provider instead of
-enabling development sign-in.
+a session that survives API restarts until it expires or is revoked. Keep it
+off in a deployment. `ENABLE_WECHAT_AUTH=true` instead enables server-verified
+CloudBase WeChat exchange and explicit linking to an existing account after
+migration 0071 has been applied; the Mini Program stores only the resulting
+opaque Chronelle session token.
 
 ## Install and run
 
@@ -113,10 +115,13 @@ pnpm dev:weapp
 pnpm wechat:bundle
 ```
 
-The shell remains offline until WeChat identity lands in W03. The shared API
-client now has a cancelable Taro JSON transport, so later Mini Program screens
-can use the same runtime-validated REST contracts and authorization boundary as
-the web app without emulating browser networking or file APIs. See
+The W03 identity boundary is available to the Mini Program: CloudBase verifies
+the end-user credential on the server, Chronelle exchanges it for its own
+revocable session, and local storage retains only that session. The visible
+shell remains offline until W04 composes the sign-in lifecycle and read-only
+Event screens. The shared API client has a cancelable Taro JSON transport, so
+those screens use the same runtime-validated REST contracts and authorization
+boundary as the web app without emulating browser networking or file APIs. See
 [WeChat Mini Program](docs/wechat.md).
 
 Open <http://localhost:3000/sign-in> to create a development session, then use
@@ -192,6 +197,13 @@ curl http://localhost:4000/api/auth/session \
 
 Pass `x-workspace-id` to select another workspace. Selection succeeds only for
 a workspace where the user has membership or an active resource grant.
+
+Migration 0071 normalizes external providers in `user_identities`, preserving
+existing user IDs and personal workspaces. With `ENABLE_WECHAT_AUTH=true`,
+`POST /api/auth/wechat` consumes a verified CloudBase WeChat proof once and
+returns the same opaque Chronelle session shape. An authenticated user can add
+that provider through `POST /api/auth/wechat/link`; Chronelle never merges
+accounts from names or unverified email addresses.
 
 ## Event-planning API
 

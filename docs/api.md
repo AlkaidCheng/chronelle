@@ -61,6 +61,18 @@ given and ignored on read. Both backends write through one merging
 function, `chronelle_user_preferences_update` (migrations 0049, 0053, and
 0064).
 
+With `ENABLE_WECHAT_AUTH=true`, `POST /api/auth/wechat` accepts
+`{ accessToken, deviceId? }`. The API verifies the end-user token with
+CloudBase, requires an allowed WeChat provider, consumes the proof once, and
+returns the same sign-in response. An unknown, expired, invalid, replayed, or
+unlinked identity returns 401 `unauthenticated`; provider failure returns 503
+`identity_provider_unavailable`. The route allows ten attempts per minute per
+source address. `POST /api/auth/wechat/link` accepts the same body, requires a
+live Chronelle bearer session, and links that verified provider identity to the
+current canonical user. It returns `{ linked: true }`, permits five attempts per
+minute per user, and rejects a provider already attached to either side without
+revealing the conflicting account. Migration 0071 is required for both routes.
+
 The user also carries `username`, `findByName`, and `findByEmail` (true
 until switched off): the handle every account has, 3 to 30 letters, digits,
 hyphens or underscores starting with a letter and unique without regard to
