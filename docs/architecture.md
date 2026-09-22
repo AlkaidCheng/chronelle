@@ -369,6 +369,15 @@ token, and clears the client cache before protected reads resume. Event list and
 overview responses retain the canonical ID and version returned by the API; the
 Mini Program does not create a parallel Event or calendar record.
 
+The native Event editor sends the same typed create and update payloads as the
+web client. Creation drafts retain one cryptographically random command ID so an
+uncertain retry is idempotent. Edit drafts retain the canonical source version;
+a `version_conflict` response keeps the draft, refreshes the current Event, and
+requires an explicit choice before rebasing or discarding it. Draft storage is
+partitioned by user, workspace, and canonical Event, expires after seven days,
+and retains at most twenty entries. It never stores CloudBase credentials.
+Successful mutations invalidate the Event collection and canonical overview.
+
 TanStack Query owns remote state and invalidation. Event detail, calendar,
 timeline, itinerary, expenses, reminders, and to-dos retain separate query
 results, but every item carries the canonical object ID returned by the API.

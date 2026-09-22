@@ -1,4 +1,15 @@
-import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
+import type {
+  EventCreatePayload,
+  EventResponse,
+  EventUpdatePayload,
+  ObjectAccessResponse,
+} from "@chronelle/schemas";
+import {
+  useInfiniteQuery,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
 
 import { useReadyAppRuntime } from "../runtime/app-runtime";
 
@@ -41,5 +52,42 @@ export function useEventOverview(workspaceId: string, eventId: string | null) {
       return { access, event };
     },
     retry: 1,
+  });
+}
+
+export function useCreateEvent(workspaceId: string) {
+  const { api } = useReadyAppRuntime();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (input: EventCreatePayload) => api.createEvent(input),
+    onSuccess: () => {
+      void queryClient
+        .invalidateQueries({ queryKey: eventListQueryKey(workspaceId) })
+        .catch(() => undefined);
+    },
+  });
+}
+
+export function useUpdateEvent(workspaceId: string, eventId: string) {
+  const { api } = useReadyAppRuntime();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (input: EventUpdatePayload) => api.updateEvent(eventId, input),
+    onSuccess: (event) => {
+      queryClient.setQueryData<{
+        readonly access: ObjectAccessResponse;
+        readonly event: EventResponse;
+      }>(eventOverviewQueryKey(workspaceId, eventId), (current) =>
+        current === undefined ? current : { ...current, event },
+      );
+      void Promise.all([
+        queryClient.invalidateQueries({
+          queryKey: eventListQueryKey(workspaceId),
+        }),
+        queryClient.invalidateQueries({
+          queryKey: eventOverviewQueryKey(workspaceId, eventId),
+        }),
+      ]).catch(() => undefined);
+    },
   });
 }

@@ -6,26 +6,45 @@
 }
 
 .back-button,
+.edit-button,
 .detail-button {
   border: 0;
 }
 
 .back-button::after,
+.edit-button::after,
 .detail-button::after {
   border: 0;
 }
 
-.back-button {
+.detail-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24rpx;
+  margin-bottom: 52rpx;
+}
+
+.back-button,
+.edit-button {
   display: inline-flex;
   min-height: 64rpx;
   align-items: center;
-  margin: 0 0 52rpx;
+  margin: 0;
   padding: 0;
   background: transparent;
   color: var(--chronelle-indigo);
   font-size: 23rpx;
   font-weight: 600;
   line-height: 1.2;
+}
+
+.edit-button {
+  padding: 0 22rpx;
+  border: 1rpx solid var(--chronelle-line-strong);
+  border-radius: 15rpx;
+  background: var(--chronelle-surface);
+  color: var(--chronelle-cinnabar);
 }
 
 .detail-eyebrow,

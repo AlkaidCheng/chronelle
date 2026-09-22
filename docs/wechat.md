@@ -20,6 +20,10 @@ The current Mini Program provides:
 - session restoration, revocation, onboarding, and workspace switching;
 - lifecycle- and network-aware TanStack Query integration;
 - paginated canonical Event cards and an authorized Event overview;
+- native creation and editing for undated, date-only, timed, and multi-day
+  Events;
+- bounded per-account drafts, idempotent creation retries, and explicit
+  optimistic-concurrency recovery;
 - pull-to-refresh, retry, offline, empty, and permission-loss states;
 - unit coverage for locale selection, runtime configuration, CloudBase proof
   acquisition, session storage, lifecycle bridging, date formatting, transport,
@@ -111,6 +115,30 @@ card reads the same Event through `GET /api/events/:id` and its authoritative
 access explanation through `GET /api/objects/:id/access`. Date-only, multi-day,
 timed, and undated Events preserve their distinct semantics; timed values use
 the Event or account time zone and the account's clock preference.
+
+## W05 Event creation and editing
+
+The collection opens a focused native editor for new Events. An authorized
+Event overview exposes the same editor to principals whose server-provided
+access actions include Edit; a Viewer never receives an editable surface.
+The collection offers creation only when the active workspace role is Owner or
+Editor; direct navigation fails closed for Viewer and share-only access.
+WeChat date and time pickers keep calendar dates distinct from instants, support
+an optional end, and avoid free-form date entry. Timed fields are converted in
+the Event's IANA time zone, and nonexistent daylight-saving wall times are
+rejected before a request is sent.
+
+Creation uses one cryptographically random `commandId` for the lifetime of the
+draft. A lost response can therefore be retried without creating a second
+canonical Event. Updates carry the source `version`. A conflict keeps the local
+draft, refreshes the canonical Event, and presents the current values before
+the user explicitly adopts the current Event or retries their draft against its
+new version. No background overwrite is attempted.
+
+Drafts are stored separately from the authentication session, partitioned by
+user, workspace, and Event. At most twenty drafts are retained for seven days;
+malformed or expired entries are ignored. Successful saves remove their draft
+and invalidate both the Event collection and canonical overview query.
 
 ## Local build
 
