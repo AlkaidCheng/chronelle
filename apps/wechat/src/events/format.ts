@@ -17,7 +17,7 @@ function formatter(
   }
 }
 
-function calendarDate(value: string, locale: string): string {
+export function formatCalendarDate(value: string, locale: string): string {
   const [year, month, day] = value.split("-").map(Number);
   if (year === undefined || month === undefined || day === undefined)
     return value;
@@ -32,10 +32,10 @@ function calendarDate(value: string, locale: string): string {
   );
 }
 
-function instant(
+export function formatInstant(
   value: string,
-  eventTimeZone: string | null,
   preferences: EventFormatPreferences,
+  timeZone: string | null = preferences.timeZone,
 ): string {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
@@ -46,7 +46,7 @@ function instant(
         ? undefined
         : preferences.hourCycle === "h12",
     timeStyle: "short",
-    timeZone: eventTimeZone ?? preferences.timeZone ?? undefined,
+    timeZone: timeZone ?? undefined,
   });
   return formatted?.format(date) ?? value;
 }
@@ -56,14 +56,14 @@ export function formatEventSchedule(
   preferences: EventFormatPreferences,
 ): string | null {
   if (event.startsOn !== null) {
-    const start = calendarDate(event.startsOn, preferences.locale);
+    const start = formatCalendarDate(event.startsOn, preferences.locale);
     if (event.endsOn === null || event.endsOn === event.startsOn) return start;
-    return `${start} - ${calendarDate(event.endsOn, preferences.locale)}`;
+    return `${start} - ${formatCalendarDate(event.endsOn, preferences.locale)}`;
   }
   if (event.startsAt !== null) {
-    const start = instant(event.startsAt, event.timezone, preferences);
+    const start = formatInstant(event.startsAt, preferences, event.timezone);
     if (event.endsAt === null || event.endsAt === event.startsAt) return start;
-    return `${start} - ${instant(event.endsAt, event.timezone, preferences)}`;
+    return `${start} - ${formatInstant(event.endsAt, preferences, event.timezone)}`;
   }
   return null;
 }

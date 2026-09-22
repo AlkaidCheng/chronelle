@@ -378,6 +378,22 @@ partitioned by user, workspace, and canonical Event, expires after seven days,
 and retains at most twenty entries. It never stores CloudBase credentials.
 Successful mutations invalidate the Event collection and canonical overview.
 
+Event editing and planning depth compile as lazy Mini Program subpackages, so
+launch, identity, navigation, and the Event collection retain a bounded main
+package. The planning subpackage reads the canonical Event layout and renders
+only the pages and component references the user selected. To-dos, Calendar,
+Timeline, Itinerary, Expenses, and Reminders call their existing authorized
+projection endpoints; the layout never owns copies of their business fields.
+Removing or moving a component changes only the versioned layout.
+
+Layout writes are pessimistic and carry the current layout version. Network
+failure retains the proposed pages for an explicit retry. A
+`version_conflict` refreshes the current layout and requires the user to accept
+it or apply the retained change against its latest version. Owner and Editor
+controls are derived from the server-provided access actions, while the API
+reauthorizes and audits every write. Unsupported component kinds remain in the
+layout and render a compatibility notice until their native slice is available.
+
 TanStack Query owns remote state and invalidation. Event detail, calendar,
 timeline, itinerary, expenses, reminders, and to-dos retain separate query
 results, but every item carries the canonical object ID returned by the API.

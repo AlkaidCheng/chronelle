@@ -137,7 +137,7 @@ function ReadyEventPage({
             className="edit-button"
             onClick={() =>
               void Taro.navigateTo({
-                url: `/pages/event-editor/index?id=${encodeURIComponent(event.id)}`,
+                url: `/features/event-editor/index?id=${encodeURIComponent(event.id)}`,
               })
             }
           >
@@ -152,6 +152,20 @@ function ReadyEventPage({
       >
         {schedule ?? messages.unscheduled}
       </Text>
+
+      <Button
+        className="planning-link"
+        onClick={() =>
+          void Taro.navigateTo({
+            url: `/features/planning/index?id=${encodeURIComponent(event.id)}`,
+          })
+        }
+      >
+        <Text className="planning-link__title">{messages.openPlanning}</Text>
+        <Text className="planning-link__detail">
+          {messages.planningDescription}
+        </Text>
+      </Button>
 
       {event.location ? (
         <View className="detail-section">

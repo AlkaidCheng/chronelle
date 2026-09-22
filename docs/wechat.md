@@ -24,6 +24,14 @@ The current Mini Program provides:
   Events;
 - bounded per-account drafts, idempotent creation retries, and explicit
   optimistic-concurrency recovery;
+- lazy Event-editor and planning feature subpackages, keeping launch and the
+  Event collection in the main package;
+- user-defined Event pages with manually selected, explicitly ordered planning
+  components;
+- authorized canonical To-do, Calendar, Timeline, Itinerary, Expense, and
+  Reminder projections, without Mini Program copies of business records;
+- conflict-safe layout writes whose removal operations never delete canonical
+  resources;
 - pull-to-refresh, retry, offline, empty, and permission-loss states;
 - unit coverage for locale selection, runtime configuration, CloudBase proof
   acquisition, session storage, lifecycle bridging, date formatting, transport,
@@ -139,6 +147,36 @@ Drafts are stored separately from the authentication session, partitioned by
 user, workspace, and Event. At most twenty drafts are retained for seven days;
 malformed or expired entries are ignored. Successful saves remove their draft
 and invalidate both the Event collection and canonical overview query.
+
+## W06 Event planning workspace
+
+The Event overview opens planning depth through a lazy feature subpackage. The
+main package retains launch, identity, workspace navigation, the Event
+collection, and the small Event overview. The Event editor and planning
+workspace have separate subpackage budgets and are loaded only when opened.
+
+An Event layout contains user-named pages and ordered component references. An
+Owner or Editor may add, rename, remove, and explicitly move pages and
+components with touch controls. Viewers receive the same pages and projections
+without layout controls. Removing a page or component updates only the layout;
+it never deletes a Task, Expense, Reminder, or other canonical object.
+
+Each visible component calls its existing authorized projection endpoint. A
+canonical Task or Expense can therefore appear in several components while
+retaining one object ID, version, permission scope, and audit history. Duplicate
+components share workspace- and Event-scoped query keys rather than duplicating
+stored data. Components not yet implemented by the Mini Program remain intact
+in the layout and render a compatibility notice instead of being discarded.
+
+Layout writes carry the current layout version and are never applied
+optimistically. A failed request retains the intended pages for retry. A stale
+version refreshes the canonical layout and requires an explicit choice between
+the current layout and applying the pending change to the latest version. The
+API remains the authorization and audit boundary for every read and write.
+
+This slice renders planning resources read-only. Native Task, Expense, and
+Reminder editors follow as bounded W06 work; they will mutate the same canonical
+records and invalidate these projection keys.
 
 ## Local build
 
