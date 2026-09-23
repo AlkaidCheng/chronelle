@@ -257,7 +257,9 @@ function ReadyHistory({
         );
       } else if (error instanceof ApiClientError && error.status === 409) {
         setIssue("conflict");
-        void Promise.all([overview.refetch(), preview.refetch()]);
+        void Promise.all([overview.refetch(), preview.refetch()]).catch(
+          () => undefined,
+        );
       } else {
         setIssue("failed");
       }
