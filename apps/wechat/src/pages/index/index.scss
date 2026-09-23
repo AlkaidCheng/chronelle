@@ -22,6 +22,12 @@
   gap: 18rpx;
 }
 
+.workspace-header__actions {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+}
+
 .brand-copy,
 .entry-copy,
 .workspace-heading {

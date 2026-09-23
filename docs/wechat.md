@@ -18,6 +18,8 @@ The current Mini Program provides:
 - a production package report with enforced main, subpackage, and total budgets;
 - a native WeChat sign-in and explicit existing-account linking flow;
 - session restoration, revocation, onboarding, and workspace switching;
+- account language, time zone, clock, and week-start preferences through the
+  authenticated account API;
 - lifecycle- and network-aware TanStack Query integration;
 - paginated canonical Event cards and an authorized Event overview;
 - native creation and editing for undated, date-only, timed, and multi-day
@@ -286,6 +288,15 @@ construct a shareable Event URL. A direct email grant requires an existing
 discoverable account; an unknown recipient must be represented by a Person card
 to use the pending invitation flow. Native Mini Program invitation claiming and
 WeChat share-card entry are not provided by the current API contract.
+
+## Account preferences
+
+The Account page edits language, time zone, clock format, and first day of the
+week through the authenticated account API. The Mini Program sends only changed
+fields and updates the session view after a successful save, so Event dates and
+times use the new preferences without creating a separate local account copy.
+Time zone syntax is checked before submission; the API determines whether the
+zone exists, independent of the device's available time zone data.
 
 ## Local build
 

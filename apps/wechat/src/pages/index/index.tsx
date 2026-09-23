@@ -278,13 +278,25 @@ function EventWorkspace({ session }: { readonly session: SessionResponse }) {
     <View className="workspace-shell">
       <View className="workspace-header">
         <Brand subtitle={messages.eyebrow} />
-        <Button
-          className="text-button"
-          disabled={auth.busy}
-          onClick={() => void auth.signOut()}
-        >
-          {messages.signOut}
-        </Button>
+        <View className="workspace-header__actions">
+          <Button
+            className="text-button"
+            onClick={() =>
+              void Taro.navigateTo({
+                url: "/features/account-preferences/index",
+              })
+            }
+          >
+            {messages.account}
+          </Button>
+          <Button
+            className="text-button"
+            disabled={auth.busy}
+            onClick={() => void auth.signOut()}
+          >
+            {messages.signOut}
+          </Button>
+        </View>
       </View>
 
       <View className="workspace-toolbar">
