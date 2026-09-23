@@ -53,8 +53,7 @@ const catalog = {
     preferenceMonday: "Monday",
     preferenceSunday: "Sunday",
     preferenceInvalidTimeZone: "Enter a valid IANA time zone name.",
-    preferenceUnknownTimeZone:
-      "This time zone is not available on this device.",
+    preferenceUnknownTimeZone: "This time zone is not recognized.",
     preferenceSaveFailed:
       "Preferences were not saved. Check your connection and try again.",
     preferenceSaved: "Preferences saved.",
@@ -404,7 +403,7 @@ const catalog = {
     preferenceMonday: "星期一",
     preferenceSunday: "星期日",
     preferenceInvalidTimeZone: "请输入有效的 IANA 时区名称。",
-    preferenceUnknownTimeZone: "当前设备不支持此时区。",
+    preferenceUnknownTimeZone: "无法识别此时区。",
     preferenceSaveFailed: "偏好设置未保存，请检查网络后重试。",
     preferenceSaved: "偏好设置已保存。",
     signOut: "退出登录",

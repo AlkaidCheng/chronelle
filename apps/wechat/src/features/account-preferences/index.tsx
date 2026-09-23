@@ -1,3 +1,4 @@
+import { ApiClientError } from "@chronelle/api-client";
 import type { SessionResponse } from "@chronelle/schemas";
 import { Button, Input, Picker, Text, View } from "@tarojs/components";
 import Taro from "@tarojs/taro";
@@ -75,10 +76,9 @@ function PreferencesForm({ session }: { readonly session: SessionResponse }) {
       update = preferencesUpdate(original, draft);
     } catch (failure) {
       setError(
-        failure instanceof PreferencesValidationError &&
-          failure.issue === "time-zone-unknown"
-          ? messages.preferenceUnknownTimeZone
-          : messages.preferenceInvalidTimeZone,
+        failure instanceof PreferencesValidationError
+          ? messages.preferenceInvalidTimeZone
+          : messages.preferenceSaveFailed,
       );
       return;
     }
@@ -88,8 +88,14 @@ function PreferencesForm({ session }: { readonly session: SessionResponse }) {
       const user = await auth.updatePreferences(update);
       setDraft(preferencesFromUser(user));
       setSaved(true);
-    } catch {
-      setError(messages.preferenceSaveFailed);
+    } catch (failure) {
+      setError(
+        failure instanceof ApiClientError &&
+          failure.status === 400 &&
+          typeof update.timeZone === "string"
+          ? messages.preferenceUnknownTimeZone
+          : messages.preferenceSaveFailed,
+      );
     } finally {
       setSaving(false);
     }

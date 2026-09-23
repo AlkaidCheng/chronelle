@@ -45,13 +45,13 @@ describe("account preferences", () => {
     );
   });
 
-  it("validates IANA time zones before creating a request", () => {
+  it("checks time zone syntax and leaves zone lookup to the API", () => {
     expect(() =>
       preferencesUpdate(original, { ...original, timeZone: "Not a zone" }),
-    ).toThrowError(new PreferencesValidationError("time-zone-format"));
-    expect(() =>
+    ).toThrowError(PreferencesValidationError);
+    expect(
       preferencesUpdate(original, { ...original, timeZone: "Fake/Zone" }),
-    ).toThrowError(new PreferencesValidationError("time-zone-unknown"));
+    ).toEqual({ timeZone: "Fake/Zone" });
     expect(
       preferencesUpdate(original, {
         ...original,
@@ -60,7 +60,7 @@ describe("account preferences", () => {
     ).toEqual({ timeZone: "Asia/Shanghai" });
   });
 
-  it("leaves an unchanged time zone outside the device list alone", () => {
+  it("preserves an unchanged time zone without device lookup", () => {
     const current = { ...original, timeZone: "Region/Elsewhere" };
     expect(preferencesUpdate(current, { ...current, weekStart: 1 })).toEqual({
       weekStart: 1,

@@ -289,6 +289,15 @@ discoverable account; an unknown recipient must be represented by a Person card
 to use the pending invitation flow. Native Mini Program invitation claiming and
 WeChat share-card entry are not provided by the current API contract.
 
+## Account preferences
+
+The Account page edits language, time zone, clock format, and first day of the
+week through the authenticated account API. The Mini Program sends only changed
+fields and updates the session view after a successful save, so Event dates and
+times use the new preferences without creating a separate local account copy.
+Time zone syntax is checked before submission; the API determines whether the
+zone exists, independent of the device's available time zone data.
+
 ## Local build
 
 Install workspace dependencies, then build once or start the watcher:
