@@ -305,7 +305,8 @@ zone exists, independent of the device's available time zone data.
 The Event overview opens a lazy history subpackage. It reads twenty authorized
 revision summaries at a time through the shared API client. A selected revision
 shows its historical Event content and the server's typed comparison with the
-current Event. Viewers can inspect history and the restore preview, but receive
+current Event. Cards shorten long values; the selected comparison shows them
+in full. Viewers can inspect history and the restore preview, but receive
 no restore control. If a history read loses access, the page replaces protected
 content with the permission-loss state.
 

@@ -91,5 +91,14 @@ export function historyValue(
     typeof value === "string"
       ? value
       : (JSON.stringify(value) ?? String(value));
-  return content.length > 160 ? `${content.slice(0, 160)}…` : content;
+  return content;
+}
+
+export function historySummaryValue(
+  value: unknown,
+  present: boolean,
+  locale: AppLocale,
+): string {
+  const content = historyValue(value, present, locale);
+  return content.length > 160 ? `${content.slice(0, 160)}\u2026` : content;
 }

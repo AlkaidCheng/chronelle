@@ -4,6 +4,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   historyFieldLabel,
+  historySummaryValue,
   historyValue,
   isHistoryPermissionLoss,
   restoreRequestForPreview,
@@ -88,5 +89,13 @@ describe("Event history restore review", () => {
         "zh-CN",
       ),
     ).toBe("自定义属性：reference");
+  });
+
+  it("keeps full comparison values while limiting history-card summaries", () => {
+    const description = "a".repeat(180);
+    expect(historyValue(description, true, "en-US")).toBe(description);
+    expect(historySummaryValue(description, true, "en-US")).toBe(
+      `${"a".repeat(160)}\u2026`,
+    );
   });
 });

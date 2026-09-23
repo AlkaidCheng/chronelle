@@ -12,6 +12,7 @@ import { useSession } from "../../auth/session-context";
 import { formatEventSchedule, formatInstant } from "../../events/format";
 import {
   historyFieldLabel,
+  historySummaryValue,
   historyValue,
   isHistoryPermissionLoss,
   reviewRestoration,
@@ -331,7 +332,11 @@ function ReadyHistory({
                 {item.changedFields.map((change) => (
                   <Text className="history-entry__change" key={change.field}>
                     {historyFieldLabel(change, locale)}:{" "}
-                    {historyValue(change.after, change.afterPresent, locale)}
+                    {historySummaryValue(
+                      change.after,
+                      change.afterPresent,
+                      locale,
+                    )}
                   </Text>
                 ))}
                 {item.changedFieldCount > item.changedFields.length ? (
@@ -462,6 +467,19 @@ export default function EventHistoryPage() {
       : undefined,
   );
   const messages = getMessages(locale);
+  if (
+    session.state.status === "restoring" ||
+    session.state.status === "loading"
+  ) {
+    return (
+      <View className="history-shell">
+        <HistoryState
+          detail={messages.eventHistoryDescription}
+          title={messages.loading}
+        />
+      </View>
+    );
+  }
   if (session.state.status === "ready" && eventId.length > 0) {
     return <ReadyHistory eventId={eventId} session={session.state.session} />;
   }
