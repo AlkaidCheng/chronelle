@@ -375,6 +375,10 @@ permission scope are established atomically. Updates and completion target that
 Task by version, remain authorized and audited by the API, and invalidate the
 Event's projection-key prefix. Local editor drafts contain only bounded
 recoverable input; they are not canonical records or an offline write queue.
+The To-dos component derives five native presentations from the same Task
+projection, placing timed due dates in the account time zone. Its selected view
+is an Event layout property, while section changes use the API's existing
+authorized section routes. Removing a section leaves its Tasks in the Event.
 
 The native Event editor sends the same typed create and update payloads as the
 web client. Creation drafts retain one cryptographically random command ID so an

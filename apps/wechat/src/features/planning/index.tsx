@@ -19,6 +19,7 @@ import {
   removeComponent,
   removePage,
   renamePage,
+  setComponentView,
 } from "./layout";
 import { ProjectionCard } from "./projection-card";
 import {
@@ -353,6 +354,7 @@ function ReadyPlanningPage({
     hourCycle: session.user.hourCycle,
     locale,
     timeZone: session.user.timeZone,
+    weekStart: session.user.weekStart,
   } as const;
 
   return (
@@ -520,6 +522,9 @@ function ReadyPlanningPage({
                 applyLayout(() =>
                   moveComponent(pages, selectedPage.id, component.id, 1),
                 )
+              }
+              onChangeView={(view) =>
+                applyLayout(() => setComponentView(pages, component.id, view))
               }
               onRemove={() => void deleteComponent(selectedPage, component.id)}
               preferences={preferences}

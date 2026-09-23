@@ -2,6 +2,7 @@ import {
   eventPagesSchema,
   type EventComponent,
   type EventComponentKind,
+  type EventComponentView,
   type EventPage,
 } from "@chronelle/schemas";
 
@@ -111,6 +112,21 @@ export function moveComponent(
       direction,
     ),
   }));
+}
+
+export function setComponentView(
+  pages: readonly EventPage[],
+  componentId: string,
+  view: EventComponentView,
+): EventPage[] {
+  return validate(
+    pages.map((page) => ({
+      ...page,
+      components: page.components.map((component) =>
+        component.id === componentId ? { ...component, view } : component,
+      ),
+    })),
+  );
 }
 
 export function hasComponentKind(

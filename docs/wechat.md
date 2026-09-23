@@ -34,6 +34,10 @@ The current Mini Program provides:
   location, description, and existing-section assignment;
 - bounded Task drafts, idempotent Event-context creation, version conflicts,
   and projection-wide refresh after each mutation;
+- native list, by-day, week, board, and month Task presentations with a view
+  choice stored on the existing Event component;
+- To-do section creation, rename, description, ordering, and removal through
+  the authorized section API;
 - conflict-safe layout writes whose removal operations never delete canonical
   resources;
 - pull-to-refresh, retry, offline, empty, and permission-loss states;
@@ -191,9 +195,13 @@ Successful mutations replace the matching cached canonical Task when present
 and invalidate all Event projection keys, so Calendar, Timeline, and other
 applicable views refresh without copied records. The Task editor preserves
 date-only and timed due semantics, assigns existing To-do sections, and keeps
-canonical IDs out of the normal interface. Section administration and the
-list, by-day, week, board, and month presentations remain W06-B2; Expense and
-Reminder editors remain W06-C.
+canonical IDs out of the normal interface. The To-dos component can show the
+same Task records as a sectioned list, by due day, a navigable week or month,
+or a day-based board. Date-only Tasks keep their calendar date; timed Tasks are
+placed in the account time zone. Owners and Editors can manage To-do sections
+through the existing API, while Viewers can switch presentations locally
+without editing the shared layout. Deleting a section leaves its Tasks in the
+Event without a section. Expense and Reminder editors remain W06-C.
 
 ## Local build
 

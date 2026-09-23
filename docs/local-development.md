@@ -379,7 +379,10 @@ projections; layout edits carry their expected version and never delete the
 objects shown by a component. The Task editor creates through the Event-context
 command and updates with an expected version, while completion refreshes the
 Event projection prefix. No additional migration or Mini Program database is
-required:
+required. The To-dos component's list, by-day, week, board, and month views
+read the same projection; section creation, rename, ordering, and removal use
+the existing section routes. Run the Mini Program tests to check time-zone day
+placement and section grouping:
 
 ```bash
 pnpm --filter @chronelle/api-client test
