@@ -8,6 +8,7 @@
     "build:weapp": "taro build --type weapp",
     "bundle:check": "node --import tsx scripts/report-bundle.ts",
     "bundle:report": "node --import tsx scripts/report-bundle.ts --json",
+    "release:preflight": "node --import tsx scripts/release-preflight.ts",
     "dev:weapp": "taro build --type weapp --watch",
     "test": "vitest run",
     "test:unit": "vitest run",
