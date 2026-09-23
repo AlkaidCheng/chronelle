@@ -16,6 +16,10 @@ export default defineAppConfig({
       root: "features/task-editor",
       pages: ["index"],
     },
+    {
+      root: "features/expense-editor",
+      pages: ["index"],
+    },
   ],
   themeLocation: "theme.json",
   window: {

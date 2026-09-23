@@ -9,7 +9,8 @@
 .planning-button,
 .text-button,
 .page-tab,
-.icon-button {
+.icon-button,
+.projection-row-button {
   border: 0;
 }
 
@@ -19,6 +20,25 @@
 .page-tab::after,
 .icon-button::after {
   border: 0;
+}
+
+.projection-row-button {
+  display: block;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  background: transparent;
+  color: inherit;
+  line-height: inherit;
+  text-align: left;
+}
+
+.projection-row-button::after {
+  border: 0;
+}
+
+.projection-row-button .projection-row {
+  border-bottom: 1rpx solid var(--chronelle-line);
 }
 
 .planning-nav {

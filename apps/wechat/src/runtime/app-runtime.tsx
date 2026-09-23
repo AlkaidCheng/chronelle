@@ -16,6 +16,8 @@ import {
   createRuntimeCommandId,
   createRuntimeEventDraftStore,
 } from "../events/runtime-drafts";
+import type { ExpenseDraftStore } from "../expenses/draft-store";
+import { createRuntimeExpenseDraftStore } from "../expenses/runtime-drafts";
 import type { TaskDraftStore } from "../tasks/draft-store";
 import { createRuntimeTaskDraftStore } from "../tasks/runtime-drafts";
 import { readRuntimeConfig } from "./config";
@@ -24,6 +26,7 @@ export interface AppRuntime {
   readonly api: ChronelleApiClient;
   readonly createCommandId: () => Promise<string>;
   readonly eventDrafts: EventDraftStore;
+  readonly expenseDrafts: ExpenseDraftStore;
   readonly identity: CloudBaseWeChatIdentity;
   readonly sessions: WeChatSessionStore;
   readonly taskDrafts: TaskDraftStore;
@@ -48,6 +51,7 @@ function createAppRuntime(): AppRuntimeState {
       }),
       createCommandId: createRuntimeCommandId,
       eventDrafts: createRuntimeEventDraftStore(),
+      expenseDrafts: createRuntimeExpenseDraftStore(),
       identity: createRuntimeCloudBaseIdentity(
         configured.value.cloudBaseEnvId,
         configured.value.useWxCloud,

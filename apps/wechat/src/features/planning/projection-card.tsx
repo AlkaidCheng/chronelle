@@ -9,6 +9,7 @@ import type {
   WeekStart,
 } from "@chronelle/schemas";
 import { Button, Text, View } from "@tarojs/components";
+import Taro from "@tarojs/taro";
 import { useState } from "react";
 
 import {
@@ -118,26 +119,55 @@ function EventRows({
 }
 
 function ExpenseRows({
+  canEdit,
+  eventId,
   items,
   preferences,
   sections,
 }: {
+  readonly canEdit: boolean;
+  readonly eventId: string;
   readonly items: readonly ExpenseResponse[];
   readonly preferences: DisplayPreferences;
   readonly sections: readonly SectionResponse[];
 }) {
-  if (items.length === 0) return <EmptyRows locale={preferences.locale} />;
-  return items.map((expense) => (
-    <Row
-      detail={`${expense.currency} ${expense.amount} · ${formatInstant(
-        expense.occurredAt,
-        preferences,
-      )}`}
-      eyebrow={sectionName(expense.sectionId, sections)}
-      key={expense.id}
-      title={expense.displayName}
-    />
-  ));
+  const messages = getMessages(preferences.locale);
+  const editorUrl = (id?: string) =>
+    `/features/expense-editor/index?eventId=${encodeURIComponent(eventId)}${id ? `&expenseId=${encodeURIComponent(id)}` : ""}`;
+  return (
+    <>
+      {items.length === 0 ? <EmptyRows locale={preferences.locale} /> : null}
+      {items.map((expense) => {
+        const row = (
+          <Row
+            detail={`${expense.currency} ${expense.amount} · ${formatInstant(expense.occurredAt, preferences)}`}
+            eyebrow={sectionName(expense.sectionId, sections)}
+            key={expense.id}
+            title={expense.displayName}
+          />
+        );
+        return canEdit ? (
+          <Button
+            className="projection-row-button"
+            key={expense.id}
+            onClick={() => void Taro.navigateTo({ url: editorUrl(expense.id) })}
+          >
+            {row}
+          </Button>
+        ) : (
+          <View key={expense.id}>{row}</View>
+        );
+      })}
+      {canEdit ? (
+        <Button
+          className="text-button"
+          onClick={() => void Taro.navigateTo({ url: editorUrl() })}
+        >
+          {messages.addExpense}
+        </Button>
+      ) : null}
+    </>
+  );
 }
 
 function ReminderRows({
@@ -305,6 +335,8 @@ function ProjectionBody({
     case "expenses":
       return (
         <ExpenseRows
+          canEdit={canEditResources}
+          eventId={eventId}
           items={projection.data.value.items}
           preferences={preferences}
           sections={projection.data.value.sections}

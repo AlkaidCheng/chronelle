@@ -38,6 +38,9 @@ The current Mini Program provides:
   choice stored on the existing Event component;
 - To-do section creation, rename, description, ordering, and removal through
   the authorized section API;
+- canonical Expense creation and editing from an Event's Expenses component,
+  with decimal-text amounts, transaction-time preservation, bounded drafts,
+  and explicit version-conflict recovery;
 - conflict-safe layout writes whose removal operations never delete canonical
   resources;
 - pull-to-refresh, retry, offline, empty, and permission-loss states;
@@ -201,7 +204,21 @@ or a day-based board. Date-only Tasks keep their calendar date; timed Tasks are
 placed in the account time zone. Owners and Editors can manage To-do sections
 through the existing API, while Viewers can switch presentations locally
 without editing the shared layout. Deleting a section leaves its Tasks in the
-Event without a section. Expense and Reminder editors remain W06-C.
+Event without a section.
+
+The Expenses component creates canonical Expenses through the idempotent
+Event-context resource command. Owners and Editors may edit an Expense when
+its own access decision allows it; a Viewer can read the projection but has no
+mutation control. The form retains amount as decimal text, preserves an
+unchanged transaction instant exactly, and converts an edited wall-clock time
+using the account's effective time zone. The server validates the currency,
+amount, permission scope, and expected version. A stale edit keeps the local
+draft until the user chooses the latest record or deliberately retries against
+the latest version. Drafts are bounded and partitioned by account, workspace,
+Event, and Expense. Saving refreshes the Event's Expense and Timeline
+projections without storing a second copy. Expense section assignment uses
+existing Event sections; section administration and Reminder editing remain
+future Mini Program work.
 
 ## Local build
 
