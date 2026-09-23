@@ -141,6 +141,7 @@
 
 .text-input {
   box-sizing: border-box;
+  width: 100%;
   min-height: 84rpx;
   padding: 20rpx 22rpx;
   border: 1rpx solid var(--chronelle-line-strong);
@@ -148,6 +149,15 @@
   background: var(--chronelle-paper);
   color: var(--chronelle-ink);
   font-size: 28rpx;
+}
+
+.auth-help {
+  display: block;
+  margin-top: 22rpx;
+  color: var(--chronelle-muted);
+  font-size: 23rpx;
+  line-height: 1.5;
+  text-align: center;
 }
 
 .primary-button,
@@ -180,7 +190,7 @@
   font-size: 28rpx;
 }
 
-.entry-shell > .primary-button {
+.auth-method-primary {
   margin-top: 0;
 }
 
@@ -200,6 +210,12 @@
   font-size: 25rpx;
 }
 
+.auth-method-secondary {
+  min-height: 86rpx;
+  margin-top: 22rpx;
+  color: var(--chronelle-ink);
+}
+
 .text-button {
   min-height: 60rpx;
   margin: 0;
@@ -207,6 +223,14 @@
   background: transparent;
   color: var(--chronelle-muted);
   font-size: 23rpx;
+}
+
+.auth-switch {
+  width: 100%;
+  min-height: 88rpx;
+  margin-top: 20rpx;
+  color: var(--chronelle-indigo);
+  font-size: 25rpx;
 }
 
 .notice {
