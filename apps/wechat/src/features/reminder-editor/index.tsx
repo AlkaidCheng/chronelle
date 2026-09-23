@@ -45,6 +45,13 @@ const issueKeys: Record<ReminderEditorIssue, MessageKey> = {
   "invalid-time-zone": "validationTimeZone",
 };
 
+const statusKeys: Record<ReminderResponse["status"], MessageKey> = {
+  pending: "reminderPending",
+  triggered: "reminderTriggered",
+  dismissed: "reminderDismissed",
+  cancelled: "reminderCancelled",
+};
+
 function ReminderEditor({
   eventId,
   reminderId,
@@ -384,10 +391,11 @@ function ReminderEditor({
               {conflict.displayName}
             </Text>
             <Text className="conflict-current__date">
+              {messages[statusKeys[conflict.status]]} ·{" "}
               {formatInstant(conflict.remindAt, {
                 hourCycle: session.user.hourCycle,
                 locale,
-                timeZone: session.user.timeZone,
+                timeZone,
               })}
             </Text>
           </View>
