@@ -23,6 +23,16 @@ export function localCalendarDate(now: Date = new Date()): string {
   return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
 }
 
+export function deviceTimeZone(fallback: string | null): string {
+  try {
+    return (
+      Intl.DateTimeFormat().resolvedOptions().timeZone || fallback || "UTC"
+    );
+  } catch {
+    return fallback || "UTC";
+  }
+}
+
 export function localParts(value: string, timeZone: string) {
   const parts = new Intl.DateTimeFormat("en-US", {
     day: "2-digit",

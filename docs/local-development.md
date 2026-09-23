@@ -376,7 +376,10 @@ versioned update routes with date, time, draft-retention, and idempotent retry
 coverage. The planning feature subpackage reads the existing authorized Event
 layout and canonical To-do, Calendar, Timeline, Itinerary, Expense, and Reminder
 projections; layout edits carry their expected version and never delete the
-objects shown by a component:
+objects shown by a component. The Task editor creates through the Event-context
+command and updates with an expected version, while completion refreshes the
+Event projection prefix. No additional migration or Mini Program database is
+required:
 
 ```bash
 pnpm --filter @chronelle/api-client test

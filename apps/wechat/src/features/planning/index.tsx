@@ -503,7 +503,8 @@ function ReadyPlanningPage({
 
           {selectedPage?.components.map((component, index) => (
             <ProjectionCard
-              canEdit={canEdit && arranging}
+              canArrange={canEdit && arranging}
+              canEditResources={canEdit}
               canMoveEarlier={index > 0}
               canMoveLater={index < selectedPage.components.length - 1}
               component={component}

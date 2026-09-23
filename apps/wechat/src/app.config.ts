@@ -12,6 +12,10 @@ export default defineAppConfig({
       root: "features/planning",
       pages: ["index"],
     },
+    {
+      root: "features/task-editor",
+      pages: ["index"],
+    },
   ],
   themeLocation: "theme.json",
   window: {
