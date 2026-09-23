@@ -87,6 +87,11 @@ Mini Program integration test also exercises `/api/health` and the protected
 `/api/auth/session` route through the production client and validates both
 responses with the shared schemas.
 
+The WeChat runtime cannot compile functions from source text, so the Mini
+Program validates responses in zod's `jitless` mode. The app entry imports
+`src/runtime/validation.ts` before any other module because schemas read this
+setting when they are created; the web app keeps zod's compiled validators.
+
 ## W03 identity and session boundary
 
 The API exposes two CloudBase-backed identity operations:
