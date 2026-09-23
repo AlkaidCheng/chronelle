@@ -10,6 +10,7 @@ import { getMessages, resolveLocale } from "../../i18n/catalog";
 import { usePeopleList } from "../../people/queries";
 import "../../styles/editor.scss";
 import "./people.scss";
+import { PeopleSessionState } from "./session-state";
 
 function ReadyPeople({ session }: { readonly session: SessionResponse }) {
   const messages = getMessages(resolveLocale(session.user.locale ?? undefined));
@@ -22,7 +23,10 @@ function ReadyPeople({ session }: { readonly session: SessionResponse }) {
   const people = usePeopleList(session.workspace.id, query);
 
   usePullDownRefresh(() => {
-    void people.refetch().finally(() => Taro.stopPullDownRefresh());
+    void people
+      .refetch()
+      .finally(() => Taro.stopPullDownRefresh())
+      .catch(() => undefined);
   });
 
   function open(person?: PersonResponse): void {
@@ -101,7 +105,7 @@ function ReadyPeople({ session }: { readonly session: SessionResponse }) {
                   </Text>
                 ) : null}
               </View>
-              <Text className="people-card__arrow">›</Text>
+              <Text className="people-card__arrow">{"\u203a"}</Text>
             </View>
           ))}
           <Text className="people-footnote">{messages.personSearchHint}</Text>
@@ -115,15 +119,7 @@ export default function PeoplePage() {
   const session = useSession();
   if (session.state.status === "ready")
     return <ReadyPeople session={session.state.session} />;
-  const messages = getMessages(resolveLocale(undefined));
   return (
-    <View className="people-shell">
-      <EditorStateCard
-        action={messages.backToEvents}
-        detail={messages.errorDetail}
-        onAction={() => void Taro.reLaunch({ url: "/pages/index/index" })}
-        title={messages.loading}
-      />
-    </View>
+    <PeopleSessionState shell="people-shell" status={session.state.status} />
   );
 }

@@ -35,6 +35,7 @@ import {
   useUpdatePerson,
 } from "../../people/queries";
 import { useReadyAppRuntime } from "../../runtime/app-runtime";
+import { PeopleSessionState } from "./session-state";
 import "../../styles/editor.scss";
 import "./people.scss";
 
@@ -238,7 +239,9 @@ function ReadyPersonEditor({
             ) : null}
             {person.contacts.length > 0 ? (
               <Text className="people-muted">
-                {person.contacts.map((contact) => contact.value).join(" · ")}
+                {person.contacts
+                  .map((contact) => contact.value)
+                  .join(" \u00b7 ")}
               </Text>
             ) : null}
             {person.userId ? (
@@ -285,7 +288,7 @@ function ReadyPersonEditor({
             <Text className="people-muted">
               {conflict.contacts
                 .map((contact) => `${contact.kind}: ${contact.value}`)
-                .join(" · ")}
+                .join(" \u00b7 ")}
             </Text>
           ) : null}
           <View className="people-row-actions">
@@ -389,7 +392,7 @@ function ReadyPersonEditor({
                   })
                 }
               >
-                ×
+                {"\u00d7"}
               </Button>
             </View>
           ))}
@@ -454,10 +457,7 @@ export default function PersonEditorPage() {
       <ReadyPersonEditor personId={personId} session={session.state.session} />
     );
   }
-  const messages = getMessages(resolveLocale(undefined));
   return (
-    <View className="editor-shell">
-      <EditorStateCard detail={messages.errorDetail} title={messages.loading} />
-    </View>
+    <PeopleSessionState shell="editor-shell" status={session.state.status} />
   );
 }

@@ -254,6 +254,7 @@
 
 .workspace-shell {
   display: flex;
+  height: 100vh;
   overflow: hidden;
   flex-direction: column;
 }
@@ -334,9 +335,9 @@
 }
 
 .event-list {
-  height: calc(
-    100vh - 300rpx - env(safe-area-inset-top) - env(safe-area-inset-bottom)
-  );
+  height: 0;
+  min-height: 0;
+  flex: 1 1 auto;
 }
 
 .event-list__content {
@@ -345,6 +346,7 @@
 
 .workspace-collections {
   display: flex;
+  flex: 0 0 auto;
   gap: 12rpx;
   margin-bottom: 22rpx;
 }

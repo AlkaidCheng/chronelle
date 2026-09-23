@@ -12,6 +12,7 @@ import { EditorStateCard } from "../../components/editor";
 import { getMessages, resolveLocale } from "../../i18n/catalog";
 import { useFriends } from "../../people/queries";
 import { useReadyAppRuntime } from "../../runtime/app-runtime";
+import { PeopleSessionState } from "./session-state";
 import "../../styles/editor.scss";
 import "./people.scss";
 
@@ -29,13 +30,9 @@ function ReadyFriends({ session }: { readonly session: SessionResponse }) {
   const [error, setError] = useState<string | null>(null);
 
   usePullDownRefresh(() => {
-    void refreshList(messages.errorDetail).finally(() => {
-      try {
-        Taro.stopPullDownRefresh();
-      } catch {
-        return;
-      }
-    });
+    void refreshList(messages.errorDetail)
+      .finally(() => Taro.stopPullDownRefresh())
+      .catch(() => undefined);
   });
 
   async function refreshList(errorMessage: string): Promise<void> {
@@ -147,6 +144,19 @@ function ReadyFriends({ session }: { readonly session: SessionResponse }) {
     } catch {
       setError(messages.friendActionFailed);
     }
+  }
+
+  if (friends.isError) {
+    return (
+      <View className="people-shell">
+        <EditorStateCard
+          action={messages.retry}
+          detail={messages.errorDetail}
+          onAction={() => void refreshList(messages.errorDetail)}
+          title={messages.errorTitle}
+        />
+      </View>
+    );
   }
 
   return (
@@ -262,18 +272,13 @@ function ReadyFriends({ session }: { readonly session: SessionResponse }) {
           detail={messages.friendsIntro}
           title={messages.loading}
         />
-      ) : friends.isError ? (
-        <EditorStateCard
-          action={messages.retry}
-          detail={messages.errorDetail}
-          onAction={() => void refreshList(messages.errorDetail)}
-          title={messages.errorTitle}
-        />
       ) : (
         <View className="people-sections">
           <View className="people-panel">
             <Text className="people-panel__title">
-              {messages.incomingRequests} · {friends.data.incoming.length}
+              {messages.incomingRequests}
+              {" \u00b7 "}
+              {friends.data.incoming.length}
             </Text>
             {friends.data.incoming.length === 0 ? (
               <Text className="people-muted">{messages.noRequests}</Text>
@@ -317,7 +322,9 @@ function ReadyFriends({ session }: { readonly session: SessionResponse }) {
           </View>
           <View className="people-panel">
             <Text className="people-panel__title">
-              {messages.acceptedFriends} · {friends.data.friends.length}
+              {messages.acceptedFriends}
+              {" \u00b7 "}
+              {friends.data.friends.length}
             </Text>
             {friends.data.friends.length === 0 ? (
               <Text className="people-muted">{messages.noFriends}</Text>
@@ -343,7 +350,9 @@ function ReadyFriends({ session }: { readonly session: SessionResponse }) {
           </View>
           <View className="people-panel">
             <Text className="people-panel__title">
-              {messages.sentInvitations} · {friends.data.sent.length}
+              {messages.sentInvitations}
+              {" \u00b7 "}
+              {friends.data.sent.length}
             </Text>
             {friends.data.sent.length === 0 ? (
               <Text className="people-muted">{messages.noSent}</Text>
@@ -392,10 +401,7 @@ export default function FriendsPage() {
   const session = useSession();
   if (session.state.status === "ready")
     return <ReadyFriends session={session.state.session} />;
-  const messages = getMessages(resolveLocale(undefined));
   return (
-    <View className="people-shell">
-      <EditorStateCard detail={messages.errorDetail} title={messages.loading} />
-    </View>
+    <PeopleSessionState shell="people-shell" status={session.state.status} />
   );
 }
