@@ -13,6 +13,10 @@ export default defineAppConfig({
       pages: ["index"],
     },
     {
+      root: "features/sharing",
+      pages: ["index"],
+    },
+    {
       root: "features/task-editor",
       pages: ["index"],
     },

@@ -45,6 +45,8 @@ The current Mini Program provides:
   native file selection, upload, and temporary file opening;
 - conflict-safe layout writes whose removal operations never delete canonical
   resources;
+- native Event sharing through the authorized API: direct grants, queued Person
+  invitations, role changes, revocation, and leaving a shared Event;
 - pull-to-refresh, retry, offline, empty, and permission-loss states;
 - unit coverage for locale selection, runtime configuration, CloudBase proof
   acquisition, session storage, lifecycle bridging, date formatting, transport,
@@ -263,6 +265,27 @@ downloaded temporary files are removed after use or when the component closes.
 Tickets are short-lived and single use where served by the API; the Mini
 Program does not store a permanent public file URL or query protected CloudBase
 tables directly.
+
+## Event sharing
+
+The Event overview opens a native Sharing page when the API reports Share
+permission or the caller holds a direct grant they can leave. Grant lists and
+mutations use the authenticated Chronelle REST API. A Viewer with a direct
+grant sees a read-only permission state and may leave; Share permission is
+required to list or change other people's grants. The API remains the authority
+for which roles can be granted, and revocation or leaving requires confirmation.
+
+Sharing with a workspace Person who has an account creates a direct grant.
+The native picker searches by name when a Person is not in the initial list.
+Sharing with a Person without a linked account queues a share on an existing or
+new friend request or invitation; access begins only after acceptance. For a
+Person without an email, the page offers the opaque, server-issued invitation
+URL returned by the Friends API for copying. That URL opens the existing web
+claim page. No Event ID is treated as a token, and the Mini Program does not
+construct a shareable Event URL. A direct email grant requires an existing
+discoverable account; an unknown recipient must be represented by a Person card
+to use the pending invitation flow. Native Mini Program invitation claiming and
+WeChat share-card entry are not provided by the current API contract.
 
 ## Local build
 
