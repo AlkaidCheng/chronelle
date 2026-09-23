@@ -4,22 +4,23 @@ import {
   editorDraftLifetimeMs,
   maximumEditorDrafts,
 } from "../runtime/bounded-draft-store";
-import type { EventEditorFields, EventScheduleMode } from "./editor";
+import type { TaskDueMode, TaskEditorFields } from "./editor";
 
-export const eventDraftStorageKey = "chronelle.event-drafts.v1";
-export const maximumEventDrafts = maximumEditorDrafts;
-export const eventDraftLifetimeMs = editorDraftLifetimeMs;
+export const taskDraftStorageKey = "chronelle.task-drafts.v1";
+export const maximumTaskDrafts = maximumEditorDrafts;
+export const taskDraftLifetimeMs = editorDraftLifetimeMs;
 
-export interface EventDraftIdentity {
-  readonly eventId: string | null;
+export interface TaskDraftIdentity {
+  readonly eventId: string;
+  readonly taskId: string | null;
   readonly userId: string;
   readonly workspaceId: string;
 }
 
-export interface EventDraftSnapshot extends EventDraftIdentity {
-  readonly baseline: EventEditorFields;
+export interface TaskDraftSnapshot extends TaskDraftIdentity {
+  readonly baseline: TaskEditorFields;
   readonly commandId: string | null;
-  readonly fields: EventEditorFields;
+  readonly fields: TaskEditorFields;
   readonly sourceVersion: number | null;
   readonly updatedAt: string;
 }
@@ -37,47 +38,48 @@ function isUuid(value: unknown): value is string {
   );
 }
 
-function parseFields(value: unknown): EventEditorFields | null {
+function parseFields(value: unknown): TaskEditorFields | null {
   if (value === null || typeof value !== "object" || Array.isArray(value))
     return null;
   const fields = value as Record<string, unknown>;
-  const mode = fields.mode as EventScheduleMode;
+  const mode = fields.mode as TaskDueMode;
+  const status = fields.status as TaskEditorFields["status"];
   if (
-    !["undated", "dates", "timed"].includes(mode) ||
+    !["undated", "date", "timed"].includes(mode) ||
+    !["todo", "in_progress", "done", "cancelled"].includes(status) ||
     !isString(fields.displayName, 240) ||
     !isString(fields.description, 2_000) ||
     !isString(fields.location, 240) ||
-    !isString(fields.startDate, 10) ||
-    !isString(fields.endDate, 10) ||
-    !isString(fields.startTime, 5) ||
-    !isString(fields.endTime, 5) ||
-    !isString(fields.timeZone, 120)
-  ) {
+    !isString(fields.dueDate, 10) ||
+    !isString(fields.dueTime, 5) ||
+    !isString(fields.timeZone, 120) ||
+    !(fields.sectionId === null || isUuid(fields.sectionId))
+  )
     return null;
-  }
   return {
     description: fields.description,
     displayName: fields.displayName,
-    endDate: fields.endDate,
-    endTime: fields.endTime,
+    dueDate: fields.dueDate,
+    dueTime: fields.dueTime,
     location: fields.location,
     mode,
-    startDate: fields.startDate,
-    startTime: fields.startTime,
+    sectionId: fields.sectionId,
+    status,
     timeZone: fields.timeZone,
   };
 }
 
-function parseDraft(value: unknown): EventDraftSnapshot | null {
+function parseDraft(value: unknown): TaskDraftSnapshot | null {
   if (value === null || typeof value !== "object" || Array.isArray(value))
     return null;
   const draft = value as Record<string, unknown>;
   const baseline = parseFields(draft.baseline);
   const fields = parseFields(draft.fields);
   if (
+    !isUuid(draft.eventId) ||
+    !(draft.taskId === null || isUuid(draft.taskId)) ||
     !isUuid(draft.userId) ||
     !isUuid(draft.workspaceId) ||
-    !(draft.eventId === null || isUuid(draft.eventId)) ||
     !(draft.commandId === null || isUuid(draft.commandId)) ||
     !(
       draft.sourceVersion === null ||
@@ -89,44 +91,43 @@ function parseDraft(value: unknown): EventDraftSnapshot | null {
     Number.isNaN(Date.parse(draft.updatedAt)) ||
     baseline === null ||
     fields === null
-  ) {
+  )
     return null;
-  }
   if (
-    (draft.eventId === null && draft.commandId === null) ||
-    (draft.eventId !== null && draft.sourceVersion === null)
-  ) {
+    (draft.taskId === null && draft.commandId === null) ||
+    (draft.taskId !== null && draft.sourceVersion === null)
+  )
     return null;
-  }
   return {
     baseline,
     commandId: draft.commandId,
     eventId: draft.eventId,
     fields,
     sourceVersion: draft.sourceVersion,
+    taskId: draft.taskId,
     updatedAt: draft.updatedAt,
     userId: draft.userId,
     workspaceId: draft.workspaceId,
   };
 }
 
-function identityKey(value: EventDraftIdentity): string {
-  return `${value.userId}:${value.workspaceId}:${value.eventId ?? "new"}`;
+function identityKey(value: TaskDraftIdentity): string {
+  return `${value.userId}:${value.workspaceId}:${value.eventId}:${value.taskId ?? "new"}`;
 }
 
-export class EventDraftStore extends BoundedDraftStore<
-  EventDraftIdentity,
-  EventDraftSnapshot
+export class TaskDraftStore extends BoundedDraftStore<
+  TaskDraftIdentity,
+  TaskDraftSnapshot
 > {
   constructor(storage: TaroStorage, clock: () => Date = () => new Date()) {
     super({
       clock,
       identityKey,
-      lifetimeMs: eventDraftLifetimeMs,
-      limit: maximumEventDrafts,
+      lifetimeMs: taskDraftLifetimeMs,
+      limit: maximumTaskDrafts,
       parse: parseDraft,
       storage,
-      storageKey: eventDraftStorageKey,
+      storageKey: taskDraftStorageKey,
     });
   }
 }

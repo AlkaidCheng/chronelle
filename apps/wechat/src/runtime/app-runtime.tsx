@@ -16,6 +16,8 @@ import {
   createRuntimeCommandId,
   createRuntimeEventDraftStore,
 } from "../events/runtime-drafts";
+import type { TaskDraftStore } from "../tasks/draft-store";
+import { createRuntimeTaskDraftStore } from "../tasks/runtime-drafts";
 import { readRuntimeConfig } from "./config";
 
 export interface AppRuntime {
@@ -24,6 +26,7 @@ export interface AppRuntime {
   readonly eventDrafts: EventDraftStore;
   readonly identity: CloudBaseWeChatIdentity;
   readonly sessions: WeChatSessionStore;
+  readonly taskDrafts: TaskDraftStore;
 }
 
 export type AppRuntimeState =
@@ -50,6 +53,7 @@ function createAppRuntime(): AppRuntimeState {
         configured.value.useWxCloud,
       ),
       sessions,
+      taskDrafts: createRuntimeTaskDraftStore(),
     },
   };
 }

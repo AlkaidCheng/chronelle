@@ -369,6 +369,13 @@ token, and clears the client cache before protected reads resume. Event list and
 overview responses retain the canonical ID and version returned by the API; the
 Mini Program does not create a parallel Event or calendar record.
 
+Task writes follow the same boundary. The Mini Program creates a Task through
+the Event-context command so the object, `includes` relation, and canonical
+permission scope are established atomically. Updates and completion target that
+Task by version, remain authorized and audited by the API, and invalidate the
+Event's projection-key prefix. Local editor drafts contain only bounded
+recoverable input; they are not canonical records or an offline write queue.
+
 The native Event editor sends the same typed create and update payloads as the
 web client. Creation drafts retain one cryptographically random command ID so an
 uncertain retry is idempotent. Edit drafts retain the canonical source version;

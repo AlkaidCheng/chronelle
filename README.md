@@ -127,7 +127,10 @@ credentials remain transient; local storage retains only the opaque Chronelle
 session. Lazy feature subpackages provide the Event editor and a layout-driven
 planning workspace whose pages render authorized canonical To-do, Calendar,
 Timeline, Itinerary, Expense, and Reminder projections. Removing a planning
-component changes only the Event layout, never the underlying object. See
+component changes only the Event layout, never the underlying object. Owners
+and editors can create, edit, schedule, assign to an existing section, and
+complete the same canonical Tasks shown by those projections; version conflicts
+retain the local draft for an explicit recovery choice. See
 [WeChat Mini Program](docs/wechat.md).
 
 Open <http://localhost:3000/sign-in> to create a development session, then use

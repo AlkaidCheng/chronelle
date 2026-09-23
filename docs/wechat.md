@@ -30,6 +30,10 @@ The current Mini Program provides:
   components;
 - authorized canonical To-do, Calendar, Timeline, Itinerary, Expense, and
   Reminder projections, without Mini Program copies of business records;
+- native canonical Task creation, editing, completion, due-date, status,
+  location, description, and existing-section assignment;
+- bounded Task drafts, idempotent Event-context creation, version conflicts,
+  and projection-wide refresh after each mutation;
 - conflict-safe layout writes whose removal operations never delete canonical
   resources;
 - pull-to-refresh, retry, offline, empty, and permission-loss states;
@@ -174,9 +178,22 @@ version refreshes the canonical layout and requires an explicit choice between
 the current layout and applying the pending change to the latest version. The
 API remains the authorization and audit boundary for every read and write.
 
-This slice renders planning resources read-only. Native Task, Expense, and
-Reminder editors follow as bounded W06 work; they will mutate the same canonical
-records and invalidate these projection keys.
+The To-dos component is interactive for Owners and Editors. Creation calls the
+idempotent Event-context resource command, which creates one canonical Task,
+relates it to the Event, and adopts the Event's permission scope in one server
+transaction. Editing and one-tap completion carry the Task's expected version;
+a stale editor save retains the local draft and requires an explicit choice
+between the current Task and the draft. Viewers receive the same projection
+without mutation controls.
+
+Task drafts are bounded and partitioned by user, workspace, Event, and Task.
+Successful mutations replace the matching cached canonical Task when present
+and invalidate all Event projection keys, so Calendar, Timeline, and other
+applicable views refresh without copied records. The Task editor preserves
+date-only and timed due semantics, assigns existing To-do sections, and keeps
+canonical IDs out of the normal interface. Section administration and the
+list, by-day, week, board, and month presentations remain W06-B2; Expense and
+Reminder editors remain W06-C.
 
 ## Local build
 
