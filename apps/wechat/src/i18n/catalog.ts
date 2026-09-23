@@ -54,9 +54,11 @@ const catalog = {
       "You can view this Event. Only people with Share access can manage its collaborators.",
     sharingNoGrants: "No direct shares yet.",
     sharingNoPeople: "No people are available in this workspace.",
+    sharingNoPeopleMatching: "No people match that search.",
     sharingPeopleUnavailable:
       "Workspace people are available to members. You can share with an existing account by email.",
     sharingPeople: "People in this workspace",
+    sharingSearchPeople: "Search people",
     sharingEmail: "Or share with an existing account by email",
     sharingEmailPlaceholder: "name@example.com",
     sharingEmailRequired: "Enter a valid email address.",
@@ -380,9 +382,11 @@ const catalog = {
     sharingReadOnly: "你可以查看此活动。只有具备分享权限的人才能管理协作者。",
     sharingNoGrants: "尚未直接分享给他人。",
     sharingNoPeople: "此工作区暂无可选择的人员。",
+    sharingNoPeopleMatching: "没有找到匹配的人员。",
     sharingPeopleUnavailable:
       "只有工作区成员可以查看人员列表。你仍可按邮箱分享给已有账户。",
     sharingPeople: "工作区中的人员",
+    sharingSearchPeople: "搜索人员",
     sharingEmail: "或按邮箱分享给已有账户",
     sharingEmailPlaceholder: "name@example.com",
     sharingEmailRequired: "请输入有效的邮箱地址。",

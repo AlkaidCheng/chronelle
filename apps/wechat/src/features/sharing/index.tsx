@@ -186,6 +186,8 @@ function SharingControls({
     (workspace) => workspace.id === session.workspace.id,
   )?.role;
   const canListPeople = permissions.canManage && activeRole != null;
+  const [personSearchInput, setPersonSearchInput] = useState("");
+  const [personQuery, setPersonQuery] = useState("");
   const key = ["wechat-event-sharing", session.workspace.id, eventId] as const;
   const shares = useQuery({
     enabled: permissions.canManage,
@@ -195,8 +197,8 @@ function SharingControls({
   });
   const people = useQuery({
     enabled: canListPeople,
-    queryKey: [...key, "people"],
-    queryFn: () => api.listPersons({ limit: 200 }),
+    queryKey: [...key, "people", personQuery],
+    queryFn: () => api.listPersons({ limit: 200, query: personQuery }),
     retry: 1,
   });
   const friends = useQuery({
@@ -294,6 +296,16 @@ function SharingControls({
       person.userId === null ? messages.sharingQueued : messages.sharingSaved,
     );
     if (shared) setSelectedPerson(-1);
+  }
+
+  function searchPeople(): void {
+    if (busy) return;
+    if (!online) {
+      setNotice(messages.offlineDetail);
+      return;
+    }
+    setSelectedPerson(-1);
+    setPersonQuery(personSearchInput.trim());
   }
 
   async function shareByEmail(): Promise<void> {
@@ -400,14 +412,45 @@ function SharingControls({
         <>
           <View className="sharing-card">
             <Text className="sharing-heading">{messages.sharingPeople}</Text>
+            {canListPeople ? (
+              <View className="sharing-search">
+                <Input
+                  className="sharing-input"
+                  type="text"
+                  maxlength={240}
+                  value={personSearchInput}
+                  placeholder={messages.sharingSearchPeople}
+                  onInput={(event) => setPersonSearchInput(event.detail.value)}
+                  onConfirm={searchPeople}
+                />
+                <Button
+                  className="sharing-button sharing-button--secondary"
+                  disabled={busy || !online}
+                  onClick={searchPeople}
+                >
+                  {messages.sharingSearchPeople}
+                </Button>
+              </View>
+            ) : null}
             {!canListPeople ? (
               <Text className="sharing-note">
                 {messages.sharingPeopleUnavailable}
               </Text>
             ) : people.isPending ? (
               <Text className="sharing-note">{messages.loading}</Text>
+            ) : people.isError ? (
+              <Button
+                className="sharing-text-button"
+                onClick={() => void people.refetch()}
+              >
+                {messages.retry}
+              </Button>
             ) : candidates.length === 0 ? (
-              <Text className="sharing-note">{messages.sharingNoPeople}</Text>
+              <Text className="sharing-note">
+                {personQuery
+                  ? messages.sharingNoPeopleMatching
+                  : messages.sharingNoPeople}
+              </Text>
             ) : (
               <Picker
                 mode="selector"
@@ -538,7 +581,7 @@ function SharingControls({
               })}
             </View>
           ) : null}
-          {(canListPeople && people.isError) || friends.isError ? (
+          {friends.isError ? (
             <Button
               className="sharing-button sharing-button--secondary"
               onClick={() => void refresh()}

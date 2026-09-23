@@ -79,6 +79,19 @@
   color: var(--chronelle-ink);
   font-size: 25rpx;
 }
+.sharing-search {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+}
+.sharing-search .sharing-input {
+  flex: 1;
+  min-width: 0;
+}
+.sharing-search .sharing-button {
+  flex: none;
+  margin: 0;
+}
 .sharing-button {
   margin: 25rpx 0 0;
   border-radius: 15rpx;

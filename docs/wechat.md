@@ -266,7 +266,7 @@ Tickets are short-lived and single use where served by the API; the Mini
 Program does not store a permanent public file URL or query protected CloudBase
 tables directly.
 
-## W07 Event sharing
+## Event sharing
 
 The Event overview opens a native Sharing page when the API reports Share
 permission or the caller holds a direct grant they can leave. Grant lists and
@@ -276,6 +276,7 @@ required to list or change other people's grants. The API remains the authority
 for which roles can be granted, and revocation or leaving requires confirmation.
 
 Sharing with a workspace Person who has an account creates a direct grant.
+The native picker searches by name when a Person is not in the initial list.
 Sharing with a Person without a linked account queues a share on an existing or
 new friend request or invitation; access begins only after acceptance. For a
 Person without an email, the page offers the opaque, server-issued invitation
