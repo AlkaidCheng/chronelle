@@ -105,7 +105,7 @@ function RecoveryDetail({
     } catch (error) {
       const kind = recoveryErrorKind(error);
       setIssue(kind);
-      if (kind === "conflict") void preview.refetch();
+      if (kind === "conflict") void preview.refetch().catch(() => undefined);
     } finally {
       setConfirming(false);
     }
@@ -225,7 +225,9 @@ function ReadyTrashPage({ session }: { readonly session: SessionResponse }) {
         : queryClient.invalidateQueries({
             queryKey: recoveryPreviewQueryKey(session.workspace.id, selectedId),
           });
-    void refresh.finally(() => Taro.stopPullDownRefresh());
+    void refresh
+      .finally(() => Taro.stopPullDownRefresh())
+      .catch(() => undefined);
   });
 
   return (
