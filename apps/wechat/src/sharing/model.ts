@@ -7,6 +7,21 @@ import type {
 export const shareRoles = ["viewer", "editor", "owner"] as const;
 export type ShareRole = (typeof shareRoles)[number];
 
+/** A completed write remains successful if its follow-up read fails. */
+export async function applySharingChange(
+  write: () => Promise<unknown>,
+  refresh: () => Promise<boolean>,
+  onWritten: () => void,
+): Promise<boolean> {
+  await write();
+  onWritten();
+  try {
+    return await refresh();
+  } catch {
+    return false;
+  }
+}
+
 export function sharingAccess(access: ObjectAccessResponse): {
   readonly canManage: boolean;
   readonly canLeave: boolean;

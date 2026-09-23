@@ -34,6 +34,7 @@ import {
 import { useReadyAppRuntime } from "../../runtime/app-runtime";
 import { useOnline } from "../../runtime/online";
 import {
+  applySharingChange,
   pendingInvitationUrl,
   shareRoles,
   sharingAccess,
@@ -215,23 +216,22 @@ function SharingControls({
       void Taro.stopPullDownRefresh();
       return;
     }
-    void Promise.all([
-      shares.refetch(),
-      ...(canListPeople ? [people.refetch()] : []),
-      friends.refetch(),
-    ]).finally(() => Taro.stopPullDownRefresh());
+    void refresh().finally(() => Taro.stopPullDownRefresh());
   });
 
   const candidates = (people.data?.items ?? []).filter(
     (person) => person.userId !== session.user.id,
   );
 
-  async function refresh(): Promise<void> {
-    await Promise.all([
+  async function refresh(): Promise<boolean> {
+    const results = await Promise.allSettled([
       shares.refetch(),
       ...(canListPeople ? [people.refetch()] : []),
       friends.refetch(),
     ]);
+    return results.every(
+      (result) => result.status === "fulfilled" && !result.value.isError,
+    );
   }
 
   async function run(
@@ -245,9 +245,10 @@ function SharingControls({
     setBusy(true);
     setNotice(null);
     try {
-      await action();
-      await refresh();
-      setNotice(success);
+      const fresh = await applySharingChange(action, refresh, () =>
+        setNotice(success),
+      );
+      if (!fresh) setNotice(messages.sharingSavedStale);
       return true;
     } catch (error) {
       if (

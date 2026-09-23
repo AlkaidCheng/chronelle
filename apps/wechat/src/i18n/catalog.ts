@@ -80,6 +80,8 @@ const catalog = {
     sharingRecipientUnavailable:
       "No matching account is available. Add a Person card to invite someone who has not joined yet.",
     sharingSaved: "Sharing updated",
+    sharingSavedStale:
+      "Sharing updated, but the list could not refresh. Pull down to try again.",
     sharingRevoke: "Remove access",
     sharingRevokeTitle: "Remove this person's access?",
     sharingRevokeDetail:
@@ -398,6 +400,7 @@ const catalog = {
     sharingRecipientUnavailable:
       "找不到可分享的账户。可先添加人员卡片，再邀请尚未加入的人。",
     sharingSaved: "分享已更新",
+    sharingSavedStale: "分享已更新，但列表暂时无法刷新。请下拉重试。",
     sharingRevoke: "移除权限",
     sharingRevokeTitle: "移除此人的访问权限？",
     sharingRevokeDetail: "此人将无法再通过该授权打开活动。",
