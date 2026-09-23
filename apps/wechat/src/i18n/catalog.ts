@@ -78,6 +78,8 @@ const catalog = {
     trashRemovedAt: "Moved to Trash {date}",
     trashRecoveryKeeps:
       "Recovery keeps this record's content and existing links.",
+    trashTaskCascade:
+      "Subtasks removed with this Task will also be restored. Subtasks removed separately stay in Trash.",
     trashRecoveryBlocked:
       "Restore its parent record or permission scope first.",
     trashRecover: "Restore record",
@@ -492,6 +494,8 @@ const catalog = {
     trashPreviewLoading: "正在检查记录",
     trashRemovedAt: "移入回收站：{date}",
     trashRecoveryKeeps: "恢复后会保留此记录的内容和现有关系。",
+    trashTaskCascade:
+      "随此任务一起移入回收站的子任务也会恢复；单独移除的子任务仍留在回收站。",
     trashRecoveryBlocked: "请先恢复其上级记录或权限范围。",
     trashRecover: "恢复记录",
     trashConfirmAction: "恢复",

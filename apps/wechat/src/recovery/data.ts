@@ -45,6 +45,29 @@ export function recoveryTarget(preview: RecoveryPreview) {
     : null;
 }
 
+export function reviewRecovery(
+  displayed: RecoveryPreview,
+  fresh: RecoveryPreview,
+):
+  | {
+      readonly status: "ready";
+      readonly target: NonNullable<ReturnType<typeof recoveryTarget>>;
+    }
+  | { readonly status: "changed" }
+  | { readonly status: "blocked" } {
+  const target = recoveryTarget(fresh);
+  if (target === null) return { status: "blocked" };
+  if (
+    displayed.object.id !== fresh.object.id ||
+    displayed.object.version !== fresh.object.version ||
+    displayed.object.objectType !== fresh.object.objectType ||
+    displayed.object.displayName !== fresh.object.displayName ||
+    displayed.object.deletedAt !== fresh.object.deletedAt
+  )
+    return { status: "changed" };
+  return { status: "ready", target };
+}
+
 export function recoveryErrorKind(
   error: unknown,
 ): "unavailable" | "conflict" | "request" {

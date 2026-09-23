@@ -333,8 +333,11 @@ content or display object IDs. Selecting a row opens a focused preview from
 `GET /api/objects/:id/recovery-preview`. The preview reflects the server's
 current permission and scope checks, including a blocked parent or scope.
 
-Restoration requires an explicit confirmation and sends the preview's current
-`expectedVersion` to `POST /api/objects/:id/recover`. The API performs
+Restoration refetches the preview before an explicit confirmation and sends its
+current `expectedVersion` to `POST /api/objects/:id/recover`. A changed target
+or blocked recovery requires the user to review the updated preview. Restoring
+a Task also restores subtasks removed with it; independently removed subtasks
+stay in Trash. The API performs
 authorization, optimistic concurrency, revision capture, and audit logging in
 the same transaction. A stale version causes the Mini Program to refresh the
 preview and ask for confirmation again. Lost access hides the former record

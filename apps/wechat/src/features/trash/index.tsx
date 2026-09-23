@@ -16,6 +16,7 @@ import {
   recoveryErrorKind,
   recoveryPreviewQueryKey,
   recoveryTarget,
+  reviewRecovery,
   trashObjectTypes,
   trashTypeLabels,
 } from "../../recovery/data";
@@ -86,21 +87,32 @@ function RecoveryDetail({
       preview.isFetching
     )
       return;
-    const target = recoveryTarget(data);
-    if (target === null) return;
+    if (recoveryTarget(data) === null) return;
     setConfirming(true);
     try {
+      const refreshed = await preview.refetch();
+      if (refreshed.error) throw refreshed.error;
+      if (!refreshed.data) throw new Error("Recovery preview unavailable.");
+      const review = reviewRecovery(data, refreshed.data);
+      if (review.status === "blocked") {
+        setIssue(null);
+        return;
+      }
+      if (review.status === "changed") {
+        setIssue("conflict");
+        return;
+      }
       const answer = await Taro.showModal({
         title: messages.trashConfirmTitle,
-        content: interpolate(messages.trashConfirmDetail, {
-          name: data.object.displayName,
-        }),
+        content: `${interpolate(messages.trashConfirmDetail, {
+          name: refreshed.data.object.displayName,
+        })}${refreshed.data.object.objectType === "task" ? `\n${messages.trashTaskCascade}` : ""}`,
         confirmText: messages.trashConfirmAction,
         cancelText: messages.cancel,
       });
       if (!answer.confirm) return;
       setIssue(null);
-      await recover.mutateAsync(target);
+      await recover.mutateAsync(review.target);
       setRecovered(true);
     } catch (error) {
       const kind = recoveryErrorKind(error);
@@ -168,6 +180,11 @@ function RecoveryDetail({
           <Text className="trash-card__note">
             {messages.trashRecoveryKeeps}
           </Text>
+          {data.object.objectType === "task" ? (
+            <Text className="trash-card__note">
+              {messages.trashTaskCascade}
+            </Text>
+          ) : null}
           {issue === "conflict" ? (
             <Text className="trash-alert">
               {messages.trashConflict}. {messages.trashConflictDetail}
@@ -364,6 +381,16 @@ export default function TrashPage() {
       : undefined,
   );
   const messages = getMessages(locale);
+  if (
+    session.state.status === "restoring" ||
+    session.state.status === "loading"
+  ) {
+    return (
+      <View className="trash-shell">
+        <TrashState detail="" title={messages.restoring} />
+      </View>
+    );
+  }
   if (session.state.status === "ready") {
     return (
       <ReadyTrashPage
@@ -385,10 +412,7 @@ export default function TrashPage() {
         title={
           session.state.status === "offline"
             ? messages.offlineTitle
-            : session.state.status === "restoring" ||
-                session.state.status === "loading"
-              ? messages.restoring
-              : messages.sessionExpired
+            : messages.sessionExpired
         }
       />
     </View>

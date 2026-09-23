@@ -25,7 +25,10 @@
 .workspace-header__actions {
   display: flex;
   align-items: center;
+  flex: 0 1 auto;
+  flex-wrap: wrap;
   gap: 12rpx;
+  justify-content: flex-end;
 }
 
 .brand-copy,
@@ -258,13 +261,6 @@
 .workspace-header {
   justify-content: space-between;
   gap: 24rpx;
-}
-
-.workspace-header__actions {
-  display: flex;
-  flex: 0 0 auto;
-  align-items: center;
-  gap: 12rpx;
 }
 
 .workspace-toolbar {

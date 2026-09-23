@@ -6,6 +6,7 @@ import {
   recoveryErrorKind,
   recoveryPreviewQueryKey,
   recoveryTarget,
+  reviewRecovery,
   trashObjectTypes,
   trashQueryKey,
   trashTypeLabels,
@@ -36,6 +37,26 @@ describe("Mini Program Trash recovery", () => {
       expectedVersion: 7,
     });
     expect(recoveryTarget(preview({ canRecover: false }))).toBeNull();
+  });
+
+  it("requires fresh matching recovery details before confirmation", () => {
+    const displayed = preview();
+    expect(reviewRecovery(displayed, preview())).toEqual({
+      status: "ready",
+      target: { id: objectId, expectedVersion: 7 },
+    });
+    expect(
+      reviewRecovery(
+        displayed,
+        preview({ object: { ...displayed.object, version: 8 } }),
+      ),
+    ).toEqual({ status: "changed" });
+    expect(
+      reviewRecovery(
+        displayed,
+        preview({ canRecover: false, blockedReason: "Restore parent first." }),
+      ),
+    ).toEqual({ status: "blocked" });
   });
 
   it("separates access loss, version conflicts, and other failures", () => {
