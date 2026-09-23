@@ -25,7 +25,10 @@
 .workspace-header__actions {
   display: flex;
   align-items: center;
+  flex: 0 1 auto;
+  flex-wrap: wrap;
   gap: 12rpx;
+  justify-content: flex-end;
 }
 
 .brand-copy,
@@ -153,6 +156,10 @@
   border: 0;
   font-weight: 600;
   line-height: 1.2;
+}
+
+.trash-link {
+  color: var(--chronelle-indigo);
 }
 
 .primary-button::after,

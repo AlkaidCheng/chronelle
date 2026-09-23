@@ -51,6 +51,8 @@ The current Mini Program provides:
   resources;
 - native Event sharing through the authorized API: direct grants, queued Person
   invitations, role changes, revocation, and leaving a shared Event;
+- a native Trash view for authorized recovery of canonical records across the
+  workspace, with type filtering, pagination, and a versioned recovery preview;
 - pull-to-refresh, retry, offline, empty, and permission-loss states;
 - unit coverage for locale selection, runtime configuration, CloudBase proof
   acquisition, session storage, lifecycle bridging, date formatting, transport,
@@ -320,6 +322,32 @@ conflict refreshes the Event and preview; it never retries automatically.
 Successful restoration invalidates the Event list, overview, history, and
 preview queries. The page does not store a local history copy or change Event
 editor drafts.
+
+## Native Trash and recovery
+
+The Event collection links to a lazy Trash subpackage. `GET /api/trash` lists
+only records for which the current principal has Recover permission in the
+active workspace. The Mini Program keeps that list cursor-paginated and
+filters by canonical object type; it does not persist copies of deleted
+content or display object IDs. Selecting a row opens a focused preview from
+`GET /api/objects/:id/recovery-preview`. The preview reflects the server's
+current permission and scope checks, including a blocked parent or scope.
+
+Restoration refetches the preview before an explicit confirmation and sends its
+current `expectedVersion` to `POST /api/objects/:id/recover`. A changed target
+or blocked recovery requires the user to review the updated preview. Restoring
+a Task also restores subtasks removed with it; independently removed subtasks
+stay in Trash. The API performs
+authorization, optimistic concurrency, revision capture, and audit logging in
+the same transaction. A stale version causes the Mini Program to refresh the
+preview and ask for confirmation again. Lost access hides the former record
+details and returns a generic unavailable state. A successful recovery
+invalidates cached projections, so the original record reappears wherever it
+belongs; an Event can be opened directly. Existing relationships are retained.
+
+This slice does not expose permanent deletion or a client-side undo stack.
+Undo and redo use the separate server command-history model and are deferred
+until their native interaction and cross-client semantics are defined.
 
 ## Local build
 

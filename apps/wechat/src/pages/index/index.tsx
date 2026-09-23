@@ -15,11 +15,11 @@ import { canCreateInActiveWorkspace } from "../../auth/workspace-access";
 import { formatEventSchedule } from "../../events/format";
 import { useEventList } from "../../events/queries";
 import {
+  type AppLocale,
   getMessages,
   interpolate,
-  resolveLocale,
-  type AppLocale,
   type MessageKey,
+  resolveLocale,
 } from "../../i18n/catalog";
 import "./index.scss";
 
@@ -288,6 +288,14 @@ function EventWorkspace({ session }: { readonly session: SessionResponse }) {
             }
           >
             {messages.account}
+          </Button>
+          <Button
+            className="text-button trash-link"
+            onClick={() =>
+              void Taro.navigateTo({ url: "/features/trash/index" })
+            }
+          >
+            {messages.trash}
           </Button>
           <Button
             className="text-button"

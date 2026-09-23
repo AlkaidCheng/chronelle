@@ -36,6 +36,10 @@ export default defineAppConfig({
       root: "features/reminder-editor",
       pages: ["index"],
     },
+    {
+      root: "features/trash",
+      pages: ["index"],
+    },
   ],
   themeLocation: "theme.json",
   window: {
