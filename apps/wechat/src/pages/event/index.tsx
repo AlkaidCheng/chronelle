@@ -13,6 +13,7 @@ import {
   type AppLocale,
 } from "../../i18n/catalog";
 import { useOnline } from "../../runtime/online";
+import { sharingAccess } from "../../sharing/model";
 import "./index.scss";
 
 function roleLabel(access: ObjectAccessResponse, locale: AppLocale): string {
@@ -117,6 +118,7 @@ function ReadyEventPage({
   }
 
   const { access, event } = overview.data;
+  const sharing = sharingAccess(access);
   const schedule = formatEventSchedule(event, {
     hourCycle: session.user.hourCycle,
     locale,
@@ -144,7 +146,7 @@ function ReadyEventPage({
             {messages.editEvent}
           </Button>
         ) : null}
-        {access.actions.includes("share") || access.source.kind === "direct" ? (
+        {sharing.canManage || sharing.canLeave ? (
           <Button
             className="edit-button"
             onClick={() =>
