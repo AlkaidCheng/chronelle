@@ -38,7 +38,7 @@ function localeFor(session?: SessionResponse): AppLocale {
 function Brand({ subtitle }: { readonly subtitle: string }) {
   return (
     <View className="brand-row">
-      <Text className="seal">同</Text>
+      <Text className="brand-mark">C</Text>
       <View className="brand-copy">
         <Text className="brand">Chronelle</Text>
         <Text className="eyebrow">{subtitle}</Text>
