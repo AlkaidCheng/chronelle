@@ -441,6 +441,11 @@ disabled. Neither disabled script is required to build Chronelle.
 
 ## Validation boundary
 
+The [WeChat release-readiness checklist](wechat-release.md) covers production
+build inputs, domain and environment checks, the current data inventory, device
+evidence, monitoring, and rollback. Its preflight runs only when a real AppID
+and deployment inputs are available.
+
 A successful production compile and structural DevTools project validate W01's
 build feasibility. Automated browser emulation does not validate a Mini Program
 runtime. Physical iOS and Android behavior, Chinese IME, assistive technology,
