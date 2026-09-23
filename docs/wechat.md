@@ -248,8 +248,10 @@ ticket, sends the file through `Taro.uploadFile`, and finalizes the canonical
 Document only after the server accepts the bytes. The multipart endpoint has a
 bounded body parser and passes the bytes to the existing document service. That
 service rechecks access, size, checksum, expiry, and single use before storing
-anything. The browser's raw PUT transfer remains available, and the canonical
-attachment limit remains 25 MiB outside this native transport.
+anything. With Tencent COS, the API forwards the verified bytes under a signed
+private, encrypted, create-only PUT; the Mini Program never receives COS
+credentials or a storage URL. The browser's raw PUT transfer remains available,
+and the canonical attachment limit remains 25 MiB outside this native transport.
 
 Opening a file first obtains a fresh authorized download ticket. Native
 `Taro.downloadFile` writes to a temporary path; document formats supported by

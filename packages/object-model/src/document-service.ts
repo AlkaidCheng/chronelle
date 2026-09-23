@@ -1,44 +1,44 @@
 import { createHash, randomBytes } from "node:crypto";
 
 import {
-  AuthorizationDeniedError,
-  withStableAuthorization,
-  withReadAuthorization,
   type AuthorizationAction,
+  AuthorizationDeniedError,
   type UserPrincipal,
+  withReadAuthorization,
+  withStableAuthorization,
 } from "@chronelle/authorization";
 import {
   createId,
+  type Database,
+  type DocumentTransferAuthorizationRow,
   documents,
   documentTransferAuthorizations,
   objectRelations,
   objects,
   runAuditedMutation,
-  type Database,
-  type DocumentTransferAuthorizationRow,
 } from "@chronelle/db";
 import {
   StorageObjectUnavailableError,
   type StorageProvider,
-  type StoredObjectMetadata,
   type StorageTransferProvider,
+  type StoredObjectMetadata,
 } from "@chronelle/storage";
 import { and, eq, gt, isNull } from "drizzle-orm";
 
 import {
-  PostgresDocumentTransferReadRepository,
   type DocumentTransferAuthorization,
   type DocumentTransferOperation,
   type DocumentTransferReadRepository,
   type DocumentTransferWriteRepository,
+  PostgresDocumentTransferReadRepository,
 } from "./document-transfers.js";
 import {
   DocumentTransferUnavailableError,
   InvalidDocumentUploadError,
 } from "./errors.js";
+import { recordObjectRevision } from "./object-revisions.js";
 import { EventPlanningObjectService } from "./object-service.js";
 import { readObjectState } from "./object-state.js";
-import { recordObjectRevision } from "./object-revisions.js";
 import type {
   DocumentAttachmentList,
   DocumentAttachmentResource,
@@ -313,7 +313,7 @@ export class DocumentService {
       );
     }
 
-    const storage = this.#requireTransferProvider(authorization);
+    const storage = this.#requireTransferWriter(authorization);
     await storage.writeObject(authorization.storageKey, bytes, {
       checksumSha256: authorization.checksumSha256,
       sizeBytes: Number(authorization.sizeBytes),
@@ -579,7 +579,7 @@ export class DocumentService {
       workspaceId: authorization.workspaceId,
     };
     await this.#assertAllowed(principal, "view", authorization.resourceId);
-    const storage = this.#requireTransferProvider(authorization);
+    const storage = this.#requireTransferReader(authorization);
     const bytes = await storage.readObject(authorization.storageKey);
     if (
       bytes.byteLength !== Number(authorization.sizeBytes) ||
@@ -703,13 +703,23 @@ export class DocumentService {
     }
   }
 
-  #requireTransferProvider(
+  #requireTransferWriter(
     authorization: DocumentTransferAuthorizationRow,
-  ): StorageTransferProvider {
+  ): Pick<StorageTransferProvider, "writeObject"> {
     this.#assertStorageProvider(authorization);
-    if (!("writeObject" in this.#storage) || !("readObject" in this.#storage)) {
+    if (!("writeObject" in this.#storage)) {
       throw new DocumentTransferUnavailableError();
     }
-    return this.#storage as StorageTransferProvider;
+    return this.#storage as Pick<StorageTransferProvider, "writeObject">;
+  }
+
+  #requireTransferReader(
+    authorization: DocumentTransferAuthorizationRow,
+  ): Pick<StorageTransferProvider, "readObject"> {
+    this.#assertStorageProvider(authorization);
+    if (!("readObject" in this.#storage)) {
+      throw new DocumentTransferUnavailableError();
+    }
+    return this.#storage as Pick<StorageTransferProvider, "readObject">;
   }
 }

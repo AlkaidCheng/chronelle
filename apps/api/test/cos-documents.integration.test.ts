@@ -1,10 +1,5 @@
 import { createHash } from "node:crypto";
 import { resolve } from "node:path";
-import COS from "cos-nodejs-sdk-v5";
-import { eq, like } from "drizzle-orm";
-import type { FastifyInstance, InjectOptions } from "fastify";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-
 import {
   auditEvents,
   createId,
@@ -28,6 +23,10 @@ import {
   shareResponseSchema,
   storageInventoryResponseSchema,
 } from "@chronelle/schemas";
+import COS from "cos-nodejs-sdk-v5";
+import { eq, like } from "drizzle-orm";
+import type { FastifyInstance, InjectOptions } from "fastify";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { buildApp } from "../src/app.js";
 import { createDevelopmentAppDependencies } from "../src/dependencies.js";
 import { createDocumentStorage } from "../src/documents/storage-configuration.js";
@@ -208,6 +207,77 @@ afterEach(async () => {
 });
 
 describe.sequential("COS attachment API with simulated cloud transport", () => {
+  it("stores a native multipart upload through the create-only COS writer", async () => {
+    inspection.mockImplementation(async (url, options) => {
+      const key = new URL(String(url)).pathname;
+      if (options?.method === "PUT") {
+        expect(options.headers).toMatchObject({
+          "x-cos-acl": "private",
+          "x-cos-forbid-overwrite": "true",
+          "x-cos-server-side-encryption": "AES256",
+        });
+        content.set(key, new Uint8Array(options.body as Uint8Array));
+        return new Response(null, { status: 200 });
+      }
+      const stored = content.get(key);
+      return stored === undefined
+        ? new Response(null, { status: 404 })
+        : new Response(Buffer.from(stored), {
+            headers: { "x-cos-server-side-encryption": "AES256" },
+          });
+    });
+    const response = await request({
+      method: "POST",
+      url: "/api/documents/upload-url",
+      payload: {
+        parentObjectId: eventId,
+        ...metadata,
+        transferMode: "multipart",
+      },
+    });
+    expect(response.statusCode).toBe(201);
+    const authorization = documentUploadAuthorizationResponseSchema.parse(
+      response.json(),
+    );
+    expect(authorization.upload.method).toBe("POST");
+    expect(authorization.upload.url).toMatch(
+      /^\/api\/document-transfers\/upload-file\//u,
+    );
+    const boundary = "native-upload-test";
+    const payload = Buffer.concat([
+      Buffer.from(
+        `--${boundary}\r\nContent-Disposition: form-data; name="file"; filename="receipt.pdf"\r\nContent-Type: application/pdf\r\n\r\n`,
+      ),
+      Buffer.from(bytes),
+      Buffer.from(`\r\n--${boundary}--\r\n`),
+    ]);
+    const transfer = () =>
+      request(
+        {
+          method: "POST",
+          url: authorization.upload.url,
+          payload,
+        },
+        { "content-type": `multipart/form-data; boundary=${boundary}` },
+      );
+    expect((await transfer()).statusCode).toBe(204);
+    expect((await transfer()).statusCode).toBe(404);
+    expect(inspection).toHaveBeenCalledTimes(1);
+    const created = await finalize(authorization.id);
+    expect(created.statusCode).toBe(201);
+    expect(
+      documentAttachmentResponseSchema.parse(created.json()).document.id,
+    ).toBeTruthy();
+    expect(
+      (
+        await testDb()
+          .select()
+          .from(auditEvents)
+          .where(eq(auditEvents.action, "document.uploaded"))
+      ).length,
+    ).toBe(1);
+  });
+
   it("finalizes one canonical document and issues inherited Viewer downloads", async () => {
     const grant = await share("viewer");
     const authorization = await authorize();

@@ -2,15 +2,16 @@ import { createHash } from "node:crypto";
 import COS from "cos-nodejs-sdk-v5";
 import {
   StorageInventoryUnavailableError,
+  StorageObjectConflictError,
   StorageObjectUnavailableError,
 } from "./errors.js";
 import { assertSafeStorageKey } from "./storage-key.js";
 import type {
   DownloadAuthorizationInput,
-  StorageProvider,
   StorageInventoryEntry,
-  StoredObjectMetadata,
+  StorageProvider,
   StorageTransferAuthorization,
+  StoredObjectMetadata,
   UploadAuthorizationInput,
 } from "./types.js";
 
@@ -177,6 +178,54 @@ export class TencentCosStorageProvider implements StorageProvider {
       headers["x-cos-server-side-encryption-cos-kms-key-id"] =
         this.#options.kmsKeyId;
     return this.#sign("PUT", input.storageKey, input.expiresAt, headers);
+  }
+
+  /** Receives a native-client upload through the API without weakening the COS object policy. */
+  async writeObject(
+    storageKey: string,
+    bytes: Uint8Array,
+    expected: StoredObjectMetadata,
+  ): Promise<void> {
+    if (
+      bytes.byteLength !== expected.sizeBytes ||
+      createHash("sha256").update(bytes).digest("hex") !==
+        expected.checksumSha256
+    ) {
+      throw new StorageObjectUnavailableError();
+    }
+    const authorization = await this.createUploadAuthorization({
+      checksumSha256: expected.checksumSha256,
+      credential: "server-side",
+      expiresAt: new Date(Date.now() + 60_000),
+      mimeType: "application/octet-stream",
+      sizeBytes: expected.sizeBytes,
+      storageKey,
+    });
+    const body =
+      bytes.buffer instanceof ArrayBuffer
+        ? Buffer.from(bytes.buffer, bytes.byteOffset, bytes.byteLength)
+        : Buffer.from(bytes);
+    const response = await this.#fetch(authorization.url, {
+      method: "PUT",
+      headers: authorization.headers,
+      body,
+      redirect: "error",
+      credentials: "omit",
+      signal: AbortSignal.timeout(60_000),
+    });
+    await response.body?.cancel();
+    if (response.status === 200) return;
+    if (response.status === 409 || response.status === 412) {
+      const existing = await this.inspectObject(storageKey);
+      if (
+        existing.sizeBytes === expected.sizeBytes &&
+        existing.checksumSha256 === expected.checksumSha256
+      ) {
+        return;
+      }
+      throw new StorageObjectConflictError();
+    }
+    throw new StorageObjectUnavailableError();
   }
 
   createDownloadAuthorization(
