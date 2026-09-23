@@ -2,6 +2,7 @@ import type { EventListItem, SessionResponse } from "@chronelle/schemas";
 import {
   Button,
   Input,
+  Label,
   Picker,
   ScrollView,
   Text,
@@ -38,7 +39,7 @@ function localeFor(session?: SessionResponse): AppLocale {
 function Brand({ subtitle }: { readonly subtitle: string }) {
   return (
     <View className="brand-row">
-      <Text className="seal">同</Text>
+      <Text className="brand-mark">C</Text>
       <View className="brand-copy">
         <Text className="brand">Chronelle</Text>
         <Text className="eyebrow">{subtitle}</Text>
@@ -87,75 +88,115 @@ function SignInView({ locale }: { readonly locale: AppLocale }) {
   const session = useSession();
   const [login, setLogin] = useState("");
   const [password, setPassword] = useState("");
+  const [method, setMethod] = useState<"wechat" | "account">("wechat");
   const needsLink =
-    session.state.status === "signed-out" && session.state.linkingRequired;
+    method === "wechat" &&
+    session.state.status === "signed-out" &&
+    session.state.linkingRequired;
+  const showAccountForm = needsLink || method === "account";
+
+  function switchMethod(next: "wechat" | "account") {
+    setPassword("");
+    session.resetSignInFlow();
+    setMethod(next);
+  }
+
+  function submitPassword() {
+    if (session.busy || login.trim().length === 0 || password.length === 0)
+      return;
+    if (needsLink) void session.linkExistingAccount(login.trim(), password);
+    else void session.signInWithPassword(login.trim(), password);
+  }
 
   return (
     <View className="entry-shell">
       <Brand subtitle={messages.eyebrow} />
       <View className="entry-copy">
         <Text className="entry-title">
-          {needsLink ? messages.linkTitle : messages.signInTitle}
+          {needsLink
+            ? messages.linkTitle
+            : showAccountForm
+              ? messages.accountSignInTitle
+              : messages.signInTitle}
         </Text>
-        <Text className="entry-detail">
-          {needsLink ? messages.linkDetail : messages.signInDetail}
-        </Text>
+        {method === "wechat" ? (
+          <Text className="entry-detail">
+            {needsLink ? messages.linkDetail : messages.signInDetail}
+          </Text>
+        ) : null}
       </View>
 
-      {session.notice ? (
-        <Notice
-          code={
-            session.notice === "session-expired"
-              ? "sessionExpired"
-              : session.notice === "link-failed"
-                ? "linkFailed"
-                : session.notice === "storage-failed"
-                  ? "storageFailed"
-                  : "signInFailed"
-          }
-          locale={locale}
-        />
-      ) : null}
+      {session.notice ? <Notice code={session.notice} locale={locale} /> : null}
 
-      {needsLink ? (
-        <View className="form-card">
-          <Text className="field-label">{messages.loginLabel}</Text>
-          <Input
-            className="text-input"
-            disabled={session.busy}
-            onInput={(event) => setLogin(event.detail.value)}
-            value={login}
-          />
-          <Text className="field-label">{messages.passwordLabel}</Text>
-          <Input
-            className="text-input"
-            disabled={session.busy}
-            password
-            onInput={(event) => setPassword(event.detail.value)}
-            value={password}
-          />
+      {showAccountForm ? (
+        <>
+          <View className="form-card">
+            <Label className="field-label" for="chronelle-login">
+              {messages.loginLabel}
+            </Label>
+            <Input
+              className="text-input"
+              confirmType="next"
+              disabled={session.busy}
+              id="chronelle-login"
+              maxlength={254}
+              onInput={(event) => setLogin(event.detail.value)}
+              value={login}
+            />
+            <Label className="field-label" for="chronelle-password">
+              {messages.passwordLabel}
+            </Label>
+            <Input
+              className="text-input"
+              confirmType="done"
+              disabled={session.busy}
+              id="chronelle-password"
+              maxlength={256}
+              onConfirm={submitPassword}
+              password
+              onInput={(event) => setPassword(event.detail.value)}
+              value={password}
+            />
+            <Button
+              className="primary-button"
+              disabled={
+                session.busy ||
+                login.trim().length === 0 ||
+                password.length === 0
+              }
+              loading={session.busy}
+              onClick={submitPassword}
+            >
+              {needsLink ? messages.linkAction : messages.accountSignInAction}
+            </Button>
+          </View>
           <Button
-            className="primary-button"
-            disabled={
-              session.busy || login.trim().length === 0 || password.length === 0
-            }
-            loading={session.busy}
-            onClick={() =>
-              void session.linkExistingAccount(login.trim(), password)
-            }
+            className="text-button auth-switch"
+            disabled={session.busy}
+            onClick={() => switchMethod(needsLink ? "account" : "wechat")}
           >
-            {messages.linkAction}
+            {needsLink ? messages.withoutLink : messages.backToWeChat}
           </Button>
-        </View>
+        </>
       ) : (
-        <Button
-          className="primary-button"
-          disabled={session.busy}
-          loading={session.busy}
-          onClick={() => void session.signInWithWeChat()}
-        >
-          {messages.signInAction}
-        </Button>
+        <View className="auth-methods">
+          <Button
+            className="primary-button auth-method-primary"
+            disabled={session.busy}
+            loading={session.busy}
+            onClick={() => void session.signInWithWeChat()}
+          >
+            {messages.signInAction}
+          </Button>
+          <Button
+            className="secondary-button auth-method-secondary"
+            disabled={session.busy}
+            onClick={() => switchMethod("account")}
+          >
+            {messages.accountSignInOption}
+          </Button>
+          <Text className="auth-help">{messages.wechatHelp}</Text>
+        </View>
       )}
       <Text className="footnote">CHRONELLE · 同行</Text>
     </View>

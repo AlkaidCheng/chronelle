@@ -25,6 +25,9 @@ export function parseRuntimeConfig(
   if (cloudBaseEnvId === undefined || cloudBaseEnvId.length === 0) {
     return { ok: false, reason: "missing-cloudbase-environment" };
   }
+  if (/^[a-z][a-z\d+.-]*:\/\/[^/?#]*@/iu.test(apiBaseUrl)) {
+    return { ok: false, reason: "invalid-api-origin" };
+  }
 
   let url: URL;
   try {
@@ -37,8 +40,6 @@ export function parseRuntimeConfig(
   if (
     (url.protocol !== "https:" &&
       !(localDevelopment && url.protocol === "http:")) ||
-    url.username.length > 0 ||
-    url.password.length > 0 ||
     url.search.length > 0 ||
     url.hash.length > 0
   ) {

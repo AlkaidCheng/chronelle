@@ -17,13 +17,7 @@ import {
 
 import { useAppRuntime, type AppRuntime } from "../runtime/app-runtime";
 import { useOnline } from "../runtime/online";
-
-type SessionNotice =
-  | "session-expired"
-  | "sign-in-failed"
-  | "link-failed"
-  | "storage-failed"
-  | null;
+import { passwordSignInNotice, type SignInNotice } from "./sign-in-notice";
 
 type SessionState =
   | { readonly status: "configuration-error"; readonly reason: string }
@@ -38,10 +32,12 @@ type SessionState =
 interface SessionContextValue {
   readonly state: SessionState;
   readonly busy: boolean;
-  readonly notice: SessionNotice;
+  readonly notice: SignInNotice | null;
   completeOnboarding(displayName: string): Promise<void>;
+  resetSignInFlow(): void;
   linkExistingAccount(login: string, password: string): Promise<void>;
   refresh(): Promise<void>;
+  signInWithPassword(login: string, password: string): Promise<void>;
   signInWithWeChat(): Promise<void>;
   signOut(): Promise<void>;
   switchWorkspace(workspaceId: string): Promise<void>;
@@ -64,8 +60,10 @@ export function SessionProvider({ children }: PropsWithChildren) {
           busy: false,
           notice: null,
           completeOnboarding: unavailable,
+          resetSignInFlow: () => undefined,
           linkExistingAccount: unavailable,
           refresh: unavailable,
+          signInWithPassword: unavailable,
           signInWithWeChat: unavailable,
           signOut: unavailable,
           switchWorkspace: unavailable,
@@ -99,7 +97,7 @@ function ReadySessionProvider({
   const [credential, setCredential] = useState<CredentialState | null>(null);
   const [restoring, setRestoring] = useState(true);
   const [linkingRequired, setLinkingRequired] = useState(false);
-  const [notice, setNotice] = useState<SessionNotice>(null);
+  const [notice, setNotice] = useState<SignInNotice | null>(null);
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
@@ -113,7 +111,7 @@ function ReadySessionProvider({
         }
       })
       .catch(() => {
-        if (active) setNotice("storage-failed");
+        if (active) setNotice("storageFailed");
       })
       .finally(() => {
         if (active) setRestoring(false);
@@ -149,7 +147,7 @@ function ReadySessionProvider({
       if (!active) return;
       setCredential(null);
       setLinkingRequired(false);
-      setNotice("session-expired");
+      setNotice("sessionExpired");
       queryClient.clear();
     });
     return () => {
@@ -170,47 +168,86 @@ function ReadySessionProvider({
     [queryClient],
   );
 
+  const resetSignInFlow = useCallback(() => {
+    setLinkingRequired(false);
+    setNotice(null);
+  }, []);
+
   const signInWithWeChat = useCallback(async () => {
     setBusy(true);
     setNotice(null);
+    let authenticated = false;
     try {
       const accessToken = await runtime.identity.getAccessToken();
       const session = await runtime.api.signInWithWeChat({ accessToken });
+      authenticated = true;
       await runtime.sessions.save(session);
       activate(session.workspace.id);
     } catch (error) {
       if (error instanceof ApiClientError && error.status === 401) {
         setLinkingRequired(true);
       } else {
-        setNotice("sign-in-failed");
+        setNotice(authenticated ? "storageFailed" : "signInFailed");
       }
     } finally {
       setBusy(false);
     }
   }, [activate, runtime]);
 
+  const signInWithPassword = useCallback(
+    async (login: string, password: string) => {
+      setBusy(true);
+      setNotice(null);
+      let authenticated = false;
+      try {
+        const session = await runtime.api.signInWithPassword({
+          login,
+          password,
+        });
+        authenticated = true;
+        await runtime.sessions.save(session);
+        activate(session.workspace.id);
+      } catch (error) {
+        setNotice(
+          authenticated ? "storageFailed" : passwordSignInNotice(error),
+        );
+      } finally {
+        setBusy(false);
+      }
+    },
+    [activate, runtime],
+  );
+
   const linkExistingAccount = useCallback(
     async (login: string, password: string) => {
       setBusy(true);
       setNotice(null);
+      let passwordAuthenticated = false;
       let passwordSessionStored = false;
       try {
         const session = await runtime.api.signInWithPassword({
           login,
           password,
         });
+        passwordAuthenticated = true;
         await runtime.sessions.save(session);
         passwordSessionStored = true;
         const accessToken = await runtime.identity.getAccessToken();
         await runtime.api.linkWeChatIdentity({ accessToken });
         activate(session.workspace.id);
-      } catch {
+      } catch (error) {
         if (passwordSessionStored) {
           await runtime.api.signOut().catch(() => undefined);
           await runtime.sessions.clear().catch(() => undefined);
         }
         setCredential(null);
-        setNotice("link-failed");
+        setNotice(
+          passwordSessionStored
+            ? "linkFailed"
+            : passwordAuthenticated
+              ? "storageFailed"
+              : passwordSignInNotice(error),
+        );
       } finally {
         setBusy(false);
       }
@@ -223,7 +260,7 @@ function ReadySessionProvider({
     try {
       await runtime.sessions.signOut(runtime.api);
     } catch {
-      setNotice("storage-failed");
+      setNotice("storageFailed");
     } finally {
       queryClient.clear();
       setCredential(null);
@@ -241,7 +278,7 @@ function ReadySessionProvider({
         const next = await runtime.sessions.selectWorkspace(workspaceId);
         activate(next.workspaceId);
       } catch {
-        setNotice("storage-failed");
+        setNotice("storageFailed");
       } finally {
         setBusy(false);
       }
@@ -260,7 +297,7 @@ function ReadySessionProvider({
         });
         await sessionQuery.refetch();
       } catch {
-        setNotice("sign-in-failed");
+        setNotice("signInFailed");
       } finally {
         setBusy(false);
       }
@@ -310,8 +347,10 @@ function ReadySessionProvider({
       busy,
       notice,
       completeOnboarding,
+      resetSignInFlow,
       linkExistingAccount,
       refresh,
+      signInWithPassword,
       signInWithWeChat,
       signOut,
       switchWorkspace,
@@ -320,9 +359,11 @@ function ReadySessionProvider({
     [
       busy,
       completeOnboarding,
+      resetSignInFlow,
       linkExistingAccount,
       notice,
       refresh,
+      signInWithPassword,
       signInWithWeChat,
       signOut,
       state,

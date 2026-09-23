@@ -582,7 +582,7 @@
   border: 2rpx solid var(--chronelle-line-strong);
   border-radius: 50%;
   background: transparent;
-  color: #fffaf0;
+  color: var(--chronelle-on-cinnabar);
   font-size: 24rpx;
   line-height: 1;
 }
@@ -683,7 +683,7 @@
   padding: 0 28rpx;
   border-radius: 17rpx;
   background: var(--chronelle-cinnabar);
-  color: #fffaf0;
+  color: var(--chronelle-on-cinnabar);
   font-size: 24rpx;
   font-weight: 650;
   line-height: 1.2;

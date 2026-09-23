@@ -16,7 +16,8 @@ The current Mini Program provides:
 - light and dark warm ink, cinnabar, and indigo tokens;
 - safe-area layout and reduced-motion defaults;
 - a production package report with enforced main, subpackage, and total budgets;
-- a native WeChat sign-in and explicit existing-account linking flow;
+- native WeChat sign-in, independent username/email and password sign-in, and
+  explicit existing-account linking;
 - session restoration, revocation, onboarding, and workspace switching;
 - account language, time zone, clock, and week-start preferences through the
   authenticated account API;
@@ -126,11 +127,18 @@ credential and is not used as the end user's WeChat proof.
 
 ## W04 native shell and Event reads
 
-The Mini Program uses CloudBase OpenID sign-in only to obtain a short-lived
-end-user proof. It exchanges that proof for a Chronelle-owned bearer session and
-does not persist the CloudBase token. An unrecognized WeChat identity can be
-linked only after the user signs in to an existing Chronelle account; a failed
-link revokes and removes that temporary password session.
+The Mini Program offers WeChat sign-in first and reveals the account form only
+when selected. Account sign-in uses the same `POST /api/auth/sign-in` endpoint as
+the web app, accepts a username or email and password, and stores the resulting
+Chronelle session without linking the WeChat identity. Password reset and
+account registration remain on the web app.
+
+WeChat sign-in uses CloudBase OpenID only to obtain a short-lived end-user
+proof. It exchanges that proof for a Chronelle-owned bearer session and does
+not persist the CloudBase token. An unrecognized WeChat identity can be linked
+only after the user signs in to an existing Chronelle account; the user may
+instead choose independent account sign-in. A failed link attempts to revoke
+the temporary password session and clears the active local credential.
 
 On launch, the shell restores the opaque Chronelle token and validates it with
 `GET /api/auth/session`. App show/hide events update TanStack Query focus, and

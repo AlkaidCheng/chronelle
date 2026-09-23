@@ -75,6 +75,49 @@ function resolvedTask(result: TaroRequestResult): TaroRequestTask {
 }
 
 describe("WeChat API client", () => {
+  it.each(["planner", "planner@example.test"])(
+    "signs in with %s without requiring a WeChat credential",
+    async (login) => {
+      const calls: TaroRequestOptions[] = [];
+      const request: TaroRequest = (options) => {
+        calls.push(options);
+        return resolvedTask({
+          data: {
+            accessToken: "password-session",
+            tokenType: "Bearer",
+            expiresAt: "2030-01-15T00:00:00.000Z",
+            user: {
+              id: userId,
+              displayName: "Planner",
+              email: "planner@example.test",
+              username: "planner",
+            },
+            workspace: { id: workspaceId, displayName: "Personal" },
+          },
+          statusCode: 200,
+        });
+      };
+      const client = createWeChatApiClient({
+        baseUrl: "https://api.example.test/",
+        getCredential: () => ({ accessToken: "old-session", workspaceId }),
+        request,
+      });
+
+      await expect(
+        client.signInWithPassword({ login, password: "sample-password" }),
+      ).resolves.toMatchObject({ accessToken: "password-session" });
+      expect(calls).toHaveLength(1);
+      expect(calls[0]?.url).toBe("https://api.example.test/api/auth/sign-in");
+      expect(calls[0]?.method).toBe("POST");
+      expect(JSON.parse(calls[0]?.body ?? "")).toEqual({
+        login,
+        password: "sample-password",
+      });
+      expect(calls[0]?.headers.authorization).toBeUndefined();
+      expect(calls[0]?.headers["x-workspace-id"]).toBeUndefined();
+    },
+  );
+
   it("uses one Taro transport for public health and protected session reads", async () => {
     const calls: TaroRequestOptions[] = [];
     const request: TaroRequest = (options) => {
