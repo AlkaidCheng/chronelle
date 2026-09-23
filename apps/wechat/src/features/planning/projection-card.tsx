@@ -5,11 +5,11 @@ import type {
   HourCycle,
   ReminderResponse,
   SectionResponse,
-  TaskResponse,
   TimelineResponse,
+  WeekStart,
 } from "@chronelle/schemas";
 import { Button, Text, View } from "@tarojs/components";
-import Taro from "@tarojs/taro";
+import { useState } from "react";
 
 import {
   formatCalendarDate,
@@ -21,18 +21,20 @@ import {
   type AppLocale,
   type MessageKey,
 } from "../../i18n/catalog";
-import { useUpdateEventTask } from "../../tasks/queries";
+import { taskViewOf, type TaskView } from "../../tasks/presentations";
 import {
   componentLabel,
   isPlanningComponentKind,
   type PlanningComponentKind,
 } from "./catalog";
 import { usePlanningProjection } from "./queries";
+import { TaskPresentation } from "./task-presentation";
 
 interface DisplayPreferences {
   readonly hourCycle: HourCycle | null;
   readonly locale: AppLocale;
   readonly timeZone: string | null;
+  readonly weekStart: WeekStart | null;
 }
 
 interface CardControls {
@@ -51,14 +53,8 @@ interface ProjectionCardProps extends CardControls {
   readonly eventId: string;
   readonly preferences: DisplayPreferences;
   readonly workspaceId: string;
+  readonly onChangeView: (view: TaskView) => void;
 }
-
-const taskStatusKeys = {
-  todo: "taskTodo",
-  in_progress: "taskInProgress",
-  done: "taskDone",
-  cancelled: "taskCancelled",
-} as const satisfies Record<TaskResponse["status"], MessageKey>;
 
 const reminderStatusKeys = {
   pending: "reminderPending",
@@ -66,16 +62,6 @@ const reminderStatusKeys = {
   dismissed: "reminderDismissed",
   cancelled: "reminderCancelled",
 } as const satisfies Record<ReminderResponse["status"], MessageKey>;
-
-function taskWhen(
-  task: TaskResponse,
-  preferences: DisplayPreferences,
-): string | null {
-  if (task.dueOn !== null)
-    return formatCalendarDate(task.dueOn, preferences.locale);
-  if (task.dueAt !== null) return formatInstant(task.dueAt, preferences);
-  return null;
-}
 
 function sectionName(
   sectionId: string | null,
@@ -129,99 +115,6 @@ function EventRows({
       title={event.displayName}
     />
   ));
-}
-
-function TaskRows({
-  canEdit,
-  eventId,
-  items,
-  preferences,
-  sections,
-  workspaceId,
-}: {
-  readonly canEdit: boolean;
-  readonly eventId: string;
-  readonly items: readonly TaskResponse[];
-  readonly preferences: DisplayPreferences;
-  readonly sections: readonly SectionResponse[];
-  readonly workspaceId: string;
-}) {
-  const messages = getMessages(preferences.locale);
-  const update = useUpdateEventTask(workspaceId, eventId);
-  const editorUrl = (taskId?: string) =>
-    `/features/task-editor/index?eventId=${encodeURIComponent(eventId)}${
-      taskId === undefined ? "" : `&taskId=${encodeURIComponent(taskId)}`
-    }`;
-  async function toggle(task: TaskResponse): Promise<void> {
-    if (update.isPending) return;
-    try {
-      const done = task.status === "done";
-      await update.mutateAsync({
-        id: task.id,
-        input: {
-          completedAt: done ? null : new Date().toISOString(),
-          expectedVersion: task.version,
-          status: done ? "todo" : "done",
-        },
-      });
-    } catch {
-      await Taro.showToast({ icon: "none", title: messages.taskSaveFailed });
-    }
-  }
-  return (
-    <View className="task-projection">
-      {canEdit ? (
-        <View className="task-projection__toolbar">
-          <Button
-            className="text-button text-button--primary"
-            disabled={update.isPending}
-            onClick={() => void Taro.navigateTo({ url: editorUrl() })}
-          >
-            {messages.addTask}
-          </Button>
-        </View>
-      ) : null}
-      {items.length === 0 ? <EmptyRows locale={preferences.locale} /> : null}
-      {items.map((task) => {
-        const section = sectionName(task.sectionId, sections);
-        const status = messages[taskStatusKeys[task.status]];
-        const when = taskWhen(task, preferences);
-        return (
-          <View className="task-row" key={task.id}>
-            {canEdit ? (
-              <Button
-                aria-label={
-                  task.status === "done"
-                    ? messages.reopenTask
-                    : messages.completeTask
-                }
-                className={
-                  task.status === "done"
-                    ? "task-check task-check--done"
-                    : "task-check"
-                }
-                disabled={update.isPending}
-                onClick={() => void toggle(task)}
-              >
-                {task.status === "done" ? "✓" : ""}
-              </Button>
-            ) : null}
-            <Button
-              className="task-row__content"
-              disabled={!canEdit || update.isPending}
-              onClick={() => void Taro.navigateTo({ url: editorUrl(task.id) })}
-            >
-              <Row
-                detail={[status, when].filter(Boolean).join(" · ")}
-                eyebrow={section}
-                title={task.displayName}
-              />
-            </Button>
-          </View>
-        );
-      })}
-    </View>
-  );
 }
 
 function ExpenseRows({
@@ -347,13 +240,19 @@ function ProjectionBody({
   canEditResources,
   eventId,
   kind,
+  onChangeView,
   preferences,
+  view,
+  viewSaving,
   workspaceId,
 }: {
   readonly canEditResources: boolean;
   readonly eventId: string;
   readonly kind: PlanningComponentKind;
+  readonly onChangeView: (view: TaskView) => void;
   readonly preferences: DisplayPreferences;
+  readonly view: TaskView;
+  readonly viewSaving: boolean;
   readonly workspaceId: string;
 }) {
   const messages = getMessages(preferences.locale);
@@ -376,12 +275,15 @@ function ProjectionBody({
   switch (projection.data.kind) {
     case "todos":
       return (
-        <TaskRows
+        <TaskPresentation
           canEdit={canEditResources}
           eventId={eventId}
           items={projection.data.value.items}
+          onChangeView={onChangeView}
           preferences={preferences}
           sections={projection.data.value.sections}
+          view={view}
+          viewSaving={viewSaving}
           workspaceId={workspaceId}
         />
       );
@@ -420,6 +322,10 @@ function ProjectionBody({
 
 export function ProjectionCard(props: ProjectionCardProps) {
   const messages = getMessages(props.preferences.locale);
+  const [localView, setLocalView] = useState<TaskView | null>(null);
+  const view = props.canEditResources
+    ? taskViewOf(props.component)
+    : (localView ?? taskViewOf(props.component));
   return (
     <View className="component-card">
       <View className="component-card__header">
@@ -434,7 +340,14 @@ export function ProjectionCard(props: ProjectionCardProps) {
             canEditResources={props.canEditResources}
             eventId={props.eventId}
             kind={props.component.kind}
+            onChangeView={(next) =>
+              props.canEditResources
+                ? props.onChangeView(next)
+                : setLocalView(next)
+            }
             preferences={props.preferences}
+            view={view}
+            viewSaving={props.disabled}
             workspaceId={props.workspaceId}
           />
         ) : (

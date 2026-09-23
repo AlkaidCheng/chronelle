@@ -130,7 +130,9 @@ Timeline, Itinerary, Expense, and Reminder projections. Removing a planning
 component changes only the Event layout, never the underlying object. Owners
 and editors can create, edit, schedule, assign to an existing section, and
 complete the same canonical Tasks shown by those projections; version conflicts
-retain the local draft for an explicit recovery choice. See
+retain the local draft for an explicit recovery choice. The To-dos component
+supports list, by-day, week, board, and month views, plus section creation,
+editing, ordering, and removal. See
 [WeChat Mini Program](docs/wechat.md).
 
 Open <http://localhost:3000/sign-in> to create a development session, then use

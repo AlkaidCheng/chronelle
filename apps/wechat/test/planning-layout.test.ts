@@ -10,6 +10,7 @@ import {
   removeComponent,
   removePage,
   renamePage,
+  setComponentView,
 } from "../src/features/planning/layout";
 
 const ids = {
@@ -84,6 +85,14 @@ describe("Mini Program planning layout", () => {
     });
     expect(hasComponentKind(next, "files")).toBe(true);
     expect(hasComponentKind(next, "expenses")).toBe(true);
+  });
+
+  it("stores a Task presentation on its existing component identity", () => {
+    const next = setComponentView(pages(), ids.todos, "month");
+    expect(next[0]?.components).toEqual([
+      { id: ids.todos, kind: "todos", view: "month" },
+      { id: ids.files, kind: "files" },
+    ]);
   });
 
   it("rejects duplicate canonical layout identities", () => {
