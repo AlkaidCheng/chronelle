@@ -17,6 +17,10 @@ export default defineAppConfig({
       pages: ["index"],
     },
     {
+      root: "features/history",
+      pages: ["index"],
+    },
+    {
       root: "features/task-editor",
       pages: ["index"],
     },

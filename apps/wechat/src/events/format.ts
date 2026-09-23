@@ -52,7 +52,10 @@ export function formatInstant(
 }
 
 export function formatEventSchedule(
-  event: EventResponse,
+  event: Pick<
+    EventResponse,
+    "startsOn" | "endsOn" | "startsAt" | "endsAt" | "timezone"
+  >,
   preferences: EventFormatPreferences,
 ): string | null {
   if (event.startsOn !== null) {

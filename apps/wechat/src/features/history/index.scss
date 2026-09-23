@@ -1,0 +1,168 @@
+.history-shell {
+  box-sizing: border-box;
+  min-height: 100vh;
+  padding: calc(30rpx + env(safe-area-inset-top)) 36rpx
+    calc(48rpx + env(safe-area-inset-bottom));
+}
+
+.history-back,
+.history-button,
+.history-entry {
+  border: 0;
+}
+
+.history-back::after,
+.history-button::after,
+.history-entry::after {
+  border: 0;
+}
+
+.history-back {
+  margin: 0 0 36rpx;
+  padding: 0;
+  background: transparent;
+  color: var(--chronelle-indigo);
+  font-size: 23rpx;
+  text-align: left;
+}
+
+.history-eyebrow,
+.history-title,
+.history-intro,
+.history-notice,
+.history-entry__title,
+.history-entry__meta,
+.history-entry__change,
+.history-section-title,
+.history-snapshot-name,
+.history-snapshot-detail,
+.history-change__label,
+.history-change__value,
+.history-state__title,
+.history-state__detail {
+  display: block;
+}
+
+.history-eyebrow {
+  color: var(--chronelle-cinnabar);
+  font-size: 20rpx;
+  font-weight: 600;
+  letter-spacing: 3rpx;
+}
+
+.history-title,
+.history-snapshot-name {
+  margin-top: 14rpx;
+  font-family: "Songti SC", STSong, serif;
+  font-size: 44rpx;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.history-intro,
+.history-snapshot-detail,
+.history-state__detail {
+  margin-top: 12rpx;
+  color: var(--chronelle-muted);
+  font-size: 24rpx;
+  line-height: 1.6;
+  white-space: pre-wrap;
+}
+
+.history-notice {
+  margin: 22rpx 0;
+  padding: 22rpx;
+  border-radius: 18rpx;
+  background: var(--chronelle-indigo-soft);
+  color: var(--chronelle-indigo);
+  font-size: 23rpx;
+  line-height: 1.6;
+}
+
+.history-entry {
+  display: block;
+  box-sizing: border-box;
+  width: 100%;
+  margin: 22rpx 0;
+  padding: 26rpx;
+  border: 1rpx solid var(--chronelle-line);
+  border-radius: 20rpx;
+  background: var(--chronelle-surface);
+  text-align: left;
+}
+
+.history-entry__title,
+.history-section-title {
+  color: var(--chronelle-ink);
+  font-size: 29rpx;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.history-entry__meta,
+.history-entry__change {
+  margin-top: 8rpx;
+  color: var(--chronelle-muted);
+  font-size: 22rpx;
+  line-height: 1.5;
+}
+
+.history-entry__change {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.history-section-title {
+  margin-top: 32rpx;
+}
+
+.history-change {
+  margin-top: 16rpx;
+  padding: 20rpx 0;
+  border-bottom: 1rpx solid var(--chronelle-line);
+}
+
+.history-change__label {
+  color: var(--chronelle-ink);
+  font-size: 23rpx;
+  font-weight: 600;
+}
+
+.history-change__value {
+  margin-top: 8rpx;
+  color: var(--chronelle-muted);
+  font-size: 23rpx;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.history-button {
+  min-height: 76rpx;
+  margin: 28rpx 0 0;
+  border: 1rpx solid var(--chronelle-line-strong);
+  border-radius: 16rpx;
+  background: var(--chronelle-surface);
+  color: var(--chronelle-indigo);
+  font-size: 25rpx;
+  font-weight: 600;
+}
+
+.history-button--primary {
+  background: var(--chronelle-cinnabar);
+  color: white;
+}
+
+.history-state {
+  margin-top: 72rpx;
+  padding: 32rpx;
+  border: 1rpx solid var(--chronelle-line);
+  border-radius: 22rpx;
+  background: var(--chronelle-surface);
+}
+
+.history-state__title {
+  font-family: "Songti SC", STSong, serif;
+  font-size: 30rpx;
+  font-weight: 600;
+}
