@@ -91,6 +91,10 @@ The WeChat runtime cannot compile functions from source text, so the Mini
 Program validates responses in zod's `jitless` mode. The app entry imports
 `src/runtime/validation.ts` before any other module because schemas read this
 setting when they are created; the web app keeps zod's compiled validators.
+The runtime also has no `AbortController` or `AbortSignal`, which TanStack
+Query, the CloudBase SDK, and request cancellation construct, so the entry next
+imports `src/runtime/abort-controller.ts`, which installs a minimal
+implementation only where the global object lacks one.
 
 ## W03 identity and session boundary
 
