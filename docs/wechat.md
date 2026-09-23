@@ -250,18 +250,19 @@ bounded body parser and passes the bytes to the existing document service. That
 service rechecks access, size, checksum, expiry, and single use before storing
 anything. With Tencent COS, the API forwards the verified bytes under a signed
 private, encrypted, create-only PUT; the Mini Program never receives COS
-credentials or a storage URL. The browser's raw PUT transfer remains available,
+credentials or an upload URL. The browser's raw PUT transfer remains available,
 and the canonical attachment limit remains 25 MiB outside this native transport.
 
 Opening a file first obtains a fresh authorized download ticket. Native
-`Taro.downloadFile` writes to a temporary path; document formats supported by
-WeChat open with `Taro.openDocument`, and common images open with
-`Taro.previewImage`. Other formats remain attached but cannot be opened in the
-Mini Program. Active upload and download tasks are aborted when cancelled or
-when the Files component closes. Selected and downloaded temporary files are
-removed after use or when the component closes. Tickets are short-lived and
-single use where served by the API; the Mini Program does not store a permanent
-public file URL or query protected CloudBase tables directly.
+`Taro.downloadFile` writes to a temporary path using a short-lived API or signed
+COS URL. Document formats supported by WeChat open with `Taro.openDocument`,
+and common images open with `Taro.previewImage`. Other formats remain attached
+but cannot be opened in the Mini Program. Active upload and download tasks are
+aborted when cancelled or when the Files component closes. Selected and
+downloaded temporary files are removed after use or when the component closes.
+Tickets are short-lived and single use where served by the API; the Mini
+Program does not store a permanent public file URL or query protected CloudBase
+tables directly.
 
 ## Local build
 
