@@ -171,24 +171,57 @@ function ExpenseRows({
 }
 
 function ReminderRows({
+  canEdit,
+  eventId,
   items,
   preferences,
 }: {
+  readonly canEdit: boolean;
+  readonly eventId: string;
   readonly items: readonly ReminderResponse[];
   readonly preferences: DisplayPreferences;
 }) {
   const messages = getMessages(preferences.locale);
-  if (items.length === 0) return <EmptyRows locale={preferences.locale} />;
-  return items.map((reminder) => (
-    <Row
-      detail={`${messages[reminderStatusKeys[reminder.status]]} · ${formatInstant(
-        reminder.remindAt,
-        preferences,
-      )}`}
-      key={reminder.id}
-      title={reminder.displayName}
-    />
-  ));
+  const editorUrl = (id?: string) =>
+    `/features/reminder-editor/index?eventId=${encodeURIComponent(eventId)}${id ? `&reminderId=${encodeURIComponent(id)}` : ""}`;
+  return (
+    <>
+      {items.length === 0 ? <EmptyRows locale={preferences.locale} /> : null}
+      {items.map((reminder) => {
+        const row = (
+          <Row
+            detail={`${messages[reminderStatusKeys[reminder.status]]} · ${formatInstant(
+              reminder.remindAt,
+              preferences,
+            )}`}
+            key={reminder.id}
+            title={reminder.displayName}
+          />
+        );
+        return canEdit ? (
+          <Button
+            className="projection-row-button"
+            key={reminder.id}
+            onClick={() =>
+              void Taro.navigateTo({ url: editorUrl(reminder.id) })
+            }
+          >
+            {row}
+          </Button>
+        ) : (
+          <View key={reminder.id}>{row}</View>
+        );
+      })}
+      {canEdit ? (
+        <Button
+          className="text-button"
+          onClick={() => void Taro.navigateTo({ url: editorUrl() })}
+        >
+          {messages.addReminder}
+        </Button>
+      ) : null}
+    </>
+  );
 }
 
 function TimelineRows({
@@ -345,6 +378,8 @@ function ProjectionBody({
     case "reminders":
       return (
         <ReminderRows
+          canEdit={canEditResources}
+          eventId={eventId}
           items={projection.data.value.items}
           preferences={preferences}
         />
