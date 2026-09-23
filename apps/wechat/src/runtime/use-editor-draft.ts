@@ -28,15 +28,17 @@ export function useEditorDraftPersistence<
 }) {
   const [storageFailed, setStorageFailed] = useState(false);
   const latestDraft = useRef<Snapshot | null>(null);
+  const completed = useRef(false);
 
   useEffect(() => {
     latestDraft.current = draft;
     if (draft === null) return;
     const dirty = !same(draft.fields, draft.baseline);
     const timer = setTimeout(() => {
-      void (dirty ? store.save(draft) : store.remove(identity)).catch(() =>
-        setStorageFailed(true),
-      );
+      if (!completed.current)
+        void (dirty ? store.save(draft) : store.remove(identity)).catch(() =>
+          setStorageFailed(true),
+        );
     }, 300);
     return () => clearTimeout(timer);
   }, [draft, identity, same, store]);
@@ -44,13 +46,21 @@ export function useEditorDraftPersistence<
   useEffect(
     () => () => {
       const current = latestDraft.current;
-      if (current !== null && !same(current.fields, current.baseline))
+      if (
+        !completed.current &&
+        current !== null &&
+        !same(current.fields, current.baseline)
+      )
         void store.save(current).catch(() => undefined);
     },
     [same, store],
   );
 
   return {
+    clearPendingDraft: () => {
+      completed.current = true;
+      latestDraft.current = null;
+    },
     reportStorageFailure: () => setStorageFailed(true),
     storageFailed,
   } as const;
