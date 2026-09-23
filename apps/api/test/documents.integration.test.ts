@@ -29,6 +29,7 @@ import {
   shareResponseSchema,
   taskResponseSchema,
   maximumDocumentSizeBytes,
+  maximumNativeDocumentSizeBytes,
 } from "@chronelle/schemas";
 import { and, eq, like } from "drizzle-orm";
 import { LocalFilesystemStorageProvider } from "@chronelle/storage";
@@ -120,6 +121,19 @@ function fileMetadata(bytes: Buffer, originalFilename: string) {
   };
 }
 
+function multipartFile(bytes: Buffer, boundary = "chronelle-test-boundary") {
+  return {
+    headers: { "content-type": `multipart/form-data; boundary=${boundary}` },
+    payload: Buffer.concat([
+      Buffer.from(
+        `--${boundary}\r\nContent-Disposition: form-data; name="file"; filename="attachment"\r\nContent-Type: application/octet-stream\r\n\r\n`,
+      ),
+      bytes,
+      Buffer.from(`\r\n--${boundary}--\r\n`),
+    ]),
+  };
+}
+
 async function attachFile(
   session: Awaited<ReturnType<typeof signIn>>,
   workspaceId: string,
@@ -172,6 +186,173 @@ async function attachFile(
 }
 
 describe.sequential("document attachment API", () => {
+  it("accepts native multipart through the same one-use authorization and finalization", async () => {
+    const owner = await signIn("owner@example.com", "Owner");
+    const stranger = await signIn("stranger@example.com", "Stranger");
+    const event = eventResponseSchema.parse(
+      (
+        await request(owner, owner.workspace.id, {
+          method: "POST",
+          url: "/api/events",
+          payload: { displayName: "Native files" },
+        })
+      ).json(),
+    );
+    const bytes = Buffer.from("private native attachment");
+    const input = {
+      parentObjectId: event.id,
+      ...fileMetadata(bytes, "brief.pdf"),
+      transferMode: "multipart",
+    };
+    expect(
+      (
+        await request(stranger, stranger.workspace.id, {
+          method: "POST",
+          url: "/api/documents/upload-url",
+          payload: input,
+        })
+      ).statusCode,
+    ).toBe(404);
+
+    const authorization = documentUploadAuthorizationResponseSchema.parse(
+      (
+        await request(owner, owner.workspace.id, {
+          method: "POST",
+          url: "/api/documents/upload-url",
+          payload: input,
+        })
+      ).json(),
+    );
+    expect(authorization.upload).toMatchObject({
+      headers: {},
+      method: "POST",
+    });
+    expect(authorization.upload.url).toMatch(
+      /^\/api\/document-transfers\/upload-file\/[A-Za-z0-9_-]+$/,
+    );
+    expect(
+      (
+        await app.inject({
+          method: "POST",
+          url: authorization.upload.url,
+          ...multipartFile(Buffer.from("wrong bytes")),
+        })
+      ).statusCode,
+    ).toBe(400);
+    expect(
+      (
+        await app.inject({
+          method: "POST",
+          url: authorization.upload.url,
+          ...multipartFile(bytes),
+        })
+      ).statusCode,
+    ).toBe(204);
+    expect(
+      (
+        await app.inject({
+          method: "POST",
+          url: authorization.upload.url,
+          ...multipartFile(bytes),
+        })
+      ).statusCode,
+    ).toBe(404);
+    const finalized = await request(owner, owner.workspace.id, {
+      method: "POST",
+      url: "/api/documents",
+      payload: { uploadAuthorizationId: authorization.id },
+    });
+    expect(finalized.statusCode).toBe(201);
+    expect(
+      documentAttachmentResponseSchema.parse(finalized.json()).document,
+    ).toMatchObject({
+      checksumSha256: input.checksumSha256,
+      displayName: "brief.pdf",
+    });
+
+    const web = documentUploadAuthorizationResponseSchema.parse(
+      (
+        await request(owner, owner.workspace.id, {
+          method: "POST",
+          url: "/api/documents/upload-url",
+          payload: {
+            parentObjectId: event.id,
+            ...fileMetadata(bytes, "web.pdf"),
+          },
+        })
+      ).json(),
+    );
+    expect(web.upload.method).toBe("PUT");
+    expect(
+      (
+        await app.inject({
+          method: "PUT",
+          url: web.upload.url,
+          headers: web.upload.headers,
+          payload: bytes,
+        })
+      ).statusCode,
+    ).toBe(204);
+  });
+
+  it("caps native multipart before reading or consuming an upload ticket", async () => {
+    const owner = await signIn("owner@example.com", "Owner");
+    const event = eventResponseSchema.parse(
+      (
+        await request(owner, owner.workspace.id, {
+          method: "POST",
+          url: "/api/events",
+          payload: { displayName: "Native limit" },
+        })
+      ).json(),
+    );
+    const oversized = Buffer.alloc(maximumNativeDocumentSizeBytes + 1);
+    expect(
+      (
+        await request(owner, owner.workspace.id, {
+          method: "POST",
+          url: "/api/documents/upload-url",
+          payload: {
+            parentObjectId: event.id,
+            ...fileMetadata(oversized, "large.pdf"),
+            transferMode: "multipart",
+          },
+        })
+      ).statusCode,
+    ).toBe(413);
+    const bytes = Buffer.from("accepted bytes");
+    const authorization = documentUploadAuthorizationResponseSchema.parse(
+      (
+        await request(owner, owner.workspace.id, {
+          method: "POST",
+          url: "/api/documents/upload-url",
+          payload: {
+            parentObjectId: event.id,
+            ...fileMetadata(bytes, "small.pdf"),
+            transferMode: "multipart",
+          },
+        })
+      ).json(),
+    );
+    expect(
+      (
+        await app.inject({
+          method: "POST",
+          url: authorization.upload.url,
+          ...multipartFile(oversized),
+        })
+      ).statusCode,
+    ).toBe(413);
+    expect(
+      (
+        await app.inject({
+          method: "POST",
+          url: authorization.upload.url,
+          ...multipartFile(bytes),
+        })
+      ).statusCode,
+    ).toBe(204);
+  });
   it("retries a published upload after restart without duplicating documents or audit", async () => {
     const owner = await signIn("owner@example.com", "Owner");
     const event = eventResponseSchema.parse(

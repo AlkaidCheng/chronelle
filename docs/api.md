@@ -173,8 +173,10 @@ trimming and lower-casing.
 
 ## HTTP limits and errors
 
-Ordinary request bodies are limited to 1 MiB. Only
-`PUT /api/document-transfers/upload/:token` permits up to 25 MiB. The API checks
+Ordinary request bodies are limited to 1 MiB. Raw
+`PUT /api/document-transfers/upload/:token` permits up to 25 MiB; native
+`POST /api/document-transfers/upload-file/:token` accepts one multipart file up
+to 9 MiB with at most 64 KiB of framing. The API checks
 body limits independently of the web proxy. Invalid JSON, malformed URLs, and
 invalid body lengths return 400; oversized bodies return 413
 `payload_too_large`; unsupported content types return 415
@@ -907,20 +909,23 @@ timestamp must handle date-only entries.
 
 ## Private documents
 
-| Method | Path                                  | Behavior                              |
-| ------ | ------------------------------------- | ------------------------------------- |
-| `POST` | `/documents/upload-url`               | Authorize one parent-bound upload     |
-| `PUT`  | `/document-transfers/upload/:token`   | Transfer the authorized private bytes |
-| `POST` | `/documents`                          | Finalize one canonical Document       |
-| `GET`  | `/objects/:id/documents`              | List visible attached Documents       |
-| `GET`  | `/documents/:id/download-url`         | Authorize one private download        |
-| `GET`  | `/document-transfers/download/:token` | Download authorized private bytes     |
+| Method | Path                                     | Behavior                              |
+| ------ | ---------------------------------------- | ------------------------------------- |
+| `POST` | `/documents/upload-url`                  | Authorize one parent-bound upload     |
+| `PUT`  | `/document-transfers/upload/:token`      | Transfer the authorized private bytes |
+| `POST` | `/document-transfers/upload-file/:token` | Transfer one native multipart file    |
+| `POST` | `/documents`                             | Finalize one canonical Document       |
+| `GET`  | `/objects/:id/documents`                 | List visible attached Documents       |
+| `GET`  | `/documents/:id/download-url`            | Authorize one private download        |
+| `GET`  | `/document-transfers/download/:token`    | Download authorized private bytes     |
 
 Upload authorization accepts `parentObjectId`, `originalFilename`, `mimeType`,
 `sizeBytes`, and a lowercase SHA-256 checksum. The parent must be an Event,
-Task, or Expense that the caller can edit. Files are limited to 25 MiB. The
-returned PUT authorization is short-lived and consumed once; the transfer must
-match the declared size and checksum. `POST /documents` then accepts its
+Task, or Expense that the caller can edit. Files are limited to 25 MiB. A
+Mini Program caller may request `transferMode: "multipart"`, limited to 9 MiB;
+the returned POST URL accepts exactly one `file` part. Other callers receive a
+raw PUT authorization. Both tickets are short-lived and consumed once, and the
+transfer must match the declared size and checksum. `POST /documents` accepts its
 `uploadAuthorizationId` and creates the canonical Document plus `attached_to`
 relationship in one audited transaction.
 
@@ -929,8 +934,9 @@ generic `lockedAttachmentCount`. Delete that relation through the normal
 relationship endpoint to unlink the file without deleting its Document.
 
 Download authorization requires View on the Document and returns a short-lived
-one-time GET authorization. The local adapter rechecks permission when the
-transfer is consumed and responds with `Cache-Control: private, no-store`.
+GET authorization. The local adapter consumes it once and rechecks permission;
+the COS adapter issues an expiring signed GET URL. The local transfer responds
+with `Cache-Control: private, no-store`.
 Neither Document responses nor transfer responses expose a storage key or
 permanent public URL.
 

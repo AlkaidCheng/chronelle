@@ -158,6 +158,7 @@ export class DocumentService {
   async authorizeUpload(
     context: MutationContext,
     input: DocumentUploadAuthorizationInput,
+    transferMode?: "multipart",
   ): Promise<DocumentUploadAuthorizationResource> {
     await this.#getAttachmentParent(
       context.principal,
@@ -170,14 +171,25 @@ export class DocumentService {
     const createdAt = this.#clock();
     const expiresAt = new Date(createdAt.getTime() + this.#transferTtlMs);
     const storageKey = createStorageKey(context.principal.workspaceId, id);
-    const upload = await this.#storage.createUploadAuthorization({
-      checksumSha256: input.checksumSha256,
-      credential,
-      expiresAt,
-      mimeType: input.mimeType,
-      sizeBytes: input.sizeBytes,
-      storageKey,
-    });
+    const upload =
+      transferMode === "multipart"
+        ? {
+            expiresAt,
+            headers: {},
+            method: "POST" as const,
+            url: `/api/document-transfers/upload-file/${credential}`,
+          }
+        : {
+            ...(await this.#storage.createUploadAuthorization({
+              checksumSha256: input.checksumSha256,
+              credential,
+              expiresAt,
+              mimeType: input.mimeType,
+              sizeBytes: input.sizeBytes,
+              storageKey,
+            })),
+            method: "PUT" as const,
+          };
 
     await this.#authorizeTransfer(context, "edit", {
       id,
@@ -194,7 +206,7 @@ export class DocumentService {
       expiresAt,
     });
 
-    return { id, upload: { ...upload, method: "PUT" } };
+    return { id, upload };
   }
 
   /** Records a transfer after re-checking the action on its resource, with its audit event. */

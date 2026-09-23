@@ -12,14 +12,19 @@ import {
   documentUploadAuthorizationResponseSchema,
   documentUploadFinalizationRequestSchema,
   maximumDocumentSizeBytes,
+  maximumNativeDocumentSizeBytes,
   objectIdParamsSchema,
 } from "@chronelle/schemas";
 import type { FastifyInstance, FastifyRequest } from "fastify";
 
 import { serializeResource } from "../event-planning/serialization.js";
-import { InvalidRequestError } from "../errors.js";
+import { HttpError, InvalidRequestError } from "../errors.js";
 import { requirePrincipal } from "../request-context.js";
 import { parseRequest } from "../request-validation.js";
+import {
+  maximumMultipartBodyBytes,
+  parseMultipartFile,
+} from "./multipart-file.js";
 
 export interface DocumentRouteDependencies {
   readonly documents: DocumentService;
@@ -40,7 +45,7 @@ function serializeAttachment(attachment: DocumentAttachmentResource) {
 function serializeTransfer(transfer: {
   readonly expiresAt: Date;
   readonly headers: Readonly<Record<string, string>>;
-  readonly method: "GET" | "PUT";
+  readonly method: "GET" | "POST" | "PUT";
   readonly url: string;
 }) {
   return { ...transfer, expiresAt: transfer.expiresAt.toISOString() };
@@ -55,6 +60,11 @@ export function registerDocumentRoutes(
     { parseAs: "buffer" },
     (_request, body, done) => done(null, body),
   );
+  app.addContentTypeParser(
+    /^multipart\/form-data(?:;.*)?$/iu,
+    { parseAs: "buffer", bodyLimit: maximumMultipartBodyBytes },
+    (_request, body, done) => done(null, body),
+  );
 
   app.post(
     "/api/documents/upload-url",
@@ -64,9 +74,16 @@ export function registerDocumentRoutes(
         documentUploadAuthorizationRequestSchema,
         request.body,
       );
+      if (
+        input.transferMode === "multipart" &&
+        input.sizeBytes > maximumNativeDocumentSizeBytes
+      ) {
+        throw new HttpError(413, "payload_too_large", "The file is too large.");
+      }
       const authorization = await dependencies.documents.authorizeUpload(
         mutationContext(request),
         input,
+        input.transferMode,
       );
       return reply.code(201).send(
         documentUploadAuthorizationResponseSchema.parse({
@@ -74,6 +91,23 @@ export function registerDocumentRoutes(
           upload: serializeTransfer(authorization.upload),
         }),
       );
+    },
+  );
+
+  app.post(
+    "/api/document-transfers/upload-file/:token",
+    { bodyLimit: maximumMultipartBodyBytes },
+    async (request, reply) => {
+      const { token } = parseRequest(
+        documentTransferTokenParamsSchema,
+        request.params,
+      );
+      const bytes = parseMultipartFile(
+        request.headers["content-type"],
+        request.body,
+      );
+      await dependencies.documents.receiveUpload(token, bytes, request.id);
+      return reply.code(204).send();
     },
   );
 

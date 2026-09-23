@@ -72,6 +72,7 @@ export {
   documentUploadAuthorizationResponseSchema,
   documentUploadFinalizationRequestSchema,
   maximumDocumentSizeBytes,
+  maximumNativeDocumentSizeBytes,
 } from "./documents.js";
 export {
   calendarDateSchema,
