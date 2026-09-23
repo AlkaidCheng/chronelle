@@ -1,3 +1,6 @@
+// Loads first: every schema created afterwards validates without compilation.
+import "./runtime/validation";
+
 import {
   focusManager,
   onlineManager,
