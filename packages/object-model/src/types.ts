@@ -174,7 +174,7 @@ export interface DocumentUploadAuthorizationResource {
   readonly upload: {
     readonly expiresAt: Date;
     readonly headers: Readonly<Record<string, string>>;
-    readonly method: "PUT";
+    readonly method: "PUT" | "POST";
     readonly url: string;
   };
 }

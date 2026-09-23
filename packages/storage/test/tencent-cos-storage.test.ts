@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import COS from "cos-nodejs-sdk-v5";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
+  StorageObjectConflictError,
   StorageObjectUnavailableError,
   TencentCosStorageProvider,
 } from "../src/index.js";
@@ -20,6 +21,151 @@ const input = () => ({
 afterEach(() => vi.restoreAllMocks());
 
 describe("Tencent COS direct transfers", () => {
+  it("writes native uploads through a signed, private, create-only COS request", async () => {
+    const { provider, transport } = createCosFixture();
+    const payload = new Uint8Array([1, ...bytes, 2]).subarray(1, -1);
+    transport.mockResolvedValue(new Response(null, { status: 200 }));
+    await provider.writeObject(input().storageKey, payload, {
+      sizeBytes: bytes.length,
+      checksumSha256: input().checksumSha256,
+    });
+    expect(transport).toHaveBeenCalledOnce();
+    const [url, request] = transport.mock.calls[0] ?? [];
+    expect(String(url)).toContain("q-signature=");
+    expect(request).toMatchObject({
+      method: "PUT",
+      redirect: "error",
+      credentials: "omit",
+      headers: {
+        "content-type": "application/octet-stream",
+        "content-encoding": "identity",
+        "content-length": String(bytes.length),
+        "x-cos-acl": "private",
+        "x-cos-forbid-overwrite": "true",
+        "x-cos-meta-sha256": input().checksumSha256,
+        "x-cos-server-side-encryption": "AES256",
+      },
+    });
+    expect(Buffer.from(request?.body as Uint8Array)).toEqual(
+      Buffer.from(bytes),
+    );
+    const body = request?.body as Buffer | undefined;
+    expect(body?.buffer).toBe(payload.buffer);
+    expect(body?.byteOffset).toBe(payload.byteOffset);
+  });
+
+  it("forwards native uploads with the configured KMS headers", async () => {
+    const { provider, transport } = createCosFixture({
+      kmsKeyId: "test-kms-key",
+    });
+    transport.mockResolvedValue(new Response(null, { status: 200 }));
+    await provider.writeObject(input().storageKey, bytes, {
+      sizeBytes: bytes.length,
+      checksumSha256: input().checksumSha256,
+    });
+    expect(transport.mock.calls[0]?.[1]?.headers).toMatchObject({
+      "x-cos-server-side-encryption": "cos/kms",
+      "x-cos-server-side-encryption-cos-kms-key-id": "test-kms-key",
+    });
+  });
+
+  it.each([409, 412])(
+    "accepts identical content after COS rejects a create-only upload with %i",
+    async (status) => {
+      const { provider, transport } = createCosFixture();
+      transport.mockImplementation(async (_url, request) =>
+        request?.method === "PUT"
+          ? new Response(null, { status })
+          : new Response(bytes, {
+              headers: { "x-cos-server-side-encryption": "AES256" },
+            }),
+      );
+      await expect(
+        provider.writeObject(input().storageKey, bytes, {
+          sizeBytes: bytes.length,
+          checksumSha256: input().checksumSha256,
+        }),
+      ).resolves.toBeUndefined();
+      expect(transport).toHaveBeenCalledTimes(2);
+    },
+  );
+
+  it.each([409, 412])(
+    "rejects different content after COS rejects a create-only upload with %i",
+    async (status) => {
+      const { provider, transport } = createCosFixture();
+      transport.mockImplementation(async (_url, request) =>
+        request?.method === "PUT"
+          ? new Response(null, { status })
+          : new Response(new Uint8Array([1, 2, 3]), {
+              headers: { "x-cos-server-side-encryption": "AES256" },
+            }),
+      );
+      await expect(
+        provider.writeObject(input().storageKey, bytes, {
+          sizeBytes: bytes.length,
+          checksumSha256: input().checksumSha256,
+        }),
+      ).rejects.toBeInstanceOf(StorageObjectConflictError);
+      expect(transport).toHaveBeenCalledTimes(2);
+    },
+  );
+
+  it("does not accept a same-byte conflict without the required encryption", async () => {
+    const { provider, transport } = createCosFixture();
+    transport.mockImplementation(async (_url, request) =>
+      request?.method === "PUT"
+        ? new Response(null, { status: 409 })
+        : new Response(bytes),
+    );
+    await expect(
+      provider.writeObject(input().storageKey, bytes, {
+        sizeBytes: bytes.length,
+        checksumSha256: input().checksumSha256,
+      }),
+    ).rejects.toBeInstanceOf(StorageObjectUnavailableError);
+  });
+
+  it.each([403, 500])("rejects COS upload failure %i", async (status) => {
+    const { provider, transport } = createCosFixture();
+    transport.mockResolvedValue(new Response(null, { status }));
+    await expect(
+      provider.writeObject(input().storageKey, bytes, {
+        sizeBytes: bytes.length,
+        checksumSha256: input().checksumSha256,
+      }),
+    ).rejects.toBeInstanceOf(StorageObjectUnavailableError);
+    expect(transport).toHaveBeenCalledOnce();
+  });
+
+  it("rejects unsafe bucket policy before forwarding bytes", async () => {
+    const { provider, versioning, transport } = createCosFixture();
+    versioning.mockResolvedValue({
+      VersioningConfiguration: { Status: "Enabled" },
+    } as COS.GetBucketVersioningResult);
+    await expect(
+      provider.writeObject(input().storageKey, bytes, {
+        sizeBytes: bytes.length,
+        checksumSha256: input().checksumSha256,
+      }),
+    ).rejects.toThrow("never-versioned");
+    expect(transport).not.toHaveBeenCalled();
+  });
+
+  it.each([new Uint8Array([1]), new Uint8Array([1, 2, 3, 4])])(
+    "rejects altered native-upload bytes before sending them to COS",
+    async (altered) => {
+      const { provider, transport } = createCosFixture();
+      await expect(
+        provider.writeObject(input().storageKey, altered, {
+          sizeBytes: bytes.length,
+          checksumSha256: input().checksumSha256,
+        }),
+      ).rejects.toBeInstanceOf(StorageObjectUnavailableError);
+      expect(transport).not.toHaveBeenCalled();
+    },
+  );
+
   it("signs the exact create-only encrypted upload policy", async () => {
     const { provider, versioning, acl } = createCosFixture();
     const requested = input();

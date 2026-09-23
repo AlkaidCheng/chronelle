@@ -41,6 +41,8 @@ The current Mini Program provides:
 - canonical Expense creation and editing from an Event's Expenses component,
   with decimal-text amounts, transaction-time preservation, bounded drafts,
   and explicit version-conflict recovery;
+- a Files component with authorized Event, Task, and Expense attachment lists,
+  native file selection, upload, and temporary file opening;
 - conflict-safe layout writes whose removal operations never delete canonical
   resources;
 - pull-to-refresh, retry, offline, empty, and permission-loss states;
@@ -68,8 +70,8 @@ JSON I/O through a small transport port:
 
 File hashing and binary transfer are separate capabilities. Browser defaults
 use Web Crypto and Fetch with a two-minute transfer deadline. The Mini Program
-does not pretend to provide those browser APIs; W07 will supply native WeChat
-hashing, upload, download, and file-opening adapters.
+uses native file selection, local file reads, upload and download tasks, and a
+package-local SHA-256 implementation.
 
 The shared transport contract runs against both Fetch and Taro adapters. A
 Mini Program integration test also exercises `/api/health` and the protected
@@ -230,6 +232,37 @@ A stale edit preserves the draft until the user adopts the latest record or
 deliberately retries against it. Saving invalidates the Event projections so
 Timeline and Reminder views read the same canonical record. This is record
 editing; device alerts and delivery scheduling are not implemented here.
+
+## W07 Files component
+
+The Files component reads attachment targets and attachment lists through the
+authorized API. A user can select the Event or one of its Tasks or Expenses,
+then attach a file if the Event allows editing. The API checks the selected
+parent's own permissions before issuing the upload ticket. Viewers can list and
+open attachments they may access; the list reports additional attachments that
+are hidden by document permissions without exposing their metadata.
+
+Native selection accepts one temporary file up to 9 MiB. The Mini Program
+reads its bytes to calculate SHA-256, requests a short-lived multipart upload
+ticket, sends the file through `Taro.uploadFile`, and finalizes the canonical
+Document only after the server accepts the bytes. The multipart endpoint has a
+bounded body parser and passes the bytes to the existing document service. That
+service rechecks access, size, checksum, expiry, and single use before storing
+anything. With Tencent COS, the API forwards the verified bytes under a signed
+private, encrypted, create-only PUT; the Mini Program never receives COS
+credentials or an upload URL. The browser's raw PUT transfer remains available,
+and the canonical attachment limit remains 25 MiB outside this native transport.
+
+Opening a file first obtains a fresh authorized download ticket. Native
+`Taro.downloadFile` writes to a temporary path using a short-lived API or signed
+COS URL. Document formats supported by WeChat open with `Taro.openDocument`,
+and common images open with `Taro.previewImage`. Other formats remain attached
+but cannot be opened in the Mini Program. Active upload and download tasks are
+aborted when cancelled or when the Files component closes. Selected and
+downloaded temporary files are removed after use or when the component closes.
+Tickets are short-lived and single use where served by the API; the Mini
+Program does not store a permanent public file URL or query protected CloudBase
+tables directly.
 
 ## Local build
 

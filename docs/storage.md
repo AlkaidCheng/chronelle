@@ -8,7 +8,10 @@ not the canonical object model. Files are limited to 25 MiB.
 
 The default `local-filesystem` provider uses `LOCAL_STORAGE_ROOT` and one-time
 API transfer endpoints. `TencentCosStorageProvider` uses the official pinned
-Node.js SDK to sign HTTPS transfers directly to a configured COS bucket.
+Node.js SDK to sign HTTPS transfers directly to a configured COS bucket. For
+native clients that cannot issue the signed raw PUT, the API accepts a bounded
+multipart POST and forwards its verified bytes with the same private,
+create-only COS policy; no COS credentials or object URLs reach that client.
 
 ## Configure Tencent COS
 
@@ -64,11 +67,11 @@ binds `content-length`, which browsers compute from the uploaded buffer. Test
 preflight and actual requests; CORS is not an authorization boundary.
 
 The API needs outbound HTTPS to the regional COS endpoint for configuration
-checks and finalization. The supplied private preview Compose network deliberately
-has no API egress and does not pass COS credentials. It remains a local-storage
-preview; using COS requires a reviewed deployment configuration with restricted
-egress and secret injection. No bucket, policy, or cloud account is provisioned
-by the application.
+checks, native upload forwarding, and finalization. The supplied private preview
+Compose network deliberately has no API egress and does not pass COS credentials.
+It remains a local-storage preview; using COS requires a reviewed deployment
+configuration with restricted egress and secret injection. No bucket, policy,
+or cloud account is provisioned by the application.
 
 ## Transfer guarantees and limits
 
@@ -92,9 +95,11 @@ by the application.
   Revoking a grant blocks subsequent authorization/finalization but cannot cancel
   an already-issued direct download. Keep URLs out of logs and analytics.
 - Application audits record authorization issuance and canonical finalization.
-  Direct uploads/downloads do not call local consumption endpoints; configure
-  protected COS access logging for actual transfers. Access-log retention and
-  redaction must protect credentials, filenames, and URL query strings.
+  Native uploads also consume a one-use application transfer with an audit event.
+  Direct browser COS uploads/downloads do not call local consumption endpoints;
+  configure protected COS access logging for actual transfers. Access-log
+  retention and redaction must protect credentials, filenames, and URL query
+  strings.
 - Changing the configured bucket or provider does not migrate existing files.
   A mismatched provider ID is unavailable; a changed bucket can orphan references.
   Keep configuration stable, and design an explicit migration before switching

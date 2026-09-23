@@ -3,6 +3,7 @@ import { z } from "zod";
 import { documentResponseSchema } from "./event-planning.js";
 
 export const maximumDocumentSizeBytes = 25 * 1024 * 1024;
+export const maximumNativeDocumentSizeBytes = 9 * 1024 * 1024;
 
 const objectIdSchema = z.uuid();
 const checksumSha256Schema = z.string().regex(/^[0-9a-f]{64}$/);
@@ -43,11 +44,12 @@ export const documentUploadAuthorizationRequestSchema = z.object({
   originalFilename: originalFilenameSchema,
   parentObjectId: objectIdSchema,
   sizeBytes: z.number().int().nonnegative().max(maximumDocumentSizeBytes),
+  transferMode: z.enum(["multipart"]).optional(),
 });
 
 export const documentUploadAuthorizationResponseSchema = z.object({
   id: objectIdSchema,
-  upload: transferSchema.extend({ method: z.literal("PUT") }),
+  upload: transferSchema.extend({ method: z.enum(["PUT", "POST"]) }),
 });
 
 export const documentUploadFinalizationRequestSchema = z.object({

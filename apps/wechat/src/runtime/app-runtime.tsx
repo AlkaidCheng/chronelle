@@ -26,6 +26,7 @@ import { readRuntimeConfig } from "./config";
 
 export interface AppRuntime {
   readonly api: ChronelleApiClient;
+  readonly apiBaseUrl: string;
   readonly createCommandId: () => Promise<string>;
   readonly eventDrafts: EventDraftStore;
   readonly expenseDrafts: ExpenseDraftStore;
@@ -45,13 +46,15 @@ function createAppRuntime(): AppRuntimeState {
     return { status: "configuration-error", reason: configured.reason };
 
   const sessions = createRuntimeSessionStore();
+  const api = createRuntimeApiClient({
+    baseUrl: configured.value.apiBaseUrl,
+    getCredential: sessions.getCredential,
+  });
   return {
     status: "ready",
     runtime: {
-      api: createRuntimeApiClient({
-        baseUrl: configured.value.apiBaseUrl,
-        getCredential: sessions.getCredential,
-      }),
+      api,
+      apiBaseUrl: configured.value.apiBaseUrl,
       createCommandId: createRuntimeCommandId,
       eventDrafts: createRuntimeEventDraftStore(),
       expenseDrafts: createRuntimeExpenseDraftStore(),

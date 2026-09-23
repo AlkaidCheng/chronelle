@@ -264,6 +264,15 @@ function ReadyPlanningPage({
     }
   }
 
+  async function addFilesComponent(page: EventPage): Promise<void> {
+    try {
+      const id = await runtime.createCommandId();
+      await savePages(addComponent(pages, page.id, { id, kind: "files" }));
+    } catch {
+      await Taro.showToast({ icon: "none", title: messages.layoutSaveFailed });
+    }
+  }
+
   async function deleteComponent(
     page: EventPage,
     componentId: string,
@@ -298,6 +307,12 @@ function ReadyPlanningPage({
       layout.refetch(),
       queryClient.refetchQueries({
         queryKey: planningProjectionQueryKey(session.workspace.id, eventId),
+      }),
+      queryClient.refetchQueries({
+        queryKey: ["wechat-file-attachments", session.workspace.id],
+      }),
+      queryClient.refetchQueries({
+        queryKey: ["wechat-file-targets", session.workspace.id, eventId],
       }),
     ]).finally(() => Taro.stopPullDownRefresh());
   });
@@ -540,6 +555,13 @@ function ReadyPlanningPage({
                 onClick={() => void chooseComponent(selectedPage)}
               >
                 {messages.addComponent}
+              </Button>
+              <Button
+                className="planning-button planning-button--secondary"
+                disabled={saving}
+                onClick={() => void addFilesComponent(selectedPage)}
+              >
+                {messages.addFilesComponent}
               </Button>
               <Button
                 className="planning-button planning-button--secondary"

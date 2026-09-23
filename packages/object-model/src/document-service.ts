@@ -1,44 +1,44 @@
 import { createHash, randomBytes } from "node:crypto";
 
 import {
-  AuthorizationDeniedError,
-  withStableAuthorization,
-  withReadAuthorization,
   type AuthorizationAction,
+  AuthorizationDeniedError,
   type UserPrincipal,
+  withReadAuthorization,
+  withStableAuthorization,
 } from "@chronelle/authorization";
 import {
   createId,
+  type Database,
+  type DocumentTransferAuthorizationRow,
   documents,
   documentTransferAuthorizations,
   objectRelations,
   objects,
   runAuditedMutation,
-  type Database,
-  type DocumentTransferAuthorizationRow,
 } from "@chronelle/db";
 import {
   StorageObjectUnavailableError,
   type StorageProvider,
-  type StoredObjectMetadata,
   type StorageTransferProvider,
+  type StoredObjectMetadata,
 } from "@chronelle/storage";
 import { and, eq, gt, isNull } from "drizzle-orm";
 
 import {
-  PostgresDocumentTransferReadRepository,
   type DocumentTransferAuthorization,
   type DocumentTransferOperation,
   type DocumentTransferReadRepository,
   type DocumentTransferWriteRepository,
+  PostgresDocumentTransferReadRepository,
 } from "./document-transfers.js";
 import {
   DocumentTransferUnavailableError,
   InvalidDocumentUploadError,
 } from "./errors.js";
+import { recordObjectRevision } from "./object-revisions.js";
 import { EventPlanningObjectService } from "./object-service.js";
 import { readObjectState } from "./object-state.js";
-import { recordObjectRevision } from "./object-revisions.js";
 import type {
   DocumentAttachmentList,
   DocumentAttachmentResource,
@@ -158,6 +158,7 @@ export class DocumentService {
   async authorizeUpload(
     context: MutationContext,
     input: DocumentUploadAuthorizationInput,
+    transferMode?: "multipart",
   ): Promise<DocumentUploadAuthorizationResource> {
     await this.#getAttachmentParent(
       context.principal,
@@ -170,14 +171,25 @@ export class DocumentService {
     const createdAt = this.#clock();
     const expiresAt = new Date(createdAt.getTime() + this.#transferTtlMs);
     const storageKey = createStorageKey(context.principal.workspaceId, id);
-    const upload = await this.#storage.createUploadAuthorization({
-      checksumSha256: input.checksumSha256,
-      credential,
-      expiresAt,
-      mimeType: input.mimeType,
-      sizeBytes: input.sizeBytes,
-      storageKey,
-    });
+    const upload =
+      transferMode === "multipart"
+        ? {
+            expiresAt,
+            headers: {},
+            method: "POST" as const,
+            url: `/api/document-transfers/upload-file/${credential}`,
+          }
+        : {
+            ...(await this.#storage.createUploadAuthorization({
+              checksumSha256: input.checksumSha256,
+              credential,
+              expiresAt,
+              mimeType: input.mimeType,
+              sizeBytes: input.sizeBytes,
+              storageKey,
+            })),
+            method: "PUT" as const,
+          };
 
     await this.#authorizeTransfer(context, "edit", {
       id,
@@ -194,7 +206,7 @@ export class DocumentService {
       expiresAt,
     });
 
-    return { id, upload: { ...upload, method: "PUT" } };
+    return { id, upload };
   }
 
   /** Records a transfer after re-checking the action on its resource, with its audit event. */
@@ -301,7 +313,7 @@ export class DocumentService {
       );
     }
 
-    const storage = this.#requireTransferProvider(authorization);
+    const storage = this.#requireTransferWriter(authorization);
     await storage.writeObject(authorization.storageKey, bytes, {
       checksumSha256: authorization.checksumSha256,
       sizeBytes: Number(authorization.sizeBytes),
@@ -567,7 +579,7 @@ export class DocumentService {
       workspaceId: authorization.workspaceId,
     };
     await this.#assertAllowed(principal, "view", authorization.resourceId);
-    const storage = this.#requireTransferProvider(authorization);
+    const storage = this.#requireTransferReader(authorization);
     const bytes = await storage.readObject(authorization.storageKey);
     if (
       bytes.byteLength !== Number(authorization.sizeBytes) ||
@@ -691,13 +703,23 @@ export class DocumentService {
     }
   }
 
-  #requireTransferProvider(
+  #requireTransferWriter(
     authorization: DocumentTransferAuthorizationRow,
-  ): StorageTransferProvider {
+  ): Pick<StorageTransferProvider, "writeObject"> {
     this.#assertStorageProvider(authorization);
-    if (!("writeObject" in this.#storage) || !("readObject" in this.#storage)) {
+    if (!("writeObject" in this.#storage)) {
       throw new DocumentTransferUnavailableError();
     }
-    return this.#storage as StorageTransferProvider;
+    return this.#storage as Pick<StorageTransferProvider, "writeObject">;
+  }
+
+  #requireTransferReader(
+    authorization: DocumentTransferAuthorizationRow,
+  ): Pick<StorageTransferProvider, "readObject"> {
+    this.#assertStorageProvider(authorization);
+    if (!("readObject" in this.#storage)) {
+      throw new DocumentTransferUnavailableError();
+    }
+    return this.#storage as Pick<StorageTransferProvider, "readObject">;
   }
 }

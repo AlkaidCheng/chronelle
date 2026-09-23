@@ -636,8 +636,9 @@ or certify development authentication for public use.
   details. After headers are sent, cancellation terminates the response stream.
   A dispatched mutation may already have committed: retain existing command IDs
   and expected versions, refresh state, and do not retry as a fresh operation.
-- API and proxy permit 1 MiB ordinary request bodies and 25 MiB only on the file
-  upload route. The proxy counts actual bytes, validates declared length, and
+- API and proxy permit 1 MiB ordinary request bodies and 25 MiB on the raw file
+  upload route. The API's native multipart route permits one 9 MiB file plus
+  64 KiB of framing. The proxy counts actual bytes, validates declared length, and
   cancels rejected or abandoned bodies before forwarding. Buffers grow with
   received bytes; declared sizes alone do not allocate them. Browser uploads
   reject oversized files before reading/hashing. This remains bounded buffering,
