@@ -181,6 +181,20 @@ function ReadyEventPage({
         </Text>
       </Button>
 
+      <Button
+        className="planning-link"
+        onClick={() =>
+          void Taro.navigateTo({
+            url: `/features/history/index?id=${encodeURIComponent(event.id)}`,
+          })
+        }
+      >
+        <Text className="planning-link__title">{messages.eventHistory}</Text>
+        <Text className="planning-link__detail">
+          {messages.eventHistoryDescription}
+        </Text>
+      </Button>
+
       {event.location ? (
         <View className="detail-section">
           <Text className="detail-label">{messages.location}</Text>

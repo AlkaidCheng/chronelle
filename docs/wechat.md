@@ -45,6 +45,8 @@ The current Mini Program provides:
   and explicit version-conflict recovery;
 - a Files component with authorized Event, Task, and Expense attachment lists,
   native file selection, upload, and temporary file opening;
+- native Event revision history with paginated summaries, historical content,
+  a comparison to the current Event, and confirmed content restoration;
 - conflict-safe layout writes whose removal operations never delete canonical
   resources;
 - native Event sharing through the authorized API: direct grants, queued Person
@@ -297,6 +299,27 @@ fields and updates the session view after a successful save, so Event dates and
 times use the new preferences without creating a separate local account copy.
 Time zone syntax is checked before submission; the API determines whether the
 zone exists, independent of the device's available time zone data.
+
+## Event history and restoration
+
+The Event overview opens a lazy history subpackage. It reads twenty authorized
+revision summaries at a time through the shared API client. A selected revision
+shows its historical Event content and the server's typed comparison with the
+current Event. Cards shorten long values; the selected comparison shows them
+in full. Viewers can inspect history and the restore preview, but receive
+no restore control. If a history read loses access, the page replaces protected
+content with the permission-loss state.
+
+Restoration applies only the server's eligible Event content. Identity,
+permissions, relationships, lifecycle state, and system metadata retain their
+current values. Before confirmation, the page refetches current access and the
+restore preview. A changed current version requires the reader to review the
+updated comparison and confirm again. The write sends the preview's
+`expectedVersion` to the existing authorized restore endpoint. A version
+conflict refreshes the Event and preview; it never retries automatically.
+Successful restoration invalidates the Event list, overview, history, and
+preview queries. The page does not store a local history copy or change Event
+editor drafts.
 
 ## Local build
 
