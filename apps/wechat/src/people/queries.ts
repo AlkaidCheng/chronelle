@@ -41,7 +41,9 @@ export function useCreatePerson(workspaceId: string) {
   return useMutation({
     mutationFn: (input: PersonCreatePayload) => api.createPerson(input),
     onSuccess: () => {
-      void queries.invalidateQueries({ queryKey: peopleListKey(workspaceId) });
+      void queries
+        .invalidateQueries({ queryKey: peopleListKey(workspaceId) })
+        .catch(() => undefined);
     },
   });
 }
@@ -59,7 +61,9 @@ export function useUpdatePerson(workspaceId: string, personId: string) {
       }>(personDetailKey(workspaceId, personId), (current) =>
         current === undefined ? current : { ...current, person },
       );
-      void queries.invalidateQueries({ queryKey: peopleListKey(workspaceId) });
+      void queries
+        .invalidateQueries({ queryKey: peopleListKey(workspaceId) })
+        .catch(() => undefined);
     },
   });
 }
