@@ -29,6 +29,7 @@ import {
   type PlanningComponentKind,
 } from "./catalog";
 import { usePlanningProjection } from "./queries";
+import { FilesComponent } from "./files-component";
 import { TaskPresentation } from "./task-presentation";
 
 interface DisplayPreferences {
@@ -402,7 +403,14 @@ export function ProjectionCard(props: ProjectionCardProps) {
         <CardActions {...props} locale={props.preferences.locale} />
       </View>
       <View className="component-card__body">
-        {isPlanningComponentKind(props.component.kind) ? (
+        {props.component.kind === "files" ? (
+          <FilesComponent
+            canEdit={props.canEditResources}
+            eventId={props.eventId}
+            locale={props.preferences.locale}
+            workspaceId={props.workspaceId}
+          />
+        ) : isPlanningComponentKind(props.component.kind) ? (
           <ProjectionBody
             canEditResources={props.canEditResources}
             eventId={props.eventId}

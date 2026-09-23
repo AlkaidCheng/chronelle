@@ -41,6 +41,22 @@
   border-bottom: 1rpx solid var(--chronelle-line);
 }
 
+.files-target {
+  margin-bottom: 14rpx;
+  padding: 18rpx 20rpx;
+  border: 1rpx solid var(--chronelle-line);
+  border-radius: 14rpx;
+  color: var(--chronelle-indigo);
+  font-size: 24rpx;
+}
+
+.files-error {
+  display: block;
+  margin: 14rpx 0;
+  color: var(--chronelle-cinnabar);
+  font-size: 23rpx;
+}
+
 .planning-nav {
   display: flex;
   align-items: center;
