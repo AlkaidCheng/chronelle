@@ -144,6 +144,18 @@ function ReadyEventPage({
             {messages.editEvent}
           </Button>
         ) : null}
+        {access.actions.includes("share") || access.source.kind === "direct" ? (
+          <Button
+            className="edit-button"
+            onClick={() =>
+              void Taro.navigateTo({
+                url: `/features/sharing/index?id=${encodeURIComponent(event.id)}`,
+              })
+            }
+          >
+            {messages.manageSharing}
+          </Button>
+        ) : null}
       </View>
       <Text className="detail-eyebrow">{messages.eventOverview}</Text>
       <Text className="detail-title">{event.displayName}</Text>
