@@ -337,8 +337,10 @@ function SharingControls({
     });
     if (!answer.confirm || busy) return;
     setBusy(true);
+    let left = false;
     try {
       await api.leaveObject(eventId);
+      left = true;
       const personal = session.availableWorkspaces.find(
         (workspace) => workspace.personal,
       );
@@ -361,14 +363,18 @@ function SharingControls({
       await Taro.reLaunch({ url: "/pages/index/index" });
     } catch (error) {
       setNotice(
-        error instanceof ApiClientError &&
-          (error.status === 403 || error.status === 404)
-          ? messages.sharingPermissionLost
-          : messages.sharingFailed,
+        left
+          ? messages.sharingLeftNavigationFailed
+          : error instanceof ApiClientError &&
+              (error.status === 403 || error.status === 404)
+            ? messages.sharingPermissionLost
+            : messages.sharingFailed,
       );
-      await queryClient.invalidateQueries({
-        queryKey: eventOverviewQueryKey(session.workspace.id, eventId),
-      });
+      void queryClient
+        .invalidateQueries({
+          queryKey: eventOverviewQueryKey(session.workspace.id, eventId),
+        })
+        .catch(() => undefined);
       setBusy(false);
     }
   }

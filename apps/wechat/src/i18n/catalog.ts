@@ -89,6 +89,8 @@ const catalog = {
     sharingLeave: "Leave this Event",
     sharingLeaveTitle: "Leave this Event?",
     sharingLeaveDetail: "Your direct grants on this Event will be removed.",
+    sharingLeftNavigationFailed:
+      "You left this Event, but the page could not return to Events. Use Back to leave this page.",
     sharingViewerHelp: "Can view",
     sharingEditorHelp: "Can edit",
     sharingOwnerHelp: "Can manage",
@@ -407,6 +409,8 @@ const catalog = {
     sharingLeave: "退出此活动",
     sharingLeaveTitle: "退出此活动？",
     sharingLeaveDetail: "你在此活动上的直接授权将被移除。",
+    sharingLeftNavigationFailed:
+      "你已退出此活动，但页面未能返回活动列表。请使用返回按钮离开此页面。",
     sharingViewerHelp: "可以查看",
     sharingEditorHelp: "可以编辑",
     sharingOwnerHelp: "可以管理",
