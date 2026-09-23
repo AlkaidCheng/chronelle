@@ -40,6 +40,10 @@ export default defineAppConfig({
       root: "features/trash",
       pages: ["index"],
     },
+    {
+      root: "features/people",
+      pages: ["index", "editor", "friends"],
+    },
   ],
   themeLocation: "theme.json",
   window: {

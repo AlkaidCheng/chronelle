@@ -343,6 +343,29 @@
   padding-bottom: calc(20rpx + env(safe-area-inset-bottom));
 }
 
+.workspace-collections {
+  display: flex;
+  gap: 12rpx;
+  margin-bottom: 22rpx;
+}
+
+.collection-link {
+  min-height: 64rpx;
+  padding: 0 24rpx;
+  margin: 0;
+  border: 1rpx solid var(--chronelle-line);
+  border-radius: 999rpx;
+  background: var(--chronelle-surface);
+  color: var(--chronelle-indigo);
+  font-size: 23rpx;
+  font-weight: 600;
+  line-height: 64rpx;
+}
+
+.collection-link::after {
+  border: 0;
+}
+
 .event-card {
   margin-bottom: 20rpx;
   padding: 28rpx;

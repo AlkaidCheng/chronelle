@@ -344,6 +344,25 @@ function EventWorkspace({ session }: { readonly session: SessionResponse }) {
         </View>
       </View>
 
+      <View className="workspace-collections">
+        <Button
+          className="collection-link"
+          onClick={() =>
+            void Taro.navigateTo({ url: "/features/people/index" })
+          }
+        >
+          {messages.people}
+        </Button>
+        <Button
+          className="collection-link"
+          onClick={() =>
+            void Taro.navigateTo({ url: "/features/people/friends" })
+          }
+        >
+          {messages.friends}
+        </Button>
+      </View>
+
       {events.isPending ? (
         <StateView title={messages.loading} />
       ) : events.isError ? (

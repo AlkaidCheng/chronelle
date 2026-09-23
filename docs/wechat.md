@@ -349,6 +349,31 @@ This slice does not expose permanent deletion or a client-side undo stack.
 Undo and redo use the separate server command-history model and are deferred
 until their native interaction and cross-client semantics are defined.
 
+## People and Friends
+
+The home collection links to two distinct native surfaces. People lists the
+visible canonical Person records in the active workspace, with a debounced
+server-side name search. The list is bounded to 100 records; a large workspace
+can narrow it by search. Owner and Editor roles may create a Person, while an
+existing Person is editable only when `GET /api/objects/:id/access` includes
+`edit`. The form edits name, nickname, description, and ordered contacts. It
+does not change labels, custom properties, or account links. Creation uses a
+stable command ID for retries; updates carry the Person's expected version.
+On conflict, the editor keeps the local values and requires a deliberate choice
+between the latest record and retrying against its new version.
+
+Friends is account-wide, not a workspace collection. It reads incoming
+requests, accepted connections, and pending outgoing invitations through the
+same authenticated REST client. A user may accept or decline a request,
+withdraw an outgoing item, or remove a connection with confirmation. Email
+and link invitations use the existing server endpoint. A link is copied only
+on explicit action and opens the Chronelle web invitation page; the Mini
+Program does not fabricate an invitation from an object ID or claim native
+WeChat share-card behavior. The API remains responsible for privacy,
+authorization, rate limits, and audit events. Account search, linking a
+workspace Person to a friend, and broader Person fields remain for later
+native slices.
+
 ## Local build
 
 Install workspace dependencies, then build once or start the watcher:
