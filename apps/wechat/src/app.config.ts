@@ -20,6 +20,10 @@ export default defineAppConfig({
       root: "features/expense-editor",
       pages: ["index"],
     },
+    {
+      root: "features/reminder-editor",
+      pages: ["index"],
+    },
   ],
   themeLocation: "theme.json",
   window: {

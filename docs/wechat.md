@@ -217,8 +217,19 @@ draft until the user chooses the latest record or deliberately retries against
 the latest version. Drafts are bounded and partitioned by account, workspace,
 Event, and Expense. Saving refreshes the Event's Expense and Timeline
 projections without storing a second copy. Expense section assignment uses
-existing Event sections; section administration and Reminder editing remain
-future Mini Program work.
+existing Event sections; Expense section administration remains future Mini
+Program work.
+
+The Reminders component creates and edits canonical Reminders through the same
+authorized Event-context and versioned resource APIs. Its native editor keeps
+date, time, and status together, preserves an unchanged instant exactly, and
+rejects invalid or nonexistent local times. The editor enforces the Reminder's
+server-provided edit access; Viewers receive read-only rows.
+Drafts are bounded and partitioned by account, workspace, Event, and Reminder.
+A stale edit preserves the draft until the user adopts the latest record or
+deliberately retries against it. Saving invalidates the Event projections so
+Timeline and Reminder views read the same canonical record. This is record
+editing; device alerts and delivery scheduling are not implemented here.
 
 ## Local build
 
