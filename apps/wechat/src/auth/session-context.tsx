@@ -1,5 +1,9 @@
 import { ApiClientError } from "@chronelle/api-client";
-import type { SessionResponse } from "@chronelle/schemas";
+import type {
+  PreferencesRequest,
+  SessionResponse,
+  UserResponse,
+} from "@chronelle/schemas";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   createContext,
@@ -41,6 +45,7 @@ interface SessionContextValue {
   signInWithWeChat(): Promise<void>;
   signOut(): Promise<void>;
   switchWorkspace(workspaceId: string): Promise<void>;
+  updatePreferences(input: PreferencesRequest): Promise<UserResponse>;
 }
 
 const unavailable = async () => undefined;
@@ -64,6 +69,9 @@ export function SessionProvider({ children }: PropsWithChildren) {
           signInWithWeChat: unavailable,
           signOut: unavailable,
           switchWorkspace: unavailable,
+          updatePreferences: async () => {
+            throw new Error("The Mini Program runtime is not configured.");
+          },
         }}
       >
         {children}
@@ -264,6 +272,26 @@ function ReadySessionProvider({
     await sessionQuery.refetch();
   }, [sessionQuery]);
 
+  const updatePreferences = useCallback(
+    async (input: PreferencesRequest): Promise<UserResponse> => {
+      if (credential === null) throw new Error("A session is required.");
+      try {
+        const user = await runtime.api.updatePreferences(input);
+        queryClient.setQueryData<SessionResponse>(
+          ["wechat-session", credential.workspaceId, credential.revision],
+          (current) => (current ? { ...current, user } : current),
+        );
+        return user;
+      } catch (error) {
+        if (error instanceof ApiClientError && error.status === 401) {
+          await sessionQuery.refetch();
+        }
+        throw error;
+      }
+    },
+    [credential, queryClient, runtime, sessionQuery],
+  );
+
   let state: SessionState;
   if (restoring) state = { status: "restoring" };
   else if (credential === null) {
@@ -287,6 +315,7 @@ function ReadySessionProvider({
       signInWithWeChat,
       signOut,
       switchWorkspace,
+      updatePreferences,
     }),
     [
       busy,
@@ -298,6 +327,7 @@ function ReadySessionProvider({
       signOut,
       state,
       switchWorkspace,
+      updatePreferences,
     ],
   );
   return (

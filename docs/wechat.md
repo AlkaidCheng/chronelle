@@ -18,6 +18,8 @@ The current Mini Program provides:
 - a production package report with enforced main, subpackage, and total budgets;
 - a native WeChat sign-in and explicit existing-account linking flow;
 - session restoration, revocation, onboarding, and workspace switching;
+- account language, time zone, clock, and week-start preferences through the
+  authenticated account API;
 - lifecycle- and network-aware TanStack Query integration;
 - paginated canonical Event cards and an authorized Event overview;
 - native creation and editing for undated, date-only, timed, and multi-day

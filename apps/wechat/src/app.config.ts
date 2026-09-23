@@ -25,6 +25,10 @@ export default defineAppConfig({
       pages: ["index"],
     },
     {
+      root: "features/account-preferences",
+      pages: ["index"],
+    },
+    {
       root: "features/reminder-editor",
       pages: ["index"],
     },

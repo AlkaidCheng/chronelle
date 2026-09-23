@@ -1,0 +1,102 @@
+.preferences-page {
+  box-sizing: border-box;
+  min-height: 100vh;
+  padding: calc(40rpx + env(safe-area-inset-top)) 36rpx
+    calc(36rpx + env(safe-area-inset-bottom));
+}
+
+.preferences-intro {
+  margin-bottom: 32rpx;
+}
+
+.preferences-title,
+.preferences-detail,
+.preferences-label,
+.preferences-hint,
+.preferences-error,
+.preferences-success {
+  display: block;
+}
+
+.preferences-title {
+  font-family: "Songti SC", STSong, serif;
+  font-size: 46rpx;
+  font-weight: 600;
+}
+
+.preferences-detail {
+  margin-top: 12rpx;
+  color: var(--chronelle-muted);
+  font-size: 25rpx;
+  line-height: 1.6;
+}
+
+.preferences-card {
+  padding: 28rpx;
+  border: 1rpx solid var(--chronelle-line);
+  border-radius: 24rpx;
+  background: var(--chronelle-surface);
+}
+
+.preferences-label {
+  margin: 28rpx 0 12rpx;
+  color: var(--chronelle-muted);
+  font-size: 23rpx;
+  font-weight: 600;
+}
+
+.preferences-label:first-child {
+  margin-top: 0;
+}
+
+.preferences-select,
+.preferences-input {
+  box-sizing: border-box;
+  min-height: 78rpx;
+  padding: 19rpx 22rpx;
+  border: 1rpx solid var(--chronelle-line-strong);
+  border-radius: 16rpx;
+  background: var(--chronelle-paper);
+  color: var(--chronelle-ink);
+  font-size: 27rpx;
+}
+
+.preferences-select {
+  display: flex;
+  align-items: center;
+}
+
+.preferences-hint {
+  margin-top: 10rpx;
+  color: var(--chronelle-muted);
+  font-size: 21rpx;
+  line-height: 1.5;
+}
+
+.preferences-error,
+.preferences-success {
+  margin-top: 24rpx;
+  font-size: 24rpx;
+  line-height: 1.5;
+}
+
+.preferences-error {
+  color: var(--chronelle-cinnabar);
+}
+
+.preferences-success {
+  color: var(--chronelle-indigo);
+}
+
+.preferences-save {
+  margin-top: 32rpx;
+  border: 0;
+  border-radius: 18rpx;
+  background: var(--chronelle-cinnabar);
+  color: #fffaf0;
+  font-size: 28rpx;
+}
+
+.preferences-save[disabled] {
+  opacity: 0.6;
+}
