@@ -16,8 +16,8 @@ importers:
         specifier: 2.5.13
         version: 2.5.13
       '@cloudbase/js-sdk':
-        specifier: 3.9.4
-        version: 3.9.4
+        specifier: 3.10.0
+        version: 3.10.0
       '@playwright/test':
         specifier: 1.62.0
         version: 1.62.0
@@ -67,11 +67,11 @@ importers:
         specifier: 0.45.2
         version: 0.45.2(postgres@3.4.9)
       fastify:
-        specifier: 5.12.4
-        version: 5.12.4
+        specifier: 5.12.5
+        version: 5.12.5
       nodemailer:
-        specifier: ^10.0.9
-        version: 10.0.9
+        specifier: ^10.0.10
+        version: 10.0.10
       zod:
         specifier: 4.6.5
         version: 4.6.5
@@ -92,8 +92,8 @@ importers:
         specifier: workspace:*
         version: link:../../packages/schemas
       '@tanstack/react-query':
-        specifier: 5.102.8
-        version: 5.102.8(react@19.3.0)
+        specifier: 5.103.1
+        version: 5.103.1(react@19.3.0)
       '@tanstack/react-table':
         specifier: 8.21.3
         version: 8.21.3(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
@@ -132,8 +132,8 @@ importers:
   apps/wechat:
     dependencies:
       '@babel/runtime':
-        specifier: 7.29.7
-        version: 7.29.7
+        specifier: 8.0.5
+        version: 8.0.5
       '@chronelle/api-client':
         specifier: workspace:*
         version: link:../../packages/api-client
@@ -141,26 +141,26 @@ importers:
         specifier: workspace:*
         version: link:../../packages/schemas
       '@cloudbase/js-sdk':
-        specifier: 3.9.4
-        version: 3.9.4
+        specifier: 3.10.0
+        version: 3.10.0
       '@tanstack/react-query':
-        specifier: 5.102.8
-        version: 5.102.8(react@18.3.1)
+        specifier: 5.103.1
+        version: 5.103.1(react@19.3.0)
       '@tarojs/components':
         specifier: 4.2.1
-        version: 4.2.1(@tarojs/helper@4.2.1(@swc/helpers@0.5.23)(supports-color@8.1.1))(@types/react@18.3.31)(html-webpack-plugin@5.6.8(webpack@5.91.0(@swc/core@1.3.96(@swc/helpers@0.5.23))(clean-css@5.3.3)(cssnano@6.1.2(postcss@8.5.26))(csso@5.0.5)(esbuild@0.21.5)(html-minifier-terser@6.1.0)(lightningcss@1.33.0)(postcss@8.5.26)(uglify-js@3.19.3)))(postcss@8.5.26)(rollup@3.30.0)(webpack-chain@6.5.1)(webpack-dev-server@4.15.2(debug@4.4.3(supports-color@8.1.1))(supports-color@8.1.1)(webpack@5.91.0(@swc/core@1.3.96(@swc/helpers@0.5.23))(clean-css@5.3.3)(cssnano@6.1.2(postcss@8.5.26))(csso@5.0.5)(esbuild@0.21.5)(html-minifier-terser@6.1.0)(lightningcss@1.33.0)(postcss@8.5.26)(uglify-js@3.19.3)))(webpack@5.91.0(@swc/core@1.3.96(@swc/helpers@0.5.23))(clean-css@5.3.3)(cssnano@6.1.2(postcss@8.5.26))(csso@5.0.5)(esbuild@0.21.5)(html-minifier-terser@6.1.0)(lightningcss@1.33.0)(postcss@8.5.26)(uglify-js@3.19.3))
+        version: 4.2.1(@tarojs/helper@4.2.1(@swc/helpers@0.5.23)(supports-color@8.1.1))(@types/react@19.3.0)(html-webpack-plugin@5.6.8(webpack@5.91.0(@swc/core@1.3.96(@swc/helpers@0.5.23))(clean-css@5.3.3)(cssnano@6.1.2(postcss@8.5.26))(csso@5.0.5)(esbuild@0.21.5)(html-minifier-terser@6.1.0)(lightningcss@1.33.0)(postcss@8.5.26)(uglify-js@3.19.3)))(postcss@8.5.26)(rollup@3.30.0)(webpack-chain@6.5.1)(webpack-dev-server@4.15.2(debug@4.4.3(supports-color@8.1.1))(supports-color@8.1.1)(webpack@5.91.0(@swc/core@1.3.96(@swc/helpers@0.5.23))(clean-css@5.3.3)(cssnano@6.1.2(postcss@8.5.26))(csso@5.0.5)(esbuild@0.21.5)(html-minifier-terser@6.1.0)(lightningcss@1.33.0)(postcss@8.5.26)(uglify-js@3.19.3)))(webpack@5.91.0(@swc/core@1.3.96(@swc/helpers@0.5.23))(clean-css@5.3.3)(cssnano@6.1.2(postcss@8.5.26))(csso@5.0.5)(esbuild@0.21.5)(html-minifier-terser@6.1.0)(lightningcss@1.33.0)(postcss@8.5.26)(uglify-js@3.19.3))
       '@tarojs/helper':
         specifier: 4.2.1
         version: 4.2.1(@swc/helpers@0.5.23)(supports-color@8.1.1)
       '@tarojs/plugin-framework-react':
         specifier: 4.2.1
-        version: 4.2.1(fa9f4eb076b8bc01f37353aa32c2e0c4)
+        version: 4.2.1(03a574c5af35f31049ca7f3397e52f8e)
       '@tarojs/plugin-platform-weapp':
         specifier: 4.2.1
         version: 4.2.1(@tarojs/service@4.2.1(@swc/helpers@0.5.23)(supports-color@8.1.1))(@tarojs/shared@4.2.1)
       '@tarojs/react':
         specifier: 4.2.1
-        version: 4.2.1(react@18.3.1)
+        version: 4.2.1(react@19.3.0)
       '@tarojs/runtime':
         specifier: 4.2.1
         version: 4.2.1
@@ -169,13 +169,13 @@ importers:
         version: 4.2.1
       '@tarojs/taro':
         specifier: 4.2.1
-        version: 4.2.1(b8d8445b54ae0179068baf582fe4e3bc)
+        version: 4.2.1(2126086d8f74c477b1ba28066784c49a)
       react:
-        specifier: 18.3.1
-        version: 18.3.1
+        specifier: 19.3.0
+        version: 19.3.0
       react-dom:
-        specifier: 18.3.1
-        version: 18.3.1(react@18.3.1)
+        specifier: 19.3.0
+        version: 19.3.0(react@19.3.0)
       zod:
         specifier: 4.6.5
         version: 4.6.5
@@ -202,8 +202,8 @@ importers:
         specifier: 4.2.1
         version: 4.2.1(@babel/core@7.29.7(supports-color@8.1.1))(@swc/core@1.3.96(@swc/helpers@0.5.23))(@swc/helpers@0.5.23)(@tarojs/runtime@4.2.1)(clean-css@5.3.3)(cssnano@6.1.2(postcss@8.5.26))(csso@5.0.5)(debug@4.4.3(supports-color@8.1.1))(html-minifier-terser@6.1.0)(less@4.9.1(supports-color@8.1.1))(postcss@8.5.26)(sass@1.103.1)(stylus@0.64.0(supports-color@8.1.1))(supports-color@8.1.1)(typescript@5.9.3)(uglify-js@3.19.3)(webpack@5.91.0(@swc/core@1.3.96(@swc/helpers@0.5.23))(clean-css@5.3.3)(cssnano@6.1.2(postcss@8.5.26))(csso@5.0.5)(esbuild@0.21.5)(html-minifier-terser@6.1.0)(lightningcss@1.33.0)(postcss@8.5.26)(uglify-js@3.19.3))
       '@types/react':
-        specifier: 18.3.31
-        version: 18.3.31
+        specifier: 19.3.0
+        version: 19.3.0
       '@types/webpack-env':
         specifier: 1.18.8
         version: 1.18.8
@@ -247,8 +247,8 @@ importers:
   packages/db:
     dependencies:
       '@cloudbase/js-sdk':
-        specifier: 3.9.4
-        version: 3.9.4
+        specifier: 3.10.0
+        version: 3.10.0
       drizzle-orm:
         specifier: 0.45.2
         version: 0.45.2(postgres@3.4.9)
@@ -881,6 +881,9 @@ packages:
     resolution: {integrity: sha512-Nq8OhGWiZIZGV6hLHoyAKLLcJihP/xFeBMGJoUrxTX2psI8dCifzLhZISFb+VWS3wFMRDmCGw5R+dOySCqPLhw==}
     engines: {node: '>=6.9.0'}
 
+  '@babel/runtime@8.0.5':
+    resolution: {integrity: sha512-7NK+Lz3spQ52XsUGTxIEVU4jYN2/dIaX8sTxRFAUtYmttYZnVh3aehiihv+/Gb7+duMNHl2OrFcBQRyOHScxpg==}
+
   '@babel/template@7.29.7':
     resolution: {integrity: sha512-puq+Gf35oI24FeN11LkoUQFqv9uwNeWpxXZi/Ji3rRIoKAzKnxRaZ+Gkj0vKS9ZCiTESfng1N9LyOyXvo+m+Gg==}
     engines: {node: '>=6.9.0'}
@@ -956,8 +959,8 @@ packages:
   '@cloudbase/adapter-wx_mp@1.3.1':
     resolution: {integrity: sha512-rS0N1aD1a0zc421ds17/HzM4RChQ6T2ixMz87bhPJ1yveqJt/KUqYxiXJDWhZ803wwTmJs8aqNkgugsNusNhbg==}
 
-  '@cloudbase/js-sdk@3.9.4':
-    resolution: {integrity: sha512-y7sMdUACtamgE/8RCun4ewPYiecpStIVvq4I9RKW43NNzdP94JrPC8c9te8gmnH7L+FlTOrtTZ6y7ki3B3foQw==}
+  '@cloudbase/js-sdk@3.10.0':
+    resolution: {integrity: sha512-diwefp1ZTyyAXMatTkYCHBn9BJvb1ZqXS/CSaC2VSVRwlvBDYtb44FBB0EJ7+a1z1zuXOIasKei+If+REhUGeA==}
 
   '@cloudbase/signature-nodejs@2.0.0':
     resolution: {integrity: sha512-eFtRiZuD21+/s/4opejhcN8msFLBK5POwkT445yyA47kps35qXrHGqlLQgt00bmRU4VtjwN6LHr2O3PjHjWW6Q==}
@@ -2111,11 +2114,11 @@ packages:
     resolution: {integrity: sha512-XIB2XbzHTN6ieIjfIMV9hlVcfPU26s2vafYWQcZHWXHOxiaRZYEDKEwdl129Zyg50+foYV2jCgtrqSA6qNuNSA==}
     engines: {node: '>=6'}
 
-  '@tanstack/query-core@5.102.8':
-    resolution: {integrity: sha512-ZNjkJ33CqvPNec/6lZBnHqLc3EVGPZ9ySLhYahU9TcuRFdmwXewuj0c4hwSWcGHqEUwcSrKeZ+oGcvPBqXcQcg==}
+  '@tanstack/query-core@5.103.1':
+    resolution: {integrity: sha512-rms8HqTGp6zA00dM+cUQ2eBcgzNJefuu5CAMB37i/6MiGT1zulPOytCFu2a0qjLqVR2n1jENPj9woqFQNuCzWA==}
 
-  '@tanstack/react-query@5.102.8':
-    resolution: {integrity: sha512-TYBea4OuXWD7MhaSHq069TWbFe7rcwWN6kzT7JF0OKi1K6c1gTv2IzD6A6ExJsCMozdkqBWeuIUZmu4KQg0O5A==}
+  '@tanstack/react-query@5.103.1':
+    resolution: {integrity: sha512-rmAPPApNEK17VXRJhtE1rja53n23VV5w30C0saCgJhhX+EpdUnVqMGV/s5nnzV43X75KTHKzuoiuxSzGTBIkag==}
     peerDependencies:
       react: ^18 || ^19
 
@@ -2519,9 +2522,6 @@ packages:
   '@types/postcss-url@10.0.4':
     resolution: {integrity: sha512-5QIO9NgbWmAkle65haRqkdgYPCOXheNsaFdbTJJQjT302yK3H49ql4t9a4y0NfpuPtU/UBo15VcV64WCSIMJKg==}
 
-  '@types/prop-types@15.7.15':
-    resolution: {integrity: sha512-F6bEyamV9jKGAFBEmlQnesRPGOQqS2+Uwi0Em15xenOxHaf2hv6L8YCVn3rPdPJOiJfPiCnLIRyvwVaqMY3MIw==}
-
   '@types/qs@6.15.1':
     resolution: {integrity: sha512-GZHUBZR9hckSUhrxmp1nG6NwdpM9fCunJwyThLW1X3AyHgd9IlHb6VANpQQqDr2o/qQp6McZ3y/IA2rVzKzSbw==}
 
@@ -2532,9 +2532,6 @@ packages:
     resolution: {integrity: sha512-ZI7bU42mZXXKHn/qNLEw2IrbiINU7X5+vfgdixBHkCNpYWXjKgfQ/P+uyGb5CjOLB9UcnTeg3rylQtV2hym44Q==}
     peerDependencies:
       '@types/react': ^19.3.0
-
-  '@types/react@18.3.31':
-    resolution: {integrity: sha512-vfEqpXTvwT91yhmwdfouStN2hSKwTvyRs8qpLfADyrq/kxDw0hZM7Wk9Ug1FELj8hIby+S/+kQCSRFF32nv2Qw==}
 
   '@types/react@19.3.0':
     resolution: {integrity: sha512-N0rFCuH9YoxG9/m61l9MfpJKfmLOVU0em7ipIz6TRgSSkvReLB9vL85GB+yr8Bs5leqpvg96JSwF4ZS1s4viQg==}
@@ -4013,8 +4010,8 @@ packages:
   fast-uri@4.1.3:
     resolution: {integrity: sha512-7+72G6vLt7jjNas8SmSATx2qeyRIjxeqO3i4IkmDTxlqYZRKANhOe1bnovcp4WZmvsYrp60WyqPyHqgRiX0yXw==}
 
-  fastify@5.12.4:
-    resolution: {integrity: sha512-zATD676fP6tBMsn+jQ7Q5/cO/Qo+149TXH0dUqUKel+1/hcZxwIbnflqtPa9EjlrvpY8eCZcL3M1UYrMc31Y7g==}
+  fastify@5.12.5:
+    resolution: {integrity: sha512-OB2k1dlxs5/NAABqeKV2FUHkSD2BbENsCak8yULVcymn3fHIPDVa9TI3SDnJSWYSllZmSYuZXy2gTnsT+Sut1A==}
 
   fastq@1.20.3:
     resolution: {integrity: sha512-XKv5nnLs6nLF71NgiKJLIZFLkPyIEuOselLG7ujZnGrRfQK8HpvY+WqKhAJUAdLomwVHErVS4LfxFlPq0/FTAw==}
@@ -5236,8 +5233,8 @@ packages:
     resolution: {integrity: sha512-x0InOIyzgdk+eyaWaRJFH5snEtiImgBgblZ2CyPrLmqqcuMQkEvcDPHbzqbD8eDsSeJbVOjn+crzyzHaM4D+/A==}
     engines: {node: '>=18'}
 
-  nodemailer@10.0.9:
-    resolution: {integrity: sha512-BF0qcyplCwp+jMk6HCjFykBz/YhhZSsxrARhOldLwFWH+8kGjQsd2WIMIZhqEuyXRoGFi0ONbDeWDMDoL8MhLw==}
+  nodemailer@10.0.10:
+    resolution: {integrity: sha512-He9XskOFms62SyAKkLu8CcGcYHAo+BSHSsORI8s4PJH8qZgZY4L4lDfvyN0twvmbpyG+eGrxpyBlskj9d9rJ8A==}
     engines: {node: '>=20.0.0'}
 
   normalize-path@3.0.0:
@@ -5886,11 +5883,6 @@ packages:
     resolution: {integrity: sha512-y3bGgqKj3QBdxLbLkomlohkvsA8gdAiUQlSBJnBhfn+BPxg4bc62d8TcBW15wavDfgexCgccckhcZvywyQYPOw==}
     hasBin: true
 
-  react-dom@18.3.1:
-    resolution: {integrity: sha512-5m4nQKp+rZRb09LNH59GM4BxTh9251/ylbKIbpe7TpGxfJ+9kv6BLkLBXIjjspbgbnIBNqlI23tRnTWT0snUIw==}
-    peerDependencies:
-      react: ^18.3.1
-
   react-dom@19.3.0:
     resolution: {integrity: sha512-JDk8dgif51OjFoDE70+OT9ICyYr+69HlmihNwp1+Nsfbna3t5sIiCa9ZJktDmQ4/1b/rn26hIAR2uYXDMr5r0Q==}
     peerDependencies:
@@ -5907,10 +5899,6 @@ packages:
 
   react-refresh@0.14.2:
     resolution: {integrity: sha512-jCvmsr+1IUSMUyzOkRcvnVbX3ZYC6g9TDrDbFuFmRDq7PD4yaGbLKNQL6k2jnArV8hjYxh7hVhAZB6s9HDGpZA==}
-    engines: {node: '>=0.10.0'}
-
-  react@18.3.1:
-    resolution: {integrity: sha512-wS+hAgJShR0KhEvPJArfuPVN1+Hz1t0Y6n5jLrGQbkb4urgPE/0Rve+1kMB1v/oWgHgm4WIcV+i7F2pTVj+2iQ==}
     engines: {node: '>=0.10.0'}
 
   react@19.3.0:
@@ -7824,6 +7812,8 @@ snapshots:
 
   '@babel/runtime@7.29.7': {}
 
+  '@babel/runtime@8.0.5': {}
+
   '@babel/template@7.29.7':
     dependencies:
       '@babel/code-frame': 7.29.7
@@ -7889,7 +7879,7 @@ snapshots:
       '@cloudbase/adapter-interface': 0.7.1
       web-streams-polyfill: 4.3.0
 
-  '@cloudbase/js-sdk@3.9.4':
+  '@cloudbase/js-sdk@3.10.0':
     dependencies:
       '@cloudbase/adapter-interface': 0.7.1
       '@cloudbase/adapter-wx_mp': 1.3.1
@@ -8688,16 +8678,11 @@ snapshots:
     dependencies:
       defer-to-connect: 1.1.3
 
-  '@tanstack/query-core@5.102.8': {}
+  '@tanstack/query-core@5.103.1': {}
 
-  '@tanstack/react-query@5.102.8(react@18.3.1)':
+  '@tanstack/react-query@5.103.1(react@19.3.0)':
     dependencies:
-      '@tanstack/query-core': 5.102.8
-      react: 18.3.1
-
-  '@tanstack/react-query@5.102.8(react@19.3.0)':
-    dependencies:
-      '@tanstack/query-core': 5.102.8
+      '@tanstack/query-core': 5.103.1
       react: 19.3.0
 
   '@tanstack/react-table@8.21.3(react-dom@19.3.0(react@19.3.0))(react@19.3.0)':
@@ -8762,12 +8747,12 @@ snapshots:
       - debug
       - supports-color
 
-  '@tarojs/components@4.2.1(@tarojs/helper@4.2.1(@swc/helpers@0.5.23)(supports-color@8.1.1))(@types/react@18.3.31)(html-webpack-plugin@5.6.8(webpack@5.91.0(@swc/core@1.3.96(@swc/helpers@0.5.23))(clean-css@5.3.3)(cssnano@6.1.2(postcss@8.5.26))(csso@5.0.5)(esbuild@0.21.5)(html-minifier-terser@6.1.0)(lightningcss@1.33.0)(postcss@8.5.26)(uglify-js@3.19.3)))(postcss@8.5.26)(rollup@3.30.0)(webpack-chain@6.5.1)(webpack-dev-server@4.15.2(debug@4.4.3(supports-color@8.1.1))(supports-color@8.1.1)(webpack@5.91.0(@swc/core@1.3.96(@swc/helpers@0.5.23))(clean-css@5.3.3)(cssnano@6.1.2(postcss@8.5.26))(csso@5.0.5)(esbuild@0.21.5)(html-minifier-terser@6.1.0)(lightningcss@1.33.0)(postcss@8.5.26)(uglify-js@3.19.3)))(webpack@5.91.0(@swc/core@1.3.96(@swc/helpers@0.5.23))(clean-css@5.3.3)(cssnano@6.1.2(postcss@8.5.26))(csso@5.0.5)(esbuild@0.21.5)(html-minifier-terser@6.1.0)(lightningcss@1.33.0)(postcss@8.5.26)(uglify-js@3.19.3))':
+  '@tarojs/components@4.2.1(@tarojs/helper@4.2.1(@swc/helpers@0.5.23)(supports-color@8.1.1))(@types/react@19.3.0)(html-webpack-plugin@5.6.8(webpack@5.91.0(@swc/core@1.3.96(@swc/helpers@0.5.23))(clean-css@5.3.3)(cssnano@6.1.2(postcss@8.5.26))(csso@5.0.5)(esbuild@0.21.5)(html-minifier-terser@6.1.0)(lightningcss@1.33.0)(postcss@8.5.26)(uglify-js@3.19.3)))(postcss@8.5.26)(rollup@3.30.0)(webpack-chain@6.5.1)(webpack-dev-server@4.15.2(debug@4.4.3(supports-color@8.1.1))(supports-color@8.1.1)(webpack@5.91.0(@swc/core@1.3.96(@swc/helpers@0.5.23))(clean-css@5.3.3)(cssnano@6.1.2(postcss@8.5.26))(csso@5.0.5)(esbuild@0.21.5)(html-minifier-terser@6.1.0)(lightningcss@1.33.0)(postcss@8.5.26)(uglify-js@3.19.3)))(webpack@5.91.0(@swc/core@1.3.96(@swc/helpers@0.5.23))(clean-css@5.3.3)(cssnano@6.1.2(postcss@8.5.26))(csso@5.0.5)(esbuild@0.21.5)(html-minifier-terser@6.1.0)(lightningcss@1.33.0)(postcss@8.5.26)(uglify-js@3.19.3))':
     dependencies:
       '@stencil/core': 2.22.3
       '@tarojs/runtime': 4.2.1
       '@tarojs/shared': 4.2.1
-      '@tarojs/taro': 4.2.1(b8d8445b54ae0179068baf582fe4e3bc)
+      '@tarojs/taro': 4.2.1(2126086d8f74c477b1ba28066784c49a)
       classnames: 2.5.1
       hammerjs: 2.0.8
       hls.js: 1.7.3
@@ -8775,7 +8760,7 @@ snapshots:
       swiper: 11.1.15
       tslib: 2.8.1
     optionalDependencies:
-      '@types/react': 18.3.31
+      '@types/react': 19.3.0
     transitivePeerDependencies:
       - '@tarojs/helper'
       - html-webpack-plugin
@@ -8860,7 +8845,7 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  '@tarojs/plugin-framework-react@4.2.1(fa9f4eb076b8bc01f37353aa32c2e0c4)':
+  '@tarojs/plugin-framework-react@4.2.1(03a574c5af35f31049ca7f3397e52f8e)':
     dependencies:
       '@tarojs/helper': 4.2.1(@swc/helpers@0.5.23)(supports-color@8.1.1)
       '@tarojs/runtime': 4.2.1
@@ -8871,7 +8856,7 @@ snapshots:
       tslib: 2.8.1
     optionalDependencies:
       '@pmmmwh/react-refresh-webpack-plugin': 0.5.17(react-refresh@0.14.2)(type-fest@0.21.3)(webpack-dev-server@4.15.2(debug@4.4.3(supports-color@8.1.1))(supports-color@8.1.1)(webpack@5.91.0(@swc/core@1.3.96(@swc/helpers@0.5.23))(clean-css@5.3.3)(cssnano@6.1.2(postcss@8.5.26))(csso@5.0.5)(esbuild@0.21.5)(html-minifier-terser@6.1.0)(lightningcss@1.33.0)(postcss@8.5.26)(uglify-js@3.19.3)))(webpack@5.91.0(@swc/core@1.3.96(@swc/helpers@0.5.23))(clean-css@5.3.3)(cssnano@6.1.2(postcss@8.5.26))(csso@5.0.5)(esbuild@0.21.5)(html-minifier-terser@6.1.0)(lightningcss@1.33.0)(postcss@8.5.26)(uglify-js@3.19.3))
-      react: 18.3.1
+      react: 19.3.0
       vite: 8.2.2(@types/node@26.5.1)(esbuild@0.28.2)(jiti@2.7.0)(less@4.9.1(supports-color@8.1.1))(sass@1.103.1)(stylus@0.64.0(supports-color@8.1.1))(terser@5.51.2)(tsx@4.23.13)(yaml@2.9.1)
       webpack: 5.91.0(@swc/core@1.3.96(@swc/helpers@0.5.23))(clean-css@5.3.3)(cssnano@6.1.2(postcss@8.5.26))(csso@5.0.5)(esbuild@0.21.5)(html-minifier-terser@6.1.0)(lightningcss@1.33.0)(postcss@8.5.26)(uglify-js@3.19.3)
 
@@ -8880,12 +8865,12 @@ snapshots:
       '@tarojs/service': 4.2.1(@swc/helpers@0.5.23)(supports-color@8.1.1)
       '@tarojs/shared': 4.2.1
 
-  '@tarojs/react@4.2.1(react@18.3.1)':
+  '@tarojs/react@4.2.1(react@19.3.0)':
     dependencies:
       '@tarojs/runtime': 4.2.1
       '@tarojs/shared': 4.2.1
-      react: 18.3.1
-      react-reconciler: 0.29.0(react@18.3.1)
+      react: 19.3.0
+      react-reconciler: 0.29.0(react@19.3.0)
 
   '@tarojs/runner-utils@4.2.1(@swc/helpers@0.5.23)(supports-color@8.1.1)':
     dependencies:
@@ -8927,17 +8912,17 @@ snapshots:
       - '@swc/helpers'
       - supports-color
 
-  '@tarojs/taro@4.2.1(b8d8445b54ae0179068baf582fe4e3bc)':
+  '@tarojs/taro@4.2.1(2126086d8f74c477b1ba28066784c49a)':
     dependencies:
       '@tarojs/api': 4.2.1(@tarojs/runtime@4.2.1)(@tarojs/shared@4.2.1)
-      '@tarojs/components': 4.2.1(@tarojs/helper@4.2.1(@swc/helpers@0.5.23)(supports-color@8.1.1))(@types/react@18.3.31)(html-webpack-plugin@5.6.8(webpack@5.91.0(@swc/core@1.3.96(@swc/helpers@0.5.23))(clean-css@5.3.3)(cssnano@6.1.2(postcss@8.5.26))(csso@5.0.5)(esbuild@0.21.5)(html-minifier-terser@6.1.0)(lightningcss@1.33.0)(postcss@8.5.26)(uglify-js@3.19.3)))(postcss@8.5.26)(rollup@3.30.0)(webpack-chain@6.5.1)(webpack-dev-server@4.15.2(debug@4.4.3(supports-color@8.1.1))(supports-color@8.1.1)(webpack@5.91.0(@swc/core@1.3.96(@swc/helpers@0.5.23))(clean-css@5.3.3)(cssnano@6.1.2(postcss@8.5.26))(csso@5.0.5)(esbuild@0.21.5)(html-minifier-terser@6.1.0)(lightningcss@1.33.0)(postcss@8.5.26)(uglify-js@3.19.3)))(webpack@5.91.0(@swc/core@1.3.96(@swc/helpers@0.5.23))(clean-css@5.3.3)(cssnano@6.1.2(postcss@8.5.26))(csso@5.0.5)(esbuild@0.21.5)(html-minifier-terser@6.1.0)(lightningcss@1.33.0)(postcss@8.5.26)(uglify-js@3.19.3))
+      '@tarojs/components': 4.2.1(@tarojs/helper@4.2.1(@swc/helpers@0.5.23)(supports-color@8.1.1))(@types/react@19.3.0)(html-webpack-plugin@5.6.8(webpack@5.91.0(@swc/core@1.3.96(@swc/helpers@0.5.23))(clean-css@5.3.3)(cssnano@6.1.2(postcss@8.5.26))(csso@5.0.5)(esbuild@0.21.5)(html-minifier-terser@6.1.0)(lightningcss@1.33.0)(postcss@8.5.26)(uglify-js@3.19.3)))(postcss@8.5.26)(rollup@3.30.0)(webpack-chain@6.5.1)(webpack-dev-server@4.15.2(debug@4.4.3(supports-color@8.1.1))(supports-color@8.1.1)(webpack@5.91.0(@swc/core@1.3.96(@swc/helpers@0.5.23))(clean-css@5.3.3)(cssnano@6.1.2(postcss@8.5.26))(csso@5.0.5)(esbuild@0.21.5)(html-minifier-terser@6.1.0)(lightningcss@1.33.0)(postcss@8.5.26)(uglify-js@3.19.3)))(webpack@5.91.0(@swc/core@1.3.96(@swc/helpers@0.5.23))(clean-css@5.3.3)(cssnano@6.1.2(postcss@8.5.26))(csso@5.0.5)(esbuild@0.21.5)(html-minifier-terser@6.1.0)(lightningcss@1.33.0)(postcss@8.5.26)(uglify-js@3.19.3))
       '@tarojs/helper': 4.2.1(@swc/helpers@0.5.23)(supports-color@8.1.1)
       '@tarojs/runtime': 4.2.1
       '@tarojs/shared': 4.2.1
       '@types/postcss-url': 10.0.4
       postcss: 8.5.26
     optionalDependencies:
-      '@types/react': 18.3.31
+      '@types/react': 19.3.0
       html-webpack-plugin: 5.6.8(webpack@5.91.0(@swc/core@1.3.96(@swc/helpers@0.5.23))(clean-css@5.3.3)(cssnano@6.1.2(postcss@8.5.26))(csso@5.0.5)(esbuild@0.21.5)(html-minifier-terser@6.1.0)(lightningcss@1.33.0)(postcss@8.5.26)(uglify-js@3.19.3))
       rollup: 3.30.0
       webpack: 5.91.0(@swc/core@1.3.96(@swc/helpers@0.5.23))(clean-css@5.3.3)(cssnano@6.1.2(postcss@8.5.26))(csso@5.0.5)(esbuild@0.21.5)(html-minifier-terser@6.1.0)(lightningcss@1.33.0)(postcss@8.5.26)(uglify-js@3.19.3)
@@ -9203,8 +9188,6 @@ snapshots:
       '@types/node': 26.5.1
       postcss: 8.5.26
 
-  '@types/prop-types@15.7.15': {}
-
   '@types/qs@6.15.1': {}
 
   '@types/range-parser@1.2.7': {}
@@ -9212,11 +9195,6 @@ snapshots:
   '@types/react-dom@19.3.0(@types/react@19.3.0)':
     dependencies:
       '@types/react': 19.3.0
-
-  '@types/react@18.3.31':
-    dependencies:
-      '@types/prop-types': 15.7.15
-      csstype: 3.2.3
 
   '@types/react@19.3.0':
     dependencies:
@@ -10788,7 +10766,7 @@ snapshots:
 
   fast-uri@4.1.3: {}
 
-  fastify@5.12.4:
+  fastify@5.12.5:
     dependencies:
       '@fastify/ajv-compiler': 4.0.6
       '@fastify/error': 4.2.0
@@ -12074,7 +12052,7 @@ snapshots:
 
   node-releases@2.0.56: {}
 
-  nodemailer@10.0.9: {}
+  nodemailer@10.0.10: {}
 
   normalize-path@3.0.0: {}
 
@@ -12682,12 +12660,6 @@ snapshots:
       minimist: 1.2.8
       strip-json-comments: 2.0.1
 
-  react-dom@18.3.1(react@18.3.1):
-    dependencies:
-      loose-envify: 1.4.0
-      react: 18.3.1
-      scheduler: 0.23.2
-
   react-dom@19.3.0(react@19.3.0):
     dependencies:
       react: 19.3.0
@@ -12695,17 +12667,13 @@ snapshots:
 
   react-is@17.0.2: {}
 
-  react-reconciler@0.29.0(react@18.3.1):
+  react-reconciler@0.29.0(react@19.3.0):
     dependencies:
       loose-envify: 1.4.0
-      react: 18.3.1
+      react: 19.3.0
       scheduler: 0.23.2
 
   react-refresh@0.14.2: {}
-
-  react@18.3.1:
-    dependencies:
-      loose-envify: 1.4.0
 
   react@19.3.0: {}
 
