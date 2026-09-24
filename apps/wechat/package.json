@@ -35,19 +35,19 @@
   },
   "devDependencies": {
     "@babel/core": "7.29.7",
-    "@babel/plugin-transform-class-properties": "7.25.9",
+    "@babel/plugin-transform-class-properties": "7.29.7",
     "@babel/preset-react": "7.29.7",
-    "@pmmmwh/react-refresh-webpack-plugin": "0.5.17",
+    "@pmmmwh/react-refresh-webpack-plugin": "0.6.3",
     "@tarojs/cli": "4.2.1",
     "@tarojs/taro-loader": "4.2.1",
     "@tarojs/webpack5-runner": "4.2.1",
     "@types/react": "18.3.31",
     "@types/webpack-env": "1.18.8",
     "babel-preset-taro": "4.2.1",
-    "postcss": "8.5.26",
+    "postcss": "8.5.28",
     "react-refresh": "0.14.2",
-    "sass": "1.103.1",
+    "sass": "1.104.1",
     "typescript": "5.9.3",
-    "webpack": "5.91.0"
+    "webpack": "5.111.1"
   }
 }
