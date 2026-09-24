@@ -1,4 +1,4 @@
-import type { AccessibleWorkspace } from "@chronelle/schemas";
+import type { AccessibleWorkspace, SessionResponse } from "@chronelle/schemas";
 
 type WorkspaceRole = NonNullable<AccessibleWorkspace["role"]>;
 
@@ -74,6 +74,17 @@ export function workspaceIdentity(
       text: personInitials(owner ?? workspace.displayName),
     },
   };
+}
+
+/** The identity of the session's active workspace; null when the session does not list it. */
+export function activeWorkspaceIdentity(
+  session: Pick<SessionResponse, "availableWorkspaces" | "workspace">,
+  labels: WorkspaceLabels,
+): WorkspaceIdentity | null {
+  const workspace = session.availableWorkspaces.find(
+    (candidate) => candidate.id === session.workspace.id,
+  );
+  return workspace === undefined ? null : workspaceIdentity(workspace, labels);
 }
 
 /** The line under the account's name: its username at home, else where it is. */

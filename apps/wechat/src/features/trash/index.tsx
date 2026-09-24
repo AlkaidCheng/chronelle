@@ -26,6 +26,7 @@ import {
   useTrash,
 } from "../../recovery/queries";
 import { useOnline } from "../../runtime/online";
+import { activeWorkspaceTitle } from "../../shell/workspace-labels";
 import "./index.scss";
 
 function TrashState({
@@ -259,7 +260,7 @@ function ReadyTrashPage({ session }: { readonly session: SessionResponse }) {
               {messages.backToEvents}
             </Button>
             <Text className="trash-eyebrow">
-              {session.workspace.displayName}
+              {activeWorkspaceTitle(session, messages)}
             </Text>
             <Text className="trash-title">{messages.trash}</Text>
             <Picker
