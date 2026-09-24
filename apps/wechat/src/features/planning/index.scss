@@ -321,6 +321,9 @@
 
 .task-view-tab {
   min-height: 58rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   margin: 0;
   padding: 0 19rpx;
   border: 0;

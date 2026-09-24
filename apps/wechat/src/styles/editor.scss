@@ -28,6 +28,9 @@
 
 .editor-nav {
   min-height: 64rpx;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
   margin: 0;
   padding: 0;
   border: 0;
@@ -137,6 +140,9 @@
 .mode-switch__item {
   min-width: 0;
   min-height: 68rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   margin: 0;
   padding: 0 10rpx;
   border: 0;
@@ -195,6 +201,9 @@
 .schedule-link,
 .draft-notice__action {
   min-height: 58rpx;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
   margin: 15rpx 0 0;
   padding: 0;
   border: 0;
@@ -291,6 +300,9 @@
 
 .editor-button {
   min-height: 82rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   flex: 1;
   margin: 0;
   border-radius: 17rpx;
