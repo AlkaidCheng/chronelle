@@ -26,6 +26,22 @@ updates:
       # and has no Node entry or server access key; 3.x is the current line.
       - dependency-name: "@cloudbase/js-sdk"
         versions: [">=4.0.0"]
+      # The Mini Program builds with Taro 4, whose React renderer and Babel
+      # preset support React 18, Babel 7, and react-refresh 0.14; its package
+      # also keeps TypeScript 5. Newer majors compile but break the app at
+      # launch (apps/wechat/test/taro-toolchain.test.ts checks the versions).
+      - dependency-name: react
+        update-types: ["version-update:semver-major"]
+      - dependency-name: react-dom
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "@types/react"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "@babel/*"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: react-refresh
+        versions: [">=0.15.0"]
+      - dependency-name: typescript
+        update-types: ["version-update:semver-major"]
   - package-ecosystem: docker
     directory: /
     schedule:
