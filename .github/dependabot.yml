@@ -42,6 +42,9 @@ updates:
         versions: [">=0.15.0"]
       - dependency-name: typescript
         update-types: ["version-update:semver-major"]
+      # Taro 4's webpack runner requires webpack 5.91.0 exactly.
+      - dependency-name: webpack
+        versions: [">5.91.0"]
   - package-ecosystem: docker
     directory: /
     schedule:
