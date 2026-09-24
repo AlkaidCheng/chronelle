@@ -130,6 +130,87 @@ describe("Event schedule formatting", () => {
     ).toBe("Mon, Jul 1, 12:30 PM");
   });
 
+  it("names yesterday, today, and tomorrow in words", () => {
+    const on = (startsOn: string, endsOn: string | null = null) =>
+      formatEventSchedule(
+        { ...baseEvent, startsOn, endsOn },
+        preferences,
+        in2026,
+      );
+    expect(on("2026-09-22")).toBe("Yesterday");
+    expect(on("2026-09-23")).toBe("Today");
+    expect(on("2026-09-24")).toBe("Tomorrow");
+    expect(on("2026-09-25")).toBe("Fri, Sep 25");
+    expect(on("2026-09-23", "2026-09-26")).toBe("Today \u2013 Sat, Sep 26");
+    expect(
+      formatEventSchedule(
+        { ...baseEvent, startsOn: "2026-09-21", endsOn: "2026-09-24" },
+        zh,
+        in2026,
+      ),
+    ).toBe("9月21日周一 \u2013 明天");
+  });
+
+  it("compares calendar dates with the account's day", () => {
+    const evening = new Date("2026-09-23T20:00:00.000Z");
+    const event = { ...baseEvent, startsOn: "2026-09-24" };
+    expect(formatEventSchedule(event, preferences, evening)).toBe("Tomorrow");
+    expect(formatEventSchedule(event, zh, evening)).toBe("今天");
+  });
+
+  it("counts calendar days across a daylight saving change", () => {
+    const fallBack = new Date("2026-11-01T07:30:00.000Z");
+    expect(
+      formatEventSchedule(
+        { ...baseEvent, startsOn: "2026-11-02" },
+        preferences,
+        fallBack,
+      ),
+    ).toBe("Tomorrow");
+  });
+
+  it("puts the time after the word for a timed Event", () => {
+    expect(
+      formatEventSchedule(
+        {
+          ...baseEvent,
+          startsAt: "2026-09-23T06:00:00.000Z",
+          endsAt: "2026-09-23T08:00:00.000Z",
+          timezone: "Asia/Shanghai",
+        },
+        preferences,
+        in2026,
+      ),
+    ).toBe("Today, 14:00\u201316:00");
+    expect(
+      formatEventSchedule(
+        {
+          ...baseEvent,
+          startsAt: "2026-09-23T12:00:00.000Z",
+          endsAt: "2026-09-23T18:00:00.000Z",
+          timezone: "Asia/Shanghai",
+        },
+        zh,
+        in2026,
+      ),
+    ).toBe("今天 20:00 \u2013 明天 2:00");
+  });
+
+  it("compares an instant with the day in the Event's time zone", () => {
+    const lateInShanghai = new Date("2026-09-23T15:30:00.000Z");
+    expect(
+      formatEventSchedule(
+        {
+          ...baseEvent,
+          startsAt: "2026-09-23T15:45:00.000Z",
+          timezone: "Asia/Tokyo",
+        },
+        zh,
+        lateInShanghai,
+      ),
+    ).toBe("今天 0:45");
+  });
+
   it("returns no display schedule for an undated Event", () => {
     expect(formatEventSchedule(baseEvent, preferences)).toBeNull();
   });
