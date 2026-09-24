@@ -163,6 +163,9 @@
 .people-primary,
 .people-secondary {
   min-height: 74rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   padding: 0 22rpx;
   border-radius: 16rpx;
   font-size: 23rpx;
@@ -186,6 +189,9 @@
 
 .people-text-button {
   min-height: 60rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   padding: 0 8rpx;
   margin: 0;
   background: transparent;
@@ -238,6 +244,9 @@
 
 .people-mode {
   min-height: 66rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   border-radius: 13rpx;
   background: var(--chronelle-paper);
   color: var(--chronelle-muted);

@@ -173,6 +173,9 @@
 
 .trash-button {
   min-height: 82rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   margin: 28rpx 0 0;
   border-radius: 17rpx;
   background: var(--chronelle-cinnabar);

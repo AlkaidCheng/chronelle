@@ -138,6 +138,9 @@
 
 .history-button {
   min-height: 76rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   margin: 28rpx 0 0;
   border: 1rpx solid var(--chronelle-line-strong);
   border-radius: 16rpx;
