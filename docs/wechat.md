@@ -19,6 +19,8 @@ The current Mini Program provides:
 - native WeChat sign-in, independent username/email and password sign-in, and
   explicit existing-account linking;
 - session restoration, revocation, onboarding, and workspace switching;
+- an Events sidebar with an account menu, a searchable workspace picker, and
+  confirmed sign-out;
 - account language, time zone, clock, and week-start preferences through the
   authenticated account API;
 - lifecycle- and network-aware TanStack Query integration;
@@ -161,6 +163,27 @@ card reads the same Event through `GET /api/events/:id` and its authoritative
 access explanation through `GET /api/objects/:id/access`. Date-only, multi-day,
 timed, and undated Events preserve their distinct semantics; timed values use
 the Event or account time zone and the account's clock preference.
+
+## Events navigation and account menu
+
+The Events page sets `navigationStyle: "custom"` and draws its own top row: a
+menu button aligned with WeChat's capsule, whose position comes from
+`Taro.getMenuButtonBoundingClientRect()`. The system keeps drawing the capsule at
+the right. Other pages keep the native bar and its back button.
+
+The menu button opens a left sidebar that stops short of the capsule. It lists
+the Events and People collections, then Trash, and ends with the account block:
+the account's name, with its username in its own workspace or the workspace and
+access in a shared one. The account block opens the account menu, which shows
+the current workspace, switches workspace through a picker that searches names,
+owners, and access, and opens Friends and account preferences. Signing out asks
+for confirmation first.
+
+Event cards say only what differs from the workspace. A view-only badge marks an
+Event the account cannot edit in a workspace where it can, and one line carries
+the location, the number of accounts an Event is shared with, and who shared an
+Event with the account. Access reads as a permission: owner, can edit, or view
+only. Pages open with their title and content, without introductory hints.
 
 ## W05 Event creation and editing
 
@@ -342,7 +365,7 @@ editor drafts.
 
 ## Native Trash and recovery
 
-The Event collection links to a lazy Trash subpackage. `GET /api/trash` lists
+The sidebar links to a lazy Trash subpackage. `GET /api/trash` lists
 only records for which the current principal has Recover permission in the
 active workspace. The Mini Program keeps that list cursor-paginated and
 filters by canonical object type; it does not persist copies of deleted
@@ -368,7 +391,7 @@ until their native interaction and cross-client semantics are defined.
 
 ## People and Friends
 
-The home collection links to two distinct native surfaces. People lists the
+The sidebar opens People, and the account menu opens Friends. People lists the
 visible canonical Person records in the active workspace, with a debounced
 server-side name search. The list is bounded to 100 records; a large workspace
 can narrow it by search. Owner and Editor roles may create a Person, while an

@@ -1,9 +1,12 @@
-import type { EventListItem, SessionResponse } from "@chronelle/schemas";
+import type {
+  AccessibleWorkspace,
+  EventListItem,
+  SessionResponse,
+} from "@chronelle/schemas";
 import {
   Button,
   Input,
   Label,
-  Picker,
   ScrollView,
   Text,
   View,
@@ -12,7 +15,11 @@ import Taro, { usePullDownRefresh } from "@tarojs/taro";
 import { useMemo, useState } from "react";
 
 import { useSession } from "../../auth/session-context";
-import { canCreateInActiveWorkspace } from "../../auth/workspace-access";
+import {
+  activeWorkspaceRole,
+  canCreateInActiveWorkspace,
+} from "../../auth/workspace-access";
+import { marksReadOnly, sharedWithCount } from "../../events/card";
 import { formatEventSchedule } from "../../events/format";
 import { useEventList } from "../../events/queries";
 import {
@@ -22,6 +29,11 @@ import {
   type MessageKey,
   resolveLocale,
 } from "../../i18n/catalog";
+import { Brand } from "../../shell/brand";
+import { Sidebar } from "../../shell/sidebar";
+import { TopBar } from "../../shell/top-bar";
+import { WorkspacePicker } from "../../shell/workspace-picker";
+import "../../styles/icons.scss";
 import "./index.scss";
 
 function systemLanguage(): string | undefined {
@@ -34,18 +46,6 @@ function systemLanguage(): string | undefined {
 
 function localeFor(session?: SessionResponse): AppLocale {
   return resolveLocale(session?.user.locale ?? systemLanguage());
-}
-
-function Brand({ subtitle }: { readonly subtitle: string }) {
-  return (
-    <View className="brand-row">
-      <Text className="brand-mark">C</Text>
-      <View className="brand-copy">
-        <Text className="brand">Chronelle</Text>
-        <Text className="eyebrow">{subtitle}</Text>
-      </View>
-    </View>
-  );
 }
 
 function Notice({
@@ -110,7 +110,8 @@ function SignInView({ locale }: { readonly locale: AppLocale }) {
 
   return (
     <View className="entry-shell">
-      <Brand subtitle={messages.eyebrow} />
+      <TopBar />
+      <Brand />
       <View className="entry-copy">
         <Text className="entry-title">
           {needsLink
@@ -210,7 +211,8 @@ function OnboardingView({ session }: { readonly session: SessionResponse }) {
   const [displayName, setDisplayName] = useState(session.user.displayName);
   return (
     <View className="entry-shell">
-      <Brand subtitle={messages.eyebrow} />
+      <TopBar />
+      <Brand />
       <View className="entry-copy">
         <Text className="entry-title">{messages.onboardingTitle}</Text>
         <Text className="entry-detail">{messages.onboardingDetail}</Text>
@@ -237,24 +239,16 @@ function OnboardingView({ session }: { readonly session: SessionResponse }) {
   );
 }
 
-function roleLabel(
-  role: EventListItem["access"]["role"],
-  locale: AppLocale,
-): string {
-  const messages = getMessages(locale);
-  if (role === "editor") return messages.roleEditor;
-  if (role === "viewer") return messages.roleViewer;
-  return messages.roleOwner;
-}
-
 function EventCard({
   event,
   locale,
   session,
+  workspaceRole,
 }: {
   readonly event: EventListItem;
   readonly locale: AppLocale;
   readonly session: SessionResponse;
+  readonly workspaceRole: AccessibleWorkspace["role"];
 }) {
   const messages = getMessages(locale);
   const schedule = formatEventSchedule(event, {
@@ -262,13 +256,8 @@ function EventCard({
     locale,
     timeZone: session.user.timeZone,
   });
-  const sharing = event.access.sharedBy
-    ? interpolate(messages.sharedBy, {
-        name: event.access.sharedBy.displayName,
-      })
-    : event.access.sharedWith > 0
-      ? interpolate(messages.sharedWith, { count: event.access.sharedWith })
-      : messages.ownEvent;
+  const sharedWith = sharedWithCount(event);
+  const sharedBy = event.access.sharedBy?.displayName ?? null;
   return (
     <View
       className="event-card"
@@ -282,19 +271,38 @@ function EventCard({
     >
       <View className="event-card__head">
         <Text className="event-name">{event.displayName}</Text>
-        <Text className="role-badge">
-          {roleLabel(event.access.role, locale)}
-        </Text>
+        {marksReadOnly(event, workspaceRole) ? (
+          <Text className="role-badge">{messages.roleViewer}</Text>
+        ) : null}
       </View>
       <Text
         className={schedule ? "event-date" : "event-date event-date--muted"}
       >
         {schedule ?? messages.unscheduled}
       </Text>
-      {event.location ? (
-        <Text className="event-location">{event.location}</Text>
+      {event.location || sharedWith > 0 || sharedBy ? (
+        <View className="event-meta">
+          {event.location ? (
+            <Text className="event-meta__item">{event.location}</Text>
+          ) : null}
+          {sharedWith > 0 ? (
+            <View
+              aria-label={interpolate(messages.sharedWith, {
+                count: sharedWith,
+              })}
+              className="event-meta__item event-meta__shared"
+            >
+              <View className="icon icon--people event-meta__icon" />
+              <Text>{sharedWith}</Text>
+            </View>
+          ) : null}
+          {sharedBy ? (
+            <Text className="event-meta__item">
+              {interpolate(messages.sharedBy, { name: sharedBy })}
+            </Text>
+          ) : null}
+        </View>
       ) : null}
-      <Text className="event-sharing">{sharing}</Text>
     </View>
   );
 }
@@ -308,100 +316,48 @@ function EventWorkspace({ session }: { readonly session: SessionResponse }) {
     () => events.data?.pages.flatMap((page) => page.items) ?? [],
     [events.data],
   );
-  const workspaces = session.availableWorkspaces;
-  const selectedWorkspace = Math.max(
-    0,
-    workspaces.findIndex((workspace) => workspace.id === session.workspace.id),
-  );
   const canCreate = canCreateInActiveWorkspace(session);
+  const workspaceRole = activeWorkspaceRole(session);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [pickerOpen, setPickerOpen] = useState(false);
+
+  async function confirmSignOut(): Promise<void> {
+    const answer = await Taro.showModal({
+      title: messages.signOutConfirmTitle,
+      content: messages.signOutConfirmDetail,
+      cancelText: messages.cancel,
+      confirmText: messages.signOutConfirm,
+      confirmColor: "#a33c2f",
+    });
+    if (!answer.confirm) return;
+    setSidebarOpen(false);
+    await auth.signOut();
+  }
 
   return (
     <View className="workspace-shell">
-      <View className="workspace-header">
-        <Brand subtitle={messages.eyebrow} />
-        <View className="workspace-header__actions">
-          <Button
-            className="text-button"
-            onClick={() =>
-              void Taro.navigateTo({
-                url: "/features/account-preferences/index",
-              })
-            }
-          >
-            {messages.account}
-          </Button>
-          <Button
-            className="text-button trash-link"
-            onClick={() =>
-              void Taro.navigateTo({ url: "/features/trash/index" })
-            }
-          >
-            {messages.trash}
-          </Button>
-          <Button
-            className="text-button"
-            disabled={auth.busy}
-            onClick={() => void auth.signOut()}
-          >
-            {messages.signOut}
-          </Button>
-        </View>
-      </View>
+      <TopBar>
+        <Button
+          aria-label={messages.menu}
+          className="shell-button top-bar__menu"
+          onClick={() => setSidebarOpen(true)}
+        >
+          <View className="icon icon--menu" />
+        </Button>
+      </TopBar>
 
       <View className="workspace-toolbar">
-        <View className="workspace-heading">
-          <Text className="workspace-title">{messages.title}</Text>
-          <Text className="workspace-description">{messages.description}</Text>
-        </View>
-        <View className="workspace-actions">
-          <Picker
-            mode="selector"
-            range={workspaces.map((workspace) => workspace.displayName)}
-            value={selectedWorkspace}
-            onChange={(event) => {
-              const next = workspaces[Number(event.detail.value)];
-              if (next) void auth.switchWorkspace(next.id);
-            }}
+        <Text className="workspace-title">{messages.title}</Text>
+        {canCreate ? (
+          <Button
+            className="new-event-button"
+            onClick={() =>
+              void Taro.navigateTo({ url: "/features/event-editor/index" })
+            }
           >
-            <View className="workspace-picker">
-              <Text className="workspace-picker__label">
-                {messages.workspace}
-              </Text>
-              <Text className="workspace-picker__value">
-                {session.workspace.displayName}
-              </Text>
-            </View>
-          </Picker>
-          {canCreate ? (
-            <Button
-              className="new-event-button"
-              onClick={() =>
-                void Taro.navigateTo({ url: "/features/event-editor/index" })
-              }
-            >
-              {messages.newEvent}
-            </Button>
-          ) : null}
-        </View>
-      </View>
-
-      <View className="workspace-collections">
-        <Button
-          className="collection-link"
-          onClick={() =>
-            void Taro.navigateTo({ url: "/features/people/index" })
-          }
-        >
-          {messages.people}
-        </Button>
-        <Button
-          className="collection-link"
-          onClick={() =>
-            void Taro.navigateTo({ url: "/features/people/friends" })
-          }
-        >
-          {messages.friends}
-        </Button>
+            {messages.newEvent}
+          </Button>
+        ) : null}
       </View>
 
       {events.isPending ? (
@@ -414,7 +370,7 @@ function EventWorkspace({ session }: { readonly session: SessionResponse }) {
           title={messages.errorTitle}
         />
       ) : items.length === 0 ? (
-        <StateView detail={messages.emptyDetail} title={messages.emptyTitle} />
+        <StateView title={messages.emptyTitle} />
       ) : (
         <ScrollView
           className="event-list"
@@ -435,6 +391,7 @@ function EventWorkspace({ session }: { readonly session: SessionResponse }) {
                 key={event.id}
                 locale={locale}
                 session={session}
+                workspaceRole={workspaceRole}
               />
             ))}
             {events.hasNextPage ? (
@@ -450,6 +407,28 @@ function EventWorkspace({ session }: { readonly session: SessionResponse }) {
           </View>
         </ScrollView>
       )}
+
+      {sidebarOpen ? (
+        <Sidebar
+          locale={locale}
+          onClose={() => setSidebarOpen(false)}
+          onSignOut={() => void confirmSignOut()}
+          onSwitchWorkspace={() => setPickerOpen(true)}
+          session={session}
+        />
+      ) : null}
+      {pickerOpen ? (
+        <WorkspacePicker
+          locale={locale}
+          onClose={() => setPickerOpen(false)}
+          onPick={(workspaceId) => {
+            setPickerOpen(false);
+            setSidebarOpen(false);
+            void auth.switchWorkspace(workspaceId);
+          }}
+          session={session}
+        />
+      ) : null}
     </View>
   );
 }
@@ -470,7 +449,8 @@ export default function IndexPage() {
   if (session.state.status === "configuration-error") {
     return (
       <View className="entry-shell">
-        <Brand subtitle={messages.eyebrow} />
+        <TopBar />
+        <Brand />
         <StateView
           detail={messages.configurationDetail}
           title={messages.configurationTitle}
@@ -489,7 +469,8 @@ export default function IndexPage() {
   if (session.state.status === "offline") {
     return (
       <View className="entry-shell">
-        <Brand subtitle={messages.eyebrow} />
+        <TopBar />
+        <Brand />
         <StateView
           detail={messages.offlineDetail}
           title={messages.offlineTitle}
@@ -500,7 +481,8 @@ export default function IndexPage() {
   if (session.state.status === "error") {
     return (
       <View className="entry-shell">
-        <Brand subtitle={messages.eyebrow} />
+        <TopBar />
+        <Brand />
         <StateView
           action={messages.retry}
           detail={messages.errorDetail}
@@ -512,7 +494,8 @@ export default function IndexPage() {
   }
   return (
     <View className="entry-shell">
-      <Brand subtitle={messages.eyebrow} />
+      <TopBar />
+      <Brand />
       <StateView
         title={
           session.state.status === "restoring"

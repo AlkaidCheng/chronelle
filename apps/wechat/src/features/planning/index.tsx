@@ -41,7 +41,7 @@ function PageState({
   title,
 }: {
   readonly action?: string | undefined;
-  readonly detail: string;
+  readonly detail?: string | undefined;
   readonly onAction?: (() => void) | undefined;
   readonly title: string;
 }) {
@@ -49,7 +49,7 @@ function PageState({
     <View className="planning-state">
       <View className="planning-state__mark" aria-hidden />
       <Text className="planning-state__title">{title}</Text>
-      <Text className="planning-state__detail">{detail}</Text>
+      {detail ? <Text className="planning-state__detail">{detail}</Text> : null}
       {action && onAction ? (
         <Button
           className="planning-button planning-button--secondary"
@@ -337,10 +337,7 @@ function ReadyPlanningPage({
   if (overview.isPending || layout.isPending) {
     return (
       <View className="planning-shell">
-        <PageState
-          detail={messages.planningDescription}
-          title={messages.loading}
-        />
+        <PageState title={messages.loading} />
       </View>
     );
   }
@@ -397,7 +394,6 @@ function ReadyPlanningPage({
       </View>
       <Text className="planning-eyebrow">{messages.planningWorkspace}</Text>
       <Text className="planning-title">{event.displayName}</Text>
-      <Text className="planning-intro">{messages.planningDescription}</Text>
 
       {saving ? (
         <Text className="planning-notice">{messages.layoutSaving}</Text>
@@ -436,9 +432,6 @@ function ReadyPlanningPage({
         <View className="planning-empty">
           <Text className="planning-empty__title">
             {messages.noPlanningPagesTitle}
-          </Text>
-          <Text className="planning-empty__detail">
-            {messages.noPlanningPagesDetail}
           </Text>
           {canEdit ? (
             <Button

@@ -11,6 +11,9 @@ page {
   --chronelle-cinnabar-soft: rgba(163, 60, 47, 0.1);
   --chronelle-indigo: #48546d;
   --chronelle-indigo-soft: rgba(72, 84, 109, 0.11);
+  --chronelle-avatar-end: #7a5a4e;
+  --chronelle-scrim: rgba(24, 20, 16, 0.4);
+  --chronelle-shadow-strong: rgba(68, 47, 31, 0.14);
 
   min-height: 100%;
   background: var(--chronelle-paper);
@@ -34,6 +37,9 @@ page {
     --chronelle-cinnabar-soft: rgba(220, 117, 102, 0.13);
     --chronelle-indigo: #9aa8c5;
     --chronelle-indigo-soft: rgba(154, 168, 197, 0.13);
+    --chronelle-avatar-end: #b98a7c;
+    --chronelle-scrim: rgba(0, 0, 0, 0.55);
+    --chronelle-shadow-strong: rgba(0, 0, 0, 0.35);
   }
 }
 

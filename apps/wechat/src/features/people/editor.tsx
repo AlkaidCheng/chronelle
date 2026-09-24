@@ -204,10 +204,7 @@ function ReadyPersonEditor({
   if (personId !== null && detail.isPending) {
     return (
       <View className="editor-shell">
-        <EditorStateCard
-          detail={messages.peopleIntro}
-          title={messages.loading}
-        />
+        <EditorStateCard title={messages.loading} />
       </View>
     );
   }

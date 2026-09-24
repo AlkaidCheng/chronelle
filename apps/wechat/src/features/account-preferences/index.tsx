@@ -105,7 +105,6 @@ function PreferencesForm({ session }: { readonly session: SessionResponse }) {
     <View className="preferences-page">
       <View className="preferences-intro">
         <Text className="preferences-title">{messages.preferenceTitle}</Text>
-        <Text className="preferences-detail">{messages.preferenceDetail}</Text>
       </View>
       <View className="preferences-card">
         <Text className="preferences-label">{messages.preferenceLanguage}</Text>

@@ -10,7 +10,6 @@
 }
 
 .preferences-title,
-.preferences-detail,
 .preferences-label,
 .preferences-hint,
 .preferences-error,
@@ -22,13 +21,6 @@
   font-family: "Songti SC", STSong, serif;
   font-size: 46rpx;
   font-weight: 600;
-}
-
-.preferences-detail {
-  margin-top: 12rpx;
-  color: var(--chronelle-muted);
-  font-size: 25rpx;
-  line-height: 1.6;
 }
 
 .preferences-card {

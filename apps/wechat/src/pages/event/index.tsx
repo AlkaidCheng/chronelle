@@ -176,9 +176,6 @@ function ReadyEventPage({
         }
       >
         <Text className="planning-link__title">{messages.openPlanning}</Text>
-        <Text className="planning-link__detail">
-          {messages.planningDescription}
-        </Text>
       </Button>
 
       <Button
@@ -190,9 +187,6 @@ function ReadyEventPage({
         }
       >
         <Text className="planning-link__title">{messages.eventHistory}</Text>
-        <Text className="planning-link__detail">
-          {messages.eventHistoryDescription}
-        </Text>
       </Button>
 
       {event.location ? (

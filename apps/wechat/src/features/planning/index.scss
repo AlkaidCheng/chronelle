@@ -93,12 +93,10 @@
 
 .planning-eyebrow,
 .planning-title,
-.planning-intro,
 .planning-notice,
 .planning-alert__title,
 .planning-alert__detail,
 .planning-empty__title,
-.planning-empty__detail,
 .component-card__title,
 .projection-row__eyebrow,
 .projection-row__title,
@@ -124,14 +122,6 @@
   font-weight: 600;
   letter-spacing: -1rpx;
   line-height: 1.25;
-}
-
-.planning-intro {
-  max-width: 650rpx;
-  margin-top: 16rpx;
-  color: var(--chronelle-muted);
-  font-size: 24rpx;
-  line-height: 1.65;
 }
 
 .planning-notice {
@@ -653,7 +643,6 @@
   line-height: 1.45;
 }
 
-.planning-empty__detail,
 .planning-state__detail {
   margin-top: 12rpx;
   color: var(--chronelle-muted);

@@ -61,8 +61,7 @@
   display: block;
 }
 
-.planning-link__title,
-.planning-link__detail {
+.planning-link__title {
   display: block;
 }
 
@@ -115,13 +114,6 @@
   font-size: 29rpx;
   font-weight: 600;
   line-height: 1.4;
-}
-
-.planning-link__detail {
-  margin-top: 8rpx;
-  color: var(--chronelle-muted);
-  font-size: 22rpx;
-  line-height: 1.55;
 }
 
 .detail-section {
