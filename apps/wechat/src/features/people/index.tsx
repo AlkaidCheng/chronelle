@@ -8,6 +8,7 @@ import { canCreateInActiveWorkspace } from "../../auth/workspace-access";
 import { EditorStateCard } from "../../components/editor";
 import { getMessages, resolveLocale } from "../../i18n/catalog";
 import { usePeopleList } from "../../people/queries";
+import { useNavigationTitle } from "../../shell/use-navigation-title";
 import "../../styles/editor.scss";
 import "./people.scss";
 import { PeopleSessionState } from "./session-state";
@@ -113,6 +114,7 @@ function ReadyPeople({ session }: { readonly session: SessionResponse }) {
 
 export default function PeoplePage() {
   const session = useSession();
+  useNavigationTitle("people");
   if (session.state.status === "ready")
     return <ReadyPeople session={session.state.session} />;
   return (

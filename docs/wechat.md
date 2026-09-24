@@ -173,7 +173,9 @@ day.
 The Events page sets `navigationStyle: "custom"` and draws its own top row: a
 menu button aligned with WeChat's capsule, whose position comes from
 `Taro.getMenuButtonBoundingClientRect()`. The system keeps drawing the capsule at
-the right. Other pages keep the native bar and its back button.
+the right. Other pages keep the native bar and its back button. Its title is the
+product name or the page's name in the account's language; before a session
+is available it reads in Chinese, the catalogs' fallback.
 
 The menu button opens a left sidebar that stops short of the capsule. It lists
 the Events and People collections, then Trash, and ends with the account block:

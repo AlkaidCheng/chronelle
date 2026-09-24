@@ -6,6 +6,7 @@ import { useState } from "react";
 
 import { useSession } from "../../auth/session-context";
 import { getMessages, resolveLocale } from "../../i18n/catalog";
+import { useNavigationTitle } from "../../shell/use-navigation-title";
 import {
   preferencesFromUser,
   preferencesUpdate,
@@ -209,6 +210,7 @@ function PreferencesForm({ session }: { readonly session: SessionResponse }) {
 
 export default function AccountPreferencesPage() {
   const auth = useSession();
+  useNavigationTitle("preferenceTitle");
   if (auth.state.status === "restoring" || auth.state.status === "loading") {
     return (
       <View className="preferences-page">

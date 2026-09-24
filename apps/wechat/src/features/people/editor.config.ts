@@ -1,3 +1,3 @@
 export default definePageConfig({
-  navigationBarTitleText: "Person",
+  navigationBarTitleText: "伙伴",
 });
