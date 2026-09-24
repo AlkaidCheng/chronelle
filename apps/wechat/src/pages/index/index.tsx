@@ -7,7 +7,6 @@ import {
   Button,
   Input,
   Label,
-  Picker,
   ScrollView,
   Text,
   View,
@@ -30,6 +29,10 @@ import {
   type MessageKey,
   resolveLocale,
 } from "../../i18n/catalog";
+import { Brand } from "../../shell/brand";
+import { Sidebar } from "../../shell/sidebar";
+import { TopBar } from "../../shell/top-bar";
+import { WorkspacePicker } from "../../shell/workspace-picker";
 import "../../styles/icons.scss";
 import "./index.scss";
 
@@ -43,15 +46,6 @@ function systemLanguage(): string | undefined {
 
 function localeFor(session?: SessionResponse): AppLocale {
   return resolveLocale(session?.user.locale ?? systemLanguage());
-}
-
-function Brand() {
-  return (
-    <View className="brand-row">
-      <Text className="brand-mark">C</Text>
-      <Text className="brand">Chronelle</Text>
-    </View>
-  );
 }
 
 function Notice({
@@ -116,6 +110,7 @@ function SignInView({ locale }: { readonly locale: AppLocale }) {
 
   return (
     <View className="entry-shell">
+      <TopBar />
       <Brand />
       <View className="entry-copy">
         <Text className="entry-title">
@@ -216,6 +211,7 @@ function OnboardingView({ session }: { readonly session: SessionResponse }) {
   const [displayName, setDisplayName] = useState(session.user.displayName);
   return (
     <View className="entry-shell">
+      <TopBar />
       <Brand />
       <View className="entry-copy">
         <Text className="entry-title">{messages.onboardingTitle}</Text>
@@ -320,100 +316,48 @@ function EventWorkspace({ session }: { readonly session: SessionResponse }) {
     () => events.data?.pages.flatMap((page) => page.items) ?? [],
     [events.data],
   );
-  const workspaces = session.availableWorkspaces;
-  const selectedWorkspace = Math.max(
-    0,
-    workspaces.findIndex((workspace) => workspace.id === session.workspace.id),
-  );
   const canCreate = canCreateInActiveWorkspace(session);
   const workspaceRole = activeWorkspaceRole(session);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [pickerOpen, setPickerOpen] = useState(false);
+
+  async function confirmSignOut(): Promise<void> {
+    const answer = await Taro.showModal({
+      title: messages.signOutConfirmTitle,
+      content: messages.signOutConfirmDetail,
+      cancelText: messages.cancel,
+      confirmText: messages.signOutConfirm,
+      confirmColor: "#a33c2f",
+    });
+    if (!answer.confirm) return;
+    setSidebarOpen(false);
+    await auth.signOut();
+  }
 
   return (
     <View className="workspace-shell">
-      <View className="workspace-header">
-        <Brand />
-        <View className="workspace-header__actions">
-          <Button
-            className="text-button"
-            onClick={() =>
-              void Taro.navigateTo({
-                url: "/features/account-preferences/index",
-              })
-            }
-          >
-            {messages.account}
-          </Button>
-          <Button
-            className="text-button trash-link"
-            onClick={() =>
-              void Taro.navigateTo({ url: "/features/trash/index" })
-            }
-          >
-            {messages.trash}
-          </Button>
-          <Button
-            className="text-button"
-            disabled={auth.busy}
-            onClick={() => void auth.signOut()}
-          >
-            {messages.signOut}
-          </Button>
-        </View>
-      </View>
+      <TopBar>
+        <Button
+          aria-label={messages.menu}
+          className="shell-button top-bar__menu"
+          onClick={() => setSidebarOpen(true)}
+        >
+          <View className="icon icon--menu" />
+        </Button>
+      </TopBar>
 
       <View className="workspace-toolbar">
-        <View className="workspace-heading">
-          <Text className="workspace-title">{messages.title}</Text>
-        </View>
-        <View className="workspace-actions">
-          <Picker
-            mode="selector"
-            range={workspaces.map((workspace) => workspace.displayName)}
-            value={selectedWorkspace}
-            onChange={(event) => {
-              const next = workspaces[Number(event.detail.value)];
-              if (next) void auth.switchWorkspace(next.id);
-            }}
+        <Text className="workspace-title">{messages.title}</Text>
+        {canCreate ? (
+          <Button
+            className="new-event-button"
+            onClick={() =>
+              void Taro.navigateTo({ url: "/features/event-editor/index" })
+            }
           >
-            <View className="workspace-picker">
-              <Text className="workspace-picker__label">
-                {messages.workspace}
-              </Text>
-              <Text className="workspace-picker__value">
-                {session.workspace.displayName}
-              </Text>
-            </View>
-          </Picker>
-          {canCreate ? (
-            <Button
-              className="new-event-button"
-              onClick={() =>
-                void Taro.navigateTo({ url: "/features/event-editor/index" })
-              }
-            >
-              {messages.newEvent}
-            </Button>
-          ) : null}
-        </View>
-      </View>
-
-      <View className="workspace-collections">
-        <Button
-          className="collection-link"
-          onClick={() =>
-            void Taro.navigateTo({ url: "/features/people/index" })
-          }
-        >
-          {messages.people}
-        </Button>
-        <Button
-          className="collection-link"
-          onClick={() =>
-            void Taro.navigateTo({ url: "/features/people/friends" })
-          }
-        >
-          {messages.friends}
-        </Button>
+            {messages.newEvent}
+          </Button>
+        ) : null}
       </View>
 
       {events.isPending ? (
@@ -463,6 +407,28 @@ function EventWorkspace({ session }: { readonly session: SessionResponse }) {
           </View>
         </ScrollView>
       )}
+
+      {sidebarOpen ? (
+        <Sidebar
+          locale={locale}
+          onClose={() => setSidebarOpen(false)}
+          onSignOut={() => void confirmSignOut()}
+          onSwitchWorkspace={() => setPickerOpen(true)}
+          session={session}
+        />
+      ) : null}
+      {pickerOpen ? (
+        <WorkspacePicker
+          locale={locale}
+          onClose={() => setPickerOpen(false)}
+          onPick={(workspaceId) => {
+            setPickerOpen(false);
+            setSidebarOpen(false);
+            void auth.switchWorkspace(workspaceId);
+          }}
+          session={session}
+        />
+      ) : null}
     </View>
   );
 }
@@ -483,6 +449,7 @@ export default function IndexPage() {
   if (session.state.status === "configuration-error") {
     return (
       <View className="entry-shell">
+        <TopBar />
         <Brand />
         <StateView
           detail={messages.configurationDetail}
@@ -502,6 +469,7 @@ export default function IndexPage() {
   if (session.state.status === "offline") {
     return (
       <View className="entry-shell">
+        <TopBar />
         <Brand />
         <StateView
           detail={messages.offlineDetail}
@@ -513,6 +481,7 @@ export default function IndexPage() {
   if (session.state.status === "error") {
     return (
       <View className="entry-shell">
+        <TopBar />
         <Brand />
         <StateView
           action={messages.retry}
@@ -525,6 +494,7 @@ export default function IndexPage() {
   }
   return (
     <View className="entry-shell">
+      <TopBar />
       <Brand />
       <StateView
         title={
