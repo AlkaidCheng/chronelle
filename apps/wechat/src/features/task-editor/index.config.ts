@@ -1,3 +1,3 @@
 export default definePageConfig({
-  navigationBarTitleText: "Task",
+  navigationBarTitleText: "待办",
 });

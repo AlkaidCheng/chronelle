@@ -35,6 +35,7 @@ import {
   useUpdatePerson,
 } from "../../people/queries";
 import { useReadyAppRuntime } from "../../runtime/app-runtime";
+import { useNavigationTitle } from "../../shell/use-navigation-title";
 import { PeopleSessionState } from "./session-state";
 import "../../styles/editor.scss";
 import "./people.scss";
@@ -446,6 +447,7 @@ function ReadyPersonEditor({
 
 export default function PersonEditorPage() {
   const session = useSession();
+  useNavigationTitle("person");
   const route = useRouter();
   const id = route.params.id;
   const personId = typeof id === "string" && id.length > 0 ? id : null;

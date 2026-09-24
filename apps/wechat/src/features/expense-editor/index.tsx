@@ -32,6 +32,7 @@ import {
 } from "../../i18n/catalog";
 import { useReadyAppRuntime } from "../../runtime/app-runtime";
 import { useEditorDraftPersistence } from "../../runtime/use-editor-draft";
+import { useNavigationTitle } from "../../shell/use-navigation-title";
 import { usePlanningProjection } from "../planning/queries";
 import { ExpenseEditorFieldsForm } from "./editor-fields";
 import "../../styles/editor.scss";
@@ -484,6 +485,7 @@ function ExpenseEditor({
 export default function ExpenseEditorPage() {
   const route = useRouter();
   const auth = useSession();
+  useNavigationTitle("expense");
   const eventId =
     typeof route.params.eventId === "string" && route.params.eventId.length > 0
       ? route.params.eventId

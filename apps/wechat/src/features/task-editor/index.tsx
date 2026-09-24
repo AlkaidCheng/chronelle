@@ -15,6 +15,7 @@ import {
 } from "../../i18n/catalog";
 import { useReadyAppRuntime } from "../../runtime/app-runtime";
 import { useEditorDraftPersistence } from "../../runtime/use-editor-draft";
+import { useNavigationTitle } from "../../shell/use-navigation-title";
 import type { TaskDraftSnapshot } from "../../tasks/draft-store";
 import {
   emptyTaskFields,
@@ -492,6 +493,7 @@ function TaskEditor({
 export default function TaskEditorPage() {
   const route = useRouter();
   const auth = useSession();
+  useNavigationTitle("task");
   const eventId =
     typeof route.params.eventId === "string" && route.params.eventId.length > 0
       ? route.params.eventId

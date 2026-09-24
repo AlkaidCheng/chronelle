@@ -1,5 +1,5 @@
 export default definePageConfig({
   backgroundColor: "@backgroundColor",
   enablePullDownRefresh: true,
-  navigationBarTitleText: "People",
+  navigationBarTitleText: "伙伴",
 });

@@ -12,6 +12,7 @@ import { EditorStateCard } from "../../components/editor";
 import { getMessages, resolveLocale } from "../../i18n/catalog";
 import { useFriends } from "../../people/queries";
 import { useReadyAppRuntime } from "../../runtime/app-runtime";
+import { useNavigationTitle } from "../../shell/use-navigation-title";
 import { PeopleSessionState } from "./session-state";
 import "../../styles/editor.scss";
 import "./people.scss";
@@ -395,6 +396,7 @@ function ReadyFriends({ session }: { readonly session: SessionResponse }) {
 
 export default function FriendsPage() {
   const session = useSession();
+  useNavigationTitle("friends");
   if (session.state.status === "ready")
     return <ReadyFriends session={session.state.session} />;
   return (
