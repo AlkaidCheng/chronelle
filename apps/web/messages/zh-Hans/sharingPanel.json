@@ -3,8 +3,8 @@
   "collaboratorEmail": "协作者邮箱",
   "access": "权限",
   "roles": {
-    "viewer": "查看者",
-    "editor": "编辑者",
+    "viewer": "仅查看",
+    "editor": "可编辑",
     "owner": "所有者"
   },
   "sharing": "共享中…",

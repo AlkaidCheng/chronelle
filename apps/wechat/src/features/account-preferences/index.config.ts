@@ -1,3 +1,3 @@
 export default definePageConfig({
-  navigationBarTitleText: "Account preferences",
+  navigationBarTitleText: "Settings",
 });

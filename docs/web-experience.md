@@ -728,6 +728,9 @@ sorting follow the active language through `Intl`, so Chinese names sort by
 pinyin under Simplified and by stroke under Traditional as ICU defines. Under
 Traditional Chinese the display and body stacks prefer the TC faces; Chinese
 body text takes a taller line and uppercase labels drop their Latin tracking.
+Both Chinese variants name access as a permission, the words the Mini Program
+uses: 所有者/擁有者 for Owner, 可编辑/可編輯 for Editor, and 仅查看/僅查看 for
+Viewer.
 Notices word the API's known error codes (version conflict, unavailable
 workspace, network failure, wrong credentials, unverified email, ended
 session) in the active language and show the API's English message only for

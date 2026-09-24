@@ -9,7 +9,7 @@ import {
 } from "../src/account/workspace-identity";
 
 const labels = {
-  myWorkspace: "我的工作空间",
+  myWorkspace: "我的工作区",
   access: (role: "owner" | "editor" | "viewer") =>
     role === "owner" ? "所有者" : role === "editor" ? "可编辑" : "仅查看",
 };
@@ -42,7 +42,7 @@ describe("Mini Program workspace identity", () => {
     });
 
     expect(workspaceIdentity(own, labels)).toEqual({
-      title: "我的工作空间",
+      title: "我的工作区",
       access: null,
       detail: null,
       mark: { kind: "home" },

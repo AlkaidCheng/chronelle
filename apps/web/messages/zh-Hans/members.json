@@ -8,8 +8,8 @@
   "personal": "个人工作区",
   "noFriends": "先添加好友，才能将其加入此处。",
   "roles": {
-    "viewer": "查看者",
-    "editor": "编辑者",
-    "owner": "拥有者"
+    "viewer": "仅查看",
+    "editor": "可编辑",
+    "owner": "所有者"
   }
 }
