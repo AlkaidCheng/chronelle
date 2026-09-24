@@ -1,0 +1,20 @@
+// Line icons painted in the current text colour: each 16x16 SVG is a mask
+// over a currentColor fill, so icons follow the light and dark palettes.
+.icon {
+  display: inline-block;
+  flex: 0 0 auto;
+  width: 32rpx;
+  height: 32rpx;
+  background-color: currentColor;
+  -webkit-mask-position: center;
+  mask-position: center;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-size: contain;
+  mask-size: contain;
+}
+
+.icon--people {
+  -webkit-mask-image: url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxNiAxNiI+PGNpcmNsZSBjeD0iNiIgY3k9IjUuNCIgcj0iMi40IiBmaWxsPSJub25lIiBzdHJva2U9IiMwMDAiIHN0cm9rZS13aWR0aD0iMS40IiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz48cGF0aCBkPSJNMS44IDEzLjJjLjUtMi4zIDIuMi0zLjYgNC4yLTMuNnMzLjcgMS4zIDQuMiAzLjZNMTAuNiAzLjRhMi4zIDIuMyAwIDAgMSAwIDQuMk0xMi4yIDkuOWMxIC41IDEuNyAxLjcgMiAzLjMiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzAwMCIgc3Ryb2tlLXdpZHRoPSIxLjQiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIvPjwvc3ZnPg==");
+  mask-image: url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxNiAxNiI+PGNpcmNsZSBjeD0iNiIgY3k9IjUuNCIgcj0iMi40IiBmaWxsPSJub25lIiBzdHJva2U9IiMwMDAiIHN0cm9rZS13aWR0aD0iMS40IiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz48cGF0aCBkPSJNMS44IDEzLjJjLjUtMi4zIDIuMi0zLjYgNC4yLTMuNnMzLjcgMS4zIDQuMiAzLjZNMTAuNiAzLjRhMi4zIDIuMyAwIDAgMSAwIDQuMk0xMi4yIDkuOWMxIC41IDEuNyAxLjcgMiAzLjMiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzAwMCIgc3Ryb2tlLXdpZHRoPSIxLjQiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIvPjwvc3ZnPg==");
+}

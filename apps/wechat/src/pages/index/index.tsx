@@ -1,4 +1,8 @@
-import type { EventListItem, SessionResponse } from "@chronelle/schemas";
+import type {
+  AccessibleWorkspace,
+  EventListItem,
+  SessionResponse,
+} from "@chronelle/schemas";
 import {
   Button,
   Input,
@@ -12,7 +16,11 @@ import Taro, { usePullDownRefresh } from "@tarojs/taro";
 import { useMemo, useState } from "react";
 
 import { useSession } from "../../auth/session-context";
-import { canCreateInActiveWorkspace } from "../../auth/workspace-access";
+import {
+  activeWorkspaceRole,
+  canCreateInActiveWorkspace,
+} from "../../auth/workspace-access";
+import { marksReadOnly, sharedWithCount } from "../../events/card";
 import { formatEventSchedule } from "../../events/format";
 import { useEventList } from "../../events/queries";
 import {
@@ -22,6 +30,7 @@ import {
   type MessageKey,
   resolveLocale,
 } from "../../i18n/catalog";
+import "../../styles/icons.scss";
 import "./index.scss";
 
 function systemLanguage(): string | undefined {
@@ -234,24 +243,16 @@ function OnboardingView({ session }: { readonly session: SessionResponse }) {
   );
 }
 
-function roleLabel(
-  role: EventListItem["access"]["role"],
-  locale: AppLocale,
-): string {
-  const messages = getMessages(locale);
-  if (role === "editor") return messages.roleEditor;
-  if (role === "viewer") return messages.roleViewer;
-  return messages.roleOwner;
-}
-
 function EventCard({
   event,
   locale,
   session,
+  workspaceRole,
 }: {
   readonly event: EventListItem;
   readonly locale: AppLocale;
   readonly session: SessionResponse;
+  readonly workspaceRole: AccessibleWorkspace["role"];
 }) {
   const messages = getMessages(locale);
   const schedule = formatEventSchedule(event, {
@@ -259,13 +260,8 @@ function EventCard({
     locale,
     timeZone: session.user.timeZone,
   });
-  const sharing = event.access.sharedBy
-    ? interpolate(messages.sharedBy, {
-        name: event.access.sharedBy.displayName,
-      })
-    : event.access.sharedWith > 0
-      ? interpolate(messages.sharedWith, { count: event.access.sharedWith })
-      : messages.ownEvent;
+  const sharedWith = sharedWithCount(event);
+  const sharedBy = event.access.sharedBy?.displayName ?? null;
   return (
     <View
       className="event-card"
@@ -279,19 +275,38 @@ function EventCard({
     >
       <View className="event-card__head">
         <Text className="event-name">{event.displayName}</Text>
-        <Text className="role-badge">
-          {roleLabel(event.access.role, locale)}
-        </Text>
+        {marksReadOnly(event, workspaceRole) ? (
+          <Text className="role-badge">{messages.roleViewer}</Text>
+        ) : null}
       </View>
       <Text
         className={schedule ? "event-date" : "event-date event-date--muted"}
       >
         {schedule ?? messages.unscheduled}
       </Text>
-      {event.location ? (
-        <Text className="event-location">{event.location}</Text>
+      {event.location || sharedWith > 0 || sharedBy ? (
+        <View className="event-meta">
+          {event.location ? (
+            <Text className="event-meta__item">{event.location}</Text>
+          ) : null}
+          {sharedWith > 0 ? (
+            <View
+              aria-label={interpolate(messages.sharedWith, {
+                count: sharedWith,
+              })}
+              className="event-meta__item event-meta__shared"
+            >
+              <View className="icon icon--people event-meta__icon" />
+              <Text>{sharedWith}</Text>
+            </View>
+          ) : null}
+          {sharedBy ? (
+            <Text className="event-meta__item">
+              {interpolate(messages.sharedBy, { name: sharedBy })}
+            </Text>
+          ) : null}
+        </View>
       ) : null}
-      <Text className="event-sharing">{sharing}</Text>
     </View>
   );
 }
@@ -311,6 +326,7 @@ function EventWorkspace({ session }: { readonly session: SessionResponse }) {
     workspaces.findIndex((workspace) => workspace.id === session.workspace.id),
   );
   const canCreate = canCreateInActiveWorkspace(session);
+  const workspaceRole = activeWorkspaceRole(session);
 
   return (
     <View className="workspace-shell">
@@ -431,6 +447,7 @@ function EventWorkspace({ session }: { readonly session: SessionResponse }) {
                 key={event.id}
                 locale={locale}
                 session={session}
+                workspaceRole={workspaceRole}
               />
             ))}
             {events.hasNextPage ? (

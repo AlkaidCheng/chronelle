@@ -65,8 +65,6 @@
 .workspace-picker__value,
 .event-name,
 .event-date,
-.event-location,
-.event-sharing,
 .role-badge {
   display: block;
 }
@@ -432,23 +430,36 @@
   line-height: 1.5;
 }
 
-.event-date--muted,
-.event-location,
-.event-sharing {
+.event-date--muted {
   color: var(--chronelle-muted);
 }
 
-.event-location,
-.event-sharing {
-  margin-top: 7rpx;
+.event-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  margin-top: 8rpx;
+  color: var(--chronelle-muted);
   font-size: 22rpx;
   line-height: 1.5;
 }
 
-.event-sharing {
-  padding-top: 15rpx;
-  border-top: 1rpx solid var(--chronelle-line);
-  margin-top: 18rpx;
+.event-meta__item + .event-meta__item::before {
+  content: "·";
+  margin: 0 12rpx;
+  opacity: 0.55;
+}
+
+.event-meta__shared {
+  display: inline-flex;
+  align-items: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.event-meta__icon {
+  width: 24rpx;
+  height: 24rpx;
+  margin-right: 6rpx;
 }
 
 .load-more {

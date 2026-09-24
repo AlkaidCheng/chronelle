@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 
-import { canCreateInActiveWorkspace } from "../src/auth/workspace-access";
+import {
+  activeWorkspaceRole,
+  canCreateInActiveWorkspace,
+} from "../src/auth/workspace-access";
 
 const workspaceId = "019d6e7d-0000-7000-8000-000000000001";
 
@@ -41,5 +44,12 @@ describe("Mini Program workspace access", () => {
         availableWorkspaces: [],
       }),
     ).toBe(false);
+  });
+
+  it("reads the role held in the active workspace", () => {
+    expect(activeWorkspaceRole(session("editor"))).toBe("editor");
+    expect(
+      activeWorkspaceRole({ ...session("owner"), availableWorkspaces: [] }),
+    ).toBeNull();
   });
 });
