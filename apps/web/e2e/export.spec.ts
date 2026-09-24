@@ -58,7 +58,14 @@ test("exports a view as it is shown: the CSV follows the filter and the PDF prin
     expect(response.status()).toBe(201);
   }
   const errors: string[] = [];
-  page.on("pageerror", (error) => errors.push(error.message));
+  page.on("pageerror", (error) => {
+    // WebKit reports a link prefetch cut short by the next navigation (the
+    // sidebar's collections and the Event's own page, while the journey moves
+    // on or prints) as an access control failure; it is not an application
+    // error.
+    if (/_rsc=.*access control checks/u.test(error.message)) return;
+    errors.push(error.message);
+  });
 
   await page.goto("/sign-in/development");
   await page.getByLabel("Name", { exact: true }).fill("Mei Lin");
