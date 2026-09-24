@@ -162,7 +162,10 @@ The Event collection calls `GET /api/events` with cursor pagination. Opening a
 card reads the same Event through `GET /api/events/:id` and its authoritative
 access explanation through `GET /api/objects/:id/access`. Date-only, multi-day,
 timed, and undated Events preserve their distinct semantics; timed values use
-the Event or account time zone and the account's clock preference.
+the Event or account time zone and the account's clock preference. Schedules
+read compactly: the weekday and date, the year only outside the current year,
+and one date with a time span for a timed Event that starts and ends the same
+day.
 
 ## Events navigation and account menu
 
