@@ -180,8 +180,10 @@ the Events and People collections, then Trash, and ends with the account block:
 the account's name, with its username in its own workspace or the workspace and
 access in a shared one. The account block opens the account menu, which shows
 the current workspace, switches workspace through a picker that searches names,
-owners, and access, and opens Friends and Settings. Signing out asks
-for confirmation first.
+owners, and access, and opens Friends and Settings. Signing out asks for
+confirmation first. People and Trash name the active workspace above their
+titles the same way: my workspace for the account's own, and a shared one by its
+owner or its new name.
 
 Event cards say only what differs from the workspace. A view-only badge marks an
 Event the account cannot edit in a workspace where it can, and one line carries

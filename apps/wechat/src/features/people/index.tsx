@@ -7,6 +7,7 @@ import { useSession } from "../../auth/session-context";
 import { canCreateInActiveWorkspace } from "../../auth/workspace-access";
 import { EditorStateCard } from "../../components/editor";
 import { getMessages, resolveLocale } from "../../i18n/catalog";
+import { activeWorkspaceTitle } from "../../shell/workspace-labels";
 import { usePeopleList } from "../../people/queries";
 import "../../styles/editor.scss";
 import "./people.scss";
@@ -42,7 +43,7 @@ function ReadyPeople({ session }: { readonly session: SessionResponse }) {
       <View className="people-header">
         <View>
           <Text className="people-eyebrow">
-            {session.workspace.displayName}
+            {activeWorkspaceTitle(session, messages)}
           </Text>
           <Text className="people-title">{messages.people}</Text>
         </View>

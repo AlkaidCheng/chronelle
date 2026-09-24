@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   accountLine,
+  activeWorkspaceIdentity,
   matchesWorkspaceQuery,
   personInitials,
   splitMatch,
@@ -16,6 +17,7 @@ const labels = {
 
 function workspace(
   overrides: Partial<{
+    id: string;
     displayName: string;
     ownerDisplayName: string | null;
     personal: boolean;
@@ -107,6 +109,49 @@ describe("Mini Program workspace identity", () => {
     expect(matchesWorkspaceQuery(identity, "可编辑")).toBe(true);
     expect(matchesWorkspaceQuery(identity, "")).toBe(true);
     expect(matchesWorkspaceQuery(identity, "trip")).toBe(false);
+  });
+
+  it("finds the session's active workspace among those it lists", () => {
+    const own = workspace({
+      id: "019d6e7d-0000-7000-8000-000000000002",
+      displayName: "林美's workspace",
+      ownerDisplayName: "林美",
+      personal: true,
+      role: "owner",
+    });
+    const shared = workspace();
+    const availableWorkspaces = [own, shared];
+
+    expect(
+      activeWorkspaceIdentity(
+        {
+          availableWorkspaces,
+          workspace: { id: own.id, displayName: own.displayName },
+        },
+        labels,
+      )?.title,
+    ).toBe("我的工作区");
+    expect(
+      activeWorkspaceIdentity(
+        {
+          availableWorkspaces,
+          workspace: { id: shared.id, displayName: shared.displayName },
+        },
+        labels,
+      )?.title,
+    ).toBe("陈凯");
+    expect(
+      activeWorkspaceIdentity(
+        {
+          availableWorkspaces,
+          workspace: {
+            id: "019d6e7d-0000-7000-8000-000000000009",
+            displayName: "Other",
+          },
+        },
+        labels,
+      ),
+    ).toBeNull();
   });
 
   it("splits text around the first match for highlighting", () => {
