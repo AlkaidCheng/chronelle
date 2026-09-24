@@ -8,15 +8,15 @@
   "addPeople": "新增成員",
   "done": "完成",
   "nobody": "目前只有你能看到。",
-  "roleFor": "{name}的角色",
+  "roleFor": "{name}的權限",
   "remove": "移除{name}",
   "removed": "已移除共享。",
-  "changed": "已更改角色。",
+  "changed": "已更改權限。",
   "sharedView": "已共享：{name}",
   "sharedSection": "已共享分組：{name}",
   "roles": {
-    "viewer": "檢視者",
-    "editor": "編輯者",
+    "viewer": "僅查看",
+    "editor": "可編輯",
     "owner": "擁有者"
   }
 }
