@@ -1,5 +1,7 @@
-// Loads first: every schema created afterwards validates without compilation.
+// Load first: schemas read the validation mode when they are created, and
+// queries and requests construct AbortController, which WeChat lacks.
 import "./runtime/validation";
+import "./runtime/abort-controller";
 
 import {
   focusManager,
