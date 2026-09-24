@@ -166,7 +166,9 @@ timed, and undated Events preserve their distinct semantics; timed values use
 the Event or account time zone and the account's clock preference. Schedules
 read compactly: the weekday and date, the year only outside the current year,
 and one date with a time span for a timed Event that starts and ends the same
-day.
+day. Yesterday, today, and tomorrow read as words, with the time after the word
+for a timed Event. A calendar date is compared with the account's current day;
+an instant is compared with the current day in the time zone it is shown in.
 
 ## Events navigation and account menu
 

@@ -1,5 +1,7 @@
 import type { EventResponse, HourCycle } from "@chronelle/schemas";
 
+import { getMessages, interpolate, resolveLocale } from "../i18n/catalog";
+
 export interface EventFormatPreferences {
   readonly hourCycle: HourCycle | null;
   readonly locale: string;
@@ -74,6 +76,29 @@ function dayKey(date: Date, timeZone: string | undefined): string {
   return `${part("year")}-${part("month")}-${part("day")}`;
 }
 
+/** The day key a whole number of days after another. */
+function shiftDayKey(key: string, days: number): string {
+  const date = calendarDate(key);
+  if (date === null) return key;
+  date.setUTCDate(date.getUTCDate() + days);
+  return date.toISOString().slice(0, 10);
+}
+
+type RelativeDay = "yesterday" | "today" | "tomorrow";
+
+/** Yesterday, today, or tomorrow when a day key names one of them in a zone. */
+function relativeDay(
+  key: string,
+  now: Date,
+  timeZone: string | undefined,
+): RelativeDay | null {
+  const today = dayKey(now, timeZone);
+  if (key === today) return "today";
+  if (key === shiftDayKey(today, 1)) return "tomorrow";
+  if (key === shiftDayKey(today, -1)) return "yesterday";
+  return null;
+}
+
 /** Whether a schedule must name its year: outside the current one, or spanning two. */
 function namesYear(
   dates: readonly Date[],
@@ -119,8 +144,10 @@ function timeOptions(
 /**
  * An Event's schedule, compact: weekday and date, the year only when it is not
  * the current year, and one date for a timed Event that starts and ends the
- * same day. Calendar dates keep their day in every zone; instants read in the
- * Event's zone, else the account's.
+ * same day. Yesterday, today, and tomorrow read as words. Calendar dates keep
+ * their day in every zone and are compared with the account's day; instants
+ * read in the Event's zone, else the account's, and are compared with the day
+ * in that zone.
  */
 export function formatEventSchedule(
   event: Pick<
@@ -131,6 +158,7 @@ export function formatEventSchedule(
   now: Date = new Date(),
 ): string | null {
   const nowZone = preferences.timeZone ?? undefined;
+  const messages = getMessages(resolveLocale(preferences.locale));
   if (event.startsOn !== null) {
     const start = calendarDate(event.startsOn);
     if (start === null) return event.startsOn;
@@ -144,9 +172,13 @@ export function formatEventSchedule(
       dayOptions(namesYear(dates, "UTC", now, nowZone), "UTC"),
     );
     if (day === null) return event.startsOn;
+    const label = (date: Date) => {
+      const relative = relativeDay(dayKey(date, "UTC"), now, nowZone);
+      return relative === null ? day.format(date) : messages[relative];
+    };
     return end === null
-      ? day.format(start)
-      : `${day.format(start)}${rangeSeparator}${day.format(end)}`;
+      ? label(start)
+      : `${label(start)}${rangeSeparator}${label(end)}`;
   }
   if (event.startsAt !== null) {
     const zone = event.timezone ?? nowZone;
@@ -162,16 +194,20 @@ export function formatEventSchedule(
       ...timeOptions(preferences, zone),
     });
     if (moment === null) return event.startsAt;
-    if (end === null || Number.isNaN(end.getTime()))
-      return moment.format(start);
-    if (dayKey(start, zone) === dayKey(end, zone)) {
-      const time = formatter(
-        preferences.locale,
-        timeOptions(preferences, zone),
-      );
-      return `${moment.format(start)}${timeSpanSeparator}${time?.format(end) ?? ""}`;
-    }
-    return `${moment.format(start)}${rangeSeparator}${moment.format(end)}`;
+    const time = formatter(preferences.locale, timeOptions(preferences, zone));
+    const label = (date: Date) => {
+      const relative = relativeDay(dayKey(date, zone), now, zone);
+      return relative === null || time === null
+        ? moment.format(date)
+        : interpolate(messages.dayAtTime, {
+            day: messages[relative],
+            time: time.format(date),
+          });
+    };
+    if (end === null || Number.isNaN(end.getTime())) return label(start);
+    if (dayKey(start, zone) === dayKey(end, zone))
+      return `${label(start)}${timeSpanSeparator}${time?.format(end) ?? ""}`;
+    return `${label(start)}${rangeSeparator}${label(end)}`;
   }
   return null;
 }
