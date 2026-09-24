@@ -31,7 +31,6 @@
   justify-content: flex-end;
 }
 
-.brand-copy,
 .entry-copy,
 .workspace-heading {
   min-width: 0;
@@ -54,7 +53,6 @@
 }
 
 .brand,
-.eyebrow,
 .entry-title,
 .entry-detail,
 .field-label,
@@ -63,7 +61,6 @@
 .state-title,
 .state-detail,
 .workspace-title,
-.workspace-description,
 .workspace-picker__label,
 .workspace-picker__value,
 .event-name,
@@ -81,7 +78,6 @@
   letter-spacing: 1rpx;
 }
 
-.eyebrow,
 .footnote {
   color: var(--chronelle-muted);
   font-size: 19rpx;
@@ -329,14 +325,6 @@
 .workspace-title {
   font-size: 50rpx;
   line-height: 1.18;
-}
-
-.workspace-description {
-  max-width: 430rpx;
-  margin-top: 10rpx;
-  color: var(--chronelle-muted);
-  font-size: 22rpx;
-  line-height: 1.55;
 }
 
 .workspace-picker {

@@ -44,14 +44,14 @@ function HistoryState({
   title,
 }: {
   readonly action?: string;
-  readonly detail: string;
+  readonly detail?: string | undefined;
   readonly onAction?: () => void;
   readonly title: string;
 }) {
   return (
     <View className="history-state">
       <Text className="history-state__title">{title}</Text>
-      <Text className="history-state__detail">{detail}</Text>
+      {detail ? <Text className="history-state__detail">{detail}</Text> : null}
       {action && onAction ? (
         <Button className="history-button" onClick={onAction}>
           {action}
@@ -171,10 +171,7 @@ function ReadyHistory({
   if (overview.isPending || history.isPending) {
     return (
       <View className="history-shell">
-        <HistoryState
-          detail={messages.eventHistoryDescription}
-          title={messages.loading}
-        />
+        <HistoryState title={messages.loading} />
       </View>
     );
   }
@@ -283,7 +280,6 @@ function ReadyHistory({
       </Button>
       <Text className="history-eyebrow">{messages.eventHistory}</Text>
       <Text className="history-title">{overview.data.event.displayName}</Text>
-      <Text className="history-intro">{messages.eventHistoryDescription}</Text>
       {!canEdit ? (
         <Text className="history-notice">{messages.historyReadOnly}</Text>
       ) : null}
@@ -305,10 +301,7 @@ function ReadyHistory({
       {selectedVersion === null ? (
         <View>
           {items.length === 0 ? (
-            <HistoryState
-              detail={messages.historyEmptyDetail}
-              title={messages.historyEmptyTitle}
-            />
+            <HistoryState title={messages.historyEmptyTitle} />
           ) : (
             items.map((item) => (
               <Button
@@ -374,10 +367,7 @@ function ReadyHistory({
             {messages.historyBackToList}
           </Button>
           {revision.isPending || preview.isPending ? (
-            <HistoryState
-              detail={messages.eventHistoryDescription}
-              title={messages.loading}
-            />
+            <HistoryState title={messages.loading} />
           ) : selectionError || !selected || !selectedEvent || !preview.data ? (
             <HistoryState
               action={messages.retry}
@@ -473,10 +463,7 @@ export default function EventHistoryPage() {
   ) {
     return (
       <View className="history-shell">
-        <HistoryState
-          detail={messages.eventHistoryDescription}
-          title={messages.loading}
-        />
+        <HistoryState title={messages.loading} />
       </View>
     );
   }

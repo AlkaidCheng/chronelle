@@ -262,7 +262,6 @@ function ReadyTrashPage({ session }: { readonly session: SessionResponse }) {
               {session.workspace.displayName}
             </Text>
             <Text className="trash-title">{messages.trash}</Text>
-            <Text className="trash-intro">{messages.trashIntro}</Text>
             <Picker
               mode="selector"
               range={filterTypes.map((type) =>

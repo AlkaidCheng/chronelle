@@ -165,7 +165,6 @@ function ReadyFriends({ session }: { readonly session: SessionResponse }) {
         <View>
           <Text className="people-eyebrow">Chronelle</Text>
           <Text className="people-title">{messages.friends}</Text>
-          <Text className="people-intro">{messages.friendsIntro}</Text>
         </View>
         <Button
           className="people-primary people-primary--compact"
@@ -268,10 +267,7 @@ function ReadyFriends({ session }: { readonly session: SessionResponse }) {
       ) : null}
       {error ? <Text className="people-alert">{error}</Text> : null}
       {friends.isPending ? (
-        <EditorStateCard
-          detail={messages.friendsIntro}
-          title={messages.loading}
-        />
+        <EditorStateCard title={messages.loading} />
       ) : (
         <View className="people-sections">
           <View className="people-panel">

@@ -36,14 +36,11 @@ function localeFor(session?: SessionResponse): AppLocale {
   return resolveLocale(session?.user.locale ?? systemLanguage());
 }
 
-function Brand({ subtitle }: { readonly subtitle: string }) {
+function Brand() {
   return (
     <View className="brand-row">
       <Text className="brand-mark">C</Text>
-      <View className="brand-copy">
-        <Text className="brand">Chronelle</Text>
-        <Text className="eyebrow">{subtitle}</Text>
-      </View>
+      <Text className="brand">Chronelle</Text>
     </View>
   );
 }
@@ -110,7 +107,7 @@ function SignInView({ locale }: { readonly locale: AppLocale }) {
 
   return (
     <View className="entry-shell">
-      <Brand subtitle={messages.eyebrow} />
+      <Brand />
       <View className="entry-copy">
         <Text className="entry-title">
           {needsLink
@@ -210,7 +207,7 @@ function OnboardingView({ session }: { readonly session: SessionResponse }) {
   const [displayName, setDisplayName] = useState(session.user.displayName);
   return (
     <View className="entry-shell">
-      <Brand subtitle={messages.eyebrow} />
+      <Brand />
       <View className="entry-copy">
         <Text className="entry-title">{messages.onboardingTitle}</Text>
         <Text className="entry-detail">{messages.onboardingDetail}</Text>
@@ -318,7 +315,7 @@ function EventWorkspace({ session }: { readonly session: SessionResponse }) {
   return (
     <View className="workspace-shell">
       <View className="workspace-header">
-        <Brand subtitle={messages.eyebrow} />
+        <Brand />
         <View className="workspace-header__actions">
           <Button
             className="text-button"
@@ -351,7 +348,6 @@ function EventWorkspace({ session }: { readonly session: SessionResponse }) {
       <View className="workspace-toolbar">
         <View className="workspace-heading">
           <Text className="workspace-title">{messages.title}</Text>
-          <Text className="workspace-description">{messages.description}</Text>
         </View>
         <View className="workspace-actions">
           <Picker
@@ -414,7 +410,7 @@ function EventWorkspace({ session }: { readonly session: SessionResponse }) {
           title={messages.errorTitle}
         />
       ) : items.length === 0 ? (
-        <StateView detail={messages.emptyDetail} title={messages.emptyTitle} />
+        <StateView title={messages.emptyTitle} />
       ) : (
         <ScrollView
           className="event-list"
@@ -470,7 +466,7 @@ export default function IndexPage() {
   if (session.state.status === "configuration-error") {
     return (
       <View className="entry-shell">
-        <Brand subtitle={messages.eyebrow} />
+        <Brand />
         <StateView
           detail={messages.configurationDetail}
           title={messages.configurationTitle}
@@ -489,7 +485,7 @@ export default function IndexPage() {
   if (session.state.status === "offline") {
     return (
       <View className="entry-shell">
-        <Brand subtitle={messages.eyebrow} />
+        <Brand />
         <StateView
           detail={messages.offlineDetail}
           title={messages.offlineTitle}
@@ -500,7 +496,7 @@ export default function IndexPage() {
   if (session.state.status === "error") {
     return (
       <View className="entry-shell">
-        <Brand subtitle={messages.eyebrow} />
+        <Brand />
         <StateView
           action={messages.retry}
           detail={messages.errorDetail}
@@ -512,7 +508,7 @@ export default function IndexPage() {
   }
   return (
     <View className="entry-shell">
-      <Brand subtitle={messages.eyebrow} />
+      <Brand />
       <StateView
         title={
           session.state.status === "restoring"

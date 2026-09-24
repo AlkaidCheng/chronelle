@@ -45,7 +45,6 @@ function ReadyPeople({ session }: { readonly session: SessionResponse }) {
             {session.workspace.displayName}
           </Text>
           <Text className="people-title">{messages.people}</Text>
-          <Text className="people-intro">{messages.peopleIntro}</Text>
         </View>
         {canCreateInActiveWorkspace(session) ? (
           <Button
@@ -65,10 +64,7 @@ function ReadyPeople({ session }: { readonly session: SessionResponse }) {
         value={search}
       />
       {people.isPending ? (
-        <EditorStateCard
-          detail={messages.peopleIntro}
-          title={messages.loading}
-        />
+        <EditorStateCard title={messages.loading} />
       ) : people.isError ? (
         <EditorStateCard
           action={messages.retry}

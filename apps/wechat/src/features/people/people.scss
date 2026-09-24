@@ -26,7 +26,6 @@
 
 .people-eyebrow,
 .people-title,
-.people-intro,
 .people-card__name,
 .people-card__secondary,
 .people-footnote,
@@ -53,17 +52,11 @@
   font-weight: 600;
 }
 
-.people-intro,
 .people-muted,
 .people-footnote,
 .people-card__secondary {
   color: var(--chronelle-muted);
   line-height: 1.6;
-}
-
-.people-intro {
-  margin-top: 10rpx;
-  font-size: 23rpx;
 }
 
 .people-search,
