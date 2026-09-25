@@ -18,6 +18,14 @@ declare module "fastify" {
   interface FastifyInstance {
     authenticate(request: FastifyRequest): Promise<void>;
   }
+
+  interface FastifyContextConfig {
+    /**
+     * The object whose workspace the session follows, for a route that
+     * names it somewhere other than its `id` parameter.
+     */
+    readonly followsObject?: (request: FastifyRequest) => unknown;
+  }
 }
 
 export interface RequestContextDependencies {
@@ -60,14 +68,16 @@ function readWorkspaceId(
 }
 
 /**
- * The object a route names in its `id` parameter, when it is one; the
- * session then follows the object's workspace, so a share opens where it
- * lives. Any other identifier in that place leaves the session where the
- * header put it.
+ * The object a request names, when it is one: in the place the route's
+ * `followsObject` reads, else in its `id` parameter. The session then
+ * follows the object's workspace, so a share opens and saves where it
+ * lives. Any other identifier leaves the session where the header put it.
  */
-function readObjectId(params: unknown): string | undefined {
-  if (params === null || typeof params !== "object") return undefined;
-  const result = z.uuid().safeParse((params as { id?: unknown }).id);
+function readObjectId(request: FastifyRequest): string | undefined {
+  const named =
+    request.routeOptions.config.followsObject?.(request) ??
+    (request.params as { id?: unknown } | null | undefined)?.id;
+  const result = z.uuid().safeParse(named);
   return result.success ? result.data : undefined;
 }
 
@@ -89,7 +99,7 @@ export function registerRequestContext(
     const session = await dependencies.identity.resolvePrincipal(
       authenticated.userId,
       workspaceId,
-      readObjectId(request.params),
+      readObjectId(request),
     );
     request.identitySession = session;
     request.principal = session.principal;

@@ -8,7 +8,11 @@ workspace when the caller may enter it (a member, or an account holding an
 active grant there), whatever the header says: an Event shared from another
 workspace opens, with every route under it, from the caller's own session.
 An object out of reach, or an identifier that is not an object's, leaves
-the request where the header put it.
+the request where the header put it. The content command routes follow an
+object the same way: `POST /api/commands` the object its first edit names,
+and the stack read and its undo and redo the object named by an `objectId`
+query parameter, so an edit of a shared Event or Task is saved, and undone,
+where it lives.
 
 Protected database reads evaluate permissions and assemble data in the same
 snapshot. A read in progress may finish with the earlier authorized version
@@ -204,9 +208,12 @@ checks are an early usability guard, not the authorization boundary. See
 
 ## Reversible content commands
 
-`GET /api/commands` reads the current user's workspace stack. `POST /api/commands`
-applies a bounded batch of Event/Task content edits; `POST /api/commands/undo` and
-`POST /api/commands/redo` transition its pinned head. Every mutation requires an
+`GET /api/commands` reads the current user's stack in a workspace: the one of
+the object named by `?objectId=`, else the selected one. `POST /api/commands`
+applies a bounded batch of Event/Task content edits on the stack in the
+workspace of the object its first edit names; `POST /api/commands/undo` and
+`POST /api/commands/redo` transition the pinned head of the stack the
+`objectId` query names, as the read does. Every mutation requires an
 operation ID and expected stack version. See [Commands](commands.md) for typed
 examples, object preconditions, idempotency, and explicit eligibility limits.
 
