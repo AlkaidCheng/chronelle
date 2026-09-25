@@ -4,6 +4,10 @@ Chronelle is a life-journey platform for connecting the people, places, plans,
 events, travel, finances, documents, collections, and memories that make up a
 person's life.
 
+Users see the product as LivTales; the repository, packages, and services keep
+the name Chronelle, and [`brand/`](brand/README.md) holds the brand sources and
+their usage rules.
+
 This repository contains a runnable Next.js web surface, a Fastify API,
 provider-independent identity, centralized object authorization, shared
 runtime-validated schemas, and the canonical PostgreSQL persistence kernel for
@@ -51,6 +55,7 @@ packages/
 infrastructure/
   migrations/           Ordered SQL migrations
   database/             Administrative runtime privilege policy
+brand/                  LivTales logo and icon sources, raster export script
 docs/                   Implementation-facing documentation
 ```
 

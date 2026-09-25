@@ -1,12 +1,12 @@
 # Web experience
 
 Accounts are email and password. Every account screen is one column: the
-brand, a card with the form, where there is one a line pointing to the
-other screen below it, and a footer with the Language and Theme menus, each
-a chip naming its choice ("Theme: System") that opens the choices. Sign
+LivTales logo, a card with the form, where there is one a line pointing to
+the other screen below it, and a footer with the Language and Theme menus,
+each a chip naming its choice ("Theme: System") that opens the choices. Sign
 in (`/sign-in`) takes the username or the email address of the account and
 the password, with Forgot password? beside the Password label and New to
-Chronelle? Create an account below. Create your Chronelle account
+LivTales? Create an account below. Create your LivTales account
 (`/sign-up`) asks for the email, a password of at least ten characters, and
 a username (3 to 30 letters, digits, hyphens or underscores, starting with a
 letter; unique without regard to case), which is the handle friends find
@@ -34,7 +34,7 @@ at `/sign-in/development` and
 exists only where the web server is started with
 `WEB_DEVELOPMENT_SIGN_IN=true`.
 
-Chronelle opens into an event collection, with workspace-wide Tasks and People
+LivTales opens into an event collection, with workspace-wide Tasks and People
 alongside it. Desktop navigation stays on the left: Search at the top, then a
 Collections section (Events, Tasks, People) in the order the account keeps,
 then the account block (the account's name with the current workspace
@@ -43,7 +43,7 @@ and no bottom bar: an app bar fixed at the top of every page holds a menu
 control at the left, the current workspace beside it (its mark and name),
 and the account's avatar at the right, with space for the device's safe
 area. The menu control opens the sidebar as a drawer from the left edge (the
-brand with a close control, Search, and the Collections in the kept order,
+logo with a close control, Search, and the Collections in the kept order,
 the open page current as on the rail) over a scrim; choosing a collection
 opens it and closes the drawer, Escape, the scrim, or the close control
 closes it, and focus returns to the menu control. There is no other header:
@@ -70,7 +70,7 @@ stays on the page), the Collections heading reads "Collections - Done" until
 Done is chosen, and Customize sidebar in the account sheet opens the drawer
 already customizing.
 
-On a window wide enough for the sidebar, a control beside the brand collapses
+On a window wide enough for the sidebar, a control beside the logo collapses
 it: the sidebar slides off the left edge as the content follows (at once when
 motion is reduced), leaves the tab order, and a single control at the
 content's top-left brings it back; each hands focus to the other, so the
@@ -458,7 +458,7 @@ results. Each result shows the name and username with one action: Add friend
 sends the ordinary request (with the note below when there is one, and from
 a card, linking the card when they accept), or the state that already holds
 (Friends, Request sent, Wants to connect). Nothing matching says so and
-points at the section below, Not on Chronelle yet?: a person of the current
+points at the section below, Not on LivTales yet?: a person of the current
 workspace without an account link, or Someone new, an optional email, and
 an optional note, then Send by email or Create link. An invitation is a
 link: Send by email emails it to the address (an address with an account
@@ -468,7 +468,7 @@ Valid until 2 Oct 2026.", how it was sent ("Sent by email to ..." or "Send
 it in WeChat, a message, or any way you like."), Copy link, and Done.
 
 The link opens the claim page (`/invite/<token>`), in the one-column account
-frame: who invited you ("Ana invited you to be friends on Chronelle" with
+frame: who invited you ("Ana invited you to be friends on LivTales" with
 the username), the note, and what becomes visible once accepted ("Kyoto in
 November as viewer"). Signed out, it offers Sign in and Create an account,
 both returning here (a new account completes the Welcome step first, and
@@ -478,7 +478,7 @@ and offers Accept or Not now; nothing happens without Accept. Accepting says
 "You and Ana are now friends." or "You were already friends.", then what
 became shared ("Kyoto in November is shared with you as viewer.") and what
 the account already had ("You already had access to ..."), with Open
-Chronelle; the card the invitation came from is linked, as after an
+LivTales; the card the invitation came from is linked, as after an
 accepted request. The account's own link says "This is your own invitation
 link."; a used one "This invitation was already accepted."; a withdrawn one
 "This invitation is no longer open."; an expired one "This invitation
@@ -490,10 +490,10 @@ itself. From a
 card's Invite a friend, the search starts with the card's name.
 
 Your code, beside Invite a friend, shows the account's QR code and profile
-link (`/u/<username>`) with Copy link; anyone who scans or opens it sees the
-name and username with Add friend, or how the two already stand, after
-signing in (the page returns there after the sign-in) and never their own
-code as anything but their own.
+link (`/u/<username>`) with Copy link; anyone who scans or opens it sees,
+under the LivTales logo, the name and username with Add friend, or how the
+two already stand, after signing in (the page returns there after the
+sign-in) and never their own code as anything but their own.
 
 ## Workspace commands
 
@@ -1634,30 +1634,67 @@ pagination. Navigation state contains no copied canonical records and never
 grants access. The session boundary owns both the query cache and collection
 return state.
 
+## Brand
+
+Users see the product as LivTales. The logo is the LivTales lockup: the
+Foam Crest mark, an open book whose right page rises into a sail, beside
+the two-tone word (Liv in the page colour, Tales in the ink).
+`components/brand-logo.tsx` draws it as inline SVG from
+`brand/logo/header-logo-light.svg`, 32 px tall in the sidebar, the phone
+drawer, and above the heading of the not-found and error pages, and 40 px
+on the account screens and the code page. It is always a link (to Events,
+or to Sign in on the account screens), named "LivTales" by the image. Each
+part of the drawing takes a `--brand-*` colour from `app/tokens.css` that
+follows the light or dark appearance but not the palette; with forced
+colours the whole logo takes the link colour, as the one-colour logo does.
+The tab title is "LivTales".
+
+The browser tab shows `app/icon.svg`, the flat mark on a blue tile, with
+`app/favicon.ico` (16, 32 and 48 px) for browsers without SVG icons. A
+shared link previews as the site (site name and title LivTales, the
+description) with `app/opengraph-image.jpg`, the lockup on a night sky at
+1200 × 630, and its description from `app/opengraph-image.alt.txt`. The
+image's absolute URL uses the origin the page was requested at: the first
+`X-Forwarded-Host` (else `Host`), over https when `X-Forwarded-Proto`
+names it.
+
+Every brand file the app serves is a copy of a source in `brand/`: the
+SVGs byte for byte, the rasters rendered by `pnpm brand:export --web`.
+Change the source and export again rather than editing a copy;
+`test/brand-assets.test.ts` fails when an SVG copy or the logo drifts from
+its source, and checks the rasters' sizes and opacity. The export records
+in `app/brand-rasters.json` the SHA-256 of each raster, of the sources it
+was drawn from, and of the export script, and the test fails when any of
+them has changed since. The
+[brand guide](../brand/README.md) says which file serves which use and
+lists the clear space, minimum sizes, and colours.
+
 ## Install as an app
 
 The app installs from its own control rather than from the browser's
-timing. Where the browser can install web apps (Chrome and its relatives on
-Android and the desktop), More offers Install app as soon as the browser
-has made its prompt available, and Settings > Appearance carries the same
-control; choosing it raises the browser's prompt, and once accepted the
-control goes. Safari on iPhone and iPad never prompts, so there the
-control opens the two steps instead: Share in Safari's toolbar, then Add
-to Home Screen. Other browsers install from their own menu, which the
-Settings row says. Installed, the app opens from the home screen as its
-own window (standalone display on both platforms); the account, the data,
-and everything else are unchanged.
+timing. Where the browser can install web apps (Chrome and its relatives
+on Android and the desktop), More offers Install app as soon as the
+browser has made its prompt available, and Settings > Appearance carries
+the same control; choosing it raises the browser's prompt, and once
+accepted the control goes. Safari on iPhone and iPad never prompts, so
+there the control opens the two steps instead, in a dialog titled Install
+LivTales: Share in Safari's toolbar, then Add to Home Screen. Other
+browsers install from their own menu, which the Settings row says.
+Installed, the app opens from the home screen as its own window
+(standalone display on both platforms); the account, the data, and
+everything else are unchanged.
 
 The manifest (`id`, `scope`, and `start_url` at the root, standalone
-display, the icons) and the app icon provide the presentation metadata.
-The icon is one mark everywhere: the serif C of the rail's brand tile,
-drawn as a path in `apps/web/app/icon.svg` (the tab), with the raster set
-the home screen and iOS ask for (`public/icons/icon-192.png`,
-`icon-512.png`, a maskable `icon-maskable-512.png` whose glyph stays
-inside the central safe zone, and `app/apple-icon.png` at 180) rendered
-from that SVG by `node infrastructure/scripts/render-icons.mjs`; edit the
-SVG and rerun the script rather than editing a PNG. This release does not
-promise offline support. Private API responses are not cached and no
+display, the name and short name LivTales, the icons) and the app icon
+provide the presentation metadata. The app icon is the LivTales tile, the
+mark in white and aqua on a night sky. The "any" icons are one rounded
+tile with transparent corners: `public/icons/pwa-icon.svg` at any size, and
+`icon-192.png` and `icon-512.png` drawn from it. A maskable
+`icon-maskable-512.png` keeps the mark inside the central safe circle, and
+`app/apple-icon.png` at 180 is opaque and full-bleed, which iOS rounds. The
+SVG copies `brand/icon/pwa-icon.svg` and the PNGs come from
+`pnpm brand:export --web`, as the Brand section says. This release does
+not promise offline support. Private API responses are not cached and no
 service worker is registered.
 
 See [Deployment](deployment.md) for the production-build workflow and public

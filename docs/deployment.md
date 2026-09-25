@@ -422,8 +422,12 @@ the internal API address. `API_INTERNAL_URL` is a runtime server variable, not
 a `NEXT_PUBLIC_*` value. It must name a trusted HTTP(S) API origin.
 
 The image includes the standalone server, static bundles, and the app-router
-icon/manifest routes. Local worktrees, attachment storage, test output, nested
-environment files, and agent directories are excluded from the build context.
+icon, Open Graph image, and manifest routes. Link previews name the Open Graph
+image by an absolute URL on the origin the page was requested at (the first
+`X-Forwarded-Host`, else `Host`, over https when `X-Forwarded-Proto` says so), so
+a proxy in front of the web service must pass the public host and scheme.
+Local worktrees, attachment storage, test output, nested environment files,
+and agent directories are excluded from the build context.
 The browser release gate starts the same standalone entry point on the host.
 
 ## Private container stack
@@ -452,7 +456,8 @@ API's `chronelle_runtime` login. Set `ENABLE_DEVELOPMENT_AUTH=true`
 only for trusted preview testing (the Compose file passes it to the web
 service as `WEB_DEVELOPMENT_SIGN_IN`, which renders `/sign-in/development`);
 email and password accounts work without it once `EMAIL_PROVIDER=smtp`,
-`SMTP_URL`, and `EMAIL_FROM` name a mail transport (the default `log`
+`SMTP_URL`, and `EMAIL_FROM` name a mail transport (`EMAIL_FROM` carries
+the display name users see, LivTales, as in `.env.example`; the default `log`
 provider writes verification codes to the API log and is not for a
 deployment; `EMAIL_PROVIDER=file` with `EMAIL_FILE_PATH` appends them to a
 file on the instance for an internal test whose operator hands codes to

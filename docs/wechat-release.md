@@ -88,7 +88,9 @@ versions, and outcomes without storing personal data or tokens in the record.
   transfer authorization/finalize failures, and latency. Keep tokens, file
   content, signed URLs, People contacts, and request bodies out of operational
   logs and error reporting.
-- Review the privacy declaration and release metadata in the WeChat console.
+- Review the privacy declaration and release metadata in the WeChat console,
+  including the registered name and the avatar (`wechat/avatar-512.png` from
+  `pnpm brand:export`; see the [brand guide](../brand/README.md)).
   Submit only after the staging journey and all device/domain/privacy checks
   pass. Record the approved package version and the API revision it expects.
 
