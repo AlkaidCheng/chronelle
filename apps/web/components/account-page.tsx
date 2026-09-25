@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 
+import { BrandLogo } from "./brand-logo";
 import { LocaleMenu } from "./locale-menu";
 import { ThemeMenu } from "./theme-menu";
 
@@ -20,8 +21,7 @@ export function AccountPage({
   return (
     <main className="account-page">
       <a className="brand account-brand" href="/sign-in">
-        <span className="brand-mark">C</span>
-        <span>Chronelle</span>
+        <BrandLogo />
       </a>
       {children}
       <div className="account-foot">

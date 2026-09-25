@@ -142,7 +142,7 @@ test("gives the phone an app bar whose menu opens the sidebar as a drawer, with 
   await menuControl(page).click();
   await expect(drawer(page)).toBeVisible();
   await expect(
-    drawer(page).getByRole("link", { name: "Chronelle" }),
+    drawer(page).getByRole("link", { name: "LivTales" }),
   ).toBeVisible();
   const navigation = await workspaceNavigation(page);
   await expect(

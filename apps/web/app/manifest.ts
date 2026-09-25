@@ -7,7 +7,12 @@ export default function manifest(): MetadataRoute.Manifest {
     display: "standalone",
     id: "/",
     icons: [
-      { src: "/icon.svg", sizes: "any", type: "image/svg+xml", purpose: "any" },
+      {
+        src: "/icons/pwa-icon.svg",
+        sizes: "any",
+        type: "image/svg+xml",
+        purpose: "any",
+      },
       {
         src: "/icons/icon-192.png",
         sizes: "192x192",
@@ -27,9 +32,9 @@ export default function manifest(): MetadataRoute.Manifest {
         purpose: "maskable",
       },
     ],
-    name: "Chronelle",
+    name: "LivTales",
     scope: "/",
-    short_name: "Chronelle",
+    short_name: "LivTales",
     start_url: "/",
     theme_color: "#f5f0e6",
   };

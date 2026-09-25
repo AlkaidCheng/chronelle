@@ -307,7 +307,7 @@ describe("same-origin API proxy", () => {
       error: {
         code: "service_unavailable",
         message:
-          "Chronelle could not reach the server. Check your connection and try again.",
+          "LivTales could not reach the server. Check your connection and try again.",
       },
     });
   });

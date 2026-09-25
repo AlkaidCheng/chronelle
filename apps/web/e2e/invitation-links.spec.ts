@@ -125,14 +125,14 @@ test("invites a card with only a phone by a link; the link makes the friendship,
   await expect(
     page.getByRole("heading", {
       level: 1,
-      name: "Ana invited you to be friends on Chronelle",
+      name: "Ana invited you to be friends on LivTales",
     }),
   ).toBeVisible();
   await expect(
     page.getByText("This is your own invitation link."),
   ).toBeVisible();
   await expect(page.getByRole("button", { name: "Accept" })).toHaveCount(0);
-  await page.getByRole("link", { name: "Open Chronelle" }).click();
+  await page.getByRole("link", { name: "Open LivTales" }).click();
   await signOut(page, "Ana");
 
   // Signed out, the link names Ana and the note, and asks for a sign-in
@@ -141,7 +141,7 @@ test("invites a card with only a phone by a link; the link makes the friendship,
   await expect(
     page.getByRole("heading", {
       level: 1,
-      name: "Ana invited you to be friends on Chronelle",
+      name: "Ana invited you to be friends on LivTales",
     }),
   ).toBeVisible();
   await expect(page.getByText("Scan this to join.")).toBeVisible();

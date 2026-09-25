@@ -1258,28 +1258,48 @@ h3 {
   text-transform: uppercase;
 }
 
+/* The logo as a link: the lockup at the 32 px its drawing is tuned for,
+   unless a placement sets --brand-height. Keep half the mark's height (16 px
+   at 32) clear around it. */
 .brand {
-  align-items: center;
+  border-radius: 4px;
   display: inline-flex;
-  font-family: var(--font-display);
-  font-size: 1.35rem;
-  font-weight: 600;
-  gap: 11px;
-  letter-spacing: -0.03em;
-  text-decoration: none;
+  flex-shrink: 0;
 }
 
-.brand-mark {
-  align-items: center;
-  background: var(--accent);
-  border-radius: 9px 9px 9px 3px;
-  color: var(--on-accent);
-  display: inline-flex;
-  font-family: var(--font-display);
-  font-size: 0.98rem;
-  height: 32px;
-  justify-content: center;
-  width: 32px;
+.brand-logo {
+  display: block;
+  height: var(--brand-height, 32px);
+  stroke: none;
+  width: auto;
+}
+
+.brand-logo-page {
+  fill: var(--brand-page);
+}
+
+.brand-logo-sail-upper {
+  fill: var(--brand-sail-upper);
+}
+
+.brand-logo-sail-lower {
+  fill: var(--brand-sail-lower);
+}
+
+.brand-logo-liv {
+  fill: var(--brand-liv);
+}
+
+.brand-logo-tales {
+  fill: var(--brand-tales);
+}
+
+/* Forced colours draw the logo in one colour, the link's, as the logo's
+   one-colour version does. */
+@media (forced-colors: active) {
+  .brand-logo path {
+    fill: currentColor;
+  }
 }
 
 .button {
@@ -1419,7 +1439,7 @@ h3 {
 }
 
 .account-brand {
-  font-size: 1.25rem;
+  --brand-height: 40px;
 }
 
 /* The card's fields take the canvas colour, set off from the card's surface. */
@@ -1638,21 +1658,11 @@ h3 {
 }
 
 .sidebar .brand {
-  font-size: 1.2rem;
-  gap: 10px;
   margin: 0 8px;
-  min-width: 0;
 }
 
 .sidebar-collapse {
   flex-shrink: 0;
-}
-
-.sidebar .brand-mark {
-  border-radius: 8px;
-  font-size: 0.94rem;
-  height: 28px;
-  width: 28px;
 }
 
 .workspace-nav {
@@ -10632,6 +10642,8 @@ html:has(.event-create-dialog[open]) {
 }
 
 .code-brand {
+  --brand-height: 40px;
+  justify-self: start;
   margin-bottom: 4px;
 }
 

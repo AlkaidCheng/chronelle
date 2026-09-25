@@ -102,7 +102,7 @@ async function forward(
     return failure(
       503,
       "service_unavailable",
-      "Chronelle could not reach the server. Check your connection and try again.",
+      "LivTales could not reach the server. Check your connection and try again.",
     );
   }
 

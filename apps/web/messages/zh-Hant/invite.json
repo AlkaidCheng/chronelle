@@ -1,7 +1,7 @@
 {
   "loading": "正在開啟邀請",
   "unavailable": "沒有邀請使用這個連結。請索取新的連結。",
-  "invitedYou": "{name} 邀請你在 Chronelle 成為好友",
+  "invitedYou": "{name} 邀請你在 LivTales 成為好友",
   "willShare": "接受後，你可以查看：",
   "queuedAs": "{record}（{role}）",
   "signInToAccept": "登入後接受，或建立帳戶。完成後會回到這裡。",
@@ -20,5 +20,5 @@
   "linkUsed": "這個邀請已被接受。",
   "linkEnded": "這個邀請已失效。",
   "linkExpired": "這個邀請已於 {date} 過期。",
-  "openChronelle": "開啟 Chronelle"
+  "openChronelle": "開啟 LivTales"
 }

@@ -60,7 +60,7 @@ function Sandbox() {
     <>
       <aside className="sandbox-banner" aria-label="Design sandbox controls">
         <div>
-          <strong>Chronelle · Design sandbox</strong>
+          <strong>LivTales · Design sandbox</strong>
           <p>Sample data only. No server or account required.</p>
         </div>
         <label>

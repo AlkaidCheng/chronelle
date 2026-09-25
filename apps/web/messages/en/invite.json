@@ -1,7 +1,7 @@
 {
   "loading": "Opening the invitation",
   "unavailable": "No invitation has this link. Ask for a new one.",
-  "invitedYou": "{name} invited you to be friends on Chronelle",
+  "invitedYou": "{name} invited you to be friends on LivTales",
   "willShare": "Once you accept, you can see:",
   "queuedAs": "{record} as {role}",
   "signInToAccept": "Sign in to accept, or create an account. You come back here after.",
@@ -20,5 +20,5 @@
   "linkUsed": "This invitation was already accepted.",
   "linkEnded": "This invitation is no longer open.",
   "linkExpired": "This invitation expired on {date}.",
-  "openChronelle": "Open Chronelle"
+  "openChronelle": "Open LivTales"
 }

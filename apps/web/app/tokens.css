@@ -84,6 +84,16 @@
   --on-accent: light-dark(#ffffff, #18263e);
 }
 
+/* The LivTales logo's colours, the fills of brand/logo/header-logo-light.svg
+   and header-logo-dark.svg: they follow the appearance, never the palette. */
+:root {
+  --brand-page: light-dark(#10a3c2, #5fdde8);
+  --brand-sail-upper: light-dark(#2a78e4, #a4daff);
+  --brand-sail-lower: light-dark(#1d3a9e, #7fb4ff);
+  --brand-liv: light-dark(#0a7c94, #5fdde8);
+  --brand-tales: light-dark(#141b34, #eaf1ff);
+}
+
 :root[data-density="compact"] {
   --card-padding: 16px;
   --row-padding: 8px;

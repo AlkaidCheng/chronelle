@@ -86,7 +86,7 @@ describe("the Welcome step", () => {
     expect(await screen.findByText("@planner")).toBeVisible();
     expect(screen.getByText("planner@example.test")).toBeVisible();
     expect(
-      screen.getByRole("heading", { level: 1, name: "Welcome to Chronelle" }),
+      screen.getByRole("heading", { level: 1, name: "Welcome to LivTales" }),
     ).toBeVisible();
     const name = screen.getByRole("textbox", { name: "Name" });
     expect(name).toHaveValue("");

@@ -1368,7 +1368,7 @@ export class ChronelleApiClient {
         throw new ApiClientError(
           401,
           "unauthenticated",
-          "A Chronelle session is required.",
+          "A LivTales session is required.",
         );
       }
       if (credential.accessToken !== undefined) {
@@ -1398,8 +1398,8 @@ export class ChronelleApiClient {
           ? "request_timeout"
           : "network_error",
         error instanceof TransportError && error.kind === "timeout"
-          ? "The Chronelle API request timed out."
-          : "The Chronelle API could not be reached.",
+          ? "The LivTales API request timed out."
+          : "The LivTales API could not be reached.",
       );
     }
     this.#assertCurrent(credential);
@@ -1408,7 +1408,7 @@ export class ChronelleApiClient {
       throw new ApiClientError(
         response.status,
         "invalid_response",
-        "The Chronelle API returned an unreadable response.",
+        "The LivTales API returned an unreadable response.",
       );
     }
     const body = response.payload.value;
@@ -1420,7 +1420,7 @@ export class ChronelleApiClient {
       throw new ApiClientError(
         response.status,
         "invalid_response",
-        "The Chronelle API returned an unexpected response.",
+        "The LivTales API returned an unexpected response.",
       );
     }
     return parsed.data;

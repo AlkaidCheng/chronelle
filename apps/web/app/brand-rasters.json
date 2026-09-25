@@ -1,0 +1,50 @@
+{
+  "apps/web/app/favicon.ico": {
+    "sha256": "261c063bac81052dd68b43f04ac02b96c449798ee7d3389006065d8afb2f0a65",
+    "sources": {
+      "brand/icon/favicon.svg": "3db14d583a578c0681ff1efadfad623298155f157ecca8169ba0372626add93c",
+      "brand/scripts/export.mjs": "aecc022bcbb4006b35b0b8bfa48d0918c51898ba3a67c3718196900fe9ddba89"
+    }
+  },
+  "apps/web/app/apple-icon.png": {
+    "sha256": "b75a96c704924a21effe5477a825d627f8426ab6408dd8fac1cf83b98f72e00c",
+    "sources": {
+      "brand/icon/app-icon.svg": "8240591f989e4281ee3b60cd667482131570be8f419d6b8f89de5a4de72aba05",
+      "brand/scripts/export.mjs": "aecc022bcbb4006b35b0b8bfa48d0918c51898ba3a67c3718196900fe9ddba89"
+    }
+  },
+  "apps/web/app/opengraph-image.jpg": {
+    "sha256": "6afffdfc34ce39a2be4b72347b2eac403bafb6532876485076fb0a9088333107",
+    "sources": {
+      "brand/social/og-image.svg": "5f7b49724d033ff6796276bf97bee1e3b413d89b3d20d1523243b0fb652ffc0f",
+      "brand/scripts/export.mjs": "aecc022bcbb4006b35b0b8bfa48d0918c51898ba3a67c3718196900fe9ddba89"
+    }
+  },
+  "apps/web/app/opengraph-image.alt.txt": {
+    "sha256": "8c47e3530e6c05c067cdab44f3ed586a67dc51c3591dd840c82cd51abaa8c129",
+    "sources": {
+      "brand/scripts/export.mjs": "aecc022bcbb4006b35b0b8bfa48d0918c51898ba3a67c3718196900fe9ddba89"
+    }
+  },
+  "apps/web/public/icons/icon-192.png": {
+    "sha256": "c6c50a46b911a0a0adb0879b3f4c00275341ed0188e880f21d5ba721008e9e16",
+    "sources": {
+      "brand/icon/pwa-icon.svg": "8c3f4a03404bea991e16d8953a695b3cc3c6071b4100c3148ec2db1305fcebb3",
+      "brand/scripts/export.mjs": "aecc022bcbb4006b35b0b8bfa48d0918c51898ba3a67c3718196900fe9ddba89"
+    }
+  },
+  "apps/web/public/icons/icon-512.png": {
+    "sha256": "ceaa6513d0389d34d6ac5e97cba53b781cbf030206b623e6c0d5c87421d035fb",
+    "sources": {
+      "brand/icon/pwa-icon.svg": "8c3f4a03404bea991e16d8953a695b3cc3c6071b4100c3148ec2db1305fcebb3",
+      "brand/scripts/export.mjs": "aecc022bcbb4006b35b0b8bfa48d0918c51898ba3a67c3718196900fe9ddba89"
+    }
+  },
+  "apps/web/public/icons/icon-maskable-512.png": {
+    "sha256": "4c97603409bda24f7b5a8abefe1179ad6194efffaa05152d8748cd3a63f865bb",
+    "sources": {
+      "brand/icon/maskable.svg": "1bf742aa89fe4a38115914fd762deec098ddb1176539751f729c80d304a9d5bf",
+      "brand/scripts/export.mjs": "aecc022bcbb4006b35b0b8bfa48d0918c51898ba3a67c3718196900fe9ddba89"
+    }
+  }
+}

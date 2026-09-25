@@ -148,7 +148,9 @@ try {
 
   const page = await request("/sign-in");
   const html = await page.text();
-  assert(html.includes("Chronelle"));
+  // The rendered title, not any substring: the message catalog the page
+  // carries for the client also holds key names.
+  assert(html.includes("<title>LivTales</title>"));
   const asset = html.match(/src="([^"]*\/_next\/static\/[^"]+\.js)"/u)?.[1];
   assert(asset, "The page must reference a built JavaScript asset.");
   await request(asset);

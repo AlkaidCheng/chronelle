@@ -90,7 +90,7 @@ test.describe("on Safari for iPhone", () => {
     )
       .getByRole("menuitem", { name: "Install app", exact: true })
       .click();
-    const steps = page.getByRole("dialog", { name: "Install Chronelle" });
+    const steps = page.getByRole("dialog", { name: "Install LivTales" });
     await expect(steps).toBeVisible();
     await expect(steps.getByRole("listitem")).toHaveText([
       "Tap Share in Safari's toolbar.",
