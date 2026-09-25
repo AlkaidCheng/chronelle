@@ -4,7 +4,7 @@ import { composeArguments, runDocker } from "./container-process.mjs";
 
 // Restore only archives captured here from the stopped synthetic fixture stack.
 export async function checkRecovery(environment, source, verify) {
-  const project = `chronelle-restore-${randomUUID()}`;
+  const project = `livtales-restore-${randomUUID()}`;
   const docker = async (...args) =>
     (await runDocker(environment, args)).toString("utf8").trim();
   const compose = (...args) => docker(...composeArguments(project), ...args);

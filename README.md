@@ -107,6 +107,12 @@ pnpm db:migrate
 pnpm dev
 ```
 
+In a checkout from before the LivTales rename, carry the local database over to
+the renamed Compose project once, as
+[local development](docs/local-development.md#services) describes, before
+`docker compose up -d`: otherwise the old container keeps the port, or Compose
+starts with an empty volume.
+
 The web app listens on <http://localhost:3000>. The API health endpoint is
 available at <http://localhost:4000/api/health>.
 
@@ -357,8 +363,8 @@ public production launch.
 Build either application from the repository root:
 
 ```bash
-docker build -f apps/api/Dockerfile -t chronelle-api:local .
-docker build -f apps/web/Dockerfile -t chronelle-web:local .
+docker build -f apps/api/Dockerfile -t livtales-api:local .
+docker build -f apps/web/Dockerfile -t livtales-web:local .
 ```
 
 CI runs quality checks, application browser tests, offline sandbox tests, and

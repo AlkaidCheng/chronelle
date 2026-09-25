@@ -410,18 +410,18 @@ per environment, after a data wipe when a fresh set is wanted.
 Build the UI image from the repository root:
 
 ```bash
-docker build -f apps/web/Dockerfile -t chronelle-web .
+docker build -f apps/web/Dockerfile -t livtales-web .
 ```
 
 When the API runs on the Docker host on a trusted interface, this preview
 command exposes only the web port on loopback:
 
 ```bash
-docker run --rm --name chronelle-web \
+docker run --rm --name livtales-web \
   --add-host=host.docker.internal:host-gateway \
   --publish 127.0.0.1:3000:3000 \
   --env API_INTERNAL_URL=http://host.docker.internal:4000 \
-  chronelle-web
+  livtales-web
 ```
 
 An API bound only to host loopback is not necessarily reachable from a
@@ -454,8 +454,8 @@ dependency-local agent settings are excluded from the API artifact.
 Build both images from the repository root:
 
 ```bash
-docker build -f apps/api/Dockerfile -t chronelle-api:local .
-docker build -f apps/web/Dockerfile -t chronelle-web:local .
+docker build -f apps/api/Dockerfile -t livtales-api:local .
+docker build -f apps/web/Dockerfile -t livtales-web:local .
 ```
 
 Set a unique, URL-safe `POSTGRES_PASSWORD` in the private `.env` file, using
@@ -579,7 +579,7 @@ release requirements.
 After building the local images, run the disposable container gate:
 
 ```bash
-API_IMAGE=chronelle-api:local WEB_IMAGE=chronelle-web:local pnpm test:containers
+API_IMAGE=livtales-api:local WEB_IMAGE=livtales-web:local pnpm test:containers
 ```
 
 It creates a unique Compose project with synthetic credentials and an empty

@@ -597,7 +597,22 @@ run with a message.
 
 Docker Compose starts PostgreSQL on the configured `POSTGRES_PORT`. Application
 processes run on the host for fast reloads. Database state persists in the
-`chronelle-postgres` named volume.
+`livtales-postgres` named volume of the `livtales` Compose project.
+
+Before the LivTales rename the project was `chronelle` and its volume
+`chronelle_chronelle-postgres`; Compose starts the renamed project with an
+empty volume. To carry an existing local database over once:
+
+```bash
+docker compose -p chronelle down
+docker compose up --no-start
+docker run --rm -v chronelle_chronelle-postgres:/from:ro \
+  -v livtales_livtales-postgres:/to alpine cp -a /from/. /to/
+docker compose up -d
+```
+
+Remove the old volume with `docker volume rm chronelle_chronelle-postgres`
+once the copy is verified.
 
 To stop PostgreSQL while retaining its data:
 

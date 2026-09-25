@@ -5,11 +5,11 @@ import { request as httpRequest } from "node:http";
 import { composeArguments, runDocker } from "./container-process.mjs";
 import { checkRecovery } from "./check-recovery.mjs";
 
-const project = `chronelle-check-${randomUUID()}`;
+const project = `livtales-check-${randomUUID()}`;
 const environment = {
   ...process.env,
-  API_IMAGE: process.env.API_IMAGE ?? "chronelle-api:validation",
-  WEB_IMAGE: process.env.WEB_IMAGE ?? "chronelle-web:validation",
+  API_IMAGE: process.env.API_IMAGE ?? "livtales-api:validation",
+  WEB_IMAGE: process.env.WEB_IMAGE ?? "livtales-web:validation",
   ENABLE_DEVELOPMENT_AUTH: "true",
   POSTGRES_PASSWORD: randomUUID(),
   RUNTIME_DATABASE_PASSWORD: randomUUID(),

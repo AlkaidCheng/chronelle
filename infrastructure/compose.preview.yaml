@@ -14,7 +14,7 @@ services:
       retries: 30
 
   migrate:
-    image: ${API_IMAGE:-chronelle-api:local}
+    image: ${API_IMAGE:-livtales-api:local}
     healthcheck:
       disable: true
     command:
@@ -58,7 +58,7 @@ services:
         condition: service_completed_successfully
 
   api:
-    image: ${API_IMAGE:-chronelle-api:local}
+    image: ${API_IMAGE:-livtales-api:local}
     environment:
       DATABASE_URL: postgresql://chronelle_runtime:${RUNTIME_DATABASE_PASSWORD:?Set RUNTIME_DATABASE_PASSWORD}@postgres:5432/chronelle
       ENABLE_DEVELOPMENT_AUTH: ${ENABLE_DEVELOPMENT_AUTH:-false}
@@ -73,7 +73,7 @@ services:
         condition: service_completed_successfully
 
   web:
-    image: ${WEB_IMAGE:-chronelle-web:local}
+    image: ${WEB_IMAGE:-livtales-web:local}
     networks: [default, ingress]
     environment:
       API_INTERNAL_URL: http://api:4000
