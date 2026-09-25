@@ -96,6 +96,7 @@ describe("canonical cache invalidation", () => {
                 ? create.mutateAsync({ displayName: "Saved event" })
                 : update.mutateAsync({
                     id: original.id,
+                    workspaceId: original.workspaceId,
                     input: {
                       displayName: "Saved event",
                       expectedVersion: original.version,
@@ -362,6 +363,7 @@ describe("canonical cache invalidation", () => {
       await act(() =>
         result.current.mutation.mutateAsync({
           id: taskId,
+          workspaceId,
           input: { expectedVersion: 1, ...patch },
         }),
       );

@@ -164,6 +164,7 @@ function EventInspectorForm({
       () =>
         update.mutateAsync({
           id: event.id,
+          workspaceId: event.workspaceId,
           input: {
             displayName,
             description,

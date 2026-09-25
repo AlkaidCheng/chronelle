@@ -24,5 +24,6 @@
   "checking": "Checking access...",
   "resume": "Resume draft",
   "lastSaveFailed": "The last save failed. Check for a saved event before submitting again.",
-  "full": "Draft recovery is full while other saves are pending. Keep this editor open."
+  "full": "Draft recovery is full while other saves are pending. Keep this editor open.",
+  "accessLost": "Your changes were not saved: this item is no longer available to you."
 }

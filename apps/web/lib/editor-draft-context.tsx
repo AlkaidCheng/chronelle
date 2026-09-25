@@ -18,6 +18,8 @@ import {
   isDraftAccessError,
 } from "./editor-draft-store";
 import { useQueryClient } from "@tanstack/react-query";
+import { useTranslations } from "next-intl";
+import { useNotices } from "../components/notices";
 import { queryKeys } from "./queries";
 
 const Context = createContext<EditorDraftStore | null>(null);
@@ -93,6 +95,8 @@ export function useKeepEditorDraft(
   const [isRetained, setIsRetained] = useState(true);
   const { signal } = useAuthSession();
   const queries = useQueryClient();
+  const { post } = useNotices();
+  const t = useTranslations("draftRecovery");
   useEffect(() => {
     mounted.current = true;
     return () => {
@@ -117,6 +121,8 @@ export function useKeepEditorDraft(
       if (mounted.current && !signal.aborted) onSaved(saved);
     } catch (error) {
       if (isDraftAccessError(error) && mounted.current && !signal.aborted) {
+        // The editor closes, so the refusal is said where it stays visible.
+        post({ message: t("accessLost"), tone: "danger" });
         onAccessLost();
         void queries.invalidateQueries({ queryKey: queryKeys.event(accessId) });
         void queries.invalidateQueries({

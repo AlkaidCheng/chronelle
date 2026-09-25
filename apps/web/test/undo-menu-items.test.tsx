@@ -23,6 +23,7 @@ function Harness() {
         onClick={() =>
           update.mutate({
             id: initial.id,
+            workspaceId: initial.workspaceId,
             input: { expectedVersion: 1, displayName: "Garden night" },
           })
         }

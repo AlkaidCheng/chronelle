@@ -25,6 +25,8 @@ export interface PostedNotice {
    * here.
    */
   readonly onSettle?: () => void;
+  /** `danger` for a refusal; a notice is a success by default. */
+  readonly tone?: "success" | "danger";
 }
 
 interface NoticeEntry extends PostedNotice {
@@ -76,7 +78,7 @@ export function NoticesProvider({
         const kept = current.slice(1 - shownAtOnce);
         for (const pushed of current.slice(0, current.length - kept.length))
           settle(pushed.id);
-        return [...kept, { ...notice, id, tone: "success" }];
+        return [...kept, { ...notice, id, tone: notice.tone ?? "success" }];
       });
       window.setTimeout(() => dismiss(id), dismissAfterMs);
     },

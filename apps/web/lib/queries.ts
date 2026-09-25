@@ -56,11 +56,14 @@ import {
 } from "../i18n/locale-preference";
 import { isLocale } from "../i18n/locales";
 import { useApiClient } from "./api-context";
+import { useCommandHistory } from "./command-history";
 import {
   commandDescription,
+  commandHistoryKey,
   commandsKey,
   executeCommand,
   readCommandState,
+  recordCommandHistory,
   rememberCommand,
   settledRecord,
 } from "./commands";
@@ -856,23 +859,27 @@ export function useCreateEvent() {
 export function useUpdateEvent() {
   const client = useApiClient();
   const queryClient = useQueryClient();
-  const { signal } = useAuthSession();
+  const { credential, signal } = useAuthSession();
   const invalidate = useResourceInvalidation();
   return useMutation({
     mutationFn: async ({
       id,
+      workspaceId,
       input,
     }: {
       id: string;
+      /** The Event's own workspace, where its commands are kept. */
+      workspaceId: string;
       input: EventUpdatePayload;
     }) => {
       if (input.metadata !== undefined) return client.updateEvent(id, input);
       const { metadata: _, ...patch } = input;
-      const receipt = await executeCommand(client, queryClient, {
-        objectType: "event",
-        objectId: id,
-        patch,
-      });
+      const receipt = await executeCommand(
+        client,
+        queryClient,
+        { objectType: "event", objectId: id, patch },
+        recordCommandHistory({ id, workspaceId }, credential?.workspaceId),
+      );
       const saved =
         settledRecord(
           queryClient.getQueryData<EventResponse>(queryKeys.eventResource(id)),
@@ -1121,22 +1128,27 @@ export function useCreateTask(
 export function useUpdateTask() {
   const client = useApiClient();
   const queryClient = useQueryClient();
+  const { credential } = useAuthSession();
   const invalidate = useResourceInvalidation();
   return useMutation({
     mutationFn: async ({
       id,
+      workspaceId,
       input,
     }: {
       id: string;
+      /** The Task's own workspace, where its commands are kept. */
+      workspaceId: string;
       input: TaskUpdatePayload;
     }) => {
       if (input.metadata !== undefined) return client.updateTask(id, input);
       const { metadata: _, ...patch } = input;
-      const receipt = await executeCommand(client, queryClient, {
-        objectType: "task",
-        objectId: id,
-        patch,
-      });
+      const receipt = await executeCommand(
+        client,
+        queryClient,
+        { objectType: "task", objectId: id, patch },
+        recordCommandHistory({ id, workspaceId }, credential?.workspaceId),
+      );
       const saved =
         settledRecord(
           queryClient.getQueryData<TaskResponse>(queryKeys.objectResource(id)),
@@ -1160,14 +1172,15 @@ export function useUpdateTask() {
   });
 }
 
-/** The caller's undo and redo heads in this workspace. */
+/** The caller's undo and redo heads on the stack this page's Undo edit acts on. */
 export function useCommandState() {
   const client = useApiClient();
-  const { credential } = useAuthSession();
+  const history = useCommandHistory();
   return useQuery({
-    enabled: credential !== null,
-    queryFn: ({ signal }) => client.withSignal(signal).getCommandState(),
-    queryKey: queryKeys.commands,
+    enabled: history !== null,
+    queryFn: ({ signal }) =>
+      client.withSignal(signal).getCommandState(history?.objectId),
+    queryKey: commandHistoryKey(history),
   });
 }
 
@@ -1178,10 +1191,13 @@ export function useCommandState() {
 export function useCommandTransition(direction: "undo" | "redo") {
   const client = useApiClient();
   const queryClient = useQueryClient();
+  const history = useCommandHistory();
   const invalidate = useCanonicalInvalidation();
   return useMutation({
     mutationFn: async () => {
-      const state = await readCommandState(client, queryClient);
+      if (history === null)
+        throw new ApiClientError(401, "unauthenticated", "Sign in again.");
+      const state = await readCommandState(client, queryClient, history);
       const head = state[direction];
       if (head === null || !head.available)
         throw new ApiClientError(
@@ -1195,8 +1211,8 @@ export function useCommandTransition(direction: "undo" | "redo") {
         expectedStackVersion: state.version,
       };
       return direction === "undo"
-        ? client.undoCommand(input)
-        : client.redoCommand(input);
+        ? client.undoCommand(input, history.objectId)
+        : client.redoCommand(input, history.objectId);
     },
     onSettled: async () => {
       await queryClient.invalidateQueries({ queryKey: queryKeys.commands });

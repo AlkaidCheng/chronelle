@@ -547,7 +547,9 @@ text undo remains available in editors.
 Two undo stacks, each named for what it takes back. Content edits of Events and
 Tasks (a rename, a due date, a completion, a move in manual order) run as
 reversible commands, and the page's More menu on an event or a person offers
-Undo edit and Redo edit for the account's stack in this workspace: the item
+Undo edit and Redo edit for the account's stack in this workspace, or, on an
+event or a person shared from another workspace, for the account's stack
+where that record lives, since its edits are kept there: the item
 reads the command this browser ran ("Undo: rename Kyoto in November"), and is
 disabled with the reason when the head is not reachable (Nothing to undo, or
 Changed by someone else since, when another account edited the record). After
@@ -1078,7 +1080,10 @@ does not implement backend command replay.
 Event, schedule-item, task, expense, reminder, and person forms keep their
 draft after a failed save. Submit again explicitly to retry; Refresh latest
 only fetches data and does not save changes. A failed refresh leaves the save
-error visible.
+error visible. A save refused because the record is no longer within reach
+(its share was withdrawn, or it went to Trash) closes the editor and says so
+in a notice: "Your changes were not saved: this item is no longer available
+to you."
 
 ## A stale write, compared
 
