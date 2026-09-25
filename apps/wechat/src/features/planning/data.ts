@@ -1,11 +1,11 @@
-import type { ChronelleApiClient } from "@chronelle/api-client";
+import type { ChronelleApiClient } from "@livtales/api-client";
 import type {
   EventResourceProjectionResponse,
   ExpenseResourceProjectionResponse,
   ReminderResourceProjectionResponse,
   TaskResourceProjectionResponse,
   TimelineResponse,
-} from "@chronelle/schemas";
+} from "@livtales/schemas";
 
 import type { PlanningComponentKind } from "./catalog";
 

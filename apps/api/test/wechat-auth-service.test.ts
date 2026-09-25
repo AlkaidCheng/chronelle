@@ -1,4 +1,4 @@
-import type { UserRow, WorkspaceRow } from "@chronelle/db";
+import type { UserRow, WorkspaceRow } from "@livtales/db";
 import { describe, expect, it, vi } from "vitest";
 import { hashAccessToken } from "../src/authentication/session-auth-provider.js";
 import { WeChatAuthenticationService } from "../src/authentication/wechat-auth-service.js";

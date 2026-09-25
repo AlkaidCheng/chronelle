@@ -3,7 +3,7 @@ import {
   InvalidShareError,
   PrincipalUnavailableError,
   ResourceGrantService,
-} from "@chronelle/authorization";
+} from "@livtales/authorization";
 import {
   auditEvents,
   createId,
@@ -11,7 +11,7 @@ import {
   userConnections,
   users,
   workspaceMembers,
-} from "@chronelle/db";
+} from "@livtales/db";
 import { and, eq, inArray } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 

@@ -1,5 +1,5 @@
-import type { EventResponse } from "@chronelle/schemas";
-import { calendarDateSchema } from "@chronelle/schemas";
+import type { EventResponse } from "@livtales/schemas";
+import { calendarDateSchema } from "@livtales/schemas";
 import { activeLocale, tr } from "../i18n/active-locale";
 import { instantOptions } from "../i18n/active-preferences";
 import { formatDateTime, fromDateTimeInput, toDateTimeInput } from "./format";

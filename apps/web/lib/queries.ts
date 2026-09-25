@@ -4,7 +4,7 @@ import {
   ApiClientError,
   ChronelleApiClient,
   type DocumentFileInput,
-} from "@chronelle/api-client";
+} from "@livtales/api-client";
 import type {
   DevelopmentSignInRequest,
   EventCreatePayload,
@@ -38,7 +38,7 @@ import type {
   TaskResponse,
   TaskUpdatePayload,
   UserResponse,
-} from "@chronelle/schemas";
+} from "@livtales/schemas";
 import { useRouter } from "next/navigation";
 import { useCallback, useRef } from "react";
 import {

@@ -7,13 +7,13 @@ import {
   users,
   workspaceMembers,
   workspaces,
-} from "@chronelle/db";
+} from "@livtales/db";
 import {
   applyMigrations,
   createCloudBaseRpcDouble,
   createTestDatabase,
   type TestDatabase,
-} from "@chronelle/db/testing";
+} from "@livtales/db/testing";
 import { and, eq } from "drizzle-orm";
 
 import type { EventPlanningObjectService } from "../src/object-service.js";

@@ -3,7 +3,7 @@ import {
   type EventCreatePayload,
   type EventResponse,
   type EventUpdatePayload,
-} from "@chronelle/schemas";
+} from "@livtales/schemas";
 
 import {
   clockPattern,

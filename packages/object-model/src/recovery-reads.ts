@@ -3,20 +3,20 @@ import {
   AuthorizationDeniedError,
   withReadAuthorization,
   type UserPrincipal,
-} from "@chronelle/authorization";
+} from "@livtales/authorization";
 import {
   objects,
   tasks,
   type Database,
   type DatabaseTransaction,
   type ObjectType,
-} from "@chronelle/db";
+} from "@livtales/db";
 import {
   trashCursorSchema,
   trashQuerySchema,
   type TrashQuery,
   type TrashQueryInput,
-} from "@chronelle/schemas";
+} from "@livtales/schemas";
 import { and, desc, eq, isNotNull, lt } from "drizzle-orm";
 
 import { decodeCursor, encodeCursor } from "./cursor.js";

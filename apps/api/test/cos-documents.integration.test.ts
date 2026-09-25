@@ -7,12 +7,12 @@ import {
   documentTransferAuthorizations,
   objectRevisions,
   workspaceMembers,
-} from "@chronelle/db";
+} from "@livtales/db";
 import {
   applyMigrations,
   createTestDatabase,
   type TestDatabase,
-} from "@chronelle/db/testing";
+} from "@livtales/db/testing";
 import {
   developmentSignInResponseSchema,
   documentAttachmentResponseSchema,
@@ -22,7 +22,7 @@ import {
   eventResponseSchema,
   shareResponseSchema,
   storageInventoryResponseSchema,
-} from "@chronelle/schemas";
+} from "@livtales/schemas";
 import COS from "cos-nodejs-sdk-v5";
 import { eq, like } from "drizzle-orm";
 import type { FastifyInstance, InjectOptions } from "fastify";

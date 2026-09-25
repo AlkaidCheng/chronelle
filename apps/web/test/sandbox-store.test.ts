@@ -1,5 +1,5 @@
-import { ChronelleApiClient } from "@chronelle/api-client";
-import { eventComponentKindSchema } from "@chronelle/schemas";
+import { ChronelleApiClient } from "@livtales/api-client";
+import { eventComponentKindSchema } from "@livtales/schemas";
 import { describe, expect, it } from "vitest";
 import {
   SandboxStore,

@@ -1,4 +1,4 @@
-import type { ChronelleApiClient } from "@chronelle/api-client";
+import type { ChronelleApiClient } from "@livtales/api-client";
 import {
   createContext,
   type PropsWithChildren,

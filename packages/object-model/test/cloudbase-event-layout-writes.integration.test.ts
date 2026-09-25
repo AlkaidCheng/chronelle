@@ -1,11 +1,11 @@
-import { AuthorizationDeniedError } from "@chronelle/authorization";
+import { AuthorizationDeniedError } from "@livtales/authorization";
 import {
   auditEvents,
   createId,
   eventPageRevisions,
   resourceGrants,
-} from "@chronelle/db";
-import type { EventPage } from "@chronelle/schemas";
+} from "@livtales/db";
+import type { EventPage } from "@livtales/schemas";
 import { and, eq, like } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 

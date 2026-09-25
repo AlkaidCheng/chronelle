@@ -589,7 +589,7 @@ digits with an optional fraction and no trailing zero (`00000001000`,
 `00000001500.5`), so text order is numeric order. A created record goes last
 (a thousand past the workspace's highest integer part) unless the request
 sends a rank; to drop a record between two others, send the midpoint of
-their ranks (the `rankBetween` helper in `@chronelle/schemas` computes it) as
+their ranks (the `rankBetween` helper in `@livtales/schemas` computes it) as
 a `PATCH` with the expected version, which moves no other record. A rank of
 another shape is refused with `rank is a position in manual order.`.
 Responses carry `rank`; `GET /tasks?sort=manual` lists by it. The rank is

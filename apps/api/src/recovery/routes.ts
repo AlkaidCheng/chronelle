@@ -1,8 +1,8 @@
 import type {
   ObjectRecoveryService,
   ObjectRelationService,
-} from "@chronelle/object-model";
-import { serializeResource } from "@chronelle/object-model";
+} from "@livtales/object-model";
+import { serializeResource } from "@livtales/object-model";
 import {
   objectIdParamsSchema,
   trashQuerySchema,
@@ -13,7 +13,7 @@ import {
   relationResponseSchema,
   removedRelationQuerySchema,
   removedRelationListResponseSchema,
-} from "@chronelle/schemas";
+} from "@livtales/schemas";
 import type { FastifyInstance } from "fastify";
 import { parseRequest } from "../request-validation.js";
 import { requirePrincipal } from "../request-context.js";

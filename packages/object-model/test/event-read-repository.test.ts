@@ -1,7 +1,7 @@
 import type {
   AuthorizationDatabase,
   UserPrincipal,
-} from "@chronelle/authorization";
+} from "@livtales/authorization";
 import { describe, expect, it, vi } from "vitest";
 
 import { EventPlanningObjectService } from "../src/object-service.js";

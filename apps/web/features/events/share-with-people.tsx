@@ -7,7 +7,7 @@ import type {
   SentInvitation,
   ShareResponse,
   ShareScope,
-} from "@chronelle/schemas";
+} from "@livtales/schemas";
 import { useTranslations } from "next-intl";
 import { type FormEvent, useId, useState } from "react";
 

@@ -2,7 +2,7 @@ import type {
   EventComponentKind,
   EventComponentView,
   EventPage,
-} from "@chronelle/schemas";
+} from "@livtales/schemas";
 import { tr } from "../i18n/active-locale";
 import { newId } from "./new-id";
 

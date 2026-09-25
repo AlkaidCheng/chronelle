@@ -1,6 +1,6 @@
-import { AuthorizationDeniedError } from "@chronelle/authorization";
-import { createId, resourceGrants } from "@chronelle/db";
-import type { EventPage } from "@chronelle/schemas";
+import { AuthorizationDeniedError } from "@livtales/authorization";
+import { createId, resourceGrants } from "@livtales/db";
+import type { EventPage } from "@livtales/schemas";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { CloudBaseEventLayoutReadRepository } from "../src/cloudbase-event-layout-read-repository.js";

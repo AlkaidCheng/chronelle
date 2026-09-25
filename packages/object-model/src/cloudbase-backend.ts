@@ -1,4 +1,4 @@
-import type { CloudBaseRdbClient } from "@chronelle/db";
+import type { CloudBaseRdbClient } from "@livtales/db";
 
 /**
  * The database functions the CloudBase adapters of this package call. A

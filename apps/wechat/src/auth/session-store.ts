@@ -1,4 +1,4 @@
-import type { ApiCredential, ChronelleApiClient } from "@chronelle/api-client";
+import type { ApiCredential, ChronelleApiClient } from "@livtales/api-client";
 
 export const weChatSessionStorageKey = "chronelle.session.v1";
 

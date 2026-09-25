@@ -57,7 +57,7 @@ export default defineConfig({
   },
   webServer: [
     {
-      command: "pnpm --filter @chronelle/api start",
+      command: "pnpm --filter @livtales/api start",
       env: {
         API_HOST: "127.0.0.1",
         API_PORT: apiPort,
@@ -76,7 +76,7 @@ export default defineConfig({
       url: `http://127.0.0.1:${apiPort}/api/health`,
     },
     {
-      command: "pnpm --filter @chronelle/web start",
+      command: "pnpm --filter @livtales/web start",
       env: {
         API_INTERNAL_URL: `http://127.0.0.1:${apiPort}`,
         HOSTNAME: "127.0.0.1",

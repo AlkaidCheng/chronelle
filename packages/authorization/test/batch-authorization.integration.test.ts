@@ -1,6 +1,6 @@
 import { resolve } from "node:path";
 
-import * as schema from "@chronelle/db";
+import * as schema from "@livtales/db";
 import {
   createId,
   objects,
@@ -9,12 +9,12 @@ import {
   workspaceMembers,
   workspaces,
   type Role,
-} from "@chronelle/db";
+} from "@livtales/db";
 import {
   applyMigrations,
   createTestDatabase,
   type TestDatabase,
-} from "@chronelle/db/testing";
+} from "@livtales/db/testing";
 import { drizzle } from "drizzle-orm/postgres-js";
 import { eq } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";

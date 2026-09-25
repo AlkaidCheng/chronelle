@@ -3,7 +3,7 @@
 import type {
   RevisionFieldChange,
   RevisionRestorePreview,
-} from "@chronelle/schemas";
+} from "@livtales/schemas";
 import { useTranslations } from "next-intl";
 import { useEffect, useId, useRef, useState } from "react";
 

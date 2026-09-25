@@ -1,9 +1,9 @@
-import { ApiClientError } from "@chronelle/api-client";
+import { ApiClientError } from "@livtales/api-client";
 import type {
   RevisionFieldChange,
   RevisionRestorePreview,
   RevisionRestoreRequest,
-} from "@chronelle/schemas";
+} from "@livtales/schemas";
 
 import type { AppLocale } from "../i18n/catalog";
 

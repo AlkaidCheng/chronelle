@@ -1,6 +1,6 @@
 import { useTranslations } from "next-intl";
 import { type FormEvent, useEffect, useMemo, useRef, useState } from "react";
-import type { EventResponse } from "@chronelle/schemas";
+import type { EventResponse } from "@livtales/schemas";
 
 import { CountedField } from "../../components/counted-field";
 import { DescriptionField } from "../../components/description-field";

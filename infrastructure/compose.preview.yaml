@@ -20,7 +20,7 @@ services:
     command:
       - sh
       - -ec
-      - node node_modules/@chronelle/db/dist/cli.js && node node_modules/@chronelle/object-model/dist/baseline-cli.js
+      - node node_modules/@livtales/db/dist/cli.js && node node_modules/@livtales/object-model/dist/baseline-cli.js
     environment:
       DATABASE_URL: postgresql://chronelle:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}@postgres:5432/chronelle
     read_only: true

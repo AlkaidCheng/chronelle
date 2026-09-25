@@ -2,20 +2,20 @@ import {
   AuthorizationDeniedError,
   withReadAuthorization,
   type UserPrincipal,
-} from "@chronelle/authorization";
+} from "@livtales/authorization";
 import {
   objectRevisions,
   users,
   type ActorType,
   type Database,
   type RevisionKind,
-} from "@chronelle/db";
+} from "@livtales/db";
 import {
   revisionSnapshotSchema,
   type RevisionFieldChange,
   type RevisionListQuery,
   type RevisionSnapshot,
-} from "@chronelle/schemas";
+} from "@livtales/schemas";
 import { and, desc, eq, lt } from "drizzle-orm";
 
 import { InvalidObjectStateError } from "./errors.js";

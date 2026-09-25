@@ -27,13 +27,13 @@ Start the API in one terminal. The API reads the repository `.env`; development
 sign-in must be explicitly enabled for this preview:
 
 ```bash
-API_HOST=127.0.0.1 pnpm --filter @chronelle/api start
+API_HOST=127.0.0.1 pnpm --filter @livtales/api start
 ```
 
 Start the production web entry point in another terminal:
 
 ```bash
-HOSTNAME=127.0.0.1 PORT=3000 API_INTERNAL_URL=http://127.0.0.1:4000 pnpm --filter @chronelle/web start
+HOSTNAME=127.0.0.1 PORT=3000 API_INTERNAL_URL=http://127.0.0.1:4000 pnpm --filter @livtales/web start
 ```
 
 Open `http://localhost:3000/sign-in`. Keep both processes bound to loopback or
@@ -95,7 +95,7 @@ and will not create those fixtures.
 The current Personal plan is a staging option for this SDK path. Native TCP
 access remains a separate deployment decision because it requires a database
 endpoint, credentials, SSL settings, and a network route from the API service.
-Chronelle now exposes a small `@chronelle/db` CloudBase RDB transport for
+Chronelle now exposes a small `@livtales/db` CloudBase RDB transport for
 bounded, non-transactional reads. It validates table identifiers, preserves
 pagination bounds, and reports the backend capabilities explicitly. The
 existing `connectDatabase(DATABASE_URL)` Drizzle/PostgreSQL adapter remains the

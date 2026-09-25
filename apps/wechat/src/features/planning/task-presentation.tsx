@@ -1,10 +1,10 @@
-import { ApiClientError } from "@chronelle/api-client";
+import { ApiClientError } from "@livtales/api-client";
 import type {
   HourCycle,
   SectionResponse,
   TaskResponse,
   WeekStart,
-} from "@chronelle/schemas";
+} from "@livtales/schemas";
 import { Button, ScrollView, Text, View } from "@tarojs/components";
 import Taro from "@tarojs/taro";
 import { useState } from "react";

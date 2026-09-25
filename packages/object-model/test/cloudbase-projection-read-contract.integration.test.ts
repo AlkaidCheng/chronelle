@@ -1,7 +1,7 @@
 import { resolve } from "node:path";
 
-import { AuthorizationDeniedError } from "@chronelle/authorization";
-import type { UserPrincipal } from "@chronelle/authorization";
+import { AuthorizationDeniedError } from "@livtales/authorization";
+import type { UserPrincipal } from "@livtales/authorization";
 import {
   createId,
   documents,
@@ -20,17 +20,17 @@ import {
   users,
   workspaceMembers,
   workspaces,
-} from "@chronelle/db";
+} from "@livtales/db";
 import type {
   CloudBaseRdbReader,
   CloudBaseRdbQuery,
   Database,
-} from "@chronelle/db";
+} from "@livtales/db";
 import {
   applyMigrations,
   createTestDatabase,
   type TestDatabase,
-} from "@chronelle/db/testing";
+} from "@livtales/db/testing";
 import { eq, getTableColumns, type Table } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 

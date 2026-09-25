@@ -18,8 +18,8 @@ COPY packages/object-model packages/object-model
 COPY packages/db packages/db
 COPY packages/schemas packages/schemas
 COPY packages/storage packages/storage
-RUN pnpm --filter @chronelle/api build
-RUN pnpm --filter @chronelle/api deploy --prod --legacy /runtime
+RUN pnpm --filter @livtales/api build
+RUN pnpm --filter @livtales/api deploy --prod --legacy /runtime
 RUN find /runtime/node_modules -type d -name .claude -prune -exec rm -rf '{}' +
 
 FROM node:24-alpine AS runtime

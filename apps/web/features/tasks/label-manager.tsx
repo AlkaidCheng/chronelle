@@ -1,6 +1,6 @@
 "use client";
 
-import type { LabelResponse } from "@chronelle/schemas";
+import type { LabelResponse } from "@livtales/schemas";
 import { useTranslations } from "next-intl";
 import { useId, useRef, useState } from "react";
 import { createPortal } from "react-dom";

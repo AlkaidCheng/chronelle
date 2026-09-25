@@ -1,6 +1,6 @@
 "use client";
 
-import type { PersonShare } from "@chronelle/schemas";
+import type { PersonShare } from "@livtales/schemas";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 import type { ReactNode } from "react";

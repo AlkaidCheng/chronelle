@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it } from "vitest";
 
-import { healthStatusSchema } from "@chronelle/schemas";
-import { connectDatabase } from "@chronelle/db";
+import { healthStatusSchema } from "@livtales/schemas";
+import { connectDatabase } from "@livtales/db";
 import type { FastifyInstance } from "fastify";
 
 import { buildApp } from "../src/app.js";

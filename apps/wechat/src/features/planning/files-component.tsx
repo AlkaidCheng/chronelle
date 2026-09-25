@@ -1,4 +1,4 @@
-import { ApiClientError, TransportError } from "@chronelle/api-client";
+import { ApiClientError, TransportError } from "@livtales/api-client";
 import { Button, Picker, Text, View } from "@tarojs/components";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef, useState } from "react";

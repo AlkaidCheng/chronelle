@@ -3,7 +3,7 @@ import {
   type CloudBaseRdbClient,
   type CloudBaseRdbFilter,
   type UserRow,
-} from "@chronelle/db";
+} from "@livtales/db";
 
 import type { AuthIdentity } from "../authentication/auth-provider.js";
 import {

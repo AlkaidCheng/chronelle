@@ -1,6 +1,6 @@
 "use client";
 
-import type { SectionResponse } from "@chronelle/schemas";
+import type { SectionResponse } from "@livtales/schemas";
 
 import type { ExpenseFields } from "../../lib/expense-fields";
 import { useExpenseEditorQueries } from "../../lib/queries";

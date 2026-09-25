@@ -1,4 +1,4 @@
-import { AuthorizationDeniedError } from "@chronelle/authorization";
+import { AuthorizationDeniedError } from "@livtales/authorization";
 import {
   auditEvents,
   createId,
@@ -9,7 +9,7 @@ import {
   users,
   workspaceMembers,
   workspaces,
-} from "@chronelle/db";
+} from "@livtales/db";
 import { and, eq, or, sql } from "drizzle-orm";
 
 import {

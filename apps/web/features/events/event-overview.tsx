@@ -2,7 +2,7 @@
 
 import { useTranslations } from "next-intl";
 import type { ReactNode } from "react";
-import type { EventDetailResponse } from "@chronelle/schemas";
+import type { EventDetailResponse } from "@livtales/schemas";
 import {
   BellIcon,
   CalendarIcon,

@@ -62,7 +62,7 @@ their existing providers, authorization, and persistence.
 ## Validation
 
 ```sh
-pnpm --filter @chronelle/web test
+pnpm --filter @livtales/web test
 pnpm exec playwright install chromium
 pnpm test:sandbox
 ```

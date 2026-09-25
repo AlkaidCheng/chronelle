@@ -1,6 +1,6 @@
 "use client";
 
-import type { EventResponse, TaskResponse } from "@chronelle/schemas";
+import type { EventResponse, TaskResponse } from "@livtales/schemas";
 import Link from "next/link";
 import { AccessLine } from "../../components/access-line";
 import { useTranslations } from "next-intl";

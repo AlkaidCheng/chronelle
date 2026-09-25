@@ -5,7 +5,7 @@ import {
   eventComponentViewSchema,
   type TaskListQuery,
   type TaskResponse,
-} from "@chronelle/schemas";
+} from "@livtales/schemas";
 import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 

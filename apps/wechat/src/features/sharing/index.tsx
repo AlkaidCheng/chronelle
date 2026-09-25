@@ -1,4 +1,4 @@
-import { ApiClientError } from "@chronelle/api-client";
+import { ApiClientError } from "@livtales/api-client";
 import type {
   ObjectAccessResponse,
   PendingShare,
@@ -6,7 +6,7 @@ import type {
   SessionResponse,
   ShareResponse,
   ShareView,
-} from "@chronelle/schemas";
+} from "@livtales/schemas";
 import {
   Button,
   Input,

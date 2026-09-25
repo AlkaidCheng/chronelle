@@ -1,4 +1,4 @@
-import { ChronelleApiClient, type ApiCredential } from "@chronelle/api-client";
+import { ChronelleApiClient, type ApiCredential } from "@livtales/api-client";
 
 import { createTaroJsonTransport, type TaroRequest } from "./taro-transport";
 

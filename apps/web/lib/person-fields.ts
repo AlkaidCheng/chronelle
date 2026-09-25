@@ -1,4 +1,4 @@
-import type { PersonContactKind, PersonResponse } from "@chronelle/schemas";
+import type { PersonContactKind, PersonResponse } from "@livtales/schemas";
 
 import { joinLabelIds, splitLabelIds } from "./task-fields";
 

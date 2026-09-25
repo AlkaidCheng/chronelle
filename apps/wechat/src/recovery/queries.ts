@@ -1,4 +1,4 @@
-import type { TrashItem } from "@chronelle/schemas";
+import type { TrashItem } from "@livtales/schemas";
 import {
   useInfiniteQuery,
   useMutation,

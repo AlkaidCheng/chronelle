@@ -1,5 +1,5 @@
-import { AuthorizationDeniedError } from "@chronelle/authorization";
-import { CloudBaseRpcError } from "@chronelle/db";
+import { AuthorizationDeniedError } from "@livtales/authorization";
+import { CloudBaseRpcError } from "@livtales/db";
 import { describe, expect, it, vi } from "vitest";
 
 import { CloudBaseSearchReadRepository } from "../src/cloudbase-search-read-repository.js";

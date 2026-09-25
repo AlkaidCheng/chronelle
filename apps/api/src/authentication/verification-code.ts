@@ -1,6 +1,6 @@
 import { createHash, randomInt } from "node:crypto";
 
-import type { VerificationPurpose } from "@chronelle/db";
+import type { VerificationPurpose } from "@livtales/db";
 
 /** Six decimal digits, typed by the user; the attempt limit bounds guessing. */
 export function generateVerificationCode(): string {

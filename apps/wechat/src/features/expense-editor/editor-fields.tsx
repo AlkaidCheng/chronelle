@@ -1,4 +1,4 @@
-import type { SectionResponse } from "@chronelle/schemas";
+import type { SectionResponse } from "@livtales/schemas";
 import { Input, Picker, Text, View } from "@tarojs/components";
 
 import { EditorFieldLabel } from "../../components/editor";

@@ -9,7 +9,7 @@ import {
   waitFor,
 } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { eventResponseSchema } from "@chronelle/schemas";
+import { eventResponseSchema } from "@livtales/schemas";
 import { useQuery } from "@tanstack/react-query";
 import { StrictMode, useState } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";

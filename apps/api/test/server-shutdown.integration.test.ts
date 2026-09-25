@@ -7,7 +7,7 @@ import {
   applyMigrations,
   createTestDatabase,
   type TestDatabase,
-} from "@chronelle/db/testing";
+} from "@livtales/db/testing";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 
 // The entry point is exercised as a process because the behavior under test

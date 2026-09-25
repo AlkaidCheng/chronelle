@@ -1,4 +1,4 @@
-import type { ExpenseResponse } from "@chronelle/schemas";
+import type { ExpenseResponse } from "@livtales/schemas";
 import { tr } from "../i18n/active-locale";
 import { editedInstant } from "./edited-instant";
 import { toDateTimeInput } from "./format";

@@ -2,9 +2,9 @@ import {
   withReadAuthorization,
   type AuthorizationService,
   type UserPrincipal,
-} from "@chronelle/authorization";
-import type { Database, DatabaseTransaction } from "@chronelle/db";
-import type { CommandStateResponse } from "@chronelle/schemas";
+} from "@livtales/authorization";
+import type { Database, DatabaseTransaction } from "@livtales/db";
+import type { CommandStateResponse } from "@livtales/schemas";
 
 import {
   readCommandChanges,

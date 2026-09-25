@@ -1,9 +1,9 @@
-import type { UserPrincipal } from "@chronelle/authorization";
+import type { UserPrincipal } from "@livtales/authorization";
 import {
   objectSearchCursorPayloadSchema,
   objectSearchQuerySchema,
   type ObjectSearchCursorPayload,
-} from "@chronelle/schemas";
+} from "@livtales/schemas";
 
 import { InvalidObjectStateError } from "./errors.js";
 import { decodeCursor, encodeCursor } from "./cursor.js";

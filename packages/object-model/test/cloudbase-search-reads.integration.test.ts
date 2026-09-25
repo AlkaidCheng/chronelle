@@ -1,6 +1,6 @@
 import { Buffer } from "node:buffer";
 
-import type { UserPrincipal } from "@chronelle/authorization";
+import type { UserPrincipal } from "@livtales/authorization";
 import {
   CloudBaseRpcError,
   createId,
@@ -9,7 +9,7 @@ import {
   users,
   workspaceMembers,
   workspaces,
-} from "@chronelle/db";
+} from "@livtales/db";
 import { eq, inArray, sql } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 

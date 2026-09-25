@@ -7,7 +7,7 @@ import type {
   SectionResponse,
   TimelineResponse,
   WeekStart,
-} from "@chronelle/schemas";
+} from "@livtales/schemas";
 import { Button, Text, View } from "@tarojs/components";
 import Taro from "@tarojs/taro";
 import { useState } from "react";

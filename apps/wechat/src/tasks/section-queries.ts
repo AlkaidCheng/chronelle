@@ -1,7 +1,7 @@
 import type {
   SectionCreateRequest,
   SectionUpdateRequest,
-} from "@chronelle/schemas";
+} from "@livtales/schemas";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 import { planningProjectionQueryKey } from "../features/planning/data";

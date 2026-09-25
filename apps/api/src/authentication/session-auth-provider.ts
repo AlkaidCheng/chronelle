@@ -1,6 +1,6 @@
 import { createHash, randomBytes } from "node:crypto";
 
-import type { UserRow } from "@chronelle/db";
+import type { UserRow } from "@livtales/db";
 
 import type { AuthenticatedUser, AuthProvider } from "./auth-provider.js";
 import type { SessionStore } from "./session-store.js";

@@ -67,8 +67,8 @@ authorization-bearing functions are unchanged.
 Run the reproducible policy fixture against the configured test database:
 
 ```sh
-pnpm --filter @chronelle/authorization test
-pnpm --filter @chronelle/authorization exec vitest run test/batch-authorization.integration.test.ts --reporter=verbose
+pnpm --filter @livtales/authorization test
+pnpm --filter @livtales/authorization exec vitest run test/batch-authorization.integration.test.ts --reporter=verbose
 ```
 
 ## Retrieval budgets

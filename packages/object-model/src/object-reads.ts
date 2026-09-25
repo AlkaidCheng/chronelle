@@ -5,7 +5,7 @@ import {
   type GrantNarrowing,
   type AuthorizationDatabase,
   type UserPrincipal,
-} from "@chronelle/authorization";
+} from "@livtales/authorization";
 import {
   type DatabaseTransaction,
   objects,
@@ -13,7 +13,7 @@ import {
   type Role,
   users,
   workspaceMembers,
-} from "@chronelle/db";
+} from "@livtales/db";
 import { and, eq, gt, inArray, isNull, or } from "drizzle-orm";
 
 import type { EventReadRepository } from "./event-list.js";

@@ -1,4 +1,4 @@
-import type { SectionService } from "@chronelle/object-model";
+import type { SectionService } from "@livtales/object-model";
 import {
   objectIdParamsSchema,
   sectionCreateRequestSchema,
@@ -6,7 +6,7 @@ import {
   sectionListResponseSchema,
   sectionResponseSchema,
   sectionUpdateRequestSchema,
-} from "@chronelle/schemas";
+} from "@livtales/schemas";
 import type { FastifyInstance } from "fastify";
 import { serializeSection } from "../event-planning/serialization.js";
 import { requirePrincipal } from "../request-context.js";

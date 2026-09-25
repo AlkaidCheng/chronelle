@@ -4,13 +4,13 @@ import {
   applyMigrations,
   createTestDatabase,
   type TestDatabase,
-} from "@chronelle/db/testing";
+} from "@livtales/db/testing";
 import {
   developmentSignInResponseSchema,
   personResponseSchema,
   taskListResponseSchema,
   taskResponseSchema,
-} from "@chronelle/schemas";
+} from "@livtales/schemas";
 import type { FastifyInstance } from "fastify";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 

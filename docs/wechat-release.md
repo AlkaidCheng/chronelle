@@ -15,8 +15,8 @@ export TARO_APP_ID=<registered-mini-program-app-id>
 export TARO_APP_API_BASE_URL=<public-https-api-origin>
 export TARO_APP_CLOUDBASE_ENV_ID=<associated-cloudbase-environment-id>
 export TARO_APP_CLOUDBASE_USE_WX_CLOUD=false
-pnpm --filter @chronelle/wechat build
-pnpm --filter @chronelle/wechat release:preflight
+pnpm --filter @livtales/wechat build
+pnpm --filter @livtales/wechat release:preflight
 ```
 
 Set `TARO_APP_CLOUDBASE_USE_WX_CLOUD=true` only when the Mini Program is

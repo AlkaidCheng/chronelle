@@ -1,13 +1,13 @@
 import {
   AuthorizationDeniedError,
   type UserPrincipal,
-} from "@chronelle/authorization";
-import type { Database } from "@chronelle/db";
-import type { StorageInventoryResponse } from "@chronelle/schemas";
+} from "@livtales/authorization";
+import type { Database } from "@livtales/db";
+import type { StorageInventoryResponse } from "@livtales/schemas";
 import {
   StorageInventoryUnavailableError,
   type StorageProvider,
-} from "@chronelle/storage";
+} from "@livtales/storage";
 
 import {
   documentPrefix,

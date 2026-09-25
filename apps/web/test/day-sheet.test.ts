@@ -1,4 +1,4 @@
-import type { EventResponse, TaskResponse } from "@chronelle/schemas";
+import type { EventResponse, TaskResponse } from "@livtales/schemas";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import en from "../messages/en.json";
 import { setActiveLocale } from "../i18n/active-locale";

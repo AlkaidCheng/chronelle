@@ -4,7 +4,7 @@ import type {
   NoteListItem,
   ReminderResponse,
   TaskResponse,
-} from "@chronelle/schemas";
+} from "@livtales/schemas";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import en from "../messages/en.json";
 import { setActiveLocale } from "../i18n/active-locale";

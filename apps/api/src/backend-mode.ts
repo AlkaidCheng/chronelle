@@ -1,5 +1,5 @@
-import type { CloudBaseRequestEvent } from "@chronelle/db";
-import { cloudBaseObjectModelFunctions } from "@chronelle/object-model";
+import type { CloudBaseRequestEvent } from "@livtales/db";
+import { cloudBaseObjectModelFunctions } from "@livtales/object-model";
 import { z } from "zod";
 
 export const backendEnvironmentSchema = z.object({

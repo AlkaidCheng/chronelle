@@ -48,19 +48,19 @@ importers:
 
   apps/api:
     dependencies:
-      '@chronelle/authorization':
+      '@livtales/authorization':
         specifier: workspace:*
         version: link:../../packages/authorization
-      '@chronelle/db':
+      '@livtales/db':
         specifier: workspace:*
         version: link:../../packages/db
-      '@chronelle/object-model':
+      '@livtales/object-model':
         specifier: workspace:*
         version: link:../../packages/object-model
-      '@chronelle/schemas':
+      '@livtales/schemas':
         specifier: workspace:*
         version: link:../../packages/schemas
-      '@chronelle/storage':
+      '@livtales/storage':
         specifier: workspace:*
         version: link:../../packages/storage
       drizzle-orm:
@@ -85,10 +85,10 @@ importers:
 
   apps/web:
     dependencies:
-      '@chronelle/api-client':
+      '@livtales/api-client':
         specifier: workspace:*
         version: link:../../packages/api-client
-      '@chronelle/schemas':
+      '@livtales/schemas':
         specifier: workspace:*
         version: link:../../packages/schemas
       '@tanstack/react-query':
@@ -134,15 +134,15 @@ importers:
       '@babel/runtime':
         specifier: 7.29.7
         version: 7.29.7
-      '@chronelle/api-client':
-        specifier: workspace:*
-        version: link:../../packages/api-client
-      '@chronelle/schemas':
-        specifier: workspace:*
-        version: link:../../packages/schemas
       '@cloudbase/js-sdk':
         specifier: 3.10.0
         version: 3.10.0
+      '@livtales/api-client':
+        specifier: workspace:*
+        version: link:../../packages/api-client
+      '@livtales/schemas':
+        specifier: workspace:*
+        version: link:../../packages/schemas
       '@tanstack/react-query':
         specifier: 5.103.1
         version: 5.103.1(react@18.3.1)
@@ -228,7 +228,7 @@ importers:
 
   packages/api-client:
     dependencies:
-      '@chronelle/schemas':
+      '@livtales/schemas':
         specifier: workspace:*
         version: link:../schemas
       zod:
@@ -237,7 +237,7 @@ importers:
 
   packages/authorization:
     dependencies:
-      '@chronelle/db':
+      '@livtales/db':
         specifier: workspace:*
         version: link:../db
       drizzle-orm:
@@ -267,16 +267,16 @@ importers:
 
   packages/object-model:
     dependencies:
-      '@chronelle/authorization':
+      '@livtales/authorization':
         specifier: workspace:*
         version: link:../authorization
-      '@chronelle/db':
+      '@livtales/db':
         specifier: workspace:*
         version: link:../db
-      '@chronelle/schemas':
+      '@livtales/schemas':
         specifier: workspace:*
         version: link:../schemas
-      '@chronelle/storage':
+      '@livtales/storage':
         specifier: workspace:*
         version: link:../storage
       drizzle-orm:

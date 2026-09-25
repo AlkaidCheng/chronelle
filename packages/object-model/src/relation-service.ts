@@ -5,7 +5,7 @@ import {
   type AuthorizationService,
   type AuthorizationAction,
   type UserPrincipal,
-} from "@chronelle/authorization";
+} from "@livtales/authorization";
 import {
   createId,
   objectRelations,
@@ -14,12 +14,12 @@ import {
   type DatabaseTransaction,
   type ObjectType,
   type RelationType,
-} from "@chronelle/db";
+} from "@livtales/db";
 import { and, eq, isNull, sql } from "drizzle-orm";
 import type {
   RelationListQueryInput,
   RemovedRelationQuery,
-} from "@chronelle/schemas";
+} from "@livtales/schemas";
 import {
   PostgresRelationReadRepository,
   type RelationPage,

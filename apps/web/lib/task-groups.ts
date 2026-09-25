@@ -1,4 +1,4 @@
-import type { TaskResponse } from "@chronelle/schemas";
+import type { TaskResponse } from "@livtales/schemas";
 
 import { tr } from "../i18n/active-locale";
 import { dayGroupLabel } from "./day-groups";

@@ -1,6 +1,6 @@
 "use client";
 
-import type { EventResponse } from "@chronelle/schemas";
+import type { EventResponse } from "@livtales/schemas";
 import { useTranslations } from "next-intl";
 import {
   type FormEvent,

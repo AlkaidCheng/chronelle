@@ -3,14 +3,14 @@ import {
   type AuthorizationService,
   withStableAuthorization,
   type UserPrincipal,
-} from "@chronelle/authorization";
+} from "@livtales/authorization";
 import {
   commandChanges,
   objectRevisions,
   reversibleCommands,
   type Database,
   type DatabaseTransaction,
-} from "@chronelle/db";
+} from "@livtales/db";
 import {
   commandEditSchema,
   revisionSnapshotSchema,
@@ -19,7 +19,7 @@ import {
   type CommandTransitionRequest,
   type CommandReceipt,
   type CommandStateResponse,
-} from "@chronelle/schemas";
+} from "@livtales/schemas";
 import { and, eq } from "drizzle-orm";
 import { hashCommand } from "./command-hash.js";
 import {

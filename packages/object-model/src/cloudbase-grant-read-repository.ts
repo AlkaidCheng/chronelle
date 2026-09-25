@@ -3,12 +3,12 @@ import {
   type GrantReadRepository,
   type ResourceGrantResource,
   type UserPrincipal,
-} from "@chronelle/authorization";
+} from "@livtales/authorization";
 import {
   roles as roleNames,
   type CloudBaseRdbReader,
   type Role,
-} from "@chronelle/db";
+} from "@livtales/db";
 
 import {
   cloudbaseIdBatchSize,

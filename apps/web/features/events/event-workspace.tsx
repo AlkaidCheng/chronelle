@@ -33,7 +33,7 @@ import {
   type AccessSource,
   eventComponentKindSchema,
   type EventComponentView,
-} from "@chronelle/schemas";
+} from "@livtales/schemas";
 import { EventComponent } from "./event-component";
 import { EventInspector } from "./event-inspector";
 import { SharingPanel } from "./sharing-panel";

@@ -4,7 +4,7 @@ import {
   type EmailVerificationRow,
   type UserCredentialRow,
   type VerificationPurpose,
-} from "@chronelle/db";
+} from "@livtales/db";
 
 import {
   type CloudBaseRow,

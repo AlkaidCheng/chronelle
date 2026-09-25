@@ -1,6 +1,6 @@
-import { AuthorizationDeniedError } from "@chronelle/authorization";
+import { AuthorizationDeniedError } from "@livtales/authorization";
 
-import type { CloudBaseRdbReader, CloudBaseRdbQuery } from "@chronelle/db";
+import type { CloudBaseRdbReader, CloudBaseRdbQuery } from "@livtales/db";
 import { describe, expect, it } from "vitest";
 
 import { CloudBaseCalendarReadRepository } from "../src/cloudbase-calendar-read-repository.js";

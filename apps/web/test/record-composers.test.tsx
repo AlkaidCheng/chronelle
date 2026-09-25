@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import { ChronelleApiClient } from "@chronelle/api-client";
+import { ChronelleApiClient } from "@livtales/api-client";
 import {
   cleanup,
   fireEvent,

@@ -1,6 +1,6 @@
 "use client";
 
-import type { TimelineResponse } from "@chronelle/schemas";
+import type { TimelineResponse } from "@livtales/schemas";
 import type { UseQueryResult } from "@tanstack/react-query";
 import type { ReactNode } from "react";
 

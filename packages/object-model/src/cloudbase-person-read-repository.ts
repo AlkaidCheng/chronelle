@@ -1,8 +1,8 @@
-import type { UserPrincipal } from "@chronelle/authorization";
+import type { UserPrincipal } from "@livtales/authorization";
 import {
   personListQuerySchema,
   type PersonListQueryInput,
-} from "@chronelle/schemas";
+} from "@livtales/schemas";
 
 import {
   type CloudBaseObjectRow,

@@ -1,4 +1,4 @@
-import { calendarDateSchema } from "@chronelle/schemas";
+import { calendarDateSchema } from "@livtales/schemas";
 
 export type WallClockIssue =
   "invalid-date" | "invalid-local-time" | "invalid-time-zone";

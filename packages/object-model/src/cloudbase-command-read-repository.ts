@@ -1,9 +1,9 @@
-import type { UserPrincipal } from "@chronelle/authorization";
-import { CloudBaseRpcError, type CloudBaseRdbClient } from "@chronelle/db";
+import type { UserPrincipal } from "@livtales/authorization";
+import { CloudBaseRpcError, type CloudBaseRdbClient } from "@livtales/db";
 import {
   commandStateResponseSchema,
   type CommandStateResponse,
-} from "@chronelle/schemas";
+} from "@livtales/schemas";
 
 import { mapRpcError } from "./cloudbase-rpc-errors.js";
 import type { CommandReadRepository } from "./command-reads.js";

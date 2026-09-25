@@ -60,7 +60,7 @@ import {
   type WorkspaceMember,
   workspaceMemberAddRequestSchema,
   workspaceMemberSchema,
-} from "@chronelle/schemas";
+} from "@livtales/schemas";
 import { byRank, rankBetweenRows } from "../lib/collection-order";
 import { eventPeriod } from "../lib/event-collection";
 import { mergeEventTabs } from "../lib/event-tabs";

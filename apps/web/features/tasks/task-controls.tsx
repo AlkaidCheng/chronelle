@@ -1,6 +1,6 @@
 "use client";
 
-import type { TaskListQuery } from "@chronelle/schemas";
+import type { TaskListQuery } from "@livtales/schemas";
 import { useTranslations } from "next-intl";
 
 import { HeadMenu, type HeadMenuEntry } from "../../components/head-menu";

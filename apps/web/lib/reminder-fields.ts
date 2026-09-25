@@ -1,4 +1,4 @@
-import type { ReminderResponse } from "@chronelle/schemas";
+import type { ReminderResponse } from "@livtales/schemas";
 import { tr } from "../i18n/active-locale";
 import { type DayKey, parseDayKey, today } from "./day-placement";
 import { editedInstant } from "./edited-instant";

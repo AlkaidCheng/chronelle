@@ -1,4 +1,4 @@
-import type { EventPlanningObjectService } from "@chronelle/object-model";
+import type { EventPlanningObjectService } from "@livtales/object-model";
 import { messagesFor } from "../authentication/email-messages.js";
 import type { EmailSender } from "../authentication/email-sender.js";
 import type {

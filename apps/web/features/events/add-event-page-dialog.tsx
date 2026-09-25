@@ -2,7 +2,7 @@
 
 import { useTranslations } from "next-intl";
 import { useEffect, useRef, useState, type FormEvent } from "react";
-import { eventPagesSchema, type EventLayoutResponse } from "@chronelle/schemas";
+import { eventPagesSchema, type EventLayoutResponse } from "@livtales/schemas";
 import { CountedField } from "../../components/counted-field";
 import { EditorDialogHeader } from "../../components/editor-dialog-controls";
 import { ErrorNotice } from "../../components/feedback";

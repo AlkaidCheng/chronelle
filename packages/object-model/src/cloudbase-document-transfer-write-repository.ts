@@ -1,5 +1,5 @@
-import { CloudBaseRpcError, type CloudBaseRdbClient } from "@chronelle/db";
-import type { DocumentTransferAuthorizationRow } from "@chronelle/db";
+import { CloudBaseRpcError, type CloudBaseRdbClient } from "@livtales/db";
+import type { DocumentTransferAuthorizationRow } from "@livtales/db";
 
 import { cloudbaseResourceFromRows } from "./cloudbase-read-support.js";
 import { mapRpcError } from "./cloudbase-rpc-errors.js";

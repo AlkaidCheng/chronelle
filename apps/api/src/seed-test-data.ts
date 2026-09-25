@@ -6,7 +6,7 @@ import {
   connectCloudBaseRdb,
   connectDatabase,
   disconnectedDatabase,
-} from "@chronelle/db";
+} from "@livtales/db";
 import { z } from "zod";
 
 import { buildApp } from "./app.js";

@@ -5,24 +5,24 @@ import { tmpdir } from "node:os";
 import {
   AuthorizationService,
   withReadAuthorization,
-} from "@chronelle/authorization";
-import { objectRelations, resourceGrants, workspaces } from "@chronelle/db";
+} from "@livtales/authorization";
+import { objectRelations, resourceGrants, workspaces } from "@livtales/db";
 import {
   CanonicalObjectSearchService,
   EventPlanningObjectService,
-} from "@chronelle/object-model";
+} from "@livtales/object-model";
 import {
   applyMigrations,
   createTestDatabase,
   type TestDatabase,
-} from "@chronelle/db/testing";
+} from "@livtales/db/testing";
 import {
   developmentSignInResponseSchema,
   documentUploadAuthorizationResponseSchema,
   eventPlanningResourceResponseSchema,
   relationResponseSchema,
   shareResponseSchema,
-} from "@chronelle/schemas";
+} from "@livtales/schemas";
 import { eq } from "drizzle-orm";
 import type { FastifyInstance } from "fastify";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";

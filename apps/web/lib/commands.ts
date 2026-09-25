@@ -1,9 +1,9 @@
-import { ApiClientError, type ChronelleApiClient } from "@chronelle/api-client";
+import { ApiClientError, type ChronelleApiClient } from "@livtales/api-client";
 import type {
   CommandExecutePayload,
   CommandReceipt,
   CommandStateResponse,
-} from "@chronelle/schemas";
+} from "@livtales/schemas";
 import type { QueryClient } from "@tanstack/react-query";
 import { newId } from "./new-id";
 

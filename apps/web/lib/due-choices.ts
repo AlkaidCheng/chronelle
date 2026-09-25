@@ -1,4 +1,4 @@
-import type { TaskRepeatRule } from "@chronelle/schemas";
+import type { TaskRepeatRule } from "@livtales/schemas";
 import { activeLocale, tr } from "../i18n/active-locale";
 import {
   type DayKey,

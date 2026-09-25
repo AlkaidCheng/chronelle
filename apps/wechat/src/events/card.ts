@@ -1,4 +1,4 @@
-import type { AccessibleWorkspace, EventListItem } from "@chronelle/schemas";
+import type { AccessibleWorkspace, EventListItem } from "@livtales/schemas";
 
 /**
  * Whether an Event's card marks it read-only: the account may only view it

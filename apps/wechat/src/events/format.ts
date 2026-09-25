@@ -1,4 +1,4 @@
-import type { EventResponse, HourCycle } from "@chronelle/schemas";
+import type { EventResponse, HourCycle } from "@livtales/schemas";
 
 import { getMessages, interpolate, resolveLocale } from "../i18n/catalog";
 

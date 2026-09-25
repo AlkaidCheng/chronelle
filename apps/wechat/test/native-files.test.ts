@@ -1,5 +1,5 @@
-import type { ChronelleApiClient } from "@chronelle/api-client";
-import { maximumNativeDocumentSizeBytes } from "@chronelle/schemas";
+import type { ChronelleApiClient } from "@livtales/api-client";
+import { maximumNativeDocumentSizeBytes } from "@livtales/schemas";
 import { describe, expect, it, vi } from "vitest";
 
 import {

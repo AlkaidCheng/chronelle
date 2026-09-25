@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
-import { ChronelleApiClient } from "@chronelle/api-client";
-import type { EventResponse } from "@chronelle/schemas";
+import { ChronelleApiClient } from "@livtales/api-client";
+import type { EventResponse } from "@livtales/schemas";
 import { useQueryClient } from "@tanstack/react-query";
 import { cleanup, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";

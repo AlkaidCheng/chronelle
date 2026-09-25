@@ -11,7 +11,7 @@ import {
 import userEvent from "@testing-library/user-event";
 import { useState } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { eventResponseSchema } from "@chronelle/schemas";
+import { eventResponseSchema } from "@livtales/schemas";
 import { Providers } from "../app/providers";
 import { EventInspector } from "../features/events/event-inspector";
 import { useAuthSession } from "../lib/auth-session";

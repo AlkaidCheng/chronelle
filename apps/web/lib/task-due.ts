@@ -1,4 +1,4 @@
-import type { TaskResponse } from "@chronelle/schemas";
+import type { TaskResponse } from "@livtales/schemas";
 import { type DayKey, parseDayKey } from "./day-placement";
 import { wallClock, wallInstant } from "./zone";
 import { describeRepeatShort } from "./due-choices";

@@ -4,7 +4,7 @@ import {
   workspaceMemberParamsSchema,
   workspaceMemberRemovalResponseSchema,
   workspaceMemberSchema,
-} from "@chronelle/schemas";
+} from "@livtales/schemas";
 import type { FastifyInstance, FastifyRequest } from "fastify";
 
 import { UnauthenticatedError } from "../errors.js";

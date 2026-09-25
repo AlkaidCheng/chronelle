@@ -1,5 +1,5 @@
-import { createId, users, workspaceMembers } from "@chronelle/db";
-import type { CommandStateResponse } from "@chronelle/schemas";
+import { createId, users, workspaceMembers } from "@livtales/db";
+import type { CommandStateResponse } from "@livtales/schemas";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { CloudBaseCommandReadRepository } from "../src/cloudbase-command-read-repository.js";

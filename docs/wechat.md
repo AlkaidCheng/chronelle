@@ -488,8 +488,8 @@ not be committed.
 Run the transport and package tests with:
 
 ```bash
-pnpm --filter @chronelle/api-client test
-pnpm --filter @chronelle/wechat test
+pnpm --filter @livtales/api-client test
+pnpm --filter @livtales/wechat test
 ```
 
 A deployed Mini Program API origin must use HTTPS and be registered as a WeChat

@@ -1,6 +1,6 @@
 "use client";
 
-import { ChronelleApiClient } from "@chronelle/api-client";
+import { ChronelleApiClient } from "@livtales/api-client";
 import { createContext, type ReactNode, useContext, useMemo } from "react";
 
 import { useAuthSession } from "./auth-session";

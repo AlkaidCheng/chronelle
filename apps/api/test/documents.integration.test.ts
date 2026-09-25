@@ -9,12 +9,12 @@ import {
   objects,
   documents,
   documentTransferAuthorizations,
-} from "@chronelle/db";
+} from "@livtales/db";
 import {
   applyMigrations,
   createTestDatabase,
   type TestDatabase,
-} from "@chronelle/db/testing";
+} from "@livtales/db/testing";
 import {
   apiErrorResponseSchema,
   developmentSignInResponseSchema,
@@ -30,9 +30,9 @@ import {
   taskResponseSchema,
   maximumDocumentSizeBytes,
   maximumNativeDocumentSizeBytes,
-} from "@chronelle/schemas";
+} from "@livtales/schemas";
 import { and, eq, like } from "drizzle-orm";
-import { LocalFilesystemStorageProvider } from "@chronelle/storage";
+import { LocalFilesystemStorageProvider } from "@livtales/storage";
 import type { FastifyInstance, InjectOptions } from "fastify";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 

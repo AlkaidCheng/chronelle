@@ -1,4 +1,4 @@
-import type { EventResponse, EventListQuery } from "@chronelle/schemas";
+import type { EventResponse, EventListQuery } from "@livtales/schemas";
 
 type ScheduledEvent = Pick<EventResponse, "startsAt" | "endsAt"> &
   Partial<Pick<EventResponse, "startsOn" | "endsOn" | "timezone">>;

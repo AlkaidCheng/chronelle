@@ -1,4 +1,4 @@
-import type { PersonResponse } from "@chronelle/schemas";
+import type { PersonResponse } from "@livtales/schemas";
 import { describe, expect, it } from "vitest";
 
 import {

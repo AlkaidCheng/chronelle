@@ -5,7 +5,7 @@ import type {
   ReminderResponse,
   TaskResponse,
   TimelineResponse,
-} from "@chronelle/schemas";
+} from "@livtales/schemas";
 
 import { shownTimeZone } from "../../i18n/active-preferences";
 import type { DayKey } from "../day-placement";

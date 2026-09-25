@@ -1,6 +1,6 @@
 "use client";
 
-import type { AccessibleWorkspace, SessionResponse } from "@chronelle/schemas";
+import type { AccessibleWorkspace, SessionResponse } from "@livtales/schemas";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 import {

@@ -1,9 +1,9 @@
-import type { UserPrincipal } from "@chronelle/authorization";
+import type { UserPrincipal } from "@livtales/authorization";
 import type {
   EventLayoutHistoryQuery,
   EventLayoutHistoryResponse,
   EventLayoutResponse,
-} from "@chronelle/schemas";
+} from "@livtales/schemas";
 
 /**
  * Read boundary for an Event's page layout: the current layout (version 0

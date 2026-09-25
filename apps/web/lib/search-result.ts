@@ -1,4 +1,4 @@
-import type { ObjectSearchResult } from "@chronelle/schemas";
+import type { ObjectSearchResult } from "@livtales/schemas";
 
 export function getSearchResultHref(result: ObjectSearchResult): string | null {
   if (result.objectType === "event" && result.permissionScopeId === result.id) {

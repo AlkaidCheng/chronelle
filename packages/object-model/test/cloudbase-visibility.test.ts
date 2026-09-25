@@ -1,4 +1,4 @@
-import type { CloudBaseRdbQuery, CloudBaseRdbReader } from "@chronelle/db";
+import type { CloudBaseRdbQuery, CloudBaseRdbReader } from "@livtales/db";
 import { describe, expect, it, vi } from "vitest";
 
 import {

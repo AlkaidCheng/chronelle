@@ -1,6 +1,6 @@
 import { Buffer } from "node:buffer";
 
-import type { AuthorizationDatabase } from "@chronelle/authorization";
+import type { AuthorizationDatabase } from "@livtales/authorization";
 import { describe, expect, it, vi } from "vitest";
 
 import { InvalidObjectStateError } from "../src/errors.js";

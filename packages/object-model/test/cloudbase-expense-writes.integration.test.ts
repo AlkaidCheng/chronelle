@@ -1,5 +1,5 @@
-import { AuthorizationDeniedError } from "@chronelle/authorization";
-import { createId, expenses, objects, resourceGrants } from "@chronelle/db";
+import { AuthorizationDeniedError } from "@livtales/authorization";
+import { createId, expenses, objects, resourceGrants } from "@livtales/db";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { CloudBaseExpenseWriteRepository } from "../src/cloudbase-expense-write-repository.js";

@@ -1,9 +1,9 @@
-import { ApiClientError } from "@chronelle/api-client";
+import { ApiClientError } from "@livtales/api-client";
 import type {
   PreferencesRequest,
   SessionResponse,
   UserResponse,
-} from "@chronelle/schemas";
+} from "@livtales/schemas";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   createContext,

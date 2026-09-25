@@ -1,5 +1,5 @@
-import type { Database, UserRow, WorkspaceRow } from "@chronelle/db";
-import type { UserPrincipal } from "@chronelle/authorization";
+import type { Database, UserRow, WorkspaceRow } from "@livtales/db";
+import type { UserPrincipal } from "@livtales/authorization";
 
 import type { AuthIdentity } from "../authentication/auth-provider.js";
 import { UnauthenticatedError } from "../errors.js";

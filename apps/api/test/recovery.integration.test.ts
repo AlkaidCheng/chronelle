@@ -1,18 +1,18 @@
 import { resolve } from "node:path";
-import { objectRevisions, objects, resourceGrants } from "@chronelle/db";
+import { objectRevisions, objects, resourceGrants } from "@livtales/db";
 import {
   applyMigrations,
   createTestDatabase,
   type TestDatabase,
-} from "@chronelle/db/testing";
-import { withStableAuthorization } from "@chronelle/authorization";
+} from "@livtales/db/testing";
+import { withStableAuthorization } from "@livtales/authorization";
 import {
   developmentSignInResponseSchema,
   eventPlanningResourceResponseSchema,
   relationResponseSchema,
   trashListResponseSchema,
   recoveryPreviewSchema,
-} from "@chronelle/schemas";
+} from "@livtales/schemas";
 import { eq } from "drizzle-orm";
 import type { FastifyInstance } from "fastify";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";

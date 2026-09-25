@@ -1,4 +1,4 @@
-import type { NoteResponse } from "@chronelle/schemas";
+import type { NoteResponse } from "@livtales/schemas";
 
 /** The note editor's fields: the title and the text as typed. */
 export function readNoteFields(

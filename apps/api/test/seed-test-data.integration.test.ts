@@ -1,13 +1,13 @@
 import { resolve } from "node:path";
 
-import { disconnectedDatabase } from "@chronelle/db";
+import { disconnectedDatabase } from "@livtales/db";
 import {
   applyMigrations,
   createCloudBaseLiveReader,
   createCloudBaseRpcDouble,
   createTestDatabase,
   type TestDatabase,
-} from "@chronelle/db/testing";
+} from "@livtales/db/testing";
 import type { FastifyInstance } from "fastify";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 

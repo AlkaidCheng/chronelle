@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import type { EventResponse, TaskResponse } from "@chronelle/schemas";
+import type { EventResponse, TaskResponse } from "@livtales/schemas";
 import {
   cleanup,
   render,

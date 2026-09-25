@@ -5,7 +5,7 @@ import type {
   FriendInvitationPayload,
   FriendRequestRequest,
   SessionResponse,
-} from "@chronelle/schemas";
+} from "@livtales/schemas";
 import {
   keepPreviousData,
   useMutation,

@@ -12,7 +12,7 @@ import {
   userIdentities,
   users,
   workspaces,
-} from "@chronelle/db";
+} from "@livtales/db";
 import { and, desc, eq, gt, isNull, sql } from "drizzle-orm";
 
 import { passwordIdentityProvider } from "./auth-provider.js";

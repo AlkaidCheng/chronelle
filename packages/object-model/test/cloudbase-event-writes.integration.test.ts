@@ -1,5 +1,5 @@
-import { AuthorizationDeniedError } from "@chronelle/authorization";
-import { createId, events, objects, resourceGrants } from "@chronelle/db";
+import { AuthorizationDeniedError } from "@livtales/authorization";
+import { createId, events, objects, resourceGrants } from "@livtales/db";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { CloudBaseEventWriteRepository } from "../src/cloudbase-event-write-repository.js";

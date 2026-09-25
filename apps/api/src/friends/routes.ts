@@ -10,7 +10,7 @@ import {
   invitationPeekResponseSchema,
   invitationTokenParamsSchema,
   sentInvitationSchema,
-} from "@chronelle/schemas";
+} from "@livtales/schemas";
 import type { FastifyInstance, FastifyRequest } from "fastify";
 
 import { SearchAllowance } from "../authentication/search-allowance.js";

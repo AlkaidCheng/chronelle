@@ -8,8 +8,8 @@ import {
   within,
 } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { ChronelleApiClient } from "@chronelle/api-client";
-import type { EventComponentKind } from "@chronelle/schemas";
+import { ChronelleApiClient } from "@livtales/api-client";
+import type { EventComponentKind } from "@livtales/schemas";
 import {
   afterEach,
   assert,

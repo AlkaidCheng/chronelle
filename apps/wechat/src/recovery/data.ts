@@ -1,5 +1,5 @@
-import { ApiClientError } from "@chronelle/api-client";
-import type { RecoveryPreview, TrashItem } from "@chronelle/schemas";
+import { ApiClientError } from "@livtales/api-client";
+import type { RecoveryPreview, TrashItem } from "@livtales/schemas";
 
 import type { MessageKey } from "../i18n/catalog";
 

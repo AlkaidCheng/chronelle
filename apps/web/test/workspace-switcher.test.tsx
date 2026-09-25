@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import type { AccessibleWorkspace } from "@chronelle/schemas";
+import type { AccessibleWorkspace } from "@livtales/schemas";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";

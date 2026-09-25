@@ -1,5 +1,5 @@
-import { AuthorizationDeniedError } from "@chronelle/authorization";
-import type { CloudBaseRdbQuery, CloudBaseRdbReader } from "@chronelle/db";
+import { AuthorizationDeniedError } from "@livtales/authorization";
+import type { CloudBaseRdbQuery, CloudBaseRdbReader } from "@livtales/db";
 import { describe, expect, it } from "vitest";
 
 import { CloudBaseGrantReadRepository } from "../src/cloudbase-grant-read-repository.js";

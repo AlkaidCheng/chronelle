@@ -1,5 +1,5 @@
 {
-  "name": "@chronelle/authorization",
+  "name": "@livtales/authorization",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -14,14 +14,14 @@
     }
   },
   "scripts": {
-    "build": "pnpm --filter @chronelle/db build && tsc -p tsconfig.build.json",
-    "test": "pnpm --filter @chronelle/db build && vitest run",
+    "build": "pnpm --filter @livtales/db build && tsc -p tsconfig.build.json",
+    "test": "pnpm --filter @livtales/db build && vitest run",
     "test:unit": "vitest run",
-    "typecheck": "pnpm --filter @chronelle/db build && tsc -p tsconfig.json --noEmit",
+    "typecheck": "pnpm --filter @livtales/db build && tsc -p tsconfig.json --noEmit",
     "typecheck:unit": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
-    "@chronelle/db": "workspace:*",
+    "@livtales/db": "workspace:*",
     "drizzle-orm": "0.45.2"
   }
 }

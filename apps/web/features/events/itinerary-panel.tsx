@@ -4,7 +4,7 @@ import type {
   EventComponentView,
   EventResponse,
   TaskResponse,
-} from "@chronelle/schemas";
+} from "@livtales/schemas";
 import { useTranslations } from "next-intl";
 import {
   type PointerEvent as ReactPointerEvent,

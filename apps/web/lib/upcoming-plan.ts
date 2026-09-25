@@ -1,4 +1,4 @@
-import type { EventDetailResponse } from "@chronelle/schemas";
+import type { EventDetailResponse } from "@livtales/schemas";
 import { eventPeriod } from "./event-collection";
 
 /** Returns the next unfinished planning item; expenses remain historical facts. */

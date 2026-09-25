@@ -1,4 +1,4 @@
-import { CloudBaseRpcError, type CloudBaseRdbClient } from "@chronelle/db";
+import { CloudBaseRpcError, type CloudBaseRdbClient } from "@livtales/db";
 
 import { mapRpcError } from "./cloudbase-rpc-errors.js";
 import { createRequestHash } from "./create-command.js";

@@ -2,7 +2,7 @@ import {
   CloudBaseRpcError,
   type CloudBaseRdbClient,
   type UserSessionRow,
-} from "@chronelle/db";
+} from "@livtales/db";
 
 import { record, userRow, userSessionRow } from "../identity/cloudbase-rows.js";
 import {

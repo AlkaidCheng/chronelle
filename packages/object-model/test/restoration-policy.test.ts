@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { revisionSnapshotSchema } from "@chronelle/schemas";
+import { revisionSnapshotSchema } from "@livtales/schemas";
 import {
   compareRevisionContent,
   initialRevisionContent,

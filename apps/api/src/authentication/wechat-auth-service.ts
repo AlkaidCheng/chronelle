@@ -1,4 +1,4 @@
-import type { UserRow, WorkspaceRow } from "@chronelle/db";
+import type { UserRow, WorkspaceRow } from "@livtales/db";
 
 import { WeChatCredentialRejectedError } from "../errors.js";
 import {

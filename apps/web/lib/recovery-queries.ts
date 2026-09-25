@@ -10,7 +10,7 @@ import type {
   RecoveryRequest,
   TrashQueryInput,
   RemovedRelationQueryInput,
-} from "@chronelle/schemas";
+} from "@livtales/schemas";
 import { useApiClient } from "./api-context";
 import { useAuthSession } from "./auth-session";
 import { queryKeys, useCanonicalInvalidation } from "./queries";

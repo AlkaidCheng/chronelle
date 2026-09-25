@@ -1,6 +1,6 @@
 "use client";
 
-import { objectSearchQuerySchema } from "@chronelle/schemas";
+import { objectSearchQuerySchema } from "@livtales/schemas";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { useApiClient } from "./api-context";

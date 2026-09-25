@@ -1,10 +1,10 @@
 import { z } from "zod";
-import { maximumDocumentSizeBytes } from "@chronelle/schemas";
+import { maximumDocumentSizeBytes } from "@livtales/schemas";
 import {
   LocalFilesystemStorageProvider,
   TencentCosStorageProvider,
   type StorageProvider,
-} from "@chronelle/storage";
+} from "@livtales/storage";
 
 const selectionSchema = z.object({
   DOCUMENT_STORAGE_PROVIDER: z

@@ -1,9 +1,9 @@
 import {
   AuthorizationDeniedError,
   type UserPrincipal,
-} from "@chronelle/authorization";
-import type { CloudBaseRdbFilter, CloudBaseRdbReader } from "@chronelle/db";
-import { trashQuerySchema, type TrashQueryInput } from "@chronelle/schemas";
+} from "@livtales/authorization";
+import type { CloudBaseRdbFilter, CloudBaseRdbReader } from "@livtales/db";
+import { trashQuerySchema, type TrashQueryInput } from "@livtales/schemas";
 
 import {
   cloudbaseIdBatchSize,

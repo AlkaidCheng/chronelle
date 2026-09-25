@@ -1,4 +1,4 @@
-import { ApiClientError } from "@chronelle/api-client";
+import { ApiClientError } from "@livtales/api-client";
 import Taro from "@tarojs/taro";
 
 import type { NativeFilePlatform, NativeTask } from "./native-files";

@@ -6,8 +6,8 @@ import type {
   SectionView,
   TaskRepeatRule,
   TaskStatus,
-} from "@chronelle/db";
-import type { UserPrincipal } from "@chronelle/authorization";
+} from "@livtales/db";
+import type { UserPrincipal } from "@livtales/authorization";
 
 export type JsonObject = Record<string, unknown>;
 

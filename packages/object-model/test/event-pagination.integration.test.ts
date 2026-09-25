@@ -7,15 +7,15 @@ import {
   users,
   workspaceMembers,
   workspaces,
-} from "@chronelle/db";
+} from "@livtales/db";
 import {
   applyMigrations,
   createTestDatabase,
   type TestDatabase,
-} from "@chronelle/db/testing";
+} from "@livtales/db/testing";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { eq, inArray, sql } from "drizzle-orm";
-import type { EventListQueryInput } from "@chronelle/schemas";
+import type { EventListQueryInput } from "@livtales/schemas";
 import { decodeCursor, encodeCursor } from "../src/cursor.js";
 import { InvalidObjectStateError } from "../src/errors.js";
 import { EventPlanningObjectService } from "../src/object-service.js";

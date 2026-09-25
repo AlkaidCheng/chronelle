@@ -2,7 +2,7 @@
 
 import { useTranslations } from "next-intl";
 import { useEffect, useRef, useState } from "react";
-import type { EventLayoutResponse, EventPage } from "@chronelle/schemas";
+import type { EventLayoutResponse, EventPage } from "@livtales/schemas";
 import {
   EmptyState,
   ErrorNotice,

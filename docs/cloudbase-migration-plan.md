@@ -28,7 +28,7 @@ require native TCP or database transactions.
 Completed in PR #78:
 
 - CloudBase gateway connectivity probe using a short-lived server-side key.
-- `@chronelle/db` CloudBase RDB read transport.
+- `@livtales/db` CloudBase RDB read transport.
 - Dynamic table-name validation and bounded pagination.
 - Explicit capability metadata showing that this transport is not a native TCP
   or transaction boundary.

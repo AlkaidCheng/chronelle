@@ -7,11 +7,11 @@ import {
   sections,
   tasks,
   type CloudBaseRdbQuery,
-} from "@chronelle/db";
+} from "@livtales/db";
 import {
   createCloudBaseLiveReader,
   createCloudBaseSnapshotReader,
-} from "@chronelle/db/testing";
+} from "@livtales/db/testing";
 import { eq } from "drizzle-orm";
 import { afterAll, describe, expect, it } from "vitest";
 

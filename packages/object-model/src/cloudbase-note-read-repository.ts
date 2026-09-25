@@ -1,9 +1,9 @@
-import type { UserPrincipal } from "@chronelle/authorization";
-import { CloudBaseRpcError, type CloudBaseRdbClient } from "@chronelle/db";
+import type { UserPrincipal } from "@livtales/authorization";
+import { CloudBaseRpcError, type CloudBaseRdbClient } from "@livtales/db";
 import {
   noteListQuerySchema,
   type NoteListQueryInput,
-} from "@chronelle/schemas";
+} from "@livtales/schemas";
 
 import {
   cloudbaseNullableText,

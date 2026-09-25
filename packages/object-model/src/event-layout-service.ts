@@ -3,7 +3,7 @@ import {
   withReadAuthorization,
   withStableAuthorization,
   type UserPrincipal,
-} from "@chronelle/authorization";
+} from "@livtales/authorization";
 import {
   auditEvents,
   createId,
@@ -11,7 +11,7 @@ import {
   events,
   type Database,
   type DatabaseTransaction,
-} from "@chronelle/db";
+} from "@livtales/db";
 import {
   eventLayoutResponseSchema,
   eventLayoutUpdateSchema,
@@ -22,7 +22,7 @@ import {
   type EventLayoutHistoryQuery,
   type EventLayoutUpdate,
   type EventPage,
-} from "@chronelle/schemas";
+} from "@livtales/schemas";
 import { and, desc, eq, lt } from "drizzle-orm";
 
 import { InvalidObjectStateError, ObjectConflictError } from "./errors.js";

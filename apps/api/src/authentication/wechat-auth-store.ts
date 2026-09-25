@@ -11,7 +11,7 @@ import {
   users,
   type WorkspaceRow,
   workspaces,
-} from "@chronelle/db";
+} from "@livtales/db";
 import { and, eq, sql } from "drizzle-orm";
 
 import { WeChatCredentialRejectedError } from "../errors.js";

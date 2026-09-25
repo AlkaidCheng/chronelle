@@ -5,9 +5,9 @@ import {
   commandStacks,
   createId,
   type DatabaseTransaction,
-} from "@chronelle/db";
-import type { UserPrincipal } from "@chronelle/authorization";
-import { commandReceiptSchema, type CommandReceipt } from "@chronelle/schemas";
+} from "@livtales/db";
+import type { UserPrincipal } from "@livtales/authorization";
+import { commandReceiptSchema, type CommandReceipt } from "@livtales/schemas";
 import { and, eq, inArray } from "drizzle-orm";
 import { CommandConflictError, CommandStackConflictError } from "./errors.js";
 import type { MutationContext } from "./types.js";

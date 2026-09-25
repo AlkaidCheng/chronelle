@@ -1,4 +1,4 @@
-import { ApiClientError } from "@chronelle/api-client";
+import { ApiClientError } from "@livtales/api-client";
 import { describe, expect, it, vi } from "vitest";
 import {
   EditorDraftStore,

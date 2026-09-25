@@ -1,4 +1,4 @@
-import { AuthorizationDeniedError } from "@chronelle/authorization";
+import { AuthorizationDeniedError } from "@livtales/authorization";
 import {
   auditEvents,
   createId,
@@ -6,8 +6,8 @@ import {
   objectRelations,
   objects,
   resourceGrants,
-} from "@chronelle/db";
-import type { EventContextCreateRequest } from "@chronelle/schemas";
+} from "@livtales/db";
+import type { EventContextCreateRequest } from "@livtales/schemas";
 import { and, eq } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 

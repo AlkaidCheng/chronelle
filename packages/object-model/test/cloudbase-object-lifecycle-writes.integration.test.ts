@@ -1,4 +1,4 @@
-import { AuthorizationDeniedError } from "@chronelle/authorization";
+import { AuthorizationDeniedError } from "@livtales/authorization";
 import {
   createId,
   documents,
@@ -6,7 +6,7 @@ import {
   resourceGrants,
   users,
   workspaceMembers,
-} from "@chronelle/db";
+} from "@livtales/db";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { CloudBaseObjectLifecycleWriteRepository } from "../src/cloudbase-object-lifecycle-write-repository.js";

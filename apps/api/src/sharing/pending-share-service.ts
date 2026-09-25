@@ -1,12 +1,12 @@
 import type {
   GrantMutationContext,
   UserPrincipal,
-} from "@chronelle/authorization";
-import type { Role } from "@chronelle/db";
+} from "@livtales/authorization";
+import type { Role } from "@livtales/db";
 import {
   type EventPlanningObjectService,
   firstPersonEmail,
-} from "@chronelle/object-model";
+} from "@livtales/object-model";
 
 import type { FriendService } from "../friends/friend-service.js";
 import { InvalidFriendRequestError } from "../friends/friend-store.js";

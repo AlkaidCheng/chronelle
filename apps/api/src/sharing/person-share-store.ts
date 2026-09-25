@@ -4,7 +4,7 @@ import {
   type ShareScope,
   type UserPrincipal,
   withReadAuthorization,
-} from "@chronelle/authorization";
+} from "@livtales/authorization";
 import {
   type Database,
   objects,
@@ -15,7 +15,7 @@ import {
   resourceGrants,
   type Role,
   workspaceMembers,
-} from "@chronelle/db";
+} from "@livtales/db";
 import { and, eq, gt, isNull, or, sql } from "drizzle-orm";
 
 /**

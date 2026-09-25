@@ -191,7 +191,7 @@ import {
   workspaceMemberListResponseSchema,
   workspaceMemberRemovalResponseSchema,
   workspaceMemberSchema,
-} from "@chronelle/schemas";
+} from "@livtales/schemas";
 import type { z } from "zod";
 
 import {

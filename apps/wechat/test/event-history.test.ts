@@ -1,5 +1,5 @@
-import { ApiClientError } from "@chronelle/api-client";
-import type { RevisionRestorePreview } from "@chronelle/schemas";
+import { ApiClientError } from "@livtales/api-client";
+import type { RevisionRestorePreview } from "@livtales/schemas";
 import { describe, expect, it } from "vitest";
 
 import {

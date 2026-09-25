@@ -2,7 +2,7 @@ import type {
   ObjectAccessResponse,
   PendingShare,
   SentInvitation,
-} from "@chronelle/schemas";
+} from "@livtales/schemas";
 import { describe, expect, it, vi } from "vitest";
 
 import {

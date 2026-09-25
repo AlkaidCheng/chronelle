@@ -4,7 +4,7 @@ import type {
   EventDetailResponse,
   EventPlanningResourceResponse,
   ShareResponse,
-} from "@chronelle/schemas";
+} from "@livtales/schemas";
 import { useTranslations } from "next-intl";
 import { type FormEvent, useMemo, useState } from "react";
 import { ConfirmAction } from "../../components/confirm-action";

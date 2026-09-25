@@ -1,10 +1,10 @@
 // @vitest-environment jsdom
 
-import { ChronelleApiClient } from "@chronelle/api-client";
+import { ChronelleApiClient } from "@livtales/api-client";
 import {
   type EventComponentKind,
   eventComponentKindSchema,
-} from "@chronelle/schemas";
+} from "@livtales/schemas";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   act,

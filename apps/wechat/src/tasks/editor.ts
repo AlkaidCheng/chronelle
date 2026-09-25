@@ -3,7 +3,7 @@ import {
   type EventContextCreatePayload,
   type TaskResponse,
   type TaskUpdatePayload,
-} from "@chronelle/schemas";
+} from "@livtales/schemas";
 
 import {
   clockPattern,

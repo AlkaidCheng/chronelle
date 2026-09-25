@@ -1,4 +1,4 @@
-import type { ApiCredential, ChronelleApiClient } from "@chronelle/api-client";
+import type { ApiCredential, ChronelleApiClient } from "@livtales/api-client";
 import Taro from "@tarojs/taro";
 
 import { createWeChatApiClient } from "./client";

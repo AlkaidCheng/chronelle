@@ -1,12 +1,12 @@
 import { resolve } from "node:path";
 
-import type { UserRow } from "@chronelle/db";
+import type { UserRow } from "@livtales/db";
 import {
   applyMigrations,
   createCloudBaseRpcDouble,
   createTestDatabase,
   type TestDatabase,
-} from "@chronelle/db/testing";
+} from "@livtales/db/testing";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import type { AuthIdentity } from "../src/authentication/auth-provider.js";

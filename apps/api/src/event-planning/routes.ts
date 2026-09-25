@@ -1,4 +1,4 @@
-import type { UserPrincipal } from "@chronelle/authorization";
+import type { UserPrincipal } from "@livtales/authorization";
 import type {
   CreateEventInput,
   CreateExpenseInput,
@@ -18,7 +18,7 @@ import type {
   UpdatePersonInput,
   UpdateReminderInput,
   UpdateTaskInput,
-} from "@chronelle/object-model";
+} from "@livtales/object-model";
 import {
   eventCreateRequestSchema,
   eventDetailResponseSchema,
@@ -66,7 +66,7 @@ import {
   timelineResponseSchema,
   eventContextCreateRequestSchema,
   eventContextCreateResponseSchema,
-} from "@chronelle/schemas";
+} from "@livtales/schemas";
 import type { FastifyInstance, FastifyRequest } from "fastify";
 import type { z } from "zod";
 

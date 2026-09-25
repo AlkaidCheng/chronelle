@@ -1,4 +1,4 @@
-import { expenses, objects, tasks } from "@chronelle/db";
+import { expenses, objects, tasks } from "@livtales/db";
 import { sql, type SQL } from "drizzle-orm";
 import type { PgColumn } from "drizzle-orm/pg-core";
 import type { UserPrincipal } from "./authorization.js";

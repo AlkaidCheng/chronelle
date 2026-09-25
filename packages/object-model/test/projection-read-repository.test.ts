@@ -1,5 +1,5 @@
-import type { UserPrincipal } from "@chronelle/authorization";
-import type { Database } from "@chronelle/db";
+import type { UserPrincipal } from "@livtales/authorization";
+import type { Database } from "@livtales/db";
 import { describe, expect, it, vi } from "vitest";
 
 import { EventPlanningProjectionService } from "../src/projection-service.js";

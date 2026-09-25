@@ -1,6 +1,6 @@
 "use client";
 
-import type { EventListQuery } from "@chronelle/schemas";
+import type { EventListQuery } from "@livtales/schemas";
 import {
   createContext,
   type MouseEvent,

@@ -1,9 +1,9 @@
-import { ApiClientError } from "@chronelle/api-client";
+import { ApiClientError } from "@livtales/api-client";
 import type {
   RevisionFieldChange,
   RevisionListResponse,
   SessionResponse,
-} from "@chronelle/schemas";
+} from "@livtales/schemas";
 import { Button, Text, View } from "@tarojs/components";
 import Taro, { usePullDownRefresh, useRouter } from "@tarojs/taro";
 import { useState } from "react";

@@ -1,7 +1,7 @@
 import {
   AuthorizationDeniedError,
   type UserPrincipal,
-} from "@chronelle/authorization";
+} from "@livtales/authorization";
 import {
   actorTypes,
   revisionKinds,
@@ -9,8 +9,8 @@ import {
   type CloudBaseRdbFilter,
   type CloudBaseRdbReader,
   type RevisionKind,
-} from "@chronelle/db";
-import type { RevisionListQuery } from "@chronelle/schemas";
+} from "@livtales/db";
+import type { RevisionListQuery } from "@livtales/schemas";
 
 import {
   cloudbaseIdBatchSize,

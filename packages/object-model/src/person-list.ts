@@ -2,12 +2,12 @@ import {
   withReadAuthorization,
   type AuthorizationDatabase,
   type UserPrincipal,
-} from "@chronelle/authorization";
-import { objects } from "@chronelle/db";
+} from "@livtales/authorization";
+import { objects } from "@livtales/db";
 import {
   personListQuerySchema,
   type PersonListQueryInput,
-} from "@chronelle/schemas";
+} from "@livtales/schemas";
 import { and, asc, eq, ilike, inArray, isNull, sql } from "drizzle-orm";
 
 import { InvalidObjectStateError } from "./errors.js";

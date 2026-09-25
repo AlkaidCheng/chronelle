@@ -2,7 +2,7 @@ import {
   signInResponseSchema,
   weChatCredentialRequestSchema,
   weChatIdentityLinkResponseSchema,
-} from "@chronelle/schemas";
+} from "@livtales/schemas";
 import type { FastifyInstance } from "fastify";
 
 import { AuthenticationLimitError, UnauthenticatedError } from "../errors.js";

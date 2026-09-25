@@ -1,4 +1,4 @@
-import { healthStatusSchema } from "@chronelle/schemas";
+import { healthStatusSchema } from "@livtales/schemas";
 import Fastify, {
   type FastifyInstance,
   type FastifyServerOptions,

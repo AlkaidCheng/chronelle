@@ -1,6 +1,6 @@
 "use client";
 
-import type { EventPage } from "@chronelle/schemas";
+import type { EventPage } from "@livtales/schemas";
 import { useTranslations } from "next-intl";
 import {
   type DragEvent,

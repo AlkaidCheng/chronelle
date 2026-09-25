@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import type { EventResponse } from "@chronelle/schemas";
+import type { EventResponse } from "@livtales/schemas";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   cleanup,

@@ -385,8 +385,8 @@ the existing section routes. Run the Mini Program tests to check time-zone day
 placement and section grouping:
 
 ```bash
-pnpm --filter @chronelle/api-client test
-pnpm --filter @chronelle/wechat test
+pnpm --filter @livtales/api-client test
+pnpm --filter @livtales/wechat test
 ```
 
 Live configuration must provide an HTTPS API origin registered in the Mini
@@ -610,7 +610,7 @@ time (the browser-side suites time out when they share the runner's CPUs with
 the database suites), and builds the three applications last. The WeChat build
 fails when the main package exceeds 1.5 MB, any subpackage exceeds 1.5 MB, or
 the combined package exceeds 15 MB. Run `pnpm wechat:bundle` to print the last
-production build's byte counts. Run `pnpm --filter @chronelle/<pkg> test` for one
+production build's byte counts. Run `pnpm --filter @livtales/<pkg> test` for one
 package (it rebuilds its upstream packages first) or `pnpm test:units` after
 `pnpm build:packages` for all of them at once.
 
@@ -683,7 +683,7 @@ in each engine.
 
 The web app's strings live under `apps/web/messages/<locale>/`, one JSON
 file per feature namespace (`nav.json`, `settings.json`, ...), keyed by
-identifier, never by English text. `pnpm --filter @chronelle/web messages`
+identifier, never by English text. `pnpm --filter @livtales/web messages`
 assembles them into one catalog per locale (`apps/web/messages/en.json` and
 the others), which is a build output: it is ignored by git, and the `build`,
 `dev`, `sandbox`, `test`, and `typecheck` scripts of the web package run the

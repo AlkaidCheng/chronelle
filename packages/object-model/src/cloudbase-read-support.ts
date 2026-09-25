@@ -5,7 +5,7 @@ import {
   type ShareView,
   type UserPrincipal,
   viewObjectTypes,
-} from "@chronelle/authorization";
+} from "@livtales/authorization";
 import {
   grantScopes,
   personContactKinds,
@@ -19,7 +19,7 @@ import {
   type Role,
   type TaskRepeatRule,
   type TaskStatus,
-} from "@chronelle/db";
+} from "@livtales/db";
 
 import type {
   DocumentResource,

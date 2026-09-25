@@ -3,11 +3,11 @@ import {
   TransportError,
   type ApiCredential,
   type ChronelleApiClient,
-} from "@chronelle/api-client";
+} from "@livtales/api-client";
 import {
   maximumNativeDocumentSizeBytes,
   type DocumentAttachmentResponse,
-} from "@chronelle/schemas";
+} from "@livtales/schemas";
 
 import { sha256Hex } from "./sha256";
 

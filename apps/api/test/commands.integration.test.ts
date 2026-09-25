@@ -1,12 +1,12 @@
 import { resolve } from "node:path";
-import { createId, resourceGrants } from "@chronelle/db";
+import { createId, resourceGrants } from "@livtales/db";
 import {
   applyMigrations,
   createTestDatabase,
   type TestDatabase,
-} from "@chronelle/db/testing";
-import { withStableAuthorization } from "@chronelle/authorization";
-import { EventPlanningObjectService } from "@chronelle/object-model";
+} from "@livtales/db/testing";
+import { withStableAuthorization } from "@livtales/authorization";
+import { EventPlanningObjectService } from "@livtales/object-model";
 import {
   commandReceiptSchema,
   commandStateResponseSchema,
@@ -14,7 +14,7 @@ import {
   eventPlanningResourceResponseSchema,
   type CommandExecutePayload,
   type CommandTransitionRequest,
-} from "@chronelle/schemas";
+} from "@livtales/schemas";
 import { eq } from "drizzle-orm";
 import type { FastifyInstance } from "fastify";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";

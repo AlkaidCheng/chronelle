@@ -1,4 +1,4 @@
-import type { PersonResponse } from "@chronelle/schemas";
+import type { PersonResponse } from "@livtales/schemas";
 import { compareNames } from "./format";
 import { personDisplayName } from "./person-fields";
 

@@ -2,7 +2,7 @@
 
 import { useTranslations } from "next-intl";
 import { useId, useMemo, useState } from "react";
-import type { PreferencesRequest } from "@chronelle/schemas";
+import type { PreferencesRequest } from "@livtales/schemas";
 
 import { ErrorNotice } from "../../components/feedback";
 import { LocaleControl } from "../../components/locale-control";

@@ -2,7 +2,7 @@ import type {
   AccessibleWorkspace,
   EventListItem,
   SessionResponse,
-} from "@chronelle/schemas";
+} from "@livtales/schemas";
 import {
   Button,
   Input,

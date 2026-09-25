@@ -3,8 +3,8 @@ import {
   withReadAuthorization,
   type AuthorizationDatabase,
   type UserPrincipal,
-} from "@chronelle/authorization";
-import { objectRelations, objects } from "@chronelle/db";
+} from "@livtales/authorization";
+import { objectRelations, objects } from "@livtales/db";
 import {
   relationListCursorSchema,
   relationListQuerySchema,
@@ -13,7 +13,7 @@ import {
   type RelationListQueryInput,
   type RemovedRelationQuery,
   type RemovedRelationQueryInput,
-} from "@chronelle/schemas";
+} from "@livtales/schemas";
 import {
   and,
   desc,

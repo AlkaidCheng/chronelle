@@ -204,8 +204,8 @@ After changing a source in brand/:
   read LivTales or a catalog word.
 
 ```bash
-pnpm --filter @chronelle/web exec vitest run test/brand-assets.test.ts
-pnpm --filter @chronelle/wechat exec vitest run test/brand-art.test.ts test/page-titles.test.ts
+pnpm --filter @livtales/web exec vitest run test/brand-assets.test.ts
+pnpm --filter @livtales/wechat exec vitest run test/brand-art.test.ts test/page-titles.test.ts
 ```
 
 The tests check the committed rasters' sizes and opacity, and that they are the last

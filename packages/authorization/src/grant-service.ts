@@ -11,7 +11,7 @@ import {
   type Database,
   type DatabaseTransaction,
   type Role,
-} from "@chronelle/db";
+} from "@livtales/db";
 import { and, asc, eq, inArray, isNull, or } from "drizzle-orm";
 
 import {

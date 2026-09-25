@@ -1,4 +1,4 @@
-import { serializeResource } from "@chronelle/object-model";
+import { serializeResource } from "@livtales/object-model";
 import type {
   EventDetailProjection,
   EventResourceProjection,
@@ -11,13 +11,13 @@ import type {
   SectionResource,
   TaskResourceProjection,
   TimelineProjection,
-} from "@chronelle/object-model";
+} from "@livtales/object-model";
 
 function serializeDate(value: Date | null): string | null {
   return value?.toISOString() ?? null;
 }
 
-export { serializeResource } from "@chronelle/object-model";
+export { serializeResource } from "@livtales/object-model";
 export function serializeRelation(relation: ObjectRelationResource) {
   return {
     ...relation,

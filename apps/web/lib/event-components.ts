@@ -2,7 +2,7 @@ import {
   type EventComponentKind,
   type EventComponentView,
   eventComponentKindSchema,
-} from "@chronelle/schemas";
+} from "@livtales/schemas";
 import { tr } from "../i18n/active-locale";
 
 export const eventComponents = {

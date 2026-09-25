@@ -1,4 +1,4 @@
-import type { EventResponse, TaskResponse } from "@chronelle/schemas";
+import type { EventResponse, TaskResponse } from "@livtales/schemas";
 
 import { activeWeekStart, type WeekStart } from "../i18n/active-preferences";
 import { instantDayKey } from "./zone";

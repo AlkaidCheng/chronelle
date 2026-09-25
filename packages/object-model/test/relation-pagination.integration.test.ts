@@ -1,9 +1,9 @@
 import { resolve } from "node:path";
-import * as schema from "@chronelle/db";
+import * as schema from "@livtales/db";
 import {
   AuthorizationDeniedError,
   AuthorizationService,
-} from "@chronelle/authorization";
+} from "@livtales/authorization";
 import {
   createId,
   events,
@@ -13,12 +13,12 @@ import {
   users,
   workspaceMembers,
   workspaces,
-} from "@chronelle/db";
+} from "@livtales/db";
 import {
   applyMigrations,
   createTestDatabase,
   type TestDatabase,
-} from "@chronelle/db/testing";
+} from "@livtales/db/testing";
 import { eq, inArray } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/postgres-js";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";

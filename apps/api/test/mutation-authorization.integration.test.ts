@@ -2,21 +2,21 @@ import { createHash } from "node:crypto";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
-import { withStableAuthorization } from "@chronelle/authorization";
-import { createId, objects, resourceGrants } from "@chronelle/db";
+import { withStableAuthorization } from "@livtales/authorization";
+import { createId, objects, resourceGrants } from "@livtales/db";
 import {
   applyMigrations,
   createTestDatabase,
   type TestDatabase,
-} from "@chronelle/db/testing";
+} from "@livtales/db/testing";
 import {
   developmentSignInResponseSchema,
   documentAttachmentResponseSchema,
   documentUploadAuthorizationResponseSchema,
   documentDownloadAuthorizationResponseSchema,
   eventPlanningResourceResponseSchema,
-} from "@chronelle/schemas";
-import { LocalFilesystemStorageProvider } from "@chronelle/storage";
+} from "@livtales/schemas";
+import { LocalFilesystemStorageProvider } from "@livtales/storage";
 import { eq } from "drizzle-orm";
 import type { FastifyInstance, InjectOptions } from "fastify";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";

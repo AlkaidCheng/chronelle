@@ -4,7 +4,7 @@ import {
   applyMigrations,
   createTestDatabase,
   type TestDatabase,
-} from "@chronelle/db/testing";
+} from "@livtales/db/testing";
 import {
   developmentSignInResponseSchema,
   eventResponseSchema,
@@ -20,7 +20,7 @@ import {
   shareResponseSchema,
   workspaceMemberListResponseSchema,
   workspaceMemberSchema,
-} from "@chronelle/schemas";
+} from "@livtales/schemas";
 import type { FastifyInstance } from "fastify";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 

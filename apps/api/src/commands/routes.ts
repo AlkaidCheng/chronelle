@@ -1,10 +1,10 @@
-import type { ReversibleCommandService } from "@chronelle/object-model";
+import type { ReversibleCommandService } from "@livtales/object-model";
 import {
   commandExecuteRequestSchema,
   commandTransitionRequestSchema,
   commandReceiptSchema,
   commandStateResponseSchema,
-} from "@chronelle/schemas";
+} from "@livtales/schemas";
 import type { FastifyInstance } from "fastify";
 import { requirePrincipal } from "../request-context.js";
 import { parseRequest } from "../request-validation.js";

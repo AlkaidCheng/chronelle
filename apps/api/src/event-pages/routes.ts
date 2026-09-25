@@ -1,4 +1,4 @@
-import type { EventLayoutService } from "@chronelle/object-model";
+import type { EventLayoutService } from "@livtales/object-model";
 import {
   eventLayoutResponseSchema,
   eventLayoutUpdateSchema,
@@ -6,7 +6,7 @@ import {
   eventLayoutHistoryResponseSchema,
   eventLayoutRestoreSchema,
   objectIdParamsSchema,
-} from "@chronelle/schemas";
+} from "@livtales/schemas";
 import type { FastifyInstance } from "fastify";
 
 import { requirePrincipal } from "../request-context.js";

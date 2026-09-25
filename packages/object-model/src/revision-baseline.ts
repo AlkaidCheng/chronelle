@@ -3,7 +3,7 @@ import {
   objectRevisions,
   objects,
   type Database,
-} from "@chronelle/db";
+} from "@livtales/db";
 import { and, eq, gt, inArray, isNull, max, sql } from "drizzle-orm";
 
 import { recordObjectRevision } from "./object-revisions.js";

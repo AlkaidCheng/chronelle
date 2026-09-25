@@ -1,6 +1,6 @@
 "use client";
 
-import type { RevisionRestoreRequest } from "@chronelle/schemas";
+import type { RevisionRestoreRequest } from "@livtales/schemas";
 import { useInfiniteQuery, useMutation, useQuery } from "@tanstack/react-query";
 
 import { useApiClient } from "./api-context";

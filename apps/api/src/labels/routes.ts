@@ -1,4 +1,4 @@
-import type { LabelResource, LabelService } from "@chronelle/object-model";
+import type { LabelResource, LabelService } from "@livtales/object-model";
 import {
   labelCreateRequestSchema,
   labelDeleteQuerySchema,
@@ -7,7 +7,7 @@ import {
   labelUpdateRequestSchema,
   objectIdParamsSchema,
   type LabelResponse,
-} from "@chronelle/schemas";
+} from "@livtales/schemas";
 import type { FastifyInstance } from "fastify";
 import { requirePrincipal } from "../request-context.js";
 import { parseRequest } from "../request-validation.js";

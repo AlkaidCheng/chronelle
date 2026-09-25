@@ -1,9 +1,9 @@
 import {
   withStableAuthorization,
   type UserPrincipal,
-} from "@chronelle/authorization";
-import { objects, tasks, type Database } from "@chronelle/db";
-import type { RecoveryRequest, TrashQueryInput } from "@chronelle/schemas";
+} from "@livtales/authorization";
+import { objects, tasks, type Database } from "@livtales/db";
+import type { RecoveryRequest, TrashQueryInput } from "@livtales/schemas";
 import { and, eq, isNotNull, sql } from "drizzle-orm";
 import { InvalidObjectStateError, ObjectConflictError } from "./errors.js";
 import type { ObjectLifecycleWriteRepository } from "./object-writes.js";

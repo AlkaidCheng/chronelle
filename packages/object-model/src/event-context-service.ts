@@ -1,13 +1,13 @@
-import { withStableAuthorization } from "@chronelle/authorization";
+import { withStableAuthorization } from "@livtales/authorization";
 import {
   eventContextCommands,
   objectRevisions,
   type Database,
-} from "@chronelle/db";
+} from "@livtales/db";
 import {
   eventPlanningResourceResponseSchema,
   type EventContextCreateRequest,
-} from "@chronelle/schemas";
+} from "@livtales/schemas";
 import { and, eq } from "drizzle-orm";
 
 import { CommandConflictError, InvalidObjectStateError } from "./errors.js";

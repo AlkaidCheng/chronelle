@@ -1,4 +1,4 @@
-import type { EventPage } from "@chronelle/schemas";
+import type { EventPage } from "@livtales/schemas";
 import { describe, expect, it } from "vitest";
 
 import {

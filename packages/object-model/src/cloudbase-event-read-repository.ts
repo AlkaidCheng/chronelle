@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 
-import type { UserPrincipal } from "@chronelle/authorization";
+import type { UserPrincipal } from "@livtales/authorization";
 import {
   type EventListCursor,
   type EventListQuery,
@@ -8,7 +8,7 @@ import {
   eventListCursorSchema,
   eventListCountsSchema,
   eventListQuerySchema,
-} from "@chronelle/schemas";
+} from "@livtales/schemas";
 import {
   cloudbaseListRows,
   type CloudBaseListClient,

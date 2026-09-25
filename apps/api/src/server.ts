@@ -5,11 +5,11 @@ import {
   connectCloudBaseRdb,
   connectDatabase,
   disconnectedDatabase,
-} from "@chronelle/db";
+} from "@livtales/db";
 import {
   assertCloudBaseBackendReady,
   assertRevisionBaseline,
-} from "@chronelle/object-model";
+} from "@livtales/object-model";
 import { z } from "zod";
 
 import { buildApp } from "./app.js";

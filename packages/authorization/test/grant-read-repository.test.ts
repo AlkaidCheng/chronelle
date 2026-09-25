@@ -1,4 +1,4 @@
-import type { Database } from "@chronelle/db";
+import type { Database } from "@livtales/db";
 import { describe, expect, it, vi } from "vitest";
 
 import type { UserPrincipal } from "../src/authorization.js";

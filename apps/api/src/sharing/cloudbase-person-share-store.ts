@@ -1,15 +1,15 @@
 import {
   AuthorizationDeniedError,
   type UserPrincipal,
-} from "@chronelle/authorization";
+} from "@livtales/authorization";
 import {
   type CloudBaseRdbClient,
   CloudBaseRpcError,
   objectTypes,
   roles,
-} from "@chronelle/db";
+} from "@livtales/db";
 
-import { cloudbaseScopeJson } from "@chronelle/object-model";
+import { cloudbaseScopeJson } from "@livtales/object-model";
 import { instant, record, text } from "../identity/cloudbase-rows.js";
 import type {
   PersonShareStore,

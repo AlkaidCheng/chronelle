@@ -1,5 +1,5 @@
 {
-  "name": "@chronelle/api-client",
+  "name": "@livtales/api-client",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -10,14 +10,14 @@
     }
   },
   "scripts": {
-    "build": "pnpm --filter @chronelle/schemas build && tsc -p tsconfig.build.json",
-    "test": "pnpm --filter @chronelle/schemas build && vitest run",
+    "build": "pnpm --filter @livtales/schemas build && tsc -p tsconfig.build.json",
+    "test": "pnpm --filter @livtales/schemas build && vitest run",
     "test:unit": "vitest run",
-    "typecheck": "pnpm --filter @chronelle/schemas build && tsc -p tsconfig.json --noEmit",
+    "typecheck": "pnpm --filter @livtales/schemas build && tsc -p tsconfig.json --noEmit",
     "typecheck:unit": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
-    "@chronelle/schemas": "workspace:*",
+    "@livtales/schemas": "workspace:*",
     "zod": "4.6.5"
   }
 }

@@ -1,7 +1,7 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import type { SentInvitation } from "@chronelle/schemas";
+import type { SentInvitation } from "@livtales/schemas";
 import { type FormEvent, useEffect, useId, useRef, useState } from "react";
 
 import { ErrorNotice } from "../../components/feedback";

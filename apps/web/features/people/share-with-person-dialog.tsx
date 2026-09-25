@@ -1,6 +1,6 @@
 "use client";
 
-import type { PersonResponse, ShareResponse } from "@chronelle/schemas";
+import type { PersonResponse, ShareResponse } from "@livtales/schemas";
 
 type Role = ShareResponse["role"];
 import { useTranslations } from "next-intl";

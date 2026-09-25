@@ -4,7 +4,7 @@ import {
   type HttpMethod,
   type JsonTransport,
   type JsonTransportRequest,
-} from "@chronelle/api-client";
+} from "@livtales/api-client";
 
 export interface TaroRequestOptions {
   readonly body?: string | undefined;
