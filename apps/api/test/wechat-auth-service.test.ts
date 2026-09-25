@@ -47,7 +47,7 @@ const workspace = {
 function verifier(expiresAt = proofExpiresAt) {
   const verify = vi.fn<WeChatIdentityVerifier["verify"]>(async () => ({
     provider: cloudBaseWeChatIdentityProvider,
-    subject: "chronelle-test:cloud-user-1",
+    subject: "livtales-test:cloud-user-1",
     expiresAt,
   }));
   return { verify };
@@ -63,7 +63,7 @@ function store() {
 }
 
 describe("WeChatAuthenticationService", () => {
-  it("exchanges only a proof digest for an opaque Chronelle session", async () => {
+  it("exchanges only a proof digest for an opaque LivTales session", async () => {
     const identityVerifier = verifier();
     const authStore = store();
     const service = new WeChatAuthenticationService(
@@ -93,7 +93,7 @@ describe("WeChatAuthenticationService", () => {
     expect(exchanged).toMatchObject({
       proofHash: hashAccessToken(accessToken),
       provider: cloudBaseWeChatIdentityProvider,
-      subject: "chronelle-test:cloud-user-1",
+      subject: "livtales-test:cloud-user-1",
       observedAt: now,
       proofExpiresAt,
     });

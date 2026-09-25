@@ -78,7 +78,7 @@ describe("friend emails", () => {
   it("gives a new address the sign-up link and its validity", () => {
     const input = {
       ...request,
-      link: "https://chronelle.example/sign-up?invitation=t",
+      link: "https://livtales.example/sign-up?invitation=t",
       expiresInDays: 14,
     };
     const english = messagesFor(null).friendInvitationEmail(input);

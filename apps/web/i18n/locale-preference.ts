@@ -15,7 +15,7 @@ export { isLocale };
 /** An explicit language, or "system" for the browser's. */
 export type LocaleChoice = Locale | "system";
 
-const changeEvent = "chronelle:locale";
+const changeEvent = "livtales:locale";
 const yearInSeconds = 60 * 60 * 24 * 365;
 
 /** The choice the localStorage mirror holds; "system" when there is none. */

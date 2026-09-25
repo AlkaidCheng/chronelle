@@ -55,7 +55,7 @@ const token = (url: string) => decodeURIComponent(url.split("/").at(-1) ?? "");
 
 beforeAll(async () => {
   harness = await createWriteHarness("Document transfers");
-  root = await mkdtemp(join(tmpdir(), "chronelle-transfers-"));
+  root = await mkdtemp(join(tmpdir(), "livtales-transfers-"));
   storage = new LocalFilesystemStorageProvider({ root });
   const db = harness.database.connection.db;
   objects = new EventPlanningObjectService(db, clock);

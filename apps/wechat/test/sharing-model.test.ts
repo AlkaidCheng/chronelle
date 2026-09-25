@@ -41,7 +41,7 @@ const sent: SentInvitation = {
   kind: "invitation",
   email: null,
   channel: "link",
-  inviteUrl: "https://chronelle.example/invite/opaque-token-1234567890",
+  inviteUrl: "https://livtales.example/invite/opaque-token-1234567890",
   message: null,
   personId: objectId,
   workspaceId: objectId,

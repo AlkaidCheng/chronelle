@@ -79,7 +79,7 @@ export function InvitePage({ token }: { readonly token: string }) {
 
   const open = (
     <Link className="button button-primary" href="/events">
-      {t("openChronelle")}
+      {t("openLivTales")}
     </Link>
   );
 

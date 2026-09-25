@@ -30,7 +30,7 @@ type Fixture = {
 };
 const factories: Record<string, () => Promise<Fixture>> = {
   local: async () => {
-    const root = await mkdtemp(join(tmpdir(), "chronelle-contract-"));
+    const root = await mkdtemp(join(tmpdir(), "livtales-contract-"));
     roots.push(root);
     const provider = new LocalFilesystemStorageProvider({ root });
     return {

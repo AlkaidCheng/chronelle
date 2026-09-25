@@ -24,7 +24,7 @@ afterEach(async () => {
 });
 
 async function fixture() {
-  const root = await mkdtemp(join(tmpdir(), "chronelle-inventory-"));
+  const root = await mkdtemp(join(tmpdir(), "livtales-inventory-"));
   roots.push(root);
   return { root, provider: new LocalFilesystemStorageProvider({ root }) };
 }

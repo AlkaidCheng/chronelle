@@ -21,7 +21,7 @@ const migrationDirectory = resolve(
   "../../../infrastructure/migrations",
 );
 const password = "correct horse battery";
-const webBaseUrl = "https://chronelle.example";
+const webBaseUrl = "https://livtales.example";
 
 // The seed goes through the HTTP contract, so it is run on both backends:
 // the PostgreSQL app, and the app composed for the gateway with the rpc

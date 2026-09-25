@@ -39,7 +39,7 @@ beforeEach(async () => {
     { DATABASE_URL: database.databaseUrl },
     resolve(import.meta.dirname, "../../../infrastructure/migrations"),
   );
-  storageRoot = await mkdtemp(resolve(tmpdir(), "chronelle-read-snapshot-"));
+  storageRoot = await mkdtemp(resolve(tmpdir(), "livtales-read-snapshot-"));
   app = buildApp(
     createDevelopmentAppDependencies(database.connection, {
       localStorageRoot: storageRoot,

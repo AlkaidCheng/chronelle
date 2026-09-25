@@ -73,7 +73,7 @@ beforeEach(async () => {
       passwordAuth: {
         issuePolicy: { minIntervalMs: 0, windowMs: 0, maxPerWindow: 0 },
       },
-      friends: { webBaseUrl: "https://chronelle.example" },
+      friends: { webBaseUrl: "https://livtales.example" },
     }),
   );
 });
@@ -349,7 +349,7 @@ describe("sharing with friends", () => {
     });
     const notice = email.latestTo("priya@example.test");
     expect(notice.subject).toBe("LivTales: Ana invited you");
-    const link = /https:\/\/chronelle\.example\/invite\/([\w-]+)/u.exec(
+    const link = /https:\/\/livtales\.example\/invite\/([\w-]+)/u.exec(
       notice.text,
     );
     expect(link).not.toBeNull();
@@ -406,7 +406,7 @@ describe("sharing with friends", () => {
       personId: nameless.id,
     });
     expect(grandpasLink?.inviteUrl).toMatch(
-      /^https:\/\/chronelle\.example\/invite\/[\w-]+$/u,
+      /^https:\/\/livtales\.example\/invite\/[\w-]+$/u,
     );
     expect(email.messages).toHaveLength(1);
 

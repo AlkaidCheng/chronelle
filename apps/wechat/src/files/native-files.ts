@@ -2,7 +2,7 @@ import {
   ApiClientError,
   TransportError,
   type ApiCredential,
-  type ChronelleApiClient,
+  type LivTalesApiClient,
 } from "@livtales/api-client";
 import {
   maximumNativeDocumentSizeBytes,
@@ -114,14 +114,14 @@ async function controlledTask<Result>(
 }
 
 export class NativeFiles {
-  readonly #api: ChronelleApiClient;
+  readonly #api: LivTalesApiClient;
   readonly #baseUrl: string;
   readonly #getCredential: () => ApiCredential | null;
   readonly #platform: NativeFilePlatform;
   readonly #temporaryFiles = new Set<string>();
 
   constructor(
-    api: ChronelleApiClient,
+    api: LivTalesApiClient,
     baseUrl: string,
     getCredential: () => ApiCredential | null,
     platform: NativeFilePlatform,

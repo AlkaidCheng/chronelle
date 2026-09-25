@@ -24,7 +24,7 @@ import { createAppDependencies } from "../src/dependencies.js";
 
 const now = new Date("2030-01-01T00:00:00.000Z");
 const proofExpiresAt = new Date("2030-01-01T00:10:00.000Z");
-const weChatSubject = "chronelle-test:cloud-user-1";
+const weChatSubject = "livtales-test:cloud-user-1";
 const rejection = {
   error: {
     code: "invalid_wechat_credential",
@@ -40,7 +40,7 @@ const subjects = new Map([
   [token("link"), weChatSubject],
   [token("conflict"), weChatSubject],
   [token("sign-in"), weChatSubject],
-  [token("unlinked"), "chronelle-test:unlinked-user"],
+  [token("unlinked"), "livtales-test:unlinked-user"],
 ]);
 
 const verifier: WeChatIdentityVerifier = {

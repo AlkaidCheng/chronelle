@@ -1,4 +1,4 @@
-import { ChronelleApiClient } from "@livtales/api-client";
+import { LivTalesApiClient } from "@livtales/api-client";
 import { eventComponentKindSchema } from "@livtales/schemas";
 import { describe, expect, it } from "vitest";
 import {
@@ -114,7 +114,7 @@ describe("browser sandbox", () => {
   it("retains paginated layout history, restores snapshots, and enforces viewer access", async () => {
     const saved = storage();
     const store = new SandboxStore(saved);
-    const client = new ChronelleApiClient({
+    const client = new LivTalesApiClient({
       getCredential: () => ({
         accessToken: "sample",
         workspaceId: sandboxWorkspaceId,
@@ -202,7 +202,7 @@ describe("browser sandbox", () => {
       accessToken: "sample",
       workspaceId: sandboxWorkspaceId,
     });
-    const client = new ChronelleApiClient({
+    const client = new LivTalesApiClient({
       getCredential,
       fetch: (input, options) => store.fetch(input, options),
     });
@@ -230,7 +230,7 @@ describe("browser sandbox", () => {
     await expect(
       client.updateEventLayout(event.id, { expectedVersion: 0, pages: [] }),
     ).rejects.toMatchObject({ status: 409 });
-    const reloaded = new ChronelleApiClient({
+    const reloaded = new LivTalesApiClient({
       getCredential,
       fetch: (input, options) => new SandboxStore(saved).fetch(input, options),
     });
@@ -249,7 +249,7 @@ describe("browser sandbox", () => {
 
   it("creates typed planning resources through the production client contract", async () => {
     const store = new SandboxStore(storage());
-    const client = new ChronelleApiClient({
+    const client = new LivTalesApiClient({
       getCredential: () => ({
         accessToken: "sample",
         workspaceId: sandboxWorkspaceId,
@@ -311,7 +311,7 @@ describe("browser sandbox", () => {
   });
   it("replays a standalone creation by command id and refuses a changed input", async () => {
     const store = new SandboxStore(storage());
-    const client = new ChronelleApiClient({
+    const client = new LivTalesApiClient({
       getCredential: () => ({
         accessToken: "sample",
         workspaceId: sandboxWorkspaceId,
@@ -344,7 +344,7 @@ describe("browser sandbox", () => {
   });
   it("lists the tasks due in a range of days named in a time zone", async () => {
     const store = new SandboxStore(storage());
-    const client = new ChronelleApiClient({
+    const client = new LivTalesApiClient({
       getCredential: () => ({
         accessToken: "sample",
         workspaceId: sandboxWorkspaceId,
@@ -388,7 +388,7 @@ describe("browser sandbox", () => {
   });
   it("keeps a task's duration with its due time and refuses one without", async () => {
     const store = new SandboxStore(storage());
-    const client = new ChronelleApiClient({
+    const client = new LivTalesApiClient({
       getCredential: () => ({
         accessToken: "sample",
         workspaceId: sandboxWorkspaceId,
@@ -420,7 +420,7 @@ describe("browser sandbox", () => {
   });
   it("advances a repeating task's due on completion, as the API does", async () => {
     const store = new SandboxStore(storage());
-    const client = new ChronelleApiClient({
+    const client = new LivTalesApiClient({
       getCredential: () => ({
         accessToken: "sample",
         workspaceId: sandboxWorkspaceId,
@@ -487,7 +487,7 @@ describe("browser sandbox", () => {
   });
   it("ranks new tasks last and lists them in manual order", async () => {
     const store = new SandboxStore(storage());
-    const client = new ChronelleApiClient({
+    const client = new LivTalesApiClient({
       getCredential: () => ({
         accessToken: "sample",
         workspaceId: sandboxWorkspaceId,
@@ -513,7 +513,7 @@ describe("browser sandbox", () => {
   });
   it("keeps people in name order and links one person to the signed-in account", async () => {
     const store = new SandboxStore(storage());
-    const client = new ChronelleApiClient({
+    const client = new LivTalesApiClient({
       getCredential: () => ({
         accessToken: "sample",
         workspaceId: sandboxWorkspaceId,

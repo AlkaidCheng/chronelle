@@ -53,7 +53,7 @@ let testResourcesReady = false;
 
 beforeEach(async () => {
   testResourcesReady = false;
-  storageRoot = await mkdtemp(join(tmpdir(), "chronelle-documents-"));
+  storageRoot = await mkdtemp(join(tmpdir(), "livtales-documents-"));
   currentTime = new Date("2026-10-01T12:00:00Z");
   testDatabase = await createTestDatabase();
   await applyMigrations(
@@ -121,7 +121,7 @@ function fileMetadata(bytes: Buffer, originalFilename: string) {
   };
 }
 
-function multipartFile(bytes: Buffer, boundary = "chronelle-test-boundary") {
+function multipartFile(bytes: Buffer, boundary = "livtales-test-boundary") {
   return {
     headers: { "content-type": `multipart/form-data; boundary=${boundary}` },
     payload: Buffer.concat([

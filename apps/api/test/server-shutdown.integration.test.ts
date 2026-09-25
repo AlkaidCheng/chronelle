@@ -19,7 +19,7 @@ const cloudBaseEnvironment = {
   CLOUDBASE_ENV_ID: "shutdown-test",
   CLOUDBASE_APIKEY: "opaque-shutdown-key",
   ENABLE_DEVELOPMENT_AUTH: "true",
-  LOCAL_STORAGE_ROOT: mkdtempSync(join(tmpdir(), "chronelle-shutdown-")),
+  LOCAL_STORAGE_ROOT: mkdtempSync(join(tmpdir(), "livtales-shutdown-")),
 };
 
 function randomPort(): string {

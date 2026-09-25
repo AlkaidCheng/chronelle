@@ -140,7 +140,7 @@ export const users = pgTable("users", {
 });
 
 /**
- * External sign-in identities linked to one canonical Chronelle account.
+ * External sign-in identities linked to one canonical LivTales account.
  * Provider subjects are unique globally; one account may have one identity
  * from each provider without changing its user id.
  */

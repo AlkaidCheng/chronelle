@@ -1,4 +1,4 @@
-import type { ChronelleApiClient } from "@livtales/api-client";
+import type { LivTalesApiClient } from "@livtales/api-client";
 import { maximumNativeDocumentSizeBytes } from "@livtales/schemas";
 import { describe, expect, it, vi } from "vitest";
 
@@ -61,7 +61,7 @@ function harness() {
   return {
     api,
     files: new NativeFiles(
-      api as unknown as ChronelleApiClient,
+      api as unknown as LivTalesApiClient,
       "https://api.example.test",
       () => credential,
       platform,

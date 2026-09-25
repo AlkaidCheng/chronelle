@@ -50,7 +50,7 @@ SELECT format(
 ) WHERE NOT EXISTS (SELECT FROM pg_roles WHERE rolname = :'runtime_role')
 \gexec
 
--- This policy is for a dedicated Chronelle database, not a shared application schema.
+-- This policy is for a dedicated LivTales database, not a shared application schema.
 REVOKE ALL ON DATABASE :"database_name" FROM PUBLIC, :"runtime_role";
 GRANT CONNECT ON DATABASE :"database_name" TO :"runtime_role";
 REVOKE ALL ON SCHEMA public FROM PUBLIC, :"runtime_role";

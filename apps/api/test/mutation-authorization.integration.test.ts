@@ -36,7 +36,7 @@ beforeEach(async () => {
     { DATABASE_URL: database.databaseUrl },
     resolve(import.meta.dirname, "../../../infrastructure/migrations"),
   );
-  storageRoot = await mkdtemp(resolve(tmpdir(), "chronelle-authorization-"));
+  storageRoot = await mkdtemp(resolve(tmpdir(), "livtales-authorization-"));
   storage = new LocalFilesystemStorageProvider({ root: storageRoot });
   app = buildApp(
     createDevelopmentAppDependencies(database.connection, {

@@ -1,4 +1,4 @@
-import type { ChronelleApiClient } from "@livtales/api-client";
+import type { LivTalesApiClient } from "@livtales/api-client";
 import type {
   EventResourceProjectionResponse,
   ExpenseResourceProjectionResponse,
@@ -30,7 +30,7 @@ export type PlanningProjection =
     };
 
 type ProjectionClient = Pick<
-  ChronelleApiClient,
+  LivTalesApiClient,
   | "getEventCalendar"
   | "getEventExpenses"
   | "getEventItinerary"

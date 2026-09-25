@@ -6,7 +6,7 @@ import {
 } from "../src/index.js";
 
 export const cosOptions: TencentCosStorageOptions = {
-  bucket: "chronelle-test-1250000000",
+  bucket: "livtales-test-1250000000",
   region: "ap-guangzhou",
   secretId: "test-secret-id",
   secretKey: "test-secret-key",

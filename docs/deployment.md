@@ -462,7 +462,7 @@ provider writes verification codes to the API log and is not for a
 deployment; `EMAIL_PROVIDER=file` with `EMAIL_FILE_PATH` appends them to a
 file on the instance for an internal test whose operator hands codes to
 testers by other means). Friend invitation emails link to the web origin
-in `WEB_PUBLIC_URL` (for example `https://chronelle.example`); set it on
+in `WEB_PUBLIC_URL` (for example `https://livtales.example`); set it on
 the API service, or the links point at `http://localhost:3000`. Start it from the repository root:
 
 ```bash

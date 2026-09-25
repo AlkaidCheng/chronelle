@@ -291,7 +291,7 @@ nonced framework runtime and its descendants. This boundary does not authenticat
 requests or change canonical permissions. See [Deployment](deployment.md#script-content-security-policy)
 for the rendering tradeoff and remaining public-launch requirements.
 
-`ChronelleApiClient` attaches the active workspace (and a bearer token when
+`LivTalesApiClient` attaches the active workspace (and a bearer token when
 the caller holds one), validates every successful response against the shared
 Zod contract, and turns API errors into one typed error. In the browser the
 session is an httpOnly, `SameSite=Lax` cookie owned by the web origin: the
@@ -330,7 +330,7 @@ through `client.withSignal(signal)`, which combines caller cancellation with the
 client's optional session-lifetime `signal`:
 
 ```typescript
-const client = new ChronelleApiClient({
+const client = new LivTalesApiClient({
   getCredential: () => credential,
   signal: sessionController.signal,
 });

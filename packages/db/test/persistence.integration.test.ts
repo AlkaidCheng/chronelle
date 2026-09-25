@@ -209,7 +209,7 @@ describe.sequential("persistence kernel", () => {
 
   it("backfills normalized identities without changing canonical user ids", async () => {
     const upgradeDirectory = await mkdtemp(
-      join(tmpdir(), "chronelle-identity-upgrade-"),
+      join(tmpdir(), "livtales-identity-upgrade-"),
     );
     temporaryDirectories.push(upgradeDirectory);
     await cp(migrationDirectory, upgradeDirectory, { recursive: true });
@@ -254,7 +254,7 @@ describe.sequential("persistence kernel", () => {
 
   it("rejects a changed migration after it has been applied", async () => {
     const copiedMigrationDirectory = await mkdtemp(
-      join(tmpdir(), "chronelle-integration-migrations-"),
+      join(tmpdir(), "livtales-integration-migrations-"),
     );
     temporaryDirectories.push(copiedMigrationDirectory);
     await cp(migrationDirectory, copiedMigrationDirectory, { recursive: true });

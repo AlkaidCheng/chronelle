@@ -59,7 +59,7 @@ function buildTestApp(): FastifyInstance {
 
 beforeEach(async () => {
   testResourcesReady = false;
-  storageRoot = await mkdtemp(join(tmpdir(), "chronelle-slice-"));
+  storageRoot = await mkdtemp(join(tmpdir(), "livtales-slice-"));
   testDatabase = await createTestDatabase();
   await applyMigrations(
     { DATABASE_URL: testDatabase.databaseUrl },

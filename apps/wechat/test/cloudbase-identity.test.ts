@@ -17,7 +17,7 @@ function authDouble(
     })),
     getAccessToken: vi.fn(async () => ({
       accessToken: refreshedToken,
-      env: "chronelle-staging",
+      env: "livtales-staging",
     })),
   };
 }

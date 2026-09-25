@@ -1,4 +1,4 @@
-import { ApiClientError, type ChronelleApiClient } from "@livtales/api-client";
+import { ApiClientError, type LivTalesApiClient } from "@livtales/api-client";
 import type {
   CommandExecutePayload,
   CommandReceipt,
@@ -53,7 +53,7 @@ export function commandDescription(
 }
 
 export function readCommandState(
-  client: ChronelleApiClient,
+  client: LivTalesApiClient,
   queryClient: QueryClient,
   staleTime = 60_000,
 ): Promise<CommandStateResponse> {
@@ -76,7 +76,7 @@ export function readCommandState(
 export type CommandEditPayload = CommandExecutePayload["edits"][number];
 
 export async function executeCommand(
-  client: ChronelleApiClient,
+  client: LivTalesApiClient,
   queryClient: QueryClient,
   edit: CommandEditPayload,
 ): Promise<CommandReceipt> {

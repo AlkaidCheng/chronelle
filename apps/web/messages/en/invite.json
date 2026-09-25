@@ -20,5 +20,5 @@
   "linkUsed": "This invitation was already accepted.",
   "linkEnded": "This invitation is no longer open.",
   "linkExpired": "This invitation expired on {date}.",
-  "openChronelle": "Open LivTales"
+  "openLivTales": "Open LivTales"
 }

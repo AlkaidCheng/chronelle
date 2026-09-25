@@ -218,7 +218,7 @@ export interface ApiCredential {
   readonly workspaceId: string;
 }
 
-export interface ChronelleApiClientOptions {
+export interface LivTalesApiClientOptions {
   readonly baseUrl?: string | undefined;
   readonly binaryTransfer?: BinaryTransfer | undefined;
   readonly fetch?: typeof globalThis.fetch | undefined;
@@ -284,7 +284,7 @@ function abortError(message: string): Error {
   return error;
 }
 
-export class ChronelleApiClient {
+export class LivTalesApiClient {
   readonly #baseUrl: string;
   readonly #binaryTransfer: BinaryTransfer | null;
   readonly #fileHasher: FileHasher | null;
@@ -294,7 +294,7 @@ export class ChronelleApiClient {
   readonly #transferTimeoutMs: number;
   readonly #transport: JsonTransport;
 
-  constructor(options: ChronelleApiClientOptions = {}) {
+  constructor(options: LivTalesApiClientOptions = {}) {
     const fetchImplementation =
       options.fetch ??
       (typeof globalThis.fetch === "function"
@@ -329,7 +329,7 @@ export class ChronelleApiClient {
   }
 
   /** Bind a request to both its caller's cancellation and the session lifetime. */
-  withSignal(signal: AbortSignal): ChronelleApiClient {
+  withSignal(signal: AbortSignal): LivTalesApiClient {
     return this.#createScopedClient(signal);
   }
 
@@ -351,9 +351,9 @@ export class ChronelleApiClient {
     }
   }
 
-  #createScopedClient(signal?: AbortSignal): ChronelleApiClient {
+  #createScopedClient(signal?: AbortSignal): LivTalesApiClient {
     const credential = this.#captureCredential();
-    return new ChronelleApiClient({
+    return new LivTalesApiClient({
       baseUrl: this.#baseUrl,
       binaryTransfer: this.#binaryTransfer ?? undefined,
       fileHasher: this.#fileHasher ?? undefined,
@@ -497,7 +497,7 @@ export class ChronelleApiClient {
     );
   }
 
-  /** Exchanges a verified CloudBase-WeChat credential for a Chronelle session. */
+  /** Exchanges a verified CloudBase-WeChat credential for a LivTales session. */
   signInWithWeChat(input: WeChatCredentialRequest): Promise<SignInResponse> {
     return this.#request(
       "/api/auth/wechat",
@@ -507,7 +507,7 @@ export class ChronelleApiClient {
     );
   }
 
-  /** Links the verified WeChat identity to the signed-in Chronelle account. */
+  /** Links the verified WeChat identity to the signed-in LivTales account. */
   linkWeChatIdentity(
     input: WeChatCredentialRequest,
   ): Promise<WeChatIdentityLinkResponse> {

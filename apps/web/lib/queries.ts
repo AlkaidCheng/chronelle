@@ -2,7 +2,7 @@
 
 import {
   ApiClientError,
-  ChronelleApiClient,
+  LivTalesApiClient,
   type DocumentFileInput,
 } from "@livtales/api-client";
 import type {
@@ -243,7 +243,7 @@ export function useNoteWorkspaceOpened() {
   return useCallback(
     (workspaceId: string) => {
       if (credential === null) return;
-      const client = new ChronelleApiClient({
+      const client = new LivTalesApiClient({
         getCredential: () => credential,
       });
       void client
@@ -726,7 +726,7 @@ export function useReminderEditorQueries(reminderId: string) {
 
 function useObjectEditorQueries<Resource>(
   id: string,
-  read: (client: ChronelleApiClient, id: string) => Promise<Resource>,
+  read: (client: LivTalesApiClient, id: string) => Promise<Resource>,
 ) {
   const client = useApiClient();
   const { credential } = useAuthSession();

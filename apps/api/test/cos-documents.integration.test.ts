@@ -158,7 +158,7 @@ beforeEach(async () => {
   vi.stubGlobal("fetch", inspection);
   const storage = createDocumentStorage({
     DOCUMENT_STORAGE_PROVIDER: "tencent-cos",
-    COS_BUCKET: "chronelle-test-1250000000",
+    COS_BUCKET: "livtales-test-1250000000",
     COS_REGION: "ap-guangzhou",
     COS_SECRET_ID: "test-secret-id",
     COS_SECRET_KEY: "test-secret-key",

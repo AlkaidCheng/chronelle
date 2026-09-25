@@ -18,7 +18,7 @@ afterEach(async () => {
 
 describe("discoverMigrations", () => {
   it("returns ordered SQL migrations and ignores unrelated files", async () => {
-    const directory = await mkdtemp(join(tmpdir(), "chronelle-migrations-"));
+    const directory = await mkdtemp(join(tmpdir(), "livtales-migrations-"));
     temporaryDirectories.push(directory);
     await Promise.all([
       writeFile(join(directory, "0002_second.sql"), "SELECT 2;\n"),

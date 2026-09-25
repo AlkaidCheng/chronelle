@@ -20,5 +20,5 @@
   "linkUsed": "这个邀请已被接受。",
   "linkEnded": "这个邀请已失效。",
   "linkExpired": "这个邀请已于 {date} 过期。",
-  "openChronelle": "打开 LivTales"
+  "openLivTales": "打开 LivTales"
 }

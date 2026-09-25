@@ -11,8 +11,10 @@ export type DisplayPreference = keyof typeof displayChoices;
 export type DisplayValue<K extends DisplayPreference> =
   (typeof displayChoices)[K][number];
 
+const displayStorageKeyPrefix = "chronelle.";
+
 export function displayStorageKey(name: DisplayPreference) {
-  return `chronelle.${name}`;
+  return `${displayStorageKeyPrefix}${name}`;
 }
 
 export function parseDisplayPreference<K extends DisplayPreference>(
@@ -31,4 +33,4 @@ export const palettes = [
   { id: "neutral" },
 ] as const satisfies readonly { id: DisplayValue<"palette"> }[];
 
-export const displayBootstrap = `for(const [name,choices] of Object.entries(${JSON.stringify(displayChoices)})){try{const value=window.localStorage.getItem("chronelle."+name);if(choices.includes(value))document.documentElement.dataset[name]=value;}catch{}}`;
+export const displayBootstrap = `for(const [name,choices] of Object.entries(${JSON.stringify(displayChoices)})){try{const value=window.localStorage.getItem(${JSON.stringify(displayStorageKeyPrefix)}+name);if(choices.includes(value))document.documentElement.dataset[name]=value;}catch{}}`;

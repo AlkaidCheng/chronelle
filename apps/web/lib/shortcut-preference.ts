@@ -9,7 +9,7 @@ export function createShortcutPreference<Value extends string>(
   serverValue: Value,
 ) {
   const storageKey = `chronelle.${name}-shortcut`;
-  const changeEvent = `chronelle:${name}-shortcut`;
+  const changeEvent = `livtales:${name}-shortcut`;
   const attribute = `data-${name}-shortcut`;
 
   function snapshot(): Value {

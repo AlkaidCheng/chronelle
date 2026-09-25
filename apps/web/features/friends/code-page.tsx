@@ -63,7 +63,7 @@ export function CodePage({ username }: { readonly username: string }) {
         <p className="code-note">{t("unavailable")}</p>
         <div className="form-actions">
           <Link className="button button-primary" href="/events">
-            {t("openChronelle")}
+            {t("openLivTales")}
           </Link>
         </div>
       </>
@@ -143,7 +143,7 @@ export function CodePage({ username }: { readonly username: string }) {
             </button>
           ) : (
             <Link className="button button-primary" href="/events">
-              {t("openChronelle")}
+              {t("openLivTales")}
             </Link>
           )}
         </div>

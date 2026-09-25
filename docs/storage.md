@@ -21,7 +21,7 @@ alongside the existing database and authentication settings:
 
 ```dotenv
 DOCUMENT_STORAGE_PROVIDER=tencent-cos
-COS_BUCKET=chronelle-documents-1250000000
+COS_BUCKET=livtales-documents-1250000000
 COS_REGION=ap-guangzhou
 DOCUMENT_TRANSFER_TTL_SECONDS=300
 ```

@@ -496,7 +496,7 @@ const catalog = {
       "The change was saved, but this list could not refresh. Pull to retry.",
     friendInvitation: "Invitation link",
     friendPending: "Waiting for a reply",
-    friendNotOnChronelle: "Waiting for the invitation to be accepted",
+    friendNotOnLivTales: "Waiting for the invitation to be accepted",
     friendRemove: "Remove friend",
     friendRemoveTitle: "Remove this friend?",
     friendRemoveDetail:
@@ -957,7 +957,7 @@ const catalog = {
     friendRefreshFailed: "修改已保存，但列表暂时无法刷新。下拉页面可重试。",
     friendInvitation: "邀请链接",
     friendPending: "等待回应",
-    friendNotOnChronelle: "等待对方接受邀请",
+    friendNotOnLivTales: "等待对方接受邀请",
     friendRemove: "移除好友",
     friendRemoveTitle: "移除这位好友？",
     friendRemoveDetail: "已分享的记录仍保留各自独立的权限。",

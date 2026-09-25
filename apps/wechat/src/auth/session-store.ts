@@ -1,4 +1,4 @@
-import type { ApiCredential, ChronelleApiClient } from "@livtales/api-client";
+import type { ApiCredential, LivTalesApiClient } from "@livtales/api-client";
 
 export const weChatSessionStorageKey = "chronelle.session.v1";
 
@@ -28,12 +28,12 @@ export interface SessionGrant {
 }
 
 export type SessionRevoker = Pick<
-  ChronelleApiClient,
+  LivTalesApiClient,
   "signOut" | "signOutEverywhere"
 >;
 
 /**
- * Owns the Mini Program's Chronelle bearer token. CloudBase credentials are
+ * Owns the Mini Program's LivTales bearer token. CloudBase credentials are
  * deliberately never accepted by this storage boundary.
  */
 export class WeChatSessionStore {
@@ -95,7 +95,7 @@ export class WeChatSessionStore {
 
   async selectWorkspace(workspaceId: string): Promise<ApiCredential> {
     if (this.#session === null) {
-      throw new Error("No active Chronelle session is available.");
+      throw new Error("No active LivTales session is available.");
     }
     const stored = parseStoredSession({ ...this.#session, workspaceId });
     if (stored === null) throw new TypeError("The workspace id is invalid.");

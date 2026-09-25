@@ -53,7 +53,7 @@ configured the same way on both backends.
 1. Set `CHRONELLE_BACKEND=cloudbase`, `CLOUDBASE_ENV_ID`, and a fresh
    `CLOUDBASE_APIKEY`; remove or leave `DATABASE_URL` (it is not read).
 2. Start the API. It calls `chronelle_backend_readiness` and logs
-   `Chronelle backend selected` with `backend: "cloudbase"` once it listens.
+   `LivTales backend selected` with `backend: "cloudbase"` once it listens.
 3. If it exits with `startup_failed`, the `reason` field says why:
    - `chronelle_backend_readiness is not callable`: migration 0028 (or the
      rpc route itself) is missing; apply the migrations and check the key.
@@ -197,7 +197,7 @@ because pushing there is the release decision itself.
 Do not set `DATABASE_URL`, `CLOUDBASE_READS_ENABLED`, or
 `CLOUDBASE_WRITES_ENABLED`: the CloudBase backend ignores the first and
 implies the other two. After the first deployment, the service log must show
-`Chronelle backend selected` with `backend: "cloudbase"` followed by
+`LivTales backend selected` with `backend: "cloudbase"` followed by
 `Server listening`; a `startup_failed` line names what to fix (see above).
 With `smtp`, give `EMAIL_FROM` the display name users see, LivTales (for
 example `LivTales <no-reply@your-domain>`): it heads every verification and

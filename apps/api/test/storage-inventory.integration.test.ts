@@ -50,7 +50,7 @@ let provider: LocalFilesystemStorageProvider;
 let currentTime: Date;
 
 beforeEach(async () => {
-  root = await mkdtemp(join(tmpdir(), "chronelle-inventory-api-"));
+  root = await mkdtemp(join(tmpdir(), "livtales-inventory-api-"));
   database = await createTestDatabase();
   await applyMigrations(
     { DATABASE_URL: database.databaseUrl },

@@ -24,7 +24,7 @@ name, custom properties, and the existing Event/Task typed fields. Metadata,
 permission scopes, grants, object creation, trash, links, financial facts,
 reminders, and document transfers are not eligible.
 
-With an authenticated `ChronelleApiClient`, a reversible edit replaces a direct
+With an authenticated `LivTalesApiClient`, a reversible edit replaces a direct
 patch call such as:
 
 ```ts

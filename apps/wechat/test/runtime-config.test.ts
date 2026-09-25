@@ -6,15 +6,15 @@ describe("Mini Program runtime configuration", () => {
   it("accepts an HTTPS deployment and explicit wx-cloud mode", () => {
     expect(
       parseRuntimeConfig({
-        apiBaseUrl: "https://api.chronelle.example/",
-        cloudBaseEnvId: "chronelle-staging-a1b2c3",
+        apiBaseUrl: "https://api.livtales.example/",
+        cloudBaseEnvId: "livtales-staging-a1b2c3",
         useWxCloud: "true",
       }),
     ).toEqual({
       ok: true,
       value: {
-        apiBaseUrl: "https://api.chronelle.example",
-        cloudBaseEnvId: "chronelle-staging-a1b2c3",
+        apiBaseUrl: "https://api.livtales.example",
+        cloudBaseEnvId: "livtales-staging-a1b2c3",
         useWxCloud: true,
       },
     });
@@ -24,13 +24,13 @@ describe("Mini Program runtime configuration", () => {
     expect(
       parseRuntimeConfig({
         apiBaseUrl: "http://127.0.0.1:4000",
-        cloudBaseEnvId: "chronelle-local",
+        cloudBaseEnvId: "livtales-local",
       }).ok,
     ).toBe(true);
     expect(
       parseRuntimeConfig({
         apiBaseUrl: "http://api.example.test",
-        cloudBaseEnvId: "chronelle-staging",
+        cloudBaseEnvId: "livtales-staging",
       }),
     ).toEqual({ ok: false, reason: "invalid-api-origin" });
   });
@@ -43,7 +43,7 @@ describe("Mini Program runtime configuration", () => {
     expect(
       parseRuntimeConfig({
         apiBaseUrl: "https://user:secret@example.test",
-        cloudBaseEnvId: "chronelle-staging",
+        cloudBaseEnvId: "livtales-staging",
       }),
     ).toEqual({ ok: false, reason: "invalid-api-origin" });
     expect(
@@ -81,15 +81,15 @@ describe("Mini Program runtime configuration", () => {
     try {
       expect(
         parseRuntimeConfig({
-          apiBaseUrl: "https://api.chronelle.example",
-          cloudBaseEnvId: "chronelle-staging-a1b2c3",
+          apiBaseUrl: "https://api.livtales.example",
+          cloudBaseEnvId: "livtales-staging-a1b2c3",
           useWxCloud: "false",
         }).ok,
       ).toBe(true);
       expect(
         parseRuntimeConfig({
-          apiBaseUrl: "https://user:secret@api.chronelle.example",
-          cloudBaseEnvId: "chronelle-staging-a1b2c3",
+          apiBaseUrl: "https://user:secret@api.livtales.example",
+          cloudBaseEnvId: "livtales-staging-a1b2c3",
         }),
       ).toEqual({ ok: false, reason: "invalid-api-origin" });
     } finally {

@@ -221,7 +221,7 @@ try {
   } else {
     await assertRevisionBaseline(database.db);
   }
-  app.log.info({ backend: backend.backend }, "Chronelle backend selected");
+  app.log.info({ backend: backend.backend }, "LivTales backend selected");
   await app.listen({
     host: runtimeEnvironment.API_HOST,
     port: runtimeEnvironment.API_PORT,

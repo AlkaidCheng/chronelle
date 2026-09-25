@@ -362,7 +362,7 @@ function ReadyFriends({ session }: { readonly session: SessionResponse }) {
                   <Text className="people-muted">
                     {sent.kind === "connection"
                       ? messages.friendPending
-                      : messages.friendNotOnChronelle}
+                      : messages.friendNotOnLivTales}
                   </Text>
                   <View className="people-row-actions">
                     {sent.inviteUrl ? (

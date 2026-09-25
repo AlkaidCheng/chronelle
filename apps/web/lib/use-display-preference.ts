@@ -9,7 +9,7 @@ import {
   parseDisplayPreference,
 } from "./display-preferences";
 
-const changeEvent = "chronelle:display";
+const changeEvent = "livtales:display";
 
 function getSnapshot<K extends DisplayPreference>(name: K) {
   return parseDisplayPreference(name, document.documentElement.dataset[name]);

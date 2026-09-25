@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { type ApiCredential, ChronelleApiClient } from "../src/index.js";
+import { type ApiCredential, LivTalesApiClient } from "../src/index.js";
 
 const event = {
   id: "019d6e7d-0000-7000-8000-000000000001",
@@ -57,7 +57,7 @@ const documentAttachment = {
   },
 } as const;
 
-describe("ChronelleApiClient", () => {
+describe("LivTalesApiClient", () => {
   it("reads only the canonical attachment target names", async () => {
     const page = {
       event: { id: event.id, displayName: event.displayName },
@@ -67,7 +67,7 @@ describe("ChronelleApiClient", () => {
     const fetch = vi.fn<typeof globalThis.fetch>(async () =>
       Response.json(page),
     );
-    const client = new ChronelleApiClient({
+    const client = new LivTalesApiClient({
       fetch,
       getCredential: () => ({
         accessToken: "test-session",
@@ -91,7 +91,7 @@ describe("ChronelleApiClient", () => {
     const fetch = vi.fn<typeof globalThis.fetch>(async () =>
       Response.json(reminder),
     );
-    const client = new ChronelleApiClient({
+    const client = new LivTalesApiClient({
       fetch,
       getCredential: () => ({
         accessToken: "test-session",
@@ -124,7 +124,7 @@ describe("ChronelleApiClient", () => {
     const fetch = vi.fn<typeof globalThis.fetch>(async () =>
       Response.json(expense),
     );
-    const client = new ChronelleApiClient({
+    const client = new LivTalesApiClient({
       fetch,
       getCredential: () => ({
         accessToken: "test-session",
@@ -154,7 +154,7 @@ describe("ChronelleApiClient", () => {
     const fetch = vi.fn<typeof globalThis.fetch>(async () =>
       Response.json(task),
     );
-    const client = new ChronelleApiClient({
+    const client = new LivTalesApiClient({
       fetch,
       getCredential: () => ({
         accessToken: "test-session",
@@ -183,7 +183,7 @@ describe("ChronelleApiClient", () => {
     const fetch = vi.fn<typeof globalThis.fetch>(async () =>
       Response.json({ items: [layout], nextBeforeVersion: null }),
     );
-    const client = new ChronelleApiClient({
+    const client = new LivTalesApiClient({
       fetch,
       getCredential: () => ({
         accessToken: "test-session",
@@ -226,7 +226,7 @@ describe("ChronelleApiClient", () => {
     const fetch = vi.fn<typeof globalThis.fetch>(async () =>
       Response.json(event),
     );
-    const client = new ChronelleApiClient({
+    const client = new LivTalesApiClient({
       fetch,
       getCredential: () => ({
         accessToken: "test-session",
@@ -258,7 +258,7 @@ describe("ChronelleApiClient", () => {
         signal?.throwIfAborted();
         return Response.json({ items: [] });
       });
-      const client = new ChronelleApiClient({
+      const client = new LivTalesApiClient({
         fetch,
         signal: lifetime.signal,
         getCredential: () => ({
@@ -290,7 +290,7 @@ describe("ChronelleApiClient", () => {
         lifetime.abort();
         return readBody();
       });
-      const client = new ChronelleApiClient({
+      const client = new LivTalesApiClient({
         signal: lifetime.signal,
         fetch: vi.fn<typeof globalThis.fetch>().mockResolvedValue(response),
         getCredential: () => ({
@@ -314,7 +314,7 @@ describe("ChronelleApiClient", () => {
       accessToken: "test-session",
       workspaceId: event.workspaceId,
     };
-    const client = new ChronelleApiClient({
+    const client = new LivTalesApiClient({
       getCredential: () => credential,
       fetch: async () => {
         credential.accessToken = "replacement-session";
@@ -352,7 +352,7 @@ describe("ChronelleApiClient", () => {
           credential = { ...credential, workspaceId: documentId };
           return new Response(null, { status: 204 });
         });
-      const client = new ChronelleApiClient({
+      const client = new LivTalesApiClient({
         fetch,
         getCredential: () => credential,
       });
@@ -398,7 +398,7 @@ describe("ChronelleApiClient", () => {
         }),
       )
       .mockResolvedValueOnce(response);
-    const client = new ChronelleApiClient({
+    const client = new LivTalesApiClient({
       fetch,
       signal: lifetime.signal,
       getCredential: () => ({
@@ -424,7 +424,7 @@ describe("ChronelleApiClient", () => {
       credential = { ...credential, workspaceId: documentId };
       return Response.json({ items: [event] });
     });
-    const client = new ChronelleApiClient({
+    const client = new LivTalesApiClient({
       fetch,
       getCredential: () => credential,
     });
@@ -439,7 +439,7 @@ describe("ChronelleApiClient", () => {
       workspaceId: event.workspaceId,
     };
     const fetch = vi.fn<typeof globalThis.fetch>();
-    const client = new ChronelleApiClient({
+    const client = new LivTalesApiClient({
       fetch,
       getCredential: () => credential,
     });
@@ -484,7 +484,7 @@ describe("ChronelleApiClient", () => {
       .fn<typeof globalThis.fetch>()
       .mockResolvedValueOnce(Response.json(report))
       .mockResolvedValueOnce(Response.json({ entries: report.entries }));
-    const client = new ChronelleApiClient({
+    const client = new LivTalesApiClient({
       fetch,
       getCredential: () => ({
         accessToken: "test-session",
@@ -503,7 +503,7 @@ describe("ChronelleApiClient", () => {
     async (size) => {
       const fetch = vi.fn<typeof globalThis.fetch>();
       const read = vi.fn().mockResolvedValue(new ArrayBuffer(0));
-      const client = new ChronelleApiClient({ fetch });
+      const client = new LivTalesApiClient({ fetch });
       await expect(
         client.attachDocument(event.id, {
           name: "file.bin",
@@ -519,7 +519,7 @@ describe("ChronelleApiClient", () => {
 
   it("rejects a file whose bytes do not match its reported size before authorization", async () => {
     const fetch = vi.fn<typeof globalThis.fetch>();
-    const client = new ChronelleApiClient({ fetch });
+    const client = new LivTalesApiClient({ fetch });
     await expect(
       client.attachDocument(event.id, {
         name: "file.bin",
@@ -533,7 +533,7 @@ describe("ChronelleApiClient", () => {
   it("rejects oversized files before reading, hashing, or requesting a transfer", async () => {
     const fetch = vi.fn<typeof globalThis.fetch>();
     const read = vi.fn().mockResolvedValue(new ArrayBuffer(0));
-    const client = new ChronelleApiClient({ fetch });
+    const client = new LivTalesApiClient({ fetch });
     await expect(
       client.attachDocument(event.id, {
         name: "large.bin",
@@ -562,7 +562,7 @@ describe("ChronelleApiClient", () => {
       .mockResolvedValueOnce(Response.json(receipt))
       .mockResolvedValueOnce(Response.json({ ...receipt, direction: "undo" }))
       .mockResolvedValueOnce(Response.json({ ...receipt, direction: "redo" }));
-    const client = new ChronelleApiClient({
+    const client = new LivTalesApiClient({
       fetch,
       getCredential: () => ({
         accessToken: "test-session",
@@ -621,7 +621,7 @@ describe("ChronelleApiClient", () => {
       .fn<typeof globalThis.fetch>()
       .mockResolvedValue(Response.json({ items: [], nextCursor: "next_page" }));
     const controller = new AbortController();
-    const client = new ChronelleApiClient({
+    const client = new LivTalesApiClient({
       fetch,
       getCredential: () => ({
         accessToken: "test-session",
@@ -656,7 +656,7 @@ describe("ChronelleApiClient", () => {
       )
       .mockResolvedValueOnce(Response.json({ ...event, version: 3 }))
       .mockResolvedValueOnce(Response.json({ items: [], nextCursor: null }));
-    const client = new ChronelleApiClient({
+    const client = new LivTalesApiClient({
       fetch,
       getCredential: () => ({
         accessToken: "test-session",
@@ -705,7 +705,7 @@ describe("ChronelleApiClient", () => {
         }),
       )
       .mockResolvedValueOnce(Response.json({ ...event, version: 3 }));
-    const client = new ChronelleApiClient({
+    const client = new LivTalesApiClient({
       fetch,
       getCredential: () => ({
         accessToken: "test-session",
@@ -737,7 +737,7 @@ describe("ChronelleApiClient", () => {
       .mockImplementation(async () =>
         Response.json({ resource: event, relationId }),
       );
-    const client = new ChronelleApiClient({
+    const client = new LivTalesApiClient({
       fetch,
       getCredential: () => ({
         accessToken: "test-session",
@@ -770,7 +770,7 @@ describe("ChronelleApiClient", () => {
         Response.json({ items: [], nextBeforeVersion: null }),
       )
       .mockResolvedValueOnce(Response.json({ snapshot: { id: event.id } }));
-    const client = new ChronelleApiClient({
+    const client = new LivTalesApiClient({
       fetch,
       getCredential: () => ({
         accessToken: "test-session",
@@ -806,7 +806,7 @@ describe("ChronelleApiClient", () => {
         },
       ),
     );
-    const client = new ChronelleApiClient({
+    const client = new LivTalesApiClient({
       fetch,
       getCredential: () => ({
         accessToken: "opaque-session",
@@ -845,7 +845,7 @@ describe("ChronelleApiClient", () => {
         },
       ),
     );
-    const client = new ChronelleApiClient({
+    const client = new LivTalesApiClient({
       baseUrl: "http://api.example.test/",
       fetch,
       getCredential: () => ({
@@ -873,7 +873,7 @@ describe("ChronelleApiClient", () => {
       .mockResolvedValue(
         Response.json({ items: [], nextCursor: null, asOf: event.updatedAt }),
       );
-    const client = new ChronelleApiClient({
+    const client = new LivTalesApiClient({
       fetch,
       getCredential: () => ({
         accessToken: "opaque-session",
@@ -899,7 +899,7 @@ describe("ChronelleApiClient", () => {
         Response.json({ items: [], nextCursor: "next_position" }),
       )
       .mockResolvedValueOnce(Response.json({ items: [] }));
-    const client = new ChronelleApiClient({
+    const client = new LivTalesApiClient({
       fetch,
       getCredential: () => ({
         accessToken: "opaque-session",
@@ -933,7 +933,7 @@ describe("ChronelleApiClient", () => {
         { headers: { "content-type": "application/json" }, status: 409 },
       ),
     );
-    const client = new ChronelleApiClient({
+    const client = new LivTalesApiClient({
       fetch,
       getCredential: () => ({
         accessToken: "opaque-session",
@@ -953,7 +953,7 @@ describe("ChronelleApiClient", () => {
 
   it("rejects protected calls before reaching the network without a session", async () => {
     const fetch = vi.fn<typeof globalThis.fetch>();
-    const client = new ChronelleApiClient({ fetch });
+    const client = new LivTalesApiClient({ fetch });
 
     await expect(client.listEvents()).rejects.toMatchObject({
       code: "unauthenticated",
@@ -966,7 +966,7 @@ describe("ChronelleApiClient", () => {
     const fetch = vi
       .fn<typeof globalThis.fetch>()
       .mockResolvedValue(new Response("Service unavailable", { status: 502 }));
-    const client = new ChronelleApiClient({
+    const client = new LivTalesApiClient({
       fetch,
       getCredential: () => ({
         accessToken: "opaque-session",
@@ -982,7 +982,7 @@ describe("ChronelleApiClient", () => {
 
   it.each([
     "/api/document-transfers/upload/opaque-upload-token",
-    "https://chronelle-test-1250000000.cos.ap-guangzhou.myqcloud.com/object?q-signature=test",
+    "https://livtales-test-1250000000.cos.ap-guangzhou.myqcloud.com/object?q-signature=test",
   ])("uploads to %s without forwarding the session", async (transferUrl) => {
     const fetch = vi
       .fn<typeof globalThis.fetch>()
@@ -1007,8 +1007,8 @@ describe("ChronelleApiClient", () => {
           status: 201,
         }),
       );
-    const client = new ChronelleApiClient({
-      baseUrl: "https://chronelle.example",
+    const client = new LivTalesApiClient({
+      baseUrl: "https://livtales.example",
       fetch,
       getCredential: () => ({
         accessToken: "opaque-session",
@@ -1028,7 +1028,7 @@ describe("ChronelleApiClient", () => {
 
     const [authorizationUrl, authorizationRequest] = fetch.mock.calls[0] ?? [];
     expect(authorizationUrl).toBe(
-      "https://chronelle.example/api/documents/upload-url",
+      "https://livtales.example/api/documents/upload-url",
     );
     expect(JSON.parse(String(authorizationRequest?.body))).toMatchObject({
       checksumSha256: documentAttachment.document.checksumSha256,
@@ -1040,7 +1040,7 @@ describe("ChronelleApiClient", () => {
     const [uploadUrl, uploadRequest] = fetch.mock.calls[1] ?? [];
     const uploadHeaders = new Headers(uploadRequest?.headers);
     expect(uploadUrl).toBe(
-      new URL(transferUrl, "https://chronelle.example").href,
+      new URL(transferUrl, "https://livtales.example").href,
     );
     expect(uploadRequest?.method).toBe("PUT");
     expect(uploadRequest?.body).toEqual(bytes.buffer);
@@ -1048,7 +1048,7 @@ describe("ChronelleApiClient", () => {
     expect(uploadHeaders.get("x-workspace-id")).toBeNull();
 
     const [finalizationUrl, finalizationRequest] = fetch.mock.calls[2] ?? [];
-    expect(finalizationUrl).toBe("https://chronelle.example/api/documents");
+    expect(finalizationUrl).toBe("https://livtales.example/api/documents");
     expect(finalizationRequest?.method).toBe("POST");
     expect(new Headers(finalizationRequest?.headers).get("authorization")).toBe(
       "Bearer opaque-session",
@@ -1057,7 +1057,7 @@ describe("ChronelleApiClient", () => {
 
   it.each([
     "/api/document-transfers/download/opaque-download-token",
-    "https://chronelle-test-1250000000.cos.ap-guangzhou.myqcloud.com/object?q-signature=test",
+    "https://livtales-test-1250000000.cos.ap-guangzhou.myqcloud.com/object?q-signature=test",
   ])("downloads from %s after fresh authorization", async (transferUrl) => {
     const fetch = vi
       .fn<typeof globalThis.fetch>()
@@ -1080,7 +1080,7 @@ describe("ChronelleApiClient", () => {
           status: 200,
         }),
       );
-    const client = new ChronelleApiClient({
+    const client = new LivTalesApiClient({
       fetch,
       getCredential: () => ({
         accessToken: "opaque-session",
@@ -1118,7 +1118,7 @@ describe("friends", () => {
     const fetch = vi.fn<typeof globalThis.fetch>(async () =>
       Response.json({ friends: [friend], incoming: [], sent: [] }),
     );
-    const client = new ChronelleApiClient({
+    const client = new LivTalesApiClient({
       fetch,
       getCredential: () => credential,
     });
@@ -1130,7 +1130,7 @@ describe("friends", () => {
       kind: "invitation",
       email: "dan@example.test",
       channel: "email",
-      inviteUrl: "https://chronelle.example/invite/token-0000000000000001",
+      inviteUrl: "https://livtales.example/invite/token-0000000000000001",
       message: null,
       personId: null,
       workspaceId: null,

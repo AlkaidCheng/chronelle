@@ -33,6 +33,8 @@ interface CollectionState {
   readonly returnPoint: RefObject<ReturnPoint | null>;
 }
 
+const layoutStorageKey = "chronelle.event-layout";
+
 const CollectionContext = createContext<CollectionState | null>(null);
 
 /** Retains navigation preferences only for the current authenticated session. */
@@ -51,7 +53,7 @@ export function EventCollectionProvider({
   const [layout, setLayout] = useState<"grid" | "list">("grid");
   useEffect(() => {
     try {
-      if (window.localStorage.getItem("chronelle.event-layout") === "list")
+      if (window.localStorage.getItem(layoutStorageKey) === "list")
         setLayout("list");
     } catch {
       // Layout remains usable when browser storage is unavailable.
@@ -67,7 +69,7 @@ export function EventCollectionProvider({
           returnPoint.current = null;
           setLayout(value);
           try {
-            window.localStorage.setItem("chronelle.event-layout", value);
+            window.localStorage.setItem(layoutStorageKey, value);
           } catch {
             // Persistence is optional; no event data is stored here.
           }

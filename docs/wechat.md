@@ -70,7 +70,7 @@ the UI does not display the implementation ID or create a Mini Program copy.
 
 ## W02 API transport
 
-`ChronelleApiClient` owns request construction, bearer and workspace headers,
+`LivTalesApiClient` owns request construction, bearer and workspace headers,
 runtime response validation, and safe API error translation. It now delegates
 JSON I/O through a small transport port:
 
