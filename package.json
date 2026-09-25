@@ -10,6 +10,7 @@
     "pnpm": ">=11.25.0 <12"
   },
   "scripts": {
+    "brand:export": "node brand/scripts/export.mjs",
     "build": "pnpm --filter @chronelle/schemas build && pnpm --filter @chronelle/db build && pnpm --filter @chronelle/authorization build && pnpm --filter @chronelle/storage build && pnpm --filter @chronelle/object-model build && pnpm --filter @chronelle/api-client build && pnpm --filter @chronelle/api build && pnpm --filter @chronelle/web build && pnpm --filter @chronelle/wechat build",
     "build:apps": "pnpm --filter @chronelle/api build && pnpm --filter @chronelle/web build && pnpm --filter @chronelle/wechat build",
     "build:weapp": "pnpm --filter @chronelle/wechat build",
