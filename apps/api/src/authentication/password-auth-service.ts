@@ -145,7 +145,7 @@ export class PasswordAuthService {
       options.verificationMaxAttempts ?? defaultVerificationMaxAttempts;
     this.#attemptPolicy = options.attemptPolicy ?? defaultAttemptPolicy;
     this.#issuePolicy = options.issuePolicy ?? defaultIssuePolicy;
-    this.#productName = options.productName ?? "Chronelle";
+    this.#productName = options.productName ?? "LivTales";
     this.#onThrottled = options.onThrottled ?? (() => undefined);
     this.#decoyHash = hashPassword(generateVerificationCode());
   }

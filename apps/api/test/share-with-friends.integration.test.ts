@@ -348,7 +348,7 @@ describe("sharing with friends", () => {
       grantedBy: ana.user.id,
     });
     const notice = email.latestTo("priya@example.test");
-    expect(notice.subject).toBe("Chronelle: Ana invited you");
+    expect(notice.subject).toBe("LivTales: Ana invited you");
     const link = /https:\/\/chronelle\.example\/invite\/([\w-]+)/u.exec(
       notice.text,
     );

@@ -156,7 +156,7 @@ describe("friends", () => {
     });
     // Ben is emailed in his language with the note; nothing reveals more.
     const notice = email.latestTo("ben@example.test");
-    expect(notice.subject).toBe("Chronelle: Ana wants to connect");
+    expect(notice.subject).toBe("LivTales: Ana wants to connect");
     expect(notice.text).toContain("Ana (ana@example.test)");
     expect(notice.text).toContain('"Climbing on Saturday?"');
     expect(notice.text).not.toContain("http");
@@ -407,7 +407,7 @@ describe("friends", () => {
     expect(item.expiresAt).toBe("2030-08-15T12:00:00.000Z");
     // The email carries the link, in Ana's language.
     const notice = email.latestTo("dan@example.test");
-    expect(notice.subject).toBe("Chronelle: Ana invited you");
+    expect(notice.subject).toBe("LivTales: Ana invited you");
     expect(notice.text).toContain(item.inviteUrl);
     expect(notice.text).toContain("14 days");
     expect((await friendsOf(ana.headers)).sent).toMatchObject([

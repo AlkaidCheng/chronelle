@@ -22,12 +22,12 @@ describe("FileEmailSender", () => {
     const sender = new FileEmailSender(path);
     await sender.send({
       to: "first@example.test",
-      subject: "Your Chronelle code",
+      subject: "Your LivTales code",
       text: "Your code is 123456.",
     });
     await sender.send({
       to: "second@example.test",
-      subject: "Your Chronelle code",
+      subject: "Your LivTales code",
       text: "Your code is 654321.",
     });
     const lines = (await readFile(path, "utf8")).trimEnd().split("\n");
@@ -35,7 +35,7 @@ describe("FileEmailSender", () => {
     const [first, second] = lines.map((line) => JSON.parse(line));
     expect(first).toMatchObject({
       to: "first@example.test",
-      subject: "Your Chronelle code",
+      subject: "Your LivTales code",
       text: "Your code is 123456.",
     });
     expect(Date.parse(first.writtenAt)).not.toBeNaN();
