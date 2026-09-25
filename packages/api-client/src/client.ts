@@ -270,6 +270,13 @@ function jsonRequest(body: unknown, method: HttpMethod): JsonRequestOptions {
   };
 }
 
+/** The query that names the object whose workspace a request follows. */
+function objectQuery(objectId: string | undefined): string {
+  return objectId === undefined
+    ? ""
+    : `?${new URLSearchParams({ objectId }).toString()}`;
+}
+
 function positiveTimeout(value: number | undefined, fallback: number): number {
   const timeout = value ?? fallback;
   if (!Number.isSafeInteger(timeout) || timeout <= 0) {
@@ -382,8 +389,16 @@ export class LivTalesApiClient {
     );
   }
 
-  getCommandState(): Promise<CommandStateResponse> {
-    return this.#request("/api/commands", commandStateResponseSchema);
+  /**
+   * The caller's command stack in the workspace of `objectId`, or in the
+   * session's workspace without one. A command itself is kept where the
+   * object its first edit names lives.
+   */
+  getCommandState(objectId?: string): Promise<CommandStateResponse> {
+    return this.#request(
+      `/api/commands${objectQuery(objectId)}`,
+      commandStateResponseSchema,
+    );
   }
 
   executeCommand(input: CommandExecutePayload): Promise<CommandReceipt> {
@@ -394,17 +409,23 @@ export class LivTalesApiClient {
     );
   }
 
-  undoCommand(input: CommandTransitionRequest): Promise<CommandReceipt> {
+  undoCommand(
+    input: CommandTransitionRequest,
+    objectId?: string,
+  ): Promise<CommandReceipt> {
     return this.#request(
-      "/api/commands/undo",
+      `/api/commands/undo${objectQuery(objectId)}`,
       commandReceiptSchema,
       jsonRequest(input, "POST"),
     );
   }
 
-  redoCommand(input: CommandTransitionRequest): Promise<CommandReceipt> {
+  redoCommand(
+    input: CommandTransitionRequest,
+    objectId?: string,
+  ): Promise<CommandReceipt> {
     return this.#request(
-      "/api/commands/redo",
+      `/api/commands/redo${objectQuery(objectId)}`,
       commandReceiptSchema,
       jsonRequest(input, "POST"),
     );
