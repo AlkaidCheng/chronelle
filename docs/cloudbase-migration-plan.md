@@ -550,7 +550,7 @@ their refusals, and the sign-in rows, membership, audits, sessions, and
 workspace lists for an Owner and a grant-only guest across expired,
 deleted-object, and Owner grants.
 
-**Backend mode:** `CHRONELLE_BACKEND=cloudbase` serves every read and write
+**Backend mode:** `LIVTALES_BACKEND=cloudbase` serves every read and write
 from the gateway without a PostgreSQL connection; the API binds its
 services to a disconnected database that fails with the reason if anything
 still reaches it, and at startup calls `chronelle_backend_readiness`
@@ -563,7 +563,7 @@ does through PostgreSQL, so a seeded environment needs no connection. The
 transport reports every gateway request (kind, target, duration, outcome
 with the gateway's status and code) to an observer the API logs through
 its logger, which gives latency, rejection, and error metrics without a
-second pipeline. `CHRONELLE_BACKEND=postgres` remains the default with the
+second pipeline. `LIVTALES_BACKEND=postgres` remains the default with the
 two flags as staged opt-ins, and switching back is that setting plus a
 `DATABASE_URL`. The runbook in `docs/cloudbase-backend-runbook.md` covers
 enabling, verifying, observing, and rolling back.

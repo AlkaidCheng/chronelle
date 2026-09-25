@@ -17,8 +17,8 @@ import { seedTestData, type SeedReport } from "./seed/test-data.js";
 
 /**
  * Creates the test accounts and their data on the backend the environment
- * names, the way the API would serve them: `CHRONELLE_BACKEND=postgres`
- * with `DATABASE_URL`, or `CHRONELLE_BACKEND=cloudbase` with
+ * names, the way the API would serve them: `LIVTALES_BACKEND=postgres`
+ * with `DATABASE_URL`, or `LIVTALES_BACKEND=cloudbase` with
  * `CLOUDBASE_ENV_ID` and `CLOUDBASE_APIKEY`. The password comes from
  * `SEED_PASSWORD` or `--password`; `WEB_PUBLIC_URL` is the origin the
  * invitation link points at.
@@ -55,9 +55,7 @@ if (password === undefined || password.length < 10) {
 const backend = resolveBackend(environment);
 const database =
   backend.databaseUrl === undefined
-    ? disconnectedDatabase(
-        "CHRONELLE_BACKEND=cloudbase serves from the gateway",
-      )
+    ? disconnectedDatabase("LIVTALES_BACKEND=cloudbase serves from the gateway")
     : connectDatabase(backend.databaseUrl);
 const cloudBaseRdb = backend.cloudBaseReads
   ? await connectCloudBaseRdb({
@@ -82,7 +80,7 @@ const app = buildApp(
 
 function required(value: string | undefined, name: string): string {
   if (value === undefined)
-    throw new Error(`${name} is required when CHRONELLE_BACKEND=cloudbase.`);
+    throw new Error(`${name} is required when LIVTALES_BACKEND=cloudbase.`);
   return value;
 }
 

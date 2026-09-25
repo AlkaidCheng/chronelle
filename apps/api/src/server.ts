@@ -106,9 +106,7 @@ const storage = createDocumentStorage(process.env);
 // still reached one would fail with the reason instead of a connection error.
 const database =
   backend.databaseUrl === undefined
-    ? disconnectedDatabase(
-        "CHRONELLE_BACKEND=cloudbase serves from the gateway",
-      )
+    ? disconnectedDatabase("LIVTALES_BACKEND=cloudbase serves from the gateway")
     : connectDatabase(backend.databaseUrl);
 // Gateway requests and log-delivered emails are logged once the app's
 // logger exists.

@@ -1,9 +1,14 @@
-import type { CloudBaseRequestEvent } from "@livtales/db";
+import {
+  assertRenamedVariable,
+  type CloudBaseRequestEvent,
+} from "@livtales/db";
 import { cloudBaseObjectModelFunctions } from "@livtales/object-model";
 import { z } from "zod";
 
 export const backendEnvironmentSchema = z.object({
-  CHRONELLE_BACKEND: z.enum(["postgres", "cloudbase"]).default("postgres"),
+  LIVTALES_BACKEND: z.enum(["postgres", "cloudbase"]).optional(),
+  /** The name LIVTALES_BACKEND had before, kept so resolveBackend can refuse it. */
+  CHRONELLE_BACKEND: z.string().optional(),
   DATABASE_URL: z.url().optional(),
   CLOUDBASE_READS_ENABLED: z.stringbool().optional(),
   CLOUDBASE_WRITES_ENABLED: z.stringbool().optional(),
@@ -21,7 +26,9 @@ export interface BackendConfiguration {
 }
 
 /**
- * The PostgreSQL backend requires DATABASE_URL and takes the two CloudBase
+ * LIVTALES_BACKEND selects the backend and defaults to PostgreSQL; a legacy
+ * CHRONELLE_BACKEND stops startup unless LIVTALES_BACKEND matches it. The
+ * PostgreSQL backend requires DATABASE_URL and takes the two CloudBase
  * flags as staged opt-ins (writes require reads). The CloudBase backend
  * serves every read and write from the gateway, so both flags are implied
  * and may not be switched off, and DATABASE_URL is not used.
@@ -29,13 +36,14 @@ export interface BackendConfiguration {
 export function resolveBackend(
   environment: BackendEnvironment,
 ): BackendConfiguration {
-  if (environment.CHRONELLE_BACKEND === "cloudbase") {
+  assertRenamedVariable(environment, "LIVTALES_BACKEND", "CHRONELLE_BACKEND");
+  if (environment.LIVTALES_BACKEND === "cloudbase") {
     for (const flag of [
       "CLOUDBASE_READS_ENABLED",
       "CLOUDBASE_WRITES_ENABLED",
     ] as const) {
       if (environment[flag] === false)
-        throw new Error(`CHRONELLE_BACKEND=cloudbase requires ${flag}=true.`);
+        throw new Error(`LIVTALES_BACKEND=cloudbase requires ${flag}=true.`);
     }
     return {
       backend: "cloudbase",
@@ -45,9 +53,7 @@ export function resolveBackend(
     };
   }
   if (environment.DATABASE_URL === undefined)
-    throw new Error(
-      "DATABASE_URL is required when CHRONELLE_BACKEND=postgres.",
-    );
+    throw new Error("DATABASE_URL is required when LIVTALES_BACKEND=postgres.");
   const reads = environment.CLOUDBASE_READS_ENABLED ?? false;
   const writes = environment.CLOUDBASE_WRITES_ENABLED ?? false;
   if (writes && !reads)

@@ -25,7 +25,7 @@ RUN find /runtime/node_modules -type d -name .claude -prune -exec rm -rf '{}' +
 FROM node:24-alpine AS runtime
 
 ENV NODE_ENV=production
-ENV CHRONELLE_MIGRATIONS_DIR=/app/migrations
+ENV LIVTALES_MIGRATIONS_DIR=/app/migrations
 WORKDIR /app
 COPY --from=build /runtime/dist ./dist
 COPY --from=build /runtime/node_modules ./node_modules

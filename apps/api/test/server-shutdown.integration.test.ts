@@ -96,7 +96,7 @@ describe("API process shutdown with the CloudBase read client", () => {
     // No DATABASE_URL: the CloudBase backend must not need one, and the
     // readiness call to an unreachable gateway ends the startup instead.
     const server = startServer({
-      CHRONELLE_BACKEND: "cloudbase",
+      LIVTALES_BACKEND: "cloudbase",
       CLOUDBASE_REQUEST_TIMEOUT_MS: "2000",
       API_PORT: randomPort(),
     });

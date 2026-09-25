@@ -334,6 +334,10 @@ cp .env.example .env
 pnpm install
 ```
 
+A `.env` copied from an earlier `.env.example` may still set
+`CHRONELLE_BACKEND`; the API now reads `LIVTALES_BACKEND` and stops at startup,
+naming the replacement, until that line is renamed.
+
 The repeatable three-command workflow is:
 
 ```bash

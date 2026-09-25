@@ -8,9 +8,9 @@ import { objects } from "../src/schema.js";
 
 describe("disconnectedDatabase", () => {
   it("fails every database and SQL use with the reason and closes quietly", async () => {
-    const connection = disconnectedDatabase("CHRONELLE_BACKEND=cloudbase");
+    const connection = disconnectedDatabase("LIVTALES_BACKEND=cloudbase");
     expect(() => connection.db.select().from(objects)).toThrow(
-      new DatabaseUnavailableError("CHRONELLE_BACKEND=cloudbase"),
+      new DatabaseUnavailableError("LIVTALES_BACKEND=cloudbase"),
     );
     expect(() => connection.sql`select 1`).toThrow(DatabaseUnavailableError);
     await expect(connection.close()).resolves.toBeUndefined();

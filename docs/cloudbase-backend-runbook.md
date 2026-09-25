@@ -9,7 +9,7 @@ same on both.
 
 | Setting                                | PostgreSQL backend (default)                                    | CloudBase backend                                     |
 | -------------------------------------- | --------------------------------------------------------------- | ----------------------------------------------------- |
-| `CHRONELLE_BACKEND`                    | `postgres`                                                      | `cloudbase`                                           |
+| `LIVTALES_BACKEND`                     | `postgres`                                                      | `cloudbase`                                           |
 | `DATABASE_URL`                         | Required; every read and write not opted into CloudBase uses it | Not read; the API never opens a PostgreSQL connection |
 | `CLOUDBASE_READS_ENABLED`              | Optional opt-in for the read repositories                       | Implied; setting it to `false` is a startup error     |
 | `CLOUDBASE_WRITES_ENABLED`             | Optional opt-in for the write repositories (requires reads)     | Implied; setting it to `false` is a startup error     |
@@ -50,7 +50,7 @@ configured the same way on both backends.
 
 ## Enable the CloudBase backend
 
-1. Set `CHRONELLE_BACKEND=cloudbase`, `CLOUDBASE_ENV_ID`, and a fresh
+1. Set `LIVTALES_BACKEND=cloudbase`, `CLOUDBASE_ENV_ID`, and a fresh
    `CLOUDBASE_APIKEY`; remove or leave `DATABASE_URL` (it is not read).
 2. Start the API. It calls `chronelle_backend_readiness` and logs
    `LivTales backend selected` with `backend: "cloudbase"` once it listens.
@@ -99,7 +99,7 @@ is the gateway or the database, not the application; a rise in
 
 ## Roll back to the PostgreSQL backend
 
-1. Set `CHRONELLE_BACKEND=postgres` and `DATABASE_URL` for the same
+1. Set `LIVTALES_BACKEND=postgres` and `DATABASE_URL` for the same
    database; set or remove the two CloudBase flags as wanted (both `false`
    or absent serves everything from PostgreSQL).
 2. Restart the API. It checks the revision baseline through PostgreSQL and
@@ -185,7 +185,7 @@ because pushing there is the release decision itself.
 | Health check                   | `GET /api/health`                                                                                                                                                                                                                                                                                                                                     |
 | Access                         | Internal only: the web service forwards `/api` to it, including document transfer URLs                                                                                                                                                                                                                                                                |
 | Instances                      | At least one warm instance; the readiness call and the SDK client make a cold start noticeable                                                                                                                                                                                                                                                        |
-| `CHRONELLE_BACKEND`            | `cloudbase`                                                                                                                                                                                                                                                                                                                                           |
+| `LIVTALES_BACKEND`             | `cloudbase`                                                                                                                                                                                                                                                                                                                                           |
 | `CLOUDBASE_ENV_ID`             | The environment id                                                                                                                                                                                                                                                                                                                                    |
 | `CLOUDBASE_APIKEY`             | The server API key (a secret; set it as a protected variable, never in the image)                                                                                                                                                                                                                                                                     |
 | `EMAIL_PROVIDER`               | `smtp` with `SMTP_URL` (for Tencent SES, `smtps://user:password@smtp.qcloudmail.com:465`) and `EMAIL_FROM`; `file` with `EMAIL_FILE_PATH` (for example `/tmp/chronelle-emails.jsonl`) appends each message as a JSON line the operator reads from the instance's Webshell with `tail`; the default `log` writes verification codes to the service log |
@@ -193,6 +193,13 @@ because pushing there is the release decision itself.
 | `API_HOST`, `API_PORT`         | `0.0.0.0`, `4000`                                                                                                                                                                                                                                                                                                                                     |
 | `DOCUMENT_STORAGE_PROVIDER`    | `tencent-cos` with `COS_BUCKET`, `COS_REGION`, `COS_SECRET_ID`, `COS_SECRET_KEY` (secrets), or `local-filesystem` with `LOCAL_STORAGE_ROOT=/app/.chronelle/storage` for a smoke deployment                                                                                                                                                            |
 | `CLOUDBASE_REQUEST_TIMEOUT_MS` | Optional; 30000 by default                                                                                                                                                                                                                                                                                                                            |
+
+Operator note: the service was created with `CHRONELLE_BACKEND=cloudbase`;
+rename the variable at its next deploy by adding `LIVTALES_BACKEND=cloudbase`
+before releasing the new image (which stops at startup while
+`CHRONELLE_BACKEND` is set alone) and removing `CHRONELLE_BACKEND` once no
+rollback to an older image is expected. A failed Git-mode deploy can drop
+newly added variables, so check the list after every deploy.
 
 Do not set `DATABASE_URL`, `CLOUDBASE_READS_ENABLED`, or
 `CLOUDBASE_WRITES_ENABLED`: the CloudBase backend ignores the first and
@@ -236,7 +243,7 @@ URLs the API issues, which are relative to its own origin.
 
 Stop or delete both services. Nothing else changes: the data stays in the
 environment's PostgreSQL, the functions stay installed, and the same database
-serves a PostgreSQL-backend deployment through `CHRONELLE_BACKEND=postgres`
+serves a PostgreSQL-backend deployment through `LIVTALES_BACKEND=postgres`
 and a `DATABASE_URL` wherever a TCP route exists.
 
 ## Apply a new migration
