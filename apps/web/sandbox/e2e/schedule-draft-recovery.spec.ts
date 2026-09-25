@@ -12,7 +12,7 @@ import { openEventView } from "../../e2e/helpers/event-view";
 import { revisitObjectView } from "../../e2e/helpers/object-draft-recovery";
 
 const sandboxUrl = new URL(
-  "../../../../.chronelle/sandbox/chronelle.html",
+  "../../../../.livtales/sandbox/livtales.html",
   import.meta.url,
 ).href;
 

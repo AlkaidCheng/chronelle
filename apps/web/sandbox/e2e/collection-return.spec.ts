@@ -2,7 +2,7 @@ import { test } from "@playwright/test";
 import { exerciseCollectionReturn } from "../../e2e/helpers/collection-return";
 
 const sandboxUrl = new URL(
-  "../../../../.chronelle/sandbox/chronelle.html",
+  "../../../../.livtales/sandbox/livtales.html",
   import.meta.url,
 ).href;
 

@@ -63,13 +63,13 @@ const favicon = `data:image/svg+xml;base64,${(
   await readFile(resolve(directory, "../app/icon.svg"))
 ).toString("base64")}`;
 const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="referrer" content="no-referrer"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-${hash}' 'sha256-${appearanceHash}'; style-src 'unsafe-inline'; img-src data:; font-src data:; connect-src 'none'; form-action 'none'; base-uri 'none'"><title>LivTales design sandbox</title><link rel="icon" type="image/svg+xml" href="${favicon}"><style>${css}</style><script>${displayBootstrap}</script></head><body><div id="sandbox-root"></div><script>${script}</script></body></html>`;
-const output = resolve(directory, "../../../.chronelle/sandbox");
+const output = resolve(directory, "../../../.livtales/sandbox");
 await mkdir(output, { recursive: true });
-await writeFile(resolve(output, "chronelle.html"), html);
+await writeFile(resolve(output, "livtales.html"), html);
 await writeFile(
   resolve(output, "bundle-inputs.json"),
   JSON.stringify(Object.keys(result.metafile.inputs), null, 2),
 );
 console.log(
-  "Browser-only sandbox: .chronelle/sandbox/chronelle.html (open directly in a browser)",
+  "Browser-only sandbox: .livtales/sandbox/livtales.html (open directly in a browser)",
 );

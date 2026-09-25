@@ -9,7 +9,7 @@ import {
 } from "../../e2e/helpers/date-rows";
 
 const sandboxUrl = new URL(
-  "../../../../.chronelle/sandbox/chronelle.html",
+  "../../../../.livtales/sandbox/livtales.html",
   import.meta.url,
 ).href;
 

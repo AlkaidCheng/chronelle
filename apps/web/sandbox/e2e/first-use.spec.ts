@@ -8,7 +8,7 @@ import { isPhone, menuControl } from "../../e2e/helpers/quiet-chrome";
 import { sandboxStorageKey } from "../storage-key";
 
 const sandboxUrl = new URL(
-  "../../../../.chronelle/sandbox/chronelle.html",
+  "../../../../.livtales/sandbox/livtales.html",
   import.meta.url,
 ).href;
 

@@ -13,7 +13,7 @@ import {
 import { openCollection } from "../../e2e/helpers/quiet-chrome";
 
 const sandboxUrl = new URL(
-  "../../../../.chronelle/sandbox/chronelle.html",
+  "../../../../.livtales/sandbox/livtales.html",
   import.meta.url,
 ).href;
 

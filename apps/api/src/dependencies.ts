@@ -280,7 +280,7 @@ export function createAppDependencies(
   const storage =
     options.storage ??
     new LocalFilesystemStorageProvider({
-      root: options.localStorageRoot ?? ".chronelle/storage",
+      root: options.localStorageRoot ?? ".livtales/storage",
     });
   // Friends follow the identity store: the gateway once a client exists.
   const friends = new FriendService(

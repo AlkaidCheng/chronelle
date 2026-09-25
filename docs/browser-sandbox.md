@@ -11,7 +11,7 @@ pnpm install --frozen-lockfile
 pnpm sandbox
 ```
 
-Open `.chronelle/sandbox/chronelle.html` directly in a modern browser. The resulting
+Open `.livtales/sandbox/livtales.html` directly in a modern browser. The resulting
 file contains its scripts and styles and works offline, without an API,
 PostgreSQL, Docker, environment variables, or a CloudBase account. Node.js is
 needed only to build the file. Moving the file does not transfer saved edits.

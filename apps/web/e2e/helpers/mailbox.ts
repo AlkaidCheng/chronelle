@@ -4,7 +4,7 @@ import { resolve } from "node:path";
 /** The mailbox file the journeys' API writes its emails to (`playwright.config.ts`). */
 const mailboxPath = resolve(
   process.cwd(),
-  "apps/api/.chronelle/e2e-emails.jsonl",
+  "apps/api/.livtales/e2e-emails.jsonl",
 );
 
 /**

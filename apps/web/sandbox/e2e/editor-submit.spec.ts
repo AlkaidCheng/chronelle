@@ -2,7 +2,7 @@ import { expect, test } from "@playwright/test";
 import { exerciseEditorSubmit } from "../../e2e/helpers/editor-submit";
 
 const sandboxUrl = new URL(
-  "../../../../.chronelle/sandbox/chronelle.html",
+  "../../../../.livtales/sandbox/livtales.html",
   import.meta.url,
 ).href;
 

@@ -405,7 +405,7 @@ try {
       "node",
       "--input-type=module",
       "-e",
-      'import assert from "node:assert/strict"; import {readdirSync,statSync} from "node:fs"; const root="/app/.chronelle/storage"; assert.equal(statSync(root).uid,1000); for(const entry of readdirSync(root,{recursive:true,withFileTypes:true})) assert.equal(statSync(entry.parentPath+"/"+entry.name).uid,1000); console.log("Storage is owned by the non-root runtime user.");',
+      'import assert from "node:assert/strict"; import {readdirSync,statSync} from "node:fs"; const root="/app/.livtales/storage"; assert.equal(statSync(root).uid,1000); for(const entry of readdirSync(root,{recursive:true,withFileTypes:true})) assert.equal(statSync(entry.parentPath+"/"+entry.name).uid,1000); console.log("Storage is owned by the non-root runtime user.");',
     ),
   );
 

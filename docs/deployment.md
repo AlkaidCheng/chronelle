@@ -505,6 +505,17 @@ Back up the database and matching document volume before upgrades. Keep the
 same password and project name for an existing database. Ordinary `down`
 preserves named volumes; do not add `--volumes` to a persistent preview stack.
 
+Upgrade the Compose file together with the images. Since the LivTales rename
+the API image keeps documents in `/app/.livtales/storage` instead of
+`/app/.chronelle/storage`, and the migrate command runs the `@livtales/*`
+packages, so an earlier `compose.preview.yaml` mounts the `documents` volume
+where the API no longer looks and its migrate step fails. The volume keeps its
+name, so the new file mounts the existing documents. Any other deployment of the
+API image that sets `LOCAL_STORAGE_ROOT=/app/.chronelle/storage` must set
+`/app/.livtales/storage` (moving a volume mounted there) or unset it: the image
+no longer creates `/app/.chronelle`, the `node` user cannot create it, and every
+upload fails while the health check still passes.
+
 ### Database privilege boundary
 
 `infrastructure/database/runtime-role.sql` is a version-controlled administrative

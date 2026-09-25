@@ -437,11 +437,23 @@ is appended as one JSON line (`writtenAt`, `to`, `subject`, `text`) to
 is reachable. `AUTH_VERIFICATION_TTL_MINUTES` (15) bounds a code's lifetime.
 
 Private development attachments are stored below `LOCAL_STORAGE_ROOT`, which
-defaults to `.chronelle/storage` and is ignored by Git. Keep this root private
+defaults to `.livtales/storage` and is ignored by Git. Keep this root private
 and outside any directory served by a web server. The adapter creates folders
 with mode `0700` and files with mode `0600`. `DOCUMENT_TRANSFER_TTL_SECONDS`
 sets the lifetime of one-time upload and download authorizations; the default
 is five minutes.
+
+Before the LivTales rename the default was `.chronelle/storage`. The root is
+relative to the API's working directory (`apps/api` under `pnpm dev`), so a
+checkout from before the rename holds the attachments of its local database in
+`apps/api/.chronelle/storage`, and a `.env` copied from an earlier
+`.env.example` may still set `LOCAL_STORAGE_ROOT=.chronelle/storage`. Move the
+directory once, then remove that line so the API uses the new default:
+
+```bash
+mkdir -p apps/api/.livtales
+mv apps/api/.chronelle/storage apps/api/.livtales/storage
+```
 
 Local uploads require a trusted, application-owned POSIX filesystem with hard-link
 support. In-progress files live in private `.upload-*` staging directories and

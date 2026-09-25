@@ -66,10 +66,10 @@ export default defineConfig({
         // The account journeys read the emailed codes from this mailbox
         // file (`apps/web/e2e/helpers/mailbox.ts`); the path is relative to
         // the API package, where the script runs.
-        EMAIL_FILE_PATH: ".chronelle/e2e-emails.jsonl",
+        EMAIL_FILE_PATH: ".livtales/e2e-emails.jsonl",
         EMAIL_PROVIDER: "file",
         ENABLE_DEVELOPMENT_AUTH: "true",
-        LOCAL_STORAGE_ROOT: ".chronelle/e2e-storage",
+        LOCAL_STORAGE_ROOT: ".livtales/e2e-storage",
       },
       reuseExistingServer: !isCi,
       timeout: 60_000,

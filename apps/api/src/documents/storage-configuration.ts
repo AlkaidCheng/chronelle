@@ -10,7 +10,7 @@ const selectionSchema = z.object({
   DOCUMENT_STORAGE_PROVIDER: z
     .enum(["local-filesystem", "tencent-cos"])
     .default("local-filesystem"),
-  LOCAL_STORAGE_ROOT: z.string().min(1).default(".chronelle/storage"),
+  LOCAL_STORAGE_ROOT: z.string().min(1).default(".livtales/storage"),
 });
 const cosSchema = z.object({
   COS_BUCKET: z.string().min(1),

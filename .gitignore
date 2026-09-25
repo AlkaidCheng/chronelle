@@ -14,7 +14,8 @@ apps/web/messages/*.json
 apps/wechat/.swc/
 apps/wechat/.taro-cache/
 
-# Local runtime data
+# Local runtime data (.chronelle/ is its name before the LivTales rename)
+.livtales/
 .chronelle/
 /storage/
 postgres-data/

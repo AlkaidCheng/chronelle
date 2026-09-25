@@ -5,7 +5,7 @@ import {
 } from "../../e2e/helpers/page-navigation";
 
 const sandboxUrl = new URL(
-  "../../../../.chronelle/sandbox/chronelle.html",
+  "../../../../.livtales/sandbox/livtales.html",
   import.meta.url,
 ).href;
 

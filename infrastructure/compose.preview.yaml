@@ -67,7 +67,7 @@ services:
     security_opt: ["no-new-privileges:true"]
     tmpfs: [/tmp]
     volumes:
-      - documents:/app/.chronelle/storage
+      - documents:/app/.livtales/storage
     depends_on:
       runtime-role:
         condition: service_completed_successfully

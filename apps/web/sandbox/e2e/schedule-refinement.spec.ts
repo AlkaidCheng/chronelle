@@ -3,7 +3,7 @@ import { expectTimes } from "../../e2e/helpers/date-rows";
 import { exerciseScheduleRefinement } from "../../e2e/helpers/schedule-refinement";
 
 const sandboxUrl = new URL(
-  "../../../../.chronelle/sandbox/chronelle.html",
+  "../../../../.livtales/sandbox/livtales.html",
   import.meta.url,
 ).href;
 

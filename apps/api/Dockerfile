@@ -32,7 +32,7 @@ COPY --from=build /runtime/node_modules ./node_modules
 COPY --from=build /runtime/package.json ./package.json
 COPY infrastructure/migrations ./migrations
 
-RUN mkdir -p /app/.chronelle/storage && chown -R node:node /app/.chronelle
+RUN mkdir -p /app/.livtales/storage && chown -R node:node /app/.livtales
 
 USER node
 EXPOSE 4000

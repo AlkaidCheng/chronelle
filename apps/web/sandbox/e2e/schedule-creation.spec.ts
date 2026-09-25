@@ -6,7 +6,7 @@ import {
 import { openEventView } from "../../e2e/helpers/event-view";
 
 const sandboxUrl = new URL(
-  "../../../../.chronelle/sandbox/chronelle.html",
+  "../../../../.livtales/sandbox/livtales.html",
   import.meta.url,
 ).href;
 

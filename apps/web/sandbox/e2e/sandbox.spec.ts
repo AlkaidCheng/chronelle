@@ -3,7 +3,7 @@ import { openEventView } from "../../e2e/helpers/event-view";
 import { openCollection } from "../../e2e/helpers/quiet-chrome";
 
 const sandboxUrl = new URL(
-  "../../../../.chronelle/sandbox/chronelle.html",
+  "../../../../.livtales/sandbox/livtales.html",
   import.meta.url,
 ).href;
 
