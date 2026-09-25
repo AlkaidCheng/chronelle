@@ -4,7 +4,7 @@ This checklist is for the native Mini Program in `apps/wechat`. It does not
 declare the application ready for submission. A production release requires a
 registered AppID, configured WeChat domains, staging evidence from real devices,
 and a review of the current platform requirements. The web and Mini Program
-must continue to use the same Chronelle API and canonical records.
+must continue to use the same LivTales API and canonical records.
 
 ## Build preflight
 
@@ -26,7 +26,7 @@ compiled project, and the set of `TARO_APP_` variables that Taro may embed in
 the package. It rejects unreviewed variables, including ones named for secrets.
 It cannot prove the AppID belongs to the account, that TLS and network access
 work, or that the WeChat console allows the required domains. Never put the
-WeChat AppSecret, a CloudBase API key, a Chronelle session, or a COS credential
+WeChat AppSecret, a CloudBase API key, a LivTales session, or a COS credential
 in a `TARO_APP_` variable or the Mini Program project files.
 
 ## Domain and environment verification
@@ -36,12 +36,12 @@ COS buckets, and Mini Program releases separate. Record the actual hostname
 observed for each operation in a staging network trace, then configure the
 corresponding domain category in the WeChat console:
 
-| Operation                                         | Current client path                                    | Evidence to record                                                      |
-| ------------------------------------------------- | ------------------------------------------------------ | ----------------------------------------------------------------------- |
-| Chronelle API reads, writes, and sign-in exchange | `Taro.request` to the configured API origin            | Request domain, TLS result, authenticated and unauthenticated responses |
-| Attachment upload                                 | `Taro.uploadFile` to a one-use API transfer URL        | Upload domain, expiry, one-use behavior, finalize result                |
-| Attachment download                               | `Taro.downloadFile` to a short-lived server-issued URL | Every issued download hostname, expiry, unauthorized denial             |
-| CloudBase identity proof                          | CloudBase SDK, with optional `Taro.cloud` mode         | Actual identity network path and environment association                |
+| Operation                                        | Current client path                                    | Evidence to record                                                      |
+| ------------------------------------------------ | ------------------------------------------------------ | ----------------------------------------------------------------------- |
+| LivTales API reads, writes, and sign-in exchange | `Taro.request` to the configured API origin            | Request domain, TLS result, authenticated and unauthenticated responses |
+| Attachment upload                                | `Taro.uploadFile` to a one-use API transfer URL        | Upload domain, expiry, one-use behavior, finalize result                |
+| Attachment download                              | `Taro.downloadFile` to a short-lived server-issued URL | Every issued download hostname, expiry, unauthorized denial             |
+| CloudBase identity proof                         | CloudBase SDK, with optional `Taro.cloud` mode         | Actual identity network path and environment association                |
 
 The API upload ticket currently uses the API origin. Download URLs and
 CloudBase identity traffic must be observed rather than inferred from the API
@@ -55,13 +55,13 @@ Review this inventory against the actual package and the current WeChat
 privacy-declaration interface before submission. It describes implementation,
 not a legal conclusion or a completed declaration.
 
-| Data or capability                             | Purpose and boundary                                                                                     | Local handling                                                                                                                                   |
-| ---------------------------------------------- | -------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
-| WeChat identity proof                          | Exchanged with the Chronelle API for a revocable account session; not used as a business-data permission | Not persisted by the Mini Program                                                                                                                |
-| Chronelle session token and workspace selector | Authenticated API access; server authorization still decides every protected request                     | Stored by the native session store; cleared on sign-out                                                                                          |
-| Event, planning, Person, and Friends data      | User-entered canonical records and account relationships read and changed through the API                | Query cache and bounded editor drafts; no separate Mini Program database                                                                         |
-| Attachment content and metadata                | User-selected file transfer and authorized opening                                                       | Selected files are removed after transfer; downloaded copies are cleaned when the Files component closes; canonical metadata stays on the server |
-| Network state and application lifecycle        | Revalidate protected queries after reconnect or resume                                                   | Used in memory; no analytics event is emitted by this client                                                                                     |
+| Data or capability                            | Purpose and boundary                                                                                    | Local handling                                                                                                                                   |
+| --------------------------------------------- | ------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| WeChat identity proof                         | Exchanged with the LivTales API for a revocable account session; not used as a business-data permission | Not persisted by the Mini Program                                                                                                                |
+| LivTales session token and workspace selector | Authenticated API access; server authorization still decides every protected request                    | Stored by the native session store; cleared on sign-out                                                                                          |
+| Event, planning, Person, and Friends data     | User-entered canonical records and account relationships read and changed through the API               | Query cache and bounded editor drafts; no separate Mini Program database                                                                         |
+| Attachment content and metadata               | User-selected file transfer and authorized opening                                                      | Selected files are removed after transfer; downloaded copies are cleaned when the Files component closes; canonical metadata stays on the server |
+| Network state and application lifecycle       | Revalidate protected queries after reconnect or resume                                                  | Used in memory; no analytics event is emitted by this client                                                                                     |
 
 The current client uses `chooseMessageFile`, `uploadFile`, `downloadFile`,
 `openDocument`, and `previewImage`. It does not call a location, address-book,

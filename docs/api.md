@@ -68,7 +68,7 @@ returns the same sign-in response. An unknown, expired, invalid, replayed, or
 unlinked identity returns 401 `unauthenticated`; provider failure returns 503
 `identity_provider_unavailable`. The route allows ten attempts per minute per
 source address. `POST /api/auth/wechat/link` accepts the same body, requires a
-live Chronelle bearer session, and links that verified provider identity to the
+live LivTales bearer session, and links that verified provider identity to the
 current canonical user. It returns `{ linked: true }`, permits five attempts per
 minute per user, and rejects a provider already attached to either side without
 revealing the conflicting account. Migration 0071 is required for both routes.
@@ -1084,7 +1084,7 @@ holds a grant on the resource, as a share sheet does when it changes a
 role; any other account is `principal_unavailable`. Both backends resolve a
 card the same way (`chronelle_person_account`, migration 0057, on the rpc
 path; the readiness check requires it). The recipient must already have a
-Chronelle identity. Repeating the request for the same resource, user, and
+LivTales identity. Repeating the request for the same resource, user, and
 scope replaces the active role rather than creating a duplicate grant; the
 audit event of a share by person carries `personId`, one by friend
 `friendId`, and a narrowed one its `scope`. Only callers with Share

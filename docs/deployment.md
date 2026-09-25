@@ -76,8 +76,8 @@ The probe queries an intentionally nonexistent table with a zero-row limit. A
 reached PostgreSQL; it does not validate application migrations, transactions,
 or native PostgreSQL TCP access. Revoke the key after testing. CloudBase API
 keys map to the privileged `service_role` and must never be sent to a browser,
-committed to the repository, or used as a substitute for Chronelle's
-application authorization.
+committed to the repository, or used as a substitute for the application's
+own authorization.
 
 The probe uses `CLOUDBASE_REQUEST_TIMEOUT_MS` (30 seconds by default, bounded to
 1–120 seconds) and reports expired keys, authorization failures, timeouts, and
@@ -95,7 +95,7 @@ and will not create those fixtures.
 The current Personal plan is a staging option for this SDK path. Native TCP
 access remains a separate deployment decision because it requires a database
 endpoint, credentials, SSL settings, and a network route from the API service.
-Chronelle now exposes a small `@livtales/db` CloudBase RDB transport for
+LivTales now exposes a small `@livtales/db` CloudBase RDB transport for
 bounded, non-transactional reads. It validates table identifiers, preserves
 pagination bounds, and reports the backend capabilities explicitly. The
 existing `connectDatabase(DATABASE_URL)` Drizzle/PostgreSQL adapter remains the
@@ -120,7 +120,7 @@ mode lands: startup still connects to PostgreSQL. The flag is disabled by
 default and must never be enabled solely because the SDK connection probe
 succeeds.
 
-The CloudBase transport does not replace Chronelle's Drizzle adapter for
+The CloudBase transport does not replace the Drizzle adapter for
 audited mutations, optimistic concurrency, or multi-table writes. Those
 workloads remain on the TCP adapter until the service has a transaction-capable
 PostgreSQL route. This keeps the local schema, migrations, and future dedicated
@@ -340,7 +340,7 @@ CLOUDBASE_AUTH_TIMEOUT_MS=10000
 
 Verify the provider identifiers against `/auth/v1/user/me` in the target
 environment. The API sends the end-user bearer token only to that endpoint and
-exchanges it for an opaque Chronelle session. Keep `CLOUDBASE_APIKEY` and any
+exchanges it for an opaque LivTales session. Keep `CLOUDBASE_APIKEY` and any
 WeChat AppSecret server-side. To roll back the route without altering linked
 accounts, set `ENABLE_WECHAT_AUTH=false` and redeploy the API.
 
@@ -524,7 +524,7 @@ after migrations/baselines and before the API starts. The one-shot `runtime-role
 container uses PostgreSQL's client and mounts the policy read-only. Deploy this
 SQL file alongside the Compose file, even when using registry-hosted images.
 
-The policy requires a dedicated Chronelle database: it revokes public schema,
+The policy requires a dedicated LivTales database: it revokes public schema,
 table, function, sequence, and database privileges before granting the runtime
 login its explicit operations. Do not apply it to a database shared with other
 applications. Existing runtime roles with elevated attributes, role memberships,

@@ -2,7 +2,7 @@
 
 ## Goal
 
-Make CloudBase a viable deployment backend for Chronelle without duplicating
+Make CloudBase a viable deployment backend for LivTales without duplicating
 canonical business data or weakening the guarantees already provided by the
 PostgreSQL implementation.
 
@@ -15,7 +15,7 @@ require native TCP or database transactions.
 
 - A canonical object keeps one identity regardless of backend or projection.
 - Workspace isolation and centralized authorization remain application rules;
-  CloudBase credentials never become a substitute for Chronelle authorization.
+  CloudBase credentials never become a substitute for LivTales authorization.
 - Every mutation remains auditable.
 - Optimistic concurrency must reject stale writes rather than silently overwrite.
 - Recovery, undo/redo, and soft deletion must remain atomic from the caller's
@@ -57,7 +57,7 @@ CloudBase run against staging.
 The CloudBase RDB transport now exposes validated equality, null, pattern, and
 membership filters plus deterministic ordering. These are transport primitives
 only; application repositories still own authorization and must not treat an
-API key as a substitute for Chronelle permission evaluation.
+API key as a substitute for LivTales permission evaluation.
 
 The first real application adapter is now available for calendar projections:
 `CloudBaseCalendarReadRepository` loads the canonical event, active `includes`
@@ -489,7 +489,7 @@ without exposing credentials or private attachment URLs.
 
 ### Optional Phase 7 — Native TCP deployment
 
-If Chronelle needs full transaction semantics, use a dedicated/private
+If LivTales needs full transaction semantics, use a dedicated/private
 PostgreSQL route when CloudBase makes one available, or run PostgreSQL as a
 separate managed service. The existing schema, SQL migrations, Drizzle models,
 and integration tests are deliberately retained for this option.

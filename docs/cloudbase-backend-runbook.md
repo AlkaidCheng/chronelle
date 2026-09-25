@@ -155,7 +155,7 @@ repository instead of the development one:
    otherwise use an SSH host alias with the same options:
 
    ```bash
-   git remote add deploy git@github.com:<deployment-account>/chronelle.git
+   git remote add deploy git@github.com:<deployment-account>/livtales.git
    git config remote.deploy.push refs/heads/main:refs/heads/main
    git config core.sshCommand "ssh -i <deploy-key> -o IdentitiesOnly=yes"
    ```
@@ -175,6 +175,35 @@ A release is a fast-forward push of a green `main`: `git push deploy`. The
 deployment repository never diverges, so the push never needs a merge, and
 automatic deployment on push can be enabled once the procedure is trusted,
 because pushing there is the release decision itself.
+
+#### Renaming the deployment repository
+
+The deployment repository follows the development repository's name. To move
+an existing setup to a new name (`livtales` below):
+
+1. Rename the deployment repository in its settings, signed in as the
+   deployment account. The deploy key, the default branch, and the disabled
+   Actions carry over.
+2. Point the development clone's remote at the new name. The push refspec and
+   `core.sshCommand` stay as they are:
+
+   ```bash
+   git remote set-url deploy git@github.com:<deployment-account>/livtales.git
+   ```
+
+3. Rebind each service (`chronelle-api`, then `chronelle-web`): open
+   更新服务 (update service), choose the Git deployment method
+   (使用公开 GIT 仓库部署), and under Git 仓库 select `GitHub (已授权)` (the
+   authorized account), then `<deployment-account>/livtales` and `main`. Never
+   choose 公开仓库 (public repository): the deployment repository is private.
+   The build settings and variables are prefilled from the live version; leave
+   them and the access settings as they were.
+4. Deploy, then check each service's variable list, as after any Git-mode
+   deploy.
+
+The services keep the names `chronelle-api` and `chronelle-web`, which cannot
+change. Until a service is rebound, its saved source still names the old
+repository, and its deploys depend on the old name redirecting to the new one.
 
 ### Service: chronelle-api
 

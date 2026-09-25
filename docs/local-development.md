@@ -402,10 +402,10 @@ To exercise the W03 server boundary locally, apply migration 0071 and set
 `ENABLE_WECHAT_AUTH=true`, `CLOUDBASE_ENV_ID`, the provider identifiers returned
 by the environment, and optionally `CLOUDBASE_AUTH_TIMEOUT_MS`. The credential
 sent to `/api/auth/wechat` is an end-user CloudBase access token. It is verified
-remotely and exchanged for a Chronelle token; it is not the server API key.
+remotely and exchanged for a LivTales token; it is not the server API key.
 The Mini Program obtains this short-lived credential through CloudBase OpenID
 sign-in and never persists it. If the identity is not linked, the user signs in
-once with an existing Chronelle account; the client links the verified identity
+once with an existing LivTales account; the client links the verified identity
 explicitly and revokes the temporary password session if linking fails.
 
 Open <http://localhost:3000/sign-in> and enter a name and email to create the

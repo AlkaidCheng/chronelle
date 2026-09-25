@@ -1,6 +1,6 @@
 # Security Policy
 
-Chronelle is in early development and has no supported production release.
+LivTales is in early development and has no supported production release.
 Please report suspected vulnerabilities privately through GitHub's security
 advisory flow. Do not include credentials, private documents, booking details,
 or other personal data in an issue.

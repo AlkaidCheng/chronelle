@@ -1,12 +1,16 @@
-# Chronelle
+# LivTales
 
-Chronelle is a life-journey platform for connecting the people, places, plans,
+LivTales is a life-journey platform for connecting the people, places, plans,
 events, travel, finances, documents, collections, and memories that make up a
 person's life.
 
-Users see the product as LivTales; the repository, packages, and services keep
-the name Chronelle, and [`brand/`](brand/README.md) holds the brand sources and
-their usage rules.
+LivTales is both the product and the codebase: the repository, the
+`@livtales/*` packages, and the code carry the name, and
+[`brand/`](brand/README.md) holds the brand sources and their usage rules. The
+database objects, the keys browsers and Mini Programs already store, and the
+CloudBase services keep the earlier name Chronelle on purpose;
+[Names that keep Chronelle](docs/architecture.md#names-that-keep-chronelle)
+lists them.
 
 This repository contains a runnable Next.js web surface, a Fastify API,
 provider-independent identity, centralized object authorization, shared
@@ -88,7 +92,7 @@ a session that survives API restarts until it expires or is revoked. Keep it
 off in a deployment. `ENABLE_WECHAT_AUTH=true` instead enables server-verified
 CloudBase WeChat exchange and explicit linking to an existing account after
 migration 0071 has been applied; the Mini Program stores only the resulting
-opaque Chronelle session token.
+opaque LivTales session token.
 
 ## Install and run
 
@@ -127,14 +131,14 @@ pnpm build:weapp
 pnpm wechat:bundle
 ```
 
-The native shell restores and revokes Chronelle sessions, links an existing
+The native shell restores and revokes LivTales sessions, links an existing
 account explicitly, switches workspaces, pages through canonical Events, and
 shows an authorized Event overview. Owners and editors can create or edit
 undated, date-only, timed, and multi-day Events with native pickers. Version
 conflicts never overwrite silently, and bounded local drafts retain a stable
 creation command for safe retries. App visibility and network changes drive the
 same TanStack Query focus and online semantics used by the web client. CloudBase
-credentials remain transient; local storage retains only the opaque Chronelle
+credentials remain transient; local storage retains only the opaque LivTales
 session. Lazy feature subpackages provide the Event editor and a layout-driven
 planning workspace whose pages render authorized canonical To-do, Calendar,
 Timeline, Itinerary, Expense, and Reminder projections. Removing a planning
@@ -223,8 +227,8 @@ a workspace where the user has membership or an active resource grant.
 Migration 0071 normalizes external providers in `user_identities`, preserving
 existing user IDs and personal workspaces. With `ENABLE_WECHAT_AUTH=true`,
 `POST /api/auth/wechat` consumes a verified CloudBase WeChat proof once and
-returns the same opaque Chronelle session shape. An authenticated user can add
-that provider through `POST /api/auth/wechat/link`; Chronelle never merges
+returns the same opaque LivTales session shape. An authenticated user can add
+that provider through `POST /api/auth/wechat/link`; LivTales never merges
 accounts from names or unverified email addresses.
 
 ## Event-planning API
@@ -235,7 +239,7 @@ an event plan. Event detail, to-do, calendar, timeline, itinerary, expense, and
 reminder endpoints are authorized read-time projections over those same object
 IDs. See [`docs/api.md`](docs/api.md) for routes and examples.
 
-Owners can share a root Event directly with an existing Chronelle user as
+Owners can share a root Event directly with an existing LivTales user as
 Owner, Editor, or Viewer. Child resources inherit through the Event's canonical
 permission scope, not through their relationship. A versioned scope change can
 make one child private while leaving both the object and relationship intact.

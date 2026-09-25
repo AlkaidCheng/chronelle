@@ -1,6 +1,6 @@
 # WeChat Mini Program
 
-Chronelle's WeChat Mini Program is a native Taro 4 application in
+The LivTales WeChat Mini Program is a native Taro 4 application in
 `apps/wechat`. It is a presentation layer over the same canonical application,
 not a second backend. Protected business data will continue to pass through the
 Fastify REST API and its centralized authorization decision.
@@ -64,7 +64,7 @@ The current Mini Program provides:
   acquisition, session storage, lifecycle bridging, date formatting, transport,
   and package accounting.
 
-Protected data always comes from the Chronelle REST API. Event list and detail
+Protected data always comes from the LivTales REST API. Event list and detail
 screens retain the canonical object ID and version in their validated response;
 the UI does not display the implementation ID or create a Mini Program copy.
 
@@ -78,7 +78,7 @@ JSON I/O through a small transport port:
 - the Mini Program adapter uses `Taro.request` and its abortable request task;
 - both adapters enforce caller cancellation and a 30-second default deadline;
 - public health checks omit credentials, while protected session requests send
-  the opaque Chronelle bearer token and active workspace ID;
+  the opaque LivTales bearer token and active workspace ID;
 - unreadable, failed, cancelled, and timed-out responses cross the same typed
   client boundary.
 
@@ -106,14 +106,14 @@ implementation only where the global object lacks one.
 The API exposes two CloudBase-backed identity operations:
 
 - `POST /api/auth/wechat` verifies an end-user bearer token with CloudBase,
-  consumes its digest once, and returns a revocable Chronelle session;
-- `POST /api/auth/wechat/link` requires a live Chronelle session and explicitly
+  consumes its digest once, and returns a revocable LivTales session;
+- `POST /api/auth/wechat/link` requires a live LivTales session and explicitly
   links the verified WeChat identity to that canonical user.
 
 Migration `0071_add_linked_identities.sql` adds `user_identities` and backfills
 every existing provider without changing any `users.id`. A provider and subject
 can belong to only one user, and one user can have only one identity for a
-provider. Chronelle does not merge accounts from display names or email
+provider. LivTales does not merge accounts from display names or email
 addresses. Invalid, expired, replayed, unlinked, and conflicting proofs all use
 the same unauthenticated response so the endpoint does not disclose accounts.
 
@@ -122,7 +122,7 @@ active profile carrying an allowed WeChat provider id. Raw CloudBase tokens,
 OpenIDs, and profile data are neither logged nor persisted; only the
 environment-qualified subject and the consumed proof's SHA-256 digest cross the
 persistence boundary. The Mini Program's `WeChatSessionStore` accepts only the
-opaque Chronelle token, workspace id, and expiry. It rejects expired or malformed
+opaque LivTales token, workspace id, and expiry. It rejects expired or malformed
 state and clears local credentials even if remote sign-out fails.
 
 The feature is fail-closed and disabled by default. After applying migration
@@ -144,17 +144,17 @@ credential and is not used as the end user's WeChat proof.
 The Mini Program offers WeChat sign-in first and reveals the account form only
 when selected. Account sign-in uses the same `POST /api/auth/sign-in` endpoint as
 the web app, accepts a username or email and password, and stores the resulting
-Chronelle session without linking the WeChat identity. Password reset and
+LivTales session without linking the WeChat identity. Password reset and
 account registration remain on the web app.
 
 WeChat sign-in uses CloudBase OpenID only to obtain a short-lived end-user
-proof. It exchanges that proof for a Chronelle-owned bearer session and does
+proof. It exchanges that proof for a LivTales-owned bearer session and does
 not persist the CloudBase token. An unrecognized WeChat identity can be linked
-only after the user signs in to an existing Chronelle account; the user may
+only after the user signs in to an existing LivTales account; the user may
 instead choose independent account sign-in. A failed link attempts to revoke
 the temporary password session and clears the active local credential.
 
-On launch, the shell restores the opaque Chronelle token and validates it with
+On launch, the shell restores the opaque LivTales token and validates it with
 `GET /api/auth/session`. App show/hide events update TanStack Query focus, and
 native network changes update its online manager. Resume and reconnect therefore
 revalidate protected data. A workspace change cancels pending work, persists the
@@ -199,9 +199,12 @@ only. Pages open with their title and content, without introductory hints.
 
 ## Brand
 
-Users see the Mini Program as LivTales; the code, packages, and services keep
-the name Chronelle. The app window title (`app.config.ts`) and the static title
-of every page without a name of its own read "LivTales";
+Users see the Mini Program as LivTales, and its package (`@livtales/wechat`),
+Taro project, and code carry the same name; its storage keys keep the
+`chronelle.` prefix (see
+[Names that keep Chronelle](architecture.md#names-that-keep-chronelle)). The
+app window title (`app.config.ts`) and the static title of every page without
+a name of its own read "LivTales";
 `test/page-titles.test.ts` allows a static title only when it is LivTales or a
 catalog word. The catalogs name the product in "Welcome to LivTales" (sign-in
 and onboarding; 欢迎来到 LivTales and 欢迎使用 LivTales), "LivTales could not
@@ -366,7 +369,7 @@ tables directly.
 
 The Event overview opens a native Sharing page when the API reports Share
 permission or the caller holds a direct grant they can leave. Grant lists and
-mutations use the authenticated Chronelle REST API. A Viewer with a direct
+mutations use the authenticated LivTales REST API. A Viewer with a direct
 grant sees a read-only permission state and may leave; Share permission is
 required to list or change other people's grants. The API remains the authority
 for which roles can be granted, and revocation or leaving requires confirmation.
@@ -494,7 +497,7 @@ pnpm --filter @livtales/wechat test
 
 A deployed Mini Program API origin must use HTTPS and be registered as a WeChat
 request domain. Keep API keys and the WeChat AppSecret on the server; the client
-persists only its opaque, revocable Chronelle session token.
+persists only its opaque, revocable LivTales session token.
 
 The production build disables DevTools-side ES5 conversion, style completion,
 and upload-time minification because Taro performs those transformations. Taro's
@@ -530,7 +533,7 @@ The workspace permits the `@tarojs/binding` lifecycle script because it selects
 or builds Taro's native compiler binding. The `@tarojs/cli` postinstall script is
 disabled: it attempts to contact a separate registry and install an optional
 global performance plugin. `core-js`'s informational postinstall banner is also
-disabled. Neither disabled script is required to build Chronelle.
+disabled. Neither disabled script is required to build LivTales.
 
 ## Validation boundary
 

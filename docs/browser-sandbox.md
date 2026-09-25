@@ -1,6 +1,6 @@
 # Browser-only design sandbox
 
-The sandbox reuses Chronelle's Event planning screens with fictional data. It is
+The sandbox reuses the LivTales Event planning screens with fictional data. It is
 for reviewing layout and interactions, not for storing personal information or
 validating production security.
 
