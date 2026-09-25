@@ -4,7 +4,7 @@ import {
   type AuthorizationService,
   withStableAuthorization,
   type UserPrincipal,
-} from "@chronelle/authorization";
+} from "@livtales/authorization";
 import {
   events,
   tasks,
@@ -15,7 +15,7 @@ import {
   objectRevisions,
   type Database,
   type DatabaseTransaction,
-} from "@chronelle/db";
+} from "@livtales/db";
 import {
   revisionSnapshotSchema,
   eventUpdateRequestSchema,
@@ -26,7 +26,7 @@ import {
   type RevisionComparisonQuery,
   type RevisionRestoreRequest,
   type RevisionSnapshot,
-} from "@chronelle/schemas";
+} from "@livtales/schemas";
 import { and, eq, isNull, sql } from "drizzle-orm";
 
 import { InvalidObjectStateError, ObjectConflictError } from "./errors.js";

@@ -10,15 +10,15 @@ import {
   users,
   workspaceMembers,
   workspaces,
-} from "@chronelle/db";
+} from "@livtales/db";
 import {
   applyMigrations,
   createCloudBaseLiveReader,
   createCloudBaseRpcDouble,
   createTestDatabase,
   type TestDatabase,
-} from "@chronelle/db/testing";
-import { EventPlanningObjectService } from "@chronelle/object-model";
+} from "@livtales/db/testing";
+import { EventPlanningObjectService } from "@livtales/object-model";
 import { and, eq } from "drizzle-orm";
 import Fastify from "fastify";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";

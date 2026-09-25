@@ -7,7 +7,7 @@ import type {
   SignInResponse,
   SignUpRequest,
   VerifyEmailRequest,
-} from "@chronelle/schemas";
+} from "@livtales/schemas";
 import { useMutation } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";

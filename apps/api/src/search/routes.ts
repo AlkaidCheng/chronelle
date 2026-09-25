@@ -1,8 +1,8 @@
-import type { CanonicalObjectSearchService } from "@chronelle/object-model";
+import type { CanonicalObjectSearchService } from "@livtales/object-model";
 import {
   objectSearchQuerySchema,
   objectSearchResponseSchema,
-} from "@chronelle/schemas";
+} from "@livtales/schemas";
 import type { FastifyInstance } from "fastify";
 
 import { requirePrincipal } from "../request-context.js";

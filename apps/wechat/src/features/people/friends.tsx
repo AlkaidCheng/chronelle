@@ -2,7 +2,7 @@ import {
   friendInvitationRequestSchema,
   type SessionResponse,
   type SentInvitation,
-} from "@chronelle/schemas";
+} from "@livtales/schemas";
 import { Button, Input, Text, Textarea, View } from "@tarojs/components";
 import Taro, { usePullDownRefresh } from "@tarojs/taro";
 import { useState } from "react";
@@ -362,7 +362,7 @@ function ReadyFriends({ session }: { readonly session: SessionResponse }) {
                   <Text className="people-muted">
                     {sent.kind === "connection"
                       ? messages.friendPending
-                      : messages.friendNotOnChronelle}
+                      : messages.friendNotOnLivTales}
                   </Text>
                   <View className="people-row-actions">
                     {sent.inviteUrl ? (

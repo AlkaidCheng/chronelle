@@ -2,7 +2,7 @@ import { test } from "@playwright/test";
 import { exerciseWorkspaceUtilities } from "../../e2e/helpers/workspace-utilities";
 
 const sandboxUrl = new URL(
-  "../../../../.chronelle/sandbox/chronelle.html",
+  "../../../../.livtales/sandbox/livtales.html",
   import.meta.url,
 ).href;
 

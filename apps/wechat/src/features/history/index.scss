@@ -21,7 +21,7 @@
   margin: 0 0 36rpx;
   padding: 0;
   background: transparent;
-  color: var(--chronelle-indigo);
+  color: var(--livtales-indigo);
   font-size: 23rpx;
   text-align: left;
 }
@@ -43,7 +43,7 @@
 }
 
 .history-eyebrow {
-  color: var(--chronelle-cinnabar);
+  color: var(--livtales-cinnabar);
   font-size: 20rpx;
   font-weight: 600;
   letter-spacing: 3rpx;
@@ -61,7 +61,7 @@
 .history-snapshot-detail,
 .history-state__detail {
   margin-top: 12rpx;
-  color: var(--chronelle-muted);
+  color: var(--livtales-muted);
   font-size: 24rpx;
   line-height: 1.6;
   white-space: pre-wrap;
@@ -71,8 +71,8 @@
   margin: 22rpx 0;
   padding: 22rpx;
   border-radius: 18rpx;
-  background: var(--chronelle-indigo-soft);
-  color: var(--chronelle-indigo);
+  background: var(--livtales-indigo-soft);
+  color: var(--livtales-indigo);
   font-size: 23rpx;
   line-height: 1.6;
 }
@@ -83,15 +83,15 @@
   width: 100%;
   margin: 22rpx 0;
   padding: 26rpx;
-  border: 1rpx solid var(--chronelle-line);
+  border: 1rpx solid var(--livtales-line);
   border-radius: 20rpx;
-  background: var(--chronelle-surface);
+  background: var(--livtales-surface);
   text-align: left;
 }
 
 .history-entry__title,
 .history-section-title {
-  color: var(--chronelle-ink);
+  color: var(--livtales-ink);
   font-size: 29rpx;
   font-weight: 600;
   line-height: 1.4;
@@ -100,7 +100,7 @@
 .history-entry__meta,
 .history-entry__change {
   margin-top: 8rpx;
-  color: var(--chronelle-muted);
+  color: var(--livtales-muted);
   font-size: 22rpx;
   line-height: 1.5;
 }
@@ -118,18 +118,18 @@
 .history-change {
   margin-top: 16rpx;
   padding: 20rpx 0;
-  border-bottom: 1rpx solid var(--chronelle-line);
+  border-bottom: 1rpx solid var(--livtales-line);
 }
 
 .history-change__label {
-  color: var(--chronelle-ink);
+  color: var(--livtales-ink);
   font-size: 23rpx;
   font-weight: 600;
 }
 
 .history-change__value {
   margin-top: 8rpx;
-  color: var(--chronelle-muted);
+  color: var(--livtales-muted);
   font-size: 23rpx;
   line-height: 1.5;
   overflow-wrap: anywhere;
@@ -142,25 +142,25 @@
   align-items: center;
   justify-content: center;
   margin: 28rpx 0 0;
-  border: 1rpx solid var(--chronelle-line-strong);
+  border: 1rpx solid var(--livtales-line-strong);
   border-radius: 16rpx;
-  background: var(--chronelle-surface);
-  color: var(--chronelle-indigo);
+  background: var(--livtales-surface);
+  color: var(--livtales-indigo);
   font-size: 25rpx;
   font-weight: 600;
 }
 
 .history-button--primary {
-  background: var(--chronelle-cinnabar);
+  background: var(--livtales-cinnabar);
   color: white;
 }
 
 .history-state {
   margin-top: 72rpx;
   padding: 32rpx;
-  border: 1rpx solid var(--chronelle-line);
+  border: 1rpx solid var(--livtales-line);
   border-radius: 22rpx;
-  background: var(--chronelle-surface);
+  background: var(--livtales-surface);
 }
 
 .history-state__title {

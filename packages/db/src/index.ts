@@ -29,6 +29,7 @@ export {
   connectCloudBaseRdb,
   createCloudBaseRdbClient,
 } from "./cloudbase-rdb.js";
+export { assertRenamedVariable } from "./config.js";
 export { createId } from "./ids.js";
 export { personAccountId } from "./person-account.js";
 export * from "./schema.js";

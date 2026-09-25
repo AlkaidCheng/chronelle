@@ -12,7 +12,7 @@ RUN pnpm install --frozen-lockfile
 COPY apps/web apps/web
 COPY packages/api-client packages/api-client
 COPY packages/schemas packages/schemas
-RUN pnpm --filter @chronelle/web build
+RUN pnpm --filter @livtales/web build
 
 FROM node:24-alpine AS runtime
 

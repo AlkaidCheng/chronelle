@@ -4,7 +4,7 @@ import {
   applyMigrations,
   createTestDatabase,
   type TestDatabase,
-} from "@chronelle/db/testing";
+} from "@livtales/db/testing";
 import {
   apiErrorResponseSchema,
   developmentSignInResponseSchema,
@@ -17,7 +17,7 @@ import {
   userResponseSchema,
   userSearchResponseSchema,
   userSummarySchema,
-} from "@chronelle/schemas";
+} from "@livtales/schemas";
 import type { FastifyInstance } from "fastify";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
@@ -73,7 +73,7 @@ beforeEach(async () => {
         issuePolicy: { minIntervalMs: 0, windowMs: 0, maxPerWindow: 0 },
       },
       friends: {
-        webBaseUrl: "https://chronelle.example/",
+        webBaseUrl: "https://livtales.example/",
         dailyLimit: 3,
         resendIntervalMs: 60_000,
       },
@@ -402,7 +402,7 @@ describe("friends", () => {
       email: "dan@example.test",
     });
     expect(item.inviteUrl).toMatch(
-      /^https:\/\/chronelle\.example\/invite\/[\w-]+$/u,
+      /^https:\/\/livtales\.example\/invite\/[\w-]+$/u,
     );
     expect(item.expiresAt).toBe("2030-08-15T12:00:00.000Z");
     // The email carries the link, in Ana's language.

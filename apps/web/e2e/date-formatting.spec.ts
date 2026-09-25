@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { eventResponseSchema } from "@chronelle/schemas";
+import { eventResponseSchema } from "@livtales/schemas";
 import { expect, test } from "./fixtures";
 import {
   expectDates,

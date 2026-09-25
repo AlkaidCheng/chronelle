@@ -1,4 +1,4 @@
-import { ChronelleApiClient, type ApiCredential } from "@chronelle/api-client";
+import { LivTalesApiClient, type ApiCredential } from "@livtales/api-client";
 
 import { createTaroJsonTransport, type TaroRequest } from "./taro-transport";
 
@@ -12,8 +12,8 @@ export interface WeChatApiClientOptions {
 
 export function createWeChatApiClient(
   options: WeChatApiClientOptions,
-): ChronelleApiClient {
-  return new ChronelleApiClient({
+): LivTalesApiClient {
+  return new LivTalesApiClient({
     baseUrl: options.baseUrl,
     getCredential: options.getCredential,
     requestTimeoutMs: options.requestTimeoutMs,

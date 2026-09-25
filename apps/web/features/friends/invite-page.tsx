@@ -1,6 +1,6 @@
 "use client";
 
-import type { InvitationAcceptResponse } from "@chronelle/schemas";
+import type { InvitationAcceptResponse } from "@livtales/schemas";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
@@ -79,7 +79,7 @@ export function InvitePage({ token }: { readonly token: string }) {
 
   const open = (
     <Link className="button button-primary" href="/events">
-      {t("openChronelle")}
+      {t("openLivTales")}
     </Link>
   );
 

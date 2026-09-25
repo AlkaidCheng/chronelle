@@ -2,7 +2,7 @@ import type {
   SectionResponse,
   SessionResponse,
   TaskResponse,
-} from "@chronelle/schemas";
+} from "@livtales/schemas";
 import { Button, Picker, Text, View } from "@tarojs/components";
 
 import { EditorFieldLabel } from "../../components/editor";

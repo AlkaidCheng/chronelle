@@ -1,6 +1,6 @@
 "use client";
 
-import type { RailPreference } from "@chronelle/schemas";
+import type { RailPreference } from "@livtales/schemas";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 import {

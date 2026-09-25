@@ -4,8 +4,8 @@ import {
   roleAllows,
   type AuthorizationAction,
   type UserPrincipal,
-} from "@chronelle/authorization";
-import type { CloudBaseRdbReader } from "@chronelle/db";
+} from "@livtales/authorization";
+import type { CloudBaseRdbReader } from "@livtales/db";
 
 import {
   readCloudBaseObjectRow,

@@ -1,4 +1,4 @@
-import type { ReminderResponse } from "@chronelle/schemas";
+import type { ReminderResponse } from "@livtales/schemas";
 import { describe, expect, it } from "vitest";
 
 import {

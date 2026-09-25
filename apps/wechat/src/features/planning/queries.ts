@@ -1,4 +1,4 @@
-import type { EventLayoutResponse } from "@chronelle/schemas";
+import type { EventLayoutResponse } from "@livtales/schemas";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { useReadyAppRuntime } from "../../runtime/app-runtime";

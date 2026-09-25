@@ -19,7 +19,7 @@
   margin: 0 0 42rpx;
   padding: 0;
   background: transparent;
-  color: var(--chronelle-indigo);
+  color: var(--livtales-indigo);
   font-size: 23rpx;
   text-align: left;
 }
@@ -34,13 +34,13 @@
 }
 .sharing-eyebrow,
 .sharing-label {
-  color: var(--chronelle-muted);
+  color: var(--livtales-muted);
   font-size: 21rpx;
   letter-spacing: 1rpx;
 }
 .sharing-title {
   margin: 8rpx 0 36rpx;
-  color: var(--chronelle-ink);
+  color: var(--livtales-ink);
   font-family: "Songti SC", STSong, serif;
   font-size: 44rpx;
   line-height: 1.3;
@@ -48,13 +48,13 @@
 .sharing-card {
   margin: 22rpx 0;
   padding: 28rpx;
-  border: 1rpx solid var(--chronelle-line);
+  border: 1rpx solid var(--livtales-line);
   border-radius: 22rpx;
-  background: var(--chronelle-surface);
+  background: var(--livtales-surface);
 }
 .sharing-heading {
   margin-bottom: 20rpx;
-  color: var(--chronelle-ink);
+  color: var(--livtales-ink);
   font-size: 27rpx;
   font-weight: 600;
 }
@@ -65,7 +65,7 @@
   margin: 28rpx 0 10rpx;
 }
 .sharing-note {
-  color: var(--chronelle-muted);
+  color: var(--livtales-muted);
   font-size: 22rpx;
   line-height: 1.55;
 }
@@ -74,9 +74,9 @@
   box-sizing: border-box;
   min-height: 74rpx;
   padding: 18rpx 22rpx;
-  border: 1rpx solid var(--chronelle-line-strong);
+  border: 1rpx solid var(--livtales-line-strong);
   border-radius: 14rpx;
-  color: var(--chronelle-ink);
+  color: var(--livtales-ink);
   font-size: 25rpx;
 }
 .sharing-search {
@@ -95,18 +95,18 @@
 .sharing-button {
   margin: 25rpx 0 0;
   border-radius: 15rpx;
-  background: var(--chronelle-cinnabar);
+  background: var(--livtales-cinnabar);
   color: white;
   font-size: 24rpx;
 }
 .sharing-button--secondary {
-  background: var(--chronelle-indigo);
+  background: var(--livtales-indigo);
 }
 .sharing-button--leave {
   margin: 36rpx 0;
   background: transparent;
-  color: var(--chronelle-cinnabar);
-  border: 1rpx solid var(--chronelle-line-strong);
+  color: var(--livtales-cinnabar);
+  border: 1rpx solid var(--livtales-line-strong);
 }
 .sharing-button[disabled] {
   opacity: 0.5;
@@ -114,16 +114,16 @@
 .sharing-notice {
   padding: 18rpx;
   border-radius: 14rpx;
-  background: var(--chronelle-indigo-soft);
-  color: var(--chronelle-indigo);
+  background: var(--livtales-indigo-soft);
+  color: var(--livtales-indigo);
   font-size: 23rpx;
 }
 .sharing-row {
   padding: 24rpx 0;
-  border-top: 1rpx solid var(--chronelle-line);
+  border-top: 1rpx solid var(--livtales-line);
 }
 .sharing-row__name {
-  color: var(--chronelle-ink);
+  color: var(--livtales-ink);
   font-size: 26rpx;
   font-weight: 600;
 }
@@ -132,11 +132,11 @@
   margin: 14rpx 14rpx 0 0;
   padding: 0;
   background: transparent;
-  color: var(--chronelle-indigo);
+  color: var(--livtales-indigo);
   font-size: 22rpx;
 }
 .sharing-text-button--danger {
-  color: var(--chronelle-cinnabar);
+  color: var(--livtales-cinnabar);
 }
 .sharing-state {
   margin-top: 80rpx;

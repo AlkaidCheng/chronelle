@@ -4,7 +4,7 @@ import type {
   EventComponentKind,
   EventComponentView,
   NoteListQuery,
-} from "@chronelle/schemas";
+} from "@livtales/schemas";
 import { useQuery, type UseQueryResult } from "@tanstack/react-query";
 import { type ReactNode, useState } from "react";
 import { ErrorNotice, LoadingState } from "../../components/feedback";

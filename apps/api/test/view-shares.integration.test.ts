@@ -1,11 +1,11 @@
 import { resolve } from "node:path";
 
-import { createId } from "@chronelle/db";
+import { createId } from "@livtales/db";
 import {
   applyMigrations,
   createTestDatabase,
   type TestDatabase,
-} from "@chronelle/db/testing";
+} from "@livtales/db/testing";
 import {
   developmentSignInResponseSchema,
   eventAttachmentTargetsResponseSchema,
@@ -16,7 +16,7 @@ import {
   shareListResponseSchema,
   shareResponseSchema,
   taskResourceProjectionResponseSchema,
-} from "@chronelle/schemas";
+} from "@livtales/schemas";
 import type { FastifyInstance } from "fastify";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 

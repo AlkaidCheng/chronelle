@@ -1,9 +1,9 @@
-import { AuthorizationDeniedError } from "@chronelle/authorization";
+import { AuthorizationDeniedError } from "@livtales/authorization";
 import {
   CloudBaseRpcError,
   type CloudBaseRdbClient,
   type CloudBaseRdbQuery,
-} from "@chronelle/db";
+} from "@livtales/db";
 import { describe, expect, it, vi } from "vitest";
 
 import { CloudBaseDocumentTransferReadRepository } from "../src/cloudbase-document-transfer-read-repository.js";

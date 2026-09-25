@@ -23,7 +23,7 @@ afterEach(async () => {
 });
 
 async function createProvider() {
-  const root = await mkdtemp(join(tmpdir(), "chronelle-storage-"));
+  const root = await mkdtemp(join(tmpdir(), "livtales-storage-"));
   temporaryDirectories.push(root);
   return new LocalFilesystemStorageProvider({ root });
 }

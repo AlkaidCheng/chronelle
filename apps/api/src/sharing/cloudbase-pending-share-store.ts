@@ -2,12 +2,12 @@ import {
   AuthorizationDeniedError,
   type GrantMutationContext,
   type UserPrincipal,
-} from "@chronelle/authorization";
+} from "@livtales/authorization";
 import {
   type CloudBaseRdbClient,
   CloudBaseRpcError,
   roles,
-} from "@chronelle/db";
+} from "@livtales/db";
 
 import {
   FriendUnavailableError,

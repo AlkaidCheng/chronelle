@@ -49,7 +49,7 @@ describe("atomic local object publication", () => {
   }
 
   beforeEach(async () => {
-    root = await mkdtemp(join(tmpdir(), "chronelle-publication-"));
+    root = await mkdtemp(join(tmpdir(), "livtales-publication-"));
     provider = new LocalFilesystemStorageProvider({ root });
   });
 

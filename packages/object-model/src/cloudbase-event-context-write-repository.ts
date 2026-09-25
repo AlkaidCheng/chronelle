@@ -1,9 +1,9 @@
-import { CloudBaseRpcError, type CloudBaseRdbClient } from "@chronelle/db";
+import { CloudBaseRpcError, type CloudBaseRdbClient } from "@livtales/db";
 import {
   eventContextCreateResponseSchema,
   type EventContextCreateRequest,
   type EventContextCreateResponse,
-} from "@chronelle/schemas";
+} from "@livtales/schemas";
 
 import { mapRpcError } from "./cloudbase-rpc-errors.js";
 import { eventContextRequestHash } from "./event-context-service.js";

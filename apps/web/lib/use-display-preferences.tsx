@@ -1,6 +1,6 @@
 "use client";
 
-import type { UserResponse } from "@chronelle/schemas";
+import type { UserResponse } from "@livtales/schemas";
 import { useLocale } from "next-intl";
 import {
   createContext,

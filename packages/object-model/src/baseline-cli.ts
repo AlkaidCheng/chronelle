@@ -1,4 +1,4 @@
-import { connectDatabase } from "@chronelle/db";
+import { connectDatabase } from "@livtales/db";
 import { existsSync } from "node:fs";
 import { resolve } from "node:path";
 

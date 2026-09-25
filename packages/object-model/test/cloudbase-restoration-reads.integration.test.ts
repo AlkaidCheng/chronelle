@@ -1,11 +1,11 @@
-import { AuthorizationDeniedError } from "@chronelle/authorization";
+import { AuthorizationDeniedError } from "@livtales/authorization";
 import {
   auditEvents,
   createId,
   objectRevisions,
   objects as objects_,
   resourceGrants,
-} from "@chronelle/db";
+} from "@livtales/db";
 import { desc, eq } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 

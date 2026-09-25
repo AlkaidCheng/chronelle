@@ -1,6 +1,6 @@
 "use client";
 
-import type { SectionResponse } from "@chronelle/schemas";
+import type { SectionResponse } from "@livtales/schemas";
 
 import { useTaskEditorQueries } from "../../lib/queries";
 import type { TaskFields } from "../../lib/task-fields";

@@ -2,7 +2,7 @@ import {
   serializeResource,
   type ObjectRevisionService,
   type ObjectRestorationService,
-} from "@chronelle/object-model";
+} from "@livtales/object-model";
 import {
   objectIdParamsSchema,
   revisionListQuerySchema,
@@ -14,7 +14,7 @@ import {
   revisionRestorePreviewSchema,
   revisionRestoreRequestSchema,
   eventPlanningResourceResponseSchema,
-} from "@chronelle/schemas";
+} from "@livtales/schemas";
 import type { FastifyInstance } from "fastify";
 
 import { requirePrincipal } from "../request-context.js";

@@ -6,7 +6,7 @@ import {
   type UserPrincipal,
   withReadAuthorization,
   withStableAuthorization,
-} from "@chronelle/authorization";
+} from "@livtales/authorization";
 import {
   createId,
   type Database,
@@ -16,13 +16,13 @@ import {
   objectRelations,
   objects,
   runAuditedMutation,
-} from "@chronelle/db";
+} from "@livtales/db";
 import {
   StorageObjectUnavailableError,
   type StorageProvider,
   type StorageTransferProvider,
   type StoredObjectMetadata,
-} from "@chronelle/storage";
+} from "@livtales/storage";
 import { and, eq, gt, isNull } from "drizzle-orm";
 
 import {

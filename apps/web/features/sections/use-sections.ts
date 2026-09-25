@@ -1,6 +1,6 @@
 "use client";
 
-import type { SectionResponse, SectionView } from "@chronelle/schemas";
+import type { SectionResponse, SectionView } from "@livtales/schemas";
 import { useTranslations } from "next-intl";
 import { useCallback, useState } from "react";
 

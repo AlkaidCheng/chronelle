@@ -3,7 +3,7 @@ import {
   type UserPrincipal,
   withReadAuthorization,
   withStableAuthorization,
-} from "@chronelle/authorization";
+} from "@livtales/authorization";
 import {
   createId,
   type Database,
@@ -11,8 +11,8 @@ import {
   objects,
   type SectionView,
   sections,
-} from "@chronelle/db";
-import { rankBetween } from "@chronelle/schemas";
+} from "@livtales/db";
+import { rankBetween } from "@livtales/schemas";
 import { and, asc, desc, eq, gt, isNull, ne, or } from "drizzle-orm";
 
 import { InvalidObjectStateError } from "./errors.js";

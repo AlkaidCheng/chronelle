@@ -1,5 +1,5 @@
-import { AuthorizationDeniedError } from "@chronelle/authorization";
-import { createId, labels, users, workspaceMembers } from "@chronelle/db";
+import { AuthorizationDeniedError } from "@livtales/authorization";
+import { createId, labels, users, workspaceMembers } from "@livtales/db";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { CloudBasePersonWriteRepository } from "../src/cloudbase-person-write-repository.js";

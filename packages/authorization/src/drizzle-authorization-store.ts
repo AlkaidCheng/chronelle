@@ -6,7 +6,7 @@ import {
   type Database,
   type DatabaseTransaction,
   type Role,
-} from "@chronelle/db";
+} from "@livtales/db";
 import {
   and,
   eq,

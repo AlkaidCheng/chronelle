@@ -1,4 +1,4 @@
-import { rankAfter, rankBetween } from "@chronelle/schemas";
+import { rankAfter, rankBetween } from "@livtales/schemas";
 
 interface Ranked {
   readonly id: string;

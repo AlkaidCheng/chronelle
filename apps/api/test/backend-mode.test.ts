@@ -38,7 +38,7 @@ describe("resolveBackend", () => {
   });
 
   it("serves everything from the gateway in the CloudBase backend without DATABASE_URL", () => {
-    expect(parse({ CHRONELLE_BACKEND: "cloudbase" })).toEqual({
+    expect(parse({ LIVTALES_BACKEND: "cloudbase" })).toEqual({
       backend: "cloudbase",
       databaseUrl: undefined,
       cloudBaseReads: true,
@@ -46,12 +46,34 @@ describe("resolveBackend", () => {
     });
     expect(() =>
       parse({
-        CHRONELLE_BACKEND: "cloudbase",
+        LIVTALES_BACKEND: "cloudbase",
         CLOUDBASE_WRITES_ENABLED: "false",
       }),
     ).toThrow(
-      "CHRONELLE_BACKEND=cloudbase requires CLOUDBASE_WRITES_ENABLED=true",
+      "LIVTALES_BACKEND=cloudbase requires CLOUDBASE_WRITES_ENABLED=true",
     );
+  });
+
+  it("refuses the legacy CHRONELLE_BACKEND unless LIVTALES_BACKEND matches it", () => {
+    expect(() => parse({ CHRONELLE_BACKEND: "cloudbase" })).toThrow(
+      "CHRONELLE_BACKEND was renamed to LIVTALES_BACKEND. Set LIVTALES_BACKEND instead.",
+    );
+    expect(() =>
+      parse({
+        CHRONELLE_BACKEND: "postgres",
+        DATABASE_URL: "postgresql://db/chronelle",
+      }),
+    ).toThrow("Set LIVTALES_BACKEND instead.");
+    expect(() =>
+      parse({
+        CHRONELLE_BACKEND: "cloudbase",
+        LIVTALES_BACKEND: "postgres",
+        DATABASE_URL: "postgresql://db/chronelle",
+      }),
+    ).toThrow("set to different values. Remove CHRONELLE_BACKEND.");
+    expect(
+      parse({ CHRONELLE_BACKEND: "cloudbase", LIVTALES_BACKEND: "cloudbase" }),
+    ).toMatchObject({ backend: "cloudbase" });
   });
 
   it("verifies the identity function alongside the object-model functions", () => {

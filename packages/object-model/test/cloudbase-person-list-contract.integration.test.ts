@@ -10,13 +10,13 @@ import {
   users,
   workspaceMembers,
   workspaces,
-} from "@chronelle/db";
+} from "@livtales/db";
 import {
   applyMigrations,
   createTestDatabase,
   createCloudBaseRpcDouble,
   type TestDatabase,
-} from "@chronelle/db/testing";
+} from "@livtales/db/testing";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { CloudBasePersonReadRepository } from "../src/cloudbase-person-read-repository.js";

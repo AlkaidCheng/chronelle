@@ -1,6 +1,6 @@
 "use client";
 
-import type { ReminderResponse } from "@chronelle/schemas";
+import type { ReminderResponse } from "@livtales/schemas";
 import { useTranslations } from "next-intl";
 import { useCallback, useMemo, useRef, useState } from "react";
 

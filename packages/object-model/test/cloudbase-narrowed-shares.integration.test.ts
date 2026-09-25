@@ -2,9 +2,9 @@ import {
   AuthorizationDeniedError,
   ResourceGrantService,
   type UserPrincipal,
-} from "@chronelle/authorization";
-import { createId, users } from "@chronelle/db";
-import { createCloudBaseLiveReader } from "@chronelle/db/testing";
+} from "@livtales/authorization";
+import { createId, users } from "@livtales/db";
+import { createCloudBaseLiveReader } from "@livtales/db/testing";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { CloudBaseCalendarReadRepository } from "../src/cloudbase-calendar-read-repository.js";

@@ -1,6 +1,6 @@
 import { isDeepStrictEqual } from "node:util";
 
-import type { RevisionFieldChange, RevisionSnapshot } from "@chronelle/schemas";
+import type { RevisionFieldChange, RevisionSnapshot } from "@livtales/schemas";
 
 interface ContentField {
   readonly label: string;

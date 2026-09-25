@@ -1,14 +1,14 @@
 import {
   AuthorizationDeniedError,
   type UserPrincipal,
-} from "@chronelle/authorization";
-import type { CloudBaseRdbFilter, CloudBaseRdbReader } from "@chronelle/db";
+} from "@livtales/authorization";
+import type { CloudBaseRdbFilter, CloudBaseRdbReader } from "@livtales/db";
 import {
   relationListQuerySchema,
   removedRelationQuerySchema,
   type RelationListQueryInput,
   type RemovedRelationQueryInput,
-} from "@chronelle/schemas";
+} from "@livtales/schemas";
 
 import {
   cloudbaseOptionalFilter,

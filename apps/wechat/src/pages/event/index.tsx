@@ -1,5 +1,5 @@
-import { ApiClientError } from "@chronelle/api-client";
-import type { ObjectAccessResponse, SessionResponse } from "@chronelle/schemas";
+import { ApiClientError } from "@livtales/api-client";
+import type { ObjectAccessResponse, SessionResponse } from "@livtales/schemas";
 import { Button, Text, View } from "@tarojs/components";
 import Taro, { usePullDownRefresh, useRouter } from "@tarojs/taro";
 

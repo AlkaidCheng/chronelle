@@ -3,12 +3,12 @@ import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 
-import { auditEvents } from "@chronelle/db";
+import { auditEvents } from "@livtales/db";
 import {
   applyMigrations,
   createTestDatabase,
   type TestDatabase,
-} from "@chronelle/db/testing";
+} from "@livtales/db/testing";
 import {
   apiErrorResponseSchema,
   developmentSignInResponseSchema,
@@ -28,7 +28,7 @@ import {
   taskResourceProjectionResponseSchema,
   taskResponseSchema,
   timelineResponseSchema,
-} from "@chronelle/schemas";
+} from "@livtales/schemas";
 import { eq } from "drizzle-orm";
 import type { FastifyInstance, InjectOptions } from "fastify";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
@@ -59,7 +59,7 @@ function buildTestApp(): FastifyInstance {
 
 beforeEach(async () => {
   testResourcesReady = false;
-  storageRoot = await mkdtemp(join(tmpdir(), "chronelle-slice-"));
+  storageRoot = await mkdtemp(join(tmpdir(), "livtales-slice-"));
   testDatabase = await createTestDatabase();
   await applyMigrations(
     { DATABASE_URL: testDatabase.databaseUrl },

@@ -1,12 +1,12 @@
-import type { UserPrincipal } from "@chronelle/authorization";
-import type { CloudBaseRdbReader } from "@chronelle/db";
+import type { UserPrincipal } from "@livtales/authorization";
+import type { CloudBaseRdbReader } from "@livtales/db";
 import {
   eventLayoutHistoryResponseSchema,
   eventLayoutResponseSchema,
   type EventLayoutHistoryQuery,
   type EventLayoutHistoryResponse,
   type EventLayoutResponse,
-} from "@chronelle/schemas";
+} from "@livtales/schemas";
 
 import { cloudbaseInteger } from "./cloudbase-object-read-support.js";
 import { cloudbaseDate, cloudbaseFilters } from "./cloudbase-read-support.js";

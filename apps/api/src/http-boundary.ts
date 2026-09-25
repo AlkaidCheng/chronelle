@@ -3,8 +3,8 @@ import {
   AuthorizationDeniedError,
   InvalidShareError,
   PrincipalUnavailableError,
-} from "@chronelle/authorization";
-import { createId } from "@chronelle/db";
+} from "@livtales/authorization";
+import { createId } from "@livtales/db";
 import {
   CommandConflictError,
   CommandStackConflictError,
@@ -16,17 +16,17 @@ import {
   ObjectConflictError,
   RelationConflictError,
   StorageInventoryBusyError,
-} from "@chronelle/object-model";
+} from "@livtales/object-model";
 import {
   apiRequestTimeoutMs,
   maximumApiBodySizeBytes,
-} from "@chronelle/schemas";
+} from "@livtales/schemas";
 import {
   StorageInventoryUnavailableError,
   StorageObjectConflictError,
   StorageObjectUnavailableError,
   UnsafeStorageKeyError,
-} from "@chronelle/storage";
+} from "@livtales/storage";
 import {
   errorCodes,
   type FastifyInstance,

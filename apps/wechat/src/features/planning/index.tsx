@@ -1,5 +1,5 @@
-import { ApiClientError } from "@chronelle/api-client";
-import type { EventPage, SessionResponse } from "@chronelle/schemas";
+import { ApiClientError } from "@livtales/api-client";
+import type { EventPage, SessionResponse } from "@livtales/schemas";
 import { Button, Input, ScrollView, Text, View } from "@tarojs/components";
 import Taro, { usePullDownRefresh, useRouter } from "@tarojs/taro";
 import { useQueryClient } from "@tanstack/react-query";

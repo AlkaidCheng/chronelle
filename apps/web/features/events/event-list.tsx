@@ -1,6 +1,6 @@
 "use client";
 
-import type { EventListItem } from "@chronelle/schemas";
+import type { EventListItem } from "@livtales/schemas";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";

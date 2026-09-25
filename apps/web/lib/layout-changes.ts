@@ -1,4 +1,4 @@
-import type { EventPage } from "@chronelle/schemas";
+import type { EventPage } from "@livtales/schemas";
 
 import { tr } from "../i18n/active-locale";
 import { componentKindLabel } from "./event-components";

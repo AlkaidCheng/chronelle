@@ -1,8 +1,8 @@
 export {
   ApiClientError,
-  ChronelleApiClient,
+  LivTalesApiClient,
   type ApiCredential,
-  type ChronelleApiClientOptions,
+  type LivTalesApiClientOptions,
   type DocumentFileInput,
 } from "./client.js";
 export {

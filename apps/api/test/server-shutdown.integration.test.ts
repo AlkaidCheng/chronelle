@@ -7,7 +7,7 @@ import {
   applyMigrations,
   createTestDatabase,
   type TestDatabase,
-} from "@chronelle/db/testing";
+} from "@livtales/db/testing";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 
 // The entry point is exercised as a process because the behavior under test
@@ -19,7 +19,7 @@ const cloudBaseEnvironment = {
   CLOUDBASE_ENV_ID: "shutdown-test",
   CLOUDBASE_APIKEY: "opaque-shutdown-key",
   ENABLE_DEVELOPMENT_AUTH: "true",
-  LOCAL_STORAGE_ROOT: mkdtempSync(join(tmpdir(), "chronelle-shutdown-")),
+  LOCAL_STORAGE_ROOT: mkdtempSync(join(tmpdir(), "livtales-shutdown-")),
 };
 
 function randomPort(): string {
@@ -96,7 +96,7 @@ describe("API process shutdown with the CloudBase read client", () => {
     // No DATABASE_URL: the CloudBase backend must not need one, and the
     // readiness call to an unreachable gateway ends the startup instead.
     const server = startServer({
-      CHRONELLE_BACKEND: "cloudbase",
+      LIVTALES_BACKEND: "cloudbase",
       CLOUDBASE_REQUEST_TIMEOUT_MS: "2000",
       API_PORT: randomPort(),
     });

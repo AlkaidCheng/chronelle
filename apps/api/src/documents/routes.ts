@@ -2,7 +2,7 @@ import type {
   DocumentAttachmentResource,
   DocumentService,
   MutationContext,
-} from "@chronelle/object-model";
+} from "@livtales/object-model";
 import {
   documentAttachmentListResponseSchema,
   documentAttachmentResponseSchema,
@@ -14,7 +14,7 @@ import {
   maximumDocumentSizeBytes,
   maximumNativeDocumentSizeBytes,
   objectIdParamsSchema,
-} from "@chronelle/schemas";
+} from "@livtales/schemas";
 import type { FastifyInstance, FastifyRequest } from "fastify";
 
 import { serializeResource } from "../event-planning/serialization.js";

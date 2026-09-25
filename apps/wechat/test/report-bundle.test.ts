@@ -12,9 +12,7 @@ import {
 const temporaryDirectories: string[] = [];
 
 async function createBundle(): Promise<string> {
-  const root = await mkdtemp(
-    path.join(os.tmpdir(), "chronelle-wechat-bundle-"),
-  );
+  const root = await mkdtemp(path.join(os.tmpdir(), "livtales-wechat-bundle-"));
   temporaryDirectories.push(root);
   return root;
 }

@@ -1,4 +1,4 @@
-import type { CloudBaseRdbQuery } from "@chronelle/db";
+import type { CloudBaseRdbQuery } from "@livtales/db";
 import type { CloudBaseListClient } from "../src/cloudbase-list-candidates.js";
 import { describe, expect, it } from "vitest";
 

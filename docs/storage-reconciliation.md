@@ -1,7 +1,7 @@
 # Storage reconciliation
 
 Workspace owners can obtain a read-only inventory through
-`GET /api/workspace/storage-inventory` or `ChronelleApiClient.getStorageInventory()`.
+`GET /api/workspace/storage-inventory` or `LivTalesApiClient.getStorageInventory()`.
 The active workspace comes from authenticated request context, not a query
 parameter. No parameters are accepted. Existing clients are unaffected and no
 migration is needed.

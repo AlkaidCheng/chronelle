@@ -1,4 +1,4 @@
-import { type CloudBaseRdbClient, CloudBaseRpcError } from "@chronelle/db";
+import { type CloudBaseRdbClient, CloudBaseRpcError } from "@livtales/db";
 
 import {
   type CloudBaseRow,

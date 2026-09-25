@@ -1,6 +1,6 @@
 "use client";
 
-import type { ShareResponse, ShareScope } from "@chronelle/schemas";
+import type { ShareResponse, ShareScope } from "@livtales/schemas";
 import { useTranslations } from "next-intl";
 import {
   type RefObject,

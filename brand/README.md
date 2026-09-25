@@ -1,8 +1,9 @@
 # LivTales brand
 
-Users see the product as **LivTales** (read "Live Tales"). The repository, packages,
-services, environment variables, CSS tokens, and code keep the name Chronelle; only
-user-visible text and brand art say LivTales.
+The product is **LivTales** (read "Live Tales"), and the repository, packages,
+environment variables, CSS tokens, and code carry the same name. Database objects,
+stored client keys, and the CloudBase services keep the earlier name Chronelle; the
+list is in [Names that keep Chronelle](../docs/architecture.md#names-that-keep-chronelle).
 
 This folder holds the brand's vector sources, the script that renders platform rasters
 from them, and the font licence. The apps keep their own copies of the art they ship,
@@ -204,8 +205,8 @@ After changing a source in brand/:
   read LivTales or a catalog word.
 
 ```bash
-pnpm --filter @chronelle/web exec vitest run test/brand-assets.test.ts
-pnpm --filter @chronelle/wechat exec vitest run test/brand-art.test.ts test/page-titles.test.ts
+pnpm --filter @livtales/web exec vitest run test/brand-assets.test.ts
+pnpm --filter @livtales/wechat exec vitest run test/brand-art.test.ts test/page-titles.test.ts
 ```
 
 The tests check the committed rasters' sizes and opacity, and that they are the last

@@ -1,11 +1,11 @@
 import { setTimeout as delay } from "node:timers/promises";
 
-import type { UserPrincipal } from "@chronelle/authorization";
+import type { UserPrincipal } from "@livtales/authorization";
 import {
   type CloudBaseRdbClient,
   type CloudBaseRequestEvent,
   disconnectedDatabase,
-} from "@chronelle/db";
+} from "@livtales/db";
 import {
   CloudBaseCalendarReadRepository,
   CloudBaseEventReadRepository,
@@ -14,7 +14,7 @@ import {
   CloudBaseSectionRepository,
   CloudBaseTaskReadRepository,
   EventPlanningProjectionService,
-} from "@chronelle/object-model";
+} from "@livtales/object-model";
 
 import { CloudBaseIdentityStore } from "./identity/cloudbase-identity-store.js";
 

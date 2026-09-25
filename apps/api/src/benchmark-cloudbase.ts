@@ -5,7 +5,7 @@ import {
   assertCloudBaseApiKeyFresh,
   type CloudBaseRequestEvent,
   connectCloudBaseRdb,
-} from "@chronelle/db";
+} from "@livtales/db";
 import { z } from "zod";
 
 import {

@@ -1,4 +1,4 @@
-import type { ChronelleApiClient } from "@chronelle/api-client";
+import type { LivTalesApiClient } from "@livtales/api-client";
 import {
   createContext,
   type PropsWithChildren,
@@ -25,7 +25,7 @@ import { createRuntimeTaskDraftStore } from "../tasks/runtime-drafts";
 import { readRuntimeConfig } from "./config";
 
 export interface AppRuntime {
-  readonly api: ChronelleApiClient;
+  readonly api: LivTalesApiClient;
   readonly apiBaseUrl: string;
   readonly createCommandId: () => Promise<string>;
   readonly eventDrafts: EventDraftStore;

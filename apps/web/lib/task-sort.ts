@@ -1,4 +1,4 @@
-import type { TaskListQuery, TaskResponse } from "@chronelle/schemas";
+import type { TaskListQuery, TaskResponse } from "@livtales/schemas";
 import { taskDay } from "./day-placement";
 import { compareNames } from "./format";
 

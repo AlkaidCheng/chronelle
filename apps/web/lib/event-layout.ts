@@ -1,4 +1,4 @@
-import type { EventComponentView, EventPage } from "@chronelle/schemas";
+import type { EventComponentView, EventPage } from "@livtales/schemas";
 
 /** Move an existing item before an anchor, or to the end when the anchor is null. */
 function reorder<T extends { id: string }>(

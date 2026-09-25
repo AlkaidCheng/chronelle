@@ -5,7 +5,7 @@ import {
   type ActorType,
   type DatabaseTransaction,
   type RevisionKind,
-} from "@chronelle/db";
+} from "@livtales/db";
 import { and, eq } from "drizzle-orm";
 
 import { serializeResource } from "./serialization.js";

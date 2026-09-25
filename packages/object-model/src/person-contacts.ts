@@ -3,7 +3,7 @@ import {
   personContactKinds,
   personContacts,
   type DatabaseTransaction,
-} from "@chronelle/db";
+} from "@livtales/db";
 import { and, asc, eq } from "drizzle-orm";
 
 import { InvalidObjectStateError } from "./errors.js";

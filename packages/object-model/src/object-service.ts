@@ -3,7 +3,7 @@ import {
   AuthorizationDeniedError,
   type UserPrincipal,
   withStableAuthorization,
-} from "@chronelle/authorization";
+} from "@livtales/authorization";
 import {
   createId,
   type DatabaseTransaction,
@@ -24,7 +24,7 @@ import {
   tasks,
   userConnections,
   workspaceMembers,
-} from "@chronelle/db";
+} from "@livtales/db";
 import {
   type EventListQueryInput,
   eventCalendarDatesSchema,
@@ -35,7 +35,7 @@ import {
   rankSchema,
   type TaskListQueryInput,
   taskDueDate,
-} from "@chronelle/schemas";
+} from "@livtales/schemas";
 import { and, eq, inArray, isNull, ne, or, sql } from "drizzle-orm";
 import { createRequestHash } from "./create-command.js";
 import {

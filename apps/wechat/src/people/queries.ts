@@ -3,7 +3,7 @@ import type {
   PersonCreatePayload,
   PersonResponse,
   PersonUpdatePayload,
-} from "@chronelle/schemas";
+} from "@livtales/schemas";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { useReadyAppRuntime } from "../runtime/app-runtime";

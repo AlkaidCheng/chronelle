@@ -4,7 +4,7 @@ import type {
   EventLayoutResponse,
   EventLayoutRestore,
   EventLayoutUpdate,
-} from "@chronelle/schemas";
+} from "@livtales/schemas";
 import {
   useInfiniteQuery,
   useIsMutating,

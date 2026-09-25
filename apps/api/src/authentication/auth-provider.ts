@@ -7,7 +7,7 @@ export interface AuthIdentity {
   readonly username?: string | undefined;
 }
 
-/** A Chronelle account proven by an application session credential. */
+/** A LivTales account proven by an application session credential. */
 export interface AuthenticatedUser {
   readonly userId: string;
 }

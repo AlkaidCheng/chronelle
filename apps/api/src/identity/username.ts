@@ -1,4 +1,4 @@
-import { users, type Database } from "@chronelle/db";
+import { users, type Database } from "@livtales/db";
 import { eq, sql } from "drizzle-orm";
 
 import { InvalidRequestError, UsernameTakenError } from "../errors.js";

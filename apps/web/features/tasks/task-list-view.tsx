@@ -7,7 +7,7 @@ import type {
   TaskParent,
   TaskProgress,
   TaskResponse,
-} from "@chronelle/schemas";
+} from "@livtales/schemas";
 import {
   createColumnHelper,
   flexRender,

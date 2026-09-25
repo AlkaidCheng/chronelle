@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   eventComponentKindSchema,
   type EventComponentKind,
-} from "@chronelle/schemas";
+} from "@livtales/schemas";
 import {
   eventComponentKinds,
   findEventComponents,

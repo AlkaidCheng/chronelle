@@ -3,7 +3,7 @@ import { createRecoveryEvent } from "../../e2e/helpers/event-draft-recovery";
 import { exerciseRowOrder } from "../../e2e/helpers/row-order";
 
 const sandboxUrl = new URL(
-  "../../../../.chronelle/sandbox/chronelle.html",
+  "../../../../.livtales/sandbox/livtales.html",
   import.meta.url,
 ).href;
 

@@ -1,5 +1,5 @@
 {
-  "name": "@chronelle/object-model",
+  "name": "@livtales/object-model",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -15,17 +15,17 @@
   },
   "scripts": {
     "baseline-revisions": "node dist/baseline-cli.js",
-    "build": "pnpm --filter @chronelle/schemas build && pnpm --filter @chronelle/authorization build && pnpm --filter @chronelle/storage build && tsc -p tsconfig.build.json",
-    "test": "pnpm --filter @chronelle/schemas build && pnpm --filter @chronelle/authorization build && pnpm --filter @chronelle/storage build && vitest run",
+    "build": "pnpm --filter @livtales/schemas build && pnpm --filter @livtales/authorization build && pnpm --filter @livtales/storage build && tsc -p tsconfig.build.json",
+    "test": "pnpm --filter @livtales/schemas build && pnpm --filter @livtales/authorization build && pnpm --filter @livtales/storage build && vitest run",
     "test:unit": "vitest run",
-    "typecheck": "pnpm --filter @chronelle/schemas build && pnpm --filter @chronelle/authorization build && pnpm --filter @chronelle/storage build && tsc -p tsconfig.json --noEmit",
+    "typecheck": "pnpm --filter @livtales/schemas build && pnpm --filter @livtales/authorization build && pnpm --filter @livtales/storage build && tsc -p tsconfig.json --noEmit",
     "typecheck:unit": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
-    "@chronelle/schemas": "workspace:*",
-    "@chronelle/authorization": "workspace:*",
-    "@chronelle/db": "workspace:*",
-    "@chronelle/storage": "workspace:*",
+    "@livtales/schemas": "workspace:*",
+    "@livtales/authorization": "workspace:*",
+    "@livtales/db": "workspace:*",
+    "@livtales/storage": "workspace:*",
     "drizzle-orm": "0.45.2"
   }
 }

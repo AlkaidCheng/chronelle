@@ -4,7 +4,7 @@ import type {
   EventComponentView,
   EventLayoutResponse,
   EventPage,
-} from "@chronelle/schemas";
+} from "@livtales/schemas";
 import { useTranslations } from "next-intl";
 import {
   type DragEvent,

@@ -1,4 +1,4 @@
-import type { EventPlanningResourceResponse } from "@chronelle/schemas";
+import type { EventPlanningResourceResponse } from "@livtales/schemas";
 import type { QueryClient, QueryKey } from "@tanstack/react-query";
 
 type ChangedResource = Pick<EventPlanningResourceResponse, "id" | "objectType">;

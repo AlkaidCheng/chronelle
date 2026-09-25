@@ -14,13 +14,13 @@ services:
       retries: 30
 
   migrate:
-    image: ${API_IMAGE:-chronelle-api:local}
+    image: ${API_IMAGE:-livtales-api:local}
     healthcheck:
       disable: true
     command:
       - sh
       - -ec
-      - node node_modules/@chronelle/db/dist/cli.js && node node_modules/@chronelle/object-model/dist/baseline-cli.js
+      - node node_modules/@livtales/db/dist/cli.js && node node_modules/@livtales/object-model/dist/baseline-cli.js
     environment:
       DATABASE_URL: postgresql://chronelle:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}@postgres:5432/chronelle
     read_only: true
@@ -58,7 +58,7 @@ services:
         condition: service_completed_successfully
 
   api:
-    image: ${API_IMAGE:-chronelle-api:local}
+    image: ${API_IMAGE:-livtales-api:local}
     environment:
       DATABASE_URL: postgresql://chronelle_runtime:${RUNTIME_DATABASE_PASSWORD:?Set RUNTIME_DATABASE_PASSWORD}@postgres:5432/chronelle
       ENABLE_DEVELOPMENT_AUTH: ${ENABLE_DEVELOPMENT_AUTH:-false}
@@ -67,13 +67,13 @@ services:
     security_opt: ["no-new-privileges:true"]
     tmpfs: [/tmp]
     volumes:
-      - documents:/app/.chronelle/storage
+      - documents:/app/.livtales/storage
     depends_on:
       runtime-role:
         condition: service_completed_successfully
 
   web:
-    image: ${WEB_IMAGE:-chronelle-web:local}
+    image: ${WEB_IMAGE:-livtales-web:local}
     networks: [default, ingress]
     environment:
       API_INTERNAL_URL: http://api:4000

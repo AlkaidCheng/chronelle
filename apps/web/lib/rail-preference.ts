@@ -1,4 +1,4 @@
-import type { RailPreference } from "@chronelle/schemas";
+import type { RailPreference } from "@livtales/schemas";
 
 /** The rail as shown: every known collection key in order, and the keys left out. */
 export interface RailArrangement {

@@ -1,6 +1,6 @@
 "use client";
 
-import type { NoteListItem, NoteListQuery } from "@chronelle/schemas";
+import type { NoteListItem, NoteListQuery } from "@livtales/schemas";
 import { useLocale, useTranslations } from "next-intl";
 import { useCallback, useRef, useState } from "react";
 

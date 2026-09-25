@@ -1,6 +1,6 @@
 "use client";
 
-import type { ExpenseResponse, SectionResponse } from "@chronelle/schemas";
+import type { ExpenseResponse, SectionResponse } from "@livtales/schemas";
 import { useTranslations } from "next-intl";
 import { type FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { CountedField } from "../../components/counted-field";

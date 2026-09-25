@@ -1,4 +1,4 @@
-import type { CloudBaseRdbClient, CloudBaseRdbReader } from "@chronelle/db";
+import type { CloudBaseRdbClient, CloudBaseRdbReader } from "@livtales/db";
 
 export type CloudBaseListClient = CloudBaseRdbReader &
   Pick<CloudBaseRdbClient, "rpc">;

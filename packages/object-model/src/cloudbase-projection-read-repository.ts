@@ -1,12 +1,12 @@
 import {
   AuthorizationDeniedError,
   type UserPrincipal,
-} from "@chronelle/authorization";
+} from "@livtales/authorization";
 import {
   objectTypes,
   type CloudBaseRdbReader,
   type ObjectType,
-} from "@chronelle/db";
+} from "@livtales/db";
 
 import {
   assertCloudBaseRoot,

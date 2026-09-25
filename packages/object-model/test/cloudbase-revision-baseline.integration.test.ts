@@ -1,4 +1,4 @@
-import { createId, documents, events, objects, tasks } from "@chronelle/db";
+import { createId, documents, events, objects, tasks } from "@livtales/db";
 import { eq } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 

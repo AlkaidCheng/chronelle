@@ -1,6 +1,6 @@
 "use client";
 
-import type { PersonResponse } from "@chronelle/schemas";
+import type { PersonResponse } from "@livtales/schemas";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 import type { ReactNode } from "react";

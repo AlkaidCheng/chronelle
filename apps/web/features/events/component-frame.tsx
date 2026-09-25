@@ -1,6 +1,6 @@
 "use client";
 
-import type { EventComponentView } from "@chronelle/schemas";
+import type { EventComponentView } from "@livtales/schemas";
 import { useTranslations } from "next-intl";
 import type { ReactNode } from "react";
 import { HeadMenu } from "../../components/head-menu";

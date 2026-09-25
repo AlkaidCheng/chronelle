@@ -30,23 +30,23 @@ function storageDouble(initial?: unknown): TaroStorage & {
 }
 
 describe("WeChatSessionStore", () => {
-  it("persists and restores only the opaque Chronelle session", async () => {
+  it("persists and restores only the opaque LivTales session", async () => {
     const storage = storageDouble();
     const sessions = new WeChatSessionStore(storage, () => now);
 
     await sessions.save({
-      accessToken: "opaque-chronelle-session",
+      accessToken: "opaque-livtales-session",
       expiresAt: "2030-01-02T00:00:00.000Z",
       workspace: { id: workspaceId },
     });
 
     expect(storage.values.get(weChatSessionStorageKey)).toEqual({
-      accessToken: "opaque-chronelle-session",
+      accessToken: "opaque-livtales-session",
       expiresAt: "2030-01-02T00:00:00.000Z",
       workspaceId,
     });
     expect(await new WeChatSessionStore(storage, () => now).restore()).toEqual({
-      accessToken: "opaque-chronelle-session",
+      accessToken: "opaque-livtales-session",
       workspaceId,
     });
   });
@@ -55,12 +55,12 @@ describe("WeChatSessionStore", () => {
     [
       "expired",
       {
-        accessToken: "opaque-chronelle-session",
+        accessToken: "opaque-livtales-session",
         expiresAt: now.toISOString(),
         workspaceId,
       },
     ],
-    ["malformed", { accessToken: "opaque-chronelle-session" }],
+    ["malformed", { accessToken: "opaque-livtales-session" }],
   ])("clears %s persisted state", async (_label, initial) => {
     const storage = storageDouble(initial);
     const sessions = new WeChatSessionStore(storage, () => now);
@@ -74,7 +74,7 @@ describe("WeChatSessionStore", () => {
     const storage = storageDouble();
     const sessions = new WeChatSessionStore(storage, () => now);
     await sessions.save({
-      accessToken: "opaque-chronelle-session",
+      accessToken: "opaque-livtales-session",
       expiresAt: "2030-01-02T00:00:00.000Z",
       workspace: { id: workspaceId },
     });
@@ -97,18 +97,18 @@ describe("WeChatSessionStore", () => {
     const storage = storageDouble();
     const sessions = new WeChatSessionStore(storage, () => now);
     await sessions.save({
-      accessToken: "opaque-chronelle-session",
+      accessToken: "opaque-livtales-session",
       expiresAt: "2030-01-02T00:00:00.000Z",
       workspace: { id: workspaceId },
     });
     const nextWorkspaceId = "00000000-0000-7000-8000-000000000002";
 
     await expect(sessions.selectWorkspace(nextWorkspaceId)).resolves.toEqual({
-      accessToken: "opaque-chronelle-session",
+      accessToken: "opaque-livtales-session",
       workspaceId: nextWorkspaceId,
     });
     expect(storage.values.get(weChatSessionStorageKey)).toEqual({
-      accessToken: "opaque-chronelle-session",
+      accessToken: "opaque-livtales-session",
       expiresAt: "2030-01-02T00:00:00.000Z",
       workspaceId: nextWorkspaceId,
     });
@@ -118,7 +118,7 @@ describe("WeChatSessionStore", () => {
     const sessions = new WeChatSessionStore(storageDouble(), () => now);
 
     await expect(sessions.selectWorkspace(workspaceId)).rejects.toThrow(
-      "No active Chronelle session",
+      "No active LivTales session",
     );
   });
 
@@ -142,7 +142,7 @@ describe("WeChatSessionStore", () => {
     });
     const sessions = new WeChatSessionStore(storage, () => now);
     await sessions.save({
-      accessToken: "opaque-chronelle-session",
+      accessToken: "opaque-livtales-session",
       expiresAt: "2030-01-02T00:00:00.000Z",
       workspace: { id: workspaceId },
     });

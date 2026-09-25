@@ -2,7 +2,7 @@ import type {
   EventTabs,
   EventTabsPreference,
   PreferencesRequest,
-} from "@chronelle/schemas";
+} from "@livtales/schemas";
 import { type EventView, eventViews } from "./event-views";
 
 /** The views an event's strip can list: every event view but the pages. */

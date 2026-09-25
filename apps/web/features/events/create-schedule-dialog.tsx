@@ -9,7 +9,7 @@ import {
   useRef,
   useState,
 } from "react";
-import type { EventResponse } from "@chronelle/schemas";
+import type { EventResponse } from "@livtales/schemas";
 import { CountedField } from "../../components/counted-field";
 import { EditorForm, EditorSubmitButton } from "../../components/editor-form";
 import {

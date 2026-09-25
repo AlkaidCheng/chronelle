@@ -3,7 +3,7 @@
 import { useSyncExternalStore } from "react";
 import { type EventView, parseEventView } from "./event-views";
 
-const viewChange = "chronelle:event-view";
+const viewChange = "livtales:event-view";
 
 /**
  * A client-side link to this event with another view changes the address

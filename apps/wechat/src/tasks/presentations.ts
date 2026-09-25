@@ -3,7 +3,7 @@ import type {
   SectionResponse,
   TaskResponse,
   WeekStart,
-} from "@chronelle/schemas";
+} from "@livtales/schemas";
 
 import { localParts } from "../events/wall-clock";
 

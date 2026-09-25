@@ -1,15 +1,15 @@
-import { withReadAuthorization } from "@chronelle/authorization";
-import type { UserPrincipal } from "@chronelle/authorization";
+import { withReadAuthorization } from "@livtales/authorization";
+import type { UserPrincipal } from "@livtales/authorization";
 import {
   objectRelations,
   objects,
   type Database,
   type DatabaseTransaction,
-} from "@chronelle/db";
+} from "@livtales/db";
 import type {
   EventAttachmentTargetsResponse,
   NoteListQueryInput,
-} from "@chronelle/schemas";
+} from "@livtales/schemas";
 import { and, eq, inArray, isNull } from "drizzle-orm";
 
 import {

@@ -1,6 +1,6 @@
 "use client";
 
-import type { RecoveryPreview, TrashQueryInput } from "@chronelle/schemas";
+import type { RecoveryPreview, TrashQueryInput } from "@livtales/schemas";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { useState } from "react";

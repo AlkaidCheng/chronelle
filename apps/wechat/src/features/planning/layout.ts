@@ -4,7 +4,7 @@ import {
   type EventComponentKind,
   type EventComponentView,
   type EventPage,
-} from "@chronelle/schemas";
+} from "@livtales/schemas";
 
 type MoveDirection = -1 | 1;
 

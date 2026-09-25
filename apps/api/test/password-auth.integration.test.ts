@@ -1,16 +1,16 @@
 import { resolve } from "node:path";
 
-import { auditEvents } from "@chronelle/db";
+import { auditEvents } from "@livtales/db";
 import {
   applyMigrations,
   createTestDatabase,
   type TestDatabase,
-} from "@chronelle/db/testing";
+} from "@livtales/db/testing";
 import {
   acceptedResponseSchema,
   apiErrorResponseSchema,
   signInResponseSchema,
-} from "@chronelle/schemas";
+} from "@livtales/schemas";
 import { eq } from "drizzle-orm";
 import type { FastifyInstance } from "fastify";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";

@@ -2,7 +2,7 @@ import {
   timeZoneNameSchema,
   type PreferencesRequest,
   type UserResponse,
-} from "@chronelle/schemas";
+} from "@livtales/schemas";
 
 export type AccountPreferences = Pick<
   UserResponse,

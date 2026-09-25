@@ -1,6 +1,6 @@
 "use client";
 
-import type { EventLayoutResponse } from "@chronelle/schemas";
+import type { EventLayoutResponse } from "@livtales/schemas";
 import { useTranslations } from "next-intl";
 import {
   type DragEvent,

@@ -46,7 +46,7 @@ because its SQL can be expressed as a read or write request.
 
 Read adapters must return canonical IDs and the same externally visible
 resource shape. A gateway API key does not authorize a user; the adapter must
-still evaluate the Chronelle principal, workspace, grant expiry, inheritance,
+still evaluate the LivTales principal, workspace, grant expiry, inheritance,
 and deletion rules.
 
 ## Mutations

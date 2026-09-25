@@ -1,5 +1,5 @@
-import { AuthorizationDeniedError } from "@chronelle/authorization";
-import { createId, objects, reminders, resourceGrants } from "@chronelle/db";
+import { AuthorizationDeniedError } from "@livtales/authorization";
+import { createId, objects, reminders, resourceGrants } from "@livtales/db";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { CloudBaseReminderWriteRepository } from "../src/cloudbase-reminder-write-repository.js";

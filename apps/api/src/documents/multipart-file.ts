@@ -1,4 +1,4 @@
-import { maximumNativeDocumentSizeBytes } from "@chronelle/schemas";
+import { maximumNativeDocumentSizeBytes } from "@livtales/schemas";
 
 import { HttpError, InvalidRequestError } from "../errors.js";
 

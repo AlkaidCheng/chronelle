@@ -2,7 +2,7 @@
 import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
-import { eventResponseSchema } from "@chronelle/schemas";
+import { eventResponseSchema } from "@livtales/schemas";
 import { Providers } from "../app/providers";
 import { QuietMenu } from "../components/quiet-menu";
 import { UndoMenuItems } from "../components/undo-menu-items";

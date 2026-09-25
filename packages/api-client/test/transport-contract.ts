@@ -30,7 +30,7 @@ function input(
   } = {},
 ) {
   return {
-    body: '{"name":"Chronelle"}',
+    body: '{"name":"LivTales"}',
     headers: {
       authorization: "Bearer opaque-session",
       "content-type": "application/json",
@@ -59,7 +59,7 @@ export function runJsonTransportContract(
       expect(harness.calls).toEqual([
         {
           abortCount: 0,
-          body: '{"name":"Chronelle"}',
+          body: '{"name":"LivTales"}',
           headers: {
             authorization: "Bearer opaque-session",
             "content-type": "application/json",

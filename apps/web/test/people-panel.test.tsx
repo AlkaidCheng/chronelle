@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import { ChronelleApiClient } from "@chronelle/api-client";
+import { LivTalesApiClient } from "@livtales/api-client";
 import {
   cleanup,
   render,
@@ -28,7 +28,7 @@ vi.mock("next/navigation", () => ({
 }));
 
 let store: SandboxStore;
-let client: ChronelleApiClient;
+let client: LivTalesApiClient;
 let eventId: string;
 
 beforeEach(async () => {
@@ -39,7 +39,7 @@ beforeEach(async () => {
       saved = value;
     },
   });
-  client = new ChronelleApiClient({
+  client = new LivTalesApiClient({
     getCredential: () => ({
       accessToken: "sample",
       workspaceId: sandboxWorkspaceId,

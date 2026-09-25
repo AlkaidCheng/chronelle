@@ -1,6 +1,6 @@
-import type { UserPrincipal } from "@chronelle/authorization";
-import type { Database } from "@chronelle/db";
-import type { RevisionListQuery } from "@chronelle/schemas";
+import type { UserPrincipal } from "@livtales/authorization";
+import type { Database } from "@livtales/db";
+import type { RevisionListQuery } from "@livtales/schemas";
 
 import {
   PostgresRevisionReadRepository,

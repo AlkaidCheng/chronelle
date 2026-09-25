@@ -1,4 +1,4 @@
-import type { UserRow, WorkspaceRow } from "@chronelle/db";
+import type { UserRow, WorkspaceRow } from "@livtales/db";
 
 import { WeChatCredentialRejectedError } from "../errors.js";
 import {
@@ -26,7 +26,7 @@ export interface WeChatAuthenticationOptions {
   readonly sessionTtlMs?: number | undefined;
 }
 
-/** Verifies CloudBase identity and exchanges it for Chronelle-owned state. */
+/** Verifies CloudBase identity and exchanges it for LivTales-owned state. */
 export class WeChatAuthenticationService {
   readonly #clock: () => Date;
   readonly #sessionTtlMs: number;

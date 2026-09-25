@@ -1,9 +1,9 @@
-import { AuthorizationDeniedError } from "@chronelle/authorization";
+import { AuthorizationDeniedError } from "@livtales/authorization";
 import {
   type CloudBaseRdbClient,
   CloudBaseRpcError,
   roles,
-} from "@chronelle/db";
+} from "@livtales/db";
 
 import {
   FriendUnavailableError,

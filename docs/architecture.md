@@ -4,7 +4,7 @@ The [browser-only design sandbox](browser-sandbox.md) is a separate offline buil
 of the existing web screens. Its build-time adapters use fictional browser-local
 data and do not participate in the production architecture described below.
 
-Chronelle starts as a TypeScript modular monolith in a pnpm workspace. The web,
+LivTales starts as a TypeScript modular monolith in a pnpm workspace. The web,
 WeChat Mini Program, and API applications build independently while domain
 contracts and database infrastructure remain explicit shared packages.
 
@@ -76,7 +76,7 @@ receipts in the same transaction. Existing mutation endpoints remain independent
 See [Reversible content commands](commands.md) for eligibility and rollout.
 
 The Fastify API resolves each bearer credential through an `AuthProvider` to a
-canonical Chronelle user ID, then resolves the active workspace. External
+canonical LivTales user ID, then resolves the active workspace. External
 providers are normalized in `user_identities`; several explicitly linked
 providers may identify the same user without changing that user's ID, personal
 workspace, grants, objects, or audit history.
@@ -96,7 +96,7 @@ is registered when explicitly
 enabled and asserts the submitted email. Outbound email is a port with a log
 sender for development and an SMTP sender for deployments. CloudBase WeChat
 authentication follows the same boundary: the server verifies the end-user
-token, consumes its digest once, and issues a normal Chronelle session. Linking
+token, consumes its digest once, and issues a normal LivTales session. Linking
 requires an already authenticated user and never infers an account match from
 profile data. Further providers can be added without changing sessions,
 workspace, or authorization services.
@@ -291,7 +291,7 @@ nonced framework runtime and its descendants. This boundary does not authenticat
 requests or change canonical permissions. See [Deployment](deployment.md#script-content-security-policy)
 for the rendering tradeoff and remaining public-launch requirements.
 
-`ChronelleApiClient` attaches the active workspace (and a bearer token when
+`LivTalesApiClient` attaches the active workspace (and a bearer token when
 the caller holds one), validates every successful response against the shared
 Zod contract, and turns API errors into one typed error. In the browser the
 session is an httpOnly, `SameSite=Lax` cookie owned by the web origin: the
@@ -330,7 +330,7 @@ through `client.withSignal(signal)`, which combines caller cancellation with the
 client's optional session-lifetime `signal`:
 
 ```typescript
-const client = new ChronelleApiClient({
+const client = new LivTalesApiClient({
   getCredential: () => credential,
   signal: sessionController.signal,
 });
@@ -348,14 +348,14 @@ Backend authorization remains authoritative for every request.
 
 The Mini Program is a separate Taro presentation layer. Its native shell
 composes the provider-neutral API client, verified identity exchange, and
-Chronelle session storage into workspace-scoped Event reads.
+LivTales session storage into workspace-scoped Event reads.
 Every protected read and mutation therefore reaches the same Fastify
 routes, transaction-bound authorization, version checks, and audit ledger as the
 web client. File hashing and binary transfer are independent platform ports;
 Mini Program attachment support does not require browser-global emulation.
 CloudBase bootstraps a verified WeChat identity, but it does not become an
 alternate data or permission boundary. The client persists only the opaque
-Chronelle token; account linking is explicit and server-authorized.
+LivTales token; account linking is explicit and server-authorized.
 
 Platform-specific concerns remain in `apps/wechat`: app lifecycle, network
 state, storage, file selection and transfer, touch navigation, safe areas, and
@@ -507,3 +507,66 @@ query existing protected projections and never own copies of business records.
 History reads are paginated. Restoration appends a snapshot and its audit event
 atomically; it does not rewrite earlier revisions. Layout undo/redo keeps bounded
 session-local version references and calls the same authorized restore API.
+
+## Names that keep Chronelle
+
+The product and the codebase are LivTales. The strings below still say
+Chronelle on purpose: each names something that lives outside the code, and
+renaming it in the code alone would break a database, a deployment, or data
+that users already hold. Leave them out of any rename.
+
+**Database objects.** Every PostgreSQL name keeps its `chronelle` spelling:
+
+- the `chronelle_*` SQL functions, including the names the CloudBase rpc
+  adapters build in code (`chronelle_${objectType}_create`) and verify at
+  startup (`cloudBaseRequiredFunctions`);
+- the `chronelle_schema_migrations` ledger and its advisory lock key;
+- the `chronelle_runtime` role, the `^chronelle_runtime(_[a-z0-9]+)?$` pattern
+  that `LIVTALES_RUNTIME_ROLE` must match, and the transaction-local
+  `chronelle.runtime_role` setting of `infrastructure/database/runtime-role.sql`;
+- the `chronelle` database and user and the `chronelle_dev` development
+  password in connection strings, Compose, and CI;
+- the `chronelle_test_*` disposable databases the test helpers create and drop;
+- everything in `infrastructure/migrations`, which is immutable and
+  checksum-verified.
+
+New SQL functions keep the `chronelle_` prefix: the readiness check of
+migration 0028 finds functions with `LIKE 'chronelle\_%'`, so a `livtales_*`
+function would be invisible to it.
+
+**Data clients already store.** Renaming these would sign users out or drop
+their drafts and preferences. Each is a named constant in the module that
+reads it, and the tests spell out the literal values
+(`apps/web/test/persisted-keys.test.tsx`,
+`apps/wechat/test/persisted-keys.test.ts`, and the tests of each feature), so
+renaming a constant fails.
+
+| Name                                                                        | Kind                        | Defined in                                                                                                                      |
+| --------------------------------------------------------------------------- | --------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| `chronelle_session`, `chronelle_session_present`                            | Web cookies                 | `apps/web/lib/session-cookie.ts`                                                                                                |
+| `chronelle.locale`                                                          | Web cookie and localStorage | `apps/web/i18n/locales.ts`                                                                                                      |
+| `chronelle.session`, `chronelle.after-sign-in`                              | Web sessionStorage          | `apps/web/lib/auth-session.tsx`, `apps/web/lib/after-sign-in.ts`                                                                |
+| `chronelle.people-layout`, `chronelle.task-view`, `chronelle.event-layout`  | Web localStorage            | `apps/web/features/people/people-page.tsx`, `apps/web/features/tasks/tasks-page.tsx`, `apps/web/lib/event-collection-state.tsx` |
+| `chronelle.{appearance,palette,density,motion,sidebar}`                     | Web localStorage            | `apps/web/lib/display-preferences.ts` (also read before first paint)                                                            |
+| `chronelle.{command,editor,component}-shortcut`                             | Web localStorage            | `apps/web/lib/shortcut-preference.ts`                                                                                           |
+| `chronelle.design-sandbox.v1`                                               | Sandbox localStorage        | `apps/web/sandbox/storage-key.ts`                                                                                               |
+| `chronelle.session.v1`, `chronelle.{event,task,expense,reminder}-drafts.v1` | Mini Program storage        | `apps/wechat/src/auth/session-store.ts`, `apps/wechat/src/*/draft-store.ts`                                                     |
+
+**Wire values.** The `GET /api/health` response keeps the service value
+`chronelle-api` (`packages/schemas/src/health.ts`). The shared schema pins it
+as a literal, so a client or monitor built before the rename would reject any
+other value.
+
+**CloudBase resources.** The CloudBase Run services `chronelle-api` and
+`chronelle-web`, the `chronelle-run` API key, the environment IDs, default
+domains, and image repositories cannot be renamed; the
+[CloudBase backend runbook](cloudbase-backend-runbook.md) names the services as
+they are.
+
+**Transition aids.** The legacy settings `CHRONELLE_BACKEND`,
+`CHRONELLE_MIGRATIONS_DIR`, and `CHRONELLE_RUNTIME_ROLE` appear only in the
+guards that stop a deployment still setting them
+([deployment](deployment.md#run-on-the-cloudbase-backend)), and `.gitignore`
+and `.dockerignore` still list `.chronelle` so a local state directory from
+before the rename stays ignored. Both can go once no deployment or checkout
+uses the old names.

@@ -7,7 +7,7 @@ import {
   type UserSessionRow,
   type WorkspaceRecencyRow,
   type WorkspaceRow,
-} from "@chronelle/db";
+} from "@livtales/db";
 
 /** A gateway row: the table's columns as JSON. */
 export type CloudBaseRow = Record<string, unknown>;

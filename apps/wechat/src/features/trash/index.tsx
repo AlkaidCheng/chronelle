@@ -1,4 +1,4 @@
-import type { SessionResponse, TrashItem } from "@chronelle/schemas";
+import type { SessionResponse, TrashItem } from "@livtales/schemas";
 import { useQueryClient } from "@tanstack/react-query";
 import { Button, Picker, ScrollView, Text, View } from "@tarojs/components";
 import Taro, { usePullDownRefresh } from "@tarojs/taro";

@@ -3,7 +3,7 @@
 import type {
   ObjectSearchQueryInput,
   ObjectSearchResult,
-} from "@chronelle/schemas";
+} from "@livtales/schemas";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { type FormEvent, useState } from "react";

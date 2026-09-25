@@ -3,8 +3,8 @@ import {
   AuthorizationService,
   DrizzleAuthorizationStore,
   type UserPrincipal,
-} from "@chronelle/authorization";
-import { createId, labels, type Database } from "@chronelle/db";
+} from "@livtales/authorization";
+import { createId, labels, type Database } from "@livtales/db";
 import { and, asc, eq, ne, sql } from "drizzle-orm";
 
 import {

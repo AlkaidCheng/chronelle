@@ -1,8 +1,8 @@
 import {
   AuthorizationDeniedError,
   type UserPrincipal,
-} from "@chronelle/authorization";
-import { CloudBaseRpcError, type CloudBaseRdbClient } from "@chronelle/db";
+} from "@livtales/authorization";
+import { CloudBaseRpcError, type CloudBaseRdbClient } from "@livtales/db";
 
 import {
   cloudbaseInteger,

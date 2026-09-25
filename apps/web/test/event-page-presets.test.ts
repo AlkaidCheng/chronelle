@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { eventPagesSchema } from "@chronelle/schemas";
+import { eventPagesSchema } from "@livtales/schemas";
 import { createPresetPage, eventPagePresets } from "../lib/event-page-presets";
 
 describe("event page presets", () => {

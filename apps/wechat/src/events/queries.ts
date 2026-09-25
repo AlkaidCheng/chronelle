@@ -3,7 +3,7 @@ import type {
   EventResponse,
   EventUpdatePayload,
   ObjectAccessResponse,
-} from "@chronelle/schemas";
+} from "@livtales/schemas";
 import {
   useInfiniteQuery,
   useMutation,

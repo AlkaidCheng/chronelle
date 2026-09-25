@@ -1,10 +1,10 @@
 // @vitest-environment jsdom
 
-import { ChronelleApiClient } from "@chronelle/api-client";
+import { LivTalesApiClient } from "@livtales/api-client";
 import {
   type EventComponentKind,
   eventComponentKindSchema,
-} from "@chronelle/schemas";
+} from "@livtales/schemas";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   act,
@@ -48,7 +48,7 @@ import { openTaskEditor } from "./quick-add-support";
 import { chooseRowAction } from "./row-menu-support";
 
 let store: SandboxStore;
-let client: ChronelleApiClient;
+let client: LivTalesApiClient;
 let eventId: string;
 
 beforeEach(async () => {
@@ -67,7 +67,7 @@ beforeEach(async () => {
       saved = value;
     },
   });
-  client = new ChronelleApiClient({
+  client = new LivTalesApiClient({
     getCredential: () => ({
       accessToken: "sample",
       workspaceId: sandboxWorkspaceId,

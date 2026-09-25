@@ -4,7 +4,7 @@ import { composeArguments, runDocker } from "./container-process.mjs";
 
 // Restore only archives captured here from the stopped synthetic fixture stack.
 export async function checkRecovery(environment, source, verify) {
-  const project = `chronelle-restore-${randomUUID()}`;
+  const project = `livtales-restore-${randomUUID()}`;
   const docker = async (...args) =>
     (await runDocker(environment, args)).toString("utf8").trim();
   const compose = (...args) => docker(...composeArguments(project), ...args);
@@ -49,7 +49,7 @@ export async function checkRecovery(environment, source, verify) {
     assert.equal(mount?.Type, "volume");
     return mount.Name;
   };
-  const storagePath = "/app/.chronelle/storage";
+  const storagePath = "/app/.livtales/storage";
   const storageCommand = (id, mode, command, ...args) => [
     "run",
     "--rm",
@@ -171,7 +171,7 @@ export async function checkRecovery(environment, source, verify) {
         "node",
         "--input-type=module",
         "-e",
-        'import assert from "node:assert/strict"; import {readdirSync} from "node:fs"; assert.deepEqual(readdirSync("/app/.chronelle/storage"), []);',
+        'import assert from "node:assert/strict"; import {readdirSync} from "node:fs"; assert.deepEqual(readdirSync("/app/.livtales/storage"), []);',
       ),
     );
     await runDocker(
@@ -186,7 +186,7 @@ export async function checkRecovery(environment, source, verify) {
         "node",
         "--input-type=module",
         "-e",
-        'import assert from "node:assert/strict"; import {readdirSync,statSync} from "node:fs"; const root="/app/.chronelle/storage"; assert.equal(statSync(root).uid,1000); for(const entry of readdirSync(root,{recursive:true,withFileTypes:true})) { const stat=statSync(entry.parentPath+"/"+entry.name); assert.equal(stat.uid,1000); assert.equal(stat.mode & 0o777, entry.isDirectory() ? 0o700 : 0o600); }',
+        'import assert from "node:assert/strict"; import {readdirSync,statSync} from "node:fs"; const root="/app/.livtales/storage"; assert.equal(statSync(root).uid,1000); for(const entry of readdirSync(root,{recursive:true,withFileTypes:true})) { const stat=statSync(entry.parentPath+"/"+entry.name); assert.equal(stat.uid,1000); assert.equal(stat.mode & 0o777, entry.isDirectory() ? 0o700 : 0o600); }',
       ),
     );
     await compose("up", "--detach", "--wait", "--wait-timeout", "120");

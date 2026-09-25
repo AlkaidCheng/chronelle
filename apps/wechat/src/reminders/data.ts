@@ -1,7 +1,4 @@
-import type {
-  ObjectAccessResponse,
-  ReminderResponse,
-} from "@chronelle/schemas";
+import type { ObjectAccessResponse, ReminderResponse } from "@livtales/schemas";
 
 import type { PlanningProjection } from "../features/planning/data";
 

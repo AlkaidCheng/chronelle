@@ -2,7 +2,7 @@ import type {
   ObjectAccessResponse,
   PendingShare,
   SentInvitation,
-} from "@chronelle/schemas";
+} from "@livtales/schemas";
 import { describe, expect, it, vi } from "vitest";
 
 import {
@@ -41,7 +41,7 @@ const sent: SentInvitation = {
   kind: "invitation",
   email: null,
   channel: "link",
-  inviteUrl: "https://chronelle.example/invite/opaque-token-1234567890",
+  inviteUrl: "https://livtales.example/invite/opaque-token-1234567890",
   message: null,
   personId: objectId,
   workspaceId: objectId,

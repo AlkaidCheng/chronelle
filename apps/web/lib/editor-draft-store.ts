@@ -5,8 +5,8 @@ import type {
   PersonResponse,
   ReminderResponse,
   TaskResponse,
-} from "@chronelle/schemas";
-import { ApiClientError } from "@chronelle/api-client";
+} from "@livtales/schemas";
+import { ApiClientError } from "@livtales/api-client";
 import { readEventSchedule } from "./event-schedule";
 import type { EditorDraftSnapshot } from "./use-editor-draft";
 import type { ContextCreateAttempt } from "./queries";

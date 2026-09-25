@@ -1,9 +1,9 @@
-import type { UserPrincipal } from "@chronelle/authorization";
+import type { UserPrincipal } from "@livtales/authorization";
 import type {
   CloudBaseRdbReader,
   DocumentTransferAuthorizationRow,
   DocumentTransferOperation as TransferOperation,
-} from "@chronelle/db";
+} from "@livtales/db";
 
 import { cloudbaseInteger } from "./cloudbase-object-read-support.js";
 import {

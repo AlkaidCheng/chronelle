@@ -4,7 +4,7 @@ import type {
   AccessSource,
   SectionResponse,
   TaskResponse,
-} from "@chronelle/schemas";
+} from "@livtales/schemas";
 import { useTranslations } from "next-intl";
 import { type FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { AccessLine } from "../../components/access-line";

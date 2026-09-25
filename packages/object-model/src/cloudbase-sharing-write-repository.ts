@@ -6,13 +6,13 @@ import {
   type RevokedGrantResource,
   type ShareResourceInput,
   type ShareWriteRepository,
-} from "@chronelle/authorization";
+} from "@livtales/authorization";
 import {
   CloudBaseRpcError,
   roles,
   type CloudBaseRdbClient,
   type Role,
-} from "@chronelle/db";
+} from "@livtales/db";
 
 import {
   cloudbaseDate,

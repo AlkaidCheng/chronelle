@@ -1,4 +1,4 @@
-import { AuthorizationDeniedError } from "@chronelle/authorization";
+import { AuthorizationDeniedError } from "@livtales/authorization";
 import {
   auditEvents,
   commandChanges,
@@ -10,8 +10,8 @@ import {
   reversibleCommands,
   users,
   workspaceMembers,
-} from "@chronelle/db";
-import type { CommandExecuteRequest, CommandReceipt } from "@chronelle/schemas";
+} from "@livtales/db";
+import type { CommandExecuteRequest, CommandReceipt } from "@livtales/schemas";
 import { and, eq, like } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 

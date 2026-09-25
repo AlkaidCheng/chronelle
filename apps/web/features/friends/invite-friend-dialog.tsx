@@ -1,7 +1,7 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import type { SentInvitation } from "@chronelle/schemas";
+import type { SentInvitation } from "@livtales/schemas";
 import { type FormEvent, useEffect, useId, useRef, useState } from "react";
 
 import { ErrorNotice } from "../../components/feedback";
@@ -22,7 +22,7 @@ const someoneNew = "";
 /**
  * Invite a friend. Find people first: accounts by name, @username, or
  * email, as each lets itself be found, each with Add friend or the state
- * that already holds. Below, for someone not on Chronelle yet: a person of
+ * that already holds. Below, for someone not on LivTales yet: a person of
  * the current workspace without an account link, or someone new, an
  * optional email, and a note; Send by email emails the invitation link
  * (an address that has an account gets a request instead, and the dialog

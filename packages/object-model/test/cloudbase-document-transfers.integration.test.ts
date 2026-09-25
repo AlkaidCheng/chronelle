@@ -3,14 +3,14 @@ import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-import { AuthorizationDeniedError } from "@chronelle/authorization";
+import { AuthorizationDeniedError } from "@livtales/authorization";
 import {
   auditEvents,
   createId,
   documentTransferAuthorizations,
   objectRelations,
-} from "@chronelle/db";
-import { LocalFilesystemStorageProvider } from "@chronelle/storage";
+} from "@livtales/db";
+import { LocalFilesystemStorageProvider } from "@livtales/storage";
 import { and, eq, inArray } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
@@ -55,7 +55,7 @@ const token = (url: string) => decodeURIComponent(url.split("/").at(-1) ?? "");
 
 beforeAll(async () => {
   harness = await createWriteHarness("Document transfers");
-  root = await mkdtemp(join(tmpdir(), "chronelle-transfers-"));
+  root = await mkdtemp(join(tmpdir(), "livtales-transfers-"));
   storage = new LocalFilesystemStorageProvider({ root });
   const db = harness.database.connection.db;
   objects = new EventPlanningObjectService(db, clock);

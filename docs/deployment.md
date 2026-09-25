@@ -27,13 +27,13 @@ Start the API in one terminal. The API reads the repository `.env`; development
 sign-in must be explicitly enabled for this preview:
 
 ```bash
-API_HOST=127.0.0.1 pnpm --filter @chronelle/api start
+API_HOST=127.0.0.1 pnpm --filter @livtales/api start
 ```
 
 Start the production web entry point in another terminal:
 
 ```bash
-HOSTNAME=127.0.0.1 PORT=3000 API_INTERNAL_URL=http://127.0.0.1:4000 pnpm --filter @chronelle/web start
+HOSTNAME=127.0.0.1 PORT=3000 API_INTERNAL_URL=http://127.0.0.1:4000 pnpm --filter @livtales/web start
 ```
 
 Open `http://localhost:3000/sign-in`. Keep both processes bound to loopback or
@@ -76,8 +76,8 @@ The probe queries an intentionally nonexistent table with a zero-row limit. A
 reached PostgreSQL; it does not validate application migrations, transactions,
 or native PostgreSQL TCP access. Revoke the key after testing. CloudBase API
 keys map to the privileged `service_role` and must never be sent to a browser,
-committed to the repository, or used as a substitute for Chronelle's
-application authorization.
+committed to the repository, or used as a substitute for the application's
+own authorization.
 
 The probe uses `CLOUDBASE_REQUEST_TIMEOUT_MS` (30 seconds by default, bounded to
 1–120 seconds) and reports expired keys, authorization failures, timeouts, and
@@ -95,7 +95,7 @@ and will not create those fixtures.
 The current Personal plan is a staging option for this SDK path. Native TCP
 access remains a separate deployment decision because it requires a database
 endpoint, credentials, SSL settings, and a network route from the API service.
-Chronelle now exposes a small `@chronelle/db` CloudBase RDB transport for
+LivTales now exposes a small `@livtales/db` CloudBase RDB transport for
 bounded, non-transactional reads. It validates table identifiers, preserves
 pagination bounds, and reports the backend capabilities explicitly. The
 existing `connectDatabase(DATABASE_URL)` Drizzle/PostgreSQL adapter remains the
@@ -120,7 +120,7 @@ mode lands: startup still connects to PostgreSQL. The flag is disabled by
 default and must never be enabled solely because the SDK connection probe
 succeeds.
 
-The CloudBase transport does not replace Chronelle's Drizzle adapter for
+The CloudBase transport does not replace the Drizzle adapter for
 audited mutations, optimistic concurrency, or multi-table writes. Those
 workloads remain on the TCP adapter until the service has a transaction-capable
 PostgreSQL route. This keeps the local schema, migrations, and future dedicated
@@ -270,7 +270,7 @@ Task assignee; 0039 the Task location; 0040 People in Events; 0041 subtasks
 in Trash with their parent; 0042 standalone creation commands, after which
 the runtime role grants are reapplied; 0043 sharing with a Person, which
 replaces `chronelle_resource_share` and needs the runtime role grants
-reapplied; 0044 the Task duration; 0045 the Task repeat rule; 0046 the manual order of Tasks and Reminders; 0047 the language kept on the account; 0048 the time zone, clock, and week start kept on the account, which replaces `chronelle_user_locale_update` with `chronelle_user_preferences_update` and is applied before the API built from it starts; 0049 the rail order and hidden collections kept on the account, which redefines `chronelle_user_preferences_update` in place; 0050 the Person nickname, description, contacts, and labels, after which the runtime role grants are reapplied for `person_contacts` and `person_labels`; 0051 friends (`user_connections`, `user_invitations`, the `chronelle_friend_*` functions the readiness check requires, and `chronelle_assert_person_state` replaced in place), after which the runtime role grants are reapplied for the two new tables; 0052 shares waiting on an invitation (`pending_shares`, the `chronelle_pending_share_*` and `chronelle_workspace_member_*` functions the readiness check requires, `chronelle_resource_share` redefined with a friend grantee, and the friend respond, withdraw, and claim functions replaced in place), after which the runtime role grants are reapplied for the new table and for deleting workspace members; 0053 the tabs kept on the account for each event, which redefines `chronelle_user_preferences_update` in place; 0054 what is shared each way with a person (`chronelle_person_shares_list`, which the readiness check requires); 0055 the username every account carries (existing accounts named from their display names) and the discovery switches, which replaces `chronelle_identity_sign_in` with a six-argument one and is applied before the API built from it starts, installs the trusted `pg_trgm` and `unaccent` extensions with trigram indexes on `users` for Find people, and adds `chronelle_username_available`, `chronelle_account_update`, `chronelle_users_search`, `chronelle_user_lookup`, and `chronelle_friend_request`, which the readiness check requires; after it the runtime role script is reapplied for its `EXECUTE` grants on the search functions; 0056 the Welcome step (`users.onboarded_at`, every existing account completed), `chronelle_identity_sign_in` and `chronelle_account_update` redefined in place, and `chronelle_password_credential_lookup` replaced with one that takes an email or a username, applied before the API built from it starts; 0057 cards resolved by their link, else by any email contact (`persons.email` dropped, `chronelle_person_account` added, which the readiness check requires, `chronelle_resource_share`, `chronelle_person_shares_list`, and the person write helpers redefined in place, and `chronelle_assert_person_state` replaced with a three-argument one), applied before the API built from it starts; 0058 invitation links (`user_invitations.email` nullable, `channel` and `token` added; `chronelle_friend_invite` and `chronelle_friend_resend` replaced with versions that take the token and channel, applied before the API built from it starts; `chronelle_friend_invitation_json` and `chronelle_friend_invitations_claim` redefined in place; `chronelle_friend_link`, `chronelle_friend_invitation_peek`, and `chronelle_friend_invitation_accept` added, which the readiness check requires; the link the API emails and answers is built from `WEB_PUBLIC_URL`); 0059 the place of a schedule item (`events.location`, `chronelle_assert_event_location`, the Event serialize, insert, validate, and apply functions and `chronelle_command_content` redefined in place); 0060 the Note object type (`objects_type_valid` admits `note`, the `notes` table, `chronelle_assert_note_state`, the `chronelle_note_*` write steps, `chronelle_note_create`, `chronelle_note_update`, and `chronelle_note_list`, which the readiness check requires, and the write core, restore, search, and relation rule redefined in place), applied before the API built from it starts; after it the runtime role script is reapplied for its grants on `notes`; 0061 the description of an Event and a Task (`events.description`, `tasks.description`, `chronelle_assert_description`, the Event and Task serialize, insert, validate, and apply functions and `chronelle_command_content` redefined in place); 0062 the sections of an Event's To-dos and Expenses (the `sections` table, `tasks.section_id` and `expenses.section_id`, `chronelle_rank_between`, `chronelle_assert_section_member`, the `chronelle_section_*` functions the readiness check requires, and the Task and Expense serialize, insert, validate, and apply functions redefined in place), applied before the API built from it starts; after it the runtime role script is reapplied for its grants on `sections`; 0063 shares narrowed to a view or a section of an Event (`resource_grants.scope`, `section_id`, and the wider unique key; `chronelle_grant_admits` and `chronelle_section_visible`, which the readiness check requires; the `chronelle_can_*` functions, the held role, `chronelle_person_shares_list`, and `chronelle_section_list` redefined in place; `chronelle_resource_share` replaced with one that takes a scope), applied before the API built from it starts; 0064 when each workspace was last opened, kept on the account (`users.workspace_recency`), which redefines `chronelle_user_preferences_update` in place; 0065 leaving a share (`chronelle_resource_share_leave`, which the readiness check requires), applied before the API built from it starts. With `CHRONELLE_BACKEND=postgres` (the default) the two
+reapplied; 0044 the Task duration; 0045 the Task repeat rule; 0046 the manual order of Tasks and Reminders; 0047 the language kept on the account; 0048 the time zone, clock, and week start kept on the account, which replaces `chronelle_user_locale_update` with `chronelle_user_preferences_update` and is applied before the API built from it starts; 0049 the rail order and hidden collections kept on the account, which redefines `chronelle_user_preferences_update` in place; 0050 the Person nickname, description, contacts, and labels, after which the runtime role grants are reapplied for `person_contacts` and `person_labels`; 0051 friends (`user_connections`, `user_invitations`, the `chronelle_friend_*` functions the readiness check requires, and `chronelle_assert_person_state` replaced in place), after which the runtime role grants are reapplied for the two new tables; 0052 shares waiting on an invitation (`pending_shares`, the `chronelle_pending_share_*` and `chronelle_workspace_member_*` functions the readiness check requires, `chronelle_resource_share` redefined with a friend grantee, and the friend respond, withdraw, and claim functions replaced in place), after which the runtime role grants are reapplied for the new table and for deleting workspace members; 0053 the tabs kept on the account for each event, which redefines `chronelle_user_preferences_update` in place; 0054 what is shared each way with a person (`chronelle_person_shares_list`, which the readiness check requires); 0055 the username every account carries (existing accounts named from their display names) and the discovery switches, which replaces `chronelle_identity_sign_in` with a six-argument one and is applied before the API built from it starts, installs the trusted `pg_trgm` and `unaccent` extensions with trigram indexes on `users` for Find people, and adds `chronelle_username_available`, `chronelle_account_update`, `chronelle_users_search`, `chronelle_user_lookup`, and `chronelle_friend_request`, which the readiness check requires; after it the runtime role script is reapplied for its `EXECUTE` grants on the search functions; 0056 the Welcome step (`users.onboarded_at`, every existing account completed), `chronelle_identity_sign_in` and `chronelle_account_update` redefined in place, and `chronelle_password_credential_lookup` replaced with one that takes an email or a username, applied before the API built from it starts; 0057 cards resolved by their link, else by any email contact (`persons.email` dropped, `chronelle_person_account` added, which the readiness check requires, `chronelle_resource_share`, `chronelle_person_shares_list`, and the person write helpers redefined in place, and `chronelle_assert_person_state` replaced with a three-argument one), applied before the API built from it starts; 0058 invitation links (`user_invitations.email` nullable, `channel` and `token` added; `chronelle_friend_invite` and `chronelle_friend_resend` replaced with versions that take the token and channel, applied before the API built from it starts; `chronelle_friend_invitation_json` and `chronelle_friend_invitations_claim` redefined in place; `chronelle_friend_link`, `chronelle_friend_invitation_peek`, and `chronelle_friend_invitation_accept` added, which the readiness check requires; the link the API emails and answers is built from `WEB_PUBLIC_URL`); 0059 the place of a schedule item (`events.location`, `chronelle_assert_event_location`, the Event serialize, insert, validate, and apply functions and `chronelle_command_content` redefined in place); 0060 the Note object type (`objects_type_valid` admits `note`, the `notes` table, `chronelle_assert_note_state`, the `chronelle_note_*` write steps, `chronelle_note_create`, `chronelle_note_update`, and `chronelle_note_list`, which the readiness check requires, and the write core, restore, search, and relation rule redefined in place), applied before the API built from it starts; after it the runtime role script is reapplied for its grants on `notes`; 0061 the description of an Event and a Task (`events.description`, `tasks.description`, `chronelle_assert_description`, the Event and Task serialize, insert, validate, and apply functions and `chronelle_command_content` redefined in place); 0062 the sections of an Event's To-dos and Expenses (the `sections` table, `tasks.section_id` and `expenses.section_id`, `chronelle_rank_between`, `chronelle_assert_section_member`, the `chronelle_section_*` functions the readiness check requires, and the Task and Expense serialize, insert, validate, and apply functions redefined in place), applied before the API built from it starts; after it the runtime role script is reapplied for its grants on `sections`; 0063 shares narrowed to a view or a section of an Event (`resource_grants.scope`, `section_id`, and the wider unique key; `chronelle_grant_admits` and `chronelle_section_visible`, which the readiness check requires; the `chronelle_can_*` functions, the held role, `chronelle_person_shares_list`, and `chronelle_section_list` redefined in place; `chronelle_resource_share` replaced with one that takes a scope), applied before the API built from it starts; 0064 when each workspace was last opened, kept on the account (`users.workspace_recency`), which redefines `chronelle_user_preferences_update` in place; 0065 leaving a share (`chronelle_resource_share_leave`, which the readiness check requires), applied before the API built from it starts. With `LIVTALES_BACKEND=postgres` (the default) the two
 flags are staged opt-ins and the API still connects to `DATABASE_URL` at
 startup; the CloudBase backend below removes that connection.
 
@@ -340,16 +340,16 @@ CLOUDBASE_AUTH_TIMEOUT_MS=10000
 
 Verify the provider identifiers against `/auth/v1/user/me` in the target
 environment. The API sends the end-user bearer token only to that endpoint and
-exchanges it for an opaque Chronelle session. Keep `CLOUDBASE_APIKEY` and any
+exchanges it for an opaque LivTales session. Keep `CLOUDBASE_APIKEY` and any
 WeChat AppSecret server-side. To roll back the route without altering linked
 accounts, set `ENABLE_WECHAT_AUTH=false` and redeploy the API.
 
 ### Run on the CloudBase backend
 
-`CHRONELLE_BACKEND=cloudbase` serves every read and write from the gateway.
+`LIVTALES_BACKEND=cloudbase` serves every read and write from the gateway.
 `DATABASE_URL` is not read; the API never opens a PostgreSQL connection, and
 a service that still reached one would fail with
-`PostgreSQL is not available: CHRONELLE_BACKEND=cloudbase serves from the
+`PostgreSQL is not available: LIVTALES_BACKEND=cloudbase serves from the
 gateway`. Both CloudBase flags are implied and may not be set to `false`.
 `CLOUDBASE_ENV_ID` and a fresh `CLOUDBASE_APIKEY` are required as for the
 flags, and the document storage provider is configured as before.
@@ -369,11 +369,20 @@ rejections below 500 (conflicts, denials, missing records) at info level,
 and timeouts, failures, and 5xx rejections at error level. Aggregate those
 lines for latency percentiles, rejection counts by code, and error rates.
 
-Switching back is configuration: set `CHRONELLE_BACKEND=postgres` with a
+Switching back is configuration: set `LIVTALES_BACKEND=postgres` with a
 `DATABASE_URL` for the same database. The functions stay installed and
 unused; nothing else changes. The operating procedure, including the order
 of migrations and the verification commands, is in
 [the CloudBase backend runbook](cloudbase-backend-runbook.md).
+
+`LIVTALES_BACKEND`, `LIVTALES_MIGRATIONS_DIR`, and `LIVTALES_RUNTIME_ROLE`
+were named `CHRONELLE_*` before. The API, the migration runner, and the
+runtime role script stop, naming the replacement, when a legacy name is set
+without the new one or with a different value; both names with the same value
+are accepted. Operator note: rename the variable on the `chronelle-api`
+service at its next deploy (add `LIVTALES_BACKEND=cloudbase` before releasing
+the new image, then remove `CHRONELLE_BACKEND` once no rollback to an older
+image is expected).
 
 ### Seed the test accounts
 
@@ -383,7 +392,7 @@ the three test accounts and their data (listed in
 the gateway, the way the deployed API serves them:
 
 ```bash
-CHRONELLE_BACKEND=cloudbase CLOUDBASE_ENV_ID=... CLOUDBASE_APIKEY=... \
+LIVTALES_BACKEND=cloudbase CLOUDBASE_ENV_ID=... CLOUDBASE_APIKEY=... \
   WEB_PUBLIC_URL=https://<the web service's public origin> \
   SEED_PASSWORD='choose a long one' pnpm seed:test-data
 ```
@@ -401,18 +410,18 @@ per environment, after a data wipe when a fresh set is wanted.
 Build the UI image from the repository root:
 
 ```bash
-docker build -f apps/web/Dockerfile -t chronelle-web .
+docker build -f apps/web/Dockerfile -t livtales-web .
 ```
 
 When the API runs on the Docker host on a trusted interface, this preview
 command exposes only the web port on loopback:
 
 ```bash
-docker run --rm --name chronelle-web \
+docker run --rm --name livtales-web \
   --add-host=host.docker.internal:host-gateway \
   --publish 127.0.0.1:3000:3000 \
   --env API_INTERNAL_URL=http://host.docker.internal:4000 \
-  chronelle-web
+  livtales-web
 ```
 
 An API bound only to host loopback is not necessarily reachable from a
@@ -445,8 +454,8 @@ dependency-local agent settings are excluded from the API artifact.
 Build both images from the repository root:
 
 ```bash
-docker build -f apps/api/Dockerfile -t chronelle-api:local .
-docker build -f apps/web/Dockerfile -t chronelle-web:local .
+docker build -f apps/api/Dockerfile -t livtales-api:local .
+docker build -f apps/web/Dockerfile -t livtales-web:local .
 ```
 
 Set a unique, URL-safe `POSTGRES_PASSWORD` in the private `.env` file, using
@@ -462,7 +471,7 @@ provider writes verification codes to the API log and is not for a
 deployment; `EMAIL_PROVIDER=file` with `EMAIL_FILE_PATH` appends them to a
 file on the instance for an internal test whose operator hands codes to
 testers by other means). Friend invitation emails link to the web origin
-in `WEB_PUBLIC_URL` (for example `https://chronelle.example`); set it on
+in `WEB_PUBLIC_URL` (for example `https://livtales.example`); set it on
 the API service, or the links point at `http://localhost:3000`. Start it from the repository root:
 
 ```bash
@@ -496,6 +505,17 @@ Back up the database and matching document volume before upgrades. Keep the
 same password and project name for an existing database. Ordinary `down`
 preserves named volumes; do not add `--volumes` to a persistent preview stack.
 
+Upgrade the Compose file together with the images. Since the LivTales rename
+the API image keeps documents in `/app/.livtales/storage` instead of
+`/app/.chronelle/storage`, and the migrate command runs the `@livtales/*`
+packages, so an earlier `compose.preview.yaml` mounts the `documents` volume
+where the API no longer looks and its migrate step fails. The volume keeps its
+name, so the new file mounts the existing documents. Any other deployment of the
+API image that sets `LOCAL_STORAGE_ROOT=/app/.chronelle/storage` must set
+`/app/.livtales/storage` (moving a volume mounted there) or unset it: the image
+no longer creates `/app/.chronelle`, the `node` user cannot create it, and every
+upload fails while the health check still passes.
+
 ### Database privilege boundary
 
 `infrastructure/database/runtime-role.sql` is a version-controlled administrative
@@ -504,7 +524,7 @@ after migrations/baselines and before the API starts. The one-shot `runtime-role
 container uses PostgreSQL's client and mounts the policy read-only. Deploy this
 SQL file alongside the Compose file, even when using registry-hosted images.
 
-The policy requires a dedicated Chronelle database: it revokes public schema,
+The policy requires a dedicated LivTales database: it revokes public schema,
 table, function, sequence, and database privileges before granting the runtime
 login its explicit operations. Do not apply it to a database shared with other
 applications. Existing runtime roles with elevated attributes, role memberships,
@@ -530,9 +550,12 @@ needs new operations.
 
 Provisioning outside Compose uses a database administrator's `PGHOST`, `PGPORT`,
 `PGDATABASE`, `PGUSER`, and `PGPASSWORD` environment settings, plus the separate
-`RUNTIME_DATABASE_PASSWORD`. An optional `CHRONELLE_RUNTIME_ROLE` must be
+`RUNTIME_DATABASE_PASSWORD`. An optional `LIVTALES_RUNTIME_ROLE` must be
 `chronelle_runtime` or that prefix plus an underscore and lowercase alphanumeric
-suffix, up to 63 characters total. Run with startup files disabled:
+suffix, up to 63 characters total: the variable is named for LivTales, but the
+PostgreSQL role keeps its `chronelle_runtime` name. The legacy
+`CHRONELLE_RUNTIME_ROLE` stops the script unless it matches
+`LIVTALES_RUNTIME_ROLE`. Run with startup files disabled:
 
 ```bash
 psql -X --no-password --file infrastructure/database/runtime-role.sql
@@ -556,7 +579,7 @@ release requirements.
 After building the local images, run the disposable container gate:
 
 ```bash
-API_IMAGE=chronelle-api:local WEB_IMAGE=chronelle-web:local pnpm test:containers
+API_IMAGE=livtales-api:local WEB_IMAGE=livtales-web:local pnpm test:containers
 ```
 
 It creates a unique Compose project with synthetic credentials and an empty

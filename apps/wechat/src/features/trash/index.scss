@@ -26,7 +26,7 @@
   margin: 0 0 35rpx;
   padding: 0;
   background: transparent;
-  color: var(--chronelle-indigo);
+  color: var(--livtales-indigo);
   font-size: 23rpx;
   font-weight: 600;
 }
@@ -51,7 +51,7 @@
 .trash-eyebrow,
 .trash-row__type,
 .trash-card__type {
-  color: var(--chronelle-cinnabar);
+  color: var(--livtales-cinnabar);
   font-size: 20rpx;
   font-weight: 650;
   letter-spacing: 2rpx;
@@ -68,9 +68,9 @@
 .trash-row,
 .trash-card,
 .trash-state {
-  border: 1rpx solid var(--chronelle-line);
+  border: 1rpx solid var(--livtales-line);
   border-radius: 22rpx;
-  background: var(--chronelle-surface);
+  background: var(--livtales-surface);
 }
 
 .trash-filter {
@@ -88,13 +88,13 @@
 .trash-card__detail,
 .trash-card__note,
 .trash-state__detail {
-  color: var(--chronelle-muted);
+  color: var(--livtales-muted);
   font-size: 22rpx;
   line-height: 1.6;
 }
 
 .trash-filter__value {
-  color: var(--chronelle-indigo);
+  color: var(--livtales-indigo);
   font-size: 24rpx;
   font-weight: 600;
 }
@@ -116,7 +116,7 @@
   width: 100%;
   margin: 0 0 16rpx;
   padding: 25rpx 27rpx;
-  color: var(--chronelle-ink);
+  color: var(--livtales-ink);
   text-align: left;
 }
 
@@ -158,15 +158,15 @@
 .trash-card__note {
   margin-top: 27rpx;
   padding-top: 22rpx;
-  border-top: 1rpx solid var(--chronelle-line);
+  border-top: 1rpx solid var(--livtales-line);
 }
 
 .trash-alert {
   margin-top: 22rpx;
   padding: 18rpx 20rpx;
   border-radius: 14rpx;
-  background: var(--chronelle-cinnabar-soft);
-  color: var(--chronelle-cinnabar);
+  background: var(--livtales-cinnabar-soft);
+  color: var(--livtales-cinnabar);
   font-size: 22rpx;
   line-height: 1.55;
 }
@@ -178,16 +178,16 @@
   justify-content: center;
   margin: 28rpx 0 0;
   border-radius: 17rpx;
-  background: var(--chronelle-cinnabar);
-  color: var(--chronelle-surface-strong);
+  background: var(--livtales-cinnabar);
+  color: var(--livtales-surface-strong);
   font-size: 26rpx;
   font-weight: 600;
 }
 
 .trash-button--secondary {
-  border: 1rpx solid var(--chronelle-line-strong);
+  border: 1rpx solid var(--livtales-line-strong);
   background: transparent;
-  color: var(--chronelle-indigo);
+  color: var(--livtales-indigo);
 }
 
 .trash-state {

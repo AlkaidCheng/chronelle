@@ -2,8 +2,8 @@ import {
   withReadAuthorization,
   type AuthorizationDatabase,
   type UserPrincipal,
-} from "@chronelle/authorization";
-import { objects, type ObjectType } from "@chronelle/db";
+} from "@livtales/authorization";
+import { objects, type ObjectType } from "@livtales/db";
 import { and, asc, desc, eq, gt, lt, or, sql } from "drizzle-orm";
 
 import {

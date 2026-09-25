@@ -2,7 +2,7 @@ import {
   workspaces,
   type Database,
   type DatabaseTransaction,
-} from "@chronelle/db";
+} from "@livtales/db";
 import { eq, is } from "drizzle-orm";
 import { PgTransaction } from "drizzle-orm/pg-core";
 

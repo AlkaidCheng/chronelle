@@ -2,8 +2,8 @@ import type {
   GrantMutationContext,
   ResourceGrantResource,
   ResourceGrantService,
-} from "@chronelle/authorization";
-import type { EventPlanningObjectService } from "@chronelle/object-model";
+} from "@livtales/authorization";
+import type { EventPlanningObjectService } from "@livtales/object-model";
 import {
   eventPlanningResourceResponseSchema,
   objectAccessResponseSchema,
@@ -18,7 +18,7 @@ import {
   shareResponseSchema,
   shareLeaveResponseSchema,
   shareRevocationResponseSchema,
-} from "@chronelle/schemas";
+} from "@livtales/schemas";
 import type { FastifyInstance, FastifyRequest } from "fastify";
 
 import { serializeResource } from "../event-planning/serialization.js";

@@ -61,7 +61,7 @@ export async function setKeyboardPreferences(
         if (value === undefined) continue;
         if (value === defaults[name]) localStorage.removeItem(keys[name]);
         else localStorage.setItem(keys[name], value);
-        window.dispatchEvent(new Event(`chronelle:${name}-shortcut`));
+        window.dispatchEvent(new Event(`livtales:${name}-shortcut`));
       }
     }, preferences);
     return;

@@ -1,6 +1,6 @@
 "use client";
 
-import type { TaskResponse } from "@chronelle/schemas";
+import type { TaskResponse } from "@livtales/schemas";
 import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 

@@ -1,4 +1,4 @@
-import { CloudBaseRpcError } from "@chronelle/db";
+import { CloudBaseRpcError } from "@livtales/db";
 import { describe, expect, it, vi } from "vitest";
 import { CloudBaseWeChatAuthStore } from "../src/authentication/wechat-auth-store.js";
 import { WeChatCredentialRejectedError } from "../src/errors.js";
@@ -48,7 +48,7 @@ describe("CloudBaseWeChatAuthStore", () => {
     await expect(
       store.exchange({
         provider: "cloudbase-wechat",
-        subject: "chronelle-test:cloud-user-1",
+        subject: "livtales-test:cloud-user-1",
         proofHash: "a".repeat(64),
         proofExpiresAt,
         observedAt,
@@ -62,7 +62,7 @@ describe("CloudBaseWeChatAuthStore", () => {
     });
     expect(rpc).toHaveBeenCalledExactlyOnceWith("chronelle_wechat_exchange", {
       identity_provider: "cloudbase-wechat",
-      provider_subject: "chronelle-test:cloud-user-1",
+      provider_subject: "livtales-test:cloud-user-1",
       proof_hash: "a".repeat(64),
       proof_expires_at: proofExpiresAt.toISOString(),
       session_token_hash: "b".repeat(64),
@@ -80,7 +80,7 @@ describe("CloudBaseWeChatAuthStore", () => {
       store.link({
         userId,
         provider: "cloudbase-wechat",
-        subject: "chronelle-test:cloud-user-1",
+        subject: "livtales-test:cloud-user-1",
         proofHash: "c".repeat(64),
         proofExpiresAt,
         observedAt,
@@ -92,7 +92,7 @@ describe("CloudBaseWeChatAuthStore", () => {
       {
         user_id: userId,
         identity_provider: "cloudbase-wechat",
-        provider_subject: "chronelle-test:cloud-user-1",
+        provider_subject: "livtales-test:cloud-user-1",
         proof_hash: "c".repeat(64),
         proof_expires_at: proofExpiresAt.toISOString(),
         observed_at: observedAt.toISOString(),
@@ -119,7 +119,7 @@ describe("CloudBaseWeChatAuthStore", () => {
     });
     const input = {
       provider: "cloudbase-wechat",
-      subject: "chronelle-test:cloud-user-1",
+      subject: "livtales-test:cloud-user-1",
       proofHash: "d".repeat(64),
       proofExpiresAt,
       observedAt,

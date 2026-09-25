@@ -2,7 +2,7 @@
 
 ## Goal
 
-Make CloudBase a viable deployment backend for Chronelle without duplicating
+Make CloudBase a viable deployment backend for LivTales without duplicating
 canonical business data or weakening the guarantees already provided by the
 PostgreSQL implementation.
 
@@ -15,7 +15,7 @@ require native TCP or database transactions.
 
 - A canonical object keeps one identity regardless of backend or projection.
 - Workspace isolation and centralized authorization remain application rules;
-  CloudBase credentials never become a substitute for Chronelle authorization.
+  CloudBase credentials never become a substitute for LivTales authorization.
 - Every mutation remains auditable.
 - Optimistic concurrency must reject stale writes rather than silently overwrite.
 - Recovery, undo/redo, and soft deletion must remain atomic from the caller's
@@ -28,7 +28,7 @@ require native TCP or database transactions.
 Completed in PR #78:
 
 - CloudBase gateway connectivity probe using a short-lived server-side key.
-- `@chronelle/db` CloudBase RDB read transport.
+- `@livtales/db` CloudBase RDB read transport.
 - Dynamic table-name validation and bounded pagination.
 - Explicit capability metadata showing that this transport is not a native TCP
   or transaction boundary.
@@ -57,7 +57,7 @@ CloudBase run against staging.
 The CloudBase RDB transport now exposes validated equality, null, pattern, and
 membership filters plus deterministic ordering. These are transport primitives
 only; application repositories still own authorization and must not treat an
-API key as a substitute for Chronelle permission evaluation.
+API key as a substitute for LivTales permission evaluation.
 
 The first real application adapter is now available for calendar projections:
 `CloudBaseCalendarReadRepository` loads the canonical event, active `includes`
@@ -489,7 +489,7 @@ without exposing credentials or private attachment URLs.
 
 ### Optional Phase 7 — Native TCP deployment
 
-If Chronelle needs full transaction semantics, use a dedicated/private
+If LivTales needs full transaction semantics, use a dedicated/private
 PostgreSQL route when CloudBase makes one available, or run PostgreSQL as a
 separate managed service. The existing schema, SQL migrations, Drizzle models,
 and integration tests are deliberately retained for this option.
@@ -550,7 +550,7 @@ their refusals, and the sign-in rows, membership, audits, sessions, and
 workspace lists for an Owner and a grant-only guest across expired,
 deleted-object, and Owner grants.
 
-**Backend mode:** `CHRONELLE_BACKEND=cloudbase` serves every read and write
+**Backend mode:** `LIVTALES_BACKEND=cloudbase` serves every read and write
 from the gateway without a PostgreSQL connection; the API binds its
 services to a disconnected database that fails with the reason if anything
 still reaches it, and at startup calls `chronelle_backend_readiness`
@@ -563,7 +563,7 @@ does through PostgreSQL, so a seeded environment needs no connection. The
 transport reports every gateway request (kind, target, duration, outcome
 with the gateway's status and code) to an observer the API logs through
 its logger, which gives latency, rejection, and error metrics without a
-second pipeline. `CHRONELLE_BACKEND=postgres` remains the default with the
+second pipeline. `LIVTALES_BACKEND=postgres` remains the default with the
 two flags as staged opt-ins, and switching back is that setting plus a
 `DATABASE_URL`. The runbook in `docs/cloudbase-backend-runbook.md` covers
 enabling, verifying, observing, and rolling back.

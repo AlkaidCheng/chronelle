@@ -16,7 +16,7 @@ import {
   userInvitations,
   users,
   workspaces,
-} from "@chronelle/db";
+} from "@livtales/db";
 import { and, asc, eq, gt, isNull, or, sql } from "drizzle-orm";
 
 import {

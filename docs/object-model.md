@@ -1,6 +1,6 @@
 # Object Model
 
-Chronelle combines a common canonical envelope with typed domain tables. The
+LivTales combines a common canonical envelope with typed domain tables. The
 first vertical slice uses `Event`, `Task`, `Expense`, `Reminder`, and `Document`
 objects to support event planning.
 

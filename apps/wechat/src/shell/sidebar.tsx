@@ -1,4 +1,4 @@
-import type { SessionResponse } from "@chronelle/schemas";
+import type { SessionResponse } from "@livtales/schemas";
 import { Button, Text, View } from "@tarojs/components";
 import Taro from "@tarojs/taro";
 import { useState } from "react";

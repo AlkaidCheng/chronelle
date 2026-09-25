@@ -1,11 +1,11 @@
 "use client";
 
-import { ChronelleApiClient } from "@chronelle/api-client";
+import { LivTalesApiClient } from "@livtales/api-client";
 import { createContext, type ReactNode, useContext, useMemo } from "react";
 
 import { useAuthSession } from "./auth-session";
 
-const ApiClientContext = createContext<ChronelleApiClient | null>(null);
+const ApiClientContext = createContext<LivTalesApiClient | null>(null);
 
 export function ApiClientProvider({
   children,
@@ -16,7 +16,7 @@ export function ApiClientProvider({
 
   const client = useMemo(
     () =>
-      new ChronelleApiClient({
+      new LivTalesApiClient({
         getCredential: () => credential,
         signal,
       }),
@@ -30,7 +30,7 @@ export function ApiClientProvider({
   );
 }
 
-export function useApiClient(): ChronelleApiClient {
+export function useApiClient(): LivTalesApiClient {
   const client = useContext(ApiClientContext);
   if (client === null) {
     throw new Error("useApiClient must be used within ApiClientProvider.");

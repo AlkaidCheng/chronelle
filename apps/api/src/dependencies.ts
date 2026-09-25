@@ -2,8 +2,8 @@ import {
   AuthorizationService,
   DrizzleAuthorizationStore,
   ResourceGrantService,
-} from "@chronelle/authorization";
-import type { CloudBaseRdbClient, DatabaseConnection } from "@chronelle/db";
+} from "@livtales/authorization";
+import type { CloudBaseRdbClient, DatabaseConnection } from "@livtales/db";
 import {
   CanonicalObjectSearchService,
   CloudBaseCalendarReadRepository,
@@ -52,11 +52,11 @@ import {
   ReversibleCommandService,
   SectionService,
   StorageInventoryService,
-} from "@chronelle/object-model";
+} from "@livtales/object-model";
 import {
   LocalFilesystemStorageProvider,
   type StorageProvider,
-} from "@chronelle/storage";
+} from "@livtales/storage";
 
 import type { AuthProvider } from "./authentication/auth-provider.js";
 import { CloudBaseCredentialStore } from "./authentication/cloudbase-credential-store.js";
@@ -280,7 +280,7 @@ export function createAppDependencies(
   const storage =
     options.storage ??
     new LocalFilesystemStorageProvider({
-      root: options.localStorageRoot ?? ".chronelle/storage",
+      root: options.localStorageRoot ?? ".livtales/storage",
     });
   // Friends follow the identity store: the gateway once a client exists.
   const friends = new FriendService(

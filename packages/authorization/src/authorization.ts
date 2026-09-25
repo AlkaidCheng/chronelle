@@ -1,4 +1,4 @@
-import type { GrantScope, Role } from "@chronelle/db";
+import type { GrantScope, Role } from "@livtales/db";
 import type { SQL } from "drizzle-orm";
 
 export const authorizationActions = [

@@ -1,4 +1,4 @@
-import type { SectionResponse, TaskResponse } from "@chronelle/schemas";
+import type { SectionResponse, TaskResponse } from "@livtales/schemas";
 import { describe, expect, it } from "vitest";
 
 import {

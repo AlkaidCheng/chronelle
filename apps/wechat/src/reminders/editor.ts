@@ -2,7 +2,7 @@ import type {
   EventContextCreatePayload,
   ReminderResponse,
   ReminderUpdatePayload,
-} from "@chronelle/schemas";
+} from "@livtales/schemas";
 
 import {
   clockPattern,

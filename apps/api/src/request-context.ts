@@ -1,4 +1,4 @@
-import type { UserPrincipal } from "@chronelle/authorization";
+import type { UserPrincipal } from "@livtales/authorization";
 import { z } from "zod";
 import type { FastifyInstance, FastifyRequest } from "fastify";
 

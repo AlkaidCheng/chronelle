@@ -1,6 +1,6 @@
 "use client";
 
-import type { EventComponentView } from "@chronelle/schemas";
+import type { EventComponentView } from "@livtales/schemas";
 import { useState } from "react";
 
 import { type DayKey, monthDays, today, weekDays } from "./day-placement";

@@ -8,7 +8,7 @@ import type {
   SectionResponse,
   TaskResponse,
   TimelineResponse,
-} from "@chronelle/schemas";
+} from "@livtales/schemas";
 import { useTranslations } from "next-intl";
 import {
   Fragment,

@@ -1,4 +1,4 @@
-import type { SectionResponse } from "@chronelle/schemas";
+import type { SectionResponse } from "@livtales/schemas";
 import { Button, Input, Text, Textarea, View } from "@tarojs/components";
 import Taro from "@tarojs/taro";
 import { useState } from "react";

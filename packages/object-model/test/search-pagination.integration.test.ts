@@ -7,16 +7,16 @@ import {
   users,
   workspaceMembers,
   workspaces,
-} from "@chronelle/db";
+} from "@livtales/db";
 import {
   applyMigrations,
   createTestDatabase,
   type TestDatabase,
-} from "@chronelle/db/testing";
+} from "@livtales/db/testing";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { eq, inArray, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/postgres-js";
-import * as schema from "@chronelle/db";
+import * as schema from "@livtales/db";
 import { InvalidObjectStateError } from "../src/errors.js";
 import { CanonicalObjectSearchService } from "../src/search-service.js";
 

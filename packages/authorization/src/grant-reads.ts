@@ -1,4 +1,4 @@
-import { resourceGrants, users, type Database } from "@chronelle/db";
+import { resourceGrants, users, type Database } from "@livtales/db";
 import { and, asc, eq, gt, isNull, or } from "drizzle-orm";
 
 import type { UserPrincipal } from "./authorization.js";

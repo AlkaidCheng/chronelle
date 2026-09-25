@@ -1,4 +1,4 @@
-import type { ExpenseResponse, ObjectAccessResponse } from "@chronelle/schemas";
+import type { ExpenseResponse, ObjectAccessResponse } from "@livtales/schemas";
 
 import type { PlanningProjection } from "../features/planning/data";
 

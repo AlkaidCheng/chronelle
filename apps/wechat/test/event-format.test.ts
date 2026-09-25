@@ -1,4 +1,4 @@
-import type { EventResponse } from "@chronelle/schemas";
+import type { EventResponse } from "@livtales/schemas";
 import { describe, expect, it } from "vitest";
 
 import { formatEventSchedule } from "../src/events/format";

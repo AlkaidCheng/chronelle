@@ -3,9 +3,27 @@
 \set runtime_role chronelle_runtime
 \set runtime_password ''
 \set owner_password ''
-\getenv runtime_role CHRONELLE_RUNTIME_ROLE
+\getenv runtime_role LIVTALES_RUNTIME_ROLE
 \getenv runtime_password RUNTIME_DATABASE_PASSWORD
 \getenv owner_password PGPASSWORD
+
+-- CHRONELLE_RUNTIME_ROLE is the legacy name of LIVTALES_RUNTIME_ROLE. It stops
+-- provisioning unless LIVTALES_RUNTIME_ROLE is set to the same value, so a
+-- deployment that still sets it cannot fall back to the default role.
+\getenv legacy_runtime_role CHRONELLE_RUNTIME_ROLE
+\getenv renamed_runtime_role LIVTALES_RUNTIME_ROLE
+\if :{?legacy_runtime_role}
+\if :{?renamed_runtime_role}
+SELECT :'legacy_runtime_role' = :'renamed_runtime_role' AS legacy_runtime_role_matches
+\gset
+\else
+\set legacy_runtime_role_matches false
+\endif
+\if :legacy_runtime_role_matches
+\else
+DO $$ BEGIN RAISE EXCEPTION 'CHRONELLE_RUNTIME_ROLE was renamed to LIVTALES_RUNTIME_ROLE. Set LIVTALES_RUNTIME_ROLE to the intended role and remove CHRONELLE_RUNTIME_ROLE.'; END $$;
+\endif
+\endif
 
 BEGIN;
 SET LOCAL search_path = pg_catalog, public;
@@ -50,7 +68,7 @@ SELECT format(
 ) WHERE NOT EXISTS (SELECT FROM pg_roles WHERE rolname = :'runtime_role')
 \gexec
 
--- This policy is for a dedicated Chronelle database, not a shared application schema.
+-- This policy is for a dedicated LivTales database, not a shared application schema.
 REVOKE ALL ON DATABASE :"database_name" FROM PUBLIC, :"runtime_role";
 GRANT CONNECT ON DATABASE :"database_name" TO :"runtime_role";
 REVOKE ALL ON SCHEMA public FROM PUBLIC, :"runtime_role";

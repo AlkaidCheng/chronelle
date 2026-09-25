@@ -1,6 +1,6 @@
 "use client";
 
-import type { SectionResponse } from "@chronelle/schemas";
+import type { SectionResponse } from "@livtales/schemas";
 import { useTranslations } from "next-intl";
 import { useId } from "react";
 

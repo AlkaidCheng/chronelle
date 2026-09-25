@@ -1,6 +1,6 @@
 "use client";
 
-import type { NoteResponse } from "@chronelle/schemas";
+import type { NoteResponse } from "@livtales/schemas";
 import { useTranslations } from "next-intl";
 import { type FormEvent, useMemo, useState } from "react";
 import { CountedField } from "../../components/counted-field";

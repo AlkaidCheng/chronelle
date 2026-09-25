@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Chronelle &middot; CloudBase rpc write port</title>
+    <title>LivTales &middot; CloudBase rpc write port</title>
     <style>
       :root {
         color-scheme: light;
@@ -222,7 +222,7 @@
   </head>
   <body>
     <main>
-      <div class="eyebrow">Chronelle &middot; deployment architecture</div>
+      <div class="eyebrow">LivTales &middot; deployment architecture</div>
       <h1>CloudBase rpc write port</h1>
       <p class="lede">
         The route from a PostgreSQL-only API to one that runs on the shared
@@ -279,7 +279,7 @@
         <code>chronelle_document_finalize</code> (migration 0026) around an
         unchanged storage provider, the layout and identity reads (migration
         0027 for the sign-in) complete the request path, and
-        <code>CHRONELLE_BACKEND=cloudbase</code> runs the API from the gateway
+        <code>LIVTALES_BACKEND=cloudbase</code> runs the API from the gateway
         alone behind the readiness check of migration 0028 and the baseline of
         0029. The port is complete; the Drizzle backend stays the default.
       </aside>
@@ -524,7 +524,7 @@
             </li>
             <li>
               One backend mode in deployment configuration
-              (<code>CHRONELLE_BACKEND</code>); startup calls
+              (<code>LIVTALES_BACKEND</code>); startup calls
               <code>chronelle_backend_readiness</code> (migration 0028) and
               refuses to serve until every required function is installed and
               the revision baseline holds, which

@@ -1,8 +1,8 @@
 import {
   InvalidShareError,
   PrincipalUnavailableError,
-} from "@chronelle/authorization";
-import { CloudBaseRpcError } from "@chronelle/db";
+} from "@livtales/authorization";
+import { CloudBaseRpcError } from "@livtales/db";
 import { describe, expect, it, vi } from "vitest";
 
 import { CloudBaseSharingWriteRepository } from "../src/cloudbase-sharing-write-repository.js";

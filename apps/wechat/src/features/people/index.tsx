@@ -1,4 +1,4 @@
-import type { PersonResponse, SessionResponse } from "@chronelle/schemas";
+import type { PersonResponse, SessionResponse } from "@livtales/schemas";
 import { Button, Input, Text, View } from "@tarojs/components";
 import Taro, { usePullDownRefresh } from "@tarojs/taro";
 import { useEffect, useState } from "react";

@@ -3,7 +3,7 @@ import {
   withReadAuthorization,
   type AuthorizationDatabase,
   type UserPrincipal,
-} from "@chronelle/authorization";
+} from "@livtales/authorization";
 import {
   events,
   objects,
@@ -11,7 +11,7 @@ import {
   roles,
   users,
   type Role,
-} from "@chronelle/db";
+} from "@livtales/db";
 import {
   eventListCursorSchema,
   eventListQuerySchema,
@@ -19,7 +19,7 @@ import {
   type EventListCursor,
   type EventListQuery,
   type EventListQueryInput,
-} from "@chronelle/schemas";
+} from "@livtales/schemas";
 import {
   and,
   asc,

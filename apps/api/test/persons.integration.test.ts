@@ -1,12 +1,12 @@
 import { randomUUID } from "node:crypto";
 import { resolve } from "node:path";
 
-import { workspaceMembers } from "@chronelle/db";
+import { workspaceMembers } from "@livtales/db";
 import {
   applyMigrations,
   createTestDatabase,
   type TestDatabase,
-} from "@chronelle/db/testing";
+} from "@livtales/db/testing";
 import {
   developmentSignInResponseSchema,
   labelResponseSchema,
@@ -14,7 +14,7 @@ import {
   personListResponseSchema,
   personResponseSchema,
   trashListResponseSchema,
-} from "@chronelle/schemas";
+} from "@livtales/schemas";
 import type { FastifyInstance } from "fastify";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 

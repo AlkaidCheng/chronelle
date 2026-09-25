@@ -1,5 +1,5 @@
-import { ApiClientError } from "@chronelle/api-client";
-import type { SessionResponse } from "@chronelle/schemas";
+import { ApiClientError } from "@livtales/api-client";
+import type { SessionResponse } from "@livtales/schemas";
 import { Button, Input, Picker, Text, View } from "@tarojs/components";
 import Taro from "@tarojs/taro";
 import { useState } from "react";

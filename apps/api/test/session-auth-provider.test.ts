@@ -1,4 +1,4 @@
-import type { UserRow, UserSessionRow } from "@chronelle/db";
+import type { UserRow, UserSessionRow } from "@livtales/db";
 import { describe, expect, it, vi } from "vitest";
 
 import {

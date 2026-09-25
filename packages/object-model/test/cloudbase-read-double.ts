@@ -3,4 +3,4 @@
 export {
   createCloudBaseLiveReader as liveReader,
   createCloudBaseSnapshotReader as snapshotClient,
-} from "@chronelle/db/testing";
+} from "@livtales/db/testing";

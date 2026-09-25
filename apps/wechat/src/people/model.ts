@@ -5,7 +5,7 @@ import {
   type PersonCreatePayload,
   type PersonResponse,
   type PersonUpdatePayload,
-} from "@chronelle/schemas";
+} from "@livtales/schemas";
 
 export type ContactKind = "email" | "phone" | "other";
 

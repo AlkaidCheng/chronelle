@@ -1,4 +1,4 @@
-import type { EventComponentKind } from "@chronelle/schemas";
+import type { EventComponentKind } from "@livtales/schemas";
 
 import {
   getMessages,

@@ -1,6 +1,6 @@
 "use client";
 
-import { ApiClientError } from "@chronelle/api-client";
+import { ApiClientError } from "@livtales/api-client";
 import { useTranslations } from "next-intl";
 import type { ReactNode } from "react";
 

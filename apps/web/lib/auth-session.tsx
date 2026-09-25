@@ -1,6 +1,6 @@
 "use client";
 
-import type { ApiCredential } from "@chronelle/api-client";
+import type { ApiCredential } from "@livtales/api-client";
 
 import { sessionPresent } from "./session-cookie";
 import {

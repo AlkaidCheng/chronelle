@@ -1,8 +1,8 @@
-import type { StorageInventoryService } from "@chronelle/object-model";
+import type { StorageInventoryService } from "@livtales/object-model";
 import {
   storageInventoryQuerySchema,
   storageInventoryResponseSchema,
-} from "@chronelle/schemas";
+} from "@livtales/schemas";
 import type { FastifyInstance } from "fastify";
 import { requirePrincipal } from "../request-context.js";
 import { parseRequest } from "../request-validation.js";

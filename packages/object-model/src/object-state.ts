@@ -1,4 +1,4 @@
-import { AuthorizationDeniedError } from "@chronelle/authorization";
+import { AuthorizationDeniedError } from "@livtales/authorization";
 import {
   documents,
   events,
@@ -14,7 +14,7 @@ import {
   tasks,
   type Database,
   type DatabaseTransaction,
-} from "@chronelle/db";
+} from "@livtales/db";
 import { and, eq, sql, type SQL } from "drizzle-orm";
 
 // A task's labels in name order, read with its state.

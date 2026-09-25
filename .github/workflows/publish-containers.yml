@@ -38,7 +38,7 @@ jobs:
       - name: Verify image revisions
         run: |
           for app in api web; do
-            revision="$(docker image inspect "chronelle-${app}:validation" --format '{{ index .Config.Labels "org.opencontainers.image.revision" }}')"
+            revision="$(docker image inspect "livtales-${app}:validation" --format '{{ index .Config.Labels "org.opencontainers.image.revision" }}')"
             test "$revision" = "$GITHUB_SHA"
           done
       - name: Sign in to GitHub Container Registry
@@ -53,7 +53,7 @@ jobs:
         run: |
           for app in api web; do
             image="ghcr.io/${GITHUB_REPOSITORY,,}-${app}"
-            source="chronelle-${app}:validation"
+            source="livtales-${app}:validation"
             docker tag "$source" "${image}:sha-${GITHUB_SHA}"
             docker push "${image}:sha-${GITHUB_SHA}"
             if [ "$GITHUB_REF_TYPE" = tag ]; then

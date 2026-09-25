@@ -1,11 +1,11 @@
-import type { UserPrincipal } from "@chronelle/authorization";
+import type { UserPrincipal } from "@livtales/authorization";
 import {
   documentTransferAuthorizations,
   objectRelations,
   objects,
   type Database,
   type DocumentTransferAuthorizationRow,
-} from "@chronelle/db";
+} from "@livtales/db";
 import { and, eq, gt, isNull } from "drizzle-orm";
 
 import type { DocumentAttachmentResource, MutationContext } from "./types.js";

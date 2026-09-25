@@ -3,7 +3,7 @@ import {
   apiRequestTimeoutMs,
   maximumApiBodySizeBytes,
   maximumDocumentSizeBytes,
-} from "@chronelle/schemas";
+} from "@livtales/schemas";
 import { readRequestBody, RequestBodyError } from "../../../lib/request-body";
 import {
   clearedSessionCookies,

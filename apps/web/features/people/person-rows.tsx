@@ -1,6 +1,6 @@
 "use client";
 
-import type { PersonContactKind } from "@chronelle/schemas";
+import type { PersonContactKind } from "@livtales/schemas";
 import { useTranslations } from "next-intl";
 import {
   type FocusEvent,

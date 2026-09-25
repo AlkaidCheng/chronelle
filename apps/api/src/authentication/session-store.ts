@@ -8,7 +8,7 @@ import {
   userSessions,
   users,
   workspaces,
-} from "@chronelle/db";
+} from "@livtales/db";
 import { and, eq, gt, isNull, sql } from "drizzle-orm";
 
 /** The fields a new session is recorded with. */

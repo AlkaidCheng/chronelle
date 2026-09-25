@@ -9,7 +9,7 @@ import { FileEmailSender } from "../src/authentication/file-email-sender.js";
 let directory: string;
 
 beforeEach(async () => {
-  directory = await mkdtemp(join(tmpdir(), "chronelle-email-"));
+  directory = await mkdtemp(join(tmpdir(), "livtales-email-"));
 });
 
 afterEach(async () => {

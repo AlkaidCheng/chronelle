@@ -1,5 +1,5 @@
 {
-  "name": "@chronelle/api",
+  "name": "@livtales/api",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -9,13 +9,13 @@
   ],
   "scripts": {
     "benchmark:cloudbase": "node --env-file-if-exists=../../.env dist/benchmark-cloudbase.js",
-    "build": "pnpm --filter @chronelle/schemas build && pnpm --filter @chronelle/object-model build && tsc -p tsconfig.build.json",
-    "dev": "pnpm --filter @chronelle/schemas build && pnpm --filter @chronelle/object-model build && tsx watch src/server.ts",
+    "build": "pnpm --filter @livtales/schemas build && pnpm --filter @livtales/object-model build && tsc -p tsconfig.build.json",
+    "dev": "pnpm --filter @livtales/schemas build && pnpm --filter @livtales/object-model build && tsx watch src/server.ts",
     "start": "node dist/server.js",
     "seed:test-data": "node --env-file-if-exists=.env dist/seed-test-data.js",
-    "test": "pnpm --filter @chronelle/schemas build && pnpm --filter @chronelle/object-model build && vitest run",
+    "test": "pnpm --filter @livtales/schemas build && pnpm --filter @livtales/object-model build && vitest run",
     "test:unit": "vitest run",
-    "typecheck": "pnpm --filter @chronelle/schemas build && pnpm --filter @chronelle/object-model build && tsc -p tsconfig.json --noEmit",
+    "typecheck": "pnpm --filter @livtales/schemas build && pnpm --filter @livtales/object-model build && tsc -p tsconfig.json --noEmit",
     "typecheck:unit": "tsc -p tsconfig.json --noEmit"
   },
   "devDependencies": {
@@ -23,11 +23,11 @@
     "cos-nodejs-sdk-v5": "3.0.0"
   },
   "dependencies": {
-    "@chronelle/authorization": "workspace:*",
-    "@chronelle/db": "workspace:*",
-    "@chronelle/object-model": "workspace:*",
-    "@chronelle/schemas": "workspace:*",
-    "@chronelle/storage": "workspace:*",
+    "@livtales/authorization": "workspace:*",
+    "@livtales/db": "workspace:*",
+    "@livtales/object-model": "workspace:*",
+    "@livtales/schemas": "workspace:*",
+    "@livtales/storage": "workspace:*",
     "drizzle-orm": "0.45.2",
     "fastify": "5.12.5",
     "nodemailer": "^10.0.10",

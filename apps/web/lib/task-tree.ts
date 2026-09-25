@@ -1,8 +1,4 @@
-import type {
-  TaskParent,
-  TaskProgress,
-  TaskResponse,
-} from "@chronelle/schemas";
+import type { TaskParent, TaskProgress, TaskResponse } from "@livtales/schemas";
 
 /**
  * Subtask progress and parent names derived from one loaded set of tasks,

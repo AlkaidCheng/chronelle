@@ -13,7 +13,7 @@ import type {
   EventComponentKind,
   EventLayoutResponse,
   EventPage,
-} from "@chronelle/schemas";
+} from "@livtales/schemas";
 import { ErrorNotice, LoadingState } from "../../components/feedback";
 import { CheckIcon } from "../../components/icons";
 import { ViewMark } from "../../components/view-marks";

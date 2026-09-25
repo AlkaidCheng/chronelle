@@ -1,4 +1,4 @@
-import type { EventResponse, SessionResponse } from "@chronelle/schemas";
+import type { EventResponse, SessionResponse } from "@livtales/schemas";
 import { Button, Picker, Text, View } from "@tarojs/components";
 
 import { EditorFieldLabel } from "../../components/editor";

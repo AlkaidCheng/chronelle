@@ -1,4 +1,4 @@
-import type { AccessibleWorkspace, SessionResponse } from "@chronelle/schemas";
+import type { AccessibleWorkspace, SessionResponse } from "@livtales/schemas";
 import { Button, Input, ScrollView, Text, View } from "@tarojs/components";
 import { useState } from "react";
 

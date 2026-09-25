@@ -57,7 +57,7 @@ export default defineConfig({
   },
   webServer: [
     {
-      command: "pnpm --filter @chronelle/api start",
+      command: "pnpm --filter @livtales/api start",
       env: {
         API_HOST: "127.0.0.1",
         API_PORT: apiPort,
@@ -66,17 +66,17 @@ export default defineConfig({
         // The account journeys read the emailed codes from this mailbox
         // file (`apps/web/e2e/helpers/mailbox.ts`); the path is relative to
         // the API package, where the script runs.
-        EMAIL_FILE_PATH: ".chronelle/e2e-emails.jsonl",
+        EMAIL_FILE_PATH: ".livtales/e2e-emails.jsonl",
         EMAIL_PROVIDER: "file",
         ENABLE_DEVELOPMENT_AUTH: "true",
-        LOCAL_STORAGE_ROOT: ".chronelle/e2e-storage",
+        LOCAL_STORAGE_ROOT: ".livtales/e2e-storage",
       },
       reuseExistingServer: !isCi,
       timeout: 60_000,
       url: `http://127.0.0.1:${apiPort}/api/health`,
     },
     {
-      command: "pnpm --filter @chronelle/web start",
+      command: "pnpm --filter @livtales/web start",
       env: {
         API_INTERNAL_URL: `http://127.0.0.1:${apiPort}`,
         HOSTNAME: "127.0.0.1",

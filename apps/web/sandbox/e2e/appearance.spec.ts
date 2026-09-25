@@ -3,7 +3,7 @@ import { exerciseAppearance } from "../../e2e/helpers/appearance";
 import { exerciseThemePanel } from "../../e2e/helpers/display-settings";
 
 const sandboxUrl = new URL(
-  "../../../../.chronelle/sandbox/chronelle.html",
+  "../../../../.livtales/sandbox/livtales.html",
   import.meta.url,
 ).href;
 

@@ -1,4 +1,4 @@
-import type { SectionResponse } from "@chronelle/schemas";
+import type { SectionResponse } from "@livtales/schemas";
 
 interface Sectioned {
   readonly id: string;

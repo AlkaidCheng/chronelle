@@ -2,7 +2,7 @@ import {
   type TaskRepeatRule,
   type TaskResponse,
   taskRepeatRuleSchema,
-} from "@chronelle/schemas";
+} from "@livtales/schemas";
 import { tr } from "../i18n/active-locale";
 import { editedInstant } from "./edited-instant";
 import { toDateTimeInput } from "./format";

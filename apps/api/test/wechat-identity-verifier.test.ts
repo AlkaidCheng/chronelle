@@ -26,7 +26,7 @@ function profile(overrides: Record<string, unknown> = {}) {
 
 function verifier(fetch: typeof globalThis.fetch) {
   return new CloudBaseWeChatIdentityVerifier({
-    envId: "chronelle-test-123",
+    envId: "livtales-test-123",
     fetch,
     clock: () => now,
   });
@@ -43,12 +43,12 @@ describe("CloudBaseWeChatIdentityVerifier", () => {
       verifier(fetch).verify(token(expiresAt), "device-1"),
     ).resolves.toEqual({
       provider: cloudBaseWeChatIdentityProvider,
-      subject: "chronelle-test-123:cloud-user-1",
+      subject: "livtales-test-123:cloud-user-1",
       expiresAt,
     });
     const [url, request] = fetch.mock.calls[0] ?? [];
     expect(url).toBe(
-      "https://chronelle-test-123.api.tcloudbasegateway.com/auth/v1/user/me?client_id=chronelle-test-123",
+      "https://livtales-test-123.api.tcloudbasegateway.com/auth/v1/user/me?client_id=livtales-test-123",
     );
     expect(new Headers(request?.headers).get("authorization")).toBe(
       `Bearer ${token(expiresAt)}`,
@@ -150,7 +150,7 @@ describe("CloudBaseWeChatIdentityVerifier", () => {
     expect(
       () =>
         new CloudBaseWeChatIdentityVerifier({
-          envId: "chronelle-test-123",
+          envId: "livtales-test-123",
           providerIds: [" "],
         }),
     ).toThrow(TypeError);

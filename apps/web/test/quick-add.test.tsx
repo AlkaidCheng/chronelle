@@ -8,8 +8,8 @@ import {
   within,
 } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { ChronelleApiClient } from "@chronelle/api-client";
-import type { EventComponentKind } from "@chronelle/schemas";
+import { LivTalesApiClient } from "@livtales/api-client";
+import type { EventComponentKind } from "@livtales/schemas";
 import {
   afterEach,
   assert,
@@ -34,7 +34,7 @@ vi.mock("next/navigation", () => ({
 }));
 
 let store: SandboxStore;
-let client: ChronelleApiClient;
+let client: LivTalesApiClient;
 let eventId: string;
 
 function page(name: string, kinds: readonly EventComponentKind[]) {
@@ -61,7 +61,7 @@ beforeEach(async () => {
       saved = value;
     },
   });
-  client = new ChronelleApiClient({
+  client = new LivTalesApiClient({
     getCredential: () => ({
       accessToken: "sample",
       workspaceId: sandboxWorkspaceId,

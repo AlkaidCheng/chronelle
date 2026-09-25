@@ -1,7 +1,7 @@
 import { defineConfig, type UserConfigExport } from "@tarojs/cli";
 
 const config: UserConfigExport<"webpack5"> = {
-  projectName: "chronelle",
+  projectName: "livtales",
   date: "2026-09-21",
   designWidth: 750,
   deviceRatio: {

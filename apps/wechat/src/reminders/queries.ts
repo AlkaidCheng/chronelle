@@ -2,7 +2,7 @@ import type {
   EventContextCreatePayload,
   ReminderResponse,
   ReminderUpdatePayload,
-} from "@chronelle/schemas";
+} from "@livtales/schemas";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import type { PlanningProjection } from "../features/planning/data";

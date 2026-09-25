@@ -1,10 +1,10 @@
-import { ChronelleApiClient } from "@chronelle/api-client";
+import { LivTalesApiClient } from "@livtales/api-client";
 import { createContext, type ReactNode, useContext, useMemo } from "react";
 import { useAuthSession } from "./auth-session";
 import { SandboxStore } from "./store";
 
 export const store = new SandboxStore();
-const Context = createContext<ChronelleApiClient | null>(null);
+const Context = createContext<LivTalesApiClient | null>(null);
 export function ApiClientProvider({
   children,
 }: {
@@ -13,7 +13,7 @@ export function ApiClientProvider({
   const { credential, signal, role } = useAuthSession();
   const client = useMemo(
     () =>
-      new ChronelleApiClient({
+      new LivTalesApiClient({
         getCredential: () => credential,
         signal,
         fetch: (input, options) => store.fetch(input, options, role),

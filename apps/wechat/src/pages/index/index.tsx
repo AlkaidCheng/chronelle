@@ -2,7 +2,7 @@ import type {
   AccessibleWorkspace,
   EventListItem,
   SessionResponse,
-} from "@chronelle/schemas";
+} from "@livtales/schemas";
 import {
   Button,
   Input,
@@ -132,26 +132,26 @@ function SignInView({ locale }: { readonly locale: AppLocale }) {
       {showAccountForm ? (
         <>
           <View className="form-card">
-            <Label className="field-label" for="chronelle-login">
+            <Label className="field-label" for="livtales-login">
               {messages.loginLabel}
             </Label>
             <Input
               className="text-input"
               confirmType="next"
               disabled={session.busy}
-              id="chronelle-login"
+              id="livtales-login"
               maxlength={254}
               onInput={(event) => setLogin(event.detail.value)}
               value={login}
             />
-            <Label className="field-label" for="chronelle-password">
+            <Label className="field-label" for="livtales-password">
               {messages.passwordLabel}
             </Label>
             <Input
               className="text-input"
               confirmType="done"
               disabled={session.busy}
-              id="chronelle-password"
+              id="livtales-password"
               maxlength={256}
               onConfirm={submitPassword}
               password

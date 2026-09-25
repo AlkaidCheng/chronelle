@@ -4,7 +4,7 @@ import {
   applyMigrations,
   createTestDatabase,
   type TestDatabase,
-} from "@chronelle/db/testing";
+} from "@livtales/db/testing";
 import {
   developmentSignInResponseSchema,
   eventResponseSchema,
@@ -20,7 +20,7 @@ import {
   shareResponseSchema,
   workspaceMemberListResponseSchema,
   workspaceMemberSchema,
-} from "@chronelle/schemas";
+} from "@livtales/schemas";
 import type { FastifyInstance } from "fastify";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
@@ -73,7 +73,7 @@ beforeEach(async () => {
       passwordAuth: {
         issuePolicy: { minIntervalMs: 0, windowMs: 0, maxPerWindow: 0 },
       },
-      friends: { webBaseUrl: "https://chronelle.example" },
+      friends: { webBaseUrl: "https://livtales.example" },
     }),
   );
 });
@@ -349,7 +349,7 @@ describe("sharing with friends", () => {
     });
     const notice = email.latestTo("priya@example.test");
     expect(notice.subject).toBe("LivTales: Ana invited you");
-    const link = /https:\/\/chronelle\.example\/invite\/([\w-]+)/u.exec(
+    const link = /https:\/\/livtales\.example\/invite\/([\w-]+)/u.exec(
       notice.text,
     );
     expect(link).not.toBeNull();
@@ -406,7 +406,7 @@ describe("sharing with friends", () => {
       personId: nameless.id,
     });
     expect(grandpasLink?.inviteUrl).toMatch(
-      /^https:\/\/chronelle\.example\/invite\/[\w-]+$/u,
+      /^https:\/\/livtales\.example\/invite\/[\w-]+$/u,
     );
     expect(email.messages).toHaveLength(1);
 

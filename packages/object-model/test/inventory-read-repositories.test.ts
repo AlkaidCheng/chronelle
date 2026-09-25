@@ -1,8 +1,8 @@
 import type {
   AuthorizationDatabase,
   UserPrincipal,
-} from "@chronelle/authorization";
-import type { Database } from "@chronelle/db";
+} from "@livtales/authorization";
+import type { Database } from "@livtales/db";
 import { describe, expect, it, vi } from "vitest";
 
 import { EventPlanningObjectService } from "../src/object-service.js";

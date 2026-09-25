@@ -1,6 +1,6 @@
 "use client";
 
-import type { AccessSource } from "@chronelle/schemas";
+import type { AccessSource } from "@livtales/schemas";
 import { useTranslations } from "next-intl";
 import Link from "next/link";
 import { ShareIcon } from "./icons";

@@ -1,5 +1,5 @@
-import { ApiClientError } from "@chronelle/api-client";
-import type { PersonResponse, SessionResponse } from "@chronelle/schemas";
+import { ApiClientError } from "@livtales/api-client";
+import type { PersonResponse, SessionResponse } from "@livtales/schemas";
 import {
   Button,
   Input,

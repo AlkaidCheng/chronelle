@@ -1,8 +1,8 @@
 import {
   AuthorizationDeniedError,
   PrincipalUnavailableError,
-} from "@chronelle/authorization";
-import type { CloudBaseRpcError } from "@chronelle/db";
+} from "@livtales/authorization";
+import type { CloudBaseRpcError } from "@livtales/db";
 
 import {
   CommandConflictError,

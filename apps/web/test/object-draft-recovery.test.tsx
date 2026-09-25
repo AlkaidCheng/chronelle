@@ -17,7 +17,7 @@ import {
   type ReminderResponse,
   type ExpenseResponse,
   type TaskResponse,
-} from "@chronelle/schemas";
+} from "@livtales/schemas";
 import { StrictMode, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";

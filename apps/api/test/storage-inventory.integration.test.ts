@@ -10,7 +10,7 @@ import {
 } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
-import { AuthorizationService } from "@chronelle/authorization";
+import { AuthorizationService } from "@livtales/authorization";
 import {
   auditEvents,
   createId,
@@ -19,24 +19,24 @@ import {
   objectRevisions,
   objects,
   workspaceMembers,
-} from "@chronelle/db";
+} from "@livtales/db";
 import {
   applyMigrations,
   createTestDatabase,
   type TestDatabase,
-} from "@chronelle/db/testing";
-import { StorageInventoryService } from "@chronelle/object-model";
+} from "@livtales/db/testing";
+import { StorageInventoryService } from "@livtales/object-model";
 import {
   developmentSignInResponseSchema,
   documentAttachmentResponseSchema,
   documentUploadAuthorizationResponseSchema,
   eventResponseSchema,
   storageInventoryResponseSchema,
-} from "@chronelle/schemas";
+} from "@livtales/schemas";
 import {
   LocalFilesystemStorageProvider,
   type StorageProvider,
-} from "@chronelle/storage";
+} from "@livtales/storage";
 import { and, desc, eq, sql } from "drizzle-orm";
 import type { FastifyInstance, InjectOptions } from "fastify";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -50,7 +50,7 @@ let provider: LocalFilesystemStorageProvider;
 let currentTime: Date;
 
 beforeEach(async () => {
-  root = await mkdtemp(join(tmpdir(), "chronelle-inventory-api-"));
+  root = await mkdtemp(join(tmpdir(), "livtales-inventory-api-"));
   database = await createTestDatabase();
   await applyMigrations(
     { DATABASE_URL: database.databaseUrl },

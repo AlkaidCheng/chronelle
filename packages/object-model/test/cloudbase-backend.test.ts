@@ -1,4 +1,4 @@
-import { CloudBaseRpcError } from "@chronelle/db";
+import { CloudBaseRpcError } from "@livtales/db";
 import { describe, expect, it, vi } from "vitest";
 
 import {

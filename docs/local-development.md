@@ -334,6 +334,10 @@ cp .env.example .env
 pnpm install
 ```
 
+A `.env` copied from an earlier `.env.example` may still set
+`CHRONELLE_BACKEND`; the API now reads `LIVTALES_BACKEND` and stops at startup,
+naming the replacement, until that line is renamed.
+
 The repeatable three-command workflow is:
 
 ```bash
@@ -385,8 +389,8 @@ the existing section routes. Run the Mini Program tests to check time-zone day
 placement and section grouping:
 
 ```bash
-pnpm --filter @chronelle/api-client test
-pnpm --filter @chronelle/wechat test
+pnpm --filter @livtales/api-client test
+pnpm --filter @livtales/wechat test
 ```
 
 Live configuration must provide an HTTPS API origin registered in the Mini
@@ -398,10 +402,10 @@ To exercise the W03 server boundary locally, apply migration 0071 and set
 `ENABLE_WECHAT_AUTH=true`, `CLOUDBASE_ENV_ID`, the provider identifiers returned
 by the environment, and optionally `CLOUDBASE_AUTH_TIMEOUT_MS`. The credential
 sent to `/api/auth/wechat` is an end-user CloudBase access token. It is verified
-remotely and exchanged for a Chronelle token; it is not the server API key.
+remotely and exchanged for a LivTales token; it is not the server API key.
 The Mini Program obtains this short-lived credential through CloudBase OpenID
 sign-in and never persists it. If the identity is not linked, the user signs in
-once with an existing Chronelle account; the client links the verified identity
+once with an existing LivTales account; the client links the verified identity
 explicitly and revokes the temporary password session if linking fails.
 
 Open <http://localhost:3000/sign-in> and enter a name and email to create the
@@ -433,11 +437,23 @@ is appended as one JSON line (`writtenAt`, `to`, `subject`, `text`) to
 is reachable. `AUTH_VERIFICATION_TTL_MINUTES` (15) bounds a code's lifetime.
 
 Private development attachments are stored below `LOCAL_STORAGE_ROOT`, which
-defaults to `.chronelle/storage` and is ignored by Git. Keep this root private
+defaults to `.livtales/storage` and is ignored by Git. Keep this root private
 and outside any directory served by a web server. The adapter creates folders
 with mode `0700` and files with mode `0600`. `DOCUMENT_TRANSFER_TTL_SECONDS`
 sets the lifetime of one-time upload and download authorizations; the default
 is five minutes.
+
+Before the LivTales rename the default was `.chronelle/storage`. The root is
+relative to the API's working directory (`apps/api` under `pnpm dev`), so a
+checkout from before the rename holds the attachments of its local database in
+`apps/api/.chronelle/storage`, and a `.env` copied from an earlier
+`.env.example` may still set `LOCAL_STORAGE_ROOT=.chronelle/storage`. Move the
+directory once, then remove that line so the API uses the new default:
+
+```bash
+mkdir -p apps/api/.livtales
+mv apps/api/.chronelle/storage apps/api/.livtales/storage
+```
 
 Local uploads require a trusted, application-owned POSIX filesystem with hard-link
 support. In-progress files live in private `.upload-*` staging directories and
@@ -581,7 +597,22 @@ run with a message.
 
 Docker Compose starts PostgreSQL on the configured `POSTGRES_PORT`. Application
 processes run on the host for fast reloads. Database state persists in the
-`chronelle-postgres` named volume.
+`livtales-postgres` named volume of the `livtales` Compose project.
+
+Before the LivTales rename the project was `chronelle` and its volume
+`chronelle_chronelle-postgres`; Compose starts the renamed project with an
+empty volume. To carry an existing local database over once:
+
+```bash
+docker compose -p chronelle down
+docker compose up --no-start
+docker run --rm -v chronelle_chronelle-postgres:/from:ro \
+  -v livtales_livtales-postgres:/to alpine cp -a /from/. /to/
+docker compose up -d
+```
+
+Remove the old volume with `docker volume rm chronelle_chronelle-postgres`
+once the copy is verified.
 
 To stop PostgreSQL while retaining its data:
 
@@ -610,7 +641,7 @@ time (the browser-side suites time out when they share the runner's CPUs with
 the database suites), and builds the three applications last. The WeChat build
 fails when the main package exceeds 1.5 MB, any subpackage exceeds 1.5 MB, or
 the combined package exceeds 15 MB. Run `pnpm wechat:bundle` to print the last
-production build's byte counts. Run `pnpm --filter @chronelle/<pkg> test` for one
+production build's byte counts. Run `pnpm --filter @livtales/<pkg> test` for one
 package (it rebuilds its upstream packages first) or `pnpm test:units` after
 `pnpm build:packages` for all of them at once.
 
@@ -683,7 +714,7 @@ in each engine.
 
 The web app's strings live under `apps/web/messages/<locale>/`, one JSON
 file per feature namespace (`nav.json`, `settings.json`, ...), keyed by
-identifier, never by English text. `pnpm --filter @chronelle/web messages`
+identifier, never by English text. `pnpm --filter @livtales/web messages`
 assembles them into one catalog per locale (`apps/web/messages/en.json` and
 the others), which is a build output: it is ignored by git, and the `build`,
 `dev`, `sandbox`, `test`, and `typecheck` scripts of the web package run the

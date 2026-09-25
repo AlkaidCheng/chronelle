@@ -1,4 +1,4 @@
-import type { ObjectSearchResult } from "@chronelle/schemas";
+import type { ObjectSearchResult } from "@livtales/schemas";
 import { expect, it } from "vitest";
 import { getSearchResultHref } from "../lib/search-result";
 

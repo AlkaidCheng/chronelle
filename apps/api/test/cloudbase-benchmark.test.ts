@@ -1,4 +1,4 @@
-import type { CloudBaseRdbClient } from "@chronelle/db";
+import type { CloudBaseRdbClient } from "@livtales/db";
 import { describe, expect, it } from "vitest";
 
 import {

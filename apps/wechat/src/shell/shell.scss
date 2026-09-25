@@ -32,7 +32,7 @@
   align-items: center;
   justify-content: center;
   border-radius: 20rpx;
-  color: var(--chronelle-ink);
+  color: var(--livtales-ink);
 }
 
 .top-bar__menu .icon {
@@ -50,13 +50,13 @@
   border-radius: 50%;
   background: linear-gradient(
     150deg,
-    var(--chronelle-indigo),
-    var(--chronelle-avatar-end)
+    var(--livtales-indigo),
+    var(--livtales-avatar-end)
   );
   box-shadow:
-    0 0 0 4rpx var(--chronelle-paper),
-    0 0 0 6rpx var(--chronelle-line);
-  color: var(--chronelle-surface-strong);
+    0 0 0 4rpx var(--livtales-paper),
+    0 0 0 6rpx var(--livtales-line);
+  color: var(--livtales-surface-strong);
   font-size: 27rpx;
   font-weight: 600;
 }
@@ -69,8 +69,8 @@
   align-items: center;
   justify-content: center;
   border-radius: 18rpx;
-  background: var(--chronelle-indigo-soft);
-  color: var(--chronelle-indigo);
+  background: var(--livtales-indigo-soft);
+  color: var(--livtales-indigo);
   font-size: 26rpx;
   font-weight: 600;
 }
@@ -96,7 +96,7 @@
   right: 0;
   bottom: 0;
   left: 0;
-  background: var(--chronelle-scrim);
+  background: var(--livtales-scrim);
   animation: shell-fade 180ms ease-out;
 }
 
@@ -110,8 +110,8 @@
   flex-direction: column;
   padding: 0 20rpx calc(40rpx + env(safe-area-inset-bottom));
   border-radius: 0 36rpx 36rpx 0;
-  background: var(--chronelle-paper);
-  box-shadow: 20rpx 0 68rpx var(--chronelle-shadow-strong);
+  background: var(--livtales-paper);
+  box-shadow: 20rpx 0 68rpx var(--livtales-shadow-strong);
   animation: shell-slide-in 220ms ease-out;
 }
 
@@ -129,12 +129,12 @@
   align-items: center;
   justify-content: center;
   border-radius: 50%;
-  color: var(--chronelle-muted);
+  color: var(--livtales-muted);
 }
 
 .sidebar__label {
   padding: 32rpx 20rpx 12rpx;
-  color: var(--chronelle-muted);
+  color: var(--livtales-muted);
   font-size: 22rpx;
   font-weight: 600;
   letter-spacing: 1rpx;
@@ -148,30 +148,30 @@
   gap: 24rpx;
   padding: 0 20rpx;
   border-radius: 20rpx;
-  color: var(--chronelle-ink);
+  color: var(--livtales-ink);
   font-size: 30rpx;
 }
 
 .sidebar__icon {
   width: 36rpx;
   height: 36rpx;
-  color: var(--chronelle-muted);
+  color: var(--livtales-muted);
 }
 
 .sidebar__item--current {
-  background: var(--chronelle-indigo-soft);
-  color: var(--chronelle-indigo);
+  background: var(--livtales-indigo-soft);
+  color: var(--livtales-indigo);
   font-weight: 600;
 }
 
 .sidebar__item--current .sidebar__icon {
-  color: var(--chronelle-indigo);
+  color: var(--livtales-indigo);
 }
 
 .sidebar__rule {
   height: 1rpx;
   margin: 20rpx;
-  background: var(--chronelle-line);
+  background: var(--livtales-line);
 }
 
 .sidebar__fill {
@@ -189,10 +189,10 @@
   align-items: center;
   gap: 20rpx;
   padding: 20rpx 24rpx 20rpx 20rpx;
-  border: 1rpx solid var(--chronelle-line);
+  border: 1rpx solid var(--livtales-line);
   border-radius: 28rpx;
-  background: var(--chronelle-surface);
-  color: var(--chronelle-ink);
+  background: var(--livtales-surface);
+  color: var(--livtales-ink);
 }
 
 .account-block__who {
@@ -210,7 +210,7 @@
 
 .account-block__line {
   overflow: hidden;
-  color: var(--chronelle-muted);
+  color: var(--livtales-muted);
   font-size: 23rpx;
   line-height: 1.4;
   text-overflow: ellipsis;
@@ -220,7 +220,7 @@
 .account-block__caret {
   width: 24rpx;
   height: 24rpx;
-  color: var(--chronelle-muted);
+  color: var(--livtales-muted);
 }
 
 .account-menu__catch {
@@ -238,16 +238,16 @@
   bottom: calc(100% + 16rpx);
   left: 0;
   padding: 8rpx 0;
-  border: 1rpx solid var(--chronelle-line);
+  border: 1rpx solid var(--livtales-line);
   border-radius: 28rpx;
-  background: var(--chronelle-surface-strong);
-  box-shadow: 0 28rpx 72rpx var(--chronelle-shadow-strong);
+  background: var(--livtales-surface-strong);
+  box-shadow: 0 28rpx 72rpx var(--livtales-shadow-strong);
 }
 
 .account-menu__label {
   display: block;
   padding: 16rpx 28rpx 4rpx;
-  color: var(--chronelle-muted);
+  color: var(--livtales-muted);
   font-size: 22rpx;
   font-weight: 600;
   letter-spacing: 1rpx;
@@ -261,11 +261,11 @@
   align-items: center;
   gap: 24rpx;
   padding: 0 28rpx;
-  color: var(--chronelle-ink);
+  color: var(--livtales-ink);
 }
 
 .account-menu__row--danger {
-  color: var(--chronelle-cinnabar);
+  color: var(--livtales-cinnabar);
 }
 
 .account-menu__icon {
@@ -276,13 +276,13 @@
   align-items: center;
   justify-content: center;
   border-radius: 14rpx;
-  background: var(--chronelle-indigo-soft);
-  color: var(--chronelle-indigo);
+  background: var(--livtales-indigo-soft);
+  color: var(--livtales-indigo);
 }
 
 .account-menu__row--danger .account-menu__icon {
-  background: var(--chronelle-cinnabar-soft);
-  color: var(--chronelle-cinnabar);
+  background: var(--livtales-cinnabar-soft);
+  color: var(--livtales-cinnabar);
 }
 
 .account-menu__text {
@@ -298,18 +298,18 @@
 }
 
 .account-menu__detail {
-  color: var(--chronelle-muted);
+  color: var(--livtales-muted);
   font-size: 23rpx;
   line-height: 1.4;
 }
 
 .account-menu__tick {
-  color: var(--chronelle-cinnabar);
+  color: var(--livtales-cinnabar);
 }
 
 .account-menu__rule {
   margin: 8rpx 0;
-  border-top: 1rpx solid var(--chronelle-line);
+  border-top: 1rpx solid var(--livtales-line);
 }
 
 /* Workspace picker: a tall sheet over the page, with search. */
@@ -328,7 +328,7 @@
   right: 0;
   bottom: 0;
   left: 0;
-  background: var(--chronelle-scrim);
+  background: var(--livtales-scrim);
   animation: shell-fade 180ms ease-out;
 }
 
@@ -340,8 +340,8 @@
   display: flex;
   flex-direction: column;
   border-radius: 44rpx 44rpx 0 0;
-  background: var(--chronelle-paper);
-  box-shadow: 0 -16rpx 60rpx var(--chronelle-shadow-strong);
+  background: var(--livtales-paper);
+  box-shadow: 0 -16rpx 60rpx var(--livtales-shadow-strong);
   animation: shell-rise 220ms ease-out;
 }
 
@@ -370,8 +370,8 @@
   align-items: center;
   justify-content: center;
   border-radius: 50%;
-  background: var(--chronelle-indigo-soft);
-  color: var(--chronelle-indigo);
+  background: var(--livtales-indigo-soft);
+  color: var(--livtales-indigo);
 }
 
 .workspace-picker__close .icon {
@@ -387,21 +387,21 @@
   gap: 16rpx;
   margin: 0 28rpx 12rpx;
   padding: 0 24rpx;
-  border: 1rpx solid var(--chronelle-line);
+  border: 1rpx solid var(--livtales-line);
   border-radius: 24rpx;
-  background: var(--chronelle-surface);
-  color: var(--chronelle-muted);
+  background: var(--livtales-surface);
+  color: var(--livtales-muted);
 }
 
 .workspace-picker__input {
   min-width: 0;
   flex: 1;
-  color: var(--chronelle-ink);
+  color: var(--livtales-ink);
   font-size: 28rpx;
 }
 
 .workspace-picker__placeholder {
-  color: var(--chronelle-muted);
+  color: var(--livtales-muted);
 }
 
 .workspace-picker__list {
@@ -414,7 +414,7 @@
 .workspace-picker__section {
   display: block;
   padding: 24rpx 44rpx 12rpx;
-  color: var(--chronelle-muted);
+  color: var(--livtales-muted);
   font-size: 22rpx;
   font-weight: 600;
   letter-spacing: 1rpx;
@@ -423,9 +423,9 @@
 .workspace-picker__group {
   overflow: hidden;
   margin: 12rpx 28rpx 12rpx;
-  border: 1rpx solid var(--chronelle-line);
+  border: 1rpx solid var(--livtales-line);
   border-radius: 28rpx;
-  background: var(--chronelle-surface);
+  background: var(--livtales-surface);
 }
 
 .workspace-picker__row {
@@ -435,11 +435,11 @@
   align-items: center;
   gap: 24rpx;
   padding: 12rpx 28rpx;
-  color: var(--chronelle-ink);
+  color: var(--livtales-ink);
 }
 
 .workspace-picker__row + .workspace-picker__row {
-  border-top: 1rpx solid var(--chronelle-line);
+  border-top: 1rpx solid var(--livtales-line);
 }
 
 .workspace-picker__text {
@@ -456,24 +456,24 @@
 }
 
 .workspace-picker__detail {
-  color: var(--chronelle-muted);
+  color: var(--livtales-muted);
   font-size: 23rpx;
   line-height: 1.4;
 }
 
 .workspace-picker__match {
   border-radius: 6rpx;
-  background: var(--chronelle-cinnabar-soft);
+  background: var(--livtales-cinnabar-soft);
 }
 
 .workspace-picker__tick {
-  color: var(--chronelle-cinnabar);
+  color: var(--livtales-cinnabar);
 }
 
 .workspace-picker__empty {
   display: block;
   padding: 56rpx 40rpx;
-  color: var(--chronelle-muted);
+  color: var(--livtales-muted);
   font-size: 26rpx;
   text-align: center;
 }

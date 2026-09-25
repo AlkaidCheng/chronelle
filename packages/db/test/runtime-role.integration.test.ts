@@ -39,7 +39,7 @@ describe("runtime database privileges", () => {
           PGUSER: decodeURIComponent(url.username),
           PGPASSWORD: decodeURIComponent(url.password),
           PGDATABASE: url.pathname.slice(1),
-          CHRONELLE_RUNTIME_ROLE: role,
+          LIVTALES_RUNTIME_ROLE: role,
           RUNTIME_DATABASE_PASSWORD: password,
           ...overrides,
         },
@@ -251,7 +251,7 @@ describe("runtime database privileges", () => {
       expect(String(error)).not.toContain(invalidPassword);
     }
     await expect(
-      provision({ CHRONELLE_RUNTIME_ROLE: "postgres" }),
+      provision({ LIVTALES_RUNTIME_ROLE: "postgres" }),
     ).rejects.toMatchObject({
       stderr: expect.stringContaining(
         "Invalid runtime role or password configuration",
@@ -260,6 +260,31 @@ describe("runtime database privileges", () => {
     expect(
       await admin`SELECT FROM pg_roles WHERE rolname = ${role}`,
     ).toHaveLength(0);
+  });
+
+  it("refuses the legacy CHRONELLE_RUNTIME_ROLE unless LIVTALES_RUNTIME_ROLE matches it", async () => {
+    const renamed = {
+      stderr: expect.stringContaining(
+        "CHRONELLE_RUNTIME_ROLE was renamed to LIVTALES_RUNTIME_ROLE",
+      ),
+    };
+    await expect(
+      provision({
+        LIVTALES_RUNTIME_ROLE: undefined,
+        CHRONELLE_RUNTIME_ROLE: role,
+      }),
+    ).rejects.toMatchObject(renamed);
+    await expect(
+      provision({ CHRONELLE_RUNTIME_ROLE: "chronelle_runtime" }),
+    ).rejects.toMatchObject(renamed);
+    expect(
+      await admin`SELECT FROM pg_roles WHERE rolname = ${role}`,
+    ).toHaveLength(0);
+
+    await provision({ CHRONELLE_RUNTIME_ROLE: role });
+    expect(
+      await admin`SELECT FROM pg_roles WHERE rolname = ${role}`,
+    ).toHaveLength(1);
   });
 
   it("rejects a cluster parameter grant that could disable integrity checks", async () => {

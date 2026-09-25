@@ -3,7 +3,7 @@
 import {
   type EventAttachmentTargetsResponse,
   maximumDocumentSizeBytes,
-} from "@chronelle/schemas";
+} from "@livtales/schemas";
 import { useTranslations } from "next-intl";
 import { useEffect, useMemo, useRef, useState } from "react";
 

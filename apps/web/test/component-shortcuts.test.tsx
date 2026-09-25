@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
-import type { EventLayoutResponse } from "@chronelle/schemas";
+import type { EventLayoutResponse } from "@livtales/schemas";
 import { EventPageCanvas } from "../features/events/event-page-canvas";
 import { canInsertComponent } from "../lib/keyboard";
 

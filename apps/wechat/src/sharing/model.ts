@@ -2,7 +2,7 @@ import type {
   ObjectAccessResponse,
   PendingShare,
   SentInvitation,
-} from "@chronelle/schemas";
+} from "@livtales/schemas";
 
 export const shareRoles = ["viewer", "editor", "owner"] as const;
 export type ShareRole = (typeof shareRoles)[number];

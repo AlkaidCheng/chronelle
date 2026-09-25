@@ -1,11 +1,11 @@
-import type { UserPrincipal } from "@chronelle/authorization";
+import type { UserPrincipal } from "@livtales/authorization";
 import {
   taskListCursorSchema,
   taskListQuerySchema,
   type TaskListCursor,
   type TaskListQuery,
   type TaskListQueryInput,
-} from "@chronelle/schemas";
+} from "@livtales/schemas";
 
 import {
   type CloudBaseObjectRow,

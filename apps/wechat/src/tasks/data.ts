@@ -1,4 +1,4 @@
-import type { TaskResponse } from "@chronelle/schemas";
+import type { TaskResponse } from "@livtales/schemas";
 
 import type { PlanningProjection } from "../features/planning/data";
 

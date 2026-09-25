@@ -1,4 +1,4 @@
-import { TransportError } from "@chronelle/api-client";
+import { TransportError } from "@livtales/api-client";
 import { describe, expect, it, vi } from "vitest";
 
 import { createTaroJsonTransport } from "../src/api/taro-transport";

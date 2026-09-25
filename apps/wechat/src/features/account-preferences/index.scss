@@ -25,14 +25,14 @@
 
 .preferences-card {
   padding: 28rpx;
-  border: 1rpx solid var(--chronelle-line);
+  border: 1rpx solid var(--livtales-line);
   border-radius: 24rpx;
-  background: var(--chronelle-surface);
+  background: var(--livtales-surface);
 }
 
 .preferences-label {
   margin: 28rpx 0 12rpx;
-  color: var(--chronelle-muted);
+  color: var(--livtales-muted);
   font-size: 23rpx;
   font-weight: 600;
 }
@@ -46,10 +46,10 @@
   box-sizing: border-box;
   min-height: 78rpx;
   padding: 19rpx 22rpx;
-  border: 1rpx solid var(--chronelle-line-strong);
+  border: 1rpx solid var(--livtales-line-strong);
   border-radius: 16rpx;
-  background: var(--chronelle-paper);
-  color: var(--chronelle-ink);
+  background: var(--livtales-paper);
+  color: var(--livtales-ink);
   font-size: 27rpx;
 }
 
@@ -60,7 +60,7 @@
 
 .preferences-hint {
   margin-top: 10rpx;
-  color: var(--chronelle-muted);
+  color: var(--livtales-muted);
   font-size: 21rpx;
   line-height: 1.5;
 }
@@ -73,19 +73,19 @@
 }
 
 .preferences-error {
-  color: var(--chronelle-cinnabar);
+  color: var(--livtales-cinnabar);
 }
 
 .preferences-success {
-  color: var(--chronelle-indigo);
+  color: var(--livtales-indigo);
 }
 
 .preferences-save {
   margin-top: 32rpx;
   border: 0;
   border-radius: 18rpx;
-  background: var(--chronelle-cinnabar);
-  color: var(--chronelle-on-cinnabar);
+  background: var(--livtales-cinnabar);
+  color: var(--livtales-on-cinnabar);
   font-size: 28rpx;
 }
 

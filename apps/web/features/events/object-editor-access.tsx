@@ -3,7 +3,7 @@
 import { type ReactNode, useEffect, useState } from "react";
 import { ErrorNotice, LoadingState } from "../../components/feedback";
 import type { UseQueryResult } from "@tanstack/react-query";
-import type { ObjectAccessResponse } from "@chronelle/schemas";
+import type { ObjectAccessResponse } from "@livtales/schemas";
 import { useEditorDraftStore } from "../../lib/editor-draft-context";
 import { isTemporaryReadError } from "../../lib/query-errors";
 import { useSessionDialog } from "../../lib/use-session-dialog";

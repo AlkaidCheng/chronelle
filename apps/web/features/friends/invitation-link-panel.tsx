@@ -1,6 +1,6 @@
 "use client";
 
-import type { SentInvitation } from "@chronelle/schemas";
+import type { SentInvitation } from "@livtales/schemas";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
 

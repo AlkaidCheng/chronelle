@@ -4,7 +4,7 @@ import {
   type UserPrincipal,
   withReadAuthorization,
   withStableAuthorization,
-} from "@chronelle/authorization";
+} from "@livtales/authorization";
 import {
   auditEvents,
   createId,
@@ -21,7 +21,7 @@ import {
   userConnections,
   userInvitations,
   users,
-} from "@chronelle/db";
+} from "@livtales/db";
 import { and, asc, eq, gt, or, sql } from "drizzle-orm";
 
 import {

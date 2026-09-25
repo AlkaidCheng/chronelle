@@ -2,7 +2,7 @@ import type {
   EventDetailResponse,
   EventResponse,
   TaskResponse,
-} from "@chronelle/schemas";
+} from "@livtales/schemas";
 import { describe, expect, it } from "vitest";
 import { eventPeriod } from "../lib/event-collection";
 import { nextPlanningItem } from "../lib/upcoming-plan";

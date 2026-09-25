@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import type { EventResponse } from "@chronelle/schemas";
+import type { EventResponse } from "@livtales/schemas";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   cleanup,
@@ -1523,7 +1523,7 @@ describe("EventWorkspace", () => {
           kind: "invitation",
           email: "pat@example.com",
           channel: "email",
-          inviteUrl: "https://chronelle.example/invite/pat-token-0000000001",
+          inviteUrl: "https://livtales.example/invite/pat-token-0000000001",
           message: null,
           personId: "019d6e7d-0000-7000-8000-000000000055",
           workspaceId,

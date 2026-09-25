@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { connectDatabase } from "@chronelle/db";
+import { connectDatabase } from "@livtales/db";
 
 const connection = connectDatabase(process.env.DATABASE_URL);
 try {

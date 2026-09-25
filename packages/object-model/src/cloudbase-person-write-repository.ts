@@ -1,4 +1,4 @@
-import type { CloudBaseRdbClient } from "@chronelle/db";
+import type { CloudBaseRdbClient } from "@livtales/db";
 
 import { CloudBaseObjectWriteRepository } from "./cloudbase-object-write-repository.js";
 import { cloudbaseResourceFromRows } from "./cloudbase-read-support.js";

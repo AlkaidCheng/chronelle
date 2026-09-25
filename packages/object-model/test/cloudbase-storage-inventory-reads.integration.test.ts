@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 
-import { AuthorizationDeniedError } from "@chronelle/authorization";
+import { AuthorizationDeniedError } from "@livtales/authorization";
 import {
   auditEvents,
   createId,
@@ -10,8 +10,8 @@ import {
   objects,
   users,
   workspaceMembers,
-} from "@chronelle/db";
-import { StorageInventoryUnavailableError } from "@chronelle/storage";
+} from "@livtales/db";
+import { StorageInventoryUnavailableError } from "@livtales/storage";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { CloudBaseStorageInventoryReadRepository } from "../src/cloudbase-storage-inventory-read-repository.js";

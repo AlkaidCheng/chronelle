@@ -1,4 +1,4 @@
-import type { ApiCredential, ChronelleApiClient } from "@chronelle/api-client";
+import type { ApiCredential, LivTalesApiClient } from "@livtales/api-client";
 import Taro from "@tarojs/taro";
 
 import { createWeChatApiClient } from "./client";
@@ -28,6 +28,6 @@ export interface RuntimeApiClientOptions {
 
 export function createRuntimeApiClient(
   options: RuntimeApiClientOptions,
-): ChronelleApiClient {
+): LivTalesApiClient {
   return createWeChatApiClient({ ...options, request: taroRequest });
 }

@@ -2,7 +2,7 @@ import type {
   AccessibleWorkspace,
   PreferencesRequest,
   WorkspaceRecency,
-} from "@chronelle/schemas";
+} from "@livtales/schemas";
 
 import { compareNames } from "./format";
 

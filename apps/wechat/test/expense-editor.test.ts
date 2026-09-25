@@ -1,4 +1,4 @@
-import type { ExpenseResponse } from "@chronelle/schemas";
+import type { ExpenseResponse } from "@livtales/schemas";
 import { describe, expect, it } from "vitest";
 
 import { canEditExpense, replaceExpenseProjection } from "../src/expenses/data";

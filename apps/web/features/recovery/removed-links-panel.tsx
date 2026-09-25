@@ -5,7 +5,7 @@ import { useState } from "react";
 import {
   relationTypeSchema,
   type RemovedRelationListResponse,
-} from "@chronelle/schemas";
+} from "@livtales/schemas";
 import {
   EmptyState,
   ErrorNotice,

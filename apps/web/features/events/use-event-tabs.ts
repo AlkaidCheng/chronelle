@@ -1,6 +1,6 @@
 "use client";
 
-import type { EventTabsPreference, ShareNarrowing } from "@chronelle/schemas";
+import type { EventTabsPreference, ShareNarrowing } from "@livtales/schemas";
 import { useRef, useState } from "react";
 import {
   arrangeEventTabs,

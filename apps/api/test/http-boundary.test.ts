@@ -1,8 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createConnection } from "node:net";
 import type { FastifyInstance } from "fastify";
-import { connectDatabase } from "@chronelle/db";
-import { DocumentTransferUnavailableError } from "@chronelle/object-model";
+import { connectDatabase } from "@livtales/db";
+import { DocumentTransferUnavailableError } from "@livtales/object-model";
 
 import { buildApp } from "../src/app.js";
 import { createDevelopmentAppDependencies } from "../src/dependencies.js";

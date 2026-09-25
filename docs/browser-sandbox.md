@@ -1,6 +1,6 @@
 # Browser-only design sandbox
 
-The sandbox reuses Chronelle's Event planning screens with fictional data. It is
+The sandbox reuses the LivTales Event planning screens with fictional data. It is
 for reviewing layout and interactions, not for storing personal information or
 validating production security.
 
@@ -11,7 +11,7 @@ pnpm install --frozen-lockfile
 pnpm sandbox
 ```
 
-Open `.chronelle/sandbox/chronelle.html` directly in a modern browser. The resulting
+Open `.livtales/sandbox/livtales.html` directly in a modern browser. The resulting
 file contains its scripts and styles and works offline, without an API,
 PostgreSQL, Docker, environment variables, or a CloudBase account. Node.js is
 needed only to build the file. Moving the file does not transfer saved edits.
@@ -62,7 +62,7 @@ their existing providers, authorization, and persistence.
 ## Validation
 
 ```sh
-pnpm --filter @chronelle/web test
+pnpm --filter @livtales/web test
 pnpm exec playwright install chromium
 pnpm test:sandbox
 ```

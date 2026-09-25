@@ -1,13 +1,13 @@
 import { resolve } from "node:path";
 
-import { disconnectedDatabase } from "@chronelle/db";
+import { disconnectedDatabase } from "@livtales/db";
 import {
   applyMigrations,
   createCloudBaseLiveReader,
   createCloudBaseRpcDouble,
   createTestDatabase,
   type TestDatabase,
-} from "@chronelle/db/testing";
+} from "@livtales/db/testing";
 import type { FastifyInstance } from "fastify";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
@@ -21,7 +21,7 @@ const migrationDirectory = resolve(
   "../../../infrastructure/migrations",
 );
 const password = "correct horse battery";
-const webBaseUrl = "https://chronelle.example";
+const webBaseUrl = "https://livtales.example";
 
 // The seed goes through the HTTP contract, so it is run on both backends:
 // the PostgreSQL app, and the app composed for the gateway with the rpc

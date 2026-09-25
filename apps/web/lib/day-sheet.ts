@@ -1,4 +1,4 @@
-import type { EventResponse, TaskResponse } from "@chronelle/schemas";
+import type { EventResponse, TaskResponse } from "@livtales/schemas";
 
 import { activeLocale, tr } from "../i18n/active-locale";
 import {

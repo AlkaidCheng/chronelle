@@ -6,7 +6,7 @@ import {
   signInResponseSchema,
   signUpRequestSchema,
   verifyEmailRequestSchema,
-} from "@chronelle/schemas";
+} from "@livtales/schemas";
 import type { FastifyInstance } from "fastify";
 
 import type { FriendService } from "../friends/friend-service.js";

@@ -3,15 +3,15 @@ import {
   withReadAuthorization,
   type AuthorizationDatabase,
   type UserPrincipal,
-} from "@chronelle/authorization";
-import { objectRelations, objects, taskLabels, tasks } from "@chronelle/db";
+} from "@livtales/authorization";
+import { objectRelations, objects, taskLabels, tasks } from "@livtales/db";
 import {
   taskListCursorSchema,
   taskListQuerySchema,
   type TaskListCursor,
   type TaskListQuery,
   type TaskListQueryInput,
-} from "@chronelle/schemas";
+} from "@livtales/schemas";
 import {
   and,
   asc,

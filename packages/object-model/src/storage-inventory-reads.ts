@@ -3,16 +3,16 @@ import {
   DrizzleAuthorizationStore,
   withReadAuthorization,
   type UserPrincipal,
-} from "@chronelle/authorization";
+} from "@livtales/authorization";
 import {
   documents,
   documentTransferAuthorizations as transfers,
   objectRevisions,
   objects,
   type Database,
-} from "@chronelle/db";
-import { objectIdParamsSchema } from "@chronelle/schemas";
-import { StorageInventoryUnavailableError } from "@chronelle/storage";
+} from "@livtales/db";
+import { objectIdParamsSchema } from "@livtales/schemas";
+import { StorageInventoryUnavailableError } from "@livtales/storage";
 import { and, eq, sql } from "drizzle-orm";
 
 /** The storage keys a workspace references, classified for one provider. */

@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
-import { ChronelleApiClient } from "@chronelle/api-client";
-import type { EventResponse } from "@chronelle/schemas";
+import { LivTalesApiClient } from "@livtales/api-client";
+import type { EventResponse } from "@livtales/schemas";
 import { useQueryClient } from "@tanstack/react-query";
 import { cleanup, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
@@ -26,7 +26,7 @@ vi.mock("next/navigation", () => ({
 }));
 
 let store: SandboxStore;
-let client: ChronelleApiClient;
+let client: LivTalesApiClient;
 let event: EventResponse;
 const saved: { name: string; type: string; blob: Blob }[] = [];
 
@@ -38,7 +38,7 @@ beforeEach(async () => {
       snapshot = value;
     },
   });
-  client = new ChronelleApiClient({
+  client = new LivTalesApiClient({
     getCredential: () => ({
       accessToken: "sample",
       workspaceId: sandboxWorkspaceId,

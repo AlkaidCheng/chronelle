@@ -1,4 +1,4 @@
-import { AuthorizationDeniedError } from "@chronelle/authorization";
+import { AuthorizationDeniedError } from "@livtales/authorization";
 import {
   createId,
   labels,
@@ -6,7 +6,7 @@ import {
   resourceGrants,
   tasks,
   workspaceMembers,
-} from "@chronelle/db";
+} from "@livtales/db";
 import { eq } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 

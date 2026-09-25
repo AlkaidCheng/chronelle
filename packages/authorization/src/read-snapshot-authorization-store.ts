@@ -1,4 +1,4 @@
-import type { Role } from "@chronelle/db";
+import type { Role } from "@livtales/db";
 
 import type {
   AccessibleWorkspaceQuery,

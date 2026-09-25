@@ -1,5 +1,5 @@
-import type { UserPrincipal } from "@chronelle/authorization";
-import type { CloudBaseRdbReader } from "@chronelle/db";
+import type { UserPrincipal } from "@livtales/authorization";
+import type { CloudBaseRdbReader } from "@livtales/db";
 
 import { CloudBaseProjectionReadRepository } from "./cloudbase-projection-read-repository.js";
 import type { CalendarReadRepository } from "./projection-service.js";

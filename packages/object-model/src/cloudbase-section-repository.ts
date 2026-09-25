@@ -1,13 +1,13 @@
 import {
   AuthorizationDeniedError,
   type UserPrincipal,
-} from "@chronelle/authorization";
+} from "@livtales/authorization";
 import {
   CloudBaseRpcError,
   type CloudBaseRdbClient,
   type SectionView,
   sectionViews,
-} from "@chronelle/db";
+} from "@livtales/db";
 
 import {
   cloudbaseDate,

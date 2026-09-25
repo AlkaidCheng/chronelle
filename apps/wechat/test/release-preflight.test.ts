@@ -7,8 +7,8 @@ import {
 
 const valid = {
   TARO_APP_ID: "wx0123456789abcdef",
-  TARO_APP_API_BASE_URL: "https://api.chronelle.dev",
-  TARO_APP_CLOUDBASE_ENV_ID: "chronelle-staging-a1b2c3",
+  TARO_APP_API_BASE_URL: "https://api.livtales.dev",
+  TARO_APP_CLOUDBASE_ENV_ID: "livtales-staging-a1b2c3",
   TARO_APP_CLOUDBASE_USE_WX_CLOUD: "false",
 };
 
@@ -16,7 +16,7 @@ describe("Mini Program release preflight", () => {
   it("reports the API origin without exposing the CloudBase environment", () => {
     expect(inspectReleaseInputs(valid)).toEqual({
       appId: valid.TARO_APP_ID,
-      apiOrigin: "https://api.chronelle.dev",
+      apiOrigin: "https://api.livtales.dev",
     });
   });
 
@@ -33,14 +33,14 @@ describe("Mini Program release preflight", () => {
   });
 
   it.each([
-    "http://api.chronelle.dev",
+    "http://api.livtales.dev",
     "https://localhost",
     "https://api.internal",
     "https://api",
     "https://127.0.0.1",
     "https://api.example.com",
-    "https://api.chronelle.dev/prefix",
-    "https://api.chronelle.dev?token=hidden",
+    "https://api.livtales.dev/prefix",
+    "https://api.livtales.dev?token=hidden",
   ])("rejects a non-release API origin: %s", (apiBaseUrl) => {
     expect(() =>
       inspectReleaseInputs({

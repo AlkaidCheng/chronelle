@@ -1,4 +1,4 @@
-import type { AccessibleWorkspace, SessionResponse } from "@chronelle/schemas";
+import type { AccessibleWorkspace, SessionResponse } from "@livtales/schemas";
 
 type WorkspaceAccessSession = Pick<
   SessionResponse,

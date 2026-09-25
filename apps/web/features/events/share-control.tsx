@@ -1,6 +1,6 @@
 "use client";
 
-import type { ShareView } from "@chronelle/schemas";
+import type { ShareView } from "@livtales/schemas";
 import { useTranslations } from "next-intl";
 import { useCallback, useRef, useState } from "react";
 

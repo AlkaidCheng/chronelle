@@ -4,7 +4,7 @@ import {
   eventContextCreateResponseSchema,
   eventResponseSchema,
   expenseResponseSchema,
-} from "@chronelle/schemas";
+} from "@livtales/schemas";
 import { openEventView } from "./helpers/event-view";
 import {
   chip,

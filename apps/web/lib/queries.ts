@@ -2,9 +2,9 @@
 
 import {
   ApiClientError,
-  ChronelleApiClient,
+  LivTalesApiClient,
   type DocumentFileInput,
-} from "@chronelle/api-client";
+} from "@livtales/api-client";
 import type {
   DevelopmentSignInRequest,
   EventCreatePayload,
@@ -38,7 +38,7 @@ import type {
   TaskResponse,
   TaskUpdatePayload,
   UserResponse,
-} from "@chronelle/schemas";
+} from "@livtales/schemas";
 import { useRouter } from "next/navigation";
 import { useCallback, useRef } from "react";
 import {
@@ -243,7 +243,7 @@ export function useNoteWorkspaceOpened() {
   return useCallback(
     (workspaceId: string) => {
       if (credential === null) return;
-      const client = new ChronelleApiClient({
+      const client = new LivTalesApiClient({
         getCredential: () => credential,
       });
       void client
@@ -726,7 +726,7 @@ export function useReminderEditorQueries(reminderId: string) {
 
 function useObjectEditorQueries<Resource>(
   id: string,
-  read: (client: ChronelleApiClient, id: string) => Promise<Resource>,
+  read: (client: LivTalesApiClient, id: string) => Promise<Resource>,
 ) {
   const client = useApiClient();
   const { credential } = useAuthSession();

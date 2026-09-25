@@ -1,4 +1,4 @@
-import type { ShareWriteRepository } from "@chronelle/authorization";
+import type { ShareWriteRepository } from "@livtales/authorization";
 import type {
   CommandExecuteRequest,
   CommandReceipt,
@@ -7,7 +7,7 @@ import type {
   EventContextCreateResponse,
   EventLayoutResponse,
   EventPage,
-} from "@chronelle/schemas";
+} from "@livtales/schemas";
 
 import type {
   CreateEventInput,

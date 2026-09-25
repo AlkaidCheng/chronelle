@@ -34,7 +34,7 @@ for (const path of walkFiles("/app")) {
     !developmentPackages.has(manifest.name),
     `Development package: ${manifest.name}`,
   );
-  if (!manifest.name?.startsWith("@chronelle/")) continue;
+  if (!manifest.name?.startsWith("@livtales/")) continue;
   workspacePackages += 1;
   for (const name of ["src", "test", "e2e", "Dockerfile", "tsconfig.json"]) {
     assert(

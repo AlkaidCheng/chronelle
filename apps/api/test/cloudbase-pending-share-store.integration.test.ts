@@ -4,21 +4,21 @@ import { resolve } from "node:path";
 import {
   AuthorizationDeniedError,
   type UserPrincipal,
-} from "@chronelle/authorization";
+} from "@livtales/authorization";
 import {
   auditEvents,
   resourceGrants,
   type UserRow,
   workspaceMembers,
-} from "@chronelle/db";
+} from "@livtales/db";
 import {
   applyMigrations,
   createCloudBaseRpcDouble,
   createTestDatabase,
   type TestDatabase,
-} from "@chronelle/db/testing";
-import type { EventPlanningObjectService } from "@chronelle/object-model";
-import type { ResourceGrantService } from "@chronelle/authorization";
+} from "@livtales/db/testing";
+import type { EventPlanningObjectService } from "@livtales/object-model";
+import type { ResourceGrantService } from "@livtales/authorization";
 import { and, asc, eq, inArray } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 

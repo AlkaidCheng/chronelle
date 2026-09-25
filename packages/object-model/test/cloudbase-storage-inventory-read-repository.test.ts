@@ -1,6 +1,6 @@
-import { AuthorizationDeniedError } from "@chronelle/authorization";
-import { CloudBaseRpcError, type CloudBaseRdbClient } from "@chronelle/db";
-import { StorageInventoryUnavailableError } from "@chronelle/storage";
+import { AuthorizationDeniedError } from "@livtales/authorization";
+import { CloudBaseRpcError, type CloudBaseRdbClient } from "@livtales/db";
+import { StorageInventoryUnavailableError } from "@livtales/storage";
 import { describe, expect, it, vi } from "vitest";
 
 import { CloudBaseStorageInventoryReadRepository } from "../src/cloudbase-storage-inventory-read-repository.js";

@@ -1,4 +1,4 @@
-import { withReadAuthorization } from "@chronelle/authorization";
+import { withReadAuthorization } from "@livtales/authorization";
 import {
   createId,
   type Database,
@@ -16,7 +16,7 @@ import {
   type WorkspaceRow,
   workspaceMembers,
   workspaces,
-} from "@chronelle/db";
+} from "@livtales/db";
 import { and, eq, inArray, ne, sql } from "drizzle-orm";
 
 import {

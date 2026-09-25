@@ -1,9 +1,9 @@
 {
   "appid": "touristappid",
   "compileType": "miniprogram",
-  "description": "Chronelle WeChat Mini Program",
+  "description": "LivTales WeChat Mini Program",
   "miniprogramRoot": "dist/weapp/",
-  "projectname": "chronelle",
+  "projectname": "livtales",
   "setting": {
     "es6": false,
     "minified": false,

@@ -1,4 +1,4 @@
-import type { DevelopmentSignInRequest } from "@chronelle/schemas";
+import type { DevelopmentSignInRequest } from "@livtales/schemas";
 
 import type { AuthIdentity } from "./auth-provider.js";
 

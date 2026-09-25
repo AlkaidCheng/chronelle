@@ -5,11 +5,11 @@ import {
   connectCloudBaseRdb,
   connectDatabase,
   disconnectedDatabase,
-} from "@chronelle/db";
+} from "@livtales/db";
 import {
   assertCloudBaseBackendReady,
   assertRevisionBaseline,
-} from "@chronelle/object-model";
+} from "@livtales/object-model";
 import { z } from "zod";
 
 import { buildApp } from "./app.js";
@@ -106,9 +106,7 @@ const storage = createDocumentStorage(process.env);
 // still reached one would fail with the reason instead of a connection error.
 const database =
   backend.databaseUrl === undefined
-    ? disconnectedDatabase(
-        "CHRONELLE_BACKEND=cloudbase serves from the gateway",
-      )
+    ? disconnectedDatabase("LIVTALES_BACKEND=cloudbase serves from the gateway")
     : connectDatabase(backend.databaseUrl);
 // Gateway requests and log-delivered emails are logged once the app's
 // logger exists.
@@ -221,7 +219,7 @@ try {
   } else {
     await assertRevisionBaseline(database.db);
   }
-  app.log.info({ backend: backend.backend }, "Chronelle backend selected");
+  app.log.info({ backend: backend.backend }, "LivTales backend selected");
   await app.listen({
     host: runtimeEnvironment.API_HOST,
     port: runtimeEnvironment.API_PORT,

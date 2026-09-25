@@ -12,8 +12,8 @@ import {
   userSearchQuerySchema,
   userSearchResponseSchema,
   userSummarySchema,
-} from "@chronelle/schemas";
-import type { UserRow } from "@chronelle/db";
+} from "@livtales/schemas";
+import type { UserRow } from "@livtales/db";
 import type { FastifyInstance, FastifyRequest } from "fastify";
 
 import type { WorkspaceIdentityService } from "../identity/workspace-identity-service.js";
