@@ -5,6 +5,7 @@ import { describe, expect, it } from "vitest";
 import { getMessages } from "../src/i18n/catalog";
 
 const source = new URL("../src/", import.meta.url);
+const productName = "LivTales";
 
 const pageConfigs = readdirSync(source, { recursive: true })
   .map(String)
@@ -17,6 +18,10 @@ function staticTitle(path: string): string | undefined {
 }
 
 describe("page titles", () => {
+  it("titles the app window with the product name", () => {
+    expect(staticTitle("app.config.ts")).toBe(productName);
+  });
+
   it("finds the page configs", () => {
     expect(pageConfigs.length).toBeGreaterThan(10);
   });
@@ -26,7 +31,7 @@ describe("page titles", () => {
     for (const path of pageConfigs) {
       const title = staticTitle(path);
       expect(
-        title === undefined || title === "Chronelle" || words.has(title),
+        title === undefined || title === productName || words.has(title),
         `${path}: ${title}`,
       ).toBe(true);
     }

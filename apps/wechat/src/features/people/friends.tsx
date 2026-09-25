@@ -164,7 +164,7 @@ function ReadyFriends({ session }: { readonly session: SessionResponse }) {
     <View className="people-shell">
       <View className="people-header">
         <View>
-          <Text className="people-eyebrow">Chronelle</Text>
+          <Text className="people-eyebrow">LivTales</Text>
           <Text className="people-title">{messages.friends}</Text>
         </View>
         <Button

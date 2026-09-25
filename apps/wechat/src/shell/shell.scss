@@ -15,35 +15,6 @@
   border: 0;
 }
 
-.brand-row {
-  display: flex;
-  align-items: center;
-  gap: 18rpx;
-}
-
-.brand-mark {
-  display: flex;
-  width: 60rpx;
-  height: 60rpx;
-  flex: 0 0 auto;
-  align-items: center;
-  justify-content: center;
-  border-radius: 18rpx 18rpx 18rpx 6rpx;
-  background: var(--chronelle-cinnabar);
-  color: var(--chronelle-on-cinnabar);
-  font-family:
-    "Iowan Old Style", "Palatino Linotype", "Songti SC", "Noto Serif CJK SC",
-    serif;
-  font-size: 30rpx;
-}
-
-.brand {
-  font-family: "Songti SC", STSong, serif;
-  font-size: 31rpx;
-  font-weight: 600;
-  letter-spacing: 1rpx;
-}
-
 .top-bar {
   flex: 0 0 auto;
   box-sizing: border-box;

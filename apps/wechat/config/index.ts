@@ -17,6 +17,14 @@ const config: UserConfigExport<"webpack5"> = {
   cache: {
     enable: false,
   },
+  // Taro's "csso" option configures cssnano. Its SVGO pass would rewrite the
+  // embedded SVGs, so the brand art ships byte for byte as brand/ draws it.
+  csso: {
+    enable: true,
+    config: {
+      svgo: false,
+    },
+  },
   mini: {
     postcss: {
       pxtransform: {
