@@ -106,7 +106,7 @@ export class FriendService {
       /\/$/u,
       "",
     );
-    this.#productName = options.productName ?? "Chronelle";
+    this.#productName = options.productName ?? "LivTales";
     this.#dailyLimit = options.dailyLimit ?? defaultDailyLimit;
     this.#invitationTtlMs = options.invitationTtlMs ?? defaultInvitationTtlMs;
     this.#resendIntervalMs =

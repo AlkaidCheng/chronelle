@@ -18,6 +18,7 @@ import { personInitials } from "../lib/person-collection";
 import { useCurrentWorkspaceIdentity } from "../lib/use-workspace-identity";
 import { AccountMenuItems } from "./account-menu";
 import { BottomSheet } from "./bottom-sheet";
+import { BrandLogo } from "./brand-logo";
 import { MenuIcon } from "./icons";
 import { useInstallControl } from "./install-app";
 import { MoreMenuItems } from "./more-menu";
@@ -193,8 +194,7 @@ export function PhoneChrome({
       <PhoneDrawer open={sheet === "drawer"} onClose={closeDrawer}>
         <div className="sidebar-head">
           <Link className="brand" href="/events" onClick={closeDrawer}>
-            <span className="brand-mark">C</span>
-            <span>Chronelle</span>
+            <BrandLogo />
           </Link>
           <button
             type="button"

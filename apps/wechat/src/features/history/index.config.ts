@@ -1,4 +1,4 @@
 export default definePageConfig({
-  navigationBarTitleText: "Chronelle",
+  navigationBarTitleText: "LivTales",
   enablePullDownRefresh: true,
 });

@@ -1,5 +1,4 @@
 {
-  "title": "Chronelle",
   "loading": "正在尋找",
   "unavailable": "沒有帳戶使用這個 QR 碼。請索取新的連結。",
   "signInFirst": "登入後即可查看對方並加為好友。",
@@ -13,5 +12,5 @@
   "wantsYou": "{name} 已向你送出請求，請在好友頁面回覆。",
   "openFriends": "開啟好友",
   "yourself": "這是你自己的 QR 碼。",
-  "openChronelle": "開啟 Chronelle"
+  "openChronelle": "開啟 LivTales"
 }

@@ -1,0 +1,101 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+<title>LivTales</title>
+<!-- Maskable PWA icon. The Android adaptive background layer fills the canvas (its central
+72 dp, so the 108 dp layer spans 150 units), and the foreground layer is scaled by 0.85 about
+the centre so the mark and its shadow stay inside the central 80% circle (radius 40). -->
+<svg x="-25" y="-25" width="150" height="150" viewBox="-25 -25 150 150">
+<defs>
+<linearGradient id="bg-sky" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="100" y2="100">
+<stop offset="0" stop-color="#35B8EE"/>
+<stop offset="0.34" stop-color="#2358D6"/>
+<stop offset="0.7" stop-color="#1B3598"/>
+<stop offset="1" stop-color="#13296F"/>
+</linearGradient>
+<radialGradient id="bg-glow" gradientUnits="userSpaceOnUse" cx="5" cy="2" r="60">
+<stop offset="0" stop-color="#5EE6F5" stop-opacity="0.55"/>
+<stop offset="1" stop-color="#5EE6F5" stop-opacity="0"/>
+</radialGradient>
+<radialGradient id="bg-vig" gradientUnits="userSpaceOnUse" cx="95" cy="100" r="55">
+<stop offset="0" stop-color="#060F3A" stop-opacity="0.2"/>
+<stop offset="1" stop-color="#060F3A" stop-opacity="0"/>
+</radialGradient>
+<linearGradient id="bg-aur" x1="0" y1="0" x2="92" y2="18" gradientUnits="userSpaceOnUse">
+<stop offset="0" stop-color="#8CFFD6" stop-opacity="0.95"/>
+<stop offset="0.5" stop-color="#7FF3FF" stop-opacity="0.902"/>
+<stop offset="0.8" stop-color="#62D6FF" stop-opacity="0.351"/>
+<stop offset="1" stop-color="#62D6FF" stop-opacity="0"/>
+</linearGradient>
+<filter id="bg-aurblur" filterUnits="userSpaceOnUse" x="-45" y="-45" width="190" height="190">
+<feGaussianBlur stdDeviation="2.8"/>
+</filter>
+<linearGradient id="bg-aurcore" x1="0" y1="0" x2="92" y2="18" gradientUnits="userSpaceOnUse">
+<stop offset="0" stop-color="#EAFFF8" stop-opacity="0.95"/>
+<stop offset="0.5" stop-color="#C8FBFF" stop-opacity="0.902"/>
+<stop offset="0.8" stop-color="#9AE8FF" stop-opacity="0.351"/>
+<stop offset="1" stop-color="#9AE8FF" stop-opacity="0"/>
+</linearGradient>
+<filter id="bg-coreblur" filterUnits="userSpaceOnUse" x="-45" y="-45" width="190" height="190">
+<feGaussianBlur stdDeviation="1"/>
+</filter>
+</defs>
+<rect x="-25" y="-25" width="150" height="150" fill="url(#bg-sky)"/>
+<rect x="-25" y="-25" width="150" height="150" fill="url(#bg-glow)"/>
+<rect x="-25" y="-25" width="150" height="150" fill="url(#bg-vig)"/>
+<g opacity="0.95" filter="url(#bg-aurblur)">
+<path d="M-30.4 58.4L-8 50C8 44 20 26 40 21S72 10 102 -2L126 -11.6" fill="none" stroke="url(#bg-aur)" stroke-width="9" stroke-linecap="round"/>
+<path d="M-30.4 58.4L-8 50C8 44 20 26 40 21S72 10 102 -2L126 -11.6" transform="translate(0 -3.5)" fill="none" stroke="url(#bg-aur)" stroke-width="9" stroke-linecap="round" opacity="0.75"/>
+<path d="M-30.4 58.4L-8 50C8 44 20 26 40 21S72 10 102 -2L126 -11.6" transform="translate(0 -7)" fill="none" stroke="url(#bg-aur)" stroke-width="9" stroke-linecap="round" opacity="0.55"/>
+<path d="M-30.4 58.4L-8 50C8 44 20 26 40 21S72 10 102 -2L126 -11.6" transform="translate(0 -10.5)" fill="none" stroke="url(#bg-aur)" stroke-width="9" stroke-linecap="round" opacity="0.38"/>
+<path d="M-30.4 58.4L-8 50C8 44 20 26 40 21S72 10 102 -2L126 -11.6" transform="translate(0 -14)" fill="none" stroke="url(#bg-aur)" stroke-width="9" stroke-linecap="round" opacity="0.22"/>
+<path d="M-30.4 58.4L-8 50C8 44 20 26 40 21S72 10 102 -2L126 -11.6" transform="translate(0 -17.5)" fill="none" stroke="url(#bg-aur)" stroke-width="9" stroke-linecap="round" opacity="0.1"/>
+</g>
+<g opacity="0.4" filter="url(#bg-coreblur)">
+<path d="M-30.4 58.4L-8 50C8 44 20 26 40 21S72 10 102 -2L126 -11.6" fill="none" stroke="url(#bg-aurcore)" stroke-width="1.8" stroke-linecap="round"/>
+</g>
+<circle cx="80" cy="17" r="0.65" fill="#FFFFFF" opacity="0.85"/>
+<circle cx="87.5" cy="27" r="0.45" fill="#FFFFFF" opacity="0.6"/>
+<circle cx="74" cy="10.5" r="0.4" fill="#FFFFFF" opacity="0.5"/>
+</svg>
+<g transform="translate(50 50) scale(0.85) translate(-50 -50)">
+<svg x="-25" y="-25" width="150" height="150" viewBox="-25 -25 150 150">
+<defs>
+<linearGradient id="fg-page" x1="0" y1="57" x2="0" y2="82.5" gradientUnits="userSpaceOnUse">
+<stop offset="0" stop-color="#8FF0F0"/>
+<stop offset="1" stop-color="#5FDDE8"/>
+</linearGradient>
+<linearGradient id="fg-kb1" x1="0" y1="15" x2="0" y2="29.7" gradientUnits="userSpaceOnUse">
+<stop offset="0" stop-color="#FFFFFF"/>
+<stop offset="1" stop-color="#E0EEFF"/>
+</linearGradient>
+<linearGradient id="fg-kb2" x1="0" y1="29.47" x2="0" y2="44.71" gradientUnits="userSpaceOnUse">
+<stop offset="0" stop-color="#FFFFFF"/>
+<stop offset="1" stop-color="#E0EEFF"/>
+</linearGradient>
+<linearGradient id="fg-kb3" x1="0" y1="43.06" x2="0" y2="60.57" gradientUnits="userSpaceOnUse">
+<stop offset="0" stop-color="#FFFFFF"/>
+<stop offset="1" stop-color="#E0EEFF"/>
+</linearGradient>
+<linearGradient id="fg-krp" x1="0" y1="57" x2="0" y2="82.5" gradientUnits="userSpaceOnUse">
+<stop offset="0" stop-color="#FFFFFF"/>
+<stop offset="1" stop-color="#E0EEFF"/>
+</linearGradient>
+<clipPath id="fg-pageclip">
+<path d="M46.75 66.12A44 44 0 0 0 16 57L20 76A44 44 0 0 1 46.75 82.5Z"/>
+</clipPath>
+<filter id="fg-shadow" x="-25%" y="-25%" width="150%" height="160%">
+<feDropShadow dx="0" dy="2" stdDeviation="2.2" flood-color="#061446" flood-opacity="0.4"/>
+</filter>
+</defs>
+<g transform="translate(1 0.75)">
+<g filter="url(#fg-shadow)">
+<path d="M46.75 66.12A44 44 0 0 0 16 57L20 76A44 44 0 0 1 46.75 82.5Z" fill="url(#fg-page)"/>
+<path d="M51.25 29.7A76.11 76.11 0 0 1 68.75 25.34A44 44 0 0 0 51.25 15Z" fill="url(#fg-kb1)"/>
+<path d="M51.25 44.71A62.3 62.3 0 0 1 78.16 38.54A44 44 0 0 0 72.53 29.47A71.61 71.61 0 0 0 51.25 34.53Z" fill="url(#fg-kb2)"/>
+<path d="M51.25 60.57A48.5 48.5 0 0 1 82 52.49A44 44 0 0 0 79.96 43.06A57.8 57.8 0 0 0 51.25 49.75Z" fill="url(#fg-kb3)"/>
+<path d="M51.25 66.12A44 44 0 0 1 82 57L78 76A44 44 0 0 0 51.25 82.5Z" fill="url(#fg-krp)"/>
+<path d="M46.75 66.12A44 44 0 0 0 16 57" fill="none" stroke="#FFFFFF" stroke-opacity="0.6" stroke-width="1.4" clip-path="url(#fg-pageclip)"/>
+</g>
+</g>
+</svg>
+</g>
+</svg>

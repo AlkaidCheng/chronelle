@@ -15,6 +15,8 @@ The current Mini Program provides:
   fallback and the web app's Chinese terms: 伙伴 for People, 工作区 for a
   workspace, 设置 for Settings, and 可编辑 and 仅查看 for access;
 - light and dark warm ink, cinnabar, and indigo tokens;
+- the LivTales lockup as vector art in a light and a dark version, drawn from
+  the brand sources byte for byte;
 - safe-area layout and reduced-motion defaults;
 - a production package report with enforced main, subpackage, and total budgets;
 - native WeChat sign-in, independent username/email and password sign-in, and
@@ -176,8 +178,8 @@ The Events page sets `navigationStyle: "custom"` and draws its own top row: a
 menu button aligned with WeChat's capsule, whose position comes from
 `Taro.getMenuButtonBoundingClientRect()`. The system keeps drawing the capsule at
 the right. Other pages keep the native bar and its back button. Its title is the
-product name or the page's name in the account's language; before a session
-is available it reads in Chinese, the catalogs' fallback.
+product name, LivTales, or the page's name in the account's language; before a
+session is available it reads in Chinese, the catalogs' fallback.
 
 The menu button opens a left sidebar that stops short of the capsule. It lists
 the Events and People collections, then Trash, and ends with the account block:
@@ -194,6 +196,44 @@ Event the account cannot edit in a workspace where it can, and one line carries
 the location, the number of accounts an Event is shared with, and who shared an
 Event with the account. Access reads as a permission: owner, can edit, or view
 only. Pages open with their title and content, without introductory hints.
+
+## Brand
+
+Users see the Mini Program as LivTales; the code, packages, and services keep
+the name Chronelle. The app window title (`app.config.ts`) and the static title
+of every page without a name of its own read "LivTales";
+`test/page-titles.test.ts` allows a static title only when it is LivTales or a
+catalog word. The catalogs name the product in "Welcome to LivTales" (sign-in
+and onboarding; 欢迎来到 LivTales and 欢迎使用 LivTales), "LivTales could not
+load this view", "Linked to a LivTales account" (已关联 LivTales 账户), and "This
+link opens the LivTales web invitation page." (此链接会打开 LivTales 网页邀请页面。).
+Friends carries "LivTales" above its heading, and the sign-in footnote reads
+"LivTales · 同行"; neither sets the name in capitals, which would hide the
+Liv / Tales split.
+
+The lockup (`src/shell/brand.tsx`) is one view that draws the art as its
+background and holds the name LivTales as text, clipped to a pixel, which is
+what a screen reader announces: Taro 4.2 writes no `aria-label` or `aria-role`
+into the WXML it generates, so a label attribute would never reach WeChat.
+WXSS cannot load local files, so `src/shell/brand.scss` embeds
+`brand/logo/header-logo-light.svg` and `header-logo-dark.svg` as base64 SVG data
+URIs, each under a comment naming its source; the dark art applies under
+`prefers-color-scheme: dark`, as the app's tokens do. The sidebar head draws the
+lockup at 118 × 32 px, the size its art is tuned for, level with the capsule.
+Entry pages (sign-in, onboarding, and the configuration, offline, error, and
+loading states) draw it at 266 × 72rpx, about 36 px on a 375 pt wide phone, with
+the page margin as its clear space. `test/brand-art.test.ts` requires every SVG
+data URI to be base64, the brand art to decode byte for byte to the files in
+`brand/` and to hold only outlines, the lockup to carry its name as hidden
+text, and the build to keep cssnano's SVGO pass off (see Local build).
+
+WeChat shows the Mini Program's registered name and avatar in its own menus,
+search, and share cards; both are set on mp.weixin.qq.com, not in the package.
+The avatar is `brand/dist/night-voyage/wechat/avatar-512.png` (or
+`avatar-144.png`) from `pnpm brand:export`, rendered from
+`brand/icon/wechat-avatar.svg`; WeChat crops it to a circle, and the mark stays
+inside it. The [brand guide](../brand/README.md) covers the sources, sizes, and
+colours.
 
 ## W05 Event creation and editing
 
@@ -417,7 +457,7 @@ requests, accepted connections, and pending outgoing invitations through the
 same authenticated REST client. A user may accept or decline a request,
 withdraw an outgoing item, or remove a connection with confirmation. Email
 and link invitations use the existing server endpoint. A link is copied only
-on explicit action and opens the Chronelle web invitation page; the Mini
+on explicit action and opens the LivTales web invitation page; the Mini
 Program does not fabricate an invitation from an object ID or claim native
 WeChat share-card behavior. The API remains responsible for privacy,
 authorization, rate limits, and audit events. Account search, linking a
@@ -457,8 +497,11 @@ request domain. Keep API keys and the WeChat AppSecret on the server; the client
 persists only its opaque, revocable Chronelle session token.
 
 The production build disables DevTools-side ES5 conversion, style completion,
-and upload-time minification because Taro performs those transformations. The
-generated `dist/weapp` directory is ignored.
+and upload-time minification because Taro performs those transformations. Taro's
+`csso` option configures cssnano, whose SVGO pass would rewrite SVG data URIs
+(dropping titles, folding transforms into paths, rounding coordinates);
+`config/index.ts` turns that pass off, so the package ships the embedded art as
+authored. The generated `dist/weapp` directory is ignored.
 
 ## Package budgets
 

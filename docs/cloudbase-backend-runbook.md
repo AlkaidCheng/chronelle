@@ -199,6 +199,9 @@ Do not set `DATABASE_URL`, `CLOUDBASE_READS_ENABLED`, or
 implies the other two. After the first deployment, the service log must show
 `Chronelle backend selected` with `backend: "cloudbase"` followed by
 `Server listening`; a `startup_failed` line names what to fix (see above).
+With `smtp`, give `EMAIL_FROM` the display name users see, LivTales (for
+example `LivTales <no-reply@your-domain>`): it heads every verification and
+invitation email.
 
 ### Service: chronelle-web
 

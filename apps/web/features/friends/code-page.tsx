@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { type ReactNode, useState } from "react";
 
+import { BrandLogo } from "../../components/brand-logo";
 import { ErrorNotice, LoadingState } from "../../components/feedback";
 import { CheckIcon, UserPlusIcon } from "../../components/icons";
 import { LocaleMenu } from "../../components/locale-menu";
@@ -153,8 +154,7 @@ export function CodePage({ username }: { readonly username: string }) {
     <main className="code-page">
       <section className="code-card">
         <a className="brand code-brand" href="/events">
-          <span className="brand-mark">C</span>
-          <span>{t("title")}</span>
+          <BrandLogo />
         </a>
         {body}
         <div className="code-language">

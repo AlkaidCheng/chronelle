@@ -501,7 +501,7 @@ describe("the preferences kept on the account", () => {
     });
     expect(signedUp.statusCode).toBe(202);
     expect(email.messages[0]?.subject).toMatch(
-      /^Chronelle：您的验证码是 \d{6}$/,
+      /^LivTales：您的验证码是 \d{6}$/,
     );
 
     const verified = await app.inject({
@@ -531,7 +531,7 @@ describe("the preferences kept on the account", () => {
     });
     expect(signedUp.statusCode).toBe(202);
     expect(email.messages[0]?.subject).toMatch(
-      /^Chronelle: your code is \d{6}$/,
+      /^LivTales: your code is \d{6}$/,
     );
   });
 });

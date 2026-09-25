@@ -20,6 +20,7 @@ import {
 } from "../lib/use-display-preferences";
 import { useIsPhone } from "../lib/use-media";
 import { AccountMenu } from "./account-menu";
+import { BrandLogo } from "./brand-logo";
 import { WorkspaceCommandProvider } from "./context-commands";
 import { ErrorNotice, LoadingState } from "./feedback";
 import { MoreMenu } from "./more-menu";
@@ -170,8 +171,7 @@ export function WorkspaceShell({ children }: { readonly children: ReactNode }) {
             <aside className="sidebar" inert={sidebar.collapsed}>
               <div className="sidebar-head">
                 <Link className="brand" href="/events">
-                  <span className="brand-mark">C</span>
-                  <span>Chronelle</span>
+                  <BrandLogo />
                 </Link>
                 <SidebarCollapseControl sidebar={sidebar} />
               </div>

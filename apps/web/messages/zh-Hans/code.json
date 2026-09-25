@@ -1,5 +1,4 @@
 {
-  "title": "Chronelle",
   "loading": "正在查找",
   "unavailable": "没有账户使用这个二维码。请索取新的链接。",
   "signInFirst": "登录后即可查看对方并添加为好友。",
@@ -13,5 +12,5 @@
   "wantsYou": "{name} 已向你发送了请求，请在好友页面回复。",
   "openFriends": "打开好友",
   "yourself": "这是你自己的二维码。",
-  "openChronelle": "打开 Chronelle"
+  "openChronelle": "打开 LivTales"
 }

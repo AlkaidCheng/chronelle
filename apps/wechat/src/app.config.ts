@@ -51,6 +51,6 @@ export default defineAppConfig({
     backgroundTextStyle: "@backgroundTextStyle",
     navigationBarBackgroundColor: "@navigationBarBackgroundColor",
     navigationBarTextStyle: "@navigationBarTextStyle",
-    navigationBarTitleText: "Chronelle",
+    navigationBarTitleText: "LivTales",
   },
 });

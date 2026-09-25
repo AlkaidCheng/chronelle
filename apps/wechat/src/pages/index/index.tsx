@@ -199,7 +199,7 @@ function SignInView({ locale }: { readonly locale: AppLocale }) {
           <Text className="auth-help">{messages.wechatHelp}</Text>
         </View>
       )}
-      <Text className="footnote">CHRONELLE · 同行</Text>
+      <Text className="footnote">LivTales · 同行</Text>
     </View>
   );
 }

@@ -64,7 +64,7 @@ export function Sidebar({
           className="sidebar__head"
           style={{ height: `${layout.rowHeight}px` }}
         >
-          <Brand />
+          <Brand placement="navigation" />
           <Button
             aria-label={messages.close}
             className="shell-button sidebar__close"

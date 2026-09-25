@@ -221,7 +221,7 @@ describe("canonical cache invalidation", () => {
     await act(async () => {
       await expect(
         result.current.mutateAsync({ displayName: "Task" }),
-      ).rejects.toThrow("The Chronelle API could not be reached.");
+      ).rejects.toThrow("The LivTales API could not be reached.");
     });
     await act(() => result.current.mutateAsync({ displayName: "Task" }));
     await act(() => result.current.mutateAsync({ displayName: "Task" }));
@@ -284,7 +284,7 @@ describe("canonical cache invalidation", () => {
     await act(async () => {
       await expect(
         result.current.task.mutateAsync({ displayName: "Task" }),
-      ).rejects.toThrow("The Chronelle API could not be reached.");
+      ).rejects.toThrow("The LivTales API could not be reached.");
     });
     await act(() => result.current.task.mutateAsync({ displayName: "Task" }));
     await act(() => result.current.task.mutateAsync({ displayName: "Task" }));

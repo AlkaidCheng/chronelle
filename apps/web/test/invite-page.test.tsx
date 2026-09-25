@@ -70,7 +70,7 @@ describe("the page an invitation link opens", () => {
     expect(
       await screen.findByRole("heading", {
         level: 1,
-        name: "Chen Li invited you to be friends on Chronelle",
+        name: "Chen Li invited you to be friends on LivTales",
       }),
     ).toBeVisible();
     expect(screen.getByText("@chen-li")).toBeVisible();
@@ -133,7 +133,7 @@ describe("the page an invitation link opens", () => {
     expect(
       await screen.findByRole("heading", {
         level: 1,
-        name: "Chen Li invited you to be friends on Chronelle",
+        name: "Chen Li invited you to be friends on LivTales",
       }),
     ).toBeVisible();
     expect(

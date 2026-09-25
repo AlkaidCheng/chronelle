@@ -23,7 +23,7 @@ test("creates an account with a username, confirms the code, completes the Welco
   await expect(
     page.getByRole("heading", {
       level: 1,
-      name: "Create your Chronelle account",
+      name: "Create your LivTales account",
     }),
   ).toBeVisible();
   await expect(page.getByLabel("Name", { exact: true })).toHaveCount(0);
@@ -81,7 +81,7 @@ test("creates an account with a username, confirms the code, completes the Welco
   await page.getByRole("menuitem", { name: "Sign out", exact: true }).click();
   await expect(page).toHaveURL(/\/sign-in/u);
   await expect(
-    page.getByRole("heading", { level: 1, name: "Sign in to Chronelle" }),
+    page.getByRole("heading", { level: 1, name: "Sign in to LivTales" }),
   ).toBeVisible();
   await expect(
     page.getByRole("link", { name: "Forgot password?" }),
