@@ -1,23 +1,23 @@
 page {
-  --chronelle-paper: #f5efe4;
-  --chronelle-surface: #fffaf0;
-  --chronelle-surface-strong: #fffdf8;
-  --chronelle-ink: #292521;
-  --chronelle-muted: #716960;
-  --chronelle-line: rgba(82, 65, 50, 0.18);
-  --chronelle-line-strong: rgba(82, 65, 50, 0.3);
-  --chronelle-cinnabar: #a33c2f;
-  --chronelle-on-cinnabar: #fffdf8;
-  --chronelle-cinnabar-soft: rgba(163, 60, 47, 0.1);
-  --chronelle-indigo: #48546d;
-  --chronelle-indigo-soft: rgba(72, 84, 109, 0.11);
-  --chronelle-avatar-end: #7a5a4e;
-  --chronelle-scrim: rgba(24, 20, 16, 0.4);
-  --chronelle-shadow-strong: rgba(68, 47, 31, 0.14);
+  --livtales-paper: #f5efe4;
+  --livtales-surface: #fffaf0;
+  --livtales-surface-strong: #fffdf8;
+  --livtales-ink: #292521;
+  --livtales-muted: #716960;
+  --livtales-line: rgba(82, 65, 50, 0.18);
+  --livtales-line-strong: rgba(82, 65, 50, 0.3);
+  --livtales-cinnabar: #a33c2f;
+  --livtales-on-cinnabar: #fffdf8;
+  --livtales-cinnabar-soft: rgba(163, 60, 47, 0.1);
+  --livtales-indigo: #48546d;
+  --livtales-indigo-soft: rgba(72, 84, 109, 0.11);
+  --livtales-avatar-end: #7a5a4e;
+  --livtales-scrim: rgba(24, 20, 16, 0.4);
+  --livtales-shadow-strong: rgba(68, 47, 31, 0.14);
 
   min-height: 100%;
-  background: var(--chronelle-paper);
-  color: var(--chronelle-ink);
+  background: var(--livtales-paper);
+  color: var(--livtales-ink);
   font-family:
     -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei",
     sans-serif;
@@ -25,21 +25,21 @@ page {
 
 @media (prefers-color-scheme: dark) {
   page {
-    --chronelle-paper: #181716;
-    --chronelle-surface: #23211f;
-    --chronelle-surface-strong: #2a2724;
-    --chronelle-ink: #f3eadc;
-    --chronelle-muted: #b9afa4;
-    --chronelle-line: rgba(238, 220, 198, 0.18);
-    --chronelle-line-strong: rgba(238, 220, 198, 0.3);
-    --chronelle-cinnabar: #dc7566;
-    --chronelle-on-cinnabar: #241b18;
-    --chronelle-cinnabar-soft: rgba(220, 117, 102, 0.13);
-    --chronelle-indigo: #9aa8c5;
-    --chronelle-indigo-soft: rgba(154, 168, 197, 0.13);
-    --chronelle-avatar-end: #b98a7c;
-    --chronelle-scrim: rgba(0, 0, 0, 0.55);
-    --chronelle-shadow-strong: rgba(0, 0, 0, 0.35);
+    --livtales-paper: #181716;
+    --livtales-surface: #23211f;
+    --livtales-surface-strong: #2a2724;
+    --livtales-ink: #f3eadc;
+    --livtales-muted: #b9afa4;
+    --livtales-line: rgba(238, 220, 198, 0.18);
+    --livtales-line-strong: rgba(238, 220, 198, 0.3);
+    --livtales-cinnabar: #dc7566;
+    --livtales-on-cinnabar: #241b18;
+    --livtales-cinnabar-soft: rgba(220, 117, 102, 0.13);
+    --livtales-indigo: #9aa8c5;
+    --livtales-indigo-soft: rgba(154, 168, 197, 0.13);
+    --livtales-avatar-end: #b98a7c;
+    --livtales-scrim: rgba(0, 0, 0, 0.55);
+    --livtales-shadow-strong: rgba(0, 0, 0, 0.35);
   }
 }
 

@@ -35,7 +35,7 @@
   padding: 0;
   border: 0;
   background: transparent;
-  color: var(--chronelle-indigo);
+  color: var(--livtales-indigo);
   font-size: 24rpx;
   font-weight: 600;
   line-height: 1.2;
@@ -69,9 +69,9 @@
 .schedule-card,
 .conflict-card,
 .editor-state {
-  border: 1rpx solid var(--chronelle-line);
+  border: 1rpx solid var(--livtales-line);
   border-radius: 24rpx;
-  background: var(--chronelle-surface);
+  background: var(--livtales-surface);
   box-shadow: 0 12rpx 36rpx rgba(68, 47, 31, 0.045);
 }
 
@@ -98,7 +98,7 @@
 .editor-label,
 .picker-field__label,
 .conflict-current__label {
-  color: var(--chronelle-muted);
+  color: var(--livtales-muted);
   font-size: 20rpx;
   font-weight: 600;
   letter-spacing: 1rpx;
@@ -109,7 +109,7 @@
   box-sizing: border-box;
   width: 100%;
   margin-top: 13rpx;
-  color: var(--chronelle-ink);
+  color: var(--livtales-ink);
   font-size: 28rpx;
 }
 
@@ -133,7 +133,7 @@
   padding: 6rpx;
   margin-top: 18rpx;
   border-radius: 17rpx;
-  background: var(--chronelle-paper);
+  background: var(--livtales-paper);
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
@@ -148,15 +148,15 @@
   border: 0;
   border-radius: 13rpx;
   background: transparent;
-  color: var(--chronelle-muted);
+  color: var(--livtales-muted);
   font-size: 22rpx;
   line-height: 1.2;
 }
 
 .mode-switch__item--active {
-  background: var(--chronelle-surface-strong);
+  background: var(--livtales-surface-strong);
   box-shadow: 0 4rpx 14rpx rgba(68, 47, 31, 0.08);
-  color: var(--chronelle-ink);
+  color: var(--livtales-ink);
   font-weight: 600;
 }
 
@@ -178,9 +178,9 @@
 .picker-field {
   min-height: 82rpx;
   padding: 17rpx 19rpx;
-  border: 1rpx solid var(--chronelle-line-strong);
+  border: 1rpx solid var(--livtales-line-strong);
   border-radius: 16rpx;
-  background: var(--chronelle-paper);
+  background: var(--livtales-paper);
 }
 
 .picker-field--time {
@@ -189,7 +189,7 @@
 
 .picker-field__value {
   margin-top: 4rpx;
-  color: var(--chronelle-ink);
+  color: var(--livtales-ink);
   font-size: 25rpx;
   font-weight: 600;
 }
@@ -208,7 +208,7 @@
   padding: 0;
   border: 0;
   background: transparent;
-  color: var(--chronelle-indigo);
+  color: var(--livtales-indigo);
   font-size: 22rpx;
   font-weight: 600;
   line-height: 1.2;
@@ -219,9 +219,9 @@
   justify-content: space-between;
   gap: 20rpx;
   padding-top: 20rpx;
-  border-top: 1rpx solid var(--chronelle-line);
+  border-top: 1rpx solid var(--livtales-line);
   margin-top: 8rpx;
-  color: var(--chronelle-muted);
+  color: var(--livtales-muted);
   font-size: 20rpx;
 }
 
@@ -229,9 +229,9 @@
 .editor-alert {
   margin-bottom: 24rpx;
   padding: 19rpx 21rpx;
-  border-left: 5rpx solid var(--chronelle-cinnabar);
+  border-left: 5rpx solid var(--livtales-cinnabar);
   border-radius: 4rpx 14rpx 14rpx 4rpx;
-  background: var(--chronelle-cinnabar-soft);
+  background: var(--livtales-cinnabar-soft);
   font-size: 23rpx;
   line-height: 1.55;
 }
@@ -244,13 +244,13 @@
 .draft-notice__action {
   flex: 0 0 auto;
   margin: 0;
-  color: var(--chronelle-cinnabar);
+  color: var(--livtales-cinnabar);
 }
 
 .conflict-card {
   margin-bottom: 26rpx;
   padding: 27rpx;
-  border-color: var(--chronelle-cinnabar);
+  border-color: var(--livtales-cinnabar);
 }
 
 .conflict-card__title {
@@ -261,7 +261,7 @@
 
 .conflict-card__detail {
   margin-top: 10rpx;
-  color: var(--chronelle-muted);
+  color: var(--livtales-muted);
   font-size: 22rpx;
   line-height: 1.6;
 }
@@ -270,7 +270,7 @@
   padding: 21rpx;
   border-radius: 16rpx;
   margin-top: 20rpx;
-  background: var(--chronelle-paper);
+  background: var(--livtales-paper);
 }
 
 .conflict-current__name {
@@ -282,7 +282,7 @@
 
 .conflict-current__date {
   margin-top: 7rpx;
-  color: var(--chronelle-indigo);
+  color: var(--livtales-indigo);
   font-size: 21rpx;
 }
 
@@ -313,14 +313,14 @@
 
 .editor-button--primary {
   border: 0;
-  background: var(--chronelle-cinnabar);
-  color: var(--chronelle-on-cinnabar);
+  background: var(--livtales-cinnabar);
+  color: var(--livtales-on-cinnabar);
 }
 
 .editor-button--secondary {
-  border: 1rpx solid var(--chronelle-line-strong);
+  border: 1rpx solid var(--livtales-line-strong);
   background: transparent;
-  color: var(--chronelle-indigo);
+  color: var(--livtales-indigo);
 }
 
 .editor-button[disabled] {
@@ -338,8 +338,8 @@
   height: 18rpx;
   margin: 0 auto 24rpx;
   border-radius: 50%;
-  background: var(--chronelle-cinnabar);
-  box-shadow: 0 0 0 9rpx var(--chronelle-cinnabar-soft);
+  background: var(--livtales-cinnabar);
+  box-shadow: 0 0 0 9rpx var(--livtales-cinnabar-soft);
 }
 
 .editor-state__title {
@@ -350,7 +350,7 @@
 
 .editor-state__detail {
   margin-top: 12rpx;
-  color: var(--chronelle-muted);
+  color: var(--livtales-muted);
   font-size: 23rpx;
   line-height: 1.65;
 }

@@ -39,7 +39,7 @@
 }
 
 .people-eyebrow {
-  color: var(--chronelle-cinnabar);
+  color: var(--livtales-cinnabar);
   font-size: 20rpx;
   font-weight: 600;
   letter-spacing: 2rpx;
@@ -55,7 +55,7 @@
 .people-muted,
 .people-footnote,
 .people-card__secondary {
-  color: var(--chronelle-muted);
+  color: var(--livtales-muted);
   line-height: 1.6;
 }
 
@@ -64,10 +64,10 @@
 .people-contact__value {
   box-sizing: border-box;
   width: 100%;
-  border: 1rpx solid var(--chronelle-line-strong);
+  border: 1rpx solid var(--livtales-line-strong);
   border-radius: 16rpx;
-  background: var(--chronelle-surface);
-  color: var(--chronelle-ink);
+  background: var(--livtales-surface);
+  color: var(--livtales-ink);
   font-size: 26rpx;
 }
 
@@ -88,9 +88,9 @@
 .people-card,
 .people-panel,
 .people-conflict {
-  border: 1rpx solid var(--chronelle-line);
+  border: 1rpx solid var(--livtales-line);
   border-radius: 22rpx;
-  background: var(--chronelle-surface);
+  background: var(--livtales-surface);
   box-shadow: 0 10rpx 30rpx rgba(68, 47, 31, 0.04);
 }
 
@@ -108,8 +108,8 @@
   align-items: center;
   justify-content: center;
   border-radius: 18rpx;
-  background: var(--chronelle-indigo-soft);
-  color: var(--chronelle-indigo);
+  background: var(--livtales-indigo-soft);
+  color: var(--livtales-indigo);
   font-family: "Songti SC", STSong, serif;
   font-size: 29rpx;
 }
@@ -133,7 +133,7 @@
 }
 
 .people-card__arrow {
-  color: var(--chronelle-muted);
+  color: var(--livtales-muted);
   font-size: 36rpx;
 }
 
@@ -172,8 +172,8 @@
 }
 
 .people-primary {
-  background: var(--chronelle-cinnabar);
-  color: var(--chronelle-on-cinnabar);
+  background: var(--livtales-cinnabar);
+  color: var(--livtales-on-cinnabar);
 }
 
 .people-primary--compact {
@@ -182,9 +182,9 @@
 }
 
 .people-secondary {
-  border: 1rpx solid var(--chronelle-line-strong);
-  background: var(--chronelle-surface);
-  color: var(--chronelle-indigo);
+  border: 1rpx solid var(--livtales-line-strong);
+  background: var(--livtales-surface);
+  color: var(--livtales-indigo);
 }
 
 .people-text-button {
@@ -195,7 +195,7 @@
   padding: 0 8rpx;
   margin: 0;
   background: transparent;
-  color: var(--chronelle-indigo);
+  color: var(--livtales-indigo);
   font-size: 22rpx;
 }
 
@@ -231,7 +231,7 @@
 
 .people-item {
   padding: 22rpx 0;
-  border-top: 1rpx solid var(--chronelle-line);
+  border-top: 1rpx solid var(--livtales-line);
 }
 
 .people-item:first-of-type {
@@ -248,14 +248,14 @@
   align-items: center;
   justify-content: center;
   border-radius: 13rpx;
-  background: var(--chronelle-paper);
-  color: var(--chronelle-muted);
+  background: var(--livtales-paper);
+  color: var(--livtales-muted);
   font-size: 22rpx;
 }
 
 .people-mode--active {
-  background: var(--chronelle-indigo-soft);
-  color: var(--chronelle-indigo);
+  background: var(--livtales-indigo-soft);
+  color: var(--livtales-indigo);
 }
 
 .people-note {
@@ -274,8 +274,8 @@
   min-width: 110rpx;
   padding: 20rpx 10rpx;
   border-radius: 12rpx;
-  background: var(--chronelle-paper);
-  color: var(--chronelle-indigo);
+  background: var(--livtales-paper);
+  color: var(--livtales-indigo);
   font-size: 22rpx;
   text-align: center;
 }
@@ -290,7 +290,7 @@
   flex: 0 0 auto;
   margin: 0;
   background: transparent;
-  color: var(--chronelle-cinnabar);
+  color: var(--livtales-cinnabar);
   font-size: 34rpx;
 }
 
@@ -298,8 +298,8 @@
   padding: 17rpx 20rpx;
   margin-top: 22rpx;
   border-radius: 12rpx;
-  background: var(--chronelle-cinnabar-soft);
-  color: var(--chronelle-cinnabar);
+  background: var(--livtales-cinnabar-soft);
+  color: var(--livtales-cinnabar);
   font-size: 23rpx;
 }
 
