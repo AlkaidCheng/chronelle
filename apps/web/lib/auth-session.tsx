@@ -24,12 +24,29 @@ interface AuthCredential extends ApiCredential {
 
 /**
  * A notice a workspace switch carries into the session it opens, shown once
- * that session's providers have mounted. It is text alone: nothing bound to
- * the old session runs in the new one.
+ * that session's providers have mounted. Nothing bound to the old session
+ * runs in the new one: its one action is handed the new session's switch
+ * when it runs.
  */
 export interface CarriedNotice {
   readonly message: string;
   readonly tone?: "success" | "danger";
+  readonly action?: {
+    readonly label: string;
+    readonly run: (
+      session: Pick<AuthSessionContextValue, "switchWorkspace">,
+    ) => Promise<unknown>;
+  };
+}
+
+/** A carried notice as the session it reached shows it, its action bound to that session. */
+export interface ShownCarriedNotice {
+  readonly message: string;
+  readonly tone?: "success" | "danger";
+  readonly action?: {
+    readonly label: string;
+    readonly run: () => Promise<unknown>;
+  };
 }
 
 interface AuthSessionContextValue {
@@ -44,7 +61,7 @@ interface AuthSessionContextValue {
     notice?: CarriedNotice,
   ) => void;
   /** The notices the switch that opened this session carried; each is taken once. */
-  readonly takeCarriedNotices: () => readonly CarriedNotice[];
+  readonly takeCarriedNotices: () => readonly ShownCarriedNotice[];
 }
 
 const AuthSessionContext = createContext<AuthSessionContextValue | null>(null);
@@ -182,8 +199,20 @@ export function AuthSessionProvider({
     };
   }, [replaceSession]);
 
-  const value = useMemo<AuthSessionContextValue>(
-    () => ({
+  const value = useMemo<AuthSessionContextValue>(() => {
+    const switchWorkspace = (workspaceId: string, notice?: CarriedNotice) => {
+      if (
+        session.controller.signal.aborted ||
+        session.credential === null ||
+        session.credential.workspaceId === workspaceId
+      )
+        return;
+      if (notice !== undefined) carried.current.push(notice);
+      const nextCredential = { ...session.credential, workspaceId };
+      replaceSession(nextCredential);
+      persistCredential(nextCredential);
+    };
+    return {
       credential: session.credential,
       isHydrated: session.isHydrated,
       generation: session.generation,
@@ -203,26 +232,24 @@ export function AuthSessionProvider({
         replaceSession(storedCredential);
         persistCredential(storedCredential);
       },
-      switchWorkspace: (workspaceId, notice) => {
-        if (
-          session.controller.signal.aborted ||
-          session.credential === null ||
-          session.credential.workspaceId === workspaceId
-        )
-          return;
-        if (notice !== undefined) carried.current.push(notice);
-        const nextCredential = { ...session.credential, workspaceId };
-        replaceSession(nextCredential);
-        persistCredential(nextCredential);
-      },
+      switchWorkspace,
       takeCarriedNotices: () => {
         const taken = carried.current;
         carried.current = [];
-        return taken;
+        return taken.map(({ action, ...notice }) =>
+          action === undefined
+            ? notice
+            : {
+                ...notice,
+                action: {
+                  label: action.label,
+                  run: () => action.run({ switchWorkspace }),
+                },
+              },
+        );
       },
-    }),
-    [session, replaceSession],
-  );
+    };
+  }, [session, replaceSession]);
 
   return (
     <AuthSessionContext.Provider value={value}>
@@ -232,11 +259,11 @@ export function AuthSessionProvider({
 }
 
 /** Takes the notices a workspace switch carried; none outside the provider. */
-export function useCarriedNotices(): () => readonly CarriedNotice[] {
+export function useCarriedNotices(): () => readonly ShownCarriedNotice[] {
   return useContext(AuthSessionContext)?.takeCarriedNotices ?? noCarriedNotices;
 }
 
-function noCarriedNotices(): readonly CarriedNotice[] {
+function noCarriedNotices(): readonly ShownCarriedNotice[] {
   return [];
 }
 
