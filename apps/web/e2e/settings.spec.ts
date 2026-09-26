@@ -368,4 +368,32 @@ test("opens Settings over an event's view and returns to it as it was left @webk
   await page.screenshot({
     path: testInfo.outputPath("settings-narrow.png"),
   });
+
+  // Every section's rows fit it too: a control too wide for its label's
+  // line moves under the label, and nothing in the section scrolls
+  // sideways.
+  const content = settings.locator(".section-dialog-content");
+  for (const name of ["General", "Language & time", "Appearance"]) {
+    await sections.getByRole("button", { name, exact: true }).click();
+    await expect(
+      settings.getByRole("heading", { level: 2, name, exact: true }),
+    ).toBeVisible();
+    expect(
+      await content.evaluate(
+        (element) => element.scrollWidth <= element.clientWidth,
+      ),
+    ).toBe(true);
+    await expectHorizontalReflow(page);
+    if (name === "Language & time") {
+      const zone = await settings
+        .getByRole("combobox", { name: "Time zone", exact: true })
+        .boundingBox();
+      const caption = await settings
+        .getByText(/^Times are shown in this zone\./u)
+        .boundingBox();
+      expect(zone?.y).toBeGreaterThanOrEqual(
+        (caption?.y ?? Number.POSITIVE_INFINITY) + (caption?.height ?? 0),
+      );
+    }
+  }
 });
