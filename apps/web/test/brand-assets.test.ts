@@ -45,9 +45,6 @@ function drawing(svg: string) {
   };
 }
 
-const fills = (svg: string) =>
-  elements(svg, "path").map((path) => path.get("fill")?.toLowerCase());
-
 /** Width, height, and colour type from a PNG's IHDR chunk. */
 function png(data: Buffer) {
   expect(data.subarray(1, 4).toString("latin1")).toBe("PNG");
@@ -118,20 +115,30 @@ describe("the logo", () => {
     ]);
   });
 
-  it("paints each part with a token holding the source's light and dark fills", () => {
-    const tokens = webFile("app/tokens.css").toString("utf8");
+  it("paints each part with a token drawn from the palette", () => {
     const styles = webFile("app/styles.css").toString("utf8");
-    const lightFills = fills(light);
-    const darkFills = fills(dark);
+    const brandTokens = new Map(
+      [
+        ...webFile("app/tokens.css")
+          .toString("utf8")
+          .matchAll(/--brand-([\w-]+):\s*([^;]+);/g),
+      ].map(([, role, value]) => [role ?? "", value ?? ""]),
+    );
+    /** A token's value with each --brand-* token it names written out. */
+    const expand = (value: string): string =>
+      value.replace(/var\(--brand-([\w-]+)\)/g, (_, role: string) =>
+        expand(brandTokens.get(role) ?? ""),
+      );
     elements(logo, "path").forEach((path, index) => {
       const role = /^brand-logo-([\w-]+)$/.exec(path.get("class") ?? "")?.[1];
       expect(role, `path ${index}`).toBeDefined();
       expect(styles).toContain(
         `.brand-logo-${role} {\n  fill: var(--brand-${role});\n}`,
       );
-      expect(tokens).toContain(
-        `--brand-${role}: light-dark(${lightFills[index]}, ${darkFills[index]});`,
-      );
+      const value = expand(brandTokens.get(role ?? "") ?? "");
+      expect(value, `--brand-${role}`).toMatch(/var\(--(accent|ink)\)/);
+      // A fixed colour would stop the part following the palette.
+      expect(value, `--brand-${role}`).not.toMatch(/#[\da-f]{3,8}\b|rgb|hsl/i);
     });
   });
 });

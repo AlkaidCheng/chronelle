@@ -173,8 +173,9 @@ After changing a source in brand/:
 3. Web rasters: `pnpm brand:export --web`.
 4. Web logo: `apps/web/components/brand-logo.tsx` carries the viewBox, group transforms,
    and path data of `logo/header-logo-light.svg`, one class per path. Each class's fill
-   is a token in `apps/web/app/tokens.css` holding
-   `light-dark(<light fill>, <dark fill>)` from the two header logos.
+   is a `--brand-*` token in `apps/web/app/tokens.css` drawn from the app palette's
+   accent, canvas, and ink rather than the header logos' fills, so give a new part a
+   token of its own there.
 5. Mini Program: re-embed both header logos in `apps/wechat/src/shell/brand.scss`, each
    under its `// brand/logo/…svg` comment, the light one first and the dark one inside
    the `prefers-color-scheme: dark` rule:
@@ -188,7 +189,7 @@ After changing a source in brand/:
 - `apps/web/test/brand-assets.test.ts`: `app/icon.svg` and `public/icons/pwa-icon.svg`
   are byte-identical to `icon/favicon.svg` and `icon/pwa-icon.svg`; `<BrandLogo/>` draws
   `header-logo-light.svg` exactly (the dark file has the same drawing), and each part's
-  token holds the two source fills; every manifest icon exists at its declared size and
+  token is drawn from the palette; every manifest icon exists at its declared size and
   the maskable one is opaque; `favicon.ico` holds 16, 32 and 48; `apple-icon.png` is 180
   and opaque; the Open Graph image is 1200 × 630 with alt text naming LivTales; every
   raster the app serves, its sources, and `scripts/export.mjs` still have the digests
@@ -242,9 +243,9 @@ one-colour version.
 
 - **Web header.** `logo/header-logo-*.svg` are 118 × 32 px: cap 15 px, baseline at
   26 px, so the cap top and baseline fall on whole pixels at 1×, 1.5×, 2×, and 3×. The
-  web app draws the logo at 32 px in the sidebar, the phone drawer, and the not-found
-  and error pages, and at 40 px on the account screens and the code page
-  (`--brand-height`).
+  web app draws the logo a step quieter, at 26 px (cap about 12 px), in the sidebar,
+  the phone drawer, and the not-found and error pages, and at 40 px on the account
+  screens and the code page (`--brand-height`).
 - **Mini Program.** The lockup at 28 to 32 px in the navigation bar, or the mark alone
   beside the system title. The sidebar head draws it at 118 × 32 px; entry pages draw it
   at 266 × 72rpx.
@@ -271,6 +272,11 @@ one-colour version.
 The one-colour files use `#000000` and `#FFFFFF`; the theme ink (`#141B34` / `#EAF1FF`)
 or `currentColor` may replace them. The web app draws the logo in the link colour in
 forced-colours mode, as the one-colour version does.
+
+The web app's in-app logo is the one exception to these colours: it takes the chosen
+palette's accent, canvas, and ink (`--brand-*` in `apps/web/app/tokens.css`), so it
+matches the theme the user picks. The favicon, app icons, link preview, and Mini Program
+art keep the colours above.
 
 **Do:** keep Liv in the page colour and Tales in the ink, the page colour first; scale
 proportionally; keep the clear space.

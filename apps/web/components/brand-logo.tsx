@@ -2,9 +2,9 @@
  * The LivTales logo: the Foam Crest mark (an open book whose right page and
  * bands make a sail) beside the two-tone word. The drawing is
  * brand/logo/header-logo-light.svg, the lockup tuned for a 32 px header, and
- * each part takes its colour from a --brand-* token, so the one drawing
- * serves the light and dark appearances. It is an image named LivTales, which
- * also names a link around it.
+ * each part takes its colour from a --brand-* token drawn from the palette,
+ * so the one drawing serves every palette in both appearances. It is an image
+ * named LivTales, which also names a link around it.
  */
 export function BrandLogo() {
   return (
