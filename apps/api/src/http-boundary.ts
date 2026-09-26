@@ -14,6 +14,9 @@ import {
   InvalidRelationError,
   LabelNameConflictError,
   ObjectConflictError,
+  ObjectMoveChangedError,
+  type ObjectMoveRefusal,
+  ObjectMoveRefusedError,
   RelationConflictError,
   StorageInventoryBusyError,
 } from "@livtales/object-model";
@@ -34,7 +37,11 @@ import {
   type FastifyServerOptions,
   LogController,
 } from "fastify";
-import { HttpError, InvalidRequestError } from "./errors.js";
+import {
+  HttpError,
+  InvalidRequestError,
+  WorkspaceUnavailableError,
+} from "./errors.js";
 import {
   FriendConflictError,
   FriendLimitError,
@@ -51,6 +58,7 @@ const domainErrors = [
   [CommandStackConflictError, 409, "command_stack_conflict"],
   [CommandConflictError, 409, "command_conflict"],
   [ObjectConflictError, 409, "version_conflict"],
+  [ObjectMoveChangedError, 409, "move_changed"],
   [LabelNameConflictError, 409, "label_name_taken"],
   [RelationConflictError, 409, "relation_conflict"],
   [InvalidObjectStateError, 400, "invalid_request"],
@@ -64,9 +72,28 @@ const domainErrors = [
   [WorkspaceMemberConflictError, 409, "member_conflict"],
 ] as const;
 
+/**
+ * A refused move of an Event the caller can see names its reason; a target
+ * the caller is not a member of is unavailable, as any workspace they
+ * cannot enter is.
+ */
+const moveRefusals: Readonly<
+  Record<Exclude<ObjectMoveRefusal, "target_unavailable">, [number, string]>
+> = {
+  forbidden: [403, "move_forbidden"],
+  not_movable: [400, "move_not_movable"],
+  same_space: [400, "move_same_space"],
+};
+
 function resolveHttpError(error: unknown): HttpError {
   if (error instanceof HttpError) return error;
   if (error instanceof AuthorizationDeniedError) return unavailableResource();
+  if (error instanceof ObjectMoveRefusedError) {
+    if (error.reason === "target_unavailable")
+      return new WorkspaceUnavailableError();
+    const [status, code] = moveRefusals[error.reason];
+    return new HttpError(status, code, error.message);
+  }
   for (const [ErrorType, status, code] of domainErrors) {
     if (error instanceof ErrorType)
       return new HttpError(status, code, error.message);

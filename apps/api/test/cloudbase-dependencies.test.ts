@@ -136,3 +136,49 @@ describe("CloudBase read wiring", () => {
     expect(client.rpc).not.toHaveBeenCalled();
   });
 });
+
+describe("CloudBase move wiring", () => {
+  const moves: Record<
+    string,
+    (dependencies: AppDependencies) => Promise<unknown>
+  > = {
+    "GET /api/objects/:id/move/targets": (dependencies) =>
+      dependencies.moves.targets(principal, objectId),
+    "GET /api/objects/:id/move": (dependencies) =>
+      dependencies.moves.preview(principal, objectId, principal.workspaceId),
+    "POST /api/objects/:id/move": (dependencies) =>
+      dependencies.moves.move(
+        { principal, requestId: "00000000-0000-7000-8000-000000000007" },
+        objectId,
+        { workspaceId: principal.workspaceId, expectedDroppedLinks: 0 },
+      ),
+  };
+
+  // The move checks the preview's count, so the two never come from
+  // different backends: both follow the write switch.
+  it.each(Object.entries(moves))(
+    "serves %s from the gateway only when writes go there too",
+    async (_route, call) => {
+      const readsOnly = gateway();
+      await expect(
+        call(
+          createAppDependencies(
+            connection,
+            { authenticate: async () => null },
+            { cloudBaseRdb: readsOnly },
+          ),
+        ),
+      ).rejects.not.toBeInstanceOf(GatewayTouched);
+      expect(readsOnly.rpc).not.toHaveBeenCalled();
+      await expect(
+        call(
+          createAppDependencies(
+            connection,
+            { authenticate: async () => null },
+            { cloudBaseRdb: gateway(), cloudBaseWrites: true },
+          ),
+        ),
+      ).rejects.toBeInstanceOf(GatewayTouched);
+    },
+  );
+});
