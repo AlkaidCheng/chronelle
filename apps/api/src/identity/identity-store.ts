@@ -17,7 +17,7 @@ import {
   workspaceMembers,
   workspaces,
 } from "@livtales/db";
-import { and, eq, inArray, ne, sql } from "drizzle-orm";
+import { and, eq, inArray, isNull, ne, sql } from "drizzle-orm";
 
 import {
   type AuthIdentity,
@@ -61,10 +61,11 @@ export interface AccessibleWorkspaceRow extends WorkspaceRow {
  * one transaction), the session for an authenticated identity in a
  * requested or the personal workspace (null when the user is unknown or
  * has no personal workspace; a workspace error when the user may not enter
- * the workspace; the workspace of the object a request names, when the
- * user may enter it, over the requested one, so a share opens where it
- * lives), and the workspaces the user may enter through membership
- * or an active grant (each with its owner's name and the user's role), and
+ * the workspace or it was deleted; the workspace of the object a request
+ * names, when the user may enter it, over the requested one, so a share
+ * opens where it lives), and the workspaces the user may enter through
+ * membership or an active grant, deleted ones left out (each with its
+ * owner's name and the user's role), and
  * the preferences kept on the account (the language, time zone, clock, and
  * week start; a key that is present replaces the stored value, null clears
  * it, and an absent key keeps it; the user is returned as the row then
@@ -285,31 +286,34 @@ export class PostgresIdentityStore implements IdentityStore {
           user.id,
         );
         if (personalWorkspace === null) return null;
-        let workspaceId = requestedWorkspaceId ?? personalWorkspace.id;
+        // A workspace resolves when the user may enter it and it was not
+        // deleted; the object's is preferred over the requested one.
+        const enterable = async (workspaceId: string) => {
+          if (!(await authorization.canAccessWorkspace(user.id, workspaceId)))
+            return null;
+          const [workspace] = await transaction
+            .select()
+            .from(workspaces)
+            .where(
+              and(eq(workspaces.id, workspaceId), isNull(workspaces.deletedAt)),
+            )
+            .limit(1);
+          return workspace ?? null;
+        };
+        const requestedId = requestedWorkspaceId ?? personalWorkspace.id;
         if (objectId !== undefined) {
           const [object] = await transaction
             .select({ workspaceId: objects.workspaceId })
             .from(objects)
             .where(eq(objects.id, objectId))
             .limit(1);
-          if (
-            object !== undefined &&
-            object.workspaceId !== workspaceId &&
-            (await authorization.canAccessWorkspace(
-              user.id,
-              object.workspaceId,
-            ))
-          )
-            workspaceId = object.workspaceId;
+          if (object !== undefined && object.workspaceId !== requestedId) {
+            const workspace = await enterable(object.workspaceId);
+            if (workspace !== null) return { user, workspace };
+          }
         }
-        if (!(await authorization.canAccessWorkspace(user.id, workspaceId)))
-          throw new WorkspaceUnavailableError();
-        const [workspace] = await transaction
-          .select()
-          .from(workspaces)
-          .where(eq(workspaces.id, workspaceId))
-          .limit(1);
-        if (workspace === undefined) throw new WorkspaceUnavailableError();
+        const workspace = await enterable(requestedId);
+        if (workspace === null) throw new WorkspaceUnavailableError();
         return { user, workspace };
       },
     );
@@ -344,7 +348,9 @@ export class PostgresIdentityStore implements IdentityStore {
               eq(workspaceMembers.userId, userId),
             ),
           )
-          .where(inArray(workspaces.id, ids));
+          .where(
+            and(inArray(workspaces.id, ids), isNull(workspaces.deletedAt)),
+          );
         return rows.map((row) => ({
           ...row.workspace,
           ownerDisplayName: row.ownerDisplayName,

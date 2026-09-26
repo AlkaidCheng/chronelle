@@ -696,6 +696,69 @@ describe("LivTalesApiClient", () => {
       ["/api/workspaces/current/leave", "POST", undefined],
     ]);
   });
+  it("previews and deletes the current space", async () => {
+    const deletion = {
+      deletable: true,
+      reason: null,
+      liveRecords: 0,
+      trashRecords: 3,
+      memberCount: 2,
+    };
+    const refusal = (status: number, code: string) =>
+      Response.json({ error: { code, message: "Refused." } }, { status });
+    const fetch = vi
+      .fn<typeof globalThis.fetch>()
+      .mockResolvedValueOnce(Response.json(deletion))
+      .mockResolvedValueOnce(new Response(null, { status: 204 }))
+      .mockResolvedValueOnce(refusal(409, "space_not_empty"))
+      .mockResolvedValueOnce(refusal(404, "workspace_unavailable"))
+      .mockResolvedValueOnce(Response.json({ deleted: true }))
+      .mockResolvedValueOnce(
+        Response.json({ ...deletion, reason: "holds_records" }),
+      );
+    const client = new LivTalesApiClient({
+      fetch,
+      getCredential: () => ({
+        accessToken: "test-session",
+        workspaceId: event.workspaceId,
+      }),
+    });
+
+    expect(await client.getWorkspaceDeletion()).toEqual(deletion);
+    await expect(client.deleteWorkspace()).resolves.toBeUndefined();
+    await expect(client.deleteWorkspace()).rejects.toMatchObject({
+      status: 409,
+      code: "space_not_empty",
+    });
+    await expect(client.deleteWorkspace()).rejects.toMatchObject({
+      status: 404,
+      code: "workspace_unavailable",
+    });
+    // A body where none belongs, and a preview that contradicts itself, are
+    // not the API's answers.
+    await expect(client.deleteWorkspace()).rejects.toMatchObject({
+      status: 200,
+      code: "invalid_response",
+    });
+    await expect(client.getWorkspaceDeletion()).rejects.toMatchObject({
+      code: "invalid_response",
+    });
+    expect(
+      fetch.mock.calls.map(([url, init]) => [
+        url,
+        init?.method,
+        new Headers(init?.headers).get("x-workspace-id"),
+      ]),
+    ).toEqual([
+      ["/api/workspaces/current/deletion", "GET", event.workspaceId],
+      ["/api/workspaces/current", "DELETE", event.workspaceId],
+      ["/api/workspaces/current", "DELETE", event.workspaceId],
+      ["/api/workspaces/current", "DELETE", event.workspaceId],
+      ["/api/workspaces/current", "DELETE", event.workspaceId],
+      ["/api/workspaces/current/deletion", "GET", event.workspaceId],
+    ]);
+  });
+
   it("lists move targets, previews a move, and moves an Event to another space", async () => {
     const target = uploadAuthorizationId;
     const space = {

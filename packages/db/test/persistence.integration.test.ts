@@ -1,4 +1,4 @@
-import { appendFile, cp, mkdtemp, rm } from "node:fs/promises";
+import { appendFile, cp, mkdtemp, readdir, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 
@@ -213,8 +213,12 @@ describe.sequential("persistence kernel", () => {
     );
     temporaryDirectories.push(upgradeDirectory);
     await cp(migrationDirectory, upgradeDirectory, { recursive: true });
-    const identityMigration = "0071_add_linked_identities.sql";
-    await rm(join(upgradeDirectory, identityMigration));
+    // The database predates 0071: that migration and every later one, some
+    // of which replace its functions, run after the user exists.
+    const upgrade = (await readdir(migrationDirectory)).filter(
+      (name) => name.endsWith(".sql") && name >= "0071_",
+    );
+    for (const name of upgrade) await rm(join(upgradeDirectory, name));
     await applyMigrations(
       { DATABASE_URL: testDatabase.databaseUrl },
       upgradeDirectory,
@@ -225,17 +229,15 @@ describe.sequential("persistence kernel", () => {
       INSERT INTO users (id, identity_provider, provider_subject, email, display_name)
       VALUES (${userId}, 'password', 'person@example.test', 'person@example.test', 'Person')
     `;
-    await cp(
-      join(migrationDirectory, identityMigration),
-      join(upgradeDirectory, identityMigration),
-    );
+    for (const name of upgrade)
+      await cp(join(migrationDirectory, name), join(upgradeDirectory, name));
 
     await expect(
       applyMigrations(
         { DATABASE_URL: testDatabase.databaseUrl },
         upgradeDirectory,
       ),
-    ).resolves.toBe(1);
+    ).resolves.toBe(upgrade.length);
     expect(
       await testDatabase.connection.sql`
         SELECT u.id, i.user_id, i.provider, i.subject

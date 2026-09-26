@@ -142,6 +142,8 @@ export function workspaceRow(row: CloudBaseRow): WorkspaceRow {
     personalOwnerId: nullableText(row.personal_owner_id, "personal owner"),
     createdAt: instant(row.created_at, "created_at"),
     updatedAt: instant(row.updated_at, "updated_at"),
+    deletedAt: nullableInstant(row.deleted_at, "deleted_at"),
+    deletedBy: nullableText(row.deleted_by, "deleted_by"),
   };
 }
 

@@ -144,6 +144,20 @@ a revision. The preview reports the links it drops with a warning, and the
 move is refused when their count differs from the one the caller reviewed.
 `object.moved` is audited in both spaces.
 
+An Owner deletes a shared space that holds nothing but Trash
+(`MembershipStore.delete`, mirrored by `chronelle_workspace_delete`, migration
+0078). A deletion is a mark, never a purge, because history is retained: the
+workspace row gets `deleted_at` and `deleted_by`, and its records, revisions,
+audit trail, and files stay. What admits a user goes, under the workspace
+fence and after the rule is checked again: waiting shares are revoked, then
+the live grants on its records, then every membership, and `workspace.deleted`
+records the members and grants removed. Session resolution and the switcher
+leave deleted workspaces out on both backends. Record-creating paths on the
+Drizzle backend already take the same fence; the rpc functions do not, so a
+trigger on `objects` takes the workspace row in share mode before an insert or
+a restore from Trash and refuses one in a deleted workspace, which closes the
+race on both backends without serializing writers in one space.
+
 `withReadAuthorization` owns read transaction configuration and constructs an
 evaluator bound to that transaction. Service constructors accept a database
 connection; composed object/relation services instead receive an explicit

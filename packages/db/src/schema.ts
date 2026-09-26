@@ -408,6 +408,9 @@ export const workspaces = pgTable("workspaces", {
   personalOwnerId: uuid("personal_owner_id"),
   createdAt: createCreatedAtColumn(),
   updatedAt: createUpdatedAtColumn(),
+  /** When an Owner deleted the space; a deleted space keeps its row and records. */
+  deletedAt: timestamp("deleted_at", { mode: "date", withTimezone: true }),
+  deletedBy: uuid("deleted_by"),
 });
 
 export const workspaceMembers = pgTable(

@@ -1217,6 +1217,8 @@ always at least one.
 | -------- | ------------------------------------- | ---------------------------------------------- |
 | `POST`   | `/workspaces`                         | Create a shared workspace                      |
 | `PATCH`  | `/workspaces/current`                 | Rename the current workspace                   |
+| `GET`    | `/workspaces/current/deletion`        | Whether the current workspace can be deleted   |
+| `DELETE` | `/workspaces/current`                 | Delete the current workspace with its Trash    |
 | `POST`   | `/workspaces/current/leave`           | Leave the current workspace                    |
 | `GET`    | `/workspaces/current/members`         | List the current workspace's members           |
 | `POST`   | `/workspaces/current/members`         | Add a friend as a member, or change their role |
@@ -1252,6 +1254,42 @@ run one at a time. They write `workspace.created`, `workspace.renamed`,
 the same rules (`chronelle_workspace_create`, `_update`, `_member_add`,
 `_member_role`, `_member_remove`, and `chronelle_workspace_leave`, migration
 0072, on the rpc path; the readiness check requires them).
+
+### Deleting a space
+
+An Owner deletes a shared workspace that holds nothing but Trash; its Trash
+goes with it. A record is live when neither it nor its permission scope is
+in Trash: an Event moved to Trash marks only itself, so the records in its
+scope are in Trash with it. People cards are records; labels and sections
+are the workspace's configuration and go with it.
+
+`GET /workspaces/current/deletion` answers any member with `{ deletable,
+reason, liveRecords, trashRecords, memberCount }`. `reason` is null when
+`deletable` is true, else the first that applies of `personal` (a personal
+workspace is never deleted), `not_owner`, and `holds_records`
+(`liveRecords` is above zero). A caller who is not a member gets
+`resource_unavailable` (HTTP 404).
+
+`DELETE /workspaces/current` deletes it and returns HTTP 204 with no body.
+It is refused with `space_personal` (HTTP 400) for a personal workspace,
+`space_forbidden` (HTTP 403) for a caller who is not its Owner, and
+`space_not_empty` (HTTP 409) while a live record remains; the error envelope
+carries no count, so read it from the preview. The rule is checked again
+under the workspace's lock, so a record created while the deletion runs
+either lands first and refuses it or is refused itself.
+
+Deleting marks the workspace deleted and keeps its records, revisions,
+audit trail, and stored files. It revokes the workspace's waiting shares
+(`resource.share_queue_revoked`), then the live grants on its records
+(`resource.share_revoked`), each with `reason: "workspace_deleted"`, removes
+every member, and writes `workspace.deleted` with its name, the members and
+grants removed, the number of waiting shares revoked, and the number of
+records in Trash. The workspace then leaves every `availableWorkspaces`, a
+request that names it gets `workspace_unavailable` (HTTP 404), a repeated
+delete included, and it is no longer a place to move an Event to. A new
+workspace may take its name. `chronelle_workspace_deletion` and
+`chronelle_workspace_delete` (migration 0078) serve both routes on the rpc
+path; the readiness check requires them.
 
 ## Moving an Event to another space
 

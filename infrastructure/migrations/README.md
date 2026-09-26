@@ -68,3 +68,13 @@ dropped with an audit event each, a trigger refuses any delete a move did not
 announce for its transaction, and a context creation's record keeps its
 relation id without a key. Apply it after 0076, then rerun the runtime role
 script for `DELETE` on `object_relations`, then deploy the API.
+
+Migration 0078 lets an Owner delete a shared workspace that holds nothing but
+Trash, beside the TypeScript store that runs the same steps. A deletion marks
+the workspace with `deleted_at` and `deleted_by` and keeps its records and
+history; it revokes the waiting shares and live grants and removes the
+members. Triggers refuse a record inserted into a deleted workspace or
+restored from its Trash, taking the workspace row in share mode so they wait
+for a deletion in progress, and session resolution leaves deleted workspaces
+out. Apply it after 0077 with API writers stopped, then deploy the API; the
+runtime role needs no new privilege.

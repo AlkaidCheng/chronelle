@@ -119,6 +119,8 @@ export const cloudBaseRequiredFunctions: readonly string[] = [
   "chronelle_workspace_member_role",
   "chronelle_workspace_member_remove",
   "chronelle_workspace_leave",
+  "chronelle_workspace_deletion",
+  "chronelle_workspace_delete",
 ];
 
 /** The log level for one gateway request: conflicts and denials are routine, failures are not. */

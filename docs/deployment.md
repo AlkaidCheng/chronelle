@@ -443,6 +443,31 @@ relation, so they keep working after it. On CloudBase, apply it through the
 console SQL editor with the API stopped, then redeploy the API, because
 readiness requires the three functions.
 
+Migration `0078_add_space_deletion.sql` lets an Owner delete a shared
+workspace that holds nothing but Trash. It adds nullable `deleted_at` and
+`deleted_by` (keyed to `users`) to `workspaces` with checks that both are set
+together, never before the workspace was created, and never on a personal
+workspace; the triggers `objects_deleted_workspace_guard` and
+`objects_restore_deleted_workspace_guard`, which refuse a record inserted
+into a deleted workspace or restored from its Trash; and
+`chronelle_workspace_deletion` and `chronelle_workspace_delete`, which the
+readiness check requires, with the helper `chronelle_workspace_records`. It
+replaces `chronelle_user_session_resolve` so a session never resolves in a
+deleted workspace. It revokes browser-role execution and grants
+`service_role` execution when those managed roles exist. Adding the key and
+the checks locks `workspaces` and `users` briefly, and creating the triggers
+locks `objects` against writes, so apply 0078 with API writers stopped; it
+gives up after five seconds waiting for a lock.
+
+Apply 0078 after 0077, then deploy the API, and the web after it. The runtime
+role already holds what a deletion writes (`UPDATE` on `workspaces` and
+`pending_shares`, `DELETE` on `workspace_members` and `resource_grants`), so
+the runtime-role script needs no rerun. No workspace is deleted until the new
+API serves the route, and older API versions ignore the new columns, so they
+keep working after the migration. On CloudBase, apply it through the console
+SQL editor with the API stopped, then redeploy the API, because readiness
+requires the two functions.
+
 Enable the WeChat routes only after CloudBase authentication is configured:
 
 ```dotenv

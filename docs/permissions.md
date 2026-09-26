@@ -231,6 +231,25 @@ or an active Owner grant to a tombstone for recovery. Resource authorization add
 to match that active workspace. Missing and unauthorized resources use the same
 external error shape so forged IDs do not reveal existence.
 
+### Deleting a space
+
+Only an Owner deletes a shared workspace, and only while it holds nothing but
+Trash: no record that is out of Trash with its permission scope out of Trash
+too. A personal workspace is never deleted, which a check constraint also
+holds. The deletion takes the workspace's lock as membership changes do,
+checks the rule again under it, and removes everything that admits a user:
+waiting shares are revoked, the live grants on its records are revoked with a
+`resource.share_revoked` audit event each, and every membership is removed.
+The workspace row stays, marked with `deleted_at` and `deleted_by`, and session
+resolution and the list of available workspaces leave it out on both backends
+even if an admitting row were to reappear, so a session that names it is
+`workspace_unavailable`. A trigger refuses a record inserted into a deleted
+workspace or restored from its Trash; it takes the workspace row in share
+mode, so a create or restore that overlaps a deletion in progress waits for
+it and is then refused, and one that commits first makes the deletion see a
+live record and refuse. The records, their revisions, the audit trail, and the
+stored files are kept: deletion is a mark, not a purge.
+
 The [private container stack](deployment.md#database-privilege-boundary) uses a
 separate runtime login with explicit table privileges; owner credentials stay
 with migrations and provisioning. Audit/history tables are read/insert only,

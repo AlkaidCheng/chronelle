@@ -344,6 +344,12 @@ runtime role script grants `DELETE` on `object_relations` for it. After
 [Deployment](deployment.md)) if the API connects as the runtime role, then
 restart the API.
 
+Migration `0078_add_space_deletion.sql` adds `deleted_at` and `deleted_by` to
+`workspaces`, the functions that preview and delete a shared workspace, and
+triggers that refuse a record created in or restored into a deleted one; it
+also keeps session resolution out of deleted workspaces. Run
+`pnpm db:migrate` and restart the API; the runtime role script needs no rerun.
+
 Migration `0021_add_object_search_function.sql` adds `chronelle_object_search`,
 the read-only function the CloudBase search adapter calls. It changes no
 tables and needs no baseline.
