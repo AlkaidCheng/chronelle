@@ -9814,7 +9814,7 @@ html:has(.event-create-dialog[open]) {
     .theme-group > span,
     .theme-group legend,
     .settings-nav-group > span,
-    .section-dialog-group > span,
+    .section-dialog-caption,
     .rail-heading,
     .event-date-mark span,
     .date-tile span
@@ -11018,7 +11018,7 @@ html:has(.section-dialog[open]) {
   padding: 0;
 }
 
-.section-dialog-group > span {
+.section-dialog-caption {
   color: var(--muted);
   display: block;
   font-size: 0.66rem;
@@ -11045,7 +11045,7 @@ html:has(.section-dialog[open]) {
   width: 100%;
 }
 
-.section-dialog-item svg {
+.section-dialog-icon {
   fill: none;
   flex: none;
   height: 17px;
@@ -11124,7 +11124,7 @@ html:has(.section-dialog[open]) {
   }
 
   .section-dialog-heading,
-  .section-dialog-group > span {
+  .section-dialog-caption {
     display: none;
   }
 

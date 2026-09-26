@@ -1,6 +1,13 @@
 "use client";
 
-import { type ReactNode, useEffect, useId } from "react";
+import {
+  cloneElement,
+  isValidElement,
+  type ReactElement,
+  type ReactNode,
+  useEffect,
+  useId,
+} from "react";
 import { useSessionDialog } from "../lib/use-session-dialog";
 
 /** One section of a section dialog, as its list shows it. */
@@ -79,7 +86,11 @@ export function SectionDialog({
         onClick={() => onSelect(section.id)}
         type="button"
       >
-        {section.icon}
+        {isValidElement(section.icon)
+          ? cloneElement(section.icon as ReactElement<{ className?: string }>, {
+              className: "section-dialog-icon",
+            })
+          : section.icon}
         <span>{section.label}</span>
       </button>
     </li>
@@ -105,7 +116,12 @@ export function SectionDialog({
                 className="section-dialog-group"
                 key={run.sections[0]?.id ?? run.group}
               >
-                <span id={`${id}-group-${index}`}>{run.group}</span>
+                <span
+                  className="section-dialog-caption"
+                  id={`${id}-group-${index}`}
+                >
+                  {run.group}
+                </span>
                 <ul aria-labelledby={`${id}-group-${index}`}>
                   {run.sections.map(item)}
                 </ul>
