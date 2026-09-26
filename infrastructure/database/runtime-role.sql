@@ -101,8 +101,11 @@ GRANT SELECT, INSERT, UPDATE ON
   public.persons, public.user_connections, public.user_invitations, public.pending_shares,
   public.notes, public.sections, public.user_identities
 TO :"runtime_role";
+-- A relation is deleted only by a move of an Event to another workspace;
+-- object_relations_drop_guard refuses any other delete.
 GRANT DELETE ON public.resource_grants, public.labels, public.task_labels,
-  public.person_contacts, public.person_labels, public.workspace_members, public.sections
+  public.person_contacts, public.person_labels, public.workspace_members, public.sections,
+  public.object_relations
 TO :"runtime_role";
 
 -- New tables and functions require an explicit runtime privilege review.

@@ -2,7 +2,7 @@ import { appendFile, cp, mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { createId } from "../src/ids.js";
@@ -448,9 +448,21 @@ describe.sequential("persistence kernel", () => {
       targetObjectId: taskId,
       createdBy: fixture.userId,
     });
-    await testDatabase.connection.db
-      .delete(objectRelations)
-      .where(eq(objectRelations.id, replacementRelationId));
+    // Only a move deletes a relation, having said so for its transaction.
+    await expectPostgresError(
+      testDatabase.connection.db
+        .delete(objectRelations)
+        .where(eq(objectRelations.id, replacementRelationId)),
+      "55000",
+    );
+    await testDatabase.connection.db.transaction(async (transaction) => {
+      await transaction.execute(
+        sql`SELECT set_config('chronelle.relation_drop', 'move', true)`,
+      );
+      await transaction
+        .delete(objectRelations)
+        .where(eq(objectRelations.id, replacementRelationId));
+    });
 
     const remainingObjects = await testDatabase.connection.db
       .select({ id: objects.id })

@@ -184,6 +184,7 @@ export { type HealthStatus, healthStatusSchema } from "./health.js";
 export { apiRequestTimeoutMs, maximumApiBodySizeBytes } from "./http.js";
 export * from "./labels.js";
 export * from "./note-list.js";
+export * from "./object-move.js";
 export * from "./person-list.js";
 export { rankAfter, rankBetween, rankSchema } from "./rank.js";
 export * from "./recovery.js";

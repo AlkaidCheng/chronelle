@@ -60,3 +60,11 @@ so no ledger row changes when its object changes workspace. A revision is
 unique per object and version, a layout revision per Event and version, and
 the functions that read an object's history read it by object id. 0075 adds
 the keys `NOT VALID` and 0076 validates them.
+
+Migration 0077 moves an Event with its scope to another workspace in one
+function, beside the TypeScript service that runs the same steps. A move is
+the only writer that deletes relations: the ones that cross the scope are
+dropped with an audit event each, a trigger refuses any delete a move did not
+announce for its transaction, and a context creation's record keeps its
+relation id without a key. Apply it after 0076, then rerun the runtime role
+script for `DELETE` on `object_relations`, then deploy the API.

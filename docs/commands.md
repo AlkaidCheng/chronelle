@@ -99,6 +99,15 @@ Unrelated resource edits do not invalidate a command. A stale stack/head fails
 with `409 command_stack_conflict`. Refresh state and ask for a new decision;
 there is no automatic rebase or overwrite mode.
 
+Moving an Event to another space prunes the old space's stacks. Every stack
+there loses the undo and redo entries whose commands changed a record the move
+carries, together with the object versions only those entries expected, and
+takes a version step, so an open client's next request fails with
+`409 command_stack_conflict` and refreshes. Entries for records that stay are
+kept in their order. The command records, changes, and receipts are not
+changed, and the new space's stacks gain nothing: an edit made before the move
+is not undone after it, and moving the Event back is another move.
+
 Operation IDs are scoped by user/workspace across all three mutation endpoints.
 Matching retries return the same receipt without further writes; changed input
 returns `409 command_conflict`. Current View permission on every affected object

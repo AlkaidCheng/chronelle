@@ -417,6 +417,32 @@ SQL editor, 0075 with the API stopped; no function is added, so the
 readiness check is unchanged. PostgreSQL TCP deployments apply them with
 `pnpm db:migrate`.
 
+Migration `0077_add_object_move.sql` moves an Event, with everything in its
+permission scope, to another workspace. It adds `chronelle_object_move`,
+`chronelle_object_move_preview`, and `chronelle_object_move_targets`, which
+the readiness check requires, with the internal helpers they call
+(`chronelle_object_move_plan`, `_scope`, `_grants`, `_source_check`,
+`_target_check`, and `_revise`); it revokes browser-role execution and grants
+`service_role` execution when those managed roles exist. It also changes how
+relations are removed: `object_relations_drop_guard` refuses a delete of a
+relation unless the transaction set `chronelle.relation_drop` to `move`, which
+only a move does, and `event_context_commands_relation_id_fkey` is dropped so
+a context creation's record keeps the id of a relation a move drops as a
+recorded fact. Dropping the key and creating the trigger lock
+`event_context_commands` and `object_relations`, so apply 0077 with API
+writers stopped; it gives up after five seconds waiting for a lock.
+
+Apply 0077 after 0076: a move changes an object's workspace, which the
+workspace-keyed ledger keys 0075 replaces would refuse. Then reapply the
+PostgreSQL runtime-role script, which now grants `DELETE` on
+`object_relations` (the guard trigger still refuses any delete outside a
+move); a TCP API that moves an Event before the script runs fails with a
+permission error. Then deploy the API, and the web after it. The migration
+changes no columns and needs no baseline; older API versions never delete a
+relation, so they keep working after it. On CloudBase, apply it through the
+console SQL editor with the API stopped, then redeploy the API, because
+readiness requires the three functions.
+
 Enable the WeChat routes only after CloudBase authentication is configured:
 
 ```dotenv
