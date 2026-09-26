@@ -47,6 +47,17 @@ export { CloudBaseExpenseWriteRepository } from "./cloudbase-expense-write-repos
 export { CloudBaseObjectLifecycleWriteRepository } from "./cloudbase-object-lifecycle-write-repository.js";
 export { CloudBaseRelationWriteRepository } from "./cloudbase-relation-write-repository.js";
 export { CloudBaseSharingWriteRepository } from "./cloudbase-sharing-write-repository.js";
+export { CloudBaseObjectMoveRepository } from "./cloudbase-object-move-repository.js";
+export {
+  type MovePlanInput,
+  ObjectMoveChangedError,
+  type ObjectMoveRefusal,
+  ObjectMoveRefusedError,
+  type ObjectMoveRepository,
+  type ObjectMoveResult,
+  PostgresObjectMoveRepository,
+  readMovePlan,
+} from "./object-move.js";
 export { CloudBaseStorageInventoryReadRepository } from "./cloudbase-storage-inventory-read-repository.js";
 export { CloudBaseReminderWriteRepository } from "./cloudbase-reminder-write-repository.js";
 export { CloudBasePersonWriteRepository } from "./cloudbase-person-write-repository.js";

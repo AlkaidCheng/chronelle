@@ -110,6 +110,14 @@ describe("resolveBackend", () => {
       ]),
     );
     expect(cloudBaseRequiredFunctions).toContain("chronelle_backend_readiness");
+    // Moving an Event to another space needs migration 0077.
+    expect(cloudBaseRequiredFunctions).toEqual(
+      expect.arrayContaining([
+        "chronelle_object_move_targets",
+        "chronelle_object_move_preview",
+        "chronelle_object_move",
+      ]),
+    );
   });
 
   it("logs routine rejections as information and failures as errors", () => {
