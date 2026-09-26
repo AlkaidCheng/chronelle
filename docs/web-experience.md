@@ -91,25 +91,43 @@ motion choices, and a reset. Keyboard shortcuts opens Settings > Keyboard
 and shows only on a device with a keyboard; Help has no surface yet and
 says so in a passing notice. The
 account block at the foot of the rail (the account's avatar and name, the
-current space in small text under it, a caret) opens the account menu:
-the account's name and email, then a Space section with the current
-space ticked and Switch space..., then Friends, Settings, and Sign
-out. Switch space... replaces the menu with the space switcher until
-Escape or its first row leads back: Yours first (the account's own
-space), then Shared with you, most recently opened first and those
-never opened after them by name; the current one is ticked. A space
-reads by the person behind it: the account's own is "Personal" with the
-account's name under it and a home symbol as its mark; one shared with the
-account reads its owner's name with the role held there and when it was
-last opened under it, the owner's initials as its mark; one its owner
-renamed reads that name with the owner under it. The account's own
-initials appear on its round avatar alone. The switcher lists memberships alone: a
+current space in small text under it, a caret) opens the account menu: the current space as one row (its mark, name, and
+role), which opens the space switcher, then Friends, Settings, and Sign out.
+The switcher replaces the menu until Escape leads back. Its top row is its
+search field, which narrows the list by name or owner, with New space and
+Manage space beside it as icons named by their tooltips; under it the
+account's own space first, then the others by when they were last opened,
+those never opened after them by name. Every row has the same columns: the
+mark, the name over when it was last opened, and the account's role there;
+the current space carries the rail's active treatment (a soft accent
+background, its name in the accent, its mark a solid accent tile). The list
+scrolls under the pinned search field, about seven rows at a time, and opens
+with the current space in view. A space reads by its name: the account's own
+is "Personal" with a home symbol as its mark; a named space shows its name
+and its initials; one still called by its owner's name ("Ana's workspace")
+reads the owner's name with the owner's initials. The account's own initials
+appear on its round avatar alone. The switcher lists memberships alone: a
 space reached only through an event shared with the account is absent,
-since that event shows in the account's own Events list. Past six
-spaces a search field narrows the list by name or owner; the shared
-ones scroll inside the list.
-Members at the foot opens the settings page's Members section, and
-Cmd/Ctrl+Shift+K opens the switcher from anywhere in the space. Opening
+since that event shows in the account's own Events list.
+
+New space opens a dialog over the page: Name (up to 80 characters) and
+Members, where the account is listed as its Owner and Add a friend adds a
+friend as an Editor, whose role (Owner, Editor, or Viewer) can be changed or
+who can be taken off again before Create space. Creating it opens the new
+space; a friend who could not be added is counted in a notice and the space
+stays. Manage space opens a dialog over the page for the current space: the
+space's mark and name above its sections (General, Members, Danger zone),
+the chosen one at the right, and closing it returns to the page as it was.
+General shows the name, which an Owner of a shared space renames (a Personal
+space keeps its name), and the account's role. Members lists the members with
+their roles; an Owner changes any member's role (a Personal space has one
+Owner), adds a friend with a role, and removes any member but the personal
+owner and themselves, while the personal owner's role and the last Owner's
+role are fixed. Danger zone offers Leave space, with a confirmation, to any
+member but the Owner of a Personal space; the last Owner makes another member
+an Owner first. Leaving opens the account's own space.
+
+Cmd/Ctrl+Shift+K opens the switcher from anywhere in the app. Opening
 a space notes the moment on the account, so the order follows the person
 across devices. Escape or a press elsewhere closes any of these and returns
 focus to its control; none navigates or discards the current Event draft. A
@@ -121,8 +139,8 @@ On a phone these surfaces are sheets that rise from the bottom edge and
 never leave the screen, each a modal dialog with a scrim and a handle at
 its top (a pull down on the handle, a press on it or on the scrim, or Escape
 closes it, and focus returns to the control that opened it). The space
-control in the app bar (the home mark and "Personal", or the owner's
-initials and name) opens the switcher's list as a sheet, without the way
+control in the app bar (the current space's mark and name) opens the
+switcher's list as a sheet, without the way
 back the rail's list has; Cmd/Ctrl+Shift+K opens and closes it too. The
 avatar opens the account sheet: the account's name and email, Friends (with
 the requests waiting), Settings, Sign out, then More's entries as a second

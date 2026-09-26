@@ -6,9 +6,6 @@ import type {
 
 import { compareNames } from "./format";
 
-/** How many workspaces the switcher lists before it offers a search field. */
-export const searchThreshold = 6;
-
 /** The stored instants with the request's workspaces replaced or dropped, as the account will read them. */
 export function mergeWorkspaceRecency(
   current: WorkspaceRecency,

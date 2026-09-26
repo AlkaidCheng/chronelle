@@ -7,6 +7,8 @@
   "add": "Add",
   "personal": "Personal space",
   "noFriends": "Befriend someone first to add them here.",
+  "roleFor": "Role for {name}",
+  "lastOwner": "A space keeps at least one Owner.",
   "roles": {
     "viewer": "Viewer",
     "editor": "Editor",

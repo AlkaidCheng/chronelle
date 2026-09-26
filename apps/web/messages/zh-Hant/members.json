@@ -7,6 +7,8 @@
   "add": "新增",
   "personal": "個人空間",
   "noFriends": "先新增好友，才能將其加入此處。",
+  "roleFor": "{name}的角色",
+  "lastOwner": "空間至少保留一位擁有者。",
   "roles": {
     "viewer": "僅查看",
     "editor": "可編輯",

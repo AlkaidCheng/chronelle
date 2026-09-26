@@ -6,6 +6,7 @@ import {
   type DocumentFileInput,
 } from "@livtales/api-client";
 import type {
+  AccessibleWorkspace,
   DevelopmentSignInRequest,
   EventCreatePayload,
   EventContextCreatePayload,
@@ -35,6 +36,7 @@ import type {
   SessionResponse,
   ShareCreatePayload,
   WorkspaceMemberAddRequest,
+  WorkspaceMemberRoleRequest,
   TaskResponse,
   TaskUpdatePayload,
   UserResponse,
@@ -1021,9 +1023,11 @@ function useMembersMutation<Input, Output>(
   const invalidate = useCanonicalInvalidation();
   return useMutation({
     mutationFn: (input: Input) => run(client, input),
+    // The session lists each space with the account's role in it.
     onSuccess: async () => {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: queryKeys.members }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.session }),
         invalidate(),
       ]);
     },
@@ -1040,6 +1044,70 @@ export function useRemoveWorkspaceMember() {
   return useMembersMutation((client, userId: string) =>
     client.removeWorkspaceMember(userId),
   );
+}
+
+/** Changes a member's role; the space keeps at least one Owner. */
+export function useChangeWorkspaceMemberRole() {
+  return useMembersMutation(
+    (client, input: { readonly userId: string } & WorkspaceMemberRoleRequest) =>
+      client.changeWorkspaceMemberRole(input.userId, { role: input.role }),
+  );
+}
+
+/** A space just created, and the friends among those chosen that could not be added to it. */
+export interface CreatedSpace {
+  readonly space: AccessibleWorkspace;
+  readonly unadded: readonly string[];
+}
+
+/**
+ * Creates a shared space with the account as its Owner, then adds the
+ * chosen friends to it with their roles. A friend who cannot be added
+ * leaves the space in place and is reported, so the space is not lost.
+ */
+export function useCreateSpace() {
+  const client = useApiClient();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: {
+      readonly displayName: string;
+      readonly members: readonly WorkspaceMemberAddRequest[];
+    }): Promise<CreatedSpace> => {
+      const space = await client.createWorkspace({
+        displayName: input.displayName,
+      });
+      const inSpace = client.inWorkspace(space.id);
+      const unadded: string[] = [];
+      for (const member of input.members) {
+        try {
+          await inSpace.addWorkspaceMember(member);
+        } catch {
+          unadded.push(member.friendId);
+        }
+      }
+      return { space, unadded };
+    },
+    onSettled: () =>
+      queryClient.invalidateQueries({ queryKey: queryKeys.session }),
+  });
+}
+
+/** Renames the current space; its new name shows wherever the session lists it. */
+export function useRenameSpace() {
+  const client = useApiClient();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (displayName: string) =>
+      client.updateWorkspace({ displayName }),
+    onSuccess: () =>
+      queryClient.invalidateQueries({ queryKey: queryKeys.session }),
+  });
+}
+
+/** Leaves the current space; the caller then opens another one. */
+export function useLeaveSpace() {
+  const client = useApiClient();
+  return useMutation({ mutationFn: () => client.leaveWorkspace() });
 }
 
 export function useUpdatePermissionScope() {

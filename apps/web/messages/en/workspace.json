@@ -3,10 +3,9 @@
   "switch": "Switch space",
   "switchDots": "Switch space...",
   "find": "Find a space",
-  "yours": "Yours",
-  "shared": "Shared with you",
   "personal": "Personal",
   "opened": "Opened {when}",
-  "members": "Members",
-  "noMatch": "No space matches."
+  "noMatch": "No space matches.",
+  "newSpace": "New space",
+  "manageSpace": "Manage space"
 }

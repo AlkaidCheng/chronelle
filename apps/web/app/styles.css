@@ -7819,26 +7819,21 @@ html:has(.event-create-dialog[open]) {
   font-weight: 600;
 }
 
-/* Members of the workspace, under Settings. */
+/* Members of the current space: its rows, then a friend to add with a role. */
 .members-section {
   display: grid;
   gap: 16px;
 }
 
-.members-list .friends-row {
+.members-add-row {
   align-items: center;
-}
-
-.members-add {
-  display: grid;
+  display: flex;
+  flex-wrap: wrap;
   gap: 10px;
 }
 
-.members-add-row {
-  align-items: end;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
+.members-add-row .space-member-add {
+  flex: 1 1 200px;
 }
 
 .share-people-disclosure {
@@ -8490,9 +8485,12 @@ html:has(.event-create-dialog[open]) {
   width: min(236px, calc(100vw - 32px));
 }
 
-/* The switcher's list takes the menu's place, wider for the owners' names and the search. */
+/* The switcher's list takes the menu's place, as wide as its names need,
+   up to 380 pixels. */
 .account-menu-list.is-workspace {
-  width: min(300px, calc(100vw - 32px));
+  max-width: min(380px, calc(100vw - 32px));
+  min-width: 100%;
+  width: max-content;
 }
 
 .more-menu-list {
@@ -8694,16 +8692,49 @@ html:has(.event-create-dialog[open]) {
   gap: 1px;
 }
 
-/* The list's first row leads back to the menu it opened from. */
-.workspace-back {
-  color: var(--muted);
-  font-size: 0.8rem;
-  min-height: 32px;
-}
-
 .quiet-menu-more {
   color: var(--faint);
   margin-left: auto;
+}
+
+/* The switcher's top row: the search field, then New space and Manage
+   space as icons. */
+.workspace-switcher-head {
+  align-items: center;
+  display: flex;
+  gap: 2px;
+  margin: 2px 2px 4px;
+}
+
+.workspace-switcher-action {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  border-radius: 8px;
+  color: var(--muted);
+  cursor: pointer;
+  display: inline-flex;
+  flex: none;
+  height: 32px;
+  justify-content: center;
+  padding: 0;
+  width: 32px;
+}
+
+.workspace-switcher-action:hover,
+.workspace-switcher-action:focus-visible {
+  background: var(--surface-subtle);
+  color: var(--ink);
+}
+
+.workspace-switcher-icon {
+  fill: none;
+  height: 17px;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.7;
+  width: 17px;
 }
 
 .workspace-search {
@@ -8713,8 +8744,10 @@ html:has(.event-create-dialog[open]) {
   border-radius: 8px;
   color: var(--faint);
   display: flex;
+  flex: 1;
   gap: 6px;
-  margin: 2px 2px 4px;
+  margin-right: 4px;
+  min-width: 0;
   padding: 5px 8px;
 }
 
@@ -8740,13 +8773,14 @@ html:has(.event-create-dialog[open]) {
   padding: 0;
 }
 
-/* The shared workspaces scroll inside the list, so twenty or two hundred
-   take the same room. */
+/* The spaces scroll under the pinned search field, about seven rows at a
+   time, so twenty or two hundred take the same room. */
 .workspace-switcher-scroll {
   display: grid;
-  gap: 1px;
-  max-height: 230px;
+  gap: 2px;
+  max-height: min(308px, calc(100dvh - 260px));
   overflow-y: auto;
+  overscroll-behavior: contain;
 }
 
 .workspace-item {
@@ -8785,31 +8819,47 @@ html:has(.event-create-dialog[open]) {
   white-space: nowrap;
 }
 
+/* Every row has the same columns: the mark, the name over when it was last
+   opened, and the account's role. */
+.workspace-switcher-list .workspace-item {
+  column-gap: 10px;
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr) 64px;
+  padding: 7px 10px 7px 8px;
+}
+
+.workspace-item-role {
+  color: var(--faint);
+  font-size: 0.72rem;
+  text-align: right;
+}
+
+/* The current space takes the rail's active treatment. */
+.workspace-item.is-current,
+.workspace-item.is-current:hover {
+  background: var(--accent-soft);
+}
+
+.workspace-item.is-current .workspace-item-name {
+  color: var(--accent);
+  font-weight: 650;
+}
+
+.workspace-item.is-current > span.workspace-mark {
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+.workspace-item.is-current small,
+.workspace-item.is-current .workspace-item-role {
+  color: var(--muted);
+}
+
 .workspace-empty {
   color: var(--muted);
   font-size: 0.8rem;
   margin: 0;
   padding: 8px 10px;
-}
-
-.workspace-switcher-foot {
-  align-items: center;
-  display: flex;
-  justify-content: space-between;
-}
-
-.workspace-switcher-foot .quiet-menu-item {
-  color: var(--muted);
-  font-size: 0.8rem;
-  min-height: 32px;
-  width: auto;
-}
-
-.workspace-shortcut {
-  color: var(--faint);
-  font: inherit;
-  font-size: 0.72rem;
-  padding-right: 8px;
 }
 
 .theme-group {
@@ -9764,6 +9814,7 @@ html:has(.event-create-dialog[open]) {
     .theme-group > span,
     .theme-group legend,
     .settings-nav-group > span,
+    .section-dialog-caption,
     .rail-heading,
     .event-date-mark span,
     .date-tile span
@@ -10770,4 +10821,339 @@ html:has(.event-create-dialog[open]) {
 .share-outcome-copy {
   font-size: inherit;
   margin-left: 8px;
+}
+
+/* Manage space's heading: the space's mark beside its name. */
+.section-dialog-space {
+  align-items: center;
+  display: flex;
+  gap: 8px;
+  min-width: 0;
+}
+
+.section-dialog-space-name {
+  font-size: 1.05rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.section-dialog-space .workspace-mark {
+  background: var(--accent-soft);
+  color: var(--accent);
+  font: 700 0.66rem/1 var(--font-body);
+  height: 26px;
+  width: 26px;
+}
+
+/* New space: its name, and its members with their roles in one column. */
+.space-members {
+  border: 0;
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  min-width: 0;
+  padding: 0;
+}
+
+.space-members legend {
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 650;
+  margin-bottom: 6px;
+  padding: 0;
+}
+
+.space-member-list {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  display: grid;
+  list-style: none;
+  margin: 0;
+  overflow: hidden;
+  padding: 0;
+}
+
+.space-member {
+  align-items: center;
+  display: grid;
+  gap: 10px;
+  grid-template-columns: auto minmax(0, 1fr) 96px 28px;
+  min-height: 48px;
+  padding: 6px 10px;
+}
+
+.space-member + .space-member {
+  border-top: 1px solid var(--line);
+}
+
+.space-member-name {
+  display: grid;
+  font-size: 0.88rem;
+  min-width: 0;
+}
+
+.space-member-detail {
+  color: var(--faint);
+  font-size: 0.72rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.space-role-select,
+.space-role-fixed {
+  font-size: 0.8rem;
+  height: 30px;
+  width: 96px;
+}
+
+.space-role-select {
+  background: var(--canvas);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: var(--ink);
+  font: inherit;
+  font-size: 0.8rem;
+  padding: 0 6px 0 9px;
+}
+
+.space-role-select:focus-visible {
+  border-color: var(--line-strong);
+  outline: 0;
+}
+
+.space-role-fixed {
+  align-items: center;
+  background: var(--surface-subtle);
+  border-radius: 8px;
+  color: var(--muted);
+  display: inline-flex;
+  padding: 0 10px;
+}
+
+.space-member-remove {
+  background: transparent;
+  border: 0;
+  border-radius: 7px;
+  color: var(--faint);
+  cursor: pointer;
+  font-size: 1.1rem;
+  height: 28px;
+  width: 28px;
+}
+
+/* Removing a member asks on a line of its own under the row. */
+.space-member .confirm-line {
+  grid-column: 1 / -1;
+}
+
+.space-member-remove:hover {
+  background: var(--surface-subtle);
+  color: var(--ink);
+}
+
+.space-member-add select {
+  background: var(--canvas);
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  color: var(--muted);
+  font: inherit;
+  font-size: 0.85rem;
+  height: 38px;
+  padding: 0 10px;
+  width: 100%;
+}
+
+/* A dialog of sections: a heading above the list of sections at the left,
+   the current section's title and body at the right. */
+.section-dialog {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  box-shadow: var(--shadow-raised);
+  color: var(--ink);
+  height: min(560px, calc(100dvh - 48px));
+  overflow: hidden;
+  padding: 0;
+  width: min(760px, calc(100vw - 32px));
+}
+
+.section-dialog[open] {
+  display: grid;
+  grid-template-columns: 196px minmax(0, 1fr);
+}
+
+.section-dialog::backdrop {
+  background: var(--scrim);
+}
+
+html:has(.section-dialog[open]) {
+  overflow: hidden;
+}
+
+.section-dialog-nav {
+  align-content: start;
+  display: grid;
+  gap: 2px;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 20px 10px;
+}
+
+.section-dialog-heading {
+  align-items: center;
+  display: flex;
+  font: 400 1.3rem/1.2 var(--font-display);
+  gap: 8px;
+  min-width: 0;
+  padding: 2px 10px 14px;
+}
+
+.section-dialog-nav ul {
+  display: grid;
+  gap: 2px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.section-dialog-caption {
+  color: var(--faint);
+  display: block;
+  font-size: 0.66rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  padding: 12px 10px 4px;
+  text-transform: uppercase;
+}
+
+.section-dialog-item {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  border-radius: 10px;
+  color: var(--muted);
+  cursor: pointer;
+  display: flex;
+  font: inherit;
+  font-size: 0.87rem;
+  gap: 10px;
+  padding: 8px 10px;
+  text-align: left;
+  width: 100%;
+}
+
+.section-dialog-icon {
+  fill: none;
+  flex: none;
+  height: 17px;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.7;
+  width: 17px;
+}
+
+.section-dialog-item:hover {
+  background: var(--surface-subtle);
+  color: var(--ink);
+}
+
+.section-dialog-item[aria-current="page"] {
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.section-dialog-item.is-danger:not([aria-current="page"]) {
+  color: var(--danger);
+}
+
+.section-dialog-body {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  min-height: 0;
+  min-width: 0;
+}
+
+.section-dialog-head {
+  align-items: center;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+  padding: 18px 20px 8px 14px;
+}
+
+.section-dialog-head h2 {
+  font-size: 1.3rem;
+  line-height: 1.2;
+  margin: 0;
+}
+
+/* The close control at the title's height rather than a tall header's. */
+.section-dialog-head .dialog-close:not([hidden]) {
+  font-size: 1.25rem;
+  height: 34px;
+  width: 34px;
+}
+
+.section-dialog-content {
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 6px 22px 24px 14px;
+}
+
+/* A narrow screen gives the dialog the whole screen; the sections become a
+   row that scrolls sideways, without the heading and group captions. */
+@media (max-width: 640px) {
+  .section-dialog {
+    border: 0;
+    border-radius: 0;
+    height: 100dvh;
+    max-height: 100dvh;
+    max-width: 100vw;
+    padding-top: env(safe-area-inset-top, 0px);
+    width: 100vw;
+  }
+
+  .section-dialog[open] {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1fr);
+  }
+
+  .section-dialog-nav {
+    display: flex;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding: 12px 12px 4px;
+  }
+
+  .section-dialog-heading,
+  .section-dialog-caption {
+    display: none;
+  }
+
+  .section-dialog-nav ul {
+    display: flex;
+    gap: 4px;
+  }
+
+  .section-dialog-group {
+    display: contents;
+  }
+
+  .section-dialog-item {
+    white-space: nowrap;
+    width: auto;
+  }
+
+  .section-dialog-head {
+    padding: 8px 16px 4px;
+  }
+
+  .section-dialog-content {
+    padding: 6px 16px max(24px, env(safe-area-inset-bottom, 0px));
+  }
 }

@@ -102,13 +102,13 @@ test("lists the workspaces shared with the account by when they were last opened
   await page.getByRole("button", { name: "Continue", exact: true }).click();
   await expect(page).toHaveURL(/\/events$/);
 
-  // The rail's foot names the current workspace under the account, and the
+  // The rail's foot names the current space under the account, and the
   // phone's app bar beside its mark: the account's own reads "Personal".
-  // The switcher, reached through the account menu or the phone's
-  // workspace control, lists it first and ticked with the home mark and
-  // the account's name under it; the shared ones read their owner's name
-  // with the role under it, by name while none has been opened, with the
-  // owner's initials as their mark.
+  // The switcher, reached through the account menu or the phone's space
+  // control, opens on its search field and lists it first, current, with
+  // the home mark; the shared ones read their owner's name with the role
+  // beside it, by name while none has been opened, with the owner's
+  // initials as their mark.
   const block = workspaceBlock(page);
   await expect(block).toContainText("Personal");
   const menu = await openWorkspaceSwitcher(page);
@@ -118,8 +118,8 @@ test("lists the workspaces shared with the account by when they were last opened
   await expect(entries).toHaveCount(sharers.length + 1);
   await expect(menu).not.toContainText("Only Shares");
   await expect(entries.first()).toHaveAttribute("aria-checked", "true");
-  await expect(entries.first()).toContainText("Personal");
-  await expect(entries.first()).toContainText("Switcher planner");
+  await expect(entries.first()).toHaveText("Personal");
+  await expect(entries.first()).toHaveClass(/is-current/u);
   await expect(entries.first().locator(".workspace-mark-home")).toHaveCount(1);
   await expect(entries.nth(1)).toContainText("Ana Souza");
   await expect(entries.nth(1)).toContainText("Viewer");
@@ -127,8 +127,11 @@ test("lists the workspaces shared with the account by when they were last opened
   await expect(entries.nth(1)).not.toContainText("Opened");
   await expect(entries.nth(1).locator(".workspace-mark")).toHaveText("AS");
   await expect(
-    menu.getByRole("menuitem", { name: "Members", exact: true }),
-  ).toHaveAttribute("href", /\/settings\/members$/u);
+    menu.getByRole("menuitem", { name: "New space", exact: true }),
+  ).toBeVisible();
+  await expect(
+    menu.getByRole("menuitem", { name: "Manage space", exact: true }),
+  ).toBeVisible();
 
   // The search narrows by the owner's name; Escape leads back to the
   // account menu, and again to the block (the phone's sheet, straight
@@ -257,7 +260,7 @@ test("reaches the switcher from the phone's bar, its list under the bar @webkit-
     "true",
   );
   await expect(
-    menu.getByRole("menuitem", { name: "Members", exact: true }),
+    menu.getByRole("menuitem", { name: "Manage space", exact: true }),
   ).toBeInViewport();
   expect(
     await page.evaluate(

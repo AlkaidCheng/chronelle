@@ -696,6 +696,35 @@ describe("LivTalesApiClient", () => {
       ["/api/workspaces/current/leave", "POST", undefined],
     ]);
   });
+  it("acts in another workspace for one scoped client", async () => {
+    const member = {
+      userId: documentId,
+      displayName: "Ben",
+      email: null,
+      role: "editor",
+      personal: false,
+      friendId: uploadAuthorizationId,
+      joinedAt: "2026-09-26T00:00:00.000Z",
+    };
+    const fetch = vi
+      .fn<typeof globalThis.fetch>()
+      .mockImplementation(async () => Response.json(member, { status: 201 }));
+    const client = new LivTalesApiClient({
+      fetch,
+      getCredential: () => ({
+        accessToken: "test-session",
+        workspaceId: event.workspaceId,
+      }),
+    });
+    const input = { friendId: uploadAuthorizationId, role: "editor" as const };
+    await client.inWorkspace(relationId).addWorkspaceMember(input);
+    await client.addWorkspaceMember(input);
+    expect(
+      fetch.mock.calls.map(([, init]) =>
+        new Headers(init?.headers).get("x-workspace-id"),
+      ),
+    ).toEqual([relationId, event.workspaceId]);
+  });
   it("forwards removed-link filters, cursors and cancellation", async () => {
     const fetch = vi
       .fn<typeof globalThis.fetch>()
