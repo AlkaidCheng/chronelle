@@ -52,3 +52,11 @@ and sections cascade on update. The permission scope and People cards keep
 `NO ACTION` keys, so an update that leaves a scoped record behind, or moves
 a card, fails. 0073 adds the keys `NOT VALID` and 0074 validates them in a
 separate transaction, so the validating scan does not block writes.
+
+Migrations 0075 and 0076 keep history where it was written. Audit events,
+revisions, command changes, Event page revisions, and context and create
+command records keep their `workspace_id` and name their object by id alone,
+so no ledger row changes when its object changes workspace. A revision is
+unique per object and version, a layout revision per Event and version, and
+the functions that read an object's history read it by object id. 0075 adds
+the keys `NOT VALID` and 0076 validates them.

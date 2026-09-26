@@ -377,6 +377,46 @@ deployed before or after them. On CloudBase, apply both through the console
 SQL editor, 0073 with the API stopped; the readiness check is unchanged.
 PostgreSQL TCP deployments apply them with `pnpm db:migrate`.
 
+Migration `0075_key_ledgers_by_object.sql` keeps history where it was
+written. Audit events, revisions, command changes, Event page revisions, and
+context and create command records keep their `workspace_id` and now name
+their object by id alone (`audit_events_resource_fk`,
+`object_revisions_object_fk`, `command_changes_before_revision_fk` and
+`_after_revision_fk`, `event_context_commands_context_object_fk` and
+`_object_fk`, `object_create_commands_object_fk`), replacing the
+`(workspace_id, ...)` keys, so a record that changes workspace keeps its
+history and no ledger row is updated. A revision becomes unique per object
+and version (`object_revisions_object_version_unique`, replacing
+`object_revisions_version_unique`) and a layout revision per Event and
+version (`event_page_revisions_event_version_unique`);
+`audit_events_resource_idx` on `(resource_id, created_at DESC)` replaces
+`audit_events_resource_created_idx`. It redefines in place, with one
+predicate each, the thirteen functions that read an object's revisions or
+layout revisions (`chronelle_validate_revision`,
+`chronelle_event_context_create`, `chronelle_object_scope_update`,
+`chronelle_event_layout_write`, `chronelle_command_transition`,
+`chronelle_storage_references`, `chronelle_backend_readiness`,
+`chronelle_revision_baseline`, `chronelle_object_delete`,
+`chronelle_object_recover`, `chronelle_note_list`, `chronelle_object_update`,
+and `chronelle_object_restore`): they read them by object id rather than in
+the caller's workspace. The unique indexes are built first under SHARE
+locks, so reads continue while they build; dropping the replaced keys then
+takes ACCESS EXCLUSIVE locks on the ledger tables and `objects`, so apply
+0075 with API writers stopped; it gives up after five seconds waiting for a
+lock. Migration `0076_validate_ledger_keys.sql` validates the keys 0075 adds
+`NOT VALID` under SHARE UPDATE EXCLUSIVE locks, so reads and writes continue
+while it scans. Neither can fail on existing data: every row already met the
+workspace-keyed key each new one replaces, and object ids are global.
+
+Neither migration changes columns or needs a baseline or a runtime-role
+change; the redefined functions keep their grants. Until a record changes
+workspace, reading by object id returns what reading by workspace and object
+returned, so both are compatible with older API versions and the API may be
+deployed before or after them. On CloudBase, apply both through the console
+SQL editor, 0075 with the API stopped; no function is added, so the
+readiness check is unchanged. PostgreSQL TCP deployments apply them with
+`pnpm db:migrate`.
+
 Enable the WeChat routes only after CloudBase authentication is configured:
 
 ```dotenv

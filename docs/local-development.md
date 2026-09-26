@@ -324,6 +324,17 @@ validates the keys, which 0073 adds `NOT VALID`. Nothing moves a record yet:
 keep working. [Deployment](deployment.md) has the locking notes and the
 section preflight query.
 
+Migration `0075_key_ledgers_by_object.sql` keeps history in the workspace
+where it was written: audit events, revisions, command changes, Event page
+revisions, and context and create command records name their object by id
+alone, a revision is unique per object and version and a layout revision per
+Event and version, and the thirteen functions that read an object's
+revisions or layouts read them by object id. Migration
+`0076_validate_ledger_keys.sql` validates the keys, which 0075 adds
+`NOT VALID`. Nothing moves a record yet: `pnpm db:migrate` applies both with
+no other step, and older API versions keep working. [Deployment](deployment.md)
+has the locking notes.
+
 Migration `0021_add_object_search_function.sql` adds `chronelle_object_search`,
 the read-only function the CloudBase search adapter calls. It changes no
 tables and needs no baseline.
