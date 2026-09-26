@@ -34,6 +34,8 @@ import {
   sectionUpdateRequestSchema,
   nextTaskDueAt,
   nextTaskDueDate,
+  objectMovePreviewQuerySchema,
+  objectMoveRequestSchema,
   objectSearchQuerySchema,
   noteCreateRequestSchema,
   noteListQuerySchema,
@@ -288,6 +290,21 @@ const sampleAccounts: readonly {
     findByEmail: true,
   },
 ];
+
+/** The sample account holds one space: the Event is in it, and no other exists. */
+function moveTargetRefusal(workspaceId: string): SandboxError {
+  return workspaceId === sandboxWorkspaceId
+    ? new SandboxError(
+        400,
+        "move_same_space",
+        "The record is already in that space.",
+      )
+    : new SandboxError(
+        404,
+        "workspace_unavailable",
+        "The workspace is unavailable.",
+      );
+}
 
 class SandboxError extends Error {
   constructor(
@@ -1621,6 +1638,22 @@ export class SandboxStore {
       refuse("A subtask shares its parent's permission scope.");
   }
 
+  /** The move route's refusals of the Event itself, as the API orders them. */
+  #moveSourceCheck(object: Resource, role: "owner" | "viewer") {
+    if (role !== "owner")
+      throw new SandboxError(
+        403,
+        "move_forbidden",
+        "Only an Owner of the space moves its records.",
+      );
+    if (object.objectType !== "event" || object.permissionScopeId !== object.id)
+      throw new SandboxError(
+        400,
+        "move_not_movable",
+        "Only an Event that is its own scope and not in Trash moves.",
+      );
+  }
+
   #object(id: string): Resource {
     const object = this.#state.objects.find(
       (object) => object.id === id && object.deletedAt === null,
@@ -2133,6 +2166,28 @@ export class SandboxStore {
     if (id && (collection === "objects" || collection === "events")) {
       const object = this.#object(id);
       if (!operation) return object;
+      if (collection === "objects" && operation === "move") {
+        this.#moveSourceCheck(object, role);
+        // The sample account's Personal space is the only space it holds,
+        // so the Event has nowhere else to go.
+        if (action === "targets")
+          return {
+            items: [
+              {
+                workspace: accessibleWorkspace,
+                memberCount: this.#state.members.length,
+                current: true,
+                allowed: false,
+              },
+            ],
+          };
+        if (action === undefined) {
+          const query = objectMovePreviewQuerySchema.parse(
+            Object.fromEntries(url.searchParams),
+          );
+          throw moveTargetRefusal(query.to);
+        }
+      }
       if (
         collection === "events" &&
         operation === "layout" &&
@@ -2391,6 +2446,16 @@ export class SandboxStore {
     if (method === "GET") {
       const response = this.#read(url, role);
       if (response !== undefined) return response;
+    }
+    if (
+      method === "POST" &&
+      collection === "objects" &&
+      id &&
+      operation === "move" &&
+      action === undefined
+    ) {
+      this.#moveSourceCheck(this.#object(id), role);
+      throw moveTargetRefusal(objectMoveRequestSchema.parse(body).workspaceId);
     }
     if (
       collection === "labels" &&

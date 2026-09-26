@@ -10922,6 +10922,159 @@ html:has(.event-create-dialog[open]) {
   width: 100%;
 }
 
+/* Move to space: the spaces as a list of radio rows, then the review's
+   facts, with the links the move removes set apart as a warning. */
+.move-dialog-body {
+  gap: 16px;
+}
+
+.move-targets {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  display: grid;
+  overflow: hidden;
+}
+
+.move-target {
+  align-items: center;
+  cursor: pointer;
+  display: flex;
+  gap: 10px;
+  min-height: 52px;
+  padding: 8px 12px;
+}
+
+.move-target + .move-target {
+  border-top: 1px solid var(--line);
+}
+
+.move-target:hover {
+  background: var(--surface-subtle);
+}
+
+.move-target.is-unavailable {
+  color: var(--faint);
+  cursor: default;
+}
+
+.move-target.is-unavailable:hover {
+  background: none;
+}
+
+.move-target-radio {
+  appearance: none;
+  border: 1.5px solid var(--line-strong);
+  border-radius: 999px;
+  flex: none;
+  height: 16px;
+  margin: 0;
+  width: 16px;
+}
+
+.move-target-radio:checked {
+  border: 5px solid var(--accent);
+}
+
+/* The current space and a Viewer's show no radio, but stay in the group as
+   unavailable choices for assistive technology. */
+.move-target-radio:disabled {
+  opacity: 0;
+}
+
+.move-target-name {
+  display: grid;
+  flex: 1;
+  font-size: 0.9rem;
+  min-width: 0;
+}
+
+.move-target-detail {
+  color: var(--faint);
+  font-size: 0.72rem;
+}
+
+.move-target-note {
+  color: var(--faint);
+  flex: none;
+  font-size: 0.75rem;
+}
+
+.move-facts {
+  display: grid;
+  gap: 16px;
+}
+
+.move-fact-title {
+  color: var(--muted);
+  font-family: inherit;
+  font-size: 0.78rem;
+  font-weight: 600;
+  margin: 0 0 6px;
+}
+
+.move-fact-title:focus {
+  outline: 0;
+}
+
+.move-fact-list {
+  display: grid;
+  font-size: 0.85rem;
+  gap: 4px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.move-fact-item {
+  align-items: baseline;
+  display: flex;
+  gap: 8px;
+}
+
+.move-fact-item::before {
+  color: var(--faint);
+  content: "\00b7";
+  flex: none;
+}
+
+.move-warning {
+  background: var(--warning-soft);
+  border-radius: 10px;
+  padding: 12px 14px;
+}
+
+.move-warning .move-fact-title {
+  color: var(--warning);
+}
+
+.move-warning-intro {
+  font-size: 0.85rem;
+  margin: 0 0 6px;
+}
+
+.move-warning .move-fact-list {
+  list-style: disc;
+  padding-left: 1.2em;
+}
+
+.move-warning .move-fact-item {
+  display: list-item;
+}
+
+.move-warning .move-fact-item::before {
+  content: none;
+}
+
+.move-more {
+  color: var(--muted);
+}
+
+.move-changed {
+  color: var(--danger);
+  font-size: 0.85rem;
+  margin: 0;
+}
+
 /* A dialog of sections: a heading above the list of sections at the left,
    the current section's title and body at the right. */
 .section-dialog {

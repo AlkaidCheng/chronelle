@@ -30,6 +30,7 @@ import type {
   PreferencesRequest,
   ReminderUpdatePayload,
   NoteListQuery,
+  ObjectMoveRequestPayload,
   NoteUpdatePayload,
   SectionCreateRequest,
   SectionUpdateRequest,
@@ -108,6 +109,10 @@ export const queryKeys = {
   session: ["session"] as const,
   friends: ["friends"] as const,
   members: ["members"] as const,
+  moveTargets: (eventId: string) =>
+    ["event", eventId, "move", "targets"] as const,
+  movePreview: (eventId: string, workspaceId: string) =>
+    ["event", eventId, "move", "preview", workspaceId] as const,
   commands: commandsKey,
 };
 
@@ -1108,6 +1113,40 @@ export function useRenameSpace() {
 export function useLeaveSpace() {
   const client = useApiClient();
   return useMutation({ mutationFn: () => client.leaveWorkspace() });
+}
+
+/** The spaces an Event can move to, for its Owner's Move to space dialog. */
+export function useMoveTargetsQuery(eventId: string) {
+  const client = useApiClient();
+  return useQuery({
+    queryFn: ({ signal }) => client.withSignal(signal).listMoveTargets(eventId),
+    queryKey: queryKeys.moveTargets(eventId),
+    staleTime: 0,
+  });
+}
+
+/** What moving the Event into the space would carry and drop; fetched fresh each time. */
+export function useMovePreviewQuery(
+  eventId: string,
+  workspaceId: string | null,
+) {
+  const client = useApiClient();
+  return useQuery({
+    enabled: workspaceId !== null,
+    queryFn: ({ signal }) =>
+      client.withSignal(signal).previewMove(eventId, workspaceId ?? ""),
+    queryKey: queryKeys.movePreview(eventId, workspaceId ?? ""),
+    staleTime: 0,
+  });
+}
+
+/** Moves the Event into another space; the caller then opens that space. */
+export function useMoveEvent(eventId: string) {
+  const client = useApiClient();
+  return useMutation({
+    mutationFn: (input: ObjectMoveRequestPayload) =>
+      client.moveObject(eventId, input),
+  });
 }
 
 export function useUpdatePermissionScope() {

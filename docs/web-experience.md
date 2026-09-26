@@ -128,6 +128,32 @@ role are fixed. Danger zone offers Leave space, with a confirmation, to any
 member but the Owner of a Personal space; the last Owner makes another member
 an Owner first. Leaving opens the account's own space.
 
+Move to space..., in an event's More menu, moves the event with everything
+in it (schedule items, to-dos and their subtasks, expenses, reminders, notes,
+files, pages, sections, and its history, Trash included) to another space. It
+is offered to an Owner of the event's space, on an event that is its own
+scope and not in Trash. The dialog first lists the account's spaces with
+their marks, the account's role, and the member count: the event's space
+reads "Here now" and a space where the account only views reads "You can't
+add here", neither of them a choice; the first space it can move to is
+chosen. With no such space the dialog says so and Continue stays off.
+Continue shows the review, titled "Move to {space}": what moves with it, by
+kind; the links the move removes, set apart as a warning (each link between a
+moving record and one that stays, named by the record that stays, and each
+to-do whose assignee's People card stays, by title and person); what stays
+behind (People cards scoped to the event, labels joining the new space's
+label of the same name or created there, links already removed or in Trash
+that are cleared too); and who can see it after (the new space's members by
+role, the accounts that keep their shares, those whose share the new space's
+membership covers, and members of the old space who lose access). The button
+reads "Move and remove N links" when the move removes links, else "Move to
+{space}". When the links changed after the review, the move is refused, the
+review reloads with "This changed since you reviewed it. Review it again.",
+and a retry keeps the same move so a lost response cannot move it twice. A
+move opens the new space on the same event, whose breadcrumb names it, with a
+notice ("Moved {event} to {space}." and the links removed) that offers Open
+{old space}, which returns to that space's Events.
+
 Cmd/Ctrl+Shift+K opens the switcher from anywhere in the app. Opening
 a space notes the moment on the account, so the order follows the person
 across devices. Escape or a press elsewhere closes any of these and returns

@@ -13,6 +13,7 @@ import {
   LinkIcon,
   LockIcon,
   MoreIcon,
+  MoveIcon,
   PencilIcon,
   ShareIcon,
   TabsIcon,
@@ -25,7 +26,7 @@ import {
 } from "../../components/quiet-menu";
 import { usePageCommandHistory } from "../../lib/command-history";
 import { formatEventSchedule } from "../../lib/event-schedule";
-import { useEventWorkspaceQueries } from "../../lib/queries";
+import { useEventWorkspaceQueries, useSessionQuery } from "../../lib/queries";
 import { useForgetInaccessibleEventDrafts } from "../../lib/editor-draft-context";
 import { isTemporaryReadError } from "../../lib/query-errors";
 import {
@@ -33,6 +34,7 @@ import {
   eventComponentKindSchema,
   type EventComponentView,
 } from "@livtales/schemas";
+import { MoveToSpaceDialog } from "../spaces/move-to-space-dialog";
 import { EventBreadcrumb } from "./event-breadcrumb";
 import { EventComponent } from "./event-component";
 import { EventInspector } from "./event-inspector";
@@ -57,6 +59,7 @@ import {
 
 export function EventWorkspace({ eventId }: { readonly eventId: string }) {
   const t = useTranslations("event");
+  const spaces = useTranslations("spaces.move");
   const [activeTab, setActiveTab] = useEventView();
   const queries = useEventWorkspaceQueries(eventId, activeTab);
   usePageCommandHistory(queries.event.data);
@@ -74,6 +77,8 @@ export function EventWorkspace({ eventId }: { readonly eventId: string }) {
     null,
   );
   const [copied, setCopied] = useState("");
+  const [moving, setMoving] = useState(false);
+  const session = useSessionQuery().data;
   // A tab's view is chosen for the session; page components save theirs.
   const [tabView, setTabView] = useState<{
     tab: string;
@@ -146,6 +151,18 @@ export function EventWorkspace({ eventId }: { readonly eventId: string }) {
   }
 
   const canDelete = access.actions.includes("delete");
+  // An Owner of the Event's space moves it, when it is its own scope and
+  // not in Trash; the move route refuses anyone else. An Owner may always
+  // edit the Event, so an access without edit never offers a move.
+  const canMove =
+    canEdit &&
+    event.permissionScopeId === event.id &&
+    event.deletedAt === null &&
+    (session?.availableWorkspaces.some(
+      (workspace) =>
+        workspace.id === event.workspaceId && workspace.role === "owner",
+    ) ??
+      false);
   // A narrowed viewer lands on the first shared view; the pages and the
   // views outside the shares are not theirs to open.
   const admitted = narrowedViews(narrowing);
@@ -297,6 +314,11 @@ export function EventWorkspace({ eventId }: { readonly eventId: string }) {
                   <MenuSeparator />
                 </>
               ) : null}
+              {canMove ? (
+                <MenuItem icon={<MoveIcon />} onSelect={() => setMoving(true)}>
+                  {spaces("menu")}
+                </MenuItem>
+              ) : null}
               {pagesState.canArrange && !pagesState.arranging ? (
                 <MenuItem
                   icon={<ArrangeIcon />}
@@ -443,6 +465,13 @@ export function EventWorkspace({ eventId }: { readonly eventId: string }) {
         </div>
       )}
       {pagesState.dialog}
+      {moving && session !== undefined ? (
+        <MoveToSpaceDialog
+          event={event}
+          session={session}
+          onClose={() => setMoving(false)}
+        />
+      ) : null}
       {tabsDialog === "gallery" ? (
         <EventViewGallery
           eventName={event.displayName}

@@ -862,6 +862,20 @@ export function FieldIcon({ className }: IconProps) {
 }
 
 /** A plus: a row that adds one more of something. */
+/** Two opposed arrows: moving a record to another space. */
+export function MoveIcon({ className }: IconProps) {
+  return (
+    <svg
+      aria-hidden="true"
+      className={className}
+      fill="none"
+      viewBox="0 0 24 24"
+    >
+      <path d="M4 7h11l-3-3M20 17H9l3 3" />
+    </svg>
+  );
+}
+
 export function AddIcon({ className }: IconProps) {
   return (
     <svg
