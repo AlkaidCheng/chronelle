@@ -55,20 +55,20 @@ test("shows shortcut symbols and the keyboard settings on a keyboard device alon
   await expect(palette).toHaveCount(0);
 
   await page.goto("/settings/keyboard");
+  await expect(page).toHaveURL(/\/events\?settings=keyboard$/u);
   const section = keyboardSection(page);
+  const listed = page
+    .getByRole("dialog", { name: "Settings", exact: true })
+    .getByRole("button", { name: "Keyboard", exact: true });
+  await expect(listed).toHaveAttribute("aria-current", "page");
   if (!keyboard) {
+    // Listed only while open by address, it says it needs a keyboard.
     await expect(
-      section.getByText("This page appears on devices with a keyboard."),
+      section.getByText("This section appears on devices with a keyboard."),
     ).toBeVisible();
     await expect(section.getByRole("table")).toHaveCount(0);
-    await expect(
-      page.getByRole("link", { name: "Keyboard", exact: true }),
-    ).toHaveCount(0);
     return;
   }
-  await expect(
-    page.getByRole("link", { name: "Keyboard", exact: true }),
-  ).toHaveAttribute("aria-current", "page");
   const search = section.getByRole("switch", {
     name: "Open Search",
     exact: true,

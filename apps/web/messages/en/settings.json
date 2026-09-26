@@ -1,7 +1,7 @@
 {
   "title": "Settings",
-  "sections": "Settings sections",
-  "account": "Account",
+  "close": "Close settings",
+  "general": "General",
   "preferences": "Preferences",
   "languageTime": "Language & time",
   "appearance": "Appearance",
@@ -17,8 +17,6 @@
   "signOutEverywhere": "Sign out everywhere",
   "signOutEverywhereNote": "Ends every session of this account, including this one.",
   "appearanceNote": "Appearance is kept on this browser. The Theme entry in the rail holds the same choices.",
-  "workspace": "Space",
-  "members": "Members",
   "username": "Username",
   "usernameNote": "Chosen at sign-up; it cannot be changed. Your code and your profile link use it.",
   "whoCanFind": "Who can find you",

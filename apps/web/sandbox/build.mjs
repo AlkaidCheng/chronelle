@@ -9,7 +9,7 @@ const directory = dirname(fileURLToPath(import.meta.url));
 const overrides = new Map([
   ["api-context", "api-context.tsx"],
   ["auth-session", "auth-session.tsx"],
-  ["use-event-view", "router.tsx"],
+  ["location-store", "location-store.ts"],
 ]);
 const result = await build({
   absWorkingDir: resolve(directory, ".."),
@@ -34,7 +34,7 @@ const result = await build({
       name: "sandbox-boundaries",
       setup(build) {
         build.onResolve(
-          { filter: /(?:api-context|auth-session|use-event-view)$/ },
+          { filter: /(?:api-context|auth-session|location-store)$/ },
           ({ path }) => {
             const name = path.split("/").at(-1);
             const replacement = overrides.get(name);

@@ -95,7 +95,9 @@ test("leads from More to the Keyboard settings, where the Search shortcut is swi
   await more
     .getByRole("menuitem", { name: "Keyboard shortcuts", exact: true })
     .click();
-  await expect(page).toHaveURL(/\/settings\/keyboard$/u);
+  // Settings opens at Keyboard over the page, and Escape returns to it with
+  // focus on More.
+  await expect(page).toHaveURL(/\/events\?settings=keyboard$/u);
   await expect(more).toHaveCount(0);
   const section = keyboardSection(page);
   const search = section.getByRole("switch", {
@@ -106,6 +108,10 @@ test("leads from More to the Keyboard settings, where the Search shortcut is swi
   await expect(
     section.getByRole("button", { name: "Reset keyboard shortcuts" }),
   ).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(section).toHaveCount(0);
+  await expect(page).toHaveURL(/\/events$/u);
+  await expect(moreControl(page)).toBeFocused();
   // The palette itself carries no settings: the field has focus, the keys
   // read under the results, and Escape returns focus to the entry.
   await pressSearchEntry(page);

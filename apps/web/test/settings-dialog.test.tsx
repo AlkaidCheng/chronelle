@@ -2,6 +2,7 @@
 
 import {
   cleanup,
+  fireEvent,
   render,
   renderHook,
   screen,
@@ -12,12 +13,19 @@ import userEvent from "@testing-library/user-event";
 import type { ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import SettingsRoute from "../app/(workspace)/settings/page";
+import AppearanceSettingsRoute from "../app/(workspace)/settings/appearance/page";
+import KeyboardSettingsRoute from "../app/(workspace)/settings/keyboard/page";
+import LanguageTimeSettingsRoute from "../app/(workspace)/settings/language/page";
+import MembersSettingsRoute from "../app/(workspace)/settings/members/page";
 import { Providers } from "../app/providers";
+import { SettingsLink } from "../components/settings-link";
 import { WorkspaceShell } from "../components/workspace-shell";
-import { SettingsPage } from "../features/settings/settings-page";
+import { SettingsLayer } from "../features/settings/settings-dialog";
 import { activeTimePreferences } from "../i18n/active-preferences";
 import { localeCookie } from "../i18n/locales";
 import { useAdoptAccountLocale } from "../lib/queries";
+import type { SettingsSection } from "../lib/settings-address";
 import {
   DisplayPreferencesProvider,
   useDisplayPreferences,
@@ -29,9 +37,15 @@ const router = vi.hoisted(() => ({
   replace: vi.fn(),
   refresh: vi.fn(),
 }));
+const redirect = vi.hoisted(() =>
+  vi.fn(() => {
+    throw new Error("NEXT_REDIRECT");
+  }),
+);
 vi.mock("next/navigation", () => ({
   useRouter: () => router,
-  usePathname: () => "/settings",
+  usePathname: () => "/events",
+  redirect,
 }));
 
 let store: SandboxStore;
@@ -63,6 +77,14 @@ beforeEach(() => {
       return store.fetch(input, options);
     }),
   );
+  for (const method of ["showModal", "close"] as const) {
+    Object.defineProperty(HTMLDialogElement.prototype, method, {
+      configurable: true,
+      value(this: HTMLDialogElement) {
+        this.toggleAttribute("open", method === "showModal");
+      },
+    });
+  }
 });
 
 afterEach(() => {
@@ -72,6 +94,7 @@ afterEach(() => {
   window.sessionStorage.clear();
   router.refresh.mockClear();
   router.replace.mockClear();
+  window.history.replaceState(null, "", "/events");
   // biome-ignore lint/suspicious/noDocumentCookie: the Cookie Store API is async and absent from jsdom
   document.cookie = `${localeCookie}=; Path=/; Max-Age=0`;
 });
@@ -80,12 +103,22 @@ const wrapper = ({ children }: { readonly children: ReactNode }) => (
   <Providers>{children}</Providers>
 );
 
-/** The page inside the rail, whose provider publishes the account's preferences. */
+/** Settings inside the rail, whose provider publishes the account's preferences. */
 const inShell = ({ children }: { readonly children: ReactNode }) => (
   <Providers>
     <WorkspaceShell>{children}</WorkspaceShell>
   </Providers>
 );
+
+/** Settings over an event's To-dos, opened at `section` by the address. */
+function renderAt(section: SettingsSection, shell: typeof wrapper = wrapper) {
+  window.history.replaceState(
+    null,
+    "",
+    `/events/plan?view=todos&settings=${section}`,
+  );
+  return render(<SettingsLayer />, { wrapper: shell });
+}
 
 /** The sample account's preferences as the store holds them. */
 async function storedPreferences() {
@@ -103,33 +136,28 @@ async function storedPreferences() {
   return session.user;
 }
 
-describe("the Settings page", () => {
-  it("lists its sections with the open one marked and shows the account", async () => {
-    render(<SettingsPage section="account" />, { wrapper });
-    const nav = within(
-      screen.getByRole("navigation", { name: "Settings sections" }),
-    );
-    expect(nav.getByRole("link", { name: "Account" })).toHaveAttribute(
+describe("the Settings dialog", () => {
+  it("opens over the page at the section its address names, the sections listed with the current one marked", async () => {
+    renderAt("general");
+    const dialog = screen.getByRole("dialog", { name: "Settings" });
+    const nav = within(within(dialog).getByRole("navigation"));
+    expect(nav.getByRole("button", { name: "General" })).toHaveAttribute(
       "aria-current",
       "page",
     );
-    expect(nav.getByRole("link", { name: "Language & time" })).toHaveAttribute(
-      "href",
-      "/settings/language",
-    );
+    expect(nav.getByRole("button", { name: "General" })).toHaveFocus();
     expect(
-      nav.getByRole("link", { name: "Language & time" }),
+      nav.getByRole("button", { name: "Language & time" }),
     ).not.toHaveAttribute("aria-current");
-    expect(nav.getByRole("link", { name: "Appearance" })).toHaveAttribute(
-      "href",
-      "/settings/appearance",
-    );
-    expect(nav.getByText("Preferences")).toBeVisible();
     expect(
-      screen.getByRole("heading", { level: 1, name: "Settings" }),
+      nav.getAllByRole("button").map((entry) => entry.textContent),
+    ).toEqual(["General", "Language & time", "Appearance"]);
+    expect(nav.getByRole("list", { name: "Preferences" })).toBeVisible();
+    expect(
+      within(dialog).getByRole("region", { name: "General" }),
     ).toBeVisible();
     expect(
-      screen.getByRole("heading", { level: 2, name: "Account" }),
+      within(dialog).getByRole("heading", { level: 2, name: "General" }),
     ).toBeVisible();
     await waitFor(() =>
       expect(screen.getByRole("textbox", { name: "Name" })).toHaveValue(
@@ -142,9 +170,84 @@ describe("the Settings page", () => {
     ).toHaveAttribute("href", "/reset-password");
   });
 
+  it("changes section in place and, closed, takes itself out of an address it did not add", async () => {
+    const user = userEvent.setup();
+    renderAt("general");
+    const entries = window.history.length;
+    await user.click(screen.getByRole("button", { name: "Language & time" }));
+    expect(window.location.search).toBe("?view=todos&settings=language");
+    expect(window.history.length).toBe(entries);
+    expect(
+      screen.getByRole("heading", { level: 2, name: "Language & time" }),
+    ).toBeVisible();
+    await user.click(screen.getByRole("button", { name: "Close settings" }));
+    expect(window.location.pathname).toBe("/events/plan");
+    expect(window.location.search).toBe("?view=todos");
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(window.history.length).toBe(entries);
+  });
+
+  it("opens from a link as a history entry of its own, which closing steps back from", async () => {
+    const user = userEvent.setup();
+    window.history.replaceState(null, "", "/events/plan?view=todos");
+    render(
+      <>
+        <SettingsLink section="keyboard" onOpen={() => undefined}>
+          Keyboard shortcuts
+        </SettingsLink>
+        <SettingsLayer />
+      </>,
+      { wrapper },
+    );
+    const link = screen.getByRole("link", { name: "Keyboard shortcuts" });
+    expect(link).toHaveAttribute(
+      "href",
+      "/events/plan?view=todos&settings=keyboard",
+    );
+    const entries = window.history.length;
+    await user.click(link);
+    expect(window.location.search).toBe("?view=todos&settings=keyboard");
+    expect(window.history.length).toBe(entries + 1);
+    const dialog = screen.getByRole("dialog", { name: "Settings" });
+    // Without a keyboard the section is listed only while it is open, and
+    // says it needs one.
+    expect(
+      within(dialog).getByRole("button", { name: "Keyboard" }),
+    ).toHaveAttribute("aria-current", "page");
+    expect(
+      screen.getByText("This section appears on devices with a keyboard."),
+    ).toBeVisible();
+    await user.click(within(dialog).getByRole("button", { name: "General" }));
+    expect(
+      within(dialog).queryByRole("button", { name: "Keyboard" }),
+    ).toBeNull();
+    fireEvent(dialog, new Event("cancel", { cancelable: true }));
+    await waitFor(() =>
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument(),
+    );
+    expect(window.location.search).toBe("?view=todos");
+  });
+
+  it("leaves a modified click on its link to the browser", () => {
+    window.history.replaceState(null, "", "/tasks");
+    render(
+      <SettingsLink section="language" onOpen={() => undefined}>
+        Language
+      </SettingsLink>,
+    );
+    const link = screen.getByRole("link", { name: "Language" });
+    expect(link).toHaveAttribute("href", "/tasks?settings=language");
+    // The browser's own action (a new tab) is stood in for; jsdom has none.
+    const browser = vi.fn((event: Event) => event.preventDefault());
+    document.addEventListener("click", browser, { once: true });
+    fireEvent.click(link, { metaKey: true });
+    expect(browser).toHaveBeenCalledOnce();
+    expect(window.location.search).toBe("");
+  });
+
   it("changes the name through PATCH /api/account and keeps it on the session", async () => {
     const user = userEvent.setup();
-    render(<SettingsPage section="account" />, { wrapper });
+    renderAt("general");
     const name = await screen.findByRole("textbox", { name: "Name" });
     await waitFor(() => expect(name).toHaveValue("Sample planner"));
     const save = screen.getByRole("button", { name: "Save name" });
@@ -164,7 +267,7 @@ describe("the Settings page", () => {
 
   it("shows the username as chosen at sign-up and keeps who can find the account", async () => {
     const user = userEvent.setup();
-    render(<SettingsPage section="account" />, { wrapper });
+    renderAt("general");
     await screen.findByText("@planner");
     expect(screen.getByText(/cannot be changed\./)).toBeVisible();
     expect(
@@ -188,7 +291,7 @@ describe("the Settings page", () => {
 
   it("signs out everywhere through DELETE /api/auth/sessions and leaves for sign-in", async () => {
     const user = userEvent.setup();
-    render(<SettingsPage section="account" />, { wrapper });
+    renderAt("general");
     await user.click(
       await screen.findByRole("button", { name: "Sign out everywhere" }),
     );
@@ -205,9 +308,9 @@ describe("the Settings page", () => {
 
   it("keeps the clock, week start, and zone on the account and applies them at once", async () => {
     const user = userEvent.setup();
-    render(<SettingsPage section="language" />, { wrapper: inShell });
+    renderAt("language", inShell);
     expect(
-      await screen.findByRole("link", { name: "Language & time" }),
+      await screen.findByRole("button", { name: "Language & time" }),
     ).toHaveAttribute("aria-current", "page");
     const clock = within(screen.getByRole("group", { name: "Time format" }));
     await waitFor(() =>
@@ -265,7 +368,7 @@ describe("the Settings page", () => {
 
   it("keeps a language choice on the account and in the cookie", async () => {
     const user = userEvent.setup();
-    render(<SettingsPage section="language" />, { wrapper });
+    renderAt("language");
     const language = within(
       await screen.findByRole("group", { name: "Language" }),
     );
@@ -284,9 +387,9 @@ describe("the Settings page", () => {
     expect(document.cookie).not.toContain(`${localeCookie}=zh`);
   });
 
-  it("repeats the Theme choices under Appearance", async () => {
-    render(<SettingsPage section="appearance" />, { wrapper });
-    expect(screen.getByRole("link", { name: "Appearance" })).toHaveAttribute(
+  it("repeats the Theme choices under Appearance", () => {
+    renderAt("appearance");
+    expect(screen.getByRole("button", { name: "Appearance" })).toHaveAttribute(
       "aria-current",
       "page",
     );
@@ -299,16 +402,7 @@ describe("the Settings page", () => {
     expect(screen.queryByRole("group", { name: "Language" })).toBeNull();
   });
 
-  it("offers Keyboard on a keyboard device alone, with the shortcut table", async () => {
-    // Without a keyboard (no hover, no fine pointer) the section is absent
-    // from the navigation and a direct visit says so.
-    render(<SettingsPage section="keyboard" />, { wrapper });
-    expect(screen.queryByRole("link", { name: "Keyboard" })).toBeNull();
-    expect(
-      screen.getByText("This page appears on devices with a keyboard."),
-    ).toBeVisible();
-    expect(screen.queryByRole("table")).toBeNull();
-    cleanup();
+  it("offers Keyboard on a keyboard device, with the shortcut table", async () => {
     vi.stubGlobal(
       "matchMedia",
       vi.fn((query: string) => ({
@@ -318,16 +412,20 @@ describe("the Settings page", () => {
         removeEventListener: () => {},
       })),
     );
-    render(<SettingsPage section="keyboard" />, { wrapper });
-    expect(screen.getByRole("link", { name: "Keyboard" })).toHaveAttribute(
-      "aria-current",
-      "page",
-    );
+    renderAt("general");
+    expect(
+      screen
+        .getAllByRole("button")
+        .filter((entry) => entry.closest("nav") !== null)
+        .map((entry) => entry.textContent),
+    ).toEqual(["General", "Language & time", "Appearance", "Keyboard"]);
+    const user = userEvent.setup();
+    await user.click(screen.getByRole("button", { name: "Keyboard" }));
+    expect(window.location.search).toBe("?view=todos&settings=keyboard");
     const table = within(screen.getByRole("table"));
     expect(table.getAllByRole("row")).toHaveLength(6);
     const search = table.getByRole("switch", { name: "Open Search" });
     expect(search).toBeChecked();
-    const user = userEvent.setup();
     await user.click(search);
     expect(search).not.toBeChecked();
     expect(window.localStorage.getItem("chronelle.command-shortcut")).toBe(
@@ -351,6 +449,29 @@ describe("the Settings page", () => {
     expect(
       window.localStorage.getItem("chronelle.component-shortcut"),
     ).toBeNull();
+  });
+
+  it("ignores an address naming no section", () => {
+    window.history.replaceState(null, "", "/events?settings=account");
+    render(<SettingsLayer />, { wrapper });
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  });
+});
+
+describe("the old Settings addresses", () => {
+  it.each([
+    [SettingsRoute, "general"],
+    [LanguageTimeSettingsRoute, "language"],
+    [AppearanceSettingsRoute, "appearance"],
+    [KeyboardSettingsRoute, "keyboard"],
+  ])("open Settings over Events", (route, section) => {
+    expect(() => route()).toThrow("NEXT_REDIRECT");
+    expect(redirect).toHaveBeenCalledWith(`/events?settings=${section}`);
+  });
+
+  it("opens Events for a space's members, which Manage space holds", () => {
+    expect(() => MembersSettingsRoute()).toThrow("NEXT_REDIRECT");
+    expect(redirect).toHaveBeenCalledWith("/events");
   });
 });
 

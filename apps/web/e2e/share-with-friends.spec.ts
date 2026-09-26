@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { expect, type Page, test } from "./fixtures";
-import { openCollection } from "./helpers/quiet-chrome";
+import { openCollection, openWorkspaceSwitcher } from "./helpers/quiet-chrome";
 
 const signIn = async (page: Page, name: string, email: string) => {
   await page.goto("/sign-in/development");
@@ -149,7 +149,7 @@ test("shares an event with a friend and queues one for a person without an accou
   expect(errors).toEqual([]);
 });
 
-test("adds a friend to the workspace as a member from Settings @webkit-desktop", async ({
+test("adds a friend to the space as a member from Manage space @webkit-desktop", async ({
   page,
   request,
 }) => {
@@ -184,13 +184,15 @@ test("adds a friend to the workspace as a member from Settings @webkit-desktop",
   const errors: string[] = [];
   page.on("pageerror", (error) => errors.push(error.message));
   await signIn(page, "Ana", anaEmail);
-  await page.getByRole("button", { name: /^Ana/ }).click();
-  await page.getByRole("menuitem", { name: "Settings", exact: true }).click();
-  await page
-    .getByRole("navigation", { name: "Settings sections" })
-    .getByRole("link", { name: "Members", exact: true })
+  // Manage space, beside the switcher's search, opens on the members.
+  await (
+    await openWorkspaceSwitcher(page)
+  )
+    .getByRole("menuitem", { name: "Manage space", exact: true })
     .click();
-  await expect(page).toHaveURL(/\/settings\/members$/u);
+  await expect(
+    page.getByRole("dialog", { name: "Manage space", exact: true }),
+  ).toBeVisible();
   const members = page.getByRole("list", { name: "Members" });
   await expect(members.getByRole("listitem")).toHaveCount(1);
   await expect(members).toContainText("Ana");

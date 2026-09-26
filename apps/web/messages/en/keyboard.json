@@ -1,7 +1,7 @@
 {
   "title": "Keyboard",
   "lead": "Shortcuts work on a keyboard outside editors and dialogs. These choices are kept on this browser.",
-  "keyboardOnly": "This page appears on devices with a keyboard.",
+  "keyboardOnly": "This section appears on devices with a keyboard.",
   "action": "Action",
   "shortcut": "Shortcut",
   "control": "Setting",

@@ -69,10 +69,11 @@ const hant = {
 };
 
 /**
- * Opens Settings from the profile menu, its Language & time section, and
- * checks a radio of the Language group, all by their names in the current
- * language. The page changes language in place; the caller returns to
- * wherever the journey continues.
+ * Opens Settings from the profile menu over the page, its Language & time
+ * section, and checks a radio of the Language group, all by their names in
+ * the current language. The page changes language in place under the open
+ * dialog; the caller closes it or moves on to wherever the journey
+ * continues.
  */
 async function chooseLanguage(
   page: Page,
@@ -83,11 +84,12 @@ async function chooseLanguage(
   await page
     .getByRole("menuitem", { name: names.settings, exact: true })
     .click();
-  await expect(page).toHaveURL(/\/settings$/u);
+  await expect(page).toHaveURL(/[?&]settings=general$/u);
   await page
-    .getByRole("link", { name: names.languageTime, exact: true })
+    .getByRole("dialog", { name: names.settings, exact: true })
+    .getByRole("button", { name: names.languageTime, exact: true })
     .click();
-  await expect(page).toHaveURL(/\/settings\/language$/u);
+  await expect(page).toHaveURL(/[?&]settings=language$/u);
   // The choice is kept on the account; a page opened before that write
   // lands would adopt the account's previous language.
   const kept = page.waitForResponse(
@@ -138,9 +140,15 @@ test("switches the workspace to Simplified and Traditional Chinese and back @web
   const eventUrl = page.url();
   await chooseLanguage(page, english, hans.language);
   await expect(page.locator("html")).toHaveAttribute("lang", "zh-Hans");
-  await expect(
-    page.getByRole("heading", { level: 1, name: hans.settings, exact: true }),
-  ).toBeVisible();
+  const settings = page.getByRole("dialog", {
+    name: hans.settings,
+    exact: true,
+  });
+  await expect(settings).toBeVisible();
+  // Closing Settings returns to the event, already in the new language.
+  await page.keyboard.press("Escape");
+  await expect(settings).toHaveCount(0);
+  await expect(page).toHaveURL(eventUrl);
   const rail = await workspaceNavigation(page, hans.navigation);
   await expect(rail).toContainText(hans.people);
   await closeDrawer(page);

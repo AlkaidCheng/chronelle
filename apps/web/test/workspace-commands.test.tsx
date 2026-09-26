@@ -269,6 +269,7 @@ it.each(["ctrlKey", "metaKey"])(
 );
 
 it("offers Keyboard shortcuts in More as a link to the Keyboard settings", async () => {
+  window.history.replaceState(null, "", "/events");
   render(
     <AuthSessionProvider>
       <NoticesProvider>
@@ -283,7 +284,7 @@ it("offers Keyboard shortcuts in More as a link to the Keyboard settings", async
   const user = userEvent.setup();
   await user.click(screen.getByRole("button", { name: "More" }));
   const item = screen.getByRole("menuitem", { name: "Keyboard shortcuts" });
-  expect(item).toHaveAttribute("href", "/settings/keyboard");
+  expect(item).toHaveAttribute("href", "/events?settings=keyboard");
   // The palette itself carries no settings; the field has focus on open.
   await user.click(trigger());
   expect(

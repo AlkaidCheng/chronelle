@@ -6,7 +6,7 @@ import type { ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { Providers } from "../app/providers";
-import { MembersSection } from "../features/settings/members-section";
+import { SpaceMembersSection } from "../features/spaces/space-members";
 import { SandboxStore, sandboxWorkspaceId } from "../sandbox/store";
 
 let store: SandboxStore;
@@ -51,10 +51,10 @@ const wrapper = ({ children }: { readonly children: ReactNode }) => (
   <Providers>{children}</Providers>
 );
 
-describe("the Members section", () => {
+describe("a space's Members section", () => {
   it("lists the members, adds a friend as viewer, and removes them", async () => {
     const user = userEvent.setup();
-    render(<MembersSection />, { wrapper });
+    render(<SpaceMembersSection />, { wrapper });
     const list = within(await screen.findByRole("list", { name: "Members" }));
     expect(list.getAllByRole("listitem")).toHaveLength(1);
     expect(list.getByText("Sample planner")).toBeVisible();
@@ -98,7 +98,7 @@ describe("the Members section", () => {
 
   it("lets the Owner change a member's role, a Personal space keeping one Owner", async () => {
     const user = userEvent.setup();
-    render(<MembersSection />, { wrapper });
+    render(<SpaceMembersSection />, { wrapper });
     const list = within(await screen.findByRole("list", { name: "Members" }));
     // The Owner's own role in a Personal space is fixed.
     expect(

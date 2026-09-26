@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { afterEach, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { AccountMenu } from "../components/account-menu";
 
 const session = {
@@ -48,6 +48,9 @@ const session = {
   ],
 };
 
+beforeEach(() => {
+  window.history.replaceState(null, "", "/events/plan?view=todos");
+});
 afterEach(cleanup);
 
 function renderMenu(extra: { pendingRequests?: number } = {}) {
@@ -89,9 +92,10 @@ it("opens a menu with the current space, Friends, Settings, and sign out", async
     "href",
     "/friends",
   );
+  // Settings opens over the page the menu is on.
   expect(screen.getByRole("menuitem", { name: "Settings" })).toHaveAttribute(
     "href",
-    "/settings",
+    "/events/plan?view=todos&settings=general",
   );
   expect(screen.getByRole("menuitem", { name: "Sign out" })).toBeVisible();
   await user.click(trigger);
@@ -130,6 +134,18 @@ it("opens the switcher's list with Cmd/Ctrl+Shift+K and closes it again", async 
   await user.keyboard("{Meta>}{Shift>}k{/Shift}{/Meta}");
   expect(screen.queryByRole("menu")).not.toBeInTheDocument();
   expect(trigger).toHaveFocus();
+});
+
+it("opens Settings over the page and hands focus to the block for the dialog to return", async () => {
+  const { trigger, user } = renderMenu();
+  await user.click(trigger);
+  const entries = window.history.length;
+  await user.click(screen.getByRole("menuitem", { name: "Settings" }));
+  expect(screen.queryByRole("menu")).not.toBeInTheDocument();
+  expect(trigger).toHaveFocus();
+  expect(window.location.pathname).toBe("/events/plan");
+  expect(window.location.search).toBe("?view=todos&settings=general");
+  expect(window.history.length).toBe(entries + 1);
 });
 
 it("signs out once and closes", async () => {

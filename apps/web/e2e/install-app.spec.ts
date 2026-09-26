@@ -59,7 +59,7 @@ test("raises the browser's install prompt from More and from Settings @webkit-de
   ).toHaveCount(0);
   await page.keyboard.press("Escape");
 
-  await page.goto("/settings/appearance");
+  await page.goto("/events?settings=appearance");
   const row = page.getByRole("heading", { name: "Install app", exact: true });
   await expect(row).toBeVisible();
   await expect(

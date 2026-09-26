@@ -1,5 +1,6 @@
-import { SettingsPage } from "../../../../features/settings/settings-page";
+import { redirect } from "next/navigation";
 
+/** The section's old address opens Settings at it over Events. */
 export default function AppearanceSettingsRoute() {
-  return <SettingsPage section="appearance" />;
+  redirect("/events?settings=appearance");
 }

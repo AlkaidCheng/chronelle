@@ -136,7 +136,7 @@ test("finds people as they allow, keeps a username with its code, and sends a re
   ).toEqual([cid.id]);
 
   // Settings: the username as chosen, and the switches.
-  await page.goto("/settings");
+  await page.goto("/events?settings=general");
   await expect(page.getByText(`@cid-${tag}`, { exact: true })).toBeVisible();
   await expect(page.getByRole("textbox", { name: "Username" })).toHaveCount(0);
   await expect(page.getByRole("switch", { name: "By name" })).not.toBeChecked();

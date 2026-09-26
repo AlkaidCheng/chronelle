@@ -1,5 +1,9 @@
-import { SettingsPage } from "../../../../features/settings/settings-page";
+import { redirect } from "next/navigation";
 
+/**
+ * The old address of a space's members opens Events; members are managed
+ * from the space switcher's Manage space.
+ */
 export default function MembersSettingsRoute() {
-  return <SettingsPage section="members" />;
+  redirect("/events");
 }
