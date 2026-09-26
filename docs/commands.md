@@ -19,13 +19,15 @@ that carries metadata still uses the PATCH endpoint.
 
 Requests use the existing bearer credential and workspace header. The server
 derives the user and workspace; clients cannot name another user's stack. A
-stack lives in the workspace of the objects its commands change, since each
-change references that workspace's revisions: `POST /api/commands` acts in the
-workspace of the object its first edit names, and the stack read, undo, and
-redo accept `?objectId=` naming an object in the workspace they act in, when
-that is not the selected one. An edit of an Event shared from another
-workspace is therefore kept on the caller's stack there, not in the caller's
-own workspace.
+stack lives in the workspace of the objects its commands change, where their
+edits are authorized and written: `POST /api/commands` acts in the workspace
+of the object its first edit names, and the stack read, undo, and redo accept
+`?objectId=` naming an object in the workspace they act in, when that is not
+the selected one. An edit of an Event shared from another workspace is
+therefore kept on the caller's stack there, not in the caller's own
+workspace. Each change names its object's revisions before and after by
+object id and version, wherever they were written, and undo and redo read
+them that way.
 Unknown fields and duplicate object IDs are rejected. An edit allows display
 name, custom properties, and the existing Event/Task typed fields. Metadata,
 permission scopes, grants, object creation, trash, links, financial facts,
@@ -120,7 +122,8 @@ Migration `0009_add_reversible_commands.sql` adds:
 
 - `command_stacks`: mutable heads and trusted object versions, scoped by user/workspace.
 - `reversible_commands`: immutable command identities.
-- `command_changes`: immutable same-workspace before/after revision references.
+- `command_changes`: immutable before/after revision references, by object
+  and version since migration 0075.
 - `command_receipts`: immutable idempotency results linked to an audit event.
 
 Object revisions retain mutation kind `updated`. Their associated audit metadata

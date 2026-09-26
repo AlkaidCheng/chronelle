@@ -109,7 +109,6 @@ export class PostgresNoteReadRepository implements NoteReadRepository {
         );
         const editors = await readNoteEditors(
           transaction,
-          principal.workspaceId,
           notes.map((note) => note.id),
         );
         const items = notes.map((note): NoteListItem => ({
@@ -126,7 +125,6 @@ export class PostgresNoteReadRepository implements NoteReadRepository {
 /** The display name of the account that wrote each note's current version, by note id. */
 async function readNoteEditors(
   transaction: DatabaseTransaction,
-  workspaceId: string,
   noteIds: readonly string[],
 ): Promise<ReadonlyMap<string, string | null>> {
   if (noteIds.length === 0) return new Map();
@@ -139,7 +137,6 @@ async function readNoteEditors(
     .innerJoin(
       objects,
       and(
-        eq(objects.workspaceId, objectRevisions.workspaceId),
         eq(objects.id, objectRevisions.objectId),
         eq(objects.version, objectRevisions.objectVersion),
       ),
@@ -151,11 +148,6 @@ async function readNoteEditors(
         eq(users.id, objectRevisions.actorId),
       ),
     )
-    .where(
-      and(
-        eq(objectRevisions.workspaceId, workspaceId),
-        inArray(objectRevisions.objectId, [...noteIds]),
-      ),
-    );
+    .where(inArray(objectRevisions.objectId, [...noteIds]));
   return new Map(rows.map((row) => [row.objectId, row.displayName ?? null]));
 }

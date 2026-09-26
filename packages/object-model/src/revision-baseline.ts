@@ -19,7 +19,6 @@ export async function assertRevisionBaseline(
     .leftJoin(
       objectRevisions,
       and(
-        eq(objectRevisions.workspaceId, objects.workspaceId),
         eq(objectRevisions.objectId, objects.id),
         eq(objectRevisions.objectVersion, objects.version),
       ),

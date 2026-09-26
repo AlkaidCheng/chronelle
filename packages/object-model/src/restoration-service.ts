@@ -49,7 +49,6 @@ import type { EventPlanningResource, MutationContext } from "./types.js";
 
 async function readRevision(
   transaction: DatabaseTransaction,
-  principal: UserPrincipal,
   objectId: string,
   version: number,
 ) {
@@ -62,7 +61,6 @@ async function readRevision(
     .from(objectRevisions)
     .where(
       and(
-        eq(objectRevisions.workspaceId, principal.workspaceId),
         eq(objectRevisions.objectId, objectId),
         eq(objectRevisions.objectVersion, version),
       ),
@@ -179,8 +177,8 @@ export class ObjectRestorationService {
       comparison(
         objectId,
         input,
-        await readRevision(transaction, principal, objectId, input.fromVersion),
-        await readRevision(transaction, principal, objectId, input.toVersion),
+        await readRevision(transaction, objectId, input.fromVersion),
+        await readRevision(transaction, objectId, input.toVersion),
       ),
     );
   }
@@ -210,12 +208,7 @@ export class ObjectRestorationService {
             await readObjectState(transaction, principal.workspaceId, objectId),
           ),
         );
-        const source = await readRevision(
-          transaction,
-          principal,
-          objectId,
-          version,
-        );
+        const source = await readRevision(transaction, objectId, version);
         return restorationPreview(
           objectId,
           current,
@@ -267,7 +260,7 @@ export class ObjectRestorationService {
                   throw new ObjectConflictError();
                 return selectRestoration(
                   current,
-                  await readRevision(transaction, principal, objectId, version),
+                  await readRevision(transaction, objectId, version),
                 );
               },
             );
@@ -294,7 +287,7 @@ export class ObjectRestorationService {
           throw new ObjectConflictError();
         const { source, content } = selectRestoration(
           current,
-          await readRevision(transaction, principal, objectId, version),
+          await readRevision(transaction, objectId, version),
         );
         const [updated] = await transaction
           .update(objects)

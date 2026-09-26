@@ -90,7 +90,6 @@ export class EventContextService {
             .from(objectRevisions)
             .where(
               and(
-                eq(objectRevisions.workspaceId, principal.workspaceId),
                 eq(objectRevisions.objectId, existing.objectId),
                 eq(objectRevisions.objectVersion, 1),
               ),

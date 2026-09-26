@@ -1,6 +1,13 @@
 import { resolve } from "node:path";
 
-import { createId, events, objectRevisions, objects } from "@livtales/db";
+import {
+  createId,
+  events,
+  objectRevisions,
+  objects,
+  workspaceMembers,
+  workspaces,
+} from "@livtales/db";
 import {
   applyMigrations,
   createTestDatabase,
@@ -206,6 +213,78 @@ describe.sequential("object revisions", () => {
       expect(row.object_id).toBe(row.audit_resource);
       expect(row.object_version).toBe(Number(row.audit_version));
     }
+  });
+
+  it("shows an object's whole history after it changes workspace", async () => {
+    const owner = await signIn("owner@example.com");
+    const event = await create(owner, "events", {
+      displayName: "Launch night",
+    });
+    const rename = (expectedVersion: number, displayName: string) =>
+      app.inject({
+        method: "PATCH",
+        url: `/api/events/${event.id}`,
+        headers: headers(owner),
+        payload: { expectedVersion, displayName },
+      });
+    const history = async () => {
+      const response = await app.inject({
+        method: "GET",
+        url: `/api/objects/${event.id}/revisions`,
+        headers: headers(owner),
+      });
+      expect(response.statusCode).toBe(200);
+      return revisionListResponseSchema
+        .parse(response.json())
+        .items.map((item) => [item.objectVersion, item.mutationKind]);
+    };
+    expect((await rename(1, "Launch night, revised")).statusCode).toBe(200);
+    const spaceId = createId();
+    await database.connection.db.insert(workspaces).values({
+      id: spaceId,
+      displayName: "Shared space",
+      createdBy: owner.user.id,
+    });
+    await database.connection.db
+      .insert(workspaceMembers)
+      .values({ workspaceId: spaceId, userId: owner.user.id, role: "owner" });
+    // The update a move is made of, over the Event's whole scope.
+    await database.connection.sql`
+      UPDATE objects SET workspace_id = ${spaceId} WHERE permission_scope_id = ${event.id}
+    `;
+
+    // The request follows the Event to its new workspace, where the
+    // revisions written before the move are still its history.
+    expect(await history()).toEqual([
+      [2, "updated"],
+      [1, "created"],
+    ]);
+    const first = await app.inject({
+      method: "GET",
+      url: `/api/objects/${event.id}/revisions/1`,
+      headers: headers(owner, spaceId),
+    });
+    expect(first.statusCode).toBe(200);
+    expect(revisionResponseSchema.parse(first.json()).snapshot).toMatchObject({
+      displayName: "Launch night",
+      version: 1,
+    });
+    expect((await rename(2, "Launch night, moved")).statusCode).toBe(200);
+    expect(await history()).toEqual([
+      [3, "updated"],
+      [2, "updated"],
+      [1, "created"],
+    ]);
+    expect(
+      await database.connection.sql`
+        SELECT workspace_id FROM object_revisions
+        WHERE object_id = ${event.id} ORDER BY object_version
+      `,
+    ).toEqual([
+      { workspace_id: owner.workspace.id },
+      { workspace_id: owner.workspace.id },
+      { workspace_id: spaceId },
+    ]);
   });
 
   it("uses current authorization for earlier values and never reveals unavailable history", async () => {

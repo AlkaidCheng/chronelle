@@ -156,7 +156,6 @@ export class PostgresRevisionReadRepository implements RevisionReadRepository {
           )
           .where(
             and(
-              eq(objectRevisions.workspaceId, principal.workspaceId),
               eq(objectRevisions.objectId, objectId),
               input.beforeVersion === undefined
                 ? undefined
@@ -217,7 +216,6 @@ export class PostgresRevisionReadRepository implements RevisionReadRepository {
           )
           .where(
             and(
-              eq(objectRevisions.workspaceId, principal.workspaceId),
               eq(objectRevisions.objectId, objectId),
               eq(objectRevisions.objectVersion, version),
             ),
@@ -232,7 +230,6 @@ export class PostgresRevisionReadRepository implements RevisionReadRepository {
           .from(objectRevisions)
           .where(
             and(
-              eq(objectRevisions.workspaceId, principal.workspaceId),
               eq(objectRevisions.objectId, objectId),
               lt(objectRevisions.objectVersion, version),
             ),

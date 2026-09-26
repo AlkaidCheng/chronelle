@@ -42,6 +42,36 @@ const carriedKeys = [
   "tasks_canonical_object_fk",
 ];
 
+/** Keys by which a ledger names an object or a revision, by id alone. */
+const ledgerKeys = {
+  audit_events_resource_fk:
+    "FOREIGN KEY (resource_id) REFERENCES objects(id) ON DELETE RESTRICT",
+  command_changes_after_revision_fk:
+    "FOREIGN KEY (object_id, after_version) REFERENCES object_revisions(object_id, object_version) ON DELETE RESTRICT",
+  command_changes_before_revision_fk:
+    "FOREIGN KEY (object_id, before_version) REFERENCES object_revisions(object_id, object_version) ON DELETE RESTRICT",
+  event_context_commands_context_object_fk:
+    "FOREIGN KEY (context_object_id) REFERENCES objects(id) ON DELETE RESTRICT",
+  event_context_commands_object_fk:
+    "FOREIGN KEY (object_id) REFERENCES objects(id) ON DELETE RESTRICT",
+  object_create_commands_object_fk:
+    "FOREIGN KEY (object_id) REFERENCES objects(id) ON DELETE RESTRICT",
+  object_revisions_object_fk:
+    "FOREIGN KEY (object_id) REFERENCES objects(id) ON DELETE RESTRICT",
+  object_revisions_source_revision_id_fkey:
+    "FOREIGN KEY (source_revision_id) REFERENCES object_revisions(id) ON DELETE RESTRICT",
+};
+
+const ledgerTables = [
+  "audit_events",
+  "command_changes",
+  "command_receipts",
+  "event_context_commands",
+  "event_page_revisions",
+  "object_create_commands",
+  "object_revisions",
+];
+
 interface Spaces {
   readonly ownerId: string;
   readonly guestId: string;
@@ -164,6 +194,51 @@ function tally(rows: readonly { kind: string }[]): Record<string, number> {
   const counts: Record<string, number> = {};
   for (const { kind } of rows) counts[kind] = (counts[kind] ?? 0) + 1;
   return counts;
+}
+
+/** An Event's revision at a version, with its audit event, written in one workspace. */
+function insertRevision(
+  workspaceId: string,
+  eventId: string,
+  actorId: string,
+  version: number,
+) {
+  return database.connection.sql.begin(async (sql) => {
+    const auditEventId = createId();
+    const requestId = createId();
+    await sql`
+      INSERT INTO audit_events (id, workspace_id, actor_type, actor_id, action, resource_id, request_id)
+      VALUES (${auditEventId}, ${workspaceId}, 'user', ${actorId},
+        ${version === 1 ? "event.created" : "event.updated"}, ${eventId}, ${requestId})
+    `;
+    await sql`
+      INSERT INTO object_revisions (id, workspace_id, object_id, object_version, mutation_kind,
+        actor_type, actor_id, request_id, audit_event_id, snapshot_schema_version, snapshot)
+      VALUES (${createId()}, ${workspaceId}, ${eventId}, ${version},
+        ${version === 1 ? "created" : "updated"}, 'user', ${actorId}, ${requestId}, ${auditEventId}, 1,
+        ${JSON.stringify({ id: eventId, workspaceId, version, objectType: "event" })}::jsonb)
+    `;
+  });
+}
+
+/** An Event's layout revision at a version, with its audit event, written in one workspace. */
+function insertLayout(
+  workspaceId: string,
+  eventId: string,
+  actorId: string,
+  version: number,
+) {
+  return database.connection.sql.begin(async (sql) => {
+    const auditEventId = createId();
+    await sql`
+      INSERT INTO audit_events (id, workspace_id, actor_type, actor_id, action, resource_id, request_id)
+      VALUES (${auditEventId}, ${workspaceId}, 'user', ${actorId}, 'event.layout_updated', ${eventId}, ${createId()})
+    `;
+    await sql`
+      INSERT INTO event_page_revisions (workspace_id, event_id, version, pages, audit_event_id)
+      VALUES (${workspaceId}, ${eventId}, ${version}, '[]'::jsonb, ${auditEventId})
+    `;
+  });
 }
 
 describe.sequential("keys that carry rows to another workspace", () => {
@@ -438,5 +513,127 @@ describe.sequential("keys that carry rows to another workspace", () => {
     await expect(
       sql`UPDATE resource_grants SET section_id = ${otherTodos} WHERE section_id = ${todos}`,
     ).rejects.toMatchObject({ code: "PT422" });
+  });
+});
+
+describe.sequential("keys that keep history where it was written", () => {
+  it("names each ledger's object by id alone", async () => {
+    const sql = database.connection.sql;
+    const rows = await sql<
+      {
+        conname: string;
+        definition: string;
+        confupdtype: string;
+        confdeltype: string;
+        convalidated: boolean;
+        condeferrable: boolean;
+      }[]
+    >`
+      SELECT conname, pg_get_constraintdef(oid) AS definition,
+        confupdtype, confdeltype, convalidated, condeferrable
+      FROM pg_constraint
+      WHERE contype = 'f'
+        AND conrelid::regclass::text = ANY(${sql.array(ledgerTables)})
+        AND confrelid IN ('objects'::regclass, 'object_revisions'::regclass)
+    `;
+    expect(
+      Object.fromEntries(rows.map((row) => [row.conname, row.definition])),
+    ).toEqual(ledgerKeys);
+    for (const { conname, ...key } of rows) {
+      expect(key, conname).toMatchObject({
+        confupdtype: "a",
+        confdeltype: "r",
+        convalidated: true,
+        condeferrable: false,
+      });
+    }
+    const unique = await sql<{ conname: string; definition: string }[]>`
+      SELECT conname, pg_get_constraintdef(oid) AS definition
+      FROM pg_constraint
+      WHERE contype IN ('u', 'p')
+        AND conrelid IN ('object_revisions'::regclass, 'event_page_revisions'::regclass)
+    `;
+    expect(
+      Object.fromEntries(unique.map((row) => [row.conname, row.definition])),
+    ).toEqual({
+      event_page_revisions_audit_event_id_key: "UNIQUE (audit_event_id)",
+      event_page_revisions_event_version_unique: "UNIQUE (event_id, version)",
+      event_page_revisions_pkey:
+        "PRIMARY KEY (workspace_id, event_id, version)",
+      object_revisions_audit_event_id_key: "UNIQUE (audit_event_id)",
+      object_revisions_object_version_unique:
+        "UNIQUE (object_id, object_version)",
+      object_revisions_pkey: "PRIMARY KEY (id)",
+    });
+    expect(
+      await sql`
+        SELECT indexname, indexdef FROM pg_indexes
+        WHERE tablename = 'audit_events' AND indexname LIKE 'audit_events_resource%'
+      `,
+    ).toEqual([
+      {
+        indexname: "audit_events_resource_idx",
+        indexdef: expect.stringContaining(
+          "USING btree (resource_id, created_at DESC) WHERE (resource_id IS NOT NULL)",
+        ),
+      },
+    ]);
+  });
+
+  it("leaves an object's history where it was written and continues it where it moves", async () => {
+    const sql = database.connection.sql;
+    const spaces = await createSpaces();
+    const eventId = await insertObject(spaces, "event");
+    await sql`INSERT INTO events (object_id, workspace_id) VALUES (${eventId}, ${spaces.from})`;
+    await insertRevision(spaces.from, eventId, spaces.ownerId, 1);
+    await insertLayout(spaces.from, eventId, spaces.ownerId, 1);
+    const history = () => sql<{ kind: string; row: unknown }[]>`
+      SELECT kind, row FROM (
+        SELECT 'audit_events' AS kind, to_jsonb(a) AS row FROM audit_events a WHERE a.resource_id = ${eventId}
+        UNION ALL SELECT 'object_revisions', to_jsonb(r) FROM object_revisions r WHERE r.object_id = ${eventId}
+        UNION ALL SELECT 'event_page_revisions', to_jsonb(p) FROM event_page_revisions p WHERE p.event_id = ${eventId}
+      ) ledgers
+      ORDER BY kind, row::text
+    `;
+    const written = await history();
+    expect(tally(written)).toEqual({
+      audit_events: 2,
+      event_page_revisions: 1,
+      object_revisions: 1,
+    });
+
+    await move([eventId], spaces.to);
+    expect(await history()).toEqual(written);
+
+    // A version is one per object and a layout version one per Event,
+    // whichever workspace writes it.
+    await expect(
+      insertRevision(spaces.to, eventId, spaces.ownerId, 1),
+    ).rejects.toMatchObject({
+      code: "23505",
+      constraint_name: "object_revisions_object_version_unique",
+    });
+    await expect(
+      insertLayout(spaces.to, eventId, spaces.ownerId, 1),
+    ).rejects.toMatchObject({
+      code: "23505",
+      constraint_name: "event_page_revisions_event_version_unique",
+    });
+    // The next versions are written where the Event now is, and only there.
+    await sql`UPDATE objects SET version = 2 WHERE id = ${eventId}`;
+    await expect(
+      insertRevision(spaces.from, eventId, spaces.ownerId, 2),
+    ).rejects.toMatchObject({ code: "23514" });
+    await insertRevision(spaces.to, eventId, spaces.ownerId, 2);
+    await insertLayout(spaces.to, eventId, spaces.ownerId, 2);
+    expect(
+      await sql`
+        SELECT workspace_id, object_version FROM object_revisions
+        WHERE object_id = ${eventId} ORDER BY object_version
+      `,
+    ).toEqual([
+      { workspace_id: spaces.from, object_version: 1 },
+      { workspace_id: spaces.to, object_version: 2 },
+    ]);
   });
 });

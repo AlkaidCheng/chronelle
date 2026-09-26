@@ -231,7 +231,6 @@ export class ReversibleCommandService {
           edits.push(
             await this.readContentEdit(
               transaction,
-              context.principal,
               change.objectId,
               sourceVersion,
               current.version,
@@ -295,7 +294,6 @@ export class ReversibleCommandService {
 
   private async readContentEdit(
     transaction: DatabaseTransaction,
-    principal: UserPrincipal,
     objectId: string,
     sourceVersion: number,
     expectedVersion: number,
@@ -305,7 +303,6 @@ export class ReversibleCommandService {
       .from(objectRevisions)
       .where(
         and(
-          eq(objectRevisions.workspaceId, principal.workspaceId),
           eq(objectRevisions.objectId, objectId),
           eq(objectRevisions.objectVersion, sourceVersion),
         ),

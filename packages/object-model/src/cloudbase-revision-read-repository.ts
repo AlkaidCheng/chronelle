@@ -119,7 +119,7 @@ export class CloudBaseRevisionReadRepository implements RevisionReadRepository {
       await this.#readRevisions(
         summaryColumns,
         [
-          ...this.#objectFilters(principal, objectId),
+          ...this.#objectFilters(objectId),
           ...(input.beforeVersion === undefined
             ? []
             : cloudbaseFilters(["object_version", "lt", input.beforeVersion])),
@@ -134,7 +134,6 @@ export class CloudBaseRevisionReadRepository implements RevisionReadRepository {
     const [actorNames, snapshots] = await Promise.all([
       this.#readActorNames(page),
       this.#readSnapshots(
-        principal,
         objectId,
         rows.map(({ version }) => version),
       ),
@@ -167,7 +166,7 @@ export class CloudBaseRevisionReadRepository implements RevisionReadRepository {
     const [row] = await this.#readRevisions(
       `${summaryColumns},snapshot`,
       [
-        ...this.#objectFilters(principal, objectId),
+        ...this.#objectFilters(objectId),
         { column: "object_version", operator: "eq", value: version },
       ],
       1,
@@ -178,7 +177,7 @@ export class CloudBaseRevisionReadRepository implements RevisionReadRepository {
       this.#readRevisions(
         "object_version,snapshot_schema_version,snapshot",
         [
-          ...this.#objectFilters(principal, objectId),
+          ...this.#objectFilters(objectId),
           { column: "object_version", operator: "lt", value: version },
         ],
         1,
@@ -210,7 +209,6 @@ export class CloudBaseRevisionReadRepository implements RevisionReadRepository {
 
   /** The snapshots of the given versions, by version, read in id-sized batches. */
   async #readSnapshots(
-    principal: UserPrincipal,
     objectId: string,
     versions: readonly number[],
   ): Promise<Map<number, { schemaVersion: number; snapshot: unknown }>> {
@@ -226,7 +224,7 @@ export class CloudBaseRevisionReadRepository implements RevisionReadRepository {
       const rows = await this.#client.select<SnapshotRow>("object_revisions", {
         columns: "object_version,snapshot_schema_version,snapshot",
         filters: [
-          ...this.#objectFilters(principal, objectId),
+          ...this.#objectFilters(objectId),
           {
             column: "object_version",
             operator: "in",
@@ -246,14 +244,8 @@ export class CloudBaseRevisionReadRepository implements RevisionReadRepository {
     return found;
   }
 
-  #objectFilters(
-    principal: UserPrincipal,
-    objectId: string,
-  ): readonly CloudBaseRdbFilter[] {
-    return cloudbaseFilters(
-      ["workspace_id", "eq", principal.workspaceId],
-      ["object_id", "eq", objectId],
-    );
+  #objectFilters(objectId: string): readonly CloudBaseRdbFilter[] {
+    return cloudbaseFilters(["object_id", "eq", objectId]);
   }
 
   async #readRevisions(

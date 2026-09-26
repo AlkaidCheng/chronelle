@@ -41,7 +41,7 @@ export class CloudBaseEventLayoutReadRepository implements EventLayoutReadReposi
     eventId: string,
   ): Promise<EventLayoutResponse> {
     await this.#assertEvent(principal, eventId);
-    const [latest] = await this.#revisions(principal, eventId, 1);
+    const [latest] = await this.#revisions(eventId, 1);
     return eventLayoutResponseSchema.parse({
       eventId,
       version: latest?.version ?? 0,
@@ -56,7 +56,7 @@ export class CloudBaseEventLayoutReadRepository implements EventLayoutReadReposi
     input: EventLayoutHistoryQuery,
   ): Promise<EventLayoutHistoryResponse> {
     await this.#assertEvent(principal, eventId);
-    const revisions = (await this.#revisions(principal, eventId)).filter(
+    const revisions = (await this.#revisions(eventId)).filter(
       (revision) =>
         input.beforeVersion === undefined ||
         revision.version < input.beforeVersion,
@@ -75,15 +75,12 @@ export class CloudBaseEventLayoutReadRepository implements EventLayoutReadReposi
       throw new InvalidObjectStateError("Page layouts belong to Events.");
   }
 
-  async #revisions(principal: UserPrincipal, eventId: string, limit?: number) {
+  async #revisions(eventId: string, limit?: number) {
     const rows = await this.#client.select<RevisionRow>(
       "event_page_revisions",
       {
         columns: "version,pages,created_at",
-        filters: cloudbaseFilters(
-          ["workspace_id", "eq", principal.workspaceId],
-          ["event_id", "eq", eventId],
-        ),
+        filters: cloudbaseFilters(["event_id", "eq", eventId]),
         order: [{ column: "version", ascending: false }],
         ...(limit !== undefined && { limit }),
       },
