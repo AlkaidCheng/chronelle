@@ -356,6 +356,7 @@ function DaySheetView({
                     onClick={() =>
                       updateTask({
                         id: task.id,
+                        workspaceId: task.workspaceId,
                         input: {
                           completedAt: isDone ? null : new Date().toISOString(),
                           expectedVersion: task.version,

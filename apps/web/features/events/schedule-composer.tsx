@@ -204,6 +204,7 @@ export function ScheduleComposer({
       () =>
         update.mutateAsync({
           id: item.id,
+          workspaceId: item.workspaceId,
           input: {
             displayName: fields.displayName,
             description,

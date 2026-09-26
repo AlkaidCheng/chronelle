@@ -27,6 +27,7 @@ import {
   QuietMenu,
 } from "../../components/quiet-menu";
 import { UndoMenuItems } from "../../components/undo-menu-items";
+import { usePageCommandHistory } from "../../lib/command-history";
 import { formatEventSchedule } from "../../lib/event-schedule";
 import { personAccount } from "../../lib/person-collection";
 import { personDisplayName, propertyText } from "../../lib/person-fields";
@@ -72,6 +73,7 @@ export function PersonPage({ personId }: { readonly personId: string }) {
   const people = useTranslations("people");
   const contactKinds = useTranslations("person");
   const { person, access } = usePersonEditorQueries(personId);
+  usePageCommandHistory(person.data);
   const session = useSessionQuery();
   const friends = useFriendsQuery();
   const connections = usePersonConnections();

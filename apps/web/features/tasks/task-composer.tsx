@@ -259,6 +259,7 @@ export function TaskComposer({
       () =>
         update.mutateAsync({
           id: task.id,
+          workspaceId: task.workspaceId,
           input: { ...input, expectedVersion: task.version },
         }),
       (saved) => {

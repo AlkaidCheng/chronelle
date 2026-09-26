@@ -538,7 +538,11 @@ export function TaskListView({
   const change = useCallback(
     (task: TaskResponse, input: Record<string, unknown>, said: string) => {
       updateTask(
-        { id: task.id, input: { expectedVersion: task.version, ...input } },
+        {
+          id: task.id,
+          workspaceId: task.workspaceId,
+          input: { expectedVersion: task.version, ...input },
+        },
         { onSuccess: () => setAnnouncement(said) },
       );
     },
@@ -568,6 +572,7 @@ export function TaskListView({
       overdue.map((task) =>
         updateTaskAsync({
           id: task.id,
+          workspaceId: task.workspaceId,
           input: { expectedVersion: task.version, ...dueOnDay(task, day) },
         }),
       ),
@@ -721,6 +726,7 @@ export function TaskListView({
           onClick={() =>
             updateTask({
               id: task.id,
+              workspaceId: task.workspaceId,
               input: {
                 completedAt: isDone ? null : new Date().toISOString(),
                 expectedVersion: task.version,

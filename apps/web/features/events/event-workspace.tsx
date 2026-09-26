@@ -25,6 +25,7 @@ import {
   MenuSeparator,
   QuietMenu,
 } from "../../components/quiet-menu";
+import { usePageCommandHistory } from "../../lib/command-history";
 import { formatEventSchedule } from "../../lib/event-schedule";
 import { useEventWorkspaceQueries } from "../../lib/queries";
 import { useForgetInaccessibleEventDrafts } from "../../lib/editor-draft-context";
@@ -60,6 +61,7 @@ export function EventWorkspace({ eventId }: { readonly eventId: string }) {
   const nav = useTranslations("nav");
   const [activeTab, setActiveTab] = useEventView();
   const queries = useEventWorkspaceQueries(eventId, activeTab);
+  usePageCommandHistory(queries.event.data);
   const canEdit = queries.access.data?.actions.includes("edit") ?? false;
   const pagesState = useEventPagesState(eventId, canEdit);
   const { layout } = pagesState;

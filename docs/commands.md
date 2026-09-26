@@ -18,7 +18,14 @@ that carries metadata still uses the PATCH endpoint.
 | `POST /api/commands/redo` | Reapply the pinned redo head                                              |
 
 Requests use the existing bearer credential and workspace header. The server
-derives the user and workspace; clients cannot name another user's stack.
+derives the user and workspace; clients cannot name another user's stack. A
+stack lives in the workspace of the objects its commands change, since each
+change references that workspace's revisions: `POST /api/commands` acts in the
+workspace of the object its first edit names, and the stack read, undo, and
+redo accept `?objectId=` naming an object in the workspace they act in, when
+that is not the selected one. An edit of an Event shared from another
+workspace is therefore kept on the caller's stack there, not in the caller's
+own workspace.
 Unknown fields and duplicate object IDs are rejected. An edit allows display
 name, custom properties, and the existing Event/Task typed fields. Metadata,
 permission scopes, grants, object creation, trash, links, financial facts,

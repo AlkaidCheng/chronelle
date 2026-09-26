@@ -561,6 +561,11 @@ describe("LivTalesApiClient", () => {
       )
       .mockResolvedValueOnce(Response.json(receipt))
       .mockResolvedValueOnce(Response.json({ ...receipt, direction: "undo" }))
+      .mockResolvedValueOnce(Response.json({ ...receipt, direction: "redo" }))
+      .mockResolvedValueOnce(
+        Response.json({ version: 0, undo: null, redo: null }),
+      )
+      .mockResolvedValueOnce(Response.json({ ...receipt, direction: "undo" }))
       .mockResolvedValueOnce(Response.json({ ...receipt, direction: "redo" }));
     const client = new LivTalesApiClient({
       fetch,
@@ -598,11 +603,18 @@ describe("LivTalesApiClient", () => {
     };
     await client.undoCommand(undo);
     await client.redoCommand(redo);
+    // A stack in another workspace is named by an object that lives there.
+    await client.getCommandState(event.id);
+    await client.undoCommand(undo, event.id);
+    await client.redoCommand(redo, event.id);
     expect(fetch.mock.calls.map(([url]) => url)).toEqual([
       "/api/commands",
       "/api/commands",
       "/api/commands/undo",
       "/api/commands/redo",
+      `/api/commands?objectId=${event.id}`,
+      `/api/commands/undo?objectId=${event.id}`,
+      `/api/commands/redo?objectId=${event.id}`,
     ]);
     for (const [index, input] of [
       [1, command],

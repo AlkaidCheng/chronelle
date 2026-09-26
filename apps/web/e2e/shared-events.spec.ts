@@ -190,3 +190,78 @@ test("shows the events shared with an account beside its own, opens one in place
   });
   expect(gone.status()).toBe(404);
 });
+
+test("saves an edit of a task in an event shared for editing, where the task lives, and Undo edit takes it back", async ({
+  page,
+  request,
+}) => {
+  const anaEmail = `ana-${randomUUID()}@example.test`;
+  const benEmail = `ben-${randomUUID()}@example.test`;
+  const ana = await (
+    await request.post("/api/auth/development/sign-in", {
+      data: { email: anaEmail, displayName: "Ana" },
+    })
+  ).json();
+  const ben = await (
+    await request.post("/api/auth/development/sign-in", {
+      data: { email: benEmail, displayName: "Ben" },
+    })
+  ).json();
+  const anaHeaders = { authorization: `Bearer ${ana.accessToken}` };
+  const benHeaders = { authorization: `Bearer ${ben.accessToken}` };
+  const created = await request.post("/api/events", {
+    headers: anaHeaders,
+    data: { displayName: "Garden wedding", startsOn: "2030-10-11" },
+  });
+  expect(created.status()).toBe(201);
+  const wedding = await created.json();
+  const added = await request.post(`/api/events/${wedding.id}/resources`, {
+    headers: anaHeaders,
+    data: {
+      commandId: randomUUID(),
+      resource: { objectType: "task", displayName: "Call the florist" },
+    },
+  });
+  expect(added.status()).toBe(201);
+  const task = (await added.json()).resource;
+  const shared = await request.post("/api/shares", {
+    headers: anaHeaders,
+    data: { resourceId: wedding.id, principalEmail: benEmail, role: "editor" },
+  });
+  expect(shared.status()).toBe(201);
+  const description = async () =>
+    (
+      await (
+        await request.get(`/api/tasks/${task.id}`, { headers: benHeaders })
+      ).json()
+    ).description;
+
+  // Ben edits the task from his own session; the save lands in Ana's
+  // workspace, where the task lives.
+  await signIn(page, "Ben", benEmail);
+  await page.goto(`/events/${wedding.id}?view=todos`);
+  await page
+    .getByRole("button", { name: "Edit Call the florist", exact: true })
+    .click();
+  await page
+    .getByRole("textbox", { name: "Description", exact: true })
+    .fill("Peonies, not roses");
+  const saved = page.waitForResponse(
+    (response) =>
+      response.url().endsWith("/api/commands") &&
+      response.request().method() === "POST",
+  );
+  await page.getByRole("button", { name: "Save", exact: true }).click();
+  expect((await saved).status()).toBe(200);
+  await expect.poll(description).toBe("Peonies, not roses");
+
+  // The page's Undo edit acts on Ben's stack in Ana's workspace.
+  await page
+    .getByRole("button", { name: "Actions for Garden wedding", exact: true })
+    .click();
+  await page
+    .getByRole("menu", { name: "Actions for Garden wedding" })
+    .getByRole("menuitem", { name: /^Undo edit/ })
+    .click();
+  await expect.poll(description).toBeNull();
+});

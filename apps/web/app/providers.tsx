@@ -7,6 +7,7 @@ import { HistoryProvider } from "../features/history/history-provider";
 import { LifecycleProvider } from "../features/recovery/lifecycle-provider";
 import { ApiClientProvider } from "../lib/api-context";
 import { AuthSessionProvider, useAuthSession } from "../lib/auth-session";
+import { CommandHistoryProvider } from "../lib/command-history";
 import { EditorDraftProvider } from "../lib/editor-draft-context";
 import { EventCollectionProvider } from "../lib/event-collection-state";
 import { watchTips } from "../lib/tooltips";
@@ -48,7 +49,9 @@ function SessionProviders({ children }: { readonly children: ReactNode }) {
           <NoticesProvider>
             <LifecycleProvider>
               <EditorDraftProvider>
-                <EventCollectionProvider>{children}</EventCollectionProvider>
+                <CommandHistoryProvider>
+                  <EventCollectionProvider>{children}</EventCollectionProvider>
+                </CommandHistoryProvider>
               </EditorDraftProvider>
             </LifecycleProvider>
           </NoticesProvider>
