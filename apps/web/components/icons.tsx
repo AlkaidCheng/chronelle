@@ -43,6 +43,22 @@ export function SwitchIcon({ className }: IconProps) {
   );
 }
 
+export function SlidersIcon({ className }: IconProps) {
+  return (
+    <svg
+      aria-hidden="true"
+      className={className}
+      fill="none"
+      viewBox="0 0 24 24"
+    >
+      <path d="M4 7h9M17 7h3M4 12h3M11 12h9M4 17h11M19 17h1" />
+      <circle cx="15" cy="7" r="2" />
+      <circle cx="9" cy="12" r="2" />
+      <circle cx="17" cy="17" r="2" />
+    </svg>
+  );
+}
+
 export function ListIcon() {
   return (
     <svg aria-hidden="true" fill="none" viewBox="0 0 24 24">

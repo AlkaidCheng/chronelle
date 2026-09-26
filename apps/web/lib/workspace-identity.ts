@@ -4,9 +4,8 @@ import { personInitials } from "./person-collection";
 
 /**
  * A workspace's mark: the home symbol for the account's own workspace,
- * the owner's initials for one shared with it. The account's own initials
- * belong to its avatar alone, so no two marks on a screen mean different
- * things.
+ * the initials of a named space, and the owner's initials for one still
+ * called by its owner's name.
  */
 export type WorkspaceMark =
   | { readonly kind: "home" }
@@ -40,9 +39,9 @@ export function isDefaultWorkspaceName(
 
 /**
  * The account's own workspace reads "Personal" with the account's name
- * under it; one shared with the account reads its owner's name with the
- * account's role under it; one its owner renamed reads that name with the
- * owner under it.
+ * under it; a named space reads its name with its owner under it; one
+ * still called by its owner's name reads that name with the account's role
+ * under it.
  */
 export function workspaceIdentity(
   workspace: AccessibleWorkspace,
@@ -56,12 +55,16 @@ export function workspaceIdentity(
       mark: { kind: "home" },
     };
   const owner = workspace.ownerDisplayName ?? workspace.displayName;
-  const mark: WorkspaceMark = { kind: "initials", text: personInitials(owner) };
   if (
     workspace.ownerDisplayName !== null &&
     !isDefaultWorkspaceName(workspace.displayName, workspace.ownerDisplayName)
   )
-    return { title: workspace.displayName, detail: owner, mark };
+    return {
+      title: workspace.displayName,
+      detail: owner,
+      mark: { kind: "initials", text: personInitials(workspace.displayName) },
+    };
+  const mark: WorkspaceMark = { kind: "initials", text: personInitials(owner) };
   return {
     title: owner,
     detail: workspace.role === null ? null : labels.role(workspace.role),

@@ -139,7 +139,7 @@ describe("workspaceIdentity", () => {
     });
   });
 
-  it("keeps a name the owner chose, with the owner under it", () => {
+  it("names a space by its own name and initials, with the owner under it", () => {
     expect(
       workspaceIdentity(
         { ...ana, displayName: "Autumn trip" },
@@ -149,7 +149,7 @@ describe("workspaceIdentity", () => {
     ).toEqual({
       title: "Autumn trip",
       detail: "Ana Souza",
-      mark: { kind: "initials", text: "AS" },
+      mark: { kind: "initials", text: "AT" },
     });
   });
 });
@@ -181,26 +181,27 @@ describe("groupWorkspaces", () => {
   });
 });
 
-it("opens the switcher with Yours first, then Shared with you by recency, the current one ticked and focused", async () => {
+it("opens the switcher on its search, the account's own space first and the others by recency, with each role", async () => {
   const { trigger, user } = renderSwitcher();
-  const menu = await openList(user, trigger);
+  await openList(user, trigger);
   const items = screen.getAllByRole("menuitemradio");
   // Memberships alone: a workspace reached through shares (no role) is
   // absent, its events showing in the account's own Events list.
   expect(items.map((item) => item.textContent)).toEqual([
-    "PersonalPlanner",
-    "KTKai TanakaEditor · Opened yesterday",
-    "ASAna SouzaViewer · Opened last week",
+    "Personal",
+    "KTKai TanakaOpened yesterdayEditor",
+    "ASAna SouzaOpened last weekViewer",
   ]);
   expect(items[0]).toHaveAttribute("aria-checked", "true");
-  expect(items[0]).toHaveFocus();
-  expect(menu).toHaveTextContent("Yours");
-  expect(menu).toHaveTextContent("Shared with you");
-  expect(screen.queryByRole("searchbox")).not.toBeInTheDocument();
-  expect(screen.getByRole("menuitem", { name: "Members" })).toHaveAttribute(
-    "href",
-    "/settings/members",
+  expect(items[0]).toHaveClass("is-current");
+  expect(screen.getByRole("searchbox", { name: "Find a space" })).toHaveFocus();
+  expect(screen.getByRole("menuitem", { name: "New space" })).toHaveAttribute(
+    "title",
+    "New space",
   );
+  expect(
+    screen.getByRole("menuitem", { name: "Manage space" }),
+  ).toHaveAttribute("title", "Manage space");
 });
 
 it("switches only to another workspace and closes", async () => {
@@ -215,7 +216,7 @@ it("switches only to another workspace and closes", async () => {
   expect(screen.queryByRole("menu")).not.toBeInTheDocument();
 });
 
-it("offers a search past six workspaces that narrows the list by name or owner", async () => {
+it("narrows the list by name or owner as the search is typed", async () => {
   const many = [
     ...workspaces,
     ...Array.from({ length: 4 }, (_, index) => ({
@@ -234,7 +235,7 @@ it("offers a search past six workspaces that narrows the list by name or owner",
   await user.type(search, "guide 2");
   expect(
     screen.getAllByRole("menuitemradio").map((item) => item.textContent),
-  ).toEqual(["G2Trip 2Guide 2"]);
+  ).toEqual(["T2Trip 2Viewer"]);
   await user.clear(search);
   await user.type(search, "nobody");
   expect(screen.queryByRole("menuitemradio")).not.toBeInTheDocument();

@@ -25,6 +25,7 @@ import { MoreMenuItems } from "./more-menu";
 import { moveMenuFocus } from "./quiet-menu";
 import { RailCollections } from "./rail-collections";
 import { SearchEntry } from "./search-entry";
+import { useSpaceDialogs } from "./space-dialogs";
 import { ThemeControls } from "./theme-controls";
 import { WorkspaceMark } from "./workspace-mark";
 import {
@@ -77,6 +78,7 @@ export function PhoneChrome({
   const theme = useTranslations("theme");
   const install = useInstallControl();
   const identity = useCurrentWorkspaceIdentity(session);
+  const spaceDialogs = useSpaceDialogs();
   const workspaceMenu = useRef<HTMLDivElement>(null);
   const accountMenu = useRef<HTMLDivElement>(null);
   const themeSheet = useRef<HTMLDivElement>(null);
@@ -249,6 +251,8 @@ export function PhoneChrome({
           <WorkspaceSwitcherList
             session={session}
             onChoose={choose}
+            onNewSpace={() => closeThen(spaceDialogs.openNewSpace)}
+            onManageSpace={() => closeThen(spaceDialogs.openManageSpace)}
             onClose={close}
           />
         </div>

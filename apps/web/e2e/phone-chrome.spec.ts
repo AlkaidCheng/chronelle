@@ -206,9 +206,9 @@ test("gives the phone an app bar whose menu opens the sidebar as a drawer, with 
   await expect(searchPalette(page)).toHaveCount(0);
   await expect(menuControl(page)).toBeFocused();
 
-  // The workspace control opens the switcher as a sheet within the
-  // viewport: the account's own first and ticked, then Ana's by her name
-  // and Ben's role. Choosing hers switches; the control reads her name
+  // The space control opens the switcher as a sheet within the viewport:
+  // the account's own first and current, then Ana's by her name and Ben's
+  // role, with Manage space beside the search field. Choosing hers switches; the control reads her name
   // with her initials as its mark, and her event is on the list.
   await workspaceControl(page).click();
   const switcher = workspaceSwitcher(page);
@@ -220,7 +220,7 @@ test("gives the phone an app bar whose menu opens the sidebar as a drawer, with 
   );
   await expect(workspaceEntry(page, "Ana Souza")).toContainText("Viewer");
   await expect(
-    switcher.getByRole("menuitem", { name: "Members", exact: true }),
+    switcher.getByRole("menuitem", { name: "Manage space", exact: true }),
   ).toBeInViewport();
   await page.screenshot({ path: testInfo.outputPath("workspace-sheet.png") });
   await workspaceEntry(page, "Ana Souza").click();

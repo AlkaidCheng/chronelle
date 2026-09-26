@@ -8485,9 +8485,12 @@ html:has(.event-create-dialog[open]) {
   width: min(236px, calc(100vw - 32px));
 }
 
-/* The switcher's list takes the menu's place, wider for the owners' names and the search. */
+/* The switcher's list takes the menu's place, as wide as its names need,
+   up to 380 pixels. */
 .account-menu-list.is-workspace {
-  width: min(300px, calc(100vw - 32px));
+  max-width: min(380px, calc(100vw - 32px));
+  min-width: 100%;
+  width: max-content;
 }
 
 .more-menu-list {
@@ -8689,16 +8692,49 @@ html:has(.event-create-dialog[open]) {
   gap: 1px;
 }
 
-/* The list's first row leads back to the menu it opened from. */
-.workspace-back {
-  color: var(--muted);
-  font-size: 0.8rem;
-  min-height: 32px;
-}
-
 .quiet-menu-more {
   color: var(--faint);
   margin-left: auto;
+}
+
+/* The switcher's top row: the search field, then New space and Manage
+   space as icons. */
+.workspace-switcher-head {
+  align-items: center;
+  display: flex;
+  gap: 2px;
+  margin: 2px 2px 4px;
+}
+
+.workspace-switcher-action {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  border-radius: 8px;
+  color: var(--muted);
+  cursor: pointer;
+  display: inline-flex;
+  flex: none;
+  height: 32px;
+  justify-content: center;
+  padding: 0;
+  width: 32px;
+}
+
+.workspace-switcher-action:hover,
+.workspace-switcher-action:focus-visible {
+  background: var(--surface-subtle);
+  color: var(--ink);
+}
+
+.workspace-switcher-icon {
+  fill: none;
+  height: 17px;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.7;
+  width: 17px;
 }
 
 .workspace-search {
@@ -8708,8 +8744,10 @@ html:has(.event-create-dialog[open]) {
   border-radius: 8px;
   color: var(--faint);
   display: flex;
+  flex: 1;
   gap: 6px;
-  margin: 2px 2px 4px;
+  margin-right: 4px;
+  min-width: 0;
   padding: 5px 8px;
 }
 
@@ -8735,13 +8773,14 @@ html:has(.event-create-dialog[open]) {
   padding: 0;
 }
 
-/* The shared workspaces scroll inside the list, so twenty or two hundred
-   take the same room. */
+/* The spaces scroll under the pinned search field, about seven rows at a
+   time, so twenty or two hundred take the same room. */
 .workspace-switcher-scroll {
   display: grid;
-  gap: 1px;
-  max-height: 230px;
+  gap: 2px;
+  max-height: min(308px, calc(100dvh - 260px));
   overflow-y: auto;
+  overscroll-behavior: contain;
 }
 
 .workspace-item {
@@ -8780,31 +8819,47 @@ html:has(.event-create-dialog[open]) {
   white-space: nowrap;
 }
 
+/* Every row has the same columns: the mark, the name over when it was last
+   opened, and the account's role. */
+.workspace-switcher-list .workspace-item {
+  column-gap: 10px;
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr) 64px;
+  padding: 7px 10px 7px 8px;
+}
+
+.workspace-item-role {
+  color: var(--faint);
+  font-size: 0.72rem;
+  text-align: right;
+}
+
+/* The current space takes the rail's active treatment. */
+.workspace-item.is-current,
+.workspace-item.is-current:hover {
+  background: var(--accent-soft);
+}
+
+.workspace-item.is-current .workspace-item-name {
+  color: var(--accent);
+  font-weight: 650;
+}
+
+.workspace-item.is-current > span.workspace-mark {
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+.workspace-item.is-current small,
+.workspace-item.is-current .workspace-item-role {
+  color: var(--muted);
+}
+
 .workspace-empty {
   color: var(--muted);
   font-size: 0.8rem;
   margin: 0;
   padding: 8px 10px;
-}
-
-.workspace-switcher-foot {
-  align-items: center;
-  display: flex;
-  justify-content: space-between;
-}
-
-.workspace-switcher-foot .quiet-menu-item {
-  color: var(--muted);
-  font-size: 0.8rem;
-  min-height: 32px;
-  width: auto;
-}
-
-.workspace-shortcut {
-  color: var(--faint);
-  font: inherit;
-  font-size: 0.72rem;
-  padding-right: 8px;
 }
 
 .theme-group {

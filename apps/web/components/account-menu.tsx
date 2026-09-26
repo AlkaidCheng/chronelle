@@ -14,15 +14,15 @@ import {
 import { canSwitchWorkspace, isSwitchWorkspaceKeys } from "../lib/keyboard";
 import { personInitials } from "../lib/person-collection";
 import { useCurrentWorkspaceIdentity } from "../lib/use-workspace-identity";
+import { currentWorkspace } from "../lib/workspace-identity";
 import {
-  CheckIcon,
   ChevronRightIcon,
   PeopleIcon,
   SettingsIcon,
   SignOutIcon,
-  SwitchIcon,
 } from "./icons";
 import { moveMenuFocus, useMenuDismissal } from "./quiet-menu";
+import { useSpaceDialogs } from "./space-dialogs";
 import { WorkspaceMark } from "./workspace-mark";
 import {
   WorkspaceSwitcherList,
@@ -100,14 +100,13 @@ export function AccountMenuItems({
 
 /**
  * The rail's foot as one block: the avatar, the account's name, and the
- * current workspace under it, opening a menu above it. The menu starts
- * with the account (its name and email), then the Workspace section (the
- * current one, ticked, and Switch workspace..., which replaces the menu
- * with the switcher's list until Escape or its first row leads back),
- * then Friends (with the requests waiting), Settings, and Sign out.
- * Cmd/Ctrl+Shift+K opens the switcher's level from anywhere in the
- * workspace. Escape or a press outside closes the menu and returns focus
- * to the block.
+ * current space under it, opening a menu above it.
+ * The menu's first row is the current space (its mark, name, and role),
+ * which replaces the menu with the switcher's list until Escape leads
+ * back; then Friends (with the requests waiting), Settings, and Sign out.
+ * Cmd/Ctrl+Shift+K opens the switcher's level from anywhere in the app.
+ * Escape or a press outside closes the menu and returns focus to the
+ * block.
  */
 export function AccountMenu({
   session,
@@ -119,7 +118,10 @@ export function AccountMenu({
   const id = useId();
   const t = useTranslations("account");
   const workspaceText = useTranslations("workspace");
+  const roles = useTranslations("members.roles");
+  const spaceDialogs = useSpaceDialogs();
   const identity = useCurrentWorkspaceIdentity(session);
+  const role = currentWorkspace(session).role;
   const root = useRef<HTMLDivElement>(null);
   const trigger = useRef<HTMLButtonElement>(null);
   const menu = useRef<HTMLDivElement>(null);
@@ -244,45 +246,28 @@ export function AccountMenu({
             <WorkspaceSwitcherList
               session={session}
               onChoose={choose}
-              onBack={back}
+              onNewSpace={spaceDialogs.openNewSpace}
+              onManageSpace={spaceDialogs.openManageSpace}
               onClose={() => close(false)}
             />
           ) : (
             <>
-              <p className="quiet-menu-heading account-identity">
-                <strong>{session.user.displayName}</strong>
-                <span>{session.user.email}</span>
-              </p>
-              <hr className="quiet-menu-separator" />
-              <p className="quiet-menu-heading">{workspaceText("section")}</p>
-              <button
-                type="button"
-                role="menuitemradio"
-                aria-checked="true"
-                tabIndex={-1}
-                className="quiet-menu-item workspace-item"
-                onClick={() => close(false)}
-              >
-                <WorkspaceMark mark={identity.mark} />
-                <span className="workspace-item-copy">
-                  <span className="workspace-item-name">{identity.title}</span>
-                  {identity.detail === null ? null : (
-                    <small>{identity.detail}</small>
-                  )}
-                </span>
-                <CheckIcon className="quiet-menu-check" />
-              </button>
               <button
                 ref={switchItem}
                 type="button"
                 role="menuitem"
                 aria-haspopup="menu"
+                aria-label={workspaceText("switchDots")}
+                title={workspaceText("switchDots")}
                 tabIndex={-1}
-                className="quiet-menu-item"
+                className="quiet-menu-item workspace-item space-row"
                 onClick={() => setLevel("workspace")}
               >
-                <SwitchIcon />
-                <span>{workspaceText("switchDots")}</span>
+                <WorkspaceMark mark={identity.mark} />
+                <span className="workspace-item-copy">
+                  <span className="workspace-item-name">{identity.title}</span>
+                  {role === null ? null : <small>{roles(role)}</small>}
+                </span>
                 <ChevronRightIcon className="quiet-menu-more" />
               </button>
               <hr className="quiet-menu-separator" />

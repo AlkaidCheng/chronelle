@@ -46,9 +46,8 @@ export async function exerciseWorkspaceUtilities(
     }),
   ).toBeVisible();
   // The rail's foot is one block: the account's name with the current
-  // workspace under it. Its menu starts with the account, then the
-  // Space section (the current one ticked, Switch space...),
-  // then Friends, Settings, Sign out.
+  // space and role under it. Its menu starts with the current space as one
+  // row that opens the switcher, then Friends, Settings, Sign out.
   const account = accountBlock(page);
   await expect(account).toHaveCount(1);
   await expect(account).toContainText("Personal");
@@ -59,15 +58,12 @@ export async function exerciseWorkspaceUtilities(
   await page.screenshot({
     path: testInfo.outputPath("account-menu.png"),
   });
-  const current = menu.getByRole("menuitemradio", { checked: true });
-  await expect(current).toHaveCount(1);
-  await expect(current).toContainText("Personal");
-  await expect(current).toBeFocused();
   const switchItem = menu.getByRole("menuitem", {
     name: "Switch space...",
     exact: true,
   });
-  await expect(switchItem).toBeVisible();
+  await expect(switchItem).toContainText("Personal");
+  await expect(switchItem).toBeFocused();
   await expect(menu.getByRole("menuitem", { name: /^Friends/ })).toBeVisible();
   await expect(
     menu.getByRole("menuitem", { name: "Settings", exact: true }),
@@ -83,18 +79,21 @@ export async function exerciseWorkspaceUtilities(
   await expect(menu).toHaveCount(0);
   await expect(account).toBeFocused();
 
-  // Switch space... replaces the menu with the switcher's list; Escape
-  // leads back to the menu at that entry, and again to the block.
+  // The current space's row replaces the menu with the switcher's list,
+  // which opens on its search field; Escape leads back to the menu at that
+  // row, and again to the block.
   await page.keyboard.press("Enter");
   await switchItem.click();
   const switcher = workspaceSwitcher(page);
   await expect(switcher).toBeVisible();
   const listed = switcher.getByRole("menuitemradio", { checked: true });
   await expect(listed).toHaveCount(1);
-  await expect(listed).toBeFocused();
   await expect(
-    switcher.getByRole("menuitem", { name: "Members", exact: true }),
-  ).toHaveAttribute("href", /\/settings\/members$/u);
+    switcher.getByRole("searchbox", { name: "Find a space" }),
+  ).toBeFocused();
+  await expect(
+    switcher.getByRole("menuitem", { name: "Manage space", exact: true }),
+  ).toBeVisible();
   await page.screenshot({
     path: testInfo.outputPath("workspace-switcher.png"),
   });
@@ -191,8 +190,8 @@ async function exercisePhoneUtilities(page: Page, testInfo: TestInfo) {
   await expect(menu).toHaveCount(0);
   await expect(account).toBeFocused();
 
-  // The space control opens the switcher as its own sheet: the
-  // current space ticked and focused, Members at its foot.
+  // The space control opens the switcher as its own sheet, on its search
+  // field, the current space first, Manage space beside the field.
   const control = page.getByRole("button", { name: /^Space: / });
   await expect(control).toContainText("Personal");
   await control.click();
@@ -201,10 +200,12 @@ async function exercisePhoneUtilities(page: Page, testInfo: TestInfo) {
   const listed = switcher.getByRole("menuitemradio", { checked: true });
   await expect(listed).toHaveCount(1);
   await expect(listed).toContainText("Personal");
-  await expect(listed).toBeFocused();
   await expect(
-    switcher.getByRole("menuitem", { name: "Members", exact: true }),
-  ).toHaveAttribute("href", /\/settings\/members$/u);
+    switcher.getByRole("searchbox", { name: "Find a space" }),
+  ).toBeFocused();
+  await expect(
+    switcher.getByRole("menuitem", { name: "Manage space", exact: true }),
+  ).toBeVisible();
   await page.screenshot({
     path: testInfo.outputPath("workspace-switcher.png"),
   });
@@ -264,7 +265,7 @@ async function exerciseNarrowChrome(page: Page, testInfo: TestInfo) {
   await expect(switcher).toBeVisible();
   await expectHorizontalReflow(page);
   await expect(
-    switcher.getByRole("menuitem", { name: "Members", exact: true }),
+    switcher.getByRole("menuitem", { name: "Manage space", exact: true }),
   ).toBeInViewport();
   await page.keyboard.press("Escape");
   await expect(switcher).toHaveCount(0);
