@@ -9814,6 +9814,7 @@ html:has(.event-create-dialog[open]) {
     .theme-group > span,
     .theme-group legend,
     .settings-nav-group > span,
+    .section-dialog-group > span,
     .rail-heading,
     .event-date-mark span,
     .date-tile span

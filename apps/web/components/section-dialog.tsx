@@ -1,6 +1,6 @@
 "use client";
 
-import { type ReactNode, useId } from "react";
+import { type ReactNode, useEffect, useId } from "react";
 import { useSessionDialog } from "../lib/use-session-dialog";
 
 /** One section of a section dialog, as its list shows it. */
@@ -64,6 +64,13 @@ export function SectionDialog({
   const dialog = useSessionDialog(onClose);
   const id = useId();
   const active = sections.find((section) => section.id === current);
+  // Focus starts on the current section's entry once the dialog is modal,
+  // so a dialog opened at a later section starts there.
+  useEffect(() => {
+    dialog.current
+      ?.querySelector<HTMLElement>('[aria-current="page"]')
+      ?.focus();
+  }, [dialog]);
   const item = (section: DialogSection) => (
     <li key={section.id}>
       <button
@@ -96,7 +103,7 @@ export function SectionDialog({
             ) : (
               <li
                 className="section-dialog-group"
-                key={`${run.group}-${index}`}
+                key={run.sections[0]?.id ?? run.group}
               >
                 <span id={`${id}-group-${index}`}>{run.group}</span>
                 <ul aria-labelledby={`${id}-group-${index}`}>
@@ -119,7 +126,10 @@ export function SectionDialog({
             &#215;
           </button>
         </header>
-        <div className="section-dialog-content">{children}</div>
+        {/* Keyed by section, so each one opens scrolled to its top. */}
+        <div key={current} className="section-dialog-content">
+          {children}
+        </div>
       </section>
     </dialog>
   );
