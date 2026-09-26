@@ -60,6 +60,35 @@ export const workspaceUpdateRequestSchema = z.object({
   displayName: workspaceNameSchema,
 });
 
+/**
+ * Why the current space cannot be deleted, in the order it is decided: a
+ * Personal space is never deleted, only an Owner deletes a space, and only
+ * while it holds no live record.
+ */
+export const workspaceDeletionRefusalSchema = z.enum([
+  "personal",
+  "not_owner",
+  "holds_records",
+]);
+
+/**
+ * Whether the caller may delete the current space, and what it holds: its
+ * live records, the records in its Trash (which go with it), and its
+ * members. A record is live when neither it nor its permission scope is in
+ * Trash.
+ */
+export const workspaceDeletionResponseSchema = z
+  .object({
+    deletable: z.boolean(),
+    reason: workspaceDeletionRefusalSchema.nullable(),
+    liveRecords: z.number().int().nonnegative(),
+    trashRecords: z.number().int().nonnegative(),
+    memberCount: z.number().int().nonnegative(),
+  })
+  .refine((deletion) => deletion.deletable === (deletion.reason === null), {
+    message: "A space is deletable exactly when nothing refuses it.",
+  });
+
 export type WorkspaceMember = z.infer<typeof workspaceMemberSchema>;
 export type WorkspaceMemberListResponse = z.infer<
   typeof workspaceMemberListResponseSchema
@@ -81,4 +110,10 @@ export type WorkspaceCreateRequest = z.infer<
 >;
 export type WorkspaceUpdateRequest = z.infer<
   typeof workspaceUpdateRequestSchema
+>;
+export type WorkspaceDeletionRefusal = z.infer<
+  typeof workspaceDeletionRefusalSchema
+>;
+export type WorkspaceDeletionResponse = z.infer<
+  typeof workspaceDeletionResponseSchema
 >;
