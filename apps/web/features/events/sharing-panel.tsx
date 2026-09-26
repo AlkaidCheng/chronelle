@@ -191,7 +191,6 @@ export function SharingPanel({
               >
                 <option value="viewer">{tp("roles.viewer")}</option>
                 <option value="editor">{tp("roles.editor")}</option>
-                <option value="owner">{tp("roles.owner")}</option>
               </select>
             </label>
             <button

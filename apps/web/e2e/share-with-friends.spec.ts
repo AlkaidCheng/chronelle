@@ -79,12 +79,13 @@ test("shares an event with a friend and queues one for a person without an accou
     others.getByText(new RegExp(`${priyaEmail}; an invitation goes out`)),
   ).toBeVisible();
   await friends.getByRole("checkbox", { name: /Ben/ }).check();
-  await page
-    .getByRole("combobox", { name: "Access for Ben" })
-    .selectOption("owner");
+  // A single record is shared for viewing or editing; owning is a space's.
+  const bensAccess = page.getByRole("combobox", { name: "Access for Ben" });
+  await expect(bensAccess.locator("option")).toHaveText(["Viewer", "Editor"]);
+  await bensAccess.selectOption("editor");
   await others.getByRole("checkbox", { name: /Priya Raman/ }).check();
   await page.getByRole("button", { name: "Share with 2 people" }).click();
-  await expect(friends.getByText("Shared as Owner")).toBeVisible();
+  await expect(friends.getByText("Shared as Editor")).toBeVisible();
   await expect(
     others.getByText("Invitation sent; access follows when they join"),
   ).toBeVisible();
@@ -101,7 +102,7 @@ test("shares an event with a friend and queues one for a person without an accou
     })
   ).json();
   expect(shares.items).toMatchObject([
-    { principal: { id: ben.user.id }, role: "owner" },
+    { principal: { id: ben.user.id }, role: "editor" },
   ]);
   expect(shares.pending).toMatchObject([
     {

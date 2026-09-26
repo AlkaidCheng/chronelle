@@ -290,7 +290,9 @@ export function ShareWithPeople({
                 >
                   <option value="viewer">{t("roles.viewer")}</option>
                   <option value="editor">{t("roles.editor")}</option>
-                  <option value="owner">{t("roles.owner")}</option>
+                  {roleOf(row) === "owner" ? (
+                    <option value="owner">{t("roles.owner")}</option>
+                  ) : null}
                 </select>
                 {outcome === undefined ? null : (
                   <span

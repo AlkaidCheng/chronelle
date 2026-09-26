@@ -356,8 +356,9 @@ no account, whose row says an invitation goes out, or one with no email,
 whose row says "No email; you send them the link" (a row that waits on an
 invitation is dimmed until ticked); By email is one row: the
 address, a role, and Add, which grants at once. Tick any number, choose
-Viewer, Editor, or Owner beside each (an editor can change the event but
-not delete or share it), and Share with N people applies every row in turn;
+Viewer or Editor beside each (an editor can change the event but
+not delete or share it; owning belongs to the space the event lives in, and a
+share made as Owner before keeps its role and reads Owner), and Share with N people applies every row in turn;
 Copy link beside it copies the event's address. A friend or
 an account is granted at once ("Shared as Viewer"), a person with an email
 contact is invited at the first one and the share waits ("Invitation sent;

@@ -153,14 +153,14 @@ describe("People component", () => {
     }
     await user.selectOptions(
       screen.getByRole("combobox", { name: "Access for Mei Lin" }),
-      "owner",
+      "editor",
     );
     await user.click(
       screen.getByRole("button", { name: "Share with 2 people" }),
     );
     // Mei holds the grant at once; Sam's share waits on the invitation the
     // tick sent to his email.
-    expect(await friends.findByText("Shared as Owner")).toBeVisible();
+    expect(await friends.findByText("Shared as Editor")).toBeVisible();
     expect(
       await others.findByText("Invitation sent; access follows when they join"),
     ).toBeVisible();
@@ -168,7 +168,7 @@ describe("People component", () => {
     expect(shares.items).toMatchObject([
       {
         principal: { id: "00000000-0000-4000-8000-000000000003" },
-        role: "owner",
+        role: "editor",
       },
     ]);
     expect(shares.pending).toMatchObject([
