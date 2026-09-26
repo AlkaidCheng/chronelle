@@ -74,30 +74,3 @@ export function useInstallControl(): {
     steps: stepsOpen ? <InstallSteps onClose={closeSteps} /> : null,
   };
 }
-
-/** The Settings row: the control where the browser allows it, a note otherwise. */
-export function InstallAppRow() {
-  const t = useTranslations("install");
-  const { mode, activate, steps } = useInstallControl();
-  return (
-    <>
-      <div className="settings-row">
-        <div>
-          <h3>{t("title")}</h3>
-          <p>{mode === "none" ? t("browserMenu") : t("note")}</p>
-        </div>
-        {mode === "none" ? null : (
-          <button
-            type="button"
-            className="button button-secondary"
-            aria-haspopup={mode === "ios" ? "dialog" : undefined}
-            onClick={activate}
-          >
-            {t("title")}
-          </button>
-        )}
-      </div>
-      {steps}
-    </>
-  );
-}

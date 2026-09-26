@@ -15,7 +15,7 @@ const hans = {
   language: "\u7b80\u4f53\u4e2d\u6587",
   settings: "\u8bbe\u7f6e",
   languageTime: "\u8bed\u8a00\u4e0e\u65f6\u95f4",
-  group: "\u8bed\u8a00",
+  languageMenu: "\u8bed\u8a00",
   navigation: "\u7a7a\u95f4\u5bfc\u822a",
   people: "\u4f19\u4f34",
   trash: "\u56de\u6536\u7ad9",
@@ -61,7 +61,7 @@ const hant = {
   language: "\u7e41\u9ad4\u4e2d\u6587",
   settings: "\u8a2d\u5b9a",
   languageTime: "\u8a9e\u8a00\u8207\u6642\u9593",
-  group: "\u8a9e\u8a00",
+  languageMenu: "\u8a9e\u8a00",
   system: "\u8ddf\u96a8\u7cfb\u7d71",
   events: "\u6d3b\u52d5",
   views: "\u6d3b\u52d5\u6aa2\u8996",
@@ -70,14 +70,14 @@ const hant = {
 
 /**
  * Opens Settings from the profile menu over the page, its Language & time
- * section, and checks a radio of the Language group, all by their names in
- * the current language. The page changes language in place under the open
+ * section, and chooses a language from the Language menu, all by their
+ * names in the current language. The page changes language in place under the open
  * dialog; the caller closes it or moves on to wherever the journey
  * continues.
  */
 async function chooseLanguage(
   page: Page,
-  names: { settings: string; languageTime: string; group: string },
+  names: { settings: string; languageTime: string; languageMenu: string },
   language: string,
 ) {
   await page.getByRole("button", { name: /^Event planner/ }).click();
@@ -99,16 +99,15 @@ async function chooseLanguage(
       response.ok(),
   );
   await page
-    .getByRole("group", { name: names.group, exact: true })
-    .getByRole("radio", { name: language, exact: true })
-    .check();
+    .getByRole("combobox", { name: names.languageMenu, exact: true })
+    .selectOption({ label: language });
   await kept;
 }
 
 const english = {
   settings: "Settings",
   languageTime: "Language & time",
-  group: "Language",
+  languageMenu: "Language",
 };
 
 test("switches the workspace to Simplified and Traditional Chinese and back @webkit-desktop @webkit-mobile", async ({
@@ -337,7 +336,9 @@ test("renders the first paint in the browser's language and keeps a chosen one @
     // A chosen language wins over the browser's on the next request too;
     // outside a session the chip at the bottom opens the choice as a menu.
     await page
-      .getByRole("button", { name: new RegExp(`^${hant.group}\uff1a`, "u") })
+      .getByRole("button", {
+        name: new RegExp(`^${hant.languageMenu}\uff1a`, "u"),
+      })
       .click();
     await page
       .getByRole("menuitemradio", { name: "English", exact: true })

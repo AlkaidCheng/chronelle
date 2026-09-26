@@ -148,7 +148,7 @@ export function WelcomePage() {
           </select>
         </label>
         <div className="account-row">
-          <TimeZoneField compact onChange={setTimeZone} value={timeZone} />
+          <TimeZoneField onChange={setTimeZone} value={timeZone} />
           <label className="field">
             <span>{t("welcome.clock")}</span>
             <select

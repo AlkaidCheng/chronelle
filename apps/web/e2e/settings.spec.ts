@@ -58,13 +58,11 @@ function shown(
   );
 }
 
-/** Chooses a radio whose checked state the page derives from its own state. */
-async function choose(page: Page, group: string, name: string) {
-  const radio = page
-    .getByRole("group", { name: group, exact: true })
-    .getByRole("radio", { name, exact: true });
-  await radio.click();
-  await expect(radio).toBeChecked();
+/** Chooses an option from a Settings row's menu, which then shows it. */
+async function choose(page: Page, menu: string, option: string) {
+  const select = page.getByRole("combobox", { name: menu, exact: true });
+  await select.selectOption({ label: option });
+  await expect(select.locator("option:checked")).toHaveText(option);
 }
 
 test("keeps the language, clock, zone, and week on the account and applies them everywhere @webkit-desktop", async ({
@@ -122,17 +120,19 @@ test("keeps the language, clock, zone, and week on the account and applies them 
     .getByRole("button", { name: "Language & time", exact: true })
     .click();
   await expect(page).toHaveURL(/\/tasks\?settings=language$/u);
-  const language = page.getByRole("group", { name: "Language", exact: true });
-  await language.getByRole("radio", { name: hans.simplified }).check();
+  const language = page.getByRole("combobox", {
+    name: "Language",
+    exact: true,
+  });
+  await language.selectOption({ label: hans.simplified });
   await expect(page.locator("html")).toHaveAttribute("lang", "zh-Hans");
   await expect(
     page.getByRole("dialog", { name: hans.settings, exact: true }),
   ).toBeVisible();
   await expect(page.locator(".workspace-nav")).toContainText(hans.people);
   await page
-    .getByRole("group", { name: hans.language, exact: true })
-    .getByRole("radio", { name: "English", exact: true })
-    .check();
+    .getByRole("combobox", { name: hans.language, exact: true })
+    .selectOption({ label: "English" });
   await expect(page.locator("html")).toHaveAttribute("lang", "en");
 
   // A 24-hour clock changes every time shown, the Now line included.
@@ -176,19 +176,13 @@ test("keeps the language, clock, zone, and week on the account and applies them 
   await page.goto("/settings/language");
   await expect(page).toHaveURL(/\/events\?settings=language$/u);
   await expect(
-    page
-      .getByRole("group", { name: "Time format", exact: true })
-      .getByRole("radio", { name: "24-hour", exact: true }),
-  ).toBeChecked();
+    page.getByRole("combobox", { name: "Time format", exact: true }),
+  ).toHaveValue("h23");
   await expect(
-    page
-      .getByRole("group", { name: "Week starts on", exact: true })
-      .getByRole("radio", { name: "Monday", exact: true }),
-  ).toBeChecked();
+    page.getByRole("combobox", { name: "Week starts on", exact: true }),
+  ).toHaveValue("1");
   await expect(zone).toHaveValue("UTC");
-  await expect(
-    language.getByRole("radio", { name: "English", exact: true }),
-  ).toBeChecked();
+  await expect(language).toHaveValue("en");
 
   // Sign out everywhere ends this session too.
   await sections.getByRole("button", { name: "General", exact: true }).click();

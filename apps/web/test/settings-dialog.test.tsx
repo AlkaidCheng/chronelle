@@ -273,11 +273,17 @@ describe("the Settings dialog", () => {
     expect(
       screen.queryByRole("textbox", { name: "Username" }),
     ).not.toBeInTheDocument();
-    const byUsername = screen.getByRole("switch", { name: "By username" });
+    const find = within(
+      screen.getByRole("region", { name: "Who can find you" }),
+    );
+    const byUsername = find.getByRole("switch", { name: "By username" });
     expect(byUsername).toBeChecked();
     expect(byUsername).toBeDisabled();
-    const byEmail = screen.getByRole("switch", { name: "By email" });
+    const byEmail = find.getByRole("switch", { name: "By email" });
     expect(byEmail).toBeChecked();
+    expect(byEmail).toHaveAccessibleDescription(
+      "Someone who types planner@example.test sees you. Off, they see nothing.",
+    );
     await user.click(byEmail);
     await waitFor(() => expect(byEmail).not.toBeChecked());
     expect(requests).toContainEqual({
@@ -312,11 +318,13 @@ describe("the Settings dialog", () => {
     expect(
       await screen.findByRole("button", { name: "Language & time" }),
     ).toHaveAttribute("aria-current", "page");
-    const clock = within(screen.getByRole("group", { name: "Time format" }));
-    await waitFor(() =>
-      expect(clock.getByRole("radio", { name: "From language" })).toBeChecked(),
-    );
-    await user.click(clock.getByRole("radio", { name: "24-hour" }));
+    // Each setting is a row whose label names its menu and whose caption
+    // describes it; the clock's caption is the moment it shows.
+    const clock = screen.getByRole("combobox", { name: "Time format" });
+    await waitFor(() => expect(clock).toHaveValue(""));
+    expect(clock).toHaveAccessibleDescription(/^Now: /);
+    await user.selectOptions(clock, "24-hour");
+    expect(clock).toHaveValue("h23");
     await waitFor(() =>
       expect(requests).toContainEqual({
         method: "PATCH",
@@ -332,15 +340,20 @@ describe("the Settings dialog", () => {
       /Now: \w{3} \d{1,2}, \d{4}, \d{2}:\d{2}$/,
     );
 
-    const week = within(screen.getByRole("group", { name: "Week starts on" }));
-    await user.click(week.getByRole("radio", { name: "Monday" }));
+    const week = screen.getByRole("combobox", { name: "Week starts on" });
+    expect(week).toHaveValue("");
+    await user.selectOptions(week, "Monday");
     await waitFor(async () =>
       expect((await storedPreferences()).weekStart).toBe(1),
     );
     expect(activeTimePreferences().weekStart).toBe(1);
+    expect(week).toHaveValue("1");
 
     const zone = screen.getByRole("combobox", { name: "Time zone" });
     expect(zone).toHaveValue("");
+    expect(zone).toHaveAccessibleDescription(
+      "Times are shown in this zone. Device follows wherever you are.",
+    );
     expect(
       within(zone).getByRole("option", { name: /^Device: / }),
     ).toBeVisible();
@@ -369,37 +382,64 @@ describe("the Settings dialog", () => {
   it("keeps a language choice on the account and in the cookie", async () => {
     const user = userEvent.setup();
     renderAt("language");
-    const language = within(
-      await screen.findByRole("group", { name: "Language" }),
-    );
-    await user.click(
-      language.getByRole("radio", { name: "\u7e41\u9ad4\u4e2d\u6587" }),
-    );
+    const language = await screen.findByRole("combobox", { name: "Language" });
+    expect(language).toHaveValue("system");
+    expect(
+      within(language).getByRole("option", {
+        name: "\u7e41\u9ad4\u4e2d\u6587",
+      }),
+    ).toHaveAttribute("lang", "zh-Hant");
+    await user.selectOptions(language, "\u7e41\u9ad4\u4e2d\u6587");
     expect(document.cookie).toContain(`${localeCookie}=zh-Hant`);
     expect(router.refresh).toHaveBeenCalled();
     await waitFor(async () =>
       expect((await storedPreferences()).locale).toBe("zh-Hant"),
     );
-    await user.click(language.getByRole("radio", { name: "System" }));
+    await user.selectOptions(language, "System");
     await waitFor(async () =>
       expect((await storedPreferences()).locale).toBeNull(),
     );
     expect(document.cookie).not.toContain(`${localeCookie}=zh`);
   });
 
-  it("repeats the Theme choices under Appearance", () => {
+  it("repeats the Theme choices under Appearance, each kept on the browser at once", async () => {
+    const user = userEvent.setup();
     renderAt("appearance");
     expect(screen.getByRole("button", { name: "Appearance" })).toHaveAttribute(
       "aria-current",
       "page",
     );
-    expect(screen.getByRole("group", { name: "Palette" })).toBeVisible();
-    expect(screen.getByRole("group", { name: "Density" })).toBeVisible();
-    expect(screen.getByRole("group", { name: "Motion" })).toBeVisible();
+    const mode = screen.getByRole("group", { name: "Mode" });
+    expect(mode).toHaveAccessibleDescription(
+      "Appearance is kept on this browser. The Theme entry in the rail holds the same choices.",
+    );
+    await user.click(within(mode).getByRole("radio", { name: "Dark" }));
+    expect(document.documentElement).toHaveAttribute("data-appearance", "dark");
+    const palette = screen.getByRole("combobox", { name: "Palette" });
+    await user.selectOptions(palette, "Celadon");
+    expect(document.documentElement).toHaveAttribute("data-palette", "celadon");
+    await user.click(
+      within(screen.getByRole("group", { name: "Density" })).getByRole(
+        "radio",
+        { name: "Compact" },
+      ),
+    );
+    expect(document.documentElement).toHaveAttribute("data-density", "compact");
+    await user.click(
+      within(screen.getByRole("group", { name: "Motion" })).getByRole("radio", {
+        name: "Reduced",
+      }),
+    );
+    expect(document.documentElement).toHaveAttribute("data-motion", "reduced");
     expect(
-      screen.getByRole("button", { name: "Reset display settings" }),
+      screen.getByRole("heading", { level: 3, name: "Install app" }),
     ).toBeVisible();
-    expect(screen.queryByRole("group", { name: "Language" })).toBeNull();
+    await user.click(
+      screen.getByRole("button", { name: "Reset display settings" }),
+    );
+    expect(palette).toHaveValue("paper");
+    expect(within(mode).getByRole("radio", { name: "System" })).toBeChecked();
+    expect(screen.queryByRole("combobox", { name: "Language" })).toBeNull();
   });
 
   it("offers Keyboard on a keyboard device, with the shortcut table", async () => {

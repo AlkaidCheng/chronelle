@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
 import type { TaskResponse } from "@livtales/schemas";
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { NextIntlClientProvider } from "next-intl";
 import type { ReactNode } from "react";
@@ -93,19 +93,19 @@ it("stores the chosen language in the cookie and puts it on the document", async
     "zh-Hant": await loadMessages("zh-Hant"),
   };
   render(<ChoiceHarness catalogs={catalogs} />);
-  expect(screen.getByRole("radio", { name: "System" })).toBeChecked();
-  await user.click(
-    screen.getByRole("radio", { name: "\u7b80\u4f53\u4e2d\u6587" }),
-  );
+  const language = screen.getByRole("combobox");
+  expect(language).toHaveValue("system");
+  expect(
+    within(language).getByRole("option", { name: "System" }),
+  ).toBeInTheDocument();
+  await user.selectOptions(language, "\u7b80\u4f53\u4e2d\u6587");
   expect(document.cookie).toContain(`${localeCookie}=zh-Hans`);
   expect(window.localStorage.getItem(localeCookie)).toBe("zh-Hans");
   expect(router.refresh).toHaveBeenCalled();
   expect(document.documentElement.lang).toBe("zh-Hans");
-  expect(screen.getByRole("group", { name: "\u8bed\u8a00" })).toBeVisible();
+  expect(language).toHaveValue("zh-Hans");
   expect(formatDateTime(null)).toBe("\u672a\u5b89\u6392");
-  await user.click(
-    screen.getByRole("radio", { name: "\u8ddf\u968f\u7cfb\u7edf" }),
-  );
+  await user.selectOptions(language, "\u8ddf\u968f\u7cfb\u7edf");
   expect(document.cookie).not.toContain(`${localeCookie}=zh`);
   expect(window.localStorage.getItem(localeCookie)).toBeNull();
   expect(document.documentElement.lang).toBe("en");

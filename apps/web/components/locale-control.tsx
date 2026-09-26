@@ -1,54 +1,48 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { useId } from "react";
 
-import { type LocaleChoice, useLocaleChoice } from "../i18n/locale-preference";
+import {
+  isLocale,
+  type LocaleChoice,
+  useLocaleChoice,
+} from "../i18n/locale-preference";
 import { locales } from "../i18n/locales";
 
 /**
- * The language choices, each in its own language, with System for the
- * browser's. Settings shows it under Language & time, where a change is
- * also kept on the account through `onChange`.
+ * The language menu: System for the browser's, then each language in its
+ * own language. Settings shows it under Language & time, labelled by its
+ * row, where a change is also kept on the account through `onChange`.
  */
 export function LocaleControl({
-  legend,
   onChange,
+  ...attributes
 }: {
-  /** The group's name; the Theme catalog's "Language" when absent. */
-  readonly legend?: string | undefined;
+  readonly id?: string;
+  readonly className?: string;
+  readonly "aria-labelledby"?: string;
+  readonly "aria-describedby"?: string;
   readonly onChange?: ((choice: LocaleChoice) => void) | undefined;
 }) {
-  const id = useId();
   const t = useTranslations("theme");
   const { choice, setChoice } = useLocaleChoice();
-  const choices: readonly { value: LocaleChoice; label: string }[] = [
-    { value: "system", label: t("system") },
-    ...locales.map((locale) => ({ value: locale.tag, label: locale.native })),
-  ];
   return (
-    <fieldset className="theme-group">
-      <legend>{legend ?? t("language")}</legend>
-      <div className="theme-segment locale-choices">
-        {choices.map((entry) => (
-          <label
-            key={entry.value}
-            lang={entry.value === "system" ? undefined : entry.value}
-          >
-            <input
-              type="radio"
-              name={`${id}-locale`}
-              value={entry.value}
-              checked={choice === entry.value}
-              onChange={() => {
-                setChoice(entry.value);
-                onChange?.(entry.value);
-              }}
-            />
-            <span>{entry.label}</span>
-          </label>
-        ))}
-      </div>
-    </fieldset>
+    <select
+      {...attributes}
+      onChange={(event) => {
+        const next = event.target.value;
+        const chosen = isLocale(next) ? next : "system";
+        setChoice(chosen);
+        onChange?.(chosen);
+      }}
+      value={choice}
+    >
+      <option value="system">{t("system")}</option>
+      {locales.map((locale) => (
+        <option key={locale.tag} lang={locale.tag} value={locale.tag}>
+          {locale.native}
+        </option>
+      ))}
+    </select>
   );
 }

@@ -24,9 +24,10 @@ function useModifier(): string | null {
 }
 
 /**
- * The Keyboard section of Settings: one table of the shortcuts, each with
- * its keys and its control. It renders only on a device with a keyboard;
- * elsewhere a line says so. The choices are kept on this browser.
+ * The Keyboard section of Settings: one table of the shortcuts, a row
+ * each, its name and note at the left, its keys and its control at the
+ * right. It renders only on a device with a keyboard; elsewhere a line says
+ * so. The choices are kept on this browser.
  */
 export function KeyboardSection() {
   const t = useTranslations("keyboard");
@@ -43,6 +44,14 @@ export function KeyboardSection() {
       ))}
     </span>
   );
+  const action = (name: string, note: string) => (
+    <td>
+      <div className="setting-row-text">
+        <span className="setting-row-label">{name}</span>
+        <span className="setting-row-caption">{note}</span>
+      </div>
+    </td>
+  );
   const alwaysOn = <span className="keyboard-fixed">{t("alwaysOn")}</span>;
   return (
     <div className="settings-keyboard">
@@ -50,19 +59,16 @@ export function KeyboardSection() {
       <table className="keyboard-table">
         <thead>
           <tr>
-            <th scope="col">{t("action")}</th>
-            <th scope="col">{t("shortcut")}</th>
-            <th scope="col">
-              <span className="visually-hidden">{t("control")}</span>
-            </th>
+            {[t("action"), t("shortcut"), t("control")].map((heading) => (
+              <th key={heading} scope="col">
+                <span className="visually-hidden">{heading}</span>
+              </th>
+            ))}
           </tr>
         </thead>
         <tbody>
           <tr>
-            <td>
-              <strong>{t("search")}</strong>
-              <small>{t("searchNote")}</small>
-            </td>
+            {action(t("search"), t("searchNote"))}
             <td>{keys(modifier, "K")}</td>
             <td>
               <input
@@ -81,26 +87,17 @@ export function KeyboardSection() {
             </td>
           </tr>
           <tr>
-            <td>
-              <strong>{t("undo")}</strong>
-              <small>{t("undoNote")}</small>
-            </td>
+            {action(t("undo"), t("undoNote"))}
             <td>{keys(modifier, "Z")}</td>
             <td>{alwaysOn}</td>
           </tr>
           <tr>
-            <td>
-              <strong>{t("sidebar")}</strong>
-              <small>{t("sidebarNote")}</small>
-            </td>
+            {action(t("sidebar"), t("sidebarNote"))}
             <td>{keys(modifier, "\\")}</td>
             <td>{alwaysOn}</td>
           </tr>
           <tr>
-            <td>
-              <strong>{t("component")}</strong>
-              <small>{t("componentNote")}</small>
-            </td>
+            {action(t("component"), t("componentNote"))}
             <td>
               {component.value === "disabled"
                 ? null
@@ -111,7 +108,7 @@ export function KeyboardSection() {
             <td>
               <select
                 aria-label={t("component")}
-                className="keyboard-select"
+                className="setting-select"
                 value={component.value}
                 onChange={(event) =>
                   component.setValue(parseComponentShortcut(event.target.value))
@@ -128,10 +125,7 @@ export function KeyboardSection() {
             </td>
           </tr>
           <tr>
-            <td>
-              <strong>{t("submit")}</strong>
-              <small>{t("submitNote")}</small>
-            </td>
+            {action(t("submit"), t("submitNote"))}
             <td>{keys(modifier, "Enter")}</td>
             <td>
               <input
@@ -151,7 +145,7 @@ export function KeyboardSection() {
       </table>
       <button
         type="button"
-        className="button button-quiet"
+        className="setting-reset"
         onClick={() => {
           command.setValue("enabled");
           component.setValue("slash");
