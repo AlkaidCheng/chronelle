@@ -1,5 +1,7 @@
 {
   "allEvents": "All events",
+  "breadcrumb": "Breadcrumb",
+  "sharedWithMe": "Shared with me",
   "connecting": "Connecting your event plan",
   "loadingView": "Loading this view",
   "setDates": "Set dates",

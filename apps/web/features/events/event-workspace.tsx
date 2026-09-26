@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { useLayoutEffect, useRef, useState } from "react";
 
@@ -11,7 +10,6 @@ import {
   ArrangeIcon,
   CalendarIcon,
   CalendarPlusIcon,
-  ChevronLeftIcon,
   LinkIcon,
   LockIcon,
   MoreIcon,
@@ -35,6 +33,7 @@ import {
   eventComponentKindSchema,
   type EventComponentView,
 } from "@livtales/schemas";
+import { EventBreadcrumb } from "./event-breadcrumb";
 import { EventComponent } from "./event-component";
 import { EventInspector } from "./event-inspector";
 import { SharingPanel } from "./sharing-panel";
@@ -58,7 +57,6 @@ import {
 
 export function EventWorkspace({ eventId }: { readonly eventId: string }) {
   const t = useTranslations("event");
-  const nav = useTranslations("nav");
   const [activeTab, setActiveTab] = useEventView();
   const queries = useEventWorkspaceQueries(eventId, activeTab);
   usePageCommandHistory(queries.event.data);
@@ -134,10 +132,7 @@ export function EventWorkspace({ eventId }: { readonly eventId: string }) {
   ) {
     return (
       <main className="workspace-page">
-        <Link className="up-link" aria-label={t("allEvents")} href="/events">
-          <ChevronLeftIcon />
-          {nav("events")}
-        </Link>
+        <EventBreadcrumb />
         {refreshNotice}
       </main>
     );
@@ -225,10 +220,7 @@ export function EventWorkspace({ eventId }: { readonly eventId: string }) {
       <CommandScope pathname={`/events/${event.id}`} commands={commands} />
       {refreshNotice}
       <header className="event-hero">
-        <Link className="up-link" aria-label={t("allEvents")} href="/events">
-          <ChevronLeftIcon />
-          {nav("events")}
-        </Link>
+        <EventBreadcrumb workspaceId={event.workspaceId} />
         <div className="event-title-row">
           <div>
             <h1>{event.displayName}</h1>
