@@ -316,7 +316,8 @@ export class FriendService {
       senderName: sender.displayName,
       senderEmail: sender.email,
       message: item.message,
-      link: this.inviteUrl(item.token),
+      webBaseUrl: this.#webBaseUrl,
+      token: item.token,
       expiresInDays: Math.max(
         1,
         Math.round(this.#invitationTtlMs / 86_400_000),
