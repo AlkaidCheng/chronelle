@@ -42,6 +42,8 @@ const workspace = {
   personalOwnerId: userId,
   createdAt: now,
   updatedAt: now,
+  deletedAt: null,
+  deletedBy: null,
 } satisfies WorkspaceRow;
 
 function verifier(expiresAt = proofExpiresAt) {
