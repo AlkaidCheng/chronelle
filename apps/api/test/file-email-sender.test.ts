@@ -6,6 +6,12 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { FileEmailSender } from "../src/authentication/file-email-sender.js";
 
+const template = {
+  name: "verify_email",
+  locale: "en",
+  data: { code: "123456", minutes: "15" },
+} as const;
+
 let directory: string;
 
 beforeEach(async () => {
@@ -24,11 +30,13 @@ describe("FileEmailSender", () => {
       to: "first@example.test",
       subject: "Your LivTales code",
       text: "Your code is 123456.",
+      template,
     });
     await sender.send({
       to: "second@example.test",
       subject: "Your LivTales code",
       text: "Your code is 654321.",
+      template,
     });
     const lines = (await readFile(path, "utf8")).trimEnd().split("\n");
     expect(lines).toHaveLength(2);
@@ -53,6 +61,7 @@ describe("FileEmailSender", () => {
           to: `person-${index}@example.test`,
           subject: "Code",
           text: `Code ${index}`,
+          template,
         }),
       ),
     );
