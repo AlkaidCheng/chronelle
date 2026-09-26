@@ -563,7 +563,9 @@ for a phone with a keyboard attached.
 Cmd/Ctrl + K opens Search outside text editors and dialogs. It ignores
 composition, repeated keydown, consumed events, and extra modifiers.
 Settings > Keyboard, offered on keyboard devices only (More's Keyboard
-shortcuts item leads there), is one table of the shortcuts: Open Search
+shortcuts item leads there), is one table of the shortcuts drawn as the
+Settings rows, each action and its note at the left and its keys and
+control at the right: Open Search
 (Cmd/Ctrl + K) with its switch, Undo the last edit (Cmd/Ctrl + Z, always on),
 Collapse or expand the sidebar (Cmd/Ctrl + \, always on), Add a component
 with its key choice, and Submit an editor (Cmd/Ctrl + Enter) with its
@@ -745,18 +747,30 @@ underneath remounts. The old addresses (`/settings`, `/settings/language`,
 to Events with that section open. The offline sandbox keeps the same
 address in its fragment (`#/events/<id>?view=todos&settings=language`).
 
+Each section draws its settings as compact rows: the setting's name, with a
+caption under it where one helps, at the left, and its control at the
+right (a menu, a switch, a few choices side by side, or a small button),
+with a hairline between rows. The name labels the control and the caption
+describes it, so a screen reader announces both. On a narrow screen a row
+whose control does not fit beside its name puts the control under it; a
+switch always stays beside its name.
+
 General holds
 the Name, changed here with Save name, the username as chosen at sign-up,
 which cannot be changed, and the email as the account holds it; Who can
-find you, with By username always on,
+find you, under its own caption, with By username always on,
 and By name and By email as switches the account turns off to be left out of
-Find people by that key (By email is off for an account without one); links
-to the password screen; and Sign out everywhere, which ends every session of
-the account, this one included, and returns to sign-in. Under Preferences, Language & time holds the language, the time
-zone, the time format, and the first day of the week, all kept on the
-account and applied at once; Appearance repeats the Theme panel's mode,
-palette, density, and motion choices, which stay on the browser, and
-carries the Install app control (see Install as an app); Keyboard, on a
+Find people by that key (By email is off for an account without one); the
+password row, whose Change password opens the password screen; and Sign out
+everywhere, which ends every session of
+the account, this one included, and returns to sign-in. Under Preferences,
+Language & time holds menus for the language, the time format (its caption
+is the current moment in that format), and the first day of the week, then
+the time zone's menu with the search that narrows it underneath, all kept
+on the account and applied at once; Appearance repeats the Theme panel's
+mode, density, and motion as choices side by side and its palette as a
+menu, which stay on the browser, carries the Install app row (see Install
+as an app), and ends with Reset display settings; Keyboard, on a
 keyboard device, holds the shortcut table described under Search. Settings
 holds only the account and the app's preferences: a space's members are
 managed in Manage space (see the space switcher), and its old Members
@@ -779,7 +793,7 @@ account's zone as its default.
 ## Language
 
 The web app speaks English, Simplified Chinese, and Traditional Chinese. The
-Language group under Settings, Preferences, Language & time offers System,
+Language menu under Settings, Preferences, Language & time offers System,
 English, and the two Chinese variants, each named in its own language; the
 sign-in, sign-up, verification, and reset screens carry a compact language
 menu at the bottom of the form column. System follows the browser's
@@ -855,7 +869,8 @@ returns to the same view with the close control, Escape, and Back (Forward
 opens it again), checking that the page underneath was not remounted, that
 focus returns to the account block, and that an address-opened Settings
 closes without a history entry; it also follows an old address and checks
-a 320px screen for sideways scrolling. The offline sandbox runs the same
+a 320px screen for sideways scrolling in General, Language & time, and
+Appearance, with the time zone's menu under its name. The offline sandbox runs the same
 opening, switching, closing, and Back through its fragment. Unit tests hold
 every catalog to the English key set and parameter names. A native reader has
 not yet reviewed the two Chinese catalogs; wording may change.
