@@ -11019,10 +11019,10 @@ html:has(.section-dialog[open]) {
 }
 
 .section-dialog-caption {
-  color: var(--muted);
+  color: var(--faint);
   display: block;
   font-size: 0.66rem;
-  font-weight: 750;
+  font-weight: 600;
   letter-spacing: 0.08em;
   padding: 12px 10px 4px;
   text-transform: uppercase;
@@ -11038,7 +11038,6 @@ html:has(.section-dialog[open]) {
   display: flex;
   font: inherit;
   font-size: 0.87rem;
-  font-weight: 600;
   gap: 10px;
   padding: 8px 10px;
   text-align: left;
@@ -11064,6 +11063,7 @@ html:has(.section-dialog[open]) {
 .section-dialog-item[aria-current="page"] {
   background: var(--accent-soft);
   color: var(--accent);
+  font-weight: 600;
 }
 
 .section-dialog-item.is-danger:not([aria-current="page"]) {
@@ -11086,9 +11086,16 @@ html:has(.section-dialog[open]) {
 }
 
 .section-dialog-head h2 {
-  font-size: 1.45rem;
+  font-size: 1.3rem;
   line-height: 1.2;
   margin: 0;
+}
+
+/* The close control at the title's height rather than a tall header's. */
+.section-dialog-head .dialog-close:not([hidden]) {
+  font-size: 1.25rem;
+  height: 34px;
+  width: 34px;
 }
 
 .section-dialog-content {
