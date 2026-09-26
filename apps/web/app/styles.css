@@ -10771,3 +10771,189 @@ html:has(.event-create-dialog[open]) {
   font-size: inherit;
   margin-left: 8px;
 }
+
+/* A dialog of sections: a heading above the list of sections at the left,
+   the current section's title and body at the right. */
+.section-dialog {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  box-shadow: var(--shadow-raised);
+  color: var(--ink);
+  height: min(560px, calc(100dvh - 48px));
+  overflow: hidden;
+  padding: 0;
+  width: min(760px, calc(100vw - 32px));
+}
+
+.section-dialog[open] {
+  display: grid;
+  grid-template-columns: 196px minmax(0, 1fr);
+}
+
+.section-dialog::backdrop {
+  background: var(--scrim);
+}
+
+html:has(.section-dialog[open]) {
+  overflow: hidden;
+}
+
+.section-dialog-nav {
+  align-content: start;
+  display: grid;
+  gap: 2px;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 20px 10px;
+}
+
+.section-dialog-heading {
+  align-items: center;
+  display: flex;
+  font: 400 1.3rem/1.2 var(--font-display);
+  gap: 8px;
+  min-width: 0;
+  padding: 2px 10px 14px;
+}
+
+.section-dialog-nav ul {
+  display: grid;
+  gap: 2px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.section-dialog-group > span {
+  color: var(--muted);
+  display: block;
+  font-size: 0.66rem;
+  font-weight: 750;
+  letter-spacing: 0.08em;
+  padding: 12px 10px 4px;
+  text-transform: uppercase;
+}
+
+.section-dialog-item {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  border-radius: 10px;
+  color: var(--muted);
+  cursor: pointer;
+  display: flex;
+  font: inherit;
+  font-size: 0.87rem;
+  font-weight: 600;
+  gap: 10px;
+  padding: 8px 10px;
+  text-align: left;
+  width: 100%;
+}
+
+.section-dialog-item svg {
+  fill: none;
+  flex: none;
+  height: 17px;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.7;
+  width: 17px;
+}
+
+.section-dialog-item:hover {
+  background: var(--surface-subtle);
+  color: var(--ink);
+}
+
+.section-dialog-item[aria-current="page"] {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.section-dialog-item.is-danger:not([aria-current="page"]) {
+  color: var(--danger);
+}
+
+.section-dialog-body {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  min-height: 0;
+  min-width: 0;
+}
+
+.section-dialog-head {
+  align-items: center;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+  padding: 18px 20px 8px 14px;
+}
+
+.section-dialog-head h2 {
+  font-size: 1.45rem;
+  line-height: 1.2;
+  margin: 0;
+}
+
+.section-dialog-content {
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 6px 22px 24px 14px;
+}
+
+/* A narrow screen gives the dialog the whole screen; the sections become a
+   row that scrolls sideways, without the heading and group captions. */
+@media (max-width: 640px) {
+  .section-dialog {
+    border: 0;
+    border-radius: 0;
+    height: 100dvh;
+    max-height: 100dvh;
+    max-width: 100vw;
+    padding-top: env(safe-area-inset-top, 0px);
+    width: 100vw;
+  }
+
+  .section-dialog[open] {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1fr);
+  }
+
+  .section-dialog-nav {
+    display: flex;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding: 12px 12px 4px;
+  }
+
+  .section-dialog-heading,
+  .section-dialog-group > span {
+    display: none;
+  }
+
+  .section-dialog-nav ul {
+    display: flex;
+    gap: 4px;
+  }
+
+  .section-dialog-group {
+    display: contents;
+  }
+
+  .section-dialog-item {
+    white-space: nowrap;
+    width: auto;
+  }
+
+  .section-dialog-head {
+    padding: 8px 16px 4px;
+  }
+
+  .section-dialog-content {
+    padding: 6px 16px max(24px, env(safe-area-inset-bottom, 0px));
+  }
+}
