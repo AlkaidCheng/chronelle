@@ -26,6 +26,13 @@
   "lastOwnerLeave": "Make another member an Owner before leaving: a space keeps at least one Owner.",
   "personalStays": "A Personal space stays with its account.",
   "left": "You left {name}",
+  "delete": "Delete space",
+  "deleting": "Deleting...",
+  "deleteChecking": "Checking what it holds.",
+  "deleteNote": "{count, plural, =0 {Every member loses access. This can't be undone.} one {Every member loses access, and the # record in its Trash goes with it. This can't be undone.} other {Every member loses access, and the # records in its Trash go with it. This can't be undone.}}",
+  "deleteHolds": "{count, plural, one {It still holds # record. Move it to another space or to Trash first.} other {It still holds # records. Move them to another space or to Trash first.}}",
+  "deleteQuestion": "Delete {name} for everyone?",
+  "deleted": "Deleted {name}",
   "move": {
     "menu": "Move to space...",
     "title": "Move to space",

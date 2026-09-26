@@ -1,5 +1,6 @@
 "use client";
 
+import { ApiClientError } from "@livtales/api-client";
 import type { SessionResponse, WorkspaceMember } from "@livtales/schemas";
 import { useTranslations } from "next-intl";
 import { type FormEvent, useState } from "react";
@@ -8,8 +9,10 @@ import { CountedField } from "../../components/counted-field";
 import { ErrorNotice } from "../../components/feedback";
 import { useNotices } from "../../components/notices";
 import {
+  useDeleteSpace,
   useLeaveSpace,
   useRenameSpace,
+  useSpaceDeletionQuery,
   useWorkspaceMembersQuery,
 } from "../../lib/queries";
 import type { CarriedNotice } from "../../lib/auth-session";
@@ -122,7 +125,7 @@ export function SpaceLeaveSection({
         <p>{lastOwner ? t("lastOwnerLeave") : t("leaveNote")}</p>
       </div>
       <ConfirmAction
-        className="button button-secondary"
+        className="button button-secondary space-danger-button"
         disabled={lastOwner || leave.isPending}
         label={t("leave")}
         onConfirm={() =>
@@ -135,6 +138,72 @@ export function SpaceLeaveSection({
         question={t("leaveQuestion", { name: identity.title })}
       />
       {leave.isError ? <ErrorNotice error={leave.error} /> : null}
+    </div>
+  );
+}
+
+/**
+ * Deleting the current space: its Owners delete a shared space that holds
+ * nothing but Trash, which goes with it, and every member loses access.
+ * While it holds records the row says how many. `onDeleted` opens another
+ * space, with the notice to show there.
+ */
+export function SpaceDeleteSection({
+  session,
+  onDeleted,
+}: {
+  readonly session: SessionResponse;
+  readonly onDeleted: (notice: CarriedNotice) => void;
+}) {
+  const t = useTranslations("spaces");
+  const space = currentWorkspace(session);
+  const identity = useCurrentWorkspaceIdentity(session);
+  const offered = !space.personal && space.role === "owner";
+  const deletion = useSpaceDeletionQuery(offered);
+  const remove = useDeleteSpace();
+  if (!offered) return null;
+  const state = deletion.data;
+  const holding = state?.reason === "holds_records" ? state.liveRecords : null;
+  const refusedAsNotEmpty =
+    remove.error instanceof ApiClientError &&
+    remove.error.code === "space_not_empty";
+  return (
+    <div className="settings-row">
+      <div>
+        <h3>{t("delete")}</h3>
+        <p>
+          {state === undefined
+            ? t("deleteChecking")
+            : holding !== null
+              ? t("deleteHolds", { count: holding })
+              : t("deleteNote", { count: state.trashRecords })}
+        </p>
+      </div>
+      <ConfirmAction
+        className="button button-secondary space-danger-button"
+        disabled={state?.deletable !== true || remove.isPending}
+        label={t("delete")}
+        onConfirm={() =>
+          remove.mutate(undefined, {
+            onSuccess: () =>
+              onDeleted({ message: t("deleted", { name: identity.title }) }),
+            onError: (error) => {
+              if (
+                error instanceof ApiClientError &&
+                error.code === "space_not_empty"
+              )
+                void deletion.refetch();
+            },
+          })
+        }
+        pending={remove.isPending}
+        pendingLabel={t("deleting")}
+        question={t("deleteQuestion", { name: identity.title })}
+      />
+      {deletion.isError ? <ErrorNotice error={deletion.error} /> : null}
+      {remove.isError && !refusedAsNotEmpty ? (
+        <ErrorNotice error={remove.error} />
+      ) : null}
     </div>
   );
 }

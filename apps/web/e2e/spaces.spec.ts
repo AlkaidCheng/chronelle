@@ -193,3 +193,103 @@ test("manages a space from the switcher: renames it, shares ownership, and leave
     }),
   );
 });
+
+test("deletes a space once it holds nothing but Trash, for every member", async ({
+  page,
+  request,
+}) => {
+  const anaEmail = `ana-${randomUUID()}@example.test`;
+  const benEmail = `ben-${randomUUID()}@example.test`;
+  const account = async (email: string, displayName: string) =>
+    (
+      await request.post("/api/auth/development/sign-in", {
+        data: { email, displayName },
+      })
+    ).json();
+  const ana = await account(anaEmail, "Ana");
+  const ben = await account(benEmail, "Ben");
+  const bearer = (session: { accessToken: string }) => ({
+    authorization: `Bearer ${session.accessToken}`,
+  });
+  const sent = await (
+    await request.post("/api/friends/invitations", {
+      headers: bearer(ana),
+      data: { email: benEmail },
+    })
+  ).json();
+  await request.post(`/api/friends/requests/${sent.id}/accept`, {
+    headers: bearer(ben),
+  });
+  // Ana's space "Old trip", with Ben as an Editor and one event in it.
+  const space = await (
+    await request.post("/api/workspaces", {
+      headers: bearer(ana),
+      data: { displayName: "Old trip" },
+    })
+  ).json();
+  const inSpace = { ...bearer(ana), "x-workspace-id": space.id };
+  await request.post("/api/workspaces/current/members", {
+    headers: inSpace,
+    data: { friendId: sent.id, role: "editor" },
+  });
+  const event = await (
+    await request.post("/api/events", {
+      headers: inSpace,
+      data: { displayName: "Lisbon" },
+    })
+  ).json();
+
+  const errors: string[] = [];
+  page.on("pageerror", (error) => errors.push(error.message));
+  await signIn(page, "Ana", anaEmail);
+  const switcher = await openWorkspaceSwitcher(page);
+  await switcher.getByRole("menuitemradio", { name: /Old trip/ }).click();
+  await expect(workspaceBlock(page)).toContainText("Old trip");
+  await (
+    await openWorkspaceSwitcher(page)
+  )
+    .getByRole("menuitem", { name: "Manage space" })
+    .click();
+  const dialog = page.getByRole("dialog", { name: "Manage space" });
+  await dialog.getByRole("button", { name: "Danger zone" }).click();
+
+  // While the event is live, the space cannot be deleted.
+  const remove = dialog.getByRole("button", { name: "Delete space" });
+  await expect(dialog).toContainText(
+    "It still holds 1 record. Move it to another space or to Trash first.",
+  );
+  await expect(remove).toBeDisabled();
+
+  // Once it is in Trash, the space goes with its Trash.
+  expect(
+    (
+      await request.delete(`/api/objects/${event.id}?expectedVersion=1`, {
+        headers: inSpace,
+      })
+    ).ok(),
+  ).toBe(true);
+  await dialog.getByRole("button", { name: "General" }).click();
+  await dialog.getByRole("button", { name: "Danger zone" }).click();
+  await expect(dialog).toContainText(
+    "Every member loses access, and the 1 record in its Trash goes with it.",
+  );
+  await remove.click();
+  await expect(dialog).toContainText("Delete Old trip for everyone?");
+  await dialog.getByRole("button", { name: "Delete space" }).click();
+  await expect(dialog).toHaveCount(0);
+  await expect(workspaceBlock(page)).toContainText("Personal");
+  await expect(
+    page.getByRole("status").filter({ hasText: "Deleted Old trip" }),
+  ).toBeVisible();
+
+  // Neither member lists it any more.
+  for (const session of [ana, ben]) {
+    const listed = await (
+      await request.get("/api/auth/session", { headers: bearer(session) })
+    ).json();
+    expect(
+      listed.availableWorkspaces.map((item: { id: string }) => item.id),
+    ).not.toContain(space.id);
+  }
+  expect(errors).toEqual([]);
+});

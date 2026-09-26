@@ -126,7 +126,16 @@ Owner), adds a friend with a role, and removes any member but the personal
 owner and themselves, while the personal owner's role and the last Owner's
 role are fixed. Danger zone offers Leave space, with a confirmation, to any
 member but the Owner of a Personal space; the last Owner makes another member
-an Owner first. Leaving opens the account's own space.
+an Owner first. Leaving opens the account's own space. Under it, an Owner of a
+shared space finds Delete space: while the space holds any record that is not
+in Trash, the row says how many ("It still holds 2 records. Move them to
+another space or to Trash first.") and the button stays off; once it holds
+nothing but Trash, the row says every member loses access and its Trash goes
+with it, and the button asks "Delete {space} for everyone?" before deleting.
+Deleting opens the account's own space with a notice ("Deleted {space}"); the
+space leaves every member's switcher, and a member still in it is returned to
+their own space on their next request. A record that arrives in the meantime
+refuses the deletion, and the row counts it again.
 
 Move to space..., in an event's More menu, moves the event with everything
 in it (schedule items, to-dos and their subtasks, expenses, reminders, notes,

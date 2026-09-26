@@ -26,6 +26,13 @@
   "lastOwnerLeave": "请先让另一位成员成为所有者再离开：空间至少保留一位所有者。",
   "personalStays": "个人空间始终属于其账号。",
   "left": "你已离开{name}",
+  "delete": "删除空间",
+  "deleting": "正在删除…",
+  "deleteChecking": "正在检查空间中的内容。",
+  "deleteNote": "{count, plural, =0 {所有成员将无法再访问。此操作无法撤销。} other {所有成员将无法再访问，回收站中的 # 项内容也一并删除。此操作无法撤销。}}",
+  "deleteHolds": "{count, plural, other {空间中还有 # 项内容。请先把它们移到其他空间或回收站。}}",
+  "deleteQuestion": "为所有人删除{name}？",
+  "deleted": "已删除{name}",
   "move": {
     "menu": "移到空间…",
     "title": "移到空间",
