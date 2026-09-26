@@ -692,7 +692,7 @@ and closing it returns you there as you left it: the page stays mounted
 underneath, so an event's view, its filters, and anything open on it are
 unchanged. At the left, under the title Settings, each section is a row
 with its icon (General; under Preferences, Language & time, Appearance, and
-on a keyboard device Keyboard; under Space, Members), the current one
+on a keyboard device Keyboard), the current one
 marked as the rail marks its current page; at the right, the section's
 title with the close control at its edge, then its content, which scrolls
 inside the dialog. On a narrow screen (up to 640px) the dialog fills the
@@ -731,13 +731,10 @@ zone, the time format, and the first day of the week, all kept on the
 account and applied at once; Appearance repeats the Theme panel's mode,
 palette, density, and motion choices, which stay on the browser, and
 carries the Install app control (see Install as an app); Keyboard, on a
-keyboard device, holds the shortcut table described under Search. Under
-Space, Members lists the current space's members with their roles
-(the personal owner first, marked Personal space, and Friend beside a
-member who is one); an Owner adds a friend as Viewer or Editor from the
-friends list (adding a member again changes their role) and removes any
-member but the personal owner and themselves. A member sees the space
-in the space switcher and reaches everything in it by role.
+keyboard device, holds the shortcut table described under Search. Settings
+holds only the account and the app's preferences: a space's members are
+managed in Manage space (see the space switcher), and its old Members
+address opens Events.
 
 The time zone is Device (named, with its offset) or any zone the browser
 knows, grouped by region with its current offset; a search field narrows the

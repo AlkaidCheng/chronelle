@@ -14,7 +14,6 @@ const settingsSections = [
   "language",
   "appearance",
   "keyboard",
-  "members",
 ] as const;
 
 export type SettingsSection = (typeof settingsSections)[number];

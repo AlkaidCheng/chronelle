@@ -151,9 +151,8 @@ describe("the Settings dialog", () => {
     ).not.toHaveAttribute("aria-current");
     expect(
       nav.getAllByRole("button").map((entry) => entry.textContent),
-    ).toEqual(["General", "Language & time", "Appearance", "Members"]);
+    ).toEqual(["General", "Language & time", "Appearance"]);
     expect(nav.getByRole("list", { name: "Preferences" })).toBeVisible();
-    expect(nav.getByRole("list", { name: "Space" })).toBeVisible();
     expect(
       within(dialog).getByRole("region", { name: "General" }),
     ).toBeVisible();
@@ -232,12 +231,12 @@ describe("the Settings dialog", () => {
   it("leaves a modified click on its link to the browser", () => {
     window.history.replaceState(null, "", "/tasks");
     render(
-      <SettingsLink section="members" onOpen={() => undefined}>
-        Members
+      <SettingsLink section="language" onOpen={() => undefined}>
+        Language
       </SettingsLink>,
     );
-    const link = screen.getByRole("link", { name: "Members" });
-    expect(link).toHaveAttribute("href", "/tasks?settings=members");
+    const link = screen.getByRole("link", { name: "Language" });
+    expect(link).toHaveAttribute("href", "/tasks?settings=language");
     // The browser's own action (a new tab) is stood in for; jsdom has none.
     const browser = vi.fn((event: Event) => event.preventDefault());
     document.addEventListener("click", browser, { once: true });
@@ -419,13 +418,7 @@ describe("the Settings dialog", () => {
         .getAllByRole("button")
         .filter((entry) => entry.closest("nav") !== null)
         .map((entry) => entry.textContent),
-    ).toEqual([
-      "General",
-      "Language & time",
-      "Appearance",
-      "Keyboard",
-      "Members",
-    ]);
+    ).toEqual(["General", "Language & time", "Appearance", "Keyboard"]);
     const user = userEvent.setup();
     await user.click(screen.getByRole("button", { name: "Keyboard" }));
     expect(window.location.search).toBe("?view=todos&settings=keyboard");
@@ -471,10 +464,14 @@ describe("the old Settings addresses", () => {
     [LanguageTimeSettingsRoute, "language"],
     [AppearanceSettingsRoute, "appearance"],
     [KeyboardSettingsRoute, "keyboard"],
-    [MembersSettingsRoute, "members"],
   ])("open Settings over Events", (route, section) => {
     expect(() => route()).toThrow("NEXT_REDIRECT");
     expect(redirect).toHaveBeenCalledWith(`/events?settings=${section}`);
+  });
+
+  it("opens Events for a space's members, which Manage space holds", () => {
+    expect(() => MembersSettingsRoute()).toThrow("NEXT_REDIRECT");
+    expect(redirect).toHaveBeenCalledWith("/events");
   });
 });
 

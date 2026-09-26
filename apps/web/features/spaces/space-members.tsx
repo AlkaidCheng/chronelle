@@ -25,7 +25,7 @@ type MemberRole = WorkspaceMember["role"];
  * and themselves. The personal owner's role and the last Owner's role are
  * fixed: a space keeps at least one Owner.
  */
-export function MembersSection() {
+export function SpaceMembersSection() {
   const t = useTranslations("members");
   const verbs = useTranslations("verbs");
   const confirm = useTranslations("confirm");

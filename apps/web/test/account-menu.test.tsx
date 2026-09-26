@@ -136,25 +136,17 @@ it("opens the switcher's list with Cmd/Ctrl+Shift+K and closes it again", async 
   expect(trigger).toHaveFocus();
 });
 
-it.each([
-  ["Settings", [], "general"],
-  ["Members", ["Switch space..."], "members"],
-])(
-  "opens %s over the page and hands focus to the block for the dialog to return",
-  async (name, path, section) => {
-    const { trigger, user } = renderMenu();
-    await user.click(trigger);
-    for (const step of path)
-      await user.click(screen.getByRole("menuitem", { name: step }));
-    const entries = window.history.length;
-    await user.click(screen.getByRole("menuitem", { name }));
-    expect(screen.queryByRole("menu")).not.toBeInTheDocument();
-    expect(trigger).toHaveFocus();
-    expect(window.location.pathname).toBe("/events/plan");
-    expect(window.location.search).toBe(`?view=todos&settings=${section}`);
-    expect(window.history.length).toBe(entries + 1);
-  },
-);
+it("opens Settings over the page and hands focus to the block for the dialog to return", async () => {
+  const { trigger, user } = renderMenu();
+  await user.click(trigger);
+  const entries = window.history.length;
+  await user.click(screen.getByRole("menuitem", { name: "Settings" }));
+  expect(screen.queryByRole("menu")).not.toBeInTheDocument();
+  expect(trigger).toHaveFocus();
+  expect(window.location.pathname).toBe("/events/plan");
+  expect(window.location.search).toBe("?view=todos&settings=general");
+  expect(window.history.length).toBe(entries + 1);
+});
 
 it("signs out once and closes", async () => {
   const { onSignOut, trigger, user } = renderMenu();

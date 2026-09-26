@@ -284,9 +284,10 @@ test("opens Settings over an event's view and returns to it as it was left @webk
   await expect(
     sections.getByRole("list", { name: "Preferences", exact: true }),
   ).toBeVisible();
+  // A space's members are Manage space's, not Settings'.
   await expect(
-    sections.getByRole("list", { name: "Space", exact: true }),
-  ).toBeVisible();
+    sections.getByRole("button", { name: "Members", exact: true }),
+  ).toHaveCount(0);
   await expect(
     settings.getByRole("heading", { level: 2, name: "General", exact: true }),
   ).toBeVisible();
@@ -350,10 +351,10 @@ test("opens Settings over an event's view and returns to it as it was left @webk
   await expect(todos).toHaveAttribute("aria-selected", "true");
 
   // The old Settings addresses open it over Events.
-  await page.goto("/settings/members");
-  await expect(page).toHaveURL(/\/events\?settings=members$/u);
+  await page.goto("/settings/appearance");
+  await expect(page).toHaveURL(/\/events\?settings=appearance$/u);
   await expect(
-    settings.getByRole("region", { name: "Members", exact: true }),
+    settings.getByRole("region", { name: "Appearance", exact: true }),
   ).toBeVisible();
 
   // On the narrowest phone it fills the screen, the sections a row that
@@ -363,12 +364,12 @@ test("opens Settings over an event's view and returns to it as it was left @webk
   await expectHorizontalReflow(page);
   const box = await settings.boundingBox();
   expect(box?.width).toBeLessThanOrEqual(320);
-  const members = sections.getByRole("button", {
-    name: "Members",
+  const appearance = sections.getByRole("button", {
+    name: "Appearance",
     exact: true,
   });
-  await members.scrollIntoViewIfNeeded();
-  await expect(members).toBeInViewport();
+  await appearance.scrollIntoViewIfNeeded();
+  await expect(appearance).toBeInViewport();
   await expectHorizontalReflow(page);
   await page.screenshot({
     path: testInfo.outputPath("settings-narrow.png"),

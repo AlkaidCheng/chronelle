@@ -7,7 +7,7 @@ import { AlertIcon, InfoIcon, PeopleIcon } from "../../components/icons";
 import { SectionDialog } from "../../components/section-dialog";
 import { WorkspaceMark } from "../../components/workspace-mark";
 import { useCurrentWorkspaceIdentity } from "../../lib/use-workspace-identity";
-import { MembersSection } from "../settings/members-section";
+import { SpaceMembersSection } from "./space-members";
 import { SpaceGeneralSection, SpaceLeaveSection } from "./space-sections";
 
 type ManageSpaceSection = "general" | "members" | "danger";
@@ -57,7 +57,7 @@ export function ManageSpaceDialog({
       {current === "general" ? (
         <SpaceGeneralSection session={session} />
       ) : current === "members" ? (
-        <MembersSection />
+        <SpaceMembersSection />
       ) : (
         <SpaceLeaveSection session={session} onLeft={onLeft} />
       )}

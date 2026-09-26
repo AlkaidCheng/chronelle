@@ -7,7 +7,6 @@ import {
   GlobeIcon,
   InfoIcon,
   KeyboardIcon,
-  PeopleIcon,
   ThemeIcon,
 } from "../../components/icons";
 import {
@@ -26,12 +25,12 @@ import { AccountSettings } from "./account-settings";
 import { AppearanceSection } from "./appearance-section";
 import { KeyboardSection } from "./keyboard-section";
 import { LanguageTimeSettings } from "./language-time-settings";
-import { MembersSection } from "./members-section";
 
 /**
  * Settings, as a dialog over the page it opens from: General (the
  * account); under Preferences, Language & time, Appearance, and on a
- * keyboard device Keyboard; under Space, Members. Without a keyboard,
+ * keyboard device Keyboard. A space's members are managed from the space
+ * switcher's Manage space, not here. Without a keyboard,
  * Keyboard is listed only while its address has it open, and says it
  * needs one.
  */
@@ -71,19 +70,12 @@ function SettingsDialog({
           },
         ]
       : []),
-    {
-      id: "members",
-      label: t("members"),
-      icon: <PeopleIcon />,
-      group: t("workspace"),
-    },
   ];
   const bodies: Record<SettingsSection, ReactNode> = {
     general: <AccountSettings />,
     language: <LanguageTimeSettings />,
     appearance: <AppearanceSection />,
     keyboard: <KeyboardSection />,
-    members: <MembersSection />,
   };
   return (
     <SectionDialog
