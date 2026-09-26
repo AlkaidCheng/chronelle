@@ -304,6 +304,12 @@ authentication enabled, then reapply `infrastructure/database/runtime-role.sql`
 for the two new tables. CloudBase deployments apply the migration in the
 console SQL editor; readiness requires all three functions.
 
+Migration `0072_add_shared_spaces.sql` adds the functions that create,
+rename, and leave a workspace and change a member's role, and replaces the
+add and remove functions with ones that allow several Owners and keep at
+least one. Apply it with `pnpm db:migrate` before starting the updated API;
+it changes no tables and needs no baseline or runtime-role change.
+
 Migration `0021_add_object_search_function.sql` adds `chronelle_object_search`,
 the read-only function the CloudBase search adapter calls. It changes no
 tables and needs no baseline.

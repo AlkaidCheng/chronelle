@@ -1,9 +1,14 @@
 import {
+  accessibleWorkspaceSchema,
+  workspaceCreateRequestSchema,
+  workspaceLeaveResponseSchema,
   workspaceMemberAddRequestSchema,
   workspaceMemberListResponseSchema,
   workspaceMemberParamsSchema,
   workspaceMemberRemovalResponseSchema,
+  workspaceMemberRoleRequestSchema,
   workspaceMemberSchema,
+  workspaceUpdateRequestSchema,
 } from "@livtales/schemas";
 import type { FastifyInstance, FastifyRequest } from "fastify";
 
@@ -32,13 +37,58 @@ function memberPayload(member: WorkspaceMemberView) {
 }
 
 /**
- * The members of the current workspace: listed for any member; a friend
- * added as viewer or editor, or a member removed, by an Owner.
+ * Workspaces and their members: a new shared workspace for anyone, with
+ * the caller as its Owner; the current workspace renamed by an Owner; its
+ * members listed for any member, a friend added with a role, a member's
+ * role changed, or a member removed by an Owner; and leaving it for any
+ * member but its personal owner.
  */
 export function registerWorkspaceRoutes(
   app: FastifyInstance,
   dependencies: WorkspaceRouteDependencies,
 ): void {
+  app.post(
+    "/api/workspaces",
+    { preHandler: app.authenticate },
+    async (request, reply) => {
+      const input = parseRequest(workspaceCreateRequestSchema, request.body);
+      const workspace = await dependencies.members.create(
+        actorOf(request).userId,
+        input.displayName,
+        request.id,
+      );
+      return reply.code(201).send(accessibleWorkspaceSchema.parse(workspace));
+    },
+  );
+
+  app.patch(
+    "/api/workspaces/current",
+    { preHandler: app.authenticate },
+    async (request) => {
+      const input = parseRequest(workspaceUpdateRequestSchema, request.body);
+      return accessibleWorkspaceSchema.parse(
+        await dependencies.members.rename(
+          actorOf(request),
+          input.displayName,
+          request.id,
+        ),
+      );
+    },
+  );
+
+  app.post(
+    "/api/workspaces/current/leave",
+    { preHandler: app.authenticate },
+    async (request) => {
+      const actor = actorOf(request);
+      await dependencies.members.leave(actor, request.id);
+      return workspaceLeaveResponseSchema.parse({
+        userId: actor.userId,
+        left: true,
+      });
+    },
+  );
+
   app.get(
     "/api/workspaces/current/members",
     { preHandler: app.authenticate },
@@ -64,6 +114,28 @@ export function registerWorkspaceRoutes(
       return reply
         .code(201)
         .send(workspaceMemberSchema.parse(memberPayload(member)));
+    },
+  );
+
+  app.patch(
+    "/api/workspaces/current/members/:userId",
+    { preHandler: app.authenticate },
+    async (request) => {
+      const { userId } = parseRequest(
+        workspaceMemberParamsSchema,
+        request.params,
+      );
+      const input = parseRequest(
+        workspaceMemberRoleRequestSchema,
+        request.body,
+      );
+      const member = await dependencies.members.changeRole(
+        actorOf(request),
+        userId,
+        input.role,
+        request.id,
+      );
+      return workspaceMemberSchema.parse(memberPayload(member));
     },
   );
 

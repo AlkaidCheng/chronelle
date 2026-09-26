@@ -46,7 +46,6 @@ import { CloudBaseMembershipStore } from "../src/workspaces/cloudbase-membership
 import {
   type MembershipStore,
   PostgresMembershipStore,
-  WorkspaceMemberConflictError,
 } from "../src/workspaces/membership-store.js";
 
 // The chronelle_pending_share_* and chronelle_workspace_member_* functions,
@@ -707,12 +706,7 @@ describe.each(backends())("%s workspace members", (name, backend) => {
       ),
     );
     await attempt(() =>
-      backend().members.add(
-        actor,
-        request.item.id,
-        "owner" as never,
-        requestId(),
-      ),
+      backend().members.add(actor, request.item.id, "owner", requestId()),
     );
     await attempt(() =>
       backend().members.remove(actor, ana.user.id, requestId()),
@@ -720,7 +714,7 @@ describe.each(backends())("%s workspace members", (name, backend) => {
     await attempt(() =>
       backend().members.remove(actor, eve.user.id, requestId()),
     );
-    // A second Owner, befriended, is not demoted by being added again.
+    // An Owner changes a co-owner's role by adding them again.
     const coOwner = await invite(backend(), ana, `${name}-meve@example.test`);
     await backend().friends.respond(
       eve.user.id,
@@ -739,10 +733,10 @@ describe.each(backends())("%s workspace members", (name, backend) => {
     expect(refusals).toEqual([
       `${FriendUnavailableError.name}: The friend does not exist.`,
       `${AuthorizationDeniedError.name}: The requested resource is unavailable.`,
-      `${InvalidFriendRequestError.name}: role must be editor or viewer.`,
+      `${InvalidFriendRequestError.name}: A Personal space has one Owner.`,
       `${InvalidFriendRequestError.name}: The member cannot be removed.`,
       `${FriendUnavailableError.name}: The member does not exist.`,
-      `${WorkspaceMemberConflictError.name}: The member is an Owner of this workspace.`,
+      "accepted",
     ]);
 
     await backend().members.remove(actor, ben.user.id, requestId());
@@ -764,6 +758,10 @@ describe.each(backends())("%s workspace members", (name, backend) => {
       [
         "workspace.member_added",
         { memberId: ben.user.id, role: "editor", friendId: request.item.id },
+      ],
+      [
+        "workspace.member_added",
+        { memberId: eve.user.id, role: "viewer", friendId: coOwner.item.id },
       ],
       ["workspace.member_removed", { memberId: ben.user.id, role: "editor" }],
     ]);

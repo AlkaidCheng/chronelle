@@ -1186,23 +1186,51 @@ account is gone), and `role` (the role the account holds as a member;
 null when the workspace is reached through shares alone). Revoking the last
 grant makes that workspace unavailable on the next request.
 
-## Workspace members
+## Workspaces and members
 
-| Method   | Path                                  | Behavior                             |
-| -------- | ------------------------------------- | ------------------------------------ |
-| `GET`    | `/workspaces/current/members`         | List the current workspace's members |
-| `POST`   | `/workspaces/current/members`         | Add a friend as viewer or editor     |
-| `DELETE` | `/workspaces/current/members/:userId` | Remove a member                      |
+The web calls a workspace a space. A personal workspace belongs to one
+account, its only Owner; a shared workspace has any number of Owners and
+always at least one.
+
+| Method   | Path                                  | Behavior                                       |
+| -------- | ------------------------------------- | ---------------------------------------------- |
+| `POST`   | `/workspaces`                         | Create a shared workspace                      |
+| `PATCH`  | `/workspaces/current`                 | Rename the current workspace                   |
+| `POST`   | `/workspaces/current/leave`           | Leave the current workspace                    |
+| `GET`    | `/workspaces/current/members`         | List the current workspace's members           |
+| `POST`   | `/workspaces/current/members`         | Add a friend as a member, or change their role |
+| `PATCH`  | `/workspaces/current/members/:userId` | Change a member's role                         |
+| `DELETE` | `/workspaces/current/members/:userId` | Remove a member                                |
+
+`POST /workspaces` takes `{ displayName }` (trimmed, 1 to 80 characters)
+and returns the new workspace as `availableWorkspaces` lists it, with the
+caller as its Owner (HTTP 201). An Owner renames a shared workspace with
+`PATCH /workspaces/current` and the same body; a personal workspace keeps
+its name (HTTP 400).
 
 Any member reads the list: `{ items }` of `{ userId, displayName, email,
 role, personal, friendId, joinedAt }`, the personal owner first, then by
 name; `friendId` is the caller's accepted connection to that member when
-they are friends. An Owner adds a friend with `{ friendId, role }` where the
-role is `editor` or `viewer`; a friend who already is a member takes the new
-role, and one who is an Owner is refused with `member_conflict` (HTTP 409).
-An Owner removes any member but the personal owner and themselves (HTTP
-400); a member's direct grants in the workspace stay. Membership writes
-`workspace.member_added` and `workspace.member_removed`.
+they are friends. An Owner adds a friend with `{ friendId, role }` (`owner`,
+`editor`, or `viewer`); a friend who already is a member takes the new role.
+An Owner changes any member's role with `{ role }` on
+`PATCH /workspaces/current/members/:userId`. A personal workspace has one
+Owner: making anyone else its Owner, or changing its owner's role, is HTTP 400. Changing the last Owner of a shared workspace to another role is
+`member_conflict` (HTTP 409). An Owner removes any member but the personal
+owner and themselves (HTTP 400); a member's direct grants in the workspace
+stay. Any member leaves with `POST /workspaces/current/leave`, which returns
+`{ userId, left: true }`; the personal owner cannot leave (HTTP 400), and
+the last Owner of a shared workspace makes another member an Owner first
+(`member_conflict`, HTTP 409). A caller who is not an Owner, or not a
+member, gets `resource_unavailable` (HTTP 404).
+
+Each change locks the workspace first, so changes to one workspace's members
+run one at a time. They write `workspace.created`, `workspace.renamed`,
+`workspace.member_added`, `workspace.member_role_changed`,
+`workspace.member_removed`, and `workspace.member_left`. Both backends apply
+the same rules (`chronelle_workspace_create`, `_update`, `_member_add`,
+`_member_role`, `_member_remove`, and `chronelle_workspace_leave`, migration
+0072, on the rpc path; the readiness check requires them).
 
 ## Mutation contract
 

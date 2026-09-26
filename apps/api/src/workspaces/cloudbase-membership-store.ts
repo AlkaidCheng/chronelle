@@ -2,6 +2,7 @@ import { AuthorizationDeniedError } from "@livtales/authorization";
 import {
   type CloudBaseRdbClient,
   CloudBaseRpcError,
+  type Role,
   roles,
 } from "@livtales/db";
 
@@ -21,20 +22,35 @@ import {
   type MembershipStore,
   WorkspaceMemberConflictError,
   type WorkspaceMemberView,
+  type WorkspaceView,
 } from "./membership-store.js";
 
-function memberView(row: CloudBaseRow): WorkspaceMemberView {
-  const role = text(row.role, "role");
+function roleOf(value: unknown): Role {
+  const role = text(value, "role");
   if (!roles.includes(role as never))
     throw new Error("CloudBase returned an invalid role.");
+  return role as Role;
+}
+
+function memberView(row: CloudBaseRow): WorkspaceMemberView {
   return {
     userId: text(row.userId, "member id"),
     displayName: text(row.displayName, "member name"),
     email: nullableText(row.email, "member email"),
-    role: role as WorkspaceMemberView["role"],
+    role: roleOf(row.role),
     personal: row.personal === true,
     friendId: nullableText(row.friendId, "friendId"),
     joinedAt: instant(row.joinedAt, "joinedAt"),
+  };
+}
+
+function workspaceView(row: CloudBaseRow): WorkspaceView {
+  return {
+    id: text(row.id, "workspace id"),
+    displayName: text(row.displayName, "workspace name"),
+    personal: row.personal === true,
+    ownerDisplayName: nullableText(row.ownerDisplayName, "owner name"),
+    role: row.role === null || row.role === undefined ? null : roleOf(row.role),
   };
 }
 
@@ -58,9 +74,10 @@ function failure(error: unknown): Error {
 }
 
 /**
- * Membership through the gateway: chronelle_workspace_member_list, _add,
- * and _remove (migration 0052), with the PostgreSQL store's rules and
- * messages.
+ * Workspaces and membership through the gateway: chronelle_workspace_create
+ * and _update, chronelle_workspace_member_list, _add, _role, and _remove,
+ * and chronelle_workspace_leave (migrations 0052 and 0072), with the
+ * PostgreSQL store's rules and messages.
  */
 export class CloudBaseMembershipStore implements MembershipStore {
   readonly #client: Pick<CloudBaseRdbClient, "rpc">;
@@ -75,6 +92,41 @@ export class CloudBaseMembershipStore implements MembershipStore {
     } catch (error) {
       throw failure(error);
     }
+  }
+
+  async create(
+    userId: string,
+    displayName: string,
+    requestId: string,
+  ): Promise<WorkspaceView> {
+    return workspaceView(
+      record(
+        await this.#call("chronelle_workspace_create", {
+          user_id: userId,
+          request_id: requestId,
+          display_name: displayName,
+        }),
+        "workspace",
+      ),
+    );
+  }
+
+  async rename(
+    actor: MembershipActor,
+    displayName: string,
+    requestId: string,
+  ): Promise<WorkspaceView> {
+    return workspaceView(
+      record(
+        await this.#call("chronelle_workspace_update", {
+          workspace_id: actor.workspaceId,
+          user_id: actor.userId,
+          request_id: requestId,
+          display_name: displayName,
+        }),
+        "workspace",
+      ),
+    );
   }
 
   async list(actor: MembershipActor): Promise<readonly WorkspaceMemberView[]> {
@@ -93,7 +145,7 @@ export class CloudBaseMembershipStore implements MembershipStore {
   async add(
     actor: MembershipActor,
     friendId: string,
-    role: "editor" | "viewer",
+    role: Role,
     requestId: string,
   ): Promise<WorkspaceMemberView> {
     return memberView(
@@ -103,6 +155,26 @@ export class CloudBaseMembershipStore implements MembershipStore {
           user_id: actor.userId,
           request_id: requestId,
           friend_id: friendId,
+          role,
+        }),
+        "member",
+      ),
+    );
+  }
+
+  async changeRole(
+    actor: MembershipActor,
+    memberId: string,
+    role: Role,
+    requestId: string,
+  ): Promise<WorkspaceMemberView> {
+    return memberView(
+      record(
+        await this.#call("chronelle_workspace_member_role", {
+          workspace_id: actor.workspaceId,
+          user_id: actor.userId,
+          request_id: requestId,
+          member_id: memberId,
           role,
         }),
         "member",
@@ -120,6 +192,14 @@ export class CloudBaseMembershipStore implements MembershipStore {
       user_id: actor.userId,
       request_id: requestId,
       member_id: memberId,
+    });
+  }
+
+  async leave(actor: MembershipActor, requestId: string): Promise<void> {
+    await this.#call("chronelle_workspace_leave", {
+      workspace_id: actor.workspaceId,
+      user_id: actor.userId,
+      request_id: requestId,
     });
   }
 }
