@@ -1642,16 +1642,20 @@ return state.
 
 Users see the product as LivTales. The logo is the LivTales lockup: the
 Foam Crest mark, an open book whose right page rises into a sail, beside
-the two-tone word (Liv in the page colour, Tales in the ink).
-`components/brand-logo.tsx` draws it as inline SVG from
-`brand/logo/header-logo-light.svg`, 32 px tall in the sidebar, the phone
-drawer, and above the heading of the not-found and error pages, and 40 px
-on the account screens and the code page. It is always a link (to Events,
-or to Sign in on the account screens), named "LivTales" by the image. Each
-part of the drawing takes a `--brand-*` colour from `app/tokens.css` that
-follows the light or dark appearance but not the palette; with forced
-colours the whole logo takes the link colour, as the one-colour logo does.
-The tab title is "LivTales".
+the two-tone word (Liv and Tales). `components/brand-logo.tsx` draws it as
+inline SVG from `brand/logo/header-logo-light.svg`, 26 px tall in the
+sidebar, the phone drawer, and above the heading of the not-found and error
+pages, and 40 px on the account screens and the code page. It is always a
+link (to Events, or to Sign in on the account screens), named "LivTales" by
+the image. The logo takes its colours from the chosen palette and
+appearance through the `--brand-*` tokens in `app/tokens.css`: the sail
+bands and the left page are three strengths of the accent mixed toward the
+canvas, Liv takes the lighter band's colour, and Tales the ink. In Light the
+lower band is the strongest; in Dark the upper band is the brightest. So
+the logo is terracotta on Ink & Paper, green on Celadon, and blue on Modern
+Neutral. The favicon, app icons, link preview, and Mini Program art keep the
+fixed brand colours. With forced colours the whole logo takes the link
+colour, as the one-colour logo does. The tab title is "LivTales".
 
 The browser tab shows `app/icon.svg`, the flat mark on a blue tile, with
 `app/favicon.ico` (16, 32 and 48 px) for browsers without SVG icons. A

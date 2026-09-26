@@ -84,14 +84,28 @@
   --on-accent: light-dark(#ffffff, #18263e);
 }
 
-/* The LivTales logo's colours, the fills of brand/logo/header-logo-light.svg
-   and header-logo-dark.svg: they follow the appearance, never the palette. */
+/* The in-app logo's colours follow the palette: the sail bands and the left
+   page are three strengths of the accent, "Liv" takes the lighter band's
+   colour and "Tales" the ink. In the light appearance the lower band is the
+   strongest; in the dark one the upper band is the brightest. They are set
+   on the root, where the palette attribute sits, so each var() reads the
+   chosen palette. The brand/ sources (favicon, app icons, link preview, Mini
+   Program art) keep the fixed brand colours. */
 :root {
-  --brand-page: light-dark(#10a3c2, #5fdde8);
-  --brand-sail-upper: light-dark(#2a78e4, #a4daff);
-  --brand-sail-lower: light-dark(#1d3a9e, #7fb4ff);
-  --brand-liv: light-dark(#0a7c94, #5fdde8);
-  --brand-tales: light-dark(#141b34, #eaf1ff);
+  --brand-page: light-dark(
+    color-mix(in oklab, var(--accent) 48%, var(--canvas)),
+    color-mix(in oklab, var(--accent) 62%, var(--canvas))
+  );
+  --brand-sail-upper: light-dark(
+    color-mix(in oklab, var(--accent) 72%, var(--canvas)),
+    var(--accent)
+  );
+  --brand-sail-lower: light-dark(
+    var(--accent),
+    color-mix(in oklab, var(--accent) 78%, var(--canvas))
+  );
+  --brand-liv: var(--brand-sail-upper);
+  --brand-tales: var(--ink);
 }
 
 :root[data-density="compact"] {

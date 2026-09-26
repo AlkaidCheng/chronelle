@@ -1258,9 +1258,9 @@ h3 {
   text-transform: uppercase;
 }
 
-/* The logo as a link: the lockup at the 32 px its drawing is tuned for,
-   unless a placement sets --brand-height. Keep half the mark's height (16 px
-   at 32) clear around it. */
+/* The logo as a link: 26 px tall, a step quieter than the 32 px its drawing
+   is pixel-tuned for, unless a placement sets --brand-height. Keep half the
+   mark's height (13 px at 26) clear around it. */
 .brand {
   border-radius: 4px;
   display: inline-flex;
@@ -1269,7 +1269,7 @@ h3 {
 
 .brand-logo {
   display: block;
-  height: var(--brand-height, 32px);
+  height: var(--brand-height, 26px);
   stroke: none;
   width: auto;
 }
