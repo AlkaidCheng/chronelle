@@ -141,6 +141,7 @@ describe("runtime database privileges", () => {
           "person_labels",
           "workspace_members",
           "sections",
+          "object_relations",
         ].includes(table.name),
       );
     }
@@ -154,7 +155,6 @@ describe("runtime database privileges", () => {
     "DROP TABLE command_receipts",
     "TRUNCATE objects",
     "DELETE FROM objects",
-    "DELETE FROM object_relations",
     "UPDATE audit_events SET action = 'forged'",
     "UPDATE object_revisions SET object_version = 99",
     "UPDATE event_context_commands SET request_hash = repeat('0', 64)",
@@ -170,6 +170,45 @@ describe("runtime database privileges", () => {
     await expect(runtime.unsafe(statement)).rejects.toMatchObject({
       code: "42501",
     });
+  });
+
+  it("deletes a relation only inside a move's transaction", async () => {
+    await provision();
+    const sql = database.connection.sql;
+    const userId = randomUUID();
+    const workspaceId = randomUUID();
+    const [eventId, taskId, relationId] = [
+      randomUUID(),
+      randomUUID(),
+      randomUUID(),
+    ];
+    await sql`
+      INSERT INTO users (id, identity_provider, provider_subject, display_name)
+      VALUES (${userId}, 'test', ${userId}, 'Owner')
+    `;
+    await sql`
+      INSERT INTO workspaces (id, display_name, created_by)
+      VALUES (${workspaceId}, 'Space', ${userId})
+    `;
+    await sql`
+      INSERT INTO objects (id, workspace_id, object_type, display_name, created_by, permission_scope_id)
+      VALUES (${eventId}, ${workspaceId}, 'event', 'Party', ${userId}, ${eventId}),
+        (${taskId}, ${workspaceId}, 'task', 'Invite', ${userId}, ${eventId})
+    `;
+    await sql`
+      INSERT INTO object_relations (id, workspace_id, source_object_id, relation_type, target_object_id, created_by)
+      VALUES (${relationId}, ${workspaceId}, ${eventId}, 'includes', ${taskId}, ${userId})
+    `;
+    await expect(
+      runtime`DELETE FROM object_relations WHERE id = ${relationId}`,
+    ).rejects.toMatchObject({ code: "55000" });
+    await runtime.begin(async (move) => {
+      await move`SELECT set_config('chronelle.relation_drop', 'move', true)`;
+      await move`DELETE FROM object_relations WHERE id = ${relationId}`;
+    });
+    expect(
+      await sql`SELECT id FROM object_relations WHERE id = ${relationId}`,
+    ).toEqual([]);
   });
 
   it("removes public and column grants without granting future tables", async () => {
