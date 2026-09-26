@@ -37,7 +37,7 @@ import {
   LocalFilesystemStorageProvider,
   type StorageProvider,
 } from "@livtales/storage";
-import { and, desc, eq, sql } from "drizzle-orm";
+import { and, desc, eq, inArray, sql } from "drizzle-orm";
 import type { FastifyInstance, InjectOptions } from "fastify";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { buildApp } from "../src/app.js";
@@ -209,6 +209,95 @@ async function appendRevision(
       snapshot: { ...previous.snapshot, version, ...snapshotPatch },
     });
   });
+}
+
+/**
+ * An Event of the origin holding a Document and a consumed upload under keys
+ * the origin minted, as raw rows without history, moved to the destination
+ * by the one UPDATE of objects.workspace_id a move is made of. The
+ * destination then records the Document's revision, which names the key.
+ */
+async function moveRecordsWithFiles(origin: Session, destination: Session) {
+  const db = database.connection.db;
+  const eventId = createId();
+  const documentId = createId();
+  const keys = { document: storageKey(origin), upload: storageKey(origin) };
+  await db.insert(objects).values(
+    [
+      { id: eventId, objectType: "event" as const, displayName: "Moved" },
+      { id: documentId, objectType: "document" as const, displayName: "In" },
+    ].map((object) => ({
+      ...object,
+      workspaceId: origin.workspace.id,
+      createdBy: origin.user.id,
+      permissionScopeId: eventId,
+    })),
+  );
+  await db.insert(documents).values({
+    objectId: documentId,
+    workspaceId: origin.workspace.id,
+    storageProvider: provider.providerId,
+    storageKey: keys.document,
+    originalFilename: "In.txt",
+    mimeType: "text/plain",
+    sizeBytes: 12n,
+    checksumSha256: "a".repeat(64),
+  });
+  await db.insert(documentTransferAuthorizations).values({
+    id: createId(),
+    workspaceId: origin.workspace.id,
+    operation: "upload",
+    tokenHash: createHash("sha256").update(keys.upload).digest("hex"),
+    resourceId: eventId,
+    storageProvider: provider.providerId,
+    storageKey: keys.upload,
+    originalFilename: "upload.txt",
+    mimeType: "text/plain",
+    sizeBytes: 12n,
+    checksumSha256: "b".repeat(64),
+    authorizedBy: origin.user.id,
+    createdAt: currentTime,
+    expiresAt: new Date(currentTime.getTime() + 60_000),
+    consumedAt: currentTime,
+  });
+  await db
+    .update(objects)
+    .set({ workspaceId: destination.workspace.id })
+    .where(inArray(objects.id, [eventId, documentId]));
+
+  const auditEventId = createId();
+  const requestId = createId();
+  const actor = { actorType: "user" as const, actorId: destination.user.id };
+  await db.insert(auditEvents).values({
+    id: auditEventId,
+    workspaceId: destination.workspace.id,
+    resourceId: documentId,
+    ...actor,
+    requestId,
+    action: "document.created",
+    metadata: {},
+  });
+  await db.insert(objectRevisions).values({
+    id: createId(),
+    workspaceId: destination.workspace.id,
+    objectId: documentId,
+    objectVersion: 1,
+    mutationKind: "created",
+    ...actor,
+    requestId,
+    auditEventId,
+    snapshotSchemaVersion: 1,
+    snapshot: {
+      id: documentId,
+      workspaceId: destination.workspace.id,
+      objectType: "document",
+      version: 1,
+      displayName: "In",
+      storageProvider: provider.providerId,
+      storageKey: keys.document,
+    },
+  });
+  return keys;
 }
 
 function principal(session: Session) {
@@ -448,6 +537,82 @@ describe.sequential("workspace storage inventory", () => {
         entries: { canonical: 0, historicalOnly: 0, unreferenced: 0 },
       },
     );
+  });
+
+  it("counts a file in the workspace whose records name it, whichever prefix holds it", async () => {
+    const origin = await signIn();
+    const destination = await signIn("other@example.com");
+    await attach(origin, (await createEvent(origin)).id);
+    const { document: movedKey, upload: uploadKey } =
+      await moveRecordsWithFiles(origin, destination);
+    const orphanKey = storageKey(origin);
+    for (const key of [movedKey, uploadKey, orphanKey])
+      await writeFile(join(root, key), "stored bytes");
+    const list = vi.spyOn(provider, "listObjects");
+    const report = async (session: Session) => {
+      const response = await request(session);
+      expect(response.statusCode).toBe(200);
+      return response;
+    };
+
+    const originReport = await report(origin);
+    expect(
+      storageInventoryResponseSchema.parse(originReport.json()),
+    ).toMatchObject({
+      references: {
+        canonical: 1,
+        historicalOnly: 0,
+        missingCanonical: 0,
+        missingHistoricalOnly: 0,
+      },
+      entries: {
+        canonical: 1,
+        historicalOnly: 0,
+        pendingUpload: 0,
+        expiredUpload: 0,
+        unreferenced: 1,
+        unsupported: 0,
+      },
+    });
+    for (const secret of [destination.workspace.id, movedKey, uploadKey])
+      expect(originReport.body).not.toContain(secret);
+    expect(
+      storageInventoryResponseSchema.parse((await report(destination)).json()),
+    ).toMatchObject({
+      references: {
+        canonical: 1,
+        historicalOnly: 0,
+        missingCanonical: 0,
+        missingHistoricalOnly: 0,
+      },
+      entries: {
+        canonical: 1,
+        historicalOnly: 0,
+        pendingUpload: 1,
+        expiredUpload: 0,
+        unreferenced: 0,
+        unsupported: 0,
+      },
+    });
+    const originPrefix = `workspaces/${origin.workspace.id}/documents`;
+    expect(list.mock.calls.map(([prefix]) => prefix)).toEqual([
+      originPrefix,
+      `workspaces/${destination.workspace.id}/documents`,
+      originPrefix,
+    ]);
+
+    await rm(join(root, movedKey));
+    expect(
+      storageInventoryResponseSchema.parse((await report(destination)).json()),
+    ).toMatchObject({
+      references: { canonical: 1, missingCanonical: 1 },
+      entries: { canonical: 0, pendingUpload: 1, unreferenced: 0 },
+    });
+    expect(
+      storageInventoryResponseSchema.parse((await report(origin)).json())
+        .entries,
+    ).toMatchObject({ canonical: 1, unreferenced: 1 });
+    expect(await readFile(join(root, uploadKey), "utf8")).toBe("stored bytes");
   });
 
   it("denies anonymous, cross-workspace, shared object owners, editors, and viewers before enumeration", async () => {

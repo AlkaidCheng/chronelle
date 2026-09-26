@@ -2,7 +2,11 @@ import {
   AuthorizationDeniedError,
   type UserPrincipal,
 } from "@livtales/authorization";
-import { CloudBaseRpcError, type CloudBaseRdbClient } from "@livtales/db";
+import {
+  CloudBaseRpcError,
+  type CloudBaseRdbClient,
+  type CloudBaseRdbFilter,
+} from "@livtales/db";
 
 import {
   cloudbaseInteger,
@@ -14,12 +18,27 @@ import {
 } from "./cloudbase-read-support.js";
 import { mapRpcError } from "./cloudbase-rpc-errors.js";
 import {
+  assertOwnDocumentKeys,
   classifyReferences,
-  documentPrefix,
   type StorageInventoryReadRepository,
   type StorageReferenceRows,
   type StorageReferences,
 } from "./storage-inventory-reads.js";
+
+/** The largest `in` list of storage keys in one gateway request, sized like `cloudbaseIdBatchSize` for keys about 2.6 times as long as an id. */
+const storageKeyBatchSize = 75;
+
+/** The tables whose rows name a stored file, with the filter that selects the rows that count. */
+const keyReferenceTables: readonly (readonly [
+  string,
+  readonly CloudBaseRdbFilter[],
+])[] = [
+  ["documents", []],
+  [
+    "document_transfer_authorizations",
+    [{ column: "operation", operator: "eq", value: "upload" }],
+  ],
+];
 
 function cloudbaseList(value: unknown, label: string): readonly unknown[] {
   if (!Array.isArray(value))
@@ -70,9 +89,10 @@ function cloudbaseReferenceRows(result: unknown): StorageReferenceRows {
 
 /**
  * The storage inventory's reads through the gateway: the Owner check from
- * workspace membership, and the referenced keys from
+ * workspace membership, the referenced keys from
  * chronelle_storage_references, classified by the same rules as the
- * PostgreSQL read.
+ * PostgreSQL read, and the keys another workspace names from its document
+ * and upload transfer rows, selected by key.
  */
 export class CloudBaseStorageInventoryReadRepository implements StorageInventoryReadRepository {
   readonly #client: Pick<CloudBaseRdbClient, "capabilities" | "select" | "rpc">;
@@ -117,8 +137,39 @@ export class CloudBaseStorageInventoryReadRepository implements StorageInventory
     return classifyReferences(
       cloudbaseReferenceRows(result),
       providerId,
-      documentPrefix(principal.workspaceId),
       maximumEntries,
     );
+  }
+
+  async findReferencedElsewhere(
+    principal: UserPrincipal,
+    providerId: string,
+    keys: readonly string[],
+  ): Promise<ReadonlySet<string>> {
+    await this.assertWorkspaceOwner(principal);
+    assertOwnDocumentKeys(principal, keys);
+    const found = new Set<string>();
+    const unique = [...new Set(keys)];
+    for (let start = 0; start < unique.length; start += storageKeyBatchSize) {
+      const batch = unique.slice(start, start + storageKeyBatchSize);
+      for (const [table, filters] of keyReferenceTables) {
+        const rows = await this.#client.select<Record<string, unknown>>(table, {
+          columns: "workspace_id,storage_key",
+          filters: [
+            { column: "storage_provider", operator: "eq", value: providerId },
+            ...filters,
+            { column: "storage_key", operator: "in", value: batch },
+          ],
+        });
+        for (const row of rows) {
+          if (
+            cloudbaseText(row.workspace_id, "workspace id") !==
+            principal.workspaceId
+          )
+            found.add(cloudbaseText(row.storage_key, "storage key"));
+        }
+      }
+    }
+    return found;
   }
 }

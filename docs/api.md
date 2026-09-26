@@ -947,6 +947,24 @@ with `Cache-Control: private, no-store`.
 Neither Document responses nor transfer responses expose a storage key or
 permanent public URL.
 
+## Storage inventory
+
+| Method | Path                           | Behavior                                      |
+| ------ | ------------------------------ | --------------------------------------------- |
+| `GET`  | `/workspace/storage-inventory` | Count the workspace's stored files, read-only |
+
+An Owner of the current workspace reads aggregate counts of its document
+references and stored files for the configured provider; anyone else gets
+`resource_unavailable` (HTTP 404). The request takes no parameters, and the
+response names no key, file, or object. Files count by the records that name
+them, not by the workspace prefix their storage keys carry: a Document or upload
+authorization moved to another workspace keeps its file's key, so the file
+counts in the workspace the record lives in; the workspace it was uploaded in
+leaves it out of its counts, so it is never reported as unreferenced there. The
+report deletes and repairs nothing. A busy scan is `inventory_busy` (HTTP 429); a scan beyond
+its bounds or with a storage error is `inventory_unavailable` (HTTP 503). See
+[Storage reconciliation](storage-reconciliation.md) for each count.
+
 ## Friends
 
 Friends belong to the account, not to a workspace: a connection is a mutual

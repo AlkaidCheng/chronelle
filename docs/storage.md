@@ -111,10 +111,12 @@ or cloud account is provisioned by the application.
 ## Read-only inventory
 
 Both adapters support the existing workspace-owner
-[storage inventory](storage-reconciliation.md). COS lists only the active
-workspace's document prefix, using a flat delimiter and at most 1000 entries per
-request. It reads bucket policy and listing metadata, not object contents or
-checksums. Nested prefixes remain unsupported entries and are never traversed.
+[storage inventory](storage-reconciliation.md). COS lists the active workspace's
+document prefix, and another workspace's document prefix only where the active
+workspace's records name keys under it (files of records moved in), using a flat
+delimiter and at most 1000 entries per request. It reads bucket policy and
+listing metadata, not object contents or checksums. Nested prefixes remain
+unsupported entries and are never traversed.
 Listing requires no additional REST endpoint, database migration, or client input.
 
 The adapter validates response scope, encoding, page bounds, and continuation

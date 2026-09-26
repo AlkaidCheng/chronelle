@@ -13,7 +13,7 @@ import {
 } from "@livtales/db";
 import { objectIdParamsSchema } from "@livtales/schemas";
 import { StorageInventoryUnavailableError } from "@livtales/storage";
-import { and, eq, sql } from "drizzle-orm";
+import { and, eq, inArray, ne, sql } from "drizzle-orm";
 
 /** The storage keys a workspace references, classified for one provider. */
 export interface StorageReferences {
@@ -41,10 +41,11 @@ export interface StorageReferenceRows {
 }
 
 /**
- * Read boundary for the storage inventory: the workspace Owner check and
- * the referenced storage keys of one provider. Implementations refuse any
- * principal who is not an Owner, and refuse a workspace whose reference
- * sets exceed the inventory bound.
+ * Read boundary for the storage inventory: the workspace Owner check, the
+ * referenced storage keys of one provider, and which unreferenced keys
+ * under the workspace's own prefix another workspace's records name.
+ * Implementations refuse any principal who is not an Owner, and refuse a
+ * workspace whose reference sets exceed the inventory bound.
  */
 export interface StorageInventoryReadRepository {
   assertWorkspaceOwner(principal: UserPrincipal): Promise<void>;
@@ -54,24 +55,61 @@ export interface StorageInventoryReadRepository {
     observedAt: Date,
     maximumEntries: number,
   ): Promise<StorageReferences>;
+  /**
+   * Of the given keys, all under the principal's own document prefix, the
+   * ones a document or an upload transfer of another workspace names for
+   * the provider: files whose records moved there, which that workspace's
+   * inventory counts. Keys under any other prefix are refused.
+   */
+  findReferencedElsewhere(
+    principal: UserPrincipal,
+    providerId: string,
+    keys: readonly string[],
+  ): Promise<ReadonlySet<string>>;
 }
 
-export function isDocumentKey(key: string, prefix: string): boolean {
-  return (
-    key.startsWith(`${prefix}/`) &&
-    objectIdParamsSchema.safeParse({ id: key.slice(prefix.length + 1) }).success
-  );
-}
-
+/** Where a workspace's uploads are stored. */
 export function documentPrefix(workspaceId: string): string {
   return `workspaces/${workspaceId}/documents`;
 }
 
-/** Classifies the rows for one provider; any malformed reference or an oversized set is a refusal. */
+const documentKeyPattern = /^workspaces\/([^/]+)\/documents\/([^/]+)$/;
+
+function isId(value: string): boolean {
+  return objectIdParamsSchema.safeParse({ id: value }).success;
+}
+
+/**
+ * The document prefix a key is stored under, or undefined when the key is
+ * not a document key. A file keeps the key it was uploaded under when its
+ * record moves to another workspace, so the prefix says where the file is
+ * stored, not whose records name it.
+ */
+export function documentKeyPrefix(key: string): string | undefined {
+  const [, workspaceId = "", id = ""] = documentKeyPattern.exec(key) ?? [];
+  return isId(workspaceId) && isId(id)
+    ? documentPrefix(workspaceId)
+    : undefined;
+}
+
+/** Refuses keys outside the principal's own prefix: another workspace's files are not the principal's to look up. */
+export function assertOwnDocumentKeys(
+  principal: UserPrincipal,
+  keys: readonly string[],
+): void {
+  const prefix = documentPrefix(principal.workspaceId);
+  if (keys.some((key) => documentKeyPrefix(key) !== prefix))
+    throw new StorageInventoryUnavailableError();
+}
+
+/**
+ * Classifies the rows for one provider; any malformed reference or an
+ * oversized set is a refusal. A reference may name a key under any
+ * workspace's prefix, since a record keeps its file's key when it moves.
+ */
 export function classifyReferences(
   rows: StorageReferenceRows,
   providerId: string,
-  prefix: string,
   maximumEntries: number,
 ): StorageReferences {
   if (
@@ -88,7 +126,7 @@ export function classifyReferences(
       row.objectType !== "document" ||
       !row.provider?.trim() ||
       row.key === null ||
-      !isDocumentKey(row.key, prefix)
+      documentKeyPrefix(row.key) === undefined
     ) {
       throw new StorageInventoryUnavailableError();
     }
@@ -101,7 +139,7 @@ export function classifyReferences(
   const allKeys = new Set([...canonical, ...historical, ...uploads.keys()]);
   if (
     allKeys.size > maximumEntries ||
-    [...allKeys].some((key) => !isDocumentKey(key, prefix))
+    [...allKeys].some((key) => documentKeyPrefix(key) === undefined)
   )
     throw new StorageInventoryUnavailableError();
   return { canonical, historical, uploads };
@@ -187,9 +225,46 @@ export class PostgresStorageInventoryReadRepository implements StorageInventoryR
             uploads: uploadRows,
           },
           providerId,
-          documentPrefix(principal.workspaceId),
           maximumEntries,
         );
+      },
+    );
+  }
+
+  async findReferencedElsewhere(
+    principal: UserPrincipal,
+    providerId: string,
+    keys: readonly string[],
+  ): Promise<ReadonlySet<string>> {
+    return withReadAuthorization(
+      this.#database,
+      async (transaction, authorization) => {
+        await transaction.execute(sql`set local statement_timeout = '5s'`);
+        await authorization.assertWorkspaceOwner(principal);
+        assertOwnDocumentKeys(principal, keys);
+        if (keys.length === 0) return new Set<string>();
+        const documentRows = await transaction
+          .select({ key: documents.storageKey })
+          .from(documents)
+          .where(
+            and(
+              eq(documents.storageProvider, providerId),
+              inArray(documents.storageKey, [...keys]),
+              ne(documents.workspaceId, principal.workspaceId),
+            ),
+          );
+        const uploadRows = await transaction
+          .select({ key: transfers.storageKey })
+          .from(transfers)
+          .where(
+            and(
+              eq(transfers.storageProvider, providerId),
+              eq(transfers.operation, "upload"),
+              inArray(transfers.storageKey, [...keys]),
+              ne(transfers.workspaceId, principal.workspaceId),
+            ),
+          );
+        return new Set([...documentRows, ...uploadRows].map((row) => row.key));
       },
     );
   }

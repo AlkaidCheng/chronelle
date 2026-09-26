@@ -134,9 +134,13 @@ semantics and require separate adapter validation.
 The [storage inventory](storage-reconciliation.md) requires Owner workspace
 membership through `AuthorizationService.assertWorkspaceOwner`. A resource Owner
 grant does not confer this authority. Ownership is checked before starting,
-inside the read-only reference snapshot, and after storage I/O. Only aggregate
-counts are returned, including canonical trash and history references; no object
-identities or file keys are disclosed.
+inside the read-only reference snapshot, inside the lookup of other workspaces'
+records, and after storage I/O. Only aggregate counts are returned, including
+canonical trash and history references; no object identities or file keys are
+disclosed. A report counts the files its own workspace's records name and the
+unnamed files under its own prefix; the lookup that leaves out files another
+workspace's records name accepts only keys under the caller's own prefix, so
+nothing about another workspace's files enters the report.
 
 The Event collection is also a protected query. It selects candidates only in
 the active workspace and applies the canonical View decision to every returned
