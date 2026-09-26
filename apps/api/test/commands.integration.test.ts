@@ -706,7 +706,7 @@ describe("reversible content commands", () => {
     ).toHaveLength(51);
   }, 30_000);
 
-  it("enforces immutable command history and same-workspace revision references in PostgreSQL", async () => {
+  it("enforces immutable command history and references to existing revisions in PostgreSQL", async () => {
     const owner = await signIn();
     const stranger = await signIn("stranger@example.com");
     const event = await create(owner);
@@ -721,10 +721,34 @@ describe("reversible content commands", () => {
         database.connection.sql.unsafe(`DELETE FROM ${table}`),
       ).rejects.toMatchObject({ code: "55000" });
     }
-    await expect(
-      database.connection
-        .sql`INSERT INTO command_changes (workspace_id, user_id, command_id, object_id, before_version, after_version) VALUES (${owner.workspace.id}, ${owner.user.id}, ${command.commandId}, ${other.id}, 1, 2)`,
-    ).rejects.toMatchObject({ code: "23503" });
+    const change = (objectId: string, beforeVersion: number) =>
+      database.connection.sql`
+        INSERT INTO command_changes (workspace_id, user_id, command_id, object_id, before_version, after_version)
+        VALUES (${owner.workspace.id}, ${owner.user.id}, ${command.commandId}, ${objectId},
+          ${beforeVersion}, ${beforeVersion + 1})
+      `;
+    // A change names revisions by object and version; both must exist.
+    await expect(change(other.id, 1)).rejects.toMatchObject({
+      code: "23503",
+      constraint_name: "command_changes_after_revision_fk",
+    });
+    // A revision is the object's wherever it was written, so a change may
+    // name one written in another workspace, as after a move.
+    await forward(stranger, [edit(other.id, 1, "Second")]);
+    await change(other.id, 1);
+    expect(
+      await database.connection.sql`
+        SELECT c.workspace_id AS change_workspace, r.workspace_id AS revision_workspace
+        FROM command_changes c
+        JOIN object_revisions r ON r.object_id = c.object_id AND r.object_version = c.before_version
+        WHERE c.object_id = ${other.id} AND c.command_id = ${command.commandId}
+      `,
+    ).toEqual([
+      {
+        change_workspace: owner.workspace.id,
+        revision_workspace: stranger.workspace.id,
+      },
+    ]);
   });
 
   it("rechecks permissions after a concurrent grant revocation wins the workspace fence", async () => {
