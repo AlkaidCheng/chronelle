@@ -34,7 +34,6 @@ export async function recordObjectRevision<
       .from(objectRevisions)
       .where(
         and(
-          eq(objectRevisions.workspaceId, resource.workspaceId),
           eq(objectRevisions.objectId, resource.id),
           eq(objectRevisions.objectVersion, resource.version - 1),
         ),

@@ -119,6 +119,16 @@ either required ledger entry rolls back the business change. Object services
 validate state, authorize access, and atomically enforce the expected version.
 See [Object revisions](revisions.md) for snapshot, history, and baseline contracts.
 
+Ledger rows (audit events, revisions, command changes, Event page revisions,
+and context and create command records) keep the workspace they were written
+in, a fact about where a change happened, and name their object by id alone.
+Nothing in a ledger is updated, and an object's history is read by its id,
+after the object's own authorization, on both backends; a read keyed by a
+command stays in the command's workspace. A record that changes workspace
+therefore keeps its history, and its mutable rows (typed rows, relations,
+grants, pending shares, transfer authorizations, sections) follow it through
+`ON UPDATE CASCADE` keys on their `(workspace_id, ...)` references.
+
 `withReadAuthorization` owns read transaction configuration and constructs an
 evaluator bound to that transaction. Service constructors accept a database
 connection; composed object/relation services instead receive an explicit

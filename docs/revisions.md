@@ -9,10 +9,15 @@ for calendar, search, or other planning projections.
 
 ## Storage and serialization
 
-`object_revisions` identifies the canonical workspace, object, and version. It
+`object_revisions` identifies the object and version, and the workspace the
+revision was written in, which is the object's workspace at that time. It
 also records mutation kind, actor, request ID, capture time, snapshot schema
-version, and its audit event ID. `(workspace_id, object_id, object_version)` is
-unique. PostgreSQL rejects revision UPDATE, DELETE, and TRUNCATE operations.
+version, and its audit event ID. `(object_id, object_version)` is unique, and
+the revision names its object by id alone, so a record that changes workspace
+keeps its history where it was written and reads it as its own: both
+backends read an object's revisions by object id, after the object's own
+authorization. A new revision is always written in the object's current
+workspace. PostgreSQL rejects revision UPDATE, DELETE, and TRUNCATE operations.
 These guards protect application use, not a database administrator who can alter
 the schema. Backups remain necessary.
 
@@ -96,7 +101,8 @@ Unknown snapshot schemas, deleted states, and requests with no eligible changes
 are rejected.
 
 A `restored` revision references its earlier source through
-`source_revision_id`, enforced against the same canonical object in PostgreSQL.
+`source_revision_id`, enforced against the same canonical object in PostgreSQL,
+wherever the source was written.
 Its typed `*.restored` audit records the source revision, source version, and
 previous current version. Later history remains readable. A failed write rolls
 back canonical state, typed fields, revision, and audit together.

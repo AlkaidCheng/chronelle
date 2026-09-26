@@ -47,12 +47,7 @@ async function readLayout(
   const [revision] = await transaction
     .select()
     .from(eventPageRevisions)
-    .where(
-      and(
-        eq(eventPageRevisions.workspaceId, workspaceId),
-        eq(eventPageRevisions.eventId, eventId),
-      ),
-    )
+    .where(eq(eventPageRevisions.eventId, eventId))
     .orderBy(desc(eventPageRevisions.version))
     .limit(1);
   return eventLayoutResponseSchema.parse({
@@ -146,7 +141,6 @@ export class EventLayoutService {
           .from(eventPageRevisions)
           .where(
             and(
-              eq(eventPageRevisions.workspaceId, principal.workspaceId),
               eq(eventPageRevisions.eventId, eventId),
               input.beforeVersion === undefined
                 ? undefined
@@ -206,7 +200,6 @@ export class EventLayoutService {
             .from(eventPageRevisions)
             .where(
               and(
-                eq(eventPageRevisions.workspaceId, principal.workspaceId),
                 eq(eventPageRevisions.eventId, eventId),
                 eq(eventPageRevisions.version, input.targetVersion),
               ),

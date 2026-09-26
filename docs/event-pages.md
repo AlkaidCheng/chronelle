@@ -127,11 +127,13 @@ recovered when their editor is reopened elsewhere in the same authenticated tab.
 
 ## Persistence
 
-`event_page_revisions` stores immutable layout snapshots, keyed by workspace,
-Event ID and layout version. Each row references an audit event. The newest
-version is the current layout; an Event without revisions has version zero and
-an empty pages array. Reads do not create rows. Layout updates do not advance
-the canonical Event's object version or alter its metadata.
+`event_page_revisions` stores immutable layout snapshots, unique by Event ID and
+layout version, each with the workspace it was written in. Each row references
+an audit event. Reads find an Event's layouts by its ID, wherever they were
+written. The newest version is the current layout; an Event without revisions
+has version zero and an empty pages array. Reads do not create rows. Layout
+updates do not advance the canonical Event's object version or alter its
+metadata.
 
 The API validates a strict structure: at most 20 pages, 20 components per page,
 100 components overall, page names of 1-80 characters, unique UUIDs across the

@@ -159,11 +159,10 @@ export class PostgresStorageInventoryReadRepository implements StorageInventoryR
             objects,
             and(
               eq(objects.id, objectRevisions.objectId),
-              eq(objects.workspaceId, objectRevisions.workspaceId),
               eq(objects.objectType, "document"),
             ),
           )
-          .where(eq(objectRevisions.workspaceId, principal.workspaceId))
+          .where(eq(objects.workspaceId, principal.workspaceId))
           .limit(maximumEntries + 1);
         const uploadRows = await transaction
           .select({
