@@ -342,6 +342,41 @@ four new functions; it revokes browser-role execution and grants
 the Mini Program with or after this API: the API refuses an Owner share of a
 single record, which only older clients offer.
 
+Migration `0073_carry_scoped_rows_with_objects.sql` prepares moving a record
+to another workspace; nothing moves one yet. It re-adds, under the same
+names, the keys by which typed rows (events, tasks, expenses, reminders,
+documents, notes), relations, grants, shares waiting on an invitation, and
+document transfer authorizations name their object, now `ON UPDATE CASCADE`;
+replaces `sections_event_id_fkey` with `sections_event_workspace_fk` on
+`(workspace_id, event_id)`, so a section lives in its Event's workspace and
+follows it; and redefines `chronelle_validate_relation_version` (a relation
+whose only change is its workspace keeps its version) and
+`chronelle_resource_grant_scope_check` (the section's workspace is no longer
+compared, the new key implies it) in place. One update of
+`objects.workspace_id` over an Event's whole scope then carries those rows.
+The permission scope and People cards keep `NO ACTION` keys, so an update
+that leaves a scoped record behind, or moves a card, fails. Dropping a
+foreign key takes ACCESS EXCLUSIVE locks on its table and on `objects`, so
+apply 0073 with API writers stopped; it gives up after five seconds waiting
+for a lock. The keys are added `NOT VALID`, which keeps it quick. Migration
+`0074_validate_carried_keys.sql` then validates them under SHARE UPDATE
+EXCLUSIVE locks, so reads and writes continue while it scans. It fails if a
+section's workspace differs from its Event's; this query must return no rows
+before it runs:
+
+```sql
+SELECT s.id, s.workspace_id, s.event_id
+FROM sections s
+LEFT JOIN objects o ON o.workspace_id = s.workspace_id AND o.id = s.event_id
+WHERE o.id IS NULL;
+```
+
+Neither migration changes columns or needs a baseline or a runtime-role
+change, and both are compatible with older API versions, so the API may be
+deployed before or after them. On CloudBase, apply both through the console
+SQL editor, 0073 with the API stopped; the readiness check is unchanged.
+PostgreSQL TCP deployments apply them with `pnpm db:migrate`.
+
 Enable the WeChat routes only after CloudBase authentication is configured:
 
 ```dotenv

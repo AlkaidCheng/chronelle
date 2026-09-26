@@ -44,3 +44,11 @@ existing user without changing canonical user IDs, keeps the prior identity
 columns during the rolling deployment, and adds atomic WeChat exchange and
 explicit-link functions. Reapply runtime role provisioning after migration so
 the API can read and write the two new tables.
+
+Migrations 0073 and 0074 let a record change workspace with one update of
+`objects.workspace_id` over its whole permission scope. The keys of typed
+rows, relations, grants, pending shares, document transfer authorizations,
+and sections cascade on update. The permission scope and People cards keep
+`NO ACTION` keys, so an update that leaves a scoped record behind, or moves
+a card, fails. 0073 adds the keys `NOT VALID` and 0074 validates them in a
+separate transaction, so the validating scan does not block writes.
