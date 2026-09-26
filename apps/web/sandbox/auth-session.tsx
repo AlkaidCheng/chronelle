@@ -34,6 +34,7 @@ function useSandboxSession() {
     setRole: restart,
     signOut: () => restart(),
     switchWorkspace: () => undefined,
+    takeCarriedNotices: () => [],
     startSession: () => restart(),
   };
 }
@@ -48,6 +49,10 @@ export function AuthSessionProvider({
 }) {
   const session = useSandboxSession();
   return <Context.Provider value={session}>{children}</Context.Provider>;
+}
+/** The sandbox has one workspace, so no switch carries a notice. */
+export function useCarriedNotices() {
+  return () => [];
 }
 export function useAuthSession() {
   const session = useContext(Context);

@@ -2,6 +2,7 @@
 
 import type { SessionResponse } from "@livtales/schemas";
 import { useTranslations } from "next-intl";
+import type { CarriedNotice } from "../../lib/auth-session";
 import { useState } from "react";
 import { AlertIcon, InfoIcon, PeopleIcon } from "../../components/icons";
 import { SectionDialog } from "../../components/section-dialog";
@@ -25,7 +26,8 @@ export function ManageSpaceDialog({
 }: {
   readonly session: SessionResponse;
   readonly onClose: () => void;
-  readonly onLeft: () => void;
+  /** Opens the account's own space, with the notice that it left this one. */
+  readonly onLeft: (notice: CarriedNotice) => void;
 }) {
   const t = useTranslations("spaces");
   const identity = useCurrentWorkspaceIdentity(session);

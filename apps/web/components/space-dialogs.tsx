@@ -11,7 +11,7 @@ import {
 } from "react";
 import { ManageSpaceDialog } from "../features/spaces/manage-space-dialog";
 import { NewSpaceDialog } from "../features/spaces/new-space-dialog";
-import { useNotices } from "./notices";
+import type { CarriedNotice } from "../lib/auth-session";
 
 interface SpaceDialogs {
   readonly openNewSpace: () => void;
@@ -34,11 +34,11 @@ export function SpaceDialogsProvider({
 }: {
   readonly session: SessionResponse;
   readonly homeWorkspaceId: string;
-  readonly onSwitch: (workspaceId: string) => void;
+  /** Opens a space; the notice shows once it has opened. */
+  readonly onSwitch: (workspaceId: string, notice?: CarriedNotice) => void;
   readonly children: ReactNode;
 }) {
   const t = useTranslations("spaces");
-  const { post } = useNotices();
   const [open, setOpen] = useState<"new" | "manage" | null>(null);
   const dialogs = useMemo<SpaceDialogs>(
     () => ({
@@ -55,12 +55,12 @@ export function SpaceDialogsProvider({
           onClose={() => setOpen(null)}
           onCreated={(space, unadded) => {
             setOpen(null);
-            onSwitch(space.id);
-            if (unadded > 0)
-              post({
-                message: t("unadded", { count: unadded }),
-                tone: "danger",
-              });
+            onSwitch(
+              space.id,
+              unadded > 0
+                ? { message: t("unadded", { count: unadded }), tone: "danger" }
+                : undefined,
+            );
           }}
         />
       ) : null}
@@ -68,9 +68,9 @@ export function SpaceDialogsProvider({
         <ManageSpaceDialog
           session={session}
           onClose={() => setOpen(null)}
-          onLeft={() => {
+          onLeft={(notice) => {
             setOpen(null);
-            onSwitch(homeWorkspaceId);
+            onSwitch(homeWorkspaceId, notice);
           }}
         />
       ) : null}

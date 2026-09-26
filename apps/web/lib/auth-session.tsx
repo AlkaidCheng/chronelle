@@ -22,6 +22,16 @@ interface AuthCredential extends ApiCredential {
   readonly homeWorkspaceId: string;
 }
 
+/**
+ * A notice a workspace switch carries into the session it opens, shown once
+ * that session's providers have mounted. It is text alone: nothing bound to
+ * the old session runs in the new one.
+ */
+export interface CarriedNotice {
+  readonly message: string;
+  readonly tone?: "success" | "danger";
+}
+
 interface AuthSessionContextValue {
   readonly credential: AuthCredential | null;
   readonly isHydrated: boolean;
@@ -29,7 +39,12 @@ interface AuthSessionContextValue {
   readonly signal: AbortSignal;
   readonly signOut: () => void;
   readonly startSession: (credential: ApiCredential) => void;
-  readonly switchWorkspace: (workspaceId: string) => void;
+  readonly switchWorkspace: (
+    workspaceId: string,
+    notice?: CarriedNotice,
+  ) => void;
+  /** The notices the switch that opened this session carried; each is taken once. */
+  readonly takeCarriedNotices: () => readonly CarriedNotice[];
 }
 
 const AuthSessionContext = createContext<AuthSessionContextValue | null>(null);
@@ -133,6 +148,7 @@ export function AuthSessionProvider({
     isHydrated: false,
   }));
   const sessionRef = useRef(session);
+  const carried = useRef<CarriedNotice[]>([]);
 
   const replaceSession = useCallback((credential: AuthCredential | null) => {
     sessionRef.current.controller.abort();
@@ -187,16 +203,22 @@ export function AuthSessionProvider({
         replaceSession(storedCredential);
         persistCredential(storedCredential);
       },
-      switchWorkspace: (workspaceId) => {
+      switchWorkspace: (workspaceId, notice) => {
         if (
           session.controller.signal.aborted ||
           session.credential === null ||
           session.credential.workspaceId === workspaceId
         )
           return;
+        if (notice !== undefined) carried.current.push(notice);
         const nextCredential = { ...session.credential, workspaceId };
         replaceSession(nextCredential);
         persistCredential(nextCredential);
+      },
+      takeCarriedNotices: () => {
+        const taken = carried.current;
+        carried.current = [];
+        return taken;
       },
     }),
     [session, replaceSession],
@@ -207,6 +229,15 @@ export function AuthSessionProvider({
       {children}
     </AuthSessionContext.Provider>
   );
+}
+
+/** Takes the notices a workspace switch carried; none outside the provider. */
+export function useCarriedNotices(): () => readonly CarriedNotice[] {
+  return useContext(AuthSessionContext)?.takeCarriedNotices ?? noCarriedNotices;
+}
+
+function noCarriedNotices(): readonly CarriedNotice[] {
+  return [];
 }
 
 export function useAuthSession(): AuthSessionContextValue {

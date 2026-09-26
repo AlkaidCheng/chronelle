@@ -6,9 +6,11 @@ import {
   type ReactNode,
   useCallback,
   useContext,
+  useEffect,
   useRef,
   useState,
 } from "react";
+import { useCarriedNotices } from "../lib/auth-session";
 import { useErrorMessage } from "./feedback";
 
 /** A short outcome shown at the foot of the page, with one optional action. */
@@ -84,6 +86,11 @@ export function NoticesProvider({
     },
     [dismiss, settle],
   );
+  // A workspace switch remounts these providers; what it carried shows here.
+  const takeCarried = useCarriedNotices();
+  useEffect(() => {
+    for (const notice of takeCarried()) post(notice);
+  }, [post, takeCarried]);
   const fail = useCallback((id: number, message: string) => {
     setEntries((current) =>
       current.map((entry) =>
