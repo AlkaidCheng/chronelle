@@ -1848,6 +1848,19 @@ export class SandboxStore {
       operation === "members"
     )
       return { items: this.#state.members };
+    // The sample space is Personal, which is never deleted.
+    if (
+      collection === "workspaces" &&
+      id === "current" &&
+      operation === "deletion"
+    )
+      return {
+        deletable: false,
+        reason: "personal",
+        liveRecords: all.length,
+        trashRecords: this.#state.objects.length - all.length,
+        memberCount: this.#state.members.length,
+      };
     if (collection === "auth" && id === "session")
       return {
         user: this.#user(),
@@ -2619,6 +2632,17 @@ export class SandboxStore {
         400,
         "invalid_request",
         "A Personal space keeps its name.",
+      );
+    if (
+      collection === "workspaces" &&
+      id === "current" &&
+      operation === undefined &&
+      method === "DELETE"
+    )
+      throw new SandboxError(
+        400,
+        "space_personal",
+        "A Personal space is never deleted.",
       );
     if (
       collection === "workspaces" &&

@@ -11095,6 +11095,11 @@ html:has(.event-create-dialog[open]) {
   width: 100%;
 }
 
+/* Danger zone: leaving and deleting a space read in the danger tone. */
+.space-danger-button:not(:disabled) {
+  color: var(--danger);
+}
+
 /* Move to space: the spaces as a list of radio rows, then the review's
    facts, with the links the move removes set apart as a warning. */
 .move-dialog-body {

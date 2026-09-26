@@ -109,6 +109,7 @@ export const queryKeys = {
   session: ["session"] as const,
   friends: ["friends"] as const,
   members: ["members"] as const,
+  spaceDeletion: ["members", "deletion"] as const,
   moveTargets: (eventId: string) =>
     ["event", eventId, "move", "targets"] as const,
   movePreview: (eventId: string, workspaceId: string) =>
@@ -1113,6 +1114,23 @@ export function useRenameSpace() {
 export function useLeaveSpace() {
   const client = useApiClient();
   return useMutation({ mutationFn: () => client.leaveWorkspace() });
+}
+
+/** Whether the current space can be deleted, and why not; for its Owners. */
+export function useSpaceDeletionQuery(enabled: boolean) {
+  const client = useApiClient();
+  return useQuery({
+    enabled,
+    queryFn: ({ signal }) => client.withSignal(signal).getWorkspaceDeletion(),
+    queryKey: queryKeys.spaceDeletion,
+    staleTime: 0,
+  });
+}
+
+/** Deletes the current space with its Trash; the caller then opens another one. */
+export function useDeleteSpace() {
+  const client = useApiClient();
+  return useMutation({ mutationFn: () => client.deleteWorkspace() });
 }
 
 /** The spaces an Event can move to, for its Owner's Move to space dialog. */

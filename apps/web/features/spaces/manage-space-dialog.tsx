@@ -9,7 +9,11 @@ import { SectionDialog } from "../../components/section-dialog";
 import { WorkspaceMark } from "../../components/workspace-mark";
 import { useCurrentWorkspaceIdentity } from "../../lib/use-workspace-identity";
 import { SpaceMembersSection } from "./space-members";
-import { SpaceGeneralSection, SpaceLeaveSection } from "./space-sections";
+import {
+  SpaceDeleteSection,
+  SpaceGeneralSection,
+  SpaceLeaveSection,
+} from "./space-sections";
 
 type ManageSpaceSection = "general" | "members" | "danger";
 
@@ -61,7 +65,10 @@ export function ManageSpaceDialog({
       ) : current === "members" ? (
         <SpaceMembersSection />
       ) : (
-        <SpaceLeaveSection session={session} onLeft={onLeft} />
+        <>
+          <SpaceLeaveSection session={session} onLeft={onLeft} />
+          <SpaceDeleteSection session={session} onDeleted={onLeft} />
+        </>
       )}
     </SectionDialog>
   );
