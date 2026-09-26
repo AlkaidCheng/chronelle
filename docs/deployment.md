@@ -338,7 +338,9 @@ changes no tables, needs no baseline or runtime-role change, and is
 compatible with older API versions. On CloudBase, apply it through the
 console SQL editor before redeploying the API, because readiness requires the
 four new functions; it revokes browser-role execution and grants
-`service_role` execution when those managed roles exist.
+`service_role` execution when those managed roles exist. Deploy the web and
+the Mini Program with or after this API: the API refuses an Owner share of a
+single record, which only older clients offer.
 
 Enable the WeChat routes only after CloudBase authentication is configured:
 

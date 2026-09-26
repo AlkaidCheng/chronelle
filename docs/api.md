@@ -1073,9 +1073,12 @@ inherited one. Both backends derive the source from the same membership,
 grant, and scope rows in the same snapshot as the actions; nothing the caller
 can view lacks one of the three.
 
-`POST /shares` accepts `resourceId`, an Owner, Editor, or Viewer `role`, an
+`POST /shares` accepts `resourceId`, an Editor or Viewer `role`, an
 optional `scope`, and the grantee as exactly one of `principalEmail`,
-`personId`, `friendId`, and `principalId`.
+`personId`, `friendId`, and `principalId`. A single record is not shared
+as Owner (HTTP 400): the Owners of the workspace it lives in own it. A grant
+made as Owner before keeps its role and its rights until it is changed to
+another role or revoked.
 An email names the one account with that address. A Person of the workspace
 names its linked account, or else the one account whose email equals any
 of the card's email contacts and that lets itself be found by email
@@ -1155,8 +1158,8 @@ grant on the card, no membership), or none, is HTTP 404. Both backends read
 the same rows (`chronelle_person_shares_list`, migration 0054, on the rpc
 path).
 
-`POST /shares/pending` accepts `resourceId`, `personId`, and `role` for a
-Person with no linked account. When a request or invitation from the caller
+`POST /shares/pending` accepts `resourceId`, `personId`, and an Editor or
+Viewer `role` for a Person with no linked account. When a request or invitation from the caller
 already names the person, the share is queued on it; otherwise the person
 is invited as `POST /api/friends/invitations` would (a request to the
 account that has the card's first email contact, an emailed link to an

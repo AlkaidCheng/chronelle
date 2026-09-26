@@ -349,7 +349,7 @@ describe.sequential("Event sharing API", () => {
         payload: {
           resourceId: event.id,
           principalEmail: "editor@example.com",
-          role: "owner",
+          role: "editor",
         },
       }),
       request(editor, workspaceId, {
@@ -358,7 +358,7 @@ describe.sequential("Event sharing API", () => {
         payload: {
           resourceId: event.id,
           principalEmail: "viewer@example.com",
-          role: "owner",
+          role: "editor",
         },
       }),
       request(viewer, workspaceId, {

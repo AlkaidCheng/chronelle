@@ -411,4 +411,27 @@ describe.each(Object.entries(backends))("Spaces (%s)", (_backend, compose) => {
       ),
     ).toEqual([{ displayName: "Ben", role: "owner" }]);
   });
+
+  it("shares a single record as Editor or Viewer, never Owner", async () => {
+    const ana = await signIn("ana@example.test", "Ana");
+    await signIn("ben@example.test", "Ben");
+    const created = await request(ana, {
+      method: "POST",
+      url: "/api/events",
+      payload: { displayName: "Kyoto" },
+    });
+    const event = eventResponseSchema.parse(created.json());
+    const share = (role: string) =>
+      request(ana, {
+        method: "POST",
+        url: "/api/shares",
+        payload: {
+          resourceId: event.id,
+          principalEmail: "ben@example.test",
+          role,
+        },
+      });
+    expect((await share("owner")).statusCode).toBe(400);
+    expect((await share("editor")).statusCode).toBe(201);
+  });
 });

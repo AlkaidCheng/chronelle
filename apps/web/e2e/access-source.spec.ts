@@ -46,7 +46,7 @@ test("names where a grantee's access comes from, and nothing on the owner's own 
     expect(response.status(), url).toBe(201);
     return response.json();
   };
-  // Ana shares one event with Ben as a viewer and another as an owner; a
+  // Ana shares one event with Ben as a viewer and another as an editor; a
   // person and a task created inside them inherit that access.
   const trip = await post("/api/events", { displayName: "Kyoto in November" });
   const dinner = await post("/api/events", { displayName: "Kaiseki dinner" });
@@ -60,7 +60,7 @@ test("names where a grantee's access comes from, and nothing on the owner's own 
   });
   for (const [resourceId, role] of [
     [trip.id, "viewer"],
-    [dinner.id, "owner"],
+    [dinner.id, "editor"],
   ] as const)
     await post("/api/shares", { resourceId, principalEmail: benEmail, role });
 
@@ -113,15 +113,15 @@ test("names where a grantee's access comes from, and nothing on the owner's own 
     page.getByRole("heading", { level: 1, name: "Kyoto in November" }),
   ).toBeVisible();
 
-  // As an owner of the dinner, Ben opens a task's editor: the line names
-  // the dinner and reaches its Sharing view.
+  // As an editor of the dinner, Ben opens a task's editor: the line names
+  // the dinner and leads to it.
   await page.goto("/events");
   await page.getByRole("link", { name: /Kaiseki dinner/ }).click();
   if (isPhone(page))
-    await expect(accessTag(page)).toHaveText(/Shared by Ana.*Owner/);
+    await expect(accessTag(page)).toHaveText(/Shared by Ana.*Editor/);
   else
-    await expect(accessLine(page).getByRole("button")).toHaveText(
-      "Shared with you by Ana as owner",
+    await expect(accessLine(page)).toHaveText(
+      "Shared with you by Ana as editor",
     );
   await openEventView(page, "To-dos");
   const row = page.getByRole("row", { name: /Book the counter seats/ });
@@ -132,22 +132,23 @@ test("names where a grantee's access comes from, and nothing on the owner's own 
   const editorLine = editor.getByRole("link", {
     name: "Through Kaiseki dinner, shared by Ana",
   });
-  await expect(editorLine).toHaveAttribute(
-    "href",
-    `/events/${dinner.id}?view=sharing`,
-  );
+  await expect(editorLine).toHaveAttribute("href", `/events/${dinner.id}`);
   await editorLine.click();
   await expect(
-    page.getByRole("tab", { name: "Sharing", selected: true }),
+    page.getByRole("heading", { level: 1, name: "Kaiseki dinner" }),
   ).toBeVisible();
+  await expect(page.getByRole("tab", { name: "Sharing" })).toHaveCount(0);
+
+  // Ana's own records carry no line; her Sharing view says what Ben's
+  // grant reaches.
+  await signOut(page);
+  await signIn(page, "Ana", anaEmail);
+  await page.goto(`/events/${dinner.id}?view=sharing`);
   const accessRow = page.locator(".share-list article", { hasText: "Ben" });
   await expect(accessRow).toContainText(
     "Also this event's pages, to-dos, expenses, files, and earlier versions",
   );
-
-  // Ana's own records carry no line.
-  await signOut(page);
-  await signIn(page, "Ana", anaEmail);
+  await page.goto("/events");
   await page.getByRole("link", { name: /Kyoto in November/ }).click();
   await expect(
     page.getByRole("heading", { level: 1, name: "Kyoto in November" }),

@@ -176,6 +176,70 @@ describe("People component", () => {
     ]);
   });
 
+  it("leaves a share made as Owner as it is when sharing with everyone again", async () => {
+    const meiId = "00000000-0000-4000-8000-000000000003";
+    await client.createEventResource(eventId, {
+      commandId: crypto.randomUUID(),
+      resource: { objectType: "person", displayName: "Mei Lin", userId: meiId },
+    });
+    const posted: unknown[] = [];
+    vi.stubGlobal(
+      "fetch",
+      vi.fn<typeof globalThis.fetch>(async (input, options) => {
+        const path = String(input);
+        if (path === `/api/objects/${eventId}/access`)
+          return Response.json({
+            resourceId: eventId,
+            actions: ["view", "edit", "share"],
+            source: { kind: "own" },
+          });
+        if (path === "/api/shares" && options?.method === "POST")
+          posted.push(JSON.parse(String(options.body)));
+        const response = await store.fetch(input, options);
+        if (path !== `/api/objects/${eventId}/shares`) return response;
+        // Mei holds a share made as Owner before owning moved to spaces.
+        const list = await response.json();
+        return Response.json({
+          ...list,
+          items: [
+            {
+              id: crypto.randomUUID(),
+              workspaceId: sandboxWorkspaceId,
+              resourceId: eventId,
+              principal: { id: meiId, displayName: "Mei Lin", email: null },
+              role: "owner",
+              grantedBy: sandboxWorkspaceId,
+              createdAt: "2026-09-01T00:00:00.000Z",
+              expiresAt: null,
+              scope: null,
+            },
+          ],
+        });
+      }),
+    );
+    const user = userEvent.setup();
+    render(
+      <Providers>
+        <EventComponent canEdit eventId={eventId} kind="people" />
+      </Providers>,
+    );
+    await user.click(
+      await screen.findByText("Share with everyone here", {
+        selector: "summary",
+      }),
+    );
+    const friends = within(
+      await screen.findByRole("list", { name: "Friends" }),
+    );
+    const access = await friends.findByRole("combobox", {
+      name: "Access for Mei Lin",
+    });
+    expect(access).toHaveValue("owner");
+    await user.click(screen.getByRole("button", { name: /^Share with 1/ }));
+    expect(await friends.findByText("Shared as Owner")).toBeVisible();
+    expect(posted).toEqual([]);
+  });
+
   it("adds a known person, creates a new one inside the event, and removes a link", async () => {
     const sam = await client.createPerson({ displayName: "Sam Lee" });
     const user = userEvent.setup();

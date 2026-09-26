@@ -18,6 +18,7 @@ import type { FastifyInstance } from "fastify";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { buildApp } from "../src/app.js";
 import { createDevelopmentAppDependencies } from "../src/dependencies.js";
+import { seedOwnerGrant } from "./owner-grant.js";
 
 let database: TestDatabase;
 let app: FastifyInstance;
@@ -92,6 +93,13 @@ async function share(
   email: string,
   role = "owner",
 ) {
+  if (role === "owner")
+    return seedOwnerGrant(database.connection.db, {
+      workspaceId: owner.workspace.id,
+      resourceId: id,
+      principalEmail: email,
+      grantedBy: owner.user.id,
+    });
   const response = await app.inject({
     method: "POST",
     url: "/api/shares",

@@ -5,6 +5,12 @@ const dateTimeSchema = z.iso.datetime();
 
 export const roleSchema = z.enum(["owner", "editor", "viewer"]);
 
+/**
+ * The roles a share of a single record grants: owning belongs to the
+ * owners of the space the record lives in.
+ */
+export const shareRoleSchema = z.enum(["editor", "viewer"]);
+
 /** The views of an Event a share can be narrowed to. */
 export const shareViewSchema = z.enum([
   "todos",
@@ -63,7 +69,7 @@ export const shareCreateRequestSchema = z
     personId: idSchema.optional(),
     friendId: idSchema.optional(),
     principalId: idSchema.optional(),
-    role: roleSchema,
+    role: shareRoleSchema,
     scope: shareScopeSchema.optional(),
   })
   .refine(
@@ -104,7 +110,7 @@ export const pendingShareSchema = z.object({
 export const pendingShareCreateRequestSchema = z.object({
   resourceId: idSchema,
   personId: idSchema,
-  role: roleSchema,
+  role: shareRoleSchema,
 });
 
 export const pendingShareRevocationResponseSchema = z.object({

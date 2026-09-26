@@ -221,6 +221,7 @@ export {
   personShareListResponseSchema,
   personShareSchema,
   roleSchema,
+  shareRoleSchema,
   type ShareCreatePayload,
   type ShareCreateRequest,
   type ShareLeaveResponse,
