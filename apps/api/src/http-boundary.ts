@@ -48,7 +48,10 @@ import {
   FriendUnavailableError,
   InvalidFriendRequestError,
 } from "./friends/friend-store.js";
-import { WorkspaceMemberConflictError } from "./workspaces/membership-store.js";
+import {
+  WorkspaceDeletionRefusedError,
+  WorkspaceMemberConflictError,
+} from "./workspaces/membership-store.js";
 
 const domainErrors = [
   [StorageInventoryBusyError, 429, "inventory_busy"],
@@ -85,9 +88,22 @@ const moveRefusals: Readonly<
   same_space: [400, "move_same_space"],
 };
 
+/** A refused deletion of a space the caller is in names its reason. */
+const deletionRefusals: Readonly<
+  Record<WorkspaceDeletionRefusedError["reason"], [number, string]>
+> = {
+  personal: [400, "space_personal"],
+  not_owner: [403, "space_forbidden"],
+  holds_records: [409, "space_not_empty"],
+};
+
 function resolveHttpError(error: unknown): HttpError {
   if (error instanceof HttpError) return error;
   if (error instanceof AuthorizationDeniedError) return unavailableResource();
+  if (error instanceof WorkspaceDeletionRefusedError) {
+    const [status, code] = deletionRefusals[error.reason];
+    return new HttpError(status, code, error.message);
+  }
   if (error instanceof ObjectMoveRefusedError) {
     if (error.reason === "target_unavailable")
       return new WorkspaceUnavailableError();

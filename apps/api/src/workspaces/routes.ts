@@ -1,6 +1,7 @@
 import {
   accessibleWorkspaceSchema,
   workspaceCreateRequestSchema,
+  workspaceDeletionResponseSchema,
   workspaceLeaveResponseSchema,
   workspaceMemberAddRequestSchema,
   workspaceMemberListResponseSchema,
@@ -40,8 +41,9 @@ function memberPayload(member: WorkspaceMemberView) {
  * Workspaces and their members: a new shared workspace for anyone, with
  * the caller as its Owner; the current workspace renamed by an Owner; its
  * members listed for any member, a friend added with a role, a member's
- * role changed, or a member removed by an Owner; and leaving it for any
- * member but its personal owner.
+ * role changed, or a member removed by an Owner; leaving it for any member
+ * but its personal owner; and, for an Owner, deleting a shared workspace
+ * that holds nothing but Trash, with a preview any member reads.
  */
 export function registerWorkspaceRoutes(
   app: FastifyInstance,
@@ -73,6 +75,24 @@ export function registerWorkspaceRoutes(
           request.id,
         ),
       );
+    },
+  );
+
+  app.get(
+    "/api/workspaces/current/deletion",
+    { preHandler: app.authenticate },
+    async (request) =>
+      workspaceDeletionResponseSchema.parse(
+        await dependencies.members.deletion(actorOf(request)),
+      ),
+  );
+
+  app.delete(
+    "/api/workspaces/current",
+    { preHandler: app.authenticate },
+    async (request, reply) => {
+      await dependencies.members.delete(actorOf(request), request.id);
+      return reply.code(204).send();
     },
   );
 

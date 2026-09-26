@@ -170,7 +170,7 @@ export class CloudBaseIdentityStore implements IdentityStore {
     if (ids.size === 0) return [];
     const rows = (
       await this.#client.select<Row>("workspaces", {
-        filters: filters(["id", "in", [...ids]]),
+        filters: filters(["id", "in", [...ids]], ["deleted_at", "is", null]),
       })
     ).map(workspaceRow);
     const ownerIds = new Set(

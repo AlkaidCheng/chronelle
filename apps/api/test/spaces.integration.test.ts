@@ -1,6 +1,16 @@
 import { resolve } from "node:path";
 
-import { auditEvents, disconnectedDatabase } from "@livtales/db";
+import {
+  auditEvents,
+  createId,
+  disconnectedDatabase,
+  objectRevisions,
+  objects,
+  pendingShares,
+  resourceGrants,
+  workspaceMembers,
+  workspaces,
+} from "@livtales/db";
 import {
   applyMigrations,
   createCloudBaseLiveReader,
@@ -12,12 +22,16 @@ import {
   accessibleWorkspaceSchema,
   developmentSignInResponseSchema,
   eventResponseSchema,
+  objectMoveTargetsResponseSchema,
+  personResponseSchema,
   sentInvitationSchema,
   sessionResponseSchema,
+  taskResponseSchema,
+  workspaceDeletionResponseSchema,
   workspaceMemberListResponseSchema,
   workspaceMemberSchema,
 } from "@livtales/schemas";
-import { asc, eq } from "drizzle-orm";
+import { asc, eq, inArray } from "drizzle-orm";
 import type { FastifyInstance, InjectOptions } from "fastify";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
@@ -163,6 +177,54 @@ function leave(session: Session, workspaceId: string) {
     { method: "POST", url: "/api/workspaces/current/leave" },
     workspaceId,
   );
+}
+
+function deletionOf(session: Session, workspaceId: string) {
+  return request(
+    session,
+    { method: "GET", url: "/api/workspaces/current/deletion" },
+    workspaceId,
+  );
+}
+
+async function deletable(session: Session, workspaceId: string) {
+  const response = await deletionOf(session, workspaceId);
+  expect(response.statusCode).toBe(200);
+  return workspaceDeletionResponseSchema.parse(response.json());
+}
+
+function deleteSpace(session: Session, workspaceId: string) {
+  return request(
+    session,
+    { method: "DELETE", url: "/api/workspaces/current" },
+    workspaceId,
+  );
+}
+
+async function create<T>(
+  session: Session,
+  workspaceId: string,
+  url: string,
+  payload: Record<string, unknown>,
+  schema: { parse(value: unknown): T },
+): Promise<T> {
+  const response = await request(
+    session,
+    { method: "POST", url, payload },
+    workspaceId,
+  );
+  expect(response.statusCode).toBe(201);
+  return schema.parse(response.json());
+}
+
+/** Moves a record at version 1 to Trash. */
+async function trash(session: Session, workspaceId: string, id: string) {
+  const response = await request(
+    session,
+    { method: "DELETE", url: `/api/objects/${id}?expectedVersion=1` },
+    workspaceId,
+  );
+  expect(response.statusCode).toBe(200);
 }
 
 /** The workspace's own audit trail: its membership and naming events, oldest first. */
@@ -433,5 +495,375 @@ describe.each(Object.entries(backends))("Spaces (%s)", (_backend, compose) => {
       });
     expect((await share("owner")).statusCode).toBe(400);
     expect((await share("editor")).statusCode).toBe(201);
+  });
+
+  it("deletes a space that holds nothing but Trash, keeping its records and history", async () => {
+    const ana = await signIn("ana@example.test", "Ana");
+    const ben = await signIn("ben@example.test", "Ben");
+    const cy = await signIn("cy@example.test", "Cy");
+    const benFriend = await befriend(ana, ben, "ben@example.test");
+    const cyFriend = await befriend(ana, cy, "cy@example.test");
+    const space = await createSpace(ana, "Our wedding");
+    expect(
+      (
+        await request(
+          ana,
+          {
+            method: "POST",
+            url: "/api/workspaces/current/members",
+            payload: { friendId: benFriend, role: "editor" },
+          },
+          space.id,
+        )
+      ).statusCode,
+    ).toBe(201);
+
+    // An Event with a task in its scope, a People card, a guest's share of
+    // the task, and a share waiting on Priya's invitation.
+    const event = await create(
+      ana,
+      space.id,
+      "/api/events",
+      { displayName: "Vows" },
+      eventResponseSchema,
+    );
+    const task = await create(
+      ana,
+      space.id,
+      "/api/tasks",
+      { displayName: "Book the hall", permissionScopeId: event.id },
+      taskResponseSchema,
+    );
+    const priya = await create(
+      ana,
+      space.id,
+      "/api/persons",
+      {
+        displayName: "Priya",
+        contacts: [{ kind: "email", value: "priya@example.test" }],
+      },
+      personResponseSchema,
+    );
+    expect(
+      (
+        await request(
+          ana,
+          {
+            method: "POST",
+            url: "/api/shares",
+            payload: {
+              resourceId: task.id,
+              friendId: cyFriend,
+              role: "viewer",
+            },
+          },
+          space.id,
+        )
+      ).statusCode,
+    ).toBe(201);
+    expect(
+      (
+        await request(
+          ana,
+          {
+            method: "POST",
+            url: "/api/shares/pending",
+            payload: {
+              resourceId: event.id,
+              personId: priya.id,
+              role: "viewer",
+            },
+          },
+          space.id,
+        )
+      ).statusCode,
+    ).toBe(201);
+
+    expect(await deletable(ana, space.id)).toEqual({
+      deletable: false,
+      reason: "holds_records",
+      liveRecords: 3,
+      trashRecords: 0,
+      memberCount: 2,
+    });
+    expect(await deletable(ben, space.id)).toMatchObject({
+      deletable: false,
+      reason: "not_owner",
+    });
+    expect(await deletable(ana, ana.workspace.id)).toMatchObject({
+      deletable: false,
+      reason: "personal",
+    });
+    // A guest enters the space through the share but reads no preview.
+    expect((await deletionOf(cy, space.id)).statusCode).toBe(404);
+
+    const byEditor = await deleteSpace(ben, space.id);
+    expect(byEditor.statusCode).toBe(403);
+    expect(byEditor.json().error.code).toBe("space_forbidden");
+    expect((await deleteSpace(cy, space.id)).json().error.code).toBe(
+      "space_forbidden",
+    );
+    const personal = await deleteSpace(ana, ana.workspace.id);
+    expect(personal.statusCode).toBe(400);
+    expect(personal.json().error.code).toBe("space_personal");
+    const holding = await deleteSpace(ana, space.id);
+    expect(holding.statusCode).toBe(409);
+    expect(holding.json().error).toEqual({
+      code: "space_not_empty",
+      message:
+        "The space holds records; move them to another space or to Trash first.",
+    });
+
+    // The Event goes to Trash alone; its task stays live under it and is in
+    // Trash with it. With the card gone too, only Trash is left.
+    await trash(ana, space.id, event.id);
+    expect(await deletable(ana, space.id)).toMatchObject({
+      reason: "holds_records",
+      liveRecords: 1,
+      trashRecords: 2,
+    });
+    await trash(ana, space.id, priya.id);
+    expect(await deletable(ana, space.id)).toEqual({
+      deletable: true,
+      reason: null,
+      liveRecords: 0,
+      trashRecords: 3,
+      memberCount: 2,
+    });
+    expect((await spacesOf(cy)).map((workspace) => workspace.id)).toContain(
+      space.id,
+    );
+    const database = testDatabase.connection.db;
+    const revisionIds = async () =>
+      (
+        await database
+          .select({ id: objectRevisions.id })
+          .from(objectRevisions)
+          .where(
+            inArray(objectRevisions.objectId, [event.id, task.id, priya.id]),
+          )
+          .orderBy(asc(objectRevisions.id))
+      ).map((revision) => revision.id);
+    const spaceHistory = () =>
+      database
+        .select()
+        .from(auditEvents)
+        .where(eq(auditEvents.workspaceId, space.id))
+        .orderBy(asc(auditEvents.id));
+    const revisionsBefore = await revisionIds();
+    const historyBefore = (await spaceHistory()).map((audit) => audit.id);
+
+    const deleted = await deleteSpace(ana, space.id);
+    expect(deleted.statusCode).toBe(204);
+    expect(deleted.body).toBe("");
+
+    // Every member and the guest lose the space, and a session in it is
+    // refused; the guest's share of the task is gone.
+    for (const session of [ana, ben, cy]) {
+      expect(
+        (await spacesOf(session)).map((workspace) => workspace.id),
+      ).not.toContain(space.id);
+      const inSpace = await request(
+        session,
+        { method: "GET", url: "/api/auth/session" },
+        space.id,
+      );
+      expect(inSpace.statusCode).toBe(404);
+      expect(inSpace.json().error.code).toBe("workspace_unavailable");
+    }
+    expect(
+      (await request(cy, { method: "GET", url: `/api/objects/${task.id}` }))
+        .statusCode,
+    ).toBe(404);
+    const again = await deleteSpace(ana, space.id);
+    expect(again.statusCode).toBe(404);
+    expect(again.json().error.code).toBe("workspace_unavailable");
+
+    // The space is marked, not purged: its records, revisions, and history
+    // stay; its members, live grants, and waiting shares do not.
+    const [row] = await database
+      .select()
+      .from(workspaces)
+      .where(eq(workspaces.id, space.id));
+    expect(row).toMatchObject({ deletedBy: ana.user.id });
+    expect(row?.deletedAt).toBeInstanceOf(Date);
+    expect(
+      await database
+        .select({ id: objects.id })
+        .from(objects)
+        .where(eq(objects.workspaceId, space.id)),
+    ).toHaveLength(3);
+    expect(await revisionIds()).toEqual(revisionsBefore);
+    // Events written in one transaction share a millisecond, so the
+    // deletion's are compared in the order of their actions.
+    const history = await spaceHistory();
+    expect(history.map((audit) => audit.id)).toEqual(
+      expect.arrayContaining(historyBefore),
+    );
+    const added = history
+      .filter((audit) => !historyBefore.includes(audit.id))
+      .sort((a, b) => a.action.localeCompare(b.action));
+    expect(
+      await database
+        .select()
+        .from(workspaceMembers)
+        .where(eq(workspaceMembers.workspaceId, space.id)),
+    ).toEqual([]);
+    expect(
+      await database
+        .select()
+        .from(resourceGrants)
+        .where(eq(resourceGrants.workspaceId, space.id)),
+    ).toEqual([]);
+    expect(
+      await database
+        .select({ status: pendingShares.status })
+        .from(pendingShares)
+        .where(eq(pendingShares.workspaceId, space.id)),
+    ).toEqual([{ status: "revoked" }]);
+    const [grantId] = added
+      .filter((a) => a.action === "resource.share_revoked")
+      .map((a) => a.metadata.grantId);
+    expect(
+      added.map((a) => ({
+        action: a.action,
+        resourceId: a.resourceId,
+        actorId: a.actorId,
+        metadata: a.metadata,
+      })),
+    ).toEqual([
+      {
+        action: "resource.share_queue_revoked",
+        resourceId: event.id,
+        actorId: ana.user.id,
+        metadata: {
+          pendingShareId: expect.any(String),
+          reason: "workspace_deleted",
+        },
+      },
+      {
+        action: "resource.share_revoked",
+        resourceId: task.id,
+        actorId: ana.user.id,
+        metadata: {
+          grantId,
+          principalId: cy.user.id,
+          role: "viewer",
+          reason: "workspace_deleted",
+        },
+      },
+      {
+        action: "workspace.deleted",
+        resourceId: null,
+        actorId: ana.user.id,
+        metadata: {
+          displayName: "Our wedding",
+          members: [
+            { userId: ana.user.id, role: "owner" },
+            { userId: ben.user.id, role: "editor" },
+          ].sort((a, b) => (a.userId < b.userId ? -1 : 1)),
+          grants: [
+            {
+              grantId,
+              resourceId: task.id,
+              principalId: cy.user.id,
+              role: "viewer",
+            },
+          ],
+          pendingShares: 1,
+          trashRecords: 3,
+        },
+      },
+    ]);
+
+    // An Event cannot move there, and a new space may take its name.
+    const home = await create(
+      ana,
+      ana.workspace.id,
+      "/api/events",
+      { displayName: "Errands" },
+      eventResponseSchema,
+    );
+    const targets = await request(ana, {
+      method: "GET",
+      url: `/api/objects/${home.id}/move/targets`,
+    });
+    expect(targets.statusCode).toBe(200);
+    expect(
+      objectMoveTargetsResponseSchema
+        .parse(targets.json())
+        .items.map((item) => item.workspace.id),
+    ).not.toContain(space.id);
+    const renewed = await createSpace(ana, "Our wedding");
+    expect(renewed.id).not.toBe(space.id);
+    expect(await spacesOf(ana)).toContainEqual(renewed);
+  });
+
+  it("refuses a record created while its space is being deleted", async () => {
+    const ana = await signIn("ana@example.test", "Ana");
+    const space = await createSpace(ana, "Our wedding");
+
+    // The deletion holds the space's row until it commits; a record created
+    // meanwhile waits for it, then finds the space gone.
+    const locked = Promise.withResolvers<void>();
+    const release = Promise.withResolvers<void>();
+    const holder = testDatabase.connection.sql.begin(async (sql) => {
+      await sql`SELECT chronelle_workspace_delete(${space.id}, ${ana.user.id}, ${createId()}, now())`;
+      locked.resolve();
+      await release.promise;
+    });
+    await locked.promise;
+    let settled = false;
+    const created = request(
+      ana,
+      { method: "POST", url: "/api/events", payload: { displayName: "Late" } },
+      space.id,
+    ).then((response) => {
+      settled = true;
+      return response;
+    });
+    await new Promise((wait) => setTimeout(wait, 300));
+    expect(settled).toBe(false);
+    release.resolve();
+    await holder;
+    const refused = await created;
+    expect(refused.statusCode).toBe(404);
+    expect(
+      await testDatabase.connection.db
+        .select({ id: objects.id })
+        .from(objects)
+        .where(eq(objects.workspaceId, space.id)),
+    ).toEqual([]);
+  });
+
+  it("waits for a record being created and then refuses to delete the space", async () => {
+    const ana = await signIn("ana@example.test", "Ana");
+    const space = await createSpace(ana, "Our wedding");
+
+    const locked = Promise.withResolvers<void>();
+    const release = Promise.withResolvers<void>();
+    const holder = testDatabase.connection.sql.begin(async (sql) => {
+      await sql`SELECT chronelle_event_create(${space.id}, ${ana.user.id}, ${createId()}, ${JSON.stringify({ displayName: "Early" })}::jsonb)`;
+      locked.resolve();
+      await release.promise;
+    });
+    await locked.promise;
+    let settled = false;
+    const deletion = deleteSpace(ana, space.id).then((response) => {
+      settled = true;
+      return response;
+    });
+    await new Promise((wait) => setTimeout(wait, 300));
+    expect(settled).toBe(false);
+    release.resolve();
+    await holder;
+    const refused = await deletion;
+    expect(refused.statusCode).toBe(409);
+    expect(refused.json().error.code).toBe("space_not_empty");
+    const [row] = await testDatabase.connection.db
+      .select({ deletedAt: workspaces.deletedAt })
+      .from(workspaces)
+      .where(eq(workspaces.id, space.id));
+    expect(row).toEqual({ deletedAt: null });
   });
 });

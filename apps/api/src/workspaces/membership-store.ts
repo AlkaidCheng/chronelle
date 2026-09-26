@@ -4,6 +4,9 @@ import {
   createId,
   type Database,
   type DatabaseTransaction,
+  objects,
+  pendingShares,
+  resourceGrants,
   type Role,
   roles,
   userConnections,
@@ -11,8 +14,25 @@ import {
   workspaceMembers,
   workspaces,
 } from "@livtales/db";
-import { and, eq, ne, or, sql } from "drizzle-orm";
+import type {
+  WorkspaceDeletionRefusal,
+  WorkspaceDeletionResponse,
+} from "@livtales/schemas";
+import {
+  and,
+  asc,
+  count,
+  eq,
+  gt,
+  inArray,
+  isNull,
+  ne,
+  or,
+  sql,
+} from "drizzle-orm";
+import { alias } from "drizzle-orm/pg-core";
 
+import { WorkspaceUnavailableError } from "../errors.js";
 import {
   accountEmail,
   FriendUnavailableError,
@@ -57,6 +77,45 @@ export class WorkspaceMemberConflictError extends Error {
   }
 }
 
+const deletionRefusalMessages: Readonly<
+  Record<WorkspaceDeletionRefusal, string>
+> = {
+  personal: "A Personal space is never deleted.",
+  not_owner: "Only an Owner deletes a space.",
+  holds_records:
+    "The space holds records; move them to another space or to Trash first.",
+};
+
+/**
+ * A space the caller may not delete: a Personal one (`personal`), one where
+ * they are not an Owner (`not_owner`), or one that holds a live record
+ * (`holds_records`).
+ */
+export class WorkspaceDeletionRefusedError extends Error {
+  readonly reason: WorkspaceDeletionRefusal;
+
+  constructor(reason: WorkspaceDeletionRefusal) {
+    super(deletionRefusalMessages[reason]);
+    this.name = "WorkspaceDeletionRefusedError";
+    this.reason = reason;
+  }
+
+  /** The refusal a database function reported with this message, if any. */
+  static fromMessage(
+    message: string,
+  ): WorkspaceDeletionRefusedError | undefined {
+    const reason = (
+      Object.entries(deletionRefusalMessages) as [
+        WorkspaceDeletionRefusal,
+        string,
+      ][]
+    ).find(([, text]) => text === message)?.[0];
+    return reason === undefined
+      ? undefined
+      : new WorkspaceDeletionRefusedError(reason);
+  }
+}
+
 /**
  * Shared workspaces and their members. Anyone creates a workspace and is
  * its Owner; any member reads the members; an Owner renames it, adds a
@@ -64,9 +123,12 @@ export class WorkspaceMemberConflictError extends Error {
  * member's role, and removes a member other than the personal owner and
  * themselves; any member but the personal owner leaves. A personal
  * workspace keeps its name and its account as its only Owner, and a shared
- * one keeps at least one Owner. Every change is audited in the workspace
- * and takes the workspace's lock first, so changes to one workspace's
- * members run one at a time.
+ * one keeps at least one Owner. An Owner deletes a shared workspace that
+ * holds nothing but Trash: it keeps its row, records, and history, and
+ * loses its waiting shares, the live grants on its records, and its
+ * members. Every change is audited in the workspace and takes the
+ * workspace's lock first, so changes to one workspace's members run one at
+ * a time.
  */
 export interface MembershipStore {
   create(
@@ -98,14 +160,20 @@ export interface MembershipStore {
     requestId: string,
   ): Promise<void>;
   leave(actor: MembershipActor, requestId: string): Promise<void>;
+  /** Whether the caller may delete the workspace, for any member. */
+  deletion(actor: MembershipActor): Promise<WorkspaceDeletionResponse>;
+  /** An Owner deletes a shared workspace that holds nothing but Trash. */
+  delete(actor: MembershipActor, requestId: string): Promise<void>;
 }
 
 /** The PostgreSQL store: each operation is one transaction with its audit event. */
 export class PostgresMembershipStore implements MembershipStore {
   readonly #database: Database;
+  readonly #clock: () => Date;
 
-  constructor(database: Database) {
+  constructor(database: Database, clock: () => Date = () => new Date()) {
     this.#database = database;
+    this.#clock = clock;
   }
 
   async create(
@@ -404,6 +472,210 @@ export class PostgresMembershipStore implements MembershipStore {
       });
     });
   }
+
+  async deletion(actor: MembershipActor): Promise<WorkspaceDeletionResponse> {
+    return this.#database.transaction(
+      async (transaction) => {
+        const workspace = await liveWorkspace(transaction, actor.workspaceId);
+        const role = await requireMembership(transaction, actor);
+        const records = await recordCounts(transaction, actor.workspaceId);
+        const [members] = await transaction
+          .select({ count: count() })
+          .from(workspaceMembers)
+          .where(eq(workspaceMembers.workspaceId, actor.workspaceId));
+        const reason: WorkspaceDeletionRefusal | null =
+          workspace.personalOwnerId !== null
+            ? "personal"
+            : role !== "owner"
+              ? "not_owner"
+              : records.liveRecords > 0
+                ? "holds_records"
+                : null;
+        return {
+          deletable: reason === null,
+          reason,
+          ...records,
+          memberCount: members?.count ?? 0,
+        };
+      },
+      { isolationLevel: "repeatable read", accessMode: "read only" },
+    );
+  }
+
+  async delete(actor: MembershipActor, requestId: string): Promise<void> {
+    const deletedAt = this.#clock();
+    return this.#database.transaction(async (transaction) => {
+      const role = await lockedRole(transaction, actor);
+      const workspace = await liveWorkspace(transaction, actor.workspaceId);
+      if (workspace.personalOwnerId !== null)
+        throw new WorkspaceDeletionRefusedError("personal");
+      if (role !== "owner")
+        throw new WorkspaceDeletionRefusedError("not_owner");
+      const records = await recordCounts(transaction, actor.workspaceId);
+      if (records.liveRecords > 0)
+        throw new WorkspaceDeletionRefusedError("holds_records");
+      const audit = {
+        workspaceId: actor.workspaceId,
+        actorType: "user" as const,
+        actorId: actor.userId,
+        requestId,
+      };
+
+      const pending = await transaction
+        .select({ id: pendingShares.id, resourceId: pendingShares.resourceId })
+        .from(pendingShares)
+        .where(
+          and(
+            eq(pendingShares.workspaceId, actor.workspaceId),
+            eq(pendingShares.status, "pending"),
+          ),
+        )
+        .orderBy(asc(pendingShares.id))
+        .for("update");
+      for (const share of pending)
+        await transaction.insert(auditEvents).values({
+          id: createId(),
+          ...audit,
+          action: "resource.share_queue_revoked",
+          resourceId: share.resourceId,
+          metadata: { pendingShareId: share.id, reason: "workspace_deleted" },
+        });
+      if (pending.length > 0)
+        await transaction
+          .update(pendingShares)
+          .set({
+            status: "revoked",
+            resolvedAt: sql`GREATEST(now(), ${pendingShares.createdAt})`,
+          })
+          .where(
+            inArray(
+              pendingShares.id,
+              pending.map((share) => share.id),
+            ),
+          );
+
+      const grants = await transaction
+        .select({
+          grantId: resourceGrants.id,
+          resourceId: resourceGrants.resourceId,
+          principalId: resourceGrants.principalId,
+          role: resourceGrants.role,
+        })
+        .from(resourceGrants)
+        .where(
+          and(
+            eq(resourceGrants.workspaceId, actor.workspaceId),
+            or(
+              isNull(resourceGrants.expiresAt),
+              gt(resourceGrants.expiresAt, sql`now()`),
+            ),
+          ),
+        )
+        .orderBy(asc(resourceGrants.id))
+        .for("update");
+      for (const grant of grants)
+        await transaction.insert(auditEvents).values({
+          id: createId(),
+          ...audit,
+          action: "resource.share_revoked",
+          resourceId: grant.resourceId,
+          metadata: {
+            grantId: grant.grantId,
+            principalId: grant.principalId,
+            role: grant.role,
+            reason: "workspace_deleted",
+          },
+        });
+      if (grants.length > 0)
+        await transaction.delete(resourceGrants).where(
+          inArray(
+            resourceGrants.id,
+            grants.map((grant) => grant.grantId),
+          ),
+        );
+
+      const members = await transaction
+        .delete(workspaceMembers)
+        .where(eq(workspaceMembers.workspaceId, actor.workspaceId))
+        .returning({
+          userId: workspaceMembers.userId,
+          role: workspaceMembers.role,
+        });
+      members.sort((a, b) =>
+        a.userId < b.userId ? -1 : a.userId > b.userId ? 1 : 0,
+      );
+
+      const deletedAfterCreation = sql`GREATEST(${deletedAt.toISOString()}::timestamptz, ${workspaces.createdAt})`;
+      await transaction
+        .update(workspaces)
+        .set({
+          deletedAt: deletedAfterCreation,
+          deletedBy: actor.userId,
+          updatedAt: deletedAfterCreation,
+        })
+        .where(eq(workspaces.id, actor.workspaceId));
+      await transaction.insert(auditEvents).values({
+        id: createId(),
+        ...audit,
+        action: "workspace.deleted",
+        resourceId: null,
+        metadata: {
+          displayName: workspace.displayName,
+          members,
+          grants,
+          pendingShares: pending.length,
+          trashRecords: records.trashRecords,
+        },
+      });
+    });
+  }
+}
+
+/** The workspace, unless it does not exist or was deleted. */
+async function liveWorkspace(
+  transaction: DatabaseTransaction,
+  workspaceId: string,
+) {
+  const [workspace] = await transaction
+    .select()
+    .from(workspaces)
+    .where(eq(workspaces.id, workspaceId))
+    .limit(1);
+  if (workspace === undefined || workspace.deletedAt !== null)
+    throw new WorkspaceUnavailableError();
+  return workspace;
+}
+
+/**
+ * How many of the workspace's records are live and how many are in Trash;
+ * a record whose permission scope is in Trash is in Trash with it.
+ */
+async function recordCounts(
+  transaction: DatabaseTransaction,
+  workspaceId: string,
+): Promise<{ liveRecords: number; trashRecords: number }> {
+  const scope = alias(objects, "scope");
+  const live = sql`${objects.deletedAt} IS NULL AND ${scope.deletedAt} IS NULL`;
+  const [counted] = await transaction
+    .select({
+      liveRecords: sql<number>`count(*) FILTER (WHERE ${live})`.mapWith(Number),
+      trashRecords: sql<number>`count(*) FILTER (WHERE NOT (${live}))`.mapWith(
+        Number,
+      ),
+    })
+    .from(objects)
+    .leftJoin(
+      scope,
+      and(
+        eq(scope.workspaceId, objects.workspaceId),
+        eq(scope.id, objects.permissionScopeId),
+      ),
+    )
+    .where(eq(objects.workspaceId, workspaceId));
+  return {
+    liveRecords: counted?.liveRecords ?? 0,
+    trashRecords: counted?.trashRecords ?? 0,
+  };
 }
 
 /**
@@ -516,10 +788,11 @@ async function workspaceView(
   };
 }
 
+/** The caller's role in the workspace; a caller who is not a member is refused. */
 async function requireMembership(
   transaction: DatabaseTransaction,
   actor: MembershipActor,
-): Promise<void> {
+): Promise<Role> {
   const [membership] = await transaction
     .select({ role: workspaceMembers.role })
     .from(workspaceMembers)
@@ -531,6 +804,7 @@ async function requireMembership(
     )
     .limit(1);
   if (membership === undefined) throw new AuthorizationDeniedError();
+  return membership.role;
 }
 
 async function memberView(

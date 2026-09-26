@@ -118,6 +118,13 @@ describe("resolveBackend", () => {
         "chronelle_object_move",
       ]),
     );
+    // Deleting a space needs migration 0078.
+    expect(cloudBaseRequiredFunctions).toEqual(
+      expect.arrayContaining([
+        "chronelle_workspace_deletion",
+        "chronelle_workspace_delete",
+      ]),
+    );
   });
 
   it("logs routine rejections as information and failures as errors", () => {
