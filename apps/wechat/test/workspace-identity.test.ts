@@ -77,9 +77,19 @@ describe("Mini Program workspace identity", () => {
 
     expect(identity.title).toBe("周末徒步社");
     expect(identity.detail).toBe("何安 · 仅查看");
+    expect(identity.mark).toEqual({ kind: "initials", text: "周" });
     expect(accountLine("mei-lin", renamed, identity)).toBe(
       "周末徒步社 · 仅查看",
     );
+  });
+
+  it("marks a named space with its own initials, not its owner's", () => {
+    const identity = workspaceIdentity(
+      workspace({ displayName: "Book Club", ownerDisplayName: "何安" }),
+      labels,
+    );
+
+    expect(identity.mark).toEqual({ kind: "initials", text: "BC" });
   });
 
   it("omits the access for a workspace reached through shares alone", () => {
