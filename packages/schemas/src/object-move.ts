@@ -175,5 +175,6 @@ export type ObjectMovePreviewQuery = z.infer<
   typeof objectMovePreviewQuerySchema
 >;
 export type ObjectMoveRequest = z.infer<typeof objectMoveRequestSchema>;
+export type ObjectMoveRequestPayload = z.input<typeof objectMoveRequestSchema>;
 export type ObjectMoveSummary = z.infer<typeof objectMoveSummarySchema>;
 export type ObjectMoveResponse = z.infer<typeof objectMoveResponseSchema>;

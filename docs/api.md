@@ -1253,6 +1253,90 @@ the same rules (`chronelle_workspace_create`, `_update`, `_member_add`,
 `_member_role`, `_member_remove`, and `chronelle_workspace_leave`, migration
 0072, on the rpc path; the readiness check requires them).
 
+## Moving an Event to another space
+
+An Owner of the space an Event is in moves it, with everything in its
+permission scope, to another space where they are an Owner or an Editor.
+Each route names the Event by `:id`, so the session follows the Event's
+space as other object routes do.
+
+| Method | Path                            | Behavior                                  |
+| ------ | ------------------------------- | ----------------------------------------- |
+| `GET`  | `/objects/:id/move/targets`     | The spaces the Event can move to          |
+| `GET`  | `/objects/:id/move?to=:spaceId` | What moving it there carries and drops    |
+| `POST` | `/objects/:id/move`             | Move it, with the preview's dropped count |
+
+`GET /objects/:id/move/targets` returns `{ items }` of `{ workspace,
+memberCount, current, allowed }` for every space the caller is a member of,
+the caller's personal space first, then by name; `workspace` has the shape
+`availableWorkspaces` uses. `current` marks the Event's space, and `allowed`
+marks another space where the caller is an Owner or an Editor.
+
+The preview returns:
+
+- `eventId`, `from`, and `to` (both spaces as `availableWorkspaces` lists
+  them);
+- `moves`: the live records that move, by kind (`scheduleItems`, `todos`,
+  `subtasks`, `expenses`, `reminders`, `notes`, `files`), and `inTrash`,
+  `sections`, `pages` (of the current layout), `shares` (kept), and
+  `pendingShares`;
+- `droppedLinks`: each live link between a live moving record (`scoped`) and
+  a live record that stays (`other`), as `{ relationId, relationType,
+scoped, other }`, the records by `{ id, objectType, displayName }`;
+- `unassignedTasks`: each live to-do assigned to a live People card, as
+  `{ taskId, displayName, person }`; People cards never move, so the move
+  clears the assignee;
+- `labels`: the to-dos' label names, each with `existing` when the target
+  has a label of that name (compared without case); a missing one is
+  created there;
+- `peopleKept`: People cards scoped to the Event, which stay in the old
+  space as their own scope;
+- `clearedLinks`: links and assignees also cleared without a warning (links
+  already removed, and those of records in Trash);
+- `access`: `targetMembers` by role; `keepingShares`, the accounts the Event
+  stays shared with, by their strongest share; `droppedGrants`, shares the
+  move revokes because the grantee's membership of the target gives as much
+  or more (`{ userId, displayName, role, memberRole }`); `losingAccess`,
+  members of the old space who are not members of the target and hold no
+  share of the Event; and `lapsingShares`, shares waiting on an invitation
+  whose sharer cannot share in the target, which lapse when accepted;
+- `expectedDroppedLinks`: the number of `droppedLinks` and
+  `unassignedTasks` together.
+
+Each list is `{ items, total }` with at most 100 items and an exact total.
+
+`POST /objects/:id/move` takes `{ workspaceId, expectedDroppedLinks,
+commandId? }` and returns `{ event, move }`: the Event in its new space and
+what the move did (`commandId`, `from` and `to` as `{ id, displayName }`,
+`moves`, the counts `droppedLinks`, `unassignedTasks`, `clearedLinks`,
+`labelsJoined`, `labelsCreated`, `grantsDropped`, `peopleKept`, and
+`movedAt`). Ids and versions stay; the to-dos whose assignee or labels
+change, and the People cards that become their own scope, take a version
+step with a revision. A repeat by the same account with the same `commandId`
+returns the first result, from either space; the same `commandId` with
+another `workspaceId` is `command_conflict` (HTTP 409). The move writes
+`relation.dropped` for each link it drops, `resource.share_revoked` with
+reason `covered_by_membership` for each covered share, and `object.moved` in
+both spaces. The old space's undo stacks lose the entries for the moved
+records ([Reversible content commands](commands.md)).
+
+| Code                    | HTTP | When                                                                                    |
+| ----------------------- | ---- | --------------------------------------------------------------------------------------- |
+| `resource_unavailable`  | 404  | The caller cannot see the Event                                                         |
+| `workspace_unavailable` | 404  | The target does not exist or the caller is not a member of it                           |
+| `move_forbidden`        | 403  | The caller is not an Owner of the Event's space, or is a Viewer of the target           |
+| `move_not_movable`      | 400  | The object is not an Event that is its own scope, or it is in Trash                     |
+| `move_same_space`       | 400  | The target is the Event's space                                                         |
+| `move_changed`          | 409  | The links the move would drop are not `expectedDroppedLinks`, or a write raced the move |
+| `invalid_request`       | 400  | A missing `to`, or an invalid body                                                      |
+
+On `move_changed` nothing moved: preview again and show the new warnings.
+Both backends apply the same rules (`chronelle_object_move_targets`,
+`chronelle_object_move_preview`, and `chronelle_object_move`, migration 0077,
+on the rpc path; the readiness check requires them). The targets and the
+preview come from the backend that makes the move, so the count a client
+reviews is the count the move checks.
+
 ## Mutation contract
 
 Each mutation validates input, authenticates the caller, authorizes the

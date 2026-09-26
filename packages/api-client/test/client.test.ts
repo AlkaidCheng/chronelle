@@ -696,6 +696,134 @@ describe("LivTalesApiClient", () => {
       ["/api/workspaces/current/leave", "POST", undefined],
     ]);
   });
+  it("lists move targets, previews a move, and moves an Event to another space", async () => {
+    const target = uploadAuthorizationId;
+    const space = {
+      id: target,
+      displayName: "Our wedding",
+      personal: false,
+      ownerDisplayName: "Ana",
+      role: "editor",
+    };
+    const counts = {
+      scheduleItems: 0,
+      todos: 1,
+      subtasks: 0,
+      expenses: 0,
+      reminders: 0,
+      notes: 0,
+      files: 1,
+      sections: 0,
+      pages: 0,
+      inTrash: 0,
+      shares: 0,
+      pendingShares: 0,
+    };
+    const empty = { items: [], total: 0 };
+    const preview = {
+      eventId: event.id,
+      from: { ...space, id: event.workspaceId, role: "owner" },
+      to: space,
+      moves: counts,
+      droppedLinks: empty,
+      unassignedTasks: {
+        items: [
+          {
+            taskId: relationId,
+            displayName: "Book the hall",
+            person: { id: documentId, displayName: "Ben" },
+          },
+        ],
+        total: 1,
+      },
+      labels: empty,
+      peopleKept: empty,
+      clearedLinks: 0,
+      access: {
+        targetMembers: { owner: 1, editor: 1, viewer: 0 },
+        keepingShares: empty,
+        droppedGrants: empty,
+        losingAccess: empty,
+        lapsingShares: 0,
+      },
+      expectedDroppedLinks: 1,
+    };
+    const move = {
+      commandId: relationId,
+      from: { id: event.workspaceId, displayName: "Our wedding" },
+      to: { id: target, displayName: "Our wedding" },
+      moves: counts,
+      droppedLinks: 0,
+      unassignedTasks: 1,
+      clearedLinks: 0,
+      labelsJoined: 0,
+      labelsCreated: 0,
+      grantsDropped: 0,
+      peopleKept: 0,
+      movedAt: "2026-09-26T00:00:00.000Z",
+    };
+    const fetch = vi
+      .fn<typeof globalThis.fetch>()
+      .mockResolvedValueOnce(
+        Response.json({
+          items: [
+            {
+              workspace: space,
+              memberCount: 2,
+              current: false,
+              allowed: true,
+            },
+          ],
+        }),
+      )
+      .mockResolvedValueOnce(Response.json(preview))
+      .mockResolvedValueOnce(
+        Response.json({
+          event: { ...event, workspaceId: target, version: 1 },
+          move,
+        }),
+      )
+      .mockResolvedValueOnce(
+        Response.json(
+          {
+            error: {
+              code: "move_changed",
+              message: "The move changed since it was previewed.",
+            },
+          },
+          { status: 409 },
+        ),
+      );
+    const client = new LivTalesApiClient({
+      fetch,
+      getCredential: () => ({
+        accessToken: "test-session",
+        workspaceId: event.workspaceId,
+      }),
+    });
+    expect((await client.listMoveTargets(event.id)).items).toHaveLength(1);
+    expect(await client.previewMove(event.id, target)).toEqual(preview);
+    const request = {
+      workspaceId: target,
+      expectedDroppedLinks: 1,
+      commandId: relationId,
+    };
+    const moved = await client.moveObject(event.id, request);
+    expect(moved.event.workspaceId).toBe(target);
+    expect(moved.move).toEqual(move);
+    await expect(client.moveObject(event.id, request)).rejects.toMatchObject({
+      status: 409,
+      code: "move_changed",
+    });
+    expect(
+      fetch.mock.calls.map(([url, init]) => [url, init?.method, init?.body]),
+    ).toEqual([
+      [`/api/objects/${event.id}/move/targets`, "GET", undefined],
+      [`/api/objects/${event.id}/move?to=${target}`, "GET", undefined],
+      [`/api/objects/${event.id}/move`, "POST", JSON.stringify(request)],
+      [`/api/objects/${event.id}/move`, "POST", JSON.stringify(request)],
+    ]);
+  });
   it("acts in another workspace for one scoped client", async () => {
     const member = {
       userId: documentId,

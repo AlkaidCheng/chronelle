@@ -20,6 +20,7 @@ import {
   CloudBaseGrantReadRepository,
   CloudBaseLabelRepository,
   CloudBaseObjectLifecycleWriteRepository,
+  CloudBaseObjectMoveRepository,
   CloudBaseObjectReadRepository,
   CloudBaseNoteReadRepository,
   CloudBaseNoteWriteRepository,
@@ -43,11 +44,13 @@ import {
   EventPlanningObjectService,
   EventPlanningProjectionService,
   LabelService,
+  type ObjectMoveRepository,
   ObjectRecoveryService,
   ObjectRelationService,
   ObjectRestorationService,
   ObjectRevisionService,
   PostgresLabelRepository,
+  PostgresObjectMoveRepository,
   PostgresSectionRepository,
   ReversibleCommandService,
   SectionService,
@@ -124,6 +127,7 @@ export interface AppDependencies {
   readonly pendingShares: PendingShareService;
   readonly personShares: PersonShareStore;
   readonly members: MembershipStore;
+  readonly moves: ObjectMoveRepository;
   readonly storageInventory: StorageInventoryService;
 }
 
@@ -307,6 +311,12 @@ export function createAppDependencies(
     options.cloudBaseRdb === undefined
       ? new PostgresMembershipStore(connection.db)
       : new CloudBaseMembershipStore(options.cloudBaseRdb);
+  // The move checks the preview's dropped-link count, so the targets, the
+  // preview, and the move come from the backend that makes the move.
+  const moves =
+    options.cloudBaseRdb === undefined || options.cloudBaseWrites !== true
+      ? new PostgresObjectMoveRepository(connection.db, options.clock)
+      : new CloudBaseObjectMoveRepository(options.cloudBaseRdb, options.clock);
 
   return {
     authProvider: authProvider ?? sessions,
@@ -373,6 +383,7 @@ export function createAppDependencies(
     pendingShares,
     personShares,
     members,
+    moves,
     projections: new EventPlanningProjectionService(
       connection.db,
       options.cloudBaseRdb === undefined

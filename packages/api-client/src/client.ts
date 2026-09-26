@@ -198,6 +198,13 @@ import {
   workspaceMemberListResponseSchema,
   workspaceMemberRemovalResponseSchema,
   workspaceMemberSchema,
+  type ObjectMovePreview,
+  type ObjectMoveRequestPayload,
+  type ObjectMoveResponse,
+  type ObjectMoveTargetsResponse,
+  objectMovePreviewSchema,
+  objectMoveResponseSchema,
+  objectMoveTargetsResponseSchema,
 } from "@livtales/schemas";
 import type { z } from "zod";
 
@@ -1315,6 +1322,45 @@ export class LivTalesApiClient {
       "/api/workspaces/current/leave",
       workspaceLeaveResponseSchema,
       { method: "POST" },
+    );
+  }
+
+  /**
+   * The spaces an Event can move to: every space the caller is a member of,
+   * with its role and member count, the Event's own marked current, and
+   * the ones the caller can move it to marked allowed.
+   */
+  listMoveTargets(id: string): Promise<ObjectMoveTargetsResponse> {
+    return this.#request(
+      `/api/objects/${id}/move/targets`,
+      objectMoveTargetsResponseSchema,
+    );
+  }
+
+  /**
+   * What moving the Event to the space would carry and drop; pass its
+   * `expectedDroppedLinks` to `moveObject`.
+   */
+  previewMove(id: string, workspaceId: string): Promise<ObjectMovePreview> {
+    return this.#request(
+      `/api/objects/${id}/move?${new URLSearchParams({ to: workspaceId }).toString()}`,
+      objectMovePreviewSchema,
+    );
+  }
+
+  /**
+   * Moves the Event, with everything in its scope, to the space. Refused
+   * with `move_changed` (HTTP 409) when the links it would drop are not
+   * `expectedDroppedLinks`; keep `commandId` across retries of one move.
+   */
+  moveObject(
+    id: string,
+    input: ObjectMoveRequestPayload,
+  ): Promise<ObjectMoveResponse> {
+    return this.#request(
+      `/api/objects/${id}/move`,
+      objectMoveResponseSchema,
+      jsonRequest(input, "POST"),
     );
   }
 
