@@ -129,6 +129,21 @@ therefore keeps its history, and its mutable rows (typed rows, relations,
 grants, pending shares, transfer authorizations, sections) follow it through
 `ON UPDATE CASCADE` keys on their `(workspace_id, ...)` references.
 
+An Owner of a space moves an Event, with its whole permission scope, to
+another space where they can add records (`ObjectMoveRepository`, migration
+0077). One `UPDATE objects SET workspace_id` over the scope carries it, under
+both workspaces' fences taken in id order (`withStableAuthorizationAcross`,
+mirrored by `chronelle_object_move`). What linked the scope to records that
+stay is dropped rather than carried: relations that cross the scope are
+deleted with a `relation.dropped` audit event each (the only relation deletes;
+a trigger refuses any other), task assignees are cleared because People cards
+never move, and People cards scoped to the Event stay as their own scope. A
+task's labels join the target's labels of the same name. Carried records keep
+their versions; the tasks and cards the move rewrites take a version step with
+a revision. The preview reports the links it drops with a warning, and the
+move is refused when their count differs from the one the caller reviewed.
+`object.moved` is audited in both spaces.
+
 `withReadAuthorization` owns read transaction configuration and constructs an
 evaluator bound to that transaction. Service constructors accept a database
 connection; composed object/relation services instead receive an explicit

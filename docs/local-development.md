@@ -335,6 +335,15 @@ revisions or layouts read them by object id. Migration
 no other step, and older API versions keep working. [Deployment](deployment.md)
 has the locking notes.
 
+Migration `0077_add_object_move.sql` adds the functions that move an Event,
+with everything in its scope, to another workspace, preview the move, and list
+the workspaces it can go to. Only a move deletes relations: the
+`object_relations_drop_guard` trigger refuses any other delete, and the
+runtime role script grants `DELETE` on `object_relations` for it. After
+`pnpm db:migrate`, rerun the runtime role script (see
+[Deployment](deployment.md)) if the API connects as the runtime role, then
+restart the API.
+
 Migration `0021_add_object_search_function.sql` adds `chronelle_object_search`,
 the read-only function the CloudBase search adapter calls. It changes no
 tables and needs no baseline.
