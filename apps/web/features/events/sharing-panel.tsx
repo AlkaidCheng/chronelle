@@ -32,7 +32,8 @@ import {
 } from "../../lib/queries";
 import { ShareWithPeople, shareRows } from "./share-with-people";
 
-type SharedRole = "owner" | "editor" | "viewer";
+/** The roles a single record is shared with. */
+type ShareRole = "editor" | "viewer";
 
 function relatedResources(
   detail: EventDetailResponse,
@@ -92,17 +93,19 @@ export function SharingPanel({
   const updateScope = useUpdatePermissionScope();
   const refresh = useRefreshEvent(eventId);
   const [principalEmail, setPrincipalEmail] = useState("");
-  const [role, setRole] = useState<SharedRole>("viewer");
+  const [role, setRole] = useState<ShareRole>("viewer");
 
   // The share can be given again to the same address, so the notice offers
-  // that as Undo; an account without an address gets no Undo.
+  // that as Undo; an account without an address, or a share made as Owner,
+  // which a single record no longer grants, gets no Undo.
   function removeShare(grant: ShareResponse) {
     revoke.mutate(grant.id, {
       onSuccess: () => {
         const email = grant.principal.email;
+        const role = grant.role === "owner" ? null : grant.role;
         post({
           message: done("shareRemoved"),
-          ...(email === null
+          ...(email === null || role === null
             ? {}
             : {
                 action: {
@@ -110,7 +113,7 @@ export function SharingPanel({
                   run: () =>
                     share.mutateAsync({
                       principalEmail: email,
-                      role: grant.role,
+                      role,
                       ...(grant.scope === null ? {} : { scope: grant.scope }),
                     }),
                 },
@@ -186,7 +189,7 @@ export function SharingPanel({
               <span className="visually-hidden">{tp("access")}</span>
               <select
                 className="share-person-role"
-                onChange={(input) => setRole(input.target.value as SharedRole)}
+                onChange={(input) => setRole(input.target.value as ShareRole)}
                 value={role}
               >
                 <option value="viewer">{tp("roles.viewer")}</option>

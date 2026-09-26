@@ -8,6 +8,7 @@ import { describe, expect, it, vi } from "vitest";
 import {
   applySharingChange,
   pendingInvitationUrl,
+  rolesFor,
   sharingAccess,
 } from "../src/sharing/model";
 
@@ -118,5 +119,13 @@ describe("Mini Program Event sharing", () => {
     expect(
       pendingInvitationUrl(pending, [{ ...sent, kind: "connection" }]),
     ).toBeNull();
+  });
+});
+
+describe("rolesFor", () => {
+  it("offers Viewer and Editor, and Owner only to a grant that holds it", () => {
+    expect(rolesFor("viewer")).toEqual(["viewer", "editor"]);
+    expect(rolesFor("editor")).toEqual(["viewer", "editor"]);
+    expect(rolesFor("owner")).toEqual(["viewer", "editor", "owner"]);
   });
 });

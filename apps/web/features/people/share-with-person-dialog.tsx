@@ -3,6 +3,8 @@
 import type { PersonResponse, ShareResponse } from "@livtales/schemas";
 
 type Role = ShareResponse["role"];
+/** The roles a single record is shared with. */
+type ShareRole = Exclude<Role, "owner">;
 import { useTranslations } from "next-intl";
 import { type FormEvent, useEffect, useId, useRef, useState } from "react";
 import { ErrorNotice } from "../../components/feedback";
@@ -55,7 +57,7 @@ export function ShareWithPersonDialog({
   const [query, setQuery] = useState("");
   const [debounced, setDebounced] = useState("");
   const [eventId, setEventId] = useState<string | null>(null);
-  const [role, setRole] = useState<Role>("viewer");
+  const [role, setRole] = useState<ShareRole>("viewer");
   const [outcome, setOutcome] = useState<Outcome | null>(null);
   const [copied, setCopied] = useState("");
   const search = useRef<HTMLInputElement>(null);
@@ -181,7 +183,7 @@ export function ShareWithPersonDialog({
           <span>{t("role")}</span>
           <select
             disabled={busy}
-            onChange={(event) => setRole(event.target.value as Role)}
+            onChange={(event) => setRole(event.target.value as ShareRole)}
             value={role}
           >
             <option value="viewer">{roles("roles.viewer")}</option>

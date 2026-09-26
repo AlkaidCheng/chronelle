@@ -628,6 +628,74 @@ describe("LivTalesApiClient", () => {
       expect(sentHeaders.get("x-workspace-id")).toBe(event.workspaceId);
     }
   });
+  it("creates, renames, and leaves spaces and changes a member's role", async () => {
+    const space = {
+      id: relationId,
+      displayName: "Our wedding",
+      personal: false,
+      ownerDisplayName: "Ana",
+      role: "owner",
+    };
+    const member = {
+      userId: documentId,
+      displayName: "Ben",
+      email: "ben@example.com",
+      role: "owner",
+      personal: false,
+      friendId: null,
+      joinedAt: "2026-09-26T00:00:00.000Z",
+    };
+    const fetch = vi
+      .fn<typeof globalThis.fetch>()
+      .mockResolvedValueOnce(Response.json(space, { status: 201 }))
+      .mockResolvedValueOnce(
+        Response.json({ ...space, displayName: "Kyoto 2027" }),
+      )
+      .mockResolvedValueOnce(Response.json(member))
+      .mockResolvedValueOnce(
+        Response.json({ userId: event.createdBy, left: true }),
+      );
+    const client = new LivTalesApiClient({
+      fetch,
+      getCredential: () => ({
+        accessToken: "test-session",
+        workspaceId: event.workspaceId,
+      }),
+    });
+    expect(
+      await client.createWorkspace({ displayName: "Our wedding" }),
+    ).toEqual(space);
+    expect(
+      (await client.updateWorkspace({ displayName: "Kyoto 2027" })).displayName,
+    ).toBe("Kyoto 2027");
+    expect(
+      await client.changeWorkspaceMemberRole(documentId, { role: "owner" }),
+    ).toEqual(member);
+    expect(await client.leaveWorkspace()).toEqual({
+      userId: event.createdBy,
+      left: true,
+    });
+    expect(
+      fetch.mock.calls.map(([url, init]) => [url, init?.method, init?.body]),
+    ).toEqual([
+      [
+        "/api/workspaces",
+        "POST",
+        JSON.stringify({ displayName: "Our wedding" }),
+      ],
+      [
+        "/api/workspaces/current",
+        "PATCH",
+        JSON.stringify({ displayName: "Kyoto 2027" }),
+      ],
+      [
+        `/api/workspaces/current/members/${documentId}`,
+        "PATCH",
+        JSON.stringify({ role: "owner" }),
+      ],
+      ["/api/workspaces/current/leave", "POST", undefined],
+    ]);
+  });
   it("forwards removed-link filters, cursors and cancellation", async () => {
     const fetch = vi
       .fn<typeof globalThis.fetch>()

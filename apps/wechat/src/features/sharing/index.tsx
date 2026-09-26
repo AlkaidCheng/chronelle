@@ -35,8 +35,9 @@ import { useReadyAppRuntime } from "../../runtime/app-runtime";
 import { useOnline } from "../../runtime/online";
 import {
   applySharingChange,
+  type GrantRole,
   pendingInvitationUrl,
-  shareRoles,
+  rolesFor,
   sharingAccess,
   type ShareRole,
 } from "../../sharing/model";
@@ -66,7 +67,7 @@ function State({
   );
 }
 
-function roleName(role: ShareRole, locale: AppLocale): string {
+function roleName(role: GrantRole, locale: AppLocale): string {
   const messages = getMessages(locale);
   return role === "owner"
     ? messages.roleOwner
@@ -99,16 +100,17 @@ function RolePicker({
   value,
 }: {
   readonly locale: AppLocale;
-  readonly onChange: (role: ShareRole) => void;
-  readonly value: ShareRole;
+  readonly onChange: (role: GrantRole) => void;
+  readonly value: GrantRole;
 }) {
+  const roles = rolesFor(value);
   return (
     <Picker
       mode="selector"
-      range={shareRoles.map((role) => roleName(role, locale))}
-      value={shareRoles.indexOf(value)}
+      range={roles.map((role) => roleName(role, locale))}
+      value={roles.indexOf(value)}
       onChange={(event) => {
-        const role = shareRoles[Number(event.detail.value)];
+        const role = roles[Number(event.detail.value)];
         if (role) onChange(role);
       }}
     >
@@ -131,7 +133,7 @@ function GrantRow({
   readonly onRoleChange: (role: ShareRole) => void;
 }) {
   const messages = getMessages(locale);
-  const [chosenRole, setChosenRole] = useState<ShareRole>(grant.role);
+  const [chosenRole, setChosenRole] = useState<GrantRole>(grant.role);
   useEffect(() => setChosenRole(grant.role), [grant.role]);
   return (
     <View className="sharing-row">
@@ -148,9 +150,11 @@ function GrantRow({
       </Text>
       <RolePicker locale={locale} value={chosenRole} onChange={setChosenRole} />
       <Button
-        disabled={busy || chosenRole === grant.role}
+        disabled={busy || chosenRole === grant.role || chosenRole === "owner"}
         className="sharing-text-button"
-        onClick={() => onRoleChange(chosenRole)}
+        onClick={() => {
+          if (chosenRole !== "owner") onRoleChange(chosenRole);
+        }}
       >
         {messages.sharingChangeRole}
       </Button>
@@ -473,7 +477,13 @@ function SharingControls({
               </Picker>
             )}
             <Text className="sharing-label">{messages.sharingRole}</Text>
-            <RolePicker locale={locale} value={role} onChange={setRole} />
+            <RolePicker
+              locale={locale}
+              value={role}
+              onChange={(next) => {
+                if (next !== "owner") setRole(next);
+              }}
+            />
             <Button
               disabled={busy || selectedPerson < 0 || !online}
               className="sharing-button"

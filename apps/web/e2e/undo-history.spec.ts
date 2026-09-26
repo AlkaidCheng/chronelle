@@ -166,7 +166,7 @@ test("undoes and redoes edits by name, keeps layout undo apart, and previews his
         data: {
           resourceId: event.id,
           principalEmail: otherEmail,
-          role: "owner",
+          role: "editor",
         },
       })
     ).status(),

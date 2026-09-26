@@ -171,7 +171,11 @@ export function ShareWithPeople({
     for (const row of chosen) {
       const role = roleOf(row);
       try {
-        if (row.kind === "friend" && row.friendId !== null) {
+        if (role === "owner") {
+          // Owner is shown only for a person who already holds it; sharing
+          // with them again leaves it as it is.
+          results.set(row.key, { kind: "shared", role });
+        } else if (row.kind === "friend" && row.friendId !== null) {
           const grant = await share.mutateAsync({
             friendId: row.friendId,
             role,

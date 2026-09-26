@@ -1,7 +1,9 @@
 import {
   type AcceptedResponse,
+  type AccessibleWorkspace,
   type AccountUpdateRequest,
   acceptedResponseSchema,
+  accessibleWorkspaceSchema,
   apiErrorResponseSchema,
   type CommandExecutePayload,
   type CommandReceipt,
@@ -183,11 +185,16 @@ import {
   type VerifyEmailRequest,
   type WeChatCredentialRequest,
   type WeChatIdentityLinkResponse,
+  type WorkspaceCreateRequest,
+  type WorkspaceLeaveResponse,
   type WorkspaceMember,
   type WorkspaceMemberAddRequest,
   type WorkspaceMemberListResponse,
   type WorkspaceMemberRemovalResponse,
+  type WorkspaceMemberRoleRequest,
+  type WorkspaceUpdateRequest,
   weChatIdentityLinkResponseSchema,
+  workspaceLeaveResponseSchema,
   workspaceMemberListResponseSchema,
   workspaceMemberRemovalResponseSchema,
   workspaceMemberSchema,
@@ -1270,6 +1277,33 @@ export class LivTalesApiClient {
     );
   }
 
+  /** Creates a shared workspace with the caller as its Owner. */
+  createWorkspace(input: WorkspaceCreateRequest): Promise<AccessibleWorkspace> {
+    return this.#request(
+      "/api/workspaces",
+      accessibleWorkspaceSchema,
+      jsonRequest(input, "POST"),
+    );
+  }
+
+  /** Renames the current workspace; a personal one keeps its name. */
+  updateWorkspace(input: WorkspaceUpdateRequest): Promise<AccessibleWorkspace> {
+    return this.#request(
+      "/api/workspaces/current",
+      accessibleWorkspaceSchema,
+      jsonRequest(input, "PATCH"),
+    );
+  }
+
+  /** Leaves the current workspace; its last Owner makes another member one first. */
+  leaveWorkspace(): Promise<WorkspaceLeaveResponse> {
+    return this.#request(
+      "/api/workspaces/current/leave",
+      workspaceLeaveResponseSchema,
+      { method: "POST" },
+    );
+  }
+
   listWorkspaceMembers(): Promise<WorkspaceMemberListResponse> {
     return this.#request(
       "/api/workspaces/current/members",
@@ -1285,6 +1319,18 @@ export class LivTalesApiClient {
       "/api/workspaces/current/members",
       workspaceMemberSchema,
       jsonRequest(input, "POST"),
+    );
+  }
+
+  /** Changes a member's role; the workspace keeps at least one Owner. */
+  changeWorkspaceMemberRole(
+    userId: string,
+    input: WorkspaceMemberRoleRequest,
+  ): Promise<WorkspaceMember> {
+    return this.#request(
+      `/api/workspaces/current/members/${userId}`,
+      workspaceMemberSchema,
+      jsonRequest(input, "PATCH"),
     );
   }
 

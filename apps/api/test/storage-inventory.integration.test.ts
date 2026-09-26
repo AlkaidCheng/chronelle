@@ -42,6 +42,7 @@ import type { FastifyInstance, InjectOptions } from "fastify";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { buildApp } from "../src/app.js";
 import { createDevelopmentAppDependencies } from "../src/dependencies.js";
+import { seedOwnerGrant } from "./owner-grant.js";
 
 let database: TestDatabase;
 let app: FastifyInstance;
@@ -465,19 +466,12 @@ describe.sequential("workspace storage inventory", () => {
     expect(
       (await request(other, undefined, owner.workspace.id)).statusCode,
     ).toBe(404);
-    expect(
-      (
-        await request(owner, {
-          method: "POST",
-          url: "/api/shares",
-          payload: {
-            resourceId: event.id,
-            principalEmail: "other@example.com",
-            role: "owner",
-          },
-        })
-      ).statusCode,
-    ).toBe(201);
+    await seedOwnerGrant(database.connection.db, {
+      workspaceId: owner.workspace.id,
+      resourceId: event.id,
+      principalEmail: "other@example.com",
+      grantedBy: owner.user.id,
+    });
     expect(
       (await request(other, undefined, owner.workspace.id)).statusCode,
     ).toBe(404);

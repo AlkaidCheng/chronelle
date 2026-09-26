@@ -329,6 +329,19 @@ the new tables; on CloudBase, apply it through the console SQL editor before
 redeploying because readiness requires the three new functions. The migration
 retains the old identity columns and resolver during the rolling deployment.
 
+Migration `0072_add_shared_spaces.sql` adds `chronelle_workspace_create`,
+`chronelle_workspace_update`, `chronelle_workspace_member_role`, and
+`chronelle_workspace_leave`, and replaces `chronelle_workspace_member_add` and
+`_remove` so an Owner can make other members Owners, a shared workspace keeps
+at least one Owner, and each membership change locks its workspace first. It
+changes no tables, needs no baseline or runtime-role change, and is
+compatible with older API versions. On CloudBase, apply it through the
+console SQL editor before redeploying the API, because readiness requires the
+four new functions; it revokes browser-role execution and grants
+`service_role` execution when those managed roles exist. Deploy the web and
+the Mini Program with or after this API: the API refuses an Owner share of a
+single record, which only older clients offer.
+
 Enable the WeChat routes only after CloudBase authentication is configured:
 
 ```dotenv
