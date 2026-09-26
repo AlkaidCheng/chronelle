@@ -302,7 +302,7 @@ test("collapses the sidebar to the content's edge, remembers it on this device, 
   await page.keyboard.press("ControlOrMeta+Backslash");
   await expectShown(sidebar);
   await expect(collapse).toBeFocused();
-  await page.goto("/settings/keyboard");
+  await page.goto("/events?settings=keyboard");
   await expect(
     keyboardSection(page).getByText("Collapse or expand the sidebar", {
       exact: true,

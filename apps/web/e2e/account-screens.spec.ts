@@ -69,12 +69,16 @@ test("creates an account with a username, confirms the code, completes the Welco
   // The Welcome step does not come back; Settings holds the name and clock.
   await page.goto("/welcome");
   await expect(page).toHaveURL(/\/events$/u);
+  // The old Settings address opens Settings over Events.
   await page.goto("/settings");
+  await expect(page).toHaveURL(/\/events\?settings=general$/u);
   await expect(page.getByRole("textbox", { name: "Name" })).toHaveValue(
     `Mira ${tag}`,
   );
-  await page.goto("/settings/language");
+  await page.goto("/events?settings=language");
   await expect(page.getByRole("radio", { name: "24-hour" })).toBeChecked();
+  await page.keyboard.press("Escape");
+  await expect(page.getByRole("dialog", { name: "Settings" })).toHaveCount(0);
 
   // Sign out; sign in by username, in any case, with the same password.
   await page.getByRole("button", { name: new RegExp(`^Mira ${tag}`) }).click();

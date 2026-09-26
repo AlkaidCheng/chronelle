@@ -15,6 +15,7 @@ const router = vi.hoisted(() => ({ refresh: vi.fn() }));
 vi.mock("next/navigation", () => ({ useRouter: () => router }));
 
 beforeEach(() => {
+  window.history.replaceState(null, "", "/tasks");
   vi.stubGlobal("localStorage", window.sessionStorage);
   // A keyboard device: the menu offers Keyboard shortcuts.
   vi.stubGlobal(
@@ -72,11 +73,11 @@ it("opens a menu with Trash, Theme, Customize sidebar, Keyboard shortcuts, and H
   );
   expect(within(menu).getByRole("menuitem", { name: "Trash" })).toHaveFocus();
   // Help has no surface yet: choosing it closes the menu and says so in a
-  // passing notice. Keyboard shortcuts leads to the Keyboard settings on a
-  // keyboard device.
+  // passing notice. Keyboard shortcuts opens Settings at Keyboard over the
+  // page, on a keyboard device.
   expect(
     within(menu).getByRole("menuitem", { name: "Keyboard shortcuts" }),
-  ).toHaveAttribute("href", "/settings/keyboard");
+  ).toHaveAttribute("href", "/tasks?settings=keyboard");
   await user.keyboard("{End}");
   expect(within(menu).getByRole("menuitem", { name: "Help" })).toHaveFocus();
   await user.keyboard("{Enter}");
@@ -89,6 +90,15 @@ it("opens a menu with Trash, Theme, Customize sidebar, Keyboard shortcuts, and H
   await user.click(screen.getByRole("menuitem", { name: "Customize sidebar" }));
   expect(onCustomize).toHaveBeenCalledTimes(1);
   expect(screen.queryByRole("menu")).not.toBeInTheDocument();
+  // Keyboard shortcuts closes the menu, hands focus to More for the dialog
+  // to return to, and puts Settings at Keyboard in the address.
+  await user.click(trigger);
+  await user.click(
+    screen.getByRole("menuitem", { name: "Keyboard shortcuts" }),
+  );
+  expect(screen.queryByRole("menu")).not.toBeInTheDocument();
+  expect(trigger).toHaveFocus();
+  expect(window.location.search).toBe("?settings=keyboard");
 });
 
 it("opens the Theme panel from the menu with the mode, palette, density, and motion choices", async () => {

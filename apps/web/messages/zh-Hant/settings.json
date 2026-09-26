@@ -1,7 +1,7 @@
 {
   "title": "設定",
-  "sections": "設定項目",
-  "account": "帳號",
+  "close": "關閉設定",
+  "general": "一般",
   "preferences": "偏好設定",
   "languageTime": "語言與時間",
   "appearance": "外觀",

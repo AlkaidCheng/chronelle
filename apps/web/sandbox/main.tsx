@@ -10,7 +10,7 @@ import { PeoplePage } from "../features/people/people-page";
 import { PersonPage } from "../features/people/person-page";
 import { TrashWorkspace } from "../features/recovery/trash-workspace";
 import { ObjectSearch } from "../features/search/object-search";
-import { SettingsPage } from "../features/settings/settings-page";
+import { SettingsLayer } from "../features/settings/settings-dialog";
 import { TasksPage } from "../features/tasks/tasks-page";
 import {
   readLocaleChoice,
@@ -24,7 +24,7 @@ import hans from "../messages/zh-Hans.json";
 import hant from "../messages/zh-Hant.json";
 import { store } from "./api-context";
 import { useAuthSession } from "./auth-session";
-import Link, { usePathname } from "./router";
+import Link, { usePathname, useRouter } from "./router";
 import "../app/styles.css";
 import "../app/collections.css";
 import "../app/print.css";
@@ -39,6 +39,14 @@ function Sandbox() {
   const [error, setError] = useState("");
   const eventId = /^\/events\/([\da-f-]+)$/.exec(pathname)?.[1];
   const personId = /^\/people\/([\da-f-]+)$/.exec(pathname)?.[1];
+  // The old Settings addresses open Settings over Events, as the app's do.
+  const router = useRouter();
+  const oldSettings =
+    /^\/settings(?:\/(language|appearance|keyboard|members))?$/.exec(pathname);
+  const oldSection = oldSettings ? (oldSettings[1] ?? "general") : null;
+  useEffect(() => {
+    if (oldSection !== null) router.replace(`/events?settings=${oldSection}`);
+  }, [oldSection, router]);
   function reset() {
     if (
       !window.confirm(
@@ -108,21 +116,14 @@ function Sandbox() {
           <TrashWorkspace />
         ) : pathname === "/friends" ? (
           <FriendsPage />
-        ) : pathname === "/settings" ? (
-          <SettingsPage section="account" />
-        ) : pathname === "/settings/language" ? (
-          <SettingsPage section="language" />
-        ) : pathname === "/settings/appearance" ? (
-          <SettingsPage section="appearance" />
-        ) : pathname === "/settings/keyboard" ? (
-          <SettingsPage section="keyboard" />
-        ) : (
+        ) : oldSection !== null ? null : (
           <section className="panel">
             <h1>No account needed</h1>
             <p>This is the browser-only design playground.</p>
             <Link href="/events">Return to Events</Link>
           </section>
         )}
+        <SettingsLayer />
       </WorkspaceShell>
     </>
   );

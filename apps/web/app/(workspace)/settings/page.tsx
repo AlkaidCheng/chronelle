@@ -1,5 +1,6 @@
-import { SettingsPage } from "../../../features/settings/settings-page";
+import { redirect } from "next/navigation";
 
+/** Settings opens over the page it is chosen from; its old address, over Events. */
 export default function SettingsRoute() {
-  return <SettingsPage section="account" />;
+  redirect("/events?settings=general");
 }

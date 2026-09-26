@@ -16,28 +16,36 @@ export interface KeyboardPreferences {
   readonly editor?: "enabled" | "disabled";
 }
 
-/** The sandbox routes by hash; the app by path. */
-async function go(page: Page, path: string) {
-  if (new URL(page.url()).protocol === "file:") {
+/**
+ * Opens Settings at Keyboard over the page the journey is on, by its
+ * address: the sandbox keeps the address in the fragment, the app in the
+ * path and query.
+ */
+async function openKeyboardSettings(page: Page) {
+  const url = new URL(page.url());
+  if (url.protocol === "file:") {
+    const address = new URL(
+      url.hash.slice(1) || "/events",
+      "https://sandbox.invalid",
+    );
+    address.searchParams.set("settings", "keyboard");
     await page.evaluate((target) => {
       window.location.hash = target;
-    }, path);
-  } else await page.goto(path);
-}
-
-function here(page: Page) {
-  const url = new URL(page.url());
-  return url.protocol === "file:" ? url.hash.slice(1) || "/events" : url.href;
+    }, `${address.pathname}${address.search}`);
+  } else {
+    url.searchParams.set("settings", "keyboard");
+    await page.goto(url.href);
+  }
 }
 
 /**
  * Sets the shortcut preferences and returns to the page the journey was
  * on. On a keyboard device this goes through Settings > Keyboard (the only
- * surface that offers them), with `inSettings` run there first for extra
- * assertions or screenshots; on a touch device, which has no such page,
- * the browser-kept values are written directly, as the app would keep them
- * from a keyboard session on the same browser. "reset" restores the
- * defaults either way.
+ * surface that offers them), opened over the page and closed again, with
+ * `inSettings` run there first for extra assertions or screenshots; on a
+ * touch device, which has no such section, the browser-kept values are
+ * written directly, as the app would keep them from a keyboard session on
+ * the same browser. "reset" restores the defaults either way.
  */
 export async function setKeyboardPreferences(
   page: Page,
@@ -66,8 +74,7 @@ export async function setKeyboardPreferences(
     }, preferences);
     return;
   }
-  const returnTo = here(page);
-  await go(page, "/settings/keyboard");
+  await openKeyboardSettings(page);
   const section = keyboardSection(page);
   await expect(section.getByRole("table")).toBeVisible();
   if (inSettings) await inSettings(section);
@@ -89,5 +96,9 @@ export async function setKeyboardPreferences(
         .getByRole("switch", { name: "Submit an editor", exact: true })
         .setChecked(preferences.editor === "enabled");
   }
-  await go(page, returnTo);
+  const settings = page.getByRole("dialog", { name: "Settings", exact: true });
+  await settings
+    .getByRole("button", { name: "Close settings", exact: true })
+    .click();
+  await expect(settings).toHaveCount(0);
 }

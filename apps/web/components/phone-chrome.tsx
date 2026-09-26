@@ -275,16 +275,20 @@ export function PhoneChrome({
           className="sheet-menu"
           onKeyDown={onMenuKeyDown}
         >
+          {/* Settings opens as its sheet closes, which gives focus back to
+              the avatar, where closing Settings returns it. */}
           <AccountMenuItems
             pendingRequests={pendingRequests}
             onSignOut={onSignOut}
             onChoose={close}
+            onSettings={close}
           />
           <hr className="quiet-menu-separator" />
           {/* biome-ignore lint/a11y/useSemanticElements: A group of menu items, not a form fieldset. */}
           <div role="group" aria-label={nav("more")} className="sheet-menu">
             <MoreMenuItems
               onChoose={close}
+              onSettings={close}
               onTheme={() => setSheet("theme")}
               onCustomize={() =>
                 closeThen(() => {

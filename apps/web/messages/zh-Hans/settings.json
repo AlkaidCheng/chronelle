@@ -1,7 +1,7 @@
 {
   "title": "设置",
-  "sections": "设置栏目",
-  "account": "账号",
+  "close": "关闭设置",
+  "general": "常规",
   "preferences": "偏好",
   "languageTime": "语言与时间",
   "appearance": "外观",

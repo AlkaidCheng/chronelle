@@ -21,6 +21,7 @@ import {
   moveMenuFocus,
   useMenuDismissal,
 } from "./quiet-menu";
+import { SettingsLink } from "./settings-link";
 import { ThemePanel } from "./theme-panel";
 
 /**
@@ -28,17 +29,21 @@ import { ThemePanel } from "./theme-panel";
  * (the Keyboard section of Settings, on a keyboard device), Install app
  * while the browser can install it from here, and Help. The rail's menu
  * and the phone's account sheet both list them; `onChoose` runs as an
- * entry is taken, before it acts, and the surface decides how Theme and
+ * entry is taken, before it acts, `onSettings` in its place as Keyboard
+ * shortcuts opens Settings (the surface closes and puts focus where
+ * closing the dialog returns it), and the surface decides how Theme and
  * the install steps open.
  */
 export function MoreMenuItems({
   onChoose,
+  onSettings,
   onTheme,
   onCustomize,
   installMode,
   onInstall,
 }: {
   readonly onChoose: () => void;
+  readonly onSettings: () => void;
   readonly onTheme: () => void;
   readonly onCustomize: () => void;
   readonly installMode: InstallMode;
@@ -90,16 +95,16 @@ export function MoreMenuItems({
         <span>{t("customize")}</span>
       </button>
       {keyboard ? (
-        <Link
+        <SettingsLink
           role="menuitem"
           tabIndex={-1}
           className="quiet-menu-item"
-          href="/settings/keyboard"
-          onClick={onChoose}
+          section="keyboard"
+          onOpen={onSettings}
         >
           <KeyboardIcon />
           <span>{t("keyboardShortcuts")}</span>
-        </Link>
+        </SettingsLink>
       ) : null}
       {installMode === "none" ? null : (
         <button
@@ -205,6 +210,7 @@ export function MoreMenu({
         >
           <MoreMenuItems
             onChoose={() => setOpen(false)}
+            onSettings={() => close(true)}
             onTheme={() => setThemeOpen(true)}
             onCustomize={onCustomize}
             installMode={install.mode}

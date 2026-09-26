@@ -22,6 +22,7 @@ import {
   SignOutIcon,
 } from "./icons";
 import { moveMenuFocus, useMenuDismissal } from "./quiet-menu";
+import { SettingsLink } from "./settings-link";
 import { useSpaceDialogs } from "./space-dialogs";
 import { WorkspaceMark } from "./workspace-mark";
 import {
@@ -43,16 +44,20 @@ interface AccountMenuProps {
 /**
  * The account's entries: Friends (with the requests waiting), Settings,
  * and sign out. The rail's menu and the phone's account sheet both list
- * them; `onChoose` runs as an entry is taken, before it acts.
+ * them; `onChoose` runs as an entry is taken, before it acts, and
+ * `onSettings` in its place as Settings is: the surface closes and puts
+ * focus where closing the Settings dialog returns it.
  */
 export function AccountMenuItems({
   pendingRequests = 0,
   onSignOut,
   onChoose,
+  onSettings,
 }: {
   readonly pendingRequests?: number | undefined;
   readonly onSignOut: () => void;
   readonly onChoose: () => void;
+  readonly onSettings: () => void;
 }) {
   const t = useTranslations("account");
   return (
@@ -70,16 +75,16 @@ export function AccountMenuItems({
           <span className="menu-count">{pendingRequests}</span>
         ) : null}
       </Link>
-      <Link
+      <SettingsLink
         role="menuitem"
         tabIndex={-1}
         className="quiet-menu-item"
-        href="/settings"
-        onClick={onChoose}
+        section="general"
+        onOpen={onSettings}
       >
         <SettingsIcon />
         <span>{t("settings")}</span>
-      </Link>
+      </SettingsLink>
       <hr className="quiet-menu-separator" />
       <button
         type="button"
@@ -248,7 +253,7 @@ export function AccountMenu({
               onChoose={choose}
               onNewSpace={spaceDialogs.openNewSpace}
               onManageSpace={spaceDialogs.openManageSpace}
-              onClose={() => close(false)}
+              onClose={() => close(true)}
             />
           ) : (
             <>
@@ -275,6 +280,7 @@ export function AccountMenu({
                 pendingRequests={pendingRequests}
                 onSignOut={onSignOut}
                 onChoose={() => close(false)}
+                onSettings={() => close(true)}
               />
             </>
           )}

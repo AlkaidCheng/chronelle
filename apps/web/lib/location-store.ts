@@ -54,13 +54,40 @@ export function readAddress(): URL {
   return new URL(window.location.href);
 }
 
+/** Where the history entry keeps the parameter of the overlay it opened. */
+const overlayKey = "livtalesOverlay";
+
 /**
  * Puts `url`, an address on the same page, in the address bar without a
  * navigation: `push` adds a history entry that Back returns from, `replace`
- * rewrites the current one.
+ * rewrites the current one. `overlay` names the query parameter of a dialog
+ * the entry opens over the page, so closing it can step back to the page
+ * (see `addressOverlay`).
  */
-export function writeAddress(url: URL, mode: "push" | "replace"): void {
-  if (mode === "push") window.history.pushState(null, "", url);
-  else window.history.replaceState(null, "", url);
+export function writeAddress(
+  url: URL,
+  mode: "push" | "replace",
+  overlay?: string,
+): void {
+  const state = overlay === undefined ? null : { [overlayKey]: overlay };
+  if (mode === "push") window.history.pushState(state, "", url);
+  else window.history.replaceState(state, "", url);
   window.dispatchEvent(new Event(addressChange));
+}
+
+/**
+ * The query parameter of the overlay the current history entry was pushed to
+ * open, or null for an entry reached any other way (a link, a reload of a
+ * shared address).
+ */
+export function addressOverlay(): string | null {
+  const state: unknown = window.history.state;
+  if (typeof state !== "object" || state === null) return null;
+  const overlay: unknown = Reflect.get(state, overlayKey);
+  return typeof overlay === "string" ? overlay : null;
+}
+
+/** An address on this page as a link's `href`. */
+export function addressHref(url: URL): string {
+  return `${url.pathname}${url.search}${url.hash}`;
 }

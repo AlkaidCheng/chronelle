@@ -187,10 +187,10 @@ test("adds a friend to the workspace as a member from Settings @webkit-desktop",
   await page.getByRole("button", { name: /^Ana/ }).click();
   await page.getByRole("menuitem", { name: "Settings", exact: true }).click();
   await page
-    .getByRole("navigation", { name: "Settings sections" })
-    .getByRole("link", { name: "Members", exact: true })
+    .getByRole("dialog", { name: "Settings", exact: true })
+    .getByRole("button", { name: "Members", exact: true })
     .click();
-  await expect(page).toHaveURL(/\/settings\/members$/u);
+  await expect(page).toHaveURL(/\/events\?settings=members$/u);
   const members = page.getByRole("list", { name: "Members" });
   await expect(members.getByRole("listitem")).toHaveCount(1);
   await expect(members).toContainText("Ana");
