@@ -1872,6 +1872,10 @@ describe("EventWorkspace", () => {
     await user.click(
       screen.getByRole("button", { name: "Actions for Launch night" }),
     );
+    // An Owner of the Event's space may move it.
+    expect(
+      screen.getByRole("menuitem", { name: "Move to space..." }),
+    ).toBeVisible();
     await user.click(screen.getByRole("menuitem", { name: "Manage tabs" }));
     const manage = await screen.findByRole("dialog", { name: "Manage tabs" });
     expect(
@@ -1924,4 +1928,68 @@ describe("EventWorkspace", () => {
     await user.click(within(manage).getByRole("button", { name: "Done" }));
     expect(screen.queryByRole("dialog")).toBeNull();
   });
+  it.each([
+    ["an Editor of the space", "editor", eventId],
+    [
+      "an Owner, for a record inside another Event's scope",
+      "owner",
+      scheduledEventId,
+    ],
+  ] as const)(
+    "offers Move to space to no one but an Owner of a self-scoped Event: %s",
+    async (_case, role, scopeId) => {
+      const session = {
+        principal: { type: "user", userId, workspaceId },
+        user: {
+          id: userId,
+          displayName: "Planner",
+          email: "planner@example.test",
+          username: "planner",
+          locale: null,
+          timeZone: null,
+          hourCycle: null,
+          weekStart: null,
+          rail: {},
+          eventTabs: {},
+        },
+        workspace: { id: workspaceId, displayName: "Our wedding" },
+        availableWorkspaces: [
+          {
+            id: workspaceId,
+            displayName: "Our wedding",
+            personal: false,
+            ownerDisplayName: "Planner",
+            role,
+          },
+        ],
+      };
+      vi.stubGlobal(
+        "fetch",
+        vi.fn<typeof fetch>(async (input) => {
+          const path = requestPath(input);
+          if (path === "/api/auth/session") return jsonResponse(session);
+          if (path.endsWith("/access"))
+            return jsonResponse({
+              resourceId: eventId,
+              actions: ["view", "edit", "share", "delete"],
+              source: { kind: "own" },
+            });
+          if (path === `/api/events/${eventId}`)
+            return jsonResponse({ ...rootEvent, permissionScopeId: scopeId });
+          return jsonResponse({ sourceEventId: eventId, items: [] });
+        }),
+      );
+      const user = userEvent.setup();
+      render(<EventWorkspace eventId={eventId} />, { wrapper: Providers });
+      await user.click(
+        await screen.findByRole("button", { name: "Actions for Launch night" }),
+      );
+      expect(
+        await screen.findByRole("menuitem", { name: "Copy link" }),
+      ).toBeVisible();
+      expect(
+        screen.queryByRole("menuitem", { name: "Move to space..." }),
+      ).toBeNull();
+    },
+  );
 });
