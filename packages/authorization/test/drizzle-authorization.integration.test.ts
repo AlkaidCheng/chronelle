@@ -18,11 +18,15 @@ import {
 import { eq, sql } from "drizzle-orm";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { AuthorizationService } from "../src/authorization.js";
+import {
+  AuthorizationDeniedError,
+  AuthorizationService,
+} from "../src/authorization.js";
 import { DrizzleAuthorizationStore } from "../src/drizzle-authorization-store.js";
 import {
   withReadAuthorization,
   withStableAuthorization,
+  withStableAuthorizationAcross,
 } from "../src/authorization-transaction.js";
 
 const migrationDirectory = resolve(
@@ -198,6 +202,55 @@ describe.sequential("DrizzleAuthorizationStore", () => {
         );
       },
     );
+  });
+
+  it("fences several workspaces in ascending id order", async () => {
+    const db = testDatabase.connection.db;
+    const client = testDatabase.connection.sql;
+    const [low, high] = [
+      (await createWorkspace(db, "fence-first")).workspaceId,
+      (await createWorkspace(db, "fence-second")).workspaceId,
+    ].sort();
+    if (low === undefined || high === undefined) throw new Error("no fences");
+    let release = () => {};
+    const released = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    let held = () => {};
+    const holding = new Promise<void>((resolve) => {
+      held = resolve;
+    });
+    const holder = client.begin(async (transaction) => {
+      await transaction`SELECT id FROM workspaces WHERE id = ${high} FOR NO KEY UPDATE`;
+      held();
+      await released;
+    });
+    await holding;
+    const fenced = withStableAuthorizationAcross(
+      db,
+      [high.toUpperCase(), low, high],
+      async () => "written",
+    );
+    // The lower fence is taken while the higher one is still awaited.
+    const lowerFence = async () => {
+      try {
+        await client.begin(
+          (transaction) =>
+            transaction`SELECT id FROM workspaces WHERE id = ${low} FOR NO KEY UPDATE NOWAIT`,
+        );
+        return "free";
+      } catch (error) {
+        return (error as { code?: string }).code;
+      }
+    };
+    await expect.poll(lowerFence).toBe("55P03");
+    release();
+    await holder;
+    await expect(fenced).resolves.toBe("written");
+    expect(await lowerFence()).toBe("free");
+    await expect(
+      withStableAuthorizationAcross(db, [low, createId()], async () => "never"),
+    ).rejects.toBeInstanceOf(AuthorizationDeniedError);
   });
 
   it("evaluates expiration at one instant per snapshot without caching later requests", async () => {

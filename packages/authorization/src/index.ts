@@ -1,6 +1,7 @@
 export * from "./authorization.js";
 export {
   withStableAuthorization,
+  withStableAuthorizationAcross,
   withReadAuthorization,
   type AuthorizationDatabase,
   type AuthorizedTransaction,

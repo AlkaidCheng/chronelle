@@ -65,15 +65,53 @@ export async function withStableAuthorization<Value>(
 ): Promise<Value> {
   const connection = "authorization" in database ? database.database : database;
   return connection.transaction(async (transaction) => {
-    const [workspace] = await transaction
-      .select({ id: workspaces.id })
-      .from(workspaces)
-      .where(eq(workspaces.id, workspaceId))
-      .for("no key update");
-    if (workspace === undefined) throw new AuthorizationDeniedError();
+    await lockWorkspace(transaction, workspaceId);
     return operation(
       transaction,
       new AuthorizationService(new DrizzleAuthorizationStore(transaction)),
     );
   });
+}
+
+/**
+ * Order a protected mutation that writes in several workspaces. Each
+ * workspace's fence is taken in ascending id order, the order the database
+ * functions take them in, so two such mutations over the same workspaces
+ * cannot deadlock on the fences.
+ */
+export async function withStableAuthorizationAcross<Value>(
+  database: AuthorizationDatabase | DatabaseTransaction,
+  workspaceIds: readonly string[],
+  operation: (
+    transaction: DatabaseTransaction,
+    authorization: AuthorizationService,
+  ) => Promise<Value>,
+): Promise<Value> {
+  const ordered = [
+    ...new Set(workspaceIds.map((id) => id.toLowerCase())),
+  ].sort();
+  if (ordered.length === 0)
+    throw new Error("A protected mutation names at least one workspace.");
+  const connection = "authorization" in database ? database.database : database;
+  return connection.transaction(async (transaction) => {
+    for (const workspaceId of ordered)
+      await lockWorkspace(transaction, workspaceId);
+    return operation(
+      transaction,
+      new AuthorizationService(new DrizzleAuthorizationStore(transaction)),
+    );
+  });
+}
+
+/** Takes a workspace's fence; a workspace that does not exist is unavailable. */
+async function lockWorkspace(
+  transaction: DatabaseTransaction,
+  workspaceId: string,
+): Promise<void> {
+  const [workspace] = await transaction
+    .select({ id: workspaces.id })
+    .from(workspaces)
+    .where(eq(workspaces.id, workspaceId))
+    .for("no key update");
+  if (workspace === undefined) throw new AuthorizationDeniedError();
 }
