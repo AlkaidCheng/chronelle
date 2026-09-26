@@ -186,6 +186,7 @@ import {
   type WeChatCredentialRequest,
   type WeChatIdentityLinkResponse,
   type WorkspaceCreateRequest,
+  type WorkspaceDeletionResponse,
   type WorkspaceLeaveResponse,
   type WorkspaceMember,
   type WorkspaceMemberAddRequest,
@@ -194,6 +195,7 @@ import {
   type WorkspaceMemberRoleRequest,
   type WorkspaceUpdateRequest,
   weChatIdentityLinkResponseSchema,
+  workspaceDeletionResponseSchema,
   workspaceLeaveResponseSchema,
   workspaceMemberListResponseSchema,
   workspaceMemberRemovalResponseSchema,
@@ -1326,6 +1328,29 @@ export class LivTalesApiClient {
   }
 
   /**
+   * Whether the caller may delete the current workspace, with its live and
+   * Trash record counts and its member count. Any member may ask.
+   */
+  getWorkspaceDeletion(): Promise<WorkspaceDeletionResponse> {
+    return this.#request(
+      "/api/workspaces/current/deletion",
+      workspaceDeletionResponseSchema,
+    );
+  }
+
+  /**
+   * Deletes the current workspace, with its Trash. Refused with
+   * `space_personal` (400), `space_forbidden` (403), or `space_not_empty`
+   * (409); a workspace already gone is `workspace_unavailable` (404).
+   * Afterwards the session belongs in another workspace.
+   */
+  deleteWorkspace(): Promise<void> {
+    return this.#requestNoContent("/api/workspaces/current", {
+      method: "DELETE",
+    });
+  }
+
+  /**
    * The spaces an Event can move to: every space the caller is a member of,
    * with its role and member count, the Event's own marked current, and
    * the ones the caller can move it to marked allowed.
@@ -1488,6 +1513,57 @@ export class LivTalesApiClient {
     request: JsonRequestOptions = {},
     authorized = true,
   ): Promise<Result> {
+    const response = await this.#exchange(path, request, authorized);
+    if (!response.payload.readable) {
+      throw new ApiClientError(
+        response.status,
+        "invalid_response",
+        "The LivTales API returned an unreadable response.",
+      );
+    }
+    const body = response.payload.value;
+    if (response.status < 200 || response.status >= 300) {
+      this.#throwParsedResponseError(response.status, body);
+    }
+    const parsed = schema.safeParse(body);
+    if (!parsed.success) {
+      throw new ApiClientError(
+        response.status,
+        "invalid_response",
+        "The LivTales API returned an unexpected response.",
+      );
+    }
+    return parsed.data;
+  }
+
+  /** A protected request the API answers with 204 No Content. */
+  async #requestNoContent(
+    path: string,
+    request: JsonRequestOptions,
+  ): Promise<void> {
+    const response = await this.#exchange(path, request, true);
+    if (response.status === 204) return;
+    if (
+      response.payload.readable &&
+      (response.status < 200 || response.status >= 300)
+    ) {
+      this.#throwParsedResponseError(response.status, response.payload.value);
+    }
+    throw new ApiClientError(
+      response.status,
+      "invalid_response",
+      response.payload.readable
+        ? "The LivTales API returned an unexpected response."
+        : "The LivTales API returned an unreadable response.",
+    );
+  }
+
+  /** Sends a request with the session's credential and returns the raw response. */
+  async #exchange(
+    path: string,
+    request: JsonRequestOptions,
+    authorized: boolean,
+  ): Promise<JsonTransportResponse> {
     const credential = this.#captureCredential();
     const headers: Record<string, string> = { ...request.headers };
     if (authorized) {
@@ -1530,27 +1606,7 @@ export class LivTalesApiClient {
       );
     }
     this.#assertCurrent(credential);
-
-    if (!response.payload.readable) {
-      throw new ApiClientError(
-        response.status,
-        "invalid_response",
-        "The LivTales API returned an unreadable response.",
-      );
-    }
-    const body = response.payload.value;
-    if (response.status < 200 || response.status >= 300) {
-      this.#throwParsedResponseError(response.status, body);
-    }
-    const parsed = schema.safeParse(body);
-    if (!parsed.success) {
-      throw new ApiClientError(
-        response.status,
-        "invalid_response",
-        "The LivTales API returned an unexpected response.",
-      );
-    }
-    return parsed.data;
+    return response;
   }
 
   #resolveUrl(url: string): string {
