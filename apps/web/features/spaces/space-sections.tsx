@@ -12,6 +12,7 @@ import {
   useRenameSpace,
   useWorkspaceMembersQuery,
 } from "../../lib/queries";
+import type { CarriedNotice } from "../../lib/auth-session";
 import { useCurrentWorkspaceIdentity } from "../../lib/use-workspace-identity";
 import { currentWorkspace } from "../../lib/workspace-identity";
 
@@ -93,17 +94,16 @@ export function SpaceGeneralSection({
 /**
  * Leaving the current space: any member but the Owner of a Personal space
  * leaves; the last Owner of a shared space makes another member an Owner
- * first. `onLeft` opens another space.
+ * first. `onLeft` opens another space, with the notice to show there.
  */
 export function SpaceLeaveSection({
   session,
   onLeft,
 }: {
   readonly session: SessionResponse;
-  readonly onLeft: () => void;
+  readonly onLeft: (notice: CarriedNotice) => void;
 }) {
   const t = useTranslations("spaces");
-  const { post } = useNotices();
   const space = currentWorkspace(session);
   const identity = useCurrentWorkspaceIdentity(session);
   const members = useWorkspaceMembersQuery();
@@ -127,10 +127,8 @@ export function SpaceLeaveSection({
         label={t("leave")}
         onConfirm={() =>
           leave.mutate(undefined, {
-            onSuccess: () => {
-              post({ message: t("left", { name: identity.title }) });
-              onLeft();
-            },
+            onSuccess: () =>
+              onLeft({ message: t("left", { name: identity.title }) }),
           })
         }
         pending={leave.isPending}

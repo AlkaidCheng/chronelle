@@ -6,7 +6,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { type ReactNode, useEffect, useState } from "react";
 
-import { useAuthSession } from "../lib/auth-session";
+import { type CarriedNotice, useAuthSession } from "../lib/auth-session";
 import { useFriendsQuery } from "../lib/friend-queries";
 import {
   useAdoptAccountLocale,
@@ -139,11 +139,11 @@ export function WorkspaceShell({ children }: { readonly children: ReactNode }) {
     router.replace("/sign-in");
   }
 
-  function changeWorkspace(workspaceId: string) {
+  function changeWorkspace(workspaceId: string, notice?: CarriedNotice) {
     if (workspaceId === activeWorkspaceId) {
       return;
     }
-    switchWorkspace(workspaceId);
+    switchWorkspace(workspaceId, notice);
     router.replace("/events");
   }
 

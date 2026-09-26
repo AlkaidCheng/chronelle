@@ -179,6 +179,9 @@ test("manages a space from the switcher: renames it, shares ownership, and leave
   await leave.click();
   await expect(dialog).toHaveCount(0);
   await expect(workspaceBlock(page)).toContainText("Personal");
+  await expect(
+    page.getByRole("status").filter({ hasText: "You left Kyoto 2027" }),
+  ).toBeVisible();
   const bensSession = await (
     await request.get("/api/auth/session", { headers: bearer(ben) })
   ).json();
