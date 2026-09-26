@@ -2,7 +2,10 @@ import type { AccessibleWorkspace, SessionResponse } from "@livtales/schemas";
 
 type WorkspaceRole = NonNullable<AccessibleWorkspace["role"]>;
 
-/** The home symbol for the account's own workspace, else the owner's initials. */
+/**
+ * The home symbol for the account's own workspace, the initials of a named
+ * space, and the owner's initials for one still called by its owner's name.
+ */
 export type WorkspaceMark =
   | { readonly kind: "home" }
   | { readonly kind: "initials"; readonly text: string };
@@ -44,7 +47,7 @@ export function personInitials(name: string): string {
 /**
  * The account's own workspace reads "my workspace"; a shared one reads its
  * owner's name with the account's access, or, when the owner renamed it, its
- * name with the owner and the access.
+ * name with the owner and the access, marked with the name's initials.
  */
 export function workspaceIdentity(
   workspace: AccessibleWorkspace,
@@ -71,7 +74,9 @@ export function workspaceIdentity(
     detail: detail === "" ? null : detail,
     mark: {
       kind: "initials",
-      text: personInitials(owner ?? workspace.displayName),
+      text: personInitials(
+        owner !== null && !renamed ? owner : workspace.displayName,
+      ),
     },
   };
 }
