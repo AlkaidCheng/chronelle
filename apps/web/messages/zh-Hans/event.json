@@ -1,5 +1,7 @@
 {
   "allEvents": "全部活动",
+  "breadcrumb": "当前位置",
+  "sharedWithMe": "共享给我的",
   "connecting": "正在连接你的活动计划",
   "loadingView": "正在加载此视图",
   "setDates": "设置日期",

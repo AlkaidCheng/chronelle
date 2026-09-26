@@ -874,10 +874,13 @@ not yet reviewed the two Chinese catalogs; wording may change.
   dialog), a bar, then the views the account keeps on the event, and a plus
   that opens the gallery. The strip never wraps: the tabs that do not fit
   fold, from the end, into one chip ("+N more") that lists them; the current
-  tab never folds. The page heading retains its full name, and the quiet
-  Events link above the title returns to the collection. An undated event
+  tab never folds. The page heading retains its full name. Above the title,
+  a quiet breadcrumb names the event's place: its space as plain text (the
+  switcher's title for it, such as "Personal" or the space's name, or
+  "Shared with me" for an event reached through a share alone), a slash,
+  and the Events link, which returns to the collection. An undated event
   shows no date line; Set dates opens the editor on the schedule. On a phone
-  the head is compact: the Events link and the actions share the first row,
+  the head is compact: the breadcrumb and the actions share the first row,
   the title sits under them, and a share reads as a tag beside the date
   ("Shared by Chen Li" and the role) in place of the access line; the Events
   page's chips sit closer above the cards.

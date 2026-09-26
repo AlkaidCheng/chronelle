@@ -77,6 +77,7 @@
   :root[data-printing] .skip-link,
   :root[data-printing] .sidebar,
   :root[data-printing] .up-link,
+  :root[data-printing] .event-crumbs,
   :root[data-printing] .event-actions,
   :root[data-printing] .access-line,
   :root[data-printing] .event-strip,

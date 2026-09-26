@@ -287,17 +287,17 @@ test("gives the phone an app bar whose menu opens the sidebar as a drawer, with 
   await expect(theme).toHaveCount(0);
   await expect(accountBlock(page)).toBeFocused();
 
-  // The event page's head: the up link and the actions share the first
+  // The event page's head: the breadcrumb and the actions share the first
   // row, the title sits under them, and a share reads as a tag beside
   // the date ("Shared by Chen Li", the role) in place of the line.
   await page.getByRole("link", { name: /Kyoto in November/ }).click();
   await expect(
     page.getByRole("heading", { level: 1, name: "Kyoto in November" }),
   ).toBeVisible();
-  const upLink = page.locator(".event-hero .up-link");
+  const crumbs = page.locator(".event-hero .event-crumbs");
   const actions = page.locator(".event-hero .event-actions");
   expect(
-    Math.abs((await middle(upLink)) - (await middle(actions))),
+    Math.abs((await middle(crumbs)) - (await middle(actions))),
   ).toBeLessThan(4);
   expect(await middle(page.getByRole("heading", { level: 1 }))).toBeGreaterThan(
     await middle(actions),

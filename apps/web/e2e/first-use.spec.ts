@@ -122,6 +122,9 @@ test("starts an undated plan with the keyboard and reopens it after recovery @we
     headers,
   });
   expect(await restoredTasks.json()).toEqual(savedTasks);
+  await expect(page.getByRole("navigation", { name: "Breadcrumb" })).toHaveText(
+    /^Personal\s*\/\s*Events$/u,
+  );
   await activateWithKeyboard(
     page,
     page.getByRole("link", { name: "All events", exact: true }),

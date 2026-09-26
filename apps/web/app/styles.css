@@ -5769,7 +5769,7 @@ ul.resource-list {
     font-size: clamp(2.2rem, 10vw, 3rem);
   }
 
-  /* The Events link and the actions share the first row; the title, the
+  /* The breadcrumb and the actions share the first row; the title, the
      date line with the access tag, and the description follow. */
   .event-hero {
     align-items: center;
@@ -5778,7 +5778,7 @@ ul.resource-list {
     grid-template-columns: minmax(0, 1fr) auto;
   }
 
-  .event-hero > .up-link {
+  .event-hero > .event-crumbs {
     grid-column: 1;
     grid-row: 1;
     margin-bottom: 0;
@@ -9358,6 +9358,41 @@ html:has(.event-create-dialog[open]) {
   stroke-linecap: round;
   stroke-linejoin: round;
   stroke-width: 1.8;
+}
+
+/* An event's place: its space as plain text, then the link to Events. */
+.event-crumbs {
+  align-items: center;
+  color: var(--muted);
+  display: flex;
+  font-size: 0.8125rem;
+  gap: 8px;
+  margin-bottom: 8px;
+  min-height: 32px;
+  min-width: 0;
+}
+
+.event-crumbs-space {
+  color: var(--ink);
+  font-weight: 600;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.event-crumbs-separator {
+  color: var(--faint);
+}
+
+.event-crumbs-link {
+  color: inherit;
+  flex: none;
+  text-decoration: none;
+}
+
+.event-crumbs-link:hover {
+  color: var(--ink);
 }
 
 .event-hero {
