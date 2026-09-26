@@ -58,7 +58,7 @@ describe("the Members section", () => {
     const list = within(await screen.findByRole("list", { name: "Members" }));
     expect(list.getAllByRole("listitem")).toHaveLength(1);
     expect(list.getByText("Sample planner")).toBeVisible();
-    expect(list.getByText(/Personal workspace/)).toBeVisible();
+    expect(list.getByText(/Personal space/)).toBeVisible();
     expect(list.queryByRole("button", { name: "Remove member" })).toBeNull();
 
     // The friend list offers Mei; adding her lists her as a viewer.

@@ -20,7 +20,7 @@
   "inherits": "Inherits Event access",
   "privateScope": "Private scope",
   "makePrivate": "Make private",
-  "followsNote": "Everything on the event follows: pages, to-dos, expenses, files. To share the whole workspace instead, add the friend under Workspaces, Members.",
+  "followsNote": "Everything on the event follows: pages, to-dos, expenses, files. To share the whole space instead, add the friend to its members.",
   "add": "Add",
   "you": "(you)"
 }

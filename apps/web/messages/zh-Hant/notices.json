@@ -8,7 +8,7 @@
   "loading": "正在載入",
   "codes": {
     "version_conflict": "物件在你讀取該版本之後已被變更。",
-    "workspace_unavailable": "你已無法存取此工作區。",
+    "workspace_unavailable": "你已無法存取此空間。",
     "network_error": "無法連線到伺服器。請檢查網路後再試一次。",
     "request_failed": "請求未能完成。",
     "internal_error": "伺服器發生問題。請稍後再試。",

@@ -72,7 +72,7 @@ function renderMenu(extra: { pendingRequests?: number } = {}) {
   };
 }
 
-it("opens a menu with the account, the current workspace, Switch workspace, Friends, Settings, and sign out", async () => {
+it("opens a menu with the account, the current space, Switch space, Friends, Settings, and sign out", async () => {
   const { trigger, user } = renderMenu();
   expect(trigger).toHaveTextContent("Personal");
   await user.click(trigger);
@@ -85,7 +85,7 @@ it("opens a menu with the account, the current workspace, Switch workspace, Frie
   expect(current).toHaveFocus();
   expect(menu).not.toHaveTextContent("Kai Tanaka");
   expect(
-    screen.getByRole("menuitem", { name: "Switch workspace..." }),
+    screen.getByRole("menuitem", { name: "Switch space..." }),
   ).toHaveAttribute("aria-haspopup", "menu");
   expect(screen.getByRole("menuitem", { name: "Friends" })).toHaveAttribute(
     "href",
@@ -103,10 +103,8 @@ it("opens a menu with the account, the current workspace, Switch workspace, Frie
 it("replaces the menu with the switcher's list and leads back from its first row or Escape", async () => {
   const { onSwitch, trigger, user } = renderMenu();
   await user.click(trigger);
-  await user.click(
-    screen.getByRole("menuitem", { name: "Switch workspace..." }),
-  );
-  const list = screen.getByRole("menu", { name: "Switch workspace" });
+  await user.click(screen.getByRole("menuitem", { name: "Switch space..." }));
+  const list = screen.getByRole("menu", { name: "Switch space" });
   const items = screen.getAllByRole("menuitemradio");
   expect(items.map((item) => item.textContent)).toEqual([
     "PersonalPlanner",
@@ -121,14 +119,10 @@ it("replaces the menu with the switcher's list and leads back from its first row
   );
   await user.keyboard("{Escape}");
   expect(screen.getByRole("menu", { name: "Account" })).toBeVisible();
-  await user.click(
-    screen.getByRole("menuitem", { name: "Switch workspace..." }),
-  );
-  await user.click(screen.getByRole("menuitem", { name: "Workspace" }));
+  await user.click(screen.getByRole("menuitem", { name: "Switch space..." }));
+  await user.click(screen.getByRole("menuitem", { name: "Space" }));
   expect(screen.getByRole("menu", { name: "Account" })).toBeVisible();
-  await user.click(
-    screen.getByRole("menuitem", { name: "Switch workspace..." }),
-  );
+  await user.click(screen.getByRole("menuitem", { name: "Switch space..." }));
   await user.click(screen.getByRole("menuitemradio", { name: /Kai Tanaka/ }));
   expect(onSwitch).toHaveBeenCalledWith("019d6e7d-0000-7000-8000-000000000003");
   expect(screen.queryByRole("menu")).not.toBeInTheDocument();
@@ -137,7 +131,7 @@ it("replaces the menu with the switcher's list and leads back from its first row
 it("opens the switcher's list with Cmd/Ctrl+Shift+K and closes it again", async () => {
   const { trigger, user } = renderMenu();
   await user.keyboard("{Meta>}{Shift>}k{/Shift}{/Meta}");
-  expect(screen.getByRole("menu", { name: "Switch workspace" })).toBeVisible();
+  expect(screen.getByRole("menu", { name: "Switch space" })).toBeVisible();
   await user.keyboard("{Meta>}{Shift>}k{/Shift}{/Meta}");
   expect(screen.queryByRole("menu")).not.toBeInTheDocument();
   expect(trigger).toHaveFocus();
@@ -156,7 +150,7 @@ it("moves with arrow keys, closes on Escape, and returns focus to the block", as
   await user.click(trigger);
   await user.keyboard("{ArrowDown}");
   expect(
-    screen.getByRole("menuitem", { name: "Switch workspace..." }),
+    screen.getByRole("menuitem", { name: "Switch space..." }),
   ).toHaveFocus();
   await user.keyboard("{End}");
   expect(screen.getByRole("menuitem", { name: "Sign out" })).toHaveFocus();

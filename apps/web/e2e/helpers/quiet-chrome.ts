@@ -21,7 +21,7 @@ export const drawer = (page: Page) => page.locator("dialog.phone-drawer");
  */
 export async function workspaceNavigation(
   page: Page,
-  name = "Workspace navigation",
+  name = "Space navigation",
 ) {
   const navigation = page.getByRole("navigation", { name });
   // Retried: a viewport just narrowed swaps the rail for the app bar
@@ -108,9 +108,9 @@ export const workspaceBlock = (page: Page) =>
   isPhone(page) ? workspaceControl(page) : accountBlock(page);
 
 export const workspaceSwitcher = (page: Page) =>
-  page.getByRole("menu", { name: "Switch workspace", exact: true });
+  page.getByRole("menu", { name: "Switch space", exact: true });
 
-/** Opens the switcher's list: the phone's sheet from its workspace control, else through the account menu's Switch workspace... entry. */
+/** Opens the switcher's list: the phone's sheet from its workspace control, else through the account menu's Switch space... entry. */
 export async function openWorkspaceSwitcher(page: Page) {
   const menu = workspaceSwitcher(page);
   if (!(await menu.isVisible())) {
@@ -118,7 +118,7 @@ export async function openWorkspaceSwitcher(page: Page) {
     else {
       const account = await openAccountMenu(page);
       await account
-        .getByRole("menuitem", { name: "Switch workspace...", exact: true })
+        .getByRole("menuitem", { name: "Switch space...", exact: true })
         .click();
     }
   }

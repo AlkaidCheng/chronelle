@@ -47,7 +47,7 @@ export async function exerciseWorkspaceUtilities(
   ).toBeVisible();
   // The rail's foot is one block: the account's name with the current
   // workspace under it. Its menu starts with the account, then the
-  // Workspace section (the current one ticked, Switch workspace...),
+  // Space section (the current one ticked, Switch space...),
   // then Friends, Settings, Sign out.
   const account = accountBlock(page);
   await expect(account).toHaveCount(1);
@@ -64,7 +64,7 @@ export async function exerciseWorkspaceUtilities(
   await expect(current).toContainText("Personal");
   await expect(current).toBeFocused();
   const switchItem = menu.getByRole("menuitem", {
-    name: "Switch workspace...",
+    name: "Switch space...",
     exact: true,
   });
   await expect(switchItem).toBeVisible();
@@ -83,7 +83,7 @@ export async function exerciseWorkspaceUtilities(
   await expect(menu).toHaveCount(0);
   await expect(account).toBeFocused();
 
-  // Switch workspace... replaces the menu with the switcher's list; Escape
+  // Switch space... replaces the menu with the switcher's list; Escape
   // leads back to the menu at that entry, and again to the block.
   await page.keyboard.press("Enter");
   await switchItem.click();
@@ -137,7 +137,7 @@ export async function exerciseWorkspaceUtilities(
 /**
  * The phone's chrome: the app bar's menu opens the sidebar as a drawer
  * with the collections; the avatar opens the account sheet, with More's
- * entries as its second group; the workspace control opens the switcher
+ * entries as its second group; the space control opens the switcher
  * as a sheet; Theme opens as a sheet from More. A filter on the page
  * survives a sheet opened and dismissed.
  */
@@ -191,9 +191,9 @@ async function exercisePhoneUtilities(page: Page, testInfo: TestInfo) {
   await expect(menu).toHaveCount(0);
   await expect(account).toBeFocused();
 
-  // The workspace control opens the switcher as its own sheet: the
-  // current workspace ticked and focused, Members at its foot.
-  const control = page.getByRole("button", { name: /^Workspace: / });
+  // The space control opens the switcher as its own sheet: the
+  // current space ticked and focused, Members at its foot.
+  const control = page.getByRole("button", { name: /^Space: / });
   await expect(control).toContainText("Personal");
   await control.click();
   const switcher = workspaceSwitcher(page);
@@ -259,7 +259,7 @@ async function exerciseNarrowChrome(page: Page, testInfo: TestInfo) {
   });
   await page.keyboard.press("Escape");
   await expect(menu).toHaveCount(0);
-  await page.getByRole("button", { name: /^Workspace: / }).click();
+  await page.getByRole("button", { name: /^Space: / }).click();
   const switcher = workspaceSwitcher(page);
   await expect(switcher).toBeVisible();
   await expectHorizontalReflow(page);

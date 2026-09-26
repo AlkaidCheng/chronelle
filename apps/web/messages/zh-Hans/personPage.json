@@ -35,7 +35,7 @@
   "linkCreated": "邀请链接已创建 {date}",
   "validUntil": "一次有效，{date} 前可用。",
   "notLinked": "未关联账号",
-  "memberAs": "本工作区成员（<b>{role}</b>）",
+  "memberAs": "本空间成员（<b>{role}</b>）",
   "linkToFriend": "关联好友",
   "invite": "邀请好友",
   "resend": "重发",

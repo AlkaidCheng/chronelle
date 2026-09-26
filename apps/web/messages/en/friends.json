@@ -33,7 +33,7 @@
   "noFriends": "No friends yet. Invite someone with a link.",
   "since": "since {date}",
   "sentOn": "Sent {date}",
-  "intro": "Friends belong to your account, not to a workspace. In each workspace you choose what a friend can see: a whole workspace through Members, or single events and tasks through Share.",
+  "intro": "Friends belong to your account, not to a space. In each space you choose what a friend can see: the whole space through its members, or single events and tasks through Share.",
   "wantsToConnect": "wants to connect",
   "sentAgo": "Sent {when}",
   "noAccountYet": "No account yet",

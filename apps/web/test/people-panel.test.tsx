@@ -188,7 +188,7 @@ describe("People component", () => {
     const addPerson = await screen.findByRole("button", { name: "Add person" });
     expect(screen.queryByText("No people yet")).toBeNull();
 
-    // A person the workspace knows is offered by name and included.
+    // A person the space knows is offered by name and included.
     await user.click(addPerson);
     const dialog = await screen.findByRole("dialog", { name: "Add person" });
     await user.click(
@@ -208,7 +208,7 @@ describe("People component", () => {
     const again = await screen.findByRole("dialog", { name: "Add person" });
     expect(
       await within(again).findByText(
-        "Everyone the workspace knows is already here.",
+        "Everyone this space knows is already here.",
       ),
     ).toBeVisible();
     await user.type(within(again).getByLabelText("New person"), "Mira");

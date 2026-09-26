@@ -120,7 +120,7 @@ it("words the rail and the Events page in Simplified Chinese", async () => {
     </WorkspaceShell>,
   );
   const rail = await screen.findByRole("navigation", {
-    name: "\u5de5\u4f5c\u533a\u5bfc\u822a",
+    name: "\u7a7a\u95f4\u5bfc\u822a",
   });
   expect(rail).toHaveTextContent("\u4f19\u4f34");
   expect(rail).toHaveTextContent("\u96c6\u5408");

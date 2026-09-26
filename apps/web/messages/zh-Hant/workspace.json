@@ -1,12 +1,12 @@
 {
-  "section": "工作區",
-  "switch": "切換工作區",
-  "switchDots": "切換工作區...",
-  "find": "查找工作區",
+  "section": "空間",
+  "switch": "切換空間",
+  "switchDots": "切換空間...",
+  "find": "查找空間",
   "yours": "你的",
   "shared": "共享給你的",
   "personal": "個人",
   "opened": "{when}打開過",
   "members": "成員",
-  "noMatch": "沒有匹配的工作區。"
+  "noMatch": "沒有匹配的空間。"
 }

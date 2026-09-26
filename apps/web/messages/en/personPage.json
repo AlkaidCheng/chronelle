@@ -35,7 +35,7 @@
   "linkCreated": "Invitation link created {date}",
   "validUntil": "One use. Valid until {date}.",
   "notLinked": "Not linked to an account",
-  "memberAs": "Member of this workspace as <b>{role}</b>",
+  "memberAs": "Member of this space as <b>{role}</b>",
   "linkToFriend": "Link to a friend",
   "invite": "Invite a friend",
   "resend": "Resend",

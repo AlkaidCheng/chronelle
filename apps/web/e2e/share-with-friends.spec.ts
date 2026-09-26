@@ -193,7 +193,7 @@ test("adds a friend to the workspace as a member from Settings @webkit-desktop",
   const members = page.getByRole("list", { name: "Members" });
   await expect(members.getByRole("listitem")).toHaveCount(1);
   await expect(members).toContainText("Ana");
-  await expect(members).toContainText("Personal workspace");
+  await expect(members).toContainText("Personal space");
 
   // Ben is the one friend to add; as a viewer he sees Ana's workspace.
   await page.getByRole("combobox", { name: "Friend" }).selectOption({
@@ -219,7 +219,7 @@ test("adds a friend to the workspace as a member from Settings @webkit-desktop",
   // Removing him ends his access.
   const benRow = members.getByRole("listitem").nth(1);
   await benRow.getByRole("button", { name: "Remove member" }).click();
-  await expect(benRow).toContainText("will lose access to this workspace.");
+  await expect(benRow).toContainText("will lose access to this space.");
   await benRow.getByRole("button", { name: "Remove member" }).click();
   await expect(members.getByRole("listitem")).toHaveCount(1);
   const after = await (

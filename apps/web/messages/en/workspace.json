@@ -1,12 +1,12 @@
 {
-  "section": "Workspace",
-  "switch": "Switch workspace",
-  "switchDots": "Switch workspace...",
-  "find": "Find a workspace",
+  "section": "Space",
+  "switch": "Switch space",
+  "switchDots": "Switch space...",
+  "find": "Find a space",
   "yours": "Yours",
   "shared": "Shared with you",
   "personal": "Personal",
   "opened": "Opened {when}",
   "members": "Members",
-  "noMatch": "No workspace matches."
+  "noMatch": "No space matches."
 }
