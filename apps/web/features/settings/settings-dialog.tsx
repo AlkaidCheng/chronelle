@@ -90,7 +90,7 @@ function SettingsDialog({
       onClose={onClose}
       closeLabel={t("close")}
     >
-      <div className="settings-section">{bodies[section]}</div>
+      {bodies[section]}
     </SectionDialog>
   );
 }

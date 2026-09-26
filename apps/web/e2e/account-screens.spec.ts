@@ -76,7 +76,9 @@ test("creates an account with a username, confirms the code, completes the Welco
     `Mira ${tag}`,
   );
   await page.goto("/events?settings=language");
-  await expect(page.getByRole("radio", { name: "24-hour" })).toBeChecked();
+  await expect(page.getByRole("combobox", { name: "Time format" })).toHaveValue(
+    "h23",
+  );
   await page.keyboard.press("Escape");
   await expect(page.getByRole("dialog", { name: "Settings" })).toHaveCount(0);
 

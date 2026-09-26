@@ -2047,51 +2047,37 @@ h3 {
   }
 }
 
-/* Settings > Keyboard: one table of the shortcuts, their keys, and their
-   controls. */
+/* Settings > Keyboard: one table of the shortcuts drawn as the Settings
+   rows, the action and its note at the left, its keys and its control at
+   the right; the column names are for assistive technology alone. A
+   hairline under each row, which the table's hidden border takes off the
+   last. */
 .settings-keyboard {
   display: grid;
-  gap: 16px;
-  justify-items: start;
+  gap: 4px;
 }
 
 .keyboard-table {
-  background: var(--surface);
-  border: 1px solid var(--line);
-  border-collapse: separate;
-  border-radius: 12px;
-  border-spacing: 0;
-  font-size: 0.9rem;
-  overflow: hidden;
+  border-collapse: collapse;
+  border-style: hidden;
   width: 100%;
 }
 
 .keyboard-table th {
-  color: var(--faint);
-  font-size: 0.68rem;
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  padding: 10px 14px 6px;
-  text-align: left;
-  text-transform: uppercase;
+  padding: 0;
 }
 
 .keyboard-table td {
-  border-top: 1px solid var(--line);
-  padding: 10px 14px;
+  border-bottom: 1px solid var(--line);
+  padding: 12px 0;
   vertical-align: middle;
 }
 
-.keyboard-table td small {
-  color: var(--muted);
-  display: block;
-  font-size: 0.8rem;
-  line-height: 1.45;
-}
-
-.keyboard-table td:last-child {
+.keyboard-table td:not(:first-child) {
+  padding-left: 16px;
   text-align: right;
   white-space: nowrap;
+  width: 1%;
 }
 
 .keyboard-keys {
@@ -2100,24 +2086,23 @@ h3 {
   white-space: nowrap;
 }
 
+.keyboard-table kbd {
+  background: var(--canvas);
+  border-radius: 6px;
+  color: var(--ink);
+  font-size: 0.75rem;
+  line-height: 1;
+  padding: 4px 7px;
+}
+
 .keyboard-fixed {
   color: var(--faint);
   font-size: 0.8rem;
 }
 
-.keyboard-select {
-  background: var(--canvas);
-  border: 1px solid var(--line);
-  border-radius: 7px;
-  color: inherit;
-  font: inherit;
-  font-size: 0.85rem;
-  padding: 4px 8px;
-}
-
 /* Narrow: each shortcut is a small stack, the action above its keys and
    control, so the table never runs past the page. */
-@media (max-width: 600px) {
+@media (max-width: 640px) {
   .keyboard-table,
   .keyboard-table tbody,
   .keyboard-table tr {
@@ -2129,24 +2114,32 @@ h3 {
   }
 
   .keyboard-table tr {
+    align-items: center;
     border-top: 1px solid var(--line);
     display: grid;
     grid-template-columns: 1fr auto;
-    padding: 10px 14px;
+    padding: 12px 0;
   }
 
   .keyboard-table tr:first-child {
     border-top: 0;
   }
 
-  .keyboard-table td {
-    border-top: 0;
+  .keyboard-table td,
+  .keyboard-table td:not(:first-child) {
+    border-bottom: 0;
     padding: 0;
+    text-align: left;
+    width: auto;
   }
 
   .keyboard-table td:first-child {
     grid-column: 1 / -1;
     padding-bottom: 8px;
+  }
+
+  .keyboard-table td:last-child {
+    text-align: right;
   }
 }
 
@@ -8971,19 +8964,6 @@ html:has(.event-create-dialog[open]) {
   outline-offset: -3px;
 }
 
-.locale-choices {
-  grid-auto-flow: row;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-}
-
-.locale-choices label:nth-child(-n + 2) {
-  border-bottom: 1px solid var(--line);
-}
-
-.locale-choices label:nth-child(odd) {
-  border-right: 1px solid var(--line);
-}
-
 .theme-reset {
   background: none;
   border: 0;
@@ -9849,6 +9829,7 @@ html:has(.event-create-dialog[open]) {
     .theme-group > span,
     .theme-group legend,
     .section-dialog-caption,
+    .setting-group-title,
     .rail-heading,
     .event-date-mark span,
     .date-tile span
@@ -9861,10 +9842,259 @@ html:has(.event-create-dialog[open]) {
   line-height: 1.3;
 }
 
-/* Settings: the body of each section in the Settings dialog. */
-.settings-section {
+/* Settings: each section's settings as compact rows, the label and its
+   caption at the left, the control at the right, a hairline between rows.
+   A narrow screen puts a control that does not fit under its label. */
+.setting-rows {
   display: grid;
-  gap: 24px;
+}
+
+.setting-row {
+  align-items: center;
+  border-top: 1px solid var(--line);
+  display: flex;
+  gap: 8px 16px;
+  justify-content: space-between;
+  margin: 0;
+  padding: 12px 0;
+}
+
+.setting-rows > .setting-row:first-child,
+.setting-group-title + .setting-row {
+  border-top: 0;
+}
+
+.setting-row-text {
+  display: grid;
+  gap: 2px;
+  margin: 0;
+  min-width: 0;
+}
+
+.setting-row-label,
+.setting-row-caption {
+  display: block;
+  margin: 0;
+}
+
+.setting-row-label {
+  color: var(--ink);
+  font-size: 0.87rem;
+  font-weight: 400;
+  line-height: 1.4;
+}
+
+.setting-row-caption {
+  color: var(--muted);
+  font-size: 0.8rem;
+  line-height: 1.45;
+}
+
+.setting-row-control {
+  align-items: center;
+  display: inline-flex;
+  flex: none;
+  gap: 8px;
+}
+
+.setting-facts {
+  display: grid;
+  margin: 0;
+}
+
+.setting-row-value {
+  color: var(--muted);
+  flex: none;
+  font-size: 0.82rem;
+  margin: 0;
+  max-width: 55%;
+  overflow-wrap: anywhere;
+  text-align: right;
+}
+
+/* Rows under a caption of their own, as Who can find you. */
+.setting-group {
+  border-top: 1px solid var(--line);
+  padding-top: 14px;
+}
+
+.setting-group-title {
+  color: var(--faint);
+  font-size: 0.66rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  margin: 0;
+  text-transform: uppercase;
+}
+
+/* The compact controls share one 32px height; a row's menus share one
+   width, and a menu elsewhere (the Keyboard table's) fits its choices. */
+.setting-select,
+.setting-input {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: var(--ink);
+  font: inherit;
+  font-size: 0.82rem;
+  height: 32px;
+  min-width: 0;
+  padding: 0 8px 0 10px;
+}
+
+.setting-row-control > .setting-select {
+  width: 172px;
+}
+
+.setting-input {
+  background: var(--canvas);
+  padding: 0 10px;
+  width: 180px;
+}
+
+.setting-input::placeholder {
+  color: var(--faint);
+}
+
+.setting-input:focus {
+  border-color: var(--accent);
+}
+
+.setting-button {
+  align-items: center;
+  background: transparent;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: var(--muted);
+  cursor: pointer;
+  display: inline-flex;
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 600;
+  height: 32px;
+  padding: 0 12px;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.setting-button:hover:not(:disabled) {
+  background: var(--surface-subtle);
+  color: var(--ink);
+}
+
+.setting-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+/* A few short choices side by side, the current one in the accent. */
+.setting-choices {
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  display: inline-flex;
+  gap: 2px;
+  margin: 0;
+  min-inline-size: 0;
+  padding: 2px;
+}
+
+.setting-choice {
+  cursor: pointer;
+  display: flex;
+  position: relative;
+}
+
+.setting-choice-input {
+  cursor: pointer;
+  height: 100%;
+  inset: 0;
+  margin: 0;
+  opacity: 0;
+  position: absolute;
+  width: 100%;
+}
+
+.setting-choice-label {
+  border-radius: 7px;
+  color: var(--muted);
+  font-size: 0.78rem;
+  line-height: 26px;
+  padding: 0 11px;
+  white-space: nowrap;
+}
+
+.setting-choice:hover .setting-choice-label {
+  color: var(--ink);
+}
+
+.setting-choice-input:checked + .setting-choice-label {
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.setting-choice-input:focus-visible + .setting-choice-label {
+  outline: 2px solid var(--focus);
+  outline-offset: 0;
+}
+
+@media (forced-colors: active) {
+  .setting-choice-input:checked + .setting-choice-label {
+    outline: 2px solid Highlight;
+    outline-offset: -2px;
+  }
+}
+
+/* The time zone: its menu with the search that narrows it underneath. */
+.setting-zone {
+  display: grid;
+  gap: 6px;
+  width: 240px;
+}
+
+.setting-zone label {
+  display: block;
+}
+
+.setting-zone .setting-select,
+.setting-zone .setting-input {
+  width: 100%;
+}
+
+/* A section's reset, quiet at its foot. */
+.setting-reset {
+  background: none;
+  border: 0;
+  border-radius: 8px;
+  color: var(--muted);
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: 600;
+  justify-self: start;
+  margin: 8px 0 0 -8px;
+  padding: 6px 8px;
+}
+
+.setting-reset:hover {
+  background: var(--surface-subtle);
+  color: var(--ink);
+}
+
+@media (max-width: 640px) {
+  .setting-row {
+    flex-wrap: wrap;
+  }
+
+  /* A switch is small enough to stay beside its label at any width. */
+  .setting-row:has(> .setting-row-control > .settings-switch-input) {
+    flex-wrap: nowrap;
+  }
+
+  .setting-row-value {
+    max-width: 100%;
+    text-align: left;
+  }
 }
 
 .settings-name {
@@ -9929,31 +10159,9 @@ html:has(.event-create-dialog[open]) {
   flex-shrink: 0;
 }
 
-.settings-preferences,
-.settings-appearance {
+.settings-preferences {
   display: grid;
   gap: 22px;
-}
-
-.settings-group {
-  max-width: 440px;
-}
-
-.settings-zone {
-  display: grid;
-  gap: 8px;
-}
-
-.settings-zone-search input {
-  min-height: 40px;
-}
-
-.settings-now {
-  margin-top: -12px;
-}
-
-.settings-appearance .theme-swatches {
-  max-width: 440px;
 }
 
 @media (max-width: 760px) {
@@ -10502,41 +10710,6 @@ html:has(.event-create-dialog[open]) {
 
 .settings-username .field {
   margin-top: 8px;
-}
-
-.settings-discovery {
-  border-top: 1px solid var(--line);
-  padding-top: 20px;
-}
-
-.settings-discovery-title {
-  font-size: 0.95rem;
-  margin: 0 0 4px;
-}
-
-.settings-switch {
-  align-items: center;
-  border-top: 1px solid var(--line);
-  display: flex;
-  gap: 16px;
-  justify-content: space-between;
-  padding: 12px 0;
-}
-
-.settings-switch:first-of-type {
-  border-top: 0;
-}
-
-.settings-switch-title {
-  font-size: 0.9rem;
-  font-weight: 600;
-}
-
-.settings-switch-note {
-  color: var(--muted);
-  font-size: 0.82rem;
-  line-height: 1.5;
-  margin: 2px 0 0;
 }
 
 /* A switch: the checkbox drawn as a pill with a knob, on when checked. */

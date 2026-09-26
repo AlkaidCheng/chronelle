@@ -6,24 +6,21 @@ import type { PreferencesRequest } from "@livtales/schemas";
 
 import { ErrorNotice } from "../../components/feedback";
 import { LocaleControl } from "../../components/locale-control";
-import {
-  deviceTimeZone,
-  type HourCycle,
-  type WeekStart,
-} from "../../i18n/active-preferences";
+import { deviceTimeZone } from "../../i18n/active-preferences";
 import { formatDateTime } from "../../lib/format";
 import { useSessionQuery, useUpdatePreferences } from "../../lib/queries";
 import { useClock } from "../../lib/use-clock";
 import { useDisplayPreferences } from "../../lib/use-display-preferences";
 import { isKnownTimeZone, zoneOffsetLabel } from "../../lib/zone";
+import { type SettingControl, SettingRow } from "./setting-row";
 
 /**
- * Language & time: the language (also kept on the account), the time zone
- * (the device's, or one chosen from the zones the browser knows), the
- * clock, and the first day of the week. Each change is kept on the
- * account and applies at once; a line under the clock shows the moment.
- * The controls show a choice from the moment it is made: the pending keys
- * overlay the session's user until the account has answered.
+ * Language & time, a row each: the language (also kept on the account), the
+ * clock, with the moment under its name, the first day of the week, and
+ * the time zone (the device's, or one chosen from the zones the browser
+ * knows). Each change is kept on the account and applies at once. The
+ * menus show a choice from the moment it is made: the pending keys overlay
+ * the session's user until the account has answered.
  */
 export function LanguageTimeSettings() {
   const t = useTranslations("preferences");
@@ -31,7 +28,6 @@ export function LanguageTimeSettings() {
   const update = useUpdatePreferences();
   const [pending, setPending] = useState<PreferencesRequest>({});
   const user = session.data?.user;
-  const id = useId();
   const now = useClock();
   const { locale } = useDisplayPreferences();
   const choose = (input: PreferencesRequest) => {
@@ -50,69 +46,64 @@ export function LanguageTimeSettings() {
     pending.weekStart !== undefined
       ? pending.weekStart
       : (user?.weekStart ?? null);
-  const segment = <Value extends string | number | null>(
-    name: string,
-    legend: string,
-    value: Value,
-    choices: readonly { readonly value: Value; readonly label: string }[],
-    choose: (value: Value) => void,
-  ) => (
-    <fieldset className="theme-group settings-group">
-      <legend>{legend}</legend>
-      <div className="theme-segment">
-        {choices.map((choice) => (
-          <label key={String(choice.value)}>
-            <input
-              checked={value === choice.value}
-              name={`${id}-${name}`}
-              onChange={() => choose(choice.value)}
-              type="radio"
-            />
-            <span>{choice.label}</span>
-          </label>
-        ))}
-      </div>
-    </fieldset>
-  );
   return (
-    <div className="settings-preferences">
-      <LocaleControl
-        legend={t("language")}
-        onChange={(choice) =>
-          update.mutate({ locale: choice === "system" ? null : choice })
-        }
-      />
-      <TimeZoneField
+    <div className="setting-rows">
+      <SettingRow label={t("language")}>
+        {(control) => (
+          <LocaleControl
+            {...control}
+            className="setting-select"
+            onChange={(choice) =>
+              update.mutate({ locale: choice === "system" ? null : choice })
+            }
+          />
+        )}
+      </SettingRow>
+      <SettingRow
+        caption={t("now", {
+          time: formatDateTime(new Date(now).toISOString(), locale),
+        })}
+        label={t("timeFormat")}
+      >
+        {(control) => (
+          <select
+            {...control}
+            className="setting-select"
+            onChange={(event) => {
+              const next = event.target.value;
+              choose({
+                hourCycle: next === "h12" || next === "h23" ? next : null,
+              });
+            }}
+            value={hourCycle ?? ""}
+          >
+            <option value="">{t("fromLanguage")}</option>
+            <option value="h12">{t("twelveHour")}</option>
+            <option value="h23">{t("twentyFourHour")}</option>
+          </select>
+        )}
+      </SettingRow>
+      <SettingRow label={t("weekStart")}>
+        {(control) => (
+          <select
+            {...control}
+            className="setting-select"
+            onChange={(event) => {
+              const next = Number(event.target.value);
+              choose({ weekStart: next === 1 || next === 7 ? next : null });
+            }}
+            value={weekStart ?? ""}
+          >
+            <option value="">{t("fromLanguage")}</option>
+            <option value={1}>{t("monday")}</option>
+            <option value={7}>{t("sunday")}</option>
+          </select>
+        )}
+      </SettingRow>
+      <TimeZoneRow
         onChange={(timeZone) => choose({ timeZone })}
         value={timeZone}
       />
-      {segment<HourCycle | null>(
-        "hour-cycle",
-        t("timeFormat"),
-        hourCycle,
-        [
-          { value: null, label: t("fromLanguage") },
-          { value: "h12", label: t("twelveHour") },
-          { value: "h23", label: t("twentyFourHour") },
-        ],
-        (value) => choose({ hourCycle: value }),
-      )}
-      <p className="settings-note settings-now">
-        {t("now", {
-          time: formatDateTime(new Date(now).toISOString(), locale),
-        })}
-      </p>
-      {segment<WeekStart | null>(
-        "week-start",
-        t("weekStart"),
-        weekStart,
-        [
-          { value: null, label: t("fromLanguage") },
-          { value: 1, label: t("monday") },
-          { value: 7, label: t("sunday") },
-        ],
-        (value) => choose({ weekStart: value }),
-      )}
       {update.isError ? <ErrorNotice error={update.error} /> : null}
     </div>
   );
@@ -135,23 +126,81 @@ function knownTimeZones(): readonly string[] {
 const readable = (zone: string) => zone.replaceAll("_", " ");
 
 /**
- * The time zone: Device (named, with its offset) or any zone the browser
- * knows, grouped by region with its current offset; a search field above
- * the list narrows it by name or offset. Compact, it is the select alone,
- * for the Welcome step.
+ * The time zone as Settings shows it: a row with the zone menu and, under
+ * it, a search field that narrows the menu by name or offset.
  */
-export function TimeZoneField({
-  compact = false,
+function TimeZoneRow({
   onChange,
   value,
 }: {
-  readonly compact?: boolean | undefined;
+  readonly onChange: (timeZone: string | null) => void;
+  readonly value: string | null;
+}) {
+  const t = useTranslations("preferences");
+  const [query, setQuery] = useState("");
+  return (
+    <SettingRow caption={t("timeZoneNote")} label={t("timeZone")}>
+      {(control) => (
+        <div className="setting-zone">
+          <TimeZoneSelect
+            {...control}
+            className="setting-select"
+            onChange={onChange}
+            query={query}
+            value={value}
+          />
+          <label>
+            <span className="visually-hidden">{t("searchZones")}</span>
+            <input
+              aria-controls={control.id}
+              className="setting-input"
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder={t("searchZones")}
+              type="search"
+              value={query}
+            />
+          </label>
+        </div>
+      )}
+    </SettingRow>
+  );
+}
+
+/** The time zone alone, as the Welcome step asks for it. */
+export function TimeZoneField({
+  onChange,
+  value,
+}: {
   readonly onChange: (timeZone: string | null) => void;
   readonly value: string | null;
 }) {
   const t = useTranslations("preferences");
   const id = useId();
-  const [query, setQuery] = useState("");
+  return (
+    <label className="field" htmlFor={id}>
+      <span>{t("timeZone")}</span>
+      <TimeZoneSelect id={id} onChange={onChange} query="" value={value} />
+    </label>
+  );
+}
+
+/**
+ * The zone menu: Device (named, with its offset) or any zone the browser
+ * knows, grouped by region with its current offset. `query` keeps the
+ * zones whose name or offset holds it, and the chosen zone.
+ */
+function TimeZoneSelect({
+  onChange,
+  query,
+  value,
+  ...attributes
+}: SettingControl & {
+  readonly className?: string;
+  readonly onChange: (timeZone: string | null) => void;
+  readonly query: string;
+  readonly value: string | null;
+}) {
+  const t = useTranslations("preferences");
   const zones = useMemo(() => {
     const now = new Date();
     const names = new Set(knownTimeZones());
@@ -185,53 +234,33 @@ export function TimeZoneField({
     entry.offset.toLowerCase().includes(needle);
   const device = deviceTimeZone();
   return (
-    <div className={compact ? "field" : "settings-group settings-zone"}>
-      <label className="field">
-        <span>{t("timeZone")}</span>
-        <select
-          id={`${id}-zone`}
-          onChange={(event) =>
-            onChange(event.target.value === "" ? null : event.target.value)
-          }
-          value={value ?? ""}
-        >
-          <option value="">
-            {t("deviceZone", {
-              zone: readable(device),
-              offset: zoneOffsetLabel(device),
-            })}
-          </option>
-          {zones.map(({ region, members }) => {
-            const shown = members.filter(
-              (entry) => entry.zone === value || matches(entry),
-            );
-            return shown.length === 0 ? null : (
-              <optgroup key={region} label={region}>
-                {shown.map((entry) => (
-                  <option key={entry.zone} value={entry.zone}>
-                    {`${entry.city} (${entry.offset})`}
-                  </option>
-                ))}
-              </optgroup>
-            );
-          })}
-        </select>
-      </label>
-      {compact ? null : (
-        <>
-          <label className="field settings-zone-search">
-            <span className="visually-hidden">{t("searchZones")}</span>
-            <input
-              aria-controls={`${id}-zone`}
-              onChange={(event) => setQuery(event.target.value)}
-              placeholder={t("searchZones")}
-              type="search"
-              value={query}
-            />
-          </label>
-          <p className="settings-note">{t("timeZoneNote")}</p>
-        </>
-      )}
-    </div>
+    <select
+      {...attributes}
+      onChange={(event) =>
+        onChange(event.target.value === "" ? null : event.target.value)
+      }
+      value={value ?? ""}
+    >
+      <option value="">
+        {t("deviceZone", {
+          zone: readable(device),
+          offset: zoneOffsetLabel(device),
+        })}
+      </option>
+      {zones.map(({ region, members }) => {
+        const shown = members.filter(
+          (entry) => entry.zone === value || matches(entry),
+        );
+        return shown.length === 0 ? null : (
+          <optgroup key={region} label={region}>
+            {shown.map((entry) => (
+              <option key={entry.zone} value={entry.zone}>
+                {`${entry.city} (${entry.offset})`}
+              </option>
+            ))}
+          </optgroup>
+        );
+      })}
+    </select>
   );
 }
