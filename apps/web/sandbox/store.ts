@@ -59,6 +59,7 @@ import {
   userResponseSchema,
   type WorkspaceMember,
   workspaceMemberAddRequestSchema,
+  workspaceMemberRoleRequestSchema,
   workspaceMemberSchema,
 } from "@livtales/schemas";
 import { byRank, rankBetweenRows } from "../lib/collection-order";
@@ -1111,8 +1112,9 @@ export class SandboxStore {
     throw new SandboxError(404, "sandbox_route", "Unknown sandbox route.");
   }
 
-  // Members: the sample planner owns the workspace; a friend is added as
-  // viewer or editor (or has the role changed) and removed again.
+  // Members: the sample planner owns the workspace, a Personal one with one
+  // Owner; a friend is added as viewer or editor (or has the role changed)
+  // and removed again.
   #memberWrite(
     method: string,
     memberId: string | undefined,
@@ -1120,6 +1122,12 @@ export class SandboxStore {
   ): unknown {
     if (method === "POST" && !memberId) {
       const input = workspaceMemberAddRequestSchema.parse(body);
+      if (input.role === "owner")
+        throw new SandboxError(
+          400,
+          "invalid_request",
+          "A Personal space has one Owner.",
+        );
       const friend = this.#state.friends.friends.find(
         (item) => item.id === input.friendId,
       );
@@ -1148,6 +1156,38 @@ export class SandboxStore {
         ],
       });
       return member;
+    }
+    if (method === "PATCH" && memberId) {
+      const { role } = workspaceMemberRoleRequestSchema.parse(body);
+      const member = this.#state.members.find(
+        (item) => item.userId === memberId,
+      );
+      if (member === undefined)
+        throw new SandboxError(
+          404,
+          "friend_unavailable",
+          "The member does not exist.",
+        );
+      if (member.personal)
+        throw new SandboxError(
+          400,
+          "invalid_request",
+          "The Owner of a Personal space keeps the role.",
+        );
+      if (role === "owner")
+        throw new SandboxError(
+          400,
+          "invalid_request",
+          "A Personal space has one Owner.",
+        );
+      const changed = { ...member, role };
+      this.#commit({
+        ...this.#state,
+        members: this.#state.members.map((item) =>
+          item.userId === memberId ? changed : item,
+        ),
+      });
+      return changed;
     }
     if (method === "DELETE" && memberId) {
       const member = this.#state.members.find(
@@ -2496,6 +2536,36 @@ export class SandboxStore {
       operation === "members"
     )
       return this.#memberWrite(method, action, body);
+    // The design workspace is the sample planner's Personal space, the only
+    // one the sandbox holds: it keeps its name and its owner.
+    if (collection === "workspaces" && id === undefined && method === "POST")
+      throw new SandboxError(
+        403,
+        "workspace_unavailable",
+        "Only the design workspace is available.",
+      );
+    if (
+      collection === "workspaces" &&
+      id === "current" &&
+      operation === undefined &&
+      method === "PATCH"
+    )
+      throw new SandboxError(
+        400,
+        "invalid_request",
+        "A Personal space keeps its name.",
+      );
+    if (
+      collection === "workspaces" &&
+      id === "current" &&
+      operation === "leave" &&
+      method === "POST"
+    )
+      throw new SandboxError(
+        400,
+        "invalid_request",
+        "The Owner of a Personal space cannot leave it.",
+      );
     if (
       method === "POST" &&
       collection === "objects" &&

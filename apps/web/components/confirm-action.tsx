@@ -1,7 +1,7 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { useState } from "react";
+import { type ReactNode, useState } from "react";
 
 /**
  * A button that asks one line before it acts, in place: the question, the
@@ -16,6 +16,7 @@ export function ConfirmAction({
   pending = false,
   pendingLabel,
   question,
+  trigger,
 }: {
   readonly className?: string;
   readonly disabled?: boolean;
@@ -24,18 +25,21 @@ export function ConfirmAction({
   readonly pending?: boolean;
   readonly pendingLabel?: string;
   readonly question: string;
+  /** What the first button shows in place of the label, which then names it. */
+  readonly trigger?: ReactNode;
 }) {
   const common = useTranslations("common");
   const [asking, setAsking] = useState(false);
   if (!asking)
     return (
       <button
+        aria-label={trigger === undefined ? undefined : label}
         className={className}
         disabled={disabled}
         onClick={() => setAsking(true)}
         type="button"
       >
-        {label}
+        {trigger ?? label}
       </button>
     );
   return (

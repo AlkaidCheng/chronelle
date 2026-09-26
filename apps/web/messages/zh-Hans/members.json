@@ -7,6 +7,8 @@
   "add": "添加",
   "personal": "个人空间",
   "noFriends": "先添加好友，才能将其加入此处。",
+  "roleFor": "{name}的角色",
+  "lastOwner": "空间至少保留一位所有者。",
   "roles": {
     "viewer": "仅查看",
     "editor": "可编辑",

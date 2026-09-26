@@ -95,4 +95,45 @@ describe("the Members section", () => {
       body: undefined,
     });
   });
+
+  it("lets the Owner change a member's role, a Personal space keeping one Owner", async () => {
+    const user = userEvent.setup();
+    render(<MembersSection />, { wrapper });
+    const list = within(await screen.findByRole("list", { name: "Members" }));
+    // The Owner's own role in a Personal space is fixed.
+    expect(
+      list.queryByRole("combobox", { name: "Role for Sample planner" }),
+    ).toBeNull();
+    expect(
+      within(screen.getByRole("combobox", { name: "Access" }))
+        .getAllByRole("option")
+        .map((option) => option.textContent),
+    ).toEqual(["Editor", "Viewer"]);
+    await user.click(screen.getByRole("button", { name: "Add" }));
+    const role = await list.findByRole("combobox", {
+      name: "Role for Mei Lin",
+    });
+    expect(
+      within(role)
+        .getAllByRole("option")
+        .map((option) => option.textContent),
+    ).toEqual(["Editor", "Viewer"]);
+    expect(role).toHaveValue("viewer");
+    await user.selectOptions(role, "editor");
+    expect(requests).toContainEqual({
+      method: "PATCH",
+      path: "/api/workspaces/current/members/00000000-0000-4000-8000-000000000003",
+      body: { role: "editor" },
+    });
+    await expect
+      .poll(
+        () =>
+          (
+            screen.getByRole("combobox", {
+              name: "Role for Mei Lin",
+            }) as HTMLSelectElement
+          ).value,
+      )
+      .toBe("editor");
+  });
 });

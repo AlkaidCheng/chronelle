@@ -7819,26 +7819,21 @@ html:has(.event-create-dialog[open]) {
   font-weight: 600;
 }
 
-/* Members of the workspace, under Settings. */
+/* Members of the current space: its rows, then a friend to add with a role. */
 .members-section {
   display: grid;
   gap: 16px;
 }
 
-.members-list .friends-row {
+.members-add-row {
   align-items: center;
-}
-
-.members-add {
-  display: grid;
+  display: flex;
+  flex-wrap: wrap;
   gap: 10px;
 }
 
-.members-add-row {
-  align-items: end;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
+.members-add-row .space-member-add {
+  flex: 1 1 200px;
 }
 
 .share-people-disclosure {
@@ -10770,6 +10765,148 @@ html:has(.event-create-dialog[open]) {
 .share-outcome-copy {
   font-size: inherit;
   margin-left: 8px;
+}
+
+/* Manage space's heading: the space's mark beside its name. */
+.section-dialog-space {
+  align-items: center;
+  display: flex;
+  gap: 8px;
+  min-width: 0;
+}
+
+.section-dialog-space-name {
+  font-size: 1.05rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.section-dialog-space .workspace-mark {
+  background: var(--accent-soft);
+  color: var(--accent);
+  font: 700 0.66rem/1 var(--font-body);
+  height: 26px;
+  width: 26px;
+}
+
+/* New space: its name, and its members with their roles in one column. */
+.space-members {
+  border: 0;
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  min-width: 0;
+  padding: 0;
+}
+
+.space-members legend {
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 650;
+  margin-bottom: 6px;
+  padding: 0;
+}
+
+.space-member-list {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  display: grid;
+  list-style: none;
+  margin: 0;
+  overflow: hidden;
+  padding: 0;
+}
+
+.space-member {
+  align-items: center;
+  display: grid;
+  gap: 10px;
+  grid-template-columns: auto minmax(0, 1fr) 96px 28px;
+  min-height: 48px;
+  padding: 6px 10px;
+}
+
+.space-member + .space-member {
+  border-top: 1px solid var(--line);
+}
+
+.space-member-name {
+  display: grid;
+  font-size: 0.88rem;
+  min-width: 0;
+}
+
+.space-member-detail {
+  color: var(--faint);
+  font-size: 0.72rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.space-role-select,
+.space-role-fixed {
+  font-size: 0.8rem;
+  height: 30px;
+  width: 96px;
+}
+
+.space-role-select {
+  background: var(--canvas);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: var(--ink);
+  font: inherit;
+  font-size: 0.8rem;
+  padding: 0 6px 0 9px;
+}
+
+.space-role-select:focus-visible {
+  border-color: var(--line-strong);
+  outline: 0;
+}
+
+.space-role-fixed {
+  align-items: center;
+  background: var(--surface-subtle);
+  border-radius: 8px;
+  color: var(--muted);
+  display: inline-flex;
+  padding: 0 10px;
+}
+
+.space-member-remove {
+  background: transparent;
+  border: 0;
+  border-radius: 7px;
+  color: var(--faint);
+  cursor: pointer;
+  font-size: 1.1rem;
+  height: 28px;
+  width: 28px;
+}
+
+/* Removing a member asks on a line of its own under the row. */
+.space-member .confirm-line {
+  grid-column: 1 / -1;
+}
+
+.space-member-remove:hover {
+  background: var(--surface-subtle);
+  color: var(--ink);
+}
+
+.space-member-add select {
+  background: var(--canvas);
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  color: var(--muted);
+  font: inherit;
+  font-size: 0.85rem;
+  height: 38px;
+  padding: 0 10px;
+  width: 100%;
 }
 
 /* A dialog of sections: a heading above the list of sections at the left,
