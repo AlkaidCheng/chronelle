@@ -310,6 +310,20 @@ add and remove functions with ones that allow several Owners and keep at
 least one. Apply it with `pnpm db:migrate` before starting the updated API;
 it changes no tables and needs no baseline or runtime-role change.
 
+Migration `0073_carry_scoped_rows_with_objects.sql` makes the keys by which
+typed rows, relations, grants, shares waiting on an invitation, document
+transfer authorizations, and sections name their object follow it to another
+workspace (`ON UPDATE CASCADE`), so one update of `objects.workspace_id` over
+an Event's whole scope carries them. The permission scope and People cards
+keep `NO ACTION` keys, so an update that leaves a scoped record behind, or
+moves a card, fails. A section's key becomes `(workspace_id, event_id)`, and
+the relation version and narrowed-grant triggers are redefined in place to
+accept the carried rows. Migration `0074_validate_carried_keys.sql`
+validates the keys, which 0073 adds `NOT VALID`. Nothing moves a record yet:
+`pnpm db:migrate` applies both with no other step, and older API versions
+keep working. [Deployment](deployment.md) has the locking notes and the
+section preflight query.
+
 Migration `0021_add_object_search_function.sql` adds `chronelle_object_search`,
 the read-only function the CloudBase search adapter calls. It changes no
 tables and needs no baseline.
