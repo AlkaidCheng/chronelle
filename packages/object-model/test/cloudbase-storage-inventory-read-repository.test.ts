@@ -1,11 +1,16 @@
 import { AuthorizationDeniedError } from "@livtales/authorization";
-import { CloudBaseRpcError, type CloudBaseRdbClient } from "@livtales/db";
+import {
+  CloudBaseRpcError,
+  type CloudBaseRdbClient,
+  type CloudBaseRdbQuery,
+} from "@livtales/db";
 import { StorageInventoryUnavailableError } from "@livtales/storage";
 import { describe, expect, it, vi } from "vitest";
 
 import { CloudBaseStorageInventoryReadRepository } from "../src/cloudbase-storage-inventory-read-repository.js";
 
 const workspaceId = "00000000-0000-7000-8000-000000000001";
+const otherWorkspaceId = "00000000-0000-7000-8000-000000000002";
 const userId = "00000000-0000-7000-8000-000000000005";
 const principal = { type: "user" as const, userId, workspaceId };
 const observedAt = new Date("2030-06-01T12:00:00.000Z");
@@ -81,6 +86,98 @@ describe("CloudBaseStorageInventoryReadRepository", () => {
     expect([...references.canonical]).toEqual([keyA]);
     expect([...references.historical]).toEqual([keyB]);
     expect([...references.uploads]).toEqual([[keyC, false]]);
+  });
+
+  it("accepts a key another workspace minted", async () => {
+    const minted = `workspaces/${otherWorkspaceId}/documents/00000000-0000-7000-8000-0000000000b1`;
+    const references = await new CloudBaseStorageInventoryReadRepository(
+      client("owner", {
+        canonical: [minted],
+        revisions: [
+          {
+            schemaVersion: 1,
+            objectType: "document",
+            provider: "local-filesystem",
+            key: minted,
+          },
+        ],
+        uploads: [],
+      }),
+    ).loadReferences(principal, "local-filesystem", observedAt, 100);
+    expect([...references.canonical]).toEqual([minted]);
+    expect([...references.historical]).toEqual([]);
+  });
+
+  it("finds the keys another workspace's documents and uploads name, in batches", async () => {
+    const keys = Array.from(
+      { length: 80 },
+      (_, index) =>
+        `${prefix}/00000000-0000-7000-8000-${index.toString().padStart(12, "0")}`,
+    );
+    const tables: Record<string, readonly Record<string, unknown>[]> = {
+      workspace_members: [{ role: "owner" }],
+      documents: [
+        { workspace_id: otherWorkspaceId, storage_key: keyA },
+        { workspace_id: workspaceId, storage_key: keyB },
+      ],
+      document_transfer_authorizations: [
+        { workspace_id: otherWorkspaceId, storage_key: keyC },
+      ],
+    };
+    const gateway = client("owner", rows);
+    const select = vi.fn(
+      async (table: string, _query?: CloudBaseRdbQuery) => tables[table] ?? [],
+    );
+    const repository = new CloudBaseStorageInventoryReadRepository({
+      ...gateway,
+      select: select as CloudBaseRdbClient["select"],
+    });
+
+    expect(
+      await repository.findReferencedElsewhere(
+        principal,
+        "local-filesystem",
+        keys,
+      ),
+    ).toEqual(new Set([keyA, keyC]));
+    const lookups = select.mock.calls.filter(([table]) =>
+      table.startsWith("document"),
+    );
+    expect(lookups.map(([table]) => table)).toEqual([
+      "documents",
+      "document_transfer_authorizations",
+      "documents",
+      "document_transfer_authorizations",
+    ]);
+    expect(lookups[1]?.[1]).toEqual({
+      columns: "workspace_id,storage_key",
+      filters: [
+        {
+          column: "storage_provider",
+          operator: "eq",
+          value: "local-filesystem",
+        },
+        { column: "operation", operator: "eq", value: "upload" },
+        { column: "storage_key", operator: "in", value: keys.slice(0, 75) },
+      ],
+    });
+    expect(lookups[2]?.[1]?.filters?.at(-1)?.value).toEqual(keys.slice(75));
+  });
+
+  it("refuses a lookup outside the Owner's prefix or by a non-Owner", async () => {
+    await expect(
+      new CloudBaseStorageInventoryReadRepository(
+        client("owner", rows),
+      ).findReferencedElsewhere(principal, "local-filesystem", [
+        keyA,
+        `workspaces/${otherWorkspaceId}/documents/00000000-0000-7000-8000-0000000000b1`,
+      ]),
+    ).rejects.toBeInstanceOf(StorageInventoryUnavailableError);
+    await expect(
+      new CloudBaseStorageInventoryReadRepository(
+        client("editor", rows),
+      ).findReferencedElsewhere(principal, "local-filesystem", [keyA]),
+    ).rejects.toBeInstanceOf(AuthorizationDeniedError);
   });
 
   it("refuses an oversized set and a malformed revision", async () => {

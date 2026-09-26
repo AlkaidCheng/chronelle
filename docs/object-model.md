@@ -172,7 +172,9 @@ two Documents.
 The [storage inventory](storage-reconciliation.md) reads these references without
 creating another object or projection table. It includes all Document lifecycle
 states and document revision keys. A consumed upload remains recoverable after
-expiry; an expired authorization alone does not authorize file removal.
+expiry; an expired authorization alone does not authorize file removal. A file
+counts in the workspace whose rows name it: a record that moves keeps its
+storage key, whose prefix names the workspace it was uploaded in.
 
 A related child normally uses its root Event ID as `permission_scope_id`, so a
 grant on the Event applies through one level of inheritance. Changing the child

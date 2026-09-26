@@ -6,12 +6,13 @@ import type { Database } from "@livtales/db";
 import type { StorageInventoryResponse } from "@livtales/schemas";
 import {
   StorageInventoryUnavailableError,
+  type StorageInventoryEntry,
   type StorageProvider,
 } from "@livtales/storage";
 
 import {
+  documentKeyPrefix,
   documentPrefix,
-  isDocumentKey,
   PostgresStorageInventoryReadRepository,
   type StorageInventoryReadRepository,
 } from "./storage-inventory-reads.js";
@@ -30,7 +31,11 @@ interface StorageInventoryOptions {
   readonly reads?: StorageInventoryReadRepository | undefined;
 }
 
-/** Reports references and immediate storage entries without authorizing removal. */
+/**
+ * Reports a workspace's references and the stored files it accounts for,
+ * without authorizing removal. A file counts where the records naming it
+ * live, whichever workspace's prefix its key carries.
+ */
 export class StorageInventoryService {
   readonly #activeWorkspaces = new Set<string>();
   readonly #clock: () => Date;
@@ -67,7 +72,8 @@ export class StorageInventoryService {
     try {
       const startedAt = this.#clock();
       const prefix = documentPrefix(principal.workspaceId);
-      if (this.storage.listObjects === undefined)
+      const listObjects = this.storage.listObjects?.bind(this.storage);
+      if (listObjects === undefined)
         throw new StorageInventoryUnavailableError();
       const references = await this.#reads.loadReferences(
         principal,
@@ -75,6 +81,25 @@ export class StorageInventoryService {
         startedAt,
         this.#maximumEntries,
       );
+      const named = new Set([
+        ...references.canonical,
+        ...references.historical,
+        ...references.uploads.keys(),
+      ]);
+      const listed = await this.#list(listObjects, prefix, named);
+      // A file under this prefix that another workspace's records name moved
+      // there with its record: that workspace's inventory counts it.
+      const unnamed = listed
+        .map((entry) => entry.storageKey)
+        .filter((key) => !named.has(key) && documentKeyPrefix(key) === prefix);
+      const elsewhere =
+        unnamed.length === 0
+          ? new Set<string>()
+          : await this.#reads.findReferencedElsewhere(
+              principal,
+              this.storage.providerId,
+              unnamed,
+            );
       const entries = {
         canonical: 0,
         historicalOnly: 0,
@@ -83,18 +108,12 @@ export class StorageInventoryService {
         unreferenced: 0,
         unsupported: 0,
       };
-      const seen = new Set<string>();
-      const signal = AbortSignal.timeout(10_000);
-      for await (const entry of this.storage.listObjects(prefix, signal)) {
-        signal.throwIfAborted();
+      for (const entry of listed) {
+        if (elsewhere.has(entry.storageKey)) continue;
         if (
-          !entry.storageKey.startsWith(`${prefix}/`) ||
-          seen.has(entry.storageKey) ||
-          seen.size >= this.#maximumEntries
+          entry.kind !== "file" ||
+          documentKeyPrefix(entry.storageKey) === undefined
         )
-          throw new StorageInventoryUnavailableError();
-        seen.add(entry.storageKey);
-        if (entry.kind !== "file" || !isDocumentKey(entry.storageKey, prefix))
           entries.unsupported++;
         else if (references.canonical.delete(entry.storageKey))
           entries.canonical++;
@@ -106,7 +125,6 @@ export class StorageInventoryService {
           entries.expiredUpload++;
         else entries.unreferenced++;
       }
-      signal.throwIfAborted();
       await this.#reads.assertWorkspaceOwner(principal);
       return {
         workspaceId: principal.workspaceId,
@@ -129,5 +147,41 @@ export class StorageInventoryService {
     } finally {
       this.#activeWorkspaces.delete(principal.workspaceId);
     }
+  }
+
+  /**
+   * The entries the workspace accounts for: every immediate entry under its
+   * own prefix, and under another workspace's prefix only the files its
+   * references name there (files whose records moved in). Each listing has
+   * the workspace's own bound; one abort signal bounds them all.
+   */
+  async #list(
+    listObjects: NonNullable<StorageProvider["listObjects"]>,
+    prefix: string,
+    named: ReadonlySet<string>,
+  ): Promise<StorageInventoryEntry[]> {
+    const otherPrefixes = new Set(
+      [...named].map((key) => documentKeyPrefix(key) ?? prefix),
+    );
+    otherPrefixes.delete(prefix);
+    const listed: StorageInventoryEntry[] = [];
+    const signal = AbortSignal.timeout(10_000);
+    for (const listing of [prefix, ...[...otherPrefixes].sort()]) {
+      const seen = new Set<string>();
+      for await (const entry of listObjects(listing, signal)) {
+        signal.throwIfAborted();
+        if (
+          !entry.storageKey.startsWith(`${listing}/`) ||
+          seen.has(entry.storageKey) ||
+          seen.size >= this.#maximumEntries
+        )
+          throw new StorageInventoryUnavailableError();
+        seen.add(entry.storageKey);
+        if (listing === prefix || named.has(entry.storageKey))
+          listed.push(entry);
+      }
+    }
+    signal.throwIfAborted();
+    return listed;
   }
 }

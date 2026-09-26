@@ -444,7 +444,12 @@ whether each can still finalize, each set capped at one more than the
 inventory bound; `StorageInventoryReadRepository` carries that read and the
 workspace Owner check, the classification against the provider stays in the
 application, and `StorageInventoryService` still lists the storage provider
-itself. The differential tests compare the comparison and preview for an
+itself. References may name keys under another workspace's prefix (a moved
+record keeps its file's key); for listed files under its own prefix that it
+does not reference, the repository selects `documents` and upload
+`document_transfer_authorizations` rows by key to leave out those another
+workspace names, through the gateway's `select` route, so no new function is
+needed. The differential tests compare the comparison and preview for an
 Owner and a grant-only viewer (including a deleted source revision and an
 unsupported snapshot schema), the restore through the read adapters, and the
 reference classification for one provider with its refusals (non-Owners, an

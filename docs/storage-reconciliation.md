@@ -26,8 +26,11 @@ includes keys found only in document revisions. Overlapping current/history keys
 count once, as canonical. Missing reference counts mean no eligible regular file
 was observed for that key; an unsupported entry at that key also counts as missing.
 
-Each immediate entry in `workspaces/<workspace-id>/documents` has one category,
-using the following precedence:
+Each entry the workspace accounts for has one category. These are the immediate
+entries in `workspaces/<workspace-id>/documents`, less the files another
+workspace's records name, plus the files its own references name under another
+workspace's prefix (see [Files of moved records](#files-of-moved-records)). The
+categories take the following precedence:
 
 | Entry count      | Meaning                                                                               |
 | ---------------- | ------------------------------------------------------------------------------------- |
@@ -44,6 +47,34 @@ do not contribute to entry counts. Download authorizations do not create separat
 storage ownership. Relationship deletion and soft deletion never remove a file's
 canonical reference.
 
+## Files of moved records
+
+A file keeps its storage key when its record moves to another workspace: the key
+is an opaque address and nothing is copied, so it can carry the prefix of the
+workspace it was uploaded in. The inventory counts a file in the workspace whose
+records name it, whatever prefix its key carries:
+
+- References may name a key under any workspace's document prefix. A moved
+  Document, trashed or not, is a canonical reference of the workspace it lives
+  in, and a moved upload authorization is an upload of that workspace.
+- The scan lists the workspace's own prefix and, for each other prefix under
+  which its references name a key, that prefix too, counting there only the
+  entries its references name. Such a key with no regular file there counts as
+  missing, as any other reference does.
+- An entry under the workspace's own prefix that its references do not name,
+  but a Document or upload authorization of another workspace names for the same
+  provider, belongs to that workspace's report. It is left out of this one
+  rather than counted as `unreferenced`.
+
+So each file counts in one report: that of the workspace whose records name it,
+or, when no record names it, that of the workspace whose prefix holds it. The
+lookup of other workspaces' records takes only keys under the caller's own
+prefix, reads Document and upload authorization rows by exact key, and returns
+nothing but which of those keys to leave out; no count, key, or identifier of
+another workspace reaches the report. Document history is not looked up across
+workspaces: a Document's key never changes, so its history names the key its
+row names.
+
 ## Consistency and retention
 
 The report explicitly returns `consistency: "observational"` and
@@ -52,9 +83,11 @@ the authorization package's read-only repeatable-read boundary. The snapshot
 keeps reference classification consistent with that check even if another request
 finalizes an upload before the reference queries finish. A later inventory sees
 the finalized document. Storage enumeration follows after that transaction closes;
-database and storage observations are not atomic. Concurrent uploads or
-finalization can change classifications during a scan. Recheck after writers are
-quiescent when investigating a discrepancy.
+the lookup of other workspaces' records, when an entry under the workspace's own
+prefix has no reference, runs after enumeration in a second read-only snapshot
+with its own owner check. Database and storage observations are not atomic.
+Concurrent uploads, finalization, or moves can change classifications during a
+scan. Recheck after writers are quiescent when investigating a discrepancy.
 
 Local uploads keep in-progress bytes in private `.upload-*` directories. Inventory
 counts these directories as unsupported without opening them. Between publication
@@ -79,17 +112,19 @@ transactional checks that preserve trash, history, and recoverable transfers.
 
 `AuthorizationService.assertWorkspaceOwner` requires Owner workspace membership.
 An Owner grant on an individual Event is insufficient. The service checks before
-starting, inside the reference snapshot, and after storage I/O. A revocation
-observed by the final check suppresses the report; a response already authorized
-cannot be retracted.
+starting, inside the reference snapshot, inside the lookup of other workspaces'
+records when there is one, and after storage I/O. A revocation observed by the
+final check suppresses the report; a response already authorized cannot be
+retracted.
 
 The service allows one scan per workspace and two scans per API service instance.
 Additional requests receive `429 inventory_busy`. This is not a distributed rate
 limiter. Each reference query and the combined distinct-key set are capped at
-10,000; enumeration is capped at 10,000 immediate entries. SQL statements have a
-five-second timeout. Enumeration checks a ten-second abort signal between I/O
-operations; a blocked filesystem syscall or in-flight cloud request may take
-longer to settle.
+10,000; each listed prefix is capped at 10,000 immediate entries, including a
+prefix listed for moved files, where the entries not counted still count toward
+that cap. SQL statements have a five-second timeout. Enumeration checks one
+ten-second abort signal across all its listings between I/O operations; a
+blocked filesystem syscall or in-flight cloud request may take longer to settle.
 
 Unsupported providers, unreadable or unknown-version document revisions, limits,
 cancellation, and storage errors return `503 inventory_unavailable`, with no
