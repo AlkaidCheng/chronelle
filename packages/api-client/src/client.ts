@@ -347,6 +347,15 @@ export class LivTalesApiClient {
     return this.#createScopedClient(signal);
   }
 
+  /**
+   * The same session acting in another workspace the account may enter, for
+   * requests made there before the session switches to it (the members of a
+   * workspace just created, for one).
+   */
+  inWorkspace(workspaceId: string): LivTalesApiClient {
+    return this.#createScopedClient(undefined, workspaceId);
+  }
+
   #captureCredential(): ApiCredential | null {
     if (this.#signals.some((signal) => signal.aborted)) {
       throw abortError("The request was cancelled.");
@@ -365,7 +374,10 @@ export class LivTalesApiClient {
     }
   }
 
-  #createScopedClient(signal?: AbortSignal): LivTalesApiClient {
+  #createScopedClient(
+    signal?: AbortSignal,
+    workspaceId?: string,
+  ): LivTalesApiClient {
     const credential = this.#captureCredential();
     return new LivTalesApiClient({
       baseUrl: this.#baseUrl,
@@ -373,7 +385,9 @@ export class LivTalesApiClient {
       fileHasher: this.#fileHasher ?? undefined,
       getCredential: () => {
         this.#assertCurrent(credential);
-        return credential;
+        return credential === null || workspaceId === undefined
+          ? credential
+          : { ...credential, workspaceId };
       },
       requestTimeoutMs: this.#requestTimeoutMs,
       signals:
