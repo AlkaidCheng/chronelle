@@ -44,6 +44,18 @@ only when both endpoints are live and separately authorized. Recovering a
 Document retains its storage identity and bytes; download authorization is still
 required, and credentials issued before deletion are rechecked on use.
 
+## A deleted space's Trash
+
+An Owner deletes a shared space only when it holds nothing but Trash, and its
+Trash goes with it: the space loses its members, the live grants on its
+records, and its waiting shares, so no one can open its Trash, list it, or
+recover from it. The records stay where they are, with their revisions, audit
+trail, relations, and stored files; nothing is purged. A trigger refuses to
+clear `deleted_at` on a record of a deleted space, so no path, including an
+undo, brings one back into it. Bringing a deleted space back is not a product
+action; an operator with database access finds its records by its
+`workspace.deleted` audit event.
+
 ## Independent link recovery
 
 Relations have their own positive `version`, initially 1. Deletion and recovery
