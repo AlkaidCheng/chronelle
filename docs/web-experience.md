@@ -87,8 +87,9 @@ again.
 More holds what acts on the app rather than on records: Trash, Theme,
 Customize sidebar, Keyboard shortcuts, and Help. Theme opens a panel beside
 the rail with the mode (System, Light, Dark), the palette, density, and
-motion choices, and a reset. Keyboard shortcuts opens Settings > Keyboard
-and shows only on a device with a keyboard; Help has no surface yet and
+motion choices, and a reset. Keyboard shortcuts opens Settings at Keyboard
+over the page and shows only on a device with a keyboard; Help has no
+surface yet and
 says so in a passing notice. The
 account block at the foot of the rail (the account's avatar and name, the
 current space in small text under it, a caret) opens the account menu: the current space as one row (its mark, name, and
@@ -541,8 +542,9 @@ shortcuts item leads there), is one table of the shortcuts: Open Search
 Collapse or expand the sidebar (Cmd/Ctrl + \, always on), Add a component
 with its key choice, and Submit an editor (Cmd/Ctrl + Enter) with its
 switch; Reset keyboard shortcuts at the foot restores the defaults. On a
-touch device the section says it appears on devices with a keyboard, and
-the Settings navigation omits it. The Search entry remains available
+touch device the Settings list omits the section; its address still opens
+it, listed while it is open, and it says it appears on devices with a
+keyboard. The Search entry remains available
 without the shortcut. The preference is a browser-local
 `chronelle.command-shortcut` value: `disabled` opts out; absence or an
 unknown value enables the default. Same-origin tabs synchronize it. Blocked
@@ -685,8 +687,39 @@ the light paper color; the running page follows the selected appearance.
 
 ## Settings
 
-Settings (`/settings`, from the profile menu) lists its sections at the left
-and opens one at the right; each section has its own address. Account holds
+Settings opens from the account menu as a dialog over the page you are on,
+and closing it returns you there as you left it: the page stays mounted
+underneath, so an event's view, its filters, and anything open on it are
+unchanged. At the left, under the title Settings, each section is a row
+with its icon (General; under Preferences, Language & time, Appearance, and
+on a keyboard device Keyboard; under Space, Members), the current one
+marked as the rail marks its current page; at the right, the section's
+title with the close control at its edge, then its content, which scrolls
+inside the dialog. On a narrow screen (up to 640px) the dialog fills the
+screen and the sections become a row that scrolls sideways above the
+section, without the title and group captions; a 320px screen never
+scrolls sideways. Focus starts on the current section's row and returns,
+on closing, to the control that opened Settings (the account block, More,
+or the avatar on a phone).
+
+Each section has an address on the page underneath: a `settings` query
+parameter (`general`, `language`, `appearance`, `keyboard`, or `members`)
+added to the page's own, so `/events/<id>?view=todos&settings=language` is
+an event's To-dos with Settings open on Language & time. The entries that
+open Settings (Settings in the account menu, Keyboard shortcuts in More,
+Members in the space switcher) link to the current page with that
+parameter, so a new tab or a copied link opens the same; a plain click
+opens Settings in place as a history entry of its own, choosing another
+section rewrites that entry, and closing (the close control, Escape, or
+Back) steps back to the page. Settings reached by its address (a link, a
+reload) closes by taking the parameter out of the address in place. The
+address changes through the history API, never a navigation, so nothing
+underneath remounts. The old addresses (`/settings`, `/settings/language`,
+`/settings/appearance`, `/settings/keyboard`, `/settings/members`) redirect
+to Events with that section open. The offline sandbox keeps the same
+address in its fragment (`#/events/<id>?view=todos&settings=language`).
+
+General holds
 the Name, changed here with Save name, the username as chosen at sign-up,
 which cannot be changed, and the email as the account holds it; Who can
 find you, with By username always on,
@@ -789,9 +822,18 @@ menu. An account journey (Chromium and WebKit desktop) creates an account
 with a username, reads the code from the journeys' mailbox file, completes
 Welcome with a name and a 24-hour clock, finds both in Settings, and signs
 in again by username. A Settings journey (Chromium and WebKit desktop) opens Settings from the
-profile menu, changes the language and back, chooses a 24-hour clock, the UTC
-zone, and a Monday week, sees a timed task and the week strip follow, reads
-every choice back after a reload, and signs out everywhere. Unit tests hold
+account menu over Tasks, changes the language and back, chooses a 24-hour
+clock, the UTC zone, and a Monday week, closes to a timed task already
+following them and a week strip starting Monday, reads every choice back
+after a reload through the old Language & time address, and signs out
+everywhere. A second journey (desktop and mobile Chromium and WebKit) opens
+Settings over an event's filtered To-dos, changes section in place, and
+returns to the same view with the close control, Escape, and Back (Forward
+opens it again), checking that the page underneath was not remounted, that
+focus returns to the account block, and that an address-opened Settings
+closes without a history entry; it also follows an old address and checks
+a 320px screen for sideways scrolling. The offline sandbox runs the same
+opening, switching, closing, and Back through its fragment. Unit tests hold
 every catalog to the English key set and parameter names. A native reader has
 not yet reviewed the two Chinese catalogs; wording may change.
 
