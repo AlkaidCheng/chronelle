@@ -604,7 +604,8 @@ API's `chronelle_runtime` login. Set `ENABLE_DEVELOPMENT_AUTH=true`
 only for trusted preview testing (the Compose file passes it to the web
 service as `WEB_DEVELOPMENT_SIGN_IN`, which renders `/sign-in/development`);
 email and password accounts work without it once `EMAIL_PROVIDER=smtp`,
-`SMTP_URL`, and `EMAIL_FROM` name a mail transport (`EMAIL_FROM` carries
+`SMTP_URL`, and `EMAIL_FROM` name a mail transport, or `EMAIL_PROVIDER=tencent-ses`
+names an SES API key and reviewed templates (`docs/cloudbase-backend-runbook.md`) (`EMAIL_FROM` carries
 the display name users see, LivTales, as in `.env.example`; the default `log`
 provider writes verification codes to the API log and is not for a
 deployment; `EMAIL_PROVIDER=file` with `EMAIL_FILE_PATH` appends them to a

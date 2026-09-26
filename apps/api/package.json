@@ -13,6 +13,7 @@
     "dev": "pnpm --filter @livtales/schemas build && pnpm --filter @livtales/object-model build && tsx watch src/server.ts",
     "start": "node dist/server.js",
     "seed:test-data": "node --env-file-if-exists=.env dist/seed-test-data.js",
+    "ses:templates": "tsx src/ses-templates.ts",
     "test": "pnpm --filter @livtales/schemas build && pnpm --filter @livtales/object-model build && vitest run",
     "test:unit": "vitest run",
     "typecheck": "pnpm --filter @livtales/schemas build && pnpm --filter @livtales/object-model build && tsc -p tsconfig.json --noEmit",

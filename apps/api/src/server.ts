@@ -21,6 +21,10 @@ import {
 import { FileEmailSender } from "./authentication/file-email-sender.js";
 import type { ThrottledIssue } from "./authentication/password-auth-service.js";
 import { SmtpEmailSender } from "./authentication/smtp-email-sender.js";
+import {
+  TencentSesEmailSender,
+  parseEmailTemplateIds,
+} from "./authentication/tencent-ses-email-sender.js";
 import { CloudBaseWeChatIdentityVerifier } from "./authentication/wechat-identity-verifier.js";
 import {
   backendEnvironmentSchema,
@@ -56,10 +60,14 @@ const runtimeEnvironmentSchema = backendEnvironmentSchema.extend({
     .positive()
     .max(1_440)
     .default(15),
-  EMAIL_PROVIDER: z.enum(["log", "file", "smtp"]).default("log"),
+  EMAIL_PROVIDER: z.enum(["log", "file", "smtp", "tencent-ses"]).default("log"),
   EMAIL_FILE_PATH: z.string().min(1).optional(),
   SMTP_URL: z.url().optional(),
   EMAIL_FROM: z.string().min(3).optional(),
+  TENCENT_SES_SECRET_ID: z.string().min(1).optional(),
+  TENCENT_SES_SECRET_KEY: z.string().min(1).optional(),
+  TENCENT_SES_REGION: z.string().min(1).default("ap-hongkong"),
+  TENCENT_SES_TEMPLATES: z.string().min(2).optional(),
   ENABLE_DEVELOPMENT_AUTH: z.stringbool().default(false),
   ENABLE_WECHAT_AUTH: z.stringbool().default(false),
   CLOUDBASE_WECHAT_PROVIDER_IDS: z
@@ -92,6 +100,26 @@ function composeEmailSender(
     if (environment.EMAIL_FILE_PATH === undefined)
       throw new Error("EMAIL_PROVIDER=file requires EMAIL_FILE_PATH.");
     return new FileEmailSender(environment.EMAIL_FILE_PATH);
+  }
+  if (environment.EMAIL_PROVIDER === "tencent-ses") {
+    if (
+      environment.TENCENT_SES_SECRET_ID === undefined ||
+      environment.TENCENT_SES_SECRET_KEY === undefined ||
+      environment.TENCENT_SES_TEMPLATES === undefined ||
+      environment.EMAIL_FROM === undefined
+    )
+      throw new Error(
+        "EMAIL_PROVIDER=tencent-ses requires TENCENT_SES_SECRET_ID, TENCENT_SES_SECRET_KEY, TENCENT_SES_TEMPLATES, and EMAIL_FROM.",
+      );
+    return new TencentSesEmailSender({
+      credential: {
+        secretId: environment.TENCENT_SES_SECRET_ID,
+        secretKey: environment.TENCENT_SES_SECRET_KEY,
+      },
+      region: environment.TENCENT_SES_REGION,
+      from: environment.EMAIL_FROM,
+      templates: parseEmailTemplateIds(environment.TENCENT_SES_TEMPLATES),
+    });
   }
   if (
     environment.SMTP_URL === undefined ||
@@ -167,7 +195,7 @@ logThrottled = (event) => {
 };
 if (runtimeEnvironment.EMAIL_PROVIDER === "log") {
   app.log.warn(
-    "EMAIL_PROVIDER=log writes verification codes to the log; configure smtp for a deployment",
+    "EMAIL_PROVIDER=log writes verification codes to the log; configure smtp or tencent-ses for a deployment",
   );
 }
 

@@ -480,7 +480,9 @@ default) the verification codes are written to the API log as
 `Email written to the log` entries; with `EMAIL_PROVIDER=file` each message
 is appended as one JSON line (`writtenAt`, `to`, `subject`, `text`) to
 `EMAIL_FILE_PATH`, for an instance whose log is not collected but whose shell
-is reachable. `AUTH_VERIFICATION_TTL_MINUTES` (15) bounds a code's lifetime.
+is reachable. `smtp` and `tencent-ses` deliver real mail; the second sends
+each email from a reviewed Tencent Cloud SES template
+(`docs/cloudbase-backend-runbook.md`). `AUTH_VERIFICATION_TTL_MINUTES` (15) bounds a code's lifetime.
 
 Private development attachments are stored below `LOCAL_STORAGE_ROOT`, which
 defaults to `.livtales/storage` and is ignored by Git. Keep this root private
