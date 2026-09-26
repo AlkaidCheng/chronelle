@@ -78,11 +78,11 @@ async function renderShell(page = <p>Page</p>) {
       <WorkspaceShell>{page}</WorkspaceShell>
     </Providers>,
   );
-  await screen.findByRole("navigation", { name: "Workspace navigation" });
+  await screen.findByRole("navigation", { name: "Space navigation" });
 }
 
 const rail = () =>
-  within(screen.getByRole("navigation", { name: "Workspace navigation" }));
+  within(screen.getByRole("navigation", { name: "Space navigation" }));
 const collectionNames = () =>
   within(screen.getByRole("list", { name: "Collections" }))
     .getAllByRole("link")

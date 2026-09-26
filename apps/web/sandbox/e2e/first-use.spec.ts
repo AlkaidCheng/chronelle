@@ -39,7 +39,7 @@ test("starts with an empty offline workspace and composes only selected componen
   await activateWithKeyboard(
     page,
     page
-      .getByRole("navigation", { name: "Workspace navigation" })
+      .getByRole("navigation", { name: "Space navigation" })
       .getByRole("link", { name: "Events", exact: true }),
   );
   await activateWithKeyboard(

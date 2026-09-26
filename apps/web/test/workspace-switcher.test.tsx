@@ -107,16 +107,14 @@ function renderSwitcher(
   };
 }
 
-/** Opens the block's menu and its Switch workspace... level. */
+/** Opens the block's menu and its Switch space... level. */
 async function openList(
   user: ReturnType<typeof userEvent.setup>,
   trigger: HTMLElement,
 ) {
   await user.click(trigger);
-  await user.click(
-    screen.getByRole("menuitem", { name: "Switch workspace..." }),
-  );
-  return screen.getByRole("menu", { name: "Switch workspace" });
+  await user.click(screen.getByRole("menuitem", { name: "Switch space..." }));
+  return screen.getByRole("menu", { name: "Switch space" });
 }
 
 const labels = {
@@ -230,7 +228,7 @@ it("offers a search past six workspaces that narrows the list by name or owner",
   ];
   const { trigger, user } = renderSwitcher(many);
   await openList(user, trigger);
-  const search = screen.getByRole("searchbox", { name: "Find a workspace" });
+  const search = screen.getByRole("searchbox", { name: "Find a space" });
   expect(search).toHaveFocus();
   expect(screen.getAllByRole("menuitemradio")).toHaveLength(7);
   await user.type(search, "guide 2");
@@ -240,12 +238,12 @@ it("offers a search past six workspaces that narrows the list by name or owner",
   await user.clear(search);
   await user.type(search, "nobody");
   expect(screen.queryByRole("menuitemradio")).not.toBeInTheDocument();
-  expect(screen.getByText("No workspace matches.")).toBeVisible();
+  expect(screen.getByText("No space matches.")).toBeVisible();
   // Escape leaves the list for the menu, and the menu for the block.
   await user.keyboard("{Escape}");
   expect(screen.getByRole("menu", { name: "Account" })).toBeVisible();
   expect(
-    screen.getByRole("menuitem", { name: "Switch workspace..." }),
+    screen.getByRole("menuitem", { name: "Switch space..." }),
   ).toHaveFocus();
   await user.keyboard("{Escape}");
   expect(screen.queryByRole("menu")).not.toBeInTheDocument();
@@ -255,12 +253,12 @@ it("offers a search past six workspaces that narrows the list by name or owner",
 it("opens and closes with Cmd/Ctrl+Shift+K and closes on an outside press", async () => {
   const { trigger, user } = renderSwitcher();
   await user.keyboard("{Meta>}{Shift>}k{/Shift}{/Meta}");
-  expect(screen.getByRole("menu", { name: "Switch workspace" })).toBeVisible();
+  expect(screen.getByRole("menu", { name: "Switch space" })).toBeVisible();
   await user.keyboard("{Meta>}{Shift>}k{/Shift}{/Meta}");
   expect(screen.queryByRole("menu")).not.toBeInTheDocument();
   expect(trigger).toHaveFocus();
   await user.keyboard("{Control>}{Shift>}k{/Shift}{/Control}");
-  expect(screen.getByRole("menu", { name: "Switch workspace" })).toBeVisible();
+  expect(screen.getByRole("menu", { name: "Switch space" })).toBeVisible();
   fireEvent.pointerDown(screen.getByRole("button", { name: "Elsewhere" }));
   expect(screen.queryByRole("menu")).not.toBeInTheDocument();
 });

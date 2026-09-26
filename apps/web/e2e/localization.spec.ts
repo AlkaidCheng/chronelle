@@ -16,7 +16,7 @@ const hans = {
   settings: "\u8bbe\u7f6e",
   languageTime: "\u8bed\u8a00\u4e0e\u65f6\u95f4",
   group: "\u8bed\u8a00",
-  navigation: "\u5de5\u4f5c\u533a\u5bfc\u822a",
+  navigation: "\u7a7a\u95f4\u5bfc\u822a",
   people: "\u4f19\u4f34",
   trash: "\u56de\u6536\u7ad9",
   more: "\u66f4\u591a",
@@ -323,7 +323,7 @@ test("renders the first paint in the browser's language and keeps a chosen one @
     await expect(
       page.getByRole("heading", {
         level: 1,
-        name: "\u958b\u555f\u4f60\u7684\u5de5\u4f5c\u5340",
+        name: "\u958b\u555f\u4f60\u7684\u7a7a\u9593",
       }),
     ).toBeVisible();
     // A chosen language wins over the browser's on the next request too;
@@ -338,7 +338,7 @@ test("renders the first paint in the browser's language and keeps a chosen one @
     await page.reload();
     await expect(page.locator("html")).toHaveAttribute("lang", "en");
     await expect(
-      page.getByRole("heading", { level: 1, name: "Open your workspace" }),
+      page.getByRole("heading", { level: 1, name: "Open your space" }),
     ).toBeVisible();
   } finally {
     await context.close();

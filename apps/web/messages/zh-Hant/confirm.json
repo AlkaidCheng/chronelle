@@ -1,7 +1,7 @@
 {
   "trash": "將{name}移到垃圾桶？可從垃圾桶還原。",
   "removeShare": "{name}將失去對{resource}的存取權限。",
-  "removeMember": "{name}將失去對此工作區的存取權限。",
+  "removeMember": "{name}將失去對此空間的存取權限。",
   "removeFriend": "你們互相給予的分享將保留，直到被移除。",
   "removeLabel": "所有任務都將失去{name}。"
 }

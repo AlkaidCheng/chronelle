@@ -1432,10 +1432,12 @@ describe("EventWorkspace", () => {
     );
 
     await user.click(await screen.findByRole("tab", { name: "Sharing" }));
-    // Every role the API takes is offered: Viewer, Editor, Owner.
+    // A single record is shared for viewing or editing; owning is a space's.
     expect(screen.getByRole("option", { name: "Viewer" })).toBeVisible();
     expect(screen.getByRole("option", { name: "Editor" })).toBeVisible();
-    expect(screen.getByRole("option", { name: "Owner" })).toBeVisible();
+    expect(
+      screen.queryByRole("option", { name: "Owner" }),
+    ).not.toBeInTheDocument();
     await user.type(
       screen.getByLabelText("Collaborator email"),
       "viewer@example.com",

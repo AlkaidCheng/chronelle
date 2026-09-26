@@ -112,7 +112,7 @@ test("lists the workspaces shared with the account by when they were last opened
   const block = workspaceBlock(page);
   await expect(block).toContainText("Personal");
   const menu = await openWorkspaceSwitcher(page);
-  const search = menu.getByRole("searchbox", { name: "Find a workspace" });
+  const search = menu.getByRole("searchbox", { name: "Find a space" });
   await expect(search).toBeFocused();
   const entries = menu.getByRole("menuitemradio");
   await expect(entries).toHaveCount(sharers.length + 1);
@@ -138,7 +138,7 @@ test("lists the workspaces shared with the account by when they were last opened
   await expect(entries.first()).toContainText("Kai Tanaka");
   await search.fill("nobody here");
   await expect(entries).toHaveCount(0);
-  await expect(menu.getByText("No workspace matches.")).toBeVisible();
+  await expect(menu.getByText("No space matches.")).toBeVisible();
   await page.keyboard.press("Escape");
   await expect(menu).toHaveCount(0);
   if (!isPhone(page)) {
@@ -146,7 +146,7 @@ test("lists the workspaces shared with the account by when they were last opened
     await expect(account).toBeVisible();
     await expect(
       account.getByRole("menuitem", {
-        name: "Switch workspace...",
+        name: "Switch space...",
         exact: true,
       }),
     ).toBeFocused();

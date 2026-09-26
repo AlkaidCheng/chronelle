@@ -12,8 +12,8 @@ The current Mini Program provides:
 - a package-local React 18 and TypeScript 5 toolchain, isolated from the web
   application's React 19 runtime;
 - Simplified Chinese and English message catalogs, with Chinese as the safe
-  fallback and the web app's Chinese terms: 伙伴 for People, 工作区 for a
-  workspace, 设置 for Settings, and 可编辑 and 仅查看 for access;
+  fallback and the web app's Chinese terms: 伙伴 for People, 空间 for a
+  space, 设置 for Settings, and 可编辑 and 仅查看 for access;
 - light and dark warm ink, cinnabar, and indigo tokens;
 - the LivTales lockup as vector art in a light and a dark version, drawn from
   the brand sources byte for byte;
@@ -21,8 +21,8 @@ The current Mini Program provides:
 - a production package report with enforced main, subpackage, and total budgets;
 - native WeChat sign-in, independent username/email and password sign-in, and
   explicit existing-account linking;
-- session restoration, revocation, onboarding, and workspace switching;
-- an Events sidebar with an account menu, a searchable workspace picker, and
+- session restoration, revocation, onboarding, and space switching;
+- an Events sidebar with an account menu, a searchable space picker, and
   confirmed sign-out;
 - account language, time zone, clock, and week-start preferences through the
   authenticated account API;
@@ -183,12 +183,12 @@ session is available it reads in Chinese, the catalogs' fallback.
 
 The menu button opens a left sidebar that stops short of the capsule. It lists
 the Events and People collections, then Trash, and ends with the account block:
-the account's name, with its username in its own workspace or the workspace and
+the account's name, with its username in its own space or the space and
 access in a shared one. The account block opens the account menu, which shows
-the current workspace, switches workspace through a picker that searches names,
+the current space, switches space through a picker that searches names,
 owners, and access, and opens Friends and Settings. Signing out asks for
-confirmation first. People and Trash name the active workspace above their
-titles the same way: my workspace for the account's own, and a shared one by its
+confirmation first. People and Trash name the active space above their
+titles the same way: my space for the account's own, and a shared one by its
 owner or its new name.
 
 Event cards say only what differs from the workspace. A view-only badge marks an

@@ -21,7 +21,7 @@ too). The first sign-in of a new account then opens Welcome (`/welcome`),
 once: the account's `@username` and email at the top, then the Name
 (required), the Language (Browser default, or one of the languages), the
 Time zone and the Clock (the device's until changed), and Continue, which
-opens the workspace; the step comes back until it is completed, and the
+opens the app; the step comes back until it is completed, and the
 account is named as its username until then. An account created any other
 way (the development sign-in today; other sign-in methods later) brings its
 name, gets a username from it, numbered when that is taken, and has no
@@ -34,13 +34,13 @@ at `/sign-in/development` and
 exists only where the web server is started with
 `WEB_DEVELOPMENT_SIGN_IN=true`.
 
-LivTales opens into an event collection, with workspace-wide Tasks and People
+LivTales opens into an event collection, with space-wide Tasks and People
 alongside it. Desktop navigation stays on the left: Search at the top, then a
 Collections section (Events, Tasks, People) in the order the account keeps,
-then the account block (the account's name with the current workspace
+then the account block (the account's name with the current space
 under it) with a More control beside it. A phone (under 760px) has no rail
 and no bottom bar: an app bar fixed at the top of every page holds a menu
-control at the left, the current workspace beside it (its mark and name),
+control at the left, the current space beside it (its mark and name),
 and the account's avatar at the right, with space for the device's safe
 area. The menu control opens the sidebar as a drawer from the left edge (the
 logo with a close control, Search, and the Collections in the kept order,
@@ -91,36 +91,36 @@ motion choices, and a reset. Keyboard shortcuts opens Settings > Keyboard
 and shows only on a device with a keyboard; Help has no surface yet and
 says so in a passing notice. The
 account block at the foot of the rail (the account's avatar and name, the
-current workspace in small text under it, a caret) opens the account menu:
-the account's name and email, then a Workspace section with the current
-workspace ticked and Switch workspace..., then Friends, Settings, and Sign
-out. Switch workspace... replaces the menu with the workspace switcher until
+current space in small text under it, a caret) opens the account menu:
+the account's name and email, then a Space section with the current
+space ticked and Switch space..., then Friends, Settings, and Sign
+out. Switch space... replaces the menu with the space switcher until
 Escape or its first row leads back: Yours first (the account's own
-workspace), then Shared with you, most recently opened first and those
-never opened after them by name; the current one is ticked. A workspace
+space), then Shared with you, most recently opened first and those
+never opened after them by name; the current one is ticked. A space
 reads by the person behind it: the account's own is "Personal" with the
 account's name under it and a home symbol as its mark; one shared with the
 account reads its owner's name with the role held there and when it was
 last opened under it, the owner's initials as its mark; one its owner
 renamed reads that name with the owner under it. The account's own
 initials appear on its round avatar alone. The switcher lists memberships alone: a
-workspace reached only through an event shared with the account is absent,
+space reached only through an event shared with the account is absent,
 since that event shows in the account's own Events list. Past six
-workspaces a search field narrows the list by name or owner; the shared
+spaces a search field narrows the list by name or owner; the shared
 ones scroll inside the list.
 Members at the foot opens the settings page's Members section, and
-Cmd/Ctrl+Shift+K opens the switcher from anywhere in the workspace. Opening
-a workspace notes the moment on the account, so the order follows the person
+Cmd/Ctrl+Shift+K opens the switcher from anywhere in the space. Opening
+a space notes the moment on the account, so the order follows the person
 across devices. Escape or a press elsewhere closes any of these and returns
 focus to its control; none navigates or discards the current Event draft. A
-workspace or session change uses the existing session boundary to cancel
-pending requests and clear protected state. Workspace choices come from the
+space or session change uses the existing session boundary to cancel
+pending requests and clear protected state. Space choices come from the
 authorized session response; choosing one never grants access by itself.
 
 On a phone these surfaces are sheets that rise from the bottom edge and
 never leave the screen, each a modal dialog with a scrim and a handle at
 its top (a pull down on the handle, a press on it or on the scrim, or Escape
-closes it, and focus returns to the control that opened it). The workspace
+closes it, and focus returns to the control that opened it). The space
 control in the app bar (the home mark and "Personal", or the owner's
 initials and name) opens the switcher's list as a sheet, without the way
 back the rail's list has; Cmd/Ctrl+Shift+K opens and closes it too. The
@@ -144,15 +144,15 @@ chips with the name. The count of loaded events is announced to assistive
 technology and not shown.
 
 The list holds the events shared with the account beside its own, from
-whichever workspace they live in, so a share needs no workspace switch to
+whichever space they live in, so a share needs no space switch to
 be found: a card shared with the account is the same card, its third line
 carrying the tag "Shared by Mei Lin" and the role held (Viewer when every
 grant is narrowed to a view); one of the account's own that others hold
 reads "Shared with 2" there; the rest keep the line empty so every card
 keeps its height. Opening a shared card opens the event page directly, in
-the event's own workspace, with the access line under the title naming the
-sharer; the rail stays on the account's workspace, and its Tasks and People
-collections stay the workspace's own. A shared card's Share control shows
+the event's own space, with the access line under the title naming the
+sharer; the rail stays on the account's space, and its Tasks and People
+collections stay the space's own. A shared card's Share control shows
 only when the role allows sharing, and its menu offers Leave this event in
 place of Move to Trash: the card goes at once and a notice offers Undo for
 a few seconds; the account's grants are dropped once the notice has gone
@@ -179,14 +179,14 @@ to the viewport, so a strip that clips its overflow never cuts a tip.
 
 ## Tasks
 
-Tasks lists every task the user may view in the workspace: tasks that live on
+Tasks lists every task the user may view in the space: tasks that live on
 their own and tasks inside any event, in one place. New task creates a task
 that belongs to no event and owns its own permission scope; tasks added inside
 an event keep that event's scope and appear here as well. The toolbar filters
 by name and carries the three quiet controls every task collection shares:
 Sort (Manual, the default, the order tasks are kept in; By due, a date-only
 due leading its day and undated tasks last; By name; By updated), Filter
-(Open, All, or Done, then any label and any person the workspace knows, with
+(Open, All, or Done, then any label and any person the space knows, with
 Clear filters; the button counts the choices that differ from Open, Any
 label, and Anyone), and Layout. The sort, status, label, and assignee are
 applied by the server, so a page holds only what matches. Load more tasks
@@ -214,22 +214,22 @@ brings back the ones that went with it (a subtask trashed on its own stays,
 and cannot be restored before its parent). The To-dos component offers the
 same actions and marks over the event's tasks.
 
-Labels are workspace-wide names a task may carry any number of. The task
+Labels are space-wide names a task may carry any number of. The task
 editor holds them behind a Labels disclosure: closed, it counts the selection;
-open, it lists the workspace's labels as checkboxes and takes a new label,
+open, it lists the space's labels as checkboxes and takes a new label,
 which is selected as soon as it exists. Rows show labels as chips under the
 title in both views. The Tasks page filters by one label from the toolbar and
 opens Manage labels, where labels are renamed, added, or deleted; a deleted
-label leaves its tasks. Anyone with access to the workspace sees label names;
+label leaves its tasks. Anyone with access to the space sees label names;
 owners and editors change them. The view is a device preference, kept in browser storage like the
 event collection's grid or list choice, and applies to the loaded tasks. The
 filter, sort, name query, label, and assignee belong to the tab.
 
 ## People
 
-People are canonical records of the workspace: a name, an optional nickname
+People are canonical records of the space: a name, an optional nickname
 shown in its place wherever the person is named, contacts (email, phone, or
-other, in the order kept), labels from the workspace's label vocabulary, a
+other, in the order kept), labels from the space's label vocabulary, a
 description, an optional link to a member's account, and custom fields for
 anything else worth keeping (a birthday, a dietary note). The People page in
 the rail is a collection like Tasks: one heading row with an inline name
@@ -262,7 +262,7 @@ person has (Nickname, each contact by kind, the custom fields, Labels) and
 nothing for what they lack, or one line, No details yet; Description appears
 only when there is one. Connection names the account behind the card: a
 friend ("Linked to your friend Mei Lin", friends since when, and "Member of
-this workspace as editor" when they are), an account that is not a friend,
+this space as editor" when they are), an account that is not a friend,
 a request sent from the card ("Request sent to ben@example.test", with
 Withdraw), an invitation sent from the card ("Invitation sent to
 ben@example.test" or "Invitation link created 18 Sep 2026", "One use. Valid
@@ -282,7 +282,7 @@ card's email contacts reaches and that lets itself be found by email (a
 card whose contacts reach two accounts, or only accounts that hide from
 email, reaches none), so a share made from an event's Sharing tab, and one
 the person made to this account, both appear. A card reached through a share (another
-workspace's) has no Shared panel, tab, or Share action. Events lists the
+space's) has no Shared panel, tab, or Share action. Events lists the
 events the person is part
 of, each a link with its dates. Tasks lists the tasks assigned to them, open
 and done, each a link to where it lives. The editor is one column: the
@@ -291,7 +291,7 @@ editor's schedule rows (the field's symbol, its name while unset, its value
 with a clear once set). The Name field is also the account lookup: while it
 has focus and the card is unlinked, the accounts the card can be linked to
 list under it, the signed-in user's own first (tagged You, offered while no
-other card of the workspace is theirs) and then the friends whose name or
+other card of the space is theirs) and then the friends whose name or
 email contains the typed text; arrow keys walk the list, Enter or a click
 picks, Escape closes it. A pick links the card, fills the name, and adds
 the account's email as a contact unless the contacts already carry it; the
@@ -324,10 +324,10 @@ and the Shared panel already lists the new row.
 
 An event page can carry a People component (also an event view and an
 overview card) that shows the people the event involves as the same
-namecards, each opening the person's page. Add person offers everyone the workspace knows who is not yet in
+namecards, each opening the person's page. Add person offers everyone the space knows who is not yet in
 the event, by name, or takes a new person's name and creates them inside the
 event. A card's Actions offer Remove from this event, which takes the person out
-of the event and leaves them in the workspace, as well as Move to Trash.
+of the event and leaves them in the space, as well as Move to Trash.
 
 Notes (a gallery card, "Free text kept with the event: plans, addresses,
 what to remember.") lists the event's notes as cards: the title, the first
@@ -348,16 +348,17 @@ and found by Search by its title only.
 The Sharing tab of an event, offered to its owners, is one box headed by
 the event's name, with a note that everything on the event (pages, to-dos,
 expenses, files) follows a share, and three groups. Friends lists the
-account's friends (by their card's name when the workspace has one), each
+account's friends (by their card's name when the space has one), each
 with a mark, the role they already hold under the name, and a role beside
-it; Others in People lists the workspace's other people: one with an
+it; Others in People lists the space's other people: one with an
 account here, one already invited from their card, one with an email and
 no account, whose row says an invitation goes out, or one with no email,
 whose row says "No email; you send them the link" (a row that waits on an
 invitation is dimmed until ticked); By email is one row: the
 address, a role, and Add, which grants at once. Tick any number, choose
-Viewer, Editor, or Owner beside each (an editor can change the event but
-not delete or share it), and Share with N people applies every row in turn;
+Viewer or Editor beside each (an editor can change the event but
+not delete or share it; owning belongs to the space the event lives in, and a
+share made as Owner before keeps its role and reads Owner), and Share with N people applies every row in turn;
 Copy link beside it copies the event's address. A friend or
 an account is granted at once ("Shared as Viewer"), a person with an email
 contact is invited at the first one and the share waits ("Invitation sent;
@@ -372,7 +373,7 @@ event's own people ticked. People with access lists the accounts that hold a
 grant, each with what the grant gives under the name ("Also this event's
 pages, to-dos, expenses, files, and earlier versions"), and the shares still
 waiting ("Access follows when they join"), each with Remove. A whole
-workspace is shared by making a friend a member (see Settings).
+space is shared by making a friend a member (see Settings).
 
 A share can be narrowed to one view of the event, or to one section of
 To-dos or Expenses. Share ends the head row of To-dos, Calendar, Timeline,
@@ -400,19 +401,19 @@ at different roles; a whole share stands beside them. Deleting a section
 ends the shares narrowed to it.
 
 Where access comes from is named on the record when it is not the reader's
-own workspace. Under the heading of an event, a person's page, or a task's
+own space. Under the heading of an event, a person's page, or a task's
 editor, one quiet line reads "Shared with you by Mei as editor" for a grant
 on that record, or "Through Kyoto in November, shared by Mei" for a record
 that inherits its access from an event's scope. The inherited line opens that
 event, at its Sharing view when the role allows sharing; on an event page the
 direct line opens the event's own Sharing view for an owner and is plain text
-otherwise. A record of the reader's own workspace shows no line. A record the
+otherwise. A record of the reader's own space shows no line. A record the
 reader has no role on is not shown at all: an event's views count such
 included records as locked rather than listing them.
 
 A task may be assigned to one person as the one responsible for it. The task
 editor holds the choice behind an Assignee disclosure that names the current
-assignee (Unassigned when none); open, it lists the workspace's people with
+assignee (Unassigned when none); open, it lists the space's people with
 Unassigned first, takes a new person by name (selected as soon as they
 exist), and offers Assign to me, which creates the signed-in user's person on
 first use and marks it "(me)" thereafter. Rows name the assignee under the
@@ -442,11 +443,11 @@ recovery dialog says so when it matters) nor the submit shortcut's keys
 
 Friends (`/friends`, from the profile menu, whose entry carries the number
 of requests waiting and whose profile block shows a dot then) belong to the
-account, not to a workspace. The page opens with a line on what friends are
+account, not to a space. The page opens with a line on what friends are
 for, then three panels with counts: Requests (who wants to connect, their
 address and how long ago, their note; Accept, Decline), Friends (name and
 address on one line, since when, Remove friend), and Sent (the person of
-this workspace the invitation went from, the address, or "Invitation link";
+this space the invitation went from, the address, or "Invitation link";
 a line Request, Email, or Link with how long ago or "One use. Valid until 2
 Oct 2026."; a badge, Sent how long ago for a request or No account yet for
 an invitation; Copy link for an invitation, Resend for a request or an
@@ -459,7 +460,7 @@ sends the ordinary request (with the note below when there is one, and from
 a card, linking the card when they accept), or the state that already holds
 (Friends, Request sent, Wants to connect). Nothing matching says so and
 points at the section below, Not on LivTales yet?: a person of the current
-workspace without an account link, or Someone new, an optional email, and
+space without an account link, or Someone new, an optional email, and
 an optional note, then Send by email or Create link. An invitation is a
 link: Send by email emails it to the address (an address with an account
 gets a request instead and the dialog closes); Create link needs no
@@ -484,7 +485,7 @@ link."; a used one "This invitation was already accepted."; a withdrawn one
 "This invitation is no longer open."; an expired one "This invitation
 expired on 2 Oct 2026."; an unknown one "No invitation has this link."
 In the person editor, the Name field's lookup offers the account's
-friends after the account's own entry, so a card of any workspace can be
+friends after the account's own entry, so a card of any space can be
 the friend; accepting a request that came from a card links the card by
 itself. From a
 card's Invite a friend, the search starts with the card's name.
@@ -495,9 +496,7 @@ under the LivTales logo, the name and username with Add friend, or how the
 two already stand, after signing in (the page returns there after the
 sign-in) and never their own code as anything but their own.
 
-## Workspace commands
-
-## Workspace commands
+## Commands
 
 Search in the rail opens a focused palette: the field at the top, with the
 close control beside it, and the results grouped under it (the current
@@ -547,8 +546,8 @@ text undo remains available in editors.
 Two undo stacks, each named for what it takes back. Content edits of Events and
 Tasks (a rename, a due date, a completion, a move in manual order) run as
 reversible commands, and the page's More menu on an event or a person offers
-Undo edit and Redo edit for the account's stack in this workspace, or, on an
-event or a person shared from another workspace, for the account's stack
+Undo edit and Redo edit for the account's stack in this space, or, on an
+event or a person shared from another space, for the account's stack
 where that record lives, since its edits are kept there: the item
 reads the command this browser ran ("Undo: rename Kyoto in November"), and is
 disabled with the reason when the head is not reachable (Nothing to undo, or
@@ -582,7 +581,7 @@ and unavailable targets prevent stale activation. The application router supplie
 the scope in both Next.js and the offline sandbox.
 
 Navigation and event actions filter immediately. Valid terms of at least two
-characters also search the current workspace after a 250 ms typing pause;
+characters also search the current space after a 250 ms typing pause;
 composition-stage input does not issue requests. Records appear as a separate
 group, with up to eight results from the existing authorized search endpoint.
 Type and destination hints distinguish records from actions without displaying
@@ -600,7 +599,7 @@ canonical identity: an arriving record does not replace a selected navigation
 action, and removing a selected record does not choose another one. The palette
 retains no search cache after dismissal and revalidates when the window regains
 focus. The session boundary aborts requests, discards protected caches, and closes
-the palette on workspace or identity changes.
+the palette on space or identity changes.
 
 Availability follows the latest loaded access response, not a live subscription
 to permissions. All underlying reads and mutations require backend authorization.
@@ -620,7 +619,7 @@ operating-system changes; Light and Dark override them without reloading the
 page or resetting a draft.
 
 Appearance is a device-local, same-origin browser preference, independent of
-the account, workspace, and palette. It persists across reloads and sign-out,
+the account, space, and palette. It persists across reloads and sign-out,
 and synchronizes across tabs. System removes the saved override. Invalid or
 unreadable storage falls back to System; failed writes leave the current page
 usable but cannot guarantee persistence. Sandbox file storage depends on the
@@ -681,12 +680,12 @@ account and applied at once; Appearance repeats the Theme panel's mode,
 palette, density, and motion choices, which stay on the browser, and
 carries the Install app control (see Install as an app); Keyboard, on a
 keyboard device, holds the shortcut table described under Search. Under
-Workspace, Members lists the current workspace's members with their roles
-(the personal owner first, marked Personal workspace, and Friend beside a
+Space, Members lists the current space's members with their roles
+(the personal owner first, marked Personal space, and Friend beside a
 member who is one); an Owner adds a friend as Viewer or Editor from the
 friends list (adding a member again changes their role) and removes any
-member but the personal owner and themselves. A member sees the workspace
-under Workspaces in the profile menu and reaches everything in it by role.
+member but the personal owner and themselves. A member sees the space
+in the space switcher and reaches everything in it by role.
 
 The time zone is Device (named, with its offset) or any zone the browser
 knows, grouped by region with its current offset; a search field narrows the
@@ -719,7 +718,7 @@ The choice lives in the `chronelle.locale` cookie, which the server reads to
 render the first paint and the `lang` attribute in the right language, with a
 localStorage mirror for the same browser. System clears both. Signed in, the
 choice is also kept on the account: sign-in puts the account's language on
-the browser before the workspace renders, an account without a language
+the browser before the app renders, an account without a language
 learns the choice this browser already made (a language picked on the sign-in
 screen follows the person from then on), sign-up sends the browser's choice,
 and a session found through the cookie reconciles the two the same way.
@@ -732,9 +731,9 @@ Traditional Chinese the display and body stacks prefer the TC faces; Chinese
 body text takes a taller line and uppercase labels drop their Latin tracking.
 Both Chinese variants name access as a permission, the words the Mini Program
 uses: 所有者/擁有者 for Owner, 可编辑/可編輯 for Editor, and 仅查看/僅查看 for
-Viewer.
+Viewer; a space is 空间/空間.
 Notices word the API's known error codes (version conflict, unavailable
-workspace, network failure, wrong credentials, unverified email, ended
+space, network failure, wrong credentials, unverified email, ended
 session) in the active language and show the API's English message only for
 codes without a translation.
 
@@ -798,7 +797,7 @@ not yet reviewed the two Chinese catalogs; wording may change.
   automatically download the remaining collection. Refresh starts at page one.
   Search waits for committed input when using an input method editor.
 - Collection criteria and return references stay in memory, not URLs or browser
-  storage. Reload, sign-out, identity replacement, and workspace changes reset
+  storage. Reload, sign-out, identity replacement, and space changes reset
   them. These temporary preferences are not saved views or shared bookmarks.
 - Choose grid or list layout. Only this preference is saved in local browser
   storage; no object data, search text, or permissions are persisted there.
@@ -1008,7 +1007,7 @@ programmatic date scrolling cannot move or clip the dialog header and actions.
 
 New event focuses its opener before showing the native dialog, including on
 browsers that do not focus buttons on pointer clicks. Closing a session-bound
-dialog returns focus to its opener; if it cannot receive focus, the workspace
+dialog returns focus to its opener; if it cannot receive focus, the page
 content is the fallback. Session changes still close dialogs.
 
 The production browser gate includes desktop and mobile WebKit checks for Event
@@ -1112,7 +1111,7 @@ link; recovered from Removed links), Unlink person, Remove share, Remove
 member, Remove friend, Withdraw invitation, and Remove label are reversed by
 doing the opposite. Delete appears nowhere. A one-line question stands in for
 a confirmation dialog, and only where other people lose access (Remove share
-names who loses what, Remove member the workspace, Remove friend that shares
+names who loses what, Remove member the space, Remove friend that shares
 stay) or Trash is involved (Move to Trash offers Trash as the way back);
 removing a context link, a field, a contact, or a queued share asks nothing.
 The record's Actions dialog is the two verbs with a one-line note each.
@@ -1151,7 +1150,7 @@ Edit opens the composer too. The composer is a card in the list: the name
 field, and a foot with More, the keys hint "Enter saves, Esc cancels",
 Cancel, and Save (Add task on the add row). A chip is the field's control,
 the one the dialog uses, opened under the chip when pressed: Due opens the
-date panel with Time and Repeat at its foot; Assignee lists the workspace's
+date panel with Time and Repeat at its foot; Assignee lists the space's
 people with Unassigned, a new person, and Assign to me; Labels is the
 checklist with a field for a new label; Location is a text field, Enter
 closing it. A set chip reads its value ("Due: Nov 3, 2030 (tomorrow)",
@@ -1238,7 +1237,7 @@ drafts without changing independently authorized canonical Task drafts.
 An unchanged Task creation retry retains its command across navigation and
 recovery. Pending saves cannot be resumed or discarded until they settle;
 completion clears the draft without navigating. Check the current Task before
-retrying an uncertain edit. Discard, eviction, reload, sign-out and workspace
+retrying an uncertain edit. Discard, eviction, reload, sign-out and space
 changes clear retained fields and retry identity. This is session-local recovery,
 not durable offline storage.
 
@@ -1275,7 +1274,7 @@ the inspector to finish explicitly, or navigate and reopen Edit event to recover
 its unsaved name and schedule. New event offers the same recovery. Up to twenty
 recently changed Event, Task, Expense and Reminder drafts stay in the current authenticated tab's memory;
 older non-pending drafts can be evicted. Drafts are never written to browser
-storage. Reload, sign-out and workspace changes clear them. Calendar navigation
+storage. Reload, sign-out and space changes clear them. Calendar navigation
 itself is not retained across routes. Schedule creation shares this limit with
 Event creation, Event/schedule-item editing, Task, Expense and Reminder creation/editing.
 

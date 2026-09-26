@@ -35,7 +35,7 @@
   "linkCreated": "邀請連結已建立 {date}",
   "validUntil": "一次有效，{date} 前可用。",
   "notLinked": "未連結帳號",
-  "memberAs": "本工作區成員（<b>{role}</b>）",
+  "memberAs": "本空間成員（<b>{role}</b>）",
   "linkToFriend": "連結好友",
   "invite": "邀請好友",
   "resend": "重發",

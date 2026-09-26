@@ -1,7 +1,7 @@
 {
   "trash": "将{name}移到回收站？可从回收站恢复。",
   "removeShare": "{name}将失去对{resource}的访问权限。",
-  "removeMember": "{name}将失去对此工作区的访问权限。",
+  "removeMember": "{name}将失去对此空间的访问权限。",
   "removeFriend": "你们互相给予的共享将保留，直到被移除。",
   "removeLabel": "所有任务都将失去{name}。"
 }

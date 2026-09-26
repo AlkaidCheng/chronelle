@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { expect, test } from "./fixtures";
 
-test("shares an event with the people the workspace knows", async ({
+test("shares an event with the people the space knows", async ({
   page,
   request,
 }) => {
